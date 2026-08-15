@@ -9,5 +9,7 @@ dist/
 !.env.example
 .vercel/
 next-env.d.ts
+supabase/.temp/
+supabase/.branches/
 .DS_Store
 *.log

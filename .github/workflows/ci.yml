@@ -38,3 +38,72 @@ jobs:
 
       - name: Verify checks did not modify tracked source
         run: git diff --exit-code
+
+  database:
+    name: Database foundation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Start local Supabase stack
+        run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+
+      - name: Rebuild database from migrations
+        run: pnpm exec supabase db reset --local
+
+      - name: Verify private schema permissions
+        shell: bash
+        run: |
+          set -euo pipefail
+          db_container="$(docker ps --filter 'name=supabase_db_' --format '{{.Names}}' | head -n 1)"
+          test -n "$db_container"
+          privileges="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "select has_schema_privilege('anon','app_private','USAGE'), has_schema_privilege('authenticated','app_private','USAGE'), has_schema_privilege('service_role','app_private','USAGE');")"
+          test "$privileges" = "f|f|t"
+
+      - name: Verify local authentication
+        shell: bash
+        run: |
+          set -euo pipefail
+          status_env="$(pnpm exec supabase status -o env)"
+          eval "$(printf '%s\n' "$status_env" | grep '^ANON_KEY=')"
+          test -n "${ANON_KEY:-}"
+          api_url='http://127.0.0.1:54321'
+
+          email="f02-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@example.com"
+          password='F02-local-auth-check-2026!'
+
+          signup_response="$(curl --fail-with-body --silent --show-error \
+            --request POST "$api_url/auth/v1/signup" \
+            --header "apikey: $ANON_KEY" \
+            --header 'Content-Type: application/json' \
+            --data "{\"email\":\"$email\",\"password\":\"$password\"}")"
+
+          printf '%s' "$signup_response" | jq -e '.user.id | strings | length > 0' >/dev/null
+
+          signin_response="$(curl --fail-with-body --silent --show-error \
+            --request POST "$api_url/auth/v1/token?grant_type=password" \
+            --header "apikey: $ANON_KEY" \
+            --header 'Content-Type: application/json' \
+            --data "{\"email\":\"$email\",\"password\":\"$password\"}")"
+
+          printf '%s' "$signin_response" | jq -e '.access_token | strings | length > 0' >/dev/null
+
+      - name: Stop local Supabase services
+        if: always()
+        run: pnpm exec supabase stop --no-backup
