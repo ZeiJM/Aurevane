@@ -36,6 +36,9 @@ jobs:
       - name: Run quality gates
         run: pnpm check
 
+      - name: Verify worker boot
+        run: pnpm --filter @aurevane/worker check:boot
+
       - name: Verify checks did not modify tracked source
         run: git diff --exit-code
 
@@ -76,6 +79,40 @@ jobs:
           privileges="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "select has_schema_privilege('anon','app_private','USAGE'), has_schema_privilege('authenticated','app_private','USAGE'), has_schema_privilege('service_role','app_private','USAGE');")"
           test "$privileges" = "f|f|t"
 
+      - name: Verify transactional idempotency boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          db_container="$(docker ps --filter 'name=supabase_db_' --format '{{.Names}}' | head -n 1)"
+          test -n "$db_container"
+
+          actor_key='user:00000000-0000-4000-8000-000000000003'
+          idempotency_key='00000000-0000-4000-8000-000000000303'
+          fingerprint='foundation.authority_probe:v1'
+
+          first="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "set role service_role; select receipt_id::text || '|' || replayed::text from public.execute_foundation_authority_probe('$actor_key', '$idempotency_key', '$fingerprint');")"
+          second="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "set role service_role; select receipt_id::text || '|' || replayed::text from public.execute_foundation_authority_probe('$actor_key', '$idempotency_key', '$fingerprint');")"
+
+          first_receipt="${first%%|*}"
+          second_receipt="${second%%|*}"
+          first_replayed="${first##*|}"
+          second_replayed="${second##*|}"
+
+          test -n "$first_receipt"
+          test "$first_receipt" = "$second_receipt"
+          test "$first_replayed" = 'false'
+          test "$second_replayed" = 'true'
+
+          if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "set role service_role; select * from public.execute_foundation_authority_probe('$actor_key', '$idempotency_key', 'foundation.authority_probe:different');"; then
+            echo 'Expected conflicting idempotency fingerprint to fail.' >&2
+            exit 1
+          fi
+
+          if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "set role authenticated; select * from public.execute_foundation_authority_probe('user:browser', '00000000-0000-4000-8000-000000000304', '$fingerprint');"; then
+            echo 'Expected authenticated browser role execution to be denied.' >&2
+            exit 1
+          fi
+
       - name: Verify local authentication
         shell: bash
         run: |
@@ -85,8 +122,8 @@ jobs:
           test -n "${ANON_KEY:-}"
           api_url='http://127.0.0.1:54321'
 
-          email="f02-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@example.com"
-          password='F02-local-auth-check-2026!'
+          email="f03-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@example.com"
+          password='F03-local-auth-check-2026!'
 
           signup_response="$(curl --fail-with-body --silent --show-error \
             --request POST "$api_url/auth/v1/signup" \
