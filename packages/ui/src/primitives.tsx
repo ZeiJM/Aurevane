@@ -1,9 +1,4 @@
-import type {
-  ButtonHTMLAttributes,
-  HTMLAttributes,
-  PropsWithChildren,
-  ReactNode,
-} from 'react'
+import type { ButtonHTMLAttributes, HTMLAttributes, PropsWithChildren, ReactNode } from 'react'
 
 export type SurfaceTone = 'default' | 'quiet' | 'elevated'
 export type GameButtonVariant = 'primary' | 'quiet' | 'danger'

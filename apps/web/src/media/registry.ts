@@ -58,7 +58,11 @@ export function validateImageRegistry(entries: readonly ImageAssetDescriptor[]):
     }
 
     if (asset.status === 'approved') {
-      if (!asset.src?.trim() || !isPositiveInteger(asset.width) || !isPositiveInteger(asset.height)) {
+      if (
+        !asset.src?.trim() ||
+        !isPositiveInteger(asset.width) ||
+        !isPositiveInteger(asset.height)
+      ) {
         errors.push(`Approved image asset ${asset.id} requires source, width, and height.`)
       }
 

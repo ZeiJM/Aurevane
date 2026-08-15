@@ -95,8 +95,8 @@ export function AudioSettingsMenu() {
           Test UI channel
         </GameButton>
         <p className="audio-menu__fineprint">
-          This short calibration tone is synthesized by the runtime. Production music, ambience, and UI
-          sounds remain behind approved media requests.
+          This short calibration tone is synthesized by the runtime. Production music, ambience, and
+          UI sounds remain behind approved media requests.
         </p>
       </div>
     </details>

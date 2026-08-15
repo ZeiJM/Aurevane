@@ -101,8 +101,8 @@ export function FoundationShell() {
             <Kicker marker="◆">Phase zero // presentation foundation</Kicker>
             <h1 id="aurevane-title">AUREVANE</h1>
             <p className="world-stage__lead">
-              A persistent tactical fantasy RPG about becoming stronger without losing who your character
-              has become.
+              A persistent tactical fantasy RPG about becoming stronger without losing who your
+              character has become.
             </p>
 
             <div className="world-stage__action-row">
@@ -111,7 +111,8 @@ export function FoundationShell() {
               </GameButton>
               <p>
                 World access opens with playable systems.
-                <br />This shell is intentionally gameplay-free.
+                <br />
+                This shell is intentionally gameplay-free.
               </p>
             </div>
           </div>
@@ -165,8 +166,8 @@ export function FoundationShell() {
           <Kicker marker="◇">Production queue</Kicker>
           <h2>Media stays traceable.</h2>
           <p>
-            The shell never substitutes random web assets for missing production art or sound. Requested
-            media remains explicit until review.
+            The shell never substitutes random web assets for missing production art or sound.
+            Requested media remains explicit until review.
           </p>
           <ul className="request-list">
             <li>

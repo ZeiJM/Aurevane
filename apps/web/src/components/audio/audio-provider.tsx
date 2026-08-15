@@ -35,7 +35,11 @@ const AudioRuntimeContext = createContext<AudioContextValue | null>(null)
 
 export function AudioProvider({ children }: PropsWithChildren) {
   const [director] = useState(() => new AudioDirector())
-  const [settings, dispatch] = useReducer(reduceAudioSettings, undefined, createDefaultAudioSettings)
+  const [settings, dispatch] = useReducer(
+    reduceAudioSettings,
+    undefined,
+    createDefaultAudioSettings,
+  )
   const [audioState, setAudioState] = useState<AudioDirectorState>('locked')
   const [storageReady, setStorageReady] = useState(false)
 
@@ -43,7 +47,9 @@ export function AudioProvider({ children }: PropsWithChildren) {
     try {
       dispatch({
         type: 'replace',
-        settings: parsePersistedAudioSettings(window.localStorage.getItem(AUDIO_SETTINGS_STORAGE_KEY)),
+        settings: parsePersistedAudioSettings(
+          window.localStorage.getItem(AUDIO_SETTINGS_STORAGE_KEY),
+        ),
       })
     } catch {
       dispatch({ type: 'replace', settings: createDefaultAudioSettings() })

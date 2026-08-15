@@ -5,7 +5,12 @@ import {
   type RoutedAudioChannel,
 } from './settings'
 
-const ROUTED_CHANNELS = ['music', 'sfx', 'ambience', 'ui'] as const satisfies readonly RoutedAudioChannel[]
+const ROUTED_CHANNELS = [
+  'music',
+  'sfx',
+  'ambience',
+  'ui',
+] as const satisfies readonly RoutedAudioChannel[]
 
 export type AudioDirectorState = 'locked' | 'ready' | 'unavailable'
 
