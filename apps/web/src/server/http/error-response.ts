@@ -1,6 +1,6 @@
 import { isAurevaneError, type AurevaneErrorCode } from '@aurevane/game-core/errors'
 
-import { serverLogger, type ServerLogger } from '@/server/logging'
+import { serverLogger, type ServerLogger } from '../logging'
 
 const statusByCode: Record<AurevaneErrorCode, number> = {
   UNAUTHENTICATED: 401,
