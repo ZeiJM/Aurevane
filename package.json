@@ -9,15 +9,22 @@
   "scripts": {
     "dev": "turbo run dev --parallel",
     "build": "turbo run build",
-    "lint": "turbo run lint",
+    "lint": "turbo run lint && eslint \"packages/**/*.ts\"",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "format": "prettier --write \"apps/**/*.{ts,tsx,js,mjs,json,css}\" package.json turbo.json pnpm-workspace.yaml .prettierrc.json",
-    "format:check": "prettier --check \"apps/**/*.{ts,tsx,js,mjs,json,css}\" package.json turbo.json pnpm-workspace.yaml .prettierrc.json",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+    "format": "prettier --write \"apps/**/*.{ts,tsx,js,mjs,json,css}\" \"packages/**/*.{ts,tsx,js,mjs,json}\" package.json turbo.json pnpm-workspace.yaml .prettierrc.json eslint.config.mjs",
+    "format:check": "prettier --check \"apps/**/*.{ts,tsx,js,mjs,json,css}\" \"packages/**/*.{ts,tsx,js,mjs,json}\" package.json turbo.json pnpm-workspace.yaml .prettierrc.json eslint.config.mjs",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset --local"
   },
   "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "eslint": "9.39.5",
     "prettier": "3.9.6",
-    "turbo": "2.10.7"
+    "supabase": "2.114.0",
+    "turbo": "2.10.7",
+    "typescript-eslint": "8.65.0"
   }
 }
