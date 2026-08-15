@@ -21,6 +21,21 @@ describe('migration security policy', () => {
     )
   })
 
+  it('treats an unqualified application table as public for RLS enforcement', () => {
+    const violations = inspectMigrationSecurity(`
+      create table characters (
+        id uuid primary key
+      );
+    `)
+
+    expect(violations).toContainEqual(
+      expect.objectContaining({
+        code: 'PUBLIC_TABLE_WITHOUT_RLS',
+        table: 'characters',
+      }),
+    )
+  })
+
   it('accepts a public table when RLS is enabled in the same migration', () => {
     const violations = inspectMigrationSecurity(`
       create table public.characters (
@@ -28,6 +43,28 @@ describe('migration security policy', () => {
       );
 
       alter table public.characters enable row level security;
+    `)
+
+    expect(violations).toEqual([])
+  })
+
+  it('accepts an unqualified table when RLS is enabled in the same migration', () => {
+    const violations = inspectMigrationSecurity(`
+      create table characters (
+        id uuid primary key
+      );
+
+      alter table characters enable row level security;
+    `)
+
+    expect(violations).toEqual([])
+  })
+
+  it('does not require browser RLS policy for an explicitly private schema table', () => {
+    const violations = inspectMigrationSecurity(`
+      create table app_private.audit_entries (
+        id uuid primary key
+      );
     `)
 
     expect(violations).toEqual([])
