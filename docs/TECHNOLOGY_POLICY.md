@@ -147,10 +147,37 @@ Before significant technology changes, the agent must:
 5. create a focused upgrade/migration ticket when appropriate;
 6. run the full quality gate before completion.
 
-## 9. Decision Principle
+For ordinary implementation work, agents must also follow `docs/ENGINEERING_EXECUTION_STANDARD.md`. Technology choice, architecture, and code style should minimize unnecessary runtime cost, dependencies, duplicated work, client JavaScript, database round trips, network payloads, and maintenance burden while preserving correctness and clarity.
+
+## 9. Clean Implementation Rule
+
+The best technology stack still fails if implementation is wasteful or messy.
+
+AUREVANE therefore requires:
+
+- the smallest coherent change that fully satisfies the ticket;
+- reuse of existing project capabilities before adding parallel systems;
+- no unnecessary dependencies;
+- no speculative abstractions without a current need;
+- no duplicate source of truth for game rules or validation;
+- thin server boundaries and clear domain-service ownership;
+- bounded database queries and payloads;
+- avoidance of obvious N+1 query patterns;
+- deliberately small Client Component/client-state boundaries;
+- no dead/debug/obsolete code left behind after completed replacement;
+- measured optimization of meaningful bottlenecks rather than speculative micro-optimization;
+- a cleanup/efficiency review before completion.
+
+High quality should come from discipline and clarity, not from code volume or framework complexity.
+
+The detailed standard is `docs/ENGINEERING_EXECUTION_STANDARD.md`.
+
+## 10. Decision Principle
 
 The target is not "the newest code."
 
 The target is **the best modern production engineering choice for AUREVANE at that point in time**.
 
 That means the project should stay near the leading edge of stable web engineering while avoiding fragile hype-driven migrations.
+
+The same principle applies inside the codebase: choose the **cleanest effective implementation with the least unnecessary complexity and waste** that still preserves AUREVANE's quality, security, performance, and future growth.
