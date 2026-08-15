@@ -75,12 +75,14 @@ Never commit `.env.local`.
 
 ## 4. Hosted Staging and Production
 
-Create **two different Supabase projects**:
+AUREVANE uses separate hosted Supabase projects for staging and production:
 
 - AUREVANE Staging
 - AUREVANE Production
 
-For each project, record its project URL, publishable key, and server secret key in the appropriate deployment secret store. Do not place them in repository files.
+For each provisioned project, record its project URL, publishable key, and server secret key in the appropriate deployment secret store. Do not place them in repository files.
+
+The Vercel project must use **`apps/web` as its Root Directory**. Next.js is detected from `apps/web/package.json`; do not work around an incorrect project root with a repository-root `vercel.json` or duplicated application package manifest.
 
 ### Vercel Preview
 
@@ -96,7 +98,7 @@ SUPABASE_SECRET_KEY=<staging server secret key>
 
 ### Vercel Production
 
-Configure Production environment variables with **production** values:
+Configure Production environment variables with **production** values only after a dedicated production Supabase project has been intentionally provisioned:
 
 ```text
 NEXT_PUBLIC_AUREVANE_ENV=production
@@ -106,7 +108,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=<production publishable key>
 SUPABASE_SECRET_KEY=<production server secret key>
 ```
 
-Do not reuse the same Supabase project for Preview and Production.
+Do not reuse the staging Supabase project for Production. If the dedicated production project has not been provisioned yet, Production database/auth configuration remains intentionally unconfigured rather than falling back to staging.
 
 ## 5. Migration Workflow
 
@@ -116,6 +118,8 @@ All application database schema changes require a version-controlled migration u
 supabase/migrations/
 ```
 
+The migration filename timestamp is part of the migration identity. Hosted migration history must preserve the same version recorded in Git.
+
 Normal workflow:
 
 1. Create/edit a migration locally.
@@ -123,9 +127,14 @@ Normal workflow:
 3. Run the repository quality gates.
 4. Review generated SQL for security and data-loss risk.
 5. Merge only after CI is green.
-6. Apply migrations to staging and verify there before production.
+6. Link the intended hosted project through the Supabase CLI.
+7. Apply repository-backed hosted migrations with `supabase db push` from the committed migration files.
+8. Verify the hosted migration version and name match the committed filename/history.
+9. Verify staging before any production migration.
 
 Do not make untracked production schema changes in the Supabase Dashboard.
+
+Do not use a generic DDL/migration execution tool for a migration that already exists in `supabase/migrations/` when that tool records its own generated timestamp. That can make remote migration history disagree with Git even when the SQL is identical. If hosted history ever differs from the committed version, reconcile the migration metadata before the next push rather than accepting permanent drift.
 
 ## 6. RLS Baseline
 
@@ -161,7 +170,9 @@ The polished player authentication UI belongs to Phase 1 and is intentionally no
 - Never run destructive reset commands against production.
 - Never use production player data as local seed data.
 - Never expose `SUPABASE_SECRET_KEY` to the browser.
+- Never point Preview at production or Production at staging as a convenience fallback.
 - Never treat RLS as a substitute for server-side authorization on authoritative game actions.
 - Never trust values submitted by the browser merely because the user is authenticated.
 - Review migrations before applying them to hosted environments.
+- Preserve Git migration identity when applying migrations to hosted databases.
 - Keep `main` deployable; staging verification precedes production schema changes.
