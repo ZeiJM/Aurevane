@@ -77,9 +77,9 @@ describe('authority probe request boundary', () => {
     const response = await handleAuthorityProbeRequest(
       createRequest({ idempotencyKey: '3d26ca60-6f3e-4bf8-aa85-fbf5e92095ca' }),
       createDependencies({
-        getActor: vi.fn().mockRejectedValue(
-          new AurevaneError('UNAUTHENTICATED', 'Authentication required.'),
-        ),
+        getActor: vi
+          .fn()
+          .mockRejectedValue(new AurevaneError('UNAUTHENTICATED', 'Authentication required.')),
         repository: { execute },
       }),
     )
@@ -107,12 +107,14 @@ describe('authority probe request boundary', () => {
       createRequest({ idempotencyKey: '3d26ca60-6f3e-4bf8-aa85-fbf5e92095ca' }),
       createDependencies({
         repository: {
-          execute: vi.fn().mockRejectedValue(
-            new AurevaneError(
-              'IDEMPOTENCY_CONFLICT',
-              'That request key was already used for a different request.',
+          execute: vi
+            .fn()
+            .mockRejectedValue(
+              new AurevaneError(
+                'IDEMPOTENCY_CONFLICT',
+                'That request key was already used for a different request.',
+              ),
             ),
-          ),
         },
       }),
     )

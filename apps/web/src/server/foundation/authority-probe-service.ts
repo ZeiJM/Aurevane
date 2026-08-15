@@ -1,7 +1,4 @@
-import {
-  toUserActorKey,
-  type AuthoritativeCommandContext,
-} from '@aurevane/game-core/command'
+import { toUserActorKey, type AuthoritativeCommandContext } from '@aurevane/game-core/command'
 import type {
   IdempotentCommandInput,
   TransactionalCommandRepository,

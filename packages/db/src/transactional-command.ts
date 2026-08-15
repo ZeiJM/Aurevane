@@ -10,9 +10,6 @@ export interface TransactionalCommandResult<TResult> {
   replayed: boolean
 }
 
-export interface TransactionalCommandRepository<
-  TInput extends IdempotentCommandInput,
-  TResult,
-> {
+export interface TransactionalCommandRepository<TInput extends IdempotentCommandInput, TResult> {
   execute(input: TInput): Promise<TransactionalCommandResult<TResult>>
 }

@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  parseAuthorityProbePersistenceRows,
-  parseAuthorityProbeRequest,
-} from './authority-probe'
+import { parseAuthorityProbePersistenceRows, parseAuthorityProbeRequest } from './authority-probe'
 
 describe('authority probe validation', () => {
   it('accepts a strict UUID idempotency request', () => {

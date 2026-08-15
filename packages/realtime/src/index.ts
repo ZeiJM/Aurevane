@@ -15,9 +15,7 @@ export interface RealtimePublisher {
   publish(notification: RealtimeInvalidation): Promise<void>
 }
 
-export function createRealtimeInvalidation(
-  input: RealtimeInvalidationInput,
-): RealtimeInvalidation {
+export function createRealtimeInvalidation(input: RealtimeInvalidationInput): RealtimeInvalidation {
   return {
     event: AUTHORITATIVE_STATE_CHANGED,
     ...input,
