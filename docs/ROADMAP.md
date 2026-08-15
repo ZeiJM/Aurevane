@@ -10,7 +10,37 @@ AUREVANE's personal hook is the permanent character: mastering Disciplines, comb
 
 The world should continuously create new reasons to use and rethink that character. World events, story developments, seasonal changes, cooperative objectives, PvP rotations, guild/nation activity, and live operations should make the shared world feel active rather than like a static quest catalog.
 
-See `docs/WORLD.md` and `docs/MASTER_PANEL.md` for the authoritative feature-level expansion.
+The central mythology reinforces that hook: **Aurevane is the imprisoned goddess of Becoming**, initially believed to be a wronged benevolent protector and eventually revealed as the principal antagonist whose desire to remove every limit from possibility would erase coherent identity and reality. The player's deliberate, bounded character growth becomes the thematic counterargument to her limitless Becoming.
+
+See `docs/WORLD.md`, `docs/MASTER_PANEL.md`, and `docs/LORE_BIBLE.md` for the authoritative feature and narrative expansions.
+
+## Narrative Reveal Rule
+
+The implementation roadmap must preserve the long-form Aurevane mystery rather than rushing it simply because the final lore is already documented internally.
+
+Narrative development should progress broadly through:
+
+```text
+Forgotten symbols / nameless protector
+  ↓
+Discovery of a lost goddess
+  ↓
+Aurevane appears sympathetic and helpful
+  ↓
+Historical contradictions / Closed Star warnings
+  ↓
+The Eight Great Vanes and Unmoored phenomena
+  ↓
+The City That Was Twice
+  ↓
+The Great Opening is revealed
+  ↓
+Aurevane becomes the Open Crown / primary antagonist
+  ↓
+Continuing War of Possible Worlds live-story arcs
+```
+
+Do not expose late-story canon in early player-facing copy, filenames, public data, event metadata, or UI merely because developers know the twist.
 
 ## Progressive Operations Rule
 
@@ -18,7 +48,7 @@ The complete Master Panel remains Phase 13, but **operational tooling does not w
 
 Each major system should ship with the minimum safe owner/staff controls required to operate that system. In particular, when the world and continuing story arrive in Phase 5, AUREVANE also gains a safe Event/Story operations slice so authorized staff can make the world change without routine code deployments.
 
-Role/permission architecture, auditability, versioning, staging/preview, and rollback must grow progressively and remain server-authoritative.
+Role/permission architecture, auditability, versioning, staging/preview, rollback, and narrative canon controls must grow progressively and remain server-authoritative.
 
 ## Phase 0 — Foundation
 
@@ -35,7 +65,8 @@ Goal: establish a production-grade project skeleton before game mechanics multip
 - authorization/security baseline that does not block future owner/staff roles;
 - design-system primitives;
 - media registry/audio-runtime skeleton;
-- logging/error handling conventions.
+- logging/error handling conventions;
+- authoritative lore documentation and spoiler-safe implementation guidance.
 
 **Gate:** clean build, automated checks, deployable preview, documented local setup.
 
@@ -47,7 +78,8 @@ Goal: establish a production-grade project skeleton before game mechanics multip
 - derived-stat framework;
 - level/progression shell;
 - character profile presentation;
-- initial inventory/equipment foundation where required.
+- initial inventory/equipment foundation where required;
+- presentation hooks for early narrative identity without prematurely revealing the Aurevane mystery.
 
 **Gate:** a player can create and persist a valid character with server-authoritative state.
 
@@ -63,7 +95,8 @@ Goal: establish a production-grade project skeleton before game mechanics multip
 - terrain/elevation/cover rules from the Master Plan;
 - structured combat event log;
 - battle UI and animation hooks;
-- reconnect-safe persistence foundation.
+- reconnect-safe persistence foundation;
+- combat-event architecture capable of later supporting Unchosen/Possibility mechanics without bespoke rewrites.
 
 **Gate:** two controlled units can complete a deterministic tactical battle with tests.
 
@@ -79,7 +112,8 @@ Goal: establish a production-grade project skeleton before game mechanics multip
 - Movement Arts;
 - reusable effect library;
 - Confluence resolution framework;
-- Soulmark framework.
+- Soulmark framework;
+- lore-aware but spoiler-safe metadata hooks for Soulmarks and Confluences where later story requires them.
 
 **Gate:** multiple meaningful builds can be configured and validated server-side.
 
@@ -88,6 +122,8 @@ Goal: establish a production-grade project skeleton before game mechanics multip
 Implement the initial subset defined in the Master Plan, targeting roughly 16 playable Disciplines before alpha rather than blocking testing on all 36.
 
 Every Discipline ticket includes gameplay data, tests, art requests/assets, audio requests/assets, and AI-usage rules where applicable.
+
+Character-building content should reinforce the theme that players can grow and combine identities through deliberate mastery without turning every Discipline into secret Aurevane lore.
 
 **Gate:** the initial build-combination loop is genuinely fun to test.
 
@@ -115,9 +151,15 @@ Expand this phase with the minimum systems required for a genuinely living onlin
 - initial granular permission framework for live-ops/story actions;
 - Event/Story operations MVP with draft, preview, schedule, publish, stop, archive, and rollback where applicable;
 - audit logging of privileged world/story operations;
-- staging/preview workflow before production publication.
+- staging/preview workflow before production publication;
+- main-story implementation for the **Quiet Name / Kindly Horizon** era of the Aurevane mystery;
+- ancient horizon, open-circle, road, and Closed Star motifs;
+- the forgotten-protector mythology;
+- first meaningful contradictions in accepted history;
+- first controlled clues that the word **Aurevane** is a name rather than simply a title/world label;
+- narrative data structures that can later gate deeper reveal stages without rewriting the quest engine.
 
-**Gate:** a character can leave a hub, explore, encounter content, complete quests, and return with persistent progression **and** an authorized owner/event/story staff member can safely publish a scheduled world/story event that changes what players see and can do without a code deployment.
+**Gate:** a character can leave a hub, explore, encounter content, complete quests, and return with persistent progression **and** an authorized owner/event/story staff member can safely publish a scheduled world/story event that changes what players see and can do without a code deployment. The main story has a compelling mystery without prematurely exposing the antagonist reveal.
 
 ## Phase 6 — Party & Co-op
 
@@ -126,7 +168,8 @@ Expand this phase with the minimum systems required for a genuinely living onlin
 - co-op battles;
 - shared quests;
 - party finder;
-- live-ops integration for cooperative event objectives where required.
+- live-ops integration for cooperative event objectives where required;
+- co-op narrative encounters capable of preserving player-specific story flags inside shared world events.
 
 **Gate:** three people can complete a mission together.
 
@@ -142,7 +185,8 @@ Expand this phase with the minimum systems required for a genuinely living onlin
 - Deep Expeditions;
 - multiphase bosses;
 - personal loot/leaderboards;
-- Expedition-event hooks and operator controls.
+- Expedition-event hooks and operator controls;
+- architecture for late-story Unmoored/possibility-themed Expeditions while preserving deterministic seeded generation.
 
 **Gate:** a three-player, hour-scale Deep Expedition is fully playable.
 
@@ -158,7 +202,8 @@ Expand this phase with the minimum systems required for a genuinely living onlin
 - disconnect protection;
 - seasons;
 - tournament framework;
-- PvP rotation, tournament, season, and event operations in the Master Panel as those systems become real.
+- PvP rotation, tournament, season, and event operations in the Master Panel as those systems become real;
+- lore-themed special PvP rotations may use unstable-world presentation/rules later without secretly changing permanent ranked balance.
 
 ## Phase 9 — Full Discipline Roster
 
@@ -188,7 +233,8 @@ Every new Discipline requires at minimum:
 - guild progression;
 - social profiles;
 - moderation;
-- staff moderation/report/support tools with explicit permissions and audit trails.
+- staff moderation/report/support tools with explicit permissions and audit trails;
+- social recognition and Chronicle hooks for major server-wide narrative/world-event participation.
 
 ## Phase 11 — Economy
 
@@ -207,7 +253,8 @@ Every new Discipline requires at minimum:
 - campaigns;
 - nation warfare;
 - political rankings;
-- nation campaign/event operations integrated with the living-world framework.
+- nation campaign/event operations integrated with the living-world framework;
+- political interpretations of the Aurevane/Binding mystery without reducing any nation to the singular objectively correct lore faction.
 
 ## Phase 13 — Complete Master Panel
 
@@ -231,7 +278,10 @@ Some operational functionality exists earlier alongside the systems it controls.
 - searchable audit log;
 - content diff/history;
 - scheduling;
-- version rollback.
+- version rollback;
+- narrative arc/stage metadata;
+- canon/spoiler tags and controlled publication rights for major reveal content;
+- protection against ordinary Event Staff accidentally publishing unreleased central-story material.
 
 **Gate:** the owner can safely operate and delegate the live game through audited, server-authorized tools without routine database access or code edits for normal content operations.
 
@@ -250,7 +300,11 @@ This is a dedicated production pass, not permission to postpone all media until 
 - particles;
 - animations;
 - responsive polish;
-- loading/error-state polish.
+- loading/error-state polish;
+- Aurevane/Open Crown visual identity and recurring motifs;
+- Closed Star visual language;
+- Aurevane leitmotif progression from warm/hopeful to unstable/antagonistic arrangements;
+- Unmoored-world VFX that remain readable rather than becoming visual noise.
 
 Media required to make earlier testing coherent should already be introduced through the request pipeline during prior phases.
 
@@ -267,11 +321,12 @@ Media required to make earlier testing coherent should already be introduced thr
 - realtime load;
 - expedition concurrency;
 - economic exploit testing;
-- live-event scheduling/recovery testing.
+- live-event scheduling/recovery testing;
+- spoiler/canon publication-path review for production narrative operations.
 
 ## Closed Alpha Target
 
-From the Master Plan, expanded with the operational requirements needed to keep the alpha world alive:
+From the Master Plan, expanded with the operational and narrative requirements needed to keep the alpha world alive:
 
 - 16 Disciplines;
 - 8 Soulmarks;
@@ -293,7 +348,12 @@ From the Master Plan, expanded with the operational requirements needed to keep 
 - auditability and content rollback for live operations;
 - Master Panel core;
 - full audio;
-- strong visual presentation.
+- strong visual presentation;
+- coherent early Aurevane mystery and foreshadowing;
+- forgotten-protector mythology and Closed Star motifs;
+- at least one meaningful historical contradiction;
+- optional late-alpha reveal that **Aurevane is the lost goddess's name**;
+- **no requirement to reveal the City That Was Twice, Great Opening, or full antagonist twist during Closed Alpha**.
 
 ## Ticket Rule
 
