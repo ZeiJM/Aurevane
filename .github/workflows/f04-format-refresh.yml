@@ -1,0 +1,50 @@
+name: F0.4 Format Refresh
+
+on:
+  push:
+    branches:
+      - "agent/ticket-0-4-design-media-audio"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/ticket-0-4-design-media-audio
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Format source
+        run: pnpm format
+
+      - name: Commit formatting when changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps packages package.json eslint.config.mjs
+          git commit -m 'Format F0.4 source'
+          git push origin HEAD:agent/ticket-0-4-design-media-audio
