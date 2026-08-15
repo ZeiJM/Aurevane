@@ -21,7 +21,9 @@ export function inspectMigrationSecurity(sql: string): MigrationPolicyViolation[
     })
   }
 
-  if (/grant\s+all(?:\s+privileges)?\s+on[\s\S]+?\s+to\s+(?:public|anon|authenticated)\b/gi.test(sql)) {
+  if (
+    /grant\s+all(?:\s+privileges)?\s+on[\s\S]+?\s+to\s+(?:public|anon|authenticated)\b/gi.test(sql)
+  ) {
     violations.push({
       code: 'BROAD_PUBLIC_GRANT',
       message: 'Broad GRANT ALL privileges to public/anon/authenticated are not allowed.',

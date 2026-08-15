@@ -88,7 +88,9 @@ export function parsePublicEnvironment(input: unknown): PublicEnvironment {
   const result = publicEnvironmentSchema.safeParse(input)
 
   if (!result.success) {
-    throw new Error(`Invalid public environment configuration: ${formatEnvironmentError(result.error)}`)
+    throw new Error(
+      `Invalid public environment configuration: ${formatEnvironmentError(result.error)}`,
+    )
   }
 
   return result.data

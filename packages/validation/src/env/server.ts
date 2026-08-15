@@ -61,7 +61,9 @@ export function parseServerEnvironment(input: unknown): ServerEnvironment {
   const result = serverEnvironmentSchema.safeParse(input)
 
   if (!result.success) {
-    throw new Error(`Invalid server environment configuration: ${formatEnvironmentError(result.error)}`)
+    throw new Error(
+      `Invalid server environment configuration: ${formatEnvironmentError(result.error)}`,
+    )
   }
 
   return result.data
