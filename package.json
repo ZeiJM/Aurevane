@@ -12,8 +12,8 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
-    "format": "prettier --write \"apps/**/*.{ts,tsx,js,mjs,json,css}\" \"*.{json,yml,yaml}\" \".github/**/*.yml\"",
-    "format:check": "prettier --check \"apps/**/*.{ts,tsx,js,mjs,json,css}\" \"*.{json,yml,yaml}\" \".github/**/*.yml\"",
+    "format": "prettier --write \"apps/**/*.{ts,tsx,js,mjs,json,css}\" package.json turbo.json pnpm-workspace.yaml .prettierrc.json \".github/**/*.yml\"",
+    "format:check": "prettier --check \"apps/**/*.{ts,tsx,js,mjs,json,css}\" package.json turbo.json pnpm-workspace.yaml .prettierrc.json \".github/**/*.yml\"",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
   },
   "devDependencies": {
