@@ -38,27 +38,28 @@ Completed with:
 
 **Verification:** formatting, lint, typecheck, tests, production build, and clean-source CI gate all pass.
 
-## ACTIVE
-
 ### F0.2 — Infrastructure + Persistence Baseline
 
-**Purpose:** Establish safe local/staging/production persistence and authentication infrastructure.
+Completed with:
 
-**Allowed scope:** Supabase project conventions, environment validation, migration workflow, PostgreSQL baseline, authentication integration, initial RLS/security baseline, server-only credential handling, and deployment environment documentation.
+- explicit local/staging/production environment identity and validation;
+- pinned Supabase client, SSR, and CLI dependencies;
+- browser, server, and elevated server-only Supabase client boundaries;
+- SSR cookie/session refresh, verified-claims auth boundary, callback, and server-side sign-out routes;
+- version-controlled Supabase configuration, migration, and seed workflow;
+- server-only `app_private` schema baseline with browser-role access revoked;
+- migration security policy that rejects disabled RLS, broad browser grants, and public/unqualified application tables without same-migration RLS;
+- CI that reconstructs the database from migrations, verifies schema privileges, and performs real local signup/sign-in through Supabase Auth;
+- documented Vercel monorepo root and environment separation conventions;
+- staging foundation migration applied and migration-history version reconciled with the committed migration filename.
 
-**Explicitly out of scope:** character/gameplay schemas, combat, world systems, final design system, media/audio runtime, and later game features.
+**Verification:** final F0.2 quality gates, production build, migration rebuild, private-schema privilege checks, and local authentication checks pass. No gameplay schema or future-system implementation was introduced.
 
-**Acceptance criteria:**
+## ACTIVE
 
-- local, preview/staging, and production environments are explicitly separated;
-- migrations are reproducible and version-controlled;
-- authentication can be integrated without trusting the browser for privileged state;
-- exposed data has a deliberate RLS model;
-- service credentials remain server-only;
-- automated environment/security checks pass;
-- existing F0.1 quality gates remain green.
+No implementation ticket is active. F0.2 is at its completed checkpoint; do not begin the next ticket without a new ticket start.
 
-## Next after F0.2
+## Next
 
 F0.3 — Server Architecture Skeleton.
 
