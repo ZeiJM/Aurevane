@@ -540,3 +540,232 @@ Specifically:
 - dangerous systems have kill switches;
 - staff do not need direct database credentials;
 - the panel grows with the game instead of appearing only after every player-facing system is already complete.
+
+## 19. Owner Command Center — Ultimate Game Operations Authority
+
+The Master Panel must ultimately give the protected Owner final operational authority over **all game-controlled state that can reasonably be administered through software**.
+
+The Owner is not merely a staff role with more checkboxes. The Owner is the root game-operations authority.
+
+The Owner Command Center must eventually provide the ability to:
+
+- inspect any player/account relevant to game operations;
+- inspect any character and its authoritative progression state;
+- grant/revoke staff roles;
+- create/edit custom staff role templates;
+- grant/revoke granular individual permissions;
+- grant/revoke special account capabilities and entitlements;
+- edit/publish/rollback data-driven game content;
+- rebalance progression, combat, PvP, economy, Expeditions, events, world state, Rekindling, Veteran Edge, lore discovery, and other configurable systems;
+- enable/disable features globally or by environment;
+- start/stop/schedule events;
+- repair broken player state;
+- issue support grants/corrections;
+- change valid story/world progression flags when support requires it;
+- recover stuck battles, quests, Expeditions, locations, or event eligibility through supported recovery actions;
+- moderate/restrict/suspend/ban accounts;
+- operate maintenance and emergency controls;
+- inspect every privileged action through the audit log.
+
+The Owner should not have to ask a developer to perform routine balance, content, event, support, or permission changes once the relevant Master Panel feature exists.
+
+## 20. Player Modification Console
+
+The Owner needs a powerful **Players & Support** console.
+
+For a selected account/character, the system should eventually allow authorized actions such as:
+
+- view identity/account metadata that is appropriate for game support;
+- view character level/XP/Horizon/cycle age;
+- view Discipline Mastery and build state;
+- view Soulmark/Confluence progression;
+- view inventory/equipment/currencies;
+- view quests/story flags;
+- view Archive/lore discoveries;
+- view event eligibility/participation;
+- view PvP rating/history;
+- view Rekindling/Veteran Edge state;
+- view entitlements, cosmetics, titles, badges, Chronicle marks;
+- view sanctions/restrictions;
+- view recent authoritative actions/audit context.
+
+Owner-authorized mutation commands may include:
+
+```text
+grant_item
+revoke_erroneous_item
+adjust_currency_with_reason
+grant_xp_or_level_correction
+set_or_repair_progression_milestone
+adjust_discipline_mastery_with_reason
+repair_story_flag
+reset_quest
+recover_character_location
+recover_stuck_session
+grant_title
+grant_cosmetic
+grant_chronicle_mark
+grant_event_eligibility
+grant_entitlement
+grant_special_permission
+revoke_special_permission
+correct_rekindling_state
+```
+
+These are examples, not the final API names.
+
+The point is that the Owner can achieve the required operational outcome without exposing a dangerous generic "edit any database column" browser form.
+
+## 21. Special Permissions and Entitlements
+
+The Owner must be able to grant special capabilities that are not ordinary progression rewards.
+
+Examples:
+
+- internal QA/tester;
+- alpha/beta tester;
+- event participant/invite access;
+- tournament official;
+- moderator;
+- support staff;
+- creator/partner status;
+- community contributor badge/entitlement;
+- private test realm access;
+- staging access where appropriate;
+- special cosmetic entitlement;
+- temporary event/operator capability.
+
+These should use explicit entitlements/permissions with server-side checks, expiry where appropriate, and audit history.
+
+Do not overload character level, inventory items, or hidden UI flags to represent administrative authority.
+
+## 22. Progression, Retention and Rekindling Balance Center
+
+Everything defined in `docs/PROGRESSION_RETENTION.md` must be operable from the Master Panel when the underlying system exists.
+
+Controls eventually include:
+
+### Long-horizon progression
+
+- Level cap;
+- XP curve by range;
+- Mastery curve;
+- Horizon Gate names/count;
+- minimum character-age requirements;
+- per-Horizon level ceilings;
+- story/world milestone prerequisites;
+- rested XP/Mastery rates and caps;
+- contract bank size/expiry;
+- returning-player catch-up rules;
+- endgame qualification requirements;
+- first-cycle minimum age, production default approximately 180 days.
+
+### Retention / urgency / FOMO
+
+- event cadence;
+- event start/end windows;
+- recurrence rules;
+- rotating encounter/boss/merchant schedules;
+- first-witness rewards;
+- event prestige/cosmetics;
+- community objective thresholds;
+- aftermath duration;
+- World Pulse priority;
+- notification priority;
+- limited lore-fragment windows;
+- important-reward recurrence/fallback paths.
+
+### Rekindling
+
+- enable/disable;
+- eligibility requirements;
+- minimum cycle duration;
+- reset/preserve rules;
+- Memory Carryover categories/count;
+- Hall of Selves snapshot fields;
+- support correction tools;
+- prestige cosmetic/title packages.
+
+### Veteran Edge
+
+- enable/disable individual Edge Techniques;
+- trigger/effect values;
+- active slot count;
+- availability by casual/ranked/tournament queue;
+- queue normalization rules;
+- matchmaking consideration;
+- pick/win-rate alerts;
+- emergency kill switches;
+- rollback to prior balance package.
+
+### Lore discovery
+
+- Archive sources;
+- Fragment Sets;
+- source provenance;
+- reconstruction thresholds;
+- reveal/spoiler tier;
+- placement/event linkage;
+- availability/recurrence;
+- community discovery thresholds;
+- Chronicle publication.
+
+## 23. Pacing Simulator and Balance Warnings
+
+The Balance Lab should eventually include a **Pacing Simulator** for the six-month journey.
+
+It should estimate the effects of proposed settings on:
+
+- calendar days to levels 20/40/60/80/90/100;
+- active playtime to milestones;
+- Horizon bottlenecks;
+- Discipline Mastery progression;
+- endgame eligibility;
+- Rekindling eligibility distribution;
+- returning-player catch-up.
+
+The panel should also surface warnings for suspicious configurations, such as:
+
+- full endgame projected far earlier than the intended minimum;
+- progression stalls with no meaningful activity;
+- one-time events carrying exclusive meta-defining power;
+- Veteran Edge configurations that produce dangerous PvP win-rate distortion;
+- reward tables likely to destabilize the economy;
+- spoiler-tier lore being scheduled below its intended reveal stage.
+
+Warnings do not replace Owner authority. They exist so the Owner understands the consequences before publication.
+
+## 24. Break-Glass Owner Actions
+
+Some emergencies will not fit routine support tools.
+
+A future **Break-Glass Owner Action** system may expose narrowly defined high-risk operations available only to the protected Owner.
+
+Requirements:
+
+- re-authentication;
+- explicit reason;
+- prominent confirmation;
+- server-side validation where any validation remains possible;
+- immutable audit record;
+- before/after snapshot where practical;
+- rate limiting;
+- no exposure of raw service credentials;
+- no casual use as a substitute for proper domain tools.
+
+Examples may include large-scale compensation, emergency player-state repair, forced deactivation of corrupted content, or other exceptional recovery actions.
+
+Break-glass access provides ultimate operational recovery power without turning `/master` into an unaudited SQL console.
+
+## 25. Expanded Definition of Success
+
+In addition to the earlier success criteria, the finished Master Panel succeeds when:
+
+- the Owner can change the live game in every major balance/configuration domain without routine code edits;
+- the Owner can safely modify/correct player game state through authoritative commands;
+- the Owner can grant and revoke special permissions/entitlements;
+- progression, six-month pacing, retention urgency, Rekindling, Veteran Edge, lore discovery, PvP, economy, events, story, and content are all tuneable from appropriate control surfaces;
+- staff can be delegated narrow powers without inheriting Owner authority;
+- dangerous changes can be previewed, simulated, scheduled, killed, or rolled back;
+- all privileged actions remain attributable and auditable, including Owner actions;
+- emergency recovery exists without exposing production secrets or making routine direct database editing normal.
