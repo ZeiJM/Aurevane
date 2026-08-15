@@ -1,7 +1,7 @@
 export const foundationStatus = Object.freeze({
-  label: 'Foundation online',
-  message: 'The first runnable AUREVANE web application is being established.',
+  label: 'Presentation foundation online',
+  message: 'Design, media, audio, persistence, and server-authority foundations are active.',
   phase: 'Phase 0',
-  ticket: 'Ticket 0.1',
+  ticket: 'F0.4',
   serverAuthoritative: true,
 } as const)

@@ -16,6 +16,7 @@ Dependencies are selected deliberately. AUREVANE does not inherit package versio
 - Shared TypeScript lint configuration: `typescript-eslint` 8.65.0
 - Prettier: 3.9.6
 - Unit tests: Vitest 4.1.10
+- Browser smoke tests: Playwright 1.62.0
 - Runtime validation: Zod 4.4.3
 - Supabase JavaScript client: 2.112.3
 - Supabase SSR helpers: 0.12.4
@@ -24,6 +25,8 @@ Dependencies are selected deliberately. AUREVANE does not inherit package versio
 TypeScript 6 is intentionally selected instead of the newly released TypeScript 7 major during the foundation ticket. Major toolchain upgrades require deliberate review and a passing full quality gate.
 
 Supabase package and CLI versions are pinned because authentication cookie behavior, API key guidance, local service images, migration tooling, and generated output can change over time. Infrastructure upgrades require deliberate verification rather than automatic major-version drift.
+
+Playwright is pinned as a development-only browser verification dependency so desktop/mobile shell behavior, keyboard reachability, media fallback, and gesture-gated audio persistence can be exercised in real Chromium. It is not shipped in the player browser bundle.
 
 ## Rules
 

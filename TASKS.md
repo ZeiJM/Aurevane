@@ -4,7 +4,7 @@ This file tracks the current implementation boundary. The Master Game Plan defin
 
 ## Current status
 
-**Stage:** Phase 0 — Engineering Foundation
+**Stage:** Phase 0 — Foundation Complete
 
 Authoritative documents established:
 
@@ -72,13 +72,32 @@ Completed with:
 
 **Verification:** final F0.3 formatting, lint, all workspace typechecks/tests, production build, worker boot, database rebuild, private-schema checks, transactional idempotency checks, local authentication, and authenticated web-route replay checks pass.
 
+### F0.4 — Design System + Media/Audio Core
+
+Completed with:
+
+- real `packages/ui` workspace with centralized semantic typography, color, spacing, focus, surface, motion, and reusable game-UI primitives;
+- polished responsive AUREVANE application shell with deliberate desktop/mobile layouts, keyboard focus, skip navigation, and reduced-motion handling;
+- stable image/media registry plus reusable image component that renders traceable requested-media fallbacks instead of broken or random placeholder assets;
+- traceable `ART-UI-001`, `AUDIO-MUS-001`, `AUDIO-AMB-001`, and `AUDIO-UI-001` production request records;
+- real `packages/audio` workspace with versioned settings, validated asset registry, and a central Web Audio `AudioDirector` that initializes only after explicit player interaction;
+- independent Master, Music, SFX, Ambience, and UI channels, mute that preserves channel levels, and versioned pre-login local persistence;
+- dev-only Playwright browser verification covering desktop/mobile layout, horizontal-overflow protection, keyboard reachability, media fallback, gesture-gated audio initialization, and persisted mute/volume behavior;
+- dedicated browser-smoke CI plus the existing F0.1–F0.3 quality, worker, database, authentication, and idempotency regression gates;
+- successful Git-linked Vercel preview of the canonical F0.4 branch;
+- no gameplay schema, combat, progression, world, economy, Master Panel, or other future gameplay system implemented early.
+
+**Verification:** canonical F0.4 quality/build gates and database/security regressions pass on the implementation branch; real Chromium acceptance has passed against a production Next build and local Supabase; the canonical Vercel preview builds and serves successfully. Final PR/main checks remain the merge gate.
+
+**Concurrency audit:** a separately created competing F0.4 branch was inspected and found incomplete/conflicting. Its preview build fails and it is explicitly excluded from merge. PR #18 is the canonical implementation; the duplicate branch/PR is to be neutralized after the canonical merge so only one F0.4 implementation survives.
+
 ## ACTIVE
 
-No implementation ticket is active. F0.3 is at its completed checkpoint; do not begin the next ticket without a new ticket start.
+No implementation ticket is active. F0.4 is at its completed checkpoint; do not begin Phase 1 without a new ticket start.
 
 ## Next
 
-F0.4 — Design System + Media/Audio Core.
+Plan/break Phase 1 — Character Foundation into small implementation tickets before coding the first Phase 1 feature.
 
 ## Rule
 

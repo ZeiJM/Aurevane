@@ -1,6 +1,10 @@
 import type { Metadata } from 'next'
 import type { ReactNode } from 'react'
 
+import '@aurevane/ui/styles.css'
+
+import { AudioProvider } from '@/components/audio/audio-provider'
+
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -11,7 +15,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <AudioProvider>{children}</AudioProvider>
+      </body>
     </html>
   )
 }
