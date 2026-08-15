@@ -41,3 +41,5 @@ jobs:
           fi
           git commit -m "Restore authoritative AUREVANE master plan"
           git push
+
+# Re-saved after initial repository bootstrap so the push trigger is active.
