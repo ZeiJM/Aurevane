@@ -19,8 +19,13 @@ test('foundation shell is responsive, keyboard reachable, and media-safe', async
   await expect(page.locator('.skip-link')).toBeFocused()
 })
 
-test('audio stays gesture-gated and persists mute plus channel levels', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop-chromium', 'One browser runtime proof is sufficient.')
+test('audio stays gesture-gated and persists mute plus channel levels', async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.name !== 'desktop-chromium',
+    'One browser runtime proof is sufficient.',
+  )
 
   await page.goto('/')
 
@@ -29,7 +34,9 @@ test('audio stays gesture-gated and persists mute plus channel levels', async ({
   await summary.focus()
   await summary.press('Enter')
 
-  await expect(page.getByTestId('audio-state')).toContainText('locked until you choose to enable it')
+  await expect(page.getByTestId('audio-state')).toContainText(
+    'locked until you choose to enable it',
+  )
   await page.getByTestId('audio-unlock').click()
   await expect(page.getByTestId('audio-state')).toContainText('Audio ready')
 
