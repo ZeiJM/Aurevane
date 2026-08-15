@@ -108,7 +108,7 @@ The first major player milestone is P1.3: an authenticated player can create and
 
 No Phase 1 implementation ticket is active.
 
-Phase 0 production-verification issue #20 remains open. Vercel Production is currently one commit behind `main`: the missing commit is the already-merged public-shell environment hotfix. The first Phase 1 implementation must not merge until the current Phase 0 production shell is successfully redeployed and verified.
+Phase 0 production-verification issue #20 remains open. Vercel Production remains behind the approved `main` checkpoint because production deployments are being rate-limited. The only missing **runtime-affecting** change required to clear that gate is the already-merged public-shell environment hotfix; later planning/documentation commits do not change runtime behavior. The first Phase 1 implementation must not merge until the current Phase 0 production shell is successfully redeployed and verified.
 
 ## Next
 
