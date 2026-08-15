@@ -87,9 +87,9 @@ Completed with:
 - successful Git-linked Vercel preview of the canonical F0.4 branch;
 - no gameplay schema, combat, progression, world, economy, Master Panel, or other future gameplay system implemented early.
 
-**Verification:** canonical F0.4 quality/build gates and database/security regressions pass on the implementation branch; real Chromium acceptance has passed against a production Next build and local Supabase; the canonical Vercel preview builds and serves successfully. Final PR/main checks remain the merge gate.
+**Verification:** F0.4 passed its implementation-branch quality/database gates and real Chromium acceptance, then the squash-merged `main` checkpoint passed the same CI, database/security regressions, and responsive browser-smoke verification.
 
-**Concurrency audit:** a separately created competing F0.4 branch was inspected and found incomplete/conflicting. Its preview build fails and it is explicitly excluded from merge. PR #18 is the canonical implementation; the duplicate branch/PR is to be neutralized after the canonical merge so only one F0.4 implementation survives.
+**Concurrency audit:** a separately created competing F0.4 implementation was inspected and rejected as incomplete/conflicting. Canonical PR #18 was merged; the competing branch was force-aligned to the approved `main` checkpoint and its audit-marker PR #17 was closed without merge. No divergent duplicate F0.4 implementation remains.
 
 ## ACTIVE
 
