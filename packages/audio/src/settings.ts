@@ -1,4 +1,5 @@
 export const AUDIO_CHANNELS = ['master', 'music', 'sfx', 'ambience', 'ui'] as const
+export const AUDIO_SETTINGS_STORAGE_KEY = 'aurevane.audio.v1'
 
 export type AudioChannel = (typeof AUDIO_CHANNELS)[number]
 export type RoutedAudioChannel = Exclude<AudioChannel, 'master'>

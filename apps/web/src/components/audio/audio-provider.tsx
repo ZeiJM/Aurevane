@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  AUDIO_SETTINGS_STORAGE_KEY,
   AudioDirector,
   createDefaultAudioSettings,
   parsePersistedAudioSettings,
@@ -19,8 +20,6 @@ import {
   useReducer,
   useState,
 } from 'react'
-
-const AUDIO_SETTINGS_STORAGE_KEY = 'aurevane.audio.v1'
 
 interface AudioContextValue {
   settings: AudioMixSettings

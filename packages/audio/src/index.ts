@@ -9,6 +9,7 @@ export {
 } from './registry'
 export {
   AUDIO_CHANNELS,
+  AUDIO_SETTINGS_STORAGE_KEY,
   clampAudioVolume,
   createDefaultAudioSettings,
   parsePersistedAudioSettings,
