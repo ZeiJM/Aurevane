@@ -4,28 +4,88 @@
 
 - The project is **AUREVANE**, an original persistent browser-based multiplayer RPG.
 - `docs/GAME_MASTER_PLAN.md` is the authoritative game-design document.
+- `docs/LORE_BIBLE.md` is the authoritative lore expansion for Aurevane, the central goddess mystery, the Binding, the long-form antagonist reveal, and related narrative motifs. Do not casually alter or spoil its approved canon.
+- `docs/PROGRESSION_RETENTION.md` is the authoritative feature expansion for the minimum six-month first-character journey, Horizon pacing, urgency/FOMO design, Rekindling prestige, Veteran Edge PvP constraints, lore discovery/Archive systems, and their Master Panel controls.
+- `docs/NATURAL_PACING.md` is the authoritative refinement for achieving the six-month journey through meaningful layered progression rather than generic timers. Where earlier planning language could be interpreted as a crude visible day-gate, follow the natural-pacing standard instead.
+- `docs/OWNER_OVERRIDE.md` is the authoritative Master Panel expansion for protected Owner bypass grants, exceptional/nonstandard player state, special permissions, unearned grants, and Break-Glass God Mode.
+- `docs/PLAYER_MANUAL.md` is the authoritative specification for the comprehensive player manual, contextual help, glossary, protected Owner/Staff operations manual, and documentation-update requirements.
 - `docs/MEDIA_PIPELINE.md` is the authoritative media/audio pipeline document.
+- `docs/TECHNOLOGY_POLICY.md` is authoritative engineering guidance for language/runtime/toolchain selection; use modern stable/LTS production technology rather than blindly chasing previews or legacy stacks.
 - Treat `docs/ART_BIBLE.md` and `docs/AUDIO_BIBLE.md` as authoritative when they are added.
 - Never redesign, remove, simplify, or invent game mechanics unless explicitly asked.
+- Never rewrite major approved lore, Aurevane's identity/motivation, the reason for her imprisonment, or the central reveal without explicit owner approval.
+- Never collapse the approved six-month progression journey, natural Horizon progression, Rekindling model, Veteran Edge constraints, or lore-discovery loop into a short generic XP grind or generic timer farm without explicit owner approval.
 - Build one small ticket at a time. Implement only the requested ticket, do not implement future systems prematurely, and stop when that ticket is complete.
 - Preserve working functionality unless explicitly replacing it.
 - For major architectural changes, propose the plan before modifying code.
 - Before significant architecture or implementation work, read the relevant authoritative documents in `docs/` and inspect the existing code before proposing changes.
+- Before implementing character progression, XP/Mastery pacing, retention, events, seasons, prestige/Rekindling, PvP veteran rewards, Archive/lore discovery, player correction tools, or related Master Panel features, read `docs/PROGRESSION_RETENTION.md` and `docs/NATURAL_PACING.md` in addition to the Game Master Plan.
+- Before implementing Owner/player modification tools, special grants, staff powers, entitlements, exceptional character state, or Break-Glass actions, read `docs/OWNER_OVERRIDE.md` and `docs/MASTER_PANEL.md`.
+- Before implementing any player-facing feature or materially changing an existing mechanic, review `docs/PLAYER_MANUAL.md` and include the documentation impact required by that specification.
+- Before implementing narrative, world, quest, NPC, event, Soulmark, Confluence, region, Expedition, nation, or major media content that may touch the central mythology, read `docs/LORE_BIBLE.md` in addition to the Game Master Plan.
 - Never assume a system, package, database table, route, or feature exists; verify it in the repository.
 
 ## Server authority and security
 
-- All authoritative game state must be server-side. The browser may request actions, but it must never determine authoritative combat, rewards, XP, currency, inventory, progression, PvP, trading, quest outcomes, cooldowns, or other persistent state.
+- All authoritative game state must be server-side. The browser may request actions, but it must never determine authoritative combat, rewards, XP, currency, inventory, progression, PvP, trading, quest outcomes, cooldowns, Rekindling state, Veteran Edge state, lore discovery, permissions, Owner overrides, or other persistent state.
 - Validate all external input server-side. Privileged operations require server-side authorization; hidden UI elements are never security controls.
 - Use transactions for multi-step authoritative state changes.
 - Never expose server secrets, service-role credentials, database credentials, or privileged keys to client code or `NEXT_PUBLIC_*` environment variables.
 - Never import server-only database, authorization, or privileged game logic into Client Components.
+- Owner power is implemented through explicit authoritative commands, permissions, validation, audit records, provenance metadata, and Break-Glass workflows where required—not by exposing raw production credentials to the browser.
+- Owner override may deliberately bypass normal acquisition/eligibility rules, but it must not silently corrupt hard persistence/runtime invariants. If a desired state requires a supported exceptional-state representation, content rule, or isolated sandbox, implement that deliberately.
 
 ## Architecture and data
 
 - Prefer modular, feature-oriented architecture. Keep UI, domain/game logic, database access, validation, and authorization clearly separated.
 - Avoid giant files and giant routers.
 - Use migrations for every database change.
+- Progression curves, Horizon milestones, Rekindling rules, Veteran Edge definitions, event/urgency settings, lore Fragment Sets, documentation metadata, and other live-operated balance data should be data-driven/versioned where practical so the Master Panel can safely tune them later.
+- Schemas should preserve provenance for support/Owner-granted exceptional state where appropriate and must not assume every valid represented state came through ordinary player acquisition.
+- TypeScript is the default application/game-service language and PostgreSQL/SQL is the authoritative relational data layer unless a documented architectural decision justifies another production language.
+- New framework/runtime/compiler majors must be verified against current authoritative documentation and introduced deliberately through focused migration work rather than incidental gameplay tickets.
+
+## Narrative and live-world continuity
+
+- The permanent character-building loop and the living-world story must reinforce each other.
+- The central Aurevane mystery should unfold through fair foreshadowing, conflicting historical perspectives, player relationships, world events, and controlled story stages rather than an exposition dump.
+- Lore must be discoverable through the world itself: documents, inscriptions, relics, environmental storytelling, NPC testimony, Archive Fragment Sets, events, Expeditions, and contradictory historical sources as defined in `docs/PROGRESSION_RETENTION.md` and `docs/LORE_BIBLE.md`.
+- Do not reveal late-story secrets in early quests, public UI copy, item descriptions, art filenames, API payloads, logs visible to players, manual articles, or event metadata merely because the internal lore is known to the implementation agent.
+- Story/world-event content should be data-driven and versioned where practical so long-running live narrative can evolve without routine code deployments.
+- Do not make every system secretly originate from Aurevane. The world must remain larger than the central antagonist.
+
+## Retention, pacing, and competitive integrity
+
+- AUREVANE intentionally uses time-limited live events, seasons, first-witness recognition, rotating encounters, community races, and other experiential urgency to make the world feel worth returning to.
+- Retention pressure should primarily create "I wish I had been there" through world history, social participation, cosmetics, titles, discovery, and changing activity—not permanent competitive inferiority for missing a short window.
+- Do not add mandatory daily energy, destructive login streaks, pay-to-avoid-loss mechanics, or one-time exclusive meta-defining combat power.
+- The first full character journey must remain a minimum approximately six-month progression path under production defaults, but the duration should come from layered meaningful progression and live-world cadence rather than visible generic timers.
+- Horizons are progression eras/milestone bundles first. Player-facing unlock explanations should emphasize accomplishments and requirements, not arbitrary day countdowns.
+- A calendar-age floor, if retained at all, is an administrative pacing backstop rather than the primary progression mechanic.
+- Repetitive low-risk grind should not be the optimal way to bypass the game's breadth. Reward varied skilled play, mastery challenges, world/story progress, Expeditions, and build development.
+- Rekindling is a voluntary repeated long-form rebuild, not deletion of character identity/history and not a generic 180-day waiting loop.
+- Veteran Edge may matter in PvP but must remain bounded, data-driven, non-stacking in standard play, measurable, disableable, and tunable from the Master Panel.
+- Characters carrying gameplay-affecting exceptional Owner overrides should not silently enter standard ranked PvP unless the state is explicitly permitted/normalized.
+
+## Owner / Master Panel direction
+
+- The Owner is the highest game-operations authority and must eventually be able to operate, rebalance, publish, repair, and delegate the live game through `/master`.
+- The Owner must be able to grant/revoke staff roles, granular permissions, special account capabilities/entitlements, and perform audited player corrections through authoritative domain commands.
+- The protected Owner must also be able to deliberately grant things that were not earned, bypass normal eligibility/acquisition rules, grant hidden/retired/internal registered content where safe, create exceptional test/event/support states, and use narrowly modeled Break-Glass God Mode actions as defined in `docs/OWNER_OVERRIDE.md`.
+- Progression, Horizon pacing, XP/Mastery curves, retention/event cadence, Rekindling, Veteran Edge, PvP queue rules, lore discovery/reveal thresholds, economy/content configuration, manual publication, and player support/override corrections must all be planned for Master Panel control as their systems are implemented.
+- Warnings should inform high-risk Owner actions, not silently remove Owner authority. Hard integrity constraints still require a representable safe state.
+- Staff receive least privilege. Owner actions are audited too.
+
+## Manual and player-help quality
+
+- AUREVANE must maintain a comprehensive, attractive, searchable, spoiler-safe manual as a first-class product feature.
+- Complex systems should use progressive disclosure: quick answer, practical guide, and deep mechanics.
+- Contextual help should link from the game UI to exact relevant manual sections.
+- Official terminology and glossary definitions must remain consistent across UI, tutorial, manual, and error messages.
+- Where practical, render exact current requirements/rules from authoritative structured game configuration rather than duplicating numbers manually.
+- Every implementation ticket that introduces or materially changes a player-facing mechanic must include a `DOCUMENTATION IMPACT` section identifying manual/contextual-help/glossary/visual/staff-operations updates.
+- Major features are not polished-complete until required manual content is correct, readable, attractive, accessible, and spoiler-safe.
+- Staff/Owner operational documentation must remain protected from public players.
 
 ## Media and originality
 
@@ -38,4 +98,4 @@
 
 - After code changes, run relevant type checks, linting, and tests. Never claim completion when checks fail.
 - Clearly report every manual action the project owner must perform, explaining required steps plainly because the owner is a beginner programmer.
-- For each completed implementation ticket, summarize what changed, tests run, required manual actions, and recommend a Git checkpoint.
+- For each completed implementation ticket, summarize what changed, tests run, required manual actions, documentation impact, and recommend a Git checkpoint.
