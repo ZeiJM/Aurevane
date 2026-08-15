@@ -80,7 +80,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          eval "$(pnpm exec supabase status -o env | grep '^ANON_KEY=')"
+          status_env="$(pnpm exec supabase status -o env || true)"
+          eval "$(printf '%s\n' "$status_env" | grep '^ANON_KEY=')"
           test -n "${ANON_KEY:-}"
           api_url='http://127.0.0.1:54321'
 
