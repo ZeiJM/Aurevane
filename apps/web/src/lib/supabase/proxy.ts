@@ -1,10 +1,18 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-import { getPublicSupabaseConfig } from './config'
+import { getOptionalPublicSupabaseConfig } from './config'
 
 export async function updateSupabaseSession(request: NextRequest) {
-  const config = getPublicSupabaseConfig()
+  const config = getOptionalPublicSupabaseConfig()
+
+  // Production Supabase is intentionally provisioned separately. Until that
+  // environment exists, public pages must still render; auth-dependent routes
+  // continue to require the strict configuration through their own clients.
+  if (!config) {
+    return NextResponse.next({ request })
+  }
+
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(config.url, config.publishableKey, {
