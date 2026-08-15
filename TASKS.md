@@ -74,11 +74,21 @@ Completed with:
 
 ## ACTIVE
 
-No implementation ticket is active. F0.3 is at its completed checkpoint; do not begin the next ticket without a new ticket start.
+### F0.4 — Design System + Media/Audio Core
 
-## Next
+**Purpose:** reach the Phase 0 presentation gate with a polished responsive AUREVANE shell and first-class image/audio architecture.
 
-F0.4 — Design System + Media/Audio Core.
+**Allowed scope:** `packages/ui`, `packages/audio`, `apps/web` presentation, stable media registries, accessibility baseline, persistent local audio settings, central browser-gesture-gated Audio Director, initial art/audio request records, and responsive browser smoke verification.
+
+**Explicitly out of scope:** character/gameplay schemas, combat, progression, world systems, actual Expeditions/PvP/guild features, complete player manual UI, Master Panel implementation, and unreviewed production media.
+
+**Acceptance criteria:** the empty shell is polished and responsive; keyboard/focus behavior is deliberate; requested/missing media fails gracefully; audio does not autoplay; Master/Music/SFX/Ambience/UI controls persist; mute preserves levels; the Audio Director is the single playback authority; registries are validated; desktop/mobile browser smoke checks and all existing CI gates pass.
+
+Tracking: GitHub issue #14.
+
+## Next after F0.4
+
+Phase 1 — Character Foundation. Do not begin it until F0.4 reaches its completed checkpoint.
 
 ## Rule
 

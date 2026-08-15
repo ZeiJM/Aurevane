@@ -5,7 +5,7 @@ import { foundationStatus } from './foundation'
 describe('AUREVANE application foundation', () => {
   it('identifies the current implementation boundary', () => {
     expect(foundationStatus.phase).toBe('Phase 0')
-    expect(foundationStatus.ticket).toBe('Ticket 0.1')
+    expect(foundationStatus.ticket).toBe('F0.4')
   })
 
   it('keeps server authority as a foundational invariant', () => {
