@@ -4,6 +4,22 @@
 
 The roadmap exists to stop the final product specification from being mistaken for today's implementation scope.
 
+## Cross-Cutting Direction — Character Building Inside a Living World
+
+AUREVANE's personal hook is the permanent character: mastering Disciplines, combining Current + Legacy Disciplines, discovering Confluences, developing Soulmarks, and refining equipment/build choices.
+
+The world should continuously create new reasons to use and rethink that character. World events, story developments, seasonal changes, cooperative objectives, PvP rotations, guild/nation activity, and live operations should make the shared world feel active rather than like a static quest catalog.
+
+See `docs/WORLD.md` and `docs/MASTER_PANEL.md` for the authoritative feature-level expansion.
+
+## Progressive Operations Rule
+
+The complete Master Panel remains Phase 13, but **operational tooling does not wait until Phase 13**.
+
+Each major system should ship with the minimum safe owner/staff controls required to operate that system. In particular, when the world and continuing story arrive in Phase 5, AUREVANE also gains a safe Event/Story operations slice so authorized staff can make the world change without routine code deployments.
+
+Role/permission architecture, auditability, versioning, staging/preview, and rollback must grow progressively and remain server-authoritative.
+
 ## Phase 0 — Foundation
 
 Goal: establish a production-grade project skeleton before game mechanics multiply.
@@ -16,7 +32,7 @@ Goal: establish a production-grade project skeleton before game mechanics multip
 - environment separation;
 - database/migration foundation;
 - authentication foundation;
-- authorization/security baseline;
+- authorization/security baseline that does not block future owner/staff roles;
 - design-system primitives;
 - media registry/audio-runtime skeleton;
 - logging/error handling conventions.
@@ -75,7 +91,7 @@ Every Discipline ticket includes gameplay data, tests, art requests/assets, audi
 
 **Gate:** the initial build-combination loop is genuinely fun to test.
 
-## Phase 5 — World
+## Phase 5 — Living World, Story & Live Operations Foundation
 
 Per the Master Plan sprints:
 
@@ -87,7 +103,21 @@ Per the Master Plan sprints:
 - quest engine;
 - initial story.
 
-**Gate:** a character can leave a hub, explore, encounter content, complete quests, and return with persistent progression.
+Expand this phase with the minimum systems required for a genuinely living online world:
+
+- layered global/region/node/player world state;
+- data-driven world-event definitions and lifecycle;
+- event scheduling and worker-driven transitions;
+- announcements/world activity feed;
+- event-linked encounters, quests, NPC states, objectives, modifiers, rewards, and map markers;
+- continuing story-arc hooks and versioned narrative content;
+- protected owner/staff Master Panel shell;
+- initial granular permission framework for live-ops/story actions;
+- Event/Story operations MVP with draft, preview, schedule, publish, stop, archive, and rollback where applicable;
+- audit logging of privileged world/story operations;
+- staging/preview workflow before production publication.
+
+**Gate:** a character can leave a hub, explore, encounter content, complete quests, and return with persistent progression **and** an authorized owner/event/story staff member can safely publish a scheduled world/story event that changes what players see and can do without a code deployment.
 
 ## Phase 6 — Party & Co-op
 
@@ -95,7 +125,8 @@ Per the Master Plan sprints:
 - party realtime;
 - co-op battles;
 - shared quests;
-- party finder.
+- party finder;
+- live-ops integration for cooperative event objectives where required.
 
 **Gate:** three people can complete a mission together.
 
@@ -110,7 +141,8 @@ Per the Master Plan sprints:
 - suspension/reconnect;
 - Deep Expeditions;
 - multiphase bosses;
-- personal loot/leaderboards.
+- personal loot/leaderboards;
+- Expedition-event hooks and operator controls.
 
 **Gate:** a three-player, hour-scale Deep Expedition is fully playable.
 
@@ -125,7 +157,8 @@ Per the Master Plan sprints:
 - matchmaking;
 - disconnect protection;
 - seasons;
-- tournament framework.
+- tournament framework;
+- PvP rotation, tournament, season, and event operations in the Master Panel as those systems become real.
 
 ## Phase 9 — Full Discipline Roster
 
@@ -154,7 +187,8 @@ Every new Discipline requires at minimum:
 - guild quests;
 - guild progression;
 - social profiles;
-- moderation.
+- moderation;
+- staff moderation/report/support tools with explicit permissions and audit trails.
 
 ## Phase 11 — Economy
 
@@ -162,7 +196,8 @@ Every new Discipline requires at minimum:
 - loot;
 - marketplace;
 - crafting;
-- economic telemetry.
+- economic telemetry;
+- controlled owner/balance/economy configuration and support workflows rather than raw production-data editing.
 
 ## Phase 12 — Nations
 
@@ -171,24 +206,34 @@ Every new Discipline requires at minimum:
 - nation quests;
 - campaigns;
 - nation warfare;
-- political rankings.
+- political rankings;
+- nation campaign/event operations integrated with the living-world framework.
 
-## Phase 13 — Master Panel
+## Phase 13 — Complete Master Panel
 
-Build the complete owner/admin experience only after enough systems exist to justify it:
+Some operational functionality exists earlier alongside the systems it controls. This phase builds the complete owner/staff game operating system:
 
+- owner dashboard;
+- staff and role/permission administration;
 - content editors;
 - Confluence editor;
-- quest editor;
+- quest/dialogue/story editor;
+- world-event editor and scheduler;
 - expedition editor;
-- event editor;
+- PvP/season/tournament operations;
 - audio manager;
 - Asset Studio;
-- balance dashboards;
+- Balance Lab and safe quick edits;
 - simulation;
-- economy analytics;
-- moderation;
+- economic analytics;
+- player support/moderation;
+- feature flags and maintenance controls;
+- searchable audit log;
+- content diff/history;
+- scheduling;
 - version rollback.
+
+**Gate:** the owner can safely operate and delegate the live game through audited, server-authorized tools without routine database access or code edits for normal content operations.
 
 ## Phase 14 — Art & Audio Production Polish
 
@@ -214,16 +259,19 @@ Media required to make earlier testing coherent should already be introduced thr
 - security/penetration review;
 - abuse testing;
 - rate limiting;
+- privileged staff-access security review;
+- audit-log integrity review;
 - SQL/index optimization;
 - load testing;
 - matchmaking load;
 - realtime load;
 - expedition concurrency;
-- economic exploit testing.
+- economic exploit testing;
+- live-event scheduling/recovery testing.
 
 ## Closed Alpha Target
 
-From the Master Plan:
+From the Master Plan, expanded with the operational requirements needed to keep the alpha world alive:
 
 - 16 Disciplines;
 - 8 Soulmarks;
@@ -239,7 +287,11 @@ From the Master Plan:
 - 1v1 PvP;
 - 2v2 PvP;
 - Guild foundation;
-- Master Panel;
+- continuing world-event/story capability;
+- owner + delegated staff role/permission foundation;
+- usable Event/Story operations panel;
+- auditability and content rollback for live operations;
+- Master Panel core;
 - full audio;
 - strong visual presentation.
 
