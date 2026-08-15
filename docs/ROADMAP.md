@@ -12,7 +12,7 @@ The world should continuously create new reasons to use and rethink that charact
 
 The central mythology reinforces that hook: **Aurevane is the imprisoned goddess of Becoming**, initially believed to be a wronged benevolent protector and eventually revealed as the principal antagonist whose desire to remove every limit from possibility would erase coherent identity and reality. The player's deliberate, bounded character growth becomes the thematic counterargument to her limitless Becoming.
 
-See `docs/WORLD.md`, `docs/MASTER_PANEL.md`, `docs/LORE_BIBLE.md`, `docs/PROGRESSION_RETENTION.md`, `docs/NATURAL_PACING.md`, `docs/OFFLINE_PROGRESSION.md`, and `docs/COMBAT_AI_TRAINING.md` for the authoritative feature, narrative, progression, prestige, retention, offline-training, combat-intelligence/training, absence-protection, and lore-discovery expansions.
+See `docs/WORLD.md`, `docs/MASTER_PANEL.md`, `docs/LORE_BIBLE.md`, `docs/PROGRESSION_RETENTION.md`, `docs/NATURAL_PACING.md`, `docs/OFFLINE_PROGRESSION.md`, `docs/COMBAT.md`, `docs/COMBAT_AI_TRAINING.md`, and `docs/PRODUCT_EXPERIENCE_CONTENT_SYSTEM.md` for the authoritative feature, narrative, progression, prestige, retention, offline-training, tactical-combat, combat-intelligence/training, product-experience, absence-protection, and lore-discovery expansions.
 
 ## Long-Horizon Progression Rule
 
@@ -70,6 +70,47 @@ The system must:
 - avoid continuous per-character background jobs when a deterministic timestamp calculation can do the work cleanly.
 
 Wayfarer's Practice supports the six-month journey but does not become the reason the journey takes six months.
+
+## Tactical Combat Rule
+
+AUREVANE's combat is a core pillar equal in importance to character building and must follow `docs/COMBAT.md`.
+
+The baseline turn economy is intentionally readable:
+
+```text
+MOVEMENT BUDGET
++
+ONE ACTION
++
+EQUIPPED REACTION / BOUNDED EXCEPTIONS
+```
+
+Depth comes from the interaction of:
+
+- terrain and movement profiles;
+- split movement before/after the Action;
+- facing and position;
+- targeting shapes/range/line of sight/height;
+- HP/MP and temporary Discipline resources;
+- costs, cooldowns, charges, and use requirements;
+- status setup/payoff;
+- Reactions;
+- initiative/timeline manipulation;
+- Current + Legacy Arts;
+- Confluences;
+- Soulmarks;
+- equipment/weapon attack profiles;
+- objectives, battle objects, summons, and map geometry;
+- authored battle scenes and environmental transformation;
+- fair AI and opponent prediction.
+
+Do not replace this with a generic percentage Action Point economy, universal Stamina bar, giant element chart, or dozens of always-visible controls merely because another tactical/browser game uses them.
+
+Combat capabilities must use a shared, server-authoritative typed grammar for targeting, costs, requirements, effects, statuses, terrain, and scenario rules where practical. Arts, Basic Attacks, combat items, AI legality, and authoring tools should reference the same combat definitions rather than separate copies.
+
+Players learn combat progressively. Early battles teach movement, one Action, basic targeting, HP/MP, Guard, and obvious terrain before later systems introduce facing, Reactions, Movement Arts, Legacy Arts, Confluences, Soulmarks, advanced objectives, terrain transformations, and competitive timing.
+
+Combat content is circular: the same stable action/status/terrain/map identities should feed gameplay, AI, Codex/manual, acquisition, art/audio, analytics, simulation, support, and Master Panel authoring.
 
 ## Combat AI / Tactical Hall Rule
 
@@ -141,9 +182,9 @@ The complete Master Panel remains Phase 13, but **operational tooling does not w
 
 Each major system should ship with the minimum safe owner/staff controls required to operate that system. In particular, when the world and continuing story arrive in Phase 5, AUREVANE also gains a safe Event/Story operations slice so authorized staff can make the world change without routine code deployments.
 
-Role/permission architecture, auditability, versioning, staging/preview, rollback, narrative canon controls, progression configuration, Wayfarer's Practice configuration, combat-AI profile/version safety, Rekindling rules, Veteran Edge, lore publication, and player-support mutation commands must grow progressively and remain server-authoritative.
+Role/permission architecture, auditability, versioning, staging/preview, rollback, narrative canon controls, progression configuration, Wayfarer's Practice configuration, combat-content version safety, combat-AI profile/version safety, Rekindling rules, Veteran Edge, lore publication, and player-support mutation commands must grow progressively and remain server-authoritative.
 
-The Owner is the highest game-operations authority. The final Master Panel must provide broad operational control over game configuration, users, entitlements, staff roles, special permissions, progression corrections, economy/content corrections, story flags, events, combat-AI profiles/testing, PvP, Rekindling, lore, and emergency controls through validated and audited domain commands rather than exposing raw production credentials.
+The Owner is the highest game-operations authority. The final Master Panel must provide broad operational control over game configuration, users, entitlements, staff roles, special permissions, progression corrections, economy/content corrections, story flags, events, combat actions/statuses/terrain/maps/scenarios, combat-AI profiles/testing, PvP, Rekindling, lore, and emergency controls through validated and audited domain commands rather than exposing raw production credentials.
 
 ## Phase 0 — Foundation
 
@@ -179,6 +220,7 @@ Goal: establish a production-grade project skeleton before game mechanics multip
 - initial XP/progression telemetry hooks;
 - character profile presentation;
 - initial inventory/equipment foundation where required;
+- initial Discipline/Mastery data boundaries that can later express Art Curriculum/acquisition requirements without implementing the combat engine early;
 - presentation hooks for early narrative identity without prematurely revealing the Aurevane mystery;
 - Wayfarer's Practice foundation after normal Character XP exists: authoritative activity/accrual timestamps, Balanced Practice, deterministic elapsed-time calculation, direct Character XP Training Report, Rested Momentum representation, idempotent claim command, basic Training Report UI, and telemetry.
 
@@ -190,28 +232,52 @@ Wayfarer's Practice is a focused Phase 1 progression ticket and is **not part of
 
 ## Phase 2 — Tactical Combat Core
 
-- deterministic battle state;
+Phase 2 proves the smallest complete version of the combat grammar defined in `docs/COMBAT.md`; it does not implement every future shape/editor/mechanic at once.
+
+- deterministic battle state, rule/content versions, and RNG seed/state;
 - grid/board representation;
+- explicit round/turn lifecycle;
 - initiative/turn order;
+- baseline **Movement Budget + one Action** economy;
+- split movement before/after the Action where legal;
+- final facing selection and front/side/rear legality/preview;
 - movement/path legality;
-- targeting;
+- first movement profiles;
+- terrain/elevation/cover/hazard rules needed by the vertical slice;
+- typed Target Spec foundation shared by player validation and AI;
+- initial target kinds such as self/unit/ground/empty tile as scoped;
+- initial reusable shapes such as Single, Circle, and Line;
+- range, minimum range, line-of-sight, height, occupancy, and friendly-fire validation as required by the released actions;
+- Basic Attack using a weapon/unarmed attack profile rather than bespoke UI-only logic;
+- Guard, Wait, End Turn, and Interact where the test scenario needs it;
+- HP/MP and first temporary combat-resource hooks;
+- initial action cost and use-requirement grammar;
 - damage/healing/resource effects;
-- statuses;
-- terrain/elevation/cover rules from the Master Plan;
-- structured combat event log;
-- battle UI and animation hooks;
+- initial statuses and duration/stack timing;
+- reusable effect library;
+- deterministic effect ordering;
+- first terrain/zone creation or transformation only where a vertical-slice Art genuinely needs it;
+- structured combat event log suitable for replay/debug/Battle Review later;
+- authoritative command flow using intent + expected battle version rather than client-submitted outcomes;
+- stale-version/idempotent retry safety appropriate to the action endpoint;
+- battle UI with board-first layout, path/target/shape preview, forecast, valid/invalid explanation, concise actor state, turn order, Movement Budget, and responsive controls;
+- battle-scene/environment foundation with readable world-quality background/material/terrain presentation;
+- combat audio/VFX hooks that restore board readability quickly;
 - reconnect-safe persistence foundation;
 - combat-event architecture capable of later supporting Unchosen/Possibility mechanics without bespoke rewrites;
-- server-authoritative combat-AI decision interface built on the same legality/path/range/effect rules as player actions;
+- server-authoritative combat-AI decision interface built on the same legality/path/range/target/effect/terrain rules as player actions;
 - AI knowledge filter so decision logic only receives information permitted by the encounter/profile;
 - baseline utility/candidate evaluation with deterministic seeded tie-breaking;
 - bounded decision budget and safe legal fallback hierarchy;
 - first weak **Recruit** AI profile;
 - structured AI decision-reason tags for debugging/replays;
 - deterministic developer/QA practice harness;
+- golden tactical regression states for core movement/targeting/terrain/facing/action cases;
 - first player-facing Tactical Hall slice only after the normal battle loop is stable: Recruit Tactical Record, basic unlocked level/stat presets, one training floor, instant retry, and no normal repeatable progression rewards.
 
-**Gate:** two controlled units can complete a deterministic tactical battle with tests, and at least one complete human-vs-Recruit-AI battle is legal, reproducible, bounded, and safely restartable in the training harness/Tactical Hall slice.
+Do **not** implement every targeting shape, full Reaction framework, complete Combat Content Studio, final map editor, full PvP timing, every weapon profile, or every future status in the first vertical slice merely because `docs/COMBAT.md` anticipates them.
+
+**Gate:** two controlled units can complete a deterministic, visually readable tactical battle in which movement, terrain/position, targeting, one Action, resources, and at least a few genuinely different choices matter; the same legality is respected by the first Recruit AI; reconnect/replay-critical state is stable; and the fight is fun enough to justify extending the grammar.
 
 ## Phase 3 — Discipline Framework
 
@@ -223,18 +289,30 @@ Wayfarer's Practice is a focused Phase 1 progression ticket and is **not part of
 - Traits;
 - Reactions;
 - Movement Arts;
-- reusable effect library;
+- reusable effect library expansion only as real released content requires it;
 - Confluence resolution framework;
 - Soulmark framework;
+- enforce 4 Current Arts + 2 Legacy Arts + 2 Traits + 1 Reaction + 1 Movement Art;
+- dedicated presentation/integration for the unlocked Current Ultimate, Soulmark Signature, and Confluence Art where present;
+- Art Curriculum/acquisition metadata: Core/Mastery/Trial/Discovery/Apex patterns without JP-like skill currency;
+- typed actor/target/environment use-requirement composition;
+- cooldown/charge/once-per-X rules;
+- Discipline temporary resource patterns;
+- Reaction triggers and deterministic ordering/loop safety required by released content;
+- additional target shapes and multi-stage selection patterns only when an implemented Art needs them;
+- automatic secondary-target policies for chain/bounce/follow-up effects where required;
+- weapon/Art/equipment modifiers through stable tags/hooks rather than duplicate combat logic;
+- PvE/PvP mode-override representation without separate duplicate Art objects;
 - lore-aware but spoiler-safe metadata hooks for Soulmarks and Confluences where later story requires them;
 - telemetry needed to understand Discipline/Soulmark/Confluence progression by character age;
 - build snapshot concepts needed later by Hall of Selves/Rekindling history;
 - extend Wayfarer's Practice with Discipline Focus, eligible offline Mastery accrual, configurable offline Mastery ceiling, mastery-trial guardrails, and Mastery-source telemetry;
-- make combat AI understand reusable effects, statuses, resources, Arts, Traits, Reactions, Movement Arts, engagement range, basic setup/payoff combinations, and legal build interactions;
+- make combat AI understand reusable effects, target rules, statuses, resources, Arts, Traits, Reactions, Movement Arts, engagement range, terrain, basic setup/payoff combinations, and legal build interactions;
 - add versioned behavior archetype/profile data and stronger intelligence grades where the combat engine supports them cleanly;
-- extend Tactical Hall records to Discipline-aware sparring opponents without exposing locked/unreleased builds.
+- extend Tactical Hall records to Discipline-aware sparring opponents without exposing locked/unreleased builds;
+- begin minimum safe combat-content validation/preview tooling when authoring volume justifies it rather than waiting for Phase 13.
 
-**Gate:** multiple meaningful builds can be configured and validated server-side, offline practice can assist Discipline development without independently granting true mastery, and representative AI profiles can use the same build systems competently without illegal or obviously wasteful default behavior.
+**Gate:** multiple meaningful builds can be configured and validated server-side; the combat grammar expresses real Current/Legacy/Reaction/Movement/Soulmark/Confluence interactions without one-off code for each ability; offline practice can assist Discipline development without independently granting true mastery; and representative AI profiles can use the same systems competently without illegal or obviously wasteful default behavior.
 
 ## Phase 4 — First Playable Discipline Set
 
@@ -242,13 +320,19 @@ Implement the initial subset defined in the Master Plan, targeting roughly 16 pl
 
 Every Discipline ticket includes gameplay data, tests, art requests/assets, audio requests/assets, and **AI usage rules/tests** where applicable: preferred ranges, resource/defensive thresholds, setup/payoff logic, mobility intent, Reaction/Ultimate conditions, and obvious waste cases to avoid.
 
+Every released Discipline must also establish a distinct combat identity across some combination of engagement range, mobility, defense, resource rhythm, setup/payoff, terrain, facing, objective value, team contribution, vulnerabilities/counterplay, and visual/audio motion language. Do not fill the roster with cosmetically renamed copies.
+
+Combat-content tickets must use the authored targeting/cost/requirement/effect system, include player-readable acquisition/Mastery rules, and prove that important Arts create actual tactical decisions rather than only higher coefficients.
+
+Build representative battle scenes/maps that exercise different terrain, range, movement, objective, and positioning questions while reusing environment systems rather than carbon-copy layouts.
+
 Character-building content should reinforce the theme that players can grow and combine identities through deliberate mastery without turning every Discipline into secret Aurevane lore.
 
 Begin validating progression pacing against expected six-month targets rather than tuning only for short-term vertical slices. Include Wayfarer's Practice and Rested Momentum in pacing simulations so offline assistance does not accidentally trivialize the journey.
 
-Expand the Tactical Hall with Recruit/Trained/Veteran representative opponents, progression-gated Tactical Records, useful scenario presets, saved/repeatable drills, and the first Battle Review foundation. Establish curated AI benchmark board states and begin human fairness/readability testing.
+Expand the Tactical Hall with Recruit/Trained/Veteran representative opponents, progression-gated Tactical Records, useful scenario presets, saved/repeatable drills, terrain/facing/targeting exercises, and the first Battle Review foundation. Establish curated AI and combat-rule benchmark board states and begin human fairness/readability/fun testing.
 
-**Gate:** the initial build-combination loop is genuinely fun to test, and representative opponents can challenge those builds through recognizable tactical behavior rather than hidden cheating or random action selection.
+**Gate:** the initial build-combination loop is genuinely fun to test; combat feels materially different across representative Disciplines/maps; normal actions are readable despite system depth; and representative opponents can challenge those builds through recognizable tactical behavior rather than hidden cheating or random action selection.
 
 ## Phase 5 — Living World, Story & Live Operations Foundation
 
@@ -276,6 +360,9 @@ Expand this phase with the minimum systems required for a genuinely living onlin
 - continuing story-arc hooks and versioned narrative content;
 - **Archive** foundation for books, letters, reports, relics, inscriptions, environmental evidence, NPC testimony, and other discoverable lore;
 - Fragment Sets, source provenance, unresolved contradictions, and reconstruction thresholds;
+- world/encounter context selects coherent versioned battle scenes rather than sending every encounter to a generic arena;
+- region/location terrain, weather, ambience, background art, encounter objects, and event-state variants can feed battle presentation through approved scene/scenario definitions;
+- battle completion/escape/defeat returns cleanly to authoritative world state;
 - connect Tactical Record acquisition to legitimate encounters, enemy-family defeats, mentors/training quests, region/Horizon progress, Archive/training discoveries, and other spoiler-safe world progression;
 - make new Tactical Record unlock messaging restrained and useful rather than a second intrusive checklist;
 - present the Tactical Hall as a believable world service/location or equivalent UI destination while keeping future enemy/boss records hidden until legitimately known;
@@ -292,7 +379,7 @@ Expand this phase with the minimum systems required for a genuinely living onlin
 - first controlled clues that the word **Aurevane** is a name rather than simply a title/world label;
 - narrative data structures that can later gate deeper reveal stages without rewriting the quest engine.
 
-**Gate:** a character can leave a hub, explore, encounter content, complete quests, discover lore in the actual world, and return with persistent progression **and** an authorized owner/event/story staff member can safely publish a scheduled world/story event that changes what players see and can do without a code deployment. The main story has a compelling mystery without prematurely exposing the antagonist reveal. Tactical Records can unlock from legitimate world experience without leaking future encounters.
+**Gate:** a character can leave a hub, explore, enter an encounter whose battle scene actually belongs to that location, complete combat/quests, discover lore, and return with persistent progression **and** an authorized owner/event/story staff member can safely publish a scheduled world/story event that changes what players see and can do without a code deployment. The main story has a compelling mystery without prematurely exposing the antagonist reveal. Tactical Records can unlock from legitimate world experience without leaking future encounters.
 
 ## Phase 6 — Party & Co-op
 
@@ -304,11 +391,13 @@ Expand this phase with the minimum systems required for a genuinely living onlin
 - live-ops integration for cooperative event objectives where required;
 - co-op narrative encounters capable of preserving player-specific story flags inside shared world events;
 - group/community event participation should feed Chronicle and urgency systems where appropriate;
+- multi-player battle ownership, reconnect, timers/flow, pings, and action visibility;
+- verify Reactions/multi-target effects do not create prompt spam or unreadable sequencing in three-player fights;
 - add a lightweight enemy-team coordinator for role-aware focus, protection, formations, setup/payoff sequences, objective assignment, and overkill avoidance;
 - tune coordination by enemy identity so disciplined squads behave more coherently than creatures that should be disorganized;
 - add allied NPC AI where required and multi-unit Tactical Hall drills for legitimately unlocked profiles.
 
-**Gate:** three people can complete a mission together against enemy groups whose coordination is challenging but understandable and does not depend on hidden player information.
+**Gate:** three people can complete a mission together in a battle that remains readable and responsive, against enemy groups whose coordination is challenging but understandable and does not depend on hidden player information.
 
 ## Phase 7 — Expeditions
 
@@ -326,12 +415,15 @@ Expand this phase with the minimum systems required for a genuinely living onlin
 - temporary Expedition rotations/anomalies for live urgency;
 - lore rooms, records, relics, and Fragment Set sources;
 - architecture for late-story Unmoored/possibility-themed Expeditions while preserving deterministic seeded generation;
+- richer objective/scenario rules and authored modular battle scenes;
+- telegraphed/windup/interrupt mechanics as real boss content requires them;
+- environmental battle objects, terrain transformations, reinforcements, and phase-state rules where authored;
 - objective-specific Expedition AI and stronger team coordination where encounter identity requires it;
 - boss AI directors combining authored phase/telegraph rules with bounded tactical choices inside each phase;
 - boss Tactical Records/practice simulations only after the required legitimate encounter/clear, with unreached phases and hidden mechanics spoiler-gated;
-- validate long encounter AI performance, reconnect behavior, version pinning, and replay reproducibility.
+- validate long encounter combat/AI performance, reconnect behavior, content/rules version pinning, and replay reproducibility.
 
-**Gate:** a three-player, hour-scale Deep Expedition is fully playable, with bosses/enemy groups that use authored, fair, learnable tactical intelligence and no AI-induced soft locks.
+**Gate:** a three-player, hour-scale Deep Expedition is fully playable, with memorable battle scenes, mechanics, terrain/objective variation, and bosses/enemy groups that use authored, fair, learnable tactical intelligence with no combat/AI soft locks.
 
 ## Phase 8 — PvP
 
@@ -345,6 +437,13 @@ Expand this phase with the minimum systems required for a genuinely living onlin
 - disconnect protection;
 - seasons;
 - tournament framework;
+- server-owned competitive decision clocks based around the Master Plan's configurable 30–45 second starting target;
+- resolution animations must not consume the next player's decision time;
+- explicit timeout/Guard-or-End/forfeit/reconnect behavior;
+- explicit ranked loadout validation and banned/disabled-content handling;
+- transparent versioned PvP coefficients/control-duration/summon/other mode overrides rather than separate duplicate ability definitions;
+- CC anti-lockout/diminishing-effectiveness system;
+- 1v1/2v2 map side-bias, range, terrain, objective, and spawn testing;
 - PvP rotation, tournament, season, and event operations in the Master Panel as those systems become real;
 - lore-themed special PvP rotations may use unstable-world presentation/rules later without secretly changing permanent ranked balance;
 - collect Edge-relevant baseline matchup/win-rate telemetry before Rekindling combat rewards are enabled;
@@ -365,6 +464,9 @@ Every new Discipline requires at minimum:
 - Traits;
 - Reaction where appropriate;
 - Movement Art where appropriate;
+- clear Art Curriculum/acquisition rules;
+- distinct engagement/mobility/setup/terrain/objective/counterplay identity;
+- authoritative target/cost/requirement/effect data;
 - AI usage rules;
 - AI tactical regression scenarios appropriate to the Discipline;
 - VFX requirement;
@@ -398,6 +500,7 @@ This phase also expands late-cycle build depth so the first 180-day journey has 
 - marketplace;
 - crafting;
 - economic telemetry;
+- combat items/equipment acquisition connects to the same authoritative combat definitions where relevant rather than duplicating action logic;
 - controlled owner/balance/economy configuration and support workflows rather than raw production-data editing;
 - Rekindling reset/preserve rules must not accidentally delete purchases, permanent cosmetics, or account ownership;
 - recurring acquisition paths for important competitive build components that previously appeared in limited-time content;
@@ -436,10 +539,12 @@ Some operational functionality exists earlier alongside the systems it controls.
 - audio manager;
 - Asset Studio;
 - Balance Lab and safe quick edits;
+- **Combat Content Studio** with authorized Art/Trait/Reaction/Movement/Ultimate/Confluence/Soulmark combat editing, weapon attack profiles, statuses, terrain/movement profiles, battle objects/summons, scenarios/objectives, map/scene data, typed Target/Requirement/Effect builders, visual targeting preview, test-character battle launch, content completeness validation, dependency/impact preview, mode overrides, staged publish, rollback, emergency disable, permissions, and audit;
+- combat analytics for slot/cast/use/effect efficiency, map/terrain heatmaps, objective performance, matchup/build data, Reaction trigger/value, timer/timeout behavior, battle length, and other balance evidence;
 - **Combat AI Lab** with authorized profile inspection/editing, profile-to-enemy assignment inspection, deterministic seed replay, unrestricted supported QA scenarios, AI-vs-AI/team-vs-team, batch simulations, matchup matrices, benchmark-suite runner, decision/performance analytics, staged publish, version diff/rollback, and per-profile emergency fallback/disable controls;
 - Tactical Record configuration for unlock requirements, intelligence-grade caps, level/stat ranges, scenario access, and spoiler visibility;
 - **Pacing Simulator** for XP/Horizon/180-day projections, including different Wayfarer's Practice absence patterns and Rested Momentum use;
-- progression configuration for XP/Mastery curves, level cap, Horizon age/milestone gates, rested/catch-up rules, Wayfarer's Practice focus/accrual/caps/Mastery ceilings, Rested Momentum, and endgame qualification;
+- progression configuration for XP/Mastery curves, level cap, Horizon age/milestone gates, rested/catch-up rules, Wayfarer's Practice focus/accrual/caps/Mastery ceilings, Rested Momentum, Art Curriculum/acquisition requirements where content-controlled, and endgame qualification;
 - offline-progression analytics for claim rate, claim-to-session conversion, direct-vs-active XP/Mastery share, cap frequency, return rate, and Horizon impact;
 - retention/urgency configuration for event cadence, recurrence, first-witness rewards, rotations, World Pulse priority, and aftermath;
 - Rekindling configuration for eligibility, reset/preserve rules, Memory Carryover, cycle length, and support corrections;
@@ -456,7 +561,7 @@ Some operational functionality exists earlier alongside the systems it controls.
 - protection against ordinary Event Staff accidentally publishing unreleased central-story material;
 - break-glass Owner actions for exceptional high-risk recovery operations, requiring re-authentication, reason, confirmation, and immutable audit records.
 
-**Gate:** the owner can safely operate, rebalance, repair, and delegate the live game through audited, server-authorized tools without routine database access or code edits for normal content operations. Every major six-month pacing, offline-progression, combat-AI/Tactical Hall, urgency, Rekindling, Veteran Edge, lore-discovery, and player-support control has an operational surface.
+**Gate:** the owner can safely operate, author, rebalance, preview, simulate, repair, and delegate the live game through audited, server-authorized tools without routine database access or code edits for normal content operations. Every major combat, six-month pacing, offline-progression, combat-AI/Tactical Hall, urgency, Rekindling, Veteran Edge, lore-discovery, and player-support control has an operational surface.
 
 ## Phase 14 — Art & Audio Production Polish
 
@@ -474,6 +579,13 @@ This is a dedicated production pass, not permission to postpone all media until 
 - animations;
 - responsive polish;
 - loading/error-state polish;
+- battle-scene backgrounds/parallax/environment kits;
+- combat map material/terrain/elevation readability polish;
+- weapon/Art/Reaction/Movement/Soulmark/Confluence/Ultimate animation and VFX identity;
+- impact audio, footsteps, blocks/parries, telegraphs, objective cues, and combat ambience;
+- fast/readable action resolution with special treatment reserved for earned signature moments;
+- responsive/touch battle action bar, targeting, forecast, timeline, and contextual inspection polish;
+- reduced-motion/camera-shake/accessibility combat polish;
 - Aurevane/Open Crown visual identity and recurring motifs;
 - Closed Star visual language;
 - Aurevane leitmotif progression from warm/hopeful to unstable/antagonistic arrangements;
@@ -504,10 +616,19 @@ Media required to make earlier testing coherent should already be introduced thr
 - progression/Horizon boundary tests;
 - Wayfarer's Practice server-time, accrual-cap, focus-change, Mastery-ceiling, idempotency/double-claim, reconnect, long-absence, multi-character, and economy-isolation tests;
 - verify offline progression is calculated efficiently without unnecessary continuous per-character jobs or client polling;
+- combat movement/path/terrain/elevation property tests and worst cases;
+- target-kind/shape/range/LoS/height/filter/friendly-fire/multistage/secondary-target-policy tests for implemented grammar;
+- action cost/requirement/cooldown/charge/resource atomicity and rejected-action rollback tests;
+- effect ordering/status duration/terrain transformation/summon/objective tests;
+- Reaction priority/response-window/loop-recursion safety tests;
+- initiative/extra-action/refund/infinite-turn prevention tests;
+- battle command idempotency, stale-version race, seed replay, version pinning, reconnect, timer/timeout, and disconnect-abuse tests;
+- map spawn/objective reachability, side bias, terrain/range archetype balance, performance, camera/readability, and content-reference validation;
+- Combat Content Studio permission/validation/staging/diff/publish/rollback/emergency-disable/impact-preview tests;
 - combat-AI legal-action/property tests, configured knowledge-boundary tests, deterministic version/seed replay, decision-budget/load testing, pathfinding worst cases, fallback/loop/oscillation checks, boss telegraph/counterplay review, and representative tactical regression suites;
 - Tactical Hall authorization, Tactical Record progression/spoiler gating, level/stat configuration legality, practice reward isolation, reset/retry, and boss-record unlock tests;
 - Combat AI Lab permission/audit/versioning/staged-publish/rollback validation;
-- human combat playtests across skill levels to confirm difficulty feels challenging, learnable, varied, and fair rather than omniscient or random;
+- human combat playtests across skill levels to confirm battle depth feels exciting, learnable, varied, readable, and fair rather than cluttered, omniscient, random, or mechanically shallow;
 - Rekindling reset/preserve integrity tests;
 - Veteran Edge competitive regression tests;
 - event recurrence/catch-up tests;
@@ -524,13 +645,14 @@ Before Rekindling becomes a normal production feature, validate:
 - offline XP/Mastery remains a modest contributor and cannot replace accomplishment-based progression;
 - Practice Arena battles do not provide a low-risk shortcut around active progression or economy acquisition;
 - enough PvE/PvP/world/story/lore content exists that the six-month journey is not filler;
+- combat across the journey continues introducing meaningful build/terrain/objective/opponent questions rather than becoming the same fight with larger numbers;
 - the endgame rite is a genuine mastery challenge;
 - Rekindling preserves identity/history while resetting enough progression to make rebuilding meaningful;
 - Veteran Edge has sufficient telemetry, tests, kill switches, queue rules, and Master Panel controls before use in ranked PvP.
 
 ## Closed Alpha Target
 
-From the Master Plan, expanded with the operational and narrative requirements needed to keep the alpha world alive:
+From the Master Plan, expanded with the operational, combat, and narrative requirements needed to keep the alpha world alive:
 
 - 16 Disciplines;
 - 8 Soulmarks;
@@ -546,18 +668,25 @@ From the Master Plan, expanded with the operational and narrative requirements n
 - 1v1 PvP;
 - 2v2 PvP;
 - Guild foundation;
+- stable Movement Budget + one Action combat economy with bounded action manipulation;
+- representative targeting grammar covering unit/ground targeting, several shapes, range/LoS/height/friendly-fire rules, requirements/costs/effects, and clear forecasts;
+- meaningful terrain/elevation/facing/status/Reaction/Movement-Art interactions;
+- world-linked authored battle scenes/maps with several genuinely different tactical layouts rather than reskins;
+- combat loadout rules for Current/Legacy Arts, Traits, Reaction, Movement Art, Soulmark, Confluence, and Current Ultimate presentation;
+- Art Curriculum/Mastery/trial/discovery acquisition foundation with no JP-like skill currency;
 - reliable shared combat-AI framework with representative Recruit/Trained/Veteran behavior;
 - distinct AI archetypes across representative enemy families;
 - AI usage rules/regression coverage for the initial Discipline set;
 - competent enemy-squad coordination where fiction/content requires it;
 - authored, fair, learnable boss AI behavior;
-- player Tactical Hall foundation with progression-gated Tactical Records, basic level/stat/opponent configuration, repeatable practice seeds, and Battle Review foundation;
-- QA benchmark scenarios with no common illegal-action/AI-soft-lock failures;
+- player Tactical Hall foundation with progression-gated Tactical Records, basic level/stat/opponent configuration, repeatable practice seeds, terrain/targeting drills, and Battle Review foundation;
+- QA benchmark scenarios with no common illegal-action/combat-loop/AI-soft-lock failures;
 - continuing world-event/story capability;
 - World Pulse foundation;
 - Archive/lore discovery foundation and Fragment Sets;
 - owner + delegated staff role/permission foundation;
 - usable Event/Story/Lore operations panel;
+- minimum safe combat-content validation/preview controls required by released systems;
 - auditability and content rollback for live operations;
 - Master Panel core;
 - full audio;
@@ -581,5 +710,7 @@ A ticket must state:
 - acceptance criteria;
 - manual verification;
 - dependencies.
+
+Combat tickets must additionally identify which part of the approved combat grammar they implement and which later mechanics are explicitly out of scope so future target/effect/editor capabilities are not accidentally pulled into one ticket.
 
 Only the assigned ticket is implemented. Future roadmap systems may influence interfaces and boundaries, but they are not implemented early merely because they are known.
