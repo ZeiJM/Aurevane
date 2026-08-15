@@ -4,7 +4,7 @@ This file tracks the current implementation boundary. The Master Game Plan defin
 
 ## Current status
 
-**Stage:** Phase 0 — Foundation Complete
+**Stage:** Phase 1 — Character Foundation planned; implementation not started
 
 Authoritative documents established:
 
@@ -91,13 +91,28 @@ Completed with:
 
 **Concurrency audit:** a separately created competing F0.4 implementation was inspected and rejected as incomplete/conflicting. Canonical PR #18 was merged; the competing branch was force-aligned to the approved `main` checkpoint and its audit-marker PR #17 was closed without merge. No divergent duplicate F0.4 implementation remains.
 
+### P1-PLAN — Break Character Foundation into implementation tickets
+
+Phase 1 is defined in `docs/PHASE_1_TICKETS.md` as six independently verifiable tickets:
+
+- P1.1 Account Entry + Player Profile Boundary;
+- P1.2 Character Domain Rules + Creation Contract;
+- P1.3 Authoritative Character Creation + Persistence Experience;
+- P1.4 Character Profile + Derived Stat Framework;
+- P1.5 Level 1–100 XP Progression + Telemetry Foundation;
+- P1.6 Wayfarer's Practice: Balanced Practice Foundation.
+
+The first major player milestone is P1.3: an authenticated player can create and permanently persist a valid character. Phase 1 explicitly preserves later Discipline, combat, world, inventory/equipment, Horizon, Rekindling, premium-slot and Master Panel scope for their roadmap phases rather than implementing them early.
+
 ## ACTIVE
 
-No implementation ticket is active. F0.4 is at its completed checkpoint; do not begin Phase 1 without a new ticket start.
+No Phase 1 implementation ticket is active.
+
+Phase 0 production-verification issue #20 remains open. Vercel Production is currently one commit behind `main`: the missing commit is the already-merged public-shell environment hotfix. The first Phase 1 implementation must not merge until the current Phase 0 production shell is successfully redeployed and verified.
 
 ## Next
 
-Plan/break Phase 1 — Character Foundation into small implementation tickets before coding the first Phase 1 feature.
+P1.1 — Account Entry + Player Profile Boundary, after issue #20 is closed.
 
 ## Rule
 
