@@ -80,9 +80,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          status_env="$(pnpm exec supabase status -o env || true)"
-          eval "$(printf '%s\n' "$status_env" | grep '^ANON_KEY=')"
-          test -n "${ANON_KEY:-}"
+          kong_container="$(docker ps --filter 'name=supabase_kong_' --format '{{.Names}}' | head -n 1)"
+          test -n "$kong_container"
+          ANON_KEY="$(docker exec "$kong_container" printenv SUPABASE_ANON_KEY)"
+          test -n "$ANON_KEY"
           api_url='http://127.0.0.1:54321'
 
           email="f02-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@example.com"
