@@ -4,14 +4,17 @@
 
 - The project is **AUREVANE**, an original persistent browser-based multiplayer RPG.
 - `docs/GAME_MASTER_PLAN.md` is the authoritative game-design document.
+- `docs/LORE_BIBLE.md` is the authoritative lore expansion for Aurevane, the central goddess mystery, the Binding, the long-form antagonist reveal, and related narrative motifs. Do not casually alter or spoil its approved canon.
 - `docs/MEDIA_PIPELINE.md` is the authoritative media/audio pipeline document.
 - `docs/TECHNOLOGY_POLICY.md` is authoritative engineering guidance for language/runtime/toolchain selection; use modern stable/LTS production technology rather than blindly chasing previews or legacy stacks.
 - Treat `docs/ART_BIBLE.md` and `docs/AUDIO_BIBLE.md` as authoritative when they are added.
 - Never redesign, remove, simplify, or invent game mechanics unless explicitly asked.
+- Never rewrite major approved lore, Aurevane's identity/motivation, the reason for her imprisonment, or the central reveal without explicit owner approval.
 - Build one small ticket at a time. Implement only the requested ticket, do not implement future systems prematurely, and stop when that ticket is complete.
 - Preserve working functionality unless explicitly replacing it.
 - For major architectural changes, propose the plan before modifying code.
 - Before significant architecture or implementation work, read the relevant authoritative documents in `docs/` and inspect the existing code before proposing changes.
+- Before implementing narrative, world, quest, NPC, event, Soulmark, Confluence, region, Expedition, nation, or major media content that may touch the central mythology, read `docs/LORE_BIBLE.md` in addition to the Game Master Plan.
 - Never assume a system, package, database table, route, or feature exists; verify it in the repository.
 
 ## Server authority and security
@@ -29,6 +32,14 @@
 - Use migrations for every database change.
 - TypeScript is the default application/game-service language and PostgreSQL/SQL is the authoritative relational data layer unless a documented architectural decision justifies another production language.
 - New framework/runtime/compiler majors must be verified against current authoritative documentation and introduced deliberately through focused migration work rather than incidental gameplay tickets.
+
+## Narrative and live-world continuity
+
+- The permanent character-building loop and the living-world story must reinforce each other.
+- The central Aurevane mystery should unfold through fair foreshadowing, conflicting historical perspectives, player relationships, world events, and controlled story stages rather than an exposition dump.
+- Do not reveal late-story secrets in early quests, public UI copy, item descriptions, art filenames, API payloads, logs visible to players, or event metadata merely because the internal lore is known to the implementation agent.
+- Story/world-event content should be data-driven and versioned where practical so long-running live narrative can evolve without routine code deployments.
+- Do not make every system secretly originate from Aurevane. The world must remain larger than the central antagonist.
 
 ## Media and originality
 
