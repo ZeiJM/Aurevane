@@ -2,8 +2,8 @@ import type { AuthenticatedActor } from '@aurevane/game-core/command'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { parseAuthorityProbeRequest } from '@aurevane/validation/foundation/authority-probe'
 
+import { toServerErrorResponse } from '../http/error-response'
 import { executeAuthorityProbe, type AuthorityProbeRepository } from './authority-probe-service'
-import { toServerErrorResponse } from '@/server/http/error-response'
 
 export interface AuthorityProbeHandlerDependencies {
   getActor(): Promise<AuthenticatedActor>
