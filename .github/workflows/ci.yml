@@ -35,3 +35,6 @@ jobs:
 
       - name: Run quality gates
         run: pnpm check
+
+      - name: Verify checks did not modify tracked source
+        run: git diff --exit-code
