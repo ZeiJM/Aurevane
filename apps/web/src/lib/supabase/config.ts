@@ -1,7 +1,4 @@
-import {
-  parsePublicEnvironment,
-  type AurevaneEnvironment,
-} from '@aurevane/validation/env/public'
+import { parsePublicEnvironment, type AurevaneEnvironment } from '@aurevane/validation/env/public'
 
 interface PublicSupabaseEnvironmentInput {
   NEXT_PUBLIC_AUREVANE_ENV?: string
