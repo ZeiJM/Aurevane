@@ -4,8 +4,8 @@ export interface MigrationPolicyViolation {
   table?: string
 }
 
-const PUBLIC_TABLE_PATTERN =
-  /create\s+table\s+(?:if\s+not\s+exists\s+)?(?:"?public"?\.)"?([a-zA-Z0-9_]+)"?/gi
+const CREATE_TABLE_PATTERN =
+  /create\s+table\s+(?:if\s+not\s+exists\s+)?(?:(?:"?([a-zA-Z0-9_]+)"?)\.)?"?([a-zA-Z0-9_]+)"?/gi
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -30,11 +30,20 @@ export function inspectMigrationSecurity(sql: string): MigrationPolicyViolation[
     })
   }
 
-  for (const match of sql.matchAll(PUBLIC_TABLE_PATTERN)) {
-    const table = match[1]
+  for (const match of sql.matchAll(CREATE_TABLE_PATTERN)) {
+    const schema = match[1]
+    const table = match[2]
+
+    // PostgreSQL's normal application search path creates unqualified tables in
+    // public. Treat an omitted schema as public so RLS cannot be bypassed merely
+    // by leaving the schema name out of CREATE TABLE.
+    if (schema && schema.toLowerCase() !== 'public') {
+      continue
+    }
+
     const escapedTable = escapeRegExp(table)
     const enableRlsPattern = new RegExp(
-      `alter\\s+table\\s+(?:only\\s+)?(?:"?public"?\\.)"?${escapedTable}"?\\s+enable\\s+row\\s+level\\s+security`,
+      `alter\\s+table\\s+(?:only\\s+)?(?:(?:"?public"?)\\.)?"?${escapedTable}"?\\s+enable\\s+row\\s+level\\s+security`,
       'i',
     )
 
