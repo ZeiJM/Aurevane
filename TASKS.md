@@ -4,7 +4,7 @@ This file tracks the current implementation boundary. The Master Game Plan defin
 
 ## Current status
 
-**Stage:** Foundation preparation
+**Stage:** Phase 0 — Engineering Foundation
 
 Authoritative documents established:
 
@@ -18,42 +18,35 @@ Authoritative documents established:
 
 Legacy prototype code has intentionally not been imported.
 
-## Next task
+## Completed
 
 ### SPRINT-0-PLAN — Break Phase 0 into implementation tickets
 
-**Purpose**
+Phase 0 is defined in `docs/PHASE_0_TICKETS.md` as four independently verifiable tickets aligned to Master Plan Sprints 0–3.
 
-Translate Phase 0/Foundation into small, verifiable coding tickets before application code is created.
+## ACTIVE
 
-**Scope**
+### F0.1 — Repository + Runnable Web Foundation
 
-Plan only. No feature implementation yet.
+**Purpose:** Establish the monorepo and first deployable AUREVANE web application.
 
-**Required ticket coverage**
+**Allowed scope:** workspace/tooling, `apps/web` scaffold, dependency policy, formatting, lint, typecheck, tests, production build, CI, Vercel/developer setup documentation.
 
-- fresh Next.js/TypeScript scaffold;
-- dependency/version policy;
-- formatting, linting, typecheck, tests, production build;
-- GitHub CI;
-- Vercel-safe environment setup;
-- database/migration foundation;
-- authentication baseline;
-- authorization/security baseline;
-- design-system tokens/primitives;
-- responsive application shell;
-- media registry foundation;
-- central audio-runtime foundation;
-- structured errors/logging;
-- developer setup documentation.
+**Explicitly out of scope:** Supabase/database/auth, gameplay mechanics, final design system, media runtime, audio engine, character systems, combat systems.
 
-**Acceptance criteria**
+**Acceptance criteria:**
 
-- tickets are independently implementable;
-- each ticket includes exact scope, affected modules, approach, tests, acceptance criteria, manual verification, and dependencies;
-- tickets do not prematurely implement later game systems;
-- architecture anticipates the full Master Plan.
+- monorepo structure matches the Master Plan;
+- first AUREVANE page renders;
+- formatting/lint/typecheck/tests/build all pass;
+- GitHub CI enforces the quality gate;
+- Vercel can deploy the web application after its Root Directory is set to `apps/web`;
+- developer setup is documented.
+
+## Next after F0.1
+
+F0.2 — Infrastructure + Persistence Baseline.
 
 ## Rule
 
-Only one implementation ticket becomes ACTIVE at a time. When it is complete and verified, mark it DONE and select the next ticket.
+Only one implementation ticket is ACTIVE at a time. Future systems may influence interfaces and boundaries, but they are not implemented early.
