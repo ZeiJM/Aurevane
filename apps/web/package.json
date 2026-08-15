@@ -11,6 +11,8 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@aurevane/db": "workspace:*",
+    "@aurevane/game-core": "workspace:*",
     "@aurevane/validation": "workspace:*",
     "@supabase/ssr": "0.12.4",
     "@supabase/supabase-js": "2.112.3",

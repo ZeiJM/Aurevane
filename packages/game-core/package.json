@@ -1,18 +1,17 @@
 {
-  "name": "@aurevane/db",
+  "name": "@aurevane/game-core",
   "version": "0.0.0",
   "private": true,
   "type": "module",
   "exports": {
-    "./migration-policy": "./src/migration-policy.ts",
-    "./transactional-command": "./src/transactional-command.ts"
+    "./command": "./src/command.ts",
+    "./errors": "./src/errors.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
   "devDependencies": {
-    "@types/node": "24.1.0",
     "typescript": "6.0.3",
     "vitest": "4.1.10"
   }
