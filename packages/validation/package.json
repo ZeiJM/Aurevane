@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     "./env/public": "./src/env/public.ts",
-    "./env/server": "./src/env/server.ts"
+    "./env/server": "./src/env/server.ts",
+    "./foundation/authority-probe": "./src/foundation/authority-probe.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
