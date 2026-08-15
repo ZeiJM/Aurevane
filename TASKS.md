@@ -24,28 +24,43 @@ Legacy prototype code has intentionally not been imported.
 
 Phase 0 is defined in `docs/PHASE_0_TICKETS.md` as four independently verifiable tickets aligned to Master Plan Sprints 0–3.
 
-## ACTIVE
-
 ### F0.1 — Repository + Runnable Web Foundation
 
-**Purpose:** Establish the monorepo and first deployable AUREVANE web application.
+Completed with:
 
-**Allowed scope:** workspace/tooling, `apps/web` scaffold, dependency policy, formatting, lint, typecheck, tests, production build, CI, Vercel/developer setup documentation.
+- pnpm/Turborepo monorepo foundation;
+- pinned dependency policy and committed lockfile;
+- Next.js/React/TypeScript `apps/web` application;
+- first responsive AUREVANE development screen;
+- Prettier, ESLint, strict TypeScript, Vitest, and production-build gates;
+- GitHub CI with frozen dependency installs and clean-working-tree verification;
+- local-development and Vercel monorepo documentation.
 
-**Explicitly out of scope:** Supabase/database/auth, gameplay mechanics, final design system, media runtime, audio engine, character systems, combat systems.
+**Verification:** formatting, lint, typecheck, tests, production build, and clean-source CI gate all pass.
+
+## ACTIVE
+
+### F0.2 — Infrastructure + Persistence Baseline
+
+**Purpose:** Establish safe local/staging/production persistence and authentication infrastructure.
+
+**Allowed scope:** Supabase project conventions, environment validation, migration workflow, PostgreSQL baseline, authentication integration, initial RLS/security baseline, server-only credential handling, and deployment environment documentation.
+
+**Explicitly out of scope:** character/gameplay schemas, combat, world systems, final design system, media/audio runtime, and later game features.
 
 **Acceptance criteria:**
 
-- monorepo structure matches the Master Plan;
-- first AUREVANE page renders;
-- formatting/lint/typecheck/tests/build all pass;
-- GitHub CI enforces the quality gate;
-- Vercel can deploy the web application after its Root Directory is set to `apps/web`;
-- developer setup is documented.
+- local, preview/staging, and production environments are explicitly separated;
+- migrations are reproducible and version-controlled;
+- authentication can be integrated without trusting the browser for privileged state;
+- exposed data has a deliberate RLS model;
+- service credentials remain server-only;
+- automated environment/security checks pass;
+- existing F0.1 quality gates remain green.
 
-## Next after F0.1
+## Next after F0.2
 
-F0.2 — Infrastructure + Persistence Baseline.
+F0.3 — Server Architecture Skeleton.
 
 ## Rule
 
