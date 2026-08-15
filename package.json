@@ -1,0 +1,23 @@
+{
+  "name": "aurevane",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@11.17.0",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "format": "prettier --write \"apps/**/*.{ts,tsx,js,mjs,json,css}\" package.json turbo.json pnpm-workspace.yaml .prettierrc.json",
+    "format:check": "prettier --check \"apps/**/*.{ts,tsx,js,mjs,json,css}\" package.json turbo.json pnpm-workspace.yaml .prettierrc.json",
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build"
+  },
+  "devDependencies": {
+    "prettier": "3.9.6",
+    "turbo": "2.10.7"
+  }
+}

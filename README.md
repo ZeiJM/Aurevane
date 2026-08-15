@@ -24,6 +24,55 @@ The full master plan describes the final game. It is **not** permission to imple
 - No unlicensed third-party assets or copied proprietary game content.
 - Every ticket is verified with relevant tests, type checking, and linting before completion.
 
+## Repository shape
+
+```text
+apps/
+  web/          # Next.js browser application
+packages/       # shared/domain packages introduced only when their ticket begins
+content/        # art/audio requests, seed content, balance data
+docs/           # authoritative design and engineering documents
+```
+
+The complete target monorepo shape is defined by the Master Game Plan. Empty future packages are not created prematurely.
+
+## Local development
+
+Prerequisites:
+
+- Node.js 24 LTS
+- Corepack
+- Git
+
+From the repository root:
+
+```bash
+corepack enable
+corepack prepare pnpm@11.17.0 --activate
+pnpm install
+pnpm dev
+```
+
+Open `http://localhost:3000`.
+
+Before proposing a merge:
+
+```bash
+pnpm check
+```
+
+That command runs formatting verification, linting, TypeScript checks, unit tests, and the production build.
+
+## Vercel
+
+The repository is a monorepo. Configure the existing Vercel project with **Root Directory** set to:
+
+```text
+apps/web
+```
+
+Vercel should use the Next.js framework preset. Keep secrets in Vercel environment settings, never in Git. Preview deployments are used for development review; `main` remains the production branch.
+
 ## Current state
 
-Fresh repository baseline. Legacy prototype implementation has intentionally not been imported. The authoritative design and media documents are being retained as the foundation for a clean implementation.
+Phase 0 is active. The discarded prototype has not been imported. See `TASKS.md` for the one currently allowed implementation ticket.

@@ -4,7 +4,7 @@ This file tracks the current implementation boundary. The Master Game Plan defin
 
 ## Current status
 
-**Stage:** Foundation preparation
+**Stage:** Phase 0 — Engineering Foundation
 
 Authoritative documents established:
 
@@ -18,42 +18,50 @@ Authoritative documents established:
 
 Legacy prototype code has intentionally not been imported.
 
-## Next task
+## Completed
 
 ### SPRINT-0-PLAN — Break Phase 0 into implementation tickets
 
-**Purpose**
+Phase 0 is defined in `docs/PHASE_0_TICKETS.md` as four independently verifiable tickets aligned to Master Plan Sprints 0–3.
 
-Translate Phase 0/Foundation into small, verifiable coding tickets before application code is created.
+### F0.1 — Repository + Runnable Web Foundation
 
-**Scope**
+Completed with:
 
-Plan only. No feature implementation yet.
+- pnpm/Turborepo monorepo foundation;
+- pinned dependency policy and committed lockfile;
+- Next.js/React/TypeScript `apps/web` application;
+- first responsive AUREVANE development screen;
+- Prettier, ESLint, strict TypeScript, Vitest, and production-build gates;
+- GitHub CI with frozen dependency installs and clean-working-tree verification;
+- local-development and Vercel monorepo documentation.
 
-**Required ticket coverage**
+**Verification:** formatting, lint, typecheck, tests, production build, and clean-source CI gate all pass.
 
-- fresh Next.js/TypeScript scaffold;
-- dependency/version policy;
-- formatting, linting, typecheck, tests, production build;
-- GitHub CI;
-- Vercel-safe environment setup;
-- database/migration foundation;
-- authentication baseline;
-- authorization/security baseline;
-- design-system tokens/primitives;
-- responsive application shell;
-- media registry foundation;
-- central audio-runtime foundation;
-- structured errors/logging;
-- developer setup documentation.
+## ACTIVE
 
-**Acceptance criteria**
+### F0.2 — Infrastructure + Persistence Baseline
 
-- tickets are independently implementable;
-- each ticket includes exact scope, affected modules, approach, tests, acceptance criteria, manual verification, and dependencies;
-- tickets do not prematurely implement later game systems;
-- architecture anticipates the full Master Plan.
+**Purpose:** Establish safe local/staging/production persistence and authentication infrastructure.
+
+**Allowed scope:** Supabase project conventions, environment validation, migration workflow, PostgreSQL baseline, authentication integration, initial RLS/security baseline, server-only credential handling, and deployment environment documentation.
+
+**Explicitly out of scope:** character/gameplay schemas, combat, world systems, final design system, media/audio runtime, and later game features.
+
+**Acceptance criteria:**
+
+- local, preview/staging, and production environments are explicitly separated;
+- migrations are reproducible and version-controlled;
+- authentication can be integrated without trusting the browser for privileged state;
+- exposed data has a deliberate RLS model;
+- service credentials remain server-only;
+- automated environment/security checks pass;
+- existing F0.1 quality gates remain green.
+
+## Next after F0.2
+
+F0.3 — Server Architecture Skeleton.
 
 ## Rule
 
-Only one implementation ticket becomes ACTIVE at a time. When it is complete and verified, mark it DONE and select the next ticket.
+Only one implementation ticket is ACTIVE at a time. Future systems may influence interfaces and boundaries, but they are not implemented early.
