@@ -57,11 +57,21 @@ Completed with:
 
 ## ACTIVE
 
-No implementation ticket is active. F0.2 is at its completed checkpoint; do not begin the next ticket without a new ticket start.
+### F0.3 — Server Architecture Skeleton
 
-## Next
+**Purpose:** establish the durable server-authoritative command, service, persistence, idempotency, realtime, worker, error, and logging boundaries required by later game systems.
 
-F0.3 — Server Architecture Skeleton.
+**Allowed scope:** `packages/game-core`, database adapter/service conventions, validation additions, transactional/idempotent command foundation, `packages/realtime`, `apps/worker`, structured errors/logging, and one non-game authoritative probe through the existing web server boundary.
+
+**Explicitly out of scope:** character/gameplay schemas, combat, progression implementation, world systems, Master Panel features, final UI/design system, and media/audio runtime.
+
+**Acceptance criteria:** the authority probe authenticates and validates before service execution; persistence is atomic and duplicate-safe; unauthorized requests are rejected; realtime remains notification-only; the worker builds and boots; structured errors are consistent; all existing quality/database gates remain green.
+
+Tracking: GitHub issue #12.
+
+## Next after F0.3
+
+F0.4 — Design System + Media/Audio Core.
 
 ## Rule
 
