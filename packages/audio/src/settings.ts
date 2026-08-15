@@ -106,11 +106,12 @@ function isStoredAudioSettingsV1(value: unknown): value is StoredAudioSettingsV1
     return false
   }
 
-  if (!isRecord(value.volumes)) {
+  const volumes = value.volumes
+  if (!isRecord(volumes)) {
     return false
   }
 
-  return AUDIO_CHANNELS.every((channel) => typeof value.volumes[channel] === 'number')
+  return AUDIO_CHANNELS.every((channel) => typeof volumes[channel] === 'number')
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
