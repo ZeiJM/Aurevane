@@ -1,0 +1,2 @@
+-- F0.2 intentionally seeds no game content.
+-- Future development-only seed data must remain disposable and must never contain production data.
