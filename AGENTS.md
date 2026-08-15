@@ -5,6 +5,7 @@
 - The project is **AUREVANE**, an original persistent browser-based multiplayer RPG.
 - `docs/GAME_MASTER_PLAN.md` is the authoritative game-design document.
 - `docs/MEDIA_PIPELINE.md` is the authoritative media/audio pipeline document.
+- `docs/TECHNOLOGY_POLICY.md` is authoritative engineering guidance for language/runtime/toolchain selection; use modern stable/LTS production technology rather than blindly chasing previews or legacy stacks.
 - Treat `docs/ART_BIBLE.md` and `docs/AUDIO_BIBLE.md` as authoritative when they are added.
 - Never redesign, remove, simplify, or invent game mechanics unless explicitly asked.
 - Build one small ticket at a time. Implement only the requested ticket, do not implement future systems prematurely, and stop when that ticket is complete.
@@ -26,6 +27,8 @@
 - Prefer modular, feature-oriented architecture. Keep UI, domain/game logic, database access, validation, and authorization clearly separated.
 - Avoid giant files and giant routers.
 - Use migrations for every database change.
+- TypeScript is the default application/game-service language and PostgreSQL/SQL is the authoritative relational data layer unless a documented architectural decision justifies another production language.
+- New framework/runtime/compiler majors must be verified against current authoritative documentation and introduced deliberately through focused migration work rather than incidental gameplay tickets.
 
 ## Media and originality
 
