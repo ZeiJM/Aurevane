@@ -67,6 +67,42 @@ jobs:
       - name: Rebuild database from migrations
         run: pnpm exec supabase db reset --local
 
+      - name: Verify private schema permissions
+        shell: bash
+        run: |
+          set -euo pipefail
+          db_container="$(docker ps --filter 'name=supabase_db_' --format '{{.Names}}' | head -n 1)"
+          test -n "$db_container"
+          privileges="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "select has_schema_privilege('anon','app_private','USAGE'), has_schema_privilege('authenticated','app_private','USAGE'), has_schema_privilege('service_role','app_private','USAGE');")"
+          test "$privileges" = "f|f|t"
+
+      - name: Verify local authentication
+        shell: bash
+        run: |
+          set -euo pipefail
+          eval "$(pnpm exec supabase status -o env | grep -E '^(API_URL|ANON_KEY)=')"
+          test -n "${API_URL:-}"
+          test -n "${ANON_KEY:-}"
+
+          email="f02-ci-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@example.test"
+          password='F02-local-auth-check-2026!'
+
+          signup_response="$(curl --fail-with-body --silent --show-error \
+            --request POST "$API_URL/auth/v1/signup" \
+            --header "apikey: $ANON_KEY" \
+            --header 'Content-Type: application/json' \
+            --data "{\"email\":\"$email\",\"password\":\"$password\"}")"
+
+          printf '%s' "$signup_response" | jq -e '.user.id | strings | length > 0' >/dev/null
+
+          signin_response="$(curl --fail-with-body --silent --show-error \
+            --request POST "$API_URL/auth/v1/token?grant_type=password" \
+            --header "apikey: $ANON_KEY" \
+            --header 'Content-Type: application/json' \
+            --data "{\"email\":\"$email\",\"password\":\"$password\"}")"
+
+          printf '%s' "$signin_response" | jq -e '.access_token | strings | length > 0' >/dev/null
+
       - name: Stop local Supabase services
         if: always()
         run: pnpm exec supabase stop --no-backup
