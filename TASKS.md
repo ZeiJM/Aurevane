@@ -4,7 +4,7 @@ This file tracks the current implementation boundary. The Master Game Plan defin
 
 ## Current status
 
-**Stage:** Phase 0 — Engineering Foundation
+**Stage:** Phase 0 — Foundation Complete
 
 Authoritative documents established:
 
@@ -72,23 +72,32 @@ Completed with:
 
 **Verification:** final F0.3 formatting, lint, all workspace typechecks/tests, production build, worker boot, database rebuild, private-schema checks, transactional idempotency checks, local authentication, and authenticated web-route replay checks pass.
 
-## ACTIVE
-
 ### F0.4 — Design System + Media/Audio Core
 
-**Purpose:** reach the Phase 0 presentation gate with a polished responsive AUREVANE shell and first-class image/audio architecture.
+Completed with:
 
-**Allowed scope:** `packages/ui`, `packages/audio`, `apps/web` presentation, stable media registries, accessibility baseline, persistent local audio settings, central browser-gesture-gated Audio Director, initial art/audio request records, and responsive browser smoke verification.
+- real `packages/ui` workspace with centralized semantic typography, color, spacing, focus, surface, motion, and reusable game-UI primitives;
+- polished responsive AUREVANE application shell with deliberate desktop/mobile layouts, keyboard focus, skip navigation, and reduced-motion handling;
+- stable image/media registry plus reusable image component that renders traceable requested-media fallbacks instead of broken or random placeholder assets;
+- traceable `ART-UI-001`, `AUDIO-MUS-001`, `AUDIO-AMB-001`, and `AUDIO-UI-001` production request records;
+- real `packages/audio` workspace with versioned settings, validated asset registry, and a central Web Audio `AudioDirector` that initializes only after explicit player interaction;
+- independent Master, Music, SFX, Ambience, and UI channels, mute that preserves channel levels, and versioned pre-login local persistence;
+- dev-only Playwright browser verification covering desktop/mobile layout, horizontal-overflow protection, keyboard reachability, media fallback, gesture-gated audio initialization, and persisted mute/volume behavior;
+- dedicated browser-smoke CI plus the existing F0.1–F0.3 quality, worker, database, authentication, and idempotency regression gates;
+- successful Git-linked Vercel preview of the canonical F0.4 branch;
+- no gameplay schema, combat, progression, world, economy, Master Panel, or other future gameplay system implemented early.
 
-**Explicitly out of scope:** character/gameplay schemas, combat, progression, world systems, actual Expeditions/PvP/guild features, complete player manual UI, Master Panel implementation, and unreviewed production media.
+**Verification:** canonical F0.4 quality/build gates and database/security regressions pass on the implementation branch; real Chromium acceptance has passed against a production Next build and local Supabase; the canonical Vercel preview builds and serves successfully. Final PR/main checks remain the merge gate.
 
-**Acceptance criteria:** the empty shell is polished and responsive; keyboard/focus behavior is deliberate; requested/missing media fails gracefully; audio does not autoplay; Master/Music/SFX/Ambience/UI controls persist; mute preserves levels; the Audio Director is the single playback authority; registries are validated; desktop/mobile browser smoke checks and all existing CI gates pass.
+**Concurrency audit:** a separately created competing F0.4 branch was inspected and found incomplete/conflicting. Its preview build fails and it is explicitly excluded from merge. PR #18 is the canonical implementation; the duplicate branch/PR is to be neutralized after the canonical merge so only one F0.4 implementation survives.
 
-Tracking: GitHub issue #14.
+## ACTIVE
 
-## Next after F0.4
+No implementation ticket is active. F0.4 is at its completed checkpoint; do not begin Phase 1 without a new ticket start.
 
-Phase 1 — Character Foundation. Do not begin it until F0.4 reaches its completed checkpoint.
+## Next
+
+Plan/break Phase 1 — Character Foundation into small implementation tickets before coding the first Phase 1 feature.
 
 ## Rule
 
