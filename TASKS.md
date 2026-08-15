@@ -55,21 +55,28 @@ Completed with:
 
 **Verification:** final F0.2 quality gates, production build, migration rebuild, private-schema privilege checks, and local authentication checks pass. No gameplay schema or future-system implementation was introduced.
 
-## ACTIVE
-
 ### F0.3 — Server Architecture Skeleton
 
-**Purpose:** establish the durable server-authoritative command, service, persistence, idempotency, realtime, worker, error, and logging boundaries required by later game systems.
+Completed with:
 
-**Allowed scope:** `packages/game-core`, database adapter/service conventions, validation additions, transactional/idempotent command foundation, `packages/realtime`, `apps/worker`, structured errors/logging, and one non-game authoritative probe through the existing web server boundary.
+- pure `packages/game-core` actor/command and stable server-error primitives with no React/browser dependencies;
+- reusable transactional-command and durable idempotency contracts;
+- server-only `app_private.idempotency_records` persistence plus an atomic PostgreSQL authority-probe transaction;
+- strict shared request/persistence validation for the non-game authority probe;
+- thin authenticated Next.js route, server service, persistence adapter, and safe HTTP-error translation boundaries;
+- realtime invalidation interfaces that carry identifiers for authoritative refetch rather than owning game state;
+- runnable `apps/worker` lifecycle with structured startup/shutdown/crash logging and deterministic CI boot mode;
+- documented server command, transaction, idempotency, realtime, logging, error, and worker conventions;
+- CI coverage for browser-role denial, conflicting idempotency keys, first execution versus replay, real Supabase authentication, and a real authenticated Next.js authority-probe request end to end;
+- no new external runtime framework/dependency and no gameplay schema or future gameplay feature implementation.
 
-**Explicitly out of scope:** character/gameplay schemas, combat, progression implementation, world systems, Master Panel features, final UI/design system, and media/audio runtime.
+**Verification:** final F0.3 formatting, lint, all workspace typechecks/tests, production build, worker boot, database rebuild, private-schema checks, transactional idempotency checks, local authentication, and authenticated web-route replay checks pass.
 
-**Acceptance criteria:** the authority probe authenticates and validates before service execution; persistence is atomic and duplicate-safe; unauthorized requests are rejected; realtime remains notification-only; the worker builds and boots; structured errors are consistent; all existing quality/database gates remain green.
+## ACTIVE
 
-Tracking: GitHub issue #12.
+No implementation ticket is active. F0.3 is at its completed checkpoint; do not begin the next ticket without a new ticket start.
 
-## Next after F0.3
+## Next
 
 F0.4 — Design System + Media/Audio Core.
 
