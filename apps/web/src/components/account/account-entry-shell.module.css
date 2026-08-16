@@ -66,7 +66,12 @@
 
 .heroShade {
   background:
-    linear-gradient(90deg, rgba(5, 6, 9, 0.9), rgba(5, 6, 9, 0.34) 64%, rgba(5, 6, 9, 0.62)),
+    linear-gradient(
+      90deg,
+      rgba(5, 6, 9, 0.9),
+      rgba(5, 6, 9, 0.34) 64%,
+      rgba(5, 6, 9, 0.62)
+    ),
     linear-gradient(0deg, rgba(5, 6, 9, 0.88), transparent 52%);
 }
 
@@ -391,10 +396,9 @@
 
   .main {
     gap: var(--av-space-3);
-    padding: var(--av-space-3)
-      max(var(--av-space-3), env(safe-area-inset-right, 0px))
-      var(--av-space-3)
-      max(var(--av-space-3), env(safe-area-inset-left, 0px));
+    padding: var(--av-space-3);
+    padding-right: max(var(--av-space-3), env(safe-area-inset-right, 0px));
+    padding-left: max(var(--av-space-3), env(safe-area-inset-left, 0px));
   }
 
   .hero {

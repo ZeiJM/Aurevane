@@ -33,12 +33,14 @@ test('account entry is responsive, focusable, stable, and media-safe', async ({ 
   await email.click()
   await expect(email).toBeFocused()
 
-  const titleBeforeHelp = await title.boundingBox()
+  const titleDocumentYBeforeHelp = await title.evaluate(
+    (element) => element.getBoundingClientRect().top + window.scrollY,
+  )
   await page.getByText('Account & Security', { exact: true }).click()
-  const titleAfterHelp = await title.boundingBox()
-  if (titleBeforeHelp && titleAfterHelp) {
-    expect(Math.abs(titleAfterHelp.y - titleBeforeHelp.y)).toBeLessThanOrEqual(1)
-  }
+  const titleDocumentYAfterHelp = await title.evaluate(
+    (element) => element.getBoundingClientRect().top + window.scrollY,
+  )
+  expect(Math.abs(titleDocumentYAfterHelp - titleDocumentYBeforeHelp)).toBeLessThanOrEqual(1)
 
   const audioTrigger = page.getByRole('button', { name: 'Sound settings' })
   await audioTrigger.click()

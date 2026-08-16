@@ -97,8 +97,8 @@ export function AccountAccessPanel({ authAvailable }: AccountAccessPanelProps) {
         <strong>Account services are not enabled in this environment yet.</strong>
         <p>
           The public shell is available for review. Sign-in and account creation appear only where a
-          dedicated AUREVANE Supabase environment is configured, so disabled fields cannot masquerade
-          as a broken mobile form.
+          dedicated AUREVANE Supabase environment is configured, so disabled fields cannot
+          masquerade as a broken mobile form.
         </p>
       </div>
     )
@@ -157,7 +157,12 @@ export function AccountAccessPanel({ authAvailable }: AccountAccessPanelProps) {
           />
         </label>
 
-        <GameButton className={styles.submit} type="submit" disabled={busy} aria-busy={busy}>
+        <GameButton
+          className={styles.submit}
+          type="submit"
+          disabled={busy}
+          aria-busy={busy}
+        >
           {busy ? 'Please wait…' : mode === 'signin' ? 'Enter AUREVANE' : 'Create account'}
         </GameButton>
       </form>

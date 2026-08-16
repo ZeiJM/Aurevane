@@ -54,6 +54,10 @@ export function AudioSettingsMenu() {
     }
   }, [open])
 
+  function updateVolume(channel: AudioChannel, value: string) {
+    setVolume(channel, Number(value) / 100)
+  }
+
   const statusMessage =
     audioState === 'ready'
       ? 'Audio ready. Nothing plays unless the game requests it.'
@@ -146,9 +150,7 @@ export function AudioSettingsMenu() {
                     max="100"
                     step="1"
                     value={percent}
-                    onChange={(event) =>
-                      setVolume(channel, Number(event.currentTarget.value) / 100)
-                    }
+                    onChange={(event) => updateVolume(channel, event.currentTarget.value)}
                     data-testid={`audio-volume-${channel}`}
                   />
                 </label>
