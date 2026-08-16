@@ -1,0 +1,31 @@
+name: P1.6 Format Probe
+
+on:
+  push:
+    branches:
+      - agent/ticket-1-6-wayfarers-practice
+
+jobs:
+  format-probe:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Print exact Prettier diff
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/server/wayfarers-practice/wayfarers-practice-service.ts \
+            apps/web/src/server/wayfarers-practice/wayfarers-practice-service.test.ts
+          echo '--- P1.6 PRETTIER DIFF START ---'
+          git diff -- \
+            apps/web/src/server/wayfarers-practice/wayfarers-practice-service.ts \
+            apps/web/src/server/wayfarers-practice/wayfarers-practice-service.test.ts
+          echo '--- P1.6 PRETTIER DIFF END ---'
