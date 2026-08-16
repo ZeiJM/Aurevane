@@ -339,26 +339,26 @@ begin
 
     return query
     select
-      grant.id,
-      grant.character_id,
-      grant.progression_cycle,
-      grant.curve_version,
-      grant.authority_key,
-      grant.source_kind,
-      grant.source_id,
-      grant.reason_tag,
-      grant.requested_amount,
-      grant.applied_amount,
-      grant.xp_before,
-      grant.xp_after,
-      grant.level_before,
-      grant.level_after,
-      grant.reached_level,
-      grant.seconds_since_cycle_start,
-      grant.created_at,
+      xp_grant.id,
+      xp_grant.character_id,
+      xp_grant.progression_cycle,
+      xp_grant.curve_version,
+      xp_grant.authority_key,
+      xp_grant.source_kind,
+      xp_grant.source_id,
+      xp_grant.reason_tag,
+      xp_grant.requested_amount,
+      xp_grant.applied_amount,
+      xp_grant.xp_before,
+      xp_grant.xp_after,
+      xp_grant.level_before,
+      xp_grant.level_after,
+      xp_grant.reached_level,
+      xp_grant.seconds_since_cycle_start,
+      xp_grant.created_at,
       true
-    from app_private.character_xp_grants grant
-    where grant.id = (v_existing.result ->> 'grant_id')::uuid;
+    from app_private.character_xp_grants xp_grant
+    where xp_grant.id = (v_existing.result ->> 'grant_id')::uuid;
 
     if not found then
       raise exception using
@@ -476,26 +476,26 @@ begin
 
   return query
   select
-    grant.id,
-    grant.character_id,
-    grant.progression_cycle,
-    grant.curve_version,
-    grant.authority_key,
-    grant.source_kind,
-    grant.source_id,
-    grant.reason_tag,
-    grant.requested_amount,
-    grant.applied_amount,
-    grant.xp_before,
-    grant.xp_after,
-    grant.level_before,
-    grant.level_after,
-    grant.reached_level,
-    grant.seconds_since_cycle_start,
-    grant.created_at,
+    xp_grant.id,
+    xp_grant.character_id,
+    xp_grant.progression_cycle,
+    xp_grant.curve_version,
+    xp_grant.authority_key,
+    xp_grant.source_kind,
+    xp_grant.source_id,
+    xp_grant.reason_tag,
+    xp_grant.requested_amount,
+    xp_grant.applied_amount,
+    xp_grant.xp_before,
+    xp_grant.xp_after,
+    xp_grant.level_before,
+    xp_grant.level_after,
+    xp_grant.reached_level,
+    xp_grant.seconds_since_cycle_start,
+    xp_grant.created_at,
     false
-  from app_private.character_xp_grants grant
-  where grant.id = v_grant_id;
+  from app_private.character_xp_grants xp_grant
+  where xp_grant.id = v_grant_id;
 end;
 $$;
 
