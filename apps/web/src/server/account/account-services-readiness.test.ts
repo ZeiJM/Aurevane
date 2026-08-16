@@ -42,29 +42,26 @@ describe('resolveAccountServicesReadiness', () => {
     )
   })
 
-  it(
-    'requires an explicit readiness opt-in before production auth is exposed without a complete integration',
-    () => {
-      expectReadiness(
-        resolveAccountServicesReadiness({
-          publicConfig: productionConfig,
-          vercelEnvironment: 'production',
-        }),
-        false,
-        'production_not_ready',
-      )
+  it('requires an explicit readiness opt-in before production auth is exposed without a complete integration', () => {
+    expectReadiness(
+      resolveAccountServicesReadiness({
+        publicConfig: productionConfig,
+        vercelEnvironment: 'production',
+      }),
+      false,
+      'production_not_ready',
+    )
 
-      expectReadiness(
-        resolveAccountServicesReadiness({
-          publicConfig: productionConfig,
-          vercelEnvironment: 'production',
-          productionReady: 'true',
-        }),
-        true,
-        'ready',
-      )
-    },
-  )
+    expectReadiness(
+      resolveAccountServicesReadiness({
+        publicConfig: productionConfig,
+        vercelEnvironment: 'production',
+        productionReady: 'true',
+      }),
+      true,
+      'ready',
+    )
+  })
 
   it('accepts a valid server-only Supabase integration on a real production deployment', () => {
     expectReadiness(
