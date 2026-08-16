@@ -60,7 +60,11 @@ export function CharacterProfileShell({ profile }: CharacterProfileShellProps) {
 
             <div className={styles.levelProgress} data-testid="level-progress">
               <div className={styles.levelProgressHeading}>
-                <span>{progress.isMaxLevel ? 'Level cap reached' : `Progress to Level ${progress.level + 1}`}</span>
+                <span>
+                  {progress.isMaxLevel
+                    ? 'Level cap reached'
+                    : `Progress to Level ${progress.level + 1}`}
+                </span>
                 <strong>
                   {progress.isMaxLevel
                     ? `${profile.progression.xp.toLocaleString('en')} XP`
@@ -165,7 +169,9 @@ export function CharacterProfileShell({ profile }: CharacterProfileShellProps) {
             </div>
             <div>
               <dt>Level</dt>
-              <dd>{profile.progression.level} / {progress.maxLevel}</dd>
+              <dd>
+                {profile.progression.level} / {progress.maxLevel}
+              </dd>
             </div>
             <div>
               <dt>Cumulative XP</dt>
