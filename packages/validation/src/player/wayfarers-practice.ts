@@ -1,5 +1,14 @@
 import { z } from 'zod'
 
+export const trainingReportClaimRequestSchema = z
+  .object({
+    version: z.literal(1),
+    characterId: z.string().uuid(),
+    reportId: z.string().uuid(),
+    idempotencyKey: z.string().uuid(),
+  })
+  .strict()
+
 export const trainingReportPersistenceRowSchema = z
   .object({
     report_id: z.string().uuid(),
@@ -47,10 +56,16 @@ export const trainingReportClaimPersistenceRowSchema = z
   })
   .strict()
 
+export type TrainingReportClaimRequest = z.infer<typeof trainingReportClaimRequestSchema>
 export type TrainingReportPersistenceRow = z.infer<typeof trainingReportPersistenceRowSchema>
 export type TrainingReportClaimPersistenceRow = z.infer<
   typeof trainingReportClaimPersistenceRowSchema
 >
+
+export function parseTrainingReportClaimRequest(input: unknown): TrainingReportClaimRequest | null {
+  const parsed = trainingReportClaimRequestSchema.safeParse(input)
+  return parsed.success ? parsed.data : null
+}
 
 export function parseTrainingReportPersistenceRow(
   input: unknown,
