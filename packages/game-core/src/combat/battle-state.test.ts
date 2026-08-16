@@ -240,6 +240,13 @@ describe('P2.1 deterministic battle state', () => {
       expect(firstDraw.value).not.toBe(firstSecondDraw.value)
       expect(firstSecondDraw.state.draws).toBe(2)
       expect(randomSpy).not.toHaveBeenCalled()
+
+      expect(() =>
+        advanceBattleRng({
+          ...createBattleRngState(1),
+          draws: Number.MAX_SAFE_INTEGER,
+        }),
+      ).toThrow('safe integer limit')
     } finally {
       randomSpy.mockRestore()
     }
@@ -279,6 +286,37 @@ describe('P2.1 deterministic battle state', () => {
       ]),
     )
     expect(() => spendAction(malformed)).toThrow('Invalid battle state')
+  })
+
+  it('fails closed on unknown lifecycle values and malformed terminal counters', () => {
+    const unknownLifecycle = {
+      ...createPendingBattle(battleInput()),
+      lifecycle: 'paused',
+    } as unknown as BattleState
+
+    expect(validateBattleState(unknownLifecycle)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: 'lifecycle',
+          message: expect.stringContaining('Unknown battle lifecycle'),
+        }),
+      ]),
+    )
+    expect(() => startBattle(unknownLifecycle)).toThrow('Invalid battle state')
+
+    const malformedTerminal: BattleState = {
+      ...createPendingBattle(battleInput()),
+      lifecycle: 'completed',
+      round: -1,
+      turnNumber: Number.MAX_SAFE_INTEGER + 1,
+    }
+
+    expect(validateBattleState(malformedTerminal)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ field: 'round' }),
+        expect.objectContaining({ field: 'turnNumber' }),
+      ]),
+    )
   })
 
   it('requires at least two active teams before battle start', () => {
