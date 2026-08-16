@@ -4,7 +4,7 @@ This file tracks the current implementation boundary. The Master Game Plan defin
 
 ## Current status
 
-**Stage:** Phase 1 — Character Foundation / P1.1 completion checkpoint
+**Stage:** Phase 1 — Character Foundation / P1.1 production hardening checkpoint
 
 Authoritative documents established:
 
@@ -124,19 +124,35 @@ Implementation checkpoint:
 - `docs/RESPONSIVE_EXPERIENCE_STANDARD.md` makes responsive/touch/keyboard/overlay behavior a permanent player-facing implementation requirement;
 - no new runtime dependency or future gameplay system introduced.
 
-**Production gate:** the promoted Production descendant containing the Phase 0 environment hotfix is READY, returns HTTP 200, and has no error/fatal runtime logs in the verification window. Phase 0 issue #20 is closed.
+**Production gate at merge:** the promoted Production descendant containing the Phase 0 environment hotfix was READY, returned HTTP 200, and had no error/fatal runtime logs in the verification window. Phase 0 issue #20 was closed.
 
 **Environment policy:** `SUPABASE_SECRET_KEY` is the only Vercel warning-listed secret explicitly passed to the web build because AUREVANE has a defined server-only use for it. Unused Postgres/service-role/JWT integration secrets remain intentionally unavailable to the web build rather than being whitelisted merely to silence a warning.
 
-**Verification:** final P1.1 acceptance requires the exact branch head to pass quality, database/security, and real Chromium desktop/laptop/mobile checks before PR #30 is merged and issue #28 is closed.
+**Verification:** P1.1 branch acceptance passed quality, database/security, and real Chromium desktop/laptop/mobile checks; PR #30 merged and issue #28 closed.
+
+### P1.1-PROD — Production Account/Profile Readiness Hardening
+
+Owner testing immediately after P1.1 merge exposed a production integration gap that the previous root-page Production gate did not prove: a deployment can be `READY` and `/` can return HTTP 200 while authenticated `/game` still fails if the selected Supabase environment is not fully provisioned for the P1.1 profile dependency chain.
+
+Required corrective checkpoint, tracked by issue #32:
+
+- account-entry availability must reflect the complete P1.1 dependency chain, not merely the presence of public Supabase Auth configuration;
+- Production must use only its intended Supabase environment and must never fall back to staging or another environment;
+- the committed `player_profiles` migration, provisioning trigger, RLS policy, and authenticated profile-read path must be ready before Production sign-in is exposed;
+- if Production is intentionally unprovisioned, the authored unavailable-environment state must prevent a login flow that can end in a server crash;
+- unexpected authenticated profile/persistence failure must render an authored AUREVANE recovery state with safe retry/sign-out behavior instead of the generic Next.js/Vercel server-error page;
+- a Vercel `READY` state or HTTP 200 on `/` alone is not sufficient verification for a release that introduces authenticated routes;
+- provisioned Production verification must cover fresh account/sign-in → `/game` → exactly one private player profile → **No character bound** → refresh → sign-out → sign-in again, with runtime logs checked during the authenticated verification window;
+- existing P1.1 security, database, responsive, accessibility, and regression guarantees must remain intact;
+- no character-domain, progression, combat, world, inventory, economy, Master Panel, or other future gameplay scope is introduced by this hardening checkpoint.
 
 ## ACTIVE
 
-No implementation ticket is active at this checkpoint. P1.1 is complete pending its final merge gate; do not start a second P1.2 implementation.
+P1.1-PROD — Production Account/Profile Readiness Hardening (issue #32). Resolve the production login/profile failure and complete authenticated Production verification before P1.2 implementation resumes.
 
 ## Next
 
-P1.2 — Character Domain Rules + Creation Contract. Resume only the existing issue #31 / branch `agent/ticket-1-2-character-domain` after P1.1 merges. Synchronize that sole branch onto the resulting `main` before continuing.
+P1.2 — Character Domain Rules + Creation Contract. Resume only the existing issue #31 / branch `agent/ticket-1-2-character-domain` after issue #32 is closed, then synchronize that sole branch onto the resulting `main` checkpoint before continuing.
 
 ## Rule
 
