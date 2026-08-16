@@ -4,7 +4,7 @@ This file tracks the current implementation boundary. The Master Game Plan defin
 
 ## Current status
 
-**Stage:** Phase 1 — Character Foundation / P1.1 production-readiness completion checkpoint
+**Stage:** Phase 1 — Character Foundation / P1.3 authoritative character-creation checkpoint
 
 Authoritative documents established:
 
@@ -147,15 +147,53 @@ Completed with:
 
 **Current Production acceptance mode:** intentionally unavailable. The public Production shell is healthy and clearly reports account services unavailable; sign-in/create-account controls are not exposed until a dedicated Production Supabase environment is provisioned, migrated, security-verified, and explicitly enabled.
 
-**Verification:** implementation-branch quality/build/worker checks, local Supabase reconstruction, player-profile/RLS/idempotency/auth regressions, readiness/recovery unit tests, Vercel Preview HTTP 200, and real Chromium desktop/laptop/mobile account-flow regression passed before the final ledger checkpoint. Exact final-head gates and post-merge Production HTTP/log verification remain the merge/release gate.
+**Verification:** quality/build/worker, local Supabase reconstruction, profile/RLS/idempotency/auth regressions, readiness/recovery tests, responsive Chromium, and the post-merge Vercel/main release checks passed. Issue #32 is closed as completed.
+
+### P1.2 — Character Domain Rules + Creation Contract
+
+Completed with:
+
+- normalized public-character naming rules with Unicode compatibility normalization, stable comparison keys, length/separator policy, and reserved-name rejection;
+- structured presentation and pronoun identities separated from gameplay power;
+- stable typed portrait and starter-appearance content references rather than arbitrary URLs;
+- the exact four core attributes: Might, Finesse, Intellect, Resolve;
+- one versioned starting balance configuration with shared baseline, exact bonus budget, and per-attribute cap;
+- exactly six Foundation Disciplines from the Master Plan as creation metadata only;
+- deterministic Level 1 / XP 0 / progression-cycle 1 seed construction and versioned creation contracts;
+- semantic character rules owned by pure `packages/game-core`, with strict transport shape owned separately by `packages/validation`;
+- deterministic manipulation tests covering names, identity, attribute budgets, Foundation Disciplines, media-reference categories, initial progression and command versions;
+- spoiler-safe Character Creation Foundations manual content;
+- traceable P1.3 media requirements: `ART-CHR-001`, `ART-CHR-002`, `ART-ENV-001`, and `AUDIO-MUS-002`, all retained as requested assets until approved through the media pipeline;
+- no persistence, creation UI, combat, progression, inventory, world, premium-slot, or Master Panel systems implemented early.
+
+**Verification:** exact-head formatting/lint/type/tests/build, local Supabase regressions, responsive Chromium, and Vercel Preview passed; PR #37 merged into `main` and issue #31 closed as completed.
 
 ## ACTIVE
 
-No implementation ticket is active at this checkpoint. P1.1-PROD is complete pending its final exact-head merge/release verification; do not start a second P1.2 implementation.
+### P1.3 — Authoritative Character Creation + Persistence Experience
+
+Canonical work is issue #38 / PR #39 / branch `agent/ticket-1-3-character-persistence`.
+
+Current implementation includes:
+
+- private persistent character rows with account ownership, base slot index, globally unique normalized name key, core attributes, Foundation Discipline, creation rules version, progression seed and server-owned timestamps;
+- browser read-only ownership RLS with direct browser mutation denied;
+- one service-role-only atomic `create_base_character_v1` transaction using the existing durable idempotency record boundary;
+- retry/double-submit replay safety, conflicting-fingerprint rejection, occupied-base-slot rejection, and global normalized-name collision handling;
+- server reconstruction of canonical P1.2 creation state rather than trusting browser-selected level, XP, timestamps, extra attributes, invented Disciplines, or arbitrary media references;
+- allow-listed official starter portrait and gameplay-neutral appearance references;
+- authenticated create/read server boundary and recovery-safe character loading;
+- responsive Identity → Foundation → Confirm character-creation experience with phone-safe input, touch controls, keyboard focus, laptop-height compaction, desktop scale, and requested-art fallbacks;
+- permanent created-character state that reloads from authoritative persistence rather than local browser state;
+- requested `AUDIO-MUS-002` character-creation music context registered without shipping an unapproved audio source;
+- dedicated local-Supabase regression coverage for slot/name/idempotency/RLS/direct-mutation security;
+- browser acceptance covering account creation, character creation, refresh, sign-out, sign-in, and same-character recovery across desktop, laptop and mobile.
+
+**Current gate:** quality/build/worker and full database/security checks are green. Vercel Preview is healthy. The final exact-head responsive Chromium acceptance is being rerun after correcting the browser-test server environment to provide the required server-only local Supabase credential; P1.3 remains unmerged until that gate is green.
 
 ## Next
 
-P1.2 — Character Domain Rules + Creation Contract. Resume only the existing issue #31 / branch `agent/ticket-1-2-character-domain` after issue #32 is closed, then synchronize that sole branch onto the resulting `main` checkpoint before continuing.
+P1.4 — Character Profile + Derived Stat Framework. Do not begin it until P1.3 is merged and its post-merge `main` release checks are green.
 
 ## Rule
 
