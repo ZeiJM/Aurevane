@@ -4,6 +4,8 @@
 **Visibility:** Public, spoiler-safe  
 **System:** Phase 1 Character Foundation
 
+**Related guide:** `character-profile-and-stats.md`
+
 ## Quick answer
 
 **Wayfarer's Practice** gives your permanent character a modest amount of progress after a meaningful time away from AUREVANE. When you return, the game may prepare a **Training Report** containing bounded Character XP and **Rested Momentum**.
