@@ -10,8 +10,7 @@ export function createSupabaseAdminClient() {
   const serverEnvironment = parseServerEnvironment({
     AUREVANE_ENV: process.env.AUREVANE_ENV ?? publicConfig.environment,
     NEXT_PUBLIC_AUREVANE_ENV: publicConfig.environment,
-    SUPABASE_SECRET_KEY:
-      process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY,
+    SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY,
   })
   const secretKey = requireSupabaseSecretKey(serverEnvironment)
 
