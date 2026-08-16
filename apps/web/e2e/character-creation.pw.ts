@@ -88,7 +88,36 @@ test('creates one permanent character, renders its profile, and resumes it acros
 
   const signOut = page.getByRole('button', { name: 'Sign out' })
   await signOut.scrollIntoViewIfNeeded()
-  const geometry = await signOut.evaluate((button) => {
+  console.log(`SIGN_OUT_BEFORE ${JSON.stringify(await captureSignOutGeometry(page, signOut))}`)
+
+  if (testInfo.project.name === 'mobile-chromium') {
+    let trialError = ''
+    try {
+      await signOut.click({ trial: true, timeout: 1500 })
+    } catch (error) {
+      trialError = error instanceof Error ? error.message : String(error)
+    }
+    console.log(`SIGN_OUT_TRIAL_ERROR ${trialError}`)
+    console.log(`SIGN_OUT_AFTER_TRIAL ${JSON.stringify(await captureSignOutGeometry(page, signOut))}`)
+    throw new Error('Mobile Sign out geometry diagnostic complete.')
+  }
+
+  await signOut.click()
+  await expect(page).toHaveURL(/\/$/)
+
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password').fill(password)
+  await page.getByRole('button', { name: 'Enter AUREVANE' }).click()
+
+  await expect(page).toHaveURL(/\/game$/)
+  await expect(page.getByTestId('character-established')).toContainText(characterName)
+})
+
+async function captureSignOutGeometry(
+  page: import('@playwright/test').Page,
+  signOut: import('@playwright/test').Locator,
+) {
+  return signOut.evaluate((button) => {
     function rect(element: Element | null) {
       if (!element) return null
       const value = element.getBoundingClientRect()
@@ -102,38 +131,40 @@ test('creates one permanent character, renders its profile, and resumes it acros
       }
     }
 
-    const surface = button.closest('.av-surface')
-    const form = button.closest('form')
     const buttonRect = button.getBoundingClientRect()
     const centerX = buttonRect.left + buttonRect.width / 2
     const centerY = buttonRect.top + buttonRect.height / 2
     const hit = document.elementFromPoint(centerX, centerY)
+    const ownSurface = button.closest('.av-surface')
+    const accountCards = Array.from(document.querySelectorAll('.av-surface')).filter((surface) => {
+      const text = surface.textContent ?? ''
+      return text.includes('Account state') || text.includes('Account & Security')
+    })
 
     return {
       viewport: {
         width: window.innerWidth,
         height: window.innerHeight,
         scrollY: window.scrollY,
+        visualWidth: window.visualViewport?.width ?? null,
+        visualHeight: window.visualViewport?.height ?? null,
+        visualScale: window.visualViewport?.scale ?? null,
+        visualOffsetTop: window.visualViewport?.offsetTop ?? null,
       },
       button: rect(button),
-      form: rect(form),
-      surface: rect(surface),
-      paragraphs: surface
-        ? Array.from(surface.querySelectorAll('p')).map((paragraph) => ({
-            text: paragraph.textContent?.trim() ?? '',
-            rect: rect(paragraph),
-            position: getComputedStyle(paragraph).position,
-            display: getComputedStyle(paragraph).display,
-            marginTop: getComputedStyle(paragraph).marginTop,
-            marginBottom: getComputedStyle(paragraph).marginBottom,
-            lineHeight: getComputedStyle(paragraph).lineHeight,
-          }))
-        : [],
+      ownSurface: rect(ownSurface),
+      cards: accountCards.map((surface) => ({
+        text: surface.textContent?.trim().slice(0, 220) ?? '',
+        rect: rect(surface),
+        position: getComputedStyle(surface).position,
+        zIndex: getComputedStyle(surface).zIndex,
+        transform: getComputedStyle(surface).transform,
+      })),
       hit: hit
         ? {
             tag: hit.tagName,
             className: hit.getAttribute('class') ?? '',
-            text: hit.textContent?.trim().slice(0, 160) ?? '',
+            text: hit.textContent?.trim().slice(0, 220) ?? '',
             rect: rect(hit),
           }
         : null,
@@ -141,31 +172,11 @@ test('creates one permanent character, renders its profile, and resumes it acros
         position: getComputedStyle(button).position,
         display: getComputedStyle(button).display,
         transform: getComputedStyle(button).transform,
-        marginTop: getComputedStyle(button).marginTop,
-        marginBottom: getComputedStyle(button).marginBottom,
+        pointerEvents: getComputedStyle(button).pointerEvents,
       },
-      surfaceStyles: surface
-        ? {
-            position: getComputedStyle(surface).position,
-            display: getComputedStyle(surface).display,
-            height: getComputedStyle(surface).height,
-            overflow: getComputedStyle(surface).overflow,
-          }
-        : null,
     }
   })
-  console.log(`SIGN_OUT_GEOMETRY ${JSON.stringify(geometry)}`)
-
-  await signOut.click()
-  await expect(page).toHaveURL(/\/$/)
-
-  await page.getByLabel('Email').fill(email)
-  await page.getByLabel('Password').fill(password)
-  await page.getByRole('button', { name: 'Enter AUREVANE' }).click()
-
-  await expect(page).toHaveURL(/\/game$/)
-  await expect(page.getByTestId('character-established')).toContainText(characterName)
-})
+}
 
 async function hasHorizontalOverflow(page: import('@playwright/test').Page): Promise<boolean> {
   return page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)
