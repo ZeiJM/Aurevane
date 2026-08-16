@@ -95,9 +95,7 @@ export function TrainingReportCard({ report }: TrainingReportCardProps) {
 
       {report.directXpCapReached || report.restedMomentumCapReached ? (
         <p className={styles.capNote}>
-          {report.directXpCapReached
-            ? 'The direct practice bank reached its current cap. '
-            : ''}
+          {report.directXpCapReached ? 'The direct practice bank reached its current cap. ' : ''}
           {report.restedMomentumCapReached
             ? 'Rested Momentum also reached its current practice cap.'
             : ''}

@@ -1,4 +1,7 @@
-import type { TrainingReportRecord, WayfarersPracticeRepository } from '@aurevane/db/wayfarers-practice'
+import type {
+  TrainingReportRecord,
+  WayfarersPracticeRepository,
+} from '@aurevane/db/wayfarers-practice'
 import type { AuthenticatedActor } from '@aurevane/game-core/command'
 import { isAurevaneError } from '@aurevane/game-core/errors'
 
