@@ -29,7 +29,7 @@ Character XP is server-authoritative. Authorized game services can grant XP with
 
 The Level resolver does **not** contain calendar gates, daily timers, or a hidden "wait until Day X" rule. Long-form AUREVANE pacing is produced by meaningful content, reward rates, mastery/build/world progression, and later systems working together. Level alone is not the whole six-month first-character journey.
 
-Wayfarer's Practice is a separate later Phase 1 return/catch-up system. When implemented, it may become one bounded authoritative XP source, but it does not change the rule that the browser never determines elapsed time or reward values.
+Wayfarer's Practice is a bounded Phase 1 return/catch-up XP source. Its Training Reports use server-controlled time and an authoritative atomic claim, so it does not change the rule that the browser never determines elapsed time, reward values, XP, or Level. See `wayfarers-practice.md` for the player-facing return loop and Rested Momentum foundation.
 
 ## Core attributes
 
