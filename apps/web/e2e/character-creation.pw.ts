@@ -85,6 +85,7 @@ test('creates one permanent character, renders its profile, and resumes it acros
   await expect(backLink).toBeFocused()
   await backLink.press('Enter')
   await expect(page).toHaveURL(/\/game$/)
+  expect(await hasHorizontalOverflow(page)).toBe(false)
 
   await page.getByRole('button', { name: 'Sign out' }).click()
   await expect(page).toHaveURL(/\/$/)
@@ -98,5 +99,7 @@ test('creates one permanent character, renders its profile, and resumes it acros
 })
 
 async function hasHorizontalOverflow(page: import('@playwright/test').Page): Promise<boolean> {
-  return page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)
+  return page.evaluate(
+    () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+  )
 }

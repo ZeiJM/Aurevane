@@ -48,6 +48,7 @@
   margin: 0.8rem 0 1rem;
   font: 500 clamp(2.5rem, 5vw, 4.8rem) / 0.96 var(--av-font-display);
   letter-spacing: 0.015em;
+  overflow-wrap: anywhere;
 }
 
 .lead {
@@ -195,7 +196,9 @@
 }
 
 .statusCard dd {
+  min-width: 0;
   color: var(--av-text-muted);
+  overflow-wrap: anywhere;
   text-align: right;
 }
 
