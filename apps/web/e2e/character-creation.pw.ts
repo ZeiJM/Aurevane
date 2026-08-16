@@ -151,7 +151,9 @@ test('creates one permanent character, renders its profile, and resumes it acros
   await expect(page).toHaveURL(/\/game\/character$/)
   await expect(page.getByTestId('character-profile')).toContainText('Level 3 Vanguard')
   await expect(page.getByTestId('level-progress')).toContainText('376 / 400 XP')
-  await expect(page.getByTestId('level-progress')).toContainText('146 of 170 XP earned within this Level')
+  await expect(page.getByTestId('level-progress')).toContainText(
+    '146 of 170 XP earned within this Level',
+  )
 
   await page.getByRole('link', { name: 'Return to game entry' }).click()
   await expect(page).toHaveURL(/\/game$/)
