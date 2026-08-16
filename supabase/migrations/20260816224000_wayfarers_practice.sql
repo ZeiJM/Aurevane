@@ -227,6 +227,7 @@ language plpgsql
 security definer
 set search_path = pg_catalog, public, app_private
 as $$
+#variable_conflict use_column
 declare
   v_now timestamptz := clock_timestamp();
   v_character public.characters%rowtype;
@@ -508,6 +509,7 @@ language plpgsql
 security definer
 set search_path = pg_catalog, public, app_private
 as $$
+#variable_conflict use_column
 declare
   v_expected_command constant text := 'wayfarers_practice.claim.v1';
   v_now timestamptz := clock_timestamp();
