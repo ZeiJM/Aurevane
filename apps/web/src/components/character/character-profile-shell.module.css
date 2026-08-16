@@ -65,6 +65,55 @@
   font-size: 0.82rem;
 }
 
+.levelProgress {
+  display: grid;
+  max-width: 40rem;
+  gap: var(--av-space-2);
+  margin-top: var(--av-space-5);
+  padding: var(--av-space-4);
+  border: 1px solid rgba(184, 177, 163, 0.16);
+  background: rgba(5, 7, 10, 0.42);
+}
+
+.levelProgressHeading {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--av-space-4);
+  align-items: baseline;
+}
+
+.levelProgressHeading span {
+  color: var(--av-text-muted);
+  font: 650 0.62rem/1.2 var(--av-font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.levelProgressHeading strong {
+  flex: none;
+  color: var(--av-brass-300);
+  font: 500 1rem/1 var(--av-font-display);
+}
+
+.progressTrack {
+  overflow: hidden;
+  height: 0.38rem;
+  border: 1px solid rgba(184, 177, 163, 0.12);
+  background: rgba(2, 3, 5, 0.8);
+}
+
+.progressTrack span {
+  display: block;
+  height: 100%;
+  background: var(--av-brass-300);
+}
+
+.levelProgress small {
+  color: var(--av-text-dim);
+  font-size: 0.66rem;
+  line-height: 1.5;
+}
+
 .section {
   display: grid;
   gap: var(--av-space-5);
@@ -309,8 +358,14 @@
     gap: var(--av-space-1);
   }
 
+  .levelProgressHeading,
   .statValueRow {
     align-items: start;
+  }
+
+  .levelProgressHeading {
+    flex-direction: column;
+    gap: var(--av-space-1);
   }
 }
 
@@ -326,7 +381,8 @@
   }
 
   .attributeCard,
-  .statCard {
+  .statCard,
+  .levelProgress {
     padding: var(--av-space-3);
   }
 }

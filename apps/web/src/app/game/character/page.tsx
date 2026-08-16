@@ -10,6 +10,8 @@ import { getCurrentAccountServicesReadiness } from '@/server/account/account-ser
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadGameEntryCharacterState } from '@/server/character/game-entry-character-state'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
+import { loadLevelProgressionCurve } from '@/server/progression/progression-service'
+import { createSupabaseProgressionRepository } from '@/server/progression/supabase-progression-repository'
 
 export const dynamic = 'force-dynamic'
 
@@ -45,7 +47,22 @@ export default async function CharacterProfilePage() {
     redirect('/game')
   }
 
+  let levelCurve
+  try {
+    levelCurve = await loadLevelProgressionCurve(
+      characterState.character.progressionCycle.number,
+      createSupabaseProgressionRepository(),
+    )
+  } catch (error) {
+    if (isAurevaneError(error) && error.code === 'PERSISTENCE_UNAVAILABLE') {
+      return <AuthenticatedGameRecovery />
+    }
+    throw error
+  }
+
   return (
-    <CharacterProfileShell profile={buildCharacterProfileReadModel(characterState.character)} />
+    <CharacterProfileShell
+      profile={buildCharacterProfileReadModel(characterState.character, levelCurve)}
+    />
   )
 }

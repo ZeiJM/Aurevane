@@ -10,6 +10,7 @@
     "./character/persistence": "./src/character/persistence.ts",
     "./character/profile": "./src/character/profile.ts",
     "./character/profile-stat-content": "./src/character/profile-stat-content.ts",
+    "./character/progression": "./src/character/progression.ts",
     "./character/starter-options": "./src/character/starter-options.ts",
     "./command": "./src/command.ts",
     "./errors": "./src/errors.ts",
