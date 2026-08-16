@@ -1,0 +1,43 @@
+name: P1.1 production hardening format once
+
+on:
+  push:
+    branches:
+      - agent/p1-1-production-readiness
+    paths:
+      - '.github/workflows/p11-prod-format-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/p1-1-production-readiness
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: >-
+          pnpm exec prettier --write
+          apps/web/src/server/account/account-services-readiness.ts
+          apps/web/src/server/player-profile/game-entry-profile-state.ts
+      - name: Commit formatting
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            apps/web/src/server/account/account-services-readiness.ts \
+            apps/web/src/server/player-profile/game-entry-profile-state.ts
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m 'Format production account hardening'
+          git push origin HEAD:agent/p1-1-production-readiness
