@@ -126,10 +126,7 @@ describe("Wayfarer's Practice service", () => {
       }),
     })
 
-    const result = await claimTrainingReport(
-      { actor, characterId, reportId, idempotencyKey },
-      repo,
-    )
+    const result = await claimTrainingReport({ actor, characterId, reportId, idempotencyKey }, repo)
 
     expect(captured?.requestFingerprint).toHaveLength(64)
     expect(captured).toEqual(
@@ -157,10 +154,7 @@ describe("Wayfarer's Practice service", () => {
       claimTrainingReport: vi.fn(async () => ({ replayed: true, result: claim() })),
     })
 
-    const result = await claimTrainingReport(
-      { actor, characterId, reportId, idempotencyKey },
-      repo,
-    )
+    const result = await claimTrainingReport({ actor, characterId, reportId, idempotencyKey }, repo)
 
     expect(result.replayed).toBe(true)
     expect(result.levelUpEvent).toBeNull()
@@ -173,10 +167,7 @@ describe("Wayfarer's Practice service", () => {
       code: 'INVALID_REQUEST',
     })
     await expect(
-      claimTrainingReport(
-        { actor, characterId, reportId: 'not-a-report', idempotencyKey },
-        repo,
-      ),
+      claimTrainingReport({ actor, characterId, reportId: 'not-a-report', idempotencyKey }, repo),
     ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
     expect(repo.claimTrainingReport).not.toHaveBeenCalled()
   })
