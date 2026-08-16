@@ -92,6 +92,17 @@
   margin-top: var(--av-space-2);
 }
 
+.recoveryActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--av-space-3);
+  align-items: center;
+}
+
+.recoveryActions form {
+  margin: 0;
+}
+
 .sideColumn {
   display: grid;
   align-content: start;
@@ -179,8 +190,8 @@
 
   .masthead,
   .main {
-    padding-right: var(--av-space-3);
-    padding-left: var(--av-space-3);
+    padding-right: max(var(--av-space-3), env(safe-area-inset-right, 0px));
+    padding-left: max(var(--av-space-3), env(safe-area-inset-left, 0px));
   }
 
   .main {
@@ -193,8 +204,31 @@
     padding: var(--av-space-6);
   }
 
+  .primaryCard h1 {
+    font-size: clamp(2.2rem, 12vw, 3.5rem);
+  }
+
+  .characterState {
+    margin-top: var(--av-space-6);
+    padding: var(--av-space-5);
+  }
+
+  .recoveryActions {
+    align-items: stretch;
+  }
+
+  .recoveryActions form,
+  .recoveryActions button {
+    width: 100%;
+  }
+
   .sideColumn {
     grid-template-columns: 1fr;
+  }
+
+  .footer {
+    padding-right: max(var(--av-space-3), env(safe-area-inset-right, 0px));
+    padding-left: max(var(--av-space-3), env(safe-area-inset-left, 0px));
   }
 
   .footer span:last-child {

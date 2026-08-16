@@ -1,16 +1,25 @@
 import { isAurevaneError } from '@aurevane/game-core/errors'
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
-import { AuthenticatedGameShell } from '@/components/shell/authenticated-game-shell'
+import {
+  AuthenticatedGameRecovery,
+  AuthenticatedGameShell,
+} from '@/components/shell/authenticated-game-shell'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
+import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
 import { getAuthenticatedActor } from '@/server/auth/actor'
-import { loadPlayerProfile } from '@/server/player-profile/player-profile-service'
+import { loadGameEntryProfileState } from '@/server/player-profile/game-entry-profile-state'
 import { createSupabasePlayerProfileRepository } from '@/server/player-profile/supabase-player-profile-repository'
 
 export const dynamic = 'force-dynamic'
 
 export default async function GameEntryPage() {
-  if (!getOptionalPublicSupabaseConfig()) {
+  const publicConfig = getOptionalPublicSupabaseConfig()
+  const requestHost = (await headers()).get('host')
+  const readiness = getCurrentAccountServicesReadiness(publicConfig, requestHost)
+
+  if (!readiness.available) {
     redirect('/')
   }
 
@@ -26,7 +35,14 @@ export default async function GameEntryPage() {
     throw error
   }
 
-  const profile = await loadPlayerProfile(actor, createSupabasePlayerProfileRepository())
+  const profileState = await loadGameEntryProfileState(
+    actor,
+    createSupabasePlayerProfileRepository(),
+  )
 
-  return <AuthenticatedGameShell profile={profile} />
+  if (profileState.kind === 'persistence-unavailable') {
+    return <AuthenticatedGameRecovery />
+  }
+
+  return <AuthenticatedGameShell profile={profileState.profile} />
 }

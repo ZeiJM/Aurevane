@@ -3,11 +3,13 @@
 **Audience:** Player  
 **Visibility:** Public / spoiler-safe  
 **System:** Account entry  
-**Status:** P1.1 foundation
+**Status:** P1.1 production-readiness foundation
 
 ## Quick answer
 
 Your AUREVANE account proves who you are when you return to the game. It is deliberately separate from your character identity: your sign-in email is not your character name, and account metadata does not stand in for character progression.
+
+AUREVANE only exposes account entry in an environment whose account services are intentionally ready. It will not silently substitute staging, another database, or partial game state when the intended environment is unavailable.
 
 ## Create an account
 
@@ -39,7 +41,13 @@ Check the email and password and try again. If you recently created the account 
 
 ### Account services are unavailable
 
-Account entry may be disabled in an environment where its authentication infrastructure is not provisioned. The public shell can remain available without silently connecting to a different environment.
+Account entry is disabled when the current environment's complete account dependency chain has not been intentionally enabled. The public shell can remain available without silently connecting to a different environment or presenting controls that can only fail after sign-in.
+
+### My session is verified, but the private profile cannot load
+
+AUREVANE may show an **Account service interruption** recovery screen if authentication succeeded but the private profile required to enter the game is temporarily unavailable. No character or progression state is created to bypass the problem.
+
+Use **Retry account load** after a short wait. If the problem continues, use **Sign out** and return later. This recovery state is designed to protect persistent data rather than guess around a backend failure.
 
 ### I refreshed and still have no character
 
@@ -49,14 +57,15 @@ An account and a character are intentionally different. The account profile can 
 
 - AUREVANE loads private account state for the verified session rather than a user ID chosen by the browser.
 - Private account rows are protected by database authorization so one account cannot read another account's profile.
+- Production account entry requires explicit environment readiness; a staging-configured preview is not accepted as the Production account backend.
 - Authentication data is not used as gameplay authority for future character stats, progression, inventory, or combat state.
 - Never share your password.
 
 ## Documentation impact record
 
-- **Manual article:** this Account & Security article introduced.
+- **Manual article:** updated for Production readiness and authenticated profile-recovery behavior.
 - **Contextual help:** account entry and authenticated account screens include concise Account & Security guidance.
 - **Glossary:** no new gameplay glossary term required.
 - **Screenshots/diagrams:** none required for the current minimal account flow.
 - **Spoilers:** no story, Discipline, Confluence, Soulmark, boss, region, or late-game information exposed.
-- **Staff/Owner operations:** no new staff or Owner procedure introduced by P1.1.
+- **Staff/Owner operations:** infrastructure documentation records the Production readiness procedure; no Master Panel procedure is introduced by this narrow hardening checkpoint.

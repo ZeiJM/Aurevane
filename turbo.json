@@ -11,7 +11,9 @@
       ],
       "passThroughEnv": [
         "VERCEL_ENV",
+        "VERCEL_PROJECT_PRODUCTION_URL",
         "AUREVANE_ENV",
+        "AUREVANE_ACCOUNT_SERVICES_READY",
         "SUPABASE_URL",
         "SUPABASE_PUBLISHABLE_KEY",
         "SUPABASE_SECRET_KEY"

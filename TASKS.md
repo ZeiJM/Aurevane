@@ -4,7 +4,7 @@ This file tracks the current implementation boundary. The Master Game Plan defin
 
 ## Current status
 
-**Stage:** Phase 1 — Character Foundation / P1.1 production hardening checkpoint
+**Stage:** Phase 1 — Character Foundation / P1.1 production-readiness completion checkpoint
 
 Authoritative documents established:
 
@@ -132,23 +132,26 @@ Implementation checkpoint:
 
 ### P1.1-PROD — Production Account/Profile Readiness Hardening
 
-Owner testing immediately after P1.1 merge exposed a production integration gap that the previous root-page Production gate did not prove: a deployment can be `READY` and `/` can return HTTP 200 while authenticated `/game` still fails if the selected Supabase environment is not fully provisioned for the P1.1 profile dependency chain.
+Completed with:
 
-Required corrective checkpoint, tracked by issue #32:
+- a central server-side account-services readiness policy rather than treating public Supabase variable presence as end-to-end readiness;
+- explicit `AUREVANE_ACCOUNT_SERVICES_READY=true` required before Production account entry can be exposed;
+- Vercel Production-host detection that rejects a staging-configured promoted Preview instead of silently using staging as the live account backend;
+- current unprovisioned Production kept in the authored account-unavailable state, so a player cannot begin a login flow whose profile dependency is not ready;
+- authenticated `PERSISTENCE_UNAVAILABLE` profile failures converted into an authored AUREVANE recovery screen with Retry and Sign out rather than a generic server-error page;
+- safe structured outage logging through the stable `player_profile.persistence_unavailable` event without tokens, user IDs, raw SQL, or database error detail;
+- existing profile provisioning, RLS, verified-actor, and no-client-selected-user security boundaries preserved;
+- responsive recovery treatment with phone-safe actions and safe-area handling;
+- Production readiness and migration verification procedure documented in infrastructure guidance and Account & Security player help;
+- no Production Supabase project provisioned, no Production migration applied, no staging fallback introduced, and no character/gameplay scope implemented.
 
-- account-entry availability must reflect the complete P1.1 dependency chain, not merely the presence of public Supabase Auth configuration;
-- Production must use only its intended Supabase environment and must never fall back to staging or another environment;
-- the committed `player_profiles` migration, provisioning trigger, RLS policy, and authenticated profile-read path must be ready before Production sign-in is exposed;
-- if Production is intentionally unprovisioned, the authored unavailable-environment state must prevent a login flow that can end in a server crash;
-- unexpected authenticated profile/persistence failure must render an authored AUREVANE recovery state with safe retry/sign-out behavior instead of the generic Next.js/Vercel server-error page;
-- a Vercel `READY` state or HTTP 200 on `/` alone is not sufficient verification for a release that introduces authenticated routes;
-- provisioned Production verification must cover fresh account/sign-in → `/game` → exactly one private player profile → **No character bound** → refresh → sign-out → sign-in again, with runtime logs checked during the authenticated verification window;
-- existing P1.1 security, database, responsive, accessibility, and regression guarantees must remain intact;
-- no character-domain, progression, combat, world, inventory, economy, Master Panel, or other future gameplay scope is introduced by this hardening checkpoint.
+**Current Production acceptance mode:** intentionally unavailable. The public Production shell is healthy and clearly reports account services unavailable; sign-in/create-account controls are not exposed until a dedicated Production Supabase environment is provisioned, migrated, security-verified, and explicitly enabled.
+
+**Verification:** implementation-branch quality/build/worker checks, local Supabase reconstruction, player-profile/RLS/idempotency/auth regressions, readiness/recovery unit tests, Vercel Preview HTTP 200, and real Chromium desktop/laptop/mobile account-flow regression passed before the final ledger checkpoint. Exact final-head gates and post-merge Production HTTP/log verification remain the merge/release gate.
 
 ## ACTIVE
 
-P1.1-PROD — Production Account/Profile Readiness Hardening (issue #32). Resolve the production login/profile failure and complete authenticated Production verification before P1.2 implementation resumes.
+No implementation ticket is active at this checkpoint. P1.1-PROD is complete pending its final exact-head merge/release verification; do not start a second P1.2 implementation.
 
 ## Next
 
