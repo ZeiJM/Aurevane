@@ -149,7 +149,7 @@ describe('progression service', () => {
     })
   })
 
-  it('does not emit a Level-up event for an XP grant that remains within one Level', async () => {
+  it('does not repeat Level-up side effects when an XP grant is replayed', async () => {
     const repo = repository({
       grantCharacterXp: vi.fn(async () => ({
         replayed: true,
@@ -163,12 +163,12 @@ describe('progression service', () => {
           sourceId: 'foundation.test',
           reasonTag: 'progression.test',
           requestedAmount: 125,
-          appliedAmount: 25,
-          xpBefore: 25,
-          xpAfter: 50,
+          appliedAmount: 125,
+          xpBefore: 0,
+          xpAfter: 125,
           levelBefore: 1,
-          levelAfter: 1,
-          reachedLevel: null,
+          levelAfter: 2,
+          reachedLevel: 2,
           secondsSinceCycleStart: 30,
           createdAt: '2026-08-16T20:00:00.000Z',
         },
