@@ -2,13 +2,18 @@ import { z } from 'zod'
 
 export const aurevaneEnvironmentSchema = z.enum(['local', 'staging', 'production'])
 
+function parseHttpUrl(value: string): URL | null {
+  try {
+    const url = new URL(value)
+    return url.protocol === 'http:' || url.protocol === 'https:' ? url : null
+  } catch {
+    return null
+  }
+}
+
 const supabaseUrlSchema = z
   .string()
-  .url()
-  .refine((value) => {
-    const protocol = new URL(value).protocol
-    return protocol === 'http:' || protocol === 'https:'
-  }, 'must use http or https')
+  .refine((value) => parseHttpUrl(value) !== null, 'must be a valid http or https URL')
 
 function decodeJwtRole(value: string): string | null {
   const parts = value.split('.')
@@ -47,7 +52,11 @@ const publicEnvironmentSchema = z
       ),
   })
   .superRefine((value, context) => {
-    const url = new URL(value.NEXT_PUBLIC_SUPABASE_URL)
+    const url = parseHttpUrl(value.NEXT_PUBLIC_SUPABASE_URL)
+    if (!url) {
+      return
+    }
+
     const isLocalHost = url.hostname === '127.0.0.1' || url.hostname === 'localhost'
 
     if (value.NEXT_PUBLIC_AUREVANE_ENV === 'local' && !isLocalHost) {

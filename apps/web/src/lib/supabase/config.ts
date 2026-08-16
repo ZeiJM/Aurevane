@@ -20,12 +20,21 @@ export interface PublicSupabaseConfig {
   publishableKey: string
 }
 
+const invalidPublicEnvironmentPrefix = 'Invalid public environment configuration:'
+
 export function getPublicSupabaseConfig(): PublicSupabaseConfig {
   return parseRequiredPublicSupabaseConfig(readPublicSupabaseEnvironment())
 }
 
 export function getOptionalPublicSupabaseConfig(): PublicSupabaseConfig | null {
-  return parseOptionalPublicSupabaseConfig(readPublicSupabaseEnvironment())
+  try {
+    return parseOptionalPublicSupabaseConfig(readPublicSupabaseEnvironment())
+  } catch (error) {
+    if (error instanceof Error && error.message.startsWith(invalidPublicEnvironmentPrefix)) {
+      return null
+    }
+    throw error
+  }
 }
 
 export function parseOptionalPublicSupabaseConfig(
