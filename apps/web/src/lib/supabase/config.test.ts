@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { parseOptionalPublicSupabaseConfig, resolvePublicSupabaseEnvironment } from './config'
+import {
+  parseOptionalPublicSupabaseConfig,
+  resolvePublicSupabaseEnvironment,
+} from './config'
 
 describe('optional public Supabase configuration', () => {
   it('allows a completely unconfigured environment for public shell requests', () => {
