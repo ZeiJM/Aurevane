@@ -33,10 +33,7 @@ describe('optional public Supabase configuration', () => {
   it('fails the runtime optional reader closed for malformed partial auth configuration', () => {
     vi.stubEnv('NEXT_PUBLIC_AUREVANE_ENV', 'staging')
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', '')
-    vi.stubEnv(
-      'NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY',
-      `sb_publishable_${'x'.repeat(32)}`,
-    )
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY', `sb_publishable_${'x'.repeat(32)}`)
 
     expect(getOptionalPublicSupabaseConfig()).toBeNull()
   })
