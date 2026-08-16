@@ -19,10 +19,9 @@ test('account entry is responsive, keyboard reachable, and media-safe', async ({
   await expect(page.locator('.skip-link')).toBeFocused()
 })
 
-test('a new account persists its private profile across refresh, sign-out, and sign-in', async (
-  { page },
-  testInfo,
-) => {
+test('a new account persists its private profile across refresh, sign-out, and sign-in', async ({
+  page,
+}, testInfo) => {
   const projectSlug = testInfo.project.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()
   const email = `p11-${projectSlug}-${Date.now()}@example.com`
   const password = 'P11-browser-account-2026!'

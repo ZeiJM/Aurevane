@@ -65,7 +65,9 @@ export function AccountAccessPanel({ authAvailable }: AccountAccessPanelProps) {
       })
 
       if (error) {
-        setMessage('We could not create that account. Check your details or try signing in instead.')
+        setMessage(
+          'We could not create that account. Check your details or try signing in instead.',
+        )
         return
       }
 

@@ -73,8 +73,8 @@ export function AccountEntryShell({ authAvailable }: AccountEntryShellProps) {
                 authentication data, not your future character name.
               </p>
               <p>
-                Some environments may require email confirmation after signup. Sign out when using
-                a shared device.
+                Some environments may require email confirmation after signup. Sign out when using a
+                shared device.
               </p>
             </div>
           </details>
