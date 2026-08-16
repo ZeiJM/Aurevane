@@ -9,8 +9,7 @@ import { serverLogger, type ServerLogger } from '../logging'
 import { loadTrainingReport } from './wayfarers-practice-service'
 
 export type GameEntryWayfarersPracticeState =
-  | { kind: 'ready'; report: TrainingReportRecord | null }
-  | { kind: 'persistence-unavailable' }
+  { kind: 'ready'; report: TrainingReportRecord | null } | { kind: 'persistence-unavailable' }
 
 export async function loadGameEntryWayfarersPracticeState(
   actor: AuthenticatedActor,
