@@ -128,14 +128,14 @@ test('creates one permanent character, renders its profile, and resumes it acros
   await expect(trainingReport).toBeVisible()
   await expect(trainingReport).toContainText('Training Report')
   await expect(trainingReport).toContainText('Balanced Practice')
-  await expect(trainingReport).toContainText('4d 0h')
+  await expect(trainingReport).toContainText('3d 23h')
   await expect(trainingReport).toContainText('+376')
   await expect(trainingReport).toContainText('+12')
   await expect(trainingReport).toContainText('direct practice bank reached its current cap')
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
   await page.reload()
-  await expect(page.getByTestId('training-report')).toContainText('4d 0h')
+  await expect(page.getByTestId('training-report')).toContainText('3d 23h')
   await expect(page.getByTestId('training-report')).toContainText('+376')
   await expect(page.getByTestId('training-report')).toContainText('+12')
 

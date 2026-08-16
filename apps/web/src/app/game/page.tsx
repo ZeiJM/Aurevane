@@ -75,7 +75,8 @@ export default async function GameEntryPage() {
       trainingReport = {
         reportId: practiceState.report.reportId,
         characterId: practiceState.report.characterId,
-        elapsedSeconds: practiceState.report.elapsedSeconds,
+        creditedPracticeSeconds:
+          practiceState.report.creditedDirectSeconds + practiceState.report.restedMomentumSeconds,
         requestedCharacterXp: practiceState.report.requestedCharacterXp,
         restedMomentumGain: practiceState.report.restedMomentumGain,
         directXpCapReached: practiceState.report.directXpCapReached,

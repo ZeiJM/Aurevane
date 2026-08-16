@@ -9,7 +9,7 @@ import styles from './training-report-card.module.css'
 export interface TrainingReportCardData {
   reportId: string
   characterId: string
-  elapsedSeconds: number
+  creditedPracticeSeconds: number
   requestedCharacterXp: number
   restedMomentumGain: number
   directXpCapReached: boolean
@@ -81,7 +81,7 @@ export function TrainingReportCard({ report }: TrainingReportCardProps) {
       <dl className={styles.rewards}>
         <div>
           <dt>Practice time credited</dt>
-          <dd>{formatPracticeDuration(report.elapsedSeconds)}</dd>
+          <dd>{formatPracticeDuration(report.creditedPracticeSeconds)}</dd>
         </div>
         <div>
           <dt>Character XP</dt>
