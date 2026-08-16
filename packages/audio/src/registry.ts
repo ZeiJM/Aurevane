@@ -26,6 +26,15 @@ const AUDIO_ASSETS = [
     preload: 'none',
   },
   {
+    id: 'music.character-creation',
+    kind: 'music',
+    channel: 'music',
+    status: 'requested',
+    requestId: 'AUDIO-MUS-002',
+    loop: true,
+    preload: 'none',
+  },
+  {
     id: 'ambience.foundation.world',
     kind: 'ambience',
     channel: 'ambience',

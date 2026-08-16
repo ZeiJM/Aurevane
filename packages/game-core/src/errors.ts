@@ -3,6 +3,8 @@ export type AurevaneErrorCode =
   | 'FORBIDDEN'
   | 'INVALID_REQUEST'
   | 'IDEMPOTENCY_CONFLICT'
+  | 'CHARACTER_NAME_UNAVAILABLE'
+  | 'CHARACTER_ALREADY_EXISTS'
   | 'PERSISTENCE_UNAVAILABLE'
 
 export class AurevaneError extends Error {

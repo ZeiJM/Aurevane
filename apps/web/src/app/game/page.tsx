@@ -9,6 +9,8 @@ import {
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
 import { getAuthenticatedActor } from '@/server/auth/actor'
+import { loadGameEntryCharacterState } from '@/server/character/game-entry-character-state'
+import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
 import { loadGameEntryProfileState } from '@/server/player-profile/game-entry-profile-state'
 import { createSupabasePlayerProfileRepository } from '@/server/player-profile/supabase-player-profile-repository'
 
@@ -44,5 +46,16 @@ export default async function GameEntryPage() {
     return <AuthenticatedGameRecovery />
   }
 
-  return <AuthenticatedGameShell profile={profileState.profile} />
+  const characterState = await loadGameEntryCharacterState(
+    actor,
+    createSupabaseCharacterRepository(),
+  )
+
+  if (characterState.kind === 'persistence-unavailable') {
+    return <AuthenticatedGameRecovery />
+  }
+
+  return (
+    <AuthenticatedGameShell profile={profileState.profile} character={characterState.character} />
+  )
 }
