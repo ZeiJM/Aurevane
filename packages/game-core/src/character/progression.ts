@@ -56,7 +56,11 @@ export function validateLevelProgressionCurve(
     issues.push({ field: 'version', message: 'Curve version must be a positive integer.' })
   }
 
-  if (!Number.isInteger(curve.maxLevel) || curve.maxLevel < 1 || curve.maxLevel > CURRENT_LEVEL_CAP) {
+  if (
+    !Number.isInteger(curve.maxLevel) ||
+    curve.maxLevel < 1 ||
+    curve.maxLevel > CURRENT_LEVEL_CAP
+  ) {
     issues.push({
       field: 'maxLevel',
       message: `Maximum Level must be a whole number from 1 to ${CURRENT_LEVEL_CAP}.`,
