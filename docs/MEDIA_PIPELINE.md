@@ -4,6 +4,8 @@
 
 This document defines how art, music, ambience, SFX, UI media, animation sources, and generated media move from request to approved runtime asset.
 
+For the detailed owner-control, stable asset identity, manual replacement, storage, generation-provider, publication, and rollback model, see `docs/ASSET_STUDIO_AND_MEDIA_OPERATIONS.md`. For implementation timing, see the binding roadmap extension `docs/ROADMAP_MEDIA_OPERATIONS.md`.
+
 ## 1. Principles
 
 - Art and audio are product features, not polish deferred until launch.
@@ -14,6 +16,9 @@ This document defines how art, music, ambience, SFX, UI media, animation sources
 - Assets are data-driven and referenced by stable IDs where practical.
 - Performance budgets are part of approval.
 - The Art Bible and Audio Bible override ad-hoc aesthetic decisions.
+- Owner-uploaded/manual media is a permanent first-class path alongside generated, commissioned, internal, and licensed media.
+- Generation output is always a candidate until explicitly reviewed and approved; generation never equals publication.
+- Important production media must remain replaceable and versioned without requiring routine source-code edits once its content domain is operationally mature.
 
 ## 2. Workflow
 
@@ -22,7 +27,7 @@ GAME/FEATURE NEED
   ↓
 ART_REQUEST or AUDIO_REQUEST
   ↓
-Generate / commission / create source candidates
+Generate / commission / create / owner-upload source candidates
   ↓
 Human review against Bible + gameplay need
   ↓
@@ -72,6 +77,8 @@ public/
 
 Large production masters should eventually live in controlled object storage or an appropriate asset store rather than bloating the application repository. Runtime assets may live under `public/media` while their scale remains practical.
 
+Supabase Storage is the preferred initial operational object-storage direction once repository-hosted runtime media is no longer sufficient, subject to later evidence-based change. Stable Asset IDs and database/content metadata must sit above the physical storage path so future storage migration does not require rewriting game content.
+
 ## 4. Request IDs
 
 Art:
@@ -109,7 +116,7 @@ Each approved asset should eventually have metadata equivalent to:
   "kind": "character-portrait",
   "status": "approved",
   "source": {
-    "method": "generated|commissioned|internal|licensed",
+    "method": "generated|commissioned|internal|licensed|owner-uploaded",
     "provider": "optional",
     "createdAt": "ISO-8601",
     "license": "terms/reference",
@@ -189,6 +196,8 @@ interface MediaAsset {
 
 Later this may be backed by database/content records managed from the Master Panel.
 
+Important production content should converge on stable Asset IDs so replacing a portrait, region image, track, ambience layer, or other media object does not require editing every consumer of that asset.
+
 ## 10. Performance
 
 Before production approval:
@@ -226,21 +235,53 @@ Never:
 
 ## 13. Master Panel Future Requirement
 
-The eventual owner Master Panel should support:
+The owner Master Panel evolves toward the Asset Studio defined in `docs/ASSET_STUDIO_AND_MEDIA_OPERATIONS.md`.
+
+It should ultimately support:
 
 - asset search/filter;
 - request status;
-- preview;
-- upload/replace runtime derivatives;
-- provenance fields;
-- approval state;
-- content-to-asset references;
-- audio auditioning;
+- current published version and version history;
+- preview in representative game contexts;
+- manual source/master upload and replacement;
+- choose/reuse an existing approved asset;
+- provider-generated candidate intake where configured;
+- provenance/licensing fields;
+- approval/rejection state;
+- content-to-asset references and impact lookup;
+- image crop/focal/derivative controls where supported;
+- audio auditioning and loop/stem/gain metadata where supported;
 - variant selection;
-- rollback/version history.
+- staged publication;
+- safe retirement;
+- rollback/version history;
+- audited privileged operations.
 
-This is anticipated architecturally but must not be built before its roadmap phase.
+Manual upload/replace must remain available even when generation providers are configured.
+
+Generated candidates must not publish automatically.
+
+The complete Asset Studio is a later roadmap capability, but a minimum useful media-operations slice arrives alongside the Living World/Story Master Panel work when content volume makes owner replacement a real operational need. The exact sequence is binding in `docs/ROADMAP_MEDIA_OPERATIONS.md`.
 
 ## 14. Development Rule
 
 When implementation reaches a feature that requires missing media, create the appropriate request file in `content/art-requests/` or `content/audio-requests/` as part of the ticket. Do not silently use random web images, random generated assets, or temporary untracked audio.
+
+When a content domain becomes Master Panel-editable, its player-facing media relationships should also become editable through stable Asset IDs/selectors wherever reasonably practical. Do not build a data-driven NPC, region, item, Discipline, event, quest, or other content editor whose important media remains permanently hard-coded in application source.
+
+## 15. Generation Provider Rule
+
+Generation-provider integration is optional production infrastructure, not a prerequisite for ordinary gameplay.
+
+If/when a provider is connected:
+
+- calls occur through server-only provider adapters;
+- credentials remain secret and environment-scoped;
+- generated output enters the Asset Studio as candidates;
+- request/provider provenance is retained;
+- human approval remains mandatory;
+- rate limits/cost controls exist;
+- provider failure does not affect already-published runtime media;
+- the provider can be disabled or replaced without changing stable Asset IDs or game content relationships.
+
+A provider may be integrated earlier than the complete Asset Studio only when an active roadmap phase has a demonstrated recurring production bottleneck and the ticket preserves these boundaries.
