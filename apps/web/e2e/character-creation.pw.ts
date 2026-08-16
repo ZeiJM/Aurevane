@@ -13,8 +13,8 @@ test('creates one permanent character, renders its profile, and resumes it acros
   page,
 }, testInfo) => {
   const projectSlug = testInfo.project.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()
-  const email = `p14-${projectSlug}-${Date.now()}@example.com`
-  const password = 'P14-browser-character-2026!'
+  const email = `p15-${projectSlug}-${Date.now()}@example.com`
+  const password = 'P15-browser-character-2026!'
   const characterName = uniqueCharacterName()
 
   await page.goto('/')
@@ -66,6 +66,15 @@ test('creates one permanent character, renders its profile, and resumes it acros
   await expect(page.getByTestId('derived-stat-accuracy')).toContainText('74%')
   await expect(page.getByTestId('derived-stat-criticalChance')).toContainText('8%')
   await expect(page.getByTestId('derived-stat-movement')).toContainText('4 steps')
+
+  const levelProgress = page.getByTestId('level-progress')
+  await expect(levelProgress).toContainText('Progress to Level 2')
+  await expect(levelProgress).toContainText('0 / 100 XP')
+  await expect(page.getByRole('progressbar', { name: 'Level progress' })).toHaveAttribute(
+    'aria-valuenow',
+    '0',
+  )
+
   await expect(
     page.locator('[data-media-status="requested"][data-media-request="ART-CHR-001"]').first(),
   ).toBeVisible()

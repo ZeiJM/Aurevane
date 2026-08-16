@@ -9,7 +9,8 @@
     "./foundation/authority-probe": "./src/foundation/authority-probe.ts",
     "./player/character": "./src/player/character.ts",
     "./player/character-creation": "./src/player/character-creation.ts",
-    "./player/profile": "./src/player/profile.ts"
+    "./player/profile": "./src/player/profile.ts",
+    "./player/progression": "./src/player/progression.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

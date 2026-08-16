@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
+import type { LevelProgressionCurve } from './progression'
 import type { PersistedCharacter } from './persistence'
 import { buildCharacterProfileReadModel } from './profile'
+
+const levelCurve: LevelProgressionCurve = {
+  version: 1,
+  maxLevel: 100,
+  cumulativeXpByLevel: Array.from({ length: 100 }, (_, index) => index * 100),
+}
 
 const character: PersistedCharacter = {
   id: '00000000-0000-4000-8000-000000000901',
@@ -26,7 +33,7 @@ const character: PersistedCharacter = {
 
 describe('character profile read model', () => {
   it('projects character-facing identity without account linkage or normalized name internals', () => {
-    const profile = buildCharacterProfileReadModel(character)
+    const profile = buildCharacterProfileReadModel(character, levelCurve)
     const serialized = JSON.stringify(profile)
 
     expect(profile.identity).toMatchObject({
@@ -41,12 +48,28 @@ describe('character profile read model', () => {
     expect(profile).not.toHaveProperty('nameKey')
   })
 
-  it('calculates derived stats from authoritative attributes and level', () => {
-    const profile = buildCharacterProfileReadModel(character)
+  it('calculates derived stats and Level progress from authoritative state plus curve config', () => {
+    const profile = buildCharacterProfileReadModel(character, levelCurve)
 
     expect(profile.derived.rulesVersion).toBe(1)
     expect(profile.derived.stats.maxHp.value).toBe(164)
     expect(profile.derived.stats.accuracy.value).toBe(7400)
     expect(profile.derived.stats.movement.value).toBe(4)
+    expect(profile.progression.progress).toMatchObject({
+      curveVersion: 1,
+      level: 1,
+      totalXp: 0,
+      nextLevelThreshold: 100,
+      xpIntoLevel: 0,
+      xpRequiredForNextLevel: 100,
+      progressBasisPoints: 0,
+      isMaxLevel: false,
+    })
+  })
+
+  it('rejects persisted Level drift from the authoritative cumulative XP curve', () => {
+    expect(() =>
+      buildCharacterProfileReadModel({ ...character, level: 2, xp: 0 }, levelCurve),
+    ).toThrow('Persisted character Level does not match authoritative cumulative XP.')
   })
 })

@@ -4,7 +4,7 @@ This file tracks the current implementation boundary. The Master Game Plan defin
 
 ## Current status
 
-**Stage:** Phase 1 — Character Foundation / P1.4 character-profile checkpoint
+**Stage:** Phase 1 — Character Foundation / P1.5 character-progression checkpoint
 
 Authoritative documents established:
 
@@ -187,13 +187,9 @@ Completed with:
 
 **Verification:** exact-head quality/build/worker, full database/security, responsive Chromium desktop/laptop/mobile lifecycle, and Vercel Preview passed before merge. PR #39 squash-merged; issue #38 closed as completed. The merged `main` checkpoint `9a5a38adbd2593cabf7e4687eb78b66b6b6d250a` then passed the same quality, database/security, responsive Chromium, and Vercel release checks.
 
-## ACTIVE
-
 ### P1.4 — Character Profile + Derived Stat Framework
 
-Canonical work is issue #40 / PR #41 / branch `agent/ticket-1-4-character-profile`.
-
-Current implementation scope includes:
+Completed with:
 
 - one pure versioned `packages/game-core` derived-stat calculator for Maximum HP, Maximum MP, Physical Power, Mystic Power, Armor, Ward, Accuracy, Evasion, Critical Chance, Initiative, Movement, Jump, and Status Resistance;
 - integer-only deterministic arithmetic with percentage-like stats represented internally as basis points;
@@ -207,11 +203,36 @@ Current implementation scope includes:
 - spoiler-safe Character Profile & Derived Stats manual content that explains meanings, Movement-stat → Movement Budget semantics, configuration versioning, provenance, security, and future modifier boundaries without duplicating coefficients into prose;
 - deterministic calculator/config/provenance tests, safe read-model projection tests, and expanded desktop/laptop/mobile Playwright lifecycle coverage.
 
-**Release rule:** do not merge P1.4 until the exact PR head passes quality/build/worker, full database/security regressions, responsive Chromium profile acceptance, and Vercel Preview.
+**Verification:** exact-head quality/build/worker, full database/security regressions, responsive Chromium profile acceptance, and Vercel Preview passed before merge. PR #41 squash-merged; issue #40 closed as completed. The merged `main` checkpoint `34c01fa0180dcaa2ce41e136b2c09d656e353ac0` then passed the same quality, database/security, responsive Chromium, and Vercel release checks.
+
+## ACTIVE
+
+### P1.5 — Level 1–100 XP Progression + Telemetry Foundation
+
+Canonical work is issue #42 / branch `agent/ticket-1-5-xp-progression`.
+
+Current implementation scope includes:
+
+- one pure deterministic Level/XP resolver with a configurable Level 1–100 cap, exact-boundary handling, within-Level progress and safe cap behavior;
+- one versioned server-only cumulative XP curve mapped to progression cycle 1, explicitly labeled Phase 1 development balance rather than permanent launch pacing;
+- no elapsed-time, calendar, Horizon, daily-energy, AFK-timer or other generic wait gate inside the XP resolver;
+- an explicit server-side `character.xp.grant` permission boundary with stable provenance tags and no browser XP-award route;
+- service-role-only atomic `grant_character_xp_v1` persistence that locks the character row, verifies persisted Level/XP consistency, resolves multi-Level awards, caps XP at the configured maximum, and updates Level + XP together;
+- durable idempotency using the existing authoritative command record boundary, including same-request replay and conflicting-fingerprint rejection;
+- a private append-only XP-grant ledger with source category/id/reason, requested/applied XP, before/after XP and Level, reached-Level milestone, curve version, cycle and seconds-since-cycle-start telemetry;
+- private server-only curve/telemetry tables and service-role-only curve/grant RPCs, while browser roles retain only owner-isolated character reads and cannot PATCH Level/XP directly;
+- profile read-model validation that recomputes Level from cumulative XP and rejects persisted Level drift;
+- responsive character profile XP presentation showing Level, cumulative XP, next threshold, within-Level progress, curve version and maximum-Level state without duplicating the curve in UI constants;
+- identifier-only Level-change invalidation contract for authoritative profile refetch rather than broadcasting character state;
+- player-manual guidance distinguishing Level/Character XP from Discipline Mastery and explaining that long-form pacing comes from layered meaningful progression rather than visible or hidden day gates;
+- deterministic domain/service tests plus local-Supabase attack coverage for curve privacy, authenticated RPC denial, browser mutation denial, negative grants, replay/conflict behavior, concurrent grants, provenance telemetry and Level-100 capping;
+- desktop/laptop/mobile browser regression coverage for the real Level-1 profile progress presentation.
+
+**Release rule:** do not merge P1.5 until the exact PR head passes quality/build/worker, full database/security regressions including the dedicated progression authority suite, responsive Chromium profile acceptance, and Vercel Preview.
 
 ## Next
 
-P1.5 — Level 1–100 XP Progression + Telemetry Foundation. Do not begin it until P1.4 is merged and its post-merge `main` release checks are green.
+P1.6 — Wayfarer's Practice: Balanced Practice Foundation. Do not begin it until P1.5 is merged and its post-merge `main` release checks are green.
 
 ## Rule
 

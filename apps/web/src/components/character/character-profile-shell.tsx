@@ -30,11 +30,12 @@ export function CharacterProfileShell({ profile }: CharacterProfileShellProps) {
     dateStyle: 'medium',
     timeZone: 'UTC',
   }).format(new Date(profile.timestamps.createdAt))
+  const progress = profile.progression.progress
 
   return (
     <AuthenticatedShellFrame
       sessionLabel="Verified character profile"
-      footerLabel={`Derived rules v${profile.derived.rulesVersion} // server calculated`}
+      footerLabel={`Derived rules v${profile.derived.rulesVersion} // XP curve v${progress.curveVersion}`}
     >
       <Surface className={styles.profile} tone="elevated">
         <header className={styles.hero} data-testid="character-profile">
@@ -56,6 +57,36 @@ export function CharacterProfileShell({ profile }: CharacterProfileShellProps) {
               <span>Cycle {profile.progression.cycleNumber}</span>
             </div>
             <p className={styles.disciplineSummary}>{profile.foundationDiscipline.summary}</p>
+
+            <div className={styles.levelProgress} data-testid="level-progress">
+              <div className={styles.levelProgressHeading}>
+                <span>
+                  {progress.isMaxLevel
+                    ? 'Level cap reached'
+                    : `Progress to Level ${progress.level + 1}`}
+                </span>
+                <strong>
+                  {progress.isMaxLevel
+                    ? `${profile.progression.xp.toLocaleString('en')} XP`
+                    : `${profile.progression.xp.toLocaleString('en')} / ${progress.nextLevelThreshold?.toLocaleString('en')} XP`}
+                </strong>
+              </div>
+              <div
+                className={styles.progressTrack}
+                role="progressbar"
+                aria-label="Level progress"
+                aria-valuemin={0}
+                aria-valuemax={10_000}
+                aria-valuenow={progress.progressBasisPoints}
+              >
+                <span style={{ width: `${progress.progressBasisPoints / 100}%` }} />
+              </div>
+              <small>
+                {progress.isMaxLevel
+                  ? `Maximum Level ${progress.maxLevel} // curve v${progress.curveVersion}`
+                  : `${progress.xpIntoLevel.toLocaleString('en')} of ${progress.xpRequiredForNextLevel?.toLocaleString('en')} XP earned within this Level // curve v${progress.curveVersion}`}
+              </small>
+            </div>
           </div>
         </header>
 
@@ -138,11 +169,17 @@ export function CharacterProfileShell({ profile }: CharacterProfileShellProps) {
             </div>
             <div>
               <dt>Level</dt>
-              <dd>{profile.progression.level}</dd>
+              <dd>
+                {profile.progression.level} / {progress.maxLevel}
+              </dd>
             </div>
             <div>
-              <dt>Character XP</dt>
-              <dd>{profile.progression.xp}</dd>
+              <dt>Cumulative XP</dt>
+              <dd>{profile.progression.xp.toLocaleString('en')}</dd>
+            </div>
+            <div>
+              <dt>XP curve</dt>
+              <dd>v{progress.curveVersion}</dd>
             </div>
             <div>
               <dt>Created</dt>
@@ -158,9 +195,8 @@ export function CharacterProfileShell({ profile }: CharacterProfileShellProps) {
         <Surface className={styles.sideCard} tone="quiet">
           <Kicker marker="◇">Profile guide</Kicker>
           <p>
-            Derived stats are a readable summary of your current authoritative build. Browser edits
-            cannot change them. Equipment, Discipline and effect contributions will join this same
-            calculation boundary in later phases.
+            XP and Level are server-authoritative. Reward sources grant XP through one transactional
+            progression boundary; the profile only reads the resulting state and configured curve.
           </p>
           <a className={styles.backLink} href="/game">
             Return to game entry

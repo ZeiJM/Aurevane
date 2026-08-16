@@ -10,6 +10,7 @@ import {
 import { calculateDerivedStats, type DerivedStatSnapshot } from './derived-stats'
 import { getFoundationDiscipline, type FoundationDisciplineId } from './foundation-disciplines'
 import type { PersistedCharacter } from './persistence'
+import { resolveLevelProgress, type LevelProgress, type LevelProgressionCurve } from './progression'
 
 export interface CharacterProfileReadModel {
   characterId: string
@@ -32,6 +33,7 @@ export interface CharacterProfileReadModel {
     level: number
     xp: number
     cycleNumber: number
+    progress: LevelProgress
   }
   attributes: CharacterAttributes
   derived: DerivedStatSnapshot
@@ -44,15 +46,21 @@ export interface CharacterProfileReadModel {
 
 export function buildCharacterProfileReadModel(
   character: PersistedCharacter,
+  levelCurve: LevelProgressionCurve,
 ): CharacterProfileReadModel {
   const presentation = CHARACTER_PRESENTATIONS.find(
     (option) => option.id === character.presentationId,
   )
   const pronouns = PRONOUN_PRESETS.find((option) => option.id === character.pronounPresetId)
   const discipline = getFoundationDiscipline(character.foundationDisciplineId)
+  const progress = resolveLevelProgress(character.xp, levelCurve)
 
   if (!presentation || !pronouns || !discipline) {
     throw new Error('Character identity references are not available for profile rendering.')
+  }
+
+  if (progress.level !== character.level) {
+    throw new Error('Persisted character Level does not match authoritative cumulative XP.')
   }
 
   return {
@@ -76,6 +84,7 @@ export function buildCharacterProfileReadModel(
       level: character.level,
       xp: character.xp,
       cycleNumber: character.progressionCycle.number,
+      progress,
     },
     attributes: { ...character.attributes },
     derived: calculateDerivedStats({

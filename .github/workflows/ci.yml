@@ -85,6 +85,9 @@ jobs:
       - name: Verify character persistence and privacy
         run: bash .github/scripts/verify-character-persistence.sh
 
+      - name: Verify character XP progression authority
+        run: bash .github/scripts/verify-character-progression.sh
+
       - name: Verify transactional idempotency boundary
         shell: bash
         run: |
