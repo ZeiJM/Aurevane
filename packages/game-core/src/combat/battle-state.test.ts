@@ -258,10 +258,7 @@ describe('P2.1 deterministic battle state', () => {
     expect(() =>
       createPendingBattle({
         ...battleInput(),
-        combatants: [
-          { ...battleInput().combatants[0], hp: 165 },
-          battleInput().combatants[1],
-        ],
+        combatants: [{ ...battleInput().combatants[0], hp: 165 }, battleInput().combatants[1]],
       }),
     ).toThrow('Current resource cannot exceed')
 
