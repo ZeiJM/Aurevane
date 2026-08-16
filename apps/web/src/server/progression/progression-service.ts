@@ -105,13 +105,15 @@ export async function grantCharacterXp(
   return {
     grant: outcome.result,
     replayed: outcome.replayed,
-    levelUpEvent: createCharacterLevelUpEvent({
-      characterId: outcome.result.characterId,
-      progressionCycle: outcome.result.progressionCycle,
-      curveVersion: outcome.result.curveVersion,
-      levelBefore: outcome.result.levelBefore,
-      levelAfter: outcome.result.levelAfter,
-    }),
+    levelUpEvent: outcome.replayed
+      ? null
+      : createCharacterLevelUpEvent({
+          characterId: outcome.result.characterId,
+          progressionCycle: outcome.result.progressionCycle,
+          curveVersion: outcome.result.curveVersion,
+          levelBefore: outcome.result.levelBefore,
+          levelAfter: outcome.result.levelAfter,
+        }),
   }
 }
 
