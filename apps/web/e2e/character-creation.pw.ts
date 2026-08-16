@@ -1,3 +1,5 @@
+import { execFileSync } from 'node:child_process'
+
 import { expect, test } from '@playwright/test'
 
 function uniqueCharacterName(): string {
@@ -12,6 +14,8 @@ function uniqueCharacterName(): string {
 test('creates one permanent character, renders its profile, and resumes it across sign-in', async ({
   page,
 }, testInfo) => {
+  test.slow()
+
   const projectSlug = testInfo.project.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()
   const email = `p15-${projectSlug}-${Date.now()}@example.com`
   const password = 'P15-browser-character-2026!'
@@ -96,10 +100,104 @@ test('creates one permanent character, renders its profile, and resumes it acros
 
   await expect(page).toHaveURL(/\/game$/)
   await expect(page.getByTestId('character-established')).toContainText(characterName)
+
+  const characterId = queryLocalDatabase(`
+    select character.id::text
+    from public.characters character
+    join auth.users account on account.id = character.user_id
+    where account.email = '${escapeSqlLiteral(email)}'
+    limit 1;
+  `)
+  expect(characterId).toMatch(/^[0-9a-f-]{36}$/)
+
+  queryLocalDatabase(`
+    with boundary as (
+      select clock_timestamp() - interval '96 hours' as at
+    )
+    update app_private.wayfarers_practice_state practice_state
+    set
+      last_active_at = boundary.at,
+      practice_claimed_through_at = boundary.at,
+      updated_at = clock_timestamp()
+    from boundary
+    where practice_state.character_id = '${characterId}'::uuid;
+  `)
+
+  await page.reload()
+  const trainingReport = page.getByTestId('training-report')
+  await expect(trainingReport).toBeVisible()
+  await expect(trainingReport).toContainText('Training Report')
+  await expect(trainingReport).toContainText('Balanced Practice')
+  await expect(trainingReport).toContainText('4d 0h')
+  await expect(trainingReport).toContainText('+376')
+  await expect(trainingReport).toContainText('+12')
+  await expect(trainingReport).toContainText('direct practice bank reached its current cap')
+  expect(await hasHorizontalOverflow(page)).toBe(false)
+
+  await page.reload()
+  await expect(page.getByTestId('training-report')).toContainText('4d 0h')
+  await expect(page.getByTestId('training-report')).toContainText('+376')
+  await expect(page.getByTestId('training-report')).toContainText('+12')
+
+  const claimButton = page.getByRole('button', { name: 'Claim training' })
+  await claimButton.focus()
+  await expect(claimButton).toBeFocused()
+  await claimButton.press('Enter')
+
+  await expect(page.getByTestId('training-report')).toHaveCount(0)
+  await expect(page.getByTestId('character-established')).toContainText('Level 3')
+
+  await page.getByRole('link', { name: 'Open character profile' }).click()
+  await expect(page).toHaveURL(/\/game\/character$/)
+  await expect(page.getByTestId('character-profile')).toContainText('Level 3 Vanguard')
+  await expect(page.getByTestId('level-progress')).toContainText('376 / 400 XP')
+  await expect(page.getByTestId('level-progress')).toContainText('146 of 170 XP earned within this Level')
+
+  await page.getByRole('link', { name: 'Return to game entry' }).click()
+  await expect(page).toHaveURL(/\/game$/)
+  await page.reload()
+  await expect(page.getByTestId('training-report')).toHaveCount(0)
+  expect(await hasHorizontalOverflow(page)).toBe(false)
 })
 
 async function hasHorizontalOverflow(page: import('@playwright/test').Page): Promise<boolean> {
   return page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
   )
+}
+
+function queryLocalDatabase(sql: string): string {
+  const dbContainer = execFileSync(
+    'docker',
+    ['ps', '--filter', 'name=supabase_db_', '--format', '{{.Names}}'],
+    { encoding: 'utf8' },
+  )
+    .trim()
+    .split('\n')[0]
+
+  if (!dbContainer) {
+    throw new Error('Local Supabase database container is unavailable.')
+  }
+
+  return execFileSync(
+    'docker',
+    [
+      'exec',
+      dbContainer,
+      'psql',
+      '-v',
+      'ON_ERROR_STOP=1',
+      '-U',
+      'postgres',
+      '-d',
+      'postgres',
+      '-Atqc',
+      sql,
+    ],
+    { encoding: 'utf8' },
+  ).trim()
+}
+
+function escapeSqlLiteral(value: string): string {
+  return value.replaceAll("'", "''")
 }
