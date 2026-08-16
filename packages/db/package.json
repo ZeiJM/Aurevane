@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./migration-policy": "./src/migration-policy.ts",
+    "./player-profile": "./src/player-profile.ts",
     "./transactional-command": "./src/transactional-command.ts"
   },
   "scripts": {

@@ -79,6 +79,9 @@ jobs:
           privileges="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "select has_schema_privilege('anon','app_private','USAGE'), has_schema_privilege('authenticated','app_private','USAGE'), has_schema_privilege('service_role','app_private','USAGE');")"
           test "$privileges" = "f|f|t"
 
+      - name: Verify player profile provisioning and privacy
+        run: bash .github/scripts/verify-player-profile.sh
+
       - name: Verify transactional idempotency boundary
         shell: bash
         run: |

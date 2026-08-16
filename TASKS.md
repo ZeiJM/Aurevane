@@ -4,7 +4,7 @@ This file tracks the current implementation boundary. The Master Game Plan defin
 
 ## Current status
 
-**Stage:** Phase 1 — Character Foundation planned; implementation not started
+**Stage:** Phase 1 — Character Foundation / P1.1 completion checkpoint
 
 Authoritative documents established:
 
@@ -14,6 +14,7 @@ Authoritative documents established:
 - `docs/MEDIA_PIPELINE.md`
 - `docs/TECH_ARCHITECTURE.md`
 - `docs/ROADMAP.md`
+- `docs/RESPONSIVE_EXPERIENCE_STANDARD.md`
 - `AGENTS.md`
 
 Legacy prototype code has intentionally not been imported.
@@ -104,16 +105,39 @@ Phase 1 is defined in `docs/PHASE_1_TICKETS.md` as six independently verifiable 
 
 The first major player milestone is P1.3: an authenticated player can create and permanently persist a valid character. Phase 1 explicitly preserves later Discipline, combat, world, inventory/equipment, Horizon, Rekindling, premium-slot and Master Panel scope for their roadmap phases rather than implementing them early.
 
+### P1.1 — Account Entry + Player Profile Boundary
+
+Implementation checkpoint:
+
+- existing Supabase Auth/session/verified-claims architecture reused with no second auth system;
+- authored AUREVANE sign-in/sign-up account-entry experience implemented;
+- exactly one minimal durable player profile is automatically provisioned from authoritative `auth.users` identity;
+- authenticated profile reads are RLS-isolated to the verified account and direct browser mutation is denied;
+- authenticated `/game` entry and stable explicit **No character bound** state implemented without premature character/gameplay schema;
+- account identity remains separate from future public character identity;
+- Account & Security manual/contextual help added;
+- existing title-media request/fallback and gesture-gated audio settings preserved;
+- phone inputs render only when authentication is actually configured and active inputs are mobile-friendly/focusable;
+- utility audio is a non-reflowing popover with outside-click, Escape, and explicit-close dismissal;
+- Account & Security expansion no longer stretches the hero/title;
+- compact phone title sizing, safe-area insets, explicit laptop-height behavior, and desktop/laptop/mobile browser coverage are established;
+- `docs/RESPONSIVE_EXPERIENCE_STANDARD.md` makes responsive/touch/keyboard/overlay behavior a permanent player-facing implementation requirement;
+- no new runtime dependency or future gameplay system introduced.
+
+**Production gate:** the promoted Production descendant containing the Phase 0 environment hotfix is READY, returns HTTP 200, and has no error/fatal runtime logs in the verification window. Phase 0 issue #20 is closed.
+
+**Environment policy:** `SUPABASE_SECRET_KEY` is the only Vercel warning-listed secret explicitly passed to the web build because AUREVANE has a defined server-only use for it. Unused Postgres/service-role/JWT integration secrets remain intentionally unavailable to the web build rather than being whitelisted merely to silence a warning.
+
+**Verification:** final P1.1 acceptance requires the exact branch head to pass quality, database/security, and real Chromium desktop/laptop/mobile checks before PR #30 is merged and issue #28 is closed.
+
 ## ACTIVE
 
-No Phase 1 implementation ticket is active.
-
-Phase 0 production-verification issue #20 remains open. Vercel Production remains behind the approved `main` checkpoint because production deployments are being rate-limited. The only missing **runtime-affecting** change required to clear that gate is the already-merged public-shell environment hotfix; later planning/documentation commits do not change runtime behavior. The first Phase 1 implementation must not merge until the current Phase 0 production shell is successfully redeployed and verified.
+No implementation ticket is active at this checkpoint. P1.1 is complete pending its final merge gate; do not start a second P1.2 implementation.
 
 ## Next
 
-P1.1 — Account Entry + Player Profile Boundary, after issue #20 is closed.
+P1.2 — Character Domain Rules + Creation Contract. Resume only the existing issue #31 / branch `agent/ticket-1-2-character-domain` after P1.1 merges. Synchronize that sole branch onto the resulting `main` before continuing.
 
 ## Rule
 
-Only one implementation ticket is ACTIVE at a time. Future systems may influence interfaces and boundaries, but they are not implemented early.
+Only one implementation ticket is ACTIVE at a time. Every future player-facing ticket must follow `docs/RESPONSIVE_EXPERIENCE_STANDARD.md` and explicitly consider phone width, laptop height, desktop scale, touch, keyboard focus, and transient-overlay behavior during implementation.
