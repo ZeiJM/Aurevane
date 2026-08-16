@@ -47,8 +47,9 @@ export function AuthenticatedGameShell({ profile, character }: AuthenticatedGame
               <span>Base slot // Level {character.level}</span>
               <strong>{discipline?.name ?? character.foundationDisciplineId}</strong>
               <p>
-                {discipline?.summary ?? 'Your first combat tradition is established.'} Character
-                profile depth, derived stats, and progression arrive in the next Phase 1 tickets.
+                {discipline?.summary ?? 'Your first combat tradition is established.'} Your full
+                character profile now calculates attributes and derived stats from authoritative
+                server state.
               </p>
               <dl className={styles.attributeSummary}>
                 <div>
@@ -68,6 +69,9 @@ export function AuthenticatedGameShell({ profile, character }: AuthenticatedGame
                   <dd>{character.attributes.resolve}</dd>
                 </div>
               </dl>
+              <a className={styles.profileLink} href="/game/character">
+                Open character profile
+              </a>
             </div>
           </div>
         ) : (
@@ -170,7 +174,7 @@ export function AuthenticatedGameRecovery() {
   )
 }
 
-function AuthenticatedShellFrame({
+export function AuthenticatedShellFrame({
   children,
   sessionLabel,
   footerLabel,

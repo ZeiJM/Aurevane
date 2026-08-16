@@ -9,12 +9,12 @@ function uniqueCharacterName(): string {
   return `Wayfarer ${letters}`
 }
 
-test('creates one permanent character and resumes it across refresh and sign-in', async ({
+test('creates one permanent character, renders its profile, and resumes it across sign-in', async ({
   page,
 }, testInfo) => {
   const projectSlug = testInfo.project.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()
-  const email = `p13-${projectSlug}-${Date.now()}@example.com`
-  const password = 'P13-browser-character-2026!'
+  const email = `p14-${projectSlug}-${Date.now()}@example.com`
+  const password = 'P14-browser-character-2026!'
   const characterName = uniqueCharacterName()
 
   await page.goto('/')
@@ -31,10 +31,7 @@ test('creates one permanent character and resumes it across refresh and sign-in'
   await expect(nameInput).toBeFocused()
   await nameInput.fill(characterName)
 
-  const hasHorizontalOverflow = await page.evaluate(
-    () => document.documentElement.scrollWidth > window.innerWidth + 1,
-  )
-  expect(hasHorizontalOverflow).toBe(false)
+  expect(await hasHorizontalOverflow(page)).toBe(false)
 
   await page.getByRole('button', { name: 'Choose your foundation' }).click()
   await expect(page.getByTestId('attribute-points')).toContainText('0 points remaining')
@@ -51,6 +48,35 @@ test('creates one permanent character and resumes it across refresh and sign-in'
   await expect(page.getByTestId('character-established')).toContainText(characterName)
   await expect(page.getByTestId('character-creation')).toHaveCount(0)
 
+  const profileLink = page.getByRole('link', { name: 'Open character profile' })
+  await profileLink.focus()
+  await expect(profileLink).toBeFocused()
+  await profileLink.press('Enter')
+
+  await expect(page).toHaveURL(/\/game\/character$/)
+  const profile = page.getByTestId('character-profile')
+  await expect(profile).toContainText(characterName)
+  await expect(profile).toContainText('Level 1 Vanguard')
+  await expect(page.getByTestId('profile-attribute-might')).toContainText('6')
+  await expect(page.getByTestId('profile-attribute-finesse')).toContainText('6')
+  await expect(page.getByTestId('profile-attribute-intellect')).toContainText('6')
+  await expect(page.getByTestId('profile-attribute-resolve')).toContainText('6')
+  await expect(page.getByTestId('derived-stat-maxHp')).toContainText('164')
+  await expect(page.getByTestId('derived-stat-maxMp')).toContainText('90')
+  await expect(page.getByTestId('derived-stat-accuracy')).toContainText('74%')
+  await expect(page.getByTestId('derived-stat-criticalChance')).toContainText('8%')
+  await expect(page.getByTestId('derived-stat-movement')).toContainText('4 steps')
+  await expect(
+    page.locator('[data-media-status="requested"][data-media-request="ART-CHR-001"]').first(),
+  ).toBeVisible()
+  expect(await hasHorizontalOverflow(page)).toBe(false)
+
+  const backLink = page.getByRole('link', { name: 'Return to game entry' })
+  await backLink.focus()
+  await expect(backLink).toBeFocused()
+  await backLink.press('Enter')
+  await expect(page).toHaveURL(/\/game$/)
+
   await page.getByRole('button', { name: 'Sign out' }).click()
   await expect(page).toHaveURL(/\/$/)
 
@@ -61,3 +87,7 @@ test('creates one permanent character and resumes it across refresh and sign-in'
   await expect(page).toHaveURL(/\/game$/)
   await expect(page.getByTestId('character-established')).toContainText(characterName)
 })
+
+async function hasHorizontalOverflow(page: import('@playwright/test').Page): Promise<boolean> {
+  return page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1)
+}
