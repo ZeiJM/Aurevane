@@ -8,11 +8,14 @@ import type {
   WayfarersPracticeRepository,
 } from '@aurevane/db/wayfarers-practice'
 import {
+  createCharacterLevelUpEvent,
+  type CharacterLevelUpEvent,
+} from '@aurevane/game-core/character/progression'
+import {
   BALANCED_PRACTICE_FOCUS,
   PHASE_1_BALANCED_PRACTICE_CONFIG,
   calculateBalancedPractice,
 } from '@aurevane/game-core/character/wayfarers-practice'
-import { createCharacterLevelUpEvent, type CharacterLevelUpEvent } from '@aurevane/game-core/character/progression'
 import type { AuthenticatedActor } from '@aurevane/game-core/command'
 import { toUserActorKey } from '@aurevane/game-core/command'
 import { AurevaneError } from '@aurevane/game-core/errors'
@@ -190,5 +193,5 @@ function isNonNegativeSafeInteger(value: number): boolean {
 }
 
 function persistenceUnavailable(): AurevaneError {
-  return new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Wayfarer\'s Practice is unavailable right now.')
+  return new AurevaneError('PERSISTENCE_UNAVAILABLE', "Wayfarer's Practice is unavailable right now.")
 }
