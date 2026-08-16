@@ -4,7 +4,7 @@ This file tracks the current implementation boundary. The Master Game Plan defin
 
 ## Current status
 
-**Stage:** Phase 1 — Character Foundation / P1.1 implemented and verified on a gated feature branch
+**Stage:** Phase 1 — Character Foundation / P1.1 final responsive-production hardening
 
 Authoritative documents established:
 
@@ -14,6 +14,7 @@ Authoritative documents established:
 - `docs/MEDIA_PIPELINE.md`
 - `docs/TECH_ARCHITECTURE.md`
 - `docs/ROADMAP.md`
+- `docs/RESPONSIVE_EXPERIENCE_STANDARD.md`
 - `AGENTS.md`
 
 Legacy prototype code has intentionally not been imported.
@@ -108,12 +109,12 @@ The first major player milestone is P1.3: an authenticated player can create and
 
 ### P1.1 — Account Entry + Player Profile Boundary
 
-Issue #28 is active on branch `agent/ticket-1-1-account-profile`; draft PR #30 is the canonical implementation.
+Issue #28 and PR #30 remain the canonical P1.1 implementation while final owner-reported responsive defects are corrected.
 
 Implementation checkpoint:
 
 - existing Supabase Auth/session/verified-claims architecture reused with no second auth system;
-- authored responsive AUREVANE sign-in/sign-up account-entry experience implemented;
+- authored AUREVANE sign-in/sign-up account-entry experience implemented;
 - exactly one minimal durable player profile is automatically provisioned from authoritative `auth.users` identity;
 - authenticated profile reads are RLS-isolated to the verified account and direct browser mutation is denied;
 - authenticated `/game` entry and stable explicit **No character bound** state implemented without premature character/gameplay schema;
@@ -122,16 +123,20 @@ Implementation checkpoint:
 - existing title-media request/fallback and gesture-gated audio settings preserved;
 - no new runtime dependency or future gameplay system introduced.
 
-**Verification:** the synchronized implementation head passed formatting, lint, typecheck, unit tests, production build, worker boot, local database reconstruction, private-schema regression, player-profile provisioning/privacy and direct-mutation denial, transactional idempotency regression, authenticated authority-route regression, and real desktop/mobile Chromium account creation → refresh → sign-out → sign-in verification. A Vercel Preview also renders the authored account-entry shell successfully.
+**Production gate:** the promoted Production descendant containing the Phase 0 environment hotfix is READY, returns HTTP 200, and has no error/fatal runtime logs in the verification window. The former Phase 0 deployment blocker is therefore cleared.
 
-**Concurrency audit:** no competing P1.1/account/profile implementation existed. Later combat/item/inventory planning changes that landed on `main` during implementation were reviewed and synchronized into this branch unchanged; P1.1 remains zero commits behind that checkpoint and does not pull those future systems forward.
+**Responsive hardening:** phone inputs now render only when authentication is actually configured, active phone inputs are explicitly mobile-friendly/focusable, utility audio is a non-reflowing popover with outside-click/Escape/explicit-close dismissal, Account & Security expansion no longer stretches the hero, the title is bounded for compact phone widths, laptop-height rules are explicit, safe-area insets are respected, and the browser matrix now includes 1366×768 laptop coverage in addition to desktop and phone.
 
-**Hard release gate:** Phase 0 production-verification issue #20 remains open because Vercel is still rejecting current `main` Production builds at the free build-rate limit. P1.1 is implemented and verified but **DO NOT MERGE P1.1 into `main` while #20 is open**.
+**Environment policy:** `SUPABASE_SECRET_KEY` is the only Vercel warning-listed secret explicitly passed to the web build because AUREVANE has a defined server-only use for it. Unused Postgres/service-role/JWT integration secrets remain intentionally unavailable to the web build rather than being whitelisted merely to silence a warning.
+
+## Paused stack
+
+P1.2 issue #31 / branch `agent/ticket-1-2-character-domain` contains the in-progress pure character-domain implementation. It is temporarily paused while P1.1 is hardened and merged. After P1.1 lands, P1.2 must be synchronized onto the resulting `main` before continuing; no parallel second P1.2 implementation is permitted.
 
 ## Next
 
-Hold draft PR #30 at this verified checkpoint. When Vercel permits the corrected Phase 0 Production deployment, verify the actual live shell, close #20, sync P1.1 with the then-current `main`, rerun the exact-head gates, then make PR #30 mergeable. Do not start P1.2 before P1.1 is merged.
+Run exact-head quality/database/browser verification for the P1.1 hardening revision. If green, mark PR #30 ready, merge P1.1, close #28, synchronize the sole P1.2 branch onto the new `main`, then resume P1.2.
 
 ## Rule
 
-Only one implementation ticket is ACTIVE at a time. Future systems may influence interfaces and boundaries, but they are not implemented early.
+Only one implementation ticket is ACTIVE at a time. Every future player-facing ticket must follow `docs/RESPONSIVE_EXPERIENCE_STANDARD.md` and explicitly consider phone width, laptop height, desktop scale, touch, keyboard focus, and transient-overlay behavior during implementation.

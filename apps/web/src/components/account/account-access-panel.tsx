@@ -16,9 +16,7 @@ interface AccountAccessPanelProps {
 export function AccountAccessPanel({ authAvailable }: AccountAccessPanelProps) {
   const [mode, setMode] = useState<AccountMode>('signin')
   const [busy, setBusy] = useState(false)
-  const [message, setMessage] = useState(
-    authAvailable ? '' : 'Account entry is not open in this environment yet.',
-  )
+  const [message, setMessage] = useState('')
   const emailId = useId()
   const passwordId = useId()
 
@@ -93,6 +91,19 @@ export function AccountAccessPanel({ authAvailable }: AccountAccessPanelProps) {
     setMessage('')
   }
 
+  if (!authAvailable) {
+    return (
+      <div className={styles.environmentNotice} role="status" data-testid="account-unavailable">
+        <strong>Account services are not enabled in this environment yet.</strong>
+        <p>
+          The public shell is available for review. Sign-in and account creation appear only where a
+          dedicated AUREVANE Supabase environment is configured, so disabled fields cannot masquerade
+          as a broken mobile form.
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div className={styles.accessPanel}>
       <div className={styles.modeSwitch} aria-label="Account access mode">
@@ -122,9 +133,13 @@ export function AccountAccessPanel({ authAvailable }: AccountAccessPanelProps) {
             name="email"
             type="email"
             autoComplete="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
             inputMode="email"
+            enterKeyHint="next"
             required
-            disabled={!authAvailable || busy}
+            disabled={busy}
           />
         </label>
 
@@ -136,17 +151,13 @@ export function AccountAccessPanel({ authAvailable }: AccountAccessPanelProps) {
             type="password"
             minLength={8}
             autoComplete={mode === 'signin' ? 'current-password' : 'new-password'}
+            enterKeyHint="go"
             required
-            disabled={!authAvailable || busy}
+            disabled={busy}
           />
         </label>
 
-        <GameButton
-          className={styles.submit}
-          type="submit"
-          disabled={!authAvailable || busy}
-          aria-busy={busy}
-        >
+        <GameButton className={styles.submit} type="submit" disabled={busy} aria-busy={busy}>
           {busy ? 'Please wait…' : mode === 'signin' ? 'Enter AUREVANE' : 'Create account'}
         </GameButton>
       </form>

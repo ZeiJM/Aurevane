@@ -1,11 +1,12 @@
 import { AUDIO_SETTINGS_STORAGE_KEY } from '@aurevane/audio'
 import { expect, test } from '@playwright/test'
 
-test('account entry is responsive, keyboard reachable, and media-safe', async ({ page }) => {
+test('account entry is responsive, focusable, stable, and media-safe', async ({ page }) => {
   await page.goto('/')
 
   await expect(page.getByTestId('account-shell')).toBeVisible()
-  await expect(page.getByRole('heading', { level: 1, name: 'AUREVANE' })).toBeVisible()
+  const title = page.getByRole('heading', { level: 1, name: 'AUREVANE' })
+  await expect(title).toBeVisible()
   await expect(
     page.locator('[data-media-status="requested"][data-media-request="ART-UI-001"]'),
   ).toBeVisible()
@@ -15,8 +16,36 @@ test('account entry is responsive, keyboard reachable, and media-safe', async ({
   )
   expect(hasHorizontalOverflow).toBe(false)
 
+  const viewport = page.viewportSize()
+  const titleBox = await title.boundingBox()
+  expect(viewport).not.toBeNull()
+  expect(titleBox).not.toBeNull()
+  if (viewport && titleBox) {
+    expect(titleBox.x).toBeGreaterThanOrEqual(-1)
+    expect(titleBox.x + titleBox.width).toBeLessThanOrEqual(viewport.width + 1)
+  }
+
   await page.keyboard.press('Tab')
   await expect(page.locator('.skip-link')).toBeFocused()
+
+  const email = page.getByLabel('Email')
+  await expect(email).toBeEnabled()
+  await email.click()
+  await expect(email).toBeFocused()
+
+  const titleBeforeHelp = await title.boundingBox()
+  await page.getByText('Account & Security', { exact: true }).click()
+  const titleAfterHelp = await title.boundingBox()
+  if (titleBeforeHelp && titleAfterHelp) {
+    expect(Math.abs(titleAfterHelp.y - titleBeforeHelp.y)).toBeLessThanOrEqual(1)
+  }
+
+  const audioTrigger = page.getByRole('button', { name: 'Sound settings' })
+  await audioTrigger.click()
+  await expect(page.getByRole('dialog', { name: 'Audio settings' })).toBeVisible()
+  await title.click()
+  await expect(page.getByRole('dialog', { name: 'Audio settings' })).toBeHidden()
+  await expect(audioTrigger).toHaveAttribute('aria-expanded', 'false')
 })
 
 test('a new account persists its private profile across refresh, sign-out, and sign-in', async ({
@@ -62,10 +91,9 @@ test('audio stays gesture-gated and persists mute plus channel levels', async ({
 
   await page.goto('/')
 
-  const settings = page.getByTestId('audio-settings')
-  const summary = settings.locator('summary')
-  await summary.focus()
-  await summary.press('Enter')
+  const trigger = page.getByRole('button', { name: 'Sound settings' })
+  await trigger.focus()
+  await trigger.press('Enter')
 
   await expect(page.getByTestId('audio-state')).toContainText(
     'locked until you choose to enable it',
@@ -93,11 +121,15 @@ test('audio stays gesture-gated and persists mute plus channel levels', async ({
     .toContain('"music":0.37')
 
   await page.reload()
-  await page.getByTestId('audio-settings').locator('summary').click()
+  await page.getByRole('button', { name: 'Sound settings' }).click()
 
   await expect(page.getByTestId('audio-volume-music')).toHaveValue('37')
   await expect(page.getByTestId('audio-mute')).toHaveText('Unmute all')
 
   await page.getByTestId('audio-mute').click()
   await expect(page.getByTestId('audio-volume-music')).toHaveValue('37')
+
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('dialog', { name: 'Audio settings' })).toBeHidden()
+  await expect(page.getByRole('button', { name: 'Sound settings' })).toBeFocused()
 })
