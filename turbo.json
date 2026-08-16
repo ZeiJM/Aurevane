@@ -16,7 +16,9 @@
         "AUREVANE_ACCOUNT_SERVICES_READY",
         "SUPABASE_URL",
         "SUPABASE_PUBLISHABLE_KEY",
-        "SUPABASE_SECRET_KEY"
+        "SUPABASE_SECRET_KEY",
+        "SUPABASE_ANON_KEY",
+        "SUPABASE_SERVICE_ROLE_KEY"
       ]
     },
     "dev": {
