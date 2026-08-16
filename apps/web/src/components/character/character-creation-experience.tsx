@@ -167,7 +167,7 @@ export function CharacterCreationExperience() {
               Who steps onto the road?
             </h1>
             <p className={styles.intro}>
-              Your account stays private. This name and presentation become your adventurer's public
+              Your account stays private. This name and presentation become your adventurer’s public
               identity.
             </p>
 
