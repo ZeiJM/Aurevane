@@ -118,6 +118,10 @@ export function createBattleRngState(seed: number): BattleRngState {
 export function advanceBattleRng(rng: BattleRngState): BattleRngDraw {
   assertValidBattleRngState(rng)
 
+  if (rng.draws >= Number.MAX_SAFE_INTEGER) {
+    throw new RangeError('RNG draw count has reached the safe integer limit.')
+  }
+
   let next = rng.state >>> 0
   next ^= (next << 13) >>> 0
   next ^= next >>> 17
@@ -257,10 +261,7 @@ export function spendAction(state: BattleState): BattleTransition {
   }
 }
 
-export function selectFinalFacing(
-  state: BattleState,
-  facing: BattleFacing,
-): BattleTransition {
+export function selectFinalFacing(state: BattleState, facing: BattleFacing): BattleTransition {
   const turn = requireActiveTurn(state)
   assertFacing(facing)
 
@@ -510,8 +511,20 @@ function collectCombatantIssues(
     combatant.baseMovementBudget,
     `${prefix}.baseMovementBudget`,
   )
-  collectBoundedResourceIssues(issues, combatant.hp, combatant.maxHp, `${prefix}.hp`, `${prefix}.maxHp`)
-  collectBoundedResourceIssues(issues, combatant.mp, combatant.maxMp, `${prefix}.mp`, `${prefix}.maxMp`)
+  collectBoundedResourceIssues(
+    issues,
+    combatant.hp,
+    combatant.maxHp,
+    `${prefix}.hp`,
+    `${prefix}.maxHp`,
+  )
+  collectBoundedResourceIssues(
+    issues,
+    combatant.mp,
+    combatant.maxMp,
+    `${prefix}.mp`,
+    `${prefix}.maxMp`,
+  )
 
   const resourceKeys = new Set<string>()
   for (const [resourceIndex, resource] of combatant.temporaryResources.entries()) {
@@ -536,7 +549,12 @@ function collectCombatantIssues(
   const expectedResourceKeys = [...combatant.temporaryResources]
     .map((resource) => resource.key)
     .sort(compareStableString)
-  if (!arraysEqual(combatant.temporaryResources.map((resource) => resource.key), expectedResourceKeys)) {
+  if (
+    !arraysEqual(
+      combatant.temporaryResources.map((resource) => resource.key),
+      expectedResourceKeys,
+    )
+  ) {
     issues.push({
       field: `${prefix}.temporaryResources`,
       message: 'Temporary resources must use deterministic key ordering.',
@@ -641,11 +659,7 @@ function collectBoundedResourceIssues(
   }
 }
 
-function collectIdentityIssue(
-  issues: BattleInvariantIssue[],
-  value: string,
-  field: string,
-): void {
+function collectIdentityIssue(issues: BattleInvariantIssue[], value: string, field: string): void {
   if (typeof value !== 'string' || value.length === 0 || value.trim() !== value) {
     issues.push({ field, message: 'Identity must be a non-empty trimmed string.' })
   }
