@@ -93,11 +93,12 @@ test('a new account persists its private profile across refresh, sign-out, and s
 
   await expect(page).toHaveURL(/\/game$/)
   await expect(page.getByTestId('authenticated-shell')).toBeVisible()
-  await expect(page.getByTestId('character-state')).toContainText('No character bound')
+  await expect(page.getByTestId('character-creation')).toBeVisible()
 
   await page.reload()
   await expect(page.getByTestId('authenticated-shell')).toBeVisible()
   await expect(page.getByText('Private profile').first()).toBeVisible()
+  await expect(page.getByTestId('character-creation')).toBeVisible()
 
   await page.getByRole('button', { name: 'Sign out' }).click()
   await expect(page).toHaveURL(/\/$/)
@@ -108,7 +109,7 @@ test('a new account persists its private profile across refresh, sign-out, and s
   await page.getByRole('button', { name: 'Enter AUREVANE' }).click()
 
   await expect(page).toHaveURL(/\/game$/)
-  await expect(page.getByTestId('character-state')).toContainText('No character bound')
+  await expect(page.getByTestId('character-creation')).toBeVisible()
 })
 
 test('audio stays gesture-gated and persists mute plus channel levels', async ({
