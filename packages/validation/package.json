@@ -7,6 +7,7 @@
     "./env/public": "./src/env/public.ts",
     "./env/server": "./src/env/server.ts",
     "./foundation/authority-probe": "./src/foundation/authority-probe.ts",
+    "./player/character": "./src/player/character.ts",
     "./player/character-creation": "./src/player/character-creation.ts",
     "./player/profile": "./src/player/profile.ts"
   },

@@ -6,6 +6,8 @@
   "exports": {
     "./character/creation": "./src/character/creation.ts",
     "./character/foundation-disciplines": "./src/character/foundation-disciplines.ts",
+    "./character/persistence": "./src/character/persistence.ts",
+    "./character/starter-options": "./src/character/starter-options.ts",
     "./command": "./src/command.ts",
     "./errors": "./src/errors.ts",
     "./player-profile": "./src/player-profile.ts"

@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./character": "./src/character.ts",
     "./migration-policy": "./src/migration-policy.ts",
     "./player-profile": "./src/player-profile.ts",
     "./transactional-command": "./src/transactional-command.ts"
