@@ -193,5 +193,8 @@ function isNonNegativeSafeInteger(value: number): boolean {
 }
 
 function persistenceUnavailable(): AurevaneError {
-  return new AurevaneError('PERSISTENCE_UNAVAILABLE', "Wayfarer's Practice is unavailable right now.")
+  return new AurevaneError(
+    'PERSISTENCE_UNAVAILABLE',
+    "Wayfarer's Practice is unavailable right now.",
+  )
 }
