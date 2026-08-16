@@ -124,9 +124,7 @@ describe('Level and XP progression', () => {
       ]),
     )
     expect(validateLevelProgressionCurve(wrongLength)).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ field: 'cumulativeXpByLevel' }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ field: 'cumulativeXpByLevel' })]),
     )
     expect(() => resolveLevelProgress(-1, testCurve())).toThrow(RangeError)
     expect(() => resolveXpGrant(0, 0, testCurve())).toThrow(RangeError)
