@@ -1,0 +1,63 @@
+name: Wayfarer's Practice DB
+
+on:
+  pull_request:
+    paths:
+      - "supabase/migrations/**"
+      - ".github/scripts/verify-wayfarers-practice.sh"
+      - ".github/workflows/wayfarers-practice-db.yml"
+      - "packages/game-core/src/character/wayfarers-practice.ts"
+      - "packages/db/src/wayfarers-practice.ts"
+      - "packages/validation/src/player/wayfarers-practice.ts"
+      - "apps/web/src/server/wayfarers-practice/**"
+  push:
+    branches:
+      - main
+      - "agent/**"
+    paths:
+      - "supabase/migrations/**"
+      - ".github/scripts/verify-wayfarers-practice.sh"
+      - ".github/workflows/wayfarers-practice-db.yml"
+      - "packages/game-core/src/character/wayfarers-practice.ts"
+      - "packages/db/src/wayfarers-practice.ts"
+      - "packages/validation/src/player/wayfarers-practice.ts"
+      - "apps/web/src/server/wayfarers-practice/**"
+
+permissions:
+  contents: read
+
+jobs:
+  database:
+    name: Wayfarer authority
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Start local Supabase stack
+        run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+
+      - name: Rebuild database from migrations
+        run: pnpm exec supabase db reset --local
+
+      - name: Verify Wayfarer's Practice authority
+        run: bash .github/scripts/verify-wayfarers-practice.sh
+
+      - name: Stop local Supabase services
+        if: always()
+        run: pnpm exec supabase stop --no-backup
