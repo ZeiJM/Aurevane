@@ -8,9 +8,9 @@ import { getPublicSupabaseConfig } from './config'
 export function createSupabaseAdminClient() {
   const publicConfig = getPublicSupabaseConfig()
   const serverEnvironment = parseServerEnvironment({
-    AUREVANE_ENV: process.env.AUREVANE_ENV,
-    NEXT_PUBLIC_AUREVANE_ENV: process.env.NEXT_PUBLIC_AUREVANE_ENV,
-    SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY,
+    AUREVANE_ENV: process.env.AUREVANE_ENV ?? publicConfig.environment,
+    NEXT_PUBLIC_AUREVANE_ENV: publicConfig.environment,
+    SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY,
   })
   const secretKey = requireSupabaseSecretKey(serverEnvironment)
 
