@@ -4218,3 +4218,770 @@ Not collecting fifteen currencies.
 And not copying TheNinjaRPG or Final Fantasy Tactics Advance.
 
 Aurevane should eventually feel like its own game—one where the Current + Legacy + Confluence system becomes the mechanic players associate specifically with it.
+
+155. DETAILED COMBAT AND ITEM SYSTEM EXPANSIONS ARE NOW PART OF THE MASTER PLAN
+
+The Master Plan is expanded by the authoritative detailed specifications in:
+
+docs/COMBAT.md
+
+docs/ITEMS_INVENTORY_LOADOUTS.md
+
+docs/COMBAT_AI_TRAINING.md
+
+docs/PRODUCT_EXPERIENCE_CONTENT_SYSTEM.md
+
+These documents do not replace the Master Plan. They define how its approved combat, equipment, item, inventory, AI, presentation, content-authoring and balance principles are implemented in enough detail to keep later AI-assisted development coherent.
+
+Where a reference game demonstrates an interesting abstract idea such as configurable targeting, action costs, item effects, content editors, AI catalogs, inventories or maps, Aurevane may learn from the concept but must not copy the implementation, terminology, assets, exact economy, UI layout or proprietary design.
+
+156. COMBAT MUST BE DEEP WITHOUT BECOMING ACCOUNTING
+
+The default Aurevane turn is:
+
+MOVEMENT BUDGET
++
+ONE NORMAL ACTION
++
+EQUIPPED REACTION / BOUNDED EXCEPTIONS
+
+Movement and the Action can normally occur in either order, and remaining legal movement can be used after the Action unless the chosen action or current state prevents it.
+
+The design deliberately does not use a universal percentage Action Point bar or universal Stamina bar by default.
+
+Depth instead comes from interaction between:
+
+movement budget;
+terrain movement costs;
+facing;
+range;
+line of sight;
+height;
+cover;
+target shape;
+HP/MP;
+Discipline resources;
+status setup/payoff;
+Reactions;
+cooldowns/charges;
+initiative;
+Current + Legacy Arts;
+Soulmarks;
+Confluences;
+equipment;
+combat items;
+objectives;
+battle objects;
+summons;
+AI behavior;
+map geometry.
+
+157. THE TURN ECONOMY MUST BE VISIBLE
+
+The battle UI includes a compact Turn Economy Tracker.
+
+It should make the player's remaining economy obvious at a glance:
+
+Movement remaining;
+Action READY/SPENT;
+Reaction READY/COOLDOWN/USED;
+MP;
+relevant temporary Discipline resource;
+cooldowns/charges;
+combat item quantity where relevant;
+selected action cost and projected post-action state.
+
+Example:
+
+Movement 3/6
+Action READY
+Reaction READY
+MP 52/80
+
+Previewing an action may show:
+
+Movement 3 → 1
+Action READY → SPENT
+MP 52 → 24
+Smoke Capsule 2 → 1
+
+The player should never need to guess what an action costs or what remains after using it.
+
+158. COMBAT TARGETING IS CONTENT DATA
+
+Every Art, weapon attack, active item, boss action, scenario action and similar combat capability should use the same typed targeting grammar where practical.
+
+Targeting can define:
+
+target kind;
+shape;
+origin;
+minimum range;
+maximum range;
+line of sight;
+projectile/path rules;
+height limits;
+target filters;
+friendly fire;
+multistage selection;
+automatic secondary-target behavior;
+terrain/object interaction.
+
+Reusable shapes may include:
+
+SINGLE
+CIRCLE
+DIAMOND
+LINE
+CONE
+ARC
+CROSS
+RING
+RECTANGLE
+WALL
+CHAIN
+PATH
+SELF_AURA
+DIRECTIONAL_SWEEP
+
+The player sees valid targets and affected areas before commitment.
+
+Do not create a different hard-coded targeting system for every skill.
+
+159. USE REQUIREMENTS, COSTS AND EFFECTS ARE SEPARATE
+
+An action can be constrained by typed use requirements such as:
+
+MP;
+weapon category;
+status;
+HP threshold;
+terrain;
+facing;
+range;
+remaining movement;
+current/legacy Discipline;
+Soulmark;
+cooldown;
+charge;
+once-per-round/battle rules;
+objective state.
+
+Costs can include:
+
+normal Action;
+MP;
+HP sacrifice;
+Discipline resource;
+remaining Movement Budget;
+charge/item quantity;
+once-per-battle use.
+
+Effects resolve through ordered reusable primitives rather than one bespoke function per ability.
+
+AUREVANE should explain failed requirements clearly:
+
+Requires a Bleeding target.
+
+Need 2 more MP.
+
+No legal landing tile.
+
+Path blocked.
+
+160. DISCIPLINE ARTS ARE EARNED THROUGH MASTERY AND PLAY
+
+Aurevane does not reintroduce Job Points under another name.
+
+Each Discipline has an authored Art Curriculum.
+
+Possible categories:
+
+Core Arts — early identity-defining abilities learned through ordinary Mastery.
+
+Mastery Arts — unlock at meaningful Mastery stages.
+
+Trial Arts — require a Discipline quest, mentor challenge or combat proof in addition to Mastery.
+
+Discovery Arts — optional specialist techniques learned through the world, Archive, mentors, Expeditions, monster study or other authored discovery.
+
+Apex / Ultimate — high-Mastery signature ability earned through a major proof rather than appearing as a random shop purchase.
+
+Important competitive build power must not become permanently missable because a player was absent for one old event.
+
+161. ACTIVE BUILD AND SAVED LOADOUTS
+
+The existing combat build remains:
+
+4 Current Arts;
+2 Legacy Arts;
+2 Traits;
+1 Reaction;
+1 Movement Art;
+1 Soulmark;
+resolved Confluence.
+
+When unlocked/available, Current Ultimate, Soulmark Signature and an iconic Confluence Art use dedicated presentation slots rather than forcing the combat bar to become a wall of buttons.
+
+Every normal character eventually supports three saved combat loadouts as a baseline feature.
+
+A saved loadout can include:
+
+Current Discipline;
+Legacy Discipline;
+4 Current Arts;
+2 Legacy Arts;
+2 Traits;
+Reaction;
+Movement Art;
+Soulmark;
+resolved Confluence;
+Main Hand;
+Off Hand;
+Armor;
+Accessory I;
+Accessory II;
+combat consumable kit;
+approved cosmetic battle-presentation choices.
+
+The server validates and atomically activates a preset.
+
+Saved presets remain visible if an item becomes missing/invalid and explain what must be repaired.
+
+162. INVENTORY IS ORGANIZED BY PURPOSE
+
+Player-facing inventory is separated into clear views:
+
+EQUIPMENT
+CONSUMABLES
+MATERIALS
+QUEST & KEY ITEMS
+COLLECTION / RELICS where later justified
+
+Crowns and similar currencies remain authoritative ledgers, not physical bag stacks.
+
+Quest/key items are protected by default:
+
+non-tradable unless specifically designed otherwise;
+non-sellable;
+non-salvageable;
+non-discardable unless the quest explicitly allows it;
+excluded from ordinary capacity pressure;
+safe from bulk destructive actions.
+
+The game should never allow a player to accidentally destroy the object required to finish a major quest.
+
+163. ITEM DEFINITIONS AND OWNED INSTANCES ARE DIFFERENT
+
+An Item Definition contains shared design:
+
+stable ID;
+name;
+class/type;
+rarity;
+requirements;
+slot/weapon category;
+stats;
+effects;
+tags;
+target/use rules;
+acquisition;
+trade/binding policy;
+art/audio;
+Codex/manual metadata;
+version.
+
+An owned Item Instance/stack contains player-specific state:
+
+owner;
+definition reference;
+quantity;
+binding;
+provenance;
+charges/durability only when the item actually uses them;
+rolled affixes only if later approved;
+lock/favorite state;
+unique instance identity where needed.
+
+Static item definition data should not be needlessly copied into every owned inventory row.
+
+164. THE EFFECT CATALOG IS A SHARED GAME LANGUAGE
+
+Aurevane maintains a controlled reusable Effect Catalog used across:
+
+Arts;
+Traits;
+Reactions;
+Soulmarks;
+Confluences;
+weapons;
+equipment;
+consumables;
+terrain;
+encounter modifiers;
+objectives;
+boss mechanics.
+
+Representative primitives include:
+
+DAMAGE
+HEAL
+SHIELD
+PUSH
+PULL
+MOVE
+TELEPORT
+SWAP
+APPLY_STATUS
+REMOVE_STATUS
+SPAWN_SUMMON
+REMOVE_SUMMON
+CREATE_TERRAIN
+DESTROY_TERRAIN
+TRANSFORM_TERRAIN
+CREATE_ZONE
+MODIFY_STAT
+MODIFY_MOVEMENT_BUDGET
+MODIFY_INITIATIVE
+RESTORE_RESOURCE
+DRAIN_RESOURCE
+GAIN_DISCIPLINE_RESOURCE
+SPEND_DISCIPLINE_RESOURCE
+CHANGE_COOLDOWN
+TAUNT
+STEALTH
+REVEAL
+COPY_EFFECT
+DISPEL
+DELAY_TURN
+ACCELERATE_TURN
+SPAWN_BATTLE_OBJECT
+REMOVE_BATTLE_OBJECT
+SET_FACING
+INTERRUPT
+SCHEDULE_EFFECT
+GRANT_CONSTRAINED_ACTION
+
+New primitives are added only when real mechanics need them.
+
+Content staff configure approved effects. They do not write arbitrary production JavaScript or SQL inside the Master Panel.
+
+165. DAMAGE IS OPTIONAL
+
+Damage is one typed effect, not an assumption every combat item or ability must contain.
+
+Examples of valuable non-damage tools:
+
+Smoke Capsule — creates concealment.
+
+Anchor Charm — prevents one forced displacement.
+
+Wardstone — creates temporary protection/cover.
+
+Reveal Lens — helps counter stealth/illusion.
+
+Frost Capsule — transforms terrain.
+
+Grappling Device — changes position.
+
+Cleansing Phial — removes statuses.
+
+Objective Tool — interacts with a battle mechanism.
+
+This is important because item and skill design should create strategy rather than only compete on damage-per-turn.
+
+166. EQUIPMENT SHOULD CHANGE DECISIONS
+
+Equipment can provide:
+
+base stats;
+passive effects;
+triggered effects;
+modifiers to existing actions;
+granted active actions;
+terrain relationships;
+status/setup interactions;
+movement changes;
+resource/cooldown relationships;
+objective utility.
+
+Examples:
+
+After moving four points, the next ranged Art gains +1 range.
+
+The first teleport each round leaves a decoy/zone.
+
+Basic Attack gains spear reach.
+
+Guard prevents one push.
+
+Rubble costs one less Movement Budget once per turn.
+
+Equipment must not become endless “same sword, +8% more damage” filler.
+
+A niche Rare item may legitimately be better for one strategy than a Legendary.
+
+167. COMBAT CONSUMABLES REQUIRE PREPARATION
+
+Players do not browse their entire backpack during battle.
+
+A small pre-battle combat-consumable kit determines which approved items can be used.
+
+Exact slot count is tuned through testing.
+
+Normal combat consumables generally consume the one normal Action unless a specific bounded Action Cost Class says otherwise.
+
+PvP may have stricter consumable allowlists/charges/normalization.
+
+The premium shop must never sell stronger consumables or extra combat-item slots.
+
+168. INVENTORY MANAGEMENT MUST BE SAFE AND LOW-FRICTION
+
+Inventory capacity, if used, should be generous and not designed to sell relief.
+
+Key items do not consume normal capacity.
+
+Materials and consumables stack cleanly.
+
+Important rewards use a bounded overflow/recovery system rather than being silently destroyed when inventory is full.
+
+Players can Favorite and Lock items.
+
+Locked, favorite, key and saved-loadout-referenced items receive strong protection from bulk sell/salvage/discard actions.
+
+Universal durability/repair chores are not required.
+
+Durability remains optional only where a specific system genuinely benefits.
+
+169. ONE CENTRAL BUILD / ARMORY EXPERIENCE
+
+Aurevane should provide one polished central Build / Armory destination rather than forcing the player across disconnected database-like screens.
+
+It can organize:
+
+Overview;
+Equipment;
+Arts;
+Traits & Reaction;
+Movement Art;
+Soulmark & Confluence;
+Combat Items;
+Stats / Interaction Preview;
+Saved Loadouts.
+
+The player should be able to compare a candidate item/loadout and see meaningful deltas such as:
+
++12 Armor
+-4 Initiative
+Basic Attack range 1 → 2
+Rubble movement cost 2 → 1
+First teleport each round creates a Mirror Decoy
+
+Do not hide tactical tradeoffs behind one fake Power Score.
+
+170. ITEM ACQUISITION IS FIRST-CLASS CONTENT
+
+An item can have one or more authoritative acquisition paths:
+
+enemy/boss/Expedition loot;
+quest reward;
+world event;
+vendor;
+crafting;
+reputation;
+PvP seasonal reward where competitive power remains recurring/alternatively obtainable;
+nation content later;
+starter/tutorial;
+Owner/support grant;
+internal test;
+premium commerce only for commerce-safe non-power goods.
+
+Important equipment should have known source families so players can intentionally pursue a build.
+
+Personal loot remains authoritative and idempotent.
+
+Bad-luck protection can protect very rare chase items from unhealthy extreme variance.
+
+171. QUEST ITEMS AND ARCHIVE KNOWLEDGE ARE CONNECTED BUT DIFFERENT
+
+A physical quest item can unlock persistent Archive knowledge.
+
+Example:
+
+Acquire Ash-Sealed Letter as a quest item.
+
+Reading it unlocks an Archive source.
+
+Later the quest consumes/transfers the physical letter.
+
+The Archive knowledge remains.
+
+This prevents learned lore from disappearing because a quest item left inventory.
+
+172. THE MASTER PANEL MUST AUTHOR THESE SYSTEMS SAFELY
+
+The complete Master Panel gains a Combat Content Studio and Item Studio / Effect Catalog.
+
+Authorized staff can eventually configure:
+
+Arts;
+Traits;
+Reactions;
+Movement Arts;
+Ultimates;
+Confluence combat effects;
+Soulmark combat effects;
+weapon attack profiles;
+statuses;
+terrain;
+battle objects;
+summons;
+objectives/scenarios;
+battle maps/scenes;
+items;
+equipment;
+consumables;
+materials;
+quest/key items;
+sets;
+item triggers/effects;
+action costs;
+targeting;
+requirements;
+loot/acquisition;
+PvP overrides;
+retirement/migration.
+
+The editors should be structured into understandable sections rather than one giant flat form.
+
+173. MASTER PANEL TARGET / EFFECT PREVIEW
+
+For an Art or active item, authorized staff should be able to preview on a test board:
+
+range;
+minimum range;
+shape;
+radius/length/width;
+line of sight;
+height;
+valid targets;
+friendly fire;
+terrain/object targeting;
+multistage selection;
+displacement;
+zone/terrain creation;
+effect sequence.
+
+The preview uses the real combat rules, not a separate approximate calculator.
+
+174. MASTER PANEL IMPACT PREVIEW
+
+Before changing or retiring combat/item content, the Master Panel should eventually show dependencies.
+
+Examples for an item:
+
+player ownership/equip count;
+saved loadouts;
+marketplace listings;
+quests;
+loot tables;
+vendors;
+crafting recipes;
+sets;
+AI loadouts;
+Tactical Hall scenarios;
+Codex/manual pages;
+active battles pinned to an older version.
+
+Examples for an Art/status:
+
+Disciplines using it;
+AI profiles;
+Confluences;
+equipment/tag interactions;
+benchmark tests;
+manual/Codex impact;
+active battles.
+
+This makes the content system circular and safe to operate.
+
+175. BALANCE LAB MUST GO BEYOND WIN RATE
+
+Combat and item analytics can include:
+
+Art equip/cast rate;
+damage/healing/control contribution;
+resource efficiency;
+item ownership/equip rate;
+effect trigger frequency;
+consumable carry/use rate;
+Current/Legacy/Soulmark/item pairings;
+matchup win rates;
+map movement heatmaps;
+objective performance;
+spawn-side bias;
+battle length;
+PvP timeout/surrender;
+marketplace price/volume;
+item replacement behavior;
+acquisition-source distribution.
+
+Analytics inform humans.
+
+AI and analytics do not automatically rebalance live content.
+
+Owner/staff review, test, publish and can roll back.
+
+176. EFFECT AND ACTION-ECONOMY SAFETY
+
+High-risk interactions include:
+
+extra Actions;
+extra turns;
+movement refunds;
+resource refunds;
+cooldown resets;
+reflect loops;
+reaction chains;
+heal-damage trigger loops;
+zero-cost item loops.
+
+The combat engine must use deterministic trigger ordering, once-per-X consumption, bounded refunds and recursion/loop guards where appropriate.
+
+These mechanics require regression tests and telemetry.
+
+177. BATTLE SCENES MUST FEEL CONNECTED TO THE WORLD
+
+A battle scene is more than a grid over a generic background.
+
+It can combine:
+
+board geometry;
+terrain/elevation;
+material kit;
+environment background;
+landmarks;
+parallax/foreground layers;
+weather;
+lighting;
+ambient animation;
+music;
+ambience;
+environmental VFX;
+story/event variants.
+
+The battle scene should normally derive from the actual world location or encounter context.
+
+Reuse rendering systems and environment kits, but do not carbon-copy meaningful tactical layouts or major arena identities.
+
+178. COMBAT SHOULD FEEL BADASS AND READABLE
+
+The emotional action loop should be:
+
+READ
+↓
+AIM / PREVIEW
+↓
+COMMIT
+↓
+ANTICIPATION
+↓
+IMPACT
+↓
+CLEAR CONSEQUENCE
+↓
+BOARD READABILITY RESTORED
+↓
+NEXT DECISION
+
+Use animation, impact, hit stop, particles, camera, terrain response and strong audio deliberately.
+
+Long cinematic treatment is reserved for moments that earn it such as Ultimates, boss phase changes, major Confluence Arts and exceptional Soulmark moments.
+
+Do not make every normal attack take eight seconds.
+
+Do not let VFX make the board unreadable.
+
+179. AI MUST UNDERSTAND THE SAME ITEM AND EFFECT SYSTEM
+
+NPC combat AI uses the same legal movement, targeting, costs, requirements, effects, statuses, terrain, item-granted actions and objective rules as players.
+
+AI does not get a simplified secret item rulebook.
+
+AI difficulty still comes from better evaluation, candidate generation, lookahead and coordination rather than hidden stat cheating.
+
+AI must understand strategic non-damage effects, terrain tools, consumables and equipment where the encounter/loadout legitimately provides them.
+
+180. PVP USES THE SAME CORE CONTENT
+
+PvE and PvP should share the same Art/item definitions.
+
+PvP may use explicit versioned overrides such as:
+
+Arena Tempering stat compression;
+control duration;
+healing coefficient;
+item/consumable allowlist;
+summon cap;
+PvP coefficient;
+cooldown;
+charge normalization.
+
+Do not maintain duplicate hidden PvP copies of every Art/item.
+
+Players should be able to understand material PvP-specific rules.
+
+181. ITEMS AND LOADOUTS MUST REMAIN NON-P2W
+
+The premium shop must not sell:
+
+superior combat equipment;
+stronger combat consumables;
+more equipped combat-item slots;
+more equipped Arts;
+stronger action economy;
+exclusive meta-defining item effects;
+paid access to core combat power;
+paid bypasses around the natural six-month progression path.
+
+Three saved loadouts are part of the base game.
+
+If extra convenience preset slots are ever monetized, they cannot increase in-battle power or bypass restrictions.
+
+182. DETAILED IMPLEMENTATION TIMING
+
+The implementation schedule in this Master Plan remains authoritative at the phase level.
+
+Detailed sequencing for these expanded systems is defined in:
+
+docs/COMBAT.md
+
+docs/ITEMS_INVENTORY_LOADOUTS.md
+
+docs/ROADMAP.md
+
+Broadly:
+
+Phase 1 establishes item ownership/equipment foundations.
+
+Phase 2 proves the combat grammar, Effect Catalog foundation and Turn Economy Tracker.
+
+Phase 3 makes complete builds/loadouts, Reactions, Movement Arts, Soulmarks and Confluences work together.
+
+Phase 4 proves the systems with genuinely distinct Disciplines, strategic equipment and non-damage items.
+
+Phase 5 activates quest/key items and world-linked acquisition.
+
+Phase 7 deepens targeted personal loot and Expedition item loops.
+
+Phase 8 hardens item/loadout rules for PvP.
+
+Phase 11 completes the normal item economy, stores, crafting and marketplace.
+
+Phase 13 completes Combat Content Studio, Item Studio, Effect Catalog, Balance Lab and operational tooling.
+
+Phase 14 performs dedicated audiovisual and interface polish.
+
+Phase 15 performs exploit, authority, concurrency, loop, migration, balance and performance hardening.
+
+Future implementation agents must still obey the ticket rule: knowing the final combat/item design does not authorize building it all early.
