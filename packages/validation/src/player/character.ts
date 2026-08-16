@@ -42,9 +42,7 @@ const characterCreationPersistenceRowSchema = characterPersistenceRowSchema.exte
 
 export type CharacterCreationRequest = z.infer<typeof characterCreationRequestSchema>
 export type CharacterPersistenceRow = z.infer<typeof characterPersistenceRowSchema>
-export type CharacterCreationPersistenceRow = z.infer<
-  typeof characterCreationPersistenceRowSchema
->
+export type CharacterCreationPersistenceRow = z.infer<typeof characterCreationPersistenceRowSchema>
 
 export function parseCharacterCreationRequest(input: unknown): CharacterCreationRequest | null {
   const parsed = characterCreationRequestSchema.safeParse(input)

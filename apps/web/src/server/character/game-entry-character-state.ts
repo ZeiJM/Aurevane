@@ -7,8 +7,7 @@ import { serverLogger, type ServerLogger } from '../logging'
 import { loadBaseCharacter } from './character-service'
 
 export type GameEntryCharacterState =
-  | { kind: 'ready'; character: PersistedCharacter | null }
-  | { kind: 'persistence-unavailable' }
+  { kind: 'ready'; character: PersistedCharacter | null } | { kind: 'persistence-unavailable' }
 
 export async function loadGameEntryCharacterState(
   actor: AuthenticatedActor,

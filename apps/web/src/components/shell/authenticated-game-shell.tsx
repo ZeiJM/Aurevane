@@ -51,10 +51,22 @@ export function AuthenticatedGameShell({ profile, character }: AuthenticatedGame
                 profile depth, derived stats, and progression arrive in the next Phase 1 tickets.
               </p>
               <dl className={styles.attributeSummary}>
-                <div><dt>Might</dt><dd>{character.attributes.might}</dd></div>
-                <div><dt>Finesse</dt><dd>{character.attributes.finesse}</dd></div>
-                <div><dt>Intellect</dt><dd>{character.attributes.intellect}</dd></div>
-                <div><dt>Resolve</dt><dd>{character.attributes.resolve}</dd></div>
+                <div>
+                  <dt>Might</dt>
+                  <dd>{character.attributes.might}</dd>
+                </div>
+                <div>
+                  <dt>Finesse</dt>
+                  <dd>{character.attributes.finesse}</dd>
+                </div>
+                <div>
+                  <dt>Intellect</dt>
+                  <dd>{character.attributes.intellect}</dd>
+                </div>
+                <div>
+                  <dt>Resolve</dt>
+                  <dd>{character.attributes.resolve}</dd>
+                </div>
               </dl>
             </div>
           </div>

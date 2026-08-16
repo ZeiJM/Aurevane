@@ -82,6 +82,9 @@ jobs:
       - name: Verify player profile provisioning and privacy
         run: bash .github/scripts/verify-player-profile.sh
 
+      - name: Verify character persistence and privacy
+        run: bash .github/scripts/verify-character-persistence.sh
+
       - name: Verify transactional idempotency boundary
         shell: bash
         run: |

@@ -163,10 +163,12 @@ export function CharacterCreationExperience() {
 
         {step === 'identity' ? (
           <div className={styles.step}>
-            <h1 ref={stepHeading} tabIndex={-1}>Who steps onto the road?</h1>
+            <h1 ref={stepHeading} tabIndex={-1}>
+              Who steps onto the road?
+            </h1>
             <p className={styles.intro}>
-              Your account stays private. This name and presentation become your adventurer's
-              public identity.
+              Your account stays private. This name and presentation become your adventurer's public
+              identity.
             </p>
 
             <label className={styles.field}>
@@ -232,7 +234,11 @@ export function CharacterCreationExperience() {
               <legend>Portrait</legend>
               <div className={styles.portraitGrid}>
                 {STARTER_CHARACTER_PORTRAITS.map((option, index) => (
-                  <label key={option.ref} className={styles.portraitChoice} data-selected={portraitRef === option.ref}>
+                  <label
+                    key={option.ref}
+                    className={styles.portraitChoice}
+                    data-selected={portraitRef === option.ref}
+                  >
                     <input
                       checked={portraitRef === option.ref}
                       name="portrait"
@@ -253,7 +259,11 @@ export function CharacterCreationExperience() {
               <legend>Starter appearance</legend>
               <div className={styles.appearanceGrid}>
                 {STARTER_CHARACTER_APPEARANCES.map((option) => (
-                  <label key={option.ref} className={styles.optionCard} data-selected={starterAppearanceRef === option.ref}>
+                  <label
+                    key={option.ref}
+                    className={styles.optionCard}
+                    data-selected={starterAppearanceRef === option.ref}
+                  >
                     <input
                       checked={starterAppearanceRef === option.ref}
                       name="appearance"
@@ -270,7 +280,11 @@ export function CharacterCreationExperience() {
               </div>
             </fieldset>
 
-            {errorMessage ? <p className={styles.error} role="alert">{errorMessage}</p> : null}
+            {errorMessage ? (
+              <p className={styles.error} role="alert">
+                {errorMessage}
+              </p>
+            ) : null}
             <div className={styles.actions}>
               <GameButton
                 disabled={name.trim().length < CHARACTER_CREATION_RULES_V1.name.minimumCodePoints}
@@ -285,7 +299,9 @@ export function CharacterCreationExperience() {
 
         {step === 'foundation' ? (
           <div className={styles.step}>
-            <h1 ref={stepHeading} tabIndex={-1}>Choose your first discipline.</h1>
+            <h1 ref={stepHeading} tabIndex={-1}>
+              Choose your first discipline.
+            </h1>
             <p className={styles.intro}>
               This is your starting combat tradition, not a permanent build trap. Soulmarks and
               advanced Discipline systems come later through play.
@@ -295,7 +311,11 @@ export function CharacterCreationExperience() {
               <legend>Foundation Discipline</legend>
               <div className={styles.disciplineGrid}>
                 {FOUNDATION_DISCIPLINES.map((discipline) => (
-                  <label key={discipline.id} className={styles.optionCard} data-selected={foundationDisciplineId === discipline.id}>
+                  <label
+                    key={discipline.id}
+                    className={styles.optionCard}
+                    data-selected={foundationDisciplineId === discipline.id}
+                  >
                     <input
                       checked={foundationDisciplineId === discipline.id}
                       name="foundationDiscipline"
@@ -315,7 +335,9 @@ export function CharacterCreationExperience() {
             <div className={styles.attributeHeader}>
               <div>
                 <h2>Starting attributes</h2>
-                <p>Shift your four bonus points. Every attribute also receives the same baseline.</p>
+                <p>
+                  Shift your four bonus points. Every attribute also receives the same baseline.
+                </p>
               </div>
               <strong data-testid="attribute-points">{remainingPoints} points remaining</strong>
             </div>
@@ -336,7 +358,9 @@ export function CharacterCreationExperience() {
                     >
                       −
                     </button>
-                    <output aria-label={`${attributeId} bonus`}>+{attributeBonuses[attributeId]}</output>
+                    <output aria-label={`${attributeId} bonus`}>
+                      +{attributeBonuses[attributeId]}
+                    </output>
                     <button
                       aria-label={`Increase ${attributeId}`}
                       disabled={
@@ -358,7 +382,11 @@ export function CharacterCreationExperience() {
               <GameButton onClick={() => setStep('identity')} type="button" variant="quiet">
                 Back
               </GameButton>
-              <GameButton disabled={remainingPoints !== 0} onClick={() => setStep('review')} type="button">
+              <GameButton
+                disabled={remainingPoints !== 0}
+                onClick={() => setStep('review')}
+                type="button"
+              >
                 Review character
               </GameButton>
             </div>
@@ -367,34 +395,68 @@ export function CharacterCreationExperience() {
 
         {step === 'review' ? (
           <div className={styles.step}>
-            <h1 ref={stepHeading} tabIndex={-1}>Make this adventurer permanent.</h1>
+            <h1 ref={stepHeading} tabIndex={-1}>
+              Make this adventurer permanent.
+            </h1>
             <p className={styles.intro}>
               The server will revalidate every choice, reserve the name, and create your base slot
               atomically. Refreshing or reconnecting will return to this same character.
             </p>
 
             <dl className={styles.reviewGrid}>
-              <div><dt>Name</dt><dd>{name}</dd></div>
-              <div><dt>Discipline</dt><dd>{FOUNDATION_DISCIPLINES.find((item) => item.id === foundationDisciplineId)?.name}</dd></div>
-              <div><dt>Presentation</dt><dd>{CHARACTER_PRESENTATIONS.find((item) => item.id === presentationId)?.label}</dd></div>
-              <div><dt>Pronouns</dt><dd>{PRONOUN_PRESETS.find((item) => item.id === pronounPresetId)?.label}</dd></div>
+              <div>
+                <dt>Name</dt>
+                <dd>{name}</dd>
+              </div>
+              <div>
+                <dt>Discipline</dt>
+                <dd>
+                  {FOUNDATION_DISCIPLINES.find((item) => item.id === foundationDisciplineId)?.name}
+                </dd>
+              </div>
+              <div>
+                <dt>Presentation</dt>
+                <dd>{CHARACTER_PRESENTATIONS.find((item) => item.id === presentationId)?.label}</dd>
+              </div>
+              <div>
+                <dt>Pronouns</dt>
+                <dd>{PRONOUN_PRESETS.find((item) => item.id === pronounPresetId)?.label}</dd>
+              </div>
               {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => (
                 <div key={attributeId}>
                   <dt>{attributeId[0].toUpperCase() + attributeId.slice(1)}</dt>
-                  <dd>{CHARACTER_CREATION_RULES_V1.attributes.baseline + attributeBonuses[attributeId]}</dd>
+                  <dd>
+                    {CHARACTER_CREATION_RULES_V1.attributes.baseline +
+                      attributeBonuses[attributeId]}
+                  </dd>
                 </div>
               ))}
             </dl>
 
-            {errorMessage ? <p className={styles.error} role="alert">{errorMessage}</p> : null}
+            {errorMessage ? (
+              <p className={styles.error} role="alert">
+                {errorMessage}
+              </p>
+            ) : null}
             <p className={styles.submitState} aria-live="polite">
-              {submitting ? 'Reserving your name and creating the character…' : 'Ready to enter AUREVANE.'}
+              {submitting
+                ? 'Reserving your name and creating the character…'
+                : 'Ready to enter AUREVANE.'}
             </p>
             <div className={styles.actions}>
-              <GameButton disabled={submitting} onClick={() => setStep('foundation')} type="button" variant="quiet">
+              <GameButton
+                disabled={submitting}
+                onClick={() => setStep('foundation')}
+                type="button"
+                variant="quiet"
+              >
                 Back
               </GameButton>
-              <GameButton disabled={submitting} onClick={() => void submitCharacter()} type="button">
+              <GameButton
+                disabled={submitting}
+                onClick={() => void submitCharacter()}
+                type="button"
+              >
                 {submitting ? 'Creating…' : 'Create permanent character'}
               </GameButton>
             </div>

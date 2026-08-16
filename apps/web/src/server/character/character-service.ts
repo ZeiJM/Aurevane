@@ -65,7 +65,10 @@ export async function createBaseCharacter(
     !isStarterCharacterPortraitRef(seed.portraitRef) ||
     !isStarterCharacterAppearanceRef(seed.starterAppearanceRef)
   ) {
-    throw new AurevaneError('INVALID_REQUEST', 'Choose an available starter portrait and appearance.')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Choose an available starter portrait and appearance.',
+    )
   }
 
   const requestFingerprint = createHash('sha256')
