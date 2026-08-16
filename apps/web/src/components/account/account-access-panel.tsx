@@ -3,17 +3,20 @@
 import { GameButton } from '@aurevane/ui'
 import { type FormEvent, useId, useState } from 'react'
 
-import { createSupabaseBrowserClient } from '@/lib/supabase/client'
+import {
+  createSupabaseBrowserClient,
+  type BrowserSupabaseConfig,
+} from '@/lib/supabase/client'
 
 import styles from './account-entry-shell.module.css'
 
 type AccountMode = 'signin' | 'signup'
 
 interface AccountAccessPanelProps {
-  authAvailable: boolean
+  authConfig: BrowserSupabaseConfig | null
 }
 
-export function AccountAccessPanel({ authAvailable }: AccountAccessPanelProps) {
+export function AccountAccessPanel({ authConfig }: AccountAccessPanelProps) {
   const [mode, setMode] = useState<AccountMode>('signin')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
@@ -23,7 +26,7 @@ export function AccountAccessPanel({ authAvailable }: AccountAccessPanelProps) {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (!authAvailable || busy) {
+    if (!authConfig || busy) {
       return
     }
 
@@ -40,7 +43,7 @@ export function AccountAccessPanel({ authAvailable }: AccountAccessPanelProps) {
     setMessage(mode === 'signin' ? 'Opening your account…' : 'Creating your account…')
 
     try {
-      const supabase = createSupabaseBrowserClient()
+      const supabase = createSupabaseBrowserClient(authConfig)
 
       if (mode === 'signin') {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
@@ -91,7 +94,7 @@ export function AccountAccessPanel({ authAvailable }: AccountAccessPanelProps) {
     setMessage('')
   }
 
-  if (!authAvailable) {
+  if (!authConfig) {
     return (
       <div className={styles.environmentNotice} role="status" data-testid="account-unavailable">
         <strong>Account services are not enabled in this environment yet.</strong>
