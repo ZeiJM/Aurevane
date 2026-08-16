@@ -2,8 +2,14 @@ import { isSupabaseSecretKey } from '@aurevane/validation/env/server'
 
 import type { PublicSupabaseConfig } from '../../lib/supabase/config'
 
+const AUREVANE_PRODUCTION_SUPABASE_PROJECT_REF = 'luazfeupwfgnilohfsya'
+
 export type AccountServicesReadinessReason =
-  'ready' | 'unconfigured' | 'production_environment_mismatch' | 'production_not_ready'
+  | 'ready'
+  | 'unconfigured'
+  | 'production_environment_mismatch'
+  | 'production_project_mismatch'
+  | 'production_not_ready'
 
 export interface AccountServicesReadiness {
   available: boolean
@@ -17,6 +23,7 @@ interface AccountServicesReadinessInput {
   productionHost?: string
   productionReady?: string
   privilegedServerKey?: string
+  expectedProductionSupabaseProjectRef?: string
 }
 
 export function getCurrentAccountServicesReadiness(
@@ -30,6 +37,7 @@ export function getCurrentAccountServicesReadiness(
     productionHost: process.env.VERCEL_PROJECT_PRODUCTION_URL,
     productionReady: process.env.AUREVANE_ACCOUNT_SERVICES_READY,
     privilegedServerKey: process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY,
+    expectedProductionSupabaseProjectRef: AUREVANE_PRODUCTION_SUPABASE_PROJECT_REF,
   })
 }
 
@@ -53,6 +61,16 @@ export function resolveAccountServicesReadiness(
     return { available: false, reason: 'production_environment_mismatch' }
   }
 
+  if (
+    input.expectedProductionSupabaseProjectRef &&
+    !supabaseUrlMatchesProjectRef(
+      input.publicConfig.url,
+      input.expectedProductionSupabaseProjectRef,
+    )
+  ) {
+    return { available: false, reason: 'production_project_mismatch' }
+  }
+
   const explicitlyReady = input.productionReady?.trim().toLowerCase() === 'true'
   const integratedProductionReady =
     input.vercelEnvironment === 'production' &&
@@ -64,6 +82,14 @@ export function resolveAccountServicesReadiness(
   }
 
   return { available: true, reason: 'ready' }
+}
+
+function supabaseUrlMatchesProjectRef(url: string, projectRef: string): boolean {
+  try {
+    return new URL(url).hostname.toLowerCase() === `${projectRef.trim().toLowerCase()}.supabase.co`
+  } catch {
+    return false
+  }
 }
 
 function hostsMatch(requestHost?: string | null, productionHost?: string): boolean {
