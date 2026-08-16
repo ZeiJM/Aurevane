@@ -4,7 +4,7 @@ This file tracks the current implementation boundary. The Master Game Plan defin
 
 ## Current status
 
-**Stage:** Phase 1 — Character Foundation / P1.1 final responsive-production hardening
+**Stage:** Phase 1 — Character Foundation / P1.1 completion checkpoint
 
 Authoritative documents established:
 
@@ -105,11 +105,7 @@ Phase 1 is defined in `docs/PHASE_1_TICKETS.md` as six independently verifiable 
 
 The first major player milestone is P1.3: an authenticated player can create and permanently persist a valid character. Phase 1 explicitly preserves later Discipline, combat, world, inventory/equipment, Horizon, Rekindling, premium-slot and Master Panel scope for their roadmap phases rather than implementing them early.
 
-## ACTIVE
-
 ### P1.1 — Account Entry + Player Profile Boundary
-
-Issue #28 and PR #30 remain the canonical P1.1 implementation while final owner-reported responsive defects are corrected.
 
 Implementation checkpoint:
 
@@ -121,21 +117,26 @@ Implementation checkpoint:
 - account identity remains separate from future public character identity;
 - Account & Security manual/contextual help added;
 - existing title-media request/fallback and gesture-gated audio settings preserved;
+- phone inputs render only when authentication is actually configured and active inputs are mobile-friendly/focusable;
+- utility audio is a non-reflowing popover with outside-click, Escape, and explicit-close dismissal;
+- Account & Security expansion no longer stretches the hero/title;
+- compact phone title sizing, safe-area insets, explicit laptop-height behavior, and desktop/laptop/mobile browser coverage are established;
+- `docs/RESPONSIVE_EXPERIENCE_STANDARD.md` makes responsive/touch/keyboard/overlay behavior a permanent player-facing implementation requirement;
 - no new runtime dependency or future gameplay system introduced.
 
-**Production gate:** the promoted Production descendant containing the Phase 0 environment hotfix is READY, returns HTTP 200, and has no error/fatal runtime logs in the verification window. The former Phase 0 deployment blocker is therefore cleared.
-
-**Responsive hardening:** phone inputs now render only when authentication is actually configured, active phone inputs are explicitly mobile-friendly/focusable, utility audio is a non-reflowing popover with outside-click/Escape/explicit-close dismissal, Account & Security expansion no longer stretches the hero, the title is bounded for compact phone widths, laptop-height rules are explicit, safe-area insets are respected, and the browser matrix now includes 1366×768 laptop coverage in addition to desktop and phone.
+**Production gate:** the promoted Production descendant containing the Phase 0 environment hotfix is READY, returns HTTP 200, and has no error/fatal runtime logs in the verification window. Phase 0 issue #20 is closed.
 
 **Environment policy:** `SUPABASE_SECRET_KEY` is the only Vercel warning-listed secret explicitly passed to the web build because AUREVANE has a defined server-only use for it. Unused Postgres/service-role/JWT integration secrets remain intentionally unavailable to the web build rather than being whitelisted merely to silence a warning.
 
-## Paused stack
+**Verification:** final P1.1 acceptance requires the exact branch head to pass quality, database/security, and real Chromium desktop/laptop/mobile checks before PR #30 is merged and issue #28 is closed.
 
-P1.2 issue #31 / branch `agent/ticket-1-2-character-domain` contains the in-progress pure character-domain implementation. It is temporarily paused while P1.1 is hardened and merged. After P1.1 lands, P1.2 must be synchronized onto the resulting `main` before continuing; no parallel second P1.2 implementation is permitted.
+## ACTIVE
+
+No implementation ticket is active at this checkpoint. P1.1 is complete pending its final merge gate; do not start a second P1.2 implementation.
 
 ## Next
 
-Run exact-head quality/database/browser verification for the P1.1 hardening revision. If green, mark PR #30 ready, merge P1.1, close #28, synchronize the sole P1.2 branch onto the new `main`, then resume P1.2.
+P1.2 — Character Domain Rules + Creation Contract. Resume only the existing issue #31 / branch `agent/ticket-1-2-character-domain` after P1.1 merges. Synchronize that sole branch onto the resulting `main` before continuing.
 
 ## Rule
 
