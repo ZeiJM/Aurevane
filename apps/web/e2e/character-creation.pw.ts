@@ -78,6 +78,11 @@ test('creates one permanent character, renders its profile, and resumes it acros
   await expect(
     page.locator('[data-media-status="requested"][data-media-request="ART-CHR-001"]').first(),
   ).toBeVisible()
+
+  if (testInfo.project.name === 'mobile-chromium') {
+    console.log(`MOBILE_PROFILE_VIEWPORT ${JSON.stringify(await captureViewportDiagnostics(page))}`)
+  }
+
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
   const backLink = page.getByRole('link', { name: 'Return to game entry' })
@@ -85,6 +90,10 @@ test('creates one permanent character, renders its profile, and resumes it acros
   await expect(backLink).toBeFocused()
   await backLink.press('Enter')
   await expect(page).toHaveURL(/\/game$/)
+
+  if (testInfo.project.name === 'mobile-chromium') {
+    console.log(`MOBILE_GAME_VIEWPORT ${JSON.stringify(await captureViewportDiagnostics(page))}`)
+  }
 
   const signOut = page.getByRole('button', { name: 'Sign out' })
   await signOut.scrollIntoViewIfNeeded()
@@ -112,6 +121,76 @@ test('creates one permanent character, renders its profile, and resumes it acros
   await expect(page).toHaveURL(/\/game$/)
   await expect(page.getByTestId('character-established')).toContainText(characterName)
 })
+
+async function captureViewportDiagnostics(page: import('@playwright/test').Page) {
+  return page.evaluate(() => {
+    function rect(element: Element) {
+      const value = element.getBoundingClientRect()
+      return {
+        top: value.top,
+        right: value.right,
+        bottom: value.bottom,
+        left: value.left,
+        width: value.width,
+        height: value.height,
+      }
+    }
+
+    const visualWidth = window.visualViewport?.width ?? window.innerWidth
+    const candidates = Array.from(document.querySelectorAll('body *'))
+      .map((element) => {
+        const bounds = element.getBoundingClientRect()
+        const styles = getComputedStyle(element)
+        return {
+          element,
+          bounds,
+          styles,
+          overflowAmount: Math.max(0, bounds.right - visualWidth) + Math.max(0, -bounds.left),
+        }
+      })
+      .filter(
+        ({ bounds, overflowAmount }) =>
+          bounds.width > 0 && bounds.height > 0 && (bounds.width > visualWidth + 1 || overflowAmount > 1),
+      )
+      .sort((a, b) => b.overflowAmount - a.overflowAmount || b.bounds.width - a.bounds.width)
+      .slice(0, 20)
+      .map(({ element, styles }) => ({
+        tag: element.tagName,
+        className: element.getAttribute('class') ?? '',
+        text: element.textContent?.trim().replace(/\s+/g, ' ').slice(0, 180) ?? '',
+        rect: rect(element),
+        display: styles.display,
+        position: styles.position,
+        width: styles.width,
+        minWidth: styles.minWidth,
+        maxWidth: styles.maxWidth,
+        whiteSpace: styles.whiteSpace,
+        gridTemplateColumns: styles.gridTemplateColumns,
+        flexShrink: styles.flexShrink,
+      }))
+
+    return {
+      url: location.pathname,
+      metaViewport: document.querySelector('meta[name="viewport"]')?.getAttribute('content') ?? null,
+      viewport: {
+        innerWidth: window.innerWidth,
+        innerHeight: window.innerHeight,
+        scrollX: window.scrollX,
+        scrollY: window.scrollY,
+        htmlClientWidth: document.documentElement.clientWidth,
+        htmlScrollWidth: document.documentElement.scrollWidth,
+        bodyClientWidth: document.body.clientWidth,
+        bodyScrollWidth: document.body.scrollWidth,
+        visualWidth: window.visualViewport?.width ?? null,
+        visualHeight: window.visualViewport?.height ?? null,
+        visualScale: window.visualViewport?.scale ?? null,
+        visualOffsetLeft: window.visualViewport?.offsetLeft ?? null,
+        visualOffsetTop: window.visualViewport?.offsetTop ?? null,
+      },
+      candidates,
+    }
+  })
+}
 
 async function captureSignOutGeometry(
   page: import('@playwright/test').Page,
