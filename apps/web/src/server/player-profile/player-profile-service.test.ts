@@ -1,4 +1,3 @@
-import { AurevaneError } from '@aurevane/game-core/errors'
 import { describe, expect, it, vi } from 'vitest'
 
 import { loadPlayerProfile } from './player-profile-service'
@@ -25,7 +24,7 @@ describe('player profile service', () => {
         { userId: '94e76093-e46b-4859-a01b-33c541d76fcf' },
         { findByUserId: vi.fn().mockResolvedValue(null) },
       ),
-    ).rejects.toMatchObject<AurevaneError>({ code: 'PERSISTENCE_UNAVAILABLE' })
+    ).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
 
     await expect(
       loadPlayerProfile(
@@ -37,6 +36,6 @@ describe('player profile service', () => {
           }),
         },
       ),
-    ).rejects.toMatchObject<AurevaneError>({ code: 'PERSISTENCE_UNAVAILABLE' })
+    ).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
   })
 })
