@@ -86,7 +86,77 @@ test('creates one permanent character, renders its profile, and resumes it acros
   await backLink.press('Enter')
   await expect(page).toHaveURL(/\/game$/)
 
-  await page.getByRole('button', { name: 'Sign out' }).click()
+  const signOut = page.getByRole('button', { name: 'Sign out' })
+  await signOut.scrollIntoViewIfNeeded()
+  const geometry = await signOut.evaluate((button) => {
+    function rect(element: Element | null) {
+      if (!element) return null
+      const value = element.getBoundingClientRect()
+      return {
+        top: value.top,
+        right: value.right,
+        bottom: value.bottom,
+        left: value.left,
+        width: value.width,
+        height: value.height,
+      }
+    }
+
+    const surface = button.closest('.av-surface')
+    const form = button.closest('form')
+    const buttonRect = button.getBoundingClientRect()
+    const centerX = buttonRect.left + buttonRect.width / 2
+    const centerY = buttonRect.top + buttonRect.height / 2
+    const hit = document.elementFromPoint(centerX, centerY)
+
+    return {
+      viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+        scrollY: window.scrollY,
+      },
+      button: rect(button),
+      form: rect(form),
+      surface: rect(surface),
+      paragraphs: surface
+        ? Array.from(surface.querySelectorAll('p')).map((paragraph) => ({
+            text: paragraph.textContent?.trim() ?? '',
+            rect: rect(paragraph),
+            position: getComputedStyle(paragraph).position,
+            display: getComputedStyle(paragraph).display,
+            marginTop: getComputedStyle(paragraph).marginTop,
+            marginBottom: getComputedStyle(paragraph).marginBottom,
+            lineHeight: getComputedStyle(paragraph).lineHeight,
+          }))
+        : [],
+      hit: hit
+        ? {
+            tag: hit.tagName,
+            className: hit.getAttribute('class') ?? '',
+            text: hit.textContent?.trim().slice(0, 160) ?? '',
+            rect: rect(hit),
+          }
+        : null,
+      buttonStyles: {
+        position: getComputedStyle(button).position,
+        display: getComputedStyle(button).display,
+        transform: getComputedStyle(button).transform,
+        marginTop: getComputedStyle(button).marginTop,
+        marginBottom: getComputedStyle(button).marginBottom,
+      },
+      surfaceStyles: surface
+        ? {
+            position: getComputedStyle(surface).position,
+            display: getComputedStyle(surface).display,
+            height: getComputedStyle(surface).height,
+            overflow: getComputedStyle(surface).overflow,
+          }
+        : null,
+    }
+  })
+  console.log(`SIGN_OUT_GEOMETRY ${JSON.stringify(geometry)}`)
+
+  await signOut.click()
   await expect(page).toHaveURL(/\/$/)
 
   await page.getByLabel('Email').fill(email)
