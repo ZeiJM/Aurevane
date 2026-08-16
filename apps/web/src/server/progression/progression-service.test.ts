@@ -1,6 +1,8 @@
 import type { ProgressionRepository } from '@aurevane/db/progression'
 import { describe, expect, it, vi } from 'vitest'
 
+vi.mock('server-only', () => ({}))
+
 import {
   CHARACTER_XP_GRANT_PERMISSION,
   grantCharacterXp,
