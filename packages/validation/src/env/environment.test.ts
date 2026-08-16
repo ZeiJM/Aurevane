@@ -50,6 +50,18 @@ describe('public environment', () => {
       }),
     ).toThrow('must not use a localhost')
   })
+
+  it('rejects malformed URLs through the controlled environment error boundary', () => {
+    for (const url of ['', 'not-a-url']) {
+      expect(() =>
+        parsePublicEnvironment({
+          NEXT_PUBLIC_AUREVANE_ENV: 'staging',
+          NEXT_PUBLIC_SUPABASE_URL: url,
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: `sb_publishable_${'x'.repeat(32)}`,
+        }),
+      ).toThrow('Invalid public environment configuration')
+    }
+  })
 })
 
 describe('server environment', () => {

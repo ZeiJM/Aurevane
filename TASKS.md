@@ -4,7 +4,7 @@ This file tracks the current implementation boundary. The Master Game Plan defin
 
 ## Current status
 
-**Stage:** Phase 1 — Character Foundation / P1.5 character-progression checkpoint
+**Stage:** Phase 1 — Character Foundation / P1.6 Wayfarer's Practice checkpoint
 
 Authoritative documents established:
 
@@ -205,8 +205,6 @@ Completed with:
 
 **Verification:** exact-head quality/build/worker, full database/security regressions, responsive Chromium profile acceptance, and Vercel Preview passed before merge. PR #41 squash-merged; issue #40 closed as completed. The merged `main` checkpoint `34c01fa0180dcaa2ce41e136b2c09d656e353ac0` then passed the same quality, database/security, responsive Chromium, and Vercel release checks.
 
-## ACTIVE
-
 ### P1.5 — Level 1–100 XP Progression + Telemetry Foundation
 
 Canonical work is issue #42 / branch `agent/ticket-1-5-xp-progression`.
@@ -228,11 +226,34 @@ Current implementation scope includes:
 - deterministic domain/service tests plus local-Supabase attack coverage for curve privacy, authenticated RPC denial, browser mutation denial, negative grants, replay/conflict behavior, concurrent grants, provenance telemetry and Level-100 capping;
 - desktop/laptop/mobile browser regression coverage for the real Level-1 profile progress presentation.
 
-**Release rule:** do not merge P1.5 until the exact PR head passes quality/build/worker, full database/security regressions including the dedicated progression authority suite, responsive Chromium profile acceptance, and Vercel Preview.
+**Verification:** P1.5 passed its exact-head quality/build/worker, progression/database-security and responsive Chromium gates; PR #44 merged. Mobile release hardening followed through PR #46, and the owner production account/game/profile/sign-out smoke is green on the later verified production baseline.
+
+## ACTIVE
+
+### P1.6 — Wayfarer's Practice: Balanced Practice Foundation
+
+Canonical work is issue #48 / draft PR #51 / branch `agent/ticket-1-6-wayfarers-practice`.
+
+Current implementation scope includes:
+
+- one pure versioned deterministic Balanced Practice calculator with server-supplied timestamps, a short-reconnect threshold, full/reduced direct-XP windows, a multi-day direct bank cap, and bounded Rested Momentum accrual;
+- Phase 1 reward types restricted by construction to Character XP and Rested Momentum, with Discipline Mastery, story/quest/boss/Expedition/PvP/economy/Horizon/Rekindling/premium scope explicitly deferred;
+- private versioned Wayfarer configuration, per-character activity/accrual state, frozen Training Reports and append-only claim telemetry;
+- lazy first-return materialization with at most one pending report per character, no per-character background timers/jobs, no retroactive reward before the feature initializes, and no reward from short reconnect loops;
+- one service-role-only atomic `claim_training_report_v1` transaction reusing the P1.5 progression curve/resolver and XP-grant ledger while applying bounded Rested Momentum, marking the report claimed and advancing the claim boundary together;
+- durable replay/conflict idempotency, ownership validation, row locking and concurrent-claim safety;
+- authenticated server-only materialize/claim adapters and a thin claim route in which the browser supplies only character/report/idempotency identifiers, never authoritative timestamps or reward amounts;
+- a restrained responsive Training Report return card with Balanced Practice summary, credited duration, Character XP, Rested Momentum, cap explanation and retry-safe Claim training action;
+- authoritative post-claim refetch through the existing server-rendered `/game` flow rather than broadcasting mutable reward state;
+- spoiler-safe player guidance in `docs/player-manual/wayfarers-practice.md`;
+- dedicated local-Supabase authority coverage for private access, frozen reports, ownership denial, short reconnects, replay/conflict behavior, atomic Level/XP/Rested changes, Level-100 and Rested caps, provenance and concurrent claims;
+- desktop/laptop/mobile Playwright coverage for controlled absence → frozen report → refresh stability → keyboard claim → Level/XP refresh → no duplicate report.
+
+**Current verification:** exact-head quality/build/worker, the existing full database/security suite, the dedicated Wayfarer authority suite and responsive Chromium acceptance are green on the implementation branch. Production remains unchanged until the tested migration is merged and deliberately applied.
 
 ## Next
 
-P1.6 — Wayfarer's Practice: Balanced Practice Foundation. Do not begin it until P1.5 is merged and its post-merge `main` release checks are green.
+Finish PR #51 review and Vercel Preview verification, merge P1.6, apply the tested versioned Wayfarer migration to the correct production Supabase project, and complete post-merge production smoke before closing #48. Only then advance roadmap sequencing; Phase 2 — Tactical Combat Core is the next roadmap phase, but no Phase 2 implementation begins while P1.6 remains ACTIVE.
 
 ## Rule
 

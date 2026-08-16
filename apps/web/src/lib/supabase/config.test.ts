@@ -1,8 +1,16 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { parseOptionalPublicSupabaseConfig, resolvePublicSupabaseEnvironment } from './config'
+import {
+  getOptionalPublicSupabaseConfig,
+  parseOptionalPublicSupabaseConfig,
+  resolvePublicSupabaseEnvironment,
+} from './config'
 
 describe('optional public Supabase configuration', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
   it('allows a completely unconfigured environment for public shell requests', () => {
     expect(parseOptionalPublicSupabaseConfig({})).toBeNull()
     expect(
@@ -20,6 +28,14 @@ describe('optional public Supabase configuration', () => {
         NEXT_PUBLIC_AUREVANE_ENV: 'production',
       }),
     ).toThrow('Invalid public environment configuration')
+  })
+
+  it('fails the runtime optional reader closed for malformed partial auth configuration', () => {
+    vi.stubEnv('NEXT_PUBLIC_AUREVANE_ENV', 'staging')
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', '')
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY', `sb_publishable_${'x'.repeat(32)}`)
+
+    expect(getOptionalPublicSupabaseConfig()).toBeNull()
   })
 
   it('returns a validated config when the environment is complete', () => {

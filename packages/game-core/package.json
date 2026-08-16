@@ -12,6 +12,7 @@
     "./character/profile-stat-content": "./src/character/profile-stat-content.ts",
     "./character/progression": "./src/character/progression.ts",
     "./character/starter-options": "./src/character/starter-options.ts",
+    "./character/wayfarers-practice": "./src/character/wayfarers-practice.ts",
     "./command": "./src/command.ts",
     "./errors": "./src/errors.ts",
     "./player-profile": "./src/player-profile.ts"
