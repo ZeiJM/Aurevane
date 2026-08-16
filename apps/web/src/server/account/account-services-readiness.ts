@@ -63,7 +63,10 @@ export function resolveAccountServicesReadiness(
 
   if (
     input.expectedProductionSupabaseProjectRef &&
-    !supabaseUrlMatchesProjectRef(input.publicConfig.url, input.expectedProductionSupabaseProjectRef)
+    !supabaseUrlMatchesProjectRef(
+      input.publicConfig.url,
+      input.expectedProductionSupabaseProjectRef,
+    )
   ) {
     return { available: false, reason: 'production_project_mismatch' }
   }
