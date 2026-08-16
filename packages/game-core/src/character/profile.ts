@@ -10,11 +10,7 @@ import {
 import { calculateDerivedStats, type DerivedStatSnapshot } from './derived-stats'
 import { getFoundationDiscipline, type FoundationDisciplineId } from './foundation-disciplines'
 import type { PersistedCharacter } from './persistence'
-import {
-  resolveLevelProgress,
-  type LevelProgress,
-  type LevelProgressionCurve,
-} from './progression'
+import { resolveLevelProgress, type LevelProgress, type LevelProgressionCurve } from './progression'
 
 export interface CharacterProfileReadModel {
   characterId: string
