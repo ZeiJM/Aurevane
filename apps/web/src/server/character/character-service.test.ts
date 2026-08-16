@@ -54,7 +54,7 @@ function repository(overrides: Partial<CharacterRepository> = {}): CharacterRepo
 
 describe('character service', () => {
   it('reconstructs canonical starting state before persistence', async () => {
-    const create = vi.fn(async (input) => ({ result: record(), replayed: false }))
+    const create = vi.fn(async () => ({ result: record(), replayed: false }))
     const repo = repository({ createBaseCharacter: create })
 
     await createBaseCharacter(
