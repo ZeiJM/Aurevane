@@ -36,7 +36,7 @@ own_profiles="$(curl --fail-with-body --silent --show-error \
   --header "apikey: $ANON_KEY" \
   --header "Authorization: Bearer $token_one")"
 printf '%s' "$own_profiles" | jq -e --arg user "$user_one" \
-  'length == 1 and .[0].user_id == $user and (.0.created_at | strings | length > 0)' >/dev/null
+  'length == 1 and .[0].user_id == $user and (.[0].created_at | strings | length > 0)' >/dev/null
 
 cross_account="$(curl --fail-with-body --silent --show-error \
   "$api_url/rest/v1/player_profiles?select=user_id&user_id=eq.$user_two" \
