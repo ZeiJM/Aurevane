@@ -1,0 +1,46 @@
+name: P1.1 format once
+
+on:
+  push:
+    branches:
+      - agent/ticket-1-1-account-profile
+    paths:
+      - '.github/workflows/p11-format-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/ticket-1-1-account-profile
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: >-
+          pnpm exec prettier --write
+          apps/web/src/components/account/account-access-panel.tsx
+          apps/web/src/components/account/account-entry-shell.module.css
+          apps/web/src/components/audio/audio-settings-menu.tsx
+      - name: Commit formatting
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            apps/web/src/components/account/account-access-panel.tsx \
+            apps/web/src/components/account/account-entry-shell.module.css \
+            apps/web/src/components/audio/audio-settings-menu.tsx
+          if git diff --cached --quiet; then
+            echo 'Already formatted.'
+            exit 0
+          fi
+          git commit -m 'Format P1.1 responsive hardening'
+          git push origin HEAD:agent/ticket-1-1-account-profile
