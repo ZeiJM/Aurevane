@@ -57,7 +57,9 @@ export interface ClaimTrainingReportInput extends IdempotentCommandInput {
 }
 
 export interface WayfarersPracticeRepository {
-  materializeTrainingReport(input: MaterializeTrainingReportInput): Promise<TrainingReportRecord | null>
+  materializeTrainingReport(
+    input: MaterializeTrainingReportInput,
+  ): Promise<TrainingReportRecord | null>
   claimTrainingReport(
     input: ClaimTrainingReportInput,
   ): Promise<TransactionalCommandResult<TrainingReportClaimRecord>>
