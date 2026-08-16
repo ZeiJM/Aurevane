@@ -42,7 +42,7 @@ describe('resolveAccountServicesReadiness', () => {
     )
   })
 
-  it('requires an explicit readiness opt-in before production auth is exposed', () => {
+  it('requires an explicit readiness opt-in before production auth is exposed without a complete integration', () => {
     expectReadiness(
       resolveAccountServicesReadiness({
         publicConfig: productionConfig,
@@ -60,6 +60,40 @@ describe('resolveAccountServicesReadiness', () => {
       }),
       true,
       'ready',
+    )
+  })
+
+  it('accepts a valid server-only Supabase integration on a real production deployment', () => {
+    expectReadiness(
+      resolveAccountServicesReadiness({
+        publicConfig: productionConfig,
+        vercelEnvironment: 'production',
+        privilegedServerKey: 'sb_secret_aurevane_production_test_key',
+      }),
+      true,
+      'ready',
+    )
+  })
+
+  it('rejects malformed or preview-only privileged integration credentials', () => {
+    expectReadiness(
+      resolveAccountServicesReadiness({
+        publicConfig: productionConfig,
+        vercelEnvironment: 'production',
+        privilegedServerKey: 'not-a-service-role-key',
+      }),
+      false,
+      'production_not_ready',
+    )
+
+    expectReadiness(
+      resolveAccountServicesReadiness({
+        publicConfig: productionConfig,
+        vercelEnvironment: 'preview',
+        privilegedServerKey: 'sb_secret_aurevane_preview_test_key',
+      }),
+      false,
+      'production_not_ready',
     )
   })
 

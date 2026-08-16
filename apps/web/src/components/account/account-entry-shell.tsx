@@ -2,15 +2,16 @@ import { Kicker, Surface } from '@aurevane/ui'
 
 import { AudioSettingsMenu } from '@/components/audio/audio-settings-menu'
 import { AurevaneImage } from '@/components/media/aurevane-image'
+import type { BrowserSupabaseConfig } from '@/lib/supabase/client'
 
 import { AccountAccessPanel } from './account-access-panel'
 import styles from './account-entry-shell.module.css'
 
 interface AccountEntryShellProps {
-  authAvailable: boolean
+  authConfig: BrowserSupabaseConfig | null
 }
 
-export function AccountEntryShell({ authAvailable }: AccountEntryShellProps) {
+export function AccountEntryShell({ authConfig }: AccountEntryShellProps) {
   return (
     <div className={styles.shell} data-testid="account-shell">
       <a className="skip-link" href="#account-main">
@@ -63,7 +64,7 @@ export function AccountEntryShell({ authAvailable }: AccountEntryShellProps) {
             history forward.
           </p>
 
-          <AccountAccessPanel authAvailable={authAvailable} />
+          <AccountAccessPanel authConfig={authConfig} />
 
           <details className={styles.help}>
             <summary>Account &amp; Security</summary>

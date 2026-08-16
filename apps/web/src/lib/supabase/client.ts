@@ -2,10 +2,12 @@
 
 import { createBrowserClient } from '@supabase/ssr'
 
-import { getPublicSupabaseConfig } from './config'
+import { getPublicSupabaseConfig, type PublicSupabaseConfig } from './config'
 
-export function createSupabaseBrowserClient() {
-  const config = getPublicSupabaseConfig()
+export type BrowserSupabaseConfig = Pick<PublicSupabaseConfig, 'url' | 'publishableKey'>
 
-  return createBrowserClient(config.url, config.publishableKey)
+export function createSupabaseBrowserClient(config?: BrowserSupabaseConfig) {
+  const resolvedConfig = config ?? getPublicSupabaseConfig()
+
+  return createBrowserClient(resolvedConfig.url, resolvedConfig.publishableKey)
 }
