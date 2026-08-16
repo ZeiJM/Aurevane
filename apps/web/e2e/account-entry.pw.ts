@@ -43,10 +43,38 @@ test('account entry is responsive, focusable, stable, and media-safe', async ({ 
   expect(Math.abs(titleDocumentYAfterHelp - titleDocumentYBeforeHelp)).toBeLessThanOrEqual(1)
 
   const audioTrigger = page.getByRole('button', { name: 'Sound settings' })
+  const audioDialog = page.getByRole('dialog', { name: 'Audio settings' })
   await audioTrigger.click()
-  await expect(page.getByRole('dialog', { name: 'Audio settings' })).toBeVisible()
-  await title.click()
-  await expect(page.getByRole('dialog', { name: 'Audio settings' })).toBeHidden()
+  await expect(audioDialog).toBeVisible()
+
+  const dialogBox = await audioDialog.boundingBox()
+  const viewportSize = page.viewportSize()
+  expect(dialogBox).not.toBeNull()
+  expect(viewportSize).not.toBeNull()
+
+  if (dialogBox && viewportSize) {
+    const inset = 8
+    const candidates = [
+      { x: inset, y: inset },
+      { x: viewportSize.width - inset, y: inset },
+      { x: inset, y: viewportSize.height - inset },
+      { x: viewportSize.width - inset, y: viewportSize.height - inset },
+    ]
+    const outsidePoint = candidates.find(
+      ({ x, y }) =>
+        x < dialogBox.x ||
+        x > dialogBox.x + dialogBox.width ||
+        y < dialogBox.y ||
+        y > dialogBox.y + dialogBox.height,
+    )
+
+    expect(outsidePoint).toBeDefined()
+    if (outsidePoint) {
+      await page.mouse.click(outsidePoint.x, outsidePoint.y)
+    }
+  }
+
+  await expect(audioDialog).toBeHidden()
   await expect(audioTrigger).toHaveAttribute('aria-expanded', 'false')
 })
 
