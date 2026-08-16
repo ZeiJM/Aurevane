@@ -1,3 +1,5 @@
+import { isSupabaseSecretKey } from '@aurevane/validation/env/server'
+
 import type { PublicSupabaseConfig } from '../../lib/supabase/config'
 
 export type AccountServicesReadinessReason =
@@ -14,6 +16,7 @@ interface AccountServicesReadinessInput {
   requestHost?: string | null
   productionHost?: string
   productionReady?: string
+  privilegedServerKey?: string
 }
 
 export function getCurrentAccountServicesReadiness(
@@ -26,6 +29,7 @@ export function getCurrentAccountServicesReadiness(
     requestHost,
     productionHost: process.env.VERCEL_PROJECT_PRODUCTION_URL,
     productionReady: process.env.AUREVANE_ACCOUNT_SERVICES_READY,
+    privilegedServerKey: process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY,
   })
 }
 
@@ -49,7 +53,13 @@ export function resolveAccountServicesReadiness(
     return { available: false, reason: 'production_environment_mismatch' }
   }
 
-  if (input.productionReady?.trim().toLowerCase() !== 'true') {
+  const explicitlyReady = input.productionReady?.trim().toLowerCase() === 'true'
+  const integratedProductionReady =
+    input.vercelEnvironment === 'production' &&
+    typeof input.privilegedServerKey === 'string' &&
+    isSupabaseSecretKey(input.privilegedServerKey.trim())
+
+  if (!explicitlyReady && !integratedProductionReady) {
     return { available: false, reason: 'production_not_ready' }
   }
 
