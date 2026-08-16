@@ -4,7 +4,7 @@ This file tracks the current implementation boundary. The Master Game Plan defin
 
 ## Current status
 
-**Stage:** Phase 1 — Character Foundation / P1.1 in progress on a gated feature branch
+**Stage:** Phase 1 — Character Foundation / P1.1 implemented and verified on a gated feature branch
 
 Authoritative documents established:
 
@@ -108,23 +108,29 @@ The first major player milestone is P1.3: an authenticated player can create and
 
 ### P1.1 — Account Entry + Player Profile Boundary
 
-Issue #28 is active on branch `agent/ticket-1-1-account-profile`.
+Issue #28 is active on branch `agent/ticket-1-1-account-profile`; draft PR #30 is the canonical implementation.
 
-Current ticket boundary:
+Implementation checkpoint:
 
-- reuse the existing Supabase Auth/session/verified-claims foundation;
-- add the polished public account-entry experience;
-- add exactly one durable private player profile per authenticated account;
-- establish the authenticated `/game` entry and stable no-character account state;
-- keep account identity separate from future public character identity;
-- add account/security help and browser/database/security verification;
-- do not implement character creation, attributes, progression, Disciplines, inventory, world, combat, or future systems early.
+- existing Supabase Auth/session/verified-claims architecture reused with no second auth system;
+- authored responsive AUREVANE sign-in/sign-up account-entry experience implemented;
+- exactly one minimal durable player profile is automatically provisioned from authoritative `auth.users` identity;
+- authenticated profile reads are RLS-isolated to the verified account and direct browser mutation is denied;
+- authenticated `/game` entry and stable explicit **No character bound** state implemented without premature character/gameplay schema;
+- account identity remains separate from future public character identity;
+- Account & Security manual/contextual help added;
+- existing title-media request/fallback and gesture-gated audio settings preserved;
+- no new runtime dependency or future gameplay system introduced.
 
-**Hard release gate:** Phase 0 production-verification issue #20 remains open because Vercel has not yet accepted a Production deployment of the corrected current `main` shell. P1.1 may be developed and verified on this isolated branch, but **DO NOT MERGE P1.1 into `main` while #20 is open**.
+**Verification:** the synchronized implementation head passed formatting, lint, typecheck, unit tests, production build, worker boot, local database reconstruction, private-schema regression, player-profile provisioning/privacy and direct-mutation denial, transactional idempotency regression, authenticated authority-route regression, and real desktop/mobile Chromium account creation → refresh → sign-out → sign-in verification. A Vercel Preview also renders the authored account-entry shell successfully.
+
+**Concurrency audit:** no competing P1.1/account/profile implementation existed. Later combat/item/inventory planning changes that landed on `main` during implementation were reviewed and synchronized into this branch unchanged; P1.1 remains zero commits behind that checkpoint and does not pull those future systems forward.
+
+**Hard release gate:** Phase 0 production-verification issue #20 remains open because Vercel is still rejecting current `main` Production builds at the free build-rate limit. P1.1 is implemented and verified but **DO NOT MERGE P1.1 into `main` while #20 is open**.
 
 ## Next
 
-Complete and fully verify P1.1 on its feature branch. When Vercel permits the corrected Phase 0 Production deployment, verify the live shell, close #20, sync P1.1 with the then-current `main`, and merge P1.1 only after its own gates remain green.
+Hold draft PR #30 at this verified checkpoint. When Vercel permits the corrected Phase 0 Production deployment, verify the actual live shell, close #20, sync P1.1 with the then-current `main`, rerun the exact-head gates, then make PR #30 mergeable. Do not start P1.2 before P1.1 is merged.
 
 ## Rule
 
