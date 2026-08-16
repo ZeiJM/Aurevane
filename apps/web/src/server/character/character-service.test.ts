@@ -54,7 +54,11 @@ function repository(overrides: Partial<CharacterRepository> = {}): CharacterRepo
 
 describe('character service', () => {
   it('reconstructs canonical starting state before persistence', async () => {
-    const create = vi.fn(async () => ({ result: record(), replayed: false }))
+    let captured: Parameters<CharacterRepository['createBaseCharacter']>[0] | undefined
+    const create: CharacterRepository['createBaseCharacter'] = vi.fn(async (input) => {
+      captured = input
+      return { result: record(), replayed: false }
+    })
     const repo = repository({ createBaseCharacter: create })
 
     await createBaseCharacter(
@@ -66,7 +70,7 @@ describe('character service', () => {
       repo,
     )
 
-    expect(create).toHaveBeenCalledWith(
+    expect(captured).toEqual(
       expect.objectContaining({
         userId: actor.userId,
         name: 'Arlen Vale',
@@ -77,10 +81,9 @@ describe('character service', () => {
         resolve: 6,
       }),
     )
-    const persisted = create.mock.calls[0][0]
-    expect(persisted).not.toHaveProperty('level')
-    expect(persisted).not.toHaveProperty('xp')
-    expect(persisted.requestFingerprint).toHaveLength(64)
+    expect(captured).not.toHaveProperty('level')
+    expect(captured).not.toHaveProperty('xp')
+    expect(captured?.requestFingerprint).toHaveLength(64)
   })
 
   it('rejects invented starter media references before repository execution', async () => {
