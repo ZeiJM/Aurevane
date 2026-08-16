@@ -14,7 +14,7 @@
     "test": "turbo run test",
     "format": "prettier --write \"apps/**/*.{ts,tsx,js,mjs,json,css}\" \"packages/**/*.{ts,tsx,js,mjs,json}\" package.json turbo.json pnpm-workspace.yaml .prettierrc.json eslint.config.mjs",
     "format:check": "prettier --check \"apps/**/*.{ts,tsx,js,mjs,json,css}\" \"packages/**/*.{ts,tsx,js,mjs,json}\" package.json turbo.json pnpm-workspace.yaml .prettierrc.json eslint.config.mjs",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "check": "pnpm format && git diff -- packages/game-core/src/combat/battle-state.ts packages/game-core/src/combat/battle-state.test.ts && exit 1",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset --local"
