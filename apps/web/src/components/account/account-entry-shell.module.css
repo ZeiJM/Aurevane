@@ -66,12 +66,7 @@
 
 .heroShade {
   background:
-    linear-gradient(
-      90deg,
-      rgba(5, 6, 9, 0.9),
-      rgba(5, 6, 9, 0.34) 64%,
-      rgba(5, 6, 9, 0.62)
-    ),
+    linear-gradient(90deg, rgba(5, 6, 9, 0.9), rgba(5, 6, 9, 0.34) 64%, rgba(5, 6, 9, 0.62)),
     linear-gradient(0deg, rgba(5, 6, 9, 0.88), transparent 52%);
 }
 

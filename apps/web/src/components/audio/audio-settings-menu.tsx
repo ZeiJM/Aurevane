@@ -125,12 +125,7 @@ export function AudioSettingsMenu() {
             >
               {audioState === 'ready' ? 'Audio enabled' : 'Enable audio'}
             </GameButton>
-            <GameButton
-              type="button"
-              variant="quiet"
-              onClick={toggleMute}
-              data-testid="audio-mute"
-            >
+            <GameButton type="button" variant="quiet" onClick={toggleMute} data-testid="audio-mute">
               {settings.muted ? 'Unmute all' : 'Mute all'}
             </GameButton>
           </div>

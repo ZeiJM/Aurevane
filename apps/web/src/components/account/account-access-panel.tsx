@@ -157,12 +157,7 @@ export function AccountAccessPanel({ authAvailable }: AccountAccessPanelProps) {
           />
         </label>
 
-        <GameButton
-          className={styles.submit}
-          type="submit"
-          disabled={busy}
-          aria-busy={busy}
-        >
+        <GameButton className={styles.submit} type="submit" disabled={busy} aria-busy={busy}>
           {busy ? 'Please wait…' : mode === 'signin' ? 'Enter AUREVANE' : 'Create account'}
         </GameButton>
       </form>
