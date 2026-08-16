@@ -153,9 +153,19 @@ describe("Wayfarer's Practice: Balanced Practice", () => {
         'window',
       ].sort(),
     )
-    expect(JSON.stringify(result)).not.toMatch(
-      /quest|story|boss|expedition|pvp|equipment|currency|discipline/i,
-    )
+
+    for (const prohibitedProperty of [
+      'quest',
+      'story',
+      'boss',
+      'expedition',
+      'pvp',
+      'equipment',
+      'currency',
+      'discipline',
+    ]) {
+      expect(result).not.toHaveProperty(prohibitedProperty)
+    }
   })
 
   it('rejects malformed configuration and untrusted time windows', () => {
