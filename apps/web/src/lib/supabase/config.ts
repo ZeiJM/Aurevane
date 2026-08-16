@@ -51,7 +51,8 @@ export function resolvePublicSupabaseEnvironment(
     normalizeOptionalValue(hostedInput.SUPABASE_PUBLISHABLE_KEY) ??
     normalizeOptionalValue(hostedInput.SUPABASE_ANON_KEY)
   const hostedEnvironment =
-    normalizeOptionalValue(hostedInput.AUREVANE_ENV) ?? inferVercelEnvironment(hostedInput.VERCEL_ENV)
+    normalizeOptionalValue(hostedInput.AUREVANE_ENV) ??
+    inferVercelEnvironment(hostedInput.VERCEL_ENV)
 
   if (!hostedUrl && !hostedPublishableKey && !hostedEnvironment) {
     return publicInput
