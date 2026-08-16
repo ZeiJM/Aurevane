@@ -4,7 +4,7 @@ This file tracks the current implementation boundary. The Master Game Plan defin
 
 ## Current status
 
-**Stage:** Phase 1 — Character Foundation planned; implementation not started
+**Stage:** Phase 1 — Character Foundation / P1.1 in progress on a gated feature branch
 
 Authoritative documents established:
 
@@ -106,13 +106,25 @@ The first major player milestone is P1.3: an authenticated player can create and
 
 ## ACTIVE
 
-No Phase 1 implementation ticket is active.
+### P1.1 — Account Entry + Player Profile Boundary
 
-Phase 0 production-verification issue #20 remains open. Vercel Production remains behind the approved `main` checkpoint because production deployments are being rate-limited. The only missing **runtime-affecting** change required to clear that gate is the already-merged public-shell environment hotfix; later planning/documentation commits do not change runtime behavior. The first Phase 1 implementation must not merge until the current Phase 0 production shell is successfully redeployed and verified.
+Issue #28 is active on branch `agent/ticket-1-1-account-profile`.
+
+Current ticket boundary:
+
+- reuse the existing Supabase Auth/session/verified-claims foundation;
+- add the polished public account-entry experience;
+- add exactly one durable private player profile per authenticated account;
+- establish the authenticated `/game` entry and stable no-character account state;
+- keep account identity separate from future public character identity;
+- add account/security help and browser/database/security verification;
+- do not implement character creation, attributes, progression, Disciplines, inventory, world, combat, or future systems early.
+
+**Hard release gate:** Phase 0 production-verification issue #20 remains open because Vercel has not yet accepted a Production deployment of the corrected current `main` shell. P1.1 may be developed and verified on this isolated branch, but **DO NOT MERGE P1.1 into `main` while #20 is open**.
 
 ## Next
 
-P1.1 — Account Entry + Player Profile Boundary, after issue #20 is closed.
+Complete and fully verify P1.1 on its feature branch. When Vercel permits the corrected Phase 0 Production deployment, verify the live shell, close #20, sync P1.1 with the then-current `main`, and merge P1.1 only after its own gates remain green.
 
 ## Rule
 
