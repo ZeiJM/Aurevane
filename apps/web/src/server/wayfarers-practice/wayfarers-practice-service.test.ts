@@ -15,6 +15,9 @@ const reportId = '00000000-0000-4000-8000-000000000b03'
 const idempotencyKey = '00000000-0000-4000-8000-000000000b04'
 const actor = { userId }
 
+type MaterializeInput = Parameters<WayfarersPracticeRepository['materializeTrainingReport']>[0]
+type ClaimInput = Parameters<WayfarersPracticeRepository['claimTrainingReport']>[0]
+
 function report(overrides: Partial<TrainingReportRecord> = {}): TrainingReportRecord {
   return {
     reportId,
@@ -63,7 +66,9 @@ function claim(overrides: Partial<TrainingReportClaimRecord> = {}): TrainingRepo
   }
 }
 
-function repository(overrides: Partial<WayfarersPracticeRepository> = {}): WayfarersPracticeRepository {
+function repository(
+  overrides: Partial<WayfarersPracticeRepository> = {},
+): WayfarersPracticeRepository {
   return {
     materializeTrainingReport: vi.fn(async () => report()),
     claimTrainingReport: vi.fn(async () => ({ replayed: false, result: claim() })),
@@ -72,8 +77,8 @@ function repository(overrides: Partial<WayfarersPracticeRepository> = {}): Wayfa
 }
 
 describe("Wayfarer's Practice service", () => {
-  it('materializes a report from verified identity without accepting client time or rewards', async () => {
-    let captured: Parameters<WayfarersPracticeRepository['materializeTrainingReport']>[0] | undefined
+  it('materializes without client time or rewards', async () => {
+    let captured: MaterializeInput | undefined
     const repo = repository({
       materializeTrainingReport: vi.fn(async (input) => {
         captured = input
@@ -113,7 +118,7 @@ describe("Wayfarer's Practice service", () => {
   })
 
   it('claims by opaque identifiers only and returns replay-safe Level-up effects', async () => {
-    let captured: Parameters<WayfarersPracticeRepository['claimTrainingReport']>[0] | undefined
+    let captured: ClaimInput | undefined
     const repo = repository({
       claimTrainingReport: vi.fn(async (input) => {
         captured = input
