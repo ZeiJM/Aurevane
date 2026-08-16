@@ -4,7 +4,7 @@ This file tracks the current implementation boundary. The Master Game Plan defin
 
 ## Current status
 
-**Stage:** Phase 1 — Character Foundation / P1.3 authoritative character-creation checkpoint
+**Stage:** Phase 1 — Character Foundation / P1.4 character-profile checkpoint
 
 Authoritative documents established:
 
@@ -168,13 +168,9 @@ Completed with:
 
 **Verification:** exact-head formatting/lint/type/tests/build, local Supabase regressions, responsive Chromium, and Vercel Preview passed; PR #37 merged into `main` and issue #31 closed as completed.
 
-## ACTIVE
-
 ### P1.3 — Authoritative Character Creation + Persistence Experience
 
-Canonical work is issue #38 / PR #39 / branch `agent/ticket-1-3-character-persistence`.
-
-Current implementation includes:
+Completed with:
 
 - private persistent character rows with account ownership, base slot index, globally unique normalized name key, core attributes, Foundation Discipline, creation rules version, progression seed and server-owned timestamps;
 - browser read-only ownership RLS with direct browser mutation denied;
@@ -189,11 +185,33 @@ Current implementation includes:
 - dedicated local-Supabase regression coverage for slot/name/idempotency/RLS/direct-mutation security;
 - browser acceptance covering account creation, character creation, refresh, sign-out, sign-in, and same-character recovery across desktop, laptop and mobile.
 
-**Current gate:** quality/build/worker and full database/security checks are green. Vercel Preview is healthy. The final exact-head responsive Chromium acceptance is being rerun after correcting the browser-test server environment to provide the required server-only local Supabase credential; P1.3 remains unmerged until that gate is green.
+**Verification:** exact-head quality/build/worker, full database/security, responsive Chromium desktop/laptop/mobile lifecycle, and Vercel Preview passed before merge. PR #39 squash-merged; issue #38 closed as completed. The merged `main` checkpoint `9a5a38adbd2593cabf7e4687eb78b66b6b6d250a` then passed the same quality, database/security, responsive Chromium, and Vercel release checks.
+
+## ACTIVE
+
+### P1.4 — Character Profile + Derived Stat Framework
+
+Canonical work is issue #40 / PR #41 / branch `agent/ticket-1-4-character-profile`.
+
+Current implementation scope includes:
+
+- one pure versioned `packages/game-core` derived-stat calculator for Maximum HP, Maximum MP, Physical Power, Mystic Power, Armor, Ward, Accuracy, Evasion, Critical Chance, Initiative, Movement, Jump, and Status Resistance;
+- integer-only deterministic arithmetic with percentage-like stats represented internally as basis points;
+- centralized first-pass Phase 1 coefficients explicitly treated as development balance rather than a launch-balance promise;
+- rule/config validation for complete stat identity, safe divisors, integer coefficients, bounds, and character input ranges;
+- explicit base/Level/attribute calculation provenance plus a typed future modifier contribution category without implementing equipment, Discipline, effect, or combat systems early;
+- server-built character profile read model that excludes private account linkage and normalized-name internals;
+- authenticated `/game/character` profile route reusing the existing owner-isolated persisted-character read boundary and recovery state;
+- responsive character profile presentation for public identity, requested portrait, Foundation Discipline, Level/XP/cycle, four core attributes, grouped derived stats, ruleset version, and contextual stat explanations;
+- keyboard-focusable profile navigation, phone-safe single-column treatment, laptop-height compaction, desktop scale, and horizontal-overflow protection;
+- spoiler-safe Character Profile & Derived Stats manual content that explains meanings, Movement-stat → Movement Budget semantics, configuration versioning, provenance, security, and future modifier boundaries without duplicating coefficients into prose;
+- deterministic calculator/config/provenance tests, safe read-model projection tests, and expanded desktop/laptop/mobile Playwright lifecycle coverage.
+
+**Release rule:** do not merge P1.4 until the exact PR head passes quality/build/worker, full database/security regressions, responsive Chromium profile acceptance, and Vercel Preview.
 
 ## Next
 
-P1.4 — Character Profile + Derived Stat Framework. Do not begin it until P1.3 is merged and its post-merge `main` release checks are green.
+P1.5 — Level 1–100 XP Progression + Telemetry Foundation. Do not begin it until P1.4 is merged and its post-merge `main` release checks are green.
 
 ## Rule
 
