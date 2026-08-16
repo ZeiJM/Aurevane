@@ -6,12 +6,17 @@ import type { ReactNode } from 'react'
 
 import { AudioSettingsMenu } from '@/components/audio/audio-settings-menu'
 import { CharacterCreationExperience } from '@/components/character/character-creation-experience'
+import {
+  TrainingReportCard,
+  type TrainingReportCardData,
+} from '@/components/wayfarers-practice/training-report-card'
 
 import styles from './authenticated-game-shell.module.css'
 
 interface AuthenticatedGameShellProps {
   profile: PlayerProfile
   character: PersistedCharacter | null
+  trainingReport: TrainingReportCardData | null
 }
 
 interface AuthenticatedShellFrameProps {
@@ -20,7 +25,11 @@ interface AuthenticatedShellFrameProps {
   footerLabel: string
 }
 
-export function AuthenticatedGameShell({ profile, character }: AuthenticatedGameShellProps) {
+export function AuthenticatedGameShell({
+  profile,
+  character,
+  trainingReport,
+}: AuthenticatedGameShellProps) {
   const accountCreated = new Intl.DateTimeFormat('en', {
     dateStyle: 'medium',
     timeZone: 'UTC',
@@ -73,6 +82,8 @@ export function AuthenticatedGameShell({ profile, character }: AuthenticatedGame
                 Open character profile
               </a>
             </div>
+
+            {trainingReport ? <TrainingReportCard report={trainingReport} /> : null}
           </div>
         ) : (
           <CharacterCreationExperience />

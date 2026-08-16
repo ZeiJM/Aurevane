@@ -2,6 +2,7 @@ import { isAurevaneError } from '@aurevane/game-core/errors'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
+import type { TrainingReportCardData } from '@/components/wayfarers-practice/training-report-card'
 import {
   AuthenticatedGameRecovery,
   AuthenticatedGameShell,
@@ -13,6 +14,8 @@ import { loadGameEntryCharacterState } from '@/server/character/game-entry-chara
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
 import { loadGameEntryProfileState } from '@/server/player-profile/game-entry-profile-state'
 import { createSupabasePlayerProfileRepository } from '@/server/player-profile/supabase-player-profile-repository'
+import { loadGameEntryWayfarersPracticeState } from '@/server/wayfarers-practice/game-entry-wayfarers-practice-state'
+import { createSupabaseWayfarersPracticeRepository } from '@/server/wayfarers-practice/supabase-wayfarers-practice-repository'
 
 export const dynamic = 'force-dynamic'
 
@@ -55,7 +58,37 @@ export default async function GameEntryPage() {
     return <AuthenticatedGameRecovery />
   }
 
+  let trainingReport: TrainingReportCardData | null = null
+
+  if (characterState.character) {
+    const practiceState = await loadGameEntryWayfarersPracticeState(
+      actor,
+      characterState.character.id,
+      createSupabaseWayfarersPracticeRepository(),
+    )
+
+    if (practiceState.kind === 'persistence-unavailable') {
+      return <AuthenticatedGameRecovery />
+    }
+
+    if (practiceState.report?.status === 'pending') {
+      trainingReport = {
+        reportId: practiceState.report.reportId,
+        characterId: practiceState.report.characterId,
+        elapsedSeconds: practiceState.report.elapsedSeconds,
+        requestedCharacterXp: practiceState.report.requestedCharacterXp,
+        restedMomentumGain: practiceState.report.restedMomentumGain,
+        directXpCapReached: practiceState.report.directXpCapReached,
+        restedMomentumCapReached: practiceState.report.restedMomentumCapReached,
+      }
+    }
+  }
+
   return (
-    <AuthenticatedGameShell profile={profileState.profile} character={characterState.character} />
+    <AuthenticatedGameShell
+      profile={profileState.profile}
+      character={characterState.character}
+      trainingReport={trainingReport}
+    />
   )
 }
