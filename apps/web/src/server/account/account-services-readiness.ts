@@ -29,7 +29,8 @@ export function getCurrentAccountServicesReadiness(
     requestHost,
     productionHost: process.env.VERCEL_PROJECT_PRODUCTION_URL,
     productionReady: process.env.AUREVANE_ACCOUNT_SERVICES_READY,
-    privilegedServerKey: process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY,
+    privilegedServerKey:
+      process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY,
   })
 }
 
