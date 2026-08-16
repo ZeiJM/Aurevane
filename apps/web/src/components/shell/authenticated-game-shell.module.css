@@ -290,7 +290,14 @@
   }
 
   .sideColumn {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
+    gap: var(--av-space-3);
+  }
+
+  .statusCard {
+    flex: none;
+    min-width: 0;
   }
 
   .footer {
