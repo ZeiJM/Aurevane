@@ -1,10 +1,7 @@
 import type { PublicSupabaseConfig } from '../../lib/supabase/config'
 
 export type AccountServicesReadinessReason =
-  | 'ready'
-  | 'unconfigured'
-  | 'production_environment_mismatch'
-  | 'production_not_ready'
+  'ready' | 'unconfigured' | 'production_environment_mismatch' | 'production_not_ready'
 
 export interface AccountServicesReadiness {
   available: boolean

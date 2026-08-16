@@ -7,8 +7,7 @@ import { serverLogger, type ServerLogger } from '../logging'
 import { loadPlayerProfile } from './player-profile-service'
 
 export type GameEntryProfileState =
-  | { kind: 'ready'; profile: PlayerProfile }
-  | { kind: 'persistence-unavailable' }
+  { kind: 'ready'; profile: PlayerProfile } | { kind: 'persistence-unavailable' }
 
 export async function loadGameEntryProfileState(
   actor: AuthenticatedActor,
