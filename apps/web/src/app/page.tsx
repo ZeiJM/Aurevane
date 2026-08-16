@@ -21,5 +21,10 @@ export default async function Home() {
     }
   }
 
-  return <AccountEntryShell authAvailable={readiness.available} />
+  const authConfig =
+    readiness.available && publicConfig
+      ? { url: publicConfig.url, publishableKey: publicConfig.publishableKey }
+      : null
+
+  return <AccountEntryShell authConfig={authConfig} />
 }
