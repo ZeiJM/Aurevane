@@ -172,8 +172,7 @@ export function calculateBalancedPractice(input: {
     fullRateSeconds,
     reducedRateSeconds,
     requestedCharacterXp,
-    directXpCapState:
-      uncappedCharacterXp >= config.directXpCap ? 'reached' : 'not_reached',
+    directXpCapState: uncappedCharacterXp >= config.directXpCap ? 'reached' : 'not_reached',
     restedMomentumSeconds,
     restedMomentumGain,
     restedMomentumCapState:
