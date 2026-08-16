@@ -5,6 +5,8 @@ import {
   type AccountServicesReadiness,
 } from './account-services-readiness'
 
+const aurevaneProductionProjectRef = 'luazfeupwfgnilohfsya'
+
 const localConfig = {
   environment: 'local' as const,
   url: 'http://127.0.0.1:54321',
@@ -21,6 +23,11 @@ const productionConfig = {
   environment: 'production' as const,
   url: 'https://production.example.supabase.co',
   publishableKey: 'production-key',
+}
+
+const aurevaneProductionConfig = {
+  ...productionConfig,
+  url: `https://${aurevaneProductionProjectRef}.supabase.co`,
 }
 
 describe('resolveAccountServicesReadiness', () => {
@@ -69,6 +76,35 @@ describe('resolveAccountServicesReadiness', () => {
         publicConfig: productionConfig,
         vercelEnvironment: 'production',
         privilegedServerKey: 'sb_secret_aurevane_production_test_key',
+      }),
+      true,
+      'ready',
+    )
+  })
+
+  it('rejects a production integration that points at a different Supabase project', () => {
+    expectReadiness(
+      resolveAccountServicesReadiness({
+        publicConfig: {
+          ...productionConfig,
+          url: 'https://xwapkmsyztsmsijavkxg.supabase.co',
+        },
+        vercelEnvironment: 'production',
+        privilegedServerKey: 'sb_secret_aurevane_production_test_key',
+        expectedProductionSupabaseProjectRef: aurevaneProductionProjectRef,
+      }),
+      false,
+      'production_project_mismatch',
+    )
+  })
+
+  it('accepts the bound AUREVANE Supabase project when production credentials are valid', () => {
+    expectReadiness(
+      resolveAccountServicesReadiness({
+        publicConfig: aurevaneProductionConfig,
+        vercelEnvironment: 'production',
+        privilegedServerKey: 'sb_secret_aurevane_production_test_key',
+        expectedProductionSupabaseProjectRef: aurevaneProductionProjectRef,
       }),
       true,
       'ready',
