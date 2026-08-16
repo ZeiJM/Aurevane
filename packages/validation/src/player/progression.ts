@@ -34,9 +34,7 @@ export const characterXpGrantPersistenceRowSchema = z
 export type LevelProgressionCurvePersistenceRow = z.infer<
   typeof levelProgressionCurvePersistenceRowSchema
 >
-export type CharacterXpGrantPersistenceRow = z.infer<
-  typeof characterXpGrantPersistenceRowSchema
->
+export type CharacterXpGrantPersistenceRow = z.infer<typeof characterXpGrantPersistenceRowSchema>
 
 export function parseLevelProgressionCurvePersistenceRow(
   input: unknown,
