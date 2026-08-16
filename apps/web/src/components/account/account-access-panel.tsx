@@ -3,10 +3,7 @@
 import { GameButton } from '@aurevane/ui'
 import { type FormEvent, useId, useState } from 'react'
 
-import {
-  createSupabaseBrowserClient,
-  type BrowserSupabaseConfig,
-} from '@/lib/supabase/client'
+import { createSupabaseBrowserClient, type BrowserSupabaseConfig } from '@/lib/supabase/client'
 
 import styles from './account-entry-shell.module.css'
 
