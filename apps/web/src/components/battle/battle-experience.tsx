@@ -7,6 +7,7 @@ import type { BattlePreviewView } from '@/server/battle/battle-preview-service'
 import type { RecruitTurnView } from '@/server/battle/battle-recruit-ai-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
+import { BattleCompletionPanel } from './battle-completion-panel'
 import { BattleLogPanel } from './battle-log-panel'
 import styles from './battle-experience.module.css'
 
@@ -810,6 +811,8 @@ export function BattleExperience({ initialBattle }: BattleExperienceProps) {
           </button>
         </div>
       </section>
+
+      {battleState.lifecycle === 'completed' ? <BattleCompletionPanel battle={battle} /> : null}
 
       <footer className={styles.eventTicker} aria-live="polite">
         <span className={styles.connectionDot} aria-hidden="true" />

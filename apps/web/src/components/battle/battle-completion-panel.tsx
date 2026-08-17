@@ -124,10 +124,20 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
       ) : null}
 
       <div className={styles.actions}>
-        <button type="button" className={styles.primary} onClick={() => void retry()} disabled={retryPending || !characterId}>
+        <button
+          type="button"
+          className={styles.primary}
+          onClick={() => void retry()}
+          disabled={retryPending || !characterId}
+        >
           {retryPending ? 'Restarting…' : 'Retry same drill'}
         </button>
-        <button type="button" className={styles.secondary} onClick={() => router.push('/game/battle')} disabled={retryPending}>
+        <button
+          type="button"
+          className={styles.secondary}
+          onClick={() => router.push('/game/battle')}
+          disabled={retryPending}
+        >
           Return to Tactical Hall
         </button>
       </div>

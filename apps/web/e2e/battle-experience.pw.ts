@@ -120,6 +120,40 @@ test('launches the Tactical Hall and resolves an authoritative player and Recrui
   await expect(battleLog).not.toContainText('profileId')
   await page.getByTestId('battle-log-toggle').click()
 
+  const completion = page.getByTestId('tactical-hall-result')
+  for (let playerTurn = 0; playerTurn < 8 && !(await completion.isVisible()); playerTurn += 1) {
+    await page.getByRole('button', { name: /Basic Attack.*Target one enemy/ }).click()
+    await page
+      .getByRole('button', {
+        name: /occupied by Recruit/,
+      })
+      .click()
+    await expect(page.getByText('Preview ready. Confirm to commit this command.')).toBeVisible()
+    await page.getByRole('button', { name: /Confirm command/ }).click()
+
+    if (await completion.isVisible()) break
+
+    await page.getByRole('button', { name: 'Face east' }).click()
+    await expect(page.getByText('Preview ready. Confirm to commit this command.')).toBeVisible()
+    await page.getByRole('button', { name: /Confirm command/ }).click()
+    await page.getByRole('button', { name: /End Turn.*Facing required/ }).click()
+    await expect(page.getByText('Preview ready. Confirm to commit this command.')).toBeVisible()
+    await page.getByRole('button', { name: /Confirm command/ }).click()
+    await expect(page.getByText('Your turn', { exact: true })).toBeVisible({ timeout: 15_000 })
+  }
+
+  await expect(completion).toBeVisible({ timeout: 15_000 })
+  await expect(completion).toContainText(/Victory|Defeat|Draw/)
+  await expect(page.getByTestId('practice-no-rewards')).toContainText(
+    'no Character XP, Mastery, loot, Crowns, PvP rating',
+  )
+  const completedUrl = page.url()
+  await page.getByRole('button', { name: 'Retry same drill' }).click()
+  await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
+  expect(page.url()).not.toBe(completedUrl)
+  await expect(page.getByText('Your turn', { exact: true })).toBeVisible()
+  await expect(page.getByTestId('tactical-hall-result')).toHaveCount(0)
+
   expect(await hasHorizontalOverflow(page)).toBe(false)
   await expectBattlefieldAndCommandDeckInViewport(page)
 })
