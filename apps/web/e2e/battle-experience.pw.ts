@@ -77,7 +77,8 @@ test('launches the Tactical Hall and resolves an authoritative player and Recrui
   await page.getByRole('button', { name: /Confirm command/ }).click()
   await expect(page.getByText(/Authoritative battle version 4/)).toBeVisible()
 
-  const attackButton = page.getByRole('button', { name: /Basic Attack.*Choose one enemy/ })
+  const commandDeck = page.getByRole('region', { name: 'Command Deck' })
+  const attackButton = commandDeck.getByRole('button', { name: /Basic Attack/ })
   const faceEast = page.getByRole('button', { name: 'Face east' })
   const completion = page.getByTestId('tactical-hall-result')
 
