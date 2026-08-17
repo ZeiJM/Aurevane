@@ -78,6 +78,7 @@ test('launches the Tactical Hall and resolves an authoritative player and Recrui
   await expect(page.getByText(/Authoritative battle version 4/)).toBeVisible()
 
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
+  const turnEconomy = page.getByRole('region', { name: 'Turn Economy Tracker' })
   const attackButton = commandDeck.getByRole('button', { name: /Basic Attack/ })
   const faceEast = page.getByRole('button', { name: 'Face east' })
   const completion = page.getByTestId('tactical-hall-result')
@@ -106,7 +107,7 @@ test('launches the Tactical Hall and resolves an authoritative player and Recrui
   await expect(page.getByText('Preview ready. Confirm to commit this command.')).toBeVisible()
   await page.getByRole('button', { name: /Confirm command/ }).click()
   await expect(page.getByText(/Authoritative battle version 6/)).toBeVisible()
-  await expect(page.getByText('east →')).toBeVisible()
+  await expect(turnEconomy.getByText('east →', { exact: true })).toBeVisible()
 
   await page.getByRole('button', { name: /End Turn.*Facing required/ }).click()
   await expect(page.getByText('Preview ready. Confirm to commit this command.')).toBeVisible()
