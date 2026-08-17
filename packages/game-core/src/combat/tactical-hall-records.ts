@@ -1,11 +1,7 @@
 import type { TacticalHallArenaId } from './tactical-hall-arenas'
 
 export type TacticalHallRecordId =
-  | 'movement-drill'
-  | 'strike-drill'
-  | 'guard-drill'
-  | 'facing-drill'
-  | 'recruit-sparring'
+  'movement-drill' | 'strike-drill' | 'guard-drill' | 'facing-drill' | 'recruit-sparring'
 
 export interface TacticalHallRecordDefinition {
   id: TacticalHallRecordId
