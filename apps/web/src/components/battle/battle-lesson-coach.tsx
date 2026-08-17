@@ -41,7 +41,11 @@ export function BattleLessonCoach({ battleSessionId }: BattleLessonCoachProps) {
   const record = getTacticalHallRecord(recordId)
 
   return (
-    <aside className={styles.coach} aria-label="Tactical Hall lesson" data-testid="battle-lesson-coach">
+    <aside
+      className={styles.coach}
+      aria-label="Tactical Hall lesson"
+      data-testid="battle-lesson-coach"
+    >
       <div className={styles.heading}>
         <div>
           <span>Guided Tactical Record</span>
