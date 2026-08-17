@@ -1,11 +1,7 @@
 import { validateBattleState, type BattleState } from './battle-state'
 
 export type BattleExitPolicy =
-  | 'ABORT_PRACTICE'
-  | 'IMMEDIATE_RETREAT'
-  | 'TACTICAL_EXTRACTION'
-  | 'SURRENDER'
-  | 'NO_VOLUNTARY_EXIT'
+  'ABORT_PRACTICE' | 'IMMEDIATE_RETREAT' | 'TACTICAL_EXTRACTION' | 'SURRENDER' | 'NO_VOLUNTARY_EXIT'
 
 export type BattleExitOutcome = 'aborted' | 'retreated' | 'surrendered'
 

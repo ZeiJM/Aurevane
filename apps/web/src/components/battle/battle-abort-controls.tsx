@@ -101,19 +101,25 @@ export function BattleAbortControls({
       router.replace('/game/battle')
       router.refresh()
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'The practice exercise could not be aborted.')
+      setNotice(
+        error instanceof Error ? error.message : 'The practice exercise could not be aborted.',
+      )
     } finally {
       setPending(false)
     }
   }
 
   return (
-    <aside className={styles.panel} aria-label="Practice battle exit" data-testid="abort-exercise-controls">
+    <aside
+      className={styles.panel}
+      aria-label="Practice battle exit"
+      data-testid="abort-exercise-controls"
+    >
       {confirming ? (
         <>
           <p>
-            <strong>Abort Exercise?</strong> This ends the drill as ABORTED. You receive no Character
-            XP, Mastery, loot, Crowns, PvP rating, or normal completion rewards.
+            <strong>Abort Exercise?</strong> This ends the drill as ABORTED. You receive no
+            Character XP, Mastery, loot, Crowns, PvP rating, or normal completion rewards.
           </p>
           <div className={styles.actions}>
             <button

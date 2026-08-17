@@ -47,8 +47,12 @@ test('proves the Duel Yard, keyboard planning and authoritative Abort Exercise',
   await expect(page.getByRole('region', { name: 'Tactical battlefield' })).toBeVisible()
   await expect(page.getByRole('button', { name: /Tile 2, 4;.*occupied by Wayfarer/ })).toBeVisible()
   await expect(page.getByRole('button', { name: /Tile 8, 4;.*occupied by Recruit/ })).toBeVisible()
-  await expect(page.getByRole('button', { name: /Tile 4, 3; rough-ground; elevation 0/ })).toBeVisible()
-  await expect(page.getByRole('button', { name: /Tile 5, 2; open-ground; elevation 1/ })).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: /Tile 4, 3; rough-ground; elevation 0/ }),
+  ).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: /Tile 5, 2; open-ground; elevation 1/ }),
+  ).toBeVisible()
   await expect(page.getByRole('button', { name: /^Tile / })).toHaveCount(63)
   expect(await hasHorizontalOverflow(page)).toBe(false)
 

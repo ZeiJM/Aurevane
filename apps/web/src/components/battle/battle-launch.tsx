@@ -29,7 +29,8 @@ const ARENAS: readonly {
     id: 'duel-yard',
     name: 'Duel Yard',
     scale: '9×7 · Duel arena',
-    summary: 'More room for approach choice, rough terrain, elevation, flanking, and repositioning.',
+    summary:
+      'More room for approach choice, rough terrain, elevation, flanking, and repositioning.',
   },
 ]
 
@@ -156,7 +157,9 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
               onClick={launchBattle}
               disabled={pending}
             >
-              {pending ? 'Opening field…' : `Begin exercise · ${selectedArena?.name ?? 'Training Floor'}`}
+              {pending
+                ? 'Opening field…'
+                : `Begin exercise · ${selectedArena?.name ?? 'Training Floor'}`}
             </button>
             <button type="button" className={styles.secondary} onClick={() => router.push('/game')}>
               Return to Wayfarer

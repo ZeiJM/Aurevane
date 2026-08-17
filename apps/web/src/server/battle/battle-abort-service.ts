@@ -35,7 +35,9 @@ function persistenceInvalid(): AurevaneError {
   return new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The stored battle state is invalid.')
 }
 
-function abortUnavailable(message = 'This battle cannot be aborted as a practice exercise.'): AurevaneError {
+function abortUnavailable(
+  message = 'This battle cannot be aborted as a practice exercise.',
+): AurevaneError {
   return new AurevaneError('INVALID_REQUEST', message)
 }
 
@@ -45,7 +47,8 @@ function fingerprint(value: unknown): string {
 
 function readPersistedEncounter(record: BattleSessionRecord): StatDrivenCombatEncounterState {
   const snapshot = record.snapshot
-  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) throw persistenceInvalid()
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot))
+    throw persistenceInvalid()
 
   try {
     const candidate = snapshot as StatDrivenCombatEncounterState
@@ -75,7 +78,10 @@ function assertPracticeAbortAllowed(
       throw persistenceInvalid()
     }
   }
-  if (state.tactical.battle.lifecycle !== 'active' && state.tactical.battle.lifecycle !== 'pending') {
+  if (
+    state.tactical.battle.lifecycle !== 'active' &&
+    state.tactical.battle.lifecycle !== 'pending'
+  ) {
     throw abortUnavailable('Only an unfinished practice exercise can be aborted.')
   }
 
@@ -87,9 +93,10 @@ function assertPracticeAbortAllowed(
   if (!arena || arena.exitPolicy !== 'ABORT_PRACTICE') throw abortUnavailable()
 }
 
-function resolvePracticeAbort(
-  state: StatDrivenCombatEncounterState,
-): { state: StatDrivenCombatEncounterState; events: readonly unknown[] } {
+function resolvePracticeAbort(state: StatDrivenCombatEncounterState): {
+  state: StatDrivenCombatEncounterState
+  events: readonly unknown[]
+} {
   try {
     const transition = abortPracticeBattle(state.tactical.battle)
     const encounter = createCombatEncounterState(
