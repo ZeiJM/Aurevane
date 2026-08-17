@@ -1,0 +1,66 @@
+.coach {
+  position: fixed;
+  left: clamp(0.65rem, 1.5vw, 1rem);
+  bottom: 4.4rem;
+  z-index: 39;
+  display: grid;
+  gap: 0.55rem;
+  width: min(29rem, calc(100vw - 1.3rem));
+  padding: 0.8rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  color: var(--av-text);
+  background: rgba(8, 11, 16, 0.94);
+  box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.34);
+}
+
+.heading {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.heading span,
+.coach p,
+.coach li {
+  color: var(--av-text-dim);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+
+.heading strong {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.85rem;
+}
+
+.coach p,
+.coach ol {
+  margin: 0;
+}
+
+.coach ol {
+  display: grid;
+  gap: 0.25rem;
+  padding-left: 1.2rem;
+}
+
+.dismiss {
+  min-height: 2rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  color: var(--av-text-muted);
+  background: rgba(255, 255, 255, 0.035);
+  font: 650 0.62rem/1 var(--av-font-mono);
+  cursor: pointer;
+}
+
+@media (max-width: 720px) {
+  .coach {
+    left: 0.5rem;
+    bottom: 7.6rem;
+    width: calc(100vw - 1rem);
+  }
+}
