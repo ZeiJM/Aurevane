@@ -6,51 +6,47 @@ The Master Game Plan defines the product. The Roadmap defines sequence. Canonica
 
 ## Current status
 
-**Stage:** Phase 2 — Tactical Combat Proof
+**Stage:** PV-1 — Tactical Combat Human/Internal Validation
 
-**ACTIVE:** issue #99 — P2.7 / PV-1 Combat Usability & Battlefield Scale Proof
+**ACTIVE:** issue #101 — PV-1A Tactical Combat Validation Telemetry Foundation
 
-P2.6 Recruit AI + Tactical Hall is complete on `main` through PR #94. The active task is now the mandatory usability/proof layer before substantial Phase 3 expansion: make the baseline combat loop comprehensible without facilitator explanation, prove scenario-driven battlefield scale beyond the 5×3 drill, preserve meaningful facing without redundant bureaucracy, add comfortable keyboard controls, and provide a safe authoritative practice exit.
+P2.7 / PV-1 Combat Usability & Battlefield Scale Proof is complete on `main` through PR #100. The implementation boundary is now the smallest privacy-respecting measurement seam required to conduct and interpret human/internal tactical-combat validation before substantial Phase 3 expansion.
 
-### P2.7 current implementation boundary
+### PV-1A current implementation boundary
 
 Implement and validate:
 
-- visible Move → Action → Facing → End Turn mental model and clear mode instructions;
-- explicit unavailable reasons for Basic Attack, Guard, End Turn and other visible commands;
-- Turn Economy treatment that makes Movement remaining and Action Ready/Spent unmistakable;
-- smallest useful Tactical Hall teaching sequence: Movement, Strike, Guard, Facing, then Recruit Sparring Partner;
-- provisional final-facing UX with player override and an End Turn flow that does not require a redundant separate facing commit;
-- combat keybind foundation using normal preview/intent authority: 1–5, WASD/arrows in context, Space, Enter, Escape, Tab/Shift+Tab, L;
-- one authored Duel/Small Encounter battlefield beyond the 5×3 Micro floor, with terrain, flank space and representative pathing;
-- tactical-density tests proving no hard-coded 5×3 assumptions and acceptable Recruit decision budget;
-- authoritative `Abort Exercise` for no-reward practice with explicit confirmation, idempotent settlement and clean Hall return;
-- minimum typed battle-exit-policy/outcome seam for later Retreat/Extraction/Surrender without implementing those later systems now;
-- responsive authenticated browser coverage for the new usability path.
+- a private server-derived product-validation event ledger;
+- authoritative `first_combat_started`, `first_combat_completed`, and `combat_abandoned` capture from battle persistence rather than client analytics calls;
+- first-event uniqueness and replay/idempotency safety;
+- only stable account/character/battle/version identifiers needed for validation analysis;
+- no email, character name, IP address, free-form text, session replay, or arbitrary browser payloads;
+- no direct `anon` or `authenticated` table read/write authority;
+- focused database verification through the Battle Session DB workflow.
 
-Do not pull Phase 3 Disciplines/Arts/buildcraft, production PvP/Colosseum spectation, world-retreat settlement, Expedition extraction, mature account settings breadth, stronger AI grades, or full production art/VFX forward.
+Do not pull Phase 3 Disciplines/Arts/buildcraft, broader analytics infrastructure, production PvP/Colosseum spectation, world-retreat settlement, Expedition extraction, stronger AI grades, or unrelated account/settings breadth forward.
 
 ## Completed foundation relevant to this work
 
 - Phase 0 foundation and security hardening are complete.
 - Phase 1 character/profile/derived-stat/XP foundations are complete.
-- P1.6 Wayfarer's Practice planned windows + Rested Momentum are complete.
+- P1.6 Wayfarer's Practice planned windows + Rested Momentum is complete.
 - P1.7 public News/Manual/Rules foundation is complete.
-- P2.1–P2.5 combat engine, persistence, authority, preview and cockpit foundations are complete.
-- P2.6 deterministic server-authoritative Recruit AI, Tactical Hall repeat loop, battle completion/retry, no-normal-progression reward contract, and authenticated browser journey are merged through PR #94.
-- `docs/PHASE_0_2_RETROACTIVE_COMPATIBILITY_AUDIT.md` records that later identity/staff/profession/item/enchantment/Vault/Event systems require no speculative early schema expansion.
+- P2.1–P2.6 combat engine, persistence, battle UX, Recruit AI and Tactical Hall vertical slice are complete.
+- P2.7 combat usability, integrated final-facing flow, combat keybind foundation, 9×7 Duel Yard scale proof, larger-board Recruit validation and authoritative Abort Exercise are merged through PR #100.
+- Exact-head P2.7 GitHub CI, database/security and responsive browser gates passed; the Vercel preview also reached Ready.
 
-## Current authoritative additions affecting this ticket
+## Current authoritative documents
 
-- `docs/COMBAT_USABILITY_BATTLEFIELDS_CONTROLS_RETREAT.md` governs battle usability, scenario-driven battlefield scale, keybind direction, final-facing ergonomics and battle-exit semantics.
-- `docs/ROADMAP_COMBAT_USABILITY_BATTLEFIELDS_CONTROLS_RETREAT.md` inserts P2.7/PV-1 before Phase 3.
-- `docs/PVP_SPECTATION_COLOSSEUM.md` and its roadmap addendum are later PvP/social scope; P2.7 should preserve composable committed battle state but must not implement Colosseum/spectation early.
+- `docs/ROADMAP_PRODUCT_VALIDATION.md` governs PV-1 evidence and the minimum telemetry boundary.
+- `docs/COMBAT_USABILITY_BATTLEFIELDS_CONTROLS_RETREAT.md` governs the validated battle-usability contract.
+- `docs/ROADMAP_COMBAT_USABILITY_BATTLEFIELDS_CONTROLS_RETREAT.md` blocks substantial Phase 3 expansion until PV-1 human/internal validation is reviewed.
 
 ## Established deferrals
 
-- Phase 3: Disciplines, Arts, representative equipment/load/buildcraft and related deeper command expansion.
+- Phase 3: Disciplines, Arts, representative equipment/load/buildcraft and deeper command expansion until the PV-1 human evidence gate passes.
 - Later phases: Mantles / Confluences / Soulmarks / Current-Legacy loadouts, stronger AI grades, remote LLM combat, PvP bots, broad Tactical Record progression, full Battle Review, Colosseum/spectation, world/Expedition retreat settlement.
-- Final production combat art/VFX/audio polish and full websocket/co-op synchronization remain later scope.
+- Broad telemetry vendors/SDKs, analytics dashboards, session replay and large event taxonomies remain deferred until product evidence justifies them.
 
 ## Permanent execution rules
 
@@ -65,15 +61,18 @@ Do not pull Phase 3 Disciplines/Arts/buildcraft, production PvP/Colosseum specta
 ## Immediate sequence
 
 ```text
-#99 P2.7 / PV-1 — Combat Usability & Battlefield Scale Proof
+#101 PV-1A — Tactical Combat Validation Telemetry Foundation
   ↓
-GitHub quality + database/security + responsive authenticated browser validation
+GitHub quality + database/security validation
   ↓
-Merge P2.7 and verify main
+Merge PV-1A and verify main
   ↓
-PV-1 human/internal tactical usability validation
+Run human/internal PV-1 tactical-combat sessions with structured notes + telemetry
   ↓
-Only after the PV-1 gate: begin substantial Phase 3 expansion
+Review comprehension, abandonment, confidence, outcome understanding and replay desire
+  ↓
+PASS: begin substantial Phase 3 expansion
+FAIL: open the smallest corrective Phase 2/PV-1 ticket and retest
 ```
 
-If P2.7 uncovers a genuine lower-layer combat-authority defect, fix the smallest authoritative seam explicitly rather than compensating in UI-only code.
+The telemetry layer measures the gate; it does **not** satisfy the human/internal validation gate by itself.
