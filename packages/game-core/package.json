@@ -16,6 +16,7 @@
     "./combat/actions": "./src/combat/actions.ts",
     "./combat/battle-state": "./src/combat/battle-state.ts",
     "./combat/board": "./src/combat/board.ts",
+    "./combat/stat-driven-combat": "./src/combat/stat-driven-combat.ts",
     "./command": "./src/command.ts",
     "./errors": "./src/errors.ts",
     "./player-profile": "./src/player-profile.ts"
