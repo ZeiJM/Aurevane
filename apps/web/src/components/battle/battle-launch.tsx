@@ -195,7 +195,9 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
               onClick={launchBattle}
               disabled={pending}
             >
-              {pending ? 'Opening field…' : `Begin exercise · ${selectedRecord.name}`}
+              {pending
+                ? 'Opening field…'
+                : `Begin exercise · ${selectedArena?.name ?? 'Training Floor'} · ${selectedRecord.name}`}
             </button>
             <button type="button" className={styles.secondary} onClick={() => router.push('/game')}>
               Return to Wayfarer
