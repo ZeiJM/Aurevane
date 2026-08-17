@@ -78,7 +78,10 @@ async function initialEncounter(): Promise<StatDrivenCombatEncounterState> {
       throw new Error('Not used while creating Recruit AI fixture.')
     }),
   }
-  const service = createBattleSessionService({ characters: characterRepository(), battles: repository })
+  const service = createBattleSessionService({
+    characters: characterRepository(),
+    battles: repository,
+  })
   await service.createSession({
     userId: USER_ID,
     characterId: CHARACTER_ID,
@@ -88,7 +91,9 @@ async function initialEncounter(): Promise<StatDrivenCombatEncounterState> {
   return initialSnapshot as StatDrivenCombatEncounterState
 }
 
-function advanceToRecruitTurn(state: StatDrivenCombatEncounterState): StatDrivenCombatEncounterState {
+function advanceToRecruitTurn(
+  state: StatDrivenCombatEncounterState,
+): StatDrivenCombatEncounterState {
   const faced = selectCurrentFinalFacing(state.tactical, 'east')
   const withFacing = reattachStatDrivenCombatBridge(
     { ...state, tactical: faced.state },
@@ -97,7 +102,10 @@ function advanceToRecruitTurn(state: StatDrivenCombatEncounterState): StatDriven
   return endCombatTurn(withFacing, P2_3_COMBAT_CONTENT).state as StatDrivenCombatEncounterState
 }
 
-function createStatefulRepository(initialState: StatDrivenCombatEncounterState, initialVersion = 1) {
+function createStatefulRepository(
+  initialState: StatDrivenCombatEncounterState,
+  initialVersion = 1,
+) {
   let version = initialVersion
   let state = initialState
   const commits: CommitBattleIntentInput[] = []
@@ -157,7 +165,9 @@ describe('P2.6 authoritative Recruit AI turn service', () => {
 
     expect(result.decisions.length).toBeGreaterThan(0)
     expect(result.decisions.length).toBeLessThanOrEqual(8)
-    expect(result.snapshot.tactical.battle.currentTurn?.combatantId).toBe(`character:${CHARACTER_ID}`)
+    expect(result.snapshot.tactical.battle.currentTurn?.combatantId).toBe(
+      `character:${CHARACTER_ID}`,
+    )
     expect(result.snapshot.tactical.battle).not.toHaveProperty('rng')
     expect(fixture.commits).toHaveLength(result.decisions.length)
 
