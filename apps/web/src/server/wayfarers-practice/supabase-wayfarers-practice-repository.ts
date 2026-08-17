@@ -1,14 +1,18 @@
 import 'server-only'
 
 import type {
+  SetPracticePlanRecord,
   TrainingReportClaimRecord,
   TrainingReportRecord,
   WayfarersPracticeRepository,
+  WayfarersPracticeStatusRecord,
 } from '@aurevane/db/wayfarers-practice'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import {
+  parseSetPracticePlanPersistenceRow,
   parseTrainingReportClaimPersistenceRow,
   parseTrainingReportPersistenceRow,
+  parseWayfarersPracticeStatusPersistenceRow,
 } from '@aurevane/validation/player/wayfarers-practice'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -17,7 +21,7 @@ export function createSupabaseWayfarersPracticeRepository(): WayfarersPracticeRe
   return {
     async materializeTrainingReport(input) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('materialize_training_report_v1', {
+      const { data, error } = await supabase.rpc('materialize_training_report_v2', {
         p_user_id: input.userId,
         p_character_id: input.characterId,
       })
@@ -40,6 +44,66 @@ export function createSupabaseWayfarersPracticeRepository(): WayfarersPracticeRe
       }
 
       return toTrainingReportRecord(row)
+    },
+
+    async getPracticeStatus(input) {
+      const supabase = createSupabaseAdminClient()
+      const { data, error } = await supabase.rpc('get_wayfarers_practice_status_v1', {
+        p_user_id: input.userId,
+        p_character_id: input.characterId,
+      })
+
+      if (error) {
+        if (error.message.includes('CHARACTER_NOT_FOUND')) {
+          throw new AurevaneError('INVALID_REQUEST', 'The target character was not available.')
+        }
+        throw unavailable()
+      }
+
+      const candidate = Array.isArray(data) && data.length === 1 ? data[0] : null
+      const row = parseWayfarersPracticeStatusPersistenceRow(candidate)
+      if (!row) {
+        throw unavailable()
+      }
+
+      return toPracticeStatusRecord(row)
+    },
+
+    async setPracticePlan(input) {
+      const supabase = createSupabaseAdminClient()
+      const { data, error } = await supabase.rpc('set_wayfarers_practice_plan_v1', {
+        p_actor_key: input.actorKey,
+        p_command_name: input.commandName,
+        p_idempotency_key: input.idempotencyKey,
+        p_request_fingerprint: input.requestFingerprint,
+        p_user_id: input.userId,
+        p_character_id: input.characterId,
+        p_planned_window: input.plannedWindow,
+      })
+
+      if (error) {
+        if (error.code === '22023' && error.message.includes('idempotency key reused')) {
+          throw new AurevaneError(
+            'IDEMPOTENCY_CONFLICT',
+            'That Practice plan key was already used for a different request.',
+          )
+        }
+        if (error.message.includes('CHARACTER_NOT_FOUND')) {
+          throw new AurevaneError('INVALID_REQUEST', 'The target character was not available.')
+        }
+        throw unavailable()
+      }
+
+      const candidate = Array.isArray(data) && data.length === 1 ? data[0] : null
+      const row = parseSetPracticePlanPersistenceRow(candidate)
+      if (!row) {
+        throw unavailable()
+      }
+
+      return {
+        result: toSetPracticePlanRecord(row),
+        replayed: row.replayed,
+      }
     },
 
     async claimTrainingReport(input) {
@@ -93,6 +157,12 @@ function toTrainingReportRecord(
     userId: row.user_id,
     focus: row.focus,
     configVersion: row.config_version,
+    practiceSource: row.practice_source,
+    plannedWindow: row.planned_window,
+    plannedWindowConfigVersion: row.planned_window_config_version,
+    plannedWindowSeconds: row.planned_window_seconds,
+    plannedElapsedSeconds: row.planned_elapsed_seconds,
+    balancedFallbackSeconds: row.balanced_fallback_seconds,
     windowStartedAt: row.window_started_at,
     windowEndedAt: row.window_ended_at,
     elapsedSeconds: row.elapsed_seconds,
@@ -107,6 +177,41 @@ function toTrainingReportRecord(
     status: row.status,
     createdAt: row.created_at,
     claimedAt: row.claimed_at,
+  }
+}
+
+function toPracticeStatusRecord(
+  row: NonNullable<ReturnType<typeof parseWayfarersPracticeStatusPersistenceRow>>,
+): WayfarersPracticeStatusRecord {
+  return {
+    characterId: row.character_id,
+    userId: row.user_id,
+    focus: row.focus,
+    configVersion: row.config_version,
+    minimumOfflineSeconds: row.minimum_offline_seconds,
+    restedMomentumBalance: row.rested_momentum_balance,
+    plannedWindow: row.planned_window,
+    plannedWindowConfigVersion: row.planned_window_config_version,
+    plannedWindowSeconds: row.planned_window_seconds,
+    planSetAt: row.plan_set_at,
+    shortWindowSeconds: row.short_window_seconds,
+    overnightWindowSeconds: row.overnight_window_seconds,
+    extendedWindowSeconds: row.extended_window_seconds,
+    serverNow: row.server_now,
+  }
+}
+
+function toSetPracticePlanRecord(
+  row: NonNullable<ReturnType<typeof parseSetPracticePlanPersistenceRow>>,
+): SetPracticePlanRecord {
+  return {
+    characterId: row.character_id,
+    userId: row.user_id,
+    plannedWindow: row.planned_window,
+    plannedWindowConfigVersion: row.planned_window_config_version,
+    plannedWindowSeconds: row.planned_window_seconds,
+    planSetAt: row.plan_set_at,
+    serverNow: row.server_now,
   }
 }
 

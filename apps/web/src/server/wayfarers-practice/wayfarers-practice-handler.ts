@@ -1,19 +1,58 @@
 import type { WayfarersPracticeRepository } from '@aurevane/db/wayfarers-practice'
 import type { AuthenticatedActor } from '@aurevane/game-core/command'
 import { AurevaneError } from '@aurevane/game-core/errors'
-import { parseTrainingReportClaimRequest } from '@aurevane/validation/player/wayfarers-practice'
+import {
+  parseSetPracticePlanRequest,
+  parseTrainingReportClaimRequest,
+} from '@aurevane/validation/player/wayfarers-practice'
 
 import { toServerErrorResponse } from '../http/error-response'
-import { claimTrainingReport } from './wayfarers-practice-service'
+import { claimTrainingReport, setPracticePlan } from './wayfarers-practice-service'
 
-export interface TrainingReportClaimHandlerDependencies {
+export interface WayfarersPracticeHandlerDependencies {
   getActor(): Promise<AuthenticatedActor>
   repository: WayfarersPracticeRepository
 }
 
+export async function handleSetPracticePlanRequest(
+  request: Request,
+  dependencies: WayfarersPracticeHandlerDependencies,
+): Promise<Response> {
+  try {
+    const actor = await dependencies.getActor()
+    const input = parseSetPracticePlanRequest(await readJson(request))
+    if (!input) {
+      throw new AurevaneError('INVALID_REQUEST', 'The Practice plan request was not valid.')
+    }
+
+    const outcome = await setPracticePlan(
+      {
+        actor,
+        characterId: input.characterId,
+        plannedWindow: input.plannedWindow,
+        idempotencyKey: input.idempotencyKey,
+      },
+      dependencies.repository,
+    )
+
+    return Response.json(
+      {
+        plan: outcome.plan,
+        replayed: outcome.replayed,
+      },
+      {
+        status: outcome.replayed ? 200 : 201,
+        headers: { 'Cache-Control': 'private, no-store' },
+      },
+    )
+  } catch (error) {
+    return toServerErrorResponse(error)
+  }
+}
+
 export async function handleTrainingReportClaimRequest(
   request: Request,
-  dependencies: TrainingReportClaimHandlerDependencies,
+  dependencies: WayfarersPracticeHandlerDependencies,
 ): Promise<Response> {
   try {
     const actor = await dependencies.getActor()
