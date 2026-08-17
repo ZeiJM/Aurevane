@@ -11,7 +11,7 @@ function uniqueCharacterName(): string {
   return `Scout ${letters}`
 }
 
-test('proves the Duel Yard, keyboard planning and authoritative Abort Exercise', async ({
+test('proves account keybinds, the Duel Yard and authoritative Abort Exercise', async ({
   page,
 }, testInfo) => {
   test.slow()
@@ -34,6 +34,23 @@ test('proves the Duel Yard, keyboard planning and authoritative Abort Exercise',
   await page.getByRole('button', { name: 'Create permanent character' }).click()
   await expect(page.getByTestId('character-established')).toContainText(characterName)
 
+  await page.getByRole('link', { name: 'Controls & Keybinds' }).click()
+  await expect(page).toHaveURL(/\/game\/settings\/controls$/)
+  await page.getByRole('button', { name: 'Change Move keybind' }).click()
+  await page.keyboard.press('m')
+  await expect(page.getByTestId('keybind-move')).toContainText('M')
+  await page.getByRole('button', { name: 'Save account controls' }).click()
+  await expect(page.getByRole('status')).toContainText('Combat controls saved to your account.')
+
+  const persistedMoveKey = queryLocalDatabase(`
+    select profile.combat_keybinds->'move'->>'code'
+    from public.player_profiles profile
+    join auth.users account on account.id = profile.user_id
+    where account.email = '${escapeSqlLiteral(email)}';
+  `)
+  expect(persistedMoveKey).toBe('KeyM')
+
+  await page.getByRole('link', { name: 'Return to Game' }).click()
   await page.getByRole('link', { name: 'Enter Tactical Hall' }).click()
   await expect(page).toHaveURL(/\/game\/battle$/)
 
@@ -55,14 +72,19 @@ test('proves the Duel Yard, keyboard planning and authoritative Abort Exercise',
   ).toBeVisible()
   await expect(page.getByRole('button', { name: /^Tile / })).toHaveCount(63)
   expect(await hasHorizontalOverflow(page)).toBe(false)
+  await page.waitForLoadState('networkidle')
 
-  await page.keyboard.press('2')
+  await page.keyboard.press('m')
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('POSITION')
   await expect(page.getByTestId('combat-mode-instruction')).toContainText(
     'does not spend your Action',
   )
 
   await page.keyboard.press('Escape')
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText('INSPECT')
+  await page.keyboard.press('2')
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText('INSPECT')
+
   await page.keyboard.press('Space')
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('END TURN')
   await page.keyboard.press('a')
