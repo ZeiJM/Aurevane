@@ -1,0 +1,128 @@
+.card {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.2rem;
+  padding: clamp(1rem, 3vw, 1.4rem);
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-md);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.heading h2 {
+  margin: 0.25rem 0 0;
+  font: 600 clamp(1.4rem, 4vw, 2rem) / 1.05 var(--av-font-display);
+}
+
+.heading > span {
+  flex: none;
+  padding: 0.32rem 0.5rem;
+  border: 1px solid rgba(212, 186, 130, 0.4);
+  border-radius: 999px;
+  color: var(--av-brass-300);
+  font: 700 0.62rem/1 var(--av-font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.intro,
+.note,
+.planMeta,
+.window p {
+  margin: 0;
+  color: var(--av-text-muted);
+  line-height: 1.55;
+}
+
+.status {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin: 0;
+}
+
+.status div,
+.window {
+  min-width: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.status dt {
+  color: var(--av-text-dim);
+  font: 700 0.62rem/1.3 var(--av-font-mono);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.status dd {
+  margin: 0.25rem 0 0;
+  overflow-wrap: anywhere;
+  font-weight: 700;
+}
+
+.windowGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.window {
+  display: grid;
+  gap: 0.65rem;
+  align-content: start;
+}
+
+.window > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.window strong {
+  font-family: var(--av-font-display);
+}
+
+.window span,
+.planMeta {
+  color: var(--av-text-dim);
+  font-size: 0.78rem;
+}
+
+.note {
+  padding-left: 0.8rem;
+  border-left: 3px solid rgba(212, 186, 130, 0.5);
+}
+
+.error {
+  margin: 0;
+  color: #f3c4c4;
+}
+
+@media (max-width: 760px) {
+  .windowGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .heading {
+    display: grid;
+  }
+
+  .heading > span {
+    width: fit-content;
+  }
+
+  .status {
+    grid-template-columns: 1fr;
+  }
+}
