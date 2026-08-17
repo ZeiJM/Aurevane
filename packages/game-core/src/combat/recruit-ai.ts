@@ -22,7 +22,6 @@ export const RECRUIT_AI_PROFILE_VERSION = 1 as const
 
 const BASIC_ATTACK = createBasicAttackDefinition(P2_3_UNARMED_ATTACK_PROFILE)
 const ACTIONS: readonly CombatActionDefinition[] = [BASIC_ATTACK, P2_3_GUARD_ACTION]
-const FACINGS: readonly BattleFacing[] = ['north', 'east', 'south', 'west']
 
 export type RecruitAiIntent =
   | { kind: 'move'; path: readonly GridPosition[] }
@@ -243,13 +242,12 @@ function buildCandidates(
   )
   if (nearestEnemy) {
     const preferredFacing = facingToward(actorPlacement.position, nearestEnemy.position)
-    for (const facing of FACINGS) {
-      if (facing !== preferredFacing) continue
+    if (knowledge.finalFacing !== preferredFacing) {
       pushCandidate(candidates, profile, {
-        intent: { kind: 'face', facing },
+        intent: { kind: 'face', facing: preferredFacing },
         reason: 'face-threat',
-        utility: profile.facingUtility + (knowledge.finalFacing === facing ? -4 : 0),
-        stableKey: `face:${facing}`,
+        utility: profile.facingUtility,
+        stableKey: `face:${preferredFacing}`,
       })
     }
   }
