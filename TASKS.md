@@ -8,28 +8,35 @@ The Master Game Plan defines the product. The Roadmap defines sequence. Canonica
 
 **Stage:** Phase 2 — Tactical Combat Core
 
-**ACTIVE:** P2.3 — Targeting, Combat Actions + Effect Grammar
+**ACTIVE:** issue #73 — Roadmap reconciliation finalization before P2.5
 
-- Issue: #63
-- PR: #64 (`agent/p2-3-targeting-actions-effects`)
-- Status: draft / must complete its full acceptance and release gates before dependent implementation is allowed to merge.
+P2.5 has **not** started. The owner-requested Phase 0 / Phase 1 / P2.1–P2.4 implementation audit is complete and its focused corrections have been integrated into `main`. The remaining #73 work is final merged-main validation, issue/status cleanup, and leaving one truthful next ticket.
 
-**STACKED DRAFT — dependency-bound:** P2.4 — Authoritative Battle Session + Persistence Boundary
+### Audit corrections integrated into `main`
 
-- Issue: #69
-- PR: #71 (`agent/p2-4-authoritative-battle-session`)
-- Base/dependency: P2.3 branch
-- Status: may remain a reviewable stacked draft only; **must not merge before P2.3** and should not continue expanding if P2.3 changes its contracts.
+- #80 — Phase 0 RLS helper privilege hardening
+- #61 — P2.1 malformed lifecycle/counter hardening
+- #64 — P2.3 Targeting, Combat Actions + Effect Grammar rebuild
+- #82 — final-facing turn-commitment hardening
+- #85 — Phase 1 foreign-key index hardening
+- #86 — P1.7 Public News + Manual + Rules Foundation
+- #71 — rebuilt P2.4 authoritative battle-session persistence boundary
+- #87 — Phase 1 derived-stats → Phase 2 combat bridge
+- #90 — P2.4 identifier-only battle invalidation/refetch contract
 
-**RECONCILIATION GATE BEFORE P2.5:** issue #73
+The pre-integration exact heads were green on their applicable GitHub gates. #87 and #90 received exact READY Vercel Preview checks, and the composed audit candidate was also validated before integration. Final merged-main validation still has to pass before #73 can close.
 
-Before the first player-facing battle UI ticket begins, reconcile later roadmap/design additions against what actually shipped in Phase 1 and P2.1–P2.4, resolve genuine omissions in focused work, classify intentional deferrals, clean stale planning/branches/PRs, and make this ledger truthful.
+### Live audit corrections already applied
 
-**PUBLIC INFORMATION PREREQUISITE BEFORE P2.5 / EXTERNAL COMBAT TESTING:** issue #55
+- Phase 0: browser execution of the privileged `public.rls_auto_enable()` helper has been revoked; live advisor warnings for that helper are cleared.
+- Phase 1: the seven foreign-key indexes identified by the live Performance Advisor have been added; the corresponding `unindexed_foreign_keys` findings are cleared.
+- P2.4: live battle persistence/RPC migrations are present under their exact Supabase ledger versions and browser roles remain outside the authoritative battle mutation boundary.
 
-P1.7 — Public News + Manual + Rules Foundation remains required before the player-facing P2.5/external combat-testing checkpoint. Engine-only P2.1–P2.4 work having already begun does not remove the product requirement; it changes the truthful sequencing from “before any Phase 2 code exists” to “before the Phase 2 player-facing validation milestone.”
+### External configuration limitation
 
-## Completed major milestones
+Supabase still reports leaked-password protection as disabled. The connected organization is on the **Free** plan; Supabase documents this protection as a **Pro Plan and above** feature. Treat this as an external plan limitation, not an unresolved repository/database defect. Revisit it if the project is upgraded.
+
+## Completed major milestones on `main`
 
 ### Phase 0 — Foundation ✅
 
@@ -37,8 +44,9 @@ P1.7 — Public News + Manual + Rules Foundation remains required before the pla
 - F0.2 Infrastructure + Persistence Baseline
 - F0.3 Server Architecture Skeleton
 - F0.4 Design System + Media/Audio Core
+- audit security hardening integrated through #80
 
-### Phase 1 — Character Foundation ✅ through P1.6
+### Phase 1 — Character Foundation ✅
 
 - P1.1 Account Entry + Player Profile Boundary
 - P1.2 Character Domain Rules + Creation Contract
@@ -46,32 +54,35 @@ P1.7 — Public News + Manual + Rules Foundation remains required before the pla
 - P1.4 Character Profile + Derived Stat Framework
 - P1.5 Level 1–100 XP Progression + Telemetry Foundation
 - P1.6 Wayfarer’s Practice: Balanced Practice Foundation
+- P1.7 Public News + Manual + Rules Foundation
+- audit performance hardening integrated through #85
 
-P1.6 merged through commit `e73243d9b317ac2c739a2b9ceb8a17d7d1e28678`.
+### Phase 2 — engine checkpoints through P2.4 ✅
 
-### Phase 2 — completed checkpoints
+- P2.1 Deterministic Battle State + Turn Economy Foundation, including malformed-state and final-facing hardening
+- P2.2 Board, Movement, Terrain + Facing Legality
+- P2.3 Targeting, Combat Actions + Effect Grammar
+- P2.4 Authoritative Battle Session + Persistence Boundary
+- representative Phase 1-derived combat stat expression integrated through #87
+- identifier-only authoritative battle invalidation/refetch contract integrated through #90
 
-- P2.1 Deterministic Battle State + Turn Economy Foundation ✅
-- P2.2 Board, Movement, Terrain + Facing Legality ✅
+## Reconciliation classifications
 
-## Open reconciliation items
-
-The reconciliation gate must explicitly inspect, not blindly merge:
-
-- draft PR #61 — P2.1 malformed-lifecycle hardening;
-- the **closed/unmerged** PR #33 design history for any still-valid account-recovery/roster/lifecycle direction that should become future focused tickets; do not resurrect the stale draft wholesale;
-- P2.3/P2.4 stacked dependency state;
-- P1.7 public News/Manual/Rules sequencing;
-- all later-approved combat/build rules that could reasonably have implied an earlier foundation requirement;
-- stale issue/PR text that still describes superseded sequencing.
-
-If an item is still correct, integrate it cleanly. If later work superseded it, close/retire it with an explanatory record rather than keeping indefinite ambiguous drafts.
+- **PR #33:** closed/unmerged planning history. Preserve still-valid future account/character-lifecycle direction through later focused tickets; do not resurrect the stale draft wholesale.
+- **Stat-driven combat:** genuine Phase 2 omission corrected by #87 so future UI/AI consume real authoritative character-driven combat values rather than fixed player placeholders.
+- **Battle invalidation/refetch:** genuine P2.4 omission corrected by #90 through the existing identifier-only realtime invalidation boundary; no battle snapshots/RNG/outcomes are broadcast as truth.
+- **Weight / Load / Might handling:** full equipment/load proof remains intentionally deferred when the Phase 2 slice lacks representative equipment. Do not invent a permanent fake formula merely to pull Phase 3 buildcraft forward.
+- **Mantles:** no player Mantles belong in PV-1. Phase 2 preserves reusable temporary-state/action/status/requirement primitives; actual Mantle implementation remains later-phase work.
+- **Battle interface:** the board-first cockpit, Turn Economy Tracker, inspect/target distinction, forecasts, reconnect/stale-version recovery and responsive controls belong to P2.5 itself.
+- **Recruit decision-making:** belongs to P2.6 rather than P2.1–P2.4.
+- **Visual/media direction:** P2.5/PV-1 must exercise the existing replaceable media/audio boundary and prove battlefield readability; full Asset Studio/provider operations remain later-phase work.
+- **PV-1 combat telemetry:** can be completed during P2.5/P2.6 before the external validation cohort; it is not a missing P2.1–P2.4 engine prerequisite.
 
 ## Permanent execution rules
 
 1. Inspect current `main`, open implementation PRs/issues, current phase ticket specs, and recently merged design docs before starting work.
 2. One canonical implementation ticket is ACTIVE at a time.
-3. Stacked drafts are exceptional dependency-bound review artifacts, not permission for a second implementation stream.
+3. Stacked drafts are exceptional dependency-bound review artifacts, not permission for uncontrolled parallel feature development.
 4. Never merge a dependent ticket before its prerequisite.
 5. Reconcile repository truth at phase/player-facing validation boundaries.
 6. Do not use future feature work to hide a failed validation gate.
@@ -81,19 +92,19 @@ If an item is still correct, integrate it cleanly. If later work superseded it, 
 ## Immediate sequence
 
 ```text
-P2.3 acceptance / release gates
+Final merged-main validation for #73
   ↓
-P2.4 dependency-safe completion
+Re-run live Supabase advisor / authority checks that matter to the audit
   ↓
-Issue #73 roadmap/repository reconciliation
-  +
-Issue #55 public News / Manual / Rules foundation
+Close/reconcile completed audit issues and confirm repository status is truthful
   ↓
-P2.5 Responsive Battle Experience + Turn Economy Tracker
+Close #73 and set P2.5 as the single ACTIVE implementation ticket
   ↓
-P2.6 Recruit AI + Tactical Hall vertical slice
+P2.5 — Responsive Battle Experience + Turn Economy Tracker
   ↓
-PV-1 Tactical Combat Proof
+P2.6 — Recruit AI + Tactical Hall vertical slice
+  ↓
+PV-1 — Tactical Combat Proof
 ```
 
-If reconciliation finds a genuine missed prerequisite, insert the smallest focused corrective ticket before P2.5 instead of hiding the gap inside the battle-UI ticket.
+If final merged-main validation exposes another genuine prerequisite defect, fix that smallest defect before closing #73 instead of hiding it inside P2.5.
