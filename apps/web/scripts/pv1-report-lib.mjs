@@ -1,10 +1,5 @@
 const TESTER_COHORTS = new Set(['internal', 'trusted', 'external'])
-const FIRST_BATTLE_OUTCOMES = new Set([
-  'completed',
-  'abandoned',
-  'soft_lock',
-  'technical_failure',
-])
+const FIRST_BATTLE_OUTCOMES = new Set(['completed', 'abandoned', 'soft_lock', 'technical_failure'])
 const OBSERVATION_ANSWERS = new Set(['yes', 'no', 'unclear', 'not_observed'])
 const REPLAY_DISPOSITIONS = new Set([
   'chosen',
@@ -119,16 +114,15 @@ export function validatePv1SessionRecord(record, index = 0) {
   }
 
   assertEnum(record.testerCohort, TESTER_COHORTS, `${recordLabel}.testerCohort`)
-  assertEnum(
-    record.firstBattleOutcome,
-    FIRST_BATTLE_OUTCOMES,
-    `${recordLabel}.firstBattleOutcome`,
-  )
+  assertEnum(record.firstBattleOutcome, FIRST_BATTLE_OUTCOMES, `${recordLabel}.firstBattleOutcome`)
   assertNullableNonNegativeNumber(
     record.firstConfidentActionSeconds,
     `${recordLabel}.firstConfidentActionSeconds`,
   )
-  assertNullableNonNegativeNumber(record.battleDurationSeconds, `${recordLabel}.battleDurationSeconds`)
+  assertNullableNonNegativeNumber(
+    record.battleDurationSeconds,
+    `${recordLabel}.battleDurationSeconds`,
+  )
   assertNonNegativeInteger(record.obviousMisclickCount, `${recordLabel}.obviousMisclickCount`)
   assertNonNegativeInteger(record.targetingConfusionCount, `${recordLabel}.targetingConfusionCount`)
   assertEnum(record.outcomeUnderstood, OBSERVATION_ANSWERS, `${recordLabel}.outcomeUnderstood`)
@@ -142,7 +136,9 @@ export function validatePv1SessionRecord(record, index = 0) {
   validateQualitativeNotes(record.qualitativeNotes, recordLabel)
 
   if (record.firstBattleOutcome === 'completed' && record.battleDurationSeconds === null) {
-    throw new Error(`${recordLabel}.battleDurationSeconds is required when the first battle completed.`)
+    throw new Error(
+      `${recordLabel}.battleDurationSeconds is required when the first battle completed.`,
+    )
   }
 
   if (
@@ -216,7 +212,9 @@ export function summarizePv1Sessions(rawRecords) {
   const replayEligible = records.filter((record) =>
     ['chosen', 'declined'].includes(record.replayDisposition),
   )
-  const replayChosen = replayEligible.filter((record) => record.replayDisposition === 'chosen').length
+  const replayChosen = replayEligible.filter(
+    (record) => record.replayDisposition === 'chosen',
+  ).length
   const replayRate = replayEligible.length === 0 ? null : replayChosen / replayEligible.length
   const technicalOrSoftLock = outcomes.technical_failure + outcomes.soft_lock
 
@@ -270,7 +268,9 @@ function formatSeconds(value) {
 }
 
 function formatRating(summary) {
-  return summary.median === null ? 'n/a' : `${Number(summary.median.toFixed(1))}/5 (n=${summary.sampleSize})`
+  return summary.median === null
+    ? 'n/a'
+    : `${Number(summary.median.toFixed(1))}/5 (n=${summary.sampleSize})`
 }
 
 export function formatPv1Summary(summary) {
