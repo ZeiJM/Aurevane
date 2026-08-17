@@ -407,7 +407,8 @@ export function BattleExperience({ initialBattle }: BattleExperienceProps) {
           (placement) => placement.combatantId === targetCombatantId,
         )
         if (targetPlacement) {
-          nextFacing = facingToward(activePlacement.position, targetPlacement.position) ?? nextFacing
+          nextFacing =
+            facingToward(activePlacement.position, targetPlacement.position) ?? nextFacing
         }
       } else if (committedIntent.kind === 'face') {
         nextFacing = committedIntent.facing
