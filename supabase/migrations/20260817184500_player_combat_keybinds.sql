@@ -18,4 +18,58 @@ revoke update (combat_keybinds) on public.player_profiles from public;
 revoke update (combat_keybinds) on public.player_profiles from anon;
 revoke update (combat_keybinds) on public.player_profiles from authenticated;
 
+create or replace function public.save_player_combat_controls_v1(
+  p_user_id uuid,
+  p_combat_keybinds jsonb
+)
+returns table (
+  user_id uuid,
+  created_at timestamptz,
+  combat_keybinds jsonb
+)
+language plpgsql
+security definer
+set search_path = pg_catalog, public
+as $$
+begin
+  if p_user_id is null then
+    raise exception using
+      errcode = '22023',
+      message = 'player user id is required';
+  end if;
+
+  if p_combat_keybinds is null or jsonb_typeof(p_combat_keybinds) <> 'object' then
+    raise exception using
+      errcode = '22023',
+      message = 'combat keybinds must be a JSON object';
+  end if;
+
+  update public.player_profiles as profile
+  set combat_keybinds = p_combat_keybinds
+  where profile.user_id = p_user_id;
+
+  if not found then
+    raise exception using
+      errcode = 'P0001',
+      message = 'PLAYER_PROFILE_UNAVAILABLE';
+  end if;
+
+  return query
+  select
+    profile.user_id,
+    profile.created_at,
+    profile.combat_keybinds
+  from public.player_profiles as profile
+  where profile.user_id = p_user_id;
+end;
+$$;
+
+comment on function public.save_player_combat_controls_v1(uuid, jsonb) is
+  'Persists server-validated account combat controls without exposing direct player_profiles mutation to browser roles.';
+
+revoke all on function public.save_player_combat_controls_v1(uuid, jsonb) from public;
+revoke all on function public.save_player_combat_controls_v1(uuid, jsonb) from anon;
+revoke all on function public.save_player_combat_controls_v1(uuid, jsonb) from authenticated;
+grant execute on function public.save_player_combat_controls_v1(uuid, jsonb) to service_role;
+
 commit;
