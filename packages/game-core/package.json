@@ -13,6 +13,7 @@
     "./character/progression": "./src/character/progression.ts",
     "./character/starter-options": "./src/character/starter-options.ts",
     "./character/wayfarers-practice": "./src/character/wayfarers-practice.ts",
+    "./combat/actions": "./src/combat/actions.ts",
     "./combat/battle-state": "./src/combat/battle-state.ts",
     "./combat/board": "./src/combat/board.ts",
     "./command": "./src/command.ts",
