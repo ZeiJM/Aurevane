@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import type { BattleLogView } from '@/server/battle/battle-log-service'
 
@@ -21,6 +21,7 @@ export function BattleLogPanel({ battleSessionId }: BattleLogPanelProps) {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const requestSequence = useRef(0)
+  const detailsRef = useRef<HTMLDetailsElement>(null)
 
   async function loadLog() {
     const sequence = ++requestSequence.current
@@ -49,10 +50,23 @@ export function BattleLogPanel({ battleSessionId }: BattleLogPanelProps) {
     }
   }
 
+  useEffect(() => {
+    function toggleLog() {
+      const details = detailsRef.current
+      if (!details) return
+      details.open = !details.open
+      if (details.open) void loadLog()
+    }
+
+    window.addEventListener('aurevane:battle-log-toggle', toggleLog)
+    return () => window.removeEventListener('aurevane:battle-log-toggle', toggleLog)
+  })
+
   const entries = log?.entries ?? []
 
   return (
     <details
+      ref={detailsRef}
       className={styles.log}
       onToggle={(event) => {
         if (event.currentTarget.open) void loadLog()
