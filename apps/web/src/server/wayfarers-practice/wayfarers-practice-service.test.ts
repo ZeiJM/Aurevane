@@ -57,7 +57,9 @@ function report(overrides: Partial<TrainingReportRecord> = {}): TrainingReportRe
   }
 }
 
-function status(overrides: Partial<WayfarersPracticeStatusRecord> = {}): WayfarersPracticeStatusRecord {
+function status(
+  overrides: Partial<WayfarersPracticeStatusRecord> = {},
+): WayfarersPracticeStatusRecord {
   return {
     characterId,
     userId,
