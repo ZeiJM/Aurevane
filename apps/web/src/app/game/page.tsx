@@ -2,6 +2,7 @@ import { isAurevaneError } from '@aurevane/game-core/errors'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
+import type { PracticePlanCardData } from '@/components/wayfarers-practice/practice-plan-card'
 import type { TrainingReportCardData } from '@/components/wayfarers-practice/training-report-card'
 import {
   AuthenticatedGameRecovery,
@@ -59,6 +60,7 @@ export default async function GameEntryPage() {
   }
 
   let trainingReport: TrainingReportCardData | null = null
+  let practicePlan: PracticePlanCardData | null = null
 
   if (characterState.character) {
     const practiceState = await loadGameEntryWayfarersPracticeState(
@@ -71,10 +73,29 @@ export default async function GameEntryPage() {
       return <AuthenticatedGameRecovery />
     }
 
+    practicePlan = {
+      characterId: practiceState.status.characterId,
+      minimumOfflineSeconds: practiceState.status.minimumOfflineSeconds,
+      restedMomentumBalance: practiceState.status.restedMomentumBalance,
+      plannedWindow: practiceState.status.plannedWindow,
+      plannedWindowSeconds: practiceState.status.plannedWindowSeconds,
+      planSetAt: practiceState.status.planSetAt,
+      shortWindowSeconds: practiceState.status.shortWindowSeconds,
+      overnightWindowSeconds: practiceState.status.overnightWindowSeconds,
+      extendedWindowSeconds: practiceState.status.extendedWindowSeconds,
+      serverNow: practiceState.status.serverNow,
+    }
+
     if (practiceState.report?.status === 'pending') {
       trainingReport = {
         reportId: practiceState.report.reportId,
         characterId: practiceState.report.characterId,
+        practiceSource: practiceState.report.practiceSource,
+        plannedWindow: practiceState.report.plannedWindow,
+        plannedWindowSeconds: practiceState.report.plannedWindowSeconds,
+        plannedElapsedSeconds: practiceState.report.plannedElapsedSeconds,
+        balancedFallbackSeconds: practiceState.report.balancedFallbackSeconds,
+        elapsedSeconds: practiceState.report.elapsedSeconds,
         creditedPracticeSeconds:
           practiceState.report.creditedDirectSeconds + practiceState.report.restedMomentumSeconds,
         requestedCharacterXp: practiceState.report.requestedCharacterXp,
@@ -90,6 +111,7 @@ export default async function GameEntryPage() {
       profile={profileState.profile}
       character={characterState.character}
       trainingReport={trainingReport}
+      practicePlan={practicePlan}
     />
   )
 }
