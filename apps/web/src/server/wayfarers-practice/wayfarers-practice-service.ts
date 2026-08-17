@@ -3,9 +3,12 @@ import 'server-only'
 import { createHash } from 'node:crypto'
 
 import type {
+  PlannedPracticeWindowRecord,
+  SetPracticePlanRecord,
   TrainingReportClaimRecord,
   TrainingReportRecord,
   WayfarersPracticeRepository,
+  WayfarersPracticeStatusRecord,
 } from '@aurevane/db/wayfarers-practice'
 import {
   createCharacterLevelUpEvent,
@@ -14,13 +17,17 @@ import {
 import {
   BALANCED_PRACTICE_FOCUS,
   PHASE_1_BALANCED_PRACTICE_CONFIG,
+  PHASE_1_PLANNED_PRACTICE_WINDOW_CONFIG,
   calculateBalancedPractice,
+  getPlannedPracticeWindowSeconds,
+  resolvePhase1PracticeIntent,
 } from '@aurevane/game-core/character/wayfarers-practice'
 import type { AuthenticatedActor } from '@aurevane/game-core/command'
 import { toUserActorKey } from '@aurevane/game-core/command'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 const CLAIM_TRAINING_REPORT_COMMAND = 'wayfarers_practice.claim.v1'
+const SET_PRACTICE_PLAN_COMMAND = 'wayfarers_practice.set_plan.v1'
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 
 export interface ClaimTrainingReportCommand {
@@ -30,10 +37,22 @@ export interface ClaimTrainingReportCommand {
   idempotencyKey: string
 }
 
+export interface SetPracticePlanCommand {
+  actor: AuthenticatedActor
+  characterId: string
+  plannedWindow: PlannedPracticeWindowRecord
+  idempotencyKey: string
+}
+
 export interface ClaimTrainingReportOutcome {
   claim: TrainingReportClaimRecord
   replayed: boolean
   levelUpEvent: CharacterLevelUpEvent | null
+}
+
+export interface SetPracticePlanOutcome {
+  plan: SetPracticePlanRecord
+  replayed: boolean
 }
 
 export async function loadTrainingReport(
@@ -53,6 +72,43 @@ export async function loadTrainingReport(
 
   validateTrainingReport(report, actor, characterId)
   return report
+}
+
+export async function loadPracticeStatus(
+  actor: AuthenticatedActor,
+  characterId: string,
+  repository: WayfarersPracticeRepository,
+): Promise<WayfarersPracticeStatusRecord> {
+  validateUuid(characterId, 'character')
+  const status = await repository.getPracticeStatus({ userId: actor.userId, characterId })
+  validatePracticeStatus(status, actor, characterId)
+  return status
+}
+
+export async function setPracticePlan(
+  command: SetPracticePlanCommand,
+  repository: WayfarersPracticeRepository,
+): Promise<SetPracticePlanOutcome> {
+  validateUuid(command.characterId, 'character')
+  validateUuid(command.idempotencyKey, 'idempotency key')
+  const expectedSeconds = getPlannedPracticeWindowSeconds(command.plannedWindow)
+  const actorKey = toUserActorKey(command.actor)
+  const requestFingerprint = createHash('sha256')
+    .update(JSON.stringify({ characterId: command.characterId, plannedWindow: command.plannedWindow }))
+    .digest('hex')
+
+  const outcome = await repository.setPracticePlan({
+    actorKey,
+    commandName: SET_PRACTICE_PLAN_COMMAND,
+    idempotencyKey: command.idempotencyKey,
+    requestFingerprint,
+    userId: command.actor.userId,
+    characterId: command.characterId,
+    plannedWindow: command.plannedWindow,
+  })
+
+  validateSetPracticePlanRecord(outcome.result, command, expectedSeconds)
+  return { plan: outcome.result, replayed: outcome.replayed }
 }
 
 export async function claimTrainingReport(
@@ -140,6 +196,107 @@ function validateTrainingReport(
     report.restedMomentumSeconds !== calculated.restedMomentumSeconds ||
     report.restedMomentumGain !== calculated.restedMomentumGain ||
     report.restedMomentumCapReached !== (calculated.restedMomentumCapState === 'reached')
+  ) {
+    throw persistenceUnavailable()
+  }
+
+  if (report.practiceSource === 'automatic_balanced') {
+    const intent = resolvePhase1PracticeIntent({
+      elapsedSeconds: report.elapsedSeconds,
+      plannedWindow: null,
+    })
+    if (
+      report.plannedWindow !== null ||
+      report.plannedWindowConfigVersion !== null ||
+      report.plannedWindowSeconds !== null ||
+      report.plannedElapsedSeconds !== intent.plannedElapsedSeconds ||
+      report.balancedFallbackSeconds !== intent.balancedFallbackSeconds
+    ) {
+      throw persistenceUnavailable()
+    }
+    return
+  }
+
+  if (
+    report.practiceSource !== 'planned_balanced' ||
+    report.plannedWindow === null ||
+    report.plannedWindowConfigVersion !== PHASE_1_PLANNED_PRACTICE_WINDOW_CONFIG.version
+  ) {
+    throw persistenceUnavailable()
+  }
+
+  const intent = resolvePhase1PracticeIntent({
+    elapsedSeconds: report.elapsedSeconds,
+    plannedWindow: report.plannedWindow,
+  })
+  if (
+    report.plannedWindowSeconds !== intent.plannedWindowSeconds ||
+    report.plannedElapsedSeconds !== intent.plannedElapsedSeconds ||
+    report.balancedFallbackSeconds !== intent.balancedFallbackSeconds
+  ) {
+    throw persistenceUnavailable()
+  }
+}
+
+function validatePracticeStatus(
+  status: WayfarersPracticeStatusRecord,
+  actor: AuthenticatedActor,
+  characterId: string,
+): void {
+  if (status.userId !== actor.userId || status.characterId !== characterId) {
+    throw new AurevaneError('FORBIDDEN', 'That Practice state does not belong to this account.')
+  }
+  if (
+    status.focus !== BALANCED_PRACTICE_FOCUS ||
+    status.configVersion !== PHASE_1_BALANCED_PRACTICE_CONFIG.version ||
+    status.minimumOfflineSeconds !== PHASE_1_BALANCED_PRACTICE_CONFIG.minimumOfflineSeconds ||
+    status.shortWindowSeconds !== PHASE_1_PLANNED_PRACTICE_WINDOW_CONFIG.shortSeconds ||
+    status.overnightWindowSeconds !== PHASE_1_PLANNED_PRACTICE_WINDOW_CONFIG.overnightSeconds ||
+    status.extendedWindowSeconds !== PHASE_1_PLANNED_PRACTICE_WINDOW_CONFIG.extendedSeconds ||
+    !isNonNegativeSafeInteger(status.restedMomentumBalance) ||
+    !Number.isSafeInteger(Date.parse(status.serverNow))
+  ) {
+    throw persistenceUnavailable()
+  }
+
+  if (status.plannedWindow === null) {
+    if (
+      status.plannedWindowConfigVersion !== null ||
+      status.plannedWindowSeconds !== null ||
+      status.planSetAt !== null
+    ) {
+      throw persistenceUnavailable()
+    }
+    return
+  }
+
+  if (
+    status.plannedWindowConfigVersion !== PHASE_1_PLANNED_PRACTICE_WINDOW_CONFIG.version ||
+    status.plannedWindowSeconds !== getPlannedPracticeWindowSeconds(status.plannedWindow) ||
+    status.planSetAt === null ||
+    !Number.isSafeInteger(Date.parse(status.planSetAt))
+  ) {
+    throw persistenceUnavailable()
+  }
+}
+
+function validateSetPracticePlanRecord(
+  plan: SetPracticePlanRecord,
+  command: SetPracticePlanCommand,
+  expectedSeconds: number,
+): void {
+  if (
+    plan.userId !== command.actor.userId ||
+    plan.characterId !== command.characterId ||
+    plan.plannedWindow !== command.plannedWindow
+  ) {
+    throw new AurevaneError('FORBIDDEN', 'The Practice plan ownership was invalid.')
+  }
+  if (
+    plan.plannedWindowConfigVersion !== PHASE_1_PLANNED_PRACTICE_WINDOW_CONFIG.version ||
+    plan.plannedWindowSeconds !== expectedSeconds ||
+    !Number.isSafeInteger(Date.parse(plan.planSetAt)) ||
+    !Number.isSafeInteger(Date.parse(plan.serverNow))
   ) {
     throw persistenceUnavailable()
   }
