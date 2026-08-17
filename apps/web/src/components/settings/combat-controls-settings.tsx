@@ -56,6 +56,7 @@ export function CombatControlsSettings({ initialBindings }: CombatControlsSettin
 
   useEffect(() => {
     if (!capturing) return
+    const capturedAction = capturing
 
     function capture(event: KeyboardEvent) {
       if (!event.code || modifierOnly(event.code)) return
@@ -65,7 +66,7 @@ export function CombatControlsSettings({ initialBindings }: CombatControlsSettin
       const nextBinding = { code: event.code, shift: event.shiftKey }
       const nextChord = combatKeybindChord(nextBinding)
       const conflict = COMBAT_KEYBIND_ACTIONS.find(
-        (action) => action !== capturing && combatKeybindChord(draft[action]) === nextChord,
+        (action) => action !== capturedAction && combatKeybindChord(draft[action]) === nextChord,
       )
 
       if (conflict) {
@@ -75,7 +76,7 @@ export function CombatControlsSettings({ initialBindings }: CombatControlsSettin
         return
       }
 
-      const candidate = { ...draft, [capturing]: nextBinding } as CombatKeybindMap
+      const candidate = { ...draft, [capturedAction]: nextBinding } as CombatKeybindMap
       const parsed = parseCombatKeybindMap(candidate)
       if (!parsed) {
         setError('That key could not be assigned safely.')
@@ -87,7 +88,7 @@ export function CombatControlsSettings({ initialBindings }: CombatControlsSettin
       setDraft(parsed)
       setError(null)
       setNotice(
-        `${ACTION_COPY[capturing].label} is now ${formatCombatKeybind(nextBinding)}. Save to keep it on your account.`,
+        `${ACTION_COPY[capturedAction].label} is now ${formatCombatKeybind(nextBinding)}. Save to keep it on your account.`,
       )
       setCapturing(null)
     }
