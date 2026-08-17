@@ -86,6 +86,13 @@ const battleFinalTurnRequestSchema = z
   })
   .strict()
 
+const battleAbortRequestSchema = z
+  .object({
+    idempotencyKey: z.string().uuid(),
+    expectedBattleVersion: safePositiveInteger,
+  })
+  .strict()
+
 const snapshotSchema = z.record(z.string(), z.unknown())
 const lifecycleSchema = z.enum(['pending', 'active', 'completed', 'abandoned'])
 
@@ -144,6 +151,7 @@ export type BattlePreviewRequest = z.infer<typeof battlePreviewRequestSchema>
 export type BattleRecruitTurnRequest = z.infer<typeof battleRecruitTurnRequestSchema>
 export type BattleFinalTurnPreviewRequest = z.infer<typeof battleFinalTurnPreviewRequestSchema>
 export type BattleFinalTurnRequest = z.infer<typeof battleFinalTurnRequestSchema>
+export type BattleAbortRequest = z.infer<typeof battleAbortRequestSchema>
 export type BattleSessionCreationPersistenceRow = z.infer<typeof battleSessionCreationRowSchema>
 export type BattleSessionPersistenceRow = z.infer<typeof battleSessionRowSchema>
 export type BattleSessionCommitPersistenceRow = z.infer<typeof battleSessionCommitRowSchema>
@@ -183,6 +191,11 @@ export function parseBattleFinalTurnPreviewRequest(
 
 export function parseBattleFinalTurnRequest(input: unknown): BattleFinalTurnRequest | null {
   const result = battleFinalTurnRequestSchema.safeParse(input)
+  return result.success ? result.data : null
+}
+
+export function parseBattleAbortRequest(input: unknown): BattleAbortRequest | null {
+  const result = battleAbortRequestSchema.safeParse(input)
   return result.success ? result.data : null
 }
 
