@@ -180,7 +180,9 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
           <div className={styles.rules} aria-label="Exercise rules">
             <span>One controlled Wayfarer</span>
             <span>One opposing Recruit</span>
-            <span>{selectedRecord.combinedDuel ? '1v1 defeat opponent' : 'Guided concept practice'}</span>
+            <span>
+              {selectedRecord.combinedDuel ? '1v1 defeat opponent' : 'Guided concept practice'}
+            </span>
             <span>No progression rewards</span>
           </div>
           {error ? (
