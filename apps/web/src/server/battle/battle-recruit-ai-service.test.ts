@@ -15,7 +15,10 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
-import { createBattleRecruitAiService } from './battle-recruit-ai-service'
+import {
+  createBattleRecruitAiService,
+  deriveRecruitTieBreakSeed,
+} from './battle-recruit-ai-service'
 import { createBattleSessionService } from './battle-session-service'
 
 const USER_ID = '11111111-1111-4111-8111-111111111111'
@@ -150,6 +153,24 @@ function createStatefulRepository(
 }
 
 describe('P2.6 authoritative Recruit AI turn service', () => {
+  it('derives deterministic tie-break seeds only from committed battle metadata', () => {
+    const committedContext = {
+      battleId: 'battle:test',
+      round: 2,
+      turnNumber: 5,
+      battleVersion: 7,
+      step: 0,
+      combatantId: 'recruit:test',
+    }
+
+    const seed = deriveRecruitTieBreakSeed(committedContext)
+
+    expect(seed).toBe(2_083_297_977)
+    expect(deriveRecruitTieBreakSeed({ ...committedContext })).toBe(seed)
+    expect(deriveRecruitTieBreakSeed({ ...committedContext, step: 1 })).not.toBe(seed)
+    expect(deriveRecruitTieBreakSeed({ ...committedContext, battleVersion: 8 })).not.toBe(seed)
+  })
+
   it('commits a bounded legal Recruit sequence and returns authority to the player', async () => {
     const playerState = await initialEncounter()
     const recruitState = advanceToRecruitTurn(playerState)
