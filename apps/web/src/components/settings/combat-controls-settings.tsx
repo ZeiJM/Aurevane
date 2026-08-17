@@ -34,9 +34,9 @@ const ACTION_COPY: Record<CombatKeybindAction, { label: string; description: str
   combatLog: { label: 'Combat Log', description: 'Open or close committed battle history.' },
 }
 
-function cloneDefaults(): CombatKeybindMap {
+function cloneBindings(bindings: CombatKeybindMap): CombatKeybindMap {
   return Object.fromEntries(
-    COMBAT_KEYBIND_ACTIONS.map((action) => [action, { ...DEFAULT_COMBAT_KEYBINDS[action] }]),
+    COMBAT_KEYBIND_ACTIONS.map((action) => [action, { ...bindings[action] }]),
   ) as CombatKeybindMap
 }
 
@@ -45,16 +45,14 @@ function modifierOnly(code: string): boolean {
 }
 
 export function CombatControlsSettings({ initialBindings }: CombatControlsSettingsProps) {
-  const [draft, setDraft] = useState<CombatKeybindMap>(initialBindings)
+  const [draft, setDraft] = useState<CombatKeybindMap>(() => cloneBindings(initialBindings))
+  const [saved, setSaved] = useState<CombatKeybindMap>(() => cloneBindings(initialBindings))
   const [capturing, setCapturing] = useState<CombatKeybindAction | null>(null)
   const [pending, setPending] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  const changed = useMemo(
-    () => JSON.stringify(draft) !== JSON.stringify(initialBindings),
-    [draft, initialBindings],
-  )
+  const changed = useMemo(() => JSON.stringify(draft) !== JSON.stringify(saved), [draft, saved])
 
   useEffect(() => {
     if (!capturing) return
@@ -88,7 +86,9 @@ export function CombatControlsSettings({ initialBindings }: CombatControlsSettin
 
       setDraft(parsed)
       setError(null)
-      setNotice(`${ACTION_COPY[capturing].label} is now ${formatCombatKeybind(nextBinding)}. Save to keep it on your account.`)
+      setNotice(
+        `${ACTION_COPY[capturing].label} is now ${formatCombatKeybind(nextBinding)}. Save to keep it on your account.`,
+      )
       setCapturing(null)
     }
 
@@ -115,10 +115,14 @@ export function CombatControlsSettings({ initialBindings }: CombatControlsSettin
       if (!response.ok || !body.controls?.combatKeybinds) {
         throw new Error(body.error?.message ?? 'Account controls could not be saved.')
       }
-      setDraft(body.controls.combatKeybinds)
+      const persisted = cloneBindings(body.controls.combatKeybinds)
+      setDraft(persisted)
+      setSaved(persisted)
       setNotice('Combat controls saved to your account.')
     } catch (saveError) {
-      setError(saveError instanceof Error ? saveError.message : 'Account controls could not be saved.')
+      setError(
+        saveError instanceof Error ? saveError.message : 'Account controls could not be saved.',
+      )
       setNotice(null)
     } finally {
       setPending(false)
@@ -135,7 +139,7 @@ export function CombatControlsSettings({ initialBindings }: CombatControlsSettin
 
       <div className={styles.grid}>
         {COMBAT_KEYBIND_ACTIONS.map((action) => (
-          <div className={styles.row} key={action}>
+          <div className={styles.row} key={action} data-testid={`keybind-${action}`}>
             <div>
               <strong>{ACTION_COPY[action].label}</strong>
               <small>{ACTION_COPY[action].description}</small>
@@ -144,10 +148,13 @@ export function CombatControlsSettings({ initialBindings }: CombatControlsSettin
             <button
               type="button"
               className={styles.button}
+              aria-label={`Change ${ACTION_COPY[action].label} keybind`}
               onClick={() => {
                 setCapturing(action)
                 setError(null)
-                setNotice(`Press the new key for ${ACTION_COPY[action].label}. Escape itself can be assigned when capturing.`)
+                setNotice(
+                  `Press the new key for ${ACTION_COPY[action].label}. Escape itself can be assigned when capturing.`,
+                )
               }}
               disabled={pending || capturing !== null}
             >
@@ -157,24 +164,39 @@ export function CombatControlsSettings({ initialBindings }: CombatControlsSettin
         ))}
       </div>
 
-      {error ? <p className={styles.error} role="alert">{error}</p> : null}
-      {notice ? <p className={styles.notice} role="status">{notice}</p> : null}
+      {error ? (
+        <p className={styles.error} role="alert">
+          {error}
+        </p>
+      ) : null}
+      {notice ? (
+        <p className={styles.notice} role="status">
+          {notice}
+        </p>
+      ) : null}
 
       <div className={styles.actions}>
         <button
           type="button"
           className={styles.button}
           onClick={() => {
-            setDraft(cloneDefaults())
+            setDraft(cloneBindings(DEFAULT_COMBAT_KEYBINDS))
             setCapturing(null)
             setError(null)
-            setNotice('Default combat bindings restored locally. Save to keep them on your account.')
+            setNotice(
+              'Default combat bindings restored locally. Save to keep them on your account.',
+            )
           }}
           disabled={pending}
         >
           Reset combat defaults
         </button>
-        <button type="button" className={styles.primary} onClick={() => void save()} disabled={pending || !changed}>
+        <button
+          type="button"
+          className={styles.primary}
+          onClick={() => void save()}
+          disabled={pending || !changed}
+        >
           {pending ? 'Saving…' : 'Save account controls'}
         </button>
       </div>
