@@ -1,12 +1,12 @@
 import { z } from 'zod'
 
-import { combatKeybindMapSchema } from './combat-controls'
+import { DEFAULT_COMBAT_KEYBINDS, combatKeybindMapSchema } from './combat-controls'
 
 const playerProfilePersistenceRowSchema = z
   .object({
     user_id: z.string().uuid(),
     created_at: z.string().datetime({ offset: true }),
-    combat_keybinds: combatKeybindMapSchema,
+    combat_keybinds: combatKeybindMapSchema.default(DEFAULT_COMBAT_KEYBINDS),
   })
   .strict()
 
