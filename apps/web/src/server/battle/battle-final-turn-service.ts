@@ -52,7 +52,9 @@ function persistenceInvalid(): AurevaneError {
   return new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The stored battle state is invalid.')
 }
 
-function invalidFinalTurn(message = 'That final turn is not legal in the current state.'): AurevaneError {
+function invalidFinalTurn(
+  message = 'That final turn is not legal in the current state.',
+): AurevaneError {
   return new AurevaneError('INVALID_REQUEST', message)
 }
 
