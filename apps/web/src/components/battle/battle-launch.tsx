@@ -1,5 +1,6 @@
 'use client'
 
+import type { TacticalHallArenaId } from '@aurevane/game-core/combat/tactical-hall-arenas'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -12,10 +13,32 @@ interface BattleLaunchProps {
   characterName: string
 }
 
+const ARENAS: readonly {
+  id: TacticalHallArenaId
+  name: string
+  scale: string
+  summary: string
+}[] = [
+  {
+    id: 'basic-training-floor',
+    name: 'Basic Training Floor',
+    scale: '5×3 · Micro drill',
+    summary: 'Fast deterministic practice for learning movement, attacks, Guard, and facing.',
+  },
+  {
+    id: 'duel-yard',
+    name: 'Duel Yard',
+    scale: '9×7 · Duel arena',
+    summary: 'More room for approach choice, rough terrain, elevation, flanking, and repositioning.',
+  },
+]
+
 export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) {
   const router = useRouter()
+  const [arenaId, setArenaId] = useState<TacticalHallArenaId>('basic-training-floor')
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const selectedArena = ARENAS.find((arena) => arena.id === arenaId) ?? ARENAS[0]
 
   async function launchBattle() {
     if (pending) return
@@ -28,6 +51,7 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           characterId,
+          arenaId,
           idempotencyKey: crypto.randomUUID(),
         }),
       })
@@ -60,8 +84,8 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
           <p className={styles.eyebrow}>Tactical Hall · Controlled Exercise</p>
           <h1 id="battle-launch-title">Enter the training field</h1>
           <p className={styles.lede}>
-            {characterName} will enter the current Phase 2 tactical exercise. Movement, actions,
-            facing, forecasts, Recruit decisions, and every committed result remain server
+            {characterName} will enter a controlled tactical exercise. Movement, actions, facing,
+            forecasts, Recruit decisions, arena geometry, and every committed result remain server
             authoritative.
           </p>
 
@@ -88,13 +112,30 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
               </div>
               <div>
                 <dt>Arena</dt>
-                <dd>Basic Training Floor</dd>
+                <dd>{selectedArena?.name ?? 'Basic Training Floor'}</dd>
               </div>
             </dl>
             <p>
-              This is the only unlocked Phase 2 practice configuration. AI intelligence is a
-              decision profile, not a hidden combat-stat bonus.
+              Choose the Micro floor for a compact drill or the Duel Yard to prove movement,
+              terrain, range, and facing have meaningful space. AI intelligence remains a decision
+              profile, not a hidden combat-stat bonus.
             </p>
+
+            <div className={styles.actions} role="group" aria-label="Choose Tactical Hall arena">
+              {ARENAS.map((arena) => (
+                <button
+                  key={arena.id}
+                  type="button"
+                  className={arenaId === arena.id ? styles.primary : styles.secondary}
+                  onClick={() => setArenaId(arena.id)}
+                  disabled={pending}
+                  aria-pressed={arenaId === arena.id}
+                  title={arena.summary}
+                >
+                  {arena.name} · {arena.scale}
+                </button>
+              ))}
+            </div>
           </section>
 
           <div className={styles.rules} aria-label="Exercise rules">
@@ -115,7 +156,7 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
               onClick={launchBattle}
               disabled={pending}
             >
-              {pending ? 'Opening field…' : 'Begin exercise'}
+              {pending ? 'Opening field…' : `Begin exercise · ${selectedArena?.name ?? 'Training Floor'}`}
             </button>
             <button type="button" className={styles.secondary} onClick={() => router.push('/game')}>
               Return to Wayfarer
