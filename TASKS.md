@@ -8,21 +8,22 @@ The Master Game Plan defines the product. The Roadmap defines sequence. Canonica
 
 **Stage:** PV-1 — Tactical Combat Human/Internal Validation
 
-**ACTIVE:** issue #101 — PV-1A Tactical Combat Validation Telemetry Foundation
+**ACTIVE:** issue #103 — PV-1B Tactical Combat Playtest Evidence Harness
 
-P2.7 / PV-1 Combat Usability & Battlefield Scale Proof is complete on `main` through PR #100. The implementation boundary is now the smallest privacy-respecting measurement seam required to conduct and interpret human/internal tactical-combat validation before substantial Phase 3 expansion.
+P2.7 / PV-1 Combat Usability & Battlefield Scale Proof is complete through PR #100. PV-1A authoritative combat-validation telemetry is complete through PR #102. The active implementation boundary is now the smallest structured human-playtest harness needed to turn PV-1 sessions into comparable evidence without fabricating human results or starting Phase 3 early.
 
-### PV-1A current implementation boundary
+### PV-1B current implementation boundary
 
 Implement and validate:
 
-- a private server-derived product-validation event ledger;
-- authoritative `first_combat_started`, `first_combat_completed`, and `combat_abandoned` capture from battle persistence rather than client analytics calls;
-- first-event uniqueness and replay/idempotency safety;
-- only stable account/character/battle/version identifiers needed for validation analysis;
-- no email, character name, IP address, free-form text, session replay, or arbitrary browser payloads;
-- no direct `anon` or `authenticated` table read/write authority;
-- focused database verification through the Battle Session DB workflow.
+- a privacy-conscious local JSON record for one tactical-combat playtest session;
+- required fields for first-battle outcome, first-confident-action time, battle duration, misclick/targeting confusion, outcome understanding, voluntary replay and tactical-decision recall;
+- compact 1–5 pace/clarity/responsiveness/audiovisual/replay-desire ratings;
+- optional qualitative notes retained locally rather than written to production telemetry;
+- deterministic report aggregation with the roadmap's provisional replay warning;
+- validation that fails closed on duplicate sessions, unsupported fields and contradictory technical/replay states;
+- tests for medians, exclusions, warning behavior and privacy guardrails;
+- a neutral facilitator protocol that avoids coaching the evidence.
 
 Do not pull Phase 3 Disciplines/Arts/buildcraft, broader analytics infrastructure, production PvP/Colosseum spectation, world-retreat settlement, Expedition extraction, stronger AI grades, or unrelated account/settings breadth forward.
 
@@ -34,13 +35,14 @@ Do not pull Phase 3 Disciplines/Arts/buildcraft, broader analytics infrastructur
 - P1.7 public News/Manual/Rules foundation is complete.
 - P2.1–P2.6 combat engine, persistence, battle UX, Recruit AI and Tactical Hall vertical slice are complete.
 - P2.7 combat usability, integrated final-facing flow, combat keybind foundation, 9×7 Duel Yard scale proof, larger-board Recruit validation and authoritative Abort Exercise are merged through PR #100.
-- Exact-head P2.7 GitHub CI, database/security and responsive browser gates passed; the Vercel preview also reached Ready.
+- PV-1A private server-derived `first_combat_started`, `first_combat_completed` and `combat_abandoned` telemetry is merged through PR #102 with exact-head CI/database/security/browser validation.
 
 ## Current authoritative documents
 
-- `docs/ROADMAP_PRODUCT_VALIDATION.md` governs PV-1 evidence and the minimum telemetry boundary.
+- `docs/ROADMAP_PRODUCT_VALIDATION.md` governs PV-1 evidence, telemetry and the gate decision.
 - `docs/COMBAT_USABILITY_BATTLEFIELDS_CONTROLS_RETREAT.md` governs the validated battle-usability contract.
 - `docs/ROADMAP_COMBAT_USABILITY_BATTLEFIELDS_CONTROLS_RETREAT.md` blocks substantial Phase 3 expansion until PV-1 human/internal validation is reviewed.
+- `docs/PV1_TACTICAL_PLAYTEST_PROTOCOL.md` defines the active structured human-playtest procedure once PV-1B merges.
 
 ## Established deferrals
 
@@ -61,18 +63,18 @@ Do not pull Phase 3 Disciplines/Arts/buildcraft, broader analytics infrastructur
 ## Immediate sequence
 
 ```text
-#101 PV-1A — Tactical Combat Validation Telemetry Foundation
+#103 PV-1B — Tactical Combat Playtest Evidence Harness
   ↓
-GitHub quality + database/security validation
+GitHub quality validation
   ↓
-Merge PV-1A and verify main
+Merge PV-1B and verify main
   ↓
-Run human/internal PV-1 tactical-combat sessions with structured notes + telemetry
+Run real human/internal PV-1 tactical-combat sessions using the protocol + telemetry
   ↓
-Review comprehension, abandonment, confidence, outcome understanding and replay desire
+Generate report; review qualitative notes, sample quality and confounders
   ↓
 PASS: begin substantial Phase 3 expansion
 FAIL: open the smallest corrective Phase 2/PV-1 ticket and retest
 ```
 
-The telemetry layer measures the gate; it does **not** satisfy the human/internal validation gate by itself.
+The report tool supports the gate; it does **not** satisfy or auto-pass the human/internal validation gate by itself.
