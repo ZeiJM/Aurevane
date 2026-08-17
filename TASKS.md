@@ -10,22 +10,23 @@ The Master Game Plan defines the product. The Roadmap defines sequence. Canonica
 
 **ACTIVE:** issue #91 — P2.5 Responsive Battle Experience + Turn Economy Tracker
 
-The mandatory Phase 0 / Phase 1 / P2.1–P2.4 reconciliation gate #73 is complete. P2.5 is now the single active implementation ticket. Build the smallest complete battlefield-first cockpit required to make the current authoritative tactical slice understandable and playable; do not pull P2.6 AI or Phase 3 buildcraft forward.
+The mandatory Phase 0 / Phase 1 / P2.1–P2.4 reconciliation gate #73 is complete. P2.5 remains the single active implementation ticket. Its implementation candidate is complete and has passed exact GitHub quality, database-authority, security, and responsive-browser gates; merge remains blocked only on the required exact external Vercel Preview verification. Do not pull P2.6 AI or Phase 3 buildcraft forward before that release gate closes.
 
-### P2.5 current implementation boundary
+### P2.5 implemented boundary
 
-Implement against the existing authoritative P2.4 session boundary:
+The current candidate implements against the existing authoritative P2.4 session boundary:
 
 - authenticated battle launch/resume route and board-first cockpit;
 - server-derived read-only movement/action/facing/end-turn previews using current game-core legality and stat-driven forecasts;
-- current actor, HP/MP, initiative and concise visible status/context;
+- current actor, HP/MP, initiative, visible status/context, and canonical front/side/rear facing context;
 - Turn Economy Tracker for Movement remaining/total, Action ready/spent, MP and current relevant costs/resources;
 - explicit Inspect mode versus Target mode;
 - movement/path, target/shape and facing previews with useful legality explanations;
 - explicit Cancel/Back/Confirm flow and duplicate-submit protection;
 - stale-version/refetch/reconnect recovery without client-side authority guessing;
+- sanitized on-demand committed battle history backed by service-role-only owner-scoped event reads;
 - responsive desktop/laptop/phone composition with keyboard/touch/reduced-motion baseline;
-- graceful requested-media/audio fallbacks through existing boundaries.
+- governed requested-media fallback and gesture-gated audio runtime integration through existing boundaries.
 
 Do not duplicate combat formulas or hidden RNG state in React. Previews may inform the player, but every committed result remains server authoritative.
 
@@ -43,11 +44,12 @@ Do not duplicate combat formulas or hidden RNG state in React. Previews may info
 
 Final reconciled `main` passed exact quality/database/browser gates and an exact READY Vercel production deployment before #73 closed.
 
-### Live audit state
+### Live audit / P2.5 persistence state
 
 - Phase 0 privileged helper browser execution is revoked.
 - Phase 1 foreign-key covering indexes are present; missing-index advisor findings are cleared.
 - P2.4 battle persistence/RPC migrations are present under the exact live Supabase ledger versions and browser roles remain outside authoritative mutation.
+- P2.5 battle-event read migration is live as `20260817141155_p25_battle_event_read`; browser roles cannot execute it or read `app_private.battle_events`, while `service_role` can perform the owner-scoped read.
 - Supabase leaked-password protection remains an external Free-plan limitation; revisit if the project is upgraded to Pro+.
 
 ## Completed major milestones on `main`
@@ -102,13 +104,15 @@ Final reconciled `main` passed exact quality/database/browser gates and an exact
 ## Immediate sequence
 
 ```text
-#91 P2.5 — Responsive Battle Experience + Turn Economy Tracker
+#91 P2.5 — exact Vercel Preview verification
   ↓
-Exact GitHub + responsive browser + Vercel Preview validation
+Merge + post-merge main/production verification
+  ↓
+Close #91 and make P2.6 the single ACTIVE implementation ticket
   ↓
 P2.6 — Recruit AI + Tactical Hall vertical slice
   ↓
 PV-1 — Tactical Combat Proof
 ```
 
-If P2.5 uncovers a genuine lower-layer authority defect, fix that smallest defect explicitly rather than hiding it inside presentation code.
+If the exact Preview or post-merge validation exposes a genuine lower-layer authority defect, fix that smallest defect explicitly rather than hiding it inside later presentation or AI work.
