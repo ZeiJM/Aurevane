@@ -75,10 +75,6 @@ export interface BattleRecruitAiService {
   runTurn(command: RunRecruitTurnCommand): Promise<RecruitTurnView>
 }
 
-interface Dependencies {
-  battles: BattleSessionRepository
-}
-
 function battleUnavailable(): AurevaneError {
   return new AurevaneError('FORBIDDEN', 'That battle is not available to this account.')
 }
