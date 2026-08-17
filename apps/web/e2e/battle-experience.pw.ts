@@ -78,6 +78,7 @@ test('launches the Tactical Hall and resolves an authoritative player and Recrui
   await expect(page.getByText(/Authoritative battle version 4/)).toBeVisible()
 
   const attackButton = page.getByRole('button', { name: /Basic Attack.*Target one enemy/ })
+  const faceEast = page.getByRole('button', { name: 'Face east' })
   const completion = page.getByTestId('tactical-hall-result')
 
   await attackButton.click()
@@ -100,7 +101,7 @@ test('launches the Tactical Hall and resolves an authoritative player and Recrui
   await expect(battleLog).not.toContainText('rollBasisPoints')
   await page.getByTestId('battle-log-toggle').click()
 
-  await page.getByRole('button', { name: 'Face east' }).click()
+  await faceEast.click()
   await expect(page.getByText('Preview ready. Confirm to commit this command.')).toBeVisible()
   await page.getByRole('button', { name: /Confirm command/ }).click()
   await expect(page.getByText(/Authoritative battle version 6/)).toBeVisible()
@@ -136,11 +137,9 @@ test('launches the Tactical Hall and resolves an authoritative player and Recrui
     await expect(page.getByText('Preview ready. Confirm to commit this command.')).toBeVisible()
     await page.getByRole('button', { name: /Confirm command/ }).click()
 
-    await waitForAttackSettlement(page, completion, attackButton)
+    await waitForAttackSettlement(page, completion, faceEast)
     if (await completion.isVisible()) break
 
-    const faceEast = page.getByRole('button', { name: 'Face east' })
-    await expect(faceEast).toBeEnabled()
     await faceEast.click()
     await expect(page.getByText('Preview ready. Confirm to commit this command.')).toBeVisible()
     await page.getByRole('button', { name: /Confirm command/ }).click()
@@ -172,8 +171,8 @@ test('launches the Tactical Hall and resolves an authoritative player and Recrui
 
   const completedUrl = page.url()
   await page.getByRole('button', { name: 'Retry same drill' }).click()
+  await expect(page).not.toHaveURL(completedUrl)
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
-  expect(page.url()).not.toBe(completedUrl)
   await expect(page.getByText('Your turn', { exact: true })).toBeVisible()
   await expect(page.getByTestId('tactical-hall-result')).toHaveCount(0)
 
@@ -184,13 +183,13 @@ test('launches the Tactical Hall and resolves an authoritative player and Recrui
 async function waitForAttackSettlement(
   page: import('@playwright/test').Page,
   completion: import('@playwright/test').Locator,
-  attackButton: import('@playwright/test').Locator,
+  facingButton: import('@playwright/test').Locator,
 ): Promise<void> {
   await expect
     .poll(
       async () => {
         if (await completion.isVisible()) return 'completed'
-        if (await attackButton.isDisabled()) return 'action-spent'
+        if (await facingButton.isEnabled()) return 'player-facing'
         return 'waiting'
       },
       { timeout: 15_000 },
