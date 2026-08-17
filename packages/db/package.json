@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./battle-session": "./src/battle-session.ts",
     "./character": "./src/character.ts",
     "./migration-policy": "./src/migration-policy.ts",
     "./player-profile": "./src/player-profile.ts",

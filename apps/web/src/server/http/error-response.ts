@@ -1,4 +1,8 @@
-import { isAurevaneError, type AurevaneErrorCode } from '@aurevane/game-core/errors'
+import {
+  isAurevaneError,
+  isStaleBattleVersionError,
+  type AurevaneErrorCode,
+} from '@aurevane/game-core/errors'
 
 import { serverLogger, type ServerLogger } from '../logging'
 
@@ -7,6 +11,7 @@ const statusByCode: Record<AurevaneErrorCode, number> = {
   FORBIDDEN: 403,
   INVALID_REQUEST: 400,
   IDEMPOTENCY_CONFLICT: 409,
+  STALE_VERSION: 409,
   CHARACTER_NAME_UNAVAILABLE: 409,
   CHARACTER_ALREADY_EXISTS: 409,
   PERSISTENCE_UNAVAILABLE: 503,
@@ -26,6 +31,7 @@ export function toServerErrorResponse(
         error: {
           code: error.code,
           message: error.publicMessage,
+          ...(isStaleBattleVersionError(error) ? { currentVersion: error.currentVersion } : {}),
         },
       },
       {
