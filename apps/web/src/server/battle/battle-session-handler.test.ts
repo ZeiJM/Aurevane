@@ -48,13 +48,23 @@ describe('P2.4 battle session HTTP handlers', () => {
     expect(await response.json()).toMatchObject({ error: { code: 'INVALID_REQUEST' } })
   })
 
-  it('delegates only validated battle intent fields to the authority service', async () => {
+  it('delegates only validated battle intent fields and exposes identifier-only refetch metadata', async () => {
     const service = createService()
+    const invalidation = {
+      event: 'authoritative_state_changed' as const,
+      topic: `battle-session:${SESSION_ID}` as const,
+      resourceType: 'battle_session' as const,
+      resourceId: SESSION_ID,
+      version: 2,
+      occurredAt: '2026-08-17T10:46:00.000Z',
+      reason: 'state_changed' as const,
+    }
     service.submitIntent.mockResolvedValue({
       battleSessionId: SESSION_ID,
       battleVersion: 2,
       snapshot: {},
       replayed: false,
+      invalidation,
     })
 
     const response = await handleBattleIntentRequest(
@@ -90,6 +100,13 @@ describe('P2.4 battle session HTTP handlers', () => {
           { x: 0, y: 1 },
           { x: 1, y: 1 },
         ],
+      },
+    })
+    expect(await response.json()).toMatchObject({
+      battle: {
+        battleSessionId: SESSION_ID,
+        battleVersion: 2,
+        invalidation,
       },
     })
   })

@@ -15,6 +15,7 @@
     "@aurevane/audio": "workspace:*",
     "@aurevane/db": "workspace:*",
     "@aurevane/game-core": "workspace:*",
+    "@aurevane/realtime": "workspace:*",
     "@aurevane/ui": "workspace:*",
     "@aurevane/validation": "workspace:*",
     "@supabase/ssr": "0.12.4",
