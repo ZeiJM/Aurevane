@@ -18,6 +18,7 @@
     "./combat/board": "./src/combat/board.ts",
     "./combat/recruit-ai": "./src/combat/recruit-ai.ts",
     "./combat/stat-driven-combat": "./src/combat/stat-driven-combat.ts",
+    "./combat/tactical-hall-arenas": "./src/combat/tactical-hall-arenas.ts",
     "./command": "./src/command.ts",
     "./errors": "./src/errors.ts",
     "./player-profile": "./src/player-profile.ts"
