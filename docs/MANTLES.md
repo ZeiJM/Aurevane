@@ -1,384 +1,509 @@
-# AUREVANE — Mantles: Earned Transformation States
+# AUREVANE — Mantles: Earned Transformation & Specialization States
 
-**Status:** Authoritative feature specification subordinate only to `docs/GAME_MASTER_PLAN.md` and complementary to `docs/COMBAT.md`, `docs/PROGRESSION_RETENTION.md`, `docs/NATURAL_PACING.md`, `docs/PLAYER_MANUAL.md`, `docs/MASTER_PANEL.md`, `docs/MEDIA_PIPELINE.md`, and `docs/ROADMAP_MANTLES.md`.
+**Status:** Authoritative feature specification subordinate only to `docs/GAME_MASTER_PLAN.md` and complementary to `docs/COMBAT.md`, `docs/PROGRESSION_RETENTION.md`, `docs/PLAYER_MANUAL.md`, `docs/MASTER_PANEL.md`, `docs/MEDIA_PIPELINE.md`, and `docs/ROADMAP_MANTLES.md`.
 
 **Direction approved:** 2026-08-16.
 
 AUREVANE includes a later-game system of manually activated, temporary combat transformations called **Mantles**.
 
-The broad fantasy is simple:
+The defining rule is:
 
-> **A Mantle is a higher combat state that a character earns the right to manifest for a short time.**
+> **Rank I is broadly accessible to every legitimate player. Rank II and Rank III are powers of specialization: the character may earn them permanently, but only builds that accept the required Mantle Path commitments can actually manifest them.**
 
-Mantles are not inherited bloodlines, not passive racial powers, not a second Soulmark system, and not a generic rage button granted at character creation. They are cultivated states of deliberate self-mastery reached through combat knowledge, world experience, personal choices, and difficult rites.
+Mantles are not inherited bloodlines, not passive racial powers, not a second Soulmark system, and not a generic rage meter. They are cultivated higher states that the character deliberately manifests in battle.
 
-The system should create the feeling:
+The system should create two simultaneous fantasies:
 
-> **“I have been building toward the right to become this.”**
+> **“Anyone can learn to open this door.”**
 
-rather than:
+and, at the highest ranks:
 
-> “My meter filled, so I pressed the glowing button.”
+> **“This character gave up breadth to become extraordinary at this one thing.”**
 
 ---
 
-## 1. System Identity
+## 1. Player-Facing Identity
 
-The player-facing system name is **Mantles**.
+Working terminology:
 
-Suggested verbs and UI language:
-
-- **Manifest Mantle** — activate the state;
-- **Mantle Ready** — activation requirement is currently satisfied;
+- **Mantle** — the transformation identity;
+- **Manifest Mantle** — activate it in combat;
+- **Mantle Ready** — activation requirements are currently satisfied;
 - **Mantled** — actor is currently transformed;
-- **Afterstrain** — the recovery state after a Mantle ends;
-- **Mantle Rank I / II / III** — mechanical progression tiers;
-- optional lore-facing rank titles may be authored later, but the rules must remain clear.
+- **Afterstrain** — recovery state after manifestation ends;
+- **Mantle Rank I / II / III** — mechanical ranks;
+- **Mantle Path** — specialization route that permits higher-rank manifestation;
+- **Dedication** — explicit build restriction/opportunity cost required by a Mantle Path.
 
-The exact terminology may be refined through narrative production, but do not reuse another game's transformation-system name or presentation.
+Narrative production may later give individual ranks/path stages more evocative titles, but the mechanical wording must remain understandable.
+
+Do not reuse another game's transformation-system name, lore, effects, acquisition structure, or presentation.
 
 ---
 
-## 2. What a Mantle Is Not
+## 2. Relationship to Existing AUREVANE Systems
 
-Mantles must remain distinct from existing AUREVANE pillars.
+### Disciplines
 
-### Discipline
+Disciplines are learned combat traditions. They own Arts, Traits, Reactions, Movement Arts, Mastery, and Ultimates.
 
-A Discipline is a learned combat tradition and owns Arts, Traits, Reactions, Movement Arts, Mastery, and Ultimates.
+Mantles do not replace Disciplines and do not become a second class system.
 
-A Mantle does not replace a Discipline and does not create a second class system.
+### Current + Legacy / Confluence
 
-### Legacy Discipline / Confluence
+Confluence is the unique interaction produced by Current + Legacy Discipline.
 
-A Confluence is the interaction created by Current + Legacy Discipline.
+Mantle Paths may care about shared combat/build tags, but AUREVANE must not author bespoke Mantle × every Discipline × every Confluence combinations. That would create another impossible content matrix.
 
-A Mantle may interact with combat tags created by the build, but it must not require bespoke Mantle × every Discipline × every Confluence content. Avoid another combinatorial explosion.
+### Soulmarks
 
-### Soulmark
+Soulmarks represent unusual supernatural potential unique to the person and provide their own passive, Signature Art, branches, and visual identity.
 
-A Soulmark represents unusual supernatural potential unique to the person. It has a passive mechanic, Signature Art, upgrade branches, and visual identity.
+Mantles are different: **an earned temporary state entered deliberately during battle**.
 
-A Mantle is instead an **earned temporary state that the character deliberately enters during battle**.
+A character may possess a Soulmark and a Mantle simultaneously.
 
-A player may possess both a Soulmark and a Mantle. Neither replaces the other.
-
-### Ultimate
+### Ultimates
 
 An Ultimate is a Discipline-owned apex Art.
 
-A Mantle is a temporary rules state lasting multiple turns/rounds. Its activation and sustained effects should create a different tactical decision from simply casting an Ultimate.
+A Mantle changes the actor's rules/state across several turns or rounds and creates timing, duration, and recovery decisions.
 
 ### Veteran Edge
 
-Veteran Edge is bounded Rekindling prestige, especially relevant to high-level PvP.
+Veteran Edge is bounded Rekindling prestige.
 
-Mantles are a normal character-build/progression system and must not become uncapped prestige stacking.
-
----
-
-## 3. Thematic Role in AUREVANE
-
-AUREVANE's central character theme is deliberate becoming without losing coherent identity.
-
-Mantles reinforce that theme by representing **chosen possibility stabilized through discipline and constraint**.
-
-The character does not become everything at once.
-
-They temporarily embody one earned, coherent higher state.
-
-This lets Mantles sit naturally beside:
-
-- multiple learned Disciplines;
-- one Current + one Legacy Discipline;
-- Confluence;
-- one active Soulmark;
-- equipment;
-- long-horizon world progression;
-- Rekindling.
-
-Do not make every Mantle secretly originate from Aurevane or the central mythology. Different Mantles may arise from different cultures, schools, rites, rare environments, philosophies, Expedition discoveries, mentors, institutions, or supernatural phenomena.
+Mantle specialization is part of the normal build ecosystem and must not become uncapped veteran stat stacking.
 
 ---
 
-## 4. Progression Structure
+## 3. The Core Model — Earned Rank vs Manifest Rank
 
-Mantles use three major ranks.
+Mantles deliberately separate **persistent achievement** from **active-build specialization**.
+
+Every character has two relevant concepts:
+
+### Earned Rank
+
+The deepest rank the character has legitimately unlocked through progression and Mantle rites.
+
+This is durable character history.
+
+### Manifest Rank
+
+The deepest rank the **currently equipped build** satisfies.
+
+Conceptually:
 
 ```text
-MANTLE RANK I
-    ↓
-MANTLE RANK II
-    ↓
-MANTLE RANK III
+manifest_rank = min(earned_rank, rank_allowed_by_active_mantle_path_build)
 ```
 
-These ranks are **not ordinary character levels** and do not increase automatically from generic XP.
+Example:
 
-Each rank represents a qualitatively deeper relationship with the Mantle.
+```text
+Character has permanently earned Mantle Rank III.
 
-### Rank I — Broadly attainable, not automatic
+GENERALIST LOADOUT
+- broad Current + Legacy pairing
+- flexible Traits
+- broad equipment coverage
+- no deep Mantle Dedication
+=> manifests Rank I
 
-The intended long-term rule is that every legitimate character can eventually earn access to at least one Rank I Mantle.
+ATTUNED LOADOUT
+- meets Rank II Path pattern
+- accepts Rank II Dedication
+=> manifests Rank II
 
-Rank I should still feel earned.
+DEEPLY SPECIALIZED LOADOUT
+- meets Rank III Path pattern
+- accepts Rank III Hard Dedication
+=> manifests Rank III
+```
 
-A representative unlock may require combinations such as:
+This is intentional.
 
-- sufficient character/Horizon progression;
-- understanding of normal tactical combat;
-- at least one meaningful Discipline milestone;
-- Soulmark or equivalent story-system familiarity where appropriate;
-- completion of a dedicated Mantle Rite / personal trial;
-- a server-authoritative world or quest milestone.
+A player who has earned Rank III is **not permanently forced to play a Rank III specialist build**. They can return to a flexible build and simply manifest the Mantle at a lower effective rank.
 
-Do not give Rank I during character creation or the first tutorial battles.
-
-The player should first understand normal combat so Mantling feels like a meaningful expansion rather than baseline clutter.
-
-### Rank II — Path-bound advancement
-
-Rank II is intentionally **not guaranteed to every player merely because time passed**.
-
-A player reaches Rank II by pursuing a compatible advanced path and satisfying authored requirements.
-
-Possible requirement categories include:
-
-- mastery of particular kinds or counts of Disciplines;
-- specific tactical accomplishments;
-- advanced Expedition clears or challenge modifiers;
-- mentor/faction/world-story commitments;
-- rare but recurring world discoveries;
-- difficult solo rites;
-- build-specific demonstrations of mastery;
-- Archive/lore reconstruction where the Mantle's fiction supports it;
-- competitive accomplishments only for Mantles explicitly designed around competition, with non-PvP alternatives required for broadly useful combat power.
-
-Rank II should create **social identity**: players can recognize that someone invested deeply in a particular path.
-
-A production rule may limit how many Rank II Mantle paths a character can fully deepen within one progression cycle. Any such commitment must be clear before confirmation and must not create an unrecoverable permanent account trap; Rekindling or another approved long-horizon mechanism may allow a different future path.
-
-### Rank III — Sovereign-tier rarity
-
-Rank III is an exceptional achievement.
-
-It should be rare because its requirements are difficult, layered, and path-specific—not because the game secretly rolls a tiny random percentage or sells access.
-
-A Rank III path should normally require:
-
-- Rank II of that Mantle;
-- late-cycle / high-Horizon progression;
-- multiple relevant mastery accomplishments;
-- one or more advanced PvE/world/build milestones;
-- a bespoke personal or group challenge that actually tests the Mantle's intended play;
-- a path-specific narrative/discovery condition;
-- explicit server-authoritative eligibility;
-- possibly First Horizon, Rekindling, or another endgame qualification when appropriate to that Mantle.
-
-Not every Mantle must ship with Rank III immediately.
-
-Rank III should be authored deliberately and may arrive only for selected Mantles when the content, balance, art, audio, and progression support it.
-
-The first players to achieve a new Rank III may receive Chronicle recognition or cosmetic prestige, but **first-witness status must never make the combat power permanently unobtainable for later legitimate players**.
+This preserves AUREVANE's no-permanent-build-trap principle while allowing true specialization.
 
 ---
 
-## 5. Rarity Without Permanent Unfairness
+## 4. Rank I — Universal Access Layer
 
-The system should create real rarity while respecting AUREVANE's retention and competitive-fairness rules.
+Rank I is the common foundation.
 
-Prefer rarity created by:
+### Access rule
+
+All legitimate account/payment tiers use the same gameplay eligibility rules.
+
+A non-paying player, supporter, or any future cosmetic/premium account type must have the same ability to earn Rank I through play.
+
+Rank I is never sold, rolled from paid loot, or restricted to premium accounts.
+
+### Character rule
+
+Every serious long-lived character should eventually be able to earn at least one Rank I Mantle through normal gameplay.
+
+Rank I is **broadly accessible, not automatic at creation**.
+
+The character should first understand normal combat and core build systems so manifestation feels meaningful rather than like tutorial clutter.
+
+Representative requirements may include:
+
+- appropriate Level/Horizon progress;
+- a meaningful Discipline milestone;
+- completion of a Mantle Rite / personal trial;
+- a world/story milestone;
+- sufficient understanding of normal tactical combat.
+
+### Build rule
+
+Rank I requires the Mantle to be equipped but should not demand severe specialization.
+
+A normal viable build can use it.
+
+This gives every player the transformation fantasy without making every character identical at advanced ranks.
+
+---
+
+## 5. Mantle Paths
+
+Rank II and Rank III are accessed through **Mantle Paths**.
+
+A Mantle Path is not merely an XP bar. It is a declared style of specialization with three parts:
+
+1. **Progression Qualification** — the character has earned the right to attempt/deepen the path;
+2. **Build Pattern** — the active build expresses the path's intended identity;
+3. **Dedication Cost** — the build gives up meaningful flexibility to access greater manifestation.
+
+Mantle Paths are data-driven and explicit.
+
+The Armory should be able to explain:
+
+> You currently qualify for Rank I.
+>
+> Rank II requires: [requirements].
+>
+> Rank III requires: [requirements + sacrifices].
+
+No hidden build score should mysteriously decide this.
+
+---
+
+## 6. Rank II — Specialized Build Access
+
+Rank II is for players who deliberately shape a build around the Mantle.
+
+A character may permanently earn Rank II progression, but **the active build manifests Rank II only while its Mantle Path requirements remain satisfied**.
+
+### Rank II Path Pattern
+
+A Rank II path can require combinations of clearly tagged build elements such as:
+
+- Current Discipline identity/tags;
+- Legacy Discipline identity/tags;
+- specific kinds of Traits;
+- a compatible Movement Art style;
+- Soulmark branch/tag where thematically justified;
+- weapon/equipment categories;
+- combat-role behaviors such as Guard/Intercept, mobility, terrain, summons, control, healing, or status setup;
+- other stable typed build metadata.
+
+Do not require one exact Current + Legacy pair unless the individual Mantle is deliberately designed as an exceptional narrow case.
+
+The goal is a **family of qualifying builds**, not one solved combination.
+
+### Rank II Dedication
+
+Rank II must impose at least one meaningful opportunity cost compared with a generalist build.
+
+Valid cost patterns include, where appropriate to the Mantle:
+
+- restrict one flexible equipment category;
+- require a specific weapon/armor family;
+- require one of the two Traits to satisfy a Mantle-aligned property;
+- require a narrower Movement Art family;
+- reduce combat-consumable flexibility;
+- prohibit an incompatible Soulmark branch/path;
+- require Current or Legacy to come from a defined Discipline family/tag set;
+- replace one flexible build choice with a Mantle Path component when that subsystem is intentionally authored.
+
+The exact cost is per Path and must be player-readable.
+
+Rank II should feel stronger/more distinctive because the player **built around it**, not because a hidden account flag adds free power.
+
+---
+
+## 7. Rank III — Deep Dedication / Rare Specialist Access
+
+Rank III is the extreme specialization layer.
+
+It should be genuinely uncommon in active builds even after the game is mature.
+
+### Persistent eligibility
+
+A character normally needs:
+
+- Rank II already earned;
+- high-Horizon / late-cycle progression;
+- multiple relevant Mastery accomplishments;
+- advanced PvE/world/build achievements;
+- a bespoke Mantle Path rite/challenge that tests the intended playstyle;
+- path-specific narrative/discovery qualification;
+- explicit server-authoritative completion.
+
+Some Rank III paths may require First Horizon or Rekindling; others may not. This is content-specific rather than a universal rule.
+
+### Active-build requirement
+
+Even after the character has earned Rank III, the build must satisfy a **Deep Dedication** configuration to manifest it.
+
+Rank III requires:
+
+- the complete Rank II pattern;
+- stricter synergy/identity requirements;
+- **at least one Hard Dedication** that visibly removes flexibility or breadth from the build.
+
+### Hard Dedication
+
+A Hard Dedication is a real build-level sacrifice.
+
+Examples that the content grammar may support:
+
+- one normal flexible Trait slot is replaced/locked by a Mantle Doctrine component;
+- one Legacy Art slot is surrendered or converted into a Mantle Path technique slot;
+- combat-item capacity is reduced;
+- a broader equipment category becomes unavailable;
+- the Movement Art is restricted to the Mantle Path's movement family;
+- the build must use both Current and Legacy from compatible path families, sacrificing many Confluence possibilities;
+- the build must commit to a particular Soulmark branch, losing access to other branch benefits while this specialist configuration is active;
+- a path-specific resource/cost constraint limits another area of combat versatility.
+
+**Do not implement every example universally.** Each Mantle Path chooses costs that fit its identity and balance.
+
+But Rank III must always answer:
+
+> **What did this build give up to become this specialized?**
+
+If the answer is “nothing,” the Rank III design is invalid.
+
+---
+
+## 8. Rank III Is Not Strictly Better Than a Generalist
+
+The intended relationship is:
+
+```text
+GENERALIST
+more build breadth / answers / adaptability
+Mantle Rank I
+
+SPECIALIST
+less breadth, stronger Mantle identity
+Mantle Rank II
+
+DEEP SPECIALIST
+significant restrictions, exceptional Mantle expression
+Mantle Rank III
+```
+
+A Rank III build should dominate **its intended specialty window**, not every battlefield question.
+
+Examples:
+
+- a Rank III protection Mantle may be extraordinary at holding territory but give up mobility/offensive flexibility;
+- a Rank III pursuit Mantle may have terrifying chase potential but sacrifice defensive/utility options;
+- a Rank III ritual/control Mantle may reshape zones exceptionally but require slower setup and narrower equipment/Art choices.
+
+This produces counters, scouting value, team composition decisions, and recognizable player identities.
+
+---
+
+## 9. Mantle Path Diversity
+
+A Mantle may eventually support more than one advanced Path if doing so creates meaningful choices.
+
+For example, one Mantle could hypothetically have:
+
+```text
+RANK I — common core
+
+PATH A
+Rank II → Rank III
+focuses defensive embodiment
+
+PATH B
+Rank II → Rank III
+focuses mobility/control embodiment
+```
+
+However, **multiple Paths are optional, not mandatory**.
+
+Do not multiply every Mantle into three branches before the base system proves fun.
+
+Initial production should use the minimum number of Paths needed to validate specialization.
+
+---
+
+## 10. Acquisition Rarity vs Build Rarity
+
+Mantles have two independent rarity dimensions.
+
+### Acquisition rarity
+
+How difficult it is to earn the deeper rank/path permanently.
+
+Created through:
 
 - difficult qualification;
-- unusual route combinations;
-- deep character investment;
-- mastery challenges;
-- rare-but-recurring discoveries;
-- hard Expedition conditions;
-- personal rites;
-- late-Horizon progression;
-- build knowledge;
-- meaningful player choice.
+- Mantle Rites;
+- advanced Expeditions;
+- recurring rare discoveries;
+- world/faction/mentor paths;
+- Archive reconstruction;
+- high-Horizon content;
+- exceptional mastery challenges.
 
-Do not use as the default gate:
+### Manifestation rarity
 
-- paid rolls;
-- paid access;
-- one-time permanent-exclusive combat power;
-- tiny unbounded RNG drop rates with no protection;
-- hidden real-time login windows measured in hours;
-- staff favoritism;
-- first-come-only permanent power.
+How restrictive the active build is.
 
-A player can look at a Rank III Mantle user and think:
+Even if many veteran players eventually **own** Rank III progression, relatively few active builds should satisfy Deep Dedication at a given time.
 
-> “That person did something extraordinary.”
-
-They should not think:
-
-> “That person happened to be online on one Tuesday three years ago, so I can never compete.”
+That is a powerful safety valve: prestigious specialist states can remain uncommon in actual combat without permanently denying progression to later players.
 
 ---
 
-## 6. Combat Activation
+## 11. Rarity Guardrails
 
-Mantles are **manually activated in battle**.
+Do not create higher-rank rarity through:
 
-They are not always-on passive states.
+- premium account type;
+- paid rolls;
+- paid unlocks;
+- paid progression bypass;
+- one-time permanent-exclusive combat power;
+- tiny unbounded random drops with no protection;
+- staff favoritism;
+- first-come-only permanent power;
+- hidden hour-scale login windows.
 
-A Mantle definition includes concepts equivalent to:
+First achievers may receive Chronicle recognition, titles, cosmetics, or history prestige.
 
-- activation requirement;
+Later legitimate players must still have a fair route to the combat capability.
+
+---
+
+## 12. Combat Activation
+
+Mantles are manually activated.
+
+A Mantle definition contains data for:
+
+- readiness requirements;
 - activation Action Cost Class;
 - entry effect;
 - duration;
 - sustained effects;
-- rank-specific modifications;
+- rank/path modifications;
 - Afterstrain;
-- reactivation/charge rule;
-- mode-specific overrides;
-- visual/audio presentation;
-- AI and counterplay metadata.
+- reactivation rules;
+- PvE/PvP overrides;
+- VFX/audio;
+- AI/counterplay metadata.
 
-### Default activation rhythm
+Representative flow:
 
-A representative baseline is:
-
-1. meet the Mantle's battle-readiness requirement;
-2. choose **Manifest Mantle** from the Signature area of the Command Deck;
-3. preview entry effect, duration, sustained effects, and Afterstrain;
-4. confirm;
-5. server validates and activates the versioned Mantle state;
-6. Mantle remains active for its configured duration;
-7. state expires or is ended by a specifically authored rule;
-8. Afterstrain begins.
-
-The exact numbers are balance data.
+```text
+BUILD DETERMINES MANIFEST RANK
+        ↓
+BATTLE BUILDS READINESS
+        ↓
+MANIFEST MANTLE
+        ↓
+ENTRY EFFECT
+        ↓
+TEMPORARY MANTLED STATE
+        ↓
+EXPIRATION
+        ↓
+AFTERSTRAIN
+```
 
 ### Activation should not be a dead turn
 
-If activation consumes the normal Action, the Mantle should normally have a meaningful **entry effect** so the player is making a tactical action rather than simply skipping a turn to become stronger later.
+If manifestation consumes the actor's normal Action, it should normally include an appropriate entry effect such as reposition, barrier, zone, stance change, resource conversion, bounded cleanse, mark, or initiative interaction.
 
-Examples of entry-effect categories include:
-
-- reposition;
-- barrier;
-- zone creation;
-- cleanse of allowed ordinary statuses;
-- mark;
-- stance change;
-- resource conversion;
-- battlefield pulse;
-- initiative adjustment within bounded rules.
-
-Do not default every Mantle to a damage explosion.
+Do not make every entry effect a damage explosion.
 
 ---
 
-## 7. Readiness / Charge Philosophy
+## 13. Readiness Should Reflect Playstyle
 
-Do not make every Mantle a generic super meter that fills identically from dealing damage.
+Do not use one universal “deal damage to fill super meter” rule.
 
-Mantles should support a data-driven **Readiness Requirement**.
+Mantles support typed readiness requirements such as:
 
-Possible requirement primitives include:
-
-- minimum round;
-- combat resource threshold;
-- number/type of tagged actions used;
+- round threshold;
+- tagged actions used;
 - damage prevented;
 - allies supported;
-- movement/positioning accomplishment;
-- status setup/payoff;
-- objective contribution;
-- HP/MP state;
-- explicitly authored encounter condition;
-- once-per-battle availability after a prior prerequisite.
+- movement/positioning achievements;
+- statuses created/exploited;
+- terrain/objective contribution;
+- HP/MP/resource state;
+- explicit encounter condition.
 
-A defensive Mantle may become ready through protective play.
+A protective Mantle should tend to become ready through protective play.
 
-A mobility Mantle may become ready through movement/positioning play.
+A movement Mantle should tend to become ready through movement play.
 
-A control Mantle may become ready through setup and terrain manipulation.
+A control Mantle should tend to reward control/setup play.
 
-This lets readiness reinforce the Mantle's identity instead of rewarding every build for doing the same thing.
-
-Readiness must be server-authoritative and visible enough that the player can plan around it.
+Readiness is server-authoritative and visible enough to plan around.
 
 ---
 
-## 8. Duration
+## 14. Duration and Afterstrain
 
 Mantles are temporary.
 
-A representative first-pass duration may be a small number of rounds, but exact duration is content/balance data.
+The UI always communicates:
 
-The UI must always show:
-
-- whether the Mantle is ready;
-- whether it is active;
+- readiness;
+- manifest rank;
+- active state;
 - remaining duration;
-- the relevant sustained effects;
-- the expected Afterstrain.
+- important sustained rules;
+- expected Afterstrain.
 
-Do not hide a transformation timer and surprise the player with expiration.
+**Afterstrain** creates the question:
 
----
+> When is this transformation worth the recovery window?
 
-## 9. Afterstrain
+Afterstrain can affect Movement, MP/resource recovery, initiative, defenses, particular action tags, or another authored vulnerability.
 
-A Mantle creates a recovery cost called **Afterstrain**.
+It is not one universal debuff and higher rank does not automatically mean “less downside.”
 
-Afterstrain is not merely punishment for using the fun button. It creates the tactical question:
-
-> **When is this power worth the recovery window?**
-
-Afterstrain may affect things such as:
-
-- Movement Budget;
-- MP/resource recovery;
-- defensive effectiveness;
-- initiative;
-- particular action tags;
-- readiness for another special state;
-- an authored temporary vulnerability.
-
-Avoid one universal Afterstrain debuff for every Mantle.
-
-The recovery profile should reinforce the transformation's fantasy and counterplay.
-
-Higher ranks do not need to simply reduce Afterstrain. They may alter the relationship: stronger state, different recovery, new management tool, or a more demanding tradeoff.
+A Rank III specialist may gain a much stronger state while accepting a more dangerous recovery profile.
 
 ---
 
-## 10. Mantle State Classification
+## 15. State Classification
 
-Mantled and Afterstrain states use explicit combat-system classifications.
+Mantled and Afterstrain states are explicit combat-state categories, not ordinary generic buffs/debuffs.
 
-They are not ordinary cleanseable status effects by default.
+Normal Cleanse/Dispel/Copy/Steal behavior does not affect them unless a specific authored mechanic explicitly supports that state category.
 
-Generic Cleanse / Dispel / Copy / Steal systems should interact only with state categories they explicitly support.
-
-Normal status removal should therefore not accidentally delete a Mantle.
-
-However, AUREVANE should not hard-code absolute mystical immunity into unrelated code paths.
-
-The combat grammar may support explicit interactions such as:
-
-- `MANTLE_STATE`;
-- `AFTERSTRAIN_STATE`;
-- `can_affect_mantle = true` for an authored rare mechanic;
-- specific scenario suppression where deliberately designed.
-
-Any ability capable of directly suppressing or altering a Mantle must say so clearly and receive explicit balance/counterplay review.
-
-Mantles cannot be copied merely by generic effect-copy systems unless a future feature is explicitly designed around that possibility.
+This prevents accidental interaction while still allowing future deliberate counters.
 
 ---
 
-## 11. Rank Design — More Than Bigger Numbers
+## 16. Higher Ranks Must Change Rules, Not Only Numbers
 
-Rank progression must not become:
+Invalid progression:
 
 ```text
 Rank I   +10%
@@ -386,415 +511,287 @@ Rank II  +20%
 Rank III +30%
 ```
 
-Each deeper rank should change how the player thinks.
-
-A useful pattern is:
+Preferred progression:
 
 ### Rank I
 
-Establish the Mantle's core state and tactical rhythm.
+Establishes the Mantle's core tactical state.
 
 ### Rank II
 
-Add one meaningful rule interaction, improve or branch the entry effect, and deepen the relationship with a clear style of play.
+Deepens the state through specialization: new rule interaction, altered entry effect, or stronger identity tied to the Mantle Path.
 
 ### Rank III
 
-Add a genuinely signature rule, transformation payoff, or state-management option that feels legendary while remaining counterable and mode-safe.
+Adds a signature mechanic/state-management option powerful enough to justify Deep Dedication while remaining counterable.
 
-Raw coefficients may improve, but rule depth and identity matter more than vertical inflation.
-
----
-
-## 12. Content Scale / Combinatorial Safety
-
-Mantles must remain a finite authored catalog.
-
-Do **not** define a bespoke Mantle for every:
-
-- Discipline;
-- Current + Legacy pair;
-- Soulmark;
-- equipment set;
-- nation;
-- combination of the above.
-
-That would create another impossible production matrix.
-
-Instead:
-
-- Mantles have stable tags and Effect Catalog interactions;
-- Disciplines/Soulmarks/equipment may interact through shared tags where useful;
-- a small number of iconic bespoke interactions may be authored deliberately;
-- the Mantle remains mechanically coherent across many builds.
-
-Before expanding the Mantle catalog, measure the marginal burden in:
-
-- PvE balance;
-- PvP matchups;
-- AI behavior;
-- UI/readability;
-- VFX/SFX;
-- acquisition content;
-- Manual/News content;
-- test cases;
-- Master Panel tooling.
+Raw coefficients may change, but deeper ranks must create different decisions.
 
 ---
 
-## 13. Build Integration
+## 17. Content / Combinatorial Safety
 
-Once the system is released, a combat-ready character may have a concept equivalent to:
+Mantles are a finite authored catalog.
 
-```text
-CURRENT DISCIPLINE
-+
-LEGACY DISCIPLINE
-+
-SOULMARK
-+
-EQUIPMENT
-+
-CONFLUENCE
-+
-EQUIPPED MANTLE
-```
+Do not create a bespoke Mantle for every Discipline, Confluence, Soulmark, nation, item set, or combination thereof.
 
-Only one Mantle is equipped/manifestable at a time by default.
+Use:
 
-Mantle selection belongs in the central Build / Armory experience once the system exists.
+- stable build/content tags;
+- reusable Effect Catalog behavior;
+- typed Path requirements;
+- typed Dedication constraints;
+- a small number of deliberately authored iconic interactions.
 
-Saved loadouts should eventually include the equipped Mantle and its valid rank/path state.
+Before expanding the Mantle catalog, account for added burden across PvE, PvP, AI, acquisition content, UI, VFX/SFX, Manual/News, analytics, and regression testing.
+
+---
+
+## 18. Armory / Saved Loadout Integration
+
+Once Mantles exist, the Build / Armory experience shows:
+
+- equipped Mantle;
+- permanently earned rank;
+- current Mantle Path;
+- **current manifest rank**;
+- satisfied/unsatisfied Path requirements;
+- Dedications currently imposed;
+- what the player gains at the next rank;
+- what flexibility they give up.
+
+Saved combat loadouts include Mantle configuration.
+
+A loadout may intentionally be saved as:
+
+- Generalist / Rank I;
+- Rank II specialist;
+- Rank III deep specialist.
 
 Loadout activation remains atomic and server-authoritative.
 
-Changing a Mantle outside allowed preparation rules must not become an in-battle exploit.
+This turns Mantle specialization into actual theorycrafting instead of a permanent irreversible choice.
 
 ---
 
-## 14. Battle UI
+## 19. Battle UI
 
-The battlefield-first interface should integrate Mantles without creating a second giant command system.
+The battlefield-first interface integrates Mantles through the existing **Signature** area of the Command Deck rather than adding another giant menu.
 
-### Command Deck
+The action preview displays:
 
-Add **Manifest Mantle** to the existing Signature area when:
-
-- the actor has a Mantle equipped;
-- the battle mode allows it;
-- readiness requirements are met.
-
-The action preview must show:
-
-- Mantle name and rank;
-- activation cost/action use;
+- Mantle + Path;
+- manifest rank;
+- readiness;
+- activation cost;
 - entry effect;
 - duration;
 - sustained rule summary;
-- Afterstrain;
-- relevant targeting if activation has an entry target/area.
+- Afterstrain.
 
-### Turn Economy Tracker
-
-Show Mantle readiness/state where relevant:
+The Turn Economy Tracker/context can show:
 
 ```text
-MANTLE    NOT READY
-MANTLE    READY
-MANTLE    ACTIVE · 2 ROUNDS
-MANTLE    AFTERSTRAIN · 1 ROUND
+MANTLE I     READY
+MANTLE II    ACTIVE · 2 ROUNDS
+MANTLE III   PATH REQUIREMENT NOT MET
+MANTLE       AFTERSTRAIN · 1 ROUND
 ```
 
-### Combat rails / inspector
-
-The ally rail, enemy inspector, and initiative/context presentation should make an active Mantle recognizable without overwhelming HP/MP/status readability.
-
-### Visual hierarchy
-
-Transformation VFX must be exciting but cannot obscure:
-
-- tile occupancy;
-- facing;
-- target shapes;
-- hazards;
-- objectives;
-- status icons;
-- enemy telegraphs.
-
-Rank III may earn a stronger entrance moment, but action resolution still returns quickly to readable tactical play.
+Transformation VFX may be spectacular but must return quickly to readable tile occupancy, facing, hazards, objectives, target shapes, and enemy telegraphs.
 
 ---
 
-## 15. PvP Rules
+## 20. PvP Safety
 
-Rare progression must not make standard competitive play structurally unfair.
+Rare specialist progression must not make standard competitive play structurally unfair.
 
-PvP queue configuration must support:
+Queue configuration must support:
 
-- Mantles enabled/disabled;
-- maximum effective Mantle rank;
-- queue-specific coefficients/effects where necessary;
-- normalization to a lower mechanical rank while preserving permitted cosmetics;
-- specific Mantle disable/kill switch;
-- version pinning for a season/queue.
+- Mantles on/off;
+- maximum effective rank;
+- specific Mantle/Path legality;
+- rank normalization;
+- queue-specific coefficients/rules;
+- seasonal version pinning;
+- emergency disable.
 
-A sensible default during early competitive validation is to cap standard ranked play at the Mantle rank actually supported by population progression and balance evidence.
+Rank III should not automatically be legal at full power in standard ranked merely because PvE supports it.
 
-Rank III should **not automatically be legal at full strength in standard ranked** merely because it exists in PvE.
+If Rank III is permitted, its Hard Dedication must remain part of the validated competitive loadout—players do not receive the upside while bypassing the sacrifice.
 
-Special queues or events may allow unrestricted Mantles if clearly disclosed.
-
-No paid Mantle progression, paid rank unlock, or paid competitive bypass is allowed.
-
----
-
-## 16. Co-op and PvE
-
-Mantles should create useful team timing without making group content assume every participant owns an advanced rank.
-
-Encounter design should avoid:
-
-- mandatory Rank II/III checks for ordinary progression;
-- bosses that are trivial without a Mantle and impossible without one;
-- one Mantle becoming required for every difficult Expedition group.
-
-High-end optional challenges may deliberately test Mantle timing once the system is mature.
-
-Bosses and elite NPCs may have their own phase/transformation systems. Do not label every boss phase a player Mantle just to reuse the word.
+No paid Mantle combat advantage is allowed.
 
 ---
 
-## 17. AI
+## 21. PvE / Co-op
 
-Combat AI must understand Mantle legality through the same authoritative combat engine.
+Ordinary progression must not assume everyone uses Rank II/III.
 
-AI decision logic should consider:
+High-end optional content may deliberately reward good Mantle timing or specialist teams, but no single advanced Mantle Path should become compulsory for all difficult Expeditions.
 
+Generalists and specialists should each have legitimate roles.
+
+---
+
+## 22. AI
+
+Combat AI uses the same authoritative rules and understands:
+
+- manifest rank derived from its legal build;
 - readiness;
-- activation cost;
-- expected remaining battle duration;
-- entry effect value;
-- sustained-state value;
-- Afterstrain risk;
+- entry/sustained value;
+- duration;
+- Afterstrain;
 - objective timing;
-- opponent active Mantle duration;
-- public counterplay information.
+- opponent visible Mantle state;
+- Path-specific role.
 
-AI must not know hidden future player choices or secret Mantle eligibility not exposed by the encounter state.
+AI cannot ignore Dedications that a human build must obey.
 
-Tactical Hall opponents may use Mantles only when the relevant records/content have been legitimately unlocked and spoiler policy permits them.
-
----
-
-## 18. Acquisition Content
-
-A Mantle unlock should normally be memorable content, not a silent database flag.
-
-Possible acquisition experiences include:
-
-- personal rite;
-- mentor chain;
-- difficult combat trial;
-- Expedition discovery;
-- world landmark interaction;
-- faction philosophy/commitment;
-- Archive reconstruction followed by a practical rite;
-- rare recurring event path;
-- high-Horizon challenge.
-
-A Rank II or III unlock should ideally answer:
-
-> **Why did this character earn this state?**
-
-The answer should be visible in their history, not merely their XP total.
+Tactical Hall Mantle access remains progression/spoiler gated.
 
 ---
 
-## 19. Discovery and Secrecy
+## 23. Manual / News / Discovery
 
-Some Mantles/ranks may be known publicly; others may be discoverable.
-
-The public Manual may explain:
+The public Manual can explain:
 
 - what Mantles are;
-- how activation/duration/Afterstrain work;
-- currently public acquisition paths;
-- competitive rules;
-- known Mantle effects.
+- Rank I vs advanced specialization;
+- Manifest Rank;
+- activation/duration/Afterstrain;
+- public Paths and competitive rules.
 
-It must not automatically reveal:
+It must not automatically spoil secret Rank II/III requirements or unreleased acquisition content.
 
-- hidden Rank II paths;
-- secret Rank III conditions;
-- unreleased Mantles;
-- lore-gated acquisition steps;
-- unrevealed bosses/regions required by a path.
+News is the official channel for released Mantles/Paths, balance changes, rank-cap changes, temporary disablement, and relevant event announcements.
 
-The Archive/Codex may reveal deeper information according to legitimate discovery state.
+Archive/Codex discovery may expose deeper lore/path clues according to legitimate player discovery.
 
 ---
 
-## 20. News Integration
+## 24. Media
 
-Public News is the official channel for communication such as:
+Mantles are premium presentation moments.
 
-- a newly released Mantle;
-- a newly enabled Rank II/III path;
-- balance changes;
-- PvP rank-cap changes;
-- disabled/broken Mantle notices;
-- event-linked acquisition windows;
-- significant rules corrections.
+A released Mantle can require stable Asset IDs for:
 
-Patch notes should link to the current Manual entry where public rules changed.
+- icon;
+- transformation VFX;
+- active-state visual language;
+- rank/path distinctions;
+- Afterstrain cue;
+- activation/expiration SFX;
+- optional Rank III signature audio/music treatment;
+- Manual/News/key-art needs.
 
-Do not reveal secret acquisition conditions merely to announce that a new mystery exists.
-
----
-
-## 21. Media / Presentation
-
-Mantles are high-value visual/audio content.
-
-Each released Mantle should define media needs equivalent to:
-
-- Mantle icon;
-- transformation/manifestation VFX;
-- active-state VFX language;
-- expiration/Afterstrain cue;
-- activation SFX;
-- sustained audio treatment where useful;
-- optional signature music stem or mix treatment for exceptional Rank III moments;
-- UI presentation assets;
-- key art only where justified.
-
-Media follows `docs/MEDIA_PIPELINE.md` and stable Asset IDs.
-
-The Owner must eventually be able to replace Mantle art/audio through Asset Studio without changing combat code.
-
-Cosmetic variants may eventually exist, but they must preserve competitive readability and never change mechanics.
+All remain owner-replaceable through the Asset Studio/media pipeline later.
 
 ---
 
-## 22. Master Panel — Mantle Studio
+## 25. Master Panel — Mantle Studio
 
-The Master Panel must eventually include a safe **Mantle Studio** or equivalent Character/Combat Content editor.
+The Master Panel eventually exposes controlled Mantle authoring for:
 
-Authorized staff should be able to manage:
-
-- Mantle identity/name/description;
-- enabled/disabled state;
-- rank definitions;
-- acquisition requirements;
-- progression-path requirements;
-- readiness rules;
-- activation/action cost;
-- entry effects;
+- Mantle identity;
+- ranks;
+- Mantle Paths;
+- progression qualification;
+- build-pattern requirements;
+- Dedications / Hard Dedications;
+- manifest-rank resolution;
+- readiness;
+- activation;
+- entry/sustained effects;
 - duration;
-- sustained effects;
 - Afterstrain;
-- reactivation limits;
-- shared tags/interactions;
-- PvE/PvP overrides;
-- ranked rank caps / legality;
+- PvE/PvP overrides and caps;
 - AI metadata;
-- Manual visibility/spoiler metadata;
-- art/audio Asset IDs;
-- content version;
-- staged publish;
-- rollback;
-- emergency disable;
-- dependency/impact preview;
-- analytics.
+- spoiler/Manual metadata;
+- Asset IDs;
+- analytics;
+- staged publish/version diff/rollback/emergency disable.
 
-No arbitrary JavaScript/SQL is entered into Mantle definitions.
+No arbitrary JavaScript/SQL is entered into content definitions.
 
-Mantles must reuse typed Target/Requirement/Effect/state grammars where practical.
-
-Owner/support tools may grant or revoke Mantle progression for QA/recovery through explicit audited commands. Routine operation must not require raw database edits.
+Owner/support QA grants or corrections require explicit audited commands.
 
 ---
 
-## 23. Analytics
+## 26. Analytics and Balance Questions
 
-Track enough evidence to detect whether a Mantle is becoming mandatory or oppressive.
+Track enough evidence to answer:
 
-Useful measures include:
+- How many players own each earned rank?
+- How many **active builds** actually manifest Rank II/III?
+- What are the most common Dedications?
+- Are Rank III generalists somehow bypassing intended sacrifices?
+- Are Rank II/III builds overperforming outside their intended specialty?
+- Are generalist Rank I builds still viable?
+- How often is each Mantle activated, and in what round?
+- Is Afterstrain actually creating risk?
+- Which Current/Legacy/Soulmark/equipment combinations dominate each Path?
+- Does PvP normalization preserve meaningful tradeoffs?
 
-- unlock rate by character age/Horizon;
-- equipped rate;
-- Rank I/II/III population distribution;
-- activation rate;
-- activation round;
-- battle completion with/without activation;
-- win rate conditioned on Mantle/rank/build/mode;
-- damage/healing/prevention/objective contribution during active state;
-- Afterstrain survival/value impact;
-- duration utilization;
-- PvP matchup data;
-- queue rank-cap effects;
-- acquisition-funnel abandonment;
-- Mantle pairing with Current/Legacy/Soulmark/equipment;
-- Rank II/III rarity over time.
-
-Do not use one raw win-rate number as the sole balance decision.
+Rarity should be measured both as **ownership rarity** and **manifestation rarity**.
 
 ---
 
-## 24. Monetization Guardrail
+## 27. Monetization Guardrail
 
-Mantle combat power is earned through gameplay.
+Mantle power is gameplay-earned.
 
 Never sell:
 
-- Rank I unlock;
-- Rank II eligibility;
-- Rank III eligibility;
-- Mantle readiness charge;
+- Rank I access;
+- Rank II/III qualification;
+- Mantle Path eligibility;
+- reduced Dedication requirements;
+- readiness charge;
 - duration extensions;
 - reduced Afterstrain;
-- ranked Mantle power;
-- random paid Mantle rolls.
+- ranked effective rank;
+- paid Mantle rolls.
 
-Optional cosmetics may eventually alter safe presentation such as aura treatment, transformation flourish, profile badge/frame, or non-gameplay visual variants subject to readability and monetization rules.
+Cosmetic transformation flourishes may eventually be monetized only if they preserve battlefield readability and never change mechanics.
 
 ---
 
-## 25. Security / Server Authority
+## 28. Server Authority
 
-The browser never determines:
+The server owns:
 
-- whether a Mantle is owned;
-- rank;
-- path eligibility;
+- Mantle ownership;
+- earned rank;
+- Path unlocks;
+- active build Path;
+- build-pattern validation;
+- Dedication enforcement;
+- manifest rank;
 - readiness;
 - activation legality;
-- duration;
-- effects;
+- duration/effects;
 - Afterstrain;
-- PvP effective rank;
-- acquisition completion;
-- reward/progression state.
+- PvP effective-rank policy;
+- progression provenance.
 
-All such state is server-authoritative and versioned.
-
-Activation commands must be idempotent/retry-safe according to the combat command model.
-
-Persistent unlock/rank changes require durable provenance.
+The client submits intent and previews authoritative rules; it never chooses its own Mantle rank or removes its specialization costs.
 
 ---
 
-## 26. Definition of Success
+## 29. Definition of Success
 
 The system succeeds when:
 
-- Rank I gives most long-lived characters an exciting earned transformation without becoming mandatory button spam;
-- Rank II makes committed paths visibly meaningful and not automatic;
-- Rank III users are genuinely rare and prestigious because they completed extraordinary requirements;
-- the transformation creates tactical timing and counterplay rather than only stat inflation;
-- Soulmarks, Disciplines, Confluences, Ultimates, equipment, and Veteran Edge remain distinct and valuable;
-- standard ranked PvP remains configurable and fair despite rare high ranks;
-- acquisition creates memorable world/story/gameplay moments;
-- visuals/audio make manifestation feel exceptional without destroying battlefield readability;
-- the Owner can safely edit, publish, disable, rebalance, and replace Mantle content/media through the Master Panel;
-- the game can add Mantles over time without creating an impossible combinatorial content burden.
+- every legitimate player can eventually experience Rank I without payment gating;
+- Rank I remains useful and exciting for flexible builds;
+- Rank II visibly identifies builds that chose to specialize;
+- Rank III is rare primarily because both the achievement and the active-build sacrifice are demanding;
+- a Rank III character can still choose a broad build and intentionally fall back to Rank I/II;
+- specialists are exceptional at their specialty but demonstrably lack other forms of flexibility;
+- higher ranks change tactical rules rather than merely multiplying numbers;
+- Soulmarks, Confluences, Disciplines, Ultimates, equipment, and Veteran Edge remain distinct;
+- PvP can normalize/disable ranks safely;
+- the Owner can author, rebalance, replace media, publish, rollback, and emergency-disable Mantle content through the Master Panel;
+- Mantles deepen AUREVANE theorycrafting without creating another unmanageable combinatorial system.
