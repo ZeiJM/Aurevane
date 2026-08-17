@@ -155,10 +155,20 @@ describe('P2.1 deterministic battle state', () => {
     expect(() => spendAction(afterAction)).toThrow('already been spent')
   })
 
+  it('requires final facing before committing the active turn', () => {
+    const state = startBattle(createPendingBattle(battleInput())).state
+
+    expect(() => endTurn(state)).toThrow('Final facing must be selected')
+
+    const faced = selectFinalFacing(state, 'east').state
+    expect(endTurn(faced).state.currentTurn?.combatantId).toBe('recruit')
+  })
+
   it('advances turns and rounds deterministically while refreshing the next turn economy', () => {
     let state = startBattle(createPendingBattle(battleInput())).state
     state = spendMovement(state, 3).state
     state = spendAction(state).state
+    state = selectFinalFacing(state, 'east').state
 
     const recruitTurn = endTurn(state)
     expect(recruitTurn.state).toMatchObject({
@@ -179,7 +189,8 @@ describe('P2.1 deterministic battle state', () => {
       { event: 'turn_started', round: 1, turnNumber: 2, combatantId: 'recruit' },
     ])
 
-    const nextRound = endTurn(recruitTurn.state)
+    const recruitFaced = selectFinalFacing(recruitTurn.state, 'west').state
+    const nextRound = endTurn(recruitFaced)
     expect(nextRound.state).toMatchObject({
       round: 2,
       turnNumber: 3,
@@ -216,8 +227,10 @@ describe('P2.1 deterministic battle state', () => {
     expect(started.state.initiativeOrder).toEqual(['fallen-first', 'wayfarer', 'recruit'])
     expect(started.state.currentTurn?.combatantId).toBe('wayfarer')
 
-    const recruitTurn = endTurn(started.state).state
-    const nextRound = endTurn(recruitTurn).state
+    const wayfarerFaced = selectFinalFacing(started.state, 'east').state
+    const recruitTurn = endTurn(wayfarerFaced).state
+    const recruitFaced = selectFinalFacing(recruitTurn, 'west').state
+    const nextRound = endTurn(recruitFaced).state
     expect(nextRound.round).toBe(2)
     expect(nextRound.currentTurn?.combatantId).toBe('wayfarer')
   })
