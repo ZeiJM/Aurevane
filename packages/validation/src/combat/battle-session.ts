@@ -5,6 +5,7 @@ const safePositiveInteger = safeInteger.positive()
 const battleSessionIdSchema = z.string().uuid()
 const combatantIdSchema = z.string().trim().min(1).max(160)
 const gridPositionSchema = z.object({ x: safeInteger, y: safeInteger }).strict()
+const battleFacingSchema = z.enum(['north', 'east', 'south', 'west'])
 
 const combatTargetSelectionSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('self') }).strict(),
@@ -34,7 +35,7 @@ export const battleIntentSchema = z.discriminatedUnion('kind', [
   z
     .object({
       kind: z.literal('face'),
-      facing: z.enum(['north', 'east', 'south', 'west']),
+      facing: battleFacingSchema,
     })
     .strict(),
   z.object({ kind: z.literal('end-turn') }).strict(),
@@ -65,6 +66,21 @@ const battlePreviewRequestSchema = z
 const battleRecruitTurnRequestSchema = z
   .object({
     expectedBattleVersion: safePositiveInteger,
+  })
+  .strict()
+
+const battleFinalTurnPreviewRequestSchema = z
+  .object({
+    expectedBattleVersion: safePositiveInteger,
+    facing: battleFacingSchema,
+  })
+  .strict()
+
+const battleFinalTurnRequestSchema = z
+  .object({
+    idempotencyKey: z.string().uuid(),
+    expectedBattleVersion: safePositiveInteger,
+    facing: battleFacingSchema,
   })
   .strict()
 
@@ -124,6 +140,8 @@ export type BattleSessionCreateRequest = z.infer<typeof battleSessionCreateReque
 export type BattleIntentRequest = z.infer<typeof battleIntentRequestSchema>
 export type BattlePreviewRequest = z.infer<typeof battlePreviewRequestSchema>
 export type BattleRecruitTurnRequest = z.infer<typeof battleRecruitTurnRequestSchema>
+export type BattleFinalTurnPreviewRequest = z.infer<typeof battleFinalTurnPreviewRequestSchema>
+export type BattleFinalTurnRequest = z.infer<typeof battleFinalTurnRequestSchema>
 export type BattleSessionCreationPersistenceRow = z.infer<typeof battleSessionCreationRowSchema>
 export type BattleSessionPersistenceRow = z.infer<typeof battleSessionRowSchema>
 export type BattleSessionCommitPersistenceRow = z.infer<typeof battleSessionCommitRowSchema>
@@ -151,6 +169,18 @@ export function parseBattlePreviewRequest(input: unknown): BattlePreviewRequest 
 
 export function parseBattleRecruitTurnRequest(input: unknown): BattleRecruitTurnRequest | null {
   const result = battleRecruitTurnRequestSchema.safeParse(input)
+  return result.success ? result.data : null
+}
+
+export function parseBattleFinalTurnPreviewRequest(
+  input: unknown,
+): BattleFinalTurnPreviewRequest | null {
+  const result = battleFinalTurnPreviewRequestSchema.safeParse(input)
+  return result.success ? result.data : null
+}
+
+export function parseBattleFinalTurnRequest(input: unknown): BattleFinalTurnRequest | null {
+  const result = battleFinalTurnRequestSchema.safeParse(input)
   return result.success ? result.data : null
 }
 
