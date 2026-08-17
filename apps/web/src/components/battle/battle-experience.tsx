@@ -530,7 +530,9 @@ export function BattleExperience({ initialBattle }: BattleExperienceProps) {
         return
       }
       if (nextMode === 'attack') {
-        setNotice('Basic Attack: choose an enemy unit on the battlefield, then review the forecast.')
+        setNotice(
+          'Basic Attack: choose an enemy unit on the battlefield, then review the forecast.',
+        )
         return
       }
       if (nextMode === 'face') {
