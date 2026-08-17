@@ -8,54 +8,30 @@ The Master Game Plan defines the product. The Roadmap defines sequence. Canonica
 
 **Stage:** Phase 2 — Tactical Combat Core
 
-**ACTIVE:** issue #91 — P2.5 Responsive Battle Experience + Turn Economy Tracker
+**ACTIVE:** issue #93 — P2.6 Recruit AI + Tactical Hall Vertical Slice
 
-The mandatory Phase 0 / Phase 1 / P2.1–P2.4 reconciliation gate #73 is complete. P2.5 remains the single active implementation ticket. Its implementation candidate is complete and has passed exact GitHub quality, database-authority, security, and responsive-browser gates; merge remains blocked only on the required exact external Vercel Preview verification. Do not pull P2.6 AI or Phase 3 buildcraft forward before that release gate closes.
+P2.5 is merged to `main` through PR #92 and its exact Preview/release gates were completed before merge. The current task is to prove that the same authoritative combat grammar supports a fair deterministic Recruit opponent and a constrained repeatable Tactical Hall practice loop. Do not pull Phase 3 buildcraft, Mantles, broad Tactical Record progression, PvP bots, or remote LLM combat logic forward.
 
-### P2.5 implemented boundary
+### P2.6 current implementation boundary
 
-The current candidate implements against the existing authoritative P2.4 session boundary:
+Implement:
 
-- authenticated battle launch/resume route and board-first cockpit;
-- server-derived read-only movement/action/facing/end-turn previews using current game-core legality and stat-driven forecasts;
-- current actor, HP/MP, initiative, visible status/context, and canonical front/side/rear facing context;
-- Turn Economy Tracker for Movement remaining/total, Action ready/spent, MP and current relevant costs/resources;
-- explicit Inspect mode versus Target mode;
-- movement/path, target/shape and facing previews with useful legality explanations;
-- explicit Cancel/Back/Confirm flow and duplicate-submit protection;
-- stale-version/refetch/reconnect recovery without client-side authority guessing;
-- sanitized on-demand committed battle history backed by service-role-only owner-scoped event reads;
-- responsive desktop/laptop/phone composition with keyboard/touch/reduced-motion baseline;
-- governed requested-media fallback and gesture-gated audio runtime integration through existing boundaries.
+- server-authoritative AI decision interface consuming the same movement/target/action/effect legality as player commands;
+- explicit AI knowledge filter over committed encounter state only;
+- first deliberately weak Recruit intelligence profile;
+- deterministic seeded tie-breaking and bounded decision budget;
+- simple utility scoring for legal damage/utility, survival, positioning, and scenario objective where present;
+- safe fallback hierarchy ending in Guard/Wait/End Turn rather than illegal actions;
+- structured decision-reason tags for logs/debugging;
+- deterministic QA practice harness and golden tactical regression states;
+- first player-facing Tactical Hall repeat loop with one Recruit floor, constrained supported presets, instant retry, and no normal repeatable progression rewards;
+- intelligence profile kept separate from raw combatant stats.
 
-Do not duplicate combat formulas or hidden RNG state in React. Previews may inform the player, but every committed result remains server authoritative.
-
-## Audit corrections integrated into `main`
-
-- #80 — Phase 0 RLS helper privilege hardening
-- #61 — P2.1 malformed lifecycle/counter hardening
-- #64 — P2.3 Targeting, Combat Actions + Effect Grammar rebuild
-- #82 — final-facing turn-commitment hardening
-- #85 — Phase 1 foreign-key index hardening
-- #86 — P1.7 Public News + Manual + Rules Foundation
-- #71 — rebuilt P2.4 authoritative battle-session persistence boundary
-- #87 — Phase 1 derived-stats → Phase 2 combat bridge
-- #90 — P2.4 identifier-only battle invalidation/refetch contract
-
-Final reconciled `main` passed exact quality/database/browser gates and an exact READY Vercel production deployment before #73 closed.
-
-### Live audit / P2.5 persistence state
-
-- Phase 0 privileged helper browser execution is revoked.
-- Phase 1 foreign-key covering indexes are present; missing-index advisor findings are cleared.
-- P2.4 battle persistence/RPC migrations are present under the exact live Supabase ledger versions and browser roles remain outside authoritative mutation.
-- P2.5 battle-event read migration is live as `20260817141155_p25_battle_event_read`; browser roles cannot execute it or read `app_private.battle_events`, while `service_role` can perform the owner-scoped read.
-- Supabase leaked-password protection remains an external Free-plan limitation; revisit if the project is upgraded to Pro+.
+All AI-selected intents still commit through the authoritative P2.4/P2.5 battle session, expected-version, idempotency, and event boundaries. The AI gets no privileged legality shortcut and no hidden future RNG or uncommitted browser planning state.
 
 ## Completed major milestones on `main`
 
 ### Phase 0 — Foundation ✅
-
 - F0.1 Repository + Runnable Web Foundation
 - F0.2 Infrastructure + Persistence Baseline
 - F0.3 Server Architecture Skeleton
@@ -63,7 +39,6 @@ Final reconciled `main` passed exact quality/database/browser gates and an exact
 - audit security hardening integrated through #80
 
 ### Phase 1 — Character Foundation ✅
-
 - P1.1 Account Entry + Player Profile Boundary
 - P1.2 Character Domain Rules + Creation Contract
 - P1.3 Authoritative Character Creation + Persistence Experience
@@ -73,23 +48,30 @@ Final reconciled `main` passed exact quality/database/browser gates and an exact
 - P1.7 Public News + Manual + Rules Foundation
 - audit performance hardening integrated through #85
 
-### Phase 2 — engine checkpoints through P2.4 ✅
-
-- P2.1 Deterministic Battle State + Turn Economy Foundation, including malformed-state and final-facing hardening
+### Phase 2 — through P2.5 ✅
+- P2.1 Deterministic Battle State + Turn Economy Foundation
 - P2.2 Board, Movement, Terrain + Facing Legality
 - P2.3 Targeting, Combat Actions + Effect Grammar
 - P2.4 Authoritative Battle Session + Persistence Boundary
-- representative Phase 1-derived combat stat expression integrated through #87
-- identifier-only authoritative battle invalidation/refetch contract integrated through #90
+- Phase 1-derived combat stat bridge through #87
+- identifier-only battle invalidation/refetch through #90
+- P2.5 Responsive Battle Experience + Turn Economy Tracker through #92
+
+P2.5 includes the responsive board-first cockpit, authoritative planning preview API, current Turn Economy presentation, stale/reconnect handling, sanitized committed battle history, governed media fallback, gesture-gated audio integration, and authenticated responsive browser journey.
+
+## Live persistence / authority state
+
+- browser roles remain outside authoritative battle mutation and private battle-event tables;
+- P2.5 owner-scoped battle-event read remains service-role only via `20260817141155_p25_battle_event_read`;
+- Phase 0 helper hardening and Phase 1 FK covering indexes remain live;
+- Supabase leaked-password protection remains an external Free-plan limitation and is not a repository defect.
 
 ## Established deferrals
 
-- Weight / Load / Might: full equipment/load proof remains Phase 3 when representative equipment exists.
-- Mantles: no player Mantles belong in PV-1; actual Mantle implementation remains later-phase work.
-- Recruit AI / Tactical Hall: P2.6, only after the normal P2.5 player loop is stable.
-- Current/Legacy/Confluence/Soulmark loadout cockpit: Phase 3+ as those systems become real.
-- PvP clocks, Battle Review, full map editor, full websocket/co-op sync and final production combat polish remain later scope.
-- Full Asset Studio/provider operations remain later-phase work; P2.5 uses the existing replaceable media/audio boundary and graceful fallbacks.
+- Weight / Load / Might: Phase 3 when representative equipment exists.
+- Mantles / Confluences / Soulmarks / Current-Legacy loadouts: later phases.
+- stronger AI grades beyond tiny testing stubs, remote LLM combat, reinforcement learning, PvP bot substitution, broad Tactical Record progression, and full Battle Review: later scope.
+- final production combat art/VFX polish and full websocket/co-op synchronization: later scope.
 
 ## Permanent execution rules
 
@@ -104,15 +86,11 @@ Final reconciled `main` passed exact quality/database/browser gates and an exact
 ## Immediate sequence
 
 ```text
-#91 P2.5 — exact Vercel Preview verification
+#93 P2.6 — Recruit AI + Tactical Hall Vertical Slice
   ↓
-Merge + post-merge main/production verification
-  ↓
-Close #91 and make P2.6 the single ACTIVE implementation ticket
-  ↓
-P2.6 — Recruit AI + Tactical Hall vertical slice
+Exact GitHub + database + responsive browser + Vercel Preview validation
   ↓
 PV-1 — Tactical Combat Proof
 ```
 
-If the exact Preview or post-merge validation exposes a genuine lower-layer authority defect, fix that smallest defect explicitly rather than hiding it inside later presentation or AI work.
+If P2.6 uncovers a genuine lower-layer combat-authority defect, fix that smallest defect explicitly rather than hiding it inside AI scoring or Tactical Hall presentation.
