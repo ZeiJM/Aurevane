@@ -2,6 +2,8 @@ import type { IdempotentCommandInput, TransactionalCommandResult } from './trans
 
 export type WayfarersPracticeFocusRecord = 'balanced'
 export type TrainingReportStatusRecord = 'pending' | 'claimed'
+export type PlannedPracticeWindowRecord = 'short' | 'overnight' | 'extended'
+export type PracticeSourceRecord = 'automatic_balanced' | 'planned_balanced'
 
 export interface TrainingReportRecord {
   reportId: string
@@ -9,6 +11,12 @@ export interface TrainingReportRecord {
   userId: string
   focus: WayfarersPracticeFocusRecord
   configVersion: number
+  practiceSource: PracticeSourceRecord
+  plannedWindow: PlannedPracticeWindowRecord | null
+  plannedWindowConfigVersion: number | null
+  plannedWindowSeconds: number | null
+  plannedElapsedSeconds: number
+  balancedFallbackSeconds: number
   windowStartedAt: string
   windowEndedAt: string
   elapsedSeconds: number
@@ -28,6 +36,44 @@ export interface TrainingReportRecord {
 export interface MaterializeTrainingReportInput {
   userId: string
   characterId: string
+}
+
+export interface WayfarersPracticeStatusRecord {
+  characterId: string
+  userId: string
+  focus: WayfarersPracticeFocusRecord
+  configVersion: number
+  minimumOfflineSeconds: number
+  restedMomentumBalance: number
+  plannedWindow: PlannedPracticeWindowRecord | null
+  plannedWindowConfigVersion: number | null
+  plannedWindowSeconds: number | null
+  planSetAt: string | null
+  shortWindowSeconds: number
+  overnightWindowSeconds: number
+  extendedWindowSeconds: number
+  serverNow: string
+}
+
+export interface GetWayfarersPracticeStatusInput {
+  userId: string
+  characterId: string
+}
+
+export interface SetPracticePlanRecord {
+  characterId: string
+  userId: string
+  plannedWindow: PlannedPracticeWindowRecord
+  plannedWindowConfigVersion: number
+  plannedWindowSeconds: number
+  planSetAt: string
+  serverNow: string
+}
+
+export interface SetPracticePlanInput extends IdempotentCommandInput {
+  userId: string
+  characterId: string
+  plannedWindow: PlannedPracticeWindowRecord
 }
 
 export interface TrainingReportClaimRecord {
@@ -60,6 +106,10 @@ export interface WayfarersPracticeRepository {
   materializeTrainingReport(
     input: MaterializeTrainingReportInput,
   ): Promise<TrainingReportRecord | null>
+  getPracticeStatus(input: GetWayfarersPracticeStatusInput): Promise<WayfarersPracticeStatusRecord>
+  setPracticePlan(
+    input: SetPracticePlanInput,
+  ): Promise<TransactionalCommandResult<SetPracticePlanRecord>>
   claimTrainingReport(
     input: ClaimTrainingReportInput,
   ): Promise<TransactionalCommandResult<TrainingReportClaimRecord>>
