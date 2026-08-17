@@ -6,6 +6,7 @@ const battleSessionIdSchema = z.string().uuid()
 const combatantIdSchema = z.string().trim().min(1).max(160)
 const gridPositionSchema = z.object({ x: safeInteger, y: safeInteger }).strict()
 const battleFacingSchema = z.enum(['north', 'east', 'south', 'west'])
+const tacticalHallArenaIdSchema = z.enum(['basic-training-floor', 'duel-yard'])
 
 const combatTargetSelectionSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('self') }).strict(),
@@ -45,6 +46,7 @@ const battleSessionCreateRequestSchema = z
   .object({
     idempotencyKey: z.string().uuid(),
     characterId: z.string().uuid(),
+    arenaId: tacticalHallArenaIdSchema.default('basic-training-floor'),
   })
   .strict()
 
