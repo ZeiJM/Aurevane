@@ -48,6 +48,7 @@ export async function handleCreateBattleSessionRequest(
     const battle = await dependencies.service.createSession({
       userId: actor.userId,
       characterId: parsed.characterId,
+      arenaId: parsed.arenaId,
       idempotencyKey: parsed.idempotencyKey,
     })
     return battleResponse(battle)
