@@ -336,6 +336,12 @@ export function validateBattleState(state: BattleState): readonly BattleInvarian
   collectPositiveIntegerIssue(issues, state.rulesVersion, 'rulesVersion')
   collectPositiveIntegerIssue(issues, state.contentVersion, 'contentVersion')
   collectBattleRngIssues(issues, state.rng)
+  collectNonNegativeIntegerIssue(issues, state.round, 'round')
+  collectNonNegativeIntegerIssue(issues, state.turnNumber, 'turnNumber')
+
+  if (!isLifecycle(state.lifecycle)) {
+    issues.push({ field: 'lifecycle', message: 'Unknown battle lifecycle.' })
+  }
 
   if (state.combatants.length < 2) {
     issues.push({ field: 'combatants', message: 'A battle requires at least two combatants.' })
@@ -721,6 +727,18 @@ function assertUint32NonZero(value: number, field: string): void {
 function assertFacing(facing: BattleFacing): void {
   if (!isFacing(facing)) {
     throw new TypeError('Facing must be north, east, south, or west.')
+  }
+}
+
+function isLifecycle(value: string): value is BattleLifecycle {
+  switch (value) {
+    case 'pending':
+    case 'active':
+    case 'completed':
+    case 'abandoned':
+      return true
+    default:
+      return false
   }
 }
 
