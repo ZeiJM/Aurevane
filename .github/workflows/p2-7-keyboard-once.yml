@@ -1,0 +1,169 @@
+name: P2.7 keyboard shortcuts once
+
+on:
+  push:
+    branches:
+      - "agent/p2-7-combat-usability-battlefield-proof"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[p2.7-keyboard]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/p2-7-combat-usability-battlefield-proof
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Patch target cycling and log shortcut
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('apps/web/src/components/battle/battle-experience.tsx')
+          text = path.read_text()
+
+          old = """      if (event.key === 'Escape') {
+        event.preventDefault()
+        resetPlanning()
+        setNotice('Planning cleared. No command was committed.')
+        return
+      }
+
+      if (!playerTurn || battleState.lifecycle !== 'active' || commitPending || recruitPending)
+        return
+
+      if (event.key === '1') {
+"""
+          new = """      if (event.key === 'Escape') {
+        event.preventDefault()
+        resetPlanning()
+        setNotice('Planning cleared. No command was committed.')
+        return
+      }
+
+      if (event.key === 'l' || event.key === 'L') {
+        event.preventDefault()
+        window.dispatchEvent(new Event('aurevane:battle-log-toggle'))
+        return
+      }
+
+      if (!playerTurn || battleState.lifecycle !== 'active' || commitPending || recruitPending)
+        return
+
+      if (event.key === 'Tab' && mode === 'attack' && activeCombatant) {
+        const targetIds = battleState.combatants
+          .filter(
+            (combatant) =>
+              combatant.teamId !== activeCombatant.teamId && combatant.hp > 0,
+          )
+          .map((combatant) => combatant.id)
+        if (targetIds.length > 0) {
+          event.preventDefault()
+          const currentIndex = selectedUnitId ? targetIds.indexOf(selectedUnitId) : -1
+          const direction = event.shiftKey ? -1 : 1
+          const nextIndex =
+            currentIndex < 0
+              ? event.shiftKey
+                ? targetIds.length - 1
+                : 0
+              : (currentIndex + direction + targetIds.length) % targetIds.length
+          const targetCombatantId = targetIds[nextIndex]
+          if (targetCombatantId) {
+            setSelectedUnitId(targetCombatantId)
+            const targetPlacement = tactical.placements.find(
+              (placement) => placement.combatantId === targetCombatantId,
+            )
+            if (activePlacement && targetPlacement) {
+              setProvisionalFacing(
+                facingToward(activePlacement.position, targetPlacement.position) ?? provisionalFacing,
+              )
+            }
+            void requestPreview({
+              kind: 'action',
+              actionId: BASIC_ATTACK_ID,
+              target: { kind: 'unit', combatantId: targetCombatantId },
+            })
+          }
+        }
+        return
+      }
+
+      if (event.key === '1') {
+"""
+          if old not in text:
+              raise SystemExit('Keyboard insertion anchor not found')
+          text = text.replace(old, new, 1)
+
+          old_deps = """  }, [
+    battleState.lifecycle,
+    chooseMode,
+    commitFinalTurn,
+    commitIntent,
+    commitPending,
+    currentTurn?.actionState,
+    finalTurnPreview,
+    mode,
+    pendingIntent,
+    playerTurn,
+    preview,
+    previewFacing,
+    recruitPending,
+    resetPlanning,
+  ])
+"""
+          new_deps = """  }, [
+    activeCombatant,
+    activePlacement,
+    battleState.combatants,
+    battleState.lifecycle,
+    chooseMode,
+    commitFinalTurn,
+    commitIntent,
+    commitPending,
+    currentTurn?.actionState,
+    finalTurnPreview,
+    mode,
+    pendingIntent,
+    playerTurn,
+    preview,
+    previewFacing,
+    provisionalFacing,
+    recruitPending,
+    requestPreview,
+    resetPlanning,
+    selectedUnitId,
+    tactical.placements,
+  ])
+"""
+          if old_deps not in text:
+              raise SystemExit('Keyboard dependency anchor not found')
+          path.write_text(text.replace(old_deps, new_deps, 1))
+          PY
+          pnpm exec prettier --write apps/web/src/components/battle/battle-experience.tsx
+      - name: Commit keyboard shortcuts
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo 'No keyboard changes required.'
+            exit 0
+          fi
+          git config user.name 'Nicholas JM'
+          git config user.email '283436098+ZeiJM@users.noreply.github.com'
+          git add apps/web/src/components/battle/battle-experience.tsx
+          git commit -m 'P2.7 add target cycling and combat log shortcuts [p2.7-keyboard]'
+          git push origin HEAD:agent/p2-7-combat-usability-battlefield-proof
