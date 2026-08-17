@@ -20,6 +20,7 @@
     "./combat/recruit-ai": "./src/combat/recruit-ai.ts",
     "./combat/stat-driven-combat": "./src/combat/stat-driven-combat.ts",
     "./combat/tactical-hall-arenas": "./src/combat/tactical-hall-arenas.ts",
+    "./combat/tactical-hall-records": "./src/combat/tactical-hall-records.ts",
     "./command": "./src/command.ts",
     "./errors": "./src/errors.ts",
     "./player-profile": "./src/player-profile.ts"
