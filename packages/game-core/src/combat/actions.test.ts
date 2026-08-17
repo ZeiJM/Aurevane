@@ -5,6 +5,7 @@ import {
   P2_2_ORDINARY_GROUND_PROFILE,
   P2_2_VERTICAL_SLICE_TERRAINS,
   createTacticalBattleState,
+  selectCurrentFinalFacing,
   type CombatPlacement,
   type CombatTile,
   type GridPosition,
@@ -127,6 +128,14 @@ function activeEncounter(options?: {
   return createCombatEncounterState(tactical, options?.statusState)
 }
 
+function withFinalFacing(
+  state: CombatEncounterState,
+  facing: CombatPlacement['facing'],
+): CombatEncounterState {
+  const transition = selectCurrentFinalFacing(state.tactical, facing)
+  return createCombatEncounterState(transition.state, state.statusState)
+}
+
 function currentCombatant(state: CombatEncounterState, combatantId: string) {
   const combatant = state.tactical.battle.combatants.find(
     (candidate) => candidate.id === combatantId,
@@ -234,6 +243,7 @@ describe('P2.3 targeting, actions and effects', () => {
     ])
     expect(state.tactical.battle.currentTurn?.actionState).toBe('spent')
 
+    state = withFinalFacing(state, 'east')
     state = endCombatTurn(state, P2_3_COMBAT_CONTENT).state
     expect(state.tactical.battle.currentTurn?.combatantId).toBe('recruit')
 
@@ -256,6 +266,7 @@ describe('P2.3 targeting, actions and effects', () => {
       ]),
     )
 
+    state = withFinalFacing(state, 'west')
     const nextTurn = endCombatTurn(state, P2_3_COMBAT_CONTENT)
     state = nextTurn.state
     expect(state.tactical.battle.currentTurn?.combatantId).toBe('wayfarer')
@@ -293,8 +304,14 @@ describe('P2.3 targeting, actions and effects', () => {
     })
   })
 
-  it('Wait ends the turn without spending the Action', () => {
-    const state = activeEncounter()
+  it('requires final facing before Wait can end the turn', () => {
+    expect(() => waitCurrentTurn(activeEncounter(), P2_3_COMBAT_CONTENT)).toThrow(
+      'Final facing must be selected',
+    )
+  })
+
+  it('Wait ends the turn without spending the Action after final facing is selected', () => {
+    const state = withFinalFacing(activeEncounter(), 'east')
     const waited = waitCurrentTurn(state, P2_3_COMBAT_CONTENT)
 
     expect(waited.state.tactical.battle.currentTurn).toMatchObject({

@@ -284,6 +284,11 @@ export function selectFinalFacing(state: BattleState, facing: BattleFacing): Bat
 
 export function endTurn(state: BattleState): BattleTransition {
   const turn = requireActiveTurn(state)
+
+  if (turn.finalFacing === null) {
+    throw new Error('Final facing must be selected before ending the turn.')
+  }
+
   const next = findNextEligibleCombatant(state, turn.initiativeIndex)
 
   if (!next) {
