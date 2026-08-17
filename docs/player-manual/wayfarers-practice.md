@@ -12,16 +12,40 @@
 
 It is an absence-protection system, not an idle-game timer. Active play remains the main way to progress, and you never need to wait for practice to finish before playing.
 
-## Balanced Practice
+## Set Practice
 
-Phase 1 uses **Balanced Practice** automatically. You do not need to select or schedule anything before leaving.
+From **Character → Training**, you may set one plan for your **next meaningful absence**:
 
-Balanced Practice can produce only:
+- **Short** — initially around 3 hours;
+- **Overnight** — initially around 8 hours; or
+- **Extended** — initially around 24 hours.
+
+These are planned durations, not appointments on a wall clock. The exact duration values are versioned server tuning and may change during development.
+
+A plan is prospective intent for one absence. It does not create a repeating schedule, queue future jobs, or tell the game to keep running an automation while you are offline. There is no **Until I Return** option.
+
+Phase 1 still uses **Balanced Practice** as its only practice focus. The duration choice records how you expected the next absence to look and establishes the durable planning boundary that later Discipline-focused training can extend without changing the authority model.
+
+If you do not set a plan, AUREVANE automatically uses Balanced Practice as the safe fallback.
+
+## Returning earlier or later than planned
+
+The server measures how long you were actually away.
+
+If you return **before** the selected duration ends, only the legitimate elapsed offline time can be credited. Selecting Extended and returning after two hours does not create a 24-hour reward.
+
+If you remain away **longer** than the selected duration, the explicit plan ends at its duration boundary. Any remaining eligible absence continues automatically as Balanced Practice under the normal thresholds, rates, and caps.
+
+When the corresponding Training Report is generated, the explicit one-absence plan is consumed. A later absence uses automatic Balanced Practice unless you set another plan.
+
+## What Balanced Practice can produce
+
+Phase 1 Practice can produce only:
 
 - bounded Character XP; and
 - bounded Rested Momentum.
 
-It cannot complete quests, story chapters, bosses, Expeditions, PvP ranks, discoveries, equipment drops, economy rewards, Horizon requirements, Rekindling requirements, or Discipline Mastery.
+It cannot complete quests, story chapters, bosses, Expeditions, PvP ranks, discoveries, equipment drops, economy rewards, Horizon requirements, Rekindling requirements, Discipline Mastery, profession progress, direct attributes, or event participation.
 
 The current rates, thresholds and caps are development balance. They are versioned tuning rather than permanent launch promises.
 
@@ -33,11 +57,15 @@ After a meaningful absence, direct practice XP builds through a full-rate window
 
 You do not need to press **Sign out** before leaving. A closed browser, lost connection, sleeping device or ordinary interruption does not require special preparation.
 
+Setting a plan also does not let the browser choose the start time. The authoritative timestamps are server-owned.
+
 ## Training Reports are frozen
 
 When AUREVANE first evaluates an eligible return, it creates one pending Training Report from server-controlled time.
 
 Once shown, that report is **frozen**. Refreshing the page does not make its time or rewards grow, and leaving it unclaimed does not make it expire. You can claim it when convenient.
+
+A report records whether the absence used an explicit plan or automatic Balanced Practice. When a planned duration ended before you returned, the report also distinguishes the planned portion from the remaining Balanced fallback time.
 
 After the current report is claimed, future eligible time away can form a later report from the new authoritative boundary.
 
@@ -55,20 +83,22 @@ The claim can:
 
 If you are already at maximum Level, a report cannot push Character XP past the configured maximum. Any XP that cannot be applied because of the cap is safely bounded by the server.
 
-## Safe retries
+## Safe retries and clock safety
 
-A claim is idempotent. If a connection drops while you press **Claim training**, retrying or refreshing cannot duplicate the reward.
+Planning and claiming are idempotent. If a connection drops while you press **Set Short**, **Set Overnight**, **Set Extended**, or **Claim training**, a safe retry cannot duplicate the semantic action or its reward.
 
 The browser does not decide:
 
+- when the absence started or ended;
 - how long you were away;
-- which practice window applies;
+- the authoritative duration behind Short, Overnight, or Extended;
+- which Practice accrual window applies;
 - how much XP the report contains;
 - how much Rested Momentum it contains;
 - your resulting Level; or
 - whether a report was already claimed.
 
-Those values come from server-owned timestamps, versioned rules and authoritative character state.
+Changing your device clock or timezone cannot accelerate Practice. Those values come from server-owned timestamps, versioned rules and authoritative character state.
 
 ## Rested Momentum
 

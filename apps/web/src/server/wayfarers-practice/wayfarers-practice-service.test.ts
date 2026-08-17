@@ -1,13 +1,20 @@
 import type {
+  SetPracticePlanRecord,
   TrainingReportClaimRecord,
   TrainingReportRecord,
   WayfarersPracticeRepository,
+  WayfarersPracticeStatusRecord,
 } from '@aurevane/db/wayfarers-practice'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
-import { claimTrainingReport, loadTrainingReport } from './wayfarers-practice-service'
+import {
+  claimTrainingReport,
+  loadPracticeStatus,
+  loadTrainingReport,
+  setPracticePlan,
+} from './wayfarers-practice-service'
 
 const userId = '00000000-0000-4000-8000-000000000b01'
 const characterId = '00000000-0000-4000-8000-000000000b02'
@@ -17,6 +24,7 @@ const actor = { userId }
 
 type MaterializeInput = Parameters<WayfarersPracticeRepository['materializeTrainingReport']>[0]
 type ClaimInput = Parameters<WayfarersPracticeRepository['claimTrainingReport']>[0]
+type SetPlanInput = Parameters<WayfarersPracticeRepository['setPracticePlan']>[0]
 
 function report(overrides: Partial<TrainingReportRecord> = {}): TrainingReportRecord {
   return {
@@ -25,6 +33,12 @@ function report(overrides: Partial<TrainingReportRecord> = {}): TrainingReportRe
     userId,
     focus: 'balanced',
     configVersion: 1,
+    practiceSource: 'automatic_balanced',
+    plannedWindow: null,
+    plannedWindowConfigVersion: null,
+    plannedWindowSeconds: null,
+    plannedElapsedSeconds: 0,
+    balancedFallbackSeconds: 2 * 24 * 60 * 60,
     windowStartedAt: '2026-08-01T12:00:00.000Z',
     windowEndedAt: '2026-08-03T12:00:00.000Z',
     elapsedSeconds: 2 * 24 * 60 * 60,
@@ -39,6 +53,41 @@ function report(overrides: Partial<TrainingReportRecord> = {}): TrainingReportRe
     status: 'pending',
     createdAt: '2026-08-03T12:00:00.000Z',
     claimedAt: null,
+    ...overrides,
+  }
+}
+
+function status(
+  overrides: Partial<WayfarersPracticeStatusRecord> = {},
+): WayfarersPracticeStatusRecord {
+  return {
+    characterId,
+    userId,
+    focus: 'balanced',
+    configVersion: 1,
+    minimumOfflineSeconds: 60 * 60,
+    restedMomentumBalance: 12,
+    plannedWindow: null,
+    plannedWindowConfigVersion: null,
+    plannedWindowSeconds: null,
+    planSetAt: null,
+    shortWindowSeconds: 3 * 60 * 60,
+    overnightWindowSeconds: 8 * 60 * 60,
+    extendedWindowSeconds: 24 * 60 * 60,
+    serverNow: '2026-08-03T12:00:00.000Z',
+    ...overrides,
+  }
+}
+
+function setPlanRecord(overrides: Partial<SetPracticePlanRecord> = {}): SetPracticePlanRecord {
+  return {
+    characterId,
+    userId,
+    plannedWindow: 'overnight',
+    plannedWindowConfigVersion: 1,
+    plannedWindowSeconds: 8 * 60 * 60,
+    planSetAt: '2026-08-03T12:02:00.000Z',
+    serverNow: '2026-08-03T12:02:00.000Z',
     ...overrides,
   }
 }
@@ -71,6 +120,8 @@ function repository(
 ): WayfarersPracticeRepository {
   return {
     materializeTrainingReport: vi.fn(async () => report()),
+    getPracticeStatus: vi.fn(async () => status()),
+    setPracticePlan: vi.fn(async () => ({ replayed: false, result: setPlanRecord() })),
     claimTrainingReport: vi.fn(async () => ({ replayed: false, result: claim() })),
     ...overrides,
   }
@@ -99,6 +150,90 @@ describe("Wayfarer's Practice service", () => {
     const repo = repository({ materializeTrainingReport: vi.fn(async () => null) })
 
     await expect(loadTrainingReport(actor, characterId, repo)).resolves.toBeNull()
+  })
+
+  it('validates planned provenance and Balanced fallback against the frozen elapsed window', async () => {
+    const planned = report({
+      practiceSource: 'planned_balanced',
+      plannedWindow: 'overnight',
+      plannedWindowConfigVersion: 1,
+      plannedWindowSeconds: 8 * 60 * 60,
+      plannedElapsedSeconds: 8 * 60 * 60,
+      balancedFallbackSeconds: 40 * 60 * 60,
+    })
+    const repo = repository({ materializeTrainingReport: vi.fn(async () => planned) })
+
+    await expect(loadTrainingReport(actor, characterId, repo)).resolves.toEqual(planned)
+
+    const drifted = repository({
+      materializeTrainingReport: vi.fn(async () =>
+        report({
+          practiceSource: 'planned_balanced',
+          plannedWindow: 'overnight',
+          plannedWindowConfigVersion: 1,
+          plannedWindowSeconds: 8 * 60 * 60,
+          plannedElapsedSeconds: 8 * 60 * 60,
+          balancedFallbackSeconds: 1,
+        }),
+      ),
+    })
+    await expect(loadTrainingReport(actor, characterId, drifted)).rejects.toMatchObject({
+      code: 'PERSISTENCE_UNAVAILABLE',
+    })
+  })
+
+  it('loads only server-derived current plan state and Rested Momentum', async () => {
+    await expect(loadPracticeStatus(actor, characterId, repository())).resolves.toEqual(status())
+
+    const drifted = repository({
+      getPracticeStatus: vi.fn(async () => status({ overnightWindowSeconds: 99 })),
+    })
+    await expect(loadPracticeStatus(actor, characterId, drifted)).rejects.toMatchObject({
+      code: 'PERSISTENCE_UNAVAILABLE',
+    })
+  })
+
+  it('sets one prospective plan using identifiers, enum intent, and idempotency only', async () => {
+    let captured: SetPlanInput | undefined
+    const repo = repository({
+      setPracticePlan: vi.fn(async (input) => {
+        captured = input
+        return { replayed: false, result: setPlanRecord() }
+      }),
+    })
+
+    const result = await setPracticePlan(
+      { actor, characterId, plannedWindow: 'overnight', idempotencyKey },
+      repo,
+    )
+
+    expect(result.plan).toEqual(setPlanRecord())
+    expect(captured).toEqual(
+      expect.objectContaining({
+        actorKey: `user:${userId}`,
+        commandName: 'wayfarers_practice.set_plan.v1',
+        userId,
+        characterId,
+        plannedWindow: 'overnight',
+      }),
+    )
+    expect(captured?.requestFingerprint).toHaveLength(64)
+    expect(captured).not.toHaveProperty('plannedWindowSeconds')
+    expect(captured).not.toHaveProperty('planSetAt')
+    expect(captured).not.toHaveProperty('requestedCharacterXp')
+  })
+
+  it('rejects plan persistence drift instead of trusting server response shape blindly', async () => {
+    const repo = repository({
+      setPracticePlan: vi.fn(async () => ({
+        replayed: false,
+        result: setPlanRecord({ plannedWindowSeconds: 123 }),
+      })),
+    })
+
+    await expect(
+      setPracticePlan({ actor, characterId, plannedWindow: 'overnight', idempotencyKey }, repo),
+    ).rejects.toMatchObject({ code: 'PERSISTENCE_UNAVAILABLE' })
   })
 
   it('rejects report ownership drift and persisted reward drift', async () => {
@@ -167,8 +302,12 @@ describe("Wayfarer's Practice service", () => {
       code: 'INVALID_REQUEST',
     })
     await expect(
+      setPracticePlan({ actor, characterId: 'bad', plannedWindow: 'short', idempotencyKey }, repo),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+    await expect(
       claimTrainingReport({ actor, characterId, reportId: 'not-a-report', idempotencyKey }, repo),
     ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+    expect(repo.setPracticePlan).not.toHaveBeenCalled()
     expect(repo.claimTrainingReport).not.toHaveBeenCalled()
   })
 })

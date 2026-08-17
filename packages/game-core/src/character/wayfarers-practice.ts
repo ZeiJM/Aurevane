@@ -1,4 +1,8 @@
 export const BALANCED_PRACTICE_FOCUS = 'balanced' as const
+export const PLANNED_PRACTICE_WINDOWS = ['short', 'overnight', 'extended'] as const
+
+export type PlannedPracticeWindow = (typeof PLANNED_PRACTICE_WINDOWS)[number]
+export type PracticeSource = 'automatic_balanced' | 'planned_balanced'
 
 const SECONDS_PER_HOUR = 60 * 60
 
@@ -16,8 +20,20 @@ export interface BalancedPracticeConfig {
   readonly restedMomentumCap: number
 }
 
+export interface PlannedPracticeWindowConfig {
+  readonly version: number
+  readonly shortSeconds: number
+  readonly overnightSeconds: number
+  readonly extendedSeconds: number
+}
+
 export interface BalancedPracticeConfigIssue {
   field: keyof BalancedPracticeConfig
+  message: string
+}
+
+export interface PlannedPracticeWindowConfigIssue {
+  field: keyof PlannedPracticeWindowConfig
   message: string
 }
 
@@ -45,6 +61,15 @@ export interface BalancedPracticeAccrual {
   restedMomentumCapState: BalancedPracticeCapState
 }
 
+export interface PracticeIntentResolution {
+  source: PracticeSource
+  plannedWindow: PlannedPracticeWindow | null
+  plannedWindowConfigVersion: number | null
+  plannedWindowSeconds: number | null
+  plannedElapsedSeconds: number
+  balancedFallbackSeconds: number
+}
+
 export const PHASE_1_BALANCED_PRACTICE_CONFIG: BalancedPracticeConfig = Object.freeze({
   version: 1,
   focus: BALANCED_PRACTICE_FOCUS,
@@ -57,6 +82,13 @@ export const PHASE_1_BALANCED_PRACTICE_CONFIG: BalancedPracticeConfig = Object.f
   directXpCap: 376,
   restedMomentumSecondsPerUnit: 2 * SECONDS_PER_HOUR,
   restedMomentumCap: 132,
+})
+
+export const PHASE_1_PLANNED_PRACTICE_WINDOW_CONFIG: PlannedPracticeWindowConfig = Object.freeze({
+  version: 1,
+  shortSeconds: 3 * SECONDS_PER_HOUR,
+  overnightSeconds: 8 * SECONDS_PER_HOUR,
+  extendedSeconds: 24 * SECONDS_PER_HOUR,
 })
 
 export function validateBalancedPracticeConfig(
@@ -112,6 +144,72 @@ export function validateBalancedPracticeConfig(
   }
 
   return issues
+}
+
+export function validatePlannedPracticeWindowConfig(
+  config: PlannedPracticeWindowConfig,
+): readonly PlannedPracticeWindowConfigIssue[] {
+  const issues: PlannedPracticeWindowConfigIssue[] = []
+  for (const field of ['version', 'shortSeconds', 'overnightSeconds', 'extendedSeconds'] as const) {
+    if (!Number.isSafeInteger(config[field]) || config[field] <= 0) {
+      issues.push({ field, message: 'Value must be a positive safe integer.' })
+    }
+  }
+
+  if (config.shortSeconds >= config.overnightSeconds) {
+    issues.push({ field: 'overnightSeconds', message: 'Overnight must be longer than Short.' })
+  }
+  if (config.overnightSeconds >= config.extendedSeconds) {
+    issues.push({ field: 'extendedSeconds', message: 'Extended must be longer than Overnight.' })
+  }
+  return issues
+}
+
+export function getPlannedPracticeWindowSeconds(
+  window: PlannedPracticeWindow,
+  config: PlannedPracticeWindowConfig = PHASE_1_PLANNED_PRACTICE_WINDOW_CONFIG,
+): number {
+  assertValidWindowConfig(config)
+  switch (window) {
+    case 'short':
+      return config.shortSeconds
+    case 'overnight':
+      return config.overnightSeconds
+    case 'extended':
+      return config.extendedSeconds
+  }
+}
+
+export function resolvePhase1PracticeIntent(input: {
+  elapsedSeconds: number
+  plannedWindow: PlannedPracticeWindow | null
+  config?: PlannedPracticeWindowConfig
+}): PracticeIntentResolution {
+  if (!Number.isSafeInteger(input.elapsedSeconds) || input.elapsedSeconds < 0) {
+    throw new RangeError('elapsedSeconds must be a non-negative safe integer.')
+  }
+
+  if (input.plannedWindow === null) {
+    return {
+      source: 'automatic_balanced',
+      plannedWindow: null,
+      plannedWindowConfigVersion: null,
+      plannedWindowSeconds: null,
+      plannedElapsedSeconds: 0,
+      balancedFallbackSeconds: input.elapsedSeconds,
+    }
+  }
+
+  const config = input.config ?? PHASE_1_PLANNED_PRACTICE_WINDOW_CONFIG
+  const plannedWindowSeconds = getPlannedPracticeWindowSeconds(input.plannedWindow, config)
+  return {
+    source: 'planned_balanced',
+    plannedWindow: input.plannedWindow,
+    plannedWindowConfigVersion: config.version,
+    plannedWindowSeconds,
+    plannedElapsedSeconds: Math.min(input.elapsedSeconds, plannedWindowSeconds),
+    balancedFallbackSeconds: Math.max(0, input.elapsedSeconds - plannedWindowSeconds),
+  }
 }
 
 export function calculateBalancedPractice(input: {
@@ -205,6 +303,13 @@ function assertValidConfig(config: BalancedPracticeConfig): void {
   const issues = validateBalancedPracticeConfig(config)
   if (issues.length > 0) {
     throw new Error(`Invalid Balanced Practice config: ${issues[0].field}: ${issues[0].message}`)
+  }
+}
+
+function assertValidWindowConfig(config: PlannedPracticeWindowConfig): void {
+  const issues = validatePlannedPracticeWindowConfig(config)
+  if (issues.length > 0) {
+    throw new Error(`Invalid planned Practice config: ${issues[0].field}: ${issues[0].message}`)
   }
 }
 

@@ -6,9 +6,17 @@ import { useRef, useState } from 'react'
 
 import styles from './training-report-card.module.css'
 
+export type TrainingReportPracticeWindow = 'short' | 'overnight' | 'extended'
+
 export interface TrainingReportCardData {
   reportId: string
   characterId: string
+  practiceSource: 'automatic_balanced' | 'planned_balanced'
+  plannedWindow: TrainingReportPracticeWindow | null
+  plannedWindowSeconds: number | null
+  plannedElapsedSeconds: number
+  balancedFallbackSeconds: number
+  elapsedSeconds: number
   creditedPracticeSeconds: number
   requestedCharacterXp: number
   restedMomentumGain: number
@@ -63,6 +71,8 @@ export function TrainingReportCard({ report }: TrainingReportCardProps) {
     }
   }
 
+  const planLabel = report.plannedWindow ? practiceWindowLabel(report.plannedWindow) : null
+
   return (
     <section className={styles.report} data-testid="training-report">
       <div className={styles.heading}>
@@ -70,7 +80,7 @@ export function TrainingReportCard({ report }: TrainingReportCardProps) {
           <Kicker marker="◇">Wayfarer&apos;s Practice</Kicker>
           <h2>Training Report</h2>
         </div>
-        <span>Balanced Practice</span>
+        <span>{planLabel ? `Planned ${planLabel}` : 'Automatic Balanced'}</span>
       </div>
 
       <p className={styles.intro}>
@@ -79,6 +89,10 @@ export function TrainingReportCard({ report }: TrainingReportCardProps) {
       </p>
 
       <dl className={styles.rewards}>
+        <div>
+          <dt>Absence measured</dt>
+          <dd>{formatPracticeDuration(report.elapsedSeconds)}</dd>
+        </div>
         <div>
           <dt>Practice time credited</dt>
           <dd>{formatPracticeDuration(report.creditedPracticeSeconds)}</dd>
@@ -92,6 +106,23 @@ export function TrainingReportCard({ report }: TrainingReportCardProps) {
           <dd>+{report.restedMomentumGain.toLocaleString('en-US')}</dd>
         </div>
       </dl>
+
+      {report.practiceSource === 'planned_balanced' && planLabel && report.plannedWindowSeconds ? (
+        <p className={styles.capNote} data-testid="practice-plan-provenance">
+          {`Your ${planLabel} plan covered ${formatPracticeDuration(report.plannedElapsedSeconds)} of this absence. `}
+          {report.plannedElapsedSeconds < report.plannedWindowSeconds
+            ? 'You returned before the planned window ended, so only legitimate elapsed time was counted. '
+            : ''}
+          {report.balancedFallbackSeconds > 0
+            ? `${formatPracticeDuration(report.balancedFallbackSeconds)} beyond the plan continued automatically as Balanced Practice. `
+            : ''}
+          The explicit plan is now consumed; a later unplanned absence returns to Balanced Practice.
+        </p>
+      ) : (
+        <p className={styles.capNote} data-testid="practice-plan-provenance">
+          No explicit plan was active, so this absence used automatic Balanced Practice.
+        </p>
+      )}
 
       {report.directXpCapReached || report.restedMomentumCapReached ? (
         <p className={styles.capNote}>
@@ -133,4 +164,15 @@ export function formatPracticeDuration(totalSeconds: number): string {
   }
 
   return `${minutes}m`
+}
+
+function practiceWindowLabel(window: TrainingReportPracticeWindow): string {
+  switch (window) {
+    case 'short':
+      return 'Short'
+    case 'overnight':
+      return 'Overnight'
+    case 'extended':
+      return 'Extended'
+  }
 }

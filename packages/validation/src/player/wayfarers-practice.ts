@@ -1,5 +1,17 @@
 import { z } from 'zod'
 
+export const plannedPracticeWindowSchema = z.enum(['short', 'overnight', 'extended'])
+export const practiceSourceSchema = z.enum(['automatic_balanced', 'planned_balanced'])
+
+export const setPracticePlanRequestSchema = z
+  .object({
+    version: z.literal(1),
+    characterId: z.string().uuid(),
+    plannedWindow: plannedPracticeWindowSchema,
+    idempotencyKey: z.string().uuid(),
+  })
+  .strict()
+
 export const trainingReportClaimRequestSchema = z
   .object({
     version: z.literal(1),
@@ -16,6 +28,12 @@ export const trainingReportPersistenceRowSchema = z
     user_id: z.string().uuid(),
     focus: z.literal('balanced'),
     config_version: z.number().int().positive(),
+    practice_source: practiceSourceSchema,
+    planned_window: plannedPracticeWindowSchema.nullable(),
+    planned_window_config_version: z.number().int().positive().nullable(),
+    planned_window_seconds: z.number().int().positive().nullable(),
+    planned_elapsed_seconds: z.number().int().nonnegative(),
+    balanced_fallback_seconds: z.number().int().nonnegative(),
     window_started_at: z.string().datetime({ offset: true }),
     window_ended_at: z.string().datetime({ offset: true }),
     elapsed_seconds: z.number().int().nonnegative(),
@@ -30,6 +48,38 @@ export const trainingReportPersistenceRowSchema = z
     status: z.enum(['pending', 'claimed']),
     created_at: z.string().datetime({ offset: true }),
     claimed_at: z.string().datetime({ offset: true }).nullable(),
+  })
+  .strict()
+
+export const wayfarersPracticeStatusPersistenceRowSchema = z
+  .object({
+    character_id: z.string().uuid(),
+    user_id: z.string().uuid(),
+    focus: z.literal('balanced'),
+    config_version: z.number().int().positive(),
+    minimum_offline_seconds: z.number().int().nonnegative(),
+    rested_momentum_balance: z.number().int().nonnegative(),
+    planned_window: plannedPracticeWindowSchema.nullable(),
+    planned_window_config_version: z.number().int().positive().nullable(),
+    planned_window_seconds: z.number().int().positive().nullable(),
+    plan_set_at: z.string().datetime({ offset: true }).nullable(),
+    short_window_seconds: z.number().int().positive(),
+    overnight_window_seconds: z.number().int().positive(),
+    extended_window_seconds: z.number().int().positive(),
+    server_now: z.string().datetime({ offset: true }),
+  })
+  .strict()
+
+export const setPracticePlanPersistenceRowSchema = z
+  .object({
+    character_id: z.string().uuid(),
+    user_id: z.string().uuid(),
+    planned_window: plannedPracticeWindowSchema,
+    planned_window_config_version: z.number().int().positive(),
+    planned_window_seconds: z.number().int().positive(),
+    plan_set_at: z.string().datetime({ offset: true }),
+    server_now: z.string().datetime({ offset: true }),
+    replayed: z.boolean(),
   })
   .strict()
 
@@ -56,11 +106,21 @@ export const trainingReportClaimPersistenceRowSchema = z
   })
   .strict()
 
+export type SetPracticePlanRequest = z.infer<typeof setPracticePlanRequestSchema>
 export type TrainingReportClaimRequest = z.infer<typeof trainingReportClaimRequestSchema>
 export type TrainingReportPersistenceRow = z.infer<typeof trainingReportPersistenceRowSchema>
+export type WayfarersPracticeStatusPersistenceRow = z.infer<
+  typeof wayfarersPracticeStatusPersistenceRowSchema
+>
+export type SetPracticePlanPersistenceRow = z.infer<typeof setPracticePlanPersistenceRowSchema>
 export type TrainingReportClaimPersistenceRow = z.infer<
   typeof trainingReportClaimPersistenceRowSchema
 >
+
+export function parseSetPracticePlanRequest(input: unknown): SetPracticePlanRequest | null {
+  const parsed = setPracticePlanRequestSchema.safeParse(input)
+  return parsed.success ? parsed.data : null
+}
 
 export function parseTrainingReportClaimRequest(input: unknown): TrainingReportClaimRequest | null {
   const parsed = trainingReportClaimRequestSchema.safeParse(input)
@@ -71,6 +131,20 @@ export function parseTrainingReportPersistenceRow(
   input: unknown,
 ): TrainingReportPersistenceRow | null {
   const parsed = trainingReportPersistenceRowSchema.safeParse(input)
+  return parsed.success ? parsed.data : null
+}
+
+export function parseWayfarersPracticeStatusPersistenceRow(
+  input: unknown,
+): WayfarersPracticeStatusPersistenceRow | null {
+  const parsed = wayfarersPracticeStatusPersistenceRowSchema.safeParse(input)
+  return parsed.success ? parsed.data : null
+}
+
+export function parseSetPracticePlanPersistenceRow(
+  input: unknown,
+): SetPracticePlanPersistenceRow | null {
+  const parsed = setPracticePlanPersistenceRowSchema.safeParse(input)
   return parsed.success ? parsed.data : null
 }
 

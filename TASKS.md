@@ -10,11 +10,11 @@ The Master Game Plan defines the product. The Roadmap defines sequence. Canonica
 
 **ACTIVE:** issue #93 — P2.6 Recruit AI + Tactical Hall Vertical Slice
 
-P2.5 is merged to `main` through PR #92 and its exact Preview/release gates were completed before merge. The current task is to prove that the same authoritative combat grammar supports a fair deterministic Recruit opponent and a constrained repeatable Tactical Hall practice loop. Do not pull Phase 3 buildcraft, Mantles, broad Tactical Record progression, PvP bots, or remote LLM combat logic forward.
+The mandatory P1.6 Wayfarer's Practice backfill is complete on `main` through PR #98. P2.6 is now resynchronized with that authoritative base. The current task is to prove that the same combat grammar supports a fair deterministic Recruit opponent and a constrained repeatable Tactical Hall practice loop. Do not pull Phase 3 buildcraft, Mantles, broad Tactical Record progression, PvP bots, or remote LLM combat logic forward.
 
 ### P2.6 current implementation boundary
 
-Implement:
+Implement and validate:
 
 - server-authoritative AI decision interface consuming the same movement/target/action/effect legality as player commands;
 - explicit AI knowledge filter over committed encounter state only;
@@ -25,52 +25,33 @@ Implement:
 - structured decision-reason tags for logs/debugging;
 - deterministic QA practice harness and golden tactical regression states;
 - first player-facing Tactical Hall repeat loop with one Recruit floor, constrained supported presets, instant retry, and no normal repeatable progression rewards;
-- intelligence profile kept separate from raw combatant stats.
+- intelligence profile kept separate from raw combatant stats;
+- full responsive authenticated battle journey through Recruit resolution, battle completion, result presentation, and fresh retry.
 
 All AI-selected intents still commit through the authoritative P2.4/P2.5 battle session, expected-version, idempotency, and event boundaries. The AI gets no privileged legality shortcut and no hidden future RNG or uncommitted browser planning state.
 
-## Completed major milestones on `main`
+## Completed foundation relevant to this work
 
-### Phase 0 — Foundation ✅
-- F0.1 Repository + Runnable Web Foundation
-- F0.2 Infrastructure + Persistence Baseline
-- F0.3 Server Architecture Skeleton
-- F0.4 Design System + Media/Audio Core
-- audit security hardening integrated through #80
-
-### Phase 1 — Character Foundation ✅
-- P1.1 Account Entry + Player Profile Boundary
-- P1.2 Character Domain Rules + Creation Contract
-- P1.3 Authoritative Character Creation + Persistence Experience
-- P1.4 Character Profile + Derived Stat Framework
-- P1.5 Level 1–100 XP Progression + Telemetry Foundation
-- P1.6 Wayfarer’s Practice: Balanced Practice Foundation
-- P1.7 Public News + Manual + Rules Foundation
-- audit performance hardening integrated through #85
-
-### Phase 2 — through P2.5 ✅
-- P2.1 Deterministic Battle State + Turn Economy Foundation
-- P2.2 Board, Movement, Terrain + Facing Legality
-- P2.3 Targeting, Combat Actions + Effect Grammar
-- P2.4 Authoritative Battle Session + Persistence Boundary
-- Phase 1-derived combat stat bridge through #87
-- identifier-only battle invalidation/refetch through #90
-- P2.5 Responsive Battle Experience + Turn Economy Tracker through #92
-
-P2.5 includes the responsive board-first cockpit, authoritative planning preview API, current Turn Economy presentation, stale/reconnect handling, sanitized committed battle history, governed media fallback, gesture-gated audio integration, and authenticated responsive browser journey.
+- Phase 0 foundation and security hardening are complete.
+- Phase 1 character/profile/derived-stat/XP foundations are complete.
+- P1.6 Wayfarer's Practice now includes server-authoritative Short / Overnight / Extended prospective plans, one-absence consumption, Balanced fallback provenance, and stored Rested Momentum through PR #98.
+- P1.7 public News/Manual/Rules foundation is complete.
+- Phase 2 combat engine checkpoints P2.1–P2.5 are implemented on current `main`.
+- P2.5 includes the responsive board-first cockpit, authoritative planning preview API, stale/reconnect handling, sanitized committed battle history, media/audio hooks, and authenticated responsive browser journey.
 
 ## Live persistence / authority state
 
 - browser roles remain outside authoritative battle mutation and private battle-event tables;
 - P2.5 owner-scoped battle-event read remains service-role only via `20260817141155_p25_battle_event_read`;
 - Phase 0 helper hardening and Phase 1 FK covering indexes remain live;
+- P1.6 planned Practice configuration and state remain private/service-role-only, with exact 3h / 8h / 24h initial tuning and compatibility wrapper live;
 - Supabase leaked-password protection remains an external Free-plan limitation and is not a repository defect.
 
 ## Established deferrals
 
 - Weight / Load / Might: Phase 3 when representative equipment exists.
 - Mantles / Confluences / Soulmarks / Current-Legacy loadouts: later phases.
-- stronger AI grades beyond tiny testing stubs, remote LLM combat, reinforcement learning, PvP bot substitution, broad Tactical Record progression, and full Battle Review: later scope.
+- stronger AI grades/profiles, remote LLM combat, reinforcement learning, PvP bot substitution, broad Tactical Record progression, and full Battle Review: later scope.
 - final production combat art/VFX polish and full websocket/co-op synchronization: later scope.
 
 ## Permanent execution rules
@@ -89,6 +70,8 @@ P2.5 includes the responsive board-first cockpit, authoritative planning preview
 #93 P2.6 — Recruit AI + Tactical Hall Vertical Slice
   ↓
 Exact GitHub + database + responsive browser + Vercel Preview validation
+  ↓
+Merge P2.6 and verify main
   ↓
 PV-1 — Tactical Combat Proof
 ```
