@@ -6,12 +6,12 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import { AudioSettingsMenu } from '@/components/audio/audio-settings-menu'
+import { CharacterCreationExperience } from '@/components/character/character-creation-experience'
+import publicStyles from '@/components/public-information/public-information-shell.module.css'
 import {
   PracticePlanCard,
   type PracticePlanCardData,
 } from '@/components/wayfarers-practice/practice-plan-card'
-import { CharacterCreationExperience } from '@/components/character/character-creation-experience'
-import publicStyles from '@/components/public-information/public-information-shell.module.css'
 import {
   TrainingReportCard,
   type TrainingReportCardData,
@@ -91,6 +91,9 @@ export function AuthenticatedGameShell({
               </a>
               <Link className={styles.profileLink} href="/game/battle">
                 Enter Tactical Hall
+              </Link>
+              <Link className={styles.profileLink} href="/game/settings/controls">
+                Controls &amp; Keybinds
               </Link>
             </div>
 
@@ -233,6 +236,7 @@ export function AuthenticatedShellFrame({
           <Link href="/news">News</Link>
           <Link href="/manual">Manual</Link>
           <Link href="/rules">Rules</Link>
+          <Link href="/game/settings/controls">Controls</Link>
           <Link href="/game">Return to Game</Link>
         </nav>
         <span>{footerLabel}</span>
