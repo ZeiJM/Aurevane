@@ -9,14 +9,14 @@ function uniqueCharacterName(): string {
   return `Wayfarer ${letters}`
 }
 
-test('launches the Tactical Hall and completes one authoritative player turn', async ({
+test('launches the Tactical Hall and resolves an authoritative player and Recruit round', async ({
   page,
 }, testInfo) => {
   test.slow()
 
   const projectSlug = testInfo.project.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()
-  const email = `p25-${projectSlug}-${Date.now()}@example.com`
-  const password = 'P25-browser-battle-2026!'
+  const email = `p26-${projectSlug}-${Date.now()}@example.com`
+  const password = 'P26-browser-battle-2026!'
   const characterName = uniqueCharacterName()
 
   await page.goto('/')
@@ -104,10 +104,21 @@ test('launches the Tactical Hall and completes one authoritative player turn', a
   await page.getByRole('button', { name: /End Turn.*Facing required/ }).click()
   await expect(page.getByText('Preview ready. Confirm to commit this command.')).toBeVisible()
   await page.getByRole('button', { name: /Confirm command/ }).click()
-  await expect(page.getByText(/Authoritative battle version 7/)).toBeVisible()
-  await expect(page.getByText('Opponent turn', { exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: /Move.*Build a path/ })).toBeDisabled()
-  await expect(page.getByRole('button', { name: /End Turn.*Facing required/ })).toBeDisabled()
+
+  await expect(page.getByText(/Recruit turn resolved server-side:/)).toBeVisible({
+    timeout: 15_000,
+  })
+  await expect(page.getByText('Your turn', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Move.*Build a path/ })).toBeEnabled()
+  await expect(page.getByRole('button', { name: /End Turn.*Facing required/ })).toBeEnabled()
+
+  await page.getByTestId('battle-log-toggle').click()
+  await expect(battleLog).toContainText('Recruit chose')
+  await expect(battleLog).toContainText('Recruit ended the turn.')
+  await expect(battleLog).not.toContainText('candidateCount')
+  await expect(battleLog).not.toContainText('tieBreakSeed')
+  await expect(battleLog).not.toContainText('profileId')
+  await page.getByTestId('battle-log-toggle').click()
 
   expect(await hasHorizontalOverflow(page)).toBe(false)
   await expectBattlefieldAndCommandDeckInViewport(page)
