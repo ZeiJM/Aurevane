@@ -22,7 +22,10 @@ const ACTION_COPY: Record<CombatKeybindAction, { label: string; description: str
   move: { label: 'Move', description: 'Enter movement planning without spending the Action.' },
   basicAttack: { label: 'Basic Attack', description: 'Enter normal Basic Attack targeting.' },
   guard: { label: 'Guard', description: 'Preview the defensive Guard action.' },
-  endTurn: { label: 'End Turn preparation', description: 'Open final-facing review before commit.' },
+  endTurn: {
+    label: 'End Turn preparation',
+    description: 'Open final-facing review before commit.',
+  },
   confirm: { label: 'Confirm', description: 'Commit the current legal preview.' },
   cancel: { label: 'Cancel / Back', description: 'Clear current planning without committing.' },
   faceNorth: { label: 'Face North', description: 'Choose north in facing context.' },
