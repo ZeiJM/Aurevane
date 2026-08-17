@@ -83,6 +83,9 @@ export function AuthenticatedGameShell({
               <a className={styles.profileLink} href="/game/character">
                 Open character profile
               </a>
+              <Link className={styles.profileLink} href="/game/battle">
+                Enter Tactical Hall
+              </Link>
             </div>
 
             {trainingReport ? <TrainingReportCard report={trainingReport} /> : null}
