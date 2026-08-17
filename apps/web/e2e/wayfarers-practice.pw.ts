@@ -110,7 +110,9 @@ test('sets one authoritative Practice plan and freezes overflow as Balanced fall
   await expect(trainingReport).toContainText('+0')
   const provenance = page.getByTestId('practice-plan-provenance')
   await expect(provenance).toContainText('Your Overnight plan covered 8h 0m')
-  await expect(provenance).toContainText('4h 0m beyond the plan continued automatically as Balanced Practice')
+  await expect(provenance).toContainText(
+    '4h 0m beyond the plan continued automatically as Balanced Practice',
+  )
   await expect(provenance).toContainText('explicit plan is now consumed')
 
   const consumedPlanner = page.getByTestId('practice-plan-card')
