@@ -1,0 +1,127 @@
+name: P2.6 client Recruit driver
+
+on:
+  push:
+    branches:
+      - agent/p2-6-recruit-ai-tactical-hall
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/p2-6-recruit-ai-tactical-hall
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+      - name: Wire authoritative opponent-turn handoff
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('apps/web/src/components/battle/battle-experience.tsx')
+          text = path.read_text()
+
+          text = text.replace(
+            "import type { BattlePreviewView } from '@/server/battle/battle-preview-service'\n",
+            "import type { BattlePreviewView } from '@/server/battle/battle-preview-service'\nimport type { RecruitTurnView } from '@/server/battle/battle-recruit-ai-service'\n",
+            1,
+          )
+
+          text = text.replace(
+            "  const [commitPending, setCommitPending] = useState(false)\n  const [notice, setNotice]",
+            "  const [commitPending, setCommitPending] = useState(false)\n  const [recruitPending, setRecruitPending] = useState(false)\n  const [notice, setNotice]",
+            1,
+          )
+
+          anchor = """  const requestPreview = useCallback(
+"""
+          callback = """  const runRecruitTurn = useCallback(async () => {
+    if (recruitPending || playerTurn || battleState.lifecycle !== 'active') return
+    setRecruitPending(true)
+    resetPlanning()
+    setNotice('Recruit is choosing a legal action from committed battle state…')
+
+    try {
+      const response = await fetch(`/api/battles/${battle.battleSessionId}/recruit-turn`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expectedBattleVersion: battle.battleVersion }),
+      })
+      const body = (await response.json()) as { battle?: RecruitTurnView } & ApiErrorBody
+      if (!response.ok || !body.battle) {
+        await handleApiFailure(response, body, 'The Recruit turn could not be resolved.')
+        return
+      }
+
+      setBattle(body.battle as BattleSessionView)
+      setSelectedUnitId(body.battle.snapshot.tactical.battle.currentTurn?.combatantId ?? null)
+      const summary = body.battle.decisions.map((decision) => decision.reason).join(' → ')
+      setNotice(
+        summary.length > 0
+          ? `Recruit turn resolved server-side: ${summary}.`
+          : 'Recruit turn resolved server-side.',
+      )
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'The Recruit turn could not be resolved.')
+    } finally {
+      setRecruitPending(false)
+    }
+  }, [
+    battle.battleSessionId,
+    battle.battleVersion,
+    battleState.lifecycle,
+    handleApiFailure,
+    playerTurn,
+    recruitPending,
+    resetPlanning,
+  ])
+
+"""
+          if anchor not in text:
+              raise SystemExit('requestPreview anchor not found')
+          text = text.replace(anchor, callback + anchor, 1)
+
+          reconnect_anchor = """  useEffect(() => {
+    function handleReconnect() {
+"""
+          auto_effect = """  useEffect(() => {
+    if (!playerTurn && battleState.lifecycle === 'active' && currentTurn && !recruitPending) {
+      void runRecruitTurn()
+    }
+  }, [battleState.lifecycle, currentTurn, playerTurn, recruitPending, runRecruitTurn])
+
+"""
+          if reconnect_anchor not in text:
+              raise SystemExit('reconnect anchor not found')
+          text = text.replace(reconnect_anchor, auto_effect + reconnect_anchor, 1)
+
+          text = text.replace(
+            "  const planningDisabled = !playerTurn || battleState.lifecycle !== 'active' || commitPending\n",
+            "  const planningDisabled =\n    !playerTurn || battleState.lifecycle !== 'active' || commitPending || recruitPending\n",
+            1,
+          )
+
+          text = text.replace(
+            "          <strong>{playerTurn ? 'Your turn' : 'Opponent turn'}</strong>",
+            "          <strong>{playerTurn ? 'Your turn' : recruitPending ? 'Recruit thinking' : 'Opponent turn'}</strong>",
+            1,
+          )
+
+          path.write_text(text)
+          PY
+          pnpm exec prettier --write apps/web/src/components/battle/battle-experience.tsx
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/src/components/battle/battle-experience.tsx
+          git commit -m "P2.6 auto-resolve authoritative Recruit turns in cockpit"
+          git push origin HEAD:agent/p2-6-recruit-ai-tactical-hall
