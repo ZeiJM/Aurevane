@@ -39,13 +39,14 @@ This is a routing index, not a duplicate specification.
 | Combat | `docs/COMBAT.md` |
 | Battle presentation | `docs/BATTLE_INTERFACE.md`, `docs/ROADMAP_BATTLE_INTERFACE.md` |
 | Combat AI / Tactical Hall | `docs/COMBAT_AI_TRAINING.md` |
-| Character progression / Rekindling | `docs/PROGRESSION_RETENTION.md`, `docs/NATURAL_PACING.md` |
+| Character progression / Rekindling | `docs/PROGRESSION_RETENTION.md`, `docs/NATURAL_PACING.md`, `docs/LONG_HORIZON_PACING_VALIDATION.md` |
 | Wayfarer’s Practice | `docs/OFFLINE_PROGRESSION.md` |
 | Items / inventory / loadouts | `docs/ITEMS_INVENTORY_LOADOUTS.md` |
 | Stat expression | `docs/STAT_DRIVEN_BUILDCRAFT.md`, `docs/ROADMAP_STAT_DRIVEN_BUILDCRAFT.md` |
 | Equipment Weight / Load | `docs/EQUIPMENT_LOAD_AND_BUILD_PHYSICS.md`, `docs/ROADMAP_EQUIPMENT_LOAD_AND_BUILD_PHYSICS.md`, `docs/ROADMAP_MIGHT_LOAD_HANDLING.md` |
 | Mantles | `docs/MANTLES.md`, `docs/ROADMAP_MANTLES.md` |
 | World / story / lore | `docs/WORLD.md`, `docs/LORE_BIBLE.md` |
+| Tavern social world / Roadwright / chat | `docs/TAVERN_SOCIAL_WORLD.md`, `docs/ROADMAP_TAVERN_SOCIAL_WORLD.md` |
 | Page/content experience | `docs/PRODUCT_EXPERIENCE_CONTENT_SYSTEM.md` |
 | Visual direction | `docs/ART_BIBLE.md`, `docs/VISUAL_EXPERIENCE_EVOLUTION.md`, `docs/ROADMAP_VISUAL_EXPERIENCE.md` |
 | Audio direction | `docs/AUDIO_BIBLE.md` |
@@ -260,6 +261,8 @@ Any change must preserve the invariant:
 > **First-cycle completion is a long-form achievement made of meaningful play, not a short XP sprint and not months of dead waiting.**
 
 Serious Expeditions, PvP, strong builds, major story and advanced gear must be able to matter well before final Rekindling eligibility when gameplay progression supports them.
+
+For the narrow numeric-pacing refinement and change-control rule, `docs/LONG_HORIZON_PACING_VALIDATION.md` is authoritative until its policy is consolidated back into the primary progression/roadmap documents.
 
 ---
 
