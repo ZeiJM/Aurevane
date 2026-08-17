@@ -3,6 +3,7 @@ import { parseBattleSessionId } from '@aurevane/validation/combat/battle-session
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
+import { BattleAbortControls } from '@/components/battle/battle-abort-controls'
 import { BattleAudioGate } from '@/components/battle/battle-audio-gate'
 import { BattleExperience } from '@/components/battle/battle-experience'
 import { BattleFacingContext } from '@/components/battle/battle-facing-context'
@@ -59,6 +60,10 @@ export default async function BattleSessionPage({
     <BattleAudioGate>
       <BattleExperience initialBattle={battle} />
       <BattleFacingContext initialBattle={battle} />
+      <BattleAbortControls
+        battleSessionId={battle.battleSessionId}
+        initialLifecycle={battle.snapshot.tactical.battle.lifecycle}
+      />
     </BattleAudioGate>
   )
 }
