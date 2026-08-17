@@ -62,8 +62,21 @@ export interface RunRecruitTurnCommand {
   expectedBattleVersion: number
 }
 
+export interface RecruitTieBreakSeedInput {
+  battleId: string
+  round: number
+  turnNumber: number
+  battleVersion: number
+  step: number
+  combatantId: string
+}
+
 export interface BattleRecruitAiService {
   runTurn(command: RunRecruitTurnCommand): Promise<RecruitTurnView>
+}
+
+interface Dependencies {
+  battles: BattleSessionRepository
 }
 
 function battleUnavailable(): AurevaneError {
@@ -173,6 +186,24 @@ function fingerprint(value: unknown): string {
   return `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`
 }
 
+export function deriveRecruitTieBreakSeed(input: RecruitTieBreakSeedInput): number {
+  const digest = createHash('sha256')
+    .update(
+      JSON.stringify({
+        domain: 'aurevane.recruit-ai.tie-break.v1',
+        battleId: input.battleId,
+        round: input.round,
+        turnNumber: input.turnNumber,
+        battleVersion: input.battleVersion,
+        step: input.step,
+        combatantId: input.combatantId,
+      }),
+    )
+    .digest()
+
+  return digest.readInt32BE(0)
+}
+
 function decisionEvent(decision: RecruitAiDecision, combatantId: string) {
   return {
     event: 'recruit_ai_decision',
@@ -241,8 +272,14 @@ export function createBattleRecruitAiService(
           }
         }
 
-        const tieBreakSeed =
-          (battle.rng.state ^ battle.rng.seed ^ battle.turnNumber ^ battleVersion ^ step) | 0
+        const tieBreakSeed = deriveRecruitTieBreakSeed({
+          battleId: battle.battleId,
+          round: battle.round,
+          turnNumber: battle.turnNumber,
+          battleVersion,
+          step,
+          combatantId: turn.combatantId,
+        })
         const decision = chooseRecruitAiDecision({ state, tieBreakSeed })
         const resolved = resolveRecruitIntent(state, decision.intent)
         const event = decisionEvent(decision, turn.combatantId)
