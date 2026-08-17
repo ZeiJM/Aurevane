@@ -407,8 +407,7 @@ export function BattleExperience({ initialBattle }: BattleExperienceProps) {
           (placement) => placement.combatantId === targetCombatantId,
         )
         if (targetPlacement) {
-          nextFacing =
-            facingToward(activePlacement.position, targetPlacement.position) ?? nextFacing
+          nextFacing = facingToward(activePlacement.position, targetPlacement.position) ?? nextFacing
         }
       } else if (committedIntent.kind === 'face') {
         nextFacing = committedIntent.facing
@@ -509,37 +508,40 @@ export function BattleExperience({ initialBattle }: BattleExperienceProps) {
     return () => window.removeEventListener('online', handleReconnect)
   }, [refreshBattle])
 
-  function chooseMode(nextMode: PlanningMode) {
-    resetPlanning()
-    setMode(nextMode)
+  const chooseMode = useCallback(
+    (nextMode: PlanningMode) => {
+      resetPlanning()
+      setMode(nextMode)
 
-    if (nextMode === 'guard') {
-      void requestPreview({ kind: 'action', actionId: GUARD_ID, target: { kind: 'self' } })
-      return
-    }
-    if (nextMode === 'end-turn') {
-      void requestFinalTurnPreview(provisionalFacing)
-      return
-    }
-    if (nextMode === 'move' && activePlacement) {
-      setPath([{ ...activePlacement.position }])
-      setNotice(
-        'Move mode: choose adjacent tiles to build a path. Movement does not normally spend your Action.',
-      )
-      return
-    }
-    if (nextMode === 'attack') {
-      setNotice('Basic Attack: choose an enemy unit on the battlefield, then review the forecast.')
-      return
-    }
-    if (nextMode === 'face') {
-      setNotice(
-        `Facing: ${provisionalFacing}. This is provisional until you commit a facing command or End Turn.`,
-      )
-      return
-    }
-    setNotice('Inspect mode: select a unit or tile without committing anything.')
-  }
+      if (nextMode === 'guard') {
+        void requestPreview({ kind: 'action', actionId: GUARD_ID, target: { kind: 'self' } })
+        return
+      }
+      if (nextMode === 'end-turn') {
+        void requestFinalTurnPreview(provisionalFacing)
+        return
+      }
+      if (nextMode === 'move' && activePlacement) {
+        setPath([{ ...activePlacement.position }])
+        setNotice(
+          'Move mode: choose adjacent tiles to build a path. Movement does not normally spend your Action.',
+        )
+        return
+      }
+      if (nextMode === 'attack') {
+        setNotice('Basic Attack: choose an enemy unit on the battlefield, then review the forecast.')
+        return
+      }
+      if (nextMode === 'face') {
+        setNotice(
+          `Facing: ${provisionalFacing}. This is provisional until you commit a facing command or End Turn.`,
+        )
+        return
+      }
+      setNotice('Inspect mode: select a unit or tile without committing anything.')
+    },
+    [activePlacement, provisionalFacing, requestFinalTurnPreview, requestPreview, resetPlanning],
+  )
 
   function handleTileClick(position: GridPosition) {
     const placement = placementByTile.get(positionKey(position))
@@ -575,16 +577,19 @@ export function BattleExperience({ initialBattle }: BattleExperienceProps) {
     }
   }
 
-  function previewFacing(facing: Facing) {
-    if (!playerTurn || commitPending) return
-    setProvisionalFacing(facing)
-    if (mode === 'end-turn') {
-      void requestFinalTurnPreview(facing)
-      return
-    }
-    setMode('face')
-    void requestPreview({ kind: 'face', facing })
-  }
+  const previewFacing = useCallback(
+    (facing: Facing) => {
+      if (!playerTurn || commitPending) return
+      setProvisionalFacing(facing)
+      if (mode === 'end-turn') {
+        void requestFinalTurnPreview(facing)
+        return
+      }
+      setMode('face')
+      void requestPreview({ kind: 'face', facing })
+    },
+    [commitPending, mode, playerTurn, requestFinalTurnPreview, requestPreview],
+  )
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
