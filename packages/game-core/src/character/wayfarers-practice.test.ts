@@ -242,7 +242,9 @@ describe("Wayfarer's Practice: planned one-absence intent", () => {
   })
 
   it('uses automatic Balanced Practice for the whole absence when no plan exists', () => {
-    expect(resolvePhase1PracticeIntent({ elapsedSeconds: 9 * 60 * 60, plannedWindow: null })).toEqual({
+    expect(
+      resolvePhase1PracticeIntent({ elapsedSeconds: 9 * 60 * 60, plannedWindow: null }),
+    ).toEqual({
       source: 'automatic_balanced',
       plannedWindow: null,
       plannedWindowConfigVersion: null,
@@ -254,9 +256,9 @@ describe("Wayfarer's Practice: planned one-absence intent", () => {
 
   it('has no legacy Until I Return state and rejects malformed elapsed time/config', () => {
     expect(['short', 'overnight', 'extended']).not.toContain('until_i_return')
-    expect(() => resolvePhase1PracticeIntent({ elapsedSeconds: -1, plannedWindow: 'short' })).toThrow(
-      RangeError,
-    )
+    expect(() =>
+      resolvePhase1PracticeIntent({ elapsedSeconds: -1, plannedWindow: 'short' }),
+    ).toThrow(RangeError)
     expect(
       validatePlannedPracticeWindowConfig({
         ...PHASE_1_PLANNED_PRACTICE_WINDOW_CONFIG,

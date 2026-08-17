@@ -92,7 +92,11 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
   }
 
   return (
-    <section className={styles.card} data-testid="practice-plan-card" aria-labelledby="practice-plan-title">
+    <section
+      className={styles.card}
+      data-testid="practice-plan-card"
+      aria-labelledby="practice-plan-title"
+    >
       <div className={styles.heading}>
         <div>
           <Kicker marker="◇">Character → Training</Kicker>
@@ -161,7 +165,9 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
       </p>
 
       {practice.planSetAt ? (
-        <p className={styles.planMeta}>Current plan recorded by the server at {formatServerTimestamp(practice.planSetAt)}.</p>
+        <p className={styles.planMeta}>
+          Current plan recorded by the server at {formatServerTimestamp(practice.planSetAt)}.
+        </p>
       ) : null}
 
       {errorMessage ? (

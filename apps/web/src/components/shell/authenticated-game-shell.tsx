@@ -6,6 +6,10 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import { AudioSettingsMenu } from '@/components/audio/audio-settings-menu'
+import {
+  PracticePlanCard,
+  type PracticePlanCardData,
+} from '@/components/wayfarers-practice/practice-plan-card'
 import { CharacterCreationExperience } from '@/components/character/character-creation-experience'
 import publicStyles from '@/components/public-information/public-information-shell.module.css'
 import {
@@ -19,6 +23,7 @@ interface AuthenticatedGameShellProps {
   profile: PlayerProfile
   character: PersistedCharacter | null
   trainingReport: TrainingReportCardData | null
+  practicePlan: PracticePlanCardData | null
 }
 
 interface AuthenticatedShellFrameProps {
@@ -31,6 +36,7 @@ export function AuthenticatedGameShell({
   profile,
   character,
   trainingReport,
+  practicePlan,
 }: AuthenticatedGameShellProps) {
   const accountCreated = new Intl.DateTimeFormat('en', {
     dateStyle: 'medium',
@@ -88,6 +94,7 @@ export function AuthenticatedGameShell({
               </Link>
             </div>
 
+            {practicePlan ? <PracticePlanCard practice={practicePlan} /> : null}
             {trainingReport ? <TrainingReportCard report={trainingReport} /> : null}
           </div>
         ) : (

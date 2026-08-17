@@ -94,7 +94,9 @@ export async function setPracticePlan(
   const expectedSeconds = getPlannedPracticeWindowSeconds(command.plannedWindow)
   const actorKey = toUserActorKey(command.actor)
   const requestFingerprint = createHash('sha256')
-    .update(JSON.stringify({ characterId: command.characterId, plannedWindow: command.plannedWindow }))
+    .update(
+      JSON.stringify({ characterId: command.characterId, plannedWindow: command.plannedWindow }),
+    )
     .digest('hex')
 
   const outcome = await repository.setPracticePlan({
