@@ -34,6 +34,13 @@ export interface BattleSessionCommitRecord {
   committedAt: string
 }
 
+export interface BattleEventRecord {
+  battleVersion: number
+  eventIndex: number
+  event: unknown
+  createdAt: string
+}
+
 interface BattleIdempotentInput {
   actorKey: string
   idempotencyKey: string
@@ -65,4 +72,12 @@ export interface BattleSessionRepository {
   commitBattleIntent(
     input: CommitBattleIntentInput,
   ): Promise<TransactionalCommandResult<BattleSessionCommitRecord>>
+}
+
+export interface BattleEventRepository {
+  findBattleEvents(
+    userId: string,
+    battleSessionId: string,
+    limit: number,
+  ): Promise<readonly BattleEventRecord[]>
 }

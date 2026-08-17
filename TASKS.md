@@ -8,11 +8,28 @@ The Master Game Plan defines the product. The Roadmap defines sequence. Canonica
 
 **Stage:** Phase 2 — Tactical Combat Core
 
-**ACTIVE:** issue #73 — Roadmap reconciliation finalization before P2.5
+**ACTIVE:** issue #91 — P2.5 Responsive Battle Experience + Turn Economy Tracker
 
-P2.5 has **not** started. The owner-requested Phase 0 / Phase 1 / P2.1–P2.4 implementation audit is complete and its focused corrections have been integrated into `main`. The remaining #73 work is final merged-main validation, issue/status cleanup, and leaving one truthful next ticket.
+The mandatory Phase 0 / Phase 1 / P2.1–P2.4 reconciliation gate #73 is complete. P2.5 is now the single active implementation ticket. Build the smallest complete battlefield-first cockpit required to make the current authoritative tactical slice understandable and playable; do not pull P2.6 AI or Phase 3 buildcraft forward.
 
-### Audit corrections integrated into `main`
+### P2.5 current implementation boundary
+
+Implement against the existing authoritative P2.4 session boundary:
+
+- authenticated battle launch/resume route and board-first cockpit;
+- server-derived read-only movement/action/facing/end-turn previews using current game-core legality and stat-driven forecasts;
+- current actor, HP/MP, initiative and concise visible status/context;
+- Turn Economy Tracker for Movement remaining/total, Action ready/spent, MP and current relevant costs/resources;
+- explicit Inspect mode versus Target mode;
+- movement/path, target/shape and facing previews with useful legality explanations;
+- explicit Cancel/Back/Confirm flow and duplicate-submit protection;
+- stale-version/refetch/reconnect recovery without client-side authority guessing;
+- responsive desktop/laptop/phone composition with keyboard/touch/reduced-motion baseline;
+- graceful requested-media/audio fallbacks through existing boundaries.
+
+Do not duplicate combat formulas or hidden RNG state in React. Previews may inform the player, but every committed result remains server authoritative.
+
+## Audit corrections integrated into `main`
 
 - #80 — Phase 0 RLS helper privilege hardening
 - #61 — P2.1 malformed lifecycle/counter hardening
@@ -24,17 +41,14 @@ P2.5 has **not** started. The owner-requested Phase 0 / Phase 1 / P2.1–P2.4 im
 - #87 — Phase 1 derived-stats → Phase 2 combat bridge
 - #90 — P2.4 identifier-only battle invalidation/refetch contract
 
-The pre-integration exact heads were green on their applicable GitHub gates. #87 and #90 received exact READY Vercel Preview checks, and the composed audit candidate was also validated before integration. Final merged-main validation still has to pass before #73 can close.
+Final reconciled `main` passed exact quality/database/browser gates and an exact READY Vercel production deployment before #73 closed.
 
-### Live audit corrections already applied
+### Live audit state
 
-- Phase 0: browser execution of the privileged `public.rls_auto_enable()` helper has been revoked; live advisor warnings for that helper are cleared.
-- Phase 1: the seven foreign-key indexes identified by the live Performance Advisor have been added; the corresponding `unindexed_foreign_keys` findings are cleared.
-- P2.4: live battle persistence/RPC migrations are present under their exact Supabase ledger versions and browser roles remain outside the authoritative battle mutation boundary.
-
-### External configuration limitation
-
-Supabase still reports leaked-password protection as disabled. The connected organization is on the **Free** plan; Supabase documents this protection as a **Pro Plan and above** feature. Treat this as an external plan limitation, not an unresolved repository/database defect. Revisit it if the project is upgraded.
+- Phase 0 privileged helper browser execution is revoked.
+- Phase 1 foreign-key covering indexes are present; missing-index advisor findings are cleared.
+- P2.4 battle persistence/RPC migrations are present under the exact live Supabase ledger versions and browser roles remain outside authoritative mutation.
+- Supabase leaked-password protection remains an external Free-plan limitation; revisit if the project is upgraded to Pro+.
 
 ## Completed major milestones on `main`
 
@@ -66,45 +80,35 @@ Supabase still reports leaked-password protection as disabled. The connected org
 - representative Phase 1-derived combat stat expression integrated through #87
 - identifier-only authoritative battle invalidation/refetch contract integrated through #90
 
-## Reconciliation classifications
+## Established deferrals
 
-- **PR #33:** closed/unmerged planning history. Preserve still-valid future account/character-lifecycle direction through later focused tickets; do not resurrect the stale draft wholesale.
-- **Stat-driven combat:** genuine Phase 2 omission corrected by #87 so future UI/AI consume real authoritative character-driven combat values rather than fixed player placeholders.
-- **Battle invalidation/refetch:** genuine P2.4 omission corrected by #90 through the existing identifier-only realtime invalidation boundary; no battle snapshots/RNG/outcomes are broadcast as truth.
-- **Weight / Load / Might handling:** full equipment/load proof remains intentionally deferred when the Phase 2 slice lacks representative equipment. Do not invent a permanent fake formula merely to pull Phase 3 buildcraft forward.
-- **Mantles:** no player Mantles belong in PV-1. Phase 2 preserves reusable temporary-state/action/status/requirement primitives; actual Mantle implementation remains later-phase work.
-- **Battle interface:** the board-first cockpit, Turn Economy Tracker, inspect/target distinction, forecasts, reconnect/stale-version recovery and responsive controls belong to P2.5 itself.
-- **Recruit decision-making:** belongs to P2.6 rather than P2.1–P2.4.
-- **Visual/media direction:** P2.5/PV-1 must exercise the existing replaceable media/audio boundary and prove battlefield readability; full Asset Studio/provider operations remain later-phase work.
-- **PV-1 combat telemetry:** can be completed during P2.5/P2.6 before the external validation cohort; it is not a missing P2.1–P2.4 engine prerequisite.
+- Weight / Load / Might: full equipment/load proof remains Phase 3 when representative equipment exists.
+- Mantles: no player Mantles belong in PV-1; actual Mantle implementation remains later-phase work.
+- Recruit AI / Tactical Hall: P2.6, only after the normal P2.5 player loop is stable.
+- Current/Legacy/Confluence/Soulmark loadout cockpit: Phase 3+ as those systems become real.
+- PvP clocks, Battle Review, full map editor, full websocket/co-op sync and final production combat polish remain later scope.
+- Full Asset Studio/provider operations remain later-phase work; P2.5 uses the existing replaceable media/audio boundary and graceful fallbacks.
 
 ## Permanent execution rules
 
 1. Inspect current `main`, open implementation PRs/issues, current phase ticket specs, and recently merged design docs before starting work.
 2. One canonical implementation ticket is ACTIVE at a time.
-3. Stacked drafts are exceptional dependency-bound review artifacts, not permission for uncontrolled parallel feature development.
-4. Never merge a dependent ticket before its prerequisite.
-5. Reconcile repository truth at phase/player-facing validation boundaries.
-6. Do not use future feature work to hide a failed validation gate.
-7. Run required quality, database/security, browser, and external release/Preview checks before declaring implementation complete.
-8. Keep this ledger short and current. Do not allow it to become a second Roadmap or an archaeological log.
+3. Never merge a dependent ticket before its prerequisite.
+4. Reconcile repository truth at phase/player-facing validation boundaries.
+5. Do not use future feature work to hide a failed validation gate.
+6. Run required quality, database/security, browser, and exact external Preview checks before declaring implementation complete.
+7. Keep this ledger short and current. Do not allow it to become a second Roadmap or an archaeological log.
 
 ## Immediate sequence
 
 ```text
-Final merged-main validation for #73
+#91 P2.5 — Responsive Battle Experience + Turn Economy Tracker
   ↓
-Re-run live Supabase advisor / authority checks that matter to the audit
-  ↓
-Close/reconcile completed audit issues and confirm repository status is truthful
-  ↓
-Close #73 and set P2.5 as the single ACTIVE implementation ticket
-  ↓
-P2.5 — Responsive Battle Experience + Turn Economy Tracker
+Exact GitHub + responsive browser + Vercel Preview validation
   ↓
 P2.6 — Recruit AI + Tactical Hall vertical slice
   ↓
 PV-1 — Tactical Combat Proof
 ```
 
-If final merged-main validation exposes another genuine prerequisite defect, fix that smallest defect before closing #73 instead of hiding it inside P2.5.
+If P2.5 uncovers a genuine lower-layer authority defect, fix that smallest defect explicitly rather than hiding it inside presentation code.

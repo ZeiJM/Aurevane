@@ -1,0 +1,54 @@
+.context {
+  position: fixed;
+  top: 4.72rem;
+  right: clamp(0.75rem, 2vw, 1.5rem);
+  z-index: 12;
+  display: grid;
+  min-width: 8.8rem;
+  gap: 0.1rem;
+  padding: 0.42rem 0.58rem;
+  border: 1px solid rgba(212, 186, 130, 0.38);
+  border-radius: var(--av-radius-sm);
+  color: var(--av-text-muted);
+  background: rgba(7, 10, 14, 0.92);
+  box-shadow: 0 0.55rem 1.2rem rgba(0, 0, 0, 0.22);
+  pointer-events: none;
+}
+
+.context span,
+.context small {
+  color: var(--av-text-dim);
+  font: 650 0.46rem/1.2 var(--av-font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.context strong {
+  color: var(--av-brass-300);
+  font: 700 0.65rem/1.15 var(--av-font-display);
+  text-transform: capitalize;
+}
+
+.context small {
+  font-size: 0.4rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+@media (max-width: 760px) {
+  .context {
+    top: 4.05rem;
+    right: 0.55rem;
+    min-width: 7.4rem;
+    padding: 0.34rem 0.45rem;
+  }
+
+  .context span,
+  .context small {
+    font-size: 0.4rem;
+  }
+
+  .context strong {
+    font-size: 0.58rem;
+  }
+}

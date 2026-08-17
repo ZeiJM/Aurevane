@@ -55,6 +55,13 @@ const battleIntentRequestSchema = z
   })
   .strict()
 
+const battlePreviewRequestSchema = z
+  .object({
+    expectedBattleVersion: safePositiveInteger,
+    intent: battleIntentSchema,
+  })
+  .strict()
+
 const snapshotSchema = z.record(z.string(), z.unknown())
 const lifecycleSchema = z.enum(['pending', 'active', 'completed', 'abandoned'])
 
@@ -92,16 +99,28 @@ const battleSessionCommitRowSchema = z
   })
   .strict()
 
+const battleEventRowSchema = z
+  .object({
+    battle_version: safePositiveInteger,
+    event_index: safeInteger.nonnegative(),
+    event: z.record(z.string(), z.unknown()),
+    created_at: z.string().datetime({ offset: true }),
+  })
+  .strict()
+
 const oneCreationRowSchema = z.array(battleSessionCreationRowSchema).length(1)
 const optionalSessionRowSchema = z.array(battleSessionRowSchema).max(1)
 const oneCommitRowSchema = z.array(battleSessionCommitRowSchema).length(1)
+const battleEventRowsSchema = z.array(battleEventRowSchema).max(100)
 
 export type BattleIntent = z.infer<typeof battleIntentSchema>
 export type BattleSessionCreateRequest = z.infer<typeof battleSessionCreateRequestSchema>
 export type BattleIntentRequest = z.infer<typeof battleIntentRequestSchema>
+export type BattlePreviewRequest = z.infer<typeof battlePreviewRequestSchema>
 export type BattleSessionCreationPersistenceRow = z.infer<typeof battleSessionCreationRowSchema>
 export type BattleSessionPersistenceRow = z.infer<typeof battleSessionRowSchema>
 export type BattleSessionCommitPersistenceRow = z.infer<typeof battleSessionCommitRowSchema>
+export type BattleEventPersistenceRow = z.infer<typeof battleEventRowSchema>
 
 export function parseBattleSessionId(input: unknown): string | null {
   const result = battleSessionIdSchema.safeParse(input)
@@ -115,6 +134,11 @@ export function parseBattleSessionCreateRequest(input: unknown): BattleSessionCr
 
 export function parseBattleIntentRequest(input: unknown): BattleIntentRequest | null {
   const result = battleIntentRequestSchema.safeParse(input)
+  return result.success ? result.data : null
+}
+
+export function parseBattlePreviewRequest(input: unknown): BattlePreviewRequest | null {
+  const result = battlePreviewRequestSchema.safeParse(input)
   return result.success ? result.data : null
 }
 
@@ -137,4 +161,11 @@ export function parseBattleSessionCommitPersistenceRow(
 ): BattleSessionCommitPersistenceRow | null {
   const result = oneCommitRowSchema.safeParse(input)
   return result.success ? result.data[0] : null
+}
+
+export function parseBattleEventPersistenceRows(
+  input: unknown,
+): readonly BattleEventPersistenceRow[] | null {
+  const result = battleEventRowsSchema.safeParse(input)
+  return result.success ? result.data : null
 }

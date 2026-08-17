@@ -1,13 +1,16 @@
 import 'server-only'
 
 import type {
-  BattleSessionRepository,
-  BattleSessionRecord,
-  BattleSessionCreationRecord,
+  BattleEventRecord,
+  BattleEventRepository,
   BattleSessionCommitRecord,
+  BattleSessionCreationRecord,
+  BattleSessionRecord,
+  BattleSessionRepository,
 } from '@aurevane/db/battle-session'
 import { AurevaneError, StaleBattleVersionError } from '@aurevane/game-core/errors'
 import {
+  parseBattleEventPersistenceRows,
   parseBattleSessionCommitPersistenceRow,
   parseBattleSessionCreationPersistenceRow,
   parseBattleSessionPersistenceRow,
@@ -44,7 +47,8 @@ function throwRpcError(error: { code?: string; message?: string }): never {
   throw persistenceUnavailable('The server could not persist the battle right now.')
 }
 
-export function createSupabaseBattleSessionRepository(): BattleSessionRepository {
+export function createSupabaseBattleSessionRepository(): BattleSessionRepository &
+  BattleEventRepository {
   return {
     async createBattleSession(input) {
       const supabase = createSupabaseAdminClient()
@@ -137,6 +141,28 @@ export function createSupabaseBattleSessionRepository(): BattleSessionRepository
       }
 
       return { result, replayed: row.replayed }
+    },
+
+    async findBattleEvents(userId, battleSessionId, limit) {
+      const supabase = createSupabaseAdminClient()
+      const { data, error } = await supabase.rpc('get_battle_events_v1', {
+        p_user_id: userId,
+        p_battle_session_id: battleSessionId,
+        p_limit: limit,
+      })
+
+      if (error) throwRpcError(error)
+      const rows = parseBattleEventPersistenceRows(data)
+      if (!rows) {
+        throw persistenceUnavailable('The server returned an invalid battle-event result.')
+      }
+
+      return rows.map((row): BattleEventRecord => ({
+        battleVersion: row.battle_version,
+        eventIndex: row.event_index,
+        event: row.event,
+        createdAt: row.created_at,
+      }))
     },
   }
 }

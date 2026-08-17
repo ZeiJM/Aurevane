@@ -1,0 +1,119 @@
+.log {
+  position: fixed;
+  right: clamp(4.4rem, 7vw, 6rem);
+  bottom: 0.24rem;
+  z-index: 35;
+}
+
+.log summary {
+  display: inline-flex;
+  min-height: 1.65rem;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.28rem 0.42rem;
+  border: 1px solid var(--av-border);
+  border-radius: 0.3rem;
+  color: var(--av-text-muted);
+  background: #0a0d12;
+  font-size: 0.52rem;
+  font-weight: 800;
+  cursor: pointer;
+  list-style: none;
+}
+
+.log summary::-webkit-details-marker {
+  display: none;
+}
+
+.log summary span {
+  min-width: 1.1rem;
+  padding: 0.12rem 0.28rem;
+  border-radius: 999px;
+  color: var(--av-brass-300);
+  background: rgba(185, 154, 92, 0.12);
+  font: 650 0.46rem/1 var(--av-font-mono);
+  text-align: center;
+}
+
+.panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.5rem);
+  width: min(25rem, calc(100vw - 1.5rem));
+  max-height: min(22rem, 58dvh);
+  overflow: auto;
+  border: 1px solid var(--av-border-strong);
+  border-radius: var(--av-radius-md);
+  background: rgba(7, 10, 14, 0.98);
+  box-shadow: var(--av-shadow-deep);
+}
+
+.panel header {
+  position: sticky;
+  top: 0;
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.72rem 0.8rem;
+  border-bottom: 1px solid var(--av-border);
+  background: rgba(7, 10, 14, 0.98);
+}
+
+.panel header strong {
+  color: var(--av-text);
+  font: 650 0.72rem/1.2 var(--av-font-display);
+}
+
+.panel header span {
+  color: var(--av-text-dim);
+  font: 600 0.48rem/1.2 var(--av-font-mono);
+  text-transform: uppercase;
+}
+
+.panel ol {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.panel li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.55rem;
+  align-items: start;
+  padding: 0.62rem 0.8rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.055);
+}
+
+.panel li > span {
+  padding-top: 0.08rem;
+  color: var(--av-brass-500);
+  font: 650 0.48rem/1.2 var(--av-font-mono);
+}
+
+.panel li p,
+.empty {
+  margin: 0;
+  color: var(--av-text-muted);
+  font-size: 0.62rem;
+  line-height: 1.45;
+}
+
+.empty {
+  padding: 0.8rem;
+}
+
+@media (max-width: 480px) {
+  .log {
+    right: 4.1rem;
+  }
+
+  .panel {
+    position: fixed;
+    right: 0.65rem;
+    bottom: 2.55rem;
+    left: 0.65rem;
+    width: auto;
+  }
+}
