@@ -1,4 +1,7 @@
-import type { WayfarersPracticeRepository } from '@aurevane/db/wayfarers-practice'
+import type {
+  SetPracticePlanRecord,
+  WayfarersPracticeRepository,
+} from '@aurevane/db/wayfarers-practice'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
@@ -9,21 +12,25 @@ const USER_ID = '00000000-0000-4000-8000-000000000b01'
 const CHARACTER_ID = '00000000-0000-4000-8000-000000000b02'
 const IDEMPOTENCY_KEY = '00000000-0000-4000-8000-000000000b04'
 
+function planRecord(): SetPracticePlanRecord {
+  return {
+    characterId: CHARACTER_ID,
+    userId: USER_ID,
+    plannedWindow: 'overnight',
+    plannedWindowConfigVersion: 1,
+    plannedWindowSeconds: 8 * 60 * 60,
+    planSetAt: '2026-08-17T16:00:00.000Z',
+    serverNow: '2026-08-17T16:00:00.000Z',
+  }
+}
+
 function repository(replayed = false): WayfarersPracticeRepository {
   return {
     materializeTrainingReport: vi.fn(),
     getPracticeStatus: vi.fn(),
     setPracticePlan: vi.fn(async () => ({
       replayed,
-      result: {
-        characterId: CHARACTER_ID,
-        userId: USER_ID,
-        plannedWindow: 'overnight',
-        plannedWindowConfigVersion: 1,
-        plannedWindowSeconds: 8 * 60 * 60,
-        planSetAt: '2026-08-17T16:00:00.000Z',
-        serverNow: '2026-08-17T16:00:00.000Z',
-      },
+      result: planRecord(),
     })),
     claimTrainingReport: vi.fn(),
   }
