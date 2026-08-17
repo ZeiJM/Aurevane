@@ -52,12 +52,7 @@ function battleInput(): CreatePendingBattleInput {
   }
 }
 
-function tile(
-  x: number,
-  y: number,
-  terrainId = 'open-ground',
-  elevation = 0,
-): CombatTile {
+function tile(x: number, y: number, terrainId = 'open-ground', elevation = 0): CombatTile {
   return { position: { x, y }, elevation, terrainId }
 }
 
@@ -423,7 +418,7 @@ describe('P2.2 tactical board legality', () => {
     ['west', { x: 1, y: 2 }, 'front'],
     ['west', { x: 3, y: 2 }, 'rear'],
     ['west', { x: 2, y: 3 }, 'side'],
-  ] as const)('classifies %s-facing source position as %s', (facing, source, relation) => {
+  ] as const)('classifies facing relation deterministically', (facing, source, relation) => {
     expect(classifyFacingRelation({ x: 2, y: 2 }, facing, source)).toBe(relation)
   })
 
@@ -432,7 +427,10 @@ describe('P2.2 tactical board legality', () => {
     const missingTile: TacticalBattleState = { ...valid, tiles: valid.tiles.slice(1) }
     expect(validateTacticalBattleState(missingTile)).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ field: 'tiles', message: expect.stringContaining('exactly cover') }),
+        expect.objectContaining({
+          field: 'tiles',
+          message: expect.stringContaining('exactly cover'),
+        }),
       ]),
     )
 
@@ -456,5 +454,25 @@ describe('P2.2 tactical board legality', () => {
         ),
       }),
     ).toThrow('Combatant cannot occupy terrain blocked')
+  })
+
+  it('rejects desynchronized selected facing and placement facing', () => {
+    const state = activeTacticalBattle()
+    const selected = selectCurrentFinalFacing(state, 'north').state
+    const malformed: TacticalBattleState = {
+      ...selected,
+      placements: selected.placements.map((placement) =>
+        placement.combatantId === 'wayfarer' ? { ...placement, facing: 'east' } : placement,
+      ),
+    }
+
+    expect(validateTacticalBattleState(malformed)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          field: 'battle.currentTurn.finalFacing',
+          message: expect.stringContaining('must match'),
+        }),
+      ]),
+    )
   })
 })
