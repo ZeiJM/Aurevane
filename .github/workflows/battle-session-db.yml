@@ -1,0 +1,65 @@
+name: Battle Session DB
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - '.github/scripts/verify-battle-session-persistence.sh'
+      - '.github/scripts/verify-battle-session-concurrency.sh'
+      - '.github/scripts/verify-battle-session-http.sh'
+      - '.github/workflows/battle-session-db.yml'
+  push:
+    branches:
+      - main
+      - 'agent/**'
+    paths:
+      - 'supabase/migrations/**'
+      - '.github/scripts/verify-battle-session-persistence.sh'
+      - '.github/scripts/verify-battle-session-concurrency.sh'
+      - '.github/scripts/verify-battle-session-http.sh'
+      - '.github/workflows/battle-session-db.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  battle-session-authority:
+    name: Battle session persistence + authority
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Start local Supabase stack
+        run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+
+      - name: Rebuild database from migrations
+        run: pnpm exec supabase db reset --local
+
+      - name: Verify battle session persistence + authority
+        run: bash .github/scripts/verify-battle-session-persistence.sh
+
+      - name: Verify concurrent intent ordering + history
+        run: bash .github/scripts/verify-battle-session-concurrency.sh
+
+      - name: Verify authenticated battle API journey
+        run: bash .github/scripts/verify-battle-session-http.sh
+
+      - name: Stop local Supabase services
+        if: always()
+        run: pnpm exec supabase stop --no-backup
