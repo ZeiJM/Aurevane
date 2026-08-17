@@ -34,18 +34,17 @@ export async function savePlayerCombatControls(
   }
 
   const admin = createSupabaseAdminClient()
-  const { data, error } = await admin
-    .from('player_profiles')
-    .update({ combat_keybinds: bindings })
-    .eq('user_id', actor.userId)
-    .select('user_id, created_at, combat_keybinds')
-    .maybeSingle()
+  const { data, error } = await admin.rpc('save_player_combat_controls_v1', {
+    p_user_id: actor.userId,
+    p_combat_keybinds: bindings,
+  })
 
-  if (error || !data) {
+  if (error) {
     throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Account controls could not be saved.')
   }
 
-  const persisted = parsePlayerProfilePersistenceRow(data)
+  const candidate = Array.isArray(data) && data.length === 1 ? data[0] : null
+  const persisted = parsePlayerProfilePersistenceRow(candidate)
   if (!persisted || persisted.user_id !== actor.userId) {
     throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Account controls could not be verified.')
   }
