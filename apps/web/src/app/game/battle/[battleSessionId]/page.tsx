@@ -3,9 +3,12 @@ import { parseBattleSessionId } from '@aurevane/validation/combat/battle-session
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
+import { BattleAbortControls } from '@/components/battle/battle-abort-controls'
 import { BattleAudioGate } from '@/components/battle/battle-audio-gate'
 import { BattleExperience } from '@/components/battle/battle-experience'
 import { BattleFacingContext } from '@/components/battle/battle-facing-context'
+import { BattleKeyboardAssist } from '@/components/battle/battle-keyboard-assist'
+import { BattleLessonCoach } from '@/components/battle/battle-lesson-coach'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
 import { getAuthenticatedActor } from '@/server/auth/actor'
@@ -59,6 +62,12 @@ export default async function BattleSessionPage({
     <BattleAudioGate>
       <BattleExperience initialBattle={battle} />
       <BattleFacingContext initialBattle={battle} />
+      <BattleKeyboardAssist />
+      <BattleLessonCoach battleSessionId={battle.battleSessionId} />
+      <BattleAbortControls
+        battleSessionId={battle.battleSessionId}
+        initialLifecycle={battle.snapshot.tactical.battle.lifecycle}
+      />
     </BattleAudioGate>
   )
 }

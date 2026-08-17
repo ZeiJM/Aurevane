@@ -12,7 +12,7 @@ export function createSupabasePlayerProfileRepository(): PlayerProfileRepository
       const supabase = await createSupabaseServerClient()
       const { data, error } = await supabase
         .from('player_profiles')
-        .select('user_id, created_at')
+        .select('user_id, created_at, combat_keybinds')
         .eq('user_id', userId)
         .maybeSingle()
 
@@ -20,12 +20,9 @@ export function createSupabasePlayerProfileRepository(): PlayerProfileRepository
         throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Player profile is unavailable.')
       }
 
-      if (!data) {
-        return null
-      }
+      if (!data) return null
 
       const profile = parsePlayerProfilePersistenceRow(data)
-
       if (!profile) {
         throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Player profile is unavailable.')
       }
@@ -33,6 +30,7 @@ export function createSupabasePlayerProfileRepository(): PlayerProfileRepository
       return {
         userId: profile.user_id,
         createdAt: profile.created_at,
+        combatKeybinds: profile.combat_keybinds,
       }
     },
   }

@@ -22,7 +22,6 @@ import {
   createTacticalBattleState,
   moveCurrentCombatant,
   selectCurrentFinalFacing,
-  type CombatTile,
 } from '@aurevane/game-core/combat/board'
 import {
   createCharacterDerivedCombatProfile,
@@ -33,6 +32,10 @@ import {
   type StatDrivenCombatEncounterState,
   type StatDrivenCombatProfile,
 } from '@aurevane/game-core/combat/stat-driven-combat'
+import {
+  getTacticalHallArena,
+  type TacticalHallArenaId,
+} from '@aurevane/game-core/combat/tactical-hall-arenas'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import {
   createBattleSessionChangedInvalidation,
@@ -65,6 +68,7 @@ export interface BattleSessionView {
 export interface CreateBattleSessionCommand {
   userId: string
   characterId: string
+  arenaId?: TacticalHallArenaId
   idempotencyKey: string
 }
 
@@ -106,7 +110,11 @@ function fingerprint(value: unknown): string {
   return `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`
 }
 
-function createVerticalSliceEncounter(character: CharacterRecord): StatDrivenCombatEncounterState {
+function createVerticalSliceEncounter(
+  character: CharacterRecord,
+  arenaId: TacticalHallArenaId = 'basic-training-floor',
+): StatDrivenCombatEncounterState {
+  const arena = getTacticalHallArena(arenaId)
   const playerCombatantId = `character:${character.id}`
   const recruitCombatantId = 'recruit:p2-4-1'
   const battleId = `battle:${randomUUID()}`
@@ -129,7 +137,7 @@ function createVerticalSliceEncounter(character: CharacterRecord): StatDrivenCom
     combatantId: recruitCombatantId,
     provenance: {
       kind: 'scenario',
-      sourceId: 'scenario:p2-4-recruit',
+      sourceId: `scenario:p2-7-recruit:${arena.id}`,
       sourceRulesVersion: P2_4_CONTENT_VERSION,
     },
     accuracy: 7_000,
@@ -175,35 +183,24 @@ function createVerticalSliceEncounter(character: CharacterRecord): StatDrivenCom
     }),
   ).state
 
-  const tiles: CombatTile[] = []
-  for (let y = 0; y < 3; y += 1) {
-    for (let x = 0; x < 5; x += 1) {
-      tiles.push({
-        position: { x, y },
-        elevation: x === 2 && y === 0 ? 1 : 0,
-        terrainId: x === 2 && y === 1 ? 'rough-ground' : 'open-ground',
-      })
-    }
-  }
-
   const encounter = createCombatEncounterState(
     createTacticalBattleState({
       battle,
-      width: 5,
-      height: 3,
+      width: arena.width,
+      height: arena.height,
       terrains: P2_2_VERTICAL_SLICE_TERRAINS,
-      tiles,
+      tiles: arena.tiles,
       movementProfiles: [playerMovementProfile, P2_2_ORDINARY_GROUND_PROFILE],
       placements: [
         {
           combatantId: playerCombatantId,
-          position: { x: 0, y: 1 },
+          position: arena.playerSpawn,
           facing: 'east',
           movementProfileId: playerMovementProfile.id,
         },
         {
           combatantId: recruitCombatantId,
-          position: { x: 4, y: 1 },
+          position: arena.recruitSpawn,
           facing: 'west',
           movementProfileId: P2_2_ORDINARY_GROUND_PROFILE.id,
         },
@@ -257,14 +254,10 @@ function assertControlledCombatantProjection(
   state: StatDrivenCombatEncounterState,
   controlledCombatantIds: readonly string[],
 ): void {
-  if (controlledCombatantIds.length === 0) {
-    throw persistenceInvalid()
-  }
+  if (controlledCombatantIds.length === 0) throw persistenceInvalid()
 
   const uniqueIds = new Set(controlledCombatantIds)
-  if (uniqueIds.size !== controlledCombatantIds.length) {
-    throw persistenceInvalid()
-  }
+  if (uniqueIds.size !== controlledCombatantIds.length) throw persistenceInvalid()
 
   for (const combatantId of controlledCombatantIds) {
     if (!state.tactical.battle.combatants.some((combatant) => combatant.id === combatantId)) {
@@ -279,9 +272,7 @@ function assertPlayerControlledTurn(
 ): void {
   const battle = state.tactical.battle
   const turn = battle.currentTurn
-  if (battle.lifecycle !== 'active' || !turn) {
-    throw invalidBattleIntent()
-  }
+  if (battle.lifecycle !== 'active' || !turn) throw invalidBattleIntent()
 
   if (!battle.combatants.some((combatant) => combatant.id === turn.combatantId)) {
     throw persistenceInvalid()
@@ -362,7 +353,8 @@ export function createBattleSessionService({
         throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
       }
 
-      const encounter = createVerticalSliceEncounter(character)
+      const arenaId = command.arenaId ?? 'basic-training-floor'
+      const encounter = createVerticalSliceEncounter(character, arenaId)
       const battle = encounter.tactical.battle
       const persisted = await battles.createBattleSession({
         actorKey: command.userId,
@@ -371,6 +363,7 @@ export function createBattleSessionService({
           command: 'battle.create.v1',
           userId: command.userId,
           characterId: command.characterId,
+          arenaId,
         }),
         userId: command.userId,
         battleId: battle.battleId,

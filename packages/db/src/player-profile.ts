@@ -1,6 +1,7 @@
 export interface PlayerProfileRecord {
   userId: string
   createdAt: string
+  combatKeybinds?: unknown
 }
 
 export interface PlayerProfileRepository {

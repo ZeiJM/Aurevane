@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { DEFAULT_COMBAT_KEYBINDS } from './combat-controls'
 import { parsePlayerProfilePersistenceRow } from './profile'
 
 describe('player profile persistence validation', () => {
@@ -12,6 +13,7 @@ describe('player profile persistence validation', () => {
     ).toEqual({
       user_id: '94e76093-e46b-4859-a01b-33c541d76fcf',
       created_at: '2026-08-16T00:10:00+00:00',
+      combat_keybinds: DEFAULT_COMBAT_KEYBINDS,
     })
   })
 

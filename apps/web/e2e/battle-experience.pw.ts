@@ -58,26 +58,28 @@ test('launches the Tactical Hall and resolves an authoritative player and Recrui
   expect(await hasHorizontalOverflow(page)).toBe(false)
   await expectBattlefieldAndCommandDeckInViewport(page)
 
-  await page.getByRole('button', { name: /Move.*Build a path/ }).click()
+  await page.getByRole('button', { name: /Move.*Position only/ }).click()
   await page.getByRole('button', { name: /Tile 2, 2; open-ground; elevation 0/ }).click()
   await expect(page.getByText('Preview ready. Confirm to commit this command.')).toBeVisible()
   await expect(page.getByText('Preview cost 1')).toBeVisible()
   await page.getByRole('button', { name: /Confirm command/ }).click()
   await expect(page.getByText(/Command committed\. Authoritative battle version 2\./)).toBeVisible()
 
-  await page.getByRole('button', { name: /Move.*Build a path/ }).click()
+  await page.getByRole('button', { name: /Move.*Position only/ }).click()
   await page.getByRole('button', { name: /Tile 3, 2; rough-ground; elevation 0/ }).click()
   await expect(page.getByText('Preview cost 2')).toBeVisible()
   await page.getByRole('button', { name: /Confirm command/ }).click()
   await expect(page.getByText(/Authoritative battle version 3/)).toBeVisible()
 
-  await page.getByRole('button', { name: /Move.*Build a path/ }).click()
+  await page.getByRole('button', { name: /Move.*Position only/ }).click()
   await page.getByRole('button', { name: /Tile 4, 2; open-ground; elevation 0/ }).click()
   await expect(page.getByText('Preview cost 1')).toBeVisible()
   await page.getByRole('button', { name: /Confirm command/ }).click()
   await expect(page.getByText(/Authoritative battle version 4/)).toBeVisible()
 
-  const attackButton = page.getByRole('button', { name: /Basic Attack.*Target one enemy/ })
+  const commandDeck = page.getByRole('region', { name: 'Command Deck' })
+  const turnEconomy = page.getByRole('region', { name: 'Turn Economy Tracker' })
+  const attackButton = commandDeck.getByRole('button', { name: /Basic Attack/ })
   const faceEast = page.getByRole('button', { name: 'Face east' })
   const completion = page.getByTestId('tactical-hall-result')
 
@@ -105,7 +107,7 @@ test('launches the Tactical Hall and resolves an authoritative player and Recrui
   await expect(page.getByText('Preview ready. Confirm to commit this command.')).toBeVisible()
   await page.getByRole('button', { name: /Confirm command/ }).click()
   await expect(page.getByText(/Authoritative battle version 6/)).toBeVisible()
-  await expect(page.getByText('east →')).toBeVisible()
+  await expect(turnEconomy.getByText('east →', { exact: true })).toBeVisible()
 
   await page.getByRole('button', { name: /End Turn.*Facing required/ }).click()
   await expect(page.getByText('Preview ready. Confirm to commit this command.')).toBeVisible()
@@ -115,7 +117,7 @@ test('launches the Tactical Hall and resolves an authoritative player and Recrui
     timeout: 15_000,
   })
   await expect(page.getByText('Your turn', { exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: /Move.*Build a path/ })).toBeEnabled()
+  await expect(page.getByRole('button', { name: /Move.*Position only/ })).toBeEnabled()
   await expect(page.getByRole('button', { name: /End Turn.*Facing required/ })).toBeEnabled()
 
   await page.getByTestId('battle-log-toggle').click()
