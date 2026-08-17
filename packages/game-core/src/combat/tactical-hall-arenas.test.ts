@@ -1,14 +1,28 @@
 import { describe, expect, it } from 'vitest'
 
-import { P2_7_TACTICAL_HALL_ARENAS, getTacticalHallArena } from './tactical-hall-arenas'
+import {
+  P2_7_TACTICAL_HALL_ARENAS,
+  getTacticalHallArena,
+  getTacticalHallArenaFromScenarioSourceId,
+} from './tactical-hall-arenas'
 
 describe('P2.7 Tactical Hall arenas', () => {
   it('keeps the deterministic micro floor and adds a materially larger duel arena', () => {
     const micro = getTacticalHallArena('basic-training-floor')
     const duel = getTacticalHallArena('duel-yard')
 
-    expect(micro).toMatchObject({ width: 5, height: 3, scale: 'micro' })
-    expect(duel).toMatchObject({ width: 9, height: 7, scale: 'duel' })
+    expect(micro).toMatchObject({
+      width: 5,
+      height: 3,
+      scale: 'micro',
+      exitPolicy: 'ABORT_PRACTICE',
+    })
+    expect(duel).toMatchObject({
+      width: 9,
+      height: 7,
+      scale: 'duel',
+      exitPolicy: 'ABORT_PRACTICE',
+    })
     expect(duel.tiles).toHaveLength(63)
     expect(duel.width * duel.height).toBeGreaterThan(micro.width * micro.height * 3)
   })
@@ -49,5 +63,16 @@ describe('P2.7 Tactical Hall arenas', () => {
     expect(roughTiles.length).toBeGreaterThanOrEqual(5)
     expect(raisedTiles.length).toBeGreaterThanOrEqual(2)
     expect(manhattanDistance).toBeGreaterThan(4)
+  })
+
+  it('resolves only registered Tactical Hall scenario provenance to an abortable arena', () => {
+    expect(
+      getTacticalHallArenaFromScenarioSourceId('scenario:p2-7-recruit:basic-training-floor')?.id,
+    ).toBe('basic-training-floor')
+    expect(getTacticalHallArenaFromScenarioSourceId('scenario:p2-7-recruit:duel-yard')?.id).toBe(
+      'duel-yard',
+    )
+    expect(getTacticalHallArenaFromScenarioSourceId('scenario:other-content')).toBeNull()
+    expect(getTacticalHallArenaFromScenarioSourceId('scenario:p2-7-recruit:unknown')).toBeNull()
   })
 })
