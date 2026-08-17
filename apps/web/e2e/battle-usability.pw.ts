@@ -89,9 +89,7 @@ test('proves account keybinds, the Duel Yard and authoritative Abort Exercise', 
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('END TURN')
   await page.keyboard.press('a')
   await expect(
-    page
-      .getByRole('region', { name: 'Turn Economy Tracker' })
-      .getByText('west ←', { exact: true }),
+    page.getByRole('region', { name: 'Turn Economy Tracker' }).getByText('west ←', { exact: true }),
   ).toBeVisible()
   await page.keyboard.press('Escape')
 
