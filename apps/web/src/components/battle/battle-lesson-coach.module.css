@@ -1,12 +1,14 @@
 .coach {
   position: fixed;
-  left: clamp(0.65rem, 1.5vw, 1rem);
-  bottom: 4.4rem;
-  z-index: 39;
+  top: 8.45rem;
+  right: clamp(0.65rem, 1.5vw, 1rem);
+  z-index: 19;
   display: grid;
   gap: 0.55rem;
-  width: min(29rem, calc(100vw - 1.3rem));
+  width: min(20rem, calc(100vw - 1.3rem));
+  max-height: min(22rem, calc(100dvh - 18rem));
   padding: 0.8rem;
+  overflow: auto;
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius-sm);
   color: var(--av-text);
@@ -57,10 +59,11 @@
   cursor: pointer;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 760px) {
   .coach {
-    left: 0.5rem;
-    bottom: 7.6rem;
-    width: calc(100vw - 1rem);
+    top: 4.35rem;
+    right: 0.5rem;
+    width: min(19rem, calc(100vw - 1rem));
+    max-height: min(13rem, 34dvh);
   }
 }
