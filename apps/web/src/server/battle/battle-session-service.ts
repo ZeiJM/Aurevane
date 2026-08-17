@@ -34,6 +34,10 @@ import {
   type StatDrivenCombatProfile,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import { AurevaneError } from '@aurevane/game-core/errors'
+import {
+  createBattleSessionChangedInvalidation,
+  type BattleSessionChangedInvalidation,
+} from '@aurevane/realtime'
 import type { BattleIntent } from '@aurevane/validation/combat/battle-session'
 
 const P2_4_RULES_VERSION = 1
@@ -55,6 +59,7 @@ export interface BattleSessionView {
   battleVersion: number
   snapshot: BattleSessionProjection
   replayed: boolean
+  invalidation: BattleSessionChangedInvalidation | null
 }
 
 export interface CreateBattleSessionCommand {
@@ -391,6 +396,12 @@ export function createBattleSessionService({
         battleVersion: persisted.result.battleVersion,
         snapshot: projectBattleSnapshot(readPersistedEncounter(persisted.result.snapshot)),
         replayed: persisted.replayed,
+        invalidation: createBattleSessionChangedInvalidation({
+          battleSessionId: persisted.result.battleSessionId,
+          battleVersion: persisted.result.battleVersion,
+          occurredAt: persisted.result.createdAt,
+          reason: 'created',
+        }),
       }
     },
 
@@ -413,6 +424,7 @@ export function createBattleSessionService({
         battleVersion: persisted.battleVersion,
         snapshot: projectBattleSnapshot(snapshot),
         replayed: false,
+        invalidation: null,
       }
     },
 
@@ -447,6 +459,12 @@ export function createBattleSessionService({
           battleVersion: replayOrStale.result.battleVersion,
           snapshot: projectBattleSnapshot(readPersistedEncounter(replayOrStale.result.snapshot)),
           replayed: replayOrStale.replayed,
+          invalidation: createBattleSessionChangedInvalidation({
+            battleSessionId: replayOrStale.result.battleSessionId,
+            battleVersion: replayOrStale.result.battleVersion,
+            occurredAt: replayOrStale.result.committedAt,
+            reason: 'state_changed',
+          }),
         }
       }
 
@@ -468,6 +486,12 @@ export function createBattleSessionService({
         battleVersion: committed.result.battleVersion,
         snapshot: projectBattleSnapshot(readPersistedEncounter(committed.result.snapshot)),
         replayed: committed.replayed,
+        invalidation: createBattleSessionChangedInvalidation({
+          battleSessionId: committed.result.battleSessionId,
+          battleVersion: committed.result.battleVersion,
+          occurredAt: committed.result.committedAt,
+          reason: 'state_changed',
+        }),
       }
     },
   }

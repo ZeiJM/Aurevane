@@ -38,6 +38,9 @@ importers:
       '@aurevane/game-core':
         specifier: workspace:*
         version: link:../../packages/game-core
+      '@aurevane/realtime':
+        specifier: workspace:*
+        version: link:../../packages/realtime
       '@aurevane/ui':
         specifier: workspace:*
         version: link:../../packages/ui
