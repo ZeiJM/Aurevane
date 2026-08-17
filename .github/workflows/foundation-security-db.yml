@@ -1,0 +1,55 @@
+name: Foundation Security DB
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - '.github/scripts/verify-foundation-security.sh'
+      - '.github/workflows/foundation-security-db.yml'
+  push:
+    branches:
+      - main
+      - 'agent/**'
+    paths:
+      - 'supabase/migrations/**'
+      - '.github/scripts/verify-foundation-security.sh'
+      - '.github/workflows/foundation-security-db.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  foundation-security:
+    name: Foundation security privileges
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Start local Supabase stack
+        run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+
+      - name: Rebuild database from migrations
+        run: pnpm exec supabase db reset --local
+
+      - name: Verify privileged foundation helpers are browser-inaccessible
+        run: bash .github/scripts/verify-foundation-security.sh
+
+      - name: Stop local Supabase services
+        if: always()
+        run: pnpm exec supabase stop --no-backup
