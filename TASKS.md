@@ -1,42 +1,58 @@
 # AUREVANE — Active Task Ledger
 
-This file is intentionally concise. It reports the **current implementation boundary**; it does not duplicate the historical implementation diary. Detailed history remains available in Git history, merged PRs, issues, phase ticket specs, and release records.
+This file is intentionally concise. It reports the **current implementation boundary**; it does not duplicate the historical implementation diary. Detailed completed-ticket history remains available in Git history, merged PRs, issues, phase ticket specs, and release records.
 
 The Master Game Plan defines the product. The Roadmap defines sequence. Canonical domain documents define system rules. `docs/PROJECT_GOVERNANCE_AND_COMPLEXITY.md` defines authority routing, reconciliation, complexity, and delivery discipline. This file reports what is actually active now.
 
 ## Current status
 
-**Stage:** Phase 2 implementation with one mandatory targeted Phase 1 backfill
+**Stage:** Phase 2 — Tactical Combat Core
 
-**ACTIVE:** issue #95 — P1.6 backfill: Wayfarer's Practice planned windows + Rested Momentum
+**ACTIVE:** issue #93 — P2.6 Recruit AI + Tactical Hall Vertical Slice
 
-The approved 2026-08-17 live-events/training roadmap explicitly inserts this small Wayfarer's Practice backfill before Phase 2 continues. Completed combat work is preserved. P2.6 issue #93 / draft PR #94 remains intact but dependency-blocked until #95 is merged and P2.6 is resynchronized with `main`.
+The mandatory P1.6 Wayfarer's Practice backfill is complete on `main` through PR #98. P2.6 is now resynchronized with that authoritative base. The current task is to prove that the same combat grammar supports a fair deterministic Recruit opponent and a constrained repeatable Tactical Hall practice loop. Do not pull Phase 3 buildcraft, Mantles, broad Tactical Record progression, PvP bots, or remote LLM combat logic forward.
 
-### #95 implementation boundary
+### P2.6 current implementation boundary
 
-Implement only the current Phase 1 foundation:
+Implement and validate:
 
-- server-authoritative activity/practice timestamps and meaningful-offline threshold;
-- automatic Balanced Practice fallback;
-- planned windows exactly `Short`, `Overnight`, `Extended`, with data-driven initial targets around 3h / 8h / 24h;
-- prospective `Set Practice` intent for the next meaningful absence, consumed with its corresponding Training Report;
-- early-return credit for legitimate elapsed time and Balanced fallback after a planned window expires;
-- low-rate deterministic Character XP;
-- initial authoritative Rested Momentum representation and award; no spending yet;
-- frozen, idempotent Training Report generation/claim through the existing transaction boundary;
-- explicit-plan versus automatic-fallback provenance/telemetry;
-- responsive Character → Training / return-report presentation with clear timing and claim/no-claim explanations.
+- server-authoritative AI decision interface consuming the same movement/target/action/effect legality as player commands;
+- explicit AI knowledge filter over committed encounter state only;
+- first deliberately weak Recruit intelligence profile;
+- deterministic seeded tie-breaking and bounded decision budget;
+- simple utility scoring for legal damage/utility, survival, positioning, and scenario objective where present;
+- safe fallback hierarchy ending in Guard/Wait/End Turn rather than illegal actions;
+- structured decision-reason tags for logs/debugging;
+- deterministic QA practice harness and golden tactical regression states;
+- first player-facing Tactical Hall repeat loop with one Recruit floor, constrained supported presets, instant retry, and no normal repeatable progression rewards;
+- intelligence profile kept separate from raw combatant stats;
+- full responsive authenticated battle journey through Recruit resolution, battle completion, result presentation, and fresh retry.
 
-Do not add Discipline Mastery/Discipline Focus, mature Recovery & Study, profession XP, direct attributes, Crowns/materials/items, event participation, automation queues, or background tick workers in this backfill.
+All AI-selected intents still commit through the authoritative P2.4/P2.5 battle session, expected-version, idempotency, and event boundaries. The AI gets no privileged legality shortcut and no hidden future RNG or uncommitted browser planning state.
 
 ## Completed foundation relevant to this work
 
 - Phase 0 foundation and security hardening are complete.
 - Phase 1 character/profile/derived-stat/XP foundations are complete.
-- Existing P1.6 Balanced Practice claim/replay/transaction architecture is present and should be extended rather than replaced.
+- P1.6 Wayfarer's Practice now includes server-authoritative Short / Overnight / Extended prospective plans, one-absence consumption, Balanced fallback provenance, and stored Rested Momentum through PR #98.
 - P1.7 public News/Manual/Rules foundation is complete.
 - Phase 2 combat engine checkpoints P2.1–P2.5 are implemented on current `main`.
-- P2.6 Recruit AI + Tactical Hall implementation is preserved in draft PR #94 while #95 is active.
+- P2.5 includes the responsive board-first cockpit, authoritative planning preview API, stale/reconnect handling, sanitized committed battle history, media/audio hooks, and authenticated responsive browser journey.
+
+## Live persistence / authority state
+
+- browser roles remain outside authoritative battle mutation and private battle-event tables;
+- P2.5 owner-scoped battle-event read remains service-role only via `20260817141155_p25_battle_event_read`;
+- Phase 0 helper hardening and Phase 1 FK covering indexes remain live;
+- P1.6 planned Practice configuration and state remain private/service-role-only, with exact 3h / 8h / 24h initial tuning and compatibility wrapper live;
+- Supabase leaked-password protection remains an external Free-plan limitation and is not a repository defect.
+
+## Established deferrals
+
+- Weight / Load / Might: Phase 3 when representative equipment exists.
+- Mantles / Confluences / Soulmarks / Current-Legacy loadouts: later phases.
+- stronger AI grades/profiles, remote LLM combat, reinforcement learning, PvP bot substitution, broad Tactical Record progression, and full Battle Review: later scope.
+- final production combat art/VFX polish and full websocket/co-op synchronization: later scope.
 
 ## Permanent execution rules
 
@@ -51,15 +67,13 @@ Do not add Discipline Mastery/Discipline Focus, mature Recovery & Study, profess
 ## Immediate sequence
 
 ```text
-#95 P1.6 targeted Wayfarer's Practice backfill
+#93 P2.6 — Recruit AI + Tactical Hall Vertical Slice
   ↓
-Exact GitHub quality/database/browser + READY Vercel Preview validation
+Exact GitHub + database + responsive browser + Vercel Preview validation
   ↓
-Merge #95 and verify main
-  ↓
-Resynchronize draft P2.6 PR #94 with main
-  ↓
-Finish P2.6 exact-candidate validation and merge
+Merge P2.6 and verify main
   ↓
 PV-1 — Tactical Combat Proof
 ```
+
+If P2.6 uncovers a genuine lower-layer combat-authority defect, fix that smallest defect explicitly rather than hiding it inside AI scoring or Tactical Hall presentation.

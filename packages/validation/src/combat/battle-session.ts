@@ -62,6 +62,12 @@ const battlePreviewRequestSchema = z
   })
   .strict()
 
+const battleRecruitTurnRequestSchema = z
+  .object({
+    expectedBattleVersion: safePositiveInteger,
+  })
+  .strict()
+
 const snapshotSchema = z.record(z.string(), z.unknown())
 const lifecycleSchema = z.enum(['pending', 'active', 'completed', 'abandoned'])
 
@@ -117,6 +123,7 @@ export type BattleIntent = z.infer<typeof battleIntentSchema>
 export type BattleSessionCreateRequest = z.infer<typeof battleSessionCreateRequestSchema>
 export type BattleIntentRequest = z.infer<typeof battleIntentRequestSchema>
 export type BattlePreviewRequest = z.infer<typeof battlePreviewRequestSchema>
+export type BattleRecruitTurnRequest = z.infer<typeof battleRecruitTurnRequestSchema>
 export type BattleSessionCreationPersistenceRow = z.infer<typeof battleSessionCreationRowSchema>
 export type BattleSessionPersistenceRow = z.infer<typeof battleSessionRowSchema>
 export type BattleSessionCommitPersistenceRow = z.infer<typeof battleSessionCommitRowSchema>
@@ -139,6 +146,11 @@ export function parseBattleIntentRequest(input: unknown): BattleIntentRequest | 
 
 export function parseBattlePreviewRequest(input: unknown): BattlePreviewRequest | null {
   const result = battlePreviewRequestSchema.safeParse(input)
+  return result.success ? result.data : null
+}
+
+export function parseBattleRecruitTurnRequest(input: unknown): BattleRecruitTurnRequest | null {
+  const result = battleRecruitTurnRequestSchema.safeParse(input)
   return result.success ? result.data : null
 }
 

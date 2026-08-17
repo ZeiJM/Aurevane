@@ -49,6 +49,15 @@ function statusLabel(value: unknown): string {
     .join(' ')
 }
 
+function recruitReasonLabel(value: unknown): string {
+  if (value === 'legal-damage') return 'a legal damage opportunity'
+  if (value === 'close-distance') return 'closing the distance'
+  if (value === 'guard-survival') return 'a defensive guard'
+  if (value === 'face-threat') return 'facing the nearest threat'
+  if (value === 'safe-end-turn') return 'a safe end turn'
+  return 'a legal tactical option'
+}
+
 function numberValue(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null
 }
@@ -132,6 +141,11 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
       const hit = event.hit === true
       const chance = numberValue(event.hitChanceBasisPoints)
       message = `${combatantLabel(event.actorId)} attack ${hit ? 'hit' : 'missed'}${chance === null ? '' : ` (${Math.round(chance / 100)}% hit chance)`}.`
+      break
+    }
+    case 'recruit_ai_decision': {
+      const utility = numberValue(event.utility)
+      message = `${combatantLabel(event.combatantId)} chose ${recruitReasonLabel(event.reason)}${utility === null ? '' : ` (score ${utility})`}.`
       break
     }
     case 'battle_completed':

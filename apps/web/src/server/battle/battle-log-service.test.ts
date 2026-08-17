@@ -13,6 +13,22 @@ describe('P2.5 sanitized battle log service', () => {
     const repository: BattleEventRepository = {
       findBattleEvents: vi.fn(async () => [
         {
+          battleVersion: 8,
+          eventIndex: 0,
+          event: {
+            event: 'recruit_ai_decision',
+            combatantId: 'recruit:p2-4-1',
+            reason: 'close-distance',
+            utility: 28,
+            candidateCount: 6,
+            profileId: 'recruit-weak-v1',
+            profileVersion: 1,
+            rulesVersion: 1,
+            tieBreakSeed: 999,
+          },
+          createdAt: '2026-08-17T13:01:00.000Z',
+        },
+        {
           battleVersion: 5,
           eventIndex: 3,
           event: {
@@ -63,6 +79,13 @@ describe('P2.5 sanitized battle log service', () => {
       battleSessionId: SESSION_ID,
       entries: [
         {
+          battleVersion: 8,
+          eventIndex: 0,
+          occurredAt: '2026-08-17T13:01:00.000Z',
+          eventType: 'recruit_ai_decision',
+          message: 'Recruit chose closing the distance (score 28).',
+        },
+        {
           battleVersion: 5,
           eventIndex: 3,
           occurredAt: '2026-08-17T13:00:00.000Z',
@@ -89,6 +112,9 @@ describe('P2.5 sanitized battle log service', () => {
     expect(JSON.stringify(result)).not.toContain('rollBasisPoints')
     expect(JSON.stringify(result)).not.toContain('hpBefore')
     expect(JSON.stringify(result)).not.toContain('hpAfter')
+    expect(JSON.stringify(result)).not.toContain('candidateCount')
+    expect(JSON.stringify(result)).not.toContain('tieBreakSeed')
+    expect(JSON.stringify(result)).not.toContain('profileId')
     expect(JSON.stringify(result)).not.toContain('raw')
   })
 

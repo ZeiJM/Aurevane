@@ -4,8 +4,10 @@ import type { BattleIntent } from '@aurevane/validation/combat/battle-session'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import type { BattlePreviewView } from '@/server/battle/battle-preview-service'
+import type { RecruitTurnView } from '@/server/battle/battle-recruit-ai-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
+import { BattleCompletionPanel } from './battle-completion-panel'
 import { BattleLogPanel } from './battle-log-panel'
 import styles from './battle-experience.module.css'
 
@@ -66,8 +68,10 @@ export function BattleExperience({ initialBattle }: BattleExperienceProps) {
   const [preview, setPreview] = useState<BattlePreviewView | null>(null)
   const [previewPending, setPreviewPending] = useState(false)
   const [commitPending, setCommitPending] = useState(false)
+  const [recruitPending, setRecruitPending] = useState(false)
   const [notice, setNotice] = useState<string>('Authoritative state loaded.')
   const previewSequence = useRef(0)
+  const recruitAttemptedVersion = useRef<number | null>(null)
 
   const snapshot = battle.snapshot
   const tactical = snapshot.tactical
@@ -163,6 +167,61 @@ export function BattleExperience({ initialBattle }: BattleExperienceProps) {
     [refreshBattle],
   )
 
+  const runRecruitTurn = useCallback(async () => {
+    if (recruitPending || playerTurn || battleState.lifecycle !== 'active' || !currentTurn) return
+    if (recruitAttemptedVersion.current === battle.battleVersion) return
+
+    recruitAttemptedVersion.current = battle.battleVersion
+    setRecruitPending(true)
+    resetPlanning()
+    setNotice('Recruit is choosing from committed battle state…')
+
+    try {
+      const response = await fetch(`/api/battles/${battle.battleSessionId}/recruit-turn`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expectedBattleVersion: battle.battleVersion }),
+      })
+      const body = (await response.json()) as { battle?: RecruitTurnView } & ApiErrorBody
+      if (!response.ok || !body.battle) {
+        await handleApiFailure(response, body, 'The Recruit turn could not be resolved.')
+        return
+      }
+
+      const nextBattle: BattleSessionView = {
+        battleSessionId: body.battle.battleSessionId,
+        battleVersion: body.battle.battleVersion,
+        snapshot: body.battle.snapshot,
+        replayed: false,
+        invalidation: body.battle.invalidation,
+      }
+      setBattle(nextBattle)
+      setSelectedUnitId(nextBattle.snapshot.tactical.battle.currentTurn?.combatantId ?? null)
+      resetPlanning()
+      const decisionSummary = body.battle.decisions
+        .map((decision) => `${decision.reason} (${decision.utility})`)
+        .join(' → ')
+      setNotice(
+        decisionSummary.length > 0
+          ? `Recruit turn resolved server-side: ${decisionSummary}.`
+          : 'Recruit turn resolved server-side.',
+      )
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'The Recruit turn could not be resolved.')
+    } finally {
+      setRecruitPending(false)
+    }
+  }, [
+    battle.battleSessionId,
+    battle.battleVersion,
+    battleState.lifecycle,
+    currentTurn,
+    handleApiFailure,
+    playerTurn,
+    recruitPending,
+    resetPlanning,
+  ])
+
   const requestPreview = useCallback(
     async (intent: BattleIntent) => {
       const sequence = ++previewSequence.current
@@ -241,7 +300,27 @@ export function BattleExperience({ initialBattle }: BattleExperienceProps) {
   ])
 
   useEffect(() => {
+    if (
+      !playerTurn &&
+      currentTurn &&
+      battleState.lifecycle === 'active' &&
+      !recruitPending &&
+      recruitAttemptedVersion.current !== battle.battleVersion
+    ) {
+      void runRecruitTurn()
+    }
+  }, [
+    battle.battleVersion,
+    battleState.lifecycle,
+    currentTurn,
+    playerTurn,
+    recruitPending,
+    runRecruitTurn,
+  ])
+
+  useEffect(() => {
     function handleReconnect() {
+      recruitAttemptedVersion.current = null
       void refreshBattle('Connection restored. Authoritative battle state reloaded.').catch(
         (error) => {
           setNotice(error instanceof Error ? error.message : 'The battle could not be refreshed.')
@@ -337,7 +416,8 @@ export function BattleExperience({ initialBattle }: BattleExperienceProps) {
     ? (tactical.tiles.find((tile) => positionsEqual(tile.position, selectedPosition)) ?? null)
     : null
   const previewLegal = preview?.preview.legal ?? false
-  const planningDisabled = !playerTurn || battleState.lifecycle !== 'active' || commitPending
+  const planningDisabled =
+    !playerTurn || battleState.lifecycle !== 'active' || commitPending || recruitPending
   const actionReady = currentTurn?.actionState === 'ready'
 
   return (
@@ -551,10 +631,16 @@ export function BattleExperience({ initialBattle }: BattleExperienceProps) {
         )}
       </aside>
 
-      <section className={styles.turnEconomy} aria-label="Turn Economy Tracker">
+      <section
+        className={styles.turnEconomy}
+        aria-label="Turn Economy Tracker"
+        aria-busy={recruitPending}
+      >
         <div className={styles.panelHeading}>
           <span>Turn Economy</span>
-          <strong>{playerTurn ? 'Your turn' : 'Opponent turn'}</strong>
+          <strong>
+            {playerTurn ? 'Your turn' : recruitPending ? 'Recruit thinking' : 'Opponent turn'}
+          </strong>
         </div>
         <div className={styles.economyGrid}>
           <div>
@@ -709,7 +795,7 @@ export function BattleExperience({ initialBattle }: BattleExperienceProps) {
               resetPlanning()
               setNotice('Planning cleared. No command was committed.')
             }}
-            disabled={commitPending}
+            disabled={commitPending || recruitPending}
           >
             Cancel <kbd>Esc</kbd>
           </button>
@@ -717,12 +803,16 @@ export function BattleExperience({ initialBattle }: BattleExperienceProps) {
             type="button"
             className={styles.confirmButton}
             onClick={() => void commitIntent()}
-            disabled={!pendingIntent || !previewLegal || previewPending || commitPending}
+            disabled={
+              !pendingIntent || !previewLegal || previewPending || commitPending || recruitPending
+            }
           >
             {commitPending ? 'Committing…' : 'Confirm command'} <kbd>Enter</kbd>
           </button>
         </div>
       </section>
+
+      {battleState.lifecycle === 'completed' ? <BattleCompletionPanel battle={battle} /> : null}
 
       <footer className={styles.eventTicker} aria-live="polite">
         <span className={styles.connectionDot} aria-hidden="true" />
@@ -732,7 +822,14 @@ export function BattleExperience({ initialBattle }: BattleExperienceProps) {
           battleSessionId={battle.battleSessionId}
           battleVersion={battle.battleVersion}
         />
-        <button type="button" onClick={() => void refreshBattle()} disabled={commitPending}>
+        <button
+          type="button"
+          onClick={() => {
+            recruitAttemptedVersion.current = null
+            void refreshBattle()
+          }}
+          disabled={commitPending || recruitPending}
+        >
           Refetch
         </button>
       </footer>

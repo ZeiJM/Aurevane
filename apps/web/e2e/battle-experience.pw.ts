@@ -1,3 +1,5 @@
+import { execFileSync } from 'node:child_process'
+
 import { expect, test } from '@playwright/test'
 
 function uniqueCharacterName(): string {
@@ -9,14 +11,14 @@ function uniqueCharacterName(): string {
   return `Wayfarer ${letters}`
 }
 
-test('launches the Tactical Hall and completes one authoritative player turn', async ({
+test('launches the Tactical Hall and resolves an authoritative player and Recruit round', async ({
   page,
 }, testInfo) => {
   test.slow()
 
   const projectSlug = testInfo.project.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()
-  const email = `p25-${projectSlug}-${Date.now()}@example.com`
-  const password = 'P25-browser-battle-2026!'
+  const email = `p26-${projectSlug}-${Date.now()}@example.com`
+  const password = 'P26-browser-battle-2026!'
   const characterName = uniqueCharacterName()
 
   await page.goto('/')
@@ -75,7 +77,11 @@ test('launches the Tactical Hall and completes one authoritative player turn', a
   await page.getByRole('button', { name: /Confirm command/ }).click()
   await expect(page.getByText(/Authoritative battle version 4/)).toBeVisible()
 
-  await page.getByRole('button', { name: /Basic Attack.*Target one enemy/ }).click()
+  const attackButton = page.getByRole('button', { name: /Basic Attack.*Target one enemy/ })
+  const faceEast = page.getByRole('button', { name: 'Face east' })
+  const completion = page.getByTestId('tactical-hall-result')
+
+  await attackButton.click()
   await page
     .getByRole('button', {
       name: /Tile 5, 2; open-ground; elevation 0; occupied by Recruit/,
@@ -86,7 +92,7 @@ test('launches the Tactical Hall and completes one authoritative player turn', a
   await expect(page.getByText('Preview ready. Confirm to commit this command.')).toBeVisible()
   await page.getByRole('button', { name: /Confirm command/ }).click()
   await expect(page.getByText(/Authoritative battle version 5/)).toBeVisible()
-  await expect(page.getByRole('button', { name: /Basic Attack.*Target one enemy/ })).toBeDisabled()
+  await expect(attackButton).toBeDisabled()
 
   await page.getByTestId('battle-log-toggle').click()
   const battleLog = page.getByTestId('battle-log-panel')
@@ -95,7 +101,7 @@ test('launches the Tactical Hall and completes one authoritative player turn', a
   await expect(battleLog).not.toContainText('rollBasisPoints')
   await page.getByTestId('battle-log-toggle').click()
 
-  await page.getByRole('button', { name: 'Face east' }).click()
+  await faceEast.click()
   await expect(page.getByText('Preview ready. Confirm to commit this command.')).toBeVisible()
   await page.getByRole('button', { name: /Confirm command/ }).click()
   await expect(page.getByText(/Authoritative battle version 6/)).toBeVisible()
@@ -104,14 +110,109 @@ test('launches the Tactical Hall and completes one authoritative player turn', a
   await page.getByRole('button', { name: /End Turn.*Facing required/ }).click()
   await expect(page.getByText('Preview ready. Confirm to commit this command.')).toBeVisible()
   await page.getByRole('button', { name: /Confirm command/ }).click()
-  await expect(page.getByText(/Authoritative battle version 7/)).toBeVisible()
-  await expect(page.getByText('Opponent turn', { exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: /Move.*Build a path/ })).toBeDisabled()
-  await expect(page.getByRole('button', { name: /End Turn.*Facing required/ })).toBeDisabled()
+
+  await expect(page.getByText(/Recruit turn resolved server-side:/)).toBeVisible({
+    timeout: 15_000,
+  })
+  await expect(page.getByText('Your turn', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Move.*Build a path/ })).toBeEnabled()
+  await expect(page.getByRole('button', { name: /End Turn.*Facing required/ })).toBeEnabled()
+
+  await page.getByTestId('battle-log-toggle').click()
+  await expect(battleLog).toContainText('Recruit chose')
+  await expect(battleLog).toContainText('Recruit ended the turn.')
+  await expect(battleLog).not.toContainText('candidateCount')
+  await expect(battleLog).not.toContainText('tieBreakSeed')
+  await expect(battleLog).not.toContainText('profileId')
+  await page.getByTestId('battle-log-toggle').click()
+
+  for (let playerTurn = 0; playerTurn < 20 && !(await completion.isVisible()); playerTurn += 1) {
+    await expect(attackButton).toBeEnabled()
+    await attackButton.click()
+    await page
+      .getByRole('button', {
+        name: /occupied by Recruit/,
+      })
+      .click()
+    await expect(page.getByText('Preview ready. Confirm to commit this command.')).toBeVisible()
+    await page.getByRole('button', { name: /Confirm command/ }).click()
+
+    await waitForAttackSettlement(page, completion, faceEast)
+    if (await completion.isVisible()) break
+
+    await faceEast.click()
+    await expect(page.getByText('Preview ready. Confirm to commit this command.')).toBeVisible()
+    await page.getByRole('button', { name: /Confirm command/ }).click()
+
+    const endTurn = page.getByRole('button', { name: /End Turn.*Facing required/ })
+    await expect(endTurn).toBeEnabled()
+    await endTurn.click()
+    await expect(page.getByText('Preview ready. Confirm to commit this command.')).toBeVisible()
+    await page.getByRole('button', { name: /Confirm command/ }).click()
+
+    await waitForCompletionOrNextPlayerTurn(page, completion, attackButton)
+  }
+
+  await expect(completion).toBeVisible({ timeout: 15_000 })
+  await expect(completion).toContainText(/Victory|Defeat|Draw/)
+  await expect(page.getByTestId('practice-no-rewards')).toContainText(
+    'no Character XP, Mastery, loot, Crowns, PvP rating',
+  )
+
+  const progressionState = queryLocalDatabase(`
+    select character.xp::text || '|' || count(grant_row.id)::text
+    from public.characters character
+    join auth.users account on account.id = character.user_id
+    left join app_private.character_xp_grants grant_row on grant_row.character_id = character.id
+    where account.email = '${escapeSqlLiteral(email)}'
+    group by character.id, character.xp;
+  `)
+  expect(progressionState).toBe('0|0')
+
+  const completedUrl = page.url()
+  await page.getByRole('button', { name: 'Retry same drill' }).click()
+  await expect(page).not.toHaveURL(completedUrl)
+  await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
+  await expect(page.getByText('Your turn', { exact: true })).toBeVisible()
+  await expect(page.getByTestId('tactical-hall-result')).toHaveCount(0)
 
   expect(await hasHorizontalOverflow(page)).toBe(false)
   await expectBattlefieldAndCommandDeckInViewport(page)
 })
+
+async function waitForAttackSettlement(
+  page: import('@playwright/test').Page,
+  completion: import('@playwright/test').Locator,
+  facingButton: import('@playwright/test').Locator,
+): Promise<void> {
+  await expect
+    .poll(
+      async () => {
+        if (await completion.isVisible()) return 'completed'
+        if (await facingButton.isEnabled()) return 'player-facing'
+        return 'waiting'
+      },
+      { timeout: 15_000 },
+    )
+    .not.toBe('waiting')
+}
+
+async function waitForCompletionOrNextPlayerTurn(
+  page: import('@playwright/test').Page,
+  completion: import('@playwright/test').Locator,
+  attackButton: import('@playwright/test').Locator,
+): Promise<void> {
+  await expect
+    .poll(
+      async () => {
+        if (await completion.isVisible()) return 'completed'
+        if (await attackButton.isEnabled()) return 'player-ready'
+        return 'waiting'
+      },
+      { timeout: 15_000 },
+    )
+    .not.toBe('waiting')
+}
 
 async function expectBattlefieldAndCommandDeckInViewport(
   page: import('@playwright/test').Page,
@@ -136,4 +237,40 @@ async function hasHorizontalOverflow(page: import('@playwright/test').Page): Pro
   return page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
   )
+}
+
+function queryLocalDatabase(sql: string): string {
+  const dbContainer = execFileSync(
+    'docker',
+    ['ps', '--filter', 'name=supabase_db_', '--format', '{{.Names}}'],
+    { encoding: 'utf8' },
+  )
+    .trim()
+    .split('\n')[0]
+
+  if (!dbContainer) {
+    throw new Error('Local Supabase database container is unavailable.')
+  }
+
+  return execFileSync(
+    'docker',
+    [
+      'exec',
+      dbContainer,
+      'psql',
+      '-v',
+      'ON_ERROR_STOP=1',
+      '-U',
+      'postgres',
+      '-d',
+      'postgres',
+      '-Atqc',
+      sql,
+    ],
+    { encoding: 'utf8' },
+  ).trim()
+}
+
+function escapeSqlLiteral(value: string): string {
+  return value.replaceAll("'", "''")
 }

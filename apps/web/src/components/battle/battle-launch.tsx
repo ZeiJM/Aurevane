@@ -61,12 +61,47 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
           <h1 id="battle-launch-title">Enter the training field</h1>
           <p className={styles.lede}>
             {characterName} will enter the current Phase 2 tactical exercise. Movement, actions,
-            facing, forecasts, and every committed result remain server authoritative.
+            facing, forecasts, Recruit decisions, and every committed result remain server
+            authoritative.
           </p>
+
+          <section className={styles.record} aria-labelledby="recruit-record-title">
+            <div className={styles.recordHeading}>
+              <div>
+                <span>Tactical Record</span>
+                <h2 id="recruit-record-title">Recruit Sparring Partner</h2>
+              </div>
+              <strong>Recorded</strong>
+            </div>
+            <dl>
+              <div>
+                <dt>Intelligence</dt>
+                <dd>Recruit</dd>
+              </div>
+              <div>
+                <dt>Level band</dt>
+                <dd>Beginner training · fixed</dd>
+              </div>
+              <div>
+                <dt>Attributes</dt>
+                <dd>Standard preset · fixed</dd>
+              </div>
+              <div>
+                <dt>Arena</dt>
+                <dd>Basic Training Floor</dd>
+              </div>
+            </dl>
+            <p>
+              This is the only unlocked Phase 2 practice configuration. AI intelligence is a
+              decision profile, not a hidden combat-stat bonus.
+            </p>
+          </section>
+
           <div className={styles.rules} aria-label="Exercise rules">
             <span>One controlled Wayfarer</span>
-            <span>One opposing recruit</span>
-            <span>Board-first turn combat</span>
+            <span>One opposing Recruit</span>
+            <span>1v1 defeat opponent</span>
+            <span>No progression rewards</span>
           </div>
           {error ? (
             <p className={styles.error} role="alert">
