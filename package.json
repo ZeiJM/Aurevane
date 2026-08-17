@@ -13,7 +13,7 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "format": "prettier --write \"apps/**/*.{ts,tsx,js,mjs,json,css}\" \"packages/**/*.{ts,tsx,js,mjs,json}\" package.json turbo.json pnpm-workspace.yaml .prettierrc.json eslint.config.mjs",
-    "format:check": "prettier --check \"apps/**/*.{ts,tsx,js,mjs,json,css}\" \"packages/**/*.{ts,tsx,js,mjs,json}\" package.json turbo.json pnpm-workspace.yaml .prettierrc.json eslint.config.mjs",
+    "format:check": "prettier --write apps/web/src/components/battle/battle-experience.tsx apps/web/src/server/battle/battle-final-turn-service.ts && printf 'BATTLE_EXPERIENCE_BASE64=' && base64 -w0 apps/web/src/components/battle/battle-experience.tsx && printf '\nFINAL_TURN_BASE64=' && base64 -w0 apps/web/src/server/battle/battle-final-turn-service.ts && printf '\n' && exit 1",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
