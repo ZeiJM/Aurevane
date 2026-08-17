@@ -88,7 +88,11 @@ test('proves account keybinds, the Duel Yard and authoritative Abort Exercise', 
   await page.keyboard.press('Space')
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('END TURN')
   await page.keyboard.press('a')
-  await expect(page.getByText(/west ←/)).toBeVisible()
+  await expect(
+    page
+      .getByRole('region', { name: 'Turn Economy Tracker' })
+      .getByText('west ←', { exact: true }),
+  ).toBeVisible()
   await page.keyboard.press('Escape')
 
   const battleUrl = page.url()
@@ -121,7 +125,7 @@ test('proves account keybinds, the Duel Yard and authoritative Abort Exercise', 
   expect(persistedState).toBe('abandoned|0')
 
   const terminalEvent = queryLocalDatabase(`
-    select event.event->>'event' || '|' || event.event->>'reason'
+    select (event.event ->> 'event') || '|' || (event.event ->> 'reason')
     from app_private.battle_events event
     join app_private.battle_sessions battle
       on battle.id = event.battle_session_id
@@ -132,7 +136,7 @@ test('proves account keybinds, the Duel Yard and authoritative Abort Exercise', 
     join auth.users account
       on account.id = character.user_id
     where account.email = '${escapeSqlLiteral(email)}'
-      and event.event->>'event' = 'battle_abandoned'
+      and event.event ->> 'event' = 'battle_abandoned'
     order by event.created_at desc
     limit 1;
   `)
