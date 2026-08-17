@@ -1,0 +1,26 @@
+[
+  {
+    "sessionId": "pv1-internal-001",
+    "battleSessionId": "00000000-0000-4000-8000-000000000001",
+    "testerCohort": "internal",
+    "firstBattleOutcome": "completed",
+    "firstConfidentActionSeconds": 34,
+    "battleDurationSeconds": 428,
+    "obviousMisclickCount": 1,
+    "targetingConfusionCount": 0,
+    "outcomeUnderstood": "yes",
+    "replayDisposition": "chosen",
+    "tacticalDecisionRecalled": "yes",
+    "ratings": {
+      "pace": 4,
+      "clarity": 4,
+      "responsiveness": 5,
+      "audiovisualImpact": 3,
+      "replayDesire": 4
+    },
+    "qualitativeNotes": [
+      "Example only: tester described moving around rough ground before attacking.",
+      "Example only: tester wanted stronger hit feedback but chose another battle without prompting."
+    ]
+  }
+]

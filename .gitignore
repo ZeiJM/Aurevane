@@ -13,5 +13,6 @@ test-results/
 next-env.d.ts
 supabase/.temp/
 supabase/.branches/
+.local-validation/
 .DS_Store
 *.log
