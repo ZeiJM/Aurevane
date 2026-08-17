@@ -5,12 +5,12 @@ import type {
   CreateBattleSessionInput,
 } from '@aurevane/db/battle-session'
 import type { CharacterRecord, CharacterRepository } from '@aurevane/db/character'
-import {
-  P2_3_COMBAT_CONTENT,
-  endCombatTurn,
-  type CombatEncounterState,
-} from '@aurevane/game-core/combat/actions'
+import { P2_3_COMBAT_CONTENT, endCombatTurn } from '@aurevane/game-core/combat/actions'
 import { selectCurrentFinalFacing } from '@aurevane/game-core/combat/board'
+import {
+  reattachStatDrivenCombatBridge,
+  type StatDrivenCombatEncounterState,
+} from '@aurevane/game-core/combat/stat-driven-combat'
 import { AurevaneError, StaleBattleVersionError } from '@aurevane/game-core/errors'
 import { describe, expect, it, vi } from 'vitest'
 
@@ -24,7 +24,7 @@ const SESSION_ID = '33333333-3333-4333-8333-333333333333'
 const IDEMPOTENCY_KEY = '44444444-4444-4444-8444-444444444444'
 const CREATED_AT = '2026-08-17T01:00:00.000Z'
 
-function characterRecord(): CharacterRecord {
+function characterRecord(overrides: Partial<CharacterRecord> = {}): CharacterRecord {
   return {
     id: CHARACTER_ID,
     userId: USER_ID,
@@ -47,21 +47,22 @@ function characterRecord(): CharacterRecord {
     createdAt: CREATED_AT,
     cycleStartedAt: CREATED_AT,
     lastActiveAt: CREATED_AT,
+    ...overrides,
   }
 }
 
 function withFinalFacing(
-  state: CombatEncounterState,
+  state: StatDrivenCombatEncounterState,
   facing: 'north' | 'east' | 'south' | 'west' = 'east',
-): CombatEncounterState {
+): StatDrivenCombatEncounterState {
   return {
     ...state,
     tactical: selectCurrentFinalFacing(state.tactical, facing).state,
   }
 }
 
-function createCharacterRepository() {
-  const findByOwnerSlot = vi.fn(async () => characterRecord())
+function createCharacterRepository(character = characterRecord()) {
+  const findByOwnerSlot = vi.fn(async () => character)
   const repository: CharacterRepository = {
     findByOwnerSlot,
     createBaseCharacter: vi.fn(async () => {
@@ -101,8 +102,8 @@ function createBattleRepository() {
   return { repository, createBattleSession, findBattleSession, commitBattleIntent }
 }
 
-async function createPersistedFixture() {
-  const characters = createCharacterRepository()
+async function createPersistedFixture(character = characterRecord()) {
+  const characters = createCharacterRepository(character)
   const battles = createBattleRepository()
   const service = createBattleSessionService({
     characters: characters.repository,
@@ -110,13 +111,13 @@ async function createPersistedFixture() {
   })
   const created = await service.createSession({
     userId: USER_ID,
-    characterId: CHARACTER_ID,
+    characterId: character.id,
     idempotencyKey: IDEMPOTENCY_KEY,
   })
   const createInput = battles.createBattleSession.mock.calls[0]?.[0]
   if (!createInput) throw new Error('Expected battle create input.')
 
-  const persistedSnapshot = createInput.initialSnapshot as CombatEncounterState
+  const persistedSnapshot = createInput.initialSnapshot as StatDrivenCombatEncounterState
   const battle = persistedSnapshot.tactical.battle
   const record: BattleSessionRecord = {
     battleSessionId: SESSION_ID,
@@ -126,14 +127,14 @@ async function createPersistedFixture() {
     contentVersion: battle.contentVersion,
     lifecycle: battle.lifecycle,
     snapshot: persistedSnapshot,
-    controlledCombatantIds: [`character:${CHARACTER_ID}`],
+    controlledCombatantIds: [`character:${character.id}`],
     updatedAt: CREATED_AT,
   }
   return { characters, battles, service, created, persistedSnapshot, record }
 }
 
 describe('P2.4 battle session service', () => {
-  it('creates authority state server-side without exposing deterministic RNG internals', async () => {
+  it('creates authority state from persisted Phase 1 stats without exposing deterministic RNG', async () => {
     const characters = createCharacterRepository()
     const battles = createBattleRepository()
     const service = createBattleSessionService({
@@ -174,10 +175,49 @@ describe('P2.4 battle session service', () => {
     expect(input.battleId).toMatch(/^battle:/)
     expect(input.requestFingerprint).toMatch(/^sha256:[0-9a-f]{64}$/)
 
-    const persistedSnapshot = input.initialSnapshot as CombatEncounterState
+    const persistedSnapshot = input.initialSnapshot as StatDrivenCombatEncounterState
+    const player = persistedSnapshot.tactical.battle.combatants.find(
+      (combatant) => combatant.id === `character:${CHARACTER_ID}`,
+    )
+    const playerProfile = persistedSnapshot.statBridge.combatants.find(
+      (profile) => profile.combatantId === `character:${CHARACTER_ID}`,
+    )
+    const playerPlacement = persistedSnapshot.tactical.placements.find(
+      (placement) => placement.combatantId === `character:${CHARACTER_ID}`,
+    )
+    const playerMovementProfile = persistedSnapshot.tactical.movementProfiles.find(
+      (profile) => profile.id === playerPlacement?.movementProfileId,
+    )
+
     expect(persistedSnapshot.tactical.battle.rng.seed).toBeGreaterThan(0)
     expect(persistedSnapshot.tactical.battle.rng.seed).toBeLessThanOrEqual(0xffff_ffff)
     expect(persistedSnapshot.tactical.battle.lifecycle).toBe('active')
+    expect(player).toMatchObject({
+      initiative: 28,
+      baseMovementBudget: 4,
+      hp: 164,
+      maxHp: 164,
+      mp: 90,
+      maxMp: 90,
+    })
+    expect(playerProfile).toMatchObject({
+      provenance: {
+        kind: 'character-derived',
+        sourceId: `character:${CHARACTER_ID}`,
+        sourceRulesVersion: 1,
+      },
+      accuracy: 7_400,
+      evasion: 900,
+      armor: 23,
+      ward: 23,
+      jump: 1,
+    })
+    expect(playerMovementProfile?.maxElevationStep).toBe(1)
+    expect(
+      persistedSnapshot.tactical.tiles.find(
+        (tile) => tile.position.x === 2 && tile.position.y === 0,
+      )?.elevation,
+    ).toBe(1)
     expect(persistedSnapshot.tactical.placements).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -195,7 +235,39 @@ describe('P2.4 battle session service', () => {
       battleVersion: 1,
       replayed: false,
     })
+    expect(result.snapshot.statBridge.rulesVersion).toBe(1)
     expect(result.snapshot.tactical.battle).not.toHaveProperty('rng')
+  })
+
+  it('changes authoritative combat and reliability values for a different legal character build', async () => {
+    const character = characterRecord({ might: 5, finesse: 9, intellect: 5, resolve: 5 })
+    const { battles } = await createPersistedFixture(character)
+    const input = battles.createBattleSession.mock.calls[0]?.[0]
+    if (!input) throw new Error('Expected battle create input.')
+
+    const state = input.initialSnapshot as StatDrivenCombatEncounterState
+    const player = state.tactical.battle.combatants.find(
+      (combatant) => combatant.id === `character:${CHARACTER_ID}`,
+    )
+    const profile = state.statBridge.combatants.find(
+      (candidate) => candidate.combatantId === `character:${CHARACTER_ID}`,
+    )
+
+    expect(player).toMatchObject({
+      initiative: 33,
+      baseMovementBudget: 4,
+      hp: 150,
+      maxHp: 150,
+      mp: 80,
+      maxMp: 80,
+    })
+    expect(profile).toMatchObject({
+      accuracy: 7_750,
+      evasion: 1_120,
+      armor: 20,
+      ward: 20,
+      jump: 1,
+    })
   })
 
   it('resolves a legal move on the server before persisting the next snapshot', async () => {
@@ -223,7 +295,9 @@ describe('P2.4 battle session service', () => {
     expect(commit.expectedBattleVersion).toBe(1)
     expect(commit.events.length).toBeGreaterThan(0)
     expect(commit.nextSnapshot).not.toBe(record.snapshot)
-    expect((commit.nextSnapshot as CombatEncounterState).tactical.battle).toHaveProperty('rng')
+    expect((commit.nextSnapshot as StatDrivenCombatEncounterState).tactical.battle).toHaveProperty(
+      'rng',
+    )
     expect(result.battleVersion).toBe(2)
     expect(result.snapshot.tactical.battle).not.toHaveProperty('rng')
     expect(
@@ -233,13 +307,75 @@ describe('P2.4 battle session service', () => {
     ).toEqual({ x: 1, y: 1 })
   })
 
+  it('uses authoritative stat reliability and RNG when resolving a basic attack', async () => {
+    const { battles, service, record } = await createPersistedFixture()
+    battles.findBattleSession.mockResolvedValue(record)
+
+    await service.submitIntent({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 1,
+      idempotencyKey: '51515151-5151-4515-8515-515151515151',
+      intent: {
+        kind: 'move',
+        path: [
+          { x: 0, y: 1 },
+          { x: 1, y: 1 },
+          { x: 2, y: 1 },
+          { x: 3, y: 1 },
+        ],
+      },
+    })
+
+    const moveCommit = battles.commitBattleIntent.mock.calls[0]?.[0]
+    if (!moveCommit) throw new Error('Expected move commit input.')
+    battles.findBattleSession.mockResolvedValue({
+      ...record,
+      battleVersion: 2,
+      snapshot: moveCommit.nextSnapshot,
+    })
+
+    const result = await service.submitIntent({
+      userId: USER_ID,
+      battleSessionId: SESSION_ID,
+      expectedBattleVersion: 2,
+      idempotencyKey: '52525252-5252-4525-8525-525252525252',
+      intent: {
+        kind: 'action',
+        actionId: 'basic.attack.unarmed.basic',
+        target: { kind: 'unit', combatantId: 'recruit:p2-4-1' },
+      },
+    })
+
+    const actionCommit = battles.commitBattleIntent.mock.calls[1]?.[0]
+    if (!actionCommit) throw new Error('Expected action commit input.')
+    const nextState = actionCommit.nextSnapshot as StatDrivenCombatEncounterState
+
+    expect(nextState.tactical.battle.rng.draws).toBe(1)
+    expect(actionCommit.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event: 'stat_driven_attack_resolved',
+          actorId: `character:${CHARACTER_ID}`,
+          targetId: 'recruit:p2-4-1',
+          hitChanceBasisPoints: 6_600,
+          defenseKind: 'armor',
+          defenseRating: 20,
+          rulesVersion: 1,
+        }),
+      ]),
+    )
+    expect(result.battleVersion).toBe(3)
+    expect(result.snapshot.tactical.battle).not.toHaveProperty('rng')
+  })
+
   it('uses persisted control mapping instead of team membership for turn ownership', async () => {
     const { battles, service, persistedSnapshot, record } = await createPersistedFixture()
-    const opponentTurn = endCombatTurn(
-      withFinalFacing(persistedSnapshot),
-      P2_3_COMBAT_CONTENT,
-    ).state
-    const teamSpoofedOpponentTurn: CombatEncounterState = {
+    const opponentTurn = reattachStatDrivenCombatBridge(
+      endCombatTurn(withFinalFacing(persistedSnapshot), P2_3_COMBAT_CONTENT).state,
+      persistedSnapshot.statBridge,
+    )
+    const teamSpoofedOpponentTurn: StatDrivenCombatEncounterState = {
       ...opponentTurn,
       tactical: {
         ...opponentTurn.tactical,
@@ -277,6 +413,26 @@ describe('P2.4 battle session service', () => {
     })
   })
 
+  it('fails closed when the persisted stat bridge loses a combatant profile', async () => {
+    const { battles, service, record, persistedSnapshot } = await createPersistedFixture()
+    battles.findBattleSession.mockResolvedValue({
+      ...record,
+      snapshot: {
+        ...persistedSnapshot,
+        statBridge: {
+          ...persistedSnapshot.statBridge,
+          combatants: persistedSnapshot.statBridge.combatants.filter(
+            (profile) => profile.combatantId !== 'recruit:p2-4-1',
+          ),
+        },
+      },
+    })
+
+    await expect(service.getSession(USER_ID, SESSION_ID)).rejects.toMatchObject({
+      code: 'PERSISTENCE_UNAVAILABLE',
+    })
+  })
+
   it('rejects an illegal client-proposed move before persistence', async () => {
     const { battles, service, record } = await createPersistedFixture()
     battles.findBattleSession.mockResolvedValue(record)
@@ -301,10 +457,10 @@ describe('P2.4 battle session service', () => {
 
   it('replays an old player-intent retry even after the battle advances to an opponent turn', async () => {
     const { battles, service, record, persistedSnapshot } = await createPersistedFixture()
-    const opponentTurn = endCombatTurn(
-      withFinalFacing(persistedSnapshot),
-      P2_3_COMBAT_CONTENT,
-    ).state
+    const opponentTurn = reattachStatDrivenCombatBridge(
+      endCombatTurn(withFinalFacing(persistedSnapshot), P2_3_COMBAT_CONTENT).state,
+      persistedSnapshot.statBridge,
+    )
     battles.findBattleSession.mockResolvedValue({
       ...record,
       battleVersion: 2,
