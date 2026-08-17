@@ -35,13 +35,15 @@ function profile(
   }
 }
 
-function encounter(input: {
-  width?: number
-  recruitPosition?: { x: number; y: number }
-  playerPosition?: { x: number; y: number }
-  recruitHp?: number
-  movement?: number
-} = {}): StatDrivenCombatEncounterState {
+function encounter(
+  input: {
+    width?: number
+    recruitPosition?: { x: number; y: number }
+    playerPosition?: { x: number; y: number }
+    recruitHp?: number
+    movement?: number
+  } = {},
+): StatDrivenCombatEncounterState {
   const width = input.width ?? 5
   const recruitPosition = input.recruitPosition ?? { x: 0, y: 0 }
   const playerPosition = input.playerPosition ?? { x: width - 1, y: 0 }
@@ -158,7 +160,11 @@ describe('P2.6 Recruit AI', () => {
   })
 
   it('chooses a legal basic attack when the player is in range', () => {
-    const state = encounter({ width: 2, recruitPosition: { x: 1, y: 0 }, playerPosition: { x: 0, y: 0 } })
+    const state = encounter({
+      width: 2,
+      recruitPosition: { x: 1, y: 0 },
+      playerPosition: { x: 0, y: 0 },
+    })
     const decision = chooseRecruitAiDecision({ state, tieBreakSeed: 7 })
 
     expect(decision).toMatchObject({
@@ -185,13 +191,21 @@ describe('P2.6 Recruit AI', () => {
       ...RECRUIT_WEAK_PROFILE,
       maxCandidates: 1,
     }
-    const decision = chooseRecruitAiDecision({ state: encounter({ width: 2 }), profile: bounded, tieBreakSeed: 1 })
+    const decision = chooseRecruitAiDecision({
+      state: encounter({ width: 2 }),
+      profile: bounded,
+      tieBreakSeed: 1,
+    })
 
     expect(decision.candidateCount).toBe(1)
   })
 
   it('falls back to facing the nearest threat before ending a turn', () => {
-    const state = encounter({ width: 2, recruitPosition: { x: 1, y: 0 }, playerPosition: { x: 0, y: 0 } })
+    const state = encounter({
+      width: 2,
+      recruitPosition: { x: 1, y: 0 },
+      playerPosition: { x: 0, y: 0 },
+    })
     const actionSpent = {
       ...state,
       tactical: {
@@ -209,11 +223,18 @@ describe('P2.6 Recruit AI', () => {
     }
 
     const decision = chooseRecruitAiDecision({ state: actionSpent, tieBreakSeed: 9 })
-    expect(decision).toMatchObject({ reason: 'face-threat', intent: { kind: 'face', facing: 'west' } })
+    expect(decision).toMatchObject({
+      reason: 'face-threat',
+      intent: { kind: 'face', facing: 'west' },
+    })
   })
 
   it('ends the turn once the safe final facing is already selected', () => {
-    const base = encounter({ width: 2, recruitPosition: { x: 1, y: 0 }, playerPosition: { x: 0, y: 0 } })
+    const base = encounter({
+      width: 2,
+      recruitPosition: { x: 1, y: 0 },
+      playerPosition: { x: 0, y: 0 },
+    })
     const faced = withFinalFacing(base, 'west')
     const spent = {
       ...faced,

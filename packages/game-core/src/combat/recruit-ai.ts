@@ -15,10 +15,7 @@ import {
   type GridPosition,
   type TacticalBattleState,
 } from './board'
-import {
-  forecastStatDrivenAttack,
-  type StatDrivenCombatEncounterState,
-} from './stat-driven-combat'
+import { forecastStatDrivenAttack, type StatDrivenCombatEncounterState } from './stat-driven-combat'
 
 export const RECRUIT_AI_RULES_VERSION = 1 as const
 export const RECRUIT_AI_PROFILE_VERSION = 1 as const
@@ -34,11 +31,7 @@ export type RecruitAiIntent =
   | { kind: 'end-turn' }
 
 export type RecruitAiReasonTag =
-  | 'legal-damage'
-  | 'close-distance'
-  | 'guard-survival'
-  | 'face-threat'
-  | 'safe-end-turn'
+  'legal-damage' | 'close-distance' | 'guard-survival' | 'face-threat' | 'safe-end-turn'
 
 export interface RecruitAiProfile {
   id: 'recruit-weak-v1'
@@ -100,7 +93,9 @@ export const RECRUIT_WEAK_PROFILE: RecruitAiProfile = {
   endTurnUtility: 0,
 }
 
-export function createRecruitAiKnowledge(state: StatDrivenCombatEncounterState): RecruitAiKnowledge {
+export function createRecruitAiKnowledge(
+  state: StatDrivenCombatEncounterState,
+): RecruitAiKnowledge {
   const battle = state.tactical.battle
   const turn = battle.currentTurn
   if (battle.lifecycle !== 'active' || turn === null) {
@@ -180,11 +175,14 @@ function buildCandidates(
   profile: RecruitAiProfile,
 ): Candidate[] {
   const candidates: Candidate[] = []
-  const actor = knowledge.combatants.find((combatant) => combatant.id === knowledge.activeCombatantId)
+  const actor = knowledge.combatants.find(
+    (combatant) => combatant.id === knowledge.activeCombatantId,
+  )
   const actorPlacement = knowledge.placements.find(
     (placement) => placement.combatantId === knowledge.activeCombatantId,
   )
-  if (!actor || !actorPlacement) throw new Error('Recruit AI active combatant is missing committed state.')
+  if (!actor || !actorPlacement)
+    throw new Error('Recruit AI active combatant is missing committed state.')
 
   const enemies = knowledge.combatants
     .filter((combatant) => combatant.teamId !== actor.teamId && combatant.hp > 0)
@@ -213,12 +211,20 @@ function buildCandidates(
   }
 
   if (knowledge.movementRemaining > 0 && enemies.length > 0) {
-    const nearestBefore = nearestEnemyDistance(knowledge, actorPlacement.position, enemies.map((enemy) => enemy.id))
+    const nearestBefore = nearestEnemyDistance(
+      knowledge,
+      actorPlacement.position,
+      enemies.map((enemy) => enemy.id),
+    )
     for (const destination of orthogonalNeighbors(actorPlacement.position)) {
       const path = [actorPlacement.position, destination]
       const movement = evaluateCurrentMovementPath(state.tactical, path)
       if (!movement.legal || movement.cost <= 0) continue
-      const nearestAfter = nearestEnemyDistance(knowledge, destination, enemies.map((enemy) => enemy.id))
+      const nearestAfter = nearestEnemyDistance(
+        knowledge,
+        destination,
+        enemies.map((enemy) => enemy.id),
+      )
       const improvement = nearestBefore - nearestAfter
       if (improvement <= 0) continue
       pushCandidate(candidates, profile, {
@@ -230,7 +236,11 @@ function buildCandidates(
     }
   }
 
-  const nearestEnemy = nearestEnemyPlacement(knowledge, actorPlacement.position, enemies.map((enemy) => enemy.id))
+  const nearestEnemy = nearestEnemyPlacement(
+    knowledge,
+    actorPlacement.position,
+    enemies.map((enemy) => enemy.id),
+  )
   if (nearestEnemy) {
     const preferredFacing = facingToward(actorPlacement.position, nearestEnemy.position)
     for (const facing of FACINGS) {
@@ -345,7 +355,8 @@ function deterministicTieBreak(seed: number, stableKey: string): number {
 }
 
 function copyIntent(intent: RecruitAiIntent): RecruitAiIntent {
-  if (intent.kind === 'move') return { kind: 'move', path: intent.path.map((position) => ({ ...position })) }
+  if (intent.kind === 'move')
+    return { kind: 'move', path: intent.path.map((position) => ({ ...position })) }
   if (intent.kind === 'action') return { ...intent, target: copyTarget(intent.target) }
   return { ...intent }
 }
@@ -359,7 +370,11 @@ function assertRecruitAiProfile(profile: RecruitAiProfile): void {
   if (profile.id !== 'recruit-weak-v1' || profile.version !== RECRUIT_AI_PROFILE_VERSION) {
     throw new Error('Unsupported Recruit AI profile.')
   }
-  if (!Number.isSafeInteger(profile.maxCandidates) || profile.maxCandidates < 1 || profile.maxCandidates > 256) {
+  if (
+    !Number.isSafeInteger(profile.maxCandidates) ||
+    profile.maxCandidates < 1 ||
+    profile.maxCandidates > 256
+  ) {
     throw new RangeError('Recruit AI maxCandidates must be a safe integer between 1 and 256.')
   }
   for (const [field, value] of Object.entries({
@@ -369,7 +384,8 @@ function assertRecruitAiProfile(profile: RecruitAiProfile): void {
     facingUtility: profile.facingUtility,
     endTurnUtility: profile.endTurnUtility,
   })) {
-    if (!Number.isSafeInteger(value)) throw new RangeError(`Recruit AI ${field} must be a safe integer.`)
+    if (!Number.isSafeInteger(value))
+      throw new RangeError(`Recruit AI ${field} must be a safe integer.`)
   }
 }
 
@@ -381,7 +397,10 @@ export function recruitAiKnowledgeFromTacticalStateForTest(
   tactical: TacticalBattleState,
 ): Pick<RecruitAiKnowledge, 'placements' | 'tiles'> {
   return {
-    placements: tactical.placements.map((placement) => ({ ...placement, position: { ...placement.position } })),
+    placements: tactical.placements.map((placement) => ({
+      ...placement,
+      position: { ...placement.position },
+    })),
     tiles: tactical.tiles.map((tile) => ({ ...tile, position: { ...tile.position } })),
   }
 }

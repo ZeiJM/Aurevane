@@ -222,7 +222,11 @@ export function createBattleRecruitAiService(
       for (let step = 0; step < MAX_RECRUIT_DECISIONS_PER_REQUEST; step += 1) {
         const battle = state.tactical.battle
         const turn = battle.currentTurn
-        if (battle.lifecycle !== 'active' || turn === null || controlledIds.includes(turn.combatantId)) {
+        if (
+          battle.lifecycle !== 'active' ||
+          turn === null ||
+          controlledIds.includes(turn.combatantId)
+        ) {
           return {
             battleSessionId: initial.battleSessionId,
             battleVersion,
