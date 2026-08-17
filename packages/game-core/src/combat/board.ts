@@ -66,7 +66,6 @@ export interface CreateTacticalBattleStateInput {
 
 export type MovementPathIssueCode =
   | 'path-too-short'
-  | 'not-current-actor'
   | 'start-mismatch'
   | 'out-of-bounds'
   | 'non-adjacent-step'
@@ -280,6 +279,9 @@ export function moveCurrentCombatant(
   const preview = evaluateCurrentMovementPath(state, path)
   if (!preview.legal) {
     const issue = preview.issues[0]
+    if (!issue) {
+      throw new Error('Illegal movement path without a validation reason.')
+    }
     throw new Error(`Illegal movement path: ${issue.code}: ${issue.message}`)
   }
 
@@ -409,6 +411,7 @@ export function validateTacticalBattleState(
   collectTileIssues(issues, state, area)
   collectMovementProfileIssues(issues, state)
   collectPlacementIssues(issues, state)
+  collectTurnFacingConsistencyIssue(issues, state)
 
   return issues
 }
@@ -438,10 +441,13 @@ function collectTerrainIssues(issues: TacticalBoardIssue[], state: TacticalBattl
     ids.add(terrain.id)
   }
 
-  const expected = [...state.terrains]
-    .map((terrain) => terrain.id)
-    .sort(compareStableString)
-  if (!arraysEqual(state.terrains.map((terrain) => terrain.id), expected)) {
+  const expected = [...state.terrains].map((terrain) => terrain.id).sort(compareStableString)
+  if (
+    !arraysEqual(
+      state.terrains.map((terrain) => terrain.id),
+      expected,
+    )
+  ) {
     issues.push({ field: 'terrains', message: 'Terrain definitions must use stable ID ordering.' })
   }
 }
@@ -488,7 +494,10 @@ function collectMovementProfileIssues(
   state: TacticalBattleState,
 ): void {
   if (state.movementProfiles.length === 0) {
-    issues.push({ field: 'movementProfiles', message: 'At least one movement profile is required.' })
+    issues.push({
+      field: 'movementProfiles',
+      message: 'At least one movement profile is required.',
+    })
   }
 
   const ids = new Set<string>()
@@ -510,11 +519,7 @@ function collectMovementProfileIssues(
           message: 'Movement profile override references unknown terrain.',
         })
       }
-      collectTraversalCostIssue(
-        issues,
-        override.traversalCost,
-        `${overridePrefix}.traversalCost`,
-      )
+      collectTraversalCostIssue(issues, override.traversalCost, `${overridePrefix}.traversalCost`)
       if (terrainIds.has(override.terrainId)) {
         issues.push({
           field: `${overridePrefix}.terrainId`,
@@ -527,7 +532,12 @@ function collectMovementProfileIssues(
     const expectedOverrides = [...profile.terrainCostOverrides]
       .map((override) => override.terrainId)
       .sort(compareStableString)
-    if (!arraysEqual(profile.terrainCostOverrides.map((item) => item.terrainId), expectedOverrides)) {
+    if (
+      !arraysEqual(
+        profile.terrainCostOverrides.map((item) => item.terrainId),
+        expectedOverrides,
+      )
+    ) {
       issues.push({
         field: `${prefix}.terrainCostOverrides`,
         message: 'Terrain overrides must use stable terrain ID ordering.',
@@ -538,7 +548,12 @@ function collectMovementProfileIssues(
   const expected = [...state.movementProfiles]
     .map((profile) => profile.id)
     .sort(compareStableString)
-  if (!arraysEqual(state.movementProfiles.map((profile) => profile.id), expected)) {
+  if (
+    !arraysEqual(
+      state.movementProfiles.map((profile) => profile.id),
+      expected,
+    )
+  ) {
     issues.push({
       field: 'movementProfiles',
       message: 'Movement profiles must use stable ID ordering.',
@@ -594,7 +609,9 @@ function collectPlacementIssues(issues: TacticalBoardIssue[], state: TacticalBat
     }
     positionKeys.add(key)
 
-    const tile = state.tiles.find((candidate) => positionsEqual(candidate.position, placement.position))
+    const tile = state.tiles.find((candidate) =>
+      positionsEqual(candidate.position, placement.position),
+    )
     const profile = state.movementProfiles.find(
       (candidate) => candidate.id === placement.movementProfileId,
     )
@@ -609,8 +626,34 @@ function collectPlacementIssues(issues: TacticalBoardIssue[], state: TacticalBat
   const expected = [...state.placements]
     .map((placement) => placement.combatantId)
     .sort(compareStableString)
-  if (!arraysEqual(state.placements.map((placement) => placement.combatantId), expected)) {
-    issues.push({ field: 'placements', message: 'Placements must use stable combatant ID ordering.' })
+  if (
+    !arraysEqual(
+      state.placements.map((placement) => placement.combatantId),
+      expected,
+    )
+  ) {
+    issues.push({
+      field: 'placements',
+      message: 'Placements must use stable combatant ID ordering.',
+    })
+  }
+}
+
+function collectTurnFacingConsistencyIssue(
+  issues: TacticalBoardIssue[],
+  state: TacticalBattleState,
+): void {
+  const turn = state.battle.currentTurn
+  if (state.battle.lifecycle !== 'active' || turn?.finalFacing === null || !turn) {
+    return
+  }
+
+  const placement = state.placements.find((candidate) => candidate.combatantId === turn.combatantId)
+  if (placement && placement.facing !== turn.finalFacing) {
+    issues.push({
+      field: 'battle.currentTurn.finalFacing',
+      message: 'Selected final facing must match the current tactical placement facing.',
+    })
   }
 }
 
@@ -656,12 +699,11 @@ function getTile(state: TacticalBattleState, position: GridPosition): CombatTile
   return tile
 }
 
-function getOccupyingCombatant(
-  state: TacticalBattleState,
-  position: GridPosition,
-): string | null {
-  return state.placements.find((placement) => positionsEqual(placement.position, position))
-    ?.combatantId ?? null
+function getOccupyingCombatant(state: TacticalBattleState, position: GridPosition): string | null {
+  return (
+    state.placements.find((placement) => positionsEqual(placement.position, position))
+      ?.combatantId ?? null
+  )
 }
 
 function isWithinBoard(state: TacticalBattleState, position: GridPosition): boolean {
