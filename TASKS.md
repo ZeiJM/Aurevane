@@ -59,7 +59,7 @@ P1.6 merged through commit `e73243d9b317ac2c739a2b9ceb8a17d7d1e28678`.
 The reconciliation gate must explicitly inspect, not blindly merge:
 
 - draft PR #61 — P2.1 malformed-lifecycle hardening;
-- draft PR #33 — future account/character lifecycle planning created before later Phase 1 work settled;
+- the **closed/unmerged** PR #33 design history for any still-valid account-recovery/roster/lifecycle direction that should become future focused tickets; do not resurrect the stale draft wholesale;
 - P2.3/P2.4 stacked dependency state;
 - P1.7 public News/Manual/Rules sequencing;
 - all later-approved combat/build rules that could reasonably have implied an earlier foundation requirement;
