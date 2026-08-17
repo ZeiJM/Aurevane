@@ -12,6 +12,7 @@
   color: var(--av-text);
   background: rgba(8, 11, 16, 0.96);
   box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.38);
+  pointer-events: none;
 }
 
 .panel p {
@@ -39,6 +40,7 @@
   font: 650 0.65rem/1 var(--av-font-mono);
   letter-spacing: 0.025em;
   cursor: pointer;
+  pointer-events: auto;
 }
 
 .danger {
