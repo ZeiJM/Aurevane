@@ -1,0 +1,244 @@
+name: P2.6 cockpit integration
+
+on:
+  push:
+    branches:
+      - agent/p2-6-recruit-ai-tactical-hall
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/p2-6-recruit-ai-tactical-hall
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+      - name: Wire authoritative Recruit turn into cockpit and browser journey
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          battle_path = Path('apps/web/src/components/battle/battle-experience.tsx')
+          text = battle_path.read_text()
+
+          if "const [recruitPending, setRecruitPending]" not in text:
+              old = "import type { BattlePreviewView } from '@/server/battle/battle-preview-service'\n"
+              new = old + "import type { RecruitTurnView } from '@/server/battle/battle-recruit-ai-service'\n"
+              if old not in text:
+                  raise SystemExit('Battle preview import anchor not found')
+              text = text.replace(old, new, 1)
+
+              old = "  const [commitPending, setCommitPending] = useState(false)\n  const [notice, setNotice]"
+              new = "  const [commitPending, setCommitPending] = useState(false)\n  const [recruitPending, setRecruitPending] = useState(false)\n  const [notice, setNotice]"
+              if old not in text:
+                  raise SystemExit('Commit pending state anchor not found')
+              text = text.replace(old, new, 1)
+
+              old = "  const previewSequence = useRef(0)\n"
+              new = old + "  const recruitAttemptedVersion = useRef<number | null>(null)\n"
+              if old not in text:
+                  raise SystemExit('Preview sequence anchor not found')
+              text = text.replace(old, new, 1)
+
+              callback = r'''  const runRecruitTurn = useCallback(async () => {
+    if (recruitPending || playerTurn || battleState.lifecycle !== 'active' || !currentTurn) return
+    if (recruitAttemptedVersion.current === battle.battleVersion) return
+
+    recruitAttemptedVersion.current = battle.battleVersion
+    setRecruitPending(true)
+    resetPlanning()
+    setNotice('Recruit is choosing from committed battle state…')
+
+    try {
+      const response = await fetch(`/api/battles/${battle.battleSessionId}/recruit-turn`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ expectedBattleVersion: battle.battleVersion }),
+      })
+      const body = (await response.json()) as { battle?: RecruitTurnView } & ApiErrorBody
+      if (!response.ok || !body.battle) {
+        await handleApiFailure(response, body, 'The Recruit turn could not be resolved.')
+        return
+      }
+
+      const nextBattle: BattleSessionView = {
+        battleSessionId: body.battle.battleSessionId,
+        battleVersion: body.battle.battleVersion,
+        snapshot: body.battle.snapshot,
+        replayed: false,
+        invalidation: body.battle.invalidation,
+      }
+      setBattle(nextBattle)
+      setSelectedUnitId(nextBattle.snapshot.tactical.battle.currentTurn?.combatantId ?? null)
+      resetPlanning()
+      const decisionSummary = body.battle.decisions
+        .map((decision) => `${decision.reason} (${decision.utility})`)
+        .join(' → ')
+      setNotice(
+        decisionSummary.length > 0
+          ? `Recruit turn resolved server-side: ${decisionSummary}.`
+          : 'Recruit turn resolved server-side.',
+      )
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'The Recruit turn could not be resolved.')
+    } finally {
+      setRecruitPending(false)
+    }
+  }, [
+    battle.battleSessionId,
+    battle.battleVersion,
+    battleState.lifecycle,
+    currentTurn,
+    handleApiFailure,
+    playerTurn,
+    recruitPending,
+    resetPlanning,
+  ])
+
+'''
+              anchor = "  const requestPreview = useCallback(\n"
+              if anchor not in text:
+                  raise SystemExit('Request preview anchor not found')
+              text = text.replace(anchor, callback + anchor, 1)
+
+              effect = r'''  useEffect(() => {
+    if (
+      !playerTurn &&
+      currentTurn &&
+      battleState.lifecycle === 'active' &&
+      !recruitPending &&
+      recruitAttemptedVersion.current !== battle.battleVersion
+    ) {
+      void runRecruitTurn()
+    }
+  }, [
+    battle.battleVersion,
+    battleState.lifecycle,
+    currentTurn,
+    playerTurn,
+    recruitPending,
+    runRecruitTurn,
+  ])
+
+'''
+              anchor = "  useEffect(() => {\n    function handleReconnect() {\n"
+              if anchor not in text:
+                  raise SystemExit('Reconnect effect anchor not found')
+              text = text.replace(anchor, effect + anchor, 1)
+
+              old = "  useEffect(() => {\n    function handleReconnect() {\n      void refreshBattle('Connection restored. Authoritative battle state reloaded.').catch(\n"
+              new = "  useEffect(() => {\n    function handleReconnect() {\n      recruitAttemptedVersion.current = null\n      void refreshBattle('Connection restored. Authoritative battle state reloaded.').catch(\n"
+              if old not in text:
+                  raise SystemExit('Reconnect handler body anchor not found')
+              text = text.replace(old, new, 1)
+
+              old = "  const planningDisabled = !playerTurn || battleState.lifecycle !== 'active' || commitPending\n"
+              new = "  const planningDisabled =\n    !playerTurn || battleState.lifecycle !== 'active' || commitPending || recruitPending\n"
+              if old not in text:
+                  raise SystemExit('Planning disabled anchor not found')
+              text = text.replace(old, new, 1)
+
+              old = "      <section className={styles.turnEconomy} aria-label=\"Turn Economy Tracker\">\n"
+              new = "      <section\n        className={styles.turnEconomy}\n        aria-label=\"Turn Economy Tracker\"\n        aria-busy={recruitPending}\n      >\n"
+              if old not in text:
+                  raise SystemExit('Turn economy section anchor not found')
+              text = text.replace(old, new, 1)
+
+              old = "          <strong>{playerTurn ? 'Your turn' : 'Opponent turn'}</strong>\n"
+              new = "          <strong>\n            {playerTurn ? 'Your turn' : recruitPending ? 'Recruit thinking' : 'Opponent turn'}\n          </strong>\n"
+              if old not in text:
+                  raise SystemExit('Turn label anchor not found')
+              text = text.replace(old, new, 1)
+
+              old = "            disabled={commitPending}\n          >\n            Cancel <kbd>Esc</kbd>\n"
+              new = "            disabled={commitPending || recruitPending}\n          >\n            Cancel <kbd>Esc</kbd>\n"
+              if old not in text:
+                  raise SystemExit('Cancel disabled anchor not found')
+              text = text.replace(old, new, 1)
+
+              old = "            disabled={!pendingIntent || !previewLegal || previewPending || commitPending}\n"
+              new = "            disabled={\n              !pendingIntent || !previewLegal || previewPending || commitPending || recruitPending\n            }\n"
+              if old not in text:
+                  raise SystemExit('Confirm disabled anchor not found')
+              text = text.replace(old, new, 1)
+
+              old = "        <button type=\"button\" onClick={() => void refreshBattle()} disabled={commitPending}>\n"
+              new = "        <button\n          type=\"button\"\n          onClick={() => {\n            recruitAttemptedVersion.current = null\n            void refreshBattle()\n          }}\n          disabled={commitPending || recruitPending}\n        >\n"
+              if old not in text:
+                  raise SystemExit('Refetch button anchor not found')
+              text = text.replace(old, new, 1)
+
+              battle_path.write_text(text)
+
+          e2e_path = Path('apps/web/e2e/battle-experience.pw.ts')
+          e2e = e2e_path.read_text()
+          e2e = e2e.replace("test('launches the Tactical Hall and completes one authoritative player turn'", "test('launches the Tactical Hall and resolves an authoritative player and Recruit round'")
+          e2e = e2e.replace("const email = `p25-${projectSlug}-${Date.now()}@example.com`", "const email = `p26-${projectSlug}-${Date.now()}@example.com`")
+          e2e = e2e.replace("const password = 'P25-browser-battle-2026!'", "const password = 'P26-browser-battle-2026!'")
+
+          old_tail = r'''  await page.getByRole('button', { name: /End Turn.*Facing required/ }).click()
+  await expect(page.getByText('Preview ready. Confirm to commit this command.')).toBeVisible()
+  await page.getByRole('button', { name: /Confirm command/ }).click()
+  await expect(page.getByText(/Authoritative battle version 7/)).toBeVisible()
+  await expect(page.getByText('Opponent turn', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Move.*Build a path/ })).toBeDisabled()
+  await expect(page.getByRole('button', { name: /End Turn.*Facing required/ })).toBeDisabled()
+
+  expect(await hasHorizontalOverflow(page)).toBe(false)
+  await expectBattlefieldAndCommandDeckInViewport(page)
+})
+'''
+          new_tail = r'''  await page.getByRole('button', { name: /End Turn.*Facing required/ }).click()
+  await expect(page.getByText('Preview ready. Confirm to commit this command.')).toBeVisible()
+  await page.getByRole('button', { name: /Confirm command/ }).click()
+
+  await expect(page.getByText(/Recruit turn resolved server-side:/)).toBeVisible({ timeout: 15_000 })
+  await expect(page.getByText('Your turn', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: /Move.*Build a path/ })).toBeEnabled()
+  await expect(page.getByRole('button', { name: /End Turn.*Facing required/ })).toBeEnabled()
+
+  await page.getByTestId('battle-log-toggle').click()
+  await expect(battleLog).toContainText('Recruit chose')
+  await expect(battleLog).toContainText('Recruit ended the turn.')
+  await expect(battleLog).not.toContainText('candidateCount')
+  await expect(battleLog).not.toContainText('tieBreakSeed')
+  await expect(battleLog).not.toContainText('profileId')
+  await page.getByTestId('battle-log-toggle').click()
+
+  expect(await hasHorizontalOverflow(page)).toBe(false)
+  await expectBattlefieldAndCommandDeckInViewport(page)
+})
+'''
+          if old_tail in e2e:
+              e2e = e2e.replace(old_tail, new_tail, 1)
+          elif 'Recruit turn resolved server-side:' not in e2e:
+              raise SystemExit('P2.5 e2e tail anchor not found')
+          e2e_path.write_text(e2e)
+          PY
+
+          pnpm exec prettier --write \
+            apps/web/src/components/battle/battle-experience.tsx \
+            apps/web/e2e/battle-experience.pw.ts
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            apps/web/src/components/battle/battle-experience.tsx \
+            apps/web/e2e/battle-experience.pw.ts
+          if git diff --cached --quiet; then
+            echo "P2.6 cockpit integration already applied."
+            exit 0
+          fi
+          git commit -m "P2.6 auto-resolve authoritative Recruit turns in cockpit"
+          git push origin HEAD:agent/p2-6-recruit-ai-tactical-hall
