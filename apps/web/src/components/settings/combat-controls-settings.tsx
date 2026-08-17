@@ -133,9 +133,10 @@ export function CombatControlsSettings({ initialBindings }: CombatControlsSettin
   return (
     <section className={styles.panel} aria-label="Combat controls settings">
       <p className={styles.intro}>
-        These bindings follow your account. They only choose the same visible combat controls you can
-        click; they never bypass preview, confirmation, legality, version checks, or server authority.
-        Arrow keys remain an alternate navigation/facing aid where the battle UI supports them.
+        These bindings follow your account. They only choose the same visible combat controls you
+        can click; they never bypass preview, confirmation, legality, version checks, or server
+        authority. Arrow keys remain an alternate navigation/facing aid where the battle UI supports
+        them.
       </p>
 
       <div className={styles.grid}>
