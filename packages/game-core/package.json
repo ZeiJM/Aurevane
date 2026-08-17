@@ -14,6 +14,7 @@
     "./character/starter-options": "./src/character/starter-options.ts",
     "./character/wayfarers-practice": "./src/character/wayfarers-practice.ts",
     "./combat/battle-state": "./src/combat/battle-state.ts",
+    "./combat/board": "./src/combat/board.ts",
     "./command": "./src/command.ts",
     "./errors": "./src/errors.ts",
     "./player-profile": "./src/player-profile.ts"
