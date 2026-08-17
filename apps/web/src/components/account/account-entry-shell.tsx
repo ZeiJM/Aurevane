@@ -1,7 +1,9 @@
 import { Kicker, Surface } from '@aurevane/ui'
+import Link from 'next/link'
 
 import { AudioSettingsMenu } from '@/components/audio/audio-settings-menu'
 import { AurevaneImage } from '@/components/media/aurevane-image'
+import publicStyles from '@/components/public-information/public-information-shell.module.css'
 import type { BrowserSupabaseConfig } from '@/lib/supabase/client'
 
 import { AccountAccessPanel } from './account-access-panel'
@@ -29,7 +31,20 @@ export function AccountEntryShell({ authConfig }: AccountEntryShellProps) {
           </span>
         </a>
         <span className={styles.environmentMark}>Account gateway</span>
-        <AudioSettingsMenu />
+        <div className={publicStyles.accountHeaderActions}>
+          <nav className={publicStyles.mastheadNav} aria-label="Public information">
+            <Link className={publicStyles.navLink} href="/news">
+              News
+            </Link>
+            <Link className={publicStyles.navLink} href="/manual">
+              Manual
+            </Link>
+            <Link className={publicStyles.navLink} href="/rules">
+              Rules
+            </Link>
+          </nav>
+          <AudioSettingsMenu />
+        </div>
       </header>
 
       <main className={styles.main} id="account-main">
@@ -83,7 +98,12 @@ export function AccountEntryShell({ authConfig }: AccountEntryShellProps) {
       </main>
 
       <footer className={styles.footer}>
-        <span>AUREVANE // DEVELOPMENT BUILD</span>
+        <nav className={publicStyles.compactLinks} aria-label="Public information footer">
+          <Link href="/news">News</Link>
+          <Link href="/manual">Manual</Link>
+          <Link href="/rules">Rules</Link>
+          <a href="#account-main">Play / Sign In</a>
+        </nav>
         <span>Server-authoritative account boundary</span>
       </footer>
     </div>

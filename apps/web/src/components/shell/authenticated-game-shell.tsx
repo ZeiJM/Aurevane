@@ -2,10 +2,12 @@ import { getFoundationDiscipline } from '@aurevane/game-core/character/foundatio
 import type { PersistedCharacter } from '@aurevane/game-core/character/persistence'
 import type { PlayerProfile } from '@aurevane/game-core/player-profile'
 import { GameButton, Kicker, StatusMark, Surface } from '@aurevane/ui'
+import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import { AudioSettingsMenu } from '@/components/audio/audio-settings-menu'
 import { CharacterCreationExperience } from '@/components/character/character-creation-experience'
+import publicStyles from '@/components/public-information/public-information-shell.module.css'
 import {
   TrainingReportCard,
   type TrainingReportCardData,
@@ -217,7 +219,12 @@ export function AuthenticatedShellFrame({
       </main>
 
       <footer className={styles.footer}>
-        <span>AUREVANE // AUTHENTICATED DEVELOPMENT BUILD</span>
+        <nav className={publicStyles.compactLinks} aria-label="Public information footer">
+          <Link href="/news">News</Link>
+          <Link href="/manual">Manual</Link>
+          <Link href="/rules">Rules</Link>
+          <Link href="/game">Return to Game</Link>
+        </nav>
         <span>{footerLabel}</span>
       </footer>
     </div>
