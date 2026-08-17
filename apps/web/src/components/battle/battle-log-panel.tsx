@@ -55,12 +55,11 @@ export function BattleLogPanel({ battleSessionId }: BattleLogPanelProps) {
       const details = detailsRef.current
       if (!details) return
       details.open = !details.open
-      if (details.open) void loadLog()
     }
 
     window.addEventListener('aurevane:battle-log-toggle', toggleLog)
     return () => window.removeEventListener('aurevane:battle-log-toggle', toggleLog)
-  })
+  }, [])
 
   const entries = log?.entries ?? []
 
