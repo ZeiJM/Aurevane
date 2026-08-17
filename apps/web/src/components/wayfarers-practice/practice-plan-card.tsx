@@ -143,7 +143,7 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
             <p>{option.description}</p>
             <GameButton
               type="button"
-              variant={practice.plannedWindow === option.window ? 'quiet' : undefined}
+              variant={practice.plannedWindow === option.window ? 'quiet' : 'primary'}
               disabled={submittingWindow !== null}
               onClick={() => void setPlan(option.window)}
             >
