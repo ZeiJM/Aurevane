@@ -3,8 +3,14 @@ import { characterCreationRequestSchema } from '@aurevane/validation/player/char
 import { NextResponse } from 'next/server'
 
 import { getAuthenticatedActor } from '@/server/auth/actor'
-import { createCharacterInSlot } from '@/server/character/character-slot-service'
-import { SELECTED_CHARACTER_COOKIE } from '@/server/character/selected-character'
+import {
+  authorizeCharacterSelection,
+  createCharacterInSlot,
+} from '@/server/character/character-slot-service'
+import {
+  loadSelectedCharacter,
+  SELECTED_CHARACTER_COOKIE,
+} from '@/server/character/selected-character'
 import { toServerErrorResponse } from '@/server/http/error-response'
 
 function requestUsesHttps(request: Request): boolean {
@@ -14,6 +20,7 @@ function requestUsesHttps(request: Request): boolean {
 export async function POST(request: Request) {
   try {
     const actor = await getAuthenticatedActor()
+    const selectedCharacter = await loadSelectedCharacter(actor)
     const parsed = characterCreationRequestSchema.safeParse(await request.json())
     if (!parsed.success) {
       const issue = parsed.error.issues[0]
@@ -30,6 +37,12 @@ export async function POST(request: Request) {
       slotIndex: creation.slotIndex,
       idempotencyKey: creation.idempotencyKey,
       intent: creation.intent,
+    })
+
+    await authorizeCharacterSelection({
+      userId: actor.userId,
+      fromCharacterId: selectedCharacter?.id ?? null,
+      toCharacterId: outcome.character.id,
     })
 
     const response = NextResponse.json(
