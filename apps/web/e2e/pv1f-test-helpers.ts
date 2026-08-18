@@ -21,9 +21,9 @@ export async function createAccountAndEnterCharacter(input: {
   await expect(page.getByTestId('character-creation')).toBeVisible()
 
   await page.getByLabel('Character name').fill(characterName)
-  await page.getByRole('button', { name: 'Choose your foundation' }).click()
+  await page.getByRole('button', { name: 'Choose your discipline' }).click()
 
-  for (const attribute of ['might', 'finesse', 'intellect', 'resolve']) {
+  for (const attribute of ['might', 'finesse', 'vitality', 'agility', 'intellect', 'resolve']) {
     await page.getByRole('button', { name: `Increase ${attribute} bonus` }).click()
   }
   await expect(page.getByTestId('attribute-points')).toContainText('0 bonus points remaining')
@@ -31,9 +31,6 @@ export async function createAccountAndEnterCharacter(input: {
   await page.getByRole('button', { name: 'Review character' }).click()
   await page.getByRole('button', { name: 'Create character' }).click()
 
-  await expect(page).toHaveURL(/\/game$/)
-  await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
-  await page.getByRole('link', { name: `Play ${characterName}` }).click()
   await expect(page).toHaveURL(/\/game\/character$/)
   await expect(page.getByTestId('character-profile')).toContainText(characterName)
 }
@@ -45,7 +42,8 @@ export async function signOutFromAccountMenu(page: Page): Promise<void> {
 }
 
 export async function openOfflineTraining(page: Page): Promise<void> {
-  await page.getByRole('link', { name: 'Offline Training', exact: true }).click()
+  await page.getByRole('button', { name: 'Navigation' }).click()
+  await page.getByRole('link', { name: /Wayfarer's Practice/ }).click()
   await expect(page).toHaveURL(/\/game\/training$/)
-  await expect(page.getByRole('heading', { name: 'Offline Training' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: "Wayfarer's Practice" })).toBeVisible()
 }
