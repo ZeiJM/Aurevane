@@ -115,8 +115,8 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
           <p className={styles.eyebrow}>Tactical Hall</p>
           <h1 id="battle-launch-title">Choose a practice</h1>
           <p className={styles.lede}>
-            {characterName}, start with a short lesson or enter Recruit Sparring for the full tactical
-            loop. The highlighted card is what will launch.
+            {characterName}, start with a short lesson or enter Recruit Sparring for the full
+            tactical loop. The highlighted card is what will launch.
           </p>
 
           <nav className={styles.recordGrid} aria-label="Choose Tactical Hall practice">
@@ -164,8 +164,8 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
               </div>
             ) : (
               <p className={styles.floorNote}>
-                Focused lessons use the {selectedArena.name} ({selectedArena.scale}) so the concept is
-                easy to see before the larger duel.
+                Focused lessons use the {selectedArena.name} ({selectedArena.scale}) so the concept
+                is easy to see before the larger duel.
               </p>
             )}
           </section>

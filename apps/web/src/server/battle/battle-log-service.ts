@@ -126,7 +126,8 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
     }
     case 'resource_changed': {
       const delta = numberValue(event.delta)
-      const resource = typeof event.resource === 'string' ? event.resource.toUpperCase() : 'resource'
+      const resource =
+        typeof event.resource === 'string' ? event.resource.toUpperCase() : 'resource'
       message = `${combatantLabel(event.targetCombatantId)} ${delta !== null && delta < 0 ? 'spent' : 'gained'} ${delta === null ? 'resolved' : Math.abs(delta)} ${resource}.`
       break
     }

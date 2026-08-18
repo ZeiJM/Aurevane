@@ -145,7 +145,9 @@ function terrainTraversalCost(
   movementProfileId: string,
 ): number | null {
   const profile = tactical.movementProfiles.find((candidate) => candidate.id === movementProfileId)
-  const override = profile?.terrainCostOverrides.find((candidate) => candidate.terrainId === terrainId)
+  const override = profile?.terrainCostOverrides.find(
+    (candidate) => candidate.terrainId === terrainId,
+  )
   if (override) return override.traversalCost
   return tactical.terrains.find((candidate) => candidate.id === terrainId)?.traversalCost ?? null
 }
@@ -155,7 +157,8 @@ function buildReachablePaths(
   activePlacement: CombatPlacement | null,
 ): Map<string, GridPosition[]> {
   const turn = tactical.battle.currentTurn
-  if (!turn || !activePlacement || turn.combatantId !== activePlacement.combatantId) return new Map()
+  if (!turn || !activePlacement || turn.combatantId !== activePlacement.combatantId)
+    return new Map()
 
   const profile = tactical.movementProfiles.find(
     (candidate) => candidate.id === activePlacement.movementProfileId,
@@ -164,7 +167,9 @@ function buildReachablePaths(
 
   const tiles = new Map(tactical.tiles.map((tile) => [positionKey(tile.position), tile] as const))
   const occupied = new Map(
-    tactical.placements.map((placement) => [positionKey(placement.position), placement.combatantId] as const),
+    tactical.placements.map(
+      (placement) => [positionKey(placement.position), placement.combatantId] as const,
+    ),
   )
   const result = new Map<string, GridPosition[]>()
   const bestCost = new Map<string, number>()
@@ -188,7 +193,12 @@ function buildReachablePaths(
     ]
 
     for (const neighbor of neighbors) {
-      if (neighbor.x < 0 || neighbor.x >= tactical.width || neighbor.y < 0 || neighbor.y >= tactical.height)
+      if (
+        neighbor.x < 0 ||
+        neighbor.x >= tactical.width ||
+        neighbor.y < 0 ||
+        neighbor.y >= tactical.height
+      )
         continue
 
       const neighborKey = positionKey(neighbor)
@@ -198,7 +208,8 @@ function buildReachablePaths(
 
       const occupant = occupied.get(neighborKey)
       if (occupant && occupant !== activePlacement.combatantId) continue
-      if (Math.abs(neighborTile.elevation - currentTile.elevation) > profile.maxElevationStep) continue
+      if (Math.abs(neighborTile.elevation - currentTile.elevation) > profile.maxElevationStep)
+        continue
 
       const traversalCost = terrainTraversalCost(
         tactical,
@@ -223,7 +234,10 @@ function buildReachablePaths(
   return result
 }
 
-function getStatuses(battle: BattleSessionView, combatantId: string | null): readonly CombatStatus[] {
+function getStatuses(
+  battle: BattleSessionView,
+  combatantId: string | null,
+): readonly CombatStatus[] {
   if (!combatantId) return []
   return battle.snapshot.statusState.find((row) => row.combatantId === combatantId)?.statuses ?? []
 }
@@ -257,7 +271,11 @@ function describeRecruitTurn(
   )
   const parts: string[] = []
 
-  if (beforeRecruit && afterRecruit && !positionsEqual(beforeRecruit.position, afterRecruit.position)) {
+  if (
+    beforeRecruit &&
+    afterRecruit &&
+    !positionsEqual(beforeRecruit.position, afterRecruit.position)
+  ) {
     parts.push(
       `moved ${beforeRecruit.position.x + 1},${beforeRecruit.position.y + 1} → ${afterRecruit.position.x + 1},${afterRecruit.position.y + 1}`,
     )
@@ -273,9 +291,12 @@ function describeRecruitTurn(
   const guarded = getStatuses(after, recruitId).some((status) => status.statusId === 'guarded')
   if (guarded) parts.push('Guarded (-20% incoming damage)')
 
-  if (afterRecruit) parts.push(`finished facing ${afterRecruit.facing} ${facingGlyph(afterRecruit.facing)}`)
+  if (afterRecruit)
+    parts.push(`finished facing ${afterRecruit.facing} ${facingGlyph(afterRecruit.facing)}`)
 
-  return parts.length > 0 ? `Recruit turn: ${parts.join(' → ')}.` : 'Recruit turn resolved with no visible state change.'
+  return parts.length > 0
+    ? `Recruit turn: ${parts.join(' → ')}.`
+    : 'Recruit turn resolved with no visible state change.'
 }
 
 function combatantCard(
@@ -322,7 +343,10 @@ function combatantCard(
         <span className={styles.statuses}>
           {statuses.length > 0 ? (
             statuses.map((status) => (
-              <span className={styles.statusTag} key={`${status.statusId}:${status.sourceCombatantId}`}>
+              <span
+                className={styles.statusTag}
+                key={`${status.statusId}:${status.sourceCombatantId}`}
+              >
                 {statusLabel(status)}
               </span>
             ))
@@ -359,7 +383,9 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
   const [commitPending, setCommitPending] = useState(false)
   const [recruitPending, setRecruitPending] = useState(false)
   const [recruitFailed, setRecruitFailed] = useState(false)
-  const [notice, setNotice] = useState('Battle ready. Use Move, then an Action, choose Facing, and End Turn.')
+  const [notice, setNotice] = useState(
+    'Battle ready. Use Move, then an Action, choose Facing, and End Turn.',
+  )
   const previewSequence = useRef(0)
   const recruitAttemptedVersion = useRef<number | null>(null)
   const commitLock = useRef(false)
@@ -421,7 +447,9 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
   const placementByTile = useMemo(
     () =>
       new Map(
-        tactical.placements.map((placement) => [positionKey(placement.position), placement] as const),
+        tactical.placements.map(
+          (placement) => [positionKey(placement.position), placement] as const,
+        ),
       ),
     [tactical.placements],
   )
@@ -435,12 +463,19 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
     return new Set(preview.preview.affectedTiles.map(positionKey))
   }, [preview])
   const reachablePaths = useMemo(
-    () => (playerTurn ? buildReachablePaths(tactical, activePlacement) : new Map<string, GridPosition[]>()),
+    () =>
+      playerTurn
+        ? buildReachablePaths(tactical, activePlacement)
+        : new Map<string, GridPosition[]>(),
     [activePlacement, playerTurn, tactical],
   )
 
-  const selectedTile = selectedPosition ? (tileByKey.get(positionKey(selectedPosition)) ?? null) : null
-  const selectedTileReachable = selectedTile ? reachablePaths.has(positionKey(selectedTile.position)) : false
+  const selectedTile = selectedPosition
+    ? (tileByKey.get(positionKey(selectedPosition)) ?? null)
+    : null
+  const selectedTileReachable = selectedTile
+    ? reachablePaths.has(positionKey(selectedTile.position))
+    : false
   const actionReady = currentTurn?.actionState === 'ready'
   const previewLegal = preview?.preview.legal ?? false
   const finalTurnLegal = finalTurnPreview?.legal ?? false
@@ -451,7 +486,11 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
 
   const attackFacingRelation = useMemo(() => {
     if (!playerPlacement || !recruitPlacement) return null
-    return classifyFacingRelation(recruitPlacement.position, recruitPlacement.facing, playerPlacement.position)
+    return classifyFacingRelation(
+      recruitPlacement.position,
+      recruitPlacement.facing,
+      playerPlacement.position,
+    )
   }, [playerPlacement, recruitPlacement])
   const attackGeometryLegal =
     Boolean(playerPlacement && recruitPlacement) &&
@@ -527,7 +566,9 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
     setRecruitPending(true)
     setRecruitFailed(false)
     resetPlanning()
-    setNotice('Recruit turn resolving… movement, Action and facing are being committed server-side.')
+    setNotice(
+      'Recruit turn resolving… movement, Action and facing are being committed server-side.',
+    )
     const before = battle
 
     try {
@@ -615,7 +656,9 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
           body.battlePreview.preview.kind === 'action' &&
           body.battlePreview.preview.actionId === GUARD_ID
         ) {
-          setNotice('Guard preview ready: incoming damage will be reduced by 20% until your next turn.')
+          setNotice(
+            'Guard preview ready: incoming damage will be reduced by 20% until your next turn.',
+          )
         } else {
           setNotice('Preview ready. Confirm to commit this command.')
         }
@@ -660,7 +703,9 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
         )
       } catch (error) {
         if (sequence !== previewSequence.current) return
-        setNotice(error instanceof Error ? error.message : 'That final turn could not be previewed.')
+        setNotice(
+          error instanceof Error ? error.message : 'That final turn could not be previewed.',
+        )
       } finally {
         if (sequence === previewSequence.current) setPreviewPending(false)
       }
@@ -704,7 +749,8 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
           (placement) => placement.combatantId === committedIntent.target.combatantId,
         )
         if (targetPlacement) {
-          nextFacing = facingToward(activePlacement.position, targetPlacement.position) ?? nextFacing
+          nextFacing =
+            facingToward(activePlacement.position, targetPlacement.position) ?? nextFacing
         }
       }
 
@@ -729,7 +775,8 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
         const targetAfter = body.battle.snapshot.tactical.battle.combatants.find(
           (combatant) => combatant.id === committedIntent.target.combatantId,
         )
-        const damage = targetBefore && targetAfter ? Math.max(0, targetBefore.hp - targetAfter.hp) : 0
+        const damage =
+          targetBefore && targetAfter ? Math.max(0, targetBefore.hp - targetAfter.hp) : 0
         setNotice(
           damage > 0 && targetAfter
             ? `Basic Attack hit for ${damage} damage. ${combatantLabel(targetAfter.id)} now has ${targetAfter.hp}/${targetAfter.maxHp} HP.`
@@ -784,7 +831,9 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
       setBattle(body.battle)
       setProvisionalFacing(activeFacingForBattle(body.battle))
       resetPlanning()
-      setNotice(`Turn ended facing ${provisionalFacing} ${facingGlyph(provisionalFacing)}. Recruit turn begins.`)
+      setNotice(
+        `Turn ended facing ${provisionalFacing} ${facingGlyph(provisionalFacing)}. Recruit turn begins.`,
+      )
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'The turn could not be ended.')
     } finally {
@@ -826,9 +875,11 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
     function handleReconnect() {
       recruitAttemptedVersion.current = null
       setRecruitFailed(false)
-      void refreshBattle('Connection restored. Authoritative battle state reloaded.').catch((error) => {
-        setNotice(error instanceof Error ? error.message : 'The battle could not be refreshed.')
-      })
+      void refreshBattle('Connection restored. Authoritative battle state reloaded.').catch(
+        (error) => {
+          setNotice(error instanceof Error ? error.message : 'The battle could not be refreshed.')
+        },
+      )
     }
 
     window.addEventListener('online', handleReconnect)
@@ -855,12 +906,22 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
         return
       }
       if (nextMode === 'attack') {
-        setNotice('Basic Attack: select the Recruit. Green means legal range; red means blocked or out of range.')
+        setNotice(
+          'Basic Attack: select the Recruit. Green means legal range; red means blocked or out of range.',
+        )
         return
       }
-      setNotice('Inspect mode: select a unit or tile for terrain, elevation, vitals and facing details.')
+      setNotice(
+        'Inspect mode: select a unit or tile for terrain, elevation, vitals and facing details.',
+      )
     },
-    [currentTurn?.movementRemaining, provisionalFacing, requestFinalTurnPreview, requestPreview, resetPlanning],
+    [
+      currentTurn?.movementRemaining,
+      provisionalFacing,
+      requestFinalTurnPreview,
+      requestPreview,
+      resetPlanning,
+    ],
   )
 
   function handleTileClick(position: GridPosition) {
@@ -874,7 +935,9 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
     if (mode === 'move') {
       const nextPath = reachablePaths.get(key)
       if (!nextPath) {
-        setNotice('That tile is not reachable with your remaining Movement. Red-tinted tiles are currently unavailable.')
+        setNotice(
+          'That tile is not reachable with your remaining Movement. Red-tinted tiles are currently unavailable.',
+        )
         return
       }
       if (nextPath.length < 2) {
@@ -892,7 +955,9 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
         return
       }
       if (activePlacement) {
-        setProvisionalFacing(facingToward(activePlacement.position, placement.position) ?? provisionalFacing)
+        setProvisionalFacing(
+          facingToward(activePlacement.position, placement.position) ?? provisionalFacing,
+        )
       }
       void requestPreview({
         kind: 'action',
@@ -923,7 +988,8 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
         return
       }
 
-      if (!playerTurn || battleState.lifecycle !== 'active' || commitPending || recruitPending) return
+      if (!playerTurn || battleState.lifecycle !== 'active' || commitPending || recruitPending)
+        return
 
       if (event.key === '1') {
         event.preventDefault()
@@ -1049,7 +1115,10 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
           <strong>{recruitPending ? 'Enemy turn' : 'Last result'}</strong>
           <p>{notice}</p>
           <div className={styles.feedbackActions}>
-            <BattleLogPanel battleSessionId={battle.battleSessionId} battleVersion={battle.battleVersion} />
+            <BattleLogPanel
+              battleSessionId={battle.battleSessionId}
+              battleVersion={battle.battleVersion}
+            />
             {recruitFailed ? (
               <button
                 type="button"
@@ -1079,7 +1148,11 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
         </section>
 
         <div className={styles.stage}>
-          <section id="battlefield" className={styles.battlefield} aria-label="Tactical battlefield">
+          <section
+            id="battlefield"
+            className={styles.battlefield}
+            aria-label="Tactical battlefield"
+          >
             <div className={styles.boardViewport}>
               <div
                 className={styles.board}
@@ -1094,17 +1167,24 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
                   const key = positionKey(tile.position)
                   const placement = placementByTile.get(key)
                   const combatant = placement
-                    ? battleState.combatants.find((candidate) => candidate.id === placement.combatantId)
+                    ? battleState.combatants.find(
+                        (candidate) => candidate.id === placement.combatantId,
+                      )
                     : null
-                  const selected = selectedPosition ? positionsEqual(tile.position, selectedPosition) : false
+                  const selected = selectedPosition
+                    ? positionsEqual(tile.position, selectedPosition)
+                    : false
                   const active = placement?.combatantId === currentTurn?.combatantId
                   const inPath = pathTiles.has(key)
                   const affected = previewAffectedTiles.has(key)
                   const moveReachable = mode === 'move' && reachablePaths.has(key)
                   const moveUnavailable =
-                    mode === 'move' && !moveReachable && placement?.combatantId !== currentTurn?.combatantId
+                    mode === 'move' &&
+                    !moveReachable &&
+                    placement?.combatantId !== currentTurn?.combatantId
                   const attackTarget = mode === 'attack' && placement?.combatantId === recruitId
-                  const attackTargetLegal = attackTarget && attackGeometryLegal && Boolean(actionReady)
+                  const attackTargetLegal =
+                    attackTarget && attackGeometryLegal && Boolean(actionReady)
                   const attackTargetIllegal = attackTarget && !attackTargetLegal
                   const legalDestination =
                     preview?.preview.kind === 'move' &&
@@ -1143,13 +1223,18 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
                         {tile.terrainId === 'rough-ground' ? (
                           <span className={styles.terrainBadge}>R2</span>
                         ) : null}
-                        {tile.elevation > 0 ? <span className={styles.terrainBadge}>E{tile.elevation}</span> : null}
+                        {tile.elevation > 0 ? (
+                          <span className={styles.terrainBadge}>E{tile.elevation}</span>
+                        ) : null}
                       </span>
                       {placement ? (
                         <span
                           className={`${styles.unit} ${placement.combatantId === playerId ? styles.unitPlayer : styles.unitOpponent} ${active ? styles.unitActive : ''}`}
                         >
-                          <span className={styles.unitFacing} aria-label={`Facing ${placement.facing}`}>
+                          <span
+                            className={styles.unitFacing}
+                            aria-label={`Facing ${placement.facing}`}
+                          >
                             {facingGlyph(placement.facing)}
                           </span>
                           <strong>{combatantLabel(placement.combatantId)}</strong>
@@ -1185,12 +1270,16 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
           <aside className={styles.inspector} aria-label="Context inspector">
             <div className={styles.inspectorHeading}>
               <span>Inspector</span>
-              <strong>{selectedCombatant ? combatantLabel(selectedCombatant.id) : 'Terrain'}</strong>
+              <strong>
+                {selectedCombatant ? combatantLabel(selectedCombatant.id) : 'Terrain'}
+              </strong>
             </div>
             {selectedCombatant && selectedPlacement ? (
               <div className={styles.inspectorBody}>
                 <p className={styles.inspectorCallout}>
-                  Facing is already meaningful: a Basic Attack deals 100% damage from the front, 110% from the side, and 125% from the rear. The arrow on each unit shows its current facing.
+                  Facing is already meaningful: a Basic Attack deals 100% damage from the front,
+                  110% from the side, and 125% from the rear. The arrow on each unit shows its
+                  current facing.
                 </p>
                 <dl className={styles.detailList}>
                   <div>
@@ -1229,7 +1318,9 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
                   </div>
                   <div>
                     <dt>Evasion</dt>
-                    <dd>{selectedProfile ? percentFromBasisPoints(selectedProfile.evasion) : '—'}</dd>
+                    <dd>
+                      {selectedProfile ? percentFromBasisPoints(selectedProfile.evasion) : '—'}
+                    </dd>
                   </div>
                   <div>
                     <dt>Status</dt>
@@ -1260,11 +1351,15 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
                   </div>
                   <div>
                     <dt>Terrain</dt>
-                    <dd>{selectedTile.terrainId === 'rough-ground' ? 'Rough ground' : 'Open ground'}</dd>
+                    <dd>
+                      {selectedTile.terrainId === 'rough-ground' ? 'Rough ground' : 'Open ground'}
+                    </dd>
                   </div>
                   <div>
                     <dt>Entry cost</dt>
-                    <dd>{selectedTerrainCost === null ? 'Blocked' : `${selectedTerrainCost} Movement`}</dd>
+                    <dd>
+                      {selectedTerrainCost === null ? 'Blocked' : `${selectedTerrainCost} Movement`}
+                    </dd>
                   </div>
                   <div>
                     <dt>Elevation</dt>
@@ -1272,14 +1367,17 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
                   </div>
                   <div>
                     <dt>Reachable now</dt>
-                    <dd>{playerTurn ? (selectedTileReachable ? 'YES' : 'NO') : 'Wait for your turn'}</dd>
+                    <dd>
+                      {playerTurn ? (selectedTileReachable ? 'YES' : 'NO') : 'Wait for your turn'}
+                    </dd>
                   </div>
                 </dl>
               </div>
             ) : (
               <div className={styles.inspectorBody}>
                 <p className={styles.inspectorCallout}>
-                  Click a unit for HP, MP, statuses and facing, or click a tile for terrain cost, elevation and current reachability.
+                  Click a unit for HP, MP, statuses and facing, or click a tile for terrain cost,
+                  elevation and current reachability.
                 </p>
               </div>
             )}
@@ -1287,7 +1385,11 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
         </div>
 
         <section className={styles.commandDeck} aria-label="Command Deck">
-          <p className={styles.modeInstruction} data-testid="combat-mode-instruction" aria-live="polite">
+          <p
+            className={styles.modeInstruction}
+            data-testid="combat-mode-instruction"
+            aria-live="polite"
+          >
             {modeInstruction(
               mode,
               Boolean(actionReady),
@@ -1426,7 +1528,8 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
                   </div>
                 </>
               ) : null}
-              {preview?.preview.kind === 'action' && preview.preview.actionId === BASIC_ATTACK_ID ? (
+              {preview?.preview.kind === 'action' &&
+              preview.preview.actionId === BASIC_ATTACK_ID ? (
                 <>
                   <div>
                     <span>Hit chance</span>
@@ -1514,7 +1617,8 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
 
         <footer className={styles.footer}>
           <span>
-            <strong>Authority:</strong> previews are informational; movement, attacks, Guard, facing and enemy turns commit on the server.
+            <strong>Authority:</strong> previews are informational; movement, attacks, Guard, facing
+            and enemy turns commit on the server.
           </span>
           <span>State v{battle.battleVersion}</span>
         </footer>

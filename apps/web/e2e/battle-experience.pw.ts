@@ -11,7 +11,9 @@ function uniqueCharacterName(): string {
   return `Wayfarer ${letters}`
 }
 
-test('resolves a readable authoritative player and Recruit combat loop', async ({ page }, testInfo) => {
+test('resolves a readable authoritative player and Recruit combat loop', async ({
+  page,
+}, testInfo) => {
   test.slow()
 
   const projectSlug = testInfo.project.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()
@@ -68,7 +70,9 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
   await commandDeck.getByRole('button', { name: /Move/ }).click()
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Green tiles are reachable')
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText(
+    'Green tiles are reachable',
+  )
   await expect(page.getByTestId('combat-mode-instruction')).toContainText(
     'moving does NOT spend your Action',
   )
@@ -77,7 +81,9 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
   await expect(commandDeck.getByText('Action after')).toBeVisible()
   await expect(commandDeck.getByText('READY', { exact: true })).toBeVisible()
   await confirmButton.click()
-  await expect(page.getByText(/Moved to 4,2\. 0\/4 Movement remains\. Action is still READY/)).toBeVisible()
+  await expect(
+    page.getByText(/Moved to 4,2\. 0\/4 Movement remains\. Action is still READY/),
+  ).toBeVisible()
   await expectBattlefieldReadable(page)
 
   await attackButton.click()
@@ -102,7 +108,10 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
 
   await endTurnButton.click()
   await page.getByRole('button', { name: 'Face east' }).click()
-  await expect(page.getByRole('button', { name: 'Face east' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('button', { name: 'Face east' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
   await expect(page.getByText(/Ready to end the turn facing east/)).toBeVisible()
   await confirmButton.click()
 
@@ -119,7 +128,11 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
   await expect(battleLog).not.toContainText('profileId')
   await page.getByTestId('battle-log-toggle').click()
 
-  for (let playerActivation = 0; playerActivation < 20 && !(await completion.isVisible()); playerActivation += 1) {
+  for (
+    let playerActivation = 0;
+    playerActivation < 20 && !(await completion.isVisible());
+    playerActivation += 1
+  ) {
     await expect(attackButton).toBeEnabled()
     await attackButton.click()
     await page.getByRole('button', { name: /occupied by Recruit/ }).click()

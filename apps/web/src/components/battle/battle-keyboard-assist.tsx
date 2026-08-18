@@ -41,8 +41,9 @@ function commandButton(...labels: string[]): HTMLButtonElement | null {
     document.querySelectorAll<HTMLButtonElement>('section[aria-label="Command Deck"] button'),
   )
   return (
-    buttons.find((button) => labels.includes(button.querySelector('strong')?.textContent?.trim() ?? '')) ??
-    null
+    buttons.find((button) =>
+      labels.includes(button.querySelector('strong')?.textContent?.trim() ?? ''),
+    ) ?? null
   )
 }
 

@@ -91,7 +91,10 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort E
   await page.keyboard.press('Space')
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('FACING')
   await page.keyboard.press('a')
-  await expect(page.getByRole('button', { name: 'Face west' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('button', { name: 'Face west' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
   await expect(page.getByRole('button', { name: /^Tile / })).toHaveCount(63)
   await page.keyboard.press('Escape')
 
