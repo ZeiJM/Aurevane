@@ -19,7 +19,7 @@ export interface BattleLogService {
   getLog(userId: string, battleSessionId: string): Promise<BattleLogView>
 }
 
-const BATTLE_LOG_LIMIT = 50
+const BATTLE_LOG_LIMIT = 200
 
 function combatantLabel(value: unknown): string {
   if (typeof value !== 'string') return 'Combatant'
@@ -50,11 +50,11 @@ function statusLabel(value: unknown): string {
 }
 
 function recruitReasonLabel(value: unknown): string {
-  if (value === 'legal-damage') return 'a legal damage opportunity'
+  if (value === 'legal-damage') return 'an attack opportunity'
   if (value === 'close-distance') return 'closing the distance'
-  if (value === 'guard-survival') return 'a defensive guard'
-  if (value === 'face-threat') return 'facing the nearest threat'
-  if (value === 'safe-end-turn') return 'a safe end turn'
+  if (value === 'guard-survival') return 'Guard'
+  if (value === 'face-threat') return 'facing the threat'
+  if (value === 'safe-end-turn') return 'ending the turn'
   return 'a legal tactical option'
 }
 
@@ -81,45 +81,60 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
 
   switch (eventType) {
     case 'combatant_moved': {
+      const origin = positionLabel(event.from)
       const destination = positionLabel(event.to)
       const cost = numberValue(event.movementCost)
-      message = `${combatantLabel(event.combatantId)} moved${destination ? ` to ${destination}` : ''}${cost === null ? '' : ` for ${cost} Movement`}.`
+      message = `${combatantLabel(event.combatantId)} moved${origin ? ` from ${origin}` : ''}${destination ? ` to ${destination}` : ''}${cost === null ? '' : ` for ${cost} Movement`}.`
       break
     }
-    case 'combatant_facing_changed':
-    case 'final_facing_selected': {
+    case 'movement_spent': {
+      const amount = numberValue(event.amount)
+      const remaining = numberValue(event.remaining)
+      message = `${combatantLabel(event.combatantId)} spent ${amount ?? 'resolved'} Movement${remaining === null ? '' : `; ${remaining} remains`}.`
+      break
+    }
+    case 'combatant_facing_changed': {
       const facing = typeof event.facing === 'string' ? event.facing : 'a new direction'
-      message = `${combatantLabel(event.combatantId)} committed facing ${facing}.`
+      message = `${combatantLabel(event.combatantId)} ended facing ${facing}.`
       break
     }
+    case 'final_facing_selected':
+      return null
+    case 'action_spent':
+      message = `${combatantLabel(event.combatantId)} spent the Action for this activation.`
+      break
     case 'combat_action_used':
       message = `${combatantLabel(event.actorId)} used ${actionLabel(event.actionId)}.`
       break
     case 'damage_applied': {
       const amount = numberValue(event.amount)
-      message = `${combatantLabel(event.targetCombatantId)} took ${amount ?? 'resolved'} damage.`
+      const hpAfter = numberValue(event.hpAfter)
+      message = `${combatantLabel(event.targetCombatantId)} took ${amount ?? 'resolved'} damage${hpAfter === null ? '' : ` and has ${hpAfter} HP remaining`}.`
       break
     }
     case 'healing_applied': {
       const amount = numberValue(event.amount)
-      message = `${combatantLabel(event.targetCombatantId)} recovered ${amount ?? 'resolved'} HP.`
+      const hpAfter = numberValue(event.hpAfter)
+      message = `${combatantLabel(event.targetCombatantId)} recovered ${amount ?? 'resolved'} HP${hpAfter === null ? '' : ` and now has ${hpAfter} HP`}.`
       break
     }
     case 'mp_spent': {
       const amount = numberValue(event.amount)
-      message = `${combatantLabel(event.combatantId)} spent ${amount ?? 'resolved'} MP.`
+      const remaining = numberValue(event.remaining)
+      message = `${combatantLabel(event.combatantId)} spent ${amount ?? 'resolved'} MP${remaining === null ? '' : `; ${remaining} remains`}.`
       break
     }
     case 'resource_changed': {
       const delta = numberValue(event.delta)
-      const resource =
-        typeof event.resource === 'string' ? event.resource.toUpperCase() : 'resource'
+      const resource = typeof event.resource === 'string' ? event.resource.toUpperCase() : 'resource'
       message = `${combatantLabel(event.targetCombatantId)} ${delta !== null && delta < 0 ? 'spent' : 'gained'} ${delta === null ? 'resolved' : Math.abs(delta)} ${resource}.`
       break
     }
-    case 'status_applied':
-      message = `${combatantLabel(event.targetCombatantId)} gained ${statusLabel(event.statusId)}.`
+    case 'status_applied': {
+      const remaining = numberValue(event.remainingOwnerTurnStarts)
+      message = `${combatantLabel(event.targetCombatantId)} gained ${statusLabel(event.statusId)}${remaining === null ? '' : ` for ${remaining} owner-turn start${remaining === 1 ? '' : 's'}`}.`
       break
+    }
     case 'status_expired':
       message = `${statusLabel(event.statusId)} expired on ${combatantLabel(event.combatantId)}.`
       break
@@ -131,21 +146,25 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
       message = `Round ${round ?? '—'} began.`
       break
     }
-    case 'turn_started':
-      message = `${combatantLabel(event.combatantId)} turn began.`
+    case 'turn_started': {
+      const round = numberValue(event.round)
+      const activation = numberValue(event.turnNumber)
+      message = `${combatantLabel(event.combatantId)} activation began${round === null ? '' : ` in Round ${round}`}${activation === null ? '' : ` (activation ${activation})`}.`
       break
-    case 'turn_ended':
-      message = `${combatantLabel(event.combatantId)} ended the turn.`
+    }
+    case 'turn_ended': {
+      const activation = numberValue(event.turnNumber)
+      message = `${combatantLabel(event.combatantId)} ended the activation${activation === null ? '' : ` ${activation}`}.`
       break
+    }
     case 'stat_driven_attack_resolved': {
       const hit = event.hit === true
       const chance = numberValue(event.hitChanceBasisPoints)
-      message = `${combatantLabel(event.actorId)} attack ${hit ? 'hit' : 'missed'}${chance === null ? '' : ` (${Math.round(chance / 100)}% hit chance)`}.`
+      message = `${combatantLabel(event.actorId)} Basic Attack ${hit ? 'HIT' : 'MISSED'}${chance === null ? '' : ` (${Math.round(chance / 100)}% hit chance)`}.`
       break
     }
     case 'recruit_ai_decision': {
-      const utility = numberValue(event.utility)
-      message = `${combatantLabel(event.combatantId)} chose ${recruitReasonLabel(event.reason)}${utility === null ? '' : ` (score ${utility})`}.`
+      message = `Recruit chose ${recruitReasonLabel(event.reason)}.`
       break
     }
     case 'battle_completed':
@@ -153,6 +172,9 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
       break
     case 'battle_started':
       message = 'Battle began.'
+      break
+    case 'battle_abandoned':
+      message = 'Practice battle was aborted.'
       break
     default:
       return null
