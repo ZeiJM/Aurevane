@@ -182,7 +182,7 @@
 .footer {
   position: sticky;
   bottom: 0;
-  z-index: 850;
+  z-index: 3000;
   display: flex;
   min-height: 2.55rem;
   align-items: center;

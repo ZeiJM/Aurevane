@@ -22,7 +22,8 @@ test('locks pending character deletion and restores playability on cancel', asyn
   const characterName = uniqueCharacterName()
 
   await createAccountAndEnterCharacter({ page, email, password, characterName })
-  await page.getByRole('link', { name: 'Back to Character Select' }).click()
+  await page.getByRole('button', { name: 'Account' }).click()
+  await page.getByRole('menuitem', { name: 'Switch Character' }).click()
   await expect(page).toHaveURL(/\/game$/)
 
   const playLink = page.getByRole('link', { name: `Play ${characterName}` })
