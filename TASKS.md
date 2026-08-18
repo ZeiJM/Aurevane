@@ -30,14 +30,15 @@ PR #122 currently implements:
 - six core attributes — Might, Finesse, Vitality, Agility, Intellect and Resolve — wired through creation, persistence, profile reads, derived stats and battle character loading;
 - three character slots plus a server-authoritative one-hour return cooldown after swapping away from a character;
 - character creation obeying that same selection/cooldown authority instead of providing a swap bypass;
-- one permanent cosmetic personal-title claim per character under Account, with server validation and collision protection;
-- compact Controls & Keybinds, Character Profile, Character Select and login/account-entry presentation;
-- an authoritative **100-point Action Economy** with Move = 25 points per normal terrain-cost unit and rough ground = 50 points, while Basic Attack = 30, Guard = 30 and Recover = 50;
-- battle action proposals, neutral initial action state, clearer terrain/Inspect feedback, compact combatant rails, self-chat, double-click/tap quick commit, Battle Log access and current action naming;
-- current Manual content aligned with the six-attribute model, Battle Hall, character switching, titles and current player-facing terminology;
-- E2E expectations reconciled with the current navigation and combat model.
+- one permanent cosmetic personal-title claim per character under Account, with server validation, collision protection and server-only read/write RPC boundaries;
+- compact News, Manual, Rules, Controls & Keybinds, Character Profile, Character Select, Battle Hall, Wayfarer's Practice and login/account-entry presentation;
+- desktop/laptop regression coverage requiring the initial Profile, Battle Hall, Controls, Wayfarer's Practice and Character Select surfaces to fit the viewport without page scrollbars;
+- an authoritative **100-point Action Economy** with Move = 25 AP per normal terrain-cost unit and rough ground = 50 AP, while Basic Attack = 30 AP, Guard = 30 AP and Recover = 50 AP;
+- battle action proposals with glowing provisional AP depletion, consistent AP wording, neutral initial action state, clearer terrain/Inspect feedback, compact combatant rails, self-chat, double-click/tap quick commit for target and self actions, Battle Log grouping/access and current action naming;
+- current Manual content aligned with the six-attribute model, Discipline terminology, Battle Hall, character switching, titles and current player-facing terminology;
+- E2E expectations reconciled with the current navigation, scaling and combat model.
 
-The two new migrations for six-attribute/swap-cooldown state and personal titles have already rebuilt successfully in GitHub browser infrastructure. Full quality, database/security and responsive browser gates are being rerun on the final formatted branch head before PR #122 is considered review-ready.
+The two new migrations for six-attribute/swap-cooldown state and personal titles have rebuilt successfully in GitHub infrastructure. Full quality, database/security and responsive browser gates are being rerun on the final branch head before PR #122 is considered review-ready.
 
 ## PV-1F corrective history
 
