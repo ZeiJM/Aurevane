@@ -26,6 +26,7 @@ test('creates a slotted character, persists its profile, and resumes it across s
   const email = `p15-${projectSlug}-${Date.now()}@example.com`
   const password = 'P15-browser-character-2026!'
   const characterName = uniqueCharacterName()
+  const personalTitle = `Warden ${Date.now().toString().slice(-8)}`
 
   await createAccountAndEnterCharacter({ page, email, password, characterName })
 
@@ -56,6 +57,23 @@ test('creates a slotted character, persists its profile, and resumes it across s
   await expect(page.getByRole('link', { name: 'Back to Character Select' })).toHaveCount(0)
 
   await page.getByRole('button', { name: 'Account' }).click()
+  await page.getByRole('menuitem', { name: 'Titles & Profile Display' }).click()
+  await expect(page).toHaveURL(/\/game\/account\/titles$/)
+  await page.getByLabel('Personal title').fill(personalTitle)
+  await page.getByRole('button', { name: 'Review Title' }).click()
+  await page.getByRole('checkbox').check()
+  await page.getByRole('button', { name: 'Confirm Final Title' }).click()
+  await expect(page.getByText('Choice used')).toBeVisible()
+  await expect(page.getByText(personalTitle, { exact: true }).first()).toBeVisible()
+  await expect(page.getByLabel('Personal title')).toHaveCount(0)
+  await page.reload()
+  await expect(page.getByText('Choice used')).toBeVisible()
+  await expect(page.getByText(personalTitle, { exact: true }).first()).toBeVisible()
+  await page.getByRole('link', { name: 'Back to Character Profile' }).click()
+  await expect(page).toHaveURL(/\/game\/character$/)
+  await expect(page.getByTestId('character-profile')).toContainText(personalTitle)
+
+  await page.getByRole('button', { name: 'Account' }).click()
   await page.getByRole('menuitem', { name: 'Switch Character' }).click()
   await expect(page).toHaveURL(/\/game$/)
   await expect(page.getByRole('link', { name: `Play ${characterName}` })).toBeVisible()
@@ -72,6 +90,7 @@ test('creates a slotted character, persists its profile, and resumes it across s
   await page.getByRole('link', { name: `Play ${characterName}` }).click()
   await expect(page).toHaveURL(/\/game\/character$/)
   await expect(page.getByTestId('character-profile')).toContainText(characterName)
+  await expect(page.getByTestId('character-profile')).toContainText(personalTitle)
 
   const characterId = queryLocalDatabase(`
     select character.id::text
