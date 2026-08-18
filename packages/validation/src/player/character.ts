@@ -26,6 +26,8 @@ const characterPersistenceRowSchema = z
     foundation_discipline_id: z.string().min(1),
     might: z.number().int().positive(),
     finesse: z.number().int().positive(),
+    vitality: z.number().int().positive(),
+    agility: z.number().int().positive(),
     intellect: z.number().int().positive(),
     resolve: z.number().int().positive(),
     level: z.number().int().positive(),
