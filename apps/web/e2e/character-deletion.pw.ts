@@ -11,7 +11,7 @@ function uniqueCharacterName(): string {
   return `Deletion ${letters}`
 }
 
-test('locks a character during the 24-hour deletion grace period and restores it on cancel', async ({
+test('locks pending character deletion and restores playability on cancel', async ({
   page,
 }, testInfo) => {
   test.slow()
@@ -42,7 +42,9 @@ test('locks a character during the 24-hour deletion grace period and restores it
   await scheduleButton.click()
 
   await expect(page.getByText('Deletion pending', { exact: true })).toBeVisible()
-  await expect(page.getByText('This character cannot be played during the grace period.')).toBeVisible()
+  await expect(
+    page.getByText('This character cannot be played during the grace period.'),
+  ).toBeVisible()
   await expect(page.getByRole('link', { name: `Play ${characterName}` })).toHaveCount(0)
 
   const countdown = page.getByText(/^\d{2}:\d{2}:\d{2} remaining$/)
