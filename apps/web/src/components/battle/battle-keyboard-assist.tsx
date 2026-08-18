@@ -26,7 +26,8 @@ function eventChord(event: KeyboardEvent): string {
 
 function attackModeIsActive(): boolean {
   const instruction = document.querySelector<HTMLElement>('[data-testid="combat-mode-instruction"]')
-  return instruction?.textContent?.startsWith('ACT · Choose an enemy') ?? false
+  const text = instruction?.textContent ?? ''
+  return text.startsWith('ACT · Choose an enemy') || text.startsWith('BASIC ATTACK ·')
 }
 
 function legalVisibleTargetButtons(): HTMLButtonElement[] {
@@ -35,12 +36,13 @@ function legalVisibleTargetButtons(): HTMLButtonElement[] {
   ).filter((button) => !button.disabled && !button.getAttribute('aria-label')?.includes('Wayfarer'))
 }
 
-function commandButton(label: string): HTMLButtonElement | null {
+function commandButton(...labels: string[]): HTMLButtonElement | null {
   const buttons = Array.from(
     document.querySelectorAll<HTMLButtonElement>('section[aria-label="Command Deck"] button'),
   )
   return (
-    buttons.find((button) => button.querySelector('strong')?.textContent?.trim() === label) ?? null
+    buttons.find((button) => labels.includes(button.querySelector('strong')?.textContent?.trim() ?? '')) ??
+    null
   )
 }
 
@@ -116,7 +118,8 @@ export function BattleKeyboardAssist() {
       if (action === 'move') return Boolean(commandButton('Move')?.click() ?? true)
       if (action === 'basicAttack') return Boolean(commandButton('Basic Attack')?.click() ?? true)
       if (action === 'guard') return Boolean(commandButton('Guard')?.click() ?? true)
-      if (action === 'endTurn') return Boolean(commandButton('End Turn')?.click() ?? true)
+      if (action === 'endTurn')
+        return Boolean(commandButton('End Turn', 'Facing / End Turn')?.click() ?? true)
       if (action === 'confirm') return Boolean(planningButton('Confirm command')?.click() ?? true)
       if (action === 'cancel') return Boolean(planningButton('Cancel')?.click() ?? true)
       if (action === 'faceNorth')
