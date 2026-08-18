@@ -653,9 +653,7 @@ export function BattleExperienceV2({
             : `Basic Attack resolved without damage. ${remainingEconomy} AP remains.`,
         )
       } else if (committedIntent.kind === 'action' && committedIntent.actionId === GUARD_ID) {
-        setNotice(
-          `Guarded for 2 turns at -15% incoming damage. ${remainingEconomy} AP remains.`,
-        )
+        setNotice(`Guarded for 2 turns at -15% incoming damage. ${remainingEconomy} AP remains.`)
       } else if (committedIntent.kind === 'action' && committedIntent.actionId === RECOVER_ID) {
         const beforePlayer = playerId
           ? before.snapshot.tactical.battle.combatants.find(
@@ -948,8 +946,8 @@ export function BattleExperienceV2({
             <strong>{preview.preview.legal ? 'Movement path ready' : 'Movement blocked'}</strong>
             <span>
               Cost {preview.preview.actionEconomyCost} AP · leaves{' '}
-              {preview.preview.actionEconomyAfter} AP · terrain weight{' '}
-              {preview.preview.terrainCost}.
+              {preview.preview.actionEconomyAfter} AP · terrain weight {preview.preview.terrainCost}
+              .
             </span>
           </>
         )
@@ -971,8 +969,8 @@ export function BattleExperienceV2({
           <>
             <strong>{preview.preview.legal ? 'Basic Attack ready' : 'Basic Attack blocked'}</strong>
             <span>
-              30 AP cost · {percentFromBasisPoints(preview.preview.hitChanceBasisPoints)} hit chance ·{' '}
-              {preview.preview.mitigatedBaseDamage ?? '—'} projected damage after Armor.
+              30 AP cost · {percentFromBasisPoints(preview.preview.hitChanceBasisPoints)} hit chance
+              · {preview.preview.mitigatedBaseDamage ?? '—'} projected damage after Armor.
               Front/side/rear facing still matters.
             </span>
           </>
@@ -1076,7 +1074,10 @@ export function BattleExperienceV2({
                 aria-valuemax={100}
                 aria-valuenow={playerEconomy}
               >
-                <span className={styles.economyCommitted} style={{ width: `${playerEconomy} AP` }} />
+                <span
+                  className={styles.economyCommitted}
+                  style={{ width: `${playerEconomy} AP` }}
+                />
                 {proposedEconomyCost > 0 ? (
                   <span
                     className={styles.economyProposed}
@@ -1187,7 +1188,10 @@ export function BattleExperienceV2({
                       onDoubleClick={requestQuickCommit}
                       onPointerUp={(event) => {
                         if (event.pointerType === 'touch')
-                          handleTouchQuickCommit(`tile:${positionKey(tile.position)}`, event.timeStamp)
+                          handleTouchQuickCommit(
+                            `tile:${positionKey(tile.position)}`,
+                            event.timeStamp,
+                          )
                       }}
                       aria-label={`Tile ${tile.position.x + 1}, ${tile.position.y + 1}; ${tile.terrainId}; elevation ${tile.elevation}${placement ? `; occupied by ${combatantName(placement.combatantId, playerName)}` : ''}`}
                     >
