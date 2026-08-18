@@ -18,11 +18,13 @@ This keeps Preview deployments deliberate and prevents development commits from 
 
 1. Finish and merge the implementation to `main` only after repository quality gates pass.
 2. Create or update one `preview/*` release branch at the exact `main` commit intended for testing.
-3. If the branch already points at that commit and a fresh Preview is required, use an empty commit with the same tree rather than adding a runtime source file solely to trigger Vercel.
+3. To force a fresh Preview for an otherwise unchanged tree, make one preview-only marker commit that creates or updates `apps/web/.vercel-release-trigger`. Vercel/Turborepo may cancel an empty commit as an unaffected web project, so do not rely on empty commits as release triggers.
 4. Wait for the Vercel deployment to reach `READY` and inspect build logs for errors.
 5. Smoke-test the deployed URL and check runtime logs for warnings/errors.
 6. Verify account services are enabled before treating the Preview as a full gameplay test candidate.
 7. Promote only the verified Preview to Production.
+
+The release-trigger marker is not application runtime state. It exists only on the temporary `preview/*` branch and should contain the source `main` SHA or another concise release identifier so the candidate remains auditable.
 
 ## Environment policy
 
