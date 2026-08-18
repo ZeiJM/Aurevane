@@ -2,6 +2,7 @@ import 'server-only'
 
 import type { BattleSessionRecord, BattleSessionRepository } from '@aurevane/db/battle-session'
 import {
+  PV1F_COMBAT_CONTENT,
   evaluatePv1fAction,
   evaluatePv1fMovement,
   finishPv1fTurn,
@@ -31,6 +32,10 @@ export interface BattleMovePreview {
   actionEconomyAfter: number
   destination: { x: number; y: number }
   issues: readonly BattlePreviewIssue[]
+  /** Legacy compatibility for the hidden PV-1E cockpit while PV-1F is validated. */
+  cost: number
+  /** Legacy movement projection; Action Economy is the authoritative PV-1F spend. */
+  movementRemainingAfter: number
 }
 
 export interface BattleActionPreview {
@@ -56,6 +61,8 @@ export interface BattleActionPreview {
   defenseRating: number | null
   mitigatedBaseDamage: number | null
   issues: readonly BattlePreviewIssue[]
+  /** Legacy compatibility only; PV-1F uses numeric Action Economy costs. */
+  spendsAction: boolean
 }
 
 export interface BattleFacingPreview {
@@ -73,7 +80,10 @@ export interface BattleEndTurnPreview {
 }
 
 export type BattleIntentPreview =
-  BattleMovePreview | BattleActionPreview | BattleFacingPreview | BattleEndTurnPreview
+  | BattleMovePreview
+  | BattleActionPreview
+  | BattleFacingPreview
+  | BattleEndTurnPreview
 
 export interface BattlePreviewView {
   battleSessionId: string
@@ -102,8 +112,9 @@ function persistenceInvalid(): AurevaneError {
 
 function readPersistedEncounter(record: BattleSessionRecord): StatDrivenCombatEncounterState {
   const snapshot = record.snapshot
-  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot))
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
     throw persistenceInvalid()
+  }
   try {
     const candidate = snapshot as StatDrivenCombatEncounterState
     const issues = validateStatDrivenCombatEncounterState(candidate)
@@ -147,6 +158,7 @@ function previewIntent(
     const economy = readPv1fActionEconomy(prepared)
     const before = economy?.current ?? 0
     const affordable = before >= economyCost
+    const movementRemainingBefore = prepared.tactical.battle.currentTurn?.movementRemaining ?? 0
     return {
       kind: 'move',
       legal: movement.legal && affordable,
@@ -167,6 +179,8 @@ function previewIntent(
               ),
             ]),
       ],
+      cost: movement.cost,
+      movementRemainingAfter: Math.max(0, movementRemainingBefore - movement.cost),
     }
   }
 
@@ -181,17 +195,7 @@ function previewIntent(
     const affordable = before >= cost
     const forecast =
       action.sourceType === 'basic-attack'
-        ? forecastStatDrivenAttack(prepared, action, intent.target, {
-            statuses: [
-              {
-                id: 'guarded',
-                version: 1,
-                maximumStacks: 1,
-                durationOwnerTurnStarts: 2,
-                damageTakenMultiplierBasisPoints: 8_500,
-              },
-            ],
-          })
+        ? forecastStatDrivenAttack(prepared, action, intent.target, PV1F_COMBAT_CONTENT)
         : null
     return {
       kind: 'action',
@@ -221,6 +225,7 @@ function previewIntent(
               ),
             ]),
       ],
+      spendsAction: cost > 0,
     }
   }
 
