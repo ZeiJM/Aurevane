@@ -23,6 +23,7 @@ export const CHARACTER_SLOT_COUNT = 3 as const
 export interface CharacterSlotCharacter extends PersistedCharacter {
   deletionRequestedAt: string | null
   deletionExecuteAfter: string | null
+  reselectAvailableAt: string | null
 }
 
 export function isCharacterSlotIndex(value: number): boolean {
@@ -31,7 +32,7 @@ export function isCharacterSlotIndex(value: number): boolean {
 
 export async function loadCharacterSlots(userId: string): Promise<CharacterSlotCharacter[]> {
   const supabase = createSupabaseAdminClient()
-  const { data, error } = await supabase.rpc('get_character_slots_v1', { p_user_id: userId })
+  const { data, error } = await supabase.rpc('get_character_slots_v2', { p_user_id: userId })
   if (error || !Array.isArray(data)) throw unavailable()
 
   return data.map((candidate) => {
@@ -41,15 +42,19 @@ export async function loadCharacterSlots(userId: string): Promise<CharacterSlotC
       typeof record.deletion_requested_at === 'string' ? record.deletion_requested_at : null
     const deletionExecuteAfter =
       typeof record.deletion_execute_after === 'string' ? record.deletion_execute_after : null
+    const reselectAvailableAt =
+      typeof record.reselect_available_at === 'string' ? record.reselect_available_at : null
     const base = { ...record }
     delete base.deletion_requested_at
     delete base.deletion_execute_after
+    delete base.reselect_available_at
     const row = parseCharacterPersistenceRow(base)
     if (!row) throw unavailable()
     return {
       ...toPersistedCharacter(row),
       deletionRequestedAt,
       deletionExecuteAfter,
+      reselectAvailableAt,
     }
   })
 }
@@ -63,6 +68,43 @@ export async function findPlayableOwnedCharacterById(
   )
   if (!character || character.deletionExecuteAfter) return null
   return character
+}
+
+export async function authorizeCharacterSelection(command: {
+  userId: string
+  fromCharacterId: string | null
+  toCharacterId: string
+}): Promise<void> {
+  const supabase = createSupabaseAdminClient()
+  const { error } = await supabase.rpc('switch_character_v1', {
+    p_user_id: command.userId,
+    p_from_character_id: command.fromCharacterId,
+    p_to_character_id: command.toCharacterId,
+  })
+
+  if (!error) return
+
+  if (error.message.includes('CHARACTER_RESELECT_COOLDOWN')) {
+    const timestamp = typeof error.details === 'string' ? Date.parse(error.details) : Number.NaN
+    const suffix = Number.isFinite(timestamp)
+      ? ` You can return after ${new Date(timestamp).toLocaleTimeString('en', {
+          hour: 'numeric',
+          minute: '2-digit',
+          timeZone: 'UTC',
+          timeZoneName: 'short',
+        })}.`
+      : ''
+    throw new AurevaneError(
+      'CHARACTER_RESELECT_COOLDOWN',
+      `That character is resting after a swap. The one-hour return cooldown is still active.${suffix}`,
+    )
+  }
+
+  if (error.message.includes('CHARACTER_NOT_PLAYABLE')) {
+    throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
+  }
+
+  throw unavailable()
 }
 
 export async function createCharacterInSlot(command: {
@@ -80,7 +122,11 @@ export async function createCharacterInSlot(command: {
     seed = buildInitialCharacterState(command.intent)
   } catch (error) {
     if (error instanceof CharacterCreationRuleError) {
-      throw new AurevaneError('INVALID_REQUEST', 'Review the highlighted character choices.')
+      const firstIssue = error.issues[0]
+      throw new AurevaneError(
+        'INVALID_REQUEST',
+        firstIssue?.message ?? 'Review the character choices and try again.',
+      )
     }
     throw error
   }
@@ -88,7 +134,7 @@ export async function createCharacterInSlot(command: {
   const requestFingerprint = createHash('sha256')
     .update(
       JSON.stringify({
-        command: 'character.create.v2',
+        command: 'character.create.v3',
         slotIndex: command.slotIndex,
         rulesVersion: seed.rulesVersion,
         name: seed.name,
@@ -104,7 +150,7 @@ export async function createCharacterInSlot(command: {
     .digest('hex')
 
   const supabase = createSupabaseAdminClient()
-  const { data, error } = await supabase.rpc('create_character_v2', {
+  const { data, error } = await supabase.rpc('create_character_v3', {
     p_user_id: command.actor.userId,
     p_slot_index: command.slotIndex,
     p_idempotency_key: command.idempotencyKey,
@@ -119,6 +165,8 @@ export async function createCharacterInSlot(command: {
     p_foundation_discipline_id: seed.foundationDisciplineId,
     p_might: seed.attributes.might,
     p_finesse: seed.attributes.finesse,
+    p_vitality: seed.attributes.vitality,
+    p_agility: seed.attributes.agility,
     p_intellect: seed.attributes.intellect,
     p_resolve: seed.attributes.resolve,
   })
@@ -211,6 +259,8 @@ function toPersistedCharacter(row: CharacterPersistenceRow): PersistedCharacter 
     attributes: {
       might: row.might,
       finesse: row.finesse,
+      vitality: row.vitality,
+      agility: row.agility,
       intellect: row.intellect,
       resolve: row.resolve,
     },
