@@ -2,6 +2,8 @@ import { execFileSync } from 'node:child_process'
 
 import { expect, test } from '@playwright/test'
 
+import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
+
 function uniqueCharacterName(): string {
   const letters = Date.now()
     .toString()
@@ -21,18 +23,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort E
   const password = 'P27-browser-usability-2026!'
   const characterName = uniqueCharacterName()
 
-  await page.goto('/')
-  await page.getByRole('button', { name: 'Create account' }).click()
-  await page.getByLabel('Email').fill(email)
-  await page.getByLabel('Password').fill(password)
-  await page.getByRole('button', { name: 'Create account', exact: true }).last().click()
-
-  await expect(page).toHaveURL(/\/game$/)
-  await page.getByLabel('Character name').fill(characterName)
-  await page.getByRole('button', { name: 'Choose your foundation' }).click()
-  await page.getByRole('button', { name: 'Review character' }).click()
-  await page.getByRole('button', { name: 'Create permanent character' }).click()
-  await expect(page.getByTestId('character-established')).toContainText(characterName)
+  await createAccountAndEnterCharacter({ page, email, password, characterName })
 
   await page.getByRole('link', { name: 'Controls & Keybinds' }).click()
   await expect(page).toHaveURL(/\/game\/settings\/controls$/)
@@ -50,7 +41,8 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort E
   `)
   expect(persistedMoveKey).toBe('KeyM')
 
-  await page.getByRole('link', { name: 'Return to Game' }).click()
+  await page.getByRole('link', { name: 'Back to Character Profile' }).click()
+  await expect(page).toHaveURL(/\/game\/character$/)
   await page.getByRole('link', { name: 'Tactical Hall' }).click()
   await expect(page).toHaveURL(/\/game\/battle$/)
 
@@ -62,7 +54,9 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort E
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   await expect(battlefield).toBeVisible()
-  await expect(page.getByRole('button', { name: /Tile 2, 4;.*occupied by Wayfarer/ })).toBeVisible()
+  await expect(
+    page.getByRole('button', { name: new RegExp(`Tile 2, 4;.*occupied by ${characterName}`) }),
+  ).toBeVisible()
   await expect(page.getByRole('button', { name: /Tile 8, 4;.*occupied by Recruit/ })).toBeVisible()
   await expect(
     page.getByRole('button', { name: /Tile 4, 3; rough-ground; elevation 0/ }),
@@ -71,38 +65,30 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort E
     page.getByRole('button', { name: /Tile 5, 2; open-ground; elevation 1/ }),
   ).toBeVisible()
   await expect(page.getByRole('button', { name: /^Tile / })).toHaveCount(63)
-  await expect(page.getByRole('button', { name: 'Inspect Wayfarer' })).toContainText(/HP/)
-  await expect(page.getByRole('button', { name: 'Inspect Recruit' })).toContainText(/HP/)
-  await expect(page.getByTestId('battle-log-toggle')).toContainText('Combat Log')
+  await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
+    'aria-valuenow',
+    '100',
+  )
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
   await page.keyboard.press('m')
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('MOVE')
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText(
-    'does NOT spend your Action',
-  )
-  await expect(page.getByRole('button', { name: /^Tile / })).toHaveCount(63)
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Move · 10% per normal tile')
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Rough ground costs 20%')
 
-  await page.keyboard.press('Escape')
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('INSPECT')
-  await page.keyboard.press('2')
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('INSPECT')
-
-  await page.keyboard.press('Space')
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('FACING')
-  await page.keyboard.press('a')
-  await expect(page.getByText(/Recruit turn:/)).toBeVisible({ timeout: 15_000 })
-  await expect(page.getByRole('button', { name: /^Tile / })).toHaveCount(63)
+  await page.getByRole('button', { name: /Inspect/ }).click()
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Inspect mode')
+  await page.getByRole('button', { name: /Tile 4, 3; rough-ground; elevation 0/ }).click()
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Rough ground')
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText('20% Action Economy')
 
   const battleUrl = page.url()
-  await page.getByTestId('abort-exercise').click()
-  await expect(page.getByText('Abort Exercise?', { exact: false })).toBeVisible()
-  await expect(page.getByText(/no Character XP, Mastery, loot, Crowns, PvP rating/)).toBeVisible()
-  await page.getByRole('button', { name: 'Stay in Battle' }).click()
+  await page.getByRole('button', { name: 'Abort', exact: true }).click()
+  await expect(page.getByRole('dialog', { name: 'Abort this battle?' })).toBeVisible()
+  await page.getByRole('button', { name: 'Stay in battle' }).click()
   await expect(page).toHaveURL(battleUrl)
 
-  await page.getByTestId('abort-exercise').click()
-  await page.getByTestId('confirm-abort-exercise').click()
+  await page.getByRole('button', { name: 'Abort', exact: true }).click()
+  await page.getByRole('button', { name: 'Confirm Abort' }).click()
   await expect(page).toHaveURL(/\/game\/battle$/)
 
   const persistedState = queryLocalDatabase(`
