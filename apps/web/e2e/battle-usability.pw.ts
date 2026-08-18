@@ -43,7 +43,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort E
 
   await page.getByRole('link', { name: 'Back to Character Profile' }).click()
   await expect(page).toHaveURL(/\/game\/character$/)
-  await page.getByRole('link', { name: 'Tactical Hall' }).click()
+  await page.getByRole('link', { name: 'Tactical Hall', exact: true }).click()
   await expect(page).toHaveURL(/\/game\/battle$/)
 
   const recruitRecord = page.getByRole('button', { name: /FULL DUEL.*Recruit Sparring Partner/ })
