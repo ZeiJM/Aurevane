@@ -37,14 +37,9 @@ export default async function ControlsSettingsPage() {
   )
 
   return (
-    <AuthenticatedShellFrame
-      sessionLabel="Controls"
-      footerLabel={`${character.name} · Controls`}
-      backHref="/game/character"
-      backLabel="Back to Character Profile"
-    >
+    <AuthenticatedShellFrame sessionLabel="Account · Controls">
       <Surface tone="elevated">
-        <Kicker marker="◇">Settings</Kicker>
+        <Kicker marker="◇">Account Settings</Kicker>
         <h1>Controls &amp; Keybinds</h1>
         <CombatControlsSettings initialBindings={combatKeybinds} />
       </Surface>
