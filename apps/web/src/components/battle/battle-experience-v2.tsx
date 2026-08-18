@@ -589,7 +589,11 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
       }
       setBattle(nextBattle)
       setProvisionalFacing(activeFacingForBattle(nextBattle))
-      setSelectedUnitId(recruitId)
+      setSelectedUnitId(
+        nextBattle.snapshot.statBridge.combatants.find(
+          (profile) => profile.provenance.kind === 'scenario',
+        )?.combatantId ?? null,
+      )
       setNotice(describeRecruitTurn(before, nextBattle, body.battle.decisions))
     } catch (error) {
       setRecruitFailed(true)
@@ -604,7 +608,6 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
     currentTurn,
     handleApiFailure,
     playerTurn,
-    recruitId,
     recruitPending,
     resetPlanning,
   ])
