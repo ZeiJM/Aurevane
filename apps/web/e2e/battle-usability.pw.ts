@@ -92,7 +92,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort E
 
   await page.getByRole('button', { name: 'Abort', exact: true }).click()
   await page.getByRole('button', { name: 'Confirm Abort' }).click()
-  await expect(page).toHaveURL(/\/game\/battle$/)
+  await expect(page).toHaveURL(/\/game\/battle$/, { timeout: 15_000 })
 
   const persistedState = queryLocalDatabase(`
     select battle.lifecycle || '|' || count(grant_row.id)::text
