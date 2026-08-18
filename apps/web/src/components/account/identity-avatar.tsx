@@ -17,7 +17,7 @@ export function IdentityAvatar({
 
   useEffect(() => setFailed(false), [src])
 
-  if (!src || failed) return <span className={className}>{fallback}</span>
+  if (!src || failed) return <b className={className}>{fallback}</b>
 
   return (
     // A normal img intentionally preserves animated GIFs and arbitrary direct HTTPS image hosts.
