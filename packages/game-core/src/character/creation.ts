@@ -423,7 +423,7 @@ export function buildInitialCharacterState(input: unknown): InitialCharacterStat
   return {
     rulesVersion: CHARACTER_CREATION_RULES_V1.version,
     name: validation.value.name,
-    nameKey,
+    nameKey: validation.value.nameKey,
     presentationId: validation.value.presentationId,
     pronounPresetId: validation.value.pronounPresetId,
     portraitRef: validation.value.portraitRef,
