@@ -423,7 +423,7 @@ export function BattleExperienceV2({
       if (pendingIntent.actionId === RECOVER_ID) return RECOVER_COST
       return 0
     }
-    if (!playerPlacement) return 0
+    if (pendingIntent.kind !== 'move' || !playerPlacement) return 0
     return pendingIntent.path.slice(1).reduce((total, position) => {
       const tile = tileByKey.get(positionKey(position))
       if (!tile) return total
