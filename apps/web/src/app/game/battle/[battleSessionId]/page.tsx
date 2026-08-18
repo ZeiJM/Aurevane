@@ -5,8 +5,7 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 import { BattleAudioGate } from '@/components/battle/battle-audio-gate'
-import { BattleExperienceV2 } from '@/components/battle/battle-experience-v2'
-import { BattleKeyboardAssist } from '@/components/battle/battle-keyboard-assist'
+import { BattleSessionClientBoundary } from '@/components/battle/battle-session-client-boundary'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
@@ -74,12 +73,11 @@ export default async function BattleSessionPage({
 
   return (
     <BattleAudioGate>
-      <BattleExperienceV2
+      <BattleSessionClientBoundary
         initialBattle={battle}
         playerName={character.name}
         playerPortraitAssetId={getStarterPortraitImageAssetId(character.portraitRef)}
       />
-      <BattleKeyboardAssist />
     </BattleAudioGate>
   )
 }
