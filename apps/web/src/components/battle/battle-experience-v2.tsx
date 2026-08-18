@@ -1407,6 +1407,14 @@ export function BattleExperienceV2({
               <div className={styles.chatHeading}>
                 <strong>Battle Chat</strong>
                 <span>Solo channel</span>
+                <button
+                  type="button"
+                  className={styles.chatClose}
+                  aria-label="Close battle chat"
+                  onClick={() => setOverlay(null)}
+                >
+                  ×
+                </button>
               </div>
               <div className={styles.chatMessages} aria-live="polite">
                 {chatMessages.length === 0 ? (

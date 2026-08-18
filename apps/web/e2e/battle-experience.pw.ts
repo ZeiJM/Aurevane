@@ -63,7 +63,7 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
   await page.getByLabel('Battle chat message').fill('Testing solo battle chat')
   await page.getByRole('button', { name: 'Send' }).click()
   await expect(page.getByText('Testing solo battle chat', { exact: true })).toBeVisible()
-  await page.getByRole('button', { name: /Chat Self/ }).click()
+  await page.getByRole('button', { name: 'Close battle chat' }).click()
 
   await page.getByRole('button', { name: `Show ${characterName} combat details` }).click()
   await expect(page.getByText(`${characterName} · combat details`)).toBeVisible()

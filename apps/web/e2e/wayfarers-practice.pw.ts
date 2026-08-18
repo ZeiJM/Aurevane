@@ -28,7 +28,7 @@ test('sets one authoritative Practice plan and freezes overflow as Balanced fall
 
   const planner = page.getByTestId('practice-plan-card')
   await expect(planner).toBeVisible()
-  await expect(planner).toContainText('Offline Training')
+  await expect(planner).toContainText('Practice Plan')
   await expect(planner).toContainText('Balanced default')
   await expect(planner).toContainText('Short')
   await expect(planner).toContainText('3h 0m')
