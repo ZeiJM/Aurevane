@@ -25,7 +25,7 @@ import {
 } from './stat-driven-combat'
 
 export const PV1F_ACTION_ECONOMY_MAXIMUM = 100 as const
-export const PV1F_MOVEMENT_COST_PER_TERRAIN_POINT = 10 as const
+export const PV1F_MOVEMENT_COST_PER_TERRAIN_POINT = 25 as const
 export const PV1F_BASIC_ATTACK_COST = 30 as const
 export const PV1F_GUARD_COST = 30 as const
 export const PV1F_RECOVER_COST = 50 as const
