@@ -86,7 +86,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort B
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Inspect mode')
   await page.getByRole('button', { name: /Tile 4, 3; rough-ground; elevation 0/ }).click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Rough ground')
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('50% Action Economy')
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText('50 AP')
 
   const battleUrl = page.url()
   await page.getByRole('button', { name: 'Abort Battle', exact: true }).click()

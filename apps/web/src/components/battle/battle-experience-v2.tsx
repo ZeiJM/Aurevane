@@ -632,7 +632,7 @@ export function BattleExperienceV2({
       const remainingEconomy = readEconomy(actorAfter)
 
       if (committedIntent.kind === 'move') {
-        setNotice(`Movement committed. ${remainingEconomy}% Action Economy remains.`)
+        setNotice(`Movement committed. ${remainingEconomy} AP remains.`)
       } else if (
         committedIntent.kind === 'action' &&
         committedIntent.actionId === BASIC_ATTACK_ID
@@ -649,12 +649,12 @@ export function BattleExperienceV2({
           targetBefore && targetAfter ? Math.max(0, targetBefore.hp - targetAfter.hp) : 0
         setNotice(
           damage > 0
-            ? `Basic Attack dealt ${damage} damage. ${remainingEconomy}% Action Economy remains.`
-            : `Basic Attack resolved without damage. ${remainingEconomy}% Action Economy remains.`,
+            ? `Basic Attack dealt ${damage} damage. ${remainingEconomy} AP remains.`
+            : `Basic Attack resolved without damage. ${remainingEconomy} AP remains.`,
         )
       } else if (committedIntent.kind === 'action' && committedIntent.actionId === GUARD_ID) {
         setNotice(
-          `Guarded for 2 turns at -15% incoming damage. ${remainingEconomy}% Action Economy remains.`,
+          `Guarded for 2 turns at -15% incoming damage. ${remainingEconomy} AP remains.`,
         )
       } else if (committedIntent.kind === 'action' && committedIntent.actionId === RECOVER_ID) {
         const beforePlayer = playerId
@@ -663,7 +663,7 @@ export function BattleExperienceV2({
             )
           : null
         const healed = beforePlayer && actorAfter ? Math.max(0, actorAfter.hp - beforePlayer.hp) : 0
-        setNotice(`Recovered ${healed} HP. ${remainingEconomy}% Action Economy remains.`)
+        setNotice(`Recovered ${healed} HP. ${remainingEconomy} AP remains.`)
       }
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'That action could not be committed.')
@@ -918,7 +918,7 @@ export function BattleExperienceV2({
               Entry costs{' '}
               {selectedTerrainCost === null
                 ? 'blocked'
-                : `${selectedTerrainCost * MOVE_COST_PER_TERRAIN_POINT}% Action Economy`}{' '}
+                : `${selectedTerrainCost * MOVE_COST_PER_TERRAIN_POINT} AP`}{' '}
               · Elevation {selectedTile.elevation} ·{' '}
               {playerTurn
                 ? selectedTileReachable
@@ -947,8 +947,8 @@ export function BattleExperienceV2({
           <>
             <strong>{preview.preview.legal ? 'Movement path ready' : 'Movement blocked'}</strong>
             <span>
-              Cost {preview.preview.actionEconomyCost}% · leaves{' '}
-              {preview.preview.actionEconomyAfter}% Action Economy · terrain weight{' '}
+              Cost {preview.preview.actionEconomyCost} AP · leaves{' '}
+              {preview.preview.actionEconomyAfter} AP · terrain weight{' '}
               {preview.preview.terrainCost}.
             </span>
           </>
@@ -971,7 +971,7 @@ export function BattleExperienceV2({
           <>
             <strong>{preview.preview.legal ? 'Basic Attack ready' : 'Basic Attack blocked'}</strong>
             <span>
-              30% cost · {percentFromBasisPoints(preview.preview.hitChanceBasisPoints)} hit chance ·{' '}
+              30 AP cost · {percentFromBasisPoints(preview.preview.hitChanceBasisPoints)} hit chance ·{' '}
               {preview.preview.mitigatedBaseDamage ?? '—'} projected damage after Armor.
               Front/side/rear facing still matters.
             </span>
@@ -980,7 +980,7 @@ export function BattleExperienceV2({
       }
       return (
         <>
-          <strong>Basic Attack · 30%</strong>
+          <strong>Basic Attack · 30 AP</strong>
           <span>
             Choose the enemy. Damage scales from Level, Might, and Finesse, then Armor and facing
             modify the result.
@@ -992,7 +992,7 @@ export function BattleExperienceV2({
     if (mode === 'guard') {
       return (
         <>
-          <strong>Guard · 30%</strong>
+          <strong>Guard · 30 AP</strong>
           <span>Reduce incoming damage by 15% for 2 turns. Confirm to commit.</span>
         </>
       )
@@ -1000,7 +1000,7 @@ export function BattleExperienceV2({
     if (mode === 'recover') {
       return (
         <>
-          <strong>Recover · 50%</strong>
+          <strong>Recover · 50 AP</strong>
           <span>Restore 10% of maximum HP immediately. Cannot exceed maximum HP.</span>
         </>
       )
@@ -1024,8 +1024,7 @@ export function BattleExperienceV2({
     }
   }
 
-  function handleTouchCommit(position: GridPosition, at: number) {
-    const key = positionKey(position)
+  function handleTouchQuickCommit(key: string, at: number) {
     if (lastTouch.current?.key === key && at - lastTouch.current.at <= 360) {
       lastTouch.current = null
       requestQuickCommit()
@@ -1063,9 +1062,9 @@ export function BattleExperienceV2({
               <div>
                 <span>Action Economy</span>
                 <strong>
-                  {playerEconomy}%
+                  {playerEconomy} AP
                   {proposedEconomyCost > 0 ? (
-                    <small> − {proposedEconomyCost}% proposed</small>
+                    <small> − {proposedEconomyCost} AP proposed</small>
                   ) : null}
                 </strong>
               </div>
@@ -1077,7 +1076,7 @@ export function BattleExperienceV2({
                 aria-valuemax={100}
                 aria-valuenow={playerEconomy}
               >
-                <span className={styles.economyCommitted} style={{ width: `${playerEconomy}%` }} />
+                <span className={styles.economyCommitted} style={{ width: `${playerEconomy} AP` }} />
                 {proposedEconomyCost > 0 ? (
                   <span
                     className={styles.economyProposed}
@@ -1188,7 +1187,7 @@ export function BattleExperienceV2({
                       onDoubleClick={requestQuickCommit}
                       onPointerUp={(event) => {
                         if (event.pointerType === 'touch')
-                          handleTouchCommit(tile.position, event.timeStamp)
+                          handleTouchQuickCommit(`tile:${positionKey(tile.position)}`, event.timeStamp)
                       }}
                       aria-label={`Tile ${tile.position.x + 1}, ${tile.position.y + 1}; ${tile.terrainId}; elevation ${tile.elevation}${placement ? `; occupied by ${combatantName(placement.combatantId, playerName)}` : ''}`}
                     >
@@ -1274,7 +1273,7 @@ export function BattleExperienceV2({
               <CommandButton
                 number="02"
                 label="Basic Attack"
-                cost="30%"
+                cost="30 AP"
                 active={mode === 'attack'}
                 disabled={planningDisabled || playerEconomy < ATTACK_COST}
                 onClick={() => chooseMode('attack')}
@@ -1282,15 +1281,20 @@ export function BattleExperienceV2({
               <CommandButton
                 number="03"
                 label="Guard"
-                cost="30%"
+                cost="30 AP"
                 active={mode === 'guard'}
                 disabled={planningDisabled || playerEconomy < GUARD_COST}
                 onClick={() => chooseMode('guard')}
+                onDoubleClick={requestQuickCommit}
+                onPointerUp={(event) => {
+                  if (event.pointerType === 'touch')
+                    handleTouchQuickCommit('command:guard', event.timeStamp)
+                }}
               />
               <CommandButton
                 number="04"
                 label="Recover"
-                cost="50%"
+                cost="50 AP"
                 active={mode === 'recover'}
                 disabled={
                   planningDisabled ||
@@ -1299,6 +1303,11 @@ export function BattleExperienceV2({
                   playerCombatant.hp >= playerCombatant.maxHp
                 }
                 onClick={() => chooseMode('recover')}
+                onDoubleClick={requestQuickCommit}
+                onPointerUp={(event) => {
+                  if (event.pointerType === 'touch')
+                    handleTouchQuickCommit('command:recover', event.timeStamp)
+                }}
               />
               <CommandButton
                 number="05"
@@ -1486,6 +1495,8 @@ function CommandButton({
   active,
   disabled,
   onClick,
+  onDoubleClick,
+  onPointerUp,
 }: {
   number: string
   label: string
@@ -1493,6 +1504,8 @@ function CommandButton({
   active: boolean
   disabled: boolean
   onClick: () => void
+  onDoubleClick?: () => void
+  onPointerUp?: (event: React.PointerEvent<HTMLButtonElement>) => void
 }) {
   return (
     <button
@@ -1500,6 +1513,8 @@ function CommandButton({
       className={active ? styles.commandActive : ''}
       disabled={disabled}
       onClick={onClick}
+      onDoubleClick={onDoubleClick}
+      onPointerUp={onPointerUp}
     >
       <span>{number}</span>
       <strong>{label}</strong>
