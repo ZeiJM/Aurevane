@@ -7,7 +7,6 @@ import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadCharacterSlots } from '@/server/character/character-slot-service'
-import { readCreationSlot } from '@/server/character/selected-character'
 
 export const dynamic = 'force-dynamic'
 
@@ -26,12 +25,5 @@ export default async function CharacterSelectPage() {
   }
 
   const characters = await loadCharacterSlots(actor.userId)
-  const requestedCreationSlot = await readCreationSlot()
-  const creationSlot =
-    requestedCreationSlot !== null &&
-    !characters.some((character) => character.slotIndex === requestedCreationSlot)
-      ? requestedCreationSlot
-      : null
-
-  return <CharacterSelectShell characters={characters} creationSlot={creationSlot} />
+  return <CharacterSelectShell characters={characters} />
 }
