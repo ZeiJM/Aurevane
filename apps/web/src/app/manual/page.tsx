@@ -7,7 +7,8 @@ import { manualArticles } from '@/content/public-information'
 
 export const metadata: Metadata = {
   title: 'Adventurer’s Guide | AUREVANE',
-  description: 'The spoiler-safe public guide to AUREVANE’s released systems.',
+  description:
+    'The spoiler-safe public guide to AUREVANE’s released and currently testable systems.',
 }
 
 export default function ManualPage() {
@@ -18,18 +19,19 @@ export default function ManualPage() {
           <span className={styles.eyebrow}>Adventurer’s Guide</span>
           <h1 id="manual-title">Manual</h1>
           <p>
-            The canonical guide to what AUREVANE is and how its released systems work. Planned
-            mechanics are labelled as planned instead of being presented as playable today.
+            The canonical guide to what AUREVANE is and how its released or currently testable
+            systems work. Planned mechanics are labelled as planned instead of being presented as
+            playable today.
           </p>
         </div>
         <aside className={styles.heroPanel} aria-label="Manual editorial boundary">
           <span className={styles.heroGlyph} aria-hidden="true">
             ◆
           </span>
-          <strong>Released systems first.</strong>
+          <strong>Current systems first.</strong>
           <p>
-            Stable deep links, current-rule notes, and a source-controlled content model keep this
-            guide useful now without prematurely building a CMS.
+            The Manual now covers the playable foundation and Tactical Hall test slice. Articles
+            marked Planned provide roadmap context only and are not live-rule promises.
           </p>
         </aside>
       </section>
@@ -38,11 +40,11 @@ export default function ManualPage() {
         <div className={styles.sectionHeader}>
           <div>
             <span className={styles.eyebrow}>Browse the guide</span>
-            <h2 id="manual-index-title">Phase 1 foundations</h2>
+            <h2 id="manual-index-title">Current guide & approved direction</h2>
           </div>
           <p>
-            Start with orientation, then use the focused articles as canonical help for the systems
-            already exposed to players.
+            Start with orientation, use the focused articles for systems you can play now, and treat
+            the clearly marked Road Ahead article as planning context until those systems ship.
           </p>
         </div>
 
