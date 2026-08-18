@@ -7,8 +7,12 @@ import styles from './navigation-menu.module.css'
 
 const navigation = [
   { href: '/game/character', label: 'Profile', detail: 'Character sheet and build' },
-  { href: '/game/battle', label: 'Battle Hall', detail: 'Practice and combat' },
-  { href: '/game/training', label: 'Offline Training', detail: 'Plan progress while away' },
+  { href: '/game/battle', label: 'Battle Hall', detail: 'Practice fights and combat' },
+  {
+    href: '/game/training',
+    label: "Wayfarer's Practice",
+    detail: 'Plan modest progress while away',
+  },
 ] as const
 
 export function NavigationMenu() {
