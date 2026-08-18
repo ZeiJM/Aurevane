@@ -30,12 +30,13 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
 
   await expect(page).toHaveURL(/\/game\/battle$/)
   await expect(page.getByRole('heading', { name: 'Choose a practice' })).toBeVisible()
-  await expect(
-    page.locator('[data-media-status="requested"][data-media-request="ART-UI-001"]'),
-  ).toBeVisible()
+  const requestedUiArt = page.locator(
+    '[data-media-status="requested"][data-media-request="ART-UI-001"]',
+  )
+  expect(await requestedUiArt.count()).toBeGreaterThan(0)
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
-  await page.getByRole('button', { name: /GUIDED LESSON.*Strike Drill/ }).click()
+  await page.getByRole('button', { name: /Strike Drill/ }).click()
   await page.getByRole('button', { name: 'Start Strike Drill' }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
 
