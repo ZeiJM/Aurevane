@@ -43,7 +43,7 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
     {
       window: 'overnight',
       seconds: practice.overnightWindowSeconds,
-      description: 'A normal overnight absence.',
+      description: 'A normal sleep or overnight absence.',
     },
     {
       window: 'extended',
@@ -73,15 +73,13 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
       })
       const payload = (await response.json()) as { error?: { message?: string } }
       if (!response.ok) {
-        setErrorMessage(payload.error?.message ?? 'The offline training plan could not be set.')
+        setErrorMessage(payload.error?.message ?? "Wayfarer's Practice could not be set.")
         return
       }
       retryKey.current = null
       router.refresh()
     } catch {
-      setErrorMessage(
-        'The offline training plan could not reach the server. You can safely try again.',
-      )
+      setErrorMessage("Wayfarer's Practice could not reach the server. You can safely try again.")
     } finally {
       setSubmittingWindow(null)
     }
@@ -95,37 +93,38 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
     >
       <div className={styles.heading}>
         <div>
-          <Kicker marker="◇">Offline Training Plan</Kicker>
-          <h2 id="practice-plan-title">Choose an absence plan</h2>
+          <Kicker marker="◇">Practice Plan</Kicker>
+          <h2 id="practice-plan-title">How long do you expect to be away?</h2>
         </div>
         <span>{practice.plannedWindow ? 'Plan set' : 'Balanced default'}</span>
       </div>
 
       <p className={styles.intro}>
-        Pick roughly how long you expect to be away. This is not a timer you must wait through: the
-        server measures your real absence after you leave and credits only legitimate elapsed time.
+        Choose the window that best matches your next absence. It is only a planning estimate—not a
+        countdown or a promise. The server credits the time you were genuinely offline, and Balanced
+        Practice still applies safely if you leave without setting anything.
       </p>
 
       <dl className={styles.status}>
         <div>
-          <dt>Next absence</dt>
+          <dt>Next practice</dt>
           <dd>
             {practice.plannedWindow && practice.plannedWindowSeconds
               ? `${LABELS[practice.plannedWindow]} · ${formatPracticeDuration(practice.plannedWindowSeconds)}`
-              : 'Automatic Balanced Training'}
+              : 'Automatic Balanced Practice'}
           </dd>
         </div>
         <div>
-          <dt>Training begins after</dt>
-          <dd>{formatPracticeDuration(practice.minimumOfflineSeconds)} offline</dd>
+          <dt>Offline threshold</dt>
+          <dd>{formatPracticeDuration(practice.minimumOfflineSeconds)}</dd>
         </div>
         <div>
-          <dt>Rested Momentum stored</dt>
+          <dt>Rested Momentum</dt>
           <dd>{practice.restedMomentumBalance.toLocaleString('en-US')}</dd>
         </div>
       </dl>
 
-      <div className={styles.windowGrid} aria-label="Offline Training plan windows">
+      <div className={styles.windowGrid} aria-label="Wayfarer's Practice plan windows">
         {windows.map((option) => (
           <div className={styles.window} key={option.window}>
             <div>
@@ -150,9 +149,9 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
       </div>
 
       <p className={styles.note}>
-        Returning earlier simply credits less time. Staying away longer safely falls back to
-        Balanced Training for any remaining eligible time. The plan is consumed when the next
-        Training Report is created.
+        Return early and you receive credit only for the eligible time actually away. Stay away
+        longer and remaining eligible time safely falls back to Balanced Practice. No browser clock
+        can manufacture progress.
       </p>
 
       {errorMessage ? (
