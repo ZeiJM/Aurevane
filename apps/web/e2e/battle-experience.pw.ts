@@ -67,16 +67,16 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
   await page.getByRole('button', { name: /Tile 4, 2; open-ground; elevation 0/ }).click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Movement path ready')
   await expect(page.getByTestId('combat-mode-instruction')).toContainText(
-    'leaves 70% Action Economy',
+    'leaves 60% Action Economy',
   )
   await expect(confirmButton).toBeEnabled()
   await confirmButton.click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText(
-    'Movement committed. 70% Action Economy remains.',
+    'Movement committed. 60% Action Economy remains.',
   )
   await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
     'aria-valuenow',
-    '70',
+    '60',
   )
 
   await attackButton.click()
@@ -87,7 +87,7 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
   await expect(page.getByTestId('combat-mode-instruction')).toContainText(/Basic Attack/)
   await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
     'aria-valuenow',
-    '40',
+    '30',
   )
   await expect(attackButton).toBeEnabled()
 
