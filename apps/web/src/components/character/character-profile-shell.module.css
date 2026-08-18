@@ -42,7 +42,7 @@
 .nameLine {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.55rem;
+  gap: 0.42rem;
   align-items: center;
   margin: 0.25rem 0 0.15rem;
 }
@@ -52,18 +52,28 @@
   font: 500 clamp(2rem, 4vw, 3.4rem)/0.94 var(--av-font-display);
 }
 
-.titlePill {
+.disciplinePill,
+.personalTitlePill {
   display: inline-flex;
   min-height: 1.6rem;
   align-items: center;
   padding: 0.3rem 0.55rem;
-  border: 1px solid rgba(207, 169, 93, 0.46);
   border-radius: 999px;
-  color: var(--av-brass-300);
-  background: rgba(207, 169, 93, 0.08);
   font: 700 0.54rem/1 var(--av-font-mono);
   letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+.disciplinePill {
+  border: 1px solid rgba(207, 169, 93, 0.46);
+  color: var(--av-brass-300);
+  background: rgba(207, 169, 93, 0.08);
+}
+
+.personalTitlePill {
+  border: 1px solid rgba(103, 190, 137, 0.5);
+  color: #a0d9b5;
+  background: rgba(65, 139, 94, 0.11);
 }
 
 .subtitle {
