@@ -1153,6 +1153,7 @@
 
 @media (max-width: 880px) {
   .shell {
+    grid-template-rows: auto auto auto;
     height: auto;
     min-height: calc(100dvh - 7rem);
     overflow: visible;
