@@ -29,12 +29,7 @@ export default async function BattleLaunchPage() {
   if (!character) redirect('/game')
 
   return (
-    <AuthenticatedShellFrame
-      sessionLabel="Tactical Hall"
-      footerLabel={`${character.name} · Tactical Hall`}
-      backHref="/game/character"
-      backLabel="Back to Character Profile"
-    >
+    <AuthenticatedShellFrame sessionLabel="Battle Hall">
       <BattleLaunch characterId={character.id} characterName={character.name} />
     </AuthenticatedShellFrame>
   )
