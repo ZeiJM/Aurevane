@@ -99,9 +99,27 @@ if create_character_sql "$user_one" 3 '00000000-0000-4000-8000-000000000807' 'p1
 fi
 grep -Fq 'CHARACTER_SLOT_INVALID' /tmp/p13-invalid-slot.err
 
-if create_character_sql "$user_one" 2 '00000000-0000-4000-8000-000000000808' 'p13:invalid-attribute' 'Weak Vale' 'weakvale' >/tmp/p13-unused.out 2>/tmp/p13-unused.err; then
-  :
+if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  set role service_role;
+  select * from public.create_character_v3(
+    '$user_one'::uuid,
+    2::smallint,
+    '00000000-0000-4000-8000-000000000808'::uuid,
+    'p13:invalid-attribute',
+    1,
+    'Weak Vale',
+    'weakvale',
+    'androgynous',
+    'they_them',
+    'portrait.starter.wayfarer-01',
+    'appearance.starter.roadworn',
+    'vanguard',
+    6, 6, 0, 6, 6, 6
+  );" >/tmp/p13-invalid-attribute.out 2>/tmp/p13-invalid-attribute.err; then
+  echo 'Expected invalid six-attribute persistence input to fail.' >&2
+  exit 1
 fi
+grep -Fq 'CHARACTER_ATTRIBUTE_INVALID' /tmp/p13-invalid-attribute.err
 
 if create_character_sql "$user_one" 0 "$key_one" 'p13:different' 'Arlen Vale' 'arlenvale' >/tmp/p13-idempotency.out 2>/tmp/p13-idempotency.err; then
   echo 'Expected conflicting idempotency fingerprint to fail.' >&2
