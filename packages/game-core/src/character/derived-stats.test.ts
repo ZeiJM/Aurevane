@@ -10,6 +10,8 @@ import {
 const balancedAttributes = {
   might: 6,
   finesse: 6,
+  vitality: 6,
+  agility: 6,
   intellect: 6,
   resolve: 6,
 }
@@ -65,11 +67,38 @@ describe('derived stat framework', () => {
         }),
       ]),
     )
+    expect(snapshot.stats.maxHp.contributions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sourceKind: 'attribute',
+          sourceId: 'character.attribute.vitality',
+          inputValue: 6,
+          coefficient: 12,
+        }),
+      ]),
+    )
+    expect(snapshot.stats.movement.contributions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sourceKind: 'attribute',
+          sourceId: 'character.attribute.agility',
+          inputValue: 6,
+          coefficient: 1,
+        }),
+      ]),
+    )
   })
 
   it('clamps bounded percentage and mobility stats at configured limits', () => {
     const snapshot = calculateDerivedStats({
-      attributes: { might: 1000, finesse: 1000, intellect: 1000, resolve: 1000 },
+      attributes: {
+        might: 1000,
+        finesse: 1000,
+        vitality: 1000,
+        agility: 1000,
+        intellect: 1000,
+        resolve: 1000,
+      },
       level: 100,
     })
 
@@ -83,7 +112,7 @@ describe('derived stat framework', () => {
 
   it('rejects invalid character inputs', () => {
     expect(() =>
-      calculateDerivedStats({ attributes: { ...balancedAttributes, resolve: 0 }, level: 1 }),
+      calculateDerivedStats({ attributes: { ...balancedAttributes, agility: 0 }, level: 1 }),
     ).toThrow(RangeError)
     expect(() => calculateDerivedStats({ attributes: balancedAttributes, level: 0 })).toThrow(
       RangeError,
