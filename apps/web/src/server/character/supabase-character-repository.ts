@@ -12,7 +12,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 const characterColumns =
-  'id, user_id, slot_index, rules_version, name, name_key, presentation_id, pronoun_preset_id, portrait_ref, starter_appearance_ref, foundation_discipline_id, might, finesse, intellect, resolve, level, xp, progression_cycle, created_at, cycle_started_at, last_active_at'
+  'id, user_id, slot_index, rules_version, name, name_key, presentation_id, pronoun_preset_id, portrait_ref, starter_appearance_ref, foundation_discipline_id, might, finesse, vitality, agility, intellect, resolve, level, xp, progression_cycle, created_at, cycle_started_at, last_active_at'
 
 export function createSupabaseCharacterRepository(): CharacterRepository {
   return {
@@ -34,7 +34,7 @@ export function createSupabaseCharacterRepository(): CharacterRepository {
 
     async findByOwnerId(userId, characterId) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('get_character_slots_v1', { p_user_id: userId })
+      const { data, error } = await supabase.rpc('get_character_slots_v2', { p_user_id: userId })
       if (error || !Array.isArray(data)) throw unavailable()
 
       const candidate = data.find(
@@ -46,6 +46,7 @@ export function createSupabaseCharacterRepository(): CharacterRepository {
       const base = { ...extended }
       delete base.deletion_requested_at
       delete base.deletion_execute_after
+      delete base.reselect_available_at
       const row = parseCharacterPersistenceRow(base)
       if (!row) throw unavailable()
       return toRecord(row)
@@ -53,8 +54,9 @@ export function createSupabaseCharacterRepository(): CharacterRepository {
 
     async createBaseCharacter(input) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('create_base_character_v1', {
+      const { data, error } = await supabase.rpc('create_character_v3', {
         p_user_id: input.userId,
+        p_slot_index: 0,
         p_idempotency_key: input.idempotencyKey,
         p_request_fingerprint: input.requestFingerprint,
         p_rules_version: input.rulesVersion,
@@ -67,6 +69,8 @@ export function createSupabaseCharacterRepository(): CharacterRepository {
         p_foundation_discipline_id: input.foundationDisciplineId,
         p_might: input.might,
         p_finesse: input.finesse,
+        p_vitality: input.vitality,
+        p_agility: input.agility,
         p_intellect: input.intellect,
         p_resolve: input.resolve,
       })
@@ -116,6 +120,8 @@ function toRecord(row: CharacterPersistenceRow): CharacterRecord {
     foundationDisciplineId: row.foundation_discipline_id,
     might: row.might,
     finesse: row.finesse,
+    vitality: row.vitality,
+    agility: row.agility,
     intellect: row.intellect,
     resolve: row.resolve,
     level: row.level,
