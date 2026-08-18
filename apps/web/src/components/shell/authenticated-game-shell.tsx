@@ -126,22 +126,21 @@ export function AuthenticatedGameShell({
               <Link href="/game/character">Character Profile</Link>
               <Link href="/game/battle">Tactical Hall</Link>
               <Link href="/game/settings/controls">Controls &amp; Keybinds</Link>
+              {practicePlan || trainingReport ? (
+                <details className={styles.practiceDrawer} data-testid="practice-drawer">
+                  <summary>
+                    <span>Wayfarer&apos;s Practice</span>
+                    <strong>Training &amp; rested progress</strong>
+                  </summary>
+                  <div className={styles.practiceBody}>
+                    {practicePlan ? <PracticePlanCard practice={practicePlan} /> : null}
+                    {trainingReport ? <TrainingReportCard report={trainingReport} /> : null}
+                  </div>
+                </details>
+              ) : null}
             </nav>
           ) : null}
         </Surface>
-
-        {character && (practicePlan || trainingReport) ? (
-          <details className={styles.practiceDrawer} data-testid="practice-drawer">
-            <summary>
-              <span>Wayfarer&apos;s Practice</span>
-              <strong>Training &amp; rested progress</strong>
-            </summary>
-            <div className={styles.practiceBody}>
-              {practicePlan ? <PracticePlanCard practice={practicePlan} /> : null}
-              {trainingReport ? <TrainingReportCard report={trainingReport} /> : null}
-            </div>
-          </details>
-        ) : null}
       </aside>
     </AuthenticatedShellFrame>
   )

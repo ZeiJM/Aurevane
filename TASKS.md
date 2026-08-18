@@ -6,15 +6,15 @@ The Master Game Plan defines the product. The Roadmap defines sequence. Canonica
 
 ## Current status
 
-**Stage:** PV-1 — Tactical Combat Human Retest
+**Stage:** PV-1 — Tactical Combat Human Retest / UX Correction
 
-**ACTIVE VALIDATION GATE:** issue #105 — PV-1C Conduct Tactical Combat Human/Internal Validation — **CORRECTED SLICE AWAITING REAL HUMAN RETEST**
+**ACTIVE VALIDATION GATE:** issue #105 — PV-1C Conduct Tactical Combat Human/Internal Validation — **HUMAN RETEST IN PROGRESS / SECOND CORRECTION OPEN**
 
-**ACTIVE IMPLEMENTATION TICKET:** none
+**ACTIVE IMPLEMENTATION TICKET:** issue #110 — PV-1E Persistent game shell, compact battle cockpit & simplified turn economy
 
 The first PV-1 human pass failed because two independent testers were mainly fighting the interface rather than discussing tactical choices. Corrective issue #107 is now closed through merged PR #108. The corrected Phase 2 combat slice passed exact-head GitHub quality, database/security and responsive authenticated browser validation across desktop, laptop and mobile. Those automated checks establish implementation correctness and regression safety; they do **not** establish that PV-1 now passes.
 
-Substantial Phase 3 implementation remains blocked until issue #105 is rerun with real human/internal testers.
+The production retest confirmed that PV-1D fixed the catastrophic rendering failures, but the owner identified a second usability layer: shell controls must remain reachable, page density is still too document-like, the battle board is oversized, combatant information belongs beside the battlefield, final facing should itself end the turn, and Action economy needs a simpler 0–100% player-facing explanation. Issue #110 is the single focused correction for those findings. Substantial Phase 3 implementation remains blocked.
 
 ## Corrected slice ready for retest
 

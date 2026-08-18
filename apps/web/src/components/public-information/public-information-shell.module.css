@@ -580,3 +580,16 @@
     transition: none;
   }
 }
+
+/* PV-1E: persistent shell chrome on public information surfaces. */
+.masthead {
+  z-index: 500;
+}
+
+.footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 450;
+  margin-top: var(--av-space-5);
+  backdrop-filter: blur(1rem);
+}

@@ -397,3 +397,121 @@
     padding: var(--av-space-6);
   }
 }
+
+/* PV-1E: persistent, denser authenticated game shell. */
+.masthead {
+  position: sticky;
+  top: 0;
+  z-index: 500;
+  min-height: 4rem;
+}
+
+.footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 450;
+  min-height: 2.35rem;
+  margin-top: 0;
+  backdrop-filter: blur(1rem);
+}
+
+.main {
+  width: min(100%, 96rem);
+  gap: 0.9rem;
+  padding: clamp(0.75rem, 1.8vw, 1.5rem);
+}
+
+.primaryCard {
+  min-height: 0;
+  padding: clamp(1.25rem, 2.8vw, 2.5rem);
+}
+
+.primaryCard h1 {
+  margin: 0.6rem 0 0.8rem;
+  font-size: clamp(2.25rem, 4vw, 3.8rem);
+}
+
+.characterState {
+  margin-top: clamp(1rem, 2.5vw, 2rem);
+  padding: clamp(1rem, 2vw, 1.5rem);
+}
+
+.statusCard {
+  padding: clamp(1rem, 2vw, 1.35rem);
+}
+
+.gameNav {
+  gap: 0.42rem;
+}
+
+.practiceDrawer {
+  overflow: hidden;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  color: var(--av-text);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.practiceDrawer > summary {
+  display: flex;
+  min-height: 2.7rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.65rem 0.75rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.practiceDrawer > summary::-webkit-details-marker {
+  display: none;
+}
+
+.practiceDrawer > summary::after {
+  color: var(--av-brass-300);
+  content: '→';
+  font: 700 0.65rem/1 var(--av-font-mono);
+}
+
+.practiceDrawer[open] > summary::after {
+  content: '↓';
+}
+
+.practiceDrawer > summary span {
+  color: var(--av-brass-300);
+  font: 700 0.58rem/1 var(--av-font-mono);
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.practiceDrawer > summary strong {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.practiceDrawer[open] > summary {
+  border-bottom: 1px solid var(--av-border);
+  background: rgba(207, 169, 93, 0.055);
+}
+
+.practiceBody {
+  display: grid;
+  gap: 0.65rem;
+  max-height: min(35rem, calc(100dvh - 12rem));
+  padding: 0.65rem;
+  overflow: auto;
+}
+
+@media (max-width: 800px) {
+  .masthead {
+    min-height: 3.75rem;
+  }
+
+  .footer {
+    min-height: 2.5rem;
+  }
+}

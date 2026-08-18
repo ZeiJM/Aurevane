@@ -198,3 +198,23 @@
     transition: none;
   }
 }
+
+/* PV-1E: sound menu is a true top-layer utility surface. */
+.root {
+  z-index: 900;
+}
+
+.panel {
+  position: fixed;
+  top: 4.65rem;
+  right: max(1rem, env(safe-area-inset-right, 0px));
+  z-index: 1000;
+  max-height: calc(100dvh - 5.5rem);
+  isolation: isolate;
+}
+
+@media (max-width: 640px) {
+  .panel {
+    top: calc(4rem + env(safe-area-inset-top, 0px));
+  }
+}
