@@ -12,6 +12,7 @@ import styles from './character-profile-shell.module.css'
 
 interface CharacterProfileShellProps {
   profile: CharacterProfileReadModel
+  personalTitle?: string | null
 }
 
 const attributeLabels = {
@@ -23,7 +24,7 @@ const attributeLabels = {
   resolve: 'Resolve',
 } as const
 
-export function CharacterProfileShell({ profile }: CharacterProfileShellProps) {
+export function CharacterProfileShell({ profile, personalTitle = null }: CharacterProfileShellProps) {
   const created = new Intl.DateTimeFormat('en', {
     dateStyle: 'medium',
     timeZone: 'UTC',
@@ -31,7 +32,7 @@ export function CharacterProfileShell({ profile }: CharacterProfileShellProps) {
   const progress = profile.progression.progress
 
   return (
-    <AuthenticatedShellFrame sessionLabel="Character profile">
+    <AuthenticatedShellFrame sessionLabel="Character Profile">
       <div className={styles.layout}>
         <Surface className={styles.profile} tone="elevated">
           <header className={styles.hero} data-testid="character-profile">
@@ -45,7 +46,8 @@ export function CharacterProfileShell({ profile }: CharacterProfileShellProps) {
               <Kicker marker="◆">Character Profile</Kicker>
               <div className={styles.nameLine}>
                 <h1>{profile.identity.name}</h1>
-                <span className={styles.titlePill}>{profile.foundationDiscipline.name}</span>
+                <span className={styles.disciplinePill}>{profile.foundationDiscipline.name}</span>
+                {personalTitle ? <span className={styles.personalTitlePill}>{personalTitle}</span> : null}
               </div>
               <p className={styles.subtitle}>Level {profile.progression.level} adventurer</p>
               <div className={styles.meta}>
@@ -143,8 +145,8 @@ export function CharacterProfileShell({ profile }: CharacterProfileShellProps) {
             </dl>
           </Surface>
           <p className={styles.accountHint}>
-            Account-wide title and profile-display controls now live under <strong>Account</strong> in
-            the header rather than taking permanent space on this sheet.
+            Manage this character&apos;s personal title and future profile-display choices from{' '}
+            <strong>Account → Titles &amp; Profile Display</strong>.
           </p>
         </aside>
       </div>
