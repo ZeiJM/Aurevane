@@ -1,24 +1,22 @@
 'use client'
 
 import { getFoundationDiscipline } from '@aurevane/game-core/character/foundation-disciplines'
-import type { CharacterSlotCharacter } from '@/server/character/character-slot-service'
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
 
-import { CharacterCreationExperience } from '@/components/character/character-creation-experience'
 import { AurevaneImage } from '@/components/media/aurevane-image'
 import { AccountMenu } from '@/components/shell/account-menu'
 import { getStarterPortraitImageAssetId } from '@/media/character'
+import type { CharacterSlotCharacter } from '@/server/character/character-slot-service'
 
 import styles from './character-select-shell.module.css'
 
 interface CharacterSelectShellProps {
   characters: readonly CharacterSlotCharacter[]
-  creationSlot: number | null
 }
 
-export function CharacterSelectShell({ characters, creationSlot }: CharacterSelectShellProps) {
+export function CharacterSelectShell({ characters }: CharacterSelectShellProps) {
   const router = useRouter()
   const [deleting, setDeleting] = useState<CharacterSlotCharacter | null>(null)
   const [phrase, setPhrase] = useState('')
@@ -85,118 +83,98 @@ export function CharacterSelectShell({ characters, creationSlot }: CharacterSele
       </header>
 
       <main className={styles.main}>
-        {creationSlot !== null ? (
-          <section className={styles.creationPanel}>
-            <div className={styles.creationHeading}>
-              <div>
-                <span>Slot {creationSlot + 1}</span>
-                <h1>Create a new character</h1>
-              </div>
-              <Link href="/game/create/cancel">← Back to Character Select</Link>
-            </div>
-            <CharacterCreationExperience />
-          </section>
-        ) : (
-          <>
-            <header className={styles.hero}>
-              <div>
-                <span>Account roster</span>
-                <h1>Choose your character.</h1>
-              </div>
-              <p>
-                Three character slots share this account. Select an adventurer to open their profile
-                and continue playing.
-              </p>
-            </header>
+        <header className={styles.hero}>
+          <div>
+            <span>Account roster</span>
+            <h1>Choose your character.</h1>
+          </div>
+          <p>
+            Three character slots share this account. Select an adventurer to open their profile
+            and continue playing.
+          </p>
+        </header>
 
-            {message ? (
-              <p className={styles.message} role="status">
-                {message}
-              </p>
-            ) : null}
+        {message ? (
+          <p className={styles.message} role="status">
+            {message}
+          </p>
+        ) : null}
 
-            <section className={styles.slots} aria-label="Character slots">
-              {[0, 1, 2].map((slotIndex) => {
-                const character = bySlot.get(slotIndex)
-                if (!character) {
-                  return (
-                    <article className={`${styles.slot} ${styles.empty}`} key={slotIndex}>
-                      <span className={styles.slotNumber}>Slot {slotIndex + 1}</span>
-                      <div className={styles.emptyCrest} aria-hidden="true">
-                        +
-                      </div>
-                      <h2>Open character slot</h2>
-                      <p>
-                        Create another adventurer with their own identity, progression, and build.
-                      </p>
-                      <Link className={styles.primaryAction} href={`/game/create/${slotIndex}`}>
-                        Create Character
-                      </Link>
-                    </article>
-                  )
-                }
+        <section className={styles.slots} aria-label="Character slots">
+          {[0, 1, 2].map((slotIndex) => {
+            const character = bySlot.get(slotIndex)
+            if (!character) {
+              return (
+                <article className={`${styles.slot} ${styles.empty}`} key={slotIndex}>
+                  <span className={styles.slotNumber}>Slot {slotIndex + 1}</span>
+                  <div className={styles.emptyCrest} aria-hidden="true">
+                    +
+                  </div>
+                  <h2>Open character slot</h2>
+                  <p>Create another adventurer with their own identity, progression, and build.</p>
+                  <Link className={styles.primaryAction} href={`/game/create/${slotIndex}`}>
+                    Create Character
+                  </Link>
+                </article>
+              )
+            }
 
-                const discipline = getFoundationDiscipline(character.foundationDisciplineId)
-                const pending = Boolean(character.deletionExecuteAfter)
-                return (
-                  <article
-                    className={styles.slot}
-                    key={character.id}
-                    data-pending-delete={pending || undefined}
-                  >
-                    <span className={styles.slotNumber}>Slot {slotIndex + 1}</span>
-                    <div className={styles.portrait}>
-                      <AurevaneImage
-                        assetId={getStarterPortraitImageAssetId(character.portraitRef)}
-                        sizes="15rem"
-                      />
-                    </div>
-                    <div className={styles.identity}>
-                      <h2>{character.name}</h2>
-                      <p>
-                        Level {character.level} · {discipline?.name ?? 'Adventurer'}
-                      </p>
-                    </div>
-                    {pending && character.deletionExecuteAfter ? (
-                      <div className={styles.pendingDelete}>
-                        <strong>Deletion pending</strong>
-                        <DeletionCountdown deleteAfter={character.deletionExecuteAfter} />
-                        <span>This character cannot be played during the grace period.</span>
-                        <button
-                          type="button"
-                          disabled={busy}
-                          onClick={() => void cancelDeletion(character.id)}
-                        >
-                          Cancel deletion
-                        </button>
-                      </div>
-                    ) : (
-                      <>
-                        <Link
-                          className={styles.primaryAction}
-                          href={`/game/select/${character.id}`}
-                        >
-                          Play {character.name}
-                        </Link>
-                        <button
-                          className={styles.deleteAction}
-                          type="button"
-                          onClick={() => {
-                            setDeleting(character)
-                            setPhrase('')
-                            setMessage(null)
-                          }}
-                        >
-                          Delete Character
-                        </button>
-                      </>
-                    )}
-                  </article>
-                )
-              })}
-            </section>
-          </>
-        )}
+            const discipline = getFoundationDiscipline(character.foundationDisciplineId)
+            const pending = Boolean(character.deletionExecuteAfter)
+            return (
+              <article
+                className={styles.slot}
+                key={character.id}
+                data-pending-delete={pending || undefined}
+              >
+                <span className={styles.slotNumber}>Slot {slotIndex + 1}</span>
+                <div className={styles.portrait}>
+                  <AurevaneImage
+                    assetId={getStarterPortraitImageAssetId(character.portraitRef)}
+                    sizes="15rem"
+                  />
+                </div>
+                <div className={styles.identity}>
+                  <h2>{character.name}</h2>
+                  <p>
+                    Level {character.level} · {discipline?.name ?? 'Adventurer'}
+                  </p>
+                </div>
+                {pending && character.deletionExecuteAfter ? (
+                  <div className={styles.pendingDelete}>
+                    <strong>Deletion pending</strong>
+                    <DeletionCountdown deleteAfter={character.deletionExecuteAfter} />
+                    <span>This character cannot be played during the grace period.</span>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void cancelDeletion(character.id)}
+                    >
+                      Cancel deletion
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <Link className={styles.primaryAction} href={`/game/select/${character.id}`}>
+                      Play {character.name}
+                    </Link>
+                    <button
+                      className={styles.deleteAction}
+                      type="button"
+                      onClick={() => {
+                        setDeleting(character)
+                        setPhrase('')
+                        setMessage(null)
+                      }}
+                    >
+                      Delete Character
+                    </button>
+                  </>
+                )}
+              </article>
+            )
+          })}
+        </section>
       </main>
 
       {deleting ? (
