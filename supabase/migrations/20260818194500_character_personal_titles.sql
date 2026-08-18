@@ -31,6 +31,40 @@ comment on column public.characters.personal_title_key is
 comment on column public.characters.personal_title_set_at is
   'Timestamp of definitive personal-title confirmation. Non-null means the free personal title opportunity has been used.';
 
+create or replace function public.get_character_personal_title_v1(
+  p_user_id uuid,
+  p_character_id uuid
+)
+returns table (
+  personal_title text,
+  personal_title_set_at timestamptz
+)
+language plpgsql
+security definer
+set search_path = pg_catalog, public, app_private
+as $$
+begin
+  perform app_private.finalize_due_character_deletions_for_user_v1(p_user_id);
+
+  return query
+  select character.personal_title, character.personal_title_set_at
+  from public.characters character
+  left join app_private.character_deletion_requests deletion
+    on deletion.character_id = character.id
+  where character.id = p_character_id
+    and character.user_id = p_user_id
+    and deletion.character_id is null;
+
+  if not found then
+    raise exception using errcode = 'P0001', message = 'CHARACTER_NOT_PLAYABLE';
+  end if;
+end;
+$$;
+
+revoke all on function public.get_character_personal_title_v1(uuid, uuid)
+  from public, anon, authenticated;
+grant execute on function public.get_character_personal_title_v1(uuid, uuid) to service_role;
+
 create or replace function public.set_character_personal_title_v1(
   p_user_id uuid,
   p_character_id uuid,
