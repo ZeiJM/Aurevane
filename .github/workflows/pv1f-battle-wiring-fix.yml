@@ -45,15 +45,16 @@ jobs:
 
           old_abort = '''      router.replace('/game/battle')
       router.refresh()'''
-          new_abort = '''      router.replace('/game/battle')'''
           if old_abort not in text:
               raise SystemExit('Abort navigation anchor not found')
-          text = text.replace(old_abort, new_abort, 1)
+          text = text.replace(old_abort, "      router.replace('/game/battle')", 1)
 
           path.write_text(text)
           PY
-      - name: Remove one-shot workflow
-        run: rm -f .github/workflows/pv1f-battle-wiring-fix.yml
+      - name: Remove one-shot scaffolding
+        run: |
+          rm -f .github/workflows/pv1f-battle-wiring-fix.yml
+          rm -f docs/.pv1f-battle-wiring-trigger
       - name: Commit patch
         shell: bash
         run: |
