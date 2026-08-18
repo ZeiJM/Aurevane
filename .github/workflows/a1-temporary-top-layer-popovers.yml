@@ -1,0 +1,251 @@
+name: A1 temporary top-layer popover fix
+
+on:
+  push:
+    branches:
+      - agent/a1-feedback-holistic
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/a1-feedback-holistic
+
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install formatter without lifecycle scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Move Navigation and battle chat into the browser top layer
+        run: |
+          cat > apps/web/src/components/shell/navigation-menu.tsx <<'EOF'
+          'use client'
+
+          import Link from 'next/link'
+          import { useEffect, useRef, useState } from 'react'
+
+          import styles from './navigation-menu.module.css'
+
+          const navigation = [
+            { href: '/game/character', label: 'Profile', detail: 'Character sheet and build' },
+            { href: '/game/battle', label: 'Battle Hall', detail: 'Practice fights and combat' },
+            {
+              href: '/game/training',
+              label: "Wayfarer's Practice",
+              detail: 'Plan modest progress while away',
+            },
+          ] as const
+
+          export function NavigationMenu() {
+            const [open, setOpen] = useState(false)
+            const menuRef = useRef<HTMLElement>(null)
+
+            useEffect(() => {
+              const menu = menuRef.current
+              if (!menu) return
+              const syncOpenState = () => setOpen(menu.matches(':popover-open'))
+              menu.addEventListener('toggle', syncOpenState)
+              return () => menu.removeEventListener('toggle', syncOpenState)
+            }, [])
+
+            function toggleMenu() {
+              const menu = menuRef.current
+              if (!menu) return
+              if (menu.matches(':popover-open')) menu.hidePopover()
+              else menu.showPopover()
+            }
+
+            function closeMenu() {
+              const menu = menuRef.current
+              if (menu?.matches(':popover-open')) menu.hidePopover()
+            }
+
+            return (
+              <div className={styles.root}>
+                <button
+                  className={styles.trigger}
+                  type="button"
+                  aria-expanded={open}
+                  aria-haspopup="menu"
+                  onClick={toggleMenu}
+                >
+                  <span aria-hidden="true">◇</span> Navigation
+                </button>
+                <nav
+                  ref={menuRef}
+                  popover="auto"
+                  className={styles.menu}
+                  aria-label="Game navigation"
+                >
+                  {navigation.map((item) => (
+                    <Link key={item.href} href={item.href} onClick={closeMenu}>
+                      <strong>{item.label}</strong>
+                      <small>{item.detail}</small>
+                    </Link>
+                  ))}
+                </nav>
+              </div>
+            )
+          }
+          EOF
+
+          cat > apps/web/src/components/shell/navigation-menu.module.css <<'EOF'
+          .root {
+            position: relative;
+            display: inline-flex;
+          }
+
+          .trigger {
+            display: inline-flex;
+            gap: 0.45rem;
+            align-items: center;
+            min-height: 2.5rem;
+            padding: 0.6rem 0.85rem;
+            border: 1px solid var(--av-border-strong);
+            border-radius: var(--av-radius-sm);
+            background: rgba(255, 255, 255, 0.025);
+            color: var(--av-text-muted);
+            font: 700 0.55rem/1 var(--av-font-mono);
+            letter-spacing: 0.055em;
+            text-transform: uppercase;
+            cursor: pointer;
+          }
+
+          .trigger:hover,
+          .trigger:focus-visible,
+          .trigger[aria-expanded='true'] {
+            border-color: rgba(207, 169, 93, 0.68);
+            color: var(--av-brass-200);
+          }
+
+          .menu {
+            position: fixed;
+            inset: auto auto 3.35rem 0.65rem;
+            width: min(20rem, calc(100vw - 1.3rem));
+            max-height: min(24rem, calc(100dvh - 5rem));
+            margin: 0;
+            padding: 0.45rem;
+            overflow: auto;
+            border: 1px solid var(--av-border-strong);
+            border-radius: var(--av-radius-md);
+            color: var(--av-text);
+            background: rgba(8, 11, 16, 0.995);
+            box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.62);
+            backdrop-filter: blur(1rem);
+          }
+
+          .menu:not(:popover-open) {
+            display: none;
+          }
+
+          .menu:popover-open {
+            display: grid;
+          }
+
+          .menu > a {
+            display: grid;
+            gap: 0.2rem;
+            min-height: 3rem;
+            align-content: center;
+            padding: 0.65rem 0.75rem;
+            border-radius: var(--av-radius-sm);
+            color: var(--av-text-muted);
+            text-decoration: none;
+          }
+
+          .menu > a:hover,
+          .menu > a:focus-visible {
+            background: rgba(207, 169, 93, 0.08);
+            color: var(--av-brass-200);
+          }
+
+          .menu strong {
+            font: 700 0.6rem/1 var(--av-font-mono);
+            letter-spacing: 0.045em;
+            text-transform: uppercase;
+          }
+
+          .menu small {
+            color: var(--av-text-dim);
+            font-size: 0.55rem;
+            line-height: 1.25;
+          }
+
+          @media (max-width: 560px) {
+            .trigger {
+              min-height: 2.35rem;
+              padding: 0.5rem 0.65rem;
+              font-size: 0.5rem;
+            }
+
+            .menu {
+              inset: auto 0.5rem 3.1rem 0.5rem;
+              width: auto;
+            }
+          }
+          EOF
+
+          python - <<'PY'
+          from pathlib import Path
+
+          battle = Path('apps/web/src/components/battle/battle-experience-v2.tsx')
+          text = battle.read_text()
+
+          old_ref = """  const autoCommitAfterPreview = useRef(false)\n  const lastTouch = useRef<{ key: string; at: number } | null>(null)\n"""
+          new_ref = """  const autoCommitAfterPreview = useRef(false)\n  const lastTouch = useRef<{ key: string; at: number } | null>(null)\n  const chatPopoverRef = useRef<HTMLDivElement>(null)\n"""
+          if text.count(old_ref) != 1:
+              raise SystemExit('chat popover ref insertion point not found')
+          text = text.replace(old_ref, new_ref)
+
+          effect_marker = """  const proposedEconomyCost = useMemo(() => {\n"""
+          effect = """  useEffect(() => {\n    const popover = chatPopoverRef.current\n    if (!popover || overlay?.kind !== 'chat' || popover.matches(':popover-open')) return\n    popover.showPopover()\n  }, [overlay])\n\n  const proposedEconomyCost = useMemo(() => {\n"""
+          if text.count(effect_marker) != 1:
+              raise SystemExit('chat popover effect insertion point not found')
+          text = text.replace(effect_marker, effect)
+
+          old_panel = """          {overlay?.kind === 'chat' ? (\n            <div className={styles.chatPanel}>\n"""
+          new_panel = """          {overlay?.kind === 'chat' ? (\n            <div ref={chatPopoverRef} popover=\"manual\" className={styles.chatPanel}>\n"""
+          if text.count(old_panel) != 1:
+              raise SystemExit('chat panel opening not found')
+          battle.write_text(text.replace(old_panel, new_panel))
+
+          css = Path('apps/web/src/components/battle/battle-experience-v2.module.css')
+          style = css.read_text()
+          old_css = """.chatPanel {\n  position: absolute;\n  z-index: 3200;\n  left: 0;\n  bottom: calc(100% + 0.35rem);\n  display: grid;\n  grid-template-rows: auto minmax(5rem, 13rem) auto;\n  width: min(24rem, calc(100vw - 1rem));\n  overflow: hidden;\n  border: 1px solid rgba(212, 186, 130, 0.46);\n  border-radius: var(--av-radius-md);\n  background: rgba(7, 10, 15, 0.995);\n  box-shadow: 0 -1rem 3rem rgba(0, 0, 0, 0.65);\n  backdrop-filter: blur(0.85rem);\n}\n"""
+          new_css = """.chatPanel {\n  position: fixed;\n  inset: auto auto 3.15rem 0.5rem;\n  grid-template-rows: auto minmax(5rem, 13rem) auto;\n  width: min(24rem, calc(100vw - 1rem));\n  max-height: min(26rem, calc(100dvh - 4.5rem));\n  margin: 0;\n  overflow: hidden;\n  border: 1px solid rgba(212, 186, 130, 0.46);\n  border-radius: var(--av-radius-md);\n  color: var(--av-text);\n  background: rgba(7, 10, 15, 0.995);\n  box-shadow: 0 -1rem 3rem rgba(0, 0, 0, 0.65);\n  backdrop-filter: blur(0.85rem);\n}\n\n.chatPanel:not(:popover-open) {\n  display: none;\n}\n\n.chatPanel:popover-open {\n  display: grid;\n}\n"""
+          if style.count(old_css) != 1:
+              raise SystemExit('chat panel CSS block not found')
+          css.write_text(style.replace(old_css, new_css))
+
+          deletion = Path('apps/web/e2e/character-deletion.pw.ts')
+          deletion_text = deletion.read_text()
+          old_countdown = "page.getByText(/^\\d{2}:\\d{2}:\\d{2} remaining$/)"
+          new_countdown = "page.getByText(/^\\d{2}:\\d{2}:\\d{2}$/)"
+          if deletion_text.count(old_countdown) != 1:
+              raise SystemExit('deletion countdown selector not found')
+          deletion.write_text(deletion_text.replace(old_countdown, new_countdown))
+          PY
+
+          pnpm exec prettier --write \
+            apps/web/src/components/shell/navigation-menu.tsx \
+            apps/web/src/components/shell/navigation-menu.module.css \
+            apps/web/src/components/battle/battle-experience-v2.tsx \
+            apps/web/src/components/battle/battle-experience-v2.module.css \
+            apps/web/e2e/character-deletion.pw.ts
+
+          git rm .github/workflows/a1-temporary-top-layer-popovers.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "Move A1 popovers into browser top layer"
+          git push origin HEAD:agent/a1-feedback-holistic
