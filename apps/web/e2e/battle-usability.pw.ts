@@ -11,7 +11,7 @@ function uniqueCharacterName(): string {
   return `Scout ${letters}`
 }
 
-test('proves account keybinds, the Duel Yard and authoritative Abort Exercise', async ({
+test('proves account keybinds, readable Duel Yard flow and authoritative Abort Exercise', async ({
   page,
 }, testInfo) => {
   test.slow()
@@ -51,17 +51,17 @@ test('proves account keybinds, the Duel Yard and authoritative Abort Exercise', 
   expect(persistedMoveKey).toBe('KeyM')
 
   await page.getByRole('link', { name: 'Return to Game' }).click()
-  await page.getByRole('link', { name: 'Enter Tactical Hall' }).click()
+  await page.getByRole('link', { name: 'Tactical Hall' }).click()
   await expect(page).toHaveURL(/\/game\/battle$/)
 
-  const duelYard = page.getByRole('button', { name: /Duel Yard · 9×7 · Duel arena/ })
-  await expect(duelYard).toBeVisible()
-  await duelYard.click()
+  const recruitRecord = page.getByRole('button', { name: /FULL DUEL.*Recruit Sparring Partner/ })
+  await expect(recruitRecord).toHaveAttribute('aria-pressed', 'true')
   await expect(page.getByText('Duel Yard', { exact: true })).toBeVisible()
-  await page.getByRole('button', { name: /Begin exercise · Duel Yard/ }).click()
+  await page.getByRole('button', { name: 'Start Recruit Sparring Partner' }).click()
 
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
-  await expect(page.getByRole('region', { name: 'Tactical battlefield' })).toBeVisible()
+  const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
+  await expect(battlefield).toBeVisible()
   await expect(page.getByRole('button', { name: /Tile 2, 4;.*occupied by Wayfarer/ })).toBeVisible()
   await expect(page.getByRole('button', { name: /Tile 8, 4;.*occupied by Recruit/ })).toBeVisible()
   await expect(
@@ -71,14 +71,17 @@ test('proves account keybinds, the Duel Yard and authoritative Abort Exercise', 
     page.getByRole('button', { name: /Tile 5, 2; open-ground; elevation 1/ }),
   ).toBeVisible()
   await expect(page.getByRole('button', { name: /^Tile / })).toHaveCount(63)
+  await expect(page.getByRole('button', { name: 'Inspect Wayfarer' })).toContainText(/HP/)
+  await expect(page.getByRole('button', { name: 'Inspect Recruit' })).toContainText(/HP/)
+  await expect(page.getByTestId('battle-log-toggle')).toContainText('Combat Log')
   expect(await hasHorizontalOverflow(page)).toBe(false)
-  await page.waitForLoadState('networkidle')
 
   await page.keyboard.press('m')
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('POSITION')
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText('MOVE')
   await expect(page.getByTestId('combat-mode-instruction')).toContainText(
-    'does not spend your Action',
+    'does NOT spend your Action',
   )
+  await expect(page.getByRole('button', { name: /^Tile / })).toHaveCount(63)
 
   await page.keyboard.press('Escape')
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('INSPECT')
@@ -86,11 +89,10 @@ test('proves account keybinds, the Duel Yard and authoritative Abort Exercise', 
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('INSPECT')
 
   await page.keyboard.press('Space')
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('END TURN')
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText('FACING')
   await page.keyboard.press('a')
-  await expect(
-    page.getByRole('region', { name: 'Turn Economy Tracker' }).getByText('west ←', { exact: true }),
-  ).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Face west' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('button', { name: /^Tile / })).toHaveCount(63)
   await page.keyboard.press('Escape')
 
   const battleUrl = page.url()
