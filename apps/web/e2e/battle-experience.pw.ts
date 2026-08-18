@@ -23,7 +23,7 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
 
   await createAccountAndEnterCharacter({ page, email, password, characterName })
 
-  const tacticalHallLink = page.getByRole('link', { name: 'Tactical Hall' })
+  const tacticalHallLink = page.getByRole('link', { name: 'Tactical Hall', exact: true })
   await tacticalHallLink.focus()
   await expect(tacticalHallLink).toBeFocused()
   await tacticalHallLink.press('Enter')
