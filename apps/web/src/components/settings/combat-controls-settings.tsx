@@ -18,20 +18,23 @@ interface CombatControlsSettingsProps {
 }
 
 const ACTION_COPY: Record<CombatKeybindAction, { label: string; description: string }> = {
-  inspect: { label: 'Inspect', description: 'Return to neutral inspection mode.' },
-  move: { label: 'Move', description: 'Enter movement planning without spending the Action.' },
+  inspect: { label: 'Inspect', description: 'Open optional terrain and combatant inspection.' },
+  move: {
+    label: 'Move',
+    description: 'Enter movement planning. A normal tile costs 10% Action Economy.',
+  },
   basicAttack: { label: 'Basic Attack', description: 'Enter normal Basic Attack targeting.' },
   guard: { label: 'Guard', description: 'Preview the defensive Guard action.' },
   endTurn: {
-    label: 'End Turn preparation',
-    description: 'Open final-facing review before commit.',
+    label: 'Finish Turn',
+    description: 'Choose final facing; the chosen direction immediately ends the turn.',
   },
-  confirm: { label: 'Confirm', description: 'Commit the current legal preview.' },
+  confirm: { label: 'Confirm', description: 'Commit the current legal move or action preview.' },
   cancel: { label: 'Cancel / Back', description: 'Clear current planning without committing.' },
-  faceNorth: { label: 'Face North', description: 'Choose north in facing context.' },
-  faceWest: { label: 'Face West', description: 'Choose west in facing context.' },
-  faceSouth: { label: 'Face South', description: 'Choose south in facing context.' },
-  faceEast: { label: 'Face East', description: 'Choose east in facing context.' },
+  faceNorth: { label: 'Face North', description: 'Finish the turn facing north.' },
+  faceWest: { label: 'Face West', description: 'Finish the turn facing west.' },
+  faceSouth: { label: 'Face South', description: 'Finish the turn facing south.' },
+  faceEast: { label: 'Face East', description: 'Finish the turn facing east.' },
   nextTarget: { label: 'Next target', description: 'Cycle attack targets while targeting.' },
   previousTarget: { label: 'Previous target', description: 'Reverse-cycle attack targets.' },
   combatLog: { label: 'Combat Log', description: 'Open or close committed battle history.' },
