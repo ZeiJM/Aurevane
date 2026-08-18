@@ -83,32 +83,32 @@ describe('P2.5 sanitized battle log service', () => {
           eventIndex: 0,
           occurredAt: '2026-08-17T13:01:00.000Z',
           eventType: 'recruit_ai_decision',
-          message: 'Recruit chose closing the distance (score 28).',
+          message: 'Recruit chose closing the distance.',
         },
         {
           battleVersion: 5,
           eventIndex: 3,
           occurredAt: '2026-08-17T13:00:00.000Z',
           eventType: 'damage_applied',
-          message: 'Recruit took 13 damage.',
+          message: 'Recruit took 13 damage and has 67 HP remaining.',
         },
         {
           battleVersion: 5,
           eventIndex: 2,
           occurredAt: '2026-08-17T13:00:00.000Z',
           eventType: 'stat_driven_attack_resolved',
-          message: 'Wayfarer attack hit (74% hit chance).',
+          message: 'Wayfarer Basic Attack HIT (74% hit chance).',
         },
         {
           battleVersion: 4,
           eventIndex: 0,
           occurredAt: '2026-08-17T12:59:00.000Z',
           eventType: 'combatant_moved',
-          message: 'Wayfarer moved to 4, 2 for 1 Movement.',
+          message: 'Wayfarer moved from 3, 2 to 4, 2 for 1 Movement.',
         },
       ],
     })
-    expect(repository.findBattleEvents).toHaveBeenCalledWith(USER_ID, SESSION_ID, 50)
+    expect(repository.findBattleEvents).toHaveBeenCalledWith(USER_ID, SESSION_ID, 200)
     expect(JSON.stringify(result)).not.toContain('rollBasisPoints')
     expect(JSON.stringify(result)).not.toContain('hpBefore')
     expect(JSON.stringify(result)).not.toContain('hpAfter')

@@ -101,8 +101,7 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
     case 'final_facing_selected':
       return null
     case 'action_spent':
-      message = `${combatantLabel(event.combatantId)} spent the Action for this activation.`
-      break
+      return null
     case 'combat_action_used':
       message = `${combatantLabel(event.actorId)} used ${actionLabel(event.actionId)}.`
       break
