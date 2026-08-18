@@ -1,0 +1,56 @@
+name: PV-1D branch formatter
+
+on:
+  push:
+    branches:
+      - agent/pv-1d-combat-readability-correction
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/pv-1d-combat-readability-correction
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format corrective sources
+        run: |
+          pnpm exec prettier --write \
+            apps/web/e2e/battle-experience.pw.ts \
+            apps/web/e2e/battle-usability.pw.ts \
+            apps/web/src/components/battle/battle-experience-v2.module.css \
+            apps/web/src/components/battle/battle-experience-v2.tsx \
+            apps/web/src/components/battle/battle-keyboard-assist.tsx \
+            apps/web/src/components/battle/battle-launch.tsx \
+            apps/web/src/components/battle/battle-lesson-coach.tsx \
+            apps/web/src/server/battle/battle-log-service.ts
+      - name: Commit formatting when needed
+        run: |
+          if git diff --quiet; then
+            echo 'No formatting changes needed.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            apps/web/e2e/battle-experience.pw.ts \
+            apps/web/e2e/battle-usability.pw.ts \
+            apps/web/src/components/battle/battle-experience-v2.module.css \
+            apps/web/src/components/battle/battle-experience-v2.tsx \
+            apps/web/src/components/battle/battle-keyboard-assist.tsx \
+            apps/web/src/components/battle/battle-launch.tsx \
+            apps/web/src/components/battle/battle-lesson-coach.tsx \
+            apps/web/src/server/battle/battle-log-service.ts
+          git commit -m 'chore: format PV-1D corrective sources'
+          git push origin HEAD:agent/pv-1d-combat-readability-correction
