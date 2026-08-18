@@ -1024,15 +1024,14 @@ export function BattleExperienceV2({
     }
   }
 
-  function handleTouchCommit(position: GridPosition) {
+  function handleTouchCommit(position: GridPosition, at: number) {
     const key = positionKey(position)
-    const now = Date.now()
-    if (lastTouch.current?.key === key && now - lastTouch.current.at <= 360) {
+    if (lastTouch.current?.key === key && at - lastTouch.current.at <= 360) {
       lastTouch.current = null
       requestQuickCommit()
       return
     }
-    lastTouch.current = { key, at: now }
+    lastTouch.current = { key, at }
   }
 
   function sendChatMessage(event: React.FormEvent<HTMLFormElement>) {
@@ -1188,7 +1187,7 @@ export function BattleExperienceV2({
                       onClick={() => handleTileClick(tile.position)}
                       onDoubleClick={requestQuickCommit}
                       onPointerUp={(event) => {
-                        if (event.pointerType === 'touch') handleTouchCommit(tile.position)
+                        if (event.pointerType === 'touch') handleTouchCommit(tile.position, event.timeStamp)
                       }}
                       aria-label={`Tile ${tile.position.x + 1}, ${tile.position.y + 1}; ${tile.terrainId}; elevation ${tile.elevation}${placement ? `; occupied by ${combatantName(placement.combatantId, playerName)}` : ''}`}
                     >
