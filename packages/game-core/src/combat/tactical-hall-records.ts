@@ -15,13 +15,14 @@ export interface TacticalHallRecordDefinition {
 export const P2_7_TACTICAL_HALL_RECORDS: readonly TacticalHallRecordDefinition[] = [
   {
     id: 'movement-drill',
-    name: 'Movement Drill',
-    purpose: 'Learn positioning and terrain cost without confusing Movement with the Action.',
+    name: 'Movement & Facing Drill',
+    purpose:
+      'Learn reachable movement, terrain cost, remaining Movement, and how final facing closes the turn without spending your Action.',
     defaultArenaId: 'basic-training-floor',
     coachSteps: [
-      'Choose Move or press 2.',
-      'Build a highlighted path and read its Movement cost.',
-      'Confirm the move, then verify the Action still reads READY.',
+      'Choose Move or press 2. Green tiles are reachable now; rough ground marked R2 costs 2 Movement.',
+      'Move once and verify the Movement counter changes while your Action remains READY.',
+      'Choose End Turn, set the direction you want to protect, then Confirm; facing and End Turn settle together.',
     ],
     combinedDuel: false,
   },
@@ -32,31 +33,32 @@ export const P2_7_TACTICAL_HALL_RECORDS: readonly TacticalHallRecordDefinition[]
     defaultArenaId: 'basic-training-floor',
     coachSteps: [
       'Choose Basic Attack or press 3.',
-      'Select the Recruit and read the hit/damage forecast.',
-      'Confirm, then verify Basic Attack and Guard explain that the Action is SPENT.',
+      'Select the Recruit and read the green/red target state plus hit and damage forecast.',
+      'Confirm, then read the result banner and enemy HP to see whether the attack hit or missed.',
     ],
     combinedDuel: false,
   },
   {
     id: 'guard-drill',
     name: 'Guard Drill',
-    purpose: 'Learn that Guard is a deliberate defensive use of the same normal Action.',
+    purpose: 'Learn that Guard spends the normal Action to reduce incoming damage by 20%.',
     defaultArenaId: 'basic-training-floor',
     coachSteps: [
-      'Choose Guard or press 4.',
-      'Read that Guard spends the Action defensively.',
-      'Confirm, then reposition if Movement remains before ending the turn.',
+      'Choose Guard or press 4 and read the Guard preview.',
+      'Confirm to gain Guarded; the status panel shows its active defensive effect.',
+      'Use any remaining Movement if useful, choose final facing, then End Turn.',
     ],
     combinedDuel: false,
   },
   {
     id: 'facing-drill',
-    name: 'Facing Drill',
-    purpose: 'Learn provisional final facing without a separate mandatory facing ceremony.',
+    name: 'Facing Drill (legacy)',
+    purpose:
+      'Compatibility record retained for existing sessions. New players learn final facing inside Movement & Facing Drill.',
     defaultArenaId: 'basic-training-floor',
     coachSteps: [
-      'Press Space or choose End Turn preparation.',
-      'Use WASD, arrows, or the facing controls to protect the intended direction.',
+      'Choose End Turn preparation.',
+      'Use the directional facing pad to select north, west, east, or south.',
       'Confirm once; facing and End Turn settle together authoritatively.',
     ],
     combinedDuel: false,
@@ -64,12 +66,13 @@ export const P2_7_TACTICAL_HALL_RECORDS: readonly TacticalHallRecordDefinition[]
   {
     id: 'recruit-sparring',
     name: 'Recruit Sparring Partner',
-    purpose: 'Combine movement, Action economy, targeting, facing, and Recruit AI in a full duel.',
+    purpose:
+      'Combine movement, Action economy, targeting, terrain, facing, and visible Recruit decisions in a full duel.',
     defaultArenaId: 'duel-yard',
     coachSteps: [
-      'Position with purpose; Movement normally leaves the Action available.',
-      'Spend the Action on Basic Attack or Guard when the timing is right.',
-      'Adjust final facing and End Turn; repeat until one combatant is defeated.',
+      'Use green movement reachability and terrain information to approach with purpose.',
+      'Spend the Action on Basic Attack or Guard when the timing is right; read the result banner after every commit.',
+      'Choose final facing and End Turn, then watch the Recruit turn summary before acting again.',
     ],
     combinedDuel: true,
   },

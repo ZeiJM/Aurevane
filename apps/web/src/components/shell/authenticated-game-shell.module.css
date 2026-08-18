@@ -10,7 +10,7 @@
 .masthead {
   display: grid;
   grid-template-columns: minmax(15rem, 1fr) auto auto;
-  gap: var(--av-space-6);
+  gap: var(--av-space-5);
   align-items: center;
   padding: 0 var(--av-space-5) 0 var(--av-space-4);
   border-bottom: 1px solid var(--av-border);
@@ -28,11 +28,39 @@
   text-transform: uppercase;
 }
 
+.mastheadActions {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.mastheadActions form {
+  margin: 0;
+}
+
+.signOutButton {
+  min-height: 2.75rem;
+  padding: 0.65rem 0.85rem;
+  border: 1px solid var(--av-border-strong);
+  border-radius: var(--av-radius-sm);
+  color: var(--av-text-muted);
+  background: rgba(255, 255, 255, 0.025);
+  font: 700 0.58rem/1 var(--av-font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.signOutButton:hover {
+  border-color: rgba(207, 169, 93, 0.65);
+  color: var(--av-brass-200);
+}
+
 .main {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 19rem;
+  grid-template-columns: minmax(0, 1fr) 21rem;
   gap: var(--av-space-4);
-  width: min(100%, 82rem);
+  width: min(100%, 84rem);
   margin: 0 auto;
   padding: clamp(1rem, 3vw, 3rem);
 }
@@ -63,7 +91,7 @@
   display: grid;
   max-width: 38rem;
   gap: var(--av-space-3);
-  margin-top: var(--av-space-10);
+  margin-top: var(--av-space-8);
   padding: var(--av-space-6);
   border: 1px solid var(--av-border-strong);
   border-left: 2px solid var(--av-brass-300);
@@ -91,32 +119,6 @@
 .characterState button {
   width: fit-content;
   margin-top: var(--av-space-2);
-}
-
-.profileLink {
-  display: inline-flex;
-  width: fit-content;
-  min-height: 2.75rem;
-  align-items: center;
-  justify-content: center;
-  margin-top: var(--av-space-2);
-  padding: 0.65rem 0.85rem;
-  border: 1px solid var(--av-border-strong);
-  color: var(--av-brass-300);
-  font: 650 0.62rem/1 var(--av-font-mono);
-  letter-spacing: 0.05em;
-  text-decoration: none;
-  text-transform: uppercase;
-}
-
-.profileLink:hover {
-  border-color: rgba(207, 169, 93, 0.7);
-  background: rgba(207, 169, 93, 0.07);
-}
-
-.profileLink:focus-visible {
-  outline: 2px solid var(--av-focus);
-  outline-offset: 2px;
 }
 
 .attributeSummary {
@@ -202,11 +204,83 @@
   text-align: right;
 }
 
-.statusCard p {
-  margin: var(--av-space-4) 0;
-  color: var(--av-text-dim);
-  font-size: 0.75rem;
-  line-height: 1.65;
+.gameNav {
+  display: grid;
+  gap: 0.45rem;
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(184, 177, 163, 0.12);
+}
+
+.gameNav a {
+  display: flex;
+  min-height: 2.7rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  color: var(--av-brass-300);
+  background: rgba(255, 255, 255, 0.018);
+  font: 700 0.58rem/1 var(--av-font-mono);
+  letter-spacing: 0.035em;
+  text-decoration: none;
+  text-transform: uppercase;
+}
+
+.gameNav a::after {
+  content: '→';
+}
+
+.gameNav a:hover {
+  border-color: rgba(207, 169, 93, 0.65);
+  background: rgba(207, 169, 93, 0.06);
+}
+
+.practiceDrawer {
+  overflow: hidden;
+  border: 1px solid var(--av-border-strong);
+  border-radius: var(--av-radius-md);
+  color: var(--av-text);
+  background: rgba(9, 12, 17, 0.82);
+}
+
+.practiceDrawer > summary {
+  display: grid;
+  gap: 0.25rem;
+  min-height: 4.2rem;
+  align-content: center;
+  padding: 0.85rem 1rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.practiceDrawer > summary::-webkit-details-marker {
+  display: none;
+}
+
+.practiceDrawer > summary span {
+  color: var(--av-brass-300);
+  font: 750 0.6rem/1 var(--av-font-mono);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.practiceDrawer > summary strong {
+  color: var(--av-text-muted);
+  font-size: 0.72rem;
+}
+
+.practiceDrawer[open] > summary {
+  border-bottom: 1px solid var(--av-border);
+}
+
+.practiceBody {
+  display: grid;
+  gap: 0.8rem;
+  max-height: 42rem;
+  padding: 0.75rem;
+  overflow: auto;
 }
 
 .footer {
@@ -241,7 +315,7 @@
   }
 
   .sideColumn {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 }
 
@@ -254,6 +328,20 @@
   .main {
     padding-right: max(var(--av-space-3), env(safe-area-inset-right, 0px));
     padding-left: max(var(--av-space-3), env(safe-area-inset-left, 0px));
+  }
+
+  .masthead {
+    gap: 0.5rem;
+  }
+
+  .mastheadActions {
+    gap: 0.35rem;
+  }
+
+  .signOutButton {
+    min-height: 2.45rem;
+    padding: 0.5rem 0.58rem;
+    font-size: 0.5rem;
   }
 
   .main {
@@ -279,10 +367,6 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .profileLink {
-    width: 100%;
-  }
-
   .recoveryActions {
     align-items: stretch;
   }
@@ -290,10 +374,6 @@
   .recoveryActions form,
   .recoveryActions button {
     width: 100%;
-  }
-
-  .sideColumn {
-    grid-template-columns: 1fr;
   }
 
   .footer {

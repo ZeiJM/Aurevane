@@ -1,18 +1,17 @@
 .panel {
-  position: fixed;
-  right: clamp(0.65rem, 1.5vw, 1rem);
-  bottom: 4.4rem;
-  z-index: 40;
+  position: static;
+  z-index: auto;
   display: grid;
   gap: 0.65rem;
-  width: min(27rem, calc(100vw - 1.3rem));
+  width: min(27rem, calc(100% - 1.3rem));
+  margin: 0 auto 1.25rem;
   padding: 0.75rem;
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius-sm);
   color: var(--av-text);
   background: rgba(8, 11, 16, 0.96);
   box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.38);
-  pointer-events: none;
+  pointer-events: auto;
 }
 
 .panel p {
@@ -61,8 +60,7 @@
 
 @media (max-width: 720px) {
   .panel {
-    right: 0.5rem;
-    bottom: 4rem;
-    width: calc(100vw - 1rem);
+    width: calc(100% - 1rem);
+    margin-bottom: 1rem;
   }
 }

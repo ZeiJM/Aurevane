@@ -1,5 +1,9 @@
 'use client'
 
+import {
+  getTacticalHallArena,
+  type TacticalHallArenaId,
+} from '@aurevane/game-core/combat/tactical-hall-arenas'
 import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 
@@ -28,12 +32,19 @@ function readResult(battle: BattleSessionView): 'Victory' | 'Defeat' | 'Draw' {
   return livingTeams.has('players') ? 'Victory' : 'Defeat'
 }
 
+function readArenaId(battle: BattleSessionView): TacticalHallArenaId {
+  const tactical = battle.snapshot.tactical
+  return tactical.width === 9 && tactical.height === 7 ? 'duel-yard' : 'basic-training-floor'
+}
+
 export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
   const router = useRouter()
   const [retryPending, setRetryPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const result = useMemo(() => readResult(battle), [battle])
   const characterId = useMemo(() => readCharacterId(battle), [battle])
+  const arenaId = useMemo(() => readArenaId(battle), [battle])
+  const arena = useMemo(() => getTacticalHallArena(arenaId), [arenaId])
   const battleState = battle.snapshot.tactical.battle
   const player = battleState.combatants.find((combatant) => combatant.teamId === 'players')
   const recruit = battleState.combatants.find((combatant) => combatant.teamId === 'opponents')
@@ -43,12 +54,15 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
     setRetryPending(true)
     setError(null)
 
+    const recordId = sessionStorage.getItem(`aurevane:tactical-record:${battle.battleSessionId}`)
+
     try {
       const response = await fetch('/api/battles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           characterId,
+          arenaId,
           idempotencyKey: crypto.randomUUID(),
         }),
       })
@@ -58,6 +72,10 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
       }
       if (!response.ok || !body.battle?.battleSessionId) {
         throw new Error(body.error?.message ?? 'The practice battle could not be restarted.')
+      }
+
+      if (recordId) {
+        sessionStorage.setItem(`aurevane:tactical-record:${body.battle.battleSessionId}`, recordId)
       }
       router.push(`/game/battle/${body.battle.battleSessionId}`)
     } catch (retryError) {
@@ -77,30 +95,24 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
       data-testid="tactical-hall-result"
     >
       <div className={styles.resultCopy}>
-        <p className={styles.eyebrow}>Tactical Hall · Recruit Sparring Partner</p>
+        <p className={styles.eyebrow}>Tactical Hall · Practice Result</p>
         <h2 id="tactical-hall-result-title">{result}</h2>
         <p>
-          Exercise concluded in round {battleState.round}. The committed battle history remains
-          available below for review.
+          Exercise concluded in Round {battleState.round}. The committed battle history remains
+          available for review, and Retry preserves this exercise&apos;s arena.
         </p>
       </div>
 
-      <dl className={styles.record} aria-label="Recruit Tactical Record result">
+      <dl className={styles.record} aria-label="Tactical Hall practice result">
         <div>
-          <dt>Record</dt>
-          <dd>Recruit Sparring Partner · Recorded</dd>
-        </div>
-        <div>
-          <dt>Intelligence</dt>
+          <dt>Opponent</dt>
           <dd>Recruit</dd>
         </div>
         <div>
-          <dt>Training floor</dt>
-          <dd>Basic Training Floor</dd>
-        </div>
-        <div>
-          <dt>Preset</dt>
-          <dd>Beginner Standard · fixed</dd>
+          <dt>Arena</dt>
+          <dd>
+            {arena.name} · {arena.width}×{arena.height}
+          </dd>
         </div>
         <div>
           <dt>Wayfarer HP</dt>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { BattleLogView } from '@/server/battle/battle-log-service'
 
@@ -16,14 +16,14 @@ interface BattleLogResponse {
   error?: { message?: string }
 }
 
-export function BattleLogPanel({ battleSessionId }: BattleLogPanelProps) {
+export function BattleLogPanel({ battleSessionId, battleVersion }: BattleLogPanelProps) {
   const [log, setLog] = useState<BattleLogView | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const requestSequence = useRef(0)
   const detailsRef = useRef<HTMLDetailsElement>(null)
 
-  async function loadLog() {
+  const loadLog = useCallback(async () => {
     const sequence = ++requestSequence.current
     setLoading(true)
     try {
@@ -48,18 +48,23 @@ export function BattleLogPanel({ battleSessionId }: BattleLogPanelProps) {
     } finally {
       if (sequence === requestSequence.current) setLoading(false)
     }
-  }
+  }, [battleSessionId])
 
   useEffect(() => {
     function toggleLog() {
       const details = detailsRef.current
       if (!details) return
       details.open = !details.open
+      if (details.open) void loadLog()
     }
 
     window.addEventListener('aurevane:battle-log-toggle', toggleLog)
     return () => window.removeEventListener('aurevane:battle-log-toggle', toggleLog)
-  }, [])
+  }, [loadLog])
+
+  useEffect(() => {
+    if (detailsRef.current?.open) void loadLog()
+  }, [battleVersion, loadLog])
 
   const entries = log?.entries ?? []
 
@@ -72,7 +77,7 @@ export function BattleLogPanel({ battleSessionId }: BattleLogPanelProps) {
       }}
     >
       <summary data-testid="battle-log-toggle">
-        Log <span>{loading ? '…' : entries.length}</span>
+        Combat Log <span>{loading ? '…' : entries.length}</span>
       </summary>
       <div
         className={styles.panel}
@@ -80,8 +85,8 @@ export function BattleLogPanel({ battleSessionId }: BattleLogPanelProps) {
         data-testid="battle-log-panel"
       >
         <header>
-          <strong>Committed history</strong>
-          <span>Authoritative events · newest first</span>
+          <strong>Combat Log</strong>
+          <span>Committed actions and results · newest first</span>
         </header>
         {loading && entries.length === 0 ? (
           <p className={styles.empty}>Reading committed events…</p>
