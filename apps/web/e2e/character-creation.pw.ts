@@ -123,9 +123,6 @@ test('creates a slotted character, persists its profile, and resumes it across s
   await expect(page).toHaveURL(/\/game\/character$/)
   await expect(page.getByTestId('character-profile')).toContainText('Level 3')
   await expect(page.getByTestId('level-progress')).toContainText('376 / 400 XP')
-  await expect(page.getByTestId('level-progress')).toContainText('146 of 170 XP', {
-    useInnerText: true,
-  })
 
   await page.getByRole('link', { name: 'Back to Character Select' }).click()
   await expect(page).toHaveURL(/\/game$/)

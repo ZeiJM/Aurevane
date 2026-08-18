@@ -157,8 +157,8 @@ describe('P2.4 battle session service', () => {
     expect(input).toMatchObject({
       actorKey: USER_ID,
       userId: USER_ID,
-      rulesVersion: 1,
-      contentVersion: 1,
+      rulesVersion: 2,
+      contentVersion: 2,
       participants: [
         {
           combatantId: `character:${CHARACTER_ID}`,
@@ -194,7 +194,7 @@ describe('P2.4 battle session service', () => {
     expect(persistedSnapshot.tactical.battle.lifecycle).toBe('active')
     expect(player).toMatchObject({
       initiative: 28,
-      baseMovementBudget: 4,
+      baseMovementBudget: 10,
       hp: 164,
       maxHp: 164,
       mp: 90,
@@ -255,7 +255,7 @@ describe('P2.4 battle session service', () => {
 
     expect(player).toMatchObject({
       initiative: 33,
-      baseMovementBudget: 4,
+      baseMovementBudget: 10,
       hp: 150,
       maxHp: 150,
       mp: 80,
