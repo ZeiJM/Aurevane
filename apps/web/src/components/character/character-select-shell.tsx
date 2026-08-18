@@ -89,8 +89,8 @@ export function CharacterSelectShell({ characters }: CharacterSelectShellProps) 
             <h1>Choose your character.</h1>
           </div>
           <p>
-            Three character slots share this account. Select an adventurer to open their profile and
-            continue playing.
+            Three character slots share this account. Switching away from a character starts a
+            one-hour cooldown before you can return to that character, so swaps are deliberate.
           </p>
         </header>
 
@@ -107,9 +107,7 @@ export function CharacterSelectShell({ characters }: CharacterSelectShellProps) 
               return (
                 <article className={`${styles.slot} ${styles.empty}`} key={slotIndex}>
                   <span className={styles.slotNumber}>Slot {slotIndex + 1}</span>
-                  <div className={styles.emptyCrest} aria-hidden="true">
-                    +
-                  </div>
+                  <div className={styles.emptyCrest} aria-hidden="true">+</div>
                   <h2>Open character slot</h2>
                   <p>Create another adventurer with their own identity, progression, and build.</p>
                   <Link className={styles.primaryAction} href={`/game/create/${slotIndex}`}>
@@ -136,14 +134,12 @@ export function CharacterSelectShell({ characters }: CharacterSelectShellProps) 
                 </div>
                 <div className={styles.identity}>
                   <h2>{character.name}</h2>
-                  <p>
-                    Level {character.level} · {discipline?.name ?? 'Adventurer'}
-                  </p>
+                  <p>Level {character.level} · {discipline?.name ?? 'Adventurer'}</p>
                 </div>
                 {pending && character.deletionExecuteAfter ? (
                   <div className={styles.pendingDelete}>
                     <strong>Deletion pending</strong>
-                    <DeletionCountdown deleteAfter={character.deletionExecuteAfter} />
+                    <Countdown target={character.deletionExecuteAfter} />
                     <span>This character cannot be played during the grace period.</span>
                     <button
                       type="button"
@@ -155,9 +151,7 @@ export function CharacterSelectShell({ characters }: CharacterSelectShellProps) 
                   </div>
                 ) : (
                   <>
-                    <Link className={styles.primaryAction} href={`/game/select/${character.id}`}>
-                      Play {character.name}
-                    </Link>
+                    <CharacterPlayAction character={character} />
                     <button
                       className={styles.deleteAction}
                       type="button"
@@ -185,12 +179,7 @@ export function CharacterSelectShell({ characters }: CharacterSelectShellProps) 
             if (event.currentTarget === event.target && !busy) setDeleting(null)
           }}
         >
-          <section
-            className={styles.modal}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-character-title"
-          >
+          <section className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="delete-character-title">
             <span>24-hour deletion grace period</span>
             <h2 id="delete-character-title">Schedule deletion of {deleting.name}?</h2>
             <p>
@@ -198,9 +187,7 @@ export function CharacterSelectShell({ characters }: CharacterSelectShellProps) 
               you can cancel during that time. After the deadline the deletion becomes irreversible.
             </p>
             <label>
-              <span>
-                Type exactly: <strong>DELETE {deleting.name}</strong>
-              </span>
+              <span>Type exactly: <strong>DELETE {deleting.name}</strong></span>
               <input
                 autoFocus
                 value={phrase}
@@ -208,15 +195,9 @@ export function CharacterSelectShell({ characters }: CharacterSelectShellProps) 
                 disabled={busy}
               />
             </label>
-            {message ? (
-              <p className={styles.modalError} role="alert">
-                {message}
-              </p>
-            ) : null}
+            {message ? <p className={styles.modalError} role="alert">{message}</p> : null}
             <div className={styles.modalActions}>
-              <button type="button" onClick={() => setDeleting(null)} disabled={busy}>
-                Cancel
-              </button>
+              <button type="button" onClick={() => setDeleting(null)} disabled={busy}>Cancel</button>
               <button
                 type="button"
                 className={styles.danger}
@@ -233,21 +214,55 @@ export function CharacterSelectShell({ characters }: CharacterSelectShellProps) 
   )
 }
 
-function DeletionCountdown({ deleteAfter }: { deleteAfter: string }) {
+function CharacterPlayAction({ character }: { character: CharacterSlotCharacter }) {
+  const router = useRouter()
+  const [now, setNow] = useState(() => Date.now())
+  const target = character.reselectAvailableAt ? new Date(character.reselectAvailableAt).getTime() : 0
+  const remaining = Math.max(0, target - now)
+
+  useEffect(() => {
+    if (!target || target <= Date.now()) return
+    const timer = window.setInterval(() => {
+      const next = Date.now()
+      setNow(next)
+      if (next >= target) {
+        window.clearInterval(timer)
+        router.refresh()
+      }
+    }, 1000)
+    return () => window.clearInterval(timer)
+  }, [router, target])
+
+  if (remaining > 0) {
+    return (
+      <div className={styles.swapCooldown} aria-live="polite">
+        <span>Return cooldown</span>
+        <strong><Duration milliseconds={remaining} /></strong>
+        <small>You can select {character.name} again when this reaches zero.</small>
+      </div>
+    )
+  }
+
+  return (
+    <Link className={styles.primaryAction} href={`/game/select/${character.id}`}>
+      Play {character.name}
+    </Link>
+  )
+}
+
+function Countdown({ target }: { target: string }) {
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000)
     return () => window.clearInterval(timer)
   }, [])
-  const remaining = Math.max(0, new Date(deleteAfter).getTime() - now)
-  const totalSeconds = Math.ceil(remaining / 1000)
+  return <b><Duration milliseconds={Math.max(0, new Date(target).getTime() - now)} /></b>
+}
+
+function Duration({ milliseconds }: { milliseconds: number }) {
+  const totalSeconds = Math.ceil(milliseconds / 1000)
   const hours = Math.floor(totalSeconds / 3600)
   const minutes = Math.floor((totalSeconds % 3600) / 60)
   const seconds = totalSeconds % 60
-  return (
-    <b>
-      {hours.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')}:
-      {seconds.toString().padStart(2, '0')} remaining
-    </b>
-  )
+  return <>{hours.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}</>
 }
