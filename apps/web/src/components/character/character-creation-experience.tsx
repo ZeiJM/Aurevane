@@ -23,6 +23,10 @@ import styles from './character-creation-experience.module.css'
 
 type Step = 'identity' | 'foundation' | 'review'
 
+interface CharacterCreationExperienceProps {
+  slotIndex: number
+}
+
 const portraitAssetIds: readonly ImageAssetId[] = [
   'character.creation.portrait-01',
   'character.creation.portrait-02',
@@ -44,7 +48,7 @@ const emptyBonuses: CharacterAttributeBonuses = {
   resolve: 0,
 }
 
-export function CharacterCreationExperience() {
+export function CharacterCreationExperience({ slotIndex }: CharacterCreationExperienceProps) {
   const router = useRouter()
   const [step, setStep] = useState<Step>('identity')
   const [name, setName] = useState('')
@@ -98,6 +102,7 @@ export function CharacterCreationExperience() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           version: 1,
+          slotIndex,
           idempotencyKey: idempotencyKey.current,
           intent: {
             name,
@@ -119,6 +124,7 @@ export function CharacterCreationExperience() {
         setErrorMessage(payload.error?.message ?? 'Character creation could not be completed.')
         return
       }
+      router.push('/game')
       router.refresh()
     } catch {
       setErrorMessage('Character creation could not reach the server. Your choices are still here.')
@@ -383,9 +389,13 @@ export function CharacterCreationExperience() {
             </h1>
             <p className={styles.intro}>
               The server will revalidate every choice, reserve the name, and create the character
-              atomically in the selected slot.
+              atomically in Slot {slotIndex + 1}.
             </p>
             <dl className={styles.reviewGrid}>
+              <div>
+                <dt>Slot</dt>
+                <dd>{slotIndex + 1}</dd>
+              </div>
               <div>
                 <dt>Name</dt>
                 <dd>{name}</dd>
