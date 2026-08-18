@@ -41,15 +41,11 @@ export default async function CharacterProfilePage() {
   if (!character) redirect('/game')
 
   let levelCurve
-  let titleState
   try {
-    ;[levelCurve, titleState] = await Promise.all([
-      loadLevelProgressionCurve(
-        character.progressionCycle.number,
-        createSupabaseProgressionRepository(),
-      ),
-      loadCharacterTitleState(actor.userId, character.id),
-    ])
+    levelCurve = await loadLevelProgressionCurve(
+      character.progressionCycle.number,
+      createSupabaseProgressionRepository(),
+    )
   } catch (error) {
     if (isAurevaneError(error) && error.code === 'PERSISTENCE_UNAVAILABLE') {
       return <AuthenticatedGameRecovery />
@@ -57,10 +53,21 @@ export default async function CharacterProfilePage() {
     throw error
   }
 
+  let personalTitle: string | null = null
+  try {
+    personalTitle = (await loadCharacterTitleState(actor.userId, character.id)).personalTitle
+  } catch (error) {
+    if (!(isAurevaneError(error) && error.code === 'PERSISTENCE_UNAVAILABLE')) {
+      throw error
+    }
+    // Personal titles are cosmetic identity. A temporary title-read failure must not make the
+    // authoritative character profile unavailable.
+  }
+
   return (
     <CharacterProfileShell
       profile={buildCharacterProfileReadModel(character, levelCurve)}
-      personalTitle={titleState.personalTitle}
+      personalTitle={personalTitle}
     />
   )
 }
