@@ -5,8 +5,7 @@ import { redirect } from 'next/navigation'
 
 import { BattleAbortControls } from '@/components/battle/battle-abort-controls'
 import { BattleAudioGate } from '@/components/battle/battle-audio-gate'
-import { BattleExperience } from '@/components/battle/battle-experience'
-import { BattleFacingContext } from '@/components/battle/battle-facing-context'
+import { BattleExperienceV2 } from '@/components/battle/battle-experience-v2'
 import { BattleKeyboardAssist } from '@/components/battle/battle-keyboard-assist'
 import { BattleLessonCoach } from '@/components/battle/battle-lesson-coach'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
@@ -60,8 +59,7 @@ export default async function BattleSessionPage({
 
   return (
     <BattleAudioGate>
-      <BattleExperience initialBattle={battle} />
-      <BattleFacingContext initialBattle={battle} />
+      <BattleExperienceV2 initialBattle={battle} />
       <BattleKeyboardAssist />
       <BattleLessonCoach battleSessionId={battle.battleSessionId} />
       <BattleAbortControls
