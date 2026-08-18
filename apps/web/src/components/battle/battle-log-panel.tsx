@@ -11,6 +11,7 @@ interface BattleLogPanelProps {
   battleVersion?: number
   open?: boolean
   onClose?: () => void
+  playerName?: string
 }
 
 interface BattleLogResponse {
@@ -23,6 +24,7 @@ export function BattleLogPanel({
   battleVersion,
   open,
   onClose,
+  playerName,
 }: BattleLogPanelProps) {
   const controlled = open !== undefined
   const [internalOpen, setInternalOpen] = useState(false)
@@ -96,6 +98,7 @@ export function BattleLogPanel({
             loading={loading}
             error={error}
             onClose={() => setInternalOpen(false)}
+            playerName={playerName}
           />
         ) : null}
       </div>
@@ -105,7 +108,13 @@ export function BattleLogPanel({
   if (!visible) return null
   return (
     <div className={styles.controlled} data-testid="battle-log-panel">
-      <LogPanel entries={entries} loading={loading} error={error} onClose={onClose} />
+      <LogPanel
+        entries={entries}
+        loading={loading}
+        error={error}
+        onClose={onClose}
+        playerName={playerName}
+      />
     </div>
   )
 }
@@ -115,11 +124,13 @@ function LogPanel({
   loading,
   error,
   onClose,
+  playerName,
 }: {
   entries: BattleLogView['entries']
   loading: boolean
   error: string | null
   onClose?: () => void
+  playerName?: string
 }) {
   return (
     <section className={styles.panel} aria-label="Committed battle log">
@@ -152,11 +163,16 @@ function LogPanel({
           {entries.map((entry) => (
             <li key={`${entry.battleVersion}:${entry.eventIndex}`}>
               <span>v{entry.battleVersion}</span>
-              <p>{entry.message}</p>
+              <p>{personalizeBattleMessage(entry.message, playerName)}</p>
             </li>
           ))}
         </ol>
       )}
     </section>
   )
+}
+
+function personalizeBattleMessage(message: string, playerName?: string): string {
+  if (!playerName) return message
+  return message.replaceAll('Wayfarer', playerName)
 }
