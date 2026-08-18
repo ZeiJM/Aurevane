@@ -38,7 +38,7 @@ PR #122 currently implements:
 - current Manual content aligned with the six-attribute model, Discipline terminology, Battle Hall, character switching, titles and current player-facing terminology;
 - E2E expectations reconciled with the current navigation, scaling and combat model.
 
-The two new migrations for six-attribute/swap-cooldown state and personal titles have rebuilt successfully in GitHub infrastructure. Full quality, database/security and responsive browser gates are being rerun on the final formatted branch head before PR #122 is considered review-ready.
+The two new migrations for six-attribute/swap-cooldown state and personal titles have rebuilt successfully in GitHub infrastructure. Full quality, database/security and responsive browser gates are now being rerun on the final **formatted, touch-safe** branch head before PR #122 is considered review-ready.
 
 ## PV-1F corrective history
 
