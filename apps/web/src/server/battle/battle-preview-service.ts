@@ -80,10 +80,7 @@ export interface BattleEndTurnPreview {
 }
 
 export type BattleIntentPreview =
-  | BattleMovePreview
-  | BattleActionPreview
-  | BattleFacingPreview
-  | BattleEndTurnPreview
+  BattleMovePreview | BattleActionPreview | BattleFacingPreview | BattleEndTurnPreview
 
 export interface BattlePreviewView {
   battleSessionId: string
