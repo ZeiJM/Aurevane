@@ -55,8 +55,8 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
   const attackButton = commandDeck.getByRole('button', { name: /Basic Attack/ })
-  const endTurnButton = commandDeck.getByRole('button', { name: /Facing \/ End Turn/ })
-  const confirmButton = commandDeck.getByRole('button', { name: /Confirm command/ })
+  const endTurnButton = commandDeck.getByRole('button', { name: /Finish Turn/ })
+  const confirmButton = commandDeck.getByRole('button', { name: /Confirm action/ })
   const completion = page.getByTestId('tactical-hall-result')
 
   await expect(battlefield).toBeVisible()
@@ -79,7 +79,7 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
   await page.getByRole('button', { name: /Tile 4, 2; open-ground; elevation 0/ }).click()
   await expect(page.getByText(/Move preview: costs 4 Movement and leaves 0/)).toBeVisible()
   await expect(commandDeck.getByText('Action after')).toBeVisible()
-  await expect(commandDeck.getByText('READY', { exact: true })).toBeVisible()
+  await expect(commandDeck.getByText('100%', { exact: true })).toBeVisible()
   await confirmButton.click()
   await expect(
     page.getByText(/Moved to 4,2\. 0\/4 Movement remains\. Action is still READY/),
@@ -108,12 +108,6 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
 
   await endTurnButton.click()
   await page.getByRole('button', { name: 'Face east' }).click()
-  await expect(page.getByRole('button', { name: 'Face east' })).toHaveAttribute(
-    'aria-pressed',
-    'true',
-  )
-  await expect(page.getByText(/Ready to end the turn facing east/)).toBeVisible()
-  await confirmButton.click()
 
   await expect(page.getByText(/Recruit turn:/)).toBeVisible({ timeout: 15_000 })
   await expect(page.getByRole('button', { name: 'Inspect Wayfarer' })).toContainText('ACTIVE TURN')
@@ -144,8 +138,6 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
 
     await endTurnButton.click()
     await page.getByRole('button', { name: 'Face east' }).click()
-    await expect(confirmButton).toBeEnabled()
-    await confirmButton.click()
 
     await waitForCompletionOrNextPlayerTurn(page, completion, attackButton)
   }

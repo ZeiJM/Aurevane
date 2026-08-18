@@ -123,7 +123,7 @@ function modeInstruction(
       : 'GUARD · Your Action is already spent this turn.'
   }
   if (mode === 'end-turn') {
-    return `FACING → END TURN · Choose the direction you want to protect, then Confirm. You will end the turn facing ${provisionalFacing} ${facingGlyph(provisionalFacing)}.`
+    return `FINAL FACING · Choose the direction you want to protect. Selecting a direction immediately ends the turn. Current choice: ${provisionalFacing} ${facingGlyph(provisionalFacing)}.`
   }
   return 'INSPECT · Click a unit or tile. Terrain cost, elevation, HP, MP, statuses, initiative and facing are explained in the Inspector.'
 }
@@ -383,7 +383,7 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
   const [recruitPending, setRecruitPending] = useState(false)
   const [recruitFailed, setRecruitFailed] = useState(false)
   const [notice, setNotice] = useState(
-    'Battle ready. Use Move, then an Action, choose Facing, and End Turn.',
+    'Battle ready. Move, spend your Action if desired, then choose final Facing to end the turn.',
   )
   const previewSequence = useRef(0)
   const recruitAttemptedVersion = useRef<number | null>(null)
@@ -473,12 +473,10 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
     ? reachablePaths.has(positionKey(selectedTile.position))
     : false
   const actionReady = currentTurn?.actionState === 'ready'
+  const actionEconomyPercent = playerTurn && actionReady ? 100 : 0
   const previewLegal = preview?.preview.legal ?? false
-  const finalTurnLegal = finalTurnPreview?.legal ?? false
   const planningDisabled =
     !playerTurn || battleState.lifecycle !== 'active' || commitPending || recruitPending
-  const commandLegal = mode === 'end-turn' ? finalTurnLegal : previewLegal
-  const hasPendingCommand = mode === 'end-turn' ? Boolean(finalTurnPreview) : Boolean(pendingIntent)
 
   const attackFacingRelation = useMemo(() => {
     if (!playerPlacement || !recruitPlacement) return null
@@ -695,7 +693,7 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
         setFinalTurnPreview(body.finalTurnPreview)
         setNotice(
           body.finalTurnPreview.legal
-            ? `Ready to end the turn facing ${facing} ${facingGlyph(facing)}. Confirm when you are finished moving and acting.`
+            ? `Final-facing mode ready. Choose north, east, south, or west; selecting the direction commits it and ends the turn.`
             : (body.finalTurnPreview.issues[0]?.message ?? 'That final turn is not legal.'),
         )
       } catch (error) {
@@ -805,47 +803,50 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
     tactical.placements,
   ])
 
-  const commitFinalTurn = useCallback(async () => {
-    if (commitLock.current || commitPending || !finalTurnPreview?.legal) return
-    commitLock.current = true
-    setCommitPending(true)
-
-    try {
-      const response = await fetch(`/api/battles/${battle.battleSessionId}/final-turn`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          idempotencyKey: crypto.randomUUID(),
-          expectedBattleVersion: battle.battleVersion,
-          facing: provisionalFacing,
-        }),
-      })
-      const body = (await response.json()) as { battle?: BattleSessionView } & ApiErrorBody
-      if (!response.ok || !body.battle) {
-        await handleApiFailure(response, body, 'The turn could not be ended.')
+  const commitFinalTurn = useCallback(
+    async (facingOverride?: Facing) => {
+      const facing = facingOverride ?? provisionalFacing
+      if (commitLock.current || commitPending || (!facingOverride && !finalTurnPreview?.legal))
         return
+      commitLock.current = true
+      setCommitPending(true)
+
+      try {
+        const response = await fetch(`/api/battles/${battle.battleSessionId}/final-turn`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            idempotencyKey: crypto.randomUUID(),
+            expectedBattleVersion: battle.battleVersion,
+            facing,
+          }),
+        })
+        const body = (await response.json()) as { battle?: BattleSessionView } & ApiErrorBody
+        if (!response.ok || !body.battle) {
+          await handleApiFailure(response, body, 'The turn could not be ended.')
+          return
+        }
+        setBattle(body.battle)
+        setProvisionalFacing(activeFacingForBattle(body.battle))
+        resetPlanning()
+        setNotice(`Turn ended facing ${facing} ${facingGlyph(facing)}. Recruit turn begins.`)
+      } catch (error) {
+        setNotice(error instanceof Error ? error.message : 'The turn could not be ended.')
+      } finally {
+        setCommitPending(false)
+        commitLock.current = false
       }
-      setBattle(body.battle)
-      setProvisionalFacing(activeFacingForBattle(body.battle))
-      resetPlanning()
-      setNotice(
-        `Turn ended facing ${provisionalFacing} ${facingGlyph(provisionalFacing)}. Recruit turn begins.`,
-      )
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : 'The turn could not be ended.')
-    } finally {
-      setCommitPending(false)
-      commitLock.current = false
-    }
-  }, [
-    battle.battleSessionId,
-    battle.battleVersion,
-    commitPending,
-    finalTurnPreview,
-    handleApiFailure,
-    provisionalFacing,
-    resetPlanning,
-  ])
+    },
+    [
+      battle.battleSessionId,
+      battle.battleVersion,
+      commitPending,
+      finalTurnPreview,
+      handleApiFailure,
+      provisionalFacing,
+      resetPlanning,
+    ],
+  )
 
   useEffect(() => {
     if (
@@ -969,9 +970,11 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
       if (!playerTurn || commitPending || recruitPending) return
       setProvisionalFacing(facing)
       setMode('end-turn')
-      void requestFinalTurnPreview(facing)
+      setFinalTurnPreview(null)
+      setNotice(`Final facing selected: ${facing} ${facingGlyph(facing)}. Ending turn…`)
+      void commitFinalTurn(facing)
     },
-    [commitPending, playerTurn, recruitPending, requestFinalTurnPreview],
+    [commitFinalTurn, commitPending, playerTurn, recruitPending],
   )
 
   useEffect(() => {
@@ -1003,14 +1006,9 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
       } else if (event.key === '5' || event.code === 'Space') {
         event.preventDefault()
         chooseMode('end-turn')
-      } else if (event.key === 'Enter') {
-        if (mode === 'end-turn' && finalTurnPreview?.legal) {
-          event.preventDefault()
-          void commitFinalTurn()
-        } else if (preview?.preview.legal && pendingIntent) {
-          event.preventDefault()
-          void commitIntent()
-        }
+      } else if (event.key === 'Enter' && preview?.preview.legal && pendingIntent) {
+        event.preventDefault()
+        void commitIntent()
       }
     }
 
@@ -1059,55 +1057,6 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
       </header>
 
       <div className={styles.content}>
-        <section className={styles.combatHud} aria-label="Combatant status and turn flow">
-          {combatantCard(
-            playerCombatant,
-            playerPlacement,
-            playerStatuses,
-            currentTurn?.combatantId === playerId,
-            () => setSelectedUnitId(playerId),
-          )}
-
-          <div className={styles.turnFlow} aria-label="Turn flow">
-            <div
-              className={`${styles.flowStep} ${playerTurn && (currentTurn?.movementRemaining ?? 0) > 0 ? styles.flowReady : ''} ${mode === 'move' ? styles.flowActive : ''}`}
-            >
-              <span>1 · Move</span>
-              <strong>
-                {currentTurn?.movementRemaining ?? 0}/{currentTurn?.movementMaximum ?? 0}
-              </strong>
-              <small>Does not spend Action</small>
-            </div>
-            <div
-              className={`${styles.flowStep} ${playerTurn && actionReady ? styles.flowReady : ''} ${mode === 'attack' || mode === 'guard' ? styles.flowActive : ''}`}
-            >
-              <span>2 · Action</span>
-              <strong>{actionReady ? 'READY' : 'SPENT'}</strong>
-              <small>Attack or Guard</small>
-            </div>
-            <div className={`${styles.flowStep} ${mode === 'end-turn' ? styles.flowActive : ''}`}>
-              <span>3 · Facing</span>
-              <strong>
-                {facingGlyph(provisionalFacing)} {provisionalFacing}
-              </strong>
-              <small>Choose your final direction</small>
-            </div>
-            <div className={`${styles.flowStep} ${mode === 'end-turn' ? styles.flowReady : ''}`}>
-              <span>4 · End Turn</span>
-              <strong>{playerTurn ? 'AVAILABLE' : 'WAIT'}</strong>
-              <small>Facing commits with it</small>
-            </div>
-          </div>
-
-          {combatantCard(
-            recruitCombatant,
-            recruitPlacement,
-            recruitStatuses,
-            currentTurn?.combatantId === recruitId,
-            () => setSelectedUnitId(recruitId),
-          )}
-        </section>
-
         <section className={styles.feedbackBanner} aria-live="polite">
           <strong>{recruitPending ? 'Enemy turn' : 'Last result'}</strong>
           <p>{notice}</p>
@@ -1145,6 +1094,48 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
         </section>
 
         <div className={styles.stage}>
+          <aside className={styles.playerRail} aria-label="Player and ally status">
+            {combatantCard(
+              playerCombatant,
+              playerPlacement,
+              playerStatuses,
+              currentTurn?.combatantId === playerId,
+              () => setSelectedUnitId(playerId),
+            )}
+            <div className={styles.turnFlow} aria-label="Action economy">
+              <div className={styles.economyHeader}>
+                <span>Action Economy</span>
+                <strong>{actionEconomyPercent}%</strong>
+              </div>
+              <div className={styles.economyTrack} aria-hidden="true">
+                <span
+                  className={styles.economyFill}
+                  style={{ width: `${actionEconomyPercent}%` }}
+                />
+              </div>
+              <div className={styles.economyCosts}>
+                <span>
+                  Move <b>0%</b>
+                </span>
+                <span>
+                  Attack <b>100%</b>
+                </span>
+                <span>
+                  Guard <b>100%</b>
+                </span>
+                <span>
+                  Facing <b>0% + end</b>
+                </span>
+              </div>
+              <small className={styles.economyNote}>
+                Movement is a separate positional pool:{' '}
+                {playerTurn
+                  ? `${currentTurn?.movementRemaining ?? 0}/${currentTurn?.movementMaximum ?? 0}`
+                  : 'wait'}{' '}
+                remaining.
+              </small>
+            </div>
+          </aside>
           <section
             id="battlefield"
             className={styles.battlefield}
@@ -1154,10 +1145,9 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
               <div
                 className={styles.board}
                 style={{
-                  gridTemplateColumns: `repeat(${tactical.width}, minmax(3.6rem, 1fr))`,
-                  gridTemplateRows: `repeat(${tactical.height}, minmax(3.6rem, 1fr))`,
-                  minWidth: `${Math.max(30, tactical.width * 5.2)}rem`,
-                  aspectRatio: `${tactical.width} / ${tactical.height}`,
+                  gridTemplateColumns: `repeat(${tactical.width}, clamp(3.15rem, 4.5vw, 4.6rem))`,
+                  gridTemplateRows: `repeat(${tactical.height}, clamp(3.15rem, 4.5vw, 4.6rem))`,
+                  width: 'max-content',
                 }}
               >
                 {tactical.tiles.map((tile) => {
@@ -1173,6 +1163,7 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
                     : false
                   const active = placement?.combatantId === currentTurn?.combatantId
                   const inPath = pathTiles.has(key)
+                  const pathIndex = path.findIndex((point) => positionsEqual(point, tile.position))
                   const affected = previewAffectedTiles.has(key)
                   const moveReachable = mode === 'move' && reachablePaths.has(key)
                   const moveUnavailable =
@@ -1224,6 +1215,11 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
                           <span className={styles.terrainBadge}>E{tile.elevation}</span>
                         ) : null}
                       </span>
+                      {pathIndex > 0 ? (
+                        <span className={styles.pathMarker} aria-hidden="true">
+                          {pathIndex}
+                        </span>
+                      ) : null}
                       {placement ? (
                         <span
                           className={`${styles.unit} ${placement.combatantId === playerId ? styles.unitPlayer : styles.unitOpponent} ${active ? styles.unitActive : ''}`}
@@ -1264,121 +1260,132 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
             </div>
           </section>
 
-          <aside className={styles.inspector} aria-label="Context inspector">
-            <div className={styles.inspectorHeading}>
-              <span>Inspector</span>
-              <strong>
-                {selectedCombatant ? combatantLabel(selectedCombatant.id) : 'Terrain'}
-              </strong>
-            </div>
-            {selectedCombatant && selectedPlacement ? (
-              <div className={styles.inspectorBody}>
-                <p className={styles.inspectorCallout}>
-                  Facing is already meaningful: a Basic Attack deals 100% damage from the front,
-                  110% from the side, and 125% from the rear. The arrow on each unit shows its
-                  current facing.
-                </p>
-                <dl className={styles.detailList}>
-                  <div>
-                    <dt>HP</dt>
-                    <dd>
-                      {selectedCombatant.hp}/{selectedCombatant.maxHp}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>MP</dt>
-                    <dd>
-                      {selectedCombatant.mp}/{selectedCombatant.maxMp}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Facing</dt>
-                    <dd>
-                      {facingGlyph(selectedPlacement.facing)} {selectedPlacement.facing}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Initiative</dt>
-                    <dd>{selectedCombatant.initiative}</dd>
-                  </div>
-                  <div>
-                    <dt>Movement / turn</dt>
-                    <dd>{selectedCombatant.baseMovementBudget}</dd>
-                  </div>
-                  <div>
-                    <dt>Jump</dt>
-                    <dd>{selectedProfile?.jump ?? '—'}</dd>
-                  </div>
-                  <div>
-                    <dt>Armor</dt>
-                    <dd>{selectedProfile?.armor ?? '—'}</dd>
-                  </div>
-                  <div>
-                    <dt>Evasion</dt>
-                    <dd>
-                      {selectedProfile ? percentFromBasisPoints(selectedProfile.evasion) : '—'}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Status</dt>
-                    <dd>
-                      {selectedStatuses.length > 0
-                        ? selectedStatuses.map(statusLabel).join(', ')
-                        : 'None'}
-                    </dd>
-                  </div>
-                </dl>
-              </div>
-            ) : selectedTile ? (
-              <div className={styles.inspectorBody}>
-                <p className={styles.inspectorCallout}>
-                  {selectedTile.terrainId === 'rough-ground'
-                    ? 'Rough ground costs 2 Movement when entered. It can make a shorter-looking route more expensive.'
-                    : 'Open ground costs 1 Movement when entered.'}{' '}
-                  {selectedTile.elevation > 0
-                    ? `This tile is elevation ${selectedTile.elevation}. Your active movement profile can change height by up to ${selectedMovementProfile?.maxElevationStep ?? 0} per step.`
-                    : 'This tile is at ground elevation.'}
-                </p>
-                <dl className={styles.detailList}>
-                  <div>
-                    <dt>Position</dt>
-                    <dd>
-                      {selectedTile.position.x + 1}, {selectedTile.position.y + 1}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Terrain</dt>
-                    <dd>
-                      {selectedTile.terrainId === 'rough-ground' ? 'Rough ground' : 'Open ground'}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Entry cost</dt>
-                    <dd>
-                      {selectedTerrainCost === null ? 'Blocked' : `${selectedTerrainCost} Movement`}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Elevation</dt>
-                    <dd>{selectedTile.elevation}</dd>
-                  </div>
-                  <div>
-                    <dt>Reachable now</dt>
-                    <dd>
-                      {playerTurn ? (selectedTileReachable ? 'YES' : 'NO') : 'Wait for your turn'}
-                    </dd>
-                  </div>
-                </dl>
-              </div>
-            ) : (
-              <div className={styles.inspectorBody}>
-                <p className={styles.inspectorCallout}>
-                  Click a unit for HP, MP, statuses and facing, or click a tile for terrain cost,
-                  elevation and current reachability.
-                </p>
-              </div>
+          <div className={styles.enemyRail} aria-label="Enemy status">
+            {combatantCard(
+              recruitCombatant,
+              recruitPlacement,
+              recruitStatuses,
+              currentTurn?.combatantId === recruitId,
+              () => setSelectedUnitId(recruitId),
             )}
-          </aside>
+            <aside className={styles.inspector} aria-label="Context inspector">
+              <div className={styles.inspectorHeading}>
+                <span>Inspector</span>
+                <strong>
+                  {selectedCombatant ? combatantLabel(selectedCombatant.id) : 'Terrain'}
+                </strong>
+              </div>
+              {selectedCombatant && selectedPlacement ? (
+                <div className={styles.inspectorBody}>
+                  <p className={styles.inspectorCallout}>
+                    Facing is already meaningful: a Basic Attack deals 100% damage from the front,
+                    110% from the side, and 125% from the rear. The arrow on each unit shows its
+                    current facing.
+                  </p>
+                  <dl className={styles.detailList}>
+                    <div>
+                      <dt>HP</dt>
+                      <dd>
+                        {selectedCombatant.hp}/{selectedCombatant.maxHp}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>MP</dt>
+                      <dd>
+                        {selectedCombatant.mp}/{selectedCombatant.maxMp}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Facing</dt>
+                      <dd>
+                        {facingGlyph(selectedPlacement.facing)} {selectedPlacement.facing}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Initiative</dt>
+                      <dd>{selectedCombatant.initiative}</dd>
+                    </div>
+                    <div>
+                      <dt>Movement / turn</dt>
+                      <dd>{selectedCombatant.baseMovementBudget}</dd>
+                    </div>
+                    <div>
+                      <dt>Jump</dt>
+                      <dd>{selectedProfile?.jump ?? '—'}</dd>
+                    </div>
+                    <div>
+                      <dt>Armor</dt>
+                      <dd>{selectedProfile?.armor ?? '—'}</dd>
+                    </div>
+                    <div>
+                      <dt>Evasion</dt>
+                      <dd>
+                        {selectedProfile ? percentFromBasisPoints(selectedProfile.evasion) : '—'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Status</dt>
+                      <dd>
+                        {selectedStatuses.length > 0
+                          ? selectedStatuses.map(statusLabel).join(', ')
+                          : 'None'}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+              ) : selectedTile ? (
+                <div className={styles.inspectorBody}>
+                  <p className={styles.inspectorCallout}>
+                    {selectedTile.terrainId === 'rough-ground'
+                      ? 'Rough ground costs 2 Movement when entered. It can make a shorter-looking route more expensive.'
+                      : 'Open ground costs 1 Movement when entered.'}{' '}
+                    {selectedTile.elevation > 0
+                      ? `This tile is elevation ${selectedTile.elevation}. Your active movement profile can change height by up to ${selectedMovementProfile?.maxElevationStep ?? 0} per step.`
+                      : 'This tile is at ground elevation.'}
+                  </p>
+                  <dl className={styles.detailList}>
+                    <div>
+                      <dt>Position</dt>
+                      <dd>
+                        {selectedTile.position.x + 1}, {selectedTile.position.y + 1}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Terrain</dt>
+                      <dd>
+                        {selectedTile.terrainId === 'rough-ground' ? 'Rough ground' : 'Open ground'}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Entry cost</dt>
+                      <dd>
+                        {selectedTerrainCost === null
+                          ? 'Blocked'
+                          : `${selectedTerrainCost} Movement`}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Elevation</dt>
+                      <dd>{selectedTile.elevation}</dd>
+                    </div>
+                    <div>
+                      <dt>Reachable now</dt>
+                      <dd>
+                        {playerTurn ? (selectedTileReachable ? 'YES' : 'NO') : 'Wait for your turn'}
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+              ) : (
+                <div className={styles.inspectorBody}>
+                  <p className={styles.inspectorCallout}>
+                    Click a unit for HP, MP, statuses and facing, or click a tile for terrain cost,
+                    elevation and current reachability.
+                  </p>
+                </div>
+              )}
+            </aside>
+          </div>
         </div>
 
         <section className={styles.commandDeck} aria-label="Command Deck">
@@ -1404,7 +1411,7 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
               >
                 <span>01</span>
                 <strong>Inspect</strong>
-                <small>Terrain &amp; unit info</small>
+                <small>Free · terrain &amp; unit info</small>
               </button>
               <button
                 type="button"
@@ -1414,7 +1421,7 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
               >
                 <span>02</span>
                 <strong>Move</strong>
-                <small>Green tiles · Action stays READY</small>
+                <small>0% Action · uses Movement</small>
               </button>
               <button
                 type="button"
@@ -1424,7 +1431,7 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
               >
                 <span>03</span>
                 <strong>Basic Attack</strong>
-                <small>Spend Action on one enemy</small>
+                <small>100% Action · one enemy</small>
               </button>
               <button
                 type="button"
@@ -1434,7 +1441,7 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
               >
                 <span>04</span>
                 <strong>Guard</strong>
-                <small>-20% incoming · spends Action</small>
+                <small>100% Action · -20% incoming</small>
               </button>
               <button
                 type="button"
@@ -1443,8 +1450,8 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
                 disabled={planningDisabled}
               >
                 <span>05</span>
-                <strong>Facing / End Turn</strong>
-                <small>Choose direction, then Confirm</small>
+                <strong>Finish Turn</strong>
+                <small>0% Action · choose facing to finish</small>
               </button>
             </div>
 
@@ -1521,7 +1528,7 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
                   </div>
                   <div>
                     <span>Action after</span>
-                    <strong>{actionReady ? 'READY' : 'SPENT'}</strong>
+                    <strong>{actionReady ? '100%' : '0%'}</strong>
                   </div>
                 </>
               ) : null}
@@ -1593,19 +1600,12 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
             <button
               type="button"
               className={styles.confirmButton}
-              onClick={() => {
-                if (mode === 'end-turn') void commitFinalTurn()
-                else void commitIntent()
-              }}
+              onClick={() => void commitIntent()}
               disabled={
-                !hasPendingCommand ||
-                !commandLegal ||
-                previewPending ||
-                commitPending ||
-                recruitPending
+                !pendingIntent || !previewLegal || previewPending || commitPending || recruitPending
               }
             >
-              {commitPending ? 'Committing…' : 'Confirm command'} <kbd>Enter</kbd>
+              {commitPending ? 'Committing…' : 'Confirm action'} <kbd>Enter</kbd>
             </button>
           </div>
         </section>

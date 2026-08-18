@@ -6,6 +6,7 @@ import '@aurevane/ui/styles.css'
 import { AudioProvider } from '@/components/audio/audio-provider'
 
 import './globals.css'
+import './pv1e-shell-fixes.css'
 
 export const metadata: Metadata = {
   title: 'AUREVANE',
