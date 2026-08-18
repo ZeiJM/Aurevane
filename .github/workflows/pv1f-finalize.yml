@@ -1,0 +1,286 @@
+name: PV-1F one-shot finalizer
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: github.event.pull_request.head.ref == 'agent/pv-1f-character-hub-turn-budget' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/pv-1f-character-hub-turn-budget
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Reconcile canonical combat baseline
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          path = Path('docs/COMBAT.md')
+          text = path.read_text()
+          revision = '**PV-1F rules revision approved:** 2026-08-18.\n'
+          if revision not in text:
+              anchor = '**Direction approved:** 2026-08-15.\n'
+              if anchor not in text:
+                  raise SystemExit('COMBAT direction anchor not found')
+              text = text.replace(anchor, anchor + '\n' + revision, 1)
+
+          start_marker = '## 2. Complexity Budget\n'
+          end_marker = '## 10. Turn Timing\n'
+          start = text.find(start_marker)
+          end = text.find(end_marker)
+          if start < 0 or end < 0 or end <= start:
+              raise SystemExit('COMBAT baseline section markers not found')
+
+          replacement = '''## 2. Complexity Budget
+
+Combat can be deep while the player's **baseline turn grammar stays small**.
+
+The default player should learn these concepts first:
+
+1. spend Action Economy to move into position;
+2. spend remaining Action Economy on one or more legal actions;
+3. understand range and target legality before committing;
+4. choose final facing to finish the turn;
+5. read terrain, elevation, HP/MP, and visible statuses;
+6. learn that equipped Reactions may trigger outside the normal decision loop;
+7. gradually add Arts, Soulmark interactions, Confluences, equipment effects, advanced terrain, objectives, and team play.
+
+The baseline UI exposes **one 0–100 Action Economy meter**, not a separate Movement Budget plus binary Action Ready/Spent state. Inspect remains a free utility mode and does not consume economy.
+
+Do not expose every advanced concept in the tutorial battle. The underlying engine may support substantial expressive power, but the UI uses progressive disclosure.
+
+---
+
+## 3. Standard Turn Economy
+
+**PV-1F supersedes the earlier `MOVE + one ACTION` validation baseline.** A normal actor turn refreshes to **100 Action Economy (AE)** unless an authoritative effect says otherwise.
+
+Current baseline costs are:
+
+```text
+Inspect                         0 AE
+Move, normal traversal unit    10 AE
+Move, terrain cost 2           20 AE
+Basic Attack                   30 AE
+Guard                          30 AE
+Recover                        50 AE
+Final Facing                    0 AE and ends the turn
+```
+
+Movement cost is derived from authoritative terrain traversal cost: `10 AE × traversal cost units`. A route can therefore mix normal and expensive terrain without inventing a second movement resource.
+
+Multiple actions are legal in one turn while enough AE remains. Examples include move → Basic Attack → move, two Basic Attacks when legal, Guard plus movement, or Recover plus movement. Content can add further actions later, but every cost and legal sequence remains server-owned and versioned.
+
+The client may preview remaining AE, paths, targets, forecasts, and facing. It never decides the authoritative result. The server owns current and remaining AE, terrain traversal costs, action costs, target/range legality, status requirements, final facing, turn completion, battle version, idempotency, duplicate-request handling, damage, healing, mitigation, RNG, and resulting state.
+
+The player-facing binary `Action Ready / Action Spent` model is obsolete for this rules version.
+
+---
+
+## 4. Movement & Terrain Cost
+
+Movement is part of the same 100-point economy rather than a separate spendable bar.
+
+Conceptual traversal costs remain authored terrain data:
+
+```text
+Road / open ground      cost 1  => 10 AE per tile entered
+Mud / rubble / rough    cost 2  => 20 AE per tile entered
+Blocked terrain         illegal unless a movement rule permits it
+```
+
+Exact terrain definitions remain balance/content data. Different movement profiles may interpret authored terrain differently, including future heavy ground, agile ground, flying, hovering, burrowing, teleport/blink, jump/vault, or summon-specific movement.
+
+The actor's Movement, Jump, statuses, movement profile, elevation rules, and special effects still matter to legality and build identity; they do not create a second player-facing generic Action meter.
+
+### Split movement
+
+A character may move, take one or more affordable actions, and move again while the authoritative AE and other requirements permit it. An Art, status, forced movement, objective rule, or special effect may explicitly restrict further movement.
+
+### Movement never trusts the client
+
+The client previews paths and cost. The server validates start tile and destination, every path step, terrain traversal cost, occupied/blocked tiles, elevation and jump legality, statuses and movement-profile rules, AE before and after the move, battle version, and idempotency.
+
+---
+
+## 5. Baseline Combat Actions
+
+Basic actions do not occupy the normal Art loadout.
+
+### Inspect — 0 AE
+
+Inspect is an optional click-first utility mode. It exposes terrain/elevation and combatant information without committing battle state or spending AE.
+
+### Move — 10 AE per traversal cost unit
+
+Move previews an authoritative path. Normal cost-1 terrain spends 10 AE per tile entered; cost-2 terrain spends 20 AE. The preview must show the route and resulting economy before confirmation.
+
+### Basic Attack — 30 AE
+
+Basic Attack uses the equipped/unarmed attack profile and the same targeting/effect pipeline used by authored combat abilities.
+
+For the PV-1F validation baseline, low unarmed physical damage begins from:
+
+```text
+6 + Level + floor(Might × 0.8) + floor(Finesse × 0.4)
+```
+
+before the authoritative accuracy/evasion, armor/defense, facing, status, and other combat modifiers are applied. This formula is versioned balance data and can evolve when representative weapons and broader combat content arrive.
+
+### Guard — 30 AE
+
+Guard grants **15% incoming-damage reduction for 2 authoritative turns** in the current validation rules. Its duration is resolved by combat state/turn progression, not client animation timing. Guard is intentionally modest so dedicated defensive Disciplines retain stronger identity.
+
+### Recover — 50 AE
+
+Recover immediately restores **10% of the actor's maximum HP**, capped at max HP. It is a bounded baseline recovery option, not a replacement for healing Disciplines, items, Soulmarks, equipment, or encounter-specific healing systems.
+
+### Future Arts, Items & Interactions
+
+Arts, usable items, interactions, scenario actions, and special abilities use authored/versioned AE costs and the same requirement/target/effect authority pipeline. They do not create a second client-owned action system.
+
+---
+
+## 6. Action Economy Invariants
+
+The 100-point meter is a tactical budget, not permission for infinite or client-invented action chains.
+
+Hard rules include:
+
+- normal turns begin with 100 AE unless an authoritative rule modifies the starting value;
+- AE never drops below zero or exceeds its authoritative cap without an explicit effect;
+- an action cannot commit if its authoritative cost exceeds remaining AE;
+- movement cost is derived from authoritative traversal cost rather than client-provided percentages;
+- previews do not spend AE;
+- failed/illegal commands do not silently spend AE;
+- successful commits spend exactly their authoritative cost once;
+- retries with the same idempotency identity replay the committed result rather than spending twice;
+- duplicate clicks cannot create duplicate authoritative outcomes;
+- bonus/refund effects are bounded and cannot create recursive zero-cost loops;
+- future extra-turn or AE-generation effects require explicit tests and analytics.
+
+Tempo-manipulating Disciplines such as Chronist may bend these rules through explicit authored effects, but they do not bypass the authority boundary.
+
+---
+
+## 7. Facing
+
+Facing remains four-directional:
+
+```text
+NORTH
+EAST
+SOUTH
+WEST
+```
+
+In the current turn flow, choosing North/East/South/West is the **final command**: it costs 0 AE, commits final facing, resolves end-turn processing, and advances authority to the next actor. There is no second mandatory End Turn confirmation after a valid facing choice.
+
+The battlefield must show unit orientation clearly. Facing must never require pixel-perfect interpretation.
+
+For the current validation baseline, a Basic Attack's positional damage relationship is:
+
+```text
+Front   100%
+Side    110%
+Rear    125%
+```
+
+Facing may later influence or interact with accuracy, evasion, critical effects, shields/guards, cones/arcs, cover direction, Reactions, equipment, Arts, bosses, and Confluences through explicit versioned rules. Do not silently add those effects without authored balance data.
+
+---
+
+## 8. Action-Economy Manipulation
+
+Builds may manipulate tempo by changing AE costs, refunds, caps, or constrained opportunities through explicit effects.
+
+Examples include reducing movement traversal cost, making authored terrain cheaper for a specific actor, bounded refunds after tagged actions, increasing costs through Slow/exhaustion-like effects, spending extra AE to improve an Art, constrained zero-cost follow-ups, initiative manipulation, or rare bounded extra AE/turn effects.
+
+### Hard safety rules
+
+- no recursive extra-turn loops;
+- refunds and bonus AE are capped;
+- zero-cost/bonus actions cannot create infinite trigger chains;
+- effects that grant extra actions/turns cannot recursively reproduce themselves unless a deliberately exceptional, tested rule explicitly allows it;
+- all economy mutations are server-authoritative, deterministic where required, logged, and versioned.
+
+---
+
+## 9. Turn Lifecycle
+
+A normal PV-1F turn resolves through an explicit lifecycle:
+
+```text
+TURN START
+  ↓
+Start-turn statuses / resource hooks / triggers
+  ↓
+Refresh authoritative Action Economy (normally 100)
+  ↓
+PLAYER DECISION LOOP
+  ├── Inspect (free preview utility)
+  ├── Move (spend AE by traversal cost)
+  ├── Basic Attack / Guard / Recover / authored actions (spend AE)
+  ├── continue taking legal commands while AE permits
+  └── choose final facing
+  ↓
+FACING COMMIT = END TURN
+  ↓
+End-turn statuses / durations / zones / objective checks
+  ↓
+Schedule next actor
+```
+
+Reactions or interrupt windows can occur at deterministic authored points inside that lifecycle. The combat event log records the actual authoritative sequence and the battle version advances only through committed server state.
+
+---
+
+'''
+          path.write_text(text[:start] + replacement + text[end:])
+          PY
+      - name: Apply canonical formatting
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/components/character/character-select-shell.tsx \
+            apps/web/src/components/character/character-creation-experience.tsx \
+            apps/web/src/components/settings/combat-controls-settings.tsx \
+            apps/web/src/components/battle/battle-keyboard-assist.tsx \
+            apps/web/e2e/account-entry.pw.ts \
+            apps/web/e2e/pv1f-test-helpers.ts \
+            apps/web/e2e/battle-experience.pw.ts \
+            apps/web/e2e/battle-usability.pw.ts \
+            apps/web/e2e/character-creation.pw.ts \
+            apps/web/e2e/wayfarers-practice.pw.ts
+      - name: Remove one-shot scaffolding
+        run: |
+          rm -f .github/workflows/pv1f-finalize.yml
+          rm -f .github/workflows/pv1f-combat-doc-reconcile.yml
+          rm -f docs/.pv1f-combat-doc-reconcile-trigger
+      - name: Commit finalization
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'PV-1F finalization already clean.'
+            exit 0
+          fi
+          git commit -m 'chore: finalize PV-1F validation candidate'
+          git push origin HEAD:agent/pv-1f-character-hub-turn-budget
