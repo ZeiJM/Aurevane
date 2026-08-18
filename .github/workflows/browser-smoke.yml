@@ -2,68 +2,69 @@ name: Browser smoke
 
 on:
   pull_request:
+  push:
+    branches:
+      - main
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  finalize-pv1f:
-    name: Finalize PV-1F battle wiring
-    if: github.event.pull_request.head.ref == 'agent/pv-1f-character-hub-turn-budget'
+  browser:
+    name: Responsive browser smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
     steps:
-      - name: Checkout PV-1F branch
+      - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
         with:
-          ref: agent/pv-1f-character-hub-turn-budget
-          fetch-depth: 0
+          node-version: 24
 
-      - name: Patch battle wiring and restore workflow
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium
+        run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
+
+      - name: Start local Supabase stack
+        run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+
+      - name: Verify desktop and mobile shell
         shell: bash
         run: |
           set -euo pipefail
-          git fetch origin main
-          python <<'PY'
-          from pathlib import Path
 
-          path = Path('apps/web/src/components/battle/battle-experience-v2.tsx')
-          text = path.read_text()
+          status_env="$(pnpm exec supabase status -o env)"
+          eval "$(printf '%s\n' "$status_env" | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY|SECRET_KEY)=')"
+          test -n "${ANON_KEY:-}"
+          server_key="${SECRET_KEY:-${SERVICE_ROLE_KEY:-}}"
+          test -n "$server_key"
 
-          old_log = '''      <BattleLogPanel
-        battleSessionId={battle.battleSessionId}
-        battleVersion={battle.battleVersion}
-        open={overlay?.kind === 'log'}
-        onClose={() => setOverlay(null)}
-      />'''
-          new_log = '''      <BattleLogPanel
-        battleSessionId={battle.battleSessionId}
-        battleVersion={battle.battleVersion}
-        open={overlay?.kind === 'log'}
-        onClose={() => setOverlay(null)}
-        playerName={playerName}
-      />'''
-          if old_log not in text:
-              raise SystemExit('BattleLogPanel wiring anchor not found')
-          text = text.replace(old_log, new_log, 1)
+          api_url='http://127.0.0.1:54321'
 
-          old_abort = '''      router.replace('/game/battle')
-      router.refresh()'''
-          if old_abort not in text:
-              raise SystemExit('Abort navigation anchor not found')
-          text = text.replace(old_abort, "      router.replace('/game/battle')", 1)
-          path.write_text(text)
-          PY
+          AUREVANE_ENV=local \
+          NEXT_PUBLIC_AUREVANE_ENV=local \
+          NEXT_PUBLIC_SUPABASE_URL="$api_url" \
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
+          SUPABASE_SECRET_KEY="$server_key" \
+          pnpm --filter @aurevane/web build
 
-          git show origin/main:.github/workflows/browser-smoke.yml > .github/workflows/browser-smoke.yml
-          rm -f .github/workflows/pv1f-battle-wiring-fix.yml
-          rm -f docs/.pv1f-battle-wiring-trigger
+          AUREVANE_ENV=local \
+          NEXT_PUBLIC_AUREVANE_ENV=local \
+          NEXT_PUBLIC_SUPABASE_URL="$api_url" \
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
+          SUPABASE_SECRET_KEY="$server_key" \
+          pnpm --filter @aurevane/web test:browser
 
-      - name: Commit clean wiring fix
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -A
-          git commit -m 'fix: wire battle log identity and abort navigation'
-          git push origin HEAD:agent/pv-1f-character-hub-turn-budget
+      - name: Stop local Supabase services
+        if: always()
+        run: pnpm exec supabase stop --no-backup
