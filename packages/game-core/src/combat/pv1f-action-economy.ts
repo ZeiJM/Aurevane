@@ -25,7 +25,7 @@ import {
 } from './stat-driven-combat'
 
 export const PV1F_ACTION_ECONOMY_MAXIMUM = 100 as const
-export const PV1F_MOVEMENT_COST_PER_TERRAIN_POINT = 10 as const
+export const PV1F_MOVEMENT_COST_PER_TERRAIN_POINT = 25 as const
 export const PV1F_BASIC_ATTACK_COST = 30 as const
 export const PV1F_GUARD_COST = 30 as const
 export const PV1F_RECOVER_COST = 50 as const
@@ -49,26 +49,6 @@ export const PV1F_GUARDED_STATUS: CombatStatusDefinition = {
 
 export const PV1F_COMBAT_CONTENT: CombatContentCatalog = {
   statuses: [PV1F_GUARDED_STATUS],
-}
-
-export const PV1F_GUARD_ACTION: CombatActionDefinition = {
-  id: PV1F_GUARD_ACTION_ID,
-  version: 1,
-  sourceType: 'basic-action',
-  tags: ['basic', 'defensive', 'buff'],
-  target: {
-    kind: 'self',
-    teamPolicy: 'self',
-    shape: { kind: 'single' },
-    minimumRange: 0,
-    maximumRange: 0,
-    requiresLineOfSight: false,
-    maximumElevationDifference: null,
-    friendlyFire: 'allies-only',
-  },
-  cost: { spendsAction: true, mp: 0 },
-  requirements: [{ kind: 'actor-status-absent', statusId: 'guarded' }],
-  effects: [{ type: 'apply-status', recipient: 'actor', statusId: 'guarded', stacks: 1 }],
 }
 
 export interface Pv1fTransition {
@@ -258,168 +238,179 @@ export function spendPv1fActionEconomy(
     throw new Error('Not enough Action Economy remains for that command.')
   }
 
-  const remaining = economy.current - cost
-  const resources = replaceResources(actor.temporaryResources, [{ ...economy, current: remaining }])
-  return withCombatantAndTurn(
-    prepared,
-    { ...actor, temporaryResources: resources },
-    {
-      ...turn,
-      actionState:
-        remaining >= Math.min(PV1F_BASIC_ATTACK_COST, PV1F_GUARD_COST) ? 'ready' : 'spent',
-    },
-  )
+  return replaceCombatantTemporaryResource(prepared, actor.id, {
+    ...economy,
+    current: economy.current - cost,
+  })
 }
 
-export function evaluatePv1fAction(
-  state: StatDrivenCombatEncounterState,
-  actionId: string,
-  target: CombatTargetSelection,
-): {
-  prepared: StatDrivenCombatEncounterState
-  action: CombatActionDefinition
-  cost: number
-  evaluation: CombatActionEvaluation
-} {
-  const prepared = preparePv1fTurnEconomy(state)
-  const actorId = prepared.tactical.battle.currentTurn?.combatantId
-  if (!actorId) throw new Error('PV-1F action evaluation requires an active turn.')
-  const action = resolvePv1fActionDefinition(prepared, actorId, actionId)
-  const cost = pv1fActionCost(action.id)
-  const evaluation = evaluateCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT)
-  return { prepared, action, cost, evaluation }
-}
-
-export function executePv1fAction(
-  state: StatDrivenCombatEncounterState,
-  actionId: string,
-  target: CombatTargetSelection,
-): Pv1fTransition {
-  const { prepared, action, cost } = evaluatePv1fAction(state, actionId, target)
-  if (!canAffordPv1fEconomy(prepared, cost)) {
-    throw new Error('Not enough Action Economy remains for that action.')
+export function pv1fMovementCost(terrainCost: number): number {
+  if (!Number.isSafeInteger(terrainCost) || terrainCost < 0) {
+    throw new RangeError('Terrain movement cost must be a non-negative safe integer.')
   }
-
-  const actorId = prepared.tactical.battle.currentTurn?.combatantId
-  if (!actorId) throw new Error('PV-1F action execution requires an active turn.')
-  const transition =
-    action.sourceType === 'basic-attack'
-      ? executeStatDrivenAttack(prepared, action, target, PV1F_COMBAT_CONTENT)
-      : (() => {
-          const resolved = executeCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT)
-          return {
-            state: reattachStatDrivenCombatBridge(resolved.state, prepared.statBridge),
-            events: resolved.events,
-          }
-        })()
-  const next = spendPv1fActionEconomy(transition.state, cost)
-  const remaining = readPv1fActionEconomy(next, actorId)?.current ?? 0
-  return {
-    state: next,
-    events: [
-      ...transition.events,
-      { event: 'action_economy_spent', combatantId: actorId, amount: cost, remaining },
-    ],
-  }
+  return terrainCost * PV1F_MOVEMENT_COST_PER_TERRAIN_POINT
 }
 
-export function evaluatePv1fMovement(
+export function previewPv1fMovement(
   state: StatDrivenCombatEncounterState,
   path: readonly GridPosition[],
-) {
+): { evaluation: ReturnType<typeof evaluateCurrentMovementPath>; cost: number; affordable: boolean } {
   const prepared = preparePv1fTurnEconomy(state)
-  const movement = evaluateCurrentMovementPath(prepared.tactical, path)
-  const economyCost = movement.cost * PV1F_MOVEMENT_COST_PER_TERRAIN_POINT
-  return { prepared, movement, economyCost }
+  const evaluation = evaluateCurrentMovementPath(prepared.tactical, path)
+  const cost = evaluation.ok ? pv1fMovementCost(evaluation.terrainCost) : 0
+  return { evaluation, cost, affordable: evaluation.ok && canAffordPv1fEconomy(prepared, cost) }
 }
 
 export function executePv1fMovement(
   state: StatDrivenCombatEncounterState,
   path: readonly GridPosition[],
 ): Pv1fTransition {
-  const { prepared, movement, economyCost } = evaluatePv1fMovement(state, path)
-  if (!movement.legal)
-    throw new Error(movement.issues[0]?.message ?? 'That movement path is not legal.')
-  if (!canAffordPv1fEconomy(prepared, economyCost)) {
-    throw new Error('Not enough Action Economy remains for that movement path.')
-  }
-  const actorId = prepared.tactical.battle.currentTurn?.combatantId
-  if (!actorId) throw new Error('PV-1F movement requires an active turn.')
+  const prepared = preparePv1fTurnEconomy(state)
+  const preview = previewPv1fMovement(prepared, path)
+  if (!preview.evaluation.ok) throw new Error(preview.evaluation.reason)
+  if (!preview.affordable) throw new Error('Not enough Action Economy remains for that movement.')
   const moved = moveCurrentCombatant(prepared.tactical, path)
-  const encounter = reattachStatDrivenCombatBridge(
-    createCombatEncounterState(moved.state, prepared.statusState),
-    prepared.statBridge,
-  )
-  const next = spendPv1fActionEconomy(encounter, economyCost)
-  const remaining = readPv1fActionEconomy(next, actorId)?.current ?? 0
   return {
-    state: next,
-    events: [
-      ...moved.events,
-      { event: 'action_economy_spent', combatantId: actorId, amount: economyCost, remaining },
-    ],
+    state: spendPv1fActionEconomy({ ...prepared, tactical: moved.state }, preview.cost),
+    events: moved.events,
   }
 }
 
-export function finishPv1fTurn(
+export function previewPv1fAction(
   state: StatDrivenCombatEncounterState,
-  facing: BattleFacing,
+  action: CombatActionDefinition,
+  selection: CombatTargetSelection,
+  content: CombatContentCatalog = PV1F_COMBAT_CONTENT,
+): { evaluation: CombatActionEvaluation; cost: number; affordable: boolean } {
+  const prepared = preparePv1fTurnEconomy(state)
+  const cost = pv1fActionCost(action.id)
+  const evaluation = evaluateCombatAction(prepared.tactical, action, selection, content)
+  return { evaluation, cost, affordable: evaluation.ok && canAffordPv1fEconomy(prepared, cost) }
+}
+
+export function executePv1fAction(
+  state: StatDrivenCombatEncounterState,
+  action: CombatActionDefinition,
+  selection: CombatTargetSelection,
+  content: CombatContentCatalog = PV1F_COMBAT_CONTENT,
 ): Pv1fTransition {
   const prepared = preparePv1fTurnEconomy(state)
-  const selected = selectCurrentFinalFacing(prepared.tactical, facing)
-  const encounter = reattachStatDrivenCombatBridge(
-    createCombatEncounterState(selected.state, prepared.statusState),
-    prepared.statBridge,
-  )
-  const ended = endCombatTurn(encounter, PV1F_COMBAT_CONTENT)
-  const bridged = reattachStatDrivenCombatBridge(ended.state, prepared.statBridge)
+  const preview = previewPv1fAction(prepared, action, selection, content)
+  if (!preview.evaluation.ok) throw new Error(preview.evaluation.reasons[0] ?? 'Action is not legal.')
+  if (!preview.affordable) throw new Error('Not enough Action Economy remains for that action.')
+  const executed = executeCombatAction(prepared.tactical, action, selection, content)
   return {
-    state: preparePv1fTurnEconomy(bridged),
-    events: [...selected.events, ...ended.events],
+    state: spendPv1fActionEconomy({ ...prepared, tactical: executed.state }, preview.cost),
+    events: executed.events,
   }
 }
 
-export function resolvePv1fActionDefinition(
+export function executePv1fStatDrivenAttack(input: {
+  state: StatDrivenCombatEncounterState
+  targetCombatantId: string
+  expectedTurnToken: string
+  expectedRound: number
+  expectedTurnNumber: number
+  idempotencyKey: string
+  correlationId: string
+}): { state: StatDrivenCombatEncounterState; result: ReturnType<typeof executeStatDrivenAttack>['result'] } {
+  const prepared = preparePv1fTurnEconomy(input.state)
+  if (!canAffordPv1fEconomy(prepared, PV1F_BASIC_ATTACK_COST)) {
+    throw new Error('Not enough Action Economy remains for Basic Attack.')
+  }
+
+  const result = executeStatDrivenAttack({ ...input, state: prepared })
+  return {
+    state: spendPv1fActionEconomy(result.state, PV1F_BASIC_ATTACK_COST),
+    result: result.result,
+  }
+}
+
+export function executePv1fEndTurn(
   state: StatDrivenCombatEncounterState,
-  actorId: string,
-  actionId: string,
-): CombatActionDefinition {
-  const actor = getCombatant(state, actorId)
-  if (actionId === PV1F_BASIC_ATTACK_ID) {
-    return createPv1fBasicAttackDefinition(readPv1fBasicAttackDamage(state, actorId))
-  }
-  if (actionId === PV1F_GUARD_ACTION_ID) return PV1F_GUARD_ACTION
-  if (actionId === PV1F_RECOVER_ACTION_ID) return createPv1fRecoverAction(actor.maxHp)
-  throw new Error(`Unsupported PV-1F action ${actionId}.`)
+  finalFacing?: BattleFacing | null,
+): Pv1fTransition {
+  const prepared = preparePv1fTurnEconomy(state)
+  const withFacing = finalFacing
+    ? { ...prepared, tactical: selectCurrentFinalFacing(prepared.tactical, finalFacing).state }
+    : prepared
+  const ended = endCombatTurn(withFacing.tactical)
+  const next = preparePv1fTurnEconomy({ ...withFacing, tactical: ended.state })
+  return { state: next, events: ended.events }
 }
 
-function getCombatant(state: StatDrivenCombatEncounterState, combatantId: string): BattleCombatant {
-  const combatant = state.tactical.battle.combatants.find(
-    (candidate) => candidate.id === combatantId,
-  )
-  if (!combatant) throw new Error(`Unknown combatant ${combatantId}.`)
+export function createPv1fStatDrivenEncounter(input: {
+  battleId: string
+  player: BattleCombatant
+  opponent: BattleCombatant
+  playerBasicAttackDamage: number
+  opponentBasicAttackDamage: number
+  board: Parameters<typeof createCombatEncounterState>[0]['board']
+  currentTurn: Parameters<typeof createCombatEncounterState>[0]['currentTurn']
+}): StatDrivenCombatEncounterState {
+  const player = {
+    ...input.player,
+    temporaryResources: createPv1fTemporaryResources(input.playerBasicAttackDamage),
+  }
+  const opponent = {
+    ...input.opponent,
+    temporaryResources: createPv1fTemporaryResources(input.opponentBasicAttackDamage),
+  }
+  return reattachStatDrivenCombatBridge({
+    tactical: createCombatEncounterState({
+      battleId: input.battleId,
+      combatants: [player, opponent],
+      board: input.board,
+      currentTurn: input.currentTurn,
+    }),
+    statBridge: validateStatDrivenCombatEncounterState({
+      tactical: createCombatEncounterState({
+        battleId: input.battleId,
+        combatants: [player, opponent],
+        board: input.board,
+        currentTurn: input.currentTurn,
+      }),
+      statBridge: {
+        version: 1,
+        combatants: [],
+      },
+    }).statBridge,
+  })
+}
+
+function getCombatant(state: StatDrivenCombatEncounterState, id: string): BattleCombatant {
+  const combatant = state.tactical.battle.combatants.find((candidate) => candidate.id === id)
+  if (!combatant) throw new Error(`Combatant ${id} is unavailable.`)
   return combatant
 }
 
+function replaceCombatantTemporaryResource(
+  state: StatDrivenCombatEncounterState,
+  combatantId: string,
+  resource: BattleTemporaryResource,
+): StatDrivenCombatEncounterState {
+  const combatant = getCombatant(state, combatantId)
+  return withCombatantAndTurn(state, {
+    ...combatant,
+    temporaryResources: replaceResources(combatant.temporaryResources, [resource]),
+  })
+}
+
 function replaceResources(
-  current: readonly BattleTemporaryResource[],
+  resources: readonly BattleTemporaryResource[],
   replacements: readonly BattleTemporaryResource[],
 ): readonly BattleTemporaryResource[] {
-  const replacementKeys = new Set(replacements.map((resource) => resource.key))
-  return [
-    ...current
-      .filter((resource) => !replacementKeys.has(resource.key))
-      .map((resource) => ({ ...resource })),
-    ...replacements.map((resource) => ({ ...resource })),
-  ].sort((left, right) => left.key.localeCompare(right.key))
+  const byKey = new Map(resources.map((resource) => [resource.key, resource]))
+  for (const replacement of replacements) byKey.set(replacement.key, replacement)
+  return [...byKey.values()].sort((left, right) => left.key.localeCompare(right.key))
 }
 
 function withCombatantAndTurn(
   state: StatDrivenCombatEncounterState,
   combatant: BattleCombatant,
-  currentTurn: NonNullable<StatDrivenCombatEncounterState['tactical']['battle']['currentTurn']>,
+  currentTurn = state.tactical.battle.currentTurn,
 ): StatDrivenCombatEncounterState {
-  const next: StatDrivenCombatEncounterState = {
+  return reattachStatDrivenCombatBridge({
     ...state,
     tactical: {
       ...state.tactical,
@@ -431,10 +422,5 @@ function withCombatantAndTurn(
         currentTurn,
       },
     },
-  }
-  const issues = validateStatDrivenCombatEncounterState(next)
-  if (issues.length > 0) {
-    throw new Error(`Invalid PV-1F combat state: ${issues[0]?.field}: ${issues[0]?.message}`)
-  }
-  return next
+  })
 }
