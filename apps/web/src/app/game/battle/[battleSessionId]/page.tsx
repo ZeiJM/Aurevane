@@ -1,3 +1,4 @@
+import { isStarterCharacterPortraitRef } from '@aurevane/game-core/character/starter-options'
 import { isAurevaneError } from '@aurevane/game-core/errors'
 import { parseBattleSessionId } from '@aurevane/validation/combat/battle-session'
 import { headers } from 'next/headers'
@@ -64,7 +65,9 @@ export default async function BattleSessionPage({
     ? playerProfile.provenance.sourceId.slice('character:'.length)
     : null
   const character = characterId ? await characters.findByOwnerId(actor.userId, characterId) : null
-  if (!character) redirect('/game/battle')
+  if (!character || !isStarterCharacterPortraitRef(character.portraitRef)) {
+    redirect('/game/battle')
+  }
 
   return (
     <BattleAudioGate>
