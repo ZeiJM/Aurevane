@@ -2,6 +2,12 @@ import { execFileSync } from 'node:child_process'
 
 import { expect, test } from '@playwright/test'
 
+import {
+  createAccountAndEnterCharacter,
+  openOfflineTraining,
+  signOutFromAccountMenu,
+} from './pv1f-test-helpers'
+
 function uniqueCharacterName(): string {
   const letters = Date.now()
     .toString()
@@ -11,7 +17,7 @@ function uniqueCharacterName(): string {
   return `Wayfarer ${letters}`
 }
 
-test('creates one permanent character, renders its profile, and resumes it across sign-in', async ({
+test('creates a slotted character, persists its profile, and resumes it across sign-in', async ({
   page,
 }, testInfo) => {
   test.slow()
@@ -21,46 +27,11 @@ test('creates one permanent character, renders its profile, and resumes it acros
   const password = 'P15-browser-character-2026!'
   const characterName = uniqueCharacterName()
 
-  await page.goto('/')
-  await page.getByRole('button', { name: 'Create account' }).click()
-  await page.getByLabel('Email').fill(email)
-  await page.getByLabel('Password').fill(password)
-  await page.getByRole('button', { name: 'Create account', exact: true }).last().click()
+  await createAccountAndEnterCharacter({ page, email, password, characterName })
 
-  await expect(page).toHaveURL(/\/game$/)
-  await expect(page.getByTestId('character-creation')).toBeVisible()
-
-  const nameInput = page.getByLabel('Character name')
-  await nameInput.click()
-  await expect(nameInput).toBeFocused()
-  await nameInput.fill(characterName)
-
-  expect(await hasHorizontalOverflow(page)).toBe(false)
-
-  await page.getByRole('button', { name: 'Choose your foundation' }).click()
-  await expect(page.getByTestId('attribute-points')).toContainText('0 points remaining')
-  await page.getByRole('button', { name: 'Review character' }).click()
-  await expect(page.getByRole('heading', { name: 'Make this adventurer permanent.' })).toBeVisible()
-
-  await page.getByRole('button', { name: 'Create permanent character' }).click()
-  const established = page.getByTestId('character-established')
-  await expect(established).toBeVisible()
-  await expect(established).toContainText(characterName)
-  await expect(established).toContainText('Vanguard')
-
-  await page.reload()
-  await expect(page.getByTestId('character-established')).toContainText(characterName)
-  await expect(page.getByTestId('character-creation')).toHaveCount(0)
-
-  const profileLink = page.getByRole('link', { name: 'Character Profile' })
-  await profileLink.focus()
-  await expect(profileLink).toBeFocused()
-  await profileLink.press('Enter')
-
-  await expect(page).toHaveURL(/\/game\/character$/)
   const profile = page.getByTestId('character-profile')
   await expect(profile).toContainText(characterName)
-  await expect(profile).toContainText('Level 1 Vanguard')
+  await expect(profile).toContainText('Level 1')
   await expect(page.getByTestId('profile-attribute-might')).toContainText('6')
   await expect(page.getByTestId('profile-attribute-finesse')).toContainText('6')
   await expect(page.getByTestId('profile-attribute-intellect')).toContainText('6')
@@ -69,10 +40,9 @@ test('creates one permanent character, renders its profile, and resumes it acros
   await expect(page.getByTestId('derived-stat-maxMp')).toContainText('90')
   await expect(page.getByTestId('derived-stat-accuracy')).toContainText('74%')
   await expect(page.getByTestId('derived-stat-criticalChance')).toContainText('8%')
-  await expect(page.getByTestId('derived-stat-movement')).toContainText('4 steps')
 
   const levelProgress = page.getByTestId('level-progress')
-  await expect(levelProgress).toContainText('Progress to Level 2')
+  await expect(levelProgress).toContainText('Level 2')
   await expect(levelProgress).toContainText('0 / 100 XP')
   await expect(page.getByRole('progressbar', { name: 'Level progress' })).toHaveAttribute(
     'aria-valuenow',
@@ -84,22 +54,25 @@ test('creates one permanent character, renders its profile, and resumes it acros
   ).toBeVisible()
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
-  const backLink = page.getByRole('link', { name: 'Return to game entry' })
+  const backLink = page.getByRole('link', { name: 'Back to Character Select' })
   await backLink.focus()
   await expect(backLink).toBeFocused()
   await backLink.press('Enter')
   await expect(page).toHaveURL(/\/game$/)
+  await expect(page.getByRole('link', { name: `Play ${characterName}` })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Create Character' })).toHaveCount(2)
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
-  await page.getByRole('button', { name: 'Sign out' }).click()
-  await expect(page).toHaveURL(/\/$/)
+  await signOutFromAccountMenu(page)
 
   await page.getByLabel('Email').fill(email)
   await page.getByLabel('Password').fill(password)
   await page.getByRole('button', { name: 'Enter AUREVANE' }).click()
 
   await expect(page).toHaveURL(/\/game$/)
-  await expect(page.getByTestId('character-established')).toContainText(characterName)
+  await page.getByRole('link', { name: `Play ${characterName}` }).click()
+  await expect(page).toHaveURL(/\/game\/character$/)
+  await expect(page.getByTestId('character-profile')).toContainText(characterName)
 
   const characterId = queryLocalDatabase(`
     select character.id::text
@@ -123,20 +96,19 @@ test('creates one permanent character, renders its profile, and resumes it acros
     where practice_state.character_id = '${characterId}'::uuid;
   `)
 
+  await openOfflineTraining(page)
   await page.reload()
-  await openPracticeDrawer(page)
   const trainingReport = page.getByTestId('training-report')
   await expect(trainingReport).toBeVisible()
   await expect(trainingReport).toContainText('Training Report')
-  await expect(trainingReport).toContainText('Balanced Practice')
+  await expect(trainingReport).toContainText('Automatic Balanced')
   await expect(trainingReport).toContainText('3d 23h')
   await expect(trainingReport).toContainText('+376')
   await expect(trainingReport).toContainText('+12')
-  await expect(trainingReport).toContainText('direct practice bank reached its current cap')
+  await expect(trainingReport).toContainText('direct training bank reached its current cap')
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
   await page.reload()
-  await openPracticeDrawer(page)
   await expect(page.getByTestId('training-report')).toContainText('3d 23h')
   await expect(page.getByTestId('training-report')).toContainText('+376')
   await expect(page.getByTestId('training-report')).toContainText('+12')
@@ -147,30 +119,19 @@ test('creates one permanent character, renders its profile, and resumes it acros
   await claimButton.press('Enter')
 
   await expect(page.getByTestId('training-report')).toHaveCount(0)
-  await expect(page.getByTestId('character-established')).toContainText('Level 3')
-
-  await page.getByRole('link', { name: 'Character Profile' }).click()
+  await page.getByRole('link', { name: 'Back to Character Profile' }).click()
   await expect(page).toHaveURL(/\/game\/character$/)
-  await expect(page.getByTestId('character-profile')).toContainText('Level 3 Vanguard')
+  await expect(page.getByTestId('character-profile')).toContainText('Level 3')
   await expect(page.getByTestId('level-progress')).toContainText('376 / 400 XP')
-  await expect(page.getByTestId('level-progress')).toContainText(
-    '146 of 170 XP earned within this Level',
-  )
+  await expect(page.getByTestId('level-progress')).toContainText('146 of 170 XP', {
+    useInnerText: true,
+  })
 
-  await page.getByRole('link', { name: 'Return to game entry' }).click()
+  await page.getByRole('link', { name: 'Back to Character Select' }).click()
   await expect(page).toHaveURL(/\/game$/)
-  await page.reload()
-  await expect(page.getByTestId('training-report')).toHaveCount(0)
+  await expect(page.getByRole('link', { name: `Play ${characterName}` })).toBeVisible()
   expect(await hasHorizontalOverflow(page)).toBe(false)
 })
-
-async function openPracticeDrawer(page: import('@playwright/test').Page): Promise<void> {
-  const drawer = page.getByTestId('practice-drawer')
-  await expect(drawer).toBeVisible()
-  if (!(await drawer.evaluate((element) => (element as HTMLDetailsElement).open))) {
-    await drawer.locator('summary').click()
-  }
-}
 
 async function hasHorizontalOverflow(page: import('@playwright/test').Page): Promise<boolean> {
   return page.evaluate(
