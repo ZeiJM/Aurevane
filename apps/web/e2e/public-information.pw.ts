@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test'
 
+import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
+
 const publicRoutes = [
   { path: '/news', heading: 'News' },
   { path: '/manual', heading: 'Manual' },
@@ -14,6 +16,7 @@ for (const route of publicRoutes) {
 
     await expect(page.getByTestId('public-information-shell')).toBeVisible()
     await expect(page.getByRole('heading', { level: 1, name: route.heading })).toBeVisible()
+    await expect(page.getByLabel(`Current screen: ${route.heading}`)).toBeVisible()
 
     const navigation = page.getByRole('navigation', { name: 'Public information', exact: true })
     await expect(navigation.getByRole('link', { name: 'News', exact: true })).toBeVisible()
@@ -64,25 +67,30 @@ test('Rules exposes stable section anchors and truthful current-scope language',
   await expect(page.getByText(/does not currently publish speculative marketplace/)).toBeVisible()
 })
 
-test('an authenticated session can intentionally read the canonical Manual route', async ({
+test('an authenticated character keeps screen identity while reading the Manual', async ({
   page,
 }, testInfo) => {
   test.skip(
     testInfo.project.name !== 'desktop-chromium',
-    'One authenticated route proof is sufficient.',
+    'One authenticated character identity proof is sufficient.',
   )
 
-  const email = `p17-public-${Date.now()}@example.com`
+  const now = Date.now()
+  const email = `p17-public-${now}@example.com`
   const password = 'P17-public-information-2026!'
+  const suffix = now
+    .toString()
+    .split('')
+    .map((digit) => String.fromCharCode(65 + Number(digit)))
+    .join('')
+  const characterName = `Guide ${suffix}`
 
-  await page.goto('/')
-  await page.getByRole('button', { name: 'Create account' }).click()
-  await page.getByLabel('Email').fill(email)
-  await page.getByLabel('Password').fill(password)
-  await page.getByRole('button', { name: 'Create account', exact: true }).last().click()
-  await expect(page).toHaveURL(/\/game$/)
+  await createAccountAndEnterCharacter({ page, email, password, characterName })
 
   await page.goto('/manual')
   await expect(page).toHaveURL(/\/manual$/)
   await expect(page.getByRole('heading', { level: 1, name: 'Manual' })).toBeVisible()
+  await expect(page.getByLabel('Current screen: Manual')).toBeVisible()
+  await expect(page.getByTestId('public-screen-portrait')).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Return to Game' })).toBeVisible()
 })
