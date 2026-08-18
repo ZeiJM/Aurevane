@@ -13,7 +13,7 @@ function uniqueCharacterName(): string {
   return `Scout ${letters}`
 }
 
-test('proves account keybinds, readable Duel Yard flow and authoritative Abort Exercise', async ({
+test('proves account keybinds, readable Duel Yard flow and authoritative Abort Battle', async ({
   page,
 }, testInfo) => {
   test.slow()
@@ -25,12 +25,13 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort E
 
   await createAccountAndEnterCharacter({ page, email, password, characterName })
 
-  await page.getByRole('link', { name: 'Controls & Keybinds' }).click()
+  await page.getByRole('button', { name: 'Account' }).click()
+  await page.getByRole('menuitem', { name: 'Controls & Keybinds' }).click()
   await expect(page).toHaveURL(/\/game\/settings\/controls$/)
   await page.getByRole('button', { name: 'Change Move keybind' }).click()
   await page.keyboard.press('m')
   await expect(page.getByTestId('keybind-move')).toContainText('M')
-  await page.getByRole('button', { name: 'Save account controls' }).click()
+  await page.getByRole('button', { name: 'Save Controls' }).click()
   await expect(page.getByRole('status')).toContainText('Combat controls saved to your account.')
 
   const persistedMoveKey = queryLocalDatabase(`
@@ -43,14 +44,15 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort E
 
   await page.getByRole('link', { name: 'Back to Character Profile' }).click()
   await expect(page).toHaveURL(/\/game\/character$/)
-  await page.getByRole('link', { name: 'Tactical Hall', exact: true }).click()
+  await page.getByRole('button', { name: 'Navigation' }).click()
+  await page.getByRole('link', { name: /Battle Hall/ }).click()
   await expect(page).toHaveURL(/\/game\/battle$/)
 
-  const practiceChooser = page.getByRole('navigation', { name: 'Choose Tactical Hall practice' })
-  const recruitRecord = practiceChooser.getByRole('button', { name: /Recruit Sparring Partner/ })
+  const battleChooser = page.getByRole('navigation', { name: 'Choose Battle Hall battle' })
+  const recruitRecord = battleChooser.getByRole('button', { name: /Recruit Sparring Partner/ })
   await expect(recruitRecord).toHaveAttribute('aria-pressed', 'true')
   await expect(page.getByText('Duel Yard', { exact: true }).first()).toBeVisible()
-  await page.getByRole('button', { name: 'Start Recruit Sparring Partner' }).click()
+  await page.getByRole('button', { name: 'Enter Battle' }).click()
 
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
@@ -74,28 +76,28 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort E
 
   await page.keyboard.press('m')
   await expect(page.getByTestId('combat-mode-instruction')).toContainText(
-    'Move · 10% per normal tile',
+    'Move · 25 AP per normal tile',
   )
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Rough ground costs 20%')
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Rough ground costs 50 AP')
 
   await page.getByRole('button', { name: /Inspect/ }).click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Inspect mode')
   await page.getByRole('button', { name: /Tile 4, 3; rough-ground; elevation 0/ }).click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Rough ground')
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('20% Action Economy')
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText('50% Action Economy')
 
   const battleUrl = page.url()
-  await page.getByRole('button', { name: 'Abort', exact: true }).click()
+  await page.getByRole('button', { name: 'Abort Battle', exact: true }).click()
   await expect(page.getByRole('dialog', { name: 'Abort this battle?' })).toBeVisible()
   await page.getByRole('button', { name: 'Stay in battle' }).click()
   await expect(page).toHaveURL(battleUrl)
 
-  await page.getByRole('button', { name: 'Abort', exact: true }).click()
+  await page.getByRole('button', { name: 'Abort Battle', exact: true }).click()
   const abortResponsePromise = page.waitForResponse((response) => {
     const request = response.request()
     return request.method() === 'POST' && new URL(response.url()).pathname.endsWith('/abort')
   })
-  await page.getByRole('button', { name: 'Confirm Abort' }).click()
+  await page.getByRole('button', { name: 'Confirm Abort Battle' }).click()
   const abortResponse = await abortResponsePromise
   expect(abortResponse.status()).toBe(200)
   await expect(page).toHaveURL(/\/game\/battle$/)
