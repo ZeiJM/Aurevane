@@ -893,19 +893,27 @@
 }
 
 .chatPanel {
-  position: absolute;
-  z-index: 3200;
-  left: 0;
-  bottom: calc(100% + 0.35rem);
-  display: grid;
+  position: fixed;
+  inset: auto auto 3.15rem 0.5rem;
   grid-template-rows: auto minmax(5rem, 13rem) auto;
   width: min(24rem, calc(100vw - 1rem));
+  max-height: min(26rem, calc(100dvh - 4.5rem));
+  margin: 0;
   overflow: hidden;
   border: 1px solid rgba(212, 186, 130, 0.46);
   border-radius: var(--av-radius-md);
+  color: var(--av-text);
   background: rgba(7, 10, 15, 0.995);
   box-shadow: 0 -1rem 3rem rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(0.85rem);
+}
+
+.chatPanel:not(:popover-open) {
+  display: none;
+}
+
+.chatPanel:popover-open {
+  display: grid;
 }
 
 .chatHeading {

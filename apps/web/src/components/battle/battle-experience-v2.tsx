@@ -334,6 +334,7 @@ export function BattleExperienceV2({
   const recruitLock = useRef(false)
   const autoCommitAfterPreview = useRef(false)
   const lastTouch = useRef<{ key: string; at: number } | null>(null)
+  const chatPopoverRef = useRef<HTMLDivElement>(null)
 
   const snapshot = battle.snapshot
   const tactical = snapshot.tactical
@@ -414,6 +415,12 @@ export function BattleExperienceV2({
       (tileByKey.get(positionKey(playerPlacement!.position))?.elevation ?? 0) -
         (tileByKey.get(positionKey(recruitPlacement!.position))?.elevation ?? 0),
     ) <= 1
+
+  useEffect(() => {
+    const popover = chatPopoverRef.current
+    if (!popover || overlay?.kind !== 'chat' || popover.matches(':popover-open')) return
+    popover.showPopover()
+  }, [overlay])
 
   const proposedEconomyCost = useMemo(() => {
     if (!pendingIntent || !playerTurn) return 0
@@ -1396,7 +1403,7 @@ export function BattleExperienceV2({
             Chat <span>Self</span>
           </button>
           {overlay?.kind === 'chat' ? (
-            <div className={styles.chatPanel}>
+            <div ref={chatPopoverRef} popover="manual" className={styles.chatPanel}>
               <div className={styles.chatHeading}>
                 <strong>Battle Chat</strong>
                 <span>Solo channel</span>

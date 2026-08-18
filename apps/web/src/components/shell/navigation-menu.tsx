@@ -17,45 +17,47 @@ const navigation = [
 
 export function NavigationMenu() {
   const [open, setOpen] = useState(false)
-  const rootRef = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLElement>(null)
 
   useEffect(() => {
-    if (!open) return
-    const closeOnOutside = (event: PointerEvent) => {
-      if (event.target instanceof Node && !rootRef.current?.contains(event.target)) setOpen(false)
-    }
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false)
-    }
-    document.addEventListener('pointerdown', closeOnOutside, true)
-    document.addEventListener('keydown', closeOnEscape)
-    return () => {
-      document.removeEventListener('pointerdown', closeOnOutside, true)
-      document.removeEventListener('keydown', closeOnEscape)
-    }
-  }, [open])
+    const menu = menuRef.current
+    if (!menu) return
+    const syncOpenState = () => setOpen(menu.matches(':popover-open'))
+    menu.addEventListener('toggle', syncOpenState)
+    return () => menu.removeEventListener('toggle', syncOpenState)
+  }, [])
+
+  function toggleMenu() {
+    const menu = menuRef.current
+    if (!menu) return
+    if (menu.matches(':popover-open')) menu.hidePopover()
+    else menu.showPopover()
+  }
+
+  function closeMenu() {
+    const menu = menuRef.current
+    if (menu?.matches(':popover-open')) menu.hidePopover()
+  }
 
   return (
-    <div className={styles.root} ref={rootRef}>
+    <div className={styles.root}>
       <button
         className={styles.trigger}
         type="button"
         aria-expanded={open}
         aria-haspopup="menu"
-        onClick={() => setOpen((value) => !value)}
+        onClick={toggleMenu}
       >
         <span aria-hidden="true">◇</span> Navigation
       </button>
-      {open ? (
-        <nav className={styles.menu} aria-label="Game navigation">
-          {navigation.map((item) => (
-            <Link key={item.href} href={item.href} onClick={() => setOpen(false)}>
-              <strong>{item.label}</strong>
-              <small>{item.detail}</small>
-            </Link>
-          ))}
-        </nav>
-      ) : null}
+      <nav ref={menuRef} popover="auto" className={styles.menu} aria-label="Game navigation">
+        {navigation.map((item) => (
+          <Link key={item.href} href={item.href} onClick={closeMenu}>
+            <strong>{item.label}</strong>
+            <small>{item.detail}</small>
+          </Link>
+        ))}
+      </nav>
     </div>
   )
 }

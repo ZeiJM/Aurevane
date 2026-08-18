@@ -1,66 +1,93 @@
 .root {
   position: relative;
-  z-index: 3100;
   display: inline-flex;
 }
 
 .trigger {
-  min-height: 2rem;
-  padding: 0.4rem 0.7rem;
+  display: inline-flex;
+  gap: 0.45rem;
+  align-items: center;
+  min-height: 2.5rem;
+  padding: 0.6rem 0.85rem;
   border: 1px solid var(--av-border-strong);
-  color: var(--av-text-muted);
+  border-radius: var(--av-radius-sm);
   background: rgba(255, 255, 255, 0.025);
-  font: 650 0.58rem/1 var(--av-font-mono);
-  letter-spacing: 0.06em;
+  color: var(--av-text-muted);
+  font: 700 0.55rem/1 var(--av-font-mono);
+  letter-spacing: 0.055em;
   text-transform: uppercase;
   cursor: pointer;
 }
 
 .trigger:hover,
+.trigger:focus-visible,
 .trigger[aria-expanded='true'] {
-  border-color: rgba(207, 169, 93, 0.55);
-  color: var(--av-brass-300);
-  background: rgba(207, 169, 93, 0.07);
+  border-color: rgba(207, 169, 93, 0.68);
+  color: var(--av-brass-200);
 }
 
 .menu {
-  position: absolute;
-  z-index: 3200;
-  left: 0;
-  bottom: calc(100% + 0.45rem);
-  display: grid;
-  width: min(18rem, calc(100vw - 1.4rem));
-  padding: 0.4rem;
+  position: fixed;
+  inset: auto auto 3.35rem 0.65rem;
+  width: min(20rem, calc(100vw - 1.3rem));
+  max-height: min(24rem, calc(100dvh - 5rem));
+  margin: 0;
+  padding: 0.45rem;
+  overflow: auto;
   border: 1px solid var(--av-border-strong);
-  background: rgba(7, 9, 13, 0.985);
-  box-shadow: 0 -1rem 3rem rgba(0, 0, 0, 0.35);
+  border-radius: var(--av-radius-md);
+  color: var(--av-text);
+  background: rgba(8, 11, 16, 0.995);
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.62);
   backdrop-filter: blur(1rem);
 }
 
-.menu a {
+.menu:not(:popover-open) {
+  display: none;
+}
+
+.menu:popover-open {
+  display: grid;
+}
+
+.menu > a {
   display: grid;
   gap: 0.2rem;
-  padding: 0.65rem 0.7rem;
-  border: 1px solid transparent;
+  min-height: 3rem;
+  align-content: center;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--av-radius-sm);
   color: var(--av-text-muted);
   text-decoration: none;
 }
 
-.menu a:hover,
-.menu a:focus-visible {
-  border-color: rgba(207, 169, 93, 0.32);
-  color: var(--av-text);
-  background: rgba(207, 169, 93, 0.055);
-  outline: none;
+.menu > a:hover,
+.menu > a:focus-visible {
+  background: rgba(207, 169, 93, 0.08);
+  color: var(--av-brass-200);
 }
 
 .menu strong {
-  font: 600 0.78rem/1.2 var(--av-font-display);
+  font: 700 0.6rem/1 var(--av-font-mono);
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
 }
 
 .menu small {
   color: var(--av-text-dim);
-  font: 500 0.58rem/1.35 var(--av-font-body);
-  letter-spacing: 0;
-  text-transform: none;
+  font-size: 0.55rem;
+  line-height: 1.25;
+}
+
+@media (max-width: 560px) {
+  .trigger {
+    min-height: 2.35rem;
+    padding: 0.5rem 0.65rem;
+    font-size: 0.5rem;
+  }
+
+  .menu {
+    inset: auto 0.5rem 3.1rem 0.5rem;
+    width: auto;
+  }
 }
