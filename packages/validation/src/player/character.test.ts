@@ -41,20 +41,31 @@ const validRow = {
 }
 
 describe('character persistence validation', () => {
-  it('accepts the strict versioned creation request', () => {
+  it('accepts the strict versioned creation request with a legal slot intent', () => {
     expect(
       parseCharacterCreationRequest({
         version: 1,
+        slotIndex: 0,
         idempotencyKey: '00000000-0000-4000-8000-000000000703',
         intent: validIntent,
       }),
     ).not.toBeNull()
   })
 
-  it('rejects client-selected authoritative fields', () => {
+  it('rejects out-of-range slots and client-selected authoritative fields', () => {
     expect(
       parseCharacterCreationRequest({
         version: 1,
+        slotIndex: 3,
+        idempotencyKey: '00000000-0000-4000-8000-000000000703',
+        intent: validIntent,
+      }),
+    ).toBeNull()
+
+    expect(
+      parseCharacterCreationRequest({
+        version: 1,
+        slotIndex: 0,
         idempotencyKey: '00000000-0000-4000-8000-000000000703',
         intent: { ...validIntent, level: 100 },
       }),
