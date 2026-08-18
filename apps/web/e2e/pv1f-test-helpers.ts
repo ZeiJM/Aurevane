@@ -17,6 +17,7 @@ export async function createAccountAndEnterCharacter(input: {
   await expect(page).toHaveURL(/\/game$/)
   await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
   await page.getByRole('link', { name: 'Create Character' }).first().click()
+  await expect(page).toHaveURL(/\/game\/create\/0$/)
   await expect(page.getByTestId('character-creation')).toBeVisible()
 
   await page.getByLabel('Character name').fill(characterName)
@@ -28,8 +29,9 @@ export async function createAccountAndEnterCharacter(input: {
   await expect(page.getByTestId('attribute-points')).toContainText('0 bonus points remaining')
 
   await page.getByRole('button', { name: 'Review character' }).click()
-  await page.getByRole('button', { name: 'Create permanent character' }).click()
+  await page.getByRole('button', { name: 'Create character' }).click()
 
+  await expect(page).toHaveURL(/\/game$/)
   await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
   await page.getByRole('link', { name: `Play ${characterName}` }).click()
   await expect(page).toHaveURL(/\/game\/character$/)
