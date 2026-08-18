@@ -16,6 +16,8 @@ export interface CharacterRecord {
   finesse: number
   intellect: number
   resolve: number
+  vitality: number
+  insight: number
   level: number
   xp: number
   progressionCycle: number
