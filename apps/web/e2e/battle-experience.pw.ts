@@ -139,9 +139,9 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
     await expect(confirmButton).toBeEnabled()
     await confirmButton.click()
 
+    await waitForCompletionOrEndTurn(page, completion, endTurnButton)
     if (await completion.isVisible()) break
 
-    await expect(endTurnButton).toBeEnabled()
     await endTurnButton.click()
     await page.getByRole('button', { name: 'Face east' }).click()
     await expect(confirmButton).toBeEnabled()
@@ -175,6 +175,23 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
   await expectBattlefieldReadable(page)
   expect(await hasHorizontalOverflow(page)).toBe(false)
 })
+
+async function waitForCompletionOrEndTurn(
+  page: import('@playwright/test').Page,
+  completion: import('@playwright/test').Locator,
+  endTurnButton: import('@playwright/test').Locator,
+): Promise<void> {
+  await expect
+    .poll(
+      async () => {
+        if (await completion.isVisible()) return 'completed'
+        if (await endTurnButton.isEnabled()) return 'end-turn-ready'
+        return 'waiting'
+      },
+      { timeout: 15_000 },
+    )
+    .not.toBe('waiting')
+}
 
 async function waitForCompletionOrNextPlayerTurn(
   page: import('@playwright/test').Page,
