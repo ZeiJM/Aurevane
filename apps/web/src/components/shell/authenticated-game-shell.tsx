@@ -23,7 +23,7 @@ interface AuthenticatedShellFrameProps {
 
 export function AuthenticatedGameRecovery() {
   return (
-    <AuthenticatedShellFrame sessionLabel="Service recovery">
+    <AuthenticatedShellFrame sessionLabel="Service Recovery">
       <Surface className={styles.primaryCard} tone="elevated">
         <Kicker marker="◇">Game service interruption</Kicker>
         <h1>Your session is safe. The road is briefly closed.</h1>
@@ -49,7 +49,7 @@ export function AuthenticatedGameRecovery() {
 
 export async function AuthenticatedShellFrame({
   children,
-  sessionLabel = 'Verified session',
+  sessionLabel = 'Character Profile',
   backHref,
   backLabel,
 }: AuthenticatedShellFrameProps) {
@@ -74,16 +74,8 @@ export async function AuthenticatedShellFrame({
             </Link>
           ) : null}
           <Link className="brand" href="/game/character" aria-label="AUREVANE character profile">
-            <span className={`brand__crest ${styles.characterCrest}`} aria-hidden="true">
-              {activeCharacter ? (
-                <AurevaneImage
-                  assetId={getStarterPortraitImageAssetId(activeCharacter.portraitRef)}
-                  className={styles.characterCrestImage}
-                  sizes="2.25rem"
-                />
-              ) : (
-                <span>A</span>
-              )}
+            <span className="brand__crest" aria-hidden="true">
+              <span>A</span>
             </span>
             <span className="brand__wordmark">
               <strong>AUREVANE</strong>
@@ -98,13 +90,22 @@ export async function AuthenticatedShellFrame({
           <Link href="/rules">Rules</Link>
         </nav>
 
-        <span className={styles.sessionState}>
-          <StatusMark />
-          <span>
-            <strong>{activeCharacter?.name ?? sessionLabel}</strong>
-            {activeCharacter ? <small>{sessionLabel}</small> : null}
+        <div className={styles.screenIdentity} aria-label={`Current screen: ${sessionLabel}`}>
+          {activeCharacter ? (
+            <span className={styles.screenPortrait} title={activeCharacter.name}>
+              <AurevaneImage
+                assetId={getStarterPortraitImageAssetId(activeCharacter.portraitRef)}
+                className={styles.screenPortraitImage}
+                sizes="2rem"
+              />
+            </span>
+          ) : null}
+          <span className={styles.screenLabel}>
+            <StatusMark />
+            <strong>{sessionLabel}</strong>
           </span>
-        </span>
+        </div>
+
         <AccountMenu />
       </header>
 
