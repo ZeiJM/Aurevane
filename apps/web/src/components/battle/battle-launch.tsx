@@ -27,25 +27,24 @@ const VISIBLE_RECORD_IDS: readonly TacticalHallRecordId[] = [
   'recruit-sparring',
 ]
 
-const ARENAS: readonly { id: TacticalHallArenaId; name: string; scale: string; summary: string }[] =
-  [
-    {
-      id: 'basic-training-floor',
-      name: 'Basic Training Floor',
-      scale: '5×3',
-      summary: 'Compact teaching floor for focused drills.',
-    },
-    {
-      id: 'duel-yard',
-      name: 'Duel Yard',
-      scale: '9×7',
-      summary: 'Full duel arena with approach space, rough terrain, elevation, and flanking room.',
-    },
-  ]
+const ARENAS: readonly { id: TacticalHallArenaId; name: string; scale: string; summary: string }[] = [
+  {
+    id: 'basic-training-floor',
+    name: 'Basic Training Floor',
+    scale: '5×3',
+    summary: 'Compact teaching floor for focused drills.',
+  },
+  {
+    id: 'duel-yard',
+    name: 'Duel Yard',
+    scale: '9×7',
+    summary: 'Full duel arena with rough terrain, elevation, and flanking room.',
+  },
+]
 
 const DIFFICULTIES: readonly { id: AiDifficulty; label: string; description: string }[] = [
-  { id: 'easy', label: 'Easy', description: 'Slower, forgiving Recruit decisions.' },
-  { id: 'standard', label: 'Standard', description: 'Balanced Tactical Hall opponent.' },
+  { id: 'easy', label: 'Easy', description: 'Forgiving Recruit decisions.' },
+  { id: 'standard', label: 'Standard', description: 'Balanced Battle Hall opponent.' },
   { id: 'high', label: 'High', description: 'Sharper positioning and action choices.' },
 ]
 
@@ -92,7 +91,7 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
         error?: { message?: string }
       }
       if (!response.ok || !body.battle?.battleSessionId) {
-        throw new Error(body.error?.message ?? 'The practice could not be started.')
+        throw new Error(body.error?.message ?? 'The battle could not be started.')
       }
       sessionStorage.setItem(
         `aurevane:tactical-record:${body.battle.battleSessionId}`,
@@ -100,9 +99,7 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
       )
       router.push(`/game/battle/${body.battle.battleSessionId}`)
     } catch (launchError) {
-      setError(
-        launchError instanceof Error ? launchError.message : 'The practice could not be started.',
-      )
+      setError(launchError instanceof Error ? launchError.message : 'The battle could not be started.')
       setPending(false)
       launchLock.current = false
     }
@@ -116,16 +113,17 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
       <div className={styles.content}>
         <header className={styles.heading}>
           <div>
-            <p className={styles.eyebrow}>Tactical Hall</p>
-            <h1 id="battle-launch-title">Choose a practice</h1>
+            <p className={styles.eyebrow}>Battle Hall</p>
+            <h1 id="battle-launch-title">Choose a battle.</h1>
           </div>
           <p>
-            {characterName}, choose a focused lesson or a full Recruit duel. The highlighted card
-            launches.
+            {characterName}, choose a focused training fight or a full Recruit duel. Your selection
+            controls the arena and teaching prompts; the battle itself uses the same authoritative
+            combat rules.
           </p>
         </header>
 
-        <nav className={styles.recordGrid} aria-label="Choose Tactical Hall practice">
+        <nav className={styles.recordGrid} aria-label="Choose Battle Hall battle">
           {visibleRecords.map((record) => (
             <button
               key={record.id}
@@ -135,7 +133,7 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
               disabled={pending}
               aria-pressed={recordId === record.id}
             >
-              <span>{record.combinedDuel ? 'Full Duel' : 'Guided Lesson'}</span>
+              <span>{record.combinedDuel ? 'Full Duel' : 'Training Fight'}</span>
               <strong>{record.name}</strong>
               <small>{record.purpose}</small>
             </button>
@@ -144,14 +142,12 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
 
         <section className={styles.selectedPanel}>
           <div className={styles.selectedCopy}>
-            <span>Selected practice</span>
+            <span>Selected battle</span>
             <h2>{selectedRecord.name}</h2>
             <p>{selectedRecord.coachSteps[0]}</p>
             <div className={styles.arenaLine}>
               <strong>{selectedArena.name}</strong>
-              <span>
-                {selectedArena.scale} · {selectedArena.summary}
-              </span>
+              <span>{selectedArena.scale} · {selectedArena.summary}</span>
             </div>
           </div>
 
@@ -172,9 +168,7 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
                   </button>
                 ))}
               </div>
-              <small>
-                {DIFFICULTIES.find((difficulty) => difficulty.id === aiDifficulty)?.description}
-              </small>
+              <small>{DIFFICULTIES.find((difficulty) => difficulty.id === aiDifficulty)?.description}</small>
             </fieldset>
           ) : null}
 
@@ -184,15 +178,11 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
             onClick={() => void launchBattle()}
             disabled={pending}
           >
-            {pending ? 'Opening…' : `Start ${selectedRecord.name}`}
+            {pending ? 'Entering…' : 'Enter Battle'}
           </button>
         </section>
 
-        {error ? (
-          <p className={styles.error} role="alert">
-            {error}
-          </p>
-        ) : null}
+        {error ? <p className={styles.error} role="alert">{error}</p> : null}
       </div>
     </section>
   )
