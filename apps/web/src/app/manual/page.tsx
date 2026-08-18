@@ -3,11 +3,11 @@ import Link from 'next/link'
 
 import { PublicInformationShell } from '@/components/public-information/public-information-shell'
 import styles from '@/components/public-information/public-information-shell.module.css'
-import { manualArticles } from '@/content/public-information'
+import { currentManualArticles } from '@/content/current-manual'
 
 export const metadata: Metadata = {
   title: 'Adventurer’s Guide | AUREVANE',
-  description: 'The spoiler-safe public guide to AUREVANE’s released systems.',
+  description: 'The spoiler-safe public guide to AUREVANE’s current playable and testable systems.',
 }
 
 export default function ManualPage() {
@@ -18,18 +18,19 @@ export default function ManualPage() {
           <span className={styles.eyebrow}>Adventurer’s Guide</span>
           <h1 id="manual-title">Manual</h1>
           <p>
-            The canonical guide to what AUREVANE is and how its released systems work. Planned
-            mechanics are labelled as planned instead of being presented as playable today.
+            The canonical player guide to how AUREVANE’s current systems work. Roadmap mechanics
+            remain clearly separated from features that are already playable or available in the
+            active preview.
           </p>
         </div>
         <aside className={styles.heroPanel} aria-label="Manual editorial boundary">
           <span className={styles.heroGlyph} aria-hidden="true">
             ◆
           </span>
-          <strong>Released systems first.</strong>
+          <strong>Current systems first.</strong>
           <p>
-            Stable deep links, current-rule notes, and a source-controlled content model keep this
-            guide useful now without prematurely building a CMS.
+            Character creation, six attributes, Battle Hall, Wayfarer’s Practice, profile identity,
+            and the current navigation model are documented from the same implementation you test.
           </p>
         </aside>
       </section>
@@ -38,16 +39,15 @@ export default function ManualPage() {
         <div className={styles.sectionHeader}>
           <div>
             <span className={styles.eyebrow}>Browse the guide</span>
-            <h2 id="manual-index-title">Phase 1 foundations</h2>
+            <h2 id="manual-index-title">Current field guide</h2>
           </div>
           <p>
-            Start with orientation, then use the focused articles as canonical help for the systems
-            already exposed to players.
+            Start with orientation, then open the focused article for the system you are testing.
           </p>
         </div>
 
         <div className={styles.cardGrid}>
-          {manualArticles.map((article) => (
+          {currentManualArticles.map((article) => (
             <Link
               className={styles.card}
               href={`/manual/${article.slug}` as Route}
