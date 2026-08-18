@@ -1,6 +1,5 @@
 'use client'
 
-import { classifyFacingRelation } from '@aurevane/game-core/combat/board'
 import type { BattleIntent } from '@aurevane/validation/combat/battle-session'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
@@ -84,14 +83,6 @@ function combatantName(combatantId: string, playerName: string): string {
   if (combatantId.startsWith('character:')) return playerName
   if (combatantId.startsWith('recruit:')) return 'Recruit'
   return combatantId
-}
-
-function facingToward(from: GridPosition, to: GridPosition): Facing | null {
-  const dx = to.x - from.x
-  const dy = to.y - from.y
-  if (dx === 0 && dy === 0) return null
-  if (Math.abs(dx) >= Math.abs(dy)) return dx >= 0 ? 'east' : 'west'
-  return dy >= 0 ? 'south' : 'north'
 }
 
 function manhattanDistance(left: GridPosition, right: GridPosition): number {
@@ -384,7 +375,6 @@ export function BattleExperienceV2({
     () => new Map(tactical.tiles.map((tile) => [positionKey(tile.position), tile] as const)),
     [tactical.tiles],
   )
-  const pathTiles = useMemo(() => new Set(path.map(positionKey)), [path])
   const previewAffectedTiles = useMemo(() => {
     if (preview?.preview.kind !== 'action') return new Set<string>()
     return new Set(preview.preview.affectedTiles.map(positionKey))
@@ -757,14 +747,19 @@ export function BattleExperienceV2({
 
   useEffect(() => {
     if (
-      !playerTurn &&
-      battleState.lifecycle === 'active' &&
-      currentTurn &&
-      !recruitPending &&
-      !recruitFailed
+      playerTurn ||
+      battleState.lifecycle !== 'active' ||
+      !currentTurn ||
+      recruitPending ||
+      recruitFailed
     ) {
-      void runRecruitTurn()
+      return
     }
+
+    const timer = window.setTimeout(() => {
+      void runRecruitTurn()
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [
     battleState.lifecycle,
     currentTurn,

@@ -60,7 +60,11 @@ export function BattleLogPanel({
   }, [battleSessionId])
 
   useEffect(() => {
-    if (visible) void loadLog()
+    if (!visible) return
+    const timer = window.setTimeout(() => {
+      void loadLog()
+    }, 0)
+    return () => window.clearTimeout(timer)
   }, [visible, battleVersion, loadLog])
 
   useEffect(() => {
