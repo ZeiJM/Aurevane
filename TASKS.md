@@ -22,7 +22,8 @@ Substantial Phase 3 implementation remains blocked. Automated checks may prove i
 
 PR #122 currently implements:
 
-- preservation of the AUREVANE diamond **A** brand crest plus a bordered mini character portrait and green screen-identity cluster on authenticated non-battle headers;
+- preservation of the AUREVANE diamond **A** brand crest plus a bordered mini character portrait and green screen-identity cluster on authenticated non-battle game headers;
+- News, Manual and Rules keeping the same screen-name identity treatment while remaining public, with the active character portrait and Return to Game affordance appearing when an authenticated character is selected;
 - the active battle screen remaining outside that shared screen-identity pattern so its combat HUD owns the top-level context;
 - condensed authenticated navigation through a **Navigation** menu, with profile/game destinations separated from account/settings actions and its menu promoted into the native browser top layer above page content;
 - **Battle Hall** as the current player-facing name for the tactical practice area;
@@ -36,9 +37,9 @@ PR #122 currently implements:
 - an authoritative **100-point Action Economy** with Move = 25 AP per normal terrain-cost unit and rough ground = 50 AP, while Basic Attack = 30 AP, Guard = 30 AP and Recover = 50 AP;
 - battle action proposals with glowing provisional AP depletion, consistent AP wording, neutral initial action state, clearer terrain/Inspect feedback, compact combatant rails, self-chat promoted into the native browser top layer, double-click/tap quick commit for target and self actions with self-action proposals preserved across the second tap, Battle Log grouping/access and current action naming;
 - current Manual content aligned with the six-attribute model, Discipline terminology, Battle Hall, character switching, titles and current player-facing terminology;
-- E2E expectations reconciled with the current navigation, scaling and combat model.
+- E2E expectations reconciled with the current navigation, scaling, public-header identity and combat model.
 
-The two new migrations for six-attribute/swap-cooldown state and personal titles have rebuilt successfully in GitHub infrastructure. Full quality, database/security and responsive browser gates are now being rerun on the final **formatted, touch-safe, native-top-layer-corrected** branch head before PR #122 is considered review-ready.
+The two new migrations for six-attribute/swap-cooldown state and personal titles have rebuilt successfully in GitHub infrastructure. Full quality, database/security and responsive browser gates are now being rerun on the final **formatted, touch-safe, native-top-layer-corrected, public-header-complete** branch head before PR #122 is considered review-ready.
 
 ## PV-1F corrective history
 
