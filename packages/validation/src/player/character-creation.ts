@@ -4,6 +4,8 @@ const characterAttributeBonusesPayloadSchema = z
   .object({
     might: z.number().finite(),
     finesse: z.number().finite(),
+    vitality: z.number().finite(),
+    agility: z.number().finite(),
     intellect: z.number().finite(),
     resolve: z.number().finite(),
   })
