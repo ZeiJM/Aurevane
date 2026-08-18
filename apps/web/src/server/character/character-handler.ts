@@ -1,14 +1,12 @@
-import type { CharacterRepository } from '@aurevane/db/character'
 import type { AuthenticatedActor } from '@aurevane/game-core/command'
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { parseCharacterCreationRequest } from '@aurevane/validation/player/character'
 
 import { toServerErrorResponse } from '../http/error-response'
-import { createBaseCharacter } from './character-service'
+import { createCharacterInSlot } from './character-slot-service'
 
 export interface CharacterCreationHandlerDependencies {
   getActor(): Promise<AuthenticatedActor>
-  repository: CharacterRepository
 }
 
 export async function handleCharacterCreationRequest(
@@ -19,17 +17,18 @@ export async function handleCharacterCreationRequest(
     const actor = await dependencies.getActor()
     const input = parseCharacterCreationRequest(await readJson(request))
     if (!input) {
-      throw new AurevaneError('INVALID_REQUEST', 'The character creation request was not valid.')
+      throw new AurevaneError(
+        'INVALID_REQUEST',
+        'The character choices could not be read. Review the form and try again.',
+      )
     }
 
-    const outcome = await createBaseCharacter(
-      {
-        actor,
-        idempotencyKey: input.idempotencyKey,
-        intent: input.intent,
-      },
-      dependencies.repository,
-    )
+    const outcome = await createCharacterInSlot({
+      actor,
+      slotIndex: input.slotIndex,
+      idempotencyKey: input.idempotencyKey,
+      intent: input.intent,
+    })
 
     return Response.json(
       {
