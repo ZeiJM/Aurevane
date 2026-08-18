@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { BattleLogView } from '@/server/battle/battle-log-service'
 
+import { useBattlePlayerName } from './battle-runtime-context'
 import styles from './battle-log-panel.module.css'
 
 interface BattleLogPanelProps {
@@ -26,6 +27,8 @@ export function BattleLogPanel({
   onClose,
   playerName,
 }: BattleLogPanelProps) {
+  const runtimePlayerName = useBattlePlayerName()
+  const effectivePlayerName = playerName ?? runtimePlayerName ?? undefined
   const controlled = open !== undefined
   const [internalOpen, setInternalOpen] = useState(false)
   const visible = controlled ? Boolean(open) : internalOpen
@@ -98,7 +101,7 @@ export function BattleLogPanel({
             loading={loading}
             error={error}
             onClose={() => setInternalOpen(false)}
-            playerName={playerName}
+            playerName={effectivePlayerName}
           />
         ) : null}
       </div>
@@ -113,7 +116,7 @@ export function BattleLogPanel({
         loading={loading}
         error={error}
         onClose={onClose}
-        playerName={playerName}
+        playerName={effectivePlayerName}
       />
     </div>
   )
