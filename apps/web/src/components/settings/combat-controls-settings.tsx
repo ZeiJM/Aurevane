@@ -21,7 +21,7 @@ const ACTION_COPY: Record<CombatKeybindAction, { label: string; description: str
   inspect: { label: 'Inspect', description: 'Open optional terrain and combatant inspection.' },
   move: {
     label: 'Move',
-    description: 'Enter movement planning. A normal tile costs 10% Action Economy.',
+    description: 'Enter movement planning. A normal tile costs 25 AP; rough terrain costs more.',
   },
   basicAttack: { label: 'Basic Attack', description: 'Enter normal Basic Attack targeting.' },
   guard: { label: 'Guard', description: 'Preview the defensive Guard action.' },
@@ -30,7 +30,7 @@ const ACTION_COPY: Record<CombatKeybindAction, { label: string; description: str
     description: 'Choose final facing; the chosen direction immediately ends the turn.',
   },
   confirm: { label: 'Confirm', description: 'Commit the current legal move or action preview.' },
-  cancel: { label: 'Cancel / Back', description: 'Clear current planning without committing.' },
+  cancel: { label: 'Cancel Action', description: 'Clear current planning without committing.' },
   faceNorth: { label: 'Face North', description: 'Finish the turn facing north.' },
   faceWest: { label: 'Face West', description: 'Finish the turn facing west.' },
   faceSouth: { label: 'Face South', description: 'Finish the turn facing south.' },
@@ -139,10 +139,8 @@ export function CombatControlsSettings({ initialBindings }: CombatControlsSettin
   return (
     <section className={styles.panel} aria-label="Combat controls settings">
       <p className={styles.intro}>
-        These bindings follow your account. They only choose the same visible combat controls you
-        can click; they never bypass preview, confirmation, legality, version checks, or server
-        authority. Arrow keys remain an alternate navigation/facing aid where the battle UI supports
-        them.
+        Bindings follow your account and only trigger the same visible controls you can click. They
+        never bypass previews, confirmation, legality checks, or server authority.
       </p>
 
       <div className={styles.grid}>
