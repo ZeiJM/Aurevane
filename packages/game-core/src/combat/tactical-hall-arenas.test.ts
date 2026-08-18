@@ -70,8 +70,9 @@ describe('P2.7 Tactical Hall arenas', () => {
       getTacticalHallArenaFromScenarioSourceId('scenario:p2-7-recruit:basic-training-floor')?.id,
     ).toBe('basic-training-floor')
     expect(
-      getTacticalHallArenaFromScenarioSourceId('scenario:p2-7-recruit:basic-training-floor:standard')
-        ?.id,
+      getTacticalHallArenaFromScenarioSourceId(
+        'scenario:p2-7-recruit:basic-training-floor:standard',
+      )?.id,
     ).toBe('basic-training-floor')
     expect(getTacticalHallArenaFromScenarioSourceId('scenario:p2-7-recruit:duel-yard')?.id).toBe(
       'duel-yard',
