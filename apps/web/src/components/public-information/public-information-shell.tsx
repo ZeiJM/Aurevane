@@ -41,10 +41,7 @@ async function loadOptionalGameIdentity() {
   }
 }
 
-export async function PublicInformationShell({
-  active,
-  children,
-}: PublicInformationShellProps) {
+export async function PublicInformationShell({ active, children }: PublicInformationShellProps) {
   const identity = await loadOptionalGameIdentity()
   const screenName = navigation.find((item) => item.section === active)?.label ?? active
   const character = identity.character
