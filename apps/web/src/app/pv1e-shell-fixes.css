@@ -1,0 +1,118 @@
+/*
+ * PV-1E cross-surface shell guarantees.
+ *
+ * Component styles own visual treatment. These rules own viewport behavior:
+ * persistent chrome, battle containment, and a scrollable battlefield that never
+ * widens the document on narrow screens.
+ */
+
+[data-testid='authenticated-shell'],
+[data-testid='public-information-shell'] {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 100dvh;
+  padding-bottom: calc(2.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+[data-testid='authenticated-shell'] > header,
+[data-testid='public-information-shell'] > header {
+  position: sticky;
+  top: 0;
+  z-index: 500;
+}
+
+[data-testid='authenticated-shell'] > footer,
+[data-testid='public-information-shell'] > footer {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 450;
+  width: 100%;
+  max-width: 100vw;
+  min-height: 2.5rem;
+  margin: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  overflow-x: auto;
+  overflow-y: hidden;
+  backdrop-filter: blur(1rem);
+}
+
+main[aria-busy] {
+  width: 100%;
+  min-width: 0;
+  max-width: 100vw;
+  overflow-x: clip;
+}
+
+main[aria-busy] > div {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  padding-bottom: calc(2.75rem + env(safe-area-inset-bottom, 0px));
+  overflow-x: clip;
+}
+
+main[aria-busy] > header {
+  position: sticky;
+  top: 0;
+  z-index: 500;
+}
+
+main[aria-busy] footer {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 450;
+  width: 100%;
+  max-width: 100vw;
+  min-height: 2.35rem;
+  margin: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  overflow-x: auto;
+  overflow-y: hidden;
+  backdrop-filter: blur(0.8rem);
+}
+
+#battlefield {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+#battlefield > div:first-child {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+section[aria-label='Command Deck'] {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 760px) {
+  main[aria-busy] section[aria-label='Command Deck'] > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  [data-testid='authenticated-shell'] > footer,
+  [data-testid='public-information-shell'] > footer,
+  main[aria-busy] footer {
+    scrollbar-width: none;
+  }
+
+  [data-testid='authenticated-shell'] > footer::-webkit-scrollbar,
+  [data-testid='public-information-shell'] > footer::-webkit-scrollbar,
+  main[aria-busy] footer::-webkit-scrollbar {
+    display: none;
+  }
+}

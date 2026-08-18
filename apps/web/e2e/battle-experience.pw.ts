@@ -79,7 +79,7 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
   await page.getByRole('button', { name: /Tile 4, 2; open-ground; elevation 0/ }).click()
   await expect(page.getByText(/Move preview: costs 4 Movement and leaves 0/)).toBeVisible()
   await expect(commandDeck.getByText('Action after')).toBeVisible()
-  await expect(commandDeck.getByText('READY', { exact: true })).toBeVisible()
+  await expect(commandDeck.getByText('100%', { exact: true })).toBeVisible()
   await confirmButton.click()
   await expect(
     page.getByText(/Moved to 4,2\. 0\/4 Movement remains\. Action is still READY/),
