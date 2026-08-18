@@ -99,12 +99,6 @@ export function AccountEntryShell({ authConfig, sessionNotice }: AccountEntryShe
       </main>
 
       <footer className={styles.footer} style={{ position: 'sticky', bottom: 0, zIndex: 650 }}>
-        <nav className={publicStyles.compactLinks} aria-label="Public information footer">
-          <Link href="/news">News</Link>
-          <Link href="/manual">Manual</Link>
-          <Link href="/rules">Rules</Link>
-          <a href="#account-main">Play / Sign In</a>
-        </nav>
         <span>Server-authoritative account boundary</span>
       </footer>
     </div>
