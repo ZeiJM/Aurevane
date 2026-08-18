@@ -272,7 +272,7 @@
 
 .primary:disabled,
 .secondary:disabled {
-  cursor: wait;
+  cursor: default;
   opacity: 0.58;
 }
 
