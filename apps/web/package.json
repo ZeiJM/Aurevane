@@ -1,6 +1,6 @@
 {
   "name": "@aurevane/web",
-  "version": "0.0.0",
+  "version": "0.0.0-pv1-retest",
   "private": true,
   "scripts": {
     "dev": "next dev",
