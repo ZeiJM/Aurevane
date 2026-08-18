@@ -73,6 +73,9 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort B
     '100',
   )
   expect(await hasHorizontalOverflow(page)).toBe(false)
+  if (testInfo.project.name !== 'mobile-chromium') {
+    expect(await hasVerticalPageOverflow(page)).toBe(false)
+  }
 
   await page.keyboard.press('m')
   await expect(page.getByTestId('combat-mode-instruction')).toContainText(
@@ -144,6 +147,12 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort B
 async function hasHorizontalOverflow(page: import('@playwright/test').Page): Promise<boolean> {
   return page.evaluate(
     () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+  )
+}
+
+async function hasVerticalPageOverflow(page: import('@playwright/test').Page): Promise<boolean> {
+  return page.evaluate(
+    () => document.documentElement.scrollHeight > document.documentElement.clientHeight + 1,
   )
 }
 
