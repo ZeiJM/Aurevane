@@ -57,6 +57,10 @@ export default async function BattleSessionPage({
     throw error
   }
 
+  if (battle.snapshot.tactical.battle.lifecycle === 'abandoned') {
+    redirect('/game/battle')
+  }
+
   const playerProfile = battle.snapshot.statBridge.combatants.find(
     (profile) => profile.provenance.kind === 'character-derived',
   )
