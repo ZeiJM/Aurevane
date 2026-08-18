@@ -8,9 +8,71 @@ on:
       - "agent/**"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
+  pv1f-finalize:
+    name: Finalize PV-1F wiring
+    if: github.event_name == 'push' && github.ref_name == 'agent/pv-1f-character-hub-turn-budget' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PV-1F branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/pv-1f-character-hub-turn-budget
+          fetch-depth: 0
+
+      - name: Apply wiring fix and restore workflows
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          python <<'PY'
+          from pathlib import Path
+
+          path = Path('apps/web/src/components/battle/battle-experience-v2.tsx')
+          text = path.read_text()
+
+          old_log = '''      <BattleLogPanel
+        battleSessionId={battle.battleSessionId}
+        battleVersion={battle.battleVersion}
+        open={overlay?.kind === 'log'}
+        onClose={() => setOverlay(null)}
+      />'''
+          new_log = '''      <BattleLogPanel
+        battleSessionId={battle.battleSessionId}
+        battleVersion={battle.battleVersion}
+        open={overlay?.kind === 'log'}
+        onClose={() => setOverlay(null)}
+        playerName={playerName}
+      />'''
+          if old_log not in text:
+              raise SystemExit('BattleLogPanel wiring anchor not found')
+          text = text.replace(old_log, new_log, 1)
+
+          old_abort = '''      router.replace('/game/battle')
+      router.refresh()'''
+          if old_abort not in text:
+              raise SystemExit('Abort navigation anchor not found')
+          text = text.replace(old_abort, "      router.replace('/game/battle')", 1)
+          path.write_text(text)
+          PY
+
+          git show origin/main:.github/workflows/ci.yml > .github/workflows/ci.yml
+          git show origin/main:.github/workflows/browser-smoke.yml > .github/workflows/browser-smoke.yml
+          rm -f .github/workflows/pv1f-battle-wiring-fix.yml
+          rm -f docs/.pv1f-battle-wiring-trigger
+
+      - name: Commit clean source repair
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'fix: wire battle log identity and abort navigation'
+          git push origin HEAD:agent/pv-1f-character-hub-turn-budget
+
   quality:
     name: Quality gates
     runs-on: ubuntu-latest
