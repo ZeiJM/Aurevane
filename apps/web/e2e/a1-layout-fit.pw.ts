@@ -46,7 +46,9 @@ test('keeps the core non-battle game surfaces inside the initial desktop and lap
 })
 
 async function expectInitialViewportFit(page: Page, surface: string): Promise<void> {
-  await page.evaluate(() => document.fonts.ready)
+  await page.evaluate(async () => {
+    await document.fonts.ready
+  })
   const dimensions = await page.evaluate(() => ({
     clientHeight: document.documentElement.clientHeight,
     scrollHeight: document.documentElement.scrollHeight,
