@@ -6,42 +6,44 @@ The Master Game Plan defines the product. The Roadmap defines sequence. Canonica
 
 ## Current status
 
-**Stage:** PV-1 — Tactical Combat Corrective Validation
+**Stage:** PV-1 — Tactical Combat Human Retest
 
-**ACTIVE VALIDATION GATE:** issue #105 — PV-1C Conduct Tactical Combat Human/Internal Validation — **FAILED CURRENT BUILD / AWAITING RETEST**
+**ACTIVE VALIDATION GATE:** issue #105 — PV-1C Conduct Tactical Combat Human/Internal Validation — **CORRECTED SLICE AWAITING REAL HUMAN RETEST**
 
-**ACTIVE IMPLEMENTATION TICKET:** issue #107 — PV-1D Combat Readability, Battlefield Stability & Turn-Flow Correction
+**ACTIVE IMPLEMENTATION TICKET:** none
 
-Two independent human feedback batches found the same recurring failure: testers were mainly fighting the interface rather than discussing tactical choices. Battlefield scale/rendering, movement readability, information hierarchy, Recruit-turn visibility, action feedback, Tactical Hall selection, and mobile layout require correction before another PV-1 decision. Substantial Phase 3 implementation remains blocked.
+The first PV-1 human pass failed because two independent testers were mainly fighting the interface rather than discussing tactical choices. Corrective issue #107 is now closed through merged PR #108. The corrected Phase 2 combat slice passed exact-head GitHub quality, database/security and responsive authenticated browser validation across desktop, laptop and mobile. Those automated checks establish implementation correctness and regression safety; they do **not** establish that PV-1 now passes.
 
-### PV-1D active implementation boundary
+Substantial Phase 3 implementation remains blocked until issue #105 is rerun with real human/internal testers.
 
-Repair the existing authoritative Phase 2 slice rather than adding breadth:
+## Corrected slice ready for retest
 
-- keep the battlefield visibly stable through preview, commit, Recruit turns, refresh, and responsive layout changes;
-- enlarge tiles/units and make legal reachability, blocked movement, rough terrain, elevation, and facing visually understandable;
-- provide always-readable HP, MP, status, initiative, facing, Movement, and Action state;
-- make the intended Move → Action → Facing → End Turn sequence obvious without duplicating the same information across several panels;
-- make attack, miss, damage, Guard, movement, and enemy-turn results immediately visible;
-- make the Combat Log obvious and keep it current as battle versions advance;
-- preserve server authority and strengthen client rapid/double-submit protection rather than relying on visual disabled state alone;
-- simplify Tactical Hall drill selection, consolidate Movement + Facing teaching, and ensure Recruit Sparring launches the intended Duel Yard;
-- reorganize the authenticated home so Sign Out lives near Sound, game navigation lives with Account State, and Wayfarer's Practice is compact/on-demand;
-- rerun responsive authenticated automation and then real human PV-1 testing.
+PR #108 / PV-1D addressed the recurring human-test failures without adding Phase 3 breadth:
 
-Do not add Phase 3 Disciplines/Arts/buildcraft, new regions/classes, stronger AI grades, production PvP/Colosseum, or unrelated metagame breadth as a substitute for fixing the failed combat experience.
+- stable, larger battlefield presentation through preview, commit, Recruit turns and responsive layouts;
+- clearer tiles/units, movement reachability, blocked movement, rough terrain, elevation and facing;
+- always-readable HP, MP, status, initiative, facing, Movement and Action state;
+- a clearer Move → Action → Facing → End Turn sequence;
+- more legible attack, miss, damage, Guard, movement and Recruit-turn results;
+- a prominent, current Combat Log aligned with the authoritative event-read contract;
+- preserved server authority plus stronger client rapid/double-submit protection;
+- simplified Tactical Hall selection, combined Movement + Facing teaching and corrected Recruit Sparring arena selection;
+- compact/non-obstructive teaching UI and improved mobile selection/readability;
+- cleaner authenticated-home navigation and an on-demand Wayfarer's Practice panel.
 
 ## Human evidence already established
 
+The previous build failed PV-1 because:
+
 - two independent testers reported battlefield rendering/scaling problems and overlapping command text;
 - movement was not visually trackable and reachable/unreachable tiles were unclear;
-- terrain/elevation, Action economy, Guard, facing, initiative, and attack outcomes were difficult to understand;
+- terrain/elevation, Action economy, Guard, facing, initiative and attack outcomes were difficult to understand;
 - Recruit actions occurred authoritatively but appeared invisible to players;
 - Combat Log discovery/currentness was insufficient;
 - mobile Tactical Hall selection was unclear and Recruit Sparring selection was unreliable;
-- first tester explicitly did not want another fight in the current build.
+- one tester explicitly did not want another fight in that build.
 
-These observations are recorded on issue #105. They are a corrective signal, not a PV-1 pass.
+These observations remain the baseline to compare against during the corrected-build retest; they are not a permanent verdict on the corrected slice.
 
 ## Completed foundation relevant to this work
 
@@ -53,7 +55,8 @@ These observations are recorded on issue #105. They are a corrective signal, not
 - P2.7 combat usability, integrated final-facing flow, combat keybind foundation, 9×7 Duel Yard scale proof, larger-board Recruit validation and authoritative Abort Exercise are merged through PR #100.
 - PV-1A private server-derived combat-validation telemetry is merged through PR #102.
 - PV-1B local structured playtest evidence tooling and neutral facilitator protocol are merged through PR #104.
-- PV-1C collected sufficient human evidence to reject the current combat presentation and open corrective issue #107.
+- PV-1C produced sufficient human evidence to reject the prior combat presentation.
+- PV-1D combat readability, battlefield stability and turn-flow correction is merged through PR #108; issue #107 is closed.
 
 ## Current authoritative documents
 
@@ -81,16 +84,16 @@ These observations are recorded on issue #105. They are a corrective signal, not
 ## Immediate sequence
 
 ```text
-#107 PV-1D — Combat Readability, Battlefield Stability & Turn-Flow Correction
+Merged PV-1D correction / PR #108
   ↓
-GitHub quality + database/security + responsive authenticated browser validation
-  ↓
-Deploy corrected slice and verify live production behavior
+Deploy corrected main and verify live behavior
   ↓
 Rerun real human PV-1 sessions under #105
   ↓
-PASS: close #105 and begin the first substantial Phase 3 implementation ticket
-FAIL: identify the next smallest recurring combat/usability defect and correct it
+Review structured notes + corroborating telemetry + confounders
+  ↓
+PASS: close #105 and open the first substantial Phase 3 implementation ticket
+FAIL: identify the next smallest recurring combat/usability defect and open one corrective ticket
 ```
 
-Automation proves correctness and regression safety; only the subsequent human retest can decide whether PV-1 now passes.
+Do not fabricate, simulate or infer a human PASS from automation. The next product decision requires real tester interaction with the corrected build.
