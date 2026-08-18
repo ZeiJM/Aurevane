@@ -84,6 +84,13 @@ test('creates a slotted character, persists its profile, and resumes it across s
   `)
   expect(characterId).toMatch(/^[0-9a-f-]{36}$/)
 
+  // First entry creates the authoritative per-character training boundary. No retroactive reward
+  // exists before that boundary, so initialize it before simulating a long real absence.
+  await openOfflineTraining(page)
+  await expect(page.getByTestId('training-report')).toHaveCount(0)
+  await page.getByRole('link', { name: 'Back to Character Profile' }).click()
+  await expect(page).toHaveURL(/\/game\/character$/)
+
   queryLocalDatabase(`
     with boundary as (
       select clock_timestamp() - interval '96 hours' as at
