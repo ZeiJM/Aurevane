@@ -124,6 +124,7 @@ test('creates one permanent character, renders its profile, and resumes it acros
   `)
 
   await page.reload()
+  await openPracticeDrawer(page)
   const trainingReport = page.getByTestId('training-report')
   await expect(trainingReport).toBeVisible()
   await expect(trainingReport).toContainText('Training Report')
@@ -135,6 +136,7 @@ test('creates one permanent character, renders its profile, and resumes it acros
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
   await page.reload()
+  await openPracticeDrawer(page)
   await expect(page.getByTestId('training-report')).toContainText('3d 23h')
   await expect(page.getByTestId('training-report')).toContainText('+376')
   await expect(page.getByTestId('training-report')).toContainText('+12')
@@ -147,7 +149,7 @@ test('creates one permanent character, renders its profile, and resumes it acros
   await expect(page.getByTestId('training-report')).toHaveCount(0)
   await expect(page.getByTestId('character-established')).toContainText('Level 3')
 
-  await page.getByRole('link', { name: 'Open character profile' }).click()
+  await page.getByRole('link', { name: 'Character Profile' }).click()
   await expect(page).toHaveURL(/\/game\/character$/)
   await expect(page.getByTestId('character-profile')).toContainText('Level 3 Vanguard')
   await expect(page.getByTestId('level-progress')).toContainText('376 / 400 XP')
@@ -161,6 +163,14 @@ test('creates one permanent character, renders its profile, and resumes it acros
   await expect(page.getByTestId('training-report')).toHaveCount(0)
   expect(await hasHorizontalOverflow(page)).toBe(false)
 })
+
+async function openPracticeDrawer(page: import('@playwright/test').Page): Promise<void> {
+  const drawer = page.getByTestId('practice-drawer')
+  await expect(drawer).toBeVisible()
+  if (!(await drawer.evaluate((element) => (element as HTMLDetailsElement).open))) {
+    await drawer.locator('summary').click()
+  }
+}
 
 async function hasHorizontalOverflow(page: import('@playwright/test').Page): Promise<boolean> {
   return page.evaluate(

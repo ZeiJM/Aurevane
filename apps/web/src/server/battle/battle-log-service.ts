@@ -19,7 +19,7 @@ export interface BattleLogService {
   getLog(userId: string, battleSessionId: string): Promise<BattleLogView>
 }
 
-const BATTLE_LOG_LIMIT = 200
+const BATTLE_LOG_LIMIT = 100
 
 function combatantLabel(value: unknown): string {
   if (typeof value !== 'string') return 'Combatant'

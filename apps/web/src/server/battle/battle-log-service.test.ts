@@ -108,7 +108,7 @@ describe('P2.5 sanitized battle log service', () => {
         },
       ],
     })
-    expect(repository.findBattleEvents).toHaveBeenCalledWith(USER_ID, SESSION_ID, 200)
+    expect(repository.findBattleEvents).toHaveBeenCalledWith(USER_ID, SESSION_ID, 100)
     expect(JSON.stringify(result)).not.toContain('rollBasisPoints')
     expect(JSON.stringify(result)).not.toContain('hpBefore')
     expect(JSON.stringify(result)).not.toContain('hpAfter')
