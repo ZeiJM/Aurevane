@@ -5,26 +5,24 @@ import { createHash, randomInt, randomUUID } from 'node:crypto'
 import type { BattleSessionRepository } from '@aurevane/db/battle-session'
 import type { CharacterRecord, CharacterRepository } from '@aurevane/db/character'
 import { calculateDerivedStats } from '@aurevane/game-core/character/derived-stats'
-import { createCombatEncounterState, endCombatTurn } from '@aurevane/game-core/combat/actions'
+import { createCombatEncounterState } from '@aurevane/game-core/combat/actions'
 import { createPendingBattle, startBattle } from '@aurevane/game-core/combat/battle-state'
 import {
   P2_2_ORDINARY_GROUND_PROFILE,
   P2_2_VERTICAL_SLICE_TERRAINS,
   createTacticalBattleState,
-  selectCurrentFinalFacing,
 } from '@aurevane/game-core/combat/board'
 import {
-  PV1F_COMBAT_CONTENT,
   calculatePv1fBasicAttackDamage,
   createPv1fTemporaryResources,
   executePv1fAction,
   executePv1fMovement,
+  finishPv1fTurn,
   preparePv1fTurnEconomy,
 } from '@aurevane/game-core/combat/pv1f-action-economy'
 import {
   createCharacterDerivedCombatProfile,
   createStatDrivenCombatEncounterState,
-  reattachStatDrivenCombatBridge,
   validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
   type StatDrivenCombatProfile,
@@ -87,18 +85,20 @@ interface Dependencies {
   battles: BattleSessionRepository
 }
 
-function invalidBattleIntent(): AurevaneError {
-  return new AurevaneError(
-    'INVALID_REQUEST',
-    'That battle command is not legal in the current state.',
-  )
+function invalidBattleIntent(
+  message = 'That battle command is not legal in the current state.',
+): AurevaneError {
+  return new AurevaneError('INVALID_REQUEST', message)
 }
+
 function battleUnavailable(): AurevaneError {
   return new AurevaneError('FORBIDDEN', 'That battle is not available to this account.')
 }
+
 function persistenceInvalid(): AurevaneError {
   return new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The stored battle state is invalid.')
 }
+
 function fingerprint(value: unknown): string {
   return `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`
 }
@@ -106,16 +106,15 @@ function fingerprint(value: unknown): string {
 function recruitScenarioProfile(
   difficulty: BattleAiDifficulty,
 ): Omit<StatDrivenCombatProfile, 'combatantId'> {
-  const accuracy = difficulty === 'easy' ? 6_600 : difficulty === 'high' ? 7_300 : 7_000
-  const evasion = difficulty === 'easy' ? 650 : difficulty === 'high' ? 950 : 800
   return {
     provenance: {
       kind: 'scenario',
       sourceId: `scenario:p2-7-recruit:duel:${difficulty}`,
       sourceRulesVersion: PV1F_CONTENT_VERSION,
     },
-    accuracy,
-    evasion,
+    // Difficulty changes decision quality only. All three Recruit tiers obey the same visible stats.
+    accuracy: 7_000,
+    evasion: 800,
     armor: 20,
     ward: 20,
     jump: 1,
@@ -158,7 +157,11 @@ function createVerticalSliceEncounter(
     might: character.might,
     finesse: character.finesse,
   })
-  const recruitAttackDamage = calculatePv1fBasicAttackDamage({ level: 1, might: 5, finesse: 5 })
+  const recruitAttackDamage = calculatePv1fBasicAttackDamage({
+    level: 1,
+    might: 5,
+    finesse: 5,
+  })
 
   const battle = startBattle(
     createPendingBattle({
@@ -224,8 +227,9 @@ function createVerticalSliceEncounter(
 }
 
 function readPersistedEncounter(snapshot: unknown): StatDrivenCombatEncounterState {
-  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot))
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
     throw persistenceInvalid()
+  }
   try {
     const candidate = snapshot as StatDrivenCombatEncounterState
     const issues = validateStatDrivenCombatEncounterState(candidate)
@@ -266,11 +270,13 @@ function assertControlledCombatantProjection(
   if (
     controlledCombatantIds.length === 0 ||
     new Set(controlledCombatantIds).size !== controlledCombatantIds.length
-  )
+  ) {
     throw persistenceInvalid()
+  }
   for (const combatantId of controlledCombatantIds) {
-    if (!state.tactical.battle.combatants.some((combatant) => combatant.id === combatantId))
+    if (!state.tactical.battle.combatants.some((combatant) => combatant.id === combatantId)) {
       throw persistenceInvalid()
+    }
   }
 }
 
@@ -296,29 +302,26 @@ function resolveIntent(
   try {
     if (intent.kind === 'move') return executePv1fMovement(state, intent.path)
     if (intent.kind === 'action') return executePv1fAction(state, intent.actionId, intent.target)
-    if (intent.kind === 'face') {
-      const prepared = preparePv1fTurnEconomy(state)
-      const transition = selectCurrentFinalFacing(prepared.tactical, intent.facing)
-      return {
-        state: reattachStatDrivenCombatBridge(
-          createCombatEncounterState(transition.state, prepared.statusState),
-          prepared.statBridge,
-        ),
-        events: transition.events,
-      }
-    }
-    const prepared = preparePv1fTurnEconomy(state)
-    const transition = endCombatTurn(prepared, PV1F_COMBAT_CONTENT)
-    return {
-      state: preparePv1fTurnEconomy(
-        reattachStatDrivenCombatBridge(transition.state, prepared.statBridge),
-      ),
-      events: transition.events,
-    }
+    if (intent.kind === 'face') return finishPv1fTurn(state, intent.facing)
+    throw invalidBattleIntent('Choose a final facing direction to finish the turn.')
   } catch (error) {
     if (error instanceof AurevaneError) throw error
-    throw invalidBattleIntent()
+    throw invalidBattleIntent(error instanceof Error ? error.message : undefined)
   }
+}
+
+async function findOwnedCharacter(
+  repository: CharacterRepository,
+  userId: string,
+  characterId: string,
+): Promise<CharacterRecord | null> {
+  if (repository.findByOwnerId) {
+    return repository.findByOwnerId(userId, characterId)
+  }
+
+  // Compatibility path for the pre-PV-1F isolated tests, which model only base slot 0.
+  const legacy = await repository.findByOwnerSlot(userId, 0)
+  return legacy?.id === characterId ? legacy : null
 }
 
 export function createBattleSessionService({
@@ -327,9 +330,11 @@ export function createBattleSessionService({
 }: Dependencies): BattleSessionService {
   return {
     async createSession(command) {
-      const character = await characters.findByOwnerId(command.userId, command.characterId)
-      if (!character)
+      const character = await findOwnedCharacter(characters, command.userId, command.characterId)
+      if (!character) {
         throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
+      }
+
       const arenaId = command.arenaId ?? 'basic-training-floor'
       const aiDifficulty = command.aiDifficulty ?? 'standard'
       const encounter = createVerticalSliceEncounter(character, arenaId, aiDifficulty)
@@ -355,9 +360,14 @@ export function createBattleSessionService({
             participantRole: 'player',
             characterId: character.id,
           },
-          { combatantId: 'recruit:p2-4-1', participantRole: 'opponent', characterId: null },
+          {
+            combatantId: 'recruit:p2-4-1',
+            participantRole: 'opponent',
+            characterId: null,
+          },
         ],
       })
+
       return {
         battleSessionId: persisted.result.battleSessionId,
         battleVersion: persisted.result.battleVersion,
@@ -380,8 +390,9 @@ export function createBattleSessionService({
         snapshot.tactical.battle.battleId !== persisted.battleId ||
         snapshot.tactical.battle.rulesVersion !== persisted.rulesVersion ||
         snapshot.tactical.battle.contentVersion !== persisted.contentVersion
-      )
+      ) {
         throw persistenceInvalid()
+      }
       assertControlledCombatantProjection(snapshot, persisted.controlledCombatantIds)
       return {
         battleSessionId: persisted.battleSessionId,
@@ -441,6 +452,7 @@ export function createBattleSessionService({
         nextSnapshot: resolved.state,
         events: resolved.events,
       })
+
       return {
         battleSessionId: committed.result.battleSessionId,
         battleVersion: committed.result.battleVersion,
