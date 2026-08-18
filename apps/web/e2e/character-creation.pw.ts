@@ -32,10 +32,9 @@ test('creates a slotted character, persists its profile, and resumes it across s
   const profile = page.getByTestId('character-profile')
   await expect(profile).toContainText(characterName)
   await expect(profile).toContainText('Level 1')
-  await expect(page.getByTestId('profile-attribute-might')).toContainText('6')
-  await expect(page.getByTestId('profile-attribute-finesse')).toContainText('6')
-  await expect(page.getByTestId('profile-attribute-intellect')).toContainText('6')
-  await expect(page.getByTestId('profile-attribute-resolve')).toContainText('6')
+  for (const attribute of ['might', 'finesse', 'vitality', 'agility', 'intellect', 'resolve']) {
+    await expect(page.getByTestId(`profile-attribute-${attribute}`)).toContainText('6')
+  }
   await expect(page.getByTestId('derived-stat-maxHp')).toContainText('164')
   await expect(page.getByTestId('derived-stat-maxMp')).toContainText('90')
   await expect(page.getByTestId('derived-stat-accuracy')).toContainText('74%')
@@ -54,11 +53,10 @@ test('creates a slotted character, persists its profile, and resumes it across s
   )
   expect(await requestedCharacterArt.count()).toBeGreaterThan(0)
   expect(await hasHorizontalOverflow(page)).toBe(false)
+  await expect(page.getByRole('link', { name: 'Back to Character Select' })).toHaveCount(0)
 
-  const backLink = page.getByRole('link', { name: 'Back to Character Select' })
-  await backLink.focus()
-  await expect(backLink).toBeFocused()
-  await backLink.press('Enter')
+  await page.getByRole('button', { name: 'Account' }).click()
+  await page.getByRole('menuitem', { name: 'Switch Character' }).click()
   await expect(page).toHaveURL(/\/game$/)
   await expect(page.getByRole('link', { name: `Play ${characterName}` })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Create Character' })).toHaveCount(2)
@@ -84,8 +82,6 @@ test('creates a slotted character, persists its profile, and resumes it across s
   `)
   expect(characterId).toMatch(/^[0-9a-f-]{36}$/)
 
-  // First entry creates the authoritative per-character training boundary. No retroactive reward
-  // exists before that boundary, so initialize it before simulating a long real absence.
   await openOfflineTraining(page)
   await expect(page.getByTestId('training-report')).toHaveCount(0)
   await page.getByRole('link', { name: 'Back to Character Profile' }).click()
@@ -132,7 +128,8 @@ test('creates a slotted character, persists its profile, and resumes it across s
   await expect(page.getByTestId('character-profile')).toContainText('Level 3')
   await expect(page.getByTestId('level-progress')).toContainText('376 / 400 XP')
 
-  await page.getByRole('link', { name: 'Back to Character Select' }).click()
+  await page.getByRole('button', { name: 'Account' }).click()
+  await page.getByRole('menuitem', { name: 'Switch Character' }).click()
   await expect(page).toHaveURL(/\/game$/)
   await expect(page.getByRole('link', { name: `Play ${characterName}` })).toBeVisible()
   expect(await hasHorizontalOverflow(page)).toBe(false)
