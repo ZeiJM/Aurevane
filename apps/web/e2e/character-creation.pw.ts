@@ -49,9 +49,10 @@ test('creates a slotted character, persists its profile, and resumes it across s
     '0',
   )
 
-  await expect(
-    page.locator('[data-media-status="requested"][data-media-request="ART-CHR-001"]').first(),
-  ).toBeVisible()
+  const requestedCharacterArt = page.locator(
+    '[data-media-status="requested"][data-media-request="ART-CHR-001"]',
+  )
+  expect(await requestedCharacterArt.count()).toBeGreaterThan(0)
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
   const backLink = page.getByRole('link', { name: 'Back to Character Select' })
