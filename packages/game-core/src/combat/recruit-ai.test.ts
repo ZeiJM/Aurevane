@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 
 import { createCombatEncounterState } from './actions'
 import { createPendingBattle, startBattle } from './battle-state'
-import { createTacticalBattleState, selectCurrentFinalFacing } from './board'
+import { createTacticalBattleState } from './board'
+import { spendPv1fActionEconomy } from './pv1f-action-economy'
 import {
   chooseRecruitAiDecision,
   createRecruitAiKnowledge,
@@ -11,7 +12,6 @@ import {
 } from './recruit-ai'
 import {
   createStatDrivenCombatEncounterState,
-  reattachStatDrivenCombatBridge,
   type StatDrivenCombatEncounterState,
   type StatDrivenCombatProfile,
 } from './stat-driven-combat'
@@ -118,17 +118,6 @@ function encounter(
   ])
 }
 
-function withFinalFacing(
-  state: StatDrivenCombatEncounterState,
-  facing: 'north' | 'east' | 'south' | 'west',
-): StatDrivenCombatEncounterState {
-  const transition = selectCurrentFinalFacing(state.tactical, facing)
-  return reattachStatDrivenCombatBridge(
-    createCombatEncounterState(transition.state, state.statusState),
-    state.statBridge,
-  )
-}
-
 describe('P2.6 Recruit AI', () => {
   it('filters committed knowledge and does not expose RNG, future outcomes, or browser planning state', () => {
     const knowledge = createRecruitAiKnowledge(encounter())
@@ -200,13 +189,28 @@ describe('P2.6 Recruit AI', () => {
     expect(decision.candidateCount).toBe(1)
   })
 
-  it('falls back to facing the nearest threat before ending a turn', () => {
+  it('falls back to final facing when no Action Economy remains', () => {
     const state = encounter({
       width: 2,
       recruitPosition: { x: 1, y: 0 },
       playerPosition: { x: 0, y: 0 },
     })
-    const actionSpent = {
+    const economySpent = spendPv1fActionEconomy(state, 100)
+
+    const decision = chooseRecruitAiDecision({ state: economySpent, tieBreakSeed: 9 })
+    expect(decision).toMatchObject({
+      reason: 'face-threat',
+      intent: { kind: 'face', facing: 'west' },
+    })
+  })
+
+  it('continues acting when legacy Action State says spent but PV-1F economy remains', () => {
+    const state = encounter({
+      width: 2,
+      recruitPosition: { x: 1, y: 0 },
+      playerPosition: { x: 0, y: 0 },
+    })
+    const legacySpent = {
       ...state,
       tactical: {
         ...state.tactical,
@@ -222,38 +226,11 @@ describe('P2.6 Recruit AI', () => {
       },
     }
 
-    const decision = chooseRecruitAiDecision({ state: actionSpent, tieBreakSeed: 9 })
+    const decision = chooseRecruitAiDecision({ state: legacySpent, tieBreakSeed: 9 })
     expect(decision).toMatchObject({
-      reason: 'face-threat',
-      intent: { kind: 'face', facing: 'west' },
+      reason: 'legal-damage',
+      intent: { kind: 'action', actionId: 'basic.attack.unarmed.basic' },
     })
-  })
-
-  it('ends the turn once the safe final facing is already selected', () => {
-    const base = encounter({
-      width: 2,
-      recruitPosition: { x: 1, y: 0 },
-      playerPosition: { x: 0, y: 0 },
-    })
-    const faced = withFinalFacing(base, 'west')
-    const spent = {
-      ...faced,
-      tactical: {
-        ...faced.tactical,
-        battle: {
-          ...faced.tactical.battle,
-          currentTurn: {
-            ...faced.tactical.battle.currentTurn!,
-            actionState: 'spent' as const,
-            movementRemaining: 0,
-            movementSpent: faced.tactical.battle.currentTurn!.movementMaximum,
-          },
-        },
-      },
-    }
-
-    const decision = chooseRecruitAiDecision({ state: spent, tieBreakSeed: 9 })
-    expect(decision).toMatchObject({ reason: 'safe-end-turn', intent: { kind: 'end-turn' } })
   })
 
   it('rejects unbounded or malformed profile budgets', () => {

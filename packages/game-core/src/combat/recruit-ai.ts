@@ -5,6 +5,7 @@ import {
   PV1F_RECOVER_ACTION_ID,
   evaluatePv1fAction,
   evaluatePv1fMovement,
+  preparePv1fTurnEconomy,
   readPv1fActionEconomy,
 } from './pv1f-action-economy'
 import { forecastStatDrivenAttack, type StatDrivenCombatEncounterState } from './stat-driven-combat'
@@ -126,7 +127,8 @@ export function getRecruitAiProfile(difficulty: RecruitAiDifficulty): RecruitAiP
 export function createRecruitAiKnowledge(
   state: StatDrivenCombatEncounterState,
 ): RecruitAiKnowledge {
-  const battle = state.tactical.battle
+  const prepared = preparePv1fTurnEconomy(state)
+  const battle = prepared.tactical.battle
   const turn = battle.currentTurn
   if (battle.lifecycle !== 'active' || turn === null) {
     throw new Error('Recruit AI knowledge requires an active battle turn.')
@@ -138,7 +140,7 @@ export function createRecruitAiKnowledge(
     round: battle.round,
     turnNumber: battle.turnNumber,
     activeCombatantId: turn.combatantId,
-    actionEconomyRemaining: readPv1fActionEconomy(state, turn.combatantId)?.current ?? 0,
+    actionEconomyRemaining: readPv1fActionEconomy(prepared, turn.combatantId)?.current ?? 0,
     finalFacing: turn.finalFacing,
     combatants: battle.combatants.map((combatant) => ({
       id: combatant.id,
@@ -148,11 +150,11 @@ export function createRecruitAiKnowledge(
       mp: combatant.mp,
       maxMp: combatant.maxMp,
     })),
-    placements: state.tactical.placements.map((placement) => ({
+    placements: prepared.tactical.placements.map((placement) => ({
       ...placement,
       position: { ...placement.position },
     })),
-    tiles: state.tactical.tiles.map((tile) => ({ ...tile, position: { ...tile.position } })),
+    tiles: prepared.tactical.tiles.map((tile) => ({ ...tile, position: { ...tile.position } })),
   }
 }
 
