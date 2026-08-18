@@ -120,7 +120,9 @@ export function BattleKeyboardAssist() {
       if (action === 'basicAttack') return Boolean(commandButton('Basic Attack')?.click() ?? true)
       if (action === 'guard') return Boolean(commandButton('Guard')?.click() ?? true)
       if (action === 'endTurn')
-        return Boolean(commandButton('Finish Turn', 'End Turn', 'Facing / End Turn')?.click() ?? true)
+        return Boolean(
+          commandButton('Finish Turn', 'End Turn', 'Facing / End Turn')?.click() ?? true,
+        )
       if (action === 'confirm')
         return Boolean(
           planningButton('Confirm action')?.click() ??
