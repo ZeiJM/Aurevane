@@ -9,6 +9,8 @@ import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
+import { loadPlayerProfile } from '@/server/player-profile/player-profile-service'
+import { createSupabasePlayerProfileRepository } from '@/server/player-profile/supabase-player-profile-repository'
 import { loadLevelProgressionCurve } from '@/server/progression/progression-service'
 import { createSupabaseProgressionRepository } from '@/server/progression/supabase-progression-repository'
 
@@ -28,22 +30,24 @@ export default async function CharacterProfilePage() {
     throw error
   }
 
-  let character
   try {
-    character = await loadSelectedCharacter(actor)
-  } catch (error) {
-    if (isAurevaneError(error) && error.code === 'PERSISTENCE_UNAVAILABLE') {
-      return <AuthenticatedGameRecovery />
-    }
-    throw error
-  }
-  if (!character) redirect('/game')
+    const [character, accountProfile] = await Promise.all([
+      loadSelectedCharacter(actor),
+      loadPlayerProfile(actor, createSupabasePlayerProfileRepository()),
+    ])
+    if (!character) redirect('/game')
 
-  let levelCurve
-  try {
-    levelCurve = await loadLevelProgressionCurve(
+    const levelCurve = await loadLevelProgressionCurve(
       character.progressionCycle.number,
       createSupabaseProgressionRepository(),
+    )
+
+    return (
+      <CharacterProfileShell
+        profile={buildCharacterProfileReadModel(character, levelCurve)}
+        avatarUrl={accountProfile.avatarUrl}
+        equippedTitle={accountProfile.equippedTitle}
+      />
     )
   } catch (error) {
     if (isAurevaneError(error) && error.code === 'PERSISTENCE_UNAVAILABLE') {
@@ -51,6 +55,4 @@ export default async function CharacterProfilePage() {
     }
     throw error
   }
-
-  return <CharacterProfileShell profile={buildCharacterProfileReadModel(character, levelCurve)} />
 }
