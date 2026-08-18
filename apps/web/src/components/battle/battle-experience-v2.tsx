@@ -22,7 +22,6 @@ type Facing = 'north' | 'east' | 'south' | 'west'
 type TacticalState = BattleSessionView['snapshot']['tactical']
 type Combatant = TacticalState['battle']['combatants'][number]
 type CombatPlacement = TacticalState['placements'][number]
-type CombatProfile = BattleSessionView['snapshot']['statBridge']['combatants'][number]
 type CombatStatus = BattleSessionView['snapshot']['statusState'][number]['statuses'][number]
 
 interface BattleExperienceProps {
@@ -395,9 +394,6 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
   const tactical = snapshot.tactical
   const battleState = tactical.battle
   const currentTurn = battleState.currentTurn
-  const activeCombatant = currentTurn
-    ? (battleState.combatants.find((combatant) => combatant.id === currentTurn.combatantId) ?? null)
-    : null
   const activeProfile = currentTurn
     ? (snapshot.statBridge.combatants.find(
         (profile) => profile.combatantId === currentTurn.combatantId,
@@ -604,8 +600,6 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
     }
   }, [
     battle,
-    battle.battleSessionId,
-    battle.battleVersion,
     battleState.lifecycle,
     currentTurn,
     handleApiFailure,
@@ -798,8 +792,6 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
   }, [
     activePlacement,
     battle,
-    battle.battleSessionId,
-    battle.battleVersion,
     commitPending,
     handleApiFailure,
     pendingIntent,
