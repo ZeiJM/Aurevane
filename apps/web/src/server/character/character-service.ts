@@ -36,9 +36,7 @@ export async function loadBaseCharacter(
   repository: CharacterRepository,
 ): Promise<PersistedCharacter | null> {
   const record = await repository.findByOwnerSlot(actor.userId, BASE_CHARACTER_SLOT_INDEX)
-  if (!record) {
-    return null
-  }
+  if (!record) return null
 
   if (record.userId !== actor.userId) {
     throw new AurevaneError('FORBIDDEN', 'That character does not belong to this account.')
@@ -56,7 +54,10 @@ export async function createBaseCharacter(
     seed = buildInitialCharacterState(command.intent)
   } catch (error) {
     if (error instanceof CharacterCreationRuleError) {
-      throw new AurevaneError('INVALID_REQUEST', 'Review the highlighted character choices.')
+      throw new AurevaneError(
+        'INVALID_REQUEST',
+        error.issues[0]?.message ?? 'Review the character choices and try again.',
+      )
     }
     throw error
   }
@@ -114,10 +115,7 @@ export async function createBaseCharacter(
     throw new AurevaneError('FORBIDDEN', 'The created character ownership was invalid.')
   }
 
-  return {
-    character: toPersistedCharacter(outcome.result),
-    replayed: outcome.replayed,
-  }
+  return { character: toPersistedCharacter(outcome.result), replayed: outcome.replayed }
 }
 
 function toPersistedCharacter(record: CharacterRecord): PersistedCharacter {
@@ -148,6 +146,8 @@ function toPersistedCharacter(record: CharacterRecord): PersistedCharacter {
       finesse: record.finesse,
       intellect: record.intellect,
       resolve: record.resolve,
+      vitality: record.vitality,
+      insight: record.insight,
     },
     level: record.level,
     xp: record.xp,
