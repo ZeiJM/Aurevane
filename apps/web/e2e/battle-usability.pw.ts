@@ -91,7 +91,17 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort E
   await expect(page).toHaveURL(battleUrl)
 
   await page.getByRole('button', { name: 'Abort', exact: true }).click()
+  const abortResponsePromise = page.waitForResponse((response) => {
+    const request = response.request()
+    return request.method() === 'POST' && new URL(response.url()).pathname.endsWith('/abort')
+  })
   await page.getByRole('button', { name: 'Confirm Abort' }).click()
+  const abortResponse = await abortResponsePromise
+  expect(abortResponse.ok()).toBe(true)
+  const abortBody = (await abortResponse.json()) as {
+    battle?: { snapshot?: { tactical?: { battle?: { lifecycle?: string } } } }
+  }
+  expect(abortBody.battle?.snapshot?.tactical?.battle?.lifecycle).toBe('abandoned')
   await expect(page).toHaveURL(/\/game\/battle$/, { timeout: 15_000 })
 
   const persistedState = queryLocalDatabase(`
