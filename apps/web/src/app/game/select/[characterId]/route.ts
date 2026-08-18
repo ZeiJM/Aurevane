@@ -1,7 +1,12 @@
+import { isAurevaneError } from '@aurevane/game-core/errors'
+import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 import { getAuthenticatedActor } from '@/server/auth/actor'
-import { findPlayableOwnedCharacterById } from '@/server/character/character-slot-service'
+import {
+  authorizeCharacterSelection,
+  findPlayableOwnedCharacterById,
+} from '@/server/character/character-slot-service'
 import { SELECTED_CHARACTER_COOKIE } from '@/server/character/selected-character'
 
 function redirectTo(path: '/game' | '/game/character'): NextResponse {
@@ -23,6 +28,20 @@ export async function GET(
   const { characterId } = await params
   const character = await findPlayableOwnedCharacterById(actor.userId, characterId)
   if (!character) return redirectTo('/game')
+
+  const currentCharacterId = (await cookies()).get(SELECTED_CHARACTER_COOKIE)?.value ?? null
+  try {
+    await authorizeCharacterSelection({
+      userId: actor.userId,
+      fromCharacterId: currentCharacterId,
+      toCharacterId: character.id,
+    })
+  } catch (error) {
+    if (isAurevaneError(error) && error.code === 'CHARACTER_RESELECT_COOLDOWN') {
+      return redirectTo('/game')
+    }
+    throw error
+  }
 
   const response = redirectTo('/game/character')
   response.cookies.set(SELECTED_CHARACTER_COOKIE, character.id, {
