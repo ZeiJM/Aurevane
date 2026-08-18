@@ -1217,8 +1217,8 @@
     grid-row: 2;
   }
   .battleFooter {
-    position: sticky;
-    bottom: 0;
+    position: relative;
+    bottom: auto;
   }
 }
 
