@@ -58,33 +58,31 @@ export function BattleLessonCoach({ battleSessionId }: BattleLessonCoachProps) {
   const record = getTacticalHallRecord(recordId)
 
   return (
-    <aside
-      className={styles.coach}
-      aria-label="Tactical Hall lesson"
-      data-testid="battle-lesson-coach"
-    >
-      <div className={styles.heading}>
-        <div>
-          <span>Guided Tactical Record</span>
+    <aside className={styles.anchor} aria-label="Tactical Hall lesson" data-testid="battle-lesson-coach">
+      <details className={styles.coach}>
+        <summary>
+          <span>Guide</span>
           <strong>{record.name}</strong>
+        </summary>
+        <div className={styles.body}>
+          <p>{record.purpose}</p>
+          <ol>
+            {record.coachSteps.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+          <button
+            type="button"
+            className={styles.dismiss}
+            onClick={() => {
+              sessionStorage.setItem(`aurevane:tactical-coach-dismissed:${battleSessionId}`, '1')
+              window.dispatchEvent(new Event(COACH_STORE_EVENT))
+            }}
+          >
+            Hide this guide for this battle
+          </button>
         </div>
-        <button
-          type="button"
-          className={styles.dismiss}
-          onClick={() => {
-            sessionStorage.setItem(`aurevane:tactical-coach-dismissed:${battleSessionId}`, '1')
-            window.dispatchEvent(new Event(COACH_STORE_EVENT))
-          }}
-        >
-          Dismiss
-        </button>
-      </div>
-      <p>{record.purpose}</p>
-      <ol>
-        {record.coachSteps.map((step) => (
-          <li key={step}>{step}</li>
-        ))}
-      </ol>
+      </details>
     </aside>
   )
 }
