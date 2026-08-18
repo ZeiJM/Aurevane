@@ -742,8 +742,9 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
         committedIntent.target.kind === 'unit' &&
         activePlacement
       ) {
+        const targetCombatantId = committedIntent.target.combatantId
         const targetPlacement = tactical.placements.find(
-          (placement) => placement.combatantId === committedIntent.target.combatantId,
+          (placement) => placement.combatantId === targetCombatantId,
         )
         if (targetPlacement) {
           nextFacing =
@@ -766,11 +767,12 @@ export function BattleExperienceV2({ initialBattle }: BattleExperienceProps) {
         committedIntent.actionId === BASIC_ATTACK_ID &&
         committedIntent.target.kind === 'unit'
       ) {
+        const targetCombatantId = committedIntent.target.combatantId
         const targetBefore = before.snapshot.tactical.battle.combatants.find(
-          (combatant) => combatant.id === committedIntent.target.combatantId,
+          (combatant) => combatant.id === targetCombatantId,
         )
         const targetAfter = body.battle.snapshot.tactical.battle.combatants.find(
-          (combatant) => combatant.id === committedIntent.target.combatantId,
+          (combatant) => combatant.id === targetCombatantId,
         )
         const damage =
           targetBefore && targetAfter ? Math.max(0, targetBefore.hp - targetAfter.hp) : 0
