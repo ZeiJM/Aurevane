@@ -11,21 +11,28 @@ type AccountMode = 'signin' | 'signup'
 
 interface AccountAccessPanelProps {
   authConfig: BrowserSupabaseConfig | null
+  initialMessage?: string
 }
 
-export function AccountAccessPanel({ authConfig }: AccountAccessPanelProps) {
+export function AccountAccessPanel({ authConfig, initialMessage = '' }: AccountAccessPanelProps) {
   const [mode, setMode] = useState<AccountMode>('signin')
   const [busy, setBusy] = useState(false)
-  const [message, setMessage] = useState('')
+  const [message, setMessage] = useState(initialMessage)
   const emailId = useId()
   const passwordId = useId()
+
+  async function claimGameplaySession(): Promise<boolean> {
+    const response = await fetch('/api/account/game-session/claim', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    })
+    return response.ok
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (!authConfig || busy) {
-      return
-    }
+    if (!authConfig || busy) return
 
     const form = new FormData(event.currentTarget)
     const email = String(form.get('email') ?? '').trim()
@@ -44,9 +51,13 @@ export function AccountAccessPanel({ authConfig }: AccountAccessPanelProps) {
 
       if (mode === 'signin') {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
-
         if (error) {
           setMessage('We could not sign you in. Check your email and password, then try again.')
+          return
+        }
+
+        if (!(await claimGameplaySession())) {
+          setMessage('Signed in, but the game session could not be activated. Try again in a moment.')
           return
         }
 
@@ -63,13 +74,15 @@ export function AccountAccessPanel({ authConfig }: AccountAccessPanelProps) {
       })
 
       if (error) {
-        setMessage(
-          'We could not create that account. Check your details or try signing in instead.',
-        )
+        setMessage('We could not create that account. Check your details or try signing in instead.')
         return
       }
 
       if (data.session) {
+        if (!(await claimGameplaySession())) {
+          setMessage('Account created, but the game session could not be activated yet. Try signing in.')
+          return
+        }
         window.location.assign('/game')
         return
       }
@@ -83,10 +96,7 @@ export function AccountAccessPanel({ authConfig }: AccountAccessPanelProps) {
   }
 
   function changeMode(nextMode: AccountMode) {
-    if (busy) {
-      return
-    }
-
+    if (busy) return
     setMode(nextMode)
     setMessage('')
   }

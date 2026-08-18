@@ -19,5 +19,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Authentication callback failed.' }, { status: 400 })
   }
 
-  return NextResponse.redirect(new URL(redirectPath, requestUrl.origin))
+  const claimUrl = new URL('/auth/claim', requestUrl.origin)
+  claimUrl.searchParams.set('next', redirectPath)
+  return NextResponse.redirect(claimUrl)
 }
