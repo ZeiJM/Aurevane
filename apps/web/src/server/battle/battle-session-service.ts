@@ -133,6 +133,8 @@ function createVerticalSliceEncounter(
     attributes: {
       might: character.might,
       finesse: character.finesse,
+      vitality: character.vitality,
+      agility: character.agility,
       intellect: character.intellect,
       resolve: character.resolve,
     },

@@ -41,6 +41,8 @@ function characterRecord(): CharacterRecord {
     foundationDisciplineId: 'vanguard',
     might: 6,
     finesse: 6,
+    vitality: 6,
+    agility: 6,
     intellect: 6,
     resolve: 6,
     level: 1,
