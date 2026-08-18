@@ -40,13 +40,22 @@ export function AccountMenu() {
       </button>
       {open ? (
         <div className={styles.menu} role="menu" aria-label="Account menu">
+          <Link href="/game" role="menuitem" onClick={() => setOpen(false)}>
+            Character Select
+          </Link>
+          <Link href="/game/account/avatar" role="menuitem" onClick={() => setOpen(false)}>
+            Avatar
+          </Link>
+          <Link href="/game/account/titles" role="menuitem" onClick={() => setOpen(false)}>
+            Titles
+          </Link>
+          <Link href="/game/settings/controls" role="menuitem" onClick={() => setOpen(false)}>
+            Controls &amp; Keybinds
+          </Link>
           <div className={styles.audio}>
             <span>Audio</span>
             <AudioSettingsMenu />
           </div>
-          <Link href="/game" role="menuitem" onClick={() => setOpen(false)}>
-            Character Select
-          </Link>
           <form action="/auth/signout" method="post">
             <button type="submit" role="menuitem">
               Sign out
