@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  CHARACTER_ATTRIBUTE_CONTENT,
   CHARACTER_ATTRIBUTE_IDS,
   CHARACTER_CREATION_RULES_V1,
   CHARACTER_PRESENTATIONS,
@@ -21,7 +22,7 @@ import type { ImageAssetId } from '@/media/registry'
 
 import styles from './character-creation-experience.module.css'
 
-type Step = 'identity' | 'foundation' | 'review'
+type Step = 'identity' | 'discipline' | 'review'
 
 interface CharacterCreationExperienceProps {
   slotIndex: number
@@ -34,18 +35,13 @@ const portraitAssetIds: readonly ImageAssetId[] = [
   'character.creation.portrait-04',
 ]
 
-const attributeCopy = {
-  might: 'Physical force, durability, armor, and jump capability.',
-  finesse: 'Accuracy, evasion, initiative, movement, and critical precision.',
-  intellect: 'Magical potency, healing, MP, and supernatural control.',
-  resolve: 'Health, defenses, ward, and status resistance.',
-} as const
-
 const emptyBonuses: CharacterAttributeBonuses = {
   might: 0,
   finesse: 0,
   intellect: 0,
   resolve: 0,
+  vitality: 0,
+  insight: 0,
 }
 
 export function CharacterCreationExperience({ slotIndex }: CharacterCreationExperienceProps) {
@@ -115,16 +111,23 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
           },
         }),
       })
-      const payload = (await response.json()) as { error?: { code?: string; message?: string } }
-      if (!response.ok) {
+      const payload = (await response.json()) as {
+        character?: { id?: string }
+        error?: { code?: string; message?: string }
+      }
+      if (!response.ok || !payload.character?.id) {
         if (payload.error?.code === 'CHARACTER_NAME_UNAVAILABLE') {
           idempotencyKey.current = null
           setStep('identity')
         }
-        setErrorMessage(payload.error?.message ?? 'Character creation could not be completed.')
+        setErrorMessage(
+          payload.error?.message ??
+            'Character creation could not be completed. Review the choices and try again.',
+        )
         return
       }
-      router.push('/game')
+
+      router.push(`/game/select/${payload.character.id}`)
       router.refresh()
     } catch {
       setErrorMessage('Character creation could not reach the server. Your choices are still here.')
@@ -143,7 +146,7 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
         <Kicker marker="◆">Create your character</Kicker>
         <div className={styles.progress} aria-label="Character creation progress">
           <span data-active={step === 'identity'}>01 Identity</span>
-          <span data-active={step === 'foundation'}>02 Foundation</span>
+          <span data-active={step === 'discipline'}>02 Discipline</span>
           <span data-active={step === 'review'}>03 Confirm</span>
         </div>
 
@@ -268,27 +271,28 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
             <div className={styles.actions}>
               <GameButton
                 disabled={name.trim().length < CHARACTER_CREATION_RULES_V1.name.minimumCodePoints}
-                onClick={() => setStep('foundation')}
+                onClick={() => setStep('discipline')}
                 type="button"
               >
-                Choose your foundation
+                Choose your Discipline
               </GameButton>
             </div>
           </div>
         ) : null}
 
-        {step === 'foundation' ? (
+        {step === 'discipline' ? (
           <div className={styles.step}>
             <h1 ref={stepHeading} tabIndex={-1}>
-              Choose your first discipline.
+              Choose your first Discipline.
             </h1>
             <p className={styles.intro}>
-              Your Foundation Discipline shapes your starting style. It is not a permanent build
-              trap.
+              A <strong>Discipline</strong> is your current combat profession and fighting style. It
+              shapes your starting Arts and tactical identity, but it is not a permanent class lock:
+              Disciplines can be learned, mastered, and combined as your character grows.
             </p>
 
             <fieldset className={styles.choiceGroup}>
-              <legend>Foundation Discipline</legend>
+              <legend>Starting Discipline</legend>
               <div className={styles.disciplineGrid}>
                 {FOUNDATION_DISCIPLINES.map((discipline) => (
                   <label
@@ -298,7 +302,7 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
                   >
                     <input
                       checked={foundationDisciplineId === discipline.id}
-                      name="foundationDiscipline"
+                      name="discipline"
                       onChange={() => {
                         changed()
                         setFoundationDisciplineId(discipline.id)
@@ -316,10 +320,9 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
               <div>
                 <h2>Starting attributes</h2>
                 <p>
-                  Every attribute has a locked base of{' '}
-                  {CHARACTER_CREATION_RULES_V1.attributes.baseline}. Spend exactly{' '}
-                  {CHARACTER_CREATION_RULES_V1.attributes.bonusBudget} bonus points below; only the{' '}
-                  <strong>+ bonus</strong> changes.
+                  Every attribute begins at {CHARACTER_CREATION_RULES_V1.attributes.baseline}. Spend
+                  exactly {CHARACTER_CREATION_RULES_V1.attributes.bonusBudget} bonus points to shape
+                  the character without creating a permanent build trap.
                 </p>
               </div>
               <strong data-testid="attribute-points">
@@ -331,27 +334,28 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
               {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => {
                 const bonus = attributeBonuses[attributeId]
                 const total = CHARACTER_CREATION_RULES_V1.attributes.baseline + bonus
+                const copy = CHARACTER_ATTRIBUTE_CONTENT[attributeId]
                 return (
                   <div className={styles.attributeCard} key={attributeId}>
                     <div>
-                      <strong>{attributeId[0].toUpperCase() + attributeId.slice(1)}</strong>
-                      <small>{attributeCopy[attributeId]}</small>
+                      <strong>{copy.label}</strong>
+                      <small>{copy.summary}</small>
                       <small>
                         Base {CHARACTER_CREATION_RULES_V1.attributes.baseline} · Total {total}
                       </small>
                     </div>
                     <div className={styles.attributeControl}>
                       <button
-                        aria-label={`Decrease ${attributeId} bonus`}
+                        aria-label={`Decrease ${copy.label} bonus`}
                         disabled={bonus === 0}
                         onClick={() => changeAttribute(attributeId, -1)}
                         type="button"
                       >
                         −
                       </button>
-                      <output aria-label={`${attributeId} bonus`}>+{bonus}</output>
+                      <output aria-label={`${copy.label} bonus`}>+{bonus}</output>
                       <button
-                        aria-label={`Increase ${attributeId} bonus`}
+                        aria-label={`Increase ${copy.label} bonus`}
                         disabled={
                           remainingPoints === 0 ||
                           bonus === CHARACTER_CREATION_RULES_V1.attributes.maximumBonusPerAttribute
@@ -388,8 +392,8 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
               Confirm this character.
             </h1>
             <p className={styles.intro}>
-              The server will revalidate every choice, reserve the name, and create the character
-              atomically in Slot {slotIndex + 1}.
+              The server will revalidate every choice, reserve the name, create Slot {slotIndex + 1}
+              atomically, and take you directly into the game.
             </p>
             <dl className={styles.reviewGrid}>
               <div>
@@ -416,10 +420,9 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
               </div>
               {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => (
                 <div key={attributeId}>
-                  <dt>{attributeId[0].toUpperCase() + attributeId.slice(1)}</dt>
+                  <dt>{CHARACTER_ATTRIBUTE_CONTENT[attributeId].label}</dt>
                   <dd>
-                    {CHARACTER_CREATION_RULES_V1.attributes.baseline +
-                      attributeBonuses[attributeId]}
+                    {CHARACTER_CREATION_RULES_V1.attributes.baseline + attributeBonuses[attributeId]}
                   </dd>
                 </div>
               ))}
@@ -435,7 +438,7 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
             <div className={styles.actions}>
               <GameButton
                 disabled={submitting}
-                onClick={() => setStep('foundation')}
+                onClick={() => setStep('discipline')}
                 type="button"
                 variant="quiet"
               >
@@ -446,7 +449,7 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
                 onClick={() => void submitCharacter()}
                 type="button"
               >
-                {submitting ? 'Creating…' : 'Create character'}
+                {submitting ? 'Creating…' : 'Create & Enter'}
               </GameButton>
             </div>
           </div>
