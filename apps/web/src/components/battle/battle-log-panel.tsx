@@ -9,6 +9,8 @@ import styles from './battle-log-panel.module.css'
 interface BattleLogPanelProps {
   battleSessionId: string
   battleVersion?: number
+  open?: boolean
+  onClose?: () => void
 }
 
 interface BattleLogResponse {
@@ -16,12 +18,19 @@ interface BattleLogResponse {
   error?: { message?: string }
 }
 
-export function BattleLogPanel({ battleSessionId, battleVersion }: BattleLogPanelProps) {
+export function BattleLogPanel({
+  battleSessionId,
+  battleVersion,
+  open,
+  onClose,
+}: BattleLogPanelProps) {
+  const controlled = open !== undefined
+  const [internalOpen, setInternalOpen] = useState(false)
+  const visible = controlled ? Boolean(open) : internalOpen
   const [log, setLog] = useState<BattleLogView | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const requestSequence = useRef(0)
-  const detailsRef = useRef<HTMLDetailsElement>(null)
 
   const loadLog = useCallback(async () => {
     const sequence = ++requestSequence.current
@@ -51,62 +60,83 @@ export function BattleLogPanel({ battleSessionId, battleVersion }: BattleLogPane
   }, [battleSessionId])
 
   useEffect(() => {
-    function toggleLog() {
-      const details = detailsRef.current
-      if (!details) return
-      details.open = !details.open
-      if (details.open) void loadLog()
-    }
-
-    window.addEventListener('aurevane:battle-log-toggle', toggleLog)
-    return () => window.removeEventListener('aurevane:battle-log-toggle', toggleLog)
-  }, [loadLog])
+    if (visible) void loadLog()
+  }, [visible, battleVersion, loadLog])
 
   useEffect(() => {
-    if (detailsRef.current?.open) void loadLog()
-  }, [battleVersion, loadLog])
+    function toggleLog() {
+      if (controlled) return
+      setInternalOpen((value) => !value)
+    }
+    window.addEventListener('aurevane:battle-log-toggle', toggleLog)
+    return () => window.removeEventListener('aurevane:battle-log-toggle', toggleLog)
+  }, [controlled])
 
   const entries = log?.entries ?? []
 
+  if (!controlled) {
+    return (
+      <div className={styles.log}>
+        <button
+          type="button"
+          className={styles.trigger}
+          data-testid="battle-log-toggle"
+          aria-expanded={visible}
+          onClick={() => setInternalOpen((value) => !value)}
+        >
+          Combat Log <span>{loading ? '…' : entries.length}</span>
+        </button>
+        {visible ? <LogPanel entries={entries} loading={loading} error={error} onClose={() => setInternalOpen(false)} /> : null}
+      </div>
+    )
+  }
+
+  if (!visible) return null
   return (
-    <details
-      ref={detailsRef}
-      className={styles.log}
-      onToggle={(event) => {
-        if (event.currentTarget.open) void loadLog()
-      }}
-    >
-      <summary data-testid="battle-log-toggle">
-        Combat Log <span>{loading ? '…' : entries.length}</span>
-      </summary>
-      <div
-        className={styles.panel}
-        aria-label="Committed battle log"
-        data-testid="battle-log-panel"
-      >
-        <header>
+    <div className={styles.controlled} data-testid="battle-log-panel">
+      <LogPanel entries={entries} loading={loading} error={error} onClose={onClose} />
+    </div>
+  )
+}
+
+function LogPanel({
+  entries,
+  loading,
+  error,
+  onClose,
+}: {
+  entries: BattleLogView['entries']
+  loading: boolean
+  error: string | null
+  onClose?: () => void
+}) {
+  return (
+    <section className={styles.panel} aria-label="Committed battle log">
+      <header>
+        <div>
           <strong>Combat Log</strong>
           <span>Committed actions and results · newest first</span>
-        </header>
-        {loading && entries.length === 0 ? (
-          <p className={styles.empty}>Reading committed events…</p>
-        ) : error ? (
-          <p className={styles.empty} role="status">
-            {error}
-          </p>
-        ) : entries.length === 0 ? (
-          <p className={styles.empty}>No committed combat events yet.</p>
-        ) : (
-          <ol>
-            {entries.map((entry) => (
-              <li key={`${entry.battleVersion}:${entry.eventIndex}`}>
-                <span>v{entry.battleVersion}</span>
-                <p>{entry.message}</p>
-              </li>
-            ))}
-          </ol>
-        )}
-      </div>
-    </details>
+        </div>
+        {onClose ? (
+          <button type="button" className={styles.close} onClick={onClose} aria-label="Close combat log">×</button>
+        ) : null}
+      </header>
+      {loading && entries.length === 0 ? (
+        <p className={styles.empty}>Reading committed events…</p>
+      ) : error ? (
+        <p className={styles.empty} role="status">{error}</p>
+      ) : entries.length === 0 ? (
+        <p className={styles.empty}>No committed combat events yet.</p>
+      ) : (
+        <ol>
+          {entries.map((entry) => (
+            <li key={`${entry.battleVersion}:${entry.eventIndex}`}>
+              <span>v{entry.battleVersion}</span>
+              <p>{entry.message}</p>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
   )
 }

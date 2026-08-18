@@ -17,6 +17,7 @@ export default async function Home() {
   const requestHost = (await headers()).get('host')
   const readiness = getCurrentAccountServicesReadiness(publicConfig, requestHost)
   let sessionNotice: string | undefined
+  let activeGameSession = false
 
   if (readiness.available) {
     const claims = await getVerifiedAuthClaims()
@@ -24,16 +25,18 @@ export default async function Home() {
 
     if (identity) {
       try {
-        if (await ensureActiveGameSession(identity)) {
-          redirect('/game')
+        activeGameSession = await ensureActiveGameSession(identity)
+        if (!activeGameSession) {
+          sessionNotice =
+            'This account continued on another device or login. Sign in here again if you want this screen to take control.'
         }
-        sessionNotice =
-          'This account continued on another device or login. Sign in here again if you want this screen to take control.'
       } catch {
         sessionNotice = 'Your sign-in exists, but the active game session could not be verified yet.'
       }
     }
   }
+
+  if (activeGameSession) redirect('/game')
 
   const authConfig =
     readiness.available && publicConfig

@@ -3,12 +3,11 @@ import { parseBattleSessionId } from '@aurevane/validation/combat/battle-session
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
-import { BattleAbortControls } from '@/components/battle/battle-abort-controls'
 import { BattleAudioGate } from '@/components/battle/battle-audio-gate'
 import { BattleExperienceV2 } from '@/components/battle/battle-experience-v2'
 import { BattleKeyboardAssist } from '@/components/battle/battle-keyboard-assist'
-import { BattleLessonCoach } from '@/components/battle/battle-lesson-coach'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
+import { getStarterPortraitImageAssetId } from '@/media/character'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { createBattleSessionService } from '@/server/battle/battle-session-service'
@@ -39,8 +38,9 @@ export default async function BattleSessionPage({
   const battleSessionId = parseBattleSessionId(rawBattleSessionId)
   if (!battleSessionId) redirect('/game/battle')
 
+  const characters = createSupabaseCharacterRepository()
   const service = createBattleSessionService({
-    characters: createSupabaseCharacterRepository(),
+    characters,
     battles: createSupabaseBattleSessionRepository(),
   })
 
@@ -57,15 +57,23 @@ export default async function BattleSessionPage({
     throw error
   }
 
+  const playerProfile = battle.snapshot.statBridge.combatants.find(
+    (profile) => profile.provenance.kind === 'character-derived',
+  )
+  const characterId = playerProfile?.provenance.sourceId.startsWith('character:')
+    ? playerProfile.provenance.sourceId.slice('character:'.length)
+    : null
+  const character = characterId ? await characters.findByOwnerId(actor.userId, characterId) : null
+  if (!character) redirect('/game/battle')
+
   return (
     <BattleAudioGate>
-      <BattleExperienceV2 initialBattle={battle} />
-      <BattleKeyboardAssist />
-      <BattleLessonCoach battleSessionId={battle.battleSessionId} />
-      <BattleAbortControls
-        battleSessionId={battle.battleSessionId}
-        initialLifecycle={battle.snapshot.tactical.battle.lifecycle}
+      <BattleExperienceV2
+        initialBattle={battle}
+        playerName={character.name}
+        playerPortraitAssetId={getStarterPortraitImageAssetId(character.portraitRef)}
       />
+      <BattleKeyboardAssist />
     </BattleAudioGate>
   )
 }

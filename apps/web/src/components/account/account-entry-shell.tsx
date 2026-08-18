@@ -17,11 +17,12 @@ interface AccountEntryShellProps {
 export function AccountEntryShell({ authConfig, sessionNotice }: AccountEntryShellProps) {
   return (
     <div className={styles.shell} data-testid="account-shell">
-      <a className="skip-link" href="#account-main">
-        Skip to account entry
-      </a>
+      <a className="skip-link" href="#account-main">Skip to account entry</a>
 
-      <header className={styles.masthead}>
+      <header
+        className={styles.masthead}
+        style={{ position: 'sticky', top: 0, zIndex: 700 }}
+      >
         <a className="brand" href="#account-main" aria-label="AUREVANE account entry home">
           <span className="brand__crest" aria-hidden="true"><span>A</span></span>
           <span className="brand__wordmark">
@@ -88,9 +89,14 @@ export function AccountEntryShell({ authConfig, sessionNotice }: AccountEntryShe
         </Surface>
       </main>
 
-      <footer className={styles.footer}>
+      <footer
+        className={styles.footer}
+        style={{ position: 'sticky', bottom: 0, zIndex: 650 }}
+      >
         <nav className={publicStyles.compactLinks} aria-label="Public information footer">
-          <Link href="/news">News</Link><Link href="/manual">Manual</Link><Link href="/rules">Rules</Link>
+          <Link href="/news">News</Link>
+          <Link href="/manual">Manual</Link>
+          <Link href="/rules">Rules</Link>
           <a href="#account-main">Play / Sign In</a>
         </nav>
         <span>Server-authoritative account boundary</span>

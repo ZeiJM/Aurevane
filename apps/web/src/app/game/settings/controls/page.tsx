@@ -8,6 +8,7 @@ import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-s
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
 import { getAuthenticatedActor } from '@/server/auth/actor'
+import { loadSelectedCharacter } from '@/server/character/selected-character'
 import { loadPlayerCombatControls } from '@/server/player-profile/player-controls-service'
 import { createSupabasePlayerProfileRepository } from '@/server/player-profile/supabase-player-profile-repository'
 
@@ -27,6 +28,9 @@ export default async function ControlsSettingsPage() {
     throw error
   }
 
+  const character = await loadSelectedCharacter(actor)
+  if (!character) redirect('/game')
+
   const combatKeybinds = await loadPlayerCombatControls(
     actor,
     createSupabasePlayerProfileRepository(),
@@ -34,11 +38,13 @@ export default async function ControlsSettingsPage() {
 
   return (
     <AuthenticatedShellFrame
-      sessionLabel="Verified session // account settings"
-      footerLabel="Account controls // server persisted"
+      sessionLabel="Controls"
+      footerLabel={`${character.name} · Controls`}
+      backHref="/game/character"
+      backLabel="Back to Character Profile"
     >
       <Surface tone="elevated">
-        <Kicker marker="◇">Account / Settings</Kicker>
+        <Kicker marker="◇">Settings</Kicker>
         <h1>Controls &amp; Keybinds</h1>
         <CombatControlsSettings initialBindings={combatKeybinds} />
       </Surface>
