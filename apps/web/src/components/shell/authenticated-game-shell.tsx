@@ -7,11 +7,13 @@ import { AccountMenu } from '@/components/shell/account-menu'
 
 import styles from './authenticated-game-shell.module.css'
 
+type CharacterBackRoute = '/game' | '/game/character'
+
 interface AuthenticatedShellFrameProps {
   children: ReactNode
   sessionLabel?: string
   footerLabel?: string
-  backHref?: string
+  backHref?: CharacterBackRoute
   backLabel?: string
 }
 
