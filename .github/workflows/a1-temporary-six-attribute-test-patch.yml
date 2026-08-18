@@ -1,0 +1,101 @@
+name: A1 temporary six-attribute test patch
+
+on:
+  push:
+    branches:
+      - agent/a1-feedback-holistic
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/a1-feedback-holistic
+
+      - name: Reconcile six-attribute production and test seams
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path_s: str, old: str, new: str) -> None:
+              path = Path(path_s)
+              text = path.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path_s}: expected one match, found {count}: {old[:80]!r}')
+              path.write_text(text.replace(old, new))
+
+          replace_once(
+              'apps/web/src/server/battle/battle-session-service.ts',
+              """    attributes: {\n      might: character.might,\n      finesse: character.finesse,\n      intellect: character.intellect,\n      resolve: character.resolve,\n    },\n""",
+              """    attributes: {\n      might: character.might,\n      finesse: character.finesse,\n      vitality: character.vitality,\n      agility: character.agility,\n      intellect: character.intellect,\n      resolve: character.resolve,\n    },\n""",
+          )
+
+          for path_s in [
+              'apps/web/src/server/battle/battle-preview-service.test.ts',
+              'apps/web/src/server/battle/battle-recruit-ai-service.test.ts',
+              'apps/web/src/server/battle/battle-session-invalidation.test.ts',
+          ]:
+              replace_once(
+                  path_s,
+                  """    might: 6,\n    finesse: 6,\n    intellect: 6,\n    resolve: 6,\n""",
+                  """    might: 6,\n    finesse: 6,\n    vitality: 6,\n    agility: 6,\n    intellect: 6,\n    resolve: 6,\n""",
+              )
+
+          replace_once(
+              'apps/web/src/server/battle/battle-preview-service.test.ts',
+              """      actionEconomyCost: 10,\n      actionEconomyBefore: 100,\n      actionEconomyAfter: 90,\n""",
+              """      actionEconomyCost: 25,\n      actionEconomyBefore: 100,\n      actionEconomyAfter: 75,\n""",
+          )
+
+          service_test = 'apps/web/src/server/battle/battle-session-service.test.ts'
+          replace_once(
+              service_test,
+              """import { P2_3_COMBAT_CONTENT, endCombatTurn } from '@aurevane/game-core/combat/actions'\nimport { selectCurrentFinalFacing } from '@aurevane/game-core/combat/board'\n""",
+              """import {\n  P2_3_COMBAT_CONTENT,\n  createCombatEncounterState,\n  endCombatTurn,\n} from '@aurevane/game-core/combat/actions'\nimport { moveCurrentCombatant, selectCurrentFinalFacing } from '@aurevane/game-core/combat/board'\n""",
+          )
+          replace_once(
+              service_test,
+              """    might: 6,\n    finesse: 6,\n    intellect: 6,\n    resolve: 6,\n""",
+              """    might: 6,\n    finesse: 6,\n    vitality: 6,\n    agility: 6,\n    intellect: 6,\n    resolve: 6,\n""",
+          )
+          replace_once(
+              service_test,
+              """    expect(player).toMatchObject({\n      initiative: 33,\n      baseMovementBudget: 10,\n      hp: 150,\n      maxHp: 150,\n      mp: 80,\n      maxMp: 80,\n    })\n    expect(profile).toMatchObject({\n      accuracy: 7_750,\n      evasion: 1_120,\n      armor: 20,\n      ward: 20,\n      jump: 1,\n    })\n""",
+              """    expect(player).toMatchObject({\n      initiative: 27,\n      baseMovementBudget: 10,\n      hp: 162,\n      maxHp: 162,\n      mp: 80,\n      maxMp: 80,\n    })\n    expect(profile).toMatchObject({\n      accuracy: 7_750,\n      evasion: 880,\n      armor: 22,\n      ward: 20,\n      jump: 1,\n    })\n""",
+          )
+          old_attack = """  it('uses authoritative stat reliability and RNG when resolving a basic attack', async () => {\n    const { battles, service, record } = await createPersistedFixture()\n    battles.findBattleSession.mockResolvedValue(record)\n\n    await service.submitIntent({\n      userId: USER_ID,\n      battleSessionId: SESSION_ID,\n      expectedBattleVersion: 1,\n      idempotencyKey: '51515151-5151-4515-8515-515151515151',\n      intent: {\n        kind: 'move',\n        path: [\n          { x: 0, y: 1 },\n          { x: 1, y: 1 },\n          { x: 2, y: 1 },\n          { x: 3, y: 1 },\n        ],\n      },\n    })\n\n    const moveCommit = battles.commitBattleIntent.mock.calls[0]?.[0]\n    if (!moveCommit) throw new Error('Expected move commit input.')\n    battles.findBattleSession.mockResolvedValue({\n      ...record,\n      battleVersion: 2,\n      snapshot: moveCommit.nextSnapshot,\n    })\n\n    const result = await service.submitIntent({\n      userId: USER_ID,\n      battleSessionId: SESSION_ID,\n      expectedBattleVersion: 2,\n      idempotencyKey: '52525252-5252-4525-8525-525252525252',\n      intent: {\n        kind: 'action',\n        actionId: 'basic.attack.unarmed.basic',\n        target: { kind: 'unit', combatantId: 'recruit:p2-4-1' },\n      },\n    })\n\n    const actionCommit = battles.commitBattleIntent.mock.calls[1]?.[0]\n"""
+          new_attack = """  it('uses authoritative stat reliability and RNG when resolving a basic attack', async () => {\n    const { battles, service, record, persistedSnapshot } = await createPersistedFixture()\n    const positioned = moveCurrentCombatant(persistedSnapshot.tactical, [\n      { x: 0, y: 1 },\n      { x: 1, y: 1 },\n      { x: 2, y: 1 },\n      { x: 3, y: 1 },\n    ])\n    const adjacentSnapshot = reattachStatDrivenCombatBridge(\n      createCombatEncounterState(positioned.state, persistedSnapshot.statusState),\n      persistedSnapshot.statBridge,\n    )\n    battles.findBattleSession.mockResolvedValue({ ...record, snapshot: adjacentSnapshot })\n\n    const result = await service.submitIntent({\n      userId: USER_ID,\n      battleSessionId: SESSION_ID,\n      expectedBattleVersion: 1,\n      idempotencyKey: '52525252-5252-4525-8525-525252525252',\n      intent: {\n        kind: 'action',\n        actionId: 'basic.attack.unarmed.basic',\n        target: { kind: 'unit', combatantId: 'recruit:p2-4-1' },\n      },\n    })\n\n    const actionCommit = battles.commitBattleIntent.mock.calls[0]?.[0]\n"""
+          replace_once(service_test, old_attack, new_attack)
+          replace_once(service_test, """    expect(result.battleVersion).toBe(3)\n""", """    expect(result.battleVersion).toBe(2)\n""")
+
+          character_test = 'apps/web/src/server/character/character-service.test.ts'
+          replace_once(
+              character_test,
+              """    attributeBonuses: { might: 1, finesse: 1, intellect: 1, resolve: 1 },\n""",
+              """    attributeBonuses: {\n      might: 1,\n      finesse: 1,\n      vitality: 1,\n      agility: 1,\n      intellect: 1,\n      resolve: 1,\n    },\n""",
+          )
+          replace_once(
+              character_test,
+              """    might: 6,\n    finesse: 6,\n    intellect: 6,\n    resolve: 6,\n""",
+              """    might: 6,\n    finesse: 6,\n    vitality: 6,\n    agility: 6,\n    intellect: 6,\n    resolve: 6,\n""",
+          )
+          replace_once(
+              character_test,
+              """        might: 6,\n        finesse: 6,\n        intellect: 6,\n        resolve: 6,\n""",
+              """        might: 6,\n        finesse: 6,\n        vitality: 6,\n        agility: 6,\n        intellect: 6,\n        resolve: 6,\n""",
+          )
+          PY
+
+          git rm .github/workflows/a1-temporary-six-attribute-test-patch.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "Reconcile six-attribute combat and service tests"
+          git push origin HEAD:agent/a1-feedback-holistic
