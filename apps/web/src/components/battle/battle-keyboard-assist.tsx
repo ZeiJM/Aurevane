@@ -29,12 +29,23 @@ function attackModeIsActive(): boolean {
   return (instruction?.textContent ?? '').toLowerCase().includes('basic attack')
 }
 
+function playerCombatantName(): string | null {
+  const rails = Array.from(
+    document.querySelectorAll<HTMLElement>('aside[aria-label$=" combat status"]'),
+  )
+  const playerRail = rails.find((rail) => rail.textContent?.includes('Character'))
+  return playerRail?.querySelector('article strong')?.textContent?.trim() ?? null
+}
+
 function legalVisibleTargetButtons(): HTMLButtonElement[] {
+  const playerName = playerCombatantName()
   return Array.from(
     document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label*="occupied by"]'),
-  ).filter(
-    (button) => !button.disabled && !button.getAttribute('aria-label')?.includes('character'),
-  )
+  ).filter((button) => {
+    if (button.disabled) return false
+    const label = button.getAttribute('aria-label') ?? ''
+    return !playerName || !label.includes(`occupied by ${playerName}`)
+  })
 }
 
 function commandButton(...labels: string[]): HTMLButtonElement | null {
@@ -51,6 +62,14 @@ function commandButton(...labels: string[]): HTMLButtonElement | null {
 function planningButton(text: string): HTMLButtonElement | null {
   const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('footer button'))
   return buttons.find((button) => button.textContent?.includes(text)) ?? null
+}
+
+function combatLogButton(): HTMLButtonElement | null {
+  return (
+    Array.from(document.querySelectorAll<HTMLButtonElement>('header button')).find((button) =>
+      button.textContent?.includes('Combat Log'),
+    ) ?? null
+  )
 }
 
 function configuredAction(bindings: CombatKeybindMap, chord: string): CombatKeybindAction | null {
@@ -137,7 +156,9 @@ export function BattleKeyboardAssist() {
       if (action === 'nextTarget') return cycleTarget(false)
       if (action === 'previousTarget') return cycleTarget(true)
       if (action === 'combatLog') {
-        window.dispatchEvent(new Event('aurevane:battle-log-toggle'))
+        const trigger = combatLogButton()
+        if (trigger) trigger.click()
+        else window.dispatchEvent(new Event('aurevane:battle-log-toggle'))
         return true
       }
       return false
