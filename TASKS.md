@@ -6,44 +6,45 @@ The Master Game Plan defines the product. The Roadmap defines sequence. Canonica
 
 ## Current status
 
-**Stage:** PV-1 — Tactical Combat Human Retest / UX Correction
+**Stage:** PV-1 — Tactical Combat Human Retest
 
-**ACTIVE VALIDATION GATE:** issue #105 — PV-1C Conduct Tactical Combat Human/Internal Validation — **HUMAN RETEST IN PROGRESS / SECOND CORRECTION OPEN**
+**ACTIVE VALIDATION GATE:** issue #105 — PV-1C Conduct Tactical Combat Human/Internal Validation — **PV-1E CORRECTED SLICE AWAITING REAL HUMAN RETEST**
 
-**ACTIVE IMPLEMENTATION TICKET:** issue #110 — PV-1E Persistent game shell, compact battle cockpit & simplified turn economy
+**ACTIVE IMPLEMENTATION TICKET:** none
 
-The first PV-1 human pass failed because two independent testers were mainly fighting the interface rather than discussing tactical choices. Corrective issue #107 is now closed through merged PR #108. The corrected Phase 2 combat slice passed exact-head GitHub quality, database/security and responsive authenticated browser validation across desktop, laptop and mobile. Those automated checks establish implementation correctness and regression safety; they do **not** establish that PV-1 now passes.
+The first PV-1 human pass failed because two independent testers were mainly fighting the interface rather than discussing tactical choices. PV-1D / PR #108 corrected the catastrophic battlefield/rendering/readability failures. A production retest then exposed a second usability layer around persistent shell access, page density, battle composition, final-facing flow, movement-path visibility and Action-economy comprehension.
 
-The production retest confirmed that PV-1D fixed the catastrophic rendering failures, but the owner identified a second usability layer: shell controls must remain reachable, page density is still too document-like, the battle board is oversized, combatant information belongs beside the battlefield, final facing should itself end the turn, and Action economy needs a simpler 0–100% player-facing explanation. Issue #110 is the single focused correction for those findings. Substantial Phase 3 implementation remains blocked.
+PV-1E / PR #111 is now merged. Its exact head passed GitHub quality/build, database/security and the complete responsive browser suite across desktop, laptop and mobile. Those automated checks establish implementation correctness and regression safety; they do **not** establish a human PV-1 pass. Substantial Phase 3 implementation remains blocked until issue #105 is rerun with real testers on the corrected live build.
 
 ## Corrected slice ready for retest
 
-PR #108 / PV-1D addressed the recurring human-test failures without adding Phase 3 breadth:
+PV-1D / PR #108 established the readable authoritative combat foundation. PV-1E / PR #111 then tightened the human-facing presentation without adding Phase 3 breadth:
 
-- stable, larger battlefield presentation through preview, commit, Recruit turns and responsive layouts;
-- clearer tiles/units, movement reachability, blocked movement, rough terrain, elevation and facing;
-- always-readable HP, MP, status, initiative, facing, Movement and Action state;
-- a clearer Move → Action → Facing → End Turn sequence;
-- more legible attack, miss, damage, Guard, movement and Recruit-turn results;
-- a prominent, current Combat Log aligned with the authoritative event-read contract;
-- preserved server authority plus stronger client rapid/double-submit protection;
-- simplified Tactical Hall selection, combined Movement + Facing teaching and corrected Recruit Sparring arena selection;
-- compact/non-obstructive teaching UI and improved mobile selection/readability;
-- cleaner authenticated-home navigation and an on-demand Wayfarer's Practice panel.
+- persistent authenticated/public shell controls where present, including always-accessible header/footer behavior;
+- Sound settings promoted above page/content stacking layers;
+- Wayfarer's Practice folded into the Account State navigation instead of occupying a separate large card;
+- denser Tactical Hall and authenticated surfaces rather than oversized document-like layouts;
+- compact RPG-style battle composition with player/allies left, battlefield center and enemy/context information right on wide screens;
+- bounded 9×7 Duel Yard presentation with responsive internal board scrolling instead of widening the page;
+- visible numbered movement-path trail in addition to reachability coloring;
+- simplified 0–100% player-facing Action Economy while preserving the authoritative separate Movement pool;
+- final-facing direction selection directly commits the authoritative final-turn command and ends the turn;
+- mobile Command Deck/facing controls kept inside the usable viewport;
+- server authority, version checks, idempotency and rapid/double-submit protection preserved.
 
 ## Human evidence already established
 
-The previous build failed PV-1 because:
+The original failed build established the baseline problems to compare against:
 
-- two independent testers reported battlefield rendering/scaling problems and overlapping command text;
-- movement was not visually trackable and reachable/unreachable tiles were unclear;
-- terrain/elevation, Action economy, Guard, facing, initiative and attack outcomes were difficult to understand;
+- battlefield rendering/scaling problems and overlapping command text;
+- movement not visually trackable and reachable/unreachable tiles unclear;
+- terrain/elevation, Action economy, Guard, facing, initiative and attack outcomes difficult to understand;
 - Recruit actions occurred authoritatively but appeared invisible to players;
-- Combat Log discovery/currentness was insufficient;
-- mobile Tactical Hall selection was unclear and Recruit Sparring selection was unreliable;
-- one tester explicitly did not want another fight in that build.
+- Combat Log discovery/currentness insufficient;
+- mobile Tactical Hall selection unclear and Recruit Sparring selection unreliable;
+- one tester explicitly did not want another fight.
 
-These observations remain the baseline to compare against during the corrected-build retest; they are not a permanent verdict on the corrected slice.
+The PV-1D production retest showed meaningful improvement but identified the second UX layer now addressed by PV-1E. These observations remain evidence to compare against; automation cannot replace the next human retest.
 
 ## Completed foundation relevant to this work
 
@@ -55,8 +56,9 @@ These observations remain the baseline to compare against during the corrected-b
 - P2.7 combat usability, integrated final-facing flow, combat keybind foundation, 9×7 Duel Yard scale proof, larger-board Recruit validation and authoritative Abort Exercise are merged through PR #100.
 - PV-1A private server-derived combat-validation telemetry is merged through PR #102.
 - PV-1B local structured playtest evidence tooling and neutral facilitator protocol are merged through PR #104.
-- PV-1C produced sufficient human evidence to reject the prior combat presentation.
-- PV-1D combat readability, battlefield stability and turn-flow correction is merged through PR #108; issue #107 is closed.
+- PV-1C produced sufficient human evidence to reject the original combat presentation.
+- PV-1D combat readability, battlefield stability and turn-flow correction is merged through PR #108.
+- PV-1E persistent shell, compact battle cockpit and simplified turn-economy correction is merged through PR #111; issue #110 is closed.
 
 ## Current authoritative documents
 
@@ -84,9 +86,9 @@ These observations remain the baseline to compare against during the corrected-b
 ## Immediate sequence
 
 ```text
-Merged PV-1D correction / PR #108
+Merged PV-1E correction / PR #111
   ↓
-Deploy corrected main and verify live behavior
+Deploy the corrected runtime and verify live behavior
   ↓
 Rerun real human PV-1 sessions under #105
   ↓
@@ -96,4 +98,4 @@ PASS: close #105 and open the first substantial Phase 3 implementation ticket
 FAIL: identify the next smallest recurring combat/usability defect and open one corrective ticket
 ```
 
-Do not fabricate, simulate or infer a human PASS from automation. The next product decision requires real tester interaction with the corrected build.
+Do not fabricate, simulate or infer a human PASS from automation. The next product decision requires real tester interaction with the corrected live build.
