@@ -26,11 +26,16 @@ jobs:
           corepack prepare pnpm@11.17.0 --activate
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
-      - name: Align web tests with PV-1F contracts
+      - name: Align tests with PV-1F contracts
         shell: bash
         run: |
           python <<'PY'
           from pathlib import Path
+
+          def replace_once(text, old, new, label):
+              if old not in text:
+                  raise SystemExit(f'marker not found for {label}')
+              return text.replace(old, new, 1)
 
           def replace_section(text, start_marker, end_marker, replacement):
               start = text.find(start_marker)
@@ -41,6 +46,7 @@ jobs:
                   raise SystemExit(f'end marker not found: {end_marker}')
               return text[:start] + replacement + text[end:]
 
+          # Unit/service expectations: PV-1F rules v2, 100-point economy and face=finish-turn.
           preview_path = Path('apps/web/src/server/battle/battle-preview-service.test.ts')
           preview = preview_path.read_text()
           preview = preview.replace(
@@ -64,8 +70,8 @@ jobs:
               "code: 'choose-final-facing',\n          message: expect.stringContaining('Choose North, East, South, or West'),",
               1,
           )
-
-          end_test = '''  it('previews final facing as the turn-ending command without mutating stored state', async () => {
+          if "allows End Turn preview after final facing exists without mutating the stored state" in preview:
+              end_test = '''  it('previews final facing as the turn-ending command without mutating stored state', async () => {
             const { battles, service } = await createFixture()
 
             const result = await service.previewIntent({
@@ -86,20 +92,18 @@ jobs:
           })
 
 '''
-          preview = replace_section(
-              preview,
-              "  it('allows End Turn preview after final facing exists without mutating the stored state'",
-              "  it('rejects a stale preview with the current authoritative version'",
-              end_test,
-          )
-
+              preview = replace_section(
+                  preview,
+                  "  it('allows End Turn preview after final facing exists without mutating the stored state'",
+                  "  it('rejects a stale preview with the current authoritative version'",
+                  end_test,
+              )
           opponent_start = preview.find("  it('does not provide planning authority during an opponent-controlled turn'")
-          if opponent_start < 0:
-              raise SystemExit('opponent test marker missing')
-          describe_close = preview.rfind('\n})')
-          if describe_close < opponent_start:
-              raise SystemExit('preview describe close missing')
-          opponent_test = '''  it('does not provide planning authority during an opponent-controlled turn', async () => {
+          if opponent_start >= 0 and 'const opponentTurn = finishPv1fTurn' not in preview[opponent_start:]:
+              describe_close = preview.rfind('\n})')
+              if describe_close < opponent_start:
+                  raise SystemExit('preview describe close missing')
+              opponent_test = '''  it('does not provide planning authority during an opponent-controlled turn', async () => {
             const { battles, service, snapshot, record } = await createFixture()
             const opponentTurn = finishPv1fTurn(snapshot, 'east').state
             expect(opponentTurn.tactical.battle.currentTurn?.combatantId).toBe('recruit:p2-4-1')
@@ -114,7 +118,7 @@ jobs:
               }),
             ).rejects.toMatchObject({ code: 'FORBIDDEN' })
           })'''
-          preview = preview[:opponent_start] + opponent_test + preview[describe_close:]
+              preview = preview[:opponent_start] + opponent_test + preview[describe_close:]
           preview_path.write_text(preview)
 
           recruit_path = Path('apps/web/src/server/battle/battle-recruit-ai-service.test.ts')
@@ -134,13 +138,136 @@ jobs:
           )
           session = session.replace('baseMovementBudget: 4,', 'baseMovementBudget: 10,', 2)
           session_path.write_text(session)
+
+          # Browser journeys: new accounts now land on Character Select; creation is an explicit slot choice.
+          create_slot = '''  await expect(page).toHaveURL(/\\/game$/)
+            await page.getByRole('link', { name: 'Create Character' }).first().click()
+            await expect(page).toHaveURL(/\\/game$/)
+            await expect(page.getByTestId('character-creation')).toBeVisible()
+'''
+
+          for filename in [
+              'apps/web/e2e/battle-experience.pw.ts',
+              'apps/web/e2e/character-creation.pw.ts',
+          ]:
+              path = Path(filename)
+              text = path.read_text()
+              old = "  await expect(page).toHaveURL(/\\/game$/)\n  await expect(page.getByTestId('character-creation')).toBeVisible()\n"
+              if old in text:
+                  text = text.replace(old, create_slot, 1)
+              path.write_text(text)
+
+          for filename in [
+              'apps/web/e2e/battle-usability.pw.ts',
+              'apps/web/e2e/wayfarers-practice.pw.ts',
+          ]:
+              path = Path(filename)
+              text = path.read_text()
+              old = "  await expect(page).toHaveURL(/\\/game$/)\n  await page.getByLabel('Character name').fill(characterName)\n"
+              if old in text:
+                  text = text.replace(
+                      old,
+                      create_slot + "  await page.getByLabel('Character name').fill(characterName)\n",
+                      1,
+                  )
+              path.write_text(text)
+
+          # After creation, explicitly choose the created slot and enter the character profile.
+          for filename in [
+              'apps/web/e2e/battle-experience.pw.ts',
+              'apps/web/e2e/battle-usability.pw.ts',
+          ]:
+              path = Path(filename)
+              text = path.read_text()
+              old = "  await page.getByRole('button', { name: 'Create permanent character' }).click()\n  await expect(page.getByTestId('character-established')).toContainText(characterName)\n"
+              new = "  await page.getByRole('button', { name: 'Create permanent character' }).click()\n  await page.getByRole('link', { name: `Play ${characterName}` }).click()\n  await expect(page).toHaveURL(/\\/game\\/character$/)\n  await expect(page.getByTestId('character-profile')).toContainText(characterName)\n"
+              if old in text:
+                  text = text.replace(old, new, 1)
+              path.write_text(text)
+
+          # Offline Training is now a standalone character activity instead of a drawer.
+          practice_path = Path('apps/web/e2e/wayfarers-practice.pw.ts')
+          practice = practice_path.read_text()
+          old = "  await page.getByRole('button', { name: 'Create permanent character' }).click()\n  await openPracticeDrawer(page)\n"
+          new = "  await page.getByRole('button', { name: 'Create permanent character' }).click()\n  await page.getByRole('link', { name: `Play ${characterName}` }).click()\n  await expect(page).toHaveURL(/\\/game\\/character$/)\n  await page.getByRole('link', { name: 'Offline Training' }).click()\n  await expect(page).toHaveURL(/\\/game\\/training$/)\n  await openPracticeDrawer(page)\n"
+          if old in practice:
+              practice = practice.replace(old, new, 1)
+          start = practice.find('async function openPracticeDrawer(')
+          if start >= 0:
+              end = practice.find('\nasync function hasHorizontalOverflow', start)
+              if end < 0:
+                  raise SystemExit('practice helper end missing')
+              helper = '''async function openPracticeDrawer(page: import('@playwright/test').Page): Promise<void> {
+            await expect(page).toHaveURL(/\\/game\\/training$/)
+            await expect(page.getByRole('heading', { name: 'Offline Training' })).toBeVisible()
+          }
+'''
+              practice = practice[:start] + helper + practice[end:]
+          practice_path.write_text(practice)
+
+          # Character creation proof follows the same explicit roster flow and Account menu sign-out.
+          character_path = Path('apps/web/e2e/character-creation.pw.ts')
+          character = character_path.read_text()
+          old = "  await page.getByRole('button', { name: 'Create permanent character' }).click()\n  const established = page.getByTestId('character-established')\n  await expect(established).toBeVisible()\n  await expect(established).toContainText(characterName)\n  await expect(established).toContainText('Vanguard')\n\n  await page.reload()\n  await expect(page.getByTestId('character-established')).toContainText(characterName)\n  await expect(page.getByTestId('character-creation')).toHaveCount(0)\n\n  const profileLink = page.getByRole('link', { name: 'Character Profile' })\n  await profileLink.focus()\n  await expect(profileLink).toBeFocused()\n  await profileLink.press('Enter')\n\n  await expect(page).toHaveURL(/\\/game\\/character$/)\n"
+          new = "  await page.getByRole('button', { name: 'Create permanent character' }).click()\n  await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()\n  const playCharacter = page.getByRole('link', { name: `Play ${characterName}` })\n  await expect(playCharacter).toBeVisible()\n  await page.reload()\n  await expect(page.getByRole('link', { name: `Play ${characterName}` })).toBeVisible()\n  await expect(page.getByTestId('character-creation')).toHaveCount(0)\n  await playCharacter.click()\n  await expect(page).toHaveURL(/\\/game\\/character$/)\n"
+          if old in character:
+              character = character.replace(old, new, 1)
+          character = character.replace("await expect(page.getByTestId('derived-stat-movement')).toContainText('4 steps')", "await expect(page.getByTestId('derived-stat-movement')).toContainText('4')")
+          character = character.replace("const backLink = page.getByRole('link', { name: 'Return to game entry' })", "const backLink = page.getByRole('link', { name: 'Back to Character Select' })")
+          character = character.replace(
+              "  await page.getByRole('button', { name: 'Sign out' }).click()\n",
+              "  await page.getByRole('button', { name: 'Account' }).click()\n  await page.getByRole('menuitem', { name: 'Sign out' }).click()\n",
+              1,
+          )
+          signin_old = "  await expect(page).toHaveURL(/\\/game$/)\n  await expect(page.getByTestId('character-established')).toContainText(characterName)\n"
+          signin_new = "  await expect(page).toHaveURL(/\\/game$/)\n  await page.getByRole('link', { name: `Play ${characterName}` }).click()\n  await expect(page).toHaveURL(/\\/game\\/character$/)\n  await expect(page.getByTestId('character-profile')).toContainText(characterName)\n"
+          if signin_old in character:
+              character = character.replace(signin_old, signin_new, 1)
+          # Training is a standalone route.
+          character = character.replace(
+              "  await page.reload()\n  await openPracticeDrawer(page)\n",
+              "  await page.getByRole('link', { name: 'Offline Training' }).click()\n  await expect(page).toHaveURL(/\\/game\\/training$/)\n  await page.reload()\n  await openPracticeDrawer(page)\n",
+              1,
+          )
+          start = character.find('async function openPracticeDrawer(')
+          if start >= 0:
+              end = character.find('\nasync function hasHorizontalOverflow', start)
+              if end < 0:
+                  raise SystemExit('character helper end missing')
+              helper = '''async function openPracticeDrawer(page: import('@playwright/test').Page): Promise<void> {
+            await expect(page).toHaveURL(/\\/game\\/training$/)
+            await expect(page.getByRole('heading', { name: 'Offline Training' })).toBeVisible()
+          }
+'''
+              character = character[:start] + helper + character[end:]
+          character_path.write_text(character)
+
+          # Account persistence test now verifies the roster shell; sign-out lives in Account.
+          account_path = Path('apps/web/e2e/account-entry.pw.ts')
+          account = account_path.read_text()
+          account = account.replace(
+              "  await expect(page).toHaveURL(/\\/game$/)\n  await expect(page.getByTestId('authenticated-shell')).toBeVisible()\n  await expect(page.getByTestId('character-creation')).toBeVisible()\n\n  await page.reload()\n  await expect(page.getByTestId('authenticated-shell')).toBeVisible()\n  await expect(page.getByText('Private profile').first()).toBeVisible()\n  await expect(page.getByTestId('character-creation')).toBeVisible()\n\n  await page.getByRole('button', { name: 'Sign out' }).click()\n",
+              "  await expect(page).toHaveURL(/\\/game$/)\n  await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()\n\n  await page.reload()\n  await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()\n  await expect(page.getByRole('link', { name: 'Create Character' })).toHaveCount(3)\n\n  await page.getByRole('button', { name: 'Account' }).click()\n  await page.getByRole('menuitem', { name: 'Sign out' }).click()\n",
+              1,
+          )
+          account = account.replace(
+              "  await expect(page).toHaveURL(/\\/game$/)\n  await expect(page.getByTestId('character-creation')).toBeVisible()\n",
+              "  await expect(page).toHaveURL(/\\/game$/)\n  await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()\n",
+              1,
+          )
+          account_path.write_text(account)
           PY
       - name: Canonical format
         run: |
           pnpm exec prettier --write \
             apps/web/src/server/battle/battle-preview-service.test.ts \
             apps/web/src/server/battle/battle-recruit-ai-service.test.ts \
-            apps/web/src/server/battle/battle-session-service.test.ts
+            apps/web/src/server/battle/battle-session-service.test.ts \
+            apps/web/e2e/account-entry.pw.ts \
+            apps/web/e2e/battle-experience.pw.ts \
+            apps/web/e2e/battle-usability.pw.ts \
+            apps/web/e2e/character-creation.pw.ts \
+            apps/web/e2e/wayfarers-practice.pw.ts
       - name: Commit repairs
         shell: bash
         run: |
@@ -149,10 +276,15 @@ jobs:
           git add \
             apps/web/src/server/battle/battle-preview-service.test.ts \
             apps/web/src/server/battle/battle-recruit-ai-service.test.ts \
-            apps/web/src/server/battle/battle-session-service.test.ts
+            apps/web/src/server/battle/battle-session-service.test.ts \
+            apps/web/e2e/account-entry.pw.ts \
+            apps/web/e2e/battle-experience.pw.ts \
+            apps/web/e2e/battle-usability.pw.ts \
+            apps/web/e2e/character-creation.pw.ts \
+            apps/web/e2e/wayfarers-practice.pw.ts
           if git diff --cached --quiet; then
-            echo 'No web-test repairs needed.'
+            echo 'No PV-1F test repairs needed.'
             exit 0
           fi
-          git commit -m 'test: align battle expectations with PV-1F contracts'
+          git commit -m 'test: migrate browser and battle expectations to PV-1F'
           git push origin HEAD:agent/pv-1f-character-hub-turn-budget
