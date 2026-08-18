@@ -11,16 +11,27 @@ function uniqueCharacterName(): string {
   return `Fit ${letters}`
 }
 
-test('keeps the core non-battle game surfaces inside the initial desktop and laptop viewport', async ({
+test('keeps the core A1 surfaces inside the initial desktop and laptop viewport', async ({
   page,
 }, testInfo) => {
-  test.skip(testInfo.project.name === 'mobile-chromium', 'Natural vertical scrolling is allowed on phones.')
+  test.skip(
+    testInfo.project.name === 'mobile-chromium',
+    'Natural vertical scrolling is allowed on phones.',
+  )
   test.slow()
 
   const projectSlug = testInfo.project.name.replace(/[^a-z0-9]+/gi, '-').toLowerCase()
   const email = `a1-fit-${projectSlug}-${Date.now()}@example.com`
   const password = 'A1-layout-fit-2026!'
   const characterName = uniqueCharacterName()
+
+  await page.goto('/')
+  await expect(page.getByTestId('account-shell')).toBeVisible()
+  await expectInitialViewportFit(page, 'Account Entry')
+
+  await page.goto('/news')
+  await expect(page.getByRole('heading', { level: 1, name: 'News' })).toBeVisible()
+  await expectInitialViewportFit(page, 'News')
 
   await createAccountAndEnterCharacter({ page, email, password, characterName })
 
