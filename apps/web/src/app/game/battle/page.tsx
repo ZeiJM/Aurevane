@@ -3,11 +3,11 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 import { BattleLaunch } from '@/components/battle/battle-launch'
+import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
 import { getAuthenticatedActor } from '@/server/auth/actor'
-import { loadGameEntryCharacterState } from '@/server/character/game-entry-character-state'
-import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
+import { loadSelectedCharacter } from '@/server/character/selected-character'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,7 +15,6 @@ export default async function BattleLaunchPage() {
   const publicConfig = getOptionalPublicSupabaseConfig()
   const requestHost = (await headers()).get('host')
   const readiness = getCurrentAccountServicesReadiness(publicConfig, requestHost)
-
   if (!readiness.available) redirect('/')
 
   let actor
@@ -26,18 +25,17 @@ export default async function BattleLaunchPage() {
     throw error
   }
 
-  const characterState = await loadGameEntryCharacterState(
-    actor,
-    createSupabaseCharacterRepository(),
-  )
-  if (characterState.kind === 'persistence-unavailable' || !characterState.character) {
-    redirect('/game')
-  }
+  const character = await loadSelectedCharacter(actor)
+  if (!character) redirect('/game')
 
   return (
-    <BattleLaunch
-      characterId={characterState.character.id}
-      characterName={characterState.character.name}
-    />
+    <AuthenticatedShellFrame
+      sessionLabel="Tactical Hall"
+      footerLabel={`${character.name} · Tactical Hall`}
+      backHref="/game/character"
+      backLabel="Back to Character Profile"
+    >
+      <BattleLaunch characterId={character.id} characterName={character.name} />
+    </AuthenticatedShellFrame>
   )
 }

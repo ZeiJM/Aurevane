@@ -8,8 +8,7 @@ import { AuthenticatedGameRecovery } from '@/components/shell/authenticated-game
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
 import { getAuthenticatedActor } from '@/server/auth/actor'
-import { loadGameEntryCharacterState } from '@/server/character/game-entry-character-state'
-import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
+import { loadSelectedCharacter } from '@/server/character/selected-character'
 import { loadLevelProgressionCurve } from '@/server/progression/progression-service'
 import { createSupabaseProgressionRepository } from '@/server/progression/supabase-progression-repository'
 
@@ -19,38 +18,31 @@ export default async function CharacterProfilePage() {
   const publicConfig = getOptionalPublicSupabaseConfig()
   const requestHost = (await headers()).get('host')
   const readiness = getCurrentAccountServicesReadiness(publicConfig, requestHost)
-
-  if (!readiness.available) {
-    redirect('/')
-  }
+  if (!readiness.available) redirect('/')
 
   let actor
   try {
     actor = await getAuthenticatedActor()
   } catch (error) {
-    if (isAurevaneError(error) && error.code === 'UNAUTHENTICATED') {
-      redirect('/')
-    }
+    if (isAurevaneError(error) && error.code === 'UNAUTHENTICATED') redirect('/')
     throw error
   }
 
-  const characterState = await loadGameEntryCharacterState(
-    actor,
-    createSupabaseCharacterRepository(),
-  )
-
-  if (characterState.kind === 'persistence-unavailable') {
-    return <AuthenticatedGameRecovery />
+  let character
+  try {
+    character = await loadSelectedCharacter(actor)
+  } catch (error) {
+    if (isAurevaneError(error) && error.code === 'PERSISTENCE_UNAVAILABLE') {
+      return <AuthenticatedGameRecovery />
+    }
+    throw error
   }
-
-  if (!characterState.character) {
-    redirect('/game')
-  }
+  if (!character) redirect('/game')
 
   let levelCurve
   try {
     levelCurve = await loadLevelProgressionCurve(
-      characterState.character.progressionCycle.number,
+      character.progressionCycle.number,
       createSupabaseProgressionRepository(),
     )
   } catch (error) {
@@ -60,9 +52,5 @@ export default async function CharacterProfilePage() {
     throw error
   }
 
-  return (
-    <CharacterProfileShell
-      profile={buildCharacterProfileReadModel(characterState.character, levelCurve)}
-    />
-  )
+  return <CharacterProfileShell profile={buildCharacterProfileReadModel(character, levelCurve)} />
 }
