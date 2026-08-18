@@ -14,10 +14,86 @@
   min-height: 3.7rem;
   align-items: center;
   justify-content: space-between;
+  gap: 0.75rem;
   padding: 0.35rem clamp(0.7rem, 1.8vw, 1.5rem);
   border-bottom: 1px solid var(--av-border);
   background: rgba(7, 9, 13, 0.97);
   backdrop-filter: blur(1rem);
+}
+
+.headerActions {
+  display: flex;
+  min-width: 0;
+  gap: 0.7rem;
+  align-items: center;
+}
+
+.screenIdentity {
+  display: inline-flex;
+  min-width: 0;
+  gap: 0.46rem;
+  align-items: center;
+}
+
+.screenPortrait {
+  position: relative;
+  display: grid;
+  width: 2.05rem;
+  height: 2.05rem;
+  flex: 0 0 auto;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(207, 169, 93, 0.62);
+  border-radius: 50%;
+  background: rgba(8, 11, 16, 0.95);
+  box-shadow:
+    0 0 0 2px rgba(207, 169, 93, 0.08),
+    0 0.35rem 0.9rem rgba(0, 0, 0, 0.3);
+}
+
+.screenPortrait::after {
+  position: absolute;
+  inset: 2px;
+  border: 1px solid rgba(238, 219, 173, 0.18);
+  border-radius: 50%;
+  content: '';
+  pointer-events: none;
+}
+
+.screenPortraitImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.08);
+}
+
+.screenLabel {
+  display: inline-flex;
+  min-width: 0;
+  gap: 0.42rem;
+  align-items: center;
+  color: var(--av-verdant-400);
+}
+
+.screenLabel i {
+  width: 0.46rem;
+  height: 0.46rem;
+  flex: 0 0 auto;
+  border: 1px solid rgba(153, 220, 173, 0.7);
+  border-radius: 50%;
+  background: var(--av-verdant-400);
+  box-shadow: 0 0 0.45rem rgba(111, 207, 139, 0.32);
+}
+
+.screenLabel strong {
+  max-width: 10rem;
+  overflow: hidden;
+  color: var(--av-verdant-400);
+  font: 750 0.58rem/1 var(--av-font-mono);
+  letter-spacing: 0.055em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .main {
@@ -363,7 +439,17 @@
   }
 }
 
+@media (max-width: 700px) {
+  .header :global(.brand__wordmark small) { display: none; }
+  .screenLabel strong { max-width: 7rem; }
+  .screenPortrait { width: 1.8rem; height: 1.8rem; }
+}
+
 @media (max-width: 560px) {
+  .header { gap: 0.4rem; padding-inline: 0.5rem; }
+  .headerActions { gap: 0.4rem; }
+  .screenPortrait { width: 1.6rem; height: 1.6rem; }
+  .screenLabel strong { max-width: 4.8rem; font-size: 0.46rem; }
   .main { padding: 0.6rem; }
   .slot { grid-template-columns: 6.5rem 1fr; }
   .portrait { min-height: 8.5rem; }
