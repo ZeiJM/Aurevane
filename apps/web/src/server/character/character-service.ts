@@ -106,6 +106,8 @@ export async function createBaseCharacter(
     foundationDisciplineId: seed.foundationDisciplineId,
     might: seed.attributes.might,
     finesse: seed.attributes.finesse,
+    vitality: seed.attributes.vitality,
+    agility: seed.attributes.agility,
     intellect: seed.attributes.intellect,
     resolve: seed.attributes.resolve,
   })
@@ -146,6 +148,8 @@ function toPersistedCharacter(record: CharacterRecord): PersistedCharacter {
     attributes: {
       might: record.might,
       finesse: record.finesse,
+      vitality: record.vitality,
+      agility: record.agility,
       intellect: record.intellect,
       resolve: record.resolve,
     },
