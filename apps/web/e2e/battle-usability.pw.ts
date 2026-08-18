@@ -72,7 +72,9 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort E
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
   await page.keyboard.press('m')
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Move · 10% per normal tile')
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText(
+    'Move · 10% per normal tile',
+  )
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Rough ground costs 20%')
 
   await page.getByRole('button', { name: /Inspect/ }).click()

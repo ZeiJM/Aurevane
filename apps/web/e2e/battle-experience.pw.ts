@@ -62,12 +62,12 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
   await expect(page.getByTestId('combat-mode-instruction')).toContainText(
     'Move · 10% per normal tile',
   )
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText(
-    'Rough ground costs 20%',
-  )
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Rough ground costs 20%')
   await page.getByRole('button', { name: /Tile 4, 2; open-ground; elevation 0/ }).click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Movement path ready')
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('leaves 70% Action Economy')
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText(
+    'leaves 70% Action Economy',
+  )
   await expect(confirmButton).toBeEnabled()
   await confirmButton.click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText(
