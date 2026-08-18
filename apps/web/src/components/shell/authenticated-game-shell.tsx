@@ -65,8 +65,8 @@ export function AuthenticatedGameShell({
               <strong>{discipline?.name ?? character.foundationDisciplineId}</strong>
               <p>
                 {discipline?.summary ?? 'Your first combat tradition is established.'} Your full
-                character profile now calculates attributes and derived stats from authoritative
-                server state.
+                character profile calculates attributes and derived stats from authoritative server
+                state.
               </p>
               <dl className={styles.attributeSummary}>
                 <div>
@@ -86,19 +86,7 @@ export function AuthenticatedGameShell({
                   <dd>{character.attributes.resolve}</dd>
                 </div>
               </dl>
-              <a className={styles.profileLink} href="/game/character">
-                Open character profile
-              </a>
-              <Link className={styles.profileLink} href="/game/battle">
-                Enter Tactical Hall
-              </Link>
-              <Link className={styles.profileLink} href="/game/settings/controls">
-                Controls &amp; Keybinds
-              </Link>
             </div>
-
-            {practicePlan ? <PracticePlanCard practice={practicePlan} /> : null}
-            {trainingReport ? <TrainingReportCard report={trainingReport} /> : null}
           </div>
         ) : (
           <CharacterCreationExperience />
@@ -132,9 +120,28 @@ export function AuthenticatedGameShell({
               <dd>{accountCreated}</dd>
             </div>
           </dl>
+
+          {character ? (
+            <nav className={styles.gameNav} aria-label="Character and game navigation">
+              <Link href="/game/character">Character Profile</Link>
+              <Link href="/game/battle">Tactical Hall</Link>
+              <Link href="/game/settings/controls">Controls &amp; Keybinds</Link>
+            </nav>
+          ) : null}
         </Surface>
 
-        <AccountSecurityCard />
+        {character && (practicePlan || trainingReport) ? (
+          <details className={styles.practiceDrawer}>
+            <summary>
+              <span>Wayfarer&apos;s Practice</span>
+              <strong>Training &amp; rested progress</strong>
+            </summary>
+            <div className={styles.practiceBody}>
+              {practicePlan ? <PracticePlanCard practice={practicePlan} /> : null}
+              {trainingReport ? <TrainingReportCard report={trainingReport} /> : null}
+            </div>
+          </details>
+        ) : null}
       </aside>
     </AuthenticatedShellFrame>
   )
@@ -166,11 +173,6 @@ export function AuthenticatedGameRecovery() {
             <form action="/game" method="get">
               <GameButton type="submit">Retry private-state load</GameButton>
             </form>
-            <form action="/auth/signout" method="post">
-              <GameButton type="submit" variant="quiet">
-                Sign out
-              </GameButton>
-            </form>
           </div>
         </div>
       </Surface>
@@ -193,8 +195,6 @@ export function AuthenticatedGameRecovery() {
             </div>
           </dl>
         </Surface>
-
-        <AccountSecurityCard />
       </aside>
     </AuthenticatedShellFrame>
   )
@@ -224,7 +224,14 @@ export function AuthenticatedShellFrame({
         <span className={styles.sessionState}>
           <StatusMark /> {sessionLabel}
         </span>
-        <AudioSettingsMenu />
+        <div className={styles.mastheadActions}>
+          <AudioSettingsMenu />
+          <form action="/auth/signout" method="post">
+            <button type="submit" className={styles.signOutButton}>
+              Sign out
+            </button>
+          </form>
+        </div>
       </header>
 
       <main className={styles.main} id="game-entry-main">
@@ -242,22 +249,5 @@ export function AuthenticatedShellFrame({
         <span>{footerLabel}</span>
       </footer>
     </div>
-  )
-}
-
-function AccountSecurityCard() {
-  return (
-    <Surface className={styles.statusCard} tone="quiet">
-      <Kicker marker="◇">Account &amp; Security</Kicker>
-      <p>
-        Private account and character data is loaded only for the authenticated session. Your
-        sign-in email is never treated as a character name.
-      </p>
-      <form action="/auth/signout" method="post">
-        <GameButton type="submit" variant="quiet">
-          Sign out
-        </GameButton>
-      </form>
-    </Surface>
   )
 }
