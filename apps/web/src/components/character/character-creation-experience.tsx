@@ -117,7 +117,16 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
       const fields = validation.issues.map((issue) => issue.field)
       setInvalidFields(fields)
       setErrorMessage(validation.issues[0]?.message ?? 'Review the marked character choices.')
-      if (fields.some((field) => field === 'name' || field.includes('presentation') || field.includes('pronoun') || field.includes('portrait') || field.includes('appearance'))) {
+      if (
+        fields.some(
+          (field) =>
+            field === 'name' ||
+            field.includes('presentation') ||
+            field.includes('pronoun') ||
+            field.includes('portrait') ||
+            field.includes('appearance'),
+        )
+      ) {
         setStep('identity')
       } else {
         setStep('discipline')
@@ -189,7 +198,10 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
               character’s public identity.
             </p>
 
-            <label className={styles.field} data-invalid={invalidFields.includes('name') || undefined}>
+            <label
+              className={styles.field}
+              data-invalid={invalidFields.includes('name') || undefined}
+            >
               <span>Character name</span>
               <input
                 aria-invalid={invalidFields.includes('name') || undefined}
@@ -372,7 +384,9 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
                   <div
                     className={styles.attributeCard}
                     key={attributeId}
-                    data-invalid={invalidFields.some((field) => field.includes(attributeId)) || undefined}
+                    data-invalid={
+                      invalidFields.some((field) => field.includes(attributeId)) || undefined
+                    }
                   >
                     <div>
                       <strong>{attributeId[0].toUpperCase() + attributeId.slice(1)}</strong>
@@ -464,7 +478,8 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
                 <div key={attributeId}>
                   <dt>{attributeId[0].toUpperCase() + attributeId.slice(1)}</dt>
                   <dd>
-                    {CHARACTER_CREATION_RULES_V1.attributes.baseline + attributeBonuses[attributeId]}
+                    {CHARACTER_CREATION_RULES_V1.attributes.baseline +
+                      attributeBonuses[attributeId]}
                   </dd>
                 </div>
               ))}

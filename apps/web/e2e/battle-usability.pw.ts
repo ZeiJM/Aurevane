@@ -78,7 +78,9 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort B
   await expect(page.getByTestId('combat-mode-instruction')).toContainText(
     'Move · 25 AP per normal tile',
   )
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Rough ground costs 50 AP')
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText(
+    'Rough ground costs 50 AP',
+  )
 
   await page.getByRole('button', { name: /Inspect/ }).click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Inspect mode')

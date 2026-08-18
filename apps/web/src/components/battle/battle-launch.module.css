@@ -233,11 +233,23 @@
 }
 
 @media (max-width: 1080px) {
-  .page { grid-template-columns: 7rem minmax(0, 1fr); }
-  .recordGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .recordChoice { min-height: 4.7rem; }
-  .selectedPanel { grid-template-columns: 1fr 15rem; }
-  .startButton { grid-column: 1/-1; width: max-content; justify-self: end; }
+  .page {
+    grid-template-columns: 7rem minmax(0, 1fr);
+  }
+  .recordGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .recordChoice {
+    min-height: 4.7rem;
+  }
+  .selectedPanel {
+    grid-template-columns: 1fr 15rem;
+  }
+  .startButton {
+    grid-column: 1/-1;
+    width: max-content;
+    justify-self: end;
+  }
 }
 
 @media (max-width: 760px) {
@@ -248,16 +260,33 @@
     min-height: 0;
     overflow: visible;
   }
-  .vista { display: none; }
-  .content { overflow: visible; }
+  .vista {
+    display: none;
+  }
+  .content {
+    overflow: visible;
+  }
   .heading,
-  .selectedPanel { grid-template-columns: 1fr; }
-  .recordGrid { grid-template-columns: 1fr 1fr; }
-  .startButton { grid-column: auto; width: 100%; }
+  .selectedPanel {
+    grid-template-columns: 1fr;
+  }
+  .recordGrid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .startButton {
+    grid-column: auto;
+    width: 100%;
+  }
 }
 
 @media (max-width: 480px) {
-  .recordGrid { grid-template-columns: 1fr; }
-  .recordChoice { min-height: 4.2rem; }
-  .content { padding: 0.6rem; }
+  .recordGrid {
+    grid-template-columns: 1fr;
+  }
+  .recordChoice {
+    min-height: 4.2rem;
+  }
+  .content {
+    padding: 0.6rem;
+  }
 }

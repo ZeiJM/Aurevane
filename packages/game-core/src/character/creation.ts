@@ -221,7 +221,8 @@ function validateAttributeBonuses(
     issues.push({
       code: 'invalid_attribute_shape',
       field: 'attributeBonuses',
-      message: 'Attribute bonuses must provide Might, Finesse, Vitality, Agility, Intellect, and Resolve.',
+      message:
+        'Attribute bonuses must provide Might, Finesse, Vitality, Agility, Intellect, and Resolve.',
     })
     return null
   }

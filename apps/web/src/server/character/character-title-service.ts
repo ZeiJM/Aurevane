@@ -20,11 +20,7 @@ export function validatePersonalTitle(value: unknown): string {
     throw new AurevaneError('INVALID_REQUEST', 'Enter a title using letters, numbers, and spaces.')
   }
   const normalized = normalizePersonalTitle(value)
-  if (
-    normalized.length < 1 ||
-    normalized.length > 20 ||
-    !PERSONAL_TITLE_PATTERN.test(normalized)
-  ) {
+  if (normalized.length < 1 || normalized.length > 20 || !PERSONAL_TITLE_PATTERN.test(normalized)) {
     throw new AurevaneError(
       'INVALID_REQUEST',
       'Personal titles must be 1–20 characters using letters, numbers, and spaces only.',
@@ -46,7 +42,8 @@ export async function loadCharacterTitleState(
     .maybeSingle()
 
   if (error) throw unavailable()
-  if (!data) throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
+  if (!data)
+    throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
 
   return {
     personalTitle: typeof data.personal_title === 'string' ? data.personal_title : null,
@@ -103,5 +100,8 @@ export async function setCharacterPersonalTitle(input: {
 }
 
 function unavailable(): AurevaneError {
-  return new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Character title data is unavailable right now.')
+  return new AurevaneError(
+    'PERSISTENCE_UNAVAILABLE',
+    'Character title data is unavailable right now.',
+  )
 }

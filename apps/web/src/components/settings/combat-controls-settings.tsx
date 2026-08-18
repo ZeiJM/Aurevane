@@ -29,7 +29,10 @@ const ACTION_COPY: Record<CombatKeybindAction, { label: string; description: str
     label: 'Finish Turn',
     description: 'Choose final facing; the chosen direction immediately ends the turn.',
   },
-  confirm: { label: 'Confirm Action', description: 'Commit the current legal move or action preview.' },
+  confirm: {
+    label: 'Confirm Action',
+    description: 'Commit the current legal move or action preview.',
+  },
   cancel: { label: 'Cancel Action', description: 'Clear current planning without committing.' },
   faceNorth: { label: 'Face North', description: 'Finish the turn facing north.' },
   faceWest: { label: 'Face West', description: 'Finish the turn facing west.' },

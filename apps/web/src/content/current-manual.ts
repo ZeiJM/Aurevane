@@ -10,7 +10,8 @@ const overrides: Record<string, ManualArticle> = {
     id: 'manual.start-here',
     slug: 'start-here',
     title: 'Start Here',
-    summary: 'What AUREVANE is today, what you can test now, and how the current game shell is organized.',
+    summary:
+      'What AUREVANE is today, what you can test now, and how the current game shell is organized.',
     category: 'Orientation',
     lastUpdated: LAST_UPDATED,
     rulesVersion: 'Current preview',
@@ -59,7 +60,8 @@ const overrides: Record<string, ManualArticle> = {
     id: 'manual.character-creation',
     slug: 'character-creation',
     title: 'Character Creation',
-    summary: 'Identity, six starting attributes, Disciplines, three character slots, and entering the game.',
+    summary:
+      'Identity, six starting attributes, Disciplines, three character slots, and entering the game.',
     category: 'Character',
     lastUpdated: LAST_UPDATED,
     rulesVersion: 'Character creation v1 · six-attribute preview',
@@ -152,7 +154,8 @@ const overrides: Record<string, ManualArticle> = {
     id: 'manual.wayfarers-practice',
     slug: 'wayfarers-practice',
     title: 'Wayfarer’s Practice',
-    summary: 'Set a practice plan, leave normally, and receive bounded progress for legitimate time away.',
+    summary:
+      'Set a practice plan, leave normally, and receive bounded progress for legitimate time away.',
     category: 'Progression',
     lastUpdated: LAST_UPDATED,
     rulesVersion: 'Wayfarer’s Practice preview',
@@ -175,7 +178,9 @@ const overrides: Record<string, ManualArticle> = {
       {
         id: 'guardrails',
         title: 'What Wayfarer’s Practice cannot do',
-        paragraphs: ['Wayfarer’s Practice is deliberately bounded return support, not an idle-game replacement.'],
+        paragraphs: [
+          'Wayfarer’s Practice is deliberately bounded return support, not an idle-game replacement.',
+        ],
         bullets: [
           'It cannot complete story, quests, bosses, Expeditions, or event participation.',
           'It cannot grant PvP rank, Confluences, Soulmarks, Archive discoveries, rare equipment, economy output, or Rekindling eligibility.',

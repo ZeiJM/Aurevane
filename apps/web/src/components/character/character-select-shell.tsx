@@ -127,7 +127,9 @@ export function CharacterSelectShell({ characters, selectedCharacter }: Characte
               return (
                 <article className={`${styles.slot} ${styles.empty}`} key={slotIndex}>
                   <span className={styles.slotNumber}>Slot {slotIndex + 1}</span>
-                  <div className={styles.emptyCrest} aria-hidden="true">+</div>
+                  <div className={styles.emptyCrest} aria-hidden="true">
+                    +
+                  </div>
                   <h2>Open character slot</h2>
                   <p>Create another adventurer with their own identity, progression, and build.</p>
                   <Link className={styles.primaryAction} href={`/game/create/${slotIndex}`}>
@@ -154,7 +156,9 @@ export function CharacterSelectShell({ characters, selectedCharacter }: Characte
                 </div>
                 <div className={styles.identity}>
                   <h2>{character.name}</h2>
-                  <p>Level {character.level} · {discipline?.name ?? 'Adventurer'}</p>
+                  <p>
+                    Level {character.level} · {discipline?.name ?? 'Adventurer'}
+                  </p>
                 </div>
                 {pending && character.deletionExecuteAfter ? (
                   <div className={styles.pendingDelete}>
@@ -199,7 +203,12 @@ export function CharacterSelectShell({ characters, selectedCharacter }: Characte
             if (event.currentTarget === event.target && !busy) setDeleting(null)
           }}
         >
-          <section className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="delete-character-title">
+          <section
+            className={styles.modal}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-character-title"
+          >
             <span>24-hour deletion grace period</span>
             <h2 id="delete-character-title">Schedule deletion of {deleting.name}?</h2>
             <p>
@@ -207,7 +216,9 @@ export function CharacterSelectShell({ characters, selectedCharacter }: Characte
               you can cancel during that time. After the deadline the deletion becomes irreversible.
             </p>
             <label>
-              <span>Type exactly: <strong>DELETE {deleting.name}</strong></span>
+              <span>
+                Type exactly: <strong>DELETE {deleting.name}</strong>
+              </span>
               <input
                 autoFocus
                 value={phrase}
@@ -215,9 +226,15 @@ export function CharacterSelectShell({ characters, selectedCharacter }: Characte
                 disabled={busy}
               />
             </label>
-            {message ? <p className={styles.modalError} role="alert">{message}</p> : null}
+            {message ? (
+              <p className={styles.modalError} role="alert">
+                {message}
+              </p>
+            ) : null}
             <div className={styles.modalActions}>
-              <button type="button" onClick={() => setDeleting(null)} disabled={busy}>Cancel</button>
+              <button type="button" onClick={() => setDeleting(null)} disabled={busy}>
+                Cancel
+              </button>
               <button
                 type="button"
                 className={styles.danger}
@@ -237,7 +254,9 @@ export function CharacterSelectShell({ characters, selectedCharacter }: Characte
 function CharacterPlayAction({ character }: { character: CharacterSlotCharacter }) {
   const router = useRouter()
   const [now, setNow] = useState(() => Date.now())
-  const target = character.reselectAvailableAt ? new Date(character.reselectAvailableAt).getTime() : 0
+  const target = character.reselectAvailableAt
+    ? new Date(character.reselectAvailableAt).getTime()
+    : 0
   const remaining = Math.max(0, target - now)
 
   useEffect(() => {
@@ -257,7 +276,9 @@ function CharacterPlayAction({ character }: { character: CharacterSlotCharacter 
     return (
       <div className={styles.swapCooldown} aria-live="polite">
         <span>Return cooldown</span>
-        <strong><Duration milliseconds={remaining} /></strong>
+        <strong>
+          <Duration milliseconds={remaining} />
+        </strong>
         <small>You can select {character.name} again when this reaches zero.</small>
       </div>
     )
@@ -276,7 +297,11 @@ function Countdown({ target }: { target: string }) {
     const timer = window.setInterval(() => setNow(Date.now()), 1000)
     return () => window.clearInterval(timer)
   }, [])
-  return <b><Duration milliseconds={Math.max(0, new Date(target).getTime() - now)} /></b>
+  return (
+    <b>
+      <Duration milliseconds={Math.max(0, new Date(target).getTime() - now)} />
+    </b>
+  )
 }
 
 function Duration({ milliseconds }: { milliseconds: number }) {
@@ -284,5 +309,10 @@ function Duration({ milliseconds }: { milliseconds: number }) {
   const hours = Math.floor(totalSeconds / 3600)
   const minutes = Math.floor((totalSeconds % 3600) / 60)
   const seconds = totalSeconds % 60
-  return <>{hours.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}</>
+  return (
+    <>
+      {hours.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')}:
+      {seconds.toString().padStart(2, '0')}
+    </>
+  )
 }

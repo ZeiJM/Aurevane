@@ -212,7 +212,10 @@
   color: inherit;
   background: rgba(224, 208, 177, 0.055);
   text-decoration: none;
-  transition: transform 150ms ease, border-color 150ms ease, background 150ms ease;
+  transition:
+    transform 150ms ease,
+    border-color 150ms ease,
+    background 150ms ease;
 }
 
 .card:hover {
@@ -295,7 +298,8 @@
   padding: clamp(1.2rem, 3vw, 2.5rem);
   border: 1px solid rgba(212, 186, 130, 0.18);
   border-radius: var(--av-radius-lg);
-  background: linear-gradient(135deg, rgba(229, 212, 174, 0.09), transparent 58%), rgba(27, 29, 32, 0.9);
+  background:
+    linear-gradient(135deg, rgba(229, 212, 174, 0.09), transparent 58%), rgba(27, 29, 32, 0.9);
 }
 
 .articleHeader h1 {
@@ -456,12 +460,16 @@
   .rulesLayout {
     grid-template-columns: 1fr;
   }
-  .hero { min-height: auto; }
+  .hero {
+    min-height: auto;
+  }
   .rulesNav {
     position: static;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .cardGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cardGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 620px) {
@@ -475,7 +483,9 @@
   }
   .cardGrid,
   .principles,
-  .rulesNav { grid-template-columns: 1fr; }
+  .rulesNav {
+    grid-template-columns: 1fr;
+  }
   .sectionHeader {
     align-items: start;
     flex-direction: column;

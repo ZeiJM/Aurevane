@@ -1065,7 +1065,9 @@ export function BattleExperienceV2({
                 <span>Action Economy</span>
                 <strong>
                   {playerEconomy}%
-                  {proposedEconomyCost > 0 ? <small> − {proposedEconomyCost}% proposed</small> : null}
+                  {proposedEconomyCost > 0 ? (
+                    <small> − {proposedEconomyCost}% proposed</small>
+                  ) : null}
                 </strong>
               </div>
               <div
@@ -1212,10 +1214,18 @@ export function BattleExperienceV2({
               </div>
             </div>
             <div className={styles.legend}>
-              <span><b>Green</b> legal/reachable</span>
-              <span><b>Red</b> unavailable</span>
-              <span><b>R50</b> rough = 50 AP</span>
-              <span><b>▲</b> elevation</span>
+              <span>
+                <b>Green</b> legal/reachable
+              </span>
+              <span>
+                <b>Red</b> unavailable
+              </span>
+              <span>
+                <b>R50</b> rough = 50 AP
+              </span>
+              <span>
+                <b>▲</b> elevation
+              </span>
             </div>
           </section>
 
@@ -1547,9 +1557,7 @@ function CombatantRail({
         <button
           type="button"
           className={styles.portraitButton}
-          onClick={() =>
-            setOverlay(unitOpen ? null : { kind: 'unit', combatantId: combatant.id })
-          }
+          onClick={() => setOverlay(unitOpen ? null : { kind: 'unit', combatantId: combatant.id })}
           aria-expanded={unitOpen}
           aria-label={`Show ${name} combat details`}
         >
@@ -1619,13 +1627,30 @@ function CombatantRail({
             </button>
             <strong>{name} · combat details</strong>
             <dl className={styles.combatStats}>
-              <div><dt>Initiative</dt><dd>{combatant.initiative}</dd></div>
-              <div><dt>Movement</dt><dd>{combatant.baseMovementBudget}</dd></div>
-              <div><dt>Jump</dt><dd>{profile?.jump ?? '—'}</dd></div>
-              <div><dt>Armor</dt><dd>{profile?.armor ?? '—'}</dd></div>
-              <div><dt>Evasion</dt><dd>{profile ? percentFromBasisPoints(profile.evasion) : '—'}</dd></div>
+              <div>
+                <dt>Initiative</dt>
+                <dd>{combatant.initiative}</dd>
+              </div>
+              <div>
+                <dt>Movement</dt>
+                <dd>{combatant.baseMovementBudget}</dd>
+              </div>
+              <div>
+                <dt>Jump</dt>
+                <dd>{profile?.jump ?? '—'}</dd>
+              </div>
+              <div>
+                <dt>Armor</dt>
+                <dd>{profile?.armor ?? '—'}</dd>
+              </div>
+              <div>
+                <dt>Evasion</dt>
+                <dd>{profile ? percentFromBasisPoints(profile.evasion) : '—'}</dd>
+              </div>
             </dl>
-            <p>Facing {placement.facing} {facingGlyph(placement.facing)}</p>
+            <p>
+              Facing {placement.facing} {facingGlyph(placement.facing)}
+            </p>
           </div>
         ) : null}
 

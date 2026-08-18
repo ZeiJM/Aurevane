@@ -154,8 +154,8 @@ export function CharacterTitleSettings({
                     disabled={pending}
                   />
                   <span>
-                    I understand this is this character&apos;s one personal-title choice and cannot be
-                    repeatedly edited.
+                    I understand this is this character&apos;s one personal-title choice and cannot
+                    be repeatedly edited.
                   </span>
                 </label>
                 <div className={styles.actions}>

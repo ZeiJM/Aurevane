@@ -5,7 +5,10 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 import { CharacterTitleSettings } from '@/components/account/character-title-settings'
-import { AuthenticatedGameRecovery, AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
+import {
+  AuthenticatedGameRecovery,
+  AuthenticatedShellFrame,
+} from '@/components/shell/authenticated-game-shell'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
 import { getAuthenticatedActor } from '@/server/auth/actor'
@@ -51,7 +54,12 @@ export default async function CharacterTitlesPage() {
     >
       <Surface tone="elevated" style={{ padding: 'clamp(0.8rem, 1.8vw, 1.25rem)' }}>
         <Kicker marker="◇">Account · Current Character</Kicker>
-        <h1 style={{ margin: '0.3rem 0 0.65rem', font: '500 clamp(1.8rem, 3.5vw, 2.8rem)/1 var(--av-font-display)' }}>
+        <h1
+          style={{
+            margin: '0.3rem 0 0.65rem',
+            font: '500 clamp(1.8rem, 3.5vw, 2.8rem)/1 var(--av-font-display)',
+          }}
+        >
           Titles &amp; Profile Display
         </h1>
         <CharacterTitleSettings

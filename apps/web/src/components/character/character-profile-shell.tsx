@@ -24,7 +24,10 @@ const attributeLabels = {
   resolve: 'Resolve',
 } as const
 
-export function CharacterProfileShell({ profile, personalTitle = null }: CharacterProfileShellProps) {
+export function CharacterProfileShell({
+  profile,
+  personalTitle = null,
+}: CharacterProfileShellProps) {
   const created = new Intl.DateTimeFormat('en', {
     dateStyle: 'medium',
     timeZone: 'UTC',
@@ -47,7 +50,9 @@ export function CharacterProfileShell({ profile, personalTitle = null }: Charact
               <div className={styles.nameLine}>
                 <h1>{profile.identity.name}</h1>
                 <span className={styles.disciplinePill}>{profile.foundationDiscipline.name}</span>
-                {personalTitle ? <span className={styles.personalTitlePill}>{personalTitle}</span> : null}
+                {personalTitle ? (
+                  <span className={styles.personalTitlePill}>{personalTitle}</span>
+                ) : null}
               </div>
               <p className={styles.subtitle}>Level {profile.progression.level} adventurer</p>
               <div className={styles.meta}>
@@ -60,7 +65,9 @@ export function CharacterProfileShell({ profile, personalTitle = null }: Charact
 
               <div className={styles.levelProgress} data-testid="level-progress">
                 <div>
-                  <span>{progress.isMaxLevel ? 'Level cap' : `Toward Level ${progress.level + 1}`}</span>
+                  <span>
+                    {progress.isMaxLevel ? 'Level cap' : `Toward Level ${progress.level + 1}`}
+                  </span>
                   <strong>
                     {progress.isMaxLevel
                       ? `${profile.progression.xp.toLocaleString('en')} XP`

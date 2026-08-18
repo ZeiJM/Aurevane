@@ -27,20 +27,21 @@ const VISIBLE_RECORD_IDS: readonly TacticalHallRecordId[] = [
   'recruit-sparring',
 ]
 
-const ARENAS: readonly { id: TacticalHallArenaId; name: string; scale: string; summary: string }[] = [
-  {
-    id: 'basic-training-floor',
-    name: 'Basic Training Floor',
-    scale: '5×3',
-    summary: 'Compact teaching floor for focused drills.',
-  },
-  {
-    id: 'duel-yard',
-    name: 'Duel Yard',
-    scale: '9×7',
-    summary: 'Full duel arena with rough terrain, elevation, and flanking room.',
-  },
-]
+const ARENAS: readonly { id: TacticalHallArenaId; name: string; scale: string; summary: string }[] =
+  [
+    {
+      id: 'basic-training-floor',
+      name: 'Basic Training Floor',
+      scale: '5×3',
+      summary: 'Compact teaching floor for focused drills.',
+    },
+    {
+      id: 'duel-yard',
+      name: 'Duel Yard',
+      scale: '9×7',
+      summary: 'Full duel arena with rough terrain, elevation, and flanking room.',
+    },
+  ]
 
 const DIFFICULTIES: readonly { id: AiDifficulty; label: string; description: string }[] = [
   { id: 'easy', label: 'Easy', description: 'Forgiving Recruit decisions.' },
@@ -99,7 +100,9 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
       )
       router.push(`/game/battle/${body.battle.battleSessionId}`)
     } catch (launchError) {
-      setError(launchError instanceof Error ? launchError.message : 'The battle could not be started.')
+      setError(
+        launchError instanceof Error ? launchError.message : 'The battle could not be started.',
+      )
       setPending(false)
       launchLock.current = false
     }
@@ -147,7 +150,9 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
             <p>{selectedRecord.coachSteps[0]}</p>
             <div className={styles.arenaLine}>
               <strong>{selectedArena.name}</strong>
-              <span>{selectedArena.scale} · {selectedArena.summary}</span>
+              <span>
+                {selectedArena.scale} · {selectedArena.summary}
+              </span>
             </div>
           </div>
 
@@ -168,7 +173,9 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
                   </button>
                 ))}
               </div>
-              <small>{DIFFICULTIES.find((difficulty) => difficulty.id === aiDifficulty)?.description}</small>
+              <small>
+                {DIFFICULTIES.find((difficulty) => difficulty.id === aiDifficulty)?.description}
+              </small>
             </fieldset>
           ) : null}
 
@@ -182,7 +189,11 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
           </button>
         </section>
 
-        {error ? <p className={styles.error} role="alert">{error}</p> : null}
+        {error ? (
+          <p className={styles.error} role="alert">
+            {error}
+          </p>
+        ) : null}
       </div>
     </section>
   )

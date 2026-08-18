@@ -238,7 +238,9 @@
   font-size: 0.6rem;
 }
 
-.statGroup dt { color: var(--av-text-dim); }
+.statGroup dt {
+  color: var(--av-text-dim);
+}
 .statGroup dd {
   color: var(--av-text);
   font-family: var(--av-font-mono);
@@ -272,7 +274,9 @@
   font-size: 0.58rem;
 }
 
-.record dt { color: var(--av-text-dim); }
+.record dt {
+  color: var(--av-text-dim);
+}
 .record dd {
   color: var(--av-text-muted);
   text-align: right;
@@ -288,27 +292,47 @@
   line-height: 1.45;
 }
 
-.accountHint strong { color: var(--av-brass-300); }
+.accountHint strong {
+  color: var(--av-brass-300);
+}
 
 @media (max-width: 980px) {
-  .layout { grid-template-columns: 1fr; }
-  .sidebar { grid-template-columns: minmax(0, 18rem) minmax(0, 1fr); }
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    grid-template-columns: minmax(0, 18rem) minmax(0, 1fr);
+  }
 }
 
 @media (max-width: 760px) {
-  .hero { grid-template-columns: 6.5rem minmax(0, 1fr); }
-  .portrait { min-height: 7.5rem; }
-  .attributeStrip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .statGroups { grid-template-columns: 1fr; }
+  .hero {
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+  }
+  .portrait {
+    min-height: 7.5rem;
+  }
+  .attributeStrip {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .statGroups {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 520px) {
-  .hero { grid-template-columns: 1fr; }
+  .hero {
+    grid-template-columns: 1fr;
+  }
   .portrait {
     width: 6.5rem;
     height: 6.5rem;
     min-height: 0;
   }
-  .statGroup dl { grid-template-columns: 1fr; }
-  .sidebar { grid-template-columns: 1fr; }
+  .statGroup dl {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    grid-template-columns: 1fr;
+  }
 }

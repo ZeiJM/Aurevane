@@ -410,29 +410,39 @@
 }
 
 @media (max-width: 900px) {
-  .slots { grid-template-columns: 1fr; }
+  .slots {
+    grid-template-columns: 1fr;
+  }
   .slot {
     grid-template-columns: 8rem 1fr;
     grid-template-rows: auto auto 1fr auto auto;
     min-height: 0;
     gap: 0.55rem;
   }
-  .slotNumber { grid-column: 1/-1; }
+  .slotNumber {
+    grid-column: 1/-1;
+  }
   .portrait {
     grid-row: 2/5;
     min-height: 10rem;
     margin: 0;
   }
-  .identity { align-self: end; }
+  .identity {
+    align-self: end;
+  }
   .primaryAction,
   .deleteAction,
   .pendingDelete,
-  .swapCooldown { grid-column: 2; }
+  .swapCooldown {
+    grid-column: 2;
+  }
   .empty {
     display: grid;
     grid-template-columns: 1fr;
   }
-  .emptyCrest { grid-row: auto; }
+  .emptyCrest {
+    grid-row: auto;
+  }
   .hero {
     grid-template-columns: 1fr;
     gap: 0.5rem;
@@ -440,19 +450,43 @@
 }
 
 @media (max-width: 700px) {
-  .header :global(.brand__wordmark small) { display: none; }
-  .screenLabel strong { max-width: 7rem; }
-  .screenPortrait { width: 1.8rem; height: 1.8rem; }
+  .header :global(.brand__wordmark small) {
+    display: none;
+  }
+  .screenLabel strong {
+    max-width: 7rem;
+  }
+  .screenPortrait {
+    width: 1.8rem;
+    height: 1.8rem;
+  }
 }
 
 @media (max-width: 560px) {
-  .header { gap: 0.4rem; padding-inline: 0.5rem; }
-  .headerActions { gap: 0.4rem; }
-  .screenPortrait { width: 1.6rem; height: 1.6rem; }
-  .screenLabel strong { max-width: 4.8rem; font-size: 0.46rem; }
-  .main { padding: 0.6rem; }
-  .slot { grid-template-columns: 6.5rem 1fr; }
-  .portrait { min-height: 8.5rem; }
+  .header {
+    gap: 0.4rem;
+    padding-inline: 0.5rem;
+  }
+  .headerActions {
+    gap: 0.4rem;
+  }
+  .screenPortrait {
+    width: 1.6rem;
+    height: 1.6rem;
+  }
+  .screenLabel strong {
+    max-width: 4.8rem;
+    font-size: 0.46rem;
+  }
+  .main {
+    padding: 0.6rem;
+  }
+  .slot {
+    grid-template-columns: 6.5rem 1fr;
+  }
+  .portrait {
+    min-height: 8.5rem;
+  }
   .modalActions {
     display: grid;
     grid-template-columns: 1fr;
@@ -461,5 +495,7 @@
     align-items: start;
     flex-direction: column;
   }
-  .hero h1 { font-size: 2.2rem; }
+  .hero h1 {
+    font-size: 2.2rem;
+  }
 }
