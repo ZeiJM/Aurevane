@@ -44,8 +44,14 @@ export function AccountMenu() {
             <span>Audio</span>
             <AudioSettingsMenu />
           </div>
+          <Link href="/game/settings/controls" role="menuitem" onClick={() => setOpen(false)}>
+            Controls &amp; Keybinds
+          </Link>
+          <Link href="/game/account/titles" role="menuitem" onClick={() => setOpen(false)}>
+            Titles &amp; Profile Display
+          </Link>
           <Link href="/game" role="menuitem" onClick={() => setOpen(false)}>
-            Character Select
+            Switch Character
           </Link>
           <form action="/auth/signout" method="post">
             <button type="submit" role="menuitem">
