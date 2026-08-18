@@ -7,6 +7,8 @@ export type AurevaneErrorCode =
   | 'CHARACTER_NAME_UNAVAILABLE'
   | 'CHARACTER_ALREADY_EXISTS'
   | 'CHARACTER_RESELECT_COOLDOWN'
+  | 'TITLE_UNAVAILABLE'
+  | 'TITLE_ALREADY_SET'
   | 'PERSISTENCE_UNAVAILABLE'
 
 export class AurevaneError extends Error {
