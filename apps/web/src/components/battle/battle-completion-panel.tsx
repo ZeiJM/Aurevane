@@ -75,10 +75,7 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
       }
 
       if (recordId) {
-        sessionStorage.setItem(
-          `aurevane:tactical-record:${body.battle.battleSessionId}`,
-          recordId,
-        )
+        sessionStorage.setItem(`aurevane:tactical-record:${body.battle.battleSessionId}`, recordId)
       }
       router.push(`/game/battle/${body.battle.battleSessionId}`)
     } catch (retryError) {
