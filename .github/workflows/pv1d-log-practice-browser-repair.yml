@@ -1,0 +1,85 @@
+name: PV-1D log and practice browser repair
+
+on:
+  push:
+    branches:
+      - agent/pv-1d-combat-readability-correction
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/pv-1d-combat-readability-correction
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Repair log cap and collapsed-practice browser flow
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          service = Path('apps/web/src/server/battle/battle-log-service.ts')
+          text = service.read_text()
+          if 'const BATTLE_LOG_LIMIT = 200' not in text:
+              raise SystemExit('Battle log limit marker not found')
+          service.write_text(text.replace('const BATTLE_LOG_LIMIT = 200', 'const BATTLE_LOG_LIMIT = 100', 1))
+
+          test = Path('apps/web/src/server/battle/battle-log-service.test.ts')
+          text = test.read_text()
+          if 'toHaveBeenCalledWith(USER_ID, SESSION_ID, 200)' not in text:
+              raise SystemExit('Battle log test cap marker not found')
+          test.write_text(text.replace('toHaveBeenCalledWith(USER_ID, SESSION_ID, 200)', 'toHaveBeenCalledWith(USER_ID, SESSION_ID, 100)', 1))
+
+          browser = Path('apps/web/e2e/character-creation.pw.ts')
+          text = browser.read_text().replace("name: 'Open character profile'", "name: 'Character Profile'")
+
+          first = "  await page.reload()\n  const trainingReport = page.getByTestId('training-report')"
+          if first not in text:
+              raise SystemExit('First training-report reload marker not found')
+          text = text.replace(
+              first,
+              "  await page.reload()\n  await openPracticeDrawer(page)\n  const trainingReport = page.getByTestId('training-report')",
+              1,
+          )
+
+          second = "  await page.reload()\n  await expect(page.getByTestId('training-report')).toContainText('3d 23h')"
+          if second not in text:
+              raise SystemExit('Second training-report reload marker not found')
+          text = text.replace(
+              second,
+              "  await page.reload()\n  await openPracticeDrawer(page)\n  await expect(page.getByTestId('training-report')).toContainText('3d 23h')",
+              1,
+          )
+
+          helper_marker = "\nasync function hasHorizontalOverflow(page: import('@playwright/test').Page): Promise<boolean> {"
+          helper = "\nasync function openPracticeDrawer(page: import('@playwright/test').Page): Promise<void> {\n  const drawer = page.getByTestId('practice-drawer')\n  await expect(drawer).toBeVisible()\n  if (!(await drawer.evaluate((element) => (element as HTMLDetailsElement).open))) {\n    await drawer.locator('summary').click()\n  }\n}\n"
+          if helper_marker not in text:
+              raise SystemExit('Character helper insertion marker not found')
+          text = text.replace(helper_marker, helper + helper_marker, 1)
+          browser.write_text(text)
+          PY
+          pnpm exec prettier --write \
+            apps/web/src/server/battle/battle-log-service.ts \
+            apps/web/src/server/battle/battle-log-service.test.ts \
+            apps/web/e2e/character-creation.pw.ts
+      - name: Commit repairs
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            apps/web/src/server/battle/battle-log-service.ts \
+            apps/web/src/server/battle/battle-log-service.test.ts \
+            apps/web/e2e/character-creation.pw.ts
+          git commit -m 'fix: respect battle log cap and collapsed Practice flow'
+          git push origin HEAD:agent/pv-1d-combat-readability-correction
