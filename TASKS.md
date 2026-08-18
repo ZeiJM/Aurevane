@@ -34,7 +34,7 @@ PR #122 currently implements:
 - compact News, Manual, Rules, Controls & Keybinds, Character Profile, Character Select, Battle Hall, Wayfarer's Practice and login/account-entry presentation;
 - desktop/laptop regression coverage requiring Account Entry, News, Profile, Battle Hall, Controls, Wayfarer's Practice and Character Select to fit their intended initial viewport without page scrollbars;
 - an authoritative **100-point Action Economy** with Move = 25 AP per normal terrain-cost unit and rough ground = 50 AP, while Basic Attack = 30 AP, Guard = 30 AP and Recover = 50 AP;
-- battle action proposals with glowing provisional AP depletion, consistent AP wording, neutral initial action state, clearer terrain/Inspect feedback, compact combatant rails, self-chat, double-click/tap quick commit for target and self actions, Battle Log grouping/access and current action naming;
+- battle action proposals with glowing provisional AP depletion, consistent AP wording, neutral initial action state, clearer terrain/Inspect feedback, compact combatant rails, self-chat, double-click/tap quick commit for target and self actions with self-action proposals preserved across the second tap, Battle Log grouping/access and current action naming;
 - current Manual content aligned with the six-attribute model, Discipline terminology, Battle Hall, character switching, titles and current player-facing terminology;
 - E2E expectations reconciled with the current navigation, scaling and combat model.
 
