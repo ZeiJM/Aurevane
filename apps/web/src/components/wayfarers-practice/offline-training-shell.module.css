@@ -1,50 +1,113 @@
 .layout {
   display: grid;
-  gap: 0.8rem;
-  max-width: 70rem;
+  gap: 0.65rem;
+  width: min(100%, 74rem);
   margin: 0 auto;
 }
+
 .hero {
-  padding: clamp(1.2rem, 3vw, 2rem);
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(18rem, 0.7fr);
+  gap: 0.7rem 1rem;
+  align-items: end;
+  padding: clamp(0.85rem, 1.8vw, 1.25rem);
 }
+
+.heroCopy {
+  min-width: 0;
+}
+
 .hero h1 {
-  margin: 0.5rem 0;
-  font: 500 clamp(2.5rem, 5vw, 4rem)/0.95 var(--av-font-display);
+  margin: 0.28rem 0 0.38rem;
+  font: 500 clamp(1.9rem, 4vw, 3rem)/0.96 var(--av-font-display);
 }
-.hero > p {
-  max-width: 52rem;
+
+.heroCopy > p {
+  max-width: 50rem;
   margin: 0;
   color: var(--av-text-muted);
-  font-size: 0.85rem;
-  line-height: 1.65;
+  font-size: 0.75rem;
+  line-height: 1.5;
 }
+
+.explainer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0.55rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.explainer span {
+  color: var(--av-text-muted);
+  font: 650 0.5rem/1.15 var(--av-font-mono);
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.explainer i {
+  color: var(--av-brass-300);
+  font-style: normal;
+}
+
 .liveClock {
+  grid-column: 1 / -1;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1px;
-  margin-top: 1rem;
   overflow: hidden;
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius-sm);
   background: var(--av-border);
 }
+
 .liveClock > div {
   display: grid;
-  gap: 0.3rem;
-  padding: 0.8rem;
+  gap: 0.18rem;
+  padding: 0.55rem 0.65rem;
   background: #090c11;
 }
+
 .liveClock span {
   color: var(--av-text-dim);
-  font: 650 0.54rem/1 var(--av-font-mono);
+  font: 650 0.47rem/1 var(--av-font-mono);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
+
 .liveClock strong {
   color: var(--av-text);
-  font-size: 0.72rem;
+  font-size: 0.64rem;
 }
-@media (max-width: 700px) {
+
+.practiceGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.6rem;
+  min-width: 0;
+}
+
+@media (min-width: 1050px) and (min-height: 760px) {
+  .practiceGrid:has(> :nth-child(2)) {
+    grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 0.65fr);
+    align-items: start;
+  }
+}
+
+@media (max-width: 760px) {
+  .hero {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .explainer {
+    justify-content: flex-start;
+  }
+
   .liveClock {
     grid-template-columns: 1fr;
   }
