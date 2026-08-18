@@ -1,0 +1,37 @@
+name: A1 temporary touch formatter
+
+on:
+  push:
+    branches:
+      - agent/a1-feedback-holistic
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/a1-feedback-holistic
+
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install formatter without lifecycle scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Format touch-safe quick commit and remove workflow
+        run: |
+          pnpm exec prettier --write apps/web/src/components/battle/battle-experience-v2.tsx
+          git rm .github/workflows/a1-temporary-touch-format.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "Format touch-safe battle quick commit"
+          git push origin HEAD:agent/a1-feedback-holistic
