@@ -111,7 +111,9 @@ export function CharacterSelectShell({ characters }: CharacterSelectShellProps) 
                     +
                   </div>
                   <h2>Open character slot</h2>
-                  <p>Create another adventurer with their own identity, progression, and build.</p>
+                  <p>
+                    Create another adventurer with their own identity, progression, and build.
+                  </p>
                   <Link className={styles.primaryAction} href={`/game/create/${slotIndex}`}>
                     Create Character
                   </Link>
@@ -155,7 +157,10 @@ export function CharacterSelectShell({ characters }: CharacterSelectShellProps) 
                   </div>
                 ) : (
                   <>
-                    <Link className={styles.primaryAction} href={`/game/select/${character.id}`}>
+                    <Link
+                      className={styles.primaryAction}
+                      href={`/game/select/${character.id}`}
+                    >
                       Play {character.name}
                     </Link>
                     <button
