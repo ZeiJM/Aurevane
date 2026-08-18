@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 
 import type { ImageAssetId } from '@/media/registry'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
@@ -18,8 +18,6 @@ interface BattleSessionClientBoundaryProps {
 interface BattleStateResponse {
   battle?: BattleSessionView
 }
-
-const ABORT_CONFIRMATION_DELAYS_MS = [150, 250, 450, 750, 1_200] as const
 
 export function BattleSessionClientBoundary({
   initialBattle,
@@ -40,50 +38,47 @@ export function BattleSessionClientBoundary({
 }
 
 function AuthoritativeAbortNavigation({ battleSessionId }: { battleSessionId: string }) {
-  const checking = useRef(false)
-
   useEffect(() => {
-    function handleClick(event: MouseEvent) {
-      const target = event.target
-      if (!(target instanceof Element)) return
-      const button = target.closest('button')
-      if (!button || button.textContent?.trim() !== 'Confirm Abort' || checking.current) return
+    const originalFetch = window.fetch
+    const abortPath = `/api/battles/${battleSessionId}/abort`
 
-      checking.current = true
-      void confirmAuthoritativeAbort(battleSessionId).finally(() => {
-        checking.current = false
-      })
+    const wrappedFetch: typeof window.fetch = async (input, init) => {
+      const response = await originalFetch(input, init)
+      const requestUrl = readRequestUrl(input)
+      const requestMethod = readRequestMethod(input, init)
+      const pathname = new URL(requestUrl, window.location.origin).pathname
+
+      if (requestMethod === 'POST' && pathname === abortPath && response.ok) {
+        try {
+          const body = (await response.clone().json()) as BattleStateResponse
+          if (body.battle?.snapshot.tactical.battle.lifecycle === 'abandoned') {
+            window.location.replace('/game/battle')
+          }
+        } catch {
+          // The normal battle UI remains responsible for surfacing malformed abort responses.
+        }
+      }
+
+      return response
     }
 
-    document.addEventListener('click', handleClick, true)
-    return () => document.removeEventListener('click', handleClick, true)
+    window.fetch = wrappedFetch
+    return () => {
+      if (window.fetch === wrappedFetch) window.fetch = originalFetch
+    }
   }, [battleSessionId])
 
   return null
 }
 
-async function confirmAuthoritativeAbort(battleSessionId: string): Promise<void> {
-  for (const delayMs of ABORT_CONFIRMATION_DELAYS_MS) {
-    await delay(delayMs)
-
-    try {
-      const response = await fetch(`/api/battles/${battleSessionId}`, {
-        method: 'GET',
-        cache: 'no-store',
-      })
-      if (!response.ok) continue
-
-      const body = (await response.json()) as BattleStateResponse
-      if (body.battle?.snapshot.tactical.battle.lifecycle === 'abandoned') {
-        window.location.replace('/game/battle')
-        return
-      }
-    } catch {
-      // The normal battle UI remains responsible for surfacing abort/network failures.
-    }
-  }
+function readRequestUrl(input: RequestInfo | URL): string {
+  if (typeof input === 'string') return input
+  if (input instanceof URL) return input.toString()
+  return input.url
 }
 
-function delay(milliseconds: number): Promise<void> {
-  return new Promise((resolve) => window.setTimeout(resolve, milliseconds))
+function readRequestMethod(input: RequestInfo | URL, init?: RequestInit): string {
+  if (init?.method) return init.method.toUpperCase()
+  if (input instanceof Request) return input.method.toUpperCase()
+  return 'GET'
 }
