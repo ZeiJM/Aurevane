@@ -62,7 +62,7 @@ test('sets one authoritative Practice plan and freezes overflow as Balanced fall
   expect(planPayload).not.toHaveProperty('requestedCharacterXp')
 
   await page.reload()
-  await expect(page.getByRole('heading', { name: 'Offline Training' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: "Wayfarer's Practice" })).toBeVisible()
   await expect(page.getByTestId('practice-plan-card')).toContainText('Overnight · 8h 0m')
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
@@ -96,7 +96,7 @@ test('sets one authoritative Practice plan and freezes overflow as Balanced fall
   `)
 
   await page.reload()
-  await expect(page.getByRole('heading', { name: 'Offline Training' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: "Wayfarer's Practice" })).toBeVisible()
 
   const trainingReport = page.getByTestId('training-report')
   await expect(trainingReport).toBeVisible()
