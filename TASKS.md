@@ -8,13 +8,15 @@ The Master Game Plan defines the product. The Roadmap defines sequence. Canonica
 
 **Stage:** PV-1 — Tactical Combat Human Retest / Production Handoff
 
-**ACTIVE VALIDATION GATE:** issue #105 — PV-1C Conduct Tactical Combat Human/Internal Validation — **RETEST READY AFTER EXACT PV-1F PRODUCTION DEPLOYMENT**
+**ACTIVE VALIDATION GATE:** issue #105 — PV-1C Conduct Tactical Combat Human/Internal Validation — **RETEST BLOCKED UNTIL EXACT PV-1F PRODUCTION DEPLOYMENT**
 
-**ACTIVE IMPLEMENTATION TICKET:** none
+**ACTIVE IMPLEMENTATION TICKET:** issue #117 — PV-1F release handoff — restore exact production deployment
 
-**ACTIVE IMPLEMENTATION PR:** none
+**ACTIVE IMPLEMENTATION PR:** draft PR #118
 
-PV-1F / issue #112 / PR #115 is merged. Its quality, database/security and responsive authenticated browser gates passed on the exact tested head before merge. The remaining prerequisite is operational: deploy the exact merged runtime and reconcile the production Supabase schema/migration ledger before collecting new human evidence.
+PV-1F / issue #112 / PR #115 is merged and its exact tested head passed all required implementation-safety gates. Production Supabase has been reconciled to the merged PV-1F migrations and verified. The remaining blocker is the web release path: `aurevane.vercel.app` is still serving an older `main` runtime, while automatic `agent/**` preview deployments created unnecessary release churn during the corrective loop.
+
+Issue #117 / PR #118 is limited to release mechanics: suppress automatic Vercel deployments for `agent/**` repair branches while leaving unspecified branches such as `main` enabled, then verify the exact production Git identity after merge. No gameplay or PV-1 evidence rules change here.
 
 Substantial Phase 3 implementation remains blocked. Automated checks may prove implementation safety, but only real human retesting on the corrected production build can reopen the PV-1 decision.
 
@@ -93,11 +95,13 @@ Recurring feedback across testers/owner included:
 ## Immediate sequence
 
 ```text
-PV-1F / issue #112 / PR #115 merged with all implementation-safety gates green
+Production Supabase PV-1F schema reconciled and verified
   ↓
-Deploy exact merged runtime + reconcile production Supabase migrations/schema
+#117 / PR #118 reduce Vercel agent-branch deployment churn
   ↓
-Verify production build identity and critical authenticated flow
+Merge with GitHub gates green and verify exact main production deployment identity
+  ↓
+Verify critical authenticated production flow
   ↓
 Rerun real human PV-1 sessions under #105
   ↓
