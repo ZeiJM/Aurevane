@@ -14,7 +14,6 @@ import {
   STARTER_CHARACTER_PORTRAITS,
 } from '@aurevane/game-core/character/starter-options'
 import { GameButton, Kicker } from '@aurevane/ui'
-import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
 import { AurevaneImage } from '@/components/media/aurevane-image'
@@ -54,7 +53,6 @@ const emptyBonuses: CharacterAttributeBonuses = {
 }
 
 export function CharacterCreationExperience({ slotIndex }: CharacterCreationExperienceProps) {
-  const router = useRouter()
   const [step, setStep] = useState<Step>('identity')
   const [name, setName] = useState('')
   const [presentationId, setPresentationId] = useState('androgynous')
@@ -164,9 +162,10 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
         return
       }
 
-      // The API establishes this character as the active selection in the same successful response.
-      router.replace('/game/character')
-      router.refresh()
+      // The API establishes this character as the active selection in this response. Use a full
+      // navigation so the next server render cannot reuse an RSC result created before the
+      // selection cookie existed.
+      window.location.assign('/game/character')
     } catch {
       setErrorMessage('Character creation could not reach the server. Your choices are still here.')
     } finally {
