@@ -3,11 +3,9 @@
 import Link from 'next/link'
 import { useEffect, useRef, useState } from 'react'
 
-import { AudioSettingsMenu } from '@/components/audio/audio-settings-menu'
+import styles from './navigation-menu.module.css'
 
-import styles from './account-menu.module.css'
-
-export function AccountMenu() {
+export function NavigationMenu() {
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
 
@@ -36,32 +34,23 @@ export function AccountMenu() {
         aria-haspopup="menu"
         onClick={() => setOpen((value) => !value)}
       >
-        <span aria-hidden="true">◇</span> Account
+        <span aria-hidden="true">◆</span> Navigation
       </button>
       {open ? (
-        <div className={styles.menu} role="menu" aria-label="Account menu">
-          <Link href="/game" role="menuitem" onClick={() => setOpen(false)}>
-            Character Select
+        <nav className={styles.menu} aria-label="Game navigation">
+          <Link href="/game/character" onClick={() => setOpen(false)}>
+            <strong>Profile</strong>
+            <small>Character overview</small>
           </Link>
-          <Link href="/game/account/avatar" role="menuitem" onClick={() => setOpen(false)}>
-            Avatar
+          <Link href="/game/battle" onClick={() => setOpen(false)}>
+            <strong>Battle Hall</strong>
+            <small>Practice and combat</small>
           </Link>
-          <Link href="/game/account/titles" role="menuitem" onClick={() => setOpen(false)}>
-            Titles
+          <Link href="/game/training" onClick={() => setOpen(false)}>
+            <strong>Offline Training</strong>
+            <small>Progress while away</small>
           </Link>
-          <Link href="/game/settings/controls" role="menuitem" onClick={() => setOpen(false)}>
-            Controls &amp; Keybinds
-          </Link>
-          <div className={styles.audio}>
-            <span>Audio</span>
-            <AudioSettingsMenu />
-          </div>
-          <form action="/auth/signout" method="post">
-            <button type="submit" role="menuitem">
-              Sign out
-            </button>
-          </form>
-        </div>
+        </nav>
       ) : null}
     </div>
   )

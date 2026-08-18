@@ -1,0 +1,67 @@
+.page {
+  width: min(100%, 64rem);
+  margin: 0 auto;
+  display: grid;
+  gap: 1rem;
+}
+
+.header {
+  display: grid;
+  gap: 0.35rem;
+  padding: clamp(1rem, 2vw, 1.6rem);
+  border: 1px solid rgba(212, 186, 130, 0.16);
+  border-radius: var(--av-radius-md);
+  background: rgba(224, 208, 177, 0.045);
+}
+
+.header span {
+  color: var(--av-brass-300);
+  font: 650 0.58rem/1 var(--av-font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.header h1 {
+  margin: 0;
+  font: 500 clamp(2rem, 4vw, 3.2rem) / 1 var(--av-font-display);
+}
+
+.header p {
+  max-width: 52rem;
+  margin: 0;
+  color: var(--av-text-muted);
+  line-height: 1.55;
+}
+
+.panel {
+  padding: clamp(1rem, 2vw, 1.5rem);
+  border: 1px solid rgba(212, 186, 130, 0.16);
+  border-radius: var(--av-radius-md);
+  background: rgba(12, 15, 20, 0.8);
+}
+
+.titleState {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+}
+
+.titleState strong {
+  font: 500 1.2rem/1.2 var(--av-font-display);
+}
+
+.titleState p {
+  margin: 0.35rem 0 0;
+  color: var(--av-text-muted);
+  font-size: 0.78rem;
+}
+
+.badge {
+  padding: 0.4rem 0.7rem;
+  border: 1px solid rgba(212, 186, 130, 0.28);
+  border-radius: 999px;
+  color: var(--av-brass-300);
+  font: 650 0.58rem/1 var(--av-font-mono);
+  text-transform: uppercase;
+}

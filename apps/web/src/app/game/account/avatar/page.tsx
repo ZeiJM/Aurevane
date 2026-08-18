@@ -1,22 +1,20 @@
-import { buildCharacterProfileReadModel } from '@aurevane/game-core/character/profile'
 import { isAurevaneError } from '@aurevane/game-core/errors'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
-import { CharacterProfileShell } from '@/components/character/character-profile-shell'
-import { AuthenticatedGameRecovery } from '@/components/shell/authenticated-game-shell'
+import { AvatarSettings } from '@/components/account/avatar-settings'
+import { AuthenticatedGameRecovery, AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
 import { getAuthenticatedActor } from '@/server/auth/actor'
-import { loadSelectedCharacter } from '@/server/character/selected-character'
 import { loadPlayerProfile } from '@/server/player-profile/player-profile-service'
 import { createSupabasePlayerProfileRepository } from '@/server/player-profile/supabase-player-profile-repository'
-import { loadLevelProgressionCurve } from '@/server/progression/progression-service'
-import { createSupabaseProgressionRepository } from '@/server/progression/supabase-progression-repository'
+
+import styles from '../account-settings.module.css'
 
 export const dynamic = 'force-dynamic'
 
-export default async function CharacterProfilePage() {
+export default async function AccountAvatarPage() {
   const publicConfig = getOptionalPublicSupabaseConfig()
   const requestHost = (await headers()).get('host')
   const readiness = getCurrentAccountServicesReadiness(publicConfig, requestHost)
@@ -31,23 +29,23 @@ export default async function CharacterProfilePage() {
   }
 
   try {
-    const [character, accountProfile] = await Promise.all([
-      loadSelectedCharacter(actor),
-      loadPlayerProfile(actor, createSupabasePlayerProfileRepository()),
-    ])
-    if (!character) redirect('/game')
-
-    const levelCurve = await loadLevelProgressionCurve(
-      character.progressionCycle.number,
-      createSupabaseProgressionRepository(),
-    )
-
+    const profile = await loadPlayerProfile(actor, createSupabasePlayerProfileRepository())
     return (
-      <CharacterProfileShell
-        profile={buildCharacterProfileReadModel(character, levelCurve)}
-        avatarUrl={accountProfile.avatarUrl}
-        equippedTitle={accountProfile.equippedTitle}
-      />
+      <AuthenticatedShellFrame sessionLabel="Account · Avatar">
+        <div className={styles.page}>
+          <header className={styles.header}>
+            <span>Account identity</span>
+            <h1>Avatar</h1>
+            <p>
+              Paste a direct HTTPS image URL to use one visual identity across your profile,
+              authenticated AUREVANE crest, and battle presentation. Animated GIFs are supported.
+            </p>
+          </header>
+          <div className={styles.panel}>
+            <AvatarSettings initialAvatarUrl={profile.avatarUrl} />
+          </div>
+        </div>
+      </AuthenticatedShellFrame>
     )
   } catch (error) {
     if (isAurevaneError(error) && error.code === 'PERSISTENCE_UNAVAILABLE') {

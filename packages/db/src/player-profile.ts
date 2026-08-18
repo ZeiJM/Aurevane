@@ -1,6 +1,8 @@
 export interface PlayerProfileRecord {
   userId: string
   createdAt: string
+  avatarUrl?: string | null
+  equippedTitle?: string | null
   combatKeybinds?: unknown
 }
 

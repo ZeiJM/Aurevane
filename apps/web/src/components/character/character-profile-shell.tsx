@@ -1,10 +1,13 @@
-import { CHARACTER_ATTRIBUTE_IDS } from '@aurevane/game-core/character/creation'
+import {
+  CHARACTER_ATTRIBUTE_CONTENT,
+  CHARACTER_ATTRIBUTE_IDS,
+} from '@aurevane/game-core/character/creation'
 import type { DerivedStatValue } from '@aurevane/game-core/character/derived-stats'
 import type { CharacterProfileReadModel } from '@aurevane/game-core/character/profile'
 import { DERIVED_STAT_PROFILE_GROUPS } from '@aurevane/game-core/character/profile-stat-content'
 import { Kicker, Surface } from '@aurevane/ui'
-import Link from 'next/link'
 
+import { IdentityAvatar } from '@/components/account/identity-avatar'
 import { AurevaneImage } from '@/components/media/aurevane-image'
 import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
 import { getStarterPortraitImageAssetId } from '@/media/character'
@@ -13,16 +16,15 @@ import styles from './character-profile-shell.module.css'
 
 interface CharacterProfileShellProps {
   profile: CharacterProfileReadModel
+  avatarUrl?: string | null
+  equippedTitle?: string | null
 }
 
-const attributeLabels = {
-  might: 'Might',
-  finesse: 'Finesse',
-  intellect: 'Intellect',
-  resolve: 'Resolve',
-} as const
-
-export function CharacterProfileShell({ profile }: CharacterProfileShellProps) {
+export function CharacterProfileShell({
+  profile,
+  avatarUrl = null,
+  equippedTitle = null,
+}: CharacterProfileShellProps) {
   const created = new Intl.DateTimeFormat('en', {
     dateStyle: 'medium',
     timeZone: 'UTC',
@@ -30,28 +32,34 @@ export function CharacterProfileShell({ profile }: CharacterProfileShellProps) {
   const progress = profile.progression.progress
 
   return (
-    <AuthenticatedShellFrame
-      sessionLabel="Character profile"
-      footerLabel={`Slot ${profile.slotIndex + 1} · Level ${profile.progression.level}`}
-      backHref="/game"
-      backLabel="Back to Character Select"
-    >
+    <AuthenticatedShellFrame sessionLabel="Character profile">
       <div className={styles.layout}>
         <Surface className={styles.profile} tone="elevated">
           <header className={styles.hero} data-testid="character-profile">
             <div className={styles.portrait}>
-              <AurevaneImage
-                assetId={getStarterPortraitImageAssetId(profile.identity.portraitRef)}
-                sizes="(max-width: 640px) 9rem, 14rem"
-              />
+              {avatarUrl ? (
+                <IdentityAvatar
+                  src={avatarUrl}
+                  alt={`${profile.identity.name} avatar`}
+                  className={styles.remotePortrait}
+                  fallback={profile.identity.name.slice(0, 1).toUpperCase() || 'A'}
+                />
+              ) : (
+                <AurevaneImage
+                  assetId={getStarterPortraitImageAssetId(profile.identity.portraitRef)}
+                  sizes="(max-width: 640px) 7rem, 10rem"
+                />
+              )}
             </div>
             <div className={styles.identity}>
               <Kicker marker="◆">Character Profile</Kicker>
               <h1>{profile.identity.name}</h1>
-              <p className={styles.subtitle}>
-                Level {profile.progression.level} · {profile.foundationDiscipline.name}
-              </p>
+              <div className={styles.identityBadges}>
+                <span className={styles.disciplineBadge}>{profile.foundationDiscipline.name}</span>
+                {equippedTitle ? <span className={styles.titleBadge}>{equippedTitle}</span> : null}
+              </div>
               <div className={styles.meta}>
+                <span>Level {profile.progression.level}</span>
                 <span>Slot {profile.slotIndex + 1}</span>
                 <span>{profile.identity.presentationLabel}</span>
                 <span>{profile.identity.pronounLabel}</span>
@@ -82,30 +90,15 @@ export function CharacterProfileShell({ profile }: CharacterProfileShellProps) {
             </div>
           </header>
 
-          <nav className={styles.hubNav} aria-label="Character activities">
-            <Link href="/game/battle">
-              <span>Tactical Hall</span>
-              <small>Practice and combat</small>
-            </Link>
-            <Link href="/game/settings/controls">
-              <span>Controls &amp; Keybinds</span>
-              <small>Input preferences</small>
-            </Link>
-            <Link href="/game/training">
-              <span>Offline Training</span>
-              <small>Progress from meaningful time away</small>
-            </Link>
-          </nav>
-
           <section className={styles.compactSection} aria-labelledby="attributes-title">
             <div className={styles.sectionTitle}>
               <Kicker marker="◇">Core Attributes</Kicker>
-              <h2 id="attributes-title">Foundation</h2>
+              <h2 id="attributes-title">Attributes</h2>
             </div>
             <dl className={styles.attributeStrip}>
               {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => (
                 <div key={attributeId} data-testid={`profile-attribute-${attributeId}`}>
-                  <dt>{attributeLabels[attributeId]}</dt>
+                  <dt>{CHARACTER_ATTRIBUTE_CONTENT[attributeId].label}</dt>
                   <dd>{profile.attributes[attributeId]}</dd>
                 </div>
               ))}
@@ -140,24 +133,8 @@ export function CharacterProfileShell({ profile }: CharacterProfileShellProps) {
 
         <aside className={styles.sidebar}>
           <Surface className={styles.sideCard} tone="quiet">
-            <Kicker marker="◇">Titles &amp; Distinctions</Kicker>
-            <div className={styles.titleSlot}>
-              <span>Equipped title</span>
-              <strong>None equipped</strong>
-            </div>
-            <p>
-              Custom titles, earned distinctions, badges, and visible profile honors live here as
-              those systems unlock.
-            </p>
-          </Surface>
-
-          <Surface className={styles.sideCard} tone="quiet">
             <Kicker marker="◇">Character Record</Kicker>
             <dl className={styles.record}>
-              <div>
-                <dt>Slot</dt>
-                <dd>{profile.slotIndex + 1}</dd>
-              </div>
               <div>
                 <dt>Level</dt>
                 <dd>{profile.progression.level}</dd>
@@ -165,6 +142,10 @@ export function CharacterProfileShell({ profile }: CharacterProfileShellProps) {
               <div>
                 <dt>Total XP</dt>
                 <dd>{profile.progression.xp.toLocaleString('en')}</dd>
+              </div>
+              <div>
+                <dt>Discipline</dt>
+                <dd>{profile.foundationDiscipline.name}</dd>
               </div>
               <div>
                 <dt>Created</dt>

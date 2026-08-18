@@ -12,7 +12,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 const characterColumns =
-  'id, user_id, slot_index, rules_version, name, name_key, presentation_id, pronoun_preset_id, portrait_ref, starter_appearance_ref, foundation_discipline_id, might, finesse, intellect, resolve, level, xp, progression_cycle, created_at, cycle_started_at, last_active_at'
+  'id, user_id, slot_index, rules_version, name, name_key, presentation_id, pronoun_preset_id, portrait_ref, starter_appearance_ref, foundation_discipline_id, might, finesse, intellect, resolve, vitality, insight, level, xp, progression_cycle, created_at, cycle_started_at, last_active_at'
 
 export function createSupabaseCharacterRepository(): CharacterRepository {
   return {
@@ -34,7 +34,7 @@ export function createSupabaseCharacterRepository(): CharacterRepository {
 
     async findByOwnerId(userId, characterId) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('get_character_slots_v1', { p_user_id: userId })
+      const { data, error } = await supabase.rpc('get_character_slots_v2', { p_user_id: userId })
       if (error || !Array.isArray(data)) throw unavailable()
 
       const candidate = data.find(
@@ -46,6 +46,8 @@ export function createSupabaseCharacterRepository(): CharacterRepository {
       const base = { ...extended }
       delete base.deletion_requested_at
       delete base.deletion_execute_after
+      delete base.return_available_at
+      delete base.is_active_character
       const row = parseCharacterPersistenceRow(base)
       if (!row) throw unavailable()
       return toRecord(row)
@@ -118,6 +120,8 @@ function toRecord(row: CharacterPersistenceRow): CharacterRecord {
     finesse: row.finesse,
     intellect: row.intellect,
     resolve: row.resolve,
+    vitality: row.vitality,
+    insight: row.insight,
     level: row.level,
     xp: row.xp,
     progressionCycle: row.progression_cycle,

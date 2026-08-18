@@ -19,29 +19,29 @@ export function OfflineTrainingShell({
   trainingReport,
 }: OfflineTrainingShellProps) {
   return (
-    <AuthenticatedShellFrame
-      sessionLabel="Offline Training"
-      footerLabel={`${characterName} · Offline Training`}
-      backHref="/game/character"
-      backLabel="Back to Character Profile"
-    >
+    <AuthenticatedShellFrame sessionLabel="Offline Training">
       <div className={styles.layout}>
         <Surface className={styles.hero} tone="elevated">
-          <Kicker marker="◇">Character Progression</Kicker>
-          <h1>Offline Training</h1>
-          <p>
-            When {characterName} is away long enough, the server records a small amount of training
-            progress and Rested Momentum. Active play never waits for this system and being online
-            never consumes a countdown.
-          </p>
+          <div className={styles.heroCopy}>
+            <Kicker marker="◇">Passive Progression</Kicker>
+            <h1>Offline Training</h1>
+            <p>
+              Nothing here is a daily chore. When {characterName} spends enough meaningful time
+              away, the server quietly records a modest training reward and Rested Momentum. Your
+              selected plan only decides what that passive practice emphasizes; active play is never
+              blocked and staying online never wastes a timer.
+            </p>
+          </div>
           <OfflineTrainingClock
             serverNow={practicePlan.serverNow}
             minimumOfflineSeconds={practicePlan.minimumOfflineSeconds}
           />
         </Surface>
 
-        {trainingReport ? <TrainingReportCard report={trainingReport} /> : null}
-        <PracticePlanCard practice={practicePlan} />
+        <div className={styles.trainingGrid}>
+          <PracticePlanCard practice={practicePlan} />
+          {trainingReport ? <TrainingReportCard report={trainingReport} /> : null}
+        </div>
       </div>
     </AuthenticatedShellFrame>
   )

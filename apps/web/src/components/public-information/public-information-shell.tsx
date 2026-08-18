@@ -58,18 +58,6 @@ export function PublicInformationShell({ active, children }: PublicInformationSh
       <main className={styles.main} id="public-information-main">
         {children}
       </main>
-
-      <footer className={styles.footer}>
-        <nav className={styles.compactLinks} aria-label="Public information footer">
-          {navigation.map((item) => (
-            <Link key={item.section} href={item.href}>
-              {item.label}
-            </Link>
-          ))}
-          <Link href="/">Play / Sign In</Link>
-        </nav>
-        <span>Public reads // no account or character required</span>
-      </footer>
     </div>
   )
 }

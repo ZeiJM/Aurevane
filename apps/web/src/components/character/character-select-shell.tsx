@@ -89,8 +89,8 @@ export function CharacterSelectShell({ characters }: CharacterSelectShellProps) 
             <h1>Choose your character.</h1>
           </div>
           <p>
-            Three character slots share this account. Select an adventurer to open their profile and
-            continue playing.
+            Choose who enters the world. When you swap away from a character, returning to that
+            character is locked for one hour.
           </p>
         </header>
 
@@ -121,13 +121,21 @@ export function CharacterSelectShell({ characters }: CharacterSelectShellProps) 
 
             const discipline = getFoundationDiscipline(character.foundationDisciplineId)
             const pending = Boolean(character.deletionExecuteAfter)
+            const coolingDown = Boolean(
+              character.returnAvailableAt &&
+                new Date(character.returnAvailableAt).getTime() > Date.now(),
+            )
             return (
               <article
                 className={styles.slot}
                 key={character.id}
                 data-pending-delete={pending || undefined}
+                data-cooldown={coolingDown || undefined}
               >
-                <span className={styles.slotNumber}>Slot {slotIndex + 1}</span>
+                <span className={styles.slotNumber}>
+                  Slot {slotIndex + 1}
+                  {character.isActiveCharacter ? ' · Last active' : ''}
+                </span>
                 <div className={styles.portrait}>
                   <AurevaneImage
                     assetId={getStarterPortraitImageAssetId(character.portraitRef)}
@@ -143,7 +151,7 @@ export function CharacterSelectShell({ characters }: CharacterSelectShellProps) 
                 {pending && character.deletionExecuteAfter ? (
                   <div className={styles.pendingDelete}>
                     <strong>Deletion pending</strong>
-                    <DeletionCountdown deleteAfter={character.deletionExecuteAfter} />
+                    <Countdown until={character.deletionExecuteAfter} suffix="remaining" />
                     <span>This character cannot be played during the grace period.</span>
                     <button
                       type="button"
@@ -153,10 +161,19 @@ export function CharacterSelectShell({ characters }: CharacterSelectShellProps) 
                       Cancel deletion
                     </button>
                   </div>
+                ) : coolingDown && character.returnAvailableAt ? (
+                  <div className={styles.pendingDelete}>
+                    <strong>Return cooldown</strong>
+                    <Countdown until={character.returnAvailableAt} suffix="until return" />
+                    <span>You swapped away from this character. The one-hour return lock is active.</span>
+                    <span className={styles.primaryAction} aria-disabled="true">
+                      Return locked
+                    </span>
+                  </div>
                 ) : (
                   <>
                     <Link className={styles.primaryAction} href={`/game/select/${character.id}`}>
-                      Play {character.name}
+                      Enter as {character.name}
                     </Link>
                     <button
                       className={styles.deleteAction}
@@ -233,13 +250,13 @@ export function CharacterSelectShell({ characters }: CharacterSelectShellProps) 
   )
 }
 
-function DeletionCountdown({ deleteAfter }: { deleteAfter: string }) {
+function Countdown({ until, suffix }: { until: string; suffix: string }) {
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000)
     return () => window.clearInterval(timer)
   }, [])
-  const remaining = Math.max(0, new Date(deleteAfter).getTime() - now)
+  const remaining = Math.max(0, new Date(until).getTime() - now)
   const totalSeconds = Math.ceil(remaining / 1000)
   const hours = Math.floor(totalSeconds / 3600)
   const minutes = Math.floor((totalSeconds % 3600) / 60)
@@ -247,7 +264,7 @@ function DeletionCountdown({ deleteAfter }: { deleteAfter: string }) {
   return (
     <b>
       {hours.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')}:
-      {seconds.toString().padStart(2, '0')} remaining
+      {seconds.toString().padStart(2, '0')} {suffix}
     </b>
   )
 }

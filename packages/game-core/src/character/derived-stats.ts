@@ -75,22 +75,19 @@ export interface DerivedStatRulesetIssue {
 }
 
 /**
- * Development balance for the Phase 1 profile framework.
- *
- * These coefficients are intentionally centralized and versioned. They establish a coherent,
- * deterministic stat language for profile/testing work; they are not a promise of launch combat
- * balance. Later tuning can replace the ruleset without changing the calculator contract.
+ * PV-1G six-attribute development balance. Every core attribute contributes to multiple
+ * meaningful derived statistics so no attribute exists only as a cosmetic character-sheet value.
  */
-export const DERIVED_STAT_RULESET_V1: DerivedStatRuleset = {
-  version: 1,
+export const DERIVED_STAT_RULESET_V2: DerivedStatRuleset = {
+  version: 2,
   rules: [
     {
       id: 'maxHp',
       label: 'Maximum HP',
       unit: 'points',
-      baseNumerator: 80,
+      baseNumerator: 70,
       perLevelNumerator: 5,
-      attributeWeights: { might: 2, resolve: 12 },
+      attributeWeights: { vitality: 10, might: 2, resolve: 2 },
       divisor: 1,
       minimum: 1,
     },
@@ -98,9 +95,9 @@ export const DERIVED_STAT_RULESET_V1: DerivedStatRuleset = {
       id: 'maxMp',
       label: 'Maximum MP',
       unit: 'points',
-      baseNumerator: 30,
+      baseNumerator: 24,
       perLevelNumerator: 3,
-      attributeWeights: { intellect: 8, resolve: 2 },
+      attributeWeights: { intellect: 7, insight: 4, resolve: 1 },
       divisor: 1,
       minimum: 0,
     },
@@ -120,7 +117,7 @@ export const DERIVED_STAT_RULESET_V1: DerivedStatRuleset = {
       unit: 'rating',
       baseNumerator: 10,
       perLevelNumerator: 1,
-      attributeWeights: { intellect: 3, resolve: 1 },
+      attributeWeights: { intellect: 3, insight: 1 },
       divisor: 1,
       minimum: 0,
     },
@@ -130,7 +127,7 @@ export const DERIVED_STAT_RULESET_V1: DerivedStatRuleset = {
       unit: 'rating',
       baseNumerator: 5,
       perLevelNumerator: 1,
-      attributeWeights: { might: 1, resolve: 2 },
+      attributeWeights: { vitality: 2, might: 1 },
       divisor: 1,
       minimum: 0,
     },
@@ -140,7 +137,7 @@ export const DERIVED_STAT_RULESET_V1: DerivedStatRuleset = {
       unit: 'rating',
       baseNumerator: 5,
       perLevelNumerator: 1,
-      attributeWeights: { intellect: 1, resolve: 2 },
+      attributeWeights: { resolve: 2, intellect: 1 },
       divisor: 1,
       minimum: 0,
     },
@@ -148,9 +145,9 @@ export const DERIVED_STAT_RULESET_V1: DerivedStatRuleset = {
       id: 'accuracy',
       label: 'Accuracy',
       unit: 'basisPoints',
-      baseNumerator: 6500,
+      baseNumerator: 6200,
       perLevelNumerator: 0,
-      attributeWeights: { finesse: 125, intellect: 25 },
+      attributeWeights: { finesse: 90, insight: 70 },
       divisor: 1,
       minimum: 0,
       maximum: 9500,
@@ -159,9 +156,9 @@ export const DERIVED_STAT_RULESET_V1: DerivedStatRuleset = {
       id: 'evasion',
       label: 'Evasion',
       unit: 'basisPoints',
-      baseNumerator: 300,
+      baseNumerator: 250,
       perLevelNumerator: 0,
-      attributeWeights: { finesse: 80, resolve: 20 },
+      attributeWeights: { finesse: 70, insight: 30 },
       divisor: 1,
       minimum: 0,
       maximum: 7500,
@@ -170,9 +167,9 @@ export const DERIVED_STAT_RULESET_V1: DerivedStatRuleset = {
       id: 'criticalChance',
       label: 'Critical Chance',
       unit: 'basisPoints',
-      baseNumerator: 500,
+      baseNumerator: 450,
       perLevelNumerator: 0,
-      attributeWeights: { finesse: 50 },
+      attributeWeights: { finesse: 35, insight: 25 },
       divisor: 1,
       minimum: 0,
       maximum: 5000,
@@ -183,7 +180,7 @@ export const DERIVED_STAT_RULESET_V1: DerivedStatRuleset = {
       unit: 'rating',
       baseNumerator: 10,
       perLevelNumerator: 0,
-      attributeWeights: { finesse: 2, resolve: 1 },
+      attributeWeights: { finesse: 1, insight: 2 },
       divisor: 1,
       minimum: 0,
     },
@@ -215,13 +212,16 @@ export const DERIVED_STAT_RULESET_V1: DerivedStatRuleset = {
       unit: 'basisPoints',
       baseNumerator: 0,
       perLevelNumerator: 0,
-      attributeWeights: { resolve: 100 },
+      attributeWeights: { resolve: 70, vitality: 30 },
       divisor: 1,
       minimum: 0,
       maximum: 7500,
     },
   ],
 }
+
+/** Backward-compatible export name for callers that have not yet renamed their import. */
+export const DERIVED_STAT_RULESET_V1 = DERIVED_STAT_RULESET_V2
 
 export function validateDerivedStatRuleset(
   ruleset: DerivedStatRuleset,
@@ -246,10 +246,7 @@ export function validateDerivedStatRuleset(
     }
 
     if (!Number.isInteger(rule.baseNumerator)) {
-      issues.push({
-        field: `${prefix}.baseNumerator`,
-        message: 'Base numerator must be an integer.',
-      })
+      issues.push({ field: `${prefix}.baseNumerator`, message: 'Base numerator must be an integer.' })
     }
 
     if (!Number.isInteger(rule.perLevelNumerator)) {
@@ -292,9 +289,7 @@ export function validateDerivedStatRuleset(
   }
 
   for (const id of DERIVED_STAT_IDS) {
-    if (!seen.has(id)) {
-      issues.push({ field: 'rules', message: `Missing derived stat rule: ${id}.` })
-    }
+    if (!seen.has(id)) issues.push({ field: 'rules', message: `Missing derived stat rule: ${id}.` })
   }
 
   return issues
@@ -302,7 +297,7 @@ export function validateDerivedStatRuleset(
 
 export function calculateDerivedStats(
   input: DerivedStatInput,
-  ruleset: DerivedStatRuleset = DERIVED_STAT_RULESET_V1,
+  ruleset: DerivedStatRuleset = DERIVED_STAT_RULESET_V2,
 ): DerivedStatSnapshot {
   const issues = validateDerivedStatRuleset(ruleset)
   if (issues.length > 0) {
@@ -346,9 +341,7 @@ export function calculateDerivedStats(
 
     for (const attributeId of CHARACTER_ATTRIBUTE_IDS) {
       const coefficient = rule.attributeWeights[attributeId]
-      if (coefficient === undefined || coefficient === 0) {
-        continue
-      }
+      if (coefficient === undefined || coefficient === 0) continue
 
       contributions.push({
         sourceKind: 'attribute',
@@ -377,19 +370,12 @@ export function calculateDerivedStats(
     }
   }
 
-  return {
-    rulesVersion: ruleset.version,
-    stats,
-  }
+  return { rulesVersion: ruleset.version, stats }
 }
 
 function clamp(value: number, minimum: number | undefined, maximum: number | undefined): number {
   let result = value
-  if (minimum !== undefined) {
-    result = Math.max(result, minimum)
-  }
-  if (maximum !== undefined) {
-    result = Math.min(result, maximum)
-  }
+  if (minimum !== undefined) result = Math.max(result, minimum)
+  if (maximum !== undefined) result = Math.min(result, maximum)
   return result
 }

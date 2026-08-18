@@ -13,5 +13,10 @@ export async function loadPlayerProfile(
     throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Player profile is unavailable.')
   }
 
-  return profile
+  return {
+    userId: profile.userId,
+    createdAt: profile.createdAt,
+    avatarUrl: profile.avatarUrl ?? null,
+    equippedTitle: profile.equippedTitle ?? null,
+  }
 }

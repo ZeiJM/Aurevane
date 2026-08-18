@@ -6,6 +6,8 @@ const characterAttributeBonusesPayloadSchema = z
     finesse: z.number().finite(),
     intellect: z.number().finite(),
     resolve: z.number().finite(),
+    vitality: z.number().finite(),
+    insight: z.number().finite(),
   })
   .strict()
 

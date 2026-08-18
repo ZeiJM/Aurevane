@@ -28,6 +28,8 @@ const characterPersistenceRowSchema = z
     finesse: z.number().int().positive(),
     intellect: z.number().int().positive(),
     resolve: z.number().int().positive(),
+    vitality: z.number().int().positive().default(5),
+    insight: z.number().int().positive().default(5),
     level: z.number().int().positive(),
     xp: z.number().int().nonnegative(),
     progression_cycle: z.number().int().positive(),

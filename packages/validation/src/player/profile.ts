@@ -6,6 +6,8 @@ const playerProfilePersistenceRowSchema = z
   .object({
     user_id: z.string().uuid(),
     created_at: z.string().datetime({ offset: true }),
+    avatar_url: z.string().max(2048).nullable().default(null),
+    equipped_title: z.string().max(80).nullable().default(null),
     combat_keybinds: combatKeybindMapSchema.default(DEFAULT_COMBAT_KEYBINDS),
   })
   .strict()

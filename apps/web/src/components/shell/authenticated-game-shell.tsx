@@ -2,12 +2,17 @@ import { Kicker, StatusMark, Surface } from '@aurevane/ui'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
-import publicStyles from '@/components/public-information/public-information-shell.module.css'
+import { IdentityAvatar } from '@/components/account/identity-avatar'
 import { AccountMenu } from '@/components/shell/account-menu'
+import { NavigationMenu } from '@/components/shell/navigation-menu'
+import { getAuthenticatedActor } from '@/server/auth/actor'
+import { loadSelectedCharacter } from '@/server/character/selected-character'
+import { loadPlayerProfile } from '@/server/player-profile/player-profile-service'
+import { createSupabasePlayerProfileRepository } from '@/server/player-profile/supabase-player-profile-repository'
 
 import styles from './authenticated-game-shell.module.css'
 
-type CharacterBackRoute = '/game' | '/game/character'
+type CharacterBackRoute = '/game' | '/game/character' | '/game/battle'
 
 interface AuthenticatedShellFrameProps {
   children: ReactNode
@@ -17,12 +22,30 @@ interface AuthenticatedShellFrameProps {
   backLabel?: string
 }
 
+interface ShellIdentity {
+  characterName: string | null
+  avatarUrl: string | null
+}
+
+async function loadShellIdentity(): Promise<ShellIdentity> {
+  try {
+    const actor = await getAuthenticatedActor()
+    const [character, profile] = await Promise.all([
+      loadSelectedCharacter(actor),
+      loadPlayerProfile(actor, createSupabasePlayerProfileRepository()),
+    ])
+    return {
+      characterName: character?.name ?? null,
+      avatarUrl: character ? profile.avatarUrl : null,
+    }
+  } catch {
+    return { characterName: null, avatarUrl: null }
+  }
+}
+
 export function AuthenticatedGameRecovery() {
   return (
-    <AuthenticatedShellFrame
-      sessionLabel="Service recovery"
-      footerLabel="Private game state unavailable"
-    >
+    <AuthenticatedShellFrame sessionLabel="Service recovery">
       <Surface className={styles.primaryCard} tone="elevated">
         <Kicker marker="◇">Game service interruption</Kicker>
         <h1>Your session is safe. The road is briefly closed.</h1>
@@ -46,13 +69,15 @@ export function AuthenticatedGameRecovery() {
   )
 }
 
-export function AuthenticatedShellFrame({
+export async function AuthenticatedShellFrame({
   children,
   sessionLabel = 'Verified session',
-  footerLabel = 'AUREVANE',
   backHref,
   backLabel,
 }: AuthenticatedShellFrameProps) {
+  const identity = await loadShellIdentity()
+  const statusLabel = identity.characterName ?? sessionLabel
+
   return (
     <div className={styles.shell} data-testid="authenticated-shell">
       <a className="skip-link" href="#game-main">
@@ -67,7 +92,14 @@ export function AuthenticatedShellFrame({
           ) : null}
           <Link className="brand" href="/game/character" aria-label="AUREVANE character profile">
             <span className="brand__crest" aria-hidden="true">
-              <span>A</span>
+              <span className={styles.crestContent}>
+                <IdentityAvatar
+                  src={identity.avatarUrl}
+                  alt=""
+                  className={styles.crestAvatar}
+                  fallback="A"
+                />
+              </span>
             </span>
             <span className="brand__wordmark">
               <strong>AUREVANE</strong>
@@ -75,9 +107,17 @@ export function AuthenticatedShellFrame({
             </span>
           </Link>
         </div>
-        <span className={styles.sessionState}>
-          <StatusMark /> {sessionLabel}
+
+        <span className={styles.sessionState} title={sessionLabel}>
+          <StatusMark /> <strong>{statusLabel}</strong>
         </span>
+
+        <nav className={styles.headerNav} aria-label="AUREVANE information">
+          <Link href="/manual">Manual</Link>
+          <Link href="/news">News</Link>
+          <Link href="/rules">Rules</Link>
+        </nav>
+
         <AccountMenu />
       </header>
 
@@ -86,14 +126,7 @@ export function AuthenticatedShellFrame({
       </main>
 
       <footer className={styles.footer}>
-        <nav className={publicStyles.compactLinks} aria-label="Game navigation">
-          <Link href="/game/character">Profile</Link>
-          <Link href="/game/battle">Tactical Hall</Link>
-          <Link href="/game/settings/controls">Controls</Link>
-          <Link href="/game/training">Offline Training</Link>
-          <Link href="/manual">Manual</Link>
-        </nav>
-        <span>{footerLabel}</span>
+        <NavigationMenu />
       </footer>
     </div>
   )

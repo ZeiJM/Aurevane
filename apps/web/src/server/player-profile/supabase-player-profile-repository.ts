@@ -12,7 +12,7 @@ export function createSupabasePlayerProfileRepository(): PlayerProfileRepository
       const supabase = await createSupabaseServerClient()
       const { data, error } = await supabase
         .from('player_profiles')
-        .select('user_id, created_at, combat_keybinds')
+        .select('user_id, created_at, avatar_url, equipped_title, combat_keybinds')
         .eq('user_id', userId)
         .maybeSingle()
 
@@ -30,6 +30,8 @@ export function createSupabasePlayerProfileRepository(): PlayerProfileRepository
       return {
         userId: profile.user_id,
         createdAt: profile.created_at,
+        avatarUrl: profile.avatar_url,
+        equippedTitle: profile.equipped_title,
         combatKeybinds: profile.combat_keybinds,
       }
     },

@@ -12,10 +12,10 @@
   z-index: 20;
   display: grid;
   grid-template-columns: minmax(15rem, 1fr) auto auto;
-  min-height: 4.5rem;
-  gap: var(--av-space-6);
+  min-height: 4rem;
+  gap: 1rem;
   align-items: center;
-  padding: 0 var(--av-space-5) 0 var(--av-space-4);
+  padding: 0.35rem clamp(0.75rem, 2vw, 1.4rem);
   border-bottom: 1px solid var(--av-border);
   background: rgba(7, 9, 13, 0.94);
   backdrop-filter: blur(1rem);
@@ -23,28 +23,28 @@
 
 .environmentMark {
   color: var(--av-text-dim);
-  font: 650 0.62rem/1 var(--av-font-mono);
-  letter-spacing: 0.09em;
+  font: 650 0.57rem/1 var(--av-font-mono);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
 .main {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(22rem, 0.7fr);
-  gap: var(--av-space-4);
-  align-items: start;
-  width: min(100%, 96rem);
+  grid-template-columns: minmax(0, 1.35fr) minmax(20rem, 0.65fr);
+  gap: clamp(0.7rem, 1.5vw, 1.1rem);
+  align-items: center;
+  width: min(100%, 94rem);
   min-height: 0;
   margin: 0 auto;
-  padding: clamp(1rem, 2vw, 2rem);
+  padding: clamp(0.7rem, 1.4vw, 1.2rem);
 }
 
 .hero {
   position: relative;
-  align-self: start;
+  align-self: stretch;
   width: 100%;
-  height: clamp(32rem, calc(100dvh - 8.75rem), 46rem);
-  min-height: 32rem;
+  height: min(38rem, calc(100dvh - 7rem));
+  min-height: 25rem;
   overflow: hidden;
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius-lg);
@@ -66,8 +66,8 @@
 
 .heroShade {
   background:
-    linear-gradient(90deg, rgba(5, 6, 9, 0.9), rgba(5, 6, 9, 0.34) 64%, rgba(5, 6, 9, 0.62)),
-    linear-gradient(0deg, rgba(5, 6, 9, 0.88), transparent 52%);
+    linear-gradient(90deg, rgba(5, 6, 9, 0.9), rgba(5, 6, 9, 0.28) 64%, rgba(5, 6, 9, 0.58)),
+    linear-gradient(0deg, rgba(5, 6, 9, 0.9), transparent 55%);
 }
 
 .heroContent {
@@ -75,15 +75,15 @@
   bottom: 0;
   left: 0;
   z-index: 2;
-  width: min(46rem, 88%);
-  padding: clamp(2rem, 6vw, 5rem);
+  width: min(46rem, 90%);
+  padding: clamp(1.4rem, 3.5vw, 3rem);
 }
 
 .heroContent h1 {
   max-width: 100%;
-  margin: 0.65rem 0 1.25rem;
-  font: 500 clamp(3.8rem, 7.4vw, 7rem) / 0.84 var(--av-font-display);
-  letter-spacing: 0.04em;
+  margin: 0.45rem 0 0.8rem;
+  font: 500 clamp(3rem, 6vw, 5.5rem) / 0.86 var(--av-font-display);
+  letter-spacing: 0.035em;
   text-shadow: 0 0.35rem 2.5rem rgba(0, 0, 0, 0.72);
   white-space: nowrap;
 }
@@ -92,41 +92,41 @@
   max-width: 38rem;
   margin: 0;
   color: var(--av-text-muted);
-  font-size: clamp(1rem, 1.7vw, 1.18rem);
-  line-height: 1.7;
+  font-size: clamp(0.88rem, 1.25vw, 1.02rem);
+  line-height: 1.55;
 }
 
 .identityNotes {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--av-space-2);
-  margin-top: var(--av-space-6);
+  gap: 0.35rem;
+  margin-top: 0.9rem;
 }
 
 .identityNotes span {
-  padding: 0.48rem 0.65rem;
+  padding: 0.38rem 0.5rem;
   border: 1px solid rgba(212, 186, 130, 0.16);
   border-radius: var(--av-radius-sm);
   color: var(--av-text-dim);
   background: rgba(5, 6, 9, 0.58);
-  font: 600 0.58rem/1.2 var(--av-font-mono);
+  font: 600 0.52rem/1.2 var(--av-font-mono);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .mediaStatus {
   position: absolute;
-  top: var(--av-space-5);
-  right: var(--av-space-5);
+  top: 0.8rem;
+  right: 0.8rem;
   z-index: 3;
   display: grid;
-  gap: 0.2rem;
-  padding: 0.7rem 0.8rem;
+  gap: 0.15rem;
+  padding: 0.5rem 0.6rem;
   border-left: 1px solid var(--av-border-strong);
   color: var(--av-text-dim);
   background: rgba(5, 6, 9, 0.58);
-  font: 600 0.54rem/1.2 var(--av-font-mono);
-  letter-spacing: 0.06em;
+  font: 600 0.49rem/1.2 var(--av-font-mono);
+  letter-spacing: 0.055em;
   text-transform: uppercase;
 }
 
@@ -142,28 +142,28 @@
 .entryCard {
   align-self: center;
   min-width: 0;
-  padding: clamp(1.5rem, 3vw, 2.5rem);
+  padding: clamp(1.1rem, 2vw, 1.7rem);
 }
 
 .entryCard h2 {
-  margin: 0.8rem 0 0.65rem;
-  font: 500 clamp(1.75rem, 3vw, 2.45rem) / 1.05 var(--av-font-display);
+  margin: 0.55rem 0 0.45rem;
+  font: 500 clamp(1.6rem, 2.5vw, 2.1rem) / 1.05 var(--av-font-display);
 }
 
 .entryLead {
-  margin: 0 0 var(--av-space-6);
+  margin: 0 0 0.85rem;
   color: var(--av-text-muted);
-  font-size: 0.88rem;
-  line-height: 1.65;
+  font-size: 0.8rem;
+  line-height: 1.5;
 }
 
 .accessPanel {
   display: grid;
-  gap: var(--av-space-4);
+  gap: 0.75rem;
 }
 
 .environmentNotice {
-  padding: var(--av-space-4);
+  padding: 0.7rem;
   border: 1px solid var(--av-border);
   border-left: 2px solid var(--av-brass-500);
   border-radius: var(--av-radius-sm);
@@ -174,27 +174,27 @@
 .environmentNotice strong {
   display: block;
   color: var(--av-text);
-  font-size: 0.76rem;
+  font-size: 0.72rem;
   letter-spacing: 0.02em;
 }
 
 .environmentNotice p {
-  margin: var(--av-space-2) 0 0;
-  font-size: 0.72rem;
-  line-height: 1.6;
+  margin: 0.35rem 0 0;
+  font-size: 0.68rem;
+  line-height: 1.45;
 }
 
 .modeSwitch {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  padding: 0.2rem;
+  padding: 0.18rem;
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius-md);
   background: rgba(5, 6, 9, 0.46);
 }
 
 .modeSwitch button {
-  min-height: 2.75rem;
+  min-height: 2.45rem;
   border: 0;
   border-radius: calc(var(--av-radius-md) - 0.15rem);
   color: var(--av-text-dim);
@@ -215,17 +215,17 @@
 
 .form {
   display: grid;
-  gap: var(--av-space-4);
+  gap: 0.7rem;
 }
 
 .form label {
   display: grid;
-  gap: var(--av-space-2);
+  gap: 0.3rem;
 }
 
 .form label > span {
   color: var(--av-text-muted);
-  font-size: 0.7rem;
+  font-size: 0.66rem;
   font-weight: 650;
   letter-spacing: 0.045em;
   text-transform: uppercase;
@@ -233,8 +233,8 @@
 
 .form input {
   width: 100%;
-  min-height: var(--av-control-height);
-  padding: 0.72rem 0.8rem;
+  min-height: 2.75rem;
+  padding: 0.6rem 0.7rem;
   border: 1px solid var(--av-border-strong);
   border-radius: var(--av-radius-sm);
   color: var(--av-text);
@@ -249,27 +249,27 @@
 
 .submit {
   width: 100%;
-  margin-top: var(--av-space-2);
+  margin-top: 0.15rem;
 }
 
 .formMessage {
-  min-height: 2.7rem;
+  min-height: 2rem;
   margin: 0;
   color: var(--av-text-dim);
-  font-size: 0.72rem;
-  line-height: 1.55;
+  font-size: 0.68rem;
+  line-height: 1.45;
 }
 
 .help {
-  margin-top: var(--av-space-6);
+  margin-top: 0.8rem;
   border-top: 1px solid var(--av-border);
   color: var(--av-text-dim);
 }
 
 .help summary {
-  padding: var(--av-space-4) 0 0;
+  padding: 0.7rem 0 0;
   color: var(--av-text-muted);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 650;
   cursor: pointer;
   touch-action: manipulation;
@@ -277,80 +277,71 @@
 
 .help div {
   display: grid;
-  gap: var(--av-space-3);
-  padding-top: var(--av-space-3);
+  gap: 0.5rem;
+  padding-top: 0.55rem;
 }
 
 .help p {
   margin: 0;
-  font-size: 0.72rem;
-  line-height: 1.6;
+  font-size: 0.68rem;
+  line-height: 1.45;
 }
 
 .footer {
   display: flex;
-  min-height: 2.25rem;
-  gap: var(--av-space-6);
+  min-height: 2.2rem;
+  gap: 1rem;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--av-space-4);
+  padding: 0 clamp(0.7rem, 2vw, 1.2rem);
   border-top: 1px solid var(--av-border);
   color: var(--av-text-dim);
   background: rgba(5, 6, 9, 0.94);
-  font: 600 0.52rem/1 var(--av-font-mono);
-  letter-spacing: 0.06em;
+  font: 600 0.5rem/1 var(--av-font-mono);
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
 @media (max-width: 1120px) {
   .main {
-    grid-template-columns: minmax(0, 1.2fr) minmax(20rem, 0.8fr);
+    grid-template-columns: minmax(0, 1.15fr) minmax(19rem, 0.85fr);
   }
 }
 
 @media (min-width: 881px) and (max-height: 760px) {
   .main {
-    padding: 1rem;
+    padding: 0.65rem;
   }
-
   .hero {
-    height: max(28rem, calc(100dvh - 7.75rem));
-    min-height: 28rem;
+    height: calc(100dvh - 6.85rem);
+    min-height: 23rem;
   }
-
   .heroContent {
-    padding: clamp(1.75rem, 4vh, 3rem);
+    padding: 1.4rem;
   }
-
   .heroContent h1 {
-    font-size: clamp(3.5rem, 6vw, 5.5rem);
+    font-size: clamp(2.8rem, 5vw, 4.5rem);
   }
-
   .entryCard {
-    padding: 1.5rem;
+    padding: 1rem;
   }
 }
 
 @media (max-width: 880px) {
   .masthead {
     grid-template-columns: minmax(0, 1fr) auto;
-    min-height: 4rem;
   }
-
   .environmentMark {
     display: none;
   }
-
   .main {
     grid-template-columns: 1fr;
     overflow: visible;
   }
-
   .hero {
-    height: min(31rem, 58dvh);
-    min-height: 27rem;
+    height: min(27rem, 52dvh);
+    min-height: 22rem;
   }
-
   .entryCard {
     align-self: stretch;
   }
@@ -358,97 +349,75 @@
 
 @media (max-width: 560px) {
   .masthead {
-    gap: var(--av-space-3);
-    padding-right: max(var(--av-space-3), env(safe-area-inset-right, 0px));
-    padding-left: max(var(--av-space-3), env(safe-area-inset-left, 0px));
+    gap: 0.5rem;
+    padding-right: max(0.65rem, env(safe-area-inset-right, 0px));
+    padding-left: max(0.65rem, env(safe-area-inset-left, 0px));
   }
-
   .masthead :global(.brand) {
     min-width: 0;
-    gap: var(--av-space-2);
+    gap: 0.45rem;
   }
-
   .masthead :global(.brand__crest) {
     width: 2.2rem;
     height: 2.2rem;
     flex: 0 0 auto;
     font-size: 1rem;
   }
-
   .masthead :global(.brand__wordmark) {
     min-width: 0;
   }
-
   .masthead :global(.brand__wordmark strong) {
     font-size: 0.84rem;
     letter-spacing: 0.11em;
     white-space: nowrap;
   }
-
   .masthead :global(.brand__wordmark small) {
     display: none;
   }
-
   .main {
-    gap: var(--av-space-3);
-    padding: var(--av-space-3);
-    padding-right: max(var(--av-space-3), env(safe-area-inset-right, 0px));
-    padding-left: max(var(--av-space-3), env(safe-area-inset-left, 0px));
+    gap: 0.6rem;
+    padding: 0.6rem;
+    padding-right: max(0.6rem, env(safe-area-inset-right, 0px));
+    padding-left: max(0.6rem, env(safe-area-inset-left, 0px));
   }
-
   .hero {
-    height: 23rem;
-    min-height: 23rem;
+    height: 21rem;
+    min-height: 21rem;
   }
-
   .heroContent {
     width: 100%;
-    padding: clamp(1.2rem, 5vw, 1.65rem);
+    padding: 1rem;
   }
-
   .heroContent h1 {
-    margin-bottom: 0.9rem;
-    font-size: clamp(2.7rem, 13.5vw, 3.9rem);
-    line-height: 0.88;
-    letter-spacing: 0.018em;
+    margin-bottom: 0.65rem;
+    font-size: clamp(2.45rem, 12vw, 3.5rem);
+    line-height: 0.9;
   }
-
   .heroContent > p {
-    font-size: 0.9rem;
-    line-height: 1.55;
+    font-size: 0.85rem;
+    line-height: 1.5;
   }
-
   .identityNotes {
-    gap: 0.35rem;
-    margin-top: var(--av-space-4);
+    gap: 0.3rem;
+    margin-top: 0.7rem;
   }
-
   .identityNotes span {
-    padding: 0.38rem 0.48rem;
-    font-size: 0.51rem;
+    padding: 0.32rem 0.42rem;
+    font-size: 0.49rem;
   }
-
   .mediaStatus {
-    top: var(--av-space-3);
-    right: var(--av-space-3);
-    padding: 0.55rem 0.6rem;
-    font-size: 0.48rem;
+    top: 0.6rem;
+    right: 0.6rem;
   }
-
   .entryCard {
-    padding: var(--av-space-5);
+    padding: 0.9rem;
   }
-
   .form input {
     font-size: 16px;
   }
-
   .footer {
-    min-height: 2.5rem;
-    padding-right: max(var(--av-space-3), env(safe-area-inset-right, 0px));
-    padding-left: max(var(--av-space-3), env(safe-area-inset-left, 0px));
+    min-height: 2.35rem;
   }
-
   .footer span:last-child {
     display: none;
   }
@@ -456,20 +425,11 @@
 
 @media (max-width: 380px) {
   .hero {
-    height: 21.5rem;
-    min-height: 21.5rem;
+    height: 19.5rem;
+    min-height: 19.5rem;
   }
-
-  .heroContent h1 {
-    font-size: clamp(2.45rem, 13vw, 3.25rem);
-  }
-
   .identityNotes span:last-child {
     display: none;
-  }
-
-  .entryCard {
-    padding: var(--av-space-4);
   }
 }
 

@@ -1,9 +1,45 @@
 import { isFoundationDisciplineId, type FoundationDisciplineId } from './foundation-disciplines'
 
-export const CHARACTER_ATTRIBUTE_IDS = ['might', 'finesse', 'intellect', 'resolve'] as const
+export const CHARACTER_ATTRIBUTE_IDS = [
+  'might',
+  'finesse',
+  'intellect',
+  'resolve',
+  'vitality',
+  'insight',
+] as const
 export type CharacterAttributeId = (typeof CHARACTER_ATTRIBUTE_IDS)[number]
 export type CharacterAttributeBonuses = Record<CharacterAttributeId, number>
 export type CharacterAttributes = Record<CharacterAttributeId, number>
+
+export const CHARACTER_ATTRIBUTE_CONTENT: Readonly<
+  Record<CharacterAttributeId, { label: string; summary: string }>
+> = {
+  might: {
+    label: 'Might',
+    summary: 'Physical force, weapon impact, armor, and feats of strength.',
+  },
+  finesse: {
+    label: 'Finesse',
+    summary: 'Precision, agility, movement, evasion, and critical execution.',
+  },
+  intellect: {
+    label: 'Intellect',
+    summary: 'Mystic potency, magical reserves, healing theory, and supernatural control.',
+  },
+  resolve: {
+    label: 'Resolve',
+    summary: 'Willpower, warding, composure, and resistance to hostile effects.',
+  },
+  vitality: {
+    label: 'Vitality',
+    summary: 'Health, physical endurance, recovery, and resistance to bodily harm.',
+  },
+  insight: {
+    label: 'Insight',
+    summary: 'Awareness, timing, accuracy, initiative, and reading the battlefield.',
+  },
+}
 
 export const CHARACTER_PRESENTATIONS = [
   { id: 'masculine', label: 'Masculine' },
@@ -46,15 +82,19 @@ export type PronounPresetId = (typeof PRONOUN_PRESETS)[number]['id']
 export type CharacterPortraitRef = `portrait.${string}`
 export type StarterAppearanceRef = `appearance.${string}`
 
+/**
+ * The public export name remains V1 because creation-command protocol version 1 is still accepted.
+ * rulesVersion 2 is the persistent six-attribute character ruleset introduced by PV-1G.
+ */
 export const CHARACTER_CREATION_RULES_V1 = {
-  version: 1,
+  version: 2,
   name: {
     minimumCodePoints: 3,
     maximumCodePoints: 24,
   },
   attributes: {
     baseline: 5,
-    bonusBudget: 4,
+    bonusBudget: 6,
     maximumBonusPerAttribute: 4,
   },
   initialProgression: {
@@ -107,7 +147,7 @@ export interface CanonicalCharacterCreationIntent {
 }
 
 export interface InitialCharacterStateV1 {
-  rulesVersion: 1
+  rulesVersion: 2
   name: string
   nameKey: string
   presentationId: CharacterPresentationId
@@ -214,7 +254,7 @@ function validateAttributeBonuses(
     issues.push({
       code: 'invalid_attribute_shape',
       field: 'attributeBonuses',
-      message: 'Attribute bonuses must provide Might, Finesse, Intellect, and Resolve.',
+      message: 'All six starting attribute bonuses are required.',
     })
     return null
   }
@@ -244,7 +284,7 @@ function validateAttributeBonuses(
       issues.push({
         code: 'invalid_attribute_bonus',
         field: `attributeBonuses.${attributeId}`,
-        message: `${attributeId} bonus must be a whole number from 0 to ${CHARACTER_CREATION_RULES_V1.attributes.maximumBonusPerAttribute}.`,
+        message: `${CHARACTER_ATTRIBUTE_CONTENT[attributeId].label} bonus must be a whole number from 0 to ${CHARACTER_CREATION_RULES_V1.attributes.maximumBonusPerAttribute}.`,
       })
       continue
     }
@@ -252,9 +292,7 @@ function validateAttributeBonuses(
     bonuses[attributeId] = bonus
   }
 
-  if (!bonusValuesAreValid || unexpectedKeys.length > 0) {
-    return null
-  }
+  if (!bonusValuesAreValid || unexpectedKeys.length > 0) return null
 
   const canonicalBonuses = bonuses as CharacterAttributeBonuses
   const spent = CHARACTER_ATTRIBUTE_IDS.reduce(
@@ -376,13 +414,11 @@ export function validateCharacterCreationIntent(input: unknown): CharacterCreati
     issues.push({
       code: 'invalid_foundation_discipline',
       field: 'foundationDisciplineId',
-      message: 'Choose one of the six Foundation Disciplines.',
+      message: 'Choose one available starting Discipline.',
     })
   }
 
-  if (issues.length > 0 || attributeBonuses === null) {
-    return { ok: false, issues }
-  }
+  if (issues.length > 0 || attributeBonuses === null) return { ok: false, issues }
 
   return {
     ok: true,
@@ -401,15 +437,12 @@ export function validateCharacterCreationIntent(input: unknown): CharacterCreati
 
 export function buildInitialCharacterState(input: unknown): InitialCharacterStateV1 {
   const validation = validateCharacterCreationIntent(input)
-  if (!validation.ok) {
-    throw new CharacterCreationRuleError(validation.issues)
-  }
+  if (!validation.ok) throw new CharacterCreationRuleError(validation.issues)
 
   const attributes = Object.fromEntries(
     CHARACTER_ATTRIBUTE_IDS.map((attributeId) => [
       attributeId,
-      CHARACTER_CREATION_RULES_V1.attributes.baseline +
-        validation.value.attributeBonuses[attributeId],
+      CHARACTER_CREATION_RULES_V1.attributes.baseline + validation.value.attributeBonuses[attributeId],
     ]),
   ) as CharacterAttributes
 
@@ -425,9 +458,7 @@ export function buildInitialCharacterState(input: unknown): InitialCharacterStat
     attributes,
     level: CHARACTER_CREATION_RULES_V1.initialProgression.level,
     xp: CHARACTER_CREATION_RULES_V1.initialProgression.xp,
-    progressionCycle: {
-      number: CHARACTER_CREATION_RULES_V1.initialProgression.cycleNumber,
-    },
+    progressionCycle: { number: CHARACTER_CREATION_RULES_V1.initialProgression.cycleNumber },
   }
 }
 

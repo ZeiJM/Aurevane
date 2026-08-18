@@ -1,50 +1,103 @@
 .layout {
   display: grid;
-  gap: 0.8rem;
-  max-width: 70rem;
+  gap: 0.65rem;
+  width: min(100%, 78rem);
   margin: 0 auto;
 }
+
 .hero {
-  padding: clamp(1.2rem, 3vw, 2rem);
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(17rem, 0.6fr);
+  gap: 1rem;
+  align-items: center;
+  padding: clamp(0.9rem, 1.8vw, 1.3rem);
 }
+
+.heroCopy {
+  min-width: 0;
+}
+
 .hero h1 {
-  margin: 0.5rem 0;
-  font: 500 clamp(2.5rem, 5vw, 4rem)/0.95 var(--av-font-display);
+  margin: 0.35rem 0 0.45rem;
+  font: 500 clamp(2rem, 4vw, 3.25rem)/0.96 var(--av-font-display);
 }
-.hero > p {
-  max-width: 52rem;
+
+.hero p {
+  max-width: 54rem;
   margin: 0;
   color: var(--av-text-muted);
-  font-size: 0.85rem;
-  line-height: 1.65;
+  font-size: 0.76rem;
+  line-height: 1.5;
 }
+
 .liveClock {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 1px;
-  margin-top: 1rem;
+  margin: 0;
   overflow: hidden;
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius-sm);
   background: var(--av-border);
 }
+
 .liveClock > div {
   display: grid;
-  gap: 0.3rem;
-  padding: 0.8rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.55rem 0.65rem;
   background: #090c11;
 }
+
 .liveClock span {
   color: var(--av-text-dim);
-  font: 650 0.54rem/1 var(--av-font-mono);
+  font: 650 0.5rem/1 var(--av-font-mono);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
+
 .liveClock strong {
   color: var(--av-text);
-  font-size: 0.72rem;
+  font-size: 0.65rem;
+  text-align: right;
 }
-@media (max-width: 700px) {
+
+.trainingGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  align-items: start;
+}
+
+.trainingGrid > :only-child {
+  grid-column: 1 / -1;
+}
+
+.trainingGrid :global(article),
+.trainingGrid :global(section) {
+  margin-top: 0;
+}
+
+@media (max-width: 900px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+  .liveClock {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .liveClock > div {
+    grid-template-columns: 1fr;
+  }
+  .liveClock strong {
+    text-align: left;
+  }
+  .trainingGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
   .liveClock {
     grid-template-columns: 1fr;
   }
