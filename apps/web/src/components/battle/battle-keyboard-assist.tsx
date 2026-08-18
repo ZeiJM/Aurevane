@@ -119,16 +119,15 @@ export function BattleKeyboardAssist() {
       if (action === 'move') return Boolean(commandButton('Move')?.click() ?? true)
       if (action === 'basicAttack') return Boolean(commandButton('Basic Attack')?.click() ?? true)
       if (action === 'guard') return Boolean(commandButton('Guard')?.click() ?? true)
-      if (action === 'endTurn')
-        return Boolean(
-          commandButton('Finish Turn', 'End Turn', 'Facing / End Turn')?.click() ?? true,
-        )
-      if (action === 'confirm')
-        return Boolean(
-          planningButton('Confirm action')?.click() ??
-            planningButton('Confirm command')?.click() ??
-            true,
-        )
+      if (action === 'endTurn') {
+        commandButton('Finish Turn', 'End Turn', 'Facing / End Turn')?.click()
+        return true
+      }
+      if (action === 'confirm') {
+        const button = planningButton('Confirm action') ?? planningButton('Confirm command')
+        button?.click()
+        return true
+      }
       if (action === 'cancel') return Boolean(planningButton('Cancel')?.click() ?? true)
       if (action === 'faceNorth')
         return Boolean(
