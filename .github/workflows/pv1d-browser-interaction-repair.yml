@@ -1,0 +1,160 @@
+name: PV-1D browser interaction repair
+
+on:
+  push:
+    branches:
+      - agent/pv-1d-combat-readability-correction
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/pv-1d-combat-readability-correction
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Apply browser interaction repairs
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          # Keep the mobile battlefield and commands in normal document flow so controls never cover tiles.
+          path = Path('apps/web/src/components/battle/battle-experience-v2.module.css')
+          text = path.read_text()
+          text = text.replace(
+              "  .objectiveBar {\n    align-items: flex-start;\n  }",
+              "  .objectiveBar {\n    position: static;\n    align-items: flex-start;\n  }",
+              1,
+          )
+          text = text.replace(
+              "  .commandDeck {\n    position: sticky;\n    bottom: 0;\n    z-index: 25;\n    border-radius: var(--av-radius-md) var(--av-radius-md) 0 0;\n  }",
+              "  .commandDeck {\n    position: static;\n    bottom: auto;\n    z-index: auto;\n    border-radius: var(--av-radius-md);\n  }",
+              1,
+          )
+          path.write_text(text)
+
+          # Guides are useful on demand but must never sit on top of the battlefield or command deck.
+          path = Path('apps/web/src/components/battle/battle-lesson-coach.module.css')
+          text = path.read_text()
+          start = text.index('.anchor {')
+          end = text.index('\n}\n\n.coach', start) + 2
+          text = text[:start] + ".anchor {\n  position: static;\n  z-index: auto;\n  width: min(22rem, calc(100% - 1.5rem));\n  margin: 0.25rem auto 1rem;\n  pointer-events: auto;\n}" + text[end:]
+          text = text.replace(
+              "  .anchor {\n    right: 0.55rem;\n    bottom: 5.8rem;\n    width: min(18rem, calc(100vw - 1.1rem));\n  }",
+              "  .anchor {\n    width: min(18rem, calc(100% - 1.1rem));\n    margin-bottom: 0.75rem;\n  }",
+              1,
+          )
+          path.write_text(text)
+
+          # Abort remains accessible at the end of the battle but never overlays primary combat controls.
+          path = Path('apps/web/src/components/battle/battle-abort-controls.module.css')
+          text = path.read_text()
+          text = text.replace(
+              "  position: fixed;\n  right: clamp(0.65rem, 1.5vw, 1rem);\n  bottom: 4.4rem;\n  z-index: 40;",
+              "  position: static;\n  z-index: auto;",
+              1,
+          )
+          text = text.replace(
+              "  width: min(27rem, calc(100vw - 1.3rem));\n  padding: 0.75rem;",
+              "  width: min(27rem, calc(100% - 1.3rem));\n  margin: 0 auto 1.25rem;\n  padding: 0.75rem;",
+              1,
+          )
+          text = text.replace('  pointer-events: none;\n', '  pointer-events: auto;\n', 1)
+          text = text.replace(
+              "  .panel {\n    right: 0.5rem;\n    bottom: 4rem;\n    width: calc(100vw - 1rem);\n  }",
+              "  .panel {\n    width: calc(100% - 1rem);\n    margin-bottom: 1rem;\n  }",
+              1,
+          )
+          path.write_text(text)
+
+          # Give browser checks a stable way to open the intentionally collapsed Practice drawer.
+          path = Path('apps/web/src/components/shell/authenticated-game-shell.tsx')
+          text = path.read_text()
+          text = text.replace(
+              '<details className={styles.practiceDrawer}>',
+              '<details className={styles.practiceDrawer} data-testid="practice-drawer">',
+              1,
+          )
+          path.write_text(text)
+
+          # Intentional navigation copy change.
+          path = Path('apps/web/e2e/character-creation.pw.ts')
+          text = path.read_text().replace(
+              "page.getByRole('link', { name: 'Open character profile' })",
+              "page.getByRole('link', { name: 'Character Profile' })",
+              1,
+          )
+          path.write_text(text)
+
+          # Recruit Sparring displays Duel Yard in two legitimate places; assert the first visible label.
+          path = Path('apps/web/e2e/battle-usability.pw.ts')
+          text = path.read_text().replace(
+              "await expect(page.getByText('Duel Yard', { exact: true })).toBeVisible()",
+              "await expect(page.getByText('Duel Yard', { exact: true }).first()).toBeVisible()",
+              1,
+          )
+          path.write_text(text)
+
+          # Practice is intentionally collapsed now. Open it after each page load before testing its contents.
+          path = Path('apps/web/e2e/wayfarers-practice.pw.ts')
+          text = path.read_text()
+          marker = "  await page.getByRole('button', { name: 'Create permanent character' }).click()\n\n  const planner"
+          replacement = "  await page.getByRole('button', { name: 'Create permanent character' }).click()\n  await openPracticeDrawer(page)\n\n  const planner"
+          if marker not in text:
+              raise SystemExit('Initial Practice marker not found')
+          text = text.replace(marker, replacement, 1)
+          text = text.replace(
+              "  await page.reload()\n  await expect(page.getByTestId('practice-plan-card')).toContainText('Overnight · 8h 0m')",
+              "  await page.reload()\n  await openPracticeDrawer(page)\n  await expect(page.getByTestId('practice-plan-card')).toContainText('Overnight · 8h 0m')",
+              1,
+          )
+          text = text.replace(
+              "  await page.reload()\n\n  const trainingReport",
+              "  await page.reload()\n  await openPracticeDrawer(page)\n\n  const trainingReport",
+              1,
+          )
+          text = text.replace(
+              "  await page.reload()\n  await expect(page.getByTestId('training-report')).toContainText('Planned Overnight')",
+              "  await page.reload()\n  await openPracticeDrawer(page)\n  await expect(page.getByTestId('training-report')).toContainText('Planned Overnight')",
+              1,
+          )
+          helper_marker = "\nasync function hasHorizontalOverflow(page: import('@playwright/test').Page): Promise<boolean> {"
+          helper = "\nasync function openPracticeDrawer(page: import('@playwright/test').Page): Promise<void> {\n  const drawer = page.getByTestId('practice-drawer')\n  await expect(drawer).toBeVisible()\n  if (!(await drawer.evaluate((element) => (element as HTMLDetailsElement).open))) {\n    await drawer.locator('summary').click()\n  }\n}\n"
+          if helper_marker not in text:
+              raise SystemExit('Practice helper insertion marker not found')
+          text = text.replace(helper_marker, helper + helper_marker, 1)
+          path.write_text(text)
+          PY
+          pnpm exec prettier --write \
+            apps/web/src/components/battle/battle-experience-v2.module.css \
+            apps/web/src/components/battle/battle-lesson-coach.module.css \
+            apps/web/src/components/battle/battle-abort-controls.module.css \
+            apps/web/src/components/shell/authenticated-game-shell.tsx \
+            apps/web/e2e/character-creation.pw.ts \
+            apps/web/e2e/battle-usability.pw.ts \
+            apps/web/e2e/wayfarers-practice.pw.ts
+      - name: Commit repairs
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            apps/web/src/components/battle/battle-experience-v2.module.css \
+            apps/web/src/components/battle/battle-lesson-coach.module.css \
+            apps/web/src/components/battle/battle-abort-controls.module.css \
+            apps/web/src/components/shell/authenticated-game-shell.tsx \
+            apps/web/e2e/character-creation.pw.ts \
+            apps/web/e2e/battle-usability.pw.ts \
+            apps/web/e2e/wayfarers-practice.pw.ts
+          git commit -m 'fix: keep corrective battle controls from covering interaction targets'
+          git push origin HEAD:agent/pv-1d-combat-readability-correction
