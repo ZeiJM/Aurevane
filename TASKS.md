@@ -6,21 +6,21 @@ The Master Game Plan defines the product. The Roadmap defines sequence. Canonica
 
 ## Current status
 
-**Stage:** PV-1 — Tactical Combat Human Retest / Corrective Implementation
+**Stage:** PV-1 — Tactical Combat Human Retest / Production Handoff
 
-**ACTIVE VALIDATION GATE:** issue #105 — PV-1C Conduct Tactical Combat Human/Internal Validation — **FAILED SLICE; RETEST BLOCKED UNTIL PV-1F IS COMPLETE AND LIVE**
+**ACTIVE VALIDATION GATE:** issue #105 — PV-1C Conduct Tactical Combat Human/Internal Validation — **RETEST READY AFTER EXACT PV-1F PRODUCTION DEPLOYMENT**
 
-**ACTIVE IMPLEMENTATION TICKET:** issue #112 — PV-1F Character hub, persistent game shell & 100-point tactical turn economy
+**ACTIVE IMPLEMENTATION TICKET:** none
 
-**ACTIVE IMPLEMENTATION PR:** draft PR #115
+**ACTIVE IMPLEMENTATION PR:** none
 
-The first human PV-1 pass established that players were fighting the interface instead of making readable tactical choices. PV-1D and PV-1E corrected the catastrophic rendering/layout layer, but subsequent owner and external-tester feedback exposed a deeper navigation/turn-model problem. PV-1F is the smallest coherent corrective boundary because the requested character hub, Tactical Hall flow, battle information hierarchy and Action Economy all meet at the same player journey.
+PV-1F / issue #112 / PR #115 is merged. Its quality, database/security and responsive authenticated browser gates passed on the exact tested head before merge. The remaining prerequisite is operational: deploy the exact merged runtime and reconcile the production Supabase schema/migration ledger before collecting new human evidence.
 
 Substantial Phase 3 implementation remains blocked. Automated checks may prove implementation safety, but only real human retesting on the corrected production build can reopen the PV-1 decision.
 
-## PV-1F correction boundary
+## PV-1F correction boundary — complete
 
-PV-1F is intentionally allowed to revise earlier combat baseline rules because the owner explicitly approved the revision during failed-product validation. The correction includes:
+PV-1F was intentionally allowed to revise earlier combat baseline rules because the owner explicitly approved the revision during failed-product validation. The merged correction includes:
 
 - Character Select as the post-login gateway with three numbered character slots;
 - occupied/empty slot cards, server-authoritative selection and 24-hour confirmed character-deletion grace state;
@@ -36,7 +36,9 @@ PV-1F is intentionally allowed to revise earlier combat baseline rules because t
 - multiple legal actions/moves while economy remains, with all costs and sequences server-authoritative;
 - compact battle cockpit with auto-fit board, player/enemy side rails, portrait HP/MP meters, status mini-icons, mutually exclusive detail popovers, contextual Inspect strip, Round→Combat Log and fixed battle footer controls;
 - beneficial effects use green-bordered mini-icons and harmful effects use red-bordered mini-icons;
-- solo Recruit battle reserves the collapsible chat surface without pretending multiplayer transport already exists.
+- solo Recruit battle reserves the collapsible chat surface without pretending multiplayer transport already exists;
+- authoritative Abort Exercise compatibility for both initial PV-1F Recruit provenance and canonical Tactical Hall arena provenance;
+- permanent automated deletion-lifecycle and pending-character non-playability proofs.
 
 ## Human evidence driving this correction
 
@@ -61,7 +63,7 @@ Recurring feedback across testers/owner included:
 - P1.7 public News/Manual/Rules foundation is complete.
 - P2.1–P2.7 combat engine, persistence, battle UX, Recruit AI, Tactical Hall, final-facing, keybind, arena-scale and Abort Exercise foundations are merged.
 - PV-1A telemetry, PV-1B evidence tooling and the PV-1C human validation gate are established.
-- PV-1D / PR #108 and PV-1E / PR #111 are merged corrective history.
+- PV-1D / PR #108, PV-1E / PR #111 and PV-1F / PR #115 are merged corrective history.
 
 ## Current authoritative documents
 
@@ -91,11 +93,11 @@ Recurring feedback across testers/owner included:
 ## Immediate sequence
 
 ```text
-Complete PV-1F / issue #112 / PR #115
+PV-1F / issue #112 / PR #115 merged with all implementation-safety gates green
   ↓
-Pass quality + database/security + responsive browser gates
+Deploy exact merged runtime + reconcile production Supabase migrations/schema
   ↓
-Merge and deploy the exact corrected runtime to production
+Verify production build identity and critical authenticated flow
   ↓
 Rerun real human PV-1 sessions under #105
   ↓
