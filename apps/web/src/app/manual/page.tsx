@@ -7,7 +7,8 @@ import { manualArticles } from '@/content/public-information'
 
 export const metadata: Metadata = {
   title: 'Adventurer’s Guide | AUREVANE',
-  description: 'The spoiler-safe public guide to AUREVANE’s released and currently testable systems.',
+  description:
+    'The spoiler-safe public guide to AUREVANE’s released and currently testable systems.',
 }
 
 export default function ManualPage() {

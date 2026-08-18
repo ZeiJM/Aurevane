@@ -63,9 +63,13 @@ test('Manual distinguishes current Tactical Hall play from planned roadmap direc
   await expect(page.getByText(/do not provide repeatable progression rewards/)).toBeVisible()
 
   await page.goto('/manual/road-ahead#planned-not-live')
-  await expect(page.getByRole('heading', { level: 1, name: 'Road Ahead — Approved Direction' })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { level: 1, name: 'Road Ahead — Approved Direction' }),
+  ).toBeVisible()
   await expect(page.getByText(/Everything in this article is planned direction/)).toBeVisible()
-  await expect(page.getByText(/Resonance is the current term replacing the retired Confluence/)).toBeVisible()
+  await expect(
+    page.getByText(/Resonance is the current term replacing the retired Confluence/),
+  ).toBeVisible()
 })
 
 test('Rules exposes stable section anchors and truthful current-scope language', async ({

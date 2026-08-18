@@ -299,7 +299,8 @@ export const manualArticles: readonly ManualArticle[] = [
     id: 'manual.tactical-hall',
     slug: 'tactical-hall',
     title: 'Tactical Hall & Practice Battles',
-    summary: 'Where to learn the current combat slice, what the records teach, and what practice awards.',
+    summary:
+      'Where to learn the current combat slice, what the records teach, and what practice awards.',
     category: 'Combat',
     lastUpdated: MANUAL_CONTENT_LAST_UPDATED,
     rulesVersion: 'P2.7 / PV-1',
@@ -444,7 +445,8 @@ export const manualArticles: readonly ManualArticle[] = [
     id: 'manual.road-ahead',
     slug: 'road-ahead',
     title: 'Road Ahead — Approved Direction',
-    summary: 'A spoiler-light map of approved future systems, clearly separated from current rules.',
+    summary:
+      'A spoiler-light map of approved future systems, clearly separated from current rules.',
     category: 'Planned',
     lastUpdated: MANUAL_CONTENT_LAST_UPDATED,
     rulesVersion: 'Roadmap context — not live rules',
@@ -551,7 +553,8 @@ export const manualArticles: readonly ManualArticle[] = [
     id: 'manual.glossary',
     slug: 'glossary',
     title: 'Glossary',
-    summary: 'Current player-facing terms plus clearly marked planning vocabulary used by this guide.',
+    summary:
+      'Current player-facing terms plus clearly marked planning vocabulary used by this guide.',
     category: 'Reference',
     lastUpdated: MANUAL_CONTENT_LAST_UPDATED,
     rulesVersion: 'PV-1 current build',
