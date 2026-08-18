@@ -1,5 +1,6 @@
 'use client'
 
+import type { PersistedCharacter } from '@aurevane/game-core/character/persistence'
 import { getFoundationDiscipline } from '@aurevane/game-core/character/foundation-disciplines'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -14,9 +15,10 @@ import styles from './character-select-shell.module.css'
 
 interface CharacterSelectShellProps {
   characters: readonly CharacterSlotCharacter[]
+  selectedCharacter: PersistedCharacter | null
 }
 
-export function CharacterSelectShell({ characters }: CharacterSelectShellProps) {
+export function CharacterSelectShell({ characters, selectedCharacter }: CharacterSelectShellProps) {
   const router = useRouter()
   const [deleting, setDeleting] = useState<CharacterSlotCharacter | null>(null)
   const [phrase, setPhrase] = useState('')
@@ -79,7 +81,25 @@ export function CharacterSelectShell({ characters }: CharacterSelectShellProps) 
             <small>Character Select</small>
           </span>
         </Link>
-        <AccountMenu />
+
+        <div className={styles.headerActions}>
+          <div className={styles.screenIdentity} aria-label="Current screen: Character Select">
+            {selectedCharacter ? (
+              <span className={styles.screenPortrait} title={selectedCharacter.name}>
+                <AurevaneImage
+                  assetId={getStarterPortraitImageAssetId(selectedCharacter.portraitRef)}
+                  className={styles.screenPortraitImage}
+                  sizes="2rem"
+                />
+              </span>
+            ) : null}
+            <span className={styles.screenLabel}>
+              <i aria-hidden="true" />
+              <strong>Character Select</strong>
+            </span>
+          </div>
+          <AccountMenu />
+        </div>
       </header>
 
       <main className={styles.main}>
