@@ -68,7 +68,14 @@ export function CharacterProfileShell({ profile }: CharacterProfileShellProps) {
                       : `${profile.progression.xp.toLocaleString('en')} / ${progress.nextLevelThreshold?.toLocaleString('en')} XP`}
                   </strong>
                 </div>
-                <div className={styles.track} role="progressbar" aria-label="Level progress" aria-valuemin={0} aria-valuemax={10000} aria-valuenow={progress.progressBasisPoints}>
+                <div
+                  className={styles.track}
+                  role="progressbar"
+                  aria-label="Level progress"
+                  aria-valuemin={0}
+                  aria-valuemax={10000}
+                  aria-valuenow={progress.progressBasisPoints}
+                >
                   <span style={{ width: `${progress.progressBasisPoints / 100}%` }} />
                 </div>
               </div>
@@ -76,9 +83,18 @@ export function CharacterProfileShell({ profile }: CharacterProfileShellProps) {
           </header>
 
           <nav className={styles.hubNav} aria-label="Character activities">
-            <Link href="/game/battle"><span>Tactical Hall</span><small>Practice and combat</small></Link>
-            <Link href="/game/settings/controls"><span>Controls &amp; Keybinds</span><small>Input preferences</small></Link>
-            <Link href="/game/training"><span>Offline Training</span><small>Progress from meaningful time away</small></Link>
+            <Link href="/game/battle">
+              <span>Tactical Hall</span>
+              <small>Practice and combat</small>
+            </Link>
+            <Link href="/game/settings/controls">
+              <span>Controls &amp; Keybinds</span>
+              <small>Input preferences</small>
+            </Link>
+            <Link href="/game/training">
+              <span>Offline Training</span>
+              <small>Progress from meaningful time away</small>
+            </Link>
           </nav>
 
           <section className={styles.compactSection} aria-labelledby="attributes-title">
@@ -129,16 +145,31 @@ export function CharacterProfileShell({ profile }: CharacterProfileShellProps) {
               <span>Equipped title</span>
               <strong>None equipped</strong>
             </div>
-            <p>Custom titles, earned distinctions, badges, and visible profile honors live here as those systems unlock.</p>
+            <p>
+              Custom titles, earned distinctions, badges, and visible profile honors live here as
+              those systems unlock.
+            </p>
           </Surface>
 
           <Surface className={styles.sideCard} tone="quiet">
             <Kicker marker="◇">Character Record</Kicker>
             <dl className={styles.record}>
-              <div><dt>Slot</dt><dd>{profile.slotIndex + 1}</dd></div>
-              <div><dt>Level</dt><dd>{profile.progression.level}</dd></div>
-              <div><dt>Total XP</dt><dd>{profile.progression.xp.toLocaleString('en')}</dd></div>
-              <div><dt>Created</dt><dd>{created}</dd></div>
+              <div>
+                <dt>Slot</dt>
+                <dd>{profile.slotIndex + 1}</dd>
+              </div>
+              <div>
+                <dt>Level</dt>
+                <dd>{profile.progression.level}</dd>
+              </div>
+              <div>
+                <dt>Total XP</dt>
+                <dd>{profile.progression.xp.toLocaleString('en')}</dd>
+              </div>
+              <div>
+                <dt>Created</dt>
+                <dd>{created}</dd>
+              </div>
             </dl>
           </Surface>
         </aside>

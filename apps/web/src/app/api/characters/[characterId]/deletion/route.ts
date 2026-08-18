@@ -43,10 +43,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     const actor = await getAuthenticatedActor()
     const { characterId } = await context.params
     const cancelled = await cancelCharacterDeletion(actor.userId, characterId)
-    return Response.json(
-      { cancelled },
-      { headers: { 'Cache-Control': 'private, no-store' } },
-    )
+    return Response.json({ cancelled }, { headers: { 'Cache-Control': 'private, no-store' } })
   } catch (error) {
     return toServerErrorResponse(error)
   }

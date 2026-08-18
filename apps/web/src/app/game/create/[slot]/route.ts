@@ -4,10 +4,7 @@ import { getAuthenticatedActor } from '@/server/auth/actor'
 import { isCharacterSlotIndex, loadCharacterSlots } from '@/server/character/character-slot-service'
 import { CREATION_SLOT_COOKIE } from '@/server/character/selected-character'
 
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ slot: string }> },
-) {
+export async function GET(request: Request, { params }: { params: Promise<{ slot: string }> }) {
   const actor = await getAuthenticatedActor()
   const { slot } = await params
   const slotIndex = Number(slot)
@@ -19,7 +16,9 @@ export async function GET(
   }
 
   if (!isCharacterSlotIndex(slotIndex)) return response
-  const occupied = (await loadCharacterSlots(actor.userId)).some((character) => character.slotIndex === slotIndex)
+  const occupied = (await loadCharacterSlots(actor.userId)).some(
+    (character) => character.slotIndex === slotIndex,
+  )
   if (occupied) return response
 
   response.cookies.set(CREATION_SLOT_COOKIE, String(slotIndex), {

@@ -41,7 +41,12 @@ export interface BattleActionPreview {
   primaryCombatantId: string | null
   affectedTiles: readonly { x: number; y: number }[]
   affectedCombatantIds: readonly string[]
-  projectedEffects: readonly { effectType: string; combatantId: string; before: number | string; after: number | string }[]
+  projectedEffects: readonly {
+    effectType: string
+    combatantId: string
+    before: number | string
+    after: number | string
+  }[]
   mpCost: number
   actionEconomyCost: number
   actionEconomyBefore: number
@@ -67,7 +72,8 @@ export interface BattleEndTurnPreview {
   issues: readonly BattlePreviewIssue[]
 }
 
-export type BattleIntentPreview = BattleMovePreview | BattleActionPreview | BattleFacingPreview | BattleEndTurnPreview
+export type BattleIntentPreview =
+  BattleMovePreview | BattleActionPreview | BattleFacingPreview | BattleEndTurnPreview
 
 export interface BattlePreviewView {
   battleSessionId: string
@@ -96,7 +102,8 @@ function persistenceInvalid(): AurevaneError {
 
 function readPersistedEncounter(record: BattleSessionRecord): StatDrivenCombatEncounterState {
   const snapshot = record.snapshot
-  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) throw persistenceInvalid()
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot))
+    throw persistenceInvalid()
   try {
     const candidate = snapshot as StatDrivenCombatEncounterState
     const issues = validateStatDrivenCombatEncounterState(candidate)
@@ -108,13 +115,22 @@ function readPersistedEncounter(record: BattleSessionRecord): StatDrivenCombatEn
   }
 }
 
-function assertControlledTurn(state: StatDrivenCombatEncounterState, controlledCombatantIds: readonly string[]): void {
+function assertControlledTurn(
+  state: StatDrivenCombatEncounterState,
+  controlledCombatantIds: readonly string[],
+): void {
   const turn = state.tactical.battle.currentTurn
   if (state.tactical.battle.lifecycle !== 'active' || !turn) {
-    throw new AurevaneError('INVALID_REQUEST', 'That battle does not currently accept a player command.')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'That battle does not currently accept a player command.',
+    )
   }
   if (!controlledCombatantIds.includes(turn.combatantId)) {
-    throw new AurevaneError('FORBIDDEN', 'Battle previews are available only during your character’s turn.')
+    throw new AurevaneError(
+      'FORBIDDEN',
+      'Battle previews are available only during your character’s turn.',
+    )
   }
 }
 
@@ -122,7 +138,10 @@ function issue(code: string, message: string): BattlePreviewIssue {
   return { code, message }
 }
 
-function previewIntent(state: StatDrivenCombatEncounterState, intent: BattleIntent): BattleIntentPreview {
+function previewIntent(
+  state: StatDrivenCombatEncounterState,
+  intent: BattleIntent,
+): BattleIntentPreview {
   if (intent.kind === 'move') {
     const { prepared, movement, economyCost } = evaluatePv1fMovement(state, intent.path)
     const economy = readPv1fActionEconomy(prepared)
@@ -139,19 +158,40 @@ function previewIntent(state: StatDrivenCombatEncounterState, intent: BattleInte
       destination: movement.destination,
       issues: [
         ...movement.issues.map((entry) => issue(entry.code, entry.message)),
-        ...(affordable ? [] : [issue('insufficient-action-economy', 'That path costs more Action Economy than remains this turn.')]),
+        ...(affordable
+          ? []
+          : [
+              issue(
+                'insufficient-action-economy',
+                'That path costs more Action Economy than remains this turn.',
+              ),
+            ]),
       ],
     }
   }
 
   if (intent.kind === 'action') {
-    const { prepared, action, cost, evaluation } = evaluatePv1fAction(state, intent.actionId, intent.target)
+    const { prepared, action, cost, evaluation } = evaluatePv1fAction(
+      state,
+      intent.actionId,
+      intent.target,
+    )
     const economy = readPv1fActionEconomy(prepared)
     const before = economy?.current ?? 0
     const affordable = before >= cost
     const forecast =
       action.sourceType === 'basic-attack'
-        ? forecastStatDrivenAttack(prepared, action, intent.target, { statuses: [{ id: 'guarded', version: 1, maximumStacks: 1, durationOwnerTurnStarts: 2, damageTakenMultiplierBasisPoints: 8_500 }] })
+        ? forecastStatDrivenAttack(prepared, action, intent.target, {
+            statuses: [
+              {
+                id: 'guarded',
+                version: 1,
+                maximumStacks: 1,
+                durationOwnerTurnStarts: 2,
+                damageTakenMultiplierBasisPoints: 8_500,
+              },
+            ],
+          })
         : null
     return {
       kind: 'action',
@@ -172,7 +212,14 @@ function previewIntent(state: StatDrivenCombatEncounterState, intent: BattleInte
       mitigatedBaseDamage: forecast?.mitigatedBaseDamage ?? null,
       issues: [
         ...evaluation.issues.map((entry) => issue(entry.code, entry.message)),
-        ...(affordable ? [] : [issue('insufficient-action-economy', 'Not enough Action Economy remains for that action.')]),
+        ...(affordable
+          ? []
+          : [
+              issue(
+                'insufficient-action-economy',
+                'Not enough Action Economy remains for that action.',
+              ),
+            ]),
       ],
     }
   }
@@ -187,7 +234,12 @@ function previewIntent(state: StatDrivenCombatEncounterState, intent: BattleInte
         legal: false,
         facing: intent.facing,
         endsTurn: true,
-        issues: [issue('final-facing-not-legal', error instanceof Error ? error.message : 'That facing is not legal.')],
+        issues: [
+          issue(
+            'final-facing-not-legal',
+            error instanceof Error ? error.message : 'That facing is not legal.',
+          ),
+        ],
       }
     }
   }
@@ -195,7 +247,9 @@ function previewIntent(state: StatDrivenCombatEncounterState, intent: BattleInte
   return {
     kind: 'end-turn',
     legal: false,
-    issues: [issue('choose-final-facing', 'Choose North, East, South, or West to finish the turn.')],
+    issues: [
+      issue('choose-final-facing', 'Choose North, East, South, or West to finish the turn.'),
+    ],
   }
 }
 

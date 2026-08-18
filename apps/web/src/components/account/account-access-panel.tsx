@@ -57,7 +57,9 @@ export function AccountAccessPanel({ authConfig, initialMessage = '' }: AccountA
         }
 
         if (!(await claimGameplaySession())) {
-          setMessage('Signed in, but the game session could not be activated. Try again in a moment.')
+          setMessage(
+            'Signed in, but the game session could not be activated. Try again in a moment.',
+          )
           return
         }
 
@@ -74,13 +76,17 @@ export function AccountAccessPanel({ authConfig, initialMessage = '' }: AccountA
       })
 
       if (error) {
-        setMessage('We could not create that account. Check your details or try signing in instead.')
+        setMessage(
+          'We could not create that account. Check your details or try signing in instead.',
+        )
         return
       }
 
       if (data.session) {
         if (!(await claimGameplaySession())) {
-          setMessage('Account created, but the game session could not be activated yet. Try signing in.')
+          setMessage(
+            'Account created, but the game session could not be activated yet. Try signing in.',
+          )
           return
         }
         window.location.assign('/game')

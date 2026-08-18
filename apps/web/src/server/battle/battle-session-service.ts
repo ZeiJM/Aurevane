@@ -29,9 +29,15 @@ import {
   type StatDrivenCombatEncounterState,
   type StatDrivenCombatProfile,
 } from '@aurevane/game-core/combat/stat-driven-combat'
-import { getTacticalHallArena, type TacticalHallArenaId } from '@aurevane/game-core/combat/tactical-hall-arenas'
+import {
+  getTacticalHallArena,
+  type TacticalHallArenaId,
+} from '@aurevane/game-core/combat/tactical-hall-arenas'
 import { AurevaneError } from '@aurevane/game-core/errors'
-import { createBattleSessionChangedInvalidation, type BattleSessionChangedInvalidation } from '@aurevane/realtime'
+import {
+  createBattleSessionChangedInvalidation,
+  type BattleSessionChangedInvalidation,
+} from '@aurevane/realtime'
 import type { BattleAiDifficulty, BattleIntent } from '@aurevane/validation/combat/battle-session'
 
 const PV1F_RULES_VERSION = 2
@@ -39,8 +45,12 @@ const PV1F_CONTENT_VERSION = 2
 const PV1F_BASE_MOVEMENT_UNITS = 10
 
 type ProjectedBattleState = Omit<StatDrivenCombatEncounterState['tactical']['battle'], 'rng'>
-type ProjectedTacticalState = Omit<StatDrivenCombatEncounterState['tactical'], 'battle'> & { battle: ProjectedBattleState }
-export type BattleSessionProjection = Omit<StatDrivenCombatEncounterState, 'tactical'> & { tactical: ProjectedTacticalState }
+type ProjectedTacticalState = Omit<StatDrivenCombatEncounterState['tactical'], 'battle'> & {
+  battle: ProjectedBattleState
+}
+export type BattleSessionProjection = Omit<StatDrivenCombatEncounterState, 'tactical'> & {
+  tactical: ProjectedTacticalState
+}
 
 export interface BattleSessionView {
   battleSessionId: string
@@ -72,18 +82,38 @@ export interface BattleSessionService {
   submitIntent(command: SubmitBattleIntentCommand): Promise<BattleSessionView>
 }
 
-interface Dependencies { characters: CharacterRepository; battles: BattleSessionRepository }
+interface Dependencies {
+  characters: CharacterRepository
+  battles: BattleSessionRepository
+}
 
-function invalidBattleIntent(): AurevaneError { return new AurevaneError('INVALID_REQUEST', 'That battle command is not legal in the current state.') }
-function battleUnavailable(): AurevaneError { return new AurevaneError('FORBIDDEN', 'That battle is not available to this account.') }
-function persistenceInvalid(): AurevaneError { return new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The stored battle state is invalid.') }
-function fingerprint(value: unknown): string { return `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}` }
+function invalidBattleIntent(): AurevaneError {
+  return new AurevaneError(
+    'INVALID_REQUEST',
+    'That battle command is not legal in the current state.',
+  )
+}
+function battleUnavailable(): AurevaneError {
+  return new AurevaneError('FORBIDDEN', 'That battle is not available to this account.')
+}
+function persistenceInvalid(): AurevaneError {
+  return new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The stored battle state is invalid.')
+}
+function fingerprint(value: unknown): string {
+  return `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`
+}
 
-function recruitScenarioProfile(difficulty: BattleAiDifficulty): Omit<StatDrivenCombatProfile, 'combatantId'> {
+function recruitScenarioProfile(
+  difficulty: BattleAiDifficulty,
+): Omit<StatDrivenCombatProfile, 'combatantId'> {
   const accuracy = difficulty === 'easy' ? 6_600 : difficulty === 'high' ? 7_300 : 7_000
   const evasion = difficulty === 'easy' ? 650 : difficulty === 'high' ? 950 : 800
   return {
-    provenance: { kind: 'scenario', sourceId: `scenario:p2-7-recruit:duel:${difficulty}`, sourceRulesVersion: PV1F_CONTENT_VERSION },
+    provenance: {
+      kind: 'scenario',
+      sourceId: `scenario:p2-7-recruit:duel:${difficulty}`,
+      sourceRulesVersion: PV1F_CONTENT_VERSION,
+    },
     accuracy,
     evasion,
     armor: 20,
@@ -101,68 +131,101 @@ function createVerticalSliceEncounter(
   const playerCombatantId = `character:${character.id}`
   const recruitCombatantId = 'recruit:p2-4-1'
   const derived = calculateDerivedStats({
-    attributes: { might: character.might, finesse: character.finesse, intellect: character.intellect, resolve: character.resolve },
+    attributes: {
+      might: character.might,
+      finesse: character.finesse,
+      intellect: character.intellect,
+      resolve: character.resolve,
+    },
     level: character.level,
   })
-  const playerProfile = createCharacterDerivedCombatProfile(playerCombatantId, character.id, derived)
-  const recruitProfile: StatDrivenCombatProfile = { combatantId: recruitCombatantId, ...recruitScenarioProfile(aiDifficulty) }
+  const playerProfile = createCharacterDerivedCombatProfile(
+    playerCombatantId,
+    character.id,
+    derived,
+  )
+  const recruitProfile: StatDrivenCombatProfile = {
+    combatantId: recruitCombatantId,
+    ...recruitScenarioProfile(aiDifficulty),
+  }
   const playerMovementProfile = {
     ...P2_2_ORDINARY_GROUND_PROFILE,
     id: `character-ground:${character.id}`,
     maxElevationStep: derived.stats.jump.value,
   }
-  const playerAttackDamage = calculatePv1fBasicAttackDamage({ level: character.level, might: character.might, finesse: character.finesse })
+  const playerAttackDamage = calculatePv1fBasicAttackDamage({
+    level: character.level,
+    might: character.might,
+    finesse: character.finesse,
+  })
   const recruitAttackDamage = calculatePv1fBasicAttackDamage({ level: 1, might: 5, finesse: 5 })
 
-  const battle = startBattle(createPendingBattle({
-    battleId: `battle:${randomUUID()}`,
-    rulesVersion: PV1F_RULES_VERSION,
-    contentVersion: PV1F_CONTENT_VERSION,
-    rngSeed: randomInt(1, 0x1_0000_0000),
-    combatants: [
-      {
-        id: playerCombatantId,
-        teamId: 'players',
-        initiative: derived.stats.initiative.value,
-        baseMovementBudget: PV1F_BASE_MOVEMENT_UNITS,
-        hp: derived.stats.maxHp.value,
-        maxHp: derived.stats.maxHp.value,
-        mp: derived.stats.maxMp.value,
-        maxMp: derived.stats.maxMp.value,
-        temporaryResources: createPv1fTemporaryResources(playerAttackDamage),
-      },
-      {
-        id: recruitCombatantId,
-        teamId: 'opponents',
-        initiative: 5,
-        baseMovementBudget: PV1F_BASE_MOVEMENT_UNITS,
-        hp: 80,
-        maxHp: 80,
-        mp: 25,
-        maxMp: 25,
-        temporaryResources: createPv1fTemporaryResources(recruitAttackDamage),
-      },
-    ],
-  })).state
+  const battle = startBattle(
+    createPendingBattle({
+      battleId: `battle:${randomUUID()}`,
+      rulesVersion: PV1F_RULES_VERSION,
+      contentVersion: PV1F_CONTENT_VERSION,
+      rngSeed: randomInt(1, 0x1_0000_0000),
+      combatants: [
+        {
+          id: playerCombatantId,
+          teamId: 'players',
+          initiative: derived.stats.initiative.value,
+          baseMovementBudget: PV1F_BASE_MOVEMENT_UNITS,
+          hp: derived.stats.maxHp.value,
+          maxHp: derived.stats.maxHp.value,
+          mp: derived.stats.maxMp.value,
+          maxMp: derived.stats.maxMp.value,
+          temporaryResources: createPv1fTemporaryResources(playerAttackDamage),
+        },
+        {
+          id: recruitCombatantId,
+          teamId: 'opponents',
+          initiative: 5,
+          baseMovementBudget: PV1F_BASE_MOVEMENT_UNITS,
+          hp: 80,
+          maxHp: 80,
+          mp: 25,
+          maxMp: 25,
+          temporaryResources: createPv1fTemporaryResources(recruitAttackDamage),
+        },
+      ],
+    }),
+  ).state
 
-  const encounter = createCombatEncounterState(createTacticalBattleState({
-    battle,
-    width: arena.width,
-    height: arena.height,
-    terrains: P2_2_VERTICAL_SLICE_TERRAINS,
-    tiles: arena.tiles,
-    movementProfiles: [playerMovementProfile, P2_2_ORDINARY_GROUND_PROFILE],
-    placements: [
-      { combatantId: playerCombatantId, position: arena.playerSpawn, facing: 'east', movementProfileId: playerMovementProfile.id },
-      { combatantId: recruitCombatantId, position: arena.recruitSpawn, facing: 'west', movementProfileId: P2_2_ORDINARY_GROUND_PROFILE.id },
-    ],
-  }))
+  const encounter = createCombatEncounterState(
+    createTacticalBattleState({
+      battle,
+      width: arena.width,
+      height: arena.height,
+      terrains: P2_2_VERTICAL_SLICE_TERRAINS,
+      tiles: arena.tiles,
+      movementProfiles: [playerMovementProfile, P2_2_ORDINARY_GROUND_PROFILE],
+      placements: [
+        {
+          combatantId: playerCombatantId,
+          position: arena.playerSpawn,
+          facing: 'east',
+          movementProfileId: playerMovementProfile.id,
+        },
+        {
+          combatantId: recruitCombatantId,
+          position: arena.recruitSpawn,
+          facing: 'west',
+          movementProfileId: P2_2_ORDINARY_GROUND_PROFILE.id,
+        },
+      ],
+    }),
+  )
 
-  return preparePv1fTurnEconomy(createStatDrivenCombatEncounterState(encounter, [playerProfile, recruitProfile]))
+  return preparePv1fTurnEconomy(
+    createStatDrivenCombatEncounterState(encounter, [playerProfile, recruitProfile]),
+  )
 }
 
 function readPersistedEncounter(snapshot: unknown): StatDrivenCombatEncounterState {
-  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) throw persistenceInvalid()
+  if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot))
+    throw persistenceInvalid()
   try {
     const candidate = snapshot as StatDrivenCombatEncounterState
     const issues = validateStatDrivenCombatEncounterState(candidate)
@@ -196,23 +259,40 @@ function projectBattleSnapshot(state: StatDrivenCombatEncounterState): BattleSes
   }
 }
 
-function assertControlledCombatantProjection(state: StatDrivenCombatEncounterState, controlledCombatantIds: readonly string[]): void {
-  if (controlledCombatantIds.length === 0 || new Set(controlledCombatantIds).size !== controlledCombatantIds.length) throw persistenceInvalid()
+function assertControlledCombatantProjection(
+  state: StatDrivenCombatEncounterState,
+  controlledCombatantIds: readonly string[],
+): void {
+  if (
+    controlledCombatantIds.length === 0 ||
+    new Set(controlledCombatantIds).size !== controlledCombatantIds.length
+  )
+    throw persistenceInvalid()
   for (const combatantId of controlledCombatantIds) {
-    if (!state.tactical.battle.combatants.some((combatant) => combatant.id === combatantId)) throw persistenceInvalid()
+    if (!state.tactical.battle.combatants.some((combatant) => combatant.id === combatantId))
+      throw persistenceInvalid()
   }
 }
 
-function assertPlayerControlledTurn(state: StatDrivenCombatEncounterState, controlledCombatantIds: readonly string[]): void {
+function assertPlayerControlledTurn(
+  state: StatDrivenCombatEncounterState,
+  controlledCombatantIds: readonly string[],
+): void {
   const battle = state.tactical.battle
   const turn = battle.currentTurn
   if (battle.lifecycle !== 'active' || !turn) throw invalidBattleIntent()
   if (!controlledCombatantIds.includes(turn.combatantId)) {
-    throw new AurevaneError('FORBIDDEN', 'Player battle commands are accepted only during the selected character’s turn.')
+    throw new AurevaneError(
+      'FORBIDDEN',
+      'Player battle commands are accepted only during the selected character’s turn.',
+    )
   }
 }
 
-function resolveIntent(state: StatDrivenCombatEncounterState, intent: BattleIntent): { state: StatDrivenCombatEncounterState; events: readonly unknown[] } {
+function resolveIntent(
+  state: StatDrivenCombatEncounterState,
+  intent: BattleIntent,
+): { state: StatDrivenCombatEncounterState; events: readonly unknown[] } {
   try {
     if (intent.kind === 'move') return executePv1fMovement(state, intent.path)
     if (intent.kind === 'action') return executePv1fAction(state, intent.actionId, intent.target)
@@ -220,14 +300,19 @@ function resolveIntent(state: StatDrivenCombatEncounterState, intent: BattleInte
       const prepared = preparePv1fTurnEconomy(state)
       const transition = selectCurrentFinalFacing(prepared.tactical, intent.facing)
       return {
-        state: reattachStatDrivenCombatBridge(createCombatEncounterState(transition.state, prepared.statusState), prepared.statBridge),
+        state: reattachStatDrivenCombatBridge(
+          createCombatEncounterState(transition.state, prepared.statusState),
+          prepared.statBridge,
+        ),
         events: transition.events,
       }
     }
     const prepared = preparePv1fTurnEconomy(state)
     const transition = endCombatTurn(prepared, PV1F_COMBAT_CONTENT)
     return {
-      state: preparePv1fTurnEconomy(reattachStatDrivenCombatBridge(transition.state, prepared.statBridge)),
+      state: preparePv1fTurnEconomy(
+        reattachStatDrivenCombatBridge(transition.state, prepared.statBridge),
+      ),
       events: transition.events,
     }
   } catch (error) {
@@ -236,11 +321,15 @@ function resolveIntent(state: StatDrivenCombatEncounterState, intent: BattleInte
   }
 }
 
-export function createBattleSessionService({ characters, battles }: Dependencies): BattleSessionService {
+export function createBattleSessionService({
+  characters,
+  battles,
+}: Dependencies): BattleSessionService {
   return {
     async createSession(command) {
       const character = await characters.findByOwnerId(command.userId, command.characterId)
-      if (!character) throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
+      if (!character)
+        throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
       const arenaId = command.arenaId ?? 'basic-training-floor'
       const aiDifficulty = command.aiDifficulty ?? 'standard'
       const encounter = createVerticalSliceEncounter(character, arenaId, aiDifficulty)
@@ -248,14 +337,24 @@ export function createBattleSessionService({ characters, battles }: Dependencies
       const persisted = await battles.createBattleSession({
         actorKey: command.userId,
         idempotencyKey: command.idempotencyKey,
-        requestFingerprint: fingerprint({ command: 'battle.create.v2', userId: command.userId, characterId: command.characterId, arenaId, aiDifficulty }),
+        requestFingerprint: fingerprint({
+          command: 'battle.create.v2',
+          userId: command.userId,
+          characterId: command.characterId,
+          arenaId,
+          aiDifficulty,
+        }),
         userId: command.userId,
         battleId: battle.battleId,
         rulesVersion: battle.rulesVersion,
         contentVersion: battle.contentVersion,
         initialSnapshot: encounter,
         participants: [
-          { combatantId: `character:${character.id}`, participantRole: 'player', characterId: character.id },
+          {
+            combatantId: `character:${character.id}`,
+            participantRole: 'player',
+            characterId: character.id,
+          },
           { combatantId: 'recruit:p2-4-1', participantRole: 'opponent', characterId: null },
         ],
       })
@@ -264,7 +363,12 @@ export function createBattleSessionService({ characters, battles }: Dependencies
         battleVersion: persisted.result.battleVersion,
         snapshot: projectBattleSnapshot(readPersistedEncounter(persisted.result.snapshot)),
         replayed: persisted.replayed,
-        invalidation: createBattleSessionChangedInvalidation({ battleSessionId: persisted.result.battleSessionId, battleVersion: persisted.result.battleVersion, occurredAt: persisted.result.createdAt, reason: 'created' }),
+        invalidation: createBattleSessionChangedInvalidation({
+          battleSessionId: persisted.result.battleSessionId,
+          battleVersion: persisted.result.battleVersion,
+          occurredAt: persisted.result.createdAt,
+          reason: 'created',
+        }),
       }
     },
 
@@ -272,9 +376,20 @@ export function createBattleSessionService({ characters, battles }: Dependencies
       const persisted = await battles.findBattleSession(userId, battleSessionId)
       if (!persisted) throw battleUnavailable()
       const snapshot = readPersistedEncounter(persisted.snapshot)
-      if (snapshot.tactical.battle.battleId !== persisted.battleId || snapshot.tactical.battle.rulesVersion !== persisted.rulesVersion || snapshot.tactical.battle.contentVersion !== persisted.contentVersion) throw persistenceInvalid()
+      if (
+        snapshot.tactical.battle.battleId !== persisted.battleId ||
+        snapshot.tactical.battle.rulesVersion !== persisted.rulesVersion ||
+        snapshot.tactical.battle.contentVersion !== persisted.contentVersion
+      )
+        throw persistenceInvalid()
       assertControlledCombatantProjection(snapshot, persisted.controlledCombatantIds)
-      return { battleSessionId: persisted.battleSessionId, battleVersion: persisted.battleVersion, snapshot: projectBattleSnapshot(snapshot), replayed: false, invalidation: null }
+      return {
+        battleSessionId: persisted.battleSessionId,
+        battleVersion: persisted.battleVersion,
+        snapshot: projectBattleSnapshot(snapshot),
+        replayed: false,
+        invalidation: null,
+      }
     },
 
     async submitIntent(command) {
@@ -282,28 +397,61 @@ export function createBattleSessionService({ characters, battles }: Dependencies
       if (!current) throw battleUnavailable()
       const state = readPersistedEncounter(current.snapshot)
       assertControlledCombatantProjection(state, current.controlledCombatantIds)
-      const requestFingerprint = fingerprint({ command: 'battle.intent.v2', battleSessionId: command.battleSessionId, expectedBattleVersion: command.expectedBattleVersion, intent: command.intent })
+      const requestFingerprint = fingerprint({
+        command: 'battle.intent.v2',
+        battleSessionId: command.battleSessionId,
+        expectedBattleVersion: command.expectedBattleVersion,
+        intent: command.intent,
+      })
 
       if (current.battleVersion !== command.expectedBattleVersion) {
-        const replayOrStale = await battles.commitBattleIntent({ actorKey: command.userId, idempotencyKey: command.idempotencyKey, requestFingerprint, userId: command.userId, battleSessionId: command.battleSessionId, expectedBattleVersion: command.expectedBattleVersion, nextSnapshot: current.snapshot, events: [] })
+        const replayOrStale = await battles.commitBattleIntent({
+          actorKey: command.userId,
+          idempotencyKey: command.idempotencyKey,
+          requestFingerprint,
+          userId: command.userId,
+          battleSessionId: command.battleSessionId,
+          expectedBattleVersion: command.expectedBattleVersion,
+          nextSnapshot: current.snapshot,
+          events: [],
+        })
         return {
           battleSessionId: replayOrStale.result.battleSessionId,
           battleVersion: replayOrStale.result.battleVersion,
           snapshot: projectBattleSnapshot(readPersistedEncounter(replayOrStale.result.snapshot)),
           replayed: replayOrStale.replayed,
-          invalidation: createBattleSessionChangedInvalidation({ battleSessionId: replayOrStale.result.battleSessionId, battleVersion: replayOrStale.result.battleVersion, occurredAt: replayOrStale.result.committedAt, reason: 'state_changed' }),
+          invalidation: createBattleSessionChangedInvalidation({
+            battleSessionId: replayOrStale.result.battleSessionId,
+            battleVersion: replayOrStale.result.battleVersion,
+            occurredAt: replayOrStale.result.committedAt,
+            reason: 'state_changed',
+          }),
         }
       }
 
       assertPlayerControlledTurn(state, current.controlledCombatantIds)
       const resolved = resolveIntent(state, command.intent)
-      const committed = await battles.commitBattleIntent({ actorKey: command.userId, idempotencyKey: command.idempotencyKey, requestFingerprint, userId: command.userId, battleSessionId: command.battleSessionId, expectedBattleVersion: command.expectedBattleVersion, nextSnapshot: resolved.state, events: resolved.events })
+      const committed = await battles.commitBattleIntent({
+        actorKey: command.userId,
+        idempotencyKey: command.idempotencyKey,
+        requestFingerprint,
+        userId: command.userId,
+        battleSessionId: command.battleSessionId,
+        expectedBattleVersion: command.expectedBattleVersion,
+        nextSnapshot: resolved.state,
+        events: resolved.events,
+      })
       return {
         battleSessionId: committed.result.battleSessionId,
         battleVersion: committed.result.battleVersion,
         snapshot: projectBattleSnapshot(readPersistedEncounter(committed.result.snapshot)),
         replayed: committed.replayed,
-        invalidation: createBattleSessionChangedInvalidation({ battleSessionId: committed.result.battleSessionId, battleVersion: committed.result.battleVersion, occurredAt: committed.result.committedAt, reason: 'state_changed' }),
+        invalidation: createBattleSessionChangedInvalidation({
+          battleSessionId: committed.result.battleSessionId,
+          battleVersion: committed.result.battleVersion,
+          occurredAt: committed.result.committedAt,
+          reason: 'state_changed',
+        }),
       }
     },
   }

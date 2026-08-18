@@ -24,7 +24,9 @@ export interface TrainingReportCardData {
   restedMomentumCapReached: boolean
 }
 
-interface TrainingReportCardProps { report: TrainingReportCardData }
+interface TrainingReportCardProps {
+  report: TrainingReportCardData
+}
 
 export function TrainingReportCard({ report }: TrainingReportCardProps) {
   const router = useRouter()
@@ -66,17 +68,33 @@ export function TrainingReportCard({ report }: TrainingReportCardProps) {
   return (
     <section className={styles.report} data-testid="training-report">
       <div className={styles.heading}>
-        <div><Kicker marker="◇">Offline Training</Kicker><h2>Training Report</h2></div>
+        <div>
+          <Kicker marker="◇">Offline Training</Kicker>
+          <h2>Training Report</h2>
+        </div>
         <span>{planLabel ? `Planned ${planLabel}` : 'Automatic Balanced'}</span>
       </div>
       <p className={styles.intro}>
-        While you were away, your character completed a modest routine. This report is frozen and waits safely until you claim it.
+        While you were away, your character completed a modest routine. This report is frozen and
+        waits safely until you claim it.
       </p>
       <dl className={styles.rewards}>
-        <div><dt>Absence measured</dt><dd>{formatPracticeDuration(report.elapsedSeconds)}</dd></div>
-        <div><dt>Training time credited</dt><dd>{formatPracticeDuration(report.creditedPracticeSeconds)}</dd></div>
-        <div><dt>Character XP</dt><dd>+{report.requestedCharacterXp.toLocaleString('en-US')}</dd></div>
-        <div><dt>Rested Momentum</dt><dd>+{report.restedMomentumGain.toLocaleString('en-US')}</dd></div>
+        <div>
+          <dt>Absence measured</dt>
+          <dd>{formatPracticeDuration(report.elapsedSeconds)}</dd>
+        </div>
+        <div>
+          <dt>Training time credited</dt>
+          <dd>{formatPracticeDuration(report.creditedPracticeSeconds)}</dd>
+        </div>
+        <div>
+          <dt>Character XP</dt>
+          <dd>+{report.requestedCharacterXp.toLocaleString('en-US')}</dd>
+        </div>
+        <div>
+          <dt>Rested Momentum</dt>
+          <dd>+{report.restedMomentumGain.toLocaleString('en-US')}</dd>
+        </div>
       </dl>
       {report.practiceSource === 'planned_balanced' && planLabel && report.plannedWindowSeconds ? (
         <p className={styles.capNote} data-testid="practice-plan-provenance">
@@ -86,7 +104,9 @@ export function TrainingReportCard({ report }: TrainingReportCardProps) {
             : 'Only legitimate elapsed time was counted.'}
         </p>
       ) : (
-        <p className={styles.capNote} data-testid="practice-plan-provenance">This absence used automatic Balanced Training.</p>
+        <p className={styles.capNote} data-testid="practice-plan-provenance">
+          This absence used automatic Balanced Training.
+        </p>
       )}
       {report.directXpCapReached || report.restedMomentumCapReached ? (
         <p className={styles.capNote}>
@@ -95,10 +115,16 @@ export function TrainingReportCard({ report }: TrainingReportCardProps) {
         </p>
       ) : null}
       <div className={styles.actions}>
-        <GameButton disabled={submitting} onClick={claimTraining} type="button">{submitting ? 'Claiming…' : 'Claim training'}</GameButton>
+        <GameButton disabled={submitting} onClick={claimTraining} type="button">
+          {submitting ? 'Claiming…' : 'Claim training'}
+        </GameButton>
         <span>Claims do not expire and cannot be duplicated by refreshing or retrying.</span>
       </div>
-      {errorMessage ? <p className={styles.error} role="status" aria-live="polite">{errorMessage}</p> : null}
+      {errorMessage ? (
+        <p className={styles.error} role="status" aria-live="polite">
+          {errorMessage}
+        </p>
+      ) : null}
     </section>
   )
 }
@@ -115,8 +141,11 @@ export function formatPracticeDuration(totalSeconds: number): string {
 
 function practiceWindowLabel(window: TrainingReportPracticeWindow): string {
   switch (window) {
-    case 'short': return 'Short'
-    case 'overnight': return 'Overnight'
-    case 'extended': return 'Extended'
+    case 'short':
+      return 'Short'
+    case 'overnight':
+      return 'Overnight'
+    case 'extended':
+      return 'Extended'
   }
 }

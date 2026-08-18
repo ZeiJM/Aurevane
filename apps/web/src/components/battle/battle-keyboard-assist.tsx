@@ -32,7 +32,9 @@ function attackModeIsActive(): boolean {
 function legalVisibleTargetButtons(): HTMLButtonElement[] {
   return Array.from(
     document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label*="occupied by"]'),
-  ).filter((button) => !button.disabled && !button.getAttribute('aria-label')?.includes('character'))
+  ).filter(
+    (button) => !button.disabled && !button.getAttribute('aria-label')?.includes('character'),
+  )
 }
 
 function commandButton(...labels: string[]): HTMLButtonElement | null {
@@ -40,8 +42,9 @@ function commandButton(...labels: string[]): HTMLButtonElement | null {
     document.querySelectorAll<HTMLButtonElement>('section[aria-label="Command Deck"] button'),
   )
   return (
-    buttons.find((button) => labels.includes(button.querySelector('strong')?.textContent?.trim() ?? '')) ??
-    null
+    buttons.find((button) =>
+      labels.includes(button.querySelector('strong')?.textContent?.trim() ?? ''),
+    ) ?? null
   )
 }
 
@@ -51,13 +54,17 @@ function planningButton(text: string): HTMLButtonElement | null {
 }
 
 function configuredAction(bindings: CombatKeybindMap, chord: string): CombatKeybindAction | null {
-  return COMBAT_KEYBIND_ACTIONS.find((action) => combatKeybindChord(bindings[action]) === chord) ?? null
+  return (
+    COMBAT_KEYBIND_ACTIONS.find((action) => combatKeybindChord(bindings[action]) === chord) ?? null
+  )
 }
 
 function defaultAction(chord: string): CombatKeybindAction | null {
-  return COMBAT_KEYBIND_ACTIONS.find(
-    (action) => combatKeybindChord(DEFAULT_COMBAT_KEYBINDS[action]) === chord,
-  ) ?? null
+  return (
+    COMBAT_KEYBIND_ACTIONS.find(
+      (action) => combatKeybindChord(DEFAULT_COMBAT_KEYBINDS[action]) === chord,
+    ) ?? null
+  )
 }
 
 export function BattleKeyboardAssist() {
@@ -77,7 +84,9 @@ export function BattleKeyboardAssist() {
       }
     }
     void loadControls()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
@@ -88,7 +97,9 @@ export function BattleKeyboardAssist() {
       const direction = reverse ? -1 : 1
       targetIndex.current =
         targetIndex.current < 0
-          ? reverse ? targets.length - 1 : 0
+          ? reverse
+            ? targets.length - 1
+            : 0
           : (targetIndex.current + direction + targets.length) % targets.length
       const target = targets[targetIndex.current]
       target?.focus()
@@ -107,10 +118,22 @@ export function BattleKeyboardAssist() {
       }
       if (action === 'confirm') return Boolean(planningButton('Confirm action')?.click() ?? true)
       if (action === 'cancel') return Boolean(planningButton('Cancel')?.click() ?? true)
-      if (action === 'faceNorth') return Boolean(document.querySelector<HTMLButtonElement>('[aria-label="Face north"]')?.click() ?? true)
-      if (action === 'faceWest') return Boolean(document.querySelector<HTMLButtonElement>('[aria-label="Face west"]')?.click() ?? true)
-      if (action === 'faceSouth') return Boolean(document.querySelector<HTMLButtonElement>('[aria-label="Face south"]')?.click() ?? true)
-      if (action === 'faceEast') return Boolean(document.querySelector<HTMLButtonElement>('[aria-label="Face east"]')?.click() ?? true)
+      if (action === 'faceNorth')
+        return Boolean(
+          document.querySelector<HTMLButtonElement>('[aria-label="Face north"]')?.click() ?? true,
+        )
+      if (action === 'faceWest')
+        return Boolean(
+          document.querySelector<HTMLButtonElement>('[aria-label="Face west"]')?.click() ?? true,
+        )
+      if (action === 'faceSouth')
+        return Boolean(
+          document.querySelector<HTMLButtonElement>('[aria-label="Face south"]')?.click() ?? true,
+        )
+      if (action === 'faceEast')
+        return Boolean(
+          document.querySelector<HTMLButtonElement>('[aria-label="Face east"]')?.click() ?? true,
+        )
       if (action === 'nextTarget') return cycleTarget(false)
       if (action === 'previousTarget') return cycleTarget(true)
       if (action === 'combatLog') {
@@ -125,7 +148,8 @@ export function BattleKeyboardAssist() {
       const chord = eventChord(event)
       const action = configuredAction(bindings, chord)
       if (action) {
-        if ((action === 'nextTarget' || action === 'previousTarget') && !attackModeIsActive()) return
+        if ((action === 'nextTarget' || action === 'previousTarget') && !attackModeIsActive())
+          return
         event.preventDefault()
         event.stopImmediatePropagation()
         execute(action)

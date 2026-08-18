@@ -17,18 +17,29 @@ interface Dependencies {
 }
 
 async function readJson(request: Request): Promise<unknown> {
-  try { return await request.json() } catch { throw new AurevaneError('INVALID_REQUEST', 'The request body must be valid JSON.') }
+  try {
+    return await request.json()
+  } catch {
+    throw new AurevaneError('INVALID_REQUEST', 'The request body must be valid JSON.')
+  }
 }
 
 function battleResponse(battle: Awaited<ReturnType<BattleSessionService['getSession']>>): Response {
-  return Response.json({ battle }, { status: 200, headers: { 'Cache-Control': 'private, no-store' } })
+  return Response.json(
+    { battle },
+    { status: 200, headers: { 'Cache-Control': 'private, no-store' } },
+  )
 }
 
-export async function handleCreateBattleSessionRequest(request: Request, dependencies: Dependencies): Promise<Response> {
+export async function handleCreateBattleSessionRequest(
+  request: Request,
+  dependencies: Dependencies,
+): Promise<Response> {
   try {
     const actor = await dependencies.getActor()
     const parsed = parseBattleSessionCreateRequest(await readJson(request))
-    if (!parsed) throw new AurevaneError('INVALID_REQUEST', 'Invalid battle-session creation request.')
+    if (!parsed)
+      throw new AurevaneError('INVALID_REQUEST', 'Invalid battle-session creation request.')
     const battle = await dependencies.service.createSession({
       userId: actor.userId,
       characterId: parsed.characterId,
@@ -37,24 +48,37 @@ export async function handleCreateBattleSessionRequest(request: Request, depende
       idempotencyKey: parsed.idempotencyKey,
     })
     return battleResponse(battle)
-  } catch (error) { return toServerErrorResponse(error) }
+  } catch (error) {
+    return toServerErrorResponse(error)
+  }
 }
 
-export async function handleGetBattleSessionRequest(battleSessionIdInput: unknown, dependencies: Dependencies): Promise<Response> {
+export async function handleGetBattleSessionRequest(
+  battleSessionIdInput: unknown,
+  dependencies: Dependencies,
+): Promise<Response> {
   try {
     const actor = await dependencies.getActor()
     const battleSessionId = parseBattleSessionId(battleSessionIdInput)
-    if (!battleSessionId) throw new AurevaneError('INVALID_REQUEST', 'Invalid battle-session identifier.')
+    if (!battleSessionId)
+      throw new AurevaneError('INVALID_REQUEST', 'Invalid battle-session identifier.')
     return battleResponse(await dependencies.service.getSession(actor.userId, battleSessionId))
-  } catch (error) { return toServerErrorResponse(error) }
+  } catch (error) {
+    return toServerErrorResponse(error)
+  }
 }
 
-export async function handleBattleIntentRequest(request: Request, battleSessionIdInput: unknown, dependencies: Dependencies): Promise<Response> {
+export async function handleBattleIntentRequest(
+  request: Request,
+  battleSessionIdInput: unknown,
+  dependencies: Dependencies,
+): Promise<Response> {
   try {
     const actor = await dependencies.getActor()
     const battleSessionId = parseBattleSessionId(battleSessionIdInput)
     const parsed = parseBattleIntentRequest(await readJson(request))
-    if (!battleSessionId || !parsed) throw new AurevaneError('INVALID_REQUEST', 'Invalid battle intent request.')
+    if (!battleSessionId || !parsed)
+      throw new AurevaneError('INVALID_REQUEST', 'Invalid battle intent request.')
     const battle = await dependencies.service.submitIntent({
       userId: actor.userId,
       battleSessionId,
@@ -63,5 +87,7 @@ export async function handleBattleIntentRequest(request: Request, battleSessionI
       intent: parsed.intent,
     })
     return battleResponse(battle)
-  } catch (error) { return toServerErrorResponse(error) }
+  } catch (error) {
+    return toServerErrorResponse(error)
+  }
 }

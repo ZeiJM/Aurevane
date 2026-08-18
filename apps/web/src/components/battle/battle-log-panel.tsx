@@ -86,7 +86,14 @@ export function BattleLogPanel({
         >
           Combat Log <span>{loading ? '…' : entries.length}</span>
         </button>
-        {visible ? <LogPanel entries={entries} loading={loading} error={error} onClose={() => setInternalOpen(false)} /> : null}
+        {visible ? (
+          <LogPanel
+            entries={entries}
+            loading={loading}
+            error={error}
+            onClose={() => setInternalOpen(false)}
+          />
+        ) : null}
       </div>
     )
   }
@@ -118,13 +125,22 @@ function LogPanel({
           <span>Committed actions and results · newest first</span>
         </div>
         {onClose ? (
-          <button type="button" className={styles.close} onClick={onClose} aria-label="Close combat log">×</button>
+          <button
+            type="button"
+            className={styles.close}
+            onClick={onClose}
+            aria-label="Close combat log"
+          >
+            ×
+          </button>
         ) : null}
       </header>
       {loading && entries.length === 0 ? (
         <p className={styles.empty}>Reading committed events…</p>
       ) : error ? (
-        <p className={styles.empty} role="status">{error}</p>
+        <p className={styles.empty} role="status">
+          {error}
+        </p>
       ) : entries.length === 0 ? (
         <p className={styles.empty}>No committed combat events yet.</p>
       ) : (

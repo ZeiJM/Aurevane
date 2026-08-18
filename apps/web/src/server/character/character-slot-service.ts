@@ -58,7 +58,9 @@ export async function findPlayableOwnedCharacterById(
   userId: string,
   characterId: string,
 ): Promise<PersistedCharacter | null> {
-  const character = (await loadCharacterSlots(userId)).find((candidate) => candidate.id === characterId)
+  const character = (await loadCharacterSlots(userId)).find(
+    (candidate) => candidate.id === characterId,
+  )
   if (!character || character.deletionExecuteAfter) return null
   return character
 }
@@ -123,13 +125,22 @@ export async function createCharacterInSlot(command: {
 
   if (error) {
     if (error.code === '22023') {
-      throw new AurevaneError('IDEMPOTENCY_CONFLICT', 'That creation request could not be replayed safely.')
+      throw new AurevaneError(
+        'IDEMPOTENCY_CONFLICT',
+        'That creation request could not be replayed safely.',
+      )
     }
     if (error.message.includes('CHARACTER_NAME_UNAVAILABLE')) {
-      throw new AurevaneError('CHARACTER_NAME_UNAVAILABLE', 'That character name is already claimed.')
+      throw new AurevaneError(
+        'CHARACTER_NAME_UNAVAILABLE',
+        'That character name is already claimed.',
+      )
     }
     if (error.message.includes('CHARACTER_SLOT_OCCUPIED')) {
-      throw new AurevaneError('CHARACTER_ALREADY_EXISTS', 'That character slot is already occupied.')
+      throw new AurevaneError(
+        'CHARACTER_ALREADY_EXISTS',
+        'That character slot is already occupied.',
+      )
     }
     throw unavailable()
   }
@@ -164,17 +175,16 @@ export async function requestCharacterDeletion(
     throw unavailable()
   }
   const row = Array.isArray(data) && data.length === 1 ? data[0] : null
-  if (
-    !row ||
-    typeof row.requested_at !== 'string' ||
-    typeof row.delete_after !== 'string'
-  ) {
+  if (!row || typeof row.requested_at !== 'string' || typeof row.delete_after !== 'string') {
     throw unavailable()
   }
   return { requestedAt: row.requested_at, deleteAfter: row.delete_after }
 }
 
-export async function cancelCharacterDeletion(userId: string, characterId: string): Promise<boolean> {
+export async function cancelCharacterDeletion(
+  userId: string,
+  characterId: string,
+): Promise<boolean> {
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.rpc('cancel_character_deletion_v1', {
     p_user_id: userId,
@@ -196,7 +206,8 @@ function toPersistedCharacter(row: CharacterPersistenceRow): PersistedCharacter 
     pronounPresetId: row.pronoun_preset_id as PersistedCharacter['pronounPresetId'],
     portraitRef: row.portrait_ref as PersistedCharacter['portraitRef'],
     starterAppearanceRef: row.starter_appearance_ref as PersistedCharacter['starterAppearanceRef'],
-    foundationDisciplineId: row.foundation_discipline_id as PersistedCharacter['foundationDisciplineId'],
+    foundationDisciplineId:
+      row.foundation_discipline_id as PersistedCharacter['foundationDisciplineId'],
     attributes: {
       might: row.might,
       finesse: row.finesse,

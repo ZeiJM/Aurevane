@@ -79,10 +79,16 @@ export function createSupabaseCharacterRepository(): CharacterRepository {
           )
         }
         if (error.message.includes('CHARACTER_NAME_UNAVAILABLE')) {
-          throw new AurevaneError('CHARACTER_NAME_UNAVAILABLE', 'That character name is already claimed.')
+          throw new AurevaneError(
+            'CHARACTER_NAME_UNAVAILABLE',
+            'That character name is already claimed.',
+          )
         }
         if (error.message.includes('CHARACTER_SLOT_OCCUPIED')) {
-          throw new AurevaneError('CHARACTER_ALREADY_EXISTS', 'This account already has its base character.')
+          throw new AurevaneError(
+            'CHARACTER_ALREADY_EXISTS',
+            'This account already has its base character.',
+          )
         }
         throw unavailable()
       }

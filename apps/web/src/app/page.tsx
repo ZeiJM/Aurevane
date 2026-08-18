@@ -31,7 +31,8 @@ export default async function Home() {
             'This account continued on another device or login. Sign in here again if you want this screen to take control.'
         }
       } catch {
-        sessionNotice = 'Your sign-in exists, but the active game session could not be verified yet.'
+        sessionNotice =
+          'Your sign-in exists, but the active game session could not be verified yet.'
       }
     }
   }

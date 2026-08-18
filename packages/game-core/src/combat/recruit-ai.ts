@@ -7,10 +7,7 @@ import {
   evaluatePv1fMovement,
   readPv1fActionEconomy,
 } from './pv1f-action-economy'
-import {
-  forecastStatDrivenAttack,
-  type StatDrivenCombatEncounterState,
-} from './stat-driven-combat'
+import { forecastStatDrivenAttack, type StatDrivenCombatEncounterState } from './stat-driven-combat'
 import type { CombatTargetSelection } from './actions'
 import type { CombatPlacement, CombatTile, GridPosition } from './board'
 
@@ -286,7 +283,8 @@ function buildCandidates(
     pushCandidate(candidates, profile, {
       intent: { kind: 'face', facing: preferredFacing },
       reason: 'face-threat',
-      utility: knowledge.actionEconomyRemaining === 0 ? profile.facingUtility + 20 : profile.facingUtility,
+      utility:
+        knowledge.actionEconomyRemaining === 0 ? profile.facingUtility + 20 : profile.facingUtility,
       stableKey: `face:${preferredFacing}`,
     })
   } else {
@@ -443,7 +441,11 @@ function assertRecruitAiProfile(profile: RecruitAiProfile): void {
   if (!supportedIds.has(profile.id) || profile.version !== RECRUIT_AI_PROFILE_VERSION) {
     throw new Error('Unsupported Recruit AI profile.')
   }
-  if (!Number.isSafeInteger(profile.maxCandidates) || profile.maxCandidates < 1 || profile.maxCandidates > 256) {
+  if (
+    !Number.isSafeInteger(profile.maxCandidates) ||
+    profile.maxCandidates < 1 ||
+    profile.maxCandidates > 256
+  ) {
     throw new RangeError('Recruit AI maxCandidates must be a safe integer between 1 and 256.')
   }
 }
@@ -456,7 +458,10 @@ export function recruitAiKnowledgeFromTacticalStateForTest(
   tactical: StatDrivenCombatEncounterState['tactical'],
 ): Pick<RecruitAiKnowledge, 'placements' | 'tiles'> {
   return {
-    placements: tactical.placements.map((placement) => ({ ...placement, position: { ...placement.position } })),
+    placements: tactical.placements.map((placement) => ({
+      ...placement,
+      position: { ...placement.position },
+    })),
     tiles: tactical.tiles.map((tile) => ({ ...tile, position: { ...tile.position } })),
   }
 }

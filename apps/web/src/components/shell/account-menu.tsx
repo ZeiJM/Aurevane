@@ -48,7 +48,9 @@ export function AccountMenu() {
             Character Select
           </Link>
           <form action="/auth/signout" method="post">
-            <button type="submit" role="menuitem">Sign out</button>
+            <button type="submit" role="menuitem">
+              Sign out
+            </button>
           </form>
         </div>
       ) : null}

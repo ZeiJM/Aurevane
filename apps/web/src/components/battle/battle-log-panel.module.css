@@ -1,1 +1,118 @@
-.log{position:relative;z-index:35}.trigger{display:inline-flex;min-height:2.2rem;align-items:center;gap:.38rem;padding:.45rem .62rem;border:1px solid var(--av-border-strong);border-radius:.35rem;color:var(--av-text-muted);background:rgba(10,13,18,.96);font:800 .56rem/1 var(--av-font-mono);cursor:pointer}.trigger span{min-width:1.25rem;padding:.14rem .3rem;border-radius:999px;color:var(--av-brass-300);background:rgba(185,154,92,.12);font:700 .48rem/1 var(--av-font-mono);text-align:center}.controlled{position:fixed;top:4.7rem;right:.8rem;z-index:1250;width:min(34rem,calc(100vw - 1.6rem))}.panel{max-height:min(32rem,70dvh);overflow:auto;border:1px solid var(--av-border-strong);border-radius:var(--av-radius-md);background:rgba(7,10,14,.99);box-shadow:0 1.2rem 4rem rgba(0,0,0,.62)}.panel header{position:sticky;top:0;z-index:2;display:flex;align-items:start;justify-content:space-between;gap:.8rem;padding:.8rem .9rem;border-bottom:1px solid var(--av-border);background:rgba(7,10,14,.99)}.panel header>div{display:grid;gap:.15rem}.panel header strong{color:var(--av-text);font:650 .88rem/1.2 var(--av-font-display)}.panel header span{color:var(--av-text-dim);font:650 .5rem/1.2 var(--av-font-mono);text-transform:uppercase}.close{display:grid;width:2rem;height:2rem;place-items:center;border:1px solid var(--av-border);border-radius:50%;color:var(--av-text-muted);background:transparent;font-size:1.1rem;cursor:pointer}.panel ol{display:grid;margin:0;padding:0;list-style:none}.panel li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:.6rem;align-items:start;padding:.68rem .9rem;border-bottom:1px solid rgba(255,255,255,.055)}.panel li>span{padding-top:.08rem;color:var(--av-brass-500);font:700 .5rem/1.2 var(--av-font-mono)}.panel li p,.empty{margin:0;color:var(--av-text-muted);font-size:.66rem;line-height:1.45}.empty{padding:.9rem}@media(max-width:760px){.controlled{top:4.2rem;right:.55rem;left:.55rem;width:auto}.panel{max-height:65dvh}}
+.log {
+  position: relative;
+  z-index: 35;
+}
+.trigger {
+  display: inline-flex;
+  min-height: 2.2rem;
+  align-items: center;
+  gap: 0.38rem;
+  padding: 0.45rem 0.62rem;
+  border: 1px solid var(--av-border-strong);
+  border-radius: 0.35rem;
+  color: var(--av-text-muted);
+  background: rgba(10, 13, 18, 0.96);
+  font: 800 0.56rem/1 var(--av-font-mono);
+  cursor: pointer;
+}
+.trigger span {
+  min-width: 1.25rem;
+  padding: 0.14rem 0.3rem;
+  border-radius: 999px;
+  color: var(--av-brass-300);
+  background: rgba(185, 154, 92, 0.12);
+  font: 700 0.48rem/1 var(--av-font-mono);
+  text-align: center;
+}
+.controlled {
+  position: fixed;
+  top: 4.7rem;
+  right: 0.8rem;
+  z-index: 1250;
+  width: min(34rem, calc(100vw - 1.6rem));
+}
+.panel {
+  max-height: min(32rem, 70dvh);
+  overflow: auto;
+  border: 1px solid var(--av-border-strong);
+  border-radius: var(--av-radius-md);
+  background: rgba(7, 10, 14, 0.99);
+  box-shadow: 0 1.2rem 4rem rgba(0, 0, 0, 0.62);
+}
+.panel header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.8rem 0.9rem;
+  border-bottom: 1px solid var(--av-border);
+  background: rgba(7, 10, 14, 0.99);
+}
+.panel header > div {
+  display: grid;
+  gap: 0.15rem;
+}
+.panel header strong {
+  color: var(--av-text);
+  font: 650 0.88rem/1.2 var(--av-font-display);
+}
+.panel header span {
+  color: var(--av-text-dim);
+  font: 650 0.5rem/1.2 var(--av-font-mono);
+  text-transform: uppercase;
+}
+.close {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid var(--av-border);
+  border-radius: 50%;
+  color: var(--av-text-muted);
+  background: transparent;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+.panel ol {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.panel li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.6rem;
+  align-items: start;
+  padding: 0.68rem 0.9rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.055);
+}
+.panel li > span {
+  padding-top: 0.08rem;
+  color: var(--av-brass-500);
+  font: 700 0.5rem/1.2 var(--av-font-mono);
+}
+.panel li p,
+.empty {
+  margin: 0;
+  color: var(--av-text-muted);
+  font-size: 0.66rem;
+  line-height: 1.45;
+}
+.empty {
+  padding: 0.9rem;
+}
+@media (max-width: 760px) {
+  .controlled {
+    top: 4.2rem;
+    right: 0.55rem;
+    left: 0.55rem;
+    width: auto;
+  }
+  .panel {
+    max-height: 65dvh;
+  }
+}

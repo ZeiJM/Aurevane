@@ -28,7 +28,8 @@ export default async function CharacterSelectPage() {
   const characters = await loadCharacterSlots(actor.userId)
   const requestedCreationSlot = await readCreationSlot()
   const creationSlot =
-    requestedCreationSlot !== null && !characters.some((character) => character.slotIndex === requestedCreationSlot)
+    requestedCreationSlot !== null &&
+    !characters.some((character) => character.slotIndex === requestedCreationSlot)
       ? requestedCreationSlot
       : null
 

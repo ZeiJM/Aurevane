@@ -135,7 +135,9 @@ export function createPv1fRecoverAction(maxHp: number): CombatActionDefinition {
   }
 }
 
-export function createPv1fTemporaryResources(basicAttackDamage: number): readonly BattleTemporaryResource[] {
+export function createPv1fTemporaryResources(
+  basicAttackDamage: number,
+): readonly BattleTemporaryResource[] {
   if (!Number.isSafeInteger(basicAttackDamage) || basicAttackDamage < 1) {
     throw new RangeError('Basic Attack damage must be a positive safe integer.')
   }
@@ -163,7 +165,9 @@ export function readPv1fActionEconomy(
   combatantId: string | null = state.tactical.battle.currentTurn?.combatantId ?? null,
 ): { current: number; maximum: number } | null {
   if (!combatantId) return null
-  const combatant = state.tactical.battle.combatants.find((candidate) => candidate.id === combatantId)
+  const combatant = state.tactical.battle.combatants.find(
+    (candidate) => candidate.id === combatantId,
+  )
   if (!combatant) return null
   const resource = combatant.temporaryResources.find(
     (candidate) => candidate.key === PV1F_ACTION_ECONOMY_RESOURCE_KEY,
@@ -211,10 +215,14 @@ export function preparePv1fTurnEconomy(
     },
   ])
 
-  return withCombatantAndTurn(state, { ...actor, temporaryResources: resources }, {
-    ...turn,
-    actionState: 'ready',
-  })
+  return withCombatantAndTurn(
+    state,
+    { ...actor, temporaryResources: resources },
+    {
+      ...turn,
+      actionState: 'ready',
+    },
+  )
 }
 
 export function pv1fActionCost(actionId: string): number {
@@ -240,7 +248,8 @@ export function spendPv1fActionEconomy(
   const prepared = preparePv1fTurnEconomy(state)
   const battle = prepared.tactical.battle
   const turn = battle.currentTurn
-  if (battle.lifecycle !== 'active' || !turn) throw new Error('Action Economy requires an active turn.')
+  if (battle.lifecycle !== 'active' || !turn)
+    throw new Error('Action Economy requires an active turn.')
   const actor = getCombatant(prepared, turn.combatantId)
   const economy = actor.temporaryResources.find(
     (resource) => resource.key === PV1F_ACTION_ECONOMY_RESOURCE_KEY,
@@ -251,10 +260,15 @@ export function spendPv1fActionEconomy(
 
   const remaining = economy.current - cost
   const resources = replaceResources(actor.temporaryResources, [{ ...economy, current: remaining }])
-  return withCombatantAndTurn(prepared, { ...actor, temporaryResources: resources }, {
-    ...turn,
-    actionState: remaining >= Math.min(PV1F_BASIC_ATTACK_COST, PV1F_GUARD_COST) ? 'ready' : 'spent',
-  })
+  return withCombatantAndTurn(
+    prepared,
+    { ...actor, temporaryResources: resources },
+    {
+      ...turn,
+      actionState:
+        remaining >= Math.min(PV1F_BASIC_ATTACK_COST, PV1F_GUARD_COST) ? 'ready' : 'spent',
+    },
+  )
 }
 
 export function evaluatePv1fAction(
@@ -324,7 +338,8 @@ export function executePv1fMovement(
   path: readonly GridPosition[],
 ): Pv1fTransition {
   const { prepared, movement, economyCost } = evaluatePv1fMovement(state, path)
-  if (!movement.legal) throw new Error(movement.issues[0]?.message ?? 'That movement path is not legal.')
+  if (!movement.legal)
+    throw new Error(movement.issues[0]?.message ?? 'That movement path is not legal.')
   if (!canAffordPv1fEconomy(prepared, economyCost)) {
     throw new Error('Not enough Action Economy remains for that movement path.')
   }
@@ -379,7 +394,9 @@ export function resolvePv1fActionDefinition(
 }
 
 function getCombatant(state: StatDrivenCombatEncounterState, combatantId: string): BattleCombatant {
-  const combatant = state.tactical.battle.combatants.find((candidate) => candidate.id === combatantId)
+  const combatant = state.tactical.battle.combatants.find(
+    (candidate) => candidate.id === combatantId,
+  )
   if (!combatant) throw new Error(`Unknown combatant ${combatantId}.`)
   return combatant
 }
@@ -390,7 +407,9 @@ function replaceResources(
 ): readonly BattleTemporaryResource[] {
   const replacementKeys = new Set(replacements.map((resource) => resource.key))
   return [
-    ...current.filter((resource) => !replacementKeys.has(resource.key)).map((resource) => ({ ...resource })),
+    ...current
+      .filter((resource) => !replacementKeys.has(resource.key))
+      .map((resource) => ({ ...resource })),
     ...replacements.map((resource) => ({ ...resource })),
   ].sort((left, right) => left.key.localeCompare(right.key))
 }

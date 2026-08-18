@@ -13,7 +13,10 @@ export async function POST(request: Request) {
     const creation = parseCharacterCreationRequest(await request.json())
     const slotIndex = await readCreationSlot()
     if (!creation || slotIndex === null) {
-      throw new AurevaneError('INVALID_REQUEST', 'Choose an open character slot before creating a character.')
+      throw new AurevaneError(
+        'INVALID_REQUEST',
+        'Choose an open character slot before creating a character.',
+      )
     }
 
     const outcome = await createCharacterInSlot({

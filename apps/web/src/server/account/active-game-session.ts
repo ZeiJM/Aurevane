@@ -9,7 +9,9 @@ export interface VerifiedGameSessionIdentity {
   authSessionId: string
 }
 
-export function readVerifiedGameSessionIdentity(claims: unknown): VerifiedGameSessionIdentity | null {
+export function readVerifiedGameSessionIdentity(
+  claims: unknown,
+): VerifiedGameSessionIdentity | null {
   if (!claims || typeof claims !== 'object' || Array.isArray(claims)) return null
   const record = claims as Record<string, unknown>
   const userId = typeof record.sub === 'string' ? record.sub : null
@@ -18,7 +20,9 @@ export function readVerifiedGameSessionIdentity(claims: unknown): VerifiedGameSe
   return { userId, authSessionId }
 }
 
-export async function claimActiveGameSession(identity: VerifiedGameSessionIdentity): Promise<boolean> {
+export async function claimActiveGameSession(
+  identity: VerifiedGameSessionIdentity,
+): Promise<boolean> {
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.rpc('claim_active_game_session_v1', {
     p_user_id: identity.userId,
@@ -35,7 +39,9 @@ export async function claimActiveGameSession(identity: VerifiedGameSessionIdenti
   return data
 }
 
-export async function ensureActiveGameSession(identity: VerifiedGameSessionIdentity): Promise<boolean> {
+export async function ensureActiveGameSession(
+  identity: VerifiedGameSessionIdentity,
+): Promise<boolean> {
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.rpc('ensure_active_game_session_v1', {
     p_user_id: identity.userId,

@@ -24,7 +24,10 @@ export function CharacterSelectShell({ characters, creationSlot }: CharacterSele
   const [phrase, setPhrase] = useState('')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
-  const bySlot = useMemo(() => new Map(characters.map((character) => [character.slotIndex, character])), [characters])
+  const bySlot = useMemo(
+    () => new Map(characters.map((character) => [character.slotIndex, character])),
+    [characters],
+  )
 
   async function requestDeletion() {
     if (!deleting || busy) return
@@ -70,8 +73,13 @@ export function CharacterSelectShell({ characters, creationSlot }: CharacterSele
     <div className={styles.shell}>
       <header className={styles.header}>
         <Link className="brand" href="/game" aria-label="AUREVANE Character Select">
-          <span className="brand__crest" aria-hidden="true"><span>A</span></span>
-          <span className="brand__wordmark"><strong>AUREVANE</strong><small>Character Select</small></span>
+          <span className="brand__crest" aria-hidden="true">
+            <span>A</span>
+          </span>
+          <span className="brand__wordmark">
+            <strong>AUREVANE</strong>
+            <small>Character Select</small>
+          </span>
         </Link>
         <AccountMenu />
       </header>
@@ -80,7 +88,10 @@ export function CharacterSelectShell({ characters, creationSlot }: CharacterSele
         {creationSlot !== null ? (
           <section className={styles.creationPanel}>
             <div className={styles.creationHeading}>
-              <div><span>Slot {creationSlot + 1}</span><h1>Create a new character</h1></div>
+              <div>
+                <span>Slot {creationSlot + 1}</span>
+                <h1>Create a new character</h1>
+              </div>
               <Link href="/game/create/cancel">← Back to Character Select</Link>
             </div>
             <CharacterCreationExperience />
@@ -88,11 +99,21 @@ export function CharacterSelectShell({ characters, creationSlot }: CharacterSele
         ) : (
           <>
             <header className={styles.hero}>
-              <div><span>Account roster</span><h1>Choose your character.</h1></div>
-              <p>Three character slots share this account. Select an adventurer to open their profile and continue playing.</p>
+              <div>
+                <span>Account roster</span>
+                <h1>Choose your character.</h1>
+              </div>
+              <p>
+                Three character slots share this account. Select an adventurer to open their profile
+                and continue playing.
+              </p>
             </header>
 
-            {message ? <p className={styles.message} role="status">{message}</p> : null}
+            {message ? (
+              <p className={styles.message} role="status">
+                {message}
+              </p>
+            ) : null}
 
             <section className={styles.slots} aria-label="Character slots">
               {[0, 1, 2].map((slotIndex) => {
@@ -101,10 +122,16 @@ export function CharacterSelectShell({ characters, creationSlot }: CharacterSele
                   return (
                     <article className={`${styles.slot} ${styles.empty}`} key={slotIndex}>
                       <span className={styles.slotNumber}>Slot {slotIndex + 1}</span>
-                      <div className={styles.emptyCrest} aria-hidden="true">+</div>
+                      <div className={styles.emptyCrest} aria-hidden="true">
+                        +
+                      </div>
                       <h2>Open character slot</h2>
-                      <p>Create another adventurer with their own identity, progression, and build.</p>
-                      <Link className={styles.primaryAction} href={`/game/create/${slotIndex}`}>Create Character</Link>
+                      <p>
+                        Create another adventurer with their own identity, progression, and build.
+                      </p>
+                      <Link className={styles.primaryAction} href={`/game/create/${slotIndex}`}>
+                        Create Character
+                      </Link>
                     </article>
                   )
                 }
@@ -112,26 +139,56 @@ export function CharacterSelectShell({ characters, creationSlot }: CharacterSele
                 const discipline = getFoundationDiscipline(character.foundationDisciplineId)
                 const pending = Boolean(character.deletionExecuteAfter)
                 return (
-                  <article className={styles.slot} key={character.id} data-pending-delete={pending || undefined}>
+                  <article
+                    className={styles.slot}
+                    key={character.id}
+                    data-pending-delete={pending || undefined}
+                  >
                     <span className={styles.slotNumber}>Slot {slotIndex + 1}</span>
                     <div className={styles.portrait}>
-                      <AurevaneImage assetId={getStarterPortraitImageAssetId(character.portraitRef)} sizes="15rem" />
+                      <AurevaneImage
+                        assetId={getStarterPortraitImageAssetId(character.portraitRef)}
+                        sizes="15rem"
+                      />
                     </div>
                     <div className={styles.identity}>
                       <h2>{character.name}</h2>
-                      <p>Level {character.level} · {discipline?.name ?? 'Adventurer'}</p>
+                      <p>
+                        Level {character.level} · {discipline?.name ?? 'Adventurer'}
+                      </p>
                     </div>
                     {pending && character.deletionExecuteAfter ? (
                       <div className={styles.pendingDelete}>
                         <strong>Deletion pending</strong>
                         <DeletionCountdown deleteAfter={character.deletionExecuteAfter} />
                         <span>This character cannot be played during the grace period.</span>
-                        <button type="button" disabled={busy} onClick={() => void cancelDeletion(character.id)}>Cancel deletion</button>
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => void cancelDeletion(character.id)}
+                        >
+                          Cancel deletion
+                        </button>
                       </div>
                     ) : (
                       <>
-                        <Link className={styles.primaryAction} href={`/game/select/${character.id}`}>Play {character.name}</Link>
-                        <button className={styles.deleteAction} type="button" onClick={() => { setDeleting(character); setPhrase(''); setMessage(null) }}>Delete Character</button>
+                        <Link
+                          className={styles.primaryAction}
+                          href={`/game/select/${character.id}`}
+                        >
+                          Play {character.name}
+                        </Link>
+                        <button
+                          className={styles.deleteAction}
+                          type="button"
+                          onClick={() => {
+                            setDeleting(character)
+                            setPhrase('')
+                            setMessage(null)
+                          }}
+                        >
+                          Delete Character
+                        </button>
                       </>
                     )}
                   </article>
@@ -143,19 +200,51 @@ export function CharacterSelectShell({ characters, creationSlot }: CharacterSele
       </main>
 
       {deleting ? (
-        <div className={styles.modalBackdrop} role="presentation" onMouseDown={(event) => { if (event.currentTarget === event.target && !busy) setDeleting(null) }}>
-          <section className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="delete-character-title">
+        <div
+          className={styles.modalBackdrop}
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.currentTarget === event.target && !busy) setDeleting(null)
+          }}
+        >
+          <section
+            className={styles.modal}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-character-title"
+          >
             <span>24-hour deletion grace period</span>
             <h2 id="delete-character-title">Schedule deletion of {deleting.name}?</h2>
-            <p>This does not delete the character immediately. The slot stays locked for 24 hours and you can cancel during that time. After the deadline the deletion becomes irreversible.</p>
+            <p>
+              This does not delete the character immediately. The slot stays locked for 24 hours and
+              you can cancel during that time. After the deadline the deletion becomes irreversible.
+            </p>
             <label>
-              <span>Type exactly: <strong>DELETE {deleting.name}</strong></span>
-              <input autoFocus value={phrase} onChange={(event) => setPhrase(event.target.value)} disabled={busy} />
+              <span>
+                Type exactly: <strong>DELETE {deleting.name}</strong>
+              </span>
+              <input
+                autoFocus
+                value={phrase}
+                onChange={(event) => setPhrase(event.target.value)}
+                disabled={busy}
+              />
             </label>
-            {message ? <p className={styles.modalError} role="alert">{message}</p> : null}
+            {message ? (
+              <p className={styles.modalError} role="alert">
+                {message}
+              </p>
+            ) : null}
             <div className={styles.modalActions}>
-              <button type="button" onClick={() => setDeleting(null)} disabled={busy}>Cancel</button>
-              <button type="button" className={styles.danger} onClick={() => void requestDeletion()} disabled={busy || phrase !== `DELETE ${deleting.name}`}>
+              <button type="button" onClick={() => setDeleting(null)} disabled={busy}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={styles.danger}
+                onClick={() => void requestDeletion()}
+                disabled={busy || phrase !== `DELETE ${deleting.name}`}
+              >
                 {busy ? 'Scheduling…' : 'Start 24-hour deletion'}
               </button>
             </div>
@@ -177,5 +266,10 @@ function DeletionCountdown({ deleteAfter }: { deleteAfter: string }) {
   const hours = Math.floor(totalSeconds / 3600)
   const minutes = Math.floor((totalSeconds % 3600) / 60)
   const seconds = totalSeconds % 60
-  return <b>{hours.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')} remaining</b>
+  return (
+    <b>
+      {hours.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')}:
+      {seconds.toString().padStart(2, '0')} remaining
+    </b>
+  )
 }

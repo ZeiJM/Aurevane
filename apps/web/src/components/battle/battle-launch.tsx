@@ -27,20 +27,21 @@ const VISIBLE_RECORD_IDS: readonly TacticalHallRecordId[] = [
   'recruit-sparring',
 ]
 
-const ARENAS: readonly { id: TacticalHallArenaId; name: string; scale: string; summary: string }[] = [
-  {
-    id: 'basic-training-floor',
-    name: 'Basic Training Floor',
-    scale: '5×3',
-    summary: 'Compact teaching floor for focused drills.',
-  },
-  {
-    id: 'duel-yard',
-    name: 'Duel Yard',
-    scale: '9×7',
-    summary: 'Full duel arena with approach space, rough terrain, elevation, and flanking room.',
-  },
-]
+const ARENAS: readonly { id: TacticalHallArenaId; name: string; scale: string; summary: string }[] =
+  [
+    {
+      id: 'basic-training-floor',
+      name: 'Basic Training Floor',
+      scale: '5×3',
+      summary: 'Compact teaching floor for focused drills.',
+    },
+    {
+      id: 'duel-yard',
+      name: 'Duel Yard',
+      scale: '9×7',
+      summary: 'Full duel arena with approach space, rough terrain, elevation, and flanking room.',
+    },
+  ]
 
 const DIFFICULTIES: readonly { id: AiDifficulty; label: string; description: string }[] = [
   { id: 'easy', label: 'Easy', description: 'Slower, forgiving Recruit decisions.' },
@@ -58,7 +59,9 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
   const [error, setError] = useState<string | null>(null)
   const selectedRecord = getTacticalHallRecord(recordId)
   const selectedArena = ARENAS.find((arena) => arena.id === arenaId) ?? ARENAS[1]
-  const visibleRecords = P2_7_TACTICAL_HALL_RECORDS.filter((record) => VISIBLE_RECORD_IDS.includes(record.id))
+  const visibleRecords = P2_7_TACTICAL_HALL_RECORDS.filter((record) =>
+    VISIBLE_RECORD_IDS.includes(record.id),
+  )
 
   function chooseRecord(nextRecordId: TacticalHallRecordId) {
     const nextRecord = getTacticalHallRecord(nextRecordId)
@@ -91,10 +94,15 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
       if (!response.ok || !body.battle?.battleSessionId) {
         throw new Error(body.error?.message ?? 'The practice could not be started.')
       }
-      sessionStorage.setItem(`aurevane:tactical-record:${body.battle.battleSessionId}`, selectedRecord.id)
+      sessionStorage.setItem(
+        `aurevane:tactical-record:${body.battle.battleSessionId}`,
+        selectedRecord.id,
+      )
       router.push(`/game/battle/${body.battle.battleSessionId}`)
     } catch (launchError) {
-      setError(launchError instanceof Error ? launchError.message : 'The practice could not be started.')
+      setError(
+        launchError instanceof Error ? launchError.message : 'The practice could not be started.',
+      )
       setPending(false)
       launchLock.current = false
     }
@@ -111,7 +119,10 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
             <p className={styles.eyebrow}>Tactical Hall</p>
             <h1 id="battle-launch-title">Choose a practice</h1>
           </div>
-          <p>{characterName}, choose a focused lesson or a full Recruit duel. The highlighted card launches.</p>
+          <p>
+            {characterName}, choose a focused lesson or a full Recruit duel. The highlighted card
+            launches.
+          </p>
         </header>
 
         <nav className={styles.recordGrid} aria-label="Choose Tactical Hall practice">
@@ -138,7 +149,9 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
             <p>{selectedRecord.coachSteps[0]}</p>
             <div className={styles.arenaLine}>
               <strong>{selectedArena.name}</strong>
-              <span>{selectedArena.scale} · {selectedArena.summary}</span>
+              <span>
+                {selectedArena.scale} · {selectedArena.summary}
+              </span>
             </div>
           </div>
 
@@ -159,16 +172,27 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
                   </button>
                 ))}
               </div>
-              <small>{DIFFICULTIES.find((difficulty) => difficulty.id === aiDifficulty)?.description}</small>
+              <small>
+                {DIFFICULTIES.find((difficulty) => difficulty.id === aiDifficulty)?.description}
+              </small>
             </fieldset>
           ) : null}
 
-          <button type="button" className={styles.startButton} onClick={() => void launchBattle()} disabled={pending}>
+          <button
+            type="button"
+            className={styles.startButton}
+            onClick={() => void launchBattle()}
+            disabled={pending}
+          >
             {pending ? 'Opening…' : `Start ${selectedRecord.name}`}
           </button>
         </section>
 
-        {error ? <p className={styles.error} role="alert">{error}</p> : null}
+        {error ? (
+          <p className={styles.error} role="alert">
+            {error}
+          </p>
+        ) : null}
       </div>
     </section>
   )

@@ -10,7 +10,10 @@ interface OfflineTrainingClockProps {
   minimumOfflineSeconds: number
 }
 
-export function OfflineTrainingClock({ serverNow, minimumOfflineSeconds }: OfflineTrainingClockProps) {
+export function OfflineTrainingClock({
+  serverNow,
+  minimumOfflineSeconds,
+}: OfflineTrainingClockProps) {
   const baseServerTime = useMemo(() => new Date(serverNow).getTime(), [serverNow])
   const [elapsed, setElapsed] = useState(0)
 
@@ -36,7 +39,15 @@ export function OfflineTrainingClock({ serverNow, minimumOfflineSeconds }: Offli
       </div>
       <div>
         <span>Server-synced time</span>
-        <strong>{synchronizedNow.toLocaleTimeString('en', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'UTC' })} UTC</strong>
+        <strong>
+          {synchronizedNow.toLocaleTimeString('en', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            timeZone: 'UTC',
+          })}{' '}
+          UTC
+        </strong>
       </div>
     </div>
   )

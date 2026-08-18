@@ -9,7 +9,9 @@ import { findPlayableOwnedCharacterById } from './character-slot-service'
 export const SELECTED_CHARACTER_COOKIE = 'aurevane_selected_character'
 export const CREATION_SLOT_COOKIE = 'aurevane_creation_slot'
 
-export async function loadSelectedCharacter(actor: AuthenticatedActor): Promise<PersistedCharacter | null> {
+export async function loadSelectedCharacter(
+  actor: AuthenticatedActor,
+): Promise<PersistedCharacter | null> {
   const characterId = (await cookies()).get(SELECTED_CHARACTER_COOKIE)?.value
   if (!characterId) return null
   return findPlayableOwnedCharacterById(actor.userId, characterId)

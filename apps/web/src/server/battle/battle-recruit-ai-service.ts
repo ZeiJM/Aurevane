@@ -136,7 +136,9 @@ function recruitDifficultyForActor(
   state: StatDrivenCombatEncounterState,
   combatantId: string,
 ): RecruitAiDifficulty {
-  const profile = state.statBridge.combatants.find((candidate) => candidate.combatantId === combatantId)
+  const profile = state.statBridge.combatants.find(
+    (candidate) => candidate.combatantId === combatantId,
+  )
   const sourceId = profile?.provenance.sourceId ?? ''
   if (sourceId.endsWith(':easy')) return 'easy'
   if (sourceId.endsWith(':high')) return 'high'

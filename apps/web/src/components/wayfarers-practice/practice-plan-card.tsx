@@ -40,8 +40,16 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
 
   const windows: readonly { window: PracticePlanWindow; seconds: number; description: string }[] = [
     { window: 'short', seconds: practice.shortWindowSeconds, description: 'A few hours away.' },
-    { window: 'overnight', seconds: practice.overnightWindowSeconds, description: 'A normal overnight absence.' },
-    { window: 'extended', seconds: practice.extendedWindowSeconds, description: 'A longer day-away plan.' },
+    {
+      window: 'overnight',
+      seconds: practice.overnightWindowSeconds,
+      description: 'A normal overnight absence.',
+    },
+    {
+      window: 'extended',
+      seconds: practice.extendedWindowSeconds,
+      description: 'A longer day-away plan.',
+    },
   ]
 
   async function setPlan(window: PracticePlanWindow) {
@@ -71,14 +79,20 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
       retryKey.current = null
       router.refresh()
     } catch {
-      setErrorMessage('The offline training plan could not reach the server. You can safely try again.')
+      setErrorMessage(
+        'The offline training plan could not reach the server. You can safely try again.',
+      )
     } finally {
       setSubmittingWindow(null)
     }
   }
 
   return (
-    <section className={styles.card} data-testid="practice-plan-card" aria-labelledby="practice-plan-title">
+    <section
+      className={styles.card}
+      data-testid="practice-plan-card"
+      aria-labelledby="practice-plan-title"
+    >
       <div className={styles.heading}>
         <div>
           <Kicker marker="◇">Offline Training Plan</Kicker>
@@ -88,8 +102,8 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
       </div>
 
       <p className={styles.intro}>
-        Pick roughly how long you expect to be away. This is not a timer you must wait through:
-        the server measures your real absence after you leave and credits only legitimate elapsed time.
+        Pick roughly how long you expect to be away. This is not a timer you must wait through: the
+        server measures your real absence after you leave and credits only legitimate elapsed time.
       </p>
 
       <dl className={styles.status}>
@@ -114,7 +128,10 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
       <div className={styles.windowGrid} aria-label="Offline Training plan windows">
         {windows.map((option) => (
           <div className={styles.window} key={option.window}>
-            <div><strong>{LABELS[option.window]}</strong><span>{formatPracticeDuration(option.seconds)}</span></div>
+            <div>
+              <strong>{LABELS[option.window]}</strong>
+              <span>{formatPracticeDuration(option.seconds)}</span>
+            </div>
             <p>{option.description}</p>
             <GameButton
               type="button"
@@ -133,11 +150,16 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
       </div>
 
       <p className={styles.note}>
-        Returning earlier simply credits less time. Staying away longer safely falls back to Balanced
-        Training for any remaining eligible time. The plan is consumed when the next Training Report is created.
+        Returning earlier simply credits less time. Staying away longer safely falls back to
+        Balanced Training for any remaining eligible time. The plan is consumed when the next
+        Training Report is created.
       </p>
 
-      {errorMessage ? <p className={styles.error} role="status" aria-live="polite">{errorMessage}</p> : null}
+      {errorMessage ? (
+        <p className={styles.error} role="status" aria-live="polite">
+          {errorMessage}
+        </p>
+      ) : null}
     </section>
   )
 }

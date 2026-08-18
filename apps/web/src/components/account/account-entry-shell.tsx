@@ -17,14 +17,15 @@ interface AccountEntryShellProps {
 export function AccountEntryShell({ authConfig, sessionNotice }: AccountEntryShellProps) {
   return (
     <div className={styles.shell} data-testid="account-shell">
-      <a className="skip-link" href="#account-main">Skip to account entry</a>
+      <a className="skip-link" href="#account-main">
+        Skip to account entry
+      </a>
 
-      <header
-        className={styles.masthead}
-        style={{ position: 'sticky', top: 0, zIndex: 700 }}
-      >
+      <header className={styles.masthead} style={{ position: 'sticky', top: 0, zIndex: 700 }}>
         <a className="brand" href="#account-main" aria-label="AUREVANE account entry home">
-          <span className="brand__crest" aria-hidden="true"><span>A</span></span>
+          <span className="brand__crest" aria-hidden="true">
+            <span>A</span>
+          </span>
           <span className="brand__wordmark">
             <strong>AUREVANE</strong>
             <small>Persistent tactical fantasy</small>
@@ -33,9 +34,15 @@ export function AccountEntryShell({ authConfig, sessionNotice }: AccountEntryShe
         <span className={styles.environmentMark}>Account gateway</span>
         <div className={publicStyles.accountHeaderActions}>
           <nav className={publicStyles.mastheadNav} aria-label="Public information">
-            <Link className={publicStyles.navLink} href="/news">News</Link>
-            <Link className={publicStyles.navLink} href="/manual">Manual</Link>
-            <Link className={publicStyles.navLink} href="/rules">Rules</Link>
+            <Link className={publicStyles.navLink} href="/news">
+              News
+            </Link>
+            <Link className={publicStyles.navLink} href="/manual">
+              Manual
+            </Link>
+            <Link className={publicStyles.navLink} href="/rules">
+              Rules
+            </Link>
           </nav>
           <AudioSettingsMenu />
         </div>
@@ -59,7 +66,9 @@ export function AccountEntryShell({ authConfig, sessionNotice }: AccountEntryShe
             </div>
           </div>
           <div className={styles.mediaStatus} aria-label="Production artwork status">
-            <span>Title vista</span><strong>ART-UI-001</strong><em>Requested</em>
+            <span>Title vista</span>
+            <strong>ART-UI-001</strong>
+            <em>Requested</em>
           </div>
         </section>
 
@@ -89,10 +98,7 @@ export function AccountEntryShell({ authConfig, sessionNotice }: AccountEntryShe
         </Surface>
       </main>
 
-      <footer
-        className={styles.footer}
-        style={{ position: 'sticky', bottom: 0, zIndex: 650 }}
-      >
+      <footer className={styles.footer} style={{ position: 'sticky', bottom: 0, zIndex: 650 }}>
         <nav className={publicStyles.compactLinks} aria-label="Public information footer">
           <Link href="/news">News</Link>
           <Link href="/manual">Manual</Link>
