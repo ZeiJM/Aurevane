@@ -109,7 +109,7 @@ test('sets one authoritative Practice plan and freezes overflow as Balanced fall
 
   const consumedPlanner = page.getByTestId('practice-plan-card')
   await expect(consumedPlanner).toContainText('Balanced default')
-  await expect(consumedPlanner).toContainText('Automatic Balanced Training')
+  await expect(consumedPlanner).toContainText('Automatic Balanced Practice')
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
   await page.reload()
