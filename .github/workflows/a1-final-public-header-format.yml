@@ -1,0 +1,37 @@
+name: A1 final public header formatter
+
+on:
+  push:
+    branches:
+      - agent/a1-feedback-holistic
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/a1-feedback-holistic
+
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install formatter without lifecycle scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Format final public header and remove temporary workflow
+        run: |
+          pnpm exec prettier --write apps/web/src/components/public-information/public-information-shell.tsx apps/web/e2e/public-information.pw.ts
+          git rm .github/workflows/a1-final-public-header-format.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "Format final public header integration"
+          git push origin HEAD:agent/a1-feedback-holistic
