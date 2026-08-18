@@ -25,18 +25,29 @@ export function createSupabaseCharacterRepository(): CharacterRepository {
         .eq('slot_index', slotIndex)
         .maybeSingle()
 
-      if (error) {
-        throw unavailable()
-      }
-      if (!data) {
-        return null
-      }
-
+      if (error) throw unavailable()
+      if (!data) return null
       const row = parseCharacterPersistenceRow(data)
-      if (!row) {
-        throw unavailable()
-      }
+      if (!row) throw unavailable()
+      return toRecord(row)
+    },
 
+    async findByOwnerId(userId, characterId) {
+      const supabase = createSupabaseAdminClient()
+      const { data, error } = await supabase.rpc('get_character_slots_v1', { p_user_id: userId })
+      if (error || !Array.isArray(data)) throw unavailable()
+
+      const candidate = data.find(
+        (row) => row && typeof row === 'object' && !Array.isArray(row) && row.id === characterId,
+      )
+      if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return null
+      const extended = candidate as Record<string, unknown>
+      if (typeof extended.deletion_execute_after === 'string') return null
+      const base = { ...extended }
+      delete base.deletion_requested_at
+      delete base.deletion_execute_after
+      const row = parseCharacterPersistenceRow(base)
+      if (!row) throw unavailable()
       return toRecord(row)
     },
 
@@ -68,30 +79,18 @@ export function createSupabaseCharacterRepository(): CharacterRepository {
           )
         }
         if (error.message.includes('CHARACTER_NAME_UNAVAILABLE')) {
-          throw new AurevaneError(
-            'CHARACTER_NAME_UNAVAILABLE',
-            'That character name is already claimed.',
-          )
+          throw new AurevaneError('CHARACTER_NAME_UNAVAILABLE', 'That character name is already claimed.')
         }
         if (error.message.includes('CHARACTER_SLOT_OCCUPIED')) {
-          throw new AurevaneError(
-            'CHARACTER_ALREADY_EXISTS',
-            'This account already has its base character.',
-          )
+          throw new AurevaneError('CHARACTER_ALREADY_EXISTS', 'This account already has its base character.')
         }
         throw unavailable()
       }
 
       const candidate = Array.isArray(data) && data.length === 1 ? data[0] : null
       const row = parseCharacterCreationPersistenceRow(candidate)
-      if (!row) {
-        throw unavailable()
-      }
-
-      return {
-        result: toRecord(row),
-        replayed: row.replayed,
-      }
+      if (!row) throw unavailable()
+      return { result: toRecord(row), replayed: row.replayed }
     },
   }
 }

@@ -42,6 +42,7 @@ export interface CreateBaseCharacterRecordInput extends IdempotentCommandInput {
 
 export interface CharacterRepository {
   findByOwnerSlot(userId: string, slotIndex: number): Promise<CharacterRecord | null>
+  findByOwnerId(userId: string, characterId: string): Promise<CharacterRecord | null>
   createBaseCharacter(
     input: CreateBaseCharacterRecordInput,
   ): Promise<TransactionalCommandResult<CharacterRecord>>
