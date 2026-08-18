@@ -64,7 +64,10 @@ export default async function BattleSessionPage({
   const characterId = playerProfile?.provenance.sourceId.startsWith('character:')
     ? playerProfile.provenance.sourceId.slice('character:'.length)
     : null
-  const character = characterId ? await characters.findByOwnerId(actor.userId, characterId) : null
+  const character =
+    characterId && characters.findByOwnerId
+      ? await characters.findByOwnerId(actor.userId, characterId)
+      : null
   if (!character || !isStarterCharacterPortraitRef(character.portraitRef)) {
     redirect('/game/battle')
   }
