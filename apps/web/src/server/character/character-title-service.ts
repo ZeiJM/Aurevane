@@ -34,21 +34,25 @@ export async function loadCharacterTitleState(
   characterId: string,
 ): Promise<CharacterTitleState> {
   const supabase = createSupabaseAdminClient()
-  const { data, error } = await supabase
-    .from('characters')
-    .select('personal_title, personal_title_set_at')
-    .eq('id', characterId)
-    .eq('user_id', userId)
-    .maybeSingle()
+  const { data, error } = await supabase.rpc('get_character_personal_title_v1', {
+    p_user_id: userId,
+    p_character_id: characterId,
+  })
 
-  if (error) throw unavailable()
-  if (!data)
-    throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
+  if (error) {
+    if (error.message.includes('CHARACTER_NOT_PLAYABLE')) {
+      throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
+    }
+    throw unavailable()
+  }
+
+  const row = Array.isArray(data) && data.length === 1 ? data[0] : null
+  if (!row || typeof row !== 'object') throw unavailable()
 
   return {
-    personalTitle: typeof data.personal_title === 'string' ? data.personal_title : null,
+    personalTitle: typeof row.personal_title === 'string' ? row.personal_title : null,
     personalTitleSetAt:
-      typeof data.personal_title_set_at === 'string' ? data.personal_title_set_at : null,
+      typeof row.personal_title_set_at === 'string' ? row.personal_title_set_at : null,
   }
 }
 
