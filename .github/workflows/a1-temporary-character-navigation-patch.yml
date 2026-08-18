@@ -1,0 +1,51 @@
+name: A1 temporary character navigation patch
+
+on:
+  push:
+    branches:
+      - agent/a1-feedback-holistic
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/a1-feedback-holistic
+
+      - name: Apply exact post-creation navigation patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('apps/web/src/components/character/character-creation-experience.tsx')
+          text = path.read_text()
+
+          old_import = "import { useRouter } from 'next/navigation'\n"
+          if text.count(old_import) != 1:
+              raise SystemExit('Expected one useRouter import')
+          text = text.replace(old_import, '')
+
+          old_router = "  const router = useRouter()\n"
+          if text.count(old_router) != 1:
+              raise SystemExit('Expected one router initialization')
+          text = text.replace(old_router, '')
+
+          old_nav = """      // The API establishes this character as the active selection in the same successful response.\n      router.replace('/game/character')\n      router.refresh()\n"""
+          new_nav = """      // The API establishes this character as the active selection in this response. Use a full\n      // navigation so the next server render cannot reuse an RSC result created before the\n      // selection cookie existed.\n      window.location.assign('/game/character')\n"""
+          if text.count(old_nav) != 1:
+              raise SystemExit('Expected one post-creation navigation block')
+          path.write_text(text.replace(old_nav, new_nav))
+          PY
+
+          git rm .github/workflows/a1-temporary-character-navigation-patch.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "Refresh server state after character creation"
+          git push origin HEAD:agent/a1-feedback-holistic
