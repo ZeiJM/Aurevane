@@ -56,7 +56,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort E
 
   const recruitRecord = page.getByRole('button', { name: /FULL DUEL.*Recruit Sparring Partner/ })
   await expect(recruitRecord).toHaveAttribute('aria-pressed', 'true')
-  await expect(page.getByText('Duel Yard', { exact: true })).toBeVisible()
+  await expect(page.getByText('Duel Yard', { exact: true }).first()).toBeVisible()
   await page.getByRole('button', { name: 'Start Recruit Sparring Partner' }).click()
 
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)

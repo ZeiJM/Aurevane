@@ -826,6 +826,7 @@
 
 @media (max-width: 760px) {
   .objectiveBar {
+    position: static;
     align-items: flex-start;
   }
 
@@ -896,10 +897,10 @@
   }
 
   .commandDeck {
-    position: sticky;
-    bottom: 0;
-    z-index: 25;
-    border-radius: var(--av-radius-md) var(--av-radius-md) 0 0;
+    position: static;
+    bottom: auto;
+    z-index: auto;
+    border-radius: var(--av-radius-md);
   }
 
   .commandBody {

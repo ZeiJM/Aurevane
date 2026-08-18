@@ -52,7 +52,7 @@ test('creates one permanent character, renders its profile, and resumes it acros
   await expect(page.getByTestId('character-established')).toContainText(characterName)
   await expect(page.getByTestId('character-creation')).toHaveCount(0)
 
-  const profileLink = page.getByRole('link', { name: 'Open character profile' })
+  const profileLink = page.getByRole('link', { name: 'Character Profile' })
   await profileLink.focus()
   await expect(profileLink).toBeFocused()
   await profileLink.press('Enter')

@@ -131,7 +131,7 @@ export function AuthenticatedGameShell({
         </Surface>
 
         {character && (practicePlan || trainingReport) ? (
-          <details className={styles.practiceDrawer}>
+          <details className={styles.practiceDrawer} data-testid="practice-drawer">
             <summary>
               <span>Wayfarer&apos;s Practice</span>
               <strong>Training &amp; rested progress</strong>
