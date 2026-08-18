@@ -7,7 +7,7 @@ import {
   type TacticalHallRecordId,
 } from '@aurevane/game-core/combat/tactical-hall-records'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 
 import { AurevaneImage } from '@/components/media/aurevane-image'
 
@@ -18,6 +18,13 @@ interface BattleLaunchProps {
   characterName: string
 }
 
+const VISIBLE_RECORD_IDS: readonly TacticalHallRecordId[] = [
+  'movement-drill',
+  'strike-drill',
+  'guard-drill',
+  'recruit-sparring',
+]
+
 const ARENAS: readonly {
   id: TacticalHallArenaId
   name: string
@@ -27,35 +34,40 @@ const ARENAS: readonly {
   {
     id: 'basic-training-floor',
     name: 'Basic Training Floor',
-    scale: '5×3 · Micro drill',
-    summary: 'Fast deterministic practice for learning movement, attacks, Guard, and facing.',
+    scale: '5×3',
+    summary: 'Compact teaching floor for the focused drills.',
   },
   {
     id: 'duel-yard',
     name: 'Duel Yard',
-    scale: '9×7 · Duel arena',
-    summary:
-      'More room for approach choice, rough terrain, elevation, flanking, and repositioning.',
+    scale: '9×7',
+    summary: 'Full duel arena with approach space, rough terrain, elevation, and flanking room.',
   },
 ]
 
 export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) {
   const router = useRouter()
+  const launchLock = useRef(false)
   const [recordId, setRecordId] = useState<TacticalHallRecordId>('recruit-sparring')
-  const [arenaId, setArenaId] = useState<TacticalHallArenaId>('basic-training-floor')
+  const [arenaId, setArenaId] = useState<TacticalHallArenaId>('duel-yard')
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const selectedRecord = getTacticalHallRecord(recordId)
-  const selectedArena = ARENAS.find((arena) => arena.id === arenaId) ?? ARENAS[0]
+  const selectedArena = ARENAS.find((arena) => arena.id === arenaId) ?? ARENAS[1]
+  const visibleRecords = P2_7_TACTICAL_HALL_RECORDS.filter((record) =>
+    VISIBLE_RECORD_IDS.includes(record.id),
+  )
 
   function chooseRecord(nextRecordId: TacticalHallRecordId) {
     const nextRecord = getTacticalHallRecord(nextRecordId)
     setRecordId(nextRecordId)
-    if (!nextRecord.combinedDuel) setArenaId(nextRecord.defaultArenaId)
+    setArenaId(nextRecord.defaultArenaId)
+    setError(null)
   }
 
   async function launchBattle() {
-    if (pending) return
+    if (launchLock.current || pending) return
+    launchLock.current = true
     setPending(true)
     setError(null)
 
@@ -86,6 +98,7 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
         launchError instanceof Error ? launchError.message : 'The battle could not be started.',
       )
       setPending(false)
+      launchLock.current = false
     }
   }
 
@@ -99,109 +112,91 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
           <AurevaneImage assetId="ui.foundation.vista" className={styles.vistaImage} />
         </div>
         <div className={styles.copy}>
-          <p className={styles.eyebrow}>Tactical Hall · Controlled Exercise</p>
-          <h1 id="battle-launch-title">Enter the training field</h1>
+          <p className={styles.eyebrow}>Tactical Hall</p>
+          <h1 id="battle-launch-title">Choose a practice</h1>
           <p className={styles.lede}>
-            {characterName} will enter a controlled tactical exercise. Movement, actions, facing,
-            forecasts, Recruit decisions, arena geometry, and every committed result remain server
-            authoritative.
+            {characterName}, start with a short lesson or enter Recruit Sparring for the full tactical
+            loop. The highlighted card is what will launch.
           </p>
 
-          <section className={styles.record} aria-labelledby="recruit-record-title">
+          <nav className={styles.recordGrid} aria-label="Choose Tactical Hall practice">
+            {visibleRecords.map((record) => (
+              <button
+                key={record.id}
+                type="button"
+                className={`${styles.recordChoice} ${recordId === record.id ? styles.recordChoiceSelected : ''}`}
+                onClick={() => chooseRecord(record.id)}
+                disabled={pending}
+                aria-pressed={recordId === record.id}
+              >
+                <span>{record.combinedDuel ? 'FULL DUEL' : 'GUIDED LESSON'}</span>
+                <strong>{record.name}</strong>
+                <small>{record.purpose}</small>
+                {recordId === record.id ? <b>SELECTED ✓</b> : null}
+              </button>
+            ))}
+          </nav>
+
+          <section className={styles.record} aria-labelledby="selected-record-title">
             <div className={styles.recordHeading}>
               <div>
-                <span>Tactical Record</span>
-                <h2 id="recruit-record-title">{selectedRecord.name}</h2>
+                <span>Selected practice</span>
+                <h2 id="selected-record-title">{selectedRecord.name}</h2>
               </div>
-              <strong>Guided practice</strong>
+              <strong>{selectedArena.name}</strong>
             </div>
 
-            <div className={styles.actions} role="group" aria-label="Choose Tactical Hall record">
-              {P2_7_TACTICAL_HALL_RECORDS.map((record) => (
-                <button
-                  key={record.id}
-                  type="button"
-                  className={recordId === record.id ? styles.primary : styles.secondary}
-                  onClick={() => chooseRecord(record.id)}
-                  disabled={pending}
-                  aria-pressed={recordId === record.id}
-                >
-                  {record.name}
-                </button>
-              ))}
-            </div>
-
-            <dl>
-              <div>
-                <dt>Intelligence</dt>
-                <dd>Recruit</dd>
-              </div>
-              <div>
-                <dt>Lesson</dt>
-                <dd>{selectedRecord.combinedDuel ? 'Combined duel' : 'Focused drill'}</dd>
-              </div>
-              <div>
-                <dt>Attributes</dt>
-                <dd>Standard preset · fixed</dd>
-              </div>
-              <div>
-                <dt>Arena</dt>
-                <dd>{selectedArena?.name ?? 'Basic Training Floor'}</dd>
-              </div>
-            </dl>
-            <p>{selectedRecord.purpose}</p>
-            <ol>
+            <ol className={styles.steps}>
               {selectedRecord.coachSteps.map((step) => (
                 <li key={step}>{step}</li>
               ))}
             </ol>
 
-            <div className={styles.actions} role="group" aria-label="Choose Tactical Hall arena">
-              {ARENAS.map((arena) => (
-                <button
-                  key={arena.id}
-                  type="button"
-                  className={arenaId === arena.id ? styles.primary : styles.secondary}
-                  onClick={() => setArenaId(arena.id)}
-                  disabled={pending || !selectedRecord.combinedDuel}
-                  aria-pressed={arenaId === arena.id}
-                  title={
-                    selectedRecord.combinedDuel
-                      ? arena.summary
-                      : 'Focused drills use the compact Basic Training Floor.'
-                  }
-                >
-                  {arena.name} · {arena.scale}
-                </button>
-              ))}
-            </div>
+            {selectedRecord.combinedDuel ? (
+              <div className={styles.arenaChoice}>
+                <div>
+                  <strong>{selectedArena.name}</strong>
+                  <span>
+                    {selectedArena.scale} · {selectedArena.summary}
+                  </span>
+                </div>
+                <span className={styles.arenaLocked}>Sparring arena</span>
+              </div>
+            ) : (
+              <p className={styles.floorNote}>
+                Focused lessons use the {selectedArena.name} ({selectedArena.scale}) so the concept is
+                easy to see before the larger duel.
+              </p>
+            )}
           </section>
 
           <div className={styles.rules} aria-label="Exercise rules">
-            <span>One controlled Wayfarer</span>
-            <span>One opposing Recruit</span>
-            <span>
-              {selectedRecord.combinedDuel ? '1v1 defeat opponent' : 'Guided concept practice'}
-            </span>
+            <span>Server-authoritative actions</span>
             <span>No progression rewards</span>
+            <span>Abort anytime</span>
           </div>
+
           {error ? (
             <p className={styles.error} role="alert">
               {error}
             </p>
           ) : null}
-          <div className={styles.actions}>
+
+          <div className={styles.launchActions}>
             <button
               type="button"
               className={styles.primary}
-              onClick={launchBattle}
+              onClick={() => void launchBattle()}
               disabled={pending}
             >
-              {pending
-                ? 'Opening field…'
-                : `Begin exercise · ${selectedArena?.name ?? 'Training Floor'} · ${selectedRecord.name}`}
+              {pending ? 'Opening practice…' : `Start ${selectedRecord.name}`}
             </button>
-            <button type="button" className={styles.secondary} onClick={() => router.push('/game')}>
+            <button
+              type="button"
+              className={styles.secondary}
+              onClick={() => router.push('/game')}
+              disabled={pending}
+            >
               Return to Wayfarer
             </button>
           </div>
