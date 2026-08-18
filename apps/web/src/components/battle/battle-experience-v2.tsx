@@ -540,11 +540,7 @@ export function BattleExperienceV2({
   const chooseMode = useCallback(
     (nextMode: PlanningMode) => {
       if (planningDisabled && nextMode !== 'inspect') return
-      if (
-        (nextMode === 'guard' || nextMode === 'recover') &&
-        mode === nextMode &&
-        pendingIntent
-      ) {
+      if ((nextMode === 'guard' || nextMode === 'recover') && mode === nextMode && pendingIntent) {
         return
       }
       clearPlanning(nextMode)
