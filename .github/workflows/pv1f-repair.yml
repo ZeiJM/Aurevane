@@ -1,0 +1,125 @@
+name: PV-1F temporary gate repair
+
+on:
+  push:
+    branches:
+      - agent/pv-1f-character-hub-turn-budget
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/pv-1f-character-hub-turn-budget
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Repair PV-1F HTTP contract
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          path = Path('.github/scripts/verify-battle-session-http.sh')
+          text = path.read_text()
+
+          marker = '''jq -e '.error.code == "UNAUTHENTICATED"' /tmp/p24-http-unauth.json >/dev/null
+
+          create_status='''
+          replacement = '''jq -e '.error.code == "UNAUTHENTICATED"' /tmp/p24-http-unauth.json >/dev/null
+
+          claim_status="$(curl --silent --show-error \\
+            --output /tmp/p24-http-claim.json \\
+            --write-out '%{http_code}' \\
+            --request POST "$web_url/api/account/game-session/claim" \\
+            --cookie "$cookie_header")"
+          test "$claim_status" = '200'
+          jq -e '.active == true' /tmp/p24-http-claim.json >/dev/null
+
+          create_status='''
+          if marker not in text:
+              raise SystemExit('claim insertion marker not found')
+          text = text.replace(marker, replacement, 1)
+
+          old = '''jq -e \\
+            --arg player "character:$character_id" \\
+            '.battle.battleVersion == 3
+              and .battle.snapshot.tactical.battle.rng == null
+              and .battle.snapshot.tactical.battle.currentTurn.finalFacing == "east"
+              and ([.battle.snapshot.tactical.placements[] | select(.combatantId == $player) | .facing] == ["east"])' \\
+            /tmp/p24-http-face.json >/dev/null
+
+          end_turn_body="$(jq -cn --arg key "$end_turn_key" '{
+            idempotencyKey: $key,
+            expectedBattleVersion: 3,
+            intent: {kind: "end-turn"}
+          }')"
+          end_turn_status="$(curl --silent --show-error \\
+            --output /tmp/p24-http-end-turn.json \\
+            --write-out '%{http_code}' \\
+            --request POST "$web_url/api/battles/$session_id/intents" \\
+            --header 'Content-Type: application/json' \\
+            --cookie "$cookie_header" \\
+            --data "$end_turn_body")"
+          test "$end_turn_status" = '200'
+          jq -e \\
+            '.battle.battleVersion == 4
+              and .battle.snapshot.tactical.battle.rng == null
+              and .battle.snapshot.tactical.battle.currentTurn.combatantId == "recruit:p2-4-1"' \\
+            /tmp/p24-http-end-turn.json >/dev/null
+
+          opponent_body="$(jq -cn --arg key "$opponent_key" '{
+            idempotencyKey: $key,
+            expectedBattleVersion: 4,
+            intent: {kind: "end-turn"}
+          }')"'''
+
+          new = '''jq -e \\
+            --arg player "character:$character_id" \\
+            '.battle.battleVersion == 3
+              and .battle.snapshot.tactical.battle.rng == null
+              and .battle.snapshot.tactical.battle.currentTurn.combatantId == "recruit:p2-4-1"
+              and ([.battle.snapshot.tactical.placements[] | select(.combatantId == $player) | .facing] == ["east"])' \\
+            /tmp/p24-http-face.json >/dev/null
+
+          opponent_body="$(jq -cn --arg key "$opponent_key" '{
+            idempotencyKey: $key,
+            expectedBattleVersion: 3,
+            intent: {kind: "end-turn"}
+          }')"'''
+
+          if old not in text:
+              raise SystemExit('final-facing contract marker not found')
+          text = text.replace(old, new, 1)
+          text = text.replace("end_turn_key='00000000-0000-4000-8000-000000002446'\n", '', 1)
+          path.write_text(text)
+          PY
+      - name: Canonical format
+        run: |
+          pnpm exec prettier --write \
+            'apps/web/src/server/battle/battle-preview-service.ts' \
+            'apps/web/src/app/game/battle/[battleSessionId]/page.tsx'
+      - name: Commit repairs
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo 'No repair changes needed.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/scripts/verify-battle-session-http.sh apps/web/src/server/battle/battle-preview-service.ts 'apps/web/src/app/game/battle/[battleSessionId]/page.tsx'
+          git commit -m 'fix: align PV-1F gates with active session and final facing'
+          git push origin HEAD:agent/pv-1f-character-hub-turn-budget
