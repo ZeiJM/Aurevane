@@ -6,72 +6,77 @@ The Master Game Plan defines the product. The Roadmap defines sequence. Canonica
 
 ## Current status
 
-**Stage:** PV-1 — Tactical Combat Human Retest
+**Stage:** PV-1 — Tactical Combat Human Retest / Corrective Implementation
 
-**ACTIVE VALIDATION GATE:** issue #105 — PV-1C Conduct Tactical Combat Human/Internal Validation — **PV-1E CORRECTED SLICE AWAITING REAL HUMAN RETEST**
+**ACTIVE VALIDATION GATE:** issue #105 — PV-1C Conduct Tactical Combat Human/Internal Validation — **FAILED SLICE; RETEST BLOCKED UNTIL PV-1F IS COMPLETE AND LIVE**
 
-**ACTIVE IMPLEMENTATION TICKET:** none
+**ACTIVE IMPLEMENTATION TICKET:** issue #112 — PV-1F Character hub, persistent game shell & 100-point tactical turn economy
 
-The first PV-1 human pass failed because two independent testers were mainly fighting the interface rather than discussing tactical choices. PV-1D / PR #108 corrected the catastrophic battlefield/rendering/readability failures. A production retest then exposed a second usability layer around persistent shell access, page density, battle composition, final-facing flow, movement-path visibility and Action-economy comprehension.
+**ACTIVE IMPLEMENTATION PR:** draft PR #115
 
-PV-1E / PR #111 is now merged. Its exact head passed GitHub quality/build, database/security and the complete responsive browser suite across desktop, laptop and mobile. Those automated checks establish implementation correctness and regression safety; they do **not** establish a human PV-1 pass. Substantial Phase 3 implementation remains blocked until issue #105 is rerun with real testers on the corrected live build.
+The first human PV-1 pass established that players were fighting the interface instead of making readable tactical choices. PV-1D and PV-1E corrected the catastrophic rendering/layout layer, but subsequent owner and external-tester feedback exposed a deeper navigation/turn-model problem. PV-1F is the smallest coherent corrective boundary because the requested character hub, Tactical Hall flow, battle information hierarchy and Action Economy all meet at the same player journey.
 
-## Corrected slice ready for retest
+Substantial Phase 3 implementation remains blocked. Automated checks may prove implementation safety, but only real human retesting on the corrected production build can reopen the PV-1 decision.
 
-PV-1D / PR #108 established the readable authoritative combat foundation. PV-1E / PR #111 then tightened the human-facing presentation without adding Phase 3 breadth:
+## PV-1F correction boundary
 
-- persistent authenticated/public shell controls where present, including always-accessible header/footer behavior;
-- Sound settings promoted above page/content stacking layers;
-- Wayfarer's Practice folded into the Account State navigation instead of occupying a separate large card;
-- denser Tactical Hall and authenticated surfaces rather than oversized document-like layouts;
-- compact RPG-style battle composition with player/allies left, battlefield center and enemy/context information right on wide screens;
-- bounded 9×7 Duel Yard presentation with responsive internal board scrolling instead of widening the page;
-- visible numbered movement-path trail in addition to reachability coloring;
-- simplified 0–100% player-facing Action Economy while preserving the authoritative separate Movement pool;
-- final-facing direction selection directly commits the authoritative final-turn command and ends the turn;
-- mobile Command Deck/facing controls kept inside the usable viewport;
-- server authority, version checks, idempotency and rapid/double-submit protection preserved.
+PV-1F is intentionally allowed to revise earlier combat baseline rules because the owner explicitly approved the revision during failed-product validation. The correction includes:
 
-## Human evidence already established
+- Character Select as the post-login gateway with three numbered character slots;
+- occupied/empty slot cards, server-authoritative selection and 24-hour confirmed character-deletion grace state;
+- one active gameplay login per account and one active battle per account;
+- one Account menu for Audio, Character Select and Sign Out;
+- Character Profile as the selected-character hub for Tactical Hall, Controls and Offline Training;
+- denser RPG-style Profile presentation with titles/distinctions area and compact stat presentation;
+- Wayfarer's Practice renamed player-facing to **Offline Training**, with live server-synced presentation and clearer absence-plan semantics;
+- Tactical Hall persistent shell, compact practice selection and Easy / Standard / High Recruit AI selector;
+- an authoritative **100-point Action Economy** replacing the validation slice's old Movement + one-Action grammar;
+- Move = 10 points per normal terrain-cost unit, Basic Attack = 30, Guard = 30, Recover = 50, final facing = 0 and ends the turn immediately;
+- Recover restores 10% maximum HP; Guard reduces incoming damage by 15% for 2 turns; Basic Attack uses the versioned level/Might/Finesse starter formula defined by the PV-1F combat amendment;
+- multiple legal actions/moves while economy remains, with all costs and sequences server-authoritative;
+- compact battle cockpit with auto-fit board, player/enemy side rails, portrait HP/MP meters, status mini-icons, mutually exclusive detail popovers, contextual Inspect strip, Round→Combat Log and fixed battle footer controls;
+- beneficial effects use green-bordered mini-icons and harmful effects use red-bordered mini-icons;
+- solo Recruit battle reserves the collapsible chat surface without pretending multiplayer transport already exists.
 
-The original failed build established the baseline problems to compare against:
+## Human evidence driving this correction
 
-- battlefield rendering/scaling problems and overlapping command text;
-- movement not visually trackable and reachable/unreachable tiles unclear;
-- terrain/elevation, Action economy, Guard, facing, initiative and attack outcomes difficult to understand;
-- Recruit actions occurred authoritatively but appeared invisible to players;
-- Combat Log discovery/currentness insufficient;
-- mobile Tactical Hall selection unclear and Recruit Sparring selection unreliable;
-- one tester explicitly did not want another fight.
+Recurring feedback across testers/owner included:
 
-The PV-1D production retest showed meaningful improvement but identified the second UX layer now addressed by PV-1E. These observations remain evidence to compare against; automation cannot replace the next human retest.
+- battlefield scale and page scale felt wrong even after the first correction;
+- player/enemy information was not organized like a readable game cockpit;
+- movement, terrain, elevation, Action Economy, Guard and attack results needed stronger immediate explanation;
+- the old action model still felt cumbersome;
+- character/account navigation was too document-like and duplicated information;
+- Wayfarer's Practice was not self-explanatory and its time display looked frozen;
+- character creation bonus allocation was mistaken for the fixed baseline;
+- simultaneous mobile/laptop play could create independent live fights;
+- the profile page was too verbose and visually weak;
+- testers still did not demonstrate voluntary replay desire sufficient for a PV-1 pass.
 
 ## Completed foundation relevant to this work
 
 - Phase 0 foundation and security hardening are complete.
 - Phase 1 character/profile/derived-stat/XP foundations are complete.
-- P1.6 Wayfarer's Practice planned windows + Rested Momentum is complete.
+- P1.6 Wayfarer's Practice + planned windows + Rested Momentum is complete; PV-1F changes its player-facing presentation, not its authoritative reward provenance.
 - P1.7 public News/Manual/Rules foundation is complete.
-- P2.1–P2.6 combat engine, persistence, battle UX, Recruit AI and Tactical Hall vertical slice are complete.
-- P2.7 combat usability, integrated final-facing flow, combat keybind foundation, 9×7 Duel Yard scale proof, larger-board Recruit validation and authoritative Abort Exercise are merged through PR #100.
-- PV-1A private server-derived combat-validation telemetry is merged through PR #102.
-- PV-1B local structured playtest evidence tooling and neutral facilitator protocol are merged through PR #104.
-- PV-1C produced sufficient human evidence to reject the original combat presentation.
-- PV-1D combat readability, battlefield stability and turn-flow correction is merged through PR #108.
-- PV-1E persistent shell, compact battle cockpit and simplified turn-economy correction is merged through PR #111; issue #110 is closed.
+- P2.1–P2.7 combat engine, persistence, battle UX, Recruit AI, Tactical Hall, final-facing, keybind, arena-scale and Abort Exercise foundations are merged.
+- PV-1A telemetry, PV-1B evidence tooling and the PV-1C human validation gate are established.
+- PV-1D / PR #108 and PV-1E / PR #111 are merged corrective history.
 
 ## Current authoritative documents
 
-- `docs/ROADMAP_PRODUCT_VALIDATION.md` governs PV-1 evidence, telemetry and the gate decision.
+- `docs/ROADMAP_PRODUCT_VALIDATION.md` governs PV-1 evidence, telemetry and gate decisions.
 - `docs/COMBAT_USABILITY_BATTLEFIELDS_CONTROLS_RETREAT.md` governs battle-usability intent.
 - `docs/ROADMAP_COMBAT_USABILITY_BATTLEFIELDS_CONTROLS_RETREAT.md` blocks substantial Phase 3 expansion until PV-1 human/internal validation passes.
-- `docs/PV1_TACTICAL_PLAYTEST_PROTOCOL.md` defines the human-playtest procedure for the corrected slice.
+- `docs/PV1_TACTICAL_PLAYTEST_PROTOCOL.md` defines the human-playtest procedure.
+- `docs/PV1F_TURN_ECONOMY_AND_CHARACTER_HUB_AMENDMENT.md` is the owner-approved corrective amendment and supersedes conflicting validation-slice rules in `docs/COMBAT.md` for the areas it explicitly changes.
 
 ## Established deferrals
 
-- Phase 3: Disciplines, Arts, representative equipment/load/buildcraft and deeper command expansion until the PV-1 human evidence gate passes.
-- Later phases: Mantles / Confluences / Soulmarks / Current-Legacy loadouts, stronger AI grades, remote LLM combat, PvP bots, broad Tactical Record progression, full Battle Review, Colosseum/spectation, world/Expedition retreat settlement.
-- Broad telemetry vendors/SDKs, analytics dashboards, session replay and large event taxonomies remain deferred until product evidence justifies them.
+- Phase 3: broad Disciplines, Arts, representative equipment/load/buildcraft and deeper command expansion until PV-1 passes.
+- Later phases: Mantles / Confluences / Soulmarks / Current-Legacy loadouts, remote LLM combat, PvP bots, broad Tactical Record progression, full Battle Review, Colosseum/spectation and world/Expedition retreat settlement.
+- Real multiplayer battle-chat transport remains coupled to multiplayer participant/communications implementation; PV-1F only establishes the cockpit surface and solo-unavailable state.
+- Broad analytics/session-replay vendors remain deferred until product evidence justifies them.
 
 ## Permanent execution rules
 
@@ -80,15 +85,17 @@ The PV-1D production retest showed meaningful improvement but identified the sec
 3. Never merge a dependent ticket before its prerequisite.
 4. Reconcile repository truth at phase/player-facing validation boundaries.
 5. Do not use future feature work to hide a failed validation gate.
-6. Run required GitHub quality, database/security and responsive authenticated browser checks for implementation correctness. Vercel/external Preview validation should be performed when available, but an explicit Owner waiver may defer that external deployment gate without blocking implementation or GitHub merge; never mislabel an older deployment as exact-head validation.
-7. Keep this ledger short and current. Do not allow it to become a second Roadmap or an archaeological log.
+6. Run required GitHub quality, database/security and responsive authenticated browser checks for implementation correctness. External deployment validation may follow once the exact merged runtime is deployable; never mislabel an older deployment as exact-head validation.
+7. Keep this ledger short and current.
 
 ## Immediate sequence
 
 ```text
-Merged PV-1E correction / PR #111
+Complete PV-1F / issue #112 / PR #115
   ↓
-Deploy the corrected runtime and verify live behavior
+Pass quality + database/security + responsive browser gates
+  ↓
+Merge and deploy the exact corrected runtime to production
   ↓
 Rerun real human PV-1 sessions under #105
   ↓
@@ -98,4 +105,4 @@ PASS: close #105 and open the first substantial Phase 3 implementation ticket
 FAIL: identify the next smallest recurring combat/usability defect and open one corrective ticket
 ```
 
-Do not fabricate, simulate or infer a human PASS from automation. The next product decision requires real tester interaction with the corrected live build.
+Do not fabricate, simulate or infer a human PASS from automation. The next product decision still requires real tester interaction with the corrected live build.

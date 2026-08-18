@@ -6,7 +6,8 @@ import type {
 } from '@aurevane/db/battle-session'
 import type { CharacterRecord, CharacterRepository } from '@aurevane/db/character'
 import { createCombatEncounterState } from '@aurevane/game-core/combat/actions'
-import { moveCurrentCombatant, selectCurrentFinalFacing } from '@aurevane/game-core/combat/board'
+import { moveCurrentCombatant } from '@aurevane/game-core/combat/board'
+import { finishPv1fTurn } from '@aurevane/game-core/combat/pv1f-action-economy'
 import {
   reattachStatDrivenCombatBridge,
   type StatDrivenCombatEncounterState,
@@ -135,14 +136,6 @@ function withMovedPlayer(state: StatDrivenCombatEncounterState): StatDrivenComba
   )
 }
 
-function withFinalFacing(state: StatDrivenCombatEncounterState): StatDrivenCombatEncounterState {
-  const transition = selectCurrentFinalFacing(state.tactical, 'east')
-  return reattachStatDrivenCombatBridge(
-    createCombatEncounterState(transition.state, state.statusState),
-    state.statBridge,
-  )
-}
-
 describe('P2.5 authoritative battle preview service', () => {
   it('previews legal movement without calling the commit boundary', async () => {
     const { battles, service } = await createFixture()
@@ -164,7 +157,10 @@ describe('P2.5 authoritative battle preview service', () => {
       kind: 'move',
       legal: true,
       cost: 1,
-      movementRemainingAfter: 3,
+      movementRemainingAfter: 9,
+      actionEconomyCost: 10,
+      actionEconomyBefore: 100,
+      actionEconomyAfter: 90,
       issues: [],
     })
     expect(battles.commitBattleIntent).not.toHaveBeenCalled()
@@ -242,26 +238,30 @@ describe('P2.5 authoritative battle preview service', () => {
       legal: false,
       issues: [
         expect.objectContaining({
-          code: 'command-not-legal',
-          message: expect.stringContaining('Final facing'),
+          code: 'choose-final-facing',
+          message: expect.stringContaining('Choose North, East, South, or West'),
         }),
       ],
     })
   })
 
-  it('allows End Turn preview after final facing exists without mutating the stored state', async () => {
-    const { battles, service, snapshot, record } = await createFixture()
-    const faced = withFinalFacing(snapshot)
-    battles.findBattleSession.mockResolvedValue({ ...record, snapshot: faced })
+  it('previews final facing as the turn-ending command without mutating stored state', async () => {
+    const { battles, service } = await createFixture()
 
     const result = await service.previewIntent({
       userId: USER_ID,
       battleSessionId: SESSION_ID,
       expectedBattleVersion: 1,
-      intent: { kind: 'end-turn' },
+      intent: { kind: 'face', facing: 'east' },
     })
 
-    expect(result.preview).toEqual({ kind: 'end-turn', legal: true, issues: [] })
+    expect(result.preview).toEqual({
+      kind: 'face',
+      legal: true,
+      facing: 'east',
+      endsTurn: true,
+      issues: [],
+    })
     expect(battles.commitBattleIntent).not.toHaveBeenCalled()
   })
 
@@ -282,27 +282,8 @@ describe('P2.5 authoritative battle preview service', () => {
 
   it('does not provide planning authority during an opponent-controlled turn', async () => {
     const { battles, service, snapshot, record } = await createFixture()
-    const faced = withFinalFacing(snapshot)
-    const battle = faced.tactical.battle
-    const opponentTurn = {
-      ...faced,
-      tactical: {
-        ...faced.tactical,
-        battle: {
-          ...battle,
-          currentTurn: {
-            ...battle.currentTurn!,
-            combatantId: 'recruit:p2-4-1',
-            initiativeIndex: battle.initiativeOrder.indexOf('recruit:p2-4-1'),
-            movementMaximum: 3,
-            movementRemaining: 3,
-            movementSpent: 0,
-            actionState: 'ready' as const,
-            finalFacing: null,
-          },
-        },
-      },
-    }
+    const opponentTurn = finishPv1fTurn(snapshot, 'east').state
+    expect(opponentTurn.tactical.battle.currentTurn?.combatantId).toBe('recruit:p2-4-1')
     battles.findBattleSession.mockResolvedValue({ ...record, snapshot: opponentTurn })
 
     await expect(

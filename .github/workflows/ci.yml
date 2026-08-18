@@ -85,6 +85,9 @@ jobs:
       - name: Verify character persistence and privacy
         run: bash .github/scripts/verify-character-persistence.sh
 
+      - name: Verify PV-1F character deletion lifecycle
+        run: bash .github/scripts/verify-pv1f-character-deletion.sh
+
       - name: Verify character XP progression authority
         run: bash .github/scripts/verify-character-progression.sh
 

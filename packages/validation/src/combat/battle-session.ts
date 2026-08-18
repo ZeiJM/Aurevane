@@ -7,25 +7,16 @@ const combatantIdSchema = z.string().trim().min(1).max(160)
 const gridPositionSchema = z.object({ x: safeInteger, y: safeInteger }).strict()
 const battleFacingSchema = z.enum(['north', 'east', 'south', 'west'])
 const tacticalHallArenaIdSchema = z.enum(['basic-training-floor', 'duel-yard'])
+export const battleAiDifficultySchema = z.enum(['easy', 'standard', 'high'])
 
 const combatTargetSelectionSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('self') }).strict(),
-  z
-    .object({
-      kind: z.literal('unit'),
-      combatantId: combatantIdSchema,
-    })
-    .strict(),
+  z.object({ kind: z.literal('unit'), combatantId: combatantIdSchema }).strict(),
   z.object({ kind: z.literal('tile'), position: gridPositionSchema }).strict(),
 ])
 
 export const battleIntentSchema = z.discriminatedUnion('kind', [
-  z
-    .object({
-      kind: z.literal('move'),
-      path: z.array(gridPositionSchema).min(2).max(128),
-    })
-    .strict(),
+  z.object({ kind: z.literal('move'), path: z.array(gridPositionSchema).min(2).max(128) }).strict(),
   z
     .object({
       kind: z.literal('action'),
@@ -33,12 +24,7 @@ export const battleIntentSchema = z.discriminatedUnion('kind', [
       target: combatTargetSelectionSchema,
     })
     .strict(),
-  z
-    .object({
-      kind: z.literal('face'),
-      facing: battleFacingSchema,
-    })
-    .strict(),
+  z.object({ kind: z.literal('face'), facing: battleFacingSchema }).strict(),
   z.object({ kind: z.literal('end-turn') }).strict(),
 ])
 
@@ -47,6 +33,7 @@ const battleSessionCreateRequestSchema = z
     idempotencyKey: z.string().uuid(),
     characterId: z.string().uuid(),
     arenaId: tacticalHallArenaIdSchema.default('basic-training-floor'),
+    aiDifficulty: battleAiDifficultySchema.default('standard'),
   })
   .strict()
 
@@ -57,27 +44,15 @@ const battleIntentRequestSchema = z
     intent: battleIntentSchema,
   })
   .strict()
-
 const battlePreviewRequestSchema = z
-  .object({
-    expectedBattleVersion: safePositiveInteger,
-    intent: battleIntentSchema,
-  })
+  .object({ expectedBattleVersion: safePositiveInteger, intent: battleIntentSchema })
   .strict()
-
 const battleRecruitTurnRequestSchema = z
-  .object({
-    expectedBattleVersion: safePositiveInteger,
-  })
+  .object({ expectedBattleVersion: safePositiveInteger })
   .strict()
-
 const battleFinalTurnPreviewRequestSchema = z
-  .object({
-    expectedBattleVersion: safePositiveInteger,
-    facing: battleFacingSchema,
-  })
+  .object({ expectedBattleVersion: safePositiveInteger, facing: battleFacingSchema })
   .strict()
-
 const battleFinalTurnRequestSchema = z
   .object({
     idempotencyKey: z.string().uuid(),
@@ -85,17 +60,12 @@ const battleFinalTurnRequestSchema = z
     facing: battleFacingSchema,
   })
   .strict()
-
 const battleAbortRequestSchema = z
-  .object({
-    idempotencyKey: z.string().uuid(),
-    expectedBattleVersion: safePositiveInteger,
-  })
+  .object({ idempotencyKey: z.string().uuid(), expectedBattleVersion: safePositiveInteger })
   .strict()
 
 const snapshotSchema = z.record(z.string(), z.unknown())
 const lifecycleSchema = z.enum(['pending', 'active', 'completed', 'abandoned'])
-
 const battleSessionCreationRowSchema = z
   .object({
     battle_session_id: z.string().uuid(),
@@ -105,7 +75,6 @@ const battleSessionCreationRowSchema = z
     replayed: z.boolean(),
   })
   .strict()
-
 const battleSessionRowSchema = z
   .object({
     battle_session_id: z.string().uuid(),
@@ -119,7 +88,6 @@ const battleSessionRowSchema = z
     updated_at: z.string().datetime({ offset: true }),
   })
   .strict()
-
 const battleSessionCommitRowSchema = z
   .object({
     battle_session_id: z.string().uuid(),
@@ -129,7 +97,6 @@ const battleSessionCommitRowSchema = z
     replayed: z.boolean(),
   })
   .strict()
-
 const battleEventRowSchema = z
   .object({
     battle_version: safePositiveInteger,
@@ -145,6 +112,7 @@ const oneCommitRowSchema = z.array(battleSessionCommitRowSchema).length(1)
 const battleEventRowsSchema = z.array(battleEventRowSchema).max(100)
 
 export type BattleIntent = z.infer<typeof battleIntentSchema>
+export type BattleAiDifficulty = z.infer<typeof battleAiDifficultySchema>
 export type BattleSessionCreateRequest = z.infer<typeof battleSessionCreateRequestSchema>
 export type BattleIntentRequest = z.infer<typeof battleIntentRequestSchema>
 export type BattlePreviewRequest = z.infer<typeof battlePreviewRequestSchema>
@@ -161,65 +129,54 @@ export function parseBattleSessionId(input: unknown): string | null {
   const result = battleSessionIdSchema.safeParse(input)
   return result.success ? result.data : null
 }
-
 export function parseBattleSessionCreateRequest(input: unknown): BattleSessionCreateRequest | null {
   const result = battleSessionCreateRequestSchema.safeParse(input)
   return result.success ? result.data : null
 }
-
 export function parseBattleIntentRequest(input: unknown): BattleIntentRequest | null {
   const result = battleIntentRequestSchema.safeParse(input)
   return result.success ? result.data : null
 }
-
 export function parseBattlePreviewRequest(input: unknown): BattlePreviewRequest | null {
   const result = battlePreviewRequestSchema.safeParse(input)
   return result.success ? result.data : null
 }
-
 export function parseBattleRecruitTurnRequest(input: unknown): BattleRecruitTurnRequest | null {
   const result = battleRecruitTurnRequestSchema.safeParse(input)
   return result.success ? result.data : null
 }
-
 export function parseBattleFinalTurnPreviewRequest(
   input: unknown,
 ): BattleFinalTurnPreviewRequest | null {
   const result = battleFinalTurnPreviewRequestSchema.safeParse(input)
   return result.success ? result.data : null
 }
-
 export function parseBattleFinalTurnRequest(input: unknown): BattleFinalTurnRequest | null {
   const result = battleFinalTurnRequestSchema.safeParse(input)
   return result.success ? result.data : null
 }
-
 export function parseBattleAbortRequest(input: unknown): BattleAbortRequest | null {
   const result = battleAbortRequestSchema.safeParse(input)
   return result.success ? result.data : null
 }
-
 export function parseBattleSessionCreationPersistenceRow(
   input: unknown,
 ): BattleSessionCreationPersistenceRow | null {
   const result = oneCreationRowSchema.safeParse(input)
   return result.success ? result.data[0] : null
 }
-
 export function parseBattleSessionPersistenceRow(
   input: unknown,
 ): BattleSessionPersistenceRow | null {
   const result = optionalSessionRowSchema.safeParse(input)
   return result.success ? (result.data[0] ?? null) : null
 }
-
 export function parseBattleSessionCommitPersistenceRow(
   input: unknown,
 ): BattleSessionCommitPersistenceRow | null {
   const result = oneCommitRowSchema.safeParse(input)
   return result.success ? result.data[0] : null
 }
-
 export function parseBattleEventPersistenceRows(
   input: unknown,
 ): readonly BattleEventPersistenceRow[] | null {

@@ -23,6 +23,10 @@ import styles from './character-creation-experience.module.css'
 
 type Step = 'identity' | 'foundation' | 'review'
 
+interface CharacterCreationExperienceProps {
+  slotIndex: number
+}
+
 const portraitAssetIds: readonly ImageAssetId[] = [
   'character.creation.portrait-01',
   'character.creation.portrait-02',
@@ -31,20 +35,20 @@ const portraitAssetIds: readonly ImageAssetId[] = [
 ]
 
 const attributeCopy = {
-  might: 'Physical strength and force.',
-  finesse: 'Precision, critical effectiveness, initiative, and agile combat.',
-  intellect: 'Magical potency, healing, and supernatural control.',
-  resolve: 'Health, defenses, and status resistance.',
+  might: 'Physical force, durability, armor, and jump capability.',
+  finesse: 'Accuracy, evasion, initiative, movement, and critical precision.',
+  intellect: 'Magical potency, healing, MP, and supernatural control.',
+  resolve: 'Health, defenses, ward, and status resistance.',
 } as const
 
-const balancedBonuses: CharacterAttributeBonuses = {
-  might: 1,
-  finesse: 1,
-  intellect: 1,
-  resolve: 1,
+const emptyBonuses: CharacterAttributeBonuses = {
+  might: 0,
+  finesse: 0,
+  intellect: 0,
+  resolve: 0,
 }
 
-export function CharacterCreationExperience() {
+export function CharacterCreationExperience({ slotIndex }: CharacterCreationExperienceProps) {
   const router = useRouter()
   const [step, setStep] = useState<Step>('identity')
   const [name, setName] = useState('')
@@ -55,8 +59,7 @@ export function CharacterCreationExperience() {
     STARTER_CHARACTER_APPEARANCES[0].ref,
   )
   const [foundationDisciplineId, setFoundationDisciplineId] = useState('vanguard')
-  const [attributeBonuses, setAttributeBonuses] =
-    useState<CharacterAttributeBonuses>(balancedBonuses)
+  const [attributeBonuses, setAttributeBonuses] = useState<CharacterAttributeBonuses>(emptyBonuses)
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const idempotencyKey = useRef<string | null>(null)
@@ -80,25 +83,15 @@ export function CharacterCreationExperience() {
   function changeAttribute(attributeId: (typeof CHARACTER_ATTRIBUTE_IDS)[number], delta: number) {
     const current = attributeBonuses[attributeId]
     const next = current + delta
-    if (next < 0 || next > CHARACTER_CREATION_RULES_V1.attributes.maximumBonusPerAttribute) {
-      return
-    }
-    if (delta > 0 && remainingPoints <= 0) {
-      return
-    }
+    if (next < 0 || next > CHARACTER_CREATION_RULES_V1.attributes.maximumBonusPerAttribute) return
+    if (delta > 0 && remainingPoints <= 0) return
 
     changed()
-    setAttributeBonuses((currentBonuses) => ({
-      ...currentBonuses,
-      [attributeId]: next,
-    }))
+    setAttributeBonuses((currentBonuses) => ({ ...currentBonuses, [attributeId]: next }))
   }
 
   async function submitCharacter() {
-    if (submitting || remainingPoints !== 0) {
-      return
-    }
-
+    if (submitting || remainingPoints !== 0) return
     setSubmitting(true)
     setErrorMessage(null)
     idempotencyKey.current ??= crypto.randomUUID()
@@ -109,6 +102,7 @@ export function CharacterCreationExperience() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           version: 1,
+          slotIndex,
           idempotencyKey: idempotencyKey.current,
           intent: {
             name,
@@ -121,16 +115,8 @@ export function CharacterCreationExperience() {
           },
         }),
       })
-
-      const payload = (await response.json()) as {
-        error?: { code?: string; message?: string }
-      }
-
+      const payload = (await response.json()) as { error?: { code?: string; message?: string } }
       if (!response.ok) {
-        if (payload.error?.code === 'CHARACTER_ALREADY_EXISTS') {
-          router.refresh()
-          return
-        }
         if (payload.error?.code === 'CHARACTER_NAME_UNAVAILABLE') {
           idempotencyKey.current = null
           setStep('identity')
@@ -138,7 +124,7 @@ export function CharacterCreationExperience() {
         setErrorMessage(payload.error?.message ?? 'Character creation could not be completed.')
         return
       }
-
+      router.push('/game')
       router.refresh()
     } catch {
       setErrorMessage('Character creation could not reach the server. Your choices are still here.')
@@ -167,29 +153,23 @@ export function CharacterCreationExperience() {
               Who steps onto the road?
             </h1>
             <p className={styles.intro}>
-              Your account stays private. This name and presentation become your adventurer’s public
-              identity.
+              Your account stays private. This name, portrait, and presentation become this
+              character’s public identity.
             </p>
 
             <label className={styles.field}>
               <span>Character name</span>
               <input
-                aria-describedby="character-name-help"
                 autoComplete="off"
-                enterKeyHint="next"
-                inputMode="text"
                 maxLength={CHARACTER_CREATION_RULES_V1.name.maximumCodePoints}
                 minLength={CHARACTER_CREATION_RULES_V1.name.minimumCodePoints}
-                name="characterName"
                 onChange={(event) => {
                   changed()
                   setName(event.target.value)
                 }}
                 value={name}
               />
-              <small id="character-name-help">
-                3–24 letters; single spaces, apostrophes, or hyphens may separate name parts.
-              </small>
+              <small>3–24 letters; spaces, apostrophes, and hyphens may separate name parts.</small>
             </label>
 
             <div className={styles.twoColumn}>
@@ -303,8 +283,8 @@ export function CharacterCreationExperience() {
               Choose your first discipline.
             </h1>
             <p className={styles.intro}>
-              This is your starting combat tradition, not a permanent build trap. Soulmarks and
-              advanced Discipline systems come later through play.
+              Your Foundation Discipline shapes your starting style. It is not a permanent build
+              trap.
             </p>
 
             <fieldset className={styles.choiceGroup}>
@@ -336,46 +316,55 @@ export function CharacterCreationExperience() {
               <div>
                 <h2>Starting attributes</h2>
                 <p>
-                  Shift your four bonus points. Every attribute also receives the same baseline.
+                  Every attribute has a locked base of{' '}
+                  {CHARACTER_CREATION_RULES_V1.attributes.baseline}. Spend exactly{' '}
+                  {CHARACTER_CREATION_RULES_V1.attributes.bonusBudget} bonus points below; only the{' '}
+                  <strong>+ bonus</strong> changes.
                 </p>
               </div>
-              <strong data-testid="attribute-points">{remainingPoints} points remaining</strong>
+              <strong data-testid="attribute-points">
+                {remainingPoints} bonus points remaining
+              </strong>
             </div>
 
             <div className={styles.attributeGrid}>
-              {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => (
-                <div className={styles.attributeCard} key={attributeId}>
-                  <div>
-                    <strong>{attributeId[0].toUpperCase() + attributeId.slice(1)}</strong>
-                    <small>{attributeCopy[attributeId]}</small>
+              {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => {
+                const bonus = attributeBonuses[attributeId]
+                const total = CHARACTER_CREATION_RULES_V1.attributes.baseline + bonus
+                return (
+                  <div className={styles.attributeCard} key={attributeId}>
+                    <div>
+                      <strong>{attributeId[0].toUpperCase() + attributeId.slice(1)}</strong>
+                      <small>{attributeCopy[attributeId]}</small>
+                      <small>
+                        Base {CHARACTER_CREATION_RULES_V1.attributes.baseline} · Total {total}
+                      </small>
+                    </div>
+                    <div className={styles.attributeControl}>
+                      <button
+                        aria-label={`Decrease ${attributeId} bonus`}
+                        disabled={bonus === 0}
+                        onClick={() => changeAttribute(attributeId, -1)}
+                        type="button"
+                      >
+                        −
+                      </button>
+                      <output aria-label={`${attributeId} bonus`}>+{bonus}</output>
+                      <button
+                        aria-label={`Increase ${attributeId} bonus`}
+                        disabled={
+                          remainingPoints === 0 ||
+                          bonus === CHARACTER_CREATION_RULES_V1.attributes.maximumBonusPerAttribute
+                        }
+                        onClick={() => changeAttribute(attributeId, 1)}
+                        type="button"
+                      >
+                        +
+                      </button>
+                    </div>
                   </div>
-                  <div className={styles.attributeControl}>
-                    <button
-                      aria-label={`Decrease ${attributeId}`}
-                      disabled={attributeBonuses[attributeId] === 0}
-                      onClick={() => changeAttribute(attributeId, -1)}
-                      type="button"
-                    >
-                      −
-                    </button>
-                    <output aria-label={`${attributeId} bonus`}>
-                      +{attributeBonuses[attributeId]}
-                    </output>
-                    <button
-                      aria-label={`Increase ${attributeId}`}
-                      disabled={
-                        remainingPoints === 0 ||
-                        attributeBonuses[attributeId] ===
-                          CHARACTER_CREATION_RULES_V1.attributes.maximumBonusPerAttribute
-                      }
-                      onClick={() => changeAttribute(attributeId, 1)}
-                      type="button"
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
 
             <div className={styles.actions}>
@@ -396,14 +385,17 @@ export function CharacterCreationExperience() {
         {step === 'review' ? (
           <div className={styles.step}>
             <h1 ref={stepHeading} tabIndex={-1}>
-              Make this adventurer permanent.
+              Confirm this character.
             </h1>
             <p className={styles.intro}>
-              The server will revalidate every choice, reserve the name, and create your base slot
-              atomically. Refreshing or reconnecting will return to this same character.
+              The server will revalidate every choice, reserve the name, and create the character
+              atomically in Slot {slotIndex + 1}.
             </p>
-
             <dl className={styles.reviewGrid}>
+              <div>
+                <dt>Slot</dt>
+                <dd>{slotIndex + 1}</dd>
+              </div>
               <div>
                 <dt>Name</dt>
                 <dd>{name}</dd>
@@ -432,16 +424,13 @@ export function CharacterCreationExperience() {
                 </div>
               ))}
             </dl>
-
             {errorMessage ? (
               <p className={styles.error} role="alert">
                 {errorMessage}
               </p>
             ) : null}
             <p className={styles.submitState} aria-live="polite">
-              {submitting
-                ? 'Reserving your name and creating the character…'
-                : 'Ready to enter AUREVANE.'}
+              {submitting ? 'Reserving the name and creating the character…' : 'Ready to create.'}
             </p>
             <div className={styles.actions}>
               <GameButton
@@ -457,7 +446,7 @@ export function CharacterCreationExperience() {
                 onClick={() => void submitCharacter()}
                 type="button"
               >
-                {submitting ? 'Creating…' : 'Create permanent character'}
+                {submitting ? 'Creating…' : 'Create character'}
               </GameButton>
             </div>
           </div>

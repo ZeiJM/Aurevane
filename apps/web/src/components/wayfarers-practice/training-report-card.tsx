@@ -35,14 +35,10 @@ export function TrainingReportCard({ report }: TrainingReportCardProps) {
   const idempotencyKey = useRef<string | null>(null)
 
   async function claimTraining() {
-    if (submitting) {
-      return
-    }
-
+    if (submitting) return
     setSubmitting(true)
     setErrorMessage(null)
     idempotencyKey.current ??= crypto.randomUUID()
-
     try {
       const response = await fetch('/api/wayfarers-practice/claim', {
         method: 'POST',
@@ -54,15 +50,11 @@ export function TrainingReportCard({ report }: TrainingReportCardProps) {
           idempotencyKey: idempotencyKey.current,
         }),
       })
-      const payload = (await response.json()) as {
-        error?: { message?: string }
-      }
-
+      const payload = (await response.json()) as { error?: { message?: string } }
       if (!response.ok) {
         setErrorMessage(payload.error?.message ?? 'The Training Report could not be claimed.')
         return
       }
-
       router.refresh()
     } catch {
       setErrorMessage('The Training Report could not reach the server. You can safely try again.')
@@ -77,24 +69,22 @@ export function TrainingReportCard({ report }: TrainingReportCardProps) {
     <section className={styles.report} data-testid="training-report">
       <div className={styles.heading}>
         <div>
-          <Kicker marker="◇">Wayfarer&apos;s Practice</Kicker>
+          <Kicker marker="◇">Offline Training</Kicker>
           <h2>Training Report</h2>
         </div>
         <span>{planLabel ? `Planned ${planLabel}` : 'Automatic Balanced'}</span>
       </div>
-
       <p className={styles.intro}>
-        While you were away, your character kept to a modest routine of practice, study, and
-        reflection. This report is frozen and will wait until you are ready to claim it.
+        While you were away, your character completed a modest routine. This report is frozen and
+        waits safely until you claim it.
       </p>
-
       <dl className={styles.rewards}>
         <div>
           <dt>Absence measured</dt>
           <dd>{formatPracticeDuration(report.elapsedSeconds)}</dd>
         </div>
         <div>
-          <dt>Practice time credited</dt>
+          <dt>Training time credited</dt>
           <dd>{formatPracticeDuration(report.creditedPracticeSeconds)}</dd>
         </div>
         <div>
@@ -106,40 +96,30 @@ export function TrainingReportCard({ report }: TrainingReportCardProps) {
           <dd>+{report.restedMomentumGain.toLocaleString('en-US')}</dd>
         </div>
       </dl>
-
       {report.practiceSource === 'planned_balanced' && planLabel && report.plannedWindowSeconds ? (
         <p className={styles.capNote} data-testid="practice-plan-provenance">
-          {`Your ${planLabel} plan covered ${formatPracticeDuration(report.plannedElapsedSeconds)} of this absence. `}
-          {report.plannedElapsedSeconds < report.plannedWindowSeconds
-            ? 'You returned before the planned window ended, so only legitimate elapsed time was counted. '
-            : ''}
+          {`Your ${planLabel} plan covered ${formatPracticeDuration(report.plannedElapsedSeconds)}. `}
           {report.balancedFallbackSeconds > 0
-            ? `${formatPracticeDuration(report.balancedFallbackSeconds)} beyond the plan continued automatically as Balanced Practice. `
-            : ''}
-          The explicit plan is now consumed; a later unplanned absence returns to Balanced Practice.
+            ? `${formatPracticeDuration(report.balancedFallbackSeconds)} beyond the plan continued as Balanced Training.`
+            : 'Only legitimate elapsed time was counted.'}
         </p>
       ) : (
         <p className={styles.capNote} data-testid="practice-plan-provenance">
-          No explicit plan was active, so this absence used automatic Balanced Practice.
+          This absence used automatic Balanced Training.
         </p>
       )}
-
       {report.directXpCapReached || report.restedMomentumCapReached ? (
         <p className={styles.capNote}>
-          {report.directXpCapReached ? 'The direct practice bank reached its current cap. ' : ''}
-          {report.restedMomentumCapReached
-            ? 'Rested Momentum also reached its current practice cap.'
-            : ''}
+          {report.directXpCapReached ? 'The direct training bank reached its current cap. ' : ''}
+          {report.restedMomentumCapReached ? 'Rested Momentum also reached its current cap.' : ''}
         </p>
       ) : null}
-
       <div className={styles.actions}>
         <GameButton disabled={submitting} onClick={claimTraining} type="button">
           {submitting ? 'Claiming…' : 'Claim training'}
         </GameButton>
         <span>Claims do not expire and cannot be duplicated by refreshing or retrying.</span>
       </div>
-
       {errorMessage ? (
         <p className={styles.error} role="status" aria-live="polite">
           {errorMessage}
@@ -154,15 +134,8 @@ export function formatPracticeDuration(totalSeconds: number): string {
   const days = Math.floor(safeSeconds / 86400)
   const hours = Math.floor((safeSeconds % 86400) / 3600)
   const minutes = Math.floor((safeSeconds % 3600) / 60)
-
-  if (days > 0) {
-    return `${days}d ${hours}h`
-  }
-
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`
-  }
-
+  if (days > 0) return `${days}d ${hours}h`
+  if (hours > 0) return `${hours}h ${minutes}m`
   return `${minutes}m`
 }
 

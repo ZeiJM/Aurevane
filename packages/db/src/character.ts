@@ -42,6 +42,8 @@ export interface CreateBaseCharacterRecordInput extends IdempotentCommandInput {
 
 export interface CharacterRepository {
   findByOwnerSlot(userId: string, slotIndex: number): Promise<CharacterRecord | null>
+  /** Multi-slot lookup. Optional only for isolated legacy test doubles during the PV-1F migration. */
+  findByOwnerId?(userId: string, characterId: string): Promise<CharacterRecord | null>
   createBaseCharacter(
     input: CreateBaseCharacterRecordInput,
   ): Promise<TransactionalCommandResult<CharacterRecord>>

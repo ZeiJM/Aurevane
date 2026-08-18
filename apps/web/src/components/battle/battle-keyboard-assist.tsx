@@ -26,14 +26,26 @@ function eventChord(event: KeyboardEvent): string {
 
 function attackModeIsActive(): boolean {
   const instruction = document.querySelector<HTMLElement>('[data-testid="combat-mode-instruction"]')
-  const text = instruction?.textContent ?? ''
-  return text.startsWith('ACT · Choose an enemy') || text.startsWith('BASIC ATTACK ·')
+  return (instruction?.textContent ?? '').toLowerCase().includes('basic attack')
+}
+
+function playerCombatantName(): string | null {
+  const rails = Array.from(
+    document.querySelectorAll<HTMLElement>('aside[aria-label$=" combat status"]'),
+  )
+  const playerRail = rails.find((rail) => rail.textContent?.includes('Character'))
+  return playerRail?.querySelector('article strong')?.textContent?.trim() ?? null
 }
 
 function legalVisibleTargetButtons(): HTMLButtonElement[] {
+  const playerName = playerCombatantName()
   return Array.from(
     document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label*="occupied by"]'),
-  ).filter((button) => !button.disabled && !button.getAttribute('aria-label')?.includes('Wayfarer'))
+  ).filter((button) => {
+    if (button.disabled) return false
+    const label = button.getAttribute('aria-label') ?? ''
+    return !playerName || !label.includes(`occupied by ${playerName}`)
+  })
 }
 
 function commandButton(...labels: string[]): HTMLButtonElement | null {
@@ -48,10 +60,16 @@ function commandButton(...labels: string[]): HTMLButtonElement | null {
 }
 
 function planningButton(text: string): HTMLButtonElement | null {
-  const buttons = Array.from(
-    document.querySelectorAll<HTMLButtonElement>('section[aria-label="Command Deck"] button'),
-  )
+  const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('footer button'))
   return buttons.find((button) => button.textContent?.includes(text)) ?? null
+}
+
+function combatLogButton(): HTMLButtonElement | null {
+  return (
+    Array.from(document.querySelectorAll<HTMLButtonElement>('header button')).find((button) =>
+      button.textContent?.includes('Combat Log'),
+    ) ?? null
+  )
 }
 
 function configuredAction(bindings: CombatKeybindMap, chord: string): CombatKeybindAction | null {
@@ -74,20 +92,16 @@ export function BattleKeyboardAssist() {
 
   useEffect(() => {
     let cancelled = false
-
     async function loadControls() {
       try {
         const response = await fetch('/api/account/controls', { method: 'GET', cache: 'no-store' })
-        const body = (await response.json()) as {
-          controls?: { combatKeybinds?: unknown }
-        }
+        const body = (await response.json()) as { controls?: { combatKeybinds?: unknown } }
         const parsed = parseCombatKeybindMap(body.controls?.combatKeybinds)
         if (!cancelled && response.ok && parsed) setBindings(parsed)
       } catch {
         // Defaults remain available if account preferences cannot be refreshed mid-battle.
       }
     }
-
     void loadControls()
     return () => {
       cancelled = true
@@ -99,7 +113,6 @@ export function BattleKeyboardAssist() {
       if (!attackModeIsActive()) return false
       const targets = legalVisibleTargetButtons()
       if (targets.length === 0) return false
-
       const direction = reverse ? -1 : 1
       targetIndex.current =
         targetIndex.current < 0
@@ -107,7 +120,6 @@ export function BattleKeyboardAssist() {
             ? targets.length - 1
             : 0
           : (targetIndex.current + direction + targets.length) % targets.length
-
       const target = targets[targetIndex.current]
       target?.focus()
       target?.click()
@@ -123,11 +135,7 @@ export function BattleKeyboardAssist() {
         commandButton('Finish Turn', 'End Turn', 'Facing / End Turn')?.click()
         return true
       }
-      if (action === 'confirm') {
-        const button = planningButton('Confirm action') ?? planningButton('Confirm command')
-        button?.click()
-        return true
-      }
+      if (action === 'confirm') return Boolean(planningButton('Confirm action')?.click() ?? true)
       if (action === 'cancel') return Boolean(planningButton('Cancel')?.click() ?? true)
       if (action === 'faceNorth')
         return Boolean(
@@ -148,7 +156,9 @@ export function BattleKeyboardAssist() {
       if (action === 'nextTarget') return cycleTarget(false)
       if (action === 'previousTarget') return cycleTarget(true)
       if (action === 'combatLog') {
-        window.dispatchEvent(new Event('aurevane:battle-log-toggle'))
+        const trigger = combatLogButton()
+        if (trigger) trigger.click()
+        else window.dispatchEvent(new Event('aurevane:battle-log-toggle'))
         return true
       }
       return false
@@ -156,10 +166,8 @@ export function BattleKeyboardAssist() {
 
     function handleKeyDown(event: KeyboardEvent) {
       if (isTextEntryTarget(event.target) || !event.code) return
-
       const chord = eventChord(event)
       const action = configuredAction(bindings, chord)
-
       if (action) {
         if ((action === 'nextTarget' || action === 'previousTarget') && !attackModeIsActive())
           return
@@ -168,7 +176,6 @@ export function BattleKeyboardAssist() {
         execute(action)
         return
       }
-
       const legacyAction = defaultAction(chord)
       if (legacyAction && combatKeybindChord(bindings[legacyAction]) !== chord) {
         event.preventDefault()

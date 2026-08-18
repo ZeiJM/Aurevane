@@ -1,27 +1,21 @@
-import {
-  P2_3_COMBAT_CONTENT,
-  P2_3_GUARD_ACTION,
-  P2_3_UNARMED_ATTACK_PROFILE,
-  createBasicAttackDefinition,
-  evaluateCombatAction,
-  type CombatActionDefinition,
-  type CombatTargetSelection,
-} from './actions'
 import type { BattleFacing } from './battle-state'
 import {
-  evaluateCurrentMovementPath,
-  type CombatPlacement,
-  type CombatTile,
-  type GridPosition,
-  type TacticalBattleState,
-} from './board'
+  PV1F_COMBAT_CONTENT,
+  PV1F_GUARD_ACTION_ID,
+  PV1F_RECOVER_ACTION_ID,
+  evaluatePv1fAction,
+  evaluatePv1fMovement,
+  preparePv1fTurnEconomy,
+  readPv1fActionEconomy,
+} from './pv1f-action-economy'
 import { forecastStatDrivenAttack, type StatDrivenCombatEncounterState } from './stat-driven-combat'
+import type { CombatTargetSelection } from './actions'
+import type { CombatPlacement, CombatTile, GridPosition } from './board'
 
-export const RECRUIT_AI_RULES_VERSION = 1 as const
-export const RECRUIT_AI_PROFILE_VERSION = 1 as const
+export const RECRUIT_AI_RULES_VERSION = 2 as const
+export const RECRUIT_AI_PROFILE_VERSION = 2 as const
 
-const BASIC_ATTACK = createBasicAttackDefinition(P2_3_UNARMED_ATTACK_PROFILE)
-const ACTIONS: readonly CombatActionDefinition[] = [BASIC_ATTACK, P2_3_GUARD_ACTION]
+export type RecruitAiDifficulty = 'easy' | 'standard' | 'high'
 
 export type RecruitAiIntent =
   | { kind: 'move'; path: readonly GridPosition[] }
@@ -30,17 +24,23 @@ export type RecruitAiIntent =
   | { kind: 'end-turn' }
 
 export type RecruitAiReasonTag =
-  'legal-damage' | 'close-distance' | 'guard-survival' | 'face-threat' | 'safe-end-turn'
+  | 'legal-damage'
+  | 'close-distance'
+  | 'guard-survival'
+  | 'recover-survival'
+  | 'face-threat'
+  | 'safe-end-turn'
 
 export interface RecruitAiProfile {
-  id: 'recruit-weak-v1'
+  id: 'recruit-easy-v2' | 'recruit-standard-v2' | 'recruit-high-v2'
   version: typeof RECRUIT_AI_PROFILE_VERSION
+  difficulty: RecruitAiDifficulty
   maxCandidates: number
   attackUtility: number
   movementUtility: number
   guardUtility: number
+  recoverUtility: number
   facingUtility: number
-  endTurnUtility: number
 }
 
 export interface RecruitAiKnowledge {
@@ -49,8 +49,7 @@ export interface RecruitAiKnowledge {
   round: number
   turnNumber: number
   activeCombatantId: string
-  movementRemaining: number
-  actionReady: boolean
+  actionEconomyRemaining: number
   finalFacing: BattleFacing | null
   combatants: readonly {
     id: string
@@ -81,21 +80,55 @@ interface Candidate {
   stableKey: string
 }
 
-export const RECRUIT_WEAK_PROFILE: RecruitAiProfile = {
-  id: 'recruit-weak-v1',
+export const RECRUIT_EASY_PROFILE: RecruitAiProfile = {
+  id: 'recruit-easy-v2',
   version: RECRUIT_AI_PROFILE_VERSION,
-  maxCandidates: 64,
-  attackUtility: 100,
-  movementUtility: 28,
-  guardUtility: 16,
+  difficulty: 'easy',
+  maxCandidates: 48,
+  attackUtility: 70,
+  movementUtility: 34,
+  guardUtility: 34,
+  recoverUtility: 48,
   facingUtility: 8,
-  endTurnUtility: 0,
+}
+
+export const RECRUIT_STANDARD_PROFILE: RecruitAiProfile = {
+  id: 'recruit-standard-v2',
+  version: RECRUIT_AI_PROFILE_VERSION,
+  difficulty: 'standard',
+  maxCandidates: 72,
+  attackUtility: 100,
+  movementUtility: 30,
+  guardUtility: 24,
+  recoverUtility: 52,
+  facingUtility: 8,
+}
+
+export const RECRUIT_HIGH_PROFILE: RecruitAiProfile = {
+  id: 'recruit-high-v2',
+  version: RECRUIT_AI_PROFILE_VERSION,
+  difficulty: 'high',
+  maxCandidates: 96,
+  attackUtility: 116,
+  movementUtility: 36,
+  guardUtility: 26,
+  recoverUtility: 58,
+  facingUtility: 10,
+}
+
+export const RECRUIT_WEAK_PROFILE = RECRUIT_EASY_PROFILE
+
+export function getRecruitAiProfile(difficulty: RecruitAiDifficulty): RecruitAiProfile {
+  if (difficulty === 'easy') return RECRUIT_EASY_PROFILE
+  if (difficulty === 'high') return RECRUIT_HIGH_PROFILE
+  return RECRUIT_STANDARD_PROFILE
 }
 
 export function createRecruitAiKnowledge(
   state: StatDrivenCombatEncounterState,
 ): RecruitAiKnowledge {
-  const battle = state.tactical.battle
+  const prepared = preparePv1fTurnEconomy(state)
+  const battle = prepared.tactical.battle
   const turn = battle.currentTurn
   if (battle.lifecycle !== 'active' || turn === null) {
     throw new Error('Recruit AI knowledge requires an active battle turn.')
@@ -107,8 +140,7 @@ export function createRecruitAiKnowledge(
     round: battle.round,
     turnNumber: battle.turnNumber,
     activeCombatantId: turn.combatantId,
-    movementRemaining: turn.movementRemaining,
-    actionReady: turn.actionState === 'ready',
+    actionEconomyRemaining: readPv1fActionEconomy(prepared, turn.combatantId)?.current ?? 0,
     finalFacing: turn.finalFacing,
     combatants: battle.combatants.map((combatant) => ({
       id: combatant.id,
@@ -118,11 +150,11 @@ export function createRecruitAiKnowledge(
       mp: combatant.mp,
       maxMp: combatant.maxMp,
     })),
-    placements: state.tactical.placements.map((placement) => ({
+    placements: prepared.tactical.placements.map((placement) => ({
       ...placement,
       position: { ...placement.position },
     })),
-    tiles: state.tactical.tiles.map((tile) => ({ ...tile, position: { ...tile.position } })),
+    tiles: prepared.tactical.tiles.map((tile) => ({ ...tile, position: { ...tile.position } })),
   }
 }
 
@@ -131,7 +163,7 @@ export function chooseRecruitAiDecision(input: {
   profile?: RecruitAiProfile
   tieBreakSeed: number
 }): RecruitAiDecision {
-  const profile = input.profile ?? RECRUIT_WEAK_PROFILE
+  const profile = input.profile ?? RECRUIT_STANDARD_PROFILE
   assertRecruitAiProfile(profile)
   if (!Number.isSafeInteger(input.tieBreakSeed)) {
     throw new RangeError('Recruit AI tieBreakSeed must be a safe integer.')
@@ -143,7 +175,7 @@ export function chooseRecruitAiDecision(input: {
     throw new Error('Recruit AI could not find a legal bounded turn decision.')
   }
 
-  const ranked = candidates
+  const selected = candidates
     .map((candidate) => ({
       ...candidate,
       tieBreak: deterministicTieBreak(input.tieBreakSeed, candidate.stableKey),
@@ -152,9 +184,8 @@ export function chooseRecruitAiDecision(input: {
       if (left.utility !== right.utility) return right.utility - left.utility
       if (left.tieBreak !== right.tieBreak) return right.tieBreak - left.tieBreak
       return left.stableKey.localeCompare(right.stableKey)
-    })
+    })[0]
 
-  const selected = ranked[0]
   if (!selected) throw new Error('Recruit AI candidate ranking unexpectedly produced no decision.')
 
   return {
@@ -180,45 +211,54 @@ function buildCandidates(
   const actorPlacement = knowledge.placements.find(
     (placement) => placement.combatantId === knowledge.activeCombatantId,
   )
-  if (!actor || !actorPlacement)
+  if (!actor || !actorPlacement) {
     throw new Error('Recruit AI active combatant is missing committed state.')
+  }
 
   const enemies = knowledge.combatants
     .filter((combatant) => combatant.teamId !== actor.teamId && combatant.hp > 0)
     .sort((left, right) => left.id.localeCompare(right.id))
 
-  if (knowledge.actionReady) {
-    for (const enemy of enemies) {
-      pushCandidate(candidates, profile, createAttackCandidate(state, enemy.id, profile))
-    }
-
-    const guardEvaluation = evaluateCombatAction(
-      state,
-      P2_3_GUARD_ACTION,
-      { kind: 'self' },
-      P2_3_COMBAT_CONTENT,
-    )
-    if (guardEvaluation.legal) {
-      const hpRatio = actor.maxHp > 0 ? actor.hp / actor.maxHp : 0
-      pushCandidate(candidates, profile, {
-        intent: { kind: 'action', actionId: P2_3_GUARD_ACTION.id, target: { kind: 'self' } },
-        reason: 'guard-survival',
-        utility: profile.guardUtility + Math.round((1 - hpRatio) * 12),
-        stableKey: `action:${P2_3_GUARD_ACTION.id}:self`,
-      })
-    }
+  for (const enemy of enemies) {
+    pushCandidate(candidates, profile, createAttackCandidate(state, enemy.id, profile))
   }
 
-  if (knowledge.movementRemaining > 0 && enemies.length > 0) {
+  const hpRatio = actor.maxHp > 0 ? actor.hp / actor.maxHp : 0
+  if (hpRatio < 0.72) {
+    pushCandidate(
+      candidates,
+      profile,
+      createSelfActionCandidate(
+        state,
+        PV1F_GUARD_ACTION_ID,
+        'guard-survival',
+        profile.guardUtility + Math.round((1 - hpRatio) * 24),
+      ),
+    )
+  }
+  if (hpRatio < 0.62) {
+    pushCandidate(
+      candidates,
+      profile,
+      createSelfActionCandidate(
+        state,
+        PV1F_RECOVER_ACTION_ID,
+        'recover-survival',
+        profile.recoverUtility + Math.round((1 - hpRatio) * 32),
+      ),
+    )
+  }
+
+  if (enemies.length > 0) {
     const nearestBefore = nearestEnemyDistance(
       knowledge,
       actorPlacement.position,
       enemies.map((enemy) => enemy.id),
     )
     for (const destination of orthogonalNeighbors(actorPlacement.position)) {
-      const path = [actorPlacement.position, destination]
-      const movement = evaluateCurrentMovementPath(state.tactical, path)
-      if (!movement.legal || movement.cost <= 0) continue
+      const preview = evaluatePv1fMovement(state, [actorPlacement.position, destination])
+      if (!preview.movement.legal || preview.economyCost <= 0) continue
+      if (preview.economyCost > knowledge.actionEconomyRemaining) continue
       const nearestAfter = nearestEnemyDistance(
         knowledge,
         destination,
@@ -227,9 +267,9 @@ function buildCandidates(
       const improvement = nearestBefore - nearestAfter
       if (improvement <= 0) continue
       pushCandidate(candidates, profile, {
-        intent: { kind: 'move', path: movement.path },
+        intent: { kind: 'move', path: preview.movement.path },
         reason: 'close-distance',
-        utility: profile.movementUtility + improvement * 6 - movement.cost,
+        utility: profile.movementUtility + improvement * 7 - preview.economyCost / 5,
         stableKey: `move:${destination.x},${destination.y}`,
       })
     }
@@ -242,21 +282,18 @@ function buildCandidates(
   )
   if (nearestEnemy) {
     const preferredFacing = facingToward(actorPlacement.position, nearestEnemy.position)
-    if (knowledge.finalFacing !== preferredFacing) {
-      pushCandidate(candidates, profile, {
-        intent: { kind: 'face', facing: preferredFacing },
-        reason: 'face-threat',
-        utility: profile.facingUtility,
-        stableKey: `face:${preferredFacing}`,
-      })
-    }
-  }
-
-  if (knowledge.finalFacing !== null) {
+    pushCandidate(candidates, profile, {
+      intent: { kind: 'face', facing: preferredFacing },
+      reason: 'face-threat',
+      utility:
+        knowledge.actionEconomyRemaining === 0 ? profile.facingUtility + 20 : profile.facingUtility,
+      stableKey: `face:${preferredFacing}`,
+    })
+  } else {
     pushCandidate(candidates, profile, {
       intent: { kind: 'end-turn' },
       reason: 'safe-end-turn',
-      utility: profile.endTurnUtility,
+      utility: 0,
       stableKey: 'end-turn',
     })
   }
@@ -270,21 +307,57 @@ function createAttackCandidate(
   profile: RecruitAiProfile,
 ): Candidate | null {
   const target: CombatTargetSelection = { kind: 'unit', combatantId: targetCombatantId }
-  const forecast = forecastStatDrivenAttack(state, BASIC_ATTACK, target, P2_3_COMBAT_CONTENT)
+  let evaluation
+  try {
+    evaluation = evaluatePv1fAction(state, 'basic.attack.unarmed.basic', target)
+  } catch {
+    return null
+  }
+  if (!evaluation.evaluation.legal) return null
+  const economy = readPv1fActionEconomy(evaluation.prepared)
+  if (!economy || economy.current < evaluation.cost) return null
+
+  const forecast = forecastStatDrivenAttack(
+    evaluation.prepared,
+    evaluation.action,
+    target,
+    PV1F_COMBAT_CONTENT,
+  )
   if (!forecast.evaluation.legal) return null
 
   const targetCombatant = state.tactical.battle.combatants.find(
     (combatant) => combatant.id === targetCombatantId,
   )
   const damage = forecast.mitigatedBaseDamage ?? 0
-  const lethalBonus = targetCombatant && damage >= targetCombatant.hp ? 14 : 0
+  const lethalBonus = targetCombatant && damage >= targetCombatant.hp ? 16 : 0
   const hitChanceBonus = Math.round((forecast.hitChanceBasisPoints ?? 0) / 1_000)
 
   return {
-    intent: { kind: 'action', actionId: BASIC_ATTACK.id, target },
+    intent: { kind: 'action', actionId: evaluation.action.id, target },
     reason: 'legal-damage',
     utility: profile.attackUtility + damage + lethalBonus + hitChanceBonus,
-    stableKey: `action:${BASIC_ATTACK.id}:unit:${targetCombatantId}`,
+    stableKey: `action:${evaluation.action.id}:unit:${targetCombatantId}`,
+  }
+}
+
+function createSelfActionCandidate(
+  state: StatDrivenCombatEncounterState,
+  actionId: string,
+  reason: 'guard-survival' | 'recover-survival',
+  utility: number,
+): Candidate | null {
+  try {
+    const evaluated = evaluatePv1fAction(state, actionId, { kind: 'self' })
+    const economy = readPv1fActionEconomy(evaluated.prepared)
+    if (!evaluated.evaluation.legal || !economy || economy.current < evaluated.cost) return null
+    return {
+      intent: { kind: 'action', actionId: evaluated.action.id, target: { kind: 'self' } },
+      reason,
+      utility,
+      stableKey: `action:${evaluated.action.id}:self`,
+    }
+  } catch {
+    return null
   }
 }
 
@@ -353,8 +426,9 @@ function deterministicTieBreak(seed: number, stableKey: string): number {
 }
 
 function copyIntent(intent: RecruitAiIntent): RecruitAiIntent {
-  if (intent.kind === 'move')
+  if (intent.kind === 'move') {
     return { kind: 'move', path: intent.path.map((position) => ({ ...position })) }
+  }
   if (intent.kind === 'action') return { ...intent, target: copyTarget(intent.target) }
   return { ...intent }
 }
@@ -365,7 +439,8 @@ function copyTarget(target: CombatTargetSelection): CombatTargetSelection {
 }
 
 function assertRecruitAiProfile(profile: RecruitAiProfile): void {
-  if (profile.id !== 'recruit-weak-v1' || profile.version !== RECRUIT_AI_PROFILE_VERSION) {
+  const supportedIds = new Set(['recruit-easy-v2', 'recruit-standard-v2', 'recruit-high-v2'])
+  if (!supportedIds.has(profile.id) || profile.version !== RECRUIT_AI_PROFILE_VERSION) {
     throw new Error('Unsupported Recruit AI profile.')
   }
   if (
@@ -375,24 +450,14 @@ function assertRecruitAiProfile(profile: RecruitAiProfile): void {
   ) {
     throw new RangeError('Recruit AI maxCandidates must be a safe integer between 1 and 256.')
   }
-  for (const [field, value] of Object.entries({
-    attackUtility: profile.attackUtility,
-    movementUtility: profile.movementUtility,
-    guardUtility: profile.guardUtility,
-    facingUtility: profile.facingUtility,
-    endTurnUtility: profile.endTurnUtility,
-  })) {
-    if (!Number.isSafeInteger(value))
-      throw new RangeError(`Recruit AI ${field} must be a safe integer.`)
-  }
 }
 
-export function recruitAiActionCatalog(): readonly CombatActionDefinition[] {
-  return ACTIONS
+export function recruitAiActionCatalog(): readonly string[] {
+  return ['basic.attack.unarmed.basic', PV1F_GUARD_ACTION_ID, PV1F_RECOVER_ACTION_ID]
 }
 
 export function recruitAiKnowledgeFromTacticalStateForTest(
-  tactical: TacticalBattleState,
+  tactical: StatDrivenCombatEncounterState['tactical'],
 ): Pick<RecruitAiKnowledge, 'placements' | 'tiles'> {
   return {
     placements: tactical.placements.map((placement) => ({

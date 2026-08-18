@@ -1,12 +1,9 @@
 import { CHARACTER_ATTRIBUTE_IDS } from '@aurevane/game-core/character/creation'
 import type { DerivedStatValue } from '@aurevane/game-core/character/derived-stats'
 import type { CharacterProfileReadModel } from '@aurevane/game-core/character/profile'
-import {
-  ATTRIBUTE_PROFILE_HELP,
-  DERIVED_STAT_PROFILE_GROUPS,
-  DERIVED_STAT_PROFILE_HELP,
-} from '@aurevane/game-core/character/profile-stat-content'
-import { Kicker, StatusMark, Surface } from '@aurevane/ui'
+import { DERIVED_STAT_PROFILE_GROUPS } from '@aurevane/game-core/character/profile-stat-content'
+import { Kicker, Surface } from '@aurevane/ui'
+import Link from 'next/link'
 
 import { AurevaneImage } from '@/components/media/aurevane-image'
 import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
@@ -34,175 +31,149 @@ export function CharacterProfileShell({ profile }: CharacterProfileShellProps) {
 
   return (
     <AuthenticatedShellFrame
-      sessionLabel="Verified character profile"
-      footerLabel={`Derived rules v${profile.derived.rulesVersion} // XP curve v${progress.curveVersion}`}
+      sessionLabel="Character profile"
+      footerLabel={`Slot ${profile.slotIndex + 1} · Level ${profile.progression.level}`}
+      backHref="/game"
+      backLabel="Back to Character Select"
     >
-      <Surface className={styles.profile} tone="elevated">
-        <header className={styles.hero} data-testid="character-profile">
-          <div className={styles.portrait}>
-            <AurevaneImage
-              assetId={getStarterPortraitImageAssetId(profile.identity.portraitRef)}
-              sizes="(max-width: 560px) 8rem, 11rem"
-            />
-          </div>
-          <div className={styles.identity}>
-            <Kicker marker="◆">Character profile</Kicker>
-            <h1>{profile.identity.name}</h1>
-            <p>
-              Level {profile.progression.level} {profile.foundationDiscipline.name}
-            </p>
-            <div className={styles.identityMeta}>
-              <span>{profile.identity.presentationLabel}</span>
-              <span>{profile.identity.pronounLabel}</span>
-              <span>Cycle {profile.progression.cycleNumber}</span>
+      <div className={styles.layout}>
+        <Surface className={styles.profile} tone="elevated">
+          <header className={styles.hero} data-testid="character-profile">
+            <div className={styles.portrait}>
+              <AurevaneImage
+                assetId={getStarterPortraitImageAssetId(profile.identity.portraitRef)}
+                sizes="(max-width: 640px) 9rem, 14rem"
+              />
             </div>
-            <p className={styles.disciplineSummary}>{profile.foundationDiscipline.summary}</p>
-
-            <div className={styles.levelProgress} data-testid="level-progress">
-              <div className={styles.levelProgressHeading}>
-                <span>
-                  {progress.isMaxLevel
-                    ? 'Level cap reached'
-                    : `Progress to Level ${progress.level + 1}`}
-                </span>
-                <strong>
-                  {progress.isMaxLevel
-                    ? `${profile.progression.xp.toLocaleString('en')} XP`
-                    : `${profile.progression.xp.toLocaleString('en')} / ${progress.nextLevelThreshold?.toLocaleString('en')} XP`}
-                </strong>
+            <div className={styles.identity}>
+              <Kicker marker="◆">Character Profile</Kicker>
+              <h1>{profile.identity.name}</h1>
+              <p className={styles.subtitle}>
+                Level {profile.progression.level} · {profile.foundationDiscipline.name}
+              </p>
+              <div className={styles.meta}>
+                <span>Slot {profile.slotIndex + 1}</span>
+                <span>{profile.identity.presentationLabel}</span>
+                <span>{profile.identity.pronounLabel}</span>
+                <span>Cycle {profile.progression.cycleNumber}</span>
               </div>
-              <div
-                className={styles.progressTrack}
-                role="progressbar"
-                aria-label="Level progress"
-                aria-valuemin={0}
-                aria-valuemax={10_000}
-                aria-valuenow={progress.progressBasisPoints}
-              >
-                <span style={{ width: `${progress.progressBasisPoints / 100}%` }} />
-              </div>
-              <small>
-                {progress.isMaxLevel
-                  ? `Maximum Level ${progress.maxLevel} // curve v${progress.curveVersion}`
-                  : `${progress.xpIntoLevel.toLocaleString('en')} of ${progress.xpRequiredForNextLevel?.toLocaleString('en')} XP earned within this Level // curve v${progress.curveVersion}`}
-              </small>
-            </div>
-          </div>
-        </header>
+              <p className={styles.discipline}>{profile.foundationDiscipline.summary}</p>
 
-        <section className={styles.section} aria-labelledby="profile-attributes">
-          <div className={styles.sectionHeading}>
-            <div>
-              <Kicker marker="◇">Core attributes</Kicker>
-              <h2 id="profile-attributes">The four foundations of your character.</h2>
-            </div>
-            <p>
-              These are authoritative character values. Later equipment and Discipline systems may
-              contribute modifiers without replacing these foundations.
-            </p>
-          </div>
-
-          <div className={styles.attributeGrid}>
-            {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => (
-              <article
-                className={styles.attributeCard}
-                data-testid={`profile-attribute-${attributeId}`}
-                key={attributeId}
-              >
+              <div className={styles.levelProgress} data-testid="level-progress">
                 <div>
-                  <h3>{attributeLabels[attributeId]}</h3>
-                  <strong>{profile.attributes[attributeId]}</strong>
+                  <span>{progress.isMaxLevel ? 'Level cap' : `Level ${progress.level + 1}`}</span>
+                  <strong>
+                    {progress.isMaxLevel
+                      ? `${profile.progression.xp.toLocaleString('en')} XP`
+                      : `${profile.progression.xp.toLocaleString('en')} / ${progress.nextLevelThreshold?.toLocaleString('en')} XP`}
+                  </strong>
                 </div>
-                <p>{ATTRIBUTE_PROFILE_HELP[attributeId]}</p>
-              </article>
-            ))}
-          </div>
-        </section>
+                <div
+                  className={styles.track}
+                  role="progressbar"
+                  aria-label="Level progress"
+                  aria-valuemin={0}
+                  aria-valuemax={10000}
+                  aria-valuenow={progress.progressBasisPoints}
+                >
+                  <span style={{ width: `${progress.progressBasisPoints / 100}%` }} />
+                </div>
+              </div>
+            </div>
+          </header>
 
-        <section className={styles.section} aria-labelledby="profile-derived">
-          <div className={styles.sectionHeading}>
-            <div>
-              <Kicker marker="◇">Derived stats</Kicker>
-              <h2 id="profile-derived">Calculated from authoritative character state.</h2>
+          <nav className={styles.hubNav} aria-label="Character activities">
+            <Link href="/game/battle">
+              <span>Tactical Hall</span>
+              <small>Practice and combat</small>
+            </Link>
+            <Link href="/game/settings/controls">
+              <span>Controls &amp; Keybinds</span>
+              <small>Input preferences</small>
+            </Link>
+            <Link href="/game/training">
+              <span>Offline Training</span>
+              <small>Progress from meaningful time away</small>
+            </Link>
+          </nav>
+
+          <section className={styles.compactSection} aria-labelledby="attributes-title">
+            <div className={styles.sectionTitle}>
+              <Kicker marker="◇">Core Attributes</Kicker>
+              <h2 id="attributes-title">Foundation</h2>
+            </div>
+            <dl className={styles.attributeStrip}>
+              {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => (
+                <div key={attributeId} data-testid={`profile-attribute-${attributeId}`}>
+                  <dt>{attributeLabels[attributeId]}</dt>
+                  <dd>{profile.attributes[attributeId]}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+
+          <section className={styles.compactSection} aria-labelledby="derived-title">
+            <div className={styles.sectionTitle}>
+              <Kicker marker="◇">Combat &amp; Adventure Stats</Kicker>
+              <h2 id="derived-title">Current values</h2>
+            </div>
+            <div className={styles.statGroups}>
+              {DERIVED_STAT_PROFILE_GROUPS.map((group) => (
+                <section className={styles.statGroup} key={group.id} aria-label={group.label}>
+                  <h3>{group.label}</h3>
+                  <dl>
+                    {group.statIds.map((statId) => {
+                      const stat = profile.derived.stats[statId]
+                      return (
+                        <div key={statId} data-testid={`derived-stat-${statId}`}>
+                          <dt>{stat.label}</dt>
+                          <dd>{formatDerivedStat(stat)}</dd>
+                        </div>
+                      )
+                    })}
+                  </dl>
+                </section>
+              ))}
+            </div>
+          </section>
+        </Surface>
+
+        <aside className={styles.sidebar}>
+          <Surface className={styles.sideCard} tone="quiet">
+            <Kicker marker="◇">Titles &amp; Distinctions</Kicker>
+            <div className={styles.titleSlot}>
+              <span>Equipped title</span>
+              <strong>None equipped</strong>
             </div>
             <p>
-              Ruleset v{profile.derived.rulesVersion} is development balance. Values are calculated
-              from one versioned source rather than stored as independently editable browser stats.
+              Custom titles, earned distinctions, badges, and visible profile honors live here as
+              those systems unlock.
             </p>
-          </div>
+          </Surface>
 
-          <div className={styles.derivedGroups}>
-            {DERIVED_STAT_PROFILE_GROUPS.map((group) => (
-              <section className={styles.derivedGroup} key={group.id} aria-label={group.label}>
-                <h3>{group.label}</h3>
-                <div className={styles.derivedGrid}>
-                  {group.statIds.map((statId) => {
-                    const stat = profile.derived.stats[statId]
-                    return (
-                      <article
-                        className={styles.statCard}
-                        data-testid={`derived-stat-${statId}`}
-                        key={statId}
-                      >
-                        <div className={styles.statValueRow}>
-                          <span>{stat.label}</span>
-                          <strong>{formatDerivedStat(stat)}</strong>
-                        </div>
-                        <p>{DERIVED_STAT_PROFILE_HELP[statId]}</p>
-                      </article>
-                    )
-                  })}
-                </div>
-              </section>
-            ))}
-          </div>
-        </section>
-      </Surface>
-
-      <aside className={styles.sidebar}>
-        <Surface className={styles.sideCard} tone="quiet">
-          <Kicker marker={<StatusMark />}>Authoritative state</Kicker>
-          <dl>
-            <div>
-              <dt>Base slot</dt>
-              <dd>#{profile.slotIndex + 1}</dd>
-            </div>
-            <div>
-              <dt>Level</dt>
-              <dd>
-                {profile.progression.level} / {progress.maxLevel}
-              </dd>
-            </div>
-            <div>
-              <dt>Cumulative XP</dt>
-              <dd>{profile.progression.xp.toLocaleString('en')}</dd>
-            </div>
-            <div>
-              <dt>XP curve</dt>
-              <dd>v{progress.curveVersion}</dd>
-            </div>
-            <div>
-              <dt>Created</dt>
-              <dd>{created}</dd>
-            </div>
-            <div>
-              <dt>Derived rules</dt>
-              <dd>v{profile.derived.rulesVersion}</dd>
-            </div>
-          </dl>
-        </Surface>
-
-        <Surface className={styles.sideCard} tone="quiet">
-          <Kicker marker="◇">Profile guide</Kicker>
-          <p>
-            XP and Level are server-authoritative. Reward sources grant XP through one transactional
-            progression boundary; the profile only reads the resulting state and configured curve.
-          </p>
-          <a className={styles.backLink} href="/game">
-            Return to game entry
-          </a>
-        </Surface>
-      </aside>
+          <Surface className={styles.sideCard} tone="quiet">
+            <Kicker marker="◇">Character Record</Kicker>
+            <dl className={styles.record}>
+              <div>
+                <dt>Slot</dt>
+                <dd>{profile.slotIndex + 1}</dd>
+              </div>
+              <div>
+                <dt>Level</dt>
+                <dd>{profile.progression.level}</dd>
+              </div>
+              <div>
+                <dt>Total XP</dt>
+                <dd>{profile.progression.xp.toLocaleString('en')}</dd>
+              </div>
+              <div>
+                <dt>Created</dt>
+                <dd>{created}</dd>
+              </div>
+            </dl>
+          </Surface>
+        </aside>
+      </div>
     </AuthenticatedShellFrame>
   )
 }
@@ -211,14 +182,6 @@ function formatDerivedStat(stat: DerivedStatValue): string {
   if (stat.unit === 'basisPoints') {
     return `${new Intl.NumberFormat('en', { maximumFractionDigits: 2 }).format(stat.value / 100)}%`
   }
-
-  if (stat.unit === 'steps') {
-    return `${stat.value} steps`
-  }
-
-  if (stat.unit === 'height') {
-    return `${stat.value}`
-  }
-
+  if (stat.unit === 'steps') return `${stat.value}`
   return new Intl.NumberFormat('en').format(stat.value)
 }

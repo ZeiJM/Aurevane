@@ -3,15 +3,9 @@ import 'server-only'
 import { createHash } from 'node:crypto'
 
 import type { BattleSessionRecord, BattleSessionRepository } from '@aurevane/db/battle-session'
-import {
-  P2_3_COMBAT_CONTENT,
-  createCombatEncounterState,
-  endCombatTurn,
-} from '@aurevane/game-core/combat/actions'
 import type { BattleFacing } from '@aurevane/game-core/combat/battle-state'
-import { selectCurrentFinalFacing } from '@aurevane/game-core/combat/board'
+import { finishPv1fTurn } from '@aurevane/game-core/combat/pv1f-action-economy'
 import {
-  reattachStatDrivenCombatBridge,
   validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
@@ -52,9 +46,7 @@ function persistenceInvalid(): AurevaneError {
   return new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The stored battle state is invalid.')
 }
 
-function invalidFinalTurn(
-  message = 'That final turn is not legal in the current state.',
-): AurevaneError {
+function invalidFinalTurn(message = 'That final facing is not legal right now.'): AurevaneError {
   return new AurevaneError('INVALID_REQUEST', message)
 }
 
@@ -90,27 +82,20 @@ function assertControlledTurn(
   state: StatDrivenCombatEncounterState,
   controlledCombatantIds: readonly string[],
 ): void {
+  const turn = state.tactical.battle.currentTurn
   if (
     controlledCombatantIds.length === 0 ||
     new Set(controlledCombatantIds).size !== controlledCombatantIds.length
   ) {
     throw persistenceInvalid()
   }
-
-  for (const combatantId of controlledCombatantIds) {
-    if (!state.tactical.battle.combatants.some((candidate) => candidate.id === combatantId)) {
-      throw persistenceInvalid()
-    }
-  }
-
-  const turn = state.tactical.battle.currentTurn
   if (state.tactical.battle.lifecycle !== 'active' || !turn) {
-    throw invalidFinalTurn('That battle does not currently accept a final-turn command.')
+    throw invalidFinalTurn('That battle does not currently accept a final-facing command.')
   }
   if (!controlledCombatantIds.includes(turn.combatantId)) {
     throw new AurevaneError(
       'FORBIDDEN',
-      'Final-turn commands are only accepted during a player-controlled turn.',
+      'Final facing can be chosen only during the selected character’s turn.',
     )
   }
 }
@@ -120,17 +105,7 @@ function resolveFinalTurn(
   facing: BattleFacing,
 ): { state: StatDrivenCombatEncounterState; events: readonly unknown[] } {
   try {
-    const facingTransition = selectCurrentFinalFacing(state.tactical, facing)
-    const facedState = reattachStatDrivenCombatBridge(
-      createCombatEncounterState(facingTransition.state, state.statusState),
-      state.statBridge,
-    )
-    const endTransition = endCombatTurn(facedState, P2_3_COMBAT_CONTENT)
-
-    return {
-      state: reattachStatDrivenCombatBridge(endTransition.state, state.statBridge),
-      events: [...facingTransition.events, ...endTransition.events],
-    }
+    return finishPv1fTurn(state, facing)
   } catch (error) {
     if (error instanceof AurevaneError) throw error
     throw invalidFinalTurn(error instanceof Error ? error.message : undefined)
@@ -161,8 +136,8 @@ function projectBattleSnapshot(state: StatDrivenCombatEncounterState): BattleSes
 
 function previewIssue(error: unknown): { code: string; message: string } {
   return {
-    code: 'final-turn-not-legal',
-    message: error instanceof Error ? error.message : 'That final turn is not legal right now.',
+    code: 'final-facing-not-legal',
+    message: error instanceof Error ? error.message : 'That final facing is not legal right now.',
   }
 }
 
@@ -179,7 +154,6 @@ export function createBattleFinalTurnService(
 
       const state = readPersistedEncounter(record)
       assertControlledTurn(state, record.controlledCombatantIds)
-
       try {
         resolveFinalTurn(state, command.facing)
         return {
@@ -205,7 +179,7 @@ export function createBattleFinalTurnService(
       if (!current) throw battleUnavailable()
 
       const requestFingerprint = fingerprint({
-        command: 'battle.final-turn.v1',
+        command: 'battle.final-turn.v2',
         battleSessionId: command.battleSessionId,
         expectedBattleVersion: command.expectedBattleVersion,
         facing: command.facing,
@@ -222,7 +196,6 @@ export function createBattleFinalTurnService(
           nextSnapshot: current.snapshot,
           events: [],
         })
-
         return {
           battleSessionId: replayOrStale.result.battleSessionId,
           battleVersion: replayOrStale.result.battleVersion,

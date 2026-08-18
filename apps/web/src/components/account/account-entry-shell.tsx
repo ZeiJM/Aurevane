@@ -11,16 +11,17 @@ import styles from './account-entry-shell.module.css'
 
 interface AccountEntryShellProps {
   authConfig: BrowserSupabaseConfig | null
+  sessionNotice?: string
 }
 
-export function AccountEntryShell({ authConfig }: AccountEntryShellProps) {
+export function AccountEntryShell({ authConfig, sessionNotice }: AccountEntryShellProps) {
   return (
     <div className={styles.shell} data-testid="account-shell">
       <a className="skip-link" href="#account-main">
         Skip to account entry
       </a>
 
-      <header className={styles.masthead}>
+      <header className={styles.masthead} style={{ position: 'sticky', top: 0, zIndex: 700 }}>
         <a className="brand" href="#account-main" aria-label="AUREVANE account entry home">
           <span className="brand__crest" aria-hidden="true">
             <span>A</span>
@@ -79,17 +80,17 @@ export function AccountEntryShell({ authConfig }: AccountEntryShellProps) {
             history forward.
           </p>
 
-          <AccountAccessPanel authConfig={authConfig} />
+          <AccountAccessPanel authConfig={authConfig} initialMessage={sessionNotice} />
 
           <details className={styles.help}>
             <summary>Account &amp; Security</summary>
             <div>
               <p>
-                AUREVANE verifies your session before private account data is loaded. Your email is
-                authentication data, not your future character name.
+                AUREVANE allows one active gameplay login per account. Signing in elsewhere hands
+                control to the newer login and safely closes any active battle on the older one.
               </p>
               <p>
-                Some environments may require email confirmation after signup. Sign out when using a
+                Your email is authentication data, not your character name. Sign out when using a
                 shared device.
               </p>
             </div>
@@ -97,13 +98,7 @@ export function AccountEntryShell({ authConfig }: AccountEntryShellProps) {
         </Surface>
       </main>
 
-      <footer className={styles.footer}>
-        <nav className={publicStyles.compactLinks} aria-label="Public information footer">
-          <Link href="/news">News</Link>
-          <Link href="/manual">Manual</Link>
-          <Link href="/rules">Rules</Link>
-          <a href="#account-main">Play / Sign In</a>
-        </nav>
+      <footer className={styles.footer} style={{ position: 'sticky', bottom: 0, zIndex: 650 }}>
         <span>Server-authoritative account boundary</span>
       </footer>
     </div>

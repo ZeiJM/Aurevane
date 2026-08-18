@@ -65,13 +65,24 @@ describe('P2.7 Tactical Hall arenas', () => {
     expect(manhattanDistance).toBeGreaterThan(4)
   })
 
-  it('resolves only registered Tactical Hall scenario provenance to an abortable arena', () => {
+  it('resolves registered Tactical Hall provenance, including initial PV-1F Recruit snapshots', () => {
     expect(
       getTacticalHallArenaFromScenarioSourceId('scenario:p2-7-recruit:basic-training-floor')?.id,
+    ).toBe('basic-training-floor')
+    expect(
+      getTacticalHallArenaFromScenarioSourceId(
+        'scenario:p2-7-recruit:basic-training-floor:standard',
+      )?.id,
     ).toBe('basic-training-floor')
     expect(getTacticalHallArenaFromScenarioSourceId('scenario:p2-7-recruit:duel-yard')?.id).toBe(
       'duel-yard',
     )
+    expect(
+      getTacticalHallArenaFromScenarioSourceId('scenario:p2-7-recruit:duel-yard:advanced')?.id,
+    ).toBe('duel-yard')
+    expect(
+      getTacticalHallArenaFromScenarioSourceId('scenario:p2-7-recruit:duel:standard')?.id,
+    ).toBe('duel-yard')
     expect(getTacticalHallArenaFromScenarioSourceId('scenario:other-content')).toBeNull()
     expect(getTacticalHallArenaFromScenarioSourceId('scenario:p2-7-recruit:unknown')).toBeNull()
   })

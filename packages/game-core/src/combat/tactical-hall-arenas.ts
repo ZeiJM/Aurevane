@@ -80,6 +80,18 @@ export function getTacticalHallArenaFromScenarioSourceId(
 ): TacticalHallArenaDefinition | null {
   const prefix = 'scenario:p2-7-recruit:'
   if (!sourceId.startsWith(prefix)) return null
-  const arenaId = sourceId.slice(prefix.length) as TacticalHallArenaId
+
+  const sourceArena = sourceId.slice(prefix.length).split(':', 1)[0]
+  // PV-1F initially persisted Recruit profiles with the generic `duel:<difficulty>`
+  // provenance segment. Keep those snapshots abortable while accepting the canonical
+  // arena-id form (with or without an appended difficulty segment) going forward.
+  const arenaId: TacticalHallArenaId | null =
+    sourceArena === 'duel'
+      ? 'duel-yard'
+      : sourceArena === 'basic-training-floor' || sourceArena === 'duel-yard'
+        ? sourceArena
+        : null
+
+  if (!arenaId) return null
   return P2_7_TACTICAL_HALL_ARENAS.find((candidate) => candidate.id === arenaId) ?? null
 }

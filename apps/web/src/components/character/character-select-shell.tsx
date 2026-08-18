@@ -1,0 +1,253 @@
+'use client'
+
+import { getFoundationDiscipline } from '@aurevane/game-core/character/foundation-disciplines'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
+
+import { AurevaneImage } from '@/components/media/aurevane-image'
+import { AccountMenu } from '@/components/shell/account-menu'
+import { getStarterPortraitImageAssetId } from '@/media/character'
+import type { CharacterSlotCharacter } from '@/server/character/character-slot-service'
+
+import styles from './character-select-shell.module.css'
+
+interface CharacterSelectShellProps {
+  characters: readonly CharacterSlotCharacter[]
+}
+
+export function CharacterSelectShell({ characters }: CharacterSelectShellProps) {
+  const router = useRouter()
+  const [deleting, setDeleting] = useState<CharacterSlotCharacter | null>(null)
+  const [phrase, setPhrase] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+  const bySlot = useMemo(
+    () => new Map(characters.map((character) => [character.slotIndex, character])),
+    [characters],
+  )
+
+  async function requestDeletion() {
+    if (!deleting || busy) return
+    setBusy(true)
+    setMessage(null)
+    try {
+      const response = await fetch(`/api/characters/${deleting.id}/deletion`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirmationPhrase: phrase }),
+      })
+      const payload = (await response.json()) as { error?: { message?: string } }
+      if (!response.ok) {
+        setMessage(payload.error?.message ?? 'Deletion could not be scheduled.')
+        return
+      }
+      setDeleting(null)
+      setPhrase('')
+      router.refresh()
+    } catch {
+      setMessage('Deletion could not reach the server. Nothing was deleted.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function cancelDeletion(characterId: string) {
+    if (busy) return
+    setBusy(true)
+    setMessage(null)
+    try {
+      const response = await fetch(`/api/characters/${characterId}/deletion`, { method: 'DELETE' })
+      if (!response.ok) throw new Error('cancel failed')
+      router.refresh()
+    } catch {
+      setMessage('The deletion countdown could not be cancelled. Refresh and try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className={styles.shell}>
+      <header className={styles.header}>
+        <Link className="brand" href="/game" aria-label="AUREVANE Character Select">
+          <span className="brand__crest" aria-hidden="true">
+            <span>A</span>
+          </span>
+          <span className="brand__wordmark">
+            <strong>AUREVANE</strong>
+            <small>Character Select</small>
+          </span>
+        </Link>
+        <AccountMenu />
+      </header>
+
+      <main className={styles.main}>
+        <header className={styles.hero}>
+          <div>
+            <span>Account roster</span>
+            <h1>Choose your character.</h1>
+          </div>
+          <p>
+            Three character slots share this account. Select an adventurer to open their profile and
+            continue playing.
+          </p>
+        </header>
+
+        {message ? (
+          <p className={styles.message} role="status">
+            {message}
+          </p>
+        ) : null}
+
+        <section className={styles.slots} aria-label="Character slots">
+          {[0, 1, 2].map((slotIndex) => {
+            const character = bySlot.get(slotIndex)
+            if (!character) {
+              return (
+                <article className={`${styles.slot} ${styles.empty}`} key={slotIndex}>
+                  <span className={styles.slotNumber}>Slot {slotIndex + 1}</span>
+                  <div className={styles.emptyCrest} aria-hidden="true">
+                    +
+                  </div>
+                  <h2>Open character slot</h2>
+                  <p>Create another adventurer with their own identity, progression, and build.</p>
+                  <Link className={styles.primaryAction} href={`/game/create/${slotIndex}`}>
+                    Create Character
+                  </Link>
+                </article>
+              )
+            }
+
+            const discipline = getFoundationDiscipline(character.foundationDisciplineId)
+            const pending = Boolean(character.deletionExecuteAfter)
+            return (
+              <article
+                className={styles.slot}
+                key={character.id}
+                data-pending-delete={pending || undefined}
+              >
+                <span className={styles.slotNumber}>Slot {slotIndex + 1}</span>
+                <div className={styles.portrait}>
+                  <AurevaneImage
+                    assetId={getStarterPortraitImageAssetId(character.portraitRef)}
+                    sizes="15rem"
+                  />
+                </div>
+                <div className={styles.identity}>
+                  <h2>{character.name}</h2>
+                  <p>
+                    Level {character.level} · {discipline?.name ?? 'Adventurer'}
+                  </p>
+                </div>
+                {pending && character.deletionExecuteAfter ? (
+                  <div className={styles.pendingDelete}>
+                    <strong>Deletion pending</strong>
+                    <DeletionCountdown deleteAfter={character.deletionExecuteAfter} />
+                    <span>This character cannot be played during the grace period.</span>
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => void cancelDeletion(character.id)}
+                    >
+                      Cancel deletion
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <Link className={styles.primaryAction} href={`/game/select/${character.id}`}>
+                      Play {character.name}
+                    </Link>
+                    <button
+                      className={styles.deleteAction}
+                      type="button"
+                      onClick={() => {
+                        setDeleting(character)
+                        setPhrase('')
+                        setMessage(null)
+                      }}
+                    >
+                      Delete Character
+                    </button>
+                  </>
+                )}
+              </article>
+            )
+          })}
+        </section>
+      </main>
+
+      {deleting ? (
+        <div
+          className={styles.modalBackdrop}
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.currentTarget === event.target && !busy) setDeleting(null)
+          }}
+        >
+          <section
+            className={styles.modal}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-character-title"
+          >
+            <span>24-hour deletion grace period</span>
+            <h2 id="delete-character-title">Schedule deletion of {deleting.name}?</h2>
+            <p>
+              This does not delete the character immediately. The slot stays locked for 24 hours and
+              you can cancel during that time. After the deadline the deletion becomes irreversible.
+            </p>
+            <label>
+              <span>
+                Type exactly: <strong>DELETE {deleting.name}</strong>
+              </span>
+              <input
+                autoFocus
+                value={phrase}
+                onChange={(event) => setPhrase(event.target.value)}
+                disabled={busy}
+              />
+            </label>
+            {message ? (
+              <p className={styles.modalError} role="alert">
+                {message}
+              </p>
+            ) : null}
+            <div className={styles.modalActions}>
+              <button type="button" onClick={() => setDeleting(null)} disabled={busy}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className={styles.danger}
+                onClick={() => void requestDeletion()}
+                disabled={busy || phrase !== `DELETE ${deleting.name}`}
+              >
+                {busy ? 'Scheduling…' : 'Start 24-hour deletion'}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function DeletionCountdown({ deleteAfter }: { deleteAfter: string }) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [])
+  const remaining = Math.max(0, new Date(deleteAfter).getTime() - now)
+  const totalSeconds = Math.ceil(remaining / 1000)
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  return (
+    <b>
+      {hours.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')}:
+      {seconds.toString().padStart(2, '0')} remaining
+    </b>
+  )
+}

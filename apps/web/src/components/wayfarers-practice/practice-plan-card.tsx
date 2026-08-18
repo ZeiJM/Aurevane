@@ -39,15 +39,11 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
   const retryKey = useRef<{ window: PracticePlanWindow; key: string } | null>(null)
 
   const windows: readonly { window: PracticePlanWindow; seconds: number; description: string }[] = [
-    {
-      window: 'short',
-      seconds: practice.shortWindowSeconds,
-      description: 'A few hours away.',
-    },
+    { window: 'short', seconds: practice.shortWindowSeconds, description: 'A few hours away.' },
     {
       window: 'overnight',
       seconds: practice.overnightWindowSeconds,
-      description: 'The normal before-bed plan.',
+      description: 'A normal overnight absence.',
     },
     {
       window: 'extended',
@@ -60,7 +56,6 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
     if (submittingWindow) return
     setSubmittingWindow(window)
     setErrorMessage(null)
-
     if (!retryKey.current || retryKey.current.window !== window) {
       retryKey.current = { window, key: crypto.randomUUID() }
     }
@@ -78,14 +73,15 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
       })
       const payload = (await response.json()) as { error?: { message?: string } }
       if (!response.ok) {
-        setErrorMessage(payload.error?.message ?? 'The Practice plan could not be set.')
+        setErrorMessage(payload.error?.message ?? 'The offline training plan could not be set.')
         return
       }
-
       retryKey.current = null
       router.refresh()
     } catch {
-      setErrorMessage('The Practice plan could not reach the server. You can safely try again.')
+      setErrorMessage(
+        'The offline training plan could not reach the server. You can safely try again.',
+      )
     } finally {
       setSubmittingWindow(null)
     }
@@ -99,15 +95,15 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
     >
       <div className={styles.heading}>
         <div>
-          <Kicker marker="◇">Character → Training</Kicker>
-          <h2 id="practice-plan-title">Wayfarer&apos;s Practice</h2>
+          <Kicker marker="◇">Offline Training Plan</Kicker>
+          <h2 id="practice-plan-title">Choose an absence plan</h2>
         </div>
         <span>{practice.plannedWindow ? 'Plan set' : 'Balanced default'}</span>
       </div>
 
       <p className={styles.intro}>
-        Practice begins only after a meaningful server-measured absence. Active play never waits on
-        this timer, and changing your browser clock or timezone cannot create progress.
+        Pick roughly how long you expect to be away. This is not a timer you must wait through: the
+        server measures your real absence after you leave and credits only legitimate elapsed time.
       </p>
 
       <dl className={styles.status}>
@@ -116,24 +112,20 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
           <dd>
             {practice.plannedWindow && practice.plannedWindowSeconds
               ? `${LABELS[practice.plannedWindow]} · ${formatPracticeDuration(practice.plannedWindowSeconds)}`
-              : 'Automatic Balanced Practice'}
+              : 'Automatic Balanced Training'}
           </dd>
         </div>
         <div>
-          <dt>Meaningful absence</dt>
-          <dd>After {formatPracticeDuration(practice.minimumOfflineSeconds)}</dd>
+          <dt>Training begins after</dt>
+          <dd>{formatPracticeDuration(practice.minimumOfflineSeconds)} offline</dd>
         </div>
         <div>
           <dt>Rested Momentum stored</dt>
           <dd>{practice.restedMomentumBalance.toLocaleString('en-US')}</dd>
         </div>
-        <div>
-          <dt>Server state checked</dt>
-          <dd>{formatServerTimestamp(practice.serverNow)}</dd>
-        </div>
       </dl>
 
-      <div className={styles.windowGrid} aria-label="Planned Practice windows">
+      <div className={styles.windowGrid} aria-label="Offline Training plan windows">
         {windows.map((option) => (
           <div className={styles.window} key={option.window}>
             <div>
@@ -158,17 +150,10 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
       </div>
 
       <p className={styles.note}>
-        A plan applies once to the next meaningful absence. Returning early credits only the time
-        you were actually away. If you stay away longer than the selected window, the remaining
-        eligible time automatically continues as Balanced Practice. After that Training Report is
-        generated, the explicit plan is consumed.
+        Returning earlier simply credits less time. Staying away longer safely falls back to
+        Balanced Training for any remaining eligible time. The plan is consumed when the next
+        Training Report is created.
       </p>
-
-      {practice.planSetAt ? (
-        <p className={styles.planMeta}>
-          Current plan recorded by the server at {formatServerTimestamp(practice.planSetAt)}.
-        </p>
-      ) : null}
 
       {errorMessage ? (
         <p className={styles.error} role="status" aria-live="polite">
@@ -177,14 +162,4 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
       ) : null}
     </section>
   )
-}
-
-function formatServerTimestamp(value: string): string {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Server time unavailable'
-  return `${new Intl.DateTimeFormat('en', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-    timeZone: 'UTC',
-  }).format(date)} UTC`
 }

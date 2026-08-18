@@ -165,7 +165,7 @@ describe('P2.6 authoritative Recruit AI turn service', () => {
 
     const seed = deriveRecruitTieBreakSeed(committedContext)
 
-    expect(seed).toBe(2_083_297_977)
+    expect(seed).toBe(-578_671_629)
     expect(deriveRecruitTieBreakSeed({ ...committedContext })).toBe(seed)
     expect(deriveRecruitTieBreakSeed({ ...committedContext, step: 1 })).not.toBe(seed)
     expect(deriveRecruitTieBreakSeed({ ...committedContext, battleVersion: 8 })).not.toBe(seed)
@@ -203,9 +203,9 @@ describe('P2.6 authoritative Recruit AI turn service', () => {
       expect(decision).toMatchObject({
         event: 'recruit_ai_decision',
         combatantId: 'recruit:p2-4-1',
-        profileId: 'recruit-weak-v1',
-        profileVersion: 1,
-        rulesVersion: 1,
+        profileId: 'recruit-standard-v2',
+        profileVersion: 2,
+        rulesVersion: 2,
       })
       expect(JSON.stringify(decision)).not.toContain('tieBreakSeed')
       expect(JSON.stringify(decision)).not.toContain('rng')

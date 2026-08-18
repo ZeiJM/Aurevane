@@ -1,0 +1,90 @@
+.root {
+  position: relative;
+  z-index: 900;
+}
+.trigger {
+  display: inline-flex;
+  gap: 0.45rem;
+  align-items: center;
+  min-height: 2.7rem;
+  padding: 0.65rem 0.9rem;
+  border: 1px solid var(--av-border-strong);
+  border-radius: var(--av-radius-sm);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--av-text-muted);
+  font: 700 0.58rem/1 var(--av-font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.trigger:hover,
+.trigger:focus-visible {
+  border-color: rgba(207, 169, 93, 0.65);
+  color: var(--av-brass-200);
+}
+.menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.45rem);
+  z-index: 1200;
+  display: grid;
+  width: min(20rem, calc(100vw - 1.25rem));
+  padding: 0.45rem;
+  border: 1px solid var(--av-border-strong);
+  border-radius: var(--av-radius-md);
+  background: rgba(8, 11, 16, 0.985);
+  box-shadow: 0 1rem 3rem rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(1rem);
+}
+.menu > a,
+.menu form button {
+  display: flex;
+  width: 100%;
+  min-height: 2.8rem;
+  align-items: center;
+  padding: 0.7rem 0.8rem;
+  border: 0;
+  border-radius: var(--av-radius-sm);
+  background: transparent;
+  color: var(--av-text-muted);
+  font: 700 0.6rem/1 var(--av-font-mono);
+  letter-spacing: 0.05em;
+  text-decoration: none;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.menu > a:hover,
+.menu form button:hover {
+  background: rgba(207, 169, 93, 0.08);
+  color: var(--av-brass-200);
+}
+.menu form {
+  margin: 0;
+}
+.audio {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.35rem 0.35rem 0.5rem 0.8rem;
+  border-bottom: 1px solid var(--av-border);
+  color: var(--av-text-dim);
+  font: 650 0.55rem/1 var(--av-font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.audio :global(button) {
+  min-height: 2.35rem;
+}
+@media (max-width: 560px) {
+  .trigger {
+    min-height: 2.4rem;
+    padding: 0.5rem 0.62rem;
+    font-size: 0.5rem;
+  }
+  .menu {
+    position: fixed;
+    top: 4.2rem;
+    right: 0.6rem;
+  }
+}

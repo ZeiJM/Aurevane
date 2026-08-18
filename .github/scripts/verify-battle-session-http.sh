@@ -15,7 +15,6 @@ create_key='00000000-0000-4000-8000-000000002440'
 move_key='00000000-0000-4000-8000-000000002441'
 stale_key='00000000-0000-4000-8000-000000002442'
 face_key='00000000-0000-4000-8000-000000002443'
-end_turn_key='00000000-0000-4000-8000-000000002446'
 opponent_key='00000000-0000-4000-8000-000000002444'
 
 signup_response="$(curl --fail-with-body --silent --show-error \
@@ -130,6 +129,14 @@ unauth_status="$(curl --silent --show-error \
 test "$unauth_status" = '401'
 jq -e '.error.code == "UNAUTHENTICATED"' /tmp/p24-http-unauth.json >/dev/null
 
+claim_status="$(curl --silent --show-error \
+  --output /tmp/p24-http-claim.json \
+  --write-out '%{http_code}' \
+  --request POST "$web_url/api/account/game-session/claim" \
+  --cookie "$cookie_header")"
+test "$claim_status" = '200'
+jq -e '.active == true' /tmp/p24-http-claim.json >/dev/null
+
 create_status="$(curl --silent --show-error \
   --output /tmp/p24-http-create.json \
   --write-out '%{http_code}' \
@@ -237,32 +244,13 @@ jq -e \
   --arg player "character:$character_id" \
   '.battle.battleVersion == 3
     and .battle.snapshot.tactical.battle.rng == null
-    and .battle.snapshot.tactical.battle.currentTurn.finalFacing == "east"
+    and .battle.snapshot.tactical.battle.currentTurn.combatantId == "recruit:p2-4-1"
     and ([.battle.snapshot.tactical.placements[] | select(.combatantId == $player) | .facing] == ["east"])' \
   /tmp/p24-http-face.json >/dev/null
 
-end_turn_body="$(jq -cn --arg key "$end_turn_key" '{
-  idempotencyKey: $key,
-  expectedBattleVersion: 3,
-  intent: {kind: "end-turn"}
-}')"
-end_turn_status="$(curl --silent --show-error \
-  --output /tmp/p24-http-end-turn.json \
-  --write-out '%{http_code}' \
-  --request POST "$web_url/api/battles/$session_id/intents" \
-  --header 'Content-Type: application/json' \
-  --cookie "$cookie_header" \
-  --data "$end_turn_body")"
-test "$end_turn_status" = '200'
-jq -e \
-  '.battle.battleVersion == 4
-    and .battle.snapshot.tactical.battle.rng == null
-    and .battle.snapshot.tactical.battle.currentTurn.combatantId == "recruit:p2-4-1"' \
-  /tmp/p24-http-end-turn.json >/dev/null
-
 opponent_body="$(jq -cn --arg key "$opponent_key" '{
   idempotencyKey: $key,
-  expectedBattleVersion: 4,
+  expectedBattleVersion: 3,
   intent: {kind: "end-turn"}
 }')"
 opponent_status="$(curl --silent --show-error \

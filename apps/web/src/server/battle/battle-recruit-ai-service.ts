@@ -4,24 +4,18 @@ import { createHash, randomUUID } from 'node:crypto'
 
 import type { BattleSessionRepository } from '@aurevane/db/battle-session'
 import {
-  P2_3_COMBAT_CONTENT,
-  P2_3_GUARD_ACTION,
-  P2_3_UNARMED_ATTACK_PROFILE,
-  createBasicAttackDefinition,
-  createCombatEncounterState,
-  endCombatTurn,
-  executeCombatAction,
-  type CombatActionDefinition,
-} from '@aurevane/game-core/combat/actions'
-import { moveCurrentCombatant, selectCurrentFinalFacing } from '@aurevane/game-core/combat/board'
-import {
   chooseRecruitAiDecision,
+  getRecruitAiProfile,
   type RecruitAiDecision,
+  type RecruitAiDifficulty,
   type RecruitAiIntent,
 } from '@aurevane/game-core/combat/recruit-ai'
 import {
-  executeStatDrivenAttack,
-  reattachStatDrivenCombatBridge,
+  executePv1fAction,
+  executePv1fMovement,
+  finishPv1fTurn,
+} from '@aurevane/game-core/combat/pv1f-action-economy'
+import {
   validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
@@ -31,15 +25,12 @@ import {
   type BattleSessionChangedInvalidation,
 } from '@aurevane/realtime'
 
-const MAX_RECRUIT_DECISIONS_PER_REQUEST = 8
-const BASIC_ATTACK = createBasicAttackDefinition(P2_3_UNARMED_ATTACK_PROFILE)
-const ACTIONS: readonly CombatActionDefinition[] = [BASIC_ATTACK, P2_3_GUARD_ACTION]
+const MAX_RECRUIT_DECISIONS_PER_REQUEST = 16
 
 type ProjectedBattleState = Omit<StatDrivenCombatEncounterState['tactical']['battle'], 'rng'>
 type ProjectedTacticalState = Omit<StatDrivenCombatEncounterState['tactical'], 'battle'> & {
   battle: ProjectedBattleState
 }
-
 type RecruitBattleProjection = Omit<StatDrivenCombatEncounterState, 'tactical'> & {
   tactical: ProjectedTacticalState
 }
@@ -87,7 +78,6 @@ function readPersistedEncounter(snapshot: unknown): StatDrivenCombatEncounterSta
   if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
     throw persistenceInvalid()
   }
-
   try {
     const candidate = snapshot as StatDrivenCombatEncounterState
     const issues = validateStatDrivenCombatEncounterState(candidate)
@@ -121,61 +111,38 @@ function projectBattleSnapshot(state: StatDrivenCombatEncounterState): RecruitBa
   }
 }
 
-function findAction(actionId: string): CombatActionDefinition {
-  const action = ACTIONS.find((candidate) => candidate.id === actionId)
-  if (!action) throw persistenceInvalid('Recruit AI selected an unsupported combat action.')
-  return action
-}
-
 function resolveRecruitIntent(
   state: StatDrivenCombatEncounterState,
   intent: RecruitAiIntent,
 ): { state: StatDrivenCombatEncounterState; events: readonly unknown[] } {
   try {
-    if (intent.kind === 'move') {
-      const transition = moveCurrentCombatant(state.tactical, intent.path)
-      return {
-        state: reattachStatDrivenCombatBridge(
-          createCombatEncounterState(transition.state, state.statusState),
-          state.statBridge,
-        ),
-        events: transition.events,
-      }
-    }
+    if (intent.kind === 'move') return executePv1fMovement(state, intent.path)
+    if (intent.kind === 'action') return executePv1fAction(state, intent.actionId, intent.target)
+    if (intent.kind === 'face') return finishPv1fTurn(state, intent.facing)
 
-    if (intent.kind === 'face') {
-      const transition = selectCurrentFinalFacing(state.tactical, intent.facing)
-      return {
-        state: reattachStatDrivenCombatBridge(
-          createCombatEncounterState(transition.state, state.statusState),
-          state.statBridge,
-        ),
-        events: transition.events,
-      }
-    }
-
-    if (intent.kind === 'end-turn') {
-      const transition = endCombatTurn(state, P2_3_COMBAT_CONTENT)
-      return {
-        state: reattachStatDrivenCombatBridge(transition.state, state.statBridge),
-        events: transition.events,
-      }
-    }
-
-    const action = findAction(intent.actionId)
-    if (action.sourceType === 'basic-attack') {
-      return executeStatDrivenAttack(state, action, intent.target, P2_3_COMBAT_CONTENT)
-    }
-
-    const transition = executeCombatAction(state, action, intent.target, P2_3_COMBAT_CONTENT)
-    return {
-      state: reattachStatDrivenCombatBridge(transition.state, state.statBridge),
-      events: transition.events,
-    }
+    const activeId = state.tactical.battle.currentTurn?.combatantId
+    const placement = activeId
+      ? state.tactical.placements.find((candidate) => candidate.combatantId === activeId)
+      : null
+    if (!placement) throw new Error('Recruit has no committed facing.')
+    return finishPv1fTurn(state, placement.facing)
   } catch (error) {
     if (error instanceof AurevaneError) throw error
-    throw persistenceInvalid('Recruit AI produced an intent rejected by shared combat legality.')
+    throw persistenceInvalid('Recruit AI produced a command rejected by shared combat legality.')
   }
+}
+
+function recruitDifficultyForActor(
+  state: StatDrivenCombatEncounterState,
+  combatantId: string,
+): RecruitAiDifficulty {
+  const profile = state.statBridge.combatants.find(
+    (candidate) => candidate.combatantId === combatantId,
+  )
+  const sourceId = profile?.provenance.sourceId ?? ''
+  if (sourceId.endsWith(':easy')) return 'easy'
+  if (sourceId.endsWith(':high')) return 'high'
+  return 'standard'
 }
 
 function fingerprint(value: unknown): string {
@@ -186,7 +153,7 @@ export function deriveRecruitTieBreakSeed(input: RecruitTieBreakSeedInput): numb
   const digest = createHash('sha256')
     .update(
       JSON.stringify({
-        domain: 'aurevane.recruit-ai.tie-break.v1',
+        domain: 'aurevane.recruit-ai.tie-break.v2',
         battleId: input.battleId,
         round: input.round,
         turnNumber: input.turnNumber,
@@ -196,7 +163,6 @@ export function deriveRecruitTieBreakSeed(input: RecruitTieBreakSeedInput): numb
       }),
     )
     .digest()
-
   return digest.readInt32BE(0)
 }
 
@@ -268,21 +234,26 @@ export function createBattleRecruitAiService(
           }
         }
 
-        const tieBreakSeed = deriveRecruitTieBreakSeed({
-          battleId: battle.battleId,
-          round: battle.round,
-          turnNumber: battle.turnNumber,
-          battleVersion,
-          step,
-          combatantId: turn.combatantId,
+        const difficulty = recruitDifficultyForActor(state, turn.combatantId)
+        const decision = chooseRecruitAiDecision({
+          state,
+          profile: getRecruitAiProfile(difficulty),
+          tieBreakSeed: deriveRecruitTieBreakSeed({
+            battleId: battle.battleId,
+            round: battle.round,
+            turnNumber: battle.turnNumber,
+            battleVersion,
+            step,
+            combatantId: turn.combatantId,
+          }),
         })
-        const decision = chooseRecruitAiDecision({ state, tieBreakSeed })
         const resolved = resolveRecruitIntent(state, decision.intent)
         const event = decisionEvent(decision, turn.combatantId)
         const requestFingerprint = fingerprint({
-          command: 'battle.recruit-ai.v1',
+          command: 'battle.recruit-ai.v2',
           battleSessionId: initial.battleSessionId,
           expectedBattleVersion: battleVersion,
+          difficulty,
           decision: {
             intent: decision.intent,
             reason: decision.reason,

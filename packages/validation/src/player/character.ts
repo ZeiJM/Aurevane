@@ -5,6 +5,7 @@ import { characterCreationPayloadSchema } from './character-creation'
 export const characterCreationRequestSchema = z
   .object({
     version: z.literal(1),
+    slotIndex: z.number().int().min(0).max(2),
     idempotencyKey: z.string().uuid(),
     intent: characterCreationPayloadSchema,
   })

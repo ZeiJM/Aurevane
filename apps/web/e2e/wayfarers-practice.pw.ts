@@ -2,6 +2,8 @@ import { execFileSync } from 'node:child_process'
 
 import { expect, test } from '@playwright/test'
 
+import { createAccountAndEnterCharacter, openOfflineTraining } from './pv1f-test-helpers'
+
 function uniqueCharacterName(): string {
   const letters = Date.now()
     .toString()
@@ -21,22 +23,12 @@ test('sets one authoritative Practice plan and freezes overflow as Balanced fall
   const password = 'P16-browser-practice-2026!'
   const characterName = uniqueCharacterName()
 
-  await page.goto('/')
-  await page.getByRole('button', { name: 'Create account' }).click()
-  await page.getByLabel('Email').fill(email)
-  await page.getByLabel('Password').fill(password)
-  await page.getByRole('button', { name: 'Create account', exact: true }).last().click()
-
-  await expect(page).toHaveURL(/\/game$/)
-  await page.getByLabel('Character name').fill(characterName)
-  await page.getByRole('button', { name: 'Choose your foundation' }).click()
-  await page.getByRole('button', { name: 'Review character' }).click()
-  await page.getByRole('button', { name: 'Create permanent character' }).click()
-  await openPracticeDrawer(page)
+  await createAccountAndEnterCharacter({ page, email, password, characterName })
+  await openOfflineTraining(page)
 
   const planner = page.getByTestId('practice-plan-card')
   await expect(planner).toBeVisible()
-  await expect(planner).toContainText("Wayfarer's Practice")
+  await expect(planner).toContainText('Offline Training')
   await expect(planner).toContainText('Balanced default')
   await expect(planner).toContainText('Short')
   await expect(planner).toContainText('3h 0m')
@@ -70,7 +62,7 @@ test('sets one authoritative Practice plan and freezes overflow as Balanced fall
   expect(planPayload).not.toHaveProperty('requestedCharacterXp')
 
   await page.reload()
-  await openPracticeDrawer(page)
+  await expect(page.getByRole('heading', { name: 'Offline Training' })).toBeVisible()
   await expect(page.getByTestId('practice-plan-card')).toContainText('Overnight · 8h 0m')
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
@@ -104,7 +96,7 @@ test('sets one authoritative Practice plan and freezes overflow as Balanced fall
   `)
 
   await page.reload()
-  await openPracticeDrawer(page)
+  await expect(page.getByRole('heading', { name: 'Offline Training' })).toBeVisible()
 
   const trainingReport = page.getByTestId('training-report')
   await expect(trainingReport).toBeVisible()
@@ -113,31 +105,19 @@ test('sets one authoritative Practice plan and freezes overflow as Balanced fall
   await expect(trainingReport).toContainText('+0')
   const provenance = page.getByTestId('practice-plan-provenance')
   await expect(provenance).toContainText('Your Overnight plan covered 8h 0m')
-  await expect(provenance).toContainText(
-    '4h 0m beyond the plan continued automatically as Balanced Practice',
-  )
-  await expect(provenance).toContainText('explicit plan is now consumed')
+  await expect(provenance).toContainText('4h 0m beyond the plan continued as Balanced Training.')
 
   const consumedPlanner = page.getByTestId('practice-plan-card')
   await expect(consumedPlanner).toContainText('Balanced default')
-  await expect(consumedPlanner).toContainText('Automatic Balanced Practice')
+  await expect(consumedPlanner).toContainText('Automatic Balanced Training')
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
   await page.reload()
-  await openPracticeDrawer(page)
   await expect(page.getByTestId('training-report')).toContainText('Planned Overnight')
   await expect(page.getByTestId('practice-plan-provenance')).toContainText(
-    '4h 0m beyond the plan continued automatically as Balanced Practice',
+    '4h 0m beyond the plan continued as Balanced Training.',
   )
 })
-
-async function openPracticeDrawer(page: import('@playwright/test').Page): Promise<void> {
-  const drawer = page.getByTestId('practice-drawer')
-  await expect(drawer).toBeVisible()
-  if (!(await drawer.evaluate((element) => (element as HTMLDetailsElement).open))) {
-    await drawer.locator('summary').click()
-  }
-}
 
 async function hasHorizontalOverflow(page: import('@playwright/test').Page): Promise<boolean> {
   return page.evaluate(
