@@ -1187,7 +1187,8 @@ export function BattleExperienceV2({
                       onClick={() => handleTileClick(tile.position)}
                       onDoubleClick={requestQuickCommit}
                       onPointerUp={(event) => {
-                        if (event.pointerType === 'touch') handleTouchCommit(tile.position, event.timeStamp)
+                        if (event.pointerType === 'touch')
+                          handleTouchCommit(tile.position, event.timeStamp)
                       }}
                       aria-label={`Tile ${tile.position.x + 1}, ${tile.position.y + 1}; ${tile.terrainId}; elevation ${tile.elevation}${placement ? `; occupied by ${combatantName(placement.combatantId, playerName)}` : ''}`}
                     >
