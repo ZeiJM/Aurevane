@@ -104,6 +104,42 @@ section[aria-label='Command Deck'] {
     max-width: 100%;
   }
 
+  /*
+   * The desktop command body is Actions | Facing | Forecast. On a phone that
+   * arrangement can place the east-facing control outside the visual viewport.
+   * Stack those three regions and keep the direction pad centered instead.
+   */
+  main[aria-busy] section[aria-label='Command Deck'] > div:first-of-type {
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100%;
+    min-width: 0;
+  }
+
+  main[aria-busy] section[aria-label='Command Deck'] > div:first-of-type > div:first-child {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: 100%;
+    min-width: 0;
+  }
+
+  main[aria-busy]
+    section[aria-label='Command Deck']
+    > div:first-of-type
+    > div:first-child
+    > button:last-child {
+    grid-column: 1 / -1;
+  }
+
+  main[aria-busy] [aria-label='Final facing controls'] {
+    justify-self: center;
+    margin-inline: auto;
+  }
+
+  main[aria-busy] section[aria-label='Command Deck'] > div:first-of-type > div:last-child {
+    grid-column: 1;
+    width: 100%;
+    min-width: 0;
+  }
+
   [data-testid='authenticated-shell'] > footer,
   [data-testid='public-information-shell'] > footer,
   main[aria-busy] footer {
