@@ -97,8 +97,12 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort E
   })
   await page.getByRole('button', { name: 'Confirm Abort' }).click()
   const abortResponse = await abortResponsePromise
-  expect(abortResponse.ok()).toBe(true)
-  const abortBody = (await abortResponse.json()) as {
+  const abortResponseText = await abortResponse.text()
+  expect(
+    abortResponse.status(),
+    `Abort POST failed with ${abortResponse.status()}: ${abortResponseText}`,
+  ).toBe(200)
+  const abortBody = JSON.parse(abortResponseText) as {
     battle?: { snapshot?: { tactical?: { battle?: { lifecycle?: string } } } }
   }
   expect(abortBody.battle?.snapshot?.tactical?.battle?.lifecycle).toBe('abandoned')
