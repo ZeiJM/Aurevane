@@ -71,7 +71,7 @@ These observations are recorded on issue #105. They are a corrective signal, not
 ## Permanent execution rules
 
 1. Inspect current `main`, open implementation/validation PRs/issues, current phase ticket specs, and recently merged design docs before starting work.
-2. One canonical implementation ticket is ACTIVE at a time.
+2. One canonical implementation ticket is ACTIVE at a time; a validation gate may explicitly hold implementation at none.
 3. Never merge a dependent ticket before its prerequisite.
 4. Reconcile repository truth at phase/player-facing validation boundaries.
 5. Do not use future feature work to hide a failed validation gate.
