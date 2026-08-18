@@ -1,0 +1,192 @@
+name: PV-1F temporary AI gate repair
+
+on:
+  push:
+    branches:
+      - agent/pv-1f-character-hub-turn-budget
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/pv-1f-character-hub-turn-budget
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Repair Recruit PV-1F economy compatibility and tests
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          ai_path = Path('packages/game-core/src/combat/recruit-ai.ts')
+          ai = ai_path.read_text()
+          ai = ai.replace(
+              "  evaluatePv1fMovement,\n  readPv1fActionEconomy,\n",
+              "  evaluatePv1fMovement,\n  preparePv1fTurnEconomy,\n  readPv1fActionEconomy,\n",
+              1,
+          )
+          ai = ai.replace(
+              "): RecruitAiKnowledge {\n  const battle = state.tactical.battle\n",
+              "): RecruitAiKnowledge {\n  const prepared = preparePv1fTurnEconomy(state)\n  const battle = prepared.tactical.battle\n",
+              1,
+          )
+          ai = ai.replace(
+              "actionEconomyRemaining: readPv1fActionEconomy(state, turn.combatantId)?.current ?? 0,",
+              "actionEconomyRemaining: readPv1fActionEconomy(prepared, turn.combatantId)?.current ?? 0,",
+              1,
+          )
+          ai = ai.replace("placements: state.tactical.placements.map", "placements: prepared.tactical.placements.map", 1)
+          ai = ai.replace("tiles: state.tactical.tiles.map", "tiles: prepared.tactical.tiles.map", 1)
+          ai_path.write_text(ai)
+
+          test_path = Path('packages/game-core/src/combat/recruit-ai.test.ts')
+          test = test_path.read_text()
+          test = test.replace(
+              "import { createTacticalBattleState, selectCurrentFinalFacing } from './board'",
+              "import { createTacticalBattleState } from './board'",
+              1,
+          )
+          test = test.replace(
+              "import {\n  createStatDrivenCombatEncounterState,\n  reattachStatDrivenCombatBridge,\n  type StatDrivenCombatEncounterState,\n  type StatDrivenCombatProfile,\n} from './stat-driven-combat'",
+              "import { spendPv1fActionEconomy } from './pv1f-action-economy'\nimport {\n  createStatDrivenCombatEncounterState,\n  type StatDrivenCombatEncounterState,\n  type StatDrivenCombatProfile,\n} from './stat-driven-combat'",
+              1,
+          )
+          helper_start = test.index("\nfunction withFinalFacing(")
+          helper_end = test.index("\ndescribe('P2.6 Recruit AI'", helper_start)
+          test = test[:helper_start] + "\n" + test[helper_end:]
+
+          old_face_test = '''  it('falls back to facing the nearest threat before ending a turn', () => {
+            const state = encounter({
+              width: 2,
+              recruitPosition: { x: 1, y: 0 },
+              playerPosition: { x: 0, y: 0 },
+            })
+            const actionSpent = {
+              ...state,
+              tactical: {
+                ...state.tactical,
+                battle: {
+                  ...state.tactical.battle,
+                  currentTurn: {
+                    ...state.tactical.battle.currentTurn!,
+                    actionState: 'spent' as const,
+                    movementRemaining: 0,
+                    movementSpent: state.tactical.battle.currentTurn!.movementMaximum,
+                  },
+                },
+              },
+            }
+
+            const decision = chooseRecruitAiDecision({ state: actionSpent, tieBreakSeed: 9 })
+            expect(decision).toMatchObject({
+              reason: 'face-threat',
+              intent: { kind: 'face', facing: 'west' },
+            })
+          })'''
+          new_face_test = '''  it('falls back to final facing when no Action Economy remains', () => {
+            const state = encounter({
+              width: 2,
+              recruitPosition: { x: 1, y: 0 },
+              playerPosition: { x: 0, y: 0 },
+            })
+            const economySpent = spendPv1fActionEconomy(state, 100)
+
+            const decision = chooseRecruitAiDecision({ state: economySpent, tieBreakSeed: 9 })
+            expect(decision).toMatchObject({
+              reason: 'face-threat',
+              intent: { kind: 'face', facing: 'west' },
+            })
+          })'''
+          if old_face_test not in test:
+              raise SystemExit('legacy face test marker not found')
+          test = test.replace(old_face_test, new_face_test, 1)
+
+          old_end_test = '''  it('ends the turn once the safe final facing is already selected', () => {
+            const base = encounter({
+              width: 2,
+              recruitPosition: { x: 1, y: 0 },
+              playerPosition: { x: 0, y: 0 },
+            })
+            const faced = withFinalFacing(base, 'west')
+            const spent = {
+              ...faced,
+              tactical: {
+                ...faced.tactical,
+                battle: {
+                  ...faced.tactical.battle,
+                  currentTurn: {
+                    ...faced.tactical.battle.currentTurn!,
+                    actionState: 'spent' as const,
+                    movementRemaining: 0,
+                    movementSpent: faced.tactical.battle.currentTurn!.movementMaximum,
+                  },
+                },
+              },
+            }
+
+            const decision = chooseRecruitAiDecision({ state: spent, tieBreakSeed: 9 })
+            expect(decision).toMatchObject({ reason: 'safe-end-turn', intent: { kind: 'end-turn' } })
+          })'''
+          new_end_test = '''  it('continues acting when legacy Action State says spent but PV-1F economy remains', () => {
+            const state = encounter({
+              width: 2,
+              recruitPosition: { x: 1, y: 0 },
+              playerPosition: { x: 0, y: 0 },
+            })
+            const legacySpent = {
+              ...state,
+              tactical: {
+                ...state.tactical,
+                battle: {
+                  ...state.tactical.battle,
+                  currentTurn: {
+                    ...state.tactical.battle.currentTurn!,
+                    actionState: 'spent' as const,
+                    movementRemaining: 0,
+                    movementSpent: state.tactical.battle.currentTurn!.movementMaximum,
+                  },
+                },
+              },
+            }
+
+            const decision = chooseRecruitAiDecision({ state: legacySpent, tieBreakSeed: 9 })
+            expect(decision).toMatchObject({
+              reason: 'legal-damage',
+              intent: { kind: 'action', actionId: 'basic.attack.unarmed.basic' },
+            })
+          })'''
+          if old_end_test not in test:
+              raise SystemExit('legacy end-turn test marker not found')
+          test = test.replace(old_end_test, new_end_test, 1)
+          test_path.write_text(test)
+          PY
+      - name: Canonical format and focused tests
+        run: |
+          pnpm exec prettier --write packages/game-core/src/combat/recruit-ai.ts packages/game-core/src/combat/recruit-ai.test.ts
+          pnpm --filter @aurevane/game-core test -- recruit-ai.test.ts
+      - name: Commit repairs
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo 'No AI repair changes needed.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add packages/game-core/src/combat/recruit-ai.ts packages/game-core/src/combat/recruit-ai.test.ts
+          git commit -m 'fix: align Recruit AI with PV-1F numeric economy'
+          git push origin HEAD:agent/pv-1f-character-hub-turn-budget
