@@ -6,36 +6,42 @@ The Master Game Plan defines the product. The Roadmap defines sequence. Canonica
 
 ## Current status
 
-**Stage:** PV-1 — Tactical Combat Human/Internal Validation
+**Stage:** PV-1 — Tactical Combat Corrective Validation
 
-**ACTIVE VALIDATION GATE:** issue #105 — PV-1C Conduct Tactical Combat Human/Internal Validation
+**ACTIVE VALIDATION GATE:** issue #105 — PV-1C Conduct Tactical Combat Human/Internal Validation — **FAILED CURRENT BUILD / AWAITING RETEST**
 
-**ACTIVE IMPLEMENTATION TICKET:** none. Substantial Phase 3 implementation is intentionally blocked until the PV-1 human evidence is reviewed.
+**ACTIVE IMPLEMENTATION TICKET:** issue #107 — PV-1D Combat Readability, Battlefield Stability & Turn-Flow Correction
 
-P2.7 / PV-1 Combat Usability & Battlefield Scale Proof is complete through PR #100. PV-1A authoritative combat-validation telemetry is complete through PR #102. PV-1B structured playtest evidence tooling and facilitator protocol are complete through PR #104. The repository is now ready for real human/internal tactical-combat sessions; further mechanics cannot substitute for that evidence.
+Two independent human feedback batches found the same recurring failure: testers were mainly fighting the interface rather than discussing tactical choices. Battlefield scale/rendering, movement readability, information hierarchy, Recruit-turn visibility, action feedback, Tactical Hall selection, and mobile layout require correction before another PV-1 decision. Substantial Phase 3 implementation remains blocked.
 
-### PV-1C active validation boundary
+### PV-1D active implementation boundary
 
-Conduct and review real sessions using `docs/PV1_TACTICAL_PLAYTEST_PROTOCOL.md` and the merged report command:
+Repair the existing authoritative Phase 2 slice rather than adding breadth:
 
-```bash
-pnpm validation:pv1-report .local-validation/pv1-sessions.json
-```
+- keep the battlefield visibly stable through preview, commit, Recruit turns, refresh, and responsive layout changes;
+- enlarge tiles/units and make legal reachability, blocked movement, rough terrain, elevation, and facing visually understandable;
+- provide always-readable HP, MP, status, initiative, facing, Movement, and Action state;
+- make the intended Move → Action → Facing → End Turn sequence obvious without duplicating the same information across several panels;
+- make attack, miss, damage, Guard, movement, and enemy-turn results immediately visible;
+- make the Combat Log obvious and keep it current as battle versions advance;
+- preserve server authority and strengthen client rapid/double-submit protection rather than relying on visual disabled state alone;
+- simplify Tactical Hall drill selection, consolidate Movement + Facing teaching, and ensure Recruit Sparring launches the intended Duel Yard;
+- reorganize the authenticated home so Sign Out lives near Sound, game navigation lives with Account State, and Wayfarer's Practice is compact/on-demand;
+- rerun responsive authenticated automation and then real human PV-1 testing.
 
-Collect the defined evidence:
+Do not add Phase 3 Disciplines/Arts/buildcraft, new regions/classes, stronger AI grades, production PvP/Colosseum, or unrelated metagame breadth as a substitute for fixing the failed combat experience.
 
-- first-battle outcome;
-- time to first confident action;
-- battle duration;
-- obvious misclick and targeting-confusion counts;
-- outcome understanding;
-- voluntary replay disposition, with time/technical exclusions separated;
-- tactical-decision recall;
-- pace, clarity, responsiveness, audiovisual-impact and replay-desire ratings;
-- concise pseudonymous qualitative notes kept in the gitignored local validation area;
-- server-derived first-start/first-completion/abandonment telemetry as corroborating evidence where applicable.
+## Human evidence already established
 
-Do not fabricate tester records, treat automated browser tests as human-fun evidence, or pull Phase 3 Disciplines/Arts/buildcraft, broader analytics infrastructure, production PvP/Colosseum spectation, world-retreat settlement, Expedition extraction, stronger AI grades, or unrelated breadth forward while this gate is unresolved.
+- two independent testers reported battlefield rendering/scaling problems and overlapping command text;
+- movement was not visually trackable and reachable/unreachable tiles were unclear;
+- terrain/elevation, Action economy, Guard, facing, initiative, and attack outcomes were difficult to understand;
+- Recruit actions occurred authoritatively but appeared invisible to players;
+- Combat Log discovery/currentness was insufficient;
+- mobile Tactical Hall selection was unclear and Recruit Sparring selection was unreliable;
+- first tester explicitly did not want another fight in the current build.
+
+These observations are recorded on issue #105. They are a corrective signal, not a PV-1 pass.
 
 ## Completed foundation relevant to this work
 
@@ -45,15 +51,16 @@ Do not fabricate tester records, treat automated browser tests as human-fun evid
 - P1.7 public News/Manual/Rules foundation is complete.
 - P2.1–P2.6 combat engine, persistence, battle UX, Recruit AI and Tactical Hall vertical slice are complete.
 - P2.7 combat usability, integrated final-facing flow, combat keybind foundation, 9×7 Duel Yard scale proof, larger-board Recruit validation and authoritative Abort Exercise are merged through PR #100.
-- PV-1A private server-derived `first_combat_started`, `first_combat_completed` and `combat_abandoned` telemetry is merged through PR #102 with exact-head CI/database/security/browser validation.
-- PV-1B local structured playtest records, deterministic decision-support reporting, privacy/consistency validation, report tests, synthetic example data and neutral facilitator protocol are merged through PR #104 with exact-head CI/database/browser validation.
+- PV-1A private server-derived combat-validation telemetry is merged through PR #102.
+- PV-1B local structured playtest evidence tooling and neutral facilitator protocol are merged through PR #104.
+- PV-1C collected sufficient human evidence to reject the current combat presentation and open corrective issue #107.
 
 ## Current authoritative documents
 
 - `docs/ROADMAP_PRODUCT_VALIDATION.md` governs PV-1 evidence, telemetry and the gate decision.
-- `docs/COMBAT_USABILITY_BATTLEFIELDS_CONTROLS_RETREAT.md` governs the validated battle-usability contract.
-- `docs/ROADMAP_COMBAT_USABILITY_BATTLEFIELDS_CONTROLS_RETREAT.md` blocks substantial Phase 3 expansion until PV-1 human/internal validation is reviewed.
-- `docs/PV1_TACTICAL_PLAYTEST_PROTOCOL.md` defines the active structured human-playtest procedure.
+- `docs/COMBAT_USABILITY_BATTLEFIELDS_CONTROLS_RETREAT.md` governs battle-usability intent.
+- `docs/ROADMAP_COMBAT_USABILITY_BATTLEFIELDS_CONTROLS_RETREAT.md` blocks substantial Phase 3 expansion until PV-1 human/internal validation passes.
+- `docs/PV1_TACTICAL_PLAYTEST_PROTOCOL.md` defines the human-playtest procedure for the corrected slice.
 
 ## Established deferrals
 
@@ -64,7 +71,7 @@ Do not fabricate tester records, treat automated browser tests as human-fun evid
 ## Permanent execution rules
 
 1. Inspect current `main`, open implementation/validation PRs/issues, current phase ticket specs, and recently merged design docs before starting work.
-2. One canonical implementation ticket is ACTIVE at a time; a validation gate may explicitly hold implementation at none.
+2. One canonical implementation ticket is ACTIVE at a time.
 3. Never merge a dependent ticket before its prerequisite.
 4. Reconcile repository truth at phase/player-facing validation boundaries.
 5. Do not use future feature work to hide a failed validation gate.
@@ -74,16 +81,16 @@ Do not fabricate tester records, treat automated browser tests as human-fun evid
 ## Immediate sequence
 
 ```text
-#105 PV-1C — Conduct Tactical Combat Human/Internal Validation
+#107 PV-1D — Combat Readability, Battlefield Stability & Turn-Flow Correction
   ↓
-Record real representative sessions using the merged protocol + telemetry
+GitHub quality + database/security + responsive authenticated browser validation
   ↓
-Run the PV-1 report; review qualitative notes, sample quality and confounders
+Deploy corrected slice and verify live production behavior
   ↓
-Record a human evidence decision on #105
+Rerun real human PV-1 sessions under #105
   ↓
-PASS: reconcile the boundary and open the first substantial Phase 3 implementation ticket
-FAIL: open the smallest corrective Phase 2/PV-1 implementation ticket and retest
+PASS: close #105 and begin the first substantial Phase 3 implementation ticket
+FAIL: identify the next smallest recurring combat/usability defect and correct it
 ```
 
-The telemetry and report harness support the gate; they do **not** satisfy or auto-pass the human/internal validation gate by themselves.
+Automation proves correctness and regression safety; only the subsequent human retest can decide whether PV-1 now passes.
