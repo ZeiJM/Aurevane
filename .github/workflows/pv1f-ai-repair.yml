@@ -31,26 +31,31 @@ jobs:
         run: |
           python <<'PY'
           from pathlib import Path
+          import re
 
           ai_path = Path('packages/game-core/src/combat/recruit-ai.ts')
           ai = ai_path.read_text()
+          if 'preparePv1fTurnEconomy' not in ai:
+              ai = ai.replace(
+                  '  evaluatePv1fMovement,\n  readPv1fActionEconomy,\n',
+                  '  evaluatePv1fMovement,\n  preparePv1fTurnEconomy,\n  readPv1fActionEconomy,\n',
+                  1,
+              )
+          ai, count = re.subn(
+              r"\): RecruitAiKnowledge \{\n  const battle = state\.tactical\.battle",
+              "): RecruitAiKnowledge {\n  const prepared = preparePv1fTurnEconomy(state)\n  const battle = prepared.tactical.battle",
+              ai,
+              count=1,
+          )
+          if count != 1 and 'const prepared = preparePv1fTurnEconomy(state)' not in ai:
+              raise SystemExit('Recruit knowledge preparation marker not found')
           ai = ai.replace(
-              "  evaluatePv1fMovement,\n  readPv1fActionEconomy,\n",
-              "  evaluatePv1fMovement,\n  preparePv1fTurnEconomy,\n  readPv1fActionEconomy,\n",
+              'actionEconomyRemaining: readPv1fActionEconomy(state, turn.combatantId)?.current ?? 0,',
+              'actionEconomyRemaining: readPv1fActionEconomy(prepared, turn.combatantId)?.current ?? 0,',
               1,
           )
-          ai = ai.replace(
-              "): RecruitAiKnowledge {\n  const battle = state.tactical.battle\n",
-              "): RecruitAiKnowledge {\n  const prepared = preparePv1fTurnEconomy(state)\n  const battle = prepared.tactical.battle\n",
-              1,
-          )
-          ai = ai.replace(
-              "actionEconomyRemaining: readPv1fActionEconomy(state, turn.combatantId)?.current ?? 0,",
-              "actionEconomyRemaining: readPv1fActionEconomy(prepared, turn.combatantId)?.current ?? 0,",
-              1,
-          )
-          ai = ai.replace("placements: state.tactical.placements.map", "placements: prepared.tactical.placements.map", 1)
-          ai = ai.replace("tiles: state.tactical.tiles.map", "tiles: prepared.tactical.tiles.map", 1)
+          ai = ai.replace('placements: state.tactical.placements.map', 'placements: prepared.tactical.placements.map', 1)
+          ai = ai.replace('tiles: state.tactical.tiles.map', 'tiles: prepared.tactical.tiles.map', 1)
           ai_path.write_text(ai)
 
           test_path = Path('packages/game-core/src/combat/recruit-ai.test.ts')
@@ -60,44 +65,21 @@ jobs:
               "import { createTacticalBattleState } from './board'",
               1,
           )
-          test = test.replace(
-              "import {\n  createStatDrivenCombatEncounterState,\n  reattachStatDrivenCombatBridge,\n  type StatDrivenCombatEncounterState,\n  type StatDrivenCombatProfile,\n} from './stat-driven-combat'",
-              "import { spendPv1fActionEconomy } from './pv1f-action-economy'\nimport {\n  createStatDrivenCombatEncounterState,\n  type StatDrivenCombatEncounterState,\n  type StatDrivenCombatProfile,\n} from './stat-driven-combat'",
-              1,
+          if "from './pv1f-action-economy'" not in test:
+              test = test.replace(
+                  "import { createTacticalBattleState } from './board'\n",
+                  "import { createTacticalBattleState } from './board'\nimport { spendPv1fActionEconomy } from './pv1f-action-economy'\n",
+                  1,
+              )
+          test = test.replace('  reattachStatDrivenCombatBridge,\n', '', 1)
+          test, _ = re.subn(
+              r"\nfunction withFinalFacing\([\s\S]*?\n\}\n\n(?=describe\('P2\.6 Recruit AI')",
+              '\n',
+              test,
+              count=1,
           )
-          helper_start = test.index("\nfunction withFinalFacing(")
-          helper_end = test.index("\ndescribe('P2.6 Recruit AI'", helper_start)
-          test = test[:helper_start] + "\n" + test[helper_end:]
 
-          old_face_test = '''  it('falls back to facing the nearest threat before ending a turn', () => {
-            const state = encounter({
-              width: 2,
-              recruitPosition: { x: 1, y: 0 },
-              playerPosition: { x: 0, y: 0 },
-            })
-            const actionSpent = {
-              ...state,
-              tactical: {
-                ...state.tactical,
-                battle: {
-                  ...state.tactical.battle,
-                  currentTurn: {
-                    ...state.tactical.battle.currentTurn!,
-                    actionState: 'spent' as const,
-                    movementRemaining: 0,
-                    movementSpent: state.tactical.battle.currentTurn!.movementMaximum,
-                  },
-                },
-              },
-            }
-
-            const decision = chooseRecruitAiDecision({ state: actionSpent, tieBreakSeed: 9 })
-            expect(decision).toMatchObject({
-              reason: 'face-threat',
-              intent: { kind: 'face', facing: 'west' },
-            })
-          })'''
-          new_face_test = '''  it('falls back to final facing when no Action Economy remains', () => {
+          new_face = '''  it('falls back to final facing when no Action Economy remains', () => {
             const state = encounter({
               width: 2,
               recruitPosition: { x: 1, y: 0 },
@@ -111,37 +93,16 @@ jobs:
               intent: { kind: 'face', facing: 'west' },
             })
           })'''
-          if old_face_test not in test:
-              raise SystemExit('legacy face test marker not found')
-          test = test.replace(old_face_test, new_face_test, 1)
+          test, count = re.subn(
+              r"  it\('falls back to facing the nearest threat before ending a turn',[\s\S]*?\n  \}\)\n\n(?=  it\('ends the turn)",
+              new_face + '\n\n',
+              test,
+              count=1,
+          )
+          if count != 1 and 'falls back to final facing when no Action Economy remains' not in test:
+              raise SystemExit('legacy face test not found')
 
-          old_end_test = '''  it('ends the turn once the safe final facing is already selected', () => {
-            const base = encounter({
-              width: 2,
-              recruitPosition: { x: 1, y: 0 },
-              playerPosition: { x: 0, y: 0 },
-            })
-            const faced = withFinalFacing(base, 'west')
-            const spent = {
-              ...faced,
-              tactical: {
-                ...faced.tactical,
-                battle: {
-                  ...faced.tactical.battle,
-                  currentTurn: {
-                    ...faced.tactical.battle.currentTurn!,
-                    actionState: 'spent' as const,
-                    movementRemaining: 0,
-                    movementSpent: faced.tactical.battle.currentTurn!.movementMaximum,
-                  },
-                },
-              },
-            }
-
-            const decision = chooseRecruitAiDecision({ state: spent, tieBreakSeed: 9 })
-            expect(decision).toMatchObject({ reason: 'safe-end-turn', intent: { kind: 'end-turn' } })
-          })'''
-          new_end_test = '''  it('continues acting when legacy Action State says spent but PV-1F economy remains', () => {
+          new_remaining = '''  it('continues acting when legacy Action State says spent but PV-1F economy remains', () => {
             const state = encounter({
               width: 2,
               recruitPosition: { x: 1, y: 0 },
@@ -169,9 +130,14 @@ jobs:
               intent: { kind: 'action', actionId: 'basic.attack.unarmed.basic' },
             })
           })'''
-          if old_end_test not in test:
-              raise SystemExit('legacy end-turn test marker not found')
-          test = test.replace(old_end_test, new_end_test, 1)
+          test, count = re.subn(
+              r"  it\('ends the turn once the safe final facing is already selected',[\s\S]*?\n  \}\)\n\n(?=  it\('rejects unbounded)",
+              new_remaining + '\n\n',
+              test,
+              count=1,
+          )
+          if count != 1 and 'continues acting when legacy Action State says spent' not in test:
+              raise SystemExit('legacy end-turn test not found')
           test_path.write_text(test)
           PY
       - name: Canonical format and focused tests
