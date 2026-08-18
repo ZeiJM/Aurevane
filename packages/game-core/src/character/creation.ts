@@ -1,6 +1,13 @@
 import { isFoundationDisciplineId, type FoundationDisciplineId } from './foundation-disciplines'
 
-export const CHARACTER_ATTRIBUTE_IDS = ['might', 'finesse', 'intellect', 'resolve'] as const
+export const CHARACTER_ATTRIBUTE_IDS = [
+  'might',
+  'finesse',
+  'vitality',
+  'agility',
+  'intellect',
+  'resolve',
+] as const
 export type CharacterAttributeId = (typeof CHARACTER_ATTRIBUTE_IDS)[number]
 export type CharacterAttributeBonuses = Record<CharacterAttributeId, number>
 export type CharacterAttributes = Record<CharacterAttributeId, number>
@@ -54,7 +61,7 @@ export const CHARACTER_CREATION_RULES_V1 = {
   },
   attributes: {
     baseline: 5,
-    bonusBudget: 4,
+    bonusBudget: 6,
     maximumBonusPerAttribute: 4,
   },
   initialProgression: {
@@ -214,7 +221,7 @@ function validateAttributeBonuses(
     issues.push({
       code: 'invalid_attribute_shape',
       field: 'attributeBonuses',
-      message: 'Attribute bonuses must provide Might, Finesse, Intellect, and Resolve.',
+      message: 'Attribute bonuses must provide Might, Finesse, Vitality, Agility, Intellect, and Resolve.',
     })
     return null
   }
@@ -376,7 +383,7 @@ export function validateCharacterCreationIntent(input: unknown): CharacterCreati
     issues.push({
       code: 'invalid_foundation_discipline',
       field: 'foundationDisciplineId',
-      message: 'Choose one of the six Foundation Disciplines.',
+      message: 'Choose one of the six Disciplines.',
     })
   }
 
@@ -416,7 +423,7 @@ export function buildInitialCharacterState(input: unknown): InitialCharacterStat
   return {
     rulesVersion: CHARACTER_CREATION_RULES_V1.version,
     name: validation.value.name,
-    nameKey: validation.value.nameKey,
+    nameKey,
     presentationId: validation.value.presentationId,
     pronounPresetId: validation.value.pronounPresetId,
     portraitRef: validation.value.portraitRef,
