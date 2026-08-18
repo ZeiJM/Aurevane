@@ -1,11 +1,12 @@
 .experience {
   display: grid;
-  gap: var(--av-space-6);
+  gap: clamp(0.8rem, 1.5vh, var(--av-space-4));
 }
 
 .scene {
   position: relative;
-  min-height: clamp(8rem, 18vw, 13rem);
+  min-height: clamp(5.5rem, 12vh, 8rem);
+  max-height: 8rem;
   overflow: hidden;
   border: 1px solid var(--av-border);
   background: rgba(4, 6, 9, 0.7);
@@ -16,18 +17,19 @@
   inset: 0;
   width: 100%;
   height: 100%;
+  object-fit: cover;
 }
 
 .content {
   display: grid;
-  gap: var(--av-space-4);
-  max-width: 58rem;
+  gap: var(--av-space-3);
+  width: min(100%, 64rem);
 }
 
 .progress {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--av-space-2);
+  gap: 0.4rem;
   color: var(--av-text-dim);
   font: 650 0.58rem/1.2 var(--av-font-mono);
   letter-spacing: 0.07em;
@@ -35,7 +37,7 @@
 }
 
 .progress span {
-  padding: 0.5rem 0.7rem;
+  padding: 0.38rem 0.58rem;
   border: 1px solid rgba(184, 177, 163, 0.13);
 }
 
@@ -47,47 +49,60 @@
 
 .step {
   display: grid;
-  gap: var(--av-space-5);
+  gap: clamp(0.8rem, 1.5vh, var(--av-space-4));
 }
 
 .step h1 {
   max-width: 46rem;
   margin: 0;
   outline: none;
-  font: 500 clamp(2.15rem, 5vw, 4.2rem) / 0.98 var(--av-font-display);
+  font: 500 clamp(1.8rem, 3.8vw, 3.35rem) / 0.98 var(--av-font-display);
   letter-spacing: 0.01em;
 }
 
 .intro {
-  max-width: 46rem;
-  margin: calc(var(--av-space-3) * -1) 0 0;
+  max-width: 52rem;
+  margin: 0;
   color: var(--av-text-muted);
-  line-height: 1.7;
+  font-size: 0.86rem;
+  line-height: 1.55;
 }
 
 .field {
   display: grid;
   max-width: 34rem;
-  gap: var(--av-space-2);
+  gap: 0.4rem;
+  padding: 0.15rem;
+}
+
+.field[data-invalid='true'],
+.choiceGroup[data-invalid='true'],
+.attributeCard[data-invalid='true'] {
+  outline: 2px solid #d9795f;
+  outline-offset: 2px;
 }
 
 .field > span,
 .choiceGroup legend,
 .attributeHeader h2 {
   color: var(--av-text-muted);
-  font: 650 0.68rem/1.2 var(--av-font-mono);
+  font: 650 0.66rem/1.2 var(--av-font-mono);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .field input {
-  min-height: 3rem;
-  padding: 0.75rem 0.9rem;
+  min-height: 2.6rem;
+  padding: 0.58rem 0.75rem;
   border: 1px solid var(--av-border-strong);
   border-radius: 0;
   color: var(--av-text);
   background: rgba(3, 5, 8, 0.74);
-  font: 500 1rem/1.3 var(--av-font-body);
+  font: 500 0.95rem/1.3 var(--av-font-body);
+}
+
+.field input[aria-invalid='true'] {
+  border-color: #d9795f;
 }
 
 .field input:focus-visible {
@@ -99,14 +114,14 @@
 .optionCard small,
 .attributeCard small {
   color: var(--av-text-dim);
-  font-size: 0.74rem;
-  line-height: 1.55;
+  font-size: 0.69rem;
+  line-height: 1.4;
 }
 
 .twoColumn {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--av-space-4);
+  gap: var(--av-space-3);
 }
 
 .choiceGroup {
@@ -117,17 +132,17 @@
 }
 
 .choiceGroup legend {
-  margin-bottom: var(--av-space-3);
+  margin-bottom: 0.55rem;
   padding: 0;
 }
 
 .inlineChoice {
   display: inline-flex;
-  min-height: 2.75rem;
-  gap: var(--av-space-2);
+  min-height: 2.25rem;
+  gap: 0.45rem;
   align-items: center;
-  margin: 0 var(--av-space-3) var(--av-space-2) 0;
-  padding: 0.55rem 0.7rem;
+  margin: 0 0.45rem 0.4rem 0;
+  padding: 0.4rem 0.55rem;
   border: 1px solid rgba(184, 177, 163, 0.16);
   cursor: pointer;
 }
@@ -145,23 +160,23 @@
 }
 
 .inlineChoice input {
-  width: 1rem;
-  height: 1rem;
+  width: 0.9rem;
+  height: 0.9rem;
   accent-color: var(--av-brass-300);
 }
 
 .portraitGrid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--av-space-3);
+  gap: 0.55rem;
 }
 
 .portraitChoice {
   position: relative;
   display: grid;
   min-width: 0;
-  gap: var(--av-space-2);
-  padding: var(--av-space-2);
+  gap: 0.35rem;
+  padding: 0.4rem;
   border: 1px solid rgba(184, 177, 163, 0.16);
   cursor: pointer;
 }
@@ -179,15 +194,18 @@
   opacity: 0;
 }
 
-.portraitChoice > div {
+.portraitChoice > div,
+.portraitChoice > img {
+  width: 100%;
   aspect-ratio: 4 / 5;
-  min-height: 8rem;
+  min-height: 5rem;
   overflow: hidden;
+  object-fit: cover;
 }
 
 .portraitChoice > span {
   color: var(--av-text-muted);
-  font-size: 0.74rem;
+  font-size: 0.68rem;
   text-align: center;
 }
 
@@ -195,20 +213,20 @@
 .disciplineGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--av-space-3);
+  gap: 0.55rem;
 }
 
 .disciplineGrid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .optionCard {
   position: relative;
   display: grid;
-  min-height: 5.5rem;
-  gap: var(--av-space-2);
+  min-height: 4rem;
+  gap: 0.35rem;
   align-content: center;
-  padding: var(--av-space-4);
+  padding: 0.75rem;
   border: 1px solid rgba(184, 177, 163, 0.16);
   background: rgba(5, 7, 10, 0.38);
   cursor: pointer;
@@ -220,15 +238,15 @@
 }
 
 .optionCard strong {
-  font: 500 1.05rem/1.2 var(--av-font-display);
+  font: 500 0.95rem/1.2 var(--av-font-display);
 }
 
 .attributeHeader {
   display: flex;
   justify-content: space-between;
-  gap: var(--av-space-4);
+  gap: var(--av-space-3);
   align-items: end;
-  padding-top: var(--av-space-2);
+  padding-top: 0.6rem;
   border-top: 1px solid rgba(184, 177, 163, 0.14);
 }
 
@@ -238,56 +256,58 @@
 }
 
 .attributeHeader p {
-  margin-top: var(--av-space-2);
+  max-width: 48rem;
+  margin-top: 0.35rem;
   color: var(--av-text-dim);
-  font-size: 0.76rem;
+  font-size: 0.7rem;
+  line-height: 1.4;
 }
 
 .attributeHeader > strong {
   flex: none;
   color: var(--av-brass-300);
-  font: 650 0.65rem/1.2 var(--av-font-mono);
+  font: 650 0.62rem/1.2 var(--av-font-mono);
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
 .attributeGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--av-space-3);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.55rem;
 }
 
 .attributeCard {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: var(--av-space-3);
+  gap: 0.55rem;
   align-items: center;
-  padding: var(--av-space-4);
+  padding: 0.7rem;
   border: 1px solid rgba(184, 177, 163, 0.15);
 }
 
 .attributeCard > div:first-child {
   display: grid;
-  gap: var(--av-space-1);
+  gap: 0.2rem;
 }
 
 .attributeCard > div:first-child strong {
-  font: 500 1.05rem/1.2 var(--av-font-display);
+  font: 500 0.92rem/1.2 var(--av-font-display);
 }
 
 .attributeControl {
   display: grid;
-  grid-template-columns: 2.5rem 2.6rem 2.5rem;
+  grid-template-columns: 2rem 2rem 2rem;
   align-items: center;
 }
 
 .attributeControl button {
-  min-width: 2.5rem;
-  min-height: 2.5rem;
+  min-width: 2rem;
+  min-height: 2rem;
   border: 1px solid var(--av-border-strong);
   color: var(--av-text);
   background: rgba(7, 9, 13, 0.8);
-  font-size: 1.2rem;
+  font-size: 1rem;
   cursor: pointer;
 }
 
@@ -304,13 +324,13 @@
 
 .attributeControl output {
   color: var(--av-brass-300);
-  font: 650 0.75rem/1 var(--av-font-mono);
+  font: 650 0.7rem/1 var(--av-font-mono);
   text-align: center;
 }
 
 .reviewGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1px;
   overflow: hidden;
   border: 1px solid rgba(184, 177, 163, 0.16);
@@ -320,8 +340,8 @@
 .reviewGrid div {
   display: flex;
   justify-content: space-between;
-  gap: var(--av-space-3);
-  padding: var(--av-space-4);
+  gap: 0.5rem;
+  padding: 0.65rem 0.75rem;
   background: rgba(5, 7, 10, 0.92);
 }
 
@@ -332,36 +352,44 @@
 
 .reviewGrid dt {
   color: var(--av-text-dim);
-  font-size: 0.7rem;
+  font-size: 0.65rem;
 }
 
 .reviewGrid dd {
   color: var(--av-text-muted);
-  font: 500 0.9rem/1.2 var(--av-font-display);
+  font: 500 0.8rem/1.2 var(--av-font-display);
   text-align: right;
 }
 
 .error {
   margin: 0;
-  padding: var(--av-space-3) var(--av-space-4);
-  border-left: 2px solid #c66;
+  padding: 0.6rem 0.75rem;
+  border-left: 2px solid #d9795f;
   color: #efc5bf;
   background: rgba(102, 34, 34, 0.18);
-  font-size: 0.8rem;
-  line-height: 1.5;
+  font-size: 0.76rem;
+  line-height: 1.45;
 }
 
 .submitState {
   margin: 0;
   color: var(--av-text-dim);
-  font-size: 0.75rem;
+  font-size: 0.7rem;
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--av-space-3);
-  padding-top: var(--av-space-2);
+  gap: 0.55rem;
+  padding-top: 0.15rem;
+}
+
+@media (max-width: 900px) {
+  .disciplineGrid,
+  .attributeGrid,
+  .reviewGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 760px) {
@@ -372,7 +400,8 @@
   .appearanceGrid,
   .disciplineGrid,
   .twoColumn,
-  .attributeGrid {
+  .attributeGrid,
+  .reviewGrid {
     grid-template-columns: 1fr;
   }
 
@@ -383,29 +412,12 @@
 }
 
 @media (max-width: 560px) {
-  .experience {
-    gap: var(--av-space-4);
-  }
-
   .scene {
-    min-height: 7rem;
-  }
-
-  .content,
-  .step {
-    gap: var(--av-space-4);
+    min-height: 4.5rem;
   }
 
   .step h1 {
-    font-size: clamp(2rem, 11vw, 3rem);
-  }
-
-  .field input {
-    font-size: 1rem;
-  }
-
-  .portraitChoice > div {
-    min-height: 6.5rem;
+    font-size: clamp(1.8rem, 10vw, 2.7rem);
   }
 
   .attributeCard {
@@ -416,33 +428,8 @@
     justify-self: start;
   }
 
-  .reviewGrid {
-    grid-template-columns: 1fr;
-  }
-
   .actions,
   .actions button {
     width: 100%;
-  }
-}
-
-@media (min-width: 801px) and (max-height: 800px) {
-  .scene {
-    min-height: 7rem;
-    max-height: 8rem;
-  }
-
-  .experience,
-  .step {
-    gap: var(--av-space-4);
-  }
-
-  .step h1 {
-    font-size: clamp(2rem, 4vw, 3.25rem);
-  }
-
-  .optionCard {
-    min-height: 4.5rem;
-    padding: var(--av-space-3);
   }
 }
