@@ -35,11 +35,11 @@ PR #122 currently implements:
 - compact News, Manual, Rules, Controls & Keybinds, Character Profile, Character Select, Battle Hall, Wayfarer's Practice and login/account-entry presentation;
 - desktop/laptop regression coverage requiring Account Entry, News, Profile, Battle Hall, Controls, Wayfarer's Practice and Character Select to fit their intended initial viewport without page scrollbars;
 - an authoritative **100-point Action Economy** with Move = 25 AP per normal terrain-cost unit and rough ground = 50 AP, while Basic Attack = 30 AP, Guard = 30 AP and Recover = 50 AP;
-- battle action proposals with glowing provisional AP depletion, consistent AP wording, neutral initial action state, clearer terrain/Inspect feedback, compact combatant rails, self-chat promoted into the native browser top layer, double-click/tap quick commit for target and self actions with self-action proposals preserved across the second tap, Battle Log grouping/access and current action naming;
+- battle action proposals with glowing provisional AP depletion, consistent AP wording, neutral initial action state, clearer terrain/Inspect feedback, compact combatant rails, self-chat promoted into the native browser top layer with an explicit in-panel Close control, double-click/tap quick commit for target and self actions with self-action proposals preserved across the second tap, Battle Log grouping/access and current action naming;
 - current Manual content aligned with the six-attribute model, Discipline terminology, Battle Hall, character switching, titles and current player-facing terminology;
-- E2E expectations reconciled with the current navigation, scaling, public-header identity and combat model.
+- E2E expectations reconciled with the current Navigation, Wayfarer's Practice terminology, scaling, public-header identity and combat model.
 
-The two new migrations for six-attribute/swap-cooldown state and personal titles have rebuilt successfully in GitHub infrastructure. Full quality, database/security and responsive browser gates are now being rerun on the final **formatted, touch-safe, native-top-layer-corrected, public-header-complete** branch head before PR #122 is considered review-ready.
+The two new migrations for six-attribute/swap-cooldown state and personal titles have rebuilt successfully in GitHub infrastructure. Full quality, database/security and responsive browser gates are being rerun on the final **formatted, touch-safe, native-top-layer-corrected, public-header-complete, mobile-chat-close-safe** branch head before PR #122 is considered review-ready.
 
 ## PV-1F corrective history
 
