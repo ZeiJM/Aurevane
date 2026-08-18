@@ -514,16 +514,16 @@ export function BattleExperienceV2({
           setNotice(result.issues[0]?.message ?? 'That command is not legal right now.')
         } else if (result.kind === 'move') {
           setNotice(
-            `Path ready: ${result.actionEconomyCost}% Action Economy. ${result.actionEconomyAfter}% will remain.`,
+            `Path ready: ${result.actionEconomyCost} AP. ${result.actionEconomyAfter} AP will remain.`,
           )
         } else if (result.kind === 'action' && result.actionId === BASIC_ATTACK_ID) {
           setNotice(
             `Attack ready: ${percentFromBasisPoints(result.hitChanceBasisPoints)} hit chance · ${result.mitigatedBaseDamage ?? '—'} projected damage before final facing effects.`,
           )
         } else if (result.kind === 'action' && result.actionId === GUARD_ID) {
-          setNotice('Guard ready: costs 30% and reduces incoming damage by 15% for 2 turns.')
+          setNotice('Guard ready: costs 30 AP and reduces incoming damage by 15% for 2 turns.')
         } else if (result.kind === 'action' && result.actionId === RECOVER_ID) {
-          setNotice('Recover ready: costs 50% and restores 10% of maximum HP immediately.')
+          setNotice('Recover ready: costs 50 AP and restores 10% of maximum HP immediately.')
         }
       } catch (error) {
         if (sequence === previewSequence.current) {
