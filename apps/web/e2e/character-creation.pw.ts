@@ -26,7 +26,8 @@ test('creates a slotted character, persists its profile, and resumes it across s
   const email = `p15-${projectSlug}-${Date.now()}@example.com`
   const password = 'P15-browser-character-2026!'
   const characterName = uniqueCharacterName()
-  const personalTitle = `Warden ${Date.now().toString().slice(-8)}`
+  const titleProjectToken = projectSlug.replaceAll('-', '').slice(0, 6)
+  const personalTitle = `Warden ${titleProjectToken} ${Date.now().toString().slice(-6)}`
 
   await createAccountAndEnterCharacter({ page, email, password, characterName })
 
