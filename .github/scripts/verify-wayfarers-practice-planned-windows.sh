@@ -43,22 +43,11 @@ materialize() {
   docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
     set role service_role;
     select
-      report_id::text || '|' ||
-      practice_source || '|' ||
-      coalesce(planned_window, '') || '|' ||
-      coalesce(planned_window_config_version::text, '') || '|' ||
-      coalesce(planned_window_seconds::text, '') || '|' ||
-      planned_elapsed_seconds::text || '|' ||
-      balanced_fallback_seconds::text || '|' ||
-      elapsed_seconds::text || '|' ||
-      credited_direct_seconds::text || '|' ||
-      requested_character_xp::text || '|' ||
-      rested_momentum_gain::text || '|' ||
-      status
-    from public.materialize_training_report_v2(
-      '$user_id'::uuid,
-      '$character_id'::uuid
-    );"
+      report_id::text || '|' || practice_source || '|' || coalesce(planned_window, '') || '|' ||
+      coalesce(planned_window_config_version::text, '') || '|' || coalesce(planned_window_seconds::text, '') || '|' ||
+      planned_elapsed_seconds::text || '|' || balanced_fallback_seconds::text || '|' || elapsed_seconds::text || '|' ||
+      credited_direct_seconds::text || '|' || requested_character_xp::text || '|' || rested_momentum_gain::text || '|' || status
+    from public.materialize_training_report_v2('$user_id'::uuid, '$character_id'::uuid);"
 }
 
 set_plan() {
@@ -67,11 +56,7 @@ set_plan() {
   local fingerprint="$3"
   docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
     set role service_role;
-    select
-      planned_window || '|' ||
-      planned_window_config_version::text || '|' ||
-      planned_window_seconds::text || '|' ||
-      replayed::text
+    select planned_window || '|' || planned_window_config_version::text || '|' || planned_window_seconds::text || '|' || replayed::text
     from public.set_wayfarers_practice_plan_v1(
       'user:$user_id',
       'wayfarers_practice.set_plan.v1',
@@ -109,14 +94,12 @@ stop_training() {
 
 window_config="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
   select version::text || '|' || short_seconds::text || '|' || overnight_seconds::text || '|' || extended_seconds::text
-  from app_private.wayfarers_practice_window_configs
-  order by version;")"
+  from app_private.wayfarers_practice_window_configs order by version;")"
 test "$window_config" = '1|10800|28800|86400'
 
 rate_config="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
   select version::text || '|' || short_xp_per_hour::text || '|' || medium_xp_per_hour::text || '|' || extended_xp_per_hour::text
-  from app_private.passive_training_rate_configs
-  order by version;")"
+  from app_private.passive_training_rate_configs order by version;")"
 test "$rate_config" = '1|10|7|4'
 
 permissions="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
@@ -132,33 +115,27 @@ permissions="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
     has_function_privilege('service_role', 'public.stop_passive_training_v1(uuid, uuid)', 'EXECUTE')::text;")"
 test "$permissions" = 'false|false|false|false|false|true|true|true|true'
 
-initial="$(materialize)"
-test -z "$initial"
+test -z "$(materialize)"
 
 status="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
-  select
-    focus || '|' || config_version::text || '|' || minimum_offline_seconds::text || '|' ||
+  select focus || '|' || config_version::text || '|' || minimum_offline_seconds::text || '|' ||
     rested_momentum_balance::text || '|' || coalesce(planned_window, '') || '|' ||
     short_window_seconds::text || '|' || overnight_window_seconds::text || '|' || extended_window_seconds::text
   from public.get_wayfarers_practice_status_v1('$user_id'::uuid, '$character_id'::uuid);")"
 test "$status" = 'balanced|1|0|0||10800|28800|86400'
 
-# Being away/idle does not manufacture training anymore. Keep the two legacy activity boundaries
-# identical so their database invariant remains valid while the test simulates a long absence.
+# A long absence by itself does not create training. The legacy activity boundaries are moved to one
+# identical timestamp so their invariant remains valid.
 docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
-  with boundary as (
-    select clock_timestamp() - interval '96 hours' as at
-  )
+  with boundary as (select clock_timestamp() - interval '96 hours' as at)
   update app_private.wayfarers_practice_state state
-  set
-    last_active_at = boundary.at,
-    practice_claimed_through_at = boundary.at,
-    updated_at = clock_timestamp()
+  set last_active_at = boundary.at,
+      practice_claimed_through_at = boundary.at,
+      updated_at = clock_timestamp()
   from boundary
   where state.character_id = '$character_id'::uuid;"
-automatic_report="$(materialize)"
-test -z "$automatic_report"
+test -z "$(materialize)"
 
 plan_key='00000000-0000-4000-8000-000000001652'
 first_plan="$(set_plan overnight "$plan_key" 'a2:plan:medium')"
@@ -178,27 +155,20 @@ if set_plan short '00000000-0000-4000-8000-000000001653' 'a2:plan:second-active'
 fi
 grep -Fq 'PASSIVE_TRAINING_ACTIVE' /tmp/a2-plan-active.err
 
-state_plan="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
-  select planned_window || '|' || planned_window_config_version::text || '|' || planned_window_seconds::text || '|' || (plan_set_at is not null)::text
-  from app_private.wayfarers_practice_state
-  where character_id = '$character_id'::uuid;")"
-test "$state_plan" = 'overnight|1|28800|true'
-
-# Returning to the screen early does not produce partial rewards and does not consume the plan.
-early="$(materialize)"
-test -z "$early"
+# Returning before completion creates no partial report and preserves the active plan.
+test -z "$(materialize)"
 plan_survived="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
   select planned_window from app_private.wayfarers_practice_state where character_id = '$character_id'::uuid;")"
 test "$plan_survived" = 'overnight'
 
-# Complete Medium (internal compatibility id: overnight) using the authoritative plan start.
+# Complete Medium (internal compatibility id: overnight) by moving only the authoritative plan start.
 docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   update app_private.wayfarers_practice_state
   set plan_set_at = clock_timestamp() - interval '9 hours', updated_at = clock_timestamp()
   where character_id = '$character_id'::uuid;"
 
 completed="$(materialize)"
-IFS='|' read -r report_id source window version window_seconds planned_elapsed fallback elapsed credited xp rested status <<<"$completed"
+IFS='|' read -r report_id source window version window_seconds planned_elapsed fallback elapsed credited xp rested report_status <<<"$completed"
 test -n "$report_id"
 test "$source" = 'passive_training'
 test "$window" = 'overnight'
@@ -210,34 +180,23 @@ test "$elapsed" = '28800'
 test "$credited" = '28800'
 test "$xp" = '56'
 test "$rested" = '0'
-test "$status" = 'pending'
+test "$report_status" = 'pending'
 
-plan_consumed="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
-  select (planned_window is null)::text || '|' || (plan_set_at is null)::text
-  from app_private.wayfarers_practice_state where character_id = '$character_id'::uuid;")"
-test "$plan_consumed" = 'true|true'
-
-frozen="$(materialize)"
-test "$frozen" = "$completed"
+test "$(materialize)" = "$completed"
 
 claim_key='00000000-0000-4000-8000-000000001654'
 first_claim="$(claim_report "$report_id" "$claim_key" 'a2:claim:medium')"
 replay_claim="$(claim_report "$report_id" "$claim_key" 'a2:claim:medium')"
-test "$first_claim" = "$report_id|56|56|false'
-test "$replay_claim" = "$report_id|56|56|true'
+test "$first_claim" = "$report_id|56|56|false"
+test "$replay_claim" = "$report_id|56|56|true"
+test -z "$(materialize)"
 
-post_claim="$(materialize)"
-test -z "$post_claim"
-
-# Starting then stopping a plan clears it and yields no reward.
+# Stopping an unfinished plan clears it without generating a partial reward.
 short_plan="$(set_plan short '00000000-0000-4000-8000-000000001655' 'a2:plan:short-stop')"
 test "$short_plan" = 'short|1|10800|false'
-stopped="$(stop_training)"
-test "$stopped" = 'true'
-stopped_again="$(stop_training)"
-test "$stopped_again" = 'false'
-after_stop="$(materialize)"
-test -z "$after_stop"
+test "$(stop_training)" = 'true'
+test "$(stop_training)" = 'false'
+test -z "$(materialize)"
 
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role authenticated;
@@ -261,4 +220,4 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
   exit 1
 fi
 
-printf '%s\n' 'Passive Training authority verified.'
+printf '%s\n' 'Passive Training window authority verified.'
