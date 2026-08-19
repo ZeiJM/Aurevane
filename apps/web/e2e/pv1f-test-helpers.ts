@@ -43,7 +43,7 @@ export async function signOutFromAccountMenu(page: Page): Promise<void> {
 
 export async function openOfflineTraining(page: Page): Promise<void> {
   await page.getByRole('button', { name: 'Navigation' }).click()
-  await page.getByRole('link', { name: /Wayfarer's Practice/ }).click()
+  await page.getByRole('link', { name: /Passive Training/ }).click()
   await expect(page).toHaveURL(/\/game\/training$/)
-  await expect(page.getByRole('heading', { name: "Wayfarer's Practice" })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Passive Training' })).toBeVisible()
 }
