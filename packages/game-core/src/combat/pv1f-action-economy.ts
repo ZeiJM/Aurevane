@@ -271,6 +271,39 @@ export function spendPv1fActionEconomy(
   )
 }
 
+function spendPv1fActionEconomyForActor(
+  state: StatDrivenCombatEncounterState,
+  combatantId: string,
+  cost: number,
+): StatDrivenCombatEncounterState {
+  if (state.tactical.battle.lifecycle === 'active') {
+    if (state.tactical.battle.currentTurn?.combatantId !== combatantId) {
+      throw new Error('Action Economy can only be spent by the active combatant.')
+    }
+    return spendPv1fActionEconomy(state, cost)
+  }
+
+  if (state.tactical.battle.lifecycle !== 'completed') {
+    throw new Error('Action Economy cannot be spent after that battle transition.')
+  }
+  if (!Number.isSafeInteger(cost) || cost < 0 || cost > PV1F_ACTION_ECONOMY_MAXIMUM) {
+    throw new RangeError('Action Economy cost must be a safe integer from 0 to 100.')
+  }
+
+  const actor = getCombatant(state, combatantId)
+  const economy = actor.temporaryResources.find(
+    (resource) => resource.key === PV1F_ACTION_ECONOMY_RESOURCE_KEY,
+  )
+  if (!economy || economy.current < cost) {
+    throw new Error('Not enough Action Economy remains for that command.')
+  }
+
+  const resources = replaceResources(actor.temporaryResources, [
+    { ...economy, current: economy.current - cost },
+  ])
+  return withCombatant(state, { ...actor, temporaryResources: resources })
+}
+
 export function evaluatePv1fAction(
   state: StatDrivenCombatEncounterState,
   actionId: string,
@@ -312,7 +345,7 @@ export function executePv1fAction(
             events: resolved.events,
           }
         })()
-  const next = spendPv1fActionEconomy(transition.state, cost)
+  const next = spendPv1fActionEconomyForActor(transition.state, actorId, cost)
   const remaining = readPv1fActionEconomy(next, actorId)?.current ?? 0
   return {
     state: next,
@@ -412,6 +445,29 @@ function replaceResources(
       .map((resource) => ({ ...resource })),
     ...replacements.map((resource) => ({ ...resource })),
   ].sort((left, right) => left.key.localeCompare(right.key))
+}
+
+function withCombatant(
+  state: StatDrivenCombatEncounterState,
+  combatant: BattleCombatant,
+): StatDrivenCombatEncounterState {
+  const next: StatDrivenCombatEncounterState = {
+    ...state,
+    tactical: {
+      ...state.tactical,
+      battle: {
+        ...state.tactical.battle,
+        combatants: state.tactical.battle.combatants.map((candidate) =>
+          candidate.id === combatant.id ? combatant : candidate,
+        ),
+      },
+    },
+  }
+  const issues = validateStatDrivenCombatEncounterState(next)
+  if (issues.length > 0) {
+    throw new Error(`Invalid PV-1F combat state: ${issues[0]?.field}: ${issues[0]?.message}`)
+  }
+  return next
 }
 
 function withCombatantAndTurn(
