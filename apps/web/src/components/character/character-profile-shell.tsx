@@ -2,7 +2,7 @@ import type { CharacterProfileReadModel } from '@aurevane/game-core/character/pr
 import { Kicker, Surface } from '@aurevane/ui'
 
 import { CharacterProfileDetails } from '@/components/character/character-profile-details'
-import { AurevaneImage } from '@/components/media/aurevane-image'
+import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 
@@ -11,11 +11,13 @@ import styles from './character-profile-shell.module.css'
 interface CharacterProfileShellProps {
   profile: CharacterProfileReadModel
   personalTitle?: string | null
+  imageUrl?: string | null
 }
 
 export function CharacterProfileShell({
   profile,
   personalTitle = null,
+  imageUrl = null,
 }: CharacterProfileShellProps) {
   const created = new Intl.DateTimeFormat('en', {
     dateStyle: 'medium',
@@ -29,9 +31,11 @@ export function CharacterProfileShell({
         <Surface className={styles.profile} tone="elevated">
           <header className={styles.hero} data-testid="character-profile">
             <div className={styles.portrait}>
-              <AurevaneImage
-                assetId={getStarterPortraitImageAssetId(profile.identity.portraitRef)}
+              <CharacterPortraitImage
+                imageUrl={imageUrl}
+                fallbackAssetId={getStarterPortraitImageAssetId(profile.identity.portraitRef)}
                 sizes="(max-width: 640px) 7rem, 10rem"
+                alt={`${profile.identity.name} portrait`}
               />
             </div>
             <div className={styles.identity}>
