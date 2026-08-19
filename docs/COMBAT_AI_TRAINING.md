@@ -1,15 +1,16 @@
-# AUREVANE — Combat Intelligence, Tactical Hall & Practice Arena
+# AUREVANE — Combat Intelligence, Battle Hall & Practice Systems
 
-**Status:** Authoritative feature specification subordinate only to `docs/GAME_MASTER_PLAN.md` and complementary to the tactical-combat, progression, player-manual, and Master Panel specifications.
+**Status:** Authoritative feature specification subordinate to `docs/GAME_MASTER_PLAN.md`, `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md`, and the canonical combat rules in `docs/COMBAT.md`.
 
-**Direction approved:** 2026-08-15.
+**Initial direction approved:** 2026-08-15.  
+**Player-facing terminology synchronized:** 2026-08-19.
 
 AUREVANE needs two closely related systems:
 
 1. **high-quality combat intelligence** so NPCs, enemies, bosses, summons, and encounter teams make competent, fair, understandable tactical decisions; and
-2. a player-facing **Tactical Hall** containing a controlled **Practice Arena** where players can fight configurable AI opponents, test builds, learn mechanics, and improve without risking normal progression.
+2. a player-facing **Battle Hall** where players can fight controlled AI opponents, test builds, learn mechanics, and improve without risking normal progression.
 
-The Practice Arena is itself progression-aware. Players do **not** begin with every enemy brain, difficulty, level range, build, boss pattern, map, or scenario unlocked. They begin with a simple weak training opponent and gradually acquire additional **Tactical Records** through legitimate play.
+The Battle Hall is progression-aware. Players do **not** begin with every enemy brain, difficulty, level range, build, boss pattern, map, or scenario unlocked. They begin with a simple training opponent and gradually acquire additional **Tactical Records** through legitimate play.
 
 The intended feeling is:
 
@@ -18,6 +19,19 @@ The intended feeling is:
 not:
 
 > “The AI cheats,” “the enemy is random,” or “the practice screen spoiled every enemy and build in the game on day one.”
+
+The former player-facing name **Tactical Hall** is retired. Historical references may remain in old snapshots, but current UI, docs, tickets, and content should use **Battle Hall**.
+
+Current build terminology also applies here:
+
+- Primary Discipline;
+- optional mastered Secondary Discipline;
+- Skills;
+- Resonance for mixed builds;
+- Essence for pure builds;
+- Soulmark or Soul-Severed/Mantle supernatural paths.
+
+Do not restore Current/Legacy, Arts, Confluences, or separate Trait/Reaction/Movement Art/Ultimate slot assumptions through AI configuration.
 
 ---
 
@@ -28,7 +42,8 @@ Combat AI should make AUREVANE tactical combat feel:
 - challenging without being unfair;
 - learnable without becoming trivial;
 - different across enemy roles and factions;
-- capable of using terrain, facing, status effects, resources, positioning, focus fire, reactions, and team composition;
+- capable of using terrain, facing, statuses, resources, positioning, focus fire, typed triggered effects, and team composition;
+- capable of understanding released Skills and build interactions;
 - consistent enough that players can recognize patterns and improve;
 - adaptive enough that one simplistic exploit does not solve every encounter;
 - deterministic/reproducible enough for debugging and balance testing;
@@ -36,28 +51,34 @@ Combat AI should make AUREVANE tactical combat feel:
 - server-authoritative;
 - versioned and tunable without rewriting every enemy individually.
 
-The Tactical Hall should let players:
+The Battle Hall should let players:
 
 - practice safely;
-- configure an opponent they have legitimately unlocked;
-- change visible level/stat templates within unlocked ranges;
-- select AI skill independently from raw stats;
+- choose a supported drill/opponent they have legitimately unlocked;
+- change visible level/stat templates within unlocked ranges where the mode allows;
+- select AI intelligence independently from raw stats;
 - test positioning and terrain;
 - repeat the same setup/seed;
 - understand why they lost;
 - gradually unlock more sophisticated opponents as their character grows.
 
+The current preview begins more narrowly: Battle Hall opens with no mode preselected and **AI Sparring** is the first explicit full training duel. Future configuration depth is unlocked only as the relevant systems become real.
+
 ---
 
 ## 2. Terminology
 
-### Tactical Hall
+### Battle Hall
 
-The player-facing training feature and navigation destination.
+The current player-facing practice-combat feature and navigation destination.
 
-### Practice Arena
+### AI Sparring
 
-The controlled battle environment inside the Tactical Hall.
+The first explicit full training duel inside Battle Hall. It uses the authoritative combat engine and released Recruit AI behavior.
+
+### Practice drill / practice scenario
+
+A controlled Battle Hall encounter intended for learning/testing rather than normal progression farming.
 
 ### Tactical Record
 
@@ -71,7 +92,7 @@ A versioned data definition describing how a non-player combatant evaluates tact
 
 How well the AI reasons. This is intentionally separate from level, attributes, equipment, and other raw combat power.
 
-Recommended player-facing grades:
+Long-term player-facing grades may include:
 
 - **Recruit**
 - **Trained**
@@ -79,7 +100,7 @@ Recommended player-facing grades:
 - **Elite**
 - **Master**
 
-Names may later receive setting-specific presentation, but their mechanical meaning must remain clear.
+Current preview difficulty/profile labels may be narrower while the framework is validated.
 
 ### Combat AI Lab
 
@@ -89,7 +110,7 @@ The protected Owner/staff Master Panel environment for unrestricted testing, bat
 
 ## 3. AI Is Not a Hidden Stat Multiplier
 
-AI difficulty and unit power are two different controls.
+AI difficulty and unit power are different controls.
 
 Example:
 
@@ -111,7 +132,7 @@ Equipment: Veteran Training Set
 AI Intelligence: Master
 ```
 
-The second opponent should be harder because it makes better decisions, not because it secretly gains damage, accuracy, health, action points, vision, or immunity.
+The second opponent should be harder because it makes better decisions, not because it secretly gains damage, Accuracy, HP, Action Economy, vision, or immunity.
 
 Visible scenario modifiers may intentionally alter stats, but those are separate explicit settings.
 
@@ -128,23 +149,23 @@ By default an AI may reason from:
 - visible terrain, height, hazards, cover, zones, and objectives;
 - public/observable statuses;
 - public combat rules;
-- abilities and effects it has legitimately observed or is fictionally expected to know;
+- Skills/effects it has legitimately observed or is fictionally expected to know;
 - public character information available in that encounter mode;
 - its own team state;
-- legal memory of actions already observed during the current battle;
-- deterministic public or server-known battle facts that are also allowed by the encounter rules.
+- legal memory of actions already observed during the battle;
+- deterministic facts allowed by the encounter rules.
 
 Normal AI must **not** gain unfair access to:
 
 - the player's uncommitted selected action;
 - future random rolls;
-- hidden inventory or private loadout information that the encounter rules do not expose;
-- unrevealed traps/stealth information it has no detection right to know;
+- hidden inventory or private loadout information not exposed by the mode;
+- unrevealed traps/stealth state it has no detection right to know;
 - future player input;
-- hidden server/debug metadata;
-- unreleased content merely because the implementation knows it exists.
+- hidden debug metadata;
+- unreleased content merely because implementation code knows it exists.
 
-Special enemies can have supernatural senses or scripted knowledge only when the game rules explicitly grant that capability and players can reasonably learn/counter it.
+Special enemies can have supernatural senses or scripted knowledge only when explicit rules grant that capability and players can reasonably learn/counter it.
 
 ---
 
@@ -152,34 +173,25 @@ Special enemies can have supernatural senses or scripted knowledge only when the
 
 Core combat decisions should **not** depend on a remote generative AI/LLM call.
 
-The production decision engine should be deterministic, bounded, testable game logic such as a combination of:
+Production decision logic should be deterministic, bounded, testable game logic such as:
 
 - legal-action enumeration;
 - utility scoring;
 - behavior/state machines;
 - limited tactical lookahead;
-- role and personality weights;
+- role/personality weights;
 - team coordination;
 - scripted boss-phase rules where required.
 
-Reasons:
+Reasons include predictable latency, reproducibility, no vendor dependency during battles, no hallucinated illegal actions, clearer security, deterministic testing, lower operating cost, and better balance visibility.
 
-- predictable latency;
-- reproducibility;
-- no vendor dependency during battles;
-- no hallucinated illegal actions;
-- clear security boundary;
-- deterministic testing;
-- lower operating cost;
-- better balance visibility.
-
-A future learned/ML component may be evaluated offline if it demonstrably improves the game, but it must still output through the same legal-action boundary and pass the same fairness, reproducibility, performance, security, and regression standards before production use.
+A future learned/ML component may be evaluated offline if it demonstrably improves the game, but it must still output through the same legal-action boundary and pass fairness, reproducibility, performance, security, and regression standards before production use.
 
 ---
 
 ## 6. Core AI Decision Pipeline
 
-A combatant decision should conceptually follow:
+A combatant decision conceptually follows:
 
 ```text
 AUTHORITATIVE BATTLE STATE
@@ -200,22 +212,25 @@ RISK / PERSONALITY / DIFFICULTY WEIGHTS
   ↓
 DETERMINISTIC SEEDED TIE-BREAK
   ↓
-COMMIT ONE LEGAL SERVER ACTION
+COMMIT LEGAL SERVER COMMAND(S) WITHIN CURRENT ACTION ECONOMY
   ↓
 RECORD DECISION REASON TAGS FOR DEBUG/REPLAY
 ```
 
 The browser never chooses authoritative NPC actions.
 
+Because PV-1F uses a shared 100 AE turn economy, AI may need to select a legal sequence of commands within one turn rather than assume exactly one action. It must use the same AE, movement, target, facing, effect, and turn-end rules as players.
+
 ---
 
 ## 7. What Strong AI Should Understand
 
-Depending on intelligence grade and profile, combat AI should be capable of reasoning about:
+Depending on intelligence grade/profile, combat AI should reason about:
 
 ### Positioning
 
 - reachable tiles;
+- traversal/AE cost;
 - attack ranges;
 - line of sight;
 - line/area shapes;
@@ -236,7 +251,7 @@ Depending on intelligence grade and profile, combat AI should be capable of reas
 - expected damage rather than only maximum tooltip damage;
 - kill confirmation;
 - avoiding wasteful overkill;
-- armor/Ward interactions;
+- Armor/Ward interactions;
 - healing value;
 - defensive cooldown value;
 - whether disengaging creates a better next turn;
@@ -244,50 +259,57 @@ Depending on intelligence grade and profile, combat AI should be capable of reas
 
 ### Resources
 
-- MP and other combat resources;
+- Action Economy;
+- HP/MP;
+- temporary Discipline resources;
 - cooldowns;
-- Ultimate timing;
-- consumable/scenario resources where allowed;
+- consumable/scenario resources;
 - whether to conserve or spend based on encounter state.
+
+There is no separate universal Ultimate timing subsystem. High-impact Skills use their authored cooldown/resource/AE rules like other Skills.
 
 ### Status and control
 
 - status application value;
-- status duration;
+- duration;
 - immunity/resistance where known;
-- combo setup;
+- setup/payoff;
 - cleanse value;
-- displacement value;
+- displacement;
 - diminishing-control systems in PvP-like rules where relevant.
 
 ### Build interactions
 
-- Current + Legacy behavior when relevant;
-- Arts;
-- Traits;
-- Reactions;
-- Movement Arts;
-- Confluences that the AI profile is actually permitted to know/use;
-- Soulmark effects;
-- equipment effects.
+Where legitimately known and released, AI can understand:
+
+- Primary Discipline base profile and Skill library;
+- optional mastered Secondary Discipline;
+- mixed-build six-Skill capacity;
+- pure-build eight-Skill capacity;
+- Resonance passives;
+- Essence Skills;
+- Soulmark/Mantle effects;
+- Equipment Skills/passives;
+- typed triggered/passive effects;
+- approved bounded Veteran Edge effects.
 
 ### Tempo
 
 - initiative order;
 - which unit acts next;
-- whether a target can be removed before it acts;
-- whether committing now exposes the AI to a stronger counter-turn;
-- delaying, repositioning, baiting, or holding resources when tactically sound.
+- whether a target can be removed before acting;
+- whether spending AE now exposes the actor to a stronger counter-turn;
+- delaying, repositioning, baiting, or conserving resources when tactically sound.
 
 ### Objectives
 
-Not every encounter is deathmatch. AI should understand scenario goals such as:
+AI must understand scenario goals beyond deathmatch:
 
 - hold/capture an area;
 - protect an NPC/object;
 - escape;
 - interrupt a ritual;
-- survive a number of rounds;
+- survive rounds;
 - escort;
 - deny access;
 - destroy a priority object;
@@ -305,19 +327,17 @@ Reusable profile families can include:
 
 Simple baseline opponent. Understands obvious attacks and basic movement but has shallow planning and limited combo recognition.
 
-This is the first Tactical Record available to a new player.
-
 ### Vanguard
 
-Presses forward, contests space, favors reliable pressure and forcing reactions.
+Presses forward, contests space, favors reliable pressure and forcing responses.
 
 ### Bulwark
 
-Protects allies, holds chokepoints, values cover/guarding, and punishes reckless approach.
+Protects allies, holds chokepoints, values defensive play, and punishes reckless approach.
 
 ### Hunter
 
-Looks for isolated, wounded, exposed, or high-value targets and uses mobility to create finishing opportunities.
+Looks for isolated, wounded, Exposed, or high-value targets and uses mobility to create finishing opportunities.
 
 ### Skirmisher
 
@@ -325,11 +345,11 @@ Values movement, disengagement, ranged spacing, hit-and-run patterns, and terrai
 
 ### Controller
 
-Uses zones, displacement, slows, roots, terrain denial, and sequencing to limit player options.
+Uses zones, displacement, slows, roots, terrain denial, and sequencing to limit options.
 
 ### Duelist
 
-Reads one-on-one spacing, reactions, baiting, counters, and commitment windows.
+Reads one-on-one spacing, baiting, counters, and commitment windows.
 
 ### Support Captain
 
@@ -337,32 +357,30 @@ Prioritizes team survival, buffs/debuffs, setup, focus-fire opportunities, and c
 
 ### Opportunist
 
-Looks aggressively for status combinations, exposed reactions, low-resource targets, and temporary advantages.
+Looks aggressively for status combinations, exposed targets, low-resource enemies, and temporary advantages.
 
 ### Objective Specialist
 
-Optimizes the actual encounter objective rather than mindlessly chasing damage.
+Optimizes the encounter objective rather than mindlessly chasing damage.
 
 ### Boss Director
 
-Combines scripted phase identity with utility decisions inside each phase. Bosses should feel authored without becoming completely rigid.
+Combines scripted phase identity with bounded tactical choice. Bosses should feel authored without becoming completely rigid.
 
-Enemy factions and creatures can compose/modify these families rather than requiring one bespoke AI implementation per enemy.
+Enemy factions/creatures can compose/modify these families rather than requiring one bespoke AI implementation per enemy.
 
 ---
 
 ## 9. Intelligence Grades
-
-Difficulty should improve decision quality in understandable layers.
 
 ### Recruit
 
 - narrow candidate set;
 - short/no lookahead;
 - recognizes obvious attacks and danger;
-- limited reaction baiting;
-- limited team coordination;
-- occasionally chooses a merely reasonable action over the best action.
+- limited baiting;
+- limited coordination;
+- may choose a merely reasonable action over the best action.
 
 ### Trained
 
@@ -370,7 +388,7 @@ Difficulty should improve decision quality in understandable layers.
 - basic focus selection;
 - common status combos;
 - reasonable resource use;
-- avoids obvious hazards and suicidal exposure.
+- avoids obvious hazards/suicidal exposure.
 
 ### Veteran
 
@@ -378,37 +396,37 @@ Difficulty should improve decision quality in understandable layers.
 - recognizes stronger combos;
 - values initiative and kill windows;
 - coordinates with allies;
-- adapts to observed player patterns within the fight.
+- adapts to observed battle-local player patterns.
 
 ### Elite
 
 - stronger candidate generation;
 - deeper bounded lookahead;
-- good reaction/counter baiting;
+- better counter baiting;
 - stronger objective play;
-- sophisticated resource and positioning decisions.
+- sophisticated resource/positioning decisions.
 
 ### Master
 
 - strongest production reasoning budget;
-- evaluates complex turn sequences and team interactions;
-- uses advanced tactical traps and counterplay;
-- still obeys the exact same information and rules boundary as the player-facing encounter permits.
+- evaluates complex turn sequences/team interactions;
+- uses advanced tactical traps/counterplay;
+- still obeys the same information/rules boundary.
 
-Lower grades should not behave like deliberate nonsense. The goal is a believable learning curve, not random self-sabotage.
+Lower grades should not behave like deliberate nonsense.
 
 ---
 
 ## 10. Human-Like Imperfection Without Coin-Flip Stupidity
 
-AI variety can include bounded personality/risk differences, but difficulty should not be implemented as “roll a die to decide whether the enemy makes a stupid move.”
+Difficulty should not mean “roll a die to decide whether the enemy makes a stupid move.”
 
 Prefer:
 
 - narrower planning horizon;
-- fewer candidate lines considered;
+- fewer candidate lines;
 - less accurate threat evaluation;
-- more conservative/aggressive weighting;
+- conservative/aggressive weighting differences;
 - incomplete combo recognition;
 - reduced ally coordination;
 - different risk tolerance;
@@ -422,125 +440,119 @@ Use randomness only for legitimate variation among similarly valued options, wit
 
 Higher-grade AI may maintain battle-local memory of observable behavior such as:
 
-- the player repeatedly using the same opening;
-- a Reaction already revealed;
+- repeated openings;
+- a triggered/passive response already revealed;
 - a common retreat direction;
 - repeated dependence on one damage type or zone;
-- a high-value support unit repeatedly protected by the team.
+- a protected high-value support unit.
 
-This memory resets or follows explicit encounter rules. It must not become secret global spying on private player behavior.
+Memory resets or follows explicit encounter rules. It does not become secret global spying on private behavior.
 
-Persistent enemy/faction adaptation can exist only as an explicit live-world/gameplay system with clear rules and privacy-safe telemetry.
+Persistent faction adaptation can exist only as an explicit gameplay system with clear rules and privacy-safe telemetry.
 
 ---
 
 ## 12. Team Intelligence
 
-Groups need coordination so three competent units do not behave like three isolated bots.
+Team AI should support:
 
-Team AI should support concepts such as:
-
-- target reservation to reduce pointless overkill;
+- target reservation to reduce overkill;
 - focus-fire opportunities;
 - protecting/supporting priority allies;
 - formation spacing;
 - coordinated control chains within fairness rules;
 - avoiding friendly obstruction;
 - setup + payoff sequences;
-- role-aware turn ordering;
+- role-aware sequencing;
 - objective assignment;
 - retreat/rally behavior.
 
-A lightweight **team coordinator** can suggest shared priorities while each unit still chooses a legal individual action.
+A lightweight team coordinator can suggest shared priorities while each unit still executes legal authoritative commands.
 
-Coordination intensity should vary by enemy type. A disciplined military squad should coordinate more than a pack of feral creatures.
+Coordination intensity varies by identity: trained soldiers coordinate more than feral creatures.
 
 ---
 
 ## 13. Boss Intelligence
 
-Boss AI should combine authored encounter design with tactical intelligence.
+Boss AI combines authored encounter design with tactical intelligence.
 
 Use:
 
 - explicit phase state;
 - telegraphed signature mechanics;
-- scripted phase transitions;
-- phase-specific legal action pools;
-- utility-based choice among legal attacks/movement where appropriate;
+- scripted transitions;
+- phase-specific legal Skill/action pools;
+- utility-based choice where appropriate;
 - anti-stall rules;
 - deterministic/replayable behavior;
-- clear counters that players can learn.
+- clear learnable counters.
 
-Boss difficulty should not rely on reading player inputs before they commit or silently breaking combat rules.
-
-A boss may have unique rules, but those rules belong to the boss encounter and must be communicated through gameplay/telegraphing.
+Boss difficulty cannot rely on reading player input before commit or silently breaking rules.
 
 ---
 
 ## 14. Failure-Safe AI
 
-An AI system must never soft-lock the battle because it cannot find its perfect move.
+AI must never soft-lock battle because it cannot find a perfect move.
 
-Every profile needs a safe fallback hierarchy such as:
+Fallback hierarchy:
 
-1. valid high-score action;
-2. valid lower-score action;
-3. legal reposition/defend action;
-4. legal wait/pass action if combat rules allow it.
+1. valid high-score command/sequence;
+2. valid lower-score command/sequence;
+3. legal reposition/defend behavior;
+4. legal facing/turn completion or wait/pass behavior where rules permit.
 
-Decision computation also needs a bounded time/work budget. If an advanced search exceeds its budget, fall back safely rather than hanging the turn.
+Decision work is bounded. If advanced search exceeds its budget, fall back safely rather than hanging the turn.
 
 ---
 
-# PART II — TACTICAL HALL / PRACTICE ARENA
+# PART II — BATTLE HALL
 
 ## 15. Player-Facing Purpose
 
-The Tactical Hall is where a player can learn combat deliberately rather than only through costly live encounters.
+Battle Hall is where players deliberately learn combat rather than only through costly live encounters.
 
-It supports:
+Long-term it supports:
 
 - learning enemy patterns;
-- practicing a new Discipline;
-- testing Current + Legacy interactions;
+- practicing a new Primary Discipline;
+- testing pure Essence builds;
+- testing Primary + mastered Secondary + Resonance interactions;
 - practicing movement/facing/terrain;
-- testing against different level/stat bands;
+- testing supported level/stat bands;
 - rehearsing boss mechanics after legitimate discovery;
-- learning how a specific AI archetype behaves;
-- repeating a difficult scenario with the same setup;
+- learning AI archetypes;
+- repeating scenarios with the same seed;
 - comparing build changes.
 
-The Hall is useful from the earliest game but grows substantially through progression.
+The Hall begins simple and grows with progression.
 
 ---
 
 ## 16. Starting Access
 
-A new character begins with only a small safe set of training tools.
+A new character begins with a small safe set of training tools.
 
-Recommended starting access:
+Current preview:
 
 ```text
-TACTICAL HALL
+BATTLE HALL
 
-Tactical Record: Recruit Sparring Partner
-Intelligence: Recruit
-Level range: early-game training band
-Attributes: Standard / Durable / Agile beginner presets
-Map: Basic Training Floor
-Mode: 1v1 defeat opponent
+No mode preselected on entry
+AI Sparring: first explicit full duel
+Recruit AI foundation
+Focused movement / strike / guard drills where released
+Practice rewards isolated from normal progression
 ```
 
-This first AI should be intentionally weak but still obey core combat rules correctly.
+Long-term progression can expand Tactical Records, opponent families, intelligence grades, level/stat ranges, maps, objectives and saved drills.
 
-The new player should **not** see a menu containing every boss, Discipline, secret enemy, Soulmark, Confluence, late-game AI profile, or unreleased encounter.
+The player should **not** see every boss, Discipline, secret enemy, Soulmark/Mantle, Resonance, late-game AI profile, or unreleased encounter on day one.
 
 ---
 
 ## 17. Tactical Record Progression
-
-Practice access is part of character/world progression.
 
 A Tactical Record may move through states such as:
 
@@ -556,183 +568,177 @@ STUDIED
 
 ### Unknown
 
-The opponent/profile does not appear in the normal player catalog.
+Opponent/profile does not appear in normal player catalog.
 
 ### Observed
 
-The player has legitimately encountered enough of the enemy/archetype for a spoiler-safe record hint, but may not yet have full simulation access.
+Player has legitimately encountered enough for a spoiler-safe hint but may not have full simulation access.
 
 ### Recorded
 
-The player can fight the standard simulation.
+Player can fight the standard simulation.
 
 ### Studied
 
-Higher intelligence grades, advanced scenario variations, expanded level ranges, or additional behavior variants become available.
+Higher intelligence grades, advanced scenarios, expanded ranges, or behavior variants become available.
 
-Not every record needs all four stages, but the model prevents instant full-catalog access.
+Not every record needs all four stages.
 
 ---
 
-## 18. Ways to Unlock New AI Opponents
+## 18. Tactical Record Unlocks
 
-Tactical Records can unlock through meaningful play such as:
+Records may unlock through:
 
 - encountering an enemy family;
 - defeating that enemy legitimately;
-- completing a mentor/training quest;
-- reaching a Horizon milestone;
-- mastering or substantially studying a related Discipline;
-- completing a tactical challenge;
-- finding an Archive/manual/training record where appropriate;
-- clearing an Expedition tier;
-- defeating a boss before its practice simulation becomes available;
-- completing a region/faction training requirement;
-- participating in an event that introduced a temporary enemy;
-- earning a higher training certification by beating the lower intelligence grade.
+- mentor/training quests;
+- Horizon milestones;
+- studying/mastering related Disciplines;
+- tactical challenges;
+- Archive/training records;
+- Expedition clears;
+- boss defeat before boss simulation;
+- region/faction training;
+- event participation;
+- higher training certification.
 
-The exact acquisition route is data-driven per record.
+Acquisition is data-driven per record.
 
-The premium shop must not sell stronger Tactical Records, AI grades, boss practice access, or training capabilities that materially improve competitive preparation.
+The premium shop must not sell stronger Tactical Records, AI grades, boss practice access, or competitive training capability.
 
 ---
 
-## 19. Boss and Spoiler Protection
+## 19. Boss & Spoiler Protection
 
-Boss simulations should generally unlock only **after** the player has legitimately encountered/cleared the required version.
+Boss simulations generally unlock only after the player legitimately encounters/clears the required version.
 
-The Tactical Hall must not reveal:
+Battle Hall must not reveal:
 
 - unreached phases;
 - secret mechanics;
 - unreleased enemies;
 - hidden story identities;
-- undiscovered Confluences/Soulmark mechanics;
-- late-game loadouts merely because the AI definition exists internally.
+- undiscovered Resonance/Essence/Soulmark/Mantle mechanics;
+- late-game builds merely because internal AI definitions exist.
 
-A practice record can deliberately represent only the portion of an encounter the player has learned so far.
+A record can represent only the portion the player has legitimately learned.
 
 ---
 
 ## 20. Player Practice Configuration
 
-Within their unlocked permissions, the player can configure a drill using settings such as:
+Within unlocked permissions, future drills may configure:
 
 ### Opponent
 
 - Tactical Record;
 - intelligence grade;
 - level;
-- legal attribute preset or custom allocation under an unlocked budget;
+- legal attribute preset/custom allocation under an unlocked budget;
 - equipment preset;
-- Discipline/loadout profile;
-- Soulmark/Confluence configuration only when legitimately unlocked for that simulation;
-- number of opponents where the scenario supports it.
+- Primary/Secondary/Skill profile;
+- Resonance/Essence and supernatural configuration only when legitimately unlocked for that simulation;
+- number of opponents where supported.
 
 ### Player side
 
 - current character;
-- current build;
+- current legal build;
 - saved legal loadout snapshot;
 - optional normalized practice state when a drill requires it.
 
-Practice mode must not grant ownership of equipment, Disciplines, Confluences, Soulmarks, or other content merely because the simulator temporarily represents them.
+Practice representation does not grant persistent ownership of equipment, Disciplines, Skills, Resonances, Essence, Soulmarks, Mantles, or other content.
 
 ### Arena
 
 - unlocked map/template;
 - starting positions;
-- terrain;
-- elevation;
-- hazards;
+- terrain/elevation/hazards;
 - objective;
 - starting HP/MP/resource percentages;
 - initiative mode;
 - repeatable seed;
 - turn/round limit where relevant.
 
-The UI should clearly distinguish **AI Intelligence** from **Level/Attributes/Equipment**.
+UI clearly distinguishes **AI Intelligence** from **Level / Attributes / Equipment**.
 
 ---
 
 ## 21. Level and Attribute Controls
 
-The player should be able to make a known opponent weaker, equal, or stronger within unlocked training ranges.
+Players may eventually make known opponents weaker, equal, or stronger within unlocked training ranges.
 
 Examples:
 
-- Level 20 Recruit AI with normal Level-20 attributes;
-- Level 40 Recruit AI;
-- Level 40 Elite AI;
-- Level 60 Elite AI with a durable attribute preset;
+- Level 20 Recruit with normal Level-20 attributes;
+- Level 40 Recruit;
+- Level 40 Elite;
+- Level 60 Elite with a durable preset;
 - equalized-level practice against a known Discipline archetype.
 
-High-level freeform values should unlock gradually so a new player does not gain a spoiler-rich endgame laboratory immediately.
-
-A later advanced sandbox can permit broader stat editing for players who have earned it, but practice values remain isolated from persistent ownership/progression.
+Freeform high-level values unlock gradually. Practice values remain isolated from persistent ownership/progression.
 
 ---
 
 ## 22. Scenario Presets
 
-Useful drills can include:
+Useful drills include:
 
 - basic duel;
 - ranged approach;
 - hold the chokepoint;
-- escape a control zone;
+- escape control zone;
 - survive three rounds;
 - protect a fragile ally;
-- defeat the support unit first;
+- defeat support first;
 - fight from low resources;
-- practice elevation;
-- practice facing/rear attacks;
-- reaction baiting;
+- elevation;
+- facing/rear attacks;
+- baiting triggered effects;
 - control-diminishing practice;
 - boss mechanic rehearsal;
 - 1v2 pressure;
 - squad coordination.
 
-Presets should teach actual game concepts and can be tied to tutorial/manual articles.
+Presets should teach actual mechanics and link to relevant Manual content.
 
 ---
 
-## 23. Practice Rewards and Anti-Farming
+## 23. Practice Rewards & Anti-Farming
 
-Normal custom Practice Arena battles should not become the most efficient way to gain persistent power.
+Normal custom practice is not the most efficient persistent-power farm.
 
 Default:
 
 - no normal Character XP farm;
 - no repeatable Mastery farm;
 - no Crowns/economy output;
-- no loot drops;
+- no loot;
 - no PvP rating;
 - no quest/event attendance credit;
-- no boss-clear/world-clear credit;
-- no first-witness/Chronicle credit meant for real events.
+- no boss/world-clear credit;
+- no first-witness/Chronicle credit intended for live content.
 
-Specific tutorial/mentor/training quests may award a one-time configured reward for completing an authored drill, but repeated custom practice is primarily for **player learning**.
+Specific authored tutorial/mentor drills may give one-time configured rewards.
 
-This prevents low-risk simulation farming from undermining natural progression or Wayfarer's Practice.
+Practice also cannot bypass Passive Training, Primary/Secondary attunement cooldowns, Mastery requirements, or content acquisition.
 
 ---
 
 ## 24. Fast Iteration Features
 
-The Practice Arena should minimize friction:
+Battle Hall should minimize friction:
 
 - instant restart;
 - repeat same seed;
-- swap intelligence grade;
-- adjust level/stat preset;
-- change one loadout choice and retry;
+- swap allowed intelligence grade;
+- adjust allowed level/stat preset;
+- change one legal loadout choice and retry;
 - save named drill presets;
 - copy previous configuration;
-- optional accelerated animation speed where readability remains intact;
-- surrender/reset without penalty.
-
-Players should spend time testing tactics, not rebuilding the form after every fight.
+- accelerated animation speed where readability remains intact;
+- surrender/reset without normal penalty.
 
 ---
 
@@ -746,18 +752,18 @@ Possible information:
 - damage dealt/taken;
 - healing;
 - status application/cleansing;
-- resource spending;
+- resource/AE spending;
 - movement distance;
 - hazard damage;
 - objective progress;
-- key reaction triggers;
+- key triggered effects;
 - kill windows;
-- timeline of actions;
-- heatmap/position history later;
-- AI decision reason tags after the battle;
-- links to relevant manual sections.
+- action timeline;
+- position heatmaps later;
+- AI decision reason tags;
+- links to relevant Manual sections.
 
-Decision explanations should be generated from structured reason tags, not invented prose from an ungrounded model.
+Decision explanations come from structured reason tags, not ungrounded invented prose.
 
 Example:
 
@@ -765,35 +771,31 @@ Example:
 Veteran Hunter moved to Tile H7 because:
 - rear attack became available
 - target was below 30% HP
-- tile remained outside Bastion threat zone
+- tile remained outside the defender's threat zone
 - expected finishing probability increased
 ```
-
-This is valuable both for learning and for proving the AI is acting fairly.
 
 ---
 
 ## 26. Optional AI Intent Reveal
 
-Normal PvE does not need to expose the AI's internal scoring.
+Normal PvE does not expose internal scoring.
 
-Practice mode may offer post-battle or advanced-training visibility such as:
+Practice may provide post-battle/advanced-training information such as:
 
 - selected target priority;
 - major threat considered;
 - objective priority;
-- why a tile/action was chosen;
+- why a tile/Skill/action was chosen;
 - candidate actions rejected for legality.
 
-Do not expose hidden story/boss information the player's Tactical Record has not unlocked.
+Never reveal hidden story/boss information not unlocked by the player's Tactical Record.
 
 ---
 
 # PART III — PRODUCTION AI QUALITY
 
 ## 27. One Core AI Framework, Many Profiles
-
-Do not build unrelated AI code separately for every enemy.
 
 Prefer:
 
@@ -811,13 +813,13 @@ ENCOUNTER / OBJECTIVE RULES
 OPTIONAL BOSS PHASE DIRECTOR
 ```
 
-This gives us consistency, easier testing, and safer balance iteration while still allowing distinctive enemies.
+Do not build unrelated AI implementations for every enemy.
 
 ---
 
 ## 28. Data-Driven AI Profiles
 
-A profile may contain/version values such as:
+A profile may version values such as:
 
 ```text
 profile_id
@@ -835,7 +837,7 @@ resource_conservation_weight
 control_weight
 mobility_weight
 hazard_avoidance_weight
-reaction_bait_weight
+trigger_bait_weight
 lookahead_budget
 candidate_budget
 team_coordination_level
@@ -843,44 +845,46 @@ knowledge_policy
 fallback_policy
 ```
 
-Exact schema belongs to implementation tickets. The important rule is that behavior tuning is explicit, versioned, and testable rather than spread through arbitrary component conditionals.
+Exact schema belongs to implementation tickets. Behavior tuning is explicit/versioned/testable rather than spread through arbitrary UI conditionals.
 
 ---
 
 ## 29. Discipline AI Coverage
 
-Every playable Discipline must eventually define how AI uses it.
+Every playable Discipline eventually defines how AI uses it.
 
 Each Discipline implementation should identify:
 
 - preferred engagement range;
-- high-value Arts;
-- resource thresholds;
+- high-value Skills;
+- AE/resource thresholds;
 - setup/payoff combos;
 - mobility intent;
-- Reaction considerations;
-- defensive triggers;
-- Ultimate conditions;
-- Confluence-aware behavior where applicable;
-- bad/wasteful use cases to avoid;
+- typed triggered/passive considerations;
+- defensive conditions;
+- high-impact Skill conditions;
+- Resonance-aware behavior where applicable;
+- Essence-aware behavior for pure profiles where applicable;
+- Soulmark/Mantle/equipment interactions where allowed;
+- bad/wasteful use cases;
 - AI test scenarios.
 
-A technically usable ability is not enough. The AI must know when that ability is sensible.
+A technically legal Skill is not enough. AI should know when it is sensible.
 
 ---
 
 ## 30. Enemy Identity Through AI
 
-AI behavior should reinforce fiction.
+AI reinforces fiction.
 
 Examples:
 
-- trained soldiers coordinate focus and formations;
+- soldiers coordinate focus/formations;
 - predators isolate weak targets;
 - undead may value self-preservation less;
-- cautious scholars avoid unnecessary exposure and use control;
-- fanatics may accept dangerous trades for objectives;
-- elite duelists bait reactions;
+- cautious scholars avoid exposure/use control;
+- fanatics accept dangerous objective trades;
+- elite duelists bait commitments;
 - bosses enforce authored phase identity.
 
 Do not make all enemies equally omniscient or equally optimized.
@@ -889,30 +893,28 @@ Do not make all enemies equally omniscient or equally optimized.
 
 ## 31. Counterplay Must Exist
 
-Strong AI should have habits and priorities that players can learn.
+Strong AI should have habits/priorities players can learn.
 
-A fair difficult opponent often becomes satisfying when the player realizes:
+A fair difficult opponent becomes satisfying when players recognize patterns such as:
 
-- the Hunter strongly values isolated wounded units;
-- the Bulwark refuses to abandon a protected objective easily;
-- the Controller prefers a certain zone setup;
-- the Duelist saves a Reaction for predictable commitment windows.
+- Hunter values isolated wounded units;
+- Bulwark refuses to abandon protected objectives easily;
+- Controller prefers a particular zone setup;
+- Duelist preserves resources for predictable commitment windows.
 
-Difficulty should reward observation, adaptation, build decisions, and execution.
-
-If the only solution is “have larger numbers,” the AI design has failed.
+If the only solution is “have larger numbers,” AI design has failed.
 
 ---
 
 ## 32. Avoid Perfect-Solver Monotony
 
-The strongest AI should be very good, but the game should not become an exhausting chess engine every ordinary trash encounter.
+The strongest AI should be very good, but ordinary encounters should not become exhausting chess engines.
 
-Encounter difficulty can vary through:
+Encounter difficulty varies through:
 
 - intelligence grade;
-- enemy composition;
-- map design;
+- composition;
+- map;
 - objectives;
 - level/stat power;
 - special mechanics;
@@ -925,26 +927,21 @@ Routine enemies can use cheaper/lower grades while elite/boss content receives s
 
 ## 33. Performance Budgets
 
-Combat AI must remain efficient enough for production concurrency.
-
 Measure:
 
-- candidate actions evaluated;
+- candidate commands/sequences evaluated;
 - pathfinding calls;
 - search/lookahead nodes;
-- average decision latency;
-- p95/p99 decision latency;
+- average/p95/p99 decision latency;
 - memory allocation where useful;
-- worker/server CPU cost;
-- worst-case crowded-board scenarios.
+- worker/server CPU;
+- worst-case crowded boards.
 
-Do not solve quality by using unbounded search.
-
-Prefer intelligent candidate pruning and domain-specific tactical evaluation.
+Do not use unbounded search. Prefer intelligent candidate pruning and domain-specific evaluation.
 
 ---
 
-## 34. Determinism and Replays
+## 34. Determinism & Replays
 
 Given the same:
 
@@ -954,23 +951,21 @@ Given the same:
 - rules version;
 - seed;
 
-AI decisions should be reproducible unless a feature explicitly documents nondeterminism.
+AI decisions should be reproducible unless an explicit feature documents nondeterminism.
 
-Battle/replay records should store enough version metadata to reproduce historical decisions after AI tuning changes.
+Battle/replay records store enough version metadata to reproduce historical decisions after tuning.
 
-A battle that begins under AI profile version X should not silently switch to version Y halfway through because an operator published an update.
+A battle starting under AI profile version X does not silently switch to version Y mid-battle.
 
 ---
 
 ## 35. Testing Standard
 
-Combat AI requires more than a few example unit tests.
-
-Use layers such as:
+Use layered validation:
 
 ### Legal-action tests
 
-AI never commits an action the combat engine declares illegal.
+AI never commits commands the combat engine declares illegal.
 
 ### Determinism tests
 
@@ -978,59 +973,59 @@ Same state/version/seed produces the same decision/replay.
 
 ### Knowledge-boundary tests
 
-AI cannot use information excluded by its knowledge policy.
+AI cannot use information excluded by its policy.
 
-### Tactical regression scenarios
+### Tactical regressions
 
-Curated board states verify that an AI recognizes obvious concepts such as:
+Curated states verify obvious concepts such as:
 
 - guaranteed kill;
-- lethal hazard;
-- heal a critical ally;
+- lethal hazard avoidance;
+- heal critical ally;
 - protect objective;
-- avoid friendly overkill;
-- use a known combo;
-- escape an unavoidable threat when possible.
+- avoid overkill;
+- use known setup/payoff;
+- escape unavoidable threat when possible.
 
-### Random-state/property tests
+### Random/property tests
 
-Generate many valid battle states and verify safety invariants.
+Generate many valid states and verify safety invariants.
 
 ### Performance tests
 
-Pathological boards stay inside decision budgets.
+Pathological boards stay within decision budgets.
 
 ### Matchup simulation
 
-Batch AI-vs-AI runs detect major balance/behavior regressions.
+Batch AI-vs-AI runs detect behavior/balance regressions.
 
 ### Human playtests
 
-Numbers cannot determine whether an AI feels readable, fair, surprising, repetitive, or annoying.
+Numbers cannot determine whether AI feels readable, fair, surprising, repetitive, or annoying.
 
 ---
 
 ## 36. AI Quality Metrics
 
-Track production/QA metrics such as:
+Track:
 
 - AI turn latency;
-- illegal-action attempts caught before commit;
+- illegal attempts caught before commit;
 - fallback frequency;
 - repeated-action loops;
 - movement oscillation;
 - wasted healing/overkill;
 - objective neglect;
 - resource waste;
-- win/loss by AI profile and content tier;
+- win/loss by profile/content tier;
 - encounter duration;
-- player surrender/abandon rate;
+- player surrender/abandon;
 - damage/resource efficiency;
 - boss mechanic failures;
-- practice retry patterns;
+- practice retries;
 - Tactical Record unlock/use rates.
 
-Win rate alone is not enough. An AI can win often and still feel terrible.
+Win rate alone is insufficient.
 
 ---
 
@@ -1038,54 +1033,52 @@ Win rate alone is not enough. An AI can win often and still feel terrible.
 
 ## 37. Owner and Staff AI Lab
 
-The protected Master Panel should eventually include a **Combat AI Lab**.
+Authorized Owner/QA/balance staff may eventually access:
 
-Unlike the player Tactical Hall, authorized Owner/QA/balance staff may access:
-
-- all registered live profiles;
-- unpublished/internal test profiles;
-- arbitrary supported level/stat templates;
-- hidden/test equipment and builds;
-- any arena map/scenario;
+- all live profiles;
+- unpublished/internal profiles;
+- supported level/stat templates;
+- hidden/test equipment/builds;
+- arena maps/scenarios;
 - AI-vs-player;
 - AI-vs-AI;
 - team-vs-team;
-- boss phase testing;
+- boss-phase testing;
 - exact seed replay;
 - batch simulation.
 
-This is a QA/balance tool, not a player progression surface.
+This is QA/balance tooling, not player progression.
 
 ---
 
 ## 38. AI Profile Operations
 
-Depending on permissions, the Master Panel should support:
+Depending on permission:
 
-- inspect AI profile;
+- inspect profile;
 - duplicate as draft;
-- edit profile weights/config;
+- edit weights/config;
 - preview/stage;
 - run benchmark suite;
-- compare against current live version;
-- publish a new version;
+- compare with live;
+- publish version;
 - rollback;
-- disable/replace a broken profile;
-- assign profile to enemy definitions;
-- inspect which encounters use a profile;
+- disable/replace broken profile;
+- assign profiles to enemy definitions;
+- inspect encounter dependencies;
 - audit changes.
 
-The protected Owner retains override authority. Ordinary balance staff receive least privilege.
+Owner retains override authority; staff receive least privilege.
 
 ---
 
 ## 39. Batch Simulation
 
-The Combat AI Lab should support reproducible simulations such as:
+Example:
 
 ```text
 10,000 matches
-Bastion Veteran AI vs Riftblade Veteran AI
+Bastion Veteran AI vs Riftwalker Veteran AI
 Level 60 normalized template
 Map pool: 5 arena maps
 Seed set: recorded
@@ -1097,73 +1090,63 @@ Outputs can include:
 - side/map bias;
 - average rounds;
 - damage/healing;
-- resource usage;
+- resource/AE use;
 - first-move advantage;
-- action frequency;
+- Skill/action frequency;
 - position heatmaps;
 - fallback/error rates;
 - performance timing;
 - matchup outliers.
 
-Batch simulations inform balance. They do not replace human testing.
+Simulation informs balance; it does not replace human testing.
 
 ---
 
 ## 40. AI Version Comparison
 
-Before publishing a major AI change, the Lab should be able to compare:
+Before publishing major changes, compare live vs candidate across the same corpus.
 
-```text
-LIVE PROFILE v12
-vs
-CANDIDATE PROFILE v13
-```
+Flag:
 
-across the same seed/scenario corpus.
-
-Flag meaningful changes such as:
-
-- much higher/lower win rate;
-- slower decision time;
-- increased fallback use;
+- major win-rate changes;
+- slower decisions;
+- increased fallbacks;
 - changed target selection;
 - objective neglect;
-- new loops;
-- excessive resource hoarding;
-- unusual matchup spikes.
+- loops;
+- resource hoarding;
+- matchup spikes.
 
 ---
 
 ## 41. Production Safety
 
-AI configuration is live game configuration and must use:
+AI configuration uses:
 
 - versioning;
 - validation;
-- permission checks;
-- staged preview where appropriate;
+- permissions;
+- staged preview;
 - audit history;
 - rollback;
 - per-profile kill/fallback controls;
-- immutable battle pinning to the version active at battle creation.
+- immutable battle pinning to the version active at creation.
 
-Do not allow an invalid AI draft to become production merely because the editor saved successfully.
+Invalid drafts cannot become production merely because an editor saved.
 
 ---
 
 # PART V — PROGRESSION, UI, MANUAL & ROADMAP
 
-## 42. Tactical Hall Progression Must Feel Earned
+## 42. Battle Hall Progression Must Feel Earned
 
-Unlocking additional Tactical Records should reinforce the main game.
+Unlocking Tactical Records should reinforce the main game.
 
-A player might think:
+Example feeling:
 
 > “I finally defeated that Frostmere Controller, so now its training record is available. I can practice the matchup before going deeper.”
 
-This is useful progression without raw stat inflation.
-
-The Hall can become a collection/learning system alongside the Archive, but it should not overwhelm the player with a second giant checklist.
+The Hall can become a collection/learning system alongside the Archive without becoming a second giant checklist.
 
 ---
 
@@ -1173,47 +1156,46 @@ The normal premium shop must not sell:
 
 - stronger AI grades;
 - unreached boss simulations;
-- hidden enemy Tactical Records;
-- additional stat ranges that provide meaningful competitive preparation;
-- advanced practice analysis unavailable through gameplay;
+- hidden Tactical Records;
+- stat ranges providing material competitive preparation;
+- advanced analysis unavailable through gameplay;
 - faster Tactical Record unlocks.
 
-Cosmetic arena themes, banners, training-room decoration, or harmless presentation may be premium if they provide zero combat/preparation advantage.
+Cosmetic arena themes/banners/decoration may be premium if they provide no preparation advantage.
 
 ---
 
 ## 44. Player Manual Requirements
 
-The Adventurer's Guide must eventually explain:
+The Adventurer's Guide eventually explains:
 
-- how Tactical Hall access works;
-- what Tactical Records are;
-- how records unlock;
+- Battle Hall access;
+- AI Sparring;
+- Tactical Records;
+- unlock rules;
 - AI Intelligence versus level/stats;
-- what practice battles do/do not reward;
-- how to repeat the same seed;
-- how Battle Review works;
-- that practice simulations do not grant ownership of represented items/builds;
-- why stronger AI is difficult without secretly cheating;
-- boss/spoiler restrictions.
+- practice rewards/limits;
+- repeatable seeds;
+- Battle Review;
+- represented practice content is not persistent ownership;
+- why stronger AI is harder without secretly cheating;
+- spoiler restrictions.
 
-Contextual help should link directly from the Practice Arena configuration screen and Battle Review.
+Contextual help links directly from relevant Battle Hall and Battle Review screens.
 
 ---
 
-## 45. Accessibility and UX
+## 45. Accessibility & UX
 
-The Practice Arena should support the same battle accessibility standards as normal combat.
+Battle Hall supports normal battle accessibility plus:
 
-Additionally:
-
-- settings must clearly label stat power and intelligence separately;
-- locked records should explain spoiler-safe unlock direction when appropriate;
-- color must not be the only indicator of AI grade;
-- Battle Review timelines must be keyboard/screen-reader navigable;
-- heatmaps/diagrams need text alternatives where practical;
-- reset/retry controls should be easy to find;
-- no accidental normal-progression loss should occur from entering practice.
+- clear separation of stat power and AI intelligence;
+- spoiler-safe explanations for locked records where appropriate;
+- no color-only intelligence-grade indicator;
+- keyboard/screen-reader navigable review timelines;
+- text alternatives for heatmaps/diagrams where practical;
+- obvious reset/retry controls;
+- no accidental normal-progression loss from entering practice.
 
 ---
 
@@ -1221,127 +1203,128 @@ Additionally:
 
 ### Phase 2 — Tactical Combat Core
 
-Build the architectural foundation alongside deterministic combat:
-
-- server-authoritative AI decision interface;
-- AI knowledge filter;
-- legal-action enumeration reuse from the combat engine;
+- server-authoritative AI interface;
+- knowledge filter;
+- legal-command enumeration from combat engine;
 - baseline utility evaluation;
-- deterministic seeded tie-breaking;
-- safe fallback behavior;
-- first **Recruit** AI;
-- decision reason tags/logging;
-- developer/QA deterministic practice harness;
-- first player-facing Tactical Hall slice only after the normal battle flow is stable: Recruit record, basic level/stat presets, one training floor, instant reset, no normal progression rewards.
+- deterministic tie-breaking;
+- safe fallback;
+- first Recruit AI;
+- decision-reason tags;
+- developer/QA harness;
+- current player-facing Battle Hall / AI Sparring slice after normal battle flow is stable;
+- no normal repeatable progression rewards.
 
-The Phase 2 gate should include at least one complete human-vs-AI tactical battle where the AI behaves legally and reproducibly.
+Phase 2 gate includes a complete human-vs-AI tactical battle where AI behaves legally and reproducibly and the human tester can understand what happened.
 
-### Phase 3 — Discipline Framework
+### Phase 3 — Signature Buildcraft
 
-- make AI understand reusable effects, resources, statuses, Arts, Traits, Reactions, Movement Arts, and basic build interactions;
-- define per-Discipline AI usage metadata;
-- add initial behavior archetypes;
-- add stronger intelligence grades where the combat engine can support them cleanly;
-- expand Tactical Hall to Discipline-aware sparring records.
+- AI understands released Skills, statuses, resources and build interactions;
+- Primary/Secondary profile awareness;
+- Resonance/Essence awareness;
+- per-Discipline AI metadata;
+- initial behavior archetypes;
+- stronger intelligence grades where clean;
+- Discipline-aware Battle Hall records.
 
 ### Phase 4 — First Playable Discipline Set
 
 - every initial Discipline receives AI usage rules/tests;
-- expand Recruit/Trained/Veteran practice opponents;
-- add Tactical Record unlock progression;
-- add useful scenario presets;
-- begin human fairness/readability playtesting;
-- establish benchmark tactical scenarios for regression.
+- expand representative Recruit/Trained/Veteran opponents;
+- Tactical Record progression;
+- scenario presets;
+- human fairness/readability playtests;
+- benchmark tactical states.
 
 ### Phase 5 — Living World
 
-- connect Tactical Record acquisition to encounters, mentors, regions, Horizons, Archive/training discoveries, and progression;
-- present the Tactical Hall as a believable world service/location or equivalent UI destination;
+- connect record acquisition to encounters, mentors, regions, Horizons, Archive/training discoveries and progression;
+- present Battle Hall as a believable world service/location or equivalent game destination;
 - keep records spoiler-safe;
-- integrate “new Tactical Record learned” into restrained progression messaging.
+- restrained record-unlock messaging.
 
 ### Phase 6 — Party & Co-op
 
-- add team coordinator behavior;
-- validate enemy squads against three-player groups;
-- add allied NPC AI where required;
-- add multi-unit practice drills.
+- team coordinator;
+- validate squads against three-player groups;
+- allied NPC AI where required;
+- multi-unit practice drills.
 
 ### Phase 7 — Expeditions
 
-- add Expedition enemy coordination;
-- multiphase boss AI directors;
-- boss practice records after legitimate clears;
+- Expedition coordination;
+- multiphase boss directors;
+- boss records after legitimate clears;
 - objective-specific AI;
-- stress-test long encounters and reconnect/replay consistency.
+- long-encounter/reconnect/replay stress tests.
 
 ### Phase 8 — PvP
 
-- use AI practice opponents to rehearse legal PvP-like builds/rules where appropriate;
-- do not silently populate ranked queues with bots presented as human players;
-- if bots are ever used in a queue, the mode/rules must explicitly support and disclose that behavior;
-- benchmark AI against PvP tactical patterns without granting it private opponent information.
+- AI practice may rehearse legal PvP-like builds/rules;
+- never silently populate normal ranked queues with bots presented as humans;
+- any bot-enabled mode explicitly discloses that rule;
+- AI receives no private opponent information.
 
 ### Phase 9 — Full Discipline Roster
 
-- complete AI usage rules and regression coverage for all released Disciplines;
-- expand advanced Tactical Records without exposing unreleased content;
-- validate Confluence/Soulmark-aware decision quality.
+- complete AI usage/regression coverage for released Disciplines;
+- advanced Tactical Records without unreleased-content leakage;
+- Resonance/Essence/Soulmark/Mantle/equipment-aware decision quality as those systems release.
 
-### Phase 13 — Complete Master Panel
+### Phase 13 — Master Panel
 
-Build the full **Combat AI Lab**:
+Complete Combat AI Lab:
 
-- AI profile editor;
-- profile assignment inspection;
-- versioning/diff/rollback;
-- unrestricted authorized practice setup;
+- profile editor;
+- assignment inspection;
+- version diff/rollback;
+- authorized unrestricted test setup;
 - AI-vs-AI;
 - batch simulation;
 - matchup matrices;
-- decision/performance analytics;
-- benchmark-suite runner;
+- analytics;
+- benchmark runner;
 - staged publish;
-- per-profile emergency fallback/disable controls;
-- Tactical Record unlock/config editor.
+- emergency fallback/disable;
+- Tactical Record configuration.
 
 ### Phase 15 — Hardening
 
 Validate:
 
-- legal-action correctness;
-- knowledge-boundary fairness;
+- legality;
+- fairness/knowledge boundaries;
 - deterministic reproduction;
-- AI decision performance under load;
+- decision performance under load;
 - pathfinding worst cases;
 - fallback behavior;
 - no loops/oscillation soft locks;
-- boss telegraph/counterplay fairness;
-- Tactical Record authorization/spoiler safety;
+- boss telegraph/counterplay;
+- record authorization/spoiler safety;
 - practice reward isolation;
-- version pinning and rollback;
-- AI profile permission/audit controls;
+- version pinning/rollback;
+- permissions/audit;
 - human playtests across skill levels.
 
 ---
 
 ## 47. Closed Alpha AI Target
 
-Before Closed Alpha is considered combat-quality complete, aim for:
+Aim for:
 
-- a reliable shared combat AI framework;
-- Recruit/Trained/Veteran grades for representative enemies;
-- distinct archetype behavior across several enemy families;
+- reliable shared combat-AI framework;
+- representative Recruit/Trained/Veteran behavior;
+- distinct archetypes across several enemy families;
 - AI usage rules for the initial playable Discipline set;
-- competent squad coordination for relevant encounters;
-- bosses with authored, fair, learnable AI behavior;
-- a useful player Tactical Hall with progression-gated records;
-- basic level/stat/opponent configuration;
+- competent squad coordination where required;
+- authored fair learnable bosses;
+- useful Battle Hall with AI Sparring and progression-gated practice content;
+- supported level/stat/opponent configuration appropriate to Alpha;
 - repeatable practice seeds;
 - Battle Review foundation;
-- a QA benchmark suite showing no common illegal-action/soft-lock failures.
+- QA benchmark suite with no common illegal-action/soft-lock failures.
 
-Not every final Master-level AI profile or full Combat AI Lab feature must exist before early alpha testing, but the architecture must already support them cleanly.
+Not every final Master-grade profile or complete Combat AI Lab feature must exist before early Alpha testing, but architecture must support them cleanly.
 
 ---
 
@@ -1350,19 +1333,19 @@ Not every final Master-level AI profile or full Combat AI Lab feature must exist
 This system succeeds when:
 
 - enemies make tactically sensible choices;
-- different enemy roles genuinely feel different;
+- enemy roles genuinely feel different;
 - stronger AI is harder because it reasons better, not because it secretly cheats;
-- players can learn patterns and counter them;
-- combat remains fair enough that losses usually feel explainable;
-- a new player begins with only a basic weak practice opponent;
-- additional AI opponents/grades unlock naturally through progression;
-- players can tune level/attributes independently from intelligence;
-- practice battles are useful without becoming a zero-risk progression farm;
+- players learn patterns and counter them;
+- losses usually feel explainable;
+- new players begin with approachable practice;
+- additional opponents/grades unlock naturally through progression;
+- level/attributes remain distinct from intelligence;
+- practice is useful without becoming a zero-risk progression farm;
 - boss practice does not spoil undiscovered encounters;
-- the same AI framework powers real PvE and the Practice Arena;
-- AI decisions are server-authoritative, bounded, reproducible, and efficient;
+- the same AI framework powers real PvE and Battle Hall;
+- decisions are server-authoritative, bounded, reproducible, and efficient;
 - every released Discipline has meaningful AI usage rules;
-- team AI coordinates without becoming omniscient;
-- the Owner can inspect, simulate, tune, stage, publish, rollback, and benchmark AI through the Master Panel;
+- team AI coordinates without omniscience;
+- Owner/staff can inspect, simulate, tune, stage, publish, rollback, and benchmark AI safely;
 - automated tests catch illegal actions and major regressions;
-- human playtests confirm that the battle system feels challenging, learnable, and fair.
+- human playtests confirm combat feels challenging, learnable, and fair.
