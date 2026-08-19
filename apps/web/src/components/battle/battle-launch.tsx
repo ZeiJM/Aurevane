@@ -2,7 +2,6 @@
 
 import type { TacticalHallArenaId } from '@aurevane/game-core/combat/tactical-hall-arenas'
 import {
-  P2_7_TACTICAL_HALL_RECORDS,
   getTacticalHallRecord,
   type TacticalHallRecordId,
 } from '@aurevane/game-core/combat/tactical-hall-records'
@@ -21,10 +20,10 @@ interface BattleLaunchProps {
 type AiDifficulty = 'easy' | 'standard' | 'high'
 
 const VISIBLE_RECORD_IDS: readonly TacticalHallRecordId[] = [
+  'recruit-sparring',
   'movement-drill',
   'strike-drill',
   'guard-drill',
-  'recruit-sparring',
 ]
 
 const ARENAS: readonly { id: TacticalHallArenaId; name: string; scale: string; summary: string }[] =
@@ -44,24 +43,32 @@ const ARENAS: readonly { id: TacticalHallArenaId; name: string; scale: string; s
   ]
 
 const DIFFICULTIES: readonly { id: AiDifficulty; label: string; description: string }[] = [
-  { id: 'easy', label: 'Easy', description: 'Forgiving Recruit decisions.' },
-  { id: 'standard', label: 'Standard', description: 'Balanced Battle Hall opponent.' },
+  { id: 'easy', label: 'Easy', description: 'Forgiving AI decisions.' },
+  { id: 'standard', label: 'Standard', description: 'Balanced AI opponent.' },
   { id: 'high', label: 'High', description: 'Sharper positioning and action choices.' },
 ]
 
-export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) {
+const FUTURE_MATCHES = [
+  { label: '1v1', detail: 'Player duel' },
+  { label: '2v2', detail: 'Small-team battle' },
+  { label: '3v3', detail: 'Full-team skirmish' },
+] as const
+
+function recordDisplayName(recordId: TacticalHallRecordId, fallback: string): string {
+  return recordId === 'recruit-sparring' ? 'AI Sparring' : fallback
+}
+
+export function BattleLaunch({ characterId }: BattleLaunchProps) {
   const router = useRouter()
   const launchLock = useRef(false)
-  const [recordId, setRecordId] = useState<TacticalHallRecordId>('recruit-sparring')
+  const [recordId, setRecordId] = useState<TacticalHallRecordId | null>(null)
   const [arenaId, setArenaId] = useState<TacticalHallArenaId>('duel-yard')
   const [aiDifficulty, setAiDifficulty] = useState<AiDifficulty>('standard')
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const selectedRecord = getTacticalHallRecord(recordId)
+  const selectedRecord = recordId ? getTacticalHallRecord(recordId) : null
   const selectedArena = ARENAS.find((arena) => arena.id === arenaId) ?? ARENAS[1]
-  const visibleRecords = P2_7_TACTICAL_HALL_RECORDS.filter((record) =>
-    VISIBLE_RECORD_IDS.includes(record.id),
-  )
+  const visibleRecords = VISIBLE_RECORD_IDS.map((id) => getTacticalHallRecord(id))
 
   function chooseRecord(nextRecordId: TacticalHallRecordId) {
     const nextRecord = getTacticalHallRecord(nextRecordId)
@@ -71,7 +78,7 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
   }
 
   async function launchBattle() {
-    if (launchLock.current || pending) return
+    if (!selectedRecord || launchLock.current || pending) return
     launchLock.current = true
     setPending(true)
     setError(null)
@@ -119,11 +126,7 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
             <p className={styles.eyebrow}>Battle Hall</p>
             <h1 id="battle-launch-title">Choose a battle.</h1>
           </div>
-          <p>
-            {characterName}, choose a focused training fight or a full Recruit duel. Your selection
-            controls the arena and teaching prompts; the battle itself uses the same authoritative
-            combat rules.
-          </p>
+          <p>Select a training mode. Nothing is preselected.</p>
         </header>
 
         <nav className={styles.recordGrid} aria-label="Choose Battle Hall battle">
@@ -136,57 +139,80 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
               disabled={pending}
               aria-pressed={recordId === record.id}
             >
-              <span>{record.combinedDuel ? 'Full Duel' : 'Training Fight'}</span>
-              <strong>{record.name}</strong>
+              <span>{record.id === 'recruit-sparring' ? 'AI Battle' : 'Training'}</span>
+              <strong>{recordDisplayName(record.id, record.name)}</strong>
               <small>{record.purpose}</small>
             </button>
           ))}
         </nav>
 
-        <section className={styles.selectedPanel}>
-          <div className={styles.selectedCopy}>
-            <span>Selected battle</span>
-            <h2>{selectedRecord.name}</h2>
-            <p>{selectedRecord.coachSteps[0]}</p>
-            <div className={styles.arenaLine}>
-              <strong>{selectedArena.name}</strong>
-              <span>
-                {selectedArena.scale} · {selectedArena.summary}
-              </span>
-            </div>
-          </div>
-
-          {selectedRecord.combinedDuel ? (
-            <fieldset className={styles.difficulty}>
-              <legend>Recruit AI</legend>
-              <div className={styles.difficultyToggle}>
-                {DIFFICULTIES.map((difficulty) => (
-                  <button
-                    key={difficulty.id}
-                    type="button"
-                    aria-pressed={aiDifficulty === difficulty.id}
-                    data-selected={aiDifficulty === difficulty.id || undefined}
-                    onClick={() => setAiDifficulty(difficulty.id)}
-                    disabled={pending}
-                  >
-                    {difficulty.label}
-                  </button>
-                ))}
+        <section className={styles.selectedPanel} data-empty={!selectedRecord || undefined}>
+          {selectedRecord ? (
+            <>
+              <div className={styles.selectedCopy}>
+                <span>Selected battle</span>
+                <h2>{recordDisplayName(selectedRecord.id, selectedRecord.name)}</h2>
+                <p>{selectedRecord.coachSteps[0]}</p>
+                <div className={styles.arenaLine}>
+                  <strong>{selectedArena.name}</strong>
+                  <span>
+                    {selectedArena.scale} · {selectedArena.summary}
+                  </span>
+                </div>
               </div>
-              <small>
-                {DIFFICULTIES.find((difficulty) => difficulty.id === aiDifficulty)?.description}
-              </small>
-            </fieldset>
-          ) : null}
+
+              {selectedRecord.combinedDuel ? (
+                <fieldset className={styles.difficulty}>
+                  <legend>AI difficulty</legend>
+                  <div className={styles.difficultyToggle}>
+                    {DIFFICULTIES.map((difficulty) => (
+                      <button
+                        key={difficulty.id}
+                        type="button"
+                        aria-pressed={aiDifficulty === difficulty.id}
+                        data-selected={aiDifficulty === difficulty.id || undefined}
+                        onClick={() => setAiDifficulty(difficulty.id)}
+                        disabled={pending}
+                      >
+                        {difficulty.label}
+                      </button>
+                    ))}
+                  </div>
+                  <small>
+                    {DIFFICULTIES.find((difficulty) => difficulty.id === aiDifficulty)?.description}
+                  </small>
+                </fieldset>
+              ) : null}
+            </>
+          ) : (
+            <div className={styles.neutralSelection}>
+              <span>Battle selection</span>
+              <h2>No mode selected</h2>
+              <p>Choose any option above to configure the arena.</p>
+            </div>
+          )}
 
           <button
             type="button"
             className={styles.startButton}
             onClick={() => void launchBattle()}
-            disabled={pending}
+            disabled={pending || !selectedRecord}
           >
             {pending ? 'Entering…' : 'Enter Battle'}
           </button>
+        </section>
+
+        <section className={styles.futureModes} aria-label="Future player battle modes">
+          <div>
+            <span>Player sparring</span>
+            <strong>Multiplayer battle shell</strong>
+          </div>
+          {FUTURE_MATCHES.map((mode) => (
+            <button key={mode.label} type="button" disabled>
+              <strong>{mode.label}</strong>
+              <small>{mode.detail} · coming later</small>
+            </button>
+          ))}
         </section>
 
         {error ? (
