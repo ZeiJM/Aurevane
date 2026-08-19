@@ -2,10 +2,12 @@
   display: grid;
   grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
   gap: 0.6rem;
+  align-items: start;
 }
 
 .current,
 .personal,
+.profileImage,
 .future {
   min-width: 0;
   padding: clamp(0.75rem, 1.5vw, 1rem);
@@ -19,7 +21,7 @@
 }
 
 .personal {
-  grid-row: span 2;
+  grid-row: span 3;
   display: grid;
   gap: 0.65rem;
 }
@@ -41,6 +43,7 @@
 .personal header span,
 .lockedState > span,
 .confirmation > span,
+.profileImage > div > span,
 .future > span {
   color: var(--av-brass-300);
   font: 700 0.5rem/1 var(--av-font-mono);
@@ -49,7 +52,8 @@
 }
 
 .current h2,
-.personal h2 {
+.personal h2,
+.profileImage h2 {
   margin: 0.22rem 0 0;
   font: 550 clamp(1.2rem, 2.2vw, 1.65rem)/1.05 var(--av-font-display);
 }
@@ -57,6 +61,7 @@
 .current > p,
 .explanation,
 .lockedState p,
+.profileImage > div > p,
 .future p {
   margin: 0.55rem 0 0;
   color: var(--av-text-muted);
@@ -219,6 +224,49 @@
   background: rgba(207, 169, 93, 0.04);
   font-size: 0.62rem;
   line-height: 1.4;
+}
+
+.profileImage {
+  display: grid;
+  grid-template-columns: 1fr 4.5rem;
+  gap: 0.65rem;
+}
+
+.profileImage > div:first-child {
+  min-width: 0;
+}
+
+.profileImage > img,
+.imagePlaceholder {
+  grid-column: 2;
+  grid-row: 1;
+  width: 4.5rem;
+  height: 4.5rem;
+  overflow: hidden;
+  border: 1px solid var(--av-border-strong);
+  border-radius: var(--av-radius-md);
+  background: #070a0f;
+  object-fit: cover;
+}
+
+.imagePlaceholder {
+  display: grid;
+  place-items: center;
+  padding: 0.35rem;
+  color: var(--av-text-dim);
+  font: 650 0.44rem/1.3 var(--av-font-mono);
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.profileImage > .field,
+.profileImage > .reviewButton,
+.profileImage > .message {
+  grid-column: 1 / -1;
+}
+
+.profileImage > .reviewButton {
+  justify-self: start;
 }
 
 .future {
