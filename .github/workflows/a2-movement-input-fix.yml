@@ -1,5 +1,6 @@
 name: A2 Movement Input Fix
 
+# Temporary branch-only workflow: applies the final movement-input patch, then is removed.
 on:
   push:
     branches:
