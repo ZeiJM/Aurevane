@@ -85,8 +85,8 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
     'Rough ground costs 50 AP',
   )
   await page.getByRole('button', { name: /Tile 4, 2; open-ground; elevation 0/ }).click()
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Movement path ready')
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('leaves 0 AP')
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Path ready: 100 AP')
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText('0 AP will remain')
   await expect(confirmButton).toBeEnabled()
   await expect(page.getByText(/100 AP proposed/)).toBeVisible()
   await confirmButton.click()
