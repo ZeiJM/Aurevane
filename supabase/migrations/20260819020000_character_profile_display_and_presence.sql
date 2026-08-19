@@ -1,3 +1,5 @@
+begin;
+
 -- A2 feedback: cosmetic profile image display and authenticated online-character presence.
 -- Both tables are server-managed only. Browser clients receive data through authenticated app routes.
 
@@ -15,7 +17,8 @@ create unique index if not exists character_profile_display_user_character_idx
   on public.character_profile_display(user_id, character_id);
 
 alter table public.character_profile_display enable row level security;
-revoke all on table public.character_profile_display from anon, authenticated;
+revoke all on table public.character_profile_display from public, anon, authenticated;
+grant select, insert, update, delete on table public.character_profile_display to service_role;
 
 create table if not exists public.character_presence (
   character_id uuid primary key references public.characters(id) on delete cascade,
@@ -29,7 +32,8 @@ create index if not exists character_presence_user_idx
   on public.character_presence(user_id);
 
 alter table public.character_presence enable row level security;
-revoke all on table public.character_presence from anon, authenticated;
+revoke all on table public.character_presence from public, anon, authenticated;
+grant select, insert, update, delete on table public.character_presence to service_role;
 
 create or replace function public.touch_character_presence_v1(
   p_user_id uuid,
@@ -48,7 +52,11 @@ begin
     from public.characters c
     where c.id = p_character_id
       and c.user_id = p_user_id
-      and c.deletion_execute_after is null
+      and not exists (
+        select 1
+        from app_private.character_deletion_requests d
+        where d.character_id = c.id
+      )
   ) then
     raise exception 'CHARACTER_NOT_PLAYABLE';
   end if;
@@ -79,7 +87,11 @@ as $$
   from public.character_presence p
   join public.characters c on c.id = p.character_id
   where p.last_seen_at >= now() - interval '10 minutes'
-    and c.deletion_execute_after is null
+    and not exists (
+      select 1
+      from app_private.character_deletion_requests d
+      where d.character_id = c.id
+    )
   order by p.last_seen_at desc, c.name asc;
 $$;
 
@@ -87,3 +99,5 @@ revoke all on function public.touch_character_presence_v1(uuid, uuid) from publi
 revoke all on function public.list_online_characters_v1() from public, anon, authenticated;
 grant execute on function public.touch_character_presence_v1(uuid, uuid) to service_role;
 grant execute on function public.list_online_characters_v1() to service_role;
+
+commit;
