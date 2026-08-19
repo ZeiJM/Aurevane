@@ -116,7 +116,11 @@ function clickAdjacentMove(direction: { dx: number; dy: number }, playerName: st
   if ((target.getAttribute('aria-label') ?? '').includes('occupied by ')) return false
 
   target.focus({ preventScroll: true })
-  target.click()
+  window.dispatchEvent(
+    new CustomEvent('aurevane:battle-move-target', {
+      detail: { x: targetX - 1, y: targetY - 1 },
+    }),
+  )
   return true
 }
 

@@ -873,6 +873,17 @@ export function BattleExperienceV2({
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [chooseMode, clearPlanning, commitIntent, pendingIntent, preview])
 
+  useEffect(() => {
+    function handleMoveTarget(event: Event) {
+      if (!(event instanceof CustomEvent)) return
+      const detail = event.detail as { x?: unknown; y?: unknown }
+      if (!Number.isSafeInteger(detail.x) || !Number.isSafeInteger(detail.y)) return
+      handleTileClick({ x: Number(detail.x), y: Number(detail.y) })
+    }
+    window.addEventListener('aurevane:battle-move-target', handleMoveTarget)
+    return () => window.removeEventListener('aurevane:battle-move-target', handleMoveTarget)
+  }, [handleTileClick])
+
   const boardStyle: CSSProperties = {
     gridTemplateColumns: `repeat(${tactical.width}, minmax(0, 1fr))`,
     aspectRatio: `${tactical.width} / ${tactical.height}`,
@@ -1084,10 +1095,7 @@ export function BattleExperienceV2({
                 aria-valuemax={100}
                 aria-valuenow={playerEconomy}
               >
-                <span
-                  className={styles.economyCommitted}
-                  style={{ width: `${playerEconomy} AP` }}
-                />
+                <span className={styles.economyCommitted} style={{ width: `${playerEconomy}%` }} />
                 {proposedEconomyCost > 0 ? (
                   <span
                     className={styles.economyProposed}
@@ -1194,7 +1202,12 @@ export function BattleExperienceV2({
                       key={key}
                       type="button"
                       className={tileClass}
-                      onClick={() => handleTileClick(tile.position)}
+                      onPointerDown={() => {
+                        if (mode === 'move') handleTileClick(tile.position)
+                      }}
+                      onClick={(event) => {
+                        if (mode !== 'move' || event.detail === 0) handleTileClick(tile.position)
+                      }}
                       onDoubleClick={requestQuickCommit}
                       onPointerUp={(event) => {
                         if (event.pointerType === 'touch')
