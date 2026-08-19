@@ -12,6 +12,7 @@ import { getCurrentAccountServicesReadiness } from '@/server/account/account-ser
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { createBattleSessionService } from '@/server/battle/battle-session-service'
 import { createSupabaseBattleSessionRepository } from '@/server/battle/supabase-battle-session-repository'
+import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
 
 export const dynamic = 'force-dynamic'
@@ -75,12 +76,20 @@ export default async function BattleSessionPage({
     redirect('/game/battle')
   }
 
+  let playerProfileImageUrl: string | null = null
+  try {
+    playerProfileImageUrl = (await loadCharacterProfileDisplay(actor.userId, character.id)).imageUrl
+  } catch {
+    // Cosmetic display failure falls back to the built-in portrait.
+  }
+
   return (
     <BattleAudioGate>
       <BattleSessionClientBoundary
         initialBattle={battle}
         playerName={character.name}
         playerPortraitAssetId={getStarterPortraitImageAssetId(character.portraitRef)}
+        playerProfileImageUrl={playerProfileImageUrl}
       />
     </BattleAudioGate>
   )

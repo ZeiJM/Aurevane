@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 
-import { AurevaneImage } from '@/components/media/aurevane-image'
+import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { AccountMenu } from '@/components/shell/account-menu'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 import type { CharacterSlotCharacter } from '@/server/character/character-slot-service'
@@ -16,9 +16,14 @@ import styles from './character-select-shell.module.css'
 interface CharacterSelectShellProps {
   characters: readonly CharacterSlotCharacter[]
   selectedCharacter: PersistedCharacter | null
+  profileImageUrls: Readonly<Record<string, string>>
 }
 
-export function CharacterSelectShell({ characters, selectedCharacter }: CharacterSelectShellProps) {
+export function CharacterSelectShell({
+  characters,
+  selectedCharacter,
+  profileImageUrls,
+}: CharacterSelectShellProps) {
   const router = useRouter()
   const [deleting, setDeleting] = useState<CharacterSlotCharacter | null>(null)
   const [phrase, setPhrase] = useState('')
@@ -86,10 +91,12 @@ export function CharacterSelectShell({ characters, selectedCharacter }: Characte
           <div className={styles.screenIdentity} aria-label="Current screen: Character Select">
             {selectedCharacter ? (
               <span className={styles.screenPortrait} title={selectedCharacter.name}>
-                <AurevaneImage
-                  assetId={getStarterPortraitImageAssetId(selectedCharacter.portraitRef)}
+                <CharacterPortraitImage
+                  imageUrl={profileImageUrls[selectedCharacter.id]}
+                  fallbackAssetId={getStarterPortraitImageAssetId(selectedCharacter.portraitRef)}
                   className={styles.screenPortraitImage}
                   sizes="2rem"
+                  alt=""
                 />
               </span>
             ) : null}
@@ -149,15 +156,17 @@ export function CharacterSelectShell({ characters, selectedCharacter }: Characte
               >
                 <span className={styles.slotNumber}>Slot {slotIndex + 1}</span>
                 <div className={styles.portrait}>
-                  <AurevaneImage
-                    assetId={getStarterPortraitImageAssetId(character.portraitRef)}
+                  <CharacterPortraitImage
+                    imageUrl={profileImageUrls[character.id]}
+                    fallbackAssetId={getStarterPortraitImageAssetId(character.portraitRef)}
                     sizes="15rem"
+                    alt={`${character.name} portrait`}
                   />
                 </div>
                 <div className={styles.identity}>
                   <h2>{character.name}</h2>
                   <p>
-                    Level {character.level} · {discipline?.name ?? 'Adventurer'}
+                    Character Level {character.level} · {discipline?.name ?? 'Adventurer'}
                   </p>
                 </div>
                 {pending && character.deletionExecuteAfter ? (

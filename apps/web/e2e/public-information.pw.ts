@@ -16,7 +16,7 @@ for (const route of publicRoutes) {
 
     await expect(page.getByTestId('public-information-shell')).toBeVisible()
     await expect(page.getByRole('heading', { level: 1, name: route.heading })).toBeVisible()
-    await expect(page.getByLabel(`Current screen: ${route.heading}`)).toBeVisible()
+    await expect(page.getByLabel(`Current screen: ${route.heading}`)).toHaveCount(0)
 
     const navigation = page.getByRole('navigation', { name: 'Public information', exact: true })
     await expect(navigation.getByRole('link', { name: 'News', exact: true })).toBeVisible()
@@ -50,7 +50,7 @@ test('Manual has stable article routes and deep section anchors', async ({ page 
 
   await page.goto('/manual/wayfarers-practice#guardrails')
   await expect(
-    page.getByRole('heading', { level: 2, name: 'What Wayfarer’s Practice cannot do' }),
+    page.getByRole('heading', { level: 2, name: 'What Passive Training cannot do' }),
   ).toBeVisible()
 })
 
@@ -67,12 +67,12 @@ test('Rules exposes stable section anchors and truthful current-scope language',
   await expect(page.getByText(/does not currently publish speculative marketplace/)).toBeVisible()
 })
 
-test('an authenticated character keeps screen identity while reading the Manual', async ({
+test('an authenticated character keeps a direct return path while reading the Manual', async ({
   page,
 }, testInfo) => {
   test.skip(
     testInfo.project.name !== 'desktop-chromium',
-    'One authenticated character identity proof is sufficient.',
+    'One authenticated return-path proof is sufficient.',
   )
 
   const now = Date.now()
@@ -90,7 +90,6 @@ test('an authenticated character keeps screen identity while reading the Manual'
   await page.goto('/manual')
   await expect(page).toHaveURL(/\/manual$/)
   await expect(page.getByRole('heading', { level: 1, name: 'Manual' })).toBeVisible()
-  await expect(page.getByLabel('Current screen: Manual')).toBeVisible()
-  await expect(page.getByTestId('public-screen-portrait')).toBeVisible()
+  await expect(page.getByLabel('Current screen: Manual')).toHaveCount(0)
   await expect(page.getByRole('link', { name: 'Return to Game' })).toBeVisible()
 })

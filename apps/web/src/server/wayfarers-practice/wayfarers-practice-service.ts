@@ -19,6 +19,7 @@ import {
   PHASE_1_BALANCED_PRACTICE_CONFIG,
   PHASE_1_PLANNED_PRACTICE_WINDOW_CONFIG,
   calculateBalancedPractice,
+  calculatePassiveTrainingXp,
   getPlannedPracticeWindowSeconds,
   resolvePhase1PracticeIntent,
 } from '@aurevane/game-core/character/wayfarers-practice'
@@ -66,9 +67,7 @@ export async function loadTrainingReport(
     userId: actor.userId,
     characterId,
   })
-  if (!report) {
-    return null
-  }
+  if (!report) return null
 
   validateTrainingReport(report, actor, characterId)
   return report
@@ -83,6 +82,18 @@ export async function loadPracticeStatus(
   const status = await repository.getPracticeStatus({ userId: actor.userId, characterId })
   validatePracticeStatus(status, actor, characterId)
   return status
+}
+
+export function isPassiveTrainingActive(status: WayfarersPracticeStatusRecord): boolean {
+  if (!status.plannedWindow || !status.planSetAt || !status.plannedWindowSeconds) return false
+  const startedAt = Date.parse(status.planSetAt)
+  const serverNow = Date.parse(status.serverNow)
+  return serverNow < startedAt + status.plannedWindowSeconds * 1000
+}
+
+export function passiveTrainingEndsAt(status: WayfarersPracticeStatusRecord): string | null {
+  if (!status.plannedWindow || !status.planSetAt || !status.plannedWindowSeconds) return null
+  return new Date(Date.parse(status.planSetAt) + status.plannedWindowSeconds * 1000).toISOString()
 }
 
 export async function setPracticePlan(
@@ -123,12 +134,7 @@ export async function claimTrainingReport(
 
   const actorKey = toUserActorKey(command.actor)
   const requestFingerprint = createHash('sha256')
-    .update(
-      JSON.stringify({
-        characterId: command.characterId,
-        reportId: command.reportId,
-      }),
-    )
+    .update(JSON.stringify({ characterId: command.characterId, reportId: command.reportId }))
     .digest('hex')
 
   const outcome = await repository.claimTrainingReport({
@@ -179,6 +185,11 @@ function validateTrainingReport(
   const windowEndMs = Date.parse(report.windowEndedAt)
   if (!Number.isSafeInteger(windowStartMs) || !Number.isSafeInteger(windowEndMs)) {
     throw persistenceUnavailable()
+  }
+
+  if (report.practiceSource === 'passive_training') {
+    validatePassiveTrainingReport(report, windowStartMs, windowEndMs)
+    return
   }
 
   let calculated
@@ -240,18 +251,54 @@ function validateTrainingReport(
   }
 }
 
+function validatePassiveTrainingReport(
+  report: TrainingReportRecord,
+  windowStartMs: number,
+  windowEndMs: number,
+): void {
+  if (
+    report.plannedWindow === null ||
+    report.plannedWindowConfigVersion !== PHASE_1_PLANNED_PRACTICE_WINDOW_CONFIG.version
+  ) {
+    throw persistenceUnavailable()
+  }
+  const expectedSeconds = getPlannedPracticeWindowSeconds(report.plannedWindow)
+  const expectedXp = calculatePassiveTrainingXp(report.plannedWindow)
+  const measuredSeconds = Math.floor((windowEndMs - windowStartMs) / 1000)
+  if (
+    report.plannedWindowSeconds !== expectedSeconds ||
+    measuredSeconds !== expectedSeconds ||
+    report.elapsedSeconds !== expectedSeconds ||
+    report.creditedDirectSeconds !== expectedSeconds ||
+    report.fullRateSeconds !== expectedSeconds ||
+    report.reducedRateSeconds !== 0 ||
+    report.requestedCharacterXp !== expectedXp ||
+    report.directXpCapReached ||
+    report.restedMomentumSeconds !== 0 ||
+    report.restedMomentumGain !== 0 ||
+    report.restedMomentumCapReached ||
+    report.plannedElapsedSeconds !== expectedSeconds ||
+    report.balancedFallbackSeconds !== 0
+  ) {
+    throw persistenceUnavailable()
+  }
+}
+
 function validatePracticeStatus(
   status: WayfarersPracticeStatusRecord,
   actor: AuthenticatedActor,
   characterId: string,
 ): void {
   if (status.userId !== actor.userId || status.characterId !== characterId) {
-    throw new AurevaneError('FORBIDDEN', 'That Practice state does not belong to this account.')
+    throw new AurevaneError(
+      'FORBIDDEN',
+      'That Passive Training state does not belong to this account.',
+    )
   }
   if (
     status.focus !== BALANCED_PRACTICE_FOCUS ||
     status.configVersion !== PHASE_1_BALANCED_PRACTICE_CONFIG.version ||
-    status.minimumOfflineSeconds !== PHASE_1_BALANCED_PRACTICE_CONFIG.minimumOfflineSeconds ||
+    status.minimumOfflineSeconds !== 0 ||
     status.shortWindowSeconds !== PHASE_1_PLANNED_PRACTICE_WINDOW_CONFIG.shortSeconds ||
     status.overnightWindowSeconds !== PHASE_1_PLANNED_PRACTICE_WINDOW_CONFIG.overnightSeconds ||
     status.extendedWindowSeconds !== PHASE_1_PLANNED_PRACTICE_WINDOW_CONFIG.extendedSeconds ||
@@ -292,7 +339,7 @@ function validateSetPracticePlanRecord(
     plan.characterId !== command.characterId ||
     plan.plannedWindow !== command.plannedWindow
   ) {
-    throw new AurevaneError('FORBIDDEN', 'The Practice plan ownership was invalid.')
+    throw new AurevaneError('FORBIDDEN', 'The Passive Training plan ownership was invalid.')
   }
   if (
     plan.plannedWindowConfigVersion !== PHASE_1_PLANNED_PRACTICE_WINDOW_CONFIG.version ||
@@ -352,8 +399,5 @@ function isNonNegativeSafeInteger(value: number): boolean {
 }
 
 function persistenceUnavailable(): AurevaneError {
-  return new AurevaneError(
-    'PERSISTENCE_UNAVAILABLE',
-    "Wayfarer's Practice is unavailable right now.",
-  )
+  return new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Passive Training is unavailable right now.')
 }

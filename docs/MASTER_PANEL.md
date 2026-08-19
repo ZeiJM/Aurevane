@@ -301,6 +301,7 @@ The owner and authorized balance staff need to make frequent, controlled adjustm
 Examples:
 
 - ability coefficients;
+- player-facing action, Art, item-effect, and combat-help names/descriptions;
 - MP costs;
 - cooldowns;
 - enemy stats;
@@ -332,6 +333,8 @@ MONITOR
   ↓
 ROLL BACK IF NEEDED
 ```
+
+Player-facing combat descriptions must live with the same versioned definitions that drive their mechanics so the Owner can correct wording without a code deployment while previews, validation, diffs, rollback, localization boundaries, and audit remain intact. Descriptions must never become a separate source of mechanical truth.
 
 Balance edits should produce a new content/config version. Long-running battles/Expeditions should not silently mutate underneath players if the affected system pins content versions.
 

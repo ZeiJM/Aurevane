@@ -1084,10 +1084,7 @@ export function BattleExperienceV2({
                 aria-valuemax={100}
                 aria-valuenow={playerEconomy}
               >
-                <span
-                  className={styles.economyCommitted}
-                  style={{ width: `${playerEconomy} AP` }}
-                />
+                <span className={styles.economyCommitted} style={{ width: `${playerEconomy}%` }} />
                 {proposedEconomyCost > 0 ? (
                   <span
                     className={styles.economyProposed}

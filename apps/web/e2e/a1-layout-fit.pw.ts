@@ -47,9 +47,9 @@ test('keeps the core A1 surfaces inside the initial desktop and laptop viewport'
   await expectInitialViewportFit(page, 'Controls & Keybinds')
 
   await page.goto('/game/training')
-  await expect(page.getByRole('heading', { name: "Wayfarer's Practice" })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Passive Training' })).toBeVisible()
   await expect(page.getByTestId('training-report')).toHaveCount(0)
-  await expectInitialViewportFit(page, "Wayfarer's Practice")
+  await expectInitialViewportFit(page, 'Passive Training')
 
   await page.goto('/game')
   await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()

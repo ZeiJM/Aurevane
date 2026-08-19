@@ -31,6 +31,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort B
   await page.getByRole('button', { name: 'Change Move keybind' }).click()
   await page.keyboard.press('m')
   await expect(page.getByTestId('keybind-move')).toContainText('M')
+  await expect(page.getByTestId('keybind-recover')).toContainText('5')
   await page.getByRole('button', { name: 'Save Controls' }).click()
   await expect(page.getByRole('status')).toContainText('Combat controls saved to your account.')
 
@@ -49,14 +50,27 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort B
   await expect(page).toHaveURL(/\/game\/battle$/)
 
   const battleChooser = page.getByRole('navigation', { name: 'Choose Battle Hall battle' })
-  const recruitRecord = battleChooser.getByRole('button', { name: /Recruit Sparring Partner/ })
-  await expect(recruitRecord).toHaveAttribute('aria-pressed', 'true')
+  const aiSparring = battleChooser.getByRole('button', { name: /AI Sparring/ })
+  await expect(page.getByText('No mode selected')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Enter Battle' })).toBeDisabled()
+  await expect(aiSparring).toHaveAttribute('aria-pressed', 'false')
+  await expect(battleChooser.getByRole('button').first()).toContainText('AI Sparring')
+  await aiSparring.click()
+  await expect(aiSparring).toHaveAttribute('aria-pressed', 'true')
   await expect(page.getByText('Duel Yard', { exact: true }).first()).toBeVisible()
+  await expect(page.getByText('Player sparring', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: /1v1/ })).toBeDisabled()
+  await expect(page.getByRole('button', { name: /2v2/ })).toBeDisabled()
+  await expect(page.getByRole('button', { name: /3v3/ })).toBeDisabled()
   await page.getByRole('button', { name: 'Enter Battle' }).click()
 
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
+  const commandDeck = page.getByRole('region', { name: 'Command Deck' })
   await expect(battlefield).toBeVisible()
+  if (testInfo.project.name !== 'mobile-chromium') {
+    await expectActionEconomyCenteredOverBattlefield(page)
+  }
   await expect(
     page.getByRole('button', { name: new RegExp(`Tile 2, 4;.*occupied by ${characterName}`) }),
   ).toBeVisible()
@@ -72,6 +86,10 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort B
     'aria-valuenow',
     '100',
   )
+  await expect(commandDeck.getByRole('button', { name: /Move/ })).toContainText('M · WASD')
+  await expect(commandDeck.getByRole('button', { name: /Basic Attack/ })).toContainText('3')
+  await expect(commandDeck.getByRole('button', { name: /Guard/ })).toContainText('4')
+  await expect(commandDeck.getByRole('button', { name: /Recover/ })).toContainText('5')
   expect(await hasHorizontalOverflow(page)).toBe(false)
   if (testInfo.project.name !== 'mobile-chromium') {
     expect(await hasVerticalPageOverflow(page)).toBe(false)
@@ -84,6 +102,14 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort B
   await expect(page.getByTestId('combat-mode-instruction')).toContainText(
     'Rough ground costs 50 AP',
   )
+
+  const beforeKeyboardMove = page.getByRole('button', {
+    name: new RegExp(`Tile 2, 4;.*occupied by ${characterName}`),
+  })
+  await expect(beforeKeyboardMove).toBeVisible()
+  await page.keyboard.press('ArrowRight')
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Path ready:')
+  await page.getByRole('button', { name: 'Cancel Action' }).click()
 
   await page.getByRole('button', { name: /Inspect/ }).click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Inspect mode')
@@ -143,6 +169,23 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort B
   `)
   expect(terminalEvent).toBe('battle_abandoned|practice-aborted')
 })
+
+async function expectActionEconomyCenteredOverBattlefield(
+  page: import('@playwright/test').Page,
+): Promise<void> {
+  const economy = page.getByRole('progressbar', { name: 'Action Economy remaining' })
+  const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
+  const [economyBox, battlefieldBox] = await Promise.all([
+    economy.boundingBox(),
+    battlefield.boundingBox(),
+  ])
+  expect(economyBox).not.toBeNull()
+  expect(battlefieldBox).not.toBeNull()
+  if (!economyBox || !battlefieldBox) return
+  const economyCenter = economyBox.x + economyBox.width / 2
+  const battlefieldCenter = battlefieldBox.x + battlefieldBox.width / 2
+  expect(Math.abs(economyCenter - battlefieldCenter)).toBeLessThanOrEqual(3)
+}
 
 async function hasHorizontalOverflow(page: import('@playwright/test').Page): Promise<boolean> {
   return page.evaluate(

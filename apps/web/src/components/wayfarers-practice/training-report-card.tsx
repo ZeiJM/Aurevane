@@ -1,5 +1,6 @@
 'use client'
 
+import { passiveTrainingWindowLabel } from '@aurevane/game-core/character/wayfarers-practice'
 import { GameButton, Kicker } from '@aurevane/ui'
 import { useRouter } from 'next/navigation'
 import { useRef, useState } from 'react'
@@ -11,7 +12,7 @@ export type TrainingReportPracticeWindow = 'short' | 'overnight' | 'extended'
 export interface TrainingReportCardData {
   reportId: string
   characterId: string
-  practiceSource: 'automatic_balanced' | 'planned_balanced'
+  practiceSource: 'automatic_balanced' | 'planned_balanced' | 'passive_training'
   plannedWindow: TrainingReportPracticeWindow | null
   plannedWindowSeconds: number | null
   plannedElapsedSeconds: number
@@ -63,62 +64,70 @@ export function TrainingReportCard({ report }: TrainingReportCardProps) {
     }
   }
 
-  const planLabel = report.plannedWindow ? practiceWindowLabel(report.plannedWindow) : null
+  const passive = report.practiceSource === 'passive_training'
+  const planLabel = report.plannedWindow ? passiveTrainingWindowLabel(report.plannedWindow) : null
 
   return (
     <section className={styles.report} data-testid="training-report">
       <div className={styles.heading}>
         <div>
-          <Kicker marker="◇">Offline Training</Kicker>
-          <h2>Training Report</h2>
+          <Kicker marker="◇">{passive ? 'Passive Training' : 'Legacy Training'}</Kicker>
+          <h2>{passive ? 'Training Complete' : 'Training Report'}</h2>
         </div>
-        <span>{planLabel ? `Planned ${planLabel}` : 'Automatic Balanced'}</span>
+        <span>{planLabel ? `${planLabel} complete` : 'Legacy report'}</span>
       </div>
-      <p className={styles.intro}>
-        While you were away, your character completed a modest routine. This report is frozen and
-        waits safely until you claim it.
-      </p>
-      <dl className={styles.rewards}>
-        <div>
-          <dt>Absence measured</dt>
-          <dd>{formatPracticeDuration(report.elapsedSeconds)}</dd>
-        </div>
-        <div>
-          <dt>Training time credited</dt>
-          <dd>{formatPracticeDuration(report.creditedPracticeSeconds)}</dd>
-        </div>
-        <div>
-          <dt>Character XP</dt>
-          <dd>+{report.requestedCharacterXp.toLocaleString('en-US')}</dd>
-        </div>
-        <div>
-          <dt>Rested Momentum</dt>
-          <dd>+{report.restedMomentumGain.toLocaleString('en-US')}</dd>
-        </div>
-      </dl>
-      {report.practiceSource === 'planned_balanced' && planLabel && report.plannedWindowSeconds ? (
-        <p className={styles.capNote} data-testid="practice-plan-provenance">
-          {`Your ${planLabel} plan covered ${formatPracticeDuration(report.plannedElapsedSeconds)}. `}
-          {report.balancedFallbackSeconds > 0
-            ? `${formatPracticeDuration(report.balancedFallbackSeconds)} beyond the plan continued as Balanced Training.`
-            : 'Only legitimate elapsed time was counted.'}
-        </p>
+
+      {passive ? (
+        <>
+          <p className={styles.intro}>
+            The server completed this training block. The reward is frozen until you claim it.
+          </p>
+          <dl className={styles.rewards} data-testid="passive-training-reward">
+            <div>
+              <dt>Training duration</dt>
+              <dd>{formatPracticeDuration(report.elapsedSeconds)}</dd>
+            </div>
+            <div>
+              <dt>Character XP</dt>
+              <dd>+{report.requestedCharacterXp.toLocaleString('en-US')}</dd>
+            </div>
+          </dl>
+        </>
       ) : (
-        <p className={styles.capNote} data-testid="practice-plan-provenance">
-          This absence used automatic Balanced Training.
-        </p>
+        <>
+          <p className={styles.intro}>
+            This report was created under the earlier offline-practice rules. It remains frozen and
+            safe to claim; new training now uses explicit Passive Training plans.
+          </p>
+          <dl className={styles.rewards}>
+            <div>
+              <dt>Time measured</dt>
+              <dd>{formatPracticeDuration(report.elapsedSeconds)}</dd>
+            </div>
+            <div>
+              <dt>Training credited</dt>
+              <dd>{formatPracticeDuration(report.creditedPracticeSeconds)}</dd>
+            </div>
+            <div>
+              <dt>Character XP</dt>
+              <dd>+{report.requestedCharacterXp.toLocaleString('en-US')}</dd>
+            </div>
+            <div>
+              <dt>Rested Momentum</dt>
+              <dd>+{report.restedMomentumGain.toLocaleString('en-US')}</dd>
+            </div>
+          </dl>
+          <p className={styles.capNote} data-testid="practice-plan-provenance">
+            Legacy training provenance is preserved for this already-created report.
+          </p>
+        </>
       )}
-      {report.directXpCapReached || report.restedMomentumCapReached ? (
-        <p className={styles.capNote}>
-          {report.directXpCapReached ? 'The direct training bank reached its current cap. ' : ''}
-          {report.restedMomentumCapReached ? 'Rested Momentum also reached its current cap.' : ''}
-        </p>
-      ) : null}
+
       <div className={styles.actions}>
         <GameButton disabled={submitting} onClick={claimTraining} type="button">
-          {submitting ? 'Claiming…' : 'Claim training'}
+          {submitting ? 'Claiming…' : 'Claim Training'}
         </GameButton>
-        <span>Claims do not expire and cannot be duplicated by refreshing or retrying.</span>
+        <span>Claims are idempotent: refreshing or retrying cannot duplicate the reward.</span>
       </div>
       {errorMessage ? (
         <p className={styles.error} role="status" aria-live="polite">
@@ -137,15 +146,4 @@ export function formatPracticeDuration(totalSeconds: number): string {
   if (days > 0) return `${days}d ${hours}h`
   if (hours > 0) return `${hours}h ${minutes}m`
   return `${minutes}m`
-}
-
-function practiceWindowLabel(window: TrainingReportPracticeWindow): string {
-  switch (window) {
-    case 'short':
-      return 'Short'
-    case 'overnight':
-      return 'Overnight'
-    case 'extended':
-      return 'Extended'
-  }
 }

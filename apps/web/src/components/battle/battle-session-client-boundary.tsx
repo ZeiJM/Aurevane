@@ -4,6 +4,7 @@ import type { ImageAssetId } from '@/media/registry'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
 import { BattleExperienceV2 } from './battle-experience-v2'
+import { BattleFeedbackAssist } from './battle-feedback-assist'
 import { BattleKeyboardAssist } from './battle-keyboard-assist'
 import { BattleRuntimeProvider } from './battle-runtime-context'
 
@@ -11,12 +12,14 @@ interface BattleSessionClientBoundaryProps {
   initialBattle: BattleSessionView
   playerName: string
   playerPortraitAssetId: ImageAssetId
+  playerProfileImageUrl?: string | null
 }
 
 export function BattleSessionClientBoundary({
   initialBattle,
   playerName,
   playerPortraitAssetId,
+  playerProfileImageUrl = null,
 }: BattleSessionClientBoundaryProps) {
   return (
     <BattleRuntimeProvider playerName={playerName}>
@@ -25,7 +28,8 @@ export function BattleSessionClientBoundary({
         playerName={playerName}
         playerPortraitAssetId={playerPortraitAssetId}
       />
-      <BattleKeyboardAssist />
+      <BattleKeyboardAssist playerName={playerName} />
+      <BattleFeedbackAssist playerName={playerName} playerProfileImageUrl={playerProfileImageUrl} />
     </BattleRuntimeProvider>
   )
 }

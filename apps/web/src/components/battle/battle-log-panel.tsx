@@ -142,7 +142,7 @@ function LogPanel({
       <header>
         <div>
           <strong>Combat Log</strong>
-          <span>One entry per committed action · newest first</span>
+          <span>Committed action summaries · newest first</span>
         </div>
         {onClose ? (
           <button
@@ -167,13 +167,8 @@ function LogPanel({
         <ol>
           {actionGroups.map((group) => (
             <li key={group.battleVersion}>
-              <span>v{group.battleVersion}</span>
               <div className={styles.actionEntry}>
-                {group.entries.map((entry) => (
-                  <p key={`${entry.battleVersion}:${entry.eventIndex}`}>
-                    {personalizeBattleMessage(entry.message, playerName)}
-                  </p>
-                ))}
+                <p>{summarizeCommittedAction(group.entries, playerName)}</p>
               </div>
             </li>
           ))}
@@ -199,6 +194,27 @@ function groupEntriesByCommittedVersion(entries: BattleLogView['entries']) {
   }
 
   return groups
+}
+
+function summarizeCommittedAction(entries: BattleLogView['entries'], playerName?: string): string {
+  const personalized = entries.map((entry) => personalizeBattleMessage(entry.message, playerName))
+  const meaningful = personalized.filter((message) => !isBookkeepingMessage(message))
+  const source = meaningful.length > 0 ? meaningful : personalized
+  const unique = source.filter((message, index) => source.indexOf(message) === index)
+  if (unique.length === 0) return 'Combat state advanced.'
+  return unique.slice(0, 3).join(' · ')
+}
+
+function isBookkeepingMessage(message: string): boolean {
+  return (
+    /^Round \d+ began\.?$/i.test(message) ||
+    /activation began/i.test(message) ||
+    /ended the activation/i.test(message) ||
+    /ended facing/i.test(message) ||
+    /chose facing/i.test(message) ||
+    /chose (an? )?.*opportunity/i.test(message) ||
+    /spent \d+ Movement/i.test(message)
+  )
 }
 
 function personalizeBattleMessage(message: string, playerName?: string): string {

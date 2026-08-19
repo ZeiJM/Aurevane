@@ -53,23 +53,25 @@ Important build-enabling power must recur or have alternate paths. Do not add de
 
 ## Offline Progression / Return Loop Rule
 
-AUREVANE includes **Wayfarer's Practice**, a secondary offline-training and rested-progression system defined in `docs/OFFLINE_PROGRESSION.md`.
+AUREVANE includes **Passive Training**, a secondary offline-training and rested-progression system defined in `docs/OFFLINE_PROGRESSION.md`.
 
-Time away should produce a modest Training Report containing bounded Character XP, eligible Discipline Mastery, and/or Rested Momentum so returning players feel that their permanent character kept moving forward.
+Explicit Passive Training should produce a modest Training Report when a chosen server-timed block completes. Simply being offline or idle does not create rewards. The current foundation grants bounded Character XP; eligible Discipline Mastery and Rested Momentum are later extensions when their dependent systems exist.
 
 The system must:
 
-- help players who cannot play every day;
-- create a satisfying “come back and claim” moment;
-- use a generous multi-day direct bank rather than exact-hour login pressure;
-- feed the player's next active session through Rested Momentum;
+- require an explicit Short / Medium / Extended player choice before a block begins;
+- use server-owned start/completion times and rewards;
+- keep shorter plans more efficient per hour while longer plans trade efficiency for convenience;
+- allow the unfinished block to be stopped without a partial reward;
+- prevent new Battle Hall fights while active without requiring the player to log out;
 - remain weaker than engaged active progression;
 - never complete story, quests, boss/Expedition clears, PvP rank, Confluence discovery, Soulmark milestones, Horizon trials, endgame rites, or other accomplishments that require actual play;
 - never become a paid progression accelerator;
 - calculate elapsed time and rewards server-side with idempotent claims;
-- avoid continuous per-character background jobs when a deterministic timestamp calculation can do the work cleanly.
+- avoid continuous per-character background jobs when a deterministic completion timestamp can do the work cleanly.
+- never infer training from logout state, tab state, browser presence, client clocks, or client-submitted elapsed time.
 
-Wayfarer's Practice supports the six-month journey but does not become the reason the journey takes six months.
+Passive Training supports the six-month journey but does not become the reason the journey takes six months.
 
 ## Tactical Combat Rule
 
@@ -209,7 +211,7 @@ The complete Master Panel remains Phase 13, but **operational tooling does not w
 
 Each major system should ship with the minimum safe owner/staff controls required to operate that system. In particular, when the world and continuing story arrive in Phase 5, AUREVANE also gains a safe Event/Story operations slice so authorized staff can make the world change without routine code deployments.
 
-Role/permission architecture, auditability, versioning, staging/preview, rollback, narrative canon controls, progression configuration, Wayfarer's Practice configuration, item/effect/loadout/loot version safety, combat-content version safety, combat-AI profile/version safety, Rekindling rules, Veteran Edge, lore publication, and player-support mutation commands must grow progressively and remain server-authoritative.
+Role/permission architecture, auditability, versioning, staging/preview, rollback, narrative canon controls, progression configuration, Passive Training configuration, item/effect/loadout/loot version safety, combat-content version safety, combat-AI profile/version safety, Rekindling rules, Veteran Edge, lore publication, and player-support mutation commands must grow progressively and remain server-authoritative.
 
 The Owner is the highest game-operations authority. The final Master Panel must provide broad operational control over game configuration, users, entitlements, staff roles, special permissions, progression corrections, inventory/equipment/effects/loot/acquisition, economy/content corrections, story flags, events, combat actions/statuses/terrain/maps/scenarios, combat-AI profiles/testing, PvP, Rekindling, lore, and emergency controls through validated and audited domain commands rather than exposing raw production credentials.
 
@@ -255,13 +257,13 @@ Goal: establish a production-grade project skeleton before game mechanics multip
 - initial Build / Armory experience as required by current character scope;
 - initial Discipline/Mastery data boundaries that can later express Art Curriculum/acquisition requirements without implementing the combat engine early;
 - presentation hooks for early narrative identity without prematurely revealing the Aurevane mystery;
-- Wayfarer's Practice foundation after normal Character XP exists: authoritative activity/accrual timestamps, Balanced Practice, deterministic elapsed-time calculation, direct Character XP Training Report, Rested Momentum representation, idempotent claim command, basic Training Report UI, and telemetry.
+- Passive Training foundation after normal Character XP exists: explicit Short / Medium / Extended plans, authoritative server start/completion timestamps, decreasing hourly efficiency for longer plans, deterministic Character XP completion rewards, stop-without-partial-reward behavior, new-battle exclusion while active, idempotent claim command, basic Training Report UI/countdown, legacy-report compatibility, and telemetry.
 
 Do not implement full Rekindling yet, but do not hard-code progression in a way that makes Horizon pacing or later resets impossible.
 
 Do not force complete three-preset loadouts in Phase 1 if Arts/Traits/Soulmarks do not exist yet; establish clean boundaries and complete the presets once the dependent build systems arrive.
 
-Wayfarer's Practice is a focused Phase 1 progression ticket and is **not part of F0.4**.
+Passive Training is a focused Phase 1 progression ticket and is **not part of F0.4**.
 
 **Gate:** a player can create and persist a valid character, own and equip foundational gear through authoritative state, and the progression/inventory model has the boundaries needed for later rested/offline progression, item categories, and complete saved builds without trusting client state/time.
 
@@ -350,7 +352,7 @@ Do **not** implement every targeting shape, full Reaction framework, complete Co
 - lore-aware but spoiler-safe metadata hooks for Soulmarks and Confluences where later story requires them;
 - telemetry needed to understand Discipline/Soulmark/Confluence progression by character age;
 - build snapshot concepts needed later by Hall of Selves/Rekindling history;
-- extend Wayfarer's Practice with Discipline Focus, eligible offline Mastery accrual, configurable offline Mastery ceiling, mastery-trial guardrails, and Mastery-source telemetry;
+- extend Passive Training with Discipline Focus, eligible offline Mastery accrual, configurable offline Mastery ceiling, mastery-trial guardrails, and Mastery-source telemetry;
 - make combat AI understand reusable effects, item effects, target rules, statuses, resources, Arts, Traits, Reactions, Movement Arts, engagement range, terrain, basic setup/payoff combinations, and legal build interactions;
 - add versioned behavior archetype/profile data and stronger intelligence grades where the combat engine supports them cleanly;
 - extend Tactical Hall records to Discipline-aware sparring opponents and let players select their legal saved loadouts without exposing locked/unreleased builds;
@@ -374,7 +376,7 @@ Build representative battle scenes/maps that exercise different terrain, range, 
 
 Character-building content should reinforce the theme that players can grow and combine identities through deliberate mastery without turning every Discipline into secret Aurevane lore.
 
-Begin validating progression pacing against expected six-month targets rather than tuning only for short-term vertical slices. Include Wayfarer's Practice and Rested Momentum in pacing simulations so offline assistance does not accidentally trivialize the journey.
+Begin validating progression pacing against expected six-month targets rather than tuning only for short-term vertical slices. Include Passive Training and Rested Momentum in pacing simulations so offline assistance does not accidentally trivialize the journey.
 
 Expand the Tactical Hall with Recruit/Trained/Veteran representative opponents, progression-gated Tactical Records, useful scenario presets, saved/repeatable drills, terrain/facing/targeting/loadout exercises, and the first Battle Review foundation. Establish curated AI/combat/item-effect benchmark board states and begin human fairness/readability/fun testing.
 
@@ -399,7 +401,7 @@ Expand this phase with the minimum systems required for a genuinely living onlin
 - event scheduling and worker-driven transitions;
 - **World Pulse** showing what is happening now and what changed since the last login;
 - integrate Training Report / Rested Momentum into the “Since you were away” return summary without claiming live-event attendance for absent players;
-- returning-player objectives and event-aftermath links that complement Wayfarer's Practice;
+- returning-player objectives and event-aftermath links that complement Passive Training;
 - announcements/world activity feed;
 - event-linked encounters, quests, NPC states, objectives, modifiers, rewards, and map markers;
 - urgency/recurrence metadata for time-limited events, rotating encounters, first-witness recognition, and aftermath;
@@ -570,7 +572,7 @@ This phase also expands late-cycle build depth so the first 180-day journey has 
 - item/equipment/consumable/economy telemetry;
 - Rekindling reset/preserve rules must not accidentally delete purchases, permanent cosmetics, or account ownership;
 - recurring acquisition paths for important competitive build components that previously appeared in limited-time content;
-- verify Wayfarer's Practice remains non-tradable/non-inflationary by default and does not become a passive marketplace-resource farm;
+- verify Passive Training remains non-tradable/non-inflationary by default and does not become a passive marketplace-resource farm;
 - verify Practice Arena custom battles remain isolated from normal loot/currency/economy output and cannot become a zero-risk farming route.
 
 **Gate:** normal item acquisition, ownership, storage, equipment, crafting/trade/store loops are coherent and server-authoritative, and the economy can move meaningful items without creating duplication, key-item loss, or inventory-management misery.
@@ -608,14 +610,14 @@ Some operational functionality exists earlier alongside the systems it controls.
 - audio manager;
 - Asset Studio;
 - Balance Lab and safe quick edits;
-- **Combat Content Studio** with authorized Art/Trait/Reaction/Movement/Ultimate/Confluence/Soulmark combat editing, weapon attack profiles, statuses, terrain/movement profiles, battle objects/summons, scenarios/objectives, map/scene data, typed Target/Requirement/Effect builders, visual targeting preview, test-character battle launch, content completeness validation, dependency/impact preview, mode overrides, staged publish, rollback, emergency disable, permissions, and audit;
+- **Combat Content Studio** with authorized Art/Trait/Reaction/Movement/Ultimate/Confluence/Soulmark combat editing, weapon attack profiles, statuses, terrain/movement profiles, battle objects/summons, scenarios/objectives, map/scene data, typed Target/Requirement/Effect builders, editable player-facing names/descriptions/help text tied to those definitions, visual targeting preview, test-character battle launch, content completeness validation, dependency/impact preview, mode overrides, staged publish, rollback, emergency disable, permissions, and audit;
 - **Item Studio / Effect Catalog** with item/equipment/consumable/material/key-item definitions, typed triggers/effects, Action Cost Classes, item target previews, sets, binding/unique rules, acquisition graph, loot/vendor/crafting relationships, PvP overrides, test equip/test battle, effect/power-budget warnings, dependency/impact preview, live ownership/loadout/listing impact, staged publish, retirement/migration, rollback, emergency disable, permissions, and audit;
 - item/loadout analytics for ownership/equip rates, build pairings, effect trigger/value, combat-item use, replacement behavior, acquisition sources, loadout invalidity/switching, marketplace economy, and map/matchup context;
 - combat analytics for slot/cast/use/effect efficiency, map/terrain heatmaps, objective performance, matchup/build data, Reaction trigger/value, timer/timeout behavior, battle length, and other balance evidence;
 - **Combat AI Lab** with authorized profile inspection/editing, profile-to-enemy assignment inspection, deterministic seed replay, unrestricted supported QA scenarios, AI-vs-AI/team-vs-team, batch simulations, matchup matrices, benchmark-suite runner, decision/performance analytics, staged publish, version diff/rollback, and per-profile emergency fallback/disable controls;
 - Tactical Record configuration for unlock requirements, intelligence-grade caps, level/stat ranges, scenario access, and spoiler visibility;
-- **Pacing Simulator** for XP/Horizon/180-day projections, including different Wayfarer's Practice absence patterns and Rested Momentum use;
-- progression configuration for XP/Mastery curves, level cap, Horizon age/milestone gates, rested/catch-up rules, Wayfarer's Practice focus/accrual/caps/Mastery ceilings, Rested Momentum, Art Curriculum/acquisition requirements where content-controlled, and endgame qualification;
+- **Pacing Simulator** for XP/Horizon/180-day projections, including different Passive Training absence patterns and Rested Momentum use;
+- progression configuration for XP/Mastery curves, level cap, Horizon age/milestone gates, rested/catch-up rules, Passive Training focus/accrual/caps/Mastery ceilings, Rested Momentum, Art Curriculum/acquisition requirements where content-controlled, and endgame qualification;
 - offline-progression analytics for claim rate, claim-to-session conversion, direct-vs-active XP/Mastery share, cap frequency, return rate, and Horizon impact;
 - retention/urgency configuration for event cadence, recurrence, first-witness rewards, rotations, World Pulse priority, and aftermath;
 - Rekindling configuration for eligibility, reset/preserve rules, Memory Carryover, cycle length, and support corrections;
@@ -667,7 +669,7 @@ This is a dedicated production pass, not permission to postpone all media until 
 - Unmoored-world VFX that remain readable rather than becoming visual noise;
 - Rekindling/Hall of Selves presentation;
 - Archive/document/relic presentation that makes lore discovery feel premium rather than like plain database text;
-- Training Report / Wayfarer's Practice return presentation polished to feel like character growth rather than a mobile-game claim box;
+- Training Report / Passive Training return presentation polished to feel like character growth rather than a mobile-game claim box;
 - Tactical Hall, Practice Arena configuration, intelligence-grade presentation, Battle Review, and training-environment visuals/audio polished to feel like an integrated game feature rather than a developer debug screen.
 
 Media required to make earlier testing coherent should already be introduced through the request pipeline during prior phases.
@@ -701,7 +703,7 @@ Media required to make earlier testing coherent should already be introduced thr
 - live-event scheduling/recovery testing;
 - spoiler/canon publication-path review for production narrative operations;
 - progression/Horizon boundary tests;
-- Wayfarer's Practice server-time, accrual-cap, focus-change, Mastery-ceiling, idempotency/double-claim, reconnect, long-absence, multi-character, and economy-isolation tests;
+- Passive Training server-time, accrual-cap, focus-change, Mastery-ceiling, idempotency/double-claim, reconnect, long-absence, multi-character, and economy-isolation tests;
 - verify offline progression is calculated efficiently without unnecessary continuous per-character jobs or client polling;
 - combat movement/path/terrain/elevation property tests and worst cases;
 - target-kind/shape/range/LoS/height/filter/friendly-fire/multistage/secondary-target-policy tests for implemented grammar;
@@ -729,7 +731,7 @@ Before Rekindling becomes a normal production feature, validate:
 - reaching the gate requires real gameplay milestones, not only character age;
 - levels 1–100 and build progression remain rewarding throughout the journey;
 - equipment/item discovery continues creating useful new build options rather than only numerical replacement churn;
-- returning-player catch-up and Wayfarer's Practice help recovery without bypassing the long-horizon endpoint;
+- returning-player catch-up and Passive Training help recovery without bypassing the long-horizon endpoint;
 - offline XP/Mastery remains a modest contributor and cannot replace accomplishment-based progression;
 - Practice Arena battles do not provide a low-risk shortcut around active progression or economy acquisition;
 - enough PvE/PvP/world/story/lore content exists that the six-month journey is not filler;

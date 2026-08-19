@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useRef, useState } from 'react'
+import { usePathname } from 'next/navigation'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import styles from './navigation-menu.module.css'
 
@@ -10,14 +11,25 @@ const navigation = [
   { href: '/game/battle', label: 'Battle Hall', detail: 'Practice fights and combat' },
   {
     href: '/game/training',
-    label: "Wayfarer's Practice",
-    detail: 'Plan modest progress while away',
+    label: 'Passive Training',
+    detail: 'Start a timed background training plan',
+  },
+  {
+    href: '/game/online',
+    label: 'Online Users',
+    detail: 'Characters active in the last 10 minutes',
   },
 ] as const
 
 export function NavigationMenu() {
+  const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const menuRef = useRef<HTMLElement>(null)
+  const visibleNavigation = useMemo(
+    () =>
+      navigation.filter((item) => pathname !== item.href && !pathname.startsWith(`${item.href}/`)),
+    [pathname],
+  )
 
   useEffect(() => {
     const menu = menuRef.current
@@ -51,7 +63,7 @@ export function NavigationMenu() {
         <span aria-hidden="true">◇</span> Navigation
       </button>
       <nav ref={menuRef} popover="auto" className={styles.menu} aria-label="Game navigation">
-        {navigation.map((item) => (
+        {visibleNavigation.map((item) => (
           <Link key={item.href} href={item.href} onClick={closeMenu}>
             <strong>{item.label}</strong>
             <small>{item.detail}</small>

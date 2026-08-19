@@ -21,7 +21,7 @@ const overrides: Record<string, ManualArticle> = {
         title: 'What is AUREVANE?',
         paragraphs: [
           'AUREVANE is an original persistent browser-based tactical fantasy RPG. Your account owns durable character identities, settings, progression, and server-authoritative game state rather than a disposable browser save.',
-          'The current preview includes account entry, a three-slot character roster, character creation and profile systems, Character XP, Wayfarer’s Practice, and the first playable Battle Hall tactical combat slice.',
+          'The current preview includes account entry, a three-slot character roster, character creation and profile systems, Character XP, Passive Training, Online Users, and the first playable Battle Hall tactical combat slice.',
         ],
       },
       {
@@ -34,7 +34,7 @@ const overrides: Record<string, ManualArticle> = {
           'Open a compact character profile with server-calculated derived stats and profile identity badges.',
           'Set the current character’s one personal title from Account → Titles & Profile Display.',
           'Progress through the versioned Character XP and level foundation.',
-          'Set a Wayfarer’s Practice plan and receive bounded progress based on legitimate server-measured time away.',
+          'Explicitly start Short, Medium, or Extended Passive Training and receive a bounded server-timed Character XP reward when that block completes.',
           'Enter Battle Hall for movement, Basic Attack, Guard, Recover, final facing, Recruit AI, combat logs, and practice battles.',
         ],
       },
@@ -42,7 +42,7 @@ const overrides: Record<string, ManualArticle> = {
         id: 'navigation',
         title: 'Finding things',
         paragraphs: [
-          'Manual, News, and Rules live in the authenticated header. Account contains audio, Controls & Keybinds, Titles & Profile Display, Switch Character, and sign-out. The compact footer Navigation menu contains Profile, Battle Hall, and Wayfarer’s Practice.',
+          'Manual, News, and Rules live in the authenticated header. Account contains audio, Controls & Keybinds, Titles & Profile Display, Switch Character, and sign-out. The compact footer Navigation menu contains the destinations other than the page you are currently viewing, including Profile, Battle Hall, Passive Training, and Online Users where applicable.',
           'Normal game screens show a small circular portrait beside the green screen-name indicator in the shared header. The AUREVANE A-in-diamond remains the brand crest. Active battle uses its own combat HUD instead of the shared screen header.',
         ],
       },
@@ -153,38 +153,47 @@ const overrides: Record<string, ManualArticle> = {
   'wayfarers-practice': {
     id: 'manual.wayfarers-practice',
     slug: 'wayfarers-practice',
-    title: 'Wayfarer’s Practice',
+    title: 'Passive Training',
     summary:
-      'Set a practice plan, leave normally, and receive bounded progress for legitimate time away.',
+      'Explicitly start a server-timed background training block for modest Character XP while you are busy or AFK.',
     category: 'Progression',
     lastUpdated: LAST_UPDATED,
-    rulesVersion: 'Wayfarer’s Practice preview',
+    rulesVersion: 'Passive Training v1',
     body: [
       {
         id: 'simple-flow',
-        title: 'Set a plan, leave, return',
+        title: 'Choose a duration, then train',
         paragraphs: [
-          'Wayfarer’s Practice is not a second game mode and it is not a browser countdown. Before leaving, you may choose a Short, Overnight, or Extended planning window. Then leave normally.',
-          'After the normal offline threshold, the server measures legitimate elapsed time from server-controlled timestamps. When you return, eligible progress is summarized in a Training Report. If you leave without choosing a window, Balanced Practice remains the safe default.',
+          'Passive Training never starts automatically. Choose Short, Medium, or Extended and the server records the authoritative start time, duration, and completion reward. Staying signed in, going AFK, closing the browser, or returning early does not change that timer.',
+          'The current completion rewards are Character XP only. Short runs for 3 hours at 10 XP per hour, Medium for 8 hours at 7 XP per hour, and Extended for 24 hours at 4 XP per hour. Longer blocks give more total XP but deliberately lower hourly efficiency.',
         ],
       },
       {
-        id: 'planning-not-promise',
-        title: 'The plan is an estimate, not a promise',
+        id: 'while-training',
+        title: 'What stays available while training',
         paragraphs: [
-          'Return earlier than planned and only eligible time actually spent away can count. Stay away longer and remaining eligible time safely falls back to Balanced Practice. Device-clock changes cannot manufacture offline progress.',
+          'Passive Training is intended for background use, not forced logout. Profile, account, Manual, News, Rules, Online Users, and social/chat surfaces may remain available while a block is active.',
+          'Starting a new Battle Hall fight is disabled until the training block completes or you stop it. Stopping early clears the unfinished block and grants no partial reward.',
+        ],
+      },
+      {
+        id: 'completion',
+        title: 'Completion and Training Reports',
+        paragraphs: [
+          'When the server-timed block reaches its completion boundary, AUREVANE freezes one Training Report. Claiming that report is idempotent and applies the server-calculated Character XP once.',
+          'Simply being offline or idle does not generate a report. Browser clocks, tab state, and client-submitted elapsed time are not reward authority.',
         ],
       },
       {
         id: 'guardrails',
-        title: 'What Wayfarer’s Practice cannot do',
+        title: 'What Passive Training cannot do',
         paragraphs: [
-          'Wayfarer’s Practice is deliberately bounded return support, not an idle-game replacement.',
+          'Passive Training is deliberately modest background progression, not an idle-game replacement.',
         ],
         bullets: [
           'It cannot complete story, quests, bosses, Expeditions, or event participation.',
           'It cannot grant PvP rank, Confluences, Soulmarks, Archive discoveries, rare equipment, economy output, or Rekindling eligibility.',
-          'It cannot use client-clock changes or repeated claim submissions to farm the same absence window.',
+          'It cannot use client-clock changes, logout tricks, or repeated claim submissions to manufacture extra rewards.',
         ],
       },
     ],
@@ -202,7 +211,7 @@ const overrides: Record<string, ManualArticle> = {
         id: 'combat',
         title: 'Can I play tactical combat?',
         paragraphs: [
-          'Yes. Battle Hall currently exposes the first player-facing tactical slice: movement, Basic Attack, Guard, Recover, final facing, Recruit AI, combat logs, and practice-battle completion. It remains a focused preview rather than the final breadth of AUREVANE combat.',
+          'Yes. Battle Hall currently exposes the first player-facing tactical slice: movement, Basic Attack, Guard, Recover, final facing, AI opponent turns, combat logs, and practice-battle completion. It remains a focused preview rather than the final breadth of AUREVANE combat.',
         ],
       },
       {
@@ -248,7 +257,7 @@ const overrides: Record<string, ManualArticle> = {
         id: 'battle-hall-term',
         title: 'Battle Hall',
         paragraphs: [
-          'The current practice-combat destination for training fights and Recruit duels using the authoritative tactical rules.',
+          'The current practice-combat destination for focused drills and AI Sparring using the authoritative tactical rules.',
         ],
       },
       {
@@ -269,7 +278,7 @@ const overrides: Record<string, ManualArticle> = {
         id: 'rested-momentum-term',
         title: 'Rested Momentum',
         paragraphs: [
-          'A bounded return-support value associated with Wayfarer’s Practice. It does not complete major content while you are away.',
+          'A future bounded return-support concept. The current Passive Training foundation grants Character XP only; Rested Momentum is not part of the current player reward path.',
         ],
       },
       {
@@ -296,7 +305,7 @@ const battleHallArticle: ManualArticle = {
       id: 'entering',
       title: 'Entering Battle Hall',
       paragraphs: [
-        'Battle Hall offers focused training fights and a Recruit duel. Choose the battle and press Enter Battle. Active combat uses its own immersive battle HUD rather than the normal shared game header.',
+        'Battle Hall starts neutral with no fight preselected. AI Sparring is the first full training duel, while focused movement, strike, and guard drills remain available. Future 1v1, 2v2, and 3v3 player sparring is represented only as unavailable shell UI until multiplayer combat exists.',
       ],
     },
     {
@@ -319,7 +328,7 @@ const battleHallArticle: ManualArticle = {
       id: 'facing',
       title: 'Final facing and the opponent turn',
       paragraphs: [
-        'Finish Turn asks for north, east, south, or west facing. Choosing the direction commits that facing and ends your turn. The Recruit then resolves its server-authoritative turn before control returns to you if the battle is still active.',
+        'Finish Turn asks for north, east, south, or west facing. Choosing the direction commits that facing and ends your turn. The AI opponent then resolves its server-authoritative turn before control returns to you if the battle is still active.',
       ],
     },
     {

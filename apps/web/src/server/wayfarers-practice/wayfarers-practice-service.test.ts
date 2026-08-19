@@ -65,7 +65,7 @@ function status(
     userId,
     focus: 'balanced',
     configVersion: 1,
-    minimumOfflineSeconds: 60 * 60,
+    minimumOfflineSeconds: 0,
     restedMomentumBalance: 12,
     plannedWindow: null,
     plannedWindowConfigVersion: null,

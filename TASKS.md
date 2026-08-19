@@ -1,6 +1,6 @@
 # AUREVANE — Active Task Ledger
 
-This file is intentionally concise. It reports the **current implementation/validation boundary**; it does not duplicate the historical implementation diary. Detailed completed-ticket history remains available in Git history, merged PRs, issues, phase ticket specs, and release records.
+This file is intentionally concise. It reports the **current implementation/validation boundary**; it does not duplicate the historical implementation diary. Detailed completed-ticket history remains in Git history, merged PRs/issues, phase ticket specs, and release records.
 
 The Master Game Plan defines the product. The Roadmap defines sequence. Canonical domain documents define system rules. `docs/PROJECT_GOVERNANCE_AND_COMPLEXITY.md` defines authority routing, reconciliation, complexity, and delivery discipline. This file reports what is actually active now.
 
@@ -8,96 +8,60 @@ The Master Game Plan defines the product. The Roadmap defines sequence. Canonica
 
 **Stage:** PV-1 — Owner Feedback Correction / Tactical Combat Human Retest
 
-**ACTIVE VALIDATION GATE:** issue #105 — PV-1C Conduct Tactical Combat Human/Internal Validation — **BLOCKED ON THE CURRENT A1 CORRECTION BEING VERIFIED AND DEPLOYED**
+**ACTIVE VALIDATION GATE:** issue #105 — PV-1C Conduct Tactical Combat Human/Internal Validation — **BLOCKED ON THE CURRENT A2 CORRECTION BEING VERIFIED AND DEPLOYED**
 
-**ACTIVE IMPLEMENTATION TICKET:** owner-directed A1 feedback correction; no separate issue currently owns this patch
+**ACTIVE IMPLEMENTATION TICKET:** owner-directed A2 feedback correction; no separate issue currently owns this patch
 
-**ACTIVE IMPLEMENTATION PR:** #122 — A1 feedback: holistic UX, character, battle, and navigation patch
+**ACTIVE IMPLEMENTATION PR:** #123 — A2 feedback: holistic battle, profile, navigation, and passive training pass
 
-PV-1F / issue #112 / PR #115 remains merged corrective history. Owner review after that build identified a further coherent set of navigation, character-model, terminology, readability and battle-economy corrections. PR #122 is the active implementation boundary for those changes.
+PR #122 / A1 is merged corrective history. Owner review after that build identified one further coherent A2 pass across battle readability, profile identity, navigation/social presence, titles, and background training. PR #123 is the active implementation boundary.
 
-Substantial Phase 3 implementation remains blocked. Automated checks may prove implementation safety, but only real human retesting on the corrected deployed build can reopen the PV-1 product decision.
+Substantial Phase 3 implementation remains blocked. Automated checks prove implementation safety only; real human retesting on the corrected deployed build is still required for the PV-1 product decision.
 
-## A1 owner-feedback correction — active verification
+## A2 owner-feedback correction — active verification
 
-PR #122 currently implements:
+PR #123 currently implements:
 
-- preservation of the AUREVANE diamond **A** brand crest plus a bordered mini character portrait and green screen-identity cluster on authenticated non-battle game headers;
-- News, Manual and Rules keeping the same screen-name identity treatment while remaining public, with the active character portrait and Return to Game affordance appearing when an authenticated character is selected;
-- the active battle screen remaining outside that shared screen-identity pattern so its combat HUD owns the top-level context;
-- condensed authenticated navigation through a **Navigation** menu, with profile/game destinations separated from account/settings actions and its menu promoted into the native browser top layer above page content;
-- **Battle Hall** as the current player-facing name for the tactical practice area;
-- **Wayfarer's Practice** restored as the player-facing absence-protection/training name, with a clearer plan-away → leave normally → return-to-report ritual;
-- six core attributes — Might, Finesse, Vitality, Agility, Intellect and Resolve — wired through creation, persistence, profile reads, derived stats and battle character loading;
-- three character slots plus a server-authoritative one-hour return cooldown after swapping away from a character;
-- character creation obeying that same selection/cooldown authority instead of providing a swap bypass;
-- one permanent cosmetic personal-title claim per character under Account, with server validation, collision protection and server-only read/write RPC boundaries;
-- compact News, Manual, Rules, Controls & Keybinds, Character Profile, Character Select, Battle Hall, Wayfarer's Practice and login/account-entry presentation;
-- desktop/laptop regression coverage requiring Account Entry, News, Profile, Battle Hall, Controls, Wayfarer's Practice and Character Select to fit their intended initial viewport without page scrollbars;
-- an authoritative **100-point Action Economy** with Move = 25 AP per normal terrain-cost unit and rough ground = 50 AP, while Basic Attack = 30 AP, Guard = 30 AP and Recover = 50 AP;
-- battle action proposals with glowing provisional AP depletion, consistent AP wording, neutral initial action state, clearer terrain/Inspect feedback, compact combatant rails, self-chat promoted into the native browser top layer with an explicit in-panel Close control, double-click/tap quick commit for target and self actions with self-action proposals preserved across the second tap, Battle Log grouping/access and current action naming;
-- mobile battle footer/command controls kept in normal document flow so the footer cannot cover command buttons, while desktop/laptop battle remains viewport-contained;
-- current Manual content aligned with the six-attribute model, Discipline terminology, Battle Hall, character switching, titles and current player-facing terminology;
-- E2E expectations reconciled with the current Navigation, Wayfarer's Practice terminology, scaling, public-header identity and combat model.
+- Battle Hall starts neutral with no mode preselected; AI Sparring is an explicit first choice and future player-team-size controls are shown without pretending unavailable multiplayer exists;
+- smaller mirrored combatant rails, better portrait scaling, a centered battlefield, and the **Action Economy bar geometrically centered in the battle header above the map**;
+- clearer green/red attack-range and proposed-AP feedback, cleaner action hierarchy, condensed Combat Log summaries, corrected keyboard/keybind labels, directional keyboard movement, and Recover bound as the visible fifth action;
+- battle chat simplified to Chat, click-away dismissal, and a compact emoji picker while keeping the current solo surface honest about transport limitations;
+- custom cosmetic character profile image display carried into profile/battle presentation through server-managed profile-display state;
+- clearer title selection/personal-title presentation and future-safe title metadata without prematurely implementing broad earned-title progression;
+- authenticated Online Users/presence surface plus navigation cleanup;
+- **Passive Training** replacing automatic offline accrual for new sessions: explicit Short / Medium / Extended server-timed plans, decreasing hourly efficiency as duration grows, live synchronized countdown, completion reward, stop-without-partial-reward behavior, and no reward merely for being logged out/idle;
+- new Battle Hall fights blocked while Passive Training is active while non-combat profile/account/reference/social surfaces remain available;
+- legacy already-materialized Training Reports remain valid and claimable;
+- authoritative Passive Training and combat-description roadmap/spec language reconciled with implementation, including future Master Panel editing of player-facing combat names/descriptions tied to versioned mechanical definitions;
+- browser and database tests updated for the A2 behavior, including a desktop assertion that the Action Economy header is centered over the battlefield.
 
-The two new migrations for six-attribute/swap-cooldown state and personal titles have rebuilt successfully in GitHub infrastructure. Full quality, database/security and responsive browser gates are being rerun on the final **formatted, touch-safe, native-top-layer-corrected, public-header-complete, mobile-chat-close-safe, mobile-footer-flow-safe** branch head before PR #122 is considered review-ready.
+Temporary formatter/document-sync workflows used during correction have been removed. The exact final branch head must pass the normal quality, database/security, Battle Session DB, Passive Training DB, and responsive browser gates before PR #123 is review-ready.
 
-## PV-1F corrective history
+## Corrective history relevant to this work
 
-PV-1F was intentionally allowed to revise earlier combat baseline rules because the owner explicitly approved the revision during failed-product validation. Its merged correction established:
-
-- Character Select as the post-login gateway with three numbered character slots;
-- occupied/empty slot cards, server-authoritative selection and 24-hour confirmed character-deletion grace state;
-- one active gameplay login per account and one active battle per account;
-- Character Profile as the selected-character hub;
-- Tactical Hall / Recruit-practice infrastructure and Easy / Standard / High Recruit AI selection;
-- the authoritative 100-point Action Economy foundation;
-- Recover, Guard, Basic Attack and final-facing foundations;
-- compact battle cockpit foundations, combat logs and solo chat surface;
-- authoritative Abort Exercise compatibility and deletion/pending-character proofs.
-
-PR #122 supersedes conflicting **player-facing terminology and balancing values** from that PV-1F snapshot where the current owner-feedback correction explicitly changes them.
-
-## Human evidence driving this correction
-
-Recurring feedback across testers/owner included:
-
-- battlefield scale and page scale felt wrong even after the first correction;
-- player/enemy information was not organized like a readable game cockpit;
-- movement, terrain, elevation, Action Economy, Guard and attack results needed stronger immediate explanation;
-- the old action model still felt cumbersome;
-- character/account navigation was too document-like and duplicated information;
-- Wayfarer's Practice was not self-explanatory and its time display looked frozen;
-- character creation bonus allocation was mistaken for the fixed baseline;
-- character identity/profile presentation needed clearer hierarchy and more useful account controls;
-- simultaneous/mobile-laptop and character-switch boundaries needed to remain server-authoritative;
-- testers still did not demonstrate voluntary replay desire sufficient for a PV-1 pass.
-
-## Completed foundation relevant to this work
-
-- Phase 0 foundation and security hardening are complete.
-- Phase 1 character/profile/derived-stat/XP foundations are complete.
-- P1.6 Wayfarer's Practice + planned windows + Rested Momentum is complete; the active patch changes presentation/clarity without weakening authoritative reward provenance.
-- P1.7 public News/Manual/Rules foundation is complete; PR #122 updates current Manual content on top of that foundation.
+- Phase 0 and Phase 1 foundations are complete.
+- P1.6 established server-authoritative training/report/idempotency foundations; A2 intentionally changes the player-facing behavior for new training sessions from automatic absence accrual to explicit Passive Training while preserving legacy frozen-report compatibility.
+- P1.7 public News/Manual/Rules foundation is complete.
 - P2.1–P2.7 combat engine, persistence, battle UX, Recruit AI, Tactical Hall infrastructure, final-facing, keybind, arena-scale and Abort Exercise foundations are merged.
-- PV-1A telemetry, PV-1B evidence tooling and the PV-1C human validation gate are established.
-- PV-1D / PR #108, PV-1E / PR #111 and PV-1F / PR #115 are merged corrective history.
+- PV-1A telemetry, PV-1B evidence tooling and PV-1C human validation gate #105 are established.
+- PV-1D / PR #108, PV-1E / PR #111, PV-1F / PR #115, and A1 / PR #122 are merged corrective history.
 
 ## Current authoritative documents
 
+- `docs/GAME_MASTER_PLAN.md` remains the highest product authority.
+- `docs/OFFLINE_PROGRESSION.md` now defines explicit Passive Training behavior.
 - `docs/ROADMAP_PRODUCT_VALIDATION.md` governs PV-1 evidence, telemetry and gate decisions.
 - `docs/COMBAT_USABILITY_BATTLEFIELDS_CONTROLS_RETREAT.md` governs battle-usability intent.
 - `docs/ROADMAP_COMBAT_USABILITY_BATTLEFIELDS_CONTROLS_RETREAT.md` blocks substantial Phase 3 expansion until PV-1 human/internal validation passes.
 - `docs/PV1_TACTICAL_PLAYTEST_PROTOCOL.md` defines the human-playtest procedure.
-- `docs/PV1F_TURN_ECONOMY_AND_CHARACTER_HUB_AMENDMENT.md` remains corrective history; PR #122 and its current source-controlled rules supersede conflicting values/labels in the areas explicitly changed by the owner-feedback pass.
 
 ## Established deferrals
 
 - Phase 3: broad Disciplines, Arts, representative equipment/load/buildcraft and deeper command expansion until PV-1 passes.
 - Later phases: Mantles / Confluences / Soulmarks / Current-Legacy loadouts, remote LLM combat, PvP bots, broad Tactical Record progression, full Battle Review, Colosseum/spectation and world/Expedition retreat settlement.
-- Real multiplayer battle-chat transport remains coupled to multiplayer participant/communications implementation; the current solo surface does not pretend transport already exists.
-- Earned prestige-title progression remains deferred; PR #122 implements the approved per-character personal-title identity boundary only.
-- Broad analytics/session-replay vendors remain deferred until product evidence justifies them.
+- Real multiplayer battle-chat transport remains coupled to multiplayer participant/communications implementation.
+- Earned prestige-title progression remains deferred; current work only implements the approved personal-title/display boundaries.
+- Full Master Panel combat/content editing remains later-phase work; A2 records the requirement that player-facing descriptions be editable through the same versioned definitions rather than hard-coded UI truth.
 
 ## Permanent execution rules
 
@@ -112,17 +76,17 @@ Recurring feedback across testers/owner included:
 ## Immediate sequence
 
 ```text
-PR #122 A1 owner-feedback implementation
+PR #123 A2 owner-feedback implementation
   ↓
 Quality + database/security + responsive authenticated browser gates on exact final head
   ↓
-Resolve any remaining integration/regression failures and make PR #122 review-ready
+Resolve remaining genuine integration/regression failures and make PR #123 review-ready
   ↓
-Merge through normal repository process when approved
+Merge through normal repository process when safe
   ↓
-Deploy exact merged runtime + reconcile production Supabase migrations/schema
+Deploy exact merged runtime against an appropriately reconciled Supabase environment
   ↓
-Verify production build identity and critical authenticated flow
+Verify build identity and critical authenticated flow
   ↓
 Rerun real human PV-1 sessions under #105
   ↓

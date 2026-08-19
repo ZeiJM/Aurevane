@@ -29,14 +29,16 @@
 
 .controlled {
   position: fixed;
-  top: 4.2rem;
-  right: 0.65rem;
+  top: 3.85rem;
+  left: 50%;
   z-index: 2100;
-  width: min(31rem, calc(100vw - 1.3rem));
+  width: min(34rem, calc(100vw - 1rem));
+  transform: translateX(-50%);
 }
 
 .panel {
   box-sizing: border-box;
+  width: 100%;
   max-height: min(28rem, 66dvh);
   overflow: auto;
   border: 1px solid rgba(212, 186, 130, 0.48);
@@ -100,10 +102,7 @@
 }
 
 .panel li {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.55rem;
-  align-items: start;
+  display: block;
   padding: 0.58rem 0.75rem;
   border-bottom: 1px solid rgba(255, 255, 255, 0.055);
 }
@@ -112,20 +111,7 @@
   border-bottom: 0;
 }
 
-.panel li > span {
-  min-width: 2.25rem;
-  padding: 0.22rem 0.32rem;
-  border: 1px solid rgba(207, 169, 93, 0.22);
-  border-radius: 999px;
-  color: var(--av-brass-400);
-  background: rgba(207, 169, 93, 0.05);
-  font: 700 0.45rem/1 var(--av-font-mono);
-  text-align: center;
-}
-
 .actionEntry {
-  display: grid;
-  gap: 0.18rem;
   min-width: 0;
 }
 
@@ -135,13 +121,7 @@
   overflow-wrap: anywhere;
   color: var(--av-text-muted);
   font-size: 0.61rem;
-  line-height: 1.4;
-}
-
-.actionEntry p + p {
-  padding-top: 0.18rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.035);
-  color: var(--av-text-dim);
+  line-height: 1.45;
 }
 
 .empty {
@@ -150,10 +130,8 @@
 
 @media (max-width: 760px) {
   .controlled {
-    top: 4rem;
-    right: 0.5rem;
-    left: 0.5rem;
-    width: auto;
+    top: 3.6rem;
+    width: calc(100vw - 0.7rem);
   }
 
   .panel {

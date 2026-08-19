@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
 import { AudioSettingsMenu } from '@/components/audio/audio-settings-menu'
@@ -8,6 +9,7 @@ import { AudioSettingsMenu } from '@/components/audio/audio-settings-menu'
 import styles from './account-menu.module.css'
 
 export function AccountMenu() {
+  const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
 
@@ -44,15 +46,21 @@ export function AccountMenu() {
             <span>Audio</span>
             <AudioSettingsMenu />
           </div>
-          <Link href="/game/settings/controls" role="menuitem" onClick={() => setOpen(false)}>
-            Controls &amp; Keybinds
-          </Link>
-          <Link href="/game/account/titles" role="menuitem" onClick={() => setOpen(false)}>
-            Titles &amp; Profile Display
-          </Link>
-          <Link href="/game" role="menuitem" onClick={() => setOpen(false)}>
-            Switch Character
-          </Link>
+          {pathname !== '/game/settings/controls' ? (
+            <Link href="/game/settings/controls" role="menuitem" onClick={() => setOpen(false)}>
+              Controls &amp; Keybinds
+            </Link>
+          ) : null}
+          {pathname !== '/game/account/titles' ? (
+            <Link href="/game/account/titles" role="menuitem" onClick={() => setOpen(false)}>
+              Titles &amp; Profile Display
+            </Link>
+          ) : null}
+          {pathname !== '/game' ? (
+            <Link href="/game" role="menuitem" onClick={() => setOpen(false)}>
+              Switch Character
+            </Link>
+          ) : null}
           <form action="/auth/signout" method="post">
             <button type="submit" role="menuitem">
               Sign out

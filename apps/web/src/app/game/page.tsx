@@ -6,6 +6,7 @@ import { CharacterSelectShell } from '@/components/character/character-select-sh
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
 import { getAuthenticatedActor } from '@/server/auth/actor'
+import { loadCharacterProfileImageMap } from '@/server/character/character-profile-display-service'
 import { loadCharacterSlots } from '@/server/character/character-slot-service'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 
@@ -29,6 +30,23 @@ export default async function CharacterSelectPage() {
     loadCharacterSlots(actor.userId),
     loadSelectedCharacter(actor),
   ])
+  let profileImageUrls: Record<string, string> = {}
+  try {
+    profileImageUrls = Object.fromEntries(
+      await loadCharacterProfileImageMap(
+        actor.userId,
+        characters.map((character) => character.id),
+      ),
+    )
+  } catch {
+    // Cosmetic profile images must not make character selection unavailable.
+  }
 
-  return <CharacterSelectShell characters={characters} selectedCharacter={selectedCharacter} />
+  return (
+    <CharacterSelectShell
+      characters={characters}
+      selectedCharacter={selectedCharacter}
+      profileImageUrls={profileImageUrls}
+    />
+  )
 }

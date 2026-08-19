@@ -5,6 +5,7 @@ export const COMBAT_KEYBIND_ACTIONS = [
   'move',
   'basicAttack',
   'guard',
+  'recover',
   'endTurn',
   'confirm',
   'cancel',
@@ -66,6 +67,7 @@ export const DEFAULT_COMBAT_KEYBINDS: CombatKeybindMap = {
   move: { code: 'Digit2', shift: false },
   basicAttack: { code: 'Digit3', shift: false },
   guard: { code: 'Digit4', shift: false },
+  recover: { code: 'Digit5', shift: false },
   endTurn: { code: 'Space', shift: false },
   confirm: { code: 'Enter', shift: false },
   cancel: { code: 'Escape', shift: false },
@@ -83,7 +85,11 @@ export function combatKeybindChord(binding: CombatKeybind): string {
 }
 
 export function parseCombatKeybindMap(input: unknown): CombatKeybindMap | null {
-  const result = combatKeybindMapSchema.safeParse(input)
+  const candidate =
+    input && typeof input === 'object' && !Array.isArray(input)
+      ? { ...DEFAULT_COMBAT_KEYBINDS, ...(input as Record<string, unknown>) }
+      : input
+  const result = combatKeybindMapSchema.safeParse(candidate)
   return result.success ? result.data : null
 }
 
@@ -93,5 +99,9 @@ export function formatCombatKeybind(binding: CombatKeybind): string {
     .replace(/^Digit/, '')
     .replace('Space', 'Space')
     .replace('Escape', 'Esc')
+    .replace('ArrowUp', '↑')
+    .replace('ArrowDown', '↓')
+    .replace('ArrowLeft', '←')
+    .replace('ArrowRight', '→')
   return `${binding.shift ? 'Shift+' : ''}${label}`
 }

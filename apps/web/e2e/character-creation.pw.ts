@@ -103,7 +103,9 @@ test('creates a slotted character, persists its profile, and resumes it across s
   expect(characterId).toMatch(/^[0-9a-f-]{36}$/)
 
   await openOfflineTraining(page)
+  await expect(page.getByRole('heading', { name: 'Passive Training' })).toBeVisible()
   await expect(page.getByTestId('training-report')).toHaveCount(0)
+  await expect(page.getByTestId('practice-plan-card')).toContainText('Idle')
   await page.getByRole('link', { name: 'Back to Character Profile' }).click()
   await expect(page).toHaveURL(/\/game\/character$/)
 
@@ -122,31 +124,16 @@ test('creates a slotted character, persists its profile, and resumes it across s
 
   await openOfflineTraining(page)
   await page.reload()
-  const trainingReport = page.getByTestId('training-report')
-  await expect(trainingReport).toBeVisible()
-  await expect(trainingReport).toContainText('Training Report')
-  await expect(trainingReport).toContainText('Automatic Balanced')
-  await expect(trainingReport).toContainText('3d 23h')
-  await expect(trainingReport).toContainText('+376')
-  await expect(trainingReport).toContainText('+12')
-  await expect(trainingReport).toContainText('direct training bank reached its current cap')
+  await expect(page.getByRole('heading', { name: 'Passive Training' })).toBeVisible()
+  await expect(page.getByTestId('training-report')).toHaveCount(0)
+  await expect(page.getByTestId('practice-plan-card')).toContainText('Idle')
+  await expect(page.getByText(/Training does not start automatically/)).toBeVisible()
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
-  await page.reload()
-  await expect(page.getByTestId('training-report')).toContainText('3d 23h')
-  await expect(page.getByTestId('training-report')).toContainText('+376')
-  await expect(page.getByTestId('training-report')).toContainText('+12')
-
-  const claimButton = page.getByRole('button', { name: 'Claim training' })
-  await claimButton.focus()
-  await expect(claimButton).toBeFocused()
-  await claimButton.press('Enter')
-
-  await expect(page.getByTestId('training-report')).toHaveCount(0)
   await page.getByRole('link', { name: 'Back to Character Profile' }).click()
   await expect(page).toHaveURL(/\/game\/character$/)
-  await expect(page.getByTestId('character-profile')).toContainText('Level 3')
-  await expect(page.getByTestId('level-progress')).toContainText('376 / 400 XP')
+  await expect(page.getByTestId('character-profile')).toContainText('Level 1')
+  await expect(page.getByTestId('level-progress')).toContainText('0 / 100 XP')
 
   await page.getByRole('button', { name: 'Account' }).click()
   await page.getByRole('menuitem', { name: 'Switch Character' }).click()

@@ -2,12 +2,18 @@ import { Kicker, StatusMark, Surface } from '@aurevane/ui'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
-import { AurevaneImage } from '@/components/media/aurevane-image'
+import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { AccountMenu } from '@/components/shell/account-menu'
 import { NavigationMenu } from '@/components/shell/navigation-menu'
+import { OnlinePresenceLink } from '@/components/shell/online-presence-link'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 import { getAuthenticatedActor } from '@/server/auth/actor'
+import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
+import {
+  listOnlineCharacters,
+  touchCharacterPresence,
+} from '@/server/presence/character-presence-service'
 
 import styles from './authenticated-game-shell.module.css'
 
@@ -54,9 +60,26 @@ export async function AuthenticatedShellFrame({
   backLabel,
 }: AuthenticatedShellFrameProps) {
   let activeCharacter = null
+  let activeImageUrl: string | null = null
+  let onlineCount = 0
   try {
     const actor = await getAuthenticatedActor()
     activeCharacter = await loadSelectedCharacter(actor)
+    if (activeCharacter) {
+      try {
+        const [display, online] = await Promise.all([
+          loadCharacterProfileDisplay(actor.userId, activeCharacter.id),
+          (async () => {
+            await touchCharacterPresence(actor.userId, activeCharacter.id)
+            return listOnlineCharacters()
+          })(),
+        ])
+        activeImageUrl = display.imageUrl
+        onlineCount = online.length
+      } catch {
+        // Profile display and presence are supplementary. The authenticated shell remains usable.
+      }
+    }
   } catch {
     activeCharacter = null
   }
@@ -88,15 +111,18 @@ export async function AuthenticatedShellFrame({
           <Link href="/manual">Manual</Link>
           <Link href="/news">News</Link>
           <Link href="/rules">Rules</Link>
+          <OnlinePresenceLink initialCount={onlineCount} />
         </nav>
 
         <div className={styles.screenIdentity} aria-label={`Current screen: ${sessionLabel}`}>
           {activeCharacter ? (
             <span className={styles.screenPortrait} title={activeCharacter.name}>
-              <AurevaneImage
-                assetId={getStarterPortraitImageAssetId(activeCharacter.portraitRef)}
+              <CharacterPortraitImage
+                imageUrl={activeImageUrl}
+                fallbackAssetId={getStarterPortraitImageAssetId(activeCharacter.portraitRef)}
                 className={styles.screenPortraitImage}
                 sizes="2rem"
+                alt=""
               />
             </span>
           ) : null}

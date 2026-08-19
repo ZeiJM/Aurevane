@@ -1,7 +1,11 @@
 import { z } from 'zod'
 
 export const plannedPracticeWindowSchema = z.enum(['short', 'overnight', 'extended'])
-export const practiceSourceSchema = z.enum(['automatic_balanced', 'planned_balanced'])
+export const practiceSourceSchema = z.enum([
+  'automatic_balanced',
+  'planned_balanced',
+  'passive_training',
+])
 
 export const setPracticePlanRequestSchema = z
   .object({
