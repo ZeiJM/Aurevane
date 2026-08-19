@@ -1,0 +1,42 @@
+name: A2 Branch Formatter
+
+on:
+  push:
+    branches:
+      - "agent/a2-feedback-holistic"
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: agent/a2-feedback-holistic
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format repository sources
+        run: pnpm exec prettier --write "apps/**/*.{ts,tsx,js,mjs,json,css}" "packages/**/*.{ts,tsx,js,mjs,json}" package.json turbo.json pnpm-workspace.yaml .prettierrc.json eslint.config.mjs
+      - name: Commit formatting if needed
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps packages package.json turbo.json pnpm-workspace.yaml .prettierrc.json eslint.config.mjs
+          git commit -m "chore: format A2 implementation"
+          git push origin HEAD:agent/a2-feedback-holistic
