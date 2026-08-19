@@ -2,7 +2,6 @@ import { Kicker, Surface } from '@aurevane/ui'
 
 import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
 
-import { OfflineTrainingClock } from './offline-training-clock'
 import { PracticePlanCard, type PracticePlanCardData } from './practice-plan-card'
 import { TrainingReportCard, type TrainingReportCardData } from './training-report-card'
 import styles from './offline-training-shell.module.css'
@@ -20,35 +19,27 @@ export function OfflineTrainingShell({
 }: OfflineTrainingShellProps) {
   return (
     <AuthenticatedShellFrame
-      sessionLabel="Wayfarer's Practice"
+      sessionLabel="Passive Training"
       backHref="/game/character"
       backLabel="Back to Character Profile"
     >
       <div className={styles.layout}>
         <Surface className={styles.hero} tone="elevated">
           <div className={styles.heroCopy}>
-            <Kicker marker="◇">Progress while away</Kicker>
-            <h1>Wayfarer&apos;s Practice</h1>
+            <Kicker marker="◇">Background progression</Kicker>
+            <h1>Passive Training</h1>
             <p>
-              Set what you expect {characterName} to practice before you leave. There is no browser
-              timer to babysit: after the normal offline threshold, the server measures legitimate
-              time away and grants modest progress when you return.
+              Start a timed training block for {characterName}. The server tracks it whether you stay
+              signed in or go AFK; nothing begins until you choose a duration.
             </p>
           </div>
-          <div className={styles.explainer}>
-            <span>Set a plan</span>
-            <i>→</i>
-            <span>Leave normally</span>
-            <i>→</i>
-            <span>Return to a report</span>
+          <div className={styles.heroRule}>
+            <strong>Simple rule</strong>
+            <span>Short is most efficient · Medium is balanced · Extended trades efficiency for time away.</span>
           </div>
-          <OfflineTrainingClock
-            serverNow={practicePlan.serverNow}
-            minimumOfflineSeconds={practicePlan.minimumOfflineSeconds}
-          />
         </Surface>
 
-        <div className={styles.practiceGrid}>
+        <div className={styles.practiceGrid} data-has-report={trainingReport ? true : undefined}>
           <PracticePlanCard practice={practicePlan} />
           {trainingReport ? <TrainingReportCard report={trainingReport} /> : null}
         </div>
