@@ -144,14 +144,19 @@ status="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d pos
   from public.get_wayfarers_practice_status_v1('$user_id'::uuid, '$character_id'::uuid);")"
 test "$status" = 'balanced|1|0|0||10800|28800|86400'
 
-# Being away/idle does not manufacture training anymore.
+# Being away/idle does not manufacture training anymore. Keep the two legacy activity boundaries
+# identical so their database invariant remains valid while the test simulates a long absence.
 docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
-  update app_private.wayfarers_practice_state
+  with boundary as (
+    select clock_timestamp() - interval '96 hours' as at
+  )
+  update app_private.wayfarers_practice_state state
   set
-    last_active_at = clock_timestamp() - interval '96 hours',
-    practice_claimed_through_at = clock_timestamp() - interval '96 hours',
+    last_active_at = boundary.at,
+    practice_claimed_through_at = boundary.at,
     updated_at = clock_timestamp()
-  where character_id = '$character_id'::uuid;"
+  from boundary
+  where state.character_id = '$character_id'::uuid;"
 automatic_report="$(materialize)"
 test -z "$automatic_report"
 
@@ -218,8 +223,8 @@ test "$frozen" = "$completed"
 claim_key='00000000-0000-4000-8000-000000001654'
 first_claim="$(claim_report "$report_id" "$claim_key" 'a2:claim:medium')"
 replay_claim="$(claim_report "$report_id" "$claim_key" 'a2:claim:medium')"
-test "$first_claim" = "$report_id|56|56|false"
-test "$replay_claim" = "$report_id|56|56|true"
+test "$first_claim" = "$report_id|56|56|false'
+test "$replay_claim" = "$report_id|56|56|true'
 
 post_claim="$(materialize)"
 test -z "$post_claim"
