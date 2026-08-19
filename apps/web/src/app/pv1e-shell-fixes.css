@@ -178,6 +178,10 @@ aside[aria-label$=' combat status'] article > button[aria-label^='Show '] img {
     inset 0 0 0.25rem rgba(255, 196, 196, 0.32) !important;
 }
 
+main[aria-busy] > header > :nth-child(2) strong small {
+  color: #ef8f95 !important;
+}
+
 /* Clear action hierarchy without the muddy orange/gold collision from the earlier footer. */
 main[aria-busy] > footer > div:last-child > button:nth-child(1) {
   border-color: rgba(112, 153, 194, 0.72) !important;
