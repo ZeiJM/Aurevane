@@ -40,23 +40,10 @@ function moveModeIsActive(): boolean {
   return modeInstruction().includes('move') || modeInstruction().includes('movement')
 }
 
-function battlefieldTileButton(target: EventTarget | null): HTMLButtonElement | null {
-  if (!(target instanceof Element)) return null
-  return target.closest<HTMLButtonElement>('#battlefield button[aria-label^="Tile "]')
-}
-
 function tilePosition(button: HTMLButtonElement): { x: number; y: number } | null {
   const match = button.getAttribute('aria-label')?.match(/^Tile\s+(\d+),\s*(\d+)/i)
   if (!match) return null
   return { x: Number(match[1]) - 1, y: Number(match[2]) - 1 }
-}
-
-function dispatchMoveTarget(position: { x: number; y: number }) {
-  window.dispatchEvent(
-    new CustomEvent('aurevane:battle-move-target', {
-      detail: position,
-    }),
-  )
 }
 
 function legalVisibleTargetButtons(playerName: string): HTMLButtonElement[] {
@@ -134,7 +121,7 @@ function moveAdjacent(direction: { dx: number; dy: number }, playerName: string)
   if ((target.getAttribute('aria-label') ?? '').includes('occupied by ')) return false
 
   target.focus({ preventScroll: true })
-  dispatchMoveTarget(targetPosition)
+  target.click()
   return true
 }
 
@@ -185,53 +172,6 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
     if (deck) observer.observe(deck, { childList: true, subtree: true })
     return () => observer.disconnect()
   }, [bindings])
-
-  useEffect(() => {
-    let handledPointerTile: HTMLButtonElement | null = null
-    let clearHandledPointer: number | null = null
-
-    function handleMovePointerDown(event: PointerEvent) {
-      if (!moveModeIsActive() || event.button !== 0) return
-      const tile = battlefieldTileButton(event.target)
-      if (!tile || tile.disabled) return
-      const position = tilePosition(tile)
-      if (!position) return
-
-      handledPointerTile = tile
-      if (clearHandledPointer !== null) window.clearTimeout(clearHandledPointer)
-      clearHandledPointer = window.setTimeout(() => {
-        handledPointerTile = null
-        clearHandledPointer = null
-      }, 1_000)
-
-      event.preventDefault()
-      event.stopImmediatePropagation()
-      tile.focus({ preventScroll: true })
-      dispatchMoveTarget(position)
-    }
-
-    function suppressFollowUpMoveClick(event: MouseEvent) {
-      if (!handledPointerTile) return
-      const tile = battlefieldTileButton(event.target)
-      if (tile !== handledPointerTile) return
-
-      event.preventDefault()
-      event.stopImmediatePropagation()
-      handledPointerTile = null
-      if (clearHandledPointer !== null) {
-        window.clearTimeout(clearHandledPointer)
-        clearHandledPointer = null
-      }
-    }
-
-    window.addEventListener('pointerdown', handleMovePointerDown, true)
-    window.addEventListener('click', suppressFollowUpMoveClick, true)
-    return () => {
-      window.removeEventListener('pointerdown', handleMovePointerDown, true)
-      window.removeEventListener('click', suppressFollowUpMoveClick, true)
-      if (clearHandledPointer !== null) window.clearTimeout(clearHandledPointer)
-    }
-  }, [])
 
   useEffect(() => {
     function cycleTarget(reverse: boolean) {
