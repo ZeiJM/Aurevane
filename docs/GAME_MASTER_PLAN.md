@@ -1,11 +1,68 @@
 AUREVANE
 Complete Master Game Design, Technical Architecture & AI Implementation Specification
-Master Specification v1.0
+Master Specification v1.1 — Canonical terminology and current-state synchronization
+Updated: 2026-08-19
+
+0. CANONICAL SYNCHRONIZATION
+
+This document remains AUREVANE's authoritative master game-design specification.
+
+The 2026-08-19 synchronization incorporates owner-approved design refinements that were previously carried in addenda, implementation decisions, and public-facing content.
+
+Current player-facing build terminology is:
+
+Primary Discipline
+Secondary Discipline
+Discipline Skill
+Equipment Skill
+Resonance
+Essence / Discipline Essence
+Soulmark
+The Severance / Soul-Severed
+Mantle
+
+The previous player-facing terms Current Discipline, Legacy Discipline, Art, Confluence, separate Trait slots, separate Reaction slots, separate Movement Art slots, and separate Ultimate slots are retired. They may be mentioned only when explaining historical migration or retired concepts.
+
+The mature build-system contract is:
+
+CHARACTER ATTRIBUTES
++
+PRIMARY DISCIPLINE
++
+OPTIONAL SECONDARY DISCIPLINE
++
+DISCIPLINE SKILLS
++
+RESONANCE OR PURE-DISCIPLINE ESSENCE
++
+SOULMARK OR SOUL-SEVERED MANTLE PATH
++
+EQUIPMENT + EQUIPMENT SKILLS
++
+BOUNDED PRESTIGE / VETERAN EDGE
+
+Additional authoritative detail lives in docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md. If an older subordinate document still uses retired terminology, this master plan and the owner-approved build-system addendum control.
+
+The current universal attribute model contains six attributes:
+
+Might
+Finesse
+Vitality
+Agility
+Intellect
+Resolve
+
+The current player-facing combat test destination is the Battle Hall. Older references to Tactical Hall are retired unless discussing historical implementation.
+
+Passive Training is the current implemented deliberate offline-training model: players choose server-timed Short, Medium, or Extended plans; longer plans trade hourly efficiency for convenience; training progress is server-owned; active training blocks starting a new battle/live combat entry. Legacy already-materialized training reports remain preserved safely. Long-term rested/catch-up concepts may still be refined, but no document should imply that new characters automatically accrue an always-on offline reward merely by being absent.
+
+A Sprint is a development milestone, not a promised calendar week. AUREVANE advances through acceptance gates rather than public release-date promises.
+
 1. PRODUCT VISION
 
 Aurevane is a persistent online tactical fantasy RPG played in the browser.
 
-Players create a permanent character, explore a living shared fantasy world, study numerous combat Disciplines, master them, combine one current Discipline with one previously mastered Discipline, discover powerful Confluences between those styles, awaken supernatural Soulmarks, acquire build-changing equipment, complete solo and cooperative quests, descend into progressively generated dungeons, compete in 1v1 and 2v2 tactical PvP, form parties and guilds, eventually pledge themselves to nations and participate in large seasonal conflicts.
+Players create a permanent character, explore a living shared fantasy world, study numerous combat Disciplines, master them, choose a Primary Discipline, optionally mix in a mastered Secondary Discipline, discover powerful Resonances between mixed styles or pursue a pure-Discipline Essence, awaken or reject supernatural Soulmark power, acquire build-changing equipment, complete solo and cooperative quests, descend into progressively generated Expeditions, compete in 1v1 and 2v2 tactical PvP, form parties and guilds, eventually pledge themselves to nations and participate in large seasonal conflicts.
 
 The game should combine the best qualities of:
 
@@ -21,11 +78,16 @@ high-quality fantasy presentation.
 But it should remain practical enough to be developed incrementally with AI.
 
 2. THE FIVE THINGS AUREVANE MUST BE EXCELLENT AT
+
 Character building
 
 Players should regularly think:
 
-“What happens if I master this Discipline and combine it with that one?”
+“What happens if I make this my Primary, mix that mastered Discipline as my Secondary, and build around their Resonance?”
+
+Or:
+
+“What can this Discipline do if I stay pure and lean into its Essence?”
 
 This is the heart of the game.
 
@@ -43,10 +105,11 @@ Players should recognize:
 
 famous PvP players;
 guilds;
-dungeon groups;
+Expedition groups;
 unusual builds;
 nation leaders;
 collectors.
+
 Presentation
 
 Aurevane should look and sound like a beautiful game delivered through a browser, not a CRUD website wearing fantasy artwork.
@@ -81,7 +144,7 @@ Check character / guild / friends / world events
   ↓
 Choose activity
   ↓
-Explore / Quest / Train / PvP / Dungeon / Socialize
+Explore / Quest / Train / PvP / Expedition / Socialize
   ↓
 TACTICAL COMBAT
   ↓
@@ -89,9 +152,9 @@ XP + Mastery + Crowns + Equipment + Unlocks
   ↓
 Improve / modify build
   ↓
-Try new Discipline combination
+Refine Primary / Secondary / pure-Discipline setup
   ↓
-Discover new Confluence
+Discover or master Resonance / Essence interactions
   ↓
 Take on harder content
   ↓
@@ -105,13 +168,13 @@ Learn first Disciplines
       ↓
 Master first Discipline
       ↓
-Unlock Legacy Discipline system
+Unlock Secondary Discipline buildcraft
       ↓
-Discover Confluences
+Explore Resonances and pure-Discipline Essence
       ↓
 Build specialization
       ↓
-Co-op dungeons
+Co-op Expeditions
       ↓
 Ranked PvP
       ↓
@@ -119,13 +182,14 @@ Guild
       ↓
 Advanced Disciplines
       ↓
-Hard expeditions
+Deep Expeditions
       ↓
 Nation membership
       ↓
 High-end PvP / PvE
       ↓
 Seasonal endgame
+
 5. HEALTHY RETENTION — MAKE IT HARD TO PUT DOWN WITHOUT MAKING IT MISERABLE
 
 I want strong retention, but not cheap frustration mechanics.
@@ -136,11 +200,11 @@ Primary retention systems:
 
 Build discovery
 
-There is always another Discipline combination to try.
+There is always another Primary/Secondary pairing, pure Discipline path, Skill configuration, Soulmark/Mantle interaction, or equipment setup to try.
 
-Confluence Codex
+Resonance / Essence discovery
 
-Discovering combinations fills a collection book.
+Mixed pairings and pure paths create a collection and experimentation loop worth documenting in the player's Codex/knowledge surfaces.
 
 Mastery
 
@@ -150,7 +214,7 @@ Targeted gear hunting
 
 Specific activities have known reward pools.
 
-Procedural dungeons
+Procedural Expeditions
 
 Layouts, encounters and modifiers vary.
 
@@ -166,13 +230,13 @@ World events
 
 The world changes.
 
-New Disciplines/Soulmarks
+New Disciplines / Soulmarks / Mantle content
 
 Major updates change build possibilities.
 
-Rested progression
+Passive Training and healthy catch-up
 
-Time away gives a modest Mastery/XP bonus rather than punishing inactivity.
+Time away should never destroy progress. The current explicit Passive Training model lets players deliberately schedule server-timed training rather than rewarding an opaque always-on absence timer. Future rested/catch-up tuning may supplement this without creating mandatory check-in pressure.
 
 Contract banking
 
@@ -197,12 +261,12 @@ body/presentation;
 pronouns;
 portrait;
 starter appearance;
-one Foundation Discipline;
-small starting attribute distribution.
+one Foundation Discipline as their starting Primary Discipline;
+small starting attribute distribution across the six universal attributes.
 
 They do not choose a Soulmark immediately.
 
-Soulmarks unlock through an early narrative event so players first understand basic combat.
+The supernatural fork arrives later through authored progression so players first understand the basic game and the permanence of the Soulmarked versus Soul-Severed decision.
 
 7. CHARACTER PORTRAITS
 
@@ -218,29 +282,37 @@ Uploaded assets are copied into controlled storage rather than being permanently
 
 8. CHARACTER ATTRIBUTES
 
-Four core attributes only.
+Six core attributes:
 
 Might
 
-Physical strength and force.
+Physical force, strength-led offense and related physical scaling.
 
 Finesse
 
-Precision, critical effectiveness, initiative and agile combat.
+Precision, critical effectiveness and dexterous offensive expression.
+
+Vitality
+
+Maximum HP, stamina/endurance identity and sustained physical resilience.
+
+Agility
+
+Speed, Evasion, Initiative and mobile combat expression.
 
 Intellect
 
-Magical potency, healing and supernatural control.
+Maximum MP, magical potency, healing and supernatural control.
 
 Resolve
 
-Health, defenses and status resistance.
+Armor/Ward-facing resilience, status/control resistance and defensive steadiness.
 
-That's it.
+These six are the universal player-assigned attribute axes. Primary Discipline contributes its own base Discipline stat profile without silently rewriting the player's separately assigned attribute investment. Secondary Discipline does not grant a second base-stat profile.
 
 9. DERIVED STATS
 
-Calculated from attributes, Discipline, equipment and effects.
+Calculated from attributes, Primary Discipline base profile, equipment and effects.
 
 Examples:
 
@@ -277,7 +349,9 @@ modest baseline growth.
 
 They do not replace Discipline progression.
 
-11. THE CLASS SYSTEM IS NOW CALLED DISCIPLINES
+11. DISCIPLINE AND BUILD TERMINOLOGY
+
+The class system is called Disciplines.
 
 We are eliminating:
 
@@ -285,7 +359,7 @@ Jobs
 Job Points
 Job Level
 
-Player-facing terminology becomes:
+Player-facing terminology is:
 
 Discipline
 
@@ -295,31 +369,27 @@ Mastery
 
 How experienced you are with that Discipline.
 
-Legacy Discipline
+Primary Discipline
 
-A Discipline you have completely mastered and equipped as your secondary combat tradition.
+Your current principal combat tradition. It defines the active Discipline base-stat profile and does not need to be mastered merely to be used as Primary.
 
-Art
+Secondary Discipline
 
-An active ability.
+An optional mastered combat tradition mixed into the active build. A Secondary Discipline must normally be legitimately mastered before it can be equipped. It grants no second base-stat profile.
 
-Trait
+Skill
 
-A passive ability.
+The player-facing umbrella term for usable authored combat abilities. Origin remains visible through labels such as Discipline Skill, Equipment Skill, Soulmark Skill, Essence Skill, Mantle Skill, and Veteran Edge where applicable.
 
-Reaction
+Resonance
 
-A passive triggered by an event.
+The passive mechanical interaction created by an eligible Primary + Secondary pairing. Resonance replaces the former Confluence terminology and should materially alter how the two Disciplines interact rather than simply add a generic percentage bonus.
 
-Movement Art
+Essence / Discipline Essence
 
-Special movement ability.
+The pure-Discipline counterpart to Resonance. A build with Primary only and no Secondary may access one special Essence Skill outside its normal Discipline Skill capacity.
 
-Confluence
-
-The unique interaction created by combining your current Discipline with your Legacy Discipline.
-
-Much more Aurevane.
+Separate player-facing Trait, Reaction, Movement Skill-slot, and Ultimate subsystems are not part of the mature build model. Their useful design space remains available through Skills, typed passive triggers, Resonance, Soulmarks, equipment, Mantles, and bounded prestige.
 
 12. THERE IS NO JP-LIKE CURRENCY
 
@@ -341,7 +411,7 @@ Master
 
 There is no pile of points players manually spend on class skills.
 
-Important Arts unlock at milestones.
+Important Discipline Skills unlock at milestones.
 
 Some require a Discipline quest or challenge.
 
@@ -349,222 +419,226 @@ At 100%:
 
 DISCIPLINE MASTERED
 
-That Discipline can now become a Legacy Discipline.
+That Discipline becomes eligible to be equipped as a Secondary Discipline under normal rules.
 
-13. CURRENT + LEGACY DISCIPLINE
+13. PRIMARY + OPTIONAL SECONDARY DISCIPLINE
 
-This becomes one of Aurevane's signature systems.
+This is one of Aurevane's signature systems.
 
-Your build contains:
+A mature character build is shaped by:
 
-CURRENT DISCIPLINE
+PRIMARY DISCIPLINE
 +
-MASTERED LEGACY DISCIPLINE
+OPTIONAL MASTERED SECONDARY DISCIPLINE
 +
-SOULMARK
+DISCIPLINE SKILLS
 +
-EQUIPMENT
+RESONANCE OR PURE-DISCIPLINE ESSENCE
 +
-CONFLUENCE
+SOULMARK OR SOUL-SEVERED MANTLE PATH
++
+EQUIPMENT + EQUIPMENT SKILLS
++
+BOUNDED PRESTIGE / VETERAN EDGE
 
-Your Current Discipline does not need to be mastered.
+Primary does not need to be mastered merely to be used as Primary.
 
-Your Legacy Discipline must be mastered.
+Secondary normally must be mastered.
+
+Changing Primary or Secondary is a meaningful live-character commitment. The current production design default is an independent four-real-hour server-authoritative cooldown for each slot, configurable and versioned through the Master Panel. Preview/sandbox systems may allow experimentation without changing persistent live state or bypassing those cooldowns.
 
 14. ACTIVE BUILD
 
-Players equip:
+Discipline Skill libraries
 
-Current Discipline
+Every mature Discipline provides 8 learnable Discipline Skills.
 
-4 Current Arts.
+Pure build — Primary only
 
-Legacy Discipline
+If Secondary is empty:
 
-2 Legacy Arts.
+up to all 8 learned Discipline Skills from Primary may be equipped;
+the build has no Resonance;
+the build is eligible for one special Essence Skill outside those eight Discipline slots.
 
-Traits
+Mixed build — Primary + Secondary
 
-2 Traits.
+If both are equipped:
 
-At least one must originate from either Current or Legacy Discipline.
+the active loadout may equip a total of 6 Discipline Skills from the two active Discipline libraries;
+the Secondary must normally be mastered;
+the pair generates a Resonance passive;
+the pure-path Essence Skill is unavailable while Secondary is equipped.
 
-Reaction
+The total-six mixed cap is locked. The exact permitted Primary/Secondary split inside those six slots may be tuned through validation; the engine must not assume one permanent 4/2 split.
 
-1 Reaction.
+Extra granted Skills
 
-Movement Art
+Explicitly tagged Skills from Soulmarks, Equipment, Mantles, Essence, or bounded Veteran Edge rules use their own bounded slots and do not consume the 6/8 Discipline Skill capacity.
 
-1 Movement Art.
+Outside the Discipline cap never means unlimited buttons. Each source remains bounded and clearly grouped in the battle UI.
 
-Soulmark
+All usable non-basic Skills have cooldowns unless an explicit authored rule defines another bounded use model.
 
-1 active Soulmark.
+15. RESONANCE — MIXED-DISCIPLINE IDENTITY
 
-Confluence
+Whenever an eligible Primary + Secondary pair is equipped, it produces a Resonance passive.
 
-Automatically determined by Current + Legacy Discipline.
-
-This produces meaningful complexity while the combat bar remains readable.
-
-15. CONFLUENCE SYSTEM
-
-This is the major improvement I'm independently adding.
-
-Whenever two Disciplines are combined:
-
-They create a Confluence.
-
-Every pairing has at least one unique mechanical interaction.
-
-Not simply:
+Resonance is not simply:
 
 +5% damage.
 
-Confluences should alter gameplay.
+It should alter gameplay and reveal something interesting about how the two traditions interact.
 
-Examples:
+Examples retained from the original pairing design, now expressed as Resonances:
 
 Bastion + Chronist
 Temporal Fortress
 
 When you intercept damage for an ally, that ally gains Initiative.
 
-Your defensive play literally accelerates teammates.
-
 Nightveil + Veilweaver
 Phantom Killer
 
-Leaving invisibility creates an illusion on your previous tile.
-
-The illusion can absorb one attack.
+Leaving invisibility may create an illusion on your previous tile that can absorb a bounded attack/event under authored rules.
 
 Cinderweaver + Stormsinger
 Arcflash
 
-Lightning attacks against Scorched targets chain electricity to another nearby unit.
+Storm damage against eligible Scorched targets can chain a bounded effect to another nearby unit.
 
 Frostweaver + Stonebinder
 Permafrost
 
-Stone structures created by you become frozen.
-
-Enemies adjacent to them become Slowed.
+Stone structures created by the build can become frozen and affect nearby enemy movement.
 
 Runeblade + Riftwalker
 Rift Edge
 
-Once per round, a melee Art may begin with a one-tile spatial blink.
+A bounded melee setup can begin with a short spatial blink.
 
 Blade Saint + Chronist
 Perfect Moment
 
-Waiting without acting charges your next Reaction.
-
-Patient play becomes dangerous.
+Patient timing can arm a stronger next eligible triggered response.
 
 Beastbinder + Cantor
 Pack Song
 
-Your song effects also affect allied summons at enhanced strength.
+Support-song effects can interact more strongly with allied summons.
 
 Ravager + Sanguinist
 Crimson Frenzy
 
-Losing HP generates temporary offensive momentum.
-
-Healing removes the momentum.
+Losing HP can create temporary offensive momentum, with healing or another authored condition ending or modifying it.
 
 Dawnshield + Lifebinder
 Sacred Mercy
 
-Overhealing creates a small barrier.
+Overhealing can create a bounded barrier.
 
 Nightveil + Hexbinder
 Cursed Blade
 
-Striking a Hexed target extends one Hex.
+Striking an eligible Hexed target can extend one authored Hex under bounded rules.
 
 Skywarden + Stormsinger
 Thunderfall
 
-Landing after a vertical leap generates electrical damage around the landing tile.
+Landing after an eligible aerial action creates a bounded storm effect around the landing area.
 
 Edgedancer + Veilweaver
 Mirror Riposte
 
-Successful parries briefly create a decoy.
+Successful parry-like behavior can create a brief decoy effect.
 
 Loreeater + Wildwarden
 Apex Scholar
 
-Monster-derived Arts gain bonuses against the creature family from which they originated.
+Monster-derived Skills can gain authored interactions against the creature family from which they originated.
 
 Alchemist + Cinderweaver
 Volatile Catalysis
 
-Certain concoction zones ignite when struck by fire Arts.
+Certain concoction zones can ignite when struck by eligible fire Skills.
 
 Oracle + Hexbinder
 Doomed Fate
 
-Foretold enemy failures amplify the next Curse applied.
+Foretold enemy failures can amplify the next eligible curse effect.
 
-16. TWO TYPES OF CONFLUENCE
+The preferred content model is one core Resonance per unordered Discipline pair unless a specific design genuinely needs a Primary-dependent clause. Primary/Secondary direction already changes the base-stat profile and active Skill emphasis; the game should not automatically double the entire Resonance authoring matrix.
 
-Every pair receives a:
+16. ESSENCE — PURE-DISCIPLINE COUNTERPART
 
-Confluence Trait
+A character who intentionally leaves Secondary empty receives no Resonance.
 
-Automatic gameplay modification.
+Instead, the pure build is eligible for one special Essence Skill representing the undiluted identity of its Primary Discipline.
 
-Important/iconic pairings may additionally have a:
+The Essence Skill:
 
-Confluence Art
+sits outside the normal eight Discipline Skill slots;
+exists only while no Secondary Discipline is equipped;
+is authored as a strong signature expression of the Discipline;
+uses normal server-authoritative Action Economy, targeting, effect and cooldown rules;
+is not called an Ultimate.
 
-A special active technique available only to that exact pairing.
+Resonance versus Essence:
 
-Example:
+MIXED BUILD
+Primary + Secondary
+6 Discipline Skills
++ Resonance passive
++ broader cross-Discipline interactions
 
-Skywarden
-+
-Stormsinger
+PURE BUILD
+Primary only
+8 Discipline Skills
++ 1 Essence Skill
++ no Resonance
 
-Confluence Trait:
-Thunderfall
+Neither route should be globally superior.
 
-Confluence Art:
-HEAVEN'S THUNDER
+17. RESONANCE / ESSENCE ENGINE MUST BE DATA-DRIVEN
 
-Leap high into the air and crash into a target area,
-dealing physical + storm damage and creating a Static Field.
-17. CONFLUENCE ENGINE MUST BE DATA-DRIVEN
+Future content storage must model Resonance and Essence as typed, versioned, server-authoritative content rather than bespoke UI code.
 
-The database contains:
+A Resonance definition needs concepts such as:
 
-discipline_confluences
+pair identity;
+primary/secondary eligibility where direction matters;
+name;
+description;
+trigger;
+conditions;
+effects;
+visual/audio references;
+combo sequence where used;
+once-per-X/cooldown cap where used;
+PvE/PvP tuning;
+enabled state;
+version.
 
-with:
+An Essence definition needs concepts such as:
 
-primary_discipline
-legacy_discipline
-name
-description
-trigger
-conditions
-effects
-visual_fx
-confluence_art
-enabled
-version
+Discipline identity;
+Skill definition;
+damage/effect budget;
+Action Economy cost;
+cooldown;
+tags/effects;
+visual/audio references;
+PvE/PvP tuning;
+enabled state;
+version.
 
-The Master Panel manages these.
+The Master Panel manages these through typed editors with preview, audit, publish history and rollback.
 
-When a new Discipline is published, the content workflow automatically flags missing Confluences.
+When a new Discipline is published, the content workflow flags missing Resonance pair coverage and its pure-Discipline Essence coverage.
 
 18. TAG INTERACTIONS
 
-Even without a bespoke Confluence, abilities can interact.
+Even without a bespoke Resonance trigger, Skills can interact through typed gameplay tags.
 
 Core gameplay tags include:
 
@@ -587,17 +661,17 @@ Displaced
 
 Examples:
 
-Storm Arts may interact with Conductive.
+Storm Skills may interact with Conductive.
 
-Certain martial Arts exploit Marked.
+Certain martial Skills exploit Marked.
 
-Blood Arts interact with Bleeding.
+Blood Skills interact with Bleeding.
 
 Frost may create Frozen terrain.
 
 Fire may remove Frozen but create Steam.
 
-This creates emergent cross-class combinations without recreating an elemental weakness wheel.
+This creates emergent cross-Discipline combinations without recreating an elemental weakness wheel.
 
 19. FINAL DISCIPLINE ROSTER
 
@@ -607,9 +681,12 @@ The full target roster is:
 
 Not all 36 launch in Alpha.
 
-But all 36 are designed now so architecture anticipates them.
+All 36 are designed at the identity level now so architecture anticipates them.
+
+Every mature Discipline ultimately needs 8 learnable Discipline Skills plus its pure-path Essence Skill and appropriate Resonance coverage. The named abilities below are retained as design seeds from the original roster. Any item labeled “Signature Skill concept” originated as an old Ultimate concept but is now simply a candidate powerful cooldown Skill or Essence candidate; there is no separate Ultimate slot system.
 
 20. FOUNDATION DISCIPLINES
+
 1. Vanguard
 
 Balanced armed combat.
@@ -618,11 +695,11 @@ Unlock:
 
 Available at character creation.
 
-Innate:
+Innate identity concept:
 
-Combat Readiness — first time each battle the Vanguard becomes adjacent to an enemy, gain Guard.
+Combat Readiness — first time each battle the Vanguard becomes adjacent to an enemy, gain Guard under authored balance rules.
 
-Arts:
+Initial Skill concepts:
 
 Cleave
 Guard Break
@@ -630,7 +707,7 @@ Rush
 Brace
 Rally
 
-Ultimate:
+Signature Skill concept:
 
 Heroic Advance
 
@@ -640,13 +717,11 @@ Move and strike through several tiles while granting nearby allies Resolve.
 
 Ranged combat and battlefield awareness.
 
-Innate:
+Innate identity concept:
 
-Keen Sight
+Keen Sight — range penalties are reduced under authored rules.
 
-Range penalties are reduced.
-
-Arts:
+Initial Skill concepts:
 
 Aimed Shot
 Pinning Shot
@@ -654,7 +729,7 @@ Scout's Mark
 Quickstep
 Volley
 
-Ultimate:
+Signature Skill concept:
 
 Deadeye Barrage
 
@@ -662,13 +737,11 @@ Deadeye Barrage
 
 Mobility, trickery and opportunism.
 
-Innate:
+Innate identity concept:
 
-Opportunist
+Opportunist — bonus effectiveness against Exposed targets under authored rules.
 
-Bonus effectiveness against Exposed targets.
-
-Arts:
+Initial Skill concepts:
 
 Backstab
 Feint
@@ -676,7 +749,7 @@ Smoke Vial
 Cripple
 Disengage
 
-Ultimate:
+Signature Skill concept:
 
 Perfect Opening
 
@@ -684,13 +757,11 @@ Perfect Opening
 
 Unarmed martial combat.
 
-Innate:
+Innate identity concept:
 
-Momentum
+Momentum — successful consecutive attacks build Momentum.
 
-Successful consecutive attacks build Momentum.
-
-Arts:
+Initial Skill concepts:
 
 Rising Fist
 Sweep
@@ -698,7 +769,7 @@ Focus Breath
 Counter Palm
 Breakfall
 
-Ultimate:
+Signature Skill concept:
 
 Hundredfold Rush
 
@@ -706,13 +777,11 @@ Hundredfold Rush
 
 Foundation offensive mage.
 
-Innate:
+Innate identity concept:
 
-Arcane Pressure
+Arcane Pressure — repeated spell use gradually builds magical pressure.
 
-Repeated spell use gradually builds magical pressure.
-
-Arts:
+Initial Skill concepts:
 
 Arc Bolt
 Mana Burst
@@ -720,7 +789,7 @@ Ward Pierce
 Arcane Field
 Channel
 
-Ultimate:
+Signature Skill concept:
 
 Aether Nova
 
@@ -728,13 +797,11 @@ Aether Nova
 
 Foundation healing/support mage.
 
-Innate:
+Innate identity concept:
 
-Grace
+Grace — supporting wounded allies produces Grace, empowering defensive Skills/effects.
 
-Supporting wounded allies produces Grace, empowering defensive Arts.
-
-Arts:
+Initial Skill concepts:
 
 Mend
 Purify
@@ -742,11 +809,12 @@ Barrier
 Renew
 Sanctuary
 
-Ultimate:
+Signature Skill concept:
 
 Wellspring
 
 21. MARTIAL & HYBRID DISCIPLINES
+
 7. Bastion
 
 Heavy defender.
@@ -755,7 +823,7 @@ Requires:
 
 Vanguard Adept.
 
-Arts:
+Initial Skill concepts:
 
 Shield Bash
 Cover
@@ -763,7 +831,7 @@ Challenge
 Intercept
 Fortress
 
-Ultimate:
+Signature Skill concept:
 
 Last Bastion
 
@@ -775,7 +843,7 @@ Requires:
 
 Vanguard Adept.
 
-Arts:
+Initial Skill concepts:
 
 Frenzy
 Reckless Cleave
@@ -783,7 +851,7 @@ Blood Rush
 War Roar
 Execution
 
-Ultimate:
+Signature Skill concept:
 
 Red Tempest
 
@@ -795,7 +863,7 @@ Requires:
 
 Vanguard Practiced + Shadehand Practiced.
 
-Arts:
+Initial Skill concepts:
 
 Lunge
 Riposte
@@ -803,7 +871,7 @@ Disarm
 Flourish
 Duelist's Step
 
-Ultimate:
+Signature Skill concept:
 
 Sevenfold Cut
 
@@ -815,7 +883,7 @@ Requires:
 
 Vanguard Practiced + Farstrider Practiced.
 
-Arts:
+Initial Skill concepts:
 
 Vault
 Impale
@@ -823,7 +891,7 @@ High Jump
 Skewer Line
 Dragonfall
 
-Ultimate:
+Signature Skill concept:
 
 Heaven's Lance
 
@@ -835,7 +903,7 @@ Requires:
 
 Vanguard Expert + Ironfist Adept.
 
-Arts:
+Initial Skill concepts:
 
 Iai Draw
 Perfect Guard
@@ -843,7 +911,7 @@ Crescent Cut
 Spirit Sever
 Stillness
 
-Ultimate:
+Signature Skill concept:
 
 One Perfect Stroke
 
@@ -855,7 +923,7 @@ Requires:
 
 Shadehand Adept + Ironfist Practiced.
 
-Arts:
+Initial Skill concepts:
 
 Shadowstep
 Shuriken Fan
@@ -863,7 +931,7 @@ Smoke Veil
 Phantom Clone
 Silence Strike
 
-Ultimate:
+Signature Skill concept:
 
 Vanishing Death
 
@@ -877,7 +945,7 @@ Requires:
 
 Farstrider Adept.
 
-Arts:
+Initial Skill concepts:
 
 Snare
 Hunter's Mark
@@ -885,7 +953,7 @@ Camouflage
 Field Remedy
 Thornline
 
-Ultimate:
+Signature Skill concept:
 
 Apex Hunt
 
@@ -897,7 +965,7 @@ Requires:
 
 Farstrider Adept + Ironfist Practiced.
 
-Arts:
+Initial Skill concepts:
 
 Call Companion
 Pounce Command
@@ -905,7 +973,7 @@ Guard Command
 Pack Bond
 Bestial Surge
 
-Ultimate:
+Signature Skill concept:
 
 Alpha Covenant
 
@@ -917,7 +985,7 @@ Requires:
 
 Vanguard Practiced + Aetherist Practiced.
 
-Arts:
+Initial Skill concepts:
 
 Arc Edge
 Rune Guard
@@ -925,7 +993,7 @@ Spell Parry
 Siphon Slash
 Sigil Step
 
-Ultimate:
+Signature Skill concept:
 
 Runic Overdrive
 
@@ -937,7 +1005,7 @@ Requires:
 
 Vanguard Adept + Lifebinder Adept.
 
-Arts:
+Initial Skill concepts:
 
 Radiant Strike
 Sacred Guard
@@ -945,7 +1013,7 @@ Purge
 Consecrate
 Aegis
 
-Ultimate:
+Signature Skill concept:
 
 Dawn's Oath
 
@@ -957,7 +1025,7 @@ Requires:
 
 Vanguard Adept + Aetherist Adept.
 
-Arts:
+Initial Skill concepts:
 
 Abyss Slash
 Blood Price
@@ -965,7 +1033,7 @@ Dread Aura
 Soul Eater
 Nightfall
 
-Ultimate:
+Signature Skill concept:
 
 Black Sun
 
@@ -977,7 +1045,7 @@ Requires:
 
 Farstrider Practiced + Lifebinder Practiced.
 
-Arts:
+Initial Skill concepts:
 
 Marching Verse
 Ballad of Mending
@@ -985,7 +1053,7 @@ Dirge
 Crescendo
 Encore
 
-Ultimate:
+Signature Skill concept:
 
 Grand Chorus
 
@@ -997,7 +1065,7 @@ Requires:
 
 Shadehand Practiced + Aetherist Practiced.
 
-Arts:
+Initial Skill concepts:
 
 Ember Flask
 Acid Vial
@@ -1005,7 +1073,7 @@ Tonic Mist
 Transmute
 Catalyst
 
-Ultimate:
+Signature Skill concept:
 
 Grand Reaction
 
@@ -1017,7 +1085,7 @@ Requires:
 
 Bastion Practiced + Cantor Practiced.
 
-Arts:
+Initial Skill concepts:
 
 Formation
 Advance
@@ -1025,7 +1093,7 @@ Hold the Line
 Focus Fire
 Battle Standard
 
-Ultimate:
+Signature Skill concept:
 
 Sovereign Command
 
@@ -1045,7 +1113,7 @@ Requires:
 
 Aetherist Practiced.
 
-Arts:
+Initial Skill concepts:
 
 Cinder Bolt
 Flame Field
@@ -1053,7 +1121,7 @@ Ember Chain
 Scorch
 Firestorm
 
-Ultimate:
+Signature Skill concept:
 
 Phoenix Wake
 
@@ -1065,7 +1133,7 @@ Requires:
 
 Aetherist Practiced.
 
-Arts:
+Initial Skill concepts:
 
 Ice Lance
 Frost Wall
@@ -1073,7 +1141,7 @@ Chilling Mist
 Crystal Prison
 Shatter
 
-Ultimate:
+Signature Skill concept:
 
 Absolute Winter
 
@@ -1085,7 +1153,7 @@ Requires:
 
 Aetherist Practiced + Farstrider Initiate.
 
-Arts:
+Initial Skill concepts:
 
 Arc Spark
 Chain Lightning
@@ -1093,7 +1161,7 @@ Gale Step
 Static Field
 Thunderhead
 
-Ultimate:
+Signature Skill concept:
 
 Skybreak
 
@@ -1105,7 +1173,7 @@ Requires:
 
 Aetherist Practiced + Vanguard Initiate.
 
-Arts:
+Initial Skill concepts:
 
 Stone Rise
 Quake
@@ -1113,7 +1181,7 @@ Earthen Ward
 Spire
 Seismic Pull
 
-Ultimate:
+Signature Skill concept:
 
 Mountain's Judgment
 
@@ -1125,7 +1193,7 @@ Requires:
 
 Aetherist Practiced + Lifebinder Initiate.
 
-Arts:
+Initial Skill concepts:
 
 Water Lance
 Mist Veil
@@ -1133,7 +1201,7 @@ Undertow
 Cleansing Rain
 Floodline
 
-Ultimate:
+Signature Skill concept:
 
 Tidal Crown
 
@@ -1145,7 +1213,7 @@ Requires:
 
 Aetherist Adept.
 
-Arts:
+Initial Skill concepts:
 
 Haste
 Slow
@@ -1153,7 +1221,7 @@ Delay
 Rewind Step
 Time Lock
 
-Ultimate:
+Signature Skill concept:
 
 Borrowed Hour
 
@@ -1167,7 +1235,7 @@ Requires:
 
 Aetherist Adept + Shadehand Initiate.
 
-Arts:
+Initial Skill concepts:
 
 Blink
 Rift Gate
@@ -1175,7 +1243,7 @@ Spatial Pull
 Foldspace
 Banish
 
-Ultimate:
+Signature Skill concept:
 
 Event Horizon
 
@@ -1187,7 +1255,7 @@ Requires:
 
 Aetherist Practiced + Shadehand Practiced.
 
-Arts:
+Initial Skill concepts:
 
 Decoy
 Mirror Image
@@ -1195,7 +1263,7 @@ Confusion
 False Terrain
 Vanish
 
-Ultimate:
+Signature Skill concept:
 
 Hall of Mirrors
 
@@ -1207,7 +1275,7 @@ Requires:
 
 Aetherist Adept + Lifebinder Practiced.
 
-Arts:
+Initial Skill concepts:
 
 Soul Drain
 Bone Servant
@@ -1215,7 +1283,7 @@ Rot
 Soul Chain
 Grave Soil
 
-Ultimate:
+Signature Skill concept:
 
 Procession of the Dead
 
@@ -1227,7 +1295,7 @@ Requires:
 
 Aetherist Adept + Lifebinder Adept.
 
-Arts:
+Initial Skill concepts:
 
 Summon Wisp
 Guardian Eidolon
@@ -1235,7 +1303,7 @@ Ember Drake
 Spirit Pact
 Recall
 
-Ultimate:
+Signature Skill concept:
 
 Grand Invocation
 
@@ -1247,7 +1315,7 @@ Requires:
 
 Lifebinder Adept + Aetherist Initiate.
 
-Arts:
+Initial Skill concepts:
 
 Foretell
 Misfortune
@@ -1255,7 +1323,7 @@ Fate Shield
 Premonition
 Rewrite
 
-Ultimate:
+Signature Skill concept:
 
 Providence
 
@@ -1267,7 +1335,7 @@ Requires:
 
 Aetherist Practiced + Shadehand Adept.
 
-Arts:
+Initial Skill concepts:
 
 Weakening Hex
 Silence Curse
@@ -1275,7 +1343,7 @@ Misery
 Mark of Ruin
 Curse Spread
 
-Ultimate:
+Signature Skill concept:
 
 Malediction
 
@@ -1287,7 +1355,7 @@ Requires:
 
 Lifebinder Practiced + Aetherist Adept.
 
-Arts:
+Initial Skill concepts:
 
 Blood Spear
 Life Tap
@@ -1295,19 +1363,19 @@ Crimson Shield
 Hemorrhage
 Blood Pact
 
-Ultimate:
+Signature Skill concept:
 
 Red Communion
 
 34. Loreeater
 
-Learns supernatural Arts from monsters.
+Learns supernatural Skills from monsters.
 
 Requires:
 
 Farstrider Practiced + Aetherist Practiced.
 
-Arts:
+Initial Skill concepts:
 
 Study Prey
 Capture Trait
@@ -1315,7 +1383,7 @@ Borrowed Roar
 Monster Skin
 Adapt
 
-Ultimate:
+Signature Skill concept:
 
 Chimera Memory
 
@@ -1329,7 +1397,7 @@ Requires:
 
 Aetherist Master + Chronist Adept + Riftwalker Adept.
 
-Arts:
+Initial Skill concepts:
 
 Starfall
 Gravity Lens
@@ -1337,7 +1405,7 @@ Comet Step
 Astral Ward
 Constellation
 
-Ultimate:
+Signature Skill concept:
 
 Celestial Rupture
 
@@ -1353,7 +1421,7 @@ Spellwright doesn't merely provide stronger spells.
 
 It manipulates other spells.
 
-Arts:
+Initial Skill concepts:
 
 Spell Stitch
 Dual Weave
@@ -1361,17 +1429,47 @@ Rewrite Cost
 Echo Cast
 Counterspell Matrix
 
-Ultimate:
+Signature Skill concept:
 
 Grand Formula
 
-23. SOULMARKS
+23. THE SUPERNATURAL FORK
 
-Disciplines are learned.
+Disciplines are learned combat traditions.
 
-Soulmarks represent unusual supernatural potential unique to the person.
+Supernatural identity is a separate character layer.
 
-Initial set:
+A character eventually reaches a permanent supernatural decision point with three conceptual states:
+
+UNAWAKENED
+
+Has not yet made the permanent supernatural choice. This temporary state cannot be exploited for Mantle access.
+
+SOULMARKED
+
+Accepted a Soulmark. Under ordinary rules, this character can never become Soul-Severed or acquire/manifest a Mantle.
+
+SOUL-SEVERED
+
+Underwent The Severance. Under ordinary rules, this character can never bind a Soulmark and may instead pursue Mantles.
+
+Approved terminology:
+
+The Severance — the irreversible rite/decision.
+Soul-Severed — formal state/adjective.
+the Severed — natural shorthand.
+
+The choice is explicit, heavily confirmed, server-authoritative, auditable, and not reversible through ordinary respec systems.
+
+24. SOULMARKS
+
+Soulmarks represent persistent supernatural identity unique to the character.
+
+A Soulmarked character may have one current Soulmark.
+
+Soulmark branches are not forced into one universal template. Some focused Soulmarks may have one branch, most may have two, and rare/complex Soulmarks may have three. A branch may grant passives, Skills, or a deliberately balanced combination.
+
+Potential long-term Soulmark identities include concepts such as:
 
 Gravity
 Shadow
@@ -1390,62 +1488,37 @@ Dream
 Spirit
 Rift
 
+The architecture must support 100+ Soulmarks over the lifetime of the game without schema redesign, but quality matters more than reaching a marketing number. A first broad release should prefer a smaller set of strong, distinct identities over shallow percentage variants.
+
 Soulmarks are not hereditary.
 
 No bloodline system.
 
-24. SOULMARK FORMAT
+Soulmark Skills sit outside the 6/8 Discipline Skill cap but remain bounded by the active branch and normal server-authoritative combat legality/cooldowns.
 
-Each Soulmark has:
+Because Soulmarks have combat effects, combat Soulmark ownership/power is not sold as cash-only or premium-only power under the current anti-pay-to-win policy. Cosmetic Soulmark presentation may be monetized.
 
-passive mechanic;
-signature Art;
-three upgrade branches;
-visual identity;
-optional Discipline interactions.
+25. RESONANCE / ESSENCE / SOULMARK / MANTLE DISTINCTION
 
-Example:
+These systems must remain distinct.
 
-Gravity
+Resonance
 
-Passive:
+Requires Primary + Secondary; passive; expresses interaction between two learned Disciplines.
 
-Applying displacement builds Mass.
+Essence
 
-Signature:
+Requires Primary only / no Secondary; grants one special pure-path Skill outside the eight Discipline Skills; expresses the undiluted identity of one Discipline.
 
-Gravity Well
+Soulmark
 
-Branches:
+Requires the Soulmarked path; persistent supernatural identity; branch-defined package of passives and/or Skills; one current Soulmark only.
 
-Collapse
+Mantle
 
-Damage-focused.
+Requires the Soul-Severed path; temporary manually manifested combat transformation; mature target of six distinct Mantles; creates a major temporary power/stat/rule shift followed by a readable Afterstrain/vulnerability period.
 
-Dominion
-
-Control-focused.
-
-Orbit
-
-Mobility/team-focused.
-
-25. SOULMARKS CAN INTERACT WITH CONFLUENCES
-
-Example:
-
-Skywarden + Stormsinger
-Confluence:
-Thunderfall
-
-Soulmark:
-Gravity
-
-Modified interaction:
-Landing pulls adjacent enemies one tile toward the impact before
-Thunderfall resolves.
-
-This produces very different versions of the same Discipline combination.
+Soulmarks and Mantles are mutually exclusive ordinary character paths.
 
 26. COMBAT FORMAT
 
@@ -1465,17 +1538,14 @@ hazards;
 zones;
 summons;
 interactable objects.
+
 27. TURN STRUCTURE
 
-Each normal turn:
+The baseline combat contract is server-authoritative and tactical.
 
-MOVE
-+
-ACTION
+Normal turns preserve a readable movement/action economy rather than becoming a generic client-calculated action-point sandbox. The exact current implementation contract is defined in docs/COMBAT.md and its approved addenda/tests.
 
-They may occur in either order.
-
-Certain Arts alter the rule.
+Skills may alter movement, targeting, timing, or other bounded rules through typed effects.
 
 The player can preview movement before committing unless hidden information has already been revealed.
 
@@ -1520,7 +1590,7 @@ magical zones.
 
 Different movement types interact differently.
 
-Movement Arts provide interesting exceptions.
+Movement-capable Skills provide interesting exceptions.
 
 30. HEIGHT
 
@@ -1531,7 +1601,7 @@ It can influence:
 sight;
 projectile trajectories;
 certain ranges;
-Jump Arts;
+Jump/mobility Skills;
 knockback.
 
 The client visually previews legality.
@@ -1622,7 +1692,7 @@ DISPEL
 DELAY_TURN
 ACCELERATE_TURN
 
-That means adding an ability normally means configuring effects rather than writing a custom combat function.
+That means adding a Skill normally means configuring effects rather than writing a custom combat function.
 
 34. COMBAT RNG
 
@@ -1711,7 +1781,7 @@ important narrative decisions can remain player-specific.
 
 Nobody loses progress because another player got the killing blow.
 
-38. DUNGEONS
+38. EXPEDITIONS
 
 Dungeons are called:
 
@@ -1736,13 +1806,9 @@ approximately short-session content.
 Structure:
 
 5–7 rooms
-
 2–4 combats
-
 1 event
-
 1 reward room
-
 1 boss/miniboss
 
 Designed for:
@@ -1750,6 +1816,7 @@ Designed for:
 casual play;
 learning;
 solo players.
+
 40. STANDARD EXPEDITION
 
 Party:
@@ -1759,19 +1826,12 @@ Party:
 Structure:
 
 8–12 rooms
-
 branching routes
-
 elites
-
 events
-
 hazards
-
 rest point
-
 miniboss
-
 boss
 
 Requires more build coordination.
@@ -1832,9 +1892,7 @@ Approximately 15–22 modules.
 
 This is an important usability improvement.
 
-At designated Sanctuaries, a party may:
-
-Suspend the run.
+At designated Sanctuaries, a party may suspend the run.
 
 The server stores:
 
@@ -1869,7 +1927,7 @@ The same seed must reproduce the same generated structure.
 
 44. PROGRESSIVE REVEAL
 
-Players don't see the entire dungeon immediately.
+Players don't see the entire Expedition immediately.
 
 Example:
 
@@ -1969,7 +2027,7 @@ skeleton with 180,000 HP.
 
 48. PERSONAL LOOT
 
-Dungeon loot is individual.
+Expedition loot is individual.
 
 Players should never fight teammates over who clicked the chest first.
 
@@ -2006,6 +2064,7 @@ Special/event formats:
 Tournament
 Guild Arena
 Nation Conflict
+
 51. 1V1
 
 Standard tactical arena.
@@ -2043,25 +2102,26 @@ inspect turn order.
 
 They cannot control each other's character.
 
-53. 2V2 SYNERGY IS WHERE CONFLUENCE BECOMES AMAZING
+53. 2V2 SYNERGY IS WHERE RESONANCE BECOMES AMAZING
 
 Example team:
 
-Bastion / Chronist
+Bastion Primary / Chronist Secondary
 +
-Cinderweaver / Stormsinger
+Cinderweaver Primary / Stormsinger Secondary
 
 Bastion controls the map.
 
-Chronist boosts turn economy.
+Chronist changes timing/tempo interactions.
 
 Cinderweaver Scorches enemies.
 
-Stormsinger triggers Arcflash.
+Stormsinger enables Arcflash-style Resonance payoff.
 
 There should be countless team strategies like this.
 
 54. PVP MODES
+
 Elimination
 
 Defeat enemies.
@@ -2103,6 +2163,7 @@ equipment effects remain meaningful;
 builds still matter;
 progression still matters;
 raw numbers don't completely invalidate skill.
+
 56. PVP RANKS
 
 Separate 1v1 and 2v2 ratings.
@@ -2120,7 +2181,7 @@ Mythic
 
 Cosmetic seasonal rewards.
 
-No core class progression locked behind high rank.
+No core Discipline progression locked behind high rank.
 
 57. TURN TIMER
 
@@ -2155,17 +2216,11 @@ Disconnecting should never be a strategy.
 Support:
 
 1v1
-
 2v2
-
 Single elimination
-
 Scheduled brackets
-
 Seeded brackets
-
 Private guild tournaments
-
 Official seasonal tournaments
 
 Double elimination can arrive later.
@@ -2183,9 +2238,10 @@ forests;
 cities;
 mountains;
 ruins;
-dungeons;
+Expeditions;
 dangerous regions;
 nation borders.
+
 61. LIVE PLAYER PRESENCE
 
 Nearby players appear as attractive portrait tokens.
@@ -2199,7 +2255,7 @@ challenge;
 view guild;
 view status.
 
-Fast token movement updates use Realtime Broadcast, while Presence is best used for slower status such as online/offline or the region/page the player occupies. That's also consistent with Supabase's current guidance.
+Fast token movement updates use Realtime Broadcast, while Presence is best used for slower status such as online/offline or the region/page the player occupies.
 
 62. WORLD REGIONS
 
@@ -2275,8 +2331,9 @@ Later:
 
 guild hall;
 guild PvP;
-guild expeditions;
+guild Expeditions;
 territory contributions.
+
 65. NATIONS
 
 Players are not forced to choose at character creation.
@@ -2316,7 +2373,7 @@ Players contribute through:
 PvP;
 PvE;
 quests;
-expeditions;
+Expeditions;
 resource objectives;
 world events.
 
@@ -2361,13 +2418,17 @@ Might.
 
 Interesting:
 
-After moving four tiles, your next ranged Art gains +1 range.
+After moving four tiles, your next ranged Skill gains +1 range under authored balance rules.
 
 Very interesting:
 
-When you teleport through an enemy, apply Exposed.
+When you teleport through an enemy, apply Exposed under authored rules.
 
 Equipment should encourage builds.
+
+Weapons, armor, and shields may grant Equipment Skills. Equipment Skills sit outside the 6/8 Discipline Skill cap but use the same targeting, Effect Catalog, Action Economy, cooldown, forecast, AI-legality and server-authority framework as other Skills.
+
+Not every item should grant an active Skill. Accessories should default toward passive/effect identity unless specifically approved.
 
 70. RARITY
 
@@ -2442,11 +2503,11 @@ profile decoration;
 prestige achievements;
 collection progression.
 
-This prevents ancient characters becoming mathematically unreachable.
+Rekindling remains the long-horizon prestige direction. It should reward history, flexibility, options and identity rather than infinite raw stat inflation. Strong candidate rewards include Hall of Selves / Chronicle history, bounded Memory Carryover, one bounded Veteran Edge slot in modes where allowed, loadout convenience, cosmetic/challenge content and mentorship/knowledge systems.
 
-76. AUDIO IS NOW A FIRST-CLASS SYSTEM
+The Soulmarked versus Soul-Severed supernatural choice persists across Rekindling unless a future explicit story system says otherwise.
 
-The previous plans underweighted this.
+76. AUDIO IS A FIRST-CLASS SYSTEM
 
 Aurevane should have a memorable musical identity.
 
@@ -2473,6 +2534,7 @@ VICTORY
 DEFEAT
 NATION_WAR
 EVENT
+
 78. ADAPTIVE MUSIC
 
 Music can contain stems:
@@ -2508,7 +2570,7 @@ Boss:
 
 transition seamlessly into boss arrangement.
 
-This can make a procedurally structured dungeon feel authored.
+This can make a procedurally structured Expedition feel authored.
 
 79. LEITMOTIFS
 
@@ -2535,6 +2597,7 @@ tab;
 equip;
 error;
 confirmation.
+
 Combat
 weapon swings;
 impacts;
@@ -2544,6 +2607,7 @@ casting;
 status;
 movement;
 teleportation.
+
 World
 footsteps;
 wind;
@@ -2551,13 +2615,16 @@ rain;
 crowds;
 animals;
 water.
+
 Rewards
 item found;
 rare item;
 level;
 Mastery;
-Confluence discovered;
+Resonance discovery;
+Essence unlock;
 achievement.
+
 81. AUDIO SETTINGS
 
 Settings page contains:
@@ -2605,6 +2672,7 @@ file;
 version;
 loop points;
 tags.
+
 83. ART DIRECTION
 
 Aurevane aesthetic:
@@ -2626,6 +2694,7 @@ readable role identity;
 mature fantasy proportions;
 rich fabrics/metals;
 sophisticated color separation.
+
 84. ASSET STRATEGY
 
 Do not require thousands of custom images.
@@ -2635,11 +2704,12 @@ Spend artistic effort where players notice it:
 Premium
 character portraits;
 Discipline key art;
-Soulmark art;
+Soulmark/Mantle art;
 region art;
 bosses;
 legendary items;
 login/season artwork.
+
 System-generated/reusable
 battle tokens;
 borders;
@@ -2649,6 +2719,7 @@ terrain tiles;
 UI;
 status icons;
 particles.
+
 85. AI ART REQUEST SYSTEM
 
 Whenever the development AI encounters missing art, it must not silently create an ugly generic colored rectangle and forget about it.
@@ -2703,6 +2774,7 @@ AVOID:
 
 STATUS:
 REQUESTED
+
 86. MASTER IMAGE PROMPT STYLE
 
 Use a shared base prompt such as:
@@ -2717,11 +2789,11 @@ Template:
 
 Cinematic wide fantasy environment illustration for Aurevane, [REGION DESCRIPTION], strong foreground/midground/background separation, atmospheric perspective, navigable-world feeling, premium RPG loading-screen quality, sophisticated lighting, no characters dominating composition, no text, no logo.
 
-88. DUNGEON PROMPTS
+88. DUNGEON / EXPEDITION PROMPTS
 
 Template:
 
-Dark fantasy tactical dungeon environment, [THEME], modular architectural language suitable for grid-based tactical encounters, clear navigable floor space, dramatic practical lighting, atmospheric depth, premium hand-painted fantasy game art, original architecture, no text.
+Dark fantasy tactical Expedition environment, [THEME], modular architectural language suitable for grid-based tactical encounters, clear navigable floor space, dramatic practical lighting, atmospheric depth, premium hand-painted fantasy game art, original architecture, no text.
 
 89. ITEM PROMPTS
 
@@ -2729,7 +2801,7 @@ Template:
 
 Isolated fantasy RPG inventory item, [ITEM], elegant original silhouette, premium material rendering, centered orthographic presentation, subtle magical detail appropriate to rarity [RARITY], transparent or clean neutral background, no text, no hand holding item.
 
-90. SOULMARK PROMPTS
+90. SOULMARK / MANTLE PROMPTS
 
 Soulmark icons should be:
 
@@ -2738,7 +2810,9 @@ symbolic;
 easy to recognize at 32px;
 beautiful at large size.
 
-Not detailed mini-paintings that become unreadable icons.
+Mantles should have equally distinct transformation silhouettes and state readability.
+
+Do not create detailed mini-paintings that become unreadable icons.
 
 91. MASTER PANEL — ART STUDIO
 
@@ -2791,33 +2865,38 @@ Server Health
 Economy
 Reports
 Errors
-Popular Disciplines
-Popular Confluences
+Popular Primary Disciplines
+Popular Secondary Disciplines
+Popular Resonances
+Pure-Discipline / Essence usage
 Soulmark Usage
+Mantle Usage
+
 93. MASTER PANEL — CHARACTER CONTENT
 
-Owner editors:
+Owner editors include:
 
 Discipline Editor
-Art Editor
-Trait Editor
-Confluence Editor
+Skill Editor
+Resonance Editor
+Essence Editor
 Soulmark Editor
+Mantle Editor
 Item Editor
 Equipment Set Editor
-94. CONFLUENCE EDITOR
+Prestige/Veteran Edge controls where applicable
+
+94. RESONANCE / ESSENCE EDITORS
 
 Especially important.
 
-Select:
+Example Resonance authoring:
 
-CURRENT:
+PRIMARY:
 Cinderweaver
 
-LEGACY:
+SECONDARY:
 Stormsinger
-
-Then:
 
 Name:
 Arcflash
@@ -2826,20 +2905,22 @@ Trigger:
 Storm damage against Scorched
 
 Effect:
-Chain 35% damage to nearest valid enemy
+Chain bounded damage/effect to nearest valid enemy
 
-Cooldown:
-Once per actor turn
+Cooldown/cap:
+Once per actor turn where authored
 
 VFX:
 plasma-chain-01
 
 PvP coefficient:
-0.8
+versioned balance value
 
 Publish.
 
 No TypeScript edit required.
+
+The Essence editor similarly controls the per-Discipline pure-path Skill, damage/effect budget, Action Economy cost, cooldown, tags/effects, visuals, PvE/PvP tuning, versioning and publish/rollback.
 
 95. MASTER PANEL — WORLD CONTENT
 
@@ -2858,46 +2939,33 @@ rooms;
 encounters;
 loot tables;
 world events.
+
 96. MASTER PANEL — EXPEDITION EDITOR
 
 Configure:
 
 Name
-
 Theme
-
 Difficulty
-
 Party requirement
-
 Room range
-
 Allowed room templates
-
 Enemy pools
-
 Elite pools
-
 Bosses
-
 Threat curve
-
 Modifier pool
-
 Sanctuary frequency
-
 Loot table
-
 Resume rules
-
 Recommended level
-
 Enabled
+
 97. MASTER PANEL — AUDIO
 
-Already discussed, but it lives alongside content.
+Audio management lives alongside content.
 
-No developer required to replace a town song.
+No developer should be required merely to replace a town song.
 
 98. MASTER PANEL — LIVE OPS
 
@@ -2907,12 +2975,13 @@ announcements;
 seasonal events;
 XP modifiers;
 Mastery modifiers;
-dungeon events;
+Expedition events;
 world invasions;
 PvP rotations;
 tournament schedules;
 login banner;
 maintenance mode.
+
 99. MASTER PANEL — FEATURE FLAGS
 
 Instantly enable/disable:
@@ -2922,9 +2991,11 @@ Ranked
 Marketplace
 Trading
 Specific Discipline
-Specific Art
+Specific Skill
 Specific Soulmark
-Specific Confluence
+Specific Resonance
+Specific Essence
+Specific Mantle
 Expeditions
 Specific Expedition
 Guilds
@@ -2961,11 +3032,13 @@ PvE Win Rate
 Damage
 Healing
 Survival
-Common Legacy
-Common Soulmark
+Common Secondary pairing
+Common Resonance
+Pure/Essence usage
+Common Soulmark or Mantle path
 Common Equipment
 
-Confluences receive the same analytics.
+Resonances and Essences receive appropriate analytics.
 
 102. AUTOMATED SIMULATION
 
@@ -2973,9 +3046,9 @@ Eventually:
 
 SIMULATE
 
-Bastion + Chronist
+Bastion Primary + Chronist Secondary
 vs
-Nightveil + Hexbinder
+Nightveil Primary + Hexbinder Secondary
 
 10,000 matches
 
@@ -2988,8 +3061,6 @@ AI is never allowed to automatically rebalance live content.
 Owner approves balance changes.
 
 103. SERVER ARCHITECTURE — BUILT PROPERLY FROM DAY ONE
-
-This is the other major change you requested.
 
 We design the software boundaries now so multiplayer servers aren't a future rewrite.
 
@@ -3014,6 +3085,7 @@ Recommended:
   /config
   /validation
   /analytics
+
 105. WEB APPLICATION
 
 apps/web
@@ -3047,6 +3119,7 @@ progression;
 equipment;
 rewards;
 shared invariants.
+
 107. COMBAT ENGINE
 
 packages/combat
@@ -3073,6 +3146,7 @@ testable;
 replayable;
 simulatable;
 portable to a dedicated service later.
+
 108. EXPEDITION ENGINE
 
 packages/expeditions
@@ -3091,6 +3165,7 @@ Also handles:
 suspension;
 reconnection;
 run completion.
+
 109. DATABASE & AUTH
 
 Supabase initially provides:
@@ -3100,7 +3175,7 @@ authentication;
 Realtime;
 storage.
 
-Sensitive tables exposed through Supabase must use appropriate Row Level Security, and privileged service credentials must never reach the browser. Supabase's current documentation explicitly recommends RLS for exposed schemas.
+Sensitive tables exposed through Supabase must use appropriate Row Level Security, and privileged service credentials must never reach the browser.
 
 110. AUTHORITATIVE ACTION FLOW
 
@@ -3108,7 +3183,7 @@ Example battle action:
 
 PLAYER
 ↓
-Use Art: Thunderfall
+Use Skill: Thunderfall-enabled action
 ↓
 API
 ↓
@@ -3169,25 +3244,20 @@ purchases;
 marketplace transfers;
 quest rewards;
 battle rewards.
+
 113. REALTIME CHANNEL DESIGN
 
 Examples:
 
 battle:<battleId>
-
 party:<partyId>
-
 expedition:<runId>
-
 region:<regionId>
-
 guild:<guildId>
-
 nation:<nationId>
-
 user:<userId>
 
-Use Broadcast for fast gameplay/event messages. Supabase itself recommends Broadcast for higher-frequency event delivery and notes that Postgres Changes has per-subscriber authorization scaling costs.
+Use Broadcast for fast gameplay/event messages and Presence for slower online/status context.
 
 114. PRESENCE
 
@@ -3200,8 +3270,6 @@ status
 last_seen
 
 Do not use Presence as the authoritative movement state.
-
-Supabase currently recommends Broadcast rather than Presence for high-frequency/fire-and-forget updates.
 
 115. WORKER
 
@@ -3219,7 +3287,7 @@ economic snapshots;
 battle simulations;
 analytics aggregation.
 
-Do not put massive simulation jobs inside request-response functions. Supabase's Edge Functions documentation specifically advises keeping those functions short-lived/idempotent and moving heavy long-running work to background workers.
+Do not put massive simulation jobs inside request-response functions.
 
 116. THREE ENVIRONMENTS FROM THE BEGINNING
 
@@ -3228,6 +3296,7 @@ Use:
 LOCAL
 STAGING
 PRODUCTION
+
 Local
 
 Your PC.
@@ -3238,9 +3307,7 @@ Disposable data.
 
 Staging
 
-Cloud test environment.
-
-Used to test deployments.
+Cloud test environment used to test deployments.
 
 Production
 
@@ -3286,13 +3353,11 @@ Postgres
 
 Because the core gameplay is already isolated in packages, moving API execution to separate server containers should not require rewriting combat.
 
-That's the important part.
-
 119. YOU DO NOT NEED ONE RUNNING SERVER PROCESS PER BATTLE
 
 Because Aurevane is turn-based, authoritative battle state can be persisted and processed as discrete validated actions.
 
-This is a design inference, not a platform limitation: it considerably simplifies hosting while still giving clients immediate updates through Realtime.
+This considerably simplifies hosting while still giving clients immediate updates through Realtime.
 
 120. SECURITY
 
@@ -3308,12 +3373,14 @@ Mastery
 Cooldown
 Battle result
 Quest completion
-Dungeon completion
+Expedition completion
 Position legality
 Drop result
 Marketplace transaction
+Primary/Secondary cooldown completion
+Passive Training completion
 
-Everything sensitive validated server-side.
+Everything sensitive is validated server-side.
 
 121. RATE LIMITS
 
@@ -3327,6 +3394,7 @@ PvP queue;
 battle actions;
 friend requests;
 messaging.
+
 122. AUDIT LOGGING
 
 Administrative actions record:
@@ -3354,6 +3422,7 @@ worker failures;
 queue depth;
 active users;
 active battles.
+
 124. GAME ANALYTICS
 
 Do not only track revenue.
@@ -3365,27 +3434,34 @@ Examples:
 Where players quit tutorial
 Disciplines tried
 Disciplines mastered
-Confluences discovered
+Primary/Secondary pairings
+Resonances used/discovered
+Pure/Essence usage
+Soulmark/Mantle path usage
 Quest completion
-Dungeon abandonment room
-Dungeon wipe location
+Expedition abandonment room
+Expedition wipe location
 PvP surrender rate
 Average battle turns
 Matchup win rates
 Returning players
 Party formation
 Guild participation
-125. THE FUN/RETENTION ENGINE
+Passive Training usage and completion
+
+125. THE FUN / RETENTION ENGINE
 
 The major repeating goals:
 
-"One more Discipline level."
+"One more Mastery milestone."
 
 "One more room."
 
 "I want that item."
 
-"I want to try this Confluence."
+"I want to try this Resonance."
+
+"What does this Discipline feel like pure with its Essence?"
 
 "We nearly killed the boss."
 
@@ -3395,7 +3471,7 @@ The major repeating goals:
 
 "I finally unlocked Starcaller."
 
-"I need the monster Art from that boss."
+"I need the monster-derived Skill from that boss."
 
 "We're one win from Diamond."
 
@@ -3412,17 +3488,21 @@ Aurevane should support:
 5-minute session
 inventory;
 Mastery check;
+Passive Training check/plan management;
 contract;
 shop;
 quick travel.
+
 15-minute session
 quest;
 casual PvP;
 easy encounter chain.
+
 30-minute session
 Standard Expedition;
 several quests;
 ranked games.
+
 ~1-hour session
 Deep Expedition;
 tournament;
@@ -3440,7 +3520,7 @@ portraits;
 profile frames;
 battle banners;
 weapon skins;
-cosmetic spell effects;
+cosmetic Skill effects;
 emotes;
 title packs;
 character slots;
@@ -3451,7 +3531,9 @@ Never sell:
 
 dominant PvP gear;
 permanent stat advantage;
-exclusive meta-defining Disciplines.
+exclusive meta-defining Disciplines;
+combat-exclusive Soulmark/Mantle power.
+
 128. SEASON PASS
 
 Free and premium paths.
@@ -3461,7 +3543,7 @@ Primarily:
 cosmetics;
 profile themes;
 portrait frames;
-Soulmark cosmetic VFX;
+Soulmark/Mantle cosmetic VFX;
 emotes;
 banners;
 music-player unlocks;
@@ -3481,15 +3563,16 @@ you weren't playing in August 2027.
 
 130. IMPLEMENTATION SCHEDULE
 
-This is now the actual build order.
+This is the actual high-level build order.
 
 A Sprint means:
 
 a development milestone, not necessarily a fixed calendar week.
 
-The AI does not proceed until acceptance criteria pass.
+The project does not proceed past a gate until acceptance criteria pass.
 
 PHASE 0 — ENGINEERING FOUNDATION
+
 Sprint 0 — Repository
 monorepo;
 TypeScript;
@@ -3498,6 +3581,7 @@ lint;
 Git;
 CI;
 test framework.
+
 Sprint 1 — Infrastructure
 Supabase local;
 staging configuration;
@@ -3506,12 +3590,14 @@ migrations;
 authentication;
 RLS baseline;
 deployment pipeline.
+
 Sprint 2 — Server Architecture
 game-core;
 transactional service pattern;
 idempotency;
 realtime adapter;
 worker skeleton.
+
 Sprint 3 — Design System + Audio Core
 typography;
 colors;
@@ -3526,110 +3612,82 @@ Gate:
 
 Beautiful empty Aurevane shell + functioning production-style infrastructure.
 
-131. PHASE 1 — FIRST CHARACTER
-Sprint 4
+Current state: engineering foundation is substantially implemented and the project is operating through production-style GitHub/Supabase/Vercel workflows.
 
-Authentication UI.
+131. PHASE 1 — FIRST CHARACTER & PROGRESSION FOUNDATION
 
-Sprint 5
+Core milestones include:
 
-Character schema.
-
-Sprint 6
-
-Character creation.
-
-Sprint 7
-
-Character profile.
-
-Sprint 8
-
-Stats/progression.
-
-Sprint 9
-
-Foundation Discipline framework.
-
-Sprint 10
-
-Mastery framework.
+authentication UI;
+character schema;
+character creation;
+character profile/build headquarters foundation;
+six-attribute model;
+stats/progression;
+Foundation Discipline framework;
+Mastery framework;
+Primary Discipline foundation;
+character/account controls;
+server-authoritative Passive Training;
+profile/title/presence quality-of-life.
 
 Gate:
 
-Create character and progress Discipline Mastery.
+Create and maintain a character, progress Discipline Mastery, and exercise the progression foundation safely.
+
+Current state: foundation implemented and iterated through player-validation feedback; further polish/content expansion continues through later phases.
 
 132. PHASE 2 — COMBAT VERTICAL SLICE
-Sprint 11
 
-Effect engine.
+Core milestones:
 
-Sprint 12
-
-Tactical board.
-
-Sprint 13
-
-Movement/elevation.
-
-Sprint 14
-
-Turn engine.
-
-Sprint 15
-
-Combat actions/statuses.
-
-Sprint 16
-
-Enemy AI.
-
-Sprint 17
-
-Rewards.
-
-Sprint 18
-
-Combat presentation/audio/VFX.
+Effect engine;
+tactical board;
+movement/elevation;
+turn/action-economy engine;
+combat actions/statuses;
+enemy AI;
+rewards;
+combat presentation/audio/VFX;
+Battle Hall;
+AI Sparring;
+forecasting/readability;
+combat log;
+reconnect/server-authority hardening;
+mobile/responsive battle usability.
 
 Gate:
 
-Beautiful complete PvE fight.
+A beautiful, readable, server-authoritative complete PvE fight that survives real player validation.
 
-133. PHASE 3 — DISCIPLINE MIXING
-Sprint 19
+Current state: active validation/iteration focus. Automated green tests do not substitute for human player-validation PASS.
 
-Legacy Discipline.
+133. PHASE 3 — BUILDCRAFT IDENTITY
 
-Sprint 20
+Implement and validate:
 
-Borrowed Arts.
-
-Sprint 21
-
-Traits/Reactions/Movement Arts.
-
-Sprint 22
-
-Confluence framework.
-
-Sprint 23
-
-First Confluence library.
-
-Sprint 24
-
-Soulmark framework.
+Primary Discipline commitment and base-stat profiles;
+optional mastered Secondary Discipline;
+independent live Discipline-change cooldowns;
+8-Skill pure Discipline capacity;
+6-Skill mixed Discipline capacity;
+first complete Discipline Skill libraries;
+Resonance framework;
+first Resonance library;
+pure-Discipline Essence framework and first Essence Skills;
+Character Profile build configuration;
+Skill cooldown/readability rules;
+first supernatural fork/Soulmark proof where appropriate to progression.
 
 Gate:
 
-Current + Legacy + Soulmark build works.
+A player can meaningfully choose between a pure Primary + Essence build and a Primary + mastered Secondary + Resonance build, configure Skills, enter combat, and understand why the build behaves differently.
 
-This is the moment Aurevane actually starts becoming Aurevane.
+This is the moment Aurevane's signature theorycraft loop becomes fully visible.
 
 134. PHASE 4 — CORE CONTENT
 
-Implement six Foundations plus first advanced group:
+Implement six Foundations plus first advanced group, including the original target identities:
 
 Bastion;
 Ravager;
@@ -3646,190 +3704,117 @@ Target Alpha initially around:
 
 16 playable Disciplines.
 
+Each playable Discipline needs sufficient Skill-library content, pure Essence coverage, relevant Resonance coverage, AI rules, VFX/SFX and PvE/PvP validation appropriate to the stage.
+
 Do not delay testing until all 36 exist.
 
 135. PHASE 5 — WORLD
-Sprint 29
 
-World map.
-
-Sprint 30
-
-Movement/presence.
-
-Sprint 31
-
-Towns.
-
-Sprint 32
-
-Encounters.
-
-Sprint 33
-
-NPC/dialogue.
-
-Sprint 34
-
-Quest engine.
-
-Sprint 35
-
-Initial story.
+World map / Atlas;
+movement/presence;
+towns/settlements;
+encounters;
+NPC/dialogue;
+quest engine;
+initial story;
+world-event foundations;
+regional presentation.
 
 136. PHASE 6 — PARTY & CO-OP
-Sprint 36
 
-Parties.
-
-Sprint 37
-
-Party realtime.
-
-Sprint 38
-
-Co-op battles.
-
-Sprint 39
-
-Shared quests.
-
-Sprint 40
-
-Party finder.
+Parties;
+party realtime;
+co-op battles;
+shared quests;
+party finder;
+party UX;
+reconnect handling.
 
 Gate:
 
-Three people can complete a mission together.
+Three people can complete a mission together and each player retains control of their own character.
 
 137. PHASE 7 — EXPEDITIONS
-Sprint 41
 
-Dungeon template engine.
-
-Sprint 42
-
-Seeded generation.
-
-Sprint 43
-
-Progressive reveal.
-
-Sprint 44
-
-Easy Expeditions.
-
-Sprint 45
-
-Standard Expeditions.
-
-Sprint 46
-
-Threat/modifiers.
-
-Sprint 47
-
-Suspension/reconnect.
-
-Sprint 48
-
-Deep Expeditions.
-
-Sprint 49
-
-Multiphase bosses.
-
-Sprint 50
-
-Personal loot/leaderboards.
+Dungeon/Expedition template engine;
+seeded generation;
+progressive reveal;
+Easy Expeditions;
+Standard Expeditions;
+Threat/modifiers;
+suspension/reconnect;
+Deep Expeditions;
+multiphase bosses;
+personal loot/leaderboards.
 
 Gate:
 
-Three-player hour-scale Deep Expedition is fully playable.
+A three-player, roughly hour-scale Deep Expedition is fully playable and resumable under its authored rules.
 
 138. PHASE 8 — PVP
-Sprint 51
 
-Direct challenges.
-
-Sprint 52
-
-Casual 1v1.
-
-Sprint 53
-
-Ranked 1v1.
-
-Sprint 54
-
-Arena Tempering.
-
-Sprint 55
-
-Casual 2v2.
-
-Sprint 56
-
-Ranked 2v2.
-
-Sprint 57
-
-Matchmaking.
-
-Sprint 58
-
-Disconnect protection.
-
-Sprint 59
-
-Seasons.
-
-Sprint 60
-
-Tournament framework.
+Direct challenges;
+Casual 1v1;
+Ranked 1v1;
+Arena Tempering;
+Casual 2v2;
+Ranked 2v2;
+matchmaking;
+disconnect protection;
+seasons;
+tournament framework;
+competitive telemetry and anti-abuse.
 
 139. PHASE 9 — FULL DISCIPLINE ROSTER
 
 Implement remaining Disciplines in batches.
 
-Every new Discipline must include:
+Every mature new Discipline must include:
 
-Innate
-5+ Arts
-Ultimate
-Traits
-Reaction where appropriate
-Movement Art where appropriate
-AI usage rules
-VFX
-SFX
-Confluence definitions
-PvP tests
-PvE tests
+Primary base-stat profile;
+8 learnable Discipline Skills;
+pure-path Essence Skill;
+Resonance coverage with the released roster;
+AI usage rules;
+VFX;
+SFX;
+PvP tests;
+PvE tests;
+analytics hooks;
+Master Panel content support.
 
 Eventually reach all 36.
 
 140. PHASE 10 — SOCIAL WORLD
+
 guilds;
 friends;
 messages;
 guild quests;
 guild progression;
 social profile;
-moderation.
+moderation;
+recognition surfaces for notable players/builds/teams.
+
 141. PHASE 11 — ECONOMY
+
 stores;
 loot;
 marketplace;
 crafting;
-economic telemetry.
+economic telemetry;
+transactional exploit protection.
+
 142. PHASE 12 — NATIONS
+
 allegiance;
 reputation;
 nation quests;
 campaigns;
 nation warfare;
-political rankings.
+political rankings;
+PvE and PvP contribution paths.
+
 143. PHASE 13 — MASTER PANEL
 
 Some admin functionality exists earlier.
@@ -3837,9 +3822,12 @@ Some admin functionality exists earlier.
 This phase builds the complete owner experience:
 
 content editors;
-Confluence editor;
+Discipline/Skill editors;
+Resonance editor;
+Essence editor;
+Soulmark/Mantle editors;
 quest editor;
-expedition editor;
+Expedition editor;
 event editor;
 audio manager;
 Asset Studio;
@@ -3847,7 +3835,10 @@ balance dashboards;
 simulation;
 economic analytics;
 moderation;
-version rollback.
+feature flags;
+version rollback;
+audit and publish workflows.
+
 144. PHASE 14 — ART & AUDIO POLISH
 
 Dedicated production pass.
@@ -3861,7 +3852,7 @@ Instead:
 region artwork;
 character art;
 Discipline artwork;
-Soulmark art;
+Soulmark/Mantle art;
 soundtrack;
 ambient audio;
 SFX;
@@ -3870,8 +3861,11 @@ particles;
 animations;
 responsive polish;
 loading states;
-error states.
+error states;
+accessibility/readability polish.
+
 145. PHASE 15 — HARDENING
+
 penetration/security review;
 abuse testing;
 rate limits;
@@ -3879,15 +3873,21 @@ SQL/index optimization;
 load testing;
 matchmaking load;
 Realtime load;
-expedition concurrency;
-economic exploit testing.
+Expedition concurrency;
+economic exploit testing;
+reconnect/failure-mode testing;
+content rollback drills.
+
 146. CLOSED ALPHA
 
-Alpha target:
+Alpha target remains a substantial, evolving gate rather than a date promise.
+
+Target shape:
 
 16 Disciplines
-8 Soulmarks
-dozens of Confluences
+8 Soulmarks for the initial Alpha supernatural set
+Resonance coverage sufficient to make mixed builds genuinely varied
+pure-Discipline Essence coverage for the playable roster
 4 world regions
 20–30 enemies
 4–6 bosses
@@ -3899,65 +3899,47 @@ Standard Expedition
 1v1 PvP
 2v2 PvP
 Guild foundation
-Master Panel
-full audio
+Master Panel foundation
+full audio coverage for the Alpha experience
 strong visual presentation
 
 That is already a substantial game.
 
 147. THE AI MUST KEEP DOCUMENTATION
 
-Repository:
+Repository documentation includes or should include:
 
-/docs/MASTER_GAME_SPEC.md
-
+/docs/GAME_MASTER_PLAN.md
+/docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md
 /docs/TECH_ARCHITECTURE.md
-
 /docs/DISCIPLINES.md
-
-/docs/CONFLUENCE_SYSTEM.md
-
 /docs/SOULMARKS.md
-
 /docs/COMBAT.md
-
 /docs/PVP.md
-
 /docs/EXPEDITIONS.md
-
 /docs/QUESTS.md
-
 /docs/WORLD.md
-
 /docs/GUILDS.md
-
 /docs/NATIONS.md
-
 /docs/ECONOMY.md
-
 /docs/MASTER_PANEL.md
-
 /docs/AUDIO_BIBLE.md
-
 /docs/ART_BIBLE.md
-
 /docs/SECURITY.md
-
 /docs/ROADMAP.md
 
 AGENTS.md
-
 TASKS.md
+
+Do not invent a non-existent documentation filename merely because an older plan referenced it. When a legacy document name is retired, update links and authoritative indexes rather than preserving phantom paths.
+
 148. ART REQUEST DIRECTORY
 
 Also:
 
 /content/art-requests/
-
 /content/audio-requests/
-
 /content/seed/
-
 /content/balance/
 
 When artwork/music is missing:
@@ -4003,20 +3985,21 @@ long-loop gameplay track
 
 STATUS:
 REQUESTED
+
 150. AGENTS.MD — NON-NEGOTIABLE RULES
 
 Your coding AI must be told:
 
 AUREVANE AI DEVELOPMENT CONTRACT
 
-1. MASTER_GAME_SPEC describes the FINAL product.
+1. GAME_MASTER_PLAN describes the FINAL product.
 2. Never interpret the full spec as permission to implement everything.
 3. Implement ONLY the assigned ticket.
 4. Read relevant documentation before coding.
 5. Inspect existing code before editing.
 6. Server owns authoritative gameplay.
 7. UI never calculates authoritative outcomes.
-8. Use reusable effects rather than bespoke ability logic whenever possible.
+8. Use reusable typed effects rather than bespoke Skill logic whenever possible.
 9. Content should be data-driven.
 10. Every database schema change requires a migration.
 11. Every sensitive table requires an explicit security decision.
@@ -4024,7 +4007,7 @@ AUREVANE AI DEVELOPMENT CONTRACT
 13. Economy changes must be transactional.
 14. Rewards must be idempotent.
 15. All significant combat behavior requires tests.
-16. Dungeon generation must be deterministic by seed.
+16. Expedition generation must be deterministic by seed.
 17. Never remove working behavior simply to make implementation easier.
 18. Never create giant miscellaneous utility files.
 19. Respect feature-module boundaries.
@@ -4034,12 +4017,13 @@ AUREVANE AI DEVELOPMENT CONTRACT
 23. If art is missing, create an ART_REQUEST.
 24. If audio is missing, create an AUDIO_REQUEST.
 25. Never introduce unlicensed third-party artwork, music or code.
-26. Never copy TheNinjaRPG implementation or assets.
+26. Never copy another game's implementation or assets.
 27. Reference games may only inform abstract UX/game-design principles.
 28. Run tests, typecheck and lint after each ticket.
 29. Explain manual testing steps.
-30. Stop when the assigned ticket is complete.
-151. FIRST PROMPT TO GIVE YOUR LOCAL AI
+30. Stop when the assigned ticket is complete unless the active execution mandate explicitly authorizes continuing through the next verified release step.
+
+151. FIRST PROMPT TO GIVE A LOCAL AI
 
 Once the documentation exists:
 
@@ -4047,19 +4031,16 @@ You are the principal implementation engineer for Aurevane.
 
 Aurevane is a persistent online browser-based tactical fantasy RPG.
 
-The complete long-term product is defined in /docs.
-
-I am a beginner and will primarily be vibe coding, so protecting
-architecture, code quality, security and project scope is part of
-your responsibility.
+The complete long-term product is defined in /docs, led by docs/GAME_MASTER_PLAN.md and the authoritative addenda indexed by AGENTS.md.
 
 Before doing anything:
 
 Read:
 - AGENTS.md
-- docs/MASTER_GAME_SPEC.md
+- docs/GAME_MASTER_PLAN.md
+- docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md
 - docs/TECH_ARCHITECTURE.md
-- docs/DESIGN_SYSTEM.md
+- docs/DESIGN_SYSTEM.md where present
 - docs/ART_BIBLE.md
 - docs/AUDIO_BIBLE.md
 - docs/SECURITY.md
@@ -4072,12 +4053,16 @@ Do NOT implement the complete game.
 The architecture must anticipate the complete product, including:
 
 - server-authoritative gameplay
+- six universal attributes
 - 36 Disciplines
 - Discipline Mastery
-- Current + mastered Legacy Discipline
-- Confluence system
-- Soulmarks
+- Primary Discipline + optional mastered Secondary Discipline
+- 8 pure / 6 mixed Discipline Skill capacity
+- Resonance for mixed builds
+- pure-Discipline Essence
+- Soulmark versus Soul-Severed/Mantle supernatural path
 - tactical combat
+- Battle Hall and AI Sparring validation surfaces
 - co-operative quests
 - parties of up to three
 - seeded progressive Expeditions
@@ -4098,12 +4083,9 @@ The architecture must anticipate the complete product, including:
 
 However:
 
-IMPLEMENT ONLY THE CURRENT SPRINT.
+IMPLEMENT ONLY THE CURRENT SPRINT/TICKET unless the active execution mandate explicitly authorizes a wider verified release workflow.
 
-Your first task is to design Sprint 0 as individual implementation
-tickets.
-
-For each ticket return:
+For implementation work, define:
 
 - purpose
 - exact scope
@@ -4112,16 +4094,15 @@ For each ticket return:
 - automated tests
 - acceptance criteria
 - manual verification procedure
-- dependencies on other tickets
+- dependencies
 
-Do not write code until I explicitly assign the first ticket.
 152. THE SINGLE MOST IMPORTANT RULE
 
 The final game is huge.
 
 That's okay.
 
-The mistake would be asking your AI:
+The mistake would be asking an AI:
 
 Build Aurevane.
 
@@ -4136,7 +4117,7 @@ defines what we build next.
 THE TICKET
 defines what the AI is allowed to touch today.
 
-That distinction is what gives a vibe-coded project of this scale a chance of staying coherent.
+That distinction is what gives a project of this scale a chance of staying coherent.
 
 153. FINAL CHARACTER FORMULA
 
@@ -4145,25 +4126,35 @@ The finished character experience is:
 CHARACTER
 │
 ├── Level
-├── 4 Attributes
+├── 6 Attributes
+│   ├── Might
+│   ├── Finesse
+│   ├── Vitality
+│   ├── Agility
+│   ├── Intellect
+│   └── Resolve
 │
-├── Current Discipline
-│      └── 4 Arts
+├── Primary Discipline
+│   └── base Discipline stat profile
 │
-├── Mastered Legacy Discipline
-│      └── 2 Borrowed Arts
+├── Optional mastered Secondary Discipline
 │
-├── Traits
-├── Reaction
-├── Movement Art
+├── Discipline Skills
+│   ├── Pure: up to 8 Primary Discipline Skills
+│   └── Mixed: 6 total Discipline Skills across Primary + Secondary
 │
-├── CONFLUENCE
-│      ├── unique pairing Trait
-│      └── sometimes unique pairing Art
+├── Build identity
+│   ├── Pure: Essence Skill
+│   └── Mixed: Resonance passive
 │
-├── Soulmark
+├── Supernatural path
+│   ├── Soulmarked: one Soulmark + active branch package
+│   └── Soul-Severed: Mantle access
 │
 ├── Equipment
+│   └── stats / passives / bounded Equipment Skills
+│
+├── Bounded prestige / Veteran Edge where allowed
 │
 └── Player strategy
 
@@ -4175,46 +4166,52 @@ No weird lineage bookkeeping.
 
 No giant elemental chart.
 
-Yet the build possibilities are far larger because the systems interact.
+No separate clutter of Trait, Reaction, Movement Art, or Ultimate loadout systems.
 
-154. WHY I THINK THIS VERSION IS MUCH BETTER
+Depth comes from systems interacting cleanly.
+
+154. WHY THIS VERSION IS BETTER
 
 The earlier concepts were trying to manufacture depth by adding systems.
 
-This version gets depth from interaction.
+AUREVANE should get depth from interaction.
 
-A player doesn't need twelve ancestry systems.
+A player doesn't need twelve ancestry systems or six separate ability-slot taxonomies.
 
 They need to wonder:
 
-What if my mastered Frostweaver becomes the Legacy Discipline for my current Stonebinder?
+What if I make Stonebinder my Primary and equip my mastered Frostweaver as Secondary?
 
-And discover Permafrost.
-
-Then:
-
-What happens if I use a Gravity Soulmark?
+What Resonance does that pairing unlock, and how does Stonebinder's Primary base-stat profile change the result compared with reversing the pair?
 
 Then:
 
-What if this legendary accessory alters created walls?
+What happens if I stay pure Stonebinder instead and build around its Essence Skill?
+
+Then:
+
+How does my Soulmark—or, on a different character path, a timed Mantle—change the plan?
+
+Then:
+
+What if this legendary accessory alters created walls or grants an Equipment Skill that changes my positioning?
 
 Then their friend says:
 
-I'm bringing Stormsinger/Cantor. That should work with your terrain build in tonight's Deep Expedition.
+I'm bringing Stormsinger Primary with Cantor Secondary. That should work with your terrain build in tonight's Deep Expedition.
 
 Then next week:
 
 Let's rebuild for 2v2 because that team on the leaderboard is countering us.
 
-That is the addictive part of Aurevane I would optimize for: discovery, experimentation, mastery, teamwork and competition.
+That is the compelling part of Aurevane to optimize for: discovery, experimentation, mastery, teamwork and competition.
 
-Not clicking a training button because a timer expired.
+Not clicking a button because a predatory streak timer demands it.
 
-Not replacing a dead 47-year-old character with his son.
+Not replacing a dead aging character with an heir.
 
 Not collecting fifteen currencies.
 
-And not copying TheNinjaRPG or Final Fantasy Tactics Advance.
+And not copying another game's implementation or assets.
 
-Aurevane should eventually feel like its own game—one where the Current + Legacy + Confluence system becomes the mechanic players associate specifically with it.
+Aurevane should eventually feel like its own game—one where Primary/Secondary buildcraft, Resonance versus Essence, tactical combat, supernatural identity, equipment interactions, co-op Expeditions and competitive play form a recognizable whole.

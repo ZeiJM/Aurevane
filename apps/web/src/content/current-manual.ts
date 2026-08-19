@@ -3,7 +3,7 @@ import {
   type ManualArticle,
 } from './public-information'
 
-const LAST_UPDATED = '2026-08-18'
+const LAST_UPDATED = '2026-08-19'
 
 const overrides: Record<string, ManualArticle> = {
   'start-here': {
@@ -50,7 +50,7 @@ const overrides: Record<string, ManualArticle> = {
         id: 'larger-game',
         title: 'The larger game',
         paragraphs: [
-          'AUREVANE is still being built toward deeper Discipline buildcraft, Current + Legacy choices, Confluences, exploration, co-op, Expeditions, PvP, trading, social systems, and a persistent world. Roadmap direction is not the same thing as a currently playable feature.',
+          'AUREVANE is still being built toward deeper Discipline buildcraft with a Primary Discipline, an optional mastered Secondary Discipline, mixed-build Resonances, pure-Discipline Essence, exploration, co-op, Expeditions, PvP, trading, social systems, and a persistent world. Roadmap direction is not the same thing as a currently playable feature.',
           'The Manual describes released or testable behavior first and expands as systems become real.',
         ],
       },
@@ -88,7 +88,7 @@ const overrides: Record<string, ManualArticle> = {
         title: 'What is a Discipline?',
         paragraphs: [
           'A Discipline is a learnable combat tradition that establishes your first tactical direction. It is not a permanent class lock. Later mastery systems are intended to let characters deepen, broaden, and combine what they know.',
-          'The starting choices are Vanguard, Farstrider, Shadehand, Ironfist, Aetherist, and Lifebinder. Full Mastery, Arts, Traits, Legacy Disciplines, Confluences, and Soulmarks are separate progression systems rather than hidden creation grants.',
+          'The starting choices are Vanguard, Farstrider, Shadehand, Ironfist, Aetherist, and Lifebinder. Full Mastery, Discipline Skills, optional mastered Secondary Disciplines, Resonances, pure-Discipline Essence, and supernatural paths are later progression systems rather than hidden creation grants.',
         ],
       },
       {
@@ -192,7 +192,7 @@ const overrides: Record<string, ManualArticle> = {
         ],
         bullets: [
           'It cannot complete story, quests, bosses, Expeditions, or event participation.',
-          'It cannot grant PvP rank, Confluences, Soulmarks, Archive discoveries, rare equipment, economy output, or Rekindling eligibility.',
+          'It cannot grant PvP rank, Resonance or Essence accomplishments, Soulmarks or Mantles, Archive discoveries, rare equipment, economy output, or Rekindling eligibility.',
           'It cannot use client-clock changes, logout tricks, or repeated claim submissions to manufacture extra rewards.',
         ],
       },
