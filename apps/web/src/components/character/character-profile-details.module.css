@@ -1,0 +1,240 @@
+.identityFacts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin: 0.6rem 0;
+}
+
+.identityFacts > div,
+.identityFacts > button {
+  display: grid;
+  gap: 0.16rem;
+  min-width: 0;
+  padding: 0.48rem 0.55rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  color: inherit;
+  background: rgba(255, 255, 255, 0.018);
+  text-align: left;
+}
+
+.identityFacts > button {
+  cursor: pointer;
+}
+
+.identityFacts > button:hover,
+.identityFacts > button:focus-visible {
+  border-color: rgba(207, 169, 93, 0.65);
+  outline: none;
+  background: rgba(207, 169, 93, 0.07);
+}
+
+.identityFacts span,
+.section header > div > span {
+  color: var(--av-text-dim);
+  font: 700 0.46rem/1 var(--av-font-mono);
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.identityFacts strong {
+  overflow: hidden;
+  color: var(--av-text-muted);
+  font: 650 0.6rem/1.2 var(--av-font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.section {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--av-border);
+}
+
+.section + .section {
+  margin-top: 0.75rem;
+}
+
+.section > header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 0.8rem;
+  margin-bottom: 0.5rem;
+}
+
+.section header > div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.section h2 {
+  margin: 0;
+  font: 500 1.25rem/1 var(--av-font-display);
+}
+
+.section header small {
+  color: var(--av-text-dim);
+  font-size: 0.54rem;
+}
+
+.attributeGrid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.attributeGrid button,
+.statGroup button {
+  min-width: 0;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  color: var(--av-text-muted);
+  background: #080b10;
+  cursor: pointer;
+  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+}
+
+.attributeGrid button {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 0.42rem;
+  min-height: 2.9rem;
+  padding: 0.48rem;
+}
+
+.attributeGrid span,
+.statGroup button span {
+  color: var(--av-text-dim);
+  font: 650 0.48rem/1 var(--av-font-mono);
+}
+
+.attributeGrid strong {
+  color: var(--av-brass-300);
+  font: 500 1.05rem/1 var(--av-font-display);
+}
+
+.attributeGrid button:hover,
+.attributeGrid button:focus-visible,
+.statGroup button:hover,
+.statGroup button:focus-visible {
+  border-color: rgba(207, 169, 93, 0.68);
+  outline: none;
+  background: rgba(207, 169, 93, 0.055);
+  transform: translateY(-1px);
+}
+
+.statGroups {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.statGroup {
+  padding: 0.6rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  background: rgba(5, 7, 10, 0.38);
+}
+
+.statGroup h3 {
+  margin: 0 0 0.35rem;
+  color: var(--av-brass-300);
+  font: 700 0.52rem/1 var(--av-font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.statGroup > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.3rem;
+}
+
+.statGroup button {
+  display: inline-flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 0.45rem;
+  min-height: 2.35rem;
+  padding: 0.4rem 0.5rem;
+  text-align: left;
+}
+
+.statGroup button strong {
+  color: var(--av-text);
+  font: 750 0.62rem/1 var(--av-font-mono);
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: grid;
+  place-items: start center;
+  padding: max(5.2rem, env(safe-area-inset-top)) 1rem 1rem;
+  background: rgba(1, 3, 6, 0.74);
+  backdrop-filter: blur(0.45rem);
+}
+
+.dialog {
+  width: min(34rem, 100%);
+  padding: 1rem;
+  border: 1px solid rgba(207, 169, 93, 0.58);
+  border-radius: var(--av-radius-lg);
+  background: #0b1017;
+  box-shadow: 0 2rem 5rem rgba(0, 0, 0, 0.75);
+}
+
+.dialog > span {
+  color: var(--av-brass-300);
+  font: 700 0.48rem/1 var(--av-font-mono);
+  letter-spacing: 0.065em;
+  text-transform: uppercase;
+}
+
+.dialog h2 {
+  margin: 0.35rem 0 0.5rem;
+  font: 500 1.55rem/1 var(--av-font-display);
+}
+
+.dialog p {
+  margin: 0;
+  color: var(--av-text-muted);
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
+.dialog button {
+  display: block;
+  margin: 0.85rem 0 0 auto;
+  min-height: 2rem;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--av-border-strong);
+  border-radius: var(--av-radius-sm);
+  color: var(--av-text);
+  background: rgba(255, 255, 255, 0.035);
+  cursor: pointer;
+}
+
+@media (max-width: 760px) {
+  .identityFacts,
+  .attributeGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .statGroups {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .section > header {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .statGroup > div {
+    grid-template-columns: 1fr;
+  }
+}
