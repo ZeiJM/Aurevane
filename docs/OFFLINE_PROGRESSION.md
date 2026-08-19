@@ -1,14 +1,14 @@
-# AUREVANE — Wayfarer's Practice, Offline Training & Rested Progression
+# AUREVANE — Passive Training, Training Reports & Rested Progression
 
 **Status:** Authoritative feature specification subordinate only to `docs/GAME_MASTER_PLAN.md` and complementary to `docs/PROGRESSION_RETENTION.md` and `docs/NATURAL_PACING.md`.
 
 **Direction approved:** 2026-08-15.
 
-AUREVANE should continue to respect the player's life outside the game while giving them a satisfying reason to return. Time away should create a modest amount of character growth and a useful reserve for the next play session rather than making absence feel like lost progress.
+AUREVANE should continue to respect the player's life outside the game while giving players an optional background-progression choice that never competes with active play. Progress is created only by an explicit **Passive Training** session; simply being logged out, idle, or away does not manufacture rewards.
 
-The player-facing system is called **Wayfarer's Practice**.
+The player-facing system is called **Passive Training**.
 
-The return moment is presented as a **Training Report**.
+A completed session is presented as a **Training Report**.
 
 ---
 
@@ -83,30 +83,26 @@ Offline training helps the player stay connected to that journey. It does not re
 The normal loop is:
 
 ```text
-PLAY AUREVANE
+OPEN PASSIVE TRAINING
   ↓
-Character is active
+Choose Short / Medium / Extended
   ↓
-Leave the game
+Server records the authoritative start and duration
   ↓
-Wayfarer's Practice begins automatically after the minimum offline threshold
+Training continues whether the browser stays open or the player goes AFK
   ↓
-Low-intensity progress accumulates while away
+The player may use non-combat account/social/reference surfaces
   ↓
-Return to AUREVANE
+New Battle Hall fights remain unavailable until training ends or is stopped
   ↓
-Training Report is ready
+At completion, the server freezes a Training Report
   ↓
-Claim accumulated progress
-  ↓
-Rested Momentum strengthens the next active session
+Claim the report idempotently
   ↓
 Continue normal gameplay
 ```
 
-The player does **not** need to press a special logout button.
-
-The player does **not** lose the benefit because a browser tab crashed, a phone died, or they forgot to configure training before leaving.
+Nothing starts automatically. Browser presence, logout state, local clock, tab state, and client-submitted elapsed time never determine rewards. Stopping a session early clears the unfinished block without granting a partial reward.
 
 ---
 
@@ -140,56 +136,41 @@ Additional focuses should be added only when they create a genuinely useful play
 
 ---
 
-## 5. Automatic Safe Default
+## 5. Explicit Start Rule
 
-Forgetting to choose a focus must not punish the player.
+Passive Training is opt-in for each training block. If the player does not choose a duration, the character remains idle and no Training Report accrues.
 
-If no explicit focus is selected:
-
-- Balanced Practice is used;
-- the current Discipline is used when eligible;
-- if that Discipline cannot receive offline Mastery, the Mastery portion safely falls back to Rested Momentum rather than disappearing.
-
-This makes the system useful even to players who never optimize it.
+This avoids invisible offline-state rules and makes the tradeoff legible: the player deliberately chooses when to enter background progression. The server owns the start time, configured duration, completion boundary, and frozen reward.
 
 ---
 
-## 6. Accrual Shape
+## 6. Duration and Efficiency Shape
 
-Exact values are data-driven and Master Panel configurable.
-
-Recommended initial production shape:
+Exact values are data-driven and Master Panel configurable. The initial A2 shape uses three simple server-timed choices:
 
 ```text
-0–1 hour offline     no meaningful accrual; avoids tab-hop exploitation
-1–24 hours           full offline-practice rate
-24–72 hours          reduced but still worthwhile direct-practice rate
-72+ hours             direct Training Report bank is considered full
-up to ~14 days        additional absence can continue building Rested Momentum at a slower rate
+Short      3 hours    10 Character XP/hour    30 XP on completion
+Medium     8 hours     7 Character XP/hour    56 XP on completion
+Extended  24 hours     4 Character XP/hour    96 XP on completion
 ```
 
-These are tuning defaults, not hard-coded promises.
+Longer plans grant more total XP when completed but deliberately lose hourly efficiency. Short is the strongest hourly return, Medium is moderate, and Extended trades efficiency for a long unattended window. This prevents the longest timer from becoming the universally optimal choice.
 
-The direct offline reward should generally feel meaningful while remaining clearly weaker than engaged active progression. A reasonable balancing starting target is for direct offline gains to represent only a modest fraction of the progression an actively playing character could earn over comparable calendar time.
-
-The exact percentage must be established through telemetry and the Pacing Simulator rather than guessed permanently in code.
+The browser may show a synchronized countdown, but the database/server remains authoritative for start, completion, and reward calculation.
 
 ---
 
-## 7. Why the Direct Bank Caps
+## 7. Why Longer Plans Are Less Efficient
 
-The direct Training Report should have a generous multi-day cap so the system encourages return without demanding daily attendance.
+Passive Training should reward convenience without turning unattended time into the strongest progression strategy. Decreasing hourly efficiency:
 
-A short cap such as four or eight hours would create unhealthy login pressure and is not acceptable as the production default.
+- gives active players and shorter intentional sessions the best training efficiency;
+- lets a player choose a longer window when they expect to be busy without losing the entire opportunity;
+- keeps active gameplay clearly more important than unattended progression;
+- creates a real choice between efficiency and convenience;
+- avoids an exact-login-hour obligation because completed reports remain claimable.
 
-A multi-day cap:
-
-- creates anticipation;
-- gives regular players a reason to return;
-- does not punish sleep, work, school, travel, weekends, or ordinary life;
-- prevents months of inactivity from becoming months of fully automated character progression.
-
-After the direct bank is full, longer absence is handled primarily through Rested Momentum and returning-player systems rather than unlimited passive XP.
+Production rates remain versioned and tunable through the future Master Panel and Pacing Simulator.
 
 ---
 
@@ -286,7 +267,7 @@ Recommended surfaces:
 
 - a compact “Training Report Ready” indicator on the character/home screen;
 - World Pulse “Since you were away” summary;
-- Character → Training / Wayfarer's Practice page;
+- Character → Passive Training page;
 - optional single return card after a meaningful absence.
 
 Do not use:
@@ -324,7 +305,7 @@ If a Horizon requirement becomes numerically closer, the UI may update progress,
 
 ## 14. No Daily-Streak Dependency
 
-Wayfarer's Practice must never become a disguised destructive login streak.
+Passive Training must never become a disguised destructive login streak.
 
 Do not add:
 
@@ -341,7 +322,7 @@ The system should encourage return through accumulated value, not threaten the p
 
 ## 15. Monetization Guardrail
 
-Wayfarer's Practice is part of healthy progression/catch-up and must not become a pay-to-win product.
+Passive Training is part of healthy progression/catch-up and must not become a pay-to-win product.
 
 The normal premium shop must not sell:
 
@@ -367,17 +348,15 @@ Do **not** run a background job every minute for every offline character.
 
 Preferred architecture:
 
-1. store authoritative timestamps and the selected training focus;
-2. when an eligible server action needs the current training state, calculate elapsed offline time from server-controlled timestamps;
-3. apply the configured accrual curve deterministically;
-4. create a pending/claimable Training Report;
+1. store the explicit server-authored training plan, start time, configured duration, and config version;
+2. when an eligible server action needs current training state, compare the server clock to that stored completion boundary;
+3. if the block is incomplete, return its current authoritative status without granting partial rewards;
+4. if complete, deterministically create one pending/frozen Training Report and clear the active plan;
 5. claim through one authoritative idempotent server command;
-6. atomically update XP/Mastery/Rested Momentum and the `claimed_through` boundary;
+6. atomically update eligible progression and claim provenance;
 7. emit the normal progression/realtime refresh events.
 
-This is cheaper, cleaner, easier to test, and avoids millions of pointless scheduled updates.
-
-The browser may display an estimate, but it never determines elapsed authoritative time or reward values.
+No per-character background timer job is required. The browser may display a synchronized countdown, but it never determines authoritative elapsed time or reward values.
 
 ---
 
@@ -455,10 +434,11 @@ A player who misses several weeks should receive stronger returning-player assis
 The protected Owner and delegated balance staff should eventually be able to configure:
 
 - system enabled/disabled state;
-- minimum offline threshold;
-- direct accrual cap;
-- long-absence Rested Momentum cap;
-- accrual curves by progression band;
+- Passive Training enabled/disabled state;
+- Short / Medium / Extended durations;
+- per-duration XP rates and completion rewards;
+- efficiency ordering and progression-band modifiers;
+- future Rested Momentum rules when that extension is active;
 - Character XP weight;
 - Discipline Mastery weight;
 - Rested Momentum weight;
@@ -507,15 +487,16 @@ A healthy result is that less-frequent players recover some lost ground while ac
 
 Implement the minimal foundation once character XP/progression exists:
 
-- authoritative `last_active_at`/accrual timestamps;
-- selected training focus;
-- deterministic server-side elapsed-time calculation;
-- Balanced Practice;
-- direct Character XP claim;
-- initial Rested Momentum representation;
-- idempotent claim command;
-- basic Training Report UI;
-- telemetry.
+- explicit Short / Medium / Extended Passive Training plans;
+- authoritative server-side start/completion timestamps;
+- decreasing hourly efficiency as duration increases;
+- no automatic reward merely for being offline or idle;
+- deterministic Character XP completion reward;
+- stop-training command with no partial reward;
+- Battle Hall new-fight exclusion while a plan is active;
+- idempotent Training Report claim;
+- basic Training Report UI and synchronized countdown;
+- telemetry and legacy-report compatibility.
 
 This must be a focused Phase 1 ticket, **not part of F0.4**.
 
@@ -563,10 +544,10 @@ Validate:
 
 The Adventurer's Guide should explain:
 
-- what Wayfarer's Practice is;
-- when it begins;
-- how to choose a focus;
-- what the direct cap means;
+- what Passive Training is;
+- that it begins only after the player explicitly chooses a duration;
+- Short / Medium / Extended duration and efficiency tradeoffs;
+- that stopping early forfeits the unfinished block;
 - how Rested Momentum works;
 - what can and cannot progress while offline;
 - why Mastery still requires active proof;
