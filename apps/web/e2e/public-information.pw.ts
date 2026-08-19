@@ -50,7 +50,7 @@ test('Manual has stable article routes and deep section anchors', async ({ page 
 
   await page.goto('/manual/wayfarers-practice#guardrails')
   await expect(
-    page.getByRole('heading', { level: 2, name: 'What Wayfarer’s Practice cannot do' }),
+    page.getByRole('heading', { level: 2, name: 'What Passive Training cannot do' }),
   ).toBeVisible()
 })
 
