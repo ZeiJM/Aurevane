@@ -3,7 +3,12 @@ import { expect, test } from '@playwright/test'
 import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueCharacterName(): string {
-  return `Diag${Date.now()}`
+  const letters = Date.now()
+    .toString()
+    .split('')
+    .map((digit) => String.fromCharCode(65 + Number(digit)))
+    .join('')
+  return `Diag ${letters}`
 }
 
 test.only('diagnoses A2 movement preview path', async ({ page }, testInfo) => {
