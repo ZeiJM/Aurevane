@@ -214,10 +214,11 @@ main[aria-busy] > footer > div:first-child > button > span {
   background: rgba(207, 169, 93, 0.06) !important;
 }
 
+/* Keep the picker inside the native chat popover's top-layer hit-test region. */
 [data-battle-emoji-picker] {
   position: absolute;
   right: 0.45rem;
-  bottom: calc(100% + 0.35rem);
+  bottom: 3.1rem;
   z-index: 3300;
   display: grid;
   grid-template-columns: repeat(5, 2rem);
