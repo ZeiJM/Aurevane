@@ -122,7 +122,9 @@ function clickAdjacentMove(direction: { dx: number; dy: number }): boolean {
   const targetX = Number(match[1]) + direction.dx
   const targetY = Number(match[2]) + direction.dy
   const targetPrefix = `Tile ${targetX}, ${targetY};`
-  const target = tiles.find((button) => (button.getAttribute('aria-label') ?? '').startsWith(targetPrefix))
+  const target = tiles.find((button) =>
+    (button.getAttribute('aria-label') ?? '').startsWith(targetPrefix),
+  )
   if (!target || target.disabled) return false
   if ((target.getAttribute('aria-label') ?? '').includes('occupied by ')) return false
 

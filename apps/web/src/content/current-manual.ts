@@ -151,53 +151,53 @@ const overrides: Record<string, ManualArticle> = {
     ],
   },
   'wayfarers-practice': {
-  id: 'manual.wayfarers-practice',
-  slug: 'wayfarers-practice',
-  title: 'Passive Training',
-  summary:
-    'Explicitly start a server-timed background training block for modest Character XP while you are busy or AFK.',
-  category: 'Progression',
-  lastUpdated: LAST_UPDATED,
-  rulesVersion: 'Passive Training v1',
-  body: [
-    {
-      id: 'simple-flow',
-      title: 'Choose a duration, then train',
-      paragraphs: [
-        'Passive Training never starts automatically. Choose Short, Medium, or Extended and the server records the authoritative start time, duration, and completion reward. Staying signed in, going AFK, closing the browser, or returning early does not change that timer.',
-        'The current completion rewards are Character XP only. Short runs for 3 hours at 10 XP per hour, Medium for 8 hours at 7 XP per hour, and Extended for 24 hours at 4 XP per hour. Longer blocks give more total XP but deliberately lower hourly efficiency.',
-      ],
-    },
-    {
-      id: 'while-training',
-      title: 'What stays available while training',
-      paragraphs: [
-        'Passive Training is intended for background use, not forced logout. Profile, account, Manual, News, Rules, Online Users, and social/chat surfaces may remain available while a block is active.',
-        'Starting a new Battle Hall fight is disabled until the training block completes or you stop it. Stopping early clears the unfinished block and grants no partial reward.',
-      ],
-    },
-    {
-      id: 'completion',
-      title: 'Completion and Training Reports',
-      paragraphs: [
-        'When the server-timed block reaches its completion boundary, AUREVANE freezes one Training Report. Claiming that report is idempotent and applies the server-calculated Character XP once.',
-        'Simply being offline or idle does not generate a report. Browser clocks, tab state, and client-submitted elapsed time are not reward authority.',
-      ],
-    },
-    {
-      id: 'guardrails',
-      title: 'What Passive Training cannot do',
-      paragraphs: [
-        'Passive Training is deliberately modest background progression, not an idle-game replacement.',
-      ],
-      bullets: [
-        'It cannot complete story, quests, bosses, Expeditions, or event participation.',
-        'It cannot grant PvP rank, Confluences, Soulmarks, Archive discoveries, rare equipment, economy output, or Rekindling eligibility.',
-        'It cannot use client-clock changes, logout tricks, or repeated claim submissions to manufacture extra rewards.',
-      ],
-    },
-  ],
-},
+    id: 'manual.wayfarers-practice',
+    slug: 'wayfarers-practice',
+    title: 'Passive Training',
+    summary:
+      'Explicitly start a server-timed background training block for modest Character XP while you are busy or AFK.',
+    category: 'Progression',
+    lastUpdated: LAST_UPDATED,
+    rulesVersion: 'Passive Training v1',
+    body: [
+      {
+        id: 'simple-flow',
+        title: 'Choose a duration, then train',
+        paragraphs: [
+          'Passive Training never starts automatically. Choose Short, Medium, or Extended and the server records the authoritative start time, duration, and completion reward. Staying signed in, going AFK, closing the browser, or returning early does not change that timer.',
+          'The current completion rewards are Character XP only. Short runs for 3 hours at 10 XP per hour, Medium for 8 hours at 7 XP per hour, and Extended for 24 hours at 4 XP per hour. Longer blocks give more total XP but deliberately lower hourly efficiency.',
+        ],
+      },
+      {
+        id: 'while-training',
+        title: 'What stays available while training',
+        paragraphs: [
+          'Passive Training is intended for background use, not forced logout. Profile, account, Manual, News, Rules, Online Users, and social/chat surfaces may remain available while a block is active.',
+          'Starting a new Battle Hall fight is disabled until the training block completes or you stop it. Stopping early clears the unfinished block and grants no partial reward.',
+        ],
+      },
+      {
+        id: 'completion',
+        title: 'Completion and Training Reports',
+        paragraphs: [
+          'When the server-timed block reaches its completion boundary, AUREVANE freezes one Training Report. Claiming that report is idempotent and applies the server-calculated Character XP once.',
+          'Simply being offline or idle does not generate a report. Browser clocks, tab state, and client-submitted elapsed time are not reward authority.',
+        ],
+      },
+      {
+        id: 'guardrails',
+        title: 'What Passive Training cannot do',
+        paragraphs: [
+          'Passive Training is deliberately modest background progression, not an idle-game replacement.',
+        ],
+        bullets: [
+          'It cannot complete story, quests, bosses, Expeditions, or event participation.',
+          'It cannot grant PvP rank, Confluences, Soulmarks, Archive discoveries, rare equipment, economy output, or Rekindling eligibility.',
+          'It cannot use client-clock changes, logout tricks, or repeated claim submissions to manufacture extra rewards.',
+        ],
+      },
+    ],
+  },
   faq: {
     id: 'manual.faq',
     slug: 'faq',
