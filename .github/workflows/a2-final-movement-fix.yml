@@ -1,0 +1,103 @@
+name: A2 Final Movement Fix
+
+on:
+  push:
+    branches:
+      - "agent/a2-feedback-holistic"
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/a2-feedback-holistic
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - name: Unify battle movement input path
+        shell: python
+        run: |
+          from pathlib import Path
+
+          battle = Path('apps/web/src/components/battle/battle-experience-v2.tsx')
+          text = battle.read_text()
+
+          old_tile = """                      onPointerDown={() => {
+                        if (mode === 'move') handleTileClick(tile.position)
+                      }}
+                      onClick={(event) => {
+                        if (mode !== 'move' || event.detail === 0) handleTileClick(tile.position)
+                      }}
+"""
+          new_tile = """                      onClick={() => handleTileClick(tile.position)}
+"""
+          if old_tile not in text:
+              raise SystemExit('expected tile input block not found')
+          text = text.replace(old_tile, new_tile, 1)
+
+          old_notice = """          setNotice(
+            `Path ready: ${result.actionEconomyCost} AP. ${result.actionEconomyAfter} AP will remain.`,
+          )
+"""
+          new_notice = """          setNotice(
+            `Movement path ready: ${result.actionEconomyCost} AP proposed · leaves ${result.actionEconomyAfter} AP.`,
+          )
+"""
+          if old_notice not in text:
+              raise SystemExit('expected movement notice block not found')
+          text = text.replace(old_notice, new_notice, 1)
+
+          custom_effect_start = """  useEffect(() => {
+    function handleMoveTarget(event: Event) {
+      if (!(event instanceof CustomEvent)) return
+      const detail = event.detail as { x?: unknown; y?: unknown }
+      if (!Number.isSafeInteger(detail.x) || !Number.isSafeInteger(detail.y)) return
+      handleTileClick({ x: Number(detail.x), y: Number(detail.y) })
+    }
+    window.addEventListener('aurevane:battle-move-target', handleMoveTarget)
+    return () => window.removeEventListener('aurevane:battle-move-target', handleMoveTarget)
+  }, [handleTileClick])
+
+"""
+          if custom_effect_start in text:
+              text = text.replace(custom_effect_start, '', 1)
+
+          battle.write_text(text)
+
+          keyboard = Path('apps/web/src/components/battle/battle-keyboard-assist.tsx')
+          text = keyboard.read_text()
+          old_keyboard = """  target.focus({ preventScroll: true })
+  window.dispatchEvent(
+    new CustomEvent('aurevane:battle-move-target', {
+      detail: { x: targetX - 1, y: targetY - 1 },
+    }),
+  )
+  return true
+"""
+          new_keyboard = """  target.focus({ preventScroll: true })
+  target.click()
+  return true
+"""
+          if old_keyboard not in text:
+              raise SystemExit('expected keyboard movement dispatch block not found')
+          keyboard.write_text(text.replace(old_keyboard, new_keyboard, 1))
+      - name: Format touched files
+        run: pnpm exec prettier --write apps/web/src/components/battle/battle-experience-v2.tsx apps/web/src/components/battle/battle-keyboard-assist.tsx
+      - name: Commit final fix and remove helper
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/a2-final-movement-fix.yml
+          git add apps/web/src/components/battle/battle-experience-v2.tsx apps/web/src/components/battle/battle-keyboard-assist.tsx
+          git commit -m "fix: unify battle movement input and preview feedback"
+          git push origin HEAD:agent/a2-feedback-holistic
