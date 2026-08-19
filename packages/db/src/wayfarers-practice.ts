@@ -3,7 +3,7 @@ import type { IdempotentCommandInput, TransactionalCommandResult } from './trans
 export type WayfarersPracticeFocusRecord = 'balanced'
 export type TrainingReportStatusRecord = 'pending' | 'claimed'
 export type PlannedPracticeWindowRecord = 'short' | 'overnight' | 'extended'
-export type PracticeSourceRecord = 'automatic_balanced' | 'planned_balanced'
+export type PracticeSourceRecord = 'automatic_balanced' | 'planned_balanced' | 'passive_training'
 
 export interface TrainingReportRecord {
   reportId: string
