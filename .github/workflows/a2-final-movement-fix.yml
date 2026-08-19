@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - "agent/a2-feedback-holistic"
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -57,7 +60,7 @@ jobs:
               raise SystemExit('expected movement notice block not found')
           text = text.replace(old_notice, new_notice, 1)
 
-          custom_effect_start = """  useEffect(() => {
+          custom_effect = """  useEffect(() => {
     function handleMoveTarget(event: Event) {
       if (!(event instanceof CustomEvent)) return
       const detail = event.detail as { x?: unknown; y?: unknown }
@@ -69,9 +72,8 @@ jobs:
   }, [handleTileClick])
 
 """
-          if custom_effect_start in text:
-              text = text.replace(custom_effect_start, '', 1)
-
+          if custom_effect in text:
+              text = text.replace(custom_effect, '', 1)
           battle.write_text(text)
 
           keyboard = Path('apps/web/src/components/battle/battle-keyboard-assist.tsx')
