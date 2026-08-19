@@ -59,11 +59,14 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Choose your action')
   await expect(page.getByText(/100 AP/).first()).toBeVisible()
 
-  await page.getByRole('button', { name: /Chat Self/ }).click()
+  await page.getByRole('button', { name: 'Chat', exact: true }).click()
   await page.getByLabel('Battle chat message').fill('Testing solo battle chat')
+  await page.getByRole('button', { name: 'Choose emoji' }).click()
+  await page.getByRole('button', { name: 'Insert ⚔️' }).click()
   await page.getByRole('button', { name: 'Send' }).click()
-  await expect(page.getByText('Testing solo battle chat', { exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'Close battle chat' }).click()
+  await expect(page.getByText('Testing solo battle chat⚔️', { exact: true })).toBeVisible()
+  await page.mouse.click(1, 1)
+  await expect(page.getByLabel('Battle chat message')).toHaveCount(0)
 
   await page.getByRole('button', { name: `Show ${characterName} combat details` }).click()
   await expect(page.getByText(`${characterName} · combat details`)).toBeVisible()
@@ -126,6 +129,10 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
   )
 
   await attackButton.click()
+  const rangedTiles = battlefield.locator('button[data-attack-range]')
+  await expect(rangedTiles).toHaveCount(15)
+  await expect(battlefield.locator('button[data-attack-range="legal"]')).not.toHaveCount(0)
+  await expect(battlefield.locator('button[data-attack-range="illegal"]')).not.toHaveCount(0)
   await page.getByRole('button', { name: /occupied by Recruit/ }).click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Basic Attack ready')
   await expect(confirmButton).toBeEnabled()
@@ -142,6 +149,7 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
   await expect(battleLog).toBeVisible()
   await expect(battleLog).toContainText(characterName)
   await expect(battleLog).toContainText(/moved|Basic Attack/)
+  await expect(battleLog).not.toContainText(/\bv\d+\b/)
   await expect(battleLog).not.toContainText('rollBasisPoints')
   await page.getByRole('button', { name: 'Close combat log' }).click()
 
