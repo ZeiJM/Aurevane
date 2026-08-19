@@ -56,7 +56,10 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
     ? Math.max(0, Math.ceil((trainingEndMs - synchronizedNow) / 1000))
     : 0
   const trainingActive = Boolean(
-    practice.plannedWindow && practice.planSetAt && practice.plannedWindowSeconds && remainingSeconds > 0,
+    practice.plannedWindow &&
+    practice.planSetAt &&
+    practice.plannedWindowSeconds &&
+    remainingSeconds > 0,
   )
 
   useEffect(() => {
@@ -173,7 +176,12 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
             <span>Completion reward</span>
             <strong>+{calculatePassiveTrainingXp(practice.plannedWindow)} XP</strong>
           </div>
-          <GameButton type="button" variant="quiet" disabled={stopping} onClick={() => void stopTraining()}>
+          <GameButton
+            type="button"
+            variant="quiet"
+            disabled={stopping}
+            onClick={() => void stopTraining()}
+          >
             {stopping ? 'Stopping…' : 'Stop Training'}
           </GameButton>
         </div>

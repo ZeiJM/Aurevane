@@ -91,7 +91,10 @@
   color: var(--av-text-muted);
   background: #080b10;
   cursor: pointer;
-  transition: border-color 120ms ease, background 120ms ease, transform 120ms ease;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease,
+    transform 120ms ease;
 }
 
 .attributeGrid button {

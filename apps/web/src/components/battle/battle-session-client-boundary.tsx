@@ -29,10 +29,7 @@ export function BattleSessionClientBoundary({
         playerPortraitAssetId={playerPortraitAssetId}
       />
       <BattleKeyboardAssist />
-      <BattleFeedbackAssist
-        playerName={playerName}
-        playerProfileImageUrl={playerProfileImageUrl}
-      />
+      <BattleFeedbackAssist playerName={playerName} playerProfileImageUrl={playerProfileImageUrl} />
     </BattleRuntimeProvider>
   )
 }

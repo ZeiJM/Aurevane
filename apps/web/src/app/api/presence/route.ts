@@ -1,7 +1,10 @@
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 import { toServerErrorResponse } from '@/server/http/error-response'
-import { listOnlineCharacters, touchCharacterPresence } from '@/server/presence/character-presence-service'
+import {
+  listOnlineCharacters,
+  touchCharacterPresence,
+} from '@/server/presence/character-presence-service'
 
 export async function GET() {
   try {

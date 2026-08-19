@@ -78,9 +78,7 @@ export default async function BattleSessionPage({
 
   let playerProfileImageUrl: string | null = null
   try {
-    playerProfileImageUrl = (
-      await loadCharacterProfileDisplay(actor.userId, character.id)
-    ).imageUrl
+    playerProfileImageUrl = (await loadCharacterProfileDisplay(actor.userId, character.id)).imageUrl
   } catch {
     // Cosmetic display failure falls back to the built-in portrait.
   }

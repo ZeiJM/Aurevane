@@ -10,7 +10,10 @@ export async function POST(request: Request) {
     const actor = await getAuthenticatedActor()
     const body = (await request.json()) as { characterId?: unknown }
     if (typeof body.characterId !== 'string') {
-      throw new AurevaneError('INVALID_REQUEST', 'Choose a valid character before stopping training.')
+      throw new AurevaneError(
+        'INVALID_REQUEST',
+        'Choose a valid character before stopping training.',
+      )
     }
     const character = await findPlayableOwnedCharacterById(actor.userId, body.characterId)
     if (!character) {

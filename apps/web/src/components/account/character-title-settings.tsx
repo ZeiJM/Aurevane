@@ -86,7 +86,9 @@ export function CharacterTitleSettings({
         return
       }
       setImageDraft(body.display.imageUrl ?? '')
-      setImageMessage(body.display.imageUrl ? 'Profile image saved.' : 'Custom profile image removed.')
+      setImageMessage(
+        body.display.imageUrl ? 'Profile image saved.' : 'Custom profile image removed.',
+      )
       router.refresh()
     } catch {
       setImageMessage('The profile display service could not be reached. Nothing was changed.')
@@ -235,7 +237,11 @@ export function CharacterTitleSettings({
         </div>
         {imageDraft.trim() ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={imageDraft.trim()} alt={`${characterName} profile preview`} referrerPolicy="no-referrer" />
+          <img
+            src={imageDraft.trim()}
+            alt={`${characterName} profile preview`}
+            referrerPolicy="no-referrer"
+          />
         ) : (
           <div className={styles.imagePlaceholder}>No custom image</div>
         )}

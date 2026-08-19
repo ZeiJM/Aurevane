@@ -21,7 +21,13 @@ export function CharacterPortraitImage({
     return (
       // Direct character image URLs intentionally support arbitrary http(s) hosts and animated GIFs.
       // eslint-disable-next-line @next/next/no-img-element
-      <img src={imageUrl} alt={alt} className={className} loading="lazy" referrerPolicy="no-referrer" />
+      <img
+        src={imageUrl}
+        alt={alt}
+        className={className}
+        loading="lazy"
+        referrerPolicy="no-referrer"
+      />
     )
   }
 

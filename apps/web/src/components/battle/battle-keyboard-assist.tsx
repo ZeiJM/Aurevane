@@ -27,7 +27,8 @@ function eventChord(event: KeyboardEvent): string {
 
 function modeInstruction(): string {
   return (
-    document.querySelector<HTMLElement>('[data-testid="combat-mode-instruction"]')?.textContent ?? ''
+    document.querySelector<HTMLElement>('[data-testid="combat-mode-instruction"]')?.textContent ??
+    ''
   ).toLowerCase()
 }
 

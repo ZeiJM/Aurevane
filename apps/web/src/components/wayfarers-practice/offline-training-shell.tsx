@@ -29,13 +29,16 @@ export function OfflineTrainingShell({
             <Kicker marker="◇">Background progression</Kicker>
             <h1>Passive Training</h1>
             <p>
-              Start a timed training block for {characterName}. The server tracks it whether you stay
-              signed in or go AFK; nothing begins until you choose a duration.
+              Start a timed training block for {characterName}. The server tracks it whether you
+              stay signed in or go AFK; nothing begins until you choose a duration.
             </p>
           </div>
           <div className={styles.heroRule}>
             <strong>Simple rule</strong>
-            <span>Short is most efficient · Medium is balanced · Extended trades efficiency for time away.</span>
+            <span>
+              Short is most efficient · Medium is balanced · Extended trades efficiency for time
+              away.
+            </span>
           </div>
         </Surface>
 

@@ -10,7 +10,10 @@ import { getStarterPortraitImageAssetId } from '@/media/character'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
-import { listOnlineCharacters, touchCharacterPresence } from '@/server/presence/character-presence-service'
+import {
+  listOnlineCharacters,
+  touchCharacterPresence,
+} from '@/server/presence/character-presence-service'
 
 import styles from './authenticated-game-shell.module.css'
 

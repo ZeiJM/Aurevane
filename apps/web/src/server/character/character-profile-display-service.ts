@@ -61,7 +61,8 @@ export async function setCharacterProfileImage(input: {
     .maybeSingle()
 
   if (ownershipError) throw unavailable()
-  if (!owned) throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
+  if (!owned)
+    throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
 
   const { error } = await supabase.from('character_profile_display').upsert(
     {
@@ -80,20 +81,32 @@ export function normalizeProfileImageUrl(value: string | null): string | null {
   const normalized = value?.trim() ?? ''
   if (!normalized) return null
   if (normalized.length > 2048) {
-    throw new AurevaneError('INVALID_REQUEST', 'Profile image URLs must be 2048 characters or fewer.')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Profile image URLs must be 2048 characters or fewer.',
+    )
   }
   let parsed: URL
   try {
     parsed = new URL(normalized)
   } catch {
-    throw new AurevaneError('INVALID_REQUEST', 'Enter a complete image URL beginning with http:// or https://.')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Enter a complete image URL beginning with http:// or https://.',
+    )
   }
   if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
-    throw new AurevaneError('INVALID_REQUEST', 'Profile images must use an http:// or https:// URL.')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Profile images must use an http:// or https:// URL.',
+    )
   }
   return parsed.toString()
 }
 
 function unavailable(): AurevaneError {
-  return new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Profile display settings are unavailable right now.')
+  return new AurevaneError(
+    'PERSISTENCE_UNAVAILABLE',
+    'Profile display settings are unavailable right now.',
+  )
 }

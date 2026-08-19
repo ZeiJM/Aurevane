@@ -290,7 +290,10 @@ function validatePracticeStatus(
   characterId: string,
 ): void {
   if (status.userId !== actor.userId || status.characterId !== characterId) {
-    throw new AurevaneError('FORBIDDEN', 'That Passive Training state does not belong to this account.')
+    throw new AurevaneError(
+      'FORBIDDEN',
+      'That Passive Training state does not belong to this account.',
+    )
   }
   if (
     status.focus !== BALANCED_PRACTICE_FOCUS ||

@@ -175,7 +175,10 @@ async function expectActionEconomyCenteredOverBattlefield(
 ): Promise<void> {
   const economy = page.getByRole('progressbar', { name: 'Action Economy remaining' })
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
-  const [economyBox, battlefieldBox] = await Promise.all([economy.boundingBox(), battlefield.boundingBox()])
+  const [economyBox, battlefieldBox] = await Promise.all([
+    economy.boundingBox(),
+    battlefield.boundingBox(),
+  ])
   expect(economyBox).not.toBeNull()
   expect(battlefieldBox).not.toBeNull()
   if (!economyBox || !battlefieldBox) return

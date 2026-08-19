@@ -9,7 +9,9 @@ interface BattleFeedbackAssistProps {
 
 const EMOJI = ['⚔️', '🛡️', '✨', '🔥', '❄️', '💚', '👍', '😄', '🎯', '💬'] as const
 
-function parseTilePosition(button: HTMLButtonElement): { x: number; y: number; elevation: number } | null {
+function parseTilePosition(
+  button: HTMLButtonElement,
+): { x: number; y: number; elevation: number } | null {
   const label = button.getAttribute('aria-label') ?? ''
   const match = label.match(/^Tile\s+(\d+),\s*(\d+);.*?elevation\s+(-?\d+)/i)
   if (!match) return null

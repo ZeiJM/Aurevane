@@ -5,7 +5,10 @@ import { redirect } from 'next/navigation'
 import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
-import { listOnlineCharacters, touchCharacterPresence } from '@/server/presence/character-presence-service'
+import {
+  listOnlineCharacters,
+  touchCharacterPresence,
+} from '@/server/presence/character-presence-service'
 
 import styles from './online-users.module.css'
 
