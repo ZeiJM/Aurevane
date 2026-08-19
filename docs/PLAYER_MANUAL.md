@@ -21,7 +21,7 @@ Current player-facing terminology is:
 - Battle Hall for the current practice-combat destination;
 - Passive Training for explicit server-timed background progression.
 
-Retired player-facing terms such as Current Discipline, Legacy Discipline, Art as the generic ability term, Confluence, separate Trait/Reaction/Movement Art/Ultimate slots, Tactical Hall, and the old four-attribute model may remain only in clearly historical material.
+Retired player-facing terms such as Current Discipline, Legacy Discipline, Art as the generic ability term, Confluence, separate Trait/Reaction/Movement Art/Ultimate slots, Tactical Hall, the old four-attribute model, and the old Movement Budget + one Action combat model may remain only in clearly historical material.
 
 ---
 
@@ -43,56 +43,19 @@ Owner/staff should feel:
 
 ## 2. Three Documentation Layers
 
-### A. Player Manual / Adventurer's Guide
+### Player Manual / Adventurer's Guide
 
 Public, spoiler-safe documentation covering released systems first and clearly distinguishing current gameplay from future roadmap direction.
 
-Long-term topics include:
+Long-term topics include controls/navigation; character creation; six attributes; Character XP/levels; Disciplines/Mastery; Primary/Secondary buildcraft; Skills; Resonance/Essence; supernatural identity; equipment; Passive Training; tactical combat; Battle Hall; quests/world/events; Archive/lore; co-op; Expeditions; PvP; guild/social systems; economy; nations; Rekindling; settings/accessibility; FAQ and glossary.
 
-- controls/navigation;
-- character creation;
-- six attributes and derived stats;
-- Character XP / levels;
-- Disciplines and Mastery;
-- Primary / optional Secondary Disciplines;
-- Discipline Skills;
-- Resonance and pure-Discipline Essence;
-- Soulmarked versus Soul-Severed/Mantle supernatural identity;
-- equipment and Equipment Skills;
-- Passive Training;
-- tactical combat / Action Economy;
-- terrain, elevation, facing, statuses and effects;
-- Battle Hall / AI Sparring;
-- quests/world/events/World Pulse;
-- Archive/lore;
-- parties/co-op;
-- Expeditions;
-- PvP;
-- guild/social systems;
-- economy/nations;
-- Rekindling / Veteran Edge;
-- seasons;
-- accessibility/settings;
-- account/security basics;
-- FAQ/troubleshooting.
+### In-Game Contextual Help
 
-### B. In-Game Contextual Help
+Short help where needed through tooltips, help buttons, first-use explanations, stat definitions, combat forecasts, validation errors and deep links to exact Manual sections.
 
-Short help where needed:
+### Owner & Staff Operations Manual
 
-- tooltips;
-- help buttons;
-- first-use explanations;
-- stat definitions;
-- combat forecasts;
-- validation errors that explain fixes;
-- deep links to exact Manual sections.
-
-### C. Owner & Staff Operations Manual
-
-Protected documentation for `/master`, covering roles/permissions, live events, story publication, balance/content changes, versioning/rollback, player support, Owner Overrides, Break-Glass, progression/pacing, Battle Hall/AI operations, economy, Rekindling/Veteran Edge, lore/spoiler publication, moderation, incident response and audit history.
-
-Public endpoints must never expose secret staff instructions or unreleased story information.
+Protected documentation for `/master`, covering roles/permissions, live events, story publication, balance/content changes, versioning/rollback, support, Owner Overrides, Break-Glass, progression/pacing, Battle Hall/AI operations, economy, Rekindling/Veteran Edge, lore/spoiler publication, moderation, incident response and audit history.
 
 ---
 
@@ -100,21 +63,9 @@ Public endpoints must never expose secret staff instructions or unreleased story
 
 The Manual must look like AUREVANE rather than a pasted README.
 
-Use:
+Use approved typography/design system, readable spacing, clear hierarchy, concise paragraphs, callout cards/icons, annotated screenshots, diagrams/examples, progressive disclosure, breadcrumbs/related articles and responsive/mobile presentation.
 
-- approved typography/design system;
-- readable spacing;
-- strong hierarchy;
-- concise paragraphs;
-- callout cards/icons;
-- annotated screenshots;
-- diagrams/examples;
-- tables only where genuinely clearer;
-- progressive disclosure;
-- breadcrumbs/related articles;
-- responsive/mobile presentation.
-
-Avoid giant walls of text, low contrast, fantasy fonts for body copy, over-nested navigation, and unexplained RPG jargon.
+Avoid giant walls of text, low contrast, fantasy fonts for body copy, over-nested navigation and unexplained RPG jargon.
 
 ---
 
@@ -125,11 +76,6 @@ Major topics should offer:
 ### Quick answer
 
 1–3 sentences answering the immediate question.
-
-Example:
-
-> **What is a Secondary Discipline?**  
-> An optional Discipline your character has legitimately mastered and mixes into the current build. It contributes access to its learned Skill library under mixed-build limits and enables Resonance with your Primary, but it does not grant a second base Discipline stat profile.
 
 ### Practical guide
 
@@ -166,32 +112,9 @@ FAQ / TROUBLESHOOTING
 GLOSSARY
 ```
 
-Progression-aware “Useful now” content may be curated without hiding the full spoiler-safe Manual.
-
 ---
 
-## 6. Start Here
-
-Quickly answer:
-
-- What is AUREVANE?
-- What can I play right now?
-- What should I do after character creation?
-- What is a Discipline?
-- What is Level versus Mastery?
-- What are Primary and Secondary Disciplines?
-- What are Resonance and Essence?
-- When do supernatural systems matter?
-- How does combat work?
-- What is Battle Hall?
-- What is Passive Training?
-- What is the long-term progression direction?
-
-A player should not need an external wiki to understand basics.
-
----
-
-## 7. Character & Buildcraft Documentation
+## 6. Character & Buildcraft Documentation
 
 Explain the six universal attributes:
 
@@ -204,7 +127,7 @@ Explain the six universal attributes:
 
 Explain derived stats, leveling, equipment requirements, Discipline progression and Mastery stages.
 
-Buildcraft documentation must use the approved mature contract:
+Buildcraft documentation must use the approved mature contract.
 
 ### Pure build
 
@@ -228,95 +151,60 @@ The exact Primary/Secondary split inside the mixed six is tunable and must not b
 
 Primary supplies the active base Discipline stat profile. Secondary supplies no second base profile.
 
-Persistent live Primary and Secondary changes are meaningful commitments and must display their current independent server-authoritative attunement cooldown rules when that system is released/configured.
+Persistent live Primary and Secondary changes are meaningful commitments and should display their current server-authoritative attunement cooldown rules when released/configured.
 
 Do not document separate universal Trait, Reaction, Movement Art or Ultimate loadout slots because they are not part of the approved mature build system.
 
 ---
 
-## 8. Combat Manual
+## 7. Combat Manual
 
 `docs/COMBAT.md` controls the current combat rules.
 
-The Manual must explain the current shared **Action Economy (AE)** model rather than the retired Movement Budget + one Action model.
+The Manual must explain the current shared **Action Economy**, displayed to players in **AP**, rather than the retired Movement Budget + one Action model.
 
-Current PV-1F validation baseline:
+Current implemented PV-1F baseline:
 
 ```text
-Turn start                     100 AE
-Inspect                          0 AE
-Move, normal traversal unit     10 AE
-Move, terrain cost 2            20 AE
-Basic Attack                    30 AE
-Guard                           30 AE
-Recover                         50 AE
-Final Facing                     0 AE and ends turn
+Turn start                     100 AP
+Inspect                          0 AP
+Move, normal traversal point    25 AP
+Move, terrain cost 2            50 AP
+Basic Attack                    30 AP
+Guard                           30 AP
+Recover                         50 AP
+Final Facing                     0 AP and ends turn
 ```
 
-Multiple legal commands may occur in one turn while AE remains.
+These current numerical values should be sourced/verified against the server-authoritative implementation before publication after future balance changes.
 
-Combat documentation should eventually cover:
+Multiple legal commands may occur in one turn while AP remains.
 
-- movement/traversal cost;
-- Action Economy;
-- targeting/range/line of sight;
-- facing/front/side/rear;
-- elevation/terrain/hazards/zones;
-- statuses/effects;
-- summons/battle objects;
-- resources/cooldowns;
-- forecasts;
-- triggered/passive effects;
-- displacement;
-- objectives;
-- PvP-specific control/fairness notes;
-- common tactical mistakes.
-
-Status Glossary should render authoritative current definitions where practical.
+Combat documentation should eventually cover movement/traversal cost, Action Economy, targeting/range/line of sight, facing/front/side/rear, elevation/terrain/hazards/zones, statuses/effects, summons/battle objects, resources/cooldowns, forecasts, triggered/passive effects, displacement, objectives, PvP-specific rules and common tactical mistakes.
 
 ---
 
-## 9. Resonance, Essence & Supernatural Documentation
-
-Documentation quality for these signature systems must be exceptional.
+## 8. Resonance, Essence & Supernatural Documentation
 
 ### Resonance
 
-Explain:
-
-- requires an eligible Primary + Secondary pairing;
-- Secondary normally must be mastered;
-- Resonance is passive mixed-build identity;
-- pair direction can still matter through Primary base profile/Skill emphasis even where one core unordered Resonance is shared;
-- discovered/undiscovered content remains spoiler-safe;
-- current active Resonance and trigger/cap are readable.
+Explain that it requires an eligible Primary + Secondary pairing, Secondary normally must be mastered, Resonance is passive mixed-build identity, pair direction can still matter through Primary base profile/Skill emphasis, and undiscovered content remains spoiler-safe.
 
 ### Essence
 
-Explain:
-
-- requires Primary only / no Secondary;
-- grants one special Essence Skill outside the normal eight Discipline Skill capacity;
-- uses normal authoritative targeting/effects/AE/cooldowns;
-- is the pure-path alternative to Resonance, not an Ultimate slot.
+Explain that it requires Primary only/no Secondary, grants one special Essence Skill outside the normal eight Discipline Skill capacity, uses normal authoritative targeting/effects/AP/cooldowns and is the pure-path alternative to Resonance—not an Ultimate slot.
 
 ### Supernatural fork
 
-Explain only at the player's legitimate reveal tier:
-
-- Soulmarked characters use Soulmarks;
-- The Severance creates the Soul-Severed permanent alternative path;
-- eligible Soul-Severed characters pursue Mantles instead of Soulmarks;
-- ordinary rules make the two paths mutually exclusive;
-- exact story details remain spoiler-gated.
+At the player's legitimate reveal tier, explain Soulmarked characters use Soulmarks while The Severance creates the Soul-Severed permanent alternative path with Mantles. Ordinary rules make the two paths mutually exclusive. Story details remain spoiler-gated.
 
 ---
 
-## 10. Passive Training Manual
+## 9. Passive Training Manual
 
 Explain current behavior precisely:
 
-- Passive Training starts only after the player explicitly chooses a plan;
+- Passive Training starts only after explicit plan choice;
 - Short / Medium / Extended are server-timed;
 - longer plans trade hourly efficiency for convenience;
 - simply being offline/idle creates no new reward;
@@ -325,130 +213,61 @@ Explain current behavior precisely:
 - active training blocks starting a new Battle Hall/live fight under current rules;
 - ordinary non-combat account/reference/social surfaces may remain usable;
 - current reward foundation is Character XP;
-- future Mastery/Rested extensions should not be described as released until they exist;
+- future Mastery/Rested extensions are not described as released until they exist;
 - Passive Training cannot complete story, boss/Expedition clears, PvP rank, Resonance/Essence accomplishments, supernatural milestones, rare-item acquisition or endgame rites.
 
 ---
 
-## 11. Battle Hall Manual
+## 10. Battle Hall Manual
 
 The current player-facing practice destination is **Battle Hall**.
 
-Explain:
-
-- no fight needs to be preselected on entry;
-- AI Sparring is the first explicit full duel;
-- focused practice drills may coexist;
-- practice uses authoritative combat legality;
-- future Tactical Records unlock additional legitimate opponents/scenarios;
-- AI Intelligence and raw Level/Attributes/Equipment are separate concepts;
-- practice does not grant represented content as ownership;
-- practice is not a zero-risk progression/economy farm;
-- boss/secret records remain spoiler-gated;
-- Battle Review/repeatable seeds grow later.
+Explain that no fight needs to be preselected on entry, AI Sparring is the first explicit full duel, focused practice drills may coexist, practice uses authoritative combat legality, future Tactical Records unlock legitimate opponents/scenarios, AI intelligence and raw unit power are separate concepts, represented content is not persistent ownership, practice is not a zero-risk progression/economy farm, boss/secret records remain spoiler-gated and Battle Review/repeatable seeds grow later.
 
 “Tactical Hall” may appear only in historical documentation.
 
 ---
 
-## 12. World, Events & World Pulse
+## 11. World, Events, Lore, Co-op & Expeditions
 
-Explain regions, nodes/travel, towns, encounters, world state, events, phases, community objectives, rotating content, first-witness prestige, aftermath, Chronicle and World Pulse.
+World documentation explains regions, nodes/travel, towns, encounters, world state, events, phases, community objectives, rotations, aftermath, Chronicle and World Pulse.
 
-Make clear that AUREVANE is a living shared world and that important competitive power should recur or have alternate acquisition paths.
+Lore/Archive documentation teaches Primary Sources, Testimony, Institutional Records, Field Observations, Reconstructions, Unresolved Contradictions, Fragment Sets and provenance without spoiling conclusions.
 
----
+Co-op documentation covers party creation/invites/finder/ready checks/reconnect/pings/shared quests and party-size rules.
 
-## 13. Lore & Archive
-
-Teach how to investigate without spoiling conclusions.
-
-Explain:
-
-- Primary Sources;
-- Testimony;
-- Institutional Records;
-- Field Observations;
-- Reconstructions;
-- Unresolved Contradictions;
-- Fragment Sets;
-- provenance;
-- Chronicle history.
-
-Manual can teach investigation mechanics without revealing undiscovered canon.
+Expedition documentation covers Easy / Standard / Deep Expeditions, Threat, modifiers, progressive reveal, suspension/reconnect, bosses, personal loot and disconnect behavior.
 
 ---
 
-## 14. Co-op & Expeditions
+## 12. PvP & Rekindling Manual
 
-Cover party creation/invites/finder/ready checks/reconnect/pings/shared quests and party-size rules.
+PvP documentation must be exact and version-aware, covering released formats, matchmaking, Arena Tempering, disconnects, seasons, ranks/ratings, tournaments, queue-specific rules, build/item legality, Resonance/Essence/supernatural legality and Veteran Edge rules.
 
-Expedition docs cover Easy / Standard / Deep Expeditions, Threat, modifiers, progressive reveal, suspension/reconnect, bosses, personal loot, expected session shape and disconnect behavior.
-
-Use diagrams where useful.
+Rekindling documentation explains eligibility, reset/preserve behavior, Memory Carryover, Hall of Selves, Veteran Edge, later-cycle differences, persistent supernatural-path choice and personalized confirmation before irreversible commitment.
 
 ---
 
-## 15. PvP Manual
+## 13. Search & Contextual Help
 
-PvP documentation must be exact and version-aware.
-
-Cover released formats such as casual/ranked 1v1 and 2v2 when available, matchmaking, Arena Tempering, disconnects, seasons, ranks/ratings, tournaments, queue-specific rules, build/item legality, Resonance/Essence/supernatural legality, Veteran Edge rules and current normalization.
-
-Players should be able to see the exact competitive rules for the queue they enter.
-
----
-
-## 16. Rekindling Manual
-
-Explain:
-
-- eligibility;
-- what resets/preserves;
-- Memory Carryover;
-- Hall of Selves;
-- Veteran Edge;
-- later-cycle differences;
-- persistent supernatural-path choice;
-- personalized confirmation preview before irreversible commitment.
-
----
-
-## 17. Search
-
-Search should understand current system names, aliases, statuses, Discipline/Skill names and natural-language questions.
-
-Examples:
+Search should understand current system names, aliases, statuses, Discipline/Skill names and natural-language questions such as:
 
 ```text
-"how do I equip a secondary discipline"
-"what is resonance"
-"what does essence do"
-"what does wet do"
-"rear attack bonus"
-"why can't I start battle while training"
-"what resets when I rekindle"
+how do I equip a secondary discipline
+what is resonance
+what does essence do
+rear attack bonus
+why can't I start battle while training
+what resets when I rekindle
 ```
 
 Current terms rank above retired/historical terminology.
 
----
-
-## 18. Contextual Deep Links
-
-Examples:
-
-- stat help opens the stat article;
-- failed build validation links to the exact Secondary/Skill/attunement rule;
-- disabled Ranked links to queue eligibility;
-- Passive Training lock links to training rules;
-- Battle Hall help links to practice rules;
-- Rekindling confirmation links to reset/preserve;
-- Master Panel warning links to protected operations procedure.
+Contextual help should deep-link failed build validation, Passive Training locks, Battle Hall help, PvP eligibility, Rekindling confirmation, stat definitions and Master Panel warnings to the exact applicable article.
 
 ---
 
-## 19. Canonical Glossary
+## 14. Canonical Glossary
 
 Maintain one current glossary including:
 
@@ -465,7 +284,7 @@ Maintain one current glossary including:
 - The Severance;
 - Soul-Severed;
 - Mantle;
-- Action Economy;
+- Action Economy / AP;
 - Battle Hall;
 - AI Sparring;
 - Passive Training;
@@ -478,52 +297,21 @@ Maintain one current glossary including:
 - Chronicle;
 - World Pulse.
 
-Retired terms can map to current terms only in a clearly labeled historical/migration reference.
+Retired terms can map to current terms only in clearly labeled historical/migration references.
 
 ---
 
-## 20. Visual Learning
+## 15. Visual Learning, Mobile & Accessibility
 
-Useful assets can include:
+Useful assets include annotated battle screenshots, AP/forecast diagrams, facing/elevation diagrams, status icons, pure-vs-mixed build diagrams, Resonance/Essence comparison, spoiler-safe supernatural diagrams, Expedition flow and Rekindling reset/preserve guides.
 
-- annotated battle screenshots;
-- AE/forecast diagrams;
-- facing/elevation diagrams;
-- status icons;
-- pure-vs-mixed build diagram;
-- Resonance/Essence comparison;
-- supernatural-path spoiler-safe diagram;
-- Expedition flow;
-- Rekindling reset/preserve;
-- world-event lifecycle;
-- Master Panel publishing workflow.
-
-Production visuals follow the Art Bible/design system.
+Requirements include responsive layout, keyboard navigation, semantic headings, screen-reader-compatible controls, sufficient contrast, no color-only meaning, zoom-friendly text, reduced-motion compliance, captions/alt text and adequate tap targets.
 
 ---
 
-## 21. Mobile & Accessibility
+## 16. Spoiler Safety
 
-Requirements:
-
-- responsive layout;
-- keyboard navigation;
-- semantic headings;
-- screen-reader-compatible controls;
-- sufficient contrast;
-- no color-only meaning;
-- zoom-friendly text;
-- reduced-motion compliance;
-- captions/alt text;
-- adequate tap targets.
-
-The Manual itself is part of accessibility.
-
----
-
-## 22. Spoiler Safety
-
-Manual content should support metadata such as:
+Manual content may support visibility metadata such as:
 
 ```text
 manual_visibility = public | progression_gated | staff | owner
@@ -537,110 +325,43 @@ Public Manual must not expose unreleased Disciplines, hidden Resonances/Essence,
 
 ---
 
-## 23. Version Awareness & Source of Truth
+## 17. Version Awareness & Source of Truth
 
 Manual content supports last-updated timestamps, current/historical state, rules/content versions, change notes, retired articles, patch-note links and queue/season-specific rules.
 
-Where practical, exact live data renders from authoritative structured definitions rather than duplicated prose:
-
-- status rules;
-- Skill definitions/costs/cooldowns;
-- Discipline requirements;
-- Primary/Secondary cooldown configuration;
-- Resonance/Essence definitions;
-- PvP queue rules;
-- Passive Training plans;
-- Rekindling configuration;
-- event times.
+Where practical, exact live data renders from authoritative structured definitions rather than duplicated prose, including status rules, Skill costs/cooldowns, Discipline requirements, Primary/Secondary cooldown configuration, Resonance/Essence definitions, PvP rules, Passive Training plans, Rekindling configuration and event times.
 
 Curated explanation remains authored, but it must not become a second mechanical truth source.
 
 ---
 
-## 24. Manual Content Model
+## 18. Owner/Staff Operations Manual & Editor
 
-A Manual article can include:
+Protected procedures cover world-event operations, story publication/rollback, balance packages, player-state corrections, Owner/support grants, exceptional state, stuck-Expedition repair, disabling broken Skills/Resonances/Essences/supernatural/AI content, progression configuration, simulation tools, audit history and Break-Glass.
 
-```text
-id
-title
-summary
-category
-audience
-body_sections
-keywords
-related_articles
-system_links
-content_version
-minimum_progression_state
-spoiler_tier
-media_refs
-last_reviewed_at
-protected owner/staff notes
-```
-
-Manual content is versioned/publishable through safe workflows once the documentation editor exists.
+Authorized staff eventually can create/edit articles, preview desktop/mobile, attach approved media, set keywords/links, set spoiler/progression visibility, schedule publication, review diffs, rollback and detect articles affected by a changed system.
 
 ---
 
-## 25. Owner/Staff Operations Manual
-
-Protected task procedures should cover operations such as:
-
-- run/emergency-stop world event;
-- publish/rollback story content;
-- publish/rollback balance package;
-- correct player state through domain commands;
-- Owner/support grants;
-- special permission/exceptional-state controls;
-- restore stuck Expedition;
-- disable broken Skill/Resonance/Essence/Soulmark/Mantle/AI profile;
-- change Horizon/Passive Training configuration;
-- use Pacing Simulator/Combat AI Lab;
-- review audit history;
-- Break-Glass Owner action.
-
-Each procedure documents purpose, required permission, prerequisites, exact steps, result, risks, recovery and audit behavior.
-
----
-
-## 26. Master Panel Manual Editor
-
-Authorized staff eventually can:
-
-- create/edit articles;
-- preview desktop/mobile;
-- attach approved media;
-- set keywords/links;
-- set spoiler/progression visibility;
-- mark staff/owner-only;
-- schedule publication;
-- review diffs;
-- rollback;
-- detect articles affected by a changed system;
-- assign review work.
-
----
-
-## 27. Documentation Drift Detection
+## 19. Documentation Drift Detection
 
 When a ticket changes a documented player-facing mechanic, it must state which documentation changes are required.
 
 Examples:
 
 - attribute change flags Character/Stat docs;
-- AE/cost change flags Combat and Battle Hall docs;
+- AP/cost change flags Combat and Battle Hall docs;
 - Primary/Secondary/Resonance/Essence change flags Buildcraft/Glossary;
 - Passive Training change flags Training/FAQ;
 - PvP queue change flags queue rules;
 - Expedition requirement change flags Expedition docs;
 - Master Panel workflow change flags staff operations docs.
 
-Where practical, automated checks should detect references to changed structured content or retired terminology.
+Whenever numerical current-state rules are copied into Manual prose, verify them against the authoritative implementation/configuration rather than an older design draft.
 
 ---
 
-## 28. Ticket Requirement
+## 20. Ticket Requirement
 
 Every implementation ticket introducing or materially changing a player-facing system must include:
 
@@ -658,28 +379,14 @@ A feature is not finished when its UI changes but its current Manual still teach
 
 ---
 
-## 29. Current Implementation Note
+## 21. Current Implementation Note
 
-The current public Manual implementation is maintained through current player-facing content such as `apps/web/src/content/current-manual.ts` and related public information sources.
+The current public Manual implementation is maintained through player-facing content such as `apps/web/src/content/current-manual.ts` and related public information sources.
 
 Current Manual copy must prioritize what is actually playable now—character/account systems, six attributes, Passive Training, Battle Hall/AI Sparring and current combat rules—while explicitly labeling future Primary/Secondary/Resonance/Essence/world/co-op/PvP systems as roadmap direction until released.
 
 ---
 
-## 30. Definition of Success
+## 22. Definition of Success
 
-The Manual succeeds when:
-
-- new players can learn AUREVANE without an external wiki;
-- advanced players can verify exact current rules;
-- current terminology is consistent across UI/manual/tutorial/errors;
-- six attributes and current AE combat are documented correctly;
-- pure/mixed build rules are understandable;
-- Resonance and Essence are distinct and spoiler-safe;
-- Passive Training/Battle Hall behavior matches the real product;
-- unreleased systems are not presented as already playable;
-- documentation updates with live rules;
-- staff can operate complex systems safely through protected procedures;
-- spoilers and privileged information remain protected;
-- accessibility/mobile requirements are respected;
-- historical rules remain identifiable as historical rather than silently overriding the current game.
+The Manual succeeds when new players can learn AUREVANE without an external wiki, advanced players can verify exact current rules, terminology is consistent across UI/manual/tutorial/errors, six attributes and current AP combat are documented correctly, pure/mixed build rules are understandable, Resonance and Essence are distinct/spoiler-safe, Passive Training/Battle Hall behavior matches the real product, unreleased systems are not presented as already playable, documentation updates with live rules, staff can operate systems safely, spoilers/privileged information remain protected, and historical rules remain identifiable as historical rather than silently overriding the current game.
