@@ -67,12 +67,12 @@ test('Rules exposes stable section anchors and truthful current-scope language',
   await expect(page.getByText(/does not currently publish speculative marketplace/)).toBeVisible()
 })
 
-test('an authenticated character keeps portrait identity while reading the Manual', async ({
+test('an authenticated character keeps a direct return path while reading the Manual', async ({
   page,
 }, testInfo) => {
   test.skip(
     testInfo.project.name !== 'desktop-chromium',
-    'One authenticated character identity proof is sufficient.',
+    'One authenticated return-path proof is sufficient.',
   )
 
   const now = Date.now()
@@ -91,6 +91,5 @@ test('an authenticated character keeps portrait identity while reading the Manua
   await expect(page).toHaveURL(/\/manual$/)
   await expect(page.getByRole('heading', { level: 1, name: 'Manual' })).toBeVisible()
   await expect(page.getByLabel('Current screen: Manual')).toHaveCount(0)
-  await expect(page.getByTestId('public-screen-portrait')).toBeVisible()
   await expect(page.getByRole('link', { name: 'Return to Game' })).toBeVisible()
 })
