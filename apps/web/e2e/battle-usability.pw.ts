@@ -108,7 +108,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort B
   })
   await expect(beforeKeyboardMove).toBeVisible()
   await page.keyboard.press('ArrowRight')
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Movement path ready')
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Path ready:')
   await page.getByRole('button', { name: 'Cancel Action' }).click()
 
   await page.getByRole('button', { name: /Inspect/ }).click()
