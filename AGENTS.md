@@ -6,19 +6,11 @@
 - `docs/GAME_MASTER_PLAN.md` is the authoritative master game-design document.
 - `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md` is the owner-approved authoritative build-system refinement. It controls Primary/Secondary Disciplines, Skills, Resonance, Essence, the supernatural fork, Soulmarks, Mantles, and related build rules where older documents conflict.
 - `docs/COMBAT.md` is the canonical combat source of truth. Its current PV-1F Action Economy revision supersedes the older Movement Budget + one Action model.
-- `docs/LORE_BIBLE.md` governs Aurevane, the Binding, the long-form antagonist reveal, and central narrative canon. Do not casually alter or spoil it.
-- `docs/PROGRESSION_RETENTION.md` governs the long-horizon first-character journey, Horizon pacing, urgency/FOMO design, Rekindling, Veteran Edge constraints, lore discovery/Archive systems, and related operations.
-- `docs/NATURAL_PACING.md` refines the six-month journey through meaningful layered progression rather than crude visible day gates.
-- `docs/OFFLINE_PROGRESSION.md` governs background/return progression. The current implemented player-facing model is **Passive Training**: explicit Short / Medium / Extended server-timed plans, no automatic idle accrual for new sessions, bounded completion rewards, and server-owned time. When older Wayfarer's Practice wording conflicts with the current implementation or Master Plan, the current Passive Training contract wins.
-- `docs/ITEMS_INVENTORY_LOADOUTS.md` governs item definitions/instances, Effect Catalog, inventory categories, protected story items, equipment/consumables/materials, saved loadouts, acquisition, Item Studio, and item/effect operations. Build-field names inside that document must be interpreted through the current Primary/Secondary/Skill/Resonance/Essence model.
-- `docs/COMBAT_AI_TRAINING.md` governs combat NPC intelligence, fairness/knowledge boundaries, reusable AI profiles, practice progression, Tactical Records, Battle Review, and Combat AI Lab. **Battle Hall** is the current player-facing practice destination; older Tactical Hall wording is retired unless explicitly historical.
-- `docs/PRODUCT_EXPERIENCE_CONTENT_SYSTEM.md` governs thoughtful player-facing pages, circular content architecture, Atlas/region/settlement presentation, discovery-aware content, page-experience contracts, and the prohibition on unreviewed generic filler.
-- `docs/OWNER_OVERRIDE.md` governs protected Owner bypass grants, exceptional state, special permissions, unearned grants, and Break-Glass operations.
-- `docs/PLAYER_MANUAL.md` governs the comprehensive player manual, contextual help, glossary, protected operations manual, and documentation-update requirements.
-- `docs/MONETIZATION.md` governs premium commerce and anti-pay-to-win rules.
-- `docs/ENGINEERING_EXECUTION_STANDARD.md` governs implementation cleanliness and efficiency.
-- `docs/MEDIA_PIPELINE.md` governs media/audio pipeline work.
-- `docs/TECHNOLOGY_POLICY.md` governs production technology selection.
+- `docs/LORE_BIBLE.md` governs central narrative canon. Do not casually alter or spoil it.
+- `docs/PROGRESSION_RETENTION.md`, `docs/NATURAL_PACING.md`, and `docs/OFFLINE_PROGRESSION.md` govern long-horizon progression, pacing, Rekindling, retention and Passive Training.
+- `docs/ITEMS_INVENTORY_LOADOUTS.md` governs items, inventory, Effect Catalog, equipment, consumables and saved loadouts.
+- `docs/COMBAT_AI_TRAINING.md` governs combat NPC intelligence, fairness/knowledge boundaries, Tactical Records, Battle Review and Combat AI Lab. **Battle Hall** is the current player-facing practice destination.
+- `docs/PRODUCT_EXPERIENCE_CONTENT_SYSTEM.md`, `docs/OWNER_OVERRIDE.md`, `docs/PLAYER_MANUAL.md`, `docs/MONETIZATION.md`, `docs/ENGINEERING_EXECUTION_STANDARD.md`, `docs/MEDIA_PIPELINE.md`, and `docs/TECHNOLOGY_POLICY.md` remain authoritative in their respective domains.
 - Treat `docs/ART_BIBLE.md` and `docs/AUDIO_BIBLE.md` as authoritative when present.
 
 ## Canonical current terminology
@@ -36,19 +28,7 @@ Use these player-facing terms in new implementation and documentation:
 - **Battle Hall** — current player-facing practice-combat destination.
 - **Passive Training** — current explicit server-timed background training system.
 
-Retired player-facing terminology:
-
-- Current Discipline;
-- Legacy Discipline;
-- Art as the generic ability term;
-- Confluence;
-- separate Trait slot;
-- separate Reaction slot;
-- separate Movement Art slot;
-- separate Ultimate slot;
-- Tactical Hall as the current player-facing destination.
-
-These retired words may remain in explicitly historical/reference snapshots, migration notes, old database identifiers awaiting deliberate migration, or quoted legacy material. Do not use them as current design instructions.
+Retired player-facing terminology includes Current Discipline, Legacy Discipline, Art as the generic ability term, Confluence, separate Trait/Reaction/Movement Art/Ultimate slots, and Tactical Hall as the current practice destination. These may remain only in clearly historical/reference snapshots, migration notes, old identifiers awaiting deliberate migration, or quoted legacy material.
 
 The mature build contract is:
 
@@ -88,11 +68,11 @@ Primary + mastered Secondary
 + no pure-path Essence while Secondary is equipped
 ```
 
-Do not reintroduce separate player-facing Trait, Reaction, Movement Art, or Ultimate loadout systems through new code under different names.
+Do not reintroduce separate player-facing Trait, Reaction, Movement Art, or Ultimate loadout systems under different names.
 
 ## Current attribute model
 
-The universal player-assigned attribute model is six attributes:
+The universal player-assigned attributes are:
 
 - Might;
 - Finesse;
@@ -101,7 +81,7 @@ The universal player-assigned attribute model is six attributes:
 - Intellect;
 - Resolve.
 
-Do not restore the earlier four-attribute model in new tickets. Primary Discipline contributes a base Discipline stat profile without silently rewriting the player's separately assigned attribute investment. Secondary Discipline does not contribute a second base profile.
+Do not restore the earlier four-attribute model. Primary Discipline contributes a base Discipline stat profile without rewriting the player's separately assigned attribute investment. Secondary Discipline does not contribute a second base profile.
 
 ## Non-negotiable design rules
 
@@ -109,52 +89,49 @@ Do not restore the earlier four-attribute model in new tickets. Primary Discipli
 - Preserve working functionality unless explicitly replacing it.
 - Build one small coherent ticket at a time unless the active execution mandate explicitly authorizes a larger verified release workflow.
 - Do not implement future roadmap systems merely because architecture anticipates them.
-- For major architectural changes, inspect the repository and authoritative docs before changing code.
+- Inspect existing code and relevant authoritative docs before meaningful changes.
 - Never rewrite approved central lore or expose late-story secrets without explicit Owner approval.
-- Never collapse the six-month progression journey, natural Horizon progression, Rekindling, Veteran Edge constraints, lore discovery, or return-support systems into a short generic XP grind or timer farm.
-- Never collapse the item system into stat sticks or one giant undifferentiated bag.
-- Never collapse combat AI into random actions, hidden stat cheating, remote-LLM live decisions, or one identical script for all enemies.
-- Never ship major player-facing content as generic generated filler. Reuse systems and authored kits, not identities.
-- Audio and visual presentation are first-class systems throughout development, not a launch-week afterthought.
+- Do not collapse the long progression journey, item system, AI system, or player experience into generic shortcuts merely to reduce implementation work.
+- Audio and visual presentation are first-class systems throughout development.
 
 ## Current combat authority
 
 `docs/COMBAT.md` is definitive for the current combat baseline.
 
-The current PV-1F model uses one shared **Action Economy (AE)** pool, normally 100 AE at turn start. It explicitly supersedes the former Movement Budget + one Action validation model.
+The current PV-1F model uses one shared **Action Economy**, displayed to players in **AP**, normally 100 AP at turn start. It supersedes the former Movement Budget + one Action validation model.
 
-Current validation costs are versioned balance:
+Current implemented PV-1F costs are:
 
 ```text
-Inspect                         0 AE
-Move, normal traversal unit    10 AE
-Move, terrain cost 2           20 AE
-Basic Attack                   30 AE
-Guard                          30 AE
-Recover                        50 AE
-Final Facing                    0 AE and ends the turn
+Inspect                         0 AP
+Move, normal traversal point   25 AP
+Move, terrain cost 2           50 AP
+Basic Attack                   30 AP
+Guard                          30 AP
+Recover                        50 AP
+Final Facing                    0 AP and ends the turn
 ```
 
-Multiple legal commands may occur in one turn while AE remains. Do not “correct” the game back to one action per turn based on older documents.
+These values are confirmed by the current server-authoritative PV-1F implementation and Battle Hall UI. Multiple legal commands may occur in one turn while AP remains. Do not restore the retired one-action-per-turn model or older draft movement costs.
 
-New Skills, items, interactions, equipment effects, scenario commands, Resonances, supernatural effects, and future systems must integrate through the authoritative combat grammar and current Action Economy contract unless a later Owner-approved combat revision supersedes it.
+New Skills, items, interactions, equipment effects, scenario commands, Resonances, supernatural effects, and future systems must integrate through the authoritative combat grammar and current Action Economy contract unless a later Owner-approved revision supersedes it.
 
-Do not introduce a second generic Movement Budget, universal Stamina bar, or another imported combat economy without explicit Owner approval.
+Do not introduce a second generic Movement Budget, universal Stamina bar, or another combat economy without explicit Owner approval.
 
 ## Required document reads by domain
 
 Before meaningful implementation work, read `docs/ENGINEERING_EXECUTION_STANDARD.md`, inspect existing code, and read the applicable authoritative domain documents.
 
-- **Buildcraft / Disciplines / Skills / Resonance / Essence / Soulmark / Mantle:** `docs/GAME_MASTER_PLAN.md` + `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md` + applicable Discipline/supernatural docs.
-- **Combat / targeting / AE / statuses / effects / movement / facing / battle scenes / combat content:** `docs/COMBAT.md`.
-- **Items / equipment / inventory / consumables / loadouts / loot / crafting / marketplace effects:** `docs/ITEMS_INVENTORY_LOADOUTS.md` + `docs/COMBAT.md` when combat interactions are involved.
-- **Progression / XP / Mastery / Passive Training / retention / Horizons / Rekindling / Veteran Edge / Archive:** `docs/PROGRESSION_RETENTION.md`, `docs/NATURAL_PACING.md`, `docs/OFFLINE_PROGRESSION.md`.
-- **Combat AI / bosses / allied NPCs / Battle Hall / Tactical Records / simulations:** `docs/COMBAT.md` + `docs/COMBAT_AI_TRAINING.md`.
-- **Major player-facing pages / shell / Atlas / regions / settlements / Codex / content-editor workflows:** `docs/PRODUCT_EXPERIENCE_CONTENT_SYSTEM.md`.
-- **Owner/player mutation tools / grants / entitlements / exceptional state / Break-Glass:** `docs/OWNER_OVERRIDE.md` + `docs/MASTER_PANEL.md`.
-- **Premium commerce:** `docs/MONETIZATION.md` + relevant Master Panel/security docs.
-- **Player-facing feature changes:** review `docs/PLAYER_MANUAL.md` and update public/manual copy where required.
-- **Narrative/world/quest/NPC/event/supernatural/Expedition/nation/media touching central mythology:** `docs/LORE_BIBLE.md`.
+- **Buildcraft / Disciplines / Skills / Resonance / Essence / Soulmark / Mantle:** Master Plan + build-system addendum.
+- **Combat / targeting / Action Economy / statuses / effects / movement / facing / battle scenes:** `docs/COMBAT.md`.
+- **Items / equipment / inventory / consumables / loadouts / loot / crafting / marketplace:** `docs/ITEMS_INVENTORY_LOADOUTS.md` plus Combat where relevant.
+- **Progression / XP / Mastery / Passive Training / Horizons / Rekindling / Veteran Edge / Archive:** progression, natural-pacing and offline-progression docs.
+- **Combat AI / bosses / allied NPCs / Battle Hall / Tactical Records:** Combat + Combat AI Training.
+- **Major player-facing pages:** Product Experience Content System.
+- **Owner/player mutation tools / grants / exceptional state:** Owner Override + Master Panel.
+- **Premium commerce:** Monetization + relevant security/operations docs.
+- **Player-facing feature changes:** Player Manual and current public/manual copy.
+- **Narrative/world/quest/event/supernatural content touching central mythology:** Lore Bible.
 
 Never assume a package, table, route, system, or feature exists. Verify it.
 
@@ -162,81 +139,73 @@ Never assume a package, table, route, system, or feature exists. Verify it.
 
 - All valuable or persistent game state is server-authoritative.
 - The browser may submit intent; it does not determine outcomes.
-- Server owns at minimum: combat legality, Action Economy, paths, target validity, Skill legality, cooldowns, passive/trigger resolution, terrain transformations, timers, item ownership/quantity/equip state, loadout activation, consumptions/effects, AI actions, practice unlocks, content access, rewards, XP, currency, progression, Passive Training elapsed time/rewards, Primary/Secondary attunement cooldowns, PvP, trading, quests, Rekindling, Veteran Edge, lore discovery, permissions, Owner overrides, premium prices, payment completion, and fulfillment.
+- Server owns combat legality, Action Economy, paths, targets, Skill legality, cooldowns, triggered effects, terrain transformations, timers, item ownership/equip state, loadout activation, consumptions/effects, AI actions, practice unlocks, rewards, XP, currency, progression, Passive Training timing/rewards, Primary/Secondary attunement cooldowns, PvP, trading, quests, Rekindling, Veteran Edge, lore discovery, permissions, Owner overrides, premium prices, payment completion and fulfillment.
 - Validate all external input server-side.
 - Privileged actions require server-side authorization; hidden UI is not security.
 - Use transactions for multi-step authoritative state changes.
 - Rewards and fulfillment must be idempotent.
-- Never expose service-role credentials, database credentials, payment secrets, or privileged keys to the browser or `NEXT_PUBLIC_*` variables.
-- Never import server-only database, authorization, payment, authoritative game logic, content publication, or AI decision logic into Client Components.
-- Owner power uses explicit validated commands, permissions, provenance, audit records, and Break-Glass workflows—not raw browser-accessible credentials.
-- Owner override may bypass normal eligibility only through supported exceptional-state rules; it may not corrupt hard persistence/runtime invariants.
-- Premium fulfillment never trusts a browser redirect, client price, client reward payload, or client “success” flag as proof of payment.
+- Never expose service-role/database/payment secrets to the browser or `NEXT_PUBLIC_*` variables.
+- Never import server-only authoritative logic into Client Components.
+- Owner power uses validated commands, permissions, provenance, audits and Break-Glass workflows.
+- Premium fulfillment never trusts a browser redirect or client success flag as proof of payment.
 
 ## Architecture, cleanliness, and data
 
 - Prefer modular feature-oriented architecture with clear UI/domain/database/validation/authorization boundaries.
 - Implement the smallest coherent change that fully satisfies the ticket.
-- Reuse existing services, schemas, validators, components, and patterns before creating parallel `V2`/`New`/`Better` implementations.
-- Avoid giant files, but do not fragment code into abstractions that have no clear responsibility.
-- Keep one authoritative source of truth for rules and live configuration. Do not duplicate formulas, permissions, unlocks, balance values, Passive Training rules, Skill definitions, Resonance/Essence rules, content visibility, AI profiles, item/effect definitions, action costs, or validation across layers.
-- Important content types use stable IDs and typed relationships so gameplay, Master Panel, Manual/Codex, AI, media, acquisition, analytics, and support reference the same identity.
+- Reuse existing services, schemas, validators, components and patterns before creating parallel replacements.
+- Keep one authoritative source of truth for rules and live configuration; do not duplicate formulas, permissions, unlocks, balance values, Passive Training rules, Skill definitions, Resonance/Essence rules, AI profiles, item/effect definitions or Action Economy costs across layers.
+- Important content types use stable IDs and typed relationships so gameplay, Master Panel, Manual/Codex, AI, media, acquisition, analytics and support reference the same identity.
 - Item Definitions and owned Item Instances are distinct where needed.
-- Discipline Skills, Basic Attack profiles, Equipment Skills, Soulmark/Essence/Mantle Skills, combat items, scenario actions, AI legality, and future authored actions should reuse the same typed targeting/requirement/effect grammar where practical.
-- The Effect Catalog uses typed primitives/triggers and controlled tags. Damage is one effect type, not an assumption.
+- Discipline Skills, Basic Attack profiles, Equipment Skills, Soulmark/Essence/Mantle Skills, combat items, scenario actions and AI legality should reuse the same typed targeting/requirement/effect grammar where practical.
 - Do not permit arbitrary JavaScript or SQL in content editors.
 - Use migrations for every database schema change.
-- Keep database/network work bounded; avoid N+1 queries, unbounded reads, redundant round trips, duplicate subscriptions, and unnecessary polling.
-- Keep client JS/state/hydration no larger than necessary. Authoritative calculations stay server-side.
-- Primary/Secondary cooldowns, progression curves, Horizons, Passive Training, Rested Momentum, item/effect/loot/loadout definitions, combat content, AI profiles, terrain/movement profiles, acquisition/visibility metadata, Rekindling, Veteran Edge, event settings, lore content, premium products, and other live-operated configuration should be data-driven/versioned where practical.
+- Avoid N+1 queries, unbounded reads, redundant round trips, duplicate subscriptions and unnecessary polling.
+- Authoritative calculations stay server-side.
+- Primary/Secondary cooldowns, progression curves, Passive Training, item/effect/loot/loadout definitions, combat content, AI profiles, acquisition/visibility metadata, Rekindling, Veteran Edge, events and other live-operated configuration should be data-driven/versioned where practical.
 - AI reuses authoritative legality/range/path/effect/terrain/item rules and has a bounded deterministic fallback.
-- Saved loadout activation is one authoritative atomic command, validates the current build contract, respects Primary/Secondary attunement cooldowns, and uses pinned battle snapshots.
-- Passive Training uses server-owned start/completion timestamps and idempotent completion/claim behavior. Do not infer rewards from logout, tab state, browser presence, or client clocks.
+- Saved loadout activation is one authoritative atomic command, validates the current build contract and respects Primary/Secondary attunement cooldowns.
+- Passive Training uses server-owned timestamps and idempotent completion/claim behavior.
 - Preserve provenance for valuable grants and exceptional support/Owner state.
 - TypeScript remains the default application/game-service language and PostgreSQL/SQL the authoritative relational layer unless a documented architecture decision approves otherwise.
-- Verify framework/runtime/compiler major upgrades against current authoritative documentation and handle them as focused migration work.
 - Optimize bottlenecks with evidence; do not trade clarity for speculative micro-optimization.
 
 ## Narrative and live-world continuity
 
 - Permanent character building and the living-world story reinforce each other.
-- The central mystery unfolds through fair foreshadowing, conflicting perspectives, relationships, world events, and controlled story stages rather than an exposition dump.
-- Lore is discoverable through documents, inscriptions, relics, environments, NPC testimony, Archive Fragment Sets, events, Expeditions, and contradictory sources.
-- Do not leak late-story secrets in early quests, public UI, item descriptions, art filenames, API payloads, logs, Manual articles, premium copy, Battle Hall catalogs, Codex catalogs, maps, or event metadata.
+- Do not leak late-story secrets in early quests, public UI, item descriptions, filenames, API payloads, logs, Manual articles, premium copy, Battle Hall catalogs, Codex catalogs, maps or event metadata.
 - Story/world events should be data-driven and versioned where practical.
-- World-state changes should visibly affect relevant NPCs, ambience, markers, routes, props, dialogue, weather, encounters, or other presentation—not merely add a badge.
-- Important settlements/regions require authored spatial and cultural identity; do not carbon-copy them.
+- World-state changes should visibly affect relevant presentation rather than merely add a badge.
+- Important settlements/regions require authored identity; do not carbon-copy them.
 - Battle scenes should derive coherently from world/encounter context.
-- Quest/key items must preserve story integrity and cannot be accidentally sold/salvaged/discarded under normal rules.
-- Do not make every system secretly originate from Aurevane. The world must remain larger than the central antagonist.
+- Quest/key items must preserve story integrity.
 
 ## Product experience and circular content integrity
 
-- Every major player-facing page needs clear player intent, primary action, authoritative data source, information hierarchy, visual focus, loading/error/feedback states, responsive behavior, accessibility, help/manual impact, and media requirements.
+- Every major player-facing page needs clear intent, primary action, authoritative data source, hierarchy, visual focus, feedback states, responsive behavior, accessibility, help/manual impact and media requirements.
 - A page is not complete merely because its route renders or CRUD works.
-- The game shell keeps persistent character context concise and gives the primary experience the majority of useful visual space.
-- Battle UI is board-first and must keep targeting, Action Economy, actor state, forecast, timeline, log, and contextual inspection readable without burying the board.
-- Character Profile is the build headquarters for persistent configuration. Battle screens display committed battle state rather than becoming the persistent build editor.
-- Public Manual/News/Rules copy must distinguish what is playable now from long-term roadmap direction.
-- Whenever player-facing terminology changes, update the Master Plan, Roadmap, Manual/public copy, applicable domain docs, and tests/content fixtures that intentionally assert current labels.
+- Battle UI is board-first and must keep targeting, Action Economy, actor state, forecast, timeline/log and contextual inspection readable.
+- Character Profile is the persistent build headquarters; battle screens show the committed battle snapshot rather than becoming the respec editor.
+- Public Manual/News/Rules copy must distinguish playable-now behavior from roadmap direction.
+- Whenever player-facing terminology changes, update the Master Plan, Roadmap, Manual/public copy, applicable domain docs and intentional tests/content fixtures.
 
 ## Media and licensing
 
 - Respect the Art Bible and Audio Bible when present.
-- If required media is missing, create a structured `ART_REQUEST` or `AUDIO_REQUEST` rather than silently normalizing placeholder quality.
-- Never introduce unlicensed third-party art, audio, code, fonts, or other assets.
-- Reference games may inform abstract design principles only; do not copy their implementation, names, distinctive assets, or protected presentation.
+- If required media is missing, create a structured `ART_REQUEST` or `AUDIO_REQUEST` rather than normalizing placeholder quality.
+- Never introduce unlicensed third-party art, audio, code, fonts or other assets.
+- Reference games may inform abstract design principles only; do not copy their implementation, names, distinctive assets or protected presentation.
 
 ## Testing and release discipline
 
-- Run the relevant tests, typecheck, lint, and build after implementation tickets where the environment allows.
+- Run relevant tests, typecheck, lint and build after implementation tickets where the environment allows.
 - Significant combat behavior requires automated regression coverage.
 - Database changes require migration and authority/RLS/security review.
 - Multi-step economy/reward/loadout/training operations require idempotency/concurrency coverage where relevant.
-- Deterministic systems must preserve seed/version replay where designed.
+- Deterministic systems preserve seed/version replay where designed.
 - Manual verification steps must be explicit.
 - **Do not fabricate human player-validation results.** Automated gates may be green, but a PV PASS requires the actual human playtest when the roadmap calls for one.
-- Production deployment is not proof that a feature is fun, readable, balanced, or player-validated.
+- Production deployment is not proof that a feature is fun, readable, balanced or player-validated.
 
 ## Documentation drift rule
 
@@ -248,6 +217,7 @@ When a newer Owner-approved design replaces an older term or mechanic:
 4. update current player-facing Manual/public copy;
 5. update active domain documents whose instructions would otherwise contradict the new design;
 6. leave explicitly historical snapshots intact, but clearly mark them historical;
-7. do not allow a subordinate stale document to silently restore superseded rules.
+7. verify current implementation constants/rules before copying numerical values into canonical docs;
+8. do not allow a subordinate stale document to silently restore superseded rules.
 
 The goal is one coherent current design, with history preserved only where it is intentionally history.
