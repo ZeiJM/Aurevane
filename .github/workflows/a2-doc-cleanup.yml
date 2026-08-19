@@ -1,0 +1,87 @@
+name: A2 Documentation Cleanup
+
+on:
+  push:
+    branches:
+      - "agent/a2-feedback-holistic"
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: agent/a2-feedback-holistic
+      - name: Clean stale training language
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          offline = Path('docs/OFFLINE_PROGRESSION.md')
+          text = offline.read_text().replace("Wayfarer's Practice", "Passive Training")
+          text = re.sub(
+              r"## 1\. Product Goal.*?\n---\n\n## 2\.",
+              """## 1. Product Goal\n\nPassive Training is an optional background-progression choice. A player deliberately starts one server-timed block and can then remain signed in, go AFK, or close the browser without changing the authoritative timer. Simply being absent does not create progress.\n\nA completed block produces a clear report such as:\n\n```text\nPASSIVE TRAINING — COMPLETE\n\nMedium · 8h\n+ 56 Character XP\n\n[Claim Training]\n```\n\nThe desired feeling is:\n\n> “I chose a useful background task while I was busy, and now my character has a small reward waiting.”\n\nnot:\n\n> “I need to stay logged out for the game to reward me.”\n\nThis system exists to:\n\n- provide a simple intentional background-progression option;\n- reward shorter intentional sessions with better hourly efficiency;\n- let longer sessions trade efficiency for convenience;\n- create a satisfying completion-and-claim ritual;\n- support the long character journey without replacing active play;\n- remain understandable without hidden offline-state rules.\n\n---\n\n## 2.""",
+              text,
+              flags=re.S,
+          )
+          text = re.sub(
+              r"## 2\. Relationship to Natural Pacing.*?\n---\n\n## 3\.",
+              """## 2. Relationship to Natural Pacing\n\nPassive Training must never become the primary way a character progresses or a gate that blocks ordinary non-combat use until a timer finishes. It is a modest optional tradeoff: while a block is active, starting a new Battle Hall fight is disabled, but profile, account, reference, Online Users, and social/chat surfaces may remain available. The player can stop the unfinished block at any time and receive no partial reward.\n\nThe six-month progression target still comes primarily from meaningful active progression, Discipline use and mastery challenges, build development, world/story progress, Expeditions and bosses, Soulmarks and Confluences, Archive/lore progression, endgame qualification, and live-world cadence.\n\nPassive Training supports that journey. It does not replace it.\n\n---\n\n## 3.""",
+              text,
+              flags=re.S,
+          )
+          text = re.sub(
+              r"## 4\. Training Focuses.*?\n---\n\n## 5\.",
+              """## 4. Current Scope and Future Focuses\n\nThe A2/Phase-1 player-facing system is intentionally small: one Balanced Character-XP training activity with three duration choices. There is no hidden default focus and no automatic fallback.\n\nFuture phases may add carefully bounded focus choices such as Discipline Focus or Recovery & Study only after the dependent Mastery/Rested systems exist. Those extensions must preserve the same explicit-start, server-timed, non-pay-to-win, active-play-first rules and must not turn the page into an idle-game job catalog.\n\n---\n\n## 5.""",
+              text,
+              flags=re.S,
+          )
+          text = text.replace(
+              "Allowed default targets:\n\n- Character XP;\n- eligible Discipline Mastery up to a configured offline ceiling;\n- Rested Momentum;",
+              "Current default target:\n\n- Character XP.\n\nFuture approved targets may include:\n\n- eligible Discipline Mastery up to a configured passive-training ceiling;\n- Rested Momentum;",
+          )
+          text = text.replace("offline training", "Passive Training")
+          text = text.replace("Offline training", "Passive Training")
+          offline.write_text(text)
+
+          roadmap = Path('docs/ROADMAP.md')
+          text = roadmap.read_text().replace("Wayfarer's Practice", "Passive Training")
+          text = text.replace(
+              "Time away should produce a modest Training Report containing bounded Character XP, eligible Discipline Mastery, and/or Rested Momentum so returning players feel that their permanent character kept moving forward.",
+              "Explicit Passive Training should produce a modest Training Report when a chosen server-timed block completes. Simply being offline or idle does not create rewards. The current foundation grants bounded Character XP; eligible Discipline Mastery and Rested Momentum are later extensions when their dependent systems exist.",
+          )
+          text = text.replace(
+              "- help players who cannot play every day;\n- create a satisfying “come back and claim” moment;\n- use a generous multi-day direct bank rather than exact-hour login pressure;\n- feed the player's next active session through Rested Momentum;\n- remain weaker than engaged active progression;",
+              "- require an explicit Short / Medium / Extended player choice before a block begins;\n- use server-owned start/completion times and rewards;\n- keep shorter plans more efficient per hour while longer plans trade efficiency for convenience;\n- allow the unfinished block to be stopped without a partial reward;\n- prevent new Battle Hall fights while active without requiring the player to log out;\n- remain weaker than engaged active progression;",
+          )
+          text = text.replace(
+              "- avoid continuous per-character background jobs when a deterministic timestamp calculation can do the work cleanly.",
+              "- avoid continuous per-character background jobs when a deterministic completion timestamp can do the work cleanly.\n- never infer training from logout state, tab state, browser presence, client clocks, or client-submitted elapsed time.",
+          )
+          text = text.replace(
+              "Passive Training foundation after normal Character XP exists: authoritative activity/accrual timestamps, Balanced Practice, deterministic elapsed-time calculation, direct Character XP Training Report, Rested Momentum representation, idempotent claim command, basic Training Report UI, and telemetry.",
+              "Passive Training foundation after normal Character XP exists: explicit Short / Medium / Extended plans, authoritative server start/completion timestamps, decreasing hourly efficiency for longer plans, deterministic Character XP completion rewards, stop-without-partial-reward behavior, new-battle exclusion while active, idempotent claim command, basic Training Report UI/countdown, legacy-report compatibility, and telemetry.",
+          )
+          roadmap.write_text(text)
+
+          master = Path('docs/MASTER_PANEL.md')
+          text = master.read_text().replace("Wayfarer's Practice", "Passive Training")
+          master.write_text(text)
+      - name: Commit cleanup if needed
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/OFFLINE_PROGRESSION.md docs/ROADMAP.md docs/MASTER_PANEL.md
+          git commit -m "docs: finalize explicit Passive Training direction"
+          git push origin HEAD:agent/a2-feedback-holistic
