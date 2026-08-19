@@ -68,11 +68,11 @@ main[aria-busy] footer {
   z-index: 450;
   width: 100%;
   max-width: 100vw;
-  min-height: 2.35rem;
+  min-height: 2.55rem;
   margin: 0;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
-  overflow-x: auto;
-  overflow-y: hidden;
+  padding-top: 0.35rem;
+  padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+  overflow: visible;
   backdrop-filter: blur(0.8rem);
 }
 
@@ -87,10 +87,38 @@ main[aria-busy] footer {
   width: 100%;
   min-width: 0;
   max-width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
+  overflow: hidden;
   overscroll-behavior-inline: contain;
   -webkit-overflow-scrolling: touch;
+}
+
+#battlefield > div:first-child > div {
+  grid-auto-rows: minmax(0, 1fr);
+  max-width: 100% !important;
+  max-height: 100% !important;
+}
+
+#battlefield button[aria-label^='Tile '] {
+  min-width: 0;
+  min-height: 0;
+  aspect-ratio: 1 / 1;
+}
+
+#battlefield button[data-attack-range='illegal'] {
+  border-color: rgba(211, 78, 78, 0.72) !important;
+  background: linear-gradient(145deg, rgba(95, 38, 44, 0.28), rgba(34, 25, 30, 0.82)) !important;
+  box-shadow: inset 0 0 0.7rem rgba(190, 55, 55, 0.09) !important;
+}
+
+#battlefield button[data-attack-range='legal'] {
+  border-color: rgba(103, 213, 139, 0.96) !important;
+  background: linear-gradient(145deg, rgba(52, 111, 77, 0.32), rgba(26, 51, 39, 0.88)) !important;
+  box-shadow: inset 0 0 0.85rem rgba(68, 184, 108, 0.16) !important;
+}
+
+#battlefield button[aria-label*='occupied by'] > span:last-child {
+  margin: auto;
+  transform-origin: center;
 }
 
 section[aria-label='Command Deck'] {
@@ -98,7 +126,110 @@ section[aria-label='Command Deck'] {
   max-width: 100%;
 }
 
+/* A2 battle layout: smaller mirrored combatant rails and a centered board. */
+main[aria-busy] > div > section:first-child {
+  grid-template-columns: minmax(6.8rem, 7.6rem) minmax(0, 1fr) minmax(6.8rem, 7.6rem);
+}
+
+aside[aria-label$=' combat status'] article > button[aria-label^='Show '] {
+  width: 100%;
+  height: auto !important;
+  aspect-ratio: 1 / 1;
+}
+
+aside[aria-label$=' combat status'] article > button[aria-label^='Show '] img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* Action Economy remains calm green until a proposal is staged; proposed AP is red. */
+[role='progressbar'][aria-label='Action Economy remaining'] > span:first-child {
+  background: linear-gradient(90deg, #477f5a, #78bd8f) !important;
+}
+
+[role='progressbar'][aria-label='Action Economy remaining'] > span:nth-child(2) {
+  border-right-color: rgba(255, 157, 157, 0.95) !important;
+  background: rgba(190, 59, 65, 0.64) !important;
+  box-shadow:
+    0 0 0.45rem rgba(207, 65, 73, 0.72),
+    inset 0 0 0.25rem rgba(255, 196, 196, 0.32) !important;
+}
+
+/* Clear action hierarchy without the muddy orange/gold collision from the earlier footer. */
+main[aria-busy] > footer > div:last-child > button:nth-child(1) {
+  border-color: rgba(112, 153, 194, 0.72) !important;
+  color: #b9d3eb !important;
+  background: rgba(48, 79, 111, 0.28) !important;
+}
+
+main[aria-busy] > footer > div:last-child > button:nth-child(2) {
+  border-color: rgba(96, 190, 126, 0.82) !important;
+  color: #07110b !important;
+  background: linear-gradient(180deg, #91d0a4, #5da979) !important;
+}
+
+main[aria-busy] > footer > div:last-child > button:nth-child(3) {
+  border-color: rgba(210, 78, 83, 0.82) !important;
+  color: #f5b7b9 !important;
+  background: rgba(121, 35, 42, 0.42) !important;
+}
+
+/* The Chat trigger is just "Chat"; the old Self badge is intentionally hidden. */
+main[aria-busy] > footer > div:first-child > button > span {
+  display: none !important;
+}
+
+[data-battle-emoji-trigger] {
+  min-width: 2rem;
+  padding-inline: 0.5rem !important;
+  border-color: rgba(207, 169, 93, 0.48) !important;
+  color: var(--av-brass-200) !important;
+  background: rgba(207, 169, 93, 0.06) !important;
+}
+
+[data-battle-emoji-picker] {
+  position: absolute;
+  right: 0.45rem;
+  bottom: calc(100% + 0.35rem);
+  z-index: 3300;
+  display: grid;
+  grid-template-columns: repeat(5, 2rem);
+  gap: 0.22rem;
+  padding: 0.4rem;
+  border: 1px solid rgba(207, 169, 93, 0.5);
+  border-radius: 0.45rem;
+  background: rgba(7, 10, 15, 0.995);
+  box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.65);
+}
+
+[data-battle-emoji-picker] button {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  padding: 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: inherit !important;
+  background: rgba(255, 255, 255, 0.025) !important;
+  font-size: 1rem !important;
+}
+
+/* Controlled combat overlays always remain fully within the viewport. */
+[data-testid='battle-log-panel'] {
+  top: 3.85rem !important;
+  right: auto !important;
+  left: 50% !important;
+  width: min(34rem, calc(100vw - 1rem)) !important;
+  transform: translateX(-50%);
+}
+
 @media (max-width: 880px) {
+  main[aria-busy] > div > section:first-child {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   main[aria-busy] > footer {
     position: static;
     inset: auto;
