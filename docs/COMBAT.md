@@ -3,11 +3,24 @@
 **Status:** Canonical combat source of truth for implementation and content work.
 
 **Initial direction approved:** 2026-08-15.  
-**PV-1F rules revision approved:** 2026-08-18.
+**PV-1F rules revision approved:** 2026-08-18.  
+**Terminology synchronization:** 2026-08-19.
 
-This document defines the current AUREVANE combat baseline. When older tickets, tests, prose, screenshots, or historical documents conflict with this file, **this file wins unless the owner explicitly approves a later change**.
+This document defines the current AUREVANE combat baseline. When older tickets, tests, prose, screenshots, or historical documents conflict with this file, **this file wins unless the Owner explicitly approves a later change**.
 
-The full pre-PV-1F combat bible is preserved at [`COMBAT_PRE_PV1F_REFERENCE.md`](./COMBAT_PRE_PV1F_REFERENCE.md). That snapshot is retained so later-system design work is not lost. **Its former Sections 2–9 are superseded by this document.** Its Sections 10 onward remain incorporated as the advanced combat reference where they do not conflict with this file or a later approved roadmap/domain document.
+The full pre-PV-1F combat bible is preserved at [`COMBAT_PRE_PV1F_REFERENCE.md`](./COMBAT_PRE_PV1F_REFERENCE.md). That snapshot is intentionally historical. Its former Sections 2–9 are superseded by this document. Its later advanced concepts remain reference material only where they do not conflict with this file, `docs/GAME_MASTER_PLAN.md`, `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md`, or a later Owner-approved domain document.
+
+Current build terminology follows the Master Plan:
+
+- Primary Discipline;
+- optional mastered Secondary Discipline;
+- Skills as the player-facing ability umbrella;
+- Resonance for the passive mixed-Discipline interaction;
+- Essence for the pure-Discipline special Skill;
+- Soulmark or Soul-Severed/Mantle supernatural path;
+- Equipment Skills where equipment grants an active ability.
+
+The former player-facing terms Current Discipline, Legacy Discipline, Art, Confluence, and separate Trait / Reaction / Movement Art / Ultimate slot systems are retired from current design instructions.
 
 ---
 
@@ -20,7 +33,8 @@ The intended experience combines:
 - readable grid tactics;
 - meaningful positioning, terrain, elevation, and facing;
 - stat-driven buildcraft;
-- Disciplines, Arts, Soulmarks, equipment, Reactions, and Confluences;
+- Primary/Secondary Discipline choices, Skills, Resonance or Essence, supernatural identity, and equipment;
+- typed passive/triggered responses without requiring a separate player-facing Reaction slot system;
 - server-authoritative multiplayer outcomes;
 - deterministic or server-owned resolution where required;
 - strong audiovisual feedback;
@@ -45,6 +59,9 @@ The server owns and validates at minimum:
 - target and range legality;
 - accuracy/evasion and defense rules;
 - damage, healing, mitigation, statuses, and durations;
+- Skill costs, cooldowns and requirements;
+- passive/triggered response resolution;
+- Resonance/Essence legality and effects when implemented;
 - final facing and turn completion;
 - Recruit/AI decisions;
 - RNG and deterministic seeds where applicable;
@@ -83,7 +100,7 @@ Multiple legal commands may occur during one turn while enough AE remains. Examp
 - Recover → movement;
 - movement through a mixture of normal and rough terrain.
 
-The action list is not limited to these baseline actions forever. Arts, items, interactions, scenario commands, equipment effects, and future systems can define authored/versioned AE costs through the same server-authoritative pipeline.
+The action list is not limited to these baseline actions forever. Discipline Skills, Equipment Skills, Soulmark/Essence/Mantle Skills, combat items, interactions, scenario commands, equipment effects, and future systems can define authored/versioned AE costs through the same server-authoritative pipeline.
 
 ### Economy invariants
 
@@ -120,7 +137,7 @@ Movement may be split around other legal actions. Spending AE on an attack, Guar
 
 ### Movement identity still matters
 
-Although there is no separate generic movement bar, character/build properties such as Movement, Jump, statuses, elevation rules, movement profiles, equipment, Arts, and special traversal effects still influence what routes are legal and how positioning works.
+Although there is no separate generic movement bar, character/build properties such as Movement, Jump, statuses, elevation rules, movement profiles, equipment, Skills, and special traversal effects still influence what routes are legal and how positioning works.
 
 Future profiles may include concepts such as:
 
@@ -128,7 +145,7 @@ Future profiles may include concepts such as:
 - flying or hovering;
 - burrowing;
 - teleport/blink;
-- jump/vault rules;
+- jump/vault behavior;
 - summon-specific movement;
 - terrain affinity or penalties.
 
@@ -176,7 +193,7 @@ The duration is governed by authoritative combat turn progression, not client an
 
 Recover immediately restores **10% of the actor's maximum HP**, capped at max HP.
 
-Recover is a bounded baseline recovery command. It does not replace healing Disciplines, items, equipment, Soulmarks, encounter mechanics, or future support builds.
+Recover is a bounded baseline recovery command. It does not replace healing Disciplines, Skills, items, equipment, Soulmarks, encounter mechanics, or future support builds.
 
 ---
 
@@ -212,7 +229,7 @@ Side    110%
 Rear    125%
 ```
 
-Later authored systems may interact with facing through accuracy, evasion, critical effects, shields, Reactions, cones/arcs, cover, Arts, bosses, equipment, or Confluences. Those effects must be explicit and versioned rather than silently inferred.
+Later authored systems may interact with facing through accuracy, evasion, critical effects, shields, passive/triggered responses, cones/arcs, cover, Skills, bosses, equipment, Resonances, or supernatural effects. Those effects must be explicit and versioned rather than silently inferred.
 
 ---
 
@@ -223,14 +240,14 @@ A normal PV-1F turn follows this conceptual lifecycle:
 ```text
 TURN START
   ↓
-Start-turn statuses / hooks / triggers
+Start-turn statuses / hooks / typed triggers
   ↓
 Refresh authoritative Action Economy (normally 100)
   ↓
 PLAYER DECISION LOOP
   ├── Inspect (free utility)
   ├── Move (spend AE by traversal cost)
-  ├── Basic Attack / Guard / Recover / future actions (spend AE)
+  ├── Basic Attack / Guard / Recover / future Skills or actions (spend AE)
   ├── continue taking legal commands while AE permits
   └── choose final facing
   ↓
@@ -241,7 +258,7 @@ End-turn statuses / durations / zones / objective checks
 Schedule next actor
 ```
 
-Reactions or interrupt windows may occur only at deterministic/authored points in that lifecycle.
+Interrupt-like or reaction-like behavior may occur only at deterministic/authored trigger points. It is implemented as typed passive/triggered behavior rather than requiring a separate universal player-facing Reaction slot.
 
 The combat log records the actual authoritative sequence.
 
@@ -282,14 +299,17 @@ Baseline presentation goals include:
 - compact action controls;
 - Action Economy summarized in the fixed battle header;
 - Round control opening the Combat Log;
-- fixed battle footer for confirmation/cancel/abort and future chat presentation;
+- fixed battle footer for confirmation/cancel/abort and chat presentation where enabled;
 - red/green movement/target legality communication;
 - visible movement trail/path preview;
 - clear rough-terrain and elevation art/readability;
 - final-facing controls arranged spatially as north/west/east/south rather than an arbitrary flat list;
-- direct post-commit result feedback so damage, healing, Guard, movement, and AI turns are understandable.
+- direct post-commit result feedback so damage, healing, Guard, movement, Skills, effects, and AI turns are understandable;
+- Skill source labeling/grouping when the mature build system arrives so Discipline, Equipment, Essence, Soulmark, Mantle, and other bounded sources remain readable.
 
 The board may scale in dimensions for future modes and player counts. The current 9×7 Duel Yard is a validation arena, not a universal maximum battlefield size.
+
+Persistent build configuration belongs in Character Profile/build-management surfaces. The battle screen displays the committed battle snapshot rather than becoming a persistent respec editor.
 
 ---
 
@@ -307,25 +327,74 @@ The profiles may differ in candidate evaluation, positioning quality, action sel
 
 The AI must be capable of completing legal turns and visibly returning authority to the player. A silent/non-acting opponent is a validation failure, not intended pacing.
 
+The current player-facing destination is **Battle Hall**, with **AI Sparring** as the first explicit full training duel. Future practice records, scenarios and stronger profiles must remain progression/spoiler aware.
+
 ---
 
-## 11. Timing, Reactions, Advanced Actions & Later Systems
+## 11. Skills, Resonance, Essence & Advanced Build Interaction
 
-The preserved pre-PV-1F combat bible contains extensive design for timers, reactions, targeting, damage architecture, formula safety, tags, objectives, multiplayer timing, advanced movement, content authoring, and other later systems.
+The current vertical slice does not require the entire mature build system, but combat architecture must anticipate it without restoring retired slot clutter.
 
-Those later sections remain available in [`COMBAT_PRE_PV1F_REFERENCE.md`](./COMBAT_PRE_PV1F_REFERENCE.md) and are **incorporated by reference where they do not conflict with the PV-1F rules above or a later owner-approved domain/roadmap document**.
+### Discipline Skills
+
+Every mature Discipline targets eight learnable Discipline Skills.
+
+- Pure Primary builds may equip up to eight learned Primary Discipline Skills.
+- Mixed Primary + mastered Secondary builds may equip six total Discipline Skills across the two active libraries.
+- The exact Primary/Secondary split within the mixed six may be tuned; do not hard-code a permanent 4/2 rule unless a current validated rules version explicitly says so.
+
+### Resonance
+
+Resonance is the passive mixed-Discipline interaction created by an eligible Primary + Secondary pair.
+
+Resonance should use typed triggers/conditions/effects and bounded caps where needed. It is not a default extra active button and should not be reduced to generic percentage bonuses.
+
+### Essence
+
+A Primary-only build with no Secondary is eligible for one special Essence Skill outside the normal eight Discipline Skill capacity.
+
+Essence uses the same authoritative AE, targeting, effect, cooldown, forecast, AI-legality and content-version systems as other usable Skills.
+
+### Extra Skill sources
+
+Equipment Skills, Soulmark Skills, Mantle Skills and other approved bounded source systems sit outside the 6/8 Discipline Skill capacity, but each source remains explicitly bounded. “Outside the Discipline cap” never means unlimited action-bar growth.
+
+### Typed triggered behavior
+
+Useful design space formerly described as Traits/Reactions remains available through:
+
+- Resonance passives;
+- Soulmark/Mantle passives;
+- equipment passives;
+- status/effect triggers;
+- combo/sequence passives;
+- bounded prestige/Veteran Edge rules.
+
+These use deterministic typed triggers and loop guards. They do not recreate separate universal player-facing Trait or Reaction slots.
+
+---
+
+## 12. Timing, Advanced Actions & Later Systems
+
+The preserved pre-PV-1F combat reference contains extensive older design work for timers, targeting, damage architecture, formula safety, tags, objectives, multiplayer timing, advanced movement, content authoring and other later systems.
+
+Those sections remain useful **only where they do not conflict** with the current combat rules or current build-system terminology.
 
 Specifically:
 
-- the former Sections 2–9 of that snapshot are historical and must not be used to restore the old Movement Budget / one-Action / separate End Turn model;
-- later-system concepts remain planned unless another authoritative document explicitly revises them;
-- any later implementation ticket must reconcile its affected section into this canonical file rather than relying indefinitely on the snapshot.
+- the former Movement Budget + one Action validation model is historical and must not be restored;
+- separate player-facing Reaction/Movement Art/Ultimate slot assumptions are superseded by the current Skill/passive build model;
+- Confluence references must be interpreted as Resonance only where the underlying mechanic is still approved;
+- Current/Legacy references must be interpreted through Primary/Secondary only where the underlying mechanic is still approved;
+- older fixed Art-slot counts do not override the approved 8-pure / 6-mixed Discipline Skill capacities;
+- later-system concepts remain planned only when another current authoritative document still supports them;
+- any implementation ticket touching an old reference concept must reconcile it into this canonical file or the relevant current domain document rather than relying indefinitely on historical wording.
 
 ---
 
-## 12. Current Validation Standard
+## 13. Current Validation Standard
 
-PV-1F is not considered product-validated because code exists or automated tests pass.
+PV-1F is not product-validated because code exists or automated tests pass.
 
 Automated gates must prove authority, persistence, browser responsiveness, and regression safety. Human/internal testing must then determine whether the system is actually understandable, responsive, tactically legible, and worth replaying.
 
@@ -333,7 +402,7 @@ A successful validation session should let a tester explain:
 
 - where they can move and what it costs;
 - how much AE remains;
-- what an attack, Guard, or Recover will cost;
+- what an attack, Guard, Recover, or other available action will cost;
 - what happened after committing an action;
 - how terrain/elevation/facing influenced a decision;
 - what the Recruit did on its turn;
@@ -341,3 +410,5 @@ A successful validation session should let a tester explain:
 - at least one tactical decision they remember making.
 
 The strongest product signal remains voluntary desire to play another battle rather than merely tolerating the interface.
+
+**Automated green gates do not constitute a human PV PASS.**
