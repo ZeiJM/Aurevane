@@ -51,7 +51,7 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
     practice.planSetAt && practice.plannedWindowSeconds
       ? Date.parse(practice.planSetAt) + practice.plannedWindowSeconds * 1000
       : null
-  const synchronizedNow = Number.isFinite(baseServerTime) ? baseServerTime + elapsedMs : Date.now()
+  const synchronizedNow = baseServerTime + elapsedMs
   const remainingSeconds = trainingEndMs
     ? Math.max(0, Math.ceil((trainingEndMs - synchronizedNow) / 1000))
     : 0
