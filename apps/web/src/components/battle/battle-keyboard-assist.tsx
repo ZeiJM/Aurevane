@@ -40,11 +40,6 @@ function moveModeIsActive(): boolean {
   return modeInstruction().includes('move') || modeInstruction().includes('movement')
 }
 
-function battlefieldTileButton(target: EventTarget | null): HTMLButtonElement | null {
-  if (!(target instanceof Element)) return null
-  return target.closest<HTMLButtonElement>('#battlefield button[aria-label^="Tile "]')
-}
-
 function legalVisibleTargetButtons(playerName: string): HTMLButtonElement[] {
   return Array.from(
     document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label*="occupied by"]'),
@@ -121,6 +116,8 @@ function clickAdjacentMove(direction: { dx: number; dy: number }, playerName: st
   if ((target.getAttribute('aria-label') ?? '').includes('occupied by ')) return false
 
   target.focus({ preventScroll: true })
+  // Programmatic click has detail=0, which the battlefield deliberately routes through its
+  // canonical move-selection handler without creating a second pointer preview request.
   target.click()
   return true
 }
@@ -172,22 +169,6 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
     if (deck) observer.observe(deck, { childList: true, subtree: true })
     return () => observer.disconnect()
   }, [bindings])
-
-  useEffect(() => {
-    function normalizePhysicalMoveClick(event: MouseEvent) {
-      if (event.detail === 0 || !moveModeIsActive()) return
-      const target = battlefieldTileButton(event.target)
-      if (!target || target.disabled) return
-
-      // The battle surface intentionally accepts detail=0 clicks as the canonical move-selection
-      // path. Normalize mouse/touch clicks to that same path so pointer, keyboard and automation
-      // cannot diverge before the server-authoritative preview is requested.
-      target.click()
-    }
-
-    window.addEventListener('click', normalizePhysicalMoveClick, true)
-    return () => window.removeEventListener('click', normalizePhysicalMoveClick, true)
-  }, [])
 
   useEffect(() => {
     function cycleTarget(reverse: boolean) {
