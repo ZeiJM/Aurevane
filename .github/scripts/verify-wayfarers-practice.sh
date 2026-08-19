@@ -120,14 +120,14 @@ character_two="$(create_character "$user_two" '00000000-0000-4000-8000-000000001
 test -n "$character_one"
 test -n "$character_two"
 
-# Merely being idle/offline cannot manufacture a report.
+# Merely being idle/offline cannot manufacture a report. Move only the activity timestamp;
+# the claim boundary remains authoritative and valid under its database invariant.
 initial="$(materialize "$user_one" "$character_one")"
 test -z "$initial"
 docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   update app_private.wayfarers_practice_state
   set
     last_active_at = clock_timestamp() - interval '14 days',
-    practice_claimed_through_at = clock_timestamp() - interval '14 days',
     updated_at = clock_timestamp()
   where character_id = '$character_one'::uuid;"
 test -z "$(materialize "$user_one" "$character_one")"
