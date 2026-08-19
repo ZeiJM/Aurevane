@@ -78,11 +78,13 @@ function enhanceChat() {
   const panel = footer.querySelector<HTMLElement>('[popover]')
   if (!panel || !panel.matches(':popover-open')) return
   const headingMeta = panel.querySelector<HTMLElement>(':scope > div:first-child > span')
-  if (headingMeta) headingMeta.textContent = 'Battle channel'
+  if (headingMeta && headingMeta.textContent !== 'Battle channel') {
+    headingMeta.textContent = 'Battle channel'
+  }
   const input = panel.querySelector<HTMLInputElement>('form input')
   const form = input?.closest('form')
   if (!input || !form) return
-  input.placeholder = 'Message…'
+  if (input.placeholder !== 'Message…') input.placeholder = 'Message…'
 
   if (!form.querySelector('[data-battle-emoji-trigger]')) {
     const button = document.createElement('button')
@@ -125,14 +127,20 @@ export function BattleFeedbackAssist({
   playerProfileImageUrl,
 }: BattleFeedbackAssistProps) {
   useEffect(() => {
+    let frame = 0
     const refresh = () => {
+      frame = 0
       updateAttackRange(playerName)
       applyCustomPortrait(playerName, playerProfileImageUrl)
       enhanceChat()
     }
+    const scheduleRefresh = () => {
+      if (frame !== 0) return
+      frame = window.requestAnimationFrame(refresh)
+    }
 
     refresh()
-    const observer = new MutationObserver(refresh)
+    const observer = new MutationObserver(scheduleRefresh)
     observer.observe(document.body, { childList: true, subtree: true, characterData: true })
 
     function closeChatOnOutsidePointer(event: PointerEvent) {
@@ -148,6 +156,7 @@ export function BattleFeedbackAssist({
     document.addEventListener('pointerdown', closeChatOnOutsidePointer, true)
     return () => {
       observer.disconnect()
+      if (frame !== 0) window.cancelAnimationFrame(frame)
       document.removeEventListener('pointerdown', closeChatOnOutsidePointer, true)
       for (const tile of Array.from(
         document.querySelectorAll<HTMLButtonElement>('#battlefield button[data-attack-range]'),
