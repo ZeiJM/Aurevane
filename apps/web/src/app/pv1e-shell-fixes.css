@@ -131,6 +131,27 @@ main[aria-busy] > div > section:first-child {
   grid-template-columns: minmax(6.8rem, 7.6rem) minmax(0, 1fr) minmax(6.8rem, 7.6rem);
 }
 
+/* Keep the Action Economy block geometrically centered over the centered battlefield. */
+@media (min-width: 881px) {
+  main[aria-busy] > header {
+    grid-template-columns: minmax(0, 1fr) minmax(13rem, 24rem) minmax(0, 1fr) !important;
+  }
+
+  main[aria-busy] > header > :first-child {
+    justify-self: start;
+  }
+
+  main[aria-busy] > header > :nth-child(2) {
+    width: 100%;
+    max-width: 24rem;
+    justify-self: center;
+  }
+
+  main[aria-busy] > header > :last-child {
+    justify-self: end;
+  }
+}
+
 aside[aria-label$=' combat status'] article > button[aria-label^='Show '] {
   width: 100%;
   height: auto !important;
