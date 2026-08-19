@@ -139,7 +139,8 @@ function syncVisibleCommandLabels(bindings: CombatKeybindMap) {
     const badge = button?.querySelector<HTMLElement>(':scope > span')
     if (!badge) continue
     const binding = formatCombatKeybind(bindings[action])
-    badge.textContent = action === 'move' ? `${binding} · WASD` : binding
+    const label = action === 'move' ? `${binding} · WASD` : binding
+    if (badge.textContent !== label) badge.textContent = label
   }
 }
 
