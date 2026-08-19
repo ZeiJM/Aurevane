@@ -25,6 +25,7 @@ const ACTION_COPY: Record<CombatKeybindAction, { label: string; description: str
   },
   basicAttack: { label: 'Basic Attack', description: 'Enter normal Basic Attack targeting.' },
   guard: { label: 'Guard', description: 'Preview the defensive Guard action.' },
+  recover: { label: 'Recover', description: 'Preview the self-healing Recover action.' },
   endTurn: {
     label: 'Finish Turn',
     description: 'Choose final facing; the chosen direction immediately ends the turn.',
@@ -143,8 +144,9 @@ export function CombatControlsSettings({ initialBindings }: CombatControlsSettin
     <section className={styles.panel} aria-label="Combat controls settings">
       <p className={styles.intro}>
         Keybinds follow your account and trigger the same visible controls you can click. They never
-        bypass battle previews, confirmation, legality checks, or server authority. Enter confirms a
-        legal proposal; double-click or double-tap on the board can do the same.
+        bypass battle previews, confirmation, legality checks, or server authority. While Move is
+        active, WASD and the arrow keys select adjacent destinations; Enter confirms a legal
+        proposal.
       </p>
 
       <div className={styles.grid}>
