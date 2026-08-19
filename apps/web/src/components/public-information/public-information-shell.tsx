@@ -1,9 +1,6 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
-import { AurevaneImage } from '@/components/media/aurevane-image'
-import gameShellStyles from '@/components/shell/authenticated-game-shell.module.css'
-import { getStarterPortraitImageAssetId } from '@/media/character'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 
@@ -43,7 +40,6 @@ async function loadOptionalGameIdentity() {
 
 export async function PublicInformationShell({ active, children }: PublicInformationShellProps) {
   const identity = await loadOptionalGameIdentity()
-  const screenName = navigation.find((item) => item.section === active)?.label ?? active
   const character = identity.character
   const gameHref = identity.authenticated ? (character ? '/game/character' : '/game') : '/'
   const gameLabel = identity.authenticated
@@ -74,29 +70,6 @@ export async function PublicInformationShell({ active, children }: PublicInforma
         </Link>
 
         <nav className={styles.mastheadNav} aria-label="Public information">
-          <div
-            className={gameShellStyles.screenIdentity}
-            aria-label={`Current screen: ${screenName}`}
-          >
-            {character ? (
-              <span
-                className={gameShellStyles.screenPortrait}
-                title={character.name}
-                data-testid="public-screen-portrait"
-              >
-                <AurevaneImage
-                  assetId={getStarterPortraitImageAssetId(character.portraitRef)}
-                  className={gameShellStyles.screenPortraitImage}
-                  sizes="2rem"
-                />
-              </span>
-            ) : null}
-            <span className={gameShellStyles.screenLabel}>
-              <i aria-hidden="true" />
-              <strong>{screenName}</strong>
-            </span>
-          </div>
-
           {navigation.map((item) => (
             <Link
               key={item.section}
