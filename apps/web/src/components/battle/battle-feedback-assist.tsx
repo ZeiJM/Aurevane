@@ -47,6 +47,17 @@ function updateAttackRange(playerName: string) {
   }
 }
 
+function syncActionEconomyBar() {
+  const track = document.querySelector<HTMLElement>(
+    '[role="progressbar"][aria-label="Action Economy remaining"]',
+  )
+  if (!track) return
+  const remaining = Number(track.getAttribute('aria-valuenow'))
+  if (!Number.isFinite(remaining)) return
+  const committed = track.querySelector<HTMLElement>(':scope > span:first-child')
+  if (committed) committed.style.width = `${Math.max(0, Math.min(100, remaining))}%`
+}
+
 function applyCustomPortrait(playerName: string, imageUrl: string | null | undefined) {
   if (!imageUrl) return
   const rail = Array.from(
@@ -131,6 +142,7 @@ export function BattleFeedbackAssist({
     const refresh = () => {
       frame = 0
       updateAttackRange(playerName)
+      syncActionEconomyBar()
       applyCustomPortrait(playerName, playerProfileImageUrl)
       enhanceChat()
     }
