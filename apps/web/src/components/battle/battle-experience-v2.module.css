@@ -1167,6 +1167,7 @@
     grid-column: 1/-1;
   }
   .content {
+    grid-template-rows: auto auto auto;
     overflow: visible;
   }
   .stage {
