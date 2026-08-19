@@ -16,7 +16,7 @@ for (const route of publicRoutes) {
 
     await expect(page.getByTestId('public-information-shell')).toBeVisible()
     await expect(page.getByRole('heading', { level: 1, name: route.heading })).toBeVisible()
-    await expect(page.getByLabel(`Current screen: ${route.heading}`)).toBeVisible()
+    await expect(page.getByLabel(`Current screen: ${route.heading}`)).toHaveCount(0)
 
     const navigation = page.getByRole('navigation', { name: 'Public information', exact: true })
     await expect(navigation.getByRole('link', { name: 'News', exact: true })).toBeVisible()
@@ -67,7 +67,7 @@ test('Rules exposes stable section anchors and truthful current-scope language',
   await expect(page.getByText(/does not currently publish speculative marketplace/)).toBeVisible()
 })
 
-test('an authenticated character keeps screen identity while reading the Manual', async ({
+test('an authenticated character keeps portrait identity while reading the Manual', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -90,7 +90,7 @@ test('an authenticated character keeps screen identity while reading the Manual'
   await page.goto('/manual')
   await expect(page).toHaveURL(/\/manual$/)
   await expect(page.getByRole('heading', { level: 1, name: 'Manual' })).toBeVisible()
-  await expect(page.getByLabel('Current screen: Manual')).toBeVisible()
+  await expect(page.getByLabel('Current screen: Manual')).toHaveCount(0)
   await expect(page.getByTestId('public-screen-portrait')).toBeVisible()
   await expect(page.getByRole('link', { name: 'Return to Game' })).toBeVisible()
 })
