@@ -75,44 +75,26 @@ jobs:
               raise SystemExit('Battle keyboard effect anchor not found')
           text = text.replace(old_effect, new_effect, 1)
 
-          old_tile = """                      onClick={() => handleTileClick(tile.position)}
-                        onDoubleClick={requestQuickCommit}
-                        onPointerUp={(event) => {
-                          if (event.pointerType === 'touch')
-                            handleTouchQuickCommit(
-                              `tile:${positionKey(tile.position)}`,
-                              event.timeStamp,
-                            )
-                        }}
-          """
-          new_tile = """                      onPointerDown={(event) => {
+          old_click = "onClick={() => handleTileClick(tile.position)}"
+          new_click = """onPointerDown={() => {
                           if (mode === 'move') handleTileClick(tile.position)
                         }}
                         onClick={(event) => {
                           if (mode !== 'move' || event.detail === 0) handleTileClick(tile.position)
-                        }}
-                        onDoubleClick={requestQuickCommit}
-                        onPointerUp={(event) => {
-                          if (event.pointerType === 'touch')
-                            handleTouchQuickCommit(
-                              `tile:${positionKey(tile.position)}`,
-                              event.timeStamp,
-                            )
-                        }}
-          """
-          if old_tile not in text:
-              raise SystemExit('Battle tile event anchor not found')
-          text = text.replace(old_tile, new_tile, 1)
+                        }}"""
+          if old_click not in text:
+              raise SystemExit('Battle tile click anchor not found')
+          text = text.replace(old_click, new_click, 1)
           text = text.replace("style={{ width: `${playerEconomy} AP` }}", "style={{ width: `${playerEconomy}%` }}", 1)
           battle.write_text(text)
 
           assist = Path('apps/web/src/components/battle/battle-keyboard-assist.tsx')
           text = assist.read_text()
-          old_click = """  target.focus({ preventScroll: true })
+          old_keyboard_click = """  target.focus({ preventScroll: true })
             target.click()
             return true
           """
-          new_click = """  target.focus({ preventScroll: true })
+          new_keyboard_click = """  target.focus({ preventScroll: true })
             window.dispatchEvent(
               new CustomEvent('aurevane:battle-move-target', {
                 detail: { x: targetX - 1, y: targetY - 1 },
@@ -120,9 +102,9 @@ jobs:
             )
             return true
           """
-          if old_click not in text:
+          if old_keyboard_click not in text:
               raise SystemExit('Keyboard movement click anchor not found')
-          assist.write_text(text.replace(old_click, new_click, 1))
+          assist.write_text(text.replace(old_keyboard_click, new_keyboard_click, 1))
       - name: Format movement files
         run: |
           pnpm exec prettier --write \
