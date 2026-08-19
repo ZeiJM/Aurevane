@@ -2,7 +2,7 @@ export const BALANCED_PRACTICE_FOCUS = 'balanced' as const
 export const PLANNED_PRACTICE_WINDOWS = ['short', 'overnight', 'extended'] as const
 
 export type PlannedPracticeWindow = (typeof PLANNED_PRACTICE_WINDOWS)[number]
-export type PracticeSource = 'automatic_balanced' | 'planned_balanced'
+export type PracticeSource = 'automatic_balanced' | 'planned_balanced' | 'passive_training'
 
 const SECONDS_PER_HOUR = 60 * 60
 
@@ -25,6 +25,13 @@ export interface PlannedPracticeWindowConfig {
   readonly shortSeconds: number
   readonly overnightSeconds: number
   readonly extendedSeconds: number
+}
+
+export interface PassiveTrainingRateConfig {
+  readonly version: number
+  readonly shortXpPerHour: number
+  readonly mediumXpPerHour: number
+  readonly extendedXpPerHour: number
 }
 
 export interface BalancedPracticeConfigIssue {
@@ -90,6 +97,43 @@ export const PHASE_1_PLANNED_PRACTICE_WINDOW_CONFIG: PlannedPracticeWindowConfig
   overnightSeconds: 8 * SECONDS_PER_HOUR,
   extendedSeconds: 24 * SECONDS_PER_HOUR,
 })
+
+/**
+ * Passive Training intentionally trades convenience for efficiency: Short is the strongest hourly
+ * return, Medium is moderate, and Extended is the lowest hourly return. The longer plans still
+ * produce a larger total reward when completed, but repeatedly choosing Extended is not the optimal
+ * hourly strategy.
+ */
+export const PHASE_1_PASSIVE_TRAINING_RATE_CONFIG: PassiveTrainingRateConfig = Object.freeze({
+  version: 1,
+  shortXpPerHour: 10,
+  mediumXpPerHour: 7,
+  extendedXpPerHour: 4,
+})
+
+export function passiveTrainingWindowLabel(window: PlannedPracticeWindow): string {
+  if (window === 'short') return 'Short'
+  if (window === 'overnight') return 'Medium'
+  return 'Extended'
+}
+
+export function getPassiveTrainingXpPerHour(
+  window: PlannedPracticeWindow,
+  config: PassiveTrainingRateConfig = PHASE_1_PASSIVE_TRAINING_RATE_CONFIG,
+): number {
+  if (window === 'short') return config.shortXpPerHour
+  if (window === 'overnight') return config.mediumXpPerHour
+  return config.extendedXpPerHour
+}
+
+export function calculatePassiveTrainingXp(
+  window: PlannedPracticeWindow,
+  windowConfig: PlannedPracticeWindowConfig = PHASE_1_PLANNED_PRACTICE_WINDOW_CONFIG,
+  rateConfig: PassiveTrainingRateConfig = PHASE_1_PASSIVE_TRAINING_RATE_CONFIG,
+): number {
+  const seconds = getPlannedPracticeWindowSeconds(window, windowConfig)
+  return Math.floor((seconds * getPassiveTrainingXpPerHour(window, rateConfig)) / SECONDS_PER_HOUR)
+}
 
 export function validateBalancedPracticeConfig(
   config: BalancedPracticeConfig,
@@ -157,10 +201,10 @@ export function validatePlannedPracticeWindowConfig(
   }
 
   if (config.shortSeconds >= config.overnightSeconds) {
-    issues.push({ field: 'overnightSeconds', message: 'Overnight must be longer than Short.' })
+    issues.push({ field: 'overnightSeconds', message: 'Medium must be longer than Short.' })
   }
   if (config.overnightSeconds >= config.extendedSeconds) {
-    issues.push({ field: 'extendedSeconds', message: 'Extended must be longer than Overnight.' })
+    issues.push({ field: 'extendedSeconds', message: 'Extended must be longer than Medium.' })
   }
   return issues
 }
@@ -180,6 +224,7 @@ export function getPlannedPracticeWindowSeconds(
   }
 }
 
+/** Legacy offline-practice intent resolution retained for frozen pre-A2 reports. */
 export function resolvePhase1PracticeIntent(input: {
   elapsedSeconds: number
   plannedWindow: PlannedPracticeWindow | null
@@ -212,6 +257,7 @@ export function resolvePhase1PracticeIntent(input: {
   }
 }
 
+/** Legacy offline-practice calculation retained for frozen pre-A2 reports. */
 export function calculateBalancedPractice(input: {
   windowStartMs: number
   windowEndMs: number
