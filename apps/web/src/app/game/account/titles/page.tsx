@@ -12,6 +12,7 @@ import {
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
 import { getAuthenticatedActor } from '@/server/auth/actor'
+import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 import { loadCharacterTitleState } from '@/server/character/character-title-service'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 
@@ -33,10 +34,14 @@ export default async function CharacterTitlesPage() {
 
   let character
   let titleState
+  let displayState
   try {
     character = await loadSelectedCharacter(actor)
     if (!character) redirect('/game')
-    titleState = await loadCharacterTitleState(actor.userId, character.id)
+    ;[titleState, displayState] = await Promise.all([
+      loadCharacterTitleState(actor.userId, character.id),
+      loadCharacterProfileDisplay(actor.userId, character.id),
+    ])
   } catch (error) {
     if (isAurevaneError(error) && error.code === 'PERSISTENCE_UNAVAILABLE') {
       return <AuthenticatedGameRecovery />
@@ -68,6 +73,7 @@ export default async function CharacterTitlesPage() {
           disciplineName={discipline?.name ?? 'Adventurer'}
           personalTitle={titleState.personalTitle}
           personalTitleSetAt={titleState.personalTitleSetAt}
+          imageUrl={displayState.imageUrl}
         />
       </Surface>
     </AuthenticatedShellFrame>
