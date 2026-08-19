@@ -106,25 +106,30 @@ function directionForCode(code: string): { dx: number; dy: number } | null {
 }
 
 function clickAdjacentMove(direction: { dx: number; dy: number }): boolean {
-  const playerName = playerCombatantName()
-  if (!playerName) return false
   const tiles = Array.from(
     document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label^="Tile "]'),
   )
-  const playerTile = tiles.find((button) =>
-    (button.getAttribute('aria-label') ?? '').includes(`occupied by ${playerName}`),
-  )
+  const playerName = playerCombatantName()
+  const playerTile = tiles.find((button) => {
+    const label = button.getAttribute('aria-label') ?? ''
+    if (!label.includes('occupied by ')) return false
+    if (playerName) return label.includes(`occupied by ${playerName}`)
+    return !label.includes('occupied by Recruit')
+  })
   const match = playerTile?.getAttribute('aria-label')?.match(/^Tile\s+(\d+),\s*(\d+)/i)
   if (!match) return false
+
   const targetX = Number(match[1]) + direction.dx
   const targetY = Number(match[2]) + direction.dy
-  const target = tiles.find((button) => {
-    const label = button.getAttribute('aria-label') ?? ''
-    return label.startsWith(`Tile ${targetX}, ${targetY};`)
-  })
-  if (!target) return false
-  target.focus()
-  target.click()
+  const targetPrefix = `Tile ${targetX}, ${targetY};`
+  const target = tiles.find((button) => (button.getAttribute('aria-label') ?? '').startsWith(targetPrefix))
+  if (!target || target.disabled) return false
+  if ((target.getAttribute('aria-label') ?? '').includes('occupied by ')) return false
+
+  target.focus({ preventScroll: true })
+  target.dispatchEvent(
+    new MouseEvent('click', { bubbles: true, cancelable: true, composed: true, view: window }),
+  )
   return true
 }
 
