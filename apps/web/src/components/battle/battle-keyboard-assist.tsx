@@ -96,10 +96,7 @@ function directionForCode(code: string): { dx: number; dy: number } | null {
   return null
 }
 
-function clickAdjacentMove(
-  direction: { dx: number; dy: number },
-  playerName: string,
-): boolean {
+function clickAdjacentMove(direction: { dx: number; dy: number }, playerName: string): boolean {
   const tiles = Array.from(
     document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label^="Tile "]'),
   )
