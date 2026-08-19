@@ -8,18 +8,18 @@
 
 .profile {
   min-width: 0;
-  padding: clamp(0.75rem, 1.4vw, 1.1rem);
+  padding: clamp(0.6rem, 1vw, 0.85rem);
 }
 
 .hero {
   display: grid;
   grid-template-columns: clamp(7rem, 12vw, 9.5rem) minmax(0, 1fr);
-  gap: 1rem;
+  gap: 0.85rem;
   align-items: stretch;
 }
 
 .portrait {
-  min-height: 9rem;
+  min-height: 8.6rem;
   overflow: hidden;
   border: 1px solid var(--av-border-strong);
   border-radius: var(--av-radius-md);
@@ -44,7 +44,7 @@
   flex-wrap: wrap;
   gap: 0.42rem;
   align-items: center;
-  margin: 0.25rem 0 0.15rem;
+  margin: 0.2rem 0 0.1rem;
 }
 
 .identity h1 {
@@ -100,15 +100,15 @@
 
 .discipline {
   max-width: 48rem;
-  margin: 0 0 0.6rem;
+  margin: 0 0 0.5rem;
   color: var(--av-text-muted);
   font-size: 0.72rem;
-  line-height: 1.42;
+  line-height: 1.38;
 }
 
 .levelProgress {
   display: grid;
-  gap: 0.32rem;
+  gap: 0.28rem;
   max-width: 48rem;
 }
 
@@ -140,12 +140,12 @@
 }
 
 .compactSection {
-  padding-top: 0.75rem;
+  padding-top: 0.62rem;
   border-top: 1px solid var(--av-border);
 }
 
 .compactSection + .compactSection {
-  margin-top: 0.75rem;
+  margin-top: 0.62rem;
 }
 
 .sectionTitle {
@@ -153,7 +153,7 @@
   align-items: end;
   justify-content: space-between;
   gap: 0.8rem;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.42rem;
 }
 
 .sectionTitle h2 {
@@ -176,7 +176,7 @@
   display: grid;
   gap: 0.2rem;
   justify-items: center;
-  padding: 0.52rem 0.4rem;
+  padding: 0.46rem 0.4rem;
   background: #080b10;
 }
 
@@ -199,18 +199,18 @@
 .statGroups {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem;
+  gap: 0.45rem;
 }
 
 .statGroup {
-  padding: 0.6rem;
+  padding: 0.52rem;
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius-sm);
   background: rgba(5, 7, 10, 0.38);
 }
 
 .statGroup h3 {
-  margin: 0 0 0.35rem;
+  margin: 0 0 0.3rem;
   color: var(--av-brass-300);
   font: 700 0.52rem/1 var(--av-font-mono);
   letter-spacing: 0.06em;
@@ -228,7 +228,7 @@
   display: flex;
   justify-content: space-between;
   gap: 0.45rem;
-  padding: 0.32rem 0;
+  padding: 0.28rem 0;
   border-top: 1px solid rgba(184, 177, 163, 0.08);
 }
 
@@ -249,22 +249,22 @@
 .sidebar {
   display: grid;
   align-content: start;
-  gap: 0.55rem;
+  gap: 0.5rem;
 }
 
 .sideCard {
-  padding: 0.75rem;
+  padding: 0.68rem;
 }
 
 .record {
-  margin: 0.45rem 0 0;
+  margin: 0.4rem 0 0;
 }
 
 .record div {
   display: flex;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.4rem 0;
+  padding: 0.35rem 0;
   border-top: 1px solid rgba(184, 177, 163, 0.09);
 }
 
@@ -284,12 +284,12 @@
 
 .accountHint {
   margin: 0;
-  padding: 0.65rem;
+  padding: 0.58rem;
   border-left: 2px solid rgba(207, 169, 93, 0.4);
   color: var(--av-text-dim);
   background: rgba(207, 169, 93, 0.035);
-  font-size: 0.62rem;
-  line-height: 1.45;
+  font-size: 0.6rem;
+  line-height: 1.4;
 }
 
 .accountHint strong {
