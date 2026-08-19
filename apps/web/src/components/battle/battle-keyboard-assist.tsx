@@ -4,6 +4,7 @@ import {
   COMBAT_KEYBIND_ACTIONS,
   DEFAULT_COMBAT_KEYBINDS,
   combatKeybindChord,
+  formatCombatKeybind,
   parseCombatKeybindMap,
   type CombatKeybindAction,
   type CombatKeybindMap,
@@ -24,9 +25,18 @@ function eventChord(event: KeyboardEvent): string {
   return combatKeybindChord({ code: event.code, shift: event.shiftKey })
 }
 
+function modeInstruction(): string {
+  return (
+    document.querySelector<HTMLElement>('[data-testid="combat-mode-instruction"]')?.textContent ?? ''
+  ).toLowerCase()
+}
+
 function attackModeIsActive(): boolean {
-  const instruction = document.querySelector<HTMLElement>('[data-testid="combat-mode-instruction"]')
-  return (instruction?.textContent ?? '').toLowerCase().includes('basic attack')
+  return modeInstruction().includes('basic attack')
+}
+
+function moveModeIsActive(): boolean {
+  return modeInstruction().includes('move') || modeInstruction().includes('movement')
 }
 
 function playerCombatantName(): string | null {
@@ -86,6 +96,55 @@ function defaultAction(chord: string): CombatKeybindAction | null {
   )
 }
 
+function directionForCode(code: string): { dx: number; dy: number } | null {
+  if (code === 'ArrowUp' || code === 'KeyW') return { dx: 0, dy: -1 }
+  if (code === 'ArrowDown' || code === 'KeyS') return { dx: 0, dy: 1 }
+  if (code === 'ArrowLeft' || code === 'KeyA') return { dx: -1, dy: 0 }
+  if (code === 'ArrowRight' || code === 'KeyD') return { dx: 1, dy: 0 }
+  return null
+}
+
+function clickAdjacentMove(direction: { dx: number; dy: number }): boolean {
+  const playerName = playerCombatantName()
+  if (!playerName) return false
+  const tiles = Array.from(
+    document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label^="Tile "]'),
+  )
+  const playerTile = tiles.find((button) =>
+    (button.getAttribute('aria-label') ?? '').includes(`occupied by ${playerName}`),
+  )
+  const match = playerTile?.getAttribute('aria-label')?.match(/^Tile\s+(\d+),\s*(\d+)/i)
+  if (!match) return false
+  const targetX = Number(match[1]) + direction.dx
+  const targetY = Number(match[2]) + direction.dy
+  const target = tiles.find((button) => {
+    const label = button.getAttribute('aria-label') ?? ''
+    return label.startsWith(`Tile ${targetX}, ${targetY};`)
+  })
+  if (!target) return false
+  target.focus()
+  target.click()
+  return true
+}
+
+function syncVisibleCommandLabels(bindings: CombatKeybindMap) {
+  const commands: readonly [CombatKeybindAction, readonly string[]][] = [
+    ['inspect', ['Inspect']],
+    ['move', ['Move']],
+    ['basicAttack', ['Basic Attack']],
+    ['guard', ['Guard']],
+    ['recover', ['Recover']],
+    ['endTurn', ['Finish Turn', 'End Turn', 'Facing / End Turn']],
+  ]
+  for (const [action, labels] of commands) {
+    const button = commandButton(...labels)
+    const badge = button?.querySelector<HTMLElement>(':scope > span')
+    if (!badge) continue
+    const binding = formatCombatKeybind(bindings[action])
+    badge.textContent = action === 'move' ? `${binding} · WASD` : binding
+  }
+}
+
 export function BattleKeyboardAssist() {
   const [bindings, setBindings] = useState<CombatKeybindMap>(DEFAULT_COMBAT_KEYBINDS)
   const targetIndex = useRef(-1)
@@ -109,6 +168,14 @@ export function BattleKeyboardAssist() {
   }, [])
 
   useEffect(() => {
+    syncVisibleCommandLabels(bindings)
+    const observer = new MutationObserver(() => syncVisibleCommandLabels(bindings))
+    const deck = document.querySelector('section[aria-label="Command Deck"]')
+    if (deck) observer.observe(deck, { childList: true, subtree: true })
+    return () => observer.disconnect()
+  }, [bindings])
+
+  useEffect(() => {
     function cycleTarget(reverse: boolean) {
       if (!attackModeIsActive()) return false
       const targets = legalVisibleTargetButtons()
@@ -127,32 +194,54 @@ export function BattleKeyboardAssist() {
     }
 
     function execute(action: CombatKeybindAction): boolean {
-      if (action === 'inspect') return Boolean(commandButton('Inspect')?.click() ?? true)
-      if (action === 'move') return Boolean(commandButton('Move')?.click() ?? true)
-      if (action === 'basicAttack') return Boolean(commandButton('Basic Attack')?.click() ?? true)
-      if (action === 'guard') return Boolean(commandButton('Guard')?.click() ?? true)
+      if (action === 'inspect') {
+        commandButton('Inspect')?.click()
+        return true
+      }
+      if (action === 'move') {
+        commandButton('Move')?.click()
+        return true
+      }
+      if (action === 'basicAttack') {
+        commandButton('Basic Attack')?.click()
+        return true
+      }
+      if (action === 'guard') {
+        commandButton('Guard')?.click()
+        return true
+      }
+      if (action === 'recover') {
+        commandButton('Recover')?.click()
+        return true
+      }
       if (action === 'endTurn') {
         commandButton('Finish Turn', 'End Turn', 'Facing / End Turn')?.click()
         return true
       }
-      if (action === 'confirm') return Boolean(planningButton('Confirm action')?.click() ?? true)
-      if (action === 'cancel') return Boolean(planningButton('Cancel')?.click() ?? true)
-      if (action === 'faceNorth')
-        return Boolean(
-          document.querySelector<HTMLButtonElement>('[aria-label="Face north"]')?.click() ?? true,
-        )
-      if (action === 'faceWest')
-        return Boolean(
-          document.querySelector<HTMLButtonElement>('[aria-label="Face west"]')?.click() ?? true,
-        )
-      if (action === 'faceSouth')
-        return Boolean(
-          document.querySelector<HTMLButtonElement>('[aria-label="Face south"]')?.click() ?? true,
-        )
-      if (action === 'faceEast')
-        return Boolean(
-          document.querySelector<HTMLButtonElement>('[aria-label="Face east"]')?.click() ?? true,
-        )
+      if (action === 'confirm') {
+        planningButton('Confirm Action')?.click()
+        return true
+      }
+      if (action === 'cancel') {
+        planningButton('Cancel')?.click()
+        return true
+      }
+      if (action === 'faceNorth') {
+        document.querySelector<HTMLButtonElement>('[aria-label="Face north"]')?.click()
+        return true
+      }
+      if (action === 'faceWest') {
+        document.querySelector<HTMLButtonElement>('[aria-label="Face west"]')?.click()
+        return true
+      }
+      if (action === 'faceSouth') {
+        document.querySelector<HTMLButtonElement>('[aria-label="Face south"]')?.click()
+        return true
+      }
+      if (action === 'faceEast') {
+        document.querySelector<HTMLButtonElement>('[aria-label="Face east"]')?.click()
+        return true
+      }
       if (action === 'nextTarget') return cycleTarget(false)
       if (action === 'previousTarget') return cycleTarget(true)
       if (action === 'combatLog') {
@@ -166,6 +255,15 @@ export function BattleKeyboardAssist() {
 
     function handleKeyDown(event: KeyboardEvent) {
       if (isTextEntryTarget(event.target) || !event.code) return
+
+      const movementDirection = directionForCode(event.code)
+      if (movementDirection && moveModeIsActive()) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        clickAdjacentMove(movementDirection)
+        return
+      }
+
       const chord = eventChord(event)
       const action = configuredAction(bindings, chord)
       if (action) {
