@@ -184,10 +184,10 @@
   bottom: 0;
   z-index: 3000;
   display: flex;
-  min-height: 2.55rem;
+  min-height: 3.15rem;
   align-items: center;
-  justify-content: flex-start;
-  padding: 0.25rem clamp(0.7rem, 1.6vw, 1.2rem);
+  justify-content: flex-end;
+  padding: 0.42rem clamp(0.9rem, 1.8vw, 1.5rem) max(0.55rem, env(safe-area-inset-bottom));
   border-top: 1px solid var(--av-border);
   background: rgba(5, 6, 9, 0.97);
   backdrop-filter: blur(1rem);
@@ -252,5 +252,9 @@
 
   .headerLinks a {
     padding-inline: 0.4rem;
+  }
+
+  .footer {
+    padding-right: 0.65rem;
   }
 }
