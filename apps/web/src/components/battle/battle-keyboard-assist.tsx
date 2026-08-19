@@ -45,6 +45,20 @@ function battlefieldTileButton(target: EventTarget | null): HTMLButtonElement | 
   return target.closest<HTMLButtonElement>('#battlefield button[aria-label^="Tile "]')
 }
 
+function tilePosition(button: HTMLButtonElement): { x: number; y: number } | null {
+  const match = button.getAttribute('aria-label')?.match(/^Tile\s+(\d+),\s*(\d+)/i)
+  if (!match) return null
+  return { x: Number(match[1]) - 1, y: Number(match[2]) - 1 }
+}
+
+function dispatchMoveTarget(position: { x: number; y: number }) {
+  window.dispatchEvent(
+    new CustomEvent('aurevane:battle-move-target', {
+      detail: position,
+    }),
+  )
+}
+
 function legalVisibleTargetButtons(playerName: string): HTMLButtonElement[] {
   return Array.from(
     document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label*="occupied by"]'),
@@ -101,19 +115,18 @@ function directionForCode(code: string): { dx: number; dy: number } | null {
   return null
 }
 
-function clickAdjacentMove(direction: { dx: number; dy: number }, playerName: string): boolean {
+function moveAdjacent(direction: { dx: number; dy: number }, playerName: string): boolean {
   const tiles = Array.from(
     document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label^="Tile "]'),
   )
   const playerTile = tiles.find((button) =>
     (button.getAttribute('aria-label') ?? '').includes(`occupied by ${playerName}`),
   )
-  const match = playerTile?.getAttribute('aria-label')?.match(/^Tile\s+(\d+),\s*(\d+)/i)
-  if (!match) return false
+  const current = playerTile ? tilePosition(playerTile) : null
+  if (!current) return false
 
-  const targetX = Number(match[1]) + direction.dx
-  const targetY = Number(match[2]) + direction.dy
-  const targetPrefix = `Tile ${targetX}, ${targetY};`
+  const targetPosition = { x: current.x + direction.dx, y: current.y + direction.dy }
+  const targetPrefix = `Tile ${targetPosition.x + 1}, ${targetPosition.y + 1};`
   const target = tiles.find((button) =>
     (button.getAttribute('aria-label') ?? '').startsWith(targetPrefix),
   )
@@ -121,9 +134,7 @@ function clickAdjacentMove(direction: { dx: number; dy: number }, playerName: st
   if ((target.getAttribute('aria-label') ?? '').includes('occupied by ')) return false
 
   target.focus({ preventScroll: true })
-  // Programmatic click has detail=0, which the battlefield deliberately routes through its
-  // click handler without a preceding pointerdown preview.
-  target.click()
+  dispatchMoveTarget(targetPosition)
   return true
 }
 
@@ -176,19 +187,50 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
   }, [bindings])
 
   useEffect(() => {
-    function suppressDuplicatePhysicalMoveClick(event: MouseEvent) {
-      if (event.detail === 0 || !moveModeIsActive()) return
+    let handledPointerTile: HTMLButtonElement | null = null
+    let clearHandledPointer: number | null = null
+
+    function handleMovePointerDown(event: PointerEvent) {
+      if (!moveModeIsActive() || event.button !== 0) return
       const tile = battlefieldTileButton(event.target)
       if (!tile || tile.disabled) return
+      const position = tilePosition(tile)
+      if (!position) return
 
-      // Physical mouse/touch movement is already selected by the battlefield's pointerdown
-      // handler. Stop the follow-up click before React can request the same preview a second time.
+      handledPointerTile = tile
+      if (clearHandledPointer !== null) window.clearTimeout(clearHandledPointer)
+      clearHandledPointer = window.setTimeout(() => {
+        handledPointerTile = null
+        clearHandledPointer = null
+      }, 1_000)
+
       event.preventDefault()
       event.stopImmediatePropagation()
+      tile.focus({ preventScroll: true })
+      dispatchMoveTarget(position)
     }
 
-    window.addEventListener('click', suppressDuplicatePhysicalMoveClick, true)
-    return () => window.removeEventListener('click', suppressDuplicatePhysicalMoveClick, true)
+    function suppressFollowUpMoveClick(event: MouseEvent) {
+      if (!handledPointerTile) return
+      const tile = battlefieldTileButton(event.target)
+      if (tile !== handledPointerTile) return
+
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      handledPointerTile = null
+      if (clearHandledPointer !== null) {
+        window.clearTimeout(clearHandledPointer)
+        clearHandledPointer = null
+      }
+    }
+
+    window.addEventListener('pointerdown', handleMovePointerDown, true)
+    window.addEventListener('click', suppressFollowUpMoveClick, true)
+    return () => {
+      window.removeEventListener('pointerdown', handleMovePointerDown, true)
+      window.removeEventListener('click', suppressFollowUpMoveClick, true)
+      if (clearHandledPointer !== null) window.clearTimeout(clearHandledPointer)
+    }
   }, [])
 
   useEffect(() => {
@@ -276,7 +318,7 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
       if (movementDirection && moveModeIsActive()) {
         event.preventDefault()
         event.stopImmediatePropagation()
-        clickAdjacentMove(movementDirection, playerName)
+        moveAdjacent(movementDirection, playerName)
         return
       }
 
