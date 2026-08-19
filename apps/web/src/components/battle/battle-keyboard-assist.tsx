@@ -40,6 +40,11 @@ function moveModeIsActive(): boolean {
   return modeInstruction().includes('move') || modeInstruction().includes('movement')
 }
 
+function battlefieldTileButton(target: EventTarget | null): HTMLButtonElement | null {
+  if (!(target instanceof Element)) return null
+  return target.closest<HTMLButtonElement>('#battlefield button[aria-label^="Tile "]')
+}
+
 function legalVisibleTargetButtons(playerName: string): HTMLButtonElement[] {
   return Array.from(
     document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label*="occupied by"]'),
@@ -117,7 +122,7 @@ function clickAdjacentMove(direction: { dx: number; dy: number }, playerName: st
 
   target.focus({ preventScroll: true })
   // Programmatic click has detail=0, which the battlefield deliberately routes through its
-  // canonical move-selection handler without creating a second pointer preview request.
+  // click handler without a preceding pointerdown preview.
   target.click()
   return true
 }
@@ -169,6 +174,22 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
     if (deck) observer.observe(deck, { childList: true, subtree: true })
     return () => observer.disconnect()
   }, [bindings])
+
+  useEffect(() => {
+    function suppressDuplicatePhysicalMoveClick(event: MouseEvent) {
+      if (event.detail === 0 || !moveModeIsActive()) return
+      const tile = battlefieldTileButton(event.target)
+      if (!tile || tile.disabled) return
+
+      // Physical mouse/touch movement is already selected by the battlefield's pointerdown
+      // handler. Stop the follow-up click before React can request the same preview a second time.
+      event.preventDefault()
+      event.stopImmediatePropagation()
+    }
+
+    window.addEventListener('click', suppressDuplicatePhysicalMoveClick, true)
+    return () => window.removeEventListener('click', suppressDuplicatePhysicalMoveClick, true)
+  }, [])
 
   useEffect(() => {
     function cycleTarget(reverse: boolean) {
