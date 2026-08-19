@@ -14,67 +14,45 @@ A completed session is presented as a **Training Report**.
 
 ## 1. Product Goal
 
-When a player leaves AUREVANE, their character can continue low-intensity practice, study, conditioning, and reflection in the background.
+Passive Training is an optional background-progression choice. A player deliberately starts one server-timed block and can then remain signed in, go AFK, or close the browser without changing the authoritative timer. Simply being absent does not create progress.
 
-When the player returns, they should be able to claim a clear report such as:
+A completed block produces a clear report such as:
 
 ```text
-WAYFARER'S PRACTICE — TRAINING REPORT
+PASSIVE TRAINING — COMPLETE
 
-While you were away:
-+ 2,840 Character XP
-+ 610 Bastion Mastery
-+ 18 Rested Momentum
-
-Practice time credited: 31h 42m
+Medium · 8h
++ 56 Character XP
 
 [Claim Training]
 ```
 
 The desired feeling is:
 
-> “Nice — my character kept moving forward while I was gone, and now I have a reason to jump back in.”
+> “I chose a useful background task while I was busy, and now my character has a small reward waiting.”
 
 not:
 
-> “I must log in every few hours or I lose value.”
+> “I need to stay logged out for the game to reward me.”
 
 This system exists to:
 
-- soften the disadvantage of having less play time;
-- create a satisfying return-and-claim ritual;
-- encourage players to keep building a permanent character;
-- support the six-month journey without turning it into a timer game;
-- make short and medium absences feel productive rather than punishing;
-- feed the next active session instead of replacing active gameplay.
+- provide a simple intentional background-progression option;
+- reward shorter intentional sessions with better hourly efficiency;
+- let longer sessions trade efficiency for convenience;
+- create a satisfying completion-and-claim ritual;
+- support the long character journey without replacing active play;
+- remain understandable without hidden offline-state rules.
 
 ---
 
 ## 2. Relationship to Natural Pacing
 
-Wayfarer's Practice is explicitly **not** the kind of generic training timer prohibited by `docs/NATURAL_PACING.md`.
+Passive Training must never become the primary way a character progresses or a gate that blocks ordinary non-combat use until a timer finishes. It is a modest optional tradeoff: while a block is active, starting a new Battle Hall fight is disabled, but profile, account, reference, Online Users, and social/chat surfaces may remain available. The player can stop the unfinished block at any time and receive no partial reward.
 
-It must never become the primary way a character progresses.
+The six-month progression target still comes primarily from meaningful active progression, Discipline use and mastery challenges, build development, world/story progress, Expeditions and bosses, Soulmarks and Confluences, Archive/lore progression, endgame qualification, and live-world cadence.
 
-The player should not be told:
-
-> “You cannot continue until training finishes in 14 hours.”
-
-Instead, active play remains available whenever the player wants it. Offline training is a secondary catch-up/continuity layer that rewards unavoidable time away.
-
-The six-month progression target must still come primarily from:
-
-- meaningful active progression;
-- Discipline use and mastery challenges;
-- build development;
-- world and story progress;
-- Expeditions and bosses;
-- Soulmarks and Confluences;
-- Archive/lore progression;
-- endgame qualification;
-- live-world cadence.
-
-Offline training helps the player stay connected to that journey. It does not replace the journey.
+Passive Training supports that journey. It does not replace it.
 
 ---
 
@@ -106,33 +84,11 @@ Nothing starts automatically. Browser presence, logout state, local clock, tab s
 
 ---
 
-## 4. Training Focuses
+## 4. Current Scope and Future Focuses
 
-Wayfarer's Practice supports a small number of understandable focuses rather than a complicated idle-game management screen.
+The A2/Phase-1 player-facing system is intentionally small: one Balanced Character-XP training activity with three duration choices. There is no hidden default focus and no automatic fallback.
 
-### Balanced Practice — default
-
-A mixture of:
-
-- modest Character XP;
-- modest Mastery for the selected/current eligible Discipline;
-- normal Rested Momentum accumulation.
-
-This is the safe default when the player never changes anything.
-
-### Discipline Focus
-
-Trades some Character XP for increased Mastery progress in one already unlocked eligible Discipline.
-
-It may help move a Discipline toward mastery, but **offline practice alone cannot complete the final mastery proof/trial or bypass active mastery requirements**.
-
-### Recovery & Study
-
-Produces little or no direct vertical XP and instead increases the amount of **Rested Momentum** available for the player's next active sessions.
-
-This is useful for players who prefer to earn most progression through actual combat, quests, exploration, Expeditions, or PvP.
-
-Additional focuses should be added only when they create a genuinely useful player choice. Do not turn this into dozens of idle jobs.
+Future phases may add carefully bounded focus choices such as Discipline Focus or Recovery & Study only after the dependent Mastery/Rested systems exist. Those extensions must preserve the same explicit-start, server-timed, non-pay-to-win, active-play-first rules and must not turn the page into an idle-game job catalog.
 
 ---
 
@@ -200,10 +156,13 @@ The second part is important because it directs the player back into the real ga
 
 ## 9. What Offline Training May Progress
 
-Allowed default targets:
+Current default target:
 
-- Character XP;
-- eligible Discipline Mastery up to a configured offline ceiling;
+- Character XP.
+
+Future approved targets may include:
+
+- eligible Discipline Mastery up to a configured passive-training ceiling;
 - Rested Momentum;
 - future non-tradable training-specific progression approved by the Owner.
 
@@ -213,7 +172,7 @@ Potential later additions may include bounded study progress for systems that ar
 
 ## 10. What Offline Training Must Not Replace
 
-Wayfarer's Practice must **not** automatically complete or award:
+Passive Training must **not** automatically complete or award:
 
 - main-story chapters;
 - quests requiring player decisions;
@@ -276,7 +235,7 @@ Do not use:
 - fake urgency;
 - flashing countdown spam;
 - destructive claim expiration;
-- multiple currencies just for offline training.
+- multiple currencies just for Passive Training.
 
 The player can claim the report when convenient. The claim should not expire simply because they did not click immediately.
 
@@ -299,7 +258,7 @@ The report can show:
 
 If the claim causes a level-up, the level-up presentation may play normally after the authoritative claim completes.
 
-If a Horizon requirement becomes numerically closer, the UI may update progress, but offline training must not silently award accomplishment-based requirements it did not actually complete.
+If a Horizon requirement becomes numerically closer, the UI may update progress, but Passive Training must not silently award accomplishment-based requirements it did not actually complete.
 
 ---
 
@@ -332,7 +291,7 @@ The normal premium shop must not sell:
 - instant Training Report completion;
 - paid Rested Momentum multipliers;
 - paid removal of Mastery practice ceilings;
-- paid Horizon qualification through offline training.
+- paid Horizon qualification through Passive Training.
 
 Cosmetic presentation around a camp/training room could eventually be monetized only if it has **zero progression effect**.
 
@@ -411,7 +370,7 @@ If multiple characters exist, offline rewards are character-bound. Premium chara
 
 ## 19. Catch-Up and “Do Not Fall Behind” Role
 
-Wayfarer's Practice is one layer of absence protection, not the entire catch-up system.
+Passive Training is one layer of absence protection, not the entire catch-up system.
 
 It combines with:
 
@@ -452,7 +411,7 @@ The protected Owner and delegated balance staff should eventually be able to con
 - telemetry cohorts;
 - configuration version/rollback.
 
-The Owner should be able to see whether offline training is helping retention without accidentally shortening the six-month progression path too much.
+The Owner should be able to see whether Passive Training is helping retention without accidentally shortening the six-month progression path too much.
 
 ---
 
@@ -460,7 +419,7 @@ The Owner should be able to see whether offline training is helping retention wi
 
 Track at least:
 
-- percentage of active players claiming Wayfarer's Practice;
+- percentage of active players claiming Passive Training;
 - average offline duration before claim;
 - direct XP from offline practice versus active XP;
 - Mastery from offline practice versus active Mastery;
@@ -502,7 +461,7 @@ This must be a focused Phase 1 ticket, **not part of F0.4**.
 
 ### Phase 3 — Discipline Framework
 
-Extend Wayfarer's Practice with:
+Extend Passive Training with:
 
 - Discipline Focus;
 - eligible Discipline Mastery accrual;
@@ -523,7 +482,7 @@ Do not make live-event attendance rewards accrue offline.
 
 ### Phase 13 — Complete Master Panel
 
-Add complete Owner controls, analytics, cohort comparisons, configuration history/rollback, and Pacing Simulator inputs for Wayfarer's Practice.
+Add complete Owner controls, analytics, cohort comparisons, configuration history/rollback, and Pacing Simulator inputs for Passive Training.
 
 ### Phase 15 — Hardening
 
@@ -560,7 +519,7 @@ Contextual help should be available directly from the Training Report and Traini
 
 ## 24. Definition of Success
 
-Wayfarer's Practice succeeds when:
+Passive Training succeeds when:
 
 - returning to the game feels rewarding;
 - a player who was busy for a few days feels helped rather than punished;
