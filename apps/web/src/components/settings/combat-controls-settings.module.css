@@ -1,6 +1,6 @@
 .panel {
   display: grid;
-  gap: 0.65rem;
+  gap: 0.55rem;
   width: 100%;
   min-width: 0;
 }
@@ -9,23 +9,23 @@
   max-width: 64rem;
   margin: 0;
   color: var(--av-text-dim);
-  font-size: 0.7rem;
-  line-height: 1.48;
+  font-size: 0.68rem;
+  line-height: 1.42;
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.4rem;
+  gap: 0.34rem;
 }
 
 .row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: 0.45rem;
+  gap: 0.4rem;
   align-items: center;
   min-width: 0;
-  padding: 0.55rem;
+  padding: 0.48rem;
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius-sm);
   background: rgba(255, 255, 255, 0.022);
@@ -39,43 +39,43 @@
   display: block;
   overflow: hidden;
   color: var(--av-text-muted);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .row small {
   display: -webkit-box;
-  margin-top: 0.14rem;
+  margin-top: 0.12rem;
   overflow: hidden;
   color: var(--av-text-dim);
-  font-size: 0.57rem;
-  line-height: 1.28;
+  font-size: 0.55rem;
+  line-height: 1.24;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
 
 .key {
-  min-width: 4.8rem;
-  padding: 0.34rem 0.45rem;
+  min-width: 4.65rem;
+  padding: 0.32rem 0.42rem;
   border: 1px solid rgba(194, 161, 104, 0.38);
   border-radius: 0.3rem;
   color: var(--av-brass-200);
   background: rgba(194, 161, 104, 0.08);
-  font: 700 0.58rem/1 var(--av-font-mono);
+  font: 700 0.56rem/1 var(--av-font-mono);
   text-align: center;
   white-space: nowrap;
 }
 
 .button,
 .primary {
-  min-height: 2rem;
-  padding: 0.4rem 0.58rem;
+  min-height: 1.9rem;
+  padding: 0.36rem 0.54rem;
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius-sm);
   color: var(--av-text-muted);
   background: rgba(255, 255, 255, 0.04);
-  font: 650 0.55rem/1 var(--av-font-mono);
+  font: 650 0.53rem/1 var(--av-font-mono);
   cursor: pointer;
 }
 
@@ -94,20 +94,20 @@
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.45rem;
+  gap: 0.4rem;
   justify-content: flex-end;
 }
 
 .notice,
 .error {
   margin: 0;
-  padding: 0.55rem 0.65rem;
+  padding: 0.5rem 0.6rem;
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius-sm);
   color: var(--av-text-dim);
   background: rgba(255, 255, 255, 0.025);
-  font-size: 0.62rem;
-  line-height: 1.4;
+  font-size: 0.6rem;
+  line-height: 1.35;
 }
 
 .error {
@@ -115,7 +115,7 @@
   color: #efb7ad;
 }
 
-@media (max-width: 900px) {
+@media (max-width: 720px) {
   .grid {
     grid-template-columns: 1fr;
   }
