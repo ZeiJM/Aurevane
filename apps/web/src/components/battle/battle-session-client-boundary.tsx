@@ -11,12 +11,14 @@ interface BattleSessionClientBoundaryProps {
   initialBattle: BattleSessionView
   playerName: string
   playerPortraitAssetId: ImageAssetId
+  playerProfileImageUrl?: string | null
 }
 
 export function BattleSessionClientBoundary({
   initialBattle,
   playerName,
   playerPortraitAssetId,
+  playerProfileImageUrl = null,
 }: BattleSessionClientBoundaryProps) {
   return (
     <BattleRuntimeProvider playerName={playerName}>
@@ -24,6 +26,7 @@ export function BattleSessionClientBoundary({
         initialBattle={initialBattle}
         playerName={playerName}
         playerPortraitAssetId={playerPortraitAssetId}
+        playerProfileImageUrl={playerProfileImageUrl}
       />
       <BattleKeyboardAssist />
     </BattleRuntimeProvider>
