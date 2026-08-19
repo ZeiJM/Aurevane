@@ -28,7 +28,7 @@ test('sets one authoritative Practice plan and freezes overflow as Balanced fall
 
   const planner = page.getByTestId('practice-plan-card')
   await expect(planner).toBeVisible()
-  await expect(planner).toContainText('Offline Training')
+  await expect(planner).toContainText('Practice Plan')
   await expect(planner).toContainText('Balanced default')
   await expect(planner).toContainText('Short')
   await expect(planner).toContainText('3h 0m')
@@ -62,7 +62,7 @@ test('sets one authoritative Practice plan and freezes overflow as Balanced fall
   expect(planPayload).not.toHaveProperty('requestedCharacterXp')
 
   await page.reload()
-  await expect(page.getByRole('heading', { name: 'Offline Training' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: "Wayfarer's Practice" })).toBeVisible()
   await expect(page.getByTestId('practice-plan-card')).toContainText('Overnight · 8h 0m')
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
@@ -96,7 +96,7 @@ test('sets one authoritative Practice plan and freezes overflow as Balanced fall
   `)
 
   await page.reload()
-  await expect(page.getByRole('heading', { name: 'Offline Training' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: "Wayfarer's Practice" })).toBeVisible()
 
   const trainingReport = page.getByTestId('training-report')
   await expect(trainingReport).toBeVisible()
@@ -109,7 +109,7 @@ test('sets one authoritative Practice plan and freezes overflow as Balanced fall
 
   const consumedPlanner = page.getByTestId('practice-plan-card')
   await expect(consumedPlanner).toContainText('Balanced default')
-  await expect(consumedPlanner).toContainText('Automatic Balanced Training')
+  await expect(consumedPlanner).toContainText('Automatic Balanced Practice')
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
   await page.reload()

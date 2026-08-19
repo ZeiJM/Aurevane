@@ -12,6 +12,8 @@ function payload() {
     attributeBonuses: {
       might: 1,
       finesse: 1,
+      vitality: 1,
+      agility: 1,
       intellect: 1,
       resolve: 1,
     },
@@ -32,7 +34,13 @@ describe('character creation payload boundary', () => {
     expect(
       parseCharacterCreationPayload({
         ...payload(),
-        attributeBonuses: { might: 1, finesse: 1, intellect: 2 },
+        attributeBonuses: {
+          might: 1,
+          finesse: 1,
+          vitality: 1,
+          agility: 1,
+          intellect: 2,
+        },
       }),
     ).toBeNull()
     expect(
@@ -41,6 +49,8 @@ describe('character creation payload boundary', () => {
         attributeBonuses: {
           might: 1,
           finesse: 1,
+          vitality: 1,
+          agility: 1,
           intellect: 1,
           resolve: 1,
           luck: 0,

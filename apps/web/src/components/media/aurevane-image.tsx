@@ -39,6 +39,7 @@ export function AurevaneImage({ assetId, className, sizes = '100vw' }: AurevaneI
       height={asset.height}
       sizes={sizes}
       className={className}
+      unoptimized={asset.src.toLowerCase().endsWith('.gif')}
     />
   )
 }

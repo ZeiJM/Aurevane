@@ -8,6 +8,7 @@ import { AuthenticatedGameRecovery } from '@/components/shell/authenticated-game
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
 import { getAuthenticatedActor } from '@/server/auth/actor'
+import { loadCharacterTitleState } from '@/server/character/character-title-service'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 import { loadLevelProgressionCurve } from '@/server/progression/progression-service'
 import { createSupabaseProgressionRepository } from '@/server/progression/supabase-progression-repository'
@@ -52,5 +53,21 @@ export default async function CharacterProfilePage() {
     throw error
   }
 
-  return <CharacterProfileShell profile={buildCharacterProfileReadModel(character, levelCurve)} />
+  let personalTitle: string | null = null
+  try {
+    personalTitle = (await loadCharacterTitleState(actor.userId, character.id)).personalTitle
+  } catch (error) {
+    if (!(isAurevaneError(error) && error.code === 'PERSISTENCE_UNAVAILABLE')) {
+      throw error
+    }
+    // Personal titles are cosmetic identity. A temporary title-read failure must not make the
+    // authoritative character profile unavailable.
+  }
+
+  return (
+    <CharacterProfileShell
+      profile={buildCharacterProfileReadModel(character, levelCurve)}
+      personalTitle={personalTitle}
+    />
+  )
 }

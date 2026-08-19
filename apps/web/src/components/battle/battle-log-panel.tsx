@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import type { BattleLogView } from '@/server/battle/battle-log-service'
 
@@ -135,12 +135,14 @@ function LogPanel({
   onClose?: () => void
   playerName?: string
 }) {
+  const actionGroups = useMemo(() => groupEntriesByCommittedVersion(entries), [entries])
+
   return (
     <section className={styles.panel} aria-label="Committed battle log">
       <header>
         <div>
           <strong>Combat Log</strong>
-          <span>Committed actions and results · newest first</span>
+          <span>One entry per committed action · newest first</span>
         </div>
         {onClose ? (
           <button
@@ -159,20 +161,44 @@ function LogPanel({
         <p className={styles.empty} role="status">
           {error}
         </p>
-      ) : entries.length === 0 ? (
+      ) : actionGroups.length === 0 ? (
         <p className={styles.empty}>No committed combat events yet.</p>
       ) : (
         <ol>
-          {entries.map((entry) => (
-            <li key={`${entry.battleVersion}:${entry.eventIndex}`}>
-              <span>v{entry.battleVersion}</span>
-              <p>{personalizeBattleMessage(entry.message, playerName)}</p>
+          {actionGroups.map((group) => (
+            <li key={group.battleVersion}>
+              <span>v{group.battleVersion}</span>
+              <div className={styles.actionEntry}>
+                {group.entries.map((entry) => (
+                  <p key={`${entry.battleVersion}:${entry.eventIndex}`}>
+                    {personalizeBattleMessage(entry.message, playerName)}
+                  </p>
+                ))}
+              </div>
             </li>
           ))}
         </ol>
       )}
     </section>
   )
+}
+
+function groupEntriesByCommittedVersion(entries: BattleLogView['entries']) {
+  const groups: Array<{
+    battleVersion: number
+    entries: BattleLogView['entries']
+  }> = []
+
+  for (const entry of entries) {
+    const current = groups.at(-1)
+    if (current?.battleVersion === entry.battleVersion) {
+      current.entries = [...current.entries, entry]
+    } else {
+      groups.push({ battleVersion: entry.battleVersion, entries: [entry] })
+    }
+  }
+
+  return groups
 }
 
 function personalizeBattleMessage(message: string, playerName?: string): string {

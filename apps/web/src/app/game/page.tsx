@@ -7,6 +7,7 @@ import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadCharacterSlots } from '@/server/character/character-slot-service'
+import { loadSelectedCharacter } from '@/server/character/selected-character'
 
 export const dynamic = 'force-dynamic'
 
@@ -24,6 +25,10 @@ export default async function CharacterSelectPage() {
     throw error
   }
 
-  const characters = await loadCharacterSlots(actor.userId)
-  return <CharacterSelectShell characters={characters} />
+  const [characters, selectedCharacter] = await Promise.all([
+    loadCharacterSlots(actor.userId),
+    loadSelectedCharacter(actor),
+  ])
+
+  return <CharacterSelectShell characters={characters} selectedCharacter={selectedCharacter} />
 }

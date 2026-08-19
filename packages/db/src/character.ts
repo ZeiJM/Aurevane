@@ -14,6 +14,8 @@ export interface CharacterRecord {
   foundationDisciplineId: string
   might: number
   finesse: number
+  vitality: number
+  agility: number
   intellect: number
   resolve: number
   level: number
@@ -36,6 +38,8 @@ export interface CreateBaseCharacterRecordInput extends IdempotentCommandInput {
   foundationDisciplineId: string
   might: number
   finesse: number
+  vitality: number
+  agility: number
   intellect: number
   resolve: number
 }

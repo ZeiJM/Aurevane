@@ -20,28 +20,38 @@ export function OfflineTrainingShell({
 }: OfflineTrainingShellProps) {
   return (
     <AuthenticatedShellFrame
-      sessionLabel="Offline Training"
-      footerLabel={`${characterName} · Offline Training`}
+      sessionLabel="Wayfarer's Practice"
       backHref="/game/character"
       backLabel="Back to Character Profile"
     >
       <div className={styles.layout}>
         <Surface className={styles.hero} tone="elevated">
-          <Kicker marker="◇">Character Progression</Kicker>
-          <h1>Offline Training</h1>
-          <p>
-            When {characterName} is away long enough, the server records a small amount of training
-            progress and Rested Momentum. Active play never waits for this system and being online
-            never consumes a countdown.
-          </p>
+          <div className={styles.heroCopy}>
+            <Kicker marker="◇">Progress while away</Kicker>
+            <h1>Wayfarer&apos;s Practice</h1>
+            <p>
+              Set what you expect {characterName} to practice before you leave. There is no browser
+              timer to babysit: after the normal offline threshold, the server measures legitimate
+              time away and grants modest progress when you return.
+            </p>
+          </div>
+          <div className={styles.explainer}>
+            <span>Set a plan</span>
+            <i>→</i>
+            <span>Leave normally</span>
+            <i>→</i>
+            <span>Return to a report</span>
+          </div>
           <OfflineTrainingClock
             serverNow={practicePlan.serverNow}
             minimumOfflineSeconds={practicePlan.minimumOfflineSeconds}
           />
         </Surface>
 
-        {trainingReport ? <TrainingReportCard report={trainingReport} /> : null}
-        <PracticePlanCard practice={practicePlan} />
+        <div className={styles.practiceGrid}>
+          <PracticePlanCard practice={practicePlan} />
+          {trainingReport ? <TrainingReportCard report={trainingReport} /> : null}
+        </div>
       </div>
     </AuthenticatedShellFrame>
   )

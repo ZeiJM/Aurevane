@@ -21,9 +21,9 @@ const ACTION_ECONOMY_KEY = 'pv1f.action-economy'
 const ATTACK_COST = 30
 const GUARD_COST = 30
 const RECOVER_COST = 50
-const MOVE_COST_PER_TERRAIN_POINT = 10
+const MOVE_COST_PER_TERRAIN_POINT = 25
 
-type PlanningMode = 'inspect' | 'move' | 'attack' | 'guard' | 'recover' | 'finish'
+type PlanningMode = 'none' | 'inspect' | 'move' | 'attack' | 'guard' | 'recover' | 'finish'
 type GridPosition = { x: number; y: number }
 type Facing = 'north' | 'east' | 'south' | 'west'
 type TacticalState = BattleSessionView['snapshot']['tactical']
@@ -31,11 +31,13 @@ type Combatant = TacticalState['battle']['combatants'][number]
 type CombatPlacement = TacticalState['placements'][number]
 type CombatStatus = BattleSessionView['snapshot']['statusState'][number]['statuses'][number]
 type CombatProfile = BattleSessionView['snapshot']['statBridge']['combatants'][number]
+type ChatMessage = { id: string; author: string; text: string }
 
 type OverlayState =
   | { kind: 'log' }
   | { kind: 'chat' }
   | { kind: 'abort' }
+  | { kind: 'unit'; combatantId: string }
   | { kind: 'status'; combatantId: string; statusId: string | null }
   | { kind: 'facing'; combatantId: string }
   | null
@@ -311,7 +313,7 @@ export function BattleExperienceV2({
 }: BattleExperienceProps) {
   const router = useRouter()
   const [battle, setBattle] = useState(initialBattle)
-  const [mode, setMode] = useState<PlanningMode>('move')
+  const [mode, setMode] = useState<PlanningMode>('none')
   const [selectedPosition, setSelectedPosition] = useState<GridPosition | null>(null)
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null)
   const [path, setPath] = useState<GridPosition[]>([])
@@ -321,13 +323,18 @@ export function BattleExperienceV2({
   const [commitPending, setCommitPending] = useState(false)
   const [recruitPending, setRecruitPending] = useState(false)
   const [recruitFailed, setRecruitFailed] = useState(false)
-  const [notice, setNotice] = useState('Your turn. Move, act, then choose final facing to finish.')
+  const [notice, setNotice] = useState('Your turn. Choose any action when you are ready.')
   const [overlay, setOverlay] = useState<OverlayState>(null)
   const [abortPending, setAbortPending] = useState(false)
+  const [chatDraft, setChatDraft] = useState('')
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const previewSequence = useRef(0)
   const recruitAttemptedVersion = useRef<number | null>(null)
   const commitLock = useRef(false)
   const recruitLock = useRef(false)
+  const autoCommitAfterPreview = useRef(false)
+  const lastTouch = useRef<{ key: string; at: number } | null>(null)
+  const chatPopoverRef = useRef<HTMLDivElement>(null)
 
   const snapshot = battle.snapshot
   const tactical = snapshot.tactical
@@ -409,8 +416,36 @@ export function BattleExperienceV2({
         (tileByKey.get(positionKey(recruitPlacement!.position))?.elevation ?? 0),
     ) <= 1
 
-  const clearPlanning = useCallback((nextMode: PlanningMode = 'move') => {
+  useEffect(() => {
+    const popover = chatPopoverRef.current
+    if (!popover || overlay?.kind !== 'chat' || popover.matches(':popover-open')) return
+    popover.showPopover()
+  }, [overlay])
+
+  const proposedEconomyCost = useMemo(() => {
+    if (!pendingIntent || !playerTurn) return 0
+    if (pendingIntent.kind === 'action') {
+      if (pendingIntent.actionId === BASIC_ATTACK_ID) return ATTACK_COST
+      if (pendingIntent.actionId === GUARD_ID) return GUARD_COST
+      if (pendingIntent.actionId === RECOVER_ID) return RECOVER_COST
+      return 0
+    }
+    if (pendingIntent.kind !== 'move' || !playerPlacement) return 0
+    return pendingIntent.path.slice(1).reduce((total, position) => {
+      const tile = tileByKey.get(positionKey(position))
+      if (!tile) return total
+      const terrainCost = terrainTraversalCost(
+        tactical,
+        tile.terrainId,
+        playerPlacement.movementProfileId,
+      )
+      return total + (terrainCost ?? 0) * MOVE_COST_PER_TERRAIN_POINT
+    }, 0)
+  }, [pendingIntent, playerPlacement, playerTurn, tactical, tileByKey])
+
+  const clearPlanning = useCallback((nextMode: PlanningMode = 'none') => {
     previewSequence.current += 1
+    autoCommitAfterPreview.current = false
     setMode(nextMode)
     setPath([])
     setPendingIntent(null)
@@ -430,7 +465,7 @@ export function BattleExperienceV2({
         throw new Error(body.error?.message ?? 'The battle state could not be reloaded.')
       }
       setBattle(body.battle)
-      clearPlanning('move')
+      clearPlanning()
       setNotice(message)
       return body.battle
     },
@@ -486,16 +521,16 @@ export function BattleExperienceV2({
           setNotice(result.issues[0]?.message ?? 'That command is not legal right now.')
         } else if (result.kind === 'move') {
           setNotice(
-            `Path ready: ${result.actionEconomyCost}% Action Economy. ${result.actionEconomyAfter}% will remain.`,
+            `Path ready: ${result.actionEconomyCost} AP. ${result.actionEconomyAfter} AP will remain.`,
           )
         } else if (result.kind === 'action' && result.actionId === BASIC_ATTACK_ID) {
           setNotice(
             `Attack ready: ${percentFromBasisPoints(result.hitChanceBasisPoints)} hit chance · ${result.mitigatedBaseDamage ?? '—'} projected damage before final facing effects.`,
           )
         } else if (result.kind === 'action' && result.actionId === GUARD_ID) {
-          setNotice('Guard ready: costs 30% and reduces incoming damage by 15% for 2 turns.')
+          setNotice('Guard ready: costs 30 AP and reduces incoming damage by 15% for 2 turns.')
         } else if (result.kind === 'action' && result.actionId === RECOVER_ID) {
-          setNotice('Recover ready: costs 50% and restores 10% of maximum HP immediately.')
+          setNotice('Recover ready: costs 50 AP and restores 10% of maximum HP immediately.')
         }
       } catch (error) {
         if (sequence === previewSequence.current) {
@@ -512,6 +547,9 @@ export function BattleExperienceV2({
   const chooseMode = useCallback(
     (nextMode: PlanningMode) => {
       if (planningDisabled && nextMode !== 'inspect') return
+      if ((nextMode === 'guard' || nextMode === 'recover') && mode === nextMode && pendingIntent) {
+        return
+      }
       clearPlanning(nextMode)
       setOverlay(null)
       if (nextMode === 'guard') {
@@ -526,11 +564,13 @@ export function BattleExperienceV2({
         )
       } else if (nextMode === 'move') {
         setNotice('Move mode: green tiles are reachable with your remaining Action Economy.')
-      } else {
+      } else if (nextMode === 'attack') {
         setNotice('Basic Attack: choose a highlighted enemy, then confirm the action.')
+      } else {
+        setNotice('Choose an action. You do not need to move before acting.')
       }
     },
-    [clearPlanning, planningDisabled, requestPreview],
+    [clearPlanning, mode, pendingIntent, planningDisabled, requestPreview],
   )
 
   const handleTileClick = useCallback(
@@ -593,7 +633,7 @@ export function BattleExperienceV2({
       }
 
       setBattle(body.battle)
-      clearPlanning('move')
+      clearPlanning()
       const actorAfter = playerId
         ? (body.battle.snapshot.tactical.battle.combatants.find(
             (combatant) => combatant.id === playerId,
@@ -602,7 +642,7 @@ export function BattleExperienceV2({
       const remainingEconomy = readEconomy(actorAfter)
 
       if (committedIntent.kind === 'move') {
-        setNotice(`Movement committed. ${remainingEconomy}% Action Economy remains.`)
+        setNotice(`Movement committed. ${remainingEconomy} AP remains.`)
       } else if (
         committedIntent.kind === 'action' &&
         committedIntent.actionId === BASIC_ATTACK_ID
@@ -619,13 +659,11 @@ export function BattleExperienceV2({
           targetBefore && targetAfter ? Math.max(0, targetBefore.hp - targetAfter.hp) : 0
         setNotice(
           damage > 0
-            ? `Basic Attack dealt ${damage} damage. ${remainingEconomy}% Action Economy remains.`
-            : `Basic Attack resolved without damage. ${remainingEconomy}% Action Economy remains.`,
+            ? `Basic Attack dealt ${damage} damage. ${remainingEconomy} AP remains.`
+            : `Basic Attack resolved without damage. ${remainingEconomy} AP remains.`,
         )
       } else if (committedIntent.kind === 'action' && committedIntent.actionId === GUARD_ID) {
-        setNotice(
-          `Guarded for 2 turns at -15% incoming damage. ${remainingEconomy}% Action Economy remains.`,
-        )
+        setNotice(`Guarded for 2 turns at -15% incoming damage. ${remainingEconomy} AP remains.`)
       } else if (committedIntent.kind === 'action' && committedIntent.actionId === RECOVER_ID) {
         const beforePlayer = playerId
           ? before.snapshot.tactical.battle.combatants.find(
@@ -633,7 +671,7 @@ export function BattleExperienceV2({
             )
           : null
         const healed = beforePlayer && actorAfter ? Math.max(0, actorAfter.hp - beforePlayer.hp) : 0
-        setNotice(`Recovered ${healed} HP. ${remainingEconomy}% Action Economy remains.`)
+        setNotice(`Recovered ${healed} HP. ${remainingEconomy} AP remains.`)
       }
     } catch (error) {
       setNotice(error instanceof Error ? error.message : 'That action could not be committed.')
@@ -642,6 +680,16 @@ export function BattleExperienceV2({
       commitLock.current = false
     }
   }, [battle, clearPlanning, commitPending, handleApiFailure, pendingIntent, playerId, preview])
+
+  useEffect(() => {
+    if (!autoCommitAfterPreview.current || previewPending) return
+    if (!pendingIntent || !preview?.preview.legal) {
+      autoCommitAfterPreview.current = false
+      return
+    }
+    autoCommitAfterPreview.current = false
+    void commitIntent()
+  }, [commitIntent, pendingIntent, preview, previewPending])
 
   const commitFinalFacing = useCallback(
     async (facing: Facing) => {
@@ -665,7 +713,7 @@ export function BattleExperienceV2({
           return
         }
         setBattle(body.battle)
-        clearPlanning('move')
+        clearPlanning()
         setNotice(`Finished facing ${facing} ${facingGlyph(facing)}. Recruit turn begins.`)
       } catch (error) {
         setNotice(error instanceof Error ? error.message : 'The turn could not be finished.')
@@ -701,7 +749,7 @@ export function BattleExperienceV2({
     setRecruitPending(true)
     setRecruitFailed(false)
     setOverlay(null)
-    clearPlanning('move')
+    clearPlanning()
     setNotice('Recruit is acting…')
     const before = battle
 
@@ -811,21 +859,24 @@ export function BattleExperienceV2({
       if (event.key === 'Escape') {
         event.preventDefault()
         setOverlay(null)
-        clearPlanning('move')
-        setNotice('Selection cleared. Move mode restored.')
+        clearPlanning()
+        setNotice('Selection cleared. Choose any action when you are ready.')
       } else if (event.key === '0') {
         event.preventDefault()
         chooseMode('inspect')
+      } else if (event.key === 'Enter' && pendingIntent && preview?.preview.legal) {
+        event.preventDefault()
+        void commitIntent()
       }
     }
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [chooseMode, clearPlanning])
+  }, [chooseMode, clearPlanning, commitIntent, pendingIntent, preview])
 
   const boardStyle: CSSProperties = {
     gridTemplateColumns: `repeat(${tactical.width}, minmax(0, 1fr))`,
     aspectRatio: `${tactical.width} / ${tactical.height}`,
-    maxWidth: `min(100%, calc((100dvh - 17rem) * ${tactical.width / tactical.height}))`,
+    maxWidth: `min(100%, calc((100dvh - 20rem) * ${tactical.width / tactical.height}))`,
   }
 
   const selectedTerrainCost =
@@ -837,6 +888,18 @@ export function BattleExperienceV2({
     : false
 
   function contextualContent() {
+    if (mode === 'none') {
+      return (
+        <>
+          <strong>Choose your action</strong>
+          <span>
+            Move is optional. Inspect the board or choose any legal action; nothing is preselected
+            for you.
+          </span>
+        </>
+      )
+    }
+
     if (mode === 'inspect') {
       if (selectedCombatant && selectedPlacement && selectedProfile) {
         return (
@@ -863,7 +926,7 @@ export function BattleExperienceV2({
               Entry costs{' '}
               {selectedTerrainCost === null
                 ? 'blocked'
-                : `${selectedTerrainCost * MOVE_COST_PER_TERRAIN_POINT}% Action Economy`}{' '}
+                : `${selectedTerrainCost * MOVE_COST_PER_TERRAIN_POINT} AP`}{' '}
               · Elevation {selectedTile.elevation} ·{' '}
               {playerTurn
                 ? selectedTileReachable
@@ -892,18 +955,18 @@ export function BattleExperienceV2({
           <>
             <strong>{preview.preview.legal ? 'Movement path ready' : 'Movement blocked'}</strong>
             <span>
-              Cost {preview.preview.actionEconomyCost}% · leaves{' '}
-              {preview.preview.actionEconomyAfter}% Action Economy · terrain weight{' '}
-              {preview.preview.terrainCost}.
+              Cost {preview.preview.actionEconomyCost} AP · leaves{' '}
+              {preview.preview.actionEconomyAfter} AP · terrain weight {preview.preview.terrainCost}
+              .
             </span>
           </>
         )
       }
       return (
         <>
-          <strong>Move · 10% per normal tile</strong>
+          <strong>Move · 25 AP per normal tile</strong>
           <span>
-            Green tiles are reachable. Rough ground costs 20%. Click a destination to draw the
+            Green tiles are reachable. Rough ground costs 50 AP. Click a destination to draw the
             numbered path.
           </span>
         </>
@@ -916,8 +979,8 @@ export function BattleExperienceV2({
           <>
             <strong>{preview.preview.legal ? 'Basic Attack ready' : 'Basic Attack blocked'}</strong>
             <span>
-              30% cost · {percentFromBasisPoints(preview.preview.hitChanceBasisPoints)} hit chance ·{' '}
-              {preview.preview.mitigatedBaseDamage ?? '—'} projected damage after Armor.
+              30 AP cost · {percentFromBasisPoints(preview.preview.hitChanceBasisPoints)} hit chance
+              · {preview.preview.mitigatedBaseDamage ?? '—'} projected damage after Armor.
               Front/side/rear facing still matters.
             </span>
           </>
@@ -925,7 +988,7 @@ export function BattleExperienceV2({
       }
       return (
         <>
-          <strong>Basic Attack · 30%</strong>
+          <strong>Basic Attack · 30 AP</strong>
           <span>
             Choose the enemy. Damage scales from Level, Might, and Finesse, then Armor and facing
             modify the result.
@@ -937,7 +1000,7 @@ export function BattleExperienceV2({
     if (mode === 'guard') {
       return (
         <>
-          <strong>Guard · 30%</strong>
+          <strong>Guard · 30 AP</strong>
           <span>Reduce incoming damage by 15% for 2 turns. Confirm to commit.</span>
         </>
       )
@@ -945,7 +1008,7 @@ export function BattleExperienceV2({
     if (mode === 'recover') {
       return (
         <>
-          <strong>Recover · 50%</strong>
+          <strong>Recover · 50 AP</strong>
           <span>Restore 10% of maximum HP immediately. Cannot exceed maximum HP.</span>
         </>
       )
@@ -961,6 +1024,34 @@ export function BattleExperienceV2({
     )
   }
 
+  function requestQuickCommit() {
+    autoCommitAfterPreview.current = true
+    if (!previewPending && pendingIntent && preview?.preview.legal) {
+      autoCommitAfterPreview.current = false
+      void commitIntent()
+    }
+  }
+
+  function handleTouchQuickCommit(key: string, at: number) {
+    if (lastTouch.current?.key === key && at - lastTouch.current.at <= 360) {
+      lastTouch.current = null
+      requestQuickCommit()
+      return
+    }
+    lastTouch.current = { key, at }
+  }
+
+  function sendChatMessage(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const text = chatDraft.trim()
+    if (!text) return
+    setChatMessages((messages) => [
+      ...messages,
+      { id: crypto.randomUUID(), author: playerName, text },
+    ])
+    setChatDraft('')
+  }
+
   return (
     <main className={styles.shell} aria-busy={recruitPending}>
       <a className="skip-link" href="#battlefield">
@@ -969,7 +1060,7 @@ export function BattleExperienceV2({
 
       <header className={styles.battleHeader}>
         <div className={styles.objective}>
-          <span>Tactical Hall · Controlled Exercise</span>
+          <span>Battle Hall · Controlled Exercise</span>
           <strong>Defeat the opposing Recruit</strong>
         </div>
 
@@ -978,7 +1069,12 @@ export function BattleExperienceV2({
             <>
               <div>
                 <span>Action Economy</span>
-                <strong>{playerEconomy}%</strong>
+                <strong>
+                  {playerEconomy} AP
+                  {proposedEconomyCost > 0 ? (
+                    <small> − {proposedEconomyCost} AP proposed</small>
+                  ) : null}
+                </strong>
               </div>
               <div
                 className={styles.headerEconomyTrack}
@@ -988,7 +1084,20 @@ export function BattleExperienceV2({
                 aria-valuemax={100}
                 aria-valuenow={playerEconomy}
               >
-                <span style={{ width: `${playerEconomy}%` }} />
+                <span
+                  className={styles.economyCommitted}
+                  style={{ width: `${playerEconomy} AP` }}
+                />
+                {proposedEconomyCost > 0 ? (
+                  <span
+                    className={styles.economyProposed}
+                    aria-hidden="true"
+                    style={{
+                      left: `${Math.max(0, playerEconomy - proposedEconomyCost)}%`,
+                      width: `${Math.min(playerEconomy, proposedEconomyCost)}%`,
+                    }}
+                  />
+                ) : null}
               </div>
             </>
           ) : (
@@ -1086,11 +1195,19 @@ export function BattleExperienceV2({
                       type="button"
                       className={tileClass}
                       onClick={() => handleTileClick(tile.position)}
+                      onDoubleClick={requestQuickCommit}
+                      onPointerUp={(event) => {
+                        if (event.pointerType === 'touch')
+                          handleTouchQuickCommit(
+                            `tile:${positionKey(tile.position)}`,
+                            event.timeStamp,
+                          )
+                      }}
                       aria-label={`Tile ${tile.position.x + 1}, ${tile.position.y + 1}; ${tile.terrainId}; elevation ${tile.elevation}${placement ? `; occupied by ${combatantName(placement.combatantId, playerName)}` : ''}`}
                     >
                       <span className={styles.tileMeta}>
                         {tile.position.x + 1}.{tile.position.y + 1}
-                        {tile.terrainId === 'rough-ground' ? <b>R20</b> : null}
+                        {tile.terrainId === 'rough-ground' ? <b>R50</b> : null}
                         {tile.elevation > 0 ? <b>▲{tile.elevation}</b> : null}
                       </span>
                       {pathIndex > 0 ? (
@@ -1117,7 +1234,7 @@ export function BattleExperienceV2({
                 <b>Red</b> unavailable
               </span>
               <span>
-                <b>R20</b> rough = 20% move
+                <b>R50</b> rough = 50 AP
               </span>
               <span>
                 <b>▲</b> elevation
@@ -1162,15 +1279,15 @@ export function BattleExperienceV2({
               <CommandButton
                 number="01"
                 label="Move"
-                cost="10% / tile"
+                cost="25 AP / tile"
                 active={mode === 'move'}
-                disabled={planningDisabled || playerEconomy < 10}
+                disabled={planningDisabled || playerEconomy < 25}
                 onClick={() => chooseMode('move')}
               />
               <CommandButton
                 number="02"
                 label="Basic Attack"
-                cost="30%"
+                cost="30 AP"
                 active={mode === 'attack'}
                 disabled={planningDisabled || playerEconomy < ATTACK_COST}
                 onClick={() => chooseMode('attack')}
@@ -1178,15 +1295,20 @@ export function BattleExperienceV2({
               <CommandButton
                 number="03"
                 label="Guard"
-                cost="30%"
+                cost="30 AP"
                 active={mode === 'guard'}
                 disabled={planningDisabled || playerEconomy < GUARD_COST}
                 onClick={() => chooseMode('guard')}
+                onDoubleClick={requestQuickCommit}
+                onPointerUp={(event) => {
+                  if (event.pointerType === 'touch')
+                    handleTouchQuickCommit('command:guard', event.timeStamp)
+                }}
               />
               <CommandButton
                 number="04"
                 label="Recover"
-                cost="50%"
+                cost="50 AP"
                 active={mode === 'recover'}
                 disabled={
                   planningDisabled ||
@@ -1195,6 +1317,11 @@ export function BattleExperienceV2({
                   playerCombatant.hp >= playerCombatant.maxHp
                 }
                 onClick={() => chooseMode('recover')}
+                onDoubleClick={requestQuickCommit}
+                onPointerUp={(event) => {
+                  if (event.pointerType === 'touch')
+                    handleTouchQuickCommit('command:recover', event.timeStamp)
+                }}
               />
               <CommandButton
                 number="05"
@@ -1273,18 +1400,46 @@ export function BattleExperienceV2({
               setOverlay((current) => (current?.kind === 'chat' ? null : { kind: 'chat' }))
             }
           >
-            Chat <span>Solo</span>
+            Chat <span>Self</span>
           </button>
           {overlay?.kind === 'chat' ? (
-            <div className={styles.chatPanel}>
-              <strong>Battle Chat</strong>
-              <p>
-                This Recruit exercise is solo, so chat is unavailable. Multiplayer battles will use
-                this same collapsible space when participant messaging is implemented.
-              </p>
-              <button type="button" onClick={() => setOverlay(null)}>
-                Close
-              </button>
+            <div ref={chatPopoverRef} popover="manual" className={styles.chatPanel}>
+              <div className={styles.chatHeading}>
+                <strong>Battle Chat</strong>
+                <span>Solo channel</span>
+                <button
+                  type="button"
+                  className={styles.chatClose}
+                  aria-label="Close battle chat"
+                  onClick={() => setOverlay(null)}
+                >
+                  ×
+                </button>
+              </div>
+              <div className={styles.chatMessages} aria-live="polite">
+                {chatMessages.length === 0 ? (
+                  <p>Use this solo channel for notes, callouts, or testing chat behavior.</p>
+                ) : (
+                  chatMessages.map((message) => (
+                    <p key={message.id}>
+                      <strong>{message.author}</strong>
+                      <span>{message.text}</span>
+                    </p>
+                  ))
+                )}
+              </div>
+              <form className={styles.chatComposer} onSubmit={sendChatMessage}>
+                <input
+                  value={chatDraft}
+                  onChange={(event) => setChatDraft(event.target.value)}
+                  placeholder="Message yourself…"
+                  maxLength={280}
+                  aria-label="Battle chat message"
+                />
+                <button type="submit" disabled={!chatDraft.trim()}>
+                  Send
+                </button>
+              </form>
             </div>
           ) : null}
         </div>
@@ -1292,14 +1447,15 @@ export function BattleExperienceV2({
         <div className={styles.footerActions}>
           <button
             type="button"
+            className={styles.cancelAction}
             onClick={() => {
               setOverlay(null)
-              clearPlanning('move')
-              setNotice('Selection cleared. Move mode restored.')
+              clearPlanning()
+              setNotice('Action cancelled. Choose any action when you are ready.')
             }}
             disabled={commitPending}
           >
-            Cancel
+            Cancel Action
           </button>
           <button
             type="button"
@@ -1307,7 +1463,7 @@ export function BattleExperienceV2({
             onClick={() => void commitIntent()}
             disabled={commitPending || previewPending || !pendingIntent || !preview?.preview.legal}
           >
-            {commitPending ? 'Committing…' : 'Confirm action'}
+            {commitPending ? 'Committing…' : 'Confirm Action'}
           </button>
           <button
             type="button"
@@ -1315,7 +1471,7 @@ export function BattleExperienceV2({
             onClick={() => setOverlay({ kind: 'abort' })}
             disabled={abortPending || battleState.lifecycle !== 'active'}
           >
-            Abort
+            Abort Battle
           </button>
         </div>
       </footer>
@@ -1344,7 +1500,7 @@ export function BattleExperienceV2({
                 onClick={() => void abortExercise()}
                 disabled={abortPending}
               >
-                {abortPending ? 'Aborting…' : 'Confirm Abort'}
+                {abortPending ? 'Aborting…' : 'Confirm Abort Battle'}
               </button>
             </div>
           </section>
@@ -1361,6 +1517,8 @@ function CommandButton({
   active,
   disabled,
   onClick,
+  onDoubleClick,
+  onPointerUp,
 }: {
   number: string
   label: string
@@ -1368,6 +1526,8 @@ function CommandButton({
   active: boolean
   disabled: boolean
   onClick: () => void
+  onDoubleClick?: () => void
+  onPointerUp?: (event: React.PointerEvent<HTMLButtonElement>) => void
 }) {
   return (
     <button
@@ -1375,6 +1535,8 @@ function CommandButton({
       className={active ? styles.commandActive : ''}
       disabled={disabled}
       onClick={onClick}
+      onDoubleClick={onDoubleClick}
+      onPointerUp={onPointerUp}
     >
       <span>{number}</span>
       <strong>{label}</strong>
@@ -1407,6 +1569,7 @@ function CombatantRail({
   setOverlay: (overlay: OverlayState) => void
 }) {
   if (!combatant || !placement) return <aside className={styles.combatantRail} />
+  const unitOpen = overlay?.kind === 'unit' && overlay.combatantId === combatant.id
   const statusOverlay =
     overlay?.kind === 'status' && overlay.combatantId === combatant.id ? overlay : null
   const facingOpen = overlay?.kind === 'facing' && overlay.combatantId === combatant.id
@@ -1431,12 +1594,9 @@ function CombatantRail({
         <button
           type="button"
           className={styles.portraitButton}
-          onClick={() =>
-            setOverlay(
-              statusOverlay ? null : { kind: 'status', combatantId: combatant.id, statusId: null },
-            )
-          }
-          aria-label={`Show ${name} status effects`}
+          onClick={() => setOverlay(unitOpen ? null : { kind: 'unit', combatantId: combatant.id })}
+          aria-expanded={unitOpen}
+          aria-label={`Show ${name} combat details`}
         >
           {portraitAssetId ? (
             <AurevaneImage assetId={portraitAssetId} sizes="12rem" />
@@ -1480,29 +1640,6 @@ function CombatantRail({
           )}
         </div>
 
-        <dl className={styles.combatStats}>
-          <div>
-            <dt>Initiative</dt>
-            <dd>{combatant.initiative}</dd>
-          </div>
-          <div>
-            <dt>Movement</dt>
-            <dd>{combatant.baseMovementBudget}</dd>
-          </div>
-          <div>
-            <dt>Jump</dt>
-            <dd>{profile?.jump ?? '—'}</dd>
-          </div>
-          <div>
-            <dt>Armor</dt>
-            <dd>{profile?.armor ?? '—'}</dd>
-          </div>
-          <div>
-            <dt>Evasion</dt>
-            <dd>{profile ? percentFromBasisPoints(profile.evasion) : '—'}</dd>
-          </div>
-        </dl>
-
         <button
           type="button"
           className={styles.facingControl}
@@ -1514,6 +1651,45 @@ function CombatantRail({
           <span>{facingGlyph(placement.facing)}</span>
           <strong>{placement.facing}</strong>
         </button>
+
+        {unitOpen ? (
+          <div className={styles.contextPopover}>
+            <button
+              type="button"
+              className={styles.popoverClose}
+              onClick={() => setOverlay(null)}
+              aria-label="Close combatant details"
+            >
+              ×
+            </button>
+            <strong>{name} · combat details</strong>
+            <dl className={styles.combatStats}>
+              <div>
+                <dt>Initiative</dt>
+                <dd>{combatant.initiative}</dd>
+              </div>
+              <div>
+                <dt>Movement</dt>
+                <dd>{combatant.baseMovementBudget}</dd>
+              </div>
+              <div>
+                <dt>Jump</dt>
+                <dd>{profile?.jump ?? '—'}</dd>
+              </div>
+              <div>
+                <dt>Armor</dt>
+                <dd>{profile?.armor ?? '—'}</dd>
+              </div>
+              <div>
+                <dt>Evasion</dt>
+                <dd>{profile ? percentFromBasisPoints(profile.evasion) : '—'}</dd>
+              </div>
+            </dl>
+            <p>
+              Facing {placement.facing} {facingGlyph(placement.facing)}
+            </p>
+          </div>
+        ) : null}
 
         {statusOverlay ? (
           <div className={styles.contextPopover}>

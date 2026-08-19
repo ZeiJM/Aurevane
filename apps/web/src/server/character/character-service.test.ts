@@ -12,7 +12,14 @@ function intent() {
     pronounPresetId: 'they_them',
     portraitRef: 'portrait.starter.wayfarer-01',
     starterAppearanceRef: 'appearance.starter.roadworn',
-    attributeBonuses: { might: 1, finesse: 1, intellect: 1, resolve: 1 },
+    attributeBonuses: {
+      might: 1,
+      finesse: 1,
+      vitality: 1,
+      agility: 1,
+      intellect: 1,
+      resolve: 1,
+    },
     foundationDisciplineId: 'vanguard',
   }
 }
@@ -32,6 +39,8 @@ function record(overrides: Partial<CharacterRecord> = {}): CharacterRecord {
     foundationDisciplineId: 'vanguard',
     might: 6,
     finesse: 6,
+    vitality: 6,
+    agility: 6,
     intellect: 6,
     resolve: 6,
     level: 1,
@@ -77,6 +86,8 @@ describe('character service', () => {
         nameKey: 'arlenvale',
         might: 6,
         finesse: 6,
+        vitality: 6,
+        agility: 6,
         intellect: 6,
         resolve: 6,
       }),

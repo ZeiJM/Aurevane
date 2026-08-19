@@ -3,7 +3,6 @@ import type { DerivedStatValue } from '@aurevane/game-core/character/derived-sta
 import type { CharacterProfileReadModel } from '@aurevane/game-core/character/profile'
 import { DERIVED_STAT_PROFILE_GROUPS } from '@aurevane/game-core/character/profile-stat-content'
 import { Kicker, Surface } from '@aurevane/ui'
-import Link from 'next/link'
 
 import { AurevaneImage } from '@/components/media/aurevane-image'
 import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
@@ -13,16 +12,22 @@ import styles from './character-profile-shell.module.css'
 
 interface CharacterProfileShellProps {
   profile: CharacterProfileReadModel
+  personalTitle?: string | null
 }
 
 const attributeLabels = {
   might: 'Might',
   finesse: 'Finesse',
+  vitality: 'Vitality',
+  agility: 'Agility',
   intellect: 'Intellect',
   resolve: 'Resolve',
 } as const
 
-export function CharacterProfileShell({ profile }: CharacterProfileShellProps) {
+export function CharacterProfileShell({
+  profile,
+  personalTitle = null,
+}: CharacterProfileShellProps) {
   const created = new Intl.DateTimeFormat('en', {
     dateStyle: 'medium',
     timeZone: 'UTC',
@@ -30,27 +35,26 @@ export function CharacterProfileShell({ profile }: CharacterProfileShellProps) {
   const progress = profile.progression.progress
 
   return (
-    <AuthenticatedShellFrame
-      sessionLabel="Character profile"
-      footerLabel={`Slot ${profile.slotIndex + 1} · Level ${profile.progression.level}`}
-      backHref="/game"
-      backLabel="Back to Character Select"
-    >
+    <AuthenticatedShellFrame sessionLabel="Character Profile">
       <div className={styles.layout}>
         <Surface className={styles.profile} tone="elevated">
           <header className={styles.hero} data-testid="character-profile">
             <div className={styles.portrait}>
               <AurevaneImage
                 assetId={getStarterPortraitImageAssetId(profile.identity.portraitRef)}
-                sizes="(max-width: 640px) 9rem, 14rem"
+                sizes="(max-width: 640px) 7rem, 10rem"
               />
             </div>
             <div className={styles.identity}>
               <Kicker marker="◆">Character Profile</Kicker>
-              <h1>{profile.identity.name}</h1>
-              <p className={styles.subtitle}>
-                Level {profile.progression.level} · {profile.foundationDiscipline.name}
-              </p>
+              <div className={styles.nameLine}>
+                <h1>{profile.identity.name}</h1>
+                <span className={styles.disciplinePill}>{profile.foundationDiscipline.name}</span>
+                {personalTitle ? (
+                  <span className={styles.personalTitlePill}>{personalTitle}</span>
+                ) : null}
+              </div>
+              <p className={styles.subtitle}>Level {profile.progression.level} adventurer</p>
               <div className={styles.meta}>
                 <span>Slot {profile.slotIndex + 1}</span>
                 <span>{profile.identity.presentationLabel}</span>
@@ -61,7 +65,9 @@ export function CharacterProfileShell({ profile }: CharacterProfileShellProps) {
 
               <div className={styles.levelProgress} data-testid="level-progress">
                 <div>
-                  <span>{progress.isMaxLevel ? 'Level cap' : `Level ${progress.level + 1}`}</span>
+                  <span>
+                    {progress.isMaxLevel ? 'Level cap' : `Toward Level ${progress.level + 1}`}
+                  </span>
                   <strong>
                     {progress.isMaxLevel
                       ? `${profile.progression.xp.toLocaleString('en')} XP`
@@ -82,25 +88,10 @@ export function CharacterProfileShell({ profile }: CharacterProfileShellProps) {
             </div>
           </header>
 
-          <nav className={styles.hubNav} aria-label="Character activities">
-            <Link href="/game/battle">
-              <span>Tactical Hall</span>
-              <small>Practice and combat</small>
-            </Link>
-            <Link href="/game/settings/controls">
-              <span>Controls &amp; Keybinds</span>
-              <small>Input preferences</small>
-            </Link>
-            <Link href="/game/training">
-              <span>Offline Training</span>
-              <small>Progress from meaningful time away</small>
-            </Link>
-          </nav>
-
           <section className={styles.compactSection} aria-labelledby="attributes-title">
             <div className={styles.sectionTitle}>
               <Kicker marker="◇">Core Attributes</Kicker>
-              <h2 id="attributes-title">Foundation</h2>
+              <h2 id="attributes-title">Character strengths</h2>
             </div>
             <dl className={styles.attributeStrip}>
               {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => (
@@ -140,18 +131,6 @@ export function CharacterProfileShell({ profile }: CharacterProfileShellProps) {
 
         <aside className={styles.sidebar}>
           <Surface className={styles.sideCard} tone="quiet">
-            <Kicker marker="◇">Titles &amp; Distinctions</Kicker>
-            <div className={styles.titleSlot}>
-              <span>Equipped title</span>
-              <strong>None equipped</strong>
-            </div>
-            <p>
-              Custom titles, earned distinctions, badges, and visible profile honors live here as
-              those systems unlock.
-            </p>
-          </Surface>
-
-          <Surface className={styles.sideCard} tone="quiet">
             <Kicker marker="◇">Character Record</Kicker>
             <dl className={styles.record}>
               <div>
@@ -172,6 +151,10 @@ export function CharacterProfileShell({ profile }: CharacterProfileShellProps) {
               </div>
             </dl>
           </Surface>
+          <p className={styles.accountHint}>
+            Manage this character&apos;s personal title and future profile-display choices from{' '}
+            <strong>Account → Titles &amp; Profile Display</strong>.
+          </p>
         </aside>
       </div>
     </AuthenticatedShellFrame>

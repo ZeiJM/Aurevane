@@ -2,8 +2,12 @@ import { Kicker, StatusMark, Surface } from '@aurevane/ui'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
-import publicStyles from '@/components/public-information/public-information-shell.module.css'
+import { AurevaneImage } from '@/components/media/aurevane-image'
 import { AccountMenu } from '@/components/shell/account-menu'
+import { NavigationMenu } from '@/components/shell/navigation-menu'
+import { getStarterPortraitImageAssetId } from '@/media/character'
+import { getAuthenticatedActor } from '@/server/auth/actor'
+import { loadSelectedCharacter } from '@/server/character/selected-character'
 
 import styles from './authenticated-game-shell.module.css'
 
@@ -19,10 +23,7 @@ interface AuthenticatedShellFrameProps {
 
 export function AuthenticatedGameRecovery() {
   return (
-    <AuthenticatedShellFrame
-      sessionLabel="Service recovery"
-      footerLabel="Private game state unavailable"
-    >
+    <AuthenticatedShellFrame sessionLabel="Service Recovery">
       <Surface className={styles.primaryCard} tone="elevated">
         <Kicker marker="◇">Game service interruption</Kicker>
         <h1>Your session is safe. The road is briefly closed.</h1>
@@ -46,13 +47,20 @@ export function AuthenticatedGameRecovery() {
   )
 }
 
-export function AuthenticatedShellFrame({
+export async function AuthenticatedShellFrame({
   children,
-  sessionLabel = 'Verified session',
-  footerLabel = 'AUREVANE',
+  sessionLabel = 'Character Profile',
   backHref,
   backLabel,
 }: AuthenticatedShellFrameProps) {
+  let activeCharacter = null
+  try {
+    const actor = await getAuthenticatedActor()
+    activeCharacter = await loadSelectedCharacter(actor)
+  } catch {
+    activeCharacter = null
+  }
+
   return (
     <div className={styles.shell} data-testid="authenticated-shell">
       <a className="skip-link" href="#game-main">
@@ -75,9 +83,29 @@ export function AuthenticatedShellFrame({
             </span>
           </Link>
         </div>
-        <span className={styles.sessionState}>
-          <StatusMark /> {sessionLabel}
-        </span>
+
+        <nav className={styles.headerLinks} aria-label="Reference">
+          <Link href="/manual">Manual</Link>
+          <Link href="/news">News</Link>
+          <Link href="/rules">Rules</Link>
+        </nav>
+
+        <div className={styles.screenIdentity} aria-label={`Current screen: ${sessionLabel}`}>
+          {activeCharacter ? (
+            <span className={styles.screenPortrait} title={activeCharacter.name}>
+              <AurevaneImage
+                assetId={getStarterPortraitImageAssetId(activeCharacter.portraitRef)}
+                className={styles.screenPortraitImage}
+                sizes="2rem"
+              />
+            </span>
+          ) : null}
+          <span className={styles.screenLabel}>
+            <StatusMark />
+            <strong>{sessionLabel}</strong>
+          </span>
+        </div>
+
         <AccountMenu />
       </header>
 
@@ -86,14 +114,7 @@ export function AuthenticatedShellFrame({
       </main>
 
       <footer className={styles.footer}>
-        <nav className={publicStyles.compactLinks} aria-label="Game navigation">
-          <Link href="/game/character">Profile</Link>
-          <Link href="/game/battle">Tactical Hall</Link>
-          <Link href="/game/settings/controls">Controls</Link>
-          <Link href="/game/training">Offline Training</Link>
-          <Link href="/manual">Manual</Link>
-        </nav>
-        <span>{footerLabel}</span>
+        <NavigationMenu />
       </footer>
     </div>
   )

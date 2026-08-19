@@ -1,6 +1,12 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
+import { AurevaneImage } from '@/components/media/aurevane-image'
+import gameShellStyles from '@/components/shell/authenticated-game-shell.module.css'
+import { getStarterPortraitImageAssetId } from '@/media/character'
+import { getAuthenticatedActor } from '@/server/auth/actor'
+import { loadSelectedCharacter } from '@/server/character/selected-character'
+
 import styles from './public-information-shell.module.css'
 
 export type PublicInformationSection = 'news' | 'manual' | 'rules'
@@ -20,7 +26,32 @@ const navigation: readonly {
   { href: '/rules', label: 'Rules', section: 'rules' },
 ]
 
-export function PublicInformationShell({ active, children }: PublicInformationShellProps) {
+async function loadOptionalGameIdentity() {
+  try {
+    const actor = await getAuthenticatedActor()
+    return {
+      authenticated: true as const,
+      character: await loadSelectedCharacter(actor),
+    }
+  } catch {
+    return {
+      authenticated: false as const,
+      character: null,
+    }
+  }
+}
+
+export async function PublicInformationShell({ active, children }: PublicInformationShellProps) {
+  const identity = await loadOptionalGameIdentity()
+  const screenName = navigation.find((item) => item.section === active)?.label ?? active
+  const character = identity.character
+  const gameHref = identity.authenticated ? (character ? '/game/character' : '/game') : '/'
+  const gameLabel = identity.authenticated
+    ? character
+      ? 'Return to Game'
+      : 'Character Select'
+    : 'Play / Sign In'
+
   return (
     <div className={styles.shell} data-testid="public-information-shell">
       <a className="skip-link" href="#public-information-main">
@@ -28,7 +59,11 @@ export function PublicInformationShell({ active, children }: PublicInformationSh
       </a>
 
       <header className={styles.masthead}>
-        <Link className="brand" href="/" aria-label="AUREVANE account entry home">
+        <Link
+          className="brand"
+          href={gameHref}
+          aria-label={identity.authenticated ? 'AUREVANE game home' : 'AUREVANE account entry home'}
+        >
           <span className="brand__crest" aria-hidden="true">
             <span>A</span>
           </span>
@@ -39,6 +74,29 @@ export function PublicInformationShell({ active, children }: PublicInformationSh
         </Link>
 
         <nav className={styles.mastheadNav} aria-label="Public information">
+          <div
+            className={gameShellStyles.screenIdentity}
+            aria-label={`Current screen: ${screenName}`}
+          >
+            {character ? (
+              <span
+                className={gameShellStyles.screenPortrait}
+                title={character.name}
+                data-testid="public-screen-portrait"
+              >
+                <AurevaneImage
+                  assetId={getStarterPortraitImageAssetId(character.portraitRef)}
+                  className={gameShellStyles.screenPortraitImage}
+                  sizes="2rem"
+                />
+              </span>
+            ) : null}
+            <span className={gameShellStyles.screenLabel}>
+              <i aria-hidden="true" />
+              <strong>{screenName}</strong>
+            </span>
+          </div>
+
           {navigation.map((item) => (
             <Link
               key={item.section}
@@ -49,8 +107,8 @@ export function PublicInformationShell({ active, children }: PublicInformationSh
               {item.label}
             </Link>
           ))}
-          <Link className={styles.playLink} href="/">
-            Play / Sign In
+          <Link className={styles.playLink} href={gameHref}>
+            {gameLabel}
           </Link>
         </nav>
       </header>
@@ -58,18 +116,6 @@ export function PublicInformationShell({ active, children }: PublicInformationSh
       <main className={styles.main} id="public-information-main">
         {children}
       </main>
-
-      <footer className={styles.footer}>
-        <nav className={styles.compactLinks} aria-label="Public information footer">
-          {navigation.map((item) => (
-            <Link key={item.section} href={item.href}>
-              {item.label}
-            </Link>
-          ))}
-          <Link href="/">Play / Sign In</Link>
-        </nav>
-        <span>Public reads // no account or character required</span>
-      </footer>
     </div>
   )
 }

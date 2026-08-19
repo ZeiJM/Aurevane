@@ -5,8 +5,12 @@ import type {
   CreateBattleSessionInput,
 } from '@aurevane/db/battle-session'
 import type { CharacterRecord, CharacterRepository } from '@aurevane/db/character'
-import { P2_3_COMBAT_CONTENT, endCombatTurn } from '@aurevane/game-core/combat/actions'
-import { selectCurrentFinalFacing } from '@aurevane/game-core/combat/board'
+import {
+  P2_3_COMBAT_CONTENT,
+  createCombatEncounterState,
+  endCombatTurn,
+} from '@aurevane/game-core/combat/actions'
+import { moveCurrentCombatant, selectCurrentFinalFacing } from '@aurevane/game-core/combat/board'
 import {
   reattachStatDrivenCombatBridge,
   type StatDrivenCombatEncounterState,
@@ -39,6 +43,8 @@ function characterRecord(overrides: Partial<CharacterRecord> = {}): CharacterRec
     foundationDisciplineId: 'vanguard',
     might: 6,
     finesse: 6,
+    vitality: 6,
+    agility: 6,
     intellect: 6,
     resolve: 6,
     level: 1,
@@ -254,17 +260,17 @@ describe('P2.4 battle session service', () => {
     )
 
     expect(player).toMatchObject({
-      initiative: 33,
+      initiative: 27,
       baseMovementBudget: 10,
-      hp: 150,
-      maxHp: 150,
+      hp: 162,
+      maxHp: 162,
       mp: 80,
       maxMp: 80,
     })
     expect(profile).toMatchObject({
       accuracy: 7_750,
-      evasion: 1_120,
-      armor: 20,
+      evasion: 880,
+      armor: 22,
       ward: 20,
       jump: 1,
     })
@@ -308,37 +314,23 @@ describe('P2.4 battle session service', () => {
   })
 
   it('uses authoritative stat reliability and RNG when resolving a basic attack', async () => {
-    const { battles, service, record } = await createPersistedFixture()
-    battles.findBattleSession.mockResolvedValue(record)
-
-    await service.submitIntent({
-      userId: USER_ID,
-      battleSessionId: SESSION_ID,
-      expectedBattleVersion: 1,
-      idempotencyKey: '51515151-5151-4515-8515-515151515151',
-      intent: {
-        kind: 'move',
-        path: [
-          { x: 0, y: 1 },
-          { x: 1, y: 1 },
-          { x: 2, y: 1 },
-          { x: 3, y: 1 },
-        ],
-      },
-    })
-
-    const moveCommit = battles.commitBattleIntent.mock.calls[0]?.[0]
-    if (!moveCommit) throw new Error('Expected move commit input.')
-    battles.findBattleSession.mockResolvedValue({
-      ...record,
-      battleVersion: 2,
-      snapshot: moveCommit.nextSnapshot,
-    })
+    const { battles, service, record, persistedSnapshot } = await createPersistedFixture()
+    const positioned = moveCurrentCombatant(persistedSnapshot.tactical, [
+      { x: 0, y: 1 },
+      { x: 1, y: 1 },
+      { x: 2, y: 1 },
+      { x: 3, y: 1 },
+    ])
+    const adjacentSnapshot = reattachStatDrivenCombatBridge(
+      createCombatEncounterState(positioned.state, persistedSnapshot.statusState),
+      persistedSnapshot.statBridge,
+    )
+    battles.findBattleSession.mockResolvedValue({ ...record, snapshot: adjacentSnapshot })
 
     const result = await service.submitIntent({
       userId: USER_ID,
       battleSessionId: SESSION_ID,
-      expectedBattleVersion: 2,
+      expectedBattleVersion: 1,
       idempotencyKey: '52525252-5252-4525-8525-525252525252',
       intent: {
         kind: 'action',
@@ -347,7 +339,7 @@ describe('P2.4 battle session service', () => {
       },
     })
 
-    const actionCommit = battles.commitBattleIntent.mock.calls[1]?.[0]
+    const actionCommit = battles.commitBattleIntent.mock.calls[0]?.[0]
     if (!actionCommit) throw new Error('Expected action commit input.')
     const nextState = actionCommit.nextSnapshot as StatDrivenCombatEncounterState
 
@@ -365,7 +357,7 @@ describe('P2.4 battle session service', () => {
         }),
       ]),
     )
-    expect(result.battleVersion).toBe(3)
+    expect(result.battleVersion).toBe(2)
     expect(result.snapshot.tactical.battle).not.toHaveProperty('rng')
   })
 

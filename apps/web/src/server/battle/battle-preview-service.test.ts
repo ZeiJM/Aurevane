@@ -39,6 +39,8 @@ function characterRecord(): CharacterRecord {
     foundationDisciplineId: 'vanguard',
     might: 6,
     finesse: 6,
+    vitality: 6,
+    agility: 6,
     intellect: 6,
     resolve: 6,
     level: 1,
@@ -158,9 +160,9 @@ describe('P2.5 authoritative battle preview service', () => {
       legal: true,
       cost: 1,
       movementRemainingAfter: 9,
-      actionEconomyCost: 10,
+      actionEconomyCost: 25,
       actionEconomyBefore: 100,
-      actionEconomyAfter: 90,
+      actionEconomyAfter: 75,
       issues: [],
     })
     expect(battles.commitBattleIntent).not.toHaveBeenCalled()

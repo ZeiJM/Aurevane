@@ -17,36 +17,36 @@ export const P2_7_TACTICAL_HALL_RECORDS: readonly TacticalHallRecordDefinition[]
     id: 'movement-drill',
     name: 'Movement & Facing Drill',
     purpose:
-      'Learn reachable movement, terrain cost, remaining Movement, and how final facing closes the turn without spending your Action.',
+      'Learn Action Economy movement, terrain cost, reachable tiles, and how final facing closes the turn.',
     defaultArenaId: 'basic-training-floor',
     coachSteps: [
-      'Choose Move or press 2. Green tiles are reachable now; rough ground marked R2 costs 2 Movement.',
-      'Move once and verify the Movement counter changes while your Action remains READY.',
-      'Choose End Turn, set the direction you want to protect, then Confirm; facing and End Turn settle together.',
+      'Choose Move. A normal terrain point costs 25 AP; rough ground marked R50 currently costs 50 AP to enter.',
+      'Propose a destination and read the glowing AP reservation before you confirm the move.',
+      'Choose Finish Turn and select the direction you want to protect; the facing choice immediately closes the turn.',
     ],
     combinedDuel: false,
   },
   {
     id: 'strike-drill',
     name: 'Strike Drill',
-    purpose: 'Learn Basic Attack targeting, forecast, Confirm, and the Action-spent state.',
+    purpose: 'Learn Basic Attack targeting, forecast, confirmation, and committed AP spending.',
     defaultArenaId: 'basic-training-floor',
     coachSteps: [
-      'Choose Basic Attack or press 3.',
-      'Select the Recruit and read the green/red target state plus hit and damage forecast.',
-      'Confirm, then read the result banner and enemy HP to see whether the attack hit or missed.',
+      'Choose Basic Attack and select the Recruit.',
+      'Read the target state plus hit and damage forecast before committing.',
+      'Confirm the action, then read the result and grouped Combat Log entry.',
     ],
     combinedDuel: false,
   },
   {
     id: 'guard-drill',
     name: 'Guard Drill',
-    purpose: 'Learn that Guard spends the normal Action to reduce incoming damage by 20%.',
+    purpose: 'Learn that Guard costs 30 AP and reduces incoming damage by 15% while active.',
     defaultArenaId: 'basic-training-floor',
     coachSteps: [
-      'Choose Guard or press 4 and read the Guard preview.',
-      'Confirm to gain Guarded; the status panel shows its active defensive effect.',
-      'Use any remaining Movement if useful, choose final facing, then End Turn.',
+      'Choose Guard and read the 30 AP preview.',
+      'Confirm to gain Guarded; click its status icon to read the defensive effect above the battle layer.',
+      'Spend remaining AP if useful, then choose final facing to finish the turn.',
     ],
     combinedDuel: false,
   },
@@ -57,9 +57,9 @@ export const P2_7_TACTICAL_HALL_RECORDS: readonly TacticalHallRecordDefinition[]
       'Compatibility record retained for existing sessions. New players learn final facing inside Movement & Facing Drill.',
     defaultArenaId: 'basic-training-floor',
     coachSteps: [
-      'Choose End Turn preparation.',
+      'Choose Finish Turn.',
       'Use the directional facing pad to select north, west, east, or south.',
-      'Confirm once; facing and End Turn settle together authoritatively.',
+      'The chosen direction commits final facing and ends the turn authoritatively.',
     ],
     combinedDuel: false,
   },
@@ -67,12 +67,12 @@ export const P2_7_TACTICAL_HALL_RECORDS: readonly TacticalHallRecordDefinition[]
     id: 'recruit-sparring',
     name: 'Recruit Sparring Partner',
     purpose:
-      'Combine movement, Action economy, targeting, terrain, facing, and visible Recruit decisions in a full duel.',
+      'Combine movement, AP management, targeting, terrain, facing, and visible Recruit decisions in a full duel.',
     defaultArenaId: 'duel-yard',
     coachSteps: [
-      'Use green movement reachability and terrain information to approach with purpose.',
-      'Spend the Action on Basic Attack or Guard when the timing is right; read the result banner after every commit.',
-      'Choose final facing and End Turn, then watch the Recruit turn summary before acting again.',
+      'Choose whichever legal action best fits the board; movement is optional and is never preselected.',
+      'Watch proposed AP before commitment, then read the immediate action result and grouped Combat Log entry.',
+      'Choose final facing to end the turn, then watch the Recruit turn summary before acting again.',
     ],
     combinedDuel: true,
   },
@@ -80,7 +80,7 @@ export const P2_7_TACTICAL_HALL_RECORDS: readonly TacticalHallRecordDefinition[]
 
 export function getTacticalHallRecord(id: TacticalHallRecordId): TacticalHallRecordDefinition {
   const record = P2_7_TACTICAL_HALL_RECORDS.find((candidate) => candidate.id === id)
-  if (!record) throw new Error(`Unknown Tactical Hall record: ${id}`)
+  if (!record) throw new Error(`Unknown Battle Hall record: ${id}`)
   return record
 }
 

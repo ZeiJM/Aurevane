@@ -23,13 +23,14 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
 
   await createAccountAndEnterCharacter({ page, email, password, characterName })
 
-  const tacticalHallLink = page.getByRole('link', { name: 'Tactical Hall', exact: true })
-  await tacticalHallLink.focus()
-  await expect(tacticalHallLink).toBeFocused()
-  await tacticalHallLink.press('Enter')
+  await page.getByRole('button', { name: 'Navigation' }).click()
+  const battleHallLink = page.getByRole('link', { name: /Battle Hall/ })
+  await battleHallLink.focus()
+  await expect(battleHallLink).toBeFocused()
+  await battleHallLink.press('Enter')
 
   await expect(page).toHaveURL(/\/game\/battle$/)
-  await expect(page.getByRole('heading', { name: 'Choose a practice' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Choose a battle.' })).toBeVisible()
   const requestedUiArt = page.locator(
     '[data-media-status="requested"][data-media-request="ART-UI-001"]',
   )
@@ -37,15 +38,16 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
   await page.getByRole('button', { name: /Strike Drill/ }).click()
-  await page.getByRole('button', { name: 'Start Strike Drill' }).click()
+  await page.getByRole('button', { name: 'Enter Battle' }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
 
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
   const moveButton = commandDeck.getByRole('button', { name: /Move/ })
   const attackButton = commandDeck.getByRole('button', { name: /Basic Attack/ })
+  const guardButton = commandDeck.getByRole('button', { name: /Guard/ })
   const finishButton = commandDeck.getByRole('button', { name: /Finish Turn/ })
-  const confirmButton = page.getByRole('button', { name: 'Confirm action' })
+  const confirmButton = page.getByRole('button', { name: 'Confirm Action' })
 
   await expect(battlefield).toBeVisible()
   await expect(commandDeck).toBeVisible()
@@ -54,6 +56,19 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
     'aria-valuenow',
     '100',
   )
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Choose your action')
+  await expect(page.getByText(/100 AP/).first()).toBeVisible()
+
+  await page.getByRole('button', { name: /Chat Self/ }).click()
+  await page.getByLabel('Battle chat message').fill('Testing solo battle chat')
+  await page.getByRole('button', { name: 'Send' }).click()
+  await expect(page.getByText('Testing solo battle chat', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Close battle chat' }).click()
+
+  await page.getByRole('button', { name: `Show ${characterName} combat details` }).click()
+  await expect(page.getByText(`${characterName} · combat details`)).toBeVisible()
+  await expect(page.getByText('Initiative', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Close combatant details' }).click()
   await expect(page.getByText(characterName, { exact: true }).first()).toBeVisible()
   await expect(page.getByText('Recruit', { exact: true }).first()).toBeVisible()
   await expectBattlefieldReadable(page)
@@ -61,44 +76,25 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
 
   await moveButton.click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText(
-    'Move · 10% per normal tile',
+    'Move · 25 AP per normal tile',
   )
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Rough ground costs 20%')
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText(
+    'Rough ground costs 50 AP',
+  )
   await page.getByRole('button', { name: /Tile 4, 2; open-ground; elevation 0/ }).click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Movement path ready')
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText(
-    'leaves 60% Action Economy',
-  )
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText('leaves 0 AP')
   await expect(confirmButton).toBeEnabled()
+  await expect(page.getByText(/100 AP proposed/)).toBeVisible()
   await confirmButton.click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText(
-    'Movement committed. 60% Action Economy remains.',
+    'Movement committed. 0 AP remains.',
   )
   await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
     'aria-valuenow',
-    '60',
+    '0',
   )
-
-  await attackButton.click()
-  await page.getByRole('button', { name: /occupied by Recruit/ }).click()
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Basic Attack ready')
-  await expect(confirmButton).toBeEnabled()
-  await confirmButton.click()
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText(/Basic Attack/)
-  await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
-    'aria-valuenow',
-    '30',
-  )
-  await expect(attackButton).toBeEnabled()
-
-  const roundButton = page.getByRole('button', { name: /Round 1.*Combat Log/ })
-  await roundButton.click()
-  const battleLog = page.getByTestId('battle-log-panel')
-  await expect(battleLog).toBeVisible()
-  await expect(battleLog).toContainText(characterName)
-  await expect(battleLog).toContainText(/moved|Basic Attack/)
-  await expect(battleLog).not.toContainText('rollBasisPoints')
-  await page.getByRole('button', { name: 'Close combat log' }).click()
+  await expect(attackButton).toBeDisabled()
 
   await finishButton.click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText(
@@ -114,6 +110,41 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
     '100',
     { timeout: 15_000 },
   )
+
+  if (testInfo.project.name === 'mobile-chromium') {
+    await guardButton.tap()
+    await guardButton.tap()
+  } else {
+    await guardButton.dblclick()
+  }
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Guarded for 2 turns', {
+    timeout: 10_000,
+  })
+  await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
+    'aria-valuenow',
+    '70',
+  )
+
+  await attackButton.click()
+  await page.getByRole('button', { name: /occupied by Recruit/ }).click()
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Basic Attack ready')
+  await expect(confirmButton).toBeEnabled()
+  await confirmButton.click()
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText(/Basic Attack/)
+  await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
+    'aria-valuenow',
+    '40',
+  )
+
+  const roundButton = page.getByRole('button', { name: /Round .*Combat Log/ })
+  await roundButton.click()
+  const battleLog = page.getByTestId('battle-log-panel')
+  await expect(battleLog).toBeVisible()
+  await expect(battleLog).toContainText(characterName)
+  await expect(battleLog).toContainText(/moved|Basic Attack/)
+  await expect(battleLog).not.toContainText('rollBasisPoints')
+  await page.getByRole('button', { name: 'Close combat log' }).click()
+
   await expect(moveButton).toBeEnabled()
   await expectBattlefieldReadable(page)
   expect(await hasHorizontalOverflow(page)).toBe(false)

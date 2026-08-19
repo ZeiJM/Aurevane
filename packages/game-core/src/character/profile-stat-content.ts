@@ -3,13 +3,17 @@ import type { DerivedStatId } from './derived-stats'
 
 export const ATTRIBUTE_PROFILE_HELP: Readonly<Record<CharacterAttributeId, string>> = {
   might:
-    'Physical strength and force. It currently contributes to physical power, durability, armor, and jump capability.',
+    'Physical strength and force. It currently contributes to physical power, maximum HP, armor, and jump capability.',
   finesse:
-    'Precision and agile combat. It currently contributes to physical power, accuracy, evasion, critical chance, initiative, movement, and jump capability.',
+    'Precision and weapon control. It currently contributes to physical power, accuracy, and critical chance.',
+  vitality:
+    'Endurance and bodily resilience. It currently contributes strongly to maximum HP and armor.',
+  agility:
+    'Reflexes, footwork, and mobility. It currently contributes to evasion, initiative, movement, and jump capability.',
   intellect:
     'Magical potency, healing, and supernatural control. It currently contributes to MP, mystic power, ward, and a smaller part of accuracy.',
   resolve:
-    'Health, defenses, and status resistance. It currently contributes to HP, MP, mystic stability, armor, ward, evasion, initiative, and status resistance.',
+    'Mental steadiness and resistance. It currently contributes to MP, mystic power, ward, evasion, initiative, and status resistance.',
 }
 
 export const DERIVED_STAT_PROFILE_HELP: Readonly<Record<DerivedStatId, string>> = {

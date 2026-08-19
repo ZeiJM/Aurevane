@@ -22,7 +22,8 @@ test('locks pending character deletion and restores playability on cancel', asyn
   const characterName = uniqueCharacterName()
 
   await createAccountAndEnterCharacter({ page, email, password, characterName })
-  await page.getByRole('link', { name: 'Back to Character Select' }).click()
+  await page.getByRole('button', { name: 'Account' }).click()
+  await page.getByRole('menuitem', { name: 'Switch Character' }).click()
   await expect(page).toHaveURL(/\/game$/)
 
   const playLink = page.getByRole('link', { name: `Play ${characterName}` })
@@ -47,7 +48,7 @@ test('locks pending character deletion and restores playability on cancel', asyn
   ).toBeVisible()
   await expect(page.getByRole('link', { name: `Play ${characterName}` })).toHaveCount(0)
 
-  const countdown = page.getByText(/^\d{2}:\d{2}:\d{2} remaining$/)
+  const countdown = page.getByText(/^\d{2}:\d{2}:\d{2}$/)
   await expect(countdown).toBeVisible()
   const firstCountdown = await countdown.textContent()
   await page.waitForTimeout(1_100)

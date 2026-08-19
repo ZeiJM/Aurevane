@@ -77,9 +77,9 @@ export interface DerivedStatRulesetIssue {
 /**
  * Development balance for the Phase 1 profile framework.
  *
- * These coefficients are intentionally centralized and versioned. They establish a coherent,
- * deterministic stat language for profile/testing work; they are not a promise of launch combat
- * balance. Later tuning can replace the ruleset without changing the calculator contract.
+ * Six attributes deliberately separate endurance and movement/reflex from the older overloaded
+ * Resolve/Finesse pair while preserving the same all-baseline derived values. Coefficients remain
+ * centralized/versioned development balance rather than launch promises.
  */
 export const DERIVED_STAT_RULESET_V1: DerivedStatRuleset = {
   version: 1,
@@ -90,7 +90,7 @@ export const DERIVED_STAT_RULESET_V1: DerivedStatRuleset = {
       unit: 'points',
       baseNumerator: 80,
       perLevelNumerator: 5,
-      attributeWeights: { might: 2, resolve: 12 },
+      attributeWeights: { might: 2, vitality: 12 },
       divisor: 1,
       minimum: 1,
     },
@@ -130,7 +130,7 @@ export const DERIVED_STAT_RULESET_V1: DerivedStatRuleset = {
       unit: 'rating',
       baseNumerator: 5,
       perLevelNumerator: 1,
-      attributeWeights: { might: 1, resolve: 2 },
+      attributeWeights: { might: 1, vitality: 2 },
       divisor: 1,
       minimum: 0,
     },
@@ -161,7 +161,7 @@ export const DERIVED_STAT_RULESET_V1: DerivedStatRuleset = {
       unit: 'basisPoints',
       baseNumerator: 300,
       perLevelNumerator: 0,
-      attributeWeights: { finesse: 80, resolve: 20 },
+      attributeWeights: { agility: 80, resolve: 20 },
       divisor: 1,
       minimum: 0,
       maximum: 7500,
@@ -183,7 +183,7 @@ export const DERIVED_STAT_RULESET_V1: DerivedStatRuleset = {
       unit: 'rating',
       baseNumerator: 10,
       perLevelNumerator: 0,
-      attributeWeights: { finesse: 2, resolve: 1 },
+      attributeWeights: { agility: 2, resolve: 1 },
       divisor: 1,
       minimum: 0,
     },
@@ -193,7 +193,7 @@ export const DERIVED_STAT_RULESET_V1: DerivedStatRuleset = {
       unit: 'steps',
       baseNumerator: 40,
       perLevelNumerator: 0,
-      attributeWeights: { finesse: 1 },
+      attributeWeights: { agility: 1 },
       divisor: 10,
       minimum: 4,
       maximum: 8,
@@ -204,7 +204,7 @@ export const DERIVED_STAT_RULESET_V1: DerivedStatRuleset = {
       unit: 'height',
       baseNumerator: 20,
       perLevelNumerator: 0,
-      attributeWeights: { might: 1, finesse: 1 },
+      attributeWeights: { might: 1, agility: 1 },
       divisor: 20,
       minimum: 1,
       maximum: 4,

@@ -1,5 +1,6 @@
 'use client'
 
+import type { PersistedCharacter } from '@aurevane/game-core/character/persistence'
 import { getFoundationDiscipline } from '@aurevane/game-core/character/foundation-disciplines'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -14,9 +15,10 @@ import styles from './character-select-shell.module.css'
 
 interface CharacterSelectShellProps {
   characters: readonly CharacterSlotCharacter[]
+  selectedCharacter: PersistedCharacter | null
 }
 
-export function CharacterSelectShell({ characters }: CharacterSelectShellProps) {
+export function CharacterSelectShell({ characters, selectedCharacter }: CharacterSelectShellProps) {
   const router = useRouter()
   const [deleting, setDeleting] = useState<CharacterSlotCharacter | null>(null)
   const [phrase, setPhrase] = useState('')
@@ -79,7 +81,25 @@ export function CharacterSelectShell({ characters }: CharacterSelectShellProps) 
             <small>Character Select</small>
           </span>
         </Link>
-        <AccountMenu />
+
+        <div className={styles.headerActions}>
+          <div className={styles.screenIdentity} aria-label="Current screen: Character Select">
+            {selectedCharacter ? (
+              <span className={styles.screenPortrait} title={selectedCharacter.name}>
+                <AurevaneImage
+                  assetId={getStarterPortraitImageAssetId(selectedCharacter.portraitRef)}
+                  className={styles.screenPortraitImage}
+                  sizes="2rem"
+                />
+              </span>
+            ) : null}
+            <span className={styles.screenLabel}>
+              <i aria-hidden="true" />
+              <strong>Character Select</strong>
+            </span>
+          </div>
+          <AccountMenu />
+        </div>
       </header>
 
       <main className={styles.main}>
@@ -89,8 +109,8 @@ export function CharacterSelectShell({ characters }: CharacterSelectShellProps) 
             <h1>Choose your character.</h1>
           </div>
           <p>
-            Three character slots share this account. Select an adventurer to open their profile and
-            continue playing.
+            Three character slots share this account. Switching away from a character starts a
+            one-hour cooldown before you can return to that character, so swaps are deliberate.
           </p>
         </header>
 
@@ -143,7 +163,7 @@ export function CharacterSelectShell({ characters }: CharacterSelectShellProps) 
                 {pending && character.deletionExecuteAfter ? (
                   <div className={styles.pendingDelete}>
                     <strong>Deletion pending</strong>
-                    <DeletionCountdown deleteAfter={character.deletionExecuteAfter} />
+                    <Countdown target={character.deletionExecuteAfter} />
                     <span>This character cannot be played during the grace period.</span>
                     <button
                       type="button"
@@ -155,9 +175,7 @@ export function CharacterSelectShell({ characters }: CharacterSelectShellProps) 
                   </div>
                 ) : (
                   <>
-                    <Link className={styles.primaryAction} href={`/game/select/${character.id}`}>
-                      Play {character.name}
-                    </Link>
+                    <CharacterPlayAction character={character} />
                     <button
                       className={styles.deleteAction}
                       type="button"
@@ -233,21 +251,68 @@ export function CharacterSelectShell({ characters }: CharacterSelectShellProps) 
   )
 }
 
-function DeletionCountdown({ deleteAfter }: { deleteAfter: string }) {
+function CharacterPlayAction({ character }: { character: CharacterSlotCharacter }) {
+  const router = useRouter()
+  const [now, setNow] = useState(() => Date.now())
+  const target = character.reselectAvailableAt
+    ? new Date(character.reselectAvailableAt).getTime()
+    : 0
+  const remaining = Math.max(0, target - now)
+
+  useEffect(() => {
+    if (!target || target <= Date.now()) return
+    const timer = window.setInterval(() => {
+      const next = Date.now()
+      setNow(next)
+      if (next >= target) {
+        window.clearInterval(timer)
+        router.refresh()
+      }
+    }, 1000)
+    return () => window.clearInterval(timer)
+  }, [router, target])
+
+  if (remaining > 0) {
+    return (
+      <div className={styles.swapCooldown} aria-live="polite">
+        <span>Return cooldown</span>
+        <strong>
+          <Duration milliseconds={remaining} />
+        </strong>
+        <small>You can select {character.name} again when this reaches zero.</small>
+      </div>
+    )
+  }
+
+  return (
+    <Link className={styles.primaryAction} href={`/game/select/${character.id}`}>
+      Play {character.name}
+    </Link>
+  )
+}
+
+function Countdown({ target }: { target: string }) {
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 1000)
     return () => window.clearInterval(timer)
   }, [])
-  const remaining = Math.max(0, new Date(deleteAfter).getTime() - now)
-  const totalSeconds = Math.ceil(remaining / 1000)
+  return (
+    <b>
+      <Duration milliseconds={Math.max(0, new Date(target).getTime() - now)} />
+    </b>
+  )
+}
+
+function Duration({ milliseconds }: { milliseconds: number }) {
+  const totalSeconds = Math.ceil(milliseconds / 1000)
   const hours = Math.floor(totalSeconds / 3600)
   const minutes = Math.floor((totalSeconds % 3600) / 60)
   const seconds = totalSeconds % 60
   return (
-    <b>
+    <>
       {hours.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')}:
-      {seconds.toString().padStart(2, '0')} remaining
-    </b>
+      {seconds.toString().padStart(2, '0')}
+    </>
   )
 }

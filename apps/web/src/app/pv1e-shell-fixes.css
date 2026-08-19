@@ -98,6 +98,16 @@ section[aria-label='Command Deck'] {
   max-width: 100%;
 }
 
+@media (max-width: 880px) {
+  main[aria-busy] > footer {
+    position: static;
+    inset: auto;
+    z-index: auto;
+    overflow: visible;
+    backdrop-filter: none;
+  }
+}
+
 @media (max-width: 760px) {
   main[aria-busy] section[aria-label='Command Deck'] > * {
     min-width: 0;

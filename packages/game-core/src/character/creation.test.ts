@@ -22,6 +22,8 @@ function validIntent() {
     attributeBonuses: {
       might: 1,
       finesse: 1,
+      vitality: 1,
+      agility: 1,
       intellect: 1,
       resolve: 1,
     },
@@ -63,27 +65,41 @@ describe('character creation domain', () => {
     ).toBe(false)
   })
 
-  it('requires the exact configurable bonus budget', () => {
+  it('requires the exact configurable six-point bonus budget', () => {
     const tooFew = validateCharacterCreationIntent({
       ...validIntent(),
-      attributeBonuses: { might: 1, finesse: 1, intellect: 1, resolve: 0 },
+      attributeBonuses: {
+        might: 1,
+        finesse: 1,
+        vitality: 1,
+        agility: 1,
+        intellect: 1,
+        resolve: 0,
+      },
     })
     const tooMany = validateCharacterCreationIntent({
       ...validIntent(),
-      attributeBonuses: { might: 2, finesse: 2, intellect: 1, resolve: 0 },
+      attributeBonuses: {
+        might: 2,
+        finesse: 1,
+        vitality: 1,
+        agility: 1,
+        intellect: 1,
+        resolve: 1,
+      },
     })
 
     expect(tooFew.ok).toBe(false)
     expect(tooMany.ok).toBe(false)
   })
 
-  it('rejects invalid or unexpected attribute values', () => {
+  it('rejects invalid, missing, or unexpected attribute values', () => {
     const manipulated = [
-      { might: -1, finesse: 1, intellect: 2, resolve: 2 },
-      { might: 0.5, finesse: 1, intellect: 1, resolve: 1.5 },
-      { might: 5, finesse: 0, intellect: 0, resolve: -1 },
-      { might: 1, finesse: 1, intellect: 2 },
-      { might: 1, finesse: 1, intellect: 1, resolve: 1, luck: 0 },
+      { might: -1, finesse: 1, vitality: 1, agility: 1, intellect: 2, resolve: 2 },
+      { might: 0.5, finesse: 1, vitality: 1, agility: 1, intellect: 1, resolve: 1.5 },
+      { might: 5, finesse: 0, vitality: 1, agility: 1, intellect: 0, resolve: -1 },
+      { might: 1, finesse: 1, vitality: 1, agility: 1, intellect: 2 },
+      { might: 1, finesse: 1, vitality: 1, agility: 1, intellect: 1, resolve: 1, luck: 0 },
     ]
 
     for (const attributeBonuses of manipulated) {
@@ -94,7 +110,14 @@ describe('character creation domain', () => {
   it('never allows creation choices to lower an attribute below the shared baseline', () => {
     const character = buildInitialCharacterState({
       ...validIntent(),
-      attributeBonuses: { might: 4, finesse: 0, intellect: 0, resolve: 0 },
+      attributeBonuses: {
+        might: 4,
+        finesse: 0,
+        vitality: 1,
+        agility: 1,
+        intellect: 0,
+        resolve: 0,
+      },
     })
 
     expect(character.attributes.might).toBe(9)
@@ -105,7 +128,7 @@ describe('character creation domain', () => {
     }
   })
 
-  it('references all six Foundation Disciplines without implementing Discipline gameplay', () => {
+  it('references all six Disciplines without implementing Discipline gameplay', () => {
     expect(FOUNDATION_DISCIPLINES).toHaveLength(6)
 
     for (const discipline of FOUNDATION_DISCIPLINES) {
@@ -117,7 +140,7 @@ describe('character creation domain', () => {
     }
   })
 
-  it('rejects invented Foundation Discipline identifiers', () => {
+  it('rejects invented Discipline identifiers', () => {
     expect(
       validateCharacterCreationIntent({
         ...validIntent(),
@@ -159,6 +182,14 @@ describe('character creation domain', () => {
       level: 1,
       xp: 0,
       progressionCycle: { number: 1 },
+    })
+    expect(first.attributes).toEqual({
+      might: 6,
+      finesse: 6,
+      vitality: 6,
+      agility: 6,
+      intellect: 6,
+      resolve: 6,
     })
   })
 

@@ -12,7 +12,14 @@ const validIntent = {
   pronounPresetId: 'they_them',
   portraitRef: 'portrait.starter.wayfarer-01',
   starterAppearanceRef: 'appearance.starter.roadworn',
-  attributeBonuses: { might: 1, finesse: 1, intellect: 1, resolve: 1 },
+  attributeBonuses: {
+    might: 1,
+    finesse: 1,
+    vitality: 1,
+    agility: 1,
+    intellect: 1,
+    resolve: 1,
+  },
   foundationDisciplineId: 'vanguard',
 }
 
@@ -30,6 +37,8 @@ const validRow = {
   foundation_discipline_id: 'vanguard',
   might: 6,
   finesse: 6,
+  vitality: 6,
+  agility: 6,
   intellect: 6,
   resolve: 6,
   level: 1,
@@ -80,7 +89,7 @@ describe('character persistence validation', () => {
   })
 
   it('rejects incomplete persistence rows', () => {
-    const incomplete = { ...validRow, name_key: undefined }
+    const incomplete = { ...validRow, vitality: undefined }
     expect(parseCharacterPersistenceRow(incomplete)).toBeNull()
   })
 })
