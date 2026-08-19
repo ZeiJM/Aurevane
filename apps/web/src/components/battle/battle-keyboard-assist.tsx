@@ -40,22 +40,13 @@ function moveModeIsActive(): boolean {
   return modeInstruction().includes('move') || modeInstruction().includes('movement')
 }
 
-function playerCombatantName(): string | null {
-  const rails = Array.from(
-    document.querySelectorAll<HTMLElement>('aside[aria-label$=" combat status"]'),
-  )
-  const playerRail = rails.find((rail) => rail.textContent?.includes('Character'))
-  return playerRail?.querySelector('article strong')?.textContent?.trim() ?? null
-}
-
-function legalVisibleTargetButtons(): HTMLButtonElement[] {
-  const playerName = playerCombatantName()
+function legalVisibleTargetButtons(playerName: string): HTMLButtonElement[] {
   return Array.from(
     document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label*="occupied by"]'),
   ).filter((button) => {
     if (button.disabled) return false
     const label = button.getAttribute('aria-label') ?? ''
-    return !playerName || !label.includes(`occupied by ${playerName}`)
+    return !label.includes(`occupied by ${playerName}`)
   })
 }
 
@@ -105,17 +96,16 @@ function directionForCode(code: string): { dx: number; dy: number } | null {
   return null
 }
 
-function clickAdjacentMove(direction: { dx: number; dy: number }): boolean {
+function clickAdjacentMove(
+  direction: { dx: number; dy: number },
+  playerName: string,
+): boolean {
   const tiles = Array.from(
     document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label^="Tile "]'),
   )
-  const playerName = playerCombatantName()
-  const playerTile = tiles.find((button) => {
-    const label = button.getAttribute('aria-label') ?? ''
-    if (!label.includes('occupied by ')) return false
-    if (playerName) return label.includes(`occupied by ${playerName}`)
-    return !label.includes('occupied by Recruit')
-  })
+  const playerTile = tiles.find((button) =>
+    (button.getAttribute('aria-label') ?? '').includes(`occupied by ${playerName}`),
+  )
   const match = playerTile?.getAttribute('aria-label')?.match(/^Tile\s+(\d+),\s*(\d+)/i)
   if (!match) return false
 
@@ -129,9 +119,7 @@ function clickAdjacentMove(direction: { dx: number; dy: number }): boolean {
   if ((target.getAttribute('aria-label') ?? '').includes('occupied by ')) return false
 
   target.focus({ preventScroll: true })
-  target.dispatchEvent(
-    new MouseEvent('click', { bubbles: true, cancelable: true, composed: true, view: window }),
-  )
+  target.click()
   return true
 }
 
@@ -153,7 +141,7 @@ function syncVisibleCommandLabels(bindings: CombatKeybindMap) {
   }
 }
 
-export function BattleKeyboardAssist() {
+export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
   const [bindings, setBindings] = useState<CombatKeybindMap>(DEFAULT_COMBAT_KEYBINDS)
   const targetIndex = useRef(-1)
 
@@ -186,7 +174,7 @@ export function BattleKeyboardAssist() {
   useEffect(() => {
     function cycleTarget(reverse: boolean) {
       if (!attackModeIsActive()) return false
-      const targets = legalVisibleTargetButtons()
+      const targets = legalVisibleTargetButtons(playerName)
       if (targets.length === 0) return false
       const direction = reverse ? -1 : 1
       targetIndex.current =
@@ -268,7 +256,7 @@ export function BattleKeyboardAssist() {
       if (movementDirection && moveModeIsActive()) {
         event.preventDefault()
         event.stopImmediatePropagation()
-        clickAdjacentMove(movementDirection)
+        clickAdjacentMove(movementDirection, playerName)
         return
       }
 
@@ -291,7 +279,7 @@ export function BattleKeyboardAssist() {
 
     window.addEventListener('keydown', handleKeyDown, true)
     return () => window.removeEventListener('keydown', handleKeyDown, true)
-  }, [bindings])
+  }, [bindings, playerName])
 
   return null
 }
