@@ -30,3 +30,60 @@ create index if not exists character_presence_user_idx
 
 alter table public.character_presence enable row level security;
 revoke all on table public.character_presence from anon, authenticated;
+
+create or replace function public.touch_character_presence_v1(
+  p_user_id uuid,
+  p_character_id uuid
+)
+returns timestamptz
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_now timestamptz := now();
+begin
+  if not exists (
+    select 1
+    from public.characters c
+    where c.id = p_character_id
+      and c.user_id = p_user_id
+      and c.deletion_execute_after is null
+  ) then
+    raise exception 'CHARACTER_NOT_PLAYABLE';
+  end if;
+
+  insert into public.character_presence (character_id, user_id, last_seen_at)
+  values (p_character_id, p_user_id, v_now)
+  on conflict (character_id) do update
+    set user_id = excluded.user_id,
+        last_seen_at = excluded.last_seen_at;
+
+  return v_now;
+end;
+$$;
+
+create or replace function public.list_online_characters_v1()
+returns table (
+  character_id uuid,
+  character_name text,
+  character_level integer,
+  last_seen_at timestamptz
+)
+language sql
+security definer
+set search_path = ''
+stable
+as $$
+  select c.id, c.name, c.level, p.last_seen_at
+  from public.character_presence p
+  join public.characters c on c.id = p.character_id
+  where p.last_seen_at >= now() - interval '10 minutes'
+    and c.deletion_execute_after is null
+  order by p.last_seen_at desc, c.name asc;
+$$;
+
+revoke all on function public.touch_character_presence_v1(uuid, uuid) from public, anon, authenticated;
+revoke all on function public.list_online_characters_v1() from public, anon, authenticated;
+grant execute on function public.touch_character_presence_v1(uuid, uuid) to service_role;
+grant execute on function public.list_online_characters_v1() to service_role;
