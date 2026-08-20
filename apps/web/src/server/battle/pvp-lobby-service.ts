@@ -5,7 +5,11 @@ import { randomInt, randomUUID } from 'node:crypto'
 import type { CharacterRecord } from '@aurevane/db/character'
 import { calculateDerivedStats } from '@aurevane/game-core/character/derived-stats'
 import { createCombatEncounterState } from '@aurevane/game-core/combat/actions'
-import { createPendingBattle, startBattle, type BattleFacing } from '@aurevane/game-core/combat/battle-state'
+import {
+  createPendingBattle,
+  startBattle,
+  type BattleFacing,
+} from '@aurevane/game-core/combat/battle-state'
 import {
   P2_2_ORDINARY_GROUND_PROFILE,
   P2_2_VERTICAL_SLICE_TERRAINS,
@@ -138,13 +142,19 @@ function unavailable(message = 'PvP services are unavailable right now.'): Aurev
 function mapRpcError(error: { code?: string; message?: string }): never {
   const message = error.message ?? ''
   if (error.code === '42501') {
-    throw new AurevaneError('FORBIDDEN', 'That PvP lobby or battle is not available to this account.')
+    throw new AurevaneError(
+      'FORBIDDEN',
+      'That PvP lobby or battle is not available to this account.',
+    )
   }
   if (message.includes('PVP_LOBBY_FULL')) {
     throw new AurevaneError('INVALID_REQUEST', 'That lobby is already full.')
   }
   if (message.includes('PVP_LOBBY_NOT_READY')) {
-    throw new AurevaneError('INVALID_REQUEST', 'Every required seat must be filled and ready first.')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Every required seat must be filled and ready first.',
+    )
   }
   if (message.includes('PVP_ALREADY_IN_LOBBY')) {
     throw new AurevaneError('INVALID_REQUEST', 'This account is already seated in that lobby.')
@@ -210,7 +220,10 @@ async function parseLobbyPayload(input: unknown): Promise<PvpLobbyView> {
     teamB === null ||
     teamC === null ||
     readyToStart === null ||
-    (status !== 'waiting' && status !== 'active' && status !== 'completed' && status !== 'cancelled')
+    (status !== 'waiting' &&
+      status !== 'active' &&
+      status !== 'completed' &&
+      status !== 'cancelled')
   ) {
     throw unavailable('The server returned an invalid PvP lobby.')
   }
@@ -289,7 +302,15 @@ function parseParticipantRows(input: unknown): Omit<PvpBattleParticipantView, 'p
     ) {
       throw unavailable('The server returned an invalid PvP participant.')
     }
-    return { combatantId, characterId, characterName, characterLevel, portraitRef, teamIndex, seatIndex }
+    return {
+      combatantId,
+      characterId,
+      characterName,
+      characterLevel,
+      portraitRef,
+      teamIndex,
+      seatIndex,
+    }
   })
 }
 
@@ -442,7 +463,8 @@ export async function getPvpLobby(userId: string, lobbyId: string): Promise<PvpL
     p_lobby_id: lobbyId,
   })
   if (error) mapRpcError(error)
-  if (!data) throw new AurevaneError('FORBIDDEN', 'That PvP lobby is not available to this account.')
+  if (!data)
+    throw new AurevaneError('FORBIDDEN', 'That PvP lobby is not available to this account.')
   return parseLobbyPayload(data)
 }
 
@@ -507,7 +529,10 @@ export async function startPvpLobby(
     return { battleSessionId: lobby.battleSessionId, battleKey: lobby.battleKey }
   }
   if (!lobby.readyToStart) {
-    throw new AurevaneError('INVALID_REQUEST', 'Every required seat must be filled and ready first.')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Every required seat must be filled and ready first.',
+    )
   }
 
   const characters = createSupabaseCharacterRepository()
@@ -558,11 +583,13 @@ export async function getPvpBattleMetadata(
   })
   if (error) mapRpcError(error)
   if (!data) return null
-  if (!isObject(data) || !isPvpMode(data.mode)) throw unavailable('The PvP battle metadata is invalid.')
+  if (!isObject(data) || !isPvpMode(data.mode))
+    throw unavailable('The PvP battle metadata is invalid.')
   const lobbyId = readString(data.lobby_id)
   const battleKey = readString(data.battle_key)
   const localCharacterId = readString(data.local_character_id)
-  if (!lobbyId || !battleKey || !localCharacterId) throw unavailable('The PvP battle metadata is invalid.')
+  if (!lobbyId || !battleKey || !localCharacterId)
+    throw unavailable('The PvP battle metadata is invalid.')
   const participants = await decorateBattleParticipants(parseParticipantRows(data.participants))
   return { lobbyId, mode: data.mode, battleKey, localCharacterId, participants }
 }

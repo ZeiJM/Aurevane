@@ -41,4 +41,8 @@ test('game navigation opens from the bottom-right trigger instead of the top vie
     Math.abs(menuBox.x + menuBox.width - (triggerBox.x + triggerBox.width)),
   ).toBeLessThanOrEqual(12)
   expect(menuBox.y).toBeGreaterThan(page.viewportSize()!.height / 2)
+
+  await trigger.click()
+  await expect(menu).toBeHidden()
+  await expect(trigger).toHaveAttribute('aria-expanded', 'false')
 })

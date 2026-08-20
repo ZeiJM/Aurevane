@@ -101,9 +101,15 @@
   background: rgba(8, 18, 31, 0.88);
 }
 
-.teamCard[data-team='0'] { box-shadow: inset 0 2px 0 #6ec7ff; }
-.teamCard[data-team='1'] { box-shadow: inset 0 2px 0 #ff9a62; }
-.teamCard[data-team='2'] { box-shadow: inset 0 2px 0 #c991ff; }
+.teamCard[data-team='0'] {
+  box-shadow: inset 0 2px 0 #6ec7ff;
+}
+.teamCard[data-team='1'] {
+  box-shadow: inset 0 2px 0 #ff9a62;
+}
+.teamCard[data-team='2'] {
+  box-shadow: inset 0 2px 0 #c991ff;
+}
 
 .teamHeading {
   display: flex;
@@ -125,7 +131,9 @@
   letter-spacing: 0.1em;
 }
 
-.teamHeading strong { font-size: 0.9rem; }
+.teamHeading strong {
+  font-size: 0.9rem;
+}
 
 .teamHealth {
   height: 0.22rem;
@@ -163,7 +171,10 @@
   background: rgba(127, 255, 200, 0.07);
 }
 
-.fighter[data-defeated] { opacity: 0.4; filter: grayscale(0.8); }
+.fighter[data-defeated] {
+  opacity: 0.4;
+  filter: grayscale(0.8);
+}
 
 .fighterPortrait {
   width: 2.35rem;
@@ -171,11 +182,30 @@
   object-fit: cover;
 }
 
-.fighter div { min-width: 0; display: grid; }
-.fighter strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.74rem; }
-.fighter small { color: #7890aa; font-size: 0.62rem; }
-.fighter > span { grid-column: 1 / -1; color: #91a4b8; font-size: 0.58rem; font-weight: 800; letter-spacing: 0.08em; }
-.fighter[data-active] > span { color: #7fffc8; }
+.fighter div {
+  min-width: 0;
+  display: grid;
+}
+.fighter strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.74rem;
+}
+.fighter small {
+  color: #7890aa;
+  font-size: 0.62rem;
+}
+.fighter > span {
+  grid-column: 1 / -1;
+  color: #91a4b8;
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+.fighter[data-active] > span {
+  color: #7fffc8;
+}
 
 .arenaStage {
   min-height: 0;
@@ -276,18 +306,17 @@
   overflow: hidden;
   border-right: 1px solid rgba(135, 185, 219, 0.09);
   border-bottom: 1px solid rgba(135, 185, 219, 0.09);
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.015), transparent 55%),
-    #0d1c27;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.015), transparent 55%), #0d1c27;
 }
 
 .tile[data-terrain='rough'] {
   background:
-    repeating-linear-gradient(135deg, rgba(198, 144, 90, 0.08) 0 5px, transparent 5px 10px),
-    #172127;
+    repeating-linear-gradient(135deg, rgba(198, 144, 90, 0.08) 0 5px, transparent 5px 10px), #172127;
 }
 
-.tile[data-elevation] { box-shadow: inset 0 0 0 1px rgba(255, 203, 106, 0.16); }
+.tile[data-elevation] {
+  box-shadow: inset 0 0 0 1px rgba(255, 203, 106, 0.16);
+}
 
 .coordinates {
   position: absolute;
@@ -316,10 +345,21 @@
   box-shadow: 0 5px 16px rgba(0, 0, 0, 0.48);
 }
 
-.unit[data-team='1'] { border-color: #ff9a62; }
-.unit[data-team='2'] { border-color: #c991ff; }
-.unit[data-active] { box-shadow: 0 0 0 3px rgba(127, 255, 200, 0.32), 0 0 24px rgba(127, 255, 200, 0.32); }
-.unit[data-defeated] { opacity: 0.28; filter: grayscale(1); }
+.unit[data-team='1'] {
+  border-color: #ff9a62;
+}
+.unit[data-team='2'] {
+  border-color: #c991ff;
+}
+.unit[data-active] {
+  box-shadow:
+    0 0 0 3px rgba(127, 255, 200, 0.32),
+    0 0 24px rgba(127, 255, 200, 0.32);
+}
+.unit[data-defeated] {
+  opacity: 0.28;
+  filter: grayscale(1);
+}
 
 .unitPortrait {
   width: 100%;
@@ -378,8 +418,12 @@
   font-size: 0.68rem;
 }
 
-.teamPips div[data-team='1'] { border-left-color: #ff9a62; }
-.teamPips div[data-team='2'] { border-left-color: #c991ff; }
+.teamPips div[data-team='1'] {
+  border-left-color: #ff9a62;
+}
+.teamPips div[data-team='2'] {
+  border-left-color: #c991ff;
+}
 
 .footer {
   min-height: 4.15rem;
@@ -401,7 +445,9 @@
   cursor: pointer;
 }
 
-.footer > button:first-child { justify-self: start; }
+.footer > button:first-child {
+  justify-self: start;
+}
 
 .battleKey {
   justify-self: center;
@@ -442,26 +488,59 @@
   color: #7fffc8;
 }
 
-.readOnlyBadge strong { font-size: 0.72rem; }
+.readOnlyBadge strong {
+  font-size: 0.72rem;
+}
 
 @media (max-width: 1050px) {
-  .arenaStage { grid-template-columns: 1fr; }
+  .arenaStage {
+    grid-template-columns: 1fr;
+  }
   .turnSpotlight,
-  .matchPulse { display: none; }
-  .scoreboard { grid-template-columns: 1fr; }
-  .teamRoster { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .matchPulse {
+    display: none;
+  }
+  .scoreboard {
+    grid-template-columns: 1fr;
+  }
+  .teamRoster {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 720px) {
-  .shell { padding: 0.55rem; }
-  .broadcastHeader { grid-template-columns: 1fr; align-items: start; }
-  .liveStatus { border-left: 0; border-top: 1px solid rgba(155, 205, 255, 0.16); padding-left: 0; }
-  .teamRoster { grid-template-columns: 1fr; }
-  .arenaStage { gap: 0.45rem; }
-  .battlefield { padding: 0.35rem; }
-  .footer { grid-template-columns: 1fr; }
+  .shell {
+    padding: 0.55rem;
+  }
+  .broadcastHeader {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+  .liveStatus {
+    border-left: 0;
+    border-top: 1px solid rgba(155, 205, 255, 0.16);
+    padding-left: 0;
+  }
+  .teamRoster {
+    grid-template-columns: 1fr;
+  }
+  .arenaStage {
+    gap: 0.45rem;
+  }
+  .battlefield {
+    padding: 0.35rem;
+  }
+  .footer {
+    grid-template-columns: 1fr;
+  }
   .footer > button:first-child,
   .battleKey,
-  .readOnlyBadge { justify-self: stretch; width: 100%; }
-  .readOnlyBadge { display: flex; justify-content: center; }
+  .readOnlyBadge {
+    justify-self: stretch;
+    width: 100%;
+  }
+  .readOnlyBadge {
+    display: flex;
+    justify-content: center;
+  }
 }

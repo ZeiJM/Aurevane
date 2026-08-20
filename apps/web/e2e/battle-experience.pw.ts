@@ -30,14 +30,10 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await battleHallLink.press('Enter')
 
   await expect(page).toHaveURL(/\/game\/battle$/)
-  await expect(page.getByRole('heading', { name: 'Choose a battle.' })).toBeVisible()
-  const requestedUiArt = page.locator(
-    '[data-media-status="requested"][data-media-request="ART-UI-001"]',
-  )
-  expect(await requestedUiArt.count()).toBeGreaterThan(0)
+  await expect(page.getByRole('heading', { name: 'Choose your arena.' })).toBeVisible()
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
-  await page.getByRole('button', { name: /AI Sparring/ }).click()
+  await page.getByLabel('Battle mode').selectOption('recruit-sparring')
   await page.getByRole('button', { name: 'Enter Battle' }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
 
@@ -47,10 +43,10 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(fullBattlefield.locator('[data-board-auto-fit="9x7"]')).toHaveCount(1)
   await expectBattlefieldContained(page)
 
-  const standardCriteriaButton = page.getByRole('button', { name: /Win battle/ })
+  const standardCriteriaButton = page.getByRole('button', { name: /Victory conditions/i })
   await expect(standardCriteriaButton).toBeVisible()
   await standardCriteriaButton.click()
-  const standardWinDialog = page.getByRole('dialog', { name: 'Win the battle' })
+  const standardWinDialog = page.getByRole('dialog', { name: /Victory conditions/i })
   await expect(standardWinDialog).toBeVisible()
   await expect(standardWinDialog).toContainText('Defeat all opposing combatants')
   await standardWinDialog.getByRole('button', { name: 'Return to battle' }).click()
@@ -58,9 +54,9 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await page.getByRole('button', { name: 'Abort Battle' }).click()
   await page.getByRole('button', { name: 'Confirm Abort Battle' }).click()
   await expect(page).toHaveURL(/\/game\/battle$/)
-  await expect(page.getByRole('heading', { name: 'Choose a battle.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Choose your arena.' })).toBeVisible()
 
-  await page.getByRole('button', { name: /Guided Fundamentals/ }).click()
+  await page.getByLabel('Battle mode').selectOption('guided-fundamentals')
   await page.getByRole('button', { name: 'Enter Battle' }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
 
@@ -71,7 +67,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   const guardButton = commandDeck.getByRole('button', { name: /Guard/ })
   const finishButton = commandDeck.getByRole('button', { name: /Finish Turn/ })
   const confirmButton = page.getByRole('button', { name: 'Confirm Action' })
-  const criteriaButton = page.getByRole('button', { name: /Win battle/ })
+  const criteriaButton = page.getByRole('button', { name: /Victory conditions/i })
 
   await expect(
     page.getByRole('dialog', { name: 'Complete the tactical fundamentals' }),
@@ -230,7 +226,7 @@ async function openCriteriaAndClose(
   page: import('@playwright/test').Page,
   expectedProgress: string,
 ): Promise<void> {
-  await page.getByRole('button', { name: /Win battle/ }).click()
+  await page.getByRole('button', { name: /Victory conditions/i }).click()
   const dialog = page.getByRole('dialog', { name: 'Complete the tactical fundamentals' })
   await expect(dialog).toBeVisible({ timeout: 4_000 })
   await expect(dialog).toContainText(expectedProgress)

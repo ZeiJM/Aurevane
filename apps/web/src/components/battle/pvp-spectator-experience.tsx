@@ -6,10 +6,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { getStarterPortraitImageAssetId } from '@/media/character'
-import type {
-  PvpBattleParticipantView,
-  PvpSpectatorView,
-} from '@/server/battle/pvp-lobby-service'
+import type { PvpBattleParticipantView, PvpSpectatorView } from '@/server/battle/pvp-lobby-service'
 
 import styles from './pvp-spectator-experience.module.css'
 
@@ -65,7 +62,8 @@ export function PvpSpectatorExperience({
   const battleState = tactical.battle
   const teamCount = spectator.mode === '1v1v1' ? 3 : 2
   const participantByCombatant = useMemo(
-    () => new Map(spectator.participants.map((participant) => [participant.combatantId, participant])),
+    () =>
+      new Map(spectator.participants.map((participant) => [participant.combatantId, participant])),
     [spectator.participants],
   )
   const placementByTile = useMemo(
@@ -91,12 +89,16 @@ export function PvpSpectatorExperience({
   }
 
   const teamSummaries = Array.from({ length: teamCount }, (_, teamIndex) => {
-    const members = spectator.participants.filter((participant) => participant.teamIndex === teamIndex)
+    const members = spectator.participants.filter(
+      (participant) => participant.teamIndex === teamIndex,
+    )
     let hp = 0
     let maxHp = 0
     let standing = 0
     for (const member of members) {
-      const combatant = battleState.combatants.find((candidate) => candidate.id === member.combatantId)
+      const combatant = battleState.combatants.find(
+        (candidate) => candidate.id === member.combatantId,
+      )
       if (!combatant) continue
       hp += combatant.hp
       maxHp += combatant.maxHp
@@ -106,7 +108,8 @@ export function PvpSpectatorExperience({
   })
 
   const livingTeams = teamSummaries.filter((team) => team.standing > 0)
-  const winner = battleState.lifecycle === 'completed' && livingTeams.length === 1 ? livingTeams[0] : null
+  const winner =
+    battleState.lifecycle === 'completed' && livingTeams.length === 1 ? livingTeams[0] : null
 
   useEffect(() => {
     if (battleState.lifecycle !== 'active') return
@@ -176,7 +179,9 @@ export function PvpSpectatorExperience({
                 <span>Team {team.teamIndex + 1}</span>
                 <strong>{teamName(team.teamIndex, teamCount)}</strong>
               </div>
-              <b>{team.standing}/{team.members.length} standing</b>
+              <b>
+                {team.standing}/{team.members.length} standing
+              </b>
             </div>
             <div className={styles.teamHealth}>
               <span style={{ width: `${meterPercent(team.hp, team.maxHp)}%` }} />
@@ -207,7 +212,13 @@ export function PvpSpectatorExperience({
                       <strong>{participant.characterName}</strong>
                       <small>Lv {participant.characterLevel}</small>
                     </div>
-                    <span>{active ? 'ACTING' : combatant?.hp === 0 ? 'DOWN' : `${combatant?.hp ?? 0} HP`}</span>
+                    <span>
+                      {active
+                        ? 'ACTING'
+                        : combatant?.hp === 0
+                          ? 'DOWN'
+                          : `${combatant?.hp ?? 0} HP`}
+                    </span>
                   </div>
                 )
               })}
@@ -231,7 +242,10 @@ export function PvpSpectatorExperience({
                 alt=""
               />
               <h2>{activeParticipant.characterName}</h2>
-              <p>Team {activeParticipant.teamIndex + 1} · {activeCombatant.hp}/{activeCombatant.maxHp} HP</p>
+              <p>
+                Team {activeParticipant.teamIndex + 1} · {activeCombatant.hp}/
+                {activeCombatant.maxHp} HP
+              </p>
             </>
           ) : winner ? (
             <>
@@ -262,9 +276,7 @@ export function PvpSpectatorExperience({
                 ? participantByCombatant.get(placement.combatantId)
                 : null
               const combatant = placement
-                ? battleState.combatants.find(
-                    (candidate) => candidate.id === placement.combatantId,
-                  )
+                ? battleState.combatants.find((candidate) => candidate.id === placement.combatantId)
                 : null
               const terrain = tile.terrainId === 'rough-ground' ? 'rough' : 'open'
 
@@ -276,7 +288,9 @@ export function PvpSpectatorExperience({
                   key={key}
                   aria-label={`Tile ${tile.position.x + 1}, ${tile.position.y + 1}${participant ? `; ${participant.characterName}` : ''}`}
                 >
-                  <span className={styles.coordinates}>{tile.position.x + 1},{tile.position.y + 1}</span>
+                  <span className={styles.coordinates}>
+                    {tile.position.x + 1},{tile.position.y + 1}
+                  </span>
                   {tile.elevation > 0 ? <span className={styles.elevation}>▲</span> : null}
                   {participant && placement ? (
                     <div

@@ -18,7 +18,10 @@ export function PvpBattleClientBoundary({
   return (
     <>
       <PvpBattleExperience initialBattle={initialBattle} metadata={metadata} />
-      <BattleUtilityWindows battleSessionId={initialBattle.battleSessionId} playerName={playerName} />
+      <BattleUtilityWindows
+        battleSessionId={initialBattle.battleSessionId}
+        playerName={playerName}
+      />
     </>
   )
 }

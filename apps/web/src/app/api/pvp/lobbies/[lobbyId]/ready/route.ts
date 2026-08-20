@@ -17,7 +17,8 @@ export async function POST(request: Request, context: { params: Promise<{ lobbyI
       throw new AurevaneError('INVALID_REQUEST', 'The request body must be valid JSON.')
     }
     const parsed = parsePvpReadyLobbyRequest(raw)
-    if (!lobbyId || !parsed) throw new AurevaneError('INVALID_REQUEST', 'Invalid lobby readiness request.')
+    if (!lobbyId || !parsed)
+      throw new AurevaneError('INVALID_REQUEST', 'Invalid lobby readiness request.')
     const lobby = await setPvpLobbyReady(actor.userId, lobbyId, parsed.ready)
     return Response.json({ lobby }, { headers: { 'Cache-Control': 'private, no-store' } })
   } catch (error) {

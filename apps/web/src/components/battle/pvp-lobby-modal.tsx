@@ -80,7 +80,9 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
       }
       router.push(`/game/battle/${body.battle.battleSessionId}`)
     } catch (startError) {
-      setError(startError instanceof Error ? startError.message : 'The PvP battle could not be started.')
+      setError(
+        startError instanceof Error ? startError.message : 'The PvP battle could not be started.',
+      )
       startLock.current = false
     }
   }, [lobby.lobbyId, lobby.readyToStart, lobby.status, router])
@@ -171,12 +173,20 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
 
   return (
     <div className={styles.backdrop} role="presentation">
-      <section className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="pvp-lobby-title">
+      <section
+        className={styles.modal}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pvp-lobby-title"
+      >
         <header className={styles.header}>
           <div>
             <span>Battle Hall · PvP Staging</span>
             <h2 id="pvp-lobby-title">The arena is waiting.</h2>
-            <p>{lobby.mode.toUpperCase()} · Assemble the roster, ready every combatant, then battle begins automatically.</p>
+            <p>
+              {lobby.mode.toUpperCase()} · Assemble the roster, ready every combatant, then battle
+              begins automatically.
+            </p>
           </div>
           <div className={styles.keyStack}>
             <button type="button" onClick={() => void copyValue(lobby.lobbyKey, 'Lobby key')}>
@@ -186,7 +196,10 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
             <button
               type="button"
               onClick={() =>
-                void copyValue(`${window.location.origin}/game/battle?join=${lobby.lobbyKey}`, 'Invite link')
+                void copyValue(
+                  `${window.location.origin}/game/battle?join=${lobby.lobbyKey}`,
+                  'Invite link',
+                )
               }
             >
               Copy invite link
@@ -196,9 +209,13 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
         </header>
 
         <div className={styles.arenaLine}>
-          <span>{filled}/{required} combatants seated</span>
+          <span>
+            {filled}/{required} combatants seated
+          </span>
           <i aria-hidden="true" />
-          <span>{readyCount}/{required} ready</span>
+          <span>
+            {readyCount}/{required} ready
+          </span>
         </div>
 
         <div className={styles.teams} data-team-count={teams}>
@@ -214,14 +231,21 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
                   {Array.from({ length: lobby.teamSizes[teamIndex] ?? 0 }, (_, seatIndex) => {
                     const member = memberForSeat(lobby, teamIndex, seatIndex)
                     return member ? (
-                      <article className={styles.filledSeat} key={seatIndex} data-ready={member.ready || undefined}>
+                      <article
+                        className={styles.filledSeat}
+                        key={seatIndex}
+                        data-ready={member.ready || undefined}
+                      >
                         <div className={styles.portraitFrame}>
                           <Portrait member={member} />
                           {member.ready ? <span className={styles.readyGlyph}>✓</span> : null}
                         </div>
                         <div>
                           <strong>{member.characterName}</strong>
-                          <small>Level {member.characterLevel}{member.isHost ? ' · Host' : ''}</small>
+                          <small>
+                            Level {member.characterLevel}
+                            {member.isHost ? ' · Host' : ''}
+                          </small>
                         </div>
                         <span>{member.ready ? 'READY' : 'STANDBY'}</span>
                       </article>
@@ -239,15 +263,32 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
           ))}
         </div>
 
-        {error ? <p className={styles.error} role="alert">{error}</p> : null}
+        {error ? (
+          <p className={styles.error} role="alert">
+            {error}
+          </p>
+        ) : null}
 
         <footer className={styles.footer}>
           <div>
-            <span>{lobby.readyToStart ? 'All combatants ready — opening the arena…' : 'Battle begins when every required seat is filled and ready.'}</span>
-            {lobby.status === 'cancelled' ? <button type="button" onClick={onLeave}>Return to Battle Hall</button> : null}
+            <span>
+              {lobby.readyToStart
+                ? 'All combatants ready — opening the arena…'
+                : 'Battle begins when every required seat is filled and ready.'}
+            </span>
+            {lobby.status === 'cancelled' ? (
+              <button type="button" onClick={onLeave}>
+                Return to Battle Hall
+              </button>
+            ) : null}
           </div>
           <div className={styles.actions}>
-            <button type="button" className={styles.leave} onClick={() => void leaveLobby()} disabled={pending || lobby.status !== 'waiting'}>
+            <button
+              type="button"
+              className={styles.leave}
+              onClick={() => void leaveLobby()}
+              disabled={pending || lobby.status !== 'waiting'}
+            >
               {localMember?.isHost ? 'Close Lobby' : 'Leave Lobby'}
             </button>
             <button

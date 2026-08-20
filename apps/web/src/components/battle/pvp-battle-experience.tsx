@@ -3,14 +3,7 @@
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import type { BattleIntent } from '@aurevane/validation/combat/battle-session'
 import { useRouter } from 'next/navigation'
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type CSSProperties,
-} from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { getStarterPortraitImageAssetId } from '@/media/character'
@@ -238,7 +231,8 @@ export function PvpBattleExperience({
   const tactical = battle.snapshot.tactical
   const battleState = tactical.battle
   const participantByCombatant = useMemo(
-    () => new Map(metadata.participants.map((participant) => [participant.combatantId, participant])),
+    () =>
+      new Map(metadata.participants.map((participant) => [participant.combatantId, participant])),
     [metadata.participants],
   )
   const localParticipant = useMemo(
@@ -320,7 +314,8 @@ export function PvpBattleExperience({
     (next: BattleSessionView) => {
       setBattle((current) => {
         if (next.battleVersion === current.battleVersion) return current
-        const wasLocal = current.snapshot.tactical.battle.currentTurn?.combatantId === localCombatantId
+        const wasLocal =
+          current.snapshot.tactical.battle.currentTurn?.combatantId === localCombatantId
         const isLocal = next.snapshot.tactical.battle.currentTurn?.combatantId === localCombatantId
         if (!wasLocal && isLocal) setNotice('Your turn. Choose an action.')
         else if (wasLocal && !isLocal) {
@@ -385,7 +380,9 @@ export function PvpBattleExperience({
         if (!result.legal) {
           setNotice(result.issues[0]?.message ?? 'That command is not legal right now.')
         } else if (result.kind === 'move') {
-          setNotice(`Movement ready · ${result.actionEconomyCost} AP · ${result.actionEconomyAfter} AP remains.`)
+          setNotice(
+            `Movement ready · ${result.actionEconomyCost} AP · ${result.actionEconomyAfter} AP remains.`,
+          )
         } else if (result.kind === 'action' && result.actionId === BASIC_ATTACK_ID) {
           setNotice(`Basic Attack ready · ${result.actionEconomyCost} AP.`)
         } else if (result.kind === 'action' && result.actionId === GUARD_ID) {
@@ -451,7 +448,9 @@ export function PvpBattleExperience({
           remaining >= ATTACK_COST
         ) {
           clearPlanning('attack')
-          setNotice(`Basic Attack committed. ${remaining} AP remains — choose another target or another action.`)
+          setNotice(
+            `Basic Attack committed. ${remaining} AP remains — choose another target or another action.`,
+          )
         } else {
           clearPlanning()
           if (nextLocalTurn) setNotice(`Action committed. ${remaining} AP remains.`)
@@ -711,7 +710,11 @@ export function PvpBattleExperience({
               <div className={styles.economyCopy}>
                 <span>Action Economy</span>
                 <strong>{actionEconomy} AP</strong>
-                {proposedCost > 0 ? <small>− {proposedCost} proposed</small> : <small>Your turn</small>}
+                {proposedCost > 0 ? (
+                  <small>− {proposedCost} proposed</small>
+                ) : (
+                  <small>Your turn</small>
+                )}
               </div>
               <div
                 className={styles.economyTrack}
@@ -735,10 +738,16 @@ export function PvpBattleExperience({
           ) : (
             <div className={styles.waitingTurn}>
               <span>Turn control</span>
-              <strong>{battleState.lifecycle === 'active' ? `${activeName} acting…` : 'Battle complete'}</strong>
+              <strong>
+                {battleState.lifecycle === 'active' ? `${activeName} acting…` : 'Battle complete'}
+              </strong>
             </div>
           )}
-          <button type="button" className={styles.victoryButton} onClick={() => setVictoryOpen(true)}>
+          <button
+            type="button"
+            className={styles.victoryButton}
+            onClick={() => setVictoryOpen(true)}
+          >
             <span>Victory Conditions</span>
             <strong>{objectiveComplete ? '1/1' : '0/1'}</strong>
           </button>
@@ -752,9 +761,15 @@ export function PvpBattleExperience({
 
       <section className={styles.roster} aria-label="PvP battle roster">
         {Array.from({ length: teamCount }, (_, teamIndex) => {
-          const members = metadata.participants.filter((participant) => participant.teamIndex === teamIndex)
+          const members = metadata.participants.filter(
+            (participant) => participant.teamIndex === teamIndex,
+          )
           return (
-            <div className={styles.teamRoster} key={teamIndex} data-local={teamIndex === localTeamIndex || undefined}>
+            <div
+              className={styles.teamRoster}
+              key={teamIndex}
+              data-local={teamIndex === localTeamIndex || undefined}
+            >
               <div className={styles.teamHeading}>
                 <span>Team {teamIndex + 1}</span>
                 <strong>{teamLabel(teamIndex, teamCount)}</strong>
@@ -783,10 +798,25 @@ export function PvpBattleExperience({
                       />
                       <div className={styles.rosterIdentity}>
                         <strong>{participant.characterName}</strong>
-                        <small>Lv {participant.characterLevel}{participant.characterId === metadata.localCharacterId ? ' · You' : ''}</small>
+                        <small>
+                          Lv {participant.characterLevel}
+                          {participant.characterId === metadata.localCharacterId ? ' · You' : ''}
+                        </small>
                         <div className={styles.miniMeters}>
-                          <span><i style={{ width: `${meterPercent(combatant?.hp ?? 0, combatant?.maxHp ?? 1)}%` }} /></span>
-                          <span><i style={{ width: `${meterPercent(combatant?.mp ?? 0, combatant?.maxMp ?? 1)}%` }} /></span>
+                          <span>
+                            <i
+                              style={{
+                                width: `${meterPercent(combatant?.hp ?? 0, combatant?.maxHp ?? 1)}%`,
+                              }}
+                            />
+                          </span>
+                          <span>
+                            <i
+                              style={{
+                                width: `${meterPercent(combatant?.mp ?? 0, combatant?.maxMp ?? 1)}%`,
+                              }}
+                            />
+                          </span>
                         </div>
                       </div>
                       {active ? <b>ACTIVE</b> : null}
@@ -801,11 +831,21 @@ export function PvpBattleExperience({
 
       <section className={styles.content}>
         <div className={styles.notice} data-local-turn={localTurn || undefined}>
-          <strong>{localTurn ? 'Your turn' : battleState.lifecycle === 'active' ? `Waiting for ${activeName}` : resultLabel()}</strong>
+          <strong>
+            {localTurn
+              ? 'Your turn'
+              : battleState.lifecycle === 'active'
+                ? `Waiting for ${activeName}`
+                : resultLabel()}
+          </strong>
           <span>{notice}</span>
         </div>
 
-        <section id="battlefield" className={styles.battlefield} aria-label="PvP tactical battlefield">
+        <section
+          id="battlefield"
+          className={styles.battlefield}
+          aria-label="PvP tactical battlefield"
+        >
           <div className={styles.boardViewport}>
             <div className={styles.board} style={boardStyle}>
               {tactical.tiles.map((tile) => {
@@ -815,17 +855,19 @@ export function PvpBattleExperience({
                   ? participantByCombatant.get(placement.combatantId)
                   : null
                 const combatant = placement
-                  ? battleState.combatants.find((candidate) => candidate.id === placement.combatantId)
+                  ? battleState.combatants.find(
+                      (candidate) => candidate.id === placement.combatantId,
+                    )
                   : null
                 const pathIndex = path.findIndex((point) => positionsEqual(point, tile.position))
                 const reachable = mode === 'move' && reachablePaths.has(key) && pathIndex < 0
                 const inAttackRange = mode === 'attack' && attackRange.has(key)
                 const legalEnemy = Boolean(
                   inAttackRange &&
-                    participant &&
-                    participant.teamIndex !== localTeamIndex &&
-                    combatant &&
-                    combatant.hp > 0,
+                  participant &&
+                  participant.teamIndex !== localTeamIndex &&
+                  combatant &&
+                  combatant.hp > 0,
                 )
                 const selfTarget =
                   (mode === 'guard' || mode === 'recover') &&
@@ -854,14 +896,19 @@ export function PvpBattleExperience({
                     onClick={() => handleTile(tile.position)}
                     aria-label={`Tile ${tile.position.x + 1}, ${tile.position.y + 1}; ${terrain} ground; elevation ${tile.elevation}${participant ? `; occupied by ${participant.characterName}` : ''}`}
                   >
-                    <span className={styles.tileMeta}>{tile.position.x + 1},{tile.position.y + 1}</span>
+                    <span className={styles.tileMeta}>
+                      {tile.position.x + 1},{tile.position.y + 1}
+                    </span>
                     {tile.elevation > 0 ? <span className={styles.elevation}>▲</span> : null}
                     {pathIndex >= 0 ? <span className={styles.pathNumber}>{pathIndex}</span> : null}
                     {participant && placement ? (
                       <span
                         className={styles.unit}
                         data-team={participant.teamIndex}
-                        data-active={battleState.currentTurn?.combatantId === participant.combatantId || undefined}
+                        data-active={
+                          battleState.currentTurn?.combatantId === participant.combatantId ||
+                          undefined
+                        }
                         data-defeated={combatant?.hp === 0 || undefined}
                       >
                         <CharacterPortraitImage
@@ -883,9 +930,15 @@ export function PvpBattleExperience({
             </div>
           </div>
           <div className={styles.legend}>
-            <span><b>Green</b> friendly / reachable</span>
-            <span><b>Orange</b> legal enemy target</span>
-            <span><b>Red</b> unavailable inside effective range</span>
+            <span>
+              <b>Green</b> friendly / reachable
+            </span>
+            <span>
+              <b>Orange</b> legal enemy target
+            </span>
+            <span>
+              <b>Red</b> unavailable inside effective range
+            </span>
           </div>
         </section>
 
@@ -895,23 +948,89 @@ export function PvpBattleExperience({
               <>
                 <strong>{selectedParticipant.characterName}</strong>
                 <span>
-                  Team {selectedParticipant.teamIndex + 1} · HP {selectedCombatant.hp}/{selectedCombatant.maxHp} · MP {selectedCombatant.mp}/{selectedCombatant.maxMp} · Facing {selectedPlacement.facing} {facingGlyph(selectedPlacement.facing)}
+                  Team {selectedParticipant.teamIndex + 1} · HP {selectedCombatant.hp}/
+                  {selectedCombatant.maxHp} · MP {selectedCombatant.mp}/{selectedCombatant.maxMp} ·
+                  Facing {selectedPlacement.facing} {facingGlyph(selectedPlacement.facing)}
                 </span>
               </>
             ) : (
               <>
-                <strong>{mode === 'none' ? 'Choose an action' : mode === 'finish' ? 'Choose final facing' : mode.replace('-', ' ')}</strong>
+                <strong>
+                  {mode === 'none'
+                    ? 'Choose an action'
+                    : mode === 'finish'
+                      ? 'Choose final facing'
+                      : mode.replace('-', ' ')}
+                </strong>
                 <span>{notice}</span>
               </>
             )}
           </div>
           <div className={styles.commands}>
-            <button type="button" data-active={mode === 'inspect' || undefined} onClick={() => chooseMode('inspect')}><span>00</span><strong>Inspect</strong><small>Free</small></button>
-            <button type="button" data-active={mode === 'move' || undefined} disabled={planningDisabled || actionEconomy < MOVE_COST_PER_TERRAIN_POINT} onClick={() => chooseMode('move')}><span>01</span><strong>Move</strong><small>25+ AP</small></button>
-            <button type="button" data-active={mode === 'attack' || undefined} disabled={planningDisabled || actionEconomy < ATTACK_COST} onClick={() => chooseMode('attack')}><span>02</span><strong>Basic Attack</strong><small>30 AP</small></button>
-            <button type="button" data-active={mode === 'guard' || undefined} disabled={planningDisabled || actionEconomy < GUARD_COST} onClick={() => chooseMode('guard')}><span>03</span><strong>Guard</strong><small>30 AP</small></button>
-            <button type="button" data-active={mode === 'recover' || undefined} disabled={planningDisabled || actionEconomy < RECOVER_COST || !localCombatant || localCombatant.hp >= localCombatant.maxHp} onClick={() => chooseMode('recover')}><span>04</span><strong>Recover</strong><small>50 AP</small></button>
-            <button type="button" data-active={mode === 'finish' || undefined} disabled={planningDisabled} onClick={() => chooseMode('finish')}><span>05</span><strong>Finish Turn</strong><small>Face + end</small></button>
+            <button
+              type="button"
+              data-active={mode === 'inspect' || undefined}
+              onClick={() => chooseMode('inspect')}
+            >
+              <span>00</span>
+              <strong>Inspect</strong>
+              <small>Free</small>
+            </button>
+            <button
+              type="button"
+              data-active={mode === 'move' || undefined}
+              disabled={planningDisabled || actionEconomy < MOVE_COST_PER_TERRAIN_POINT}
+              onClick={() => chooseMode('move')}
+            >
+              <span>01</span>
+              <strong>Move</strong>
+              <small>25+ AP</small>
+            </button>
+            <button
+              type="button"
+              data-active={mode === 'attack' || undefined}
+              disabled={planningDisabled || actionEconomy < ATTACK_COST}
+              onClick={() => chooseMode('attack')}
+            >
+              <span>02</span>
+              <strong>Basic Attack</strong>
+              <small>30 AP</small>
+            </button>
+            <button
+              type="button"
+              data-active={mode === 'guard' || undefined}
+              disabled={planningDisabled || actionEconomy < GUARD_COST}
+              onClick={() => chooseMode('guard')}
+            >
+              <span>03</span>
+              <strong>Guard</strong>
+              <small>30 AP</small>
+            </button>
+            <button
+              type="button"
+              data-active={mode === 'recover' || undefined}
+              disabled={
+                planningDisabled ||
+                actionEconomy < RECOVER_COST ||
+                !localCombatant ||
+                localCombatant.hp >= localCombatant.maxHp
+              }
+              onClick={() => chooseMode('recover')}
+            >
+              <span>04</span>
+              <strong>Recover</strong>
+              <small>50 AP</small>
+            </button>
+            <button
+              type="button"
+              data-active={mode === 'finish' || undefined}
+              disabled={planningDisabled}
+              onClick={() => chooseMode('finish')}
+            >
+              <span>05</span>
+              <strong>Finish Turn</strong>
+              <small>Face + end</small>
+            </button>
           </div>
 
           <div className={styles.facingRow} data-open={mode === 'finish' || undefined}>
@@ -932,35 +1051,74 @@ export function PvpBattleExperience({
       </section>
 
       <footer className={styles.footer}>
-        <button type="button" className={styles.chatButton} aria-expanded="false">Chat</button>
+        <button type="button" className={styles.chatButton} aria-expanded="false">
+          Chat
+        </button>
         <button type="button" className={styles.battleKey} onClick={() => void copyBattleKey()}>
           <small>{copyNotice ? 'Copied!' : 'Battle Key · click to copy'}</small>
           <strong>{metadata.battleKey}</strong>
         </button>
         <div className={styles.footerActions}>
-          <button type="button" onClick={() => { clearPlanning(); setNotice('Selection cleared.') }} disabled={commitPending}>Cancel Action</button>
-          <button type="button" className={styles.confirm} onClick={commitSelected} disabled={commitPending || previewPending || !pendingIntent || !preview?.preview.legal}>{commitPending ? 'Committing…' : 'Confirm Action'}</button>
+          <button
+            type="button"
+            onClick={() => {
+              clearPlanning()
+              setNotice('Selection cleared.')
+            }}
+            disabled={commitPending}
+          >
+            Cancel Action
+          </button>
+          <button
+            type="button"
+            className={styles.confirm}
+            onClick={commitSelected}
+            disabled={commitPending || previewPending || !pendingIntent || !preview?.preview.legal}
+          >
+            {commitPending ? 'Committing…' : 'Confirm Action'}
+          </button>
         </div>
       </footer>
 
       {victoryOpen ? (
         <div className={styles.modalBackdrop} onPointerDown={() => setVictoryOpen(false)}>
-          <section className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="pvp-victory-title" onPointerDown={(event) => event.stopPropagation()}>
+          <section
+            className={styles.modal}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pvp-victory-title"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
             <span>Victory Conditions · {objectiveComplete ? '1/1' : '0/1'}</span>
             <h2 id="pvp-victory-title">Defeat every opposing combatant.</h2>
-            <p>Your team wins when it is the only team with at least one combatant still able to fight.</p>
-            <button type="button" onClick={() => setVictoryOpen(false)}>Return to battle</button>
+            <p>
+              Your team wins when it is the only team with at least one combatant still able to
+              fight.
+            </p>
+            <button type="button" onClick={() => setVictoryOpen(false)}>
+              Return to battle
+            </button>
           </section>
         </div>
       ) : null}
 
       {battleState.lifecycle === 'completed' ? (
         <div className={styles.resultBackdrop}>
-          <section className={styles.result} role="dialog" aria-modal="true" aria-labelledby="pvp-result-title">
+          <section
+            className={styles.result}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pvp-result-title"
+          >
             <span>Battle Hall · PvP Result</span>
             <h2 id="pvp-result-title">{resultLabel()}</h2>
-            <p>Battle complete in Round {battleState.round}. The Battle Key remains valid for read-only spectation of the completed result.</p>
-            <button type="button" onClick={() => router.push('/game/battle')}>Return to Battle Hall</button>
+            <p>
+              Battle complete in Round {battleState.round}. The Battle Key remains valid for
+              read-only spectation of the completed result.
+            </p>
+            <button type="button" onClick={() => router.push('/game/battle')}>
+              Return to Battle Hall
+            </button>
           </section>
         </div>
       ) : null}

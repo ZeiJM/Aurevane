@@ -131,8 +131,7 @@
   border: 1px solid var(--av-border-strong);
   border-radius: var(--av-radius-md);
   background:
-    linear-gradient(140deg, rgba(255, 255, 255, 0.018), transparent 62%),
-    rgba(4, 7, 11, 0.42);
+    linear-gradient(140deg, rgba(255, 255, 255, 0.018), transparent 62%), rgba(4, 7, 11, 0.42);
 }
 
 .workspace[data-tone='pvp'] {

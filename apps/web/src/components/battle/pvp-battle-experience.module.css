@@ -350,8 +350,7 @@
   border: 1px solid var(--av-border-strong);
   border-radius: var(--av-radius-md);
   background:
-    radial-gradient(circle at 50% 42%, rgba(141, 111, 68, 0.09), transparent 28rem),
-    #080c11;
+    radial-gradient(circle at 50% 42%, rgba(141, 111, 68, 0.09), transparent 28rem), #080c11;
 }
 
 .boardViewport {
@@ -385,7 +384,11 @@
 
 .tile[data-terrain='rough'] {
   background:
-    repeating-linear-gradient(135deg, transparent 0 0.42rem, rgba(157, 116, 65, 0.08) 0.42rem 0.5rem),
+    repeating-linear-gradient(
+      135deg,
+      transparent 0 0.42rem,
+      rgba(157, 116, 65, 0.08) 0.42rem 0.5rem
+    ),
     linear-gradient(145deg, rgba(85, 67, 50, 0.36), rgba(34, 28, 24, 0.83));
 }
 
@@ -410,14 +413,18 @@
 .tile[data-target='friendly'] {
   z-index: 2;
   border-color: rgba(102, 218, 143, 0.98);
-  box-shadow: inset 0 0 0 2px rgba(102, 218, 143, 0.46), 0 0 0.75rem rgba(70, 190, 112, 0.22);
+  box-shadow:
+    inset 0 0 0 2px rgba(102, 218, 143, 0.46),
+    0 0 0.75rem rgba(70, 190, 112, 0.22);
 }
 
 .tile[data-target='enemy'] {
   z-index: 2;
   border-color: rgba(239, 169, 75, 0.98);
   background: linear-gradient(rgba(209, 121, 39, 0.13), rgba(209, 121, 39, 0.13)), #1c1711;
-  box-shadow: inset 0 0 0 2px rgba(239, 169, 75, 0.48), 0 0 0.75rem rgba(222, 131, 44, 0.24);
+  box-shadow:
+    inset 0 0 0 2px rgba(239, 169, 75, 0.48),
+    0 0 0.75rem rgba(222, 131, 44, 0.24);
 }
 
 .tile[data-target='illegal'] {
@@ -490,7 +497,9 @@
 }
 
 .unit[data-active] {
-  box-shadow: 0 0 0 3px rgba(212, 186, 130, 0.22), 0 0 1rem rgba(212, 186, 130, 0.35);
+  box-shadow:
+    0 0 0 3px rgba(212, 186, 130, 0.22),
+    0 0 1rem rgba(212, 186, 130, 0.35);
 }
 
 .unit[data-defeated] {

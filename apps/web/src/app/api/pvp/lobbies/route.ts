@@ -23,7 +23,10 @@ export async function POST(request: Request) {
       teamASize: parsed.teamASize,
       teamBSize: parsed.teamBSize,
     })
-    return Response.json({ lobby }, { status: 201, headers: { 'Cache-Control': 'private, no-store' } })
+    return Response.json(
+      { lobby },
+      { status: 201, headers: { 'Cache-Control': 'private, no-store' } },
+    )
   } catch (error) {
     return toServerErrorResponse(error)
   }
