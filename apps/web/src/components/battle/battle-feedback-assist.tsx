@@ -2,6 +2,8 @@
 
 import { useEffect } from 'react'
 
+import styles from './battle-feedback-assist.module.css'
+
 interface BattleFeedbackAssistProps {
   playerName: string
   playerProfileImageUrl?: string | null
@@ -359,5 +361,5 @@ export function BattleFeedbackAssist({
     }
   }, [playerName, playerProfileImageUrl])
 
-  return null
+  return <span className={styles.scope} hidden aria-hidden="true" />
 }
