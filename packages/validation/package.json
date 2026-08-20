@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     "./combat/battle-session": "./src/combat/battle-session.ts",
+    "./combat/pvp": "./src/combat/pvp.ts",
     "./env/public": "./src/env/public.ts",
     "./env/server": "./src/env/server.ts",
     "./foundation/authority-probe": "./src/foundation/authority-probe.ts",
