@@ -74,7 +74,9 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(page.getByLabel('Battle chat message')).toHaveCount(0)
 
   if (testInfo.project.name === 'mobile-chromium') {
-    const playerTile = page.getByRole('button', { name: new RegExp(`occupied by ${characterName}`) })
+    const playerTile = page.getByRole('button', {
+      name: new RegExp(`occupied by ${characterName}`),
+    })
     const recruitTile = page.getByRole('button', { name: /occupied by Recruit/ })
     await playerTile.click()
     const combatantDialog = page.getByRole('dialog', { name: `${characterName} battle details` })
@@ -83,7 +85,9 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     await combatantDialog.getByRole('button', { name: 'Close combatant details' }).click()
     await expect(playerTile).toBeVisible()
     await expect(recruitTile).toBeVisible()
-    await expect(page.getByRole('button', { name: `Show ${characterName} combat details` })).toBeHidden()
+    await expect(
+      page.getByRole('button', { name: `Show ${characterName} combat details` }),
+    ).toBeHidden()
   } else {
     await page.getByRole('button', { name: `Show ${characterName} combat details` }).click()
     await expect(page.getByText(`${characterName} · combat details`)).toBeVisible()
