@@ -36,7 +36,8 @@ function basicAttackButton(): HTMLButtonElement | null {
   return (
     Array.from(
       document.querySelectorAll<HTMLButtonElement>('section[aria-label="Command Deck"] button'),
-    ).find((button) => button.querySelector('strong')?.textContent?.trim() === 'Basic Attack') ?? null
+    ).find((button) => button.querySelector('strong')?.textContent?.trim() === 'Basic Attack') ??
+    null
   )
 }
 
