@@ -47,14 +47,14 @@ export const PV1F_GUARDED_STATUS: CombatStatusDefinition = {
   damageTakenMultiplierBasisPoints: 8_500,
 }
 
-// Lowered Guard uses two 15,811-bp stacks, producing ~2.5x total incoming damage before integer
-// rounding while remaining inside the combat engine's existing per-stack multiplier safety bound.
+// Lowered Guard is a single persistent PvP anti-AFK debuff: affected combatants take
+// exactly 250% of normal incoming damage before HP clamping.
 export const PV1F_LOWERED_GUARD_STATUS: CombatStatusDefinition = {
   id: 'lowered-guard',
   version: 1,
-  maximumStacks: 2,
+  maximumStacks: 1,
   durationOwnerTurnStarts: 1_000,
-  damageTakenMultiplierBasisPoints: 15_811,
+  damageTakenMultiplierBasisPoints: 25_000,
 }
 
 export const PV1F_COMBAT_CONTENT: CombatContentCatalog = {

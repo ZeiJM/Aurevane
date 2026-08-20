@@ -37,7 +37,7 @@ const APPLY_LOWERED_GUARD: CombatActionDefinition = {
       type: 'apply-status',
       recipient: 'actor',
       statusId: PVP_LOWERED_GUARD_STATUS_ID,
-      stacks: 2,
+      stacks: 1,
     },
   ],
 }

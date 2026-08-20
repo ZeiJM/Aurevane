@@ -118,7 +118,7 @@ describe('PvP turn quality rules', () => {
 
     expect(playerStatuses?.statuses).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ statusId: PVP_LOWERED_GUARD_STATUS_ID, stacks: 2 }),
+        expect.objectContaining({ statusId: PVP_LOWERED_GUARD_STATUS_ID, stacks: 1 }),
       ]),
     )
     expect(secondPlayerMiss.events).toEqual(
