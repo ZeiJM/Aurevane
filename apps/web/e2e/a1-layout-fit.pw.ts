@@ -39,7 +39,7 @@ test('keeps the core A1 surfaces inside the initial desktop and laptop viewport'
   await expectInitialViewportFit(page, 'Character Profile')
 
   await page.goto('/game/battle')
-  await expect(page.getByRole('heading', { name: 'Choose a battle.' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Choose your arena.' })).toBeVisible()
   await expectInitialViewportFit(page, 'Battle Hall')
 
   await page.goto('/game/settings/controls')
