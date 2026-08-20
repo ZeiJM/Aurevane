@@ -10,11 +10,11 @@ A roadmap phase is a development milestone, **not a promised calendar window**. 
 
 # 0. ROADMAP AUTHORITY & NO-DRIFT RULE
 
-AUREVANE previously accumulated several `docs/ROADMAP_*.md` integration documents while individual systems were being designed. Their useful detail is preserved, but they no longer define independent phase ordering.
+AUREVANE accumulated several `docs/ROADMAP_*.md` integration documents while individual systems were designed. Their useful detail remains available, but they no longer define independent phase ordering.
 
-The rule from this point forward is:
+The permanent rule is:
 
-> **`docs/ROADMAP.md` is the only roadmap that answers what phase a feature belongs to, what is currently active, and what comes next.**
+> **`docs/ROADMAP.md` is the only roadmap that answers what phase a feature belongs to, what is currently active, what comes next, and which gate must be passed before expansion.**
 
 Specialized `ROADMAP_*` documents are supporting implementation/history references only. If one conflicts with this file, this file wins unless the Game Owner explicitly approves a roadmap revision.
 
@@ -23,8 +23,8 @@ When a future design changes implementation sequencing:
 1. update the relevant authoritative domain/design document;
 2. update **this canonical roadmap in the same change**;
 3. update `AGENTS.md` when future agents need a new permanent rule;
-4. update player-facing Manual/News/Rules only when the change affects information players should know;
-5. do not create another independent roadmap addendum as the sole source of phase placement.
+4. update player-facing Manual/News/Rules when the change affects information players should know;
+5. do not create another independent roadmap addendum as the sole phase authority.
 
 Older roadmap modules may contain retired terms such as Current/Legacy Discipline, Confluence, Art, four-attribute assumptions, Tactical Hall, or obsolete Wayfarer's Practice behavior. Those terms do **not** override the current model.
 
@@ -139,7 +139,7 @@ The world should continually create new reasons to rethink that character throug
 - guild/nation activity;
 - economy/professions;
 - Archive/lore discoveries;
-- later Rekindling cycles;
+- Rekindling cycles;
 - later frontier exploration.
 
 ## Server authority
@@ -152,6 +152,26 @@ The browser submits intent; it does not decide valuable outcomes.
 
 Art, audio, responsiveness, accessibility, readable feedback, loading/error states and player-facing information are part of each phase. Phase 14 is the dedicated production polish pass, not permission to ship ugly placeholders until then.
 
+## Permanent public information
+
+AUREVANE maintains three public information surfaces:
+
+```text
+/news
+/manual
+/rules
+```
+
+They remain available before sign-in and after sign-in.
+
+- **News** communicates official updates, patches, events and consequential changes.
+- **Manual** explains released mechanics and current player guidance.
+- **Rules** explains conduct, fair play, competitive/economy/social policy and enforcement expectations.
+
+Manual owns mechanics. Rules owns conduct/integrity. News communicates material changes.
+
+Public information must distinguish **playable now** from **planned roadmap direction** and must remain spoiler-safe.
+
 ## Healthy retention
 
 AUREVANE should create “I want to return” rather than “I am punished for missing a day.”
@@ -159,6 +179,12 @@ AUREVANE should create “I want to return” rather than “I am punished for m
 Allowed drivers include world changes, build discovery, seasons, lore, prestige, social activity, target farming, Expeditions, rotating encounters and experiential urgency.
 
 Avoid destructive streaks, mandatory daily energy, permanent one-time missable meta power and pay-to-avoid-loss systems.
+
+## Anti-pay-to-win commerce
+
+Premium commerce is permitted only as a tasteful support/identity/convenience system that does not sell dominant gameplay power.
+
+Do not sell progression skips that invalidate the long character journey, stronger PvP gear, Mastery, Resonance/Essence power, Soulmark/Mantle power, extra competitive Veteran Edge power, rating, or cash-only meta-defining combat options.
 
 ## Product-validation rule
 
@@ -346,7 +372,8 @@ Scope includes:
 - media registry / Audio Director foundation;
 - audit/logging/error conventions;
 - protected future privileged-route boundaries;
-- stable IDs and extensible schemas for later build/economy/social systems.
+- stable IDs and extensible schemas for later build/economy/social systems;
+- future entitlement/payment/webhook architecture awareness without premature commerce implementation.
 
 **Gate:** clean build, deployable environment, documented setup and production-style authority boundaries.
 
@@ -354,7 +381,7 @@ Scope includes:
 
 ---
 
-# ✅ Phase 1 — Character & Progression Foundation
+# ✅ Phase 1 — Character, Progression & Public Information Foundation
 
 Scope includes:
 
@@ -371,16 +398,23 @@ Scope includes:
 - Primary Discipline foundation;
 - authoritative character switching/cooldowns;
 - portraits/titles/presence foundations;
-- Online Users;
+- Online Users foundation already present in the current product;
 - initial item ownership/equipment boundaries;
 - core equipment slots;
 - Armory/build presentation foundations;
 - current Passive Training Short / Medium / Extended flow;
-- idempotent training/report/reward behavior.
+- idempotent training/report/reward behavior;
+- public **News** foundation;
+- public **Manual / Adventurer's Guide** foundation;
+- public **Rules** foundation;
+- anonymous public access to `/news`, `/manual`, `/rules` with responsive/accessibility expectations;
+- source-controlled/validated early editorial content rather than premature full CMS.
 
-Future item Weight, professions, titles, social relationships, Rekindling and other systems should remain representable without being prematurely implemented.
+Public information should truthfully cover released Phase-1 systems and distinguish current features from future roadmap vision.
 
-**Gate:** a player can create, persist and return to a valid authoritative character and the model safely anticipates later progression/build layers.
+Future item Weight, professions, deeper presence, Friends, notifications, Rekindling and other systems should remain representable without being prematurely implemented.
+
+**Gate:** a player can create, persist and return to a valid authoritative character; public News/Manual/Rules are usable and spoiler-safe; the model safely anticipates later progression/build layers.
 
 **Status:** substantially complete and iterated through player feedback.
 
@@ -411,14 +445,16 @@ Scope includes:
 - target/action forecasts and clear invalid-action reasons;
 - compact actor information/timeline/log;
 - battle usability, camera/inspection/control work;
-- retreat/surrender/exit behavior where the approved combat addenda require it;
+- retreat/surrender/exit behavior where approved combat addenda require it;
 - battle VFX/audio hooks;
+- stable media descriptors and replaceable battle-scene/audio assets;
 - reconnect-safe persistence;
 - deterministic legal Recruit AI;
 - AI debug/reason hooks and regression states;
 - **Battle Hall**;
 - **AI Sparring** and focused practice;
 - desktop/mobile/touch validation;
+- combat Manual expansion and meaningful combat News/Rules updates;
 - human player-feedback iteration.
 
 ### Equipment Load compatibility
@@ -427,7 +463,7 @@ If representative Phase-2 equipment makes a real Weight/Load proof useful, test 
 
 ### Future compatibility only
 
-Do not build full Resonance/Essence libraries, complete Soulmark/Mantle catalogs, multiplayer PvP, frontier generation, full economy or social systems here.
+Do not build full Resonance/Essence libraries, player-facing Soulmark/Mantle systems, multiplayer PvP, frontier generation, full economy or mature social systems here.
 
 **Gate:** a human player can complete a deterministic, attractive, readable tactical fight where positioning and choices matter, AI uses the same legality, reconnect/state handling is safe, and actual player validation confirms the slice is understandable and fun.
 
@@ -458,13 +494,14 @@ Scope includes:
 - explicit Equipment Weight / Equipped Load / Load State integration once ready;
 - load previews in Armory/build comparison;
 - Passive Training Discipline Focus/Mastery extension only if dependency-safe;
-- AI understanding of released build interactions;
+- AI Skill/passive metadata using current terminology and information-concealment rules;
 - first safe content-authoring/validation tools;
-- first supernatural-fork proof when story/progression timing supports it.
+- supernatural data compatibility without forcing player-facing awakening before the world/story can support it;
+- public Manual buildcraft guidance using current Primary/Secondary/Resonance/Essence terminology.
 
 No separate Trait, Reaction, Movement Art or Ultimate slot systems return.
 
-**Gate:** players can understand and enjoy meaningful pure-versus-mixed choices, gear/load tradeoffs and early supernatural/build identity.
+**Gate:** players can understand and enjoy meaningful pure-versus-mixed choices and equipment/load tradeoffs without requiring the later supernatural system to make the buildcraft interesting.
 
 ---
 
@@ -484,29 +521,30 @@ Each released Discipline should include as appropriate:
 - distinct tactical identity;
 - typed combat data;
 - equipment/load interaction review;
-- AI usage rules/regression states;
+- AI Profiles/Skill Packages/passive/objective metadata;
 - VFX/SFX;
 - PvE/PvP validation;
-- analytics.
+- analytics;
+- stable media relationships rather than scattered hard-coded asset URLs.
 
 Representative content should include:
 
 - meaningful equipment/consumables;
 - Light/Standard/Heavy build archetypes where Load is active;
 - varied battlefields/objectives;
-- enemies using different tactical patterns;
+- enemy families using genuinely different tactical patterns;
 - larger Battle Hall scenario coverage;
-- diverse but spoiler-safe possibility/echo mechanics to prove future supernatural enemies can use typed systems.
+- spoiler-safe possibility/echo-like combat primitives that can later support supernatural enemies without bespoke engine hacks.
 
 **Gate:** representative Disciplines, pure/mixed routes, equipment and maps feel materially different and fun.
 
 ---
 
-# 🔜 Phase 5 — Living World, Story, Events, Navigation & Early Operations
+# 🔜 Phase 5 — Living World, Supernatural Awakening, Events, Navigation & Early Operations
 
-**Goal:** connect character/combat/build systems into a persistent authored world.
+**Goal:** connect character/combat/build systems into a persistent inhabited world and introduce the first story-supported supernatural choice.
 
-Scope includes:
+## Living world & story
 
 - World Atlas/map;
 - regions, settlements, roads and travel/presence;
@@ -515,24 +553,34 @@ Scope includes:
 - quest engine;
 - initial story;
 - global/region/node/player world-state layers;
-- data-driven persistent world events;
-- event phases/objectives/rewards/aftermath;
-- scheduling/restart recovery/idempotency;
-- World Pulse / since-you-were-away context;
-- Chronicle history;
-- Archive lore-discovery foundation;
-- Fragment Sets / contradictions / source provenance;
-- Great Vane/Unmoored foreshadowing appropriate to story stage;
+- initial Horizon/world progression gates;
 - location-coherent battle scenes;
 - battle-to-world state/reward return;
 - protected quest/key-item rules;
-- known acquisition/vendor links;
-- initial Horizon/world progression gates;
-- safe Event/Story/Lore owner/staff operations shell.
+- known acquisition/vendor links.
 
-### Strategic navigation
+## Persistent events & World Pulse
 
-Add:
+- data-driven world events;
+- event templates/runs/phases/objectives;
+- scheduling;
+- restart recovery/idempotency;
+- map/NPC/quest/encounter/reward/media effects through typed approved systems;
+- community objectives;
+- aftermath;
+- World Pulse / since-you-were-away context;
+- Chronicle history.
+
+## Archive & lore discovery
+
+- Archive foundation;
+- Fragment Sets;
+- source provenance;
+- contradictions;
+- Great Vane/Unmoored foreshadowing appropriate to story stage;
+- no late antagonist truth exposed merely because the data exists.
+
+## Strategic navigation
 
 - map layers/persisted filters;
 - quest/event/service/travel/lore/combat-location filtering;
@@ -542,11 +590,93 @@ Add:
 - clue-led hidden objectives;
 - no client delivery of undiscovered markers merely to hide them visually.
 
-### Gathering/resource foundation
+## Presence & notifications
 
-Introduce a small world-side Resource Site model so later professions can reuse the same authoritative map/world framework.
+Phase 5 grows the existing early Online Users foundation into a meaningful shared-world presence system:
 
-### Known-world frontier foundation
+- authenticated presence/lease model;
+- trustworthy visible online count;
+- responsive Adventurers Online roster;
+- safe search/browse;
+- coarse activity/region where appropriate;
+- Online/Away/Busy and Appear Offline/privacy boundaries;
+- no private account identity leakage.
+
+Notification foundation begins here because the world now creates real things worth notifying about:
+
+- typed notification domain;
+- persistent unread state;
+- restrained authenticated alerts control;
+- News unread state;
+- important world/event/system alerts;
+- deep links that re-authorize against source systems.
+
+Friends do **not** need to wait until Phase 10; they arrive in Phase 6.
+
+## Supernatural fork & first proof set
+
+Phase 5 is the first player-facing supernatural milestone because the world/story can now support it.
+
+Implement:
+
+```text
+UNAWAKENED
+SOULMARKED
+SOUL_SEVERED
+```
+
+with:
+
+- server-authoritative permanent fork;
+- strong confirmation;
+- Character Profile Supernatural section;
+- story/Horizon/level/mastery/rite requirement grammar;
+- first varied Soulmark proof set;
+- Soulmark Skills outside 6/8 Discipline Skill capacity;
+- meaningful Soulmark strengths/weaknesses;
+- **The Severance**;
+- at least one ordinary Mantle acquisition route;
+- **Mantle I — Tempered Manifestation**;
+- Mantles amplify/modify the equipped build and grant no new active Skills;
+- readable invocation/Afterstrain state.
+
+Initial level/Horizon numbers remain data-driven and domain-doc governed; reaching a level alone never automatically grants supernatural content.
+
+## Quiet-world / Tavern proof
+
+Introduce one small authored Tavern/Common Room/social-hearth experience and first **Roadwright** proof after a representative settlement exists.
+
+Roadwright is optional low-intensity play for lore texture, Rumor Leads, social atmosphere and communal state—not an AFK/progression/Crown farm.
+
+## Resource Site foundation
+
+Introduce a small authoritative world-side Resource Site model so later professions can reuse the same map/world framework.
+
+## Referral foundation — feature flagged
+
+Build referral attribution/qualification infrastructure only after the living world and return-loop telemetry exist:
+
+- opaque account-linked referral identity;
+- one-referrer attribution boundary;
+- composite active-play qualification;
+- anti-self-referral/fraud risk state;
+- notification compatibility;
+- independent feature flag.
+
+The **rewarded public referral program remains disabled until the Retention Loop / PV-3 evidence says the product is ready to ask players to recruit friends.**
+
+## Early owner/staff operations
+
+The protected `/master` shell gains only the slices needed for Phase 5:
+
+- fixed approved role/security boundaries;
+- event/story/lore operations;
+- Public Communications MVP for News/Manual/Rules drafting, preview and controlled publication;
+- safe event-linked AI composition using approved AI Profiles/Skill Packages/Objective Profiles;
+- minimum useful media operations: search, upload/import, preview, provenance, approve/publish/replace/rollback and content-reference lookup;
+- representative world/story art/audio replaceable without editing application source.
+
+## Known-world frontier foundation
 
 The authored Atlas should visibly end rather than pretending the whole world is already mapped.
 
@@ -560,19 +690,38 @@ Phase 5 may establish:
 
 Do **not** build the mature shifting Uncharted here.
 
-**Gate:** explore → encounter → battle → quest/reward → persistent progress works as one coherent loop, and staff can safely operate a real world/story event without routine code deployment.
+**Gate:** explore → encounter → battle → quest/reward → persistent progress works as one coherent loop; supernatural choice feels story-earned and understandable; the world looks inhabited; and staff can safely operate a real event/public communication/media replacement without routine code deployment.
 
 ---
 
-# 🔜 Phase 6 — Party & Co-op
+# 🔜 Phase 6 — Friends, Party & Co-op
 
-Scope includes:
+**Goal:** make playing with real people a dependable part of AUREVANE before the mature social world arrives.
+
+## Core Friends system
+
+Friends move here rather than waiting until Phase 10.
+
+Implement:
+
+- Send / Accept / Decline / Cancel Friend Request;
+- Remove Friend;
+- block/safety override;
+- request limits/cooldowns;
+- dedicated Friends surface: Online / All Friends / Requests / Recent Players;
+- presence integration;
+- friend-request/acceptance notifications;
+- privacy-safe friend presence;
+- no social relationship authority based on mutable character-name strings.
+
+## Parties & co-op
 
 - parties up to 3 players;
 - realtime party state;
 - co-op tactical battles;
 - shared quests/objectives;
 - party finder;
+- friend/presence-origin party invites;
 - pings/action visibility;
 - player-specific story flags in shared content where necessary;
 - reconnect/ownership flow;
@@ -584,15 +733,35 @@ Scope includes:
 
 There is no mandatory MMO trinity.
 
-**Gate:** three humans can complete a mission together, each controlling their own character, with readable/fair combat and safe reconnect/state handling.
+## Party communication
+
+Add appropriate Party chat/communication with authoritative membership, bounded history/reconnect, moderation/block safety and responsive UI. Mention notifications may be added here if they do not delay co-op; otherwise preserve compatibility for Phase 10.
+
+## Referral program launch — product gated
+
+If Retention Loop / PV-3 evidence is strong enough, Phase 6 may launch the public referral program:
+
+- Invite Friends/referral surface;
+- referral code/link;
+- qualified/pending recruit counts without private recruit telemetry;
+- milestone rewards;
+- cosmetic/account-service reward classes only;
+- no combat/progression/economy power;
+- Friends integration;
+- qualification/reward notifications;
+- anti-fraud review.
+
+If the product is not retaining new players well, **do not launch rewarded referrals just because the backend exists.**
+
+**Gate:** three humans can complete a mission together, each controlling their own character; two players can become/remove/block friends safely; party communication is dependable; reconnect/state handling is authoritative.
 
 ---
 
-# 🔜 Phase 7 — Expeditions
+# 🔜 Phase 7 — Expeditions & Deeper Supernatural Progression
 
-**Goal:** deliver AUREVANE's repeatable dungeon/adventure pillar.
+**Goal:** deliver AUREVANE's repeatable dungeon/adventure pillar and prove advanced supernatural timing in longer encounters.
 
-Scope includes:
+## Expeditions
 
 - authored Expedition templates;
 - deterministic seeded generation;
@@ -608,12 +777,26 @@ Scope includes:
 - lore rooms/records/relics;
 - environmental objects/terrain transformations;
 - objective-aware AI/boss directors;
+- advanced AI/boss phase profiles;
 - long-run replay/version/performance verification;
 - profession Resource Sites where appropriate later.
 
 Expeditions establish reusable seeded-content technology for the future Uncharted, but the systems remain distinct: Expeditions are bounded runs; the Uncharted is a shared shifting outer-world layer.
 
-**Gate:** a roughly hour-scale three-player Deep Expedition is fully playable, resumable and memorable without reward duplication or soft locks.
+## Mantle II & deeper Soulmarks
+
+Introduce **Mantle II — Full Manifestation** after appropriate advanced progression/rite requirements exist.
+
+- stronger temporary manifestation;
+- serious Afterstrain;
+- no new Mantle Skills;
+- player who has II may still choose I;
+- server snapshots chosen invocation level;
+- reconnect cannot reset manifestation/Afterstrain.
+
+Expand Soulmark design into more complex authored mechanics such as summons, teleport/spatial control, AoE mutation, elemental conversion, poison/DoT, terrain/zones, healing/defensive mutation and combo/risk-reward identities where combat readability supports them.
+
+**Gate:** a roughly hour-scale three-player Deep Expedition is fully playable, resumable and memorable without reward duplication/soft locks; advanced supernatural mechanics remain understandable and fair.
 
 ---
 
@@ -624,6 +807,7 @@ Expeditions establish reusable seeded-content technology for the future Uncharte
 ## Core competitive foundation
 
 - direct challenges;
+- friend Challenge/Spar actions;
 - casual 1v1;
 - ranked 1v1;
 - Arena Tempering;
@@ -666,6 +850,15 @@ Support three mutually hostile participants through the same general battle memb
 
 Initial use is casual/custom/event/exhibition. Ranked 1v1v1 waits for credible solutions to kingmaking/scoring/rating issues.
 
+## Supernatural competitive safety
+
+- Soulmark branch/state pinned before battle;
+- Mantle identity/attained invocation cap pinned;
+- invocation level authoritative;
+- queue rules can normalize/disable specific supernatural content;
+- reconnect cannot restore Mantle or erase Afterstrain;
+- standard ranked rejects Owner-only anomaly overrides by default.
+
 ## Colosseum & spectation
 
 Implement:
@@ -678,15 +871,19 @@ Implement:
 - delayed ranked/tournament spectation;
 - casual live spectation with appropriate consent;
 - spectator cockpit using the battle renderer without Command Deck authority;
-- friend/public match discovery where privacy permits;
+- Friends Fighting discovery where privacy permits;
 - completed-match/replay continuity;
 - later featured/tournament presentation.
+
+## Public Rules expansion
+
+Before serious ranked/tournament play, publish competitive-integrity rules for issues such as win trading, rating manipulation, queue collusion, match fixing, timer/disconnect abuse and exploit use.
 
 **Gate:** competitive matches are authoritative/fair, queue health is measurable, multi-format architecture is sound, and spectation cannot leak hidden information or grant mutation authority.
 
 ---
 
-# 🔜 Phase 9 — Full Discipline Roster
+# 🔜 Phase 9 — Full Discipline & Supernatural Catalog Scale
 
 Expand toward **36 Disciplines** in controlled batches.
 
@@ -706,32 +903,64 @@ Every mature Discipline requires:
 - analytics;
 - Master Panel support.
 
-Do not create 36 cosmetically renamed versions of the same role.
+## Soulmark catalog
+
+Grow only when quality warrants it:
+
+- proof set: small/diverse;
+- broad catalog: approximately 24–36;
+- mature catalog: approximately 48–72;
+- architecture supports 100+ over the lifetime only if additions remain genuinely distinct.
+
+Support 1-branch focused Soulmarks, 2 branches for most, and 3 branches for rare/complex marks.
+
+## Six ordinary Mantles
+
+Mature high-level target: **six distinct ordinary Mantles**, each supporting earned Level I and II invocation where attained.
+
+Mantles grant no additional active Skills.
+
+Do not create 36 Disciplines or dozens of Soulmarks as shallow reskins merely to satisfy catalog numbers.
 
 ---
 
-# 🔜 Phase 10 — Social World, Tavern, Identity & Community Growth
+# 🔜 Phase 10 — Mature Social World, Tavern, Identity & Community
 
 **Goal:** make players recognizable people inside a persistent community.
 
 Scope includes:
 
-- Friends and friend requests;
-- Recent Players;
+- mature Friends experience;
+- richer Recent Players;
 - privacy/presence preferences;
 - blocking and safety boundaries;
-- direct messages;
-- notification/attention system;
+- direct messages / Whispers;
+- notification/attention expansion;
 - guilds;
 - guild quests/progression;
 - social profiles;
-- Tavern/Common Room social destination and appropriate social activities;
 - moderation/report tooling;
 - social recognition / Chronicle hooks;
 - build-share cards where approved;
 - richer Colosseum friend/replay integration;
 - Homestead visit-permission foundations;
 - Rekindling/Hall-of-Selves presentation foundations.
+
+## Common Room / Tavern social layer
+
+Mature general social communication begins here:
+
+- Common Room/local social-hearth chat;
+- Guild chat;
+- Whispers/DMs;
+- server-authorized channel membership;
+- bounded history/reconnect;
+- block/report/mute/DND;
+- rate limiting/anti-flood;
+- responsive non-reflowing chat UI;
+- no paid chat priority.
+
+Roadwright may expand with richer friend/guild/community presentation, finished-table sharing and regional flavor only if real usage supports the production cost.
 
 ## Titles & badges
 
@@ -756,23 +985,21 @@ Mature social phase may include consensual Vowbond/marriage-style relationship m
 - optional ceremony/anniversary/Chronicle hooks;
 - **no launch combat/XP/Mastery/PvP/economy power**.
 
-## Referrals / recruitment
+## Public communications maturity
 
-Implement account-linked referral codes/links where commercially appropriate.
-
-A signup alone is not a rewarded recruit. Qualification should prove genuine early play through multiple signals and anti-abuse controls. Referral rewards must not become P2W or alt-account farming.
+News/Manual/Rules gain scheduled publishing, revisions/supersession, stale-content detection, richer preview and role/capability-aware review flows.
 
 **Gate:** players can build persistent relationships and recognizable identities without sacrificing privacy, safety or competitive integrity.
 
 ---
 
-# 🔜 Phase 11 — Economy, Professions, Crafting & Trade House
+# 🔜 Phase 11 — Economy, Professions, Trade House & Premium Commerce Foundation
 
-**Goal:** create an understandable player economy around useful items rather than many token currencies.
+**Goal:** create an understandable player economy around useful items rather than many token currencies, while introducing real-money commerce only through safe non-P2W boundaries.
 
 Primary tradable currency remains **Crowns**.
 
-Scope includes:
+## Player economy
 
 - mature stores/vendors/loot;
 - materials inventory;
@@ -817,11 +1044,32 @@ Crafted gear should create authored sidegrades/build identities rather than simp
 
 Mature item authoring validates sensible Weight ranges and marketplace/crafting presentation of Weight. A lighter strategic item may be better for a mobility build even when another item has larger raw defenses.
 
-**Gate:** acquisition, ownership, storage, crafting, professions, trade and commissions are coherent/server-authoritative without duplication, trust scams, key-item loss or inventory-management misery.
+## Premium commerce foundation
+
+When account/economy systems are mature enough:
+
+- Premium Shop catalog/content model;
+- purchase ledger;
+- non-P2W entitlement fulfillment service;
+- initial PayPal provider adapter direction;
+- sandbox checkout;
+- verified webhook processing;
+- idempotency/reconciliation;
+- player Purchase History;
+- initial Premium Commerce `/master` operations;
+- understated Support AUREVANE / premium entry rather than intrusive sales prompts.
+
+Real production payments remain disabled until Phase-15 commerce/security/operational acceptance is complete.
+
+## Public Rules expansion
+
+Publish relevant economy/trading policy before abuse opportunities become real, including scams/deception, prohibited RMT/account sales/market abuse where the final policy requires it.
+
+**Gate:** acquisition, ownership, storage, crafting, professions, trade and commissions are coherent/server-authoritative without duplication, trust scams, key-item loss or inventory-management misery; premium sandbox fulfillment cannot grant gameplay power or duplicate entitlements.
 
 ---
 
-# 🔜 Phase 12 — Nations, Sovereign Territory & Homesteads
+# 🔜 Phase 12 — Nations, Sovereign Territory, Homesteads & Nation Social Layer
 
 **Goal:** deepen world allegiance and personal ownership without turning housing into mandatory combat power.
 
@@ -865,7 +1113,17 @@ Planned capabilities:
 
 Later frontier achievements can create Homestead trophies/maps/display relics without turning the home into a frontier defense base.
 
-**Gate:** nation territory feels coherent, and an eligible player can own, decorate, use, visit and safely relocate a persistent home without world-land scarcity or P2W advantage.
+## Nation Hearth & Open Road
+
+Introduce mature large-scale social channels only when Nations and the economy exist.
+
+**Nation Hearth:** nation-wide chat tied to authoritative allegiance with moderation/privacy controls and no hidden war-state leakage.
+
+**Open Road:** optional cross-nation/world chat with server-authoritative time allowance rather than a permanent unlimited global spam channel.
+
+Current design direction supports a limited free daily allowance and an ordinary in-game **Roadspeaker Writ** Crown sink for bounded extra time. Open Road time is not sold for real money.
+
+**Gate:** nation territory feels coherent; an eligible player can own, decorate, use, visit and safely relocate a persistent home; nation social channels are safe/scalable; none of these systems create P2W power or world-land scarcity.
 
 ---
 
@@ -878,7 +1136,7 @@ Some tooling exists earlier; Phase 13 consolidates the complete operating system
 Scope includes:
 
 - Owner Command Center;
-- fixed/approved staff role model and granular permissions;
+- approved staff role model and granular permissions;
 - player lookup/support corrections;
 - audit and break-glass recovery;
 - content editors;
@@ -893,18 +1151,49 @@ Scope includes:
 - profession/recipe/resource-site/economy tools;
 - Homestead/nation operations;
 - Audio Manager;
-- Asset Studio;
+- **complete Asset Studio** with versioning/provenance/approval/replacement/rollback and optional approved generation-provider connectors;
 - Balance Lab;
 - Combat Content Studio;
-- Combat AI Lab;
+- **AI Content Studio**;
+- **Combat AI Lab** with AI-vs-AI/batch/version benchmark tooling;
 - Battle Hall record/unlock configuration;
 - Pacing Simulator;
 - Horizon/Passive Training/Rekindling/Veteran Edge controls;
-- title/badge/Vowbond/referral support where applicable;
+- title/badge/Vowbond/referral support;
+- Public Communications complete: News / Manual / Rules editors, calendar, revision history, dependency/drift warnings and safe rollback;
 - build/combat/economy/social telemetry;
 - feature flags;
 - diff/history/staging/publish/rollback;
 - narrative canon/spoiler publication rights.
+
+## GAME OWNER-only supernatural anomaly operations
+
+Phase 13 is also the home for exceptional Anomaly Character controls that ordinary players cannot earn, buy, receive from referrals or access through generic staff permissions.
+
+Supported owner-only exceptional concepts include approved combinations such as:
+
+- Dual Soulmark;
+- Dual Mantle access;
+- Soulmark + Mantle;
+- **Mantle III — Transcendent Manifestation** eligibility.
+
+Mantle III has no ordinary acquisition path. Standard ranked/tournaments reject anomaly overrides by default.
+
+These controls require exact target resolution, warnings, reason/audit, safe revocation and strong Owner-only authorization.
+
+## Premium Commerce complete operations
+
+Add/polish:
+
+- product editor;
+- scheduled publish/retirement;
+- grant validation;
+- transaction/refund/dispute search;
+- reconciliation dashboard;
+- revenue/product analytics;
+- commerce permissions;
+- checkout/provider kill switches;
+- audit history.
 
 ## Future Rekindling operations
 
@@ -914,7 +1203,7 @@ Add Cycle Focus definitions, alternate qualification pools, veteran shortcut con
 
 When Phase 16 exists, add frontier seed/cycle controls, authored sector/POI pools, anchored/drifting locations, depth bands, threat-stage controls, safe rollback and stranded-session support.
 
-**Gate:** normal operation, authoring, balance, simulation, delegation and repair occur through validated audited tools rather than direct production credentials.
+**Gate:** normal operation, authoring, balance, simulation, delegation, publication and repair occur through validated audited tools rather than direct production credentials.
 
 ---
 
@@ -933,6 +1222,7 @@ Scope includes:
 - ambient audio;
 - combat SFX;
 - Skill/Equipment/Resonance/Essence/Soulmark/Mantle VFX identity;
+- Mantle I/II and owner-only III intensity/readability differences;
 - terrain/elevation readability;
 - impact feedback;
 - transitions/animations;
@@ -944,6 +1234,8 @@ Scope includes:
 - Battle Hall/Review presentation;
 - Colosseum/spectator polish;
 - Staff/Owner badge identity;
+- Tavern/Roadwright presentation;
+- professions/Trade House/premium-shop presentation;
 - Rekindling/Hall of Selves presentation;
 - future Verge/Uncharted visual/audio language.
 
@@ -951,7 +1243,7 @@ Target: a beautiful browser RPG, not a database website wearing fantasy art.
 
 ---
 
-# 🔜 Phase 15 — Security, Scale & Systems Hardening
+# 🔜 Phase 15 — Security, Scale, Commerce & Systems Hardening
 
 Before broad release, attack every system from adversarial and failure perspectives.
 
@@ -965,7 +1257,7 @@ Scope includes:
 - combat concurrency;
 - reconnect/version/replay races;
 - PvP/multi-team regression;
-- spectator privacy/delay/battle-key security;
+- spectator privacy/delay/Battle-Key security;
 - Expedition concurrency/suspension;
 - economy/item/marketplace/crafting duplication races;
 - inventory/equipment/Weight/loadout races;
@@ -974,13 +1266,31 @@ Scope includes:
 - Rekindling preserve/reset correctness;
 - AI legality/determinism/pathfinding/boss regression;
 - Battle Hall reward/spoiler isolation;
+- Soulmark/Mantle invocation/reconnect/Afterstrain exploits;
+- Owner-only Anomaly authorization/ranked isolation;
 - Homestead privacy/storage/relocation;
 - professions/resource-site abuse;
-- referral fraud/alt-farming;
+- referral fraud/alt-farming/household false positives;
 - title/badge/identity spoofing;
-- public-information/spoiler leaks;
+- public-information/spoiler/publication leaks;
+- chat/moderation/block/privacy abuse;
 - rollback/recovery drills;
 - human playtests across skill levels.
+
+## Premium commerce hardening before real-money production launch
+
+Validate:
+
+- provider sandbox/production separation;
+- payment/webhook authenticity;
+- duplicate-delivery idempotency;
+- captured-but-unfulfilled recovery;
+- refunds/disputes;
+- rate limits/fraud cases;
+- purchase-history accuracy;
+- no P2W grants in production catalog;
+- cosmetic PvP readability;
+- applicable merchant/tax/refund/privacy/age/consumer/regional requirements with appropriate professional guidance where needed.
 
 Future frontier hardening adds deterministic seed reproducibility, daily-cycle rollover/reconnect, anchored-location integrity, generation reachability/performance and reward idempotency.
 
@@ -1057,7 +1367,8 @@ Motivations can include:
 - community mapping;
 - predicting known-world threats;
 - social prestige;
-- later Rekindling/Cycle Focus objectives.
+- guild/nation sponsored exploration;
+- Rekindling/Cycle Focus objectives.
 
 ## Frontier familiarity / legendary explorer status
 
@@ -1156,6 +1467,7 @@ Target shape includes:
 
 - roughly 16 playable Disciplines;
 - initial Soulmark set around 8;
+- at least a representative Soul-Severed/Mantle proof path;
 - meaningful Resonance coverage;
 - pure-Discipline Essence coverage;
 - representative equipment/Equipment Skills/Load buildcraft;
@@ -1170,10 +1482,12 @@ Target shape includes:
 - 1v1 PvP;
 - 2v2 when population/test cohort supports it;
 - PvP architecture that does not require a rewrite for 3v3/multi-team later;
+- core Friends/party foundation;
 - guild foundation;
 - world-event/story capability;
 - World Pulse;
 - Archive/lore discovery;
+- public News / Manual / Rules;
 - Battle Hall/AI Sparring/Battle Review foundation;
 - competent reusable combat AI;
 - safe owner/staff operations foundation;
@@ -1182,6 +1496,8 @@ Target shape includes:
 - telemetry sufficient to calibrate long-horizon progression.
 
 The mature Uncharted/Horizonless campaign is **not** required for Closed Alpha. Alpha should preserve the architectural/lore seams that allow it later.
+
+The rewarded referral program and real-money premium checkout are also not mandatory Alpha gates if product/commerce validation says they should remain disabled.
 
 ---
 
@@ -1221,17 +1537,17 @@ AUREVANE is intentionally ambitious, but development remains sequential:
 
 ```text
 FOUNDATION
-→ CHARACTER
+→ CHARACTER / PUBLIC INFORMATION
 → COMBAT
 → SIGNATURE BUILDCRAFT
 → CORE CONTENT
-→ LIVING WORLD
-→ CO-OP
-→ EXPEDITIONS
+→ LIVING WORLD / SUPERNATURAL AWAKENING
+→ FRIENDS / CO-OP
+→ EXPEDITIONS / DEEPER SUPERNATURAL
 → PvP / COLOSSEUM
-→ FULL DISCIPLINE DEPTH
-→ SOCIAL WORLD
-→ ECONOMY / PROFESSIONS
+→ FULL DISCIPLINE & SUPERNATURAL DEPTH
+→ MATURE SOCIAL WORLD
+→ ECONOMY / PROFESSIONS / COMMERCE FOUNDATION
 → NATIONS / HOMESTEADS
 → COMPLETE OPERATIONS
 → PRODUCTION POLISH
