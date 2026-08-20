@@ -16,6 +16,20 @@ interface CharacterTitleSettingsProps {
 
 const TITLE_PATTERN = /^[A-Za-z0-9 ]+$/
 
+function imageHostPageMessage(value: string): string | null {
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  try {
+    const hostname = new URL(trimmed).hostname.toLowerCase()
+    if (hostname === 'ibb.co' || hostname === 'www.ibb.co' || hostname === 'imgbb.com') {
+      return 'That is an image-host page, not the image itself. On ImgBB, copy the Direct link; it normally begins with https://i.ibb.co/.'
+    }
+  } catch {
+    return null
+  }
+  return null
+}
+
 export function CharacterTitleSettings({
   characterId,
   characterName,
@@ -33,6 +47,7 @@ export function CharacterTitleSettings({
   const [imageDraft, setImageDraft] = useState(imageUrl ?? '')
   const [imagePending, setImagePending] = useState(false)
   const [imageMessage, setImageMessage] = useState<string | null>(null)
+  const [imagePreviewFailed, setImagePreviewFailed] = useState(false)
 
   const normalizedDraft = useMemo(() => draft.trim().replace(/\s+/g, ' '), [draft])
   const valid =
@@ -69,6 +84,12 @@ export function CharacterTitleSettings({
 
   async function saveImage() {
     if (imagePending) return
+    const hostPageMessage = imageHostPageMessage(imageDraft)
+    if (hostPageMessage) {
+      setImageMessage(hostPageMessage)
+      return
+    }
+
     setImagePending(true)
     setImageMessage(null)
     try {
@@ -86,6 +107,7 @@ export function CharacterTitleSettings({
         return
       }
       setImageDraft(body.display.imageUrl ?? '')
+      setImagePreviewFailed(false)
       setImageMessage(
         body.display.imageUrl ? 'Profile image saved.' : 'Custom profile image removed.',
       )
@@ -96,6 +118,8 @@ export function CharacterTitleSettings({
       setImagePending(false)
     }
   }
+
+  const currentHostMessage = imageHostPageMessage(imageDraft)
 
   return (
     <div className={styles.layout}>
@@ -231,19 +255,29 @@ export function CharacterTitleSettings({
           <span>Character image</span>
           <h2 id="profile-image-heading">Portrait URL</h2>
           <p>
-            Paste a direct http(s) image URL. Animated GIFs are supported. The image is cropped,
-            never stretched, and follows this character into selection, header, Profile, and battle.
+            Paste the image itself, not an image-host webpage. JPG, PNG, WebP, and animated GIF are
+            suitable. Portraits are square-cropped and never stretched; for good performance use
+            128–4096 px artwork, keep static images at or below 8 MB and animated GIFs at or below
+            12 MB.
           </p>
         </div>
-        {imageDraft.trim() ? (
+        {imageDraft.trim() && !imagePreviewFailed && !currentHostMessage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={imageDraft.trim()}
             alt={`${characterName} profile preview`}
             referrerPolicy="no-referrer"
+            onError={() => {
+              setImagePreviewFailed(true)
+              setImageMessage(
+                'That URL did not load as an image. Copy the direct image link from your host, then try again.',
+              )
+            }}
           />
         ) : (
-          <div className={styles.imagePlaceholder}>No custom image</div>
+          <div className={styles.imagePlaceholder}>
+            {imagePreviewFailed || currentHostMessage ? 'Direct image required' : 'No custom image'}
+          </div>
         )}
         <label className={styles.field}>
           <span>Direct image URL</span>
@@ -251,25 +285,31 @@ export function CharacterTitleSettings({
             value={imageDraft}
             onChange={(event) => {
               setImageDraft(event.target.value)
+              setImagePreviewFailed(false)
               setImageMessage(null)
             }}
             maxLength={2048}
             inputMode="url"
             autoComplete="url"
-            placeholder="https://example.com/portrait.gif"
+            placeholder="https://i.ibb.co/.../portrait.png"
             disabled={imagePending}
+            aria-invalid={currentHostMessage ? true : undefined}
           />
-          <small>Leave blank and save to restore the built-in portrait.</small>
+          <small>
+            ImgBB: use its “Direct link” (i.ibb.co), not the ibb.co sharing page. Leave blank and
+            save to restore the built-in portrait.
+          </small>
         </label>
         <button
           type="button"
           className={styles.reviewButton}
           onClick={() => void saveImage()}
-          disabled={imagePending}
+          disabled={imagePending || Boolean(currentHostMessage)}
         >
           {imagePending ? 'Saving…' : 'Save Profile Image'}
         </button>
-        {imageMessage ? (
+        {currentHostMessage ? <p className={styles.message}>{currentHostMessage}</p> : null}
+        {imageMessage && imageMessage !== currentHostMessage ? (
           <p className={styles.message} role="status" aria-live="polite">
             {imageMessage}
           </p>

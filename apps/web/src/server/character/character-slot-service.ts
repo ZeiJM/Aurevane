@@ -30,6 +30,12 @@ export function isCharacterSlotIndex(value: number): boolean {
   return Number.isSafeInteger(value) && value >= 0 && value < CHARACTER_SLOT_COUNT
 }
 
+export function hasEarnedPrestigeCharacterSlot(
+  characters: readonly Pick<CharacterSlotCharacter, 'progressionCycle'>[],
+): boolean {
+  return characters.some((character) => character.progressionCycle.number >= 2)
+}
+
 export async function loadCharacterSlots(userId: string): Promise<CharacterSlotCharacter[]> {
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.rpc('get_character_slots_v2', { p_user_id: userId })
@@ -115,6 +121,25 @@ export async function createCharacterInSlot(command: {
 }): Promise<{ character: PersistedCharacter; replayed: boolean }> {
   if (!isCharacterSlotIndex(command.slotIndex)) {
     throw new AurevaneError('INVALID_REQUEST', 'Choose character slot 1, 2, or 3.')
+  }
+
+  // Slot 1 is the account's free character. Slot 2 is reserved for a future purchase entitlement.
+  // Slot 3 is an earned account unlock once any owned character has completed its first Prestige
+  // Rebirth (progression cycle 2+). The decision is made on the server, never from a browser flag.
+  if (command.slotIndex === 1) {
+    throw new AurevaneError(
+      'FORBIDDEN',
+      'Character slot 2 unlocks through an account slot purchase. Purchases are not available yet.',
+    )
+  }
+  if (command.slotIndex === 2) {
+    const roster = await loadCharacterSlots(command.actor.userId)
+    if (!hasEarnedPrestigeCharacterSlot(roster)) {
+      throw new AurevaneError(
+        'FORBIDDEN',
+        'Character slot 3 unlocks free after this account completes its first Prestige Rebirth.',
+      )
+    }
   }
 
   let seed

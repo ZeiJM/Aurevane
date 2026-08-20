@@ -175,18 +175,17 @@
   z-index: 10000;
   display: grid;
   place-items: start center;
-  padding: max(5.2rem, env(safe-area-inset-top)) 1rem 1rem;
-  background: rgba(1, 3, 6, 0.74);
-  backdrop-filter: blur(0.45rem);
+  padding: max(4.4rem, env(safe-area-inset-top)) 1rem 1rem;
+  background: rgba(1, 3, 6, 0.24);
 }
 
 .dialog {
-  width: min(34rem, 100%);
-  padding: 1rem;
+  width: min(27rem, 100%);
+  padding: 0.85rem;
   border: 1px solid rgba(207, 169, 93, 0.58);
-  border-radius: var(--av-radius-lg);
-  background: #0b1017;
-  box-shadow: 0 2rem 5rem rgba(0, 0, 0, 0.75);
+  border-radius: var(--av-radius-md);
+  background: rgba(11, 16, 23, 0.985);
+  box-shadow: 0 1rem 2.8rem rgba(0, 0, 0, 0.62);
 }
 
 .dialog > span {
@@ -197,22 +196,22 @@
 }
 
 .dialog h2 {
-  margin: 0.35rem 0 0.5rem;
-  font: 500 1.55rem/1 var(--av-font-display);
+  margin: 0.3rem 0 0.45rem;
+  font: 500 1.35rem/1 var(--av-font-display);
 }
 
 .dialog p {
   margin: 0;
   color: var(--av-text-muted);
-  font-size: 0.72rem;
-  line-height: 1.55;
+  font-size: 0.68rem;
+  line-height: 1.5;
 }
 
 .dialog button {
   display: block;
-  margin: 0.85rem 0 0 auto;
-  min-height: 2rem;
-  padding: 0.4rem 0.7rem;
+  margin: 0.7rem 0 0 auto;
+  min-height: 1.9rem;
+  padding: 0.35rem 0.65rem;
   border: 1px solid var(--av-border-strong);
   border-radius: var(--av-radius-sm);
   color: var(--av-text);

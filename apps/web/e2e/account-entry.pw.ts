@@ -93,11 +93,15 @@ test('a new account persists its private profile across refresh, sign-out, and s
 
   await expect(page).toHaveURL(/\/game$/)
   await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Create Character' })).toHaveCount(3)
+  await expect(page.getByRole('link', { name: 'Create Character' })).toHaveCount(1)
+  await expect(page.getByText('Purchase unlock · coming later', { exact: true })).toBeVisible()
+  await expect(page.getByText('Earn free · first Prestige Rebirth', { exact: true })).toBeVisible()
 
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Create Character' })).toHaveCount(3)
+  await expect(page.getByRole('link', { name: 'Create Character' })).toHaveCount(1)
+  await expect(page.getByText('Purchase unlock · coming later', { exact: true })).toBeVisible()
+  await expect(page.getByText('Earn free · first Prestige Rebirth', { exact: true })).toBeVisible()
 
   await page.getByRole('button', { name: 'Account' }).click()
   await page.getByRole('menuitem', { name: 'Sign out' }).click()
@@ -110,6 +114,7 @@ test('a new account persists its private profile across refresh, sign-out, and s
 
   await expect(page).toHaveURL(/\/game$/)
   await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Create Character' })).toHaveCount(1)
 })
 
 test('audio stays gesture-gated and persists mute plus channel levels', async ({

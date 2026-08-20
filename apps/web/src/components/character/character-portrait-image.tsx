@@ -1,3 +1,7 @@
+'use client'
+
+import { useState } from 'react'
+
 import type { ImageAssetId } from '@/media/registry'
 
 import { AurevaneImage } from '@/components/media/aurevane-image'
@@ -8,6 +12,7 @@ interface CharacterPortraitImageProps {
   className?: string
   sizes?: string
   alt?: string
+  onRemoteError?: () => void
 }
 
 export function CharacterPortraitImage({
@@ -16,8 +21,12 @@ export function CharacterPortraitImage({
   className,
   sizes,
   alt = '',
+  onRemoteError,
 }: CharacterPortraitImageProps) {
-  if (imageUrl) {
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null)
+  const useRemoteImage = Boolean(imageUrl && failedImageUrl !== imageUrl)
+
+  if (imageUrl && useRemoteImage) {
     return (
       // Direct character image URLs intentionally support arbitrary http(s) hosts and animated GIFs.
       // eslint-disable-next-line @next/next/no-img-element
@@ -27,6 +36,10 @@ export function CharacterPortraitImage({
         className={className}
         loading="lazy"
         referrerPolicy="no-referrer"
+        onError={() => {
+          setFailedImageUrl(imageUrl)
+          onRemoteError?.()
+        }}
       />
     )
   }

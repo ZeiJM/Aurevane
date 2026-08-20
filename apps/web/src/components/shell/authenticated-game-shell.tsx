@@ -111,7 +111,6 @@ export async function AuthenticatedShellFrame({
           <Link href="/manual">Manual</Link>
           <Link href="/news">News</Link>
           <Link href="/rules">Rules</Link>
-          <OnlinePresenceLink initialCount={onlineCount} />
         </nav>
 
         <div className={styles.screenIdentity} aria-label={`Current screen: ${sessionLabel}`}>
@@ -140,6 +139,8 @@ export async function AuthenticatedShellFrame({
       </main>
 
       <footer className={styles.footer}>
+        <span className={styles.footerBalance} aria-hidden="true" />
+        <OnlinePresenceLink initialCount={onlineCount} />
         <NavigationMenu />
       </footer>
     </div>

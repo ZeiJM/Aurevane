@@ -71,6 +71,66 @@ function applyCustomPortrait(playerName: string, imageUrl: string | null | undef
   image.dataset.customProfileImage = imageUrl
 }
 
+function combatantRail(name: string): HTMLElement | null {
+  return (
+    Array.from(document.querySelectorAll<HTMLElement>('aside[aria-label$=" combat status"]')).find(
+      (candidate) => candidate.getAttribute('aria-label') === `${name} combat status`,
+    ) ?? null
+  )
+}
+
+function combatantTile(name: string): HTMLButtonElement | null {
+  return (
+    Array.from(
+      document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label^="Tile "]'),
+    ).find((tile) => (tile.getAttribute('aria-label') ?? '').includes(`occupied by ${name}`)) ??
+    null
+  )
+}
+
+function syncMapTokenPortrait(name: string, team: 'player' | 'opponent') {
+  const rail = combatantRail(name)
+  const tile = combatantTile(name)
+  const unit = tile?.querySelector<HTMLElement>(':scope > span:not(.tileMeta):last-child')
+  if (!rail || !unit) return
+
+  const existing = unit.querySelector<HTMLElement>('[data-map-token-portrait]')
+  const portraitButton = rail.querySelector<HTMLButtonElement>('button[aria-label^="Show "]')
+  if (!portraitButton) return
+
+  const source = Array.from(portraitButton.children).find(
+    (child) => !child.className.toString().includes('portraitMeters'),
+  ) as HTMLElement | undefined
+  if (!source) return
+
+  const sourceImage = source instanceof HTMLImageElement ? source.src : null
+  const sourceSignature = `${team}:${source.tagName}:${sourceImage ?? source.textContent ?? ''}`
+  if (existing?.dataset.mapTokenSignature === sourceSignature) return
+
+  existing?.remove()
+  const frame = document.createElement('span')
+  frame.dataset.mapTokenPortrait = 'true'
+  frame.dataset.mapTokenTeam = team
+  frame.dataset.mapTokenSignature = sourceSignature
+  frame.setAttribute('aria-hidden', 'true')
+
+  const clone = source.cloneNode(true) as HTMLElement
+  clone.removeAttribute('id')
+  clone.setAttribute('aria-hidden', 'true')
+  if (clone instanceof HTMLImageElement) {
+    clone.referrerPolicy = 'no-referrer'
+    clone.alt = ''
+  }
+  frame.append(clone)
+  unit.prepend(frame)
+  unit.dataset.mapPortraitReady = 'true'
+}
+
+function syncMapPortraits(playerName: string) {
+  syncMapTokenPortrait(playerName, 'player')
+  syncMapTokenPortrait('Recruit', 'opponent')
+}
+
 function setControlledInputValue(input: HTMLInputElement, value: string) {
   const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')?.set
   setter?.call(input, value)
@@ -144,6 +204,7 @@ export function BattleFeedbackAssist({
       updateAttackRange(playerName)
       syncActionEconomyBar()
       applyCustomPortrait(playerName, playerProfileImageUrl)
+      syncMapPortraits(playerName)
       enhanceChat()
     }
     const scheduleRefresh = () => {
@@ -174,6 +235,11 @@ export function BattleFeedbackAssist({
         document.querySelectorAll<HTMLButtonElement>('#battlefield button[data-attack-range]'),
       )) {
         delete tile.dataset.attackRange
+      }
+      for (const portrait of Array.from(
+        document.querySelectorAll<HTMLElement>('[data-map-token-portrait]'),
+      )) {
+        portrait.remove()
       }
     }
   }, [playerName, playerProfileImageUrl])

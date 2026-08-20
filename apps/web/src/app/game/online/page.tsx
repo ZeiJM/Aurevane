@@ -3,6 +3,7 @@ import { Kicker, Surface } from '@aurevane/ui'
 import { redirect } from 'next/navigation'
 
 import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
+import { OnlineUsersDirectory } from '@/components/social/online-users-directory'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 import {
@@ -40,29 +41,14 @@ export default async function OnlineUsersPage() {
             <Kicker marker="◇">Live presence</Kicker>
             <h1>Online Users</h1>
             <p>
-              Characters remain listed while they are active and for up to ten minutes after their
-              last presence heartbeat.
+              Select a character to view their public identity. Presence remains visible while they
+              are active and for up to ten minutes after their last heartbeat.
             </p>
           </div>
           <strong>{online.length}</strong>
         </header>
 
-        <div className={styles.list}>
-          {online.length === 0 ? (
-            <p className={styles.empty}>No characters are currently visible online.</p>
-          ) : (
-            online.map((character) => (
-              <article key={character.characterId}>
-                <span className={styles.presenceDot} aria-hidden="true" />
-                <div>
-                  <strong>{character.name}</strong>
-                  <small>Character Level {character.level}</small>
-                </div>
-                <time dateTime={character.lastSeenAt}>Online</time>
-              </article>
-            ))
-          )}
-        </div>
+        <OnlineUsersDirectory characters={online} />
       </Surface>
     </AuthenticatedShellFrame>
   )

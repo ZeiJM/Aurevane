@@ -37,13 +37,25 @@ export async function loadCharacterProfileImageMap(
     .in('character_id', [...characterIds])
 
   if (error || !Array.isArray(data)) throw unavailable()
-  const result = new Map<string, string>()
-  for (const row of data) {
-    if (typeof row.character_id === 'string' && typeof row.image_url === 'string') {
-      result.set(row.character_id, row.image_url)
-    }
-  }
-  return result
+  return profileImageRowsToMap(data)
+}
+
+/**
+ * Server-only public identity projection. The browser never receives table access; only the
+ * cosmetic image URL for character ids that another authenticated service has already selected.
+ */
+export async function loadPublicCharacterProfileImageMap(
+  characterIds: readonly string[],
+): Promise<ReadonlyMap<string, string>> {
+  if (characterIds.length === 0) return new Map()
+  const supabase = createSupabaseAdminClient()
+  const { data, error } = await supabase
+    .from('character_profile_display')
+    .select('character_id, image_url')
+    .in('character_id', [...characterIds])
+
+  if (error || !Array.isArray(data)) throw unavailable()
+  return profileImageRowsToMap(data)
 }
 
 export async function setCharacterProfileImage(input: {
@@ -86,6 +98,7 @@ export function normalizeProfileImageUrl(value: string | null): string | null {
       'Profile image URLs must be 2048 characters or fewer.',
     )
   }
+
   let parsed: URL
   try {
     parsed = new URL(normalized)
@@ -95,13 +108,41 @@ export function normalizeProfileImageUrl(value: string | null): string | null {
       'Enter a complete image URL beginning with http:// or https://.',
     )
   }
+
   if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
     throw new AurevaneError(
       'INVALID_REQUEST',
       'Profile images must use an http:// or https:// URL.',
     )
   }
+  if (parsed.username || parsed.password) {
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Profile image links cannot contain embedded usernames or passwords.',
+    )
+  }
+
+  const hostname = parsed.hostname.toLowerCase()
+  if (hostname === 'ibb.co' || hostname === 'www.ibb.co' || hostname === 'imgbb.com') {
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'That is an image-host page, not the image itself. Copy the direct image link (for ImgBB it normally begins with https://i.ibb.co/).',
+    )
+  }
+
   return parsed.toString()
+}
+
+function profileImageRowsToMap(
+  rows: readonly { character_id?: unknown; image_url?: unknown }[],
+): ReadonlyMap<string, string> {
+  const result = new Map<string, string>()
+  for (const row of rows) {
+    if (typeof row.character_id === 'string' && typeof row.image_url === 'string') {
+      result.set(row.character_id, row.image_url)
+    }
+  }
+  return result
 }
 
 function unavailable(): AurevaneError {

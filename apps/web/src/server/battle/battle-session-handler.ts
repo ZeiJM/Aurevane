@@ -45,6 +45,7 @@ export async function handleCreateBattleSessionRequest(
       characterId: parsed.characterId,
       arenaId: parsed.arenaId,
       aiDifficulty: parsed.aiDifficulty,
+      battleHallRecordId: parsed.battleHallRecordId,
       idempotencyKey: parsed.idempotencyKey,
     })
     return battleResponse(battle)

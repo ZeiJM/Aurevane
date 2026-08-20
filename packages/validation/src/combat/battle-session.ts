@@ -8,6 +8,14 @@ const gridPositionSchema = z.object({ x: safeInteger, y: safeInteger }).strict()
 const battleFacingSchema = z.enum(['north', 'east', 'south', 'west'])
 const tacticalHallArenaIdSchema = z.enum(['basic-training-floor', 'duel-yard'])
 export const battleAiDifficultySchema = z.enum(['easy', 'standard', 'high'])
+export const battleHallRecordIdSchema = z.enum([
+  'guided-fundamentals',
+  'movement-drill',
+  'strike-drill',
+  'guard-drill',
+  'facing-drill',
+  'recruit-sparring',
+])
 
 const combatTargetSelectionSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('self') }).strict(),
@@ -34,6 +42,7 @@ const battleSessionCreateRequestSchema = z
     characterId: z.string().uuid(),
     arenaId: tacticalHallArenaIdSchema.default('basic-training-floor'),
     aiDifficulty: battleAiDifficultySchema.default('standard'),
+    battleHallRecordId: battleHallRecordIdSchema.default('recruit-sparring'),
   })
   .strict()
 
@@ -113,6 +122,7 @@ const battleEventRowsSchema = z.array(battleEventRowSchema).max(100)
 
 export type BattleIntent = z.infer<typeof battleIntentSchema>
 export type BattleAiDifficulty = z.infer<typeof battleAiDifficultySchema>
+export type BattleHallRecordId = z.infer<typeof battleHallRecordIdSchema>
 export type BattleSessionCreateRequest = z.infer<typeof battleSessionCreateRequestSchema>
 export type BattleIntentRequest = z.infer<typeof battleIntentRequestSchema>
 export type BattlePreviewRequest = z.infer<typeof battlePreviewRequestSchema>

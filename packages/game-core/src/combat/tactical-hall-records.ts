@@ -1,7 +1,12 @@
 import type { TacticalHallArenaId } from './tactical-hall-arenas'
 
 export type TacticalHallRecordId =
-  'movement-drill' | 'strike-drill' | 'guard-drill' | 'facing-drill' | 'recruit-sparring'
+  | 'guided-fundamentals'
+  | 'movement-drill'
+  | 'strike-drill'
+  | 'guard-drill'
+  | 'facing-drill'
+  | 'recruit-sparring'
 
 export interface TacticalHallRecordDefinition {
   id: TacticalHallRecordId
@@ -14,10 +19,24 @@ export interface TacticalHallRecordDefinition {
 
 export const P2_7_TACTICAL_HALL_RECORDS: readonly TacticalHallRecordDefinition[] = [
   {
-    id: 'movement-drill',
-    name: 'Movement & Facing Drill',
+    id: 'guided-fundamentals',
+    name: 'Guided Fundamentals',
     purpose:
-      'Learn Action Economy movement, terrain cost, reachable tiles, and how final facing closes the turn.',
+      'Learn movement, Action Economy, attacking, Guard, recovery, and final facing inside one guided exercise.',
+    defaultArenaId: 'basic-training-floor',
+    coachSteps: [
+      'Move at least one tile. Positioning decides what you can threaten, which terrain you can exploit, and how much AP remains for the rest of the turn.',
+      'Commit a Basic Attack. Range and target choice turn positioning into pressure while the forecast teaches you to read risk before spending AP.',
+      'Use Guard. Defensive AP is a tempo trade: you give up some immediate offense to reduce incoming damage and survive a bad exchange.',
+      'Finish a turn with an intentional facing. Facing protects a direction and teaches you to end each turn thinking about the opponent’s next angle.',
+    ],
+    combinedDuel: false,
+  },
+  {
+    id: 'movement-drill',
+    name: 'Movement & Facing Drill (legacy)',
+    purpose:
+      'Compatibility record retained for existing sessions. New players learn this inside Guided Fundamentals.',
     defaultArenaId: 'basic-training-floor',
     coachSteps: [
       'Choose Move. A normal terrain point costs 25 AP; rough ground marked R50 currently costs 50 AP to enter.',
@@ -28,8 +47,9 @@ export const P2_7_TACTICAL_HALL_RECORDS: readonly TacticalHallRecordDefinition[]
   },
   {
     id: 'strike-drill',
-    name: 'Strike Drill',
-    purpose: 'Learn Basic Attack targeting, forecast, confirmation, and committed AP spending.',
+    name: 'Strike Drill (legacy)',
+    purpose:
+      'Compatibility record retained for existing sessions. New players learn this inside Guided Fundamentals.',
     defaultArenaId: 'basic-training-floor',
     coachSteps: [
       'Choose Basic Attack and select the Recruit.',
@@ -40,8 +60,9 @@ export const P2_7_TACTICAL_HALL_RECORDS: readonly TacticalHallRecordDefinition[]
   },
   {
     id: 'guard-drill',
-    name: 'Guard Drill',
-    purpose: 'Learn that Guard costs 30 AP and reduces incoming damage by 15% while active.',
+    name: 'Guard Drill (legacy)',
+    purpose:
+      'Compatibility record retained for existing sessions. New players learn this inside Guided Fundamentals.',
     defaultArenaId: 'basic-training-floor',
     coachSteps: [
       'Choose Guard and read the 30 AP preview.',
@@ -54,7 +75,7 @@ export const P2_7_TACTICAL_HALL_RECORDS: readonly TacticalHallRecordDefinition[]
     id: 'facing-drill',
     name: 'Facing Drill (legacy)',
     purpose:
-      'Compatibility record retained for existing sessions. New players learn final facing inside Movement & Facing Drill.',
+      'Compatibility record retained for existing sessions. New players learn final facing inside Guided Fundamentals.',
     defaultArenaId: 'basic-training-floor',
     coachSteps: [
       'Choose Finish Turn.',
@@ -89,8 +110,7 @@ export function getTacticalHallRecordFromScenarioSourceId(
 ): TacticalHallRecordDefinition | null {
   const prefix = 'scenario:p2-7-recruit:'
   if (!sourceId.startsWith(prefix)) return null
-  const parts = sourceId.slice(prefix.length).split(':')
-  const recordId = parts[1] as TacticalHallRecordId | undefined
-  if (!recordId) return null
-  return P2_7_TACTICAL_HALL_RECORDS.find((candidate) => candidate.id === recordId) ?? null
+
+  const segments = sourceId.slice(prefix.length).split(':')
+  return P2_7_TACTICAL_HALL_RECORDS.find((candidate) => segments.includes(candidate.id)) ?? null
 }
