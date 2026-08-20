@@ -83,8 +83,15 @@ function commitWhenPreviewReady() {
 export function BattleDirectionalAttackAssist({ playerName }: { playerName: string }) {
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (isTextEntryTarget(event.target) || event.repeat || event.altKey || event.ctrlKey || event.metaKey)
+      if (
+        isTextEntryTarget(event.target) ||
+        event.repeat ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey
+      ) {
         return
+      }
       const direction = directionForCode(event.code)
       if (!direction || !attackModeIsActive()) return
 
