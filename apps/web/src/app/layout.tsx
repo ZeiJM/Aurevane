@@ -10,6 +10,7 @@ import './globals.css'
 import './pv1e-shell-fixes.css'
 import './a3-battle-polish.css'
 import './battle-quality-overrides.css'
+import './character-creation-scale.css'
 
 export const metadata: Metadata = {
   title: 'AUREVANE',
