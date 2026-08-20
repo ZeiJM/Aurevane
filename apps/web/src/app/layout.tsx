@@ -4,7 +4,6 @@ import type { ReactNode } from 'react'
 import '@aurevane/ui/styles.css'
 
 import { AudioProvider } from '@/components/audio/audio-provider'
-import { SiteInteractionGuard } from '@/components/shell/site-interaction-guard'
 
 import './globals.css'
 import './pv1e-shell-fixes.css'
@@ -21,7 +20,6 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
   return (
     <html lang="en">
       <body>
-        <SiteInteractionGuard />
         <AudioProvider>{children}</AudioProvider>
       </body>
     </html>
