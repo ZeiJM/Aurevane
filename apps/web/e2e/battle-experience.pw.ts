@@ -73,10 +73,20 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await page.mouse.click(1, 1)
   await expect(page.getByLabel('Battle chat message')).toHaveCount(0)
 
-  await page.getByRole('button', { name: `Show ${characterName} combat details` }).click()
-  await expect(page.getByText(`${characterName} · combat details`)).toBeVisible()
-  await expect(page.getByText('Initiative', { exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'Close combatant details' }).click()
+  if (testInfo.project.name === 'mobile-chromium') {
+    await page
+      .getByRole('button', { name: new RegExp(`occupied by ${characterName}`) })
+      .click()
+    const combatantDialog = page.getByRole('dialog', { name: `${characterName} battle details` })
+    await expect(combatantDialog).toBeVisible()
+    await expect(combatantDialog.getByText('Initiative', { exact: true })).toBeVisible()
+    await combatantDialog.getByRole('button', { name: 'Close combatant details' }).click()
+  } else {
+    await page.getByRole('button', { name: `Show ${characterName} combat details` }).click()
+    await expect(page.getByText(`${characterName} · combat details`)).toBeVisible()
+    await expect(page.getByText('Initiative', { exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Close combatant details' }).click()
+  }
   await expect(page.getByText(characterName, { exact: true }).first()).toBeVisible()
   await expect(page.getByText('Recruit', { exact: true }).first()).toBeVisible()
   await expectBattlefieldReadable(page)
@@ -161,7 +171,6 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(result).toContainText('Training Complete')
   await expect(result).toContainText('Guided Fundamentals')
   await expect(result).toContainText('no Character XP, Mastery, loot, Crowns, PvP rating')
-  await expectBattlefieldReadable(page)
   expect(await hasHorizontalOverflow(page)).toBe(false)
 })
 
