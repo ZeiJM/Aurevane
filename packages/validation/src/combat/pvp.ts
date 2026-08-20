@@ -3,6 +3,12 @@ import { z } from 'zod'
 export const pvpModeSchema = z.enum(['1v1', '2v2', '3v3', '1v1v1', 'flex-teams'])
 export type PvpMode = z.infer<typeof pvpModeSchema>
 
+export const pvpMapSizeSchema = z.enum(['medium', 'large'])
+export type PvpMapSize = z.infer<typeof pvpMapSizeSchema>
+
+export const pvpMapBiasSchema = z.enum(['less', 'neutral', 'more'])
+export type PvpMapBias = z.infer<typeof pvpMapBiasSchema>
+
 export const pvpLobbyIdSchema = z.string().uuid()
 export const pvpLobbyKeySchema = z
   .string()
@@ -23,6 +29,9 @@ const createLobbyRequestSchema = z
     mode: pvpModeSchema,
     teamASize: teamSizeSchema.optional(),
     teamBSize: teamSizeSchema.optional(),
+    mapSize: pvpMapSizeSchema.default('medium'),
+    elevationBias: pvpMapBiasSchema.default('neutral'),
+    terrainBias: pvpMapBiasSchema.default('neutral'),
   })
   .strict()
   .superRefine((value, context) => {
@@ -52,9 +61,26 @@ const joinLobbyRequestSchema = z
 
 const readyLobbyRequestSchema = z.object({ ready: z.boolean() }).strict()
 
+const lobbySettingsRequestSchema = z
+  .object({
+    mapSize: pvpMapSizeSchema,
+    elevationBias: pvpMapBiasSchema,
+    terrainBias: pvpMapBiasSchema,
+  })
+  .strict()
+
+const lobbySeatMoveRequestSchema = z
+  .object({
+    targetTeamIndex: z.number().int().min(0).max(2),
+    targetSeatIndex: z.number().int().min(0).max(2),
+  })
+  .strict()
+
 export type PvpCreateLobbyRequest = z.infer<typeof createLobbyRequestSchema>
 export type PvpJoinLobbyRequest = z.infer<typeof joinLobbyRequestSchema>
 export type PvpReadyLobbyRequest = z.infer<typeof readyLobbyRequestSchema>
+export type PvpLobbySettingsRequest = z.infer<typeof lobbySettingsRequestSchema>
+export type PvpLobbySeatMoveRequest = z.infer<typeof lobbySeatMoveRequestSchema>
 
 export function parsePvpCreateLobbyRequest(input: unknown): PvpCreateLobbyRequest | null {
   const parsed = createLobbyRequestSchema.safeParse(input)
@@ -68,6 +94,16 @@ export function parsePvpJoinLobbyRequest(input: unknown): PvpJoinLobbyRequest | 
 
 export function parsePvpReadyLobbyRequest(input: unknown): PvpReadyLobbyRequest | null {
   const parsed = readyLobbyRequestSchema.safeParse(input)
+  return parsed.success ? parsed.data : null
+}
+
+export function parsePvpLobbySettingsRequest(input: unknown): PvpLobbySettingsRequest | null {
+  const parsed = lobbySettingsRequestSchema.safeParse(input)
+  return parsed.success ? parsed.data : null
+}
+
+export function parsePvpLobbySeatMoveRequest(input: unknown): PvpLobbySeatMoveRequest | null {
+  const parsed = lobbySeatMoveRequestSchema.safeParse(input)
   return parsed.success ? parsed.data : null
 }
 
