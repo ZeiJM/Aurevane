@@ -1,5 +1,6 @@
 'use client'
 
+import type { Route } from 'next'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
@@ -8,7 +9,7 @@ import { AudioSettingsMenu } from '@/components/audio/audio-settings-menu'
 
 import styles from './account-menu.module.css'
 
-export function AccountMenu() {
+export function AccountMenu({ activeBattleHref = null }: { activeBattleHref?: Route | null }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -56,7 +57,11 @@ export function AccountMenu() {
               Titles &amp; Profile Display
             </Link>
           ) : null}
-          {pathname !== '/game' ? (
+          {activeBattleHref ? (
+            <Link href={activeBattleHref} role="menuitem" onClick={() => setOpen(false)}>
+              Return to Active Battle
+            </Link>
+          ) : pathname !== '/game' ? (
             <Link href="/game" role="menuitem" onClick={() => setOpen(false)}>
               Switch Character
             </Link>

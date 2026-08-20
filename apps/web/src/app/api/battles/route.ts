@@ -1,6 +1,7 @@
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { parseBattleSessionCreateRequest } from '@aurevane/validation/combat/battle-session'
 
+import { assertNoActiveBattle } from '@/server/account/active-game-session'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { handleCreateBattleSessionRequest } from '@/server/battle/battle-session-handler'
 import { createBattleSessionService } from '@/server/battle/battle-session-service'
@@ -26,6 +27,8 @@ export async function POST(request: Request) {
     if (!parsed) {
       throw new AurevaneError('INVALID_REQUEST', 'Invalid battle-session creation request.')
     }
+
+    await assertNoActiveBattle(actor.userId, parsed.idempotencyKey)
 
     const trainingStatus = await loadPracticeStatus(
       actor,

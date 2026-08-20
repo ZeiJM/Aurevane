@@ -18,6 +18,7 @@
     "./combat/battle-state": "./src/combat/battle-state.ts",
     "./combat/board": "./src/combat/board.ts",
     "./combat/pv1f-action-economy": "./src/combat/pv1f-action-economy.ts",
+    "./combat/pvp-quality": "./src/combat/pvp-quality.ts",
     "./combat/recruit-ai": "./src/combat/recruit-ai.ts",
     "./combat/stat-driven-combat": "./src/combat/stat-driven-combat.ts",
     "./combat/tactical-hall-arenas": "./src/combat/tactical-hall-arenas.ts",

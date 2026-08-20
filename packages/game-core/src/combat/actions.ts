@@ -1543,7 +1543,7 @@ function validateCombatContentCatalog(content: CombatContentCatalog): void {
     assertPositiveSafeInteger(status.version, 'status version')
     assertPositiveSafeInteger(status.maximumStacks, 'status maximum stacks')
     assertPositiveSafeInteger(status.durationOwnerTurnStarts, 'status duration')
-    assertBasisPoints(status.damageTakenMultiplierBasisPoints, 'damage taken multiplier', 20_000)
+    assertBasisPoints(status.damageTakenMultiplierBasisPoints, 'damage taken multiplier', 25_000)
     if (ids.has(status.id)) throw new Error(`Duplicate combat status definition ${status.id}.`)
     ids.add(status.id)
   }

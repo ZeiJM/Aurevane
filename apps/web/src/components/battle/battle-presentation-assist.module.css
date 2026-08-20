@@ -1,0 +1,100 @@
+.scope {
+  display: none;
+}
+
+:global(#battlefield [data-facing-guide]) {
+  z-index: 6 !important;
+  border-color: rgba(244, 205, 83, 0.94) !important;
+  background:
+    linear-gradient(rgba(216, 174, 45, 0.14), rgba(216, 174, 45, 0.14)),
+    linear-gradient(145deg, rgba(74, 91, 96, 0.32), rgba(25, 38, 45, 0.78)) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(250, 212, 87, 0.48),
+    0 0 0.95rem rgba(239, 190, 53, 0.32) !important;
+}
+
+:global(#battlefield [data-facing-arrow]) {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  display: grid;
+  place-items: center;
+  color: #f8d968;
+  font-size: clamp(1rem, 2.4vw, 1.7rem);
+  font-weight: 900;
+  line-height: 1;
+  text-shadow:
+    0 0 0.35rem rgba(251, 214, 93, 0.95),
+    0 1px 0 rgba(0, 0, 0, 0.85);
+  pointer-events: none;
+}
+
+:global(#battlefield [data-terrain-legend]) {
+  display: inline-flex;
+  gap: 0.42rem;
+  align-items: center;
+  min-height: 1.65rem;
+  padding: 0.26rem 0.42rem;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 0.32rem;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+:global(#battlefield [data-terrain-legend] > b) {
+  display: grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  place-items: center;
+  flex: 0 0 auto;
+  border: 1px solid rgba(207, 169, 93, 0.35);
+  border-radius: 0.25rem;
+  color: var(--av-brass-200);
+  background: rgba(207, 169, 93, 0.07);
+  font-size: 0.65rem;
+}
+
+:global(#battlefield [data-terrain-legend] > span) {
+  display: grid;
+  gap: 0.08rem;
+}
+
+:global(#battlefield [data-terrain-legend] strong) {
+  color: var(--av-text-muted);
+  font: 700 0.46rem/1 var(--av-font-mono);
+  text-transform: uppercase;
+}
+
+:global(#battlefield [data-terrain-legend] small) {
+  color: var(--av-text-dim);
+  font: 600 0.38rem/1.15 var(--av-font-mono);
+}
+
+:global(#battlefield img[data-battle-token-image]) {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 100% !important;
+  min-height: 100% !important;
+  object-fit: cover !important;
+  object-position: 50% 50% !important;
+  border-radius: 50% !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :global(#battlefield [data-facing-guide]) {
+    animation: facingGuidePulse 1.1s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes facingGuidePulse {
+  from {
+    box-shadow:
+      inset 0 0 0 2px rgba(250, 212, 87, 0.36),
+      0 0 0.55rem rgba(239, 190, 53, 0.2);
+  }
+  to {
+    box-shadow:
+      inset 0 0 0 2px rgba(250, 212, 87, 0.6),
+      0 0 1.05rem rgba(239, 190, 53, 0.4);
+  }
+}

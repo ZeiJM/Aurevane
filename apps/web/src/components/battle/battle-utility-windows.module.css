@@ -8,7 +8,6 @@
   max-width: calc(100vw - 0.8rem);
   max-height: calc(100dvh - 0.8rem);
   overflow: hidden;
-  resize: both;
   border: 1px solid rgba(212, 186, 130, 0.52);
   border-radius: var(--av-radius-md);
   color: var(--av-text);
@@ -95,6 +94,35 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+}
+
+.resizeGrip {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  display: grid;
+  width: 1.15rem;
+  height: 1.15rem;
+  place-items: end;
+  padding: 0 0.08rem 0.02rem 0;
+  border: 0;
+  color: rgba(232, 210, 160, 0.88);
+  background: transparent;
+  cursor: nwse-resize;
+  touch-action: none;
+  user-select: none;
+}
+
+.resizeGrip span {
+  font-size: 0.76rem;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.resizeGrip:hover,
+.resizeGrip:focus-visible {
+  color: var(--av-brass-200);
 }
 
 .logContent {

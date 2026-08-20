@@ -5,7 +5,7 @@ import {
   getTacticalHallRecord,
   type TacticalHallRecordId,
 } from '@aurevane/game-core/combat/tactical-hall-records'
-import type { PvpMode } from '@aurevane/validation/combat/pvp'
+import type { PvpMapBias, PvpMapSize, PvpMode } from '@aurevane/validation/combat/pvp'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
@@ -44,7 +44,7 @@ const ARENAS: readonly { id: TacticalHallArenaId; name: string; scale: string; s
       id: 'duel-yard',
       name: 'Duel Yard',
       scale: '9×7',
-      summary: 'Full duel arena with rough terrain, elevation, and flanking room.',
+      summary: 'Full duel arena with difficult ground, elevation, and flanking room.',
     },
   ]
 
@@ -81,6 +81,9 @@ export function BattleLaunch({
   const [pvpMode, setPvpMode] = useState<PvpMode | null>(null)
   const [teamASize, setTeamASize] = useState(1)
   const [teamBSize, setTeamBSize] = useState(1)
+  const [mapSize, setMapSize] = useState<PvpMapSize>('medium')
+  const [elevationBias, setElevationBias] = useState<PvpMapBias>('neutral')
+  const [terrainBias, setTerrainBias] = useState<PvpMapBias>('neutral')
   const [joinKey, setJoinKey] = useState(initialJoinKey ?? '')
   const [battleKey, setBattleKey] = useState('')
   const [pvpLobby, setPvpLobby] = useState<PvpLobbyView | null>(null)
@@ -152,6 +155,9 @@ export function BattleLaunch({
         body: JSON.stringify({
           characterId,
           mode: pvpMode,
+          mapSize,
+          elevationBias,
+          terrainBias,
           ...(pvpMode === 'flex-teams' ? { teamASize, teamBSize } : {}),
         }),
       })
@@ -369,12 +375,7 @@ export function BattleLaunch({
                 {pending ? 'Entering…' : 'Enter Battle'}
               </button>
             </div>
-          ) : (
-            <div className={styles.emptyState}>
-              <span>◇</span>
-              <strong>Select an AI battle to reveal its setup.</strong>
-            </div>
-          )}
+          ) : null}
         </section>
       ) : null}
 
@@ -441,10 +442,44 @@ export function BattleLaunch({
                   </label>
                 </div>
               ) : null}
+              <div className={styles.mapSettings} aria-label="Random battlefield settings">
+                <label>
+                  Map size
+                  <select
+                    value={mapSize}
+                    onChange={(event) => setMapSize(event.target.value as PvpMapSize)}
+                  >
+                    <option value="medium">Medium</option>
+                    <option value="large">Large</option>
+                  </select>
+                </label>
+                <label>
+                  Elevation
+                  <select
+                    value={elevationBias}
+                    onChange={(event) => setElevationBias(event.target.value as PvpMapBias)}
+                  >
+                    <option value="less">Less</option>
+                    <option value="neutral">Neutral</option>
+                    <option value="more">More</option>
+                  </select>
+                </label>
+                <label>
+                  Difficult ground
+                  <select
+                    value={terrainBias}
+                    onChange={(event) => setTerrainBias(event.target.value as PvpMapBias)}
+                  >
+                    <option value="less">Less</option>
+                    <option value="neutral">Neutral</option>
+                    <option value="more">More</option>
+                  </select>
+                </label>
+              </div>
               {pvpMode ? (
                 <p className={styles.modeSummary}>
                   {PVP_MODES.find((mode) => mode.id === pvpMode)?.detail}. {characterName} takes the
-                  first seat.
+                  first seat. The battlefield is generated once and persisted for the match.
                 </p>
               ) : null}
               <button
@@ -541,7 +576,6 @@ export function BattleLaunch({
           {error}
         </p>
       ) : null}
-
       {pvpLobby ? (
         <PvpLobbyModal
           initialLobby={pvpLobby}

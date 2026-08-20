@@ -1,4 +1,5 @@
 import { Kicker, StatusMark, Surface } from '@aurevane/ui'
+import type { Route } from 'next'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
@@ -8,6 +9,7 @@ import { AccountMenu } from '@/components/shell/account-menu'
 import { NavigationMenu } from '@/components/shell/navigation-menu'
 import { OnlinePresenceLink } from '@/components/shell/online-presence-link'
 import { getStarterPortraitImageAssetId } from '@/media/character'
+import { getActiveBattleForUser } from '@/server/account/active-game-session'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
@@ -62,9 +64,14 @@ export async function AuthenticatedShellFrame({
 }: AuthenticatedShellFrameProps) {
   let activeCharacter = null
   let activeImageUrl: string | null = null
+  let activeBattleHref: Route | null = null
   let onlineCount = 0
   try {
     const actor = await getAuthenticatedActor()
+    const activeBattle = await getActiveBattleForUser(actor.userId).catch(() => null)
+    activeBattleHref = activeBattle
+      ? (`/game/battle/${activeBattle.battleSessionId}` as Route)
+      : null
     activeCharacter = await loadSelectedCharacter(actor)
     if (activeCharacter) {
       try {
@@ -108,6 +115,12 @@ export async function AuthenticatedShellFrame({
           </Link>
         </div>
 
+        {activeBattleHref ? (
+          <Link className={styles.activeBattleLink} href={activeBattleHref}>
+            <span aria-hidden="true">●</span> IN BATTLE
+          </Link>
+        ) : null}
+
         <nav
           className={`${styles.headerLinks} ${railStyles.navigation}`}
           style={{ marginRight: 0 }}
@@ -137,7 +150,7 @@ export async function AuthenticatedShellFrame({
             </span>
           </div>
 
-          <AccountMenu />
+          <AccountMenu activeBattleHref={activeBattleHref} />
         </div>
       </header>
 

@@ -2,6 +2,7 @@ import { isAurevaneError } from '@aurevane/game-core/errors'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
+import { getActiveBattleForUser } from '@/server/account/active-game-session'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import {
   authorizeCharacterSelection,
@@ -9,7 +10,7 @@ import {
 } from '@/server/character/character-slot-service'
 import { SELECTED_CHARACTER_COOKIE } from '@/server/character/selected-character'
 
-function redirectTo(path: '/game' | '/game/character'): NextResponse {
+function redirectTo(path: string): NextResponse {
   return new NextResponse(null, {
     status: 307,
     headers: { Location: path },
@@ -25,6 +26,9 @@ export async function GET(
   { params }: { params: Promise<{ characterId: string }> },
 ) {
   const actor = await getAuthenticatedActor()
+  const activeBattle = await getActiveBattleForUser(actor.userId)
+  if (activeBattle) return redirectTo(`/game/battle/${activeBattle.battleSessionId}`)
+
   const { characterId } = await params
   const character = await findPlayableOwnedCharacterById(actor.userId, characterId)
   if (!character) return redirectTo('/game')

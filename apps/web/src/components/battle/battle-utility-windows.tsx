@@ -37,6 +37,9 @@ interface BattleLogResponse {
 }
 
 const MAX_RECENT_EMOJIS = 8
+const VIEWPORT_MARGIN = 4
+const MIN_WINDOW_WIDTH = 256
+const MIN_WINDOW_HEIGHT = 160
 
 function logTrigger(): HTMLButtonElement | null {
   return (
@@ -122,6 +125,17 @@ function summarizeCommittedAction(entries: readonly BattleLogEntry[], playerName
   return unique.slice(0, 3).join(' · ')
 }
 
+function lockWindowToCurrentRect(panel: HTMLElement) {
+  const rect = panel.getBoundingClientRect()
+  panel.style.left = `${rect.left}px`
+  panel.style.top = `${rect.top}px`
+  panel.style.width = `${rect.width}px`
+  panel.style.height = `${rect.height}px`
+  panel.style.right = 'auto'
+  panel.style.bottom = 'auto'
+  return rect
+}
+
 function UtilityWindow({
   title,
   meta,
@@ -144,35 +158,70 @@ function UtilityWindow({
     if ((event.target as Element | null)?.closest('button, input, textarea, select, a')) return
     const panel = windowRef.current
     if (!panel) return
-    const dragPanel: HTMLElement = panel
+    const panelElement = panel
 
     event.preventDefault()
-    const rect = dragPanel.getBoundingClientRect()
+    event.currentTarget.setPointerCapture?.(event.pointerId)
+    const rect = lockWindowToCurrentRect(panelElement)
     const startX = event.clientX
     const startY = event.clientY
-    const startLeft = rect.left
-    const startTop = rect.top
-
-    dragPanel.style.width = `${rect.width}px`
-    dragPanel.style.height = `${rect.height}px`
-    dragPanel.style.left = `${rect.left}px`
-    dragPanel.style.top = `${rect.top}px`
-    dragPanel.style.right = 'auto'
-    dragPanel.style.bottom = 'auto'
 
     function move(moveEvent: PointerEvent) {
-      const width = dragPanel.getBoundingClientRect().width
-      const height = dragPanel.getBoundingClientRect().height
       const left = Math.max(
-        4,
-        Math.min(window.innerWidth - width - 4, startLeft + moveEvent.clientX - startX),
+        VIEWPORT_MARGIN,
+        Math.min(
+          window.innerWidth - rect.width - VIEWPORT_MARGIN,
+          rect.left + moveEvent.clientX - startX,
+        ),
       )
       const top = Math.max(
-        4,
-        Math.min(window.innerHeight - height - 4, startTop + moveEvent.clientY - startY),
+        VIEWPORT_MARGIN,
+        Math.min(
+          window.innerHeight - rect.height - VIEWPORT_MARGIN,
+          rect.top + moveEvent.clientY - startY,
+        ),
       )
-      dragPanel.style.left = `${left}px`
-      dragPanel.style.top = `${top}px`
+      panelElement.style.left = `${left}px`
+      panelElement.style.top = `${top}px`
+    }
+
+    function finish() {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', finish)
+      window.removeEventListener('pointercancel', finish)
+    }
+
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', finish)
+    window.addEventListener('pointercancel', finish)
+  }
+
+  function beginResize(event: ReactPointerEvent<HTMLButtonElement>) {
+    if (event.button !== 0) return
+    const panel = windowRef.current
+    if (!panel) return
+    const panelElement = panel
+
+    event.preventDefault()
+    event.stopPropagation()
+    event.currentTarget.setPointerCapture?.(event.pointerId)
+    const rect = lockWindowToCurrentRect(panelElement)
+    const startX = event.clientX
+    const startY = event.clientY
+
+    function move(moveEvent: PointerEvent) {
+      const maxWidth = Math.max(MIN_WINDOW_WIDTH, window.innerWidth - rect.left - VIEWPORT_MARGIN)
+      const maxHeight = Math.max(MIN_WINDOW_HEIGHT, window.innerHeight - rect.top - VIEWPORT_MARGIN)
+      const width = Math.max(
+        MIN_WINDOW_WIDTH,
+        Math.min(maxWidth, rect.width + moveEvent.clientX - startX),
+      )
+      const height = Math.max(
+        MIN_WINDOW_HEIGHT,
+        Math.min(maxHeight, rect.height + moveEvent.clientY - startY),
+      )
+      panelElement.style.width = `${width}px`
+      panelElement.style.height = `${height}px`
     }
 
     function finish() {
@@ -204,6 +253,15 @@ function UtilityWindow({
         </button>
       </header>
       <div className={styles.windowBody}>{children}</div>
+      <button
+        type="button"
+        className={styles.resizeGrip}
+        aria-label={`Resize ${title.toLowerCase()}`}
+        title={`Resize ${title}`}
+        onPointerDown={beginResize}
+      >
+        <span aria-hidden="true">⌟</span>
+      </button>
     </section>
   )
 }

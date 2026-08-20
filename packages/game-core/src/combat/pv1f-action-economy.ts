@@ -47,8 +47,18 @@ export const PV1F_GUARDED_STATUS: CombatStatusDefinition = {
   damageTakenMultiplierBasisPoints: 8_500,
 }
 
+// Lowered Guard is a single persistent PvP anti-AFK debuff: affected combatants take
+// exactly 250% of normal incoming damage before HP clamping.
+export const PV1F_LOWERED_GUARD_STATUS: CombatStatusDefinition = {
+  id: 'lowered-guard',
+  version: 1,
+  maximumStacks: 1,
+  durationOwnerTurnStarts: 1_000,
+  damageTakenMultiplierBasisPoints: 25_000,
+}
+
 export const PV1F_COMBAT_CONTENT: CombatContentCatalog = {
-  statuses: [PV1F_GUARDED_STATUS],
+  statuses: [PV1F_GUARDED_STATUS, PV1F_LOWERED_GUARD_STATUS],
 }
 
 export const PV1F_GUARD_ACTION: CombatActionDefinition = {

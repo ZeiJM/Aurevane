@@ -1,6 +1,7 @@
 'use client'
 
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
+import type { PvpMapBias, PvpMapSize } from '@aurevane/validation/combat/pvp'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -18,6 +19,18 @@ interface PvpLobbyModalProps {
 
 interface ApiErrorBody {
   error?: { message?: string }
+}
+
+interface MapSettings {
+  mapSize: PvpMapSize
+  elevationBias: PvpMapBias
+  terrainBias: PvpMapBias
+}
+
+const DEFAULT_SETTINGS: MapSettings = {
+  mapSize: 'medium',
+  elevationBias: 'neutral',
+  terrainBias: 'neutral',
 }
 
 function teamLabel(index: number, teamCount: number): string {
@@ -56,6 +69,7 @@ function Portrait({ member }: { member: PvpLobbyMemberView }) {
 export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLobbyModalProps) {
   const router = useRouter()
   const [lobby, setLobby] = useState(initialLobby)
+  const [settings, setSettings] = useState<MapSettings>(DEFAULT_SETTINGS)
   const [pending, setPending] = useState(false)
   const [copyNotice, setCopyNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -65,6 +79,8 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
     [lobby.members, localCharacterId],
   )
   const teams = teamCount(lobby)
+  const required = lobby.teamSizes.reduce((total, size) => total + size, 0)
+  const canMoveSeats = required > 2 && lobby.status === 'waiting'
 
   const startBattle = useCallback(async () => {
     if (startLock.current || lobby.status !== 'waiting' || !lobby.readyToStart) return
@@ -94,6 +110,25 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
     }
     if (lobby.readyToStart) void startBattle()
   }, [lobby.battleSessionId, lobby.readyToStart, lobby.status, router, startBattle])
+
+  useEffect(() => {
+    let cancelled = false
+    async function loadSettings() {
+      try {
+        const response = await fetch(`/api/pvp/lobbies/${lobby.lobbyId}/settings`, {
+          cache: 'no-store',
+        })
+        const body = (await response.json()) as { settings?: MapSettings }
+        if (response.ok && body.settings && !cancelled) setSettings(body.settings)
+      } catch {
+        // Lobby remains usable if cosmetic staging settings cannot refresh momentarily.
+      }
+    }
+    void loadSettings()
+    return () => {
+      cancelled = true
+    }
+  }, [lobby.lobbyId])
 
   useEffect(() => {
     let cancelled = false
@@ -129,12 +164,60 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
         body: JSON.stringify({ ready: !localMember.ready }),
       })
       const body = (await response.json()) as { lobby?: PvpLobbyView } & ApiErrorBody
-      if (!response.ok || !body.lobby) {
+      if (!response.ok || !body.lobby)
         throw new Error(body.error?.message ?? 'Readiness could not be updated.')
-      }
       setLobby(body.lobby)
     } catch (readyError) {
       setError(readyError instanceof Error ? readyError.message : 'Readiness could not be updated.')
+    } finally {
+      setPending(false)
+    }
+  }
+
+  async function moveSeat(targetTeamIndex: number, targetSeatIndex: number) {
+    if (!localMember || !canMoveSeats || pending) return
+    if (localMember.teamIndex === targetTeamIndex && localMember.seatIndex === targetSeatIndex)
+      return
+    setPending(true)
+    setError(null)
+    try {
+      const response = await fetch(`/api/pvp/lobbies/${lobby.lobbyId}/seat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetTeamIndex, targetSeatIndex }),
+      })
+      const body = (await response.json()) as { lobby?: PvpLobbyView } & ApiErrorBody
+      if (!response.ok || !body.lobby)
+        throw new Error(body.error?.message ?? 'That team move could not be made.')
+      setLobby(body.lobby)
+    } catch (moveError) {
+      setError(moveError instanceof Error ? moveError.message : 'That team move could not be made.')
+    } finally {
+      setPending(false)
+    }
+  }
+
+  async function updateSettings(next: MapSettings) {
+    if (!localMember?.isHost || pending || lobby.status !== 'waiting') return
+    setSettings(next)
+    setPending(true)
+    setError(null)
+    try {
+      const response = await fetch(`/api/pvp/lobbies/${lobby.lobbyId}/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(next),
+      })
+      const body = (await response.json()) as { settings?: MapSettings } & ApiErrorBody
+      if (!response.ok || !body.settings)
+        throw new Error(body.error?.message ?? 'Battlefield settings could not be changed.')
+      setSettings(body.settings)
+    } catch (settingsError) {
+      setError(
+        settingsError instanceof Error
+          ? settingsError.message
+          : 'Battlefield settings could not be changed.',
+      )
     } finally {
       setPending(false)
     }
@@ -168,7 +251,6 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
   }
 
   const filled = lobby.members.length
-  const required = lobby.teamSizes.reduce((total, size) => total + size, 0)
   const readyCount = lobby.members.filter((member) => member.ready).length
 
   return (
@@ -184,8 +266,8 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
             <span>Battle Hall · PvP Staging</span>
             <h2 id="pvp-lobby-title">The arena is waiting.</h2>
             <p>
-              {lobby.mode.toUpperCase()} · Assemble the roster, ready every combatant, then battle
-              begins automatically.
+              {lobby.mode.toUpperCase()} · Assemble the roster, settle the teams, ready every
+              combatant, then battle begins automatically.
             </p>
           </div>
           <div className={styles.keyStack}>
@@ -207,6 +289,95 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
           </span>
         </div>
 
+        <section
+          aria-label="PvP battlefield generation"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            gap: '0.45rem',
+          }}
+        >
+          <label
+            style={{
+              display: 'grid',
+              gap: '0.25rem',
+              color: 'var(--av-text-dim)',
+              fontSize: '0.52rem',
+            }}
+          >
+            Map size
+            <select
+              disabled={!localMember?.isHost || pending}
+              value={settings.mapSize}
+              onChange={(event) =>
+                void updateSettings({ ...settings, mapSize: event.target.value as PvpMapSize })
+              }
+            >
+              <option value="medium">Medium</option>
+              <option value="large">Large</option>
+            </select>
+          </label>
+          <label
+            style={{
+              display: 'grid',
+              gap: '0.25rem',
+              color: 'var(--av-text-dim)',
+              fontSize: '0.52rem',
+            }}
+          >
+            Elevation
+            <select
+              disabled={!localMember?.isHost || pending}
+              value={settings.elevationBias}
+              onChange={(event) =>
+                void updateSettings({
+                  ...settings,
+                  elevationBias: event.target.value as PvpMapBias,
+                })
+              }
+            >
+              <option value="less">Less</option>
+              <option value="neutral">Neutral</option>
+              <option value="more">More</option>
+            </select>
+          </label>
+          <label
+            style={{
+              display: 'grid',
+              gap: '0.25rem',
+              color: 'var(--av-text-dim)',
+              fontSize: '0.52rem',
+            }}
+          >
+            Difficult ground
+            <select
+              disabled={!localMember?.isHost || pending}
+              value={settings.terrainBias}
+              onChange={(event) =>
+                void updateSettings({ ...settings, terrainBias: event.target.value as PvpMapBias })
+              }
+            >
+              <option value="less">Less</option>
+              <option value="neutral">Neutral</option>
+              <option value="more">More</option>
+            </select>
+          </label>
+        </section>
+
+        {canMoveSeats ? (
+          <p
+            style={{
+              margin: 0,
+              color: 'var(--av-text-dim)',
+              fontSize: '0.52rem',
+              textAlign: 'center',
+            }}
+          >
+            Click any team seat to move there. Occupied seats swap positions. Any team change clears
+            everyone&apos;s Ready state.
+          </p>
+        ) : null}
+
         <div className={styles.teams} data-team-count={teams}>
           {Array.from({ length: teams }, (_, teamIndex) => (
             <div className={styles.teamWrap} key={teamIndex}>
@@ -220,10 +391,24 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
                   {Array.from({ length: lobby.teamSizes[teamIndex] ?? 0 }, (_, seatIndex) => {
                     const member = memberForSeat(lobby, teamIndex, seatIndex)
                     return member ? (
-                      <article
+                      <button
+                        type="button"
                         className={styles.filledSeat}
                         key={seatIndex}
                         data-ready={member.ready || undefined}
+                        disabled={!canMoveSeats || pending || !localMember}
+                        onClick={() => void moveSeat(teamIndex, seatIndex)}
+                        title={
+                          canMoveSeats
+                            ? `Move to Team ${teamIndex + 1}, seat ${seatIndex + 1}`
+                            : undefined
+                        }
+                        style={{
+                          width: '100%',
+                          color: 'inherit',
+                          textAlign: 'left',
+                          cursor: canMoveSeats ? 'pointer' : 'default',
+                        }}
                       >
                         <div className={styles.portraitFrame}>
                           <Portrait member={member} />
@@ -237,13 +422,30 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
                           </small>
                         </div>
                         <span>{member.ready ? 'READY' : 'STANDBY'}</span>
-                      </article>
+                      </button>
                     ) : (
-                      <article className={styles.emptySeat} key={seatIndex}>
+                      <button
+                        type="button"
+                        className={styles.emptySeat}
+                        key={seatIndex}
+                        disabled={!canMoveSeats || pending || !localMember}
+                        onClick={() => void moveSeat(teamIndex, seatIndex)}
+                        title={
+                          canMoveSeats
+                            ? `Move to Team ${teamIndex + 1}, seat ${seatIndex + 1}`
+                            : undefined
+                        }
+                        style={{
+                          width: '100%',
+                          color: 'inherit',
+                          textAlign: 'left',
+                          cursor: canMoveSeats ? 'pointer' : 'default',
+                        }}
+                      >
                         <div>◇</div>
                         <strong>Open combat seat</strong>
                         <small>Waiting for a challenger</small>
-                      </article>
+                      </button>
                     )
                   })}
                 </div>
