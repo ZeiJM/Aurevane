@@ -30,6 +30,18 @@
   filter: saturate(0.78);
 }
 
+:global(#battlefield [data-target-legend='friendly'] b) {
+  color: #91d6aa;
+}
+
+:global(#battlefield [data-target-legend='enemy'] b) {
+  color: #efa94b;
+}
+
+:global(#battlefield [data-target-legend='illegal'] b) {
+  color: #e29090;
+}
+
 :global(#battlefield [data-map-portrait-ready]) {
   isolation: isolate;
 }
