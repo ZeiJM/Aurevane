@@ -110,6 +110,7 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
           characterId,
           arenaId,
           aiDifficulty: selectedRecord.combinedDuel ? aiDifficulty : 'easy',
+          battleHallRecordId: selectedRecord.id,
           idempotencyKey: crypto.randomUUID(),
         }),
       })
