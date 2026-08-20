@@ -321,18 +321,76 @@
 }
 
 @media (max-width: 520px) {
-  .hero {
-    grid-template-columns: 1fr;
+  .profile {
+    padding: 0.5rem;
   }
+
+  .hero {
+    grid-template-columns: 5.7rem minmax(0, 1fr);
+    gap: 0.62rem;
+    align-items: center;
+  }
+
   .portrait {
-    width: 6.5rem;
-    height: 6.5rem;
+    width: 5.7rem;
+    height: 5.7rem;
     min-height: 0;
   }
-  .statGroup dl {
-    grid-template-columns: 1fr;
+
+  .identity h1 {
+    font-size: clamp(1.85rem, 9vw, 2.5rem);
   }
+
+  .nameLine {
+    gap: 0.3rem;
+    margin-top: 0.12rem;
+  }
+
+  .disciplinePill,
+  .personalTitlePill {
+    min-height: 1.3rem;
+    padding: 0.22rem 0.42rem;
+    font-size: 0.46rem;
+  }
+
+  .subtitle {
+    font-size: 0.56rem;
+  }
+
+  .discipline {
+    margin-bottom: 0.32rem;
+    font-size: 0.62rem;
+    line-height: 1.28;
+  }
+
+  .levelProgress > div:first-child {
+    gap: 0.35rem;
+    font-size: 0.46rem;
+  }
+
   .sidebar {
     grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+
+  .sideCard {
+    padding: 0.55rem;
+  }
+
+  .record {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 0.75rem;
+    margin-top: 0.3rem;
+  }
+
+  .record div {
+    padding: 0.27rem 0;
+  }
+
+  .accountHint {
+    padding: 0.48rem 0.52rem;
+    font-size: 0.54rem;
+    line-height: 1.32;
   }
 }
