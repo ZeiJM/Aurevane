@@ -11,7 +11,7 @@ function uniqueCharacterName(): string {
   return `Fit ${letters}`
 }
 
-test('keeps the core A1 surfaces inside the initial desktop and laptop viewport', async ({
+test.only('keeps the core A1 surfaces inside the initial desktop and laptop viewport', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -39,6 +39,56 @@ test('keeps the core A1 surfaces inside the initial desktop and laptop viewport'
   await expectInitialViewportFit(page, 'Character Profile')
 
   await page.goto('/game/battle')
+  const geometry = await page.evaluate(() => {
+    const describe = (element: Element | null) => {
+      if (!(element instanceof HTMLElement)) return null
+      const rect = element.getBoundingClientRect()
+      const style = getComputedStyle(element)
+      return {
+        tag: element.tagName,
+        id: element.id,
+        className: element.className,
+        rect: { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+        clientWidth: element.clientWidth,
+        clientHeight: element.clientHeight,
+        display: style.display,
+        visibility: style.visibility,
+        opacity: style.opacity,
+        position: style.position,
+        overflow: style.overflow,
+        width: style.width,
+        minWidth: style.minWidth,
+        maxWidth: style.maxWidth,
+        height: style.height,
+        minHeight: style.minHeight,
+        gridTemplateColumns: style.gridTemplateColumns,
+        gridTemplateRows: style.gridTemplateRows,
+        alignSelf: style.alignSelf,
+        justifySelf: style.justifySelf,
+      }
+    }
+    const heading = document.querySelector('#battle-launch-title')
+    const headingGroup = heading?.parentElement ?? null
+    const headingHeader = headingGroup?.parentElement ?? null
+    const pageRoot = document.querySelector('#battle-launch')
+    const main = document.querySelector('#game-main')
+    const shell = document.querySelector('[data-testid="authenticated-shell"]')
+    return {
+      viewport: {
+        width: window.innerWidth,
+        height: window.innerHeight,
+        scrollWidth: document.documentElement.scrollWidth,
+        scrollHeight: document.documentElement.scrollHeight,
+      },
+      heading: describe(heading),
+      headingGroup: describe(headingGroup),
+      headingHeader: describe(headingHeader),
+      pageRoot: describe(pageRoot),
+      main: describe(main),
+      shell: describe(shell),
+    }
+  })
+  console.log(`BATTLE_GEOMETRY ${JSON.stringify(geometry)}`)
   await expect(page.getByRole('heading', { name: 'Choose your arena.' })).toBeVisible()
   await expectInitialViewportFit(page, 'Battle Hall')
 
