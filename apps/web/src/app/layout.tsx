@@ -9,6 +9,7 @@ import { SiteInteractionGuard } from '@/components/shell/site-interaction-guard'
 import './globals.css'
 import './pv1e-shell-fixes.css'
 import './a3-battle-polish.css'
+import './battle-quality-overrides.css'
 
 export const metadata: Metadata = {
   title: 'AUREVANE',
