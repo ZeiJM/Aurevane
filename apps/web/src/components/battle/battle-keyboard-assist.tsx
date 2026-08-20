@@ -90,6 +90,15 @@ function moveModeIsActive(): boolean {
   return commandIsActive('Move')
 }
 
+function facingModeIsActive(): boolean {
+  return Boolean(
+    document.querySelector<HTMLButtonElement>('[aria-label="Face north"]:not(:disabled)') &&
+      document.querySelector<HTMLButtonElement>('[aria-label="Face south"]:not(:disabled)') &&
+      document.querySelector<HTMLButtonElement>('[aria-label="Face west"]:not(:disabled)') &&
+      document.querySelector<HTMLButtonElement>('[aria-label="Face east"]:not(:disabled)'),
+  )
+}
+
 function planningButton(text: string): HTMLButtonElement | null {
   const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('footer button'))
   return buttons.find((button) => button.textContent?.includes(text)) ?? null
@@ -125,6 +134,21 @@ function directionForCode(code: string): { dx: number; dy: number } | null {
   return null
 }
 
+function chooseFacing(direction: { dx: number; dy: number }): boolean {
+  const label =
+    direction.dy < 0
+      ? 'Face north'
+      : direction.dy > 0
+        ? 'Face south'
+        : direction.dx < 0
+          ? 'Face west'
+          : 'Face east'
+  const button = document.querySelector<HTMLButtonElement>(`[aria-label="${label}"]`)
+  if (!button || button.disabled) return false
+  button.click()
+  return true
+}
+
 function syncVisibleCommandLabels(bindings: CombatKeybindMap) {
   const commands: readonly [CombatKeybindAction, readonly string[]][] = [
     ['inspect', ['Inspect']],
@@ -139,7 +163,7 @@ function syncVisibleCommandLabels(bindings: CombatKeybindMap) {
     const badge = button?.querySelector<HTMLElement>(':scope > span')
     if (!badge) continue
     const binding = formatCombatKeybind(bindings[action])
-    const label = action === 'move' ? `${binding} · WASD` : binding
+    const label = action === 'move' || action === 'endTurn' ? `${binding} · WASD` : binding
     if (badge.textContent !== label) badge.textContent = label
   }
 }
@@ -425,6 +449,13 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
         event.preventDefault()
         event.stopImmediatePropagation()
         moveAdjacent(movementDirection)
+        return
+      }
+
+      if (movementDirection && facingModeIsActive()) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        chooseFacing(movementDirection)
         return
       }
 
