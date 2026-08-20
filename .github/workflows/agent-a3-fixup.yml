@@ -1,0 +1,96 @@
+name: Agent A3 one-shot fixup
+
+on:
+  push:
+    branches:
+      - agent/supabase-migration-history-alignment
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  fixup:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply null-safety fix and exact repository formatting
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('apps/web/src/components/battle/battle-utility-windows.tsx')
+          text = path.read_text()
+          needle = "    const panel = windowRef.current\n    if (!panel) return\n"
+          replacement = needle + "    const dragPanel: HTMLElement = panel\n"
+          if needle not in text:
+              raise SystemExit('Expected utility-window drag block was not found')
+          text = text.replace(needle, replacement, 1)
+          text = text.replace('panel.', 'dragPanel.')
+          path.write_text(text)
+          PY
+
+          pnpm exec prettier --write \
+            apps/web/e2e/battle-experience.pw.ts \
+            apps/web/e2e/navigation-menu-position.pw.ts \
+            apps/web/src/app/a3-battle-polish.css \
+            apps/web/src/components/battle/battle-directional-keyboard-assist.tsx \
+            apps/web/src/components/battle/battle-feedback-assist.tsx \
+            apps/web/src/components/battle/battle-keyboard-assist.tsx \
+            apps/web/src/components/battle/battle-launch-polish.module.css \
+            apps/web/src/components/battle/battle-utility-windows.tsx \
+            apps/web/src/components/battle/mobile-battle-combatant-popup.tsx \
+            apps/web/src/components/shell/navigation-menu.module.css
+
+          pnpm exec prettier --check \
+            apps/web/e2e/battle-experience.pw.ts \
+            apps/web/e2e/navigation-menu-position.pw.ts \
+            apps/web/src/app/a3-battle-polish.css \
+            apps/web/src/components/battle/battle-directional-keyboard-assist.tsx \
+            apps/web/src/components/battle/battle-feedback-assist.tsx \
+            apps/web/src/components/battle/battle-keyboard-assist.tsx \
+            apps/web/src/components/battle/battle-launch-polish.module.css \
+            apps/web/src/components/battle/battle-utility-windows.tsx \
+            apps/web/src/components/battle/mobile-battle-combatant-popup.tsx \
+            apps/web/src/components/shell/navigation-menu.module.css
+
+      - name: Commit fixup and remove this temporary workflow
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm -- .github/workflows/agent-a3-fixup.yml
+          git add -- \
+            apps/web/e2e/battle-experience.pw.ts \
+            apps/web/e2e/navigation-menu-position.pw.ts \
+            apps/web/src/app/a3-battle-polish.css \
+            apps/web/src/components/battle/battle-directional-keyboard-assist.tsx \
+            apps/web/src/components/battle/battle-feedback-assist.tsx \
+            apps/web/src/components/battle/battle-keyboard-assist.tsx \
+            apps/web/src/components/battle/battle-launch-polish.module.css \
+            apps/web/src/components/battle/battle-utility-windows.tsx \
+            apps/web/src/components/battle/mobile-battle-combatant-popup.tsx \
+            apps/web/src/components/shell/navigation-menu.module.css
+          git diff --cached --check
+          git commit -m 'chore: format and harden A3 UI batch'
+          git push origin HEAD:${GITHUB_REF_NAME}
