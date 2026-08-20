@@ -48,6 +48,10 @@ export function CharacterSelectShell({
     () => new Map(characters.map((character) => [character.slotIndex, character])),
     [characters],
   )
+  const prestigeSlotEarned = useMemo(
+    () => characters.some((character) => character.progressionCycle.number >= 2),
+    [characters],
+  )
   const displaySlots = useMemo(
     () =>
       [0, 1, 2]
@@ -56,14 +60,17 @@ export function CharacterSelectShell({
           return {
             slotIndex,
             character,
-            unlocked: slotIndex === 0 || Boolean(character),
+            unlocked:
+              slotIndex === 0 ||
+              Boolean(character) ||
+              (slotIndex === 2 && prestigeSlotEarned),
           }
         })
         .sort((left, right) => {
           if (left.unlocked !== right.unlocked) return left.unlocked ? -1 : 1
           return left.slotIndex - right.slotIndex
         }),
-    [bySlot],
+    [bySlot, prestigeSlotEarned],
   )
 
   async function requestDeletion() {
@@ -184,12 +191,18 @@ export function CharacterSelectShell({
             if (!character) {
               return (
                 <article className={`${styles.slot} ${styles.empty}`} key={slotIndex}>
-                  <span className={styles.slotNumber}>Slot {slotIndex + 1} · Free</span>
+                  <span className={styles.slotNumber}>
+                    Slot {slotIndex + 1} · {slotIndex === 0 ? 'Free' : 'Prestige unlocked'}
+                  </span>
                   <div className={styles.emptyCrest} aria-hidden="true">
                     +
                   </div>
                   <h2>Open character slot</h2>
-                  <p>Create your adventurer with their own identity, progression, and build.</p>
+                  <p>
+                    {slotIndex === 2
+                      ? 'Your first Prestige Rebirth earned this extra character slot for free.'
+                      : 'Create your adventurer with their own identity, progression, and build.'}
+                  </p>
                   <Link className={styles.primaryAction} href={`/game/create/${slotIndex}`}>
                     Create Character
                   </Link>
