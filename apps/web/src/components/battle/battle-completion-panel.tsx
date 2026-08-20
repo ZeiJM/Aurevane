@@ -4,8 +4,9 @@ import {
   getTacticalHallArena,
   type TacticalHallArenaId,
 } from '@aurevane/game-core/combat/tactical-hall-arenas'
+import { getTacticalHallRecordFromScenarioSourceId } from '@aurevane/game-core/combat/tactical-hall-records'
 import { useRouter } from 'next/navigation'
-import { useMemo, useState, useSyncExternalStore } from 'react'
+import { useMemo, useState } from 'react'
 
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
@@ -37,23 +38,32 @@ function readArenaId(battle: BattleSessionView): TacticalHallArenaId {
   return tactical.width === 9 && tactical.height === 7 ? 'duel-yard' : 'basic-training-floor'
 }
 
-function subscribeStoredRecord(): () => void {
-  return () => undefined
+function readScenarioSourceId(battle: BattleSessionView): string | null {
+  const scenario = battle.snapshot.statBridge.combatants.find(
+    (profile) => profile.provenance.kind === 'scenario',
+  )
+  return scenario?.provenance.sourceId ?? null
+}
+
+function readAiDifficulty(sourceId: string | null): 'easy' | 'standard' | 'high' {
+  const value = sourceId?.split(':').at(-1)
+  return value === 'easy' || value === 'high' || value === 'standard' ? value : 'standard'
 }
 
 export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
   const router = useRouter()
   const [retryPending, setRetryPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const recordId = useSyncExternalStore(
-    subscribeStoredRecord,
-    () => sessionStorage.getItem(`aurevane:tactical-record:${battle.battleSessionId}`),
-    () => null,
-  )
   const result = useMemo(() => readResult(battle), [battle])
   const characterId = useMemo(() => readCharacterId(battle), [battle])
   const arenaId = useMemo(() => readArenaId(battle), [battle])
   const arena = useMemo(() => getTacticalHallArena(arenaId), [arenaId])
+  const scenarioSourceId = useMemo(() => readScenarioSourceId(battle), [battle])
+  const recordId =
+    (scenarioSourceId
+      ? getTacticalHallRecordFromScenarioSourceId(scenarioSourceId)?.id
+      : null) ?? 'recruit-sparring'
+  const aiDifficulty = readAiDifficulty(scenarioSourceId)
   const battleState = battle.snapshot.tactical.battle
   const player = battleState.combatants.find((combatant) => combatant.teamId === 'players')
   const recruit = battleState.combatants.find((combatant) => combatant.teamId === 'opponents')
@@ -65,10 +75,6 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
     setRetryPending(true)
     setError(null)
 
-    const storedRecordId = sessionStorage.getItem(
-      `aurevane:tactical-record:${battle.battleSessionId}`,
-    )
-
     try {
       const response = await fetch('/api/battles', {
         method: 'POST',
@@ -76,6 +82,8 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
         body: JSON.stringify({
           characterId,
           arenaId,
+          aiDifficulty,
+          battleHallRecordId: recordId,
           idempotencyKey: crypto.randomUUID(),
         }),
       })
@@ -87,12 +95,10 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
         throw new Error(body.error?.message ?? 'The practice battle could not be restarted.')
       }
 
-      if (storedRecordId) {
-        sessionStorage.setItem(
-          `aurevane:tactical-record:${body.battle.battleSessionId}`,
-          storedRecordId,
-        )
-      }
+      sessionStorage.setItem(
+        `aurevane:tactical-record:${body.battle.battleSessionId}`,
+        recordId,
+      )
       router.push(`/game/battle/${body.battle.battleSessionId}`)
     } catch (retryError) {
       setError(
