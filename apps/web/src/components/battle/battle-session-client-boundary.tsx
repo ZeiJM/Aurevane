@@ -1,5 +1,7 @@
 'use client'
 
+import { getTacticalHallRecordFromScenarioSourceId } from '@aurevane/game-core/combat/tactical-hall-records'
+
 import type { ImageAssetId } from '@/media/registry'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
@@ -23,6 +25,13 @@ export function BattleSessionClientBoundary({
   playerPortraitAssetId,
   playerProfileImageUrl = null,
 }: BattleSessionClientBoundaryProps) {
+  const scenario = initialBattle.snapshot.statBridge.combatants.find(
+    (profile) => profile.provenance.kind === 'scenario',
+  )
+  const battleHallRecord = scenario
+    ? getTacticalHallRecordFromScenarioSourceId(scenario.provenance.sourceId)
+    : null
+
   return (
     <BattleRuntimeProvider playerName={playerName}>
       <BattleExperienceV2
@@ -30,7 +39,10 @@ export function BattleSessionClientBoundary({
         playerName={playerName}
         playerPortraitAssetId={playerPortraitAssetId}
       />
-      <BattleLessonCoach battleSessionId={initialBattle.battleSessionId} />
+      <BattleLessonCoach
+        battleSessionId={initialBattle.battleSessionId}
+        recordId={battleHallRecord?.id ?? 'recruit-sparring'}
+      />
       <BattleKeyboardAssist playerName={playerName} />
       <BattleFeedbackAssist playerName={playerName} playerProfileImageUrl={playerProfileImageUrl} />
       <MobileBattleCombatantPopup
