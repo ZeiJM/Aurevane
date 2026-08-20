@@ -219,15 +219,6 @@ export function MobileBattleCombatantPopup({
         aria-label={selected ? `${selected.name} battle details` : 'Battle combatant details'}
         onPointerDown={(event) => event.stopPropagation()}
       >
-        <button
-          type="button"
-          className={styles.close}
-          aria-label="Close combatant details"
-          onClick={() => setOpen(false)}
-        >
-          ×
-        </button>
-
         {loading ? (
           <div className={styles.loading}>Loading combatant details…</div>
         ) : error ? (
@@ -346,7 +337,7 @@ export function MobileBattleCombatantPopup({
             </section>
 
             <p className={styles.hint}>
-              Close this card to keep fighting. During Basic Attack mode, tapping the opponent stays
+              Tap outside this card to close it. During Basic Attack mode, tapping the opponent stays
               reserved for target selection instead of opening this card.
             </p>
           </>
