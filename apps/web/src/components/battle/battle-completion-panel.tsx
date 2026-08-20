@@ -60,9 +60,8 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
   const arena = useMemo(() => getTacticalHallArena(arenaId), [arenaId])
   const scenarioSourceId = useMemo(() => readScenarioSourceId(battle), [battle])
   const recordId =
-    (scenarioSourceId
-      ? getTacticalHallRecordFromScenarioSourceId(scenarioSourceId)?.id
-      : null) ?? 'recruit-sparring'
+    (scenarioSourceId ? getTacticalHallRecordFromScenarioSourceId(scenarioSourceId)?.id : null) ??
+    'recruit-sparring'
   const aiDifficulty = readAiDifficulty(scenarioSourceId)
   const battleState = battle.snapshot.tactical.battle
   const player = battleState.combatants.find((combatant) => combatant.teamId === 'players')
@@ -95,10 +94,7 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
         throw new Error(body.error?.message ?? 'The practice battle could not be restarted.')
       }
 
-      sessionStorage.setItem(
-        `aurevane:tactical-record:${body.battle.battleSessionId}`,
-        recordId,
-      )
+      sessionStorage.setItem(`aurevane:tactical-record:${body.battle.battleSessionId}`, recordId)
       router.push(`/game/battle/${body.battle.battleSessionId}`)
     } catch (retryError) {
       setError(

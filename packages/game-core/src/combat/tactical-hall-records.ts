@@ -112,7 +112,5 @@ export function getTacticalHallRecordFromScenarioSourceId(
   if (!sourceId.startsWith(prefix)) return null
 
   const segments = sourceId.slice(prefix.length).split(':')
-  return (
-    P2_7_TACTICAL_HALL_RECORDS.find((candidate) => segments.includes(candidate.id)) ?? null
-  )
+  return P2_7_TACTICAL_HALL_RECORDS.find((candidate) => segments.includes(candidate.id)) ?? null
 }
