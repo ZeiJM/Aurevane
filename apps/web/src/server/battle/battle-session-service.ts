@@ -109,13 +109,14 @@ function fingerprint(value: unknown): string {
 }
 
 function recruitScenarioProfile(
+  arenaId: TacticalHallArenaId,
   difficulty: BattleAiDifficulty,
   battleHallRecordId: BattleHallRecordId,
 ): Omit<StatDrivenCombatProfile, 'combatantId'> {
   return {
     provenance: {
       kind: 'scenario',
-      sourceId: `scenario:p2-7-recruit:${battleHallRecordId}:${difficulty}`,
+      sourceId: `scenario:p2-7-recruit:${arenaId}:${battleHallRecordId}:${difficulty}`,
       sourceRulesVersion: PV1F_CONTENT_VERSION,
     },
     // Difficulty changes decision quality only. All three Recruit tiers obey the same visible stats.
@@ -154,7 +155,7 @@ function createVerticalSliceEncounter(
   )
   const recruitProfile: StatDrivenCombatProfile = {
     combatantId: recruitCombatantId,
-    ...recruitScenarioProfile(aiDifficulty, battleHallRecordId),
+    ...recruitScenarioProfile(arenaId, aiDifficulty, battleHallRecordId),
   }
   const playerMovementProfile = {
     ...P2_2_ORDINARY_GROUND_PROFILE,
