@@ -35,16 +35,22 @@ describe('P2.7 Battle Hall teaching records', () => {
     expect(getTacticalHallRecord('guided-fundamentals').coachSteps).toHaveLength(4)
   })
 
-  it('can recover a record only from registered P2.7 scenario provenance', () => {
+  it('can recover a record from canonical arena, lesson and difficulty provenance', () => {
+    expect(
+      getTacticalHallRecordFromScenarioSourceId(
+        'scenario:p2-7-recruit:basic-training-floor:guided-fundamentals:easy',
+      )?.id,
+    ).toBe('guided-fundamentals')
+    expect(
+      getTacticalHallRecordFromScenarioSourceId(
+        'scenario:p2-7-recruit:duel-yard:recruit-sparring:standard',
+      )?.id,
+    ).toBe('recruit-sparring')
     expect(
       getTacticalHallRecordFromScenarioSourceId(
         'scenario:p2-7-recruit:basic-training-floor:movement-drill',
       )?.id,
     ).toBe('movement-drill')
-    expect(
-      getTacticalHallRecordFromScenarioSourceId('scenario:p2-7-recruit:duel-yard:recruit-sparring')
-        ?.id,
-    ).toBe('recruit-sparring')
     expect(getTacticalHallRecordFromScenarioSourceId('scenario:other')).toBeNull()
   })
 })
