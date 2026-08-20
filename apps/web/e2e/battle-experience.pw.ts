@@ -49,7 +49,9 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   const finishButton = commandDeck.getByRole('button', { name: /Finish Turn/ })
   const confirmButton = page.getByRole('button', { name: 'Confirm Action' })
 
-  await expect(page.getByRole('dialog', { name: 'Complete the tactical fundamentals' })).toBeVisible()
+  await expect(
+    page.getByRole('dialog', { name: 'Complete the tactical fundamentals' }),
+  ).toBeVisible()
   await page.getByRole('button', { name: 'Continue training' }).click()
 
   await expect(battlefield).toBeVisible()
