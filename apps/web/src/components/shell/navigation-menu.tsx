@@ -14,11 +14,6 @@ const navigation = [
     label: 'Passive Training',
     detail: 'Start a timed background training plan',
   },
-  {
-    href: '/game/online',
-    label: 'Online Users',
-    detail: 'Characters active in the last 10 minutes',
-  },
 ] as const
 
 export function NavigationMenu() {
