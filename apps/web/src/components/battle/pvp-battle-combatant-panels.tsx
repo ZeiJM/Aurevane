@@ -1,10 +1,15 @@
 'use client'
 
+import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 
+import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
+import { getStarterPortraitImageAssetId } from '@/media/character'
 import type { PvpBattleMetadata, PvpBattleParticipantView } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
+
+const COMBATANT_COLORS = ['#67c98a', '#dc6a66', '#67aee8', '#d9ad5c', '#a984e8', '#df7eb5'] as const
 
 function percent(value: number, maximum: number): number {
   return maximum > 0 ? Math.max(0, Math.min(100, (value / maximum) * 100)) : 0
@@ -14,10 +19,12 @@ function Panel({
   participant,
   battle,
   side,
+  accent,
 }: {
   participant: PvpBattleParticipantView | null
   battle: BattleSessionView
   side: 'left' | 'right'
+  accent: string
 }) {
   if (!participant) return null
   const combatant = battle.snapshot.tactical.battle.combatants.find(
@@ -29,6 +36,9 @@ function Panel({
   const profile = battle.snapshot.statBridge.combatants.find(
     (candidate) => candidate.combatantId === participant.combatantId,
   )
+  const statuses =
+    battle.snapshot.statusState.find((row) => row.combatantId === participant.combatantId)?.statuses ??
+    []
   if (!combatant) return null
 
   return (
@@ -45,29 +55,58 @@ function Panel({
         minWidth: '9.5rem',
         gap: '.46rem',
         padding: '.7rem',
-        border: '1px solid rgba(212,186,130,.38)',
+        border: `1px solid ${accent}88`,
         borderRadius: 'var(--av-radius-md)',
         background: 'rgba(7,10,15,.96)',
-        boxShadow: '0 1rem 3rem rgba(0,0,0,.5)',
+        boxShadow: `0 1rem 3rem rgba(0,0,0,.5), 0 0 1rem ${accent}22`,
         transform: 'translateY(-50%)',
         backdropFilter: 'blur(.7rem)',
       }}
     >
       <span
         style={{
-          color: 'var(--av-brass-300)',
+          color: accent,
           font: '750 .43rem/1 var(--av-font-mono)',
           textTransform: 'uppercase',
         }}
       >
         {side === 'left' ? 'Your combatant' : `Team ${participant.teamIndex + 1}`}
       </span>
-      <strong style={{ font: '600 .92rem/1 var(--av-font-display)' }}>
-        {participant.characterName}
-      </strong>
+      <div style={{ display: 'grid', gridTemplateColumns: '2.7rem 1fr', gap: '.55rem', alignItems: 'center' }}>
+        <span
+          style={{
+            display: 'grid',
+            width: '2.7rem',
+            height: '2.7rem',
+            overflow: 'hidden',
+            border: `2px solid ${accent}`,
+            borderRadius: '50%',
+            boxShadow: `0 0 .8rem ${accent}aa`,
+          }}
+        >
+          <CharacterPortraitImage
+            imageUrl={participant.profileImageUrl}
+            fallbackAssetId={getStarterPortraitImageAssetId(
+              participant.portraitRef as CharacterPortraitRef,
+            )}
+            alt={`${participant.characterName} portrait`}
+            sizes="44px"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 50%' }}
+          />
+        </span>
+        <div style={{ display: 'grid', gap: '.2rem' }}>
+          <strong style={{ font: '600 .92rem/1 var(--av-font-display)' }}>
+            {participant.characterName}
+          </strong>
+          <small
+            style={{ color: 'var(--av-text-dim)', font: '650 .44rem/1.3 var(--av-font-mono)' }}
+          >
+            Lv {participant.characterLevel} · Initiative {combatant.initiative}
+          </small>
+        </div>
+      </div>
       <small style={{ color: 'var(--av-text-dim)', font: '650 .44rem/1.3 var(--av-font-mono)' }}>
-        Lv {participant.characterLevel} · Initiative {combatant.initiative} · Move{' '}
-        {combatant.baseMovementBudget}
+        Move {combatant.baseMovementBudget}
         {profile ? ` · Jump ${profile.jump}` : ''}
       </small>
       <div style={{ display: 'grid', gap: '.22rem' }}>
@@ -108,6 +147,40 @@ function Panel({
           />
         </span>
       </div>
+      <div
+        aria-label={`${participant.characterName} status effects`}
+        style={{ display: 'flex', minHeight: '1.55rem', flexWrap: 'wrap', gap: '.3rem' }}
+      >
+        {statuses.length > 0 ? (
+          statuses.map((status) => {
+            const loweredGuard = status.statusId === 'lowered-guard'
+            return (
+              <span
+                key={status.statusId}
+                title={loweredGuard ? 'Lowered Guard · takes 2.5× damage from all sources' : status.statusId}
+                style={{
+                  display: 'inline-flex',
+                  gap: '.25rem',
+                  alignItems: 'center',
+                  padding: '.28rem .36rem',
+                  border: `1px solid ${loweredGuard ? 'rgba(225,98,82,.7)' : 'rgba(212,186,130,.28)'}`,
+                  borderRadius: '.3rem',
+                  color: loweredGuard ? '#f0a398' : 'var(--av-text-muted)',
+                  background: loweredGuard ? 'rgba(151,45,36,.18)' : 'rgba(255,255,255,.025)',
+                  font: '700 .4rem/1 var(--av-font-mono)',
+                }}
+              >
+                <b aria-hidden="true">{loweredGuard ? '⛨↓' : '◇'}</b>
+                {loweredGuard ? 'Lowered Guard' : status.statusId}
+              </span>
+            )
+          })
+        ) : (
+          <span style={{ color: 'var(--av-text-dim)', font: '650 .4rem/1 var(--av-font-mono)' }}>
+            No active effects
+          </span>
+        )}
+      </div>
       <small style={{ color: 'var(--av-text-muted)', fontSize: '.5rem' }}>
         {combatant.hp <= 0 ? 'Defeated' : `Facing ${placement?.facing ?? '—'}`}
         {profile
@@ -126,6 +199,26 @@ export function PvpBattleCombatantPanels({
   metadata: PvpBattleMetadata
 }) {
   const [battle, setBattle] = useState(initialBattle)
+  const orderedParticipants = useMemo(
+    () =>
+      [...metadata.participants].sort(
+        (left, right) =>
+          left.teamIndex - right.teamIndex ||
+          left.seatIndex - right.seatIndex ||
+          left.characterId.localeCompare(right.characterId),
+      ),
+    [metadata.participants],
+  )
+  const accentByCombatant = useMemo(
+    () =>
+      new Map(
+        orderedParticipants.map((participant, index) => [
+          participant.combatantId,
+          COMBATANT_COLORS[index % COMBATANT_COLORS.length],
+        ]),
+      ),
+    [orderedParticipants],
+  )
   const local = useMemo(
     () =>
       metadata.participants.find(
@@ -136,7 +229,7 @@ export function PvpBattleCombatantPanels({
   const [selectedId, setSelectedId] = useState<string | null>(
     metadata.participants.find(
       (participant) => participant.characterId !== metadata.localCharacterId,
-    )?.combatantId ?? null,
+    )?.combatantId ?? metadata.participants[0]?.combatantId ?? null,
   )
   const selected = useMemo(
     () =>
@@ -172,25 +265,31 @@ export function PvpBattleCombatantPanels({
       const participant = metadata.participants.find((candidate) =>
         label.includes(`occupied by ${candidate.characterName}`),
       )
-      if (participant && participant.characterId !== metadata.localCharacterId) {
-        setSelectedId(participant.combatantId)
-      } else if (participant) {
-        setSelectedId(
-          metadata.participants.find(
-            (candidate) => candidate.characterId !== metadata.localCharacterId,
-          )?.combatantId ?? null,
-        )
-      }
+      if (participant) setSelectedId(participant.combatantId)
     }
     document.addEventListener('click', choose, true)
     return () => document.removeEventListener('click', choose, true)
-  }, [metadata.localCharacterId, metadata.participants])
+  }, [metadata.participants])
 
   if (typeof document === 'undefined') return null
   return createPortal(
     <>
-      <Panel participant={local} battle={battle} side="left" />
-      <Panel participant={selected} battle={battle} side="right" />
+      <Panel
+        participant={local}
+        battle={battle}
+        side="left"
+        accent={local ? (accentByCombatant.get(local.combatantId) ?? COMBATANT_COLORS[0]) : COMBATANT_COLORS[0]}
+      />
+      <Panel
+        participant={selected}
+        battle={battle}
+        side="right"
+        accent={
+          selected
+            ? (accentByCombatant.get(selected.combatantId) ?? COMBATANT_COLORS[1])
+            : COMBATANT_COLORS[1]
+        }
+      />
     </>,
     document.body,
   )
