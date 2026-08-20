@@ -84,7 +84,10 @@ function beginFloatingPanelResize(event: React.PointerEvent<HTMLElement>, panel:
   const move = (moveEvent: PointerEvent) => {
     const maxWidth = Math.max(minWidth, window.innerWidth - rect.left - 4)
     const maxHeight = Math.max(minHeight, window.innerHeight - rect.top - 4)
-    const width = Math.min(maxWidth, Math.max(minWidth, rect.width + moveEvent.clientX - startX))
+    const width = Math.min(
+      maxWidth,
+      Math.max(minWidth, rect.width + moveEvent.clientX - startX),
+    )
     const height = Math.min(
       maxHeight,
       Math.max(minHeight, rect.height + moveEvent.clientY - startY),
