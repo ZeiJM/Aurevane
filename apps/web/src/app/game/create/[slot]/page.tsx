@@ -32,7 +32,7 @@ export default async function CharacterCreationPage({
   if (characters.some((character) => character.slotIndex === slotIndex)) redirect('/game')
 
   return (
-    <div className={styles.shell}>
+    <div className={`${styles.shell} ${styles.creationShell}`}>
       <header className={styles.header}>
         <Link className="brand" href="/game" aria-label="AUREVANE Character Select">
           <span className="brand__crest" aria-hidden="true">
@@ -46,7 +46,7 @@ export default async function CharacterCreationPage({
         <AccountMenu />
       </header>
 
-      <main className={styles.main}>
+      <main className={`${styles.main} ${styles.creationMain}`}>
         <section className={styles.creationPanel}>
           <div className={styles.creationHeading}>
             <div>
