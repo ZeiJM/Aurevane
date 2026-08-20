@@ -98,7 +98,6 @@ function Panel({
             )}
             alt={`${participant.characterName} portrait`}
             sizes="44px"
-            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 50%' }}
           />
         </span>
         <div style={{ display: 'grid', gap: '.2rem' }}>
