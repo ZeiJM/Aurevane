@@ -7,6 +7,7 @@ import {
   validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
+import { getTacticalHallRecordFromScenarioSourceId } from '@aurevane/game-core/combat/tactical-hall-records'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 export const GUIDED_TRAINING_CRITERIA = ['move', 'attack', 'guard', 'facing'] as const
@@ -33,6 +34,21 @@ function readEncounter(snapshot: unknown): StatDrivenCombatEncounterState {
     throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The stored training battle is invalid.')
   }
   return candidate
+}
+
+function assertGuidedFundamentals(state: StatDrivenCombatEncounterState): void {
+  const scenario = state.statBridge.combatants.find(
+    (profile) => profile.provenance.kind === 'scenario',
+  )
+  const record = scenario
+    ? getTacticalHallRecordFromScenarioSourceId(scenario.provenance.sourceId)
+    : null
+  if (record?.id !== 'guided-fundamentals') {
+    throw new AurevaneError(
+      'FORBIDDEN',
+      'Guided training completion is available only inside the Guided Fundamentals exercise.',
+    )
+  }
 }
 
 function eventObject(value: unknown): Record<string, unknown> | null {
@@ -100,6 +116,8 @@ export function createGuidedTrainingCompletionService(
           'That training battle is not available to this account.',
         )
       }
+      const state = readEncounter(session.snapshot)
+      assertGuidedFundamentals(state)
       const controlled = session.controlledCombatantIds[0]
       if (!controlled) {
         throw new AurevaneError(
@@ -132,6 +150,7 @@ export function createGuidedTrainingCompletionService(
       }
 
       const state = readEncounter(session.snapshot)
+      assertGuidedFundamentals(state)
       if (state.tactical.battle.lifecycle === 'completed') {
         return { battleVersion: session.battleVersion, replayed: true }
       }
