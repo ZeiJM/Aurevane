@@ -18,12 +18,11 @@ interface BattleLaunchProps {
 }
 
 type AiDifficulty = 'easy' | 'standard' | 'high'
+type PvpModeId = '1v1' | '2v2' | '3v3' | '1v1v1' | 'flex-teams'
 
 const VISIBLE_RECORD_IDS: readonly TacticalHallRecordId[] = [
   'recruit-sparring',
-  'movement-drill',
-  'strike-drill',
-  'guard-drill',
+  'guided-fundamentals',
 ]
 
 const ARENAS: readonly { id: TacticalHallArenaId; name: string; scale: string; summary: string }[] =
@@ -32,7 +31,7 @@ const ARENAS: readonly { id: TacticalHallArenaId; name: string; scale: string; s
       id: 'basic-training-floor',
       name: 'Basic Training Floor',
       scale: '5×3',
-      summary: 'Compact teaching floor for focused drills.',
+      summary: 'Compact teaching floor for the guided fundamentals exercise.',
     },
     {
       id: 'duel-yard',
@@ -48,32 +47,47 @@ const DIFFICULTIES: readonly { id: AiDifficulty; label: string; description: str
   { id: 'high', label: 'High', description: 'Sharper positioning and action choices.' },
 ]
 
-const FUTURE_MATCHES = [
-  { label: '1v1', detail: 'Player duel' },
-  { label: '2v2', detail: 'Small-team battle' },
-  { label: '3v3', detail: 'Full-team skirmish' },
-] as const
+const PVP_MODES: readonly {
+  id: PvpModeId
+  label: string
+  detail: string
+  lobby: string
+}[] = [
+  { id: '1v1', label: '1v1', detail: 'Standard player duel', lobby: '2 players · 1 per side' },
+  { id: '2v2', label: '2v2', detail: 'Small-team battle', lobby: '4 players · 2 per side' },
+  { id: '3v3', label: '3v3', detail: 'Full-team skirmish', lobby: '6 players · 3 per side' },
+  { id: '1v1v1', label: '1v1v1', detail: 'Three-way battle', lobby: '3 players · 3 opposing sides' },
+  {
+    id: 'flex-teams',
+    label: '1–3 vs 1–3',
+    detail: 'Flexible team battle',
+    lobby: '2–6 players · 1–3 per side',
+  },
+]
 
 function recordDisplayName(recordId: TacticalHallRecordId, fallback: string): string {
   return recordId === 'recruit-sparring' ? 'AI Sparring' : fallback
 }
 
-export function BattleLaunch({ characterId }: BattleLaunchProps) {
+export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) {
   const router = useRouter()
   const launchLock = useRef(false)
   const [recordId, setRecordId] = useState<TacticalHallRecordId | null>(null)
   const [arenaId, setArenaId] = useState<TacticalHallArenaId>('duel-yard')
   const [aiDifficulty, setAiDifficulty] = useState<AiDifficulty>('standard')
+  const [pvpMode, setPvpMode] = useState<PvpModeId | null>(null)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const selectedRecord = recordId ? getTacticalHallRecord(recordId) : null
   const selectedArena = ARENAS.find((arena) => arena.id === arenaId) ?? ARENAS[1]
   const visibleRecords = VISIBLE_RECORD_IDS.map((id) => getTacticalHallRecord(id))
+  const selectedPvp = PVP_MODES.find((mode) => mode.id === pvpMode) ?? null
 
   function chooseRecord(nextRecordId: TacticalHallRecordId) {
     const nextRecord = getTacticalHallRecord(nextRecordId)
     setRecordId(nextRecordId)
     setArenaId(nextRecord.defaultArenaId)
+    setPvpMode(null)
     setError(null)
   }
 
@@ -126,7 +140,7 @@ export function BattleLaunch({ characterId }: BattleLaunchProps) {
             <p className={styles.eyebrow}>Battle Hall</p>
             <h1 id="battle-launch-title">Choose a battle.</h1>
           </div>
-          <p>Select a training mode. Nothing is preselected.</p>
+          <p>Practice now. PvP and public viewing are staged here for their dedicated rollout.</p>
         </header>
 
         <nav className={styles.recordGrid} aria-label="Choose Battle Hall battle">
@@ -188,7 +202,6 @@ export function BattleLaunch({ characterId }: BattleLaunchProps) {
             <div className={styles.neutralSelection}>
               <span>Battle selection</span>
               <h2>No mode selected</h2>
-              <p>Choose any option above to configure the arena.</p>
             </div>
           )}
 
@@ -202,17 +215,68 @@ export function BattleLaunch({ characterId }: BattleLaunchProps) {
           </button>
         </section>
 
-        <section className={styles.futureModes} aria-label="Future player battle modes">
-          <div>
-            <span>Player sparring</span>
-            <strong>Multiplayer battle shell</strong>
+        <section className={styles.pvpSection} aria-labelledby="pvp-shell-heading">
+          <div className={styles.sectionHeading}>
+            <div>
+              <span>Player battles · PvP shell</span>
+              <strong id="pvp-shell-heading">Choose a future lobby format</strong>
+            </div>
+            <small>Lobby structure is visible now; matchmaking and PvP authority arrive in the PvP phase.</small>
           </div>
-          {FUTURE_MATCHES.map((mode) => (
-            <button key={mode.label} type="button" disabled>
-              <strong>{mode.label}</strong>
-              <small>{mode.detail} · coming later</small>
-            </button>
-          ))}
+          <div className={styles.pvpModes}>
+            {PVP_MODES.map((mode) => (
+              <button
+                key={mode.id}
+                type="button"
+                data-selected={pvpMode === mode.id || undefined}
+                onClick={() => {
+                  setPvpMode(mode.id)
+                  setRecordId(null)
+                }}
+              >
+                <strong>{mode.label}</strong>
+                <small>{mode.detail}</small>
+              </button>
+            ))}
+          </div>
+
+          {selectedPvp ? (
+            <div className={styles.lobbyPreview}>
+              <div>
+                <span>Waiting lobby preview</span>
+                <h3>{selectedPvp.label} · {selectedPvp.detail}</h3>
+                <p>{selectedPvp.lobby}. {characterName} occupies the local preview position.</p>
+              </div>
+              <div className={styles.lobbyStatus}>
+                <strong>Waiting for required players</strong>
+                <small>Start Battle unlocks only when the future authoritative lobby reports every required seat ready.</small>
+              </div>
+              <div className={styles.lobbyActions}>
+                <button type="button" disabled>
+                  Start Battle · PvP phase
+                </button>
+                <button type="button" onClick={() => setPvpMode(null)}>
+                  Leave lobby preview
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </section>
+
+        <section className={styles.publicBattles} aria-labelledby="public-battles-heading">
+          <div>
+            <span>Colosseum spectator feed</span>
+            <strong id="public-battles-heading">Ongoing public battles</strong>
+            <p>
+              Publicly viewable PvP battles will appear here with mode, participants, round, and a
+              read-only Spectate action. Private Battle Hall practice is never exposed as a public
+              spectator feed.
+            </p>
+          </div>
+          <div className={styles.publicEmpty}>
+            <strong>No public PvP battles yet</strong>
+            <small>The spectator feed activates with the Colosseum/PvP rollout.</small>
+          </div>
         </section>
 
         {error ? (
