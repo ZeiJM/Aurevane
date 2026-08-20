@@ -102,9 +102,39 @@ export async function getActiveBattleForUser(userId: string): Promise<ActiveBatt
   }
 }
 
-export async function assertNoActiveBattle(userId: string): Promise<void> {
+async function isExistingBattleCreateReplay(
+  userId: string,
+  idempotencyKey: string,
+  battleSessionId: string,
+): Promise<boolean> {
+  const supabase = createSupabaseAdminClient()
+  const { data, error } = await supabase.rpc('is_existing_battle_create_replay_v1', {
+    p_user_id: userId,
+    p_idempotency_key: idempotencyKey,
+    p_battle_session_id: battleSessionId,
+  })
+  if (error || typeof data !== 'boolean') {
+    throw new AurevaneError(
+      'PERSISTENCE_UNAVAILABLE',
+      'The active battle replay state could not be checked safely.',
+    )
+  }
+  return data
+}
+
+export async function assertNoActiveBattle(
+  userId: string,
+  allowedCreateReplayKey?: string,
+): Promise<void> {
   const active = await getActiveBattleForUser(userId)
   if (!active) return
+  if (
+    allowedCreateReplayKey &&
+    !active.isPvp &&
+    (await isExistingBattleCreateReplay(userId, allowedCreateReplayKey, active.battleSessionId))
+  ) {
+    return
+  }
   throw new AurevaneError(
     'INVALID_REQUEST',
     'You are already in a battle. Return to it before starting or joining another fight.',
