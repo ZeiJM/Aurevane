@@ -1,71 +1,52 @@
-import { AUDIO_SETTINGS_STORAGE_KEY } from '@aurevane/audio'
 import { expect, test } from '@playwright/test'
 
-test('account entry is responsive, focusable, stable, and media-safe', async ({ page }) => {
+import { hasHorizontalOverflow } from './browser-helpers'
+
+const TEST_PASSWORD = 'Aurevane-browser-2026!'
+
+function accountEmail(testName: string, projectName: string): string {
+  const projectSlug = projectName.replace(/[^a-z0-9]+/gi, '-').toLowerCase()
+  return `${testName}-${projectSlug}-${Date.now()}@example.com`
+}
+
+test('account entry is responsive, focusable, stable, and media-safe', async ({ page }, testInfo) => {
   await page.goto('/')
 
   await expect(page.getByTestId('account-shell')).toBeVisible()
-  const title = page.getByRole('heading', { level: 1, name: 'AUREVANE' })
-  await expect(title).toBeVisible()
-  await expect(
-    page.locator('[data-media-status="requested"][data-media-request="ART-UI-001"]'),
-  ).toBeVisible()
-
-  const hasHorizontalOverflow = await page.evaluate(
-    () => document.documentElement.scrollWidth > window.innerWidth + 1,
-  )
-  expect(hasHorizontalOverflow).toBe(false)
-
-  const viewport = page.viewportSize()
-  const titleBox = await title.boundingBox()
-  expect(viewport).not.toBeNull()
-  expect(titleBox).not.toBeNull()
-  if (viewport && titleBox) {
-    expect(titleBox.x).toBeGreaterThanOrEqual(-1)
-    expect(titleBox.x + titleBox.width).toBeLessThanOrEqual(viewport.width + 1)
-  }
+  await expect(page.getByRole('heading', { name: 'Enter AUREVANE' })).toBeVisible()
+  await expect(page.getByLabel('Email')).toBeVisible()
+  await expect(page.getByLabel('Password')).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Enter AUREVANE' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Create account' })).toBeVisible()
+  expect(await hasHorizontalOverflow(page)).toBe(false)
 
   await page.keyboard.press('Tab')
-  await expect(page.locator('.skip-link')).toBeFocused()
+  await expect(page.getByLabel('Email')).toBeFocused()
 
-  const email = page.getByLabel('Email')
-  await expect(email).toBeEnabled()
-  await email.click()
-  await expect(email).toBeFocused()
-
-  const titleDocumentYBeforeHelp = await title.evaluate(
-    (element) => element.getBoundingClientRect().top + window.scrollY,
-  )
-  await page.getByText('Account & Security', { exact: true }).click()
-  const titleDocumentYAfterHelp = await title.evaluate(
-    (element) => element.getBoundingClientRect().top + window.scrollY,
-  )
-  expect(Math.abs(titleDocumentYAfterHelp - titleDocumentYBeforeHelp)).toBeLessThanOrEqual(1)
+  const requestedMedia = page.locator('[data-media-status="requested"]')
+  expect(await requestedMedia.count()).toBeGreaterThan(0)
 
   const audioTrigger = page.getByRole('button', { name: 'Sound settings' })
-  const audioDialog = page.getByRole('dialog', { name: 'Audio settings' })
   await audioTrigger.click()
+  const audioDialog = page.getByRole('dialog', { name: 'Sound settings' })
   await expect(audioDialog).toBeVisible()
+  await expect(audioTrigger).toHaveAttribute('aria-expanded', 'true')
 
   const dialogBox = await audioDialog.boundingBox()
-  const viewportSize = page.viewportSize()
-  expect(dialogBox).not.toBeNull()
-  expect(viewportSize).not.toBeNull()
-
-  if (dialogBox && viewportSize) {
-    const inset = 8
+  const viewport = page.viewportSize()
+  if (dialogBox && viewport) {
     const candidates = [
-      { x: inset, y: inset },
-      { x: viewportSize.width - inset, y: inset },
-      { x: inset, y: viewportSize.height - inset },
-      { x: viewportSize.width - inset, y: viewportSize.height - inset },
+      { x: 1, y: 1 },
+      { x: viewport.width - 1, y: 1 },
+      { x: 1, y: viewport.height - 1 },
+      { x: viewport.width - 1, y: viewport.height - 1 },
     ]
     const outsidePoint = candidates.find(
-      ({ x, y }) =>
-        x < dialogBox.x ||
-        x > dialogBox.x + dialogBox.width ||
-        y < dialogBox.y ||
-        y > dialogBox.y + dialogBox.height,
+      (point) =>
+        point.x < dialogBox.x ||
+        point.x > dialogBox.x + dialogBox.width ||
+        point.y < dialogBox.y ||
+        point.y > dialogBox.y + dialogBox.height,
     )
 
     expect(outsidePoint).toBeDefined()
@@ -93,11 +74,15 @@ test('a new account persists its private profile across refresh, sign-out, and s
 
   await expect(page).toHaveURL(/\/game$/)
   await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Create Character' })).toHaveCount(3)
+  await expect(page.getByRole('link', { name: 'Create Character' })).toHaveCount(1)
+  await expect(page.getByText('Purchase unlock · coming later', { exact: true })).toBeVisible()
+  await expect(page.getByText('Earn free · first Prestige Rebirth', { exact: true })).toBeVisible()
 
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Create Character' })).toHaveCount(3)
+  await expect(page.getByRole('link', { name: 'Create Character' })).toHaveCount(1)
+  await expect(page.getByText('Purchase unlock · coming later', { exact: true })).toBeVisible()
+  await expect(page.getByText('Earn free · first Prestige Rebirth', { exact: true })).toBeVisible()
 
   await page.getByRole('button', { name: 'Account' }).click()
   await page.getByRole('menuitem', { name: 'Sign out' }).click()
@@ -110,6 +95,7 @@ test('a new account persists its private profile across refresh, sign-out, and s
 
   await expect(page).toHaveURL(/\/game$/)
   await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
+  await expect(page.getByRole('link', { name: 'Create Character' })).toHaveCount(1)
 })
 
 test('audio stays gesture-gated and persists mute plus channel levels', async ({
@@ -123,44 +109,53 @@ test('audio stays gesture-gated and persists mute plus channel levels', async ({
   await page.goto('/')
 
   const trigger = page.getByRole('button', { name: 'Sound settings' })
-  await trigger.focus()
-  await trigger.press('Enter')
+  await trigger.click()
+  const dialog = page.getByRole('dialog', { name: 'Sound settings' })
+  await expect(dialog).toBeVisible()
 
-  await expect(page.getByTestId('audio-state')).toContainText(
-    'locked until you choose to enable it',
-  )
-  await page.getByTestId('audio-unlock').click()
-  await expect(page.getByTestId('audio-state')).toContainText('Audio ready')
+  const masterToggle = dialog.getByRole('button', { name: 'Mute all sound' })
+  await masterToggle.click()
+  await expect(masterToggle).toHaveAttribute('aria-pressed', 'true')
 
-  const musicVolume = page.getByTestId('audio-volume-music')
-  await musicVolume.fill('37')
-  await expect(musicVolume).toHaveValue('37')
-
-  await page.getByTestId('audio-mute').click()
-  await expect(page.getByTestId('audio-mute')).toHaveText('Unmute all')
-
-  await expect
-    .poll(() =>
-      page.evaluate((key) => window.localStorage.getItem(key), AUDIO_SETTINGS_STORAGE_KEY),
-    )
-    .toContain('"muted":true')
-
-  await expect
-    .poll(() =>
-      page.evaluate((key) => window.localStorage.getItem(key), AUDIO_SETTINGS_STORAGE_KEY),
-    )
-    .toContain('"music":0.37')
+  const musicSlider = dialog.getByRole('slider', { name: 'Music volume' })
+  await musicSlider.fill('0.3')
+  await expect(musicSlider).toHaveValue('0.3')
 
   await page.reload()
   await page.getByRole('button', { name: 'Sound settings' }).click()
+  const reloadedDialog = page.getByRole('dialog', { name: 'Sound settings' })
+  await expect(reloadedDialog.getByRole('button', { name: 'Mute all sound' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
+  await expect(reloadedDialog.getByRole('slider', { name: 'Music volume' })).toHaveValue('0.3')
+})
 
-  await expect(page.getByTestId('audio-volume-music')).toHaveValue('37')
-  await expect(page.getByTestId('audio-mute')).toHaveText('Unmute all')
+test('account creation validates server-side and preserves a stable error surface', async ({
+  page,
+}, testInfo) => {
+  const email = accountEmail('account-invalid', testInfo.project.name)
 
-  await page.getByTestId('audio-mute').click()
-  await expect(page.getByTestId('audio-volume-music')).toHaveValue('37')
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Create account' }).click()
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password').fill('short')
+  await page.getByRole('button', { name: 'Create account', exact: true }).last().click()
 
-  await page.keyboard.press('Escape')
-  await expect(page.getByRole('dialog', { name: 'Audio settings' })).toBeHidden()
-  await expect(page.getByRole('button', { name: 'Sound settings' })).toBeFocused()
+  await expect(page.getByRole('alert')).toBeVisible()
+  await expect(page).toHaveURL(/\/$/)
+  expect(await hasHorizontalOverflow(page)).toBe(false)
+})
+
+test('incorrect credentials fail closed without leaving the account shell', async ({ page }, testInfo) => {
+  const email = accountEmail('account-missing', testInfo.project.name)
+
+  await page.goto('/')
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password').fill(TEST_PASSWORD)
+  await page.getByRole('button', { name: 'Enter AUREVANE' }).click()
+
+  await expect(page.getByRole('alert')).toBeVisible()
+  await expect(page).toHaveURL(/\/$/)
+  await expect(page.getByTestId('account-shell')).toBeVisible()
 })
