@@ -1,5 +1,6 @@
 'use client'
 
+import type { Route } from 'next'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
@@ -8,7 +9,7 @@ import { AudioSettingsMenu } from '@/components/audio/audio-settings-menu'
 
 import styles from './account-menu.module.css'
 
-export function AccountMenu({ activeBattleHref = null }: { activeBattleHref?: string | null }) {
+export function AccountMenu({ activeBattleHref = null }: { activeBattleHref?: Route | null }) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
