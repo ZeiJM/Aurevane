@@ -88,11 +88,11 @@ function StandardBattleCriteria({ recordId }: { recordId: TacticalHallRecordId }
             <button
               className={styles.guidedReopen}
               type="button"
-              aria-label="Battle criteria"
+              aria-label="Win battle, standard victory condition"
               onClick={() => setOpen(true)}
             >
-              <span>Battle criteria</span>
-              <strong>Win</strong>
+              <span>Win battle</span>
+              <strong>KO foe</strong>
             </button>,
             headerTarget,
           )
@@ -109,7 +109,7 @@ function StandardBattleCriteria({ recordId }: { recordId: TacticalHallRecordId }
             <button
               className={styles.guidedClose}
               type="button"
-              aria-label="Close battle criteria"
+              aria-label="Close win condition"
               onClick={() => setOpen(false)}
             >
               ×
@@ -214,13 +214,13 @@ function GuidedFundamentalsCriteria({ battleSessionId }: { battleSessionId: stri
               className={styles.guidedReopen}
               type="button"
               data-new-progress={hasUnseenProgress || undefined}
-              aria-label={`Battle criteria, ${progressCount(progress)} of ${GUIDED_CRITERIA.length} complete${hasUnseenProgress ? ', new progress' : ''}`}
+              aria-label={`Win battle, ${progressCount(progress)} of ${GUIDED_CRITERIA.length} criteria complete${hasUnseenProgress ? ', new progress' : ''}`}
               onClick={() => {
                 setHasUnseenProgress(false)
                 setOpen(true)
               }}
             >
-              <span>Battle criteria</span>
+              <span>Win battle</span>
               <strong>
                 {progressCount(progress)}/{GUIDED_CRITERIA.length}
               </strong>
@@ -240,7 +240,7 @@ function GuidedFundamentalsCriteria({ battleSessionId }: { battleSessionId: stri
             <button
               className={styles.guidedClose}
               type="button"
-              aria-label="Close battle criteria"
+              aria-label="Close win condition"
               onClick={() => setOpen(false)}
             >
               ×
@@ -253,8 +253,8 @@ function GuidedFundamentalsCriteria({ battleSessionId }: { battleSessionId: stri
             </h2>
             <p>
               This battle has an alternate victory condition: complete every server-recorded
-              criterion. New progress highlights the Battle Criteria button instead of interrupting
-              your turn.
+              criterion. New progress highlights the Win battle button instead of interrupting your
+              turn.
             </p>
             <ol className={styles.criteria}>
               {GUIDED_CRITERIA.map((criterion) => {
