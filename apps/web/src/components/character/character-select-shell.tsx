@@ -23,8 +23,8 @@ function lockedSlotCopy(slotIndex: number): { title: string; body: string; badge
   if (slotIndex === 1) {
     return {
       title: 'Additional character slot',
-      body: 'Slot 2 unlocks through a character-slot purchase when account services and monetization arrive.',
-      badge: 'Purchase unlock · coming later',
+      body: 'Slot 2 will be available for purchase at a later time.',
+      badge: 'Available later',
     }
   }
   return {
@@ -146,7 +146,7 @@ export function CharacterSelectShell({
         </div>
       </header>
 
-      <main className={styles.main}>
+      <main className={styles.main} style={{ width: 'min(96%, 84rem)' }}>
         <header className={styles.hero}>
           <div>
             <span>Account roster</span>
