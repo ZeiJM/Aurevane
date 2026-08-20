@@ -16,6 +16,8 @@ const navigation = [
   },
 ] as const
 
+const navigationPopoverId = 'game-navigation-menu'
+
 export function NavigationMenu() {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
@@ -34,13 +36,6 @@ export function NavigationMenu() {
     return () => menu.removeEventListener('toggle', syncOpenState)
   }, [])
 
-  function toggleMenu() {
-    const menu = menuRef.current
-    if (!menu) return
-    if (menu.matches(':popover-open')) menu.hidePopover()
-    else menu.showPopover()
-  }
-
   function closeMenu() {
     const menu = menuRef.current
     if (menu?.matches(':popover-open')) menu.hidePopover()
@@ -53,11 +48,18 @@ export function NavigationMenu() {
         type="button"
         aria-expanded={open}
         aria-haspopup="menu"
-        onClick={toggleMenu}
+        popoverTarget={navigationPopoverId}
+        popoverTargetAction="toggle"
       >
         <span aria-hidden="true">◇</span> Navigation
       </button>
-      <nav ref={menuRef} popover="auto" className={styles.menu} aria-label="Game navigation">
+      <nav
+        id={navigationPopoverId}
+        ref={menuRef}
+        popover="auto"
+        className={styles.menu}
+        aria-label="Game navigation"
+      >
         {visibleNavigation.map((item) => (
           <Link key={item.href} href={item.href} onClick={closeMenu}>
             <strong>{item.label}</strong>
