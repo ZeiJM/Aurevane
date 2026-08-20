@@ -5,7 +5,7 @@ import {
   type TacticalHallArenaId,
 } from '@aurevane/game-core/combat/tactical-hall-arenas'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState, useSyncExternalStore } from 'react'
 
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
@@ -37,11 +37,19 @@ function readArenaId(battle: BattleSessionView): TacticalHallArenaId {
   return tactical.width === 9 && tactical.height === 7 ? 'duel-yard' : 'basic-training-floor'
 }
 
+function subscribeStoredRecord(): () => void {
+  return () => undefined
+}
+
 export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
   const router = useRouter()
   const [retryPending, setRetryPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [recordId, setRecordId] = useState<string | null>(null)
+  const recordId = useSyncExternalStore(
+    subscribeStoredRecord,
+    () => sessionStorage.getItem(`aurevane:tactical-record:${battle.battleSessionId}`),
+    () => null,
+  )
   const result = useMemo(() => readResult(battle), [battle])
   const characterId = useMemo(() => readCharacterId(battle), [battle])
   const arenaId = useMemo(() => readArenaId(battle), [battle])
@@ -51,10 +59,6 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
   const recruit = battleState.combatants.find((combatant) => combatant.teamId === 'opponents')
   const guidedTraining = recordId === 'guided-fundamentals'
   const headline = guidedTraining ? 'Training Complete' : result
-
-  useEffect(() => {
-    setRecordId(sessionStorage.getItem(`aurevane:tactical-record:${battle.battleSessionId}`))
-  }, [battle.battleSessionId])
 
   async function retry() {
     if (retryPending || !characterId) return
