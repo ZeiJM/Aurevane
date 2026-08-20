@@ -37,6 +37,29 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   expect(await requestedUiArt.count()).toBeGreaterThan(0)
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
+  await page.getByRole('button', { name: /AI Sparring/ }).click()
+  await page.getByRole('button', { name: 'Enter Battle' }).click()
+  await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
+
+  const fullBattlefield = page.getByRole('region', { name: 'Tactical battlefield' })
+  await expect(fullBattlefield).toBeVisible()
+  await expect(page.getByRole('button', { name: /^Tile / })).toHaveCount(63)
+  await expect(fullBattlefield.locator('[data-board-auto-fit="9x7"]')).toHaveCount(1)
+  await expectBattlefieldContained(page)
+
+  const standardWinButton = page.getByRole('button', { name: /Win battle/ })
+  await expect(standardWinButton).toBeVisible()
+  await standardWinButton.click()
+  const standardWinDialog = page.getByRole('dialog', { name: 'Win the battle' })
+  await expect(standardWinDialog).toBeVisible()
+  await expect(standardWinDialog).toContainText('Defeat all opposing combatants')
+  await standardWinDialog.getByRole('button', { name: 'Return to battle' }).click()
+
+  await page.getByRole('button', { name: 'Abort Battle' }).click()
+  await page.getByRole('button', { name: 'Confirm Abort Battle' }).click()
+  await expect(page).toHaveURL(/\/game\/battle$/)
+  await expect(page.getByRole('heading', { name: 'Choose a battle.' })).toBeVisible()
+
   await page.getByRole('button', { name: /Guided Fundamentals/ }).click()
   await page.getByRole('button', { name: 'Enter Battle' }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
@@ -48,7 +71,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   const guardButton = commandDeck.getByRole('button', { name: /Guard/ })
   const finishButton = commandDeck.getByRole('button', { name: /Finish Turn/ })
   const confirmButton = page.getByRole('button', { name: 'Confirm Action' })
-  const criteriaButton = page.getByRole('button', { name: /Training criteria/ })
+  const criteriaButton = page.getByRole('button', { name: /Win battle/ })
 
   await expect(
     page.getByRole('dialog', { name: 'Complete the tactical fundamentals' }),
@@ -65,7 +88,8 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   )
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Choose your action')
   await expect(page.getByText(/100 AP/).first()).toBeVisible()
-  await expect(battlefield.locator('[data-board-auto-fit]')).toHaveCount(1)
+  await expect(battlefield.locator('[data-board-auto-fit="5x3"]')).toHaveCount(1)
+  await expectBattlefieldContained(page)
 
   await page.getByRole('button', { name: 'Chat', exact: true }).click()
   await page.getByLabel('Battle chat message').fill('Testing solo battle chat')
@@ -201,7 +225,7 @@ async function openCriteriaAndClose(
   page: import('@playwright/test').Page,
   expectedProgress: string,
 ): Promise<void> {
-  await page.getByRole('button', { name: /Training criteria/ }).click()
+  await page.getByRole('button', { name: /Win battle/ }).click()
   const dialog = page.getByRole('dialog', { name: 'Complete the tactical fundamentals' })
   await expect(dialog).toBeVisible({ timeout: 4_000 })
   await expect(dialog).toContainText(expectedProgress)
@@ -216,6 +240,37 @@ async function expectBattlefieldReadable(page: import('@playwright/test').Page):
   expect(box.width).toBeGreaterThan(280)
   expect(box.height).toBeGreaterThan(180)
   await expect(page.getByRole('button', { name: /^Tile / }).first()).toBeVisible()
+}
+
+async function expectBattlefieldContained(page: import('@playwright/test').Page): Promise<void> {
+  const bounds = await page.evaluate(() => {
+    const board = document.querySelector<HTMLElement>('#battlefield [data-board-auto-fit]')
+    const viewport = board?.parentElement
+    if (!board || !viewport) return null
+    const boardRect = board.getBoundingClientRect()
+    const viewportRect = viewport.getBoundingClientRect()
+    return {
+      board: {
+        left: boardRect.left,
+        top: boardRect.top,
+        right: boardRect.right,
+        bottom: boardRect.bottom,
+      },
+      viewport: {
+        left: viewportRect.left,
+        top: viewportRect.top,
+        right: viewportRect.right,
+        bottom: viewportRect.bottom,
+      },
+    }
+  })
+
+  expect(bounds).not.toBeNull()
+  if (!bounds) return
+  expect(bounds.board.left).toBeGreaterThanOrEqual(bounds.viewport.left - 1)
+  expect(bounds.board.top).toBeGreaterThanOrEqual(bounds.viewport.top - 1)
+  expect(bounds.board.right).toBeLessThanOrEqual(bounds.viewport.right + 1)
+  expect(bounds.board.bottom).toBeLessThanOrEqual(bounds.viewport.bottom + 1)
 }
 
 async function hasHorizontalOverflow(page: import('@playwright/test').Page): Promise<boolean> {
