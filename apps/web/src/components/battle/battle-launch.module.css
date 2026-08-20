@@ -2,7 +2,7 @@
   position: relative;
   display: grid;
   grid-template-columns: minmax(7rem, 11rem) minmax(0, 1fr);
-  min-height: calc(100dvh - 8rem);
+  min-height: calc(100dvh - 8.75rem);
   overflow: hidden;
   border: 1px solid var(--av-border-strong);
   border-radius: var(--av-radius-lg);
