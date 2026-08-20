@@ -60,12 +60,33 @@ function progressCount(progress: GuidedTrainingProgress): number {
 
 function useHeaderCriteriaTarget(): HTMLElement | null {
   const [headerTarget, setHeaderTarget] = useState<HTMLElement | null>(null)
+
   useEffect(() => {
-    const track = document.querySelector<HTMLElement>(
-      '[role="progressbar"][aria-label="Action Economy remaining"]',
-    )
-    setHeaderTarget(track?.parentElement ?? null)
+    let frame = 0
+    const locate = () => {
+      frame = 0
+      const track = document.querySelector<HTMLElement>(
+        '[role="progressbar"][aria-label="Action Economy remaining"]',
+      )
+      setHeaderTarget((current) => {
+        const next = track?.parentElement ?? null
+        return current === next ? current : next
+      })
+    }
+    const scheduleLocate = () => {
+      if (frame !== 0) return
+      frame = window.requestAnimationFrame(locate)
+    }
+
+    locate()
+    const observer = new MutationObserver(scheduleLocate)
+    observer.observe(document.body, { childList: true, subtree: true })
+    return () => {
+      observer.disconnect()
+      if (frame !== 0) window.cancelAnimationFrame(frame)
+    }
   }, [])
+
   return headerTarget
 }
 
