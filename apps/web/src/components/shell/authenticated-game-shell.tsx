@@ -1,4 +1,5 @@
 import { Kicker, StatusMark, Surface } from '@aurevane/ui'
+import type { Route } from 'next'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
@@ -63,12 +64,12 @@ export async function AuthenticatedShellFrame({
 }: AuthenticatedShellFrameProps) {
   let activeCharacter = null
   let activeImageUrl: string | null = null
-  let activeBattleHref: string | null = null
+  let activeBattleHref: Route | null = null
   let onlineCount = 0
   try {
     const actor = await getAuthenticatedActor()
     const activeBattle = await getActiveBattleForUser(actor.userId).catch(() => null)
-    activeBattleHref = activeBattle ? `/game/battle/${activeBattle.battleSessionId}` : null
+    activeBattleHref = activeBattle ? (`/game/battle/${activeBattle.battleSessionId}` as Route) : null
     activeCharacter = await loadSelectedCharacter(actor)
     if (activeCharacter) {
       try {
