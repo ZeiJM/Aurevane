@@ -244,14 +244,34 @@
 @media (max-width: 900px) {
   .masthead {
     grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-rows: auto auto;
+    gap: 0.28rem 0.48rem;
+  }
+
+  .brandGroup {
+    grid-column: 1;
+    grid-row: 1 / span 2;
   }
 
   .headerLinks {
-    order: 4;
-    grid-column: 1 / -1;
-    justify-content: center;
+    grid-column: 2 / -1;
+    grid-row: 1;
+    justify-self: end;
+    justify-content: flex-end;
     margin-right: 0;
-    border-top: 1px solid rgba(184, 177, 163, 0.08);
+    border-top: 0;
+  }
+
+  .screenIdentity {
+    grid-column: 2;
+    grid-row: 2;
+    justify-self: end;
+  }
+
+  .masthead > :last-child {
+    grid-column: 3;
+    grid-row: 2;
+    justify-self: end;
   }
 }
 
@@ -276,8 +296,18 @@
 
 @media (max-width: 520px) {
   .masthead {
-    gap: 0.4rem;
-    padding-inline: 0.5rem;
+    gap: 0.18rem 0.34rem;
+    padding: 0.28rem 0.5rem;
+  }
+
+  .headerLinks {
+    gap: 0.02rem;
+  }
+
+  .headerLinks a {
+    padding: 0.28rem 0.3rem;
+    font-size: 0.46rem;
+    letter-spacing: 0.035em;
   }
 
   .screenIdentity {
@@ -297,10 +327,6 @@
   .backButton {
     width: 1.95rem;
     height: 1.95rem;
-  }
-
-  .headerLinks a {
-    padding-inline: 0.4rem;
   }
 
   .footer {
