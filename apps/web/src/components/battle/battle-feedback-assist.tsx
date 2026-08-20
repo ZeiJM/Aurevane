@@ -60,15 +60,23 @@ function syncActionEconomyBar() {
 
 function applyCustomPortrait(playerName: string, imageUrl: string | null | undefined) {
   if (!imageUrl) return
-  const rail = Array.from(
-    document.querySelectorAll<HTMLElement>('aside[aria-label$=" combat status"]'),
-  ).find((candidate) => candidate.getAttribute('aria-label') === `${playerName} combat status`)
-  const image = rail?.querySelector<HTMLImageElement>('button[aria-label^="Show "] img')
-  if (!image || image.dataset.customProfileImage === imageUrl) return
+  const rail = combatantRail(playerName)
+  const portraitButton = rail?.querySelector<HTMLButtonElement>('button[aria-label^="Show "]')
+  if (!portraitButton) return
+
+  const existing = portraitButton.querySelector<HTMLImageElement>('img[data-custom-profile-image]')
+  if (existing?.dataset.customProfileImage === imageUrl) return
+
+  const source = portraitButton.firstElementChild
+  if (!source) return
+
+  const image = document.createElement('img')
   image.src = imageUrl
-  image.removeAttribute('srcset')
+  image.alt = `${playerName} portrait`
+  image.loading = 'eager'
   image.referrerPolicy = 'no-referrer'
   image.dataset.customProfileImage = imageUrl
+  source.replaceWith(image)
 }
 
 function combatantRail(name: string): HTMLElement | null {
@@ -88,23 +96,38 @@ function combatantTile(name: string): HTMLButtonElement | null {
   )
 }
 
-function syncMapTokenPortrait(name: string, team: 'player' | 'opponent') {
-  const rail = combatantRail(name)
+function syncMapTokenPortrait(
+  name: string,
+  team: 'player' | 'opponent',
+  customImageUrl?: string | null,
+) {
   const tile = combatantTile(name)
   const unit = tile?.querySelector<HTMLElement>(':scope > span:not(.tileMeta):last-child')
-  if (!rail || !unit) return
+  if (!unit) return
 
   const existing = unit.querySelector<HTMLElement>('[data-map-token-portrait]')
-  const portraitButton = rail.querySelector<HTMLButtonElement>('button[aria-label^="Show "]')
-  if (!portraitButton) return
+  let source: HTMLElement | null = null
+  let sourceSignature = ''
 
-  const source = Array.from(portraitButton.children).find(
-    (child) => !child.className.toString().includes('portraitMeters'),
-  ) as HTMLElement | undefined
-  if (!source) return
+  if (customImageUrl) {
+    const image = document.createElement('img')
+    image.src = customImageUrl
+    image.alt = ''
+    image.referrerPolicy = 'no-referrer'
+    image.dataset.customProfileImage = customImageUrl
+    source = image
+    sourceSignature = `${team}:custom:${customImageUrl}`
+  } else {
+    const rail = combatantRail(name)
+    const portraitButton = rail?.querySelector<HTMLButtonElement>('button[aria-label^="Show "]')
+    if (!portraitButton) return
+    const candidate = portraitButton.firstElementChild
+    if (!(candidate instanceof HTMLElement)) return
+    source = candidate
+    const sourceImage = source instanceof HTMLImageElement ? source.src : null
+    sourceSignature = `${team}:${source.tagName}:${sourceImage ?? source.textContent ?? ''}`
+  }
 
-  const sourceImage = source instanceof HTMLImageElement ? source.src : null
-  const sourceSignature = `${team}:${source.tagName}:${sourceImage ?? source.textContent ?? ''}`
   if (existing?.dataset.mapTokenSignature === sourceSignature) return
 
   existing?.remove()
@@ -126,9 +149,54 @@ function syncMapTokenPortrait(name: string, team: 'player' | 'opponent') {
   unit.dataset.mapPortraitReady = 'true'
 }
 
-function syncMapPortraits(playerName: string) {
-  syncMapTokenPortrait(playerName, 'player')
+function syncMapPortraits(playerName: string, playerProfileImageUrl?: string | null) {
+  syncMapTokenPortrait(playerName, 'player', playerProfileImageUrl)
   syncMapTokenPortrait('Recruit', 'opponent')
+}
+
+function fitBattlefieldBoard() {
+  const battlefield = document.querySelector<HTMLElement>('#battlefield')
+  const viewport = battlefield?.firstElementChild
+  const board = viewport?.firstElementChild
+  if (!(viewport instanceof HTMLElement) || !(board instanceof HTMLElement)) return
+
+  const tiles = Array.from(
+    board.querySelectorAll<HTMLButtonElement>('button[aria-label^="Tile "]'),
+  )
+  if (tiles.length === 0) return
+
+  let columns = 0
+  let rows = 0
+  for (const tile of tiles) {
+    const position = parseTilePosition(tile)
+    if (!position) continue
+    columns = Math.max(columns, position.x)
+    rows = Math.max(rows, position.y)
+  }
+  if (columns <= 0 || rows <= 0) return
+
+  const viewportStyle = window.getComputedStyle(viewport)
+  const horizontalPadding =
+    Number.parseFloat(viewportStyle.paddingLeft) + Number.parseFloat(viewportStyle.paddingRight)
+  const verticalPadding =
+    Number.parseFloat(viewportStyle.paddingTop) + Number.parseFloat(viewportStyle.paddingBottom)
+  const availableWidth = Math.max(1, viewport.clientWidth - horizontalPadding)
+  const availableHeight = Math.max(1, viewport.clientHeight - verticalPadding)
+  const ratio = columns / rows
+
+  let fittedWidth = availableWidth
+  let fittedHeight = fittedWidth / ratio
+  if (fittedHeight > availableHeight) {
+    fittedHeight = availableHeight
+    fittedWidth = fittedHeight * ratio
+  }
+
+  board.style.width = `${Math.floor(fittedWidth)}px`
+  board.style.height = `${Math.floor(fittedHeight)}px`
+  board.style.maxWidth = '100%'
+  board.style.maxHeight = '100%'
+  board.style.margin = 'auto'
+  board.dataset.boardAutoFit = `${columns}x${rows}`
 }
 
 function setControlledInputValue(input: HTMLInputElement, value: string) {
@@ -204,7 +272,8 @@ export function BattleFeedbackAssist({
       updateAttackRange(playerName)
       syncActionEconomyBar()
       applyCustomPortrait(playerName, playerProfileImageUrl)
-      syncMapPortraits(playerName)
+      syncMapPortraits(playerName, playerProfileImageUrl)
+      fitBattlefieldBoard()
       enhanceChat()
     }
     const scheduleRefresh = () => {
@@ -215,6 +284,13 @@ export function BattleFeedbackAssist({
     refresh()
     const observer = new MutationObserver(scheduleRefresh)
     observer.observe(document.body, { childList: true, subtree: true, characterData: true })
+
+    const battlefield = document.querySelector<HTMLElement>('#battlefield')
+    const viewport = battlefield?.firstElementChild
+    const resizeObserver = new ResizeObserver(scheduleRefresh)
+    if (battlefield) resizeObserver.observe(battlefield)
+    if (viewport instanceof HTMLElement) resizeObserver.observe(viewport)
+    window.addEventListener('resize', scheduleRefresh)
 
     function closeChatOnOutsidePointer(event: PointerEvent) {
       const footer = document.querySelector<HTMLElement>('main[aria-busy] > footer')
@@ -229,6 +305,8 @@ export function BattleFeedbackAssist({
     document.addEventListener('pointerdown', closeChatOnOutsidePointer, true)
     return () => {
       observer.disconnect()
+      resizeObserver.disconnect()
+      window.removeEventListener('resize', scheduleRefresh)
       if (frame !== 0) window.cancelAnimationFrame(frame)
       document.removeEventListener('pointerdown', closeChatOnOutsidePointer, true)
       for (const tile of Array.from(
