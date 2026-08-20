@@ -46,7 +46,7 @@
   display: flex;
   gap: 0.2rem;
   align-items: center;
-  margin-right: clamp(0.4rem, 1vw, 0.85rem);
+  margin-right: clamp(0.85rem, 2vw, 1.55rem);
 }
 
 .headerLinks a {
