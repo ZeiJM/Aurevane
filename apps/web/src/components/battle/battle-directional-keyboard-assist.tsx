@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 
 type GridPosition = { x: number; y: number }
 type Direction = { dx: number; dy: number }
@@ -87,48 +87,49 @@ function tileAt(position: GridPosition): HTMLButtonElement | null {
   )
 }
 
+function projectedPath(origin: GridPosition): GridPosition[] {
+  const numbered = battleTiles()
+    .map((button) => {
+      const marker = Array.from(button.children).find(
+        (child) => child instanceof HTMLSpanElement && /^\d+$/.test(child.textContent?.trim() ?? ''),
+      )
+      const index = marker ? Number(marker.textContent?.trim()) : Number.NaN
+      const position = tilePosition(button)
+      return Number.isFinite(index) && position ? { index, position } : null
+    })
+    .filter((entry): entry is { index: number; position: GridPosition } => Boolean(entry))
+    .sort((left, right) => left.index - right.index)
+
+  return [{ ...origin }, ...numbered.map((entry) => entry.position)]
+}
+
 export function BattleDirectionalKeyboardAssist({ playerName }: { playerName: string }) {
-  const movementTrail = useRef<GridPosition[]>([])
-  const committedOrigin = useRef<GridPosition | null>(null)
-
   useEffect(() => {
-    function resetTrail(origin?: GridPosition | null) {
-      committedOrigin.current = origin ? { ...origin } : null
-      movementTrail.current = origin ? [{ ...origin }] : []
-    }
-
     function handleMove(direction: Direction): boolean {
       const actor = playerTile(playerName)
       const origin = actor ? tilePosition(actor) : null
       if (!origin) return false
 
-      if (!committedOrigin.current || !samePosition(committedOrigin.current, origin)) {
-        resetTrail(origin)
-      }
-      if (movementTrail.current.length === 0) movementTrail.current = [{ ...origin }]
-
-      const current = movementTrail.current.at(-1) ?? origin
+      const path = projectedPath(origin)
+      const current = path.at(-1) ?? origin
       const target = { x: current.x + direction.dx, y: current.y + direction.dy }
-      const previous = movementTrail.current.at(-2) ?? null
+      const previous = path.at(-2) ?? null
 
-      // Directional input can walk the projected path backward. Reaching the committed character
-      // tile clears the preview while leaving Move selected, so the player can immediately project
-      // through the origin and out in another direction.
+      // Backtracking follows the existing projected path, regardless of whether it was created by
+      // mouse or keyboard. Returning to the committed player tile clears only the preview and leaves
+      // Move active so the player can immediately project through the origin in another direction.
       if (previous && samePosition(target, previous)) {
-        const nextTrail = movementTrail.current.slice(0, -1)
-        if (nextTrail.length <= 1) {
+        if (samePosition(previous, origin)) {
           const move = commandButton('Move')
           if (!move || move.disabled) return false
           move.click()
-          resetTrail(origin)
           return true
         }
 
-        const targetButton = tileAt(target)
-        if (!targetButton || targetButton.disabled) return false
-        targetButton.focus({ preventScroll: true })
-        targetButton.click()
-        movementTrail.current = nextTrail
+        const previousButton = tileAt(previous)
+        if (!previousButton || previousButton.disabled) return false
+        previousButton.focus({ preventScroll: true })
+        previousButton.click()
         return true
       }
 
@@ -139,7 +140,6 @@ export function BattleDirectionalKeyboardAssist({ playerName }: { playerName: st
 
       targetButton.focus({ preventScroll: true })
       targetButton.click()
-      movementTrail.current = [...movementTrail.current, target]
       return true
     }
 
@@ -159,10 +159,7 @@ export function BattleDirectionalKeyboardAssist({ playerName }: { playerName: st
         event.preventDefault()
         event.stopImmediatePropagation()
         chooseFacing(direction)
-        return
       }
-
-      resetTrail()
     }
 
     window.addEventListener('keydown', handleKeyDown, true)
