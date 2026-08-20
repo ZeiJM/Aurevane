@@ -42,6 +42,13 @@ function positionKey(position: { x: number; y: number }): string {
   return `${position.x}:${position.y}`
 }
 
+function positionsEqual(
+  left: { x: number; y: number },
+  right: { x: number; y: number },
+): boolean {
+  return left.x === right.x && left.y === right.y
+}
+
 function battleTiles(): HTMLButtonElement[] {
   return Array.from(
     document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label^="Tile "]'),
@@ -315,6 +322,11 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
           lastRepeatableCommand.current = label
           if (label !== 'Move') movementPlan.current = null
         }
+        if (label === 'Finish Turn') {
+          lastRepeatableCommand.current = null
+          movementPlan.current = null
+          repeatSequence.current += 1
+        }
         return
       }
 
@@ -355,7 +367,7 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
       const tiles = battleTiles()
       const actorTile = playerTile(playerName)
       const committed = actorTile ? tilePosition(actorTile) : null
-      if (!committed) return false
+      if (!committed || !actorTile) return false
 
       const committedKey = positionKey(committed)
       if (!movementPlan.current || movementPlan.current.committedOriginKey !== committedKey) {
@@ -364,6 +376,18 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
 
       const base = movementPlan.current.endpoint
       const targetPosition = { x: base.x + direction.dx, y: base.y + direction.dy }
+
+      // Crossing back through the committed origin cancels the current movement projection without
+      // leaving Move mode. The next direction can then project immediately to the opposite side.
+      if (positionsEqual(targetPosition, committed)) {
+        const move = commandButton('Move')
+        if (!move || move.disabled) return false
+        move.click()
+        movementPlan.current = { committedOriginKey: committedKey, endpoint: committed }
+        actorTile.focus({ preventScroll: true })
+        return true
+      }
+
       const targetPrefix = `Tile ${targetPosition.x + 1}, ${targetPosition.y + 1};`
       const target = tiles.find((button) =>
         (button.getAttribute('aria-label') ?? '').startsWith(targetPrefix),
@@ -403,6 +427,9 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
         return true
       }
       if (action === 'endTurn') {
+        lastRepeatableCommand.current = null
+        repeatSequence.current += 1
+        movementPlan.current = null
         commandButton('Finish Turn', 'End Turn', 'Facing / End Turn')?.click()
         return true
       }
