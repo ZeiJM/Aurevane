@@ -1,0 +1,55 @@
+name: Temporary Portrait Prop Fix
+
+on:
+  push:
+    branches:
+      - hotfix/post-prod-battle-pv-20260820
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: "!contains(github.event.head_commit.message, '[portrait-prop-bot]')"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hotfix/post-prod-battle-pv-20260820
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Remove unsupported portrait prop
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('apps/web/src/components/battle/pvp-battle-combatant-panels.tsx')
+          text = path.read_text()
+          old = "            sizes=\"44px\"\n            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '50% 50%' }}\n"
+          if old not in text:
+              raise SystemExit('Expected unsupported portrait style prop not found')
+          path.write_text(text.replace(old, '            sizes="44px"\n'))
+          PY
+      - name: Format and typecheck web
+        run: |
+          pnpm exec prettier --write apps/web/src/components/battle/pvp-battle-combatant-panels.tsx
+          pnpm --filter @aurevane/web typecheck
+      - name: Commit repair
+        run: |
+          if git diff --quiet; then
+            echo "No repair changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/src/components/battle/pvp-battle-combatant-panels.tsx
+          git commit -m "fix: use supported PvP portrait props [portrait-prop-bot]"
+          git push origin HEAD:hotfix/post-prod-battle-pv-20260820
