@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       throw new AurevaneError('INVALID_REQUEST', 'Invalid battle-session creation request.')
     }
 
-    await assertNoActiveBattle(actor.userId)
+    await assertNoActiveBattle(actor.userId, parsed.idempotencyKey)
 
     const trainingStatus = await loadPracticeStatus(
       actor,
