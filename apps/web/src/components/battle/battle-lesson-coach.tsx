@@ -12,18 +12,9 @@ import styles from './battle-lesson-coach.module.css'
 
 interface BattleLessonCoachProps {
   battleSessionId: string
+  recordId: TacticalHallRecordId
 }
 
-const VALID_RECORD_IDS: readonly TacticalHallRecordId[] = [
-  'guided-fundamentals',
-  'movement-drill',
-  'strike-drill',
-  'guard-drill',
-  'facing-drill',
-  'recruit-sparring',
-]
-
-const DEFAULT_RECORD_ID: TacticalHallRecordId = 'recruit-sparring'
 const COACH_STORE_EVENT = 'aurevane:tactical-coach-changed'
 const EMPTY_PROGRESS: GuidedTrainingProgress = {
   move: false,
@@ -55,18 +46,9 @@ const GUIDED_CRITERIA = [
   },
 ] as const
 
-function isRecordId(value: string | null): value is TacticalHallRecordId {
-  return value !== null && VALID_RECORD_IDS.includes(value as TacticalHallRecordId)
-}
-
 function subscribeCoachStore(onStoreChange: () => void): () => void {
   window.addEventListener(COACH_STORE_EVENT, onStoreChange)
   return () => window.removeEventListener(COACH_STORE_EVENT, onStoreChange)
-}
-
-function recordSnapshot(battleSessionId: string): TacticalHallRecordId {
-  const stored = sessionStorage.getItem(`aurevane:tactical-record:${battleSessionId}`)
-  return isRecordId(stored) ? stored : DEFAULT_RECORD_ID
 }
 
 function dismissedSnapshot(battleSessionId: string): boolean {
@@ -81,12 +63,7 @@ function progressComplete(progress: GuidedTrainingProgress): boolean {
   return GUIDED_CRITERIA.every((criterion) => progress[criterion.id])
 }
 
-export function BattleLessonCoach({ battleSessionId }: BattleLessonCoachProps) {
-  const recordId = useSyncExternalStore(
-    subscribeCoachStore,
-    () => recordSnapshot(battleSessionId),
-    () => DEFAULT_RECORD_ID,
-  )
+export function BattleLessonCoach({ battleSessionId, recordId }: BattleLessonCoachProps) {
   const dismissed = useSyncExternalStore(
     subscribeCoachStore,
     () => dismissedSnapshot(battleSessionId),
@@ -162,7 +139,6 @@ function GuidedFundamentalsCoach({ battleSessionId }: { battleSessionId: string 
         if (!response.ok || !body.completed) {
           throw new Error(body.error?.message ?? 'Training completion could not be committed.')
         }
-        sessionStorage.setItem(`aurevane:guided-training-completed:${battleSessionId}`, '1')
         window.location.reload()
       } catch (completionError) {
         if (!cancelled) {
