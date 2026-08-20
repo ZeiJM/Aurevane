@@ -69,7 +69,9 @@ function useHeaderCriteriaTarget(): HTMLElement | null {
       const track = document.querySelector<HTMLElement>(
         '[role="progressbar"][aria-label="Action Economy remaining"]',
       )
-      const next = track?.parentElement ?? null
+      const header = track?.closest('header') ?? null
+      const first = header?.firstElementChild ?? null
+      const next = first instanceof HTMLElement ? first : null
       if (markedTarget && markedTarget !== next) {
         delete markedTarget.dataset.victoryCriteriaLayout
       }
