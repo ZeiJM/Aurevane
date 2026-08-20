@@ -1,10 +1,12 @@
 .page {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  grid-auto-flow: row;
   grid-auto-rows: max-content;
   gap: 0.75rem;
   align-content: start;
   width: min(100%, 92rem);
+  min-width: 0;
   min-height: calc(100dvh - 8.5rem);
   margin: 0 auto;
   padding: clamp(0.7rem, 1.3vw, 1.05rem);
@@ -18,13 +20,22 @@
   box-shadow: var(--av-shadow-deep);
 }
 
+.page > * {
+  grid-column: 1;
+  min-width: 0;
+}
+
 .heading {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(15rem, 30rem);
+  grid-template-columns: minmax(12rem, 1fr) minmax(15rem, 30rem);
   gap: 1rem;
   align-items: end;
   padding: 0.2rem 0.15rem 0.7rem;
   border-bottom: 1px solid var(--av-border);
+}
+
+.heading > div {
+  min-width: 0;
 }
 
 .eyebrow,
