@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 
 import type { ImageAssetId } from '@/media/registry'
 
@@ -23,13 +23,10 @@ export function CharacterPortraitImage({
   alt = '',
   onRemoteError,
 }: CharacterPortraitImageProps) {
-  const [remoteFailed, setRemoteFailed] = useState(false)
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null)
+  const useRemoteImage = Boolean(imageUrl && failedImageUrl !== imageUrl)
 
-  useEffect(() => {
-    setRemoteFailed(false)
-  }, [imageUrl])
-
-  if (imageUrl && !remoteFailed) {
+  if (imageUrl && useRemoteImage) {
     return (
       // Direct character image URLs intentionally support arbitrary http(s) hosts and animated GIFs.
       // eslint-disable-next-line @next/next/no-img-element
@@ -40,7 +37,7 @@ export function CharacterPortraitImage({
         loading="lazy"
         referrerPolicy="no-referrer"
         onError={() => {
-          setRemoteFailed(true)
+          setFailedImageUrl(imageUrl)
           onRemoteError?.()
         }}
       />
