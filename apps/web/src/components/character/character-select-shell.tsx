@@ -112,7 +112,7 @@ export function CharacterSelectShell({
   }
 
   return (
-    <div className={styles.shell}>
+    <div className={styles.shell} data-character-select-page="true">
       <header className={styles.header}>
         <Link className="brand" href="/game" aria-label="AUREVANE Character Select">
           <span className="brand__crest" aria-hidden="true">
@@ -146,7 +146,7 @@ export function CharacterSelectShell({
         </div>
       </header>
 
-      <main className={styles.main} style={{ width: 'min(96%, 84rem)' }}>
+      <main className={styles.main} style={{ width: 'min(94%, 78rem)' }}>
         <header className={styles.hero}>
           <div>
             <span>Account roster</span>
@@ -363,14 +363,27 @@ function CharacterPlayAction({ character }: { character: CharacterSlotCharacter 
 }
 
 function Countdown({ target }: { target: string }) {
+  const router = useRouter()
   const [now, setNow] = useState(() => Date.now())
+  const targetTime = new Date(target).getTime()
+  const remaining = Math.max(0, targetTime - now)
+
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 1000)
+    if (targetTime <= Date.now()) return
+    const timer = window.setInterval(() => {
+      const next = Date.now()
+      setNow(next)
+      if (next >= targetTime) {
+        window.clearInterval(timer)
+        router.refresh()
+      }
+    }, 1000)
     return () => window.clearInterval(timer)
-  }, [])
+  }, [router, targetTime])
+
   return (
     <b>
-      <Duration milliseconds={Math.max(0, new Date(target).getTime() - now)} />
+      <Duration milliseconds={remaining} />
     </b>
   )
 }
@@ -382,8 +395,8 @@ function Duration({ milliseconds }: { milliseconds: number }) {
   const seconds = totalSeconds % 60
   return (
     <>
-      {hours.toString().padStart(2, '0')}:{minutes.toString().padStart(2, '0')}:
-      {seconds.toString().padStart(2, '0')}
+      {String(hours).padStart(2, '0')}:{String(minutes).padStart(2, '0')}:
+      {String(seconds).padStart(2, '0')}
     </>
   )
 }

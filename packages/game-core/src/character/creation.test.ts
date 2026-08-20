@@ -9,6 +9,8 @@ import {
   normalizeCharacterName,
   toCharacterNameKey,
   validateCharacterCreationIntent,
+  type CharacterCreationCommandV1,
+  type CharacterCreationIntent,
 } from './creation'
 import { FOUNDATION_DISCIPLINES } from './foundation-disciplines'
 
@@ -93,11 +95,40 @@ describe('character creation domain', () => {
     expect(tooMany.ok).toBe(false)
   })
 
+  it('allows the full six-point budget to be placed into one attribute', () => {
+    const validation = validateCharacterCreationIntent({
+      ...validIntent(),
+      attributeBonuses: {
+        might: 6,
+        finesse: 0,
+        vitality: 0,
+        agility: 0,
+        intellect: 0,
+        resolve: 0,
+      },
+    })
+    expect(validation.ok).toBe(true)
+
+    const character = buildInitialCharacterState({
+      ...validIntent(),
+      attributeBonuses: {
+        might: 6,
+        finesse: 0,
+        vitality: 0,
+        agility: 0,
+        intellect: 0,
+        resolve: 0,
+      },
+    })
+    expect(character.attributes.might).toBe(11)
+    expect(character.attributes.finesse).toBe(5)
+  })
+
   it('rejects invalid, missing, or unexpected attribute values', () => {
     const manipulated = [
       { might: -1, finesse: 1, vitality: 1, agility: 1, intellect: 2, resolve: 2 },
       { might: 0.5, finesse: 1, vitality: 1, agility: 1, intellect: 1, resolve: 1.5 },
-      { might: 5, finesse: 0, vitality: 1, agility: 1, intellect: 0, resolve: -1 },
+      { might: 7, finesse: 0, vitality: 0, agility: 0, intellect: 0, resolve: -1 },
       { might: 1, finesse: 1, vitality: 1, agility: 1, intellect: 2 },
       { might: 1, finesse: 1, vitality: 1, agility: 1, intellect: 1, resolve: 1, luck: 0 },
     ]
@@ -194,12 +225,13 @@ describe('character creation domain', () => {
   })
 
   it('reconstructs authoritative progression instead of trusting extra input fields', () => {
-    const character = buildInitialCharacterState({
+    const untrustedIntent = {
       ...validIntent(),
       level: 100,
       xp: 999_999_999,
       progressionCycle: { number: 99 },
-    })
+    } as unknown as CharacterCreationIntent
+    const character = buildInitialCharacterState(untrustedIntent)
 
     expect(character.level).toBe(1)
     expect(character.xp).toBe(0)
@@ -207,7 +239,11 @@ describe('character creation domain', () => {
   })
 
   it('rejects unsupported creation command versions', () => {
-    expect(() => buildCharacterCreationResult({ version: 2, intent: validIntent() })).toThrowError(
+    const unsupportedCommand = {
+      version: 2,
+      intent: validIntent(),
+    } as unknown as CharacterCreationCommandV1
+    expect(() => buildCharacterCreationResult(unsupportedCommand)).toThrowError(
       CharacterCreationRuleError,
     )
   })
