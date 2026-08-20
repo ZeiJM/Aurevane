@@ -4,6 +4,7 @@ export default defineConfig({
   testDir: './e2e',
   testMatch: '**/*.pw.ts',
   fullyParallel: false,
+  workers: 1,
   retries: 0,
   timeout: 30_000,
   expect: {
