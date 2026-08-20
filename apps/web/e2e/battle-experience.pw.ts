@@ -119,7 +119,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     await page.getByRole('button', { name: `Show ${characterName} combat details` }).click()
     await expect(page.getByText(`${characterName} · combat details`)).toBeVisible()
     await expect(page.getByText('Initiative', { exact: true })).toBeVisible()
-    await page.mouse.click(1, 1)
+    await page.getByRole('button', { name: 'Close combatant details' }).click()
     await expect(page.getByText(`${characterName} · combat details`)).toHaveCount(0)
     await expect(page.getByText(characterName, { exact: true }).first()).toBeVisible()
     await expect(page.getByText('Recruit', { exact: true }).first()).toBeVisible()
