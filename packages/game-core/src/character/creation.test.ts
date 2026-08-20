@@ -9,6 +9,8 @@ import {
   normalizeCharacterName,
   toCharacterNameKey,
   validateCharacterCreationIntent,
+  type CharacterCreationCommandV1,
+  type CharacterCreationIntent,
 } from './creation'
 import { FOUNDATION_DISCIPLINES } from './foundation-disciplines'
 
@@ -223,12 +225,13 @@ describe('character creation domain', () => {
   })
 
   it('reconstructs authoritative progression instead of trusting extra input fields', () => {
-    const character = buildInitialCharacterState({
+    const untrustedIntent = {
       ...validIntent(),
       level: 100,
       xp: 999_999_999,
       progressionCycle: { number: 99 },
-    })
+    } as unknown as CharacterCreationIntent
+    const character = buildInitialCharacterState(untrustedIntent)
 
     expect(character.level).toBe(1)
     expect(character.xp).toBe(0)
@@ -236,7 +239,11 @@ describe('character creation domain', () => {
   })
 
   it('rejects unsupported creation command versions', () => {
-    expect(() => buildCharacterCreationResult({ version: 2, intent: validIntent() })).toThrowError(
+    const unsupportedCommand = {
+      version: 2,
+      intent: validIntent(),
+    } as unknown as CharacterCreationCommandV1
+    expect(() => buildCharacterCreationResult(unsupportedCommand)).toThrowError(
       CharacterCreationRuleError,
     )
   })
