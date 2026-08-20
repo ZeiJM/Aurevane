@@ -205,7 +205,10 @@
 
 .guidedReopen {
   display: flex;
+  grid-column: 2;
+  grid-row: 1 / span 2;
   min-height: 1.75rem;
+  align-self: stretch;
   align-items: center;
   justify-content: space-between;
   gap: 0.48rem;
@@ -279,6 +282,8 @@
   }
 
   .guidedReopen {
+    grid-column: 1 / -1;
+    grid-row: 3;
     min-height: 1.65rem;
     padding: 0.28rem 0.42rem;
   }
