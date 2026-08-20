@@ -161,7 +161,11 @@
   background: #090d14;
   box-shadow: 0 0 1.6rem rgba(227, 183, 83, 0.18);
   font: 700 0.72rem/1 var(--av-font-display);
-  transform: translateY(-50%);
+  transform: translate(-50%, -50%);
+}
+
+.teams[data-team-count='3'] .vs {
+  left: -0.9rem;
 }
 
 .team {
@@ -366,6 +370,13 @@
   cursor: not-allowed;
 }
 
+.lobbyChat {
+  border: 1px solid var(--av-border-strong);
+  color: var(--av-text-muted);
+  background: rgba(255, 255, 255, 0.025);
+  cursor: default !important;
+}
+
 .leave {
   border: 1px solid rgba(166, 112, 91, 0.42);
   color: #cba58f;
@@ -398,11 +409,11 @@
 
   .keyStack {
     min-width: 0;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
   }
 
   .keyStack > span {
-    grid-column: 1 / -1;
+    grid-column: 1;
   }
 
   .teams,
@@ -411,7 +422,8 @@
     gap: 1.2rem;
   }
 
-  .vs {
+  .vs,
+  .teams[data-team-count='3'] .vs {
     top: -0.6rem;
     left: 50%;
     transform: translate(-50%, -50%);
@@ -424,7 +436,7 @@
 
   .actions {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 

@@ -121,8 +121,18 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     await expect(page.getByText('Initiative', { exact: true })).toBeVisible()
     await page.getByRole('button', { name: 'Close combatant details' }).click()
     await expect(page.getByText(`${characterName} · combat details`)).toHaveCount(0)
-    await expect(page.getByText(characterName, { exact: true }).first()).toBeVisible()
-    await expect(page.getByText('Recruit', { exact: true }).first()).toBeVisible()
+    const playerRail = page.locator(`aside[aria-label="${characterName} combat status"]`)
+    const recruitRail = page.locator('aside[aria-label="Recruit combat status"]')
+    await expect(playerRail.getByText(characterName, { exact: true })).toBeVisible()
+    await expect(recruitRail.getByText('Recruit', { exact: true })).toBeVisible()
+    const playerTokenName = page
+      .getByRole('button', { name: new RegExp(`occupied by ${characterName}`) })
+      .locator(':scope > span:last-child > strong')
+    const recruitTokenName = page
+      .getByRole('button', { name: /occupied by Recruit/ })
+      .locator(':scope > span:last-child > strong')
+    await expect(playerTokenName).toBeHidden()
+    await expect(recruitTokenName).toBeHidden()
   }
   await expectBattlefieldReadable(page)
   expect(await hasHorizontalOverflow(page)).toBe(false)

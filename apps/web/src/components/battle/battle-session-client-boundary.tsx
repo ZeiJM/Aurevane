@@ -5,10 +5,12 @@ import { getTacticalHallRecordFromScenarioSourceId } from '@aurevane/game-core/c
 import type { ImageAssetId } from '@/media/registry'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
+import { BattleDirectionalAttackAssist } from './battle-directional-attack-assist'
 import { BattleExperienceV2 } from './battle-experience-v2'
 import { BattleFeedbackAssist } from './battle-feedback-assist'
 import { BattleKeyboardAssist } from './battle-keyboard-assist'
 import { BattleLessonCoach } from './battle-lesson-coach'
+import { BattleMapTokenPolish } from './battle-map-token-polish'
 import { BattleRuntimeProvider } from './battle-runtime-context'
 import { BattleUtilityWindows } from './battle-utility-windows'
 import { MobileBattleCombatantPopup } from './mobile-battle-combatant-popup'
@@ -47,6 +49,8 @@ export function BattleSessionClientBoundary({
           recordId={battleHallRecord?.id ?? 'recruit-sparring'}
         />
       ) : null}
+      <BattleDirectionalAttackAssist playerName={playerName} />
+      <BattleMapTokenPolish />
       <BattleKeyboardAssist playerName={playerName} />
       <BattleFeedbackAssist playerName={playerName} playerProfileImageUrl={playerProfileImageUrl} />
       <BattleUtilityWindows

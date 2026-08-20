@@ -193,17 +193,6 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
               <small>Lobby Key · click to copy</small>
               <strong>{lobby.lobbyKey}</strong>
             </button>
-            <button
-              type="button"
-              onClick={() =>
-                void copyValue(
-                  `${window.location.origin}/game/battle?join=${lobby.lobbyKey}`,
-                  'Invite link',
-                )
-              }
-            >
-              Copy invite link
-            </button>
             {copyNotice ? <span>{copyNotice}</span> : null}
           </div>
         </header>
@@ -283,6 +272,14 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
             ) : null}
           </div>
           <div className={styles.actions}>
+            <button
+              type="button"
+              className={styles.lobbyChat}
+              aria-disabled="true"
+              title="Lobby chat will be enabled in a later update."
+            >
+              Chat
+            </button>
             <button
               type="button"
               className={styles.leave}

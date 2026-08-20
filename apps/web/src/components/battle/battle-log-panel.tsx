@@ -21,7 +21,13 @@ interface BattleLogResponse {
 }
 
 function beginFloatingPanelDrag(event: React.PointerEvent<HTMLElement>, panel: HTMLElement | null) {
-  if (!panel || event.button !== 0 || (event.target as Element | null)?.closest('button')) return
+  if (
+    !panel ||
+    event.button !== 0 ||
+    (event.target as Element | null)?.closest('button, [data-resize-handle]')
+  ) {
+    return
+  }
 
   event.preventDefault()
   const rect = panel.getBoundingClientRect()
@@ -31,6 +37,8 @@ function beginFloatingPanelDrag(event: React.PointerEvent<HTMLElement>, panel: H
   panel.style.top = `${rect.top}px`
   panel.style.right = 'auto'
   panel.style.bottom = 'auto'
+  panel.style.width = `${rect.width}px`
+  panel.style.height = `${rect.height}px`
   panel.style.transform = 'none'
 
   const move = (moveEvent: PointerEvent) => {
@@ -41,6 +49,51 @@ function beginFloatingPanelDrag(event: React.PointerEvent<HTMLElement>, panel: H
     const top = Math.min(maxTop, Math.max(4, moveEvent.clientY - offsetY))
     panel.style.left = `${left}px`
     panel.style.top = `${top}px`
+  }
+
+  const finish = () => {
+    window.removeEventListener('pointermove', move)
+    window.removeEventListener('pointerup', finish)
+    window.removeEventListener('pointercancel', finish)
+  }
+
+  window.addEventListener('pointermove', move)
+  window.addEventListener('pointerup', finish, { once: true })
+  window.addEventListener('pointercancel', finish, { once: true })
+}
+
+function beginFloatingPanelResize(
+  event: React.PointerEvent<HTMLElement>,
+  panel: HTMLElement | null,
+) {
+  if (!panel || event.button !== 0) return
+
+  event.preventDefault()
+  event.stopPropagation()
+  const rect = panel.getBoundingClientRect()
+  const startX = event.clientX
+  const startY = event.clientY
+  const minWidth = Math.min(288, Math.max(180, window.innerWidth - 8))
+  const minHeight = Math.min(176, Math.max(120, window.innerHeight - 8))
+
+  panel.style.left = `${rect.left}px`
+  panel.style.top = `${rect.top}px`
+  panel.style.right = 'auto'
+  panel.style.bottom = 'auto'
+  panel.style.width = `${rect.width}px`
+  panel.style.height = `${rect.height}px`
+  panel.style.transform = 'none'
+
+  const move = (moveEvent: PointerEvent) => {
+    const maxWidth = Math.max(minWidth, window.innerWidth - rect.left - 4)
+    const maxHeight = Math.max(minHeight, window.innerHeight - rect.top - 4)
+    const width = Math.min(maxWidth, Math.max(minWidth, rect.width + moveEvent.clientX - startX))
+    const height = Math.min(
+      maxHeight,
+      Math.max(minHeight, rect.height + moveEvent.clientY - startY),
+    )
+    panel.style.width = `${width}px`
+    panel.style.height = `${height}px`
   }
 
   const finish = () => {
@@ -158,6 +211,13 @@ export function BattleLogPanel({
         onClose={onClose}
         playerName={effectivePlayerName}
         onDragStart={(event) => beginFloatingPanelDrag(event, controlledPanelRef.current)}
+      />
+      <span
+        className={styles.resizeHandle}
+        data-resize-handle="battle-log"
+        data-testid="battle-log-resize-handle"
+        aria-hidden="true"
+        onPointerDown={(event) => beginFloatingPanelResize(event, controlledPanelRef.current)}
       />
     </div>
   )
