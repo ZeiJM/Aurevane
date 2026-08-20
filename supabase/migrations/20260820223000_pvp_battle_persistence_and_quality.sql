@@ -48,8 +48,8 @@ begin
     );
   end if;
 
-  -- Deliberately do not abandon active battles here. Battle lifecycle is gameplay state,
-  -- not authentication-session state.
+  -- Battle lifecycle is gameplay state, not authentication-session state. Replacing a browser or
+  -- auth session therefore never abandons an active AI or PvP battle.
   return v_replaced;
 end;
 $$;
@@ -140,6 +140,9 @@ begin
       terrain_bias = excluded.terrain_bias,
       updated_at = excluded.updated_at;
 
+  -- A host changing battlefield generation after players marked ready must invalidate readiness.
+  update app_private.pvp_lobby_members set ready = false where lobby_id = p_lobby_id;
+  update app_private.pvp_lobbies set updated_at = clock_timestamp() where id = p_lobby_id;
   return true;
 end;
 $$;
@@ -240,19 +243,18 @@ begin
   if found then
     update app_private.pvp_lobby_members
     set team_index = v_actor.team_index,
-        seat_index = v_actor.seat_index,
-        ready = false,
-        updated_at = clock_timestamp()
+        seat_index = v_actor.seat_index
     where lobby_id = p_lobby_id and user_id = v_target.user_id;
   end if;
 
   update app_private.pvp_lobby_members
   set team_index = p_target_team_index,
-      seat_index = p_target_seat_index,
-      ready = false,
-      updated_at = clock_timestamp()
+      seat_index = p_target_seat_index
   where lobby_id = p_lobby_id and user_id = p_user_id;
 
+  -- A composition change invalidates every ready flag so all players explicitly accept the new teams.
+  update app_private.pvp_lobby_members set ready = false where lobby_id = p_lobby_id;
+  update app_private.pvp_lobbies set updated_at = clock_timestamp() where id = p_lobby_id;
   return true;
 end;
 $$;
@@ -266,7 +268,7 @@ create table if not exists app_private.pvp_turn_clocks (
 );
 
 revoke all on table app_private.pvp_turn_clocks from public, anon, authenticated;
-grant select, insert, update on table app_private.pvp_turn_clocks to service_role;
+grant select, insert, update, delete on table app_private.pvp_turn_clocks to service_role;
 
 create or replace function public.ensure_pvp_turn_clock_v1(
   p_user_id uuid,
@@ -318,7 +320,11 @@ begin
     insert into app_private.pvp_turn_clocks (
       battle_session_id, turn_number, combatant_id, deadline_at, updated_at
     ) values (
-      p_battle_session_id, v_turn_number, v_combatant_id, clock_timestamp() + interval '60 seconds', clock_timestamp()
+      p_battle_session_id,
+      v_turn_number,
+      v_combatant_id,
+      clock_timestamp() + interval '60 seconds',
+      clock_timestamp()
     )
     on conflict (battle_session_id) do update
     set turn_number = excluded.turn_number,
@@ -338,13 +344,68 @@ begin
 end;
 $$;
 
+create or replace function public.get_pvp_timeout_context_v1(
+  p_user_id uuid,
+  p_battle_session_id uuid,
+  p_combatant_id text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = pg_catalog, app_private
+stable
+as $$
+declare
+  v_last_timeout_version bigint;
+  v_activity_after boolean := false;
+begin
+  if not exists (
+    select 1
+    from app_private.battle_participants p
+    where p.battle_session_id = p_battle_session_id
+      and p.user_id = p_user_id
+      and p.participant_role = 'player'
+  ) then
+    return null;
+  end if;
+
+  select max(e.battle_version)
+  into v_last_timeout_version
+  from app_private.battle_events e
+  where e.battle_session_id = p_battle_session_id
+    and e.event ->> 'event' = 'pvp_turn_timed_out'
+    and e.event ->> 'combatantId' = p_combatant_id;
+
+  if v_last_timeout_version is not null then
+    select exists (
+      select 1
+      from app_private.battle_events e
+      where e.battle_session_id = p_battle_session_id
+        and e.battle_version > v_last_timeout_version
+        and (
+          (e.event ->> 'event' = 'combat_action_used' and e.event ->> 'actorId' = p_combatant_id)
+          or (e.event ->> 'event' = 'combatant_moved' and e.event ->> 'combatantId' = p_combatant_id)
+          or (e.event ->> 'event' = 'final_facing_selected' and e.event ->> 'combatantId' = p_combatant_id)
+        )
+    ) into v_activity_after;
+  end if;
+
+  return jsonb_build_object(
+    'previous_turn_missed', v_last_timeout_version is not null and not v_activity_after,
+    'last_timeout_version', v_last_timeout_version
+  );
+end;
+$$;
+
 revoke all on function public.set_pvp_lobby_settings_v1(uuid, uuid, text, text, text) from public, anon, authenticated;
 revoke all on function public.get_pvp_lobby_settings_v1(uuid, uuid) from public, anon, authenticated;
 revoke all on function public.move_pvp_lobby_seat_v1(uuid, uuid, integer, integer) from public, anon, authenticated;
 revoke all on function public.ensure_pvp_turn_clock_v1(uuid, uuid) from public, anon, authenticated;
+revoke all on function public.get_pvp_timeout_context_v1(uuid, uuid, text) from public, anon, authenticated;
 grant execute on function public.set_pvp_lobby_settings_v1(uuid, uuid, text, text, text) to service_role;
 grant execute on function public.get_pvp_lobby_settings_v1(uuid, uuid) to service_role;
 grant execute on function public.move_pvp_lobby_seat_v1(uuid, uuid, integer, integer) to service_role;
 grant execute on function public.ensure_pvp_turn_clock_v1(uuid, uuid) to service_role;
+grant execute on function public.get_pvp_timeout_context_v1(uuid, uuid, text) to service_role;
 
 commit;
