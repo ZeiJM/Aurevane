@@ -40,9 +40,9 @@ function commandButton(...labels: string[]): HTMLButtonElement | null {
 function facingModeIsActive(): boolean {
   return Boolean(
     document.querySelector<HTMLButtonElement>('[aria-label="Face north"]:not(:disabled)') &&
-      document.querySelector<HTMLButtonElement>('[aria-label="Face east"]:not(:disabled)') &&
-      document.querySelector<HTMLButtonElement>('[aria-label="Face south"]:not(:disabled)') &&
-      document.querySelector<HTMLButtonElement>('[aria-label="Face west"]:not(:disabled)'),
+    document.querySelector<HTMLButtonElement>('[aria-label="Face east"]:not(:disabled)') &&
+    document.querySelector<HTMLButtonElement>('[aria-label="Face south"]:not(:disabled)') &&
+    document.querySelector<HTMLButtonElement>('[aria-label="Face west"]:not(:disabled)'),
   )
 }
 

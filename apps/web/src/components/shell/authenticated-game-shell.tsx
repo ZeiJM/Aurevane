@@ -69,7 +69,9 @@ export async function AuthenticatedShellFrame({
   try {
     const actor = await getAuthenticatedActor()
     const activeBattle = await getActiveBattleForUser(actor.userId).catch(() => null)
-    activeBattleHref = activeBattle ? (`/game/battle/${activeBattle.battleSessionId}` as Route) : null
+    activeBattleHref = activeBattle
+      ? (`/game/battle/${activeBattle.battleSessionId}` as Route)
+      : null
     activeCharacter = await loadSelectedCharacter(actor)
     if (activeCharacter) {
       try {

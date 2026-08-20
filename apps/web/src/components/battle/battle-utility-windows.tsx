@@ -127,10 +127,10 @@ function summarizeCommittedAction(entries: readonly BattleLogEntry[], playerName
 
 function lockWindowToCurrentRect(panel: HTMLElement) {
   const rect = panel.getBoundingClientRect()
-  panel.style.left = `${rect.left}px`
-  panel.style.top = `${rect.top}px`
-  panel.style.width = `${rect.width}px`
-  panel.style.height = `${rect.height}px`
+  panelElement.style.left = `${rect.left}px`
+  panelElement.style.top = `${rect.top}px`
+  panelElement.style.width = `${rect.width}px`
+  panelElement.style.height = `${rect.height}px`
   panel.style.right = 'auto'
   panel.style.bottom = 'auto'
   return rect
@@ -158,10 +158,11 @@ function UtilityWindow({
     if ((event.target as Element | null)?.closest('button, input, textarea, select, a')) return
     const panel = windowRef.current
     if (!panel) return
+    const panelElement = panel
 
     event.preventDefault()
     event.currentTarget.setPointerCapture?.(event.pointerId)
-    const rect = lockWindowToCurrentRect(panel)
+    const rect = lockWindowToCurrentRect(panelElement)
     const startX = event.clientX
     const startY = event.clientY
 
@@ -180,8 +181,8 @@ function UtilityWindow({
           rect.top + moveEvent.clientY - startY,
         ),
       )
-      panel.style.left = `${left}px`
-      panel.style.top = `${top}px`
+      panelElement.style.left = `${left}px`
+      panelElement.style.top = `${top}px`
     }
 
     function finish() {
@@ -199,11 +200,12 @@ function UtilityWindow({
     if (event.button !== 0) return
     const panel = windowRef.current
     if (!panel) return
+    const panelElement = panel
 
     event.preventDefault()
     event.stopPropagation()
     event.currentTarget.setPointerCapture?.(event.pointerId)
-    const rect = lockWindowToCurrentRect(panel)
+    const rect = lockWindowToCurrentRect(panelElement)
     const startX = event.clientX
     const startY = event.clientY
 
@@ -218,8 +220,8 @@ function UtilityWindow({
         MIN_WINDOW_HEIGHT,
         Math.min(maxHeight, rect.height + moveEvent.clientY - startY),
       )
-      panel.style.width = `${width}px`
-      panel.style.height = `${height}px`
+      panelElement.style.width = `${width}px`
+      panelElement.style.height = `${height}px`
     }
 
     function finish() {
