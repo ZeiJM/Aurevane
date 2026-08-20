@@ -25,25 +25,35 @@ function eventChord(event: KeyboardEvent): string {
   return combatKeybindChord({ code: event.code, shift: event.shiftKey })
 }
 
-function modeInstruction(): string {
-  return (
-    document.querySelector<HTMLElement>('[data-testid="combat-mode-instruction"]')?.textContent ??
-    ''
-  ).toLowerCase()
-}
-
-function attackModeIsActive(): boolean {
-  return modeInstruction().includes('basic attack')
-}
-
-function moveModeIsActive(): boolean {
-  return modeInstruction().includes('move') || modeInstruction().includes('movement')
-}
-
 function tilePosition(button: HTMLButtonElement): { x: number; y: number } | null {
   const match = button.getAttribute('aria-label')?.match(/^Tile\s+(\d+),\s*(\d+)/i)
   if (!match) return null
   return { x: Number(match[1]) - 1, y: Number(match[2]) - 1 }
+}
+
+function tileElevation(button: HTMLButtonElement): number | null {
+  const match = button.getAttribute('aria-label')?.match(/;\s*elevation\s+(-?\d+)/i)
+  if (!match) return null
+  const value = Number(match[1])
+  return Number.isSafeInteger(value) ? value : null
+}
+
+function positionKey(position: { x: number; y: number }): string {
+  return `${position.x}:${position.y}`
+}
+
+function battleTiles(): HTMLButtonElement[] {
+  return Array.from(
+    document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label^="Tile "]'),
+  )
+}
+
+function playerTile(playerName: string): HTMLButtonElement | null {
+  return (
+    battleTiles().find((button) =>
+      (button.getAttribute('aria-label') ?? '').includes(`occupied by ${playerName}`),
+    ) ?? null
+  )
 }
 
 function legalVisibleTargetButtons(playerName: string): HTMLButtonElement[] {
@@ -65,6 +75,19 @@ function commandButton(...labels: string[]): HTMLButtonElement | null {
       labels.includes(button.querySelector('strong')?.textContent?.trim() ?? ''),
     ) ?? null
   )
+}
+
+function commandIsActive(...labels: string[]): boolean {
+  const button = commandButton(...labels)
+  return Boolean(button && `${button.className}`.includes('commandActive'))
+}
+
+function attackModeIsActive(): boolean {
+  return commandIsActive('Basic Attack')
+}
+
+function moveModeIsActive(): boolean {
+  return commandIsActive('Move')
 }
 
 function planningButton(text: string): HTMLButtonElement | null {
@@ -102,29 +125,6 @@ function directionForCode(code: string): { dx: number; dy: number } | null {
   return null
 }
 
-function moveAdjacent(direction: { dx: number; dy: number }, playerName: string): boolean {
-  const tiles = Array.from(
-    document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label^="Tile "]'),
-  )
-  const playerTile = tiles.find((button) =>
-    (button.getAttribute('aria-label') ?? '').includes(`occupied by ${playerName}`),
-  )
-  const current = playerTile ? tilePosition(playerTile) : null
-  if (!current) return false
-
-  const targetPosition = { x: current.x + direction.dx, y: current.y + direction.dy }
-  const targetPrefix = `Tile ${targetPosition.x + 1}, ${targetPosition.y + 1};`
-  const target = tiles.find((button) =>
-    (button.getAttribute('aria-label') ?? '').startsWith(targetPrefix),
-  )
-  if (!target || target.disabled) return false
-  if ((target.getAttribute('aria-label') ?? '').includes('occupied by ')) return false
-
-  target.focus({ preventScroll: true })
-  target.click()
-  return true
-}
-
 function syncVisibleCommandLabels(bindings: CombatKeybindMap) {
   const commands: readonly [CombatKeybindAction, readonly string[]][] = [
     ['inspect', ['Inspect']],
@@ -144,9 +144,63 @@ function syncVisibleCommandLabels(bindings: CombatKeybindMap) {
   }
 }
 
+function syncAttackRangeMarkers(playerName: string) {
+  const tiles = battleTiles()
+  if (!attackModeIsActive()) {
+    for (const tile of tiles) tile.removeAttribute('data-attack-range')
+    return
+  }
+
+  const actorTile = playerTile(playerName)
+  const actorPosition = actorTile ? tilePosition(actorTile) : null
+  const actorElevation = actorTile ? tileElevation(actorTile) : null
+  const attackAvailable = !commandButton('Basic Attack')?.disabled
+
+  for (const tile of tiles) {
+    const position = tilePosition(tile)
+    if (!actorPosition || !position) {
+      tile.dataset.attackRange = 'neutral'
+      continue
+    }
+
+    const distance = Math.abs(position.x - actorPosition.x) + Math.abs(position.y - actorPosition.y)
+    if (distance !== 1) {
+      tile.dataset.attackRange = 'neutral'
+      continue
+    }
+
+    const label = tile.getAttribute('aria-label') ?? ''
+    const elevation = tileElevation(tile)
+    const containsEnemy = label.includes('occupied by ') && !label.includes(`occupied by ${playerName}`)
+    const elevationLegal =
+      actorElevation !== null && elevation !== null && Math.abs(elevation - actorElevation) <= 1
+    tile.dataset.attackRange =
+      attackAvailable && containsEnemy && elevationLegal ? 'legal' : 'illegal'
+  }
+}
+
+function guardCanRepeat(playerName: string): boolean {
+  const rail = document.querySelector<HTMLElement>(`aside[aria-label="${playerName} combat status"]`)
+  return !rail?.querySelector('[aria-label^="Guarded,"]')
+}
+
+function repeatableCommand(label: string, playerName: string): HTMLButtonElement | null {
+  if (!['Move', 'Basic Attack', 'Guard', 'Recover'].includes(label)) return null
+  const button = commandButton(label)
+  if (!button || button.disabled) return null
+  if (label === 'Guard' && !guardCanRepeat(playerName)) return null
+  return button
+}
+
 export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
   const [bindings, setBindings] = useState<CombatKeybindMap>(DEFAULT_COMBAT_KEYBINDS)
   const targetIndex = useRef(-1)
+  const movementPlan = useRef<{
+    committedOriginKey: string
+    endpoint: { x: number; y: number }
+  } | null>(null)
+  const lastRepeatableCommand = useRef<string | null>(null)
+  const repeatSequence = useRef(0)
 
   useEffect(() => {
     let cancelled = false
@@ -167,17 +221,95 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
   }, [])
 
   useEffect(() => {
-    syncVisibleCommandLabels(bindings)
-    const observer = new MutationObserver(() => syncVisibleCommandLabels(bindings))
+    function syncBattlePresentation() {
+      syncVisibleCommandLabels(bindings)
+      syncAttackRangeMarkers(playerName)
+      if (!moveModeIsActive()) movementPlan.current = null
+    }
+
+    syncBattlePresentation()
+    const deckObserver = new MutationObserver(syncBattlePresentation)
     const deck = document.querySelector('section[aria-label="Command Deck"]')
-    if (deck) observer.observe(deck, { childList: true, subtree: true })
-    return () => observer.disconnect()
-  }, [bindings])
+    if (deck) deckObserver.observe(deck, { childList: true, subtree: true })
+
+    const battlefieldObserver = new MutationObserver(() => syncAttackRangeMarkers(playerName))
+    const battlefield = document.querySelector('#battlefield')
+    if (battlefield) battlefieldObserver.observe(battlefield, { childList: true, subtree: true })
+
+    return () => {
+      deckObserver.disconnect()
+      battlefieldObserver.disconnect()
+    }
+  }, [bindings, playerName])
+
+  useEffect(() => {
+    function scheduleRepeat(label: string) {
+      const sequence = ++repeatSequence.current
+      let attempts = 0
+
+      const timer = window.setInterval(() => {
+        attempts += 1
+        if (sequence !== repeatSequence.current || attempts > 80) {
+          window.clearInterval(timer)
+          return
+        }
+
+        const confirm = planningButton('Confirm Action')
+        const committing = confirm?.textContent?.includes('Committing') ?? false
+        if (committing) return
+
+        const action = repeatableCommand(label, playerName)
+        if (!action) {
+          if (attempts > 8) window.clearInterval(timer)
+          return
+        }
+
+        // Successful commits clear planning. Re-select only after that clear has happened; failures
+        // leave the current mode selected and therefore do not create a second synthetic click.
+        if (commandIsActive(label)) {
+          window.clearInterval(timer)
+          return
+        }
+
+        action.click()
+        window.clearInterval(timer)
+      }, 75)
+    }
+
+    function handleClick(event: MouseEvent) {
+      const target = event.target instanceof Element ? event.target : null
+      const button = target?.closest<HTMLButtonElement>('button')
+      if (!button) return
+
+      const deck = button.closest('section[aria-label="Command Deck"]')
+      if (deck) {
+        const label = button.querySelector('strong')?.textContent?.trim() ?? ''
+        if (['Move', 'Basic Attack', 'Guard', 'Recover'].includes(label) && !button.disabled) {
+          lastRepeatableCommand.current = label
+          if (label !== 'Move') movementPlan.current = null
+        }
+        return
+      }
+
+      if (button.textContent?.includes('Confirm Action')) {
+        const label = lastRepeatableCommand.current
+        if (label) scheduleRepeat(label)
+      }
+    }
+
+    document.addEventListener('click', handleClick, true)
+    return () => {
+      document.removeEventListener('click', handleClick, true)
+      repeatSequence.current += 1
+    }
+  }, [playerName])
 
   useEffect(() => {
     function cycleTarget(reverse: boolean) {
       if (!attackModeIsActive()) return false
-      const targets = legalVisibleTargetButtons(playerName)
+      const targets = legalVisibleTargetButtons(playerName).filter(
+        (button) => button.dataset.attackRange === 'legal',
+      )
       if (targets.length === 0) return false
       const direction = reverse ? -1 : 1
       targetIndex.current =
@@ -189,6 +321,36 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
       const target = targets[targetIndex.current]
       target?.focus()
       target?.click()
+      return true
+    }
+
+    function moveAdjacent(direction: { dx: number; dy: number }): boolean {
+      const tiles = battleTiles()
+      const actorTile = playerTile(playerName)
+      const committed = actorTile ? tilePosition(actorTile) : null
+      if (!committed) return false
+
+      const committedKey = positionKey(committed)
+      if (!movementPlan.current || movementPlan.current.committedOriginKey !== committedKey) {
+        movementPlan.current = { committedOriginKey: committedKey, endpoint: committed }
+      }
+
+      const base = movementPlan.current.endpoint
+      const targetPosition = { x: base.x + direction.dx, y: base.y + direction.dy }
+      const targetPrefix = `Tile ${targetPosition.x + 1}, ${targetPosition.y + 1};`
+      const target = tiles.find((button) =>
+        (button.getAttribute('aria-label') ?? '').startsWith(targetPrefix),
+      )
+      if (!target || target.disabled) return false
+      if ((target.getAttribute('aria-label') ?? '').includes('occupied by ')) return false
+      if (!`${target.className}`.includes('tileReachable')) return false
+
+      movementPlan.current = {
+        committedOriginKey: committedKey,
+        endpoint: targetPosition,
+      }
+      target.focus({ preventScroll: true })
+      target.click()
       return true
     }
 
@@ -259,7 +421,7 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
       if (movementDirection && moveModeIsActive()) {
         event.preventDefault()
         event.stopImmediatePropagation()
-        moveAdjacent(movementDirection, playerName)
+        moveAdjacent(movementDirection)
         return
       }
 
