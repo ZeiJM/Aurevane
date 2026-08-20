@@ -165,8 +165,8 @@ begin
   select candidate.team_index into v_team
   from (
     select
-      team_index,
-      capacity,
+      teams.team_index,
+      teams.capacity,
       count(m.user_id)::integer as occupied
     from (
       values
@@ -176,8 +176,8 @@ begin
     ) as teams(team_index, capacity)
     left join app_private.pvp_lobby_members m
       on m.lobby_id = v_lobby.id and m.team_index = teams.team_index
-    where capacity > 0
-    group by team_index, capacity
+    where teams.capacity > 0
+    group by teams.team_index, teams.capacity
   ) candidate
   where candidate.occupied < candidate.capacity
   order by candidate.occupied::numeric / candidate.capacity, candidate.team_index
