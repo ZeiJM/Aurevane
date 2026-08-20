@@ -1,0 +1,245 @@
+[data-character-creation-page='true'] {
+  min-height: 100dvh;
+}
+
+@media (min-width: 901px) {
+  [data-character-creation-page='true'] {
+    height: auto !important;
+    min-height: 100dvh !important;
+    overflow: visible !important;
+  }
+
+  [data-character-creation-page='true'] > header {
+    min-height: 3.2rem !important;
+    padding-block: 0.2rem !important;
+  }
+
+  [data-character-creation-page='true'] > main {
+    width: min(calc(100% - 2rem), 74rem) !important;
+    height: auto !important;
+    min-height: calc(100dvh - 3.2rem) !important;
+    margin-inline: auto !important;
+    overflow: visible !important;
+    padding: 0.7rem 1rem 1.6rem !important;
+  }
+
+  [data-character-creation-page='true'] > main > section {
+    gap: 0.52rem !important;
+  }
+
+  [data-character-creation-page='true'] > main > section > div:first-child h1 {
+    margin-top: 0.18rem !important;
+    font-size: clamp(1.7rem, 2.35vw, 2.35rem) !important;
+    line-height: 0.98 !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] {
+    gap: 0.52rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] > div:first-child {
+    min-height: 3.5rem !important;
+    height: clamp(3.5rem, 7vh, 4.5rem) !important;
+    max-height: 4.5rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] > div:last-child {
+    width: 100% !important;
+    max-width: none !important;
+    gap: 0.58rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] .av-kicker {
+    font-size: 0.5rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [aria-label='Character creation progress'] {
+    gap: 0.28rem !important;
+    font-size: 0.49rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [aria-label='Character creation progress'] > span {
+    padding: 0.3rem 0.48rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='step'] {
+    gap: 0.62rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='step'] > h1 {
+    max-width: 42rem !important;
+    font-size: clamp(1.55rem, 2.25vw, 2.25rem) !important;
+    line-height: 1 !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='intro'] {
+    max-width: 48rem !important;
+    font-size: 0.72rem !important;
+    line-height: 1.42 !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='field'] {
+    max-width: 29rem !important;
+    gap: 0.3rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='field'] > span,
+  [data-character-creation-page='true'] section[data-testid='character-creation'] fieldset > legend,
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='attributeHeader'] h2 {
+    font-size: 0.55rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='field'] input {
+    min-height: 2.2rem !important;
+    padding: 0.45rem 0.62rem !important;
+    font-size: 0.82rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='field'] small,
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='optionCard'] small,
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='attributeCard'] small {
+    font-size: 0.58rem !important;
+    line-height: 1.32 !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='twoColumn'] {
+    width: min(100%, 48rem) !important;
+    gap: 0.75rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='inlineChoice'] {
+    min-height: 1.9rem !important;
+    margin: 0 0.3rem 0.28rem 0 !important;
+    padding: 0.3rem 0.45rem !important;
+    font-size: 0.72rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='portraitGrid'] {
+    width: min(100%, 48rem) !important;
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+    gap: 0.42rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='portraitChoice'] {
+    gap: 0.25rem !important;
+    padding: 0.28rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='portraitChoice'] > div,
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='portraitChoice'] > img {
+    min-height: 0 !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='portraitChoice'] > span {
+    font-size: 0.58rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='appearanceGrid'],
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='disciplineGrid'] {
+    width: min(100%, 58rem) !important;
+    gap: 0.42rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='optionCard'] {
+    min-height: 3.15rem !important;
+    gap: 0.24rem !important;
+    padding: 0.55rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='optionCard'] strong {
+    font-size: 0.82rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='attributeHeader'] {
+    width: min(100%, 62rem) !important;
+    gap: 0.8rem !important;
+    padding-top: 0.45rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='attributeHeader'] p {
+    max-width: 46rem !important;
+    margin-top: 0.25rem !important;
+    font-size: 0.6rem !important;
+    line-height: 1.34 !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='attributeHeader'] > strong {
+    font-size: 0.52rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='attributeGrid'] {
+    width: min(100%, 62rem) !important;
+    gap: 0.42rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='attributeCard'] {
+    gap: 0.42rem !important;
+    padding: 0.52rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='attributeCard'] > div:first-child strong {
+    font-size: 0.8rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='attributeControl'] {
+    grid-template-columns: 1.72rem 1.72rem 1.72rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='attributeControl'] button {
+    min-width: 1.72rem !important;
+    min-height: 1.72rem !important;
+    font-size: 0.85rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='reviewGrid'] {
+    width: min(100%, 58rem) !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='reviewGrid'] div {
+    padding: 0.5rem 0.6rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='reviewGrid'] dt {
+    font-size: 0.55rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='reviewGrid'] dd {
+    font-size: 0.7rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='actions'] {
+    gap: 0.42rem !important;
+    padding-top: 0.08rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='actions'] button {
+    min-height: 2.1rem !important;
+    padding: 0.45rem 0.65rem !important;
+    font-size: 0.56rem !important;
+  }
+}
+
+@media (min-width: 901px) and (max-height: 780px) {
+  [data-character-creation-page='true'] > main {
+    padding-top: 0.5rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] > div:first-child {
+    min-height: 3rem !important;
+    height: 3rem !important;
+  }
+
+  [data-character-creation-page='true'] section[data-testid='character-creation'] [class*='step'] {
+    gap: 0.5rem !important;
+  }
+}
+
+@media (max-width: 900px) {
+  [data-character-creation-page='true'] > main {
+    width: min(100%, 46rem) !important;
+  }
+
+  [data-character-creation-page='true'] > main > section > div:first-child h1 {
+    font-size: clamp(1.65rem, 7vw, 2.35rem) !important;
+  }
+}
