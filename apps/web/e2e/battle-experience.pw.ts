@@ -37,7 +37,7 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
   expect(await requestedUiArt.count()).toBeGreaterThan(0)
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
-  await page.getByRole('button', { name: /Strike Drill/ }).click()
+  await page.getByRole('button', { name: /Guided Fundamentals/ }).click()
   await page.getByRole('button', { name: 'Enter Battle' }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
 
