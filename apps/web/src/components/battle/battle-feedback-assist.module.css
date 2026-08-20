@@ -1,0 +1,93 @@
+.scope {
+  display: none;
+}
+
+:global(#battlefield button[data-target-relation='friendly']) {
+  z-index: 4;
+  border-color: rgba(102, 218, 143, 0.98) !important;
+  background:
+    linear-gradient(rgba(54, 156, 91, 0.13), rgba(54, 156, 91, 0.13)),
+    linear-gradient(145deg, rgba(74, 91, 96, 0.32), rgba(25, 38, 45, 0.78)) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(102, 218, 143, 0.5),
+    0 0 0.85rem rgba(70, 190, 112, 0.28) !important;
+}
+
+:global(#battlefield button[data-target-relation='enemy']) {
+  z-index: 4;
+  border-color: rgba(239, 169, 75, 0.98) !important;
+  background:
+    linear-gradient(rgba(209, 121, 39, 0.13), rgba(209, 121, 39, 0.13)),
+    linear-gradient(145deg, rgba(74, 91, 96, 0.32), rgba(25, 38, 45, 0.78)) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(239, 169, 75, 0.5),
+    0 0 0.85rem rgba(222, 131, 44, 0.3) !important;
+}
+
+:global(#battlefield button[data-target-relation='illegal']) {
+  border-color: rgba(226, 83, 83, 0.9) !important;
+  box-shadow: inset 0 0 0 2px rgba(206, 62, 62, 0.34) !important;
+  filter: saturate(0.78);
+}
+
+:global(#battlefield [data-map-portrait-ready]) {
+  isolation: isolate;
+}
+
+:global(#battlefield [data-map-token-portrait]) {
+  position: absolute;
+  inset: 0.12rem;
+  z-index: -1;
+  display: block;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 50%;
+  background: rgba(4, 7, 10, 0.92);
+  pointer-events: none;
+}
+
+:global(#battlefield [data-map-token-team='player']) {
+  border-color: rgba(103, 211, 145, 0.78);
+  box-shadow: inset 0 0 0.45rem rgba(57, 159, 96, 0.28);
+}
+
+:global(#battlefield [data-map-token-team='opponent']) {
+  border-color: rgba(224, 106, 91, 0.76);
+  box-shadow: inset 0 0 0.45rem rgba(176, 61, 54, 0.28);
+}
+
+:global(#battlefield [data-map-token-portrait] img),
+:global(#battlefield [data-map-token-portrait] picture),
+:global(#battlefield [data-map-token-portrait] picture img) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+:global(#battlefield [data-map-portrait-ready] > strong) {
+  position: absolute;
+  right: 50%;
+  bottom: -0.68rem;
+  z-index: 3;
+  max-width: 5.6rem;
+  padding: 0.12rem 0.24rem;
+  border-radius: 999px;
+  background: rgba(3, 6, 9, 0.84);
+  text-shadow: 0 1px 2px #000;
+  transform: translateX(50%);
+}
+
+:global(#battlefield [data-board-auto-fit]) {
+  align-self: center;
+  justify-self: center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :global(#battlefield button[data-target-relation='friendly']),
+  :global(#battlefield button[data-target-relation='enemy']) {
+    transition:
+      border-color 120ms ease,
+      box-shadow 120ms ease,
+      background 120ms ease;
+  }
+}
