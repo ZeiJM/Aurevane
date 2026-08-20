@@ -74,9 +74,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(page.getByLabel('Battle chat message')).toHaveCount(0)
 
   if (testInfo.project.name === 'mobile-chromium') {
-    await page
-      .getByRole('button', { name: new RegExp(`occupied by ${characterName}`) })
-      .click()
+    await page.getByRole('button', { name: new RegExp(`occupied by ${characterName}`) }).click()
     const combatantDialog = page.getByRole('dialog', { name: `${characterName} battle details` })
     await expect(combatantDialog).toBeVisible()
     await expect(combatantDialog.getByText('Initiative', { exact: true })).toBeVisible()
