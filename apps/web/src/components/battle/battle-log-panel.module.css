@@ -39,8 +39,8 @@
   max-width: calc(100vw - 0.5rem);
   max-height: calc(100dvh - 0.5rem);
   overflow: hidden;
-  resize: both;
   transform: translateX(-50%);
+  will-change: left, top, width, height;
 }
 
 .panel {
@@ -111,6 +111,36 @@
   cursor: pointer;
 }
 
+.resizeHandle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 8;
+  width: 1.35rem;
+  height: 1.35rem;
+  touch-action: none;
+  cursor: nwse-resize;
+}
+
+.resizeHandle::before,
+.resizeHandle::after {
+  position: absolute;
+  right: 0.28rem;
+  bottom: 0.28rem;
+  width: 0.62rem;
+  height: 1px;
+  background: rgba(226, 205, 154, 0.82);
+  content: '';
+  transform: rotate(-45deg);
+  transform-origin: right center;
+}
+
+.resizeHandle::after {
+  right: 0.22rem;
+  bottom: 0.22rem;
+  width: 0.36rem;
+}
+
 .panel ol {
   display: grid;
   gap: 0;
@@ -151,8 +181,7 @@
     top: 3.6rem;
     width: calc(100vw - 0.7rem);
     height: min(22rem, 62dvh);
-    min-width: calc(100vw - 0.7rem);
+    min-width: min(15rem, calc(100vw - 0.7rem));
     max-width: calc(100vw - 0.7rem);
-    resize: vertical;
   }
 }
