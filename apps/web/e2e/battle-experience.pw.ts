@@ -47,9 +47,9 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(fullBattlefield.locator('[data-board-auto-fit="9x7"]')).toHaveCount(1)
   await expectBattlefieldContained(page)
 
-  const standardWinButton = page.getByRole('button', { name: /Win battle/ })
-  await expect(standardWinButton).toBeVisible()
-  await standardWinButton.click()
+  const standardCriteriaButton = page.getByRole('button', { name: /Battle criteria/ })
+  await expect(standardCriteriaButton).toBeVisible()
+  await standardCriteriaButton.click()
   const standardWinDialog = page.getByRole('dialog', { name: 'Win the battle' })
   await expect(standardWinDialog).toBeVisible()
   await expect(standardWinDialog).toContainText('Defeat all opposing combatants')
@@ -71,7 +71,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   const guardButton = commandDeck.getByRole('button', { name: /Guard/ })
   const finishButton = commandDeck.getByRole('button', { name: /Finish Turn/ })
   const confirmButton = page.getByRole('button', { name: 'Confirm Action' })
-  const criteriaButton = page.getByRole('button', { name: /Win battle/ })
+  const criteriaButton = page.getByRole('button', { name: /Battle criteria/ })
 
   await expect(
     page.getByRole('dialog', { name: 'Complete the tactical fundamentals' }),
@@ -171,17 +171,13 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
 
   if (testInfo.project.name === 'mobile-chromium') {
     await guardButton.tap()
-    await expect(
-      battlefield.locator('button[data-target-relation="friendly"]'),
-    ).toHaveCount(1)
-    await guardButton.tap()
   } else {
     await guardButton.click()
-    await expect(
-      battlefield.locator('button[data-target-relation="friendly"]'),
-    ).toHaveCount(1)
-    await guardButton.dblclick()
   }
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Guard ready')
+  await expect(battlefield.locator('button[data-target-relation="friendly"]')).toHaveCount(1)
+  await expect(confirmButton).toBeEnabled()
+  await confirmButton.click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Guarded for 2 turns', {
     timeout: 10_000,
   })
@@ -225,7 +221,7 @@ async function openCriteriaAndClose(
   page: import('@playwright/test').Page,
   expectedProgress: string,
 ): Promise<void> {
-  await page.getByRole('button', { name: /Win battle/ }).click()
+  await page.getByRole('button', { name: /Battle criteria/ }).click()
   const dialog = page.getByRole('dialog', { name: 'Complete the tactical fundamentals' })
   await expect(dialog).toBeVisible({ timeout: 4_000 })
   await expect(dialog).toContainText(expectedProgress)
