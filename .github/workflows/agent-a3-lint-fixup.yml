@@ -1,0 +1,102 @@
+name: Agent A3 one-shot lint fixup
+
+on:
+  push:
+    branches:
+      - agent/supabase-migration-history-alignment
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  fixup:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Make utility windows lint-safe
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('apps/web/src/components/battle/battle-utility-windows.tsx')
+          text = path.read_text()
+
+          text = text.replace(
+              "  useRef,\n  useState,\n",
+              "  useRef,\n  useState,\n  useSyncExternalStore,\n",
+              1,
+          )
+
+          old_state = """  const [mounted, setMounted] = useState(false)\n  const [logOpen, setLogOpen] = useState(false)\n  const [chatOpen, setChatOpen] = useState(false)\n  const [chatDraft, setChatDraft] = useState('')\n  const [chatMessages, setChatMessages] = useState<LocalChatMessage[]>([])\n  const [recentEmojis, setRecentEmojis] = useState<string[]>([])\n"""
+          new_state = """  const mounted = useSyncExternalStore(\n    () => () => {},\n    () => true,\n    () => false,\n  )\n  const [logOpen, setLogOpen] = useState(false)\n  const [chatOpen, setChatOpen] = useState(false)\n  const [chatDraft, setChatDraft] = useState('')\n  const [chatMessages, setChatMessages] = useState<LocalChatMessage[]>([])\n  const [recentEmojis, setRecentEmojis] = useState<string[]>(() =>\n    typeof window === 'undefined' ? [] : loadRecentEmojis(playerName),\n  )\n"""
+          if old_state not in text:
+              raise SystemExit('Expected utility-window state block not found')
+          text = text.replace(old_state, new_state, 1)
+
+          old_mount_effect = """\n  useEffect(() => {\n    setMounted(true)\n    setRecentEmojis(loadRecentEmojis(playerName))\n  }, [playerName])\n"""
+          if old_mount_effect not in text:
+              raise SystemExit('Expected mounted effect not found')
+          text = text.replace(old_mount_effect, '', 1)
+
+          old_toggle = """      if (isLog) setLogOpen((value) => !value)\n      else setChatOpen((value) => !value)\n"""
+          new_toggle = """      if (isLog) {\n        setLogOpen((value) => !value)\n      } else {\n        setEmojiOpen(false)\n        setChatOpen((value) => !value)\n      }\n"""
+          if old_toggle not in text:
+              raise SystemExit('Expected utility toggle block not found')
+          text = text.replace(old_toggle, new_toggle, 1)
+
+          old_chat_effect = """  useEffect(() => {\n    chatTrigger()?.setAttribute('aria-expanded', String(chatOpen))\n    if (!chatOpen) setEmojiOpen(false)\n  }, [chatOpen])\n"""
+          new_chat_effect = """  useEffect(() => {\n    chatTrigger()?.setAttribute('aria-expanded', String(chatOpen))\n  }, [chatOpen])\n"""
+          if old_chat_effect not in text:
+              raise SystemExit('Expected chat aria effect not found')
+          text = text.replace(old_chat_effect, new_chat_effect, 1)
+
+          old_log_effect = """  useEffect(() => {\n    if (!logOpen) return\n    void loadLog()\n    const timer = window.setInterval(() => void loadLog(), 1200)\n    return () => window.clearInterval(timer)\n  }, [loadLog, logOpen])\n"""
+          new_log_effect = """  useEffect(() => {\n    if (!logOpen) return\n    const initialTimer = window.setTimeout(() => void loadLog(), 0)\n    const timer = window.setInterval(() => void loadLog(), 1200)\n    return () => {\n      window.clearTimeout(initialTimer)\n      window.clearInterval(timer)\n    }\n  }, [loadLog, logOpen])\n"""
+          if old_log_effect not in text:
+              raise SystemExit('Expected log polling effect not found')
+          text = text.replace(old_log_effect, new_log_effect, 1)
+
+          old_chat_close = '          onClose={() => setChatOpen(false)}\n'
+          new_chat_close = """          onClose={() => {\n            setEmojiOpen(false)\n            setChatOpen(false)\n          }}\n"""
+          if old_chat_close not in text:
+              raise SystemExit('Expected chat close handler not found')
+          text = text.replace(old_chat_close, new_chat_close, 1)
+
+          path.write_text(text)
+          PY
+
+          pnpm exec prettier --write apps/web/src/components/battle/battle-utility-windows.tsx
+          pnpm --filter @aurevane/web lint
+          pnpm --filter @aurevane/web typecheck
+
+      - name: Commit fixup and remove this temporary workflow
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm -- .github/workflows/agent-a3-lint-fixup.yml
+          git add -- apps/web/src/components/battle/battle-utility-windows.tsx
+          git diff --cached --check
+          git commit -m 'fix: make battle utility windows lint-safe'
+          git push origin HEAD:${GITHUB_REF_NAME}
