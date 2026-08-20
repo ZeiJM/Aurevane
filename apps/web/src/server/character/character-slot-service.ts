@@ -30,6 +30,12 @@ export function isCharacterSlotIndex(value: number): boolean {
   return Number.isSafeInteger(value) && value >= 0 && value < CHARACTER_SLOT_COUNT
 }
 
+export function hasEarnedPrestigeCharacterSlot(
+  characters: readonly Pick<CharacterSlotCharacter, 'progressionCycle'>[],
+): boolean {
+  return characters.some((character) => character.progressionCycle.number >= 2)
+}
+
 export async function loadCharacterSlots(userId: string): Promise<CharacterSlotCharacter[]> {
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.rpc('get_character_slots_v2', { p_user_id: userId })
@@ -117,10 +123,9 @@ export async function createCharacterInSlot(command: {
     throw new AurevaneError('INVALID_REQUEST', 'Choose character slot 1, 2, or 3.')
   }
 
-  // During the current pre-monetization/pre-prestige phase the account has one free creation slot.
-  // Additional slots are never unlocked by a browser flag: this authoritative route refuses them
-  // until their real entitlement sources are implemented. Existing legacy characters in those
-  // slots remain playable and are treated as already-unlocked roster positions.
+  // Slot 1 is the account's free character. Slot 2 is reserved for a future purchase entitlement.
+  // Slot 3 is an earned account unlock once any owned character has completed its first Prestige
+  // Rebirth (progression cycle 2+). The decision is made on the server, never from a browser flag.
   if (command.slotIndex === 1) {
     throw new AurevaneError(
       'FORBIDDEN',
@@ -128,10 +133,13 @@ export async function createCharacterInSlot(command: {
     )
   }
   if (command.slotIndex === 2) {
-    throw new AurevaneError(
-      'FORBIDDEN',
-      'Character slot 3 unlocks free after this account completes its first Prestige Rebirth.',
-    )
+    const roster = await loadCharacterSlots(command.actor.userId)
+    if (!hasEarnedPrestigeCharacterSlot(roster)) {
+      throw new AurevaneError(
+        'FORBIDDEN',
+        'Character slot 3 unlocks free after this account completes its first Prestige Rebirth.',
+      )
+    }
   }
 
   let seed
