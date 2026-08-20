@@ -5,6 +5,7 @@ import {
   type TacticalHallRecordId,
 } from '@aurevane/game-core/combat/tactical-hall-records'
 import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { createPortal } from 'react-dom'
 
 import type { GuidedTrainingProgress } from '@/server/battle/guided-training-completion-service'
 
@@ -63,6 +64,10 @@ function progressComplete(progress: GuidedTrainingProgress): boolean {
   return GUIDED_CRITERIA.every((criterion) => progress[criterion.id])
 }
 
+function progressCount(progress: GuidedTrainingProgress): number {
+  return GUIDED_CRITERIA.filter((criterion) => progress[criterion.id]).length
+}
+
 export function BattleLessonCoach({ battleSessionId, recordId }: BattleLessonCoachProps) {
   const dismissed = useSyncExternalStore(
     subscribeCoachStore,
@@ -115,8 +120,17 @@ function GuidedFundamentalsCoach({ battleSessionId }: { battleSessionId: string 
   const [open, setOpen] = useState(true)
   const [progress, setProgress] = useState<GuidedTrainingProgress>(EMPTY_PROGRESS)
   const [error, setError] = useState<string | null>(null)
+  const [hasUnseenProgress, setHasUnseenProgress] = useState(false)
+  const [headerTarget, setHeaderTarget] = useState<HTMLElement | null>(null)
   const latestProgress = useRef<GuidedTrainingProgress>(EMPTY_PROGRESS)
   const completing = useRef(false)
+
+  useEffect(() => {
+    const track = document.querySelector<HTMLElement>(
+      '[role="progressbar"][aria-label="Action Economy remaining"]',
+    )
+    setHeaderTarget(track?.parentElement ?? null)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -164,7 +178,7 @@ function GuidedFundamentalsCoach({ battleSessionId }: { battleSessionId: string 
         if (!response.ok || !body.progress || cancelled) return
 
         const next = body.progress
-        if (progressChanged(latestProgress.current, next)) setOpen(true)
+        if (progressChanged(latestProgress.current, next)) setHasUnseenProgress(true)
         latestProgress.current = next
         setProgress(next)
         if (progressComplete(next)) await completeTraining()
@@ -182,68 +196,87 @@ function GuidedFundamentalsCoach({ battleSessionId }: { battleSessionId: string 
     }
   }, [battleSessionId])
 
-  if (!open) {
-    return (
-      <button className={styles.guidedReopen} type="button" onClick={() => setOpen(true)}>
-        Training criteria {GUIDED_CRITERIA.filter((criterion) => progress[criterion.id]).length}/
-        {GUIDED_CRITERIA.length}
-      </button>
-    )
-  }
+  const criteriaButton = headerTarget
+    ? createPortal(
+        <button
+          className={styles.guidedReopen}
+          type="button"
+          data-new-progress={hasUnseenProgress || undefined}
+          aria-label={`Training criteria, ${progressCount(progress)} of ${GUIDED_CRITERIA.length} complete${hasUnseenProgress ? ', new progress' : ''}`}
+          onClick={() => {
+            setHasUnseenProgress(false)
+            setOpen(true)
+          }}
+        >
+          <span>Training criteria</span>
+          <strong>
+            {progressCount(progress)}/{GUIDED_CRITERIA.length}
+          </strong>
+        </button>,
+        headerTarget,
+      )
+    : null
 
   return (
-    <div className={styles.guidedBackdrop} onPointerDown={() => setOpen(false)}>
-      <section
-        className={styles.guidedPanel}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="guided-training-title"
-        onPointerDown={(event) => event.stopPropagation()}
-      >
-        <button
-          className={styles.guidedClose}
-          type="button"
-          aria-label="Close training criteria"
-          onClick={() => setOpen(false)}
-        >
-          ×
-        </button>
-        <span>Battle Hall · Guided Fundamentals</span>
-        <h2 id="guided-training-title">
-          {progressComplete(progress) ? 'Training complete' : 'Complete the tactical fundamentals'}
-        </h2>
-        <p>
-          This exercise ends successfully when every server-recorded criterion is complete. The
-          checklist reopens as you make progress so you can see what changed.
-        </p>
-        <ol className={styles.criteria}>
-          {GUIDED_CRITERIA.map((criterion) => {
-            const complete = progress[criterion.id]
-            return (
-              <li key={criterion.id} data-complete={complete || undefined}>
-                <strong>
-                  {complete ? '✓' : '○'} {criterion.label}
-                </strong>
-                <small>{criterion.why}</small>
-              </li>
-            )
-          })}
-        </ol>
-        {error ? <p className={styles.guidedError}>{error}</p> : null}
-        <div className={styles.guidedFooter}>
-          <span>
-            {GUIDED_CRITERIA.filter((criterion) => progress[criterion.id]).length}/
-            {GUIDED_CRITERIA.length} complete
-          </span>
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            disabled={progressComplete(progress)}
+    <>
+      {criteriaButton}
+      {open ? (
+        <div className={styles.guidedBackdrop} onPointerDown={() => setOpen(false)}>
+          <section
+            className={styles.guidedPanel}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="guided-training-title"
+            onPointerDown={(event) => event.stopPropagation()}
           >
-            Continue training
-          </button>
+            <button
+              className={styles.guidedClose}
+              type="button"
+              aria-label="Close training criteria"
+              onClick={() => setOpen(false)}
+            >
+              ×
+            </button>
+            <span>Battle Hall · Guided Fundamentals</span>
+            <h2 id="guided-training-title">
+              {progressComplete(progress)
+                ? 'Training complete'
+                : 'Complete the tactical fundamentals'}
+            </h2>
+            <p>
+              This exercise ends successfully when every server-recorded criterion is complete. The
+              checklist stays available from the battle header; new progress highlights that button
+              instead of interrupting your turn.
+            </p>
+            <ol className={styles.criteria}>
+              {GUIDED_CRITERIA.map((criterion) => {
+                const complete = progress[criterion.id]
+                return (
+                  <li key={criterion.id} data-complete={complete || undefined}>
+                    <strong>
+                      {complete ? '✓' : '○'} {criterion.label}
+                    </strong>
+                    <small>{criterion.why}</small>
+                  </li>
+                )
+              })}
+            </ol>
+            {error ? <p className={styles.guidedError}>{error}</p> : null}
+            <div className={styles.guidedFooter}>
+              <span>
+                {progressCount(progress)}/{GUIDED_CRITERIA.length} complete
+              </span>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                disabled={progressComplete(progress)}
+              >
+                Continue training
+              </button>
+            </div>
+          </section>
         </div>
-      </section>
-    </div>
+      ) : null}
+    </>
   )
 }
