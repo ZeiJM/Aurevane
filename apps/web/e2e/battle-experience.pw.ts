@@ -128,14 +128,14 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   )
   await page.getByRole('button', { name: 'Face east' }).click()
 
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText(/Recruit:/, {
-    timeout: 15_000,
-  })
   await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
     'aria-valuenow',
     '100',
     { timeout: 15_000 },
   )
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Choose your action', {
+    timeout: 15_000,
+  })
   await closeProgressCoach(page, '2/4 complete')
 
   if (testInfo.project.name === 'mobile-chromium') {
