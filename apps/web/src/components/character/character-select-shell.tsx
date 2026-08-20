@@ -19,6 +19,21 @@ interface CharacterSelectShellProps {
   profileImageUrls: Readonly<Record<string, string>>
 }
 
+function lockedSlotCopy(slotIndex: number): { title: string; body: string; badge: string } {
+  if (slotIndex === 1) {
+    return {
+      title: 'Additional character slot',
+      body: 'Slot 2 unlocks through a character-slot purchase when account services and monetization arrive.',
+      badge: 'Purchase unlock · coming later',
+    }
+  }
+  return {
+    title: 'Prestige character slot',
+    body: 'Slot 3 unlocks free after this account completes its first Prestige Rebirth.',
+    badge: 'Earn free · first Prestige Rebirth',
+  }
+}
+
 export function CharacterSelectShell({
   characters,
   selectedCharacter,
@@ -32,6 +47,23 @@ export function CharacterSelectShell({
   const bySlot = useMemo(
     () => new Map(characters.map((character) => [character.slotIndex, character])),
     [characters],
+  )
+  const displaySlots = useMemo(
+    () =>
+      [0, 1, 2]
+        .map((slotIndex) => {
+          const character = bySlot.get(slotIndex) ?? null
+          return {
+            slotIndex,
+            character,
+            unlocked: slotIndex === 0 || Boolean(character),
+          }
+        })
+        .sort((left, right) => {
+          if (left.unlocked !== right.unlocked) return left.unlocked ? -1 : 1
+          return left.slotIndex - right.slotIndex
+        }),
+    [bySlot],
   )
 
   async function requestDeletion() {
@@ -116,8 +148,9 @@ export function CharacterSelectShell({
             <h1>Choose your character.</h1>
           </div>
           <p>
-            Three character slots share this account. Switching away from a character starts a
-            one-hour cooldown before you can return to that character, so swaps are deliberate.
+            Every account begins with one free character. Additional unlocked characters are kept
+            together at the front of the roster; locked opportunities stay last without changing a
+            character&apos;s true stored slot identity.
           </p>
         </header>
 
@@ -128,17 +161,35 @@ export function CharacterSelectShell({
         ) : null}
 
         <section className={styles.slots} aria-label="Character slots">
-          {[0, 1, 2].map((slotIndex) => {
-            const character = bySlot.get(slotIndex)
+          {displaySlots.map(({ slotIndex, character, unlocked }) => {
+            if (!unlocked) {
+              const lock = lockedSlotCopy(slotIndex)
+              return (
+                <article
+                  className={`${styles.slot} ${styles.empty}`}
+                  data-locked="true"
+                  key={slotIndex}
+                >
+                  <span className={styles.slotNumber}>Slot {slotIndex + 1}</span>
+                  <div className={styles.emptyCrest} aria-hidden="true">
+                    ◇
+                  </div>
+                  <h2>{lock.title}</h2>
+                  <p>{lock.body}</p>
+                  <span className={styles.lockedBadge}>{lock.badge}</span>
+                </article>
+              )
+            }
+
             if (!character) {
               return (
                 <article className={`${styles.slot} ${styles.empty}`} key={slotIndex}>
-                  <span className={styles.slotNumber}>Slot {slotIndex + 1}</span>
+                  <span className={styles.slotNumber}>Slot {slotIndex + 1} · Free</span>
                   <div className={styles.emptyCrest} aria-hidden="true">
                     +
                   </div>
                   <h2>Open character slot</h2>
-                  <p>Create another adventurer with their own identity, progression, and build.</p>
+                  <p>Create your adventurer with their own identity, progression, and build.</p>
                   <Link className={styles.primaryAction} href={`/game/create/${slotIndex}`}>
                     Create Character
                   </Link>
@@ -154,7 +205,7 @@ export function CharacterSelectShell({
                 key={character.id}
                 data-pending-delete={pending || undefined}
               >
-                <span className={styles.slotNumber}>Slot {slotIndex + 1}</span>
+                <span className={styles.slotNumber}>Slot {slotIndex + 1} · Unlocked</span>
                 <div className={styles.portrait}>
                   <CharacterPortraitImage
                     imageUrl={profileImageUrls[character.id]}
