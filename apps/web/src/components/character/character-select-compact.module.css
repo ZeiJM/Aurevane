@@ -5,7 +5,7 @@
     overflow: hidden;
   }
 
-  .main {
+  .shell > :global(main) {
     display: flex;
     height: calc(100dvh - 3.7rem);
     min-height: 0;
@@ -13,7 +13,7 @@
     padding: 0.45rem clamp(0.7rem, 1.6vw, 1.15rem);
   }
 
-  .hero {
+  .shell > :global(main) > :global(header) {
     flex: 0 0 auto;
     grid-template-columns: minmax(0, 1fr) minmax(18rem, 31rem);
     gap: 0.8rem;
@@ -21,23 +21,23 @@
     padding: 0.25rem 0 0.45rem;
   }
 
-  .hero h1 {
+  .shell > :global(main) > :global(header) h1 {
     margin-top: 0.18rem;
     font-size: clamp(1.7rem, 3vw, 2.5rem);
   }
 
-  .hero p {
+  .shell > :global(main) > :global(header) p {
     font-size: 0.7rem;
     line-height: 1.35;
   }
 
-  .slots {
+  .shell :global(section[aria-label='Character slots']) {
     min-height: 0;
     flex: 1 1 auto;
     gap: 0.55rem;
   }
 
-  .slot {
+  .shell :global(section[aria-label='Character slots'] > article) {
     min-height: 0;
     height: 100%;
     grid-template-rows: auto minmax(4.5rem, 1fr) auto auto auto;
@@ -47,27 +47,12 @@
     scrollbar-width: thin;
   }
 
-  .slot h2 {
+  .shell :global(section[aria-label='Character slots'] > article h2) {
     font-size: 1.08rem;
   }
 
-  .slot p {
+  .shell :global(section[aria-label='Character slots'] > article p) {
     font-size: 0.61rem;
     line-height: 1.3;
-  }
-
-  .portrait {
-    min-height: 6.5rem;
-    margin: 0.35rem -0.05rem;
-  }
-
-  .identity {
-    padding: 0.15rem 0 0.35rem;
-  }
-
-  .emptyCrest {
-    width: 3.6rem;
-    height: 3.6rem;
-    font-size: 1.6rem;
   }
 }
