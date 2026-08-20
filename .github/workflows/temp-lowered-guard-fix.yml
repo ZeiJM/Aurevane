@@ -1,0 +1,79 @@
+name: Temporary Lowered Guard Fix
+
+on:
+  push:
+    branches:
+      - hotfix/post-prod-battle-pv-20260820
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: "!contains(github.event.head_commit.message, '[lowered-guard-bot]')"
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hotfix/post-prod-battle-pv-20260820
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Apply exact 2.5x Lowered Guard rule
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          economy = Path('packages/game-core/src/combat/pv1f-action-economy.ts')
+          text = economy.read_text()
+          text = text.replace(
+              "// Lowered Guard uses two 15,811-bp stacks, producing ~2.5x total incoming damage before integer\n// rounding while remaining inside the combat engine's existing per-stack multiplier safety bound.\nexport const PV1F_LOWERED_GUARD_STATUS: CombatStatusDefinition = {\n  id: 'lowered-guard',\n  version: 1,\n  maximumStacks: 2,\n  durationOwnerTurnStarts: 1_000,\n  damageTakenMultiplierBasisPoints: 15_811,\n}",
+              "// Lowered Guard is a single persistent PvP anti-AFK debuff: affected combatants take\n// exactly 250% of normal incoming damage before HP clamping.\nexport const PV1F_LOWERED_GUARD_STATUS: CombatStatusDefinition = {\n  id: 'lowered-guard',\n  version: 1,\n  maximumStacks: 1,\n  durationOwnerTurnStarts: 1_000,\n  damageTakenMultiplierBasisPoints: 25_000,\n}",
+          )
+          economy.write_text(text)
+
+          actions = Path('packages/game-core/src/combat/actions.ts')
+          text = actions.read_text()
+          text = text.replace(
+              "assertBasisPoints(status.damageTakenMultiplierBasisPoints, 'damage taken multiplier', 20_000)",
+              "assertBasisPoints(status.damageTakenMultiplierBasisPoints, 'damage taken multiplier', 25_000)",
+          )
+          actions.write_text(text)
+
+          quality = Path('packages/game-core/src/combat/pvp-quality.ts')
+          text = quality.read_text().replace(
+              "statusId: PVP_LOWERED_GUARD_STATUS_ID,\n      stacks: 2,",
+              "statusId: PVP_LOWERED_GUARD_STATUS_ID,\n      stacks: 1,",
+          )
+          quality.write_text(text)
+
+          test = Path('packages/game-core/src/combat/pvp-quality.test.ts')
+          text = test.read_text().replace(
+              "statusId: PVP_LOWERED_GUARD_STATUS_ID, stacks: 2",
+              "statusId: PVP_LOWERED_GUARD_STATUS_ID, stacks: 1",
+          )
+          test.write_text(text)
+          PY
+      - name: Format and test game core
+        run: |
+          pnpm exec prettier --write packages/game-core/src/combat/actions.ts packages/game-core/src/combat/pv1f-action-economy.ts packages/game-core/src/combat/pvp-quality.ts packages/game-core/src/combat/pvp-quality.test.ts
+          pnpm --filter @aurevane/game-core test
+      - name: Commit repair
+        run: |
+          if git diff --quiet; then
+            echo "No repair changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: make Lowered Guard exactly 2.5x damage [lowered-guard-bot]"
+          git push origin HEAD:hotfix/post-prod-battle-pv-20260820
