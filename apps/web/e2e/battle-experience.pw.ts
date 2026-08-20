@@ -47,7 +47,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(fullBattlefield.locator('[data-board-auto-fit="9x7"]')).toHaveCount(1)
   await expectBattlefieldContained(page)
 
-  const standardCriteriaButton = page.getByRole('button', { name: /Battle criteria/ })
+  const standardCriteriaButton = page.getByRole('button', { name: /Win battle/ })
   await expect(standardCriteriaButton).toBeVisible()
   await standardCriteriaButton.click()
   const standardWinDialog = page.getByRole('dialog', { name: 'Win the battle' })
@@ -71,7 +71,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   const guardButton = commandDeck.getByRole('button', { name: /Guard/ })
   const finishButton = commandDeck.getByRole('button', { name: /Finish Turn/ })
   const confirmButton = page.getByRole('button', { name: 'Confirm Action' })
-  const criteriaButton = page.getByRole('button', { name: /Battle criteria/ })
+  const criteriaButton = page.getByRole('button', { name: /Win battle/ })
 
   await expect(
     page.getByRole('dialog', { name: 'Complete the tactical fundamentals' }),
@@ -92,12 +92,15 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expectBattlefieldContained(page)
 
   await page.getByRole('button', { name: 'Chat', exact: true }).click()
-  await page.getByLabel('Battle chat message').fill('Testing solo battle chat')
-  await page.getByRole('button', { name: 'Choose emoji' }).click()
-  await page.getByRole('button', { name: 'Insert ⚔️' }).click()
+  await page.getByLabel('Battle chat message').fill('Testing solo battle chat⚔️')
   await page.getByRole('button', { name: 'Send' }).click()
   await expect(page.getByText('Testing solo battle chat⚔️', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Choose emoji' }).click()
+  await expect(page.getByRole('button', { name: 'Insert ⚔️' })).toBeVisible()
   await page.mouse.click(1, 1)
+  await expect(page.getByRole('group', { name: 'Recent emoji' })).toHaveCount(0)
+  await expect(page.getByLabel('Battle chat message')).toBeVisible()
+  await page.getByRole('button', { name: 'Close battle chat' }).click()
   await expect(page.getByLabel('Battle chat message')).toHaveCount(0)
 
   if (testInfo.project.name === 'mobile-chromium') {
@@ -119,7 +122,8 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     await page.getByRole('button', { name: `Show ${characterName} combat details` }).click()
     await expect(page.getByText(`${characterName} · combat details`)).toBeVisible()
     await expect(page.getByText('Initiative', { exact: true })).toBeVisible()
-    await page.getByRole('button', { name: 'Close combatant details' }).click()
+    await page.mouse.click(1, 1)
+    await expect(page.getByText(`${characterName} · combat details`)).toHaveCount(0)
     await expect(page.getByText(characterName, { exact: true }).first()).toBeVisible()
     await expect(page.getByText('Recruit', { exact: true }).first()).toBeVisible()
   }
@@ -225,7 +229,7 @@ async function openCriteriaAndClose(
   page: import('@playwright/test').Page,
   expectedProgress: string,
 ): Promise<void> {
-  await page.getByRole('button', { name: /Battle criteria/ }).click()
+  await page.getByRole('button', { name: /Win battle/ }).click()
   const dialog = page.getByRole('dialog', { name: 'Complete the tactical fundamentals' })
   await expect(dialog).toBeVisible({ timeout: 4_000 })
   await expect(dialog).toContainText(expectedProgress)
