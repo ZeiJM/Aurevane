@@ -1,0 +1,270 @@
+.list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: 0.65rem;
+}
+
+.characterCard {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  min-height: 4.6rem;
+  padding: 0.7rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  color: var(--av-text);
+  background: rgba(255, 255, 255, 0.018);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 130ms ease,
+    background 130ms ease,
+    transform 130ms ease;
+}
+
+.characterCard:hover,
+.characterCard:focus-visible {
+  border-color: rgba(95, 188, 133, 0.58);
+  outline: none;
+  background: rgba(55, 126, 82, 0.07);
+  transform: translateY(-1px);
+}
+
+.avatarWrap {
+  position: relative;
+  display: block;
+  width: 3rem;
+  height: 3rem;
+}
+
+.avatar,
+.heroPortrait {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+  object-fit: cover;
+  border: 1px solid rgba(207, 169, 93, 0.55);
+  background: #080b10;
+}
+
+.avatar {
+  border-radius: 50%;
+}
+
+.heroPortrait {
+  border-radius: var(--av-radius-md);
+}
+
+.fallbackPortrait {
+  color: var(--av-brass-200);
+  font: 500 1.4rem/1 var(--av-font-display);
+  background:
+    radial-gradient(circle at 45% 35%, rgba(207, 169, 93, 0.14), transparent 55%),
+    #080b10;
+}
+
+.presenceDot {
+  position: absolute;
+  right: 0.05rem;
+  bottom: 0.1rem;
+  width: 0.62rem;
+  height: 0.62rem;
+  border: 2px solid #0b1017;
+  border-radius: 50%;
+  background: var(--av-verdant-400);
+  box-shadow: 0 0 0.65rem rgba(92, 214, 138, 0.55);
+}
+
+.identity {
+  display: grid;
+  min-width: 0;
+  gap: 0.28rem;
+}
+
+.identity strong {
+  overflow: hidden;
+  font: 550 1.03rem/1 var(--av-font-display);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.identity small {
+  overflow: hidden;
+  color: var(--av-text-dim);
+  font: 600 0.52rem/1.25 var(--av-font-mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.online,
+.liveBadge {
+  color: var(--av-verdant-400);
+  font: 750 0.5rem/1 var(--av-font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.empty {
+  margin: 0;
+  color: var(--av-text-muted);
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(1, 3, 6, 0.72);
+  backdrop-filter: blur(0.5rem);
+}
+
+.profileCard {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(13rem, 18rem) minmax(18rem, 25rem);
+  width: min(48rem, 100%);
+  overflow: hidden;
+  border: 1px solid rgba(207, 169, 93, 0.55);
+  border-radius: var(--av-radius-lg);
+  background: #0b1017;
+  box-shadow: 0 2rem 6rem rgba(0, 0, 0, 0.78);
+}
+
+.close {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  z-index: 2;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  color: var(--av-text);
+  background: rgba(4, 6, 9, 0.8);
+  font-size: 1.15rem;
+  cursor: pointer;
+}
+
+.portraitStage {
+  position: relative;
+  min-height: 22rem;
+  padding: 0.9rem;
+  background:
+    radial-gradient(circle at 50% 25%, rgba(207, 169, 93, 0.16), transparent 45%),
+    #070a0e;
+}
+
+.heroPortrait {
+  min-height: 20rem;
+}
+
+.liveBadge {
+  position: absolute;
+  right: 1.35rem;
+  bottom: 1.35rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid rgba(95, 188, 133, 0.35);
+  border-radius: 999px;
+  background: rgba(8, 20, 13, 0.9);
+}
+
+.profileCopy {
+  display: grid;
+  align-content: center;
+  gap: 0.8rem;
+  padding: clamp(1.25rem, 3vw, 2.1rem);
+}
+
+.profileCopy > span {
+  color: var(--av-brass-300);
+  font: 750 0.52rem/1 var(--av-font-mono);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.profileCopy h2 {
+  margin: 0;
+  font: 500 clamp(2rem, 5vw, 3.2rem)/0.95 var(--av-font-display);
+}
+
+.titleLine {
+  margin: -0.2rem 0 0;
+  color: var(--av-text-muted);
+  font-size: 0.8rem;
+}
+
+.profileCopy dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin: 0;
+}
+
+.profileCopy dl div {
+  padding: 0.65rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.profileCopy dt {
+  color: var(--av-text-dim);
+  font: 700 0.46rem/1 var(--av-font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.profileCopy dd {
+  margin: 0.35rem 0 0;
+  font-weight: 700;
+}
+
+.privacyNote {
+  margin: 0;
+  color: var(--av-text-dim);
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
+.futureActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.futureActions button {
+  min-height: 2.7rem;
+  padding: 0.55rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  color: var(--av-text-dim);
+  background: rgba(255, 255, 255, 0.018);
+  font: 700 0.52rem/1.2 var(--av-font-mono);
+}
+
+@media (max-width: 700px) {
+  .profileCard {
+    grid-template-columns: 1fr;
+    max-height: calc(100dvh - 2rem);
+    overflow: auto;
+  }
+
+  .portraitStage {
+    min-height: 15rem;
+  }
+
+  .heroPortrait {
+    min-height: 13rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .futureActions,
+  .profileCopy dl {
+    grid-template-columns: 1fr;
+  }
+}
