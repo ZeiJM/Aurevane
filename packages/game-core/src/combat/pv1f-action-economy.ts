@@ -47,8 +47,18 @@ export const PV1F_GUARDED_STATUS: CombatStatusDefinition = {
   damageTakenMultiplierBasisPoints: 8_500,
 }
 
+// Lowered Guard uses two 15,811-bp stacks, producing ~2.5x total incoming damage before integer
+// rounding while remaining inside the combat engine's existing per-stack multiplier safety bound.
+export const PV1F_LOWERED_GUARD_STATUS: CombatStatusDefinition = {
+  id: 'lowered-guard',
+  version: 1,
+  maximumStacks: 2,
+  durationOwnerTurnStarts: 1_000,
+  damageTakenMultiplierBasisPoints: 15_811,
+}
+
 export const PV1F_COMBAT_CONTENT: CombatContentCatalog = {
-  statuses: [PV1F_GUARDED_STATUS],
+  statuses: [PV1F_GUARDED_STATUS, PV1F_LOWERED_GUARD_STATUS],
 }
 
 export const PV1F_GUARD_ACTION: CombatActionDefinition = {
