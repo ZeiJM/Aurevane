@@ -1,0 +1,85 @@
+name: Agent A3 final browser-layout fix
+
+on:
+  push:
+    branches:
+      - agent/supabase-migration-history-alignment
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+      - name: Fix final battle/header browser contracts
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          polish = Path('apps/web/src/app/a3-battle-polish.css')
+          text = polish.read_text()
+          old_progress = """  > [role='progressbar'][aria-label='Action Economy remaining'] {\n  grid-column: 1;\n  grid-row: 2;\n}\n"""
+          new_progress = """  > [role='progressbar'][aria-label='Action Economy remaining'] {\n  grid-column: 1 / -1;\n  grid-row: 2;\n}\n"""
+          if old_progress not in text:
+              raise SystemExit('Expected AP progress grid block not found')
+          text = text.replace(old_progress, new_progress, 1)
+          text = text.replace(
+              "> button[aria-label^='Training criteria'] {\n  grid-column: 2;\n  grid-row: 1 / span 2;\n  align-self: stretch;\n}",
+              "> button[aria-label^='Win battle'] {\n  grid-column: 2;\n  grid-row: 1;\n  align-self: center;\n}",
+              1,
+          )
+          polish.write_text(text)
+
+          rail = Path('apps/web/src/components/public-information/public-header-rail.module.css')
+          text = rail.read_text()
+          needle = """  gap: clamp(0.65rem, 1.4vw, 1.15rem) !important;\n  align-items: center !important;\n"""
+          replacement = """  gap: clamp(0.65rem, 1.4vw, 1.15rem) !important;\n  align-items: center !important;\n  padding-inline: clamp(0.65rem, 1.6vw, 1.25rem) !important;\n"""
+          if needle not in text:
+              raise SystemExit('Expected public header rail block not found')
+          rail.write_text(text.replace(needle, replacement, 1))
+
+          test = Path('apps/web/e2e/battle-experience.pw.ts')
+          text = test.read_text()
+          old_mobile = """    await expect(combatantDialog).toBeVisible()\n    await expect(combatantDialog.getByText('Initiative', { exact: true })).toBeVisible()\n    await combatantDialog.getByRole('button', { name: 'Close combatant details' }).click()\n    await expect(playerTile).toBeVisible()\n"""
+          new_mobile = """    await expect(combatantDialog).toBeVisible()\n    await expect(combatantDialog.getByText('Initiative', { exact: true })).toBeVisible()\n    await page.mouse.click(1, 1)\n    await expect(combatantDialog).toHaveCount(0)\n    await expect(playerTile).toBeVisible()\n"""
+          if old_mobile not in text:
+              raise SystemExit('Expected mobile combat-detail close block not found')
+          test.write_text(text.replace(old_mobile, new_mobile, 1))
+          PY
+
+          pnpm exec prettier --write \
+            apps/web/src/app/a3-battle-polish.css \
+            apps/web/src/components/public-information/public-header-rail.module.css \
+            apps/web/e2e/battle-experience.pw.ts
+          pnpm exec prettier --check \
+            apps/web/src/app/a3-battle-polish.css \
+            apps/web/src/components/public-information/public-header-rail.module.css \
+            apps/web/e2e/battle-experience.pw.ts
+      - name: Commit and self-remove
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm -- .github/workflows/agent-a3-browser-layout-fix.yml
+          git add -- \
+            apps/web/src/app/a3-battle-polish.css \
+            apps/web/src/components/public-information/public-header-rail.module.css \
+            apps/web/e2e/battle-experience.pw.ts
+          git diff --cached --check
+          git commit -m 'fix: align final A3 battle and header layouts'
+          git push origin HEAD:${GITHUB_REF_NAME}
