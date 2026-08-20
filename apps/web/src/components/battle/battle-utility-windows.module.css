@@ -28,7 +28,8 @@
 
 .rightWindow {
   top: 4rem;
-  right: 0.6rem;
+  right: auto;
+  left: max(0.6rem, calc(100vw - 34rem - 0.6rem));
   width: min(34rem, calc(100vw - 1.2rem));
   height: min(27rem, 62dvh);
 }
