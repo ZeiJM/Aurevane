@@ -1,0 +1,72 @@
+@media (min-width: 901px) and (max-height: 700px) {
+  .shell {
+    height: 100dvh;
+    min-height: 100dvh;
+    overflow: hidden;
+  }
+
+  .main {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    height: calc(100dvh - 3.7rem);
+    min-height: 0;
+    padding: 0.45rem clamp(0.7rem, 1.6vw, 1.15rem);
+  }
+
+  .hero {
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 31rem);
+    gap: 0.8rem;
+    margin-bottom: 0.45rem;
+    padding: 0.25rem 0 0.45rem;
+  }
+
+  .hero h1 {
+    margin-top: 0.18rem;
+    font-size: clamp(1.7rem, 3vw, 2.5rem);
+  }
+
+  .hero p {
+    font-size: 0.7rem;
+    line-height: 1.35;
+  }
+
+  .slots {
+    min-height: 0;
+    height: 100%;
+    gap: 0.55rem;
+  }
+
+  .slot {
+    min-height: 0;
+    height: 100%;
+    grid-template-rows: auto minmax(4.5rem, 1fr) auto auto auto;
+    padding: 0.55rem;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .slot h2 {
+    font-size: 1.08rem;
+  }
+
+  .slot p {
+    font-size: 0.61rem;
+    line-height: 1.3;
+  }
+
+  .portrait {
+    min-height: 6.5rem;
+    margin: 0.35rem -0.05rem;
+  }
+
+  .identity {
+    padding: 0.15rem 0 0.35rem;
+  }
+
+  .emptyCrest {
+    width: 3.6rem;
+    height: 3.6rem;
+    font-size: 1.6rem;
+  }
+}
