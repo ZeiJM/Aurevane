@@ -8,6 +8,7 @@ import { getTacticalHallRecordFromScenarioSourceId } from '@aurevane/game-core/c
 import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 
+import type { BattleLogView } from '@/server/battle/battle-log-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
 import styles from './battle-completion-panel.module.css'
@@ -50,10 +51,24 @@ function readAiDifficulty(sourceId: string | null): 'easy' | 'standard' | 'high'
   return value === 'easy' || value === 'high' || value === 'standard' ? value : 'standard'
 }
 
+function formatFullLog(log: BattleLogView): string {
+  return [...log.entries]
+    .reverse()
+    .map((entry) => {
+      const when = new Date(entry.occurredAt).toISOString()
+      return `[${when}] v${entry.battleVersion}.${entry.eventIndex} ${entry.message}`
+    })
+    .join('\n')
+}
+
 export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
   const router = useRouter()
   const [retryPending, setRetryPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [logOpen, setLogOpen] = useState(false)
+  const [log, setLog] = useState<BattleLogView | null>(null)
+  const [logLoading, setLogLoading] = useState(false)
+  const [copyNotice, setCopyNotice] = useState<string | null>(null)
   const result = useMemo(() => readResult(battle), [battle])
   const characterId = useMemo(() => readCharacterId(battle), [battle])
   const arenaId = useMemo(() => readArenaId(battle), [battle])
@@ -68,6 +83,50 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
   const recruit = battleState.combatants.find((combatant) => combatant.teamId === 'opponents')
   const guidedTraining = recordId === 'guided-fundamentals'
   const headline = guidedTraining ? 'Training Complete' : result
+
+  async function loadBattleLog(): Promise<BattleLogView | null> {
+    if (log) return log
+    if (logLoading) return null
+    setLogLoading(true)
+    try {
+      const response = await fetch(`/api/battles/${battle.battleSessionId}/events`, {
+        cache: 'no-store',
+      })
+      const body = (await response.json()) as {
+        battleLog?: BattleLogView
+        error?: { message?: string }
+      }
+      if (!response.ok || !body.battleLog) {
+        throw new Error(body.error?.message ?? 'Battle history is temporarily unavailable.')
+      }
+      setLog(body.battleLog)
+      return body.battleLog
+    } catch (logError) {
+      setError(
+        logError instanceof Error ? logError.message : 'Battle history is temporarily unavailable.',
+      )
+      return null
+    } finally {
+      setLogLoading(false)
+    }
+  }
+
+  async function toggleBattleLog() {
+    if (!logOpen) await loadBattleLog()
+    setLogOpen((open) => !open)
+  }
+
+  async function copyBattleLog() {
+    const current = await loadBattleLog()
+    if (!current) return
+    try {
+      await navigator.clipboard.writeText(formatFullLog(current))
+      setCopyNotice('Full battle log copied')
+      window.setTimeout(() => setCopyNotice(null), 1800)
+    } catch {
+      setCopyNotice('Copy unavailable')
+    }
+  }
 
   async function retry() {
     if (retryPending || !characterId) return
@@ -155,6 +214,39 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
             progression reward. Your committed battle history remains available for review.
           </p>
         </div>
+
+        <div className={styles.logActions}>
+          <button type="button" className={styles.secondary} onClick={() => void toggleBattleLog()}>
+            {logLoading ? 'Loading Battle Log…' : logOpen ? 'Hide Battle Log' : 'Review Battle Log'}
+          </button>
+          <button type="button" className={styles.secondary} onClick={() => void copyBattleLog()}>
+            Copy Full Log
+          </button>
+          {copyNotice ? <span role="status">{copyNotice}</span> : null}
+        </div>
+
+        {logOpen ? (
+          <section className={styles.logReview} aria-label="Committed battle log review">
+            <div className={styles.logHeader}>
+              <strong>Committed Battle Log</strong>
+              <span>{log?.entries.length ?? 0} events</span>
+            </div>
+            {log && log.entries.length > 0 ? (
+              <ol>
+                {[...log.entries].reverse().map((entry) => (
+                  <li key={`${entry.battleVersion}:${entry.eventIndex}`}>
+                    <small>
+                      v{entry.battleVersion}.{entry.eventIndex}
+                    </small>
+                    <span>{entry.message}</span>
+                  </li>
+                ))}
+              </ol>
+            ) : (
+              <p>No committed battle events were recorded.</p>
+            )}
+          </section>
+        ) : null}
 
         {error ? (
           <p className={styles.error} role="alert">
