@@ -44,6 +44,9 @@
 
 :global(#battlefield [data-map-portrait-ready]) {
   isolation: isolate;
+  width: min(68%, 3.7rem) !important;
+  height: auto !important;
+  aspect-ratio: 1;
 }
 
 :global(#battlefield [data-map-token-portrait]) {
@@ -87,6 +90,21 @@
   background: rgba(3, 6, 9, 0.84);
   text-shadow: 0 1px 2px #000;
   transform: translateX(50%);
+}
+
+:global(aside[aria-label$=' combat status'] button[aria-label^='Show ']) {
+  padding: 0 !important;
+  line-height: 0;
+  appearance: none;
+}
+
+:global(aside[aria-label$=' combat status'] button[aria-label^='Show '] > img) {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
 }
 
 :global(#battlefield > div:first-child) {
