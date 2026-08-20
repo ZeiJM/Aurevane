@@ -3,7 +3,10 @@ import 'server-only'
 import { createHash } from 'node:crypto'
 
 import type { BattleEventRepository, BattleSessionRepository } from '@aurevane/db/battle-session'
-import { validateStatDrivenCombatEncounterState, type StatDrivenCombatEncounterState } from '@aurevane/game-core/combat/stat-driven-combat'
+import {
+  validateStatDrivenCombatEncounterState,
+  type StatDrivenCombatEncounterState,
+} from '@aurevane/game-core/combat/stat-driven-combat'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 export const GUIDED_TRAINING_CRITERIA = ['move', 'attack', 'guard', 'facing'] as const
@@ -92,11 +95,17 @@ export function createGuidedTrainingCompletionService(
     async getProgress(userId: string, battleSessionId: string): Promise<GuidedTrainingProgress> {
       const session = await repository.findBattleSession(userId, battleSessionId)
       if (!session) {
-        throw new AurevaneError('FORBIDDEN', 'That training battle is not available to this account.')
+        throw new AurevaneError(
+          'FORBIDDEN',
+          'That training battle is not available to this account.',
+        )
       }
       const controlled = session.controlledCombatantIds[0]
       if (!controlled) {
-        throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The training battle has no player actor.')
+        throw new AurevaneError(
+          'PERSISTENCE_UNAVAILABLE',
+          'The training battle has no player actor.',
+        )
       }
       const events = await repository.findBattleEvents(userId, battleSessionId, 100)
       return readGuidedTrainingProgress(events, controlled)
@@ -109,11 +118,17 @@ export function createGuidedTrainingCompletionService(
     }): Promise<{ battleVersion: number; replayed: boolean }> {
       const session = await repository.findBattleSession(input.userId, input.battleSessionId)
       if (!session) {
-        throw new AurevaneError('FORBIDDEN', 'That training battle is not available to this account.')
+        throw new AurevaneError(
+          'FORBIDDEN',
+          'That training battle is not available to this account.',
+        )
       }
       const controlled = session.controlledCombatantIds[0]
       if (!controlled) {
-        throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The training battle has no player actor.')
+        throw new AurevaneError(
+          'PERSISTENCE_UNAVAILABLE',
+          'The training battle has no player actor.',
+        )
       }
 
       const state = readEncounter(session.snapshot)
@@ -147,7 +162,10 @@ export function createGuidedTrainingCompletionService(
       }
       const issues = validateStatDrivenCombatEncounterState(nextState)
       if (issues.length > 0) {
-        throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The completed training state is invalid.')
+        throw new AurevaneError(
+          'PERSISTENCE_UNAVAILABLE',
+          'The completed training state is invalid.',
+        )
       }
 
       const committed = await repository.commitBattleIntent({

@@ -141,7 +141,9 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
         </dl>
 
         <div className={styles.outcomeNote}>
-          <strong>{guidedTraining ? 'Lesson objective achieved' : 'Practice battle concluded'}</strong>
+          <strong>
+            {guidedTraining ? 'Lesson objective achieved' : 'Practice battle concluded'}
+          </strong>
           <p>
             Practice grants no Character XP, Mastery, loot, Crowns, PvP rating, or normal
             progression reward. Your committed battle history remains available for review.

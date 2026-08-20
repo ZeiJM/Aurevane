@@ -171,7 +171,8 @@ function syncAttackRangeMarkers(playerName: string) {
 
     const label = tile.getAttribute('aria-label') ?? ''
     const elevation = tileElevation(tile)
-    const containsEnemy = label.includes('occupied by ') && !label.includes(`occupied by ${playerName}`)
+    const containsEnemy =
+      label.includes('occupied by ') && !label.includes(`occupied by ${playerName}`)
     const elevationLegal =
       actorElevation !== null && elevation !== null && Math.abs(elevation - actorElevation) <= 1
     tile.dataset.attackRange =
@@ -180,7 +181,9 @@ function syncAttackRangeMarkers(playerName: string) {
 }
 
 function guardCanRepeat(playerName: string): boolean {
-  const rail = document.querySelector<HTMLElement>(`aside[aria-label="${playerName} combat status"]`)
+  const rail = document.querySelector<HTMLElement>(
+    `aside[aria-label="${playerName} combat status"]`,
+  )
   return !rail?.querySelector('[aria-label^="Guarded,"]')
 }
 

@@ -83,7 +83,8 @@ function combatantTile(name: string): HTMLButtonElement | null {
   return (
     Array.from(
       document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label^="Tile "]'),
-    ).find((tile) => (tile.getAttribute('aria-label') ?? '').includes(`occupied by ${name}`)) ?? null
+    ).find((tile) => (tile.getAttribute('aria-label') ?? '').includes(`occupied by ${name}`)) ??
+    null
   )
 }
 

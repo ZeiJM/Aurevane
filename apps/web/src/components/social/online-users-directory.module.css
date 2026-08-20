@@ -61,8 +61,7 @@
   color: var(--av-brass-200);
   font: 500 1.4rem/1 var(--av-font-display);
   background:
-    radial-gradient(circle at 45% 35%, rgba(207, 169, 93, 0.14), transparent 55%),
-    #080b10;
+    radial-gradient(circle at 45% 35%, rgba(207, 169, 93, 0.14), transparent 55%), #080b10;
 }
 
 .presenceDot {
@@ -154,8 +153,7 @@
   min-height: 22rem;
   padding: 0.9rem;
   background:
-    radial-gradient(circle at 50% 25%, rgba(207, 169, 93, 0.16), transparent 45%),
-    #070a0e;
+    radial-gradient(circle at 50% 25%, rgba(207, 169, 93, 0.16), transparent 45%), #070a0e;
 }
 
 .heroPortrait {

@@ -302,7 +302,9 @@ export function MobileBattleCombatantPopup({
               </div>
               <div>
                 <dt>Accuracy</dt>
-                <dd>{selected.profile ? percentFromBasisPoints(selected.profile.accuracy) : '—'}</dd>
+                <dd>
+                  {selected.profile ? percentFromBasisPoints(selected.profile.accuracy) : '—'}
+                </dd>
               </div>
               <div>
                 <dt>Evasion</dt>

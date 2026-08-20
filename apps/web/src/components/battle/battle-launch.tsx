@@ -56,7 +56,12 @@ const PVP_MODES: readonly {
   { id: '1v1', label: '1v1', detail: 'Standard player duel', lobby: '2 players · 1 per side' },
   { id: '2v2', label: '2v2', detail: 'Small-team battle', lobby: '4 players · 2 per side' },
   { id: '3v3', label: '3v3', detail: 'Full-team skirmish', lobby: '6 players · 3 per side' },
-  { id: '1v1v1', label: '1v1v1', detail: 'Three-way battle', lobby: '3 players · 3 opposing sides' },
+  {
+    id: '1v1v1',
+    label: '1v1v1',
+    detail: 'Three-way battle',
+    lobby: '3 players · 3 opposing sides',
+  },
   {
     id: 'flex-teams',
     label: '1–3 vs 1–3',
@@ -221,7 +226,9 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
               <span>Player battles · PvP shell</span>
               <strong id="pvp-shell-heading">Choose a future lobby format</strong>
             </div>
-            <small>Lobby structure is visible now; matchmaking and PvP authority arrive in the PvP phase.</small>
+            <small>
+              Lobby structure is visible now; matchmaking and PvP authority arrive in the PvP phase.
+            </small>
           </div>
           <div className={styles.pvpModes}>
             {PVP_MODES.map((mode) => (
@@ -244,12 +251,19 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
             <div className={styles.lobbyPreview}>
               <div>
                 <span>Waiting lobby preview</span>
-                <h3>{selectedPvp.label} · {selectedPvp.detail}</h3>
-                <p>{selectedPvp.lobby}. {characterName} occupies the local preview position.</p>
+                <h3>
+                  {selectedPvp.label} · {selectedPvp.detail}
+                </h3>
+                <p>
+                  {selectedPvp.lobby}. {characterName} occupies the local preview position.
+                </p>
               </div>
               <div className={styles.lobbyStatus}>
                 <strong>Waiting for required players</strong>
-                <small>Start Battle unlocks only when the future authoritative lobby reports every required seat ready.</small>
+                <small>
+                  Start Battle unlocks only when the future authoritative lobby reports every
+                  required seat ready.
+                </small>
               </div>
               <div className={styles.lobbyActions}>
                 <button type="button" disabled>

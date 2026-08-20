@@ -34,7 +34,10 @@ function Portrait({ character, large = false }: { character: OnlineCharacter; la
   }
 
   return (
-    <span className={`${className} ${styles.fallbackPortrait}`} aria-label={`${character.name} portrait`}>
+    <span
+      className={`${className} ${styles.fallbackPortrait}`}
+      aria-label={`${character.name} portrait`}
+    >
       {character.name.slice(0, 1).toUpperCase()}
     </span>
   )
@@ -127,7 +130,11 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
                 identity, and other private character data.
               </p>
               <div className={styles.futureActions} aria-label="Planned social actions">
-                <button type="button" disabled title="Direct messages arrive with the social phase.">
+                <button
+                  type="button"
+                  disabled
+                  title="Direct messages arrive with the social phase."
+                >
                   Send Direct Message · Planned
                 </button>
                 <button type="button" disabled title="Friends arrive with the social phase.">

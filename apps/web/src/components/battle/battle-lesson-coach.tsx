@@ -101,7 +101,11 @@ export function BattleLessonCoach({ battleSessionId }: BattleLessonCoachProps) {
   const record = getTacticalHallRecord(recordId)
 
   return (
-    <aside className={styles.anchor} aria-label="Battle Hall lesson" data-testid="battle-lesson-coach">
+    <aside
+      className={styles.anchor}
+      aria-label="Battle Hall lesson"
+      data-testid="battle-lesson-coach"
+    >
       <details className={styles.coach}>
         <summary>
           <span>Guide</span>
@@ -151,7 +155,10 @@ function GuidedFundamentalsCoach({ battleSessionId }: { battleSessionId: string 
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ idempotencyKey: crypto.randomUUID() }),
         })
-        const body = (await response.json()) as { completed?: boolean; error?: { message?: string } }
+        const body = (await response.json()) as {
+          completed?: boolean
+          error?: { message?: string }
+        }
         if (!response.ok || !body.completed) {
           throw new Error(body.error?.message ?? 'Training completion could not be committed.')
         }
@@ -238,7 +245,9 @@ function GuidedFundamentalsCoach({ battleSessionId }: { battleSessionId: string 
             const complete = progress[criterion.id]
             return (
               <li key={criterion.id} data-complete={complete || undefined}>
-                <strong>{complete ? '✓' : '○'} {criterion.label}</strong>
+                <strong>
+                  {complete ? '✓' : '○'} {criterion.label}
+                </strong>
                 <small>{criterion.why}</small>
               </li>
             )
@@ -250,7 +259,11 @@ function GuidedFundamentalsCoach({ battleSessionId }: { battleSessionId: string 
             {GUIDED_CRITERIA.filter((criterion) => progress[criterion.id]).length}/
             {GUIDED_CRITERIA.length} complete
           </span>
-          <button type="button" onClick={() => setOpen(false)} disabled={progressComplete(progress)}>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            disabled={progressComplete(progress)}
+          >
             Continue training
           </button>
         </div>

@@ -19,9 +19,7 @@
   padding: clamp(1.1rem, 3vw, 2rem);
   border: 1px solid rgba(212, 186, 130, 0.52);
   border-radius: var(--av-radius-lg);
-  background:
-    linear-gradient(145deg, rgba(35, 30, 22, 0.48), rgba(12, 15, 20, 0.98) 38%),
-    #0b1017;
+  background: linear-gradient(145deg, rgba(35, 30, 22, 0.48), rgba(12, 15, 20, 0.98) 38%), #0b1017;
   box-shadow: 0 2rem 7rem rgba(0, 0, 0, 0.78);
 }
 
