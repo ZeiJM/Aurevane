@@ -40,11 +40,11 @@ export function AccountEntryShell({ authConfig, sessionNotice }: AccountEntryShe
           className={`${publicStyles.mastheadNav} ${railStyles.navigation}`}
           aria-label="Public information"
         >
-          <Link className={publicStyles.navLink} href="/news">
-            News
-          </Link>
           <Link className={publicStyles.navLink} href="/manual">
             Manual
+          </Link>
+          <Link className={publicStyles.navLink} href="/news">
+            News
           </Link>
           <Link className={publicStyles.navLink} href="/rules">
             Rules
