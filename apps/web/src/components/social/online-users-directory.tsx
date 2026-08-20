@@ -16,9 +16,12 @@ function readableIdentity(value: string | null): string | null {
     .join(' ')
 }
 
-function equippedTitles(character: OnlineCharacter): string[] {
-  const titles = [readableIdentity(character.disciplineId), character.personalTitle]
-  return titles.filter((title): title is string => Boolean(title))
+function publicIdentityTags(character: OnlineCharacter): Array<{ kind: 'Discipline' | 'Personal Title'; label: string }> {
+  const discipline = readableIdentity(character.disciplineId)
+  const tags: Array<{ kind: 'Discipline' | 'Personal Title'; label: string }> = []
+  if (discipline) tags.push({ kind: 'Discipline', label: discipline })
+  if (character.personalTitle) tags.push({ kind: 'Personal Title', label: character.personalTitle })
+  return tags
 }
 
 function Portrait({ character, large = false }: { character: OnlineCharacter; large?: boolean }) {
@@ -67,29 +70,30 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
   return (
     <>
       <div className={styles.list}>
-        {characters.map((character) => (
-          <button
-            type="button"
-            className={styles.characterCard}
-            key={character.characterId}
-            onClick={() => setSelected(character)}
-          >
-            <span className={styles.avatarWrap}>
-              <Portrait character={character} />
-              <i className={styles.presenceDot} aria-hidden="true" />
-            </span>
-            <span className={styles.identity}>
-              <strong>{character.name}</strong>
-              <small>
-                Level {character.level}
-                {equippedTitles(character).length > 0
-                  ? ` · ${equippedTitles(character).join(' · ')}`
-                  : ''}
-              </small>
-            </span>
-            <span className={styles.online}>Online</span>
-          </button>
-        ))}
+        {characters.map((character) => {
+          const tags = publicIdentityTags(character)
+          return (
+            <button
+              type="button"
+              className={styles.characterCard}
+              key={character.characterId}
+              onClick={() => setSelected(character)}
+            >
+              <span className={styles.avatarWrap}>
+                <Portrait character={character} />
+                <i className={styles.presenceDot} aria-hidden="true" />
+              </span>
+              <span className={styles.identity}>
+                <strong>{character.name}</strong>
+                <small>
+                  Level {character.level}
+                  {tags.length > 0 ? ` · ${tags.map((tag) => tag.label).join(' · ')}` : ''}
+                </small>
+              </span>
+              <span className={styles.online}>Online</span>
+            </button>
+          )
+        })}
       </div>
 
       {selected ? (
@@ -116,8 +120,7 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
             <div className={styles.profileCopy}>
               <span>Public character profile</span>
               <h2 id="online-profile-name">{selected.name}</h2>
-              <p className={styles.titleLine}>{selected.personalTitle ?? 'Wayfarer'}</p>
-              <div aria-label="Equipped titles" style={{ display: 'grid', gap: '0.42rem' }}>
+              <div aria-label="Character identity tags" style={{ display: 'grid', gap: '0.5rem' }}>
                 <span
                   style={{
                     color: 'var(--av-text-dim)',
@@ -126,28 +129,47 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
                     textTransform: 'uppercase',
                   }}
                 >
-                  Equipped Titles
+                  Identity
                 </span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.38rem' }}>
-                  {equippedTitles(selected).length > 0 ? (
-                    equippedTitles(selected).map((title) => (
+                  {publicIdentityTags(selected).length > 0 ? (
+                    publicIdentityTags(selected).map((tag) => (
                       <span
-                        key={title}
+                        key={`${tag.kind}:${tag.label}`}
+                        title={tag.kind}
                         style={{
+                          display: 'inline-flex',
+                          gap: '0.34rem',
+                          alignItems: 'center',
                           padding: '0.42rem 0.58rem',
                           border: '1px solid rgba(207,169,93,.4)',
                           borderRadius: '999px',
-                          color: 'var(--av-brass-200)',
-                          background: 'rgba(207,169,93,.065)',
+                          color:
+                            tag.kind === 'Personal Title'
+                              ? 'var(--av-verdant-400)'
+                              : 'var(--av-brass-200)',
+                          background:
+                            tag.kind === 'Personal Title'
+                              ? 'rgba(76,147,104,.08)'
+                              : 'rgba(207,169,93,.065)',
                           font: '700 .5rem/1 var(--av-font-mono)',
                         }}
                       >
-                        {title}
+                        <small
+                          style={{
+                            color: 'var(--av-text-dim)',
+                            font: '700 .4rem/1 var(--av-font-mono)',
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          {tag.kind === 'Personal Title' ? 'Title' : 'Discipline'}
+                        </small>
+                        {tag.label}
                       </span>
                     ))
                   ) : (
                     <span style={{ color: 'var(--av-text-dim)', fontSize: '.62rem' }}>
-                      No titles equipped.
+                      No public identity tags are set.
                     </span>
                   )}
                 </div>
