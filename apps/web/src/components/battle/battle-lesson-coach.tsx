@@ -116,11 +116,11 @@ function StandardBattleCriteria({ recordId }: { recordId: TacticalHallRecordId }
             <button
               className={styles.guidedReopen}
               type="button"
-              aria-label="Victory conditions, standard battle"
+              aria-label="Victory conditions, 0 of 1 objectives complete"
               onClick={() => setOpen(true)}
             >
               <span>Victory Conditions</span>
-              <strong>KO foe</strong>
+              <strong>0/1</strong>
             </button>,
             headerTarget,
           )
@@ -149,7 +149,7 @@ function StandardBattleCriteria({ recordId }: { recordId: TacticalHallRecordId }
               battle ends in victory.
             </p>
             <div className={styles.guidedFooter}>
-              <span>Standard victory condition</span>
+              <span>0/1 objectives complete</span>
               <button type="button" onClick={() => setOpen(false)}>
                 Return to battle
               </button>
