@@ -4,6 +4,7 @@ import type { ReactNode } from 'react'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 
+import headerLayout from './public-header-layout.module.css'
 import styles from './public-information-shell.module.css'
 
 export type PublicInformationSection = 'news' | 'manual' | 'rules'
@@ -54,7 +55,7 @@ export async function PublicInformationShell({ active, children }: PublicInforma
         Skip to public information
       </a>
 
-      <header className={styles.masthead}>
+      <header className={`${styles.masthead} ${headerLayout.headerGrid}`}>
         <Link
           className="brand"
           href={gameHref}
@@ -69,7 +70,10 @@ export async function PublicInformationShell({ active, children }: PublicInforma
           </span>
         </Link>
 
-        <nav className={styles.mastheadNav} aria-label="Public information">
+        <nav
+          className={`${styles.mastheadNav} ${headerLayout.centerNav}`}
+          aria-label="Public information"
+        >
           {navigation.map((item) => (
             <Link
               key={item.section}
@@ -80,10 +84,11 @@ export async function PublicInformationShell({ active, children }: PublicInforma
               {item.label}
             </Link>
           ))}
-          <Link className={styles.playLink} href={gameHref}>
-            {gameLabel}
-          </Link>
         </nav>
+
+        <Link className={`${styles.playLink} ${headerLayout.endAction}`} href={gameHref}>
+          {gameLabel}
+        </Link>
       </header>
 
       <main className={styles.main} id="public-information-main">
