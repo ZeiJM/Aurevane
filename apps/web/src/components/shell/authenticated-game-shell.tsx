@@ -3,6 +3,7 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
+import railStyles from '@/components/public-information/public-header-rail.module.css'
 import { AccountMenu } from '@/components/shell/account-menu'
 import { NavigationMenu } from '@/components/shell/navigation-menu'
 import { OnlinePresenceLink } from '@/components/shell/online-presence-link'
@@ -89,7 +90,7 @@ export async function AuthenticatedShellFrame({
       <a className="skip-link" href="#game-main">
         Skip to game content
       </a>
-      <header className={styles.masthead}>
+      <header className={`${styles.masthead} ${railStyles.masthead}`}>
         <div className={styles.brandGroup}>
           {backHref ? (
             <Link className={styles.backButton} href={backHref} aria-label={backLabel ?? 'Back'}>
@@ -107,31 +108,37 @@ export async function AuthenticatedShellFrame({
           </Link>
         </div>
 
-        <nav className={styles.headerLinks} aria-label="Reference">
-          <Link href="/manual">Manual</Link>
+        <nav
+          className={`${styles.headerLinks} ${railStyles.navigation}`}
+          style={{ marginRight: 0 }}
+          aria-label="Reference"
+        >
           <Link href="/news">News</Link>
+          <Link href="/manual">Manual</Link>
           <Link href="/rules">Rules</Link>
         </nav>
 
-        <div className={styles.screenIdentity} aria-label={`Current screen: ${sessionLabel}`}>
-          {activeCharacter ? (
-            <span className={styles.screenPortrait} title={activeCharacter.name}>
-              <CharacterPortraitImage
-                imageUrl={activeImageUrl}
-                fallbackAssetId={getStarterPortraitImageAssetId(activeCharacter.portraitRef)}
-                className={styles.screenPortraitImage}
-                sizes="2rem"
-                alt=""
-              />
+        <div className={railStyles.utility}>
+          <div className={styles.screenIdentity} aria-label={`Current screen: ${sessionLabel}`}>
+            {activeCharacter ? (
+              <span className={styles.screenPortrait} title={activeCharacter.name}>
+                <CharacterPortraitImage
+                  imageUrl={activeImageUrl}
+                  fallbackAssetId={getStarterPortraitImageAssetId(activeCharacter.portraitRef)}
+                  className={styles.screenPortraitImage}
+                  sizes="2rem"
+                  alt=""
+                />
+              </span>
+            ) : null}
+            <span className={styles.screenLabel}>
+              <StatusMark />
+              <strong>{sessionLabel}</strong>
             </span>
-          ) : null}
-          <span className={styles.screenLabel}>
-            <StatusMark />
-            <strong>{sessionLabel}</strong>
-          </span>
-        </div>
+          </div>
 
-        <AccountMenu />
+          <AccountMenu />
+        </div>
       </header>
 
       <main className={styles.main} id="game-main">
