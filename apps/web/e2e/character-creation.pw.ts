@@ -79,7 +79,7 @@ test('creates a slotted character, persists its profile, and resumes it across s
   await expect(page).toHaveURL(/\/game$/)
   await expect(page.getByRole('link', { name: `Play ${characterName}` })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Create Character' })).toHaveCount(0)
-  await expect(page.getByText('Purchase unlock · coming later', { exact: true })).toBeVisible()
+  await expect(page.getByText('Available later', { exact: true })).toBeVisible()
   await expect(page.getByText('Earn free · first Prestige Rebirth', { exact: true })).toBeVisible()
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
