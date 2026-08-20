@@ -31,6 +31,7 @@ export function BattleSessionClientBoundary({
   const battleHallRecord = scenario
     ? getTacticalHallRecordFromScenarioSourceId(scenario.provenance.sourceId)
     : null
+  const lessonActive = initialBattle.snapshot.tactical.battle.lifecycle === 'active'
 
   return (
     <BattleRuntimeProvider playerName={playerName}>
@@ -39,10 +40,12 @@ export function BattleSessionClientBoundary({
         playerName={playerName}
         playerPortraitAssetId={playerPortraitAssetId}
       />
-      <BattleLessonCoach
-        battleSessionId={initialBattle.battleSessionId}
-        recordId={battleHallRecord?.id ?? 'recruit-sparring'}
-      />
+      {lessonActive ? (
+        <BattleLessonCoach
+          battleSessionId={initialBattle.battleSessionId}
+          recordId={battleHallRecord?.id ?? 'recruit-sparring'}
+        />
+      ) : null}
       <BattleKeyboardAssist playerName={playerName} />
       <BattleFeedbackAssist playerName={playerName} playerProfileImageUrl={playerProfileImageUrl} />
       <MobileBattleCombatantPopup
