@@ -37,8 +37,8 @@ function Panel({
     (candidate) => candidate.combatantId === participant.combatantId,
   )
   const statuses =
-    battle.snapshot.statusState.find((row) => row.combatantId === participant.combatantId)?.statuses ??
-    []
+    battle.snapshot.statusState.find((row) => row.combatantId === participant.combatantId)
+      ?.statuses ?? []
   if (!combatant) return null
 
   return (
@@ -72,7 +72,14 @@ function Panel({
       >
         {side === 'left' ? 'Your combatant' : `Team ${participant.teamIndex + 1}`}
       </span>
-      <div style={{ display: 'grid', gridTemplateColumns: '2.7rem 1fr', gap: '.55rem', alignItems: 'center' }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '2.7rem 1fr',
+          gap: '.55rem',
+          alignItems: 'center',
+        }}
+      >
         <span
           style={{
             display: 'grid',
@@ -157,7 +164,11 @@ function Panel({
             return (
               <span
                 key={status.statusId}
-                title={loweredGuard ? 'Lowered Guard · takes 2.5× damage from all sources' : status.statusId}
+                title={
+                  loweredGuard
+                    ? 'Lowered Guard · takes 2.5× damage from all sources'
+                    : status.statusId
+                }
                 style={{
                   display: 'inline-flex',
                   gap: '.25rem',
@@ -229,7 +240,9 @@ export function PvpBattleCombatantPanels({
   const [selectedId, setSelectedId] = useState<string | null>(
     metadata.participants.find(
       (participant) => participant.characterId !== metadata.localCharacterId,
-    )?.combatantId ?? metadata.participants[0]?.combatantId ?? null,
+    )?.combatantId ??
+      metadata.participants[0]?.combatantId ??
+      null,
   )
   const selected = useMemo(
     () =>
@@ -278,7 +291,11 @@ export function PvpBattleCombatantPanels({
         participant={local}
         battle={battle}
         side="left"
-        accent={local ? (accentByCombatant.get(local.combatantId) ?? COMBATANT_COLORS[0]) : COMBATANT_COLORS[0]}
+        accent={
+          local
+            ? (accentByCombatant.get(local.combatantId) ?? COMBATANT_COLORS[0])
+            : COMBATANT_COLORS[0]
+        }
       />
       <Panel
         participant={selected}
