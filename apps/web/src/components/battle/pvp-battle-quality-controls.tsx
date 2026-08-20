@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
@@ -23,9 +23,9 @@ interface TickResponse {
   error?: { message?: string }
 }
 
-function remainingSeconds(deadlineAt: string | null): number {
-  if (!deadlineAt) return 0
-  return Math.max(0, Math.ceil((new Date(deadlineAt).getTime() - Date.now()) / 1000))
+function remainingSeconds(deadlineAt: string | null, now: number): number {
+  if (!deadlineAt || now <= 0) return 0
+  return Math.max(0, Math.ceil((new Date(deadlineAt).getTime() - now) / 1000))
 }
 
 export function PvpBattleQualityControls({
@@ -36,7 +36,7 @@ export function PvpBattleQualityControls({
   metadata: PvpBattleMetadata
 }) {
   const [clock, setClock] = useState<ClockView | null>(null)
-  const [now, setNow] = useState(Date.now())
+  const [now, setNow] = useState(0)
   const [battle, setBattle] = useState<BattleSessionView | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [confirmSurrender, setConfirmSurrender] = useState(false)
@@ -58,6 +58,7 @@ export function PvpBattleQualityControls({
   }, [])
 
   useEffect(() => {
+    setNow(Date.now())
     const timer = window.setInterval(() => setNow(Date.now()), 250)
     return () => window.clearInterval(timer)
   }, [])
@@ -100,24 +101,20 @@ export function PvpBattleQualityControls({
     }
   }, [battleSessionId])
 
-  const activeName = useMemo(() => {
-    if (!clock?.combatantId) return null
-    return (
-      metadata.participants.find((participant) => participant.combatantId === clock.combatantId)
-        ?.characterName ?? null
-    )
-  }, [clock?.combatantId, metadata.participants])
+  const activeName = clock?.combatantId
+    ? (metadata.participants.find((participant) => participant.combatantId === clock.combatantId)
+        ?.characterName ?? null)
+    : null
 
-  const loweredGuardNames = useMemo(() => {
-    if (!battle) return []
-    return battle.snapshot.statusState
-      .filter((row) => row.statuses.some((status) => status.statusId === 'lowered-guard'))
-      .map(
-        (row) =>
-          metadata.participants.find((participant) => participant.combatantId === row.combatantId)
-            ?.characterName ?? row.combatantId,
-      )
-  }, [battle, metadata.participants])
+  const loweredGuardNames = battle
+    ? battle.snapshot.statusState
+        .filter((row) => row.statuses.some((status) => status.statusId === 'lowered-guard'))
+        .map(
+          (row) =>
+            metadata.participants.find((participant) => participant.combatantId === row.combatantId)
+              ?.characterName ?? row.combatantId,
+        )
+    : []
 
   async function surrender() {
     if (surrendering) return
@@ -150,8 +147,7 @@ export function PvpBattleQualityControls({
     }
   }
 
-  const seconds = remainingSeconds(clock?.deadlineAt ?? null)
-  void now
+  const seconds = remainingSeconds(clock?.deadlineAt ?? null, now)
 
   return (
     <>
