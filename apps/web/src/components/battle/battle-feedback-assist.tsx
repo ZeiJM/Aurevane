@@ -47,8 +47,12 @@ function updateAttackRange(playerName: string) {
     const candidate = parseTilePosition(tile)
     if (!candidate) continue
     const distance = Math.abs(candidate.x - player.x) + Math.abs(candidate.y - player.y)
-    const reachable = distance === 1 && Math.abs(candidate.elevation - player.elevation) <= 1
-    tile.dataset.attackRange = reachable ? 'legal' : 'illegal'
+    if (distance !== 1) continue
+
+    const label = tile.getAttribute('aria-label') ?? ''
+    const elevationLegal = Math.abs(candidate.elevation - player.elevation) <= 1
+    const enemyPresent = label.includes('occupied by Recruit')
+    tile.dataset.attackRange = elevationLegal && enemyPresent ? 'legal' : 'illegal'
   }
 }
 
@@ -73,8 +77,7 @@ function syncTargetSemantics(playerName: string) {
   if (!instruction.includes('basic attack')) return
 
   for (const tile of tiles) {
-    const label = tile.getAttribute('aria-label') ?? ''
-    if (!label.includes('occupied by Recruit')) continue
+    if (!tile.dataset.attackRange) continue
     tile.dataset.targetRelation = tile.dataset.attackRange === 'legal' ? 'enemy' : 'illegal'
   }
 }
@@ -343,7 +346,7 @@ export function BattleFeedbackAssist({
       if (frame !== 0) window.cancelAnimationFrame(frame)
       document.removeEventListener('pointerdown', closeChatOnOutsidePointer, true)
       for (const tile of Array.from(
-        document.querySelectorAll<HTMLButtonElement>('#battlefield button[data-attack-range]'),
+        document.querySelectorAll<HTMLButtonElement>('#battlefield button'),
       )) {
         delete tile.dataset.attackRange
         delete tile.dataset.targetRelation
