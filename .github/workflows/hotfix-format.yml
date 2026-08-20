@@ -1,0 +1,47 @@
+name: Hotfix format
+
+on:
+  push:
+    branches:
+      - hotfix/creation-scale-and-attributes-20260820
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format repository files
+        run: pnpm format
+      - name: Commit formatting if needed
+        run: |
+          if git diff --quiet; then
+            echo "Formatting already clean."
+            exit 0
+          fi
+          git config user.name "AUREVANE CI"
+          git config user.email "actions@users.noreply.github.com"
+          git add apps/web/src/app/character-creation-scale.css \
+            apps/web/src/components/character/character-creation-experience.module.css \
+            apps/web/src/components/character/character-select-shell.tsx \
+            apps/web/src/components/social/online-users-directory.tsx \
+            packages/game-core/src/character/creation.test.ts \
+            packages/game-core/src/character/creation.ts
+          git commit -m "style: format character hotfix files"
+          git push origin HEAD:${{ github.ref_name }}
