@@ -453,7 +453,9 @@ begin
   loop
     v_attempt := v_attempt + 1;
     v_battle_key := app_private.pvp_key('AVB');
-    exit when not exists (select 1 from app_private.pvp_lobbies where battle_key = v_battle_key);
+    exit when not exists (
+      select 1 from app_private.pvp_lobbies l where l.battle_key = v_battle_key
+    );
     if v_attempt >= 8 then
       raise exception using errcode = '23505', message = 'PVP_BATTLE_KEY_COLLISION';
     end if;
@@ -675,9 +677,9 @@ begin
   from jsonb_array_elements(p_events) with ordinality as row(value, ordinality);
 
   if v_lifecycle = 'completed' then
-    update app_private.pvp_lobbies
+    update app_private.pvp_lobbies l
     set status = 'completed', updated_at = v_committed_at
-    where battle_session_id = p_battle_session_id and status = 'active';
+    where l.battle_session_id = p_battle_session_id and l.status = 'active';
   end if;
 
   return query select p_battle_session_id, v_next_version, p_next_snapshot, v_committed_at, false;
