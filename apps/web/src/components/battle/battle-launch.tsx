@@ -224,7 +224,7 @@ export function BattleLaunch({ characterId, characterName }: BattleLaunchProps) 
         <section className={styles.pvpSection} aria-labelledby="pvp-shell-heading">
           <div className={styles.sectionHeading}>
             <div>
-              <span>Player battles · PvP shell</span>
+              <span>Player sparring</span>
               <strong id="pvp-shell-heading">Choose a future lobby format</strong>
             </div>
             <small>
