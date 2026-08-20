@@ -84,6 +84,37 @@ function syncTargetSemantics(playerName: string) {
   }
 }
 
+function setLegendEntry(
+  entry: HTMLElement,
+  label: string,
+  detail: string,
+  relation: 'friendly' | 'enemy' | 'illegal',
+) {
+  const heading = document.createElement('b')
+  heading.textContent = label
+  entry.replaceChildren(heading, document.createTextNode(` ${detail}`))
+  entry.dataset.targetLegend = relation
+}
+
+function syncTargetLegend() {
+  const battlefield = document.querySelector<HTMLElement>('#battlefield')
+  const legend = battlefield?.lastElementChild
+  if (!(legend instanceof HTMLElement) || legend.dataset.targetLegendReady === 'true') return
+
+  const entries = Array.from(legend.querySelectorAll<HTMLElement>(':scope > span'))
+  const green = entries.find((entry) => entry.textContent?.includes('Green'))
+  const red = entries.find((entry) => entry.textContent?.includes('Red'))
+  if (!green || !red) return
+
+  setLegendEntry(green, 'Green', 'friendly / reachable', 'friendly')
+  setLegendEntry(red, 'Red', 'unavailable', 'illegal')
+
+  const orange = document.createElement('span')
+  setLegendEntry(orange, 'Orange', 'legal enemy target', 'enemy')
+  legend.insertBefore(orange, red)
+  legend.dataset.targetLegendReady = 'true'
+}
+
 function syncActionEconomyBar() {
   const track = document.querySelector<HTMLElement>(
     '[role="progressbar"][aria-label="Action Economy remaining"]',
@@ -308,6 +339,7 @@ export function BattleFeedbackAssist({
       frame = 0
       updateAttackRange(playerName)
       syncTargetSemantics(playerName)
+      syncTargetLegend()
       syncActionEconomyBar()
       applyCustomPortrait(playerName, playerProfileImageUrl)
       syncMapPortraits(playerName, playerProfileImageUrl)
