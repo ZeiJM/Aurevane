@@ -1,0 +1,271 @@
+.utilityWindow {
+  position: fixed;
+  z-index: 5200;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-width: 16rem;
+  min-height: 10rem;
+  max-width: calc(100vw - 0.8rem);
+  max-height: calc(100dvh - 0.8rem);
+  overflow: hidden;
+  resize: both;
+  border: 1px solid rgba(212, 186, 130, 0.52);
+  border-radius: var(--av-radius-md);
+  color: var(--av-text);
+  background:
+    radial-gradient(circle at 100% 0, rgba(207, 169, 93, 0.075), transparent 15rem),
+    rgba(7, 10, 15, 0.992);
+  box-shadow: 0 1.25rem 4rem rgba(0, 0, 0, 0.68);
+  backdrop-filter: blur(0.9rem);
+}
+
+.leftWindow {
+  bottom: 3.25rem;
+  left: 0.6rem;
+  width: min(26rem, calc(100vw - 1.2rem));
+  height: min(24rem, 56dvh);
+}
+
+.rightWindow {
+  top: 4rem;
+  right: 0.6rem;
+  width: min(34rem, calc(100vw - 1.2rem));
+  height: min(27rem, 62dvh);
+}
+
+.windowHeader {
+  display: flex;
+  min-height: 2.8rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  padding: 0.58rem 0.68rem;
+  border-bottom: 1px solid var(--av-border);
+  background: rgba(6, 9, 14, 0.98);
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.windowHeader:active {
+  cursor: grabbing;
+}
+
+.windowHeader > div {
+  display: grid;
+  min-width: 0;
+  gap: 0.13rem;
+}
+
+.windowHeader strong {
+  font: 600 0.78rem/1.15 var(--av-font-display);
+}
+
+.windowHeader span {
+  overflow: hidden;
+  color: var(--av-text-dim);
+  font: 650 0.43rem/1.2 var(--av-font-mono);
+  letter-spacing: 0.025em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.windowHeader button {
+  display: grid;
+  width: 1.7rem;
+  height: 1.7rem;
+  flex: none;
+  place-items: center;
+  border: 1px solid var(--av-border-strong);
+  border-radius: 50%;
+  color: var(--av-text-muted);
+  background: rgba(255, 255, 255, 0.025);
+  cursor: pointer;
+}
+
+.windowHeader button:hover,
+.windowHeader button:focus-visible {
+  border-color: rgba(207, 169, 93, 0.68);
+  color: var(--av-brass-200);
+}
+
+.windowBody {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.logContent {
+  height: 100%;
+  overflow: auto;
+}
+
+.logContent > p {
+  margin: 0;
+  padding: 0.85rem;
+  color: var(--av-text-muted);
+  font-size: 0.62rem;
+}
+
+.logContent ol {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.logContent li {
+  padding: 0.62rem 0.78rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.055);
+  color: var(--av-text-muted);
+  font-size: 0.61rem;
+  line-height: 1.45;
+}
+
+.logContent li:last-child {
+  border-bottom: 0;
+}
+
+.chatLayout {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  height: 100%;
+}
+
+.chatMessages {
+  display: grid;
+  min-height: 0;
+  gap: 0.42rem;
+  align-content: start;
+  padding: 0.62rem;
+  overflow: auto;
+}
+
+.chatMessages p {
+  display: grid;
+  gap: 0.12rem;
+  margin: 0;
+  padding: 0.46rem 0.52rem;
+  border-left: 2px solid rgba(207, 169, 93, 0.42);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--av-text-muted);
+  font-size: 0.6rem;
+  line-height: 1.4;
+}
+
+.chatMessages strong {
+  color: var(--av-brass-300);
+  font-size: 0.49rem;
+}
+
+.chatMessages span {
+  overflow-wrap: anywhere;
+}
+
+.chatComposer {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  border-top: 1px solid var(--av-border);
+  background: rgba(5, 8, 12, 0.96);
+}
+
+.chatComposer input {
+  min-width: 0;
+  min-height: 2.1rem;
+  padding: 0.44rem 0.52rem;
+  border: 1px solid var(--av-border-strong);
+  border-radius: var(--av-radius-sm);
+  color: var(--av-text);
+  background: #080b10;
+  font-size: 0.62rem;
+}
+
+.chatComposer > button {
+  min-height: 2.1rem;
+  padding: 0.42rem 0.6rem;
+  border: 1px solid rgba(207, 169, 93, 0.58);
+  border-radius: var(--av-radius-sm);
+  color: #090b0e;
+  background: #cdb06e;
+  font: 750 0.46rem/1 var(--av-font-mono);
+  cursor: pointer;
+}
+
+.chatComposer > button:disabled {
+  opacity: 0.42;
+  cursor: not-allowed;
+}
+
+.chatComposer .emojiTrigger {
+  color: var(--av-brass-200);
+  background: rgba(207, 169, 93, 0.08);
+  font-size: 0.84rem;
+}
+
+.emojiPicker {
+  position: absolute;
+  right: 3.2rem;
+  bottom: calc(100% + 0.4rem);
+  z-index: 3;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(2rem, auto));
+  gap: 0.25rem;
+  max-width: min(18rem, calc(100vw - 1rem));
+  padding: 0.38rem;
+  border: 1px solid rgba(212, 186, 130, 0.45);
+  border-radius: var(--av-radius-sm);
+  background: rgba(7, 10, 14, 0.995);
+  box-shadow: 0 0.8rem 2rem rgba(0, 0, 0, 0.52);
+}
+
+.emojiPicker > button {
+  display: grid;
+  min-width: 2rem;
+  min-height: 2rem;
+  place-items: center;
+  border: 1px solid var(--av-border);
+  border-radius: 0.3rem;
+  color: var(--av-text);
+  background: rgba(255, 255, 255, 0.025);
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.emojiPicker > span {
+  grid-column: 1 / -1;
+  padding: 0.45rem 0.55rem;
+  color: var(--av-text-dim);
+  font-size: 0.56rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .utilityWindow {
+    min-width: 13rem;
+    min-height: 9rem;
+  }
+
+  .leftWindow {
+    right: 0.45rem;
+    bottom: 3.1rem;
+    left: 0.45rem;
+    width: auto;
+    height: min(22rem, 52dvh);
+  }
+
+  .rightWindow {
+    top: 3.6rem;
+    right: 0.45rem;
+    left: 0.45rem;
+    width: auto;
+    height: min(24rem, 58dvh);
+  }
+
+  .windowHeader span {
+    display: none;
+  }
+}

@@ -33,13 +33,21 @@
   left: 50%;
   z-index: 2100;
   width: min(34rem, calc(100vw - 1rem));
+  height: min(22rem, 58dvh);
+  min-width: min(18rem, calc(100vw - 0.8rem));
+  min-height: 11rem;
+  max-width: calc(100vw - 0.5rem);
+  max-height: calc(100dvh - 0.5rem);
+  overflow: hidden;
+  resize: both;
   transform: translateX(-50%);
 }
 
 .panel {
   box-sizing: border-box;
   width: 100%;
-  max-height: min(28rem, 66dvh);
+  height: 100%;
+  max-height: none;
   overflow: auto;
   border: 1px solid rgba(212, 186, 130, 0.48);
   border-radius: var(--av-radius-md);
@@ -59,6 +67,16 @@
   padding: 0.65rem 0.75rem;
   border-bottom: 1px solid var(--av-border);
   background: rgba(7, 10, 14, 0.995);
+}
+
+.panel header[data-drag-handle] {
+  cursor: move;
+  touch-action: none;
+  user-select: none;
+}
+
+.panel header[data-drag-handle] button {
+  cursor: pointer;
 }
 
 .panel header > div {
@@ -132,9 +150,9 @@
   .controlled {
     top: 3.6rem;
     width: calc(100vw - 0.7rem);
-  }
-
-  .panel {
-    max-height: 65dvh;
+    height: min(22rem, 62dvh);
+    min-width: calc(100vw - 0.7rem);
+    max-width: calc(100vw - 0.7rem);
+    resize: vertical;
   }
 }

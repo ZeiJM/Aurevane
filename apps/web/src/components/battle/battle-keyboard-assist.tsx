@@ -42,6 +42,10 @@ function positionKey(position: { x: number; y: number }): string {
   return `${position.x}:${position.y}`
 }
 
+function positionsEqual(left: { x: number; y: number }, right: { x: number; y: number }): boolean {
+  return left.x === right.x && left.y === right.y
+}
+
 function battleTiles(): HTMLButtonElement[] {
   return Array.from(
     document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label^="Tile "]'),
@@ -90,6 +94,15 @@ function moveModeIsActive(): boolean {
   return commandIsActive('Move')
 }
 
+function facingModeIsActive(): boolean {
+  return Boolean(
+    document.querySelector<HTMLButtonElement>('[aria-label="Face north"]:not(:disabled)') &&
+    document.querySelector<HTMLButtonElement>('[aria-label="Face south"]:not(:disabled)') &&
+    document.querySelector<HTMLButtonElement>('[aria-label="Face west"]:not(:disabled)') &&
+    document.querySelector<HTMLButtonElement>('[aria-label="Face east"]:not(:disabled)'),
+  )
+}
+
 function planningButton(text: string): HTMLButtonElement | null {
   const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('footer button'))
   return buttons.find((button) => button.textContent?.includes(text)) ?? null
@@ -125,6 +138,21 @@ function directionForCode(code: string): { dx: number; dy: number } | null {
   return null
 }
 
+function chooseFacing(direction: { dx: number; dy: number }): boolean {
+  const label =
+    direction.dy < 0
+      ? 'Face north'
+      : direction.dy > 0
+        ? 'Face south'
+        : direction.dx < 0
+          ? 'Face west'
+          : 'Face east'
+  const button = document.querySelector<HTMLButtonElement>(`[aria-label="${label}"]`)
+  if (!button || button.disabled) return false
+  button.click()
+  return true
+}
+
 function syncVisibleCommandLabels(bindings: CombatKeybindMap) {
   const commands: readonly [CombatKeybindAction, readonly string[]][] = [
     ['inspect', ['Inspect']],
@@ -139,7 +167,7 @@ function syncVisibleCommandLabels(bindings: CombatKeybindMap) {
     const badge = button?.querySelector<HTMLElement>(':scope > span')
     if (!badge) continue
     const binding = formatCombatKeybind(bindings[action])
-    const label = action === 'move' ? `${binding} · WASD` : binding
+    const label = action === 'move' || action === 'endTurn' ? `${binding} · WASD` : binding
     if (badge.textContent !== label) badge.textContent = label
   }
 }
@@ -291,6 +319,11 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
           lastRepeatableCommand.current = label
           if (label !== 'Move') movementPlan.current = null
         }
+        if (label === 'Finish Turn') {
+          lastRepeatableCommand.current = null
+          movementPlan.current = null
+          repeatSequence.current += 1
+        }
         return
       }
 
@@ -331,7 +364,7 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
       const tiles = battleTiles()
       const actorTile = playerTile(playerName)
       const committed = actorTile ? tilePosition(actorTile) : null
-      if (!committed) return false
+      if (!committed || !actorTile) return false
 
       const committedKey = positionKey(committed)
       if (!movementPlan.current || movementPlan.current.committedOriginKey !== committedKey) {
@@ -340,6 +373,18 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
 
       const base = movementPlan.current.endpoint
       const targetPosition = { x: base.x + direction.dx, y: base.y + direction.dy }
+
+      // Crossing back through the committed origin cancels the current movement projection without
+      // leaving Move mode. The next direction can then project immediately to the opposite side.
+      if (positionsEqual(targetPosition, committed)) {
+        const move = commandButton('Move')
+        if (!move || move.disabled) return false
+        move.click()
+        movementPlan.current = { committedOriginKey: committedKey, endpoint: committed }
+        actorTile.focus({ preventScroll: true })
+        return true
+      }
+
       const targetPrefix = `Tile ${targetPosition.x + 1}, ${targetPosition.y + 1};`
       const target = tiles.find((button) =>
         (button.getAttribute('aria-label') ?? '').startsWith(targetPrefix),
@@ -379,6 +424,9 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
         return true
       }
       if (action === 'endTurn') {
+        lastRepeatableCommand.current = null
+        repeatSequence.current += 1
+        movementPlan.current = null
         commandButton('Finish Turn', 'End Turn', 'Facing / End Turn')?.click()
         return true
       }
@@ -425,6 +473,13 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
         event.preventDefault()
         event.stopImmediatePropagation()
         moveAdjacent(movementDirection)
+        return
+      }
+
+      if (movementDirection && facingModeIsActive()) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        chooseFacing(movementDirection)
         return
       }
 

@@ -1,0 +1,181 @@
+.scope {
+  display: none;
+}
+
+:global(#battlefield button[data-target-relation='friendly']) {
+  z-index: 4;
+  border-color: rgba(102, 218, 143, 0.98) !important;
+  background:
+    linear-gradient(rgba(54, 156, 91, 0.13), rgba(54, 156, 91, 0.13)),
+    linear-gradient(145deg, rgba(74, 91, 96, 0.32), rgba(25, 38, 45, 0.78)) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(102, 218, 143, 0.5),
+    0 0 0.85rem rgba(70, 190, 112, 0.28) !important;
+}
+
+:global(#battlefield button[data-target-relation='enemy']) {
+  z-index: 4;
+  border-color: rgba(239, 169, 75, 0.98) !important;
+  background:
+    linear-gradient(rgba(209, 121, 39, 0.13), rgba(209, 121, 39, 0.13)),
+    linear-gradient(145deg, rgba(74, 91, 96, 0.32), rgba(25, 38, 45, 0.78)) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(239, 169, 75, 0.5),
+    0 0 0.85rem rgba(222, 131, 44, 0.3) !important;
+}
+
+:global(#battlefield button[data-target-relation='illegal']) {
+  border-color: rgba(226, 83, 83, 0.9) !important;
+  box-shadow: inset 0 0 0 2px rgba(206, 62, 62, 0.34) !important;
+  filter: saturate(0.78);
+}
+
+:global(#battlefield [data-target-legend='friendly'] b) {
+  color: #91d6aa;
+}
+
+:global(#battlefield [data-target-legend='enemy'] b) {
+  color: #efa94b;
+}
+
+:global(#battlefield [data-target-legend='illegal'] b) {
+  color: #e29090;
+}
+
+:global(#battlefield [data-map-portrait-ready]) {
+  isolation: isolate;
+}
+
+:global(#battlefield [data-map-token-portrait]) {
+  position: absolute;
+  inset: 0.12rem;
+  z-index: -1;
+  display: block;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 50%;
+  background: rgba(4, 7, 10, 0.92);
+  pointer-events: none;
+}
+
+:global(#battlefield [data-map-token-team='player']) {
+  border-color: rgba(103, 211, 145, 0.78);
+  box-shadow: inset 0 0 0.45rem rgba(57, 159, 96, 0.28);
+}
+
+:global(#battlefield [data-map-token-team='opponent']) {
+  border-color: rgba(224, 106, 91, 0.76);
+  box-shadow: inset 0 0 0.45rem rgba(176, 61, 54, 0.28);
+}
+
+:global(#battlefield [data-map-token-portrait] img),
+:global(#battlefield [data-map-token-portrait] picture),
+:global(#battlefield [data-map-token-portrait] picture img) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+:global(#battlefield [data-map-portrait-ready] > strong) {
+  position: absolute;
+  right: 50%;
+  bottom: -0.68rem;
+  z-index: 3;
+  max-width: 5.6rem;
+  padding: 0.12rem 0.24rem;
+  border-radius: 999px;
+  background: rgba(3, 6, 9, 0.84);
+  text-shadow: 0 1px 2px #000;
+  transform: translateX(50%);
+}
+
+:global(#battlefield > div:first-child) {
+  box-sizing: border-box;
+  padding: clamp(0.7rem, 1.6vw, 1.1rem) !important;
+}
+
+:global(#battlefield [data-board-auto-fit]) {
+  align-self: center;
+  justify-self: center;
+  max-width: none !important;
+  max-height: none !important;
+}
+
+:global([data-floating-chat='true']) {
+  width: min(24rem, calc(100vw - 1rem)) !important;
+  height: min(20rem, calc(100dvh - 5rem));
+  min-width: min(16rem, calc(100vw - 1rem));
+  min-height: 11rem;
+  max-width: calc(100vw - 0.5rem) !important;
+  max-height: calc(100dvh - 0.5rem) !important;
+  resize: both;
+}
+
+:global([data-floating-chat='true'] [data-chat-drag-handle='true']) {
+  cursor: move;
+  touch-action: none;
+  user-select: none;
+}
+
+:global([data-floating-chat='true'] [data-chat-drag-handle='true'] button) {
+  cursor: pointer;
+}
+
+:global([data-battle-emoji-picker]) {
+  position: absolute;
+  right: 2.75rem;
+  bottom: calc(100% + 0.35rem);
+  z-index: 25;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(2rem, 1fr));
+  gap: 0.28rem;
+  width: min(13rem, calc(100vw - 1.2rem));
+  padding: 0.38rem;
+  border: 1px solid rgba(212, 186, 130, 0.42);
+  border-radius: var(--av-radius-sm);
+  background: rgba(7, 10, 14, 0.995);
+  box-shadow: 0 0.8rem 2rem rgba(0, 0, 0, 0.5);
+}
+
+:global([data-battle-emoji-picker] button) {
+  display: grid;
+  min-width: 0;
+  min-height: 2rem;
+  place-items: center;
+  padding: 0.25rem !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+  color: var(--av-text) !important;
+  background: rgba(255, 255, 255, 0.035) !important;
+  font-size: 1.05rem !important;
+}
+
+:global([data-empty-recent-emoji]) {
+  grid-column: 1 / -1;
+  padding: 0.45rem;
+  color: var(--av-text-dim);
+  font: 650 0.5rem/1.35 var(--av-font-mono);
+  text-align: center;
+}
+
+@media (max-width: 760px) {
+  :global(#battlefield > div:first-child) {
+    padding: 0.65rem !important;
+  }
+
+  :global([data-floating-chat='true']) {
+    width: calc(100vw - 0.7rem) !important;
+    min-width: calc(100vw - 0.7rem);
+    max-width: calc(100vw - 0.7rem) !important;
+    resize: vertical;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :global(#battlefield button[data-target-relation='friendly']),
+  :global(#battlefield button[data-target-relation='enemy']) {
+    transition:
+      border-color 120ms ease,
+      box-shadow 120ms ease,
+      background 120ms ease;
+  }
+}

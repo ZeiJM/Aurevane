@@ -22,7 +22,7 @@ for (const route of publicRoutes) {
     await expect(navigation.getByRole('link', { name: 'News', exact: true })).toBeVisible()
     await expect(navigation.getByRole('link', { name: 'Manual', exact: true })).toBeVisible()
     await expect(navigation.getByRole('link', { name: 'Rules', exact: true })).toBeVisible()
-    await expect(navigation.getByRole('link', { name: 'Play / Sign In' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Play / Sign In' })).toBeVisible()
 
     const hasHorizontalOverflow = await page.evaluate(
       () => document.documentElement.scrollWidth > window.innerWidth + 1,
@@ -33,6 +33,32 @@ for (const route of publicRoutes) {
     await expect(page.locator('.skip-link')).toBeFocused()
   })
 }
+
+test('News, Manual, and Rules keep the same header position across public surfaces', async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.name !== 'desktop-chromium',
+    'Desktop header anchoring is the regression being guarded.',
+  )
+
+  async function navigationCenter(): Promise<number> {
+    const navigation = page.getByRole('navigation', { name: 'Public information', exact: true })
+    await expect(navigation).toBeVisible()
+    const box = await navigation.boundingBox()
+    expect(box).not.toBeNull()
+    return box!.x + box!.width / 2
+  }
+
+  await page.goto('/')
+  const accountCenter = await navigationCenter()
+
+  for (const route of publicRoutes) {
+    await page.goto(route.path)
+    const publicCenter = await navigationCenter()
+    expect(Math.abs(publicCenter - accountCenter)).toBeLessThanOrEqual(3)
+  }
+})
 
 test('News launches with an intentional empty state instead of a fake archive', async ({
   page,

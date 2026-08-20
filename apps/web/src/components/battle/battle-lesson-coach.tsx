@@ -4,7 +4,8 @@ import {
   getTacticalHallRecord,
   type TacticalHallRecordId,
 } from '@aurevane/game-core/combat/tactical-hall-records'
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 import type { GuidedTrainingProgress } from '@/server/battle/guided-training-completion-service'
 
@@ -15,7 +16,6 @@ interface BattleLessonCoachProps {
   recordId: TacticalHallRecordId
 }
 
-const COACH_STORE_EVENT = 'aurevane:tactical-coach-changed'
 const EMPTY_PROGRESS: GuidedTrainingProgress = {
   move: false,
   attack: false,
@@ -46,15 +46,6 @@ const GUIDED_CRITERIA = [
   },
 ] as const
 
-function subscribeCoachStore(onStoreChange: () => void): () => void {
-  window.addEventListener(COACH_STORE_EVENT, onStoreChange)
-  return () => window.removeEventListener(COACH_STORE_EVENT, onStoreChange)
-}
-
-function dismissedSnapshot(battleSessionId: string): boolean {
-  return sessionStorage.getItem(`aurevane:tactical-coach-dismissed:${battleSessionId}`) === '1'
-}
-
 function progressChanged(before: GuidedTrainingProgress, after: GuidedTrainingProgress): boolean {
   return GUIDED_CRITERIA.some((criterion) => !before[criterion.id] && after[criterion.id])
 }
@@ -63,58 +54,112 @@ function progressComplete(progress: GuidedTrainingProgress): boolean {
   return GUIDED_CRITERIA.every((criterion) => progress[criterion.id])
 }
 
+function progressCount(progress: GuidedTrainingProgress): number {
+  return GUIDED_CRITERIA.filter((criterion) => progress[criterion.id]).length
+}
+
+function useHeaderCriteriaTarget(): HTMLElement | null {
+  const [headerTarget, setHeaderTarget] = useState<HTMLElement | null>(null)
+
+  useEffect(() => {
+    let frame = 0
+    const locate = () => {
+      frame = 0
+      const track = document.querySelector<HTMLElement>(
+        '[role="progressbar"][aria-label="Action Economy remaining"]',
+      )
+      setHeaderTarget((current) => {
+        const next = track?.parentElement ?? null
+        return current === next ? current : next
+      })
+    }
+    const scheduleLocate = () => {
+      if (frame !== 0) return
+      frame = window.requestAnimationFrame(locate)
+    }
+
+    locate()
+    const observer = new MutationObserver(scheduleLocate)
+    observer.observe(document.body, { childList: true, subtree: true })
+    return () => {
+      observer.disconnect()
+      if (frame !== 0) window.cancelAnimationFrame(frame)
+    }
+  }, [])
+
+  return headerTarget
+}
+
 export function BattleLessonCoach({ battleSessionId, recordId }: BattleLessonCoachProps) {
-  const dismissed = useSyncExternalStore(
-    subscribeCoachStore,
-    () => dismissedSnapshot(battleSessionId),
-    () => false,
-  )
-
   if (recordId === 'guided-fundamentals') {
-    return <GuidedFundamentalsCoach battleSessionId={battleSessionId} />
+    return <GuidedFundamentalsCriteria battleSessionId={battleSessionId} />
   }
+  return <StandardBattleCriteria recordId={recordId} />
+}
 
-  if (dismissed) return null
+function StandardBattleCriteria({ recordId }: { recordId: TacticalHallRecordId }) {
+  const [open, setOpen] = useState(false)
+  const headerTarget = useHeaderCriteriaTarget()
   const record = getTacticalHallRecord(recordId)
 
   return (
-    <aside
-      className={styles.anchor}
-      aria-label="Battle Hall lesson"
-      data-testid="battle-lesson-coach"
-    >
-      <details className={styles.coach}>
-        <summary>
-          <span>Guide</span>
-          <strong>{record.name}</strong>
-        </summary>
-        <div className={styles.body}>
-          <p>{record.purpose}</p>
-          <ol>
-            {record.coachSteps.map((step) => (
-              <li key={step}>{step}</li>
-            ))}
-          </ol>
-          <button
-            type="button"
-            className={styles.dismiss}
-            onClick={() => {
-              sessionStorage.setItem(`aurevane:tactical-coach-dismissed:${battleSessionId}`, '1')
-              window.dispatchEvent(new Event(COACH_STORE_EVENT))
-            }}
+    <>
+      {headerTarget
+        ? createPortal(
+            <button
+              className={styles.guidedReopen}
+              type="button"
+              aria-label="Win battle, standard victory condition"
+              onClick={() => setOpen(true)}
+            >
+              <span>Win battle</span>
+              <strong>KO foe</strong>
+            </button>,
+            headerTarget,
+          )
+        : null}
+      {open ? (
+        <div className={styles.guidedBackdrop} onPointerDown={() => setOpen(false)}>
+          <section
+            className={styles.guidedPanel}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="battle-criteria-title"
+            onPointerDown={(event) => event.stopPropagation()}
           >
-            Hide this guide for this battle
-          </button>
+            <button
+              className={styles.guidedClose}
+              type="button"
+              aria-label="Close win condition"
+              onClick={() => setOpen(false)}
+            >
+              ×
+            </button>
+            <span>Battle Hall · {record.name}</span>
+            <h2 id="battle-criteria-title">Win the battle</h2>
+            <p>
+              Defeat all opposing combatants. When no enemy combatants remain able to fight, the
+              battle ends in victory.
+            </p>
+            <div className={styles.guidedFooter}>
+              <span>Standard victory condition</span>
+              <button type="button" onClick={() => setOpen(false)}>
+                Return to battle
+              </button>
+            </div>
+          </section>
         </div>
-      </details>
-    </aside>
+      ) : null}
+    </>
   )
 }
 
-function GuidedFundamentalsCoach({ battleSessionId }: { battleSessionId: string }) {
+function GuidedFundamentalsCriteria({ battleSessionId }: { battleSessionId: string }) {
   const [open, setOpen] = useState(true)
   const [progress, setProgress] = useState<GuidedTrainingProgress>(EMPTY_PROGRESS)
   const [error, setError] = useState<string | null>(null)
+  const [hasUnseenProgress, setHasUnseenProgress] = useState(false)
+  const headerTarget = useHeaderCriteriaTarget()
   const latestProgress = useRef<GuidedTrainingProgress>(EMPTY_PROGRESS)
   const completing = useRef(false)
 
@@ -164,12 +209,12 @@ function GuidedFundamentalsCoach({ battleSessionId }: { battleSessionId: string 
         if (!response.ok || !body.progress || cancelled) return
 
         const next = body.progress
-        if (progressChanged(latestProgress.current, next)) setOpen(true)
+        if (progressChanged(latestProgress.current, next)) setHasUnseenProgress(true)
         latestProgress.current = next
         setProgress(next)
         if (progressComplete(next)) await completeTraining()
       } catch {
-        // The battle itself remains usable if supplementary coaching cannot refresh momentarily.
+        // The battle itself remains usable if supplementary criteria cannot refresh momentarily.
       } finally {
         if (!cancelled) timer = window.setTimeout(refresh, 900)
       }
@@ -182,68 +227,85 @@ function GuidedFundamentalsCoach({ battleSessionId }: { battleSessionId: string 
     }
   }, [battleSessionId])
 
-  if (!open) {
-    return (
-      <button className={styles.guidedReopen} type="button" onClick={() => setOpen(true)}>
-        Training criteria {GUIDED_CRITERIA.filter((criterion) => progress[criterion.id]).length}/
-        {GUIDED_CRITERIA.length}
-      </button>
-    )
-  }
-
   return (
-    <div className={styles.guidedBackdrop} onPointerDown={() => setOpen(false)}>
-      <section
-        className={styles.guidedPanel}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="guided-training-title"
-        onPointerDown={(event) => event.stopPropagation()}
-      >
-        <button
-          className={styles.guidedClose}
-          type="button"
-          aria-label="Close training criteria"
-          onClick={() => setOpen(false)}
-        >
-          ×
-        </button>
-        <span>Battle Hall · Guided Fundamentals</span>
-        <h2 id="guided-training-title">
-          {progressComplete(progress) ? 'Training complete' : 'Complete the tactical fundamentals'}
-        </h2>
-        <p>
-          This exercise ends successfully when every server-recorded criterion is complete. The
-          checklist reopens as you make progress so you can see what changed.
-        </p>
-        <ol className={styles.criteria}>
-          {GUIDED_CRITERIA.map((criterion) => {
-            const complete = progress[criterion.id]
-            return (
-              <li key={criterion.id} data-complete={complete || undefined}>
-                <strong>
-                  {complete ? '✓' : '○'} {criterion.label}
-                </strong>
-                <small>{criterion.why}</small>
-              </li>
-            )
-          })}
-        </ol>
-        {error ? <p className={styles.guidedError}>{error}</p> : null}
-        <div className={styles.guidedFooter}>
-          <span>
-            {GUIDED_CRITERIA.filter((criterion) => progress[criterion.id]).length}/
-            {GUIDED_CRITERIA.length} complete
-          </span>
-          <button
-            type="button"
-            onClick={() => setOpen(false)}
-            disabled={progressComplete(progress)}
+    <>
+      {headerTarget
+        ? createPortal(
+            <button
+              className={styles.guidedReopen}
+              type="button"
+              data-new-progress={hasUnseenProgress || undefined}
+              aria-label={`Win battle, ${progressCount(progress)} of ${GUIDED_CRITERIA.length} criteria complete${hasUnseenProgress ? ', new progress' : ''}`}
+              onClick={() => {
+                setHasUnseenProgress(false)
+                setOpen(true)
+              }}
+            >
+              <span>Win battle</span>
+              <strong>
+                {progressCount(progress)}/{GUIDED_CRITERIA.length}
+              </strong>
+            </button>,
+            headerTarget,
+          )
+        : null}
+      {open ? (
+        <div className={styles.guidedBackdrop} onPointerDown={() => setOpen(false)}>
+          <section
+            className={styles.guidedPanel}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="guided-training-title"
+            onPointerDown={(event) => event.stopPropagation()}
           >
-            Continue training
-          </button>
+            <button
+              className={styles.guidedClose}
+              type="button"
+              aria-label="Close win condition"
+              onClick={() => setOpen(false)}
+            >
+              ×
+            </button>
+            <span>Battle Hall · Guided Fundamentals</span>
+            <h2 id="guided-training-title">
+              {progressComplete(progress)
+                ? 'Training complete'
+                : 'Complete the tactical fundamentals'}
+            </h2>
+            <p>
+              This battle has an alternate victory condition: complete every server-recorded
+              criterion. New progress highlights the Win battle button instead of interrupting your
+              turn.
+            </p>
+            <ol className={styles.criteria}>
+              {GUIDED_CRITERIA.map((criterion) => {
+                const complete = progress[criterion.id]
+                return (
+                  <li key={criterion.id} data-complete={complete || undefined}>
+                    <strong>
+                      {complete ? '✓' : '○'} {criterion.label}
+                    </strong>
+                    <small>{criterion.why}</small>
+                  </li>
+                )
+              })}
+            </ol>
+            {error ? <p className={styles.guidedError}>{error}</p> : null}
+            <div className={styles.guidedFooter}>
+              <span>
+                {progressCount(progress)}/{GUIDED_CRITERIA.length} complete
+              </span>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                disabled={progressComplete(progress)}
+              >
+                Continue training
+              </button>
+            </div>
+          </section>
         </div>
-      </section>
-    </div>
+      ) : null}
+    </>
   )
 }

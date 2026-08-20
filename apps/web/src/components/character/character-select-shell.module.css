@@ -437,6 +437,88 @@
   color: #e6a0a0 !important;
 }
 
+@media (min-width: 901px) {
+  .shell {
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .header {
+    min-height: 3.4rem;
+    padding-block: 0.25rem;
+  }
+
+  .main {
+    display: flex;
+    height: calc(100dvh - 3.4rem);
+    flex-direction: column;
+    overflow: hidden;
+    padding: clamp(0.55rem, 1.2vw, 0.9rem) clamp(0.7rem, 1.6vw, 1.25rem);
+  }
+
+  .hero {
+    flex: 0 0 auto;
+    gap: 1rem;
+    margin-bottom: 0.55rem;
+    padding: 0.3rem 0 0.55rem;
+  }
+
+  .hero h1 {
+    margin-top: 0.2rem;
+    font-size: clamp(1.8rem, 3.3vw, 2.65rem);
+  }
+
+  .hero p {
+    font-size: 0.7rem;
+    line-height: 1.4;
+  }
+
+  .slots {
+    min-height: 0;
+    flex: 1 1 auto;
+  }
+
+  .slot {
+    height: 100%;
+    min-height: 0;
+    grid-template-rows: auto minmax(6rem, 1fr) auto auto auto;
+    padding: 0.6rem;
+  }
+
+  .portrait {
+    min-height: 6rem;
+    margin: 0.4rem -0.05rem;
+  }
+
+  .identity {
+    padding: 0.25rem 0 0.4rem;
+  }
+
+  .identity h2,
+  .empty h2 {
+    font-size: 1.2rem;
+  }
+
+  .primaryAction,
+  .deleteAction,
+  .pendingDelete button,
+  .lockedBadge {
+    min-height: 2.05rem;
+    padding-block: 0.45rem;
+  }
+
+  .deleteAction {
+    margin-top: 0.25rem;
+  }
+
+  .emptyCrest {
+    width: clamp(3.4rem, 7vh, 4.25rem);
+    height: clamp(3.4rem, 7vh, 4.25rem);
+    font-size: 1.8rem;
+  }
+}
+
 @media (max-width: 900px) {
   .slots {
     grid-template-columns: 1fr;

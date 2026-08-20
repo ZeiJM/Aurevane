@@ -20,6 +20,40 @@ interface BattleLogResponse {
   error?: { message?: string }
 }
 
+function beginFloatingPanelDrag(event: React.PointerEvent<HTMLElement>, panel: HTMLElement | null) {
+  if (!panel || event.button !== 0 || (event.target as Element | null)?.closest('button')) return
+
+  event.preventDefault()
+  const rect = panel.getBoundingClientRect()
+  const offsetX = event.clientX - rect.left
+  const offsetY = event.clientY - rect.top
+  panel.style.left = `${rect.left}px`
+  panel.style.top = `${rect.top}px`
+  panel.style.right = 'auto'
+  panel.style.bottom = 'auto'
+  panel.style.transform = 'none'
+
+  const move = (moveEvent: PointerEvent) => {
+    const nextRect = panel.getBoundingClientRect()
+    const maxLeft = Math.max(4, window.innerWidth - nextRect.width - 4)
+    const maxTop = Math.max(4, window.innerHeight - nextRect.height - 4)
+    const left = Math.min(maxLeft, Math.max(4, moveEvent.clientX - offsetX))
+    const top = Math.min(maxTop, Math.max(4, moveEvent.clientY - offsetY))
+    panel.style.left = `${left}px`
+    panel.style.top = `${top}px`
+  }
+
+  const finish = () => {
+    window.removeEventListener('pointermove', move)
+    window.removeEventListener('pointerup', finish)
+    window.removeEventListener('pointercancel', finish)
+  }
+
+  window.addEventListener('pointermove', move)
+  window.addEventListener('pointerup', finish, { once: true })
+  window.addEventListener('pointercancel', finish, { once: true })
+}
+
 export function BattleLogPanel({
   battleSessionId,
   battleVersion,
@@ -36,6 +70,7 @@ export function BattleLogPanel({
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const requestSequence = useRef(0)
+  const controlledPanelRef = useRef<HTMLDivElement>(null)
 
   const loadLog = useCallback(async () => {
     const sequence = ++requestSequence.current
@@ -110,13 +145,19 @@ export function BattleLogPanel({
 
   if (!visible) return null
   return (
-    <div className={styles.controlled} data-testid="battle-log-panel">
+    <div
+      ref={controlledPanelRef}
+      className={styles.controlled}
+      data-testid="battle-log-panel"
+      data-floating-panel="battle-log"
+    >
       <LogPanel
         entries={entries}
         loading={loading}
         error={error}
         onClose={onClose}
         playerName={effectivePlayerName}
+        onDragStart={(event) => beginFloatingPanelDrag(event, controlledPanelRef.current)}
       />
     </div>
   )
@@ -128,18 +169,20 @@ function LogPanel({
   error,
   onClose,
   playerName,
+  onDragStart,
 }: {
   entries: BattleLogView['entries']
   loading: boolean
   error: string | null
   onClose?: () => void
   playerName?: string
+  onDragStart?: (event: React.PointerEvent<HTMLElement>) => void
 }) {
   const actionGroups = useMemo(() => groupEntriesByCommittedVersion(entries), [entries])
 
   return (
     <section className={styles.panel} aria-label="Committed battle log">
-      <header>
+      <header onPointerDown={onDragStart} data-drag-handle={onDragStart ? 'battle-log' : undefined}>
         <div>
           <strong>Combat Log</strong>
           <span>Committed action summaries · newest first</span>
