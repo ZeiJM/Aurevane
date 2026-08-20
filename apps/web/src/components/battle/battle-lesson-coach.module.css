@@ -204,13 +204,58 @@
 }
 
 .guidedReopen {
-  position: fixed;
-  top: 4.45rem;
-  right: 1rem;
-  z-index: 5000;
-  border-color: rgba(207, 169, 93, 0.48);
-  background: rgba(8, 11, 16, 0.94);
-  box-shadow: 0 0.6rem 1.5rem rgba(0, 0, 0, 0.35);
+  display: flex;
+  min-height: 1.75rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.48rem;
+  padding: 0.32rem 0.48rem;
+  border-color: rgba(207, 169, 93, 0.42);
+  background: rgba(207, 169, 93, 0.065);
+  box-shadow: none;
+  white-space: nowrap;
+}
+
+.guidedReopen span {
+  color: var(--av-text-muted);
+  font-size: 0.48rem;
+}
+
+.guidedReopen strong {
+  color: var(--av-brass-200);
+  font-size: 0.5rem;
+}
+
+.guidedReopen:hover,
+.guidedReopen:focus-visible {
+  border-color: rgba(219, 191, 126, 0.72);
+  background: rgba(207, 169, 93, 0.11);
+}
+
+.guidedReopen[data-new-progress] {
+  border-color: rgba(112, 209, 153, 0.78);
+  background: rgba(71, 156, 105, 0.14);
+  box-shadow:
+    0 0 0 1px rgba(112, 209, 153, 0.13),
+    0 0 0.8rem rgba(79, 190, 122, 0.28);
+  animation: criteriaNoticeGlow 1.25s ease-in-out infinite alternate;
+}
+
+.guidedReopen[data-new-progress] strong {
+  color: #9be0b6;
+}
+
+@keyframes criteriaNoticeGlow {
+  from {
+    box-shadow:
+      0 0 0 1px rgba(112, 209, 153, 0.08),
+      0 0 0.45rem rgba(79, 190, 122, 0.18);
+  }
+  to {
+    box-shadow:
+      0 0 0 1px rgba(112, 209, 153, 0.2),
+      0 0 1rem rgba(79, 190, 122, 0.42);
+  }
 }
 
 @media (max-width: 760px) {
@@ -234,13 +279,18 @@
   }
 
   .guidedReopen {
-    top: auto;
-    right: 0.6rem;
-    bottom: 4.2rem;
+    min-height: 1.65rem;
+    padding: 0.28rem 0.42rem;
   }
 
   .guidedFooter {
     align-items: stretch;
     flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guidedReopen[data-new-progress] {
+    animation: none;
   }
 }
