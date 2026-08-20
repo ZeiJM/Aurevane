@@ -36,7 +36,11 @@ import {
   createBattleSessionChangedInvalidation,
   type BattleSessionChangedInvalidation,
 } from '@aurevane/realtime'
-import type { BattleAiDifficulty, BattleIntent } from '@aurevane/validation/combat/battle-session'
+import type {
+  BattleAiDifficulty,
+  BattleHallRecordId,
+  BattleIntent,
+} from '@aurevane/validation/combat/battle-session'
 
 const PV1F_RULES_VERSION = 2
 const PV1F_CONTENT_VERSION = 2
@@ -63,6 +67,7 @@ export interface CreateBattleSessionCommand {
   characterId: string
   arenaId?: TacticalHallArenaId
   aiDifficulty?: BattleAiDifficulty
+  battleHallRecordId?: BattleHallRecordId
   idempotencyKey: string
 }
 
@@ -105,11 +110,12 @@ function fingerprint(value: unknown): string {
 
 function recruitScenarioProfile(
   difficulty: BattleAiDifficulty,
+  battleHallRecordId: BattleHallRecordId,
 ): Omit<StatDrivenCombatProfile, 'combatantId'> {
   return {
     provenance: {
       kind: 'scenario',
-      sourceId: `scenario:p2-7-recruit:duel:${difficulty}`,
+      sourceId: `scenario:p2-7-recruit:${battleHallRecordId}:${difficulty}`,
       sourceRulesVersion: PV1F_CONTENT_VERSION,
     },
     // Difficulty changes decision quality only. All three Recruit tiers obey the same visible stats.
@@ -125,6 +131,7 @@ function createVerticalSliceEncounter(
   character: CharacterRecord,
   arenaId: TacticalHallArenaId,
   aiDifficulty: BattleAiDifficulty,
+  battleHallRecordId: BattleHallRecordId,
 ): StatDrivenCombatEncounterState {
   const arena = getTacticalHallArena(arenaId)
   const playerCombatantId = `character:${character.id}`
@@ -147,7 +154,7 @@ function createVerticalSliceEncounter(
   )
   const recruitProfile: StatDrivenCombatProfile = {
     combatantId: recruitCombatantId,
-    ...recruitScenarioProfile(aiDifficulty),
+    ...recruitScenarioProfile(aiDifficulty, battleHallRecordId),
   }
   const playerMovementProfile = {
     ...P2_2_ORDINARY_GROUND_PROFILE,
@@ -339,17 +346,24 @@ export function createBattleSessionService({
 
       const arenaId = command.arenaId ?? 'basic-training-floor'
       const aiDifficulty = command.aiDifficulty ?? 'standard'
-      const encounter = createVerticalSliceEncounter(character, arenaId, aiDifficulty)
+      const battleHallRecordId = command.battleHallRecordId ?? 'recruit-sparring'
+      const encounter = createVerticalSliceEncounter(
+        character,
+        arenaId,
+        aiDifficulty,
+        battleHallRecordId,
+      )
       const battle = encounter.tactical.battle
       const persisted = await battles.createBattleSession({
         actorKey: command.userId,
         idempotencyKey: command.idempotencyKey,
         requestFingerprint: fingerprint({
-          command: 'battle.create.v2',
+          command: 'battle.create.v3',
           userId: command.userId,
           characterId: command.characterId,
           arenaId,
           aiDifficulty,
+          battleHallRecordId,
         }),
         userId: command.userId,
         battleId: battle.battleId,
