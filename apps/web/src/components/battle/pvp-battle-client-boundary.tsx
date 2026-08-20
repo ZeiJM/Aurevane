@@ -5,6 +5,7 @@ import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
 import { BattleDirectionalAttackAssist } from './battle-directional-attack-assist'
 import { BattleMapTokenPolish } from './battle-map-token-polish'
+import { BattlePresentationPolish } from './battle-presentation-polish'
 import { BattleUtilityWindows } from './battle-utility-windows'
 import { PvpBattleExperience } from './pvp-battle-experience'
 
@@ -22,6 +23,7 @@ export function PvpBattleClientBoundary({
       <PvpBattleExperience initialBattle={initialBattle} metadata={metadata} />
       <BattleDirectionalAttackAssist playerName={playerName} />
       <BattleMapTokenPolish />
+      <BattlePresentationPolish playerName={playerName} pvpMetadata={metadata} />
       <BattleUtilityWindows
         battleSessionId={initialBattle.battleSessionId}
         playerName={playerName}
