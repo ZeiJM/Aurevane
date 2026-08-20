@@ -1,0 +1,55 @@
+name: Hotfix Prettier
+
+on:
+  push:
+    branches:
+      - hotfix/post-prod-battle-pv-20260820
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: "!contains(github.event.head_commit.message, '[prettier-bot]')"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hotfix/post-prod-battle-pv-20260820
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format changed hotfix files
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/app/battle-quality-overrides.css \
+            apps/web/src/components/battle/battle-launch.tsx \
+            apps/web/src/components/battle/battle-presentation-assist.tsx \
+            apps/web/src/components/battle/battle-presentation-polish.tsx \
+            apps/web/src/components/battle/battle-utility-windows.tsx \
+            apps/web/src/components/battle/pvp-battle-combatant-panels.tsx \
+            apps/web/src/components/battle/pvp-battle-quality-controls.tsx \
+            apps/web/src/components/battle/pvp-lobby-modal.tsx \
+            apps/web/src/components/social/online-users-directory.tsx \
+            apps/web/src/server/battle/pvp-battle-quality-service.ts \
+            apps/web/src/server/battle/pvp-lobby-quality-service.ts \
+            packages/game-core/src/combat/pvp-quality.test.ts \
+            packages/game-core/src/combat/pvp-quality.ts
+      - name: Commit formatting
+        run: |
+          if git diff --quiet; then
+            echo "Already formatted"
+            exit 0
+          fi
+          git config user.name "AUREVANE CI"
+          git config user.email "actions@users.noreply.github.com"
+          git add --all
+          git commit -m "chore: apply Prettier to hotfix [prettier-bot]"
+          git push origin HEAD:hotfix/post-prod-battle-pv-20260820
