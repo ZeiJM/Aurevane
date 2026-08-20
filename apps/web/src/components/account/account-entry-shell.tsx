@@ -3,6 +3,7 @@ import Link from 'next/link'
 
 import { AudioSettingsMenu } from '@/components/audio/audio-settings-menu'
 import { AurevaneImage } from '@/components/media/aurevane-image'
+import headerLayout from '@/components/public-information/public-header-layout.module.css'
 import publicStyles from '@/components/public-information/public-information-shell.module.css'
 import type { BrowserSupabaseConfig } from '@/lib/supabase/client'
 
@@ -21,7 +22,10 @@ export function AccountEntryShell({ authConfig, sessionNotice }: AccountEntryShe
         Skip to account entry
       </a>
 
-      <header className={styles.masthead} style={{ position: 'sticky', top: 0, zIndex: 700 }}>
+      <header
+        className={`${styles.masthead} ${headerLayout.headerGrid}`}
+        style={{ position: 'sticky', top: 0, zIndex: 700 }}
+      >
         <a className="brand" href="#account-main" aria-label="AUREVANE account entry home">
           <span className="brand__crest" aria-hidden="true">
             <span>A</span>
@@ -31,19 +35,24 @@ export function AccountEntryShell({ authConfig, sessionNotice }: AccountEntryShe
             <small>Persistent tactical fantasy</small>
           </span>
         </a>
-        <span className={styles.environmentMark}>Account gateway</span>
-        <div className={publicStyles.accountHeaderActions}>
-          <nav className={publicStyles.mastheadNav} aria-label="Public information">
-            <Link className={publicStyles.navLink} href="/news">
-              News
-            </Link>
-            <Link className={publicStyles.navLink} href="/manual">
-              Manual
-            </Link>
-            <Link className={publicStyles.navLink} href="/rules">
-              Rules
-            </Link>
-          </nav>
+
+        <nav
+          className={`${publicStyles.mastheadNav} ${headerLayout.centerNav}`}
+          aria-label="Public information"
+        >
+          <Link className={publicStyles.navLink} href="/news">
+            News
+          </Link>
+          <Link className={publicStyles.navLink} href="/manual">
+            Manual
+          </Link>
+          <Link className={publicStyles.navLink} href="/rules">
+            Rules
+          </Link>
+        </nav>
+
+        <div className={`${publicStyles.accountHeaderActions} ${headerLayout.endAction}`}>
+          <span className={styles.environmentMark}>Account gateway</span>
           <AudioSettingsMenu />
         </div>
       </header>
