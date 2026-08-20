@@ -62,7 +62,7 @@ export const CHARACTER_CREATION_RULES_V1 = {
   attributes: {
     baseline: 5,
     bonusBudget: 6,
-    maximumBonusPerAttribute: 4,
+    maximumBonusPerAttribute: 6,
   },
   initialProgression: {
     level: 1,
@@ -260,21 +260,17 @@ function validateAttributeBonuses(
     bonuses[attributeId] = bonus
   }
 
-  if (!bonusValuesAreValid || unexpectedKeys.length > 0) {
-    return null
-  }
-
+  if (!bonusValuesAreValid || unexpectedKeys.length > 0) return null
   const canonicalBonuses = bonuses as CharacterAttributeBonuses
   const spent = CHARACTER_ATTRIBUTE_IDS.reduce(
     (total, attributeId) => total + canonicalBonuses[attributeId],
     0,
   )
-
   if (spent !== CHARACTER_CREATION_RULES_V1.attributes.bonusBudget) {
     issues.push({
       code: 'attribute_budget_mismatch',
       field: 'attributeBonuses',
-      message: `Exactly ${CHARACTER_CREATION_RULES_V1.attributes.bonusBudget} starting attribute points must be assigned.`,
+      message: `Spend exactly ${CHARACTER_CREATION_RULES_V1.attributes.bonusBudget} attribute bonus points.`,
     })
     return null
   }
@@ -282,101 +278,95 @@ function validateAttributeBonuses(
   return canonicalBonuses
 }
 
-export function validateCharacterCreationIntent(input: unknown): CharacterCreationValidationResult {
+export function validateCharacterCreationIntent(
+  value: unknown,
+): CharacterCreationValidationResult {
   const issues: CharacterCreationRuleIssue[] = []
-
-  if (!isRecord(input)) {
+  if (!isRecord(value)) {
     return {
       ok: false,
       issues: [
         {
           code: 'invalid_shape',
           field: 'intent',
-          message: 'Character creation intent must be an object.',
+          message: 'Character creation choices are missing or malformed.',
         },
       ],
     }
   }
 
-  let normalizedName = ''
-  let nameKey = ''
-  if (typeof input.name !== 'string') {
-    issues.push({
-      code: 'invalid_name_type',
-      field: 'name',
-      message: 'Character name must be text.',
-    })
+  const rawName = value.name
+  let name: string | null = null
+  if (typeof rawName !== 'string') {
+    issues.push({ code: 'invalid_name_type', field: 'name', message: 'Enter a character name.' })
   } else {
-    normalizedName = normalizeCharacterName(input.name)
-    nameKey = toCharacterNameKey(normalizedName)
-    const codePointLength = Array.from(normalizedName).length
-
+    const normalized = normalizeCharacterName(rawName)
+    const length = [...normalized].length
     if (
-      codePointLength < CHARACTER_CREATION_RULES_V1.name.minimumCodePoints ||
-      codePointLength > CHARACTER_CREATION_RULES_V1.name.maximumCodePoints
+      length < CHARACTER_CREATION_RULES_V1.name.minimumCodePoints ||
+      length > CHARACTER_CREATION_RULES_V1.name.maximumCodePoints
     ) {
       issues.push({
         code: 'name_length',
         field: 'name',
-        message: `Character name must be ${CHARACTER_CREATION_RULES_V1.name.minimumCodePoints}-${CHARACTER_CREATION_RULES_V1.name.maximumCodePoints} characters after normalization.`,
+        message: `Character names must be ${CHARACTER_CREATION_RULES_V1.name.minimumCodePoints}–${CHARACTER_CREATION_RULES_V1.name.maximumCodePoints} characters.`,
       })
-    }
-
-    if (!characterNamePattern.test(normalizedName)) {
+    } else if (!characterNamePattern.test(normalized)) {
       issues.push({
         code: 'name_characters',
         field: 'name',
-        message:
-          'Character name may contain letters plus single spaces, apostrophes, or hyphens between name parts.',
+        message: 'Use letters with spaces, apostrophes, or hyphens only between name parts.',
       })
-    }
-
-    if (reservedCharacterNameKeys.has(nameKey)) {
+    } else if (reservedCharacterNameKeys.has(toCharacterNameKey(normalized))) {
       issues.push({
         code: 'name_reserved',
         field: 'name',
         message: 'That character name is reserved.',
       })
+    } else {
+      name = normalized
     }
   }
 
-  const presentationId = input.presentationId
+  const presentationId = value.presentationId
   if (typeof presentationId !== 'string' || !isPresentationId(presentationId)) {
     issues.push({
       code: 'invalid_presentation',
       field: 'presentationId',
-      message: 'Choose one supported character presentation.',
+      message: 'Choose a supported character presentation.',
     })
   }
 
-  const pronounPresetId = input.pronounPresetId
+  const pronounPresetId = value.pronounPresetId
   if (typeof pronounPresetId !== 'string' || !isPronounPresetId(pronounPresetId)) {
     issues.push({
       code: 'invalid_pronouns',
       field: 'pronounPresetId',
-      message: 'Choose one supported pronoun preset.',
+      message: 'Choose a supported pronoun set.',
     })
   }
 
-  if (!isCharacterPortraitRef(input.portraitRef)) {
+  const portraitRef = value.portraitRef
+  if (!isCharacterPortraitRef(portraitRef)) {
     issues.push({
       code: 'invalid_portrait_ref',
       field: 'portraitRef',
-      message: 'Portrait selection must use a stable portrait content reference.',
+      message: 'Choose a supported starter portrait.',
     })
   }
 
-  if (!isStarterAppearanceRef(input.starterAppearanceRef)) {
+  const starterAppearanceRef = value.starterAppearanceRef
+  if (!isStarterAppearanceRef(starterAppearanceRef)) {
     issues.push({
       code: 'invalid_appearance_ref',
       field: 'starterAppearanceRef',
-      message: 'Starter appearance must use a stable appearance content reference.',
+      message: 'Choose a supported starter appearance.',
     })
   }
 
-  const attributeBonuses = validateAttributeBonuses(input.attributeBonuses, issues)
+  const attributeBonuses = validateAttributeBonuses(value.attributeBonuses, issues)
 
-  const foundationDisciplineId = input.foundationDisciplineId
+  const foundationDisciplineId = value.foundationDisciplineId
   if (
     typeof foundationDisciplineId !== 'string' ||
     !isFoundationDisciplineId(foundationDisciplineId)
@@ -384,72 +374,79 @@ export function validateCharacterCreationIntent(input: unknown): CharacterCreati
     issues.push({
       code: 'invalid_foundation_discipline',
       field: 'foundationDisciplineId',
-      message: 'Choose one of the six Disciplines.',
+      message: 'Choose one of the available starter Disciplines.',
     })
   }
 
-  if (issues.length > 0 || attributeBonuses === null) {
+  if (
+    issues.length > 0 ||
+    name === null ||
+    typeof presentationId !== 'string' ||
+    !isPresentationId(presentationId) ||
+    typeof pronounPresetId !== 'string' ||
+    !isPronounPresetId(pronounPresetId) ||
+    !isCharacterPortraitRef(portraitRef) ||
+    !isStarterAppearanceRef(starterAppearanceRef) ||
+    attributeBonuses === null ||
+    typeof foundationDisciplineId !== 'string' ||
+    !isFoundationDisciplineId(foundationDisciplineId)
+  ) {
     return { ok: false, issues }
   }
 
   return {
     ok: true,
     value: {
-      name: normalizedName,
-      nameKey,
-      presentationId: presentationId as CharacterPresentationId,
-      pronounPresetId: pronounPresetId as PronounPresetId,
-      portraitRef: input.portraitRef as CharacterPortraitRef,
-      starterAppearanceRef: input.starterAppearanceRef as StarterAppearanceRef,
+      name,
+      nameKey: toCharacterNameKey(name),
+      presentationId,
+      pronounPresetId,
+      portraitRef,
+      starterAppearanceRef,
       attributeBonuses,
-      foundationDisciplineId: foundationDisciplineId as FoundationDisciplineId,
+      foundationDisciplineId,
     },
   }
 }
 
-export function buildInitialCharacterState(input: unknown): InitialCharacterStateV1 {
+export function buildInitialCharacterState(input: CharacterCreationIntent): InitialCharacterStateV1 {
   const validation = validateCharacterCreationIntent(input)
-  if (!validation.ok) {
-    throw new CharacterCreationRuleError(validation.issues)
-  }
+  if (!validation.ok) throw new CharacterCreationRuleError(validation.issues)
 
-  const attributes = Object.fromEntries(
-    CHARACTER_ATTRIBUTE_IDS.map((attributeId) => [
-      attributeId,
-      CHARACTER_CREATION_RULES_V1.attributes.baseline +
-        validation.value.attributeBonuses[attributeId],
-    ]),
-  ) as CharacterAttributes
-
+  const { value } = validation
   return {
-    rulesVersion: CHARACTER_CREATION_RULES_V1.version,
-    name: validation.value.name,
-    nameKey: validation.value.nameKey,
-    presentationId: validation.value.presentationId,
-    pronounPresetId: validation.value.pronounPresetId,
-    portraitRef: validation.value.portraitRef,
-    starterAppearanceRef: validation.value.starterAppearanceRef,
-    foundationDisciplineId: validation.value.foundationDisciplineId,
-    attributes,
+    rulesVersion: 1,
+    name: value.name,
+    nameKey: value.nameKey,
+    presentationId: value.presentationId,
+    pronounPresetId: value.pronounPresetId,
+    portraitRef: value.portraitRef,
+    starterAppearanceRef: value.starterAppearanceRef,
+    foundationDisciplineId: value.foundationDisciplineId,
+    attributes: {
+      might: CHARACTER_CREATION_RULES_V1.attributes.baseline + value.attributeBonuses.might,
+      finesse: CHARACTER_CREATION_RULES_V1.attributes.baseline + value.attributeBonuses.finesse,
+      vitality: CHARACTER_CREATION_RULES_V1.attributes.baseline + value.attributeBonuses.vitality,
+      agility: CHARACTER_CREATION_RULES_V1.attributes.baseline + value.attributeBonuses.agility,
+      intellect: CHARACTER_CREATION_RULES_V1.attributes.baseline + value.attributeBonuses.intellect,
+      resolve: CHARACTER_CREATION_RULES_V1.attributes.baseline + value.attributeBonuses.resolve,
+    },
     level: CHARACTER_CREATION_RULES_V1.initialProgression.level,
     xp: CHARACTER_CREATION_RULES_V1.initialProgression.xp,
-    progressionCycle: {
-      number: CHARACTER_CREATION_RULES_V1.initialProgression.cycleNumber,
-    },
+    progressionCycle: { number: CHARACTER_CREATION_RULES_V1.initialProgression.cycleNumber },
   }
 }
 
-export function buildCharacterCreationResult(command: unknown): CharacterCreationResultV1 {
-  if (!isRecord(command) || command.version !== 1 || !('intent' in command)) {
+export function buildCharacterCreationResult(command: CharacterCreationCommandV1): CharacterCreationResultV1 {
+  if (command.version !== CHARACTER_CREATION_RULES_V1.version) {
     throw new CharacterCreationRuleError([
       {
         code: 'unsupported_command_version',
         field: 'version',
-        message: 'Character creation command version is not supported.',
+        message: 'That character creation rules version is not supported.',
       },
     ])
   }
-
   return {
     version: 1,
     character: buildInitialCharacterState(command.intent),
