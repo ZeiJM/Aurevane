@@ -11,7 +11,11 @@ import { loadSelectedCharacter } from '@/server/character/selected-character'
 
 export const dynamic = 'force-dynamic'
 
-export default async function BattleLaunchPage() {
+export default async function BattleLaunchPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ join?: string | string[] }>
+}) {
   const publicConfig = getOptionalPublicSupabaseConfig()
   const requestHost = (await headers()).get('host')
   const readiness = getCurrentAccountServicesReadiness(publicConfig, requestHost)
@@ -28,9 +32,16 @@ export default async function BattleLaunchPage() {
   const character = await loadSelectedCharacter(actor)
   if (!character) redirect('/game')
 
+  const params = await searchParams
+  const initialJoinKey = typeof params.join === 'string' ? params.join : null
+
   return (
     <AuthenticatedShellFrame sessionLabel="Battle Hall">
-      <BattleLaunch characterId={character.id} characterName={character.name} />
+      <BattleLaunch
+        characterId={character.id}
+        characterName={character.name}
+        initialJoinKey={initialJoinKey}
+      />
     </AuthenticatedShellFrame>
   )
 }

@@ -86,7 +86,7 @@ export function createSupabaseBattleSessionRepository(): BattleSessionRepository
 
     async findBattleSession(userId, battleSessionId) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('get_battle_session_v1', {
+      const { data, error } = await supabase.rpc('get_battle_session_v2', {
         p_user_id: userId,
         p_battle_session_id: battleSessionId,
       })
@@ -116,7 +116,7 @@ export function createSupabaseBattleSessionRepository(): BattleSessionRepository
 
     async commitBattleIntent(input) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('commit_battle_intent_v1', {
+      const { data, error } = await supabase.rpc('commit_battle_intent_v2', {
         p_actor_key: input.actorKey,
         p_idempotency_key: input.idempotencyKey,
         p_request_fingerprint: input.requestFingerprint,
@@ -145,7 +145,7 @@ export function createSupabaseBattleSessionRepository(): BattleSessionRepository
 
     async findBattleEvents(userId, battleSessionId, limit) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('get_battle_events_v1', {
+      const { data, error } = await supabase.rpc('get_battle_events_v2', {
         p_user_id: userId,
         p_battle_session_id: battleSessionId,
         p_limit: limit,

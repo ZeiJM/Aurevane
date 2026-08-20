@@ -94,14 +94,20 @@ test('a new account persists its private profile across refresh, sign-out, and s
   await expect(page).toHaveURL(/\/game$/)
   await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Create Character' })).toHaveCount(1)
-  await expect(page.getByText('Purchase unlock · coming later', { exact: true })).toBeVisible()
-  await expect(page.getByText('Earn free · first Prestige Rebirth', { exact: true })).toBeVisible()
+  await expect(page.getByText('Additional character slot', { exact: true })).toBeVisible()
+  await expect(
+    page.getByText('Slot 2 will be available for purchase at a later time.', { exact: true }),
+  ).toBeVisible()
+  await expect(page.getByText('Available later', { exact: true })).toBeVisible()
 
   await page.reload()
   await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Create Character' })).toHaveCount(1)
-  await expect(page.getByText('Purchase unlock · coming later', { exact: true })).toBeVisible()
-  await expect(page.getByText('Earn free · first Prestige Rebirth', { exact: true })).toBeVisible()
+  await expect(page.getByText('Additional character slot', { exact: true })).toBeVisible()
+  await expect(
+    page.getByText('Slot 2 will be available for purchase at a later time.', { exact: true }),
+  ).toBeVisible()
+  await expect(page.getByText('Available later', { exact: true })).toBeVisible()
 
   await page.getByRole('button', { name: 'Account' }).click()
   await page.getByRole('menuitem', { name: 'Sign out' }).click()

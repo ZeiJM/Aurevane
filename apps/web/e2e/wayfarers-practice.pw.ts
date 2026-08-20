@@ -95,9 +95,11 @@ test('Passive Training requires an explicit plan and freezes a server-timed rewa
 
   await page.getByRole('button', { name: 'Navigation' }).click()
   await page.getByRole('link', { name: /Battle Hall/ }).click()
-  await expect(page.getByRole('heading', { name: 'Choose a battle.' })).toBeVisible()
-  await expect(page.getByText('No mode selected')).toBeVisible()
-  await page.getByRole('button', { name: /AI Sparring/ }).click()
+  await expect(page.getByRole('heading', { name: 'Choose your arena.' })).toBeVisible()
+  const battleMode = page.getByLabel('Battle mode')
+  await expect(battleMode).toHaveValue('')
+  await expect(page.getByRole('button', { name: 'Enter Battle' })).toHaveCount(0)
+  await battleMode.selectOption('recruit-sparring')
   await page.getByRole('button', { name: 'Enter Battle' }).click()
   await expect(
     page.getByText('Finish or stop Passive Training before starting a new Battle Hall fight.', {

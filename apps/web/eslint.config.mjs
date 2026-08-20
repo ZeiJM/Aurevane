@@ -11,6 +11,8 @@ export default defineConfig([
     files: [
       'src/components/battle/battle-experience-v2.tsx',
       'src/components/battle/battle-log-panel.tsx',
+      'src/components/battle/pvp-battle-experience.tsx',
+      'src/components/battle/pvp-lobby-modal.tsx',
     ],
     rules: {
       '@typescript-eslint/no-unused-vars': 'off',
