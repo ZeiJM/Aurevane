@@ -1,10 +1,7 @@
 'use client'
 
-import {
-  getTacticalHallRecord,
-  type TacticalHallRecordId,
-} from '@aurevane/game-core/combat/tactical-hall-records'
-import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
+import type { TacticalHallRecordId } from '@aurevane/game-core/combat/tactical-hall-records'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 import type { GuidedTrainingProgress } from '@/server/battle/guided-training-completion-service'
@@ -16,7 +13,6 @@ interface BattleLessonCoachProps {
   recordId: TacticalHallRecordId
 }
 
-const COACH_STORE_EVENT = 'aurevane:tactical-coach-changed'
 const EMPTY_PROGRESS: GuidedTrainingProgress = {
   move: false,
   attack: false,
@@ -47,15 +43,6 @@ const GUIDED_CRITERIA = [
   },
 ] as const
 
-function subscribeCoachStore(onStoreChange: () => void): () => void {
-  window.addEventListener(COACH_STORE_EVENT, onStoreChange)
-  return () => window.removeEventListener(COACH_STORE_EVENT, onStoreChange)
-}
-
-function dismissedSnapshot(battleSessionId: string): boolean {
-  return sessionStorage.getItem(`aurevane:tactical-coach-dismissed:${battleSessionId}`) === '1'
-}
-
 function progressChanged(before: GuidedTrainingProgress, after: GuidedTrainingProgress): boolean {
   return GUIDED_CRITERIA.some((criterion) => !before[criterion.id] && after[criterion.id])
 }
@@ -69,51 +56,8 @@ function progressCount(progress: GuidedTrainingProgress): number {
 }
 
 export function BattleLessonCoach({ battleSessionId, recordId }: BattleLessonCoachProps) {
-  const dismissed = useSyncExternalStore(
-    subscribeCoachStore,
-    () => dismissedSnapshot(battleSessionId),
-    () => false,
-  )
-
-  if (recordId === 'guided-fundamentals') {
-    return <GuidedFundamentalsCoach battleSessionId={battleSessionId} />
-  }
-
-  if (dismissed) return null
-  const record = getTacticalHallRecord(recordId)
-
-  return (
-    <aside
-      className={styles.anchor}
-      aria-label="Battle Hall lesson"
-      data-testid="battle-lesson-coach"
-    >
-      <details className={styles.coach}>
-        <summary>
-          <span>Guide</span>
-          <strong>{record.name}</strong>
-        </summary>
-        <div className={styles.body}>
-          <p>{record.purpose}</p>
-          <ol>
-            {record.coachSteps.map((step) => (
-              <li key={step}>{step}</li>
-            ))}
-          </ol>
-          <button
-            type="button"
-            className={styles.dismiss}
-            onClick={() => {
-              sessionStorage.setItem(`aurevane:tactical-coach-dismissed:${battleSessionId}`, '1')
-              window.dispatchEvent(new Event(COACH_STORE_EVENT))
-            }}
-          >
-            Hide this guide for this battle
-          </button>
-        </div>
-      </details>
-    </aside>
-  )
+  if (recordId !== 'guided-fundamentals') return null
+  return <GuidedFundamentalsCoach battleSessionId={battleSessionId} />
 }
 
 function GuidedFundamentalsCoach({ battleSessionId }: { battleSessionId: string }) {
