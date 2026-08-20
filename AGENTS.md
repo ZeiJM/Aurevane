@@ -15,7 +15,9 @@
 - `docs/EQUIPMENT_LOAD_AND_BUILD_PHYSICS.md` governs Equipment Weight / Equipped Load / load-aware build physics when that system is active. Any stale four-attribute wording in older subordinate roadmap/reference material is superseded by the current six-attribute model.
 - `docs/COMBAT_AI_TRAINING.md` governs combat NPC intelligence, fairness/knowledge boundaries, Tactical Records, Battle Review and Combat AI Lab. **Battle Hall** is the current player-facing practice destination.
 - `docs/WORLD.md` governs living-world/event behavior; `docs/HOMESTEAD_WORLD_NAVIGATION.md` governs Homesteads, safe territory and navigation; `docs/PVP_SPECTATION_COLOSSEUM.md` governs spectation/Colosseum privacy and viewing rules; social/economy/referral documents remain authoritative in their respective domains.
-- `docs/PRODUCT_EXPERIENCE_CONTENT_SYSTEM.md`, `docs/OWNER_OVERRIDE.md`, `docs/PLAYER_MANUAL.md`, `docs/MONETIZATION.md`, `docs/ENGINEERING_EXECUTION_STANDARD.md`, `docs/MEDIA_PIPELINE.md`, and `docs/TECHNOLOGY_POLICY.md` remain authoritative in their respective domains.
+- `docs/PUBLIC_NEWS_AND_MANUAL.md` and `docs/PUBLIC_RULES.md` govern the permanent public News/Manual/Rules information surfaces.
+- `docs/MONETIZATION.md` governs premium commerce and anti-pay-to-win/payment operations.
+- `docs/PRODUCT_EXPERIENCE_CONTENT_SYSTEM.md`, `docs/OWNER_OVERRIDE.md`, `docs/PLAYER_MANUAL.md`, `docs/ENGINEERING_EXECUTION_STANDARD.md`, `docs/MEDIA_PIPELINE.md`, and `docs/TECHNOLOGY_POLICY.md` remain authoritative in their respective domains.
 - Treat `docs/ART_BIBLE.md` and `docs/AUDIO_BIBLE.md` as authoritative when present.
 
 ## Canonical current terminology
@@ -96,27 +98,27 @@ The active sequence is governed by `docs/ROADMAP.md`.
 Current status:
 
 ```text
-Phase 0 — Engineering Foundation              substantially complete
-Phase 1 — Character & Progression Foundation  substantially complete
-Phase 2 — Tactical Combat Core                 CURRENT ACTIVE FOCUS
-Phase 3+                                       planned; do not implement early merely because known
+Phase 0 — Engineering Foundation                       substantially complete
+Phase 1 — Character, Progression & Public Information   substantially complete
+Phase 2 — Tactical Combat Core                          CURRENT ACTIVE FOCUS
+Phase 3+                                                planned; do not implement early merely because known
 ```
 
-The mature sequence is:
+The canonical mature sequence is:
 
 ```text
 FOUNDATION
-→ CHARACTER
+→ CHARACTER / PUBLIC INFORMATION
 → COMBAT
 → SIGNATURE BUILDCRAFT
 → CORE CONTENT
-→ LIVING WORLD
-→ CO-OP
-→ EXPEDITIONS
+→ LIVING WORLD / SUPERNATURAL AWAKENING
+→ FRIENDS / CO-OP
+→ EXPEDITIONS / DEEPER SUPERNATURAL
 → PvP / COLOSSEUM
-→ FULL DISCIPLINE DEPTH
-→ SOCIAL WORLD
-→ ECONOMY / PROFESSIONS
+→ FULL DISCIPLINE & SUPERNATURAL DEPTH
+→ MATURE SOCIAL WORLD
+→ ECONOMY / PROFESSIONS / COMMERCE FOUNDATION
 → NATIONS / HOMESTEADS
 → COMPLETE OPERATIONS
 → PRODUCTION POLISH
@@ -125,6 +127,8 @@ FOUNDATION
 ```
 
 Rekindling is a long-horizon loop that threads through the mature systems once enough real content exists to make another era worthwhile.
+
+Do not use a specialized `ROADMAP_*` file to silently move a feature to another phase. If phase placement changes, update `docs/ROADMAP.md`.
 
 ## Rekindling replayability direction
 
@@ -158,9 +162,32 @@ A future Cycle Focus or equivalent route-emphasis system may support archetypes 
 
 Rekindling preserves the Soulmarked versus Soul-Severed fork unless an explicit future story rule says otherwise.
 
+## Supernatural rollout direction
+
+The ordinary supernatural fork is:
+
+```text
+UNAWAKENED
+→ SOULMARKED
+or
+→ SOUL-SEVERED
+```
+
+Canonical sequencing:
+
+- Phase 3 proves Essence and build-system compatibility without requiring supernatural progression.
+- Phase 5 is the first player-facing supernatural awakening/Severance milestone and first Soulmark + Mantle I proof.
+- Phase 7 introduces Mantle II and deeper Soulmark mechanics when longer Expeditions can validate timing/Afterstrain.
+- Phase 9 grows the Soulmark catalog and completes the six ordinary Mantle identities.
+- Phase 13 contains GAME OWNER-only Anomaly Character controls and owner-only Mantle III eligibility.
+
+Mantles grant **no new active Skills**; they temporarily modify/amplify the existing build and use Afterstrain/other authored costs.
+
+Ordinary players do not receive GAME OWNER-only anomaly exceptions through referrals, frontier progression, commerce, Rekindling or normal staff grants.
+
 ## Long-term frontier direction
 
-The canonical roadmap now includes a long-term **Phase 16 — The Uncharted Frontier & Continuing Threat**.
+The canonical roadmap includes a long-term **Phase 16 — The Uncharted Frontier & Continuing Threat**.
 
 Working names:
 
@@ -221,6 +248,51 @@ Rules:
 
 A healthy single queue is better than five empty queues.
 
+## Social/referral sequencing direction
+
+Do not wait until the mature Phase-10 social world to introduce every relationship primitive.
+
+Canonical ordering:
+
+- Phase 5: mature shared-world presence + Notifications foundation + dark/feature-flagged referral attribution/qualification foundation.
+- Phase 6: core Friends relationships + Party/Co-op + Party communication; rewarded referral program may launch only if Retention Loop / PV-3 evidence says the product is ready.
+- Phase 8: friend sparring/challenges and Friends Fighting Colosseum integration.
+- Phase 10: mature social world, Common Room/Guild chat, DMs/Whispers, Vowbond, richer identity/privacy/moderation.
+- Phase 12: Nation Hearth and limited Open Road cross-nation/world chat once Nations/economy exist.
+
+Do not invent temporary one-off friend/contact systems for Party, PvP, Homesteads or referrals.
+
+## Permanent public information direction
+
+The project has permanent public routes:
+
+```text
+/news
+/manual
+/rules
+```
+
+These remain readable without requiring sign-in and remain accessible after sign-in.
+
+- News communicates official changes/events.
+- Manual explains mechanics/current play.
+- Rules explains fair play/conduct/integrity.
+
+Player-facing roadmap/future copy must clearly distinguish planned features from playable-now behavior.
+
+## Premium commerce direction
+
+Premium commerce is optional support/identity/convenience and remains anti-pay-to-win.
+
+Canonical ordering:
+
+- Phase 0–10: preserve entitlement/security architecture and cosmetic/account-service compatibility; no requirement for real checkout.
+- Phase 11: Premium Shop catalog, purchase ledger, entitlement fulfillment, initial PayPal adapter direction, sandbox checkout/webhooks/reconciliation and Purchase History.
+- Phase 13: complete commerce operations in `/master`.
+- Phase 15: provider/payment/security/legal-operational hardening before real-money production launch.
+
+Never treat a browser redirect/success page as payment authority.
+
 ## Non-negotiable design rules
 
 - Never redesign, remove, simplify, or invent game mechanics unless explicitly asked or an already-approved authoritative document requires the migration.
@@ -261,13 +333,15 @@ Do not introduce a second generic Movement Budget, universal Stamina bar, or ano
 Before meaningful implementation work, read `docs/ROADMAP.md`, read `docs/ENGINEERING_EXECUTION_STANDARD.md`, inspect existing code, and read the applicable authoritative domain documents.
 
 - **Implementation sequencing / what is current / what comes next:** `docs/ROADMAP.md`. Specialized `ROADMAP_*` files are supporting references only.
-- **Buildcraft / Disciplines / Skills / Resonance / Essence / Soulmark / Mantle:** Master Plan + build-system addendum.
+- **Buildcraft / Disciplines / Skills / Resonance / Essence / Soulmark / Mantle:** Master Plan + build-system addendum + supernatural refinements where applicable.
 - **Combat / targeting / Action Economy / statuses / effects / movement / facing / battle scenes:** `docs/COMBAT.md`.
 - **Items / equipment / inventory / consumables / loadouts / loot / crafting / marketplace:** `docs/ITEMS_INVENTORY_LOADOUTS.md` plus Equipment Load and Combat where relevant.
 - **Progression / XP / Mastery / Passive Training / Horizons / Rekindling / Veteran Edge / Archive:** progression, natural-pacing and offline-progression docs plus the frontier/Rekindling/PvP addendum when later-cycle replayability is relevant.
 - **Combat AI / bosses / allied NPCs / Battle Hall / Tactical Records:** Combat + Combat AI Training.
 - **Living world / events / navigation / frontier compatibility:** World + Homestead/Navigation + Lore Bible; later Phase-16 work also reads the frontier/Rekindling/PvP addendum.
+- **Friends / notifications / presence / chat / Tavern / referrals:** respective social/referral domain docs plus canonical Roadmap for phase placement.
 - **PvP / spectation / Colosseum:** Combat + canonical Roadmap + PvP Spectation/Colosseum + frontier/Rekindling/PvP addendum for expanded format direction.
+- **Public News / Manual / Rules:** Public News/Manual + Public Rules + current Manual source.
 - **Major player-facing pages:** Product Experience Content System.
 - **Owner/player mutation tools / grants / exceptional state:** Owner Override + Master Panel.
 - **Premium commerce:** Monetization + relevant security/operations docs.
@@ -280,7 +354,7 @@ Never assume a package, table, route, system, or feature exists. Verify it.
 
 - All valuable or persistent game state is server-authoritative.
 - The browser may submit intent; it does not determine outcomes.
-- Server owns combat legality, Action Economy, paths, targets, Skill legality, cooldowns, triggered effects, terrain transformations, timers, item ownership/equip state, loadout activation, consumptions/effects, AI actions, practice unlocks, rewards, XP, currency, progression, Passive Training timing/rewards, Primary/Secondary attunement cooldowns, PvP, trading, quests, Rekindling, Veteran Edge, lore discovery, permissions, Owner overrides, premium prices, payment completion and fulfillment.
+- Server owns combat legality, Action Economy, paths, targets, Skill legality, cooldowns, triggered effects, terrain transformations, timers, item ownership/equip state, loadout activation, consumptions/effects, AI actions, practice unlocks, rewards, XP, currency, progression, Passive Training timing/rewards, Primary/Secondary attunement cooldowns, PvP, trading, quests, Rekindling, Veteran Edge, lore discovery, social relationship mutations, referral attribution/qualification/rewards, permissions, Owner overrides, premium prices, payment completion and fulfillment.
 - Future frontier seed/cycle/version, active frontier-session pinning, discovery/renown and valuable frontier rewards are server-authoritative.
 - Validate all external input server-side.
 - Privileged actions require server-side authorization; hidden UI is not security.
@@ -332,7 +406,7 @@ Never assume a package, table, route, system, or feature exists. Verify it.
 - Battle UI is board-first and must keep targeting, Action Economy, actor state, forecast, timeline/log and contextual inspection readable.
 - Character Profile is the persistent build headquarters; battle screens show the committed battle snapshot rather than becoming the respec editor.
 - Public Manual/News/Rules copy must distinguish playable-now behavior from roadmap direction.
-- Whenever player-facing terminology changes, update the Master Plan, canonical Roadmap, Manual/public copy, applicable domain docs and intentional tests/content fixtures.
+- Whenever player-facing terminology changes, update the Master Plan or explicit addendum, canonical Roadmap, Manual/public copy, applicable domain docs and intentional tests/content fixtures.
 
 ## Media and licensing
 
@@ -346,7 +420,7 @@ Never assume a package, table, route, system, or feature exists. Verify it.
 - Run relevant tests, typecheck, lint and build after implementation tickets where the environment allows.
 - Significant combat behavior requires automated regression coverage.
 - Database changes require migration and authority/RLS/security review.
-- Multi-step economy/reward/loadout/training operations require idempotency/concurrency coverage where relevant.
+- Multi-step economy/reward/loadout/training/referral/commerce operations require idempotency/concurrency coverage where relevant.
 - Deterministic systems preserve seed/version replay where designed.
 - Manual verification steps must be explicit.
 - **Do not fabricate human player-validation results.** Automated gates may be green, but a PV PASS requires the actual human playtest when the roadmap calls for one.
