@@ -77,9 +77,22 @@
   transform: translateX(50%);
 }
 
+:global(#battlefield > div:first-child) {
+  box-sizing: border-box;
+  padding: clamp(0.7rem, 1.6vw, 1.1rem) !important;
+}
+
 :global(#battlefield [data-board-auto-fit]) {
   align-self: center;
   justify-self: center;
+  max-width: none !important;
+  max-height: none !important;
+}
+
+@media (max-width: 760px) {
+  :global(#battlefield > div:first-child) {
+    padding: 0.65rem !important;
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {
