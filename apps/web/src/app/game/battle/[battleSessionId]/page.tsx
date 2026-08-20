@@ -6,11 +6,13 @@ import { redirect } from 'next/navigation'
 
 import { BattleAudioGate } from '@/components/battle/battle-audio-gate'
 import { BattleSessionClientBoundary } from '@/components/battle/battle-session-client-boundary'
+import { PvpBattleClientBoundary } from '@/components/battle/pvp-battle-client-boundary'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { createBattleSessionService } from '@/server/battle/battle-session-service'
+import { getPvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import { createSupabaseBattleSessionRepository } from '@/server/battle/supabase-battle-session-repository'
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
@@ -60,6 +62,26 @@ export default async function BattleSessionPage({
 
   if (battle.snapshot.tactical.battle.lifecycle === 'abandoned') {
     redirect('/game/battle')
+  }
+
+  const pvpMetadata = await getPvpBattleMetadata(actor.userId, battleSessionId)
+  if (pvpMetadata) {
+    const character = characters.findByOwnerId
+      ? await characters.findByOwnerId(actor.userId, pvpMetadata.localCharacterId)
+      : null
+    if (!character || !isStarterCharacterPortraitRef(character.portraitRef)) {
+      redirect('/game/battle')
+    }
+
+    return (
+      <BattleAudioGate>
+        <PvpBattleClientBoundary
+          initialBattle={battle}
+          metadata={pvpMetadata}
+          playerName={character.name}
+        />
+      </BattleAudioGate>
+    )
   }
 
   const playerProfile = battle.snapshot.statBridge.combatants.find(
