@@ -112,7 +112,8 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     const combatantDialog = page.getByRole('dialog', { name: `${characterName} battle details` })
     await expect(combatantDialog).toBeVisible()
     await expect(combatantDialog.getByText('Initiative', { exact: true })).toBeVisible()
-    await combatantDialog.getByRole('button', { name: 'Close combatant details' }).click()
+    await page.mouse.click(1, 1)
+    await expect(combatantDialog).toHaveCount(0)
     await expect(playerTile).toBeVisible()
     await expect(recruitTile).toBeVisible()
     await expect(

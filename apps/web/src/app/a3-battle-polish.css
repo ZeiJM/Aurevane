@@ -119,17 +119,17 @@ main[aria-busy]
   header
   > div:has(> [role='progressbar'][aria-label='Action Economy remaining'])
   > [role='progressbar'][aria-label='Action Economy remaining'] {
-  grid-column: 1;
+  grid-column: 1 / -1;
   grid-row: 2;
 }
 
 main[aria-busy]
   header
   > div:has(> [role='progressbar'][aria-label='Action Economy remaining'])
-  > button[aria-label^='Training criteria'] {
+  > button[aria-label^='Win battle'] {
   grid-column: 2;
-  grid-row: 1 / span 2;
-  align-self: stretch;
+  grid-row: 1;
+  align-self: center;
 }
 
 /* Battle Hall: layered depth and semantic color without changing battle behavior. */
