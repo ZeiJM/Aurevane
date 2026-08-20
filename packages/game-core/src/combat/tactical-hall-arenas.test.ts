@@ -65,7 +65,17 @@ describe('P2.7 Tactical Hall arenas', () => {
     expect(manhattanDistance).toBeGreaterThan(4)
   })
 
-  it('resolves registered Tactical Hall provenance, including initial PV-1F Recruit snapshots', () => {
+  it('resolves registered Tactical Hall provenance, including canonical A3 records and initial PV-1F snapshots', () => {
+    expect(
+      getTacticalHallArenaFromScenarioSourceId(
+        'scenario:p2-7-recruit:basic-training-floor:guided-fundamentals:easy',
+      )?.id,
+    ).toBe('basic-training-floor')
+    expect(
+      getTacticalHallArenaFromScenarioSourceId(
+        'scenario:p2-7-recruit:duel-yard:recruit-sparring:standard',
+      )?.id,
+    ).toBe('duel-yard')
     expect(
       getTacticalHallArenaFromScenarioSourceId('scenario:p2-7-recruit:basic-training-floor')?.id,
     ).toBe('basic-training-floor')
@@ -77,9 +87,6 @@ describe('P2.7 Tactical Hall arenas', () => {
     expect(getTacticalHallArenaFromScenarioSourceId('scenario:p2-7-recruit:duel-yard')?.id).toBe(
       'duel-yard',
     )
-    expect(
-      getTacticalHallArenaFromScenarioSourceId('scenario:p2-7-recruit:duel-yard:advanced')?.id,
-    ).toBe('duel-yard')
     expect(
       getTacticalHallArenaFromScenarioSourceId('scenario:p2-7-recruit:duel:standard')?.id,
     ).toBe('duel-yard')
