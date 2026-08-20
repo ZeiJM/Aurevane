@@ -32,9 +32,23 @@ function findFinishButton(root: ParentNode = document): HTMLButtonElement | null
   )
 }
 
+function facingButtonsAvailable(): boolean {
+  return Boolean(
+    document.querySelector<HTMLButtonElement>('[aria-label="Face north"]:not(:disabled)') &&
+      document.querySelector<HTMLButtonElement>('[aria-label="Face east"]:not(:disabled)') &&
+      document.querySelector<HTMLButtonElement>('[aria-label="Face south"]:not(:disabled)') &&
+      document.querySelector<HTMLButtonElement>('[aria-label="Face west"]:not(:disabled)'),
+  )
+}
+
 function isFinishMode(root: ParentNode = document): boolean {
   const button = findFinishButton(root)
-  return Boolean(button?.hasAttribute('data-active') || button?.getAttribute('aria-pressed') === 'true')
+  return Boolean(
+    facingButtonsAvailable() ||
+      button?.hasAttribute('data-active') ||
+      button?.getAttribute('aria-pressed') === 'true' ||
+      `${button?.className ?? ''}`.includes('commandActive'),
+  )
 }
 
 function findPlayerTile(playerName: string): HTMLButtonElement | null {
@@ -48,7 +62,7 @@ function findPlayerTile(playerName: string): HTMLButtonElement | null {
 function commitCurrentFacing(playerName: string): boolean {
   const tile = findPlayerTile(playerName)
   if (!tile) return false
-  const glyph = tile.querySelector<HTMLElement>('i')?.textContent ?? ''
+  const glyph = tile.querySelector<HTMLElement>('i')?.textContent ?? tile.textContent ?? ''
   const facing = facingFromGlyph(glyph)
   if (!facing) return false
   const button = document.querySelector<HTMLButtonElement>(`button[aria-label="Face ${facing}"]`)
@@ -66,11 +80,17 @@ function clearFacingGuides() {
 }
 
 function applyFacingGuides(playerName: string) {
-  clearFacingGuides()
-  if (!isFinishMode()) return
+  const active = isFinishMode()
+  const current = document.querySelectorAll<HTMLElement>('[data-facing-guide]')
+  if (!active) {
+    if (current.length > 0) clearFacingGuides()
+    return
+  }
+
   const origin = findPlayerTile(playerName)
   const coordinates = origin ? tileCoordinates(origin) : null
   if (!origin || !coordinates) return
+  clearFacingGuides()
 
   const targets = [
     { x: coordinates.x, y: coordinates.y - 1, direction: 'north', glyph: '↑' },
@@ -99,30 +119,30 @@ function applyFacingGuides(playerName: string) {
 function polishTerrainLegend() {
   const battlefield = document.querySelector<HTMLElement>('#battlefield')
   if (!battlefield) return
-  const existing = battlefield.querySelector<HTMLElement>('[data-terrain-legend-polish]')
-  if (existing) return
-
-  const legend = document.createElement('div')
-  legend.dataset.terrainLegendPolish = 'true'
-  legend.setAttribute('aria-label', 'Terrain legend')
-  legend.innerHTML = `
-    <span data-terrain-chip="broken"><i aria-hidden="true"></i><b>Broken Ground</b><small>Higher movement cost</small></span>
-    <span data-terrain-chip="raised"><i aria-hidden="true">▲</i><b>Raised Ground</b><small>Elevation +1</small></span>
-  `
-  battlefield.appendChild(legend)
+  if (!battlefield.querySelector<HTMLElement>('[data-terrain-legend-polish]')) {
+    const legend = document.createElement('div')
+    legend.dataset.terrainLegendPolish = 'true'
+    legend.setAttribute('aria-label', 'Terrain legend')
+    legend.innerHTML = `
+      <span data-terrain-chip="broken"><i aria-hidden="true"></i><b>Difficult Ground</b><small>Higher movement cost</small></span>
+      <span data-terrain-chip="raised"><i aria-hidden="true">▲</i><b>Raised Ground</b><small>Elevation +1</small></span>
+    `
+    battlefield.appendChild(legend)
+  }
 
   for (const tile of battlefield.querySelectorAll<HTMLButtonElement>('button[aria-label]')) {
     const label = tile.getAttribute('aria-label')
     if (label?.includes('rough ground')) {
-      tile.setAttribute('aria-label', label.replace('rough ground', 'broken ground'))
+      tile.setAttribute('aria-label', label.replace('rough ground', 'difficult ground'))
     }
   }
 }
 
 function polishHeader() {
-  const battlefield = document.querySelector<HTMLElement>('#battlefield')
-  const main = battlefield?.closest('main')
-  const header = main?.querySelector('header')
+  const track = document.querySelector<HTMLElement>(
+    '[role="progressbar"][aria-label="Action Economy remaining"]',
+  )
+  const header = track?.closest('header')
   if (!header) return
 
   const strongs = Array.from(header.querySelectorAll<HTMLElement>('strong'))
@@ -131,6 +151,13 @@ function polishHeader() {
     return text.includes('defeat') || text.includes('opposing') || text.includes('recruit')
   })
   if (objective) objective.textContent = 'Steel is drawn. The battle is underway.'
+
+  const economy = track?.parentElement?.parentElement
+  if (economy instanceof HTMLElement) economy.dataset.battleEconomyPanel = 'true'
+  const victory = Array.from(header.querySelectorAll<HTMLButtonElement>('button')).find((button) =>
+    textOf(button).includes('Victory Conditions'),
+  )
+  if (victory) victory.dataset.battleVictoryButton = 'true'
 }
 
 function applyPvpIdentityColors(metadata: PvpBattleMetadata | undefined) {
@@ -210,8 +237,11 @@ export function BattlePresentationPolish({
     }
 
     run()
-    const observer = new MutationObserver(run)
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true })
+    const observer = new MutationObserver(() => {
+      window.requestAnimationFrame(run)
+    })
+    observer.observe(document.body, { childList: true, subtree: true })
+    const interval = window.setInterval(run, 180)
 
     const onDoubleClick = (event: MouseEvent) => {
       if (!isFinishMode()) return
@@ -232,13 +262,12 @@ export function BattlePresentationPolish({
         target instanceof HTMLTextAreaElement ||
         target instanceof HTMLSelectElement ||
         (target instanceof HTMLElement && target.isContentEditable)
-      ) {
-        return
-      }
+      ) return
       if (document.querySelector('[role="dialog"][aria-modal="true"]')) return
       const finish = findFinishButton()
       if (!finish || finish.disabled) return
       event.preventDefault()
+      event.stopImmediatePropagation()
       if (isFinishMode()) commitCurrentFacing(playerName)
       else finish.click()
     }
@@ -247,6 +276,7 @@ export function BattlePresentationPolish({
     window.addEventListener('keydown', onKeyDown, true)
     return () => {
       observer.disconnect()
+      window.clearInterval(interval)
       clearFacingGuides()
       document.removeEventListener('dblclick', onDoubleClick, true)
       window.removeEventListener('keydown', onKeyDown, true)
