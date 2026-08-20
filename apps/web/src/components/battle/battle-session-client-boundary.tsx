@@ -10,6 +10,7 @@ import { BattleFeedbackAssist } from './battle-feedback-assist'
 import { BattleKeyboardAssist } from './battle-keyboard-assist'
 import { BattleLessonCoach } from './battle-lesson-coach'
 import { BattleRuntimeProvider } from './battle-runtime-context'
+import { BattleUtilityWindows } from './battle-utility-windows'
 import { MobileBattleCombatantPopup } from './mobile-battle-combatant-popup'
 
 interface BattleSessionClientBoundaryProps {
@@ -48,6 +49,10 @@ export function BattleSessionClientBoundary({
       ) : null}
       <BattleKeyboardAssist playerName={playerName} />
       <BattleFeedbackAssist playerName={playerName} playerProfileImageUrl={playerProfileImageUrl} />
+      <BattleUtilityWindows
+        battleSessionId={initialBattle.battleSessionId}
+        playerName={playerName}
+      />
       <MobileBattleCombatantPopup
         battleSessionId={initialBattle.battleSessionId}
         playerName={playerName}
