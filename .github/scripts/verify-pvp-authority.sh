@@ -240,6 +240,34 @@ test "$(printf '%s' "$spectator_view" | jq -r '.battle_key')" = "$battle_key"
 test "$(printf '%s' "$spectator_view" | jq -r '.participants | length')" = '2'
 test "$(printf '%s' "$spectator_view" | jq -r '.lifecycle')" = 'active'
 
+completed_snapshot="$(printf '%s' "$snapshot" | jq -c '.tactical.battle.lifecycle = "completed"')"
+completion_result="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  set role service_role;
+  select battle_session_id::text || '|' || battle_version::text || '|' || replayed::text
+  from public.commit_battle_intent_v2(
+    'user:$user_one',
+    '00000000-0000-4000-8000-000000003010'::uuid,
+    'pvp-authority:battle:complete',
+    '$user_one'::uuid,
+    '$session_id'::uuid,
+    1,
+    '$completed_snapshot'::jsonb,
+    '[{\"event\":\"battle_completed\"}]'::jsonb
+  );")"
+test "$(printf '%s' "$completion_result" | cut -d'|' -f1)" = "$session_id"
+test "$(printf '%s' "$completion_result" | cut -d'|' -f2)" = '2'
+test "$(printf '%s' "$completion_result" | cut -d'|' -f3)" = 'false'
+
+lobby_status="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  select status from app_private.pvp_lobbies where id = '$lobby_id'::uuid;")"
+test "$lobby_status" = 'completed'
+
+completed_spectator="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  set role service_role;
+  select public.get_pvp_spectator_view_v1('$battle_key')::text;")"
+test "$(printf '%s' "$completed_spectator" | jq -r '.lifecycle')" = 'completed'
+test "$(printf '%s' "$completed_spectator" | jq -r '.battle_version')" = '2'
+
 missing_spectator="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
   select public.get_pvp_spectator_view_v1('AVB-FFFF-FFFF')::text;")"
