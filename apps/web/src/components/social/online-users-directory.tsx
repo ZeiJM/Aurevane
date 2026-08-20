@@ -16,7 +16,9 @@ function readableIdentity(value: string | null): string | null {
     .join(' ')
 }
 
-function publicIdentityTags(character: OnlineCharacter): Array<{ kind: 'Discipline' | 'Personal Title'; label: string }> {
+function publicIdentityTags(
+  character: OnlineCharacter,
+): Array<{ kind: 'Discipline' | 'Personal Title'; label: string }> {
   const discipline = readableIdentity(character.disciplineId)
   const tags: Array<{ kind: 'Discipline' | 'Personal Title'; label: string }> = []
   if (discipline) tags.push({ kind: 'Discipline', label: discipline })

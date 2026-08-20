@@ -278,9 +278,7 @@ function validateAttributeBonuses(
   return canonicalBonuses
 }
 
-export function validateCharacterCreationIntent(
-  value: unknown,
-): CharacterCreationValidationResult {
+export function validateCharacterCreationIntent(value: unknown): CharacterCreationValidationResult {
   const issues: CharacterCreationRuleIssue[] = []
   if (!isRecord(value)) {
     return {
@@ -409,7 +407,9 @@ export function validateCharacterCreationIntent(
   }
 }
 
-export function buildInitialCharacterState(input: CharacterCreationIntent): InitialCharacterStateV1 {
+export function buildInitialCharacterState(
+  input: CharacterCreationIntent,
+): InitialCharacterStateV1 {
   const validation = validateCharacterCreationIntent(input)
   if (!validation.ok) throw new CharacterCreationRuleError(validation.issues)
 
@@ -437,7 +437,9 @@ export function buildInitialCharacterState(input: CharacterCreationIntent): Init
   }
 }
 
-export function buildCharacterCreationResult(command: CharacterCreationCommandV1): CharacterCreationResultV1 {
+export function buildCharacterCreationResult(
+  command: CharacterCreationCommandV1,
+): CharacterCreationResultV1 {
   if (command.version !== CHARACTER_CREATION_RULES_V1.version) {
     throw new CharacterCreationRuleError([
       {
