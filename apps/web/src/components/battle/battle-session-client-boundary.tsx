@@ -6,6 +6,7 @@ import type { BattleSessionView } from '@/server/battle/battle-session-service'
 import { BattleExperienceV2 } from './battle-experience-v2'
 import { BattleFeedbackAssist } from './battle-feedback-assist'
 import { BattleKeyboardAssist } from './battle-keyboard-assist'
+import { BattleLessonCoach } from './battle-lesson-coach'
 import { BattleRuntimeProvider } from './battle-runtime-context'
 
 interface BattleSessionClientBoundaryProps {
@@ -28,6 +29,7 @@ export function BattleSessionClientBoundary({
         playerName={playerName}
         playerPortraitAssetId={playerPortraitAssetId}
       />
+      <BattleLessonCoach battleSessionId={initialBattle.battleSessionId} />
       <BattleKeyboardAssist playerName={playerName} />
       <BattleFeedbackAssist playerName={playerName} playerProfileImageUrl={playerProfileImageUrl} />
     </BattleRuntimeProvider>
