@@ -159,9 +159,7 @@
 .slot[data-locked] {
   border-style: dashed;
   border-color: rgba(184, 177, 163, 0.2);
-  background:
-    linear-gradient(180deg, rgba(16, 20, 27, 0.72), rgba(7, 9, 13, 0.93)),
-    #080b10;
+  background: linear-gradient(180deg, rgba(16, 20, 27, 0.72), rgba(7, 9, 13, 0.93)), #080b10;
   box-shadow: none;
 }
 

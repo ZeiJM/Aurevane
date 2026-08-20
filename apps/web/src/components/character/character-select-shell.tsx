@@ -61,9 +61,7 @@ export function CharacterSelectShell({
             slotIndex,
             character,
             unlocked:
-              slotIndex === 0 ||
-              Boolean(character) ||
-              (slotIndex === 2 && prestigeSlotEarned),
+              slotIndex === 0 || Boolean(character) || (slotIndex === 2 && prestigeSlotEarned),
           }
         })
         .sort((left, right) => {
