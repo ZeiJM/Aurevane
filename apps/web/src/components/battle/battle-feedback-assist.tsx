@@ -18,9 +18,14 @@ function parseTilePosition(
   return { x: Number(match[1]), y: Number(match[2]), elevation: Number(match[3]) }
 }
 
+function combatInstruction(): string {
+  return (
+    document.querySelector<HTMLElement>('[data-testid="combat-mode-instruction"]')?.textContent ?? ''
+  ).toLowerCase()
+}
+
 function attackModeIsActive(): boolean {
-  const instruction = document.querySelector<HTMLElement>('[data-testid="combat-mode-instruction"]')
-  return (instruction?.textContent ?? '').toLowerCase().includes('basic attack')
+  return combatInstruction().includes('basic attack')
 }
 
 function updateAttackRange(playerName: string) {
@@ -44,6 +49,33 @@ function updateAttackRange(playerName: string) {
     const distance = Math.abs(candidate.x - player.x) + Math.abs(candidate.y - player.y)
     const reachable = distance === 1 && Math.abs(candidate.elevation - player.elevation) <= 1
     tile.dataset.attackRange = reachable ? 'legal' : 'illegal'
+  }
+}
+
+function syncTargetSemantics(playerName: string) {
+  const battlefield = document.querySelector<HTMLElement>('#battlefield')
+  if (!battlefield) return
+  const tiles = Array.from(
+    battlefield.querySelectorAll<HTMLButtonElement>('button[aria-label^="Tile "]'),
+  )
+  for (const tile of tiles) delete tile.dataset.targetRelation
+
+  const instruction = combatInstruction()
+  const selfTargeting = instruction.includes('guard') || instruction.includes('recover')
+  if (selfTargeting) {
+    const playerTile = tiles.find((tile) =>
+      (tile.getAttribute('aria-label') ?? '').includes(`occupied by ${playerName}`),
+    )
+    if (playerTile) playerTile.dataset.targetRelation = 'friendly'
+    return
+  }
+
+  if (!instruction.includes('basic attack')) return
+
+  for (const tile of tiles) {
+    const label = tile.getAttribute('aria-label') ?? ''
+    if (!label.includes('occupied by Recruit')) continue
+    tile.dataset.targetRelation = tile.dataset.attackRange === 'legal' ? 'enemy' : 'illegal'
   }
 }
 
@@ -270,6 +302,7 @@ export function BattleFeedbackAssist({
     const refresh = () => {
       frame = 0
       updateAttackRange(playerName)
+      syncTargetSemantics(playerName)
       syncActionEconomyBar()
       applyCustomPortrait(playerName, playerProfileImageUrl)
       syncMapPortraits(playerName, playerProfileImageUrl)
@@ -313,6 +346,7 @@ export function BattleFeedbackAssist({
         document.querySelectorAll<HTMLButtonElement>('#battlefield button[data-attack-range]'),
       )) {
         delete tile.dataset.attackRange
+        delete tile.dataset.targetRelation
       }
       for (const portrait of Array.from(
         document.querySelectorAll<HTMLElement>('[data-map-token-portrait]'),
