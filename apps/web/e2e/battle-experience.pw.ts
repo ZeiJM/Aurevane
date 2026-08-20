@@ -48,6 +48,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   const guardButton = commandDeck.getByRole('button', { name: /Guard/ })
   const finishButton = commandDeck.getByRole('button', { name: /Finish Turn/ })
   const confirmButton = page.getByRole('button', { name: 'Confirm Action' })
+  const criteriaButton = page.getByRole('button', { name: /Training criteria/ })
 
   await expect(
     page.getByRole('dialog', { name: 'Complete the tactical fundamentals' }),
@@ -56,6 +57,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
 
   await expect(battlefield).toBeVisible()
   await expect(commandDeck).toBeVisible()
+  await expect(criteriaButton).toBeVisible()
   await expect(page.getByRole('button', { name: /^Tile / })).toHaveCount(15)
   await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
     'aria-valuenow',
@@ -63,6 +65,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   )
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Choose your action')
   await expect(page.getByText(/100 AP/).first()).toBeVisible()
+  await expect(battlefield.locator('[data-board-auto-fit]')).toHaveCount(1)
 
   await page.getByRole('button', { name: 'Chat', exact: true }).click()
   await page.getByLabel('Battle chat message').fill('Testing solo battle chat')
@@ -120,7 +123,10 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     '0',
   )
   await expect(attackButton).toBeDisabled()
-  await closeProgressCoach(page, '1/4 complete')
+  await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
+  await expect(page.getByRole('dialog', { name: 'Complete the tactical fundamentals' })).toHaveCount(0)
+  await openCriteriaAndClose(page, '1/4 complete')
+  await expect(criteriaButton).not.toHaveAttribute('data-new-progress', 'true')
 
   await finishButton.click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText(
@@ -136,12 +142,20 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Choose your action', {
     timeout: 15_000,
   })
-  await closeProgressCoach(page, '2/4 complete')
+  await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
+  await expect(page.getByRole('dialog', { name: 'Complete the tactical fundamentals' })).toHaveCount(0)
 
   if (testInfo.project.name === 'mobile-chromium') {
     await guardButton.tap()
+    await expect(
+      battlefield.locator('button[data-target-relation="friendly"]'),
+    ).toHaveCount(1)
     await guardButton.tap()
   } else {
+    await guardButton.click()
+    await expect(
+      battlefield.locator('button[data-target-relation="friendly"]'),
+    ).toHaveCount(1)
     await guardButton.dblclick()
   }
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Guarded for 2 turns', {
@@ -151,7 +165,8 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     'aria-valuenow',
     '70',
   )
-  await closeProgressCoach(page, '3/4 complete')
+  await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
+  await openCriteriaAndClose(page, '3/4 complete')
 
   const roundButton = page.getByRole('button', { name: /Round .*Combat Log/ })
   await roundButton.click()
@@ -165,9 +180,10 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
 
   await attackButton.click()
   const rangedTiles = battlefield.locator('button[data-attack-range]')
-  await expect(rangedTiles).toHaveCount(15)
-  await expect(battlefield.locator('button[data-attack-range="legal"]')).not.toHaveCount(0)
-  await expect(battlefield.locator('button[data-attack-range="illegal"]')).not.toHaveCount(0)
+  await expect(rangedTiles).toHaveCount(4)
+  await expect(battlefield.locator('button[data-target-relation="enemy"]')).toHaveCount(1)
+  await expect(battlefield.locator('button[data-target-relation="illegal"]')).toHaveCount(3)
+  await expect(battlefield.locator('button:not([data-attack-range])')).toHaveCount(11)
   await page.getByRole('button', { name: /occupied by Recruit/ }).click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Basic Attack ready')
   await expect(confirmButton).toBeEnabled()
@@ -181,10 +197,11 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   expect(await hasHorizontalOverflow(page)).toBe(false)
 })
 
-async function closeProgressCoach(
+async function openCriteriaAndClose(
   page: import('@playwright/test').Page,
   expectedProgress: string,
 ): Promise<void> {
+  await page.getByRole('button', { name: /Training criteria/ }).click()
   const dialog = page.getByRole('dialog', { name: 'Complete the tactical fundamentals' })
   await expect(dialog).toBeVisible({ timeout: 4_000 })
   await expect(dialog).toContainText(expectedProgress)
