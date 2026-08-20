@@ -40,9 +40,9 @@ function commandButton(...labels: string[]): HTMLButtonElement | null {
 function facingModeIsActive(): boolean {
   return Boolean(
     document.querySelector<HTMLButtonElement>('[aria-label="Face north"]:not(:disabled)') &&
-    document.querySelector<HTMLButtonElement>('[aria-label="Face east"]:not(:disabled)') &&
-    document.querySelector<HTMLButtonElement>('[aria-label="Face south"]:not(:disabled)') &&
-    document.querySelector<HTMLButtonElement>('[aria-label="Face west"]:not(:disabled)'),
+      document.querySelector<HTMLButtonElement>('[aria-label="Face east"]:not(:disabled)') &&
+      document.querySelector<HTMLButtonElement>('[aria-label="Face south"]:not(:disabled)') &&
+      document.querySelector<HTMLButtonElement>('[aria-label="Face west"]:not(:disabled)'),
   )
 }
 
@@ -153,14 +153,11 @@ function syncFacingGuides(playerName: string) {
     ['south', { x: origin.x, y: origin.y + 1 }, '↓'],
     ['west', { x: origin.x - 1, y: origin.y }, '←'],
   ]
-  const byPosition = new Map(
-    battleTiles()
-      .map((tile) => {
-        const position = tilePosition(tile)
-        return position ? ([`${position.x}:${position.y}`, tile] as const) : null
-      })
-      .filter((row): row is readonly [string, HTMLButtonElement] => Boolean(row)),
-  )
+  const byPosition = new Map<string, HTMLButtonElement>()
+  for (const tile of battleTiles()) {
+    const position = tilePosition(tile)
+    if (position) byPosition.set(`${position.x}:${position.y}`, tile)
+  }
 
   for (const tile of battleTiles()) {
     delete tile.dataset.facingGuide
