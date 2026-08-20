@@ -117,6 +117,23 @@ export async function createCharacterInSlot(command: {
     throw new AurevaneError('INVALID_REQUEST', 'Choose character slot 1, 2, or 3.')
   }
 
+  // During the current pre-monetization/pre-prestige phase the account has one free creation slot.
+  // Additional slots are never unlocked by a browser flag: this authoritative route refuses them
+  // until their real entitlement sources are implemented. Existing legacy characters in those
+  // slots remain playable and are treated as already-unlocked roster positions.
+  if (command.slotIndex === 1) {
+    throw new AurevaneError(
+      'FORBIDDEN',
+      'Character slot 2 unlocks through an account slot purchase. Purchases are not available yet.',
+    )
+  }
+  if (command.slotIndex === 2) {
+    throw new AurevaneError(
+      'FORBIDDEN',
+      'Character slot 3 unlocks free after this account completes its first Prestige Rebirth.',
+    )
+  }
+
   let seed
   try {
     seed = buildInitialCharacterState(command.intent)
