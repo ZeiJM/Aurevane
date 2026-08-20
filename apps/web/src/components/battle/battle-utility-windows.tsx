@@ -209,10 +209,7 @@ function UtilityWindow({
 
     function move(moveEvent: PointerEvent) {
       const maxWidth = Math.max(MIN_WINDOW_WIDTH, window.innerWidth - rect.left - VIEWPORT_MARGIN)
-      const maxHeight = Math.max(
-        MIN_WINDOW_HEIGHT,
-        window.innerHeight - rect.top - VIEWPORT_MARGIN,
-      )
+      const maxHeight = Math.max(MIN_WINDOW_HEIGHT, window.innerHeight - rect.top - VIEWPORT_MARGIN)
       const width = Math.max(
         MIN_WINDOW_WIDTH,
         Math.min(maxWidth, rect.width + moveEvent.clientX - startX),

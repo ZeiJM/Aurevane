@@ -5,7 +5,11 @@ import { randomInt, randomUUID } from 'node:crypto'
 import type { CharacterRecord } from '@aurevane/db/character'
 import { calculateDerivedStats } from '@aurevane/game-core/character/derived-stats'
 import { createCombatEncounterState } from '@aurevane/game-core/combat/actions'
-import { createPendingBattle, startBattle, type BattleFacing } from '@aurevane/game-core/combat/battle-state'
+import {
+  createPendingBattle,
+  startBattle,
+  type BattleFacing,
+} from '@aurevane/game-core/combat/battle-state'
 import {
   P2_2_ORDINARY_GROUND_PROFILE,
   P2_2_VERTICAL_SLICE_TERRAINS,
@@ -262,9 +266,10 @@ function createPvpEncounter(
       maxHp: derived.stats.maxHp.value,
       mp: derived.stats.maxMp.value,
       maxMp: derived.stats.maxMp.value,
-      temporaryResources: [...createPv1fTemporaryResources(basicDamage), ...createPvpQualityResources()].sort(
-        (left, right) => left.key.localeCompare(right.key),
-      ),
+      temporaryResources: [
+        ...createPv1fTemporaryResources(basicDamage),
+        ...createPvpQualityResources(),
+      ].sort((left, right) => left.key.localeCompare(right.key)),
     })
   }
 
@@ -342,10 +347,12 @@ export async function startPvpLobbyWithQuality(
     })),
   })
   if (error) mapRpcError(error)
-  const row = Array.isArray(data) && data.length === 1 && data[0] && typeof data[0] === 'object'
-    ? (data[0] as Record<string, unknown>)
-    : null
-  const battleSessionId = row && typeof row.battle_session_id === 'string' ? row.battle_session_id : null
+  const row =
+    Array.isArray(data) && data.length === 1 && data[0] && typeof data[0] === 'object'
+      ? (data[0] as Record<string, unknown>)
+      : null
+  const battleSessionId =
+    row && typeof row.battle_session_id === 'string' ? row.battle_session_id : null
   const battleKey = row && typeof row.battle_key === 'string' ? row.battle_key : null
   if (!battleSessionId || !battleKey) throw unavailable('The PvP battle could not be created.')
   return { battleSessionId, battleKey }

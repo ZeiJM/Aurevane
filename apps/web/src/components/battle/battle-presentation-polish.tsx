@@ -35,9 +35,9 @@ function findFinishButton(root: ParentNode = document): HTMLButtonElement | null
 function facingButtonsAvailable(): boolean {
   return Boolean(
     document.querySelector<HTMLButtonElement>('[aria-label="Face north"]:not(:disabled)') &&
-      document.querySelector<HTMLButtonElement>('[aria-label="Face east"]:not(:disabled)') &&
-      document.querySelector<HTMLButtonElement>('[aria-label="Face south"]:not(:disabled)') &&
-      document.querySelector<HTMLButtonElement>('[aria-label="Face west"]:not(:disabled)'),
+    document.querySelector<HTMLButtonElement>('[aria-label="Face east"]:not(:disabled)') &&
+    document.querySelector<HTMLButtonElement>('[aria-label="Face south"]:not(:disabled)') &&
+    document.querySelector<HTMLButtonElement>('[aria-label="Face west"]:not(:disabled)'),
   )
 }
 
@@ -45,16 +45,18 @@ function isFinishMode(root: ParentNode = document): boolean {
   const button = findFinishButton(root)
   return Boolean(
     facingButtonsAvailable() ||
-      button?.hasAttribute('data-active') ||
-      button?.getAttribute('aria-pressed') === 'true' ||
-      `${button?.className ?? ''}`.includes('commandActive'),
+    button?.hasAttribute('data-active') ||
+    button?.getAttribute('aria-pressed') === 'true' ||
+    `${button?.className ?? ''}`.includes('commandActive'),
   )
 }
 
 function findPlayerTile(playerName: string): HTMLButtonElement | null {
   return (
     Array.from(
-      document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label*="occupied by"]'),
+      document.querySelectorAll<HTMLButtonElement>(
+        '#battlefield button[aria-label*="occupied by"]',
+      ),
     ).find((tile) => tile.getAttribute('aria-label')?.includes(`occupied by ${playerName}`)) ?? null
   )
 }
@@ -163,17 +165,25 @@ function polishHeader() {
 function applyPvpIdentityColors(metadata: PvpBattleMetadata | undefined) {
   if (!metadata) return
   const ordered = [...metadata.participants].sort(
-    (a, b) => a.teamIndex - b.teamIndex || a.seatIndex - b.seatIndex || a.characterId.localeCompare(b.characterId),
+    (a, b) =>
+      a.teamIndex - b.teamIndex ||
+      a.seatIndex - b.seatIndex ||
+      a.characterId.localeCompare(b.characterId),
   )
   const colors = new Map(
-    ordered.map((participant, index) => [participant.characterName, COMBATANT_COLORS[index % COMBATANT_COLORS.length]]),
+    ordered.map((participant, index) => [
+      participant.characterName,
+      COMBATANT_COLORS[index % COMBATANT_COLORS.length],
+    ]),
   )
 
   for (const tile of document.querySelectorAll<HTMLButtonElement>(
     '#battlefield button[aria-label*="occupied by"]',
   )) {
     const label = tile.getAttribute('aria-label') ?? ''
-    const match = ordered.find((participant) => label.includes(`occupied by ${participant.characterName}`))
+    const match = ordered.find((participant) =>
+      label.includes(`occupied by ${participant.characterName}`),
+    )
     if (!match) continue
     const color = colors.get(match.characterName)
     if (!color) continue
@@ -188,7 +198,9 @@ function applyPvpIdentityColors(metadata: PvpBattleMetadata | undefined) {
   const pvpRoot = document.querySelector<HTMLElement>('main[data-pvp-battle="true"]')
   if (!pvpRoot) return
   for (const article of pvpRoot.querySelectorAll<HTMLElement>('article')) {
-    const participant = ordered.find((candidate) => textOf(article).includes(candidate.characterName))
+    const participant = ordered.find((candidate) =>
+      textOf(article).includes(candidate.characterName),
+    )
     if (!participant) continue
     const color = colors.get(participant.characterName)
     if (!color) continue
@@ -262,7 +274,8 @@ export function BattlePresentationPolish({
         target instanceof HTMLTextAreaElement ||
         target instanceof HTMLSelectElement ||
         (target instanceof HTMLElement && target.isContentEditable)
-      ) return
+      )
+        return
       if (document.querySelector('[role="dialog"][aria-modal="true"]')) return
       const finish = findFinishButton()
       if (!finish || finish.disabled) return

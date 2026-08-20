@@ -53,25 +53,66 @@ function Panel({
         backdropFilter: 'blur(.7rem)',
       }}
     >
-      <span style={{ color: 'var(--av-brass-300)', font: '750 .43rem/1 var(--av-font-mono)', textTransform: 'uppercase' }}>
+      <span
+        style={{
+          color: 'var(--av-brass-300)',
+          font: '750 .43rem/1 var(--av-font-mono)',
+          textTransform: 'uppercase',
+        }}
+      >
         {side === 'left' ? 'Your combatant' : `Team ${participant.teamIndex + 1}`}
       </span>
-      <strong style={{ font: '600 .92rem/1 var(--av-font-display)' }}>{participant.characterName}</strong>
+      <strong style={{ font: '600 .92rem/1 var(--av-font-display)' }}>
+        {participant.characterName}
+      </strong>
       <small style={{ color: 'var(--av-text-dim)', font: '650 .44rem/1.3 var(--av-font-mono)' }}>
-        Lv {participant.characterLevel} · Initiative {combatant.initiative} · Move {combatant.baseMovementBudget}
+        Lv {participant.characterLevel} · Initiative {combatant.initiative} · Move{' '}
+        {combatant.baseMovementBudget}
         {profile ? ` · Jump ${profile.jump}` : ''}
       </small>
       <div style={{ display: 'grid', gap: '.22rem' }}>
-        <span title={`HP ${combatant.hp} / ${combatant.maxHp}`} style={{ height: '.38rem', overflow: 'hidden', borderRadius: '999px', background: 'rgba(255,255,255,.08)' }}>
-          <i style={{ display: 'block', width: `${percent(combatant.hp, combatant.maxHp)}%`, height: '100%', background: 'linear-gradient(90deg,#8f3333,#df675f)' }} />
+        <span
+          title={`HP ${combatant.hp} / ${combatant.maxHp}`}
+          style={{
+            height: '.38rem',
+            overflow: 'hidden',
+            borderRadius: '999px',
+            background: 'rgba(255,255,255,.08)',
+          }}
+        >
+          <i
+            style={{
+              display: 'block',
+              width: `${percent(combatant.hp, combatant.maxHp)}%`,
+              height: '100%',
+              background: 'linear-gradient(90deg,#8f3333,#df675f)',
+            }}
+          />
         </span>
-        <span title={`MP ${combatant.mp} / ${combatant.maxMp}`} style={{ height: '.28rem', overflow: 'hidden', borderRadius: '999px', background: 'rgba(255,255,255,.08)' }}>
-          <i style={{ display: 'block', width: `${percent(combatant.mp, combatant.maxMp)}%`, height: '100%', background: 'linear-gradient(90deg,#31548c,#719ade)' }} />
+        <span
+          title={`MP ${combatant.mp} / ${combatant.maxMp}`}
+          style={{
+            height: '.28rem',
+            overflow: 'hidden',
+            borderRadius: '999px',
+            background: 'rgba(255,255,255,.08)',
+          }}
+        >
+          <i
+            style={{
+              display: 'block',
+              width: `${percent(combatant.mp, combatant.maxMp)}%`,
+              height: '100%',
+              background: 'linear-gradient(90deg,#31548c,#719ade)',
+            }}
+          />
         </span>
       </div>
       <small style={{ color: 'var(--av-text-muted)', fontSize: '.5rem' }}>
         {combatant.hp <= 0 ? 'Defeated' : `Facing ${placement?.facing ?? '—'}`}
-        {profile ? ` · Armor ${profile.armor} · Evasion ${(profile.evasion / 100).toFixed(0)}%` : ''}
+        {profile
+          ? ` · Armor ${profile.armor} · Evasion ${(profile.evasion / 100).toFixed(0)}%`
+          : ''}
       </small>
     </aside>
   )
@@ -86,14 +127,20 @@ export function PvpBattleCombatantPanels({
 }) {
   const [battle, setBattle] = useState(initialBattle)
   const local = useMemo(
-    () => metadata.participants.find((participant) => participant.characterId === metadata.localCharacterId) ?? null,
+    () =>
+      metadata.participants.find(
+        (participant) => participant.characterId === metadata.localCharacterId,
+      ) ?? null,
     [metadata.localCharacterId, metadata.participants],
   )
   const [selectedId, setSelectedId] = useState<string | null>(
-    metadata.participants.find((participant) => participant.characterId !== metadata.localCharacterId)?.combatantId ?? null,
+    metadata.participants.find(
+      (participant) => participant.characterId !== metadata.localCharacterId,
+    )?.combatantId ?? null,
   )
   const selected = useMemo(
-    () => metadata.participants.find((participant) => participant.combatantId === selectedId) ?? null,
+    () =>
+      metadata.participants.find((participant) => participant.combatantId === selectedId) ?? null,
     [metadata.participants, selectedId],
   )
 
@@ -101,7 +148,9 @@ export function PvpBattleCombatantPanels({
     let cancelled = false
     const timer = window.setInterval(async () => {
       try {
-        const response = await fetch(`/api/battles/${initialBattle.battleSessionId}`, { cache: 'no-store' })
+        const response = await fetch(`/api/battles/${initialBattle.battleSessionId}`, {
+          cache: 'no-store',
+        })
         const body = (await response.json()) as { battle?: BattleSessionView }
         if (response.ok && body.battle && !cancelled) setBattle(body.battle)
       } catch {
@@ -127,8 +176,9 @@ export function PvpBattleCombatantPanels({
         setSelectedId(participant.combatantId)
       } else if (participant) {
         setSelectedId(
-          metadata.participants.find((candidate) => candidate.characterId !== metadata.localCharacterId)
-            ?.combatantId ?? null,
+          metadata.participants.find(
+            (candidate) => candidate.characterId !== metadata.localCharacterId,
+          )?.combatantId ?? null,
         )
       }
     }

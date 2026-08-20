@@ -37,10 +37,10 @@ function profile(combatantId: string): StatDrivenCombatProfile {
 function encounter() {
   const player = profile('player')
   const opponent = profile('opponent')
-  const resources = () => [
-    ...createPv1fTemporaryResources(10),
-    ...createPvpQualityResources(),
-  ].sort((left, right) => left.key.localeCompare(right.key))
+  const resources = () =>
+    [...createPv1fTemporaryResources(10), ...createPvpQualityResources()].sort((left, right) =>
+      left.key.localeCompare(right.key),
+    )
   const battle = startBattle(
     createPendingBattle({
       battleId: 'battle:pvp-quality-test',
@@ -87,11 +87,24 @@ function encounter() {
       { id: 'opponent-ground', maxElevationStep: 1, terrainCostOverrides: [] },
     ],
     placements: [
-      { combatantId: 'player', position: { x: 0, y: 0 }, facing: 'east', movementProfileId: 'player-ground' },
-      { combatantId: 'opponent', position: { x: 1, y: 0 }, facing: 'west', movementProfileId: 'opponent-ground' },
+      {
+        combatantId: 'player',
+        position: { x: 0, y: 0 },
+        facing: 'east',
+        movementProfileId: 'player-ground',
+      },
+      {
+        combatantId: 'opponent',
+        position: { x: 1, y: 0 },
+        facing: 'west',
+        movementProfileId: 'opponent-ground',
+      },
     ],
   })
-  return createStatDrivenCombatEncounterState(createCombatEncounterState(tactical), [player, opponent])
+  return createStatDrivenCombatEncounterState(createCombatEncounterState(tactical), [
+    player,
+    opponent,
+  ])
 }
 
 describe('PvP turn quality rules', () => {
@@ -99,7 +112,9 @@ describe('PvP turn quality rules', () => {
     const firstPlayerMiss = timeoutPvpTurn(encounter()).state
     const opponentTurn = timeoutPvpTurn(firstPlayerMiss).state
     const secondPlayerMiss = timeoutPvpTurn(opponentTurn)
-    const playerStatuses = secondPlayerMiss.state.statusState.find((row) => row.combatantId === 'player')
+    const playerStatuses = secondPlayerMiss.state.statusState.find(
+      (row) => row.combatantId === 'player',
+    )
 
     expect(playerStatuses?.statuses).toEqual(
       expect.arrayContaining([
@@ -120,6 +135,8 @@ describe('PvP turn quality rules', () => {
       kind: 'unit',
       combatantId: 'player',
     })
-    expect(attacked.state.tactical.battle.combatants.find((row) => row.id === 'player')?.hp).toBe(75)
+    expect(attacked.state.tactical.battle.combatants.find((row) => row.id === 'player')?.hp).toBe(
+      75,
+    )
   })
 })

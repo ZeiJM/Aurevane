@@ -91,7 +91,8 @@ async function ensureClock(userId: string, battleSessionId: string): Promise<Pvp
     p_battle_session_id: battleSessionId,
   })
   if (error) throw unavailable()
-  if (!data) throw new AurevaneError('FORBIDDEN', 'That PvP battle is not available to this account.')
+  if (!data)
+    throw new AurevaneError('FORBIDDEN', 'That PvP battle is not available to this account.')
   const clock = parseClock(data)
   if (!clock) throw unavailable('The PvP turn clock returned invalid state.')
   return clock
@@ -132,7 +133,8 @@ export async function tickPvpTurnClock(
 
   const repository = createSupabaseBattleSessionRepository()
   const current = await repository.findBattleSession(userId, battleSessionId)
-  if (!current) throw new AurevaneError('FORBIDDEN', 'That PvP battle is not available to this account.')
+  if (!current)
+    throw new AurevaneError('FORBIDDEN', 'That PvP battle is not available to this account.')
   let state = readEncounter(current.snapshot)
   const turn = state.tactical.battle.currentTurn
   if (
@@ -186,7 +188,8 @@ export async function surrenderPvpBattle(
 
   const repository = createSupabaseBattleSessionRepository()
   const current = await repository.findBattleSession(userId, battleSessionId)
-  if (!current) throw new AurevaneError('FORBIDDEN', 'That PvP battle is not available to this account.')
+  if (!current)
+    throw new AurevaneError('FORBIDDEN', 'That PvP battle is not available to this account.')
   const state = readEncounter(current.snapshot)
   const controlled = current.controlledCombatantIds[0]
   if (!controlled || current.controlledCombatantIds.length !== 1) {

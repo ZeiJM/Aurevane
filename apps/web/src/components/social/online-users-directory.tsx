@@ -39,7 +39,10 @@ function Portrait({ character, large = false }: { character: OnlineCharacter; la
   }
 
   return (
-    <span className={`${className} ${styles.fallbackPortrait}`} aria-label={`${character.name} portrait`}>
+    <span
+      className={`${className} ${styles.fallbackPortrait}`}
+      aria-label={`${character.name} portrait`}
+    >
       {character.name.slice(0, 1).toUpperCase()}
     </span>
   )
@@ -65,11 +68,24 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
     <>
       <div className={styles.list}>
         {characters.map((character) => (
-          <button type="button" className={styles.characterCard} key={character.characterId} onClick={() => setSelected(character)}>
-            <span className={styles.avatarWrap}><Portrait character={character} /><i className={styles.presenceDot} aria-hidden="true" /></span>
+          <button
+            type="button"
+            className={styles.characterCard}
+            key={character.characterId}
+            onClick={() => setSelected(character)}
+          >
+            <span className={styles.avatarWrap}>
+              <Portrait character={character} />
+              <i className={styles.presenceDot} aria-hidden="true" />
+            </span>
             <span className={styles.identity}>
               <strong>{character.name}</strong>
-              <small>Level {character.level}{equippedTitles(character).length > 0 ? ` · ${equippedTitles(character).join(' · ')}` : ''}</small>
+              <small>
+                Level {character.level}
+                {equippedTitles(character).length > 0
+                  ? ` · ${equippedTitles(character).join(' · ')}`
+                  : ''}
+              </small>
             </span>
             <span className={styles.online}>Online</span>
           </button>
@@ -78,29 +94,89 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
 
       {selected ? (
         <div className={styles.backdrop} onPointerDown={() => setSelected(null)}>
-          <section className={styles.profileCard} role="dialog" aria-modal="true" aria-labelledby="online-profile-name" onPointerDown={(event) => event.stopPropagation()}>
-            <button type="button" className={styles.close} aria-label="Close public character profile" onClick={() => setSelected(null)}>×</button>
-            <div className={styles.portraitStage}><Portrait character={selected} large /><span className={styles.liveBadge}>● Online</span></div>
+          <section
+            className={styles.profileCard}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="online-profile-name"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className={styles.close}
+              aria-label="Close public character profile"
+              onClick={() => setSelected(null)}
+            >
+              ×
+            </button>
+            <div className={styles.portraitStage}>
+              <Portrait character={selected} large />
+              <span className={styles.liveBadge}>● Online</span>
+            </div>
             <div className={styles.profileCopy}>
               <span>Public character profile</span>
               <h2 id="online-profile-name">{selected.name}</h2>
               <p className={styles.titleLine}>{selected.personalTitle ?? 'Wayfarer'}</p>
               <div aria-label="Equipped titles" style={{ display: 'grid', gap: '0.42rem' }}>
-                <span style={{ color: 'var(--av-text-dim)', font: '700 0.46rem/1 var(--av-font-mono)', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Equipped Titles</span>
+                <span
+                  style={{
+                    color: 'var(--av-text-dim)',
+                    font: '700 0.46rem/1 var(--av-font-mono)',
+                    letterSpacing: '0.05em',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Equipped Titles
+                </span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.38rem' }}>
-                  {equippedTitles(selected).length > 0 ? equippedTitles(selected).map((title) => (
-                    <span key={title} style={{ padding: '0.42rem 0.58rem', border: '1px solid rgba(207,169,93,.4)', borderRadius: '999px', color: 'var(--av-brass-200)', background: 'rgba(207,169,93,.065)', font: '700 .5rem/1 var(--av-font-mono)' }}>{title}</span>
-                  )) : <span style={{ color: 'var(--av-text-dim)', fontSize: '.62rem' }}>No titles equipped.</span>}
+                  {equippedTitles(selected).length > 0 ? (
+                    equippedTitles(selected).map((title) => (
+                      <span
+                        key={title}
+                        style={{
+                          padding: '0.42rem 0.58rem',
+                          border: '1px solid rgba(207,169,93,.4)',
+                          borderRadius: '999px',
+                          color: 'var(--av-brass-200)',
+                          background: 'rgba(207,169,93,.065)',
+                          font: '700 .5rem/1 var(--av-font-mono)',
+                        }}
+                      >
+                        {title}
+                      </span>
+                    ))
+                  ) : (
+                    <span style={{ color: 'var(--av-text-dim)', fontSize: '.62rem' }}>
+                      No titles equipped.
+                    </span>
+                  )}
                 </div>
               </div>
               <dl>
-                <div><dt>Character Level</dt><dd>{selected.level}</dd></div>
-                <div><dt>Presence</dt><dd>Online</dd></div>
+                <div>
+                  <dt>Character Level</dt>
+                  <dd>{selected.level}</dd>
+                </div>
+                <div>
+                  <dt>Presence</dt>
+                  <dd>Online</dd>
+                </div>
               </dl>
-              <p className={styles.privacyNote}>Public profiles intentionally omit combat stats, inventory, currencies, account identity, and other private character data.</p>
+              <p className={styles.privacyNote}>
+                Public profiles intentionally omit combat stats, inventory, currencies, account
+                identity, and other private character data.
+              </p>
               <div className={styles.futureActions} aria-label="Planned social actions">
-                <button type="button" disabled title="Direct messages arrive with the social phase.">Send Direct Message · Planned</button>
-                <button type="button" disabled title="Friends arrive with the social phase.">Add Friend · Planned</button>
+                <button
+                  type="button"
+                  disabled
+                  title="Direct messages arrive with the social phase."
+                >
+                  Send Direct Message · Planned
+                </button>
+                <button type="button" disabled title="Friends arrive with the social phase.">
+                  Add Friend · Planned
+                </button>
               </div>
             </div>
           </section>

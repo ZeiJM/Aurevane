@@ -40,9 +40,9 @@ function commandButton(...labels: string[]): HTMLButtonElement | null {
 function facingModeIsActive(): boolean {
   return Boolean(
     document.querySelector<HTMLButtonElement>('[aria-label="Face north"]:not(:disabled)') &&
-      document.querySelector<HTMLButtonElement>('[aria-label="Face east"]:not(:disabled)') &&
-      document.querySelector<HTMLButtonElement>('[aria-label="Face south"]:not(:disabled)') &&
-      document.querySelector<HTMLButtonElement>('[aria-label="Face west"]:not(:disabled)'),
+    document.querySelector<HTMLButtonElement>('[aria-label="Face east"]:not(:disabled)') &&
+    document.querySelector<HTMLButtonElement>('[aria-label="Face south"]:not(:disabled)') &&
+    document.querySelector<HTMLButtonElement>('[aria-label="Face west"]:not(:disabled)'),
   )
 }
 
@@ -157,7 +157,7 @@ function syncFacingGuides(playerName: string) {
     battleTiles()
       .map((tile) => {
         const position = tilePosition(tile)
-        return position ? [`${position.x}:${position.y}`, tile] as const : null
+        return position ? ([`${position.x}:${position.y}`, tile] as const) : null
       })
       .filter((row): row is readonly [string, HTMLButtonElement] => Boolean(row)),
   )
@@ -181,7 +181,9 @@ function syncFacingGuides(playerName: string) {
 
 function syncTokenImages() {
   for (const image of Array.from(
-    document.querySelectorAll<HTMLImageElement>('#battlefield button[aria-label*="occupied by"] img'),
+    document.querySelectorAll<HTMLImageElement>(
+      '#battlefield button[aria-label*="occupied by"] img',
+    ),
   )) {
     image.dataset.battleTokenImage = 'true'
   }

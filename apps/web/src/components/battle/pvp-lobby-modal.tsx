@@ -88,13 +88,17 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
     setError(null)
     try {
       const response = await fetch(`/api/pvp/lobbies/${lobby.lobbyId}/start`, { method: 'POST' })
-      const body = (await response.json()) as { battle?: { battleSessionId?: string } } & ApiErrorBody
+      const body = (await response.json()) as {
+        battle?: { battleSessionId?: string }
+      } & ApiErrorBody
       if (!response.ok || !body.battle?.battleSessionId) {
         throw new Error(body.error?.message ?? 'The PvP battle could not be started.')
       }
       router.push(`/game/battle/${body.battle.battleSessionId}`)
     } catch (startError) {
-      setError(startError instanceof Error ? startError.message : 'The PvP battle could not be started.')
+      setError(
+        startError instanceof Error ? startError.message : 'The PvP battle could not be started.',
+      )
       startLock.current = false
     }
   }, [lobby.lobbyId, lobby.readyToStart, lobby.status, router])
@@ -111,7 +115,9 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
     let cancelled = false
     async function loadSettings() {
       try {
-        const response = await fetch(`/api/pvp/lobbies/${lobby.lobbyId}/settings`, { cache: 'no-store' })
+        const response = await fetch(`/api/pvp/lobbies/${lobby.lobbyId}/settings`, {
+          cache: 'no-store',
+        })
         const body = (await response.json()) as { settings?: MapSettings }
         if (response.ok && body.settings && !cancelled) setSettings(body.settings)
       } catch {
@@ -158,7 +164,8 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
         body: JSON.stringify({ ready: !localMember.ready }),
       })
       const body = (await response.json()) as { lobby?: PvpLobbyView } & ApiErrorBody
-      if (!response.ok || !body.lobby) throw new Error(body.error?.message ?? 'Readiness could not be updated.')
+      if (!response.ok || !body.lobby)
+        throw new Error(body.error?.message ?? 'Readiness could not be updated.')
       setLobby(body.lobby)
     } catch (readyError) {
       setError(readyError instanceof Error ? readyError.message : 'Readiness could not be updated.')
@@ -169,7 +176,8 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
 
   async function moveSeat(targetTeamIndex: number, targetSeatIndex: number) {
     if (!localMember || !canMoveSeats || pending) return
-    if (localMember.teamIndex === targetTeamIndex && localMember.seatIndex === targetSeatIndex) return
+    if (localMember.teamIndex === targetTeamIndex && localMember.seatIndex === targetSeatIndex)
+      return
     setPending(true)
     setError(null)
     try {
@@ -179,7 +187,8 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
         body: JSON.stringify({ targetTeamIndex, targetSeatIndex }),
       })
       const body = (await response.json()) as { lobby?: PvpLobbyView } & ApiErrorBody
-      if (!response.ok || !body.lobby) throw new Error(body.error?.message ?? 'That team move could not be made.')
+      if (!response.ok || !body.lobby)
+        throw new Error(body.error?.message ?? 'That team move could not be made.')
       setLobby(body.lobby)
     } catch (moveError) {
       setError(moveError instanceof Error ? moveError.message : 'That team move could not be made.')
@@ -200,10 +209,15 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
         body: JSON.stringify(next),
       })
       const body = (await response.json()) as { settings?: MapSettings } & ApiErrorBody
-      if (!response.ok || !body.settings) throw new Error(body.error?.message ?? 'Battlefield settings could not be changed.')
+      if (!response.ok || !body.settings)
+        throw new Error(body.error?.message ?? 'Battlefield settings could not be changed.')
       setSettings(body.settings)
     } catch (settingsError) {
-      setError(settingsError instanceof Error ? settingsError.message : 'Battlefield settings could not be changed.')
+      setError(
+        settingsError instanceof Error
+          ? settingsError.message
+          : 'Battlefield settings could not be changed.',
+      )
     } finally {
       setPending(false)
     }
@@ -241,48 +255,138 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
 
   return (
     <div className={styles.backdrop} role="presentation">
-      <section className={styles.modal} role="dialog" aria-modal="true" aria-labelledby="pvp-lobby-title">
+      <section
+        className={styles.modal}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="pvp-lobby-title"
+      >
         <header className={styles.header}>
           <div>
             <span>Battle Hall · PvP Staging</span>
             <h2 id="pvp-lobby-title">The arena is waiting.</h2>
-            <p>{lobby.mode.toUpperCase()} · Assemble the roster, settle the teams, ready every combatant, then battle begins automatically.</p>
+            <p>
+              {lobby.mode.toUpperCase()} · Assemble the roster, settle the teams, ready every
+              combatant, then battle begins automatically.
+            </p>
           </div>
           <div className={styles.keyStack}>
             <button type="button" onClick={() => void copyValue(lobby.lobbyKey, 'Lobby key')}>
-              <small>Lobby Key · click to copy</small><strong>{lobby.lobbyKey}</strong>
+              <small>Lobby Key · click to copy</small>
+              <strong>{lobby.lobbyKey}</strong>
             </button>
             {copyNotice ? <span>{copyNotice}</span> : null}
           </div>
         </header>
 
         <div className={styles.arenaLine}>
-          <span>{filled}/{required} combatants seated</span><i aria-hidden="true" /><span>{readyCount}/{required} ready</span>
+          <span>
+            {filled}/{required} combatants seated
+          </span>
+          <i aria-hidden="true" />
+          <span>
+            {readyCount}/{required} ready
+          </span>
         </div>
 
-        <section aria-label="PvP battlefield generation" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '0.45rem' }}>
-          <label style={{ display: 'grid', gap: '0.25rem', color: 'var(--av-text-dim)', fontSize: '0.52rem' }}>
+        <section
+          aria-label="PvP battlefield generation"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            gap: '0.45rem',
+          }}
+        >
+          <label
+            style={{
+              display: 'grid',
+              gap: '0.25rem',
+              color: 'var(--av-text-dim)',
+              fontSize: '0.52rem',
+            }}
+          >
             Map size
-            <select disabled={!localMember?.isHost || pending} value={settings.mapSize} onChange={(event) => void updateSettings({ ...settings, mapSize: event.target.value as PvpMapSize })}><option value="medium">Medium</option><option value="large">Large</option></select>
+            <select
+              disabled={!localMember?.isHost || pending}
+              value={settings.mapSize}
+              onChange={(event) =>
+                void updateSettings({ ...settings, mapSize: event.target.value as PvpMapSize })
+              }
+            >
+              <option value="medium">Medium</option>
+              <option value="large">Large</option>
+            </select>
           </label>
-          <label style={{ display: 'grid', gap: '0.25rem', color: 'var(--av-text-dim)', fontSize: '0.52rem' }}>
+          <label
+            style={{
+              display: 'grid',
+              gap: '0.25rem',
+              color: 'var(--av-text-dim)',
+              fontSize: '0.52rem',
+            }}
+          >
             Elevation
-            <select disabled={!localMember?.isHost || pending} value={settings.elevationBias} onChange={(event) => void updateSettings({ ...settings, elevationBias: event.target.value as PvpMapBias })}><option value="less">Less</option><option value="neutral">Neutral</option><option value="more">More</option></select>
+            <select
+              disabled={!localMember?.isHost || pending}
+              value={settings.elevationBias}
+              onChange={(event) =>
+                void updateSettings({
+                  ...settings,
+                  elevationBias: event.target.value as PvpMapBias,
+                })
+              }
+            >
+              <option value="less">Less</option>
+              <option value="neutral">Neutral</option>
+              <option value="more">More</option>
+            </select>
           </label>
-          <label style={{ display: 'grid', gap: '0.25rem', color: 'var(--av-text-dim)', fontSize: '0.52rem' }}>
+          <label
+            style={{
+              display: 'grid',
+              gap: '0.25rem',
+              color: 'var(--av-text-dim)',
+              fontSize: '0.52rem',
+            }}
+          >
             Difficult ground
-            <select disabled={!localMember?.isHost || pending} value={settings.terrainBias} onChange={(event) => void updateSettings({ ...settings, terrainBias: event.target.value as PvpMapBias })}><option value="less">Less</option><option value="neutral">Neutral</option><option value="more">More</option></select>
+            <select
+              disabled={!localMember?.isHost || pending}
+              value={settings.terrainBias}
+              onChange={(event) =>
+                void updateSettings({ ...settings, terrainBias: event.target.value as PvpMapBias })
+              }
+            >
+              <option value="less">Less</option>
+              <option value="neutral">Neutral</option>
+              <option value="more">More</option>
+            </select>
           </label>
         </section>
 
-        {canMoveSeats ? <p style={{ margin: 0, color: 'var(--av-text-dim)', fontSize: '0.52rem', textAlign: 'center' }}>Click any team seat to move there. Occupied seats swap positions. Any team change clears everyone&apos;s Ready state.</p> : null}
+        {canMoveSeats ? (
+          <p
+            style={{
+              margin: 0,
+              color: 'var(--av-text-dim)',
+              fontSize: '0.52rem',
+              textAlign: 'center',
+            }}
+          >
+            Click any team seat to move there. Occupied seats swap positions. Any team change clears
+            everyone&apos;s Ready state.
+          </p>
+        ) : null}
 
         <div className={styles.teams} data-team-count={teams}>
           {Array.from({ length: teams }, (_, teamIndex) => (
             <div className={styles.teamWrap} key={teamIndex}>
               {teamIndex > 0 ? <div className={styles.vs}>VS</div> : null}
               <section className={styles.team} data-team={teamIndex}>
-                <div className={styles.teamHeading}><span>Team {teamIndex + 1}</span><strong>{teamLabel(teamIndex, teams)}</strong></div>
+                <div className={styles.teamHeading}>
+                  <span>Team {teamIndex + 1}</span>
+                  <strong>{teamLabel(teamIndex, teams)}</strong>
+                </div>
                 <div className={styles.seats}>
                   {Array.from({ length: lobby.teamSizes[teamIndex] ?? 0 }, (_, seatIndex) => {
                     const member = memberForSeat(lobby, teamIndex, seatIndex)
@@ -294,11 +398,29 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
                         data-ready={member.ready || undefined}
                         disabled={!canMoveSeats || pending || !localMember}
                         onClick={() => void moveSeat(teamIndex, seatIndex)}
-                        title={canMoveSeats ? `Move to Team ${teamIndex + 1}, seat ${seatIndex + 1}` : undefined}
-                        style={{ width: '100%', color: 'inherit', textAlign: 'left', cursor: canMoveSeats ? 'pointer' : 'default' }}
+                        title={
+                          canMoveSeats
+                            ? `Move to Team ${teamIndex + 1}, seat ${seatIndex + 1}`
+                            : undefined
+                        }
+                        style={{
+                          width: '100%',
+                          color: 'inherit',
+                          textAlign: 'left',
+                          cursor: canMoveSeats ? 'pointer' : 'default',
+                        }}
                       >
-                        <div className={styles.portraitFrame}><Portrait member={member} />{member.ready ? <span className={styles.readyGlyph}>✓</span> : null}</div>
-                        <div><strong>{member.characterName}</strong><small>Level {member.characterLevel}{member.isHost ? ' · Host' : ''}</small></div>
+                        <div className={styles.portraitFrame}>
+                          <Portrait member={member} />
+                          {member.ready ? <span className={styles.readyGlyph}>✓</span> : null}
+                        </div>
+                        <div>
+                          <strong>{member.characterName}</strong>
+                          <small>
+                            Level {member.characterLevel}
+                            {member.isHost ? ' · Host' : ''}
+                          </small>
+                        </div>
                         <span>{member.ready ? 'READY' : 'STANDBY'}</span>
                       </button>
                     ) : (
@@ -308,10 +430,21 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
                         key={seatIndex}
                         disabled={!canMoveSeats || pending || !localMember}
                         onClick={() => void moveSeat(teamIndex, seatIndex)}
-                        title={canMoveSeats ? `Move to Team ${teamIndex + 1}, seat ${seatIndex + 1}` : undefined}
-                        style={{ width: '100%', color: 'inherit', textAlign: 'left', cursor: canMoveSeats ? 'pointer' : 'default' }}
+                        title={
+                          canMoveSeats
+                            ? `Move to Team ${teamIndex + 1}, seat ${seatIndex + 1}`
+                            : undefined
+                        }
+                        style={{
+                          width: '100%',
+                          color: 'inherit',
+                          textAlign: 'left',
+                          cursor: canMoveSeats ? 'pointer' : 'default',
+                        }}
                       >
-                        <div>◇</div><strong>Open combat seat</strong><small>Waiting for a challenger</small>
+                        <div>◇</div>
+                        <strong>Open combat seat</strong>
+                        <small>Waiting for a challenger</small>
                       </button>
                     )
                   })}
@@ -321,17 +454,52 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
           ))}
         </div>
 
-        {error ? <p className={styles.error} role="alert">{error}</p> : null}
+        {error ? (
+          <p className={styles.error} role="alert">
+            {error}
+          </p>
+        ) : null}
 
         <footer className={styles.footer}>
           <div>
-            <span>{lobby.readyToStart ? 'All combatants ready — opening the arena…' : 'Battle begins when every required seat is filled and ready.'}</span>
-            {lobby.status === 'cancelled' ? <button type="button" onClick={onLeave}>Return to Battle Hall</button> : null}
+            <span>
+              {lobby.readyToStart
+                ? 'All combatants ready — opening the arena…'
+                : 'Battle begins when every required seat is filled and ready.'}
+            </span>
+            {lobby.status === 'cancelled' ? (
+              <button type="button" onClick={onLeave}>
+                Return to Battle Hall
+              </button>
+            ) : null}
           </div>
           <div className={styles.actions}>
-            <button type="button" className={styles.lobbyChat} aria-disabled="true" title="Lobby chat will be enabled in a later update.">Chat</button>
-            <button type="button" className={styles.leave} onClick={() => void leaveLobby()} disabled={pending || lobby.status !== 'waiting'}>{localMember?.isHost ? 'Close Lobby' : 'Leave Lobby'}</button>
-            <button type="button" className={styles.ready} data-ready={localMember?.ready || undefined} onClick={() => void toggleReady()} disabled={pending || !localMember || lobby.status !== 'waiting'}><span>{localMember?.ready ? '✓' : '○'}</span>{localMember?.ready ? 'Ready — click to stand down' : 'Mark Ready'}</button>
+            <button
+              type="button"
+              className={styles.lobbyChat}
+              aria-disabled="true"
+              title="Lobby chat will be enabled in a later update."
+            >
+              Chat
+            </button>
+            <button
+              type="button"
+              className={styles.leave}
+              onClick={() => void leaveLobby()}
+              disabled={pending || lobby.status !== 'waiting'}
+            >
+              {localMember?.isHost ? 'Close Lobby' : 'Leave Lobby'}
+            </button>
+            <button
+              type="button"
+              className={styles.ready}
+              data-ready={localMember?.ready || undefined}
+              onClick={() => void toggleReady()}
+              disabled={pending || !localMember || lobby.status !== 'waiting'}
+            >
+              <span>{localMember?.ready ? '✓' : '○'}</span>
+              {localMember?.ready ? 'Ready — click to stand down' : 'Mark Ready'}
+            </button>
           </div>
         </footer>
       </section>

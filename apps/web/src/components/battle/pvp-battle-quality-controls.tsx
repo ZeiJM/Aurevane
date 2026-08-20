@@ -69,7 +69,10 @@ export function PvpBattleQualityControls({
     async function refresh() {
       try {
         const [clockResponse, battleResponse] = await Promise.all([
-          fetch(`/api/pvp/battles/${battleSessionId}/turn-clock`, { method: 'POST', cache: 'no-store' }),
+          fetch(`/api/pvp/battles/${battleSessionId}/turn-clock`, {
+            method: 'POST',
+            cache: 'no-store',
+          }),
           fetch(`/api/battles/${battleSessionId}`, { cache: 'no-store' }),
         ])
         const clockBody = (await clockResponse.json()) as TickResponse
@@ -99,14 +102,21 @@ export function PvpBattleQualityControls({
 
   const activeName = useMemo(() => {
     if (!clock?.combatantId) return null
-    return metadata.participants.find((participant) => participant.combatantId === clock.combatantId)?.characterName ?? null
+    return (
+      metadata.participants.find((participant) => participant.combatantId === clock.combatantId)
+        ?.characterName ?? null
+    )
   }, [clock?.combatantId, metadata.participants])
 
   const loweredGuardNames = useMemo(() => {
     if (!battle) return []
     return battle.snapshot.statusState
       .filter((row) => row.statuses.some((status) => status.statusId === 'lowered-guard'))
-      .map((row) => metadata.participants.find((participant) => participant.combatantId === row.combatantId)?.characterName ?? row.combatantId)
+      .map(
+        (row) =>
+          metadata.participants.find((participant) => participant.combatantId === row.combatantId)
+            ?.characterName ?? row.combatantId,
+      )
   }, [battle, metadata.participants])
 
   async function surrender() {
@@ -119,12 +129,22 @@ export function PvpBattleQualityControls({
     }
     setSurrendering(true)
     try {
-      const response = await fetch(`/api/pvp/battles/${battleSessionId}/surrender`, { method: 'POST' })
-      const body = (await response.json()) as { battle?: BattleSessionView; error?: { message?: string } }
-      if (!response.ok || !body.battle) throw new Error(body.error?.message ?? 'Surrender could not be committed.')
+      const response = await fetch(`/api/pvp/battles/${battleSessionId}/surrender`, {
+        method: 'POST',
+      })
+      const body = (await response.json()) as {
+        battle?: BattleSessionView
+        error?: { message?: string }
+      }
+      if (!response.ok || !body.battle)
+        throw new Error(body.error?.message ?? 'Surrender could not be committed.')
       window.location.reload()
     } catch (surrenderError) {
-      setError(surrenderError instanceof Error ? surrenderError.message : 'Surrender could not be committed.')
+      setError(
+        surrenderError instanceof Error
+          ? surrenderError.message
+          : 'Surrender could not be committed.',
+      )
       setSurrendering(false)
       setConfirmSurrender(false)
     }
@@ -158,9 +178,17 @@ export function PvpBattleQualityControls({
               }}
               aria-live="polite"
             >
-              <span style={{ color: seconds <= 10 ? '#e48b78' : 'var(--av-brass-200)' }}>{clock?.active ? `${seconds}s` : '—'}</span>
-              <span style={{ color: 'var(--av-text-dim)' }}>{activeName ? `${activeName}'s turn` : 'Turn clock'}</span>
-              {loweredGuardNames.length > 0 ? <strong style={{ color: '#e48b78' }}>Lowered Guard: {loweredGuardNames.join(', ')} · 2.5× incoming damage</strong> : null}
+              <span style={{ color: seconds <= 10 ? '#e48b78' : 'var(--av-brass-200)' }}>
+                {clock?.active ? `${seconds}s` : '—'}
+              </span>
+              <span style={{ color: 'var(--av-text-dim)' }}>
+                {activeName ? `${activeName}'s turn` : 'Turn clock'}
+              </span>
+              {loweredGuardNames.length > 0 ? (
+                <strong style={{ color: '#e48b78' }}>
+                  Lowered Guard: {loweredGuardNames.join(', ')} · 2.5× incoming damage
+                </strong>
+              ) : null}
               {error ? <span style={{ color: '#e2a0a0' }}>{error}</span> : null}
             </div>,
             headerTarget,
@@ -183,7 +211,11 @@ export function PvpBattleQualityControls({
                 cursor: surrendering ? 'wait' : 'pointer',
               }}
             >
-              {surrendering ? 'Surrendering…' : confirmSurrender ? 'Confirm Surrender' : 'Surrender'}
+              {surrendering
+                ? 'Surrendering…'
+                : confirmSurrender
+                  ? 'Confirm Surrender'
+                  : 'Surrender'}
             </button>,
             footerTarget,
           )
