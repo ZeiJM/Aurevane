@@ -19,8 +19,8 @@ const navigation: readonly {
   label: string
   section: PublicInformationSection
 }[] = [
-  { href: '/manual', label: 'Manual', section: 'manual' },
   { href: '/news', label: 'News', section: 'news' },
+  { href: '/manual', label: 'Manual', section: 'manual' },
   { href: '/rules', label: 'Rules', section: 'rules' },
 ]
 
