@@ -1,6 +1,9 @@
 'use client'
 
-import type { TacticalHallRecordId } from '@aurevane/game-core/combat/tactical-hall-records'
+import {
+  getTacticalHallRecord,
+  type TacticalHallRecordId,
+} from '@aurevane/game-core/combat/tactical-hall-records'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
@@ -55,26 +58,89 @@ function progressCount(progress: GuidedTrainingProgress): number {
   return GUIDED_CRITERIA.filter((criterion) => progress[criterion.id]).length
 }
 
-export function BattleLessonCoach({ battleSessionId, recordId }: BattleLessonCoachProps) {
-  if (recordId !== 'guided-fundamentals') return null
-  return <GuidedFundamentalsCoach battleSessionId={battleSessionId} />
-}
-
-function GuidedFundamentalsCoach({ battleSessionId }: { battleSessionId: string }) {
-  const [open, setOpen] = useState(true)
-  const [progress, setProgress] = useState<GuidedTrainingProgress>(EMPTY_PROGRESS)
-  const [error, setError] = useState<string | null>(null)
-  const [hasUnseenProgress, setHasUnseenProgress] = useState(false)
+function useHeaderCriteriaTarget(): HTMLElement | null {
   const [headerTarget, setHeaderTarget] = useState<HTMLElement | null>(null)
-  const latestProgress = useRef<GuidedTrainingProgress>(EMPTY_PROGRESS)
-  const completing = useRef(false)
-
   useEffect(() => {
     const track = document.querySelector<HTMLElement>(
       '[role="progressbar"][aria-label="Action Economy remaining"]',
     )
     setHeaderTarget(track?.parentElement ?? null)
   }, [])
+  return headerTarget
+}
+
+export function BattleLessonCoach({ battleSessionId, recordId }: BattleLessonCoachProps) {
+  if (recordId === 'guided-fundamentals') {
+    return <GuidedFundamentalsCriteria battleSessionId={battleSessionId} />
+  }
+  return <StandardBattleCriteria recordId={recordId} />
+}
+
+function StandardBattleCriteria({ recordId }: { recordId: TacticalHallRecordId }) {
+  const [open, setOpen] = useState(false)
+  const headerTarget = useHeaderCriteriaTarget()
+  const record = getTacticalHallRecord(recordId)
+
+  return (
+    <>
+      {headerTarget
+        ? createPortal(
+            <button
+              className={styles.guidedReopen}
+              type="button"
+              aria-label="Battle criteria"
+              onClick={() => setOpen(true)}
+            >
+              <span>Battle criteria</span>
+              <strong>Win</strong>
+            </button>,
+            headerTarget,
+          )
+        : null}
+      {open ? (
+        <div className={styles.guidedBackdrop} onPointerDown={() => setOpen(false)}>
+          <section
+            className={styles.guidedPanel}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="battle-criteria-title"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <button
+              className={styles.guidedClose}
+              type="button"
+              aria-label="Close battle criteria"
+              onClick={() => setOpen(false)}
+            >
+              ×
+            </button>
+            <span>Battle Hall · {record.name}</span>
+            <h2 id="battle-criteria-title">Win the battle</h2>
+            <p>
+              Defeat all opposing combatants. When no enemy combatants remain able to fight, the
+              battle ends in victory.
+            </p>
+            <div className={styles.guidedFooter}>
+              <span>Standard victory condition</span>
+              <button type="button" onClick={() => setOpen(false)}>
+                Return to battle
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+    </>
+  )
+}
+
+function GuidedFundamentalsCriteria({ battleSessionId }: { battleSessionId: string }) {
+  const [open, setOpen] = useState(true)
+  const [progress, setProgress] = useState<GuidedTrainingProgress>(EMPTY_PROGRESS)
+  const [error, setError] = useState<string | null>(null)
+  const [hasUnseenProgress, setHasUnseenProgress] = useState(false)
+  const headerTarget = useHeaderCriteriaTarget()
+  const latestProgress = useRef<GuidedTrainingProgress>(EMPTY_PROGRESS)
+  const completing = useRef(false)
 
   useEffect(() => {
     let cancelled = false
@@ -127,7 +193,7 @@ function GuidedFundamentalsCoach({ battleSessionId }: { battleSessionId: string 
         setProgress(next)
         if (progressComplete(next)) await completeTraining()
       } catch {
-        // The battle itself remains usable if supplementary coaching cannot refresh momentarily.
+        // The battle itself remains usable if supplementary criteria cannot refresh momentarily.
       } finally {
         if (!cancelled) timer = window.setTimeout(refresh, 900)
       }
@@ -140,30 +206,28 @@ function GuidedFundamentalsCoach({ battleSessionId }: { battleSessionId: string 
     }
   }, [battleSessionId])
 
-  const criteriaButton = headerTarget
-    ? createPortal(
-        <button
-          className={styles.guidedReopen}
-          type="button"
-          data-new-progress={hasUnseenProgress || undefined}
-          aria-label={`Training criteria, ${progressCount(progress)} of ${GUIDED_CRITERIA.length} complete${hasUnseenProgress ? ', new progress' : ''}`}
-          onClick={() => {
-            setHasUnseenProgress(false)
-            setOpen(true)
-          }}
-        >
-          <span>Training criteria</span>
-          <strong>
-            {progressCount(progress)}/{GUIDED_CRITERIA.length}
-          </strong>
-        </button>,
-        headerTarget,
-      )
-    : null
-
   return (
     <>
-      {criteriaButton}
+      {headerTarget
+        ? createPortal(
+            <button
+              className={styles.guidedReopen}
+              type="button"
+              data-new-progress={hasUnseenProgress || undefined}
+              aria-label={`Battle criteria, ${progressCount(progress)} of ${GUIDED_CRITERIA.length} complete${hasUnseenProgress ? ', new progress' : ''}`}
+              onClick={() => {
+                setHasUnseenProgress(false)
+                setOpen(true)
+              }}
+            >
+              <span>Battle criteria</span>
+              <strong>
+                {progressCount(progress)}/{GUIDED_CRITERIA.length}
+              </strong>
+            </button>,
+            headerTarget,
+          )
+        : null}
       {open ? (
         <div className={styles.guidedBackdrop} onPointerDown={() => setOpen(false)}>
           <section
@@ -176,7 +240,7 @@ function GuidedFundamentalsCoach({ battleSessionId }: { battleSessionId: string 
             <button
               className={styles.guidedClose}
               type="button"
-              aria-label="Close training criteria"
+              aria-label="Close battle criteria"
               onClick={() => setOpen(false)}
             >
               ×
@@ -188,9 +252,9 @@ function GuidedFundamentalsCoach({ battleSessionId }: { battleSessionId: string 
                 : 'Complete the tactical fundamentals'}
             </h2>
             <p>
-              This exercise ends successfully when every server-recorded criterion is complete. The
-              checklist stays available from the battle header; new progress highlights that button
-              instead of interrupting your turn.
+              This battle has an alternate victory condition: complete every server-recorded
+              criterion. New progress highlights the Battle Criteria button instead of interrupting
+              your turn.
             </p>
             <ol className={styles.criteria}>
               {GUIDED_CRITERIA.map((criterion) => {
