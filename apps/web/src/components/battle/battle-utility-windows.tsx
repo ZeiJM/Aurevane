@@ -6,6 +6,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type FormEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
@@ -208,23 +209,24 @@ function UtilityWindow({
 }
 
 export function BattleUtilityWindows({ battleSessionId, playerName }: BattleUtilityWindowsProps) {
-  const [mounted, setMounted] = useState(false)
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  )
   const [logOpen, setLogOpen] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
   const [chatDraft, setChatDraft] = useState('')
   const [chatMessages, setChatMessages] = useState<LocalChatMessage[]>([])
-  const [recentEmojis, setRecentEmojis] = useState<string[]>([])
+  const [recentEmojis, setRecentEmojis] = useState<string[]>(() =>
+    typeof window === 'undefined' ? [] : loadRecentEmojis(playerName),
+  )
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [logEntries, setLogEntries] = useState<BattleLogEntry[]>([])
   const [logLoading, setLogLoading] = useState(false)
   const [logError, setLogError] = useState<string | null>(null)
   const emojiButtonRef = useRef<HTMLButtonElement>(null)
   const emojiPickerRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    setMounted(true)
-    setRecentEmojis(loadRecentEmojis(playerName))
-  }, [playerName])
 
   const recordEmojiUsage = useCallback(
     (used: readonly string[]) => {
@@ -250,8 +252,12 @@ export function BattleUtilityWindows({ battleSessionId, playerName }: BattleUtil
 
       event.preventDefault()
       event.stopImmediatePropagation()
-      if (isLog) setLogOpen((value) => !value)
-      else setChatOpen((value) => !value)
+      if (isLog) {
+        setLogOpen((value) => !value)
+      } else {
+        setEmojiOpen(false)
+        setChatOpen((value) => !value)
+      }
     }
 
     document.addEventListener('click', interceptUtilityTrigger, true)
@@ -264,7 +270,6 @@ export function BattleUtilityWindows({ battleSessionId, playerName }: BattleUtil
 
   useEffect(() => {
     chatTrigger()?.setAttribute('aria-expanded', String(chatOpen))
-    if (!chatOpen) setEmojiOpen(false)
   }, [chatOpen])
 
   useEffect(() => {
@@ -303,9 +308,12 @@ export function BattleUtilityWindows({ battleSessionId, playerName }: BattleUtil
 
   useEffect(() => {
     if (!logOpen) return
-    void loadLog()
+    const initialTimer = window.setTimeout(() => void loadLog(), 0)
     const timer = window.setInterval(() => void loadLog(), 1200)
-    return () => window.clearInterval(timer)
+    return () => {
+      window.clearTimeout(initialTimer)
+      window.clearInterval(timer)
+    }
   }, [loadLog, logOpen])
 
   const logGroups = useMemo(() => groupLogEntries(logEntries), [logEntries])
@@ -360,7 +368,10 @@ export function BattleUtilityWindows({ battleSessionId, playerName }: BattleUtil
           title="Battle Chat"
           meta="Self channel · drag header · resize corner"
           side="left"
-          onClose={() => setChatOpen(false)}
+          onClose={() => {
+            setEmojiOpen(false)
+            setChatOpen(false)
+          }}
         >
           <div className={styles.chatLayout}>
             <div className={styles.chatMessages} aria-live="polite">
