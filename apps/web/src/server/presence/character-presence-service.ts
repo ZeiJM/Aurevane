@@ -67,7 +67,7 @@ export async function listOnlineCharacters(): Promise<OnlineCharacter[]> {
   const [{ data: identities, error: identityError }, imageMap] = await Promise.all([
     supabase
       .from('characters')
-      .select('id, portrait_ref, discipline_id, personal_title')
+      .select('id, portrait_ref, foundation_discipline_id, personal_title')
       .in('id', ids),
     loadPublicCharacterProfileImageMap(ids).catch(() => new Map<string, string>()),
   ])
@@ -81,7 +81,8 @@ export async function listOnlineCharacters(): Promise<OnlineCharacter[]> {
       if (!row || typeof row.id !== 'string') continue
       identityMap.set(row.id, {
         portraitRef: typeof row.portrait_ref === 'string' ? row.portrait_ref : null,
-        disciplineId: typeof row.discipline_id === 'string' ? row.discipline_id : null,
+        disciplineId:
+          typeof row.foundation_discipline_id === 'string' ? row.foundation_discipline_id : null,
         personalTitle: typeof row.personal_title === 'string' ? row.personal_title : null,
       })
     }
