@@ -110,7 +110,9 @@ export function getTacticalHallRecordFromScenarioSourceId(
 ): TacticalHallRecordDefinition | null {
   const prefix = 'scenario:p2-7-recruit:'
   if (!sourceId.startsWith(prefix)) return null
-  const recordId = sourceId.slice(prefix.length).split(':')[0] as TacticalHallRecordId | undefined
-  if (!recordId) return null
-  return P2_7_TACTICAL_HALL_RECORDS.find((candidate) => candidate.id === recordId) ?? null
+
+  const segments = sourceId.slice(prefix.length).split(':')
+  return (
+    P2_7_TACTICAL_HALL_RECORDS.find((candidate) => segments.includes(candidate.id)) ?? null
+  )
 }
