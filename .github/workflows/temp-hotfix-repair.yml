@@ -1,0 +1,68 @@
+name: Temporary Hotfix Repair
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: ${{ github.head_ref == 'hotfix/post-prod-battle-pv-20260820' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout hotfix branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Repair utility-window nullability
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('apps/web/src/components/battle/battle-utility-windows.tsx')
+          text = path.read_text()
+          old = "    const panel = windowRef.current\n    if (!panel) return\n\n    event.preventDefault()"
+          new = "    const panel = windowRef.current\n    if (!panel) return\n    const panelElement = panel\n\n    event.preventDefault()"
+          if text.count(old) != 2:
+              raise SystemExit(f'Expected 2 panel guard sites, found {text.count(old)}')
+          text = text.replace(old, new)
+          text = text.replace('lockWindowToCurrentRect(panel)', 'lockWindowToCurrentRect(panelElement)')
+          text = text.replace('panel.style.left', 'panelElement.style.left')
+          text = text.replace('panel.style.top', 'panelElement.style.top')
+          text = text.replace('panel.style.width', 'panelElement.style.width')
+          text = text.replace('panel.style.height', 'panelElement.style.height')
+          path.write_text(text)
+          PY
+
+      - name: Format repository
+        run: pnpm format
+
+      - name: Commit repairs
+        run: |
+          if git diff --quiet; then
+            echo "No repair changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "chore: format and stabilize hotfix"
+          git push origin HEAD:${{ github.head_ref }}
