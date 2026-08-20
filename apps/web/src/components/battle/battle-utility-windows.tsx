@@ -127,10 +127,10 @@ function summarizeCommittedAction(entries: readonly BattleLogEntry[], playerName
 
 function lockWindowToCurrentRect(panel: HTMLElement) {
   const rect = panel.getBoundingClientRect()
-  panelElement.style.left = `${rect.left}px`
-  panelElement.style.top = `${rect.top}px`
-  panelElement.style.width = `${rect.width}px`
-  panelElement.style.height = `${rect.height}px`
+  panel.style.left = `${rect.left}px`
+  panel.style.top = `${rect.top}px`
+  panel.style.width = `${rect.width}px`
+  panel.style.height = `${rect.height}px`
   panel.style.right = 'auto'
   panel.style.bottom = 'auto'
   return rect
