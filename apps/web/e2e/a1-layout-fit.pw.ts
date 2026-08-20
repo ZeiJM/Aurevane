@@ -54,6 +54,11 @@ test('keeps the core A1 surfaces inside the initial desktop and laptop viewport'
   await page.goto('/game')
   await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
   await expectInitialViewportFit(page, 'Character Select')
+
+  await page.setViewportSize({ width: 1024, height: 576 })
+  await page.goto('/game')
+  await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
+  await expectInitialViewportFit(page, 'Character Select at 1024x576')
 })
 
 async function expectInitialViewportFit(page: Page, surface: string): Promise<void> {
