@@ -42,10 +42,7 @@ function positionKey(position: { x: number; y: number }): string {
   return `${position.x}:${position.y}`
 }
 
-function positionsEqual(
-  left: { x: number; y: number },
-  right: { x: number; y: number },
-): boolean {
+function positionsEqual(left: { x: number; y: number }, right: { x: number; y: number }): boolean {
   return left.x === right.x && left.y === right.y
 }
 
@@ -100,9 +97,9 @@ function moveModeIsActive(): boolean {
 function facingModeIsActive(): boolean {
   return Boolean(
     document.querySelector<HTMLButtonElement>('[aria-label="Face north"]:not(:disabled)') &&
-      document.querySelector<HTMLButtonElement>('[aria-label="Face south"]:not(:disabled)') &&
-      document.querySelector<HTMLButtonElement>('[aria-label="Face west"]:not(:disabled)') &&
-      document.querySelector<HTMLButtonElement>('[aria-label="Face east"]:not(:disabled)'),
+    document.querySelector<HTMLButtonElement>('[aria-label="Face south"]:not(:disabled)') &&
+    document.querySelector<HTMLButtonElement>('[aria-label="Face west"]:not(:disabled)') &&
+    document.querySelector<HTMLButtonElement>('[aria-label="Face east"]:not(:disabled)'),
   )
 }
 

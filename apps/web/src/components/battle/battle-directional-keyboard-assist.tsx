@@ -37,7 +37,9 @@ function commandIsActive(label: string): boolean {
 }
 
 function facingModeIsActive(): boolean {
-  return Boolean(document.querySelector<HTMLButtonElement>('[aria-label="Face north"]:not(:disabled)'))
+  return Boolean(
+    document.querySelector<HTMLButtonElement>('[aria-label="Face north"]:not(:disabled)'),
+  )
 }
 
 function chooseFacing(direction: Direction): boolean {
@@ -91,7 +93,8 @@ function projectedPath(origin: GridPosition): GridPosition[] {
   const numbered = battleTiles()
     .map((button) => {
       const marker = Array.from(button.children).find(
-        (child) => child instanceof HTMLSpanElement && /^\d+$/.test(child.textContent?.trim() ?? ''),
+        (child) =>
+          child instanceof HTMLSpanElement && /^\d+$/.test(child.textContent?.trim() ?? ''),
       )
       const index = marker ? Number(marker.textContent?.trim()) : Number.NaN
       const position = tilePosition(button)

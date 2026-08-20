@@ -20,7 +20,8 @@ function parseTilePosition(
 
 function combatInstruction(): string {
   return (
-    document.querySelector<HTMLElement>('[data-testid="combat-mode-instruction"]')?.textContent ?? ''
+    document.querySelector<HTMLElement>('[data-testid="combat-mode-instruction"]')?.textContent ??
+    ''
   ).toLowerCase()
 }
 
@@ -237,9 +238,7 @@ function fitBattlefieldBoard() {
   const board = viewport?.firstElementChild
   if (!(viewport instanceof HTMLElement) || !(board instanceof HTMLElement)) return
 
-  const tiles = Array.from(
-    board.querySelectorAll<HTMLButtonElement>('button[aria-label^="Tile "]'),
-  )
+  const tiles = Array.from(board.querySelectorAll<HTMLButtonElement>('button[aria-label^="Tile "]'))
   if (tiles.length === 0) return
 
   let columns = 0
@@ -474,7 +473,9 @@ function resetMoveProjectionByClick(event: PointerEvent, playerName: string): bo
     return false
   }
 
-  const hasProjectedPath = Boolean(document.querySelector('#battlefield [data-board-auto-fit] button span'))
+  const hasProjectedPath = Boolean(
+    document.querySelector('#battlefield [data-board-auto-fit] button span'),
+  )
   const instruction = combatInstruction()
   if (!hasProjectedPath || !instruction.includes('path ready')) return false
 

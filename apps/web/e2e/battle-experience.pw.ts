@@ -148,7 +148,9 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   )
   await expect(attackButton).toBeDisabled()
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
-  await expect(page.getByRole('dialog', { name: 'Complete the tactical fundamentals' })).toHaveCount(0)
+  await expect(
+    page.getByRole('dialog', { name: 'Complete the tactical fundamentals' }),
+  ).toHaveCount(0)
   await openCriteriaAndClose(page, '1/4 complete')
   await expect(criteriaButton).not.toHaveAttribute('data-new-progress', 'true')
 
@@ -167,7 +169,9 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     timeout: 15_000,
   })
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
-  await expect(page.getByRole('dialog', { name: 'Complete the tactical fundamentals' })).toHaveCount(0)
+  await expect(
+    page.getByRole('dialog', { name: 'Complete the tactical fundamentals' }),
+  ).toHaveCount(0)
 
   if (testInfo.project.name === 'mobile-chromium') {
     await guardButton.tap()

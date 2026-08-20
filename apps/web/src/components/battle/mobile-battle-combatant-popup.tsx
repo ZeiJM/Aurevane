@@ -337,8 +337,8 @@ export function MobileBattleCombatantPopup({
             </section>
 
             <p className={styles.hint}>
-              Tap outside this card to close it. During Basic Attack mode, tapping the opponent stays
-              reserved for target selection instead of opening this card.
+              Tap outside this card to close it. During Basic Attack mode, tapping the opponent
+              stays reserved for target selection instead of opening this card.
             </p>
           </>
         ) : null}

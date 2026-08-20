@@ -143,24 +143,25 @@ function UtilityWindow({
     if ((event.target as Element | null)?.closest('button, input, textarea, select, a')) return
     const panel = windowRef.current
     if (!panel) return
+    const dragPanel: HTMLElement = panel
 
     event.preventDefault()
-    const rect = panel.getBoundingClientRect()
+    const rect = dragPanel.getBoundingClientRect()
     const startX = event.clientX
     const startY = event.clientY
     const startLeft = rect.left
     const startTop = rect.top
 
-    panel.style.width = `${rect.width}px`
-    panel.style.height = `${rect.height}px`
-    panel.style.left = `${rect.left}px`
-    panel.style.top = `${rect.top}px`
-    panel.style.right = 'auto'
-    panel.style.bottom = 'auto'
+    dragPanel.style.width = `${rect.width}px`
+    dragPanel.style.height = `${rect.height}px`
+    dragPanel.style.left = `${rect.left}px`
+    dragPanel.style.top = `${rect.top}px`
+    dragPanel.style.right = 'auto'
+    dragPanel.style.bottom = 'auto'
 
     function move(moveEvent: PointerEvent) {
-      const width = panel.getBoundingClientRect().width
-      const height = panel.getBoundingClientRect().height
+      const width = dragPanel.getBoundingClientRect().width
+      const height = dragPanel.getBoundingClientRect().height
       const left = Math.max(
         4,
         Math.min(window.innerWidth - width - 4, startLeft + moveEvent.clientX - startX),
@@ -169,8 +170,8 @@ function UtilityWindow({
         4,
         Math.min(window.innerHeight - height - 4, startTop + moveEvent.clientY - startY),
       )
-      panel.style.left = `${left}px`
-      panel.style.top = `${top}px`
+      dragPanel.style.left = `${left}px`
+      dragPanel.style.top = `${top}px`
     }
 
     function finish() {
@@ -206,10 +207,7 @@ function UtilityWindow({
   )
 }
 
-export function BattleUtilityWindows({
-  battleSessionId,
-  playerName,
-}: BattleUtilityWindowsProps) {
+export function BattleUtilityWindows({ battleSessionId, playerName }: BattleUtilityWindowsProps) {
   const [mounted, setMounted] = useState(false)
   const [logOpen, setLogOpen] = useState(false)
   const [chatOpen, setChatOpen] = useState(false)
