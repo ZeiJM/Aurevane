@@ -58,7 +58,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort B
   await expect(battleChooser.getByRole('button').first()).toContainText('AI Sparring')
 
   await expect(page.getByText('Player sparring', { exact: true })).toBeVisible()
-  const pvp1v1 = page.getByRole('button', { name: /^1v1/ })
+  const pvp1v1 = page.getByRole('button', { name: '1v1 Standard player duel', exact: true })
   await pvp1v1.click()
   await expect(page.getByText('Waiting lobby preview', { exact: true })).toBeVisible()
   await expect(page.getByText('Waiting for required players', { exact: true })).toBeVisible()
