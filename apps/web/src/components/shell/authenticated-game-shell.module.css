@@ -125,6 +125,7 @@
 
 .main {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   width: min(100%, 96rem);
   min-width: 0;
   margin: 0 auto;
