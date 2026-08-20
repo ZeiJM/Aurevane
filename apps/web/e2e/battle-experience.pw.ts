@@ -11,7 +11,7 @@ function uniqueCharacterName(): string {
   return `Wayfarer ${letters}`
 }
 
-test('resolves a readable authoritative player and Recruit combat loop', async ({
+test('resolves Guided Fundamentals through authoritative battle criteria', async ({
   page,
 }, testInfo) => {
   test.slow()
@@ -48,6 +48,9 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
   const guardButton = commandDeck.getByRole('button', { name: /Guard/ })
   const finishButton = commandDeck.getByRole('button', { name: /Finish Turn/ })
   const confirmButton = page.getByRole('button', { name: 'Confirm Action' })
+
+  await expect(page.getByRole('dialog', { name: 'Complete the tactical fundamentals' })).toBeVisible()
+  await page.getByRole('button', { name: 'Continue training' }).click()
 
   await expect(battlefield).toBeVisible()
   await expect(commandDeck).toBeVisible()
@@ -98,6 +101,7 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
     '0',
   )
   await expect(attackButton).toBeDisabled()
+  await closeProgressCoach(page, '1/4 complete')
 
   await finishButton.click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText(
@@ -113,6 +117,7 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
     '100',
     { timeout: 15_000 },
   )
+  await closeProgressCoach(page, '2/4 complete')
 
   if (testInfo.project.name === 'mobile-chromium') {
     await guardButton.tap()
@@ -127,6 +132,17 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
     'aria-valuenow',
     '70',
   )
+  await closeProgressCoach(page, '3/4 complete')
+
+  const roundButton = page.getByRole('button', { name: /Round .*Combat Log/ })
+  await roundButton.click()
+  const battleLog = page.getByTestId('battle-log-panel')
+  await expect(battleLog).toBeVisible()
+  await expect(battleLog).toContainText(characterName)
+  await expect(battleLog).toContainText(/moved|Guard/)
+  await expect(battleLog).not.toContainText(/\bv\d+\b/)
+  await expect(battleLog).not.toContainText('rollBasisPoints')
+  await page.getByRole('button', { name: 'Close combat log' }).click()
 
   await attackButton.click()
   const rangedTiles = battlefield.locator('button[data-attack-range]')
@@ -137,26 +153,25 @@ test('resolves a readable authoritative player and Recruit combat loop', async (
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Basic Attack ready')
   await expect(confirmButton).toBeEnabled()
   await confirmButton.click()
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText(/Basic Attack/)
-  await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
-    'aria-valuenow',
-    '40',
-  )
 
-  const roundButton = page.getByRole('button', { name: /Round .*Combat Log/ })
-  await roundButton.click()
-  const battleLog = page.getByTestId('battle-log-panel')
-  await expect(battleLog).toBeVisible()
-  await expect(battleLog).toContainText(characterName)
-  await expect(battleLog).toContainText(/moved|Basic Attack/)
-  await expect(battleLog).not.toContainText(/\bv\d+\b/)
-  await expect(battleLog).not.toContainText('rollBasisPoints')
-  await page.getByRole('button', { name: 'Close combat log' }).click()
-
-  await expect(moveButton).toBeEnabled()
+  const result = page.getByTestId('battle-result-overlay')
+  await expect(result).toBeVisible({ timeout: 15_000 })
+  await expect(result).toContainText('Training Complete')
+  await expect(result).toContainText('Guided Fundamentals')
+  await expect(result).toContainText('no Character XP, Mastery, loot, Crowns, PvP rating')
   await expectBattlefieldReadable(page)
   expect(await hasHorizontalOverflow(page)).toBe(false)
 })
+
+async function closeProgressCoach(
+  page: import('@playwright/test').Page,
+  expectedProgress: string,
+): Promise<void> {
+  const dialog = page.getByRole('dialog', { name: 'Complete the tactical fundamentals' })
+  await expect(dialog).toBeVisible({ timeout: 4_000 })
+  await expect(dialog).toContainText(expectedProgress)
+  await dialog.getByRole('button', { name: 'Continue training' }).click()
+}
 
 async function expectBattlefieldReadable(page: import('@playwright/test').Page): Promise<void> {
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
