@@ -220,23 +220,116 @@
 }
 
 @media (max-width: 760px) {
-  .identityFacts,
-  .attributeGrid {
+  .identityFacts {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.25rem;
+    margin: 0.45rem 0;
+  }
+
+  .identityFacts > div,
+  .identityFacts > button {
+    padding: 0.38rem 0.44rem;
+  }
+
+  .attributeGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.25rem;
+  }
+
+  .attributeGrid button {
+    min-height: 2.35rem;
+    padding: 0.34rem 0.3rem;
+  }
+
+  .attributeGrid span {
+    font-size: 0.43rem;
+  }
+
+  .attributeGrid strong {
+    font-size: 0.92rem;
+  }
+
+  .section {
+    padding-top: 0.55rem;
+  }
+
+  .section + .section {
+    margin-top: 0.55rem;
+  }
+
+  .section > header {
+    margin-bottom: 0.36rem;
+  }
+
+  .section h2 {
+    font-size: 1.05rem;
+  }
+
+  .section header small {
+    display: none;
   }
 
   .statGroups {
     grid-template-columns: 1fr;
+    gap: 0.32rem;
+  }
+
+  .statGroup {
+    padding: 0.42rem;
+  }
+
+  .statGroup h3 {
+    margin-bottom: 0.28rem;
+    font-size: 0.46rem;
+  }
+
+  .statGroup > div {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.22rem;
+  }
+
+  .statGroup button {
+    justify-content: space-between;
+    gap: 0.3rem;
+    min-height: 1.95rem;
+    padding: 0.3rem 0.38rem;
+  }
+
+  .statGroup button span {
+    overflow: hidden;
+    font-size: 0.43rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .statGroup button strong {
+    flex: 0 0 auto;
+    font-size: 0.55rem;
   }
 }
 
 @media (max-width: 520px) {
   .section > header {
     align-items: start;
+    gap: 0.35rem;
+  }
+
+  .identityFacts span,
+  .section header > div > span {
+    font-size: 0.41rem;
+  }
+
+  .identityFacts strong {
+    font-size: 0.54rem;
+  }
+
+  .attributeGrid button {
     flex-direction: column;
+    gap: 0.12rem;
+    align-items: center;
   }
 
   .statGroup > div {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
