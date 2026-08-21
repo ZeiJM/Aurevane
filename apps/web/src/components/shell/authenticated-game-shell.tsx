@@ -115,12 +115,6 @@ export async function AuthenticatedShellFrame({
           </Link>
         </div>
 
-        {activeBattleHref ? (
-          <Link className={styles.activeBattleLink} href={activeBattleHref}>
-            <span aria-hidden="true">●</span> IN BATTLE
-          </Link>
-        ) : null}
-
         <nav
           className={`${styles.headerLinks} ${railStyles.navigation}`}
           style={{ marginRight: 0 }}
@@ -143,6 +137,11 @@ export async function AuthenticatedShellFrame({
                   alt=""
                 />
               </span>
+            ) : null}
+            {activeBattleHref ? (
+              <Link className={styles.activeBattleLink} href={activeBattleHref}>
+                <span aria-hidden="true">●</span> IN BATTLE
+              </Link>
             ) : null}
             <span className={styles.screenLabel}>
               <StatusMark />
