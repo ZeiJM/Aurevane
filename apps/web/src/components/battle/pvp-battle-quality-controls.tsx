@@ -104,9 +104,8 @@ export function PvpBattleQualityControls({
   }, [battleSessionId])
 
   const activeName = clock?.combatantId
-    ? (metadata.participants.find(
-        (participant) => participant.combatantId === clock.combatantId,
-      )?.characterName ?? null)
+    ? (metadata.participants.find((participant) => participant.combatantId === clock.combatantId)
+        ?.characterName ?? null)
     : null
 
   const loweredGuardNames = battle
@@ -114,9 +113,8 @@ export function PvpBattleQualityControls({
         .filter((row) => row.statuses.some((status) => status.statusId === 'lowered-guard'))
         .map(
           (row) =>
-            metadata.participants.find(
-              (participant) => participant.combatantId === row.combatantId,
-            )?.characterName ?? row.combatantId,
+            metadata.participants.find((participant) => participant.combatantId === row.combatantId)
+              ?.characterName ?? row.combatantId,
         )
     : []
 
