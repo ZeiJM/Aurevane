@@ -1,0 +1,292 @@
+.rails {
+  position: absolute;
+  inset: 0;
+  z-index: 24;
+  pointer-events: none;
+}
+
+.panel {
+  --combatant-accent: var(--av-brass-300);
+  position: absolute;
+  top: 50%;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  width: 9.75rem;
+  max-height: calc(100% - 1rem);
+  gap: 0.34rem;
+  padding: 0.44rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--combatant-accent) 58%, transparent);
+  border-radius: var(--av-radius-md);
+  background: linear-gradient(160deg, rgba(18, 24, 34, 0.97), rgba(7, 10, 15, 0.985));
+  box-shadow:
+    0 0.75rem 1.6rem rgba(0, 0, 0, 0.34),
+    inset 0 0 0 1px color-mix(in srgb, var(--combatant-accent) 12%, transparent);
+  transform: translateY(-50%);
+  pointer-events: auto;
+}
+
+.panel[data-side='left'] {
+  left: 0.45rem;
+}
+
+.panel[data-side='right'] {
+  right: 0.45rem;
+}
+
+.heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 0.3rem;
+}
+
+.heading > div {
+  display: grid;
+  gap: 0.08rem;
+  min-width: 0;
+}
+
+.heading span,
+.effects > span {
+  color: var(--av-text-dim);
+  font: 700 0.38rem/1 var(--av-font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.heading strong {
+  overflow: hidden;
+  font: 600 0.83rem/1 var(--av-font-display);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.heading b {
+  flex: 0 0 auto;
+  padding: 0.16rem 0.28rem;
+  border-radius: 999px;
+  color: var(--combatant-accent);
+  background: color-mix(in srgb, var(--combatant-accent) 12%, transparent);
+  font: 750 0.34rem/1 var(--av-font-mono);
+  text-transform: uppercase;
+}
+
+.portrait {
+  position: relative;
+  min-height: 6.1rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--combatant-accent) 55%, var(--av-border));
+  border-radius: var(--av-radius-sm);
+  background: #080b10;
+  box-shadow: 0 0 0.7rem color-mix(in srgb, var(--combatant-accent) 20%, transparent);
+}
+
+.portrait :global(img) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 50%;
+}
+
+.meters {
+  position: absolute;
+  right: 0.22rem;
+  bottom: 0.22rem;
+  left: 0.22rem;
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.16rem;
+  border-radius: 0.2rem;
+  background: rgba(2, 4, 7, 0.76);
+  backdrop-filter: blur(0.2rem);
+}
+
+.meters span {
+  height: 0.22rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.11);
+}
+
+.meters i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.meters span:first-child i {
+  background: linear-gradient(90deg, #8d3030, #d9655d);
+}
+
+.meters span:last-child i {
+  background: linear-gradient(90deg, #33548d, #6d98dc);
+}
+
+.effects {
+  display: grid;
+  gap: 0.22rem;
+}
+
+.effects > div {
+  display: flex;
+  min-height: 1.3rem;
+  gap: 0.2rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.effects b {
+  display: grid;
+  min-width: 1.3rem;
+  height: 1.3rem;
+  place-items: center;
+  padding-inline: 0.2rem;
+  border: 1px solid color-mix(in srgb, var(--combatant-accent) 48%, transparent);
+  border-radius: 0.24rem;
+  color: var(--combatant-accent);
+  background: rgba(6, 9, 13, 0.92);
+  font: 800 0.38rem/1 var(--av-font-mono);
+}
+
+.effects b[data-debuff] {
+  border-color: rgba(224, 93, 93, 0.82);
+  color: #e89a9a;
+}
+
+.effects small {
+  color: var(--av-text-dim);
+  font: 650 0.37rem/1 var(--av-font-mono);
+  text-transform: uppercase;
+}
+
+.facing {
+  display: flex;
+  min-height: 1.65rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  color: var(--combatant-accent);
+  background: rgba(255, 255, 255, 0.018);
+}
+
+.facing span {
+  font-size: 0.8rem;
+}
+
+.facing strong {
+  font: 700 0.4rem/1 var(--av-font-mono);
+  text-transform: uppercase;
+}
+
+@media (max-width: 1100px) and (min-width: 881px) {
+  .panel {
+    width: 8rem;
+  }
+
+  .portrait {
+    min-height: 5.15rem;
+  }
+}
+
+@media (max-width: 880px) {
+  .rails {
+    top: 0.35rem;
+    right: 0.35rem;
+    bottom: auto;
+    left: 0.35rem;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.3rem;
+    height: 4.6rem;
+  }
+
+  .panel {
+    position: relative;
+    top: auto;
+    right: auto !important;
+    left: auto !important;
+    display: grid;
+    grid-template-columns: 3.7rem minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    width: auto;
+    max-height: none;
+    gap: 0.24rem 0.38rem;
+    padding: 0.3rem;
+    transform: none;
+  }
+
+  .heading {
+    grid-column: 2;
+    align-self: end;
+  }
+
+  .heading strong {
+    font-size: 0.68rem;
+  }
+
+  .heading b {
+    display: none;
+  }
+
+  .portrait {
+    grid-row: 1 / span 2;
+    width: 3.7rem;
+    min-height: 0;
+    height: 3.9rem;
+  }
+
+  .effects {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: start;
+  }
+
+  .effects > span {
+    display: none;
+  }
+
+  .effects > div {
+    min-height: 1rem;
+  }
+
+  .effects b {
+    min-width: 1rem;
+    height: 1rem;
+    font-size: 0.31rem;
+  }
+
+  .effects small {
+    font-size: 0.33rem;
+  }
+
+  .facing {
+    display: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .rails {
+    height: 4.15rem;
+  }
+
+  .panel {
+    grid-template-columns: 3.15rem minmax(0, 1fr);
+    padding: 0.25rem;
+  }
+
+  .portrait {
+    width: 3.15rem;
+    height: 3.45rem;
+  }
+
+  .heading span {
+    font-size: 0.31rem;
+  }
+
+  .heading strong {
+    font-size: 0.6rem;
+  }
+}
