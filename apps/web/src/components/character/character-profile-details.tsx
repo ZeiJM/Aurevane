@@ -46,23 +46,23 @@ const attributeLabels = {
 const ATTRIBUTE_COLORS: Readonly<
   Record<CharacterAttributeId, { solid: string; tint: string; soft: string }>
 > = {
-  might: { solid: '#d86a5f', tint: 'rgba(216, 106, 95, 0.22)', soft: 'rgba(216, 106, 95, 0.11)' },
-  finesse: { solid: '#d99a55', tint: 'rgba(217, 154, 85, 0.22)', soft: 'rgba(217, 154, 85, 0.11)' },
+  might: { solid: '#ff7068', tint: 'rgba(255, 112, 104, 0.38)', soft: 'rgba(255, 112, 104, 0.20)' },
+  finesse: { solid: '#f4b24f', tint: 'rgba(244, 178, 79, 0.38)', soft: 'rgba(244, 178, 79, 0.20)' },
   vitality: {
-    solid: '#69bd83',
-    tint: 'rgba(105, 189, 131, 0.22)',
-    soft: 'rgba(105, 189, 131, 0.11)',
+    solid: '#72d97b',
+    tint: 'rgba(114, 217, 123, 0.38)',
+    soft: 'rgba(114, 217, 123, 0.20)',
   },
-  agility: { solid: '#54b9bd', tint: 'rgba(84, 185, 189, 0.22)', soft: 'rgba(84, 185, 189, 0.11)' },
+  agility: { solid: '#4fd8d5', tint: 'rgba(79, 216, 213, 0.38)', soft: 'rgba(79, 216, 213, 0.20)' },
   intellect: {
-    solid: '#a783d6',
-    tint: 'rgba(167, 131, 214, 0.22)',
-    soft: 'rgba(167, 131, 214, 0.11)',
+    solid: '#c282ff',
+    tint: 'rgba(194, 130, 255, 0.38)',
+    soft: 'rgba(194, 130, 255, 0.20)',
   },
   resolve: {
-    solid: '#6d91d9',
-    tint: 'rgba(109, 145, 217, 0.22)',
-    soft: 'rgba(109, 145, 217, 0.11)',
+    solid: '#70a9ff',
+    tint: 'rgba(112, 169, 255, 0.38)',
+    soft: 'rgba(112, 169, 255, 0.20)',
   },
 }
 
@@ -271,7 +271,7 @@ function createLineageBackground(sources: readonly AttributeSource[]): string {
   if (sources.length === 0) return '#080b10'
   if (sources.length === 1) {
     const color = ATTRIBUTE_COLORS[sources[0].id]
-    return `linear-gradient(145deg, ${color.tint} 0%, ${color.soft} 52%, rgba(8, 11, 16, 0.96) 100%)`
+    return `linear-gradient(145deg, ${color.tint} 0%, ${color.soft} 58%, rgba(8, 11, 16, 0.94) 100%)`
   }
 
   const totalWeight = sources.reduce((total, source) => total + source.weight, 0)
