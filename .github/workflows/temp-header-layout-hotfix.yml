@@ -1,0 +1,137 @@
+name: Temporary Battle Header Layout Patch
+
+on:
+  push:
+    branches:
+      - hotfix/reenable-right-click-20260820
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hotfix/reenable-right-click-20260820
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Place Victory Conditions immediately right of Action Economy
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('apps/web/src/components/battle/battle-lesson-coach.tsx')
+          text = path.read_text()
+          start = text.index('function useHeaderCriteriaTarget(): HTMLElement | null {')
+          end = text.index('\n\nexport function BattleLessonCoach', start)
+          replacement = '''function useHeaderCriteriaTarget(): HTMLElement | null {
+            const [headerTarget, setHeaderTarget] = useState<HTMLElement | null>(null)
+
+            useEffect(() => {
+              let frame = 0
+              let slot: HTMLElement | null = null
+              let activeHeader: HTMLElement | null = null
+              let activeEconomy: HTMLElement | null = null
+              let activeObjective: HTMLElement | null = null
+              let activeRound: HTMLElement | null = null
+
+              const clearInlineLayout = () => {
+                for (const element of [activeHeader, activeEconomy, activeObjective, activeRound]) {
+                  if (!element) continue
+                  element.style.removeProperty('grid-template-columns')
+                  element.style.removeProperty('grid-column')
+                  element.style.removeProperty('grid-row')
+                }
+                slot?.remove()
+                slot = null
+              }
+
+              const locate = () => {
+                frame = 0
+                const track = document.querySelector<HTMLElement>(
+                  '[role="progressbar"][aria-label="Action Economy remaining"]',
+                )
+                const economy = track?.parentElement instanceof HTMLElement ? track.parentElement : null
+                const header = economy?.closest<HTMLElement>('header') ?? null
+                const objective = header?.firstElementChild instanceof HTMLElement ? header.firstElementChild : null
+                const round = economy?.nextElementSibling instanceof HTMLElement ? economy.nextElementSibling : null
+                if (!header || !economy || !objective || !round) {
+                  if (slot) clearInlineLayout()
+                  setHeaderTarget((current) => (current === null ? current : null))
+                  return
+                }
+
+                if (activeHeader !== header || activeEconomy !== economy) {
+                  clearInlineLayout()
+                  activeHeader = header
+                  activeEconomy = economy
+                  activeObjective = objective
+                  activeRound = round
+                  slot = document.createElement('div')
+                  slot.dataset.victoryCriteriaSlot = 'true'
+                  slot.style.display = 'flex'
+                  slot.style.alignItems = 'stretch'
+                  slot.style.minWidth = '0'
+                  economy.insertAdjacentElement('afterend', slot)
+                }
+
+                const compact = window.matchMedia('(max-width: 880px)').matches
+                header.style.gridTemplateColumns = compact
+                  ? 'minmax(0, 1fr) auto'
+                  : 'minmax(10rem, 1fr) minmax(13rem, 24rem) auto auto'
+                objective.style.gridColumn = '1'
+                objective.style.gridRow = '1'
+                round.style.gridColumn = compact ? '2' : '4'
+                round.style.gridRow = '1'
+                economy.style.gridColumn = compact ? '1' : '2'
+                economy.style.gridRow = compact ? '2' : '1'
+                if (slot) {
+                  slot.style.gridColumn = compact ? '2' : '3'
+                  slot.style.gridRow = compact ? '2' : '1'
+                  slot.style.alignSelf = 'stretch'
+                }
+                setHeaderTarget((current) => (current === slot ? current : slot))
+              }
+
+              const scheduleLocate = () => {
+                if (frame !== 0) return
+                frame = window.requestAnimationFrame(locate)
+              }
+
+              locate()
+              const observer = new MutationObserver(scheduleLocate)
+              observer.observe(document.body, { childList: true, subtree: true })
+              window.addEventListener('resize', scheduleLocate)
+              return () => {
+                observer.disconnect()
+                window.removeEventListener('resize', scheduleLocate)
+                if (frame !== 0) window.cancelAnimationFrame(frame)
+                clearInlineLayout()
+              }
+            }, [])
+
+            return headerTarget
+          }'''
+          path.write_text(text[:start] + replacement + text[end:])
+          PY
+          pnpm exec prettier --write apps/web/src/components/battle/battle-lesson-coach.tsx
+      - name: Commit final header layout
+        run: |
+          if git diff --quiet; then
+            echo "Header layout already patched."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/src/components/battle/battle-lesson-coach.tsx
+          git commit -m "fix: align victory conditions beside action economy [skip ci]"
+          git push origin HEAD:hotfix/reenable-right-click-20260820
