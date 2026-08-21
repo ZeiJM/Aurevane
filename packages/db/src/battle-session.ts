@@ -56,9 +56,12 @@ export interface CreateBattleSessionInput extends BattleIdempotentInput {
   participants: readonly BattleParticipantInput[]
 }
 
-export interface CommitBattleIntentInput extends BattleIdempotentInput {
+export interface FindBattleIntentReplayInput extends BattleIdempotentInput {
   userId: string
   battleSessionId: string
+}
+
+export interface CommitBattleIntentInput extends FindBattleIntentReplayInput {
   expectedBattleVersion: number
   nextSnapshot: unknown
   events: readonly unknown[]
@@ -69,6 +72,9 @@ export interface BattleSessionRepository {
     input: CreateBattleSessionInput,
   ): Promise<TransactionalCommandResult<BattleSessionCreationRecord>>
   findBattleSession(userId: string, battleSessionId: string): Promise<BattleSessionRecord | null>
+  findBattleIntentReplay(
+    input: FindBattleIntentReplayInput,
+  ): Promise<BattleSessionCommitRecord | null>
   commitBattleIntent(
     input: CommitBattleIntentInput,
   ): Promise<TransactionalCommandResult<BattleSessionCommitRecord>>

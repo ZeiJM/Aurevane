@@ -114,6 +114,32 @@ export function createSupabaseBattleSessionRepository(): BattleSessionRepository
       return result
     },
 
+    async findBattleIntentReplay(input) {
+      const supabase = createSupabaseAdminClient()
+      const { data, error } = await supabase.rpc('get_battle_intent_replay_v1', {
+        p_actor_key: input.actorKey,
+        p_idempotency_key: input.idempotencyKey,
+        p_request_fingerprint: input.requestFingerprint,
+        p_user_id: input.userId,
+        p_battle_session_id: input.battleSessionId,
+      })
+
+      if (error) throwRpcError(error)
+      if (Array.isArray(data) && data.length === 0) return null
+
+      const row = parseBattleSessionCommitPersistenceRow(data)
+      if (!row) {
+        throw persistenceUnavailable('The server returned an invalid battle-replay result.')
+      }
+
+      return {
+        battleSessionId: row.battle_session_id,
+        battleVersion: row.battle_version,
+        snapshot: row.snapshot,
+        committedAt: row.committed_at,
+      }
+    },
+
     async commitBattleIntent(input) {
       const supabase = createSupabaseAdminClient()
       const { data, error } = await supabase.rpc('commit_battle_intent_v2', {

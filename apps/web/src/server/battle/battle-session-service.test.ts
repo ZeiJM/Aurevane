@@ -1,4 +1,5 @@
 import type {
+  BattleSessionCommitRecord,
   BattleSessionRepository,
   BattleSessionRecord,
   CommitBattleIntentInput,
@@ -90,6 +91,7 @@ function createBattleRepository() {
     },
   }))
   const findBattleSession = vi.fn(async (): Promise<BattleSessionRecord | null> => null)
+  const findBattleIntentReplay = vi.fn(async (): Promise<BattleSessionCommitRecord | null> => null)
   const commitBattleIntent = vi.fn(async (input: CommitBattleIntentInput) => ({
     replayed: false,
     result: {
@@ -102,10 +104,17 @@ function createBattleRepository() {
   const repository: BattleSessionRepository = {
     createBattleSession,
     findBattleSession,
+    findBattleIntentReplay,
     commitBattleIntent,
   }
 
-  return { repository, createBattleSession, findBattleSession, commitBattleIntent }
+  return {
+    repository,
+    createBattleSession,
+    findBattleSession,
+    findBattleIntentReplay,
+    commitBattleIntent,
+  }
 }
 
 async function createPersistedFixture(character = characterRecord()) {
@@ -458,14 +467,11 @@ describe('P2.4 battle session service', () => {
       battleVersion: 2,
       snapshot: opponentTurn,
     })
-    battles.commitBattleIntent.mockResolvedValue({
-      replayed: true,
-      result: {
-        battleSessionId: SESSION_ID,
-        battleVersion: 2,
-        snapshot: persistedSnapshot,
-        committedAt: CREATED_AT,
-      },
+    battles.findBattleIntentReplay.mockResolvedValue({
+      battleSessionId: SESSION_ID,
+      battleVersion: 2,
+      snapshot: persistedSnapshot,
+      committedAt: CREATED_AT,
     })
 
     const result = await service.submitIntent({
@@ -478,19 +484,20 @@ describe('P2.4 battle session service', () => {
 
     expect(result).toMatchObject({ battleVersion: 2, replayed: true })
     expect(result.snapshot.tactical.battle).not.toHaveProperty('rng')
-    expect(battles.commitBattleIntent).toHaveBeenCalledWith(
+    expect(battles.findBattleIntentReplay).toHaveBeenCalledWith(
       expect.objectContaining({
-        expectedBattleVersion: 1,
-        nextSnapshot: opponentTurn,
-        events: [],
+        actorKey: USER_ID,
+        userId: USER_ID,
+        battleSessionId: SESSION_ID,
+        idempotencyKey: '77777777-7777-4777-8777-777777777777',
       }),
     )
+    expect(battles.commitBattleIntent).not.toHaveBeenCalled()
   })
 
-  it('surfaces the authoritative version for an unused stale request', async () => {
+  it('surfaces the authoritative version for an unused stale request without mutating persistence', async () => {
     const { battles, service, record } = await createPersistedFixture()
     battles.findBattleSession.mockResolvedValue({ ...record, battleVersion: 3 })
-    battles.commitBattleIntent.mockRejectedValue(new StaleBattleVersionError(3))
 
     await expect(
       service.submitIntent({
@@ -504,6 +511,8 @@ describe('P2.4 battle session service', () => {
       code: 'STALE_VERSION',
       currentVersion: 3,
     })
+    expect(battles.findBattleIntentReplay).toHaveBeenCalledTimes(1)
+    expect(battles.commitBattleIntent).not.toHaveBeenCalled()
   })
 
   it('uses Aurevane errors for rejected authority requests', () => {
