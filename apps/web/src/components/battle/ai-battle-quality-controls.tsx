@@ -26,7 +26,7 @@ function remainingSeconds(deadlineAt: string | null, now: number): number {
 
 export function AiBattleQualityControls({ battleSessionId }: { battleSessionId: string }) {
   const [clock, setClock] = useState<ClockView | null>(null)
-  const [now, setNow] = useState(0)
+  const [now, setNow] = useState(() => Date.now())
   const [error, setError] = useState<string | null>(null)
   const [headerTarget, setHeaderTarget] = useState<HTMLElement | null>(null)
   const reloading = useRef(false)
@@ -46,7 +46,6 @@ export function AiBattleQualityControls({ battleSessionId }: { battleSessionId: 
   }, [])
 
   useEffect(() => {
-    setNow(Date.now())
     const timer = window.setInterval(() => setNow(Date.now()), 250)
     return () => window.clearInterval(timer)
   }, [])
