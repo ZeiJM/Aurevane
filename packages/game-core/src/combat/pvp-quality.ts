@@ -61,9 +61,7 @@ export function prepareAiQualityCombatant(
   combatantId: string,
 ): StatDrivenCombatEncounterState {
   const combatant = getCombatant(state, combatantId)
-  if (
-    combatant.temporaryResources.some((resource) => resource.key === AI_MISSED_TURN_STREAK_KEY)
-  ) {
+  if (combatant.temporaryResources.some((resource) => resource.key === AI_MISSED_TURN_STREAK_KEY)) {
     return state
   }
   return rebuildCombatant(state, {
@@ -181,7 +179,8 @@ function timeoutTrackedTurn(
 
   const actor = getCombatant(state, turn.combatantId)
   const streak = actor.temporaryResources.find((resource) => resource.key === options.streakKey)
-  if (!streak) throw new Error(`${options.label} timeout tracking is unavailable for this combatant.`)
+  if (!streak)
+    throw new Error(`${options.label} timeout tracking is unavailable for this combatant.`)
 
   const nextStreak = Math.min(2, streak.current + 1)
   let nextState = rebuildCombatant(state, {

@@ -75,7 +75,9 @@ function readEncounter(value: unknown): StatDrivenCombatEncounterState {
   return state
 }
 
-function unavailable(message = 'AI battle turn services are unavailable right now.'): AurevaneError {
+function unavailable(
+  message = 'AI battle turn services are unavailable right now.',
+): AurevaneError {
   return new AurevaneError('PERSISTENCE_UNAVAILABLE', message)
 }
 
@@ -86,7 +88,8 @@ async function ensureClock(userId: string, battleSessionId: string): Promise<AiT
     p_battle_session_id: battleSessionId,
   })
   if (error) throw unavailable()
-  if (!data) throw new AurevaneError('FORBIDDEN', 'That AI battle is not available to this account.')
+  if (!data)
+    throw new AurevaneError('FORBIDDEN', 'That AI battle is not available to this account.')
   const clock = parseClock(data)
   if (!clock) throw unavailable('The AI battle turn clock returned invalid state.')
   return clock
@@ -127,7 +130,8 @@ export async function tickAiTurnClock(
 
   const repository = createSupabaseBattleSessionRepository()
   const current = await repository.findBattleSession(userId, battleSessionId)
-  if (!current) throw new AurevaneError('FORBIDDEN', 'That AI battle is not available to this account.')
+  if (!current)
+    throw new AurevaneError('FORBIDDEN', 'That AI battle is not available to this account.')
   if (current.controlledCombatantIds.length !== 1) {
     throw unavailable('The controlled AI-battle combatant could not be resolved.')
   }

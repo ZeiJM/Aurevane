@@ -48,10 +48,22 @@ const ATTRIBUTE_COLORS: Readonly<
 > = {
   might: { solid: '#d86a5f', tint: 'rgba(216, 106, 95, 0.22)', soft: 'rgba(216, 106, 95, 0.11)' },
   finesse: { solid: '#d99a55', tint: 'rgba(217, 154, 85, 0.22)', soft: 'rgba(217, 154, 85, 0.11)' },
-  vitality: { solid: '#69bd83', tint: 'rgba(105, 189, 131, 0.22)', soft: 'rgba(105, 189, 131, 0.11)' },
+  vitality: {
+    solid: '#69bd83',
+    tint: 'rgba(105, 189, 131, 0.22)',
+    soft: 'rgba(105, 189, 131, 0.11)',
+  },
   agility: { solid: '#54b9bd', tint: 'rgba(84, 185, 189, 0.22)', soft: 'rgba(84, 185, 189, 0.11)' },
-  intellect: { solid: '#a783d6', tint: 'rgba(167, 131, 214, 0.22)', soft: 'rgba(167, 131, 214, 0.11)' },
-  resolve: { solid: '#6d91d9', tint: 'rgba(109, 145, 217, 0.22)', soft: 'rgba(109, 145, 217, 0.11)' },
+  intellect: {
+    solid: '#a783d6',
+    tint: 'rgba(167, 131, 214, 0.22)',
+    soft: 'rgba(167, 131, 214, 0.11)',
+  },
+  resolve: {
+    solid: '#6d91d9',
+    tint: 'rgba(109, 145, 217, 0.22)',
+    soft: 'rgba(109, 145, 217, 0.11)',
+  },
 }
 
 export function CharacterProfileDetails({
@@ -118,7 +130,10 @@ export function CharacterProfileDetails({
             <span>Core attributes</span>
             <h2 id="attributes-title">Character strengths</h2>
           </div>
-          <small>Each core attribute has its own color. Derived stats reuse those colors to show what feeds them.</small>
+          <small>
+            Each core attribute has its own color. Derived stats reuse those colors to show what
+            feeds them.
+          </small>
         </header>
         <div className={styles.attributeGrid}>
           {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => {
@@ -156,7 +171,10 @@ export function CharacterProfileDetails({
             <span>Combat &amp; adventure stats</span>
             <h2 id="derived-title">Current values</h2>
           </div>
-          <small>Select a stat for details. Colored backgrounds identify its contributing core attributes.</small>
+          <small>
+            Select a stat for details. Colored backgrounds identify its contributing core
+            attributes.
+          </small>
         </header>
         <div className={styles.statGroups}>
           {DERIVED_STAT_PROFILE_GROUPS.map((group) => (
@@ -198,7 +216,11 @@ export function CharacterProfileDetails({
                             <i
                               key={source.id}
                               title={attributeLabels[source.id]}
-                              style={{ '--source-color': ATTRIBUTE_COLORS[source.id].solid } as CSSProperties}
+                              style={
+                                {
+                                  '--source-color': ATTRIBUTE_COLORS[source.id].solid,
+                                } as CSSProperties
+                              }
                             />
                           ))}
                         </span>
