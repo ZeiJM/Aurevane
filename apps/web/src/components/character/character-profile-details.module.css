@@ -263,6 +263,60 @@
   cursor: pointer;
 }
 
+@media (max-height: 800px) and (min-width: 761px) {
+  .identityFacts {
+    gap: 0.28rem;
+    margin: 0.4rem 0;
+  }
+
+  .identityFacts > div,
+  .identityFacts > button {
+    padding: 0.36rem 0.45rem;
+  }
+
+  .section {
+    padding-top: 0.52rem;
+  }
+
+  .section + .section {
+    margin-top: 0.52rem;
+  }
+
+  .section > header {
+    margin-bottom: 0.34rem;
+  }
+
+  .section h2 {
+    font-size: 1.08rem;
+  }
+
+  .attributeGrid {
+    gap: 0.28rem;
+  }
+
+  .attributeGrid button {
+    min-height: 2.45rem;
+    padding: 0.36rem;
+  }
+
+  .statGroups {
+    gap: 0.36rem;
+  }
+
+  .statGroup {
+    padding: 0.45rem;
+  }
+
+  .statGroup h3 {
+    margin-bottom: 0.25rem;
+  }
+
+  .statGroup button {
+    min-height: 2.25rem;
+    padding: 0.34rem 0.42rem 0.55rem;
+  }
+}
+
 @media (max-width: 760px) {
   .identityFacts {
     grid-template-columns: repeat(2, minmax(0, 1fr));
