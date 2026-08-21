@@ -73,14 +73,14 @@ function statusLabel(statusId: string): string {
     .join(' ')
 }
 
-function attackModeActive(): boolean {
+function inspectModeActive(): boolean {
   const buttons = Array.from(
     document.querySelectorAll<HTMLButtonElement>('section[aria-label="Command Deck"] button'),
   )
-  const attack = buttons.find(
-    (button) => button.querySelector('strong')?.textContent?.trim() === 'Basic Attack',
+  const inspect = buttons.find(
+    (button) => button.querySelector('strong')?.textContent?.trim() === 'Inspect',
   )
-  return Boolean(attack && `${attack.className}`.includes('commandActive'))
+  return Boolean(inspect && `${inspect.className}`.includes('commandActive'))
 }
 
 function readSelectedCombatant(
@@ -168,7 +168,7 @@ export function MobileBattleCombatantPopup({
     }
 
     function handleBattlefieldClick(event: MouseEvent) {
-      if (!window.matchMedia(MOBILE_QUERY).matches || attackModeActive()) return
+      if (!window.matchMedia(MOBILE_QUERY).matches || !inspectModeActive()) return
       const target = event.target instanceof Element ? event.target : null
       const tile = target?.closest<HTMLButtonElement>(
         '#battlefield button[aria-label^="Tile "][aria-label*="occupied by"]',
@@ -179,8 +179,9 @@ export function MobileBattleCombatantPopup({
       const position = parseTilePosition(label)
       if (!position) return
 
-      // Outside attack targeting, a mobile tap on a combatant is an information gesture. Stop the
-      // underlying tile command so opening the profile never stages movement or changes selection.
+      // Combatant details are an explicit Inspect gesture on mobile. Outside Inspect mode, leave
+      // the battlefield tap untouched so self-targeting, movement, attacks, and turn actions keep
+      // their normal command behavior.
       event.preventDefault()
       event.stopPropagation()
       void openCombatant(position)
@@ -337,8 +338,8 @@ export function MobileBattleCombatantPopup({
             </section>
 
             <p className={styles.hint}>
-              Tap outside this card to close it. During Basic Attack mode, tapping the opponent
-              stays reserved for target selection instead of opening this card.
+              Inspect mode only. Tap outside this card to close it; all other battle modes keep
+              combatant taps reserved for their active command.
             </p>
           </>
         ) : null}
