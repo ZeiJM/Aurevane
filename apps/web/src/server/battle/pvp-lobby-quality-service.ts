@@ -28,7 +28,11 @@ import {
   createStatDrivenCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import { AurevaneError } from '@aurevane/game-core/errors'
-import type { PvpMapBias, PvpMapSize } from '@aurevane/validation/combat/pvp'
+import type {
+  PvpMapBias,
+  PvpMapSize,
+  PvpTurnTimerSeconds,
+} from '@aurevane/validation/combat/pvp'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
@@ -43,6 +47,7 @@ export interface PvpLobbyMapSettings {
   mapSize: PvpMapSize
   elevationBias: PvpMapBias
   terrainBias: PvpMapBias
+  turnTimerSeconds: PvpTurnTimerSeconds
 }
 
 function unavailable(message = 'PvP staging services are unavailable right now.'): AurevaneError {
@@ -71,7 +76,7 @@ export async function getPvpLobbyMapSettings(
   lobbyId: string,
 ): Promise<PvpLobbyMapSettings> {
   const supabase = createSupabaseAdminClient()
-  const { data, error } = await supabase.rpc('get_pvp_lobby_settings_v1', {
+  const { data, error } = await supabase.rpc('get_pvp_lobby_settings_v2', {
     p_user_id: userId,
     p_lobby_id: lobbyId,
   })
@@ -83,14 +88,16 @@ export async function getPvpLobbyMapSettings(
   const mapSize = row.map_size
   const elevationBias = row.elevation_bias
   const terrainBias = row.terrain_bias
+  const turnTimerSeconds = row.turn_timer_seconds
   if (
     (mapSize !== 'medium' && mapSize !== 'large') ||
     (elevationBias !== 'less' && elevationBias !== 'neutral' && elevationBias !== 'more') ||
-    (terrainBias !== 'less' && terrainBias !== 'neutral' && terrainBias !== 'more')
+    (terrainBias !== 'less' && terrainBias !== 'neutral' && terrainBias !== 'more') ||
+    (turnTimerSeconds !== null && turnTimerSeconds !== 60 && turnTimerSeconds !== 120)
   ) {
     throw unavailable('The PvP battlefield settings returned invalid state.')
   }
-  return { mapSize, elevationBias, terrainBias }
+  return { mapSize, elevationBias, terrainBias, turnTimerSeconds }
 }
 
 export async function setPvpLobbyMapSettings(
@@ -99,12 +106,13 @@ export async function setPvpLobbyMapSettings(
   settings: PvpLobbyMapSettings,
 ): Promise<PvpLobbyMapSettings> {
   const supabase = createSupabaseAdminClient()
-  const { error } = await supabase.rpc('set_pvp_lobby_settings_v1', {
+  const { error } = await supabase.rpc('set_pvp_lobby_settings_v2', {
     p_user_id: userId,
     p_lobby_id: lobbyId,
     p_map_size: settings.mapSize,
     p_elevation_bias: settings.elevationBias,
     p_terrain_bias: settings.terrainBias,
+    p_turn_timer_seconds: settings.turnTimerSeconds,
   })
   if (error) mapRpcError(error)
   return getPvpLobbyMapSettings(userId, lobbyId)
