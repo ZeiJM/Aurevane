@@ -105,6 +105,76 @@
   opacity: 0.5;
 }
 
+/* PvP lobby: keep the four locked match choices as one compact, readable strip. */
+section[aria-labelledby='pvp-lobby-title'] section[aria-label='Locked PvP battle settings'] {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 0.28rem !important;
+}
+
+section[aria-labelledby='pvp-lobby-title'] section[aria-label='Locked PvP battle settings'] > div {
+  min-width: 0 !important;
+  padding: 0.4rem 0.44rem !important;
+}
+
+section[aria-labelledby='pvp-lobby-title'] section[data-team] > div:first-child > strong {
+  display: none;
+}
+
+section[aria-labelledby='pvp-lobby-title'] section[data-team] > div:first-child::after {
+  color: var(--av-text-muted);
+  font: 560 0.62rem/1.15 var(--av-font-display);
+  text-align: right;
+}
+
+section[aria-labelledby='pvp-lobby-title'] section[data-team='0'] > div:first-child::after {
+  content: 'Steel and resolve answer the call.';
+}
+
+section[aria-labelledby='pvp-lobby-title'] section[data-team='1'] > div:first-child::after {
+  content: 'The arena yields to no oath.';
+}
+
+section[aria-labelledby='pvp-lobby-title'] section[data-team='2'] > div:first-child::after {
+  content: 'Three banners enter. One endures.';
+}
+
+/* PvP battle: the compact mode line already identifies the encounter; remove the redundant objective subtitle. */
+main[data-pvp-battle='true'] > header > div:first-child > strong {
+  display: none !important;
+}
+
+@media (max-width: 900px) {
+  /* PvP lobby footer: secondary controls share a row; Ready gets a clean centered row of its own. */
+  section[aria-labelledby='pvp-lobby-title'] > footer {
+    align-items: center !important;
+  }
+
+  section[aria-labelledby='pvp-lobby-title'] > footer > div:first-child {
+    width: 100%;
+    text-align: center;
+  }
+
+  section[aria-labelledby='pvp-lobby-title'] > footer > div:last-child {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: min(100%, 28rem);
+    gap: 0.4rem !important;
+    margin-inline: auto;
+  }
+
+  section[aria-labelledby='pvp-lobby-title'] > footer > div:last-child > button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  section[aria-labelledby='pvp-lobby-title'] > footer > div:last-child > button:last-child {
+    grid-column: 1 / -1;
+    width: min(13rem, 100%);
+    justify-self: center;
+    justify-content: center;
+  }
+}
+
 @media (max-width: 700px) {
   #battle-launch [data-pvp-create-card] {
     gap: 0.56rem;
@@ -127,28 +197,68 @@
   }
 
   #battle-launch [data-pvp-setting-group] {
-    display: grid;
-    grid-template-columns: minmax(6rem, 0.8fr) minmax(0, 2fr);
-    gap: 0.42rem;
-    align-items: center;
-    padding: 0.38rem 0.42rem;
+    padding: 0.42rem;
   }
 
-  #battle-launch [data-pvp-setting-group] legend {
-    display: contents;
-  }
-
-  #battle-launch [data-pvp-setting-group] legend::after {
-    color: #b7ab98;
-    font: 750 0.43rem/1.15 var(--av-font-mono);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    content: attr(data-label);
+  #battle-launch [data-pvp-setting-options] {
+    margin-top: 0.18rem;
   }
 
   #battle-launch [data-pvp-setting-options] button {
     min-height: 2.05rem;
     font-size: 0.42rem;
+  }
+
+  section[aria-labelledby='pvp-lobby-title'] section[aria-label='Locked PvP battle settings'] {
+    gap: 0.2rem !important;
+  }
+
+  section[aria-labelledby='pvp-lobby-title'] section[aria-label='Locked PvP battle settings'] > div {
+    gap: 0.14rem !important;
+    padding: 0.34rem 0.22rem !important;
+  }
+
+  section[aria-labelledby='pvp-lobby-title'] section[aria-label='Locked PvP battle settings'] > div > span {
+    overflow: hidden;
+    font-size: 0 !important;
+    text-overflow: clip;
+    white-space: nowrap;
+  }
+
+  section[aria-labelledby='pvp-lobby-title'] section[aria-label='Locked PvP battle settings'] > div > span::after {
+    color: var(--av-text-dim);
+    font: 700 0.4rem/1 var(--av-font-mono);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  section[aria-labelledby='pvp-lobby-title'] section[aria-label='Locked PvP battle settings'] > div:nth-child(1) > span::after {
+    content: 'Map';
+  }
+
+  section[aria-labelledby='pvp-lobby-title'] section[aria-label='Locked PvP battle settings'] > div:nth-child(2) > span::after {
+    content: 'Elevation';
+  }
+
+  section[aria-labelledby='pvp-lobby-title'] section[aria-label='Locked PvP battle settings'] > div:nth-child(3) > span::after {
+    content: 'Ground';
+  }
+
+  section[aria-labelledby='pvp-lobby-title'] section[aria-label='Locked PvP battle settings'] > div:nth-child(4) > span::after {
+    content: 'Timer';
+  }
+
+  section[aria-labelledby='pvp-lobby-title'] section[aria-label='Locked PvP battle settings'] > div > strong {
+    overflow: hidden;
+    font-size: 0.54rem !important;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  section[aria-labelledby='pvp-lobby-title'] section[data-team] > div:first-child::after {
+    max-width: 62%;
+    font-size: 0.54rem;
+    line-height: 1.2;
   }
 }
 
