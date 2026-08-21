@@ -54,7 +54,8 @@ export function PvpBattleQualityControls({
         commandDeck?.firstElementChild instanceof HTMLElement ? commandDeck.firstElementChild : null
       const heading = target?.querySelector<HTMLElement>(':scope > strong') ?? null
       const helper =
-        target?.querySelector<HTMLElement>(':scope > span:not([data-pvp-turn-clock="true"])') ?? null
+        target?.querySelector<HTMLElement>(':scope > span:not([data-pvp-turn-clock="true"])') ??
+        null
 
       if (heading) heading.style.order = '0'
       if (helper) {
