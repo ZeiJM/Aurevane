@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import type { BattleLogView } from '@/server/battle/battle-log-service'
 import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
@@ -43,20 +43,42 @@ function resultForLocalPlayer(
 }
 
 export function PvpBattleCompletionPanel({
-  battle,
+  initialBattle,
   metadata,
 }: {
-  battle: BattleSessionView
+  initialBattle: BattleSessionView
   metadata: PvpBattleMetadata
 }) {
   const router = useRouter()
+  const [battle, setBattle] = useState(initialBattle)
   const [error, setError] = useState<string | null>(null)
   const [logOpen, setLogOpen] = useState(false)
   const [log, setLog] = useState<BattleLogView | null>(null)
   const [logLoading, setLogLoading] = useState(false)
   const [copyNotice, setCopyNotice] = useState<string | null>(null)
   const result = useMemo(() => resultForLocalPlayer(battle, metadata), [battle, metadata])
-  const round = battle.snapshot.tactical.battle.round
+  const battleState = battle.snapshot.tactical.battle
+  const round = battleState.round
+
+  useEffect(() => {
+    if (battleState.lifecycle === 'completed') return
+    let cancelled = false
+    const timer = window.setInterval(async () => {
+      try {
+        const response = await fetch(`/api/battles/${initialBattle.battleSessionId}`, {
+          cache: 'no-store',
+        })
+        const body = (await response.json()) as { battle?: BattleSessionView }
+        if (response.ok && body.battle && !cancelled) setBattle(body.battle)
+      } catch {
+        // The active battle UI owns connection messaging. This panel only waits for completion.
+      }
+    }, 750)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [battleState.lifecycle, initialBattle.battleSessionId])
 
   async function loadBattleLog(): Promise<BattleLogView | null> {
     if (log) return log
@@ -102,6 +124,8 @@ export function PvpBattleCompletionPanel({
       setCopyNotice('Copy unavailable')
     }
   }
+
+  if (battleState.lifecycle !== 'completed') return null
 
   return (
     <div className={styles.overlay} data-testid="pvp-battle-result-overlay">
