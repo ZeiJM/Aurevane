@@ -1,0 +1,49 @@
+name: Temporary Hotfix Formatter
+
+on:
+  push:
+    branches:
+      - hotfix/reenable-right-click-20260820
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: hotfix/reenable-right-click-20260820
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format hotfix sources
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/components/battle/pvp-battle-experience.tsx \
+            apps/web/src/components/character/character-profile-details.tsx \
+            apps/web/src/server/battle/ai-battle-quality-service.ts \
+            packages/game-core/src/combat/pvp-quality.ts
+      - name: Commit formatting when needed
+        run: |
+          if git diff --quiet; then
+            echo "No formatting changes required."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            apps/web/src/components/battle/pvp-battle-experience.tsx \
+            apps/web/src/components/character/character-profile-details.tsx \
+            apps/web/src/server/battle/ai-battle-quality-service.ts \
+            packages/game-core/src/combat/pvp-quality.ts
+          git commit -m "chore: format hotfix sources [skip ci]"
+          git push origin HEAD:hotfix/reenable-right-click-20260820
