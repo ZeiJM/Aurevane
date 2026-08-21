@@ -6,6 +6,7 @@ import {
   joinPvpSpectation,
   leavePvpSpectation,
 } from '@/server/battle/pvp-battle-communication-service'
+import { loadPvpParticipantTitles } from '@/server/battle/pvp-battle-profile-service'
 import { getPvpSpectatorView } from '@/server/battle/pvp-lobby-service'
 import { toServerErrorResponse } from '@/server/http/error-response'
 
@@ -30,7 +31,14 @@ export async function GET(_request: Request, context: { params: Promise<{ battle
       throw new AurevaneError('INVALID_REQUEST', 'That battle is no longer available to spectate.')
     }
 
-    return Response.json({ spectator }, { headers: { 'Cache-Control': 'private, no-store' } })
+    const participantTitles = await loadPvpParticipantTitles(
+      spectator.participants.map((participant) => participant.characterId),
+    )
+
+    return Response.json(
+      { spectator, participantTitles },
+      { headers: { 'Cache-Control': 'private, no-store' } },
+    )
   } catch (error) {
     return toServerErrorResponse(error)
   }
