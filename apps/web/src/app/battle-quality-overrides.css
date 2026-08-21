@@ -126,7 +126,8 @@ button[aria-label='Close status details'] {
 
 /* AI and PvP use one terrain key. Hide the older AI-only rough/elevation legend entries. */
 #battlefield [data-terrain-legend='difficult'],
-#battlefield [data-terrain-legend='elevation'] {
+#battlefield [data-terrain-legend='elevation'],
+main[aria-busy] #battlefield > div:nth-last-child(2) > span:nth-last-child(-n + 2) {
   display: none !important;
 }
 
