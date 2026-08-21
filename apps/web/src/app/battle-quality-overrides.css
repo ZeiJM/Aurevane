@@ -66,20 +66,32 @@ button[aria-label^='Victory conditions'] {
   width: max-content !important;
   min-width: 0 !important;
   max-width: max-content !important;
-  min-height: 2.15rem !important;
+  min-height: 1.85rem !important;
   height: auto !important;
+  gap: 0.32rem !important;
   align-self: center !important;
   justify-self: start !important;
-  padding-inline: 0.55rem !important;
+  padding: 0.26rem 0.45rem !important;
   border-radius: var(--av-radius-sm) !important;
+}
+
+[data-battle-victory-button='true'] span,
+button[aria-label^='Victory conditions'] span {
+  font-size: 0.39rem !important;
+}
+
+[data-battle-victory-button='true'] strong,
+button[aria-label^='Victory conditions'] strong {
+  font-size: 0.46rem !important;
 }
 
 main[data-pvp-battle='true'] header > div button {
   width: max-content !important;
   min-width: 0 !important;
   max-width: max-content !important;
+  min-height: 1.85rem !important;
   align-self: center !important;
-  padding-inline: 0.55rem !important;
+  padding-inline: 0.45rem !important;
 }
 
 button[aria-label='Close status details'] {
@@ -110,6 +122,12 @@ button[aria-label='Close status details'] {
   font: 800 clamp(1rem, 2.2vw, 1.7rem)/1 var(--av-font-mono);
   text-shadow: 0 0 0.75rem rgba(255, 214, 75, 0.9);
   pointer-events: none;
+}
+
+/* AI and PvP use one terrain key. Hide the older AI-only rough/elevation legend entries. */
+#battlefield [data-terrain-legend='difficult'],
+#battlefield [data-terrain-legend='elevation'] {
+  display: none !important;
 }
 
 #battlefield [data-terrain-legend-polish='true'] {
@@ -222,6 +240,46 @@ main[data-pvp-battle='true'] [data-pvp-turn-clock='true'] {
 }
 
 @media (max-width: 880px) {
+  /* AI mobile: remove reserved battlefield/footer height so the page follows its real content. */
+  main[aria-busy] {
+    min-height: 0 !important;
+    align-content: start !important;
+  }
+
+  main[aria-busy] > div {
+    padding-bottom: 0.2rem !important;
+  }
+
+  main[aria-busy] #battlefield {
+    grid-template-rows: auto auto !important;
+    min-height: 0 !important;
+  }
+
+  main[aria-busy] #battlefield > div:first-child {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    place-items: start center !important;
+    padding: 0.3rem !important;
+    overflow: hidden !important;
+  }
+
+  main[aria-busy] #battlefield > div:first-child > div:first-child {
+    width: 100% !important;
+    height: auto !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    margin: 0 auto !important;
+  }
+
+  main[aria-busy] section[aria-label='Command Deck'] {
+    margin-bottom: 0 !important;
+  }
+
+  main[aria-busy] > footer {
+    margin-top: 0 !important;
+  }
+
   main[data-pvp-battle='true'] {
     height: auto !important;
     min-height: calc(100dvh - 7rem) !important;
@@ -244,7 +302,8 @@ main[data-pvp-battle='true'] [data-pvp-turn-clock='true'] {
     max-height: none !important;
   }
 
-  main[data-pvp-battle='true'] [data-pvp-turn-clock='true'] {
+  main[data-pvp-battle='true'] [data-pvp-turn-clock='true'],
+  main[aria-busy] [data-ai-turn-clock='true'] {
     max-width: 100%;
     overflow: hidden;
     font-size: 0.34rem !important;
