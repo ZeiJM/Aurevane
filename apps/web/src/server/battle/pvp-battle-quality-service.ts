@@ -13,6 +13,7 @@ import {
   type StatDrivenCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import { AurevaneError, StaleBattleVersionError } from '@aurevane/game-core/errors'
+import type { PvpTurnTimerSeconds } from '@aurevane/validation/combat/pvp'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
@@ -27,6 +28,7 @@ export interface PvpTurnClockView {
   combatantId: string | null
   deadlineAt: string | null
   expired: boolean
+  turnTimerSeconds: PvpTurnTimerSeconds
 }
 
 export interface PvpTurnClockTick {
@@ -47,11 +49,21 @@ function fingerprint(value: unknown): string {
 
 function parseClock(value: unknown): PvpTurnClockView | null {
   if (!isObject(value) || typeof value.active !== 'boolean') return null
+  const turnTimerSeconds = value.turn_timer_seconds
+  if (turnTimerSeconds !== null && turnTimerSeconds !== 60 && turnTimerSeconds !== 120) return null
   if (!value.active) {
-    return { active: false, turnNumber: null, combatantId: null, deadlineAt: null, expired: false }
+    return {
+      active: false,
+      turnNumber: null,
+      combatantId: null,
+      deadlineAt: null,
+      expired: false,
+      turnTimerSeconds,
+    }
   }
   const turnNumber = Number(value.turn_number)
   if (
+    (turnTimerSeconds !== 60 && turnTimerSeconds !== 120) ||
     !Number.isSafeInteger(turnNumber) ||
     turnNumber < 1 ||
     typeof value.combatant_id !== 'string' ||
@@ -66,6 +78,7 @@ function parseClock(value: unknown): PvpTurnClockView | null {
     combatantId: value.combatant_id,
     deadlineAt: value.deadline_at,
     expired: value.expired,
+    turnTimerSeconds,
   }
 }
 

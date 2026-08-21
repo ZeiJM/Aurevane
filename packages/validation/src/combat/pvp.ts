@@ -9,6 +9,9 @@ export type PvpMapSize = z.infer<typeof pvpMapSizeSchema>
 export const pvpMapBiasSchema = z.enum(['less', 'neutral', 'more'])
 export type PvpMapBias = z.infer<typeof pvpMapBiasSchema>
 
+export const pvpTurnTimerSecondsSchema = z.union([z.literal(60), z.literal(120), z.null()])
+export type PvpTurnTimerSeconds = z.infer<typeof pvpTurnTimerSecondsSchema>
+
 export const pvpLobbyIdSchema = z.string().uuid()
 export const pvpLobbyKeySchema = z
   .string()
@@ -32,6 +35,7 @@ const createLobbyRequestSchema = z
     mapSize: pvpMapSizeSchema.default('medium'),
     elevationBias: pvpMapBiasSchema.default('neutral'),
     terrainBias: pvpMapBiasSchema.default('neutral'),
+    turnTimerSeconds: pvpTurnTimerSecondsSchema.default(60),
   })
   .strict()
   .superRefine((value, context) => {
@@ -66,6 +70,7 @@ const lobbySettingsRequestSchema = z
     mapSize: pvpMapSizeSchema,
     elevationBias: pvpMapBiasSchema,
     terrainBias: pvpMapBiasSchema,
+    turnTimerSeconds: pvpTurnTimerSecondsSchema,
   })
   .strict()
 

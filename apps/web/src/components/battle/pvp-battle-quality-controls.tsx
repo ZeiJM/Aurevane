@@ -12,6 +12,7 @@ interface ClockView {
   combatantId: string | null
   deadlineAt: string | null
   expired: boolean
+  turnTimerSeconds: 60 | 120 | null
 }
 
 interface TickResponse {
@@ -72,7 +73,8 @@ export function PvpBattleQualityControls({
           const span = candidate.querySelector<HTMLElement>(':scope > span')
           if (!strong || !span) continue
           const duplicate =
-            strong.textContent?.trim() === 'Your turn' && span.textContent?.trim() === DUPLICATE_TURN_COPY
+            strong.textContent?.trim() === 'Your turn' &&
+            span.textContent?.trim() === DUPLICATE_TURN_COPY
           if (duplicate) span.style.display = 'none'
           else if (span.dataset.pvpDuplicateTurnCopy === 'true') {
             span.style.removeProperty('display')
@@ -138,8 +140,10 @@ export function PvpBattleQualityControls({
     }
   }, [battleSessionId])
 
-  const activeName = clock?.combatantId
-    ? (metadata.participants.find((participant) => participant.combatantId === clock.combatantId)
+  const activeCombatantId =
+    clock?.combatantId ?? battle?.snapshot.tactical.battle.currentTurn?.combatantId ?? null
+  const activeName = activeCombatantId
+    ? (metadata.participants.find((participant) => participant.combatantId === activeCombatantId)
         ?.characterName ?? null)
     : null
 
@@ -175,6 +179,12 @@ export function PvpBattleQualityControls({
   }
 
   const seconds = remainingSeconds(clock?.deadlineAt ?? null, now)
+  const battleIsActive = battle?.snapshot.tactical.battle.lifecycle === 'active'
+  const timerText = clock?.active
+    ? `${seconds}s`
+    : battleIsActive && clock?.turnTimerSeconds === null
+      ? 'No timer'
+      : '—'
 
   return (
     <>
@@ -197,9 +207,18 @@ export function PvpBattleQualityControls({
                 whiteSpace: 'nowrap',
               }}
               aria-live="polite"
+              title={
+                clock?.turnTimerSeconds
+                  ? `${clock.turnTimerSeconds}-second PvP turn timer`
+                  : 'This PvP battle has no turn timer.'
+              }
             >
-              <span style={{ color: seconds <= 10 ? '#e48b78' : 'var(--av-brass-200)' }}>
-                {clock?.active ? `${seconds}s` : '—'}
+              <span
+                style={{
+                  color: clock?.active && seconds <= 10 ? '#e48b78' : 'var(--av-brass-200)',
+                }}
+              >
+                {timerText}
               </span>
               <span style={{ color: 'var(--av-text-dim)' }}>
                 {activeName ? `${activeName}'s turn` : 'Turn clock'}

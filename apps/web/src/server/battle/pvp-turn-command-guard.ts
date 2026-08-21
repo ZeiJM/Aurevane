@@ -17,7 +17,7 @@ export async function enforceBattleTurnDeadline(
   if (tick.timedOut) {
     throw new AurevaneError(
       'INVALID_REQUEST',
-      'Your 60-second turn expired. The battle has advanced to the next combatant.',
+      'Your turn timer expired. The battle has advanced to the next combatant.',
     )
   }
 }

@@ -7,7 +7,7 @@ import {
 } from './pvp'
 
 describe('PvP request validation', () => {
-  it('defaults safe medium neutral battlefield settings', () => {
+  it('defaults safe medium neutral battlefield settings and a 60-second timer', () => {
     const parsed = parsePvpCreateLobbyRequest({
       characterId: '5e996b20-04cb-4977-875a-b88550630aa0',
       mode: '1v1',
@@ -16,22 +16,51 @@ describe('PvP request validation', () => {
       mapSize: 'medium',
       elevationBias: 'neutral',
       terrainBias: 'neutral',
+      turnTimerSeconds: 60,
     })
   })
 
-  it('accepts the supported random battlefield settings only', () => {
+  it('accepts the supported random battlefield settings and timer choices only', () => {
     expect(
       parsePvpLobbySettingsRequest({
         mapSize: 'large',
         elevationBias: 'more',
         terrainBias: 'less',
+        turnTimerSeconds: 120,
       }),
-    ).toEqual({ mapSize: 'large', elevationBias: 'more', terrainBias: 'less' })
+    ).toEqual({
+      mapSize: 'large',
+      elevationBias: 'more',
+      terrainBias: 'less',
+      turnTimerSeconds: 120,
+    })
+    expect(
+      parsePvpLobbySettingsRequest({
+        mapSize: 'medium',
+        elevationBias: 'neutral',
+        terrainBias: 'neutral',
+        turnTimerSeconds: null,
+      }),
+    ).toEqual({
+      mapSize: 'medium',
+      elevationBias: 'neutral',
+      terrainBias: 'neutral',
+      turnTimerSeconds: null,
+    })
     expect(
       parsePvpLobbySettingsRequest({
         mapSize: 'small',
         elevationBias: 'neutral',
         terrainBias: 'neutral',
+        turnTimerSeconds: 60,
+      }),
+    ).toBeNull()
+    expect(
+      parsePvpLobbySettingsRequest({
+        mapSize: 'medium',
+        elevationBias: 'neutral',
+        terrainBias: 'neutral',
+        turnTimerSeconds: 90,
       }),
     ).toBeNull()
   })

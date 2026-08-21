@@ -5,7 +5,12 @@ import {
   getTacticalHallRecord,
   type TacticalHallRecordId,
 } from '@aurevane/game-core/combat/tactical-hall-records'
-import type { PvpMapBias, PvpMapSize, PvpMode } from '@aurevane/validation/combat/pvp'
+import type {
+  PvpMapBias,
+  PvpMapSize,
+  PvpMode,
+  PvpTurnTimerSeconds,
+} from '@aurevane/validation/combat/pvp'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
@@ -66,6 +71,18 @@ function recordDisplayName(recordId: TacticalHallRecordId, fallback: string): st
   return recordId === 'recruit-sparring' ? 'AI Sparring' : fallback
 }
 
+function formatPvpLobbyKeyInput(value: string): string {
+  const compact = value.toUpperCase().replace(/[^A-Z0-9]/g, '')
+  const payload = (compact.startsWith('AVL') ? compact.slice(3) : compact).slice(0, 8)
+  const firstGroup = payload.slice(0, 4)
+  const secondGroup = payload.slice(4)
+  return `AVL-${firstGroup}${secondGroup ? `-${secondGroup}` : ''}`
+}
+
+function isCompletePvpLobbyKey(value: string): boolean {
+  return /^AVL-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(value)
+}
+
 export function BattleLaunch({
   characterId,
   characterName,
@@ -84,7 +101,8 @@ export function BattleLaunch({
   const [mapSize, setMapSize] = useState<PvpMapSize>('medium')
   const [elevationBias, setElevationBias] = useState<PvpMapBias>('neutral')
   const [terrainBias, setTerrainBias] = useState<PvpMapBias>('neutral')
-  const [joinKey, setJoinKey] = useState(initialJoinKey ?? '')
+  const [turnTimerSeconds, setTurnTimerSeconds] = useState<PvpTurnTimerSeconds>(60)
+  const [joinKey, setJoinKey] = useState(() => formatPvpLobbyKeyInput(initialJoinKey ?? ''))
   const [battleKey, setBattleKey] = useState('')
   const [pvpLobby, setPvpLobby] = useState<PvpLobbyView | null>(null)
   const [pending, setPending] = useState(false)
@@ -158,6 +176,7 @@ export function BattleLaunch({
           mapSize,
           elevationBias,
           terrainBias,
+          turnTimerSeconds,
           ...(pvpMode === 'flex-teams' ? { teamASize, teamBSize } : {}),
         }),
       })
@@ -178,9 +197,10 @@ export function BattleLaunch({
   const joinLobby = useCallback(
     async (key: string) => {
       if (pending) return
-      const normalized = key.trim().toUpperCase()
-      if (!normalized) {
-        setError('Enter a lobby key to join a PvP staging room.')
+      const normalized = formatPvpLobbyKeyInput(key)
+      setJoinKey(normalized)
+      if (!isCompletePvpLobbyKey(normalized)) {
+        setError('Enter all 8 Lobby Key characters. The AVL prefix and dashes are added for you.')
         return
       }
       setPending(true)
@@ -442,7 +462,15 @@ export function BattleLaunch({
                   </label>
                 </div>
               ) : null}
-              <div className={styles.mapSettings} aria-label="Random battlefield settings">
+              <div
+                className={styles.mapSettings}
+                aria-label="PvP battle settings"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(7.5rem, 1fr))',
+                  gap: '0.35rem',
+                }}
+              >
                 <label>
                   Map size
                   <select
@@ -475,11 +503,27 @@ export function BattleLaunch({
                     <option value="more">More</option>
                   </select>
                 </label>
+                <label>
+                  Turn timer
+                  <select
+                    value={turnTimerSeconds === null ? 'none' : String(turnTimerSeconds)}
+                    onChange={(event) => {
+                      const value = event.target.value
+                      setTurnTimerSeconds(
+                        value === 'none' ? null : (Number(value) as PvpTurnTimerSeconds),
+                      )
+                    }}
+                  >
+                    <option value="60">60 seconds</option>
+                    <option value="120">120 seconds</option>
+                    <option value="none">No timer</option>
+                  </select>
+                </label>
               </div>
               {pvpMode ? (
                 <p className={styles.modeSummary}>
                   {PVP_MODES.find((mode) => mode.id === pvpMode)?.detail}. {characterName} takes the
-                  first seat. The battlefield is generated once and persisted for the match.
+                  first seat. The battlefield and turn timer are locked for the match.
                 </p>
               ) : null}
               <button
@@ -505,17 +549,21 @@ export function BattleLaunch({
               <input
                 id="lobby-key"
                 value={joinKey}
-                onChange={(event) => setJoinKey(event.target.value.toUpperCase())}
+                onChange={(event) => setJoinKey(formatPvpLobbyKeyInput(event.target.value))}
                 placeholder="AVL-0000-0000"
                 autoComplete="off"
+                autoCapitalize="characters"
+                spellCheck={false}
+                maxLength={13}
               />
               <p>
-                Paste a Lobby Key from another player. Shared invite links fill this automatically.
+                Type only the 8 key characters. AVL-, capitalization, and dashes are filled in
+                automatically. Pasting a full Lobby Key also works.
               </p>
               <button
                 type="button"
                 className={styles.secondaryAction}
-                disabled={pending || !joinKey.trim()}
+                disabled={pending || !isCompletePvpLobbyKey(joinKey)}
                 onClick={() => void joinLobby(joinKey)}
               >
                 {pending ? 'Joining…' : 'Join Battle Lobby'}

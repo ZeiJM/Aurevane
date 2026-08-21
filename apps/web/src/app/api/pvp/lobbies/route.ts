@@ -31,6 +31,7 @@ export async function POST(request: Request) {
       mapSize: parsed.mapSize,
       elevationBias: parsed.elevationBias,
       terrainBias: parsed.terrainBias,
+      turnTimerSeconds: parsed.turnTimerSeconds,
     })
     return Response.json(
       { lobby },
