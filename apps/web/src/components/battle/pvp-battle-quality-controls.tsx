@@ -142,8 +142,9 @@ export function PvpBattleQualityControls({
   const activeCombatantId =
     clock?.combatantId ?? battle?.snapshot.tactical.battle.currentTurn?.combatantId ?? null
   const activeName = activeCombatantId
-    ? (metadata.participants.find((participant) => participant.combatantId === activeCombatantId)
-        ?.characterName ?? null)
+    ? (metadata.participants.find(
+        (participant) => participant.combatantId === activeCombatantId,
+      )?.characterName ?? null)
     : null
 
   async function surrender() {
