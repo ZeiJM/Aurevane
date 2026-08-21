@@ -102,6 +102,10 @@ button[aria-label='Close status details'] {
   position: relative;
 }
 
+#battlefield > div:first-child > div:first-child {
+  min-width: 0 !important;
+}
+
 #battlefield [data-facing-guide='true'] {
   z-index: 8 !important;
   border-color: rgba(244, 204, 72, 0.98) !important;
