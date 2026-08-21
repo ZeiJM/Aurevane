@@ -5,7 +5,12 @@ import {
   getTacticalHallRecord,
   type TacticalHallRecordId,
 } from '@aurevane/game-core/combat/tactical-hall-records'
-import type { PvpMapBias, PvpMapSize, PvpMode } from '@aurevane/validation/combat/pvp'
+import type {
+  PvpMapBias,
+  PvpMapSize,
+  PvpMode,
+  PvpTurnTimerSeconds,
+} from '@aurevane/validation/combat/pvp'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
@@ -84,6 +89,7 @@ export function BattleLaunch({
   const [mapSize, setMapSize] = useState<PvpMapSize>('medium')
   const [elevationBias, setElevationBias] = useState<PvpMapBias>('neutral')
   const [terrainBias, setTerrainBias] = useState<PvpMapBias>('neutral')
+  const [turnTimerSeconds, setTurnTimerSeconds] = useState<PvpTurnTimerSeconds>(60)
   const [joinKey, setJoinKey] = useState(initialJoinKey ?? '')
   const [battleKey, setBattleKey] = useState('')
   const [pvpLobby, setPvpLobby] = useState<PvpLobbyView | null>(null)
@@ -158,6 +164,7 @@ export function BattleLaunch({
           mapSize,
           elevationBias,
           terrainBias,
+          turnTimerSeconds,
           ...(pvpMode === 'flex-teams' ? { teamASize, teamBSize } : {}),
         }),
       })
@@ -442,7 +449,15 @@ export function BattleLaunch({
                   </label>
                 </div>
               ) : null}
-              <div className={styles.mapSettings} aria-label="Random battlefield settings">
+              <div
+                className={styles.mapSettings}
+                aria-label="PvP battle settings"
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(7.5rem, 1fr))',
+                  gap: '0.35rem',
+                }}
+              >
                 <label>
                   Map size
                   <select
@@ -475,11 +490,27 @@ export function BattleLaunch({
                     <option value="more">More</option>
                   </select>
                 </label>
+                <label>
+                  Turn timer
+                  <select
+                    value={turnTimerSeconds === null ? 'none' : String(turnTimerSeconds)}
+                    onChange={(event) => {
+                      const value = event.target.value
+                      setTurnTimerSeconds(
+                        value === 'none' ? null : (Number(value) as PvpTurnTimerSeconds),
+                      )
+                    }}
+                  >
+                    <option value="60">60 seconds</option>
+                    <option value="120">120 seconds</option>
+                    <option value="none">No timer</option>
+                  </select>
+                </label>
               </div>
               {pvpMode ? (
                 <p className={styles.modeSummary}>
                   {PVP_MODES.find((mode) => mode.id === pvpMode)?.detail}. {characterName} takes the
-                  first seat. The battlefield is generated once and persisted for the match.
+                  first seat. The battlefield and turn timer are locked for the match.
                 </p>
               ) : null}
               <button
