@@ -48,7 +48,8 @@ export function PvpBattleQualityControls({
   useEffect(() => {
     const locate = () => {
       const root = document.querySelector<HTMLElement>('main[data-pvp-battle="true"]')
-      const commandDeck = root?.querySelector<HTMLElement>('section[aria-label="Command Deck"]') ?? null
+      const commandDeck =
+        root?.querySelector<HTMLElement>('section[aria-label="Command Deck"]') ?? null
       const target =
         commandDeck?.firstElementChild instanceof HTMLElement ? commandDeck.firstElementChild : null
       const heading = target?.querySelector<HTMLElement>(':scope > strong') ?? null
