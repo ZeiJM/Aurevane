@@ -1,0 +1,59 @@
+name: Format mobile UI batch
+
+on:
+  push:
+    branches:
+      - batch/mobile-ui-fixes
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout batch branch
+        uses: actions/checkout@v4
+        with:
+          ref: batch/mobile-ui-fixes
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Format batch files and remove temporary workflow
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/app/mobile-ui-batch.css \
+            apps/web/src/app/pvp-battle-batch-overrides.css \
+            apps/web/src/components/battle/battle-launch.tsx \
+            apps/web/src/components/battle/mobile-battle-combatant-popup.tsx \
+            apps/web/src/components/battle/pvp-battle-completion-panel.tsx \
+            apps/web/src/components/battle/pvp-battle-inspect-popup.tsx \
+            apps/web/src/components/battle/pvp-battle-quality-controls.tsx \
+            apps/web/src/components/shell/authenticated-game-shell.module.css \
+            apps/web/src/components/shell/authenticated-game-shell.tsx \
+            apps/web/src/components/social/online-users-directory.tsx
+          rm .github/workflows/format-mobile-ui-batch.yml
+
+      - name: Commit formatted batch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No formatting changes required."
+            exit 0
+          fi
+          git commit -m "chore: format mobile UI batch"
+          git push origin HEAD:batch/mobile-ui-fixes
