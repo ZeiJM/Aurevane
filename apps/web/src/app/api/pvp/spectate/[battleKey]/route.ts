@@ -1,6 +1,7 @@
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { parsePvpBattleKey } from '@aurevane/validation/combat/pvp'
 
+import { getActiveSpectatingForUser } from '@/server/account/active-game-session'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import {
   joinPvpSpectation,
@@ -48,9 +49,9 @@ export async function DELETE(_request: Request, context: { params: Promise<{ bat
   try {
     const actor = await getAuthenticatedActor()
     const battleKey = await parseBattleKey(context)
-    const spectator = await getPvpSpectatorView(battleKey)
-    if (spectator) {
-      await leavePvpSpectation(actor.userId, spectator.battle.battleSessionId)
+    const active = await getActiveSpectatingForUser(actor.userId)
+    if (active?.battleKey === battleKey) {
+      await leavePvpSpectation(actor.userId, active.battleSessionId)
     }
     return new Response(null, { status: 204, headers: { 'Cache-Control': 'private, no-store' } })
   } catch (error) {
