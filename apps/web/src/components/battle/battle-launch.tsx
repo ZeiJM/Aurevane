@@ -71,6 +71,18 @@ function recordDisplayName(recordId: TacticalHallRecordId, fallback: string): st
   return recordId === 'recruit-sparring' ? 'AI Sparring' : fallback
 }
 
+function formatPvpLobbyKeyInput(value: string): string {
+  const compact = value.toUpperCase().replace(/[^A-Z0-9]/g, '')
+  const payload = (compact.startsWith('AVL') ? compact.slice(3) : compact).slice(0, 8)
+  const firstGroup = payload.slice(0, 4)
+  const secondGroup = payload.slice(4)
+  return `AVL-${firstGroup}${secondGroup ? `-${secondGroup}` : ''}`
+}
+
+function isCompletePvpLobbyKey(value: string): boolean {
+  return /^AVL-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(value)
+}
+
 export function BattleLaunch({
   characterId,
   characterName,
@@ -90,7 +102,7 @@ export function BattleLaunch({
   const [elevationBias, setElevationBias] = useState<PvpMapBias>('neutral')
   const [terrainBias, setTerrainBias] = useState<PvpMapBias>('neutral')
   const [turnTimerSeconds, setTurnTimerSeconds] = useState<PvpTurnTimerSeconds>(60)
-  const [joinKey, setJoinKey] = useState(initialJoinKey ?? '')
+  const [joinKey, setJoinKey] = useState(() => formatPvpLobbyKeyInput(initialJoinKey ?? ''))
   const [battleKey, setBattleKey] = useState('')
   const [pvpLobby, setPvpLobby] = useState<PvpLobbyView | null>(null)
   const [pending, setPending] = useState(false)
@@ -185,9 +197,10 @@ export function BattleLaunch({
   const joinLobby = useCallback(
     async (key: string) => {
       if (pending) return
-      const normalized = key.trim().toUpperCase()
-      if (!normalized) {
-        setError('Enter a lobby key to join a PvP staging room.')
+      const normalized = formatPvpLobbyKeyInput(key)
+      setJoinKey(normalized)
+      if (!isCompletePvpLobbyKey(normalized)) {
+        setError('Enter all 8 Lobby Key characters. The AVL prefix and dashes are added for you.')
         return
       }
       setPending(true)
@@ -536,17 +549,21 @@ export function BattleLaunch({
               <input
                 id="lobby-key"
                 value={joinKey}
-                onChange={(event) => setJoinKey(event.target.value.toUpperCase())}
+                onChange={(event) => setJoinKey(formatPvpLobbyKeyInput(event.target.value))}
                 placeholder="AVL-0000-0000"
                 autoComplete="off"
+                autoCapitalize="characters"
+                spellCheck={false}
+                maxLength={13}
               />
               <p>
-                Paste a Lobby Key from another player. Shared invite links fill this automatically.
+                Type only the 8 key characters. AVL-, capitalization, and dashes are filled in
+                automatically. Pasting a full Lobby Key also works.
               </p>
               <button
                 type="button"
                 className={styles.secondaryAction}
-                disabled={pending || !joinKey.trim()}
+                disabled={pending || !isCompletePvpLobbyKey(joinKey)}
                 onClick={() => void joinLobby(joinKey)}
               >
                 {pending ? 'Joining…' : 'Join Battle Lobby'}
