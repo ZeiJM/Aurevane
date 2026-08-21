@@ -13,6 +13,17 @@
   margin: 0.68rem 0 0.62rem;
 }
 
+@media (max-height: 820px) and (min-width: 721px) {
+  .surface {
+    margin-block: 0.12rem;
+    padding-block: 0.58rem;
+  }
+
+  .surface h1 {
+    margin: 0.3rem 0 0.34rem;
+  }
+}
+
 @media (max-width: 700px) {
   .surface {
     margin: 0;
