@@ -1,13 +1,15 @@
 'use client'
 
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 import type { PvpBattleMetadata, PvpBattleParticipantView } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
+
+import styles from './pvp-battle-combatant-panels.module.css'
 
 const COMBATANT_COLORS = ['#67c98a', '#dc6a66', '#67aee8', '#d9ad5c', '#a984e8', '#df7eb5'] as const
 
@@ -33,170 +35,86 @@ function Panel({
   const placement = battle.snapshot.tactical.placements.find(
     (candidate) => candidate.combatantId === participant.combatantId,
   )
-  const profile = battle.snapshot.statBridge.combatants.find(
-    (candidate) => candidate.combatantId === participant.combatantId,
-  )
   const statuses =
-    battle.snapshot.statusState.find((row) => row.combatantId === participant.combatantId)
-      ?.statuses ?? []
+    battle.snapshot.statusState.find((row) => row.combatantId === participant.combatantId)?.statuses ?? []
   if (!combatant) return null
 
+  const style = { '--combatant-accent': accent } as CSSProperties
   return (
     <aside
+      className={styles.panel}
       data-pvp-combatant-panel={side}
+      data-side={side}
       aria-label={`${participant.characterName} battle summary`}
-      style={{
-        position: 'fixed',
-        top: '50%',
-        [side]: '.65rem',
-        zIndex: 4100,
-        display: 'grid',
-        width: 'min(13rem, 21vw)',
-        minWidth: '9.5rem',
-        gap: '.46rem',
-        padding: '.7rem',
-        border: `1px solid ${accent}88`,
-        borderRadius: 'var(--av-radius-md)',
-        background: 'rgba(7,10,15,.96)',
-        boxShadow: `0 1rem 3rem rgba(0,0,0,.5), 0 0 1rem ${accent}22`,
-        transform: 'translateY(-50%)',
-        backdropFilter: 'blur(.7rem)',
-      }}
+      style={style}
     >
-      <span
-        style={{
-          color: accent,
-          font: '750 .43rem/1 var(--av-font-mono)',
-          textTransform: 'uppercase',
-        }}
-      >
-        {side === 'left' ? 'Your combatant' : `Team ${participant.teamIndex + 1}`}
-      </span>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '2.7rem 1fr',
-          gap: '.55rem',
-          alignItems: 'center',
-        }}
-      >
-        <span
-          style={{
-            display: 'grid',
-            width: '2.7rem',
-            height: '2.7rem',
-            overflow: 'hidden',
-            border: `2px solid ${accent}`,
-            borderRadius: '50%',
-            boxShadow: `0 0 .8rem ${accent}aa`,
-          }}
-        >
-          <CharacterPortraitImage
-            imageUrl={participant.profileImageUrl}
-            fallbackAssetId={getStarterPortraitImageAssetId(
-              participant.portraitRef as CharacterPortraitRef,
-            )}
-            alt={`${participant.characterName} portrait`}
-            sizes="44px"
-          />
-        </span>
-        <div style={{ display: 'grid', gap: '.2rem' }}>
-          <strong style={{ font: '600 .92rem/1 var(--av-font-display)' }}>
-            {participant.characterName}
-          </strong>
-          <small
-            style={{ color: 'var(--av-text-dim)', font: '650 .44rem/1.3 var(--av-font-mono)' }}
-          >
-            Lv {participant.characterLevel} · Initiative {combatant.initiative}
-          </small>
+      <div className={styles.heading}>
+        <div>
+          <span>{side === 'left' ? 'Character' : `Team ${participant.teamIndex + 1}`}</span>
+          <strong>{participant.characterName}</strong>
+        </div>
+        {battle.snapshot.tactical.battle.currentTurn?.combatantId === participant.combatantId ? (
+          <b>Active</b>
+        ) : null}
+      </div>
+
+      <div className={styles.portrait}>
+        <CharacterPortraitImage
+          imageUrl={participant.profileImageUrl}
+          fallbackAssetId={getStarterPortraitImageAssetId(
+            participant.portraitRef as CharacterPortraitRef,
+          )}
+          alt={`${participant.characterName} portrait`}
+          sizes="(max-width: 880px) 70px, 150px"
+        />
+        <div className={styles.meters}>
+          <span title={`HP ${combatant.hp} / ${combatant.maxHp}`}>
+            <i style={{ width: `${percent(combatant.hp, combatant.maxHp)}%` }} />
+          </span>
+          <span title={`MP ${combatant.mp} / ${combatant.maxMp}`}>
+            <i style={{ width: `${percent(combatant.mp, combatant.maxMp)}%` }} />
+          </span>
         </div>
       </div>
-      <small style={{ color: 'var(--av-text-dim)', font: '650 .44rem/1.3 var(--av-font-mono)' }}>
-        Move {combatant.baseMovementBudget}
-        {profile ? ` · Jump ${profile.jump}` : ''}
-      </small>
-      <div style={{ display: 'grid', gap: '.22rem' }}>
-        <span
-          title={`HP ${combatant.hp} / ${combatant.maxHp}`}
-          style={{
-            height: '.38rem',
-            overflow: 'hidden',
-            borderRadius: '999px',
-            background: 'rgba(255,255,255,.08)',
-          }}
-        >
-          <i
-            style={{
-              display: 'block',
-              width: `${percent(combatant.hp, combatant.maxHp)}%`,
-              height: '100%',
-              background: 'linear-gradient(90deg,#8f3333,#df675f)',
-            }}
-          />
-        </span>
-        <span
-          title={`MP ${combatant.mp} / ${combatant.maxMp}`}
-          style={{
-            height: '.28rem',
-            overflow: 'hidden',
-            borderRadius: '999px',
-            background: 'rgba(255,255,255,.08)',
-          }}
-        >
-          <i
-            style={{
-              display: 'block',
-              width: `${percent(combatant.mp, combatant.maxMp)}%`,
-              height: '100%',
-              background: 'linear-gradient(90deg,#31548c,#719ade)',
-            }}
-          />
-        </span>
+
+      <div className={styles.effects} aria-label={`${participant.characterName} status effects`}>
+        <span>Effects</span>
+        <div>
+          {statuses.length > 0 ? (
+            statuses.map((status) => {
+              const loweredGuard = status.statusId === 'lowered-guard'
+              return (
+                <b
+                  key={status.statusId}
+                  data-debuff={loweredGuard || undefined}
+                  title={
+                    loweredGuard
+                      ? 'Lowered Guard · takes 2.5× damage from all sources'
+                      : status.statusId
+                  }
+                >
+                  {loweredGuard ? 'LG↓' : '◇'}
+                </b>
+              )
+            })
+          ) : (
+            <small>No effects</small>
+          )}
+        </div>
       </div>
-      <div
-        aria-label={`${participant.characterName} status effects`}
-        style={{ display: 'flex', minHeight: '1.55rem', flexWrap: 'wrap', gap: '.3rem' }}
-      >
-        {statuses.length > 0 ? (
-          statuses.map((status) => {
-            const loweredGuard = status.statusId === 'lowered-guard'
-            return (
-              <span
-                key={status.statusId}
-                title={
-                  loweredGuard
-                    ? 'Lowered Guard · takes 2.5× damage from all sources'
-                    : status.statusId
-                }
-                style={{
-                  display: 'inline-flex',
-                  gap: '.25rem',
-                  alignItems: 'center',
-                  padding: '.28rem .36rem',
-                  border: `1px solid ${loweredGuard ? 'rgba(225,98,82,.7)' : 'rgba(212,186,130,.28)'}`,
-                  borderRadius: '.3rem',
-                  color: loweredGuard ? '#f0a398' : 'var(--av-text-muted)',
-                  background: loweredGuard ? 'rgba(151,45,36,.18)' : 'rgba(255,255,255,.025)',
-                  font: '700 .4rem/1 var(--av-font-mono)',
-                }}
-              >
-                <b aria-hidden="true">{loweredGuard ? '⛨↓' : '◇'}</b>
-                {loweredGuard ? 'Lowered Guard' : status.statusId}
-              </span>
-            )
-          })
-        ) : (
-          <span style={{ color: 'var(--av-text-dim)', font: '650 .4rem/1 var(--av-font-mono)' }}>
-            No active effects
-          </span>
-        )}
+
+      <div className={styles.facing}>
+        <span aria-hidden="true">
+          {placement?.facing === 'north'
+            ? '↑'
+            : placement?.facing === 'east'
+              ? '→'
+              : placement?.facing === 'south'
+                ? '↓'
+                : '←'}
+        </span>
+        <strong>{placement?.facing ?? '—'}</strong>
       </div>
-      <small style={{ color: 'var(--av-text-muted)', fontSize: '.5rem' }}>
-        {combatant.hp <= 0 ? 'Defeated' : `Facing ${placement?.facing ?? '—'}`}
-        {profile
-          ? ` · Armor ${profile.armor} · Evasion ${(profile.evasion / 100).toFixed(0)}%`
-          : ''}
-      </small>
     </aside>
   )
 }
@@ -209,6 +127,7 @@ export function PvpBattleCombatantPanels({
   metadata: PvpBattleMetadata
 }) {
   const [battle, setBattle] = useState(initialBattle)
+  const [battlefieldTarget, setBattlefieldTarget] = useState<HTMLElement | null>(null)
   const orderedParticipants = useMemo(
     () =>
       [...metadata.participants].sort(
@@ -244,10 +163,17 @@ export function PvpBattleCombatantPanels({
       null,
   )
   const selected = useMemo(
-    () =>
-      metadata.participants.find((participant) => participant.combatantId === selectedId) ?? null,
+    () => metadata.participants.find((participant) => participant.combatantId === selectedId) ?? null,
     [metadata.participants, selectedId],
   )
+
+  useEffect(() => {
+    const locate = () => setBattlefieldTarget(document.querySelector<HTMLElement>('#battlefield'))
+    locate()
+    const observer = new MutationObserver(locate)
+    observer.observe(document.body, { childList: true, subtree: true })
+    return () => observer.disconnect()
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -283,9 +209,9 @@ export function PvpBattleCombatantPanels({
     return () => document.removeEventListener('click', choose, true)
   }, [metadata.participants])
 
-  if (typeof document === 'undefined') return null
+  if (!battlefieldTarget) return null
   return createPortal(
-    <>
+    <div className={styles.rails} data-pvp-battle-rails="true">
       <Panel
         participant={local}
         battle={battle}
@@ -306,7 +232,7 @@ export function PvpBattleCombatantPanels({
             : COMBATANT_COLORS[1]
         }
       />
-    </>,
-    document.body,
+    </div>,
+    battlefieldTarget,
   )
 }
