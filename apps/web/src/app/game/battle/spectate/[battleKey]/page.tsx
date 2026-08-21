@@ -14,6 +14,33 @@ import { getPvpSpectatorView } from '@/server/battle/pvp-lobby-service'
 
 export const dynamic = 'force-dynamic'
 
+async function loadSpectatorPageData(userId: string, battleKey: string) {
+  try {
+    const spectator = await getPvpSpectatorView(battleKey)
+    if (!spectator) redirect('/game/battle')
+
+    const battleSessionId = await joinPvpSpectation(userId, battleKey)
+    if (!battleSessionId || battleSessionId !== spectator.battle.battleSessionId) {
+      redirect('/game/battle')
+    }
+
+    const participantTitles = await loadPvpParticipantTitles(
+      spectator.participants.map((participant) => participant.characterId),
+    )
+    return { spectator, participantTitles }
+  } catch (error) {
+    if (
+      isAurevaneError(error) &&
+      (error.code === 'FORBIDDEN' ||
+        error.code === 'INVALID_REQUEST' ||
+        error.code === 'PERSISTENCE_UNAVAILABLE')
+    ) {
+      redirect('/game/battle')
+    }
+    throw error
+  }
+}
+
 export default async function PvpSpectatorPage({
   params,
 }: {
@@ -36,35 +63,14 @@ export default async function PvpSpectatorPage({
   const battleKey = parsePvpBattleKey(rawBattleKey)
   if (!battleKey) redirect('/game/battle')
 
-  try {
-    const spectator = await getPvpSpectatorView(battleKey)
-    if (!spectator) redirect('/game/battle')
+  const { spectator, participantTitles } = await loadSpectatorPageData(actor.userId, battleKey)
 
-    const battleSessionId = await joinPvpSpectation(actor.userId, battleKey)
-    if (!battleSessionId || battleSessionId !== spectator.battle.battleSessionId) {
-      redirect('/game/battle')
-    }
-    const participantTitles = await loadPvpParticipantTitles(
-      spectator.participants.map((participant) => participant.characterId),
-    )
-
-    return (
-      <BattleAudioGate>
-        <PvpSpectatorExperience
-          initialSpectator={spectator}
-          initialParticipantTitles={participantTitles}
-        />
-      </BattleAudioGate>
-    )
-  } catch (error) {
-    if (
-      isAurevaneError(error) &&
-      (error.code === 'FORBIDDEN' ||
-        error.code === 'INVALID_REQUEST' ||
-        error.code === 'PERSISTENCE_UNAVAILABLE')
-    ) {
-      redirect('/game/battle')
-    }
-    throw error
-  }
+  return (
+    <BattleAudioGate>
+      <PvpSpectatorExperience
+        initialSpectator={spectator}
+        initialParticipantTitles={participantTitles}
+      />
+    </BattleAudioGate>
+  )
 }
