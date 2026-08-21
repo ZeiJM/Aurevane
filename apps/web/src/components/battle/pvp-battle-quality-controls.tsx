@@ -41,22 +41,37 @@ export function PvpBattleQualityControls({
   const [error, setError] = useState<string | null>(null)
   const [confirmSurrender, setConfirmSurrender] = useState(false)
   const [surrendering, setSurrendering] = useState(false)
-  const [headerTarget, setHeaderTarget] = useState<HTMLElement | null>(null)
+  const [commandTarget, setCommandTarget] = useState<HTMLElement | null>(null)
   const [footerTarget, setFooterTarget] = useState<HTMLElement | null>(null)
   const confirmTimer = useRef<number | null>(null)
 
   useEffect(() => {
     const locate = () => {
       const root = document.querySelector<HTMLElement>('main[data-pvp-battle="true"]')
-      const header = root?.querySelector<HTMLElement>('header') ?? null
-      setHeaderTarget(
-        header?.firstElementChild instanceof HTMLElement ? header.firstElementChild : header,
-      )
+      const commandDeck =
+        root?.querySelector<HTMLElement>('section[aria-label="Command Deck"]') ?? null
+      const target =
+        commandDeck?.firstElementChild instanceof HTMLElement ? commandDeck.firstElementChild : null
+      const heading = target?.querySelector<HTMLElement>(':scope > strong') ?? null
+      const helper =
+        target?.querySelector<HTMLElement>(':scope > span:not([data-pvp-turn-clock="true"])') ??
+        null
+
+      if (heading) heading.style.order = '0'
+      if (helper) {
+        helper.style.order = '2'
+        helper.style.display = 'none'
+      }
+      setCommandTarget(target)
       setFooterTarget(root?.querySelector<HTMLElement>('footer > div:last-child') ?? null)
     }
     locate()
     const observer = new MutationObserver(locate)
-    observer.observe(document.body, { childList: true, subtree: true })
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    })
     return () => observer.disconnect()
   }, [])
 
@@ -153,22 +168,22 @@ export function PvpBattleQualityControls({
 
   return (
     <>
-      {headerTarget
+      {commandTarget
         ? createPortal(
-            <div
+            <span
               data-pvp-turn-clock="true"
               style={{
-                display: 'flex',
-                width: 'fit-content',
+                display: 'inline-flex',
+                order: 1,
+                flex: '0 0 auto',
                 maxWidth: '100%',
-                gap: '.38rem',
+                gap: '.34rem',
                 alignItems: 'center',
-                marginTop: '.18rem',
-                padding: '.22rem .4rem',
-                border: '1px solid rgba(212,186,130,.28)',
+                padding: '.2rem .38rem',
+                border: '1px solid rgba(212,186,130,.34)',
                 borderRadius: '999px',
-                background: 'rgba(255,255,255,.02)',
-                font: '750 .38rem/1 var(--av-font-mono)',
+                background: 'rgba(255,255,255,.025)',
+                font: '750 .4rem/1 var(--av-font-mono)',
                 whiteSpace: 'nowrap',
               }}
               aria-live="polite"
@@ -185,8 +200,8 @@ export function PvpBattleQualityControls({
                 </strong>
               ) : null}
               {error ? <span style={{ color: '#e2a0a0' }}>{error}</span> : null}
-            </div>,
-            headerTarget,
+            </span>,
+            commandTarget,
           )
         : null}
       {footerTarget

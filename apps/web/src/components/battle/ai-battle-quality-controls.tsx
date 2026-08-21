@@ -28,21 +28,59 @@ export function AiBattleQualityControls({ battleSessionId }: { battleSessionId: 
   const [clock, setClock] = useState<ClockView | null>(null)
   const [now, setNow] = useState(() => Date.now())
   const [error, setError] = useState<string | null>(null)
-  const [headerTarget, setHeaderTarget] = useState<HTMLElement | null>(null)
+  const [commandTarget, setCommandTarget] = useState<HTMLElement | null>(null)
   const reloading = useRef(false)
 
   useEffect(() => {
     const locate = () => {
       const root = document.querySelector<HTMLElement>('#battlefield')?.closest<HTMLElement>('main')
-      const header = root?.querySelector<HTMLElement>('header') ?? null
-      setHeaderTarget(
-        header?.firstElementChild instanceof HTMLElement ? header.firstElementChild : header,
-      )
+      const strip =
+        root?.querySelector<HTMLElement>('[data-testid="combat-mode-instruction"]') ?? null
+      const target =
+        strip?.firstElementChild instanceof HTMLElement ? strip.firstElementChild : null
+      const heading = target?.querySelector<HTMLElement>(':scope > strong') ?? null
+      const helper =
+        target?.querySelector<HTMLElement>(':scope > span:not([data-ai-turn-clock="true"])') ?? null
+
+      if (heading) heading.style.order = '0'
+      if (helper) {
+        helper.style.order = '2'
+        if (heading?.textContent?.trim() === 'Choose your action') helper.style.display = 'none'
+        else helper.style.removeProperty('display')
+      }
+      setCommandTarget(target)
     }
+
     locate()
     const observer = new MutationObserver(locate)
-    observer.observe(document.body, { childList: true, subtree: true })
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    })
     return () => observer.disconnect()
+  }, [])
+
+  useEffect(() => {
+    function closeStatusPopupFromOutside(event: PointerEvent) {
+      const closeButton = document.querySelector<HTMLButtonElement>(
+        'button[aria-label="Close status details"]',
+      )
+      const popup = closeButton?.closest<HTMLElement>('[class*="contextPopover"]') ?? null
+      const target = event.target
+      if (!closeButton || !popup || !(target instanceof Node)) return
+      if (popup.contains(target)) return
+      if (
+        target instanceof Element &&
+        target.closest('button[aria-label*="turns remaining"]') instanceof HTMLElement
+      ) {
+        return
+      }
+      closeButton.click()
+    }
+
+    document.addEventListener('pointerdown', closeStatusPopupFromOutside, true)
+    return () => document.removeEventListener('pointerdown', closeStatusPopupFromOutside, true)
   }, [])
 
   useEffect(() => {
@@ -89,36 +127,40 @@ export function AiBattleQualityControls({ battleSessionId }: { battleSessionId: 
 
   const seconds = remainingSeconds(clock?.deadlineAt ?? null, now)
 
-  if (!headerTarget) return null
+  if (!commandTarget) return null
 
   return createPortal(
-    <div
+    <span
       data-ai-turn-clock="true"
       style={{
-        display: 'flex',
-        width: 'fit-content',
+        display: 'inline-flex',
+        order: 1,
+        flex: '0 0 auto',
         maxWidth: '100%',
-        gap: '.38rem',
+        gap: '.34rem',
         alignItems: 'center',
-        marginTop: '.18rem',
-        padding: '.22rem .4rem',
-        border: '1px solid rgba(212,186,130,.28)',
+        padding: '.2rem .38rem',
+        border: '1px solid rgba(212,186,130,.34)',
         borderRadius: '999px',
-        background: 'rgba(255,255,255,.02)',
-        font: '750 .38rem/1 var(--av-font-mono)',
+        background: 'rgba(255,255,255,.025)',
+        font: '750 .4rem/1 var(--av-font-mono)',
         whiteSpace: 'nowrap',
       }}
       aria-live="polite"
       title="Each player turn lasts 60 seconds. Two consecutive timeouts apply Lowered Guard."
     >
-      <span style={{ color: clock?.active && seconds <= 10 ? '#e48b78' : 'var(--av-brass-200)' }}>
+      <span
+        style={{
+          color: clock?.active && seconds <= 10 ? '#e48b78' : 'var(--av-brass-200)',
+        }}
+      >
         {clock?.active ? `${seconds}s` : '—'}
       </span>
       <span style={{ color: 'var(--av-text-dim)' }}>
         {clock?.active ? 'Your turn' : 'Opponent turn'}
       </span>
       {error ? <span style={{ color: '#e2a0a0' }}>{error}</span> : null}
-    </div>,
-    headerTarget,
+    </span>,
+    commandTarget,
   )
 }
