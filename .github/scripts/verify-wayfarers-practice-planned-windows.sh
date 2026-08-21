@@ -191,11 +191,35 @@ test "$first_claim" = "$report_id|56|56|false"
 test "$replay_claim" = "$report_id|56|56|true"
 test -z "$(materialize)"
 
-# Stopping an unfinished plan clears it without generating a partial reward.
+# Stopping an unfinished plan freezes elapsed server time into one proportional pending report.
 short_plan="$(set_plan short '00000000-0000-4000-8000-000000001655' 'a2:plan:short-stop')"
 test "$short_plan" = 'short|1|10800|false'
+docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  update app_private.wayfarers_practice_state
+  set plan_set_at = clock_timestamp() - interval '90 minutes', updated_at = clock_timestamp()
+  where character_id = '$character_id'::uuid;"
 test "$(stop_training)" = 'true'
 test "$(stop_training)" = 'false'
+
+partial="$(materialize)"
+IFS='|' read -r partial_report_id partial_source partial_window partial_version partial_window_seconds partial_planned_elapsed partial_fallback partial_elapsed partial_credited partial_xp partial_rested partial_status <<<"$partial"
+test -n "$partial_report_id"
+test "$partial_source" = 'passive_training'
+test "$partial_window" = 'short'
+test "$partial_version" = '1'
+test "$partial_window_seconds" = '10800'
+test "$partial_fallback" = '0'
+test "$partial_planned_elapsed" = "$partial_elapsed"
+test "$partial_credited" = "$partial_elapsed"
+test "$partial_elapsed" -ge 5400
+test "$partial_elapsed" -le 5410
+test "$partial_xp" = '15'
+test "$partial_rested" = '0'
+test "$partial_status" = 'pending'
+
+partial_claim_key='00000000-0000-4000-8000-000000001656'
+partial_claim="$(claim_report "$partial_report_id" "$partial_claim_key" 'a2:claim:short-partial')"
+test "$partial_claim" = "$partial_report_id|15|15|false"
 test -z "$(materialize)"
 
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
@@ -203,7 +227,7 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
   select * from public.set_wayfarers_practice_plan_v1(
     'user:$user_id',
     'wayfarers_practice.set_plan.v1',
-    '00000000-0000-4000-8000-000000001656'::uuid,
+    '00000000-0000-4000-8000-000000001657'::uuid,
     'browser-forbidden',
     '$user_id'::uuid,
     '$character_id'::uuid,
