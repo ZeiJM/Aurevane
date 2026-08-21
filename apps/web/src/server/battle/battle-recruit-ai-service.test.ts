@@ -79,6 +79,7 @@ async function initialEncounter(): Promise<StatDrivenCombatEncounterState> {
       }
     }),
     findBattleSession: vi.fn(async () => null),
+    findBattleIntentReplay: vi.fn(async () => null),
     commitBattleIntent: vi.fn(async () => {
       throw new Error('Not used while creating Recruit AI fixture.')
     }),
@@ -126,6 +127,7 @@ function createStatefulRepository(
     controlledCombatantIds: [`character:${CHARACTER_ID}`],
     updatedAt: CREATED_AT,
   }))
+  const findBattleIntentReplay = vi.fn(async () => null)
 
   const commitBattleIntent = vi.fn(async (input: CommitBattleIntentInput) => {
     if (input.expectedBattleVersion !== version) throw new Error('Unexpected stale fixture commit.')
@@ -148,6 +150,7 @@ function createStatefulRepository(
       throw new Error('Not used by Recruit AI runner tests.')
     }),
     findBattleSession,
+    findBattleIntentReplay,
     commitBattleIntent,
   }
 
