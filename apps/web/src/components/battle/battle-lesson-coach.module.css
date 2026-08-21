@@ -289,7 +289,9 @@
     grid-row: 2;
   }
 
-  :global(header:has(> [data-victory-criteria-layout='true']) > [data-battle-economy-panel='true']) {
+  :global(
+    header:has(> [data-victory-criteria-layout='true']) > [data-battle-economy-panel='true']
+  ) {
     grid-column: 1;
     grid-row: 3;
   }
