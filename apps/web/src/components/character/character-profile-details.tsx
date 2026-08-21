@@ -2,6 +2,7 @@
 
 import {
   CHARACTER_ATTRIBUTE_IDS,
+  type CharacterAttributeId,
   type CharacterAttributes,
 } from '@aurevane/game-core/character/creation'
 import type {
@@ -13,7 +14,7 @@ import {
   DERIVED_STAT_PROFILE_GROUPS,
   DERIVED_STAT_PROFILE_HELP,
 } from '@aurevane/game-core/character/profile-stat-content'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 
 import styles from './character-profile-details.module.css'
 
@@ -28,6 +29,11 @@ interface CharacterProfileDetailsProps {
 
 type Detail = { title: string; eyebrow: string; body: string } | null
 
+type AttributeSource = {
+  id: CharacterAttributeId
+  weight: number
+}
+
 const attributeLabels = {
   might: 'Might',
   finesse: 'Finesse',
@@ -36,6 +42,17 @@ const attributeLabels = {
   intellect: 'Intellect',
   resolve: 'Resolve',
 } as const
+
+const ATTRIBUTE_COLORS: Readonly<
+  Record<CharacterAttributeId, { solid: string; tint: string; soft: string }>
+> = {
+  might: { solid: '#d86a5f', tint: 'rgba(216, 106, 95, 0.22)', soft: 'rgba(216, 106, 95, 0.11)' },
+  finesse: { solid: '#d99a55', tint: 'rgba(217, 154, 85, 0.22)', soft: 'rgba(217, 154, 85, 0.11)' },
+  vitality: { solid: '#69bd83', tint: 'rgba(105, 189, 131, 0.22)', soft: 'rgba(105, 189, 131, 0.11)' },
+  agility: { solid: '#54b9bd', tint: 'rgba(84, 185, 189, 0.22)', soft: 'rgba(84, 185, 189, 0.11)' },
+  intellect: { solid: '#a783d6', tint: 'rgba(167, 131, 214, 0.22)', soft: 'rgba(167, 131, 214, 0.11)' },
+  resolve: { solid: '#6d91d9', tint: 'rgba(109, 145, 217, 0.22)', soft: 'rgba(109, 145, 217, 0.11)' },
+}
 
 export function CharacterProfileDetails({
   slotIndex,
@@ -101,26 +118,35 @@ export function CharacterProfileDetails({
             <span>Core attributes</span>
             <h2 id="attributes-title">Character strengths</h2>
           </div>
-          <small>Select any attribute for battle-system details.</small>
+          <small>Each core attribute has its own color. Derived stats reuse those colors to show what feeds them.</small>
         </header>
         <div className={styles.attributeGrid}>
-          {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => (
-            <button
-              key={attributeId}
-              type="button"
-              data-testid={`profile-attribute-${attributeId}`}
-              onClick={() =>
-                setDetail({
-                  eyebrow: 'Core attribute',
-                  title: attributeLabels[attributeId],
-                  body: ATTRIBUTE_PROFILE_HELP[attributeId],
-                })
-              }
-            >
-              <span>{attributeLabels[attributeId]}</span>
-              <strong>{attributes[attributeId]}</strong>
-            </button>
-          ))}
+          {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => {
+            const color = ATTRIBUTE_COLORS[attributeId]
+            const style = {
+              '--attribute-color': color.solid,
+              '--attribute-tint': color.tint,
+            } as CSSProperties
+            return (
+              <button
+                key={attributeId}
+                type="button"
+                data-testid={`profile-attribute-${attributeId}`}
+                data-attribute={attributeId}
+                style={style}
+                onClick={() =>
+                  setDetail({
+                    eyebrow: 'Core attribute',
+                    title: attributeLabels[attributeId],
+                    body: ATTRIBUTE_PROFILE_HELP[attributeId],
+                  })
+                }
+              >
+                <span>{attributeLabels[attributeId]}</span>
+                <strong>{attributes[attributeId]}</strong>
+              </button>
+            )
+          })}
         </div>
       </section>
 
@@ -130,7 +156,7 @@ export function CharacterProfileDetails({
             <span>Combat &amp; adventure stats</span>
             <h2 id="derived-title">Current values</h2>
           </div>
-          <small>Select a stat to see what it means in combat.</small>
+          <small>Select a stat for details. Colored backgrounds identify its contributing core attributes.</small>
         </header>
         <div className={styles.statGroups}>
           {DERIVED_STAT_PROFILE_GROUPS.map((group) => (
@@ -139,11 +165,23 @@ export function CharacterProfileDetails({
               <div>
                 {group.statIds.map((statId) => {
                   const stat = derived.stats[statId]
+                  const sources = getAttributeSources(stat)
+                  const style = {
+                    '--lineage-background': createLineageBackground(sources),
+                    '--lineage-border': createLineageBorder(sources),
+                  } as CSSProperties
+                  const lineageLabel = sources.length
+                    ? `Influenced by ${sources.map((source) => attributeLabels[source.id]).join(' and ')}`
+                    : 'No core attribute influence'
+
                   return (
                     <button
                       key={statId}
                       type="button"
                       data-testid={`derived-stat-${statId}`}
+                      data-source-count={sources.length}
+                      style={style}
+                      title={lineageLabel}
                       onClick={() =>
                         setDetail({
                           eyebrow: group.label,
@@ -152,8 +190,19 @@ export function CharacterProfileDetails({
                         })
                       }
                     >
-                      <span>{stat.label}</span>
+                      <span className={styles.statLabel}>{stat.label}</span>
                       <strong>{formatDerivedStat(stat)}</strong>
+                      {sources.length > 0 ? (
+                        <span className={styles.lineage} aria-label={lineageLabel}>
+                          {sources.map((source) => (
+                            <i
+                              key={source.id}
+                              title={attributeLabels[source.id]}
+                              style={{ '--source-color': ATTRIBUTE_COLORS[source.id].solid } as CSSProperties}
+                            />
+                          ))}
+                        </span>
+                      ) : null}
                     </button>
                   )
                 })}
@@ -183,6 +232,42 @@ export function CharacterProfileDetails({
       ) : null}
     </>
   )
+}
+
+function getAttributeSources(stat: DerivedStatValue): readonly AttributeSource[] {
+  return stat.contributions
+    .filter((contribution) => contribution.sourceKind === 'attribute')
+    .map((contribution) => {
+      const id = contribution.sourceId.replace('character.attribute.', '') as CharacterAttributeId
+      return { id, weight: Math.abs(contribution.coefficient) }
+    })
+    .filter((source) => CHARACTER_ATTRIBUTE_IDS.includes(source.id) && source.weight > 0)
+    .sort((left, right) => right.weight - left.weight || left.id.localeCompare(right.id))
+}
+
+function createLineageBackground(sources: readonly AttributeSource[]): string {
+  if (sources.length === 0) return '#080b10'
+  if (sources.length === 1) {
+    const color = ATTRIBUTE_COLORS[sources[0].id]
+    return `linear-gradient(145deg, ${color.tint} 0%, ${color.soft} 52%, rgba(8, 11, 16, 0.96) 100%)`
+  }
+
+  const totalWeight = sources.reduce((total, source) => total + source.weight, 0)
+  let cursor = 0
+  const stops: string[] = []
+  for (const source of sources) {
+    const start = cursor
+    cursor += (source.weight / totalWeight) * 100
+    const end = cursor
+    const color = ATTRIBUTE_COLORS[source.id].soft
+    stops.push(`${color} ${start.toFixed(1)}%`, `${color} ${end.toFixed(1)}%`)
+  }
+  return `linear-gradient(135deg, ${stops.join(', ')})`
+}
+
+function createLineageBorder(sources: readonly AttributeSource[]): string {
+  if (sources.length === 0) return 'var(--av-border)'
+  return ATTRIBUTE_COLORS[sources[0].id].solid
 }
 
 function formatDerivedStat(stat: DerivedStatValue): string {
