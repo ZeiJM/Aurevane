@@ -72,6 +72,39 @@
   justify-content: flex-end;
 }
 
+.activeBattleLink {
+  display: inline-flex;
+  min-height: 1.85rem;
+  flex: 0 0 auto;
+  gap: 0.3rem;
+  align-items: center;
+  padding: 0.34rem 0.52rem;
+  border: 1px solid rgba(224, 86, 82, 0.62);
+  border-radius: 999px;
+  color: #ffd3cf;
+  background: linear-gradient(180deg, rgba(157, 48, 48, 0.48), rgba(104, 28, 33, 0.44));
+  box-shadow:
+    inset 0 1px rgba(255, 232, 226, 0.08),
+    0 0 0.8rem rgba(214, 73, 70, 0.11);
+  font: 800 0.48rem/1 var(--av-font-mono);
+  letter-spacing: 0.05em;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.activeBattleLink > span {
+  color: #ff746f;
+  font-size: 0.55rem;
+  text-shadow: 0 0 0.55rem rgba(255, 78, 72, 0.72);
+}
+
+.activeBattleLink:hover,
+.activeBattleLink:focus-visible {
+  border-color: rgba(244, 116, 109, 0.86);
+  outline: none;
+  background: linear-gradient(180deg, rgba(177, 57, 54, 0.56), rgba(119, 32, 36, 0.5));
+}
+
 .screenPortrait {
   position: relative;
   display: grid;
@@ -343,7 +376,13 @@
   }
 
   .screenIdentity {
-    gap: 0.32rem;
+    gap: 0.28rem;
+  }
+
+  .activeBattleLink {
+    min-height: 1.6rem;
+    padding: 0.26rem 0.4rem;
+    font-size: 0.42rem;
   }
 
   .screenPortrait {
