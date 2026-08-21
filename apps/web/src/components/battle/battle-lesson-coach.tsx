@@ -63,7 +63,6 @@ function useHeaderCriteriaTarget(): HTMLElement | null {
 
   useEffect(() => {
     let frame = 0
-    let slot: HTMLElement | null = null
     let activeHeader: HTMLElement | null = null
     let activeEconomy: HTMLElement | null = null
     let activeObjective: HTMLElement | null = null
@@ -76,8 +75,10 @@ function useHeaderCriteriaTarget(): HTMLElement | null {
         element.style.removeProperty('grid-column')
         element.style.removeProperty('grid-row')
       }
-      if (slot?.isConnected) slot.remove()
-      slot = null
+      activeHeader = null
+      activeEconomy = null
+      activeObjective = null
+      activeRound = null
     }
 
     const locate = () => {
@@ -85,7 +86,8 @@ function useHeaderCriteriaTarget(): HTMLElement | null {
       const track = document.querySelector<HTMLElement>(
         '[role="progressbar"][aria-label="Action Economy remaining"]',
       )
-      const economy = track?.parentElement instanceof HTMLElement ? track.parentElement : null
+      const locatedEconomy = track?.parentElement instanceof HTMLElement ? track.parentElement : null
+      const economy = locatedEconomy ?? (activeEconomy?.isConnected ? activeEconomy : null)
       const header = economy?.closest<HTMLElement>('header') ?? null
       const objective =
         header?.firstElementChild instanceof HTMLElement ? header.firstElementChild : null
@@ -98,31 +100,24 @@ function useHeaderCriteriaTarget(): HTMLElement | null {
             ) as HTMLElement | undefined) ?? null)
 
       if (!header || !economy || !objective || !round) {
-        if (slot || activeHeader) clearInlineLayout()
-        setHeaderTarget((current) => (current === null ? current : null))
+        if (activeHeader && !activeHeader.isConnected) {
+          clearInlineLayout()
+          setHeaderTarget(null)
+        }
         return
       }
 
-      const slotNeedsRepair =
+      if (
         activeHeader !== header ||
         activeEconomy !== economy ||
         activeObjective !== objective ||
-        activeRound !== round ||
-        !slot?.isConnected ||
-        slot.parentElement !== header
-
-      if (slotNeedsRepair) {
+        activeRound !== round
+      ) {
         clearInlineLayout()
         activeHeader = header
         activeEconomy = economy
         activeObjective = objective
         activeRound = round
-        slot = document.createElement('div')
-        slot.dataset.victoryCriteriaSlot = 'true'
-        slot.style.display = 'flex'
-        slot.style.alignItems = 'stretch'
-        slot.style.minWidth = '0'
-        economy.insertAdjacentElement('afterend', slot)
       }
 
       const compact = window.matchMedia('(max-width: 880px)').matches
@@ -135,12 +130,7 @@ function useHeaderCriteriaTarget(): HTMLElement | null {
       round.style.gridRow = '1'
       economy.style.gridColumn = compact ? '1' : '2'
       economy.style.gridRow = compact ? '2' : '1'
-      if (slot) {
-        slot.style.gridColumn = compact ? '2' : '3'
-        slot.style.gridRow = compact ? '2' : '1'
-        slot.style.alignSelf = 'stretch'
-      }
-      setHeaderTarget((current) => (current === slot ? current : slot))
+      setHeaderTarget((current) => (current === header ? current : header))
     }
 
     const scheduleLocate = () => {
