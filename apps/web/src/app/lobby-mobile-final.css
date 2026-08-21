@@ -1,0 +1,5 @@
+@media (max-width: 900px) {
+  section[aria-labelledby='pvp-lobby-title']::before {
+    display: none !important;
+  }
+}

@@ -1,0 +1,139 @@
+/* PvP battle batch refinements: keep the battlefield compact and align its interaction model with AI battles. */
+
+/* The old roster/portrait strip duplicates Inspect mode and wastes vertical space. */
+main[data-pvp-battle='true'] > section[aria-label='PvP battle roster'],
+main[data-pvp-battle='true'] [data-pvp-battle-rails='true'] {
+  display: none !important;
+}
+
+/* The new shared-style completion panel replaces the legacy one-line PvP result modal. */
+main[data-pvp-battle='true'] > div[class*='resultBackdrop'] {
+  display: none !important;
+}
+
+/* Keep the command heading and clock clean; explanatory status copy is intentionally omitted. */
+main[data-pvp-battle='true']
+  section[aria-label='Command Deck']
+  > div:first-child
+  > span:not([data-pvp-turn-clock='true']) {
+  display: none !important;
+}
+
+/* The polished terrain key is the only persistent battlefield legend. */
+main[data-pvp-battle='true']
+  #battlefield
+  > div:nth-child(2):not([data-terrain-legend-polish='true']) {
+  display: none !important;
+}
+
+/* Remove artificial stage reservations now that portrait rails are gone. */
+main[data-pvp-battle='true'] #battlefield {
+  grid-template-rows: auto auto !important;
+  min-height: 0 !important;
+}
+
+main[data-pvp-battle='true'] #battlefield > div:first-child {
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  place-items: start center !important;
+  padding: 0.32rem !important;
+  overflow: hidden !important;
+}
+
+main[data-pvp-battle='true'] #battlefield > div:first-child > div:first-child {
+  width: min(100%, 58rem) !important;
+  height: auto !important;
+  max-width: 100% !important;
+  max-height: none !important;
+  margin: 0 auto !important;
+  gap: 0 !important;
+  align-items: stretch !important;
+  justify-items: stretch !important;
+  transform: none !important;
+}
+
+/* Fill each grid track completely. This eliminates the dark horizontal gaps that appeared between rows. */
+main[data-pvp-battle='true'] #battlefield button[aria-label^='Tile '] {
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  aspect-ratio: auto !important;
+  align-self: stretch !important;
+  justify-self: stretch !important;
+}
+
+/* The original center Battle Key is replaced by the Spectator Key below Surrender. */
+main[data-pvp-battle='true'] > footer > button[class*='battleKey'] {
+  display: none !important;
+}
+
+main[data-pvp-battle='true'] [data-pvp-match-utility='true'] {
+  flex: 0 0 auto;
+}
+
+main[data-pvp-battle='true'] [data-pvp-match-utility='true'] > button {
+  width: 100% !important;
+}
+
+@media (max-width: 880px) {
+  main[data-pvp-battle='true'] {
+    height: auto !important;
+    min-height: 0 !important;
+    align-content: start !important;
+    overflow: visible !important;
+  }
+
+  main[data-pvp-battle='true'] > section[class*='content'] {
+    gap: 0.28rem !important;
+    min-height: 0 !important;
+    padding-block: 0.28rem !important;
+    overflow: visible !important;
+  }
+
+  main[data-pvp-battle='true'] #battlefield > div:first-child {
+    padding: 0.28rem !important;
+  }
+
+  main[data-pvp-battle='true'] #battlefield > div:first-child > div:first-child {
+    width: 100% !important;
+  }
+
+  main[data-pvp-battle='true'] #battlefield [data-terrain-legend-polish='true'] {
+    gap: 0.22rem;
+    padding: 0.24rem;
+  }
+
+  main[data-pvp-battle='true'] #battlefield [data-terrain-legend-polish='true'] > span {
+    min-width: 0;
+    flex: 1 1 7.5rem;
+    padding: 0.22rem 0.3rem;
+  }
+
+  main[data-pvp-battle='true'] > footer [class*='footerActions'] {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.32rem !important;
+  }
+
+  main[data-pvp-battle='true'] [data-pvp-match-utility='true'] {
+    grid-column: 1 / -1;
+    width: min(100%, 16rem);
+    justify-self: end;
+  }
+}
+
+@media (max-width: 580px) {
+  main[data-pvp-battle='true'] > footer [class*='footerActions'] {
+    grid-template-columns: 1fr 1fr !important;
+    width: 100% !important;
+  }
+
+  main[data-pvp-battle='true'] [data-pvp-match-utility='true'] {
+    width: 100%;
+    justify-self: stretch;
+  }
+}

@@ -29,8 +29,6 @@ function remainingSeconds(deadlineAt: string | null, now: number): number {
   return Math.max(0, Math.ceil((new Date(deadlineAt).getTime() - now) / 1000))
 }
 
-const DUPLICATE_TURN_COPY = 'Your turn. Choose an action.'
-
 export function PvpBattleQualityControls({
   battleSessionId,
   metadata,
@@ -44,6 +42,7 @@ export function PvpBattleQualityControls({
   const [error, setError] = useState<string | null>(null)
   const [confirmSurrender, setConfirmSurrender] = useState(false)
   const [surrendering, setSurrendering] = useState(false)
+  const [spectatorKeyCopied, setSpectatorKeyCopied] = useState(false)
   const [commandTarget, setCommandTarget] = useState<HTMLElement | null>(null)
   const [footerTarget, setFooterTarget] = useState<HTMLElement | null>(null)
   const confirmTimer = useRef<number | null>(null)
@@ -61,26 +60,14 @@ export function PvpBattleQualityControls({
         null
 
       if (heading) heading.style.order = '0'
-      if (helper) {
-        helper.style.order = '2'
-        if (helper.textContent?.trim() === DUPLICATE_TURN_COPY) helper.style.display = 'none'
-        else helper.style.removeProperty('display')
-      }
+      if (helper) helper.style.display = 'none'
 
       if (root) {
         for (const candidate of root.querySelectorAll<HTMLElement>('div')) {
           const strong = candidate.querySelector<HTMLElement>(':scope > strong')
           const span = candidate.querySelector<HTMLElement>(':scope > span')
           if (!strong || !span) continue
-          const duplicate =
-            strong.textContent?.trim() === 'Your turn' &&
-            span.textContent?.trim() === DUPLICATE_TURN_COPY
-          if (duplicate) span.style.display = 'none'
-          else if (span.dataset.pvpDuplicateTurnCopy === 'true') {
-            span.style.removeProperty('display')
-            delete span.dataset.pvpDuplicateTurnCopy
-          }
-          if (duplicate) span.dataset.pvpDuplicateTurnCopy = 'true'
+          if (strong.textContent?.trim() === 'Your turn') span.style.display = 'none'
         }
       }
 
@@ -178,6 +165,16 @@ export function PvpBattleQualityControls({
     }
   }
 
+  async function copySpectatorKey() {
+    try {
+      await navigator.clipboard.writeText(metadata.battleKey)
+      setSpectatorKeyCopied(true)
+      window.setTimeout(() => setSpectatorKeyCopied(false), 1500)
+    } catch {
+      setError('Spectator Key copy is unavailable in this browser.')
+    }
+  }
+
   const seconds = remainingSeconds(clock?.deadlineAt ?? null, now)
   const battleIsActive = battle?.snapshot.tactical.battle.lifecycle === 'active'
   const timerText = clock?.active
@@ -230,27 +227,74 @@ export function PvpBattleQualityControls({
         : null}
       {footerTarget
         ? createPortal(
-            <button
-              type="button"
-              onClick={() => void surrender()}
-              disabled={surrendering || battle?.snapshot.tactical.battle.lifecycle === 'completed'}
+            <div
+              data-pvp-match-utility="true"
               style={{
-                minHeight: '2.25rem',
-                padding: '.48rem .68rem',
-                border: '1px solid rgba(194,89,78,.62)',
-                borderRadius: 'var(--av-radius-sm)',
-                color: confirmSurrender ? '#ffe0d7' : '#dba59b',
-                background: confirmSurrender ? 'rgba(151,45,36,.3)' : 'rgba(122,45,39,.12)',
-                font: '750 .46rem/1 var(--av-font-mono)',
-                cursor: surrendering ? 'wait' : 'pointer',
+                display: 'grid',
+                gap: '.28rem',
+                minWidth: '8.4rem',
               }}
             >
-              {surrendering
-                ? 'Surrendering…'
-                : confirmSurrender
-                  ? 'Confirm Surrender'
-                  : 'Surrender'}
-            </button>,
+              <button
+                type="button"
+                onClick={() => void surrender()}
+                disabled={
+                  surrendering || battle?.snapshot.tactical.battle.lifecycle === 'completed'
+                }
+                style={{
+                  minHeight: '2.25rem',
+                  padding: '.48rem .68rem',
+                  border: '1px solid rgba(194,89,78,.62)',
+                  borderRadius: 'var(--av-radius-sm)',
+                  color: confirmSurrender ? '#ffe0d7' : '#dba59b',
+                  background: confirmSurrender ? 'rgba(151,45,36,.3)' : 'rgba(122,45,39,.12)',
+                  font: '750 .46rem/1 var(--av-font-mono)',
+                  cursor: surrendering ? 'wait' : 'pointer',
+                }}
+              >
+                {surrendering
+                  ? 'Surrendering…'
+                  : confirmSurrender
+                    ? 'Confirm Surrender'
+                    : 'Surrender'}
+              </button>
+              <button
+                type="button"
+                data-pvp-spectator-key="true"
+                onClick={() => void copySpectatorKey()}
+                style={{
+                  display: 'grid',
+                  gap: '.08rem',
+                  minHeight: '2.25rem',
+                  padding: '.38rem .58rem',
+                  border: '1px solid rgba(207,169,93,.42)',
+                  borderRadius: 'var(--av-radius-sm)',
+                  color: 'var(--av-text-muted)',
+                  background: 'rgba(207,169,93,.055)',
+                  textAlign: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                <small
+                  style={{
+                    color: 'var(--av-text-dim)',
+                    font: '700 .34rem/1 var(--av-font-mono)',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {spectatorKeyCopied ? 'Copied!' : 'Spectator Key'}
+                </small>
+                <strong
+                  style={{
+                    color: 'var(--av-brass-200)',
+                    font: '800 .5rem/1 var(--av-font-mono)',
+                    letterSpacing: '.06em',
+                  }}
+                >
+                  {metadata.battleKey}
+                </strong>
+              </button>
+            </div>,
             footerTarget,
           )
         : null}

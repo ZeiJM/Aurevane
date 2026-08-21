@@ -62,6 +62,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
 
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
+  const inspectButton = commandDeck.getByRole('button', { name: /Inspect/ })
   const moveButton = commandDeck.getByRole('button', { name: /Move/ })
   const attackButton = commandDeck.getByRole('button', { name: /Basic Attack/ })
   const guardButton = commandDeck.getByRole('button', { name: /Guard/ })
@@ -104,8 +105,11 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
       name: new RegExp(`occupied by ${characterName}`),
     })
     const recruitTile = page.getByRole('button', { name: /occupied by Recruit/ })
-    await playerTile.click()
     const combatantDialog = page.getByRole('dialog', { name: `${characterName} battle details` })
+    await playerTile.click()
+    await expect(combatantDialog).toHaveCount(0)
+    await inspectButton.click()
+    await playerTile.click()
     await expect(combatantDialog).toBeVisible()
     await expect(combatantDialog.getByText('Initiative', { exact: true })).toBeVisible()
     await page.mouse.click(1, 1)

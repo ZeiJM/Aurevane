@@ -1,0 +1,316 @@
+/* Batch-level presentation refinements that intentionally avoid changing battle rules. */
+
+#battle-launch [data-pvp-create-card] {
+  gap: 0.62rem;
+  border-color: rgba(206, 151, 108, 0.26);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(140, 77, 57, 0.12), transparent 16rem),
+    linear-gradient(155deg, rgba(25, 20, 24, 0.72), rgba(6, 10, 16, 0.78));
+}
+
+#battle-launch [data-pvp-settings-panel] {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.48rem;
+  padding: 0.62rem;
+  border: 1px solid rgba(207, 169, 93, 0.2);
+  border-radius: 0.5rem;
+  background:
+    linear-gradient(135deg, rgba(207, 169, 93, 0.045), transparent 45%), rgba(4, 7, 12, 0.5);
+}
+
+#battle-launch [data-pvp-settings-heading] {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: 0.46rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.055);
+}
+
+#battle-launch [data-pvp-settings-heading] strong {
+  color: #eee6d7;
+  font: 600 0.75rem/1 var(--av-font-display);
+}
+
+#battle-launch [data-pvp-settings-heading] small {
+  color: var(--av-text-dim);
+  font-size: 0.48rem;
+  line-height: 1.3;
+  text-align: right;
+}
+
+#battle-launch [data-pvp-setting-group] {
+  min-width: 0;
+  margin: 0;
+  padding: 0.44rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 0.42rem;
+  background: rgba(255, 255, 255, 0.018);
+}
+
+#battle-launch [data-pvp-setting-group] legend {
+  padding: 0 0.28rem;
+  color: #b7ab98;
+  font: 750 0.44rem/1 var(--av-font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+#battle-launch [data-pvp-setting-options] {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 0.25rem;
+}
+
+#battle-launch [data-pvp-setting-options] button {
+  min-width: 0;
+  min-height: 2rem;
+  padding: 0.4rem 0.28rem;
+  border: 1px solid rgba(156, 136, 111, 0.24);
+  border-radius: 0.34rem;
+  color: #8f958f;
+  background: rgba(9, 13, 18, 0.72);
+  font: 750 0.44rem/1 var(--av-font-mono);
+  cursor: pointer;
+  transition:
+    border-color 130ms ease,
+    color 130ms ease,
+    background 130ms ease,
+    box-shadow 130ms ease;
+}
+
+#battle-launch [data-pvp-setting-options] button:hover,
+#battle-launch [data-pvp-setting-options] button:focus-visible {
+  border-color: rgba(213, 180, 116, 0.48);
+  color: #d8d0bf;
+  outline: none;
+}
+
+#battle-launch [data-pvp-setting-options] button[data-selected] {
+  border-color: rgba(220, 184, 106, 0.68);
+  color: #f1ddb0;
+  background:
+    linear-gradient(180deg, rgba(148, 98, 48, 0.22), rgba(88, 55, 27, 0.16)), rgba(9, 12, 17, 0.82);
+  box-shadow:
+    inset 0 0 0 1px rgba(244, 211, 139, 0.05),
+    0 0 0.7rem rgba(203, 153, 74, 0.08);
+}
+
+#battle-launch [data-pvp-setting-options] button:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+
+/* PvP lobby: keep the four locked match choices as one compact, readable strip. */
+section[aria-labelledby='pvp-lobby-title'] section[aria-label='Locked PvP battle settings'] {
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  gap: 0.28rem !important;
+}
+
+section[aria-labelledby='pvp-lobby-title'] section[aria-label='Locked PvP battle settings'] > div {
+  min-width: 0 !important;
+  padding: 0.4rem 0.44rem !important;
+}
+
+section[aria-labelledby='pvp-lobby-title'] section[data-team] > div:first-child > strong {
+  display: none;
+}
+
+section[aria-labelledby='pvp-lobby-title'] section[data-team] > div:first-child::after {
+  color: var(--av-text-muted);
+  font: 560 0.62rem/1.15 var(--av-font-display);
+  text-align: right;
+}
+
+section[aria-labelledby='pvp-lobby-title'] section[data-team='0'] > div:first-child::after {
+  content: 'Steel and resolve answer the call.';
+}
+
+section[aria-labelledby='pvp-lobby-title'] section[data-team='1'] > div:first-child::after {
+  content: 'The arena yields to no oath.';
+}
+
+section[aria-labelledby='pvp-lobby-title'] section[data-team='2'] > div:first-child::after {
+  content: 'Three banners enter. One endures.';
+}
+
+/* PvP battle: the compact mode line already identifies the encounter; remove the redundant objective subtitle. */
+main[data-pvp-battle='true'] > header > div:first-child > strong {
+  display: none !important;
+}
+
+@media (max-width: 900px) {
+  /* PvP lobby footer: secondary controls share a row; Ready gets a clean centered row of its own. */
+  section[aria-labelledby='pvp-lobby-title'] > footer {
+    align-items: center !important;
+  }
+
+  section[aria-labelledby='pvp-lobby-title'] > footer > div:first-child {
+    width: 100%;
+    text-align: center;
+  }
+
+  section[aria-labelledby='pvp-lobby-title'] > footer > div:last-child {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: min(100%, 28rem);
+    gap: 0.4rem !important;
+    margin-inline: auto;
+  }
+
+  section[aria-labelledby='pvp-lobby-title'] > footer > div:last-child > button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  section[aria-labelledby='pvp-lobby-title'] > footer > div:last-child > button:last-child {
+    grid-column: 1 / -1;
+    width: min(13rem, 100%);
+    justify-self: center;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 700px) {
+  #battle-launch [data-pvp-create-card] {
+    gap: 0.56rem;
+    padding: 0.58rem;
+  }
+
+  #battle-launch [data-pvp-settings-panel] {
+    grid-template-columns: 1fr;
+    gap: 0.42rem;
+    padding: 0.52rem;
+  }
+
+  #battle-launch [data-pvp-settings-heading] {
+    display: grid;
+    gap: 0.15rem;
+  }
+
+  #battle-launch [data-pvp-settings-heading] small {
+    text-align: left;
+  }
+
+  #battle-launch [data-pvp-setting-group] {
+    padding: 0.42rem;
+  }
+
+  #battle-launch [data-pvp-setting-options] {
+    margin-top: 0.18rem;
+  }
+
+  #battle-launch [data-pvp-setting-options] button {
+    min-height: 2.05rem;
+    font-size: 0.42rem;
+  }
+
+  section[aria-labelledby='pvp-lobby-title'] section[aria-label='Locked PvP battle settings'] {
+    gap: 0.2rem !important;
+  }
+
+  section[aria-labelledby='pvp-lobby-title']
+    section[aria-label='Locked PvP battle settings']
+    > div {
+    gap: 0.14rem !important;
+    padding: 0.34rem 0.22rem !important;
+  }
+
+  section[aria-labelledby='pvp-lobby-title']
+    section[aria-label='Locked PvP battle settings']
+    > div
+    > span {
+    overflow: hidden;
+    font-size: 0 !important;
+    text-overflow: clip;
+    white-space: nowrap;
+  }
+
+  section[aria-labelledby='pvp-lobby-title']
+    section[aria-label='Locked PvP battle settings']
+    > div
+    > span::after {
+    color: var(--av-text-dim);
+    font: 700 0.4rem/1 var(--av-font-mono);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  section[aria-labelledby='pvp-lobby-title']
+    section[aria-label='Locked PvP battle settings']
+    > div:nth-child(1)
+    > span::after {
+    content: 'Map';
+  }
+
+  section[aria-labelledby='pvp-lobby-title']
+    section[aria-label='Locked PvP battle settings']
+    > div:nth-child(2)
+    > span::after {
+    content: 'Elevation';
+  }
+
+  section[aria-labelledby='pvp-lobby-title']
+    section[aria-label='Locked PvP battle settings']
+    > div:nth-child(3)
+    > span::after {
+    content: 'Ground';
+  }
+
+  section[aria-labelledby='pvp-lobby-title']
+    section[aria-label='Locked PvP battle settings']
+    > div:nth-child(4)
+    > span::after {
+    content: 'Timer';
+  }
+
+  section[aria-labelledby='pvp-lobby-title']
+    section[aria-label='Locked PvP battle settings']
+    > div
+    > strong {
+    overflow: hidden;
+    font-size: 0.54rem !important;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  section[aria-labelledby='pvp-lobby-title'] section[data-team] > div:first-child::after {
+    max-width: 62%;
+    font-size: 0.54rem;
+    line-height: 1.2;
+  }
+}
+
+@media (max-width: 880px) {
+  /* AI battle mobile: keep the battlefield container only as tall as the actual grid. */
+  main:not([data-pvp-battle='true']) #battlefield {
+    min-height: 0 !important;
+  }
+
+  main:not([data-pvp-battle='true']) #battlefield > div:first-child {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    align-content: start !important;
+    place-items: start center !important;
+    padding: 0.3rem !important;
+    overflow: hidden !important;
+  }
+
+  main:not([data-pvp-battle='true']) #battlefield > div:first-child > div:first-child {
+    width: 100% !important;
+    height: auto !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    margin: 0 auto !important;
+    align-self: start !important;
+  }
+
+  /* The terrain cards below the board are the useful legend on mobile. */
+  main:not([data-pvp-battle='true']) #battlefield > div:first-child + div {
+    display: none !important;
+  }
+}

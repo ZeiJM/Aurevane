@@ -1,14 +1,15 @@
 'use client'
 
+import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import { useEffect, useMemo, useState } from 'react'
 
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
-import type { ImageAssetId } from '@/media/registry'
+import { getStarterPortraitImageAssetId } from '@/media/character'
+import type { PvpBattleMetadata, PvpBattleParticipantView } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
 import styles from './mobile-battle-combatant-popup.module.css'
 
-const MOBILE_QUERY = '(max-width: 880px)'
 const ACTION_ECONOMY_KEY = 'pv1f.action-economy'
 
 type GridPosition = { x: number; y: number }
@@ -18,20 +19,12 @@ type Placement = BattleSnapshot['tactical']['placements'][number]
 type Profile = BattleSnapshot['statBridge']['combatants'][number]
 type CombatStatus = BattleSnapshot['statusState'][number]['statuses'][number]
 
-interface MobileBattleCombatantPopupProps {
-  battleSessionId: string
-  playerName: string
-  playerPortraitAssetId: ImageAssetId
-  playerProfileImageUrl?: string | null
-}
-
 interface SelectedCombatant {
   combatant: Combatant
   placement: Placement
   profile: Profile | null
   statuses: readonly CombatStatus[]
-  name: string
-  isPlayer: boolean
+  participant: PvpBattleParticipantView
   active: boolean
   actionEconomy: number | null
 }
@@ -80,13 +73,14 @@ function inspectModeActive(): boolean {
   const inspect = buttons.find(
     (button) => button.querySelector('strong')?.textContent?.trim() === 'Inspect',
   )
-  return Boolean(inspect && `${inspect.className}`.includes('commandActive'))
+  if (!inspect) return false
+  return inspect.hasAttribute('data-active') || `${inspect.className}`.includes('commandActive')
 }
 
 function readSelectedCombatant(
   battle: BattleSessionView,
   position: GridPosition,
-  playerName: string,
+  metadata: PvpBattleMetadata,
 ): SelectedCombatant | null {
   const placement = battle.snapshot.tactical.placements.find((candidate) =>
     positionsEqual(candidate.position, position),
@@ -96,7 +90,10 @@ function readSelectedCombatant(
   const combatant = battle.snapshot.tactical.battle.combatants.find(
     (candidate) => candidate.id === placement.combatantId,
   )
-  if (!combatant) return null
+  const participant = metadata.participants.find(
+    (candidate) => candidate.combatantId === placement.combatantId,
+  )
+  if (!combatant || !participant) return null
 
   const profile =
     battle.snapshot.statBridge.combatants.find(
@@ -105,7 +102,6 @@ function readSelectedCombatant(
   const statuses =
     battle.snapshot.statusState.find((candidate) => candidate.combatantId === combatant.id)
       ?.statuses ?? []
-  const isPlayer = combatant.id.startsWith('character:')
   const economy = combatant.temporaryResources.find(
     (resource) => resource.key === ACTION_ECONOMY_KEY,
   )
@@ -115,19 +111,19 @@ function readSelectedCombatant(
     placement,
     profile,
     statuses,
-    name: isPlayer ? playerName : combatant.id.startsWith('recruit:') ? 'Recruit' : 'Combatant',
-    isPlayer,
+    participant,
     active: battle.snapshot.tactical.battle.currentTurn?.combatantId === combatant.id,
     actionEconomy: economy?.current ?? null,
   }
 }
 
-export function MobileBattleCombatantPopup({
+export function PvpBattleInspectPopup({
   battleSessionId,
-  playerName,
-  playerPortraitAssetId,
-  playerProfileImageUrl = null,
-}: MobileBattleCombatantPopupProps) {
+  metadata,
+}: {
+  battleSessionId: string
+  metadata: PvpBattleMetadata
+}) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -154,7 +150,7 @@ export function MobileBattleCombatantPopup({
           throw new Error(body.error?.message ?? 'Combatant details could not be loaded.')
         }
 
-        const next = readSelectedCombatant(body.battle, position, playerName)
+        const next = readSelectedCombatant(body.battle, position, metadata)
         if (!next) throw new Error('That combatant is no longer on this tile.')
         setSelected(next)
       } catch (loadError) {
@@ -168,20 +164,16 @@ export function MobileBattleCombatantPopup({
     }
 
     function handleBattlefieldClick(event: MouseEvent) {
-      if (!window.matchMedia(MOBILE_QUERY).matches || !inspectModeActive()) return
+      if (!inspectModeActive()) return
       const target = event.target instanceof Element ? event.target : null
       const tile = target?.closest<HTMLButtonElement>(
         '#battlefield button[aria-label^="Tile "][aria-label*="occupied by"]',
       )
       if (!tile) return
 
-      const label = tile.getAttribute('aria-label') ?? ''
-      const position = parseTilePosition(label)
+      const position = parseTilePosition(tile.getAttribute('aria-label') ?? '')
       if (!position) return
 
-      // Combatant details are an explicit Inspect gesture on mobile. Outside Inspect mode, leave
-      // the battlefield tap untouched so self-targeting, movement, attacks, and turn actions keep
-      // their normal command behavior.
       event.preventDefault()
       event.stopPropagation()
       void openCombatant(position)
@@ -198,7 +190,7 @@ export function MobileBattleCombatantPopup({
       document.removeEventListener('click', handleBattlefieldClick, true)
       window.removeEventListener('keydown', handleEscape)
     }
-  }, [battleSessionId, playerName])
+  }, [battleSessionId, metadata])
 
   const healthPercent = useMemo(() => {
     if (!selected || selected.combatant.maxHp <= 0) return 0
@@ -212,12 +204,20 @@ export function MobileBattleCombatantPopup({
   if (!open) return null
 
   return (
-    <div className={styles.backdrop} onPointerDown={() => setOpen(false)} data-mobile-battle-popup>
+    <div
+      className={styles.backdrop}
+      data-pvp-inspect-popup="true"
+      onPointerDown={() => setOpen(false)}
+    >
       <section
         className={styles.popup}
         role="dialog"
         aria-modal="true"
-        aria-label={selected ? `${selected.name} battle details` : 'Battle combatant details'}
+        aria-label={
+          selected
+            ? `${selected.participant.characterName} battle details`
+            : 'Battle combatant details'
+        }
         onPointerDown={(event) => event.stopPropagation()}
       >
         {loading ? (
@@ -230,26 +230,23 @@ export function MobileBattleCombatantPopup({
           <>
             <div className={styles.identityRow}>
               <div className={styles.portrait}>
-                {selected.isPlayer ? (
-                  <CharacterPortraitImage
-                    imageUrl={playerProfileImageUrl}
-                    fallbackAssetId={playerPortraitAssetId}
-                    className={styles.portraitImage}
-                    sizes="8rem"
-                    alt={`${selected.name} portrait`}
-                  />
-                ) : (
-                  <span className={styles.recruitPortrait} aria-label="Recruit default portrait">
-                    R
-                  </span>
-                )}
+                <CharacterPortraitImage
+                  imageUrl={selected.participant.profileImageUrl}
+                  fallbackAssetId={getStarterPortraitImageAssetId(
+                    selected.participant.portraitRef as CharacterPortraitRef,
+                  )}
+                  className={styles.portraitImage}
+                  sizes="8rem"
+                  alt={`${selected.participant.characterName} portrait`}
+                />
               </div>
               <div className={styles.identityCopy}>
-                <span>{selected.isPlayer ? 'Character' : 'Opponent'}</span>
-                <h2>{selected.name}</h2>
+                <span>Team {selected.participant.teamIndex + 1}</span>
+                <h2>{selected.participant.characterName}</h2>
                 <p>
-                  {selected.active ? 'Active turn · ' : ''}
-                  Facing {selected.placement.facing} {facingGlyph(selected.placement.facing)}
+                  Level {selected.participant.characterLevel}
+                  {selected.active ? ' · Active turn' : ''} · Facing {selected.placement.facing}{' '}
+                  {facingGlyph(selected.placement.facing)}
                 </p>
               </div>
             </div>
@@ -318,7 +315,10 @@ export function MobileBattleCombatantPopup({
               </div>
             </dl>
 
-            <section className={styles.effects} aria-label={`${selected.name} active effects`}>
+            <section
+              className={styles.effects}
+              aria-label={`${selected.participant.characterName} active effects`}
+            >
               <span>Active effects</span>
               {selected.statuses.length === 0 ? (
                 <p>No buffs or debuffs are active.</p>
@@ -338,8 +338,7 @@ export function MobileBattleCombatantPopup({
             </section>
 
             <p className={styles.hint}>
-              Inspect mode only. Tap outside this card to close it; all other battle modes keep
-              combatant taps reserved for their active command.
+              Inspect mode only. Tap or click outside this card to close it.
             </p>
           </>
         ) : null}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import type { OnlineCharacter } from '@/server/presence/character-presence-service'
 
@@ -24,6 +24,13 @@ function publicIdentityTags(
   if (discipline) tags.push({ kind: 'Discipline', label: discipline })
   if (character.personalTitle) tags.push({ kind: 'Personal Title', label: character.personalTitle })
   return tags
+}
+
+function onlineNameBucket(name: string): number {
+  const first = name.trim().charAt(0)
+  if (/^[A-Za-z]$/.test(first)) return 0
+  if (/^[0-9]$/.test(first)) return 1
+  return 2
 }
 
 function Portrait({ character, large = false }: { character: OnlineCharacter; large?: boolean }) {
@@ -55,6 +62,15 @@ function Portrait({ character, large = false }: { character: OnlineCharacter; la
 
 export function OnlineUsersDirectory({ characters }: { characters: OnlineCharacter[] }) {
   const [selected, setSelected] = useState<OnlineCharacter | null>(null)
+  const orderedCharacters = useMemo(
+    () =>
+      [...characters].sort((left, right) => {
+        const bucketDifference = onlineNameBucket(left.name) - onlineNameBucket(right.name)
+        if (bucketDifference !== 0) return bucketDifference
+        return left.name.localeCompare(right.name, 'en', { sensitivity: 'base', numeric: true })
+      }),
+    [characters],
+  )
 
   useEffect(() => {
     if (!selected) return
@@ -65,14 +81,14 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
     return () => window.removeEventListener('keydown', close)
   }, [selected])
 
-  if (characters.length === 0) {
+  if (orderedCharacters.length === 0) {
     return <p className={styles.empty}>No characters are currently visible online.</p>
   }
 
   return (
     <>
       <div className={styles.list}>
-        {characters.map((character) => {
+        {orderedCharacters.map((character) => {
           const tags = publicIdentityTags(character)
           return (
             <button

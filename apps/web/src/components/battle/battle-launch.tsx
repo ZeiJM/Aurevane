@@ -72,11 +72,13 @@ function recordDisplayName(recordId: TacticalHallRecordId, fallback: string): st
 }
 
 function formatPvpLobbyKeyInput(value: string): string {
-  const compact = value.toUpperCase().replace(/[^A-Z0-9]/g, '')
-  const payload = (compact.startsWith('AVL') ? compact.slice(3) : compact).slice(0, 8)
-  const firstGroup = payload.slice(0, 4)
-  const secondGroup = payload.slice(4)
-  return `AVL-${firstGroup}${secondGroup ? `-${secondGroup}` : ''}`
+  const compact = value
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+    .slice(0, 11)
+  if (compact.length <= 3) return compact
+  if (compact.length <= 7) return `${compact.slice(0, 3)}-${compact.slice(3)}`
+  return `${compact.slice(0, 3)}-${compact.slice(3, 7)}-${compact.slice(7)}`
 }
 
 function isCompletePvpLobbyKey(value: string): boolean {
@@ -200,7 +202,7 @@ export function BattleLaunch({
       const normalized = formatPvpLobbyKeyInput(key)
       setJoinKey(normalized)
       if (!isCompletePvpLobbyKey(normalized)) {
-        setError('Enter all 8 Lobby Key characters. The AVL prefix and dashes are added for you.')
+        setError('Enter the full Lobby Key. Capitalization and dashes are formatted for you.')
         return
       }
       setPending(true)
@@ -412,7 +414,7 @@ export function BattleLaunch({
             </p>
           </div>
           <div className={styles.pvpGrid}>
-            <article className={styles.setupCard}>
+            <article className={styles.setupCard} data-pvp-create-card>
               <div className={styles.cardTitle}>
                 <span>Create</span>
                 <strong>Open a Battle Lobby</strong>
@@ -462,63 +464,88 @@ export function BattleLaunch({
                   </label>
                 </div>
               ) : null}
-              <div
-                className={styles.mapSettings}
-                aria-label="PvP battle settings"
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(7.5rem, 1fr))',
-                  gap: '0.35rem',
-                }}
-              >
-                <label>
-                  Map size
-                  <select
-                    value={mapSize}
-                    onChange={(event) => setMapSize(event.target.value as PvpMapSize)}
-                  >
-                    <option value="medium">Medium</option>
-                    <option value="large">Large</option>
-                  </select>
-                </label>
-                <label>
-                  Elevation
-                  <select
-                    value={elevationBias}
-                    onChange={(event) => setElevationBias(event.target.value as PvpMapBias)}
-                  >
-                    <option value="less">Less</option>
-                    <option value="neutral">Neutral</option>
-                    <option value="more">More</option>
-                  </select>
-                </label>
-                <label>
-                  Difficult ground
-                  <select
-                    value={terrainBias}
-                    onChange={(event) => setTerrainBias(event.target.value as PvpMapBias)}
-                  >
-                    <option value="less">Less</option>
-                    <option value="neutral">Neutral</option>
-                    <option value="more">More</option>
-                  </select>
-                </label>
-                <label>
-                  Turn timer
-                  <select
-                    value={turnTimerSeconds === null ? 'none' : String(turnTimerSeconds)}
-                    onChange={(event) => {
-                      const value = event.target.value
-                      setTurnTimerSeconds(
-                        value === 'none' ? null : (Number(value) as PvpTurnTimerSeconds),
-                      )
-                    }}
-                  >
-                    <option value="60">60 seconds</option>
-                    <option value="120">120 seconds</option>
-                    <option value="none">No timer</option>
-                  </select>
-                </label>
+              <div data-pvp-settings-panel aria-label="PvP battle settings">
+                <div data-pvp-settings-heading>
+                  <strong>Battlefield conditions</strong>
+                  <small>Choose once. These settings lock when the lobby opens.</small>
+                </div>
+                <fieldset data-pvp-setting-group>
+                  <legend>Map size</legend>
+                  <div data-pvp-setting-options>
+                    {(['medium', 'large'] as const).map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        aria-pressed={mapSize === value}
+                        data-selected={mapSize === value || undefined}
+                        onClick={() => setMapSize(value)}
+                        disabled={pending}
+                      >
+                        {value === 'medium' ? 'Medium' : 'Large'}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+                <fieldset data-pvp-setting-group>
+                  <legend>Elevation</legend>
+                  <div data-pvp-setting-options>
+                    {(['less', 'neutral', 'more'] as const).map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        aria-pressed={elevationBias === value}
+                        data-selected={elevationBias === value || undefined}
+                        onClick={() => setElevationBias(value)}
+                        disabled={pending}
+                      >
+                        {value === 'less' ? 'Less' : value === 'more' ? 'More' : 'Neutral'}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+                <fieldset data-pvp-setting-group>
+                  <legend>Difficult ground</legend>
+                  <div data-pvp-setting-options>
+                    {(['less', 'neutral', 'more'] as const).map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        aria-pressed={terrainBias === value}
+                        data-selected={terrainBias === value || undefined}
+                        onClick={() => setTerrainBias(value)}
+                        disabled={pending}
+                      >
+                        {value === 'less' ? 'Less' : value === 'more' ? 'More' : 'Neutral'}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
+                <fieldset data-pvp-setting-group>
+                  <legend>Turn timer</legend>
+                  <div data-pvp-setting-options>
+                    {[
+                      { value: 60 as const, label: '60s' },
+                      { value: 120 as const, label: '120s' },
+                      { value: null, label: 'None' },
+                    ].map((option) => (
+                      <button
+                        key={option.label}
+                        type="button"
+                        aria-pressed={turnTimerSeconds === option.value}
+                        data-selected={turnTimerSeconds === option.value || undefined}
+                        onClick={() => setTurnTimerSeconds(option.value)}
+                        disabled={pending}
+                        aria-label={
+                          option.value === null
+                            ? 'No turn timer'
+                            : `${option.value} second turn timer`
+                        }
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                </fieldset>
               </div>
               {pvpMode ? (
                 <p className={styles.modeSummary}>
@@ -557,8 +584,8 @@ export function BattleLaunch({
                 maxLength={13}
               />
               <p>
-                Type only the 8 key characters. AVL-, capitalization, and dashes are filled in
-                automatically. Pasting a full Lobby Key also works.
+                Type the full Lobby Key normally. Letters are capitalized and dashes are inserted
+                automatically. Pasting a complete Lobby Key also works.
               </p>
               <button
                 type="button"
