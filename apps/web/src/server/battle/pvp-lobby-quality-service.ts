@@ -28,11 +28,7 @@ import {
   createStatDrivenCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import { AurevaneError } from '@aurevane/game-core/errors'
-import type {
-  PvpMapBias,
-  PvpMapSize,
-  PvpTurnTimerSeconds,
-} from '@aurevane/validation/combat/pvp'
+import type { PvpMapBias, PvpMapSize, PvpTurnTimerSeconds } from '@aurevane/validation/combat/pvp'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
