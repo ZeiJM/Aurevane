@@ -61,12 +61,29 @@
   align-items: stretch;
 }
 
-[data-battle-victory-button='true'] {
-  min-width: 8.6rem !important;
-  min-height: 100% !important;
+[data-battle-victory-button='true'],
+button[aria-label^='Victory conditions'] {
+  width: max-content !important;
+  min-width: 0 !important;
+  max-width: max-content !important;
+  min-height: 2.15rem !important;
   height: auto !important;
-  align-self: stretch !important;
+  align-self: center !important;
+  justify-self: start !important;
+  padding-inline: 0.55rem !important;
   border-radius: var(--av-radius-sm) !important;
+}
+
+main[data-pvp-battle='true'] header > div button {
+  width: max-content !important;
+  min-width: 0 !important;
+  max-width: max-content !important;
+  align-self: center !important;
+  padding-inline: 0.55rem !important;
+}
+
+button[aria-label='Close status details'] {
+  display: none !important;
 }
 
 #battlefield {
