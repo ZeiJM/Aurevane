@@ -1,0 +1,30 @@
+@media (max-width: 880px) {
+  /* AI battle mobile: keep the battlefield container only as tall as the actual grid. */
+  main:not([data-pvp-battle='true']) #battlefield {
+    min-height: 0 !important;
+  }
+
+  main:not([data-pvp-battle='true']) #battlefield > div:first-child {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    align-content: start !important;
+    place-items: start center !important;
+    padding: 0.3rem !important;
+    overflow: hidden !important;
+  }
+
+  main:not([data-pvp-battle='true']) #battlefield > div:first-child > div:first-child {
+    width: 100% !important;
+    height: auto !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    margin: 0 auto !important;
+    align-self: start !important;
+  }
+
+  /* The terrain cards below the board are the useful legend on mobile. */
+  main:not([data-pvp-battle='true']) #battlefield > div:first-child + div {
+    display: none !important;
+  }
+}
