@@ -7,6 +7,7 @@ import { BattleDirectionalAttackAssist } from './battle-directional-attack-assis
 import { BattleMapTokenPolish } from './battle-map-token-polish'
 import { BattlePresentationPolish } from './battle-presentation-polish'
 import { BattleUtilityWindows } from './battle-utility-windows'
+import { PvpBattleCompletionPanel } from './pvp-battle-completion-panel'
 import { PvpBattleExperience } from './pvp-battle-experience'
 import { PvpBattleInspectPopup } from './pvp-battle-inspect-popup'
 import { PvpBattleQualityControls } from './pvp-battle-quality-controls'
@@ -31,6 +32,7 @@ export function PvpBattleClientBoundary({
         metadata={metadata}
       />
       <PvpBattleInspectPopup battleSessionId={initialBattle.battleSessionId} metadata={metadata} />
+      <PvpBattleCompletionPanel initialBattle={initialBattle} metadata={metadata} />
       <BattleUtilityWindows
         battleSessionId={initialBattle.battleSessionId}
         playerName={playerName}
