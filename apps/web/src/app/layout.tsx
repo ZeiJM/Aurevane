@@ -10,6 +10,7 @@ import './pv1e-shell-fixes.css'
 import './a3-battle-polish.css'
 import './battle-quality-overrides.css'
 import './mobile-ui-batch.css'
+import './pvp-battle-batch-overrides.css'
 import './character-creation-scale.css'
 
 export const metadata: Metadata = {
