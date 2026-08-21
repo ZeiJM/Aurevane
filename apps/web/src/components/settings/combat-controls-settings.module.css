@@ -1,34 +1,35 @@
 .panel {
   display: grid;
-  gap: 0.55rem;
+  gap: 0.82rem;
   width: 100%;
   min-width: 0;
 }
 
 .intro {
-  max-width: 64rem;
+  max-width: 70rem;
   margin: 0;
   color: var(--av-text-dim);
-  font-size: 0.68rem;
-  line-height: 1.42;
+  font-size: 0.7rem;
+  line-height: 1.5;
 }
 
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.34rem;
+  gap: 0.5rem;
 }
 
 .row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
-  gap: 0.4rem;
-  align-items: center;
   min-width: 0;
-  padding: 0.48rem;
-  border: 1px solid var(--av-border);
+  min-height: 3.05rem;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.62rem 0.68rem;
+  border: 1px solid rgba(184, 177, 163, 0.18);
   border-radius: var(--av-radius-sm);
-  background: rgba(255, 255, 255, 0.022);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.028), rgba(255, 255, 255, 0.014));
 }
 
 .row > div {
@@ -39,50 +40,67 @@
   display: block;
   overflow: hidden;
   color: var(--av-text-muted);
-  font-size: 0.68rem;
+  font-size: 0.72rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .row small {
   display: -webkit-box;
-  margin-top: 0.12rem;
+  margin-top: 0.16rem;
   overflow: hidden;
   color: var(--av-text-dim);
-  font-size: 0.55rem;
-  line-height: 1.24;
+  font-size: 0.58rem;
+  line-height: 1.3;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
 
 .key {
-  min-width: 4.65rem;
-  padding: 0.32rem 0.42rem;
-  border: 1px solid rgba(194, 161, 104, 0.38);
+  display: grid;
+  min-width: 5rem;
+  min-height: 1.9rem;
+  place-items: center;
+  padding: 0.36rem 0.5rem;
+  border: 1px solid rgba(194, 161, 104, 0.42);
   border-radius: 0.3rem;
   color: var(--av-brass-200);
-  background: rgba(194, 161, 104, 0.08);
-  font: 700 0.56rem/1 var(--av-font-mono);
+  background: rgba(194, 161, 104, 0.075);
+  font: 700 0.57rem/1 var(--av-font-mono);
   text-align: center;
   white-space: nowrap;
 }
 
 .button,
 .primary {
-  min-height: 1.9rem;
-  padding: 0.36rem 0.54rem;
+  min-height: 2rem;
+  padding: 0.4rem 0.62rem;
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius-sm);
   color: var(--av-text-muted);
-  background: rgba(255, 255, 255, 0.04);
-  font: 650 0.53rem/1 var(--av-font-mono);
+  background: rgba(255, 255, 255, 0.038);
+  font: 650 0.54rem/1 var(--av-font-mono);
   cursor: pointer;
 }
 
+.button:hover:not(:disabled),
+.button:focus-visible:not(:disabled) {
+  border-color: rgba(194, 161, 104, 0.46);
+  color: var(--av-brass-200);
+  outline: none;
+}
+
 .primary {
-  border-color: rgba(194, 161, 104, 0.55);
+  border-color: rgba(194, 161, 104, 0.62);
   color: var(--av-brass-100);
   background: rgba(194, 161, 104, 0.12);
+}
+
+.primary:hover:not(:disabled),
+.primary:focus-visible:not(:disabled) {
+  border-color: rgba(224, 190, 126, 0.82);
+  outline: none;
+  background: rgba(194, 161, 104, 0.17);
 }
 
 .button:disabled,
@@ -94,25 +112,79 @@
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
+  gap: 0.48rem;
   justify-content: flex-end;
+  margin-top: 0.08rem;
+  padding-top: 0.68rem;
+  border-top: 1px solid rgba(184, 177, 163, 0.12);
 }
 
 .notice,
 .error {
   margin: 0;
-  padding: 0.5rem 0.6rem;
+  padding: 0.56rem 0.68rem;
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius-sm);
   color: var(--av-text-dim);
   background: rgba(255, 255, 255, 0.025);
-  font-size: 0.6rem;
-  line-height: 1.35;
+  font-size: 0.61rem;
+  line-height: 1.38;
 }
 
 .error {
   border-color: rgba(205, 112, 100, 0.5);
   color: #efb7ad;
+}
+
+@media (max-height: 820px) and (min-width: 721px) {
+  .panel {
+    gap: 0.4rem;
+  }
+
+  .intro {
+    font-size: 0.61rem;
+    line-height: 1.3;
+  }
+
+  .grid {
+    gap: 0.26rem;
+  }
+
+  .row {
+    min-height: 2.25rem;
+    gap: 0.42rem;
+    padding: 0.3rem 0.55rem;
+  }
+
+  .row strong {
+    font-size: 0.67rem;
+  }
+
+  .row small {
+    margin-top: 0.08rem;
+    font-size: 0.52rem;
+    line-height: 1.18;
+    -webkit-line-clamp: 1;
+  }
+
+  .key {
+    min-width: 4.7rem;
+    min-height: 1.55rem;
+    padding: 0.26rem 0.42rem;
+    font-size: 0.54rem;
+  }
+
+  .button,
+  .primary {
+    min-height: 1.65rem;
+    padding: 0.3rem 0.52rem;
+    font-size: 0.51rem;
+  }
+
+  .actions {
+    margin-top: 0;
+    padding-top: 0.34rem;
+  }
 }
 
 @media (max-width: 720px) {
@@ -122,8 +194,13 @@
 }
 
 @media (max-width: 560px) {
+  .panel {
+    gap: 0.7rem;
+  }
+
   .row {
     grid-template-columns: minmax(0, 1fr) auto;
+    padding: 0.6rem;
   }
 
   .row > :first-child {
@@ -132,5 +209,9 @@
 
   .key {
     min-width: 5.2rem;
+  }
+
+  .actions > * {
+    flex: 1 1 auto;
   }
 }

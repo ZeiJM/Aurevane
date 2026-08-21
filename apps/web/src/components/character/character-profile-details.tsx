@@ -53,7 +53,11 @@ const ATTRIBUTE_COLORS: Readonly<
     tint: 'rgba(114, 217, 123, 0.38)',
     soft: 'rgba(114, 217, 123, 0.20)',
   },
-  agility: { solid: '#4fd8d5', tint: 'rgba(79, 216, 213, 0.38)', soft: 'rgba(79, 216, 213, 0.20)' },
+  agility: {
+    solid: '#f4dc61',
+    tint: 'rgba(244, 220, 97, 0.38)',
+    soft: 'rgba(244, 220, 97, 0.20)',
+  },
   intellect: {
     solid: '#c282ff',
     tint: 'rgba(194, 130, 255, 0.38)',

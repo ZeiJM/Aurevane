@@ -278,13 +278,46 @@
   gap: 0.42rem;
 }
 
+/* CHARACTER_ATTRIBUTE_IDS order: Might, Finesse, Vitality, Agility, Intellect, Resolve. */
+.attributeCard:nth-child(1) {
+  --attribute-color: #ff7068;
+  --attribute-soft: rgba(255, 112, 104, 0.15);
+}
+
+.attributeCard:nth-child(2) {
+  --attribute-color: #f4b24f;
+  --attribute-soft: rgba(244, 178, 79, 0.15);
+}
+
+.attributeCard:nth-child(3) {
+  --attribute-color: #72d97b;
+  --attribute-soft: rgba(114, 217, 123, 0.15);
+}
+
+.attributeCard:nth-child(4) {
+  --attribute-color: #f4dc61;
+  --attribute-soft: rgba(244, 220, 97, 0.15);
+}
+
+.attributeCard:nth-child(5) {
+  --attribute-color: #c282ff;
+  --attribute-soft: rgba(194, 130, 255, 0.15);
+}
+
+.attributeCard:nth-child(6) {
+  --attribute-color: #70a9ff;
+  --attribute-soft: rgba(112, 169, 255, 0.15);
+}
+
 .attributeCard {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.42rem;
   align-items: center;
-  padding: 0.48rem;
+  padding: 0.56rem 0.58rem 0.56rem 0.68rem;
   border: 1px solid rgba(184, 177, 163, 0.15);
+  background: linear-gradient(135deg, var(--attribute-soft) 0%, rgba(5, 7, 10, 0.5) 58%);
+  box-shadow: inset 2px 0 0 var(--attribute-color);
 }
 
 .attributeCard > div:first-child {
@@ -293,7 +326,21 @@
 }
 
 .attributeCard > div:first-child strong {
+  display: inline-flex;
+  gap: 0.3rem;
+  align-items: center;
+  color: var(--attribute-color);
   font: 500 0.8rem/1.12 var(--av-font-display);
+}
+
+.attributeCard > div:first-child strong::before {
+  width: 0.34rem;
+  height: 0.34rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--attribute-color);
+  box-shadow: 0 0 0.48rem var(--attribute-color);
+  content: '';
 }
 
 .attributeControl {
@@ -312,6 +359,11 @@
   cursor: pointer;
 }
 
+.attributeControl button:not(:disabled):hover {
+  border-color: var(--attribute-color);
+  color: var(--attribute-color);
+}
+
 .attributeControl button:disabled {
   color: var(--av-text-dim);
   cursor: not-allowed;
@@ -319,12 +371,13 @@
 }
 
 .attributeControl button:focus-visible {
+  border-color: var(--attribute-color);
   outline: 2px solid var(--av-focus);
   outline-offset: 2px;
 }
 
 .attributeControl output {
-  color: var(--av-brass-300);
+  color: var(--attribute-color);
   font: 650 0.62rem/1 var(--av-font-mono);
   text-align: center;
 }
