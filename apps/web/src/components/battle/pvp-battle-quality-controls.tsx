@@ -49,7 +49,9 @@ export function PvpBattleQualityControls({
     const locate = () => {
       const root = document.querySelector<HTMLElement>('main[data-pvp-battle="true"]')
       const header = root?.querySelector<HTMLElement>('header') ?? null
-      setHeaderTarget(header?.firstElementChild instanceof HTMLElement ? header.firstElementChild : header)
+      setHeaderTarget(
+        header?.firstElementChild instanceof HTMLElement ? header.firstElementChild : header,
+      )
       setFooterTarget(root?.querySelector<HTMLElement>('footer > div:last-child') ?? null)
     }
     locate()
@@ -102,8 +104,9 @@ export function PvpBattleQualityControls({
   }, [battleSessionId])
 
   const activeName = clock?.combatantId
-    ? (metadata.participants.find((participant) => participant.combatantId === clock.combatantId)
-        ?.characterName ?? null)
+    ? (metadata.participants.find(
+        (participant) => participant.combatantId === clock.combatantId,
+      )?.characterName ?? null)
     : null
 
   const loweredGuardNames = battle
@@ -111,8 +114,9 @@ export function PvpBattleQualityControls({
         .filter((row) => row.statuses.some((status) => status.statusId === 'lowered-guard'))
         .map(
           (row) =>
-            metadata.participants.find((participant) => participant.combatantId === row.combatantId)
-              ?.characterName ?? row.combatantId,
+            metadata.participants.find(
+              (participant) => participant.combatantId === row.combatantId,
+            )?.characterName ?? row.combatantId,
         )
     : []
 
