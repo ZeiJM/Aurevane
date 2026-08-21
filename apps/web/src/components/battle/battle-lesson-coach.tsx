@@ -86,7 +86,8 @@ function useHeaderCriteriaTarget(): HTMLElement | null {
       const track = document.querySelector<HTMLElement>(
         '[role="progressbar"][aria-label="Action Economy remaining"]',
       )
-      const locatedEconomy = track?.parentElement instanceof HTMLElement ? track.parentElement : null
+      const locatedEconomy =
+        track?.parentElement instanceof HTMLElement ? track.parentElement : null
       const economy = locatedEconomy ?? (activeEconomy?.isConnected ? activeEconomy : null)
       const header = economy?.closest<HTMLElement>('header') ?? null
       const objective =
