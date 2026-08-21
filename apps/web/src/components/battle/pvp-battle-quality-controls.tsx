@@ -72,7 +72,8 @@ export function PvpBattleQualityControls({
           const span = candidate.querySelector<HTMLElement>(':scope > span')
           if (!strong || !span) continue
           const duplicate =
-            strong.textContent?.trim() === 'Your turn' && span.textContent?.trim() === DUPLICATE_TURN_COPY
+            strong.textContent?.trim() === 'Your turn' &&
+            span.textContent?.trim() === DUPLICATE_TURN_COPY
           if (duplicate) span.style.display = 'none'
           else if (span.dataset.pvpDuplicateTurnCopy === 'true') {
             span.style.removeProperty('display')

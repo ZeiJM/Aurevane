@@ -159,7 +159,6 @@ export async function AuthenticatedShellFrame({
       </main>
 
       <footer className={styles.footer}>
-        <span className={styles.footerBalance} aria-hidden="true" />
         <OnlinePresenceLink initialCount={onlineCount} />
         <NavigationMenu />
       </footer>

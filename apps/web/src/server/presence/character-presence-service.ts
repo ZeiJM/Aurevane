@@ -16,6 +16,24 @@ export interface OnlineCharacter {
   imageUrl: string | null
 }
 
+function onlineNameBucket(name: string): number {
+  if (/^[A-Za-z]/.test(name)) return 0
+  if (/^\d/.test(name)) return 1
+  return 2
+}
+
+function compareOnlineCharacters(left: OnlineCharacter, right: OnlineCharacter): number {
+  const bucketDifference = onlineNameBucket(left.name) - onlineNameBucket(right.name)
+  if (bucketDifference !== 0) return bucketDifference
+
+  const nameDifference = left.name.localeCompare(right.name, undefined, {
+    sensitivity: 'base',
+    numeric: true,
+  })
+  if (nameDifference !== 0) return nameDifference
+  return left.characterId.localeCompare(right.characterId)
+}
+
 export async function touchCharacterPresence(userId: string, characterId: string): Promise<string> {
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.rpc('touch_character_presence_v1', {
@@ -88,16 +106,18 @@ export async function listOnlineCharacters(): Promise<OnlineCharacter[]> {
     }
   }
 
-  return base.map((row) => {
-    const identity = identityMap.get(row.characterId)
-    return {
-      ...row,
-      portraitRef: identity?.portraitRef ?? null,
-      disciplineId: identity?.disciplineId ?? null,
-      personalTitle: identity?.personalTitle ?? null,
-      imageUrl: imageMap.get(row.characterId) ?? null,
-    }
-  })
+  return base
+    .map((row) => {
+      const identity = identityMap.get(row.characterId)
+      return {
+        ...row,
+        portraitRef: identity?.portraitRef ?? null,
+        disciplineId: identity?.disciplineId ?? null,
+        personalTitle: identity?.personalTitle ?? null,
+        imageUrl: imageMap.get(row.characterId) ?? null,
+      }
+    })
+    .sort(compareOnlineCharacters)
 }
 
 function unavailable(): AurevaneError {
