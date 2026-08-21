@@ -4,7 +4,6 @@ import type {
   BattleSessionRecord,
   CommitBattleIntentInput,
   CreateBattleSessionInput,
-  FindBattleIntentReplayInput,
 } from '@aurevane/db/battle-session'
 import type { CharacterRecord, CharacterRepository } from '@aurevane/db/character'
 import {
@@ -93,7 +92,7 @@ function createBattleRepository() {
   }))
   const findBattleSession = vi.fn(async (): Promise<BattleSessionRecord | null> => null)
   const findBattleIntentReplay = vi.fn(
-    async (_input: FindBattleIntentReplayInput): Promise<BattleSessionCommitRecord | null> => null,
+    async (): Promise<BattleSessionCommitRecord | null> => null,
   )
   const commitBattleIntent = vi.fn(async (input: CommitBattleIntentInput) => ({
     replayed: false,
