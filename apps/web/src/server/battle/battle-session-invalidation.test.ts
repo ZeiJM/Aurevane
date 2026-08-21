@@ -67,6 +67,7 @@ function createBattleRepository() {
     },
   }))
   const findBattleSession = vi.fn(async (): Promise<BattleSessionRecord | null> => null)
+  const findBattleIntentReplay = vi.fn(async () => null)
   const commitBattleIntent = vi.fn(async (input: CommitBattleIntentInput) => ({
     replayed: false,
     result: {
@@ -79,10 +80,17 @@ function createBattleRepository() {
   const repository: BattleSessionRepository = {
     createBattleSession,
     findBattleSession,
+    findBattleIntentReplay,
     commitBattleIntent,
   }
 
-  return { repository, createBattleSession, findBattleSession, commitBattleIntent }
+  return {
+    repository,
+    createBattleSession,
+    findBattleSession,
+    findBattleIntentReplay,
+    commitBattleIntent,
+  }
 }
 
 async function createFixture() {
@@ -174,14 +182,11 @@ describe('P2.4 battle-session invalidation contract', () => {
   it('returns the committed authoritative version for an idempotent replay invalidation', async () => {
     const { battles, service, snapshot, record } = await createFixture()
     battles.findBattleSession.mockResolvedValue({ ...record, battleVersion: 2 })
-    battles.commitBattleIntent.mockResolvedValue({
-      replayed: true,
-      result: {
-        battleSessionId: SESSION_ID,
-        battleVersion: 2,
-        snapshot,
-        committedAt: COMMITTED_AT,
-      },
+    battles.findBattleIntentReplay.mockResolvedValue({
+      battleSessionId: SESSION_ID,
+      battleVersion: 2,
+      snapshot,
+      committedAt: COMMITTED_AT,
     })
 
     const result = await service.submitIntent({
@@ -194,5 +199,6 @@ describe('P2.4 battle-session invalidation contract', () => {
 
     expect(result.replayed).toBe(true)
     expectIdentifierOnlyInvalidation(result.invalidation, 2, 'state_changed')
+    expect(battles.commitBattleIntent).not.toHaveBeenCalled()
   })
 })
