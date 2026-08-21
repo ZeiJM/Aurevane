@@ -17,6 +17,12 @@ export interface ActiveBattleSummary {
   isPvp: boolean
 }
 
+export interface ActiveSpectatingSummary {
+  battleSessionId: string
+  battleKey: string
+  updatedAt: string
+}
+
 export function readVerifiedGameSessionIdentity(
   claims: unknown,
 ): VerifiedGameSessionIdentity | null {
@@ -102,6 +108,40 @@ export async function getActiveBattleForUser(userId: string): Promise<ActiveBatt
   }
 }
 
+export async function getActiveSpectatingForUser(
+  userId: string,
+): Promise<ActiveSpectatingSummary | null> {
+  const supabase = createSupabaseAdminClient()
+  const { data, error } = await supabase.rpc('get_active_spectating_for_user_v1', {
+    p_user_id: userId,
+  })
+  if (error) {
+    throw new AurevaneError(
+      'PERSISTENCE_UNAVAILABLE',
+      'The active spectator state could not be checked safely.',
+    )
+  }
+  if (!Array.isArray(data) || data.length === 0) return null
+  const row = data[0]
+  if (
+    !row ||
+    typeof row !== 'object' ||
+    typeof row.battle_session_id !== 'string' ||
+    typeof row.battle_key !== 'string' ||
+    typeof row.updated_at !== 'string'
+  ) {
+    throw new AurevaneError(
+      'PERSISTENCE_UNAVAILABLE',
+      'The active spectator lookup returned invalid state.',
+    )
+  }
+  return {
+    battleSessionId: row.battle_session_id,
+    battleKey: row.battle_key,
+    updatedAt: row.updated_at,
+  }
+}
+
 async function isExistingBattleCreateReplay(
   userId: string,
   idempotencyKey: string,
@@ -139,4 +179,22 @@ export async function assertNoActiveBattle(
     'INVALID_REQUEST',
     'You are already in a battle. Return to it before starting or joining another fight.',
   )
+}
+
+export async function assertGameplayMutationAllowed(userId: string): Promise<void> {
+  const activeBattle = await getActiveBattleForUser(userId)
+  if (activeBattle) {
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'This action is unavailable while you are in battle. Return to the battle first.',
+    )
+  }
+
+  const spectating = await getActiveSpectatingForUser(userId)
+  if (spectating) {
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'This action is unavailable while you are spectating. Stop spectating first.',
+    )
+  }
 }
