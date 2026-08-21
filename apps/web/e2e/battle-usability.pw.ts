@@ -65,9 +65,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort B
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
   await expect(battlefield).toBeVisible()
-  if (testInfo.project.name !== 'mobile-chromium') {
-    await expectVictoryConditionsBesideActionEconomy(page)
-  }
+  await expectVictoryConditionsBesideActionEconomy(page)
   await expect(
     page.getByRole('button', { name: new RegExp(`Tile 2, 4;.*occupied by ${characterName}`) }),
   ).toBeVisible()
