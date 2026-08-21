@@ -66,7 +66,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort B
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
   await expect(battlefield).toBeVisible()
   if (testInfo.project.name !== 'mobile-chromium') {
-    await expectActionEconomyCenteredOverBattlefield(page)
+    await expectVictoryConditionsBesideActionEconomy(page)
   }
   await expect(
     page.getByRole('button', { name: new RegExp(`Tile 2, 4;.*occupied by ${characterName}`) }),
@@ -167,21 +167,31 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort B
   expect(terminalEvent).toBe('battle_abandoned|practice-aborted')
 })
 
-async function expectActionEconomyCenteredOverBattlefield(
+async function expectVictoryConditionsBesideActionEconomy(
   page: import('@playwright/test').Page,
 ): Promise<void> {
-  const economy = page.getByRole('progressbar', { name: 'Action Economy remaining' })
-  const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
-  const [economyBox, battlefieldBox] = await Promise.all([
-    economy.boundingBox(),
-    battlefield.boundingBox(),
+  const economyPanel = page
+    .getByRole('progressbar', { name: 'Action Economy remaining' })
+    .locator('..')
+  const victoryConditions = page.getByRole('button', { name: /Victory conditions/i })
+  await expect(victoryConditions).toBeVisible()
+
+  const [economyBox, victoryBox] = await Promise.all([
+    economyPanel.boundingBox(),
+    victoryConditions.boundingBox(),
   ])
   expect(economyBox).not.toBeNull()
-  expect(battlefieldBox).not.toBeNull()
-  if (!economyBox || !battlefieldBox) return
-  const economyCenter = economyBox.x + economyBox.width / 2
-  const battlefieldCenter = battlefieldBox.x + battlefieldBox.width / 2
-  expect(Math.abs(economyCenter - battlefieldCenter)).toBeLessThanOrEqual(3)
+  expect(victoryBox).not.toBeNull()
+  if (!economyBox || !victoryBox) return
+
+  const economyRight = economyBox.x + economyBox.width
+  const horizontalGap = victoryBox.x - economyRight
+  expect(horizontalGap).toBeGreaterThanOrEqual(-1)
+  expect(horizontalGap).toBeLessThanOrEqual(24)
+
+  const economyCenterY = economyBox.y + economyBox.height / 2
+  const victoryCenterY = victoryBox.y + victoryBox.height / 2
+  expect(Math.abs(economyCenterY - victoryCenterY)).toBeLessThanOrEqual(4)
 }
 
 async function hasHorizontalOverflow(page: import('@playwright/test').Page): Promise<boolean> {
