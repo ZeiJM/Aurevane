@@ -92,10 +92,10 @@ function useHeaderCriteriaTarget(): HTMLElement | null {
       const round =
         header === null
           ? null
-          : (Array.from(header.children).find(
+          : ((Array.from(header.children).find(
               (element) =>
                 element instanceof HTMLButtonElement && element.textContent?.includes('Combat Log'),
-            ) as HTMLElement | undefined) ?? null
+            ) as HTMLElement | undefined) ?? null)
 
       if (!header || !economy || !objective || !round) {
         if (slot || activeHeader) clearInlineLayout()
