@@ -256,6 +256,17 @@ main[aria-busy] > footer > div:first-child > button > span {
     grid-template-columns: minmax(0, 1fr);
   }
 
+  /*
+   * On compact battle layouts the board width already determines square tile size.
+   * Fractional implicit rows can stretch to fill the mobile board's reserved height,
+   * leaving dark bands between otherwise square tiles. Let tile geometry size each
+   * row intrinsically so the intended small grid gap stays uniform in both axes.
+   */
+  #battlefield > div:first-child > div {
+    grid-auto-rows: auto;
+    align-content: start;
+  }
+
   main[aria-busy] > footer {
     position: static;
     inset: auto;
