@@ -1,8 +1,11 @@
 import 'server-only'
 
+import type { BattleEventRecord } from '@aurevane/db/battle-session'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+
+import { buildBattleLogView, type BattleLogView } from './battle-log-service'
 
 export interface PvpBattleChatMessageView {
   id: number
@@ -13,7 +16,6 @@ export interface PvpBattleChatMessageView {
 }
 
 export interface PvpSpectatorPresenceView {
-  userId: string
   name: string
   lastSeenAt: string
 }
@@ -24,8 +26,18 @@ function unavailable(message = 'PvP communication is unavailable right now.'): A
 
 function mapRpcError(error: { code?: string; message?: string }): never {
   const message = error.message ?? ''
-  if (error.code === '42501' || message.includes('PVP_BATTLE_FORBIDDEN') || message.includes('PVP_CHAT_FORBIDDEN')) {
-    throw new AurevaneError('FORBIDDEN', 'That PvP battle is not available to this account.')
+  if (
+    error.code === '42501' ||
+    message.includes('PVP_BATTLE_FORBIDDEN') ||
+    message.includes('PVP_CHAT_FORBIDDEN') ||
+    message.includes('PVP_SPECTATE_CONFLICT')
+  ) {
+    throw new AurevaneError(
+      'FORBIDDEN',
+      message.includes('PVP_SPECTATE_CONFLICT')
+        ? 'Finish your active battle or stop spectating the current match first.'
+        : 'That PvP battle is not available to this account.',
+    )
   }
   if (error.code === '22023' || message.includes('PVP_CHAT_INVALID')) {
     throw new AurevaneError('INVALID_REQUEST', 'Battle chat messages must be 1–280 characters.')
@@ -52,6 +64,30 @@ function parseMessageRow(input: unknown): PvpBattleChatMessageView {
     senderCharacterId: row.sender_character_id,
     senderCharacterName: row.sender_character_name,
     body: row.body,
+    createdAt: row.created_at,
+  }
+}
+
+function parseEventRow(input: unknown): BattleEventRecord {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    throw unavailable('The battle log returned invalid data.')
+  }
+  const row = input as Record<string, unknown>
+  const battleVersion = Number(row.battle_version)
+  const eventIndex = Number(row.event_index)
+  if (
+    !Number.isSafeInteger(battleVersion) ||
+    battleVersion < 0 ||
+    !Number.isSafeInteger(eventIndex) ||
+    eventIndex < 0 ||
+    typeof row.created_at !== 'string'
+  ) {
+    throw unavailable('The battle log returned invalid data.')
+  }
+  return {
+    battleVersion,
+    eventIndex,
+    event: row.event,
     createdAt: row.created_at,
   }
 }
@@ -131,14 +167,10 @@ export async function listPvpSpectators(
       throw unavailable('The spectator list returned invalid data.')
     }
     const row = input as Record<string, unknown>
-    if (
-      typeof row.user_id !== 'string' ||
-      typeof row.spectator_name !== 'string' ||
-      typeof row.last_seen_at !== 'string'
-    ) {
+    if (typeof row.spectator_name !== 'string' || typeof row.last_seen_at !== 'string') {
       throw unavailable('The spectator list returned invalid data.')
     }
-    return { userId: row.user_id, name: row.spectator_name, lastSeenAt: row.last_seen_at }
+    return { name: row.spectator_name, lastSeenAt: row.last_seen_at }
   })
 }
 
@@ -156,6 +188,21 @@ export async function listPvpBattleChat(
   if (error) mapRpcError(error)
   if (!Array.isArray(data)) throw unavailable('The battle chat returned invalid data.')
   return data.map(parseMessageRow)
+}
+
+export async function getPvpBattleLog(
+  userId: string,
+  battleSessionId: string,
+): Promise<BattleLogView> {
+  const supabase = createSupabaseAdminClient()
+  const { data, error } = await supabase.rpc('list_pvp_battle_events_v1', {
+    p_user_id: userId,
+    p_battle_session_id: battleSessionId,
+    p_limit: 100,
+  })
+  if (error) mapRpcError(error)
+  if (!Array.isArray(data)) throw unavailable('The battle log returned invalid data.')
+  return buildBattleLogView(battleSessionId, data.map(parseEventRow))
 }
 
 export async function sendPvpBattleChat(

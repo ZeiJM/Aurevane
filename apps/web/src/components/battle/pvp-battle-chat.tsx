@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import type { BattleLogView } from '@/server/battle/battle-log-service'
 import type {
   PvpBattleChatMessageView,
   PvpSpectatorPresenceView,
@@ -13,6 +14,7 @@ interface ChatApiBody {
   messages?: PvpBattleChatMessageView[]
   spectators?: PvpSpectatorPresenceView[]
   spectatorCount?: number
+  battleLog?: BattleLogView
   message?: PvpBattleChatMessageView
   error?: { message?: string }
 }
@@ -22,7 +24,9 @@ interface PvpBattleChatProps {
   readOnly: boolean
   open?: boolean
   localCharacterId?: string | null
+  showBattleLog?: boolean
   onUnreadChange?: (unread: number) => void
+  onSpectatorCountChange?: (count: number) => void
   className?: string
 }
 
@@ -31,12 +35,16 @@ export function PvpBattleChat({
   readOnly,
   open = true,
   localCharacterId = null,
+  showBattleLog = false,
   onUnreadChange,
+  onSpectatorCountChange,
   className,
 }: PvpBattleChatProps) {
   const [messages, setMessages] = useState<PvpBattleChatMessageView[]>([])
   const [spectators, setSpectators] = useState<PvpSpectatorPresenceView[]>([])
   const [spectatorCount, setSpectatorCount] = useState(0)
+  const [battleLog, setBattleLog] = useState<BattleLogView | null>(null)
+  const [tab, setTab] = useState<'chat' | 'log'>('chat')
   const [spectatorListOpen, setSpectatorListOpen] = useState(false)
   const [draft, setDraft] = useState('')
   const [pending, setPending] = useState(false)
@@ -71,36 +79,45 @@ export function PvpBattleChat({
           ...additions.map((message) => message.id),
         )
         if (initialized.current && !open) {
-          const nextUnread = additions.filter(
+          const addedUnread = additions.filter(
             (message) => !localCharacterId || message.senderCharacterId !== localCharacterId,
           ).length
-          if (nextUnread > 0) publishUnread(unread + nextUnread)
+          if (addedUnread > 0) {
+            setUnread((currentUnread) => {
+              const next = currentUnread + addedUnread
+              onUnreadChange?.(next)
+              return next
+            })
+          }
         }
         return [...current, ...additions].sort((left, right) => left.id - right.id).slice(-100)
       })
     },
-    [localCharacterId, open, publishUnread, unread],
+    [localCharacterId, onUnreadChange, open],
   )
 
   const refresh = useCallback(async () => {
     try {
-      const response = await fetch(`${endpoint}?after=${latestMessageId.current}`, {
-        cache: 'no-store',
-      })
+      const params = new URLSearchParams({ after: String(latestMessageId.current) })
+      if (showBattleLog) params.set('includeLog', '1')
+      const response = await fetch(`${endpoint}?${params.toString()}`, { cache: 'no-store' })
       const body = (await response.json()) as ChatApiBody
       if (!response.ok) {
-        setNotice(body.error?.message ?? 'Battle chat is temporarily unavailable.')
+        setNotice(body.error?.message ?? 'Battle communication is temporarily unavailable.')
         return
       }
       mergeMessages(body.messages ?? [])
       setSpectators(body.spectators ?? [])
-      setSpectatorCount(body.spectatorCount ?? 0)
+      const nextCount = body.spectatorCount ?? 0
+      setSpectatorCount(nextCount)
+      onSpectatorCountChange?.(nextCount)
+      if (body.battleLog) setBattleLog(body.battleLog)
       setNotice(null)
       initialized.current = true
     } catch {
-      setNotice('Battle chat connection interrupted. Retrying…')
+      setNotice('Battle communication interrupted. Retrying…')
     }
-  }, [endpoint, mergeMessages])
+  }, [endpoint, mergeMessages, onSpectatorCountChange, showBattleLog])
 
   useEffect(() => {
     void refresh()
@@ -114,10 +131,10 @@ export function PvpBattleChat({
   }, [open, publishUnread, unread])
 
   useEffect(() => {
-    if (!open) return
+    if (!open || tab !== 'chat') return
     const node = listRef.current
     if (node) node.scrollTop = node.scrollHeight
-  }, [messages, open])
+  }, [messages, open, tab])
 
   async function sendMessage() {
     const body = draft.trim()
@@ -148,8 +165,46 @@ export function PvpBattleChat({
     <section className={`${styles.chat} ${className ?? ''}`} data-open={open || undefined}>
       <header className={styles.header}>
         <div>
-          <span>Battle Chat</span>
-          <small>{readOnly ? 'Read-only' : 'Live with combatants'}</small>
+          {showBattleLog ? (
+            <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => setTab('chat')}
+                aria-pressed={tab === 'chat'}
+                style={{
+                  border: 0,
+                  padding: 0,
+                  color: tab === 'chat' ? 'var(--av-brass-300)' : 'var(--av-text-dim)',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  font: '800 .57rem/1 var(--av-font-mono)',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Battle Chat
+              </button>
+              <span aria-hidden="true">/</span>
+              <button
+                type="button"
+                onClick={() => setTab('log')}
+                aria-pressed={tab === 'log'}
+                style={{
+                  border: 0,
+                  padding: 0,
+                  color: tab === 'log' ? 'var(--av-brass-300)' : 'var(--av-text-dim)',
+                  background: 'transparent',
+                  cursor: 'pointer',
+                  font: '800 .57rem/1 var(--av-font-mono)',
+                  textTransform: 'uppercase',
+                }}
+              >
+                Battle Log
+              </button>
+            </div>
+          ) : (
+            <span>Battle Chat</span>
+          )}
+          <small>{readOnly ? 'Read-only live feed' : 'Live with combatants'}</small>
         </div>
         <div className={styles.presenceWrap}>
           <button
@@ -165,7 +220,9 @@ export function PvpBattleChat({
             <div className={styles.presenceList} role="dialog" aria-label="Current spectators">
               <strong>Spectators</strong>
               {spectators.length > 0 ? (
-                spectators.map((spectator) => <span key={spectator.userId}>{spectator.name}</span>)
+                spectators.map((spectator, index) => (
+                  <span key={`${spectator.name}:${spectator.lastSeenAt}:${index}`}>{spectator.name}</span>
+                ))
               ) : (
                 <span>No spectators</span>
               )}
@@ -174,34 +231,57 @@ export function PvpBattleChat({
         </div>
       </header>
 
-      <div className={styles.messages} ref={listRef} aria-live="polite">
-        {messages.length > 0 ? (
-          messages.map((message) => (
-            <article
-              className={styles.message}
-              data-own={localCharacterId === message.senderCharacterId || undefined}
-              key={message.id}
-            >
-              <div>
-                <strong>{message.senderCharacterName}</strong>
-                <time dateTime={message.createdAt}>
-                  {new Date(message.createdAt).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </time>
-              </div>
-              <p>{message.body}</p>
-            </article>
-          ))
-        ) : (
-          <p className={styles.empty}>No battle messages yet.</p>
-        )}
-      </div>
+      {tab === 'chat' ? (
+        <div className={styles.messages} ref={listRef} aria-live="polite">
+          {messages.length > 0 ? (
+            messages.map((message) => (
+              <article
+                className={styles.message}
+                data-own={localCharacterId === message.senderCharacterId || undefined}
+                key={message.id}
+              >
+                <div>
+                  <strong>{message.senderCharacterName}</strong>
+                  <time dateTime={message.createdAt}>
+                    {new Date(message.createdAt).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </time>
+                </div>
+                <p>{message.body}</p>
+              </article>
+            ))
+          ) : (
+            <p className={styles.empty}>No battle messages yet.</p>
+          )}
+        </div>
+      ) : (
+        <div className={styles.messages} aria-live="polite">
+          {battleLog && battleLog.entries.length > 0 ? (
+            [...battleLog.entries].reverse().map((entry) => (
+              <article className={styles.message} key={`${entry.battleVersion}:${entry.eventIndex}`}>
+                <div>
+                  <strong>{entry.eventType.replaceAll('_', ' ')}</strong>
+                  <time dateTime={entry.occurredAt}>
+                    {new Date(entry.occurredAt).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </time>
+                </div>
+                <p>{entry.message}</p>
+              </article>
+            ))
+          ) : (
+            <p className={styles.empty}>No committed battle events yet.</p>
+          )}
+        </div>
+      )}
 
       {notice ? <p className={styles.notice}>{notice}</p> : null}
 
-      {!readOnly ? (
+      {!readOnly && tab === 'chat' ? (
         <form
           className={styles.composer}
           onSubmit={(event) => {

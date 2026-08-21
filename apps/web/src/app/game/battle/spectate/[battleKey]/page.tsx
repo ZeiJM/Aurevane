@@ -1,58 +1,60 @@
-import { isAurevaneError } from '@aurevane/game-core/errors'
+import { AurevaneError } from '@aurevane/game-core/errors'
 import { parsePvpBattleKey } from '@aurevane/validation/combat/pvp'
-import { headers } from 'next/headers'
-import { redirect } from 'next/navigation'
 
-import { BattleAudioGate } from '@/components/battle/battle-audio-gate'
-import { PvpSpectatorExperience } from '@/components/battle/pvp-spectator-experience'
-import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
-import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
+import { getActiveSpectatingForUser } from '@/server/account/active-game-session'
 import { getAuthenticatedActor } from '@/server/auth/actor'
+import {
+  joinPvpSpectation,
+  leavePvpSpectation,
+} from '@/server/battle/pvp-battle-communication-service'
+import { loadPvpParticipantTitles } from '@/server/battle/pvp-battle-profile-service'
 import { getPvpSpectatorView } from '@/server/battle/pvp-lobby-service'
+import { toServerErrorResponse } from '@/server/http/error-response'
 
-export const dynamic = 'force-dynamic'
-
-export default async function PvpSpectatorPage({
-  params,
-}: {
-  params: Promise<{ battleKey: string }>
-}) {
-  const publicConfig = getOptionalPublicSupabaseConfig()
-  const requestHost = (await headers()).get('host')
-  const readiness = getCurrentAccountServicesReadiness(publicConfig, requestHost)
-  if (!readiness.available) redirect('/')
-
-  try {
-    await getAuthenticatedActor()
-  } catch (error) {
-    if (isAurevaneError(error) && error.code === 'UNAUTHENTICATED') redirect('/')
-    throw error
-  }
-
-  const { battleKey: rawBattleKey } = await params
+async function parseBattleKey(context: { params: Promise<{ battleKey: string }> }): Promise<string> {
+  const { battleKey: rawBattleKey } = await context.params
   const battleKey = parsePvpBattleKey(rawBattleKey)
-  if (!battleKey) redirect('/game/battle')
+  if (!battleKey) throw new AurevaneError('INVALID_REQUEST', 'Enter a valid Spectator Key.')
+  return battleKey
+}
 
-  let spectator
+export async function GET(_request: Request, context: { params: Promise<{ battleKey: string }> }) {
   try {
-    spectator = await getPvpSpectatorView(battleKey)
-  } catch (error) {
-    if (
-      isAurevaneError(error) &&
-      (error.code === 'FORBIDDEN' ||
-        error.code === 'INVALID_REQUEST' ||
-        error.code === 'PERSISTENCE_UNAVAILABLE')
-    ) {
-      redirect('/game/battle')
+    const actor = await getAuthenticatedActor()
+    const battleKey = await parseBattleKey(context)
+    const spectator = await getPvpSpectatorView(battleKey)
+    if (!spectator) {
+      throw new AurevaneError('INVALID_REQUEST', 'No active or completed PvP battle uses that key.')
     }
-    throw error
+
+    const battleSessionId = await joinPvpSpectation(actor.userId, battleKey)
+    if (!battleSessionId || battleSessionId !== spectator.battle.battleSessionId) {
+      throw new AurevaneError('INVALID_REQUEST', 'That battle is no longer available to spectate.')
+    }
+
+    const participantTitles = await loadPvpParticipantTitles(
+      spectator.participants.map((participant) => participant.characterId),
+    )
+
+    return Response.json(
+      { spectator, participantTitles },
+      { headers: { 'Cache-Control': 'private, no-store' } },
+    )
+  } catch (error) {
+    return toServerErrorResponse(error)
   }
+}
 
-  if (!spectator) redirect('/game/battle')
-
-  return (
-    <BattleAudioGate>
-      <PvpSpectatorExperience initialSpectator={spectator} />
-    </BattleAudioGate>
-  )
+export async function DELETE(_request: Request, context: { params: Promise<{ battleKey: string }> }) {
+  try {
+    const actor = await getAuthenticatedActor()
+    const battleKey = await parseBattleKey(context)
+    const active = await getActiveSpectatingForUser(actor.userId)
+    if (active?.battleKey === battleKey) {
+      await leavePvpSpectation(actor.userId, active.battleSessionId)
+    }
+    return new Response(null, { status: 204, headers: { 'Cache-Control': 'private, no-store' } })
+  } catch (error) {
+    return toServerErrorResponse(error)
+  }
 }

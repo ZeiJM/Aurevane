@@ -1,6 +1,7 @@
 import { AurevaneError } from '@aurevane/game-core/errors'
 import { NextResponse } from 'next/server'
 
+import { assertGameplayMutationAllowed } from '@/server/account/active-game-session'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import {
   cancelCharacterDeletion,
@@ -16,6 +17,7 @@ interface RouteContext {
 export async function POST(request: Request, context: RouteContext) {
   try {
     const actor = await getAuthenticatedActor()
+    await assertGameplayMutationAllowed(actor.userId)
     const { characterId } = await context.params
     const body = await request.json()
     const phrase =
@@ -41,6 +43,7 @@ export async function POST(request: Request, context: RouteContext) {
 export async function DELETE(_request: Request, context: RouteContext) {
   try {
     const actor = await getAuthenticatedActor()
+    await assertGameplayMutationAllowed(actor.userId)
     const { characterId } = await context.params
     const cancelled = await cancelCharacterDeletion(actor.userId, characterId)
     return Response.json({ cancelled }, { headers: { 'Cache-Control': 'private, no-store' } })

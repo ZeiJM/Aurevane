@@ -1,546 +1,355 @@
-.shell {
-  min-height: 100dvh;
-  padding: clamp(0.85rem, 2vw, 1.5rem);
-  color: #f5f7fb;
-  background:
-    radial-gradient(circle at 50% -20%, rgba(86, 178, 255, 0.24), transparent 38%),
-    radial-gradient(circle at 10% 40%, rgba(201, 78, 255, 0.12), transparent 32%),
-    linear-gradient(180deg, #07111d 0%, #050a12 52%, #03070d 100%);
-  display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
-  gap: 0.9rem;
+'use client'
+
+import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
+import { useRouter } from 'next/navigation'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+
+import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
+import { PvpBattleChat } from '@/components/battle/pvp-battle-chat'
+import { getStarterPortraitImageAssetId } from '@/media/character'
+import type { PvpBattleParticipantView, PvpSpectatorView } from '@/server/battle/pvp-lobby-service'
+
+import styles from './pvp-spectator-experience.module.css'
+
+type GridPosition = { x: number; y: number }
+type Facing = 'north' | 'east' | 'south' | 'west'
+
+type ApiBody = {
+  spectator?: PvpSpectatorView
+  participantTitles?: Record<string, string | null>
+  error?: { message?: string }
 }
 
-.broadcastHeader,
-.scoreboard,
-.arenaStage,
-.footer {
-  width: min(1500px, 100%);
-  margin-inline: auto;
+function positionKey(position: GridPosition): string {
+  return `${position.x}:${position.y}`
 }
 
-.broadcastHeader {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 1rem;
-  align-items: end;
-  padding: 0.95rem 1.1rem;
-  border: 1px solid rgba(154, 202, 255, 0.22);
-  background: linear-gradient(135deg, rgba(14, 27, 44, 0.94), rgba(7, 15, 27, 0.9));
-  box-shadow: 0 18px 55px rgba(0, 0, 0, 0.3);
+function meterPercent(value: number, maximum: number): number {
+  if (maximum <= 0) return 0
+  return Math.max(0, Math.min(100, (value / maximum) * 100))
 }
 
-.identity span,
-.turnSpotlight > span,
-.matchPulse > span {
-  color: #91cfff;
-  text-transform: uppercase;
-  letter-spacing: 0.16em;
-  font-size: 0.7rem;
-  font-weight: 800;
+function facingGlyph(facing: Facing): string {
+  if (facing === 'north') return '↑'
+  if (facing === 'east') return '→'
+  if (facing === 'south') return '↓'
+  return '←'
 }
 
-.identity h1 {
-  margin: 0.15rem 0 0;
-  font-size: clamp(1.35rem, 2.6vw, 2.35rem);
-  letter-spacing: -0.035em;
+function teamName(teamIndex: number): string {
+  return `Team ${teamIndex + 1}`
 }
 
-.identity p {
-  margin: 0.25rem 0 0;
-  color: #94a5ba;
-  font-size: 0.82rem;
+function participantName(
+  participants: ReadonlyMap<string, PvpBattleParticipantView>,
+  combatantId: string | null | undefined,
+): string {
+  if (!combatantId) return 'Awaiting next activation'
+  return participants.get(combatantId)?.characterName ?? 'Unknown combatant'
 }
 
-.liveStatus {
-  min-width: 12.5rem;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: center;
-  gap: 0.12rem 0.55rem;
-  padding: 0.55rem 0.7rem;
-  border-left: 1px solid rgba(155, 205, 255, 0.2);
-}
+export function PvpSpectatorExperience({
+  initialSpectator,
+  initialParticipantTitles,
+}: {
+  initialSpectator: PvpSpectatorView
+  initialParticipantTitles: Record<string, string | null>
+}) {
+  const router = useRouter()
+  const [spectator, setSpectator] = useState(initialSpectator)
+  const [participantTitles, setParticipantTitles] = useState(initialParticipantTitles)
+  const [connectionNote, setConnectionNote] = useState('Live arena link established.')
+  const [copyNotice, setCopyNotice] = useState(false)
+  const [stopping, setStopping] = useState(false)
 
-.liveStatus > span {
-  grid-row: 1 / 3;
-  padding: 0.35rem 0.5rem;
-  border-radius: 999px;
-  color: #cbd5df;
-  background: rgba(255, 255, 255, 0.08);
-  font-size: 0.68rem;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-}
+  const battle = spectator.battle
+  const tactical = battle.snapshot.tactical
+  const battleState = tactical.battle
+  const teamCount = spectator.mode === '1v1v1' ? 3 : 2
+  const participantByCombatant = useMemo(
+    () =>
+      new Map(spectator.participants.map((participant) => [participant.combatantId, participant])),
+    [spectator.participants],
+  )
+  const placementByTile = useMemo(
+    () =>
+      new Map(
+        tactical.placements.map(
+          (placement) => [positionKey(placement.position), placement] as const,
+        ),
+      ),
+    [tactical.placements],
+  )
+  const activeCombatantId = battleState.currentTurn?.combatantId ?? null
+  const activeParticipant = activeCombatantId
+    ? (participantByCombatant.get(activeCombatantId) ?? null)
+    : null
+  const activeCombatant = activeCombatantId
+    ? (battleState.combatants.find((combatant) => combatant.id === activeCombatantId) ?? null)
+    : null
 
-.liveStatus > span[data-live] {
-  color: #07120f;
-  background: #7fffc8;
-  box-shadow: 0 0 22px rgba(127, 255, 200, 0.34);
-}
-
-.liveStatus strong {
-  font-size: 0.9rem;
-}
-
-.liveStatus small {
-  color: #8093aa;
-  font-size: 0.7rem;
-}
-
-.scoreboard {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.65rem;
-}
-
-.teamCard {
-  min-width: 0;
-  padding: 0.65rem;
-  border: 1px solid rgba(145, 194, 241, 0.17);
-  background: rgba(8, 18, 31, 0.88);
-}
-
-.teamCard[data-team='0'] {
-  box-shadow: inset 0 2px 0 #6ec7ff;
-}
-.teamCard[data-team='1'] {
-  box-shadow: inset 0 2px 0 #ff9a62;
-}
-.teamCard[data-team='2'] {
-  box-shadow: inset 0 2px 0 #c991ff;
-}
-
-.teamHeading {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.75rem;
-  align-items: center;
-}
-
-.teamHeading div {
-  display: grid;
-  gap: 0.05rem;
-}
-
-.teamHeading span,
-.teamHeading b {
-  color: #7990a8;
-  font-size: 0.64rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-
-.teamHeading strong {
-  font-size: 0.9rem;
-}
-
-.teamHealth {
-  height: 0.22rem;
-  margin: 0.52rem 0;
-  overflow: hidden;
-  background: rgba(255, 255, 255, 0.07);
-}
-
-.teamHealth span {
-  display: block;
-  height: 100%;
-  background: linear-gradient(90deg, #ff5267, #ffa46b);
-  transition: width 250ms ease;
-}
-
-.teamRoster {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.35rem;
-}
-
-.fighter {
-  min-width: 0;
-  display: grid;
-  grid-template-columns: 2.35rem minmax(0, 1fr);
-  gap: 0.42rem;
-  align-items: center;
-  padding: 0.35rem;
-  border: 1px solid transparent;
-  background: rgba(255, 255, 255, 0.025);
-}
-
-.fighter[data-active] {
-  border-color: rgba(127, 255, 200, 0.55);
-  background: rgba(127, 255, 200, 0.07);
-}
-
-.fighter[data-defeated] {
-  opacity: 0.4;
-  filter: grayscale(0.8);
-}
-
-.fighterPortrait {
-  width: 2.35rem;
-  height: 2.35rem;
-  object-fit: cover;
-}
-
-.fighter div {
-  min-width: 0;
-  display: grid;
-}
-.fighter strong {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 0.74rem;
-}
-.fighter small {
-  color: #7890aa;
-  font-size: 0.62rem;
-}
-.fighter > span {
-  grid-column: 1 / -1;
-  color: #91a4b8;
-  font-size: 0.58rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-}
-.fighter[data-active] > span {
-  color: #7fffc8;
-}
-
-.arenaStage {
-  min-height: 0;
-  display: grid;
-  grid-template-columns: minmax(10rem, 0.58fr) minmax(34rem, 2.6fr) minmax(10rem, 0.58fr);
-  gap: 0.75rem;
-}
-
-.turnSpotlight,
-.matchPulse {
-  min-width: 0;
-  padding: 0.85rem;
-  border: 1px solid rgba(151, 201, 248, 0.16);
-  background: linear-gradient(180deg, rgba(12, 25, 42, 0.9), rgba(7, 15, 26, 0.92));
-}
-
-.turnSpotlight {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
-.spotlightPortrait {
-  width: min(7rem, 75%);
-  aspect-ratio: 1;
-  margin-top: 0.85rem;
-  object-fit: cover;
-  border-radius: 50%;
-  border: 2px solid rgba(127, 255, 200, 0.55);
-  box-shadow: 0 0 35px rgba(74, 211, 194, 0.2);
-}
-
-.turnSpotlight h2 {
-  margin: 0.7rem 0 0.1rem;
-  font-size: 1rem;
-}
-
-.turnSpotlight p,
-.matchPulse p {
-  margin: 0;
-  color: #8297ad;
-  font-size: 0.72rem;
-}
-
-.victoryGlyph {
-  margin-top: 1rem;
-  font-size: 3.2rem;
-  color: #ffd581;
-  text-shadow: 0 0 28px rgba(255, 213, 129, 0.35);
-}
-
-.pulseLine {
-  width: 100%;
-  margin-top: 1rem;
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 0.45rem;
-  align-items: center;
-  color: #607990;
-  font-size: 0.58rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-}
-
-.pulseLine i {
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(112, 211, 255, 0.55), transparent);
-}
-
-.battlefield {
-  min-width: 0;
-  min-height: 0;
-  display: grid;
-  place-items: center;
-  padding: clamp(0.55rem, 1.4vw, 1rem);
-  border: 1px solid rgba(145, 198, 247, 0.2);
-  background:
-    radial-gradient(circle at 50% 48%, rgba(46, 126, 166, 0.15), transparent 48%),
-    rgba(4, 11, 19, 0.94);
-  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.35);
-}
-
-.board {
-  width: min(100%, 72rem);
-  display: grid;
-  border: 1px solid rgba(138, 194, 236, 0.2);
-  background: #0a1520;
-  box-shadow: 0 18px 70px rgba(0, 0, 0, 0.42);
-}
-
-.tile {
-  position: relative;
-  min-width: 0;
-  min-height: 0;
-  aspect-ratio: 1;
-  overflow: hidden;
-  border-right: 1px solid rgba(135, 185, 219, 0.09);
-  border-bottom: 1px solid rgba(135, 185, 219, 0.09);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.015), transparent 55%), #0d1c27;
-}
-
-.tile[data-terrain='rough'] {
-  background:
-    repeating-linear-gradient(135deg, rgba(198, 144, 90, 0.08) 0 5px, transparent 5px 10px), #172127;
-}
-
-.tile[data-elevation] {
-  box-shadow: inset 0 0 0 1px rgba(255, 203, 106, 0.16);
-}
-
-.coordinates {
-  position: absolute;
-  top: 0.16rem;
-  left: 0.2rem;
-  color: rgba(159, 189, 210, 0.32);
-  font-size: clamp(0.42rem, 0.65vw, 0.58rem);
-}
-
-.elevation {
-  position: absolute;
-  top: 0.15rem;
-  right: 0.18rem;
-  color: rgba(255, 209, 119, 0.48);
-  font-size: 0.55rem;
-}
-
-.unit {
-  position: absolute;
-  inset: 10%;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  border: 2px solid #6ec7ff;
-  background: rgba(8, 17, 26, 0.92);
-  box-shadow: 0 5px 16px rgba(0, 0, 0, 0.48);
-}
-
-.unit[data-team='1'] {
-  border-color: #ff9a62;
-}
-.unit[data-team='2'] {
-  border-color: #c991ff;
-}
-.unit[data-active] {
-  box-shadow:
-    0 0 0 3px rgba(127, 255, 200, 0.32),
-    0 0 24px rgba(127, 255, 200, 0.32);
-}
-.unit[data-defeated] {
-  opacity: 0.28;
-  filter: grayscale(1);
-}
-
-.unitPortrait {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  object-fit: cover;
-}
-
-.unit i {
-  position: absolute;
-  top: -0.58rem;
-  color: #f5fbff;
-  font-style: normal;
-  font-size: clamp(0.75rem, 1.1vw, 1rem);
-  text-shadow: 0 2px 6px #000;
-}
-
-.unit strong {
-  position: absolute;
-  bottom: -0.82rem;
-  max-width: 140%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  padding: 0.1rem 0.25rem;
-  color: #eff8ff;
-  background: rgba(3, 9, 15, 0.86);
-  font-size: clamp(0.48rem, 0.7vw, 0.62rem);
-}
-
-.matchPulse {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.matchPulse > strong {
-  margin-top: 0.45rem;
-  font-size: 1.02rem;
-}
-
-.teamPips {
-  margin-top: 1rem;
-  display: grid;
-  gap: 0.45rem;
-}
-
-.teamPips div {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.42rem 0.5rem;
-  border-left: 2px solid #6ec7ff;
-  background: rgba(255, 255, 255, 0.03);
-  color: #9cb0c4;
-  font-size: 0.68rem;
-}
-
-.teamPips div[data-team='1'] {
-  border-left-color: #ff9a62;
-}
-.teamPips div[data-team='2'] {
-  border-left-color: #c991ff;
-}
-
-.footer {
-  min-height: 4.15rem;
-  display: grid;
-  grid-template-columns: minmax(10rem, 1fr) auto minmax(10rem, 1fr);
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.55rem 0.75rem;
-  border-top: 1px solid rgba(145, 197, 239, 0.16);
-  background: rgba(4, 10, 17, 0.92);
-}
-
-.footer button {
-  appearance: none;
-  border: 1px solid rgba(145, 197, 239, 0.22);
-  color: #dfeaf4;
-  background: rgba(255, 255, 255, 0.035);
-  padding: 0.6rem 0.75rem;
-  cursor: pointer;
-}
-
-.footer > button:first-child {
-  justify-self: start;
-}
-
-.battleKey {
-  justify-self: center;
-  min-width: 13rem;
-  display: grid;
-  gap: 0.08rem;
-  text-align: center;
-}
-
-.battleKey small,
-.readOnlyBadge small {
-  color: #758da4;
-  font-size: 0.59rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-
-.battleKey strong {
-  color: #9fe5ff;
-  font-size: 0.9rem;
-  letter-spacing: 0.12em;
-}
-
-.readOnlyBadge {
-  justify-self: end;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 0.02rem 0.45rem;
-  align-items: center;
-  min-width: 9rem;
-  padding: 0.45rem 0.6rem;
-  border: 1px solid rgba(127, 255, 200, 0.16);
-  background: rgba(127, 255, 200, 0.035);
-}
-
-.readOnlyBadge > span {
-  grid-row: 1 / 3;
-  color: #7fffc8;
-}
-
-.readOnlyBadge strong {
-  font-size: 0.72rem;
-}
-
-@media (max-width: 1050px) {
-  .arenaStage {
-    grid-template-columns: 1fr;
+  const boardStyle: CSSProperties = {
+    gridTemplateColumns: `repeat(${tactical.width}, minmax(0, 1fr))`,
   }
-  .turnSpotlight,
-  .matchPulse {
-    display: none;
-  }
-  .scoreboard {
-    grid-template-columns: 1fr;
-  }
-  .teamRoster {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
 
-@media (max-width: 720px) {
-  .shell {
-    padding: 0.55rem;
+  const teamSummaries = Array.from({ length: teamCount }, (_, teamIndex) => {
+    const members = spectator.participants.filter(
+      (participant) => participant.teamIndex === teamIndex,
+    )
+    let hp = 0
+    let maxHp = 0
+    let standing = 0
+    for (const member of members) {
+      const combatant = battleState.combatants.find(
+        (candidate) => candidate.id === member.combatantId,
+      )
+      if (!combatant) continue
+      hp += combatant.hp
+      maxHp += combatant.maxHp
+      if (combatant.hp > 0) standing += 1
+    }
+    return { teamIndex, members, hp, maxHp, standing }
+  })
+
+  const livingTeams = teamSummaries.filter((team) => team.standing > 0)
+  const winner =
+    battleState.lifecycle === 'completed' && livingTeams.length === 1 ? livingTeams[0] : null
+
+  useEffect(() => {
+    let cancelled = false
+    const refresh = async () => {
+      try {
+        const response = await fetch(
+          `/api/pvp/spectate/${encodeURIComponent(spectator.battleKey)}`,
+          { cache: 'no-store' },
+        )
+        const body = (await response.json()) as ApiBody
+        if (!response.ok || !body.spectator || cancelled) {
+          if (!cancelled) setConnectionNote(body.error?.message ?? 'Arena link interrupted. Retrying…')
+          return
+        }
+        setSpectator(body.spectator)
+        if (body.participantTitles) setParticipantTitles(body.participantTitles)
+        setConnectionNote(
+          body.spectator.battle.snapshot.tactical.battle.lifecycle === 'completed'
+            ? 'Match complete · committed state retained.'
+            : 'Live arena link established.',
+        )
+      } catch {
+        if (!cancelled) setConnectionNote('Arena link interrupted. Retrying…')
+      }
+    }
+    const timer = window.setInterval(() => void refresh(), 850)
+    return () => {
+      cancelled = true
+      window.clearInterval(timer)
+    }
+  }, [spectator.battleKey])
+
+  async function stopSpectating() {
+    if (stopping) return
+    setStopping(true)
+    try {
+      const response = await fetch(`/api/pvp/spectate/${encodeURIComponent(spectator.battleKey)}`, {
+        method: 'DELETE',
+      })
+      if (!response.ok) {
+        const body = (await response.json()) as ApiBody
+        setConnectionNote(body.error?.message ?? 'Spectator state could not be cleared.')
+        setStopping(false)
+        return
+      }
+      router.push('/game/battle')
+      router.refresh()
+    } catch {
+      setConnectionNote('Spectator state could not be cleared. Try again.')
+      setStopping(false)
+    }
   }
-  .broadcastHeader {
-    grid-template-columns: 1fr;
-    align-items: start;
+
+  async function copySpectatorKey() {
+    try {
+      await navigator.clipboard.writeText(spectator.battleKey)
+      setCopyNotice(true)
+      window.setTimeout(() => setCopyNotice(false), 1500)
+    } catch {
+      setConnectionNote('Clipboard access is unavailable.')
+    }
   }
-  .liveStatus {
-    border-left: 0;
-    border-top: 1px solid rgba(155, 205, 255, 0.16);
-    padding-left: 0;
-  }
-  .teamRoster {
-    grid-template-columns: 1fr;
-  }
-  .arenaStage {
-    gap: 0.45rem;
-  }
-  .battlefield {
-    padding: 0.35rem;
-  }
-  .footer {
-    grid-template-columns: 1fr;
-  }
-  .footer > button:first-child,
-  .battleKey,
-  .readOnlyBadge {
-    justify-self: stretch;
-    width: 100%;
-  }
-  .readOnlyBadge {
-    display: flex;
-    justify-content: center;
-  }
+
+  return (
+    <main className={styles.page} data-pvp-spectator="true">
+      <header className={styles.header}>
+        <div>
+          <span>Battle Hall · Spectator</span>
+          <h1>{winner ? `${teamName(winner.teamIndex)} wins.` : 'Live PvP broadcast'}</h1>
+          <p>{connectionNote}</p>
+        </div>
+        <div className={styles.headerActions}>
+          <button type="button" className={styles.keyButton} onClick={() => void copySpectatorKey()}>
+            <small>{copyNotice ? 'Copied!' : 'Spectator Key · click to copy'}</small>
+            <strong>{spectator.battleKey}</strong>
+          </button>
+          <button
+            type="button"
+            className={styles.stopButton}
+            disabled={stopping}
+            onClick={() => void stopSpectating()}
+          >
+            {stopping ? 'Stopping…' : 'Stop Spectating'}
+          </button>
+        </div>
+      </header>
+
+      <section className={styles.scoreboard} aria-label="PvP team status">
+        {teamSummaries.map((team) => (
+          <article className={styles.teamCard} key={team.teamIndex} data-team={team.teamIndex}>
+            <div className={styles.teamHeading}>
+              <strong>{teamName(team.teamIndex)}</strong>
+              <span>{team.standing}/{team.members.length} standing</span>
+            </div>
+            <div className={styles.teamMeter} aria-label={`${teamName(team.teamIndex)} health`}>
+              <i style={{ width: `${meterPercent(team.hp, team.maxHp)}%` }} />
+            </div>
+            <small>{team.hp}/{team.maxHp} team HP</small>
+            <div className={styles.teamMembers}>
+              {team.members.map((member) => {
+                const combatant = battleState.combatants.find(
+                  (candidate) => candidate.id === member.combatantId,
+                )
+                const active = member.combatantId === activeCombatantId
+                return (
+                  <div
+                    className={styles.member}
+                    data-active={active || undefined}
+                    data-defeated={combatant?.hp === 0 || undefined}
+                    key={member.characterId}
+                  >
+                    <CharacterPortraitImage
+                      imageUrl={member.profileImageUrl}
+                      fallbackAssetId={getStarterPortraitImageAssetId(
+                        member.portraitRef as CharacterPortraitRef,
+                      )}
+                      className={styles.memberPortrait}
+                      sizes="42px"
+                      alt=""
+                    />
+                    <span>
+                      <strong>{member.characterName}</strong>
+                      <small>
+                        Level {member.characterLevel}
+                        {participantTitles[member.characterId]
+                          ? ` · ${participantTitles[member.characterId]}`
+                          : ''}
+                      </small>
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </article>
+        ))}
+      </section>
+
+      <section className={styles.broadcast}>
+        <aside className={styles.controlRail} aria-label="Spectator match context">
+          <article className={styles.actingCard}>
+            <span>Now Acting</span>
+            <strong>{activeParticipant?.characterName ?? 'Match complete'}</strong>
+            {activeCombatant && activeParticipant ? (
+              <>
+                <small>{teamName(activeParticipant.teamIndex)}</small>
+                <div className={styles.resourceLine}>
+                  <span>HP {activeCombatant.hp}/{activeCombatant.maxHp}</span>
+                  <span>MP {activeCombatant.mp}/{activeCombatant.maxMp}</span>
+                </div>
+              </>
+            ) : null}
+          </article>
+          <article className={styles.pulseCard}>
+            <span>Match Pulse</span>
+            <dl>
+              <div>
+                <dt>Round</dt>
+                <dd>{battleState.round}</dd>
+              </div>
+              <div>
+                <dt>Activation</dt>
+                <dd>{battleState.turnNumber}</dd>
+              </div>
+              <div>
+                <dt>Format</dt>
+                <dd>{spectator.mode.toUpperCase()}</dd>
+              </div>
+              <div>
+                <dt>Status</dt>
+                <dd>{battleState.lifecycle === 'active' ? 'Live' : 'Complete'}</dd>
+              </div>
+            </dl>
+          </article>
+        </aside>
+
+        <section className={styles.battlefieldWrap} aria-label="Live battlefield">
+          <div className={styles.battlefieldHeader}>
+            <div>
+              <span>Battlefield</span>
+              <strong>{participantName(participantByCombatant, activeCombatantId)}</strong>
+            </div>
+            <small>Read-only tactical view</small>
+          </div>
+          <div className={styles.boardScroller}>
+            <div className={styles.board} style={boardStyle}>
+              {tactical.tiles.map((tile) => {
+                const placement = placementByTile.get(positionKey(tile.position))
+                const participant = placement
+                  ? participantByCombatant.get(placement.combatantId)
+                  : undefined
+                const combatant = placement
+                  ? battleState.combatants.find((candidate) => candidate.id === placement.combatantId)
+                  : undefined
+                return (
+                  <div
+                    className={styles.tile}
+                    data-terrain={tile.terrainId}
+                    data-elevation={tile.elevation}
+                    key={positionKey(tile.position)}
+                    aria-label={`Tile ${tile.position.x + 1}, ${tile.position.y + 1}${participant ? ` occupied by ${participant.characterName}` : ''}`}
+                  >
+                    {tile.elevation > 0 ? <small className={styles.elevation}>+{tile.elevation}</small> : null}
+                    {participant && placement ? (
+                      <span
+                        className={styles.unit}
+                        data-team={participant.teamIndex}
+                        data-active={placement.combatantId === activeCombatantId || undefined}
+                        data-defeated={combatant?.hp === 0 || undefined}
+                        title={`${participant.characterName} · ${teamName(participant.teamIndex)}`}
+                      >
+                        <CharacterPortraitImage
+                          imageUrl={participant.profileImageUrl}
+                          fallbackAssetId={getStarterPortraitImageAssetId(
+                            participant.portraitRef as CharacterPortraitRef,
+                          )}
+                          className={styles.unitPortrait}
+                          sizes="64px"
+                          alt=""
+                        />
+                        <i>{facingGlyph(placement.facing as Facing)}</i>
+                      </span>
+                    ) : null}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        </section>
+
+        <PvpBattleChat
+          battleSessionId={battle.battleSessionId}
+          readOnly
+          showBattleLog
+          className={styles.comms}
+        />
+      </section>
+    </main>
+  )
 }

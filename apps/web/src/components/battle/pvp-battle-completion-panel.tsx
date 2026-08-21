@@ -133,10 +133,7 @@ export function PvpBattleCompletionPanel({
         <div className={styles.resultHero}>
           <p className={styles.eyebrow}>Battle Hall · PvP Result</p>
           <h2 id="pvp-battle-result-title">{result}</h2>
-          <p>
-            The match concluded in Round {round}. Its committed battle history remains available for
-            review and copying before you leave the result screen.
-          </p>
+          <p>The match concluded in Round {round}. Review the battle history or return to the hall.</p>
         </div>
 
         <dl className={styles.record} aria-label="PvP battle result">
@@ -152,19 +149,7 @@ export function PvpBattleCompletionPanel({
             <dt>Combatants</dt>
             <dd>{metadata.participants.length}</dd>
           </div>
-          <div>
-            <dt>Spectator Key</dt>
-            <dd>{metadata.battleKey}</dd>
-          </div>
         </dl>
-
-        <div className={styles.outcomeNote}>
-          <strong>Committed match record</strong>
-          <p>
-            The server-authoritative event history below is the record of the completed PvP match.
-            Review it on-screen or copy the full log to your clipboard with one button.
-          </p>
-        </div>
 
         <div className={styles.logActions}>
           <button type="button" className={styles.secondary} onClick={() => void toggleBattleLog()}>
@@ -179,7 +164,7 @@ export function PvpBattleCompletionPanel({
         {logOpen ? (
           <section className={styles.logReview} aria-label="Committed PvP battle log review">
             <div className={styles.logHeader}>
-              <strong>Committed Battle Log</strong>
+              <strong>Battle Log</strong>
               <span>{log?.entries.length ?? 0} events</span>
             </div>
             {log && log.entries.length > 0 ? (
@@ -194,7 +179,7 @@ export function PvpBattleCompletionPanel({
                 ))}
               </ol>
             ) : (
-              <p>No committed battle events were recorded.</p>
+              <p>No battle events were recorded.</p>
             )}
           </section>
         ) : null}

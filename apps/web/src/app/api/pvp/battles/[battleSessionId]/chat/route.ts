@@ -3,6 +3,7 @@ import { parseBattleSessionId } from '@aurevane/validation/combat/battle-session
 
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import {
+  getPvpBattleLog,
   getPvpSpectatorCount,
   listPvpBattleChat,
   listPvpSpectators,
@@ -23,15 +24,17 @@ export async function GET(request: Request, context: { params: Promise<{ battleS
     const { battleSessionId: rawBattleSessionId } = await context.params
     const battleSessionId = parseBattleSessionId(rawBattleSessionId)
     if (!battleSessionId) throw new AurevaneError('INVALID_REQUEST', 'Invalid battle session.')
+    const includeLog = new URL(request.url).searchParams.get('includeLog') === '1'
 
-    const [messages, spectators, spectatorCount] = await Promise.all([
+    const [messages, spectators, spectatorCount, battleLog] = await Promise.all([
       listPvpBattleChat(actor.userId, battleSessionId, parseAfterId(request)),
       listPvpSpectators(actor.userId, battleSessionId),
       getPvpSpectatorCount(actor.userId, battleSessionId),
+      includeLog ? getPvpBattleLog(actor.userId, battleSessionId) : Promise.resolve(null),
     ])
 
     return Response.json(
-      { messages, spectators, spectatorCount },
+      { messages, spectators, spectatorCount, ...(battleLog ? { battleLog } : {}) },
       { headers: { 'Cache-Control': 'private, no-store' } },
     )
   } catch (error) {
@@ -56,7 +59,10 @@ export async function POST(request: Request, context: { params: Promise<{ battle
     }
 
     const message = await sendPvpBattleChat(actor.userId, battleSessionId, body)
-    return Response.json({ message }, { status: 201, headers: { 'Cache-Control': 'private, no-store' } })
+    return Response.json(
+      { message },
+      { status: 201, headers: { 'Cache-Control': 'private, no-store' } },
+    )
   } catch (error) {
     return toServerErrorResponse(error)
   }

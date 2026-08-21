@@ -2,6 +2,7 @@ import { AurevaneError } from '@aurevane/game-core/errors'
 import { characterCreationRequestSchema } from '@aurevane/validation/player/character'
 import { NextResponse } from 'next/server'
 
+import { assertGameplayMutationAllowed } from '@/server/account/active-game-session'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import {
   authorizeCharacterSelection,
@@ -20,6 +21,7 @@ function requestUsesHttps(request: Request): boolean {
 export async function POST(request: Request) {
   try {
     const actor = await getAuthenticatedActor()
+    await assertGameplayMutationAllowed(actor.userId)
     const selectedCharacter = await loadSelectedCharacter(actor)
     const parsed = characterCreationRequestSchema.safeParse(await request.json())
     if (!parsed.success) {

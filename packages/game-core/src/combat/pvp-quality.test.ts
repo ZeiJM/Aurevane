@@ -110,17 +110,22 @@ function encounter(kind: 'pvp' | 'ai' = 'pvp') {
   ])
 }
 
+function loweredGuard(state: ReturnType<typeof encounter>, combatantId: string) {
+  return state.statusState
+    .find((row) => row.combatantId === combatantId)
+    ?.statuses.find((status) => status.statusId === PVP_LOWERED_GUARD_STATUS_ID)
+}
+
 function expectLoweredGuardDamage(
   state: ReturnType<typeof encounter>,
   events: readonly unknown[],
   expectedEvent: string,
 ) {
-  const playerStatuses = state.statusState.find((row) => row.combatantId === 'player')
-  expect(playerStatuses?.statuses).toEqual(
-    expect.arrayContaining([
-      expect.objectContaining({ statusId: PVP_LOWERED_GUARD_STATUS_ID, stacks: 1 }),
-    ]),
-  )
+  const playerStatus = loweredGuard(state, 'player')
+  expect(playerStatus).toMatchObject({
+    statusId: PVP_LOWERED_GUARD_STATUS_ID,
+    stacks: 1,
+  })
   expect(events).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
@@ -139,20 +144,33 @@ function expectLoweredGuardDamage(
 }
 
 describe('battle turn quality rules', () => {
-  it('applies Lowered Guard after two missed PvP turns', () => {
-    const firstPlayerMiss = timeoutPvpTurn(encounter('pvp')).state
-    const opponentTurn = timeoutPvpTurn(firstPlayerMiss).state
-    const secondPlayerMiss = timeoutPvpTurn(opponentTurn)
+  it('applies one-turn Lowered Guard after every missed PvP turn', () => {
+    const firstMiss = timeoutPvpTurn(encounter('pvp'))
 
-    expectLoweredGuardDamage(
-      secondPlayerMiss.state,
-      secondPlayerMiss.events,
-      'pvp_lowered_guard_applied',
+    expectLoweredGuardDamage(firstMiss.state, firstMiss.events, 'pvp_lowered_guard_applied')
+    expect(loweredGuard(firstMiss.state, 'player')?.remainingOwnerTurnStarts).toBe(1)
+  })
+
+  it('expires Lowered Guard when the combatant returns, then reapplies on another timeout', () => {
+    const firstPlayerMiss = timeoutPvpTurn(encounter('pvp')).state
+    const opponentMiss = timeoutPvpTurn(firstPlayerMiss).state
+
+    expect(opponentMiss.tactical.battle.currentTurn?.combatantId).toBe('player')
+    expect(loweredGuard(opponentMiss, 'player')).toBeUndefined()
+
+    const secondPlayerMiss = timeoutPvpTurn(opponentMiss)
+    expect(loweredGuard(secondPlayerMiss.state, 'player')?.remainingOwnerTurnStarts).toBe(1)
+    expect(secondPlayerMiss.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ event: 'pvp_lowered_guard_applied', combatantId: 'player' }),
+      ]),
     )
   })
 
-  it('applies the same 250% Lowered Guard rule after two missed AI-battle turns', () => {
+  it('keeps the existing two-miss Lowered Guard rule for AI battles', () => {
     const firstPlayerMiss = timeoutAiTurn(encounter('ai')).state
+    expect(loweredGuard(firstPlayerMiss, 'player')).toBeUndefined()
+
     const opponentTurn = timeoutAiTurn(firstPlayerMiss).state
     const secondPlayerMiss = timeoutAiTurn(opponentTurn)
 

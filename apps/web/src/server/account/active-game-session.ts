@@ -167,18 +167,27 @@ export async function assertNoActiveBattle(
   allowedCreateReplayKey?: string,
 ): Promise<void> {
   const active = await getActiveBattleForUser(userId)
-  if (!active) return
-  if (
-    allowedCreateReplayKey &&
-    !active.isPvp &&
-    (await isExistingBattleCreateReplay(userId, allowedCreateReplayKey, active.battleSessionId))
-  ) {
-    return
+  if (active) {
+    if (
+      allowedCreateReplayKey &&
+      !active.isPvp &&
+      (await isExistingBattleCreateReplay(userId, allowedCreateReplayKey, active.battleSessionId))
+    ) {
+      return
+    }
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'You are already in a battle. Return to it before starting or joining another fight.',
+    )
   }
-  throw new AurevaneError(
-    'INVALID_REQUEST',
-    'You are already in a battle. Return to it before starting or joining another fight.',
-  )
+
+  const spectating = await getActiveSpectatingForUser(userId)
+  if (spectating) {
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Stop spectating before starting or joining another fight.',
+    )
+  }
 }
 
 export async function assertGameplayMutationAllowed(userId: string): Promise<void> {
