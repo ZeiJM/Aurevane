@@ -33,9 +33,7 @@ export function AiBattleQualityControls({ battleSessionId }: { battleSessionId: 
 
   useEffect(() => {
     const locate = () => {
-      const root = document
-        .querySelector<HTMLElement>('#battlefield')
-        ?.closest<HTMLElement>('main')
+      const root = document.querySelector<HTMLElement>('#battlefield')?.closest<HTMLElement>('main')
       const strip =
         root?.querySelector<HTMLElement>('[data-testid="combat-mode-instruction"]') ?? null
       const target =
