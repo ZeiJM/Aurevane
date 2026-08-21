@@ -141,7 +141,6 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
                         title={tag.kind}
                         style={{
                           display: 'inline-flex',
-                          gap: '0.34rem',
                           alignItems: 'center',
                           padding: '0.42rem 0.58rem',
                           border: '1px solid rgba(207,169,93,.4)',
@@ -157,15 +156,6 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
                           font: '700 .5rem/1 var(--av-font-mono)',
                         }}
                       >
-                        <small
-                          style={{
-                            color: 'var(--av-text-dim)',
-                            font: '700 .4rem/1 var(--av-font-mono)',
-                            textTransform: 'uppercase',
-                          }}
-                        >
-                          {tag.kind === 'Personal Title' ? 'Title' : 'Discipline'}
-                        </small>
                         {tag.label}
                       </span>
                     ))
