@@ -73,7 +73,8 @@ export function PvpBattleQualityControls({
           const span = candidate.querySelector<HTMLElement>(':scope > span')
           if (!strong || !span) continue
           const duplicate =
-            strong.textContent?.trim() === 'Your turn' && span.textContent?.trim() === DUPLICATE_TURN_COPY
+            strong.textContent?.trim() === 'Your turn' &&
+            span.textContent?.trim() === DUPLICATE_TURN_COPY
           if (duplicate) span.style.display = 'none'
           else if (span.dataset.pvpDuplicateTurnCopy === 'true') {
             span.style.removeProperty('display')
@@ -142,9 +143,8 @@ export function PvpBattleQualityControls({
   const activeCombatantId =
     clock?.combatantId ?? battle?.snapshot.tactical.battle.currentTurn?.combatantId ?? null
   const activeName = activeCombatantId
-    ? (metadata.participants.find(
-        (participant) => participant.combatantId === activeCombatantId,
-      )?.characterName ?? null)
+    ? (metadata.participants.find((participant) => participant.combatantId === activeCombatantId)
+        ?.characterName ?? null)
     : null
 
   async function surrender() {
@@ -215,8 +215,7 @@ export function PvpBattleQualityControls({
             >
               <span
                 style={{
-                  color:
-                    clock?.active && seconds <= 10 ? '#e48b78' : 'var(--av-brass-200)',
+                  color: clock?.active && seconds <= 10 ? '#e48b78' : 'var(--av-brass-200)',
                 }}
               >
                 {timerText}
