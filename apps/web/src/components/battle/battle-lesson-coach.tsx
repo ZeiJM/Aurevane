@@ -63,24 +63,72 @@ function useHeaderCriteriaTarget(): HTMLElement | null {
 
   useEffect(() => {
     let frame = 0
-    let markedTarget: HTMLElement | null = null
+    let slot: HTMLElement | null = null
+    let activeHeader: HTMLElement | null = null
+    let activeEconomy: HTMLElement | null = null
+    let activeObjective: HTMLElement | null = null
+    let activeRound: HTMLElement | null = null
+
+    const clearInlineLayout = () => {
+      for (const element of [activeHeader, activeEconomy, activeObjective, activeRound]) {
+        if (!element) continue
+        element.style.removeProperty('grid-template-columns')
+        element.style.removeProperty('grid-column')
+        element.style.removeProperty('grid-row')
+      }
+      slot?.remove()
+      slot = null
+    }
+
     const locate = () => {
       frame = 0
       const track = document.querySelector<HTMLElement>(
         '[role="progressbar"][aria-label="Action Economy remaining"]',
       )
-      const header = track?.closest('header') ?? null
-      const first = header?.firstElementChild ?? null
-      const next = first instanceof HTMLElement ? first : null
-      if (markedTarget && markedTarget !== next) {
-        delete markedTarget.dataset.victoryCriteriaLayout
+      const economy = track?.parentElement instanceof HTMLElement ? track.parentElement : null
+      const header = economy?.closest<HTMLElement>('header') ?? null
+      const objective =
+        header?.firstElementChild instanceof HTMLElement ? header.firstElementChild : null
+      const round =
+        economy?.nextElementSibling instanceof HTMLElement ? economy.nextElementSibling : null
+      if (!header || !economy || !objective || !round) {
+        if (slot) clearInlineLayout()
+        setHeaderTarget((current) => (current === null ? current : null))
+        return
       }
-      if (next) {
-        next.dataset.victoryCriteriaLayout = 'true'
-        markedTarget = next
+
+      if (activeHeader !== header || activeEconomy !== economy) {
+        clearInlineLayout()
+        activeHeader = header
+        activeEconomy = economy
+        activeObjective = objective
+        activeRound = round
+        slot = document.createElement('div')
+        slot.dataset.victoryCriteriaSlot = 'true'
+        slot.style.display = 'flex'
+        slot.style.alignItems = 'stretch'
+        slot.style.minWidth = '0'
+        economy.insertAdjacentElement('afterend', slot)
       }
-      setHeaderTarget((current) => (current === next ? current : next))
+
+      const compact = window.matchMedia('(max-width: 880px)').matches
+      header.style.gridTemplateColumns = compact
+        ? 'minmax(0, 1fr) auto'
+        : 'minmax(10rem, 1fr) minmax(13rem, 24rem) auto auto'
+      objective.style.gridColumn = '1'
+      objective.style.gridRow = '1'
+      round.style.gridColumn = compact ? '2' : '4'
+      round.style.gridRow = '1'
+      economy.style.gridColumn = compact ? '1' : '2'
+      economy.style.gridRow = compact ? '2' : '1'
+      if (slot) {
+        slot.style.gridColumn = compact ? '2' : '3'
+        slot.style.gridRow = compact ? '2' : '1'
+        slot.style.alignSelf = 'stretch'
+      }
+      setHeaderTarget((current) => (current === slot ? current : slot))
     }
+
     const scheduleLocate = () => {
       if (frame !== 0) return
       frame = window.requestAnimationFrame(locate)
@@ -89,10 +137,12 @@ function useHeaderCriteriaTarget(): HTMLElement | null {
     locate()
     const observer = new MutationObserver(scheduleLocate)
     observer.observe(document.body, { childList: true, subtree: true })
+    window.addEventListener('resize', scheduleLocate)
     return () => {
       observer.disconnect()
+      window.removeEventListener('resize', scheduleLocate)
       if (frame !== 0) window.cancelAnimationFrame(frame)
-      if (markedTarget) delete markedTarget.dataset.victoryCriteriaLayout
+      clearInlineLayout()
     }
   }, [])
 
