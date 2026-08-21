@@ -197,32 +197,6 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
     }
   }
 
-  async function updateSettings(next: MapSettings) {
-    if (!localMember?.isHost || pending || lobby.status !== 'waiting') return
-    setSettings(next)
-    setPending(true)
-    setError(null)
-    try {
-      const response = await fetch(`/api/pvp/lobbies/${lobby.lobbyId}/settings`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(next),
-      })
-      const body = (await response.json()) as { settings?: MapSettings } & ApiErrorBody
-      if (!response.ok || !body.settings)
-        throw new Error(body.error?.message ?? 'Battlefield settings could not be changed.')
-      setSettings(body.settings)
-    } catch (settingsError) {
-      setError(
-        settingsError instanceof Error
-          ? settingsError.message
-          : 'Battlefield settings could not be changed.',
-      )
-    } finally {
-      setPending(false)
-    }
-  }
-
   async function leaveLobby() {
     if (pending) return
     setPending(true)
@@ -297,71 +271,43 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
             gap: '0.45rem',
           }}
         >
-          <label
-            style={{
-              display: 'grid',
-              gap: '0.25rem',
-              color: 'var(--av-text-dim)',
-              fontSize: '0.52rem',
-            }}
-          >
-            Map size
-            <select
-              disabled={!localMember?.isHost || pending}
-              value={settings.mapSize}
-              onChange={(event) =>
-                void updateSettings({ ...settings, mapSize: event.target.value as PvpMapSize })
-              }
+          {[
+            ['Map size', settings.mapSize],
+            ['Elevation', settings.elevationBias],
+            ['Difficult ground', settings.terrainBias],
+          ].map(([label, value]) => (
+            <div
+              key={label}
+              style={{
+                display: 'grid',
+                gap: '0.25rem',
+                minWidth: 0,
+                padding: '0.45rem 0.55rem',
+                border: '1px solid rgba(207, 169, 93, 0.22)',
+                borderRadius: '0.35rem',
+                background: 'rgba(255, 255, 255, 0.025)',
+              }}
             >
-              <option value="medium">Medium</option>
-              <option value="large">Large</option>
-            </select>
-          </label>
-          <label
-            style={{
-              display: 'grid',
-              gap: '0.25rem',
-              color: 'var(--av-text-dim)',
-              fontSize: '0.52rem',
-            }}
-          >
-            Elevation
-            <select
-              disabled={!localMember?.isHost || pending}
-              value={settings.elevationBias}
-              onChange={(event) =>
-                void updateSettings({
-                  ...settings,
-                  elevationBias: event.target.value as PvpMapBias,
-                })
-              }
-            >
-              <option value="less">Less</option>
-              <option value="neutral">Neutral</option>
-              <option value="more">More</option>
-            </select>
-          </label>
-          <label
-            style={{
-              display: 'grid',
-              gap: '0.25rem',
-              color: 'var(--av-text-dim)',
-              fontSize: '0.52rem',
-            }}
-          >
-            Difficult ground
-            <select
-              disabled={!localMember?.isHost || pending}
-              value={settings.terrainBias}
-              onChange={(event) =>
-                void updateSettings({ ...settings, terrainBias: event.target.value as PvpMapBias })
-              }
-            >
-              <option value="less">Less</option>
-              <option value="neutral">Neutral</option>
-              <option value="more">More</option>
-            </select>
-          </label>
+              <span
+                style={{
+                  color: 'var(--av-text-dim)',
+                  fontSize: '0.52rem',
+                }}
+              >
+                {label}
+              </span>
+              <strong
+                style={{
+                  color: 'var(--av-text)',
+                  fontSize: '0.68rem',
+                  fontWeight: 650,
+                  textTransform: 'capitalize',
+                }}
+              >
+                {value}
+              </strong>
+            </div>
+          ))}
         </section>
 
         {canMoveSeats ? (
