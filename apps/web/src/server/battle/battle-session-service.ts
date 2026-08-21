@@ -31,7 +31,7 @@ import {
   getTacticalHallArena,
   type TacticalHallArenaId,
 } from '@aurevane/game-core/combat/tactical-hall-arenas'
-import { AurevaneError } from '@aurevane/game-core/errors'
+import { AurevaneError, StaleBattleVersionError } from '@aurevane/game-core/errors'
 import {
   createBattleSessionChangedInvalidation,
   type BattleSessionChangedInvalidation,
@@ -433,25 +433,27 @@ export function createBattleSessionService({
       })
 
       if (current.battleVersion !== command.expectedBattleVersion) {
-        const replayOrStale = await battles.commitBattleIntent({
+        const replay = await battles.findBattleIntentReplay({
           actorKey: command.userId,
           idempotencyKey: command.idempotencyKey,
           requestFingerprint,
           userId: command.userId,
           battleSessionId: command.battleSessionId,
-          expectedBattleVersion: command.expectedBattleVersion,
-          nextSnapshot: current.snapshot,
-          events: [],
         })
+
+        if (!replay) {
+          throw new StaleBattleVersionError(current.battleVersion)
+        }
+
         return {
-          battleSessionId: replayOrStale.result.battleSessionId,
-          battleVersion: replayOrStale.result.battleVersion,
-          snapshot: projectBattleSnapshot(readPersistedEncounter(replayOrStale.result.snapshot)),
-          replayed: replayOrStale.replayed,
+          battleSessionId: replay.battleSessionId,
+          battleVersion: replay.battleVersion,
+          snapshot: projectBattleSnapshot(readPersistedEncounter(replay.snapshot)),
+          replayed: true,
           invalidation: createBattleSessionChangedInvalidation({
-            battleSessionId: replayOrStale.result.battleSessionId,
-            battleVersion: replayOrStale.result.battleVersion,
-            occurredAt: replayOrStale.result.committedAt,
+            battleSessionId: replay.battleSessionId,
+            battleVersion: replay.battleVersion,
+            occurredAt: replay.committedAt,
             reason: 'state_changed',
           }),
         }
