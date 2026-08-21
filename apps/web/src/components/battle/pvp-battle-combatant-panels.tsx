@@ -6,12 +6,22 @@ import { createPortal } from 'react-dom'
 
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { getStarterPortraitImageAssetId } from '@/media/character'
-import type { PvpBattleMetadata, PvpBattleParticipantView } from '@/server/battle/pvp-lobby-service'
+import type {
+  PvpBattleMetadata,
+  PvpBattleParticipantView,
+} from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
 import styles from './pvp-battle-combatant-panels.module.css'
 
-const COMBATANT_COLORS = ['#67c98a', '#dc6a66', '#67aee8', '#d9ad5c', '#a984e8', '#df7eb5'] as const
+const COMBATANT_COLORS = [
+  '#67c98a',
+  '#dc6a66',
+  '#67aee8',
+  '#d9ad5c',
+  '#a984e8',
+  '#df7eb5',
+] as const
 
 function percent(value: number, maximum: number): number {
   return maximum > 0 ? Math.max(0, Math.min(100, (value / maximum) * 100)) : 0
@@ -36,7 +46,9 @@ function Panel({
     (candidate) => candidate.combatantId === participant.combatantId,
   )
   const statuses =
-    battle.snapshot.statusState.find((row) => row.combatantId === participant.combatantId)?.statuses ?? []
+    battle.snapshot.statusState.find(
+      (row) => row.combatantId === participant.combatantId,
+    )?.statuses ?? []
   if (!combatant) return null
 
   const style = { '--combatant-accent': accent } as CSSProperties
@@ -77,7 +89,10 @@ function Panel({
         </div>
       </div>
 
-      <div className={styles.effects} aria-label={`${participant.characterName} status effects`}>
+      <div
+        className={styles.effects}
+        aria-label={`${participant.characterName} status effects`}
+      >
         <span>Effects</span>
         <div>
           {statuses.length > 0 ? (
@@ -163,12 +178,14 @@ export function PvpBattleCombatantPanels({
       null,
   )
   const selected = useMemo(
-    () => metadata.participants.find((participant) => participant.combatantId === selectedId) ?? null,
+    () =>
+      metadata.participants.find((participant) => participant.combatantId === selectedId) ?? null,
     [metadata.participants, selectedId],
   )
 
   useEffect(() => {
-    const locate = () => setBattlefieldTarget(document.querySelector<HTMLElement>('#battlefield'))
+    const locate = () =>
+      setBattlefieldTarget(document.querySelector<HTMLElement>('#battlefield'))
     locate()
     const observer = new MutationObserver(locate)
     observer.observe(document.body, { childList: true, subtree: true })
