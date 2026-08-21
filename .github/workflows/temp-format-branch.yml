@@ -1,0 +1,37 @@
+name: Temporary branch formatter
+
+on:
+  push:
+    branches:
+      - batch/pvp-spectator-security-final-20260821
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: batch/pvp-spectator-security-final-20260821
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec prettier --write "apps/**/*.{ts,tsx,js,mjs,json,css}" "packages/**/*.{ts,tsx,js,mjs,json}" package.json turbo.json pnpm-workspace.yaml .prettierrc.json eslint.config.mjs
+      - name: Commit formatting
+        run: |
+          if git diff --quiet; then
+            echo "No formatting changes needed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps packages package.json turbo.json pnpm-workspace.yaml .prettierrc.json eslint.config.mjs
+          git commit -m "Format integration changes"
+          git push origin HEAD:batch/pvp-spectator-security-final-20260821
