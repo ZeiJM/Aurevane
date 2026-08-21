@@ -1,11 +1,7 @@
 'use client'
 
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
-import type {
-  PvpMapBias,
-  PvpMapSize,
-  PvpTurnTimerSeconds,
-} from '@aurevane/validation/combat/pvp'
+import type { PvpMapBias, PvpMapSize, PvpTurnTimerSeconds } from '@aurevane/validation/combat/pvp'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
