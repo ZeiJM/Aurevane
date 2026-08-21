@@ -213,7 +213,11 @@ export function PvpBattleInspectPopup({
         className={styles.popup}
         role="dialog"
         aria-modal="true"
-        aria-label={selected ? `${selected.participant.characterName} battle details` : 'Battle combatant details'}
+        aria-label={
+          selected
+            ? `${selected.participant.characterName} battle details`
+            : 'Battle combatant details'
+        }
         onPointerDown={(event) => event.stopPropagation()}
       >
         {loading ? (

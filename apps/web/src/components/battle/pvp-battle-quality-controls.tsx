@@ -238,7 +238,9 @@ export function PvpBattleQualityControls({
               <button
                 type="button"
                 onClick={() => void surrender()}
-                disabled={surrendering || battle?.snapshot.tactical.battle.lifecycle === 'completed'}
+                disabled={
+                  surrendering || battle?.snapshot.tactical.battle.lifecycle === 'completed'
+                }
                 style={{
                   minHeight: '2.25rem',
                   padding: '.48rem .68rem',

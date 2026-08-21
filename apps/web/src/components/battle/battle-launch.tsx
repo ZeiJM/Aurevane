@@ -72,7 +72,10 @@ function recordDisplayName(recordId: TacticalHallRecordId, fallback: string): st
 }
 
 function formatPvpLobbyKeyInput(value: string): string {
-  const compact = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11)
+  const compact = value
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '')
+    .slice(0, 11)
   if (compact.length <= 3) return compact
   if (compact.length <= 7) return `${compact.slice(0, 3)}-${compact.slice(3)}`
   return `${compact.slice(0, 3)}-${compact.slice(3, 7)}-${compact.slice(7)}`

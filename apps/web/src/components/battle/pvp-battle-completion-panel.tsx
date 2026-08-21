@@ -134,8 +134,8 @@ export function PvpBattleCompletionPanel({
           <p className={styles.eyebrow}>Battle Hall · PvP Result</p>
           <h2 id="pvp-battle-result-title">{result}</h2>
           <p>
-            The match concluded in Round {round}. Its committed battle history remains available
-            for review and copying before you leave the result screen.
+            The match concluded in Round {round}. Its committed battle history remains available for
+            review and copying before you leave the result screen.
           </p>
         </div>
 

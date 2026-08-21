@@ -12,12 +12,17 @@ main[data-pvp-battle='true'] > div[class*='resultBackdrop'] {
 }
 
 /* Keep the command heading and clock clean; explanatory status copy is intentionally omitted. */
-main[data-pvp-battle='true'] section[aria-label='Command Deck'] > div:first-child > span:not([data-pvp-turn-clock='true']) {
+main[data-pvp-battle='true']
+  section[aria-label='Command Deck']
+  > div:first-child
+  > span:not([data-pvp-turn-clock='true']) {
   display: none !important;
 }
 
 /* The polished terrain key is the only persistent battlefield legend. */
-main[data-pvp-battle='true'] #battlefield > div:nth-child(2):not([data-terrain-legend-polish='true']) {
+main[data-pvp-battle='true']
+  #battlefield
+  > div:nth-child(2):not([data-terrain-legend-polish='true']) {
   display: none !important;
 }
 
