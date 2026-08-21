@@ -13,13 +13,14 @@ import {
 } from './stat-driven-combat'
 
 export const PVP_MISSED_TURN_STREAK_KEY = 'pvp.missed-turn-streak' as const
+export const AI_MISSED_TURN_STREAK_KEY = 'ai.missed-turn-streak' as const
 export const PVP_LOWERED_GUARD_STATUS_ID = 'lowered-guard' as const
 
 const APPLY_LOWERED_GUARD: CombatActionDefinition = {
-  id: 'pvp.lowered-guard.apply',
+  id: 'battle.lowered-guard.apply',
   version: 1,
   sourceType: 'scenario',
-  tags: ['pvp', 'afk', 'debuff'],
+  tags: ['afk', 'debuff'],
   target: {
     kind: 'self',
     teamPolicy: 'self',
@@ -48,62 +49,45 @@ export interface PvpQualityTransition {
 }
 
 export function createPvpQualityResources(): readonly BattleTemporaryResource[] {
-  return [{ key: PVP_MISSED_TURN_STREAK_KEY, current: 0, maximum: 2 }]
+  return createMissedTurnResources(PVP_MISSED_TURN_STREAK_KEY)
+}
+
+export function createAiQualityResources(): readonly BattleTemporaryResource[] {
+  return createMissedTurnResources(AI_MISSED_TURN_STREAK_KEY)
+}
+
+export function prepareAiQualityCombatant(
+  state: StatDrivenCombatEncounterState,
+  combatantId: string,
+): StatDrivenCombatEncounterState {
+  const combatant = getCombatant(state, combatantId)
+  if (
+    combatant.temporaryResources.some((resource) => resource.key === AI_MISSED_TURN_STREAK_KEY)
+  ) {
+    return state
+  }
+  return rebuildCombatant(state, {
+    ...combatant,
+    temporaryResources: replaceResources(combatant.temporaryResources, createAiQualityResources()),
+  })
 }
 
 export function timeoutPvpTurn(state: StatDrivenCombatEncounterState): PvpQualityTransition {
-  const turn = state.tactical.battle.currentTurn
-  if (state.tactical.battle.lifecycle !== 'active' || !turn) {
-    throw new Error('PvP timeout requires an active turn.')
-  }
-
-  const actor = getCombatant(state, turn.combatantId)
-  const streak = actor.temporaryResources.find(
-    (resource) => resource.key === PVP_MISSED_TURN_STREAK_KEY,
-  )
-  if (!streak) throw new Error('PvP timeout tracking is unavailable for this combatant.')
-
-  const nextStreak = Math.min(2, streak.current + 1)
-  let nextState = rebuildCombatant(state, {
-    ...actor,
-    temporaryResources: replaceResources(actor.temporaryResources, [
-      { ...streak, current: nextStreak },
-    ]),
+  return timeoutTrackedTurn(state, {
+    streakKey: PVP_MISSED_TURN_STREAK_KEY,
+    timeoutEvent: 'pvp_turn_timed_out',
+    loweredGuardEvent: 'pvp_lowered_guard_applied',
+    label: 'PvP',
   })
-  const events: unknown[] = [
-    {
-      event: 'pvp_turn_timed_out',
-      combatantId: actor.id,
-      consecutiveMisses: nextStreak,
-    },
-  ]
+}
 
-  if (nextStreak >= 2) {
-    const applied = executeCombatAction(
-      nextState,
-      APPLY_LOWERED_GUARD,
-      { kind: 'self' },
-      PV1F_COMBAT_CONTENT,
-    )
-    nextState = reattachStatDrivenCombatBridge(applied.state, nextState.statBridge)
-    events.push(...applied.events)
-    events.push({
-      event: 'pvp_lowered_guard_applied',
-      combatantId: actor.id,
-      damageTakenMultiplierBasisPoints: 25_000,
-    })
-  }
-
-  const placement = nextState.tactical.placements.find(
-    (candidate) => candidate.combatantId === actor.id,
-  )
-  if (!placement) throw new Error('The timed-out combatant has no tactical placement.')
-
-  const ended = finishPv1fTurn(nextState, placement.facing)
-  return {
-    state: ended.state,
-    events: [...events, ...ended.events],
-  }
+export function timeoutAiTurn(state: StatDrivenCombatEncounterState): PvpQualityTransition {
+  return timeoutTrackedTurn(state, {
+    streakKey: AI_MISSED_TURN_STREAK_KEY,
+    timeoutEvent: 'ai_turn_timed_out',
+    loweredGuardEvent: 'ai_lowered_guard_applied',
+    label: 'AI battle',
+  })
 }
 
 export function surrenderPvpCombatant(
@@ -160,12 +144,96 @@ export function surrenderPvpCombatant(
 export function resetPvpMissedTurnStreak(
   state: StatDrivenCombatEncounterState,
 ): StatDrivenCombatEncounterState {
+  return resetMissedTurnStreak(state, PVP_MISSED_TURN_STREAK_KEY)
+}
+
+export function resetAiMissedTurnStreak(
+  state: StatDrivenCombatEncounterState,
+): StatDrivenCombatEncounterState {
+  return resetMissedTurnStreak(state, AI_MISSED_TURN_STREAK_KEY)
+}
+
+export function isPvpQualityEncounter(state: StatDrivenCombatEncounterState): boolean {
+  return hasQualityResource(state, PVP_MISSED_TURN_STREAK_KEY)
+}
+
+export function isAiQualityEncounter(state: StatDrivenCombatEncounterState): boolean {
+  return hasQualityResource(state, AI_MISSED_TURN_STREAK_KEY)
+}
+
+function createMissedTurnResources(key: string): readonly BattleTemporaryResource[] {
+  return [{ key, current: 0, maximum: 2 }]
+}
+
+function timeoutTrackedTurn(
+  state: StatDrivenCombatEncounterState,
+  options: {
+    streakKey: string
+    timeoutEvent: string
+    loweredGuardEvent: string
+    label: string
+  },
+): PvpQualityTransition {
+  const turn = state.tactical.battle.currentTurn
+  if (state.tactical.battle.lifecycle !== 'active' || !turn) {
+    throw new Error(`${options.label} timeout requires an active turn.`)
+  }
+
+  const actor = getCombatant(state, turn.combatantId)
+  const streak = actor.temporaryResources.find((resource) => resource.key === options.streakKey)
+  if (!streak) throw new Error(`${options.label} timeout tracking is unavailable for this combatant.`)
+
+  const nextStreak = Math.min(2, streak.current + 1)
+  let nextState = rebuildCombatant(state, {
+    ...actor,
+    temporaryResources: replaceResources(actor.temporaryResources, [
+      { ...streak, current: nextStreak },
+    ]),
+  })
+  const events: unknown[] = [
+    {
+      event: options.timeoutEvent,
+      combatantId: actor.id,
+      consecutiveMisses: nextStreak,
+    },
+  ]
+
+  if (nextStreak >= 2) {
+    const applied = executeCombatAction(
+      nextState,
+      APPLY_LOWERED_GUARD,
+      { kind: 'self' },
+      PV1F_COMBAT_CONTENT,
+    )
+    nextState = reattachStatDrivenCombatBridge(applied.state, nextState.statBridge)
+    events.push(...applied.events)
+    events.push({
+      event: options.loweredGuardEvent,
+      combatantId: actor.id,
+      damageTakenMultiplierBasisPoints: 25_000,
+    })
+  }
+
+  const placement = nextState.tactical.placements.find(
+    (candidate) => candidate.combatantId === actor.id,
+  )
+  if (!placement) throw new Error('The timed-out combatant has no tactical placement.')
+
+  const ended = finishPv1fTurn(nextState, placement.facing)
+  return {
+    state: ended.state,
+    events: [...events, ...ended.events],
+  }
+}
+
+function resetMissedTurnStreak(
+  state: StatDrivenCombatEncounterState,
+  streakKey: string,
+): StatDrivenCombatEncounterState {
   const actorId = state.tactical.battle.currentTurn?.combatantId
   if (!actorId) return state
   const actor = getCombatant(state, actorId)
-  const streak = actor.temporaryResources.find(
-    (resource) => resource.key === PVP_MISSED_TURN_STREAK_KEY,
-  )
+  const streak = actor.temporaryResources.find((resource) => resource.key === streakKey)
   if (!streak || streak.current === 0) return state
   return rebuildCombatant(state, {
     ...actor,
@@ -173,9 +241,9 @@ export function resetPvpMissedTurnStreak(
   })
 }
 
-export function isPvpQualityEncounter(state: StatDrivenCombatEncounterState): boolean {
+function hasQualityResource(state: StatDrivenCombatEncounterState, key: string): boolean {
   return state.tactical.battle.combatants.some((combatant) =>
-    combatant.temporaryResources.some((resource) => resource.key === PVP_MISSED_TURN_STREAK_KEY),
+    combatant.temporaryResources.some((resource) => resource.key === key),
   )
 }
 
@@ -220,6 +288,6 @@ function rebuildCombatant(
 function assertValid(state: StatDrivenCombatEncounterState): void {
   const issues = validateStatDrivenCombatEncounterState(state)
   if (issues.length > 0) {
-    throw new Error(`Invalid PvP quality state: ${issues[0]?.field}: ${issues[0]?.message}`)
+    throw new Error(`Invalid battle quality state: ${issues[0]?.field}: ${issues[0]?.message}`)
   }
 }
