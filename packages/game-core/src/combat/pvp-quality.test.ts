@@ -135,9 +135,7 @@ function expectLoweredGuardDamage(
     kind: 'unit',
     combatantId: 'player',
   })
-  expect(attacked.state.tactical.battle.combatants.find((row) => row.id === 'player')?.hp).toBe(
-    75,
-  )
+  expect(attacked.state.tactical.battle.combatants.find((row) => row.id === 'player')?.hp).toBe(75)
 }
 
 describe('battle turn quality rules', () => {
