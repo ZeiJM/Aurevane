@@ -33,9 +33,13 @@ export function AiBattleQualityControls({ battleSessionId }: { battleSessionId: 
 
   useEffect(() => {
     const locate = () => {
-      const root = document.querySelector<HTMLElement>('#battlefield')?.closest<HTMLElement>('main')
-      const strip = root?.querySelector<HTMLElement>('[data-testid="combat-mode-instruction"]') ?? null
-      const target = strip?.firstElementChild instanceof HTMLElement ? strip.firstElementChild : null
+      const root = document
+        .querySelector<HTMLElement>('#battlefield')
+        ?.closest<HTMLElement>('main')
+      const strip =
+        root?.querySelector<HTMLElement>('[data-testid="combat-mode-instruction"]') ?? null
+      const target =
+        strip?.firstElementChild instanceof HTMLElement ? strip.firstElementChild : null
       const heading = target?.querySelector<HTMLElement>(':scope > strong') ?? null
       const helper =
         target?.querySelector<HTMLElement>(':scope > span:not([data-ai-turn-clock="true"])') ?? null
@@ -147,7 +151,11 @@ export function AiBattleQualityControls({ battleSessionId }: { battleSessionId: 
       aria-live="polite"
       title="Each player turn lasts 60 seconds. Two consecutive timeouts apply Lowered Guard."
     >
-      <span style={{ color: clock?.active && seconds <= 10 ? '#e48b78' : 'var(--av-brass-200)' }}>
+      <span
+        style={{
+          color: clock?.active && seconds <= 10 ? '#e48b78' : 'var(--av-brass-200)',
+        }}
+      >
         {clock?.active ? `${seconds}s` : '—'}
       </span>
       <span style={{ color: 'var(--av-text-dim)' }}>
