@@ -234,8 +234,9 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
 
       <p className={styles.note}>
         While training is active, new Battle Hall fights are disabled. Profile, account, reference
-        pages, Online Users, and social/chat surfaces remain available. Stopping early forfeits the
-        unfinished training block.
+        pages, Online Users, and social/chat surfaces remain available. If you stop early, the
+        server awards the XP earned for the completed fraction of the training time; the unfinished
+        fraction earns nothing.
       </p>
 
       {errorMessage ? (

@@ -7,10 +7,13 @@ import { BattleDirectionalAttackAssist } from './battle-directional-attack-assis
 import { BattleMapTokenPolish } from './battle-map-token-polish'
 import { BattlePresentationPolish } from './battle-presentation-polish'
 import { BattleUtilityWindows } from './battle-utility-windows'
+import { PvpBattleChatBridge } from './pvp-battle-chat-bridge'
 import { PvpBattleCompletionPanel } from './pvp-battle-completion-panel'
 import { PvpBattleExperience } from './pvp-battle-experience'
 import { PvpBattleInspectPopup } from './pvp-battle-inspect-popup'
 import { PvpBattleQualityControls } from './pvp-battle-quality-controls'
+import { PvpLegacyResultSuppressor } from './pvp-legacy-result-suppressor'
+import { PvpQuickCommitAssist } from './pvp-quick-commit-assist'
 
 export function PvpBattleClientBoundary({
   initialBattle,
@@ -24,9 +27,12 @@ export function PvpBattleClientBoundary({
   return (
     <>
       <PvpBattleExperience initialBattle={initialBattle} metadata={metadata} />
+      <PvpLegacyResultSuppressor />
       <BattleDirectionalAttackAssist playerName={playerName} />
       <BattleMapTokenPolish />
       <BattlePresentationPolish playerName={playerName} pvpMetadata={metadata} />
+      <PvpQuickCommitAssist />
+      <PvpBattleChatBridge battleSessionId={initialBattle.battleSessionId} metadata={metadata} />
       <PvpBattleQualityControls
         battleSessionId={initialBattle.battleSessionId}
         metadata={metadata}

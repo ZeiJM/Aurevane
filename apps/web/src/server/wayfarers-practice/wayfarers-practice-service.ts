@@ -19,7 +19,7 @@ import {
   PHASE_1_BALANCED_PRACTICE_CONFIG,
   PHASE_1_PLANNED_PRACTICE_WINDOW_CONFIG,
   calculateBalancedPractice,
-  calculatePassiveTrainingXp,
+  getPassiveTrainingXpPerHour,
   getPlannedPracticeWindowSeconds,
   resolvePhase1PracticeIntent,
 } from '@aurevane/game-core/character/wayfarers-practice'
@@ -262,22 +262,32 @@ function validatePassiveTrainingReport(
   ) {
     throw persistenceUnavailable()
   }
-  const expectedSeconds = getPlannedPracticeWindowSeconds(report.plannedWindow)
-  const expectedXp = calculatePassiveTrainingXp(report.plannedWindow)
+
+  const plannedSeconds = getPlannedPracticeWindowSeconds(report.plannedWindow)
   const measuredSeconds = Math.floor((windowEndMs - windowStartMs) / 1000)
   if (
-    report.plannedWindowSeconds !== expectedSeconds ||
-    measuredSeconds !== expectedSeconds ||
-    report.elapsedSeconds !== expectedSeconds ||
-    report.creditedDirectSeconds !== expectedSeconds ||
-    report.fullRateSeconds !== expectedSeconds ||
+    !Number.isSafeInteger(measuredSeconds) ||
+    measuredSeconds < 0 ||
+    measuredSeconds > plannedSeconds
+  ) {
+    throw persistenceUnavailable()
+  }
+  const expectedXp = Math.floor(
+    (measuredSeconds * getPassiveTrainingXpPerHour(report.plannedWindow)) / 3600,
+  )
+
+  if (
+    report.plannedWindowSeconds !== plannedSeconds ||
+    report.elapsedSeconds !== measuredSeconds ||
+    report.creditedDirectSeconds !== measuredSeconds ||
+    report.fullRateSeconds !== measuredSeconds ||
     report.reducedRateSeconds !== 0 ||
     report.requestedCharacterXp !== expectedXp ||
     report.directXpCapReached ||
     report.restedMomentumSeconds !== 0 ||
     report.restedMomentumGain !== 0 ||
     report.restedMomentumCapReached ||
-    report.plannedElapsedSeconds !== expectedSeconds ||
+    report.plannedElapsedSeconds !== measuredSeconds ||
     report.balancedFallbackSeconds !== 0
   ) {
     throw persistenceUnavailable()

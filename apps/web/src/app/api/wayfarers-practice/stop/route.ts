@@ -1,6 +1,7 @@
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { assertGameplayMutationAllowed } from '@/server/account/active-game-session'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { findPlayableOwnedCharacterById } from '@/server/character/character-slot-service'
 import { toServerErrorResponse } from '@/server/http/error-response'
@@ -8,6 +9,7 @@ import { toServerErrorResponse } from '@/server/http/error-response'
 export async function POST(request: Request) {
   try {
     const actor = await getAuthenticatedActor()
+    await assertGameplayMutationAllowed(actor.userId)
     const body = (await request.json()) as { characterId?: unknown }
     if (typeof body.characterId !== 'string') {
       throw new AurevaneError(
@@ -26,6 +28,12 @@ export async function POST(request: Request) {
       p_character_id: character.id,
     })
     if (error) {
+      if (error.message.includes('PASSIVE_TRAINING_REPORT_PENDING')) {
+        throw new AurevaneError(
+          'INVALID_REQUEST',
+          'Claim the pending Training Report before stopping another training session.',
+        )
+      }
       throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Passive Training could not be stopped.')
     }
 

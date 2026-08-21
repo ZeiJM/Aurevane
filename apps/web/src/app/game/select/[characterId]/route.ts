@@ -2,7 +2,10 @@ import { isAurevaneError } from '@aurevane/game-core/errors'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
-import { getActiveBattleForUser } from '@/server/account/active-game-session'
+import {
+  getActiveBattleForUser,
+  getActiveSpectatingForUser,
+} from '@/server/account/active-game-session'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import {
   authorizeCharacterSelection,
@@ -28,6 +31,8 @@ export async function GET(
   const actor = await getAuthenticatedActor()
   const activeBattle = await getActiveBattleForUser(actor.userId)
   if (activeBattle) return redirectTo(`/game/battle/${activeBattle.battleSessionId}`)
+  const spectating = await getActiveSpectatingForUser(actor.userId)
+  if (spectating) return redirectTo(`/game/battle/spectate/${spectating.battleKey}`)
 
   const { characterId } = await params
   const character = await findPlayableOwnedCharacterById(actor.userId, characterId)

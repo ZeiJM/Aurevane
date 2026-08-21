@@ -41,6 +41,7 @@ function actionLabel(value: unknown): string {
 
 function statusLabel(value: unknown): string {
   if (value === 'guarded') return 'Guarded'
+  if (value === 'lowered-guard') return 'Lowered Guard'
   if (typeof value !== 'string' || value.length === 0) return 'a status'
   return value
     .split(/[._-]+/u)
@@ -163,10 +164,20 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
       message = `${combatantLabel(event.actorId)} Basic Attack ${hit ? 'HIT' : 'MISSED'}${chance === null ? '' : ` (${Math.round(chance / 100)}% hit chance)`}.`
       break
     }
-    case 'recruit_ai_decision': {
+    case 'recruit_ai_decision':
       message = `Recruit chose ${recruitReasonLabel(event.reason)}.`
       break
+    case 'pvp_turn_timed_out': {
+      const misses = numberValue(event.consecutiveMisses)
+      message = `${combatantLabel(event.combatantId)} timed out${misses === null ? '' : ` (${misses} tracked miss${misses === 1 ? '' : 'es'})`}.`
+      break
     }
+    case 'pvp_lowered_guard_applied':
+      message = `${combatantLabel(event.combatantId)} gained Lowered Guard after the turn timer expired.`
+      break
+    case 'pvp_combatant_surrendered':
+      message = `${combatantLabel(event.combatantId)} surrendered.`
+      break
     case 'battle_completed':
       message = 'Battle completed.'
       break
@@ -189,16 +200,23 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
   }
 }
 
+export function buildBattleLogView(
+  battleSessionId: string,
+  records: readonly BattleEventRecord[],
+): BattleLogView {
+  return {
+    battleSessionId,
+    entries: records
+      .map(sanitizePersistedEvent)
+      .filter((entry): entry is BattleLogEntry => entry !== null),
+  }
+}
+
 export function createBattleLogService(repository: BattleEventRepository): BattleLogService {
   return {
     async getLog(userId, battleSessionId) {
       const records = await repository.findBattleEvents(userId, battleSessionId, BATTLE_LOG_LIMIT)
-      return {
-        battleSessionId,
-        entries: records
-          .map(sanitizePersistedEvent)
-          .filter((entry): entry is BattleLogEntry => entry !== null),
-      }
+      return buildBattleLogView(battleSessionId, records)
     },
   }
 }

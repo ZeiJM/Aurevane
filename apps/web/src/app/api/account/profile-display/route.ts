@@ -1,5 +1,6 @@
 import { AurevaneError } from '@aurevane/game-core/errors'
 
+import { assertGameplayMutationAllowed } from '@/server/account/active-game-session'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { setCharacterProfileImage } from '@/server/character/character-profile-display-service'
 import { findPlayableOwnedCharacterById } from '@/server/character/character-slot-service'
@@ -8,6 +9,7 @@ import { toServerErrorResponse } from '@/server/http/error-response'
 export async function POST(request: Request) {
   try {
     const actor = await getAuthenticatedActor()
+    await assertGameplayMutationAllowed(actor.userId)
     const body = (await request.json()) as { characterId?: unknown; imageUrl?: unknown }
     if (typeof body.characterId !== 'string') {
       throw new AurevaneError(

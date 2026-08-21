@@ -76,6 +76,8 @@ export function timeoutPvpTurn(state: StatDrivenCombatEncounterState): PvpQualit
     timeoutEvent: 'pvp_turn_timed_out',
     loweredGuardEvent: 'pvp_lowered_guard_applied',
     label: 'PvP',
+    loweredGuardEveryTimeout: true,
+    loweredGuardDurationOwnerTurnStarts: 1,
   })
 }
 
@@ -85,6 +87,8 @@ export function timeoutAiTurn(state: StatDrivenCombatEncounterState): PvpQuality
     timeoutEvent: 'ai_turn_timed_out',
     loweredGuardEvent: 'ai_lowered_guard_applied',
     label: 'AI battle',
+    loweredGuardEveryTimeout: false,
+    loweredGuardDurationOwnerTurnStarts: null,
   })
 }
 
@@ -170,6 +174,8 @@ function timeoutTrackedTurn(
     timeoutEvent: string
     loweredGuardEvent: string
     label: string
+    loweredGuardEveryTimeout: boolean
+    loweredGuardDurationOwnerTurnStarts: number | null
   },
 ): PvpQualityTransition {
   const turn = state.tactical.battle.currentTurn
@@ -179,8 +185,9 @@ function timeoutTrackedTurn(
 
   const actor = getCombatant(state, turn.combatantId)
   const streak = actor.temporaryResources.find((resource) => resource.key === options.streakKey)
-  if (!streak)
+  if (!streak) {
     throw new Error(`${options.label} timeout tracking is unavailable for this combatant.`)
+  }
 
   const nextStreak = Math.min(2, streak.current + 1)
   let nextState = rebuildCombatant(state, {
@@ -197,7 +204,7 @@ function timeoutTrackedTurn(
     },
   ]
 
-  if (nextStreak >= 2) {
+  if (options.loweredGuardEveryTimeout || nextStreak >= 2) {
     const applied = executeCombatAction(
       nextState,
       APPLY_LOWERED_GUARD,
@@ -205,6 +212,14 @@ function timeoutTrackedTurn(
       PV1F_COMBAT_CONTENT,
     )
     nextState = reattachStatDrivenCombatBridge(applied.state, nextState.statBridge)
+    if (options.loweredGuardDurationOwnerTurnStarts !== null) {
+      nextState = setStatusRemainingOwnerTurnStarts(
+        nextState,
+        actor.id,
+        PVP_LOWERED_GUARD_STATUS_ID,
+        options.loweredGuardDurationOwnerTurnStarts,
+      )
+    }
     events.push(...applied.events)
     events.push({
       event: options.loweredGuardEvent,
@@ -223,6 +238,27 @@ function timeoutTrackedTurn(
     state: ended.state,
     events: [...events, ...ended.events],
   }
+}
+
+function setStatusRemainingOwnerTurnStarts(
+  state: StatDrivenCombatEncounterState,
+  combatantId: string,
+  statusId: string,
+  remainingOwnerTurnStarts: number,
+): StatDrivenCombatEncounterState {
+  const statusState = state.statusState.map((row) =>
+    row.combatantId === combatantId
+      ? {
+          ...row,
+          statuses: row.statuses.map((status) =>
+            status.statusId === statusId ? { ...status, remainingOwnerTurnStarts } : status,
+          ),
+        }
+      : row,
+  )
+  const next = { ...state, statusState }
+  assertValid(next)
+  return next
 }
 
 function resetMissedTurnStreak(

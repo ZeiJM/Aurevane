@@ -9,7 +9,10 @@ import { AccountMenu } from '@/components/shell/account-menu'
 import { NavigationMenu } from '@/components/shell/navigation-menu'
 import { OnlinePresenceLink } from '@/components/shell/online-presence-link'
 import { getStarterPortraitImageAssetId } from '@/media/character'
-import { getActiveBattleForUser } from '@/server/account/active-game-session'
+import {
+  getActiveBattleForUser,
+  getActiveSpectatingForUser,
+} from '@/server/account/active-game-session'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
@@ -65,13 +68,21 @@ export async function AuthenticatedShellFrame({
   let activeCharacter = null
   let activeImageUrl: string | null = null
   let activeBattleHref: Route | null = null
+  let activeSpectatingHref: Route | null = null
   let onlineCount = 0
   try {
     const actor = await getAuthenticatedActor()
-    const activeBattle = await getActiveBattleForUser(actor.userId).catch(() => null)
+    const [activeBattle, activeSpectating] = await Promise.all([
+      getActiveBattleForUser(actor.userId).catch(() => null),
+      getActiveSpectatingForUser(actor.userId).catch(() => null),
+    ])
     activeBattleHref = activeBattle
       ? (`/game/battle/${activeBattle.battleSessionId}` as Route)
       : null
+    activeSpectatingHref =
+      !activeBattle && activeSpectating
+        ? (`/game/battle/spectate/${activeSpectating.battleKey}` as Route)
+        : null
     activeCharacter = await loadSelectedCharacter(actor)
     if (activeCharacter) {
       try {
@@ -127,6 +138,15 @@ export async function AuthenticatedShellFrame({
 
         <div className={railStyles.utility}>
           <div className={styles.screenIdentity} aria-label={`Current screen: ${sessionLabel}`}>
+            {activeBattleHref ? (
+              <Link className={styles.activeBattleLink} href={activeBattleHref}>
+                <span aria-hidden="true">●</span> IN BATTLE
+              </Link>
+            ) : activeSpectatingHref ? (
+              <Link className={styles.activeBattleLink} href={activeSpectatingHref}>
+                <span aria-hidden="true">●</span> SPECTATING
+              </Link>
+            ) : null}
             {activeCharacter ? (
               <span className={styles.screenPortrait} title={activeCharacter.name}>
                 <CharacterPortraitImage
@@ -137,11 +157,6 @@ export async function AuthenticatedShellFrame({
                   alt=""
                 />
               </span>
-            ) : null}
-            {activeBattleHref ? (
-              <Link className={styles.activeBattleLink} href={activeBattleHref}>
-                <span aria-hidden="true">●</span> IN BATTLE
-              </Link>
             ) : null}
             <span className={styles.screenLabel}>
               <StatusMark />

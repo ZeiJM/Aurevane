@@ -8,34 +8,26 @@ import { PvpSpectatorExperience } from '@/components/battle/pvp-spectator-experi
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
 import { getAuthenticatedActor } from '@/server/auth/actor'
+import { joinPvpSpectation } from '@/server/battle/pvp-battle-communication-service'
+import { loadPvpParticipantTitles } from '@/server/battle/pvp-battle-profile-service'
 import { getPvpSpectatorView } from '@/server/battle/pvp-lobby-service'
 
 export const dynamic = 'force-dynamic'
 
-export default async function PvpSpectatorPage({
-  params,
-}: {
-  params: Promise<{ battleKey: string }>
-}) {
-  const publicConfig = getOptionalPublicSupabaseConfig()
-  const requestHost = (await headers()).get('host')
-  const readiness = getCurrentAccountServicesReadiness(publicConfig, requestHost)
-  if (!readiness.available) redirect('/')
-
+async function loadSpectatorPageData(userId: string, battleKey: string) {
   try {
-    await getAuthenticatedActor()
-  } catch (error) {
-    if (isAurevaneError(error) && error.code === 'UNAUTHENTICATED') redirect('/')
-    throw error
-  }
+    const spectator = await getPvpSpectatorView(battleKey)
+    if (!spectator) redirect('/game/battle')
 
-  const { battleKey: rawBattleKey } = await params
-  const battleKey = parsePvpBattleKey(rawBattleKey)
-  if (!battleKey) redirect('/game/battle')
+    const battleSessionId = await joinPvpSpectation(userId, battleKey)
+    if (!battleSessionId || battleSessionId !== spectator.battle.battleSessionId) {
+      redirect('/game/battle')
+    }
 
-  let spectator
-  try {
-    spectator = await getPvpSpectatorView(battleKey)
+    const participantTitles = await loadPvpParticipantTitles(
+      spectator.participants.map((participant) => participant.characterId),
+    )
+    return { spectator, participantTitles }
   } catch (error) {
     if (
       isAurevaneError(error) &&
@@ -47,12 +39,38 @@ export default async function PvpSpectatorPage({
     }
     throw error
   }
+}
 
-  if (!spectator) redirect('/game/battle')
+export default async function PvpSpectatorPage({
+  params,
+}: {
+  params: Promise<{ battleKey: string }>
+}) {
+  const publicConfig = getOptionalPublicSupabaseConfig()
+  const requestHost = (await headers()).get('host')
+  const readiness = getCurrentAccountServicesReadiness(publicConfig, requestHost)
+  if (!readiness.available) redirect('/')
+
+  let actor
+  try {
+    actor = await getAuthenticatedActor()
+  } catch (error) {
+    if (isAurevaneError(error) && error.code === 'UNAUTHENTICATED') redirect('/')
+    throw error
+  }
+
+  const { battleKey: rawBattleKey } = await params
+  const battleKey = parsePvpBattleKey(rawBattleKey)
+  if (!battleKey) redirect('/game/battle')
+
+  const { spectator, participantTitles } = await loadSpectatorPageData(actor.userId, battleKey)
 
   return (
     <BattleAudioGate>
-      <PvpSpectatorExperience initialSpectator={spectator} />
+      <PvpSpectatorExperience
+        initialSpectator={spectator}
+        initialParticipantTitles={participantTitles}
+      />
     </BattleAudioGate>
   )
 }
