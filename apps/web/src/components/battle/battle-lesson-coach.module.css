@@ -224,16 +224,12 @@
   align-self: start;
 }
 
-:global(
-  header:has(> [data-victory-criteria-layout='true']) > [data-battle-economy-panel='true']
-) {
+:global(header:has(> [data-victory-criteria-layout='true']) > [data-battle-economy-panel='true']) {
   grid-column: 2;
   grid-row: 1 / span 2;
 }
 
-:global(
-  header:has(> [data-victory-criteria-layout='true']) > button[class*='roundButton']
-) {
+:global(header:has(> [data-victory-criteria-layout='true']) > button[class*='roundButton']) {
   grid-column: 4;
   grid-row: 1 / span 2;
 }
@@ -293,16 +289,12 @@
     grid-row: 2;
   }
 
-  :global(
-    header:has(> [data-victory-criteria-layout='true']) > [data-battle-economy-panel='true']
-  ) {
+  :global(header:has(> [data-victory-criteria-layout='true']) > [data-battle-economy-panel='true']) {
     grid-column: 1;
     grid-row: 3;
   }
 
-  :global(
-    header:has(> [data-victory-criteria-layout='true']) > button[class*='roundButton']
-  ) {
+  :global(header:has(> [data-victory-criteria-layout='true']) > button[class*='roundButton']) {
     grid-column: 2;
     grid-row: 1 / span 2;
   }
