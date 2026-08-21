@@ -408,14 +408,10 @@ export function PvpBattleExperience({
       commitLock.current = true
       setCommitPending(true)
       try {
-        const response = await fetch(`/api/battles/${battle.battleSessionId}/intents`, {
+        const response = await fetch(`/api/battles/${battle.battleSessionId}/commit`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            idempotencyKey: crypto.randomUUID(),
-            expectedBattleVersion: battle.battleVersion,
-            intent,
-          }),
+          body: JSON.stringify({ expectedBattleVersion: battle.battleVersion, intent }),
         })
         const body = (await response.json()) as { battle?: BattleSessionView } & ApiErrorBody
         if (!response.ok || !body.battle) {
@@ -662,6 +658,7 @@ export function PvpBattleExperience({
 
   const boardStyle: CSSProperties = {
     gridTemplateColumns: `repeat(${tactical.width}, minmax(0, 1fr))`,
+    gridTemplateRows: `repeat(${tactical.height}, minmax(0, 1fr))`,
     aspectRatio: `${tactical.width} / ${tactical.height}`,
   }
 
@@ -710,11 +707,7 @@ export function PvpBattleExperience({
               <div className={styles.economyCopy}>
                 <span>Action Economy</span>
                 <strong>{actionEconomy} AP</strong>
-                {proposedCost > 0 ? (
-                  <small>− {proposedCost} proposed</small>
-                ) : (
-                  <small>Your turn</small>
-                )}
+                {proposedCost > 0 ? <small>− {proposedCost} proposed</small> : <small>Your turn</small>}
               </div>
               <div
                 className={styles.economyTrack}
@@ -841,11 +834,7 @@ export function PvpBattleExperience({
           <span>{notice}</span>
         </div>
 
-        <section
-          id="battlefield"
-          className={styles.battlefield}
-          aria-label="PvP tactical battlefield"
-        >
+        <section id="battlefield" className={styles.battlefield} aria-label="PvP tactical battlefield">
           <div className={styles.boardViewport}>
             <div className={styles.board} style={boardStyle}>
               {tactical.tiles.map((tile) => {
@@ -864,10 +853,10 @@ export function PvpBattleExperience({
                 const inAttackRange = mode === 'attack' && attackRange.has(key)
                 const legalEnemy = Boolean(
                   inAttackRange &&
-                  participant &&
-                  participant.teamIndex !== localTeamIndex &&
-                  combatant &&
-                  combatant.hp > 0,
+                    participant &&
+                    participant.teamIndex !== localTeamIndex &&
+                    combatant &&
+                    combatant.hp > 0,
                 )
                 const selfTarget =
                   (mode === 'guard' || mode === 'recover') &&
