@@ -1,7 +1,11 @@
 'use client'
 
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
-import type { PvpMapBias, PvpMapSize } from '@aurevane/validation/combat/pvp'
+import type {
+  PvpMapBias,
+  PvpMapSize,
+  PvpTurnTimerSeconds,
+} from '@aurevane/validation/combat/pvp'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -25,12 +29,14 @@ interface MapSettings {
   mapSize: PvpMapSize
   elevationBias: PvpMapBias
   terrainBias: PvpMapBias
+  turnTimerSeconds: PvpTurnTimerSeconds
 }
 
 const DEFAULT_SETTINGS: MapSettings = {
   mapSize: 'medium',
   elevationBias: 'neutral',
   terrainBias: 'neutral',
+  turnTimerSeconds: 60,
 }
 
 function teamLabel(index: number, teamCount: number): string {
@@ -226,6 +232,8 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
 
   const filled = lobby.members.length
   const readyCount = lobby.members.filter((member) => member.ready).length
+  const turnTimerLabel =
+    settings.turnTimerSeconds === null ? 'No timer' : `${settings.turnTimerSeconds} seconds`
 
   return (
     <div className={styles.backdrop} role="presentation">
@@ -264,10 +272,10 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
         </div>
 
         <section
-          aria-label="PvP battlefield generation"
+          aria-label="Locked PvP battle settings"
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(6.5rem, 1fr))',
             gap: '0.45rem',
           }}
         >
@@ -275,6 +283,7 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
             ['Map size', settings.mapSize],
             ['Elevation', settings.elevationBias],
             ['Difficult ground', settings.terrainBias],
+            ['Turn timer', turnTimerLabel],
           ].map(([label, value]) => (
             <div
               key={label}
