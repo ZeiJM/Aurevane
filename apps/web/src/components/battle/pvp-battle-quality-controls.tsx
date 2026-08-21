@@ -28,6 +28,8 @@ function remainingSeconds(deadlineAt: string | null, now: number): number {
   return Math.max(0, Math.ceil((new Date(deadlineAt).getTime() - now) / 1000))
 }
 
+const DUPLICATE_TURN_COPY = 'Your turn. Choose an action.'
+
 export function PvpBattleQualityControls({
   battleSessionId,
   metadata,
@@ -60,8 +62,26 @@ export function PvpBattleQualityControls({
       if (heading) heading.style.order = '0'
       if (helper) {
         helper.style.order = '2'
-        helper.style.display = 'none'
+        if (helper.textContent?.trim() === DUPLICATE_TURN_COPY) helper.style.display = 'none'
+        else helper.style.removeProperty('display')
       }
+
+      if (root) {
+        for (const candidate of root.querySelectorAll<HTMLElement>('div')) {
+          const strong = candidate.querySelector<HTMLElement>(':scope > strong')
+          const span = candidate.querySelector<HTMLElement>(':scope > span')
+          if (!strong || !span) continue
+          const duplicate =
+            strong.textContent?.trim() === 'Your turn' && span.textContent?.trim() === DUPLICATE_TURN_COPY
+          if (duplicate) span.style.display = 'none'
+          else if (span.dataset.pvpDuplicateTurnCopy === 'true') {
+            span.style.removeProperty('display')
+            delete span.dataset.pvpDuplicateTurnCopy
+          }
+          if (duplicate) span.dataset.pvpDuplicateTurnCopy = 'true'
+        }
+      }
+
       setCommandTarget(target)
       setFooterTarget(root?.querySelector<HTMLElement>('footer > div:last-child') ?? null)
     }
@@ -122,16 +142,6 @@ export function PvpBattleQualityControls({
     ? (metadata.participants.find((participant) => participant.combatantId === clock.combatantId)
         ?.characterName ?? null)
     : null
-
-  const loweredGuardNames = battle
-    ? battle.snapshot.statusState
-        .filter((row) => row.statuses.some((status) => status.statusId === 'lowered-guard'))
-        .map(
-          (row) =>
-            metadata.participants.find((participant) => participant.combatantId === row.combatantId)
-              ?.characterName ?? row.combatantId,
-        )
-    : []
 
   async function surrender() {
     if (surrendering) return
@@ -194,11 +204,6 @@ export function PvpBattleQualityControls({
               <span style={{ color: 'var(--av-text-dim)' }}>
                 {activeName ? `${activeName}'s turn` : 'Turn clock'}
               </span>
-              {loweredGuardNames.length > 0 ? (
-                <strong style={{ color: '#e48b78' }}>
-                  Lowered Guard · {loweredGuardNames.join(', ')}
-                </strong>
-              ) : null}
               {error ? <span style={{ color: '#e2a0a0' }}>{error}</span> : null}
             </span>,
             commandTarget,
