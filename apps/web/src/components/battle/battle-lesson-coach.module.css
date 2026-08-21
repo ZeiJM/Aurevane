@@ -273,6 +273,44 @@
   box-shadow: 0 0 0.8rem rgba(83, 173, 105, 0.18);
 }
 
+/* The battle header owns four deliberate columns: objective, AP, victory, round/log.
+   These declarations intentionally override the transient inline placement used while
+   the portal target is discovered so the visible result is stable from the first frame. */
+:global(header:has(> button[aria-label^='Victory conditions'])) {
+  grid-template-columns: minmax(10rem, 1fr) minmax(13rem, 24rem) 8.4rem auto !important;
+  grid-template-rows: auto !important;
+}
+
+:global(header:has(> button[aria-label^='Victory conditions']) > :first-child) {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+}
+
+:global(
+    header:has(> button[aria-label^='Victory conditions'])
+      > div:has([role='progressbar'][aria-label='Action Economy remaining'])
+  ) {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+}
+
+:global(header:has(> button[aria-label^='Victory conditions']) > button[aria-label^='Victory conditions']) {
+  position: static !important;
+  left: auto !important;
+  top: auto !important;
+  z-index: auto !important;
+  grid-column: 3 !important;
+  grid-row: 1 !important;
+  width: 100% !important;
+  height: auto !important;
+  align-self: stretch;
+}
+
+:global(header:has(> button[aria-label^='Victory conditions']) > button[class*='roundButton']) {
+  grid-column: 4 !important;
+  grid-row: 1 !important;
+}
+
 @media (max-width: 880px) {
   :global(header:has(> [data-victory-criteria-layout='true'])) {
     grid-template-columns: minmax(0, 1fr) auto;
@@ -305,5 +343,36 @@
     grid-column: 2;
     grid-row: 2;
     min-width: 7.2rem;
+  }
+
+  :global(header:has(> button[aria-label^='Victory conditions'])) {
+    grid-template-columns: minmax(0, 1fr) minmax(7.2rem, auto) !important;
+    grid-template-rows: auto auto !important;
+  }
+
+  :global(header:has(> button[aria-label^='Victory conditions']) > :first-child) {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+  }
+
+  :global(
+      header:has(> button[aria-label^='Victory conditions'])
+        > div:has([role='progressbar'][aria-label='Action Economy remaining'])
+    ) {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+  }
+
+  :global(
+      header:has(> button[aria-label^='Victory conditions']) > button[aria-label^='Victory conditions']
+    ) {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+    min-width: 7.2rem;
+  }
+
+  :global(header:has(> button[aria-label^='Victory conditions']) > button[class*='roundButton']) {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
   }
 }
