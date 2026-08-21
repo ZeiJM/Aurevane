@@ -48,7 +48,10 @@ export function PvpBattleQualityControls({
   useEffect(() => {
     const locate = () => {
       const root = document.querySelector<HTMLElement>('main[data-pvp-battle="true"]')
-      setHeaderTarget(root?.querySelector<HTMLElement>('header') ?? null)
+      const header = root?.querySelector<HTMLElement>('header') ?? null
+      setHeaderTarget(
+        header?.firstElementChild instanceof HTMLElement ? header.firstElementChild : header,
+      )
       setFooterTarget(root?.querySelector<HTMLElement>('footer > div:last-child') ?? null)
     }
     locate()
@@ -155,20 +158,17 @@ export function PvpBattleQualityControls({
             <div
               data-pvp-turn-clock="true"
               style={{
-                position: 'absolute',
-                left: '50%',
-                bottom: '-2.35rem',
-                zIndex: 80,
                 display: 'flex',
-                gap: '.5rem',
+                width: 'fit-content',
+                maxWidth: '100%',
+                gap: '.38rem',
                 alignItems: 'center',
-                transform: 'translateX(-50%)',
-                padding: '.38rem .62rem',
-                border: '1px solid rgba(212,186,130,.42)',
+                marginTop: '.18rem',
+                padding: '.22rem .4rem',
+                border: '1px solid rgba(212,186,130,.28)',
                 borderRadius: '999px',
-                background: 'rgba(6,9,14,.96)',
-                boxShadow: '0 .55rem 1.5rem rgba(0,0,0,.4)',
-                font: '750 .48rem/1 var(--av-font-mono)',
+                background: 'rgba(255,255,255,.02)',
+                font: '750 .38rem/1 var(--av-font-mono)',
                 whiteSpace: 'nowrap',
               }}
               aria-live="polite"
@@ -181,7 +181,7 @@ export function PvpBattleQualityControls({
               </span>
               {loweredGuardNames.length > 0 ? (
                 <strong style={{ color: '#e48b78' }}>
-                  Lowered Guard: {loweredGuardNames.join(', ')} · 2.5× incoming damage
+                  Lowered Guard · {loweredGuardNames.join(', ')}
                 </strong>
               ) : null}
               {error ? <span style={{ color: '#e2a0a0' }}>{error}</span> : null}

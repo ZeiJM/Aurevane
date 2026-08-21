@@ -156,20 +156,40 @@
   line-height: 1.2;
 }
 
+/* PvP now follows the same stage hierarchy as the AI battle screen: combatant rails,
+   centered board, then command deck. The old roster strip duplicated the same information. */
+main[data-pvp-battle='true'] > section[aria-label='PvP battle roster'] {
+  display: none !important;
+}
+
 main[data-pvp-battle='true'] #battlefield > div:first-child {
+  min-width: 0 !important;
+  min-height: 0 !important;
   overflow: hidden !important;
-  padding: clamp(0.28rem, 0.8vw, 0.55rem) !important;
+  padding: clamp(0.45rem, 1vw, 0.75rem) 10.8rem !important;
 }
 
 main[data-pvp-battle='true'] #battlefield > div:first-child > div:first-child {
-  width: auto !important;
-  height: 100% !important;
+  width: min(100%, 58rem) !important;
+  height: auto !important;
   max-width: 100% !important;
   max-height: 100% !important;
+  transform: none !important;
 }
 
 main[data-pvp-battle='true'] #battlefield button[aria-label*='occupied by'] > span:last-child {
   border-color: var(--combatant-accent, currentColor) !important;
+}
+
+main[data-pvp-battle='true'] [data-pvp-turn-clock='true'] {
+  position: static !important;
+  transform: none !important;
+}
+
+@media (max-width: 1100px) and (min-width: 881px) {
+  main[data-pvp-battle='true'] #battlefield > div:first-child {
+    padding-inline: 9rem !important;
+  }
 }
 
 @media (max-width: 900px) {
@@ -184,39 +204,33 @@ main[data-pvp-battle='true'] #battlefield button[aria-label*='occupied by'] > sp
   }
 }
 
-@media (max-width: 760px) {
-  #battle-launch [aria-label='Random battlefield settings'] {
-    grid-template-columns: 1fr;
+@media (max-width: 880px) {
+  main[data-pvp-battle='true'] {
+    height: auto !important;
+    min-height: calc(100dvh - 7rem) !important;
+    overflow: visible !important;
   }
 
-  main[data-pvp-battle='true'] {
-    height: calc(100dvh - 6.2rem) !important;
+  main[data-pvp-battle='true'] #battlefield {
     min-height: 0 !important;
   }
 
   main[data-pvp-battle='true'] #battlefield > div:first-child {
     min-height: 0 !important;
     overflow: hidden !important;
-    padding: 0.2rem !important;
+    padding: 5.35rem 0.35rem 0.35rem !important;
   }
 
   main[data-pvp-battle='true'] #battlefield > div:first-child > div:first-child {
-    width: 100% !important;
+    width: min(100%, 46rem) !important;
     height: auto !important;
-    max-height: calc(100dvh - 19.5rem) !important;
-    transform: scale(0.96);
-    transform-origin: center;
+    max-height: none !important;
   }
 
-  [data-pvp-combatant-panel] {
-    display: none !important;
-  }
-
-  [data-pvp-turn-clock='true'] {
-    bottom: -2rem !important;
-    max-width: calc(100vw - 1rem);
+  main[data-pvp-battle='true'] [data-pvp-turn-clock='true'] {
+    max-width: 100%;
     overflow: hidden;
-    font-size: 0.42rem !important;
+    font-size: 0.34rem !important;
     text-overflow: ellipsis;
   }
 
@@ -229,5 +243,15 @@ main[data-pvp-battle='true'] #battlefield button[aria-label*='occupied by'] > sp
     min-width: 0;
     flex: 1 1 9rem;
     padding: 0.22rem 0.3rem;
+  }
+}
+
+@media (max-width: 580px) {
+  main[data-pvp-battle='true'] #battlefield > div:first-child {
+    padding-top: 4.85rem !important;
+  }
+
+  main[data-pvp-battle='true'] #battlefield [data-terrain-legend-polish='true'] > span {
+    flex-basis: 7.5rem;
   }
 }

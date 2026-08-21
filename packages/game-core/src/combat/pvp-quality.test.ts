@@ -9,8 +9,10 @@ import {
   PV1F_BASIC_ATTACK_ID,
 } from './pv1f-action-economy'
 import {
+  createAiQualityResources,
   createPvpQualityResources,
   PVP_LOWERED_GUARD_STATUS_ID,
+  timeoutAiTurn,
   timeoutPvpTurn,
 } from './pvp-quality'
 import {
@@ -34,16 +36,17 @@ function profile(combatantId: string): StatDrivenCombatProfile {
   }
 }
 
-function encounter() {
+function encounter(kind: 'pvp' | 'ai' = 'pvp') {
   const player = profile('player')
   const opponent = profile('opponent')
+  const quality = kind === 'pvp' ? createPvpQualityResources : createAiQualityResources
   const resources = () =>
-    [...createPv1fTemporaryResources(10), ...createPvpQualityResources()].sort((left, right) =>
+    [...createPv1fTemporaryResources(10), ...quality()].sort((left, right) =>
       left.key.localeCompare(right.key),
     )
   const battle = startBattle(
     createPendingBattle({
-      battleId: 'battle:pvp-quality-test',
+      battleId: `battle:${kind}-quality-test`,
       rulesVersion: 2,
       contentVersion: 2,
       rngSeed: 123_456,
@@ -107,36 +110,56 @@ function encounter() {
   ])
 }
 
-describe('PvP turn quality rules', () => {
-  it('applies Lowered Guard after a combatant misses two of its turns', () => {
-    const firstPlayerMiss = timeoutPvpTurn(encounter()).state
+function expectLoweredGuardDamage(
+  state: ReturnType<typeof encounter>,
+  events: readonly unknown[],
+  expectedEvent: string,
+) {
+  const playerStatuses = state.statusState.find((row) => row.combatantId === 'player')
+  expect(playerStatuses?.statuses).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ statusId: PVP_LOWERED_GUARD_STATUS_ID, stacks: 1 }),
+    ]),
+  )
+  expect(events).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        event: expectedEvent,
+        combatantId: 'player',
+        damageTakenMultiplierBasisPoints: 25_000,
+      }),
+    ]),
+  )
+
+  const attacked = executePv1fAction(state, PV1F_BASIC_ATTACK_ID, {
+    kind: 'unit',
+    combatantId: 'player',
+  })
+  expect(attacked.state.tactical.battle.combatants.find((row) => row.id === 'player')?.hp).toBe(75)
+}
+
+describe('battle turn quality rules', () => {
+  it('applies Lowered Guard after two missed PvP turns', () => {
+    const firstPlayerMiss = timeoutPvpTurn(encounter('pvp')).state
     const opponentTurn = timeoutPvpTurn(firstPlayerMiss).state
     const secondPlayerMiss = timeoutPvpTurn(opponentTurn)
-    const playerStatuses = secondPlayerMiss.state.statusState.find(
-      (row) => row.combatantId === 'player',
-    )
 
-    expect(playerStatuses?.statuses).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ statusId: PVP_LOWERED_GUARD_STATUS_ID, stacks: 1 }),
-      ]),
+    expectLoweredGuardDamage(
+      secondPlayerMiss.state,
+      secondPlayerMiss.events,
+      'pvp_lowered_guard_applied',
     )
-    expect(secondPlayerMiss.events).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          event: 'pvp_lowered_guard_applied',
-          combatantId: 'player',
-          damageTakenMultiplierBasisPoints: 25_000,
-        }),
-      ]),
-    )
+  })
 
-    const attacked = executePv1fAction(secondPlayerMiss.state, PV1F_BASIC_ATTACK_ID, {
-      kind: 'unit',
-      combatantId: 'player',
-    })
-    expect(attacked.state.tactical.battle.combatants.find((row) => row.id === 'player')?.hp).toBe(
-      75,
+  it('applies the same 250% Lowered Guard rule after two missed AI-battle turns', () => {
+    const firstPlayerMiss = timeoutAiTurn(encounter('ai')).state
+    const opponentTurn = timeoutAiTurn(firstPlayerMiss).state
+    const secondPlayerMiss = timeoutAiTurn(opponentTurn)
+
+    expectLoweredGuardDamage(
+      secondPlayerMiss.state,
+      secondPlayerMiss.events,
+      'ai_lowered_guard_applied',
     )
   })
 })

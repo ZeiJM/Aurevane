@@ -408,14 +408,10 @@ export function PvpBattleExperience({
       commitLock.current = true
       setCommitPending(true)
       try {
-        const response = await fetch(`/api/battles/${battle.battleSessionId}/intents`, {
+        const response = await fetch(`/api/battles/${battle.battleSessionId}/commit`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            idempotencyKey: crypto.randomUUID(),
-            expectedBattleVersion: battle.battleVersion,
-            intent,
-          }),
+          body: JSON.stringify({ expectedBattleVersion: battle.battleVersion, intent }),
         })
         const body = (await response.json()) as { battle?: BattleSessionView } & ApiErrorBody
         if (!response.ok || !body.battle) {
@@ -662,6 +658,7 @@ export function PvpBattleExperience({
 
   const boardStyle: CSSProperties = {
     gridTemplateColumns: `repeat(${tactical.width}, minmax(0, 1fr))`,
+    gridTemplateRows: `repeat(${tactical.height}, minmax(0, 1fr))`,
     aspectRatio: `${tactical.width} / ${tactical.height}`,
   }
 
