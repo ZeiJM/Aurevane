@@ -12,6 +12,7 @@ import { PvpBattleCompletionPanel } from './pvp-battle-completion-panel'
 import { PvpBattleExperience } from './pvp-battle-experience'
 import { PvpBattleInspectPopup } from './pvp-battle-inspect-popup'
 import { PvpBattleQualityControls } from './pvp-battle-quality-controls'
+import { PvpLegacyResultSuppressor } from './pvp-legacy-result-suppressor'
 import { PvpQuickCommitAssist } from './pvp-quick-commit-assist'
 
 export function PvpBattleClientBoundary({
@@ -26,6 +27,7 @@ export function PvpBattleClientBoundary({
   return (
     <>
       <PvpBattleExperience initialBattle={initialBattle} metadata={metadata} />
+      <PvpLegacyResultSuppressor />
       <BattleDirectionalAttackAssist playerName={playerName} />
       <BattleMapTokenPolish />
       <BattlePresentationPolish playerName={playerName} pvpMetadata={metadata} />
