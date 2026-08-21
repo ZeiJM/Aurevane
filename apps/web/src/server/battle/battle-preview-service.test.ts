@@ -72,6 +72,7 @@ function createBattleRepository() {
     },
   }))
   const findBattleSession = vi.fn(async (): Promise<BattleSessionRecord | null> => null)
+  const findBattleIntentReplay = vi.fn(async () => null)
   const commitBattleIntent = vi.fn(async (input: CommitBattleIntentInput) => ({
     replayed: false,
     result: {
@@ -84,10 +85,17 @@ function createBattleRepository() {
   const repository: BattleSessionRepository = {
     createBattleSession,
     findBattleSession,
+    findBattleIntentReplay,
     commitBattleIntent,
   }
 
-  return { repository, createBattleSession, findBattleSession, commitBattleIntent }
+  return {
+    repository,
+    createBattleSession,
+    findBattleSession,
+    findBattleIntentReplay,
+    commitBattleIntent,
+  }
 }
 
 async function createFixture() {
