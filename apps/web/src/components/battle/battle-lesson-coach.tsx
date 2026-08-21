@@ -76,7 +76,7 @@ function useHeaderCriteriaTarget(): HTMLElement | null {
         element.style.removeProperty('grid-column')
         element.style.removeProperty('grid-row')
       }
-      slot?.remove()
+      if (slot?.isConnected) slot.remove()
       slot = null
     }
 
@@ -90,14 +90,28 @@ function useHeaderCriteriaTarget(): HTMLElement | null {
       const objective =
         header?.firstElementChild instanceof HTMLElement ? header.firstElementChild : null
       const round =
-        economy?.nextElementSibling instanceof HTMLElement ? economy.nextElementSibling : null
+        header === null
+          ? null
+          : (Array.from(header.children).find(
+              (element) =>
+                element instanceof HTMLButtonElement && element.textContent?.includes('Combat Log'),
+            ) as HTMLElement | undefined) ?? null
+
       if (!header || !economy || !objective || !round) {
-        if (slot) clearInlineLayout()
+        if (slot || activeHeader) clearInlineLayout()
         setHeaderTarget((current) => (current === null ? current : null))
         return
       }
 
-      if (activeHeader !== header || activeEconomy !== economy) {
+      const slotNeedsRepair =
+        activeHeader !== header ||
+        activeEconomy !== economy ||
+        activeObjective !== objective ||
+        activeRound !== round ||
+        !slot?.isConnected ||
+        slot.parentElement !== header
+
+      if (slotNeedsRepair) {
         clearInlineLayout()
         activeHeader = header
         activeEconomy = economy
