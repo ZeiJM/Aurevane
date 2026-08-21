@@ -125,7 +125,8 @@ export function PvpSpectatorExperience({
         )
         const body = (await response.json()) as ApiBody
         if (!response.ok || !body.spectator || cancelled) {
-          if (!cancelled) setConnectionNote(body.error?.message ?? 'Arena link interrupted. Retrying…')
+          if (!cancelled)
+            setConnectionNote(body.error?.message ?? 'Arena link interrupted. Retrying…')
           return
         }
         setSpectator(body.spectator)
@@ -186,7 +187,11 @@ export function PvpSpectatorExperience({
           <p>{connectionNote}</p>
         </div>
         <div className={styles.headerActions}>
-          <button type="button" className={styles.keyButton} onClick={() => void copySpectatorKey()}>
+          <button
+            type="button"
+            className={styles.keyButton}
+            onClick={() => void copySpectatorKey()}
+          >
             <small>{copyNotice ? 'Copied!' : 'Spectator Key · click to copy'}</small>
             <strong>{spectator.battleKey}</strong>
           </button>
@@ -206,12 +211,16 @@ export function PvpSpectatorExperience({
           <article className={styles.teamCard} key={team.teamIndex} data-team={team.teamIndex}>
             <div className={styles.teamHeading}>
               <strong>{teamName(team.teamIndex)}</strong>
-              <span>{team.standing}/{team.members.length} standing</span>
+              <span>
+                {team.standing}/{team.members.length} standing
+              </span>
             </div>
             <div className={styles.teamMeter} aria-label={`${teamName(team.teamIndex)} health`}>
               <i style={{ width: `${meterPercent(team.hp, team.maxHp)}%` }} />
             </div>
-            <small>{team.hp}/{team.maxHp} team HP</small>
+            <small>
+              {team.hp}/{team.maxHp} team HP
+            </small>
             <div className={styles.teamMembers}>
               {team.members.map((member) => {
                 const combatant = battleState.combatants.find(
@@ -260,8 +269,12 @@ export function PvpSpectatorExperience({
               <>
                 <small>{teamName(activeParticipant.teamIndex)}</small>
                 <div className={styles.resourceLine}>
-                  <span>HP {activeCombatant.hp}/{activeCombatant.maxHp}</span>
-                  <span>MP {activeCombatant.mp}/{activeCombatant.maxMp}</span>
+                  <span>
+                    HP {activeCombatant.hp}/{activeCombatant.maxHp}
+                  </span>
+                  <span>
+                    MP {activeCombatant.mp}/{activeCombatant.maxMp}
+                  </span>
                 </div>
               </>
             ) : null}
@@ -305,7 +318,9 @@ export function PvpSpectatorExperience({
                   ? participantByCombatant.get(placement.combatantId)
                   : undefined
                 const combatant = placement
-                  ? battleState.combatants.find((candidate) => candidate.id === placement.combatantId)
+                  ? battleState.combatants.find(
+                      (candidate) => candidate.id === placement.combatantId,
+                    )
                   : undefined
                 return (
                   <div
@@ -315,7 +330,9 @@ export function PvpSpectatorExperience({
                     key={positionKey(tile.position)}
                     aria-label={`Tile ${tile.position.x + 1}, ${tile.position.y + 1}${participant ? ` occupied by ${participant.characterName}` : ''}`}
                   >
-                    {tile.elevation > 0 ? <small className={styles.elevation}>+{tile.elevation}</small> : null}
+                    {tile.elevation > 0 ? (
+                      <small className={styles.elevation}>+{tile.elevation}</small>
+                    ) : null}
                     {participant && placement ? (
                       <span
                         className={styles.unit}

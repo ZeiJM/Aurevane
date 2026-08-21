@@ -221,7 +221,9 @@ export function PvpBattleChat({
               <strong>Spectators</strong>
               {spectators.length > 0 ? (
                 spectators.map((spectator, index) => (
-                  <span key={`${spectator.name}:${spectator.lastSeenAt}:${index}`}>{spectator.name}</span>
+                  <span key={`${spectator.name}:${spectator.lastSeenAt}:${index}`}>
+                    {spectator.name}
+                  </span>
                 ))
               ) : (
                 <span>No spectators</span>
@@ -260,7 +262,10 @@ export function PvpBattleChat({
         <div className={styles.messages} aria-live="polite">
           {battleLog && battleLog.entries.length > 0 ? (
             [...battleLog.entries].reverse().map((entry) => (
-              <article className={styles.message} key={`${entry.battleVersion}:${entry.eventIndex}`}>
+              <article
+                className={styles.message}
+                key={`${entry.battleVersion}:${entry.eventIndex}`}
+              >
                 <div>
                   <strong>{entry.eventType.replaceAll('_', ' ')}</strong>
                   <time dateTime={entry.occurredAt}>

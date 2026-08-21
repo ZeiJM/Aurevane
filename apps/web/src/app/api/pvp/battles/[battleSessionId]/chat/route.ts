@@ -18,7 +18,10 @@ function parseAfterId(request: Request): number {
   return Number.isSafeInteger(parsed) && parsed >= 0 ? parsed : 0
 }
 
-export async function GET(request: Request, context: { params: Promise<{ battleSessionId: string }> }) {
+export async function GET(
+  request: Request,
+  context: { params: Promise<{ battleSessionId: string }> },
+) {
   try {
     const actor = await getAuthenticatedActor()
     const { battleSessionId: rawBattleSessionId } = await context.params
@@ -42,7 +45,10 @@ export async function GET(request: Request, context: { params: Promise<{ battleS
   }
 }
 
-export async function POST(request: Request, context: { params: Promise<{ battleSessionId: string }> }) {
+export async function POST(
+  request: Request,
+  context: { params: Promise<{ battleSessionId: string }> },
+) {
   try {
     const actor = await getAuthenticatedActor()
     const { battleSessionId: rawBattleSessionId } = await context.params

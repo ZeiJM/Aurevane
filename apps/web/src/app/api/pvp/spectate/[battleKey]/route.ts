@@ -10,7 +10,9 @@ import { loadPvpParticipantTitles } from '@/server/battle/pvp-battle-profile-ser
 import { getPvpSpectatorView } from '@/server/battle/pvp-lobby-service'
 import { toServerErrorResponse } from '@/server/http/error-response'
 
-async function parseBattleKey(context: { params: Promise<{ battleKey: string }> }): Promise<string> {
+async function parseBattleKey(context: {
+  params: Promise<{ battleKey: string }>
+}): Promise<string> {
   const { battleKey: rawBattleKey } = await context.params
   const battleKey = parsePvpBattleKey(rawBattleKey)
   if (!battleKey) throw new AurevaneError('INVALID_REQUEST', 'Enter a valid Spectator Key.')
@@ -44,7 +46,10 @@ export async function GET(_request: Request, context: { params: Promise<{ battle
   }
 }
 
-export async function DELETE(_request: Request, context: { params: Promise<{ battleKey: string }> }) {
+export async function DELETE(
+  _request: Request,
+  context: { params: Promise<{ battleKey: string }> },
+) {
   try {
     const actor = await getAuthenticatedActor()
     const battleKey = await parseBattleKey(context)

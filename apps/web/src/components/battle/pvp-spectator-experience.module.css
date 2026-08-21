@@ -5,8 +5,7 @@
   padding: clamp(0.55rem, 1.2vw, 0.9rem);
   color: var(--av-text);
   background:
-    radial-gradient(circle at 50% 0%, rgba(207, 169, 93, 0.08), transparent 34rem),
-    #05070b;
+    radial-gradient(circle at 50% 0%, rgba(207, 169, 93, 0.08), transparent 34rem), #05070b;
 }
 
 .header {

@@ -133,7 +133,9 @@ export function PvpBattleCompletionPanel({
         <div className={styles.resultHero}>
           <p className={styles.eyebrow}>Battle Hall · PvP Result</p>
           <h2 id="pvp-battle-result-title">{result}</h2>
-          <p>The match concluded in Round {round}. Review the battle history or return to the hall.</p>
+          <p>
+            The match concluded in Round {round}. Review the battle history or return to the hall.
+          </p>
         </div>
 
         <dl className={styles.record} aria-label="PvP battle result">

@@ -265,7 +265,11 @@ function validatePassiveTrainingReport(
 
   const plannedSeconds = getPlannedPracticeWindowSeconds(report.plannedWindow)
   const measuredSeconds = Math.floor((windowEndMs - windowStartMs) / 1000)
-  if (!Number.isSafeInteger(measuredSeconds) || measuredSeconds < 0 || measuredSeconds > plannedSeconds) {
+  if (
+    !Number.isSafeInteger(measuredSeconds) ||
+    measuredSeconds < 0 ||
+    measuredSeconds > plannedSeconds
+  ) {
     throw persistenceUnavailable()
   }
   const expectedXp = Math.floor(

@@ -32,10 +32,7 @@ export function PvpBattleClientBoundary({
       <BattleMapTokenPolish />
       <BattlePresentationPolish playerName={playerName} pvpMetadata={metadata} />
       <PvpQuickCommitAssist />
-      <PvpBattleChatBridge
-        battleSessionId={initialBattle.battleSessionId}
-        metadata={metadata}
-      />
+      <PvpBattleChatBridge battleSessionId={initialBattle.battleSessionId} metadata={metadata} />
       <PvpBattleQualityControls
         battleSessionId={initialBattle.battleSessionId}
         metadata={metadata}
