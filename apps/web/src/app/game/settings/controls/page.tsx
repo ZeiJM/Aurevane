@@ -12,6 +12,8 @@ import { loadSelectedCharacter } from '@/server/character/selected-character'
 import { loadPlayerCombatControls } from '@/server/player-profile/player-controls-service'
 import { createSupabasePlayerProfileRepository } from '@/server/player-profile/supabase-player-profile-repository'
 
+import styles from './page.module.css'
+
 export const dynamic = 'force-dynamic'
 
 export default async function ControlsSettingsPage() {
@@ -43,7 +45,7 @@ export default async function ControlsSettingsPage() {
       backHref="/game/character"
       backLabel="Back to Character Profile"
     >
-      <Surface tone="elevated">
+      <Surface className={styles.surface} tone="elevated">
         <Kicker marker="◇">Settings</Kicker>
         <h1>Controls &amp; Keybinds</h1>
         <CombatControlsSettings initialBindings={combatKeybinds} />
