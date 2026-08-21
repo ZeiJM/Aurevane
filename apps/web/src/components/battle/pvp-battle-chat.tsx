@@ -127,7 +127,8 @@ export function PvpBattleChat({
 
   useEffect(() => {
     if (!open || unread === 0) return
-    publishUnread(0)
+    const frame = window.requestAnimationFrame(() => publishUnread(0))
+    return () => window.cancelAnimationFrame(frame)
   }, [open, publishUnread, unread])
 
   useEffect(() => {
