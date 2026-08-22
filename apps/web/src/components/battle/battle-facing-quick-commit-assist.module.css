@@ -12,6 +12,5 @@
   :global(#battlefield > div:first-child) {
     height: auto !important;
     min-height: 0 !important;
-    aspect-ratio: 1 / 1;
   }
 }
