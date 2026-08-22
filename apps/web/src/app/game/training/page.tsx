@@ -7,6 +7,10 @@ import type { PracticePlanCardData } from '@/components/wayfarers-practice/pract
 import type { TrainingReportCardData } from '@/components/wayfarers-practice/training-report-card'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
+import {
+  getActiveBattleForUser,
+  getActiveSpectatingForUser,
+} from '@/server/account/active-game-session'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 import { loadGameEntryWayfarersPracticeState } from '@/server/wayfarers-practice/game-entry-wayfarers-practice-state'
@@ -27,6 +31,13 @@ export default async function OfflineTrainingPage() {
     if (isAurevaneError(error) && error.code === 'UNAUTHENTICATED') redirect('/')
     throw error
   }
+
+  const [activeBattle, activeSpectating] = await Promise.all([
+    getActiveBattleForUser(actor.userId),
+    getActiveSpectatingForUser(actor.userId),
+  ])
+  if (activeBattle) redirect(`/game/battle/${activeBattle.battleSessionId}`)
+  if (activeSpectating) redirect(`/game/battle/spectate/${activeSpectating.battleKey}`)
 
   const character = await loadSelectedCharacter(actor)
   if (!character) redirect('/game')

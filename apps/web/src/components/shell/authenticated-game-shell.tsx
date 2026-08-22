@@ -104,6 +104,13 @@ export async function AuthenticatedShellFrame({
     activeCharacter = null
   }
 
+  const activeSessionHref = activeBattleHref ?? activeSpectatingHref
+  const activeSessionLabel = activeBattleHref
+    ? 'Return to Active Battle'
+    : activeSpectatingHref
+      ? 'Return to Spectated Battle'
+      : null
+
   return (
     <div className={styles.shell} data-testid="authenticated-shell">
       <PvpBattleKeyInputAssist />
@@ -166,7 +173,10 @@ export async function AuthenticatedShellFrame({
             </span>
           </div>
 
-          <AccountMenu activeBattleHref={activeBattleHref} />
+          <AccountMenu
+            activeSessionHref={activeSessionHref}
+            activeSessionLabel={activeSessionLabel}
+          />
         </div>
       </header>
 
@@ -176,7 +186,10 @@ export async function AuthenticatedShellFrame({
 
       <footer className={styles.footer}>
         <OnlinePresenceLink initialCount={onlineCount} />
-        <NavigationMenu />
+        <NavigationMenu
+          activeSessionHref={activeSessionHref}
+          activeSessionLabel={activeSessionLabel}
+        />
       </footer>
     </div>
   )

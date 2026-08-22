@@ -5,6 +5,10 @@ import { redirect } from 'next/navigation'
 import { CharacterSelectShell } from '@/components/character/character-select-shell'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
+import {
+  getActiveBattleForUser,
+  getActiveSpectatingForUser,
+} from '@/server/account/active-game-session'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadCharacterProfileImageMap } from '@/server/character/character-profile-display-service'
 import { loadCharacterSlots } from '@/server/character/character-slot-service'
@@ -25,6 +29,13 @@ export default async function CharacterSelectPage() {
     if (isAurevaneError(error) && error.code === 'UNAUTHENTICATED') redirect('/')
     throw error
   }
+
+  const [activeBattle, activeSpectating] = await Promise.all([
+    getActiveBattleForUser(actor.userId),
+    getActiveSpectatingForUser(actor.userId),
+  ])
+  if (activeBattle) redirect(`/game/battle/${activeBattle.battleSessionId}`)
+  if (activeSpectating) redirect(`/game/battle/spectate/${activeSpectating.battleKey}`)
 
   const [characters, selectedCharacter] = await Promise.all([
     loadCharacterSlots(actor.userId),
