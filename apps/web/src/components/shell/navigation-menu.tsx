@@ -33,12 +33,11 @@ export function NavigationMenu({
   const menuRef = useRef<HTMLElement>(null)
   const visibleNavigation = useMemo(
     () =>
-      navigation.filter(
-        (item) =>
-          (!activeSessionHref || item.href !== '/game/training') &&
-          pathname !== item.href &&
-          !pathname.startsWith(`${item.href}/`),
-      ),
+      activeSessionHref
+        ? []
+        : navigation.filter(
+            (item) => pathname !== item.href && !pathname.startsWith(`${item.href}/`),
+          ),
     [activeSessionHref, pathname],
   )
 

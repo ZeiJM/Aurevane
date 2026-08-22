@@ -7,6 +7,10 @@ import { CharacterProfileShell } from '@/components/character/character-profile-
 import { AuthenticatedGameRecovery } from '@/components/shell/authenticated-game-shell'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
+import {
+  getActiveBattleForUser,
+  getActiveSpectatingForUser,
+} from '@/server/account/active-game-session'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 import { loadCharacterTitleState } from '@/server/character/character-title-service'
@@ -29,6 +33,13 @@ export default async function CharacterProfilePage() {
     if (isAurevaneError(error) && error.code === 'UNAUTHENTICATED') redirect('/')
     throw error
   }
+
+  const [activeBattle, activeSpectating] = await Promise.all([
+    getActiveBattleForUser(actor.userId),
+    getActiveSpectatingForUser(actor.userId),
+  ])
+  if (activeBattle) redirect(`/game/battle/${activeBattle.battleSessionId}`)
+  if (activeSpectating) redirect(`/game/battle/spectate/${activeSpectating.battleKey}`)
 
   let character
   try {
