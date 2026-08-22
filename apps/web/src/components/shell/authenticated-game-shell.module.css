@@ -29,6 +29,14 @@
   align-items: center;
 }
 
+@media (min-width: 621px) {
+  .brandGroup :global(.brand__crest) {
+    width: 2.48rem;
+    height: 2.48rem;
+    font-size: 1.18rem;
+  }
+}
+
 .backButton {
   display: grid;
   width: 2.3rem;
