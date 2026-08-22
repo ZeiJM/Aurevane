@@ -287,7 +287,8 @@ export function BattlePresentationPolish({
     }
 
     run()
-    const root = document.querySelector<HTMLElement>('main[data-pvp-battle="true"]') ?? document.body
+    const root =
+      document.querySelector<HTMLElement>('main[data-pvp-battle="true"]') ?? document.body
     const observer = new MutationObserver(schedule)
     observer.observe(root, { childList: true, subtree: true })
 
