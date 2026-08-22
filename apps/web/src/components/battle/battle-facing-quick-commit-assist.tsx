@@ -19,6 +19,11 @@ function facingButton(target: EventTarget | null): HTMLButtonElement | null {
   return element?.closest<HTMLButtonElement>('button[aria-label^="Face "]') ?? null
 }
 
+function facingGuide(target: EventTarget | null): HTMLElement | null {
+  const element = target instanceof Element ? target : null
+  return element?.closest<HTMLElement>('[data-facing-guide="true"]') ?? null
+}
+
 function facingFromButton(button: HTMLButtonElement): Facing | null {
   const value = button.getAttribute('aria-label')?.replace(/^Face\s+/i, '').toLowerCase()
   return value === 'north' || value === 'east' || value === 'south' || value === 'west'
@@ -137,7 +142,7 @@ export function BattleFacingQuickCommitAssist({ playerName }: { playerName: stri
 
     function handlePointerDown(event: PointerEvent) {
       const button = facingButton(event.target)
-      if (button) return
+      if (button || facingGuide(event.target)) return
       if (!lastSelection.current) return
       clearSelection()
       lastSelection.current = null
