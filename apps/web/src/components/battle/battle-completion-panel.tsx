@@ -171,6 +171,7 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
         className={styles.panel}
         aria-labelledby="battle-hall-result-title"
         data-testid="tactical-hall-result"
+        data-result={guidedTraining ? 'complete' : result.toLowerCase()}
       >
         <div className={styles.resultHero}>
           <p className={styles.eyebrow}>
