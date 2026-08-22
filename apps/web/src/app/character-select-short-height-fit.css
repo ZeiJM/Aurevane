@@ -1,5 +1,12 @@
 /* Keep the desktop character roster inside short laptop viewports without changing normal-height layouts. */
 @media (min-width: 901px) and (max-height: 620px) {
+  html:has([data-character-select-page='true']),
+  body:has([data-character-select-page='true']) {
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+  }
+
   [data-character-select-page='true'] > header {
     min-height: 2.9rem !important;
     padding-block: 0.16rem !important;
