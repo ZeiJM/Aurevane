@@ -118,7 +118,11 @@ export function PvpBattleChatBridge({
     >
       <div className={styles.panelTop}>
         <strong>Shared Battle Communication</strong>
-        <button type="button" onClick={() => setOpen(false)} aria-label="Close battle communication">
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          aria-label="Close battle communication"
+        >
           ×
         </button>
       </div>

@@ -70,9 +70,7 @@
     grid-row: 1 !important;
   }
 
-  :global(
-    [data-pvp-desktop-content='true'] > aside[aria-label$='combat status'] > div > article
-  ) {
+  :global([data-pvp-desktop-content='true'] > aside[aria-label$='combat status'] > div > article) {
     grid-template-rows: auto auto auto auto minmax(0, 1fr) !important;
     align-content: start !important;
   }
@@ -189,13 +187,17 @@
   }
 }
 
-:global(section[aria-label='PvP tactical battlefield'] button[aria-label^='Tile '] > span:first-child) {
+:global(
+  section[aria-label='PvP tactical battlefield'] button[aria-label^='Tile '] > span:first-child
+) {
   display: flex;
   gap: 0.18rem;
   align-items: center;
 }
 
-:global(section[aria-label='PvP tactical battlefield'] button[aria-label^='Tile '] > span:first-child b) {
+:global(
+  section[aria-label='PvP tactical battlefield'] button[aria-label^='Tile '] > span:first-child b
+) {
   color: rgba(226, 195, 125, 0.78) !important;
   font: 750 0.29rem/1 var(--av-font-mono) !important;
 }

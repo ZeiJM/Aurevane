@@ -332,8 +332,14 @@ export function PvpDesktopParity({
   )
   const activeCombatant = useMemo(() => {
     const activeId = battle.snapshot.tactical.battle.currentTurn?.combatantId
-    return battle.snapshot.tactical.battle.combatants.find((combatant) => combatant.id === activeId) ?? null
-  }, [battle.snapshot.tactical.battle.combatants, battle.snapshot.tactical.battle.currentTurn?.combatantId])
+    return (
+      battle.snapshot.tactical.battle.combatants.find((combatant) => combatant.id === activeId) ??
+      null
+    )
+  }, [
+    battle.snapshot.tactical.battle.combatants,
+    battle.snapshot.tactical.battle.currentTurn?.combatantId,
+  ])
   const activeActionEconomy = activeEconomy(activeCombatant) ?? 0
 
   useEffect(() => {
@@ -352,7 +358,9 @@ export function PvpDesktopParity({
         const body = (await response.json()) as { battle?: BattleSessionView }
         if (!cancelled && response.ok && body.battle) {
           setBattle((current) =>
-            body.battle && body.battle.battleVersion !== current.battleVersion ? body.battle : current,
+            body.battle && body.battle.battleVersion !== current.battleVersion
+              ? body.battle
+              : current,
           )
         }
       } catch {
