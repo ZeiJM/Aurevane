@@ -137,10 +137,6 @@ export function CharacterSelectShell({
                 />
               </span>
             ) : null}
-            <span className={styles.screenLabel}>
-              <i aria-hidden="true" />
-              <strong>Character Select</strong>
-            </span>
           </div>
           <AccountMenu />
         </div>
