@@ -75,16 +75,21 @@
 /*
  * Character Select desktop roster.
  *
- * The portrait contract is now square, so the old viewport-filling card rows no longer make sense:
- * a compact square portrait was being followed by a large artificial 1fr void. Let roster cards size
- * to their real content instead, then use a featured-character composition when the account has one
- * character and two locked future slots.
+ * Square portraits stay square, but the roster itself is a deliberate three-slot character vault:
+ * every slot has equal visual weight and equal dimensions, with occupied and future slots separated
+ * by treatment rather than geometry. This keeps the page compact without making locked slots feel
+ * like leftover space.
  */
 @media (min-width: 901px) {
   [data-character-select-page='true'] {
     height: auto !important;
     min-height: 100dvh !important;
     overflow: visible !important;
+    background:
+      radial-gradient(circle at 16% 10%, rgba(185, 154, 92, 0.11), transparent 25rem),
+      radial-gradient(circle at 82% 0%, rgba(128, 113, 172, 0.14), transparent 32rem),
+      radial-gradient(circle at 50% 86%, rgba(120, 181, 154, 0.055), transparent 30rem),
+      linear-gradient(142deg, #111824 0%, #080b12 48%, #030508 100%) !important;
   }
 
   [data-character-select-page='true'] > header {
@@ -94,211 +99,231 @@
 
   [data-character-select-page='true'] > main {
     display: block !important;
-    width: min(94%, 78rem) !important;
+    width: min(94%, 88rem) !important;
     height: auto !important;
     min-height: 0 !important;
-    padding: 0.62rem !important;
+    padding: 0.72rem !important;
     overflow: visible !important;
   }
 
   [data-character-select-page='true'] > main > header {
-    margin-bottom: 0.62rem !important;
-    padding-top: 0.38rem !important;
-    padding-bottom: 0.62rem !important;
+    position: relative;
+    margin-bottom: 0.72rem !important;
+    padding: 0.42rem 0 0.72rem !important;
+    border-bottom-color: rgba(212, 186, 130, 0.24) !important;
+  }
+
+  [data-character-select-page='true'] > main > header::after {
+    position: absolute;
+    right: 0;
+    bottom: -1px;
+    width: min(28rem, 42vw);
+    height: 1px;
+    content: '';
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent, rgba(212, 186, 130, 0.7));
+    box-shadow: 0 0 0.85rem rgba(212, 186, 130, 0.2);
   }
 
   [data-character-select-page='true'] > main > header h1 {
-    font-size: clamp(1.75rem, 3.1vw, 2.7rem) !important;
+    font-size: clamp(2rem, 3.25vw, 2.95rem) !important;
+    letter-spacing: 0.012em;
+    text-shadow: 0 0.55rem 2rem rgba(0, 0, 0, 0.72);
   }
 
   [data-character-select-page='true'] section[aria-label='Character slots'] {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-auto-rows: 1fr !important;
     min-height: 0 !important;
-    gap: 0.58rem !important;
-    align-items: start !important;
+    gap: clamp(0.65rem, 1vw, 0.9rem) !important;
+    align-items: stretch !important;
   }
 
   [data-character-select-page='true'] section[aria-label='Character slots'] > article {
-    height: auto !important;
-    min-height: 0 !important;
-    grid-template-rows: auto auto auto auto auto !important;
-    align-content: start !important;
-    padding: 0.68rem !important;
+    position: relative;
+    height: 100% !important;
+    min-height: clamp(25rem, 56vh, 29rem) !important;
+    padding: clamp(0.72rem, 1vw, 0.9rem) !important;
+    overflow: hidden !important;
+    border-color: rgba(212, 186, 130, 0.28) !important;
+    background:
+      radial-gradient(circle at 50% 16%, rgba(128, 113, 172, 0.075), transparent 18rem),
+      linear-gradient(165deg, rgba(18, 25, 36, 0.98), rgba(6, 9, 14, 0.99)) !important;
+    box-shadow:
+      0 1.25rem 3.2rem rgba(0, 0, 0, 0.38),
+      inset 0 1px rgba(255, 255, 255, 0.025) !important;
+  }
+
+  [data-character-select-page='true'] section[aria-label='Character slots'] > article::before {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 2px;
+    content: '';
+    pointer-events: none;
+    background: linear-gradient(90deg, transparent 4%, rgba(212, 186, 130, 0.74), transparent 96%);
+    opacity: 0.64;
+  }
+
+  [data-character-select-page='true'] section[aria-label='Character slots'] > article::after {
+    position: absolute;
+    top: 1.7rem;
+    right: 0.7rem;
+    z-index: 0;
+    color: rgba(238, 228, 208, 0.035);
+    font: 500 clamp(4.5rem, 8vw, 7rem)/0.8 var(--av-font-display);
+    letter-spacing: -0.08em;
+    content: '01';
+    pointer-events: none;
+  }
+
+  [data-character-select-page='true'] section[aria-label='Character slots'] > article:nth-child(2)::after {
+    content: '02';
+  }
+
+  [data-character-select-page='true'] section[aria-label='Character slots'] > article:nth-child(3)::after {
+    content: '03';
+  }
+
+  [data-character-select-page='true']
+    section[aria-label='Character slots']
+    > article:has(.character-portrait-media) {
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto !important;
+    background:
+      radial-gradient(circle at 50% 27%, rgba(120, 181, 154, 0.11), transparent 17rem),
+      radial-gradient(circle at 15% 82%, rgba(185, 154, 92, 0.075), transparent 16rem),
+      linear-gradient(160deg, rgba(20, 29, 40, 0.99), rgba(7, 10, 15, 0.995)) !important;
+    border-color: rgba(212, 186, 130, 0.46) !important;
+    box-shadow:
+      0 1.4rem 3.8rem rgba(0, 0, 0, 0.46),
+      0 0 0 1px rgba(212, 186, 130, 0.035),
+      inset 0 1px rgba(255, 255, 255, 0.035) !important;
+  }
+
+  [data-character-select-page='true']
+    section[aria-label='Character slots']
+    > article:has(.character-portrait-media)::before {
+    background: linear-gradient(
+      90deg,
+      transparent 3%,
+      rgba(120, 181, 154, 0.72) 28%,
+      rgba(212, 186, 130, 0.82) 64%,
+      transparent 97%
+    );
+    opacity: 0.9;
   }
 
   [data-character-select-page='true']
     section[aria-label='Character slots']
     > article
     > div:has(> .character-portrait-media) {
-    margin: 0.62rem auto 0.72rem !important;
-  }
-}
-
-@media (min-width: 1180px) {
-  [data-character-select-page='true']
-    section[aria-label='Character slots']:has(> article:nth-child(2)[data-locked='true']):has(
-      > article:nth-child(3)[data-locked='true']
-    ) {
-    grid-template-columns: minmax(0, 1.45fr) minmax(19rem, 0.85fr) !important;
-    grid-template-rows: repeat(2, auto) !important;
-    align-items: stretch !important;
-  }
-
-  [data-character-select-page='true']
-    section[aria-label='Character slots']:has(> article:nth-child(2)[data-locked='true']):has(
-      > article:nth-child(3)[data-locked='true']
-    )
-    > article:first-child {
-    grid-column: 1;
-    grid-row: 1 / 3;
-  }
-
-  [data-character-select-page='true']
-    section[aria-label='Character slots']:has(> article:nth-child(2)[data-locked='true']):has(
-      > article:nth-child(3)[data-locked='true']
-    )
-    > article:nth-child(2),
-  [data-character-select-page='true']
-    section[aria-label='Character slots']:has(> article:nth-child(2)[data-locked='true']):has(
-      > article:nth-child(3)[data-locked='true']
-    )
-    > article:nth-child(3) {
-    grid-column: 2;
-    height: 100% !important;
-  }
-
-  /* Featured occupied slot: portrait and identity become one balanced horizontal composition. */
-  [data-character-select-page='true']
-    section[aria-label='Character slots']:has(> article:nth-child(2)[data-locked='true']):has(
-      > article:nth-child(3)[data-locked='true']
-    )
-    > article:first-child:has(.character-portrait-media) {
-    grid-template-columns: minmax(13rem, 18rem) minmax(0, 1fr) !important;
-    grid-template-rows: auto auto minmax(0, 1fr) auto auto !important;
-    column-gap: 1rem !important;
-    background:
-      radial-gradient(circle at 22% 38%, rgba(120, 181, 154, 0.09), transparent 18rem),
-      linear-gradient(155deg, rgba(19, 27, 38, 0.98), rgba(7, 10, 14, 0.99)) !important;
+    width: min(100%, 17rem) !important;
+    margin: 0.72rem auto 0.62rem !important;
+    align-self: start !important;
+    justify-self: center !important;
+    border: 1px solid rgba(212, 186, 130, 0.28);
+    box-shadow:
+      0 1rem 2.4rem rgba(0, 0, 0, 0.42),
+      0 0 1.6rem rgba(120, 181, 154, 0.07);
   }
 
   [data-character-select-page='true']
     section[aria-label='Character slots']
-    > article:first-child:has(.character-portrait-media)
-    > span:first-child {
-    grid-column: 1 / -1;
-  }
-
-  [data-character-select-page='true']
-    section[aria-label='Character slots']
-    > article:first-child:has(.character-portrait-media)
-    > div:has(> .character-portrait-media) {
-    grid-column: 1;
-    grid-row: 2 / 6;
-    width: min(100%, 18rem) !important;
-    margin: 0.7rem 0 0 !important;
-    align-self: start;
-    justify-self: center;
-    box-shadow: 0 0.8rem 2.2rem rgba(0, 0, 0, 0.28);
-  }
-
-  [data-character-select-page='true']
-    section[aria-label='Character slots']
-    > article:first-child:has(.character-portrait-media)
+    > article:has(.character-portrait-media)
     > div:nth-of-type(2) {
-    grid-column: 2;
-    grid-row: 2;
-    align-self: end;
-    padding: 1rem 0 0.55rem !important;
+    padding: 0.18rem 0 0.56rem !important;
   }
 
   [data-character-select-page='true']
     section[aria-label='Character slots']
-    > article:first-child:has(.character-portrait-media)
+    > article:has(.character-portrait-media)
     > a[href^='/game/select/'] {
-    grid-column: 2;
-    grid-row: 4;
-    align-self: end;
+    align-self: end !important;
+    box-shadow: 0 0.65rem 1.5rem rgba(185, 154, 92, 0.12);
+    transition:
+      transform 140ms ease,
+      box-shadow 140ms ease,
+      filter 140ms ease;
   }
 
   [data-character-select-page='true']
     section[aria-label='Character slots']
-    > article:first-child:has(.character-portrait-media)
-    > button {
-    grid-column: 2;
-    grid-row: 5;
-  }
-
+    > article:has(.character-portrait-media)
+    > a[href^='/game/select/']:hover,
   [data-character-select-page='true']
     section[aria-label='Character slots']
-    > article:first-child:has(.character-portrait-media)
-    > div:nth-of-type(3) {
-    grid-column: 2;
-    grid-row: 3 / 6;
-    align-self: end;
+    > article:has(.character-portrait-media)
+    > a[href^='/game/select/']:focus-visible {
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+    box-shadow:
+      0 0.75rem 1.8rem rgba(185, 154, 92, 0.2),
+      0 0 1.25rem rgba(212, 186, 130, 0.12);
   }
 
-  /* Locked future slots become compact opportunity cards rather than empty full-height columns. */
-  [data-character-select-page='true']
-    section[aria-label='Character slots']:has(> article:nth-child(2)[data-locked='true']):has(
-      > article:nth-child(3)[data-locked='true']
-    )
-    > article[data-locked='true'] {
-    grid-template-columns: 4.2rem minmax(0, 1fr) !important;
-    grid-template-rows: auto auto auto auto !important;
-    column-gap: 0.8rem !important;
-    row-gap: 0.18rem !important;
+  [data-character-select-page='true'] section[aria-label='Character slots'] > article[data-locked='true'] {
+    grid-template-rows: auto minmax(0, 1fr) auto auto auto !important;
     align-items: center !important;
-    text-align: left !important;
+    text-align: center !important;
+    border-style: solid !important;
+    border-color: rgba(128, 113, 172, 0.26) !important;
     background:
-      radial-gradient(circle at 3.1rem 50%, rgba(128, 113, 172, 0.07), transparent 8rem),
-      linear-gradient(155deg, rgba(15, 19, 26, 0.84), rgba(7, 9, 13, 0.96)) !important;
+      radial-gradient(circle at 50% 38%, rgba(128, 113, 172, 0.095), transparent 12rem),
+      linear-gradient(165deg, rgba(16, 20, 29, 0.9), rgba(6, 8, 12, 0.97)) !important;
+    box-shadow:
+      0 1rem 2.8rem rgba(0, 0, 0, 0.28),
+      inset 0 1px rgba(255, 255, 255, 0.02) !important;
   }
 
   [data-character-select-page='true']
     section[aria-label='Character slots']
-    > article[data-locked='true']
-    > span:first-child {
-    grid-column: 1 / -1;
-    grid-row: 1;
-    margin-bottom: 0.35rem;
+    > article[data-locked='true']:nth-child(3) {
+    border-color: rgba(185, 154, 92, 0.25) !important;
+    background:
+      radial-gradient(circle at 50% 38%, rgba(185, 154, 92, 0.08), transparent 12rem),
+      linear-gradient(165deg, rgba(17, 20, 27, 0.9), rgba(6, 8, 12, 0.97)) !important;
   }
 
   [data-character-select-page='true']
     section[aria-label='Character slots']
     > article[data-locked='true']
     > div {
-    grid-column: 1;
-    grid-row: 2 / 4;
-    width: 3.35rem !important;
-    height: 3.35rem !important;
-    margin: 0 !important;
-    font-size: 1.4rem !important;
+    width: clamp(4.8rem, 7vw, 5.6rem) !important;
+    height: clamp(4.8rem, 7vw, 5.6rem) !important;
+    margin: auto !important;
+    border-color: rgba(170, 154, 202, 0.3) !important;
+    color: rgba(212, 186, 130, 0.86) !important;
+    background:
+      radial-gradient(circle, rgba(128, 113, 172, 0.11), transparent 68%),
+      rgba(255, 255, 255, 0.012) !important;
+    box-shadow:
+      inset 0 0 1.35rem rgba(128, 113, 172, 0.08),
+      0 0 1.7rem rgba(128, 113, 172, 0.05);
   }
 
   [data-character-select-page='true']
     section[aria-label='Character slots']
     > article[data-locked='true']
     > h2 {
-    grid-column: 2;
-    grid-row: 2;
-    align-self: end;
+    margin-top: 0.75rem !important;
+    font-size: clamp(1.28rem, 1.65vw, 1.55rem) !important;
+    text-shadow: 0 0.45rem 1.2rem rgba(0, 0, 0, 0.65);
   }
 
   [data-character-select-page='true']
     section[aria-label='Character slots']
     > article[data-locked='true']
     > p {
-    grid-column: 2;
-    grid-row: 3;
-    align-self: start;
-    margin-top: 0.18rem !important;
+    max-width: 21rem;
+    margin-inline: auto !important;
   }
 
   [data-character-select-page='true']
     section[aria-label='Character slots']
     > article[data-locked='true']
     > span:last-child {
-    grid-column: 1 / -1;
-    grid-row: 4;
-    margin-top: 0.55rem;
+    width: 100%;
+    margin-top: 0.78rem;
+    border-color: rgba(184, 177, 163, 0.16) !important;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.01), rgba(128, 113, 172, 0.045), rgba(255, 255, 255, 0.01)) !important;
   }
 }
