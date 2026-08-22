@@ -129,7 +129,11 @@ export function PvpBattleCompletionPanel({
 
   return (
     <div className={styles.overlay} data-testid="pvp-battle-result-overlay">
-      <section className={styles.panel} aria-labelledby="pvp-battle-result-title">
+      <section
+        className={styles.panel}
+        aria-labelledby="pvp-battle-result-title"
+        data-result={result.toLowerCase()}
+      >
         <div className={styles.resultHero}>
           <p className={styles.eyebrow}>Battle Hall · PvP Result</p>
           <h2 id="pvp-battle-result-title">{result}</h2>
@@ -138,7 +142,7 @@ export function PvpBattleCompletionPanel({
           </p>
         </div>
 
-        <dl className={styles.record} aria-label="PvP battle result">
+        <dl className={`${styles.record} ${styles.pvpRecord}`} aria-label="PvP battle result">
           <div>
             <dt>Format</dt>
             <dd>{metadata.mode.toUpperCase()}</dd>
