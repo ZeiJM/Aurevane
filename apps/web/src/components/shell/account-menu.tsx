@@ -9,7 +9,15 @@ import { AudioSettingsMenu } from '@/components/audio/audio-settings-menu'
 
 import styles from './account-menu.module.css'
 
-export function AccountMenu({ activeBattleHref = null }: { activeBattleHref?: Route | null }) {
+interface AccountMenuProps {
+  activeSessionHref?: Route | null
+  activeSessionLabel?: string | null
+}
+
+export function AccountMenu({
+  activeSessionHref = null,
+  activeSessionLabel = null,
+}: AccountMenuProps) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
@@ -52,14 +60,14 @@ export function AccountMenu({ activeBattleHref = null }: { activeBattleHref?: Ro
               Controls &amp; Keybinds
             </Link>
           ) : null}
-          {pathname !== '/game/account/titles' ? (
+          {!activeSessionHref && pathname !== '/game/account/titles' ? (
             <Link href="/game/account/titles" role="menuitem" onClick={() => setOpen(false)}>
               Titles &amp; Profile Display
             </Link>
           ) : null}
-          {activeBattleHref ? (
-            <Link href={activeBattleHref} role="menuitem" onClick={() => setOpen(false)}>
-              Return to Active Battle
+          {activeSessionHref ? (
+            <Link href={activeSessionHref} role="menuitem" onClick={() => setOpen(false)}>
+              {activeSessionLabel ?? 'Return to Active Session'}
             </Link>
           ) : pathname !== '/game' ? (
             <Link href="/game" role="menuitem" onClick={() => setOpen(false)}>

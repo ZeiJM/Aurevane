@@ -1,5 +1,6 @@
 'use client'
 
+import type { Route } from 'next'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -18,14 +19,27 @@ const navigation = [
 
 const navigationPopoverId = 'game-navigation-menu'
 
-export function NavigationMenu() {
+interface NavigationMenuProps {
+  activeSessionHref?: Route | null
+  activeSessionLabel?: string | null
+}
+
+export function NavigationMenu({
+  activeSessionHref = null,
+  activeSessionLabel = null,
+}: NavigationMenuProps) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const menuRef = useRef<HTMLElement>(null)
   const visibleNavigation = useMemo(
     () =>
-      navigation.filter((item) => pathname !== item.href && !pathname.startsWith(`${item.href}/`)),
-    [pathname],
+      navigation.filter(
+        (item) =>
+          (!activeSessionHref || item.href !== '/game/training') &&
+          pathname !== item.href &&
+          !pathname.startsWith(`${item.href}/`),
+      ),
+    [activeSessionHref, pathname],
   )
 
   useEffect(() => {
@@ -60,6 +74,12 @@ export function NavigationMenu() {
         className={styles.menu}
         aria-label="Game navigation"
       >
+        {activeSessionHref ? (
+          <Link href={activeSessionHref} onClick={closeMenu}>
+            <strong>{activeSessionLabel ?? 'Return to Active Session'}</strong>
+            <small>Restricted actions stay locked until this session ends</small>
+          </Link>
+        ) : null}
         {visibleNavigation.map((item) => (
           <Link key={item.href} href={item.href} onClick={closeMenu}>
             <strong>{item.label}</strong>
