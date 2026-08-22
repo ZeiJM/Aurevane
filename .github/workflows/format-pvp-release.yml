@@ -17,26 +17,485 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - run: corepack enable
-      - run: corepack prepare pnpm@11.17.0 --activate
-      - run: pnpm install --frozen-lockfile
-      - run: >-
-          pnpm exec prettier --write
-          apps/web/src/components/battle/pvp-battle-chat-bridge.tsx
-          apps/web/src/components/battle/pvp-battle-release-polish.module.css
-          apps/web/src/components/battle/pvp-desktop-parity.tsx
-      - name: Commit formatting if needed
+      - name: Apply PvP realtime and UI fixes
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def read(path):
+              return Path(path).read_text()
+
+          def write(path, text):
+              Path(path).write_text(text)
+
+          def replace_once(text, old, new, label):
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected exactly one match, found {count}')
+              return text.replace(old, new, 1)
+
+          # Shared PvP surface: pass the authoritative initial battle to the clock layer.
+          path = 'apps/web/src/components/battle/pvp-battle-client-boundary.tsx'
+          text = read(path)
+          text = text.replace(
+              "      <PvpBattleQualityControls\n        battleSessionId={initialBattle.battleSessionId}\n        metadata={metadata}\n      />",
+              "      <PvpBattleQualityControls\n        battleSessionId={initialBattle.battleSessionId}\n        initialBattle={initialBattle}\n      />",
+          )
+          write(path, text)
+
+          # Main PvP component becomes the single battle-state publisher and always shows active AP.
+          path = 'apps/web/src/components/battle/pvp-battle-experience.tsx'
+          text = read(path)
+          if 'const activeActionEconomy = readEconomy(activeCombatant)' not in text:
+              marker = "  const activeName = participantName(participantByCombatant, battleState.currentTurn?.combatantId)\n"
+              addition = marker + "  const activeCombatant = battleState.currentTurn\n    ? (battleState.combatants.find(\n        (combatant) => combatant.id === battleState.currentTurn?.combatantId,\n      ) ?? null)\n    : null\n  const activeActionEconomy = readEconomy(activeCombatant)\n"
+              text = replace_once(text, marker, addition, 'active economy insertion')
+
+          if "new CustomEvent<BattleSessionView>('aurevane:pvp-battle-state'" not in text:
+              marker = "  useEffect(() => {\n    if (battleState.lifecycle !== 'active') return\n"
+              event_effect = "  useEffect(() => {\n    window.dispatchEvent(\n      new CustomEvent<BattleSessionView>('aurevane:pvp-battle-state', { detail: battle }),\n    )\n  }, [battle])\n\n"
+              text = replace_once(text, marker, event_effect + marker, 'state event insertion')
+
+          economy_start = "        <div className={styles.economy} data-active={localTurn || undefined}>\n"
+          victory_marker = "          <button\n            type=\"button\"\n            className={styles.victoryButton}"
+          start = text.find(economy_start)
+          end = text.find(victory_marker, start)
+          if start < 0 or end < 0:
+              raise SystemExit('header economy block not found')
+          new_economy = """        <div className={styles.economy} data-active={localTurn || undefined}>
+          <div className={styles.economyCopy}>
+            <span>Action Economy</span>
+            <strong>{activeActionEconomy} AP</strong>
+            {localTurn && proposedCost > 0 ? (
+              <small>− {proposedCost} proposed</small>
+            ) : (
+              <small aria-hidden=\"true\" />
+            )}
+          </div>
+          <div
+            className={styles.economyTrack}
+            role=\"progressbar\"
+            aria-label=\"Action Economy remaining\"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={activeActionEconomy}
+          >
+            <span style={{ width: `${activeActionEconomy}%` }} />
+            {localTurn && proposedCost > 0 ? (
+              <i
+                style={{
+                  left: `${Math.max(0, activeActionEconomy - proposedCost)}%`,
+                  width: `${Math.min(activeActionEconomy, proposedCost)}%`,
+                }}
+              />
+            ) : null}
+          </div>
+"""
+          text = text[:start] + new_economy + text[end:]
+          text = text.replace("Battle Key · click to copy", "Spectator Key · click to copy")
+          if 'data-pvp-spectator-key="true"' not in text:
+              text = text.replace(
+                  '<button type="button" className={styles.battleKey} onClick={() => void copyBattleKey()}>',
+                  '<button\n          type="button"\n          className={styles.battleKey}\n          data-pvp-spectator-key="true"\n          onClick={() => void copyBattleKey()}\n        >',
+              )
+
+          old_legend = """          <div className={styles.legend}>
+            <span>
+              <b>Green</b> friendly / reachable
+            </span>
+            <span>
+              <b>Orange</b> legal enemy target
+            </span>
+            <span>
+              <b>Red</b> unavailable inside effective range
+            </span>
+          </div>"""
+          new_legend = """          <div className={styles.legend} aria-label=\"Terrain legend\">
+            <span className={styles.terrainKey}>
+              <i className={styles.roughKey} aria-hidden=\"true\" />
+              <span>
+                <b>Difficult Ground</b>
+                <small>Higher movement cost</small>
+              </span>
+            </span>
+            <span className={styles.terrainKey}>
+              <i className={styles.raisedKey} aria-hidden=\"true\">▲</i>
+              <span>
+                <b>Raised Ground</b>
+                <small>Elevation +1</small>
+              </span>
+            </span>
+          </div>"""
+          if old_legend in text:
+              text = text.replace(old_legend, new_legend, 1)
+          write(path, text)
+
+          # Desktop parity follows the main battle-state stream instead of independently polling.
+          path = 'apps/web/src/components/battle/pvp-desktop-parity.tsx'
+          text = read(path)
+          text = text.replace("const ACTION_ECONOMY_KEY = 'pv1f.action-economy'\n", '')
+          text = text.replace("const PARITY_REFRESH_MS = 900\n", '')
+          active_fn_start = text.find("function activeEconomy(combatant: Combatant | null): number | null {")
+          if active_fn_start >= 0:
+              active_fn_end = text.find("\n}\n\nfunction participantState", active_fn_start)
+              if active_fn_end < 0:
+                  raise SystemExit('activeEconomy function end not found')
+              text = text[:active_fn_start] + text[active_fn_end + 3:]
+          text = text.replace("  const [economyTarget, setEconomyTarget] = useState<HTMLElement | null>(null)\n", '')
+
+          poll_start = text.find("  useEffect(() => {\n    let cancelled = false\n    let timer: number | null = null\n    let controller: AbortController | null = null\n")
+          poll_end_marker = "  useEffect(() => {\n    let frame: number | null = null\n"
+          poll_end = text.find(poll_end_marker, poll_start)
+          if poll_start >= 0 and poll_end >= 0:
+              listener = """  useEffect(() => {
+    const receiveBattleState = (event: Event) => {
+      if (!(event instanceof CustomEvent)) return
+      const next = event.detail as BattleSessionView | undefined
+      if (!next || next.battleSessionId !== initialBattle.battleSessionId) return
+      setBattle((current) => (next.battleVersion !== current.battleVersion ? next : current))
+    }
+
+    window.addEventListener('aurevane:pvp-battle-state', receiveBattleState)
+    return () => window.removeEventListener('aurevane:pvp-battle-state', receiveBattleState)
+  }, [initialBattle.battleSessionId])
+
+"""
+              text = text[:poll_start] + listener + text[poll_end:]
+
+          text = text.replace("      setEconomyTarget((current) => (current === economy ? current : economy))\n", '')
+          text = text.replace("Math.min(availableWidth, availableHeight * ratio, 704)", "Math.min(availableWidth, availableHeight * ratio, 620)")
+
+          portal_start = text.find("\n      {economyTarget\n        ? createPortal(")
+          if portal_start >= 0:
+              portal_end = text.find("\n        : null}", portal_start)
+              if portal_end < 0:
+                  raise SystemExit('economy portal terminator not found')
+              portal_end += len("\n        : null}")
+              text = text[:portal_start] + text[portal_end:]
+
+          active_start = text.find("  const activeCombatant = useMemo(() => {")
+          active_end_marker = "  const activeActionEconomy = activeEconomy(activeCombatant) ?? 0\n"
+          if active_start >= 0:
+              active_end = text.find(active_end_marker, active_start)
+              if active_end < 0:
+                  raise SystemExit('desktop active economy block end not found')
+              active_end += len(active_end_marker)
+              text = text[:active_start] + text[active_end:]
+          write(path, text)
+
+          # Clock keeps authoritative timeout ticking, but no longer duplicates battle GETs or actor labels.
+          path = 'apps/web/src/components/battle/pvp-battle-quality-controls.tsx'
+          text = read(path)
+          text = text.replace("import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'\n", '')
+          text = text.replace("const BATTLE_FALLBACK_POLL_MS = 3500\n", '')
+          text = replace_once(
+              text,
+              "export function PvpBattleQualityControls({\n  battleSessionId,\n  metadata,\n}: {\n  battleSessionId: string\n  metadata: PvpBattleMetadata\n}) {",
+              "export function PvpBattleQualityControls({\n  battleSessionId,\n  initialBattle,\n}: {\n  battleSessionId: string\n  initialBattle: BattleSessionView\n}) {",
+              'quality props',
+          )
+          text = text.replace(
+              "  const [battle, setBattle] = useState<BattleSessionView | null>(null)\n",
+              "  const [battle, setBattle] = useState<BattleSessionView | null>(initialBattle)\n",
+          )
+          if "const receiveBattleState = (event: Event)" not in text:
+              locate_end = "  useEffect(() => {\n    const timer = window.setInterval(() => setNow(Date.now()), 250)\n"
+              listener = """  useEffect(() => {
+    const receiveBattleState = (event: Event) => {
+      if (!(event instanceof CustomEvent)) return
+      const next = event.detail as BattleSessionView | undefined
+      if (!next || next.battleSessionId !== battleSessionId) return
+      setBattle(next)
+    }
+    window.addEventListener('aurevane:pvp-battle-state', receiveBattleState)
+    return () => window.removeEventListener('aurevane:pvp-battle-state', receiveBattleState)
+  }, [battleSessionId])
+
+"""
+              text = replace_once(text, locate_end, listener + locate_end, 'quality state listener')
+          text = text.replace("    let nextBattleFallbackAt = 0\n", '')
+          fallback_start = text.find("\n        const fallbackDue = Date.now() >= nextBattleFallbackAt\n")
+          if fallback_start >= 0:
+              fallback_end = text.find("\n      } catch {", fallback_start)
+              if fallback_end < 0:
+                  raise SystemExit('quality fallback end not found')
+              text = text[:fallback_start] + text[fallback_end:]
+
+          active_name_start = text.find("  const activeCombatantId =\n")
+          active_name_end = text.find("\n  async function surrender()", active_name_start)
+          if active_name_start >= 0 and active_name_end >= 0:
+              text = text[:active_name_start] + text[active_name_end:]
+          actor_span = """              <span style={{ color: '#9bd2b1' }}>
+                {activeName ? `${activeName}'s turn` : 'Turn clock'}
+              </span>
+"""
+          text = text.replace(actor_span, '')
+          write(path, text)
+
+          # Mobile-only hotkey suppression for AI command buttons.
+          path = 'apps/web/src/components/battle/ai-battle-pvp-visual-sync.module.css'
+          text = read(path)
+          marker = '/* mobile-command-label-cleanup-v1 */'
+          if marker not in text:
+              text += """
+
+/* mobile-command-label-cleanup-v1 */
+@media (max-width: 820px) {
+  :global([data-ai-pvp-visual-sync='true'] [data-ai-command-button='true']) {
+    grid-template-columns: minmax(0, 1fr) !important;
+    justify-items: center;
+    text-align: center;
+  }
+
+  :global([data-ai-pvp-visual-sync='true'] [data-ai-command-button='true'] > span) {
+    display: none !important;
+  }
+
+  :global([data-ai-pvp-visual-sync='true'] [data-ai-command-button='true'] > strong),
+  :global([data-ai-pvp-visual-sync='true'] [data-ai-command-button='true'] > small) {
+    grid-column: 1;
+    width: 100%;
+    text-align: center;
+  }
+}
+"""
+          write(path, text)
+
+          # PvP button alignment, AI-style terrain legend, surrender styling and mobile hotkey cleanup.
+          path = 'apps/web/src/components/battle/pvp-battle-experience.module.css'
+          text = read(path)
+          marker = '/* pvp-combat-polish-v2 */'
+          if marker not in text:
+              text += """
+
+/* pvp-combat-polish-v2 */
+.commands > button {
+  grid-template-columns: 2.1rem minmax(0, 1fr);
+  grid-template-rows: 1fr 1fr;
+  align-items: center;
+}
+
+.commands > button > span {
+  grid-column: 1;
+  grid-row: 1 / -1;
+  justify-self: start;
+}
+
+.commands > button > strong,
+.commands > button > small {
+  grid-column: 2;
+  width: 100%;
+  justify-self: center;
+  text-align: center;
+}
+
+.legend {
+  height: auto;
+  min-height: 2.35rem;
+  gap: 0.4rem;
+  justify-content: center;
+  padding: 0.28rem 0.4rem;
+  white-space: normal;
+}
+
+.terrainKey {
+  display: flex;
+  min-width: min(15rem, 48%);
+  gap: 0.42rem;
+  align-items: center;
+  padding: 0.28rem 0.45rem;
+  border: 1px solid var(--av-border);
+  border-radius: var(--av-radius-sm);
+  background: rgba(5, 8, 12, 0.74);
+}
+
+.terrainKey > span {
+  display: grid;
+  gap: 0.08rem;
+}
+
+.terrainKey b {
+  color: var(--av-text-muted) !important;
+  font: 750 0.4rem/1 var(--av-font-mono);
+  text-transform: uppercase;
+}
+
+.terrainKey small {
+  color: var(--av-text-dim);
+  font: 500 0.38rem/1.1 var(--av-font-sans);
+}
+
+.roughKey,
+.raisedKey {
+  display: grid;
+  width: 1.55rem;
+  height: 1.55rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(207, 169, 93, 0.38);
+  border-radius: 0.24rem;
+}
+
+.roughKey {
+  background:
+    repeating-linear-gradient(135deg, rgba(160, 125, 79, 0.28) 0 3px, transparent 3px 7px),
+    rgba(65, 51, 38, 0.78);
+}
+
+.raisedKey {
+  color: #efe5c9;
+  background: rgba(207, 169, 93, 0.12);
+  font-style: normal;
+}
+
+.footerActions [data-pvp-surrender='true'] {
+  min-width: 7.4rem;
+  border-color: rgba(194, 89, 78, 0.7);
+  color: #e0aaa1;
+  background: rgba(122, 45, 39, 0.14);
+}
+
+@media (max-width: 820px) {
+  .commands > button {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    text-align: center;
+  }
+
+  .commands > button > span {
+    display: none;
+  }
+
+  .commands > button > strong,
+  .commands > button > small {
+    grid-column: 1;
+    width: 100%;
+    text-align: center;
+  }
+
+  .terrainKey {
+    min-width: 0;
+    flex: 1 1 0;
+  }
+}
+"""
+          write(path, text)
+
+          # Desktop-only shell parity: top-anchor portraits, fit the board, match AI terrain visuals.
+          path = 'apps/web/src/components/battle/pvp-desktop-parity.module.css'
+          text = read(path)
+          marker = '/* pvp-desktop-parity-v3 */'
+          if marker not in text:
+              text += """
+
+/* pvp-desktop-parity-v3 */
+@media (min-width: 821px) {
+  .railCard {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    justify-content: flex-start;
+  }
+
+  .portraitButton {
+    width: 100%;
+    height: auto;
+    max-height: 9.5rem;
+    flex: 0 0 auto;
+    aspect-ratio: 1 / 1;
+  }
+
+  .portraitImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .statuses {
+    flex: 0 0 auto;
+    align-content: flex-start;
+  }
+
+  .facing {
+    flex: 0 0 auto;
+    margin-top: auto;
+  }
+
+  :global(main[data-pvp-battle='true'][data-pvp-desktop-parity='true'] > header) {
+    grid-template-columns: minmax(12rem, 1fr) minmax(27rem, 36rem) auto !important;
+  }
+
+  :global([data-pvp-header-economy='true']) {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+  }
+
+  :global(
+    [data-pvp-desktop-content='true']
+      > section[aria-label='PvP tactical battlefield']
+      > div:first-child
+      > div
+  ) {
+    width: min(100%, 38.75rem) !important;
+    max-width: 38.75rem !important;
+  }
+
+  :global([data-pvp-desktop-content='true'] button[aria-label*='rough ground']) {
+    background:
+      repeating-linear-gradient(135deg, rgba(160, 125, 79, 0.14) 0 3px, transparent 3px 8px),
+      linear-gradient(145deg, rgba(95, 72, 49, 0.5), rgba(39, 38, 35, 0.88)) !important;
+  }
+
+  :global([data-pvp-desktop-content='true'] button[aria-label*='elevation 1']) {
+    box-shadow:
+      inset 0 0 0 1px rgba(211, 196, 156, 0.13),
+      0 -0.12rem 0 rgba(218, 197, 145, 0.13) !important;
+  }
+
+  :global([data-pvp-desktop-content='true'] button[aria-label^='Tile '] > span:first-child) {
+    display: flex;
+    gap: 0.18rem;
+    color: rgba(225, 231, 235, 0.45) !important;
+  }
+
+  :global([data-pvp-desktop-content='true'] button[aria-label^='Tile '] > span:first-child b) {
+    color: rgba(226, 195, 125, 0.75);
+    font-weight: 700;
+  }
+
+  :global(main[data-pvp-battle='true'] footer [data-pvp-spectator-key='true']) {
+    display: grid !important;
+  }
+}
+"""
+          write(path, text)
+          PY
+
+      - name: Format touched files
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+          pnpm exec prettier --write \
+            apps/web/src/components/battle/pvp-battle-client-boundary.tsx \
+            apps/web/src/components/battle/pvp-battle-experience.tsx \
+            apps/web/src/components/battle/pvp-desktop-parity.tsx \
+            apps/web/src/components/battle/pvp-battle-quality-controls.tsx \
+            apps/web/src/components/battle/ai-battle-pvp-visual-sync.module.css \
+            apps/web/src/components/battle/pvp-battle-experience.module.css \
+            apps/web/src/components/battle/pvp-desktop-parity.module.css
+
+      - name: Commit changes if needed
         run: |
           if git diff --quiet; then
             exit 0
           fi
           git config user.name 'Nicholas JM'
           git config user.email '283436098+ZeiJM@users.noreply.github.com'
-          git add apps/web/src/components/battle/pvp-battle-chat-bridge.tsx \
-                  apps/web/src/components/battle/pvp-battle-release-polish.module.css \
-                  apps/web/src/components/battle/pvp-desktop-parity.tsx
-          git commit -m 'chore: format PvP release files'
+          git add apps/web/src/components/battle
+          git commit -m 'Polish PvP realtime combat shell'
           git push origin HEAD:${{ github.event.pull_request.head.ref }}
