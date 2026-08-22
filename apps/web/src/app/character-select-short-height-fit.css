@@ -1,0 +1,16 @@
+/* Keep the desktop character roster inside short laptop viewports without changing normal-height layouts. */
+@media (min-width: 901px) and (max-height: 620px) {
+  [data-character-select-page='true'] > header {
+    min-height: 2.9rem !important;
+    padding-block: 0.16rem !important;
+  }
+
+  [data-character-select-page='true'] > main {
+    padding: 0.5rem 0.72rem !important;
+  }
+
+  [data-character-select-page='true'] > main > header {
+    margin-bottom: 0.45rem !important;
+    padding: 0.3rem 0 0.45rem !important;
+  }
+}
