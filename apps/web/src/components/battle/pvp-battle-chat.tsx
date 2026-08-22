@@ -30,6 +30,10 @@ interface PvpBattleChatProps {
   className?: string
 }
 
+const OPEN_CHAT_POLL_MS = 1500
+const CLOSED_CHAT_POLL_MS = 3500
+const MAX_CHAT_RECONNECT_MS = 10000
+
 export function PvpBattleChat({
   battleSessionId,
   readOnly,
@@ -96,34 +100,69 @@ export function PvpBattleChat({
     [localCharacterId, onUnreadChange, open],
   )
 
-  const refresh = useCallback(async () => {
-    try {
-      const params = new URLSearchParams({ after: String(latestMessageId.current) })
-      if (showBattleLog) params.set('includeLog', '1')
-      const response = await fetch(`${endpoint}?${params.toString()}`, { cache: 'no-store' })
-      const body = (await response.json()) as ChatApiBody
-      if (!response.ok) {
-        setNotice(body.error?.message ?? 'Battle communication is temporarily unavailable.')
-        return
+  const refresh = useCallback(
+    async (signal?: AbortSignal): Promise<boolean> => {
+      try {
+        const params = new URLSearchParams({ after: String(latestMessageId.current) })
+        if (showBattleLog) params.set('includeLog', '1')
+        const response = await fetch(`${endpoint}?${params.toString()}`, {
+          cache: 'no-store',
+          signal,
+        })
+        const body = (await response.json()) as ChatApiBody
+        if (signal?.aborted) return false
+        if (!response.ok) {
+          setNotice(body.error?.message ?? 'Battle communication is temporarily unavailable.')
+          return false
+        }
+        mergeMessages(body.messages ?? [])
+        setSpectators(body.spectators ?? [])
+        const nextCount = body.spectatorCount ?? 0
+        setSpectatorCount(nextCount)
+        onSpectatorCountChange?.(nextCount)
+        if (body.battleLog) setBattleLog(body.battleLog)
+        setNotice(null)
+        initialized.current = true
+        return true
+      } catch {
+        if (signal?.aborted) return false
+        setNotice('Battle communication interrupted. Retrying…')
+        return false
       }
-      mergeMessages(body.messages ?? [])
-      setSpectators(body.spectators ?? [])
-      const nextCount = body.spectatorCount ?? 0
-      setSpectatorCount(nextCount)
-      onSpectatorCountChange?.(nextCount)
-      if (body.battleLog) setBattleLog(body.battleLog)
-      setNotice(null)
-      initialized.current = true
-    } catch {
-      setNotice('Battle communication interrupted. Retrying…')
-    }
-  }, [endpoint, mergeMessages, onSpectatorCountChange, showBattleLog])
+    },
+    [endpoint, mergeMessages, onSpectatorCountChange, showBattleLog],
+  )
 
   useEffect(() => {
-    void refresh()
-    const timer = window.setInterval(() => void refresh(), 900)
-    return () => window.clearInterval(timer)
-  }, [refresh])
+    let cancelled = false
+    let timer: number | null = null
+    let failures = 0
+    let controller: AbortController | null = null
+
+    async function poll() {
+      controller = new AbortController()
+      const success = await refresh(controller.signal)
+      controller = null
+      if (cancelled) return
+
+      if (success) failures = 0
+      else failures += 1
+
+      const normalDelay = open ? OPEN_CHAT_POLL_MS : CLOSED_CHAT_POLL_MS
+      const reconnectDelay = Math.min(
+        normalDelay * 2 ** Math.min(failures, 2),
+        MAX_CHAT_RECONNECT_MS,
+      )
+      timer = window.setTimeout(poll, success ? normalDelay : reconnectDelay)
+    }
+
+    void poll()
+    return () => {
+      cancelled = true
+      controller?.abort()
+      if (timer !== null) window.clearTimeout(timer)
+    }
+  }, [open, refresh])
 
   useEffect(() => {
     if (!open || unread === 0) return

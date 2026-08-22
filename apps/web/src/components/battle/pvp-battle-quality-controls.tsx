@@ -29,6 +29,10 @@ function remainingSeconds(deadlineAt: string | null, now: number): number {
   return Math.max(0, Math.ceil((new Date(deadlineAt).getTime() - now) / 1000))
 }
 
+const CLOCK_POLL_MS = 1000
+const BATTLE_FALLBACK_POLL_MS = 3000
+const MAX_RECONNECT_DELAY_MS = 5000
+
 export function PvpBattleQualityControls({
   battleSessionId,
   metadata,
@@ -92,31 +96,59 @@ export function PvpBattleQualityControls({
   useEffect(() => {
     let cancelled = false
     let timer: number | null = null
+    let reconnectDelay = CLOCK_POLL_MS
+    let nextBattleFallbackAt = 0
+    let completed = false
 
     async function refresh() {
       try {
-        const [clockResponse, battleResponse] = await Promise.all([
-          fetch(`/api/pvp/battles/${battleSessionId}/turn-clock`, {
-            method: 'POST',
-            cache: 'no-store',
-          }),
-          fetch(`/api/battles/${battleSessionId}`, { cache: 'no-store' }),
-        ])
+        const clockResponse = await fetch(`/api/pvp/battles/${battleSessionId}/turn-clock`, {
+          method: 'POST',
+          cache: 'no-store',
+        })
         const clockBody = (await clockResponse.json()) as TickResponse
-        const battleBody = (await battleResponse.json()) as { battle?: BattleSessionView }
         if (cancelled) return
+
         if (clockResponse.ok && clockBody.tick) {
           setClock(clockBody.tick.clock)
-          if (clockBody.tick.battle) setBattle(clockBody.tick.battle)
           setError(null)
-        } else if (!clockResponse.ok) {
+          reconnectDelay = CLOCK_POLL_MS
+
+          if (clockBody.tick.battle) {
+            setBattle(clockBody.tick.battle)
+            completed = clockBody.tick.battle.snapshot.tactical.battle.lifecycle === 'completed'
+          }
+        } else {
           setError(clockBody.error?.message ?? 'Turn clock unavailable.')
+          reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY_MS)
         }
-        if (battleResponse.ok && battleBody.battle) setBattle(battleBody.battle)
+
+        const fallbackDue = Date.now() >= nextBattleFallbackAt
+        if (!completed && fallbackDue) {
+          nextBattleFallbackAt = Date.now() + BATTLE_FALLBACK_POLL_MS
+          try {
+            const battleResponse = await fetch(`/api/battles/${battleSessionId}`, {
+              cache: 'no-store',
+            })
+            const battleBody = (await battleResponse.json()) as { battle?: BattleSessionView }
+            if (!cancelled && battleResponse.ok && battleBody.battle) {
+              setBattle(battleBody.battle)
+              completed = battleBody.battle.snapshot.tactical.battle.lifecycle === 'completed'
+            }
+          } catch {
+            // The main PvP surface also tracks battle state. This slower fallback must not
+            // amplify a transient database interruption into another request storm.
+          }
+        }
       } catch {
-        if (!cancelled) setError('Turn clock reconnecting…')
+        if (!cancelled) {
+          setError('Turn clock reconnecting…')
+          reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY_MS)
+        }
       } finally {
-        if (!cancelled) timer = window.setTimeout(refresh, 650)
+        if (!cancelled && !completed) {
+          timer = window.setTimeout(refresh, reconnectDelay)
+        }
       }
     }
 
