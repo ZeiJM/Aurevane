@@ -360,7 +360,7 @@
   }
 
   .brandGroup :global(.brand__crest) {
-    transform: translateY(0.16rem) rotate(45deg);
+    transform: translateY(0.3rem) rotate(45deg);
   }
 
   .backButton {
