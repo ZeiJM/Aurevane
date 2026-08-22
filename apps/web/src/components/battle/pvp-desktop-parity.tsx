@@ -17,6 +17,16 @@ type Placement = BattleSnapshot['tactical']['placements'][number]
 type Profile = BattleSnapshot['statBridge']['combatants'][number]
 type CombatStatus = BattleSnapshot['statusState'][number]['statuses'][number]
 
+const ACTION_ECONOMY_KEY = 'pv1f.action-economy'
+
+function activeEconomy(combatant: Combatant | null): number | null {
+  if (!combatant) return null
+  return (
+    combatant.temporaryResources.find((resource) => resource.key === ACTION_ECONOMY_KEY)?.current ??
+    null
+  )
+}
+
 function meterPercent(value: number, maximum: number): number {
   if (maximum <= 0) return 0
   return Math.max(0, Math.min(100, (value / maximum) * 100))
