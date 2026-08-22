@@ -61,24 +61,16 @@ export function PvpBattleCompletionPanel({
   const round = battleState.round
 
   useEffect(() => {
-    if (battleState.lifecycle === 'completed') return
-    let cancelled = false
-    const timer = window.setInterval(async () => {
-      try {
-        const response = await fetch(`/api/battles/${initialBattle.battleSessionId}`, {
-          cache: 'no-store',
-        })
-        const body = (await response.json()) as { battle?: BattleSessionView }
-        if (response.ok && body.battle && !cancelled) setBattle(body.battle)
-      } catch {
-        // The active battle UI owns connection messaging. This panel only waits for completion.
-      }
-    }, 2000)
-    return () => {
-      cancelled = true
-      window.clearInterval(timer)
+    const receiveBattleState = (event: Event) => {
+      if (!(event instanceof CustomEvent)) return
+      const next = event.detail as BattleSessionView | undefined
+      if (!next || next.battleSessionId !== initialBattle.battleSessionId) return
+      setBattle((current) => (next.battleVersion !== current.battleVersion ? next : current))
     }
-  }, [battleState.lifecycle, initialBattle.battleSessionId])
+
+    window.addEventListener('aurevane:pvp-battle-state', receiveBattleState)
+    return () => window.removeEventListener('aurevane:pvp-battle-state', receiveBattleState)
+  }, [initialBattle.battleSessionId])
 
   async function loadBattleLog(): Promise<BattleLogView | null> {
     if (log) return log
