@@ -117,7 +117,7 @@ export function PvpBattleChat({
     async (signal?: AbortSignal): Promise<boolean> => {
       try {
         const params = new URLSearchParams({ after: String(latestMessageId.current) })
-        if (showBattleLog) params.set('includeLog', '1')
+        if (showBattleLog && tab === 'log') params.set('includeLog', '1')
         const response = await fetch(`${endpoint}?${params.toString()}`, {
           cache: 'no-store',
           signal,
@@ -143,7 +143,7 @@ export function PvpBattleChat({
         return false
       }
     },
-    [endpoint, mergeMessages, onSpectatorCountChange, showBattleLog],
+    [endpoint, mergeMessages, onSpectatorCountChange, showBattleLog, tab],
   )
 
   useEffect(() => {
