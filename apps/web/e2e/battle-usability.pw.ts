@@ -50,6 +50,14 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   await expect(page).toHaveURL(/\/game\/battle$/)
 
   await expect(page.getByRole('heading', { name: 'Choose your arena.' })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Player vs Player' }).click()
+  await expect(page.locator('#pvp-mode')).toHaveCount(0)
+  await expect(page.getByText('Battle format', { exact: true })).toHaveCount(0)
+  await expect(page.getByText(/Two combatants · one per side/)).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Create Battle Lobby' })).toBeEnabled()
+
+  await page.getByRole('button', { name: 'AI Battles' }).click()
   const battleMode = page.getByLabel('Battle mode')
   await expect(battleMode).toHaveValue('')
   await expect(page.getByRole('button', { name: 'Enter Battle' })).toHaveCount(0)
