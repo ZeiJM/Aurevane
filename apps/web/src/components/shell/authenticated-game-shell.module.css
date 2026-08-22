@@ -31,9 +31,9 @@
 
 @media (min-width: 621px) {
   .brandGroup :global(.brand__crest) {
-    width: 2.48rem;
-    height: 2.48rem;
-    font-size: 1.18rem;
+    width: 2.14rem;
+    height: 2.14rem;
+    font-size: 1.04rem;
   }
 }
 
@@ -369,6 +369,10 @@
 
   .brandGroup :global(.brand__crest) {
     transform: translateY(0.44rem) rotate(45deg);
+  }
+
+  .brandGroup :global(.brand__wordmark) {
+    transform: translateY(0.44rem);
   }
 
   .backButton {
