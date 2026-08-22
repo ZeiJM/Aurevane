@@ -1,16 +1,18 @@
 name: One-shot preview formatting
 
 on:
-  push:
+  pull_request:
     branches:
-      - preview/finesse-silver-20260821
+      - main
+    types:
+      - synchronize
 
 permissions:
   contents: write
 
 jobs:
   format:
-    if: github.event.head_commit.message != 'chore: format preview batch'
+    if: github.event.pull_request.head.ref == 'preview/finesse-silver-20260821'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
