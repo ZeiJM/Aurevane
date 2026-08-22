@@ -5,6 +5,7 @@ import { getTacticalHallRecordFromScenarioSourceId } from '@aurevane/game-core/c
 import type { ImageAssetId } from '@/media/registry'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
+import { AiBattlePvpVisualSync } from './ai-battle-pvp-visual-sync'
 import { AiBattleQualityControls } from './ai-battle-quality-controls'
 import { BattleDirectionalAttackAssist } from './battle-directional-attack-assist'
 import { BattleExperienceV2 } from './battle-experience-v2'
@@ -49,6 +50,7 @@ export function BattleSessionClientBoundary({
         playerName={playerName}
         playerPortraitAssetId={playerPortraitAssetId}
       />
+      <AiBattlePvpVisualSync playerName={playerName} />
       <AiBattleQualityControls battleSessionId={initialBattle.battleSessionId} />
       {lessonActive ? (
         <BattleLessonCoach

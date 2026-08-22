@@ -13,6 +13,7 @@ import './mobile-ui-batch.css'
 import './pvp-battle-batch-overrides.css'
 import './lobby-mobile-final.css'
 import './character-creation-scale.css'
+import './character-select-short-height-fit.css'
 import './portrait-ratio-standardization.css'
 import './authenticated-header-mobile.css'
 

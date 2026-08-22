@@ -14,7 +14,9 @@ import { PvpBattleChatBridge } from './pvp-battle-chat-bridge'
 import { PvpBattleCompletionPanel } from './pvp-battle-completion-panel'
 import { PvpBattleExperience } from './pvp-battle-experience'
 import { PvpBattleInspectPopup } from './pvp-battle-inspect-popup'
+import { PvpBattleKeyboardAssist } from './pvp-battle-keyboard-assist'
 import { PvpBattleQualityControls } from './pvp-battle-quality-controls'
+import { PvpDesktopParity } from './pvp-desktop-parity'
 import { PvpLegacyResultSuppressor } from './pvp-legacy-result-suppressor'
 import { PvpQuickCommitAssist } from './pvp-quick-commit-assist'
 
@@ -29,7 +31,12 @@ export function PvpBattleClientBoundary({
 }) {
   return (
     <>
-      <PvpBattleExperience initialBattle={initialBattle} metadata={metadata} />
+      <PvpBattleExperience
+        key={initialBattle.battleVersion}
+        initialBattle={initialBattle}
+        metadata={metadata}
+      />
+      <PvpDesktopParity initialBattle={initialBattle} metadata={metadata} />
       <PvpLegacyResultSuppressor />
       <BattleDirectionalAttackAssist playerName={playerName} />
       <BattleMapTokenPolish />
@@ -37,6 +44,7 @@ export function PvpBattleClientBoundary({
       <BattleFacingQuickCommitAssist playerName={playerName} />
       <BattleStatusEffectAssist />
       <BattleStickyActionAssist />
+      <PvpBattleKeyboardAssist playerName={playerName} />
       <PvpQuickCommitAssist />
       <PvpBattleChatBridge battleSessionId={initialBattle.battleSessionId} metadata={metadata} />
       <PvpBattleQualityControls

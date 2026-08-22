@@ -26,9 +26,7 @@
   padding: 1.1rem 1.15rem 1rem;
   border: 1px solid rgba(205, 171, 102, 0.5);
   border-radius: 0.85rem;
-  background:
-    linear-gradient(145deg, rgba(28, 34, 43, 0.98), rgba(8, 13, 20, 0.99)),
-    #0a0f16;
+  background: linear-gradient(145deg, rgba(28, 34, 43, 0.98), rgba(8, 13, 20, 0.99)), #0a0f16;
   box-shadow: 0 1.25rem 4rem rgba(0, 0, 0, 0.55);
   color: #eee7d8;
 }
