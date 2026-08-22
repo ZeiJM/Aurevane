@@ -72,15 +72,33 @@
   }
 }
 
+/*
+ * Character Select desktop roster.
+ *
+ * The portrait contract is now square, so the old viewport-filling card rows no longer make sense:
+ * a compact square portrait was being followed by a large artificial 1fr void. Let roster cards size
+ * to their real content instead, then use a featured-character composition when the account has one
+ * character and two locked future slots.
+ */
 @media (min-width: 901px) {
+  [data-character-select-page='true'] {
+    height: auto !important;
+    min-height: 100dvh !important;
+    overflow: visible !important;
+  }
+
   [data-character-select-page='true'] > header {
     min-height: 3.35rem !important;
     padding-block: 0.25rem !important;
   }
 
   [data-character-select-page='true'] > main {
+    display: block !important;
     width: min(94%, 78rem) !important;
+    height: auto !important;
+    min-height: 0 !important;
     padding: 0.62rem !important;
+    overflow: visible !important;
   }
 
   [data-character-select-page='true'] > main > header {
@@ -94,11 +112,193 @@
   }
 
   [data-character-select-page='true'] section[aria-label='Character slots'] {
+    min-height: 0 !important;
     gap: 0.58rem !important;
+    align-items: start !important;
   }
 
   [data-character-select-page='true'] section[aria-label='Character slots'] > article {
-    min-height: clamp(21rem, 55vh, 26rem) !important;
-    padding: 0.62rem !important;
+    height: auto !important;
+    min-height: 0 !important;
+    grid-template-rows: auto auto auto auto auto !important;
+    align-content: start !important;
+    padding: 0.68rem !important;
+  }
+
+  [data-character-select-page='true']
+    section[aria-label='Character slots']
+    > article
+    > div:has(> .character-portrait-media) {
+    margin: 0.62rem auto 0.72rem !important;
+  }
+}
+
+@media (min-width: 1180px) {
+  [data-character-select-page='true']
+    section[aria-label='Character slots']:has(> article:nth-child(2)[data-locked='true']):has(
+      > article:nth-child(3)[data-locked='true']
+    ) {
+    grid-template-columns: minmax(0, 1.45fr) minmax(19rem, 0.85fr) !important;
+    grid-template-rows: repeat(2, auto) !important;
+    align-items: stretch !important;
+  }
+
+  [data-character-select-page='true']
+    section[aria-label='Character slots']:has(> article:nth-child(2)[data-locked='true']):has(
+      > article:nth-child(3)[data-locked='true']
+    )
+    > article:first-child {
+    grid-column: 1;
+    grid-row: 1 / 3;
+  }
+
+  [data-character-select-page='true']
+    section[aria-label='Character slots']:has(> article:nth-child(2)[data-locked='true']):has(
+      > article:nth-child(3)[data-locked='true']
+    )
+    > article:nth-child(2),
+  [data-character-select-page='true']
+    section[aria-label='Character slots']:has(> article:nth-child(2)[data-locked='true']):has(
+      > article:nth-child(3)[data-locked='true']
+    )
+    > article:nth-child(3) {
+    grid-column: 2;
+    height: 100% !important;
+  }
+
+  /* Featured occupied slot: portrait and identity become one balanced horizontal composition. */
+  [data-character-select-page='true']
+    section[aria-label='Character slots']:has(> article:nth-child(2)[data-locked='true']):has(
+      > article:nth-child(3)[data-locked='true']
+    )
+    > article:first-child:has(.character-portrait-media) {
+    grid-template-columns: minmax(13rem, 18rem) minmax(0, 1fr) !important;
+    grid-template-rows: auto auto minmax(0, 1fr) auto auto !important;
+    column-gap: 1rem !important;
+    background:
+      radial-gradient(circle at 22% 38%, rgba(120, 181, 154, 0.09), transparent 18rem),
+      linear-gradient(155deg, rgba(19, 27, 38, 0.98), rgba(7, 10, 14, 0.99)) !important;
+  }
+
+  [data-character-select-page='true']
+    section[aria-label='Character slots']
+    > article:first-child:has(.character-portrait-media)
+    > span:first-child {
+    grid-column: 1 / -1;
+  }
+
+  [data-character-select-page='true']
+    section[aria-label='Character slots']
+    > article:first-child:has(.character-portrait-media)
+    > div:has(> .character-portrait-media) {
+    grid-column: 1;
+    grid-row: 2 / 6;
+    width: min(100%, 18rem) !important;
+    margin: 0.7rem 0 0 !important;
+    align-self: start;
+    justify-self: center;
+    box-shadow: 0 0.8rem 2.2rem rgba(0, 0, 0, 0.28);
+  }
+
+  [data-character-select-page='true']
+    section[aria-label='Character slots']
+    > article:first-child:has(.character-portrait-media)
+    > div:nth-of-type(2) {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: end;
+    padding: 1rem 0 0.55rem !important;
+  }
+
+  [data-character-select-page='true']
+    section[aria-label='Character slots']
+    > article:first-child:has(.character-portrait-media)
+    > a[href^='/game/select/'] {
+    grid-column: 2;
+    grid-row: 4;
+    align-self: end;
+  }
+
+  [data-character-select-page='true']
+    section[aria-label='Character slots']
+    > article:first-child:has(.character-portrait-media)
+    > button {
+    grid-column: 2;
+    grid-row: 5;
+  }
+
+  [data-character-select-page='true']
+    section[aria-label='Character slots']
+    > article:first-child:has(.character-portrait-media)
+    > div:nth-of-type(3) {
+    grid-column: 2;
+    grid-row: 3 / 6;
+    align-self: end;
+  }
+
+  /* Locked future slots become compact opportunity cards rather than empty full-height columns. */
+  [data-character-select-page='true']
+    section[aria-label='Character slots']:has(> article:nth-child(2)[data-locked='true']):has(
+      > article:nth-child(3)[data-locked='true']
+    )
+    > article[data-locked='true'] {
+    grid-template-columns: 4.2rem minmax(0, 1fr) !important;
+    grid-template-rows: auto auto auto auto !important;
+    column-gap: 0.8rem !important;
+    row-gap: 0.18rem !important;
+    align-items: center !important;
+    text-align: left !important;
+    background:
+      radial-gradient(circle at 3.1rem 50%, rgba(128, 113, 172, 0.07), transparent 8rem),
+      linear-gradient(155deg, rgba(15, 19, 26, 0.84), rgba(7, 9, 13, 0.96)) !important;
+  }
+
+  [data-character-select-page='true']
+    section[aria-label='Character slots']
+    > article[data-locked='true']
+    > span:first-child {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    margin-bottom: 0.35rem;
+  }
+
+  [data-character-select-page='true']
+    section[aria-label='Character slots']
+    > article[data-locked='true']
+    > div {
+    grid-column: 1;
+    grid-row: 2 / 4;
+    width: 3.35rem !important;
+    height: 3.35rem !important;
+    margin: 0 !important;
+    font-size: 1.4rem !important;
+  }
+
+  [data-character-select-page='true']
+    section[aria-label='Character slots']
+    > article[data-locked='true']
+    > h2 {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: end;
+  }
+
+  [data-character-select-page='true']
+    section[aria-label='Character slots']
+    > article[data-locked='true']
+    > p {
+    grid-column: 2;
+    grid-row: 3;
+    align-self: start;
+    margin-top: 0.18rem !important;
+  }
+
+  [data-character-select-page='true']
+    section[aria-label='Character slots']
+    > article[data-locked='true']
+    > span:last-child {
+    grid-column: 1 / -1;
+    grid-row: 4;
+    margin-top: 0.55rem;
   }
 }
