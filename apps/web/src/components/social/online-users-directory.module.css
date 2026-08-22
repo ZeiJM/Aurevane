@@ -254,18 +254,73 @@
     max-height: none;
   }
 
+  .backdrop {
+    padding: 0.45rem;
+  }
+
   .profileCard {
     grid-template-columns: 1fr;
-    max-height: calc(100dvh - 2rem);
+    width: min(100%, 30rem);
+    max-height: calc(100dvh - 0.9rem);
     overflow: auto;
   }
 
+  /*
+   * Mobile public profiles should showcase the portrait without letting a 1:1 image consume most
+   * of the viewport. The square portrait contract remains intact; only its display frame is bounded.
+   */
   .portraitStage {
-    min-height: 15rem;
+    width: min(42vw, 10.5rem);
+    min-height: 0;
+    aspect-ratio: 1 / 1;
+    margin: 0.75rem auto 0;
+    padding: 0.35rem;
+    border: 1px solid rgba(207, 169, 93, 0.18);
+    border-radius: var(--av-radius-md);
+    background:
+      radial-gradient(circle at 50% 25%, rgba(207, 169, 93, 0.13), transparent 48%), #070a0e;
   }
 
   .heroPortrait {
-    min-height: 13rem;
+    min-height: 0;
+    aspect-ratio: 1 / 1;
+  }
+
+  .liveBadge {
+    right: 0.55rem;
+    bottom: 0.55rem;
+    padding: 0.35rem 0.45rem;
+    font-size: 0.39rem;
+  }
+
+  .close {
+    top: 0.45rem;
+    right: 0.45rem;
+  }
+
+  .profileCopy {
+    align-content: start;
+    gap: 0.55rem;
+    padding: 0.75rem 0.9rem 0.9rem;
+  }
+
+  .profileCopy h2 {
+    font-size: clamp(1.75rem, 8vw, 2.3rem);
+  }
+
+  .profileCopy dl div {
+    padding: 0.5rem;
+  }
+
+  .privacyNote {
+    font-size: 0.63rem;
+    line-height: 1.4;
+  }
+
+  .futureActions button {
+    min-height: 2.35rem;
+    padding: 0.45rem;
+    font-size: 0.48rem;
   }
 }
 
@@ -274,8 +329,11 @@
     grid-template-columns: 1fr;
   }
 
-  .futureActions,
-  .profileCopy dl {
+  .portraitStage {
+    width: min(46vw, 9.5rem);
+  }
+
+  .futureActions {
     grid-template-columns: 1fr;
   }
 }
