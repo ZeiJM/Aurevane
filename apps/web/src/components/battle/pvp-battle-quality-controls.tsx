@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
@@ -36,6 +37,7 @@ export function PvpBattleQualityControls({
   battleSessionId: string
   metadata: PvpBattleMetadata
 }) {
+  const router = useRouter()
   const [clock, setClock] = useState<ClockView | null>(null)
   const [now, setNow] = useState(0)
   const [battle, setBattle] = useState<BattleSessionView | null>(null)
@@ -46,6 +48,7 @@ export function PvpBattleQualityControls({
   const [commandTarget, setCommandTarget] = useState<HTMLElement | null>(null)
   const [footerTarget, setFooterTarget] = useState<HTMLElement | null>(null)
   const confirmTimer = useRef<number | null>(null)
+  const lastTurnSignature = useRef<string | null>(null)
 
   useEffect(() => {
     const locate = () => {
@@ -105,14 +108,28 @@ export function PvpBattleQualityControls({
         const clockBody = (await clockResponse.json()) as TickResponse
         const battleBody = (await battleResponse.json()) as { battle?: BattleSessionView }
         if (cancelled) return
-        if (clockResponse.ok && clockBody.tick) {
-          setClock(clockBody.tick.clock)
-          if (clockBody.tick.battle) setBattle(clockBody.tick.battle)
+
+        const nextClock = clockResponse.ok && clockBody.tick ? clockBody.tick.clock : null
+        const nextBattle =
+          (clockResponse.ok ? clockBody.tick?.battle : null) ??
+          (battleResponse.ok ? (battleBody.battle ?? null) : null)
+
+        if (nextClock) {
+          const turnSignature = `${nextClock.turnNumber ?? 'none'}:${nextClock.combatantId ?? 'none'}`
+          if (lastTurnSignature.current === null) {
+            lastTurnSignature.current = turnSignature
+          } else if (turnSignature !== lastTurnSignature.current) {
+            lastTurnSignature.current = turnSignature
+            setNow(Date.now())
+            router.refresh()
+          }
+          setClock(nextClock)
           setError(null)
         } else if (!clockResponse.ok) {
           setError(clockBody.error?.message ?? 'Turn clock unavailable.')
         }
-        if (battleResponse.ok && battleBody.battle) setBattle(battleBody.battle)
+
+        if (nextBattle) setBattle(nextBattle)
       } catch {
         if (!cancelled) setError('Turn clock reconnecting…')
       } finally {
@@ -125,7 +142,7 @@ export function PvpBattleQualityControls({
       cancelled = true
       if (timer !== null) window.clearTimeout(timer)
     }
-  }, [battleSessionId])
+  }, [battleSessionId, router])
 
   const activeCombatantId =
     clock?.combatantId ?? battle?.snapshot.tactical.battle.currentTurn?.combatantId ?? null
