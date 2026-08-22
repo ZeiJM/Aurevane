@@ -73,7 +73,7 @@ export function PvpBattleCompletionPanel({
       } catch {
         // The active battle UI owns connection messaging. This panel only waits for completion.
       }
-    }, 750)
+    }, 2000)
     return () => {
       cancelled = true
       window.clearInterval(timer)
