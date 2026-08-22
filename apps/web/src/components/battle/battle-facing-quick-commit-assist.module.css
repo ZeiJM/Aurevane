@@ -3,3 +3,15 @@
   outline-offset: 2px;
   box-shadow: 0 0 0 3px rgba(224, 193, 125, 0.12), 0 0 1rem rgba(224, 193, 125, 0.2);
 }
+
+@media (max-width: 880px) {
+  :global(#battlefield) {
+    min-height: 0 !important;
+  }
+
+  :global(#battlefield > div:first-child) {
+    height: auto !important;
+    min-height: 0 !important;
+    aspect-ratio: 1 / 1;
+  }
+}
