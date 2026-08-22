@@ -446,7 +446,11 @@
 
   .screenLabel strong {
     max-width: 5.4rem;
+    overflow: visible;
     font-size: 0.48rem;
+    line-height: 1.05;
+    text-overflow: clip;
+    white-space: normal;
   }
 
   .backButton {
