@@ -21,6 +21,9 @@ const ATTACK_COST = 30
 const GUARD_COST = 30
 const RECOVER_COST = 50
 const MOVE_COST_PER_TERRAIN_POINT = 25
+const ACTIVE_PLAYER_POLL_MS = 900
+const WAITING_PLAYER_POLL_MS = 350
+const COMMIT_POLL_RETRY_MS = 120
 
 type Mode = 'none' | 'inspect' | 'move' | 'attack' | 'guard' | 'recover' | 'finish'
 type GridPosition = { x: number; y: number }
@@ -227,6 +230,9 @@ export function PvpBattleExperience({
   const [victoryOpen, setVictoryOpen] = useState(false)
   const previewSequence = useRef(0)
   const commitLock = useRef(false)
+  const battleRef = useRef(initialBattle)
+  const battlePollInFlight = useRef(false)
+  const battlePollController = useRef<AbortController | null>(null)
 
   const tactical = battle.snapshot.tactical
   const battleState = tactical.battle
@@ -318,28 +324,37 @@ export function PvpBattleExperience({
 
   const applyRemoteBattle = useCallback(
     (next: BattleSessionView) => {
-      setBattle((current) => {
-        if (next.battleVersion === current.battleVersion) return current
-        const wasLocal =
-          current.snapshot.tactical.battle.currentTurn?.combatantId === localCombatantId
-        const isLocal = next.snapshot.tactical.battle.currentTurn?.combatantId === localCombatantId
-        if (!wasLocal && isLocal) setNotice('Your turn. Choose an action.')
-        else if (wasLocal && !isLocal) {
-          clearPlanning()
-          setNotice(
-            `Turn committed. Waiting for ${participantName(
-              participantByCombatant,
-              next.snapshot.tactical.battle.currentTurn?.combatantId,
-            )}.`,
-          )
-        }
-        return next
-      })
+      const current = battleRef.current
+      if (next.battleVersion <= current.battleVersion) return
+
+      const wasLocal =
+        current.snapshot.tactical.battle.currentTurn?.combatantId === localCombatantId
+      const nextBattleState = next.snapshot.tactical.battle
+      const isLocal = nextBattleState.currentTurn?.combatantId === localCombatantId
+
+      battleRef.current = next
+      setBattle(next)
+
+      if (nextBattleState.lifecycle === 'completed') {
+        clearPlanning()
+        setNotice('Battle complete.')
+      } else if (!wasLocal && isLocal) {
+        setNotice('Your turn. Choose an action.')
+      } else if (wasLocal && !isLocal) {
+        clearPlanning()
+        setNotice(
+          `Turn committed. Waiting for ${participantName(
+            participantByCombatant,
+            nextBattleState.currentTurn?.combatantId,
+          )}.`,
+        )
+      }
     },
     [clearPlanning, localCombatantId, participantByCombatant],
   )
 
   useEffect(() => {
+    battleRef.current = battle
     window.dispatchEvent(
       new CustomEvent<BattleSessionView>('aurevane:pvp-battle-state', { detail: battle }),
     )
@@ -348,24 +363,59 @@ export function PvpBattleExperience({
   useEffect(() => {
     if (battleState.lifecycle !== 'active') return
     let cancelled = false
-    const timer = window.setInterval(async () => {
-      if (commitLock.current) return
+    let timer: number | null = null
+
+    const schedule = (delay: number) => {
+      if (cancelled) return
+      timer = window.setTimeout(poll, delay)
+    }
+
+    const nextNormalDelay = () => {
+      const currentTurnId = battleRef.current.snapshot.tactical.battle.currentTurn?.combatantId
+      return currentTurnId === localCombatantId ? ACTIVE_PLAYER_POLL_MS : WAITING_PLAYER_POLL_MS
+    }
+
+    async function poll() {
+      timer = null
+      if (cancelled) return
+      if (commitLock.current || battlePollInFlight.current) {
+        schedule(COMMIT_POLL_RETRY_MS)
+        return
+      }
+
+      battlePollInFlight.current = true
+      const controller = new AbortController()
+      battlePollController.current = controller
       try {
         const response = await fetch(`/api/battles/${battle.battleSessionId}`, {
           cache: 'no-store',
+          signal: controller.signal,
         })
         const body = (await response.json()) as { battle?: BattleSessionView } & ApiErrorBody
-        if (!response.ok || !body.battle || cancelled) return
-        if (body.battle.battleVersion !== battle.battleVersion) applyRemoteBattle(body.battle)
-      } catch {
-        // The next poll repairs transient connectivity without disturbing local planning.
+        if (!response.ok || !body.battle || cancelled || controller.signal.aborted) return
+        if (body.battle.battleVersion > battleRef.current.battleVersion) {
+          applyRemoteBattle(body.battle)
+        }
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === 'AbortError')) {
+          // The next poll repairs transient connectivity without disturbing local planning.
+        }
+      } finally {
+        if (battlePollController.current === controller) battlePollController.current = null
+        battlePollInFlight.current = false
+        if (!cancelled) schedule(commitLock.current ? COMMIT_POLL_RETRY_MS : nextNormalDelay())
       }
-    }, 700)
+    }
+
+    schedule(nextNormalDelay())
     return () => {
       cancelled = true
-      window.clearInterval(timer)
+      if (timer !== null) window.clearTimeout(timer)
+      battlePollController.current?.abort()
+      battlePollController.current = null
+      battlePollInFlight.current = false
     }
-  }, [applyRemoteBattle, battle.battleSessionId, battle.battleVersion, battleState.lifecycle])
+  }, [applyRemoteBattle, battle.battleSessionId, battleState.lifecycle, localCombatantId])
 
   const requestPreview = useCallback(
     async (intent: BattleIntent) => {
@@ -418,7 +468,10 @@ export function PvpBattleExperience({
     async (intent: BattleIntent) => {
       if (commitLock.current || commitPending || !localTurn) return
       commitLock.current = true
+      battlePollController.current?.abort()
+      battlePollController.current = null
       setCommitPending(true)
+      if (intent.kind === 'face') setNotice('Committing final facing and ending turn…')
       try {
         const response = await fetch(`/api/battles/${battle.battleSessionId}/commit`, {
           method: 'POST',
@@ -438,6 +491,7 @@ export function PvpBattleExperience({
           return
         }
 
+        battleRef.current = body.battle
         setBattle(body.battle)
         const nextLocalCombatant = localCombatantId
           ? (body.battle.snapshot.tactical.battle.combatants.find(
@@ -461,8 +515,11 @@ export function PvpBattleExperience({
           )
         } else {
           clearPlanning()
-          if (nextLocalTurn) setNotice(`Action committed. ${remaining} AP remains.`)
-          else {
+          if (body.battle.snapshot.tactical.battle.lifecycle === 'completed') {
+            setNotice('Battle complete.')
+          } else if (nextLocalTurn) {
+            setNotice(`Action committed. ${remaining} AP remains.`)
+          } else {
             setNotice(
               `Turn handed to ${participantName(
                 participantByCombatant,

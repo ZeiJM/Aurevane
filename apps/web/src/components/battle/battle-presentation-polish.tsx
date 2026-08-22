@@ -77,14 +77,15 @@ function clearFacingGuides() {
   for (const tile of document.querySelectorAll<HTMLElement>('[data-facing-guide]')) {
     tile.removeAttribute('data-facing-guide')
     tile.removeAttribute('data-facing-direction')
+    tile.removeAttribute('data-facing-quick-selected')
+    tile.removeAttribute('aria-pressed')
     tile.querySelector('[data-facing-arrow]')?.remove()
   }
 }
 
-function applyFacingGuides(playerName: string) {
-  const active = isFinishMode()
-  const current = document.querySelectorAll<HTMLElement>('[data-facing-guide]')
-  if (!active) {
+function reconcileFacingGuides(playerName: string) {
+  const current = Array.from(document.querySelectorAll<HTMLElement>('[data-facing-guide]'))
+  if (!isFinishMode()) {
     if (current.length > 0) clearFacingGuides()
     return
   }
@@ -92,29 +93,46 @@ function applyFacingGuides(playerName: string) {
   const origin = findPlayerTile(playerName)
   const coordinates = origin ? tileCoordinates(origin) : null
   if (!origin || !coordinates) return
-  clearFacingGuides()
 
-  const targets = [
+  const desired = [
     { x: coordinates.x, y: coordinates.y - 1, direction: 'north', glyph: '↑' },
     { x: coordinates.x + 1, y: coordinates.y, direction: 'east', glyph: '→' },
     { x: coordinates.x, y: coordinates.y + 1, direction: 'south', glyph: '↓' },
     { x: coordinates.x - 1, y: coordinates.y, direction: 'west', glyph: '←' },
   ] as const
-
+  const desiredByCoordinate = new Map(desired.map((target) => [`${target.x}:${target.y}`, target]))
   const tiles = Array.from(document.querySelectorAll<HTMLButtonElement>('#battlefield button'))
-  for (const target of targets) {
+
+  for (const tile of current) {
+    if (!(tile instanceof HTMLButtonElement)) continue
+    const value = tileCoordinates(tile)
+    const target = value ? desiredByCoordinate.get(`${value.x}:${value.y}`) : undefined
+    if (!target || tile.dataset.facingDirection !== target.direction) {
+      tile.removeAttribute('data-facing-guide')
+      tile.removeAttribute('data-facing-direction')
+      tile.removeAttribute('data-facing-quick-selected')
+      tile.removeAttribute('aria-pressed')
+      tile.querySelector('[data-facing-arrow]')?.remove()
+    }
+  }
+
+  for (const target of desired) {
     const tile = tiles.find((candidate) => {
       const value = tileCoordinates(candidate)
       return value?.x === target.x && value.y === target.y
     })
     if (!tile) continue
+
     tile.dataset.facingGuide = 'true'
     tile.dataset.facingDirection = target.direction
-    const arrow = document.createElement('span')
-    arrow.dataset.facingArrow = 'true'
-    arrow.textContent = target.glyph
-    arrow.setAttribute('aria-hidden', 'true')
-    tile.appendChild(arrow)
+    let arrow = tile.querySelector<HTMLElement>('[data-facing-arrow]')
+    if (!arrow) {
+      arrow = document.createElement('span')
+      arrow.dataset.facingArrow = 'true'
+      arrow.setAttribute('aria-hidden', 'true')
+      tile.appendChild(arrow)
+    }
+    if (arrow.textContent !== target.glyph) arrow.textContent = target.glyph
   }
 }
 
@@ -152,14 +170,20 @@ function polishHeader() {
     const text = textOf(strong).toLowerCase()
     return text.includes('defeat') || text.includes('opposing') || text.includes('recruit')
   })
-  if (objective) objective.textContent = 'Steel is drawn. The battle is underway.'
+  if (objective && objective.textContent !== 'Steel is drawn. The battle is underway.') {
+    objective.textContent = 'Steel is drawn. The battle is underway.'
+  }
 
   const economy = track?.parentElement?.parentElement
-  if (economy instanceof HTMLElement) economy.dataset.battleEconomyPanel = 'true'
+  if (economy instanceof HTMLElement && economy.dataset.battleEconomyPanel !== 'true') {
+    economy.dataset.battleEconomyPanel = 'true'
+  }
   const victory = Array.from(header.querySelectorAll<HTMLButtonElement>('button')).find((button) =>
     textOf(button).includes('Victory Conditions'),
   )
-  if (victory) victory.dataset.battleVictoryButton = 'true'
+  if (victory && victory.dataset.battleVictoryButton !== 'true') {
+    victory.dataset.battleVictoryButton = 'true'
+  }
 }
 
 function applyPvpIdentityColors(metadata: PvpBattleMetadata | undefined) {
@@ -187,11 +211,14 @@ function applyPvpIdentityColors(metadata: PvpBattleMetadata | undefined) {
     if (!match) continue
     const color = colors.get(match.characterName)
     if (!color) continue
-    tile.style.setProperty('--combatant-accent', color)
+    if (tile.style.getPropertyValue('--combatant-accent') !== color) {
+      tile.style.setProperty('--combatant-accent', color)
+    }
     const token = tile.querySelector<HTMLElement>(':scope > span:last-child')
     if (token) {
-      token.style.borderColor = color
-      token.style.boxShadow = `0 0 0 2px ${color}55, 0 0 1rem ${color}88`
+      if (token.style.borderColor !== color) token.style.borderColor = color
+      const shadow = `0 0 0 2px ${color}55, 0 0 1rem ${color}88`
+      if (token.style.boxShadow !== shadow) token.style.boxShadow = shadow
     }
   }
 
@@ -204,11 +231,14 @@ function applyPvpIdentityColors(metadata: PvpBattleMetadata | undefined) {
     if (!participant) continue
     const color = colors.get(participant.characterName)
     if (!color) continue
-    article.style.setProperty('--combatant-accent', color)
+    if (article.style.getPropertyValue('--combatant-accent') !== color) {
+      article.style.setProperty('--combatant-accent', color)
+    }
     const image = article.querySelector<HTMLElement>('img')
     if (image) {
-      image.style.borderColor = color
-      image.style.boxShadow = `0 0 .65rem ${color}88`
+      if (image.style.borderColor !== color) image.style.borderColor = color
+      const shadow = `0 0 .65rem ${color}88`
+      if (image.style.boxShadow !== shadow) image.style.boxShadow = shadow
     }
   }
 }
@@ -240,20 +270,27 @@ export function BattlePresentationPolish({
   pvpMetadata?: PvpBattleMetadata
 }) {
   useEffect(() => {
+    let frame: number | null = null
+
     const run = () => {
+      frame = null
       polishHeader()
       polishTerrainLegend()
       polishPortraits()
-      applyFacingGuides(playerName)
+      reconcileFacingGuides(playerName)
       applyPvpIdentityColors(pvpMetadata)
     }
 
+    const schedule = () => {
+      if (frame !== null) return
+      frame = window.requestAnimationFrame(run)
+    }
+
     run()
-    const observer = new MutationObserver(() => {
-      window.requestAnimationFrame(run)
-    })
-    observer.observe(document.body, { childList: true, subtree: true })
-    const interval = window.setInterval(run, 180)
+    const root =
+      document.querySelector<HTMLElement>('main[data-pvp-battle="true"]') ?? document.body
+    const observer = new MutationObserver(schedule)
+    observer.observe(root, { childList: true, subtree: true })
 
     const onDoubleClick = (event: MouseEvent) => {
       if (!isFinishMode()) return
@@ -289,7 +326,7 @@ export function BattlePresentationPolish({
     window.addEventListener('keydown', onKeyDown, true)
     return () => {
       observer.disconnect()
-      window.clearInterval(interval)
+      if (frame !== null) window.cancelAnimationFrame(frame)
       clearFacingGuides()
       document.removeEventListener('dblclick', onDoubleClick, true)
       window.removeEventListener('keydown', onKeyDown, true)
