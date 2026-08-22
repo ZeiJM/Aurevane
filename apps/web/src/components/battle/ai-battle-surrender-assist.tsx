@@ -69,7 +69,9 @@ export function AiBattleSurrenderAssist({ battleSessionId }: { battleSessionId: 
           })
           const currentBody = await readBattleResponse(currentResponse)
           if (!currentResponse.ok || !currentBody.battle) {
-            throw new Error(currentBody.error?.message ?? 'The battle state could not be refreshed.')
+            throw new Error(
+              currentBody.error?.message ?? 'The battle state could not be refreshed.',
+            )
           }
 
           if (currentBody.battle.snapshot.tactical.battle.lifecycle === 'completed') {
