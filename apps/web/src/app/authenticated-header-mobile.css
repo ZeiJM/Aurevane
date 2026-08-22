@@ -1,0 +1,19 @@
+/*
+ * Compact authenticated mobile header spacing without shrinking its controls.
+ *
+ * The shared public header rail gives each utility child mobile padding and a
+ * minimum height. In the authenticated shell those children are wrappers around
+ * the screen identity and Account control, so that spacing is duplicated and
+ * makes the second header row taller than its visible contents.
+ */
+@media (max-width: 620px) {
+  [data-testid='authenticated-shell'] > header {
+    row-gap: 0.1rem !important;
+    padding-block: 0.22rem !important;
+  }
+
+  [data-testid='authenticated-shell'] > header > :last-child > * {
+    min-height: 0 !important;
+    padding: 0 !important;
+  }
+}

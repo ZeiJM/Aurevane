@@ -14,6 +14,7 @@ import './pvp-battle-batch-overrides.css'
 import './lobby-mobile-final.css'
 import './character-creation-scale.css'
 import './portrait-ratio-standardization.css'
+import './authenticated-header-mobile.css'
 
 export const metadata: Metadata = {
   title: 'AUREVANE',
