@@ -1,16 +1,18 @@
 name: One-shot character creation scale formatting
 
 on:
-  push:
+  pull_request:
     branches:
       - main
+    types:
+      - synchronize
 
 permissions:
   contents: write
 
 jobs:
   format:
-    if: github.event.head_commit.message != 'chore: format character creation scale css'
+    if: github.event.pull_request.head.ref == 'preview/finesse-silver-20260821'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -27,14 +29,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Format the blocking CSS file
-        run: |
-          pnpm exec prettier --write apps/web/src/app/character-creation-scale.css
-          rm .github/workflows/format-character-creation-scale-once.yml
-      - name: Commit formatting and remove this workflow
+        run: pnpm exec prettier --write apps/web/src/app/character-creation-scale.css
+      - name: Commit formatting to main
         run: |
           git config user.name "AUREVANE Release Bot"
           git config user.email "actions@users.noreply.github.com"
-          git add -A
+          git add apps/web/src/app/character-creation-scale.css
           if git diff --cached --quiet; then
             exit 0
           fi
