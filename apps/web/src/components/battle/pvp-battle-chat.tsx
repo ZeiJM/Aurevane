@@ -25,13 +25,14 @@ interface PvpBattleChatProps {
   open?: boolean
   localCharacterId?: string | null
   showBattleLog?: boolean
+  requestedTab?: 'chat' | 'log'
   onUnreadChange?: (unread: number) => void
   onSpectatorCountChange?: (count: number) => void
   className?: string
 }
 
-const OPEN_CHAT_POLL_MS = 1500
-const CLOSED_CHAT_POLL_MS = 3500
+const OPEN_CHAT_POLL_MS = 1200
+const CLOSED_CHAT_POLL_MS = 3000
 const MAX_CHAT_RECONNECT_MS = 10000
 
 export function PvpBattleChat({
@@ -40,6 +41,7 @@ export function PvpBattleChat({
   open = true,
   localCharacterId = null,
   showBattleLog = false,
+  requestedTab = 'chat',
   onUnreadChange,
   onSpectatorCountChange,
   className,
@@ -48,7 +50,7 @@ export function PvpBattleChat({
   const [spectators, setSpectators] = useState<PvpSpectatorPresenceView[]>([])
   const [spectatorCount, setSpectatorCount] = useState(0)
   const [battleLog, setBattleLog] = useState<BattleLogView | null>(null)
-  const [tab, setTab] = useState<'chat' | 'log'>('chat')
+  const [tab, setTab] = useState<'chat' | 'log'>(requestedTab)
   const [spectatorListOpen, setSpectatorListOpen] = useState(false)
   const [draft, setDraft] = useState('')
   const [pending, setPending] = useState(false)
@@ -62,6 +64,10 @@ export function PvpBattleChat({
     () => `/api/pvp/battles/${encodeURIComponent(battleSessionId)}/chat`,
     [battleSessionId],
   )
+
+  useEffect(() => {
+    setTab(requestedTab)
+  }, [requestedTab])
 
   const publishUnread = useCallback(
     (value: number) => {
@@ -194,6 +200,7 @@ export function PvpBattleChat({
       }
       mergeMessages([result.message])
       setDraft('')
+      void refresh()
     } catch {
       setNotice('That battle chat message could not be sent.')
     } finally {
