@@ -424,7 +424,7 @@ export function PvpDesktopParity({
 
     const focus = () => void refreshBattle()
     window.addEventListener('focus', focus)
-    void refreshBattle()
+    scheduleRefresh()
 
     return () => {
       observer.disconnect()
