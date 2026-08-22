@@ -32,7 +32,8 @@ function commandButton(target: Element | null): HTMLButtonElement | null {
 }
 
 function battlefieldTile(target: Element | null): HTMLButtonElement | null {
-  const tile = target?.closest<HTMLButtonElement>('#battlefield button[aria-label^="Tile "]') ?? null
+  const tile =
+    target?.closest<HTMLButtonElement>('#battlefield button[aria-label^="Tile "]') ?? null
   return tile?.dataset.facingGuide === 'true' ? null : tile
 }
 
@@ -52,7 +53,9 @@ function activeCommandLabel(): string | null {
   const root = battleRoot()
   if (!root) return null
   const active = Array.from(
-    root.querySelectorAll<HTMLButtonElement>('section[aria-label="Command Deck"] button[data-active]'),
+    root.querySelectorAll<HTMLButtonElement>(
+      'section[aria-label="Command Deck"] button[data-active]',
+    ),
   ).find((button) =>
     ['Move', 'Basic Attack', 'Guard', 'Recover'].includes(textOf(button.querySelector('strong'))),
   )

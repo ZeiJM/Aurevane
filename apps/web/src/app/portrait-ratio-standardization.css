@@ -75,16 +75,13 @@ aside[aria-label$=' combat status']
 }
 
 /* PvP side combatant panels. */
-[data-pvp-combatant-panel]
-  > div:has(> .character-portrait-media) {
+[data-pvp-combatant-panel] > div:has(> .character-portrait-media) {
   height: auto !important;
   min-height: 0 !important;
   aspect-ratio: 1 / 1;
 }
 
-[data-pvp-combatant-panel]
-  > div:has(> .character-portrait-media)
-  > .character-portrait-media {
+[data-pvp-combatant-panel] > div:has(> .character-portrait-media) > .character-portrait-media {
   width: 100% !important;
   height: 100% !important;
 }
@@ -95,7 +92,9 @@ section[aria-labelledby='online-profile-name'] > div:first-of-type {
   aspect-ratio: 1 / 1;
 }
 
-section[aria-labelledby='online-profile-name'] > div:first-of-type > :is(img, span[aria-label$=' portrait']) {
+section[aria-labelledby='online-profile-name']
+  > div:first-of-type
+  > :is(img, span[aria-label$=' portrait']) {
   width: 100% !important;
   height: 100% !important;
   min-height: 0 !important;

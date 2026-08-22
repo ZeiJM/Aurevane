@@ -42,7 +42,9 @@ function battleRoot(): HTMLElement | null {
 function battleTiles(): HTMLButtonElement[] {
   const root = battleRoot()
   return root
-    ? Array.from(root.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label^="Tile "]'))
+    ? Array.from(
+        root.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label^="Tile "]'),
+      )
     : []
 }
 
@@ -86,9 +88,9 @@ function facingModeIsActive(): boolean {
   if (!root) return false
   return Boolean(
     root.querySelector<HTMLButtonElement>('button[aria-label="Face north"]:not(:disabled)') &&
-      root.querySelector<HTMLButtonElement>('button[aria-label="Face south"]:not(:disabled)') &&
-      root.querySelector<HTMLButtonElement>('button[aria-label="Face west"]:not(:disabled)') &&
-      root.querySelector<HTMLButtonElement>('button[aria-label="Face east"]:not(:disabled)'),
+    root.querySelector<HTMLButtonElement>('button[aria-label="Face south"]:not(:disabled)') &&
+    root.querySelector<HTMLButtonElement>('button[aria-label="Face west"]:not(:disabled)') &&
+    root.querySelector<HTMLButtonElement>('button[aria-label="Face east"]:not(:disabled)'),
   )
 }
 
@@ -358,7 +360,8 @@ export function PvpBattleKeyboardAssist({ playerName }: { playerName: string }) 
       const chord = eventChord(event)
       const action = configuredAction(bindings, chord)
       if (action) {
-        if ((action === 'nextTarget' || action === 'previousTarget') && !attackModeIsActive()) return
+        if ((action === 'nextTarget' || action === 'previousTarget') && !attackModeIsActive())
+          return
         event.preventDefault()
         event.stopImmediatePropagation()
         execute(action)

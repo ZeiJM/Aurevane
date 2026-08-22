@@ -85,8 +85,9 @@ function participantState(
       (candidate) => candidate.combatantId === participant.combatantId,
     ) ?? null
   const statuses =
-    battle.snapshot.statusState.find((candidate) => candidate.combatantId === participant.combatantId)
-      ?.statuses ?? []
+    battle.snapshot.statusState.find(
+      (candidate) => candidate.combatantId === participant.combatantId,
+    )?.statuses ?? []
 
   return {
     combatant,
@@ -145,16 +146,23 @@ function BattleRailCard({
           alt=""
         />
         <div className={styles.meters}>
-          <span aria-label={`${participant.characterName} HP ${combatant.hp} of ${combatant.maxHp}`}>
+          <span
+            aria-label={`${participant.characterName} HP ${combatant.hp} of ${combatant.maxHp}`}
+          >
             <i style={{ width: `${meterPercent(combatant.hp, combatant.maxHp)}%` }} />
           </span>
-          <span aria-label={`${participant.characterName} MP ${combatant.mp} of ${combatant.maxMp}`}>
+          <span
+            aria-label={`${participant.characterName} MP ${combatant.mp} of ${combatant.maxMp}`}
+          >
             <i style={{ width: `${meterPercent(combatant.mp, combatant.maxMp)}%` }} />
           </span>
         </div>
       </button>
 
-      <div className={styles.statuses} aria-label={`${participant.characterName} buffs and debuffs`}>
+      <div
+        className={styles.statuses}
+        aria-label={`${participant.characterName} buffs and debuffs`}
+      >
         {statuses.length === 0 ? (
           <span className={styles.noStatus}>No effects</span>
         ) : (
@@ -176,13 +184,20 @@ function BattleRailCard({
         )}
       </div>
 
-      <div className={styles.facing} aria-label={`${participant.characterName} facing ${placement.facing}`}>
+      <div
+        className={styles.facing}
+        aria-label={`${participant.characterName} facing ${placement.facing}`}
+      >
         <span>{facingGlyph(placement.facing)}</span>
         <strong>{placement.facing}</strong>
       </div>
 
       {detailsOpen ? (
-        <div className={styles.details} role="dialog" aria-label={`${participant.characterName} combat details`}>
+        <div
+          className={styles.details}
+          role="dialog"
+          aria-label={`${participant.characterName} combat details`}
+        >
           <button
             type="button"
             className={styles.detailsClose}
@@ -199,11 +214,15 @@ function BattleRailCard({
             </div>
             <div>
               <dt>HP</dt>
-              <dd>{combatant.hp}/{combatant.maxHp}</dd>
+              <dd>
+                {combatant.hp}/{combatant.maxHp}
+              </dd>
             </div>
             <div>
               <dt>MP</dt>
-              <dd>{combatant.mp}/{combatant.maxMp}</dd>
+              <dd>
+                {combatant.mp}/{combatant.maxMp}
+              </dd>
             </div>
             <div>
               <dt>AP</dt>
@@ -314,17 +333,20 @@ export function PvpDesktopParity({
       const battlefield = root.querySelector<HTMLElement>(
         'section[aria-label="PvP tactical battlefield"]',
       )
-      const content = battlefield?.parentElement instanceof HTMLElement ? battlefield.parentElement : null
+      const content =
+        battlefield?.parentElement instanceof HTMLElement ? battlefield.parentElement : null
       if (content) {
         content.dataset.pvpDesktopContent = 'true'
         const notice = content.firstElementChild
-        if (notice instanceof HTMLElement && notice !== battlefield) notice.dataset.pvpNotice = 'true'
+        if (notice instanceof HTMLElement && notice !== battlefield)
+          notice.dataset.pvpNotice = 'true'
       }
 
-      const victoryButton = Array.from(root.querySelectorAll<HTMLButtonElement>('header button')).find(
-        (button) => button.textContent?.includes('Victory Conditions'),
-      )
-      const economy = victoryButton?.parentElement instanceof HTMLElement ? victoryButton.parentElement : null
+      const victoryButton = Array.from(
+        root.querySelectorAll<HTMLButtonElement>('header button'),
+      ).find((button) => button.textContent?.includes('Victory Conditions'))
+      const economy =
+        victoryButton?.parentElement instanceof HTMLElement ? victoryButton.parentElement : null
       if (economy) economy.dataset.pvpHeaderEconomy = 'true'
 
       const objective = root.querySelector<HTMLElement>('header > div:first-child > strong')
@@ -333,7 +355,8 @@ export function PvpDesktopParity({
       }
 
       const facingNorth = root.querySelector<HTMLButtonElement>('button[aria-label="Face north"]')
-      const facingPad = facingNorth?.parentElement instanceof HTMLElement ? facingNorth.parentElement : null
+      const facingPad =
+        facingNorth?.parentElement instanceof HTMLElement ? facingNorth.parentElement : null
       if (facingPad) {
         facingPad.dataset.pvpFacingPad = 'true'
         const label = facingPad.querySelector<HTMLElement>(':scope > span')
@@ -341,7 +364,9 @@ export function PvpDesktopParity({
       }
 
       const footerButtons = Array.from(root.querySelectorAll<HTMLButtonElement>('footer button'))
-      const spectatorKey = footerButtons.find((button) => button.textContent?.includes(metadata.battleKey))
+      const spectatorKey = footerButtons.find((button) =>
+        button.textContent?.includes(metadata.battleKey),
+      )
       const spectatorLabel = spectatorKey?.querySelector<HTMLElement>('small')
       if (spectatorLabel && !spectatorLabel.textContent?.includes('Copied')) {
         spectatorLabel.textContent = 'Spectator Key · click to copy'
@@ -426,14 +451,19 @@ export function PvpDesktopParity({
                     detailsOpen={detailsId === localParticipant.combatantId}
                     onToggleDetails={() =>
                       setDetailsId((current) =>
-                        current === localParticipant.combatantId ? null : localParticipant.combatantId,
+                        current === localParticipant.combatantId
+                          ? null
+                          : localParticipant.combatantId,
                       )
                     }
                   />
                 </div>
               </aside>
 
-              <aside className={`${styles.rail} ${styles.railRight}`} aria-label="Opponent combat status">
+              <aside
+                className={`${styles.rail} ${styles.railRight}`}
+                aria-label="Opponent combat status"
+              >
                 <div className={styles.railStack} data-count={String(opponents.length)}>
                   {opponents.map((participant) => (
                     <BattleRailCard

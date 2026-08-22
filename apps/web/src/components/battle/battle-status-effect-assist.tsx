@@ -36,7 +36,11 @@ function detailsFromTrigger(trigger: HTMLElement): EffectDetails {
   const source = `${text} ${title} ${aria}`.toLowerCase()
   const duration = durationFromText(`${text} ${aria}`)
 
-  if (source.includes('lowered guard') || source.includes('lowered-guard') || source.includes('lg↓')) {
+  if (
+    source.includes('lowered guard') ||
+    source.includes('lowered-guard') ||
+    source.includes('lg↓')
+  ) {
     return {
       title: 'Lowered Guard',
       kind: 'Debuff',
@@ -62,7 +66,11 @@ function detailsFromTrigger(trigger: HTMLElement): EffectDetails {
     trigger.getAttribute('aria-label') ||
     text ||
     'Combat Effect'
-  const cleanLabel = rawLabel.replace(/^Explain\s+/i, '').replace(/,.*$/, '').replace(/·.*$/, '').trim()
+  const cleanLabel = rawLabel
+    .replace(/^Explain\s+/i, '')
+    .replace(/,.*$/, '')
+    .replace(/·.*$/, '')
+    .trim()
 
   return {
     title: humanize(cleanLabel),
@@ -74,7 +82,9 @@ function detailsFromTrigger(trigger: HTMLElement): EffectDetails {
 }
 
 function decorateEffectTriggers() {
-  for (const item of document.querySelectorAll<HTMLElement>('[aria-label$=" buffs and debuffs"] button')) {
+  for (const item of document.querySelectorAll<HTMLElement>(
+    '[aria-label$=" buffs and debuffs"] button',
+  )) {
     item.dataset.battleEffectTrigger = 'true'
   }
 

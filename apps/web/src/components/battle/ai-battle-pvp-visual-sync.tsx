@@ -40,7 +40,8 @@ export function AiBattlePvpVisualSync({ playerName }: { playerName: string }) {
 
         const facingButtons: HTMLButtonElement[] = []
         for (const button of commandDeck.querySelectorAll<HTMLButtonElement>('button')) {
-          const label = button.querySelector<HTMLElement>(':scope > strong')?.textContent?.trim() ?? ''
+          const label =
+            button.querySelector<HTMLElement>(':scope > strong')?.textContent?.trim() ?? ''
           if (COMMAND_LABELS.has(label)) {
             button.dataset.aiCommandButton = 'true'
             if (button.className.trim()) button.dataset.selected = 'true'

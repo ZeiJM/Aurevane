@@ -84,7 +84,9 @@ function applyFacingPreview(playerName: string, facing: Facing) {
 
   for (const root of summaryRoots) {
     const direction = Array.from(root.querySelectorAll<HTMLElement>('strong')).find((candidate) =>
-      ['north', 'east', 'south', 'west'].includes(candidate.textContent?.trim().toLowerCase() ?? ''),
+      ['north', 'east', 'south', 'west'].includes(
+        candidate.textContent?.trim().toLowerCase() ?? '',
+      ),
     )
     if (direction) rememberAndSet(direction, facing)
 
@@ -98,7 +100,9 @@ function applyFacingPreview(playerName: string, facing: Facing) {
 }
 
 function clearSelection(options?: { restorePreview?: boolean }) {
-  for (const element of document.querySelectorAll<HTMLElement>('[data-facing-quick-selected="true"]')) {
+  for (const element of document.querySelectorAll<HTMLElement>(
+    '[data-facing-quick-selected="true"]',
+  )) {
     element.removeAttribute('data-facing-quick-selected')
     element.removeAttribute('aria-pressed')
   }
@@ -122,7 +126,9 @@ export function BattleFacingQuickCommitAssist({ playerName }: { playerName: stri
     }
 
     function commitGuide(facing: Facing) {
-      const control = document.querySelector<HTMLButtonElement>(`button[aria-label="Face ${facing}"]`)
+      const control = document.querySelector<HTMLButtonElement>(
+        `button[aria-label="Face ${facing}"]`,
+      )
       if (!control || control.disabled) return
       clearSelection({ restorePreview: false })
       lastGuideSelection.current = null
@@ -137,7 +143,9 @@ export function BattleFacingQuickCommitAssist({ playerName }: { playerName: stri
       if (!guide) return
       const facing = facingFromGuide(guide)
       if (!facing) return
-      const control = document.querySelector<HTMLButtonElement>(`button[aria-label="Face ${facing}"]`)
+      const control = document.querySelector<HTMLButtonElement>(
+        `button[aria-label="Face ${facing}"]`,
+      )
       if (!control || control.disabled) return
 
       event.preventDefault()
@@ -147,9 +155,7 @@ export function BattleFacingQuickCommitAssist({ playerName }: { playerName: stri
       const now = Date.now()
       const previous = lastGuideSelection.current
       const sameDirection =
-        previous !== null &&
-        previous.facing === facing &&
-        now - previous.at <= DOUBLE_TAP_WINDOW_MS
+        previous !== null && previous.facing === facing && now - previous.at <= DOUBLE_TAP_WINDOW_MS
 
       if (sameDirection) {
         commitGuide(facing)
@@ -164,7 +170,9 @@ export function BattleFacingQuickCommitAssist({ playerName }: { playerName: stri
       if (guide) {
         const facing = facingFromGuide(guide)
         if (!facing) return
-        const control = document.querySelector<HTMLButtonElement>(`button[aria-label="Face ${facing}"]`)
+        const control = document.querySelector<HTMLButtonElement>(
+          `button[aria-label="Face ${facing}"]`,
+        )
         if (!control || control.disabled) return
 
         event.preventDefault()
