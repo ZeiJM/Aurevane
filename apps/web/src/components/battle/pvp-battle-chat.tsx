@@ -62,6 +62,7 @@ export function PvpBattleChat({
   const initialized = useRef(false)
   const listRef = useRef<HTMLDivElement | null>(null)
   const tab = onRequestedTabChange ? requestedTab : internalTab
+  const chatVisible = open && tab === 'chat'
 
   const endpoint = useMemo(
     () => `/api/pvp/battles/${encodeURIComponent(battleSessionId)}/chat`,
@@ -95,7 +96,7 @@ export function PvpBattleChat({
           latestMessageId.current,
           ...additions.map((message) => message.id),
         )
-        if (initialized.current && !open) {
+        if (initialized.current && !chatVisible) {
           const addedUnread = additions.filter(
             (message) => !localCharacterId || message.senderCharacterId !== localCharacterId,
           ).length
@@ -110,7 +111,7 @@ export function PvpBattleChat({
         return [...current, ...additions].sort((left, right) => left.id - right.id).slice(-100)
       })
     },
-    [localCharacterId, onUnreadChange, open],
+    [chatVisible, localCharacterId, onUnreadChange],
   )
 
   const refresh = useCallback(
@@ -178,16 +179,16 @@ export function PvpBattleChat({
   }, [open, refresh])
 
   useEffect(() => {
-    if (!open || unread === 0) return
+    if (!chatVisible || unread === 0) return
     const frame = window.requestAnimationFrame(() => publishUnread(0))
     return () => window.cancelAnimationFrame(frame)
-  }, [open, publishUnread, unread])
+  }, [chatVisible, publishUnread, unread])
 
   useEffect(() => {
-    if (!open || tab !== 'chat') return
+    if (!chatVisible) return
     const node = listRef.current
     if (node) node.scrollTop = node.scrollHeight
-  }, [messages, open, tab])
+  }, [chatVisible, messages])
 
   async function sendMessage() {
     const body = draft.trim()
