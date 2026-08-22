@@ -9,7 +9,6 @@ import { BattleMapTokenPolish } from './battle-map-token-polish'
 import { BattlePresentationPolish } from './battle-presentation-polish'
 import { BattleStatusEffectAssist } from './battle-status-effect-assist'
 import { BattleStickyActionAssist } from './battle-sticky-action-assist'
-import { BattleUtilityWindows } from './battle-utility-windows'
 import { PvpBattleChatBridge } from './pvp-battle-chat-bridge'
 import { PvpBattleCompletionPanel } from './pvp-battle-completion-panel'
 import { PvpBattleExperience } from './pvp-battle-experience'
@@ -53,10 +52,6 @@ export function PvpBattleClientBoundary({
       />
       <PvpBattleInspectPopup battleSessionId={initialBattle.battleSessionId} metadata={metadata} />
       <PvpBattleCompletionPanel initialBattle={initialBattle} metadata={metadata} />
-      <BattleUtilityWindows
-        battleSessionId={initialBattle.battleSessionId}
-        playerName={playerName}
-      />
     </>
   )
 }
