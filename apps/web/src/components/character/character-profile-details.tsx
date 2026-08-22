@@ -47,7 +47,11 @@ const ATTRIBUTE_COLORS: Readonly<
   Record<CharacterAttributeId, { solid: string; tint: string; soft: string }>
 > = {
   might: { solid: '#ff7068', tint: 'rgba(255, 112, 104, 0.38)', soft: 'rgba(255, 112, 104, 0.20)' },
-  finesse: { solid: '#f4b24f', tint: 'rgba(244, 178, 79, 0.38)', soft: 'rgba(244, 178, 79, 0.20)' },
+  finesse: {
+    solid: '#c7ced8',
+    tint: 'rgba(199, 206, 216, 0.34)',
+    soft: 'rgba(199, 206, 216, 0.18)',
+  },
   vitality: {
     solid: '#72d97b',
     tint: 'rgba(114, 217, 123, 0.38)',

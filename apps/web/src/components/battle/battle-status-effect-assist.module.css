@@ -1,0 +1,103 @@
+:global([data-battle-effect-trigger='true']) {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+:global([data-battle-effect-trigger='true']:focus-visible) {
+  outline: 2px solid rgba(224, 193, 125, 0.9);
+  outline-offset: 3px;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  /* Mobile combatant inspection uses z-index 16000. Effect explanations are a child interaction of
+     that inspection surface, so they must always stack above it and return to it when dismissed. */
+  z-index: 20000;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(2, 5, 9, 0.62);
+  backdrop-filter: blur(2px);
+}
+
+.dialog {
+  width: min(25rem, calc(100vw - 2rem));
+  padding: 1.1rem 1.15rem 1rem;
+  border: 1px solid rgba(205, 171, 102, 0.5);
+  border-radius: 0.85rem;
+  background:
+    linear-gradient(145deg, rgba(28, 34, 43, 0.98), rgba(8, 13, 20, 0.99)),
+    #0a0f16;
+  box-shadow: 0 1.25rem 4rem rgba(0, 0, 0, 0.55);
+  color: #eee7d8;
+}
+
+.heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.heading > div {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.heading span {
+  color: #cfad68;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.heading strong {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.45rem;
+  font-weight: 600;
+}
+
+.close {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid rgba(205, 171, 102, 0.35);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.03);
+  color: #d8c79f;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.dialog p {
+  margin: 0;
+  color: #c9c4b9;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.duration {
+  display: block;
+  margin-top: 0.85rem;
+  padding-top: 0.7rem;
+  border-top: 1px solid rgba(205, 171, 102, 0.18);
+  color: #9ea6af;
+  font-size: 0.76rem;
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 540px) {
+  .backdrop {
+    align-items: end;
+    padding: 0.75rem;
+  }
+
+  .dialog {
+    width: 100%;
+    max-height: calc(100dvh - 1.5rem);
+    overflow: auto;
+    border-radius: 0.9rem;
+  }
+}

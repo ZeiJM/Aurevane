@@ -4,8 +4,11 @@ import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
 import { BattleDirectionalAttackAssist } from './battle-directional-attack-assist'
+import { BattleFacingQuickCommitAssist } from './battle-facing-quick-commit-assist'
 import { BattleMapTokenPolish } from './battle-map-token-polish'
 import { BattlePresentationPolish } from './battle-presentation-polish'
+import { BattleStatusEffectAssist } from './battle-status-effect-assist'
+import { BattleStickyActionAssist } from './battle-sticky-action-assist'
 import { BattleUtilityWindows } from './battle-utility-windows'
 import { PvpBattleChatBridge } from './pvp-battle-chat-bridge'
 import { PvpBattleCompletionPanel } from './pvp-battle-completion-panel'
@@ -31,6 +34,9 @@ export function PvpBattleClientBoundary({
       <BattleDirectionalAttackAssist playerName={playerName} />
       <BattleMapTokenPolish />
       <BattlePresentationPolish playerName={playerName} pvpMetadata={metadata} />
+      <BattleFacingQuickCommitAssist playerName={playerName} />
+      <BattleStatusEffectAssist />
+      <BattleStickyActionAssist />
       <PvpQuickCommitAssist />
       <PvpBattleChatBridge battleSessionId={initialBattle.battleSessionId} metadata={metadata} />
       <PvpBattleQualityControls

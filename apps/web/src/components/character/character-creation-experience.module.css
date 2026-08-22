@@ -285,8 +285,8 @@
 }
 
 .attributeCard:nth-child(2) {
-  --attribute-color: #f4b24f;
-  --attribute-soft: rgba(244, 178, 79, 0.15);
+  --attribute-color: #c7ced8;
+  --attribute-soft: rgba(199, 206, 216, 0.15);
 }
 
 .attributeCard:nth-child(3) {

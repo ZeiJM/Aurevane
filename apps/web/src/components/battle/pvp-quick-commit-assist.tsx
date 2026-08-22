@@ -25,10 +25,6 @@ function battlefieldTile(target: Element | null): HTMLButtonElement | null {
   return target?.closest<HTMLButtonElement>('#battlefield button[aria-label^="Tile "]') ?? null
 }
 
-function facingButton(target: Element | null): HTMLButtonElement | null {
-  return target?.closest<HTMLButtonElement>('button[aria-label^="Face "]') ?? null
-}
-
 function quickKey(target: Element | null): string | null {
   const command = commandButton(target)
   if (command) return `command:${textOf(command.querySelector('strong'))}`
@@ -37,49 +33,16 @@ function quickKey(target: Element | null): string | null {
   return null
 }
 
-function clearFacingPreview() {
-  for (const button of document.querySelectorAll<HTMLButtonElement>(
-    'button[data-quick-facing-preview]',
-  )) {
-    button.removeAttribute('data-quick-facing-preview')
-    button.style.removeProperty('outline')
-    button.style.removeProperty('outline-offset')
-  }
-}
-
 export function PvpQuickCommitAssist() {
   const lastTap = useRef<{ key: string; at: number } | null>(null)
-  const lastFacing = useRef<{ key: string; at: number } | null>(null)
 
   useEffect(() => {
     const isCoarse = window.matchMedia('(pointer: coarse)').matches
     const windowMs = 750
 
     const onClick = (event: MouseEvent) => {
-      const target = event.target instanceof Element ? event.target : null
-      if (!target) return
-
-      const face = facingButton(target)
-      if (isCoarse && face && !face.disabled) {
-        const key = face.getAttribute('aria-label') ?? ''
-        const now = Date.now()
-        const previous = lastFacing.current
-        if (!previous || previous.key !== key || now - previous.at > windowMs) {
-          event.preventDefault()
-          event.stopImmediatePropagation()
-          clearFacingPreview()
-          face.dataset.quickFacingPreview = 'true'
-          face.style.outline = '2px solid rgba(207, 169, 93, .85)'
-          face.style.outlineOffset = '2px'
-          lastFacing.current = { key, at: now }
-          return
-        }
-        clearFacingPreview()
-        lastFacing.current = null
-        return
-      }
-
       if (!isCoarse) return
+      const target = event.target instanceof Element ? event.target : null
       const key = quickKey(target)
       if (!key) return
       const now = Date.now()
@@ -109,7 +72,6 @@ export function PvpQuickCommitAssist() {
     return () => {
       document.removeEventListener('click', onClick, true)
       document.removeEventListener('dblclick', onDoubleClick, true)
-      clearFacingPreview()
     }
   }, [])
 

@@ -51,18 +51,48 @@
 
 @media (max-width: 620px) {
   .masthead {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: stretch !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    gap: 0.28rem 0.45rem !important;
+    align-items: center !important;
+    min-height: 0 !important;
+    padding: 0.32rem 0.55rem 0.4rem !important;
   }
 
-  .navigation,
-  .utility {
-    width: 100%;
+  .masthead > :first-child {
+    grid-column: 1 / -1;
+    justify-self: start;
+    margin-bottom: 0.04rem;
   }
 
   .navigation {
+    grid-column: 1;
+    width: auto;
+    min-width: 0;
+    justify-self: start;
     justify-content: flex-start;
     overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .navigation::-webkit-scrollbar {
+    display: none;
+  }
+
+  .utility {
+    grid-column: 2;
+    width: auto;
+    justify-self: end;
+    justify-content: flex-end;
+  }
+
+  .navigation > *,
+  .utility > * {
+    min-height: 1.95rem !important;
+    padding: 0.34rem 0.46rem !important;
+  }
+
+  .utility > * {
+    white-space: nowrap;
   }
 }

@@ -25,6 +25,7 @@ export function CharacterPortraitImage({
 }: CharacterPortraitImageProps) {
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null)
   const useRemoteImage = Boolean(imageUrl && failedImageUrl !== imageUrl)
+  const portraitClassName = ['character-portrait-media', className].filter(Boolean).join(' ')
 
   if (imageUrl && useRemoteImage) {
     return (
@@ -33,7 +34,7 @@ export function CharacterPortraitImage({
       <img
         src={imageUrl}
         alt={alt}
-        className={className}
+        className={portraitClassName}
         loading="lazy"
         referrerPolicy="no-referrer"
         onError={() => {
@@ -44,5 +45,5 @@ export function CharacterPortraitImage({
     )
   }
 
-  return <AurevaneImage assetId={fallbackAssetId} className={className} sizes={sizes} />
+  return <AurevaneImage assetId={fallbackAssetId} className={portraitClassName} sizes={sizes} />
 }
