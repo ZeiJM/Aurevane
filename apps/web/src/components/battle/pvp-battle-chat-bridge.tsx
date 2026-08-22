@@ -11,11 +11,22 @@ function textOf(element: Element | null): string {
   return element?.textContent?.trim() ?? ''
 }
 
+function battleRoot(): HTMLElement | Document {
+  return document.querySelector<HTMLElement>('main[data-pvp-battle="true"]') ?? document
+}
+
 function findChatButton(): HTMLButtonElement | null {
-  const root = document.querySelector<HTMLElement>('main[data-pvp-battle="true"]') ?? document
   return (
-    Array.from(root.querySelectorAll<HTMLButtonElement>('button')).find((button) =>
+    Array.from(battleRoot().querySelectorAll<HTMLButtonElement>('footer button')).find((button) =>
       /^chat\b/i.test(textOf(button)),
+    ) ?? null
+  )
+}
+
+function findLogButton(): HTMLButtonElement | null {
+  return (
+    Array.from(battleRoot().querySelectorAll<HTMLButtonElement>('header button')).find((button) =>
+      /combat log/i.test(textOf(button)),
     ) ?? null
   )
 }
@@ -28,38 +39,63 @@ export function PvpBattleChatBridge({
   metadata: PvpBattleMetadata
 }) {
   const [open, setOpen] = useState(false)
+  const [requestedTab, setRequestedTab] = useState<'chat' | 'log'>('chat')
   const [unread, setUnread] = useState(0)
   const [spectatorCount, setSpectatorCount] = useState(0)
 
   useEffect(() => {
-    let attached: HTMLButtonElement | null = null
+    let attachedChat: HTMLButtonElement | null = null
+    let attachedLog: HTMLButtonElement | null = null
     let badge: HTMLSpanElement | null = null
 
-    const click = (event: Event) => {
+    const openChat = (event: Event) => {
       event.preventDefault()
       event.stopPropagation()
-      setOpen((current) => !current)
+      setRequestedTab('chat')
+      setOpen((current) => (requestedTab === 'chat' ? !current : true))
+    }
+
+    const openLog = (event: Event) => {
+      event.preventDefault()
+      event.stopPropagation()
+      setRequestedTab('log')
+      setOpen(true)
     }
 
     const sync = () => {
-      const button = findChatButton()
-      if (!button) return
-      if (attached !== button) {
-        attached?.removeEventListener('click', click, true)
-        attached = button
-        attached.addEventListener('click', click, true)
-        attached.setAttribute('aria-controls', 'pvp-battle-chat-panel')
+      const chatButton = findChatButton()
+      if (chatButton && attachedChat !== chatButton) {
+        attachedChat?.removeEventListener('click', openChat, true)
+        attachedChat = chatButton
+        attachedChat.addEventListener('click', openChat, true)
+        attachedChat.setAttribute('aria-controls', 'pvp-battle-chat-panel')
       }
-      badge = button.querySelector<HTMLSpanElement>('[data-pvp-chat-badge]')
-      if (!badge) {
-        badge = document.createElement('span')
-        badge.dataset.pvpChatBadge = 'true'
-        badge.className = styles.triggerBadge
-        button.appendChild(badge)
+
+      const logButton = findLogButton()
+      if (logButton && attachedLog !== logButton) {
+        attachedLog?.removeEventListener('click', openLog, true)
+        attachedLog = logButton
+        attachedLog.addEventListener('click', openLog, true)
+        attachedLog.setAttribute('aria-controls', 'pvp-battle-chat-panel')
       }
-      badge.textContent = unread > 0 ? `◉ ${spectatorCount} · ${unread} new` : `◉ ${spectatorCount}`
-      button.setAttribute('aria-expanded', open ? 'true' : 'false')
-      button.dataset.hasUnread = unread > 0 ? 'true' : ''
+
+      if (chatButton) {
+        badge = chatButton.querySelector<HTMLSpanElement>('[data-pvp-chat-badge]')
+        if (!badge) {
+          badge = document.createElement('span')
+          badge.dataset.pvpChatBadge = 'true'
+          badge.className = styles.triggerBadge
+          chatButton.appendChild(badge)
+        }
+        badge.textContent =
+          unread > 0 ? `◉ ${spectatorCount} · ${unread} new` : `◉ ${spectatorCount}`
+        chatButton.setAttribute('aria-expanded', open && requestedTab === 'chat' ? 'true' : 'false')
+        chatButton.dataset.hasUnread = unread > 0 ? 'true' : ''
+      }
+
+      if (logButton) {
+        logButton.setAttribute('aria-expanded', open && requestedTab === 'log' ? 'true' : 'false')
+      }
     }
 
     sync()
@@ -67,10 +103,11 @@ export function PvpBattleChatBridge({
     observer.observe(document.body, { childList: true, subtree: true })
     return () => {
       observer.disconnect()
-      attached?.removeEventListener('click', click, true)
+      attachedChat?.removeEventListener('click', openChat, true)
+      attachedLog?.removeEventListener('click', openLog, true)
       badge?.remove()
     }
-  }, [open, spectatorCount, unread])
+  }, [open, requestedTab, spectatorCount, unread])
 
   return (
     <div
@@ -80,8 +117,12 @@ export function PvpBattleChatBridge({
       aria-hidden={!open}
     >
       <div className={styles.panelTop}>
-        <strong>Shared Battle Chat</strong>
-        <button type="button" onClick={() => setOpen(false)} aria-label="Close battle chat">
+        <strong>Shared Battle Communication</strong>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          aria-label="Close battle communication"
+        >
           ×
         </button>
       </div>
@@ -90,6 +131,9 @@ export function PvpBattleChatBridge({
         readOnly={false}
         open={open}
         localCharacterId={metadata.localCharacterId}
+        showBattleLog
+        requestedTab={requestedTab}
+        onRequestedTabChange={setRequestedTab}
         onUnreadChange={setUnread}
         onSpectatorCountChange={setSpectatorCount}
       />

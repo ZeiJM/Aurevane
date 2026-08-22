@@ -256,6 +256,12 @@ export function PvpBattleExperience({
   const actionEconomy = localTurn ? readEconomy(localCombatant) : 0
   const planningDisabled = !localTurn || battleState.lifecycle !== 'active' || commitPending
   const activeName = participantName(participantByCombatant, battleState.currentTurn?.combatantId)
+  const activeCombatant = battleState.currentTurn
+    ? (battleState.combatants.find(
+        (combatant) => combatant.id === battleState.currentTurn?.combatantId,
+      ) ?? null)
+    : null
+  const activeActionEconomy = readEconomy(activeCombatant)
   const teamCount = metadata.mode === '1v1v1' ? 3 : 2
 
   const placementByTile = useMemo(
@@ -332,6 +338,12 @@ export function PvpBattleExperience({
     },
     [clearPlanning, localCombatantId, participantByCombatant],
   )
+
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent<BattleSessionView>('aurevane:pvp-battle-state', { detail: battle }),
+    )
+  }, [battle])
 
   useEffect(() => {
     if (battleState.lifecycle !== 'active') return
@@ -702,44 +714,33 @@ export function PvpBattleExperience({
         </div>
 
         <div className={styles.economy} data-active={localTurn || undefined}>
-          {localTurn ? (
-            <>
-              <div className={styles.economyCopy}>
-                <span>Action Economy</span>
-                <strong>{actionEconomy} AP</strong>
-                {proposedCost > 0 ? (
-                  <small>− {proposedCost} proposed</small>
-                ) : (
-                  <small>Your turn</small>
-                )}
-              </div>
-              <div
-                className={styles.economyTrack}
-                role="progressbar"
-                aria-label="Action Economy remaining"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={actionEconomy}
-              >
-                <span style={{ width: `${actionEconomy}%` }} />
-                {proposedCost > 0 ? (
-                  <i
-                    style={{
-                      left: `${Math.max(0, actionEconomy - proposedCost)}%`,
-                      width: `${Math.min(actionEconomy, proposedCost)}%`,
-                    }}
-                  />
-                ) : null}
-              </div>
-            </>
-          ) : (
-            <div className={styles.waitingTurn}>
-              <span>Turn control</span>
-              <strong>
-                {battleState.lifecycle === 'active' ? `${activeName} acting…` : 'Battle complete'}
-              </strong>
-            </div>
-          )}
+          <div className={styles.economyCopy}>
+            <span>Action Economy</span>
+            <strong>{activeActionEconomy} AP</strong>
+            {localTurn && proposedCost > 0 ? (
+              <small>− {proposedCost} proposed</small>
+            ) : (
+              <small aria-hidden="true" />
+            )}
+          </div>
+          <div
+            className={styles.economyTrack}
+            role="progressbar"
+            aria-label="Action Economy remaining"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={activeActionEconomy}
+          >
+            <span style={{ width: `${activeActionEconomy}%` }} />
+            {localTurn && proposedCost > 0 ? (
+              <i
+                style={{
+                  left: `${Math.max(0, activeActionEconomy - proposedCost)}%`,
+                  width: `${Math.min(activeActionEconomy, proposedCost)}%`,
+                }}
+              />
+            ) : null}
+          </div>
           <button
             type="button"
             className={styles.victoryButton}
@@ -926,15 +927,22 @@ export function PvpBattleExperience({
               })}
             </div>
           </div>
-          <div className={styles.legend}>
-            <span>
-              <b>Green</b> friendly / reachable
+          <div className={styles.legend} aria-label="Terrain legend">
+            <span className={styles.terrainKey}>
+              <i className={styles.roughKey} aria-hidden="true" />
+              <span>
+                <b>Difficult Ground</b>
+                <small>Higher movement cost</small>
+              </span>
             </span>
-            <span>
-              <b>Orange</b> legal enemy target
-            </span>
-            <span>
-              <b>Red</b> unavailable inside effective range
+            <span className={styles.terrainKey}>
+              <i className={styles.raisedKey} aria-hidden="true">
+                ▲
+              </i>
+              <span>
+                <b>Raised Ground</b>
+                <small>Elevation +1</small>
+              </span>
             </span>
           </div>
         </section>
@@ -1051,8 +1059,13 @@ export function PvpBattleExperience({
         <button type="button" className={styles.chatButton} aria-expanded="false">
           Chat
         </button>
-        <button type="button" className={styles.battleKey} onClick={() => void copyBattleKey()}>
-          <small>{copyNotice ? 'Copied!' : 'Battle Key · click to copy'}</small>
+        <button
+          type="button"
+          className={styles.battleKey}
+          data-pvp-spectator-key="true"
+          onClick={() => void copyBattleKey()}
+        >
+          <small>{copyNotice ? 'Copied!' : 'Spectator Key · click to copy'}</small>
           <strong>{metadata.battleKey}</strong>
         </button>
         <div className={styles.footerActions}>

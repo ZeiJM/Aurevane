@@ -13,7 +13,7 @@ function uniqueCharacterName(): string {
   return `Scout ${letters}`
 }
 
-test('proves account keybinds, readable Duel Yard flow and authoritative Abort Battle', async ({
+test('proves account keybinds, readable Duel Yard flow and authoritative Surrender', async ({
   page,
 }, testInfo) => {
   test.slow()
@@ -113,20 +113,22 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort B
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('50 AP')
 
   const battleUrl = page.url()
-  await page.getByRole('button', { name: 'Abort Battle', exact: true }).click()
-  await expect(page.getByRole('dialog', { name: 'Abort this battle?' })).toBeVisible()
+  await page.getByRole('button', { name: 'Surrender', exact: true }).click()
+  await expect(page.getByRole('dialog', { name: 'Surrender this battle?' })).toBeVisible()
   await page.getByRole('button', { name: 'Stay in battle' }).click()
   await expect(page).toHaveURL(battleUrl)
 
-  await page.getByRole('button', { name: 'Abort Battle', exact: true }).click()
-  const abortResponsePromise = page.waitForResponse((response) => {
+  await page.getByRole('button', { name: 'Surrender', exact: true }).click()
+  const surrenderResponsePromise = page.waitForResponse((response) => {
     const request = response.request()
-    return request.method() === 'POST' && new URL(response.url()).pathname.endsWith('/abort')
+    return request.method() === 'POST' && new URL(response.url()).pathname.endsWith('/surrender')
   })
-  await page.getByRole('button', { name: 'Confirm Abort Battle' }).click()
-  const abortResponse = await abortResponsePromise
-  expect(abortResponse.status()).toBe(200)
-  await expect(page).toHaveURL(/\/game\/battle$/)
+  await page.getByRole('button', { name: 'Confirm Surrender' }).click()
+  const surrenderResponse = await surrenderResponsePromise
+  expect(surrenderResponse.status()).toBe(200)
+  await expect(page).toHaveURL(battleUrl)
+  await expect(page.getByTestId('battle-result-overlay')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Defeat' })).toBeVisible()
 
   const persistedState = queryLocalDatabase(`
     select battle.lifecycle || '|' || count(grant_row.id)::text
@@ -144,10 +146,10 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort B
     order by battle.created_at desc
     limit 1;
   `)
-  expect(persistedState).toBe('abandoned|0')
+  expect(persistedState).toBe('completed|0')
 
-  const terminalEvent = queryLocalDatabase(`
-    select (event.event ->> 'event') || '|' || (event.event ->> 'reason')
+  const surrenderEvent = queryLocalDatabase(`
+    select event.event ->> 'event'
     from app_private.battle_events event
     join app_private.battle_sessions battle
       on battle.id = event.battle_session_id
@@ -158,11 +160,29 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Abort B
     join auth.users account
       on account.id = character.user_id
     where account.email = '${escapeSqlLiteral(email)}'
-      and event.event ->> 'event' = 'battle_abandoned'
+      and event.event ->> 'event' = 'ai_combatant_surrendered'
     order by event.created_at desc
     limit 1;
   `)
-  expect(terminalEvent).toBe('battle_abandoned|practice-aborted')
+  expect(surrenderEvent).toBe('ai_combatant_surrendered')
+
+  const winningTeam = queryLocalDatabase(`
+    select event.event ->> 'winningTeamId'
+    from app_private.battle_events event
+    join app_private.battle_sessions battle
+      on battle.id = event.battle_session_id
+    join app_private.battle_participants participant
+      on participant.battle_session_id = battle.id
+    join public.characters character
+      on character.id = participant.character_id
+    join auth.users account
+      on account.id = character.user_id
+    where account.email = '${escapeSqlLiteral(email)}'
+      and event.event ->> 'event' = 'battle_completed'
+    order by event.created_at desc
+    limit 1;
+  `)
+  expect(winningTeam).toBe('opponents')
 })
 
 async function expectVictoryConditionsBesideActionEconomy(

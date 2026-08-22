@@ -25,13 +25,15 @@ interface PvpBattleChatProps {
   open?: boolean
   localCharacterId?: string | null
   showBattleLog?: boolean
+  requestedTab?: 'chat' | 'log'
+  onRequestedTabChange?: (tab: 'chat' | 'log') => void
   onUnreadChange?: (unread: number) => void
   onSpectatorCountChange?: (count: number) => void
   className?: string
 }
 
-const OPEN_CHAT_POLL_MS = 1500
-const CLOSED_CHAT_POLL_MS = 3500
+const OPEN_CHAT_POLL_MS = 1200
+const CLOSED_CHAT_POLL_MS = 3000
 const MAX_CHAT_RECONNECT_MS = 10000
 
 export function PvpBattleChat({
@@ -40,6 +42,8 @@ export function PvpBattleChat({
   open = true,
   localCharacterId = null,
   showBattleLog = false,
+  requestedTab = 'chat',
+  onRequestedTabChange,
   onUnreadChange,
   onSpectatorCountChange,
   className,
@@ -48,7 +52,7 @@ export function PvpBattleChat({
   const [spectators, setSpectators] = useState<PvpSpectatorPresenceView[]>([])
   const [spectatorCount, setSpectatorCount] = useState(0)
   const [battleLog, setBattleLog] = useState<BattleLogView | null>(null)
-  const [tab, setTab] = useState<'chat' | 'log'>('chat')
+  const [internalTab, setInternalTab] = useState<'chat' | 'log'>(requestedTab)
   const [spectatorListOpen, setSpectatorListOpen] = useState(false)
   const [draft, setDraft] = useState('')
   const [pending, setPending] = useState(false)
@@ -57,10 +61,19 @@ export function PvpBattleChat({
   const latestMessageId = useRef(0)
   const initialized = useRef(false)
   const listRef = useRef<HTMLDivElement | null>(null)
+  const tab = onRequestedTabChange ? requestedTab : internalTab
 
   const endpoint = useMemo(
     () => `/api/pvp/battles/${encodeURIComponent(battleSessionId)}/chat`,
     [battleSessionId],
+  )
+
+  const selectTab = useCallback(
+    (nextTab: 'chat' | 'log') => {
+      if (onRequestedTabChange) onRequestedTabChange(nextTab)
+      else setInternalTab(nextTab)
+    },
+    [onRequestedTabChange],
   )
 
   const publishUnread = useCallback(
@@ -104,7 +117,7 @@ export function PvpBattleChat({
     async (signal?: AbortSignal): Promise<boolean> => {
       try {
         const params = new URLSearchParams({ after: String(latestMessageId.current) })
-        if (showBattleLog) params.set('includeLog', '1')
+        if (showBattleLog && tab === 'log') params.set('includeLog', '1')
         const response = await fetch(`${endpoint}?${params.toString()}`, {
           cache: 'no-store',
           signal,
@@ -130,7 +143,7 @@ export function PvpBattleChat({
         return false
       }
     },
-    [endpoint, mergeMessages, onSpectatorCountChange, showBattleLog],
+    [endpoint, mergeMessages, onSpectatorCountChange, showBattleLog, tab],
   )
 
   useEffect(() => {
@@ -194,6 +207,7 @@ export function PvpBattleChat({
       }
       mergeMessages([result.message])
       setDraft('')
+      void refresh()
     } catch {
       setNotice('That battle chat message could not be sent.')
     } finally {
@@ -209,7 +223,7 @@ export function PvpBattleChat({
             <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
               <button
                 type="button"
-                onClick={() => setTab('chat')}
+                onClick={() => selectTab('chat')}
                 aria-pressed={tab === 'chat'}
                 style={{
                   border: 0,
@@ -226,7 +240,7 @@ export function PvpBattleChat({
               <span aria-hidden="true">/</span>
               <button
                 type="button"
-                onClick={() => setTab('log')}
+                onClick={() => selectTab('log')}
                 aria-pressed={tab === 'log'}
                 style={{
                   border: 0,

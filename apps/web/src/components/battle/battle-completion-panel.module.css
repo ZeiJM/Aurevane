@@ -5,8 +5,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding:
-    max(clamp(0.65rem, 2vw, 1.5rem), env(safe-area-inset-top))
+  padding: max(clamp(0.65rem, 2vw, 1.5rem), env(safe-area-inset-top))
     max(clamp(0.65rem, 2vw, 1.5rem), env(safe-area-inset-right))
     max(clamp(0.65rem, 2vw, 1.5rem), env(safe-area-inset-bottom))
     max(clamp(0.65rem, 2vw, 1.5rem), env(safe-area-inset-left));
@@ -31,9 +30,7 @@
   scrollbar-gutter: stable;
   border: 1px solid rgba(212, 186, 130, 0.5);
   border-radius: var(--av-radius-lg);
-  background:
-    linear-gradient(145deg, rgba(35, 30, 22, 0.5), rgba(12, 15, 20, 0.98) 38%),
-    #0b1017;
+  background: linear-gradient(145deg, rgba(35, 30, 22, 0.5), rgba(12, 15, 20, 0.98) 38%), #0b1017;
   box-shadow: 0 2rem 7rem rgba(0, 0, 0, 0.78);
 }
 
@@ -112,8 +109,7 @@
   border: 1px solid var(--av-border);
   border-radius: var(--av-radius-sm);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent),
-    rgba(3, 6, 10, 0.22);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent), rgba(3, 6, 10, 0.22);
 }
 
 .record dt {
@@ -312,8 +308,7 @@
     justify-content: stretch;
     padding: 0;
     background:
-      radial-gradient(circle at 50% 0%, rgba(207, 169, 93, 0.14), transparent 22rem),
-      #070a0e;
+      radial-gradient(circle at 50% 0%, rgba(207, 169, 93, 0.14), transparent 22rem), #070a0e;
     backdrop-filter: none;
   }
 
@@ -323,9 +318,7 @@
     max-height: none;
     align-content: start;
     gap: 0.68rem;
-    padding:
-      max(0.78rem, env(safe-area-inset-top))
-      max(0.78rem, env(safe-area-inset-right))
+    padding: max(0.78rem, env(safe-area-inset-top)) max(0.78rem, env(safe-area-inset-right))
       max(calc(0.9rem + env(safe-area-inset-bottom)), 0.9rem)
       max(0.78rem, env(safe-area-inset-left));
     overflow: visible;
@@ -333,8 +326,7 @@
     border-radius: 0;
     background:
       linear-gradient(180deg, rgba(44, 35, 22, 0.28), transparent 12rem),
-      linear-gradient(145deg, rgba(24, 22, 18, 0.4), rgba(10, 13, 18, 0.98) 34%),
-      #0b1017;
+      linear-gradient(145deg, rgba(24, 22, 18, 0.4), rgba(10, 13, 18, 0.98) 34%), #0b1017;
     box-shadow: none;
   }
 

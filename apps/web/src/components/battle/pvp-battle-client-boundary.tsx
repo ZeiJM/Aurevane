@@ -9,7 +9,6 @@ import { BattleMapTokenPolish } from './battle-map-token-polish'
 import { BattlePresentationPolish } from './battle-presentation-polish'
 import { BattleStatusEffectAssist } from './battle-status-effect-assist'
 import { BattleStickyActionAssist } from './battle-sticky-action-assist'
-import { BattleUtilityWindows } from './battle-utility-windows'
 import { PvpBattleChatBridge } from './pvp-battle-chat-bridge'
 import { PvpBattleCompletionPanel } from './pvp-battle-completion-panel'
 import { PvpBattleExperience } from './pvp-battle-experience'
@@ -17,6 +16,7 @@ import { PvpBattleInspectPopup } from './pvp-battle-inspect-popup'
 import { PvpBattleKeyboardAssist } from './pvp-battle-keyboard-assist'
 import { PvpBattleQualityControls } from './pvp-battle-quality-controls'
 import { PvpDesktopParity } from './pvp-desktop-parity'
+import { PvpBattleReleasePolish } from './pvp-battle-release-polish'
 import { PvpLegacyResultSuppressor } from './pvp-legacy-result-suppressor'
 import { PvpQuickCommitAssist } from './pvp-quick-commit-assist'
 
@@ -37,6 +37,7 @@ export function PvpBattleClientBoundary({
         metadata={metadata}
       />
       <PvpDesktopParity initialBattle={initialBattle} metadata={metadata} />
+      <PvpBattleReleasePolish />
       <PvpLegacyResultSuppressor />
       <BattleDirectionalAttackAssist playerName={playerName} />
       <BattleMapTokenPolish />
@@ -49,14 +50,10 @@ export function PvpBattleClientBoundary({
       <PvpBattleChatBridge battleSessionId={initialBattle.battleSessionId} metadata={metadata} />
       <PvpBattleQualityControls
         battleSessionId={initialBattle.battleSessionId}
-        metadata={metadata}
+        initialBattle={initialBattle}
       />
       <PvpBattleInspectPopup battleSessionId={initialBattle.battleSessionId} metadata={metadata} />
       <PvpBattleCompletionPanel initialBattle={initialBattle} metadata={metadata} />
-      <BattleUtilityWindows
-        battleSessionId={initialBattle.battleSessionId}
-        playerName={playerName}
-      />
     </>
   )
 }

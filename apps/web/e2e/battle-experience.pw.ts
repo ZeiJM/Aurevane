@@ -51,8 +51,12 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(standardWinDialog).toContainText('Defeat all opposing combatants')
   await standardWinDialog.getByRole('button', { name: 'Return to battle' }).click()
 
-  await page.getByRole('button', { name: 'Abort Battle' }).click()
-  await page.getByRole('button', { name: 'Confirm Abort Battle' }).click()
+  await page.getByRole('button', { name: 'Surrender', exact: true }).click()
+  await expect(page.getByRole('dialog', { name: 'Surrender this battle?' })).toBeVisible()
+  await page.getByRole('button', { name: 'Confirm Surrender' }).click()
+  await expect(page.getByTestId('battle-result-overlay')).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Defeat' })).toBeVisible()
+  await page.getByRole('button', { name: 'Return to Battle Hall' }).click()
   await expect(page).toHaveURL(/\/game\/battle$/)
   await expect(page.getByRole('heading', { name: 'Choose your arena.' })).toBeVisible()
 

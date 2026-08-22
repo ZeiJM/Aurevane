@@ -7,6 +7,7 @@ import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
 import { AiBattlePvpVisualSync } from './ai-battle-pvp-visual-sync'
 import { AiBattleQualityControls } from './ai-battle-quality-controls'
+import { AiBattleSurrenderAssist } from './ai-battle-surrender-assist'
 import { BattleDirectionalAttackAssist } from './battle-directional-attack-assist'
 import { BattleExperienceV2 } from './battle-experience-v2'
 import { BattleFacingQuickCommitAssist } from './battle-facing-quick-commit-assist'
@@ -46,12 +47,14 @@ export function BattleSessionClientBoundary({
   return (
     <BattleRuntimeProvider playerName={playerName}>
       <BattleExperienceV2
+        key={initialBattle.battleVersion}
         initialBattle={initialBattle}
         playerName={playerName}
         playerPortraitAssetId={playerPortraitAssetId}
       />
       <AiBattlePvpVisualSync playerName={playerName} />
       <AiBattleQualityControls battleSessionId={initialBattle.battleSessionId} />
+      <AiBattleSurrenderAssist battleSessionId={initialBattle.battleSessionId} />
       {lessonActive ? (
         <BattleLessonCoach
           battleSessionId={initialBattle.battleSessionId}
