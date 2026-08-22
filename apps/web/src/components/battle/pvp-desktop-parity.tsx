@@ -1,7 +1,7 @@
 'use client'
 
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
@@ -12,6 +12,7 @@ import type { BattleSessionView } from '@/server/battle/battle-session-service'
 import styles from './pvp-desktop-parity.module.css'
 
 const ACTION_ECONOMY_KEY = 'pv1f.action-economy'
+const PARITY_REFRESH_MS = 900
 
 type BattleSnapshot = BattleSessionView['snapshot']
 type Combatant = BattleSnapshot['tactical']['battle']['combatants'][number]
@@ -95,6 +96,40 @@ function participantState(
     profile,
     statuses,
     active: battle.snapshot.tactical.battle.currentTurn?.combatantId === participant.combatantId,
+  }
+}
+
+function decorateTerrainTiles(root: HTMLElement): void {
+  for (const tile of root.querySelectorAll<HTMLButtonElement>('button[aria-label^="Tile "]')) {
+    const label = tile.getAttribute('aria-label') ?? ''
+    const match = label.match(/^Tile (\d+), (\d+); ([^;]+); elevation (\d+)/)
+    if (!match) continue
+    const [, x, y, terrain, elevationText] = match
+    const elevation = Number(elevationText)
+    const meta = tile.firstElementChild
+    if (!(meta instanceof HTMLElement)) continue
+
+    const rough = terrain.includes('rough')
+    const expected = `${x}.${y}${rough ? 'R50' : ''}${elevation > 0 ? `▲${elevation}` : ''}`
+    if ((meta.textContent ?? '').replaceAll(/\s+/g, '') !== expected) {
+      meta.replaceChildren(document.createTextNode(`${x}.${y}`))
+      if (rough) {
+        const roughness = document.createElement('b')
+        roughness.textContent = 'R50'
+        meta.appendChild(roughness)
+      }
+      if (elevation > 0) {
+        const raised = document.createElement('b')
+        raised.textContent = `▲${elevation}`
+        meta.appendChild(raised)
+      }
+    }
+
+    for (const child of Array.from(tile.children)) {
+      if (child !== meta && child instanceof HTMLElement && child.textContent?.trim() === '▲') {
+        child.style.display = 'none'
+      }
+    }
   }
 }
 
@@ -278,7 +313,6 @@ export function PvpDesktopParity({
   const [contentTarget, setContentTarget] = useState<HTMLElement | null>(null)
   const [economyTarget, setEconomyTarget] = useState<HTMLElement | null>(null)
   const [detailsId, setDetailsId] = useState<string | null>(null)
-  const fetchInFlight = useRef(false)
 
   const localParticipant = useMemo(
     () =>
@@ -296,30 +330,54 @@ export function PvpDesktopParity({
         : [],
     [localParticipant, metadata.participants],
   )
-  const activeParticipant = useMemo(() => {
+  const activeCombatant = useMemo(() => {
     const activeId = battle.snapshot.tactical.battle.currentTurn?.combatantId
-    return metadata.participants.find((participant) => participant.combatantId === activeId) ?? null
-  }, [battle.snapshot.tactical.battle.currentTurn?.combatantId, metadata.participants])
+    return battle.snapshot.tactical.battle.combatants.find((combatant) => combatant.id === activeId) ?? null
+  }, [battle.snapshot.tactical.battle.combatants, battle.snapshot.tactical.battle.currentTurn?.combatantId])
+  const activeActionEconomy = activeEconomy(activeCombatant) ?? 0
 
-  const refreshBattle = useCallback(async () => {
-    if (fetchInFlight.current) return
-    fetchInFlight.current = true
-    try {
-      const response = await fetch(`/api/battles/${initialBattle.battleSessionId}`, {
-        method: 'GET',
-        cache: 'no-store',
-      })
-      const body = (await response.json()) as { battle?: BattleSessionView }
-      if (!response.ok || !body.battle) return
-      setBattle((current) =>
-        body.battle && body.battle.battleVersion !== current.battleVersion ? body.battle : current,
-      )
-    } catch {
-      // The primary PvP state loop remains authoritative. A later visible mutation repairs the rail.
-    } finally {
-      fetchInFlight.current = false
+  useEffect(() => {
+    let cancelled = false
+    let timer: number | null = null
+    let controller: AbortController | null = null
+
+    async function refresh() {
+      controller = new AbortController()
+      try {
+        const response = await fetch(`/api/battles/${initialBattle.battleSessionId}`, {
+          method: 'GET',
+          cache: 'no-store',
+          signal: controller.signal,
+        })
+        const body = (await response.json()) as { battle?: BattleSessionView }
+        if (!cancelled && response.ok && body.battle) {
+          setBattle((current) =>
+            body.battle && body.battle.battleVersion !== current.battleVersion ? body.battle : current,
+          )
+        }
+      } catch {
+        // This pass is decorative only; the primary PvP state loop remains authoritative.
+      } finally {
+        controller = null
+        if (!cancelled && battle.snapshot.tactical.battle.lifecycle === 'active') {
+          timer = window.setTimeout(refresh, PARITY_REFRESH_MS)
+        }
+      }
     }
-  }, [initialBattle.battleSessionId])
+
+    timer = window.setTimeout(refresh, PARITY_REFRESH_MS)
+    const onFocus = () => {
+      if (timer !== null) window.clearTimeout(timer)
+      timer = window.setTimeout(refresh, 0)
+    }
+    window.addEventListener('focus', onFocus)
+    return () => {
+      cancelled = true
+      controller?.abort()
+      if (timer !== null) window.clearTimeout(timer)
+      window.removeEventListener('focus', onFocus)
+    }
+  }, [battle.snapshot.tactical.battle.lifecycle, initialBattle.battleSessionId])
 
   useEffect(() => {
     let frame: number | null = null
@@ -338,9 +396,12 @@ export function PvpDesktopParity({
       if (content) {
         content.dataset.pvpDesktopContent = 'true'
         const notice = content.firstElementChild
-        if (notice instanceof HTMLElement && notice !== battlefield)
+        if (notice instanceof HTMLElement && notice !== battlefield) {
           notice.dataset.pvpNotice = 'true'
+        }
       }
+
+      if (battlefield) decorateTerrainTiles(battlefield)
 
       const victoryButton = Array.from(
         root.querySelectorAll<HTMLButtonElement>('header button'),
@@ -383,7 +444,7 @@ export function PvpDesktopParity({
 
     locate()
     const observer = new MutationObserver(schedule)
-    observer.observe(document.body, { childList: true, subtree: true })
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true })
     return () => {
       observer.disconnect()
       if (frame !== null) window.cancelAnimationFrame(frame)
@@ -391,47 +452,35 @@ export function PvpDesktopParity({
   }, [metadata.battleKey])
 
   useEffect(() => {
-    let timer: number | null = null
-    const root = document.querySelector<HTMLElement>('main[data-pvp-battle="true"]')
-    if (!root) return
-    const roster = root.querySelector<HTMLElement>('section[aria-label="PvP battle roster"]')
-    const header = root.querySelector<HTMLElement>('header')
+    if (!contentTarget || window.matchMedia('(max-width: 820px)').matches) return
+    const battlefield = contentTarget.querySelector<HTMLElement>(
+      'section[aria-label="PvP tactical battlefield"]',
+    )
+    const viewport = battlefield?.firstElementChild
+    const board = viewport?.firstElementChild
+    if (!(viewport instanceof HTMLElement) || !(board instanceof HTMLElement)) return
 
-    const scheduleRefresh = () => {
-      if (timer !== null) window.clearTimeout(timer)
-      timer = window.setTimeout(() => void refreshBattle(), 70)
+    const ratio = initialBattle.snapshot.tactical.width / initialBattle.snapshot.tactical.height
+    const fit = () => {
+      const availableWidth = Math.max(0, viewport.clientWidth - 16)
+      const availableHeight = Math.max(0, viewport.clientHeight - 16)
+      const width = Math.floor(Math.min(availableWidth, availableHeight * ratio, 704))
+      if (width <= 0) return
+      board.style.setProperty('width', `${width}px`, 'important')
+      board.style.setProperty('max-width', `${width}px`, 'important')
     }
 
-    const observer = new MutationObserver(scheduleRefresh)
-    if (roster) {
-      observer.observe(roster, {
-        childList: true,
-        subtree: true,
-        characterData: true,
-        attributes: true,
-        attributeFilter: ['style', 'data-active', 'data-defeated'],
-      })
-    }
-    if (header) {
-      observer.observe(header, {
-        childList: true,
-        subtree: true,
-        characterData: true,
-        attributes: true,
-        attributeFilter: ['data-active'],
-      })
-    }
-
-    const focus = () => void refreshBattle()
-    window.addEventListener('focus', focus)
-    scheduleRefresh()
-
+    fit()
+    const observer = new ResizeObserver(fit)
+    observer.observe(viewport)
+    window.addEventListener('resize', fit)
     return () => {
       observer.disconnect()
-      window.removeEventListener('focus', focus)
-      if (timer !== null) window.clearTimeout(timer)
+      window.removeEventListener('resize', fit)
+      board.style.removeProperty('width')
+      board.style.removeProperty('max-width')
     }
-  }, [refreshBattle])
+  }, [contentTarget, initialBattle.snapshot.tactical.height, initialBattle.snapshot.tactical.width])
 
   return (
     <>
@@ -488,13 +537,22 @@ export function PvpDesktopParity({
 
       {economyTarget
         ? createPortal(
-            <div className={styles.acting} role="status" aria-live="polite">
-              <span>Turn control</span>
-              <strong>
-                {battle.snapshot.tactical.battle.lifecycle === 'active'
-                  ? `${activeParticipant?.characterName ?? 'Combatant'} acting…`
-                  : 'Battle complete'}
-              </strong>
+            <div
+              className={styles.economyBar}
+              data-pvp-economy-bar="true"
+              role="progressbar"
+              aria-label="Action Economy remaining"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={activeActionEconomy}
+            >
+              <div>
+                <span>Action Economy</span>
+                <strong>{activeActionEconomy} AP</strong>
+              </div>
+              <i>
+                <b style={{ width: `${Math.max(0, Math.min(100, activeActionEconomy))}%` }} />
+              </i>
             </div>,
             economyTarget,
           )
