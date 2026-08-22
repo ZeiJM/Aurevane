@@ -29,7 +29,11 @@ export function PvpBattleClientBoundary({
 }) {
   return (
     <>
-      <PvpBattleExperience initialBattle={initialBattle} metadata={metadata} />
+      <PvpBattleExperience
+        key={initialBattle.battleVersion}
+        initialBattle={initialBattle}
+        metadata={metadata}
+      />
       <PvpLegacyResultSuppressor />
       <BattleDirectionalAttackAssist playerName={playerName} />
       <BattleMapTokenPolish />
