@@ -75,10 +75,9 @@
 /*
  * Character Select desktop roster.
  *
- * Square portraits stay square, but the roster itself is a deliberate three-slot character vault:
- * every slot has equal visual weight and equal dimensions, with occupied and future slots separated
- * by treatment rather than geometry. This keeps the page compact without making locked slots feel
- * like leftover space.
+ * Square portraits stay square, while the three roster cards share one equal-height row. The row
+ * derives its height from real content instead of viewport filler, so the occupied portrait feels
+ * complete and the locked slots retain equal visual weight without dead space.
  */
 @media (min-width: 901px) {
   [data-character-select-page='true'] {
@@ -142,7 +141,7 @@
   [data-character-select-page='true'] section[aria-label='Character slots'] > article {
     position: relative;
     height: 100% !important;
-    min-height: clamp(25rem, 56vh, 29rem) !important;
+    min-height: 0 !important;
     padding: clamp(0.72rem, 1vw, 0.9rem) !important;
     overflow: hidden !important;
     border-color: rgba(212, 186, 130, 0.28) !important;
@@ -164,34 +163,11 @@
     opacity: 0.64;
   }
 
-  [data-character-select-page='true'] section[aria-label='Character slots'] > article::after {
-    position: absolute;
-    top: 1.7rem;
-    right: 0.7rem;
-    z-index: 0;
-    color: rgba(238, 228, 208, 0.035);
-    font: 500 clamp(4.5rem, 8vw, 7rem)/0.8 var(--av-font-display);
-    letter-spacing: -0.08em;
-    content: '01';
-    pointer-events: none;
-  }
-
-  [data-character-select-page='true']
-    section[aria-label='Character slots']
-    > article:nth-child(2)::after {
-    content: '02';
-  }
-
-  [data-character-select-page='true']
-    section[aria-label='Character slots']
-    > article:nth-child(3)::after {
-    content: '03';
-  }
-
   [data-character-select-page='true']
     section[aria-label='Character slots']
     > article:has(.character-portrait-media) {
-    grid-template-rows: auto auto auto minmax(0, 1fr) auto !important;
+    grid-template-rows: auto auto auto auto auto !important;
+    align-content: start !important;
     background:
       radial-gradient(circle at 50% 27%, rgba(120, 181, 154, 0.11), transparent 17rem),
       radial-gradient(circle at 15% 82%, rgba(185, 154, 92, 0.075), transparent 16rem),
@@ -220,14 +196,26 @@
     section[aria-label='Character slots']
     > article
     > div:has(> .character-portrait-media) {
-    width: min(100%, 17rem) !important;
-    margin: 0.72rem auto 0.62rem !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0.72rem 0 0.62rem !important;
     align-self: start !important;
-    justify-self: center !important;
+    justify-self: stretch !important;
     border: 1px solid rgba(212, 186, 130, 0.28);
     box-shadow:
       0 1rem 2.4rem rgba(0, 0, 0, 0.42),
       0 0 1.6rem rgba(120, 181, 154, 0.07);
+  }
+
+  [data-character-select-page='true']
+    section[aria-label='Character slots']
+    > article
+    > div:has(> .character-portrait-media)
+    > .character-portrait-media {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
   }
 
   [data-character-select-page='true']
@@ -241,7 +229,6 @@
     section[aria-label='Character slots']
     > article:has(.character-portrait-media)
     > a[href^='/game/select/'] {
-    align-self: end !important;
     box-shadow: 0 0.65rem 1.5rem rgba(185, 154, 92, 0.12);
     transition:
       transform 140ms ease,
@@ -264,10 +251,8 @@
       0 0 1.25rem rgba(212, 186, 130, 0.12);
   }
 
-  [data-character-select-page='true']
-    section[aria-label='Character slots']
-    > article[data-locked='true'] {
-    grid-template-rows: auto minmax(0, 1fr) auto auto auto !important;
+  [data-character-select-page='true'] section[aria-label='Character slots'] > article[data-locked='true'] {
+    grid-template-rows: auto minmax(5rem, 1fr) auto auto auto !important;
     align-items: center !important;
     text-align: center !important;
     border-style: solid !important;
@@ -330,11 +315,6 @@
     width: 100%;
     margin-top: 0.78rem;
     border-color: rgba(184, 177, 163, 0.16) !important;
-    background: linear-gradient(
-      90deg,
-      rgba(255, 255, 255, 0.01),
-      rgba(128, 113, 172, 0.045),
-      rgba(255, 255, 255, 0.01)
-    ) !important;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.01), rgba(128, 113, 172, 0.045), rgba(255, 255, 255, 0.01)) !important;
   }
 }
