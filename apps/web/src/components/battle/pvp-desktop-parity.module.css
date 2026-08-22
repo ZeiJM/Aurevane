@@ -570,3 +570,82 @@
     margin-top: 0.1rem;
   }
 }
+
+/* pvp-desktop-parity-v3 */
+@media (min-width: 821px) {
+  .railCard {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    justify-content: flex-start;
+  }
+
+  .portraitButton {
+    width: 100%;
+    height: auto;
+    max-height: 9.5rem;
+    flex: 0 0 auto;
+    aspect-ratio: 1 / 1;
+  }
+
+  .portraitImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .statuses {
+    flex: 0 0 auto;
+    align-content: flex-start;
+  }
+
+  .facing {
+    flex: 0 0 auto;
+    margin-top: auto;
+  }
+
+  :global(main[data-pvp-battle='true'][data-pvp-desktop-parity='true'] > header) {
+    grid-template-columns: minmax(12rem, 1fr) minmax(27rem, 36rem) auto !important;
+  }
+
+  :global([data-pvp-header-economy='true']) {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+  }
+
+  :global(
+    [data-pvp-desktop-content='true']
+      > section[aria-label='PvP tactical battlefield']
+      > div:first-child
+      > div
+  ) {
+    width: min(100%, 38.75rem) !important;
+    max-width: 38.75rem !important;
+  }
+
+  :global([data-pvp-desktop-content='true'] button[aria-label*='rough ground']) {
+    background:
+      repeating-linear-gradient(135deg, rgba(160, 125, 79, 0.14) 0 3px, transparent 3px 8px),
+      linear-gradient(145deg, rgba(95, 72, 49, 0.5), rgba(39, 38, 35, 0.88)) !important;
+  }
+
+  :global([data-pvp-desktop-content='true'] button[aria-label*='elevation 1']) {
+    box-shadow:
+      inset 0 0 0 1px rgba(211, 196, 156, 0.13),
+      0 -0.12rem 0 rgba(218, 197, 145, 0.13) !important;
+  }
+
+  :global([data-pvp-desktop-content='true'] button[aria-label^='Tile '] > span:first-child) {
+    display: flex;
+    gap: 0.18rem;
+    color: rgba(225, 231, 235, 0.45) !important;
+  }
+
+  :global([data-pvp-desktop-content='true'] button[aria-label^='Tile '] > span:first-child b) {
+    color: rgba(226, 195, 125, 0.75);
+    font-weight: 700;
+  }
+
+  :global(main[data-pvp-battle='true'] footer [data-pvp-spectator-key='true']) {
+    display: grid !important;
+  }
+}

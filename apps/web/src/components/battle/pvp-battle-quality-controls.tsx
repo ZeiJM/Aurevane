@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
-import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
 interface ClockView {
@@ -30,19 +29,18 @@ function remainingSeconds(deadlineAt: string | null, now: number): number {
 }
 
 const CLOCK_POLL_MS = 1000
-const BATTLE_FALLBACK_POLL_MS = 3500
 const MAX_RECONNECT_DELAY_MS = 5000
 
 export function PvpBattleQualityControls({
   battleSessionId,
-  metadata,
+  initialBattle,
 }: {
   battleSessionId: string
-  metadata: PvpBattleMetadata
+  initialBattle: BattleSessionView
 }) {
   const [clock, setClock] = useState<ClockView | null>(null)
   const [now, setNow] = useState(0)
-  const [battle, setBattle] = useState<BattleSessionView | null>(null)
+  const [battle, setBattle] = useState<BattleSessionView | null>(initialBattle)
   const [error, setError] = useState<string | null>(null)
   const [confirmSurrender, setConfirmSurrender] = useState(false)
   const [surrendering, setSurrendering] = useState(false)
@@ -84,6 +82,17 @@ export function PvpBattleQualityControls({
   }, [])
 
   useEffect(() => {
+    const receiveBattleState = (event: Event) => {
+      if (!(event instanceof CustomEvent)) return
+      const next = event.detail as BattleSessionView | undefined
+      if (!next || next.battleSessionId !== battleSessionId) return
+      setBattle(next)
+    }
+    window.addEventListener('aurevane:pvp-battle-state', receiveBattleState)
+    return () => window.removeEventListener('aurevane:pvp-battle-state', receiveBattleState)
+  }, [battleSessionId])
+
+  useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 250)
     return () => window.clearInterval(timer)
   }, [])
@@ -92,7 +101,6 @@ export function PvpBattleQualityControls({
     let cancelled = false
     let timer: number | null = null
     let reconnectDelay = CLOCK_POLL_MS
-    let nextBattleFallbackAt = 0
     let completed = false
 
     async function refresh() {
@@ -117,24 +125,6 @@ export function PvpBattleQualityControls({
           setError(clockBody.error?.message ?? 'Turn clock unavailable.')
           reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY_MS)
         }
-
-        const fallbackDue = Date.now() >= nextBattleFallbackAt
-        if (!completed && fallbackDue) {
-          nextBattleFallbackAt = Date.now() + BATTLE_FALLBACK_POLL_MS
-          try {
-            const battleResponse = await fetch(`/api/battles/${battleSessionId}`, {
-              cache: 'no-store',
-            })
-            const battleBody = (await battleResponse.json()) as { battle?: BattleSessionView }
-            if (!cancelled && battleResponse.ok && battleBody.battle) {
-              setBattle(battleBody.battle)
-              completed = battleBody.battle.snapshot.tactical.battle.lifecycle === 'completed'
-            }
-          } catch {
-            // The main PvP surface already tracks battle state. This slower fallback must not
-            // amplify a transient interruption into another request storm.
-          }
-        }
       } catch {
         if (!cancelled) {
           setError('Turn clock reconnecting…')
@@ -151,13 +141,6 @@ export function PvpBattleQualityControls({
       if (timer !== null) window.clearTimeout(timer)
     }
   }, [battleSessionId])
-
-  const activeCombatantId =
-    clock?.combatantId ?? battle?.snapshot.tactical.battle.currentTurn?.combatantId ?? null
-  const activeName = activeCombatantId
-    ? (metadata.participants.find((participant) => participant.combatantId === activeCombatantId)
-        ?.characterName ?? null)
-    : null
 
   async function surrender() {
     if (surrendering) return
@@ -233,9 +216,6 @@ export function PvpBattleQualityControls({
                 }}
               >
                 {timerText}
-              </span>
-              <span style={{ color: '#9bd2b1' }}>
-                {activeName ? `${activeName}'s turn` : 'Turn clock'}
               </span>
               {error ? <span style={{ color: '#e2a0a0' }}>{error}</span> : null}
             </span>,

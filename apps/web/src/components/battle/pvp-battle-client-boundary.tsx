@@ -50,7 +50,7 @@ export function PvpBattleClientBoundary({
       <PvpBattleChatBridge battleSessionId={initialBattle.battleSessionId} metadata={metadata} />
       <PvpBattleQualityControls
         battleSessionId={initialBattle.battleSessionId}
-        metadata={metadata}
+        initialBattle={initialBattle}
       />
       <PvpBattleInspectPopup battleSessionId={initialBattle.battleSessionId} metadata={metadata} />
       <PvpBattleCompletionPanel initialBattle={initialBattle} metadata={metadata} />

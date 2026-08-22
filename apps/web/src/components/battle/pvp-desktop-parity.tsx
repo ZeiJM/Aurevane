@@ -11,9 +11,6 @@ import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
 import styles from './pvp-desktop-parity.module.css'
 
-const ACTION_ECONOMY_KEY = 'pv1f.action-economy'
-const PARITY_REFRESH_MS = 900
-
 type BattleSnapshot = BattleSessionView['snapshot']
 type Combatant = BattleSnapshot['tactical']['battle']['combatants'][number]
 type Placement = BattleSnapshot['tactical']['placements'][number]
@@ -53,14 +50,6 @@ function statusLabel(statusId: string): string {
 
 function statusIsBeneficial(statusId: string): boolean {
   return statusId === 'guarded' || statusId.startsWith('buff.')
-}
-
-function activeEconomy(combatant: Combatant | null): number | null {
-  if (!combatant) return null
-  return (
-    combatant.temporaryResources.find((resource) => resource.key === ACTION_ECONOMY_KEY)?.current ??
-    null
-  )
 }
 
 function participantState(
@@ -311,7 +300,6 @@ export function PvpDesktopParity({
 }) {
   const [battle, setBattle] = useState(initialBattle)
   const [contentTarget, setContentTarget] = useState<HTMLElement | null>(null)
-  const [economyTarget, setEconomyTarget] = useState<HTMLElement | null>(null)
   const [detailsId, setDetailsId] = useState<string | null>(null)
 
   const localParticipant = useMemo(
@@ -330,62 +318,18 @@ export function PvpDesktopParity({
         : [],
     [localParticipant, metadata.participants],
   )
-  const activeCombatant = useMemo(() => {
-    const activeId = battle.snapshot.tactical.battle.currentTurn?.combatantId
-    return (
-      battle.snapshot.tactical.battle.combatants.find((combatant) => combatant.id === activeId) ??
-      null
-    )
-  }, [
-    battle.snapshot.tactical.battle.combatants,
-    battle.snapshot.tactical.battle.currentTurn?.combatantId,
-  ])
-  const activeActionEconomy = activeEconomy(activeCombatant) ?? 0
 
   useEffect(() => {
-    let cancelled = false
-    let timer: number | null = null
-    let controller: AbortController | null = null
-
-    async function refresh() {
-      controller = new AbortController()
-      try {
-        const response = await fetch(`/api/battles/${initialBattle.battleSessionId}`, {
-          method: 'GET',
-          cache: 'no-store',
-          signal: controller.signal,
-        })
-        const body = (await response.json()) as { battle?: BattleSessionView }
-        if (!cancelled && response.ok && body.battle) {
-          setBattle((current) =>
-            body.battle && body.battle.battleVersion !== current.battleVersion
-              ? body.battle
-              : current,
-          )
-        }
-      } catch {
-        // This pass is decorative only; the primary PvP state loop remains authoritative.
-      } finally {
-        controller = null
-        if (!cancelled && battle.snapshot.tactical.battle.lifecycle === 'active') {
-          timer = window.setTimeout(refresh, PARITY_REFRESH_MS)
-        }
-      }
+    const receiveBattleState = (event: Event) => {
+      if (!(event instanceof CustomEvent)) return
+      const next = event.detail as BattleSessionView | undefined
+      if (!next || next.battleSessionId !== initialBattle.battleSessionId) return
+      setBattle((current) => (next.battleVersion !== current.battleVersion ? next : current))
     }
 
-    timer = window.setTimeout(refresh, PARITY_REFRESH_MS)
-    const onFocus = () => {
-      if (timer !== null) window.clearTimeout(timer)
-      timer = window.setTimeout(refresh, 0)
-    }
-    window.addEventListener('focus', onFocus)
-    return () => {
-      cancelled = true
-      controller?.abort()
-      if (timer !== null) window.clearTimeout(timer)
-      window.removeEventListener('focus', onFocus)
-    }
-  }, [battle.snapshot.tactical.battle.lifecycle, initialBattle.battleSessionId])
+    window.addEventListener('aurevane:pvp-battle-state', receiveBattleState)
+    return () => window.removeEventListener('aurevane:pvp-battle-state', receiveBattleState)
+  }, [initialBattle.battleSessionId])
 
   useEffect(() => {
     let frame: number | null = null
@@ -442,7 +386,6 @@ export function PvpDesktopParity({
       }
 
       setContentTarget((current) => (current === content ? current : content))
-      setEconomyTarget((current) => (current === economy ? current : economy))
     }
 
     const schedule = () => {
@@ -472,7 +415,7 @@ export function PvpDesktopParity({
     const fit = () => {
       const availableWidth = Math.max(0, viewport.clientWidth - 16)
       const availableHeight = Math.max(0, viewport.clientHeight - 16)
-      const width = Math.floor(Math.min(availableWidth, availableHeight * ratio, 704))
+      const width = Math.floor(Math.min(availableWidth, availableHeight * ratio, 620))
       if (width <= 0) return
       board.style.setProperty('width', `${width}px`, 'important')
       board.style.setProperty('max-width', `${width}px`, 'important')
@@ -540,29 +483,6 @@ export function PvpDesktopParity({
               </aside>
             </>,
             contentTarget,
-          )
-        : null}
-
-      {economyTarget
-        ? createPortal(
-            <div
-              className={styles.economyBar}
-              data-pvp-economy-bar="true"
-              role="progressbar"
-              aria-label="Action Economy remaining"
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={activeActionEconomy}
-            >
-              <div>
-                <span>Action Economy</span>
-                <strong>{activeActionEconomy} AP</strong>
-              </div>
-              <i>
-                <b style={{ width: `${Math.max(0, Math.min(100, activeActionEconomy))}%` }} />
-              </i>
-            </div>,
-            economyTarget,
           )
         : null}
     </>
