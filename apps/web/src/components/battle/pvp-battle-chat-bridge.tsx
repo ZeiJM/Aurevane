@@ -133,6 +133,7 @@ export function PvpBattleChatBridge({
         localCharacterId={metadata.localCharacterId}
         showBattleLog
         requestedTab={requestedTab}
+        onRequestedTabChange={setRequestedTab}
         onUnreadChange={setUnread}
         onSpectatorCountChange={setSpectatorCount}
       />
