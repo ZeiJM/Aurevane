@@ -24,13 +24,20 @@
     grid-template-columns: minmax(0, 1fr) !important;
   }
 
-  /* Give the board the reclaimed space without forcing a second oversized vertical panel. */
-  :global(#battlefield > div:first-child) {
-    min-height: min(27rem, 58dvh) !important;
+  /* Let the battlefield wrap the fitted grid instead of reserving viewport-height space below it.
+     The grid keeps its authored aspect ratio and width; only the unused mobile vertical band is
+     removed. */
+  :global(main[aria-busy] #battlefield) {
+    min-height: 0 !important;
   }
 
-  :global(#battlefield > div:first-child > div) {
-    min-height: min(23rem, 54dvh) !important;
+  :global(main[aria-busy] #battlefield > div:first-child) {
+    height: auto !important;
+    min-height: 0 !important;
+  }
+
+  :global(main[aria-busy] #battlefield > div:first-child > div) {
+    min-height: 0 !important;
   }
 
   .backdrop {
