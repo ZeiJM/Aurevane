@@ -1,5 +1,6 @@
 :global([data-battle-effect-trigger='true']) {
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 :global([data-battle-effect-trigger='true']:focus-visible) {
@@ -10,7 +11,9 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  z-index: 12000;
+  /* Mobile combatant inspection uses z-index 16000. Effect explanations are a child interaction of
+     that inspection surface, so they must always stack above it and return to it when dismissed. */
+  z-index: 20000;
   display: grid;
   place-items: center;
   padding: 1rem;
@@ -93,6 +96,8 @@
 
   .dialog {
     width: 100%;
+    max-height: calc(100dvh - 1.5rem);
+    overflow: auto;
     border-radius: 0.9rem;
   }
 }
