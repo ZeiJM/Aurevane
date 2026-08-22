@@ -14,8 +14,10 @@ import { BattleKeyboardAssist } from './battle-keyboard-assist'
 import { BattleLessonCoach } from './battle-lesson-coach'
 import { BattleMapTokenPolish } from './battle-map-token-polish'
 import { BattlePresentationPolish } from './battle-presentation-polish'
+import { BattleRecruitRecoveryAssist } from './battle-recruit-recovery-assist'
 import { BattleRuntimeProvider } from './battle-runtime-context'
 import { BattleStatusEffectAssist } from './battle-status-effect-assist'
+import { BattleStickyActionAssist } from './battle-sticky-action-assist'
 import { BattleUtilityWindows } from './battle-utility-windows'
 import { MobileBattleCombatantPopup } from './mobile-battle-combatant-popup'
 
@@ -57,8 +59,10 @@ export function BattleSessionClientBoundary({
       <BattleDirectionalAttackAssist playerName={playerName} />
       <BattleMapTokenPolish />
       <BattlePresentationPolish playerName={playerName} />
-      <BattleFacingQuickCommitAssist />
+      <BattleFacingQuickCommitAssist playerName={playerName} />
       <BattleStatusEffectAssist />
+      <BattleStickyActionAssist />
+      <BattleRecruitRecoveryAssist />
       <BattleKeyboardAssist playerName={playerName} />
       <BattleFeedbackAssist playerName={playerName} playerProfileImageUrl={playerProfileImageUrl} />
       <BattleUtilityWindows
