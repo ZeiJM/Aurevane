@@ -196,6 +196,17 @@ Never assume a package, table, route, system, or feature exists. Verify it.
 - Never introduce unlicensed third-party art, audio, code, fonts or other assets.
 - Reference games may inform abstract design principles only; do not copy their implementation, names, distinctive assets or protected presentation.
 
+## Owner-controlled deployment gate
+
+- **Vercel deployments are Owner-controlled and quota-sensitive. Never trigger a Vercel Preview or Production deployment unless the Owner explicitly requests a deployment in the current conversation/ticket.**
+- Requests such as **implement**, **fix**, **execute**, **continue**, **commit**, **push code**, **open a PR**, or **merge** do **not** imply permission to deploy.
+- By default, make and push development commits only to branches that do not trigger Vercel. **Do not push implementation commits to a deployment-enabled `preview/*` branch unless the Owner has explicitly asked for a deployment.** If the current working branch is deployment-enabled and no deployment has been requested, move subsequent work to a non-deploying branch before pushing.
+- Batch related fixes and UI changes in code without deploying them. When the Owner later asks to deploy, deploy the accumulated verified batch together where practical rather than creating a deployment per fix.
+- Before any Git action that could trigger Vercel, inspect the repository's current deployment policy (currently `apps/web/vercel.json`) and choose a non-deploying path unless explicit deployment authorization exists.
+- Local builds, typechecks, tests, lint, CI, code review, commits, and merges should be used to validate work without consuming Vercel deployment quota whenever possible.
+- An explicit deployment request authorizes only the deployment work needed for that requested release/preview. It does not grant standing permission to deploy later unrelated follow-up fixes.
+- Never enable `main` production deployment merely to test a fix. Production remains a deliberate Owner-requested release action.
+
 ## Testing and release discipline
 
 - Run relevant tests, typecheck, lint and build after implementation tickets where the environment allows.
