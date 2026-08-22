@@ -9,9 +9,6 @@ import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
 import styles from './battle-completion-panel.module.css'
 
-const COMPLETION_POLL_MS = 1500
-const MAX_COMPLETION_RECONNECT_MS = 8000
-
 function formatFullLog(log: BattleLogView): string {
   return [...log.entries]
     .reverse()
@@ -66,41 +63,20 @@ export function PvpBattleCompletionPanel({
   useEffect(() => {
     if (battleState.lifecycle === 'completed') return
     let cancelled = false
-    let timer: number | null = null
-    let failures = 0
-
-    async function poll() {
-      let success = false
+    const timer = window.setInterval(async () => {
       try {
         const response = await fetch(`/api/battles/${initialBattle.battleSessionId}`, {
           cache: 'no-store',
         })
         const body = (await response.json()) as { battle?: BattleSessionView }
-        if (cancelled) return
-        if (response.ok && body.battle) {
-          setBattle(body.battle)
-          success = true
-        }
+        if (response.ok && body.battle && !cancelled) setBattle(body.battle)
       } catch {
         // The active battle UI owns connection messaging. This panel only waits for completion.
-      } finally {
-        if (cancelled) return
-        if (success) failures = 0
-        else failures += 1
-        const delay = success
-          ? COMPLETION_POLL_MS
-          : Math.min(
-              COMPLETION_POLL_MS * 2 ** Math.min(failures, 3),
-              MAX_COMPLETION_RECONNECT_MS,
-            )
-        timer = window.setTimeout(poll, delay)
       }
-    }
-
-    void poll()
+    }, 750)
     return () => {
       cancelled = true
-      if (timer !== null) window.clearTimeout(timer)
+      window.clearInterval(timer)
     }
   }, [battleState.lifecycle, initialBattle.battleSessionId])
 
