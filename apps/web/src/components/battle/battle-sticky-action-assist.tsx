@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 
 const REPEATABLE_ACTIONS = new Set(['Move', 'Basic Attack', 'Guard', 'Recover'])
+const SETTLE_DELAYS_MS = [0, 24, 60, 120, 220] as const
 
 function textOf(element: Element | null): string {
   return element?.textContent?.trim() ?? ''
@@ -64,6 +65,12 @@ export function BattleStickyActionAssist() {
   const settleTimer = useRef<number | null>(null)
 
   useEffect(() => {
+    function clearSettleTimer() {
+      if (settleTimer.current === null) return
+      window.clearTimeout(settleTimer.current)
+      settleTimer.current = null
+    }
+
     function rememberCurrentAction() {
       const active = activeCommand()
       const label = active ? commandLabel(active) : ''
@@ -94,41 +101,58 @@ export function BattleStickyActionAssist() {
       }
     }
 
-    function tryRestore() {
-      const label = pendingRepeat.current
-      if (!label) return
-
-      const economy = actionEconomy()
-      if (economy === null) return
-      const previousEconomy = lastKnownEconomy.current
-      lastKnownEconomy.current = economy
-
-      // A committed action consumes AP. Wait for that authoritative decrease before restoring.
-      if (previousEconomy === null || economy >= previousEconomy) return
-
-      const button = findCommand(label)
-      const affordable = economy >= minimumCost(label)
-      if (!button || button.disabled || !affordable) {
-        pendingRepeat.current = null
-        return
-      }
-
-      if (settleTimer.current !== null) window.clearTimeout(settleTimer.current)
+    function settleRestore(label: string, attempt: number) {
+      clearSettleTimer()
+      const delay = SETTLE_DELAYS_MS[Math.min(attempt, SETTLE_DELAYS_MS.length - 1)]
       settleTimer.current = window.setTimeout(() => {
+        settleTimer.current = null
+        if (pendingRepeat.current !== label) return
+
         const current = findCommand(label)
         const currentEconomy = actionEconomy()
         if (
-          pendingRepeat.current === label &&
-          current &&
-          !current.disabled &&
-          currentEconomy !== null &&
-          currentEconomy >= minimumCost(label) &&
-          !activeCommand()
+          !current ||
+          current.disabled ||
+          currentEconomy === null ||
+          currentEconomy < minimumCost(label)
         ) {
-          current.click()
+          pendingRepeat.current = null
+          return
         }
+
+        if (activeCommand()) {
+          // The battle component may already preserve the action itself (for example PvP attacks).
+          pendingRepeat.current = null
+          return
+        }
+
+        if (attempt < SETTLE_DELAYS_MS.length - 1) {
+          settleRestore(label, attempt + 1)
+          return
+        }
+
+        current.click()
         pendingRepeat.current = null
-      }, 0)
+      }, delay)
+    }
+
+    function tryRestore() {
+      const economy = actionEconomy()
+      if (economy === null) return
+
+      const previousEconomy = lastKnownEconomy.current
+      lastKnownEconomy.current = economy
+      const label = pendingRepeat.current
+      if (!label || previousEconomy === null || economy >= previousEconomy) return
+
+      const button = findCommand(label)
+      if (!button || button.disabled || economy < minimumCost(label)) {
+        pendingRepeat.current = null
+        clearSettleTimer()
+        return
+      }
+
+      settleRestore(label, 0)
     }
 
     lastKnownEconomy.current = actionEconomy()
@@ -146,7 +170,7 @@ export function BattleStickyActionAssist() {
       observer.disconnect()
       document.removeEventListener('click', handleClick, true)
       document.removeEventListener('dblclick', handleDoubleClick, true)
-      if (settleTimer.current !== null) window.clearTimeout(settleTimer.current)
+      clearSettleTimer()
     }
   }, [])
 
