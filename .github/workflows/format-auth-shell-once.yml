@@ -37,13 +37,9 @@ jobs:
       - name: Format touched files
         run: |
           pnpm exec prettier --write \
-            apps/web/src/components/battle/pvp-battle-client-boundary.tsx \
-            apps/web/src/components/battle/pvp-battle-experience.tsx \
+            apps/web/src/components/battle/pvp-battle-chat.tsx \
             apps/web/src/components/battle/pvp-desktop-parity.tsx \
-            apps/web/src/components/battle/pvp-battle-quality-controls.tsx \
-            apps/web/src/components/battle/ai-battle-pvp-visual-sync.module.css \
-            apps/web/src/components/battle/pvp-battle-experience.module.css \
-            apps/web/src/components/battle/pvp-desktop-parity.module.css
+            apps/web/src/components/battle/pvp-battle-release-polish.module.css
       - name: Commit release changes
         run: |
           git config user.name "Nicholas JM"
@@ -52,5 +48,5 @@ jobs:
           if git diff --cached --quiet; then
             exit 0
           fi
-          git commit -m "Polish PvP realtime combat shell"
+          git commit -m "Finish PvP realtime combat polish"
           git push origin HEAD:${{ github.event.pull_request.head.ref }}
