@@ -31,13 +31,6 @@ function facingFromGuide(guide: HTMLElement): Facing | null {
     : null
 }
 
-function facingFromButton(button: HTMLButtonElement): Facing | null {
-  const value = button.getAttribute('aria-label')?.replace(/^Face\s+/i, '').toLowerCase()
-  return value === 'north' || value === 'east' || value === 'south' || value === 'west'
-    ? value
-    : null
-}
-
 function rememberAndSet(element: HTMLElement, value: string) {
   if (element.dataset.facingPreviewOriginal === undefined) {
     element.dataset.facingPreviewOriginal = element.textContent ?? ''
@@ -104,18 +97,16 @@ function applyFacingPreview(playerName: string, facing: Facing) {
 }
 
 function clearSelection(options?: { restorePreview?: boolean }) {
-  for (const button of document.querySelectorAll<HTMLButtonElement>(
-    'button[data-facing-quick-selected="true"]',
-  )) {
-    button.removeAttribute('data-facing-quick-selected')
-    button.removeAttribute('aria-pressed')
+  for (const element of document.querySelectorAll<HTMLElement>('[data-facing-quick-selected="true"]')) {
+    element.removeAttribute('data-facing-quick-selected')
+    element.removeAttribute('aria-pressed')
   }
   if (options?.restorePreview === false) keepFacingPreview()
   else restoreFacingPreview()
 }
 
 export function BattleFacingQuickCommitAssist({ playerName }: { playerName: string }) {
-  const lastSelection = useRef<{ key: string; at: number } | null>(null)
+  const lastGuideSelection = useRef<{ key: string; at: number } | null>(null)
 
   useEffect(() => {
     void styles
@@ -128,54 +119,51 @@ export function BattleFacingQuickCommitAssist({ playerName }: { playerName: stri
         const control = document.querySelector<HTMLButtonElement>(`button[aria-label="Face ${facing}"]`)
         if (!control || control.disabled) return
 
-        // Keep the battlefield guide from falling through to normal tile interaction. The synthetic
-        // control click below is intentionally handled by this same listener: first activation
-        // previews the facing, the second activation inside the quick-commit window reaches the
-        // existing authoritative facing commit and ends the turn.
         event.preventDefault()
         event.stopImmediatePropagation()
-        control.click()
+
+        const key = `guide:${facing}`
+        const now = Date.now()
+        const previous = lastGuideSelection.current
+        const sameDirection =
+          previous !== null && previous.key === key && now - previous.at <= DOUBLE_TAP_WINDOW_MS
+
+        if (sameDirection) {
+          clearSelection({ restorePreview: false })
+          lastGuideSelection.current = null
+          // The explicit Final Facing control remains the authoritative one-click commit path.
+          // Triggering it here gives the battlefield guide the requested second-tap shortcut.
+          control.click()
+          return
+        }
+
+        clearSelection()
+        guide.dataset.facingQuickSelected = 'true'
+        guide.setAttribute('aria-pressed', 'true')
+        applyFacingPreview(playerName, facing)
+        lastGuideSelection.current = { key, at: now }
         return
       }
 
-      const button = facingButton(event.target)
-      if (!button || button.disabled) return
-      const facing = facingFromButton(button)
-      if (!facing) return
-
-      const key = button.getAttribute('aria-label') ?? ''
-      const now = Date.now()
-      const previous = lastSelection.current
-      const sameDirection =
-        previous !== null && previous.key === key && now - previous.at <= DOUBLE_TAP_WINDOW_MS
-
-      if (sameDirection) {
+      // The Final Facing pad is intentionally NOT intercepted. Its native battle handler commits
+      // the chosen direction and ends the turn on the first click/tap.
+      if (facingButton(event.target)) {
         clearSelection({ restorePreview: false })
-        lastSelection.current = null
-        return
+        lastGuideSelection.current = null
       }
-
-      event.preventDefault()
-      event.stopImmediatePropagation()
-      clearSelection()
-      button.dataset.facingQuickSelected = 'true'
-      button.setAttribute('aria-pressed', 'true')
-      applyFacingPreview(playerName, facing)
-      lastSelection.current = { key, at: now }
     }
 
     function handlePointerDown(event: PointerEvent) {
-      const button = facingButton(event.target)
-      if (button || facingGuide(event.target)) return
-      if (!lastSelection.current) return
+      if (facingButton(event.target) || facingGuide(event.target)) return
+      if (!lastGuideSelection.current) return
       clearSelection()
-      lastSelection.current = null
+      lastGuideSelection.current = null
     }
 
     const observer = new MutationObserver(() => {
       if (!document.querySelector('button[aria-label^="Face "]:not(:disabled)')) {
         clearSelection()
-        lastSelection.current = null
+        lastGuideSelection.current = null
       }
     })
     observer.observe(document.body, { childList: true, subtree: true, attributes: true })
