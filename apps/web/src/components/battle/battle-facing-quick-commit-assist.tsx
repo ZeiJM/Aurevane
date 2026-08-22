@@ -5,6 +5,7 @@ import { useEffect, useRef } from 'react'
 import styles from './battle-facing-quick-commit-assist.module.css'
 
 const DOUBLE_TAP_WINDOW_MS = 750
+const SYNTHETIC_CLICK_SUPPRESS_MS = 650
 const FACING_GLYPHS = {
   north: '↑',
   east: '→',
@@ -14,7 +15,7 @@ const FACING_GLYPHS = {
 
 type Facing = keyof typeof FACING_GLYPHS
 
-function facingButton(target: EventTarget | null): HTMLButtonElement | null {
+function finalFacingButton(target: EventTarget | null): HTMLButtonElement | null {
   const element = target instanceof Element ? target : null
   return element?.closest<HTMLButtonElement>('button[aria-label^="Face "]') ?? null
 }
@@ -106,10 +107,57 @@ function clearSelection(options?: { restorePreview?: boolean }) {
 }
 
 export function BattleFacingQuickCommitAssist({ playerName }: { playerName: string }) {
-  const lastGuideSelection = useRef<{ key: string; at: number } | null>(null)
+  const lastGuideSelection = useRef<{ facing: Facing; at: number } | null>(null)
+  const suppressSyntheticClickUntil = useRef(0)
 
   useEffect(() => {
     void styles
+
+    function selectGuide(guide: HTMLElement, facing: Facing, now: number) {
+      clearSelection()
+      guide.dataset.facingQuickSelected = 'true'
+      guide.setAttribute('aria-pressed', 'true')
+      applyFacingPreview(playerName, facing)
+      lastGuideSelection.current = { facing, at: now }
+    }
+
+    function commitGuide(facing: Facing) {
+      const control = document.querySelector<HTMLButtonElement>(`button[aria-label="Face ${facing}"]`)
+      if (!control || control.disabled) return
+      clearSelection({ restorePreview: false })
+      lastGuideSelection.current = null
+      // The real Final Facing button owns the server-authoritative final-turn commit. The map guide
+      // simply invokes that same path after the second tap/click.
+      control.click()
+    }
+
+    function handlePointerUp(event: PointerEvent) {
+      if (event.pointerType !== 'touch' && event.pointerType !== 'pen') return
+      const guide = facingGuide(event.target)
+      if (!guide) return
+      const facing = facingFromGuide(guide)
+      if (!facing) return
+      const control = document.querySelector<HTMLButtonElement>(`button[aria-label="Face ${facing}"]`)
+      if (!control || control.disabled) return
+
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      suppressSyntheticClickUntil.current = Date.now() + SYNTHETIC_CLICK_SUPPRESS_MS
+
+      const now = Date.now()
+      const previous = lastGuideSelection.current
+      const sameDirection =
+        previous !== null &&
+        previous.facing === facing &&
+        now - previous.at <= DOUBLE_TAP_WINDOW_MS
+
+      if (sameDirection) {
+        commitGuide(facing)
+        return
+      }
+
+      selectGuide(guide, facing, now)
+    }
 
     function handleClick(event: MouseEvent) {
       const guide = facingGuide(event.target)
@@ -122,39 +170,36 @@ export function BattleFacingQuickCommitAssist({ playerName }: { playerName: stri
         event.preventDefault()
         event.stopImmediatePropagation()
 
-        const key = `guide:${facing}`
+        // Mobile browsers often synthesize a click after pointerup. Ignore it because the touch
+        // gesture was already handled directly above.
+        if (Date.now() <= suppressSyntheticClickUntil.current) return
+
         const now = Date.now()
         const previous = lastGuideSelection.current
         const sameDirection =
-          previous !== null && previous.key === key && now - previous.at <= DOUBLE_TAP_WINDOW_MS
+          previous !== null &&
+          previous.facing === facing &&
+          now - previous.at <= DOUBLE_TAP_WINDOW_MS
 
         if (sameDirection) {
-          clearSelection({ restorePreview: false })
-          lastGuideSelection.current = null
-          // The explicit Final Facing control remains the authoritative one-click commit path.
-          // Triggering it here gives the battlefield guide the requested second-tap shortcut.
-          control.click()
+          commitGuide(facing)
           return
         }
 
-        clearSelection()
-        guide.dataset.facingQuickSelected = 'true'
-        guide.setAttribute('aria-pressed', 'true')
-        applyFacingPreview(playerName, facing)
-        lastGuideSelection.current = { key, at: now }
+        selectGuide(guide, facing, now)
         return
       }
 
-      // The Final Facing pad is intentionally NOT intercepted. Its native battle handler commits
-      // the chosen direction and ends the turn on the first click/tap.
-      if (facingButton(event.target)) {
+      // Dedicated Final Facing controls are deliberately untouched: one native click/tap chooses
+      // the direction and immediately ends the round through the battle component's real handler.
+      if (finalFacingButton(event.target)) {
         clearSelection({ restorePreview: false })
         lastGuideSelection.current = null
       }
     }
 
     function handlePointerDown(event: PointerEvent) {
-      if (facingButton(event.target) || facingGuide(event.target)) return
+      if (finalFacingButton(event.target) || facingGuide(event.target)) return
       if (!lastGuideSelection.current) return
       clearSelection()
       lastGuideSelection.current = null
@@ -168,10 +213,12 @@ export function BattleFacingQuickCommitAssist({ playerName }: { playerName: stri
     })
     observer.observe(document.body, { childList: true, subtree: true, attributes: true })
 
+    document.addEventListener('pointerup', handlePointerUp, true)
     document.addEventListener('click', handleClick, true)
     document.addEventListener('pointerdown', handlePointerDown, true)
     return () => {
       observer.disconnect()
+      document.removeEventListener('pointerup', handlePointerUp, true)
       document.removeEventListener('click', handleClick, true)
       document.removeEventListener('pointerdown', handlePointerDown, true)
       clearSelection()
