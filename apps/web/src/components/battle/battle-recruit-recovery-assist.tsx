@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 
 const RETRY_DELAYS_MS = [600, 1200, 2200, 4000, 6000] as const
+const RESET_AFTER_STABLE_MS = 10000
 
 function retryButton(): HTMLButtonElement | null {
   return (
@@ -14,40 +15,51 @@ function retryButton(): HTMLButtonElement | null {
 
 export function BattleRecruitRecoveryAssist() {
   const retryCount = useRef(0)
-  const timer = useRef<number | null>(null)
-  const lastVisible = useRef(false)
+  const retryTimer = useRef<number | null>(null)
+  const resetTimer = useRef<number | null>(null)
 
   useEffect(() => {
-    function clearTimer() {
-      if (timer.current === null) return
-      window.clearTimeout(timer.current)
-      timer.current = null
+    function clearRetryTimer() {
+      if (retryTimer.current === null) return
+      window.clearTimeout(retryTimer.current)
+      retryTimer.current = null
+    }
+
+    function clearResetTimer() {
+      if (resetTimer.current === null) return
+      window.clearTimeout(resetTimer.current)
+      resetTimer.current = null
+    }
+
+    function scheduleReset() {
+      if (resetTimer.current !== null) return
+      resetTimer.current = window.setTimeout(() => {
+        resetTimer.current = null
+        if (!retryButton()) retryCount.current = 0
+      }, RESET_AFTER_STABLE_MS)
     }
 
     function sync() {
       const button = retryButton()
-      const visible = Boolean(button)
 
       if (!button) {
-        if (lastVisible.current) retryCount.current = 0
-        lastVisible.current = false
-        clearTimer()
+        clearRetryTimer()
+        scheduleReset()
         return
       }
 
-      lastVisible.current = true
+      clearResetTimer()
       button.hidden = true
       button.setAttribute('aria-hidden', 'true')
       button.tabIndex = -1
 
-      if (timer.current !== null) return
+      if (retryTimer.current !== null) return
       const delay = RETRY_DELAYS_MS[Math.min(retryCount.current, RETRY_DELAYS_MS.length - 1)]
-      timer.current = window.setTimeout(() => {
-        timer.current = null
+      retryTimer.current = window.setTimeout(() => {
+        retryTimer.current = null
         const current = retryButton()
         if (!current) {
-          retryCount.current = 0
-          lastVisible.current = false
+          scheduleReset()
           return
         }
         retryCount.current += 1
@@ -61,7 +73,8 @@ export function BattleRecruitRecoveryAssist() {
 
     return () => {
       observer.disconnect()
-      clearTimer()
+      clearRetryTimer()
+      clearResetTimer()
     }
   }, [])
 
