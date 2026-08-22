@@ -124,7 +124,7 @@ export function CharacterSelectShell({
           </span>
         </Link>
 
-        <div className={styles.headerActions}>
+        <div className={`${styles.headerActions} character-select-header-actions`}>
           <div className={styles.screenIdentity} aria-label="Current screen: Character Select">
             {selectedCharacter ? (
               <span className={styles.screenPortrait} title={selectedCharacter.name}>
@@ -314,6 +314,14 @@ export function CharacterSelectShell({
           </section>
         </div>
       ) : null}
+
+      <style jsx global>{`
+        @media (max-width: 560px) {
+          .character-select-header-actions {
+            gap: 0.72rem !important;
+          }
+        }
+      `}</style>
     </div>
   )
 }
