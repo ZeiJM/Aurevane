@@ -26,6 +26,7 @@ interface PvpBattleChatProps {
   localCharacterId?: string | null
   showBattleLog?: boolean
   requestedTab?: 'chat' | 'log'
+  onRequestedTabChange?: (tab: 'chat' | 'log') => void
   onUnreadChange?: (unread: number) => void
   onSpectatorCountChange?: (count: number) => void
   className?: string
@@ -42,6 +43,7 @@ export function PvpBattleChat({
   localCharacterId = null,
   showBattleLog = false,
   requestedTab = 'chat',
+  onRequestedTabChange,
   onUnreadChange,
   onSpectatorCountChange,
   className,
@@ -50,7 +52,7 @@ export function PvpBattleChat({
   const [spectators, setSpectators] = useState<PvpSpectatorPresenceView[]>([])
   const [spectatorCount, setSpectatorCount] = useState(0)
   const [battleLog, setBattleLog] = useState<BattleLogView | null>(null)
-  const [tab, setTab] = useState<'chat' | 'log'>(requestedTab)
+  const [internalTab, setInternalTab] = useState<'chat' | 'log'>(requestedTab)
   const [spectatorListOpen, setSpectatorListOpen] = useState(false)
   const [draft, setDraft] = useState('')
   const [pending, setPending] = useState(false)
@@ -59,15 +61,20 @@ export function PvpBattleChat({
   const latestMessageId = useRef(0)
   const initialized = useRef(false)
   const listRef = useRef<HTMLDivElement | null>(null)
+  const tab = onRequestedTabChange ? requestedTab : internalTab
 
   const endpoint = useMemo(
     () => `/api/pvp/battles/${encodeURIComponent(battleSessionId)}/chat`,
     [battleSessionId],
   )
 
-  useEffect(() => {
-    setTab(requestedTab)
-  }, [requestedTab])
+  const selectTab = useCallback(
+    (nextTab: 'chat' | 'log') => {
+      if (onRequestedTabChange) onRequestedTabChange(nextTab)
+      else setInternalTab(nextTab)
+    },
+    [onRequestedTabChange],
+  )
 
   const publishUnread = useCallback(
     (value: number) => {
@@ -216,7 +223,7 @@ export function PvpBattleChat({
             <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
               <button
                 type="button"
-                onClick={() => setTab('chat')}
+                onClick={() => selectTab('chat')}
                 aria-pressed={tab === 'chat'}
                 style={{
                   border: 0,
@@ -233,7 +240,7 @@ export function PvpBattleChat({
               <span aria-hidden="true">/</span>
               <button
                 type="button"
-                onClick={() => setTab('log')}
+                onClick={() => selectTab('log')}
                 aria-pressed={tab === 'log'}
                 style={{
                   border: 0,
