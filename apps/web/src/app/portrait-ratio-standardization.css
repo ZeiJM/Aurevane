@@ -1,0 +1,115 @@
+/*
+ * Character portrait presentation contract.
+ *
+ * Source artwork may use any dimensions, but every in-game portrait frame is presented as 1:1.
+ * object-fit: cover keeps the frame neat without stretching the underlying artwork.
+ */
+
+.character-portrait-media {
+  aspect-ratio: 1 / 1;
+  object-fit: cover !important;
+  object-position: 50% 50%;
+}
+
+/* Character profile hero portrait. */
+[data-testid='character-profile'] > div:first-child {
+  width: 100%;
+  height: auto !important;
+  min-height: 0 !important;
+  aspect-ratio: 1 / 1;
+  align-self: start;
+}
+
+[data-testid='character-profile'] > div:first-child > .character-portrait-media {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Character Select roster portraits. Keep them compact while preserving the square contract. */
+[data-character-select-page='true']
+  section[aria-label='Character slots']
+  article
+  > div:has(> .character-portrait-media) {
+  width: min(100%, 15rem);
+  height: auto !important;
+  min-height: 0 !important;
+  aspect-ratio: 1 / 1;
+  justify-self: center;
+}
+
+[data-character-select-page='true']
+  section[aria-label='Character slots']
+  article
+  > div:has(> .character-portrait-media)
+  > .character-portrait-media {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Character creation portrait choices use AurevaneImage directly rather than CharacterPortraitImage. */
+[data-testid='character-creation']
+  label:has(input[name='portrait'])
+  > :is(img, [data-media-status]) {
+  width: 100% !important;
+  height: auto !important;
+  max-height: none !important;
+  aspect-ratio: 1 / 1 !important;
+  object-fit: cover !important;
+  object-position: 50% 32%;
+}
+
+/* AI battle desktop/tablet combatant portrait buttons. */
+aside[aria-label$=' combat status'] button[aria-label^='Show '] {
+  height: auto !important;
+  min-height: 0 !important;
+  aspect-ratio: 1 / 1;
+}
+
+aside[aria-label$=' combat status']
+  button[aria-label^='Show ']
+  > :is(.character-portrait-media, img, [data-media-status], [role='img']) {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: 50% 50%;
+}
+
+/* PvP side combatant panels. */
+[data-pvp-combatant-panel]
+  > div:has(> .character-portrait-media) {
+  height: auto !important;
+  min-height: 0 !important;
+  aspect-ratio: 1 / 1;
+}
+
+[data-pvp-combatant-panel]
+  > div:has(> .character-portrait-media)
+  > .character-portrait-media {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Online Users public-character popup. The small list avatar is already square. */
+section[aria-labelledby='online-profile-name'] > div:first-of-type {
+  min-height: 0 !important;
+  aspect-ratio: 1 / 1;
+}
+
+section[aria-labelledby='online-profile-name'] > div:first-of-type > :is(img, span[aria-label$=' portrait']) {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  aspect-ratio: 1 / 1;
+  object-fit: cover !important;
+  object-position: 50% 50%;
+}
+
+/* Header portraits, battle roster portraits, spectator portraits and map-token portraits are already
+ * square/circular. This reinforces their media crop without changing their intended shape. */
+.screenPortrait .character-portrait-media,
+[data-pvp-battle='true'] .character-portrait-media,
+[data-map-token-portrait] .character-portrait-media {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+}
