@@ -15,8 +15,8 @@ import { PvpBattleExperience } from './pvp-battle-experience'
 import { PvpBattleInspectPopup } from './pvp-battle-inspect-popup'
 import { PvpBattleKeyboardAssist } from './pvp-battle-keyboard-assist'
 import { PvpBattleQualityControls } from './pvp-battle-quality-controls'
-import { PvpBattleReleasePolish } from './pvp-battle-release-polish'
 import { PvpDesktopParity } from './pvp-desktop-parity'
+import { PvpBattleReleasePolish } from './pvp-battle-release-polish'
 import { PvpLegacyResultSuppressor } from './pvp-legacy-result-suppressor'
 import { PvpQuickCommitAssist } from './pvp-quick-commit-assist'
 
@@ -36,8 +36,8 @@ export function PvpBattleClientBoundary({
         initialBattle={initialBattle}
         metadata={metadata}
       />
-      <PvpBattleReleasePolish />
       <PvpDesktopParity initialBattle={initialBattle} metadata={metadata} />
+      <PvpBattleReleasePolish />
       <PvpLegacyResultSuppressor />
       <BattleDirectionalAttackAssist playerName={playerName} />
       <BattleMapTokenPolish />
