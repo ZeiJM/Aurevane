@@ -1,6 +1,5 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
@@ -30,6 +29,10 @@ function remainingSeconds(deadlineAt: string | null, now: number): number {
   return Math.max(0, Math.ceil((new Date(deadlineAt).getTime() - now) / 1000))
 }
 
+const CLOCK_POLL_MS = 1000
+const BATTLE_FALLBACK_POLL_MS = 3000
+const MAX_RECONNECT_DELAY_MS = 5000
+
 export function PvpBattleQualityControls({
   battleSessionId,
   metadata,
@@ -37,7 +40,6 @@ export function PvpBattleQualityControls({
   battleSessionId: string
   metadata: PvpBattleMetadata
 }) {
-  const router = useRouter()
   const [clock, setClock] = useState<ClockView | null>(null)
   const [now, setNow] = useState(0)
   const [battle, setBattle] = useState<BattleSessionView | null>(null)
@@ -48,7 +50,6 @@ export function PvpBattleQualityControls({
   const [commandTarget, setCommandTarget] = useState<HTMLElement | null>(null)
   const [footerTarget, setFooterTarget] = useState<HTMLElement | null>(null)
   const confirmTimer = useRef<number | null>(null)
-  const lastTurnSignature = useRef<string | null>(null)
 
   useEffect(() => {
     const locate = () => {
@@ -95,45 +96,59 @@ export function PvpBattleQualityControls({
   useEffect(() => {
     let cancelled = false
     let timer: number | null = null
+    let reconnectDelay = CLOCK_POLL_MS
+    let nextBattleFallbackAt = 0
+    let completed = false
 
     async function refresh() {
       try {
-        const [clockResponse, battleResponse] = await Promise.all([
-          fetch(`/api/pvp/battles/${battleSessionId}/turn-clock`, {
-            method: 'POST',
-            cache: 'no-store',
-          }),
-          fetch(`/api/battles/${battleSessionId}`, { cache: 'no-store' }),
-        ])
+        const clockResponse = await fetch(`/api/pvp/battles/${battleSessionId}/turn-clock`, {
+          method: 'POST',
+          cache: 'no-store',
+        })
         const clockBody = (await clockResponse.json()) as TickResponse
-        const battleBody = (await battleResponse.json()) as { battle?: BattleSessionView }
         if (cancelled) return
 
-        const nextClock = clockResponse.ok && clockBody.tick ? clockBody.tick.clock : null
-        const nextBattle =
-          (clockResponse.ok ? clockBody.tick?.battle : null) ??
-          (battleResponse.ok ? (battleBody.battle ?? null) : null)
-
-        if (nextClock) {
-          const turnSignature = `${nextClock.turnNumber ?? 'none'}:${nextClock.combatantId ?? 'none'}`
-          if (lastTurnSignature.current === null) {
-            lastTurnSignature.current = turnSignature
-          } else if (turnSignature !== lastTurnSignature.current) {
-            lastTurnSignature.current = turnSignature
-            setNow(Date.now())
-            router.refresh()
-          }
-          setClock(nextClock)
+        if (clockResponse.ok && clockBody.tick) {
+          setClock(clockBody.tick.clock)
           setError(null)
-        } else if (!clockResponse.ok) {
+          reconnectDelay = CLOCK_POLL_MS
+
+          if (clockBody.tick.battle) {
+            setBattle(clockBody.tick.battle)
+            completed = clockBody.tick.battle.snapshot.tactical.battle.lifecycle === 'completed'
+          }
+        } else {
           setError(clockBody.error?.message ?? 'Turn clock unavailable.')
+          reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY_MS)
         }
 
-        if (nextBattle) setBattle(nextBattle)
+        const fallbackDue = Date.now() >= nextBattleFallbackAt
+        if (!completed && fallbackDue) {
+          nextBattleFallbackAt = Date.now() + BATTLE_FALLBACK_POLL_MS
+          try {
+            const battleResponse = await fetch(`/api/battles/${battleSessionId}`, {
+              cache: 'no-store',
+            })
+            const battleBody = (await battleResponse.json()) as { battle?: BattleSessionView }
+            if (!cancelled && battleResponse.ok && battleBody.battle) {
+              setBattle(battleBody.battle)
+              completed = battleBody.battle.snapshot.tactical.battle.lifecycle === 'completed'
+            }
+          } catch {
+            // The main PvP surface also tracks battle state. This slower fallback must not
+            // amplify a transient database interruption into another request storm.
+          }
+        }
       } catch {
-        if (!cancelled) setError('Turn clock reconnecting…')
+        if (!cancelled) {
+          setError('Turn clock reconnecting…')
+          reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY_MS)
+        }
       } finally {
-        if (!cancelled) timer = window.setTimeout(refresh, 650)
+        if (!cancelled && !completed) {
+          timer = window.setTimeout(refresh, reconnectDelay)
+        }
       }
     }
 
@@ -142,7 +157,7 @@ export function PvpBattleQualityControls({
       cancelled = true
       if (timer !== null) window.clearTimeout(timer)
     }
-  }, [battleSessionId, router])
+  }, [battleSessionId])
 
   const activeCombatantId =
     clock?.combatantId ?? battle?.snapshot.tactical.battle.currentTurn?.combatantId ?? null
