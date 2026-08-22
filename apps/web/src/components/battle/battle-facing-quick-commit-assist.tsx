@@ -24,6 +24,13 @@ function facingGuide(target: EventTarget | null): HTMLElement | null {
   return element?.closest<HTMLElement>('[data-facing-guide="true"]') ?? null
 }
 
+function facingFromGuide(guide: HTMLElement): Facing | null {
+  const value = guide.dataset.facingDirection
+  return value === 'north' || value === 'east' || value === 'south' || value === 'west'
+    ? value
+    : null
+}
+
 function facingFromButton(button: HTMLButtonElement): Facing | null {
   const value = button.getAttribute('aria-label')?.replace(/^Face\s+/i, '').toLowerCase()
   return value === 'north' || value === 'east' || value === 'south' || value === 'west'
@@ -114,6 +121,23 @@ export function BattleFacingQuickCommitAssist({ playerName }: { playerName: stri
     void styles
 
     function handleClick(event: MouseEvent) {
+      const guide = facingGuide(event.target)
+      if (guide) {
+        const facing = facingFromGuide(guide)
+        if (!facing) return
+        const control = document.querySelector<HTMLButtonElement>(`button[aria-label="Face ${facing}"]`)
+        if (!control || control.disabled) return
+
+        // Keep the battlefield guide from falling through to normal tile interaction. The synthetic
+        // control click below is intentionally handled by this same listener: first activation
+        // previews the facing, the second activation inside the quick-commit window reaches the
+        // existing authoritative facing commit and ends the turn.
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        control.click()
+        return
+      }
+
       const button = facingButton(event.target)
       if (!button || button.disabled) return
       const facing = facingFromButton(button)
