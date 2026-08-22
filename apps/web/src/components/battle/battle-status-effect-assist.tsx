@@ -62,7 +62,7 @@ function detailsFromTrigger(trigger: HTMLElement): EffectDetails {
     trigger.getAttribute('aria-label') ||
     text ||
     'Combat Effect'
-  const cleanLabel = rawLabel.replace(/,.*$/, '').replace(/·.*$/, '').trim()
+  const cleanLabel = rawLabel.replace(/^Explain\s+/i, '').replace(/,.*$/, '').replace(/·.*$/, '').trim()
 
   return {
     title: humanize(cleanLabel),
@@ -74,6 +74,10 @@ function detailsFromTrigger(trigger: HTMLElement): EffectDetails {
 }
 
 function decorateEffectTriggers() {
+  for (const item of document.querySelectorAll<HTMLElement>('[aria-label$=" buffs and debuffs"] button')) {
+    item.dataset.battleEffectTrigger = 'true'
+  }
+
   for (const item of document.querySelectorAll<HTMLElement>('[aria-label$=" active effects"] li')) {
     item.dataset.battleEffectTrigger = 'true'
     item.tabIndex = 0
@@ -119,10 +123,9 @@ export function BattleStatusEffectAssist() {
     }
 
     function handleClick(event: MouseEvent) {
-      if (openFromTarget(event.target)) {
-        event.preventDefault()
-        event.stopPropagation()
-      }
+      if (!openFromTarget(event.target)) return
+      event.preventDefault()
+      event.stopPropagation()
     }
 
     function handleKeyDown(event: KeyboardEvent) {
@@ -136,28 +139,15 @@ export function BattleStatusEffectAssist() {
       event.stopPropagation()
     }
 
-    function closeExistingStatusPopover(event: PointerEvent) {
-      if (effect || !(event.target instanceof Node)) return
-      const close = document.querySelector<HTMLButtonElement>('button[aria-label="Close status details"]')
-      const popover = close?.parentElement
-      if (!close || !popover) return
-      if (popover.contains(event.target)) return
-      const element = event.target instanceof Element ? event.target : null
-      if (element?.closest('button[aria-label*="turns remaining"]')) return
-      close.click()
-    }
-
     document.addEventListener('click', handleClick, true)
     document.addEventListener('keydown', handleKeyDown, true)
-    document.addEventListener('pointerdown', closeExistingStatusPopover, true)
     return () => {
       observer.disconnect()
       if (frame !== 0) window.cancelAnimationFrame(frame)
       document.removeEventListener('click', handleClick, true)
       document.removeEventListener('keydown', handleKeyDown, true)
-      document.removeEventListener('pointerdown', closeExistingStatusPopover, true)
     }
-  }, [effect])
+  }, [])
 
   if (!effect || typeof document === 'undefined') return null
 
