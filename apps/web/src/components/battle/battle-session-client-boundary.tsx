@@ -8,6 +8,7 @@ import type { BattleSessionView } from '@/server/battle/battle-session-service'
 import { AiBattlePvpVisualSync } from './ai-battle-pvp-visual-sync'
 import { AiBattleQualityControls } from './ai-battle-quality-controls'
 import { AiBattleSurrenderAssist } from './ai-battle-surrender-assist'
+import { AiDesktopCombatantRailPolish } from './ai-desktop-combatant-rail-polish'
 import { BattleDirectionalAttackAssist } from './battle-directional-attack-assist'
 import { BattleExperienceV2 } from './battle-experience-v2'
 import { BattleFacingQuickCommitAssist } from './battle-facing-quick-commit-assist'
@@ -21,6 +22,7 @@ import { BattleRuntimeProvider } from './battle-runtime-context'
 import { BattleStatusEffectAssist } from './battle-status-effect-assist'
 import { BattleStickyActionAssist } from './battle-sticky-action-assist'
 import { BattleUtilityWindows } from './battle-utility-windows'
+import { DesktopBattleCombatantInspect } from './desktop-battle-combatant-inspect'
 import { MobileBattleCombatantPopup } from './mobile-battle-combatant-popup'
 
 interface BattleSessionClientBoundaryProps {
@@ -53,6 +55,7 @@ export function BattleSessionClientBoundary({
         playerPortraitAssetId={playerPortraitAssetId}
       />
       <AiBattlePvpVisualSync playerName={playerName} />
+      <AiDesktopCombatantRailPolish playerName={playerName} />
       <AiBattleQualityControls battleSessionId={initialBattle.battleSessionId} />
       <AiBattleSurrenderAssist battleSessionId={initialBattle.battleSessionId} />
       {lessonActive ? (
@@ -66,6 +69,12 @@ export function BattleSessionClientBoundary({
       <BattlePresentationPolish playerName={playerName} />
       <BattleFacingQuickCommitAssist playerName={playerName} />
       <BattleStatusEffectAssist />
+      <DesktopBattleCombatantInspect
+        battleSessionId={initialBattle.battleSessionId}
+        playerName={playerName}
+        playerPortraitAssetId={playerPortraitAssetId}
+        playerProfileImageUrl={playerProfileImageUrl}
+      />
       <BattleStickyActionAssist />
       <BattleRecruitRecoveryAssist />
       <BattleKeyboardAssist playerName={playerName} />
