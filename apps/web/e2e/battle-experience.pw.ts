@@ -219,7 +219,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(battleLog).toContainText(/moved|Guard/)
   await expect(battleLog).not.toContainText(/\bv\d+\b/)
   await expect(battleLog).not.toContainText('rollBasisPoints')
-  await page.getByRole('button', { name: 'Close combat log' }).click()
+  await page.getByRole('button', { name: 'Close battle log' }).click()
 
   await attackButton.click()
   const rangedTiles = battlefield.locator('button[data-attack-range]')
