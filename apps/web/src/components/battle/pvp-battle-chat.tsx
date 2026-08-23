@@ -252,7 +252,13 @@ export function PvpBattleChat({
           ) : (
             <span>Battle Chat</span>
           )}
-          <small>{tab === 'log' ? 'Rounds · actions · outcomes' : readOnly ? 'Read-only live feed' : 'Live with combatants'}</small>
+          <small>
+            {tab === 'log'
+              ? 'Rounds · actions · outcomes'
+              : readOnly
+                ? 'Read-only live feed'
+                : 'Live with combatants'}
+          </small>
         </div>
         <div className={styles.presenceWrap}>
           <button
