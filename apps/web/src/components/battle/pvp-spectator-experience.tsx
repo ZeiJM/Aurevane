@@ -301,7 +301,9 @@ export function PvpSpectatorExperience({
 
     if (selectedTile) {
       const terrainName =
-        terrainPresentation(selectedTile.terrainId) === 'rough' ? 'Difficult ground' : 'Open ground'
+        terrainPresentation(selectedTile.terrainId) === 'rough'
+          ? 'Difficult ground'
+          : 'Open ground'
       const traversalCost = selectedTerrain?.traversalCost ?? null
       return (
         <>
