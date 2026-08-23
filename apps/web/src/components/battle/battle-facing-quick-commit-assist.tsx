@@ -15,9 +15,24 @@ const FACING_GLYPHS = {
 
 type Facing = keyof typeof FACING_GLYPHS
 
+type CurrentFacingShortcut = 'finish-command' | 'facing-center'
+
 function finalFacingButton(target: EventTarget | null): HTMLButtonElement | null {
   const element = target instanceof Element ? target : null
   return element?.closest<HTMLButtonElement>('button[aria-label^="Face "]') ?? null
+}
+
+function finishTurnButton(target: EventTarget | null): HTMLButtonElement | null {
+  const element = target instanceof Element ? target : null
+  const button = element?.closest<HTMLButtonElement>('section[aria-label="Command Deck"] button') ?? null
+  return button?.querySelector('strong')?.textContent?.trim() === 'Finish Turn' ? button : null
+}
+
+function facingPadCenter(target: EventTarget | null): HTMLElement | null {
+  const element = target instanceof Element ? target : null
+  const pad = element?.closest<HTMLElement>('[data-pvp-facing-pad="true"]') ?? null
+  if (!pad || element?.closest('button') || element?.closest(':scope > span')) return null
+  return pad
 }
 
 function facingGuide(target: EventTarget | null): HTMLElement | null {
@@ -29,6 +44,31 @@ function facingFromGuide(guide: HTMLElement): Facing | null {
   const value = guide.dataset.facingDirection
   return value === 'north' || value === 'east' || value === 'south' || value === 'west'
     ? value
+    : null
+}
+
+function facingFromGlyph(glyph: string): Facing | null {
+  if (glyph.includes(FACING_GLYPHS.north)) return 'north'
+  if (glyph.includes(FACING_GLYPHS.east)) return 'east'
+  if (glyph.includes(FACING_GLYPHS.south)) return 'south'
+  if (glyph.includes(FACING_GLYPHS.west)) return 'west'
+  return null
+}
+
+function currentFacingControl(playerName: string): HTMLButtonElement | null {
+  const tile = Array.from(
+    document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label*="occupied by"]'),
+  ).find((candidate) =>
+    (candidate.getAttribute('aria-label') ?? '').includes(`occupied by ${playerName}`),
+  )
+  if (!tile) return null
+
+  const glyph = Array.from(tile.querySelectorAll<HTMLElement>('i, span'))
+    .map((candidate) => candidate.textContent?.trim() ?? '')
+    .find((text) => facingFromGlyph(text) !== null)
+  const facing = glyph ? facingFromGlyph(glyph) : null
+  return facing
+    ? document.querySelector<HTMLButtonElement>(`button[aria-label="Face ${facing}"]`)
     : null
 }
 
@@ -112,6 +152,7 @@ function clearSelection(options?: { restorePreview?: boolean }) {
 
 export function BattleFacingQuickCommitAssist({ playerName }: { playerName: string }) {
   const lastGuideSelection = useRef<{ facing: Facing; at: number } | null>(null)
+  const lastCurrentFacingTap = useRef<{ key: CurrentFacingShortcut; at: number } | null>(null)
   const suppressSyntheticClickUntil = useRef(0)
 
   useEffect(() => {
@@ -132,13 +173,55 @@ export function BattleFacingQuickCommitAssist({ playerName }: { playerName: stri
       if (!control || control.disabled) return
       clearSelection({ restorePreview: false })
       lastGuideSelection.current = null
+      lastCurrentFacingTap.current = null
       // The real Final Facing button owns the server-authoritative final-turn commit. The map guide
       // simply invokes that same path after the second tap/click.
       control.click()
     }
 
+    function handleCurrentFacingShortcut(
+      event: PointerEvent,
+      key: CurrentFacingShortcut,
+    ): boolean {
+      const now = Date.now()
+      const previous = lastCurrentFacingTap.current
+      const secondTap = previous?.key === key && now - previous.at <= DOUBLE_TAP_WINDOW_MS
+
+      if (!secondTap) {
+        lastCurrentFacingTap.current = { key, at: now }
+        return false
+      }
+
+      const control = currentFacingControl(playerName)
+      if (!control || control.disabled) {
+        lastCurrentFacingTap.current = { key, at: now }
+        return false
+      }
+
+      event.preventDefault()
+      event.stopImmediatePropagation()
+      suppressSyntheticClickUntil.current = now + SYNTHETIC_CLICK_SUPPRESS_MS
+      lastCurrentFacingTap.current = null
+      clearSelection({ restorePreview: false })
+      control.click()
+      return true
+    }
+
     function handlePointerUp(event: PointerEvent) {
       if (event.pointerType !== 'touch' && event.pointerType !== 'pen') return
+
+      if (finishTurnButton(event.target)) {
+        handleCurrentFacingShortcut(event, 'finish-command')
+        return
+      }
+
+      if (facingPadCenter(event.target)) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        handleCurrentFacingShortcut(event, 'facing-center')
+        return
+      }
+
       const guide = facingGuide(event.target)
       if (!guide) return
       const facing = facingFromGuide(guide)
@@ -166,6 +249,14 @@ export function BattleFacingQuickCommitAssist({ playerName }: { playerName: stri
     }
 
     function handleClick(event: MouseEvent) {
+      const finish = finishTurnButton(event.target)
+      const center = facingPadCenter(event.target)
+      if ((finish || center) && Date.now() <= suppressSyntheticClickUntil.current) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        return
+      }
+
       const guide = facingGuide(event.target)
       if (guide) {
         const facing = facingFromGuide(guide)
@@ -203,14 +294,23 @@ export function BattleFacingQuickCommitAssist({ playerName }: { playerName: stri
       if (finalFacingButton(event.target)) {
         clearSelection({ restorePreview: false })
         lastGuideSelection.current = null
+        lastCurrentFacingTap.current = null
       }
     }
 
     function handlePointerDown(event: PointerEvent) {
-      if (finalFacingButton(event.target) || facingGuide(event.target)) return
-      if (!lastGuideSelection.current) return
+      if (
+        finalFacingButton(event.target) ||
+        facingGuide(event.target) ||
+        finishTurnButton(event.target) ||
+        facingPadCenter(event.target)
+      ) {
+        return
+      }
+      if (!lastGuideSelection.current && !lastCurrentFacingTap.current) return
       clearSelection()
       lastGuideSelection.current = null
+      lastCurrentFacingTap.current = null
     }
 
     const observer = new MutationObserver(() => {
