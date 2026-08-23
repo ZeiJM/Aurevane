@@ -12,6 +12,7 @@ import type { BattleLogView } from '@/server/battle/battle-log-service'
 import type { PvpBattleParticipantView, PvpSpectatorView } from '@/server/battle/pvp-lobby-service'
 
 import styles from './pvp-spectator-experience.module.css'
+import inspectStyles from './pvp-spectator-inspect.module.css'
 
 const MOVE_COST_PER_TERRAIN_POINT = 25
 
@@ -299,9 +300,8 @@ export function PvpSpectatorExperience({
     }
 
     if (selectedTile) {
-      const terrainName = terrainPresentation(selectedTile.terrainId) === 'rough'
-        ? 'Difficult ground'
-        : 'Open ground'
+      const terrainName =
+        terrainPresentation(selectedTile.terrainId) === 'rough' ? 'Difficult ground' : 'Open ground'
       const traversalCost = selectedTerrain?.traversalCost ?? null
       return (
         <>
@@ -444,7 +444,10 @@ export function PvpSpectatorExperience({
           </article>
         </aside>
 
-        <section className={styles.battlefieldWrap} aria-label="Live battlefield">
+        <section
+          className={`${styles.battlefieldWrap} ${inspectStyles.battlefieldWrap}`}
+          aria-label="Live battlefield"
+        >
           <div className={styles.battlefieldHeader}>
             <div>
               <span>Battlefield</span>
@@ -475,7 +478,7 @@ export function PvpSpectatorExperience({
                 return (
                   <button
                     type="button"
-                    className={styles.tile}
+                    className={`${styles.tile} ${inspectStyles.tile}`}
                     data-terrain={terrain}
                     data-elevation={tile.elevation > 0 || undefined}
                     data-inspect-active={inspectMode || undefined}
@@ -517,10 +520,10 @@ export function PvpSpectatorExperience({
               })}
             </div>
           </div>
-          <div className={styles.inspectDeck} aria-label="Spectator inspect controls">
+          <div className={inspectStyles.inspectDeck} aria-label="Spectator inspect controls">
             <button
               type="button"
-              className={styles.inspectButton}
+              className={inspectStyles.inspectButton}
               data-active={inspectMode || undefined}
               aria-pressed={inspectMode}
               onClick={toggleInspect}
@@ -529,7 +532,7 @@ export function PvpSpectatorExperience({
               <strong>Inspect</strong>
               <small>Free</small>
             </button>
-            <div className={styles.inspectContext}>{inspectContext()}</div>
+            <div className={inspectStyles.inspectContext}>{inspectContext()}</div>
           </div>
           <div className={styles.legend} aria-label="Terrain legend">
             <span className={styles.terrainKey}>
