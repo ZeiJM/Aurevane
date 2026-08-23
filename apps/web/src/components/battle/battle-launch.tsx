@@ -60,6 +60,13 @@ const DIFFICULTIES: readonly { id: AiDifficulty; label: string; description: str
 ]
 
 const DEFAULT_PVP_MODE: PvpMode = '1v1'
+const PVP_MODES: readonly { id: PvpMode; label: string; detail: string }[] = [
+  { id: '1v1', label: '1v1 Duel', detail: 'Two combatants · one per side' },
+  { id: '2v2', label: '2v2 Clash', detail: 'Four combatants · two per side' },
+  { id: '3v3', label: '3v3 Skirmish', detail: 'Six combatants · three per side' },
+  { id: '1v1v1', label: 'Three-Way', detail: 'Three lone combatants · three factions' },
+  { id: 'flex-teams', label: 'Flexible Teams', detail: 'Choose 1–3 combatants on each side' },
+]
 
 function recordDisplayName(recordId: TacticalHallRecordId, fallback: string): string {
   return recordId === 'recruit-sparring' ? 'AI Sparring' : fallback
@@ -91,6 +98,9 @@ export function BattleLaunch({
   const [recordId, setRecordId] = useState<TacticalHallRecordId | null>(null)
   const [arenaId, setArenaId] = useState<TacticalHallArenaId>('duel-yard')
   const [aiDifficulty, setAiDifficulty] = useState<AiDifficulty>('standard')
+  const [pvpMode, setPvpMode] = useState<PvpMode | null>(DEFAULT_PVP_MODE)
+  const [teamASize, setTeamASize] = useState(1)
+  const [teamBSize, setTeamBSize] = useState(1)
   const [mapSize, setMapSize] = useState<PvpMapSize>('medium')
   const [elevationBias, setElevationBias] = useState<PvpMapBias>('neutral')
   const [terrainBias, setTerrainBias] = useState<PvpMapBias>('neutral')
@@ -155,7 +165,7 @@ export function BattleLaunch({
   }
 
   async function createLobby() {
-    if (pending) return
+    if (!pvpMode || pending) return
     setPending(true)
     setError(null)
     try {
@@ -164,11 +174,12 @@ export function BattleLaunch({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           characterId,
-          mode: DEFAULT_PVP_MODE,
+          mode: pvpMode,
           mapSize,
           elevationBias,
           terrainBias,
           turnTimerSeconds,
+          ...(pvpMode === 'flex-teams' ? { teamASize, teamBSize } : {}),
         }),
       })
       const body = (await response.json()) as { lobby?: PvpLobbyView } & ApiErrorBody
@@ -408,6 +419,51 @@ export function BattleLaunch({
                 <span>Create</span>
                 <strong>Open a Battle Lobby</strong>
               </div>
+              <label htmlFor="pvp-mode">Battle format</label>
+              <select
+                id="pvp-mode"
+                value={pvpMode ?? ''}
+                onChange={(event) => setPvpMode((event.target.value || null) as PvpMode | null)}
+                disabled={pending}
+              >
+                <option value="">Choose a PvP format…</option>
+                {PVP_MODES.map((mode) => (
+                  <option value={mode.id} key={mode.id}>
+                    {mode.label} — {mode.detail}
+                  </option>
+                ))}
+              </select>
+              {pvpMode === 'flex-teams' ? (
+                <div className={styles.flexSizes}>
+                  <label>
+                    Team 1
+                    <select
+                      value={teamASize}
+                      onChange={(event) => setTeamASize(Number(event.target.value))}
+                    >
+                      {[1, 2, 3].map((size) => (
+                        <option key={size} value={size}>
+                          {size} player{size > 1 ? 's' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <span>VS</span>
+                  <label>
+                    Team 2
+                    <select
+                      value={teamBSize}
+                      onChange={(event) => setTeamBSize(Number(event.target.value))}
+                    >
+                      {[1, 2, 3].map((size) => (
+                        <option key={size} value={size}>
+                          {size} player{size > 1 ? 's' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              ) : null}
               <div data-pvp-settings-panel aria-label="PvP battle settings">
                 <div data-pvp-settings-heading>
                   <strong>Battlefield conditions</strong>
@@ -491,14 +547,16 @@ export function BattleLaunch({
                   </div>
                 </fieldset>
               </div>
-              <p className={styles.modeSummary}>
-                Two combatants · one per side. {characterName} takes the first seat. The battlefield
-                and turn timer are locked for the match.
-              </p>
+              {pvpMode ? (
+                <p className={styles.modeSummary}>
+                  {PVP_MODES.find((mode) => mode.id === pvpMode)?.detail}. {characterName} takes the
+                  first seat. The battlefield and turn timer are locked for the match.
+                </p>
+              ) : null}
               <button
                 type="button"
                 className={styles.primaryAction}
-                disabled={pending}
+                disabled={!pvpMode || pending}
                 onClick={() => void createLobby()}
               >
                 {pending ? 'Preparing…' : 'Create Battle Lobby'}

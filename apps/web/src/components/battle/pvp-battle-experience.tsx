@@ -262,12 +262,6 @@ export function PvpBattleExperience({
   const actionEconomy = localTurn ? readEconomy(localCombatant) : 0
   const planningDisabled = !localTurn || battleState.lifecycle !== 'active' || commitPending
   const activeName = participantName(participantByCombatant, battleState.currentTurn?.combatantId)
-  const activeCombatant = battleState.currentTurn
-    ? (battleState.combatants.find(
-        (combatant) => combatant.id === battleState.currentTurn?.combatantId,
-      ) ?? null)
-    : null
-  const activeActionEconomy = readEconomy(activeCombatant)
   const teamCount = metadata.mode === '1v1v1' ? 3 : 2
 
   const placementByTile = useMemo(
@@ -763,7 +757,7 @@ export function PvpBattleExperience({
   }
 
   return (
-    <main className={styles.shell} data-pvp-battle="true">
+    <main className={styles.shell} data-pvp-battle="true" data-local-turn={localTurn || undefined}>
       <header className={styles.header}>
         <div className={styles.objective}>
           <span>Battle Hall · Player vs Player · {metadata.mode.toUpperCase()}</span>
@@ -773,7 +767,7 @@ export function PvpBattleExperience({
         <div className={styles.economy} data-active={localTurn || undefined}>
           <div className={styles.economyCopy}>
             <span>Action Economy</span>
-            <strong>{activeActionEconomy} AP</strong>
+            <strong>{actionEconomy} AP</strong>
             {localTurn && proposedCost > 0 ? (
               <small>− {proposedCost} proposed</small>
             ) : (
@@ -786,14 +780,14 @@ export function PvpBattleExperience({
             aria-label="Action Economy remaining"
             aria-valuemin={0}
             aria-valuemax={100}
-            aria-valuenow={activeActionEconomy}
+            aria-valuenow={actionEconomy}
           >
-            <span style={{ width: `${activeActionEconomy}%` }} />
+            <span style={{ width: `${actionEconomy}%` }} />
             {localTurn && proposedCost > 0 ? (
               <i
                 style={{
-                  left: `${Math.max(0, activeActionEconomy - proposedCost)}%`,
-                  width: `${Math.min(activeActionEconomy, proposedCost)}%`,
+                  left: `${Math.max(0, actionEconomy - proposedCost)}%`,
+                  width: `${Math.min(actionEconomy, proposedCost)}%`,
                 }}
               />
             ) : null}
@@ -1018,11 +1012,13 @@ export function PvpBattleExperience({
             ) : (
               <>
                 <strong>
-                  {mode === 'none'
-                    ? 'Choose an action'
-                    : mode === 'finish'
-                      ? 'Choose final facing'
-                      : mode.replace('-', ' ')}
+                  {!localTurn && battleState.lifecycle === 'active'
+                    ? `${activeName}’s Turn`
+                    : mode === 'none'
+                      ? 'Choose an action'
+                      : mode === 'finish'
+                        ? 'Choose final facing'
+                        : mode.replace('-', ' ')}
                 </strong>
                 <span>{notice}</span>
               </>

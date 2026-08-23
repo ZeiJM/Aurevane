@@ -41,7 +41,6 @@ export function PvpBattleChatBridge({
   const [open, setOpen] = useState(false)
   const [requestedTab, setRequestedTab] = useState<'chat' | 'log'>('chat')
   const [unread, setUnread] = useState(0)
-  const [spectatorCount, setSpectatorCount] = useState(0)
 
   useEffect(() => {
     let attachedChat: HTMLButtonElement | null = null
@@ -52,6 +51,7 @@ export function PvpBattleChatBridge({
       event.preventDefault()
       event.stopPropagation()
       setRequestedTab('chat')
+      setUnread(0)
       setOpen((current) => (requestedTab === 'chat' ? !current : true))
     }
 
@@ -81,14 +81,18 @@ export function PvpBattleChatBridge({
 
       if (chatButton) {
         badge = chatButton.querySelector<HTMLSpanElement>('[data-pvp-chat-badge]')
-        if (!badge) {
-          badge = document.createElement('span')
-          badge.dataset.pvpChatBadge = 'true'
-          badge.className = styles.triggerBadge
-          chatButton.appendChild(badge)
+        if (unread > 0) {
+          if (!badge) {
+            badge = document.createElement('span')
+            badge.dataset.pvpChatBadge = 'true'
+            badge.className = styles.triggerBadge
+            chatButton.appendChild(badge)
+          }
+          badge.textContent = 'NEW'
+        } else {
+          badge?.remove()
+          badge = null
         }
-        badge.textContent =
-          unread > 0 ? `◉ ${spectatorCount} · ${unread} new` : `◉ ${spectatorCount}`
         chatButton.setAttribute('aria-expanded', open && requestedTab === 'chat' ? 'true' : 'false')
         chatButton.dataset.hasUnread = unread > 0 ? 'true' : ''
       }
@@ -107,7 +111,7 @@ export function PvpBattleChatBridge({
       attachedLog?.removeEventListener('click', openLog, true)
       badge?.remove()
     }
-  }, [open, requestedTab, spectatorCount, unread])
+  }, [open, requestedTab, unread])
 
   return (
     <div
@@ -135,7 +139,6 @@ export function PvpBattleChatBridge({
         requestedTab={requestedTab}
         onRequestedTabChange={setRequestedTab}
         onUnreadChange={setUnread}
-        onSpectatorCountChange={setSpectatorCount}
       />
     </div>
   )

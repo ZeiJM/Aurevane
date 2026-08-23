@@ -52,10 +52,21 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   await expect(page.getByRole('heading', { name: 'Choose your arena.' })).toBeVisible()
 
   await page.getByRole('button', { name: 'Player vs Player' }).click()
-  await expect(page.locator('#pvp-mode')).toHaveCount(0)
-  await expect(page.getByText('Battle format', { exact: true })).toHaveCount(0)
-  await expect(page.getByText(/Two combatants · one per side/)).toBeVisible()
+  const pvpMode = page.getByLabel('Battle format')
+  const pvpSummary = page
+    .locator('article[data-pvp-create-card] p')
+    .filter({ hasText: 'combatants' })
+  await expect(pvpMode).toBeVisible()
+  await expect(pvpMode).toHaveValue('1v1')
+  await expect(pvpMode.locator('option')).toHaveCount(6)
+  await expect(pvpMode.locator('option[value="1v1v1"]')).toContainText('Three-Way')
+  await expect(pvpSummary).toContainText('Two combatants · one per side')
   await expect(page.getByRole('button', { name: 'Create Battle Lobby' })).toBeEnabled()
+
+  await pvpMode.selectOption('1v1v1')
+  await expect(pvpSummary).toContainText('Three lone combatants · three factions')
+  await pvpMode.selectOption('1v1')
+  await expect(pvpSummary).toContainText('Two combatants · one per side')
 
   await page.getByRole('button', { name: 'AI Battles' }).click()
   const battleMode = page.getByLabel('Battle mode')
