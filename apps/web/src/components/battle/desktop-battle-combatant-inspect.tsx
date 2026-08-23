@@ -156,11 +156,12 @@ function readSelectedCombatant(
   if (!combatant || !placement) return null
 
   const profile =
-    battle.snapshot.statBridge.combatants.find((candidate) => candidate.combatantId === combatantId) ??
-    null
+    battle.snapshot.statBridge.combatants.find(
+      (candidate) => candidate.combatantId === combatantId,
+    ) ?? null
   const statuses =
-    battle.snapshot.statusState.find((candidate) => candidate.combatantId === combatantId)?.statuses ??
-    []
+    battle.snapshot.statusState.find((candidate) => candidate.combatantId === combatantId)
+      ?.statuses ?? []
   const participant = metadata?.participants.find(
     (candidate) => candidate.combatantId === combatantId,
   )
@@ -175,7 +176,11 @@ function readSelectedCombatant(
     profile,
     statuses,
     name: participant?.characterName ?? displayNameForCombatant(combatantId, playerName),
-    teamLabel: participant ? `Team ${participant.teamIndex + 1}` : isPlayer ? 'Character' : 'Opponent',
+    teamLabel: participant
+      ? `Team ${participant.teamIndex + 1}`
+      : isPlayer
+        ? 'Character'
+        : 'Opponent',
     level: participant?.characterLevel ?? null,
     imageUrl: participant?.profileImageUrl ?? (isPlayer ? playerProfileImageUrl : null),
     fallbackAssetId: participant
@@ -296,19 +301,11 @@ export function DesktopBattleCombatantInspect({
       document.removeEventListener('click', handleClick, true)
       window.removeEventListener('keydown', handleEscape)
     }
-  }, [
-    battleSessionId,
-    playerName,
-    playerPortraitAssetId,
-    playerProfileImageUrl,
-    pvpMetadata,
-  ])
+  }, [battleSessionId, playerName, playerPortraitAssetId, playerProfileImageUrl, pvpMetadata])
 
   if (!open) return null
 
-  const healthPercent = selected
-    ? meterPercent(selected.combatant.hp, selected.combatant.maxHp)
-    : 0
+  const healthPercent = selected ? meterPercent(selected.combatant.hp, selected.combatant.maxHp) : 0
   const manaPercent = selected ? meterPercent(selected.combatant.mp, selected.combatant.maxMp) : 0
 
   return (
@@ -430,10 +427,7 @@ export function DesktopBattleCombatantInspect({
               </div>
             </dl>
 
-            <section
-              className={styles.effects}
-              aria-label={`${selected.name} buffs and debuffs`}
-            >
+            <section className={styles.effects} aria-label={`${selected.name} buffs and debuffs`}>
               <div className={styles.effectsHeading}>
                 <span>Active effects</span>
                 <small>{selected.statuses.length}</small>

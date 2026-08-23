@@ -204,10 +204,7 @@
 }
 
 @media (min-width: 821px) {
-  :global(
-    [data-pvp-desktop-content='true']
-      > aside:not([data-six-combatant-rail='true'])
-  ) {
+  :global([data-pvp-desktop-content='true'] > aside:not([data-six-combatant-rail='true'])) {
     display: none !important;
   }
 

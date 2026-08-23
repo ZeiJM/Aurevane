@@ -110,10 +110,14 @@ function RailCard({
           alt=""
         />
         <div className={styles.meters}>
-          <span aria-label={`${participant.characterName} HP ${combatant.hp} of ${combatant.maxHp}`}>
+          <span
+            aria-label={`${participant.characterName} HP ${combatant.hp} of ${combatant.maxHp}`}
+          >
             <i style={{ width: `${meterPercent(combatant.hp, combatant.maxHp)}%` }} />
           </span>
-          <span aria-label={`${participant.characterName} MP ${combatant.mp} of ${combatant.maxMp}`}>
+          <span
+            aria-label={`${participant.characterName} MP ${combatant.mp} of ${combatant.maxMp}`}
+          >
             <i style={{ width: `${meterPercent(combatant.mp, combatant.maxMp)}%` }} />
           </span>
         </div>
@@ -269,11 +273,7 @@ export function PvpSixCombatantRails({
               battle={battle}
               participant={participant}
               friendly
-              accent={pvpParticipantAccent(
-                participant.teamIndex,
-                participant.seatIndex,
-                teamCount,
-              )}
+              accent={pvpParticipantAccent(participant.teamIndex, participant.seatIndex, teamCount)}
             />
           ))}
         </div>
@@ -291,11 +291,7 @@ export function PvpSixCombatantRails({
               battle={battle}
               participant={participant}
               friendly={false}
-              accent={pvpParticipantAccent(
-                participant.teamIndex,
-                participant.seatIndex,
-                teamCount,
-              )}
+              accent={pvpParticipantAccent(participant.teamIndex, participant.seatIndex, teamCount)}
             />
           ))}
         </div>

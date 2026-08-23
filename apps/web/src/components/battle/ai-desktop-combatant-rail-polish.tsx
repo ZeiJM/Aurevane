@@ -43,7 +43,9 @@ export function AiDesktopCombatantRailPolish({ playerName }: { playerName: strin
       if (!root || root.dataset.pvpBattle === 'true') return
       root.dataset.aiDesktopCombatantRails = 'true'
 
-      for (const rail of root.querySelectorAll<HTMLElement>('aside[aria-label$=" combat status"]')) {
+      for (const rail of root.querySelectorAll<HTMLElement>(
+        'aside[aria-label$=" combat status"]',
+      )) {
         const name = combatantNameFromRail(rail)
         if (!name) continue
         const accent = accentForName(name)
@@ -55,7 +57,8 @@ export function AiDesktopCombatantRailPolish({ playerName }: { playerName: strin
         card.dataset.aiCompactCard = 'true'
         card.style.setProperty('--battle-combatant-accent', accent)
 
-        const heading = card.firstElementChild instanceof HTMLElement ? card.firstElementChild : null
+        const heading =
+          card.firstElementChild instanceof HTMLElement ? card.firstElementChild : null
         if (heading) heading.dataset.aiCompactHeading = 'true'
 
         const portrait = card.querySelector<HTMLButtonElement>('button[aria-label^="Show "]')
@@ -68,11 +71,13 @@ export function AiDesktopCombatantRailPolish({ playerName }: { playerName: strin
         const effects = card.querySelector<HTMLElement>('[aria-label$=" buffs and debuffs"]')
         if (effects) effects.dataset.aiCompactHidden = 'true'
 
-        const facing = Array.from(card.querySelectorAll<HTMLButtonElement>('button')).find((button) => {
-          if (button === portrait) return false
-          const text = button.textContent?.toLowerCase() ?? ''
-          return ['north', 'east', 'south', 'west'].some((direction) => text.includes(direction))
-        })
+        const facing = Array.from(card.querySelectorAll<HTMLButtonElement>('button')).find(
+          (button) => {
+            if (button === portrait) return false
+            const text = button.textContent?.toLowerCase() ?? ''
+            return ['north', 'east', 'south', 'west'].some((direction) => text.includes(direction))
+          },
+        )
         if (facing) {
           facing.dataset.aiCompactHidden = 'true'
           if (heading) {
