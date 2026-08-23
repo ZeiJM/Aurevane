@@ -13,6 +13,8 @@ import type { PvpBattleParticipantView, PvpSpectatorView } from '@/server/battle
 
 import styles from './pvp-spectator-experience.module.css'
 
+const MOVE_COST_PER_TERRAIN_POINT = 25
+
 type GridPosition = { x: number; y: number }
 type Facing = 'north' | 'east' | 'south' | 'west'
 
@@ -27,9 +29,18 @@ function positionKey(position: GridPosition): string {
   return `${position.x}:${position.y}`
 }
 
+function positionsEqual(left: GridPosition, right: GridPosition): boolean {
+  return left.x === right.x && left.y === right.y
+}
+
 function meterPercent(value: number, maximum: number): number {
   if (maximum <= 0) return 0
   return Math.max(0, Math.min(100, (value / maximum) * 100))
+}
+
+function percentFromBasisPoints(value: number | null | undefined): string {
+  if (value === null || value === undefined) return '—'
+  return `${Math.round(value / 100)}%`
 }
 
 function facingGlyph(facing: Facing): string {
@@ -70,6 +81,8 @@ export function PvpSpectatorExperience({
   const [stopping, setStopping] = useState(false)
   const [battleLog, setBattleLog] = useState<BattleLogView | null>(null)
   const [battleLogError, setBattleLogError] = useState<string | null>(null)
+  const [inspectMode, setInspectMode] = useState(false)
+  const [selectedPosition, setSelectedPosition] = useState<GridPosition | null>(null)
 
   const battle = spectator.battle
   const tactical = battle.snapshot.tactical
@@ -105,6 +118,28 @@ export function PvpSpectatorExperience({
     : null
   const activeCombatant = activeCombatantId
     ? (battleState.combatants.find((combatant) => combatant.id === activeCombatantId) ?? null)
+    : null
+  const selectedTile = selectedPosition
+    ? (tactical.tiles.find((tile) => positionsEqual(tile.position, selectedPosition)) ?? null)
+    : null
+  const selectedPlacement = selectedPosition
+    ? (placementByTile.get(positionKey(selectedPosition)) ?? null)
+    : null
+  const selectedParticipant = selectedPlacement
+    ? (participantByCombatant.get(selectedPlacement.combatantId) ?? null)
+    : null
+  const selectedCombatant = selectedPlacement
+    ? (battleState.combatants.find(
+        (combatant) => combatant.id === selectedPlacement.combatantId,
+      ) ?? null)
+    : null
+  const selectedProfile = selectedPlacement
+    ? (battle.snapshot.statBridge.combatants.find(
+        (profile) => profile.combatantId === selectedPlacement.combatantId,
+      ) ?? null)
+    : null
+  const selectedTerrain = selectedTile
+    ? (tactical.terrains.find((terrain) => terrain.id === selectedTile.terrainId) ?? null)
     : null
 
   const boardStyle: CSSProperties = {
@@ -229,6 +264,67 @@ export function PvpSpectatorExperience({
     } catch {
       setConnectionNote('Clipboard access is unavailable.')
     }
+  }
+
+  function toggleInspect() {
+    setInspectMode((current) => {
+      const next = !current
+      if (!next) setSelectedPosition(null)
+      return next
+    })
+  }
+
+  function inspectContext() {
+    if (!inspectMode) {
+      return (
+        <>
+          <strong>Read-only battlefield</strong>
+          <span>Use Inspect to examine any combatant or tile without affecting the battle.</span>
+        </>
+      )
+    }
+
+    if (selectedCombatant && selectedPlacement && selectedProfile) {
+      return (
+        <>
+          <strong>{selectedParticipant?.characterName ?? selectedCombatant.id}</strong>
+          <span>
+            Initiative {selectedCombatant.initiative} · Movement{' '}
+            {selectedCombatant.baseMovementBudget} · Jump {selectedProfile.jump} · Armor{' '}
+            {selectedProfile.armor} · Evasion {percentFromBasisPoints(selectedProfile.evasion)} ·
+            Facing {selectedPlacement.facing} {facingGlyph(selectedPlacement.facing as Facing)}
+          </span>
+        </>
+      )
+    }
+
+    if (selectedTile) {
+      const terrainName = terrainPresentation(selectedTile.terrainId) === 'rough'
+        ? 'Difficult ground'
+        : 'Open ground'
+      const traversalCost = selectedTerrain?.traversalCost ?? null
+      return (
+        <>
+          <strong>
+            {terrainName} · Tile {selectedTile.position.x + 1},{selectedTile.position.y + 1}
+          </strong>
+          <span>
+            Base entry cost{' '}
+            {traversalCost === null
+              ? 'blocked'
+              : `${traversalCost * MOVE_COST_PER_TERRAIN_POINT} AP`}{' '}
+            · Elevation {selectedTile.elevation}.
+          </span>
+        </>
+      )
+    }
+
+    return (
+      <>
+        <strong>Inspect</strong>
+        <span>Click any tile or combatant to read its tactical details here.</span>
+      </>
+    )
   }
 
   return (
@@ -372,14 +468,24 @@ export function PvpSpectatorExperience({
                 const terrain = terrainPresentation(tile.terrainId)
                 const x = tile.position.x + 1
                 const y = tile.position.y + 1
+                const selected = Boolean(
+                  inspectMode && selectedPosition && positionsEqual(tile.position, selectedPosition),
+                )
 
                 return (
-                  <div
+                  <button
+                    type="button"
                     className={styles.tile}
                     data-terrain={terrain}
                     data-elevation={tile.elevation > 0 || undefined}
+                    data-inspect-active={inspectMode || undefined}
+                    data-selected={selected || undefined}
                     key={key}
+                    onClick={() => {
+                      if (inspectMode) setSelectedPosition({ ...tile.position })
+                    }}
                     aria-label={`Tile ${x}, ${y}; ${terrain} ground; elevation ${tile.elevation}${participant ? `; occupied by ${participant.characterName}` : ''}`}
+                    aria-pressed={selected}
                   >
                     <span className={styles.tileMeta}>
                       {x}.{y}
@@ -406,10 +512,24 @@ export function PvpSpectatorExperience({
                         <i>{facingGlyph(placement.facing as Facing)}</i>
                       </span>
                     ) : null}
-                  </div>
+                  </button>
                 )
               })}
             </div>
+          </div>
+          <div className={styles.inspectDeck} aria-label="Spectator inspect controls">
+            <button
+              type="button"
+              className={styles.inspectButton}
+              data-active={inspectMode || undefined}
+              aria-pressed={inspectMode}
+              onClick={toggleInspect}
+            >
+              <span>00</span>
+              <strong>Inspect</strong>
+              <small>Free</small>
+            </button>
+            <div className={styles.inspectContext}>{inspectContext()}</div>
           </div>
           <div className={styles.legend} aria-label="Terrain legend">
             <span className={styles.terrainKey}>
