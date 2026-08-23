@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
+import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
 interface ClockView {
@@ -34,9 +35,11 @@ const MAX_RECONNECT_DELAY_MS = 5000
 export function PvpBattleQualityControls({
   battleSessionId,
   initialBattle,
+  metadata,
 }: {
   battleSessionId: string
   initialBattle: BattleSessionView
+  metadata: PvpBattleMetadata
 }) {
   const [clock, setClock] = useState<ClockView | null>(null)
   const [now, setNow] = useState(0)
@@ -47,6 +50,17 @@ export function PvpBattleQualityControls({
   const [commandTarget, setCommandTarget] = useState<HTMLElement | null>(null)
   const [footerActionsTarget, setFooterActionsTarget] = useState<HTMLElement | null>(null)
   const confirmTimer = useRef<number | null>(null)
+
+  const localCombatantId =
+    metadata.participants.find(
+      (participant) => participant.characterId === metadata.localCharacterId,
+    )?.combatantId ?? null
+  const battleIsActive = battle?.snapshot.tactical.battle.lifecycle === 'active'
+  const localTurn = Boolean(
+    battleIsActive &&
+      localCombatantId &&
+      battle?.snapshot.tactical.battle.currentTurn?.combatantId === localCombatantId,
+  )
 
   useEffect(() => {
     const locate = () => {
@@ -176,7 +190,6 @@ export function PvpBattleQualityControls({
   }
 
   const seconds = remainingSeconds(clock?.deadlineAt ?? null, now)
-  const battleIsActive = battle?.snapshot.tactical.battle.lifecycle === 'active'
   const timerText = clock?.active
     ? `${seconds}s`
     : battleIsActive && clock?.turnTimerSeconds === null
@@ -185,7 +198,7 @@ export function PvpBattleQualityControls({
 
   return (
     <>
-      {commandTarget
+      {commandTarget && localTurn
         ? createPortal(
             <span
               data-pvp-turn-clock="true"
