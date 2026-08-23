@@ -23,3 +23,6 @@ additional_redirect_urls = ["http://localhost:3000/**", "http://127.0.0.1:3000/*
 jwt_expiry = 3600
 enable_signup = true
 minimum_password_length = 8
+
+[auth.email]
+enable_confirmations = true
