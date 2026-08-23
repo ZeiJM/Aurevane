@@ -2,12 +2,41 @@ import 'server-only'
 
 import type { BattleEventRecord, BattleEventRepository } from '@aurevane/db/battle-session'
 
+export type BattleLogKind =
+  | 'offense'
+  | 'movement'
+  | 'defense'
+  | 'recovery'
+  | 'status'
+  | 'resource'
+  | 'turn'
+  | 'system'
+
+export type BattleLogTone = 'neutral' | 'damage' | 'healing' | 'benefit' | 'warning'
+
+export interface BattleLogFact {
+  label: string
+  tone: BattleLogTone
+}
+
 export interface BattleLogEntry {
   battleVersion: number
   eventIndex: number
   occurredAt: string
   eventType: string
   message: string
+  messageTemplate: string
+  templateValues: Readonly<Record<string, string>>
+  actorCombatantId: string | null
+  targetCombatantId: string | null
+  actionId: string | null
+  actionLabel: string | null
+  round: number | null
+  turnNumber: number | null
+  kind: BattleLogKind
+  headline: string
+  tone: BattleLogTone
+  facts: readonly BattleLogFact[]
 }
 
 export interface BattleLogView {
@@ -21,6 +50,10 @@ export interface BattleLogService {
 
 const BATTLE_LOG_LIMIT = 100
 
+function stringValue(value: unknown): string | null {
+  return typeof value === 'string' && value.length > 0 ? value : null
+}
+
 function combatantLabel(value: unknown): string {
   if (typeof value !== 'string') return 'Combatant'
   if (value.startsWith('character:')) return 'Wayfarer'
@@ -31,7 +64,8 @@ function combatantLabel(value: unknown): string {
 function actionLabel(value: unknown): string {
   if (value === 'basic.attack.unarmed.basic') return 'Basic Attack'
   if (value === 'basic.guard') return 'Guard'
-  if (typeof value !== 'string' || value.length === 0) return 'an action'
+  if (value === 'basic.recover') return 'Recover'
+  if (typeof value !== 'string' || value.length === 0) return 'Action'
   return value
     .split(/[._-]+/u)
     .filter(Boolean)
@@ -39,10 +73,16 @@ function actionLabel(value: unknown): string {
     .join(' ')
 }
 
+function actionKind(value: unknown): BattleLogKind {
+  if (value === 'basic.guard') return 'defense'
+  if (value === 'basic.recover') return 'recovery'
+  return 'offense'
+}
+
 function statusLabel(value: unknown): string {
   if (value === 'guarded') return 'Guarded'
   if (value === 'lowered-guard') return 'Lowered Guard'
-  if (typeof value !== 'string' || value.length === 0) return 'a status'
+  if (typeof value !== 'string' || value.length === 0) return 'Status'
   return value
     .split(/[._-]+/u)
     .filter(Boolean)
@@ -72,123 +112,45 @@ function positionLabel(value: unknown): string | null {
   return `${x + 1}, ${y + 1}`
 }
 
-function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | null {
-  if (!record.event || typeof record.event !== 'object' || Array.isArray(record.event)) return null
-  const event = record.event as Record<string, unknown>
-  const eventType = typeof event.event === 'string' ? event.event : null
-  if (!eventType) return null
+function fact(label: string | null, tone: BattleLogTone = 'neutral'): BattleLogFact[] {
+  return label ? [{ label, tone }] : []
+}
 
-  let message: string | null = null
+function renderTemplate(
+  template: string,
+  values: Readonly<Record<string, string>>,
+): string {
+  return template.replace(/\{([a-zA-Z][a-zA-Z0-9_.-]*)\}/gu, (_match, token: string) => {
+    return values[token] ?? ''
+  })
+}
 
-  switch (eventType) {
-    case 'combatant_moved': {
-      const origin = positionLabel(event.from)
-      const destination = positionLabel(event.to)
-      const cost = numberValue(event.movementCost)
-      message = `${combatantLabel(event.combatantId)} moved${origin ? ` from ${origin}` : ''}${destination ? ` to ${destination}` : ''}${cost === null ? '' : ` for ${cost} Movement`}.`
-      break
-    }
-    case 'movement_spent': {
-      const amount = numberValue(event.amount)
-      const remaining = numberValue(event.remaining)
-      message = `${combatantLabel(event.combatantId)} spent ${amount ?? 'resolved'} Movement${remaining === null ? '' : `; ${remaining} remains`}.`
-      break
-    }
-    case 'combatant_facing_changed': {
-      const facing = typeof event.facing === 'string' ? event.facing : 'a new direction'
-      message = `${combatantLabel(event.combatantId)} ended facing ${facing}.`
-      break
-    }
-    case 'final_facing_selected':
-      return null
-    case 'action_spent':
-      return null
-    case 'combat_action_used':
-      message = `${combatantLabel(event.actorId)} used ${actionLabel(event.actionId)}.`
-      break
-    case 'damage_applied': {
-      const amount = numberValue(event.amount)
-      const hpAfter = numberValue(event.hpAfter)
-      message = `${combatantLabel(event.targetCombatantId)} took ${amount ?? 'resolved'} damage${hpAfter === null ? '' : ` and has ${hpAfter} HP remaining`}.`
-      break
-    }
-    case 'healing_applied': {
-      const amount = numberValue(event.amount)
-      const hpAfter = numberValue(event.hpAfter)
-      message = `${combatantLabel(event.targetCombatantId)} recovered ${amount ?? 'resolved'} HP${hpAfter === null ? '' : ` and now has ${hpAfter} HP`}.`
-      break
-    }
-    case 'mp_spent': {
-      const amount = numberValue(event.amount)
-      const remaining = numberValue(event.remaining)
-      message = `${combatantLabel(event.combatantId)} spent ${amount ?? 'resolved'} MP${remaining === null ? '' : `; ${remaining} remains`}.`
-      break
-    }
-    case 'resource_changed': {
-      const delta = numberValue(event.delta)
-      const resource =
-        typeof event.resource === 'string' ? event.resource.toUpperCase() : 'resource'
-      message = `${combatantLabel(event.targetCombatantId)} ${delta !== null && delta < 0 ? 'spent' : 'gained'} ${delta === null ? 'resolved' : Math.abs(delta)} ${resource}.`
-      break
-    }
-    case 'status_applied': {
-      const remaining = numberValue(event.remainingOwnerTurnStarts)
-      message = `${combatantLabel(event.targetCombatantId)} gained ${statusLabel(event.statusId)}${remaining === null ? '' : ` for ${remaining} owner-turn start${remaining === 1 ? '' : 's'}`}.`
-      break
-    }
-    case 'status_expired':
-      message = `${statusLabel(event.statusId)} expired on ${combatantLabel(event.combatantId)}.`
-      break
-    case 'combatant_waited':
-      message = `${combatantLabel(event.combatantId)} waited.`
-      break
-    case 'round_started': {
-      const round = numberValue(event.round)
-      message = `Round ${round ?? '—'} began.`
-      break
-    }
-    case 'turn_started': {
-      const round = numberValue(event.round)
-      const activation = numberValue(event.turnNumber)
-      message = `${combatantLabel(event.combatantId)} activation began${round === null ? '' : ` in Round ${round}`}${activation === null ? '' : ` (activation ${activation})`}.`
-      break
-    }
-    case 'turn_ended': {
-      const activation = numberValue(event.turnNumber)
-      message = `${combatantLabel(event.combatantId)} ended the activation${activation === null ? '' : ` ${activation}`}.`
-      break
-    }
-    case 'stat_driven_attack_resolved': {
-      const hit = event.hit === true
-      const chance = numberValue(event.hitChanceBasisPoints)
-      message = `${combatantLabel(event.actorId)} Basic Attack ${hit ? 'HIT' : 'MISSED'}${chance === null ? '' : ` (${Math.round(chance / 100)}% hit chance)`}.`
-      break
-    }
-    case 'recruit_ai_decision':
-      message = `Recruit chose ${recruitReasonLabel(event.reason)}.`
-      break
-    case 'pvp_turn_timed_out': {
-      const misses = numberValue(event.consecutiveMisses)
-      message = `${combatantLabel(event.combatantId)} timed out${misses === null ? '' : ` (${misses} tracked miss${misses === 1 ? '' : 'es'})`}.`
-      break
-    }
-    case 'pvp_lowered_guard_applied':
-      message = `${combatantLabel(event.combatantId)} gained Lowered Guard after the turn timer expired.`
-      break
-    case 'pvp_combatant_surrendered':
-      message = `${combatantLabel(event.combatantId)} surrendered.`
-      break
-    case 'battle_completed':
-      message = 'Battle completed.'
-      break
-    case 'battle_started':
-      message = 'Battle began.'
-      break
-    case 'battle_abandoned':
-      message = 'Practice battle was aborted.'
-      break
-    default:
-      return null
+function createEntry(
+  record: BattleEventRecord,
+  eventType: string,
+  input: {
+    message?: string
+    messageTemplate: string
+    templateValues?: Readonly<Record<string, string>>
+    actorCombatantId?: string | null
+    targetCombatantId?: string | null
+    actionId?: string | null
+    actionLabel?: string | null
+    round?: number | null
+    turnNumber?: number | null
+    kind: BattleLogKind
+    headline: string
+    tone?: BattleLogTone
+    facts?: readonly BattleLogFact[]
+  },
+): BattleLogEntry {
+  const actorCombatantId = input.actorCombatantId ?? null
+  const targetCombatantId = input.targetCombatantId ?? null
+  const templateValues = input.templateValues ?? {}
+  const defaultMessageValues = {
+    ...templateValues,
+    actor: combatantLabel(actorCombatantId),
+    target: combatantLabel(targetCombatantId),
   }
 
   return {
@@ -196,19 +158,402 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
     eventIndex: record.eventIndex,
     occurredAt: record.createdAt,
     eventType,
-    message,
+    message: input.message ?? renderTemplate(input.messageTemplate, defaultMessageValues),
+    messageTemplate: input.messageTemplate,
+    templateValues,
+    actorCombatantId,
+    targetCombatantId,
+    actionId: input.actionId ?? null,
+    actionLabel: input.actionLabel ?? null,
+    round: input.round ?? null,
+    turnNumber: input.turnNumber ?? null,
+    kind: input.kind,
+    headline: input.headline,
+    tone: input.tone ?? 'neutral',
+    facts: input.facts ?? [],
   }
+}
+
+function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | null {
+  if (!record.event || typeof record.event !== 'object' || Array.isArray(record.event)) return null
+  const event = record.event as Record<string, unknown>
+  const eventType = stringValue(event.event)
+  if (!eventType) return null
+
+  switch (eventType) {
+    case 'combatant_moved': {
+      const actorCombatantId = stringValue(event.combatantId)
+      const origin = positionLabel(event.from)
+      const destination = positionLabel(event.to)
+      const cost = numberValue(event.movementCost)
+      const route = origin && destination ? `${origin} → ${destination}` : (destination ?? origin)
+      return createEntry(record, eventType, {
+        message: `${combatantLabel(event.combatantId)} moved${origin ? ` from ${origin}` : ''}${destination ? ` to ${destination}` : ''}${cost === null ? '' : ` for ${cost} Movement`}.`,
+        messageTemplate: `{actor} moved${origin ? ` from ${origin}` : ''}${destination ? ` to ${destination}` : ''}.`,
+        actorCombatantId,
+        kind: 'movement',
+        headline: 'Move',
+        facts: [
+          ...fact(route),
+          ...fact(cost === null ? null : `${cost} Move`),
+        ],
+      })
+    }
+    case 'movement_spent': {
+      const actorCombatantId = stringValue(event.combatantId)
+      const amount = numberValue(event.amount)
+      const remaining = numberValue(event.remaining)
+      return createEntry(record, eventType, {
+        message: `${combatantLabel(event.combatantId)} spent ${amount ?? 'resolved'} Movement${remaining === null ? '' : `; ${remaining} remains`}.`,
+        messageTemplate: '{actor} spent {amount} Movement.',
+        templateValues: { amount: String(amount ?? 'resolved') },
+        actorCombatantId,
+        kind: 'resource',
+        headline: 'Movement',
+        facts: [
+          ...fact(amount === null ? null : `−${amount} Move`),
+          ...fact(remaining === null ? null : `${remaining} left`),
+        ],
+      })
+    }
+    case 'combatant_facing_changed': {
+      const actorCombatantId = stringValue(event.combatantId)
+      const facing = stringValue(event.facing) ?? 'a new direction'
+      return createEntry(record, eventType, {
+        message: `${combatantLabel(event.combatantId)} ended facing ${facing}.`,
+        messageTemplate: '{actor} faces {facing}.',
+        templateValues: { facing },
+        actorCombatantId,
+        kind: 'turn',
+        headline: 'Facing',
+        facts: fact(facing.toUpperCase()),
+      })
+    }
+    case 'final_facing_selected':
+      return null
+    case 'action_spent':
+      return null
+    case 'combat_action_used': {
+      const actorCombatantId = stringValue(event.actorId)
+      const actionId = stringValue(event.actionId)
+      const label = actionLabel(actionId)
+      return createEntry(record, eventType, {
+        message: `${combatantLabel(event.actorId)} used ${label}.`,
+        messageTemplate: '{actor} used {action}.',
+        templateValues: { action: label },
+        actorCombatantId,
+        actionId,
+        actionLabel: label,
+        kind: actionKind(actionId),
+        headline: label,
+      })
+    }
+    case 'damage_applied': {
+      const actorCombatantId = stringValue(event.sourceCombatantId)
+      const targetCombatantId = stringValue(event.targetCombatantId)
+      const actionId = stringValue(event.actionId)
+      const amount = numberValue(event.amount)
+      const hpAfter = numberValue(event.hpAfter)
+      return createEntry(record, eventType, {
+        message: `${combatantLabel(event.targetCombatantId)} took ${amount ?? 'resolved'} damage${hpAfter === null ? '' : ` and has ${hpAfter} HP remaining`}.`,
+        messageTemplate: '{target} took {amount} damage.',
+        templateValues: { amount: String(amount ?? 'resolved') },
+        actorCombatantId,
+        targetCombatantId,
+        actionId,
+        actionLabel: actionId ? actionLabel(actionId) : null,
+        kind: 'offense',
+        headline: actionId ? actionLabel(actionId) : 'Damage',
+        tone: 'damage',
+        facts: [
+          ...fact(amount === null ? null : `${amount} DMG`, 'damage'),
+          ...fact(hpAfter === null ? null : `${hpAfter} HP`),
+        ],
+      })
+    }
+    case 'healing_applied': {
+      const actorCombatantId = stringValue(event.sourceCombatantId)
+      const targetCombatantId = stringValue(event.targetCombatantId)
+      const actionId = stringValue(event.actionId)
+      const amount = numberValue(event.amount)
+      const hpAfter = numberValue(event.hpAfter)
+      return createEntry(record, eventType, {
+        message: `${combatantLabel(event.targetCombatantId)} recovered ${amount ?? 'resolved'} HP${hpAfter === null ? '' : ` and now has ${hpAfter} HP`}.`,
+        messageTemplate: '{target} recovered {amount} HP.',
+        templateValues: { amount: String(amount ?? 'resolved') },
+        actorCombatantId,
+        targetCombatantId,
+        actionId,
+        actionLabel: actionId ? actionLabel(actionId) : 'Recover',
+        kind: 'recovery',
+        headline: actionId ? actionLabel(actionId) : 'Recover',
+        tone: 'healing',
+        facts: [
+          ...fact(amount === null ? null : `+${amount} HP`, 'healing'),
+          ...fact(hpAfter === null ? null : `${hpAfter} HP`),
+        ],
+      })
+    }
+    case 'mp_spent': {
+      const actorCombatantId = stringValue(event.combatantId)
+      const amount = numberValue(event.amount)
+      const remaining = numberValue(event.remaining)
+      return createEntry(record, eventType, {
+        message: `${combatantLabel(event.combatantId)} spent ${amount ?? 'resolved'} MP${remaining === null ? '' : `; ${remaining} remains`}.`,
+        messageTemplate: '{actor} spent {amount} MP.',
+        templateValues: { amount: String(amount ?? 'resolved') },
+        actorCombatantId,
+        kind: 'resource',
+        headline: 'MP',
+        facts: [
+          ...fact(amount === null ? null : `−${amount} MP`),
+          ...fact(remaining === null ? null : `${remaining} left`),
+        ],
+      })
+    }
+    case 'resource_changed': {
+      const targetCombatantId = stringValue(event.targetCombatantId)
+      const delta = numberValue(event.delta)
+      const resource = stringValue(event.resource)?.toUpperCase() ?? 'RESOURCE'
+      const direction = delta !== null && delta < 0 ? 'spent' : 'gained'
+      const amount = delta === null ? 'resolved' : Math.abs(delta)
+      return createEntry(record, eventType, {
+        message: `${combatantLabel(event.targetCombatantId)} ${direction} ${amount} ${resource}.`,
+        messageTemplate: '{target} {direction} {amount} {resource}.',
+        templateValues: { direction, amount: String(amount), resource },
+        targetCombatantId,
+        kind: 'resource',
+        headline: resource,
+        tone: delta !== null && delta > 0 ? 'benefit' : 'neutral',
+        facts: fact(delta === null ? resource : `${delta > 0 ? '+' : '−'}${Math.abs(delta)} ${resource}`),
+      })
+    }
+    case 'status_applied': {
+      const targetCombatantId = stringValue(event.targetCombatantId)
+      const statusId = stringValue(event.statusId)
+      const label = statusLabel(statusId)
+      const remaining = numberValue(event.remainingOwnerTurnStarts)
+      const beneficial = statusId === 'guarded' || statusId?.startsWith('buff.') === true
+      return createEntry(record, eventType, {
+        message: `${combatantLabel(event.targetCombatantId)} gained ${label}${remaining === null ? '' : ` for ${remaining} owner-turn start${remaining === 1 ? '' : 's'}`}.`,
+        messageTemplate: '{target} gained {status}.',
+        templateValues: { status: label },
+        targetCombatantId,
+        kind: beneficial && statusId === 'guarded' ? 'defense' : 'status',
+        headline: label,
+        tone: beneficial ? 'benefit' : 'neutral',
+        facts: [
+          ...fact(label, beneficial ? 'benefit' : 'neutral'),
+          ...fact(remaining === null ? null : `${remaining} turn${remaining === 1 ? '' : 's'}`),
+        ],
+      })
+    }
+    case 'status_expired': {
+      const targetCombatantId = stringValue(event.combatantId)
+      const label = statusLabel(event.statusId)
+      return createEntry(record, eventType, {
+        message: `${label} expired on ${combatantLabel(event.combatantId)}.`,
+        messageTemplate: '{status} expired on {target}.',
+        templateValues: { status: label },
+        targetCombatantId,
+        kind: 'status',
+        headline: label,
+        facts: fact('Expired'),
+      })
+    }
+    case 'combatant_waited': {
+      const actorCombatantId = stringValue(event.combatantId)
+      return createEntry(record, eventType, {
+        message: `${combatantLabel(event.combatantId)} waited.`,
+        messageTemplate: '{actor} waited.',
+        actorCombatantId,
+        kind: 'turn',
+        headline: 'Wait',
+        facts: fact('No action'),
+      })
+    }
+    case 'round_started': {
+      const round = numberValue(event.round)
+      return createEntry(record, eventType, {
+        message: `Round ${round ?? '—'} began.`,
+        messageTemplate: 'Round {round} began.',
+        templateValues: { round: String(round ?? '—') },
+        round,
+        kind: 'turn',
+        headline: `Round ${round ?? '—'}`,
+      })
+    }
+    case 'turn_started': {
+      const actorCombatantId = stringValue(event.combatantId)
+      const round = numberValue(event.round)
+      const turnNumber = numberValue(event.turnNumber)
+      return createEntry(record, eventType, {
+        message: `${combatantLabel(event.combatantId)} activation began${round === null ? '' : ` in Round ${round}`}${turnNumber === null ? '' : ` (activation ${turnNumber})`}.`,
+        messageTemplate: '{actor} began turn {turn}.',
+        templateValues: { turn: String(turnNumber ?? '—') },
+        actorCombatantId,
+        round,
+        turnNumber,
+        kind: 'turn',
+        headline: 'Turn Start',
+      })
+    }
+    case 'turn_ended': {
+      const actorCombatantId = stringValue(event.combatantId)
+      const turnNumber = numberValue(event.turnNumber)
+      return createEntry(record, eventType, {
+        message: `${combatantLabel(event.combatantId)} ended the activation${turnNumber === null ? '' : ` ${turnNumber}`}.`,
+        messageTemplate: '{actor} ended turn {turn}.',
+        templateValues: { turn: String(turnNumber ?? '—') },
+        actorCombatantId,
+        turnNumber,
+        kind: 'turn',
+        headline: 'Turn End',
+      })
+    }
+    case 'stat_driven_attack_resolved': {
+      const actorCombatantId = stringValue(event.actorId)
+      const targetCombatantId = stringValue(event.targetId)
+      const actionId = stringValue(event.actionId) ?? 'basic.attack.unarmed.basic'
+      const label = actionLabel(actionId)
+      const hit = event.hit === true
+      const chance = numberValue(event.hitChanceBasisPoints)
+      return createEntry(record, eventType, {
+        message: `${combatantLabel(event.actorId)} Basic Attack ${hit ? 'HIT' : 'MISSED'}${chance === null ? '' : ` (${Math.round(chance / 100)}% hit chance)`}.`,
+        messageTemplate: '{actor} {action} {outcome}.',
+        templateValues: { action: label, outcome: hit ? 'HIT' : 'MISSED' },
+        actorCombatantId,
+        targetCombatantId,
+        actionId,
+        actionLabel: label,
+        kind: 'offense',
+        headline: label,
+        tone: hit ? 'damage' : 'warning',
+        facts: [
+          ...fact(hit ? 'HIT' : 'MISS', hit ? 'damage' : 'warning'),
+          ...fact(chance === null ? null : `${Math.round(chance / 100)}% hit`),
+        ],
+      })
+    }
+    case 'recruit_ai_decision': {
+      const actorCombatantId = stringValue(event.combatantId)
+      const reason = recruitReasonLabel(event.reason)
+      return createEntry(record, eventType, {
+        message: `Recruit chose ${reason}.`,
+        messageTemplate: '{actor} chose {reason}.',
+        templateValues: { reason },
+        actorCombatantId,
+        kind: 'turn',
+        headline: 'Tactical Choice',
+      })
+    }
+    case 'pvp_turn_timed_out': {
+      const actorCombatantId = stringValue(event.combatantId)
+      const misses = numberValue(event.consecutiveMisses)
+      return createEntry(record, eventType, {
+        message: `${combatantLabel(event.combatantId)} timed out${misses === null ? '' : ` (${misses} tracked miss${misses === 1 ? '' : 'es'})`}.`,
+        messageTemplate: '{actor} timed out.',
+        actorCombatantId,
+        kind: 'turn',
+        headline: 'Turn Timeout',
+        tone: 'warning',
+        facts: fact(misses === null ? 'Timed out' : `${misses} miss${misses === 1 ? '' : 'es'}`, 'warning'),
+      })
+    }
+    case 'pvp_lowered_guard_applied': {
+      const targetCombatantId = stringValue(event.combatantId)
+      return createEntry(record, eventType, {
+        message: `${combatantLabel(event.combatantId)} gained Lowered Guard after the turn timer expired.`,
+        messageTemplate: '{target} gained Lowered Guard.',
+        targetCombatantId,
+        kind: 'status',
+        headline: 'Lowered Guard',
+        tone: 'warning',
+        facts: fact('Lowered Guard', 'warning'),
+      })
+    }
+    case 'pvp_combatant_surrendered': {
+      const actorCombatantId = stringValue(event.combatantId)
+      return createEntry(record, eventType, {
+        message: `${combatantLabel(event.combatantId)} surrendered.`,
+        messageTemplate: '{actor} surrendered.',
+        actorCombatantId,
+        kind: 'system',
+        headline: 'Surrender',
+        tone: 'warning',
+        facts: fact('Surrendered', 'warning'),
+      })
+    }
+    case 'battle_completed':
+      return createEntry(record, eventType, {
+        message: 'Battle completed.',
+        messageTemplate: 'Battle completed.',
+        kind: 'system',
+        headline: 'Battle Complete',
+        tone: 'benefit',
+        facts: fact('Complete', 'benefit'),
+      })
+    case 'battle_started':
+      return createEntry(record, eventType, {
+        message: 'Battle began.',
+        messageTemplate: 'Battle began.',
+        kind: 'system',
+        headline: 'Battle Start',
+      })
+    case 'battle_abandoned':
+      return createEntry(record, eventType, {
+        message: 'Practice battle was aborted.',
+        messageTemplate: 'Practice battle ended early.',
+        kind: 'system',
+        headline: 'Battle Ended',
+        tone: 'warning',
+        facts: fact('Ended early', 'warning'),
+      })
+    default:
+      return null
+  }
+}
+
+function eventKey(entry: Pick<BattleLogEntry, 'battleVersion' | 'eventIndex'>): string {
+  return `${entry.battleVersion}:${entry.eventIndex}`
+}
+
+function annotateBattleContext(entries: readonly BattleLogEntry[]): BattleLogEntry[] {
+  const oldestFirst = [...entries].sort((left, right) => {
+    if (left.battleVersion !== right.battleVersion) return left.battleVersion - right.battleVersion
+    return left.eventIndex - right.eventIndex
+  })
+  const context = new Map<string, { round: number | null; turnNumber: number | null }>()
+  let round: number | null = null
+  let turnNumber: number | null = null
+
+  for (const entry of oldestFirst) {
+    if (entry.eventType === 'round_started') turnNumber = null
+    if (entry.round !== null) round = entry.round
+    if (entry.turnNumber !== null) turnNumber = entry.turnNumber
+    context.set(eventKey(entry), {
+      round: entry.round ?? round,
+      turnNumber: entry.turnNumber ?? turnNumber,
+    })
+  }
+
+  return entries.map((entry) => {
+    const resolved = context.get(eventKey(entry))
+    return resolved ? { ...entry, ...resolved } : entry
+  })
 }
 
 export function buildBattleLogView(
   battleSessionId: string,
   records: readonly BattleEventRecord[],
 ): BattleLogView {
+  const entries = records
+    .map(sanitizePersistedEvent)
+    .filter((entry): entry is BattleLogEntry => entry !== null)
+
   return {
     battleSessionId,
-    entries: records
-      .map(sanitizePersistedEvent)
-      .filter((entry): entry is BattleLogEntry => entry !== null),
+    entries: annotateBattleContext(entries),
   }
 }
 
