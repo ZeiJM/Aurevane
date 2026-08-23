@@ -31,8 +31,17 @@ function finishTurnButton(target: EventTarget | null): HTMLButtonElement | null 
 function facingPadCenter(target: EventTarget | null): HTMLElement | null {
   const element = target instanceof Element ? target : null
   const pad = element?.closest<HTMLElement>('[data-pvp-facing-pad="true"]') ?? null
-  if (!pad || element?.closest('button') || element?.closest(':scope > span')) return null
+  if (!pad || element?.closest('button')) return null
+  const directLabel = element?.closest('span')
+  if (directLabel?.parentElement === pad) return null
   return pad
+}
+
+function mobilePvpShortcutAvailable(): boolean {
+  return (
+    Boolean(document.querySelector('main[data-pvp-battle="true"]')) &&
+    window.matchMedia('(max-width: 820px)').matches
+  )
 }
 
 function facingGuide(target: EventTarget | null): HTMLElement | null {
@@ -210,16 +219,18 @@ export function BattleFacingQuickCommitAssist({ playerName }: { playerName: stri
     function handlePointerUp(event: PointerEvent) {
       if (event.pointerType !== 'touch' && event.pointerType !== 'pen') return
 
-      if (finishTurnButton(event.target)) {
-        handleCurrentFacingShortcut(event, 'finish-command')
-        return
-      }
+      if (mobilePvpShortcutAvailable()) {
+        if (finishTurnButton(event.target)) {
+          handleCurrentFacingShortcut(event, 'finish-command')
+          return
+        }
 
-      if (facingPadCenter(event.target)) {
-        event.preventDefault()
-        event.stopImmediatePropagation()
-        handleCurrentFacingShortcut(event, 'facing-center')
-        return
+        if (facingPadCenter(event.target)) {
+          event.preventDefault()
+          event.stopImmediatePropagation()
+          handleCurrentFacingShortcut(event, 'facing-center')
+          return
+        }
       }
 
       const guide = facingGuide(event.target)
