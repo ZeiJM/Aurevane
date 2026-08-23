@@ -3,14 +3,7 @@ import 'server-only'
 import type { BattleEventRecord, BattleEventRepository } from '@aurevane/db/battle-session'
 
 export type BattleLogKind =
-  | 'offense'
-  | 'movement'
-  | 'defense'
-  | 'recovery'
-  | 'status'
-  | 'resource'
-  | 'turn'
-  | 'system'
+  'offense' | 'movement' | 'defense' | 'recovery' | 'status' | 'resource' | 'turn' | 'system'
 
 export type BattleLogTone = 'neutral' | 'damage' | 'healing' | 'benefit' | 'warning'
 
@@ -116,10 +109,7 @@ function fact(label: string | null, tone: BattleLogTone = 'neutral'): BattleLogF
   return label ? [{ label, tone }] : []
 }
 
-function renderTemplate(
-  template: string,
-  values: Readonly<Record<string, string>>,
-): string {
+function renderTemplate(template: string, values: Readonly<Record<string, string>>): string {
   return template.replace(/\{([a-zA-Z][a-zA-Z0-9_.-]*)\}/gu, (_match, token: string) => {
     return values[token] ?? ''
   })
@@ -193,10 +183,7 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         actorCombatantId,
         kind: 'movement',
         headline: 'Move',
-        facts: [
-          ...fact(route),
-          ...fact(cost === null ? null : `${cost} Move`),
-        ],
+        facts: [...fact(route), ...fact(cost === null ? null : `${cost} Move`)],
       })
     }
     case 'movement_spent': {
@@ -325,7 +312,9 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         kind: 'resource',
         headline: resource,
         tone: delta !== null && delta > 0 ? 'benefit' : 'neutral',
-        facts: fact(delta === null ? resource : `${delta > 0 ? '+' : '−'}${Math.abs(delta)} ${resource}`),
+        facts: fact(
+          delta === null ? resource : `${delta > 0 ? '+' : '−'}${Math.abs(delta)} ${resource}`,
+        ),
       })
     }
     case 'status_applied': {
@@ -457,7 +446,10 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         kind: 'turn',
         headline: 'Turn Timeout',
         tone: 'warning',
-        facts: fact(misses === null ? 'Timed out' : `${misses} miss${misses === 1 ? '' : 'es'}`, 'warning'),
+        facts: fact(
+          misses === null ? 'Timed out' : `${misses} miss${misses === 1 ? '' : 'es'}`,
+          'warning',
+        ),
       })
     }
     case 'pvp_lowered_guard_applied': {
