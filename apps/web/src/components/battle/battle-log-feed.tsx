@@ -158,8 +158,7 @@ function groupActions(entries: BattleLogView['entries']): ActionGroup[] {
       visible.find((entry) => entry.actorCombatantId)?.actorCombatantId ?? null
     const targetCombatantId =
       visible.find(
-        (entry) =>
-          entry.targetCombatantId && entry.targetCombatantId !== actorCombatantId,
+        (entry) => entry.targetCombatantId && entry.targetCombatantId !== actorCombatantId,
       )?.targetCombatantId ??
       visible.find((entry) => entry.targetCombatantId)?.targetCombatantId ??
       null
@@ -172,7 +171,9 @@ function groupActions(entries: BattleLogView['entries']): ActionGroup[] {
         entries: group.entries,
         round: primary.round ?? visible.find((entry) => entry.round !== null)?.round ?? null,
         turnNumber:
-          primary.turnNumber ?? visible.find((entry) => entry.turnNumber !== null)?.turnNumber ?? null,
+          primary.turnNumber ??
+          visible.find((entry) => entry.turnNumber !== null)?.turnNumber ??
+          null,
         occurredAt: group.entries[0]?.occurredAt ?? primary.occurredAt,
         kind: primary.kind,
         tone: strongestTone(visible),
@@ -259,7 +260,9 @@ export function BattleLogFeed({
               type="button"
               className={styles.roundHeader}
               aria-expanded={open}
-              onClick={() => setExpandedRound((current) => (current === round.key ? null : round.key))}
+              onClick={() =>
+                setExpandedRound((current) => (current === round.key ? null : round.key))
+              }
             >
               <span className={styles.chevron} aria-hidden="true">
                 ›
@@ -276,20 +279,13 @@ export function BattleLogFeed({
             {open ? (
               <div className={styles.actions}>
                 {round.actions.map((action) => {
-                  const actor = combatantName(
-                    action.actorCombatantId,
-                    playerName,
-                    combatantNames,
-                  )
-                  const target = combatantName(
-                    action.targetCombatantId,
-                    playerName,
-                    combatantNames,
-                  )
+                  const actor = combatantName(action.actorCombatantId, playerName, combatantNames)
+                  const target = combatantName(action.targetCombatantId, playerName, combatantNames)
                   const subject =
                     actor && target && actor !== target ? `${actor} → ${target}` : (actor ?? target)
                   const fallback = renderEntry(action.fallback, playerName, combatantNames)
-                  const showFallback = action.facts.length === 0 || (!subject && action.kind === 'system')
+                  const showFallback =
+                    action.facts.length === 0 || (!subject && action.kind === 'system')
 
                   return (
                     <article
@@ -304,7 +300,9 @@ export function BattleLogFeed({
                       <div className={styles.actionMain}>
                         <div className={styles.actionHeading}>
                           <strong>{action.headline}</strong>
-                          {action.turnNumber !== null ? <small>Turn {action.turnNumber}</small> : null}
+                          {action.turnNumber !== null ? (
+                            <small>Turn {action.turnNumber}</small>
+                          ) : null}
                         </div>
                         {subject ? <p className={styles.subject}>{subject}</p> : null}
                         {action.facts.length > 0 ? (
