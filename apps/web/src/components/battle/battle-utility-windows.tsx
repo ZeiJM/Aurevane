@@ -3,7 +3,6 @@
 import {
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -13,6 +12,9 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 
+import type { BattleLogView } from '@/server/battle/battle-log-service'
+
+import { BattleLogFeed } from './battle-log-feed'
 import styles from './battle-utility-windows.module.css'
 
 interface BattleUtilityWindowsProps {
@@ -26,13 +28,8 @@ interface LocalChatMessage {
   text: string
 }
 
-interface BattleLogEntry {
-  battleVersion: number
-  message: string
-}
-
 interface BattleLogResponse {
-  battleLog?: { entries: BattleLogEntry[] }
+  battleLog?: BattleLogView
   error?: { message?: string }
 }
 
@@ -89,40 +86,6 @@ function mergeRecentEmojis(current: readonly string[], used: readonly string[]):
     result.unshift(emoji)
   }
   return result.slice(0, MAX_RECENT_EMOJIS)
-}
-
-function groupLogEntries(entries: readonly BattleLogEntry[]): Array<{
-  battleVersion: number
-  entries: BattleLogEntry[]
-}> {
-  const groups: Array<{ battleVersion: number; entries: BattleLogEntry[] }> = []
-  for (const entry of entries) {
-    const current = groups.at(-1)
-    if (current?.battleVersion === entry.battleVersion) current.entries.push(entry)
-    else groups.push({ battleVersion: entry.battleVersion, entries: [entry] })
-  }
-  return groups
-}
-
-function isBookkeepingMessage(message: string): boolean {
-  return (
-    /^Round \d+ began\.?$/i.test(message) ||
-    /activation began/i.test(message) ||
-    /ended the activation/i.test(message) ||
-    /ended facing/i.test(message) ||
-    /chose facing/i.test(message) ||
-    /chose (an? )?.*opportunity/i.test(message) ||
-    /spent \d+ Movement/i.test(message)
-  )
-}
-
-function summarizeCommittedAction(entries: readonly BattleLogEntry[], playerName: string): string {
-  const personalized = entries.map((entry) => entry.message.replaceAll('Wayfarer', playerName))
-  const meaningful = personalized.filter((message) => !isBookkeepingMessage(message))
-  const source = meaningful.length > 0 ? meaningful : personalized
-  const unique = source.filter((message, index) => source.indexOf(message) === index)
-  if (unique.length === 0) return 'Combat state advanced.'
-  return unique.slice(0, 3).join(' · ')
 }
 
 function lockWindowToCurrentRect(panel: HTMLElement) {
@@ -280,7 +243,7 @@ export function BattleUtilityWindows({ battleSessionId, playerName }: BattleUtil
     typeof window === 'undefined' ? [] : loadRecentEmojis(playerName),
   )
   const [emojiOpen, setEmojiOpen] = useState(false)
-  const [logEntries, setLogEntries] = useState<BattleLogEntry[]>([])
+  const [logEntries, setLogEntries] = useState<BattleLogView['entries']>([])
   const [logLoading, setLogLoading] = useState(false)
   const [logError, setLogError] = useState<string | null>(null)
   const emojiButtonRef = useRef<HTMLButtonElement>(null)
@@ -374,8 +337,6 @@ export function BattleUtilityWindows({ battleSessionId, playerName }: BattleUtil
     }
   }, [loadLog, logOpen])
 
-  const logGroups = useMemo(() => groupLogEntries(logEntries), [logEntries])
-
   function sendChatMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const text = chatDraft.trim()
@@ -395,27 +356,23 @@ export function BattleUtilityWindows({ battleSessionId, playerName }: BattleUtil
     <>
       {logOpen ? (
         <UtilityWindow
-          title="Combat Log"
-          meta="Committed action summaries · drag header · resize corner"
+          title="Battle Log"
+          meta="Rounds · actions · outcomes · drag header · resize corner"
           side="right"
           testId="battle-log-panel"
           onClose={() => setLogOpen(false)}
         >
-          <div className={styles.logContent} aria-label="Committed battle log">
+          <div className={styles.logContent} aria-label="Battle log">
             {logLoading && logEntries.length === 0 ? (
-              <p>Reading committed events…</p>
+              <p>Reading battle history…</p>
             ) : logError ? (
               <p role="status">{logError}</p>
-            ) : logGroups.length === 0 ? (
-              <p>No committed combat events yet.</p>
             ) : (
-              <ol>
-                {logGroups.map((group) => (
-                  <li key={group.battleVersion}>
-                    {summarizeCommittedAction(group.entries, playerName)}
-                  </li>
-                ))}
-              </ol>
+              <BattleLogFeed
+                entries={logEntries}
+                playerName={playerName}
+                emptyMessage="No committed battle actions yet."
+              />
             )}
           </div>
         </UtilityWindow>
