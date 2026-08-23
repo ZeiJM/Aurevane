@@ -69,14 +69,6 @@ export function PvpBattleQualityControls({
         root?.querySelector<HTMLElement>('section[aria-label="Command Deck"]') ?? null
       const target =
         commandDeck?.firstElementChild instanceof HTMLElement ? commandDeck.firstElementChild : null
-      const heading = target?.querySelector<HTMLElement>(':scope > strong') ?? null
-      const helper =
-        target?.querySelector<HTMLElement>(':scope > span:not([data-pvp-turn-clock="true"])') ??
-        null
-
-      if (heading) heading.style.order = '0'
-      if (helper) helper.style.removeProperty('display')
-
       setCommandTarget(target)
 
       const footer = root?.querySelector<HTMLElement>('footer') ?? null
