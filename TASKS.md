@@ -1,99 +1,167 @@
 # AUREVANE — Active Task Ledger
 
-This file is intentionally concise. It reports the **current implementation/validation boundary**; it does not duplicate the historical implementation diary. Detailed completed-ticket history remains in Git history, merged PRs/issues, phase ticket specs, and release records.
+This file reports the **current implementation/validation boundary**. It does not duplicate historical ticket diaries.
 
-The Master Game Plan defines the product. The Roadmap defines sequence. Canonical domain documents define system rules. `docs/PROJECT_GOVERNANCE_AND_COMPLEXITY.md` defines authority routing, reconciliation, complexity, and delivery discipline. This file reports what is actually active now.
+The Master Game Plan defines the product. `docs/ROADMAP.md` defines the current phase sequence and now formally credits the extended Phase-2 battle-platform work. Canonical domain documents define system rules. This ledger reports what is actually active now.
+
+**Reconciled:** 2026-08-23
+
+---
 
 ## Current status
 
-**Stage:** PV-1 — Owner Feedback Correction / Tactical Combat Human Retest
+**Stage:** Phase 2 — Tactical Combat & Battle Platform — **Owner testing / stabilization / PV-1 exit validation**
 
-**ACTIVE VALIDATION GATE:** issue #105 — PV-1C Conduct Tactical Combat Human/Internal Validation — **BLOCKED ON THE CURRENT A2 CORRECTION BEING VERIFIED AND DEPLOYED**
+**Phase-2 implementation state:** the original combat-core scope is delivered and substantially exceeded. Direct PvP, multi-format battles, spectation, battle communications and major battle-presentation/hardening foundations are now formally credited as Phase-2 delivered battle-platform scope.
 
-**ACTIVE IMPLEMENTATION TICKET:** owner-directed A2 feedback correction; no separate issue currently owns this patch
+**ACTIVE VALIDATION GATE:** issue #105 — PV-1C Conduct Tactical Combat Human/Internal Validation — **OPEN**
 
-**ACTIVE IMPLEMENTATION PR:** #123 — A2 feedback: holistic battle, profile, navigation, and passive training pass
+**OWNER TESTING:** active. The Owner is still testing selected current features. Do not infer a PASS from automated checks or from production deployment.
 
-PR #122 / A1 is merged corrective history. Owner review after that build identified one further coherent A2 pass across battle readability, profile identity, navigation/social presence, titles, and background training. PR #123 is the active implementation boundary.
+**ACTIVE IMPLEMENTATION / CORRECTION CANDIDATE:** PR #159 — Scale desktop battle rails for six combatants — open at the time of this reconciliation. Treat it as contained Phase-2 battle-platform presentation/stability work, not Phase-3 expansion.
 
-Substantial Phase 3 implementation remains blocked. Automated checks prove implementation safety only; real human retesting on the corrected deployed build is still required for the PV-1 product decision.
+**RECENT MERGED BATTLE-PLATFORM WORK:** PR #160 — spectator presentation parity/Inspect/log polish — merged and credited to the Phase-2 spectator foundation.
 
-## A2 owner-feedback correction — active verification
+**NEXT MAJOR FEATURE PHASE:** Phase 3 — Signature Buildcraft Foundation — blocked until the current Phase-2 candidate is stabilized and the required PV-1 decision is explicitly recorded.
 
-PR #123 currently implements:
+---
 
-- Battle Hall starts neutral with no mode preselected; AI Sparring is an explicit first choice and future player-team-size controls are shown without pretending unavailable multiplayer exists;
-- smaller mirrored combatant rails, better portrait scaling, a centered battlefield, and the **Action Economy bar geometrically centered in the battle header above the map**;
-- clearer green/red attack-range and proposed-AP feedback, cleaner action hierarchy, condensed Combat Log summaries, corrected keyboard/keybind labels, directional keyboard movement, and Recover bound as the visible fifth action;
-- battle chat simplified to Chat, click-away dismissal, and a compact emoji picker while keeping the current solo surface honest about transport limitations;
-- custom cosmetic character profile image display carried into profile/battle presentation through server-managed profile-display state;
-- clearer title selection/personal-title presentation and future-safe title metadata without prematurely implementing broad earned-title progression;
-- authenticated Online Users/presence surface plus navigation cleanup;
-- **Passive Training** replacing automatic offline accrual for new sessions: explicit Short / Medium / Extended server-timed plans, decreasing hourly efficiency as duration grows, live synchronized countdown, completion reward, stop-without-partial-reward behavior, and no reward merely for being logged out/idle;
-- new Battle Hall fights blocked while Passive Training is active while non-combat profile/account/reference/social surfaces remain available;
-- legacy already-materialized Training Reports remain valid and claimable;
-- authoritative Passive Training and combat-description roadmap/spec language reconciled with implementation, including future Master Panel editing of player-facing combat names/descriptions tied to versioned mechanical definitions;
-- browser and database tests updated for the A2 behavior, including a desktop assertion that the Action Economy header is centered over the battlefield.
+## What Phase 2 now formally contains
 
-Temporary formatter/document-sync workflows used during correction have been removed. The exact final branch head must pass the normal quality, database/security, Battle Session DB, Passive Training DB, and responsive browser gates before PR #123 is review-ready.
+The revised roadmap intentionally absorbs the above-and-beyond work instead of pretending it did not happen.
 
-## Corrective history relevant to this work
+### Tactical combat foundation
 
-- Phase 0 and Phase 1 foundations are complete.
-- P1.6 established server-authoritative training/report/idempotency foundations; A2 intentionally changes the player-facing behavior for new training sessions from automatic absence accrual to explicit Passive Training while preserving legacy frozen-report compatibility.
-- P1.7 public News/Manual/Rules foundation is complete.
-- P2.1–P2.7 combat engine, persistence, battle UX, Recruit AI, Tactical Hall infrastructure, final-facing, keybind, arena-scale and Abort Exercise foundations are merged.
-- PV-1A telemetry, PV-1B evidence tooling and PV-1C human validation gate #105 are established.
-- PV-1D / PR #108, PV-1E / PR #111, PV-1F / PR #115, and A1 / PR #122 are merged corrective history.
+- deterministic/server-authoritative battle state;
+- current 100-AP shared Action Economy;
+- movement/path/terrain/elevation/facing;
+- Basic Attack / Guard / Recover;
+- typed targeting/requirement/effect foundations;
+- statuses and deterministic resolution;
+- authoritative intent + battle-version persistence;
+- reconnect/idempotency/concurrency protections;
+- responsive battlefield-first combat UI;
+- forecasts, Inspect, combatant state and shared battle logs;
+- combat keybind and mobile/touch foundations;
+- Recruit AI and Battle Hall / AI Sparring;
+- larger-map/usability correction work;
+- surrender/abort/result foundations.
 
-## Current authoritative documents
+### Direct PvP foundation delivered early
 
-- `docs/GAME_MASTER_PLAN.md` remains the highest product authority.
-- `docs/OFFLINE_PROGRESSION.md` now defines explicit Passive Training behavior.
-- `docs/ROADMAP_PRODUCT_VALIDATION.md` governs PV-1 evidence, telemetry and gate decisions.
-- `docs/COMBAT_USABILITY_BATTLEFIELDS_CONTROLS_RETREAT.md` governs battle-usability intent.
-- `docs/ROADMAP_COMBAT_USABILITY_BATTLEFIELDS_CONTROLS_RETREAT.md` blocks substantial Phase 3 expansion until PV-1 human/internal validation passes.
-- `docs/PV1_TACTICAL_PLAYTEST_PROTOCOL.md` defines the human-playtest procedure.
+- authoritative PvP lobbies and participants;
+- lobby keys;
+- shared persisted PvP battle sessions;
+- multiple supported battle-format configurations;
+- PvP turn-timing foundations;
+- surrender;
+- battle-state handoff/reconnect/polling hardening;
+- battle chat/communication foundation;
+- desktop/mobile PvP presentation;
+- active-session mutation/navigation protections;
+- multi-combatant UI work.
 
-## Established deferrals
+### Spectation foundation delivered early
 
-- Phase 3: broad Disciplines, Arts, representative equipment/load/buildcraft and deeper command expansion until PV-1 passes.
-- Later phases: Mantles / Confluences / Soulmarks / Current-Legacy loadouts, remote LLM combat, PvP bots, broad Tactical Record progression, full Battle Review, Colosseum/spectation and world/Expedition retreat settlement.
-- Real multiplayer battle-chat transport remains coupled to multiplayer participant/communications implementation.
-- Earned prestige-title progression remains deferred; current work only implements the approved personal-title/display boundaries.
-- Full Master Panel combat/content editing remains later-phase work; A2 records the requirement that player-facing descriptions be editable through the same versioned definitions rather than hard-coded UI truth.
+- keyed read-only spectation;
+- spectator authorization/join/leave;
+- spectator presence/roster/count;
+- read-only committed battle projection;
+- spectator battle logs and communications;
+- responsive spectator battlefield presentation;
+- spectator Inspect foundation;
+- spectator security/session regression coverage.
+
+This is now **official roadmap credit**. Mature ranked/matchmaking/seasons/tournaments/Colosseum-public-discovery work remains Phase 8.
+
+---
+
+## What is allowed while Owner testing continues
+
+One contained correction batch at a time may address real findings in:
+
+- battle readability/scale;
+- multi-combatant rails/Inspect;
+- PvP turn handoff and responsiveness;
+- AI/PvP desktop/mobile parity;
+- spectator clarity;
+- battle log quality;
+- battle communication/timing regressions;
+- active battle/spectation session safety;
+- profile/training/session interactions that materially affect the tested flow;
+- genuine authority/security defects.
+
+Do not turn testing into an excuse to begin unrelated Phase-3/4 breadth.
+
+---
+
+## Current known design/document reconciliation
+
+- `docs/COMBAT.md` is current combat authority. The historical Movement Budget + one Action model in older Phase-2 material is superseded by the 100-AP shared Action Economy.
+- `docs/ROADMAP.md` has been rewritten to the current project state.
+- Older Phase-2/Tactical Hall wording is historical where it conflicts with current Battle Hall terminology.
+- Product-validation/buildcraft documents that still use retired Current/Legacy/Confluence terminology should be reconciled before Phase-3/PV-2 implementation begins.
+- Passive Training early-stop reward semantics currently require explicit canonical reconciliation if the tested runtime behavior is retained; do not silently let a subordinate implementation/history document redefine the permanent design.
+
+---
+
+## Phase-2 exit sequence
+
+```text
+OWNER TESTING / CURRENT FEATURE STABILIZATION
+  ↓
+Finish only justified contained Phase-2 battle-platform corrections
+  ↓
+Freeze a representative validation candidate
+  ↓
+Run/complete real human PV-1 sessions under issue #105
+  ↓
+Review qualitative evidence + telemetry + confounders
+  ↓
+EXPLICIT DECISION
+  ├── FAIL
+  │     ↓
+  │   smallest repeated combat/usability correction
+  │     ↓
+  │   rerun affected validation slice
+  │
+  └── PASS
+        ↓
+      close Phase 2 / #105
+        ↓
+      open Phase 3 Signature Buildcraft Foundation
+```
+
+No human PASS may be fabricated, simulated or inferred from automation.
+
+---
+
+## Next major phase — Phase 3
+
+Once Phase 2 exits, the next coherent feature investment is:
+
+1. Primary Discipline base-stat profiles and authoritative selection rules;
+2. Secondary Discipline and independent attunement cooldowns;
+3. mature Skill schema and generic cooldown engine;
+4. pure 8-Skill versus mixed 6-Skill capacity;
+5. Character Profile build headquarters;
+6. Resonance framework/library;
+7. pure-Discipline Essence framework/Skills;
+8. saved-loadout legality;
+9. AI understanding of released Skills/build state;
+10. reuse the already-built direct PvP battle platform for build snapshot/legality testing rather than rebuilding multiplayer later.
+
+Phase 3 then feeds PV-2 / buildcraft identity validation before broad roster expansion.
+
+---
 
 ## Permanent execution rules
 
-1. Inspect current `main`, open implementation/validation PRs/issues, current phase ticket specs, and recently merged design docs before starting work.
-2. One canonical implementation ticket is ACTIVE at a time; a validation gate may explicitly hold implementation at none.
-3. Never merge a dependent ticket before its prerequisite.
-4. Reconcile repository truth at phase/player-facing validation boundaries.
-5. Do not use future feature work to hide a failed validation gate.
-6. Run required GitHub quality, database/security and responsive authenticated browser checks for implementation correctness. External deployment validation may follow once the exact merged runtime is deployable; never mislabel an older deployment as exact-head validation.
-7. Keep this ledger short and current.
-
-## Immediate sequence
-
-```text
-PR #123 A2 owner-feedback implementation
-  ↓
-Quality + database/security + responsive authenticated browser gates on exact final head
-  ↓
-Resolve remaining genuine integration/regression failures and make PR #123 review-ready
-  ↓
-Merge through normal repository process when safe
-  ↓
-Deploy exact merged runtime against an appropriately reconciled Supabase environment
-  ↓
-Verify build identity and critical authenticated flow
-  ↓
-Rerun real human PV-1 sessions under #105
-  ↓
-Review structured notes + corroborating telemetry + confounders
-  ↓
-PASS: close #105 and open the first substantial Phase 3 implementation ticket
-FAIL: identify the next smallest recurring combat/usability defect and open one corrective ticket
-```
-
-Do not fabricate, simulate or infer a human PASS from automation. The next product decision still requires real tester interaction with the corrected live build.
+1. Inspect current `main`, open implementation/validation PRs/issues, the current roadmap and applicable canonical domain docs before starting work.
+2. One canonical implementation/correction boundary is ACTIVE at a time unless the Owner explicitly authorizes a broader verified batch.
+3. Owner testing may remain active while implementation is temporarily none.
+4. Never use future feature breadth to hide a failed validation gate.
+5. Early-delivered compatible work receives roadmap credit and is reused later.
+6. Automated tests prove implementation safety, not fun or product validation.
+7. Reconcile repository truth at every phase boundary.
+8. Keep this ledger concise and current.
