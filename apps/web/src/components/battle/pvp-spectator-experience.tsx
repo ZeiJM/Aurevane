@@ -130,9 +130,8 @@ export function PvpSpectatorExperience({
     ? (participantByCombatant.get(selectedPlacement.combatantId) ?? null)
     : null
   const selectedCombatant = selectedPlacement
-    ? (battleState.combatants.find(
-        (combatant) => combatant.id === selectedPlacement.combatantId,
-      ) ?? null)
+    ? (battleState.combatants.find((combatant) => combatant.id === selectedPlacement.combatantId) ??
+      null)
     : null
   const selectedProfile = selectedPlacement
     ? (battle.snapshot.statBridge.combatants.find(
@@ -301,9 +300,7 @@ export function PvpSpectatorExperience({
 
     if (selectedTile) {
       const terrainName =
-        terrainPresentation(selectedTile.terrainId) === 'rough'
-          ? 'Difficult ground'
-          : 'Open ground'
+        terrainPresentation(selectedTile.terrainId) === 'rough' ? 'Difficult ground' : 'Open ground'
       const traversalCost = selectedTerrain?.traversalCost ?? null
       return (
         <>
@@ -474,7 +471,9 @@ export function PvpSpectatorExperience({
                 const x = tile.position.x + 1
                 const y = tile.position.y + 1
                 const selected = Boolean(
-                  inspectMode && selectedPosition && positionsEqual(tile.position, selectedPosition),
+                  inspectMode &&
+                  selectedPosition &&
+                  positionsEqual(tile.position, selectedPosition),
                 )
 
                 return (
