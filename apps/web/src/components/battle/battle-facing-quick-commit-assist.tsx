@@ -67,9 +67,7 @@ function facingFromGlyph(glyph: string): Facing | null {
 
 function currentFacingControl(playerName: string): HTMLButtonElement | null {
   const tile = Array.from(
-    document.querySelectorAll<HTMLButtonElement>(
-      '#battlefield button[aria-label*="occupied by"]',
-    ),
+    document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label*="occupied by"]'),
   ).find((candidate) =>
     (candidate.getAttribute('aria-label') ?? '').includes(`occupied by ${playerName}`),
   )
@@ -112,9 +110,7 @@ function applyFacingPreview(playerName: string, facing: Facing) {
   const glyph = FACING_GLYPHS[facing]
 
   const tile = Array.from(
-    document.querySelectorAll<HTMLButtonElement>(
-      '#battlefield button[aria-label*="occupied by"]',
-    ),
+    document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label*="occupied by"]'),
   ).find((candidate) =>
     (candidate.getAttribute('aria-label') ?? '').includes(`occupied by ${playerName}`),
   )
@@ -193,10 +189,7 @@ export function BattleFacingQuickCommitAssist({ playerName }: { playerName: stri
       control.click()
     }
 
-    function handleCurrentFacingShortcut(
-      event: PointerEvent,
-      key: CurrentFacingShortcut,
-    ): boolean {
+    function handleCurrentFacingShortcut(event: PointerEvent, key: CurrentFacingShortcut): boolean {
       const now = Date.now()
       const previous = lastCurrentFacingTap.current
       const secondTap = previous?.key === key && now - previous.at <= DOUBLE_TAP_WINDOW_MS

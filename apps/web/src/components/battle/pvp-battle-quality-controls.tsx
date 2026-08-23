@@ -58,8 +58,8 @@ export function PvpBattleQualityControls({
   const battleIsActive = battle?.snapshot.tactical.battle.lifecycle === 'active'
   const localTurn = Boolean(
     battleIsActive &&
-      localCombatantId &&
-      battle?.snapshot.tactical.battle.currentTurn?.combatantId === localCombatantId,
+    localCombatantId &&
+    battle?.snapshot.tactical.battle.currentTurn?.combatantId === localCombatantId,
   )
 
   useEffect(() => {
