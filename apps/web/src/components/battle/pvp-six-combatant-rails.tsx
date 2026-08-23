@@ -191,10 +191,7 @@ export function PvpSixCombatantRails({
   }, [initialBattle.battleSessionId])
 
   useEffect(() => {
-    if (!desktop) {
-      setContentTarget(null)
-      return
-    }
+    if (!desktop) return
 
     let frame = 0
     const locate = () => {
