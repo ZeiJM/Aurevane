@@ -265,11 +265,7 @@ export function DesktopBattleCombatantInspect({
         '#battlefield button[aria-label^="Tile "][aria-label*="occupied by"]',
       )
 
-      if ((railCombatant || railName) && !inspectModeActive()) {
-        event.preventDefault()
-        event.stopImmediatePropagation()
-        return
-      }
+      if ((railCombatant || railName) && !inspectModeActive()) return
       if (!inspectModeActive()) return
 
       let openTarget: OpenTarget | null = null
