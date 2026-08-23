@@ -8,8 +8,8 @@ import { createBattleLogService } from './battle-log-service'
 const USER_ID = '11111111-1111-4111-8111-111111111111'
 const SESSION_ID = '33333333-3333-4333-8333-333333333333'
 
-describe('P2.5 sanitized battle log service', () => {
-  it('projects committed events into readable entries without returning raw RNG/outcome payloads', async () => {
+describe('sanitized battle log service', () => {
+  it('projects committed events into rich readable entries without returning raw resolution payloads', async () => {
     const repository: BattleEventRepository = {
       findBattleEvents: vi.fn(async () => [
         {
@@ -75,47 +75,110 @@ describe('P2.5 sanitized battle log service', () => {
 
     const result = await createBattleLogService(repository).getLog(USER_ID, SESSION_ID)
 
-    expect(result).toEqual({
-      battleSessionId: SESSION_ID,
-      entries: [
-        {
-          battleVersion: 8,
-          eventIndex: 0,
-          occurredAt: '2026-08-17T13:01:00.000Z',
-          eventType: 'recruit_ai_decision',
-          message: 'Recruit chose closing the distance.',
-        },
-        {
-          battleVersion: 5,
-          eventIndex: 3,
-          occurredAt: '2026-08-17T13:00:00.000Z',
-          eventType: 'damage_applied',
-          message: 'Recruit took 13 damage and has 67 HP remaining.',
-        },
-        {
-          battleVersion: 5,
-          eventIndex: 2,
-          occurredAt: '2026-08-17T13:00:00.000Z',
-          eventType: 'stat_driven_attack_resolved',
-          message: 'Wayfarer Basic Attack HIT (74% hit chance).',
-        },
-        {
-          battleVersion: 4,
-          eventIndex: 0,
-          occurredAt: '2026-08-17T12:59:00.000Z',
-          eventType: 'combatant_moved',
-          message: 'Wayfarer moved from 3, 2 to 4, 2 for 1 Movement.',
-        },
-      ],
-    })
+    expect(result.battleSessionId).toBe(SESSION_ID)
+    expect(result.entries).toHaveLength(4)
+    expect(result.entries[1]).toEqual(
+      expect.objectContaining({
+        battleVersion: 5,
+        eventIndex: 3,
+        eventType: 'damage_applied',
+        message: 'Recruit took 13 damage and has 67 HP remaining.',
+        messageTemplate: '{target} took {amount} damage.',
+        templateValues: { amount: '13' },
+        actorCombatantId: 'character:player-1',
+        targetCombatantId: 'recruit:p2-4-1',
+        actionId: 'basic.attack.unarmed.basic',
+        actionLabel: 'Basic Attack',
+        kind: 'offense',
+        headline: 'Basic Attack',
+        tone: 'damage',
+        facts: [
+          { label: '13 DMG', tone: 'damage' },
+          { label: '67 HP', tone: 'neutral' },
+        ],
+      }),
+    )
+    expect(result.entries[2]).toEqual(
+      expect.objectContaining({
+        eventType: 'stat_driven_attack_resolved',
+        messageTemplate: '{actor} {action} {outcome}.',
+        actorCombatantId: 'character:player-1',
+        targetCombatantId: 'recruit:p2-4-1',
+        actionLabel: 'Basic Attack',
+        facts: [
+          { label: 'HIT', tone: 'damage' },
+          { label: '74% hit', tone: 'neutral' },
+        ],
+      }),
+    )
+    expect(result.entries[3]).toEqual(
+      expect.objectContaining({
+        eventType: 'combatant_moved',
+        actorCombatantId: 'character:player-1',
+        kind: 'movement',
+        headline: 'Move',
+        facts: [
+          { label: '3, 2 → 4, 2', tone: 'neutral' },
+          { label: '1 Move', tone: 'neutral' },
+        ],
+      }),
+    )
     expect(repository.findBattleEvents).toHaveBeenCalledWith(USER_ID, SESSION_ID, 100)
-    expect(JSON.stringify(result)).not.toContain('rollBasisPoints')
-    expect(JSON.stringify(result)).not.toContain('hpBefore')
-    expect(JSON.stringify(result)).not.toContain('hpAfter')
-    expect(JSON.stringify(result)).not.toContain('candidateCount')
-    expect(JSON.stringify(result)).not.toContain('tieBreakSeed')
-    expect(JSON.stringify(result)).not.toContain('profileId')
-    expect(JSON.stringify(result)).not.toContain('raw')
+
+    const serialized = JSON.stringify(result)
+    expect(serialized).not.toContain('rollBasisPoints')
+    expect(serialized).not.toContain('hpBefore')
+    expect(serialized).not.toContain('hpAfter')
+    expect(serialized).not.toContain('candidateCount')
+    expect(serialized).not.toContain('tieBreakSeed')
+    expect(serialized).not.toContain('profileId')
+    expect(serialized).not.toContain('raw')
+  })
+
+  it('carries authoritative round and turn context forward into later action entries', async () => {
+    const repository: BattleEventRepository = {
+      findBattleEvents: vi.fn(async () => [
+        {
+          battleVersion: 3,
+          eventIndex: 0,
+          event: {
+            event: 'combatant_moved',
+            combatantId: 'character:player-1',
+            from: { x: 0, y: 0 },
+            to: { x: 1, y: 0 },
+            movementCost: 1,
+          },
+          createdAt: '2026-08-17T13:02:00.000Z',
+        },
+        {
+          battleVersion: 2,
+          eventIndex: 0,
+          event: {
+            event: 'turn_started',
+            combatantId: 'character:player-1',
+            round: 2,
+            turnNumber: 4,
+          },
+          createdAt: '2026-08-17T13:01:00.000Z',
+        },
+        {
+          battleVersion: 1,
+          eventIndex: 0,
+          event: { event: 'round_started', round: 2 },
+          createdAt: '2026-08-17T13:00:00.000Z',
+        },
+      ]),
+    }
+
+    const result = await createBattleLogService(repository).getLog(USER_ID, SESSION_ID)
+
+    expect(result.entries[0]).toEqual(
+      expect.objectContaining({
+        eventType: 'combatant_moved',
+        round: 2,
+        turnNumber: 4,
+      }),
+    )
   })
 
   it('drops internal low-level events that are not useful to the player log', async () => {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 
@@ -41,6 +41,16 @@ export function PvpBattleChatBridge({
   const [open, setOpen] = useState(false)
   const [requestedTab, setRequestedTab] = useState<'chat' | 'log'>('chat')
   const [unread, setUnread] = useState(0)
+  const combatantNames = useMemo(
+    () =>
+      Object.fromEntries(
+        metadata.participants.map((participant) => [
+          participant.combatantId,
+          participant.characterName,
+        ]),
+      ),
+    [metadata.participants],
+  )
 
   useEffect(() => {
     let attachedChat: HTMLButtonElement | null = null
@@ -139,6 +149,7 @@ export function PvpBattleChatBridge({
         requestedTab={requestedTab}
         onRequestedTabChange={setRequestedTab}
         onUnreadChange={setUnread}
+        combatantNames={combatantNames}
       />
     </div>
   )

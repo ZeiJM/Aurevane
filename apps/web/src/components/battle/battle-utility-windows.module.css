@@ -128,6 +128,7 @@
 .logContent {
   height: 100%;
   overflow: auto;
+  overscroll-behavior: contain;
 }
 
 .logContent > p {
@@ -135,25 +136,7 @@
   padding: 0.85rem;
   color: var(--av-text-muted);
   font-size: 0.62rem;
-}
-
-.logContent ol {
-  display: grid;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.logContent li {
-  padding: 0.62rem 0.78rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.055);
-  color: var(--av-text-muted);
-  font-size: 0.61rem;
-  line-height: 1.45;
-}
-
-.logContent li:last-child {
-  border-bottom: 0;
+  text-align: center;
 }
 
 .chatLayout {

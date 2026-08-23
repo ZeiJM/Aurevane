@@ -71,6 +71,16 @@ export function PvpSpectatorExperience({
       new Map(spectator.participants.map((participant) => [participant.combatantId, participant])),
     [spectator.participants],
   )
+  const combatantNames = useMemo(
+    () =>
+      Object.fromEntries(
+        spectator.participants.map((participant) => [
+          participant.combatantId,
+          participant.characterName,
+        ]),
+      ),
+    [spectator.participants],
+  )
   const placementByTile = useMemo(
     () =>
       new Map(
@@ -364,6 +374,7 @@ export function PvpSpectatorExperience({
           battleSessionId={battle.battleSessionId}
           readOnly
           showBattleLog
+          combatantNames={combatantNames}
           className={styles.comms}
         />
       </section>

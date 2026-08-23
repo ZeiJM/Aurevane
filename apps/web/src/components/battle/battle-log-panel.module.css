@@ -49,6 +49,7 @@
   height: 100%;
   max-height: none;
   overflow: auto;
+  overscroll-behavior: contain;
   border: 1px solid rgba(212, 186, 130, 0.48);
   border-radius: var(--av-radius-md);
   background: rgba(7, 10, 14, 0.995);
@@ -59,14 +60,15 @@
 .panel header {
   position: sticky;
   top: 0;
-  z-index: 2;
+  z-index: 3;
   display: flex;
-  align-items: start;
+  align-items: center;
   justify-content: space-between;
   gap: 0.65rem;
-  padding: 0.65rem 0.75rem;
+  padding: 0.62rem 0.72rem;
   border-bottom: 1px solid var(--av-border);
-  background: rgba(7, 10, 14, 0.995);
+  background: rgba(7, 10, 14, 0.985);
+  backdrop-filter: blur(0.9rem);
 }
 
 .panel header[data-drag-handle] {
@@ -87,13 +89,14 @@
 
 .panel header strong {
   color: var(--av-text);
-  font: 650 0.8rem/1.2 var(--av-font-display);
+  font: 680 0.8rem/1.2 var(--av-font-display);
 }
 
 .panel header span {
   overflow-wrap: anywhere;
   color: var(--av-text-dim);
-  font: 650 0.46rem/1.25 var(--av-font-mono);
+  font: 650 0.45rem/1.25 var(--av-font-mono);
+  letter-spacing: 0.035em;
   text-transform: uppercase;
 }
 
@@ -109,6 +112,12 @@
   background: #0b1017;
   font-size: 0.95rem;
   cursor: pointer;
+}
+
+.close:hover,
+.close:focus-visible {
+  border-color: rgba(212, 186, 130, 0.58);
+  color: var(--av-text);
 }
 
 .resizeHandle {
@@ -141,47 +150,26 @@
   width: 0.36rem;
 }
 
-.panel ol {
-  display: grid;
-  gap: 0;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.panel li {
-  display: block;
-  padding: 0.58rem 0.75rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.055);
-}
-
-.panel li:last-child {
-  border-bottom: 0;
-}
-
-.actionEntry {
-  min-width: 0;
-}
-
-.actionEntry p,
 .empty {
   margin: 0;
+  padding: 0.9rem;
   overflow-wrap: anywhere;
   color: var(--av-text-muted);
   font-size: 0.61rem;
   line-height: 1.45;
-}
-
-.empty {
-  padding: 0.8rem;
+  text-align: center;
 }
 
 @media (max-width: 760px) {
   .controlled {
     top: 3.6rem;
     width: calc(100vw - 0.7rem);
-    height: min(22rem, 62dvh);
+    height: min(23rem, 64dvh);
     min-width: min(15rem, calc(100vw - 0.7rem));
     max-width: calc(100vw - 0.7rem);
+  }
+
+  .panel header {
+    padding: 0.58rem 0.64rem;
   }
 }

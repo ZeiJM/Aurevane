@@ -38,6 +38,42 @@
   font-size: 0.54rem;
 }
 
+.tabs {
+  display: flex;
+  gap: 0.34rem;
+  align-items: center;
+}
+
+.tab {
+  padding: 0;
+  border: 0;
+  color: var(--av-text-dim);
+  background: transparent;
+  cursor: pointer;
+  font: 800 0.57rem/1 var(--av-font-mono);
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.tab[data-active] {
+  color: var(--av-brass-300);
+}
+
+.tab:hover,
+.tab:focus-visible {
+  color: var(--av-text);
+}
+
+.tab:focus-visible {
+  outline: 1px solid rgba(207, 169, 93, 0.52);
+  outline-offset: 0.18rem;
+}
+
+.tabDivider {
+  color: rgba(255, 255, 255, 0.18) !important;
+  font-size: 0.5rem !important;
+}
+
 .presenceWrap {
   position: relative;
 }
@@ -91,6 +127,11 @@
   overflow: auto;
   overscroll-behavior: contain;
   padding: 0.55rem;
+}
+
+.logMessages {
+  padding: 0;
+  background: rgba(2, 4, 7, 0.24);
 }
 
 .message {
@@ -203,8 +244,16 @@
     padding-inline: 0.62rem;
   }
 
+  .logMessages {
+    padding-inline: 0;
+  }
+
   .messages {
     padding-block: 0.48rem;
+  }
+
+  .logMessages {
+    padding-block: 0;
   }
 
   .message {

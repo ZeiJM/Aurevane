@@ -1,9 +1,10 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { BattleLogView } from '@/server/battle/battle-log-service'
 
+import { BattleLogFeed, countBattleLogActions } from './battle-log-feed'
 import { useBattlePlayerName } from './battle-runtime-context'
 import styles from './battle-log-panel.module.css'
 
@@ -170,6 +171,7 @@ export function BattleLogPanel({
   }, [controlled])
 
   const entries = log?.entries ?? []
+  const actionCount = countBattleLogActions(entries)
 
   if (!controlled) {
     return (
@@ -181,7 +183,7 @@ export function BattleLogPanel({
           aria-expanded={visible}
           onClick={() => setInternalOpen((value) => !value)}
         >
-          Combat Log <span>{loading ? '…' : entries.length}</span>
+          Combat Log <span>{loading ? '…' : actionCount}</span>
         </button>
         {visible ? (
           <LogPanel
@@ -238,89 +240,33 @@ function LogPanel({
   playerName?: string
   onDragStart?: (event: React.PointerEvent<HTMLElement>) => void
 }) {
-  const actionGroups = useMemo(() => groupEntriesByCommittedVersion(entries), [entries])
-
   return (
-    <section className={styles.panel} aria-label="Committed battle log">
+    <section className={styles.panel} aria-label="Battle log">
       <header onPointerDown={onDragStart} data-drag-handle={onDragStart ? 'battle-log' : undefined}>
         <div>
-          <strong>Combat Log</strong>
-          <span>Committed action summaries · newest first</span>
+          <strong>Battle Log</strong>
+          <span>Rounds · actions · outcomes</span>
         </div>
         {onClose ? (
           <button
             type="button"
             className={styles.close}
             onClick={onClose}
-            aria-label="Close combat log"
+            aria-label="Close battle log"
           >
             ×
           </button>
         ) : null}
       </header>
       {loading && entries.length === 0 ? (
-        <p className={styles.empty}>Reading committed events…</p>
+        <p className={styles.empty}>Reading battle history…</p>
       ) : error ? (
         <p className={styles.empty} role="status">
           {error}
         </p>
-      ) : actionGroups.length === 0 ? (
-        <p className={styles.empty}>No committed combat events yet.</p>
       ) : (
-        <ol>
-          {actionGroups.map((group) => (
-            <li key={group.battleVersion}>
-              <div className={styles.actionEntry}>
-                <p>{summarizeCommittedAction(group.entries, playerName)}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
+        <BattleLogFeed entries={entries} playerName={playerName} />
       )}
     </section>
   )
-}
-
-function groupEntriesByCommittedVersion(entries: BattleLogView['entries']) {
-  const groups: Array<{
-    battleVersion: number
-    entries: BattleLogView['entries']
-  }> = []
-
-  for (const entry of entries) {
-    const current = groups.at(-1)
-    if (current?.battleVersion === entry.battleVersion) {
-      current.entries = [...current.entries, entry]
-    } else {
-      groups.push({ battleVersion: entry.battleVersion, entries: [entry] })
-    }
-  }
-
-  return groups
-}
-
-function summarizeCommittedAction(entries: BattleLogView['entries'], playerName?: string): string {
-  const personalized = entries.map((entry) => personalizeBattleMessage(entry.message, playerName))
-  const meaningful = personalized.filter((message) => !isBookkeepingMessage(message))
-  const source = meaningful.length > 0 ? meaningful : personalized
-  const unique = source.filter((message, index) => source.indexOf(message) === index)
-  if (unique.length === 0) return 'Combat state advanced.'
-  return unique.slice(0, 3).join(' · ')
-}
-
-function isBookkeepingMessage(message: string): boolean {
-  return (
-    /^Round \d+ began\.?$/i.test(message) ||
-    /activation began/i.test(message) ||
-    /ended the activation/i.test(message) ||
-    /ended facing/i.test(message) ||
-    /chose facing/i.test(message) ||
-    /chose (an? )?.*opportunity/i.test(message) ||
-    /spent \d+ Movement/i.test(message)
-  )
-}
-
-function personalizeBattleMessage(message: string, playerName?: string): string {
-  if (!playerName) return message
-  return message.replaceAll('Wayfarer', playerName)
 }
