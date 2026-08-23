@@ -53,7 +53,9 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
 
   await page.getByRole('button', { name: 'Player vs Player' }).click()
   const pvpMode = page.getByLabel('Battle format')
-  const pvpSummary = page.locator('article[data-pvp-create-card] p').filter({ hasText: 'combatants' })
+  const pvpSummary = page
+    .locator('article[data-pvp-create-card] p')
+    .filter({ hasText: 'combatants' })
   await expect(pvpMode).toBeVisible()
   await expect(pvpMode).toHaveValue('1v1')
   await expect(pvpMode.locator('option')).toHaveCount(6)
