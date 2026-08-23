@@ -75,7 +75,7 @@ export function PvpBattleQualityControls({
         null
 
       if (heading) heading.style.order = '0'
-      if (helper) helper.style.display = 'none'
+      if (helper) helper.style.removeProperty('display')
 
       setCommandTarget(target)
 
