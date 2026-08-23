@@ -6,7 +6,9 @@ function createTestAuthAdminClient() {
   const secretKey = process.env.SUPABASE_SECRET_KEY
 
   if (!supabaseUrl || !secretKey) {
-    throw new Error('Local Supabase admin credentials are required for authenticated browser tests.')
+    throw new Error(
+      'Local Supabase admin credentials are required for authenticated browser tests.',
+    )
   }
 
   return createClient(supabaseUrl, secretKey, {
@@ -19,7 +21,10 @@ function createTestAuthAdminClient() {
 
 async function confirmTestAccountEmail(email: string): Promise<void> {
   const supabase = createTestAuthAdminClient()
-  const { data, error } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1000 })
+  const { data, error } = await supabase.auth.admin.listUsers({
+    page: 1,
+    perPage: 1000,
+  })
 
   if (error) throw error
 
