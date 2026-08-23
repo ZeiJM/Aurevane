@@ -24,7 +24,8 @@ function finalFacingButton(target: EventTarget | null): HTMLButtonElement | null
 
 function finishTurnButton(target: EventTarget | null): HTMLButtonElement | null {
   const element = target instanceof Element ? target : null
-  const button = element?.closest<HTMLButtonElement>('section[aria-label="Command Deck"] button') ?? null
+  const button =
+    element?.closest<HTMLButtonElement>('section[aria-label="Command Deck"] button') ?? null
   return button?.querySelector('strong')?.textContent?.trim() === 'Finish Turn' ? button : null
 }
 
@@ -66,7 +67,9 @@ function facingFromGlyph(glyph: string): Facing | null {
 
 function currentFacingControl(playerName: string): HTMLButtonElement | null {
   const tile = Array.from(
-    document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label*="occupied by"]'),
+    document.querySelectorAll<HTMLButtonElement>(
+      '#battlefield button[aria-label*="occupied by"]',
+    ),
   ).find((candidate) =>
     (candidate.getAttribute('aria-label') ?? '').includes(`occupied by ${playerName}`),
   )
@@ -109,7 +112,9 @@ function applyFacingPreview(playerName: string, facing: Facing) {
   const glyph = FACING_GLYPHS[facing]
 
   const tile = Array.from(
-    document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label*="occupied by"]'),
+    document.querySelectorAll<HTMLButtonElement>(
+      '#battlefield button[aria-label*="occupied by"]',
+    ),
   ).find((candidate) =>
     (candidate.getAttribute('aria-label') ?? '').includes(`occupied by ${playerName}`),
   )
@@ -310,14 +315,10 @@ export function BattleFacingQuickCommitAssist({ playerName }: { playerName: stri
     }
 
     function handlePointerDown(event: PointerEvent) {
-      if (
-        finalFacingButton(event.target) ||
-        facingGuide(event.target) ||
-        finishTurnButton(event.target) ||
-        facingPadCenter(event.target)
-      ) {
-        return
-      }
+      const pvpShortcutTarget =
+        mobilePvpShortcutAvailable() &&
+        Boolean(finishTurnButton(event.target) || facingPadCenter(event.target))
+      if (finalFacingButton(event.target) || facingGuide(event.target) || pvpShortcutTarget) return
       if (!lastGuideSelection.current && !lastCurrentFacingTap.current) return
       clearSelection()
       lastGuideSelection.current = null
