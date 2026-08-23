@@ -8,6 +8,7 @@ import type {
   PvpSpectatorPresenceView,
 } from '@/server/battle/pvp-battle-communication-service'
 
+import { BattleLogFeed } from './battle-log-feed'
 import styles from './pvp-battle-chat.module.css'
 
 interface ChatApiBody {
@@ -29,6 +30,7 @@ interface PvpBattleChatProps {
   onRequestedTabChange?: (tab: 'chat' | 'log') => void
   onUnreadChange?: (unread: number) => void
   onSpectatorCountChange?: (count: number) => void
+  combatantNames?: Readonly<Record<string, string>>
   className?: string
 }
 
@@ -46,6 +48,7 @@ export function PvpBattleChat({
   onRequestedTabChange,
   onUnreadChange,
   onSpectatorCountChange,
+  combatantNames,
   className,
 }: PvpBattleChatProps) {
   const [messages, setMessages] = useState<PvpBattleChatMessageView[]>([])
@@ -221,37 +224,27 @@ export function PvpBattleChat({
       <header className={styles.header}>
         <div>
           {showBattleLog ? (
-            <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+            <div className={styles.tabs} role="tablist" aria-label="Battle communication views">
               <button
                 type="button"
+                className={styles.tab}
+                data-active={tab === 'chat' || undefined}
+                role="tab"
+                aria-selected={tab === 'chat'}
                 onClick={() => selectTab('chat')}
-                aria-pressed={tab === 'chat'}
-                style={{
-                  border: 0,
-                  padding: 0,
-                  color: tab === 'chat' ? 'var(--av-brass-300)' : 'var(--av-text-dim)',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                  font: '800 .57rem/1 var(--av-font-mono)',
-                  textTransform: 'uppercase',
-                }}
               >
                 Battle Chat
               </button>
-              <span aria-hidden="true">/</span>
+              <span className={styles.tabDivider} aria-hidden="true">
+                /
+              </span>
               <button
                 type="button"
+                className={styles.tab}
+                data-active={tab === 'log' || undefined}
+                role="tab"
+                aria-selected={tab === 'log'}
                 onClick={() => selectTab('log')}
-                aria-pressed={tab === 'log'}
-                style={{
-                  border: 0,
-                  padding: 0,
-                  color: tab === 'log' ? 'var(--av-brass-300)' : 'var(--av-text-dim)',
-                  background: 'transparent',
-                  cursor: 'pointer',
-                  font: '800 .57rem/1 var(--av-font-mono)',
-                  textTransform: 'uppercase',
-                }}
               >
                 Battle Log
               </button>
@@ -259,7 +252,7 @@ export function PvpBattleChat({
           ) : (
             <span>Battle Chat</span>
           )}
-          <small>{readOnly ? 'Read-only live feed' : 'Live with combatants'}</small>
+          <small>{tab === 'log' ? 'Rounds · actions · outcomes' : readOnly ? 'Read-only live feed' : 'Live with combatants'}</small>
         </div>
         <div className={styles.presenceWrap}>
           <button
@@ -314,28 +307,12 @@ export function PvpBattleChat({
           )}
         </div>
       ) : (
-        <div className={styles.messages} aria-live="polite">
-          {battleLog && battleLog.entries.length > 0 ? (
-            [...battleLog.entries].reverse().map((entry) => (
-              <article
-                className={styles.message}
-                key={`${entry.battleVersion}:${entry.eventIndex}`}
-              >
-                <div>
-                  <strong>{entry.eventType.replaceAll('_', ' ')}</strong>
-                  <time dateTime={entry.occurredAt}>
-                    {new Date(entry.occurredAt).toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </time>
-                </div>
-                <p>{entry.message}</p>
-              </article>
-            ))
-          ) : (
-            <p className={styles.empty}>No committed battle events yet.</p>
-          )}
+        <div className={`${styles.messages} ${styles.logMessages}`} aria-live="polite">
+          <BattleLogFeed
+            entries={battleLog?.entries ?? []}
+            combatantNames={combatantNames}
+            emptyMessage="No committed battle actions yet."
+          />
         </div>
       )}
 
