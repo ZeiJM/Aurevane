@@ -59,6 +59,7 @@ const DIFFICULTIES: readonly { id: AiDifficulty; label: string; description: str
   { id: 'high', label: 'High', description: 'Sharper positioning and action choices.' },
 ]
 
+const DEFAULT_PVP_MODE: PvpMode = '1v1'
 const PVP_MODES: readonly { id: PvpMode; label: string; detail: string }[] = [
   { id: '1v1', label: '1v1 Duel', detail: 'Two combatants · one per side' },
   { id: '2v2', label: '2v2 Clash', detail: 'Four combatants · two per side' },
@@ -97,7 +98,7 @@ export function BattleLaunch({
   const [recordId, setRecordId] = useState<TacticalHallRecordId | null>(null)
   const [arenaId, setArenaId] = useState<TacticalHallArenaId>('duel-yard')
   const [aiDifficulty, setAiDifficulty] = useState<AiDifficulty>('standard')
-  const [pvpMode, setPvpMode] = useState<PvpMode | null>(null)
+  const [pvpMode, setPvpMode] = useState<PvpMode | null>(DEFAULT_PVP_MODE)
   const [teamASize, setTeamASize] = useState(1)
   const [teamBSize, setTeamBSize] = useState(1)
   const [mapSize, setMapSize] = useState<PvpMapSize>('medium')
@@ -117,7 +118,6 @@ export function BattleLaunch({
     setSection(next)
     setError(null)
     if (next !== 'ai') setRecordId(null)
-    if (next !== 'pvp') setPvpMode(null)
   }
 
   function chooseRecord(nextRecordId: TacticalHallRecordId) {
