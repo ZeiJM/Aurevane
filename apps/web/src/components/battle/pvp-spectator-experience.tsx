@@ -4,9 +4,11 @@ import type { CharacterPortraitRef } from '@aurevane/game-core/character/creatio
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 
+import { BattleLogFeed } from '@/components/battle/battle-log-feed'
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { PvpBattleChat } from '@/components/battle/pvp-battle-chat'
 import { getStarterPortraitImageAssetId } from '@/media/character'
+import type { BattleLogView } from '@/server/battle/battle-log-service'
 import type { PvpBattleParticipantView, PvpSpectatorView } from '@/server/battle/pvp-lobby-service'
 
 import styles from './pvp-spectator-experience.module.css'
@@ -17,6 +19,7 @@ type Facing = 'north' | 'east' | 'south' | 'west'
 type ApiBody = {
   spectator?: PvpSpectatorView
   participantTitles?: Record<string, string | null>
+  battleLog?: BattleLogView
   error?: { message?: string }
 }
 
@@ -48,6 +51,10 @@ function participantName(
   return participants.get(combatantId)?.characterName ?? 'Unknown combatant'
 }
 
+function terrainPresentation(terrainId: string): 'rough' | 'open' {
+  return terrainId.includes('rough') || terrainId.includes('difficult') ? 'rough' : 'open'
+}
+
 export function PvpSpectatorExperience({
   initialSpectator,
   initialParticipantTitles,
@@ -61,6 +68,8 @@ export function PvpSpectatorExperience({
   const [connectionNote, setConnectionNote] = useState('Live arena link established.')
   const [copyNotice, setCopyNotice] = useState(false)
   const [stopping, setStopping] = useState(false)
+  const [battleLog, setBattleLog] = useState<BattleLogView | null>(null)
+  const [battleLogError, setBattleLogError] = useState<string | null>(null)
 
   const battle = spectator.battle
   const tactical = battle.snapshot.tactical
@@ -100,6 +109,8 @@ export function PvpSpectatorExperience({
 
   const boardStyle: CSSProperties = {
     gridTemplateColumns: `repeat(${tactical.width}, minmax(0, 1fr))`,
+    gridTemplateRows: `repeat(${tactical.height}, minmax(0, 1fr))`,
+    aspectRatio: `${tactical.width} / ${tactical.height}`,
   }
 
   const teamSummaries = Array.from({ length: teamCount }, (_, teamIndex) => {
@@ -156,6 +167,38 @@ export function PvpSpectatorExperience({
       window.clearInterval(timer)
     }
   }, [spectator.battleKey])
+
+  useEffect(() => {
+    let cancelled = false
+    let timer: number | null = null
+
+    const refreshLog = async () => {
+      try {
+        const params = new URLSearchParams({ after: '0', includeLog: '1' })
+        const response = await fetch(
+          `/api/pvp/battles/${encodeURIComponent(battle.battleSessionId)}/chat?${params.toString()}`,
+          { cache: 'no-store' },
+        )
+        const body = (await response.json()) as ApiBody
+        if (cancelled) return
+        if (!response.ok) {
+          setBattleLogError(body.error?.message ?? 'Battle log is temporarily unavailable.')
+          return
+        }
+        if (body.battleLog) setBattleLog(body.battleLog)
+        setBattleLogError(null)
+      } catch {
+        if (!cancelled) setBattleLogError('Battle log interrupted. Retrying…')
+      }
+    }
+
+    void refreshLog()
+    timer = window.setInterval(() => void refreshLog(), 1200)
+    return () => {
+      cancelled = true
+      if (timer !== null) window.clearInterval(timer)
+    }
+  }, [battle.battleSessionId])
 
   async function stopSpectating() {
     if (stopping) return
@@ -228,9 +271,6 @@ export function PvpSpectatorExperience({
             <div className={styles.teamMeter} aria-label={`${teamName(team.teamIndex)} health`}>
               <i style={{ width: `${meterPercent(team.hp, team.maxHp)}%` }} />
             </div>
-            <small>
-              {team.hp}/{team.maxHp} team HP
-            </small>
             <div className={styles.teamMembers}>
               {team.members.map((member) => {
                 const combatant = battleState.combatants.find(
@@ -304,10 +344,6 @@ export function PvpSpectatorExperience({
                 <dt>Format</dt>
                 <dd>{spectator.mode.toUpperCase()}</dd>
               </div>
-              <div>
-                <dt>Status</dt>
-                <dd>{battleState.lifecycle === 'active' ? 'Live' : 'Complete'}</dd>
-              </div>
             </dl>
           </article>
         </aside>
@@ -323,7 +359,8 @@ export function PvpSpectatorExperience({
           <div className={styles.boardScroller}>
             <div className={styles.board} style={boardStyle}>
               {tactical.tiles.map((tile) => {
-                const placement = placementByTile.get(positionKey(tile.position))
+                const key = positionKey(tile.position)
+                const placement = placementByTile.get(key)
                 const participant = placement
                   ? participantByCombatant.get(placement.combatantId)
                   : undefined
@@ -332,17 +369,23 @@ export function PvpSpectatorExperience({
                       (candidate) => candidate.id === placement.combatantId,
                     )
                   : undefined
+                const terrain = terrainPresentation(tile.terrainId)
+                const x = tile.position.x + 1
+                const y = tile.position.y + 1
+
                 return (
                   <div
                     className={styles.tile}
-                    data-terrain={tile.terrainId}
-                    data-elevation={tile.elevation}
-                    key={positionKey(tile.position)}
-                    aria-label={`Tile ${tile.position.x + 1}, ${tile.position.y + 1}${participant ? ` occupied by ${participant.characterName}` : ''}`}
+                    data-terrain={terrain}
+                    data-elevation={tile.elevation > 0 || undefined}
+                    key={key}
+                    aria-label={`Tile ${x}, ${y}; ${terrain} ground; elevation ${tile.elevation}${participant ? `; occupied by ${participant.characterName}` : ''}`}
                   >
-                    {tile.elevation > 0 ? (
-                      <small className={styles.elevation}>+{tile.elevation}</small>
-                    ) : null}
+                    <span className={styles.tileMeta}>
+                      {x}.{y}
+                      {terrain === 'rough' ? <b>R50</b> : null}
+                      {tile.elevation > 0 ? <b>▲{tile.elevation}</b> : null}
+                    </span>
                     {participant && placement ? (
                       <span
                         className={styles.unit}
@@ -368,15 +411,55 @@ export function PvpSpectatorExperience({
               })}
             </div>
           </div>
+          <div className={styles.legend} aria-label="Terrain legend">
+            <span className={styles.terrainKey}>
+              <i className={styles.roughKey} aria-hidden="true" />
+              <span>
+                <b>Difficult Ground</b>
+                <small>Higher movement cost</small>
+              </span>
+            </span>
+            <span className={styles.terrainKey}>
+              <i className={styles.raisedKey} aria-hidden="true">
+                ▲
+              </i>
+              <span>
+                <b>Raised Ground</b>
+                <small>Elevation +1</small>
+              </span>
+            </span>
+          </div>
         </section>
 
-        <PvpBattleChat
-          battleSessionId={battle.battleSessionId}
-          readOnly
-          showBattleLog
-          combatantNames={combatantNames}
-          className={styles.comms}
-        />
+        <div className={styles.commsStack}>
+          <PvpBattleChat
+            battleSessionId={battle.battleSessionId}
+            readOnly
+            combatantNames={combatantNames}
+            className={styles.comms}
+          />
+          <section className={styles.battleLogPanel} aria-label="Spectator battle log">
+            <header className={styles.battleLogHeader}>
+              <div>
+                <strong>Battle Log</strong>
+                <small>Rounds · actions · outcomes</small>
+              </div>
+            </header>
+            <div className={styles.battleLogBody} aria-live="polite">
+              {battleLogError ? (
+                <p className={styles.battleLogNotice} role="status">
+                  {battleLogError}
+                </p>
+              ) : (
+                <BattleLogFeed
+                  entries={battleLog?.entries ?? []}
+                  combatantNames={combatantNames}
+                  emptyMessage="No committed battle actions yet."
+                />
+              )}
+            </div>
+          </section>
+        </div>
       </section>
     </main>
   )
