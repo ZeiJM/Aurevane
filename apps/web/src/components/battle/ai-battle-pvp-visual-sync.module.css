@@ -101,6 +101,32 @@
   pointer-events: none;
 }
 
+/* Desktop AI uses the same spatial hierarchy as the approved PvP cockpit: the battle owns the
+   viewport, the arena gets the recovered height, and the tactical grid can grow to the same
+   620px footprint instead of being held to the older compressed AI scale. */
+@media (min-width: 881px) {
+  :global(main:not([data-pvp-battle='true']):has(section[aria-label='Tactical battlefield'])) {
+    height: 100dvh !important;
+  }
+
+  :global(
+    main:not([data-pvp-battle='true']):has(section[aria-label='Tactical battlefield'])
+      section[aria-label='Tactical battlefield']
+      > div:first-child
+      > div:first-child
+  ) {
+    width: min(100%, 38.75rem) !important;
+    max-width: 38.75rem !important;
+    max-height: 100% !important;
+    margin: auto !important;
+  }
+
+  :global([data-ai-pvp-visual-sync='true'] [data-ai-command-button='true']) {
+    min-height: 2.75rem !important;
+    padding: 0.3rem 0.38rem !important;
+  }
+}
+
 /* mobile-command-label-cleanup-v1 */
 @media (max-width: 820px) {
   :global([data-ai-pvp-visual-sync='true'] [data-ai-command-button='true']) {
