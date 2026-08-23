@@ -1,33 +1,29 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-status_env="$(pnpm exec supabase status -o env)"
-eval "$(printf '%s\n' "$status_env" | grep '^ANON_KEY=')"
-test -n "${ANON_KEY:-}"
+source .github/scripts/auth-test-helpers.sh
+load_test_auth
 
-api_url='http://127.0.0.1:54321'
+api_url="$TEST_AUTH_API_URL"
 password='P11-profile-security-2026!'
 email_one="p11-profile-one-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@example.com"
 email_two="p11-profile-two-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@example.com"
 
-signup() {
-  local email="$1"
-  curl --fail-with-body --silent --show-error \
-    --request POST "$api_url/auth/v1/signup" \
-    --header "apikey: $ANON_KEY" \
-    --header 'Content-Type: application/json' \
-    --data "{\"email\":\"$email\",\"password\":\"$password\"}"
-}
-
-first="$(signup "$email_one")"
-second="$(signup "$email_two")"
+first="$(signup_test_user "$email_one" "$password")"
+second="$(signup_test_user "$email_two" "$password")"
 
 user_one="$(printf '%s' "$first" | jq -r '.user.id')"
 user_two="$(printf '%s' "$second" | jq -r '.user.id')"
-token_one="$(printf '%s' "$first" | jq -r '.access_token')"
 
 test -n "$user_one"
 test -n "$user_two"
+test "$user_one" != 'null'
+test "$user_two" != 'null'
+
+confirm_test_user "$user_one"
+confirm_test_user "$user_two"
+
+token_one="$(sign_in_test_user "$email_one" "$password" | jq -r '.access_token')"
 test -n "$token_one"
 test "$token_one" != 'null'
 

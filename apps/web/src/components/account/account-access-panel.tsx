@@ -82,18 +82,16 @@ export function AccountAccessPanel({ authConfig, initialMessage = '' }: AccountA
         return
       }
 
+      // Email confirmation is required for AUREVANE. If Supabase ever returns a session directly
+      // from sign-up (for example after an auth configuration regression), clear it immediately
+      // instead of allowing a newly submitted account to enter gameplay without verification.
       if (data.session) {
-        if (!(await claimGameplaySession())) {
-          setMessage(
-            'Account created, but the game session could not be activated yet. Try signing in.',
-          )
-          return
-        }
-        window.location.assign('/game')
-        return
+        await supabase.auth.signOut({ scope: 'local' })
       }
 
-      setMessage('Account created. Check your email to confirm it, then return here to sign in.')
+      setMessage(
+        'If this email is new to AUREVANE, we sent a confirmation link. Verify it before signing in. If you already have an account, use Sign in instead.',
+      )
     } catch {
       setMessage('Account services could not be reached. Try again in a moment.')
     } finally {

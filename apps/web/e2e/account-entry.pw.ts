@@ -1,6 +1,8 @@
 import { AUDIO_SETTINGS_STORAGE_KEY } from '@aurevane/audio'
 import { expect, test } from '@playwright/test'
 
+import { createVerifiedAccountAndSignIn } from './pv1f-test-helpers'
+
 test('account entry is responsive, focusable, stable, and media-safe', async ({ page }) => {
   await page.goto('/')
 
@@ -85,14 +87,7 @@ test('a new account persists its private profile across refresh, sign-out, and s
   const email = `p11-${projectSlug}-${Date.now()}@example.com`
   const password = 'P11-browser-account-2026!'
 
-  await page.goto('/')
-  await page.getByRole('button', { name: 'Create account' }).click()
-  await page.getByLabel('Email').fill(email)
-  await page.getByLabel('Password').fill(password)
-  await page.getByRole('button', { name: 'Create account', exact: true }).last().click()
-
-  await expect(page).toHaveURL(/\/game$/)
-  await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
+  await createVerifiedAccountAndSignIn({ page, email, password })
   await expect(page.getByRole('link', { name: 'Create Character' })).toHaveCount(1)
   await expect(page.getByText('Additional character slot', { exact: true })).toBeVisible()
   await expect(
