@@ -10,6 +10,7 @@ on:
       - '.github/scripts/verify-battle-event-read.sh'
       - '.github/scripts/verify-pv1-combat-validation-events.sh'
       - '.github/scripts/verify-pvp-authority.sh'
+      - '.github/scripts/verify-pvp-spectator-join.sh'
       - '.github/workflows/battle-session-db.yml'
   push:
     branches:
@@ -23,6 +24,7 @@ on:
       - '.github/scripts/verify-battle-event-read.sh'
       - '.github/scripts/verify-pv1-combat-validation-events.sh'
       - '.github/scripts/verify-pvp-authority.sh'
+      - '.github/scripts/verify-pvp-spectator-join.sh'
       - '.github/workflows/battle-session-db.yml'
 
 permissions:
@@ -71,6 +73,9 @@ jobs:
 
       - name: Verify PvP lobby, battle, and spectator authority
         run: bash .github/scripts/verify-pvp-authority.sh
+
+      - name: Verify PvP spectator join and repeat join
+        run: bash .github/scripts/verify-pvp-spectator-join.sh
 
       - name: Verify authenticated battle API journey
         run: bash .github/scripts/verify-battle-session-http.sh
