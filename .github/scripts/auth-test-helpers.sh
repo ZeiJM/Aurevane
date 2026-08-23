@@ -15,11 +15,32 @@ signup_test_user() {
   local email="$1"
   local password="$2"
 
-  curl --fail-with-body --silent --show-error \
-    --request POST "$TEST_AUTH_API_URL/auth/v1/signup" \
-    --header "apikey: $ANON_KEY" \
-    --header 'Content-Type: application/json' \
-    --data "{\"email\":\"$email\",\"password\":\"$password\"}"
+  TEST_AUTH_URL="$TEST_AUTH_API_URL" \
+  TEST_AUTH_KEY="$ANON_KEY" \
+  TEST_AUTH_EMAIL="$email" \
+  TEST_AUTH_PASSWORD="$password" \
+    pnpm --filter @aurevane/web exec node --input-type=module <<'NODE'
+import { createClient } from '@supabase/supabase-js'
+
+const client = createClient(process.env.TEST_AUTH_URL, process.env.TEST_AUTH_KEY, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+})
+
+const { data, error } = await client.auth.signUp({
+  email: process.env.TEST_AUTH_EMAIL,
+  password: process.env.TEST_AUTH_PASSWORD,
+})
+
+if (error || !data.user?.id) {
+  console.error(`Could not create browser-test user: ${error?.message ?? 'missing user'}`)
+  process.exit(1)
+}
+
+process.stdout.write(JSON.stringify({ user: { id: data.user.id } }))
+NODE
 }
 
 confirm_test_user() {
