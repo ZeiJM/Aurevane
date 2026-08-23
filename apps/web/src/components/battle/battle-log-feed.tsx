@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import type {
   BattleLogEntry,
@@ -133,7 +133,9 @@ function primaryEntry(entries: readonly BattleLogEntry[]): BattleLogEntry {
     const match = entries.find((entry) => entry.eventType === eventType)
     if (match) return match
   }
-  return entries[0]
+  const fallback = entries[0]
+  if (!fallback) throw new Error('Battle log action group must contain an entry.')
+  return fallback
 }
 
 function groupActions(entries: BattleLogView['entries']): ActionGroup[] {
@@ -207,6 +209,16 @@ function groupRounds(actions: readonly ActionGroup[]): RoundGroup[] {
   return result
 }
 
+function expandedRoundKey(
+  rounds: readonly RoundGroup[],
+  requestedRound: string | null | undefined,
+): string | null {
+  const defaultRound = rounds[0]?.key ?? null
+  if (requestedRound === undefined) return defaultRound
+  if (requestedRound === null) return null
+  return rounds.some((round) => round.key === requestedRound) ? requestedRound : defaultRound
+}
+
 function kindGlyph(kind: BattleLogKind): string {
   if (kind === 'offense') return '⚔'
   if (kind === 'movement') return '↗'
@@ -235,17 +247,8 @@ export function BattleLogFeed({
   emptyMessage = 'No committed battle actions yet.',
 }: BattleLogFeedProps) {
   const rounds = useMemo(() => groupRounds(groupActions(entries)), [entries])
-  const [expandedRound, setExpandedRound] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (rounds.length === 0) {
-      setExpandedRound(null)
-      return
-    }
-    setExpandedRound((current) =>
-      current && rounds.some((round) => round.key === current) ? current : rounds[0].key,
-    )
-  }, [rounds])
+  const [requestedRound, setRequestedRound] = useState<string | null | undefined>(undefined)
+  const expandedRound = expandedRoundKey(rounds, requestedRound)
 
   if (rounds.length === 0) return <p className={styles.empty}>{emptyMessage}</p>
 
@@ -261,7 +264,9 @@ export function BattleLogFeed({
               className={styles.roundHeader}
               aria-expanded={open}
               onClick={() =>
-                setExpandedRound((current) => (current === round.key ? null : round.key))
+                setRequestedRound((current) =>
+                  expandedRoundKey(rounds, current) === round.key ? null : round.key,
+                )
               }
             >
               <span className={styles.chevron} aria-hidden="true">
