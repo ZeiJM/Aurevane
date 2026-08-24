@@ -251,9 +251,7 @@
     height: 100% !important;
   }
 
-  :global(
-    #battlefield[data-desktop-battle-log-open='true'] > [aria-label='Terrain legend']
-  ) {
+  :global(#battlefield[data-desktop-battle-log-open='true'] > [aria-label='Terrain legend']) {
     grid-column: 1 !important;
     grid-row: 2 !important;
     min-width: 0 !important;
@@ -273,8 +271,8 @@
     min-width: 0 !important;
     min-height: 8rem !important;
     max-height: none !important;
-    margin: var(--battle-log-dock-inset) var(--battle-log-dock-inset)
-      var(--battle-log-dock-inset) 0;
+    margin:
+      var(--battle-log-dock-inset) var(--battle-log-dock-inset) var(--battle-log-dock-inset) 0;
     align-self: stretch !important;
   }
 }
