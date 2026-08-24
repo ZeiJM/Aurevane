@@ -23,6 +23,25 @@
     justify-self: end !important;
   }
 
+  /* The desktop bridge hides the chat component's own header because the draggable utility-window
+     header replaces it. Explicit rows keep messages flexible and the composer pinned to the bottom
+     instead of letting the hidden first row make the composer consume the flexible track. */
+  :global(#pvp-battle-chat-panel[data-desktop][data-open]) {
+    grid-template-rows: auto minmax(0, 1fr) !important;
+    align-items: stretch !important;
+  }
+
+  :global(#pvp-battle-chat-panel[data-desktop][data-open] > section) {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    grid-template-rows: minmax(0, 1fr) auto auto !important;
+    overflow: hidden !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+  }
+
   /* Terrain presentation is derived from the authoritative renderer attributes rather than label
      text. Keep terrain/elevation visible even when reachability or targeting adds another state. */
   :global(
