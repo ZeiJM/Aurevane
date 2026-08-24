@@ -7,6 +7,7 @@ import { BattleDirectionalAttackAssist } from './battle-directional-attack-assis
 import { BattleFacingQuickCommitAssist } from './battle-facing-quick-commit-assist'
 import { BattleMapTokenPolish } from './battle-map-token-polish'
 import { BattlePresentationPolish } from './battle-presentation-polish'
+import { BattleStabilizationPolish } from './battle-stabilization-polish'
 import { BattleStatusEffectAssist } from './battle-status-effect-assist'
 import { BattleStickyActionAssist } from './battle-sticky-action-assist'
 import { DesktopBattleCombatantInspect } from './desktop-battle-combatant-inspect'
@@ -63,6 +64,7 @@ export function PvpBattleClientBoundary({
       />
       <PvpBattleInspectPopup battleSessionId={initialBattle.battleSessionId} metadata={metadata} />
       <PvpBattleCompletionPanel initialBattle={initialBattle} metadata={metadata} />
+      <BattleStabilizationPolish />
     </>
   )
 }
