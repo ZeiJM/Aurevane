@@ -23,7 +23,7 @@ export function DesktopBattleLogDock({
   playerName?: string
 }) {
   const [desktop, setDesktop] = useState(false)
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
   const [refreshTick, setRefreshTick] = useState(0)
 
   useEffect(() => {
