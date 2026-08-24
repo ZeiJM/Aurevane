@@ -112,12 +112,13 @@ function beginFloatingPanelResize(
 
 function findDesktopDockTarget(): HTMLElement | null {
   if (!window.matchMedia('(min-width: 821px)').matches) return null
-  return (
-    document.querySelector<HTMLElement>('#battlefield > div:first-child') ??
+
+  const battlefield =
     document.querySelector<HTMLElement>(
-      "main[data-pvp-battle='true'] section[aria-label='PvP tactical battlefield'] > div:first-child",
-    )
-  )
+      "main[data-pvp-battle='true'] section[aria-label='PvP tactical battlefield']",
+    ) ?? document.querySelector<HTMLElement>('#battlefield')
+
+  return battlefield?.parentElement instanceof HTMLElement ? battlefield.parentElement : null
 }
 
 export function BattleLogPanel({
@@ -259,29 +260,24 @@ export function BattleLogPanel({
     )
   }
 
-  return (
-    <div
-      ref={controlledPanelRef}
-      className={styles.controlled}
-      data-testid="battle-log-panel"
-      data-floating-panel="battle-log"
-    >
+  return createPortal(
+    <div ref={controlledPanelRef} className={styles.controlled} data-testid="battle-log-panel">
       <LogPanel
         entries={entries}
         loading={loading}
         error={error}
-        onClose={onClose}
+        onClose={() => onClose?.()}
+        onHeaderPointerDown={(event) => beginFloatingPanelDrag(event, controlledPanelRef.current)}
         playerName={effectivePlayerName}
-        onDragStart={(event) => beginFloatingPanelDrag(event, controlledPanelRef.current)}
       />
       <span
         className={styles.resizeHandle}
-        data-resize-handle="battle-log"
-        data-testid="battle-log-resize-handle"
+        data-resize-handle
         aria-hidden="true"
         onPointerDown={(event) => beginFloatingPanelResize(event, controlledPanelRef.current)}
       />
-    </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -290,30 +286,25 @@ function LogPanel({
   loading,
   error,
   onClose,
+  onHeaderPointerDown,
   playerName,
-  onDragStart,
 }: {
-  entries: BattleLogView['entries']
+  entries: readonly BattleLogView['entries'][number][]
   loading: boolean
   error: string | null
   onClose?: () => void
+  onHeaderPointerDown?: (event: React.PointerEvent<HTMLElement>) => void
   playerName?: string
-  onDragStart?: (event: React.PointerEvent<HTMLElement>) => void
 }) {
   return (
-    <section className={styles.panel} aria-label="Battle log">
-      <header onPointerDown={onDragStart} data-drag-handle={onDragStart ? 'battle-log' : undefined}>
+    <section className={styles.panel} aria-label="Battle Log">
+      <header data-drag-handle={onHeaderPointerDown ? 'true' : undefined} onPointerDown={onHeaderPointerDown}>
         <div>
           <strong>Battle Log</strong>
           <span>Rounds · actions · outcomes</span>
         </div>
         {onClose ? (
-          <button
-            type="button"
-            className={styles.close}
-            onClick={onClose}
-            aria-label="Close battle log"
-          >
+          <button type="button" className={styles.close} onClick={onClose} aria-label="Close battle log">
             ×
           </button>
         ) : null}
@@ -325,7 +316,7 @@ function LogPanel({
           {error}
         </p>
       ) : (
-        <BattleLogFeed entries={entries} playerName={playerName} />
+        <BattleLogFeed entries={entries} playerName={playerName} emptyMessage="No committed battle actions yet." />
       )}
     </section>
   )
