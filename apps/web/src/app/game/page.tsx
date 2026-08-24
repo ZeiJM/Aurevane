@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { CharacterSelectShell } from '@/components/character/character-select-shell'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
+import { getAccountDeletionState } from '@/server/account/account-deletion-service'
 import {
   getActiveBattleForUser,
   getActiveSpectatingForUser,
@@ -37,9 +38,10 @@ export default async function CharacterSelectPage() {
   if (activeBattle) redirect(`/game/battle/${activeBattle.battleSessionId}`)
   if (activeSpectating) redirect(`/game/battle/spectate/${activeSpectating.battleKey}`)
 
-  const [characters, selectedCharacter] = await Promise.all([
+  const [characters, selectedCharacter, accountDeletion] = await Promise.all([
     loadCharacterSlots(actor.userId),
     loadSelectedCharacter(actor),
+    getAccountDeletionState(actor.userId),
   ])
   let profileImageUrls: Record<string, string> = {}
   try {
@@ -58,6 +60,7 @@ export default async function CharacterSelectPage() {
       characters={characters}
       selectedCharacter={selectedCharacter}
       profileImageUrls={profileImageUrls}
+      accountDeletion={accountDeletion}
     />
   )
 }
