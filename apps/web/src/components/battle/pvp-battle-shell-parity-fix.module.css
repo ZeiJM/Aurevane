@@ -121,9 +121,7 @@
     width: 100% !important;
   }
 
-  :global(
-    main[data-pvp-battle='true'] > footer > button[data-pvp-spectator-key='true']
-  ) {
+  :global(main[data-pvp-battle='true'] > footer > button[data-pvp-spectator-key='true']) {
     position: relative !important;
     z-index: 1 !important;
     display: grid !important;
@@ -181,9 +179,7 @@
     grid-column: 1 / -1 !important;
   }
 
-  :global(
-    main[data-pvp-battle='true'] > footer > button[data-pvp-spectator-key='true']
-  ) {
+  :global(main[data-pvp-battle='true'] > footer > button[data-pvp-spectator-key='true']) {
     position: relative !important;
     z-index: 1 !important;
     display: grid !important;
@@ -210,9 +206,7 @@
     min-height: 3.15rem !important;
   }
 
-  :global(
-    main[data-pvp-battle='true'] > footer > button[data-pvp-spectator-key='true'] > small
-  ) {
+  :global(main[data-pvp-battle='true'] > footer > button[data-pvp-spectator-key='true'] > small) {
     display: block !important;
     color: var(--av-text-dim) !important;
     font: 700 0.39rem/1 var(--av-font-mono) !important;
@@ -220,9 +214,7 @@
     text-transform: uppercase !important;
   }
 
-  :global(
-    main[data-pvp-battle='true'] > footer > button[data-pvp-spectator-key='true'] > strong
-  ) {
+  :global(main[data-pvp-battle='true'] > footer > button[data-pvp-spectator-key='true'] > strong) {
     display: block !important;
     color: var(--av-brass-200) !important;
     font: 800 0.66rem/1 var(--av-font-mono) !important;
