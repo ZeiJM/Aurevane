@@ -3,15 +3,44 @@
 }
 
 @media (min-width: 821px) {
-  /* The shared dock already owns its own battlefield column. Nudge the panel into the unused
-     right-side canvas only; do not change board sizing, battlefield padding, or the dock width. */
+  /* Finish the terrain-legend footer beneath the dedicated log column without changing the
+     legend's own width or moving its contents. This only paints the missing continuation across
+     the grid gap and log column, so the battlefield reads as one complete framed surface. */
+  :global(#battlefield[data-desktop-battle-log-open='true'] > [aria-label='Terrain legend']) {
+    position: relative !important;
+    z-index: 2;
+    overflow: visible !important;
+  }
+
+  :global(
+    #battlefield[data-desktop-battle-log-open='true'] > [aria-label='Terrain legend']
+  )::after {
+    position: absolute;
+    top: -1px;
+    bottom: 0;
+    left: 100%;
+    width: calc(var(--battle-log-dock-gap) + var(--battle-log-dock-width));
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(3, 7, 11, 0.98);
+    content: '';
+    pointer-events: none;
+  }
+}
+
+@media (min-width: 1041px) {
+  /* The shared dock already owns its own battlefield column. Visually center the panel in the
+     unused right-side battlefield canvas without changing the tactical board, dock width, or
+     battlefield grid tracks. The responsive negative shift grows only where wide desktops have
+     enough spare canvas to support it. */
   :global(#battlefield[data-desktop-battle-log-open='true'] > [data-docked-battle-log='true']) {
-    transform: translateX(clamp(1rem, 1.8vw, 2rem)) !important;
+    transform: translateX(clamp(-4rem, calc(3.1rem - 5.9vw), -0.75rem)) !important;
   }
 }
 
 @media (max-width: 1040px) and (min-width: 821px) {
+  /* Preserve the compact-desktop layout: there is not enough spare canvas here to pull the log
+     toward the tactical board safely. */
   :global(#battlefield[data-desktop-battle-log-open='true'] > [data-docked-battle-log='true']) {
-    transform: translateX(0.75rem) !important;
+    transform: none !important;
   }
 }
