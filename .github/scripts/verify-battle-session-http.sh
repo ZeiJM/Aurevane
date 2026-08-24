@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-status_env="$(pnpm exec supabase status -o env)"
-eval "$(printf '%s\n' "$status_env" | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY|SECRET_KEY)=')"
-test -n "${ANON_KEY:-}"
-server_key="${SECRET_KEY:-${SERVICE_ROLE_KEY:-}}"
-test -n "$server_key"
+source .github/scripts/auth-test-helpers.sh
+load_test_auth
 
-api_url='http://127.0.0.1:54321'
+api_url="$TEST_AUTH_API_URL"
+server_key="$TEST_AUTH_ADMIN_KEY"
 web_url='http://127.0.0.1:3000'
 email="p24-http-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@example.com"
 password='P24-http-authority-2026!'
@@ -17,14 +15,11 @@ stale_key='00000000-0000-4000-8000-000000002442'
 face_key='00000000-0000-4000-8000-000000002443'
 opponent_key='00000000-0000-4000-8000-000000002444'
 
-signup_response="$(curl --fail-with-body --silent --show-error \
-  --request POST "$api_url/auth/v1/signup" \
-  --header "apikey: $ANON_KEY" \
-  --header 'Content-Type: application/json' \
-  --data "{\"email\":\"$email\",\"password\":\"$password\"}")"
+signup_response="$(signup_test_user "$email" "$password")"
 user_id="$(printf '%s' "$signup_response" | jq -r '.user.id')"
 test -n "$user_id"
 test "$user_id" != 'null'
+confirm_test_user "$user_id"
 
 db_container="$(docker ps --filter 'name=supabase_db_' --format '{{.Names}}' | head -n 1)"
 test -n "$db_container"

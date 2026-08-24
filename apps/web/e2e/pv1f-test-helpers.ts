@@ -52,8 +52,10 @@ export async function createVerifiedAccountAndSignIn(input: {
   await page.getByRole('button', { name: 'Create account', exact: true }).last().click()
 
   await expect(page).toHaveURL(/\/$/)
-  await expect(page.getByTestId('account-message')).toContainText('confirmation link')
-  await expect(page.getByTestId('account-message')).toContainText('Verify it before signing in.')
+  await expect(page.getByTestId('account-message')).toHaveText(
+    'Account created. Check your email for a confirmation link before signing in.',
+  )
+  await expect(page.getByTestId('account-message')).toHaveAttribute('data-tone', 'neutral')
 
   await confirmTestAccountEmail(email)
 

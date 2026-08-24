@@ -8,6 +8,7 @@ import { createSupabaseBrowserClient, type BrowserSupabaseConfig } from '@/lib/s
 import styles from './account-entry-shell.module.css'
 
 type AccountMode = 'signin' | 'signup'
+type MessageTone = 'neutral' | 'error'
 
 interface AccountAccessPanelProps {
   authConfig: BrowserSupabaseConfig | null
@@ -18,8 +19,14 @@ export function AccountAccessPanel({ authConfig, initialMessage = '' }: AccountA
   const [mode, setMode] = useState<AccountMode>('signin')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState(initialMessage)
+  const [messageTone, setMessageTone] = useState<MessageTone>('neutral')
   const emailId = useId()
   const passwordId = useId()
+
+  function showMessage(nextMessage: string, tone: MessageTone = 'neutral') {
+    setMessage(nextMessage)
+    setMessageTone(tone)
+  }
 
   async function claimGameplaySession(): Promise<boolean> {
     const response = await fetch('/api/account/game-session/claim', {
@@ -39,12 +46,12 @@ export function AccountAccessPanel({ authConfig, initialMessage = '' }: AccountA
     const password = String(form.get('password') ?? '')
 
     if (!email || password.length < 8) {
-      setMessage('Enter a valid email and a password of at least 8 characters.')
+      showMessage('Enter a valid email and a password of at least 8 characters.', 'error')
       return
     }
 
     setBusy(true)
-    setMessage(mode === 'signin' ? 'Opening your account…' : 'Creating your account…')
+    showMessage(mode === 'signin' ? 'Opening your account…' : 'Creating your account…')
 
     try {
       const supabase = createSupabaseBrowserClient(authConfig)
@@ -52,13 +59,17 @@ export function AccountAccessPanel({ authConfig, initialMessage = '' }: AccountA
       if (mode === 'signin') {
         const { error } = await supabase.auth.signInWithPassword({ email, password })
         if (error) {
-          setMessage('We could not sign you in. Check your email and password, then try again.')
+          showMessage(
+            'We could not sign you in. Check your email and password, then try again.',
+            'error',
+          )
           return
         }
 
         if (!(await claimGameplaySession())) {
-          setMessage(
+          showMessage(
             'Signed in, but the game session could not be activated. Try again in a moment.',
+            'error',
           )
           return
         }
@@ -76,9 +87,24 @@ export function AccountAccessPanel({ authConfig, initialMessage = '' }: AccountA
       })
 
       if (error) {
-        setMessage(
+        if (/already registered/i.test(error.message)) {
+          showMessage('An account already exists with this email. Sign in instead.', 'error')
+          return
+        }
+
+        showMessage(
           'We could not create that account. Check your details or try signing in instead.',
+          'error',
         )
+        return
+      }
+
+      // Hosted Supabase deliberately returns an obfuscated user instead of an error for an
+      // already-confirmed email. That fake user has no identities, while a genuine email/password
+      // signup has an email identity. Treat the obfuscated response as a hard duplicate denial so
+      // the account UI does not imply that a second account was created.
+      if (data.user?.identities?.length === 0) {
+        showMessage('An account already exists with this email. Sign in instead.', 'error')
         return
       }
 
@@ -89,11 +115,9 @@ export function AccountAccessPanel({ authConfig, initialMessage = '' }: AccountA
         await supabase.auth.signOut({ scope: 'local' })
       }
 
-      setMessage(
-        'If this email is new to AUREVANE, we sent a confirmation link. Verify it before signing in. If you already have an account, use Sign in instead.',
-      )
+      showMessage('Account created. Check your email for a confirmation link before signing in.')
     } catch {
-      setMessage('Account services could not be reached. Try again in a moment.')
+      showMessage('Account services could not be reached. Try again in a moment.', 'error')
     } finally {
       setBusy(false)
     }
@@ -102,7 +126,7 @@ export function AccountAccessPanel({ authConfig, initialMessage = '' }: AccountA
   function changeMode(nextMode: AccountMode) {
     if (busy) return
     setMode(nextMode)
-    setMessage('')
+    showMessage('')
   }
 
   if (!authConfig) {
@@ -176,7 +200,12 @@ export function AccountAccessPanel({ authConfig, initialMessage = '' }: AccountA
         </GameButton>
       </form>
 
-      <p className={styles.formMessage} aria-live="polite" data-testid="account-message">
+      <p
+        className={styles.formMessage}
+        aria-live="polite"
+        data-testid="account-message"
+        data-tone={messageTone}
+      >
         {message || 'Your account identity stays separate from your future character identity.'}
       </p>
     </div>
