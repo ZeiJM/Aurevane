@@ -1,0 +1,27 @@
+name: Temporary battle log formatter
+
+on:
+  push:
+    branches:
+      - fix/battle-log-nonoverlay-layout-20260824
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - name: Show Prettier diff
+        run: |
+          pnpm exec prettier --write apps/web/src/components/battle/battle-log-panel.module.css
+          git diff -- apps/web/src/components/battle/battle-log-panel.module.css
