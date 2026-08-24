@@ -47,6 +47,7 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+  isolation: isolate;
 }
 
 .panel {
@@ -64,20 +65,37 @@
 }
 
 .docked .panel {
+  position: relative;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
-  border-color: rgba(207, 169, 93, 0.24);
-  border-radius: var(--av-radius-sm);
-  background: rgba(5, 8, 12, 0.92);
-  box-shadow: none;
+  border-color: rgba(207, 169, 93, 0.34);
+  border-radius: var(--av-radius-md);
+  background: linear-gradient(180deg, rgba(11, 16, 22, 0.97), rgba(5, 8, 12, 0.975));
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.035),
+    0 0.55rem 1.55rem rgba(0, 0, 0, 0.18);
   backdrop-filter: none;
+}
+
+.docked .panel::before {
+  position: absolute;
+  top: 0;
+  right: 0.7rem;
+  left: 0.7rem;
+  z-index: 4;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(216, 181, 108, 0.42), transparent);
+  content: '';
+  pointer-events: none;
 }
 
 .docked .panel > :not(header) {
   min-height: 0;
   overflow: auto;
   overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .panel header {
@@ -96,8 +114,9 @@
 
 .docked .panel header {
   position: relative;
-  padding: 0.5rem 0.58rem;
-  background: rgba(255, 255, 255, 0.025);
+  padding: 0.58rem 0.68rem 0.56rem;
+  border-bottom-color: rgba(207, 169, 93, 0.15);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.012));
   backdrop-filter: none;
 }
 
@@ -124,8 +143,8 @@
 
 .docked .panel header strong {
   color: var(--av-brass-300);
-  font: 800 0.55rem/1 var(--av-font-mono);
-  letter-spacing: 0.055em;
+  font: 800 0.58rem/1 var(--av-font-mono);
+  letter-spacing: 0.065em;
   text-transform: uppercase;
 }
 
@@ -135,6 +154,12 @@
   font: 650 0.45rem/1.25 var(--av-font-mono);
   letter-spacing: 0.035em;
   text-transform: uppercase;
+}
+
+.docked .panel header span {
+  color: rgba(177, 188, 198, 0.7);
+  font-size: 0.44rem;
+  letter-spacing: 0.05em;
 }
 
 .close {
@@ -199,19 +224,20 @@
 
 @media (min-width: 821px) {
   :global(#battlefield[data-desktop-battle-log-open='true']) {
-    --battle-log-dock-width: clamp(11.5rem, 14vw, 15.5rem);
+    --battle-log-dock-width: clamp(16.5rem, 21vw, 21rem);
+    --battle-log-dock-gap: clamp(0.6rem, 0.8vw, 0.85rem);
   }
 
   :global(#battlefield[data-desktop-battle-log-open='true'] > div:first-child) {
     box-sizing: border-box;
-    padding-right: calc(var(--battle-log-dock-width) + 0.85rem) !important;
+    padding-right: calc(var(--battle-log-dock-width) + var(--battle-log-dock-gap)) !important;
     padding-left: clamp(0.4rem, 0.8vw, 0.75rem) !important;
   }
 
   :global(
     main[data-pvp-battle='true'] #battlefield[data-desktop-battle-log-open='true'] > div:first-child
   ) {
-    padding-right: calc(var(--battle-log-dock-width) + 0.85rem) !important;
+    padding-right: calc(var(--battle-log-dock-width) + var(--battle-log-dock-gap)) !important;
     padding-left: clamp(0.4rem, 0.8vw, 0.75rem) !important;
   }
 
@@ -227,6 +253,13 @@
     min-width: 0 !important;
     min-height: 8rem !important;
     max-height: none !important;
+  }
+}
+
+@media (max-width: 1040px) and (min-width: 821px) {
+  :global(#battlefield[data-desktop-battle-log-open='true']) {
+    --battle-log-dock-width: clamp(15rem, 27vw, 16.5rem);
+    --battle-log-dock-gap: 0.55rem;
   }
 }
 
