@@ -1,7 +1,7 @@
 import { AUDIO_SETTINGS_STORAGE_KEY } from '@aurevane/audio'
 import { expect, test } from '@playwright/test'
 
-import { createVerifiedAccountAndSignIn } from './pv1f-test-helpers'
+import { createVerifiedAccountAndSignIn, signOutFromAccountMenu } from './pv1f-test-helpers'
 
 test('account entry is responsive, focusable, stable, and media-safe', async ({ page }) => {
   await page.goto('/')
@@ -116,6 +116,29 @@ test('a new account persists its private profile across refresh, sign-out, and s
   await expect(page).toHaveURL(/\/game$/)
   await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
   await expect(page.getByRole('link', { name: 'Create Character' })).toHaveCount(1)
+})
+
+test('duplicate email signup is denied with a visible error', async ({ page }, testInfo) => {
+  test.skip(
+    testInfo.project.name !== 'desktop-chromium',
+    'One authenticated browser runtime proof is sufficient.',
+  )
+
+  const email = `duplicate-signup-${Date.now()}@example.com`
+  const password = 'Duplicate-account-2026!'
+
+  await createVerifiedAccountAndSignIn({ page, email, password })
+  await signOutFromAccountMenu(page)
+
+  await page.getByRole('button', { name: 'Create account' }).click()
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password').fill('Different-password-2026!')
+  await page.getByRole('button', { name: 'Create account', exact: true }).last().click()
+
+  const message = page.getByTestId('account-message')
+  await expect(page).toHaveURL(/\/$/)
+  await expect(message).toHaveText('An account already exists with this email. Sign in instead.')
+  await expect(message).toHaveAttribute('data-tone', 'error')
 })
 
 test('audio stays gesture-gated and persists mute plus channel levels', async ({
