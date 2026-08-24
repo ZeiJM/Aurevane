@@ -106,50 +106,71 @@
     grid-template-rows: minmax(0, 1fr) auto !important;
   }
 
+  :global(main[data-pvp-battle='true'] > footer) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
   :global(main[data-pvp-battle='true'] > footer > button:first-child) {
-    grid-column: 1 !important;
+    grid-column: 1 / -1 !important;
     grid-row: 1 !important;
   }
 
-  :global(main[data-pvp-battle='true'] > footer > div) {
-    grid-column: 2 !important;
-    grid-row: 1 !important;
+  :global(
+    main[data-pvp-battle='true'] > footer > div:not([data-pvp-footer-presence='true'])
+  ) {
+    grid-column: 1 / -1 !important;
+    grid-row: 2 !important;
+    width: 100% !important;
   }
 
   :global(main[data-pvp-battle='true'] > footer > [data-pvp-spectator-key='true']) {
     display: grid !important;
-    grid-column: 1 / -1 !important;
-    grid-row: 2 !important;
+    grid-column: 1 !important;
+    grid-row: 3 !important;
     width: 100% !important;
     min-width: 0 !important;
     justify-self: stretch !important;
   }
+
+  :global(main[data-pvp-battle='true'] > footer > [data-pvp-footer-presence='true']) {
+    grid-column: 2 !important;
+    grid-row: 3 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    align-self: stretch !important;
+  }
 }
 
-/* Phone footer order is deliberate: Chat → action controls/Surrender → Spectator Key. The key is
-   a full-width tap target with extra safe-area clearance so Android/iOS system chrome cannot cover
-   it at the end of the page. */
+/* Phone footer order is deliberate: Chat → action controls/Surrender → spectator controls. The
+   final row contains the copyable Spectator Key and live Spectators list side by side. */
 @media (max-width: 580px) {
   :global(main[data-pvp-battle='true'] > footer) {
-    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     row-gap: 0.55rem !important;
     padding-bottom: calc(0.6rem + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   :global(main[data-pvp-battle='true'] > footer > button:first-child) {
-    grid-column: 1 !important;
+    grid-column: 1 / -1 !important;
     grid-row: 1 !important;
   }
 
-  :global(main[data-pvp-battle='true'] > footer > div) {
+  :global(
+    main[data-pvp-battle='true'] > footer > div:not([data-pvp-footer-presence='true'])
+  ) {
     display: grid !important;
-    grid-column: 1 !important;
+    grid-column: 1 / -1 !important;
     grid-row: 2 !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     width: 100% !important;
   }
 
-  :global(main[data-pvp-battle='true'] > footer > div > button) {
+  :global(
+    main[data-pvp-battle='true']
+      > footer
+      > div:not([data-pvp-footer-presence='true'])
+      > button
+  ) {
     width: 100% !important;
   }
 
@@ -158,12 +179,19 @@
   }
 
   :global(main[data-pvp-battle='true'] > footer > [data-pvp-spectator-key='true']) {
+    display: grid !important;
     grid-column: 1 !important;
     grid-row: 3 !important;
     min-height: 3.15rem !important;
     gap: 0.18rem !important;
     padding: 0.55rem 0.75rem !important;
     border-radius: var(--av-radius-sm) !important;
+  }
+
+  :global(main[data-pvp-battle='true'] > footer > [data-pvp-footer-presence='true']) {
+    grid-column: 2 !important;
+    grid-row: 3 !important;
+    min-height: 3.15rem !important;
   }
 
   :global(main[data-pvp-battle='true'] > footer > [data-pvp-spectator-key='true'] > small) {
