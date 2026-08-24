@@ -119,16 +119,37 @@
 
 @media (max-width: 700px) {
   .battlefieldWrap {
-    /* The desktop 1fr track depends on a definite battlefield height. On mobile the
-       battlefield is content-sized, so that track can collapse to zero and hide the map. */
+    /* Mobile battlefield height is content-driven. The desktop board's max-height: 100%
+       creates a circular percentage constraint here and can resolve the board to zero. */
     grid-template-rows: auto auto auto auto !important;
     box-shadow:
-      0 0 0 1px rgba(207, 169, 93, 0.04),
-      0 0.8rem 2rem rgba(0, 0, 0, 0.24);
+      0 0 0 1px rgba(207, 169, 93, 0.05),
+      0 0.9rem 2.2rem rgba(0, 0, 0, 0.28);
+  }
+
+  .battlefieldWrap > div:nth-child(2) {
+    display: block !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding: 0.4rem !important;
+    overflow: auto !important;
+    background:
+      radial-gradient(circle at 50% 22%, rgba(207, 169, 93, 0.06), transparent 58%),
+      rgba(4, 8, 12, 0.28);
+  }
+
+  .battlefieldWrap > div:nth-child(2) > div {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 auto !important;
   }
 
   .inspectDeck {
-    grid-template-columns: minmax(5.5rem, 6.5rem) minmax(0, 1fr);
+    grid-template-columns: minmax(5.25rem, 6rem) minmax(0, 1fr);
     gap: 0.32rem;
     padding: 0.32rem;
   }
@@ -153,13 +174,14 @@
 
 @media (max-width: 430px) {
   .inspectDeck {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(4.8rem, 5.5rem) minmax(0, 1fr);
     gap: 0.28rem;
   }
 
   .inspectButton {
     width: 100%;
-    min-height: 2.2rem;
+    min-height: 100%;
+    padding-inline: 0.32rem;
   }
 
   .inspectContext {
