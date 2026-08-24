@@ -1,68 +1,116 @@
-# AUREVANE — Roadmap Addendum: PvP Spectation & the Colosseum
+# AUREVANE — Roadmap Integration: PvP Spectation & the Colosseum
 
-**Authority:** Binding roadmap integration for `docs/PVP_SPECTATION_COLOSSEUM.md`, subordinate to `docs/GAME_MASTER_PLAN.md` and complementary to `docs/ROADMAP.md`, `docs/BATTLE_INTERFACE.md`, and `docs/COMBAT_USABILITY_BATTLEFIELDS_CONTROLS_RETREAT.md`.
+**Status:** Binding roadmap companion for the already-started PvP/spectation platform and its later mature competitive expansion.
 
-**Direction approved:** 2026-08-17.
+**Reconciled:** 2026-08-23
 
-This module schedules shareable live-battle links, private Battle Keys, Colosseum discovery, delayed competitive spectation, replays, and spectator operations without expanding current Phase-2 implementation scope prematurely.
+**Authority:** Subordinate to `docs/GAME_MASTER_PLAN.md` and complementary to `docs/ROADMAP.md`, `docs/COMBAT.md`, `docs/BATTLE_INTERFACE.md`, and the applicable PvP/spectation domain specification.
 
----
+This version supersedes the older sequencing assumption that Battle Keys, direct spectation, spectator communication and spectator battle presentation were wholly future Phase-8 work. Those foundations were deliberately delivered during the extended Phase-2 battle-platform cycle and are now official roadmap credit.
 
-# Current Phase 2
+The rule going forward is:
 
-Do **not** implement the full spectator system in P2.6 or P2.7.
-
-The only current compatibility requirement is architectural:
-
-- preserve authoritative committed battle events/versioned snapshots;
-- avoid coupling read-only battle presentation to participant command authority;
-- keep public/known battle information separable from private/internal state;
-- do not make the browser the only source of battle history.
-
-The existing structured authoritative event model and Battle Review direction are the intended future source for spectator projections.
-
-No Colosseum, Battle Keys, public listings, spectator sockets, or spectator chat are required in Phase 2.
+> **Reuse and harden the delivered direct-PvP/spectation foundation. Phase 8 builds the mature competitive, discovery, privacy, delay, season and Colosseum product around it rather than rebuilding it.**
 
 ---
 
-# Phase 5 — World / Venue Presentation Compatibility
+# 1. Phase 2 — Delivered PvP / spectation foundation
+
+Phase 2 is now **Tactical Combat & Battle Platform**.
+
+## Direct PvP foundation already delivered
+
+The current reusable platform includes, as implemented in the present repository/runtime direction:
+
+- server-authoritative PvP lobby/session boundaries;
+- participant mapping and authorization;
+- lobby/Battle Key style joining foundations;
+- shared persisted PvP battles;
+- multiple battle-format configurations, including current 1v1, 2v2, 3v3, three-way and flexible-team variants;
+- authoritative battle turn/timing foundations;
+- surrender/forfeit/result handling foundations;
+- reconnect, handoff and polling/realtime hardening;
+- active-session gameplay/navigation protections;
+- shared battle chat/communication foundation;
+- responsive desktop/mobile PvP presentation;
+- multi-combatant battle presentation foundations;
+- shared committed battle logs.
+
+## Spectation foundation already delivered
+
+The current reusable platform includes:
+
+- keyed read-only spectation;
+- spectator authorization and join/leave behavior;
+- read-only committed battle projection;
+- spectator presence/roster/count;
+- spectator battle communication foundation;
+- spectator committed battle log;
+- responsive spectator battlefield presentation;
+- spectator combatant/terrain Inspect foundations;
+- spectator mutation restrictions;
+- session/security regression coverage.
+
+## What Phase 2 still does not claim
+
+Delivered direct spectation does **not** mean the mature competitive spectator product is complete.
+
+Still later:
+
+- formal PUBLIC / UNLISTED / PRIVATE_KEY / CLOSED visibility policy;
+- broad public live-battle discovery;
+- Colosseum destination/product;
+- ranked/tournament spectator delay;
+- replay product maturity;
+- competitive information-disclosure policy;
+- tournament integration;
+- featured-match operations;
+- high-volume spectator fanout;
+- mature moderation/privacy controls;
+- ratings/matchmaking/seasons/ranked product integration.
+
+These gaps remain later work rather than reasons to remove the existing foundation.
+
+---
+
+# 2. Phase 5 — World / venue compatibility
 
 When the living world arrives:
 
-- reserve a coherent world/service destination concept for future PvP arena/Colosseum access;
-- do not require the final physical Colosseum venue before PvP exists;
-- world navigation/menu architecture should later be able to expose `Colosseum / PvP` cleanly;
-- official world events can later reference exhibition/tournament locations without rewriting world routing.
+- establish a coherent world/service destination concept for future arena/Colosseum access;
+- do not require a final physical Colosseum venue before competitive PvP matures;
+- world navigation can later expose `Colosseum / PvP` cleanly;
+- official world events may reference exhibitions/tournaments without creating a separate battle stack;
+- venue presentation must route into the same authoritative PvP/spectator services.
 
-No live PvP spectation implementation is required here.
-
----
-
-# Phase 6 — Realtime Observer/Fanout Compatibility
-
-Party/co-op realtime work should preserve an explicit non-participant viewer role boundary for later spectation.
-
-Add only if required by the realtime architecture:
-
-- read-only subscription/fanout capability distinct from participant-control channels;
-- sequence/versioned committed-event delivery;
-- viewer-safe projection boundary;
-- reconnect by committed spectator sequence;
-- no spectator mutation authority.
-
-Do not expose a public spectator product surface merely to satisfy this seam.
-
-This prevents Phase 8 from having to rebuild realtime combat transport around an assumption that every connected viewer is a player.
+No duplicate world-specific spectator implementation should be created.
 
 ---
 
-# Phase 8 — PvP + Spectation MVP
+# 3. Phase 6 — Co-op / realtime compatibility
 
-Phase 8 is the main implementation phase for the spectator system because direct challenges, casual/ranked PvP, matchmaking, seasons and tournaments become real here.
+Party/co-op work should reuse the battle-session and realtime foundations already proven by direct PvP.
 
-## A. Battle visibility policy
+Preserve distinct roles for:
 
-Add explicit spectation visibility state:
+- participant/control authority;
+- ally/party information;
+- non-participant read-only observers;
+- safe reconnect and sequence/versioned state.
+
+Do not collapse spectator identity into participant authority merely because both consume battle state.
+
+---
+
+# 4. Phase 8 — Competitive PvP, Spectation & Colosseum maturity
+
+Phase 8 is no longer “implement spectation from zero.”
+
+Its job is to audit the inherited Phase-2 foundation and add the mature competitive product layers below.
+
+## A. Visibility policy
+
+Add explicit versioned visibility state such as:
 
 ```text
 PUBLIC
@@ -71,127 +119,124 @@ PRIVATE_KEY
 CLOSED
 ```
 
-Mode/queue rules constrain valid choices.
+Queue/mode/tournament policy constrains valid choices.
 
 For casual friend sparring:
 
-- default to `PRIVATE_KEY` or `CLOSED`;
-- broadening to PUBLIC requires appropriate participant consent unless the match was created as a public exhibition.
+- default to private/unlisted/closed behavior appropriate to current product direction;
+- broadening discovery requires the applicable participant/host consent policy;
+- one participant must not unexpectedly expose a battle after start where policy forbids it.
 
 For ranked/tournament:
 
-- queue/tournament policy defines whether discovery is public/optional;
-- competitive delay is mandatory where spectation is enabled.
+- queue/event policy controls discoverability;
+- competitive delay is mandatory where live spectation is enabled.
 
-## B. Shareable spectator links
+## B. Shareable spectator access
 
-Implement opaque spectator handles and routes such as:
-
-```text
-/game/spectate/<opaque-handle>
-```
+Mature the existing keyed spectator access into explicit shareable spectator handles/routes.
 
 Requirements:
 
-- spectator link grants no participant authority;
-- link resolves through a dedicated spectator authorization boundary;
-- private key is not embedded in the URL by default;
-- participants can copy spectator link separately from Battle Key;
-- completed eligible links transition to final result and later replay rather than becoming dead links.
+- spectator access never grants participant command authority;
+- viewer authorization remains distinct from participant authorization;
+- private secret material is not exposed unnecessarily in URLs/client state;
+- participant/host controls follow explicit policy for copy/revoke/regenerate where applicable;
+- completed eligible links can transition to final result/replay rather than becoming dead surfaces.
 
-## C. Private Battle Key
+## C. Private Battle Keys
 
-Implement server-generated human-readable Battle Keys for private sparring.
+Preserve and harden the already-built key concept.
 
-Requirements:
+Mature requirements include:
 
-- scoped to one battle/replay;
-- sufficient entropy for lifetime;
+- one-battle/replay scope;
+- adequate entropy for expected lifetime;
 - failed-attempt rate limiting;
-- stable authenticated viewer principal;
-- verifier/hash rather than client-authoritative plaintext state;
-- participant/host regeneration and explicit revocation policy;
-- key never grants gameplay control;
-- private battles remain absent from public discovery/search/activity surfaces.
+- authenticated/stable viewer identity where required;
+- safe verifier/hash handling where appropriate;
+- explicit regeneration/revocation policy;
+- no gameplay-control escalation;
+- private battles absent from public discovery.
 
-## D. Spectator Projection
+## D. Dedicated spectator projection
 
-Create a dedicated read-only spectator projection from committed authoritative battle state/events.
+Continue deriving spectators from committed authoritative battle state/events.
 
-Projection may include public:
+Public projection may include:
 
 - positions;
 - HP/MP/resources;
-- statuses;
+- statuses that are legitimately public;
 - facing;
 - initiative/timeline;
 - committed actions/results;
 - objective state;
-- sanitized combat log;
+- sanitized battle log;
 - public identities;
 - final result.
 
-Projection must exclude:
+Projection must exclude information spectators are not entitled to know, including where applicable:
 
-- uncommitted player planning;
-- hovered targets/planned paths;
-- future RNG/raw RNG state;
-- hidden loadout/Reactions/statuses/objects;
-- private chats;
+- uncommitted planning;
+- hovered/planned paths or targets;
+- future/raw RNG state;
+- hidden build/status/object information;
+- private team communications;
 - AI private reasoning;
-- internal anti-cheat/provenance;
-- Battle Keys/server secrets.
+- anti-cheat/provenance internals;
+- secret keys/server credentials.
 
-Hidden fields must not be sent and merely CSS-hidden.
+Do not send secret fields merely to hide them with CSS.
 
 ## E. Competitive spectator delay
 
-Ranked/tournament spectation starts delayed.
+Ranked/tournament live spectation should use a server-owned delay policy.
 
-Initial tuning target:
+Initial tuning may target roughly one or more committed turns / about 45–60 seconds, but exact values are versioned and evidence-tunable.
 
-- around one or more committed turns / roughly 45–60 seconds;
-- exact queue policy versioned and testable;
-- server event buffer owns delay;
-- spectator reconnect cannot jump ahead;
-- replay endpoints cannot bypass the live delay;
-- UI clearly labels delayed state.
+Requirements:
 
-Participants cannot lower competitive delay.
+- authoritative event buffering;
+- reconnect cannot jump ahead;
+- alternate HTTP/replay endpoints cannot bypass the delay;
+- UI clearly labels delayed state;
+- participants cannot lower competitive delay.
 
 ## F. Casual live spectation
 
-Casual/private sparring can support live spectation when participants consent.
+Casual/private sparring may support live spectation under the applicable visibility/consent policy.
 
-Lobby/setup clearly shows:
+Setup should clearly communicate spectator state such as:
 
 ```text
 Spectators: LIVE / DELAYED / DISABLED
 Visibility: PUBLIC / UNLISTED / PRIVATE KEY / CLOSED
 ```
 
-Visibility cannot be unexpectedly broadened by one participant after match start.
+## G. Spectator cockpit maturity
 
-## G. Spectator cockpit
+Build on the existing read-only battlefield experience.
 
-Build a read-only battle cockpit using the normal battlefield renderer and public inspector/timeline/log components.
-
-Spectator controls include as appropriate:
+Mature spectator controls may include:
 
 - Follow Action;
 - Free Camera;
-- cycle combatants;
-- inspect units/tiles;
-- Combat Log;
-- UI density;
+- combatant cycling;
+- unit/tile Inspect;
+- battle log;
+- density controls;
 - Copy Spectator Link;
-- Return to Colosseum.
+- Return to Colosseum;
+- replay controls when viewing completed battles.
 
-Do not show participant Command Deck controls.
+Participant Command Deck controls never appear as actionable spectator controls.
 
 ## H. Colosseum MVP
 
-Add a player-facing Colosseum with at least:
+Add a player-facing Colosseum using the same underlying PvP/spectator systems.
+
+Initial surfaces may include:
 
 ```text
 FEATURED
@@ -199,82 +244,91 @@ PUBLIC LIVE BATTLES
 RANKED / CASUAL FILTERS
 TOURNAMENTS when available
 FRIENDS FIGHTING where privacy permits
+REPLAYS where policy permits
 ```
 
-Listings show only public metadata allowed by the battle/mode policy.
+Listings expose only public metadata permitted by battle/mode/privacy policy.
 
-Initial filters can remain modest; prioritize fast discovery and privacy correctness over a giant sports portal.
+Prioritize reliable discovery, privacy and battle readability over building a giant sports portal.
 
-## I. PvP surrender integration
+## I. Competitive PvP integration
 
-Spectator/result presentation must correctly represent official surrender/forfeit outcomes from the combat-exit roadmap.
+The spectator product must integrate with the Phase-8 competitive work:
 
-A surrendered match remains a legitimate completed competitive result and transitions to final result/replay according to visibility policy.
+- ranked 1v1 / 2v2;
+- matchmaking/ratings;
+- Arena Tempering;
+- seasons;
+- tournaments;
+- competitive build snapshots;
+- Skill/Resonance/Essence/Soulmark/Mantle/equipment legality as those systems exist;
+- disconnect/abandon policy;
+- map/spawn/side-bias analysis;
+- competitive telemetry.
+
+Do not create duplicate PvP-only Skills/build definitions merely for spectator or queue presentation.
 
 ## Phase-8 spectator gate
 
-Before calling PvP spectation ready:
+Before calling mature competitive spectation ready:
 
-- shareable links cannot issue commands;
+- spectator access cannot issue participant commands;
 - private-key battles are not publicly discoverable;
 - key brute-force attempts are rate-limited;
-- hidden information never appears in spectator payloads;
-- ranked/tournament delay cannot be bypassed by refresh/reconnect/alternate endpoints;
-- a private casual spar can be watched live by an invited friend;
+- hidden information does not leak through spectator payloads;
+- ranked/tournament delay cannot be bypassed;
+- an invited private casual spar can be watched according to policy;
 - an eligible public match can be opened from the Colosseum;
-- a match finishing while watched transitions correctly to final result;
-- spectator load does not multiply combat mutation execution.
+- match completion transitions cleanly to final result/replay where allowed;
+- spectator fanout does not multiply battle mutation execution or materially damage participant latency.
 
 ---
 
-# Phase 9 — Competitive Content Expansion
+# 5. Phase 9 — Competitive content expansion
 
-As PvP/build variety grows:
+As build/content variety grows:
 
-- spectator projection understands newly public/hidden combat mechanics correctly;
-- new Reactions/Soulmarks/Confluences do not leak pre-reveal information;
-- Colosseum filters can expand to mode/rank/map where useful;
-- public replays become useful learning material for released build systems;
-- avoid exposing unreleased/hidden build definitions through spectator metadata.
+- spectator projection must correctly classify newly public/private mechanics;
+- new Soulmark/Mantle/Resonance/Essence/equipment interactions must not leak unrevealed information;
+- Colosseum filters may expand to mode/rank/map/build identity where useful and safe;
+- eligible public replays can become learning material;
+- unreleased/hidden content must not be exposed through spectator metadata.
 
 ---
 
-# Phase 10 — Social Spectation Features
+# 6. Phase 10 — Social spectation
 
-When the mature social world exists, expand spectation with:
+When the mature social world exists, extend the existing spectator platform with features supported by actual social demand:
 
 - Friends Fighting discovery where privacy allows;
-- spectator chat if moderation tooling is ready;
-- chat mute/block/report integration;
+- spectator chat moderation/mute/block/report integration;
 - optional slow mode for featured matches;
-- private spectator access list/removal for hosts;
-- follow/friend shortcuts to eligible public/unlisted battles;
+- private spectator access-list/removal controls where justified;
+- friend/follow shortcuts to eligible battles;
 - richer replay sharing;
-- profile/history links to eligible public competitive replays where desired;
+- profile/history links to eligible public competitive replays;
 - spectator privacy preferences.
 
-Competitive participants do **not** receive live spectator chat by default.
+Competitive participants should not receive live spectator tactical coaching through the product by default.
 
 Spectators cannot place tactical pings onto participant battlefields.
 
-Do not block core spectation launch on chat; read-only watching is the higher-priority feature.
-
 ---
 
-# Phase 12 — Nations / Arena Identity
+# 7. Phase 12 — Nations / arena identity
 
 As nation identity matures:
 
-- nation capitals/regions may receive authored arena/Colosseum entrances or culturally distinct PvP presentation;
-- these can route to the same underlying PvP/spectator systems rather than fragmenting matchmaking;
-- nation events can feature exhibition battles where appropriate;
-- spectators remain governed by the same visibility/delay/security rules regardless of visual venue.
+- nation capitals/regions may receive culturally distinct arena/Colosseum entrances or presentation;
+- they route to the same underlying PvP/matchmaking/spectator systems;
+- nation events may feature exhibitions where appropriate;
+- visibility/delay/security rules remain consistent regardless of visual venue.
 
-Do not create separate incompatible spectator stacks per nation.
+Do not create incompatible spectator stacks per nation.
 
 ---
 
-# Phase 13 — Colosseum / Tournament Operations
+# 8. Phase 13 — Colosseum / tournament operations
 
 Add safe Owner/Event Staff operational surfaces for:
 
@@ -287,54 +341,53 @@ Add safe Owner/Event Staff operational surfaces for:
 - private access support/revocation with audit where justified;
 - tournament bracket → live match linking;
 - emergency spectation disable;
-- spectator-chat controls if chat exists;
-- moderation/support diagnostics without exposing raw hidden competitor state.
+- spectator-chat controls;
+- moderation/support diagnostics without leaking hidden competitor state.
 
-Event Staff may curate presentation for authorized events but cannot change competitive battle rules or reveal private state unless explicitly granted a separate approved capability.
+Event Staff may curate authorized presentation but cannot secretly change competitive battle rules or reveal private state without separately approved authority.
 
 ---
 
-# Phase 14 — Spectator Presentation Polish
+# 9. Phase 14 — Spectator presentation polish
 
-Polish the Colosseum and spectator cockpit so important battles feel like events:
+Polish the Colosseum/spectator experience so important battles feel like events:
 
 - premium Colosseum visual identity;
 - featured-match cards;
 - clear LIVE / DELAYED / REPLAY treatment;
-- strong player portrait/title/badge presentation;
+- strong portrait/title/badge presentation;
 - tournament bracket presentation;
-- responsive spectator layout;
+- responsive layouts;
 - follow-action camera transitions;
 - spectator-safe audio mix;
-- readable combat log/score/objective presentation;
-- restrained crowd/spectator ambience where appropriate;
-- replay controls and transitions;
-- no generic admin-table appearance.
+- readable battle log/score/objective presentation;
+- restrained crowd ambience where appropriate;
+- replay controls/transitions.
 
-The battlefield remains the star of the spectator experience.
+The battlefield remains the star.
 
 ---
 
-# Phase 15 — Spectator Security & Scale Hardening
+# 10. Phase 15 — Spectator security & scale hardening
 
-Add dedicated hardening for:
+Harden:
 
-- private Battle Key brute-force/rate-limit tests;
-- opaque handle enumeration resistance;
-- blocked/private discovery leaks;
-- spectator-to-participant authorization escalation;
-- hidden loadout/Reaction/status/RNG leakage;
-- delayed-feed bypass through websocket/HTTP/replay/reconnect paths;
-- second-account/voice-coaching threat review;
-- spectator chat abuse/spam if chat exists;
+- Battle Key brute-force/rate limiting;
+- handle enumeration resistance;
+- private/blocked discovery leaks;
+- spectator→participant authorization escalation;
+- hidden build/status/RNG leakage;
+- delayed-feed bypass through every transport/replay/reconnect path;
+- second-account/voice-coaching threat model;
+- spectator-chat abuse/spam where chat exists;
 - spectator reconnect/order correctness;
 - completed battle/replay visibility carry-forward;
-- 100s/1000s spectator fanout load on representative featured matches;
-- spectator count approximation/realtime cost;
-- battle mutation latency under heavy spectator load;
-- tournament/featured traffic spikes;
-- privacy/account deletion/retention interactions for replays;
-- audit integrity for operational feature/private-access actions.
+- hundreds/thousands of spectator fanout on representative featured matches;
+- spectator-count/realtime cost;
+- participant mutation latency under spectator load;
+- tournament traffic spikes;
+- privacy/account deletion/replay-retention interactions;
+- audit integrity for operational spectator actions.
 
 ---
 
@@ -344,4 +397,6 @@ The Colosseum is not merely a list of matches.
 
 Its long-term purpose is to make AUREVANE combat socially legible:
 
-> players should be able to watch a championship duel, send a friend a private sparring key, study an expert replay, gather around a live event match, and recognize famous fighters—without spectators compromising the match they came to watch.
+> players should be able to watch a championship duel, share a private sparring battle, study an expert replay, gather around an event match and recognize famous fighters—without spectators compromising the battle they came to watch.
+
+The direct spectator foundations already built are the beginning of that product, not throwaway Phase-2 code.
