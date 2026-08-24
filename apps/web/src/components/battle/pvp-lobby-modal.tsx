@@ -51,7 +51,8 @@ function memberForSeat(
 ): PvpLobbyMemberView | null {
   return (
     lobby.members.find(
-      (member) => member.teamIndex === teamIndex && member.seatIndex === seatIndex,
+      (member) =>
+        member.seated && member.teamIndex === teamIndex && member.seatIndex === seatIndex,
     ) ?? null
   )
 }
@@ -79,6 +80,10 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
   const localMember = useMemo(
     () => lobby.members.find((member) => member.characterId === localCharacterId) ?? null,
     [lobby.members, localCharacterId],
+  )
+  const unseatedMembers = useMemo(
+    () => lobby.members.filter((member) => !member.seated),
+    [lobby.members],
   )
   const teams = teamCount(lobby)
   const required = lobby.teamSizes.reduce((total, size) => total + size, 0)
@@ -156,7 +161,7 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
   }, [lobby.lobbyId])
 
   async function toggleReady() {
-    if (!localMember || pending) return
+    if (!localMember?.seated || pending) return
     setPending(true)
     setError(null)
     try {
@@ -176,10 +181,17 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
     }
   }
 
-  async function moveSeat(targetTeamIndex: number, targetSeatIndex: number) {
+  async function moveSeat(targetTeamIndex: number | null, targetSeatIndex: number | null) {
     if (!localMember || !canMoveSeats || pending) return
-    if (localMember.teamIndex === targetTeamIndex && localMember.seatIndex === targetSeatIndex)
+    const unseating = targetTeamIndex === null && targetSeatIndex === null
+    if (
+      !unseating &&
+      localMember.seated &&
+      localMember.teamIndex === targetTeamIndex &&
+      localMember.seatIndex === targetSeatIndex
+    ) {
       return
+    }
     setPending(true)
     setError(null)
     try {
@@ -189,11 +201,20 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
         body: JSON.stringify({ targetTeamIndex, targetSeatIndex }),
       })
       const body = (await response.json()) as { lobby?: PvpLobbyView } & ApiErrorBody
-      if (!response.ok || !body.lobby)
-        throw new Error(body.error?.message ?? 'That team move could not be made.')
+      if (!response.ok || !body.lobby) {
+        throw new Error(
+          body.error?.message ?? (unseating ? 'That seat could not be released.' : 'That team move could not be made.'),
+        )
+      }
       setLobby(body.lobby)
     } catch (moveError) {
-      setError(moveError instanceof Error ? moveError.message : 'That team move could not be made.')
+      setError(
+        moveError instanceof Error
+          ? moveError.message
+          : unseating
+            ? 'That seat could not be released.'
+            : 'That team move could not be made.',
+      )
     } finally {
       setPending(false)
     }
@@ -226,8 +247,8 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
     }
   }
 
-  const filled = lobby.members.length
-  const readyCount = lobby.members.filter((member) => member.ready).length
+  const filled = lobby.members.filter((member) => member.seated).length
+  const readyCount = lobby.members.filter((member) => member.seated && member.ready).length
   const turnTimerLabel =
     settings.turnTimerSeconds === null ? 'No timer' : `${settings.turnTimerSeconds} seconds`
 
@@ -324,8 +345,9 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
               textAlign: 'center',
             }}
           >
-            Click any team seat to move there. Occupied seats swap positions. Any team change clears
-            everyone&apos;s Ready state.
+            Click your occupied seat to step out of formation. Click an open seat to rejoin; while
+            seated, clicking another occupied seat swaps positions. Any seat change clears every
+            Ready state.
           </p>
         ) : null}
 
@@ -341,24 +363,42 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
                 <div className={styles.seats}>
                   {Array.from({ length: lobby.teamSizes[teamIndex] ?? 0 }, (_, seatIndex) => {
                     const member = memberForSeat(lobby, teamIndex, seatIndex)
+                    const ownSeat = member?.characterId === localCharacterId
+                    const occupiedWhileUnseated = Boolean(member && localMember && !localMember.seated)
                     return member ? (
                       <button
                         type="button"
                         className={styles.filledSeat}
                         key={seatIndex}
                         data-ready={member.ready || undefined}
-                        disabled={!canMoveSeats || pending || !localMember}
-                        onClick={() => void moveSeat(teamIndex, seatIndex)}
+                        disabled={
+                          !canMoveSeats ||
+                          pending ||
+                          !localMember ||
+                          (occupiedWhileUnseated && !ownSeat)
+                        }
+                        onClick={() =>
+                          void (ownSeat
+                            ? moveSeat(null, null)
+                            : moveSeat(teamIndex, seatIndex))
+                        }
                         title={
                           canMoveSeats
-                            ? `Move to Team ${teamIndex + 1}, seat ${seatIndex + 1}`
+                            ? ownSeat
+                              ? 'Step out of this seat and choose another position.'
+                              : occupiedWhileUnseated
+                                ? 'Choose an open seat before swapping with another combatant.'
+                                : `Swap into Team ${teamIndex + 1}, seat ${seatIndex + 1}`
                             : undefined
                         }
                         style={{
                           width: '100%',
                           color: 'inherit',
                           textAlign: 'left',
-                          cursor: canMoveSeats ? 'pointer' : 'default',
+                          cursor:
+                            canMoveSeats && (!occupiedWhileUnseated || ownSeat)
+                              ? 'pointer'
+                              : 'default',
                         }}
                       >
                         <div className={styles.portraitFrame}>
@@ -372,7 +412,7 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
                             {member.isHost ? ' · Host' : ''}
                           </small>
                         </div>
-                        <span>{member.ready ? 'READY' : 'STANDBY'}</span>
+                        <span>{member.ready ? 'READY' : ownSeat && canMoveSeats ? 'CLICK TO MOVE' : 'STANDBY'}</span>
                       </button>
                     ) : (
                       <button
@@ -405,6 +445,62 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
           ))}
         </div>
 
+        {unseatedMembers.length > 0 ? (
+          <section
+            aria-label="Combatants choosing a seat"
+            style={{
+              display: 'grid',
+              gap: '0.4rem',
+              padding: '0.5rem',
+              border: '1px solid rgba(207, 169, 93, 0.22)',
+              borderRadius: '0.45rem',
+              background: 'rgba(255, 255, 255, 0.018)',
+            }}
+          >
+            <span
+              style={{
+                color: 'var(--av-brass-300)',
+                font: '750 0.45rem/1 var(--av-font-mono)',
+                letterSpacing: '0.06em',
+                textTransform: 'uppercase',
+              }}
+            >
+              Choosing a seat
+            </span>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(11rem, 1fr))',
+                gap: '0.35rem',
+              }}
+            >
+              {unseatedMembers.map((member) => (
+                <div
+                  key={member.characterId}
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '2rem minmax(0, 1fr)',
+                    gap: '0.45rem',
+                    alignItems: 'center',
+                    padding: '0.35rem',
+                    border: '1px solid rgba(255,255,255,.06)',
+                    borderRadius: '0.35rem',
+                    background: 'rgba(5,8,12,.72)',
+                  }}
+                >
+                  <Portrait member={member} />
+                  <span style={{ display: 'grid', gap: '0.12rem', minWidth: 0 }}>
+                    <strong style={{ fontSize: '0.62rem' }}>{member.characterName}</strong>
+                    <small style={{ color: 'var(--av-text-dim)', fontSize: '0.48rem' }}>
+                      Select an open team seat{member.isHost ? ' · Host' : ''}
+                    </small>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         {error ? (
           <p className={styles.error} role="alert">
             {error}
@@ -416,7 +512,9 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
             <span>
               {lobby.readyToStart
                 ? 'All combatants ready — opening the arena…'
-                : 'Battle begins when every required seat is filled and ready.'}
+                : localMember && !localMember.seated
+                  ? 'Choose an open combat seat before marking Ready.'
+                  : 'Battle begins when every required seat is filled and ready.'}
             </span>
             {lobby.status === 'cancelled' ? (
               <button type="button" onClick={onLeave}>
@@ -446,10 +544,16 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
               className={styles.ready}
               data-ready={localMember?.ready || undefined}
               onClick={() => void toggleReady()}
-              disabled={pending || !localMember || lobby.status !== 'waiting'}
+              disabled={
+                pending || !localMember || !localMember.seated || lobby.status !== 'waiting'
+              }
             >
               <span>{localMember?.ready ? '✓' : '○'}</span>
-              {localMember?.ready ? 'Ready — click to stand down' : 'Mark Ready'}
+              {localMember?.ready
+                ? 'Ready — click to stand down'
+                : localMember && !localMember.seated
+                  ? 'Choose a seat first'
+                  : 'Mark Ready'}
             </button>
           </div>
         </footer>
