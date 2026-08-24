@@ -118,23 +118,33 @@
 }
 
 @media (max-width: 700px) {
-  /* The spectator battlefield is content-height on phones, while the desktop rule above uses
-     a flexible 1fr map track. In an auto-height parent that track is allowed to resolve to 0px.
-     Give the actual map row and its scroller a concrete floor here; Inspect remains unchanged. */
+  /* Mobile is content-height, so do not use the desktop flexible track for the board. More
+     importantly, the spectator board itself currently arrives with explicit 1fr rows and an
+     aspect-ratio. In an auto-height grid that combination has no intrinsic block-size and can
+     collapse the entire tactical map. Restore content-driven rows on phones: the nine columns
+     establish each tile width and the tiles' square aspect-ratio then establishes all seven rows. */
   .battlefieldWrap {
-    grid-template-rows: auto minmax(16rem, auto) auto auto !important;
+    grid-template-rows: auto auto auto auto !important;
   }
 
   .battlefieldWrap > div:nth-child(2) {
-    min-height: 16rem !important;
+    display: grid !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    place-items: center !important;
   }
 
   .battlefieldWrap > div:nth-child(2) > div {
+    grid-template-rows: none !important;
+    aspect-ratio: auto !important;
     width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
     height: auto !important;
+    min-height: 0 !important;
     max-height: none !important;
+    margin: 0 auto !important;
   }
 
   .inspectDeck {
