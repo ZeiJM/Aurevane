@@ -1,0 +1,17 @@
+.hook {
+  display: none;
+}
+
+@media (min-width: 821px) {
+  /* The shared dock already owns its own battlefield column. Nudge the panel into the unused
+     right-side canvas only; do not change board sizing, battlefield padding, or the dock width. */
+  :global(#battlefield[data-desktop-battle-log-open='true'] > [data-docked-battle-log='true']) {
+    transform: translateX(clamp(1rem, 1.8vw, 2rem)) !important;
+  }
+}
+
+@media (max-width: 1040px) and (min-width: 821px) {
+  :global(#battlefield[data-desktop-battle-log-open='true'] > [data-docked-battle-log='true']) {
+    transform: translateX(0.75rem) !important;
+  }
+}

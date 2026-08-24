@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 
 import { BattleLogPanel } from './battle-log-panel'
+import styles from './desktop-battle-log-dock.module.css'
 
 const DESKTOP_QUERY = '(min-width: 821px)'
 const LOG_REFRESH_MS = 1200
@@ -65,12 +66,15 @@ export function DesktopBattleLogDock({
   if (!desktop) return null
 
   return (
-    <BattleLogPanel
-      battleSessionId={battleSessionId}
-      battleVersion={refreshTick}
-      open={open}
-      playerName={playerName}
-      dockOnDesktop
-    />
+    <>
+      <span className={styles.hook} aria-hidden="true" />
+      <BattleLogPanel
+        battleSessionId={battleSessionId}
+        battleVersion={refreshTick}
+        open={open}
+        playerName={playerName}
+        dockOnDesktop
+      />
+    </>
   )
 }
