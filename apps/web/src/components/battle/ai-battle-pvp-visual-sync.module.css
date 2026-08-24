@@ -127,6 +127,7 @@
     max-width: 38.75rem !important;
     max-height: 100% !important;
     margin: auto !important;
+    row-gap: 0 !important;
   }
 
   :global([data-ai-pvp-visual-sync='true'] [data-ai-command-button='true']) {
