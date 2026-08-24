@@ -255,6 +255,12 @@
   white-space: nowrap;
 }
 
+@media (min-width: 821px) {
+  .windowHeader button[data-hide-desktop='true'] {
+    display: none;
+  }
+}
+
 @media (max-width: 760px) {
   .utilityWindow {
     min-width: 13rem;
