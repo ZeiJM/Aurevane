@@ -115,9 +115,7 @@
     grid-row: 1 !important;
   }
 
-  :global(
-    main[data-pvp-battle='true'] > footer > div:not([data-pvp-footer-presence='true'])
-  ) {
+  :global(main[data-pvp-battle='true'] > footer > div:not([data-pvp-footer-presence='true'])) {
     grid-column: 1 / -1 !important;
     grid-row: 2 !important;
     width: 100% !important;
@@ -155,9 +153,7 @@
     grid-row: 1 !important;
   }
 
-  :global(
-    main[data-pvp-battle='true'] > footer > div:not([data-pvp-footer-presence='true'])
-  ) {
+  :global(main[data-pvp-battle='true'] > footer > div:not([data-pvp-footer-presence='true'])) {
     display: grid !important;
     grid-column: 1 / -1 !important;
     grid-row: 2 !important;
@@ -166,10 +162,7 @@
   }
 
   :global(
-    main[data-pvp-battle='true']
-      > footer
-      > div:not([data-pvp-footer-presence='true'])
-      > button
+    main[data-pvp-battle='true'] > footer > div:not([data-pvp-footer-presence='true']) > button
   ) {
     width: 100% !important;
   }
