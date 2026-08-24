@@ -189,7 +189,7 @@
 
 .composer {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   gap: 0.38rem;
   padding: 0.5rem;
   border-top: 1px solid rgba(207, 169, 93, 0.16);
@@ -222,6 +222,56 @@
 .composer button:disabled {
   cursor: default;
   opacity: 0.45;
+}
+
+.emojiWrap {
+  position: relative;
+}
+
+.composer .emojiButton {
+  min-width: 2.15rem;
+  padding-inline: 0.5rem;
+  color: var(--av-brass-200);
+  background: rgba(207, 169, 93, 0.08);
+  font-size: 0.86rem;
+}
+
+.emojiPicker {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.4rem);
+  z-index: 50;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(2rem, auto));
+  gap: 0.25rem;
+  width: max-content;
+  max-width: min(18rem, calc(100vw - 1rem));
+  padding: 0.38rem;
+  border: 1px solid rgba(212, 186, 130, 0.45);
+  border-radius: var(--av-radius-sm);
+  background: rgba(7, 10, 14, 0.995);
+  box-shadow: 0 0.8rem 2rem rgba(0, 0, 0, 0.52);
+}
+
+.emojiPicker > button {
+  display: grid;
+  min-width: 2rem;
+  min-height: 2rem;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--av-border);
+  color: var(--av-text);
+  background: rgba(255, 255, 255, 0.025);
+  font-size: 1rem;
+  text-transform: none;
+}
+
+.emojiPicker > span {
+  grid-column: 1 / -1;
+  padding: 0.4rem 0.48rem;
+  color: var(--av-text-dim);
+  font-size: 0.55rem;
+  white-space: nowrap;
 }
 
 @media (max-width: 760px) {
