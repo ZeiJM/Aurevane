@@ -103,7 +103,9 @@
     overflow: hidden;
   }
 
-  :global(main[data-pvp-spectator='true'] section[aria-label='Spectator battle log'] > div:last-child) {
+  :global(
+    main[data-pvp-spectator='true'] section[aria-label='Spectator battle log'] > div:last-child
+  ) {
     min-height: 0;
     overflow: auto;
     overscroll-behavior: contain;
