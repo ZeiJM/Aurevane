@@ -200,25 +200,33 @@
 
 @media (min-width: 821px) {
   :global([data-desktop-battle-log-open='true']) {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) minmax(14rem, 19rem) !important;
-    gap: clamp(0.35rem, 0.6vw, 0.65rem) !important;
-    align-items: stretch !important;
-    padding-right: clamp(0.35rem, 0.6vw, 0.65rem) !important;
+    --battle-log-dock-gap: clamp(0.35rem, 0.6vw, 0.65rem);
+    --battle-log-dock-width: clamp(13rem, 18vw, 19rem);
+
+    position: relative !important;
+    box-sizing: border-box !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    padding-right: calc(var(--battle-log-dock-width) + var(--battle-log-dock-gap)) !important;
   }
 
   :global([data-desktop-battle-log-open='true'] > div:first-child) {
     grid-column: 1 !important;
+    width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
     place-self: center !important;
   }
 
   :global([data-desktop-battle-log-open='true'] > [data-docked-battle-log='true']) {
-    grid-column: 2 !important;
+    position: absolute !important;
+    top: 0.32rem;
+    right: 0.32rem;
+    bottom: 0.32rem;
+    z-index: 20;
+    width: var(--battle-log-dock-width);
+    height: auto;
     min-width: 0 !important;
     min-height: 0 !important;
-    align-self: stretch !important;
   }
 }
 
