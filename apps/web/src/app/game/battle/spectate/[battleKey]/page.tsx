@@ -4,6 +4,7 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 import { BattleAudioGate } from '@/components/battle/battle-audio-gate'
+import { BattleStatusEffectAssist } from '@/components/battle/battle-status-effect-assist'
 import { PvpSpectatorExperience } from '@/components/battle/pvp-spectator-experience'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
@@ -71,6 +72,7 @@ export default async function PvpSpectatorPage({
         initialSpectator={spectator}
         initialParticipantTitles={participantTitles}
       />
+      <BattleStatusEffectAssist />
     </BattleAudioGate>
   )
 }
