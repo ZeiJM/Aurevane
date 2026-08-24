@@ -118,8 +118,18 @@
 }
 
 @media (max-width: 700px) {
+  .battlefieldWrap {
+    /* The desktop 1fr track depends on a definite battlefield height. On mobile the
+       battlefield is content-sized, so that track can collapse to zero and hide the map. */
+    grid-template-rows: auto auto auto auto !important;
+    box-shadow:
+      0 0 0 1px rgba(207, 169, 93, 0.04),
+      0 0.8rem 2rem rgba(0, 0, 0, 0.24);
+  }
+
   .inspectDeck {
     grid-template-columns: minmax(5.5rem, 6.5rem) minmax(0, 1fr);
+    gap: 0.32rem;
     padding: 0.32rem;
   }
 
@@ -144,9 +154,16 @@
 @media (max-width: 430px) {
   .inspectDeck {
     grid-template-columns: 1fr;
+    gap: 0.28rem;
   }
 
   .inspectButton {
     width: 100%;
+    min-height: 2.2rem;
+  }
+
+  .inspectContext {
+    min-height: 0;
+    padding: 0.34rem 0.42rem;
   }
 }
