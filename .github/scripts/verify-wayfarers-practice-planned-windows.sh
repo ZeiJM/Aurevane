@@ -1,19 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-status_env="$(pnpm exec supabase status -o env)"
-eval "$(printf '%s\n' "$status_env" | grep '^ANON_KEY=')"
-test -n "${ANON_KEY:-}"
+source .github/scripts/auth-test-helpers.sh
+load_test_auth
 
-api_url='http://127.0.0.1:54321'
+api_url="$TEST_AUTH_API_URL"
+server_key="$TEST_AUTH_ADMIN_KEY"
 password='A2-passive-training-2026!'
 email="a2-passive-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@example.com"
 
-signup="$(curl --fail-with-body --silent --show-error \
-  --request POST "$api_url/auth/v1/signup" \
-  --header "apikey: $ANON_KEY" \
-  --header 'Content-Type: application/json' \
-  --data "{\"email\":\"$email\",\"password\":\"$password\"}")"
+signup="$(signup_test_user "$email" "$password")"
 user_id="$(printf '%s' "$signup" | jq -r '.user.id')"
 test -n "$user_id"
 
