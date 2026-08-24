@@ -56,17 +56,18 @@
     width: 100% !important;
     min-height: 0 !important;
     aspect-ratio: 1 !important;
-    border: 2px solid var(--battle-combatant-accent) !important;
-    box-shadow:
-      0 0 0.78rem color-mix(in srgb, var(--battle-combatant-accent) 42%, transparent),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.04) !important;
+    border: 0 !important;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035) !important;
   }
 
-  :global([data-ai-compact-portrait='true']:hover),
+  :global([data-ai-compact-portrait='true']:hover) {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.085) !important;
+  }
+
   :global([data-ai-compact-portrait='true']:focus-visible) {
-    box-shadow:
-      0 0 1.05rem color-mix(in srgb, var(--battle-combatant-accent) 62%, transparent),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.08) !important;
+    outline: 1px solid #efe0b1 !important;
+    outline-offset: 2px !important;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.085) !important;
   }
 
   :global([data-ai-compact-hidden='true']) {
