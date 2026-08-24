@@ -172,7 +172,7 @@ export function PvpBattleChatBridge({
       event.preventDefault()
       event.stopPropagation()
       setRequestedTab('log')
-      setOpen(true)
+      setOpen((current) => (requestedTab === 'log' ? !current : true))
     }
 
     const sync = () => {
