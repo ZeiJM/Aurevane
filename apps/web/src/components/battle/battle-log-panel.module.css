@@ -199,17 +199,13 @@
 }
 
 @media (min-width: 821px) {
-  :global(
-    [data-desktop-battle-log-open='true']:not([data-pvp-desktop-content='true'])
-  ) {
+  :global([data-desktop-battle-log-open='true']:not([data-pvp-desktop-content='true'])) {
     grid-template-columns:
       minmax(8.4rem, 10.5rem) minmax(0, 1fr) minmax(12rem, 18rem)
       minmax(8.4rem, 10.5rem) !important;
   }
 
-  :global(
-    [data-pvp-desktop-content='true'][data-desktop-battle-log-open='true']
-  ) {
+  :global([data-pvp-desktop-content='true'][data-desktop-battle-log-open='true']) {
     grid-template-columns:
       minmax(8.4rem, 10.5rem) minmax(0, 1fr) minmax(12rem, 18rem)
       minmax(8.4rem, 10.5rem) !important;

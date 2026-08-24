@@ -298,13 +298,21 @@ function LogPanel({
 }) {
   return (
     <section className={styles.panel} aria-label="Battle Log">
-      <header data-drag-handle={onHeaderPointerDown ? 'true' : undefined} onPointerDown={onHeaderPointerDown}>
+      <header
+        data-drag-handle={onHeaderPointerDown ? 'true' : undefined}
+        onPointerDown={onHeaderPointerDown}
+      >
         <div>
           <strong>Battle Log</strong>
           <span>Rounds · actions · outcomes</span>
         </div>
         {onClose ? (
-          <button type="button" className={styles.close} onClick={onClose} aria-label="Close battle log">
+          <button
+            type="button"
+            className={styles.close}
+            onClick={onClose}
+            aria-label="Close battle log"
+          >
             ×
           </button>
         ) : null}
@@ -316,7 +324,11 @@ function LogPanel({
           {error}
         </p>
       ) : (
-        <BattleLogFeed entries={entries} playerName={playerName} emptyMessage="No committed battle actions yet." />
+        <BattleLogFeed
+          entries={entries}
+          playerName={playerName}
+          emptyMessage="No committed battle actions yet."
+        />
       )}
     </section>
   )
