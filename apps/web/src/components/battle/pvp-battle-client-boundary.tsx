@@ -11,6 +11,7 @@ import { BattleStabilizationPolish } from './battle-stabilization-polish'
 import { BattleStatusEffectAssist } from './battle-status-effect-assist'
 import { BattleStickyActionAssist } from './battle-sticky-action-assist'
 import { DesktopBattleCombatantInspect } from './desktop-battle-combatant-inspect'
+import { DesktopBattleLogDock } from './desktop-battle-log-dock'
 import { PvpBattleChatBridge } from './pvp-battle-chat-bridge'
 import { PvpBattleCompletionPanel } from './pvp-battle-completion-panel'
 import { PvpBattleExperience } from './pvp-battle-experience'
@@ -57,6 +58,7 @@ export function PvpBattleClientBoundary({
       <PvpBattleKeyboardAssist playerName={playerName} />
       <PvpQuickCommitAssist />
       <PvpBattleChatBridge battleSessionId={initialBattle.battleSessionId} metadata={metadata} />
+      <DesktopBattleLogDock battleSessionId={initialBattle.battleSessionId} playerName={playerName} />
       <PvpBattleQualityControls
         battleSessionId={initialBattle.battleSessionId}
         initialBattle={initialBattle}
