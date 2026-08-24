@@ -2,19 +2,21 @@
 set -euo pipefail
 
 status_env="$(pnpm exec supabase status -o env)"
-eval "$(printf '%s\n' "$status_env" | grep '^ANON_KEY=')"
-test -n "${ANON_KEY:-}"
+eval "$(printf '%s\n' "$status_env" | grep -E '^(SERVICE_ROLE_KEY|SECRET_KEY)=')"
+server_key="${SECRET_KEY:-${SERVICE_ROLE_KEY:-}}"
+test -n "$server_key"
 
 api_url='http://127.0.0.1:54321'
 password='Emoji-privacy-2026!'
 email="emoji-privacy-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@example.com"
 
-signup="$(curl --fail-with-body --silent --show-error \
-  --request POST "$api_url/auth/v1/signup" \
-  --header "apikey: $ANON_KEY" \
+created_user="$(curl --fail-with-body --silent --show-error \
+  --request POST "$api_url/auth/v1/admin/users" \
+  --header "apikey: $server_key" \
+  --header "Authorization: Bearer $server_key" \
   --header 'Content-Type: application/json' \
-  --data "{\"email\":\"$email\",\"password\":\"$password\"}")"
-user_id="$(printf '%s' "$signup" | jq -r '.user.id')"
+  --data "{\"email\":\"$email\",\"password\":\"$password\",\"email_confirm\":true}")"
+user_id="$(printf '%s' "$created_user" | jq -r '.id // .user.id // empty')"
 test -n "$user_id"
 
 db_container="$(docker ps --filter 'name=supabase_db_' --format '{{.Names}}' | head -n 1)"
