@@ -89,20 +89,29 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   )
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Choose your action')
   await expect(page.getByText(/100 AP/).first()).toBeVisible()
-  await expect(battlefield.locator('[data-board-auto-fit="5x3"]')).toHaveCount(1)
+  const fittedBoard = battlefield.locator('[data-board-auto-fit="5x3"]')
+  await expect(fittedBoard).toHaveCount(1)
   await expectBattlefieldContained(page)
+  if (testInfo.project.name !== 'mobile-chromium') {
+    expect(await fittedBoard.evaluate((board) => window.getComputedStyle(board).rowGap)).toBe('0px')
+  }
 
   await page.getByRole('button', { name: 'Chat', exact: true }).click()
-  await page.getByLabel('Battle chat message').fill('Testing solo battle chat⚔️')
+  const battleChatInput = page.getByLabel('Battle chat message')
+  await battleChatInput.fill('Testing solo battle chat⚔️')
   await page.getByRole('button', { name: 'Send' }).click()
   await expect(page.getByText('Testing solo battle chat⚔️', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: 'Choose emoji' }).click()
   await expect(page.getByRole('button', { name: 'Insert ⚔️' })).toBeVisible()
-  await page.mouse.click(1, 1)
+  await battleChatInput.click()
   await expect(page.getByRole('group', { name: 'Recent emoji' })).toHaveCount(0)
-  await expect(page.getByLabel('Battle chat message')).toBeVisible()
-  await page.getByRole('button', { name: 'Close battle chat' }).click()
-  await expect(page.getByLabel('Battle chat message')).toHaveCount(0)
+  await expect(battleChatInput).toBeVisible()
+  if (testInfo.project.name === 'mobile-chromium') {
+    await page.getByRole('button', { name: 'Close battle chat' }).click()
+  } else {
+    await page.mouse.click(1, 1)
+  }
+  await expect(battleChatInput).toHaveCount(0)
 
   if (testInfo.project.name === 'mobile-chromium') {
     const playerTile = page.getByRole('button', {
@@ -124,11 +133,14 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
       page.getByRole('button', { name: `Show ${characterName} combat details` }),
     ).toBeHidden()
   } else {
+    await inspectButton.click()
     await page.getByRole('button', { name: `Show ${characterName} combat details` }).click()
-    await expect(page.getByText(`${characterName} · combat details`)).toBeVisible()
-    await expect(page.getByText('Initiative', { exact: true })).toBeVisible()
-    await page.getByRole('button', { name: 'Close combatant details' }).click()
-    await expect(page.getByText(`${characterName} · combat details`)).toHaveCount(0)
+    const combatantDialog = page.getByRole('dialog', { name: `${characterName} battle details` })
+    await expect(combatantDialog).toBeVisible()
+    await expect(combatantDialog.getByText('Initiative', { exact: true })).toBeVisible()
+    await expect(combatantDialog.getByText('AP', { exact: true })).toHaveCount(0)
+    await page.mouse.click(1, 1)
+    await expect(combatantDialog).toHaveCount(0)
     const playerRail = page.locator(`aside[aria-label="${characterName} combat status"]`)
     const recruitRail = page.locator('aside[aria-label="Recruit combat status"]')
     await expect(playerRail.getByText(characterName, { exact: true })).toBeVisible()
@@ -155,6 +167,12 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await page.getByRole('button', { name: /Tile 4, 2; open-ground; elevation 0/ }).click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Path ready: 100 AP')
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('0 AP will remain')
+  if (testInfo.project.name !== 'mobile-chromium') {
+    const pathZero = battlefield.locator('[data-ai-path-zero="true"]')
+    await expect(pathZero).toHaveCount(1)
+    await expect(pathZero.locator('[data-map-token-portrait]')).toHaveCount(0)
+    await expect(battlefield.locator('[data-map-token-team="player"]')).toHaveCount(1)
+  }
   await expect(confirmButton).toBeEnabled()
   await expect(page.getByText(/100 AP proposed/)).toBeVisible()
   await confirmButton.click()
@@ -212,14 +230,23 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await openCriteriaAndClose(page, '3/4 complete')
 
   const roundButton = page.getByRole('button', { name: /Round .*Combat Log/ })
-  await roundButton.click()
   const battleLog = page.getByTestId('battle-log-panel')
+  if (testInfo.project.name === 'mobile-chromium') {
+    await roundButton.click()
+  }
   await expect(battleLog).toBeVisible()
   await expect(battleLog).toContainText(characterName)
   await expect(battleLog).toContainText(/moved|Guard/)
   await expect(battleLog).not.toContainText(/\bv\d+\b/)
   await expect(battleLog).not.toContainText('rollBasisPoints')
-  await page.getByRole('button', { name: 'Close battle log' }).click()
+  if (testInfo.project.name === 'mobile-chromium') {
+    await page.getByRole('button', { name: 'Close battle log' }).click()
+  } else {
+    await roundButton.click()
+    await expect(battleLog).toHaveCount(0)
+    await roundButton.click()
+    await expect(battleLog).toBeVisible()
+  }
 
   await attackButton.click()
   const rangedTiles = battlefield.locator('button[data-attack-range]')
