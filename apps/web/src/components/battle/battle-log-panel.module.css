@@ -67,10 +67,14 @@
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
-  border-color: rgba(207, 169, 93, 0.24);
-  border-radius: var(--av-radius-sm);
-  background: rgba(5, 8, 12, 0.92);
-  box-shadow: none;
+  border-color: rgba(207, 169, 93, 0.36);
+  border-radius: var(--av-radius-md);
+  background:
+    radial-gradient(circle at 100% 0, rgba(207, 169, 93, 0.055), transparent 11rem),
+    linear-gradient(180deg, rgba(7, 10, 14, 0.975), rgba(4, 7, 10, 0.965));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.018),
+    0 0.55rem 1.5rem rgba(0, 0, 0, 0.24);
   backdrop-filter: none;
 }
 
@@ -96,8 +100,9 @@
 
 .docked .panel header {
   position: relative;
-  padding: 0.5rem 0.58rem;
-  background: rgba(255, 255, 255, 0.025);
+  padding: 0.56rem 0.68rem;
+  border-bottom-color: rgba(207, 169, 93, 0.18);
+  background: linear-gradient(180deg, rgba(207, 169, 93, 0.045), rgba(255, 255, 255, 0.012));
   backdrop-filter: none;
 }
 
@@ -199,27 +204,27 @@
 
 @media (min-width: 821px) {
   :global(#battlefield[data-desktop-battle-log-open='true']) {
-    --battle-log-dock-width: clamp(11.5rem, 14vw, 15.5rem);
+    --battle-log-dock-width: clamp(14rem, 16.5vw, 18.5rem);
   }
 
   :global(#battlefield[data-desktop-battle-log-open='true'] > div:first-child) {
     box-sizing: border-box;
-    padding-right: calc(var(--battle-log-dock-width) + 0.85rem) !important;
-    padding-left: clamp(0.4rem, 0.8vw, 0.75rem) !important;
+    padding-right: calc(var(--battle-log-dock-width) + 1rem) !important;
+    padding-left: clamp(0.38rem, 0.7vw, 0.68rem) !important;
   }
 
   :global(
     main[data-pvp-battle='true'] #battlefield[data-desktop-battle-log-open='true'] > div:first-child
   ) {
-    padding-right: calc(var(--battle-log-dock-width) + 0.85rem) !important;
-    padding-left: clamp(0.4rem, 0.8vw, 0.75rem) !important;
+    padding-right: calc(var(--battle-log-dock-width) + 1rem) !important;
+    padding-left: clamp(0.38rem, 0.7vw, 0.68rem) !important;
   }
 
   :global(#battlefield[data-desktop-battle-log-open='true'] > [data-docked-battle-log='true']) {
     position: absolute !important;
-    top: 0.65rem !important;
-    right: 0.65rem !important;
-    bottom: 2.8rem !important;
+    top: 0.72rem !important;
+    right: 0.72rem !important;
+    bottom: 2.72rem !important;
     left: auto !important;
     z-index: 40;
     width: var(--battle-log-dock-width) !important;
