@@ -248,12 +248,14 @@ export function DesktopBattleCombatantInspect({
   playerPortraitAssetId = null,
   playerProfileImageUrl = null,
   pvpMetadata = null,
+  battleView = null,
 }: {
   battleSessionId: string
   playerName?: string | null
   playerPortraitAssetId?: ImageAssetId | null
   playerProfileImageUrl?: string | null
   pvpMetadata?: InspectMetadata | null
+  battleView?: BattleSessionView | null
 }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -266,25 +268,30 @@ export function DesktopBattleCombatantInspect({
     async function openCombatant(target: OpenTarget) {
       const sequence = ++requestSequence
       setOpen(true)
-      setLoading(true)
+      setLoading(!battleView)
       setError(null)
       setSelected(null)
 
       try {
-        const response = await fetch(`/api/battles/${battleSessionId}`, {
-          method: 'GET',
-          cache: 'no-store',
-        })
-        const body = (await response.json()) as BattleApiBody
-        if (sequence !== requestSequence) return
-        if (!response.ok || !body.battle) {
-          throw new Error(body.error?.message ?? 'Combatant details could not be loaded.')
+        let currentBattle = battleView
+        if (!currentBattle) {
+          const response = await fetch(`/api/battles/${battleSessionId}`, {
+            method: 'GET',
+            cache: 'no-store',
+          })
+          const body = (await response.json()) as BattleApiBody
+          if (sequence !== requestSequence) return
+          if (!response.ok || !body.battle) {
+            throw new Error(body.error?.message ?? 'Combatant details could not be loaded.')
+          }
+          currentBattle = body.battle
         }
 
-        const combatantId = resolveCombatantId(body.battle, target, pvpMetadata, playerName)
+        if (sequence !== requestSequence) return
+        const combatantId = resolveCombatantId(currentBattle, target, pvpMetadata, playerName)
         if (!combatantId) throw new Error('That combatant is no longer available.')
         const next = readSelectedCombatant(
-          body.battle,
+          currentBattle,
           combatantId,
           pvpMetadata,
           playerName,
@@ -343,7 +350,14 @@ export function DesktopBattleCombatantInspect({
       document.removeEventListener('click', handleClick, true)
       window.removeEventListener('keydown', handleEscape)
     }
-  }, [battleSessionId, playerName, playerPortraitAssetId, playerProfileImageUrl, pvpMetadata])
+  }, [
+    battleSessionId,
+    battleView,
+    playerName,
+    playerPortraitAssetId,
+    playerProfileImageUrl,
+    pvpMetadata,
+  ])
 
   if (!open) return null
 
@@ -400,7 +414,13 @@ export function DesktopBattleCombatantInspect({
               <div className={styles.identityCopy}>
                 <span>{selected.teamLabel}</span>
                 <h2>{selected.name}</h2>
-                <p>{selected.level ? `Level ${selected.level}` : selected.active ? 'Active turn' : ''}</p>
+                <p>
+                  {selected.level
+                    ? `Level ${selected.level}${selected.active ? ' · Active turn' : ''}`
+                    : selected.active
+                      ? 'Active turn'
+                      : ''}
+                </p>
               </div>
             </div>
 
