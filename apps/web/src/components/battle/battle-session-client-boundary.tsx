@@ -23,6 +23,7 @@ import { BattleStatusEffectAssist } from './battle-status-effect-assist'
 import { BattleStickyActionAssist } from './battle-sticky-action-assist'
 import { BattleUtilityWindows } from './battle-utility-windows'
 import { DesktopBattleCombatantInspect } from './desktop-battle-combatant-inspect'
+import { DesktopBattleLogDock } from './desktop-battle-log-dock'
 import { MobileBattleCombatantPopup } from './mobile-battle-combatant-popup'
 
 interface BattleSessionClientBoundaryProps {
@@ -83,6 +84,7 @@ export function BattleSessionClientBoundary({
         battleSessionId={initialBattle.battleSessionId}
         playerName={playerName}
       />
+      <DesktopBattleLogDock battleSessionId={initialBattle.battleSessionId} playerName={playerName} />
       <MobileBattleCombatantPopup
         battleSessionId={initialBattle.battleSessionId}
         playerName={playerName}
