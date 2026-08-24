@@ -200,4 +200,78 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
   exit 1
 fi
 
-echo 'PV-1F character deletion lifecycle verified.'
+account_email="pv1f-account-delete-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@example.com"
+account_password='PV1F-account-deletion-2026!'
+account_signup="$(signup_test_user "$account_email" "$account_password")"
+account_user_id="$(printf '%s' "$account_signup" | jq -r '.user.id')"
+test -n "$account_user_id"
+test "$account_user_id" != 'null'
+
+account_request="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  set role service_role;
+  select requested_at::text || '|' || delete_after::text
+  from public.request_account_deletion_v1('$account_user_id'::uuid);")"
+test -n "$account_request"
+
+account_delay="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
+  select extract(epoch from (delete_after - requested_at))::bigint
+  from app_private.account_deletion_requests
+  where user_id = '$account_user_id'::uuid;")"
+test "$account_delay" = '86400'
+
+if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  set role authenticated;
+  select * from public.request_account_deletion_v1('$account_user_id'::uuid);"; then
+  echo 'Authenticated browser role unexpectedly executed whole-account deletion request RPC.' >&2
+  exit 1
+fi
+
+account_cancelled="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  set role service_role;
+  select public.cancel_account_deletion_v1('$account_user_id'::uuid)::text;")"
+test "$account_cancelled" = 'true'
+
+test "$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
+  select count(*) from app_private.account_deletion_requests where user_id = '$account_user_id'::uuid;")" = '0'
+
+docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  set role service_role;
+  select * from public.request_account_deletion_v1('$account_user_id'::uuid);" >/dev/null
+
+docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  insert into app_private.idempotency_records (
+    actor_key, command_name, idempotency_key, request_fingerprint, result
+  ) values (
+    'user:$account_user_id',
+    'account.delete.probe',
+    '00000000-0000-4000-8000-000000001199'::uuid,
+    'account-delete-probe',
+    '{}'::jsonb
+  );
+
+  with boundary as (
+    select clock_timestamp() - interval '25 hours' as requested_at
+  )
+  update app_private.account_deletion_requests request
+  set
+    requested_at = boundary.requested_at,
+    delete_after = boundary.requested_at + interval '24 hours'
+  from boundary
+  where request.user_id = '$account_user_id'::uuid;
+
+  select app_private.finalize_due_account_deletions_v1();" >/dev/null
+
+test "$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
+  select count(*) from auth.users where id = '$account_user_id'::uuid;")" = '0'
+test "$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
+  select count(*) from public.player_profiles where user_id = '$account_user_id'::uuid;")" = '0'
+test "$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
+  select count(*) from app_private.account_deletion_requests where user_id = '$account_user_id'::uuid;")" = '0'
+test "$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
+  select count(*) from app_private.idempotency_records where actor_key = 'user:$account_user_id';")" = '0'
+
+cron_schedule="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
+  select schedule from cron.job where jobname = 'aurevane-finalize-account-deletions';")"
+test "$cron_schedule" = '* * * * *'
+
+echo 'PV-1F character and whole-account deletion lifecycles verified.'
