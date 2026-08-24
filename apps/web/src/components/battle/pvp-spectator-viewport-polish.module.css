@@ -166,6 +166,7 @@
   :global(main[data-pvp-spectator='true']) {
     height: calc(100dvh - 0.75rem) !important;
     min-height: 0 !important;
+    max-height: calc(100dvh - 0.75rem) !important;
   }
 
   :global(main[data-pvp-spectator='true'] #battlefield > div:nth-child(2)) {
