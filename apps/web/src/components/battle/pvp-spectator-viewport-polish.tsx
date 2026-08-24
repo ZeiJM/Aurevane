@@ -1,4 +1,4 @@
-import mobileBoardStyles from './pvp-spectator-mobile-board-recovery.module.css'
+import mobileBoardStyles from './pvp-spectator-mobile-board-layout.module.css'
 import styles from './pvp-spectator-viewport-polish.module.css'
 
 export function PvpSpectatorViewportPolish() {
