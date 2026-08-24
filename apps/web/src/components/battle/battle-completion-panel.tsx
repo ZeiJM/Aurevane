@@ -24,14 +24,13 @@ function readCharacterId(battle: BattleSessionView): string | null {
   return player?.id.slice('character:'.length) ?? null
 }
 
-function readResult(battle: BattleSessionView): 'Victory' | 'Defeat' | 'Draw' {
+function readResult(battle: BattleSessionView): 'Victory' | 'Defeat' {
   const livingTeams = new Set(
     battle.snapshot.tactical.battle.combatants
       .filter((combatant) => combatant.hp > 0)
       .map((combatant) => combatant.teamId),
   )
-  if (livingTeams.size !== 1) return 'Draw'
-  return livingTeams.has('players') ? 'Victory' : 'Defeat'
+  return livingTeams.size === 1 && livingTeams.has('players') ? 'Victory' : 'Defeat'
 }
 
 function readArenaId(battle: BattleSessionView): TacticalHallArenaId {
@@ -259,18 +258,17 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
           <button
             type="button"
             className={styles.primary}
-            onClick={() => void retry()}
-            disabled={retryPending || !characterId}
+            onClick={() => router.push('/game/battle')}
           >
-            {retryPending ? 'Restarting…' : 'Retry same exercise'}
+            Return to Battle Hall
           </button>
           <button
             type="button"
             className={styles.secondary}
-            onClick={() => router.push('/game/battle')}
-            disabled={retryPending}
+            onClick={() => void retry()}
+            disabled={retryPending || !characterId}
           >
-            Return to Battle Hall
+            {retryPending ? 'Preparing…' : guidedTraining ? 'Run Lesson Again' : 'Rematch Recruit'}
           </button>
         </div>
       </section>
