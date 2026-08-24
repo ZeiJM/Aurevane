@@ -875,6 +875,7 @@ export function BattleExperienceV2({
 
   const boardStyle: CSSProperties = {
     gridTemplateColumns: `repeat(${tactical.width}, minmax(0, 1fr))`,
+    gridTemplateRows: `repeat(${tactical.height}, minmax(0, 1fr))`,
     aspectRatio: `${tactical.width} / ${tactical.height}`,
     maxWidth: `min(100%, calc((100dvh - 20rem) * ${tactical.width / tactical.height}))`,
   }

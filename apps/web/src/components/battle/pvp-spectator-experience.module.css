@@ -512,7 +512,7 @@
 .commsStack {
   grid-area: comms;
   display: grid;
-  grid-template-rows: minmax(8rem, 0.75fr) minmax(11rem, 1.25fr);
+  grid-template-rows: minmax(9rem, 0.9fr) minmax(10rem, 1.1fr);
   gap: 0.55rem;
   min-width: 0;
   min-height: 22rem;

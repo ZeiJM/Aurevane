@@ -649,3 +649,62 @@
     display: grid !important;
   }
 }
+
+/* desktop-centered-battle-header-v2 */
+@media (min-width: 821px) {
+  :global(main[data-pvp-battle='true'][data-pvp-desktop-parity='true'] > header) {
+    grid-template-columns: minmax(10rem, 1fr) minmax(22rem, 35rem) minmax(10rem, 1fr) !important;
+  }
+
+  :global(main[data-pvp-battle='true'][data-pvp-desktop-parity='true'] > header > :first-child) {
+    grid-column: 1 !important;
+  }
+
+  :global([data-pvp-header-economy='true']) {
+    position: relative;
+    grid-column: 2 !important;
+    grid-template-columns: minmax(0, 1fr) 8.6rem !important;
+    grid-template-rows: auto auto !important;
+    gap: 0.22rem 0.4rem !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+
+  :global([data-pvp-header-economy='true']::before) {
+    display: block;
+    z-index: -1;
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    border: 1px solid var(--av-border);
+    border-radius: var(--av-radius-sm);
+    background: rgba(255, 255, 255, 0.02);
+    content: '';
+  }
+
+  :global([data-pvp-header-economy='true'] > :first-child) {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    padding: 0.3rem 0.5rem 0 !important;
+  }
+
+  :global([data-pvp-header-economy='true'] > [role='progressbar']) {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    margin: 0 0.5rem 0.3rem !important;
+  }
+
+  :global([data-pvp-header-economy='true'] > button) {
+    grid-column: 2 !important;
+    grid-row: 1 / span 2 !important;
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  :global(
+    main[data-pvp-battle='true'][data-pvp-desktop-parity='true'] > header > button:last-child
+  ) {
+    grid-column: 3 !important;
+    justify-self: end !important;
+  }
+}

@@ -253,7 +253,9 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(rangedTiles).toHaveCount(4)
   await expect(battlefield.locator('button[data-target-relation="enemy"]')).toHaveCount(1)
   await expect(battlefield.locator('button[data-target-relation="illegal"]')).toHaveCount(3)
-  await expect(battlefield.locator('button:not([data-attack-range])')).toHaveCount(11)
+  await expect(
+    battlefield.locator('button[aria-label^="Tile "]:not([data-attack-range])'),
+  ).toHaveCount(11)
   await page.getByRole('button', { name: /occupied by Recruit/ }).click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Basic Attack ready')
   await expect(confirmButton).toBeEnabled()

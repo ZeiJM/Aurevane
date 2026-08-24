@@ -113,12 +113,11 @@ function beginFloatingPanelResize(
 function findDesktopDockTarget(): HTMLElement | null {
   if (!window.matchMedia('(min-width: 821px)').matches) return null
 
-  const battlefield =
+  return (
     document.querySelector<HTMLElement>(
       "main[data-pvp-battle='true'] section[aria-label='PvP tactical battlefield']",
     ) ?? document.querySelector<HTMLElement>('#battlefield')
-
-  return battlefield?.parentElement instanceof HTMLElement ? battlefield.parentElement : null
+  )
 }
 
 export function BattleLogPanel({

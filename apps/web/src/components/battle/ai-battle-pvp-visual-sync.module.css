@@ -126,8 +126,21 @@
     width: min(100%, 38.75rem) !important;
     max-width: 38.75rem !important;
     max-height: 100% !important;
+    grid-auto-rows: minmax(0, 1fr) !important;
+    align-content: stretch !important;
     margin: auto !important;
     row-gap: 0 !important;
+  }
+
+  :global(
+    main:not([data-pvp-battle='true']):has(section[aria-label='Tactical battlefield'])
+      section[aria-label='Tactical battlefield']
+      > div:first-child
+      > div:first-child
+      > button
+  ) {
+    height: 100% !important;
+    align-self: stretch !important;
   }
 
   :global([data-ai-pvp-visual-sync='true'] [data-ai-command-button='true']) {

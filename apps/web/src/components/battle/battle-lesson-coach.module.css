@@ -282,6 +282,29 @@
   box-shadow: 0 0 0.8rem rgba(83, 173, 105, 0.18);
 }
 
+@media (min-width: 881px) {
+  :global(header:has(> button[aria-label^='Victory conditions'])) {
+    grid-template-columns:
+      minmax(10rem, 1fr) minmax(13rem, 24rem) 8.4rem
+      minmax(10rem, 1fr) !important;
+  }
+
+  :global(
+    header:has(> button[aria-label^='Victory conditions']) > [data-battle-economy-panel='true']
+  ) {
+    grid-column: 2 !important;
+  }
+
+  :global(header:has(> button[aria-label^='Victory conditions']) > .guidedReopen) {
+    grid-column: 3 !important;
+  }
+
+  :global(header:has(> button[aria-label^='Victory conditions']) > button[class*='roundButton']) {
+    grid-column: 4 !important;
+    justify-self: end !important;
+  }
+}
+
 @media (max-width: 880px) {
   :global(header:has(> [data-victory-criteria-layout='true'])) {
     grid-template-columns: minmax(0, 1fr) auto;
@@ -314,5 +337,36 @@
     grid-column: 2;
     grid-row: 2;
     min-width: 7.2rem;
+  }
+}
+
+/* desktop-centered-battle-header-v2 */
+@media (min-width: 881px) {
+  :global(header:has(> [data-victory-criteria-layout='true'])) {
+    grid-template-columns: minmax(10rem, 1fr) minmax(22rem, 35rem) minmax(10rem, 1fr) !important;
+    grid-template-rows: auto auto !important;
+  }
+
+  :global(
+    header:has(> [data-victory-criteria-layout='true']) > [data-battle-economy-panel='true']
+  ) {
+    grid-column: 2 !important;
+    grid-row: 1 / span 2 !important;
+    width: calc(100% - 9rem) !important;
+    justify-self: start !important;
+  }
+
+  :global(header:has(> [data-victory-criteria-layout='true']) > .guidedReopen) {
+    grid-column: 2 !important;
+    grid-row: 1 / span 2 !important;
+    width: 8.4rem !important;
+    min-width: 8.4rem !important;
+    justify-self: end !important;
+  }
+
+  :global(header:has(> [data-victory-criteria-layout='true']) > button[class*='roundButton']) {
+    grid-column: 3 !important;
+    grid-row: 1 / span 2 !important;
+    justify-self: end !important;
   }
 }
