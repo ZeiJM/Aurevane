@@ -205,12 +205,12 @@
 
     position: relative !important;
     box-sizing: border-box !important;
-    grid-template-columns: minmax(0, 1fr) !important;
-    padding-right: calc(var(--battle-log-dock-width) + var(--battle-log-dock-gap)) !important;
+    width: calc(100% - var(--battle-log-dock-width) - var(--battle-log-dock-gap)) !important;
+    justify-self: start !important;
+    overflow: visible !important;
   }
 
   :global([data-desktop-battle-log-open='true'] > div:first-child) {
-    grid-column: 1 !important;
     width: 100% !important;
     min-width: 0 !important;
     max-width: 100% !important;
@@ -219,9 +219,9 @@
 
   :global([data-desktop-battle-log-open='true'] > [data-docked-battle-log='true']) {
     position: absolute !important;
-    top: 0.32rem;
-    right: 0.32rem;
-    bottom: 0.32rem;
+    top: 0;
+    bottom: 0;
+    left: calc(100% + var(--battle-log-dock-gap));
     z-index: 20;
     width: var(--battle-log-dock-width);
     height: auto;
