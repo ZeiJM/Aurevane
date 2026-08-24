@@ -1,0 +1,46 @@
+name: One-shot battle smoke selector fix
+
+on:
+  push:
+    branches:
+      - fix/battle-log-neutral-space-20260824
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.head_commit.message != 'Scope battle smoke assertion to grid tiles'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/battle-log-neutral-space-20260824
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Scope battlefield tile assertion
+        shell: python
+        run: |
+          from pathlib import Path
+          path = Path('apps/web/e2e/battle-experience.pw.ts')
+          text = path.read_text()
+          old = "  await expect(battlefield.locator('button:not([data-attack-range])')).toHaveCount(11)"
+          new = "  await expect(battlefield.locator('button[aria-label^=\"Tile \"]:not([data-attack-range])')).toHaveCount(11)"
+          if old not in text:
+              raise SystemExit('Expected battle smoke assertion not found')
+          path.write_text(text.replace(old, new, 1))
+      - run: pnpm exec prettier --write apps/web/e2e/battle-experience.pw.ts
+      - name: Commit selector fix
+        run: |
+          git config user.name "Nicholas JM"
+          git config user.email "283436098+ZeiJM@users.noreply.github.com"
+          git add apps/web/e2e/battle-experience.pw.ts
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "Scope battle smoke assertion to grid tiles"
+          git push origin HEAD:fix/battle-log-neutral-space-20260824
