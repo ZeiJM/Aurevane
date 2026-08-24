@@ -1,0 +1,19 @@
+name: One-shot auth fixture audit
+
+on:
+  push:
+    branches:
+      - release/account-safety-20260823
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/account-safety-20260823
+      - name: Find raw signup fixtures
+        run: |
+          printf '%s\n' 'RAW_SIGNUP_FIXTURES_BEGIN'
+          grep -RIl 'auth/v1/signup' .github/scripts || true
+          printf '%s\n' 'RAW_SIGNUP_FIXTURES_END'
