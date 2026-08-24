@@ -1,116 +1,110 @@
-# AUREVANE — Implementation Roadmap
+# AUREVANE — Canonical Implementation Roadmap
 
-**Authority:** Derived from `docs/GAME_MASTER_PLAN.md` and its Owner-approved addenda. If any conflict exists, the Master Game Plan and the applicable canonical domain specification win.
+**Authority:** Derived from `docs/GAME_MASTER_PLAN.md` and Owner-approved canonical domain specifications/addenda. If a conflict exists, the Master Game Plan and applicable canonical domain specification win.
 
 **Synchronized:** 2026-08-23
 
-**Roadmap reconciliation:** This version replaces the older sequencing snapshot that treated direct PvP and spectation as wholly future work. The project deliberately implemented substantially more than the original Phase-2 minimum. This roadmap now treats that work as official delivered foundation instead of ignoring it, rebuilding it later, or pretending the project has skipped directly to a later mature phase.
+This roadmap reflects **what AUREVANE has actually built**, the current validation boundary, and the remaining development sequence. It deliberately credits compatible systems delivered earlier than originally planned.
 
-A roadmap phase is a **development milestone**, not a calendar promise. Work advances through implementation gates, automated verification, Owner testing, structured human/player validation, and product-evidence gates where required.
+A phase is a **development milestone**, not a calendar promise.
 
 ---
 
-# 1. How to read this roadmap
+# 1. Roadmap status language
 
-AUREVANE uses four different ideas that must not be confused:
+- **Implemented** — capability exists at the required authority boundary.
+- **Verified** — applicable automated/database/browser/release checks have passed.
+- **Owner testing / stabilization** — the Owner is actively testing player-facing behavior and may request contained fixes.
+- **Validated / phase gate passed** — required human/product evidence has been reviewed and the project may expand into the next expensive layer.
 
-- **Implemented** — the capability exists in the repository/runtime at the required authority boundary.
-- **Verified** — applicable automated/database/browser/release checks have passed for the implementation candidate.
-- **Owner testing / stabilization** — the Owner is actively testing real player-facing behavior and may still request contained correction/polish batches.
-- **Validated / phase gate passed** — the required human/product evidence has been reviewed and the phase is formally allowed to expand into the next expensive layer.
-
-Automated green checks do **not** equal a human PV PASS. Production deployment does **not** equal a fun/readable/balanced PASS. A feature may also exist early without making its later mature phase complete.
+Automated green tests or a production deployment never imply a human validation PASS.
 
 ## Early-delivered scope rule
 
-If later-phase capability is deliberately built early and proves reusable, it receives **roadmap credit**.
+If a later-phase capability is deliberately delivered early and proves reusable, it receives roadmap credit.
 
-When the later phase arrives:
+When the mature phase arrives:
 
-1. audit the existing implementation against the mature phase requirements;
-2. preserve working compatible foundations;
-3. close only the genuine gaps;
-4. do not rebuild a system merely because the old roadmap originally scheduled it later.
+1. audit the existing implementation;
+2. preserve compatible working foundations;
+3. build only the genuine gaps;
+4. do not rebuild a system merely because an older roadmap originally placed it later.
 
-This rule now explicitly applies to the direct PvP, multi-combatant battle, spectation, battle communication, battle-log, responsive combat-presentation, and related hardening work delivered during the extended Phase-2 cycle.
+This already applies to direct PvP, multi-combatant battle infrastructure, spectation, battle communications, battle logs and significant responsive battle-platform work delivered during the extended Phase-2 cycle.
 
 ---
 
-# 2. Current operating state
+# 2. Current project state
 
-## Current status snapshot
-
-| Phase | Status | Current interpretation |
+| Phase | Status | Meaning |
 |---|---|---|
-| **Phase 0 — Engineering Foundation** | ✅ Substantially complete | Production-grade engineering/security/deployment foundations exist. |
-| **Phase 1 — Character & Progression Foundation** | ✅ Substantially complete | Character/account/progression/profile/equipment foundations and Passive Training baseline exist and have received later feedback iteration. |
-| **Phase 2 — Tactical Combat & Battle Platform** | 🧪 **Implementation mature; Owner testing / PV-1 validation open** | Original tactical-combat scope is delivered and substantially exceeded. Direct PvP and spectation foundations are now formally credited here. Owner is still testing features; no formal PV-1 PASS is inferred. |
-| **Phase 3 — Signature Buildcraft Foundation** | 🔜 **Next major implementation phase after Phase-2 exit** | Primary/Secondary, Skills, cooldowns, Resonance, Essence, loadouts and build-authority expansion. |
-| **Phase 4+** | 🔜 Planned with some early-delivered foundations | Later phases inherit existing infrastructure rather than starting from zero. |
+| **0 — Engineering Foundation** | ✅ Substantially complete | Core architecture/security/database/deployment foundations exist. |
+| **1 — Character & Progression Foundation** | ✅ Substantially complete | Character/account/progression/profile/equipment/training foundations exist. |
+| **2 — Tactical Combat & Battle Platform** | 🧪 **Implementation mature; Owner testing / PV-1 exit open** | Combat core plus major early PvP/spectation foundation is delivered. Testing is still active. |
+| **3 — Signature Buildcraft Foundation** | 🔜 **Next major phase** | Starts only after explicit Phase-2 closure. |
+| **4–15** | 🔜 Planned | Several phases inherit early foundations rather than starting from zero. |
 
-## Current decision boundary
+## Current operating boundary
 
-AUREVANE is currently at the **Phase-2 stabilization / validation boundary**.
+AUREVANE is at the **Phase-2 stabilization / validation boundary**.
 
-The project is allowed to:
+Allowed now:
 
-- continue Owner testing of the current battle, PvP, spectator, profile, training and related player-facing features;
-- fix genuine regressions, authority defects, usability problems and contained presentation issues discovered during that testing;
-- finish already-authorized coherent battle-platform correction/polish work;
-- reconcile documentation and tests to the actual current product.
+- Owner testing of existing battle/PvP/spectator/profile/training flows;
+- contained bug, authority, usability and presentation corrections found during testing;
+- documentation/test reconciliation;
+- finishing already-authorized coherent battle-platform corrections.
 
-The project should **not** use the remaining Phase-2 validation window as permission to begin uncontrolled Phase-3/4 feature expansion.
+Do not turn the testing window into uncontrolled Phase-3/4 expansion.
 
-The next major feature layer is Phase 3 only after the current combat/battle platform is stable enough for an explicit Phase-2/PV-1 decision.
+## Phase-2 exit
 
-## Phase-2 exit decision
+Phase 2 closes when:
 
-Phase 2 is formally closed when:
+- the representative battle-platform candidate is stable;
+- no high-severity authority/usability defect invalidates the combat proof;
+- the Owner finishes the current testing/correction cycle;
+- required PV-1 human/internal evidence is reviewed;
+- players understand the baseline fight without facilitator dependence;
+- tactical choices dominate feedback more than interface confusion;
+- replay desire is sufficient to justify build/content expansion;
+- the decision is explicitly recorded.
 
-- the current representative combat/battle-platform candidate is stable;
-- no known high-severity authority or usability defect makes the combat proof invalid;
-- Owner testing has completed the current correction cycle;
-- the real PV-1 human/internal evidence is reviewed;
-- players can understand the baseline battle without facilitator dependence;
-- tactical decisions, positioning and outcome reasoning are more salient than interface confusion;
-- repeat-play desire is sufficient to justify multiplying combat/build content;
-- the result is explicitly recorded as PASS rather than inferred from automation.
+If the Owner explicitly says wording equivalent to **“Phase 2 is done; code Phase 3”**, follow the transition protocol in `docs/PHASE_3_TICKETS.md`, reconcile repository truth, and start **P3.1**. Do not ask the Owner to restate the authorization merely because an old issue/document still says Phase 2 is open.
 
-A FAIL does not reopen the whole roadmap. It creates the smallest coherent correction ticket around the repeated failure and then reruns the affected evidence slice.
+A Phase-3 coding authorization is **not** deployment authorization.
 
 ---
 
-# 3. Canonical current terminology and combat rules
+# 3. Canonical build/combat direction
 
-## Build-system vocabulary
+Current player-facing terminology:
 
-Use current player-facing terms:
+- Primary Discipline;
+- optional mastered Secondary Discipline;
+- Skill;
+- Resonance;
+- Essence / Discipline Essence;
+- Soulmark;
+- The Severance / Soul-Severed;
+- Mantle;
+- Battle Hall;
+- Passive Training.
 
-- **Primary Discipline** — principal active combat tradition and source of the active Discipline base-stat profile.
-- **Secondary Discipline** — optional mastered Discipline mixed into the active build; it contributes no second base-stat profile.
-- **Skill** — player-facing umbrella term for usable combat abilities.
-- **Resonance** — passive interaction produced by an eligible Primary + Secondary pairing.
-- **Essence / Discipline Essence** — pure-Discipline counterpart to Resonance; Primary-only builds gain one special Essence Skill outside the normal Discipline Skill capacity.
-- **Soulmark** — persistent supernatural identity for the Soulmarked path.
-- **The Severance / Soul-Severed** — permanent alternative supernatural path.
-- **Mantle** — temporary manifested transformation available to eligible Soul-Severed characters.
-- **Battle Hall** — current player-facing battle/practice destination.
-- **Passive Training** — current explicit server-timed background progression system.
+Retired current-facing terms include Current Discipline, Legacy Discipline, Art as the generic ability term, Confluence, separate Trait/Reaction/Movement Art/Ultimate loadout systems, and Tactical Hall.
 
-Retired player-facing terms include Current Discipline, Legacy Discipline, Art as the generic ability term, Confluence, separate Trait/Reaction/Movement Art/Ultimate slot systems, and Tactical Hall as the current player-facing practice name. Historical documents may retain old terminology only when clearly historical.
-
-The mature build contract remains:
+## Mature build contract
 
 ```text
-CHARACTER ATTRIBUTES
+PLAYER-ASSIGNED ATTRIBUTES
 +
-PRIMARY DISCIPLINE
+PRIMARY DISCIPLINE BASE PROFILE
 +
-OPTIONAL SECONDARY DISCIPLINE
+OPTIONAL MASTERED SECONDARY DISCIPLINE
 +
 DISCIPLINE SKILLS
 +
-RESONANCE OR PURE-DISCIPLINE ESSENCE
+PURE ESSENCE OR MIXED RESONANCE
 +
 SOULMARK OR SOUL-SEVERED MANTLE PATH
 +
@@ -119,7 +113,7 @@ EQUIPMENT + EQUIPMENT SKILLS
 BOUNDED PRESTIGE / VETERAN EDGE
 ```
 
-Pure build:
+Pure:
 
 ```text
 Primary only
@@ -128,18 +122,16 @@ Primary only
 + no Resonance
 ```
 
-Mixed build:
+Mixed:
 
 ```text
 Primary + mastered Secondary
 6 total Discipline Skills across the pair
 + Resonance passive
-+ no pure-path Essence while Secondary is equipped
++ no pure Essence while Secondary is equipped
 ```
 
-## Universal attributes
-
-AUREVANE uses six universal player-assigned attributes:
+Universal attributes:
 
 - Might;
 - Finesse;
@@ -148,61 +140,187 @@ AUREVANE uses six universal player-assigned attributes:
 - Intellect;
 - Resolve.
 
-Primary Discipline supplies its own base Discipline stat profile. Player-assigned attribute investment remains separate. Secondary Discipline supplies no second base profile.
-
-## Current combat authority
-
-`docs/COMBAT.md` is the canonical current combat source of truth.
-
-The former Phase-2 validation model of **Movement Budget + one Action** is superseded. Current combat uses one shared **Action Economy**, displayed as AP, normally beginning at 100 AP.
-
-Current implemented baseline costs are:
-
-```text
-Inspect                         0 AP
-Move, normal traversal point   25 AP
-Move, terrain cost 2           50 AP
-Basic Attack                   30 AP
-Guard                          30 AP
-Recover                        50 AP
-Final Facing                    0 AP and ends the turn
-```
-
-Multiple legal commands may occur while AP remains. Do not restore the obsolete one-action-per-turn model merely because older Phase-2 ticket history contains it.
+`docs/COMBAT.md` governs current combat. The old Movement Budget + one Action model is historical. Current combat uses a shared 100-AP Action Economy unless explicitly superseded later.
 
 ---
 
-# 4. Cross-cutting product rules
+# 4. Long-horizon product pillars
 
-## Permanent character inside a living world
+AUREVANE is built around a **permanent character inside a living world**.
 
-AUREVANE's personal hook is the permanent character: mastering Disciplines, choosing a Primary, deciding whether to remain pure or mix in a mastered Secondary, discovering Resonance or building around Essence, developing a supernatural identity, refining equipment/Skill choices, and accumulating history across a living shared world.
+The long-term journey combines:
 
-The world should continuously create reasons to use and rethink that character through story developments, world events, cooperative objectives, PvP rotations, Expeditions, guild/nation activity, economy participation and live operations.
+- levels and Horizon progression;
+- Discipline Mastery;
+- Primary/Secondary experimentation;
+- Resonance/Essence;
+- supernatural identity;
+- equipment refinement;
+- world/story discovery;
+- Expeditions;
+- PvP;
+- social history;
+- Archive/lore reconstruction;
+- Rekindling;
+- frontier exploration.
 
-## Long-horizon progression
+The approximately **180-day / six-calendar-month** first-cycle target remains the current production planning default for full first-Horizon/Rekindling eligibility, subject to evidence-based tuning. This is not six months of waiting.
 
-The approximately **180-day / six-calendar-month** first-cycle target remains the current production planning default for full first-Horizon/Rekindling eligibility, subject to the evidence/change-control rules in the canonical pacing documents.
+## Rekindling direction
 
-This must be months of meaningful progression rather than months of waiting. Serious combat, story, PvP, Expeditions, buildcraft and advanced equipment must matter well before final Rekindling eligibility when gameplay progression supports them.
+Rekindling is AUREVANE's prestige system.
 
-## Experiential urgency / FOMO
+Later cycles must not feel like replaying the identical level/quest checklist with larger numbers.
 
-AUREVANE may create the feeling **“I want to be there while this is happening”** through live events, seasons, first-witness recognition, rotating encounters/merchants/modifiers, Chronicle history and limited-time prestige/cosmetic rewards.
+Rekindling should create a **different journey** through:
 
-Do not create destructive daily streaks, mandatory energy chores, pay-to-avoid-loss mechanics, or one-time exclusive meta-defining combat power.
+- Memory Carryover;
+- alternate progression routes;
+- history-aware NPC/mentor interactions;
+- optional **Echo Routes** created by prior-cycle achievements/knowledge;
+- ability to abbreviate already-mastered tutorial content;
+- different Discipline/build goals;
+- live-world variation;
+- Archive reinterpretation;
+- frontier history and deeper exploration;
+- new Veteran Edge choices;
+- Hall of Selves history.
 
-## Passive Training
+Later cycles remain meaningful long-form journeys, but should be more self-directed and less mentally repetitive.
 
-Passive Training remains an optional server-timed background progression system. Browser clocks, logout state and client-submitted elapsed time are never authority.
+## The Edge of the World / Unwritten Reach
 
-The exact current stop/reward semantics are governed by the canonical Passive Training specification and any explicit Owner-approved reconciliation. If tested runtime behavior and the canonical document disagree, reconcile that contradiction before treating either as a permanent roadmap rule.
+The known authored world is surrounded by territory commonly called the **Edge of the World**.
 
-Passive Training must remain weaker than engaged play and must never complete meaningful story/boss/Expedition/PvP/Resonance/Essence/Soulmark/Mantle/Horizon/economy/endgame accomplishments on the player's behalf.
+Its canonical working lore/system name is **the Unwritten Reach**: geography destabilized by pressure from the Unchosen, where ordinary maps stop being reliable.
 
-## Progressive operations
+The Reach is designed to feel near-infinite without technically generating an unbounded world.
 
-The complete Master Panel remains a later phase, but every major system should ship with the minimum safe operational controls required to run it. Owner/staff authority, auditability, versioning, rollback, configuration and support surfaces grow progressively rather than appearing for the first time at the end.
+Core model:
+
+- authored **Anchors** persist as real discoveries;
+- mutable **Driftspace** changes routes and connective geography;
+- deterministic server-seeded **Cartographic Drift** can re-resolve parts of the frontier, normally on a broad daily cadence;
+- layouts/encounters/weather/hazards/lore traces can change under authored constraints;
+- the same Anchor may remain known even when its route disappears;
+- generation/versioning is reproducible for QA/support and protected against unreachable layouts/reward duplication.
+
+The Reach connects directly to the Unchosen, Unmoored phenomena, Closed Horizon, Great Vanes and eventually deeper Heart-Lock mysteries. It is not a generic procedural wasteland.
+
+## Frontier mastery
+
+Working concept: **Frontier Acumen**.
+
+Frontier expertise comes from proven discoveries/competencies rather than a simple grind bar.
+
+It may reward:
+
+- route knowledge;
+- hazard prediction;
+- recognition of false landmarks;
+- better extraction options;
+- additional frontier interactions;
+- deeper access;
+- specialist contacts;
+- Chronicle/Archive recognition.
+
+The veteran explorer should feel powerful because they **understand the Reach**, not because it grants a universal damage multiplier.
+
+## Legendary explorer identity
+
+Rare frontier achievements may make a character socially famous through:
+
+- first Anchor discovery;
+- exceptional mapping;
+- surviving named phenomena;
+- solving major cartographic mysteries;
+- discovering Anomalies;
+- Chronicle attribution;
+- explorer epithets/titles;
+- public map/Archive history;
+- rare investigations and recognition.
+
+Working umbrella language is **Horizon Legend**, but final titles should often be deed-specific rather than one generic rank.
+
+## The Veyr — working far-inhabitant concept
+
+The Reach can contain a supernatural culture/people under the working name **the Veyr**.
+
+They are not a monolithic evil army.
+
+Their continuity may differ from ordinary mortal history: contradictory ancestries, memories of incompatible pasts and survival practices developed for unstable reality.
+
+They can include allies, guides, antagonists, scholars, zealots, traders and refugees.
+
+Their thematic question is:
+
+> Are they evidence of what happens when ordinary continuity fails, or evidence that another form of existence can survive beyond it?
+
+Do not answer quickly.
+
+## The Inward Drift
+
+The looming frontier threat is not simply an army marching toward civilization.
+
+**The Inward Drift** is Reach-like instability appearing progressively inside previously stable geography.
+
+Examples:
+
+- roads changing from official maps;
+- incompatible ruins appearing together;
+- people remembering someone who never existed;
+- frontier creatures appearing impossibly far inland;
+- Anchors forming inside known territory;
+- objects with provenance from histories that never happened.
+
+The fear becomes:
+
+> The distinction between "out there" and "here" may be disappearing.
+
+This can become a long-lived story/live-ops escalation tied to Aurevane and the weakening/interpretation of the Closed Horizon.
+
+## Anomalies
+
+**Anomaly** is a formal irregular-origin concept, not a normal rarity tier.
+
+An Anomaly is something that should not normally be obtainable through sanctioned ordinary progression.
+
+Possible forms:
+
+- Anomaly Skill/Technique;
+- anomalous item/effect property;
+- impossible learned memory;
+- frontier traversal capability;
+- forbidden/irregular combat interaction;
+- effect/object from an unrealized history;
+- exceptionally rare alternate acquisition path;
+- only in exceptional future cases, a fully authored Anomalous Discipline.
+
+Anomalies may involve in-world unsanctioned or illegal acquisition: forbidden rites, contraband research, clandestine frontier networks, rare Veyr dealings, sealed locations, hidden markets, dangerous narrative choices, or recovery of impossible objects.
+
+“In-world illegal” never means exploiting bugs, cheating, real-money black markets or breaking actual game rules.
+
+### Anomaly philosophy
+
+Anomalies should be rare because **the circumstances are rare**, not merely because a table rolls 0.001%.
+
+The desired reaction is:
+
+> “You got that? How?”
+
+not:
+
+> “You farmed the same boss 3,000 times.”
+
+They must remain sidegrade/identity oriented enough that standard competitive viability never requires ultra-rare possession.
+
+Specific Anomalies may be allowed, normalized, disabled or restricted by PvP/tournament rules.
+
+No cash-only Anomaly combat power.
+
+A secret Anomalous Discipline is permitted only as a rare, separately approved story-grade exception because a full Discipline creates enormous Skill/Essence/Resonance/AI/PvP/media obligations.
+
+Detailed frontier/Rekindling/Anomaly authority lives in `docs/REKINDLING_FRONTIER_ANOMALIES.md`.
 
 ---
 
@@ -210,948 +328,663 @@ The complete Master Panel remains a later phase, but every major system should s
 
 ## ✅ Phase 0 — Engineering Foundation
 
-### Goal
+**Goal:** production-grade technical foundation.
 
-Establish a production-grade project skeleton before game mechanics multiply.
+Delivered substantially:
 
-### Delivered foundation
-
-- repository/documentation authority;
-- application scaffold;
-- TypeScript / formatting / lint / typecheck / tests / builds;
-- CI;
+- repository/document authority;
+- application/TypeScript/CI/test/build foundations;
 - environment separation;
-- database/migration foundation;
-- authentication and RLS/security baseline;
-- deployment pipeline;
+- database/migrations;
+- authentication/RLS/security;
 - server-domain boundaries;
-- transactional/idempotent service patterns;
-- realtime adapter and worker foundations;
-- design-system primitives;
-- responsive shell;
-- media registry / Audio Director foundation;
-- logging/error conventions;
-- security and audit boundaries;
-- spoiler-safe documentation conventions.
+- transactions/idempotency;
+- realtime/worker foundations;
+- design system/responsive shell;
+- media/audio foundations;
+- logging/error/security conventions;
+- deployment controls.
 
-### Remaining work
-
-No large Phase-0 feature backlog. Engineering/security/performance improvements continue inside the phases that need them and culminate in Phase 15 hardening.
-
-### Gate
-
-Clean build, automated checks, deployable environments, documented setup and production-style infrastructure.
-
-### Status
-
-**Substantially complete.**
+**Status:** substantially complete.
 
 ---
 
 ## ✅ Phase 1 — Character & Progression Foundation
 
-### Goal
+**Goal:** persistent authoritative character/account/progression base.
 
-Create a persistent authoritative character/account/progression base that every later build, world and social system can safely extend.
+Delivered substantially:
 
-### Delivered foundation
-
-- account/profile flow and verified-auth boundary;
+- account/profile/verified-auth flow;
 - three-character roster foundation;
 - character creation;
-- six attributes and derived-stat framework;
-- versioned Character XP / Level 1–100 boundaries;
-- Character Profile/build-headquarters foundation;
-- starting Foundation Discipline choice;
-- Discipline/Mastery data boundaries;
+- six attributes/derived stats;
+- XP/level boundaries;
+- Character Profile foundation;
+- Foundation Discipline/start progression boundaries;
 - Primary Discipline foundation;
-- character/account switching controls and authoritative cooldown boundaries;
-- profile portrait/title/presence quality-of-life;
-- Online Users foundation;
-- initial item-definition / ownership / equipment boundaries;
-- core equipment slots;
-- foundational equip/unequip commands;
-- initial Armory/build presentation boundaries;
-- Passive Training / Training Report authority, idempotency and telemetry foundations;
-- public News / Manual / Rules foundation.
+- switching/cooldown boundaries;
+- portraits/titles/presence/Online Users;
+- initial item/equipment ownership/equip boundaries;
+- Passive Training/Training Report authority;
+- public News/Manual/Rules foundation.
 
-### Remaining work
+Deeper Mastery, Secondary, Skills, Resonance/Essence, supernatural identity, full loadouts and mature economy belong later.
 
-Most progression depth intentionally belongs to Phase 3+:
-
-- mature Discipline Mastery;
-- Secondary Discipline;
-- Skills/cooldowns;
-- Resonance/Essence;
-- full loadouts;
-- supernatural identity;
-- Horizons/Rekindling;
-- mature equipment/economy progression.
-
-### Gate
-
-A player can create, persist, return to and safely progress a valid character; foundational equipment/progression authority is server-owned and extensible.
-
-### Status
-
-**Substantially complete and iterated through Owner/player feedback.**
+**Status:** substantially complete.
 
 ---
 
 ## 🧪 Phase 2 — Tactical Combat & Battle Platform
 
-### Goal
+**Goal:** prove a readable deterministic tactical game and reusable battle platform before build/content volume multiplies.
 
-Prove a readable, deterministic, server-authoritative tactical combat game and a reusable battle platform strong enough to support AI, direct multiplayer combat and read-only spectation before buildcraft/content volume multiplies.
+### Delivered tactical combat
 
-This phase now **formally includes the deliberate above-and-beyond battle-platform work already delivered**. That scope is no longer treated as accidental or ignored merely because older roadmap versions scheduled all PvP/spectation later.
-
-### A. Tactical combat core — delivered
-
-- deterministic battle state and rule/content versions;
-- authoritative RNG where required;
-- tactical grid/board;
-- round/turn lifecycle;
-- 100-AP shared Action Economy;
-- movement/path legality;
-- terrain/elevation/facing;
-- legal targeting/range/occupancy/LOS where current content requires it;
-- Basic Attack;
-- Guard;
-- Recover;
-- HP/MP/resources;
-- typed Target / Requirement / Effect foundations;
-- initial statuses and deterministic effect ordering;
-- server-authoritative intent + expected-version command flow;
-- reconnect-safe persistence and idempotency;
-- board-first responsive battle UI;
-- legal/illegal previews and forecasts;
-- combatant rails / status / facing / initiative presentation;
+- deterministic/versioned server-authoritative battle state;
+- 100-AP Action Economy;
+- tactical board;
+- movement/path/terrain/elevation/facing;
+- Basic Attack / Guard / Recover;
+- target/requirement/effect grammar foundations;
+- status/effect ordering;
+- intent + expected-version command flow;
+- reconnect/idempotency/concurrency safety;
+- responsive board-first battle UI;
+- forecasts/Inspect/combatant state;
 - shared streamlined battle logs;
-- combat VFX/audio hooks;
-- desktop/laptop/mobile/touch behavior;
-- remappable combat keybind foundations;
-- safe surrender/abort/terminal-result foundations;
-- representative larger battlefield proof beyond the original micro training board.
+- keybind/mobile foundations;
+- larger battlefield/usability work;
+- surrender/abort/result foundations.
 
-### B. AI / Battle Hall — delivered foundation
+### Delivered AI/Battle Hall
 
-- deterministic legal Recruit AI;
-- same-legality player/AI rule usage;
-- bounded decision making and fairness/knowledge boundary;
-- Battle Hall;
-- AI Sparring;
-- guided/focused fundamentals;
-- repeatable practice and no-normal-progression-farm boundary;
-- retry/recovery and battle-result presentation;
-- AI/battle regression coverage.
+- legal deterministic Recruit AI;
+- fairness/knowledge boundaries;
+- Battle Hall / AI Sparring;
+- guided fundamentals;
+- practice reward isolation;
+- regression coverage.
 
-### C. Direct PvP battle platform — delivered early and now credited to Phase 2
+### Direct PvP foundation delivered early
 
-The project already has meaningful direct multiplayer battle infrastructure, including:
-
-- server-authoritative PvP lobbies;
-- participant mapping/authority;
+- authoritative lobbies/participants;
 - lobby keys;
-- shared persisted PvP battle sessions;
-- multiple selectable formats currently supporting 1v1, 2v2, 3v3, three-way and flexible-team variants;
-- configurable battle setup parameters already implemented in the current battle-platform slice;
-- server-authoritative PvP turn timing foundations;
-- surrender/forfeit foundations;
-- battle-state handoff/reconnect/polling hardening;
-- shared PvP combat presentation across desktop/mobile;
-- active-session mutation/navigation protections;
-- PvP battle chat / communication foundation;
-- participant identity/title presentation;
-- multi-combatant presentation work suitable for up to six combatants in the current tested interface direction.
+- persisted shared PvP battles;
+- supported format configurations including 1v1, 2v2, 3v3, three-way and flexible-team variants;
+- turn-timing foundation;
+- surrender;
+- reconnect/handoff/polling hardening;
+- chat/communications;
+- desktop/mobile presentation;
+- multi-combatant presentation;
+- active-session mutation protections.
 
-This does **not** mean mature competitive PvP is complete. Ranked systems, matchmaking, population safety, seasons, tournaments and competitive build legality remain Phase 8.
-
-### D. Spectation — delivered early foundation and now credited to Phase 2
-
-Current reusable foundation includes:
+### Spectation foundation delivered early
 
 - keyed read-only spectation;
-- server-authoritative spectator join/leave boundary;
+- authorization/join/leave;
 - spectator presence/roster/count;
-- read-only committed battle projection;
-- shared spectator battle log;
-- spectator chat/communications foundation;
-- responsive spectator battlefield presentation;
-- spectator combatant/terrain Inspect foundation;
-- no participant mutation controls for spectators;
-- active-spectation gameplay-mutation/navigation protections;
-- spectator authorization/security regression coverage.
+- committed read-only battle projection;
+- spectator logs/chat;
+- responsive battlefield;
+- Inspect;
+- mutation/security protections.
 
-Mature public discovery, visibility policy, competitive delay, Colosseum listings, tournament integration and large-scale fanout remain Phase 8+.
+### Current remaining work
 
-### E. Current testing / stabilization scope
+Owner testing and formal PV-1 exit validation.
 
-The Owner is still testing selected player-facing features. Therefore Phase 2 remains intentionally open for **contained correction**, including:
+Contained fixes discovered in testing may still address battle readability, PvP handoff, spectator clarity, timing, logs, mobile/desktop parity, session safety and directly related flows.
 
-- battle readability and scale;
-- multi-combatant rails/inspection;
-- PvP turn handoff;
-- mobile and desktop parity;
-- spectator clarity;
-- battle log quality;
-- timing/communication regressions;
-- profile/training/session interactions that materially affect the current test flow;
-- defects discovered in real usage.
+Do **not** wait for buildcraft, world content, ranked matchmaking, seasons, Colosseum, Soulmarks/Mantles or full media production to close Phase 2.
 
-Testing feedback may produce one coherent correction batch at a time. It does not authorize uncontrolled new content systems.
+**Status:** implementation mature and substantially above original scope; Owner testing/PV-1 still open.
 
-### Explicitly not required to close Phase 2
-
-Do **not** wait for:
-
-- mature Discipline Skill libraries;
-- Secondary Discipline buildcraft;
-- Resonance/Essence;
-- Soulmark/Mantle catalogs;
-- ranked matchmaking;
-- seasons/tournaments;
-- Colosseum public discovery;
-- world/quest content;
-- co-op Expeditions;
-- full Master Panel editors;
-- production-complete art/audio.
-
-### Phase-2 gate
-
-A representative player can complete and understand the baseline tactical game; positioning and decisions matter; AI obeys the same legality; battle authority/reconnect/retry behavior is safe; the current direct-PvP/spectator platform is stable enough not to undermine testing; and actual human evidence shows the core fight is understandable and sufficiently enjoyable to justify multiplying build/content complexity.
-
-### Status
-
-**Implementation mature and substantially beyond the original minimum. Owner testing and formal PV-1 validation remain open.**
+Historical implementation detail remains in Git and `docs/PHASE_2_TICKETS.md`, which must not override current combat authority.
 
 ---
 
 ## 🔜 Phase 3 — Signature Buildcraft Foundation
 
-### Goal
+**Goal:** turn the battle platform into AUREVANE's distinctive build game.
 
-Turn the proven battle platform into the distinctive AUREVANE character-build game.
+Canonical ticket sequence is defined in `docs/PHASE_3_TICKETS.md`:
 
-This is the **next major feature phase after Phase 2 exits**.
+```text
+P3.1 Discipline build authority + Primary profiles
+P3.2 Secondary + independent attunement cooldowns
+P3.3 mature Skill schema + cooldown engine
+P3.4 Profile Skill configuration + pure/mixed capacity
+P3.5 Resonance framework + mixed proof
+P3.6 Essence framework + pure proof
+P3.7 shared AI/PvP/loadout build snapshots
+P3.8 representative buildcraft slice + PV-2 readiness
+```
 
-### Scope
+Phase-3 outcome:
 
-#### Discipline identity
+- Primary base profiles;
+- optional mastered Secondary;
+- independent server-owned attunement cooldowns;
+- mature eight-Skill Discipline schema;
+- generic Skill cooldowns;
+- pure 8-Skill + Essence versus mixed 6-Skill + Resonance;
+- Character Profile as build headquarters;
+- saved-loadout legality foundation;
+- AI and existing PvP consuming the same build snapshots;
+- first safe authoring/validation tooling.
 
-- versioned Primary Discipline base-stat profiles;
-- optional mastered Secondary Discipline;
-- authoritative Primary/Secondary selection legality;
-- independent server-owned Primary and Secondary attunement cooldowns;
-- clear before/after stat/build preview;
-- no loss/duplication of player-assigned attributes when Primary changes.
+No Soulmark/Mantle catalog and no frontier implementation are required here.
 
-#### Skill framework
-
-- mature typed Discipline Skill schema;
-- stable Skill IDs and versions;
-- exactly eight learnable Skills per mature Discipline target;
-- AE/AP cost integration through the canonical combat economy;
-- target/requirement/effect integration;
-- server-authoritative cooldown engine;
-- source labeling;
-- AI legality/valuation metadata;
-- PvE/PvP override hooks;
-- media hooks.
-
-#### Pure versus mixed builds
-
-- Primary-only capacity: up to 8 Discipline Skills;
-- mixed Primary + Secondary capacity: 6 total Discipline Skills across the pair;
-- authoritative loadout validation;
-- source/readability presentation in Profile and battle.
-
-#### Resonance and Essence
-
-- first Resonance framework/library for mixed builds;
-- first pure-Discipline Essence framework/Skills;
-- typed combo/sequence interactions;
-- testable balance between pure and mixed identity.
-
-#### Character Profile build headquarters
-
-- Attributes;
-- Disciplines;
-- Skills;
-- Resonance/Essence;
-- Equipment;
-- saved loadout foundation;
-- future Supernatural/Prestige slots prepared without prematurely implementing their catalogs.
-
-#### Integration
-
-- Equipment Skill compatibility where current item foundations allow it;
-- AI understanding of released Skills/cooldowns/build state;
-- direct-PvP snapshot/legality compatibility using the already-built battle platform;
-- first safe authoring/validation tooling required by the increased content volume;
-- Passive Training Discipline Focus/Mastery extension only after active Mastery behavior is ready and proven.
-
-### Gate
-
-Players understand Primary versus Secondary, can configure legal Skills, understand cooldowns and source labels, and can make a meaningful **pure + Essence** versus **mixed + Resonance** choice that materially changes play without the Profile/build UI becoming a study exercise.
+**Gate:** representative players understand and voluntarily experiment with Primary/Secondary, Skills, cooldowns and pure-vs-mixed identity.
 
 ---
 
 ## 🔜 Phase 4 — First Playable Buildcraft Roster & Core Combat Content
 
-### Goal
+**Goal:** prove the Phase-3 build grammar produces genuinely different play before roster scale.
 
-Prove that the Phase-3 system produces multiple genuinely different ways to play before scaling toward the mature roster.
-
-### Staged roster rule
-
-Do not jump blindly to 16.
+Staged roster:
 
 ```text
 4 representative Disciplines
-  ↓ buildcraft identity proof
-6–8 Disciplines
-  ↓ balance/content-production proof
-12 Disciplines
-  ↓ broader meta proof
-16 Disciplines
-  ↓ mature Closed Alpha target
+→ 6–8
+→ 12
+→ 16 for mature Closed Alpha
 ```
 
-### Scope
+Each expansion must justify:
 
-- representative advanced Disciplines plus Foundations;
-- meaningful eight-Skill libraries at the maturity level required by each roster band;
-- pure Essence coverage;
-- relevant Resonance coverage;
-- clear Mastery/acquisition rules;
-- distinct tactical roles and counterplay;
-- representative equipment/consumables that alter decisions rather than only coefficients;
-- first deliberate stat-expression archetypes;
-- equipment Load/Weight interactions where canonical dependencies are ready;
-- varied battle scenes/maps testing range, movement, terrain, elevation, objectives and positioning;
-- enemy-family archetypes;
-- stronger Battle Hall records/AI profiles;
-- first interaction/content-linting needed before combination count becomes difficult to reason about;
-- representative VFX/SFX hooks and readable media requirements;
-- PvE and direct-PvP regression coverage for released content.
+- Skill quality;
+- Essence coverage;
+- Resonance coverage;
+- Mastery/acquisition;
+- tactical identity/counterplay;
+- equipment interactions;
+- AI behavior;
+- PvE/PvP coverage;
+- VFX/SFX/media burden;
+- analytics;
+- interaction linting/content-production cost.
 
-### Gate
+Representative equipment/consumables and battle scenes must create real tactical decisions rather than stat reskins.
 
-Multiple representative builds feel materially different, pure and mixed routes both have reasons to exist, gear changes decisions, maps create different tactical questions, AI uses released content coherently, and content production cost appears sustainable enough to expand.
+**Gate:** multiple Disciplines, pure/mixed routes, gear and maps materially change strategy; production remains sustainable.
 
 ---
 
-## 🔜 Phase 5 — Living World, Story & Supernatural Identity Foundation
+## 🔜 Phase 5 — Living World, Story, Supernatural Identity & Frontier Threshold
 
-### Goal
+**Goal:** establish the living world and first meaningful supernatural/world mystery systems.
 
-Give the persistent character a real world, story and supernatural identity so combat/buildcraft has meaningful context and return reasons.
+Scope includes:
 
-### World/story scope
-
-- Atlas/world map;
-- movement/presence;
-- towns/settlements;
-- location-coherent encounters;
+- strategic world map / Atlas;
+- settlements/locations/presence;
+- encounters;
 - NPC/dialogue;
 - quest engine;
-- initial story arcs;
-- layered global/region/node/player world state;
-- world vendors / known acquisition links;
-- battle-to-world reward/state return;
-- World Pulse / since-you-were-away context;
-- data-driven world events;
-- event scheduling/worker transitions;
-- announcements/world activity;
-- story-arc hooks and versioned narrative content;
-- Archive/lore-discovery foundation;
-- protected Quest/Key Item rules;
-- initial Horizon/world progression gates;
-- safe owner/staff Event/Story/Lore operations slice.
+- layered global/region/node/player state;
+- scheduled/data-driven world events;
+- World Pulse;
+- story arcs and versioned narrative content;
+- Archive/Fragment Sets/lore provenance;
+- protected quest/key items;
+- world vendors/acquisition links as needed;
+- location-coherent battle scenes;
+- owner/staff Event/Story/Lore operational shell;
+- early Horizon/world progression gates.
 
-### Supernatural identity scope
+### Supernatural fork
 
-Implement the first story-appropriate proof of:
+Introduce the first real:
 
 ```text
 UNAWAKENED
-SOULMARKED
-SOUL_SEVERED
+→ SOULMARKED
+OR
+→ SOUL-SEVERED
 ```
 
-Then prove a deliberately small, high-quality supernatural slice:
+with a small high-quality Soulmark proof and at least one valid Mantle path so Severance has meaningful payoff.
 
-- first Soulmarks with meaningfully different package shapes;
-- Soulmark branch/readability foundation;
-- Soulmark Skills outside the Discipline Skill capacity where authored;
-- irreversible/authoritative Severance state;
-- first valid Mantle route so Soul-Severed characters are not stranded;
-- manual Mantle manifestation, duration, temporary power/rules, temporary Skills where authored and Afterstrain;
-- explicit server rejection of invalid Soulmark/Mantle ownership combinations.
+### Frontier threshold
 
-### Gate
+Introduce the **concept and outer edge** of the Unwritten Reach:
 
-A character can explore, quest, fight in coherent world locations, discover lore, experience an operator-controlled scheduled world/story change, and understand the distinction between Resonance, Essence, Soulmark, Severance and Mantle.
+- known-world cartography visibly gives way to uncertain territory;
+- first deliberate crossing/entry prompt;
+- one small authored outer-Reach vertical slice;
+- first Anchor;
+- first controlled Cartographic Drift proof;
+- Field Observation → Archive integration;
+- early rumors/evidence of far inhabitants;
+- no giant Anomaly catalog.
+
+The Phase-5 frontier target is **mystery and coherence**, not endless content.
+
+**Gate:** players can explore a coherent living region/world loop, experience operated story/world change, understand the supernatural fork, and encounter the frontier as a compelling mystery rather than random filler.
 
 ---
 
 ## 🔜 Phase 6 — Party & Co-op Foundation
 
-### Goal
+**Goal:** convert existing multiplayer battle technology into real cooperative play.
 
-Prove that the existing multiplayer battle platform can support cooperative ownership, teamwork and social grouping rather than only direct PvP.
+Scope:
 
-### Scope
-
-- parties;
-- invites and availability;
-- party realtime/fanout;
+- parties/invites;
+- party realtime;
 - party finder;
-- cooperative battles using the authoritative battle platform;
+- co-op battles;
 - shared quests/objectives;
-- each player controls only their own character;
-- disconnect/rejoin ownership rules;
-- public build summaries where appropriate;
-- party-visible cooldown/readiness information only where legitimately useful;
+- each player owning their character;
+- reconnect/ownership flow;
 - pings/action visibility;
-- allied NPC AI where required;
+- allied coordination;
 - enemy-team coordination;
-- multi-unit Battle Hall drills for legitimately unlocked profiles;
-- co-op exit/retreat policy;
-- typed cross-ally combo interactions where authored.
+- multi-unit practice where appropriate;
+- frontier party entry/extraction/shared route state where useful.
 
-### Gate
+The Reach must retain meaningful solo content; co-op is an option, not universal entry tax.
 
-Three people can form a party and complete a cooperative mission whose combat remains readable, responsive, fair and clearly owned, with no progression dependency on an unusable party finder.
+**Gate:** three people can complete a readable fair mission together with each controlling their own character.
 
 ---
 
-## 🔜 Phase 7 — Expeditions, Boss PvE & Deep Build Interaction
+## 🔜 Phase 7 — Expeditions, Boss PvE & Deep Frontier
 
-### Goal
+**Goal:** stress buildcraft/co-op/AI/persistence through deep repeatable PvE and make the Reach a serious endgame exploration layer.
 
-Use long-form PvE to prove build depth, cooperative play, boss intelligence and deterministic/reconnect-safe run state.
+Scope:
 
-### Scope
-
-- Expedition template engine;
-- deterministic seeded generation;
+- deterministic Expedition templates/seeds;
 - progressive reveal;
-- Easy / Standard / Deep Expedition bands;
-- Threat/modifiers;
+- Easy / Standard / Deep Expeditions;
+- modifiers/threat;
 - suspension/reconnect;
 - multiphase bosses;
-- personal loot/leaderboards;
-- targeted item pools and approved bad-luck protection;
-- deterministic inventory/run state;
-- temporary rotations/anomalies;
-- lore rooms/records/relics;
-- richer objectives;
-- environmental battle objects/terrain transformations;
-- objective-aware AI and boss directors;
-- telegraphed fair boss mechanics;
-- tactical extraction rules;
-- Expedition equipment Skills and build interactions;
-- broader Mantle catalog progression toward the mature target where appropriate;
-- spoiler-safe Battle Hall boss records only after legitimate discovery;
-- long-run performance/reconnect/version/reward-duplication verification.
+- personal/targeted loot;
+- anti-duplication/bad-luck rules;
+- environmental battle objects/terrain transformation;
+- objective/boss AI;
+- long-run performance/version/replay tests.
 
-### Gate
+### Deeper Reach
 
-A three-player roughly hour-scale Deep Expedition is memorable, resumable and tactically varied, with meaningful loot/build interaction, fair bosses and no reward duplication or soft locks.
+- Reach-discovered Expedition entrances;
+- deeper drift states;
+- stronger hazards;
+- named phenomena;
+- meaningful Frontier Acumen advantages;
+- first Veyr interaction where story timing permits;
+- first tightly controlled **Anomaly acquisition proof**;
+- deep Anchor/boss interactions.
+
+**Gate:** a roughly hour-scale three-player Deep Expedition is memorable/resumable and frontier exploration produces understandable mystery, not arbitrary randomness.
 
 ---
 
-## 🔜 Phase 8 — Competitive PvP, Colosseum, Seasons & Tournaments
+## 🟡 Phase 8 — Competitive PvP, Colosseum, Seasons & Tournaments
 
-### Goal
+**Goal:** mature the already-built direct PvP/spectator platform into a competitive product.
 
-Mature the **already-built direct PvP/spectation foundation** into a sustainable competitive product layer.
+**Inherited rather than rebuilt:** lobbies, shared battles, multiple formats, timing foundation, direct challenge infrastructure, spectation, battle chat/logs, multi-combatant presentation.
 
-This phase does **not** rebuild Phase-2 PvP. It audits and extends it.
+Remaining mature scope:
 
-### Already delivered and inherited
-
-- direct PvP lobby/battle runtime;
-- participant authority;
-- multiple battle formats;
-- PvP timing foundations;
-- surrender foundation;
-- Battle/Spectator Keys;
-- read-only spectation;
-- spectator presence/roster;
-- battle-scoped communication;
-- shared battle logs;
-- responsive PvP/spectator presentation;
-- significant PvP concurrency/polling/session hardening.
-
-### Remaining mature competitive scope
-
-- direct challenge policy refinement;
-- formal casual queues;
-- ranked 1v1;
-- ranked 2v2 where population supports it;
-- matchmaking/rating;
-- queue abandonment/disconnect protections;
+- casual/ranked 1v1;
+- casual/ranked 2v2;
+- ratings/rank;
+- matchmaking;
+- population-safe queue policy;
 - Arena Tempering;
-- versioned competitive rulesets;
-- build snapshot/lock rules;
-- Skill/Resonance/Essence/equipment/Soulmark/Mantle/Veteran Edge legality controls as those systems exist;
-- CC/lockout safety;
-- map/spawn/side-bias testing;
-- competitive telemetry;
+- competitive disconnect/abandon rules;
 - seasons;
-- tournament framework;
-- queue population-safety rules;
-- no undisclosed bots presented as human ranked opponents.
+- tournaments;
+- build snapshots/locks;
+- map/side bias testing;
+- competitive telemetry;
+- PvP overrides through shared definitions;
+- Skill/Resonance/Essence/Soulmark/Mantle/equipment/Veteran Edge legality;
+- public/private spectator policy;
+- competitive spectator delay;
+- Colosseum/public battle discovery;
+- featured matches/replays where approved.
 
-### Spectation / Colosseum maturity
+### Anomaly competitive policy
 
-- explicit PUBLIC / UNLISTED / PRIVATE_KEY / CLOSED visibility policy;
-- shareable opaque spectator handles where appropriate;
-- competitive spectator delay that cannot be bypassed by reconnect/replay paths;
-- Colosseum public discovery;
-- featured/live/tournament listings;
-- privacy-safe Friends Fighting discovery later where appropriate;
-- completed-match replay behavior;
-- tournament bracket → battle integration;
-- large-fanout/load verification;
-- operational spectator controls.
+Every relevant Anomaly must be explicitly classified as:
 
-### Gate
+- allowed;
+- normalized;
+- disabled;
+- special-event only;
+- tournament restricted.
 
-Competitive queues are fair, population-safe and readable; ranked results cannot be manipulated through disconnect/build/spectator loopholes; public/private visibility is correct; and the Colosseum creates social value without compromising competitors.
-
----
-
-## 🔜 Phase 9 — Roster, Soulmark & Mantle Catalog Expansion
-
-### Goal
-
-Scale content only after the buildcraft and combat-production pipeline proves it can sustain the interaction cost.
-
-### Scope
-
-- expand toward all 36 Disciplines in controlled batches;
-- eight high-quality Skills per mature Discipline;
-- complete pure Essence coverage;
-- complete required Resonance coverage across released pairs;
-- mature Mastery/acquisition paths;
-- broaden equipment interactions;
-- broad Soulmark catalog growth in quality-driven stages;
-- 1/2/3-branch Soulmark support where justified;
-- six mature Mantles or explicit later-content deferral;
-- AI usage rules and regression scenarios for released content;
-- PvE/PvP tests;
-- VFX/SFX/media requirements;
-- interaction-graph/content-linting maturity;
-- analytics and Master Panel authoring support.
-
-### Gate
-
-New roster/catalog additions continue creating real build diversity without collapsing content quality, balance, AI coverage, media production or testing throughput.
+No ordinary competitive player should require ultra-rare frontier possession to be viable.
 
 ---
 
-## 🔜 Phase 10 — Social World & Community
+## 🔜 Phase 9 — Roster, Soulmark, Mantle & Frontier Catalog Expansion
 
-### Goal
+**Goal:** scale only systems already proven fun and sustainable.
 
-Turn existing online presence and battle-scoped communication into durable player relationships and community systems.
+- expand toward the long-term 36-Discipline target in controlled batches;
+- mature eight-Skill libraries;
+- complete Essence/Resonance coverage;
+- expand Soulmarks based on quality/data;
+- progress toward six distinct Mantles;
+- scale enemy/maps/equipment interactions;
+- increase AI/PvP regression coverage;
+- scale Reach Anchors/phenomena/Anomaly pool only if earlier evidence supports it.
 
-### Already-delivered foundation inherited
+Anomalous Disciplines, if ever used, require separate Owner approval and a complete normal-quality content/balance package.
 
-- Online Users/presence foundation;
-- battle participant/spectator chat foundation;
-- public character identity/profile foundations;
-- active-session awareness.
+---
 
-### Remaining scope
+## 🔵 Phase 10 — Social World & Explorer Identity
+
+Existing foundations include Online Users, profiles, presence and battle-scoped communication.
+
+Mature scope:
 
 - friends;
-- messages;
 - guilds;
-- guild progression/quests;
+- messages;
+- guild quests/progression;
 - social profiles;
-- privacy/availability controls;
-- block/mute/report;
-- moderation/support tooling;
-- repeat-group shortcuts;
-- richer build-share cards where privacy permits;
-- Chronicle/social recognition hooks;
-- social spectation features where moderation is ready;
-- prestige/Rekindling/Hall-of-Selves social presentation.
-
-### Gate
-
-Players can safely form repeat relationships and communities, communication has adequate moderation/privacy controls, and social systems support rather than obstruct combat/world play.
+- moderation/reporting;
+- build sharing;
+- Chronicle/social recognition;
+- Rekindling/Hall of Selves presentation;
+- mature explorer identity;
+- public Frontier Ledger excerpts;
+- route/map sharing where appropriate;
+- guild frontier expedition organization;
+- first-discovery attribution and famous explorer recognition.
 
 ---
 
 ## 🔜 Phase 11 — Economy, Crafting & Trade
 
-### Goal
+Scope:
 
-Create a coherent player economy around authoritative items and build choice without turning inventory into friction or opening duplication/exploit paths.
-
-### Scope
-
-- mature stores/vendors;
-- loot services;
-- materials inventory;
-- crafting professions;
-- gathering professions;
-- enchantment integration;
-- marketplace / Trade House;
+- stores/vendors;
+- mature loot;
+- marketplace/Trade House;
+- crafting/professions;
+- materials;
+- enchantment where approved;
 - binding/trading policies;
-- safe bulk sell/salvage;
-- tuned capacity/stack policies;
+- safe sell/salvage;
 - overflow/recovery;
 - item provenance/history;
-- acquisition graph maturity;
-- Equipment/Consumable Skill links;
-- deterministic crafting/enchantment previews;
-- economy/support tooling;
-- source/sink/inflation/liquidity telemetry;
-- Rekindling reset/preserve safeguards;
-- recurring paths for important competitive build components;
-- Passive Training and Battle Hall isolation from tradable/economic output.
+- acquisition graph;
+- economy telemetry/support tools.
 
-### Gate
+### Frontier/Anomaly economy
 
-Acquisition, ownership, storage, equipment, crafting, trade and stores are coherent and server-authoritative with no duplication, key-item loss, ghost-equipped/listed items or inventory-management misery.
+If frontier resources or Anomalies can be traded, define strict:
+
+- provenance;
+- bind/transfer rules;
+- contraband presentation;
+- market legality;
+- anti-duplication/anti-laundering behavior;
+- support/audit history.
+
+Not every Anomaly should be tradable.
 
 ---
 
 ## 🔜 Phase 12 — Nations & Large-Group Identity
 
-### Goal
+Scope:
 
-Add political identity and large-group conflict only when the social/player population can support it.
-
-### Scope
-
-- allegiance;
-- reputation;
+- allegiance/reputation;
 - nation quests;
 - campaigns;
-- nation events;
+- warfare;
 - political rankings;
-- PvE/PvP contribution paths;
-- nation warfare only when population evidence supports it;
-- nation/reputation item rewards using normal acquisition/effect definitions;
-- nation-specific narrative interpretations of the central mythology;
-- no essential competitive build permanently locked behind one political choice;
-- arena/Colosseum presentation may vary by nation without fragmenting the underlying competitive population.
+- national world-event operations;
+- PvE/PvP contribution paths.
 
-### Gate
+Nations/factions may disagree over:
 
-Nation identity creates meaningful community/story value without dividing a small population into empty factions or creating mandatory political build power.
+- the Reach;
+- Veyr contact;
+- Anomaly possession;
+- forbidden frontier research;
+- Great Vane policy.
+
+Do not permanently lock essential competitive power behind one national choice.
 
 ---
 
-## 🔜 Phase 13 — Complete Master Panel & Long-Horizon Operations
+## 🔵 Phase 13 — Complete Master Panel & Long-Horizon Operations
 
-### Goal
+Earlier phases ship minimum operational tools. Phase 13 consolidates the full operating system.
 
-Consolidate progressively delivered owner/staff controls into the complete audited game operating system.
-
-### Scope
+Scope:
 
 - Owner Command Center;
-- staff roles/permissions;
-- player lookup and audited corrections;
-- Discipline / Skill Studio;
-- Resonance / Essence Studio;
-- Soulmark / Mantle Studio;
-- item/equipment/effect editors;
+- roles/permissions;
+- audited player corrections;
+- Discipline/Skill/Resonance/Essence/Soulmark/Mantle editors;
+- item/effect/loot/economy tools;
 - quest/dialogue/story/Archive editors;
-- world-event scheduler;
+- event scheduling;
 - Expedition editor;
-- PvP/season/tournament/Colosseum operations;
-- Audio Manager;
-- Asset Studio;
+- PvP/season/tournament operations;
+- Audio Manager/Asset Studio;
 - Balance Lab;
-- Combat Content Studio;
-- battle-log text/template authoring and safe presentation configuration;
-- Item Studio / Effect Catalog;
-- build/loadout/combat analytics;
-- Combat AI Lab;
-- Battle Hall record/unlock configuration;
+- Combat Content Studio/AI Lab;
 - Pacing Simulator;
-- progression/Horizon/Passive Training configuration;
-- Rekindling / Veteran Edge controls;
-- economic analytics;
-- support/moderation;
+- progression/Horizon/Passive Training/Rekindling/Veteran Edge controls;
 - feature flags;
-- audit log;
-- content diff/history;
-- staging/publish/rollback;
-- narrative spoiler/canon rights;
-- break-glass Owner recovery with re-authentication and immutable audit.
+- content diff/history/staging/rollback;
+- narrative canon/spoiler controls;
+- break-glass Owner recovery.
 
-### Gate
+### Reach/Anomaly operations
 
-Normal operation, authoring, balance, repair, simulation and delegation occur through validated audited tools rather than routine raw production access or ad-hoc code edits.
-
----
-
-## 🔜 Phase 14 — Art, Audio & Production Presentation
-
-### Goal
-
-Bring the proven systems/content to production presentation quality without waiting until this phase to begin all media work.
-
-### Early credit
-
-Substantial combat UI/UX/presentation work has already occurred and is preserved. Phase 14 refines rather than discards good proven interaction patterns.
-
-### Scope
-
-- region/environment artwork;
-- character/Discipline art;
-- Soulmark/Mantle art;
-- item icons/key art;
-- Inventory/Profile/Armory polish;
-- major reward presentation;
-- soundtrack;
-- ambience;
-- SFX;
-- transitions/particles/animations;
-- responsive/mobile polish;
-- loading/error states;
-- battle-scene environments;
-- terrain/elevation readability;
-- Skill / Equipment Skill / Resonance / Essence / Soulmark / Mantle VFX identity;
-- impact audio / footsteps / blocks / item-use / telegraph / objective cues;
-- readable action-resolution timing;
-- targeting/forecast/AP/timeline/log polish;
-- spectator/Colosseum event presentation;
-- reduced-motion / camera-shake / accessibility options;
-- evolving Aurevane/Open Crown/Closed Star visual/audio language;
-- Rekindling/Hall-of-Selves presentation;
-- Archive/document/relic presentation;
-- Passive Training presentation;
-- Battle Hall / AI Sparring / Battle Review presentation.
-
-### Gate
-
-The representative product experience is visually/audibly coherent, responsive and readable enough for mature Closed Alpha rather than feeling like a functional prototype.
+- drift seeds/versions;
+- Anchor authoring;
+- route/frontier-state inspection;
+- Reach events;
+- Anomaly definitions/legality;
+- acquisition provenance;
+- emergency disable/rollback;
+- Frontier Ledger/support inspection;
+- generation simulation/validation.
 
 ---
 
-## 🔜 Phase 15 — Security, Scale, Exploit Hardening & Closed-Alpha Readiness
+## 🔵 Phase 14 — Art, Audio & Production Presentation
 
-### Goal
+Earlier phases already require sufficient media for coherent testing. Phase 14 is the complete production pass.
 
-Turn accumulated per-feature hardening into a deliberate whole-product launch-readiness program.
+Scope includes world/region/character/Discipline/Soulmark/Mantle/item art, soundtrack/ambience/SFX, battle environments, VFX/animation, responsive/mobile polish, accessibility, Archive/Rekindling/Hall of Selves presentation and complete combat feedback.
 
-### Early credit
+### Reach identity
 
-The project already performs substantial authority/security/database/browser/concurrency regression work throughout development. Preserve that work; Phase 15 broadens it across the complete system.
+The Unwritten Reach requires a distinct visual/audio language based on:
 
-### Scope
+- uncertain distance;
+- contradictory geography;
+- familiar objects in impossible context;
+- continuity errors;
+- beauty mixed with unease;
+- shifting but readable navigation cues.
 
-- security/penetration review;
-- abuse/rate-limit testing;
-- privileged access / Owner break-glass review;
-- audit-log integrity;
-- SQL/index optimization;
-- load testing;
-- realtime/matchmaking/spectator fanout load;
-- Expedition concurrency;
-- economy exploit testing;
-- inventory/equipment/listing concurrency;
-- migration/version tests;
-- reward/idempotency duplication tests;
-- destructive inventory safety;
-- overflow/recovery;
-- loadout simultaneous-edit races;
-- effect trigger/filter/order/recursion safety;
-- marketplace/equip/listing races;
-- PvP competitive regression;
-- spectator hidden-info/delay/privacy regression;
-- authoring permission/staging/diff/publish/rollback tests;
-- live-event scheduling/recovery;
-- spoiler/canon publication review;
-- progression/Horizon boundaries;
-- Passive Training server-time/idempotency/multi-character/economy isolation;
-- movement/terrain/targeting/AP/cooldown/status/summon/objective property tests;
-- battle version/race/replay/reconnect/timeout/disconnect abuse;
-- map reachability/bias/performance/content-reference validation;
-- AI legality/knowledge/determinism/load/pathfinding/fallback/boss-counterplay;
-- Battle Hall unlock/spoiler/reward-isolation/reset/retry;
-- Master Panel audit/version/rollback;
-- human combat/build/world playtests across skill levels;
-- Rekindling preserve/reset integrity;
-- Veteran Edge competitive regression;
-- event recurrence/catch-up;
-- player correction/idempotency;
-- closed-alpha operational runbooks.
-
-### Gate
-
-No known systemic exploit, authority flaw, scaling blocker, common soft lock or operational-recovery gap prevents controlled Closed Alpha.
+Avoid generic purple corruption, generic void fog or obvious imitation of other fantasy frontiers.
 
 ---
 
-# 6. First full endgame / Rekindling gate
+## 🔵 Phase 15 — Security, Scale, Exploit Hardening & Closed-Alpha Readiness
 
-Before Rekindling becomes a normal production feature, validate:
+Hardening includes:
 
-- complete first-cycle eligibility respects the configured long-horizon minimum plus required gameplay milestones;
-- levels 1–100 and build progression remain rewarding;
-- equipment/item discovery continues creating options rather than pure replacement churn;
-- returning-player support helps recovery without bypassing accomplishment;
-- Passive Training remains a modest contributor;
-- Battle Hall does not become an economy/progression shortcut;
-- enough PvE/PvP/world/story/lore exists that the journey is not filler;
-- combat continues introducing meaningful tactical questions;
-- the endgame rite is a genuine mastery challenge;
-- Rekindling preserves identity/history while resetting enough progression to make rebuilding meaningful;
-- Veteran Edge has telemetry, tests, kill switches, queue rules and Master Panel controls before ranked use.
+- security/penetration/abuse review;
+- rate limiting;
+- privileged access/audit integrity;
+- database/index/load/realtime performance;
+- combat/reward/idempotency races;
+- PvP/loadout/economy exploits;
+- migration/versioning;
+- AI/property tests;
+- content-authoring permission/rollback;
+- progression/Rekindling integrity;
+- live-event recovery;
+- human cross-skill playtests.
+
+### Reach/Anomaly hardening
+
+- deterministic drift reproduction;
+- unreachable-layout rejection;
+- route/version migration;
+- reconnect/extraction;
+- reward duplication/reroll abuse;
+- Anomaly provenance;
+- trade/economy exploits;
+- spoiler leakage;
+- community discovery load;
+- generation/content performance.
 
 ---
 
-# 7. Mature Closed Alpha target
+# 6. Endgame / Rekindling maturity gate
+
+Before Rekindling becomes a normal production loop, validate:
+
+- first-cycle eligibility still represents a meaningful long journey;
+- time alone and grind alone cannot complete it;
+- serious PvE/PvP/build/world content matters before day 180;
+- later cycles do not feel like identical chores;
+- Echo Routes/Memory Carryover/history-aware progression create meaningful variation;
+- mastered tutorials can be abbreviated without trivializing the journey;
+- Hall of Selves makes prior cycles feel accumulated rather than deleted;
+- Veteran Edge remains bounded and PvP-safe;
+- the Reach creates new long-term questions without becoming mandatory for every build;
+- frontier mastery emphasizes knowledge/access over global raw power;
+- Anomalies create stories and identity without becoming mandatory meta items.
+
+---
+
+# 7. Product-validation ladder
+
+`docs/ROADMAP_PRODUCT_VALIDATION.md` governs evidence details.
+
+High-level sequence:
+
+- **PV-1:** tactical combat proof — Phase 2 exit.
+- **PV-2:** Signature Buildcraft proof — Phase 3 before roster scaling.
+- **PV-3:** first-session / return-loop proof — Phase 5 before large world-production scale.
+- **PV-4:** co-op / Expedition proof — Phases 6–7.
+- **PV-5:** PvP population safety — Phase 8+.
+- **PV-6/7:** monetization/unit economics before scale.
+- **PV-8:** sustainable live operations before major live-service cadence.
+
+Future Rekindling/frontier validation must additionally prove:
+
+- later cycles feel different rather than repetitive;
+- drift feels mysterious rather than arbitrary;
+- Anchors create memorable persistent discoveries;
+- frontier expertise feels earned/intelligent;
+- Anomalies remain rare, story-rich and non-mandatory.
+
+---
+
+# 8. Mature Closed Alpha target
 
 Closed Alpha is a **quality/content gate, not a date promise**.
 
-Target shape remains approximately:
+Target shape includes:
 
 - 16 playable Disciplines;
-- meaningful mature Skill libraries for the Alpha roster;
-- meaningful Resonance coverage;
-- pure-Discipline Essence coverage;
-- 8 representative Soulmarks;
-- at least one valid Soul-Severed/Mantle path with broader Mantle progression appropriate to the milestone;
-- 4 world regions;
+- representative Soulmark set;
+- meaningful Resonance/Essence coverage;
+- 4 strong regions;
 - 20–30 enemies;
 - 4–6 bosses;
-- 50+ authored-role items;
-- Equipment / Consumables / Materials / protected Quest-Key boundaries;
-- stable item-definition / owned-item model;
-- polished equipment/build-management experience;
-- saved combat loadouts;
-- representative non-damage equipment/consumables;
-- known acquisition / target-farming foundation;
+- 50+ purposeful items;
 - 20+ quests;
-- Easy Expedition;
-- Standard Expedition;
-- 1 Deep Expedition;
-- direct/casual PvP foundation retained from Phase 2;
-- 1v1 and 2v2 competitive forms ready where population/rules allow;
-- Guild foundation;
-- server-authoritative readable AP combat;
-- representative targeting/requirement/effect grammar;
-- meaningful terrain/elevation/facing/status/Skill/item interactions;
-- world-linked authored battle scenes;
-- Primary/Secondary + Resonance/Essence build rules;
-- Discipline Mastery / Skill acquisition foundation;
-- reliable shared combat AI with representative profiles;
-- distinct enemy-family archetypes;
-- competent squad AI where fiction requires it;
-- fair learnable boss AI;
-- Battle Hall with AI Sparring, progression-gated practice and Battle Review foundation;
-- spectator foundation retained and hardened from Phase 2, with mature privacy/competitive rules as required;
-- continuing world-event/story capability;
-- World Pulse foundation;
-- Archive/lore discovery foundation;
-- owner + delegated staff permission foundation;
-- usable Event/Story/Lore operations tooling;
-- safe content validation/preview controls;
-- auditability and rollback;
-- Master Panel core;
-- full audio coverage for the Alpha experience;
-- strong visual presentation;
-- coherent early Aurevane mystery and foreshadowing;
-- telemetry sufficient to begin calibrating long-horizon pacing.
+- Easy/Standard/Deep Expedition coverage;
+- 1v1 + 2v2 PvP;
+- guild foundation;
+- readable tactical battle platform;
+- competent combat AI;
+- continuing world/story/event capability;
+- Archive/lore discovery;
+- owner/staff operations foundation;
+- strong visual/audio presentation;
+- telemetry for long-horizon tuning.
 
-Closed Alpha itself does not need to run for six months before individual systems can be tested.
+The Reach does **not** need to be enormous for Closed Alpha. A small excellent frontier proof is more valuable than hundreds of generated empty nodes.
 
 ---
 
-# 8. Immediate execution sequence from the current state
+# 9. Permanent ticket rules
 
-```text
-CURRENT OWNER TESTING / FEATURE STABILIZATION
-  ↓
-Finish only the coherent battle-platform fixes already justified by testing
-  ↓
-Freeze a representative Phase-2 candidate
-  ↓
-Run/complete real PV-1 human/internal validation
-  ↓
-Explicit Phase-2 decision
-  ├── FAIL → smallest repeated combat/usability correction → retest
-  └── PASS
-        ↓
-PHASE 3 — SIGNATURE BUILDCRAFT FOUNDATION
-        ↓
-Primary/Secondary + Skills + cooldowns
-        ↓
-Resonance / Essence + Profile build headquarters
-        ↓
-PV-2 buildcraft identity proof
-        ↓
-PHASE 4 staged playable roster/content expansion
-        ↓
-PHASE 5 living world/story/supernatural identity
-        ↓
-PHASE 6 co-op
-        ↓
-PHASE 7 Expeditions/boss PvE
-        ↓
-PHASE 8 mature competitive PvP/Colosseum using the Phase-2 foundation
-        ↓
-PHASE 9+ catalog/social/economy/nations/operations/polish/hardening
-```
-
-The immediate planning principle is therefore:
-
-> **Finish testing what we already built, prove the combat/battle platform, then invest the next major development effort in AUREVANE's signature buildcraft—not in more unrelated Phase-2 breadth.**
-
----
-
-# 9. Phase-boundary reconciliation rule
-
-Before opening the first substantial ticket of a new phase:
-
-1. inspect current `main` and recent merged implementation;
-2. reconcile `TASKS.md`;
-3. reconcile the current phase ticket/history document;
-4. confirm the canonical domain docs use current terminology/rules;
-5. list early-delivered capability that the new phase inherits;
-6. identify only genuine remaining gaps;
-7. confirm the required prior human/product gate has actually passed;
-8. open one coherent implementation ticket.
-
-Historical phase-ticket documents may preserve how the system was originally built, but they must not override newer canonical rules such as the current 100-AP Action Economy.
-
----
-
-# 10. Ticket rule
-
-Every implementation ticket must state:
+Every implementation ticket states:
 
 - purpose;
 - exact scope;
+- dependencies;
+- authoritative docs;
 - files/modules affected;
 - implementation approach;
 - automated tests;
 - acceptance criteria;
-- manual/Owner verification;
-- dependencies;
-- early-delivered systems reused;
-- explicit later systems left out of scope.
+- manual verification;
+- relevant product evidence.
 
-Build-system tickets must use Primary / Secondary / Skill / Resonance / Essence terminology and identify source systems/loadout capacity.
+Build tickets use Primary / Secondary / Skill / Resonance / Essence terminology.
 
-Combat tickets must follow the current `docs/COMBAT.md` Action Economy and identify the approved combat-grammar portion they change.
+Combat tickets follow `docs/COMBAT.md`.
 
-Item/inventory/loadout tickets must identify item classes, effect primitives, loadout fields and economy links in scope.
+Frontier tickets follow `docs/REKINDLING_FRONTIER_ANOMALIES.md` and must distinguish authored Anchors from deterministic Driftspace.
 
-PvP tickets must distinguish **direct battle-platform functionality already delivered** from **mature competitive systems still being implemented**.
+Anomaly tickets must define provenance, acquisition, power tradeoffs, competitive legality and exploit/duplication protection.
 
-Only the assigned ticket is implemented unless the Owner explicitly authorizes a broader verified release batch.
+Only the assigned ticket is implemented unless the Owner explicitly authorizes a wider coherent batch.
+
+---
+
+# 10. Core development sequence from today
+
+```text
+PHASE 2 OWNER TESTING / PV-1 EXIT
+        ↓
+PHASE 3 SIGNATURE BUILDCRAFT
+        ↓
+PHASE 4 FIRST BUILDCRAFT ROSTER
+        ↓
+PHASE 5 LIVING WORLD + SUPERNATURAL FORK + FIRST REACH
+        ↓
+PHASE 6 PARTY / CO-OP
+        ↓
+PHASE 7 EXPEDITIONS + DEEP REACH + FIRST ANOMALY PROOF
+        ↓
+PHASE 8 MATURE COMPETITIVE PvP / COLOSSEUM
+        ↓
+PHASE 9 CONTROLLED CATALOG SCALE
+        ↓
+PHASE 10 SOCIAL WORLD / EXPLORER IDENTITY
+        ↓
+PHASE 11 ECONOMY / CRAFTING / TRADE
+        ↓
+PHASE 12 NATIONS
+        ↓
+PHASE 13 COMPLETE OPERATIONS
+        ↓
+PHASE 14 FULL PRODUCTION PRESENTATION
+        ↓
+PHASE 15 HARDENING / CLOSED-ALPHA READINESS
+        ↓
+MATURE ENDGAME / REKINDLING / CONTINUING LIVE WORLD
+```
+
+The objective is not to check boxes fastest. It is to preserve AUREVANE's ambition while proving each expensive layer before multiplying it.
