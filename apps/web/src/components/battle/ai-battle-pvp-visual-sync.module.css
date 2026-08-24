@@ -101,12 +101,20 @@
   pointer-events: none;
 }
 
-/* Desktop AI uses the same spatial hierarchy as the approved PvP cockpit: the battle owns the
-   viewport, the arena gets the recovered height, and the tactical grid can grow to the same
-   620px footprint instead of being held to the older compressed AI scale. */
+/* Desktop AI uses the same spatial hierarchy as the approved PvP cockpit. In particular, keep
+   the full PvP rail width even inside the base battle's <=1100px breakpoint: shrinking those rails
+   to 7.8rem makes the portraits feel secondary and leaves oversized dead gutters around the grid. */
 @media (min-width: 881px) {
   :global(main:not([data-pvp-battle='true']):has(section[aria-label='Tactical battlefield'])) {
     height: 100dvh !important;
+  }
+
+  :global(
+    main:not([data-pvp-battle='true']):has(section[aria-label='Tactical battlefield'])
+      section:has(> section[aria-label='Tactical battlefield'])
+  ) {
+    grid-template-columns: minmax(8.4rem, 10.5rem) minmax(0, 1fr) minmax(8.4rem, 10.5rem) !important;
+    gap: 0.42rem !important;
   }
 
   :global(
