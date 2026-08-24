@@ -37,6 +37,17 @@
     padding: 0.3rem 0.38rem !important;
   }
 
+  :global(
+    main[data-pvp-spectator='true']
+      > section[aria-label='PvP team status']
+      > article
+      > div:last-child
+      > div:only-child
+  ) {
+    width: min(100%, 32rem) !important;
+    justify-self: center;
+  }
+
   :global(main[data-pvp-spectator='true'] > section[aria-label='PvP team status'] [data-active]),
   :global(main[data-pvp-spectator='true'] > section[aria-label='PvP team status'] [data-defeated]) {
     min-height: 0;
