@@ -1,0 +1,48 @@
+name: One-shot delete account accessibility fix
+
+on:
+  push:
+    branches:
+      - agent/account-deletion-grace-period
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/account-deletion-grace-period
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Disambiguate delete-account accessible name
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('apps/web/src/components/character/character-select-shell.tsx')
+          text = path.read_text()
+          needle = '            data-testid="delete-account-button"\n            onClick={openAccountDeletionModal}\n'
+          replacement = '''            data-testid="delete-account-button"\n            aria-label={\n              accountDeletionState\n                ? 'Manage permanent deletion countdown'\n                : 'Permanently delete login and game data'\n            }\n            onClick={openAccountDeletionModal}\n'''
+          if needle not in text:
+              raise SystemExit('Expected delete-account button was not found.')
+          path.write_text(text.replace(needle, replacement, 1))
+          PY
+          pnpm exec prettier --write apps/web/src/components/character/character-select-shell.tsx
+      - name: Commit accessibility fix
+        run: |
+          git config user.name "AUREVANE Format Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add apps/web/src/components/character/character-select-shell.tsx
+          git commit -m "Disambiguate delete account control"
+          git push origin HEAD:agent/account-deletion-grace-period
