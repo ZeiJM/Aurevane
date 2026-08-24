@@ -282,6 +282,31 @@
   box-shadow: 0 0 0.8rem rgba(83, 173, 105, 0.18);
 }
 
+@media (min-width: 881px) {
+  :global(header:has(> button[aria-label^='Victory conditions'])) {
+    grid-template-columns:
+      minmax(10rem, 1fr) minmax(13rem, 24rem) 8.4rem
+      minmax(10rem, 1fr) !important;
+  }
+
+  :global(
+    header:has(> button[aria-label^='Victory conditions']) > [data-battle-economy-panel='true']
+  ) {
+    grid-column: 2 !important;
+  }
+
+  :global(header:has(> button[aria-label^='Victory conditions']) > .guidedReopen) {
+    grid-column: 3 !important;
+  }
+
+  :global(
+    header:has(> button[aria-label^='Victory conditions']) > button[class*='roundButton']
+  ) {
+    grid-column: 4 !important;
+    justify-self: end !important;
+  }
+}
+
 @media (max-width: 880px) {
   :global(header:has(> [data-victory-criteria-layout='true'])) {
     grid-template-columns: minmax(0, 1fr) auto;
