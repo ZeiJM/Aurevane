@@ -1,749 +1,328 @@
-# AUREVANE — Roadmap Addendum: Build System Rework
+# AUREVANE — Roadmap Integration: Build System
 
-**Authority:** Binding roadmap integration for `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md`, subordinate to `docs/GAME_MASTER_PLAN.md` and complementary to `docs/ROADMAP.md`, `docs/ROADMAP_PRODUCT_VALIDATION.md`, `docs/ROADMAP_MANTLES.md`, `docs/PROGRESSION_RETENTION.md`, `docs/ITEMS_INVENTORY_LOADOUTS.md`, and related combat/buildcraft documents.
+**Status:** Binding build-system sequencing companion to `docs/ROADMAP.md` and `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md`.
 
-**Direction approved:** 2026-08-18.
+**Reconciled:** 2026-08-23
 
-This roadmap integrates the Owner-approved redesign of Disciplines, Skills, Resonance, the pure-Discipline path, Soulmarks, the Soul-Severed/Mantle fork, equipment-granted Skills, cooldowns, Character Profile build configuration, and Rekindling/Veteran Edge compatibility.
+**Authority:** `docs/GAME_MASTER_PLAN.md` remains highest product authority. `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md` defines the approved build contract. `docs/ROADMAP.md` defines current phase sequence. `docs/PHASE_3_TICKETS.md` defines the exact Phase-3 implementation order.
 
-Where older roadmap text assumes Current/Legacy, Traits, Reactions, Movement Arts, Ultimates, Confluence, or simultaneous Soulmark + Mantle ownership, this addendum governs the intended future implementation.
-
----
-
-# Current Phase 2 / PV-1 — Do Not Pull the Rework Into the Active Combat Correction
-
-AUREVANE is still proving the basic tactical combat experience.
-
-Do **not** destabilize the active PV-1 correction path by implementing the full build-system redesign during the current validation ticket.
-
-Current compatibility requirements only:
-
-- the 100-point Action Economy direction can later price all non-basic Skills;
-- combat state can represent cooldowns server-side;
-- skill sources can be tagged without hardcoding `Art`, `Trait`, `Reaction`, or `Movement Art` as permanent engine assumptions;
-- battle UI can later group Discipline, Equipment, Soulmark/Essence, Mantle, and Veteran Edge Skills without turning into one flat giant command row;
-- character identity remains separate from build configuration;
-- current Profile routing work should remain capable of becoming the build headquarters.
-
-PV-1 still passes or fails on normal combat usability. Do not use future Soulmark/Mantle spectacle to hide basic combat problems.
+This version supersedes the earlier sequencing that placed the first Resonance and Essence proof in Phase 4. Under the reconciled roadmap, **Phase 3 now implements the complete signature buildcraft foundation, including first playable Resonance and Essence frameworks. Phase 4 scales and proves the roster/content built on that foundation.**
 
 ---
 
-# Phase 3 — Primary/Secondary Discipline + Skill/Cooldown Foundation
+# 1. Canonical build vocabulary
 
-**Primary implementation phase for the redesigned class/build grammar.**
-
-## A. Rename and data migration
-
-Replace future player-facing concepts:
+Use:
 
 ```text
-Current Discipline  → Primary Discipline
-Legacy Discipline   → Secondary Discipline
-Art                 → Skill
-Confluence          → Resonance
+Primary Discipline
+Secondary Discipline
+Skill
+Resonance
+Essence / Discipline Essence
+Soulmark
+The Severance / Soul-Severed
+Mantle
 ```
 
-Do not create new player-facing Trait, Reaction, Movement Art, or Ultimate slots.
-
-Existing prototype/internal field names may be migrated safely rather than destructively renamed in one risky database operation if the architecture benefits from compatibility aliases.
-
-## B. Primary Discipline stat profile
-
-Implement versioned Discipline base-stat profiles.
-
-Requirements:
-
-- Primary determines base distribution;
-- player-assigned attribute investment remains separately owned and unchanged;
-- Secondary contributes no base-stat profile;
-- derived stats recompute authoritatively;
-- profile preview shows before/after effects before commitment;
-- changing Primary cannot duplicate/drop assigned attribute points.
-
-## C. Independent 4-hour Discipline attunement cooldowns
-
-Implement two server-owned timers:
+Retired player-facing build terms include:
 
 ```text
-Primary change:   4h production default
-Secondary change: 4h production default
+Current Discipline
+Legacy Discipline
+Art as the generic ability term
+Confluence
+separate Trait / Reaction / Movement Art / Ultimate slots
 ```
 
-Requirements:
+Internal compatibility aliases may exist temporarily during safe migrations, but new player-facing implementation and documentation use current terminology.
 
-- independent timers;
-- changing one does not start the other;
-- changing both starts both;
-- trusted server time;
-- logout/device/browser clock cannot bypass;
-- saved loadouts cannot bypass;
-- preview does not start cooldown;
-- clear Profile confirmation and remaining-time display;
-- Master Panel configurable later.
+---
 
-## D. Eight-Skill Discipline library
+# 2. Mature build contract
 
-Define schema/content grammar for exactly eight learnable Skills per mature Discipline.
+```text
+PLAYER-ASSIGNED ATTRIBUTES
++
+PRIMARY DISCIPLINE BASE PROFILE
++
+OPTIONAL MASTERED SECONDARY DISCIPLINE
++
+DISCIPLINE SKILLS
++
+RESONANCE OR PURE-DISCIPLINE ESSENCE
++
+SOULMARK OR SOUL-SEVERED MANTLE PATH
++
+EQUIPMENT + EQUIPMENT SKILLS
++
+BOUNDED PRESTIGE / VETERAN EDGE
+```
 
-Implement:
+## Pure build
 
-- stable skill IDs;
-- mastery unlock requirements;
-- Action Economy cost;
-- cooldown;
-- target spec;
-- effect sequence;
-- tags;
-- AI valuation/legality metadata;
+```text
+Primary only
+8 Discipline Skills
++ 1 Essence Skill outside the Discipline cap
++ no Resonance
+```
+
+## Mixed build
+
+```text
+Primary + mastered Secondary
+6 total Discipline Skills across the pair
++ Resonance passive
++ no pure Essence while Secondary is equipped
+```
+
+Primary supplies the active Discipline base-stat profile. Player-assigned attributes remain separately owned. Secondary supplies no second base-stat profile.
+
+---
+
+# 3. Current Phase 2 boundary
+
+Until Phase 2 is explicitly closed, substantial buildcraft implementation remains blocked.
+
+Phase-2 code only needs to remain compatible with later buildcraft:
+
+- current 100-AP combat can price Skills;
+- combat can represent cooldown state;
+- typed Skill source identities can exist;
+- Profile can become the build headquarters;
+- battle sessions can consume committed build snapshots;
+- AI/PvP foundations can later consume the same build legality.
+
+Do not use future build spectacle to hide a failed basic combat/usability proof.
+
+When the Owner explicitly says Phase 2 is done / start or code Phase 3, follow `docs/PHASE_3_TICKETS.md`.
+
+---
+
+# 4. Phase 3 — Signature Buildcraft Foundation
+
+Phase 3 is the primary implementation phase for the complete core build grammar.
+
+It includes:
+
+## Primary and Secondary
+
+- versioned Primary base-stat profiles;
+- authoritative Primary selection/change;
+- optional mastered Secondary;
+- independent server-owned Primary and Secondary attunement cooldowns;
+- current planned production default of 4 hours per timer unless later changed by higher authority;
+- Profile preview/confirmation;
+- no loss/duplication of assigned attributes.
+
+## Skills and cooldowns
+
+- stable versioned Skill definitions;
+- exactly eight learnable Skills per mature Discipline target;
+- canonical AP/target/requirement/effect integration;
+- server-authoritative cooldown engine;
+- source labels;
+- AI metadata;
 - PvE/PvP override hooks;
 - media hooks.
 
-No Discipline Ultimate field is required.
+## Pure versus mixed capacity
 
-## E. Pure versus mixed Skill capacity
+- pure: up to eight Primary Discipline Skills;
+- mixed: six total Discipline Skills across Primary + Secondary;
+- authoritative loadout validation;
+- Profile configuration;
+- committed battle snapshots.
 
-Implement authoritative loadout validation:
+## Resonance — now Phase 3
 
-```text
-Primary only:
-8 Discipline Skills
-
-Primary + Secondary:
-6 Discipline Skills total
-```
-
-The exact internal Primary/Secondary distribution among the six remains validation-tunable; source labels must always be visible.
-
-## F. Generic cooldown engine
-
-Every usable non-basic Skill has a cooldown.
-
-Basic exemptions:
-
-- Move;
-- Basic Attack;
-- Guard.
-
-Baseline Heal/Recover:
-
-```text
-2 own-turn cooldown
-```
-
-Prove:
-
-- cooldown decrement timing;
-- reconnect persistence;
-- battle replay/log correctness;
-- disabled/changed skill version behavior;
-- no duplicate action during cooldown;
-- AI obeys the same cooldown state;
-- no client cooldown manipulation.
-
-## G. Character Profile as build headquarters
-
-Add/prepare Profile sections for:
-
-- Attributes;
-- Disciplines;
-- Skills;
-- Resonance/pure-path slot;
-- Equipment;
-- Loadouts;
-- future Supernatural;
-- future Prestige.
-
-Persistent build writes happen here/out of combat under authoritative validation.
-
-### Phase-3 gate / PV-2 input
-
-Before broad content expansion:
-
-- players understand Primary versus Secondary;
-- players understand why Primary changes base stats;
-- the 4-hour timers feel like commitment rather than an accidental trap;
-- 8 pure / 6 mixed Skill rules are clear;
-- all non-basic Skills visibly obey cooldowns;
-- Profile build editing is usable on desktop/mobile;
-- server cannot be tricked into illegal skill count, secondary mastery, stat profile, or cooldown bypass.
-
----
-
-# Phase 4 — First Full Discipline Set + Resonance + Pure-Path Proof
-
-## A. Eight complete Skills per representative Discipline
-
-The first playable Discipline cohort must each receive eight genuinely differentiated Skills.
-
-Avoid filling eight slots with minor coefficient variants merely to satisfy the count.
-
-Each representative Discipline should cover multiple tactical functions appropriate to its identity.
-
-## B. Resonance proof
-
-Implement the first meaningful Resonance pair set.
+Implement the first representative mixed-build Resonance framework/library in Phase 3.
 
 Resonance is:
 
-- generated by Primary + Secondary pairing;
+- resolved from an eligible Primary + Secondary pair;
 - passive;
-- data-driven;
+- versioned/data-driven;
 - server-authoritative;
 - readable in Profile and battle context;
-- capable of typed skill-order/tag combos;
-- no generic `+5% everything` default.
+- able to use typed Skill/tag/sequence interactions;
+- not a generic percentage bonus by default.
 
-Test whether one core unordered-pair Resonance is sufficient while Primary direction supplies the major asymmetry.
+Use one canonical unordered pair as the default authoring assumption unless a reviewed directional exception genuinely adds value.
 
-## C. Pure-Discipline counterpart proof
+## Essence — now Phase 3
 
-Implement the pure-path system under the working name **Essence** unless Owner renames it before the ticket opens.
+Implement the first representative pure-build Essence framework/Skills in Phase 3.
 
-For each representative Primary-only Discipline:
+Essence:
 
-- grant one special Essence Skill outside the normal eight;
-- enforce no Secondary;
-- apply the damage-versus-effect budget;
-- give the Skill a normal AE cost/cooldown;
-- surface it as a distinct source in battle UI.
+- exists for a Primary-only build;
+- grants one special Essence Skill outside the normal eight Discipline Skill capacity;
+- uses normal AP/cooldown/target/effect rules;
+- is unavailable while Secondary is equipped;
+- must create a real reason to remain pure rather than functioning as an automatic disguised Ultimate.
 
-## D. Pure versus mixed balance validation
+## Profile / integration
 
-PV-2/buildcraft testing must include:
+Phase 3 also establishes:
 
-```text
-PURE
-8 Discipline Skills + Essence Skill
+- Character Profile as build headquarters;
+- saved-loadout foundation that cannot bypass attunement legality;
+- AI consumption of legal build state;
+- existing direct-PvP consumption of the same legal build snapshot;
+- first minimum authoring/validation tools needed for build content;
+- Discipline Mastery/Passive Training integration only when active Mastery behavior is ready.
 
-versus
-
-MIXED
-6 Discipline Skills + Resonance passive
-```
-
-Pass only if both produce real reasons to exist.
-
-Warning signs:
-
-- mixed always wins because Resonance is free power;
-- pure always wins because nine active Skills create overwhelming breadth;
-- players choose Secondary only for a passive and never use its Skill library;
-- Primary base-stat profile creates one obvious meta Primary regardless of playstyle;
-- Essence Skills become disguised Ultimates with no meaningful tradeoff.
-
-## E. Combo sequence grammar
-
-Prove typed, readable skill-order interactions without reintroducing a separate Trait/Reaction system.
-
-Examples can originate from Resonance or early equipment effects.
+Exact ticket sequencing is authoritative in `docs/PHASE_3_TICKETS.md`.
 
 ---
 
-# Phase 5 — Supernatural Fork + First Soulmarks + First Mantle
+# 5. Phase 4 — First Playable Buildcraft Roster & Core Combat Content
 
-This is the first appropriate story/world phase for the permanent supernatural identity decision.
+Phase 4 no longer owns the first implementation of Resonance/Essence. It **scales, balances and proves** the Phase-3 systems across a staged representative roster.
 
-## A. Awakening / Severance story state
+Use staged expansion:
 
-Implement:
+```text
+4 representative Disciplines
+  ↓ identity proof
+6–8 Disciplines
+  ↓ balance/content-production proof
+12 Disciplines
+  ↓ broader meta proof
+16 Disciplines
+  ↓ mature Closed Alpha target
+```
+
+Each released Discipline should earn its interaction cost through:
+
+- differentiated Skill library;
+- pure Essence coverage;
+- relevant Resonance coverage;
+- Mastery/acquisition rules;
+- distinct tactical identity/counterplay;
+- equipment interaction review;
+- AI usage/regression coverage;
+- PvE/PvP testing;
+- VFX/SFX/media requirements;
+- content-validation tooling.
+
+Do not fill eight Skills with coefficient variants merely to satisfy a count.
+
+---
+
+# 6. Phase 5 — Supernatural Identity
+
+Phase 5 is the first appropriate story/world phase for the permanent supernatural fork:
 
 ```text
 UNAWAKENED
+  ↓
 SOULMARKED
+or
 SOUL_SEVERED
 ```
 
-Requirements:
+Implement a small high-quality first Soulmark set and a real Severance/Mantle route.
 
-- explicit story/rite;
-- strong confirmation;
-- server-owned irreversible state;
-- ordinary respec cannot cross the fork;
-- simply being Unawakened does not permit Mantle acquisition;
-- state survives reconnect and future Rekindling.
+Rules:
 
-## B. First Soulmark vertical slice
+- Soulmark is persistent supernatural identity;
+- Severance permanently rejects the Soulmark path under current design;
+- Soul-Severed characters gain Mantle access through legitimate acquisition;
+- Mantles are temporary manifestations with duration, tradeoffs and Afterstrain;
+- supernatural Skills sit outside the Discipline Skill cap where defined;
+- no combat Soulmark/Mantle becomes cash-only power.
 
-Start with a deliberately small high-quality set rather than chasing 100 immediately.
-
-Prove multiple package shapes:
-
-- passive + Skill;
-- two passives/no Skill;
-- two Skills/no passive;
-- risk/reward strength + weakness;
-- movement/Jump/utility identity rather than only elemental percentage bonuses.
-
-Prove 1-branch and 2-branch examples; a 3-branch Soulmark may be included only if it adds meaningful validation value.
-
-## C. Soulmark power-budget tooling
-
-Create internal balance metadata for:
-
-- passive strength;
-- active strength;
-- cooldown;
-- AE cost;
-- condition/setup;
-- drawback credit;
-- encounter flexibility.
-
-Do not pretend all effects can be perfectly reduced to one number; use the budget as review support plus simulation/playtesting.
-
-## D. Soulmark Skill slots
-
-Any Soulmark Skills sit outside the 6/8 Discipline cap.
-
-Battle UI must show source and cooldown clearly.
-
-## E. First Soul-Severed Mantle proof
-
-The first live Severance choice must not strand Soul-Severed characters with no supernatural payoff.
-
-Ship at least one valid Mantle acquisition route alongside or shortly after the first meaningful Severance decision.
-
-Prove:
-
-- only Soul-Severed characters can earn/equip it;
-- manual manifestation;
-- large temporary stat/rule boost;
-- short duration;
-- stat scaling from legitimate character values;
-- temporary Mantle Skills if authored;
-- Afterstrain vulnerability;
-- readable timer/state;
-- Soulmarked character rejected by server.
-
-## F. Monetization boundary
-
-No combat Soulmark or Mantle is sold as cash-only power under the current anti-pay-to-win rules.
-
-Cosmetic Soulmark/Mantle VFX/presentation may later be monetized separately.
-
-### Phase-5 supernatural gate
-
-Players must be able to explain:
-
-- Resonance = two-Discipline passive;
-- Essence = pure-Discipline extra Skill;
-- Soulmark = persistent supernatural identity;
-- Severance = permanent rejection of Soulmarks;
-- Mantle = temporary transformation available to the Severed.
-
-If those concepts blur together in testing, fix presentation/mechanics before adding catalog volume.
+Do not pull this catalog back into Phase 3 merely for visual complexity.
 
 ---
 
-# Phase 6 — Co-op Compatibility + Social Build Readability
+# 7. Phase 6–7 integration
 
-Add:
+## Phase 6 — Co-op
 
-- party inspection of public build summaries where permitted;
-- clear Primary/Secondary identity;
-- compact Resonance/Essence indicator;
-- Soulmark or Soul-Severed/Mantle identity;
-- cooldown/readiness communication where allies legitimately need it;
-- no hidden enemy/private loadout leakage;
-- combo interactions across allies using the same typed tag system where authored.
+Build summaries must communicate relevant Primary/Secondary, Resonance/Essence and later supernatural identity without exposing private competitive information.
 
-The 4-hour Discipline timers remain per character and are not bypassed by party state.
+The existing direct-multiplayer battle foundation should be reused for party/co-op authority rather than rebuilt.
 
----
+## Phase 7 — Expeditions
 
-# Phase 7 — Equipment Skills + Expedition Build Depth + Mantle Expansion
+Use long-form PvE to stress:
 
-## A. Equipment Skills
+- pure versus mixed builds;
+- Resonance interactions;
+- Essence timing;
+- equipment Skills;
+- Soulmark/Mantle identity once released;
+- cooldown pressure;
+- party coordination.
 
-Implement mature active skills from designated gear sources:
-
-- Main Hand;
-- Off Hand / shield;
-- Armor.
-
-Each granted active Equipment Skill:
-
-- sits outside 6/8 Discipline capacity;
-- has an AE cost;
-- has a cooldown;
-- uses normal effects/targeting/forecasting;
-- is removed when the granting item is unequipped;
-- cannot remain ghost-bound through a saved loadout or battle exploit.
-
-Accessories default to passives/effects unless specifically reviewed.
-
-## B. Expedition skill/build interactions
-
-Use Expedition encounters to test:
-
-- Resonance combos;
-- pure Essence builds;
-- Soulmark package differences;
-- Soul-Severed Mantle timing;
-- equipment Skill tradeoffs;
-- cooldown pressure over longer fights.
-
-## C. Six-Mantle catalog expansion
-
-Expand toward the mature target of **six distinct Mantles**.
-
-Do not automatically recreate old Rank I/II/III complexity.
-
-Each Mantle must have:
-
-- clear identity;
-- distinct stat/rule emphasis;
-- transformation duration;
-- Afterstrain identity;
-- counters/tradeoffs;
-- public readable description;
-- no universal `best Mantle` outcome.
+Equipment-granted active Skills use the same canonical Skill/target/effect/cooldown grammar where practical.
 
 ---
 
-# Phase 8 — PvP Competitive Safety
+# 8. Phase 8 — Competitive build safety
 
-Before the mature build system enters ranked PvP:
+The existing Phase-2 direct-PvP foundation is inherited.
 
-- Primary/Secondary change locks are snapshotted before queue/match;
-- no mid-match Profile build switching;
-- all cooldown state is authoritative;
-- Resonance/Essence legality is validated;
-- Soulmark branch/package is pinned for the battle;
-- Soul-Severed/Mantle eligibility is validated;
-- Mantle duration/Afterstrain cannot be reset by reconnect;
-- Equipment Skills are item-snapshot validated;
-- queue rules can disable/normalize individual Skills, Resonances, Soulmarks, Mantles, equipment effects, or Veteran Edge where needed;
-- public opponent information policy defines what build identity is visible pre-match.
+Phase 8 adds mature competitive requirements:
 
-Arena Tempering may adjust coefficients but must not erase build identity.
+- legal committed build snapshot before match;
+- no mid-match Profile respec;
+- authoritative cooldown state;
+- Resonance/Essence legality;
+- Soulmark/Mantle legality once those systems exist;
+- Equipment Skill/item snapshot validation;
+- queue/ruleset overrides through shared definitions;
+- Arena Tempering without erasing build identity;
+- transparent opponent-information rules;
+- ranked/matchmaking/seasons/tournament integration.
 
----
-
-# Phase 9 — Catalog Scale: Disciplines, Soulmarks, Mantles
-
-## A. Full Discipline roster scaling
-
-As the Discipline roster approaches its mature target:
-
-- each mature Discipline has eight high-quality Skills;
-- every meaningful pair has Resonance coverage before publication;
-- every Discipline has a pure-path Essence Skill;
-- no unresolved missing pair silently produces a blank/broken build.
-
-## B. Soulmark catalog scaling
-
-Grow based on quality and data:
-
-- early proof: small set;
-- broad release: ~24–36;
-- mature catalog: ~48–72;
-- long-term: architecture/content workflow capable of 100+.
-
-Every added Soulmark must justify itself through a meaningful identity, branch package, combo space, acquisition story, or tactical behavior.
-
-## C. Soulmark branch scale
-
-Support:
-
-- 1 branch for focused marks;
-- 2 for most;
-- 3 for rare/complex marks.
-
-Load-test/profile-test the branch catalog without requiring the browser to load all global Soulmark content at once.
-
-## D. Six Mantles complete
-
-By the mature high-level build stage, all six planned Mantles should exist or have an explicit later-content reason for deferral.
+Do not create duplicate PvP-only copies of Skills or build definitions.
 
 ---
 
-# Phase 10 — Mature Profile, Social Identity & Build Sharing
+# 9. Phase 9+ catalog and long-horizon integration
 
-Character Profile becomes a polished build headquarters.
+## Phase 9
 
-Add mature presentation for:
+Scale toward the mature Discipline/Soulmark/Mantle catalogs only when interaction quality, tooling and content throughput support it.
 
-- base-versus-assigned stats;
-- Primary/Secondary timers;
-- eight-Skill libraries;
-- six/eight equipped capacity;
-- Resonance/Essence explanation;
-- Soulmark branch or Soul-Severed/Mantle state;
-- equipment-granted Skills;
-- saved loadouts;
-- build comparison;
-- shareable/public build cards where privacy allows;
-- social profile summary that never exposes private hidden competitive information.
+Every mature Discipline eventually requires:
 
-Titles/Vowbond/chat systems remain separate identity/social layers and do not modify build power by default.
-
----
-
-# Phase 11 — Economy / Crafting / Enchantment Integration
-
-When crafting and Trade House exist:
-
-- crafted/equipped gear may grant approved Equipment Skills;
-- item provenance shows the granting skill/effect clearly;
-- deterministic crafting/enchantment preview includes active-skill effects;
-- crafted skill-granting items remain balanced sidegrades rather than automatic best-in-slot;
-- Trade House listing previews granted Skills/cooldowns accurately;
-- unequip/list/escrow operations cannot leave the Skill active;
-- enchantments may modify existing Skills only through bounded typed effects and must not create infinite cooldown loops.
-
-Friendship/referrals never bypass equipment/economy authority.
-
----
-
-# Phase 12 — Nations / Homestead Build Convenience
-
-Homestead may provide convenient access to the same Profile/build configuration surfaces, but it does not bypass:
-
-- 4-hour Primary/Secondary cooldowns;
-- Soulmark permanence;
-- the Severance;
-- Mantle eligibility;
-- equipment ownership;
-- PvP queue restrictions.
-
-Trophy/display systems may reflect Soulmark, Mantle, Rekindling, or famous build accomplishments cosmetically.
-
----
-
-# First Full Endgame / Rekindling Integration
-
-Before first-cycle prestige is considered mature, explicitly reconcile the redesigned build systems.
-
-## Persistent supernatural identity
-
-Rekindling preserves:
-
-- Soulmarked versus Soul-Severed state;
-- current Soulmark identity unless a separate legitimate replacement occurs;
-- Severance history;
-- earned Mantle provenance/knowledge according to final progression rules.
-
-Rekindling never exists as a workaround for crossing from Soulmarked to Soul-Severed or vice versa.
-
-## Prestige benefits
-
-Keep the strongest long-term benefits horizontal/bounded:
-
-- Hall of Selves;
-- evolving profile/cosmetic prestige;
-- Memory Carryover;
-- one standard Veteran Edge slot;
-- more Edge choices across additional Rekindlings rather than more simultaneous power;
-- saved-loadout/build-history convenience;
-- veteran rites/challenges/world recognition.
-
-If Veteran Edge grants an active Skill, it is a separately tagged extra Skill outside the 6/8 Discipline cap, uses a cooldown, and remains single-slot/bounded in standard competitive play.
-
-Do not introduce uncapped `+X% damage per Rekindling` progression.
-
----
-
-# Phase 13 — Build Studio / Master Panel
-
-The Complete Master Panel consolidates:
-
-## Discipline Studio
-
-- Primary base-stat profiles;
-- mastery;
 - eight Skills;
-- AE cost;
-- cooldown;
-- unlocks;
-- Primary/Secondary 4h defaults;
-- preview/version/publish/rollback.
+- Essence;
+- relevant Resonance coverage;
+- AI/PvP/PvE validation;
+- media and documentation support.
 
-## Resonance Studio
+## Rekindling / Veteran Edge
 
-- pair mapping;
-- passive triggers;
-- combo sequences;
-- typed effects;
-- caps/cooldowns where relevant;
-- PvP overrides;
-- analytics.
+Rekindling preserves the character's supernatural path under current rules and should broaden long-term options rather than create uncapped raw-power stacking.
 
-## Essence Studio
+If Veteran Edge grants an active Skill, it remains a bounded separately sourced Skill outside the Discipline cap under the applicable competitive rules.
 
-- pure-path skill per Discipline;
-- damage/effect budget;
-- AE/cooldown;
-- targeting/effects;
-- balance analytics.
+## Master Panel
 
-## Soulmark Studio
-
-- acquisition;
-- branch count;
-- package structure;
-- passives/Skills;
-- strengths/weaknesses;
-- AE/cooldowns;
-- balance-budget metadata;
-- PvP rules;
-- event availability;
-- art/audio;
-- analytics.
-
-## Mantle Studio
-
-- six Mantles;
-- acquisition/eligibility;
-- stat scaling;
-- manifestation duration;
-- temporary Skills;
-- Afterstrain;
-- PvP legality;
-- emergency disable;
-- media;
-- analytics.
-
-## Prestige Studio
-
-- Rekindling rewards;
-- Memory Carryover;
-- Veteran Edge;
-- mode legality;
-- Hall of Selves presentation.
-
-No arbitrary SQL/code editor.
+The later complete Master Panel must operate the same versioned build definitions used by gameplay rather than inventing a separate content truth.
 
 ---
 
-# Phase 14 — Presentation / Art / Audio
+# 10. Validation rule
 
-Polish:
+Phase 3 ends with a representative buildcraft slice ready for PV-2.
 
-- Discipline identity/profile art;
-- Skill icon language by source;
-- cooldown/readiness presentation;
-- Resonance pairing visual language;
-- pure Essence presentation;
-- Soulmark icons/branch art/VFX;
-- explicit Soulmark weaknesses where relevant;
-- the Severance story/ritual presentation;
-- six distinct Mantle transformation silhouettes/VFX;
-- Mantle countdown and Afterstrain clarity;
-- Equipment Skill icon/source readability;
-- prestige/Hall of Selves presentation;
-- reduced-motion/accessibility equivalents.
-
-The player must be able to identify where a Skill came from without reading a debug label.
-
----
-
-# Phase 15 — Security / Balance / Abuse Hardening
-
-Dedicated hardening must cover:
-
-### Disciplines
-
-- Primary/Secondary timer bypass;
-- dual-slot race conditions;
-- client clock manipulation;
-- saved-loadout cooldown bypass;
-- illegal Secondary without mastery;
-- base-stat profile duplication/loss;
-- illegal >6 or >8 Discipline Skills.
-
-### Cooldowns
-
-- duplicate use;
-- reconnect refresh;
-- turn-count desync;
-- cooldown-reduction loops;
-- stale content versions;
-- AI cheating;
-- replay mismatch.
-
-### Resonance / Essence
-
-- receiving both simultaneously;
-- blank/missing pair;
-- combo trigger loops;
-- pure-path Skill retained after adding Secondary;
-- Resonance retained after removing Secondary;
-- damage/effect budget regressions.
-
-### Soulmarks
-
-- two Soulmarks simultaneously;
-- replacement race/rollback;
-- Soul-Severed acquiring Soulmark;
-- fake drawback/free-power builds;
-- branch entitlement manipulation;
-- event/acquisition duplication;
-- Soulmark Skill duplication;
-- unauthorized combat-power premium entitlement.
-
-### Mantles
-
-- Soulmarked Mantle acquisition;
-- Unawakened state exploit;
-- duration reset;
-- Afterstrain removal/reconnect bypass;
-- temporary Skill persistence after transformation;
-- stat-snapshot abuse;
-- PvP enable/disable bypass.
-
-### Equipment Skills
-
-- ghost Skill after unequip/trade/escrow;
-- duplicate item-skill grants;
-- loadout races;
-- cooldown reset by gear swapping;
-- invalid skill source spoofing.
-
-### Prestige
-
-- multiple Veteran Edge slots;
-- Rekindling stat stacking;
-- supernatural-fork reset exploit;
-- Memory Carryover bypassing level/world requirements.
-
----
-
-# Canonical Sequence
+The key product question is whether players independently show **curiosity-driven build experimentation** and understand:
 
 ```text
-CURRENT PV-1
-prove ordinary combat first
-        ↓
-PHASE 3
-Primary/Secondary + base-stat profiles + 8-Skill libraries + 6/8 capacity + cooldown engine + 4h attunement
-        ↓
-PHASE 4
-Resonance + pure-path Essence proof + full first Discipline Skills + combo grammar
-        ↓
-PHASE 5
-Soulmark awakening / Severance + first Soulmarks + first Mantle
-        ↓
-PHASE 7
-Equipment Skills + deeper Mantle/Expedition validation
-        ↓
-PHASE 8
-PvP legality/normalization
-        ↓
-PHASE 9
-scale to full Discipline coverage, mature Soulmark catalog, six Mantles
-        ↓
-FIRST ENDGAME / REKINDLING
-horizontal/bounded prestige integration
-        ↓
-PHASE 13
-complete Build/Soulmark/Mantle/Prestige Master Panel
-        ↓
-PHASE 14
-premium presentation
-        ↓
-PHASE 15
-security/balance/load hardening
+Primary vs Secondary
+8 pure vs 6 mixed Discipline Skills
+Essence vs Resonance
+Skill sources and cooldowns
 ```
 
-The redesign succeeds only if it creates many distinct builds **without forcing players to manage a dozen unrelated slot systems**.
+Soulmark/Mantle comprehension is validated when that supernatural layer is actually introduced; it is not required to prove the Phase-3 core build thesis.
+
+See `docs/ROADMAP_PRODUCT_VALIDATION.md` for the current evidence gate.
