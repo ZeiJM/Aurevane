@@ -1,34 +1,37 @@
-# AUREVANE — Roadmap Product Validation Gates
+# AUREVANE — Product Validation Gates
 
-**Status:** Binding validation extension of `docs/ROADMAP.md`.
+**Status:** Binding extension of `docs/ROADMAP.md` for product validation, scope expansion and evidence-based sequencing.
 
 **Reconciled:** 2026-08-23
 
-**Authority:** `docs/GAME_MASTER_PLAN.md` remains primary. `docs/ROADMAP.md` defines phase sequence. Canonical domain specifications define mechanics. This document defines the evidence gates that determine when AUREVANE is allowed to multiply expensive product layers.
+**Authority:** `docs/GAME_MASTER_PLAN.md` remains primary. This document defines the evidence gates that determine when AUREVANE is allowed to scale an expensive layer.
 
-This version supersedes older validation wording that used Current/Legacy/Confluence, the retired four-attribute model, or the retired one-Action combat model.
+The roadmap answers **what comes next**. This document answers:
+
+> **What must we prove before we are allowed to make the next layer bigger?**
 
 ---
 
 # 1. Non-negotiable validation rules
 
 1. **Evidence before expansion.** Do not use more content to hide a weak core loop.
-2. **Representative quality before large cohorts.** Test a small coherent slice rather than a giant knowingly broken build.
-3. **Instrument before arguing.** Important product questions need telemetry and structured notes.
-4. **Real humans before scale.** Simulation can support correctness and balance; it cannot prove fun, identity, clarity, social desire or return intent.
-5. **No artificial calendar waiting in QA.** Long-horizon systems need accelerated non-production test fixtures.
-6. **One active implementation ticket remains the default.** Validation does not authorize uncontrolled parallel feature expansion.
-7. **A failed gate redirects work to the weak layer.** It does not justify jumping forward.
-8. **Metrics are decision aids, not vanity targets.** Review qualitative evidence, cohort quality, technical failures and confounders with the numbers.
-9. **Owner testing is real evidence but not fabricated telemetry.** Record what actually happened; never invent tester counts, ratings or measurements.
+2. **Representative quality before large cohorts.** Test a small polished slice before scaling breadth.
+3. **Instrument before arguing.** Important product questions need telemetry/structured notes.
+4. **Real humans before claims about fun.** Simulation proves correctness/balance, not desire or identity.
+5. **No artificial calendar waiting in QA.** Long-horizon systems require accelerated/staged test paths.
+6. **One active implementation boundary remains the default.** Validation does not authorize uncontrolled parallel expansion.
+7. **A failed gate redirects work to the weak layer.** It does not authorize jumping ahead.
+8. **Metrics are decision aids.** Qualitative evidence, technical failures and cohort context matter.
+9. **Owner testing and formal validation are distinct.** Owner feedback can drive contained corrections without being mislabeled as a cohort PASS.
+10. **Early-delivered compatible systems receive credit.** Their later mature phase audits and extends them rather than rebuilding them.
 
 ---
 
 # 2. Validation instrumentation baseline
 
-Use a small privacy-respecting event taxonomy tied to real product questions.
+Use a small privacy-respecting telemetry boundary. Do not build a giant analytics platform merely to satisfy this document.
 
-Representative events, when their systems exist:
+Representative events may include, when relevant systems exist:
 
 ```text
 account_entry_started
@@ -39,10 +42,9 @@ first_game_session_started
 first_combat_started
 first_combat_completed
 combat_abandoned
-primary_changed
-secondary_equipped
-secondary_changed
-skill_loadout_changed
+build_preview_started
+build_preview_completed
+secondary_unlocked
 resonance_first_used
 essence_first_used
 build_changed
@@ -52,6 +54,11 @@ party_search_started
 party_formed
 expedition_started
 expedition_completed
+frontier_entered
+frontier_anchor_discovered
+frontier_extracted
+anomaly_witnessed
+anomaly_acquired
 pvp_queue_entered
 pvp_match_found
 pvp_queue_abandoned
@@ -61,195 +68,161 @@ checkout_completed
 checkout_failed
 ```
 
-Use stable content/system IDs where useful and avoid unnecessary personal information.
-
-The taxonomy expands only when a real decision needs it.
+Use stable content/system identifiers where useful and avoid unnecessary personal information.
 
 ---
 
-# 3. Phase 1 integration — Character entry foundation
+# 3. Phase 1 product gate — character entry
 
-Phase 1 is substantially complete. Its product responsibility remains modest: a player must be able to reach a persistent understandable character without setup itself becoming a reason to quit.
+Phase 1 is complete enough to feed combat when:
 
-Current expectations include:
+- account/authenticated-shell flow is reliable;
+- character creation is understandable without facilitator help;
+- creation remains a few-minute experience;
+- Foundation Discipline and six-attribute wording are understandable;
+- narrow-screen/laptop-height behavior does not create major friction;
+- XP/progression provenance is authoritative;
+- Passive Training is evaluated as a support system, not assumed successful because players click it.
 
-- reliable account/authenticated-shell flow;
-- verified-email/account protections functioning as intended;
-- character creation without facilitator dependence;
-- six universal attributes — Might, Finesse, Vitality, Agility, Intellect, Resolve — communicated clearly;
-- starting Discipline choice understandable;
-- responsive narrow-screen/laptop-height behavior;
-- authoritative progression telemetry/provenance;
-- Passive Training evaluated as a support system, not assumed successful merely because players activate it.
-
-Do not restore retired four-attribute or Wayfarer's Practice wording as current product truth.
+**Gate:** a tester can reach and return to a persistent understandable character without setup being a reason to quit.
 
 ---
 
-# 4. PV-1 — Tactical Combat / Battle Platform Proof Gate
+# 4. PV-1 — Tactical Combat Proof Gate
 
-**Roadmap position:** Phase 2, before substantial Signature Buildcraft expansion.
+**Roadmap position:** Phase 2 exit.
 
-**Current status:** OPEN while Owner testing/stabilization continues.
+**Purpose:** prove the baseline tactical game is understandable and enjoyable before build/content complexity multiplies.
 
-**Purpose:** prove that the tactical game is understandable and enjoyable before build/content combinatorics multiply.
+### Representative slice
 
-## Minimum representative slice
+Must demonstrate:
 
-The proof slice should demonstrate:
+- movement;
+- shared Action Economy/AP;
+- positioning/terrain;
+- basic targeting/forecast;
+- at least one meaningful status/setup-payoff interaction;
+- enemy decisions;
+- readable turn economy;
+- satisfying audiovisual feedback;
+- one or more maps with real tactical choices.
 
-- current shared AP / Action Economy rather than the retired one-Action model;
-- movement and meaningful AP tradeoffs;
-- positioning/terrain/facing where relevant;
-- Basic Attack / Guard / Recover baseline;
-- legal targeting/forecast;
-- at least one status or setup/payoff interaction;
-- meaningful enemy decisions;
-- clear turn ownership/timing;
-- understandable outcomes and battle-log feedback;
-- satisfying audiovisual response;
-- one or more maps with real tactical decisions.
+The current battle platform may also expose PvP/spectation during Owner testing, but PvP breadth is **not required** to prove PV-1.
 
-The already-built direct-PvP/spectator foundation may be tested for stability and usability, but ranked matchmaking, seasons, tournaments and mature Colosseum discovery are **not** required to pass PV-1.
+### Evidence
 
-## Required evidence
+When stable enough, use internal QA followed by roughly 20–50 representative trusted/external testers where practical.
 
-Use Owner/internal testing and, when the build is stable enough, representative external/trusted testers.
-
-Capture where practical:
+Capture:
 
 - first-battle completion;
-- abandon/soft-lock/technical failure rate;
+- abandon/soft-lock/technical failure;
 - time to first confident action;
 - battle duration;
 - obvious misclick/targeting confusion;
-- whether AP costs and disabled states are understood;
-- whether players understand why outcomes happened;
-- whether players voluntarily choose another battle/scenario when offered;
-- whether players can name tactical decisions they made;
-- comments on pace, readability, responsiveness, audiovisual impact and desire to replay.
+- outcome understanding;
+- voluntary replay/another scenario choice;
+- ability to identify a tactical decision;
+- comments on pace, clarity, responsiveness, audiovisual impact and desire to replay.
 
-## Decision standard
+### Pass standard
 
-PV-1 passes when evidence shows **repeatable voluntary replay desire** and players are discussing tactical choices more than fighting the interface.
+PV-1 passes when evidence shows **repeatable voluntary replay desire** and testers discuss tactical decisions more than fighting the interface.
 
-A provisional warning signal exists when fewer than roughly half of eligible representative testers voluntarily choose another available fight/build attempt after the first, excluding time/technical blockers. This is an investigation signal, not an automatic statistical verdict.
+A warning exists if fewer than roughly half of eligible representative testers voluntarily choose another available fight/build attempt, excluding time/technical blockers. This is a diagnostic signal, not an automatic statistical verdict.
 
-## If PV-1 fails
+### If PV-1 fails
 
-Iterate the smallest repeated problem in:
+Iterate the smallest recurring weakness in:
 
 - input/action clarity;
-- AP/turn readability;
 - targeting;
-- battle scale/information density;
-- encounter/terrain design;
-- enemy behavior;
-- timing/feedback;
-- mobile/desktop presentation;
-- battle-log/outcome explanation;
-- audiovisual timing.
+- pacing;
+- encounter design;
+- terrain consequences;
+- AI;
+- turn feedback;
+- audiovisual timing;
+- information density.
 
-Do **not** respond by adding Disciplines, regions or metagame breadth.
+Do not respond by adding more Disciplines, regions or metagame systems.
 
 ---
 
-# 5. Phase-2 exit / Owner transition rule
+# 5. Phase-2 transition rule
 
-Phase 2 remains open while the Owner is actively testing the current battle platform.
+Phase 2 remains open while Owner testing continues.
 
-If the Owner explicitly states that Phase 2 is complete and instructs the project to start/code Phase 3, treat that as the phase-transition decision and follow `docs/PHASE_3_TICKETS.md`.
+If the Owner clearly states wording equivalent to **“Phase 2 is done; code Phase 3”**, treat that as explicit phase-transition authorization and follow `docs/PHASE_3_TICKETS.md`.
 
-Do not ask the Owner to repeat a clear transition instruction merely because an old issue still says PV-1 is open.
+Do not ask the Owner to repeat a clear transition merely because an older issue still shows PV-1 open.
 
-When closing the gate:
-
-- record the actual Owner decision and evidence available;
-- reference structured human evidence when it exists;
-- never invent cohort size, telemetry or ratings that were not collected;
-- reconcile open validation issues and `TASKS.md` factually;
-- begin Phase 3 at P3.1 rather than skipping directly to roster/content volume.
+Record the factual decision/evidence available, reconcile open validation records and begin Phase 3 at **P3.1**. Never invent missing tester counts/metrics.
 
 ---
 
 # 6. PV-2 — Signature Buildcraft Identity Gate
 
-**Roadmap position:** Phase 3, before Phase 4 aggressively expands the playable roster.
+**Roadmap position:** Phase 3, before Phase 4 scales the roster.
 
-**Purpose:** prove that **Primary + optional Secondary + Skills + Resonance/Essence + equipment interaction** creates memorable curiosity-driven experimentation.
+**Purpose:** prove that **Primary + optional Secondary + Skills + Resonance/Essence** creates memorable curiosity-driven experimentation.
 
-Soulmarks/Mantles are not required for the Phase-3 proof; they belong to the later supernatural/world layer.
-
-## Minimum representative slice
+### Representative slice
 
 Prefer approximately:
 
-- 4 representative Disciplines with meaningfully different Primary identities;
-- legal Secondary mixing among the representative set;
-- representative Skill libraries/cooldowns sufficient to test the grammar;
-- pure build: up to 8 Primary Discipline Skills + Essence;
-- mixed build: 6 total Discipline Skills + Resonance;
-- representative Resonance coverage;
-- representative pure Essence coverage;
-- a small equipment set that changes decisions rather than only numbers;
-- supported test-build switching/fixtures for repeated experiments without bypassing production legality;
-- AI and existing direct-PvP compatibility using the same build snapshots.
+- 4 representative Disciplines with meaningfully different roles;
+- mature-enough Skill sets to demonstrate build choice;
+- representative Resonances for mixed pairings;
+- representative Essence Skills for pure builds;
+- a small equipment set that changes decisions rather than only stats;
+- saved/test build switching sufficient for repeated experiments;
+- AI and existing direct-PvP support consuming the same authoritative build snapshots.
 
-Exact content count may be smaller if it proves the thesis honestly.
+Soulmarks/Mantles are **not required** for Phase-3 PV-2.
 
-## Resonance scope rule
-
-Default production authoring uses one canonical unordered Primary/Secondary pair Resonance unless a reviewed directional exception materially improves design.
-
-This preserves meaningful pair identity without automatically doubling content burden for A→B and B→A.
-
-## Required evidence
+### Evidence
 
 Capture whether testers:
 
 - can explain Primary versus Secondary;
-- understand Primary base-stat identity and that Secondary contributes no second base profile;
-- understand pure 8 + Essence versus mixed 6 + Resonance;
-- understand Skill source labels and cooldowns;
-- voluntarily try multiple builds/pairings;
-- make Resonance/Essence/equipment changes without coaching;
-- observe meaningful strategy changes after build changes;
-- ask questions like “what happens if I pair X with Y?” independently;
-- identify combinations that feel mandatory, pointless, unreadable or redundant;
-- can configure a build in a reasonable time;
-- can recover from a poor experiment without feeling permanently trapped;
-- find the current attunement commitment understandable rather than accidentally punitive.
+- understand Primary base-stat consequences;
+- understand **pure 8 Skills + Essence** versus **mixed 6 Skills + Resonance**;
+- understand Skill cooldowns/source labels;
+- voluntarily attempt multiple pairings/build changes;
+- observe strategy changes from build changes;
+- ask curiosity-driven questions such as “what happens if I pair X with Y?”;
+- identify mandatory/pointless/unreadable/redundant combinations;
+- can configure a build without excessive study;
+- can recover from a bad experiment without feeling trapped.
 
-## Gate pass condition
+### Pass standard
 
-PV-2 passes when multiple testers independently demonstrate **curiosity-driven build experimentation** and remember the build system as distinctive to AUREVANE.
+Multiple testers independently demonstrate **curiosity-driven build experimentation** and remember the build system as distinctive to AUREVANE.
 
-If most testers select one obviously dominant package and stop exploring, the gate has not passed even if win rates are balanced.
+If most testers pick one obvious package and stop experimenting, the gate has not passed even if win rates are balanced.
 
-## If PV-2 fails
+### If PV-2 fails
 
 Improve:
 
-- Primary/Secondary clarity;
-- Resonance distinctiveness;
-- Essence appeal;
-- pure/mixed balance;
-- Skill identity/cooldown readability;
+- Resonance/Essence distinctiveness;
+- pure-vs-mixed tradeoffs;
 - preview/compare UX;
+- early recommendations;
+- terminology;
 - loadout friction;
-- weak/redundant pair design;
-- equipment interaction;
-- onboarding timing.
+- weak/redundant pair designs;
+- cooldown/source readability.
 
-Do not solve buildcraft confusion by writing a larger manual.
+Do not solve it by writing a larger manual.
 
 ---
 
 # 7. Phase 4 roster expansion gate
 
-Do not jump directly from proof to 16 Disciplines.
-
-Use staged bands:
+Roster growth is staged:
 
 ```text
 4 representative Disciplines
@@ -262,204 +235,260 @@ Use staged bands:
   ↓ mature Closed Alpha target
 ```
 
-Before each band expands, review:
+Before expanding each band, review:
 
-- new Resonance pair count;
-- Essence coverage;
+- Resonance/Essence coverage;
 - authoring/test/media burden;
-- reusable effect/Skill grammar versus bespoke-code growth;
-- PvE/PvP matchup coverage;
+- effect reuse versus bespoke-code growth;
+- matchup coverage;
 - role/archetype coverage;
-- equipment interaction burden;
-- AI coverage burden;
-- content defects per Discipline;
-- whether existing options remain meaningfully explored.
+- equipment interactions;
+- AI burden;
+- content defects;
+- interaction-linting health;
+- whether the existing roster still contains meaningful underused options.
 
-A new Discipline is approved because it creates enough new play to justify its interaction network.
+A Discipline is approved because it creates enough new play to justify every interaction it creates.
 
 ---
 
 # 8. PV-3 — First-session / Return-loop Gate
 
-**Roadmap position:** Phase 5 once a small world/progression/supernatural loop exists; before broad world-content production.
+**Roadmap position:** Phase 5, once a small coherent world/progression loop exists and before large world-content scale.
 
-Use a small coherent slice containing a strong region/settlement path, short quest/activity chain, several encounter variants, visible build/progression goals, targeted item goals and a real world-change/event sample when ready.
+### Representative slice
 
-Track cohorts rather than anecdotes:
+- one strong region/settlement path;
+- short quest/activity chain;
+- several encounter variants;
+- targeted item goals;
+- visible Mastery/build goals;
+- one meaningful world-change/event sample;
+- World Pulse only when it can show real value;
+- supernatural fork proof where ready;
+- a **small outer Unwritten Reach proof** if stable enough, not a giant frontier.
 
-- character-creation and first-combat completion;
-- first-session length;
-- return sessions by cohort;
-- build changes between sessions;
-- goals selected/completed;
-- progression bottlenecks;
-- technical failure;
-- voluntary “what would make you come back?” feedback.
-
-Use D1/D7/D30 only when sample size and duration make them meaningful. Establish AUREVANE's own comparable baseline rather than blindly importing unrelated mobile benchmarks.
-
-If return behavior is weak, first investigate hook timing, tactical/build freshness, goal clarity, progression friction, technical failures and whether the world actually gives a reason to return. Do not immediately intensify FOMO.
-
----
-
-# 9. Long-horizon progression validation
-
-The approximately 180-day production target is the default minimum age for completing the first full character era / First Horizon / Rekindling eligibility **plus required gameplay milestones**.
-
-It does not mean every advanced activity remains inaccessible until day 180.
-
-Roadmap implications:
-
-- advanced PvE/PvP may become meaningful earlier when gameplay progression qualifies the player;
-- endgame systems require accelerated/staged QA characters;
-- pacing forecasting/simulation should appear progressively once progression complexity warrants it;
-- QA uses supported time advancement/state fixtures rather than ad-hoc production database edits.
-
-Before live Rekindling:
-
-- simulate expected pacing;
-- run accelerated QA cycles;
-- observe real partial-length cohorts;
-- validate each progression band for meaningful goals;
-- confirm calendar gates are not filler;
-- confirm serious players have meaningful activity before final cycle eligibility.
-
----
-
-# 10. PV-4 — Co-op / Expedition Proof Gate
-
-**Roadmap position:** Phases 6–7.
-
-**Purpose:** prove that playing with other humans improves the game and does not create a population-dependent progression trap.
+### Evidence
 
 Track:
 
-- party-search starts;
-- successful formations;
+- creation/combat completion;
+- first-session length;
+- return sessions/cohorts;
+- build changes between sessions;
+- selected/completed goals;
+- progression bottlenecks;
+- technical failures;
+- why players would or would not return.
+
+Use D1/D7/D30 retention when sample size/duration make it meaningful, without blindly importing mobile benchmarks.
+
+### Red flags
+
+If return behavior is weak, investigate hook timing, build freshness, goal clarity, technical friction, artificial slowing and world relevance before intensifying FOMO.
+
+---
+
+# 9. Frontier validation ladder
+
+The frontier is governed by `docs/REKINDLING_FRONTIER_ANOMALIES.md`.
+
+It scales in stages rather than launching as an enormous generated continent.
+
+## FV-1 — Frontier Mystery Proof
+
+**Roadmap position:** Phase 5.
+
+Test one small outer-Reach vertical slice.
+
+Questions:
+
+- Does crossing beyond the last reliable map feel meaningful?
+- Does Cartographic Drift feel mysterious rather than random?
+- Do authored Anchors give players persistent things to remember?
+- Can players form a mental model despite changing routes?
+- Does the Reach generate lore questions naturally?
+- Do players want to know what lies deeper?
+
+Do not scale if feedback reduces to “random rooms reset every day.”
+
+## FV-2 — Deep Frontier / Acumen Proof
+
+**Roadmap position:** Phase 7.
+
+Test deeper routes, named phenomena, Frontier Acumen and Veyr interaction.
+
+Questions:
+
+- Does an experienced explorer make better decisions because they understand the Reach?
+- Do frontier advantages feel like knowledge/access rather than mandatory raw power?
+- Do solo and party routes both have meaningful roles?
+- Are extraction/failure stakes exciting without becoming miserable?
+
+## FV-3 — Anomaly Proof
+
+**Roadmap position:** Phase 7+.
+
+Test only a very small number of Anomalies first.
+
+Pass only if:
+
+- seeing/acquiring one creates a story worth retelling;
+- rarity comes from circumstances/choices/discovery rather than repetitive grind;
+- ordinary builds remain viable;
+- Anomalies are unusual enough to matter without becoming mandatory;
+- provenance is understandable and technically trustworthy;
+- competitive legality can be controlled.
+
+If the loop becomes “farm the frontier until the mandatory rare thing drops,” stop and redesign.
+
+---
+
+# 10. 180-day progression / Rekindling validation
+
+The approximately 180-day production target means a minimum planning default for the first full character era/Rekindling eligibility combined with gameplay milestones.
+
+It does **not** mean all serious content waits until day 180.
+
+Before mature Rekindling:
+
+- simulate pacing;
+- run accelerated QA;
+- observe partial real cohorts;
+- validate each progression band;
+- confirm serious content exists throughout the journey;
+- confirm Passive Training is supportive rather than dominant;
+- confirm later cycles are meaningfully different.
+
+## RV-1 — Rekindling Replayability Gate
+
+Before treating Rekindling as a healthy recurring loop, test whether:
+
+- Echo Routes create meaningful alternate progression choices;
+- history-aware NPC/mentor interactions feel rewarding;
+- already-mastered tutorials can be abbreviated without trivializing the journey;
+- Memory Carryover changes strategy without erasing challenge;
+- Hall of Selves makes prior cycles feel accumulated;
+- frontier history creates new questions in later cycles;
+- players voluntarily want another cycle for reasons beyond raw power.
+
+A second cycle that feels like an identical checklist with an XP bonus **fails** this gate.
+
+---
+
+# 11. PV-4 — Co-op / Expedition Proof
+
+**Roadmap position:** Phases 6–7.
+
+Track:
+
+- party-search starts/formations;
 - time to party;
 - invite acceptance;
 - abandoned searches;
 - disconnect/rejoin;
 - Expedition completion;
 - repeat grouping/rematch;
-- party retention across runs;
-- solo players blocked from goals;
 - communication/coordination friction;
-- whether builds create actual teamwork.
+- whether roles/builds create actual teamwork;
+- solo players blocked from goals.
 
-Deep three-player content may become a major prestige/progression pillar only when party formation is healthy enough for the intended audience.
+Deep three-player content becomes a major pillar only when party formation is healthy enough for the intended audience.
 
-If concurrency is insufficient, use scheduled community windows, improve party finder, preserve appropriate alternative progression, and scale low-stakes content flexibly. Do not make mandatory progress depend on an empty queue.
+If concurrency is insufficient, use scheduled windows, improve party finder, preserve alternatives where appropriate and avoid making mandatory progress depend on an empty queue.
 
 ---
 
-# 11. PV-5 — Competitive PvP Population Safety Gate
+# 12. PV-5 — PvP Population Safety
 
-**Roadmap position:** Phase 8 and onward.
+**Roadmap position:** Phase 8+.
 
-Direct PvP already exists as Phase-2 battle-platform foundation. PV-5 governs whether **mature permanent competitive queues** are healthy enough to open and remain open.
+Direct PvP already exists as an early battle-platform foundation. PV-5 governs whether **mature permanent competitive queues** are healthy enough to open.
 
 Track by queue/region/time band:
 
-- concurrent queued players;
+- queued concurrency;
 - median/p95 queue time;
 - abandonment;
 - match completion;
-- disconnect rate;
+- disconnects;
 - rating spread;
-- repeated-opponent rate;
-- rematch rate;
-- premade versus solo participation where relevant;
+- repeated opponents;
+- rematches;
+- premade/solo participation;
 - match-quality feedback.
 
-A new permanent queue opens only when expected concurrency can support acceptable matchmaking without hollowing existing queues.
+A permanent queue opens only when expected concurrency can support it without hollowing out existing queues.
 
-If not:
+Otherwise rotate modes, schedule ranked windows/tournaments or preserve direct challenges.
 
-- rotate the mode;
-- use scheduled ranked windows;
-- run tournaments/events at announced times;
-- preserve direct challenges;
-- consolidate populations where design allows.
+Never disguise bots as human ranked opponents.
 
-Never disguise bots as humans in ranked play.
+Anomaly legality must be explicit per competitive mode.
 
 ---
 
-# 12. Phase 9–12 integration — Scale only what has demand
+# 13. Phase 9–12 scale rules
 
-## Phase 9 — Roster / supernatural catalog expansion
+## Roster
 
-Scale toward 36 Disciplines and broader Soulmark/Mantle catalogs only if:
+Do not assume 36 Disciplines must exist at launch. Expand while new additions still create genuine build diversity and sustainable production cost.
 
-- additions continue creating genuine build diversity;
-- Resonance/Essence authoring remains sustainable;
-- balance/interaction tooling keeps pace;
-- content quality does not collapse;
-- players still explore the existing roster.
+## Social
 
-## Phase 10 — Social world
+Expand guild/social systems around observed repeat relationships.
 
-Expand guild/social systems around observed repeat relationships rather than imagined organizational complexity.
+## Economy
 
-## Phase 11 — Economy
+Do not activate a large marketplace until item sources/sinks, anti-duplication, support and population are sufficient.
 
-Do not activate a large marketplace until acquisition, sinks/sources, anti-duplication, moderation/support and population are sufficient.
+## Nations
 
-Measure inflation, concentration, liquidity, source/sink balance, exploit signals and meaningful trade.
+Large-group warfare is population-expensive. Nations may exist narratively/reputationally before permanent full warfare.
 
-## Phase 12 — Nations
+## Frontier
 
-Nation warfare is population-expensive. Full national conflict becomes permanent only when community participation can support it without splitting a tiny audience into empty factions.
+Scale Anchors, phenomena, Veyr content and Anomalies only if earlier frontier gates prove discovery remains compelling and authoring/QA cost is sustainable.
 
 ---
 
-# 13. PV-6 — Monetization Readiness Gate
-
-**Roadmap position:** commerce foundation around Phase 11, with architecture awareness earlier and public payments only after product evidence.
+# 14. PV-6 — Monetization Readiness
 
 Before public paid checkout require:
 
-- stable account/entitlement authority;
-- server-authoritative grant/ledger flow;
+- stable entitlement/grant ledger;
+- server-authoritative fulfillment;
 - payment sandbox verification;
 - refund/dispute/reconciliation operations;
-- retained-player evidence sufficient to interpret behavior;
-- evidence cosmetic/identity goods are desirable;
-- no known major first-session/combat-quality crisis;
-- explicit non-P2W review of every grant.
-
-Start with a small catalog. Track store-view→checkout, completion/failure, payer conversion, order value, repeat purchase, product ownership, refunds/disputes and support burden.
+- retained cohort evidence;
+- cosmetic/identity demand;
+- no major unresolved first-session/combat crisis;
+- explicit non-P2W review.
 
 Weak monetization never authorizes pay-to-win.
 
+No cash-only combat Soulmark, Mantle, Veteran Edge or Anomaly power.
+
 ---
 
-# 14. PV-7 — Unit Economics / Scale Gate
+# 15. PV-7 — Unit Economics / Scale
 
-**Roadmap position:** before broad acquisition and again during Phase 15 hardening.
+Before broad user acquisition understand:
 
-Understand at minimum:
-
-- database/realtime/function cost trends;
-- bandwidth/media cost;
-- logging/analytics cost;
+- database/realtime/function cost;
+- bandwidth/media/logging cost;
 - support/moderation workload;
-- payment/refund leakage once commerce exists;
+- payment/refund cost;
 - variable cost per active player;
-- expensive feature paths such as battles, world presence, Expeditions, media-heavy pages and economy queries.
+- expensive battle/Expedition/frontier/social paths.
 
-Before acquisition scale establish cost alarms, capacity/load observations, kill/degrade switches for non-essential expensive features and enough margin visibility to know whether growth can become healthy.
+Establish cost alarms, capacity observations and graceful degradation/kill switches before acquisition scale.
 
 ---
 
-# 15. PV-8 — Sustainable Live-Ops Gate
+# 16. PV-8 — Sustainable Live Operations
 
-**Roadmap position:** Phase 13–15 before promising a major live-service cadence.
-
-Run the intended workflow repeatedly in staging/invite alpha.
-
-Prove Owner/staff can:
+Before promising major live-service cadence, repeatedly prove in staging/invite alpha that staff/Owner can:
 
 - draft;
 - validate;
@@ -472,46 +501,33 @@ Prove Owner/staff can:
 - analyze;
 - support players;
 
-without routine production SQL or emergency code deployment.
+without routine production SQL or emergency code deployments.
 
-If the cadence is not sustainable, reduce cadence before launch rather than assuming future staffing will rescue it.
+This includes Reach drift/event/Anchor/Anomaly operations once those systems exist.
 
 ---
 
-# 16. Mature Closed Alpha entry gate
+# 17. Mature Closed Alpha entry
 
-The Closed Alpha target in `docs/ROADMAP.md` remains a mature content/quality objective.
+Large mature Alpha content should come only after earlier gates show:
 
-Enter that target only after evidence shows:
-
-- account/character entry is reliable;
+- account/character entry works;
 - tactical combat produces replay desire;
-- Primary/Secondary/Skills/Resonance/Essence produces voluntary experimentation;
-- a small world/progression loop produces meaningful return behavior;
-- co-op can form parties reliably enough for its intended use;
-- PvP testing is consolidated around actual population;
-- content production remains sustainable as the roster grows;
-- performance/server correctness are stable enough that feedback is not dominated by broken builds.
+- Primary/Secondary + Resonance/Essence produces voluntary experimentation;
+- a small world/progression loop creates meaningful return behavior;
+- co-op forms reliably enough;
+- PvP is consolidated around actual population;
+- content production remains sustainable;
+- frontier proof is compelling if included;
+- performance/correctness are strong enough that product feedback is not dominated by broken builds.
 
-Closed Alpha is not where AUREVANE first asks whether the game is fun.
-
----
-
-# 17. Distribution validation gate
-
-Browser-first remains the implementation baseline.
-
-After PV-2/PV-3 demonstrate a compelling product, evaluate distribution from actual acquisition, invite conversion, device/browser compatibility, player trust/friction, demand for a desktop client, creator/community feedback and payment accessibility.
-
-A desktop package is approved only if it materially improves distribution/retention/trust while remaining a client of the same authoritative backend.
-
-Do not fork gameplay logic by platform.
+Closed Alpha is not where we first ask whether the game is fun.
 
 ---
 
 # 18. Playtest report standard
 
-Every significant cohort should produce a short retained report:
+Every significant cohort should record:
 
 ```text
 BUILD / COMMIT
@@ -528,50 +544,33 @@ DECISION: PASS / ITERATE / INCONCLUSIVE
 NEXT ACTIONS
 ```
 
-Do not cherry-pick praise. Negative evidence is valuable when discovered before the next expensive layer is built.
+Do not cherry-pick praise. Negative evidence is valuable before expensive expansion.
 
 ---
 
-# 19. Ticket integration rule
+# 19. Stop / iterate rules
 
-Any ticket materially affecting a validation question must state which product evidence it enables/protects.
+Stop roster expansion when existing builds are not explored or interaction debt grows faster than value.
 
-Examples:
+Stop world expansion when players churn before reaching it or content is filling calendar gates rather than creating decisions.
 
-- character-entry tickets → funnel/abandonment observability;
-- combat tickets → PV-1 tactical proof;
-- Primary/Secondary/Skill/Resonance/Essence tickets → PV-2 buildcraft proof;
-- world/progression/supernatural tickets → PV-3 return loop;
-- party/Expedition tickets → PV-4 teamwork/population;
-- competitive PvP tickets → PV-5 queue health;
-- economy/commerce tickets → PV-6/PV-7;
-- live-ops tickets → PV-8.
+Stop frontier expansion when drift feels arbitrary, Anchors are forgettable or Anomaly acquisition becomes repetitive mandatory grind.
 
-This does not mean every ticket invents a metric. It keeps implementation tied to the reason the feature exists.
+Stop opening queues when population cannot support them.
 
----
+Stop monetization expansion when trust/retention/support health deteriorates.
 
-# 20. Stop / iterate rules
+Stop acquisition scale when retention or infrastructure economics are unhealthy/unknown.
 
-Stop roster expansion when existing builds are not explored, balance/testing debt grows faster than value, Resonance/Essence completeness falls, or defects dominate releases.
+Stop live-ops cadence expansion when quality/provenance/rollback discipline is being skipped.
 
-Stop world-content expansion when players churn before reaching it, the return loop is weak, or content is filling calendar gates rather than creating decisions.
-
-Stop opening queues when current queues have unhealthy waits/repeated opponents or concurrency cannot support them.
-
-Stop monetization expansion when trust/retention or refund/support burden becomes unhealthy or offers drift toward disguised power.
-
-Stop acquisition scale when the core cohort is not retaining, infrastructure economics are unhealthy/unknown or onboarding cannot absorb traffic.
-
-Stop live-ops cadence expansion when Owner/staff workload becomes unsustainable or rollback/provenance discipline is being skipped.
-
-Stopping expansion means fixing the bottleneck, not abandoning the final vision.
+Stopping expansion means fixing the bottleneck, not abandoning the long-term vision.
 
 ---
 
-# 21. Success condition
+# 20. Roadmap success condition
 
-The desired development history is:
+AUREVANE should repeatedly follow this pattern:
 
 ```text
 WE BUILT A SMALL THING
@@ -585,4 +584,4 @@ THE THESIS BECAME STRONG ENOUGH
 WE EXPANDED THE NEXT LAYER
 ```
 
-The goal is not the fastest route to checking every feature box. It is the fastest responsible route to discovering whether AUREVANE can become a loved, sustainable game without sacrificing the ambitious final design.
+The objective is the fastest responsible route toward a loved, sustainable and distinctive AUREVANE — not the fastest route to checking every feature box.
