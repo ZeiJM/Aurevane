@@ -1,0 +1,32 @@
+.hook {
+  display: none;
+}
+
+/* Mobile spectator boards must size from their square tiles, not from the desktop
+   height-constrained grid. The spectator battlefield is content-sized on mobile,
+   so a flexible row plus an aspect-ratio board can enter an intrinsic sizing cycle
+   and collapse before the tiles receive a usable row height. */
+@media (max-width: 700px) {
+  :global(main[data-pvp-spectator='true'] #battlefield) {
+    grid-template-rows: auto auto auto auto !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] #battlefield > div:nth-child(2)) {
+    display: block !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding: 0.3rem !important;
+    overflow: hidden !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] #battlefield > div:nth-child(2) > div) {
+    display: grid !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    margin: 0 !important;
+    grid-template-rows: none !important;
+    aspect-ratio: auto !important;
+  }
+}
