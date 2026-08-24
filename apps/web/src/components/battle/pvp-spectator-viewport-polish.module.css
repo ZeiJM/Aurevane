@@ -44,8 +44,38 @@
       > div:last-child
       > div:only-child
   ) {
-    width: min(100%, 32rem) !important;
-    justify-self: center;
+    width: 100% !important;
+    max-width: none !important;
+    justify-self: stretch;
+    grid-template-columns: 2rem minmax(0, 1fr) minmax(8rem, 12rem) !important;
+    padding: 0.12rem 0.25rem !important;
+    border-color: transparent !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  :global(
+    main[data-pvp-spectator='true']
+      > section[aria-label='PvP team status']
+      > article
+      > div:last-child
+      > div:only-child[data-active]
+  ) {
+    background: linear-gradient(90deg, rgba(207, 169, 93, 0.055), transparent 42%) !important;
+  }
+
+  :global(
+    main[data-pvp-spectator='true']
+      > section[aria-label='PvP team status']
+      > article
+      > div:last-child
+      > div:only-child
+      > span:last-child
+  ) {
+    width: 100%;
+    max-width: 12rem;
+    justify-self: end;
   }
 
   :global(main[data-pvp-spectator='true'] > section[aria-label='PvP team status'] [data-active]),
