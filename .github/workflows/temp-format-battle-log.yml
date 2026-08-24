@@ -1,0 +1,29 @@
+name: Temporary battle log formatter
+
+on:
+  push:
+    branches:
+      - fix/center-battle-log-finish-legend-current-20260824
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Show Prettier output
+        run: |
+          pnpm exec prettier --write apps/web/src/components/battle/desktop-battle-log-dock.module.css
+          echo '---FORMATTED CSS---'
+          cat apps/web/src/components/battle/desktop-battle-log-dock.module.css
