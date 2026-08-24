@@ -1,0 +1,125 @@
+name: One-shot confirmation fixture normalizer
+
+on:
+  push:
+    branches:
+      - release/account-safety-20260823
+
+permissions:
+  contents: write
+
+jobs:
+  normalize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/account-safety-20260823
+      - name: Normalize raw signup fixtures
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          paths = [
+              '.github/scripts/verify-wayfarers-practice.sh',
+              '.github/scripts/verify-wayfarers-practice-planned-windows.sh',
+              '.github/scripts/verify-battle-session-persistence.sh',
+              '.github/scripts/verify-battle-event-read.sh',
+              '.github/scripts/verify-pv1-combat-validation-events.sh',
+              '.github/scripts/verify-pvp-authority.sh',
+              '.github/scripts/verify-pvp-spectator-join.sh',
+              '.github/scripts/verify-battle-session-http.sh',
+          ]
+
+          def replace_direct_signup(text: str) -> str:
+              lines = text.splitlines()
+              out = []
+              i = 0
+              while i < len(lines):
+                  match = re.match(r'^([A-Za-z_][A-Za-z0-9_]*)="\$\(curl\b', lines[i])
+                  if not match:
+                      out.append(lines[i])
+                      i += 1
+                      continue
+
+                  j = i
+                  block = []
+                  while j < len(lines) and j < i + 12:
+                      block.append(lines[j])
+                      if j > i and not lines[j].endswith('\\'):
+                          break
+                      j += 1
+
+                  joined = '\n'.join(block)
+                  if 'auth/v1/signup' not in joined:
+                      out.extend(block)
+                      i = j + 1
+                      continue
+
+                  email_match = re.search(r'\\"email\\":\\"\$([A-Za-z_][A-Za-z0-9_]*)\\"', joined)
+                  if not email_match:
+                      raise SystemExit(f'Could not determine signup email variable near {lines[i]}')
+                  out.append(
+                      f'{match.group(1)}="$(signup_test_user "${email_match.group(1)}" "$password")"'
+                  )
+                  i = j + 1
+              return '\n'.join(out) + '\n'
+
+          for raw_path in paths:
+              path = Path(raw_path)
+              text = path.read_text()
+
+              text, env_count = re.subn(
+                  r'''status_env="\$\(pnpm exec supabase status -o env\)"\n'''
+                  r'''eval "\$\(printf '%s\\n' "\$status_env" \| grep(?: -E)? '[^']*ANON_KEY[^']*'\)"\n'''
+                  r'''test -n "\$\{ANON_KEY:-\}"\n'''
+                  r'''(?:server_key="\$\{SECRET_KEY:-\$\{SERVICE_ROLE_KEY:-\}\}"\ntest -n "\$server_key"\n)?'''
+                  r'''\napi_url='http://127\.0\.0\.1:54321'\n''',
+                  "source .github/scripts/auth-test-helpers.sh\nload_test_auth\n\napi_url=\"$TEST_AUTH_API_URL\"\nserver_key=\"$TEST_AUTH_ADMIN_KEY\"\n",
+                  text,
+                  count=1,
+              )
+              if env_count != 1:
+                  raise SystemExit(f'Expected one auth environment block in {raw_path}, got {env_count}')
+
+              text = re.sub(
+                  r'''\nsignup\(\) \{\n.*?\n\}\n\n''',
+                  '\n',
+                  text,
+                  count=1,
+                  flags=re.S,
+              )
+              text = re.sub(
+                  r'''\$\(signup "(\$[A-Za-z_][A-Za-z0-9_]*)"\)''',
+                  r'''$(signup_test_user "\1" "$password")''',
+                  text,
+              )
+              text = replace_direct_signup(text)
+
+              if raw_path.endswith('verify-battle-session-http.sh'):
+                  needle = '''test -n "$user_id"\ntest "$user_id" != 'null'\n'''
+                  replacement = needle + 'confirm_test_user "$user_id"\n'
+                  if needle not in text:
+                      raise SystemExit('HTTP fixture user-id guard not found')
+                  text = text.replace(needle, replacement, 1)
+
+              if 'auth/v1/signup' in text:
+                  raise SystemExit(f'Raw signup remains in {raw_path}')
+              path.write_text(text)
+          PY
+      - name: Verify no raw signup fixtures remain
+        run: |
+          if grep -RIl 'auth/v1/signup' .github/scripts; then
+            echo 'Raw signup fixture still present.' >&2
+            exit 1
+          fi
+      - name: Commit fixture normalization
+        run: |
+          git config user.name "AUREVANE Test Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add .github/scripts
+          git diff --cached --quiet && exit 0
+          git commit -m "Normalize confirmation-aware DB auth fixtures"
+          git push origin HEAD:release/account-safety-20260823
