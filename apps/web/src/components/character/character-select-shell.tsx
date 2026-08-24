@@ -208,6 +208,11 @@ export function CharacterSelectShell({
             className="account-delete-header-button"
             data-pending={accountDeletionState ? 'true' : undefined}
             data-testid="delete-account-button"
+            aria-label={
+              accountDeletionState
+                ? 'Manage permanent deletion countdown'
+                : 'Permanently delete login and game data'
+            }
             onClick={openAccountDeletionModal}
           >
             {accountDeletionState ? (
