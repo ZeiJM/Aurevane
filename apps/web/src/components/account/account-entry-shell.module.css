@@ -270,6 +270,11 @@
   line-height: 1.4;
 }
 
+.formMessage[data-tone='error'] {
+  color: var(--av-danger-400);
+  font-weight: 650;
+}
+
 .help {
   margin-top: 0.7rem;
   border-top: 1px solid var(--av-border);
