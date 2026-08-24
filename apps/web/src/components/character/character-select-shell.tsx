@@ -441,10 +441,12 @@ export function CharacterSelectShell({
                 <p>
                   When this timer expires, your AUREVANE login email and authentication identity,
                   characters, progression, settings, training data, battle records, PvP data, and
-                  other account-owned game records are permanently deleted. Recovery is not
-                  possible after finalization.
+                  other account-owned game records are permanently deleted. Recovery is not possible
+                  after finalization.
                 </p>
-                <p>You can still change your mind now. Cancelling immediately removes the request.</p>
+                <p>
+                  You can still change your mind now. Cancelling immediately removes the request.
+                </p>
                 {accountError ? (
                   <p className={styles.modalError} role="alert">
                     {accountError}

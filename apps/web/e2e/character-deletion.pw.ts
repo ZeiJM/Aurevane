@@ -1,9 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import {
-  createAccountAndEnterCharacter,
-  createVerifiedAccountAndSignIn,
-} from './pv1f-test-helpers'
+import { createAccountAndEnterCharacter, createVerifiedAccountAndSignIn } from './pv1f-test-helpers'
 
 function uniqueCharacterName(): string {
   const letters = Date.now()
