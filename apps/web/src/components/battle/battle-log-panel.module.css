@@ -226,33 +226,53 @@
   :global(#battlefield[data-desktop-battle-log-open='true']) {
     --battle-log-dock-width: clamp(16.5rem, 21vw, 21rem);
     --battle-log-dock-gap: clamp(0.6rem, 0.8vw, 0.85rem);
+    --battle-log-dock-inset: clamp(0.45rem, 1vw, 0.8rem);
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) var(--battle-log-dock-width) !important;
+    grid-template-rows: minmax(0, 1fr) auto !important;
+    column-gap: var(--battle-log-dock-gap) !important;
+    align-items: stretch !important;
   }
 
+  /* Keep the battlefield's native board sizing/padding intact. The log now owns a real grid
+     column instead of stealing space with artificial board-viewport padding. */
   :global(#battlefield[data-desktop-battle-log-open='true'] > div:first-child) {
-    box-sizing: border-box;
-    padding-right: calc(var(--battle-log-dock-width) + var(--battle-log-dock-gap)) !important;
-    padding-left: clamp(0.4rem, 0.8vw, 0.75rem) !important;
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
   }
 
   :global(
-    main[data-pvp-battle='true'] #battlefield[data-desktop-battle-log-open='true'] > div:first-child
+    main:not([data-pvp-battle='true'])
+      #battlefield[data-desktop-battle-log-open='true']
+      > div:first-child
   ) {
-    padding-right: calc(var(--battle-log-dock-width) + var(--battle-log-dock-gap)) !important;
-    padding-left: clamp(0.4rem, 0.8vw, 0.75rem) !important;
+    height: 100% !important;
+  }
+
+  :global(#battlefield[data-desktop-battle-log-open='true'] > [aria-label='Terrain legend']) {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    min-width: 0 !important;
   }
 
   :global(#battlefield[data-desktop-battle-log-open='true'] > [data-docked-battle-log='true']) {
-    position: absolute !important;
-    top: 0.65rem !important;
-    right: 0.65rem !important;
-    bottom: 2.8rem !important;
+    position: relative !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
     left: auto !important;
     z-index: 40;
-    width: var(--battle-log-dock-width) !important;
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    width: auto !important;
     height: auto !important;
     min-width: 0 !important;
     min-height: 8rem !important;
     max-height: none !important;
+    margin: var(--battle-log-dock-inset) var(--battle-log-dock-inset) var(--battle-log-dock-inset) 0;
+    align-self: stretch !important;
   }
 }
 
