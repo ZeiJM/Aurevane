@@ -30,7 +30,7 @@ set search_path = pg_catalog, public, app_private, auth
 as $$
 declare
   v_request app_private.account_deletion_requests%rowtype;
-  v_deleted boolean := false;
+  v_rows integer := 0;
 begin
   select * into v_request
   from app_private.account_deletion_requests request
@@ -65,8 +65,8 @@ begin
   delete from auth.users
   where id = p_user_id;
 
-  get diagnostics v_deleted = row_count;
-  return v_deleted;
+  get diagnostics v_rows = row_count;
+  return v_rows = 1;
 end;
 $$;
 
@@ -121,7 +121,7 @@ create or replace function public.request_account_deletion_v1(
 returns table (requested_at timestamptz, delete_after timestamptz)
 language plpgsql
 security definer
-set search_path = pg_catalog, public, app_private
+set search_path = pg_catalog, public, app_private, auth
 as $$
 declare
   v_request app_private.account_deletion_requests%rowtype;
@@ -192,8 +192,8 @@ grant execute on function public.get_account_deletion_state_v1(uuid) to service_
 grant execute on function public.request_account_deletion_v1(uuid) to service_role;
 grant execute on function public.cancel_account_deletion_v1(uuid) to service_role;
 
--- Finalization runs independently of browser activity. The five-minute cadence preserves the full
--- 24-hour grace period while bounding normal execution delay to at most a few minutes.
+-- Finalization runs independently of browser activity. The one-minute cadence preserves the full
+-- 24-hour grace period while keeping normal execution delay below roughly one minute.
 do $$
 declare
   v_existing_job_id bigint;
@@ -208,7 +208,7 @@ begin
 
   perform cron.schedule(
     'aurevane-finalize-account-deletions',
-    '*/5 * * * *',
+    '* * * * *',
     'select app_private.finalize_due_account_deletions_v1();'
   );
 end;
