@@ -13,6 +13,7 @@
 - `docs/COMBAT.md` is current combat authority.
 - `docs/ROADMAP_PRODUCT_VALIDATION.md` defines evidence gates.
 - `docs/REKINDLING_FRONTIER.md` governs Rekindling replay differentiation and the Unwritten Reach.
+- `docs/LORE_FRONTIER_CONTINUITY.md` is the authoritative lore bridge connecting the War of the Last Horizon, Closed Horizon/Great Vanes, Unwritten Reach, Veyr and Inward Drift.
 - `docs/ANOMALIES.md` governs **Owner-granted exceptional Anomaly character states**.
 - `docs/LORE_BIBLE.md` governs central narrative canon.
 - `docs/PROGRESSION_RETENTION.md`, `docs/NATURAL_PACING.md`, and `docs/OFFLINE_PROGRESSION.md` govern long-horizon progression, pacing and Passive Training except where a newer approved specification deliberately adds detail.
@@ -158,7 +159,7 @@ Do not use capitalized **Anomaly** as a generic synonym for a world event, rando
 
 ## 5. Rekindling and frontier direction
 
-`docs/REKINDLING_FRONTIER.md` is the current long-horizon authority.
+`docs/REKINDLING_FRONTIER.md` is the current long-horizon gameplay authority. `docs/LORE_FRONTIER_CONTINUITY.md` defines the protected lore relationship behind the Reach, Veyr and Inward Drift.
 
 ### Rekindling
 
@@ -190,6 +191,16 @@ Working frontier direction:
 - deed-based legendary explorer identity;
 - working far-inhabitant culture: Veyr;
 - long-term continuity threat: Inward Drift.
+
+Protected lore connection:
+
+- the Reach is a surviving continuity wound connected to the War of the Last Horizon rather than an unrelated magical biome;
+- the Closed Horizon stopped the Great Opening but did not perfectly heal every ancient continuity wound;
+- the Great Vanes contribute to why the known world remains reliably coherent;
+- the Veyr are continuity-adapted people shaped by the outer wounds and aftermath of the ancient war, with deliberately ambiguous mixed ancestry/history rather than one simplistic origin;
+- the Inward Drift is the modern appearance of Reach-like continuity failures inside previously stable territory;
+- **“the Edge is closing in”** is valid public-facing fear, while the precise metaphysical explanation remains spoiler-gated;
+- do not reveal the complete Aurevane/Closed Horizon/Heart-Lock explanation early.
 
 Near-infinite feeling does not require technically infinite content.
 
@@ -296,12 +307,12 @@ Before meaningful work, read `docs/ENGINEERING_EXECUTION_STANDARD.md`, inspect e
 - **Combat:** `docs/COMBAT.md`.
 - **Items/equipment/loadouts:** `docs/ITEMS_INVENTORY_LOADOUTS.md`.
 - **Progression/Rekindling:** progression/pacing docs + `docs/REKINDLING_FRONTIER.md` where relevant.
-- **Frontier:** `docs/REKINDLING_FRONTIER.md` + Lore Bible + Living World Story.
+- **Frontier:** `docs/REKINDLING_FRONTIER.md` + `docs/LORE_FRONTIER_CONTINUITY.md` + Lore Bible + Living World Story.
 - **Anomaly:** `docs/ANOMALIES.md` + `docs/OWNER_OVERRIDE.md` + `docs/MASTER_PANEL.md` + PvP rules where relevant.
 - **Combat AI/Battle Hall:** Combat + Combat AI Training.
 - **Major player-facing pages:** Product Experience Content System.
 - **Owner/player exceptional mutation:** Owner Override + Master Panel + Anomalies when applicable.
-- **Narrative/world:** Lore Bible + Living World Story.
+- **Narrative/world:** Lore Bible + `docs/LORE_FRONTIER_CONTINUITY.md` + Living World Story.
 - **Premium commerce:** Monetization + security/operations docs.
 - **Player-facing terminology/copy:** Player Manual and current public copy.
 
@@ -313,6 +324,9 @@ Never assume a package, table, route, system or feature exists. Verify it.
 
 - Do not casually rewrite approved central lore.
 - Do not leak late-story truth in early quests, UI, filenames, API payloads, logs, analytics exposed to clients, Manual copy or content IDs where avoidable.
+- The relationship among Aurevane, the War of the Last Horizon, the Closed Horizon, Great Vanes, Reach, Veyr and Inward Drift must follow the spoiler ladder in `docs/LORE_FRONTIER_CONTINUITY.md`.
+- Early public-facing frontier material may use fear/rumor such as **“the Edge is closing in”** without revealing why.
+- Veyr characters must not function as omniscient Lore Bible exposition devices.
 - Story/world events should be versioned/data-driven where practical.
 - Important regions/settlements require authored identity.
 - World events and frontier systems must remain coherent with Lore Bible progression.
