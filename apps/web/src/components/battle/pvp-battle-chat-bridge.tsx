@@ -258,7 +258,8 @@ export function PvpBattleChatBridge({
     if ((event.target as Element | null)?.closest('button, input, textarea, select, a')) return
     const panel = panelRef.current
     if (!panel) return
-    const rect = lockWindowToCurrentRect(panel)
+    const panelElement = panel
+    const rect = lockWindowToCurrentRect(panelElement)
     const startX = event.clientX
     const startY = event.clientY
 
@@ -277,8 +278,8 @@ export function PvpBattleChatBridge({
           rect.top + moveEvent.clientY - startY,
         ),
       )
-      panel.style.left = `${left}px`
-      panel.style.top = `${top}px`
+      panelElement.style.left = `${left}px`
+      panelElement.style.top = `${top}px`
     }
 
     const finish = () => {
@@ -295,17 +296,18 @@ export function PvpBattleChatBridge({
     if (!desktop || event.button !== 0) return
     const panel = panelRef.current
     if (!panel) return
+    const panelElement = panel
     event.preventDefault()
     event.stopPropagation()
-    const rect = lockWindowToCurrentRect(panel)
+    const rect = lockWindowToCurrentRect(panelElement)
     const startX = event.clientX
     const startY = event.clientY
 
     function move(moveEvent: PointerEvent) {
       const maxWidth = Math.max(MIN_WINDOW_WIDTH, window.innerWidth - rect.left - VIEWPORT_MARGIN)
       const maxHeight = Math.max(MIN_WINDOW_HEIGHT, window.innerHeight - rect.top - VIEWPORT_MARGIN)
-      panel.style.width = `${Math.max(MIN_WINDOW_WIDTH, Math.min(maxWidth, rect.width + moveEvent.clientX - startX))}px`
-      panel.style.height = `${Math.max(MIN_WINDOW_HEIGHT, Math.min(maxHeight, rect.height + moveEvent.clientY - startY))}px`
+      panelElement.style.width = `${Math.max(MIN_WINDOW_WIDTH, Math.min(maxWidth, rect.width + moveEvent.clientX - startX))}px`
+      panelElement.style.height = `${Math.max(MIN_WINDOW_HEIGHT, Math.min(maxHeight, rect.height + moveEvent.clientY - startY))}px`
     }
 
     const finish = () => {
