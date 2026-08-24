@@ -270,6 +270,11 @@
   line-height: 1.4;
 }
 
+.formMessage[data-tone='error'] {
+  color: var(--av-danger-400);
+  font-weight: 650;
+}
+
 .help {
   margin-top: 0.7rem;
   border-top: 1px solid var(--av-border);
@@ -336,105 +341,5 @@
   .entryCard {
     max-height: none;
     overflow: visible;
-  }
-}
-
-@media (max-width: 560px) {
-  .masthead {
-    gap: 0.35rem;
-    padding-inline: max(0.5rem, env(safe-area-inset-left, 0px));
-  }
-
-  .masthead :global(.brand) {
-    min-width: 0;
-    gap: 0.35rem;
-  }
-  .masthead :global(.brand__crest) {
-    width: 2rem;
-    height: 2rem;
-    flex: 0 0 auto;
-    font-size: 0.9rem;
-  }
-  .masthead :global(.brand__wordmark) {
-    min-width: 0;
-  }
-  .masthead :global(.brand__wordmark strong) {
-    font-size: 0.78rem;
-    letter-spacing: 0.09em;
-    white-space: nowrap;
-  }
-  .masthead :global(.brand__wordmark small) {
-    display: none;
-  }
-
-  .main {
-    gap: 0.5rem;
-    padding: 0.5rem;
-  }
-
-  .hero {
-    height: 19rem;
-    min-height: 19rem;
-  }
-
-  .heroContent {
-    width: 100%;
-    padding: 1rem;
-  }
-
-  .heroContent h1 {
-    margin-bottom: 0.55rem;
-    font-size: clamp(2.4rem, 12vw, 3.25rem);
-    line-height: 0.88;
-    letter-spacing: 0.018em;
-  }
-
-  .heroContent > p {
-    font-size: 0.78rem;
-    line-height: 1.45;
-  }
-  .identityNotes {
-    margin-top: 0.55rem;
-  }
-  .identityNotes span {
-    padding: 0.3rem 0.4rem;
-    font-size: 0.43rem;
-  }
-  .mediaStatus {
-    display: none;
-  }
-  .entryCard {
-    padding: 0.75rem;
-  }
-  .form input {
-    font-size: 16px;
-  }
-  .footer {
-    padding-inline: 0.5rem;
-  }
-}
-
-@media (max-height: 670px) and (min-width: 761px) {
-  .hero {
-    min-height: 24rem;
-  }
-  .heroContent {
-    padding: 1.2rem;
-  }
-  .identityNotes {
-    display: none;
-  }
-  .entryLead {
-    margin-bottom: 0.45rem;
-  }
-  .help {
-    margin-top: 0.45rem;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .modeSwitch button,
-  .form input {
-    transition: none;
   }
 }
