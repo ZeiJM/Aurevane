@@ -6,13 +6,17 @@
   /* Finish the terrain-legend footer beneath the dedicated log column without changing the
      legend's own width or moving its contents. This only paints the missing continuation across
      the grid gap and log column, so the battlefield reads as one complete framed surface. */
-  :global(#battlefield[data-desktop-battle-log-open='true'] > [aria-label='Terrain legend']) {
+  :global(
+    #battlefield[data-desktop-battle-log-open='true'] > [aria-label='Terrain legend']
+  ) {
     position: relative !important;
     z-index: 2;
     overflow: visible !important;
   }
 
-  :global(#battlefield[data-desktop-battle-log-open='true'] > [aria-label='Terrain legend'])::after {
+  :global(
+    #battlefield[data-desktop-battle-log-open='true'] > [aria-label='Terrain legend']
+  )::after {
     position: absolute;
     top: -1px;
     bottom: 0;
