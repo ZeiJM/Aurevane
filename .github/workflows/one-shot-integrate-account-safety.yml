@@ -1,0 +1,28 @@
+name: One-shot account safety integration
+
+on:
+  push:
+    branches:
+      - release/account-safety-20260823
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/account-safety-20260823
+          fetch-depth: 0
+      - name: Integrate finished account feature branches
+        run: |
+          set -euo pipefail
+          git config user.name "AUREVANE Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git fetch origin agent/duplicate-email-signup-denial agent/account-deletion-grace-period
+          git merge --no-edit --no-ff origin/agent/duplicate-email-signup-denial
+          git merge --no-edit --no-ff origin/agent/account-deletion-grace-period
+          git push origin HEAD:release/account-safety-20260823
