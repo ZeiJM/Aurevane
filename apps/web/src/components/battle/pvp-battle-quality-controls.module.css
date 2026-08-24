@@ -1,0 +1,79 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 18000;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.76);
+  backdrop-filter: blur(0.5rem);
+}
+
+.modal {
+  width: min(100%, 30rem);
+  padding: 1rem;
+  border: 1px solid rgba(201, 80, 80, 0.55);
+  border-radius: var(--av-radius-lg);
+  background: #0c1017;
+  box-shadow: 0 2rem 5rem rgba(0, 0, 0, 0.68);
+}
+
+.modal > span {
+  color: #dd9a9a;
+  font: 700 0.48rem/1 var(--av-font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.modal h2 {
+  margin: 0.45rem 0;
+  font: 500 1.55rem/1 var(--av-font-display);
+}
+
+.modal p {
+  margin: 0;
+  color: var(--av-text-muted);
+  font-size: 0.7rem;
+  line-height: 1.48;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.4rem;
+  margin-top: 0.8rem;
+}
+
+.actions button {
+  min-height: 2rem;
+  padding: 0.42rem 0.7rem;
+  border-radius: var(--av-radius-sm);
+  font: 750 0.47rem/1 var(--av-font-mono);
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.stay {
+  border: 1px solid var(--av-border-strong);
+  color: var(--av-text-muted);
+  background: transparent;
+}
+
+.confirm {
+  border: 1px solid rgba(201, 80, 80, 0.78);
+  color: #f2b0b0;
+  background: rgba(126, 38, 38, 0.35);
+}
+
+.actions button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 520px) {
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}

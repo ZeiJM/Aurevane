@@ -50,6 +50,7 @@ export interface PvpLobbyMemberView {
   profileImageUrl: string | null
   teamIndex: number
   seatIndex: number
+  seated: boolean
   ready: boolean
   isHost: boolean
 }
@@ -159,6 +160,9 @@ function mapRpcError(error: { code?: string; message?: string }): never {
   if (message.includes('PVP_ALREADY_IN_LOBBY')) {
     throw new AurevaneError('INVALID_REQUEST', 'This account is already seated in that lobby.')
   }
+  if (message.includes('PVP_SEAT_OCCUPIED')) {
+    throw new AurevaneError('INVALID_REQUEST', 'Choose an open seat before rejoining the roster.')
+  }
   if (message.includes('PVP_LOBBY_NOT_AVAILABLE') || message.includes('PVP_LOBBY_NOT_WAITING')) {
     throw new AurevaneError('INVALID_REQUEST', 'That lobby is no longer available to join.')
   }
@@ -238,6 +242,7 @@ async function parseLobbyPayload(input: unknown): Promise<PvpLobbyView> {
     const portraitRef = readString(candidate.portrait_ref)
     const teamIndex = readInteger(candidate.team_index)
     const seatIndex = readInteger(candidate.seat_index)
+    const seated = readBoolean(candidate.seated)
     const ready = readBoolean(candidate.ready)
     const isHost = readBoolean(candidate.is_host)
     if (
@@ -248,6 +253,7 @@ async function parseLobbyPayload(input: unknown): Promise<PvpLobbyView> {
       !portraitRef ||
       teamIndex === null ||
       seatIndex === null ||
+      seated === null ||
       ready === null ||
       isHost === null
     ) {
@@ -261,6 +267,7 @@ async function parseLobbyPayload(input: unknown): Promise<PvpLobbyView> {
       portraitRef,
       teamIndex,
       seatIndex,
+      seated,
       ready,
       isHost,
     })

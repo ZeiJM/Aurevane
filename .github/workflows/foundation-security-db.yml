@@ -5,6 +5,7 @@ on:
     paths:
       - 'supabase/migrations/**'
       - '.github/scripts/verify-foundation-security.sh'
+      - '.github/scripts/verify-recent-emoji-privacy.sh'
       - '.github/workflows/foundation-security-db.yml'
   push:
     branches:
@@ -13,6 +14,7 @@ on:
     paths:
       - 'supabase/migrations/**'
       - '.github/scripts/verify-foundation-security.sh'
+      - '.github/scripts/verify-recent-emoji-privacy.sh'
       - '.github/workflows/foundation-security-db.yml'
 
 permissions:
@@ -49,6 +51,9 @@ jobs:
 
       - name: Verify privileged foundation helpers are browser-inaccessible
         run: bash .github/scripts/verify-foundation-security.sh
+
+      - name: Verify account recent emoji privacy and limits
+        run: bash .github/scripts/verify-recent-emoji-privacy.sh
 
       - name: Stop local Supabase services
         if: always()

@@ -1,0 +1,134 @@
+.hook {
+  display: none;
+}
+
+@media (min-width: 981px) {
+  :global(main[data-pvp-spectator='true']) {
+    grid-template-rows: auto auto minmax(0, 1fr) !important;
+    height: calc(100dvh - 7.35rem) !important;
+    min-height: 36rem !important;
+    gap: 0.4rem !important;
+    padding: 0.42rem 0.55rem !important;
+    overflow: hidden !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] > header) {
+    min-height: 3.35rem;
+    padding: 0.42rem 0.58rem !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] > header h1) {
+    margin-top: 0.14rem !important;
+    font-size: clamp(1.05rem, 1.7vw, 1.45rem) !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] > header button) {
+    min-height: 2.15rem !important;
+    padding-block: 0.34rem !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] > section[aria-label='PvP team status']) {
+    gap: 0.35rem !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] > section[aria-label='PvP team status'] > article) {
+    gap: 0.22rem !important;
+    padding: 0.34rem 0.4rem !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] > section[aria-label='PvP team status'] [data-active]),
+  :global(main[data-pvp-spectator='true'] > section[aria-label='PvP team status'] [data-defeated]) {
+    min-height: 0;
+  }
+
+  :global(main[data-pvp-spectator='true'] > section:last-child) {
+    height: 100%;
+    min-height: 0 !important;
+    gap: 0.45rem !important;
+    overflow: hidden;
+  }
+
+  :global(main[data-pvp-spectator='true'] aside[aria-label='Spectator match context']) {
+    min-height: 0;
+    gap: 0.4rem !important;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  :global(main[data-pvp-spectator='true'] aside[aria-label='Spectator match context'] > article) {
+    gap: 0.35rem !important;
+    padding: 0.48rem !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] #battlefield) {
+    height: 100%;
+    min-height: 0 !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] #battlefield > div:first-child) {
+    padding: 0.36rem 0.5rem !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] #battlefield > div:nth-child(2)) {
+    min-height: 0 !important;
+    padding: 0.35rem !important;
+    overscroll-behavior: contain;
+  }
+
+  :global(main[data-pvp-spectator='true'] #battlefield > div:last-child) {
+    min-height: 2.45rem !important;
+    gap: 0.45rem !important;
+    padding: 0.3rem 0.45rem !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] #battlefield > div:last-child > span) {
+    min-width: 8.75rem !important;
+    padding: 0.3rem 0.4rem !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] #battlefield > div:last-child > span > i) {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] #battlefield + div),
+  :global(main[data-pvp-spectator='true'] section[aria-label='Live battlefield'] + div) {
+    min-height: 0;
+  }
+
+  :global(main[data-pvp-spectator='true'] section[aria-label='Battle Chat']),
+  :global(main[data-pvp-spectator='true'] section[aria-label='Spectator battle log']) {
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: hidden;
+  }
+
+  :global(
+    main[data-pvp-spectator='true'] section[aria-label='Spectator battle log'] > div:last-child
+  ) {
+    min-height: 0;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+@media (min-width: 981px) and (max-height: 760px) {
+  :global(main[data-pvp-spectator='true']) {
+    min-height: 32rem !important;
+    gap: 0.3rem !important;
+    padding-block: 0.32rem !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] > header) {
+    min-height: 2.9rem;
+    padding-block: 0.34rem !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] > header h1) {
+    font-size: 1.05rem !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] > section[aria-label='PvP team status'] > article) {
+    padding-block: 0.28rem !important;
+  }
+}

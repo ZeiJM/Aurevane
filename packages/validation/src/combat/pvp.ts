@@ -74,12 +74,21 @@ const lobbySettingsRequestSchema = z
   })
   .strict()
 
+const lobbySeatCoordinateSchema = z.number().int().min(0).max(2)
 const lobbySeatMoveRequestSchema = z
   .object({
-    targetTeamIndex: z.number().int().min(0).max(2),
-    targetSeatIndex: z.number().int().min(0).max(2),
+    targetTeamIndex: lobbySeatCoordinateSchema.nullable(),
+    targetSeatIndex: lobbySeatCoordinateSchema.nullable(),
   })
   .strict()
+  .superRefine((value, context) => {
+    if ((value.targetTeamIndex === null) !== (value.targetSeatIndex === null)) {
+      context.addIssue({
+        code: 'custom',
+        message: 'PvP seat coordinates must both be supplied or both be null.',
+      })
+    }
+  })
 
 export type PvpCreateLobbyRequest = z.infer<typeof createLobbyRequestSchema>
 export type PvpJoinLobbyRequest = z.infer<typeof joinLobbyRequestSchema>

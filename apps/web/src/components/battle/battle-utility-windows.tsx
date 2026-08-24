@@ -33,10 +33,15 @@ interface BattleLogResponse {
   error?: { message?: string }
 }
 
-const MAX_RECENT_EMOJIS = 8
+interface EmojiPreferencesBody {
+  emojis?: string[]
+}
+
+const MAX_RECENT_EMOJIS = 10
 const VIEWPORT_MARGIN = 4
 const MIN_WINDOW_WIDTH = 256
 const MIN_WINDOW_HEIGHT = 160
+const DESKTOP_QUERY = '(min-width: 821px)'
 
 function logTrigger(): HTMLButtonElement | null {
   return (
@@ -52,22 +57,6 @@ function chatTrigger(): HTMLButtonElement | null {
       /^Chat\b/i.test(button.textContent?.trim() ?? ''),
     ) ?? null
   )
-}
-
-function recentEmojiStorageKey(playerName: string): string {
-  return `aurevane:battle-recent-emojis:${playerName}`
-}
-
-function loadRecentEmojis(playerName: string): string[] {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(recentEmojiStorageKey(playerName)) ?? '[]')
-    if (!Array.isArray(parsed)) return []
-    return parsed
-      .filter((value): value is string => typeof value === 'string')
-      .slice(0, MAX_RECENT_EMOJIS)
-  } catch {
-    return []
-  }
 }
 
 function extractEmojis(text: string): string[] {
@@ -105,6 +94,8 @@ function UtilityWindow({
   side,
   onClose,
   testId,
+  desktopClickAway = false,
+  hideDesktopClose = false,
   children,
 }: {
   title: string
@@ -112,9 +103,25 @@ function UtilityWindow({
   side: 'left' | 'right'
   onClose: () => void
   testId?: string
+  desktopClickAway?: boolean
+  hideDesktopClose?: boolean
   children: ReactNode
 }) {
   const windowRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    if (!desktopClickAway || !window.matchMedia(DESKTOP_QUERY).matches) return
+
+    function closeOutside(event: PointerEvent) {
+      if (!(event.target instanceof Node)) return
+      if (windowRef.current?.contains(event.target)) return
+      if (side === 'left' && chatTrigger()?.contains(event.target)) return
+      onClose()
+    }
+
+    document.addEventListener('pointerdown', closeOutside, true)
+    return () => document.removeEventListener('pointerdown', closeOutside, true)
+  }, [desktopClickAway, onClose, side])
 
   function beginDrag(event: ReactPointerEvent<HTMLElement>) {
     if (event.button !== 0) return
@@ -211,7 +218,12 @@ function UtilityWindow({
           <strong>{title}</strong>
           <span>{meta}</span>
         </div>
-        <button type="button" onClick={onClose} aria-label={`Close ${title.toLowerCase()}`}>
+        <button
+          type="button"
+          data-hide-desktop={hideDesktopClose || undefined}
+          onClick={onClose}
+          aria-label={`Close ${title.toLowerCase()}`}
+        >
           ×
         </button>
       </header>
@@ -239,9 +251,7 @@ export function BattleUtilityWindows({ battleSessionId, playerName }: BattleUtil
   const [chatOpen, setChatOpen] = useState(false)
   const [chatDraft, setChatDraft] = useState('')
   const [chatMessages, setChatMessages] = useState<LocalChatMessage[]>([])
-  const [recentEmojis, setRecentEmojis] = useState<string[]>(() =>
-    typeof window === 'undefined' ? [] : loadRecentEmojis(playerName),
-  )
+  const [recentEmojis, setRecentEmojis] = useState<string[]>([])
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [logEntries, setLogEntries] = useState<BattleLogView['entries']>([])
   const [logLoading, setLogLoading] = useState(false)
@@ -249,17 +259,42 @@ export function BattleUtilityWindows({ battleSessionId, playerName }: BattleUtil
   const emojiButtonRef = useRef<HTMLButtonElement>(null)
   const emojiPickerRef = useRef<HTMLDivElement>(null)
 
-  const recordEmojiUsage = useCallback(
-    (used: readonly string[]) => {
-      if (used.length === 0) return
-      setRecentEmojis((current) => {
-        const next = mergeRecentEmojis(current, used)
-        localStorage.setItem(recentEmojiStorageKey(playerName), JSON.stringify(next))
-        return next
+  const recordEmojiUsage = useCallback((used: readonly string[]) => {
+    if (used.length === 0) return
+    setRecentEmojis((current) => {
+      const next = mergeRecentEmojis(current, used)
+      void fetch('/api/battle/preferences/emojis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emojis: next }),
       })
-    },
-    [playerName],
-  )
+        .then(async (response) => {
+          if (!response.ok) return
+          const body = (await response.json()) as EmojiPreferencesBody
+          if (Array.isArray(body.emojis)) {
+            setRecentEmojis(body.emojis.slice(0, MAX_RECENT_EMOJIS))
+          }
+        })
+        .catch(() => undefined)
+      return next
+    })
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    void fetch('/api/battle/preferences/emojis', { cache: 'no-store' })
+      .then(async (response) => {
+        if (!response.ok) return
+        const body = (await response.json()) as EmojiPreferencesBody
+        if (!cancelled && Array.isArray(body.emojis)) {
+          setRecentEmojis(body.emojis.slice(0, MAX_RECENT_EMOJIS))
+        }
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     function interceptUtilityTrigger(event: MouseEvent) {
@@ -270,6 +305,7 @@ export function BattleUtilityWindows({ battleSessionId, playerName }: BattleUtil
       const isLog = button.closest('header') && button.textContent?.includes('Combat Log')
       const isChat = button.closest('footer') && /^Chat\b/i.test(button.textContent?.trim() ?? '')
       if (!isLog && !isChat) return
+      if (isLog && window.matchMedia(DESKTOP_QUERY).matches) return
 
       event.preventDefault()
       event.stopImmediatePropagation()
@@ -286,7 +322,9 @@ export function BattleUtilityWindows({ battleSessionId, playerName }: BattleUtil
   }, [])
 
   useEffect(() => {
-    logTrigger()?.setAttribute('aria-expanded', String(logOpen))
+    if (!window.matchMedia(DESKTOP_QUERY).matches) {
+      logTrigger()?.setAttribute('aria-expanded', String(logOpen))
+    }
   }, [logOpen])
 
   useEffect(() => {
@@ -383,6 +421,8 @@ export function BattleUtilityWindows({ battleSessionId, playerName }: BattleUtil
           title="Battle Chat"
           meta="Self channel · drag header · resize corner"
           side="left"
+          desktopClickAway
+          hideDesktopClose
           onClose={() => {
             setEmojiOpen(false)
             setChatOpen(false)
