@@ -1,6 +1,9 @@
 import { expect, test } from '@playwright/test'
 
-import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
+import {
+  createAccountAndEnterCharacter,
+  createVerifiedAccountAndSignIn,
+} from './pv1f-test-helpers'
 
 function uniqueCharacterName(): string {
   const letters = Date.now()
@@ -63,4 +66,58 @@ test('locks pending character deletion and restores playability on cancel', asyn
   await page.getByRole('button', { name: 'Cancel deletion' }).click()
   await expect(page.getByRole('link', { name: `Play ${characterName}` })).toBeVisible()
   await expect(page.getByText('Deletion pending', { exact: true })).toHaveCount(0)
+})
+
+test('requires the current password before starting whole-account deletion', async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.name !== 'desktop-chromium',
+    'One authenticated browser runtime proof is sufficient.',
+  )
+  test.slow()
+
+  const email = `account-delete-${Date.now()}@example.com`
+  const password = 'Account-delete-browser-2026!'
+
+  await createVerifiedAccountAndSignIn({ page, email, password })
+  await expect(page).toHaveURL(/\/game$/)
+
+  const deleteAccount = page.getByTestId('delete-account-button')
+  await expect(deleteAccount).toHaveText('Delete Account')
+  await deleteAccount.click()
+
+  const warning = page.getByRole('dialog', { name: 'Delete your entire AUREVANE account?' })
+  await expect(warning).toBeVisible()
+  await expect(warning).toContainText('irreversible after the 24-hour grace period')
+  await expect(warning).toContainText('login email and authentication identity')
+
+  const passwordInput = warning.getByLabel('Current account password')
+  const startButton = warning.getByRole('button', { name: 'Start 24-hour account deletion' })
+  await expect(startButton).toBeDisabled()
+
+  await passwordInput.fill('Wrong-password-2026!')
+  await startButton.click()
+  await expect(warning.getByRole('alert')).toContainText('password is incorrect')
+  await expect(warning).toBeVisible()
+
+  await passwordInput.fill(password)
+  await startButton.click()
+  await expect(warning).toBeHidden()
+  await expect(deleteAccount).toHaveAttribute('data-pending', 'true')
+  await expect(deleteAccount).toContainText('Account deletion')
+  await expect(deleteAccount.locator('b')).toHaveText(/^\d{2}:\d{2}:\d{2}$/)
+
+  await deleteAccount.click()
+  const pending = page.getByRole('dialog', {
+    name: 'Your account is in its 24-hour grace period.',
+  })
+  await expect(pending).toBeVisible()
+  await expect(pending).toContainText('Permanent deletion in')
+  await expect(pending).toContainText('Recovery is not possible after finalization.')
+
+  await pending.getByRole('button', { name: 'Cancel account deletion' }).click()
+  await expect(pending).toBeHidden()
+  await expect(deleteAccount).toHaveText('Delete Account')
+  await expect(deleteAccount).not.toHaveAttribute('data-pending', 'true')
 })
