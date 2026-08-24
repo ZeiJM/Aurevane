@@ -1,0 +1,45 @@
+name: One-shot battle log formatting
+
+on:
+  push:
+    branches:
+      - fix/battle-complete-stabilization-20260823
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/battle-complete-stabilization-20260823
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format battle log files
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/components/battle/battle-log-panel.tsx \
+            apps/web/src/components/battle/battle-log-panel.module.css
+      - name: Commit formatting if needed
+        run: |
+          if git diff --quiet; then
+            echo 'No formatting changes required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            apps/web/src/components/battle/battle-log-panel.tsx \
+            apps/web/src/components/battle/battle-log-panel.module.css
+          git commit -m 'Format battle log dock files'
+          git push origin HEAD:fix/battle-complete-stabilization-20260823
