@@ -1,0 +1,128 @@
+name: One-shot battle browser regression patch
+
+on:
+  push:
+    branches:
+      - fix/battle-complete-stabilization-20260823
+    paths:
+      - .github/workflows/patch-battle-e2e-once.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/battle-complete-stabilization-20260823
+      - name: Update desktop battle smoke expectations
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('apps/web/e2e/battle-experience.pw.ts')
+          text = path.read_text()
+
+          old_chat = """  await page.getByRole('button', { name: 'Chat', exact: true }).click()
+  await page.getByLabel('Battle chat message').fill('Testing solo battle chat⚔️')
+  await page.getByRole('button', { name: 'Send' }).click()
+  await expect(page.getByText('Testing solo battle chat⚔️', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Choose emoji' }).click()
+  await expect(page.getByRole('button', { name: 'Insert ⚔️' })).toBeVisible()
+  await page.mouse.click(1, 1)
+  await expect(page.getByRole('group', { name: 'Recent emoji' })).toHaveCount(0)
+  await expect(page.getByLabel('Battle chat message')).toBeVisible()
+  await page.getByRole('button', { name: 'Close battle chat' }).click()
+  await expect(page.getByLabel('Battle chat message')).toHaveCount(0)
+"""
+          new_chat = """  await page.getByRole('button', { name: 'Chat', exact: true }).click()
+  const battleChatInput = page.getByLabel('Battle chat message')
+  await battleChatInput.fill('Testing solo battle chat⚔️')
+  await page.getByRole('button', { name: 'Send' }).click()
+  await expect(page.getByText('Testing solo battle chat⚔️', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Choose emoji' }).click()
+  await expect(page.getByRole('button', { name: 'Insert ⚔️' })).toBeVisible()
+  await battleChatInput.click()
+  await expect(page.getByRole('group', { name: 'Recent emoji' })).toHaveCount(0)
+  await expect(battleChatInput).toBeVisible()
+  if (testInfo.project.name === 'mobile-chromium') {
+    await page.getByRole('button', { name: 'Close battle chat' }).click()
+  } else {
+    await page.mouse.click(1, 1)
+  }
+  await expect(battleChatInput).toHaveCount(0)
+"""
+
+          old_inspect = """  } else {
+    await page.getByRole('button', { name: `Show ${characterName} combat details` }).click()
+    await expect(page.getByText(`${characterName} · combat details`)).toBeVisible()
+    await expect(page.getByText('Initiative', { exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Close combatant details' }).click()
+    await expect(page.getByText(`${characterName} · combat details`)).toHaveCount(0)
+    const playerRail = page.locator(`aside[aria-label=\"${characterName} combat status\"]`)
+"""
+          new_inspect = """  } else {
+    await inspectButton.click()
+    await page.getByRole('button', { name: `Show ${characterName} combat details` }).click()
+    const combatantDialog = page.getByRole('dialog', { name: `${characterName} battle details` })
+    await expect(combatantDialog).toBeVisible()
+    await expect(combatantDialog.getByText('Initiative', { exact: true })).toBeVisible()
+    await expect(combatantDialog.getByText('AP', { exact: true })).toHaveCount(0)
+    await page.mouse.click(1, 1)
+    await expect(combatantDialog).toHaveCount(0)
+    const playerRail = page.locator(`aside[aria-label=\"${characterName} combat status\"]`)
+"""
+
+          old_log = """  const roundButton = page.getByRole('button', { name: /Round .*Combat Log/ })
+  await roundButton.click()
+  const battleLog = page.getByTestId('battle-log-panel')
+  await expect(battleLog).toBeVisible()
+  await expect(battleLog).toContainText(characterName)
+  await expect(battleLog).toContainText(/moved|Guard/)
+  await expect(battleLog).not.toContainText(/\\bv\\d+\\b/)
+  await expect(battleLog).not.toContainText('rollBasisPoints')
+  await page.getByRole('button', { name: 'Close battle log' }).click()
+"""
+          new_log = """  const roundButton = page.getByRole('button', { name: /Round .*Combat Log/ })
+  const battleLog = page.getByTestId('battle-log-panel')
+  if (testInfo.project.name === 'mobile-chromium') {
+    await roundButton.click()
+  }
+  await expect(battleLog).toBeVisible()
+  await expect(battleLog).toContainText(characterName)
+  await expect(battleLog).toContainText(/moved|Guard/)
+  await expect(battleLog).not.toContainText(/\\bv\\d+\\b/)
+  await expect(battleLog).not.toContainText('rollBasisPoints')
+  if (testInfo.project.name === 'mobile-chromium') {
+    await page.getByRole('button', { name: 'Close battle log' }).click()
+  } else {
+    await roundButton.click()
+    await expect(battleLog).toHaveCount(0)
+    await roundButton.click()
+    await expect(battleLog).toBeVisible()
+  }
+"""
+
+          for old, new, label in [
+              (old_chat, new_chat, 'chat'),
+              (old_inspect, new_inspect, 'inspect'),
+              (old_log, new_log, 'battle log'),
+          ]:
+              if old not in text:
+                  raise SystemExit(f'Expected {label} smoke block was not found')
+              text = text.replace(old, new, 1)
+
+          path.write_text(text)
+          PY
+      - name: Format and commit
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm exec prettier --write apps/web/e2e/battle-experience.pw.ts
+          git config user.name "aurevane-ci"
+          git config user.email "actions@users.noreply.github.com"
+          git add apps/web/e2e/battle-experience.pw.ts
+          git commit -m "Update battle browser smoke for desktop stabilization"
+          git push origin HEAD:fix/battle-complete-stabilization-20260823
