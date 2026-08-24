@@ -2,27 +2,29 @@
 set -euo pipefail
 
 status_env="$(pnpm exec supabase status -o env)"
-eval "$(printf '%s\n' "$status_env" | grep '^ANON_KEY=')"
-test -n "${ANON_KEY:-}"
+eval "$(printf '%s\n' "$status_env" | grep -E '^(SERVICE_ROLE_KEY|SECRET_KEY)=')"
+server_key="${SECRET_KEY:-${SERVICE_ROLE_KEY:-}}"
+test -n "$server_key"
 
 api_url='http://127.0.0.1:54321'
 password='PVP-seating-2026!'
 email_one="pvp-seat-one-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@example.com"
 email_two="pvp-seat-two-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@example.com"
 
-signup() {
+create_user() {
   local email="$1"
   curl --fail-with-body --silent --show-error \
-    --request POST "$api_url/auth/v1/signup" \
-    --header "apikey: $ANON_KEY" \
+    --request POST "$api_url/auth/v1/admin/users" \
+    --header "apikey: $server_key" \
+    --header "Authorization: Bearer $server_key" \
     --header 'Content-Type: application/json' \
-    --data "{\"email\":\"$email\",\"password\":\"$password\"}"
+    --data "{\"email\":\"$email\",\"password\":\"$password\",\"email_confirm\":true}"
 }
 
-signup_one="$(signup "$email_one")"
-signup_two="$(signup "$email_two")"
-user_one="$(printf '%s' "$signup_one" | jq -r '.user.id')"
-user_two="$(printf '%s' "$signup_two" | jq -r '.user.id')"
+created_one="$(create_user "$email_one")"
+created_two="$(create_user "$email_two")"
+user_one="$(printf '%s' "$created_one" | jq -r '.id // .user.id // empty')"
+user_two="$(printf '%s' "$created_two" | jq -r '.id // .user.id // empty')"
 test -n "$user_one"
 test -n "$user_two"
 
