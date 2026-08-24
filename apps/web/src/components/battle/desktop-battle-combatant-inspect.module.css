@@ -192,9 +192,59 @@
 
   .effectsHeading {
     display: flex;
-    gap: 0.45rem;
+    gap: 0.75rem;
     align-items: center;
     justify-content: space-between;
+  }
+
+  .effectsSummary {
+    display: flex;
+    min-width: 0;
+    gap: 0.28rem;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .effectSummaryChip {
+    display: inline-flex;
+    min-height: 1.35rem;
+    gap: 0.24rem;
+    align-items: center;
+    padding: 0.2rem 0.34rem;
+    border: 1px solid rgba(255, 255, 255, 0.075);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.018);
+    white-space: nowrap;
+  }
+
+  .effectSummaryChip b {
+    color: var(--av-text-dim);
+    font: 750 0.34rem/1 var(--av-font-mono);
+    letter-spacing: 0.04em;
+  }
+
+  .effectSummaryChip strong {
+    color: var(--av-text-muted);
+    font: 800 0.42rem/1 var(--av-font-mono);
+  }
+
+  .effectSummaryChip[data-tone='buff'] {
+    border-color: rgba(103, 211, 139, 0.24);
+    background: rgba(63, 161, 94, 0.06);
+  }
+
+  .effectSummaryChip[data-tone='buff'] strong {
+    color: #92d7aa;
+  }
+
+  .effectSummaryChip[data-tone='debuff'] {
+    border-color: rgba(224, 93, 93, 0.25);
+    background: rgba(176, 51, 51, 0.065);
+  }
+
+  .effectSummaryChip[data-tone='debuff'] strong {
+    color: #e89a9a;
   }
 
   .effectsHeading small {
