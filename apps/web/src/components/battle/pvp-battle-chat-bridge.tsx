@@ -1,12 +1,6 @@
 'use client'
 
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type PointerEvent as ReactPointerEvent,
-} from 'react'
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
 
 import type { PvpSpectatorPresenceView } from '@/server/battle/pvp-battle-communication-service'
@@ -97,7 +91,9 @@ function SpectatorFooterControl({
           <strong>Spectators</strong>
           {spectators.length > 0 ? (
             spectators.map((spectator, index) => (
-              <span key={`${spectator.name}:${spectator.lastSeenAt}:${index}`}>{spectator.name}</span>
+              <span key={`${spectator.name}:${spectator.lastSeenAt}:${index}`}>
+                {spectator.name}
+              </span>
             ))
           ) : (
             <span>No spectators</span>

@@ -63,7 +63,10 @@ export async function saveRecentBattleEmojis(
   })
 
   if (error) {
-    throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Recent emoji preferences could not be saved.')
+    throw new AurevaneError(
+      'PERSISTENCE_UNAVAILABLE',
+      'Recent emoji preferences could not be saved.',
+    )
   }
 
   return parsePersistedEmojis(data)

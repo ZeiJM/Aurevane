@@ -51,8 +51,7 @@ function memberForSeat(
 ): PvpLobbyMemberView | null {
   return (
     lobby.members.find(
-      (member) =>
-        member.seated && member.teamIndex === teamIndex && member.seatIndex === seatIndex,
+      (member) => member.seated && member.teamIndex === teamIndex && member.seatIndex === seatIndex,
     ) ?? null
   )
 }
@@ -203,7 +202,8 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
       const body = (await response.json()) as { lobby?: PvpLobbyView } & ApiErrorBody
       if (!response.ok || !body.lobby) {
         throw new Error(
-          body.error?.message ?? (unseating ? 'That seat could not be released.' : 'That team move could not be made.'),
+          body.error?.message ??
+            (unseating ? 'That seat could not be released.' : 'That team move could not be made.'),
         )
       }
       setLobby(body.lobby)
@@ -364,7 +364,9 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
                   {Array.from({ length: lobby.teamSizes[teamIndex] ?? 0 }, (_, seatIndex) => {
                     const member = memberForSeat(lobby, teamIndex, seatIndex)
                     const ownSeat = member?.characterId === localCharacterId
-                    const occupiedWhileUnseated = Boolean(member && localMember && !localMember.seated)
+                    const occupiedWhileUnseated = Boolean(
+                      member && localMember && !localMember.seated,
+                    )
                     return member ? (
                       <button
                         type="button"
@@ -378,9 +380,7 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
                           (occupiedWhileUnseated && !ownSeat)
                         }
                         onClick={() =>
-                          void (ownSeat
-                            ? moveSeat(null, null)
-                            : moveSeat(teamIndex, seatIndex))
+                          void (ownSeat ? moveSeat(null, null) : moveSeat(teamIndex, seatIndex))
                         }
                         title={
                           canMoveSeats
@@ -412,7 +412,13 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
                             {member.isHost ? ' · Host' : ''}
                           </small>
                         </div>
-                        <span>{member.ready ? 'READY' : ownSeat && canMoveSeats ? 'CLICK TO MOVE' : 'STANDBY'}</span>
+                        <span>
+                          {member.ready
+                            ? 'READY'
+                            : ownSeat && canMoveSeats
+                              ? 'CLICK TO MOVE'
+                              : 'STANDBY'}
+                        </span>
                       </button>
                     ) : (
                       <button

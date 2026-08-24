@@ -58,7 +58,10 @@ export function PvpBattleClientBoundary({
       <PvpBattleKeyboardAssist playerName={playerName} />
       <PvpQuickCommitAssist />
       <PvpBattleChatBridge battleSessionId={initialBattle.battleSessionId} metadata={metadata} />
-      <DesktopBattleLogDock battleSessionId={initialBattle.battleSessionId} playerName={playerName} />
+      <DesktopBattleLogDock
+        battleSessionId={initialBattle.battleSessionId}
+        playerName={playerName}
+      />
       <PvpBattleQualityControls
         battleSessionId={initialBattle.battleSessionId}
         initialBattle={initialBattle}

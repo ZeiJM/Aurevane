@@ -17,7 +17,9 @@
     justify-self: center !important;
   }
 
-  :global(main[data-pvp-battle='true'][data-pvp-desktop-parity='true'] > header > button:last-child) {
+  :global(
+    main[data-pvp-battle='true'][data-pvp-desktop-parity='true'] > header > button:last-child
+  ) {
     justify-self: end !important;
   }
 

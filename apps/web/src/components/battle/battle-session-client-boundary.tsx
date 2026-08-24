@@ -84,7 +84,10 @@ export function BattleSessionClientBoundary({
         battleSessionId={initialBattle.battleSessionId}
         playerName={playerName}
       />
-      <DesktopBattleLogDock battleSessionId={initialBattle.battleSessionId} playerName={playerName} />
+      <DesktopBattleLogDock
+        battleSessionId={initialBattle.battleSessionId}
+        playerName={playerName}
+      />
       <MobileBattleCombatantPopup
         battleSessionId={initialBattle.battleSessionId}
         playerName={playerName}

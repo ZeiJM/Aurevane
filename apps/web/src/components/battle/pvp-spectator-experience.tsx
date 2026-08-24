@@ -260,7 +260,9 @@ export function PvpSpectatorExperience({
       return (
         <>
           <strong>Read-only battlefield</strong>
-          <span>Use Inspect to examine a combatant or terrain tile without affecting the battle.</span>
+          <span>
+            Use Inspect to examine a combatant or terrain tile without affecting the battle.
+          </span>
         </>
       )
     }
@@ -288,7 +290,9 @@ export function PvpSpectatorExperience({
     return (
       <>
         <strong>Inspect</strong>
-        <span>Click an occupied combatant for the full Inspect window, or an empty tile for terrain.</span>
+        <span>
+          Click an occupied combatant for the full Inspect window, or an empty tile for terrain.
+        </span>
       </>
     )
   }
@@ -304,7 +308,11 @@ export function PvpSpectatorExperience({
           <div>
             <span>Battle Hall · Spectator</span>
             <h1>
-              {winner ? `${teamName(winner.teamIndex)} wins.` : draw ? 'Draw.' : 'Live PvP broadcast'}
+              {winner
+                ? `${teamName(winner.teamIndex)} wins.`
+                : draw
+                  ? 'Draw.'
+                  : 'Live PvP broadcast'}
             </h1>
             {connectionNote ? <p>{connectionNote}</p> : null}
           </div>
@@ -480,8 +488,8 @@ export function PvpSpectatorExperience({
                   const y = tile.position.y + 1
                   const selected = Boolean(
                     inspectMode &&
-                      selectedPosition &&
-                      positionsEqual(tile.position, selectedPosition),
+                    selectedPosition &&
+                    positionsEqual(tile.position, selectedPosition),
                   )
 
                   return (

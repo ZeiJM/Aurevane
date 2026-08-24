@@ -129,8 +129,7 @@ function summarizeEffects(statuses: readonly CombatStatus[]): EffectSummaryItem[
     else debuffStacks += stacks
 
     const definition = PV1F_COMBAT_CONTENT.statuses.find(
-      (candidate) =>
-        candidate.id === status.statusId && candidate.version === status.statusVersion,
+      (candidate) => candidate.id === status.statusId && candidate.version === status.statusVersion,
     )
     if (!definition || definition.damageTakenMultiplierBasisPoints === BASIS_POINTS) continue
 
