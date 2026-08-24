@@ -22,6 +22,20 @@ function directNumericMarker(tile: HTMLButtonElement): HTMLSpanElement | null {
   return null
 }
 
+function directUnitToken(tile: HTMLButtonElement): HTMLSpanElement | null {
+  return (
+    Array.from(tile.children).find(
+      (child): child is HTMLSpanElement =>
+        child instanceof HTMLSpanElement && Boolean(child.querySelector(':scope > strong')),
+    ) ?? null
+  )
+}
+
+function cleanPathZeroMarker(marker: HTMLSpanElement) {
+  marker.querySelector('[data-map-token-portrait]')?.remove()
+  delete marker.dataset.mapPortraitReady
+}
+
 export function AiBattlePvpVisualSync({ playerName }: { playerName: string }) {
   useEffect(() => {
     let frame: number | null = null
@@ -87,6 +101,7 @@ export function AiBattlePvpVisualSync({ playerName }: { playerName: string }) {
       if (!playerTile) return
 
       playerTile.dataset.aiPathTile = 'true'
+      const unitToken = directUnitToken(playerTile)
       if (!existingZero || existingZero.parentElement !== playerTile) {
         existingZero?.remove()
         const zero = document.createElement('span')
@@ -94,7 +109,12 @@ export function AiBattlePvpVisualSync({ playerName }: { playerName: string }) {
         zero.dataset.aiPathNumber = 'true'
         zero.dataset.aiPathZero = 'true'
         zero.setAttribute('aria-hidden', 'true')
-        playerTile.append(zero)
+        playerTile.insertBefore(zero, unitToken)
+      } else {
+        cleanPathZeroMarker(existingZero)
+        if (unitToken && existingZero.nextElementSibling !== unitToken) {
+          playerTile.insertBefore(existingZero, unitToken)
+        }
       }
     }
 
