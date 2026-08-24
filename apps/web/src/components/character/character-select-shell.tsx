@@ -79,10 +79,6 @@ export function CharacterSelectShell({
     [bySlot, prestigeSlotEarned],
   )
 
-  useEffect(() => {
-    setAccountDeletionState(accountDeletion)
-  }, [accountDeletion])
-
   async function requestDeletion() {
     if (!deleting || busy) return
     setBusy(true)
