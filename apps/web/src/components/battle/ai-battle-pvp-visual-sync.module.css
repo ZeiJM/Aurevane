@@ -113,7 +113,8 @@
     main:not([data-pvp-battle='true']):has(section[aria-label='Tactical battlefield'])
       section:has(> section[aria-label='Tactical battlefield'])
   ) {
-    grid-template-columns: minmax(8.4rem, 10.5rem) minmax(0, 1fr) minmax(8.4rem, 10.5rem) !important;
+    grid-template-columns:
+      minmax(8.4rem, 10.5rem) minmax(0, 1fr) minmax(8.4rem, 10.5rem) !important;
     gap: 0.42rem !important;
   }
 
