@@ -121,13 +121,23 @@
     width: 100% !important;
   }
 
-  :global(main[data-pvp-battle='true'] > footer > [data-pvp-spectator-key='true']) {
+  :global(
+    main[data-pvp-battle='true'] > footer > button[data-pvp-spectator-key='true']
+  ) {
+    position: relative !important;
+    z-index: 1 !important;
     display: grid !important;
     grid-column: 1 !important;
     grid-row: 3 !important;
     width: 100% !important;
     min-width: 0 !important;
+    min-height: 2.7rem !important;
+    align-self: stretch !important;
     justify-self: stretch !important;
+    overflow: visible !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
   }
 
   :global(main[data-pvp-battle='true'] > footer > [data-pvp-footer-presence='true']) {
@@ -171,14 +181,27 @@
     grid-column: 1 / -1 !important;
   }
 
-  :global(main[data-pvp-battle='true'] > footer > [data-pvp-spectator-key='true']) {
+  :global(
+    main[data-pvp-battle='true'] > footer > button[data-pvp-spectator-key='true']
+  ) {
+    position: relative !important;
+    z-index: 1 !important;
     display: grid !important;
     grid-column: 1 !important;
     grid-row: 3 !important;
     min-height: 3.15rem !important;
     gap: 0.18rem !important;
+    place-content: center !important;
     padding: 0.55rem 0.75rem !important;
+    overflow: visible !important;
+    border: 1px solid rgba(207, 169, 93, 0.42) !important;
     border-radius: var(--av-radius-sm) !important;
+    color: var(--av-text-muted) !important;
+    background: rgba(207, 169, 93, 0.055) !important;
+    text-align: center !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
   }
 
   :global(main[data-pvp-battle='true'] > footer > [data-pvp-footer-presence='true']) {
@@ -187,13 +210,22 @@
     min-height: 3.15rem !important;
   }
 
-  :global(main[data-pvp-battle='true'] > footer > [data-pvp-spectator-key='true'] > small) {
-    font-size: 0.39rem !important;
+  :global(
+    main[data-pvp-battle='true'] > footer > button[data-pvp-spectator-key='true'] > small
+  ) {
+    display: block !important;
+    color: var(--av-text-dim) !important;
+    font: 700 0.39rem/1 var(--av-font-mono) !important;
     letter-spacing: 0.055em !important;
+    text-transform: uppercase !important;
   }
 
-  :global(main[data-pvp-battle='true'] > footer > [data-pvp-spectator-key='true'] > strong) {
-    font-size: 0.66rem !important;
+  :global(
+    main[data-pvp-battle='true'] > footer > button[data-pvp-spectator-key='true'] > strong
+  ) {
+    display: block !important;
+    color: var(--av-brass-200) !important;
+    font: 800 0.66rem/1 var(--av-font-mono) !important;
     letter-spacing: 0.1em !important;
   }
 }
