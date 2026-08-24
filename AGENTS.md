@@ -4,14 +4,60 @@
 
 - The project is **AUREVANE**, an original persistent browser-based multiplayer tactical fantasy RPG.
 - `docs/GAME_MASTER_PLAN.md` is the authoritative master game-design document.
-- `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md` is the owner-approved authoritative build-system refinement. It controls Primary/Secondary Disciplines, Skills, Resonance, Essence, the supernatural fork, Soulmarks, Mantles, and related build rules where older documents conflict.
+- `docs/ROADMAP.md` is the authoritative current phase sequence and must reflect repository truth rather than an obsolete historical plan.
+- `docs/PHASE_3_TICKETS.md` is the exact next implementation specification once Phase 2 is explicitly closed by the Owner.
+- `docs/PHASE_2_TICKETS.md` is a historical Phase-2 record and must never override current combat or phase direction.
+- `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md` is the Owner-approved authoritative build-system refinement. It governs Primary/Secondary Disciplines, Skills, Resonance, Essence, the supernatural fork, Soulmarks, Mantles, and related build rules where older documents conflict.
 - `docs/COMBAT.md` is the canonical combat source of truth. Its current PV-1F Action Economy revision supersedes the older Movement Budget + one Action model.
+- `docs/ROADMAP_PRODUCT_VALIDATION.md` defines the current product-evidence gates.
+- `docs/ROADMAP_BUILD_SYSTEM_REWORK.md` is the current sequencing companion for the build-system redesign and is subordinate to the current Roadmap and Master Plan.
 - `docs/LORE_BIBLE.md` governs central narrative canon. Do not casually alter or spoil it.
 - `docs/PROGRESSION_RETENTION.md`, `docs/NATURAL_PACING.md`, and `docs/OFFLINE_PROGRESSION.md` govern long-horizon progression, pacing, Rekindling, retention and Passive Training.
 - `docs/ITEMS_INVENTORY_LOADOUTS.md` governs items, inventory, Effect Catalog, equipment, consumables and saved loadouts.
 - `docs/COMBAT_AI_TRAINING.md` governs combat NPC intelligence, fairness/knowledge boundaries, Tactical Records, Battle Review and Combat AI Lab. **Battle Hall** is the current player-facing practice destination.
 - `docs/PRODUCT_EXPERIENCE_CONTENT_SYSTEM.md`, `docs/OWNER_OVERRIDE.md`, `docs/PLAYER_MANUAL.md`, `docs/MONETIZATION.md`, `docs/ENGINEERING_EXECUTION_STANDARD.md`, `docs/MEDIA_PIPELINE.md`, and `docs/TECHNOLOGY_POLICY.md` remain authoritative in their respective domains.
 - Treat `docs/ART_BIBLE.md` and `docs/AUDIO_BIBLE.md` as authoritative when present.
+
+## Current phase direction
+
+AUREVANE's current phase state is:
+
+```text
+Phase 0 — Engineering Foundation                    substantially complete
+Phase 1 — Character & Progression Foundation       substantially complete
+Phase 2 — Tactical Combat & Battle Platform        implementation mature; Owner testing / PV-1 exit open
+Phase 3 — Signature Buildcraft Foundation          next major implementation phase after explicit Phase-2 closure
+```
+
+Phase 2 now formally includes the reusable tactical-combat, Battle Hall/AI, direct-PvP, multi-combatant, spectation, battle-communication, battle-log and responsive battle-platform foundations already delivered.
+
+Later phases **inherit and audit** compatible early-delivered work rather than rebuilding it merely because an older roadmap scheduled it later.
+
+Mature ranked matchmaking, ratings, seasons, tournaments, competitive population systems and Colosseum/public spectator discovery remain later competitive work even though direct PvP/spectation foundations already exist.
+
+### Owner phase-transition rule
+
+If the Owner explicitly says wording equivalent to:
+
+- “Phase 2 is done.”
+- “We are done with Phase 2; start Phase 3.”
+- “Proceed to Phase 3.”
+- “Code Phase 3.”
+
+then treat that as explicit Owner authorization to close the current Phase-2 feature phase and begin the Phase-3 execution sequence.
+
+Do **not** ask the Owner to repeat an unambiguous transition instruction merely because an older issue/document still describes Phase 2 as open.
+
+Before Phase-3 runtime code:
+
+1. inspect current `main`, recent commits, open implementation PRs/issues and `TASKS.md`;
+2. reconcile the phase boundary factually;
+3. record the actual Owner/PV-1 decision without fabricating tester counts, metrics or evidence;
+4. preserve/reuse the existing battle/PvP/spectator platform;
+5. activate `docs/PHASE_3_TICKETS.md` and start at **P3.1**;
+6. continue one coherent ticket at a time unless the Owner explicitly authorizes a wider batch.
+
+A request to start/code Phase 3 is **not deployment authorization**. Deployment remains separately Owner-controlled.
 
 ## Canonical current terminology
 
@@ -70,6 +116,14 @@ Primary + mastered Secondary
 
 Do not reintroduce separate player-facing Trait, Reaction, Movement Art, or Ultimate loadout systems under different names.
 
+## Reserved terminology — Anomaly
+
+When the Owner uses capitalized **Anomaly** in a rarity/acquisition context, interpret it as an **exceptionally rare, exceptional-provenance thing that is not normally or easily obtainable through ordinary legitimate gameplay acquisition paths**.
+
+Do not casually use **Anomaly** as a generic synonym for an ordinary world event, rotating modifier, random encounter, routine phenomenon, common rarity tier, or scheduled live-ops variation. Prefer precise terms such as world event, rotation, modifier, encounter, phenomenon, or special condition unless a future approved domain specification deliberately defines another Anomaly system.
+
+An Anomaly designation never legitimizes exploit-generated, duplicated, unauthorized-admin or otherwise invalid state. If an Anomaly can enter legitimate ownership, its provenance and authorization must still be server-authoritative and auditable.
+
 ## Current attribute model
 
 The universal player-assigned attributes are:
@@ -118,11 +172,38 @@ New Skills, items, interactions, equipment effects, scenario commands, Resonance
 
 Do not introduce a second generic Movement Budget, universal Stamina bar, or another combat economy without explicit Owner approval.
 
+## Phase 3 execution contract
+
+Once Phase 3 is activated, follow `docs/PHASE_3_TICKETS.md` in this order:
+
+```text
+P3.1  Discipline build authority + Primary profiles
+  ↓
+P3.2  Secondary Discipline + independent attunement cooldowns
+  ↓
+P3.3  Mature Skill schema + generic cooldown engine
+  ↓
+P3.4  Profile Skill configuration + pure/mixed capacity
+  ↓
+P3.5  Resonance framework + representative mixed build
+  ↓
+P3.6  Essence framework + representative pure build
+  ↓
+P3.7  Build snapshots across AI / PvP / saved loadouts
+  ↓
+P3.8  Representative buildcraft slice + PV-2 readiness
+```
+
+Phase 3 implements the first playable Resonance **and** Essence foundations. Phase 4 scales/balances the roster on top of them.
+
+Soulmark/Severance/Mantle implementation remains a later world/supernatural phase and is not required to prove the Phase-3 core build thesis.
+
 ## Required document reads by domain
 
 Before meaningful implementation work, read `docs/ENGINEERING_EXECUTION_STANDARD.md`, inspect existing code, and read the applicable authoritative domain documents.
 
-- **Buildcraft / Disciplines / Skills / Resonance / Essence / Soulmark / Mantle:** Master Plan + build-system addendum.
+- **Phase transition / current sequence:** `docs/ROADMAP.md`, `TASKS.md`, current `docs/PHASE_*_TICKETS.md`.
+- **Buildcraft / Disciplines / Skills / Resonance / Essence / Soulmark / Mantle:** Master Plan + build-system addendum + current build-system roadmap/tickets.
 - **Combat / targeting / Action Economy / statuses / effects / movement / facing / battle scenes:** `docs/COMBAT.md`.
 - **Items / equipment / inventory / consumables / loadouts / loot / crafting / marketplace:** `docs/ITEMS_INVENTORY_LOADOUTS.md` plus Combat where relevant.
 - **Progression / XP / Mastery / Passive Training / Horizons / Rekindling / Veteran Edge / Archive:** progression, natural-pacing and offline-progression docs.
@@ -199,7 +280,7 @@ Never assume a package, table, route, system, or feature exists. Verify it.
 ## Owner-controlled deployment gate
 
 - **Vercel deployments are Owner-controlled and quota-sensitive. Never trigger a Vercel Preview or Production deployment unless the Owner explicitly requests a deployment in the current conversation/ticket.**
-- Requests such as **implement**, **fix**, **execute**, **continue**, **commit**, **push code**, **open a PR**, or **merge** do **not** imply permission to deploy.
+- Requests such as **implement**, **fix**, **execute**, **continue**, **commit**, **push code**, **open a PR**, **merge**, **start Phase 3**, or **code Phase 3** do **not** imply permission to deploy.
 - By default, make and push development commits only to branches that do not trigger Vercel. **Do not push implementation commits to a deployment-enabled `preview/*` branch unless the Owner has explicitly asked for a deployment.** If the current working branch is deployment-enabled and no deployment has been requested, move subsequent work to a non-deploying branch before pushing.
 - Batch related fixes and UI changes in code without deploying them. When the Owner later asks to deploy, deploy the accumulated verified batch together where practical rather than creating a deployment per fix.
 - Before any Git action that could trigger Vercel, inspect the repository's current deployment policy (currently `apps/web/vercel.json`) and choose a non-deploying path unless explicit deployment authorization exists.
@@ -215,20 +296,21 @@ Never assume a package, table, route, system, or feature exists. Verify it.
 - Multi-step economy/reward/loadout/training operations require idempotency/concurrency coverage where relevant.
 - Deterministic systems preserve seed/version replay where designed.
 - Manual verification steps must be explicit.
-- **Do not fabricate human player-validation results.** Automated gates may be green, but a PV PASS requires the actual human playtest when the roadmap calls for one.
+- **Do not fabricate human player-validation results.** Automated gates may be green, but a PV PASS requires actual human evidence when the roadmap calls for it or an explicit factual Owner phase-transition decision recorded without invented metrics.
 - Production deployment is not proof that a feature is fun, readable, balanced or player-validated.
 
 ## Documentation drift rule
 
-When a newer Owner-approved design replaces an older term or mechanic:
+When a newer Owner-approved design replaces an older term, mechanic or phase sequence:
 
-1. update the Master Plan;
+1. update the Master Plan where the top-level product contract changed;
 2. update the implementation Roadmap;
 3. update this `AGENTS.md` guidance;
-4. update current player-facing Manual/public copy;
-5. update active domain documents whose instructions would otherwise contradict the new design;
-6. leave explicitly historical snapshots intact, but clearly mark them historical;
-7. verify current implementation constants/rules before copying numerical values into canonical docs;
-8. do not allow a subordinate stale document to silently restore superseded rules.
+4. update current `docs/PHASE_*_TICKETS.md` execution guidance;
+5. update current player-facing Manual/public copy where relevant;
+6. update active domain/validation documents whose instructions would otherwise contradict the new design;
+7. leave explicitly historical snapshots intact only when clearly marked historical;
+8. verify current implementation constants/rules before copying numerical values into canonical docs;
+9. do not allow a subordinate stale document to silently restore superseded rules.
 
 The goal is one coherent current design, with history preserved only where it is intentionally history.
