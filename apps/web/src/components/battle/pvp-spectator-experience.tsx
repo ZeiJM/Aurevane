@@ -100,6 +100,10 @@ export function PvpSpectatorExperience({
       ),
     [spectator.participants],
   )
+  const inspectMetadata = useMemo(
+    () => ({ participants: spectator.participants }),
+    [spectator.participants],
+  )
   const placementByTile = useMemo(
     () =>
       new Map(
@@ -149,6 +153,7 @@ export function PvpSpectatorExperience({
   const livingTeams = teamSummaries.filter((team) => team.standing > 0)
   const winner =
     battleState.lifecycle === 'completed' && livingTeams.length === 1 ? livingTeams[0] : null
+  const draw = battleState.lifecycle === 'completed' && winner === null
 
   useEffect(() => {
     let cancelled = false
@@ -298,7 +303,9 @@ export function PvpSpectatorExperience({
         <header className={styles.header}>
           <div>
             <span>Battle Hall · Spectator</span>
-            <h1>{winner ? `${teamName(winner.teamIndex)} wins.` : 'Live PvP broadcast'}</h1>
+            <h1>
+              {winner ? `${teamName(winner.teamIndex)} wins.` : draw ? 'Draw.' : 'Live PvP broadcast'}
+            </h1>
             {connectionNote ? <p>{connectionNote}</p> : null}
           </div>
           <div className={styles.headerActions}>
@@ -330,21 +337,30 @@ export function PvpSpectatorExperience({
                   {team.standing}/{team.members.length} standing
                 </span>
               </div>
-              <div className={styles.teamMembers}>
+              <div
+                className={styles.teamMembers}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(12rem, 1fr))',
+                }}
+              >
                 {team.members.map((member) => {
                   const combatant = battleState.combatants.find(
                     (candidate) => candidate.id === member.combatantId,
                   )
                   const active = member.combatantId === activeCombatantId
-                  const hpPercent = combatant
-                    ? meterPercent(combatant.hp, combatant.maxHp)
-                    : 0
+                  const hpPercent = combatant ? meterPercent(combatant.hp, combatant.maxHp) : 0
                   return (
                     <div
                       className={styles.member}
                       data-active={active || undefined}
                       data-defeated={combatant?.hp === 0 || undefined}
                       key={member.characterId}
+                      style={{
+                        gridTemplateColumns: '2rem minmax(0, 1fr) minmax(5.2rem, 0.8fr)',
+                        width: '100%',
+                        minWidth: 0,
+                      }}
                     >
                       <CharacterPortraitImage
                         imageUrl={member.profileImageUrl}
@@ -364,11 +380,31 @@ export function PvpSpectatorExperience({
                             : ''}
                         </small>
                       </span>
-                      <span className={styles.memberHealth}>
-                        <i aria-hidden="true">
-                          <b style={{ width: `${hpPercent}%` }} />
+                      <span
+                        className={styles.memberHealth}
+                        style={{ display: 'grid', minWidth: 0, gap: '0.16rem' }}
+                      >
+                        <i
+                          aria-hidden="true"
+                          style={{
+                            display: 'block',
+                            height: '0.24rem',
+                            overflow: 'hidden',
+                            borderRadius: '999px',
+                            background: 'rgba(255,255,255,.08)',
+                          }}
+                        >
+                          <b
+                            style={{
+                              display: 'block',
+                              width: `${hpPercent}%`,
+                              height: '100%',
+                              borderRadius: 'inherit',
+                              background: 'linear-gradient(90deg, #8d3030, #d9655d)',
+                            }}
+                          />
                         </i>
-                        <small>
+                        <small style={{ color: 'var(--av-text-dim)', fontSize: '0.44rem' }}>
                           HP {combatant?.hp ?? '—'}/{combatant?.maxHp ?? '—'}
                         </small>
                       </span>
@@ -401,7 +437,7 @@ export function PvpSpectatorExperience({
             </article>
             <article className={styles.pulseCard}>
               <span>Match Pulse</span>
-              <dl>
+              <dl style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
                 <div>
                   <dt>Round</dt>
                   <dd>{battleState.round}</dd>
@@ -444,8 +480,8 @@ export function PvpSpectatorExperience({
                   const y = tile.position.y + 1
                   const selected = Boolean(
                     inspectMode &&
-                    selectedPosition &&
-                    positionsEqual(tile.position, selectedPosition),
+                      selectedPosition &&
+                      positionsEqual(tile.position, selectedPosition),
                   )
 
                   return (
@@ -561,7 +597,7 @@ export function PvpSpectatorExperience({
       </main>
       <DesktopBattleCombatantInspect
         battleSessionId={battle.battleSessionId}
-        pvpMetadata={{ participants: spectator.participants }}
+        pvpMetadata={inspectMetadata}
         battleView={battle}
       />
     </>
