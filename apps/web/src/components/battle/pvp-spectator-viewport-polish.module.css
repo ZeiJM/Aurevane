@@ -5,9 +5,9 @@
 @media (min-width: 981px) {
   :global(main[data-pvp-spectator='true']) {
     grid-template-rows: auto auto minmax(0, 1fr) !important;
-    height: calc(100dvh - 7.35rem) !important;
+    height: calc(100dvh - 0.75rem) !important;
     min-height: 0 !important;
-    max-height: calc(100dvh - 7.35rem) !important;
+    max-height: calc(100dvh - 0.75rem) !important;
     gap: 0.4rem !important;
     padding: 0.42rem 0.55rem !important;
     overflow: hidden !important;
@@ -123,10 +123,6 @@
 
   :global(main[data-pvp-spectator='true'] section[aria-label='Battle Chat']) {
     min-height: 9rem !important;
-  }
-
-  :global(main[data-pvp-spectator='true'] section[aria-label='Battle Chat']) :global(*) {
-    min-width: 0;
   }
 
   :global(
