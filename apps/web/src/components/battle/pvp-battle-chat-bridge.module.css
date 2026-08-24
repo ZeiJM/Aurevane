@@ -6,6 +6,10 @@
   display: none;
   width: min(25rem, calc(100vw - 1rem));
   height: min(31rem, calc(100dvh - 7rem));
+  min-width: 16rem;
+  min-height: 10rem;
+  max-width: calc(100vw - 0.8rem);
+  max-height: calc(100dvh - 0.8rem);
   overflow: hidden;
   border: 1px solid rgba(207, 169, 93, 0.45);
   border-radius: 0.7rem;
@@ -28,6 +32,11 @@
   background: rgba(255, 255, 255, 0.025);
 }
 
+.panelTop > div {
+  display: grid;
+  gap: 0.12rem;
+}
+
 .panelTop strong {
   color: var(--av-brass-300);
   font: 800 0.53rem/1 var(--av-font-mono);
@@ -35,7 +44,13 @@
   text-transform: uppercase;
 }
 
-.panelTop button {
+.panelTop small {
+  color: var(--av-text-dim);
+  font: 650 0.4rem/1 var(--av-font-mono);
+  text-transform: uppercase;
+}
+
+.closeButton {
   display: grid;
   width: 1.75rem;
   height: 1.75rem;
@@ -45,6 +60,28 @@
   color: var(--av-text);
   background: rgba(255, 255, 255, 0.03);
   cursor: pointer;
+}
+
+.resizeGrip {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 30;
+  display: none;
+  width: 1.2rem;
+  height: 1.2rem;
+  place-items: end;
+  padding: 0 0.08rem 0.03rem 0;
+  border: 0;
+  color: rgba(232, 210, 160, 0.88);
+  background: transparent;
+  cursor: nwse-resize;
+  touch-action: none;
+}
+
+.resizeGrip span {
+  font-size: 0.76rem;
+  pointer-events: none;
 }
 
 .triggerBadge {
@@ -58,6 +95,147 @@
   background: rgba(55, 126, 82, 0.11);
   font: 800 0.42rem/1 var(--av-font-mono);
   vertical-align: middle;
+}
+
+.footerPresence {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 120;
+  transform: translate(6.35rem, -50%);
+}
+
+.footerPresenceButton {
+  display: inline-flex;
+  min-height: 2rem;
+  gap: 0.28rem;
+  align-items: center;
+  padding: 0.38rem 0.52rem;
+  border: 1px solid rgba(95, 188, 133, 0.32);
+  border-radius: 999px;
+  color: var(--av-verdant-400);
+  background: rgba(55, 126, 82, 0.09);
+  cursor: pointer;
+  font-family: var(--av-font-mono);
+}
+
+.footerPresenceButton span,
+.footerPresenceButton strong {
+  font-size: 0.5rem;
+}
+
+.footerPresenceButton small {
+  color: var(--av-text-dim);
+  font: 700 0.34rem/1 var(--av-font-mono);
+  text-transform: uppercase;
+}
+
+.footerPresenceList {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.38rem);
+  z-index: 50;
+  display: grid;
+  width: max-content;
+  min-width: 10rem;
+  max-width: 15rem;
+  gap: 0.32rem;
+  padding: 0.55rem;
+  border: 1px solid var(--av-border-strong);
+  border-radius: var(--av-radius-sm);
+  background: rgba(8, 10, 15, 0.99);
+  box-shadow: 0 0.9rem 2.2rem rgba(0, 0, 0, 0.48);
+}
+
+.footerPresenceList strong {
+  color: var(--av-brass-300);
+  font: 800 0.5rem/1 var(--av-font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.footerPresenceList span {
+  overflow: hidden;
+  color: var(--av-text-muted);
+  font-size: 0.62rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 821px) {
+  .panel[data-desktop] {
+    right: auto;
+    bottom: 3.25rem;
+    left: 0.6rem;
+    width: min(26rem, calc(100vw - 1.2rem));
+    height: min(24rem, 56dvh);
+    will-change: left, top, width, height;
+  }
+
+  .panel[data-desktop] .panelTop {
+    min-height: 2.8rem;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+  }
+
+  .panel[data-desktop] .panelTop:active {
+    cursor: grabbing;
+  }
+
+  .panel[data-desktop] .closeButton {
+    display: none;
+  }
+
+  .panel[data-desktop] > section > header {
+    display: none;
+  }
+
+  .panel[data-desktop] .resizeGrip {
+    display: grid;
+  }
+}
+
+@media (max-width: 820px) {
+  .footerPresence {
+    position: relative;
+    top: auto;
+    left: auto;
+    grid-column: 2 !important;
+    grid-row: 3 !important;
+    width: 100%;
+    transform: none;
+  }
+
+  .footerPresenceButton {
+    width: 100%;
+    min-height: 2.7rem;
+    justify-content: center;
+    border-radius: var(--av-radius-sm);
+  }
+
+  :global(main[data-pvp-battle='true'] > footer) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  }
+
+  :global(main[data-pvp-battle='true'] > footer > button:first-child) {
+    grid-column: 1 / -1 !important;
+    grid-row: 1 !important;
+  }
+
+  :global(main[data-pvp-battle='true'] > footer > div:not([data-pvp-footer-presence='true'])) {
+    grid-column: 1 / -1 !important;
+    grid-row: 2 !important;
+    width: 100%;
+  }
+
+  :global(main[data-pvp-battle='true'] > footer > [data-pvp-spectator-key='true']) {
+    grid-column: 1 !important;
+    grid-row: 3 !important;
+    min-width: 0 !important;
+    width: 100%;
+    justify-self: stretch !important;
+  }
 }
 
 @media (max-width: 620px) {
