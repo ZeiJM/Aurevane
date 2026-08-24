@@ -209,9 +209,7 @@
   }
 
   :global(
-    main[data-pvp-battle='true']
-      #battlefield[data-desktop-battle-log-open='true']
-      > div:first-child
+    main[data-pvp-battle='true'] #battlefield[data-desktop-battle-log-open='true'] > div:first-child
   ) {
     padding-right: calc(var(--battle-log-dock-width) + 0.85rem) !important;
     padding-left: clamp(0.4rem, 0.8vw, 0.75rem) !important;

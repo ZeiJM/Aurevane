@@ -160,3 +160,32 @@
     padding-block: 0.22rem !important;
   }
 }
+
+/* spectator-full-viewport-fit-v2 */
+@media (min-width: 981px) {
+  :global(main[data-pvp-spectator='true']) {
+    height: calc(100dvh - 0.75rem) !important;
+    min-height: 0 !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] #battlefield > div:nth-child(2)) {
+    overflow: hidden !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] #battlefield > div:nth-child(2) > div) {
+    width: auto !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    margin: auto !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] section[aria-label='Battle Chat']) {
+    min-height: 9rem !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] section[aria-label='Battle Chat']) :global(*) {
+    min-width: 0;
+  }
+}

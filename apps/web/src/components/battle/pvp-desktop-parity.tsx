@@ -423,8 +423,13 @@ export function PvpDesktopParity({
 
     const ratio = initialBattle.snapshot.tactical.width / initialBattle.snapshot.tactical.height
     const fit = () => {
-      const availableWidth = Math.max(0, viewport.clientWidth - 16)
-      const availableHeight = Math.max(0, viewport.clientHeight - 16)
+      const viewportStyle = window.getComputedStyle(viewport)
+      const horizontalPadding =
+        Number.parseFloat(viewportStyle.paddingLeft) + Number.parseFloat(viewportStyle.paddingRight)
+      const verticalPadding =
+        Number.parseFloat(viewportStyle.paddingTop) + Number.parseFloat(viewportStyle.paddingBottom)
+      const availableWidth = Math.max(0, viewport.clientWidth - horizontalPadding)
+      const availableHeight = Math.max(0, viewport.clientHeight - verticalPadding)
       const width = Math.floor(Math.min(availableWidth, availableHeight * ratio, 620))
       if (width <= 0) return
       board.style.setProperty('width', `${width}px`, 'important')
