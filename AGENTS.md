@@ -4,23 +4,25 @@
 
 - The project is **AUREVANE**, an original persistent browser-based multiplayer tactical fantasy RPG.
 - `docs/GAME_MASTER_PLAN.md` is the authoritative master game-design document.
-- `docs/ROADMAP.md` is the authoritative current phase sequence and must reflect repository truth rather than an obsolete historical plan.
-- `docs/PHASE_3_TICKETS.md` is the exact next implementation specification once Phase 2 is explicitly closed by the Owner.
-- `docs/PHASE_2_TICKETS.md` is a historical Phase-2 record and must never override current combat or phase direction.
-- `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md` is the Owner-approved authoritative build-system refinement. It governs Primary/Secondary Disciplines, Skills, Resonance, Essence, the supernatural fork, Soulmarks, Mantles, and related build rules where older documents conflict.
-- `docs/COMBAT.md` is the canonical combat source of truth. Its current PV-1F Action Economy revision supersedes the older Movement Budget + one Action model.
-- `docs/ROADMAP_PRODUCT_VALIDATION.md` defines the current product-evidence gates.
-- `docs/ROADMAP_BUILD_SYSTEM_REWORK.md` is the current sequencing companion for the build-system redesign and is subordinate to the current Roadmap and Master Plan.
-- `docs/LORE_BIBLE.md` governs central narrative canon. Do not casually alter or spoil it.
-- `docs/PROGRESSION_RETENTION.md`, `docs/NATURAL_PACING.md`, and `docs/OFFLINE_PROGRESSION.md` govern long-horizon progression, pacing, Rekindling, retention and Passive Training.
-- `docs/ITEMS_INVENTORY_LOADOUTS.md` governs items, inventory, Effect Catalog, equipment, consumables and saved loadouts.
-- `docs/COMBAT_AI_TRAINING.md` governs combat NPC intelligence, fairness/knowledge boundaries, Tactical Records, Battle Review and Combat AI Lab. **Battle Hall** is the current player-facing practice destination.
-- `docs/PRODUCT_EXPERIENCE_CONTENT_SYSTEM.md`, `docs/OWNER_OVERRIDE.md`, `docs/PLAYER_MANUAL.md`, `docs/MONETIZATION.md`, `docs/ENGINEERING_EXECUTION_STANDARD.md`, `docs/MEDIA_PIPELINE.md`, and `docs/TECHNOLOGY_POLICY.md` remain authoritative in their respective domains.
+- `docs/ROADMAP.md` is the authoritative current phase sequence and must reflect repository truth rather than historical sequencing.
+- `TASKS.md` reports the active implementation/validation boundary.
+- Current `docs/PHASE_*_TICKETS.md` files define exact phase execution. `docs/PHASE_2_TICKETS.md` is historical; `docs/PHASE_3_TICKETS.md` is the next implementation plan after Phase-2 closure.
+- `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md` governs Primary/Secondary Disciplines, Skills, Resonance, Essence, Soulmarks, Severance/Mantles and related build rules.
+- `docs/ROADMAP_BUILD_SYSTEM_REWORK.md` is the current build-sequencing companion.
+- `docs/COMBAT.md` is canonical combat authority. Its current shared Action Economy supersedes Movement Budget + one Action.
+- `docs/ROADMAP_PRODUCT_VALIDATION.md` defines product-evidence gates.
+- `docs/REKINDLING_FRONTIER_ANOMALIES.md` is the binding long-horizon design extension for Rekindling replay differentiation, the Unwritten Reach, Frontier Acumen, Veyr/Inward Drift concepts and Anomalies.
+- `docs/LORE_BIBLE.md` governs central narrative canon. Do not casually alter/spoil it.
+- `docs/PROGRESSION_RETENTION.md`, `docs/NATURAL_PACING.md`, and `docs/OFFLINE_PROGRESSION.md` govern progression/pacing/Rekindling/Passive Training except where the newer frontier/Rekindling extension deliberately adds detail.
+- `docs/LIVING_WORLD_STORY.md` governs living-world/story operations except where the newer frontier extension deliberately adds frontier-specific direction.
+- `docs/ITEMS_INVENTORY_LOADOUTS.md` governs items/inventory/equipment/consumables/loadouts.
+- `docs/COMBAT_AI_TRAINING.md` governs combat AI/fairness/Battle Hall/Tactical Records.
+- `docs/PRODUCT_EXPERIENCE_CONTENT_SYSTEM.md`, `docs/OWNER_OVERRIDE.md`, `docs/PLAYER_MANUAL.md`, `docs/MONETIZATION.md`, `docs/ENGINEERING_EXECUTION_STANDARD.md`, `docs/MEDIA_PIPELINE.md`, and `docs/TECHNOLOGY_POLICY.md` remain authoritative in their domains.
 - Treat `docs/ART_BIBLE.md` and `docs/AUDIO_BIBLE.md` as authoritative when present.
 
-## Current phase direction
+---
 
-AUREVANE's current phase state is:
+## Current phase direction
 
 ```text
 Phase 0 — Engineering Foundation                    substantially complete
@@ -29,15 +31,15 @@ Phase 2 — Tactical Combat & Battle Platform        implementation mature; Owne
 Phase 3 — Signature Buildcraft Foundation          next major implementation phase after explicit Phase-2 closure
 ```
 
-Phase 2 now formally includes the reusable tactical-combat, Battle Hall/AI, direct-PvP, multi-combatant, spectation, battle-communication, battle-log and responsive battle-platform foundations already delivered.
+Phase 2 now formally includes reusable tactical combat, Battle Hall/AI, direct-PvP, multi-combatant, spectation, battle communication/log and responsive battle-platform foundations already delivered.
 
-Later phases **inherit and audit** compatible early-delivered work rather than rebuilding it merely because an older roadmap scheduled it later.
+Later phases **inherit/audit** compatible early-delivered work rather than rebuilding it.
 
-Mature ranked matchmaking, ratings, seasons, tournaments, competitive population systems and Colosseum/public spectator discovery remain later competitive work even though direct PvP/spectation foundations already exist.
+Mature ranked matchmaking, ratings, seasons, tournaments, competitive population systems and Colosseum/public spectator discovery remain later Phase-8 work.
 
-### Owner phase-transition rule
+### Owner Phase-3 transition rule
 
-If the Owner explicitly says wording equivalent to:
+If the Owner clearly says wording equivalent to:
 
 - “Phase 2 is done.”
 - “We are done with Phase 2; start Phase 3.”
@@ -46,48 +48,82 @@ If the Owner explicitly says wording equivalent to:
 
 then treat that as explicit Owner authorization to close the current Phase-2 feature phase and begin the Phase-3 execution sequence.
 
-Do **not** ask the Owner to repeat an unambiguous transition instruction merely because an older issue/document still describes Phase 2 as open.
+Do **not** ask the Owner to repeat an unambiguous instruction merely because an older issue/document still describes Phase 2 as open.
 
 Before Phase-3 runtime code:
 
 1. inspect current `main`, recent commits, open implementation PRs/issues and `TASKS.md`;
 2. reconcile the phase boundary factually;
-3. record the actual Owner/PV-1 decision without fabricating tester counts, metrics or evidence;
-4. preserve/reuse the existing battle/PvP/spectator platform;
-5. activate `docs/PHASE_3_TICKETS.md` and start at **P3.1**;
+3. record the actual Owner/PV-1 decision without inventing missing tester counts/metrics;
+4. preserve/reuse the battle/PvP/spectator platform;
+5. activate `docs/PHASE_3_TICKETS.md` and start **P3.1**;
 6. continue one coherent ticket at a time unless the Owner explicitly authorizes a wider batch.
 
-A request to start/code Phase 3 is **not deployment authorization**. Deployment remains separately Owner-controlled.
+Phase-transition authorization is **not** deployment authorization.
 
-## Canonical current terminology
+---
 
-Use these player-facing terms in new implementation and documentation:
-
-- **Primary Discipline** — principal active combat tradition; defines the active Discipline base-stat profile.
-- **Secondary Discipline** — optional mastered combat tradition mixed into the active build; supplies no second base-stat profile.
-- **Skill** — player-facing umbrella term for usable combat abilities, with origin labels such as Discipline Skill, Equipment Skill, Soulmark Skill, Essence Skill, Mantle Skill, or Veteran Edge where applicable.
-- **Resonance** — passive interaction created by an eligible Primary + Secondary pairing.
-- **Essence / Discipline Essence** — pure-Discipline counterpart to Resonance; a Primary-only build may gain one special Essence Skill outside its normal Discipline Skill capacity.
-- **Soulmark** — persistent supernatural identity on the Soulmarked path.
-- **The Severance / Soul-Severed** — permanent alternative supernatural path.
-- **Mantle** — temporary manifested transformation available to eligible Soul-Severed characters.
-- **Battle Hall** — current player-facing practice-combat destination.
-- **Passive Training** — current explicit server-timed background training system.
-
-Retired player-facing terminology includes Current Discipline, Legacy Discipline, Art as the generic ability term, Confluence, separate Trait/Reaction/Movement Art/Ultimate slots, and Tactical Hall as the current practice destination. These may remain only in clearly historical/reference snapshots, migration notes, old identifiers awaiting deliberate migration, or quoted legacy material.
-
-The mature build contract is:
+## Phase 3 execution contract
 
 ```text
-CHARACTER ATTRIBUTES
+P3.1 Discipline build authority + Primary profiles
+  ↓
+P3.2 Secondary Discipline + independent attunement cooldowns
+  ↓
+P3.3 Mature Skill schema + generic cooldown engine
+  ↓
+P3.4 Profile Skill configuration + pure/mixed capacity
+  ↓
+P3.5 Resonance framework + representative mixed build
+  ↓
+P3.6 Essence framework + representative pure build
+  ↓
+P3.7 Build snapshots across AI / PvP / saved loadouts
+  ↓
+P3.8 Representative buildcraft slice + PV-2 readiness
+```
+
+Phase 3 implements first playable Resonance **and** Essence foundations. Phase 4 scales/balances the roster.
+
+Soulmark/Severance/Mantle and frontier implementation remain later world/supernatural phases.
+
+---
+
+## Canonical terminology
+
+Use:
+
+- **Primary Discipline** — principal active combat tradition; defines active Discipline base profile.
+- **Secondary Discipline** — optional mastered combat tradition mixed into the build; no second base profile.
+- **Skill** — usable combat ability umbrella term.
+- **Resonance** — passive interaction from eligible Primary + Secondary pairing.
+- **Essence / Discipline Essence** — pure-Discipline counterpart; one special Essence Skill outside normal Discipline capacity.
+- **Soulmark** — persistent supernatural identity.
+- **The Severance / Soul-Severed** — permanent alternative supernatural path.
+- **Mantle** — temporary manifested transformation available to eligible Soul-Severed characters.
+- **Battle Hall** — current practice-combat destination.
+- **Passive Training** — explicit server-timed background progression.
+- **Unwritten Reach** — canonical working name for the unstable frontier commonly called the Edge of the World.
+- **Anchor** — persistent authored frontier discovery.
+- **Driftspace** — mutable connective frontier geography.
+- **Cartographic Drift** — deterministic server-seeded frontier re-resolution.
+- **Frontier Acumen** — proven frontier knowledge/competency, not generic raw-power reputation.
+- **Anomaly** — exceptional irregular-origin thing not normally/easily obtainable through sanctioned ordinary progression.
+
+Retired current-facing terms include Current Discipline, Legacy Discipline, Art as the generic ability term, Confluence, separate Trait/Reaction/Movement Art/Ultimate slots and Tactical Hall.
+
+### Mature build contract
+
+```text
+PLAYER-ASSIGNED ATTRIBUTES
 +
-PRIMARY DISCIPLINE
+PRIMARY DISCIPLINE BASE PROFILE
 +
-OPTIONAL SECONDARY DISCIPLINE
+OPTIONAL MASTERED SECONDARY DISCIPLINE
 +
 DISCIPLINE SKILLS
 +
-RESONANCE OR PURE-DISCIPLINE ESSENCE
+PURE ESSENCE OR MIXED RESONANCE
 +
 SOULMARK OR SOUL-SEVERED MANTLE PATH
 +
@@ -96,7 +132,7 @@ EQUIPMENT + EQUIPMENT SKILLS
 BOUNDED PRESTIGE / VETERAN EDGE
 ```
 
-Pure build:
+Pure:
 
 ```text
 Primary only
@@ -105,28 +141,75 @@ Primary only
 + no Resonance
 ```
 
-Mixed build:
+Mixed:
 
 ```text
 Primary + mastered Secondary
 6 total Discipline Skills across the pair
 + Resonance passive
-+ no pure-path Essence while Secondary is equipped
++ no pure Essence while Secondary is equipped
 ```
 
-Do not reintroduce separate player-facing Trait, Reaction, Movement Art, or Ultimate loadout systems under different names.
+Never reintroduce separate player-facing Trait/Reaction/Movement Art/Ultimate loadout systems under new names.
 
-## Reserved terminology — Anomaly
+---
 
-When the Owner uses capitalized **Anomaly** in a rarity/acquisition context, interpret it as an **exceptionally rare, exceptional-provenance thing that is not normally or easily obtainable through ordinary legitimate gameplay acquisition paths**.
+## Anomaly rules
 
-Do not casually use **Anomaly** as a generic synonym for an ordinary world event, rotating modifier, random encounter, routine phenomenon, common rarity tier, or scheduled live-ops variation. Prefer precise terms such as world event, rotation, modifier, encounter, phenomenon, or special condition unless a future approved domain specification deliberately defines another Anomaly system.
+When the Owner uses capitalized **Anomaly** in rarity/acquisition context, interpret it as an exceptionally rare, exceptional-provenance build/item/technique/discovery that is **not normally or easily obtainable through ordinary sanctioned gameplay paths**.
 
-An Anomaly designation never legitimizes exploit-generated, duplicated, unauthorized-admin or otherwise invalid state. If an Anomaly can enter legitimate ownership, its provenance and authorization must still be server-authoritative and auditable.
+Possible Anomaly forms include:
 
-## Current attribute model
+- one Anomaly Skill/Technique;
+- anomalous item/effect property;
+- impossible learned memory;
+- irregular traversal ability;
+- forbidden/unsanctioned combat interaction;
+- object/effect from an unrealized history;
+- exceptionally rare alternate acquisition;
+- only with separate Owner approval, a fully authored Anomalous Discipline.
 
-The universal player-assigned attributes are:
+Do not use **Anomaly** as a generic synonym for world event, modifier, routine phenomenon or normal rarity tier.
+
+“In-world illegal/unsanctioned” acquisition may include forbidden rites, contraband research, hidden frontier markets, sealed sites or faction/Veyr dealings. It **never** legitimizes exploiting bugs, cheating, duplication, unauthorized admin state or real-money black markets.
+
+Anomaly ownership/acquisition must remain server-authoritative, versioned, provenance-aware and auditable.
+
+No cash-only Anomaly combat power. No ultra-rare Anomaly may be required for ordinary competitive viability. Competitive modes explicitly classify relevant Anomalies as allowed/normalized/disabled/event-only/tournament-restricted.
+
+---
+
+## Rekindling / frontier direction
+
+Rekindling is AUREVANE's prestige system, but later cycles must **not** be identical level/quest repetition with a permanent XP multiplier.
+
+Future Rekindling differentiation should use:
+
+- Memory Carryover;
+- Echo Routes influenced by prior-cycle history;
+- history-aware NPC/mentor interactions;
+- abbreviated mastered tutorials;
+- alternate progression/Discipline routes;
+- different build goals;
+- live-world variation;
+- Archive reinterpretation;
+- Hall of Selves;
+- frontier history/deeper Reach opportunities;
+- bounded Veteran Edge choices.
+
+The Unwritten Reach should feel near-infinite through **authored Anchors + deterministic Driftspace**, not technically unbounded random generation.
+
+The Reach connects directly to the Unchosen/Unmoored/Closed Horizon/Great Vane mythology. Avoid generic endless-dungeon or purple-corruption presentation.
+
+Working far-inhabitant concept **the Veyr** is non-monolithic and morally/culturally varied. Working looming-threat concept **the Inward Drift** describes Reach-like contradictions moving into previously stable territory rather than a simple invading army.
+
+These working names may be refined during dedicated lore authoring, but their underlying design roles are approved unless the Owner changes them.
+
+---
+
+## Current attributes
+
+Player-assigned attributes:
 
 - Might;
 - Finesse;
@@ -135,26 +218,17 @@ The universal player-assigned attributes are:
 - Intellect;
 - Resolve.
 
-Do not restore the earlier four-attribute model. Primary Discipline contributes a base Discipline stat profile without rewriting the player's separately assigned attribute investment. Secondary Discipline does not contribute a second base profile.
+Primary contributes a base Discipline profile without rewriting assigned investment. Secondary contributes no second base profile.
 
-## Non-negotiable design rules
-
-- Never redesign, remove, simplify, or invent game mechanics unless explicitly asked or an already-approved authoritative document requires the migration.
-- Preserve working functionality unless explicitly replacing it.
-- Build one small coherent ticket at a time unless the active execution mandate explicitly authorizes a larger verified release workflow.
-- Do not implement future roadmap systems merely because architecture anticipates them.
-- Inspect existing code and relevant authoritative docs before meaningful changes.
-- Never rewrite approved central lore or expose late-story secrets without explicit Owner approval.
-- Do not collapse the long progression journey, item system, AI system, or player experience into generic shortcuts merely to reduce implementation work.
-- Audio and visual presentation are first-class systems throughout development.
+---
 
 ## Current combat authority
 
-`docs/COMBAT.md` is definitive for the current combat baseline.
+`docs/COMBAT.md` is definitive.
 
-The current PV-1F model uses one shared **Action Economy**, displayed to players in **AP**, normally 100 AP at turn start. It supersedes the former Movement Budget + one Action validation model.
+Current combat uses one shared **Action Economy**, normally 100 AP at turn start.
 
-Current implemented PV-1F costs are:
+Current implemented baseline:
 
 ```text
 Inspect                         0 AP
@@ -166,151 +240,109 @@ Recover                        50 AP
 Final Facing                    0 AP and ends the turn
 ```
 
-These values are confirmed by the current server-authoritative PV-1F implementation and Battle Hall UI. Multiple legal commands may occur in one turn while AP remains. Do not restore the retired one-action-per-turn model or older draft movement costs.
+Multiple legal commands may occur while AP remains.
 
-New Skills, items, interactions, equipment effects, scenario commands, Resonances, supernatural effects, and future systems must integrate through the authoritative combat grammar and current Action Economy contract unless a later Owner-approved revision supersedes it.
+Never restore Movement Budget + one Action merely because it exists in historical tickets.
 
-Do not introduce a second generic Movement Budget, universal Stamina bar, or another combat economy without explicit Owner approval.
+New Skills/items/Resonances/supernatural/Anomaly interactions reuse authoritative targeting/requirements/effects/AP/cooldown rules unless an explicitly approved exception is typed/versioned.
 
-## Phase 3 execution contract
+---
 
-Once Phase 3 is activated, follow `docs/PHASE_3_TICKETS.md` in this order:
+## Non-negotiable engineering/design rules
 
-```text
-P3.1  Discipline build authority + Primary profiles
-  ↓
-P3.2  Secondary Discipline + independent attunement cooldowns
-  ↓
-P3.3  Mature Skill schema + generic cooldown engine
-  ↓
-P3.4  Profile Skill configuration + pure/mixed capacity
-  ↓
-P3.5  Resonance framework + representative mixed build
-  ↓
-P3.6  Essence framework + representative pure build
-  ↓
-P3.7  Build snapshots across AI / PvP / saved loadouts
-  ↓
-P3.8  Representative buildcraft slice + PV-2 readiness
-```
+- Never redesign/remove approved mechanics unless explicitly asked or required by newer authority.
+- Preserve working functionality unless replacing it deliberately.
+- Build one small coherent ticket at a time unless explicitly authorized otherwise.
+- Do not implement future systems merely because architecture anticipates them.
+- Inspect existing code and applicable docs before meaningful changes.
+- Never casually rewrite central lore/spoilers.
+- Audio/visual presentation are first-class systems.
+- All valuable/persistent state is server-authoritative.
+- Browser submits intent; it does not determine outcomes.
+- Validate all external input server-side.
+- Use transactions for multi-step authoritative state changes.
+- Rewards/fulfillment must be idempotent.
+- Never expose service/database/payment secrets to browser or `NEXT_PUBLIC_*`.
+- Never import server-only authority into Client Components.
+- Use migrations for schema changes.
+- Prefer existing services/schemas/components before parallel replacements.
+- Stable content types use stable IDs/versioned relationships.
+- Do not permit arbitrary JavaScript/SQL in content editors.
+- Avoid N+1/unbounded reads/redundant polling/subscriptions.
+- Saved loadouts use one atomic authoritative activation and cannot bypass attunement/mastery/item legality.
+- AI reuses authoritative legality and has deterministic bounded fallback.
+- Provenance matters for valuable/exceptional grants, especially Anomalies.
 
-Phase 3 implements the first playable Resonance **and** Essence foundations. Phase 4 scales/balances the roster on top of them.
-
-Soulmark/Severance/Mantle implementation remains a later world/supernatural phase and is not required to prove the Phase-3 core build thesis.
+---
 
 ## Required document reads by domain
 
-Before meaningful implementation work, read `docs/ENGINEERING_EXECUTION_STANDARD.md`, inspect existing code, and read the applicable authoritative domain documents.
+Before meaningful implementation, read `docs/ENGINEERING_EXECUTION_STANDARD.md`, inspect existing code, and read applicable authorities.
 
-- **Phase transition / current sequence:** `docs/ROADMAP.md`, `TASKS.md`, current `docs/PHASE_*_TICKETS.md`.
-- **Buildcraft / Disciplines / Skills / Resonance / Essence / Soulmark / Mantle:** Master Plan + build-system addendum + current build-system roadmap/tickets.
-- **Combat / targeting / Action Economy / statuses / effects / movement / facing / battle scenes:** `docs/COMBAT.md`.
-- **Items / equipment / inventory / consumables / loadouts / loot / crafting / marketplace:** `docs/ITEMS_INVENTORY_LOADOUTS.md` plus Combat where relevant.
-- **Progression / XP / Mastery / Passive Training / Horizons / Rekindling / Veteran Edge / Archive:** progression, natural-pacing and offline-progression docs.
-- **Combat AI / bosses / allied NPCs / Battle Hall / Tactical Records:** Combat + Combat AI Training.
+- **Phase transition/current sequence:** `docs/ROADMAP.md`, `TASKS.md`, current `docs/PHASE_*_TICKETS.md`.
+- **Buildcraft:** Master Plan + build-system addendum + build roadmap/tickets.
+- **Combat:** `docs/COMBAT.md`.
+- **Items/equipment/loadouts/economy:** `docs/ITEMS_INVENTORY_LOADOUTS.md` plus Combat where relevant.
+- **Progression/Rekindling:** progression/pacing/offline docs + `docs/REKINDLING_FRONTIER_ANOMALIES.md` when later-cycle/frontier behavior is involved.
+- **Frontier/Anomalies:** `docs/REKINDLING_FRONTIER_ANOMALIES.md` + Lore Bible + Living World + applicable combat/economy docs.
+- **AI/Battle Hall:** Combat + Combat AI Training.
 - **Major player-facing pages:** Product Experience Content System.
-- **Owner/player mutation tools / grants / exceptional state:** Owner Override + Master Panel.
-- **Premium commerce:** Monetization + relevant security/operations docs.
-- **Player-facing feature changes:** Player Manual and current public/manual copy.
-- **Narrative/world/quest/event/supernatural content touching central mythology:** Lore Bible.
+- **Owner mutation/tools:** Owner Override + Master Panel.
+- **Commerce:** Monetization + security/operations docs.
+- **Narrative/world/events:** Lore Bible + Living World Story.
 
-Never assume a package, table, route, system, or feature exists. Verify it.
+Never assume a package/table/route/system exists. Verify it.
 
-## Server authority and security
+---
 
-- All valuable or persistent game state is server-authoritative.
-- The browser may submit intent; it does not determine outcomes.
-- Server owns combat legality, Action Economy, paths, targets, Skill legality, cooldowns, triggered effects, terrain transformations, timers, item ownership/equip state, loadout activation, consumptions/effects, AI actions, practice unlocks, rewards, XP, currency, progression, Passive Training timing/rewards, Primary/Secondary attunement cooldowns, PvP, trading, quests, Rekindling, Veteran Edge, lore discovery, permissions, Owner overrides, premium prices, payment completion and fulfillment.
-- Validate all external input server-side.
-- Privileged actions require server-side authorization; hidden UI is not security.
-- Use transactions for multi-step authoritative state changes.
-- Rewards and fulfillment must be idempotent.
-- Never expose service-role/database/payment secrets to the browser or `NEXT_PUBLIC_*` variables.
-- Never import server-only authoritative logic into Client Components.
-- Owner power uses validated commands, permissions, provenance, audits and Break-Glass workflows.
-- Premium fulfillment never trusts a browser redirect or client success flag as proof of payment.
+## Product experience
 
-## Architecture, cleanliness, and data
+- Major pages need clear intent, hierarchy, authoritative data, feedback, responsive behavior, accessibility, help/manual impact and media requirements.
+- Battle UI is board-first.
+- Character Profile is the persistent build headquarters; battle consumes committed snapshots.
+- Public Manual/News/Rules must distinguish playable-now from roadmap direction.
+- Player-facing terminology changes require documentation reconciliation.
+- Frontier discovery should emphasize uncertainty without hiding actionable UI information required for fair decisions.
 
-- Prefer modular feature-oriented architecture with clear UI/domain/database/validation/authorization boundaries.
-- Implement the smallest coherent change that fully satisfies the ticket.
-- Reuse existing services, schemas, validators, components and patterns before creating parallel replacements.
-- Keep one authoritative source of truth for rules and live configuration; do not duplicate formulas, permissions, unlocks, balance values, Passive Training rules, Skill definitions, Resonance/Essence rules, AI profiles, item/effect definitions or Action Economy costs across layers.
-- Important content types use stable IDs and typed relationships so gameplay, Master Panel, Manual/Codex, AI, media, acquisition, analytics and support reference the same identity.
-- Item Definitions and owned Item Instances are distinct where needed.
-- Discipline Skills, Basic Attack profiles, Equipment Skills, Soulmark/Essence/Mantle Skills, combat items, scenario actions and AI legality should reuse the same typed targeting/requirement/effect grammar where practical.
-- Do not permit arbitrary JavaScript or SQL in content editors.
-- Use migrations for every database schema change.
-- Avoid N+1 queries, unbounded reads, redundant round trips, duplicate subscriptions and unnecessary polling.
-- Authoritative calculations stay server-side.
-- Primary/Secondary cooldowns, progression curves, Passive Training, item/effect/loot/loadout definitions, combat content, AI profiles, acquisition/visibility metadata, Rekindling, Veteran Edge, events and other live-operated configuration should be data-driven/versioned where practical.
-- AI reuses authoritative legality/range/path/effect/terrain/item rules and has a bounded deterministic fallback.
-- Saved loadout activation is one authoritative atomic command, validates the current build contract and respects Primary/Secondary attunement cooldowns.
-- Passive Training uses server-owned timestamps and idempotent completion/claim behavior.
-- Preserve provenance for valuable grants and exceptional support/Owner state.
-- TypeScript remains the default application/game-service language and PostgreSQL/SQL the authoritative relational layer unless a documented architecture decision approves otherwise.
-- Optimize bottlenecks with evidence; do not trade clarity for speculative micro-optimization.
-
-## Narrative and live-world continuity
-
-- Permanent character building and the living-world story reinforce each other.
-- Do not leak late-story secrets in early quests, public UI, item descriptions, filenames, API payloads, logs, Manual articles, premium copy, Battle Hall catalogs, Codex catalogs, maps or event metadata.
-- Story/world events should be data-driven and versioned where practical.
-- World-state changes should visibly affect relevant presentation rather than merely add a badge.
-- Important settlements/regions require authored identity; do not carbon-copy them.
-- Battle scenes should derive coherently from world/encounter context.
-- Quest/key items must preserve story integrity.
-
-## Product experience and circular content integrity
-
-- Every major player-facing page needs clear intent, primary action, authoritative data source, hierarchy, visual focus, feedback states, responsive behavior, accessibility, help/manual impact and media requirements.
-- A page is not complete merely because its route renders or CRUD works.
-- Battle UI is board-first and must keep targeting, Action Economy, actor state, forecast, timeline/log and contextual inspection readable.
-- Character Profile is the persistent build headquarters; battle screens show the committed battle snapshot rather than becoming the respec editor.
-- Public Manual/News/Rules copy must distinguish playable-now behavior from roadmap direction.
-- Whenever player-facing terminology changes, update the Master Plan, Roadmap, Manual/public copy, applicable domain docs and intentional tests/content fixtures.
-
-## Media and licensing
-
-- Respect the Art Bible and Audio Bible when present.
-- If required media is missing, create a structured `ART_REQUEST` or `AUDIO_REQUEST` rather than normalizing placeholder quality.
-- Never introduce unlicensed third-party art, audio, code, fonts or other assets.
-- Reference games may inform abstract design principles only; do not copy their implementation, names, distinctive assets or protected presentation.
+---
 
 ## Owner-controlled deployment gate
 
-- **Vercel deployments are Owner-controlled and quota-sensitive. Never trigger a Vercel Preview or Production deployment unless the Owner explicitly requests a deployment in the current conversation/ticket.**
-- Requests such as **implement**, **fix**, **execute**, **continue**, **commit**, **push code**, **open a PR**, **merge**, **start Phase 3**, or **code Phase 3** do **not** imply permission to deploy.
-- By default, make and push development commits only to branches that do not trigger Vercel. **Do not push implementation commits to a deployment-enabled `preview/*` branch unless the Owner has explicitly asked for a deployment.** If the current working branch is deployment-enabled and no deployment has been requested, move subsequent work to a non-deploying branch before pushing.
-- Batch related fixes and UI changes in code without deploying them. When the Owner later asks to deploy, deploy the accumulated verified batch together where practical rather than creating a deployment per fix.
-- Before any Git action that could trigger Vercel, inspect the repository's current deployment policy (currently `apps/web/vercel.json`) and choose a non-deploying path unless explicit deployment authorization exists.
-- Local builds, typechecks, tests, lint, CI, code review, commits, and merges should be used to validate work without consuming Vercel deployment quota whenever possible.
-- An explicit deployment request authorizes only the deployment work needed for that requested release/preview. It does not grant standing permission to deploy later unrelated follow-up fixes.
-- Never enable `main` production deployment merely to test a fix. Production remains a deliberate Owner-requested release action.
+- **Never trigger Vercel Preview or Production unless the Owner explicitly requests deployment in the current conversation/ticket.**
+- Implement/fix/continue/commit/push/open PR/merge do **not** imply deployment permission.
+- Inspect `apps/web/vercel.json` before Git actions that could trigger deployment.
+- Use non-deploying branches by default.
+- Local checks/CI/commits/merges should validate work without consuming deployment quota where possible.
+- Explicit deployment permission applies only to the requested release, not future unrelated work.
 
-## Testing and release discipline
+---
 
-- Run relevant tests, typecheck, lint and build after implementation tickets where the environment allows.
-- Significant combat behavior requires automated regression coverage.
-- Database changes require migration and authority/RLS/security review.
-- Multi-step economy/reward/loadout/training operations require idempotency/concurrency coverage where relevant.
-- Deterministic systems preserve seed/version replay where designed.
+## Testing / validation discipline
+
+- Run relevant tests/typecheck/lint/build where environment permits.
+- Significant combat/build/frontier behavior requires regression coverage.
+- Database changes require migration/RLS/security review.
+- Multi-step valuable operations require idempotency/concurrency coverage.
+- Deterministic systems preserve seed/version reproduction where designed.
 - Manual verification steps must be explicit.
-- **Do not fabricate human player-validation results.** Automated gates may be green, but a PV PASS requires actual human evidence when the roadmap calls for it or an explicit factual Owner phase-transition decision recorded without invented metrics.
-- Production deployment is not proof that a feature is fun, readable, balanced or player-validated.
+- Never fabricate human player-validation results.
+- Production deployment is not proof of fun/readability/balance.
+- Frontier generation must be deterministic/reproducible enough for QA/support and reject unreachable/invalid states.
+- Anomaly acquisition must have duplication/provenance/competitive-legality tests before scale.
+
+---
 
 ## Documentation drift rule
 
-When a newer Owner-approved design replaces an older term, mechanic or phase sequence:
+When a newer Owner-approved design replaces an older term/mechanic:
 
-1. update the Master Plan where the top-level product contract changed;
-2. update the implementation Roadmap;
-3. update this `AGENTS.md` guidance;
-4. update current `docs/PHASE_*_TICKETS.md` execution guidance;
-5. update current player-facing Manual/public copy where relevant;
-6. update active domain/validation documents whose instructions would otherwise contradict the new design;
-7. leave explicitly historical snapshots intact only when clearly marked historical;
-8. verify current implementation constants/rules before copying numerical values into canonical docs;
-9. do not allow a subordinate stale document to silently restore superseded rules.
+1. update the Master Plan or approved binding addendum as appropriate;
+2. update `docs/ROADMAP.md`;
+3. update this `AGENTS.md`;
+4. update active validation/ticket/domain docs that would conflict;
+5. update current player-facing Manual/public copy when relevant;
+6. leave historical snapshots clearly historical;
+7. verify current implementation constants before copying numeric values;
+8. never allow stale subordinate text to silently restore superseded rules.
 
-The goal is one coherent current design, with history preserved only where it is intentionally history.
+The target is **one coherent current design with history preserved in Git**.
