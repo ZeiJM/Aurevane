@@ -1,10 +1,12 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
+
+import styles from './pvp-battle-quality-controls.module.css'
 
 interface ClockView {
   active: boolean
@@ -45,11 +47,10 @@ export function PvpBattleQualityControls({
   const [now, setNow] = useState(0)
   const [battle, setBattle] = useState<BattleSessionView | null>(initialBattle)
   const [error, setError] = useState<string | null>(null)
-  const [confirmSurrender, setConfirmSurrender] = useState(false)
+  const [surrenderDialogOpen, setSurrenderDialogOpen] = useState(false)
   const [surrendering, setSurrendering] = useState(false)
   const [commandTarget, setCommandTarget] = useState<HTMLElement | null>(null)
   const [footerActionsTarget, setFooterActionsTarget] = useState<HTMLElement | null>(null)
-  const confirmTimer = useRef<number | null>(null)
 
   const localCombatantId =
     metadata.participants.find(
@@ -93,6 +94,9 @@ export function PvpBattleQualityControls({
       const next = event.detail as BattleSessionView | undefined
       if (!next || next.battleSessionId !== battleSessionId) return
       setBattle(next)
+      if (next.snapshot.tactical.battle.lifecycle === 'completed') {
+        setSurrenderDialogOpen(false)
+      }
     }
     window.addEventListener('aurevane:pvp-battle-state', receiveBattleState)
     return () => window.removeEventListener('aurevane:pvp-battle-state', receiveBattleState)
@@ -148,15 +152,8 @@ export function PvpBattleQualityControls({
     }
   }, [battleSessionId])
 
-  async function surrender() {
+  async function confirmSurrender() {
     if (surrendering) return
-    if (!confirmSurrender) {
-      setConfirmSurrender(true)
-      if (confirmTimer.current !== null) window.clearTimeout(confirmTimer.current)
-      confirmTimer.current = window.setTimeout(() => setConfirmSurrender(false), 3500)
-      return
-    }
-
     setSurrendering(true)
     try {
       const response = await fetch(`/api/pvp/battles/${battleSessionId}/surrender`, {
@@ -177,7 +174,7 @@ export function PvpBattleQualityControls({
           : 'Surrender could not be committed.',
       )
       setSurrendering(false)
-      setConfirmSurrender(false)
+      setSurrenderDialogOpen(false)
     }
   }
 
@@ -233,16 +230,57 @@ export function PvpBattleQualityControls({
             <button
               type="button"
               data-pvp-surrender="true"
-              onClick={() => void surrender()}
+              onClick={() => setSurrenderDialogOpen(true)}
               disabled={surrendering || battle?.snapshot.tactical.battle.lifecycle === 'completed'}
             >
-              {surrendering
-                ? 'Surrendering…'
-                : confirmSurrender
-                  ? 'Confirm Surrender'
-                  : 'Surrender'}
+              Surrender
             </button>,
             footerActionsTarget,
+          )
+        : null}
+
+      {surrenderDialogOpen
+        ? createPortal(
+            <div
+              className={styles.backdrop}
+              onPointerDown={() => {
+                if (!surrendering) setSurrenderDialogOpen(false)
+              }}
+            >
+              <section
+                className={styles.modal}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="pvp-surrender-title"
+                onPointerDown={(event) => event.stopPropagation()}
+              >
+                <span>Battle Hall · PvP</span>
+                <h2 id="pvp-surrender-title">Surrender this battle?</h2>
+                <p>
+                  Surrendering ends the battle immediately as a loss. The normal PvP result screen
+                  will follow and the committed battle history remains available for review.
+                </p>
+                <div className={styles.actions}>
+                  <button
+                    type="button"
+                    className={styles.stay}
+                    disabled={surrendering}
+                    onClick={() => setSurrenderDialogOpen(false)}
+                  >
+                    Stay in Battle
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.confirm}
+                    disabled={surrendering}
+                    onClick={() => void confirmSurrender()}
+                  >
+                    {surrendering ? 'Surrendering…' : 'Confirm Surrender'}
+                  </button>
+                </div>
+              </section>
+            </div>,
+            document.body,
           )
         : null}
     </>
