@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 import type { BattleLogView } from '@/server/battle/battle-log-service'
 
@@ -14,6 +15,7 @@ interface BattleLogPanelProps {
   open?: boolean
   onClose?: () => void
   playerName?: string
+  dockOnDesktop?: boolean
 }
 
 interface BattleLogResponse {
@@ -108,12 +110,23 @@ function beginFloatingPanelResize(
   window.addEventListener('pointercancel', finish, { once: true })
 }
 
+function findDesktopDockTarget(): HTMLElement | null {
+  if (!window.matchMedia('(min-width: 821px)').matches) return null
+  return (
+    document.querySelector<HTMLElement>('#battlefield > div:first-child') ??
+    document.querySelector<HTMLElement>(
+      "main[data-pvp-battle='true'] section[aria-label='PvP tactical battlefield'] > div:first-child",
+    )
+  )
+}
+
 export function BattleLogPanel({
   battleSessionId,
   battleVersion,
   open,
   onClose,
   playerName,
+  dockOnDesktop = false,
 }: BattleLogPanelProps) {
   const runtimePlayerName = useBattlePlayerName()
   const effectivePlayerName = playerName ?? runtimePlayerName ?? undefined
@@ -123,6 +136,7 @@ export function BattleLogPanel({
   const [log, setLog] = useState<BattleLogView | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [dockTarget, setDockTarget] = useState<HTMLElement | null>(null)
   const requestSequence = useRef(0)
   const controlledPanelRef = useRef<HTMLDivElement>(null)
 
@@ -162,6 +176,36 @@ export function BattleLogPanel({
   }, [visible, battleVersion, loadLog])
 
   useEffect(() => {
+    if (!visible || !dockOnDesktop) {
+      setDockTarget(null)
+      return
+    }
+
+    let frame = 0
+    const locate = () => {
+      const target = findDesktopDockTarget()
+      setDockTarget((current) => (current === target ? current : target))
+      if (target) target.dataset.desktopBattleLogOpen = 'true'
+    }
+    locate()
+    const observer = new MutationObserver(() => {
+      window.cancelAnimationFrame(frame)
+      frame = window.requestAnimationFrame(locate)
+    })
+    observer.observe(document.body, { childList: true, subtree: true })
+    const resize = () => locate()
+    window.addEventListener('resize', resize)
+    return () => {
+      observer.disconnect()
+      window.cancelAnimationFrame(frame)
+      window.removeEventListener('resize', resize)
+      const target = findDesktopDockTarget()
+      if (target) delete target.dataset.desktopBattleLogOpen
+      setDockTarget(null)
+    }
+  }, [dockOnDesktop, visible])
+
+  useEffect(() => {
     function toggleLog() {
       if (controlled) return
       setInternalOpen((value) => !value)
@@ -199,6 +243,22 @@ export function BattleLogPanel({
   }
 
   if (!visible) return null
+
+  if (dockOnDesktop) {
+    if (!dockTarget) return null
+    return createPortal(
+      <div className={styles.docked} data-testid="battle-log-panel" data-docked-battle-log="true">
+        <LogPanel
+          entries={entries}
+          loading={loading}
+          error={error}
+          playerName={effectivePlayerName}
+        />
+      </div>,
+      dockTarget,
+    )
+  }
+
   return (
     <div
       ref={controlledPanelRef}
