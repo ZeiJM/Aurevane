@@ -33,6 +33,10 @@ interface BattleLogResponse {
   error?: { message?: string }
 }
 
+interface EmojiPreferencesBody {
+  emojis?: string[]
+}
+
 const MAX_RECENT_EMOJIS = 10
 const VIEWPORT_MARGIN = 4
 const MIN_WINDOW_WIDTH = 256
@@ -53,22 +57,6 @@ function chatTrigger(): HTMLButtonElement | null {
       /^Chat\b/i.test(button.textContent?.trim() ?? ''),
     ) ?? null
   )
-}
-
-function recentEmojiStorageKey(playerName: string): string {
-  return `aurevane:battle-recent-emojis:${playerName}`
-}
-
-function loadRecentEmojis(playerName: string): string[] {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(recentEmojiStorageKey(playerName)) ?? '[]')
-    if (!Array.isArray(parsed)) return []
-    return parsed
-      .filter((value): value is string => typeof value === 'string')
-      .slice(0, MAX_RECENT_EMOJIS)
-  } catch {
-    return []
-  }
 }
 
 function extractEmojis(text: string): string[] {
@@ -127,12 +115,13 @@ function UtilityWindow({
     function closeOutside(event: PointerEvent) {
       if (!(event.target instanceof Node)) return
       if (windowRef.current?.contains(event.target)) return
+      if (side === 'left' && chatTrigger()?.contains(event.target)) return
       onClose()
     }
 
     document.addEventListener('pointerdown', closeOutside, true)
     return () => document.removeEventListener('pointerdown', closeOutside, true)
-  }, [desktopClickAway, onClose])
+  }, [desktopClickAway, onClose, side])
 
   function beginDrag(event: ReactPointerEvent<HTMLElement>) {
     if (event.button !== 0) return
@@ -262,9 +251,7 @@ export function BattleUtilityWindows({ battleSessionId, playerName }: BattleUtil
   const [chatOpen, setChatOpen] = useState(false)
   const [chatDraft, setChatDraft] = useState('')
   const [chatMessages, setChatMessages] = useState<LocalChatMessage[]>([])
-  const [recentEmojis, setRecentEmojis] = useState<string[]>(() =>
-    typeof window === 'undefined' ? [] : loadRecentEmojis(playerName),
-  )
+  const [recentEmojis, setRecentEmojis] = useState<string[]>([])
   const [emojiOpen, setEmojiOpen] = useState(false)
   const [logEntries, setLogEntries] = useState<BattleLogView['entries']>([])
   const [logLoading, setLogLoading] = useState(false)
@@ -272,17 +259,42 @@ export function BattleUtilityWindows({ battleSessionId, playerName }: BattleUtil
   const emojiButtonRef = useRef<HTMLButtonElement>(null)
   const emojiPickerRef = useRef<HTMLDivElement>(null)
 
-  const recordEmojiUsage = useCallback(
-    (used: readonly string[]) => {
-      if (used.length === 0) return
-      setRecentEmojis((current) => {
-        const next = mergeRecentEmojis(current, used)
-        localStorage.setItem(recentEmojiStorageKey(playerName), JSON.stringify(next))
-        return next
+  const recordEmojiUsage = useCallback((used: readonly string[]) => {
+    if (used.length === 0) return
+    setRecentEmojis((current) => {
+      const next = mergeRecentEmojis(current, used)
+      void fetch('/api/battle/preferences/emojis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emojis: next }),
       })
-    },
-    [playerName],
-  )
+        .then(async (response) => {
+          if (!response.ok) return
+          const body = (await response.json()) as EmojiPreferencesBody
+          if (Array.isArray(body.emojis)) {
+            setRecentEmojis(body.emojis.slice(0, MAX_RECENT_EMOJIS))
+          }
+        })
+        .catch(() => undefined)
+      return next
+    })
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    void fetch('/api/battle/preferences/emojis', { cache: 'no-store' })
+      .then(async (response) => {
+        if (!response.ok) return
+        const body = (await response.json()) as EmojiPreferencesBody
+        if (!cancelled && Array.isArray(body.emojis)) {
+          setRecentEmojis(body.emojis.slice(0, MAX_RECENT_EMOJIS))
+        }
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     function interceptUtilityTrigger(event: MouseEvent) {
