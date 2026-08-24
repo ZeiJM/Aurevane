@@ -194,6 +194,12 @@
   .panel[data-desktop] .resizeGrip {
     display: grid;
   }
+
+  :global(main[data-pvp-battle='true'] > footer) .footerPresenceButton {
+    min-height: 2.05rem !important;
+    padding: 0.38rem 0.72rem !important;
+    border-radius: 999px !important;
+  }
 }
 
 @media (max-width: 820px) {
