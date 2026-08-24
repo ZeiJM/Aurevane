@@ -46,7 +46,6 @@
 .docked {
   min-width: 0;
   min-height: 0;
-  height: 100%;
   overflow: hidden;
 }
 
@@ -199,65 +198,37 @@
 }
 
 @media (min-width: 821px) {
-  :global([data-desktop-battle-log-open='true']:not([data-pvp-desktop-content='true'])) {
-    grid-template-columns:
-      minmax(8.4rem, 10.5rem) minmax(0, 1fr) minmax(12rem, 18rem)
-      minmax(8.4rem, 10.5rem) !important;
+  :global(#battlefield[data-desktop-battle-log-open='true']) {
+    --battle-log-dock-width: clamp(11.5rem, 14vw, 15.5rem);
   }
 
-  :global([data-pvp-desktop-content='true'][data-desktop-battle-log-open='true']) {
-    grid-template-columns:
-      minmax(8.4rem, 10.5rem) minmax(0, 1fr) minmax(12rem, 18rem)
-      minmax(8.4rem, 10.5rem) !important;
+  :global(#battlefield[data-desktop-battle-log-open='true'] > div:first-child) {
+    box-sizing: border-box;
+    padding-right: calc(var(--battle-log-dock-width) + 0.85rem) !important;
+    padding-left: clamp(0.4rem, 0.8vw, 0.75rem) !important;
   }
 
   :global(
-    [data-desktop-battle-log-open='true']:not([data-pvp-desktop-content='true']) > #battlefield
-  ),
-  :global(
-    [data-pvp-desktop-content='true'][data-desktop-battle-log-open='true']
-      > section[aria-label='PvP tactical battlefield']
+    main[data-pvp-battle='true']
+      #battlefield[data-desktop-battle-log-open='true']
+      > div:first-child
   ) {
-    grid-column: 2 !important;
-    grid-row: 1 !important;
+    padding-right: calc(var(--battle-log-dock-width) + 0.85rem) !important;
+    padding-left: clamp(0.4rem, 0.8vw, 0.75rem) !important;
+  }
+
+  :global(#battlefield[data-desktop-battle-log-open='true'] > [data-docked-battle-log='true']) {
+    position: absolute !important;
+    top: 0.65rem !important;
+    right: 0.65rem !important;
+    bottom: 2.8rem !important;
+    left: auto !important;
+    z-index: 40;
+    width: var(--battle-log-dock-width) !important;
+    height: auto !important;
     min-width: 0 !important;
-    min-height: 0 !important;
-  }
-
-  :global([data-desktop-battle-log-open='true'] > [data-docked-battle-log='true']) {
-    position: relative !important;
-    z-index: 20;
-    grid-column: 3 !important;
-    grid-row: 1 !important;
-    width: 100% !important;
-    height: 100% !important;
-    min-width: 0 !important;
-    min-height: 0 !important;
-    align-self: stretch;
-  }
-
-  :global(
-    [data-desktop-battle-log-open='true']:not([data-pvp-desktop-content='true'])
-      > aside:first-of-type
-  ),
-  :global(
-    [data-pvp-desktop-content='true'][data-desktop-battle-log-open='true']
-      > aside[data-six-combatant-rail='true'][aria-label='Allied combatants']
-  ) {
-    grid-column: 1 !important;
-    grid-row: 1 !important;
-  }
-
-  :global(
-    [data-desktop-battle-log-open='true']:not([data-pvp-desktop-content='true'])
-      > aside:last-of-type
-  ),
-  :global(
-    [data-pvp-desktop-content='true'][data-desktop-battle-log-open='true']
-      > aside[data-six-combatant-rail='true'][aria-label='Opposing combatants']
-  ) {
-    grid-column: 4 !important;
-    grid-row: 1 !important;
+    min-height: 8rem !important;
+    max-height: none !important;
   }
 }
 
