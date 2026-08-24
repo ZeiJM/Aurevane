@@ -2,16 +2,20 @@
   display: none;
 }
 
-@media (min-width: 821px) {
-  /* The shared dock already owns its own battlefield column. Nudge the panel into the unused
-     right-side canvas only; do not change board sizing, battlefield padding, or the dock width. */
+@media (min-width: 1041px) {
+  /* The shared dock already owns its own battlefield column. Visually center the panel in the
+     unused right-side battlefield canvas without changing the tactical board, dock width, or
+     battlefield grid tracks. The responsive negative shift grows only where wide desktops have
+     enough spare canvas to support it. */
   :global(#battlefield[data-desktop-battle-log-open='true'] > [data-docked-battle-log='true']) {
-    transform: translateX(clamp(1rem, 1.8vw, 2rem)) !important;
+    transform: translateX(clamp(-4rem, calc(3.1rem - 5.9vw), -0.75rem)) !important;
   }
 }
 
 @media (max-width: 1040px) and (min-width: 821px) {
+  /* Preserve the compact-desktop layout: there is not enough spare canvas here to pull the log
+     toward the tactical board safely. */
   :global(#battlefield[data-desktop-battle-log-open='true'] > [data-docked-battle-log='true']) {
-    transform: translateX(0.75rem) !important;
+    transform: none !important;
   }
 }
