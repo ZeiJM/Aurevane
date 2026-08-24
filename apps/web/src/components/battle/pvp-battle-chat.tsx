@@ -20,16 +20,22 @@ interface ChatApiBody {
   error?: { message?: string }
 }
 
+interface EmojiPreferencesBody {
+  emojis?: string[]
+}
+
 interface PvpBattleChatProps {
   battleSessionId: string
   readOnly: boolean
   open?: boolean
   localCharacterId?: string | null
   showBattleLog?: boolean
+  showSpectatorPresence?: boolean
   requestedTab?: 'chat' | 'log'
   onRequestedTabChange?: (tab: 'chat' | 'log') => void
   onUnreadChange?: (unread: number) => void
   onSpectatorCountChange?: (count: number) => void
+  onSpectatorsChange?: (spectators: PvpSpectatorPresenceView[]) => void
   combatantNames?: Readonly<Record<string, string>>
   className?: string
 }
@@ -37,6 +43,25 @@ interface PvpBattleChatProps {
 const OPEN_CHAT_POLL_MS = 1200
 const CLOSED_CHAT_POLL_MS = 3000
 const MAX_CHAT_RECONNECT_MS = 10000
+const MAX_RECENT_EMOJIS = 10
+
+function extractEmojis(text: string): string[] {
+  return (
+    text.match(
+      /\p{Extended_Pictographic}(?:\uFE0F|\p{Emoji_Modifier})?(?:\u200D\p{Extended_Pictographic}(?:\uFE0F|\p{Emoji_Modifier})?)*/gu,
+    ) ?? []
+  )
+}
+
+function mergeRecentEmojis(current: readonly string[], used: readonly string[]): string[] {
+  const result = [...current]
+  for (const emoji of used) {
+    const existing = result.indexOf(emoji)
+    if (existing >= 0) result.splice(existing, 1)
+    result.unshift(emoji)
+  }
+  return result.slice(0, MAX_RECENT_EMOJIS)
+}
 
 export function PvpBattleChat({
   battleSessionId,
@@ -44,10 +69,12 @@ export function PvpBattleChat({
   open = true,
   localCharacterId = null,
   showBattleLog = false,
+  showSpectatorPresence = true,
   requestedTab = 'chat',
   onRequestedTabChange,
   onUnreadChange,
   onSpectatorCountChange,
+  onSpectatorsChange,
   combatantNames,
   className,
 }: PvpBattleChatProps) {
@@ -61,9 +88,13 @@ export function PvpBattleChat({
   const [pending, setPending] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   const [unread, setUnread] = useState(0)
+  const [recentEmojis, setRecentEmojis] = useState<string[]>([])
+  const [emojiOpen, setEmojiOpen] = useState(false)
   const latestMessageId = useRef(0)
   const initialized = useRef(false)
   const listRef = useRef<HTMLDivElement | null>(null)
+  const presenceWrapRef = useRef<HTMLDivElement | null>(null)
+  const emojiWrapRef = useRef<HTMLDivElement | null>(null)
   const tab = onRequestedTabChange ? requestedTab : internalTab
   const chatVisible = open && tab === 'chat'
 
@@ -133,7 +164,9 @@ export function PvpBattleChat({
           return false
         }
         mergeMessages(body.messages ?? [])
-        setSpectators(body.spectators ?? [])
+        const nextSpectators = body.spectators ?? []
+        setSpectators(nextSpectators)
+        onSpectatorsChange?.(nextSpectators)
         const nextCount = body.spectatorCount ?? 0
         setSpectatorCount(nextCount)
         onSpectatorCountChange?.(nextCount)
@@ -147,7 +180,7 @@ export function PvpBattleChat({
         return false
       }
     },
-    [endpoint, mergeMessages, onSpectatorCountChange, showBattleLog, tab],
+    [endpoint, mergeMessages, onSpectatorCountChange, onSpectatorsChange, showBattleLog, tab],
   )
 
   useEffect(() => {
@@ -182,6 +215,23 @@ export function PvpBattleChat({
   }, [open, refresh])
 
   useEffect(() => {
+    if (readOnly) return
+    let cancelled = false
+    void fetch('/api/battle/preferences/emojis', { cache: 'no-store' })
+      .then(async (response) => {
+        if (!response.ok) return
+        const body = (await response.json()) as EmojiPreferencesBody
+        if (!cancelled && Array.isArray(body.emojis)) {
+          setRecentEmojis(body.emojis.slice(0, MAX_RECENT_EMOJIS))
+        }
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [readOnly])
+
+  useEffect(() => {
     if (!chatVisible || unread === 0) return
     const frame = window.requestAnimationFrame(() => publishUnread(0))
     return () => window.cancelAnimationFrame(frame)
@@ -192,6 +242,41 @@ export function PvpBattleChat({
     const node = listRef.current
     if (node) node.scrollTop = node.scrollHeight
   }, [chatVisible, messages])
+
+  useEffect(() => {
+    if (!spectatorListOpen) return
+    function closePresence(event: PointerEvent) {
+      if (!(event.target instanceof Node)) return
+      if (presenceWrapRef.current?.contains(event.target)) return
+      setSpectatorListOpen(false)
+    }
+    document.addEventListener('pointerdown', closePresence, true)
+    return () => document.removeEventListener('pointerdown', closePresence, true)
+  }, [spectatorListOpen])
+
+  useEffect(() => {
+    if (!emojiOpen) return
+    function closeEmoji(event: PointerEvent) {
+      if (!(event.target instanceof Node)) return
+      if (emojiWrapRef.current?.contains(event.target)) return
+      setEmojiOpen(false)
+    }
+    document.addEventListener('pointerdown', closeEmoji, true)
+    return () => document.removeEventListener('pointerdown', closeEmoji, true)
+  }, [emojiOpen])
+
+  const recordEmojiUsage = useCallback((used: readonly string[]) => {
+    if (used.length === 0) return
+    setRecentEmojis((current) => {
+      const next = mergeRecentEmojis(current, used)
+      void fetch('/api/battle/preferences/emojis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emojis: next }),
+      }).catch(() => undefined)
+      return next
+    })
+  }, [])
 
   async function sendMessage() {
     const body = draft.trim()
@@ -210,7 +295,9 @@ export function PvpBattleChat({
         return
       }
       mergeMessages([result.message])
+      recordEmojiUsage(extractEmojis(body))
       setDraft('')
+      setEmojiOpen(false)
       void refresh()
     } catch {
       setNotice('That battle chat message could not be sent.')
@@ -260,31 +347,33 @@ export function PvpBattleChat({
                 : 'Live with combatants'}
           </small>
         </div>
-        <div className={styles.presenceWrap}>
-          <button
-            type="button"
-            className={styles.presenceButton}
-            aria-expanded={spectatorListOpen}
-            onClick={() => setSpectatorListOpen((current) => !current)}
-            title="Show spectators"
-          >
-            ◉ {spectatorCount}
-          </button>
-          {spectatorListOpen ? (
-            <div className={styles.presenceList} role="dialog" aria-label="Current spectators">
-              <strong>Spectators</strong>
-              {spectators.length > 0 ? (
-                spectators.map((spectator, index) => (
-                  <span key={`${spectator.name}:${spectator.lastSeenAt}:${index}`}>
-                    {spectator.name}
-                  </span>
-                ))
-              ) : (
-                <span>No spectators</span>
-              )}
-            </div>
-          ) : null}
-        </div>
+        {showSpectatorPresence ? (
+          <div className={styles.presenceWrap} ref={presenceWrapRef}>
+            <button
+              type="button"
+              className={styles.presenceButton}
+              aria-expanded={spectatorListOpen}
+              onClick={() => setSpectatorListOpen((current) => !current)}
+              title="Show spectators"
+            >
+              ◉ {spectatorCount}
+            </button>
+            {spectatorListOpen ? (
+              <div className={styles.presenceList} role="dialog" aria-label="Current spectators">
+                <strong>Spectators</strong>
+                {spectators.length > 0 ? (
+                  spectators.map((spectator, index) => (
+                    <span key={`${spectator.name}:${spectator.lastSeenAt}:${index}`}>
+                      {spectator.name}
+                    </span>
+                  ))
+                ) : (
+                  <span>No spectators</span>
+                )}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </header>
 
       {tab === 'chat' ? (
@@ -339,6 +428,39 @@ export function PvpBattleChat({
             maxLength={280}
             aria-label="Battle chat message"
           />
+          <div className={styles.emojiWrap} ref={emojiWrapRef}>
+            <button
+              type="button"
+              className={styles.emojiButton}
+              aria-label="Choose recent emoji"
+              aria-expanded={emojiOpen}
+              onClick={() => setEmojiOpen((value) => !value)}
+            >
+              ☺
+            </button>
+            {emojiOpen ? (
+              <div className={styles.emojiPicker} role="group" aria-label="Recent emoji">
+                {recentEmojis.length > 0 ? (
+                  recentEmojis.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      aria-label={`Insert ${emoji}`}
+                      onClick={() => {
+                        setDraft((value) => `${value}${emoji}`)
+                        recordEmojiUsage([emoji])
+                        setEmojiOpen(false)
+                      }}
+                    >
+                      {emoji}
+                    </button>
+                  ))
+                ) : (
+                  <span>No recent emoji yet</span>
+                )}
+              </div>
+            ) : null}
+          </div>
           <button type="submit" disabled={pending || draft.trim().length === 0}>
             Send
           </button>
