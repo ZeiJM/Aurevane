@@ -118,6 +118,25 @@
 }
 
 @media (max-width: 700px) {
+  /* The spectator battlefield is content-height on phones, while the desktop rule above uses
+     a flexible 1fr map track. In an auto-height parent that track is allowed to resolve to 0px.
+     Give the actual map row and its scroller a concrete floor here; Inspect remains unchanged. */
+  .battlefieldWrap {
+    grid-template-rows: auto minmax(16rem, auto) auto auto !important;
+  }
+
+  .battlefieldWrap > div:nth-child(2) {
+    min-height: 16rem !important;
+  }
+
+  .battlefieldWrap > div:nth-child(2) > div {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+  }
+
   .inspectDeck {
     grid-template-columns: minmax(5.5rem, 6.5rem) minmax(0, 1fr);
     padding: 0.32rem;
