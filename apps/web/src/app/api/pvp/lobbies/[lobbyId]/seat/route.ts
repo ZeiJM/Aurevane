@@ -2,7 +2,7 @@ import { AurevaneError } from '@aurevane/game-core/errors'
 import { parsePvpLobbyId, parsePvpLobbySeatMoveRequest } from '@aurevane/validation/combat/pvp'
 
 import { getAuthenticatedActor } from '@/server/auth/actor'
-import { movePvpLobbySeat } from '@/server/battle/pvp-lobby-quality-service'
+import { movePvpLobbySeat } from '@/server/battle/pvp-lobby-seat-service'
 import { toServerErrorResponse } from '@/server/http/error-response'
 
 export async function POST(request: Request, context: { params: Promise<{ lobbyId: string }> }) {
