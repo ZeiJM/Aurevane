@@ -1,109 +1,88 @@
 # AUREVANE — Owner Override & Exceptional Authority
 
-**Status:** Authoritative Master Panel expansion subordinate only to `docs/GAME_MASTER_PLAN.md` and complementary to `docs/MASTER_PANEL.md`.
+**Status:** Authoritative Master Panel expansion subordinate to `docs/GAME_MASTER_PLAN.md` and complementary to `docs/MASTER_PANEL.md` and `docs/ANOMALIES.md`.
 
-**Direction approved:** 2026-08-15.
+**Reconciled:** 2026-08-23.
 
-This document defines the protected Owner's ultimate operational authority over game-controlled state, including the ability to deliberately grant, create, equip, unlock, or force states that an ordinary player could not legitimately earn or would not normally be eligible to possess.
+This document defines the protected Owner's ultimate operational authority over game-controlled state, including deliberate grants or exceptional configurations that ordinary players could not normally earn or possess.
 
-The design goal is simple:
+The design goal is:
 
-> If AUREVANE can represent a game state, the protected Owner should ultimately be able to create or correct that state through the Master Panel without needing a developer for routine operations.
+> If AUREVANE can safely represent a game state, the protected Owner should ultimately be able to create, correct or revoke that state through the Master Panel without routine production database editing.
 
-This power must remain server-authoritative, explicit, auditable, and safe enough that exceptional Owner actions do not silently corrupt unrelated systems.
-
----
-
-## 1. Owner Authority Principle
-
-The Owner is not merely a high-level moderator.
-
-The Owner is the root game-operations authority.
-
-The finished `/master` experience must support three distinct levels of intervention:
-
-1. **Normal operation** — use the same validated progression/content/economy rules as players.
-2. **Support override** — correct or grant legitimate states without requiring the normal acquisition path.
-3. **Exceptional Owner override** — deliberately bypass selected game eligibility/acquisition rules and create unusual or normally impossible player states when the Owner intends to do so.
-
-The system must not pretend that an Owner can only do what an ordinary player can do.
+Owner power is server-authoritative, explicit, audited and bounded by representational integrity.
 
 ---
 
-## 2. What the Owner Must Be Able to Grant
+## 1. Owner authority levels
 
-The Owner should eventually be able to grant or revoke, through explicit commands:
+The finished `/master` experience distinguishes:
 
-- items and equipment;
+1. **Normal operation** — use the same validated game rules as players.
+2. **Support override** — correct/grant legitimate states without normal acquisition.
+3. **Exceptional Owner override** — deliberately bypass selected eligibility/exclusivity rules and create normally impossible but safely represented states.
+
+The protected Owner is the root game-operations authority.
+
+---
+
+## 2. What the Owner may eventually grant or manipulate
+
+Through explicit commands, the Owner may eventually grant/revoke or set, where the domain supports it:
+
+- items/equipment;
 - currencies;
-- XP and levels;
+- XP/levels;
 - Discipline Mastery;
-- mastered Discipline status;
-- Legacy eligibility;
-- Arts, Traits, Reactions, and Movement Arts where their data model allows direct unlocks;
-- Confluence discoveries or access;
-- Soulmarks and Soulmark branch progress;
-- quest progress and completion state;
-- story flags;
-- world access;
-- region/node access;
-- Expedition access and qualification;
-- event eligibility;
-- event participation credit;
-- PvP queue eligibility where appropriate;
-- titles;
-- badges;
-- cosmetics;
-- Chronicle marks;
-- Archive/lore discoveries;
+- Primary/Secondary eligibility/state through validated workflows;
+- Skills;
+- Resonance/Essence discovery/state where appropriate;
+- Soulmarks and branch state;
+- Soul-Severed/Mantle state;
+- quest/story/world flags;
+- region/Expedition/event access;
+- titles/badges/cosmetics;
+- Chronicle/Archive discoveries;
 - achievements;
-- Rekindling state;
-- Memory Carryover state;
-- Veteran Edge unlocks;
-- special account entitlements;
-- staff roles;
-- granular permissions;
+- Rekindling/Memory Carryover/Veteran Edge state;
+- account entitlements;
 - internal QA/test capabilities;
-- alpha/beta/creator/partner/event access;
-- temporary or permanent special-case gameplay entitlements.
+- staff roles/permissions;
+- temporary/permanent special-case gameplay entitlements;
+- protected **Anomaly exceptional states** defined by `docs/ANOMALIES.md`.
 
-The Owner can also revoke erroneous states where the domain supports safe reversal.
+The Owner may also revoke erroneous state where safe reversal exists.
 
 ---
 
-## 3. Bypass Grants — Things the Player Did Not Earn
+## 3. Bypass grants
 
-The Master Panel must explicitly support **bypass acquisition**.
+The Master Panel must support explicit bypass acquisition for registered content.
 
 Examples:
 
-- grant a level-100 item to a level-3 test character;
-- mark a Discipline as mastered without the character earning Mastery XP;
-- unlock a Confluence without the normal discovery requirement;
-- grant a Soulmark before the normal story moment;
-- grant a title from an event the player never attended;
-- give a cosmetic that is no longer publicly obtainable;
-- grant access to a locked region;
-- grant a Veteran Edge to an internal test account without a completed Rekindling;
-- grant a quest reward without completing the quest;
-- grant an unreleased test entitlement to a QA account;
-- grant a retired item to a collector or support case;
-- grant an event-only reward outside its event window;
-- set a player to an exact progression milestone for testing or recovery.
+- grant high-level gear to a test character;
+- mark a Discipline mastered without normal Mastery XP;
+- grant a Skill without normal unlock;
+- grant a Soulmark before its normal story moment;
+- grant a title/event reward outside its original window;
+- set exact progression state for QA/support;
+- grant retired/internal content where structurally safe.
 
-The action UI should clearly distinguish:
+The audit layer should distinguish:
 
-- **earned normally**;
-- **support granted**;
-- **Owner overridden**.
-
-The player-facing game does not need to expose this provenance unless a specific feature requires it, but the audit/support systems must know the origin.
+```text
+EARNED_NORMALLY
+SUPPORT_GRANTED
+OWNER_OVERRIDDEN
+OWNER_ANOMALY
+```
 
 ---
 
-## 4. Eligibility Bypass Flags
+## 4. Explicit bypass scopes
 
-Owner override commands should support explicit bypass scopes rather than one mysterious global `ignore_everything` switch.
+Prefer narrowly modeled bypass flags rather than one global `ignore_everything` switch.
 
 Conceptual examples:
 
@@ -118,40 +97,25 @@ BYPASS_EVENT_WINDOW
 BYPASS_REGION_ACCESS
 BYPASS_SEASON_AVAILABILITY
 BYPASS_ACQUISITION_RULE
-BYPASS_PUBLICATION_VISIBILITY
 ALLOW_RETIRED_CONTENT
 ALLOW_INTERNAL_TEST_CONTENT
-ALLOW_DUPLICATE_UNIQUE_GRANT
 ALLOW_NONSTANDARD_LOADOUT
+ALLOW_SUPERNATURAL_EXCLUSIVITY_OVERRIDE
 ```
 
 Not every command exposes every bypass.
 
-The UI should show exactly which rules are being ignored before confirmation.
+The UI must show which ordinary rules are being overridden before confirmation.
 
 ---
 
-## 5. Registered Content vs Truly Arbitrary Data
+## 5. Registered content versus arbitrary content
 
-Owner authority should be enormous, but the game should still distinguish between:
+Owner power remains strongest when the state still references valid registered content.
 
-### Registered content
+Registered content may include live, unpublished, hidden/internal, retired, event and test content.
 
-Content that exists in AUREVANE's content system, including:
-
-- live content;
-- unpublished content;
-- hidden/internal content;
-- retired content;
-- old versioned content where safe;
-- event content;
-- test content.
-
-The Owner may deliberately grant registered content outside ordinary rules.
-
-### New arbitrary content
-
-If the Owner wants an item, Art, title, modifier, or entitlement that does not exist at all, the preferred workflow is:
+If the Owner wants something that does not exist at all, preferred flow is:
 
 ```text
 CREATE CONTENT DRAFT
@@ -163,181 +127,172 @@ MARK INTERNAL OR PUBLISH
 OWNER GRANT
 ```
 
-This keeps the game schema coherent while still allowing the Owner to invent new things through the Master Panel once the relevant editors exist.
-
-The panel should not require a developer merely because a special reward was not previously part of normal progression.
+The panel should not become a raw SQL/JavaScript console.
 
 ---
 
-## 6. Impossible or Nonstandard Character States
+## 6. Exceptional Character State system
 
-Some Owner use cases require more than bypassing acquisition.
+Some Owner goals require a character state that ordinary progression forbids.
 
-The Master Panel should eventually support a protected **Exceptional Character State** system for internal testing, events, demonstrations, support recovery, or deliberate special characters.
+The Master Panel should support protected **Exceptional Character State** metadata for:
 
-Examples may include:
+- internal testing;
+- events/showcases;
+- support recovery;
+- special public characters;
+- deliberate Owner-created exceptions.
 
-- equipping content before its normal level requirement;
-- temporarily exceeding normal inventory limits;
-- assigning a normally unavailable Soulmark/Discipline combination;
-- allowing an internal test character to use content not yet publicly released;
-- enabling a special event NPC/player avatar state;
-- granting a normally mutually exclusive cosmetic/presentation combination;
-- forcing a specific quest/story state for QA;
-- placing a character into an otherwise inaccessible location;
-- enabling a nonstandard loadout for controlled testing.
+Examples include:
 
-The engine must not be required to support logically incoherent data that cannot be represented safely.
+- nonstandard loadouts;
+- content before normal requirements;
+- special test combinations;
+- inaccessible location placement;
+- unreleased registered content;
+- **Anomaly supernatural combinations**.
 
-If an impossible combination would violate a hard invariant required by combat/persistence integrity, the Owner should be offered one of three paths:
+Owner authority may bypass gameplay eligibility, but the runtime must never accept incoherent state that breaks persistence/combat integrity.
 
-1. use a supported override representation;
-2. create a special content/config rule that makes the state valid;
-3. use an isolated test/sandbox environment.
-
-"Ultimate control" means the Owner can achieve the operational goal, not that the production database becomes intentionally corruptible.
+If a requested state is not safely representable, the Owner must be offered a supported representation, content/config change, or isolated test environment rather than corrupt production data.
 
 ---
 
-## 7. Exceptional State Marker
+## 7. Canonical Anomaly override
 
-Characters or objects carrying rule-bypassing states should be internally markable with metadata such as:
+`docs/ANOMALIES.md` is authoritative.
+
+An **Anomaly** is a protected Owner-created exceptional character state that bypasses normal supernatural exclusivity.
+
+Initial approved forms:
+
+```text
+CROSS_FORK     = Soulmark + Mantle
+DUAL_SOULMARK  = two Soulmarks
+DUAL_MANTLE    = two Mantles
+```
+
+An Anomaly cannot be earned/found/crafted/traded/purchased/rolled or unlocked through normal gameplay.
+
+The Unwritten Reach does not grant Anomalies.
+
+The only canonical creation/revocation path is protected Owner authority through Master Panel / Owner Override.
+
+---
+
+## 8. Anomaly workflow
+
+Recommended high-power workflow:
+
+```text
+SELECT CHARACTER
+  ↓
+OPEN ANOMALY / EXCEPTIONAL STATE CONSOLE
+  ↓
+SELECT ANOMALY TYPE
+  ↓
+SELECT REGISTERED SOULMARK / MANTLE COMPONENTS
+  ↓
+SHOW NORMAL EXCLUSIVITY BEING OVERRIDDEN
+  ↓
+SHOW COMBAT / PVP / LOADOUT WARNINGS
+  ↓
+ENTER REQUIRED REASON
+  ↓
+OWNER RE-AUTHENTICATES
+  ↓
+EXPLICIT CONFIRMATION
+  ↓
+SERVER VALIDATES REPRESENTATIONAL INTEGRITY
+  ↓
+ATOMIC MUTATION
+  ↓
+AUDIT + PROVENANCE
+```
+
+Recommended permission:
+
+```text
+owner.anomaly.manage
+```
+
+This permission is Owner-only by default and is not automatically inherited by Administrator, Support, Balance, Content or Live Event roles.
+
+---
+
+## 9. Exceptional-state provenance
+
+Exceptional state should carry metadata equivalent to:
 
 ```text
 exceptional_state = true
-exceptional_state_source = OWNER_OVERRIDE
-exceptional_state_reason = "Tournament showcase build"
+exceptional_state_source = OWNER_OVERRIDE | OWNER_ANOMALY
+exceptional_state_reason = required text
+exceptional_state_created_by = owner identity
+exceptional_state_created_at = server timestamp
 exceptional_state_expires_at = optional
-exceptional_state_created_by = owner user id
-exceptional_state_created_at = timestamp
 ```
 
-This allows:
+Anomaly-specific state additionally records type, component IDs and version/revision.
 
-- support staff to understand unusual state;
-- analytics to exclude test anomalies;
-- ranked systems to detect nonstandard combat state;
-- clean expiration of temporary overrides;
-- auditing and incident review.
+This enables support understanding, analytics filtering, ranked integrity, expiration and incident review.
 
 ---
 
-## 8. Ranked PvP Integrity
-
-Owner-granted power must not accidentally contaminate competitive integrity.
+## 10. Ranked PvP integrity
 
 Default rule:
 
-**A character with an active gameplay-affecting exceptional override should be ineligible for standard ranked PvP unless the Owner explicitly enables ranked eligibility for that exact state or the state is known to be competitively normalized.**
+> A character with an active gameplay-affecting exceptional override is ineligible for standard ranked PvP unless a specific approved policy normalizes or explicitly allows that exact state.
 
-Examples:
+For Anomalies, standard ranked exclusion is the default.
 
-- a manually granted normal cosmetic does not affect ranked eligibility;
-- a manually granted normally obtainable Discipline may still be legal if the loadout is otherwise valid;
-- a level-3 character force-equipped with level-100 gear should not silently enter normal ranked;
-- an internal test-only Art should block standard ranked by default;
-- tournament/showcase queues may explicitly allow special rule packages.
+Special event/showcase queues may explicitly allow them under transparent rules.
 
-The Master Panel should display why a character is considered standard or exceptional for competitive purposes.
+The Master Panel must display why a character is considered standard or exceptional for competitive purposes.
 
 ---
 
-## 9. Owner-Created Special Characters and Event Roles
+## 11. Economy/currency overrides
 
-A future Owner workflow may create special accounts/characters for:
-
-- event actors;
-- world bosses controlled by staff;
-- story appearances;
-- tournament officials;
-- community demonstrations;
-- QA/test scenarios;
-- creator showcases;
-- seasonal characters;
-- hidden mystery interactions.
-
-These identities can receive unusual entitlements, loadouts, cosmetics, names/titles, world access, or presentation states without pretending they were earned through ordinary gameplay.
-
-Special characters must be clearly separable internally from normal player progression for analytics and support.
-
----
-
-## 10. Economy and Currency Overrides
-
-The Owner can grant or remove currency and items even when the player did not earn them.
-
-Preferred commands include:
+Owner commands may include:
 
 ```text
 grant_currency
 remove_currency
 set_currency_exact
-issue_compensation_bundle
 grant_item
 revoke_item
-grant_loot_bundle
+issue_compensation_bundle
 create_support_package
 ```
 
-For large economic changes, the panel should show:
+Large economic actions should show current value, proposed value, delta, reason and warnings.
 
-- current balance;
-- proposed balance;
-- delta;
-- expected economic significance;
-- reason;
-- whether the action exceeds normal support thresholds.
-
-Owner authority can override warnings, but the action remains audited.
+Anomalies are not normal tradable/economic grants.
 
 ---
 
-## 11. Progression Override Console
+## 12. Progression Override Console
 
-For a selected character, the Owner should eventually be able to manipulate progression through both guided and exact controls.
+Guided controls may include:
 
-Guided controls:
-
-- advance to next level;
-- grant a specified XP amount;
-- complete a Horizon milestone;
-- master selected Discipline;
-- unlock selected build system;
+- advance level;
+- grant XP;
+- complete Horizon milestone;
+- master Discipline;
+- unlock build system;
 - grant endgame qualification;
 - grant Rekindling eligibility;
-- perform or reverse an authorized support correction.
+- perform/reverse support correction.
 
-Exact controls:
+Exact controls may set level, XP, Mastery stage, milestone flags and cycle metadata within validated boundaries.
 
-- set level;
-- set XP within validated numeric bounds;
-- set Mastery stage/XP;
-- set configured milestone flags;
-- set cycle/Rekindling metadata;
-- set selected qualification state.
-
-The panel must show downstream consequences before applying large changes.
+Large changes should preview downstream consequences.
 
 ---
 
-## 12. Content-Version Grants
-
-When content is versioned, the Owner may need to choose which version to grant.
-
-The UI should prefer the current active version but may permit the protected Owner to select:
-
-- current production version;
-- prior valid version;
-- staging/internal version;
-- retired version when safe.
-
-If old content is structurally incompatible with the current runtime, the panel should block the grant and explain why rather than generating broken state.
-
----
-
-## 13. Special Permissions and Capability Grants
-
-The Owner can grant capabilities that are not player progression at all.
+## 13. Special permissions/capabilities
 
 Examples:
 
@@ -349,214 +304,103 @@ beta.access
 creator.status
 partner.status
 event.actor
-world.event.participant
 tournament.official
-moderation.access
-staff.master_panel.access
 private.realm.access
 content.preview.access
 ```
 
-Capabilities should support:
-
-- permanent or temporary duration;
-- environment scope;
-- optional region/system scope;
-- reason;
-- expiration;
-- audit history.
-
-The Owner can revoke them immediately.
+Capabilities support scope, duration, reason, expiration and audit.
 
 ---
 
-## 14. Force Grant Workflow
+## 14. Break-Glass God Mode
 
-A high-power override should use a deliberate workflow:
+Break-Glass is a set of narrowly modeled privileged operations, not generic SQL.
 
-```text
-SELECT PLAYER / TARGET
-  ↓
-SELECT OWNER OVERRIDE ACTION
-  ↓
-CHOOSE CONTENT / VALUE / STATE
-  ↓
-SELECT BYPASS RULES
-  ↓
-SHOW NORMAL REQUIREMENTS BEING IGNORED
-  ↓
-SHOW DOWNSTREAM WARNINGS
-  ↓
-ENTER REASON
-  ↓
-RE-AUTHENTICATE IF HIGH RISK
-  ↓
-CONFIRM
-  ↓
-SERVER VALIDATES REPRESENTATIONAL INTEGRITY
-  ↓
-ATOMIC AUTHORITATIVE MUTATION
-  ↓
-AUDIT + PROVENANCE RECORD
-  ↓
-OPTIONAL REALTIME PLAYER REFRESH
-```
-
-Warnings inform the Owner; they do not silently reduce Owner authority.
-
----
-
-## 15. Break-Glass God Mode
-
-For rare situations, the Owner should have a **Break-Glass God Mode** section.
-
-This is not a generic SQL console.
-
-It is a collection of highly privileged, narrowly modeled operations that can bypass normal business rules while preserving data integrity.
-
-Potential examples:
+Potential operations:
 
 - force grant normally unobtainable registered content;
-- force revoke an item regardless of acquisition source;
-- force exact currency balance;
-- force progression state;
-- force story/quest recovery;
-- force location recovery;
+- force revoke;
+- force exact progression/economy state;
+- force quest/story/location recovery;
 - force event eligibility;
 - force entitlement;
 - force special loadout flag;
-- force content visibility for a target account;
-- force emergency compensation;
-- force clear a corrupted active-session pointer;
-- force detach a character from a broken queue/instance;
-- force restore a prior safe state snapshot where supported.
+- force repair broken active-session state;
+- force restore a supported safe snapshot;
+- force create/revoke an approved Anomaly through the dedicated Anomaly command path.
 
-Every God Mode action requires:
-
-- Owner identity;
-- re-authentication;
-- explicit reason;
-- prominent warning;
-- immutable audit record;
-- before/after snapshot where practical;
-- rate limiting;
-- correlation/request ID;
-- server-side execution.
+Every Break-Glass action requires Owner identity, re-authentication, explicit reason, warning, audit, before/after data where practical, rate limiting and server-side execution.
 
 ---
 
-## 16. Owner Override Does Not Mean Hidden Cheating
-
-If the Owner creates a special public-facing character or reward, the system should support doing so intentionally.
-
-But the operational design should not depend on secret unlogged manipulation.
+## 15. Owner Override is not hidden unlogged manipulation
 
 Every privileged mutation remains attributable internally.
 
-This protects the project from:
+This protects against:
 
 - accidental corruption;
 - staff abuse;
 - forgotten test grants;
-- unexplained economic anomalies;
+- polluted analytics;
+- unexplained economy/progression state;
 - impossible support investigations.
 
-The Owner has ultimate power **and** ultimate traceability.
+The Owner has ultimate operational authority **and** ultimate traceability.
 
 ---
 
-## 17. Delegation
+## 16. Analytics/test hygiene
 
-Ordinary staff should not automatically receive Owner override powers.
-
-Granular permissions may include:
-
-```text
-owner.override.view
-owner.override.support_grant
-owner.override.progression
-owner.override.economy
-owner.override.content
-owner.override.story
-owner.override.entitlements
-owner.override.exceptional_state
-owner.override.break_glass
-owner.override.ranked_exception
-```
-
-The protected Owner implicitly has all of them.
-
-Most high-risk bypasses should remain Owner-only unless explicitly delegated.
-
----
-
-## 18. Analytics Exclusion and Test Hygiene
-
-Owner-overridden accounts/states should be taggable for analytics.
+Owner-overridden accounts/states must be filterable.
 
 Examples:
 
 - exclude internal QA from progression medians;
-- exclude test currency grants from economy health dashboards;
-- exclude nonstandard PvP from normal balance statistics;
-- exclude test lore unlocks from community discovery races;
-- exclude staff-created event actors from population analytics.
-
-This prevents powerful Owner tools from polluting the telemetry used to balance the live game.
+- exclude test currency from economy dashboards;
+- exclude nonstandard PvP from normal balance data;
+- exclude Owner Anomalies from ordinary supernatural prevalence/performance metrics unless intentionally analyzing them.
 
 ---
 
-## 19. Implementation Timing
+## 17. Implementation timing
 
-### Phase 0
+### Phase 0–2
 
-- preserve authorization architecture capable of protected Owner-only actions;
-- preserve immutable audit patterns;
-- avoid schemas that assume every state must have a normal acquisition record.
+Preserve authorization/audit architecture and avoid schemas that assume every state must originate from normal acquisition.
 
-### Phase 1
+### Phase 3–4
 
-- player support view can begin with safe read-only character inspection;
-- progression services should expose authoritative commands rather than direct browser writes.
+Buildcraft uses authoritative commands/stable IDs/versioning so future exceptional states can safely reference registered content.
 
 ### Phase 5
 
-- first `/master` shell and live-ops tools;
-- support special event eligibility and controlled story/world corrections where needed.
+When Soulmark/Severance/Mantle foundations are built, ensure the representation does not make future safe Owner-created Anomalies impossible. A minimal Owner-only test override may be built only if required to verify the supernatural model.
 
-### Phases 8–12
+### Phase 8
 
-- extend overrides to PvP, economy, guild/nation, endgame, and live content systems as those domains exist.
+Competitive legality recognizes exceptional state and standard-ranked exclusion.
 
 ### Phase 13
 
-Build the complete Owner Override console:
+Complete Owner Override / Anomaly Console / inspection / grant / revoke / audit workflows.
 
-- player lookup;
-- exact state inspection;
-- force grants;
-- acquisition bypass;
-- special permissions/entitlements;
-- nonstandard-state management;
-- ranked-integrity warnings;
-- analytics exclusion;
-- Break-Glass God Mode;
-- full audit/history/reversal support where safe.
+### Phase 15
+
+Hardening covers authorization, concurrency, migration, PvP, analytics and privilege-escalation attempts.
 
 ---
 
-## 20. Definition of Success
+## 18. Permanent rules
 
-The Owner Override system succeeds when:
-
-- the Owner can grant things a player did not earn;
-- the Owner can grant content outside normal timing/eligibility rules;
-- the Owner can create special QA/event/support states;
-- the Owner can deliberately bypass acquisition and progression requirements;
-- the Owner can create unusual but representable character states;
-- the game clearly distinguishes ordinary, support-granted, and exceptional state internally;
-- competitive queues protect themselves from unintended special-state contamination;
-- analytics can exclude manipulated test states;
-- every high-power mutation is server-authoritative and auditable;
-- no routine developer/database intervention is required for game states the Master Panel is designed to control;
-- the Owner remains able to override warnings when the action is intentional.
+1. The Owner is the root game-operations authority.
+2. Privileged changes use server-authoritative validated commands.
+3. Normal support grants and exceptional Owner overrides are distinct.
+4. Eligibility may be bypassed; representational integrity may not.
+5. Every high-impact mutation has provenance/audit.
+6. Anomaly means the Owner-created supernatural exception defined in `docs/ANOMALIES.md`.
+7. Only the protected Owner may create/revoke Anomalies by default.
+8. Ordinary gameplay cannot manufacture an Anomaly.
+9. Standard ranked PvP excludes gameplay-affecting Anomalies by default.
+10. No raw production database editing is required for routine Owner operations once the relevant Master Panel tools exist.
