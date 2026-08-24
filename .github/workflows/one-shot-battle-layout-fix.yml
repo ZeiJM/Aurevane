@@ -1,0 +1,211 @@
+name: One-shot combined battle layout patch
+
+on:
+  push:
+    branches:
+      - fix/battle-log-neutral-space-20260824
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.head_commit.message != 'Apply combined battle layout fixes'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/battle-log-neutral-space-20260824
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply surgical layout fixes
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f'Expected text not found in {path}: {old[:100]!r}')
+              p.write_text(text.replace(old, new, 1))
+
+          # Compact AI boards must define row tracks explicitly. Without them, implicit rows stretch
+          # to fill the battlefield height and create the large horizontal bands seen on 5x3 maps.
+          replace_once(
+              'apps/web/src/components/battle/battle-experience-v2.tsx',
+              "  const boardStyle: CSSProperties = {\n    gridTemplateColumns: `repeat(${tactical.width}, minmax(0, 1fr))`,\n    aspectRatio:",
+              "  const boardStyle: CSSProperties = {\n    gridTemplateColumns: `repeat(${tactical.width}, minmax(0, 1fr))`,\n    gridTemplateRows: `repeat(${tactical.height}, minmax(0, 1fr))`,\n    aspectRatio:",
+          )
+
+          # PvP's JS board fitter must measure the content box after the internal Battle Log lane
+          # reserves right padding; otherwise it can size tiles underneath the dock.
+          replace_once(
+              'apps/web/src/components/battle/pvp-desktop-parity.tsx',
+              "      const availableWidth = Math.max(0, viewport.clientWidth - 16)\n      const availableHeight = Math.max(0, viewport.clientHeight - 16)\n",
+              "      const viewportStyle = window.getComputedStyle(viewport)\n      const horizontalPadding =\n        Number.parseFloat(viewportStyle.paddingLeft) + Number.parseFloat(viewportStyle.paddingRight)\n      const verticalPadding =\n        Number.parseFloat(viewportStyle.paddingTop) + Number.parseFloat(viewportStyle.paddingBottom)\n      const availableWidth = Math.max(0, viewport.clientWidth - horizontalPadding)\n      const availableHeight = Math.max(0, viewport.clientHeight - verticalPadding)\n",
+          )
+
+          # True geometric centering for AI: equal left/right header lanes, with AP + Victory sharing
+          # the middle lane as two independent controls.
+          coach = Path('apps/web/src/components/battle/battle-lesson-coach.module.css')
+          coach.write_text(coach.read_text() + r'''
+
+          /* desktop-centered-battle-header-v2 */
+          @media (min-width: 881px) {
+            :global(header:has(> [data-victory-criteria-layout='true'])) {
+              grid-template-columns: minmax(10rem, 1fr) minmax(22rem, 35rem) minmax(10rem, 1fr) !important;
+              grid-template-rows: auto auto !important;
+            }
+
+            :global(header:has(> [data-victory-criteria-layout='true']) > [data-battle-economy-panel='true']) {
+              grid-column: 2 !important;
+              grid-row: 1 / span 2 !important;
+              width: calc(100% - 9rem) !important;
+              justify-self: start !important;
+            }
+
+            :global(header:has(> [data-victory-criteria-layout='true']) > .guidedReopen) {
+              grid-column: 2 !important;
+              grid-row: 1 / span 2 !important;
+              width: 8.4rem !important;
+              min-width: 8.4rem !important;
+              justify-self: end !important;
+            }
+
+            :global(header:has(> [data-victory-criteria-layout='true']) > button[class*='roundButton']) {
+              grid-column: 3 !important;
+              grid-row: 1 / span 2 !important;
+              justify-self: end !important;
+            }
+          }
+          ''')
+
+          # PvP gets the same equal-side-column centering. The economy shell becomes transparent and
+          # a pseudo grid item draws a dedicated AP panel, leaving Victory Conditions as its own panel.
+          parity = Path('apps/web/src/components/battle/pvp-desktop-parity.module.css')
+          parity.write_text(parity.read_text() + r'''
+
+          /* desktop-centered-battle-header-v2 */
+          @media (min-width: 821px) {
+            :global(main[data-pvp-battle='true'][data-pvp-desktop-parity='true'] > header) {
+              grid-template-columns: minmax(10rem, 1fr) minmax(22rem, 35rem) minmax(10rem, 1fr) !important;
+            }
+
+            :global(main[data-pvp-battle='true'][data-pvp-desktop-parity='true'] > header > :first-child) {
+              grid-column: 1 !important;
+            }
+
+            :global([data-pvp-header-economy='true']) {
+              position: relative;
+              grid-column: 2 !important;
+              grid-template-columns: minmax(0, 1fr) 8.6rem !important;
+              grid-template-rows: auto auto !important;
+              gap: 0.22rem 0.4rem !important;
+              padding: 0 !important;
+              border: 0 !important;
+              background: transparent !important;
+            }
+
+            :global([data-pvp-header-economy='true']::before) {
+              display: block;
+              z-index: -1;
+              grid-column: 1;
+              grid-row: 1 / span 2;
+              border: 1px solid var(--av-border);
+              border-radius: var(--av-radius-sm);
+              background: rgba(255, 255, 255, 0.02);
+              content: '';
+            }
+
+            :global([data-pvp-header-economy='true'] > :first-child) {
+              grid-column: 1 !important;
+              grid-row: 1 !important;
+              padding: 0.3rem 0.5rem 0 !important;
+            }
+
+            :global([data-pvp-header-economy='true'] > [role='progressbar']) {
+              grid-column: 1 !important;
+              grid-row: 2 !important;
+              margin: 0 0.5rem 0.3rem !important;
+            }
+
+            :global([data-pvp-header-economy='true'] > button) {
+              grid-column: 2 !important;
+              grid-row: 1 / span 2 !important;
+              min-width: 0 !important;
+              width: 100% !important;
+            }
+
+            :global(main[data-pvp-battle='true'][data-pvp-desktop-parity='true'] > header > button:last-child) {
+              grid-column: 3 !important;
+              justify-self: end !important;
+            }
+          }
+          ''')
+
+          # Spectator desktop should use the available viewport height rather than reserving a second
+          # game's worth of shell chrome. Fit the board by height so its scroller is normally idle,
+          # and give Chat a slightly larger share of the communications rail.
+          spectator = Path('apps/web/src/components/battle/pvp-spectator-viewport-polish.module.css')
+          spectator.write_text(spectator.read_text() + r'''
+
+          /* spectator-full-viewport-fit-v2 */
+          @media (min-width: 981px) {
+            :global(main[data-pvp-spectator='true']) {
+              height: calc(100dvh - 0.75rem) !important;
+              min-height: 0 !important;
+            }
+
+            :global(main[data-pvp-spectator='true'] #battlefield > div:nth-child(2)) {
+              overflow: hidden !important;
+            }
+
+            :global(main[data-pvp-spectator='true'] #battlefield > div:nth-child(2) > div) {
+              width: auto !important;
+              height: 100% !important;
+              min-width: 0 !important;
+              max-width: 100% !important;
+              max-height: 100% !important;
+              margin: auto !important;
+            }
+
+            :global(main[data-pvp-spectator='true'] section[aria-label='Battle Chat']) {
+              min-height: 9rem !important;
+            }
+
+            :global(main[data-pvp-spectator='true'] section[aria-label='Battle Chat'])
+              :global(*) {
+              min-width: 0;
+            }
+          }
+          ''')
+
+          # The communications stack owns Chat first, Log second. Increase Chat from 37.5% to 45%
+          # while preserving internal scrolling for both feeds.
+          base_spec = Path('apps/web/src/components/battle/pvp-spectator-experience.module.css')
+          text = base_spec.read_text()
+          text = text.replace(
+              'grid-template-rows: minmax(8rem, 0.75fr) minmax(11rem, 1.25fr);',
+              'grid-template-rows: minmax(9rem, 0.9fr) minmax(10rem, 1.1fr);',
+              1,
+          )
+          base_spec.write_text(text)
+
+      - name: Format changed files
+        run: pnpm exec prettier --write apps/web/src/components/battle/battle-experience-v2.tsx apps/web/src/components/battle/pvp-desktop-parity.tsx apps/web/src/components/battle/battle-lesson-coach.module.css apps/web/src/components/battle/pvp-desktop-parity.module.css apps/web/src/components/battle/pvp-spectator-viewport-polish.module.css apps/web/src/components/battle/pvp-spectator-experience.module.css apps/web/src/components/battle/battle-log-panel.module.css apps/web/src/components/battle/battle-log-panel.tsx
+      - name: Commit combined patch
+        run: |
+          git config user.name "Nicholas JM"
+          git config user.email "283436098+ZeiJM@users.noreply.github.com"
+          git add apps/web/src/components/battle
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "Apply combined battle layout fixes"
+          git push origin HEAD:fix/battle-log-neutral-space-20260824
