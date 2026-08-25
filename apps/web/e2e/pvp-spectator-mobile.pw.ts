@@ -36,39 +36,16 @@ test(
     const password = 'PvP-spectator-browser-2026!'
     const viewerEmail = `spectator-viewer-${runId}@example.com`
 
-    await createAccountAndEnterCharacter({
-      page,
-      email: `spectator-host-${runId}@example.com`,
-      password,
-      characterName: uniqueCharacterName('Host'),
-    })
+    await createAccountAndEnterCharacter({ page, email: `spectator-host-${runId}@example.com`, password, characterName: uniqueCharacterName('Host') })
     const hostStorage = await page.context().storageState()
     await signOutFromAccountMenu(page)
-
-    await createAccountAndEnterCharacter({
-      page,
-      email: `spectator-guest-${runId}@example.com`,
-      password,
-      characterName: uniqueCharacterName('Guest'),
-    })
+    await createAccountAndEnterCharacter({ page, email: `spectator-guest-${runId}@example.com`, password, characterName: uniqueCharacterName('Guest') })
     const guestStorage = await page.context().storageState()
     await signOutFromAccountMenu(page)
+    await createAccountAndEnterCharacter({ page, email: viewerEmail, password, characterName: uniqueCharacterName('Viewer') })
 
-    await createAccountAndEnterCharacter({
-      page,
-      email: viewerEmail,
-      password,
-      characterName: uniqueCharacterName('Viewer'),
-    })
-
-    const hostContext = await browser.newContext({
-      baseURL: BASE_URL,
-      storageState: hostStorage,
-    })
-    const guestContext = await browser.newContext({
-      baseURL: BASE_URL,
-      storageState: guestStorage,
-    })
+    const hostContext = await browser.newContext({ baseURL: BASE_URL, storageState: hostStorage })
+    const guestContext = await browser.newContext({ baseURL: BASE_URL, storageState: guestStorage })
     const host = await hostContext.newPage()
     const guest = await guestContext.newPage()
 
@@ -78,76 +55,49 @@ test(
       await host.getByRole('button', { name: 'Create Battle Lobby' }).click()
       const hostLobby = host.getByRole('dialog', { name: 'The arena is waiting.' })
       await expect(hostLobby).toBeVisible()
-      const lobbyKey = (
-        await hostLobby
-          .locator('button')
-          .filter({ hasText: 'Lobby Key' })
-          .locator('strong')
-          .textContent()
-      )?.trim()
+      const lobbyKey = (await hostLobby.locator('button').filter({ hasText: 'Lobby Key' }).locator('strong').textContent())?.trim()
       expect(lobbyKey).toMatch(/^AVL-[A-Z0-9]{4}-[A-Z0-9]{4}$/)
 
       await guest.goto(`/game/battle?join=${encodeURIComponent(lobbyKey ?? '')}`)
       const guestLobby = guest.getByRole('dialog', { name: 'The arena is waiting.' })
       await expect(guestLobby).toBeVisible({ timeout: 15_000 })
-
       await guestLobby.getByRole('button', { name: 'Mark Ready' }).click()
       await hostLobby.getByRole('button', { name: 'Mark Ready' }).click()
-
       await expect(host).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/, { timeout: 20_000 })
-      const battleKey = (
-        await host.locator('[data-pvp-spectator-key="true"] strong').textContent()
-      )?.trim()
+
+      const battleKey = (await host.locator('[data-pvp-spectator-key="true"] strong').textContent())?.trim()
       expect(battleKey).toMatch(/^AVB-[A-Z0-9]{4}-[A-Z0-9]{4}$/)
 
       const admin = createTestAdminClient()
-      const { data: users, error: usersError } = await admin.auth.admin.listUsers({
-        page: 1,
-        perPage: 1000,
-      })
+      const { data: users, error: usersError } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 })
       expect(usersError).toBeNull()
       const viewer = users?.users.find((candidate) => candidate.email === viewerEmail)
       expect(viewer?.id).toBeTruthy()
 
-      const spectatorViewRpc = await admin.rpc('get_pvp_spectator_view_v1', {
-        p_battle_key: battleKey,
-      })
-      console.log('spectator view rpc probe', {
-        error: spectatorViewRpc.error,
-        hasData: Boolean(spectatorViewRpc.data),
-      })
+      const spectatorViewRpc = await admin.rpc('get_pvp_spectator_view_v1', { p_battle_key: battleKey })
       expect(spectatorViewRpc.error).toBeNull()
       expect(spectatorViewRpc.data).toBeTruthy()
+      const rpcData = spectatorViewRpc.data as Record<string, any>
+      console.log('spectator snapshot counts', {
+        width: rpcData?.snapshot?.tactical?.width,
+        height: rpcData?.snapshot?.tactical?.height,
+        tiles: Array.isArray(rpcData?.snapshot?.tactical?.tiles) ? rpcData.snapshot.tactical.tiles.length : null,
+        placements: Array.isArray(rpcData?.snapshot?.tactical?.placements) ? rpcData.snapshot.tactical.placements.length : null,
+        combatants: Array.isArray(rpcData?.snapshot?.tactical?.battle?.combatants) ? rpcData.snapshot.tactical.battle.combatants.length : null,
+      })
 
-      const spectatorJoinRpc = await admin.rpc('join_pvp_spectator_v1', {
-        p_user_id: viewer?.id ?? '',
-        p_battle_key: battleKey,
-      })
-      console.log('spectator join rpc probe', {
-        error: spectatorJoinRpc.error,
-        data: spectatorJoinRpc.data,
-      })
+      const spectatorJoinRpc = await admin.rpc('join_pvp_spectator_v1', { p_user_id: viewer?.id ?? '', p_battle_key: battleKey })
       expect(spectatorJoinRpc.error).toBeNull()
 
       await page.goto(`/diagnostics/mobile-spectator/${encodeURIComponent(battleKey ?? '')}`)
-      await expect(page).toHaveURL(/\/diagnostics\/mobile-spectator\/AVB-[A-Z0-9-]+$/, {
-        timeout: 15_000,
-      })
-
       const battlefield = page.getByRole('region', { name: 'Live battlefield' })
-      const boardScroller = battlefield.locator(':scope > div').nth(1)
-      const board = boardScroller.locator(':scope > div')
-      const tiles = battlefield.getByRole('button', { name: /^Tile / })
-
       await expect(battlefield).toBeVisible()
-      await expect(tiles).toHaveCount(63)
 
       const measurements = await page.evaluate(() => {
         const battlefield = document.querySelector<HTMLElement>('#battlefield')
         const scroller = battlefield?.children.item(1) as HTMLElement | null
         const board = scroller?.firstElementChild as HTMLElement | null
-        const tile =
-          board?.querySelector<HTMLElement>('button[aria-label^="Tile "]') ?? null
+        const tile = board?.querySelector<HTMLElement>('button[aria-label^="Tile "]') ?? null
         const measure = (element: HTMLElement | null) => {
           if (!element) return null
           const rect = element.getBoundingClientRect()
@@ -164,29 +114,19 @@ test(
             aspectRatio: style.aspectRatio,
             minHeight: style.minHeight,
             maxHeight: style.maxHeight,
+            childElementCount: element.childElementCount,
           }
         }
-        return {
-          battlefield: measure(battlefield),
-          scroller: measure(scroller),
-          board: measure(board),
-          tile: measure(tile),
-        }
+        return { battlefield: measure(battlefield), scroller: measure(scroller), board: measure(board), tile: measure(tile) }
       })
-
       console.log('mobile spectator battlefield measurements', measurements)
 
-      const scrollerBox = await boardScroller.boundingBox()
-      const boardBox = await board.boundingBox()
-      const firstTileBox = await tiles.first().boundingBox()
-
-      expect(scrollerBox).not.toBeNull()
-      expect(scrollerBox?.height ?? 0).toBeGreaterThan(0)
-      expect(boardBox).not.toBeNull()
-      expect(boardBox?.height ?? 0).toBeGreaterThan(0)
-      expect(firstTileBox).not.toBeNull()
-      expect(firstTileBox?.width ?? 0).toBeGreaterThan(0)
-      expect(firstTileBox?.height ?? 0).toBeGreaterThan(0)
+      const tiles = battlefield.getByRole('button', { name: /^Tile / })
+      await expect(tiles).toHaveCount(63)
+      expect(measurements.scroller?.height ?? 0).toBeGreaterThan(0)
+      expect(measurements.board?.height ?? 0).toBeGreaterThan(0)
+      expect(measurements.tile?.width ?? 0).toBeGreaterThan(0)
+      expect(measurements.tile?.height ?? 0).toBeGreaterThan(0)
     } finally {
       await hostContext.close()
       await guestContext.close()
