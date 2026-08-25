@@ -2,7 +2,7 @@
 
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 
 import { BattleLogFeed } from '@/components/battle/battle-log-feed'
 import { DesktopBattleCombatantInspect } from '@/components/battle/desktop-battle-combatant-inspect'
@@ -17,7 +17,6 @@ import inspectStyles from './pvp-spectator-inspect.module.css'
 
 const MOVE_COST_PER_TERRAIN_POINT = 25
 const SPECTATOR_REFRESH_MS = 850
-const SPECTATOR_HEARTBEAT_MS = 10_000
 
 type GridPosition = { x: number; y: number }
 type Facing = 'north' | 'east' | 'south' | 'west'
@@ -82,7 +81,6 @@ export function PvpSpectatorExperience({
   const [battleLogError, setBattleLogError] = useState<string | null>(null)
   const [inspectMode, setInspectMode] = useState(false)
   const [selectedPosition, setSelectedPosition] = useState<GridPosition | null>(null)
-  const lastHeartbeatAt = useRef(Date.now())
 
   const battle = spectator.battle
   const tactical = battle.snapshot.tactical
@@ -170,12 +168,10 @@ export function PvpSpectatorExperience({
 
     const refresh = async () => {
       controller = new AbortController()
-      const heartbeat = Date.now() - lastHeartbeatAt.current >= SPECTATOR_HEARTBEAT_MS
 
       try {
-        const params = heartbeat ? '?heartbeat=1' : ''
         const response = await fetch(
-          `/api/pvp/spectate/${encodeURIComponent(spectator.battleKey)}${params}`,
+          `/api/pvp/spectate/${encodeURIComponent(spectator.battleKey)}`,
           { cache: 'no-store', signal: controller.signal },
         )
         const body = (await response.json()) as ApiBody
@@ -185,7 +181,6 @@ export function PvpSpectatorExperience({
           }
           return
         }
-        if (heartbeat) lastHeartbeatAt.current = Date.now()
         setSpectator(body.spectator)
         if (body.participantTitles) setParticipantTitles(body.participantTitles)
         setConnectionNote(null)
