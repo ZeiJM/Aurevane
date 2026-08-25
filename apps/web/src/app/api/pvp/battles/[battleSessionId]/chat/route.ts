@@ -4,7 +4,6 @@ import { parseBattleSessionId } from '@aurevane/validation/combat/battle-session
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import {
   getPvpBattleLog,
-  getPvpSpectatorCount,
   listPvpBattleChat,
   listPvpSpectators,
   sendPvpBattleChat,
@@ -29,12 +28,12 @@ export async function GET(
     if (!battleSessionId) throw new AurevaneError('INVALID_REQUEST', 'Invalid battle session.')
     const includeLog = new URL(request.url).searchParams.get('includeLog') === '1'
 
-    const [messages, spectators, spectatorCount, battleLog] = await Promise.all([
+    const [messages, spectators, battleLog] = await Promise.all([
       listPvpBattleChat(actor.userId, battleSessionId, parseAfterId(request)),
       listPvpSpectators(actor.userId, battleSessionId),
-      getPvpSpectatorCount(actor.userId, battleSessionId),
       includeLog ? getPvpBattleLog(actor.userId, battleSessionId) : Promise.resolve(null),
     ])
+    const spectatorCount = spectators.length
 
     return Response.json(
       { messages, spectators, spectatorCount, ...(battleLog ? { battleLog } : {}) },

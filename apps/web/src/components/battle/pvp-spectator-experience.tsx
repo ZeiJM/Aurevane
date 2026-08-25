@@ -16,6 +16,7 @@ import styles from './pvp-spectator-experience.module.css'
 import inspectStyles from './pvp-spectator-inspect.module.css'
 
 const MOVE_COST_PER_TERRAIN_POINT = 25
+const SPECTATOR_REFRESH_MS = 850
 
 type GridPosition = { x: number; y: number }
 type Facing = 'north' | 'east' | 'south' | 'west'
@@ -157,14 +158,24 @@ export function PvpSpectatorExperience({
 
   useEffect(() => {
     let cancelled = false
+    let timer: number | null = null
+    let controller: AbortController | null = null
+
+    const schedule = () => {
+      if (cancelled) return
+      timer = window.setTimeout(() => void refresh(), SPECTATOR_REFRESH_MS)
+    }
+
     const refresh = async () => {
+      controller = new AbortController()
+
       try {
         const response = await fetch(
           `/api/pvp/spectate/${encodeURIComponent(spectator.battleKey)}`,
-          { cache: 'no-store' },
+          { cache: 'no-store', signal: controller.signal },
         )
         const body = (await response.json()) as ApiBody
-        if (!response.ok || !body.spectator || cancelled) {
+        if (!response.ok || !body.spectator || cancelled || controller.signal.aborted) {
           if (!cancelled) {
             setConnectionNote(body.error?.message ?? 'Arena link interrupted. Retrying…')
           }
@@ -173,48 +184,62 @@ export function PvpSpectatorExperience({
         setSpectator(body.spectator)
         if (body.participantTitles) setParticipantTitles(body.participantTitles)
         setConnectionNote(null)
-      } catch {
-        if (!cancelled) setConnectionNote('Arena link interrupted. Retrying…')
+      } catch (refreshError) {
+        if (
+          !cancelled &&
+          !(refreshError instanceof DOMException && refreshError.name === 'AbortError')
+        ) {
+          setConnectionNote('Arena link interrupted. Retrying…')
+        }
+      } finally {
+        controller = null
+        schedule()
       }
     }
-    const timer = window.setInterval(() => void refresh(), 850)
+
+    schedule()
     return () => {
       cancelled = true
-      window.clearInterval(timer)
+      controller?.abort()
+      if (timer !== null) window.clearTimeout(timer)
     }
   }, [spectator.battleKey])
 
   useEffect(() => {
     let cancelled = false
-    let timer: number | null = null
+    const controller = new AbortController()
 
     const refreshLog = async () => {
       try {
         const params = new URLSearchParams({ after: '0', includeLog: '1' })
         const response = await fetch(
           `/api/pvp/battles/${encodeURIComponent(battle.battleSessionId)}/chat?${params.toString()}`,
-          { cache: 'no-store' },
+          { cache: 'no-store', signal: controller.signal },
         )
         const body = (await response.json()) as ApiBody
-        if (cancelled) return
+        if (cancelled || controller.signal.aborted) return
         if (!response.ok) {
           setBattleLogError(body.error?.message ?? 'Battle log is temporarily unavailable.')
           return
         }
         if (body.battleLog) setBattleLog(body.battleLog)
         setBattleLogError(null)
-      } catch {
-        if (!cancelled) setBattleLogError('Battle log interrupted. Retrying…')
+      } catch (refreshError) {
+        if (
+          !cancelled &&
+          !(refreshError instanceof DOMException && refreshError.name === 'AbortError')
+        ) {
+          setBattleLogError('Battle log interrupted. Retrying…')
+        }
       }
     }
 
     void refreshLog()
-    timer = window.setInterval(() => void refreshLog(), 1200)
     return () => {
       cancelled = true
-      if (timer !== null) window.clearInterval(timer)
+      controller.abort()
     }
-  }, [battle.battleSessionId])
+  }, [battle.battleSessionId, battle.battleVersion])
 
   async function stopSpectating() {
     if (stopping) return
