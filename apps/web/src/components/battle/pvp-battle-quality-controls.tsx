@@ -57,10 +57,12 @@ export function PvpBattleQualityControls({
       (participant) => participant.characterId === metadata.localCharacterId,
     )?.combatantId ?? null
   const battleIsActive = battle?.snapshot.tactical.battle.lifecycle === 'active'
+  const activeCombatantId = battle?.snapshot.tactical.battle.currentTurn?.combatantId ?? null
   const localTurn = Boolean(
-    battleIsActive &&
-    localCombatantId &&
-    battle?.snapshot.tactical.battle.currentTurn?.combatantId === localCombatantId,
+    battleIsActive && localCombatantId && activeCombatantId === localCombatantId,
+  )
+  const clockMatchesCurrentTurn = Boolean(
+    clock && activeCombatantId && clock.combatantId === activeCombatantId,
   )
 
   useEffect(() => {
@@ -184,6 +186,12 @@ export function PvpBattleQualityControls({
     : battleIsActive && clock?.turnTimerSeconds === null
       ? 'No timer'
       : '—'
+  const opponentTimerText = clock?.active
+    ? `${seconds}s left`
+    : battleIsActive && clock?.turnTimerSeconds === null
+      ? 'No timer'
+      : '—'
+  const opponentTimerColor = clock?.active && seconds <= 10 ? '#ff8276' : '#e28a82'
 
   return (
     <>
@@ -220,6 +228,52 @@ export function PvpBattleQualityControls({
                 {timerText}
               </span>
               {error ? <span style={{ color: '#e2a0a0' }}>{error}</span> : null}
+            </span>,
+            commandTarget,
+          )
+        : null}
+
+      {commandTarget &&
+      !localTurn &&
+      battleIsActive &&
+      clock &&
+      clockMatchesCurrentTurn
+        ? createPortal(
+            <span
+              data-pvp-opponent-turn-clock="true"
+              style={{
+                display: 'inline-flex',
+                order: 2,
+                flex: '0 0 auto',
+                maxWidth: '100%',
+                marginLeft: 'auto',
+                alignItems: 'center',
+                padding: '.18rem .38rem',
+                overflow: 'visible',
+                border: '1px solid rgba(226, 99, 99, .4)',
+                borderRadius: '999px',
+                color: opponentTimerColor,
+                background: 'rgba(154, 54, 54, .08)',
+                font: '800 .42rem/1 var(--av-font-mono)',
+                letterSpacing: '.02em',
+                whiteSpace: 'nowrap',
+              }}
+              aria-live="polite"
+              title={
+                clock.turnTimerSeconds
+                  ? `${seconds} seconds remain in the opponent's turn.`
+                  : 'This PvP battle has no turn timer.'
+              }
+            >
+              <span
+                style={{
+                  overflow: 'visible',
+                  color: opponentTimerColor,
+                  font: '800 .42rem/1 var(--av-font-mono)',
+                }}
+              >
+                {opponentTimerText}
+              </span>
             </span>,
             commandTarget,
           )
