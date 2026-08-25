@@ -3,7 +3,6 @@ import { parsePvpBattleKey } from '@aurevane/validation/combat/pvp'
 
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import {
-  heartbeatPvpSpectation,
   joinPvpSpectation,
   leavePvpSpectation,
 } from '@/server/battle/pvp-battle-communication-service'
@@ -20,7 +19,7 @@ async function parseBattleKey(context: {
   return battleKey
 }
 
-export async function GET(request: Request, context: { params: Promise<{ battleKey: string }> }) {
+export async function GET(_request: Request, context: { params: Promise<{ battleKey: string }> }) {
   try {
     const actor = await getAuthenticatedActor()
     const battleKey = await parseBattleKey(context)
@@ -29,19 +28,9 @@ export async function GET(request: Request, context: { params: Promise<{ battleK
       throw new AurevaneError('INVALID_REQUEST', 'No active or completed PvP battle uses that key.')
     }
 
-    const heartbeat = new URL(request.url).searchParams.get('heartbeat') === '1'
-    if (heartbeat) {
-      const battleSessionId = spectator.battle.battleSessionId
-      const alive = await heartbeatPvpSpectation(actor.userId, battleSessionId)
-      if (!alive) {
-        const joinedBattleSessionId = await joinPvpSpectation(actor.userId, battleKey)
-        if (!joinedBattleSessionId || joinedBattleSessionId !== battleSessionId) {
-          throw new AurevaneError(
-            'INVALID_REQUEST',
-            'That battle is no longer available to spectate.',
-          )
-        }
-      }
+    const battleSessionId = await joinPvpSpectation(actor.userId, battleKey)
+    if (!battleSessionId || battleSessionId !== spectator.battle.battleSessionId) {
+      throw new AurevaneError('INVALID_REQUEST', 'That battle is no longer available to spectate.')
     }
 
     const participantTitles = await loadPvpParticipantTitles(
