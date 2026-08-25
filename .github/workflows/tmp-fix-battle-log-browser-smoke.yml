@@ -22,14 +22,8 @@ jobs:
           from pathlib import Path
           path = Path('apps/web/e2e/battle-experience.pw.ts')
           text = path.read_text()
-          old = """  if (testInfo.project.name === 'mobile-chromium') {
-    await roundButton.click()
-  }
-  await expect(battleLog).toBeVisible()
-"""
-          new = """  await roundButton.click()
-  await expect(battleLog).toBeVisible()
-"""
+          old = "  if (testInfo.project.name === 'mobile-chromium') {\n    await roundButton.click()\n  }\n  await expect(battleLog).toBeVisible()\n"
+          new = "  await roundButton.click()\n  await expect(battleLog).toBeVisible()\n"
           if text.count(old) != 1:
               raise SystemExit(f'Expected exactly one stale viewport-specific log-open block, found {text.count(old)}')
           path.write_text(text.replace(old, new, 1))
