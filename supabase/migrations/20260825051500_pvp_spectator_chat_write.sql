@@ -40,7 +40,8 @@ begin
     and b.lifecycle = 'active'
   limit 1;
 
-  -- Spectators may write only while actively spectating this exact active battle.
+  -- Spectators may write only while actively spectating this exact battle. Spectating itself
+  -- remains available for active and completed PvP battles, so chat follows the same lifecycle.
   -- Use the same most-recent character convention already used for spectator presence.
   if v_character_id is null then
     select c.id
@@ -56,7 +57,7 @@ begin
     ) c on true
     where s.user_id = p_user_id
       and s.battle_session_id = p_battle_session_id
-      and b.lifecycle = 'active'
+      and b.lifecycle in ('active', 'completed')
     limit 1;
   end if;
 
