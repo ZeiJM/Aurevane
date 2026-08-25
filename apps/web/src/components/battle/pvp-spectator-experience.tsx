@@ -488,7 +488,12 @@ export function PvpSpectatorExperience({
             className={`${styles.battlefieldWrap} ${inspectStyles.battlefieldWrap}`}
             aria-label="Live battlefield"
           >
-            <div className={styles.battlefieldHeader}>
+            <div
+              className={styles.battlefieldHeader}
+              data-active-hp={
+                activeCombatant ? `${activeCombatant.hp}/${activeCombatant.maxHp}` : '—'
+              }
+            >
               <div>
                 <span>Battlefield</span>
                 <strong>{participantName(participantByCombatant, activeCombatantId)}</strong>
@@ -600,7 +605,7 @@ export function PvpSpectatorExperience({
           <div className={styles.commsStack}>
             <PvpBattleChat
               battleSessionId={battle.battleSessionId}
-              readOnly
+              readOnly={false}
               combatantNames={combatantNames}
               className={styles.comms}
             />
