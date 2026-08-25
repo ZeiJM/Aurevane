@@ -233,11 +233,7 @@ export function PvpBattleQualityControls({
           )
         : null}
 
-      {commandTarget &&
-      !localTurn &&
-      battleIsActive &&
-      clock &&
-      clockMatchesCurrentTurn
+      {commandTarget && !localTurn && battleIsActive && clock && clockMatchesCurrentTurn
         ? createPortal(
             <span
               data-pvp-opponent-turn-clock="true"
