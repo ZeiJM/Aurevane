@@ -18,6 +18,7 @@ type Combatant = BattleSnapshot['tactical']['battle']['combatants'][number]
 type Placement = BattleSnapshot['tactical']['placements'][number]
 type Profile = BattleSnapshot['statBridge']['combatants'][number]
 type CombatStatus = BattleSnapshot['statusState'][number]['statuses'][number]
+type InspectMetadata = Pick<PvpBattleMetadata, 'participants'>
 
 interface SelectedCombatant {
   combatant: Combatant
@@ -67,6 +68,8 @@ function statusLabel(statusId: string): string {
 }
 
 function inspectModeActive(): boolean {
+  if (document.querySelector("[data-spectator-inspect-active='true']")) return true
+
   const buttons = Array.from(
     document.querySelectorAll<HTMLButtonElement>('section[aria-label="Command Deck"] button'),
   )
@@ -80,7 +83,7 @@ function inspectModeActive(): boolean {
 function readSelectedCombatant(
   battle: BattleSessionView,
   position: GridPosition,
-  metadata: PvpBattleMetadata,
+  metadata: InspectMetadata,
 ): SelectedCombatant | null {
   const placement = battle.snapshot.tactical.placements.find((candidate) =>
     positionsEqual(candidate.position, position),
@@ -120,9 +123,11 @@ function readSelectedCombatant(
 export function PvpBattleInspectPopup({
   battleSessionId,
   metadata,
+  battleView = null,
 }: {
   battleSessionId: string
-  metadata: PvpBattleMetadata
+  metadata: InspectMetadata
+  battleView?: BattleSessionView | null
 }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -135,22 +140,27 @@ export function PvpBattleInspectPopup({
     async function openCombatant(position: GridPosition) {
       const sequence = ++requestSequence
       setOpen(true)
-      setLoading(true)
+      setLoading(!battleView)
       setError(null)
       setSelected(null)
 
       try {
-        const response = await fetch(`/api/battles/${battleSessionId}`, {
-          method: 'GET',
-          cache: 'no-store',
-        })
-        const body = (await response.json()) as BattleApiBody
-        if (sequence !== requestSequence) return
-        if (!response.ok || !body.battle) {
-          throw new Error(body.error?.message ?? 'Combatant details could not be loaded.')
+        let currentBattle = battleView
+        if (!currentBattle) {
+          const response = await fetch(`/api/battles/${battleSessionId}`, {
+            method: 'GET',
+            cache: 'no-store',
+          })
+          const body = (await response.json()) as BattleApiBody
+          if (sequence !== requestSequence) return
+          if (!response.ok || !body.battle) {
+            throw new Error(body.error?.message ?? 'Combatant details could not be loaded.')
+          }
+          currentBattle = body.battle
         }
 
-        const next = readSelectedCombatant(body.battle, position, metadata)
+        if (sequence !== requestSequence) return
+        const next = readSelectedCombatant(currentBattle, position, metadata)
         if (!next) throw new Error('That combatant is no longer on this tile.')
         setSelected(next)
       } catch (loadError) {
@@ -190,7 +200,7 @@ export function PvpBattleInspectPopup({
       document.removeEventListener('click', handleBattlefieldClick, true)
       window.removeEventListener('keydown', handleEscape)
     }
-  }, [battleSessionId, metadata])
+  }, [battleSessionId, battleView, metadata])
 
   const healthPercent = useMemo(() => {
     if (!selected || selected.combatant.maxHp <= 0) return 0

@@ -11,6 +11,7 @@ import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
 import styles from './desktop-battle-combatant-inspect.module.css'
+import { PvpBattleInspectPopup } from './pvp-battle-inspect-popup'
 
 const DESKTOP_QUERY = '(min-width: 881px)'
 const BASIS_POINTS = 10_000
@@ -358,13 +359,22 @@ export function DesktopBattleCombatantInspect({
     pvpMetadata,
   ])
 
-  if (!open) return null
+  const spectatorPopup =
+    battleView && pvpMetadata ? (
+      <PvpBattleInspectPopup
+        battleSessionId={battleSessionId}
+        metadata={pvpMetadata}
+        battleView={battleView}
+      />
+    ) : null
+
+  if (!open) return spectatorPopup
 
   const healthPercent = selected ? meterPercent(selected.combatant.hp, selected.combatant.maxHp) : 0
   const manaPercent = selected ? meterPercent(selected.combatant.mp, selected.combatant.maxMp) : 0
   const effectSummary = selected ? summarizeEffects(selected.statuses) : []
 
-  return (
+  const desktopPopup = (
     <div
       className={styles.backdrop}
       data-desktop-battle-inspect="true"
@@ -529,5 +539,14 @@ export function DesktopBattleCombatantInspect({
         ) : null}
       </section>
     </div>
+  )
+
+  return spectatorPopup ? (
+    <>
+      {spectatorPopup}
+      {desktopPopup}
+    </>
+  ) : (
+    desktopPopup
   )
 }
