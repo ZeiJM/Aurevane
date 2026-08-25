@@ -45,3 +45,5 @@ jobs:
           fi
           git commit -m "chore: format Battle Log V2"
           git push origin HEAD:feat/battle-log-v2-narration-20260824
+
+# Temporary workflow; remove after formatting is committed.
