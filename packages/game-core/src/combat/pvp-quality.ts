@@ -224,6 +224,7 @@ function timeoutTrackedTurn(
     events.push({
       event: options.loweredGuardEvent,
       combatantId: actor.id,
+      remainingOwnerTurnStarts: options.loweredGuardDurationOwnerTurnStarts,
       damageTakenMultiplierBasisPoints: 25_000,
     })
   }

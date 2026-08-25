@@ -15,6 +15,7 @@ interface BattleLogPanelProps {
   open?: boolean
   onClose?: () => void
   playerName?: string
+  combatantNames?: Readonly<Record<string, string>>
   dockOnDesktop?: boolean
 }
 
@@ -126,6 +127,7 @@ export function BattleLogPanel({
   open,
   onClose,
   playerName,
+  combatantNames,
   dockOnDesktop = false,
 }: BattleLogPanelProps) {
   const runtimePlayerName = useBattlePlayerName()
@@ -236,6 +238,7 @@ export function BattleLogPanel({
             error={error}
             onClose={() => setInternalOpen(false)}
             playerName={effectivePlayerName}
+            combatantNames={combatantNames}
           />
         ) : null}
       </div>
@@ -253,6 +256,7 @@ export function BattleLogPanel({
           loading={loading}
           error={error}
           playerName={effectivePlayerName}
+          combatantNames={combatantNames}
         />
       </div>,
       dockTarget,
@@ -268,6 +272,7 @@ export function BattleLogPanel({
         onClose={() => onClose?.()}
         onHeaderPointerDown={(event) => beginFloatingPanelDrag(event, controlledPanelRef.current)}
         playerName={effectivePlayerName}
+        combatantNames={combatantNames}
       />
       <span
         className={styles.resizeHandle}
@@ -287,6 +292,7 @@ function LogPanel({
   onClose,
   onHeaderPointerDown,
   playerName,
+  combatantNames,
 }: {
   entries: readonly BattleLogView['entries'][number][]
   loading: boolean
@@ -294,6 +300,7 @@ function LogPanel({
   onClose?: () => void
   onHeaderPointerDown?: (event: React.PointerEvent<HTMLElement>) => void
   playerName?: string
+  combatantNames?: Readonly<Record<string, string>>
 }) {
   return (
     <section className={styles.panel} aria-label="Battle Log">
@@ -326,6 +333,7 @@ function LogPanel({
         <BattleLogFeed
           entries={entries}
           playerName={playerName}
+          combatantNames={combatantNames}
           emptyMessage="No committed battle actions yet."
         />
       )}

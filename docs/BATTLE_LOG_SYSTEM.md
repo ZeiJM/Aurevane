@@ -104,3 +104,43 @@ Mechanics remain typed/server-authoritative. Templates are presentation only.
 ## Success standard
 
 A good battle log lets a player reconstruct the fight quickly without reading every engine event. Richness comes from hierarchy, identity, outcome facts, statuses and context — not from adding more words.
+
+## 2026-08-24 clarity, identity, lifecycle, and narration contract
+
+This addendum supersedes earlier examples that imply the default log should expose outcome chip clouds. The current player-facing rule is sentence-first: one causal combat beat, at most one immediate consequence line by default, and optional calm Details for useful tactical numbers.
+
+### Identity resolution is required data
+
+In PvP and spectator contexts, every battle-log consumer must receive a complete `combatantId -> characterName` map built from authoritative participant metadata. Both sides use `character:` combatant IDs, so treating every `character:` ID as the local viewer silently misattributes actor and target. When a PvP map is present but an ID is unexpectedly missing, presentation falls back to `Opponent`, never the viewer's name. AI/practice may continue using the explicit local `playerName` fallback because non-player opponents use recruit identities.
+
+### Player-facing detail vocabulary
+
+- resulting HP is labelled `{n} HP remaining`;
+- attack probability is labelled `{n}% hit chance`;
+- PvP timeout streaks are `consecutive timeouts`, never `misses`;
+- movement cost is `{n} Move spent`;
+- raw basis points, internal resource keys, sentinel durations, RNG rolls, and bare lifecycle words such as `Expired` never appear.
+
+Lowered Guard applied by the PvP turn timer lasts until that combatant's next turn begins and makes that combatant take 2.5x normal incoming damage. The player-facing log may describe that mechanic plainly; it must never expose `25_000` basis points or the internal 1000-turn status-definition sentinel.
+
+### Status lifecycle and grouping
+
+Status durations count the affected status owner's upcoming turn starts, not global rounds. General authored statuses may display a concise `{n} turn(s)` duration. The PvP one-turn Lowered Guard presentation says `until next turn` because that is clearer than exposing the implementation counter.
+
+`status_applied` events distinguish fresh application from authoritative refresh. Refresh renders as `{Target}'s {Status} refreshes`, while natural expiration renders as its own quiet `{Target}'s {Status} fades` event. Expiration is not dumped into an unrelated action's Details merely because both events share one battle-version commit. Immediate status consequences may attach to an action only when their target matches that action's actor/target attribution.
+
+### Skill narration contract
+
+Skill content may carry optional short presentation-only narration:
+
+```ts
+interface SkillNarrationTemplate {
+  hit?: string
+  miss?: string
+  critical?: string
+}
+```
+
+V1 allow-listed tokens are `{actor}`, `{target}`, `{ability}`, and `{damage}`. Unknown or malformed templates fail closed to the generic battle sentence; they never throw and never affect mechanics. `critical` is reserved in the content contract but is not selected until an authoritative critical outcome exists. Do not add blocked/dodged/parried variants until those outcomes exist mechanically. Pronoun-form tokens remain deferred until the authoritative identity/pronoun resolver is available.
+
+Narration is evaluated only after committed combat events exist. It can change wording, never hit/miss, damage, targets, statuses, durations, costs, rewards, or any other authoritative result. Future Master Panel editing must use the same versioned contract with validation, preview, publish, audit, and rollback.

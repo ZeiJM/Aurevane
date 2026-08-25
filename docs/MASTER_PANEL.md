@@ -610,3 +610,11 @@ The Master Panel succeeds when:
 - dangerous systems have kill switches;
 - staff do not need direct production credentials;
 - the panel grows progressively with the game rather than arriving only after every player system is complete.
+
+## 21. Battle Narration Authoring Contract
+
+The future Combat Content / Skill editor must edit the existing typed `SkillNarrationTemplate` contract rather than inventing a separate prose system. The first authorable fields are optional `Hit`, `Miss`, and `Critical` short narration variants. `Critical` remains dormant until the combat engine exposes an authoritative critical outcome; blocked/dodged/parried fields must not be added speculatively.
+
+The editor must provide an allow-listed token picker for `{actor}`, `{target}`, `{ability}`, and `{damage}`, sample preview, unknown-token validation, generic fallback preview, Draft -> Preview -> Publish -> Rollback, version history, and audit provenance. Narration is presentation metadata attached to versioned Skill content and is never read by combat resolution.
+
+Status authoring should likewise expose plain-language lifecycle/effect descriptions only for mechanics that actually exist. Do not build stacking-status authoring UI until a released status supports stacking behavior that players need to understand.
