@@ -16,6 +16,7 @@ import './character-creation-scale.css'
 import './character-select-short-height-fit.css'
 import './portrait-ratio-standardization.css'
 import './authenticated-header-mobile.css'
+import './guided-training-grid-fix.css'
 
 export const metadata: Metadata = {
   title: 'AUREVANE',
