@@ -8,11 +8,7 @@ import { readGuidedTrainingProgress } from './guided-training-completion-service
 const CONTROLLED_COMBATANT_ID = 'character:player'
 const CREATED_AT = '2026-08-25T16:00:00.000Z'
 
-function record(
-  battleVersion: number,
-  eventIndex: number,
-  event: unknown,
-): BattleEventRecord {
+function record(battleVersion: number, eventIndex: number, event: unknown): BattleEventRecord {
   return {
     battleVersion,
     eventIndex,
