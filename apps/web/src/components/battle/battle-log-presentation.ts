@@ -438,9 +438,10 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
   }
 
   const details = uniqueDetails(group.entries, consumed)
-  const ariaLabel = [...primary, ...(secondary ?? [])]
-    .map((item) => item.text)
-    .join('')
+  const ariaLabel = [primary, secondary ?? []]
+    .map((segments) => segments.map((item) => item.text).join(''))
+    .filter(Boolean)
+    .join(' ')
     .replace(/↳\s*/gu, '')
     .replace(/\s+/gu, ' ')
     .trim()
