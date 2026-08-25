@@ -93,7 +93,7 @@ test(
       const battlefield = page.getByRole('region', { name: 'Live battlefield' })
       await expect(battlefield).toBeVisible()
 
-      const measurements = await page.evaluate(() => {
+      const diagnostics = await page.evaluate(() => {
         const battlefield = document.querySelector<HTMLElement>('#battlefield')
         const scroller = battlefield?.children.item(1) as HTMLElement | null
         const board = scroller?.firstElementChild as HTMLElement | null
@@ -115,18 +115,72 @@ test(
             minHeight: style.minHeight,
             maxHeight: style.maxHeight,
             childElementCount: element.childElementCount,
+            className: element.className,
           }
         }
-        return { battlefield: measure(battlefield), scroller: measure(scroller), board: measure(board), tile: measure(tile) }
+
+        const matchedDisplayRules: Array<{
+          sheet: string | null
+          media: string | null
+          selector: string
+          display: string
+          important: string
+          cssText: string
+        }> = []
+
+        const visitRules = (rules: CSSRuleList, sheetHref: string | null, media: string | null) => {
+          for (const rule of Array.from(rules)) {
+            if (rule instanceof CSSMediaRule) {
+              if (window.matchMedia(rule.conditionText).matches) {
+                visitRules(rule.cssRules, sheetHref, rule.conditionText)
+              }
+              continue
+            }
+            if (!(rule instanceof CSSStyleRule) || !scroller) continue
+            let matches = false
+            try {
+              matches = scroller.matches(rule.selectorText)
+            } catch {
+              matches = false
+            }
+            if (!matches || !rule.style.display) continue
+            matchedDisplayRules.push({
+              sheet: sheetHref,
+              media,
+              selector: rule.selectorText,
+              display: rule.style.display,
+              important: rule.style.getPropertyPriority('display'),
+              cssText: rule.cssText,
+            })
+          }
+        }
+
+        for (const sheet of Array.from(document.styleSheets)) {
+          try {
+            visitRules(sheet.cssRules, sheet.href, null)
+          } catch {
+            // Ignore inaccessible cross-origin stylesheets; app CSS is same-origin in this test.
+          }
+        }
+
+        return {
+          measurements: {
+            battlefield: measure(battlefield),
+            scroller: measure(scroller),
+            board: measure(board),
+            tile: measure(tile),
+          },
+          matchedDisplayRules,
+        }
       })
-      console.log('mobile spectator battlefield measurements', measurements)
+      console.log('mobile spectator battlefield diagnostics', diagnostics)
 
       const tiles = battlefield.getByRole('button', { name: /^Tile / })
       await expect(tiles).toHaveCount(63)
-      expect(measurements.scroller?.height ?? 0).toBeGreaterThan(0)
-      expect(measurements.board?.height ?? 0).toBeGreaterThan(0)
-      expect(measurements.tile?.width ?? 0).toBeGreaterThan(0)
-      expect(measurements.tile?.height ?? 0).toBeGreaterThan(0)
+      expect(diagnostics.measurements.scroller?.height ?? 0).toBeGreaterThan(0)
+      expect(diagnostics.measurements.board?.height ?? 0).toBeGreaterThan(0)
+      expect(diagnostics.measurements.tile?.width ?? 0).toBeGreaterThan(0)
+      expect(diagnostics.measurements.tile?.height ?? 0).toBeGreaterThan(0)
     } finally {
       await hostContext.close()
       await guestContext.close()
