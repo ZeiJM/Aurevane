@@ -16,12 +16,88 @@ jobs:
         with:
           ref: feat/battle-log-clarity-narration-20260824
           fetch-depth: 0
-      - name: Merge latest main safely
+      - name: Merge latest main and resolve only reviewed conflicts
         run: |
           git config user.name "AUREVANE Release Bot"
           git config user.email "actions@users.noreply.github.com"
           git fetch origin main
+          set +e
           git merge --no-edit origin/main
+          merge_status=$?
+          set -e
+          if [ "$merge_status" -ne 0 ]; then
+            unresolved="$(git diff --name-only --diff-filter=U | sort)"
+            expected="$(printf '%s\n' \
+              'apps/web/src/components/battle/desktop-battle-log-dock.tsx' \
+              'apps/web/src/components/battle/pvp-battle-client-boundary.tsx' | sort)"
+            if [ "$unresolved" != "$expected" ]; then
+              echo "Unexpected merge conflicts:" >&2
+              printf '%s\n' "$unresolved" >&2
+              exit 1
+            fi
+
+            git checkout --theirs -- \
+              apps/web/src/components/battle/desktop-battle-log-dock.tsx \
+              apps/web/src/components/battle/pvp-battle-client-boundary.tsx
+
+            python - <<'PY'
+            from pathlib import Path
+
+            dock = Path('apps/web/src/components/battle/desktop-battle-log-dock.tsx')
+            text = dock.read_text()
+            text = text.replace(
+                "  playerName,\n  eventDriven = false,\n}: {\n  battleSessionId: string\n  playerName?: string\n  eventDriven?: boolean\n}) {",
+                "  playerName,\n  combatantNames,\n  eventDriven = false,\n}: {\n  battleSessionId: string\n  playerName?: string\n  combatantNames?: Readonly<Record<string, string>>\n  eventDriven?: boolean\n}) {",
+                1,
+            )
+            text = text.replace(
+                "        playerName={playerName}\n        dockOnDesktop",
+                "        playerName={playerName}\n        combatantNames={combatantNames}\n        dockOnDesktop",
+                1,
+            )
+            dock.write_text(text)
+
+            boundary = Path('apps/web/src/components/battle/pvp-battle-client-boundary.tsx')
+            text = boundary.read_text()
+            text = text.replace("'use client'\n\n", "'use client'\n\nimport { useMemo } from 'react'\n\n", 1)
+            marker = "}) {\n  return (\n"
+            insertion = """}) {
+  const combatantNames = useMemo(
+    () =>
+      Object.fromEntries(
+        metadata.participants.map((participant) => [
+          participant.combatantId,
+          participant.characterName,
+        ]),
+      ),
+    [metadata.participants],
+  )
+
+  return (
+"""
+            if marker not in text:
+                raise SystemExit('PvpBattleClientBoundary insertion marker missing')
+            text = text.replace(marker, insertion, 1)
+            text = text.replace(
+                "        playerName={playerName}\n        eventDriven",
+                "        playerName={playerName}\n        combatantNames={combatantNames}\n        eventDriven",
+                1,
+            )
+            boundary.write_text(text)
+            PY
+
+            git add \
+              apps/web/src/components/battle/desktop-battle-log-dock.tsx \
+              apps/web/src/components/battle/pvp-battle-client-boundary.tsx
+            git commit --no-edit
+          fi
+      - name: Validate combined conflict resolution
+        run: |
+          grep -q 'combatantNames={combatantNames}' apps/web/src/components/battle/desktop-battle-log-dock.tsx
+          grep -q 'eventDriven = false' apps/web/src/components/battle/desktop-battle-log-dock.tsx
+          grep -q 'aurevane:pvp-battle-state' apps/web/src/components/battle/desktop-battle-log-dock.tsx
+          grep -q 'combatantNames={combatantNames}' apps/web/src/components/battle/pvp-battle-client-boundary.tsx
+          grep -q 'eventDriven' apps/web/src/components/battle/pvp-battle-client-boundary.tsx
       - name: Remove temporary workflow and push
         run: |
           rm .github/workflows/tmp-sync-battle-log-main.yml
