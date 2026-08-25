@@ -28,19 +28,13 @@ jobs:
           python - <<'PY'
           from pathlib import Path
           import subprocess
-
-          source = subprocess.check_output(
-              ['git', 'show', '748e19abb33c3ce8ba90b5c4ec05f99059709e52:.github/workflows/tmp-battle-log-clarity.yml'],
-              text=True,
-          )
+          source = subprocess.check_output(['git', 'show', '748e19abb33c3ce8ba90b5c4ec05f99059709e52:.github/workflows/tmp-battle-log-clarity.yml'], text=True)
           start_marker = "          python - <<'PY'\n"
           end_marker = "          PY\n"
           start = source.index(start_marker)
           end = source.index(end_marker, start) + len(end_marker)
           block = source[start:end]
-          lines = []
-          for line in block.splitlines():
-              lines.append(line[10:] if line.startswith('          ') else line)
+          lines = [line[10:] if line.startswith('          ') else line for line in block.splitlines()]
           Path('/tmp/aurevane-battle-log-implement.sh').write_text('\n'.join(lines) + '\n')
           PY
           bash /tmp/aurevane-battle-log-implement.sh
@@ -48,36 +42,15 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-
+          import re
           path = Path('apps/web/src/server/battle/battle-log-service.test.ts')
           text = path.read_text()
-          old = """    expect(result.entries[0]?.facts).toEqual([
-              { label: 'Lowered Guard', tone: 'warning' },
-              { label: '1 turn', tone: 'neutral' },
-              { label: 'Takes 2.5× damage', tone: 'warning' },
-            ])
-"""
-          if old not in text:
-              old = """    expect(result.entries[0]?.facts).toEqual([
-      { label: 'Lowered Guard', tone: 'warning' },
-      { label: '1 turn', tone: 'neutral' },
-      { label: 'Takes 2.5× damage', tone: 'warning' },
-    ])
-"""
-          if old not in text:
-              raise SystemExit('Expected Lowered Guard assertion was not found')
-          new = """    const loweredGuard = result.entries.find(
-      (entry) => entry.eventType === 'pvp_lowered_guard_applied',
-    )
-    const timeout = result.entries.find((entry) => entry.eventType === 'pvp_turn_timed_out')
-    expect(loweredGuard?.facts).toEqual([
-      { label: 'Lowered Guard', tone: 'warning' },
-      { label: '1 turn', tone: 'neutral' },
-      { label: 'Takes 2.5× damage', tone: 'warning' },
-    ])
-    expect(timeout?.facts).toEqual([{ label: '2 consecutive timeouts', tone: 'warning' }])
-"""
-          path.write_text(text.replace(old, new, 1))
+          pattern = re.compile(r"    expect\(result\.entries\[0\]\?\.facts\)\.toEqual\(\[\s*\{ label: 'Lowered Guard', tone: 'warning' \},\s*\{ label: '1 turn', tone: 'neutral' \},\s*\{ label: 'Takes 2\.5× damage', tone: 'warning' \},\s*\]\)\n")
+          replacement = "\n".join(["    const loweredGuard = result.entries.find(", "      (entry) => entry.eventType === 'pvp_lowered_guard_applied',", "    )", "    const timeout = result.entries.find((entry) => entry.eventType === 'pvp_turn_timed_out')", "    expect(loweredGuard?.facts).toEqual([", "      { label: 'Lowered Guard', tone: 'warning' },", "      { label: '1 turn', tone: 'neutral' },", "      { label: 'Takes 2.5× damage', tone: 'warning' },", "    ])", "    expect(timeout?.facts).toEqual([{ label: '2 consecutive timeouts', tone: 'warning' }])", ""])
+          text, count = pattern.subn(replacement, text, count=1)
+          if count != 1:
+              raise SystemExit(f'Expected one Lowered Guard assertion, patched {count}')
+          path.write_text(text)
           PY
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
