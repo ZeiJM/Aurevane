@@ -25,21 +25,13 @@
     content: '';
     pointer-events: none;
   }
-}
 
-@media (min-width: 1041px) {
-  /* The shared dock already owns its own battlefield column. Use the shared centering variable
-     from battle-log-panel.module.css as the single source of truth so this higher-specificity
-     polish rule cannot silently override subsequent centering adjustments. */
+  /* The dock is active from 821px upward, so its visual centering rule must use the same desktop
+     range. Consume the shared centering variable as the single source of truth; compact desktop
+     already resolves that variable to a safe 0.35rem, while wide desktop gets the larger tuned
+     shift. This avoids both the old competing transform and the 821-1040px transform:none dead
+     zone without changing grid tracks, panel dimensions, or the tactical board. */
   :global(#battlefield[data-desktop-battle-log-open='true'] > [data-docked-battle-log='true']) {
     transform: translateX(calc(-1 * var(--battle-log-dock-center-shift))) !important;
-  }
-}
-
-@media (max-width: 1040px) and (min-width: 821px) {
-  /* Preserve the compact-desktop layout: there is not enough spare canvas here to pull the log
-     toward the tactical board safely. */
-  :global(#battlefield[data-desktop-battle-log-open='true'] > [data-docked-battle-log='true']) {
-    transform: none !important;
   }
 }
