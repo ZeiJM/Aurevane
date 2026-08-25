@@ -111,7 +111,7 @@ export function PvpBattleChatBridge({
   battleSessionId: string
   metadata: PvpBattleMetadata
 }) {
-  const [open, setOpen] = useState(true)
+  const [open, setOpen] = useState(false)
   const [requestedTab, setRequestedTab] = useState<'chat' | 'log'>('chat')
   const [unread, setUnread] = useState(0)
   const [desktop, setDesktop] = useState(false)
