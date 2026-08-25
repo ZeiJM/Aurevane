@@ -1,0 +1,74 @@
+.hook {
+  display: none;
+}
+
+@media (max-width: 700px) {
+  :global(main[data-pvp-spectator='true'] > header > div:first-child) {
+    position: relative;
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr);
+    column-gap: 0.32rem;
+    align-items: baseline;
+    padding: 0.42rem 4.7rem 0.42rem 0.55rem !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] > header > div:first-child > span) {
+    font-size: 0 !important;
+    letter-spacing: 0 !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] > header > div:first-child > span::before) {
+    content: 'Battle Hall ·';
+    color: var(--av-brass-300);
+    font: 800 0.5rem/1 var(--av-font-mono);
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  :global(main[data-pvp-spectator='true'] > header > div:first-child > span::after) {
+    content: 'Spectator';
+    position: absolute;
+    top: 0.42rem;
+    right: 0.55rem;
+    color: var(--av-brass-300);
+    font: 800 0.5rem/1 var(--av-font-mono);
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  :global(main[data-pvp-spectator='true'] > header > div:first-child > h1) {
+    min-width: 0;
+    margin: 0 !important;
+    overflow: hidden;
+    font-size: clamp(0.78rem, 3.4vw, 0.98rem) !important;
+    line-height: 1 !important;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  :global(main[data-pvp-spectator='true'] > header > div:first-child > p) {
+    grid-column: 1 / -1;
+    margin-bottom: 0 !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] > section:nth-of-type(2)) {
+    grid-template-areas:
+      'controls'
+      'board'
+      'comms' !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] > header > div:last-child) {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.45rem;
+  }
+
+  :global(main[data-pvp-spectator='true'] > header > div:last-child > button) {
+    width: 100% !important;
+    min-width: 0 !important;
+    justify-self: stretch;
+  }
+}
