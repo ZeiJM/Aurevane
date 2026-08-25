@@ -227,6 +227,8 @@
     --battle-log-dock-width: clamp(16.5rem, 21vw, 21rem);
     --battle-log-dock-gap: clamp(0.6rem, 0.8vw, 0.85rem);
     --battle-log-dock-inset: clamp(0.45rem, 1vw, 0.8rem);
+    --battle-log-dock-vertical-inset: clamp(0.35rem, 0.5vw, 0.55rem);
+    --battle-log-dock-center-shift: clamp(0.75rem, 1.25vw, 1.5rem);
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) var(--battle-log-dock-width) !important;
     grid-template-rows: minmax(0, 1fr) auto !important;
@@ -271,8 +273,9 @@
     min-width: 0 !important;
     min-height: 8rem !important;
     max-height: none !important;
-    margin: 0 calc(var(--battle-log-dock-inset) / 2);
+    margin: var(--battle-log-dock-vertical-inset) calc(var(--battle-log-dock-inset) / 2);
     align-self: stretch !important;
+    transform: translateX(calc(-1 * var(--battle-log-dock-center-shift)));
   }
 }
 
@@ -280,6 +283,7 @@
   :global(#battlefield[data-desktop-battle-log-open='true']) {
     --battle-log-dock-width: clamp(15rem, 27vw, 16.5rem);
     --battle-log-dock-gap: 0.55rem;
+    --battle-log-dock-center-shift: 0.35rem;
   }
 }
 
