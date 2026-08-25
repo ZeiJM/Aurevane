@@ -55,91 +55,28 @@
 
   :global(main[data-pvp-spectator='true'] > section:nth-of-type(2)) {
     grid-template-areas:
-      'controls'
       'board'
       'comms' !important;
   }
 
-  /* Keep the active-turn summary useful without letting it consume a full phone-width row for
-     each piece of information. Identity stays on the left while HP/MP use the otherwise empty
-     space on the right, shortening the card before the battlefield. */
-  :global(
-    main[data-pvp-spectator='true']
-      aside[aria-label='Spectator match context']
-      > article:first-child
-  ) {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) auto !important;
-    grid-template-areas:
-      'eyebrow resources'
-      'name resources'
-      'team resources' !important;
-    gap: 0.12rem 0.5rem !important;
-    align-items: center !important;
-    padding: 0.48rem 0.58rem !important;
+  :global(main[data-pvp-spectator='true'] > section:nth-of-type(2) > aside) {
+    display: none !important;
   }
 
-  :global(
-    main[data-pvp-spectator='true']
-      aside[aria-label='Spectator match context']
-      > article:first-child
-      > span:first-child
-  ) {
-    grid-area: eyebrow;
-    align-self: end;
+  :global(main[data-pvp-spectator='true'] #battlefield > div:first-child > div > strong::before) {
+    content: 'Now acting: ';
   }
 
-  :global(
-    main[data-pvp-spectator='true']
-      aside[aria-label='Spectator match context']
-      > article:first-child
-      > strong
-  ) {
-    grid-area: name;
-    min-width: 0;
-    overflow: hidden;
-    font-size: clamp(0.92rem, 4.6vw, 1.05rem) !important;
-    line-height: 1 !important;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  :global(main[data-pvp-spectator='true'] #battlefield > div:first-child > small) {
+    display: none !important;
   }
 
-  :global(
-    main[data-pvp-spectator='true']
-      aside[aria-label='Spectator match context']
-      > article:first-child
-      > small
-  ) {
-    grid-area: team;
-    align-self: start;
-    line-height: 1.1;
-  }
-
-  :global(
-    main[data-pvp-spectator='true']
-      aside[aria-label='Spectator match context']
-      > article:first-child
-      > div:last-child
-  ) {
-    grid-area: resources;
-    display: grid !important;
-    grid-template-columns: repeat(2, max-content) !important;
-    gap: 0.24rem !important;
-    justify-content: end;
-    align-self: stretch;
-    align-items: center;
-  }
-
-  :global(
-    main[data-pvp-spectator='true']
-      aside[aria-label='Spectator match context']
-      > article:first-child
-      > div:last-child
-      > span
-  ) {
-    min-width: 0;
-    padding: 0.34rem 0.4rem !important;
-    line-height: 1 !important;
+  :global(main[data-pvp-spectator='true'] #battlefield > div:first-child::after) {
+    content: 'HP ' attr(data-active-hp);
+    flex: 0 0 auto;
+    margin-left: auto;
+    color: var(--av-text-muted);
+    font: 700 0.52rem/1 var(--av-font-mono);
     white-space: nowrap;
   }
 
