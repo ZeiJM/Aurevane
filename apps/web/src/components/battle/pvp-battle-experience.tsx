@@ -22,7 +22,7 @@ const GUARD_COST = 30
 const RECOVER_COST = 50
 const MOVE_COST_PER_TERRAIN_POINT = 25
 const ACTIVE_PLAYER_POLL_MS = 900
-const WAITING_PLAYER_POLL_MS = 350
+const WAITING_PLAYER_POLL_MS = 1000
 const COMMIT_POLL_RETRY_MS = 120
 
 type Mode = 'none' | 'inspect' | 'move' | 'attack' | 'guard' | 'recover' | 'finish'
