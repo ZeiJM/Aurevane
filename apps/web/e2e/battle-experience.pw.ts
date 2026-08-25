@@ -231,9 +231,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
 
   const roundButton = page.getByRole('button', { name: /Round .*Combat Log/ })
   const battleLog = page.getByTestId('battle-log-panel')
-  if (testInfo.project.name === 'mobile-chromium') {
-    await roundButton.click()
-  }
+  await roundButton.click()
   await expect(battleLog).toBeVisible()
   await expect(battleLog).toContainText(characterName)
   await expect(battleLog).toContainText(/moved|Guard/)
