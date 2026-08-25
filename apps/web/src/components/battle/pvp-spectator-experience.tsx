@@ -406,6 +406,12 @@ export function PvpSpectatorExperience({
                       />
                       <span className={styles.memberIdentity}>
                         <strong>{member.characterName}</strong>
+                        <small>
+                          Level {member.characterLevel}
+                          {participantTitles[member.characterId]
+                            ? ` · ${participantTitles[member.characterId]}`
+                            : ''}
+                        </small>
                       </span>
                       <span
                         className={styles.memberHealth}
@@ -450,12 +456,7 @@ export function PvpSpectatorExperience({
               <strong>{activeParticipant?.characterName ?? 'Match complete'}</strong>
               {activeCombatant && activeParticipant ? (
                 <>
-                  <small>
-                    {teamName(activeParticipant.teamIndex)} · Level {activeParticipant.characterLevel}
-                    {participantTitles[activeParticipant.characterId]
-                      ? ` · ${participantTitles[activeParticipant.characterId]}`
-                      : ''}
-                  </small>
+                  <small>{teamName(activeParticipant.teamIndex)}</small>
                   <div className={styles.resourceLine}>
                     <span>
                       HP {activeCombatant.hp}/{activeCombatant.maxHp}
