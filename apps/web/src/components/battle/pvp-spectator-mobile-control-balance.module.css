@@ -53,6 +53,13 @@
     margin-bottom: 0 !important;
   }
 
+  :global(main[data-pvp-spectator='true'] > section:nth-of-type(2)) {
+    grid-template-areas:
+      'controls'
+      'board'
+      'comms' !important;
+  }
+
   :global(main[data-pvp-spectator='true'] > header > div:last-child) {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
