@@ -55,9 +55,29 @@
 
   :global(main[data-pvp-spectator='true'] > section:nth-of-type(2)) {
     grid-template-areas:
-      'controls'
       'board'
       'comms' !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] > section:nth-of-type(2) > aside) {
+    display: none !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] #battlefield > div:first-child > div > strong::before) {
+    content: 'Now acting: ';
+  }
+
+  :global(main[data-pvp-spectator='true'] #battlefield > div:first-child > small) {
+    display: none !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] #battlefield > div:first-child::after) {
+    content: 'HP ' attr(data-active-hp);
+    flex: 0 0 auto;
+    margin-left: auto;
+    color: var(--av-text-muted);
+    font: 700 0.52rem/1 var(--av-font-mono);
+    white-space: nowrap;
   }
 
   :global(main[data-pvp-spectator='true'] > header > div:last-child) {
