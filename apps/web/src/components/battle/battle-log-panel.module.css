@@ -227,8 +227,8 @@
     --battle-log-dock-width: clamp(16.5rem, 21vw, 21rem);
     --battle-log-dock-gap: clamp(0.6rem, 0.8vw, 0.85rem);
     --battle-log-dock-inset: clamp(0.45rem, 1vw, 0.8rem);
-    --battle-log-dock-vertical-inset: clamp(0.35rem, 0.5vw, 0.55rem);
-    --battle-log-dock-center-shift: clamp(0.75rem, 1.25vw, 1.5rem);
+    --battle-log-dock-vertical-inset: clamp(0.18rem, 0.28vw, 0.3rem);
+    --battle-log-dock-center-shift: clamp(2.4rem, 3.2vw, 3.4rem);
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) var(--battle-log-dock-width) !important;
     grid-template-rows: minmax(0, 1fr) auto !important;
