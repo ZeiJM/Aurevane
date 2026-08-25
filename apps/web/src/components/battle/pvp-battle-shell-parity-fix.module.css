@@ -93,6 +93,14 @@
     align-self: end !important;
     padding: 0.3rem clamp(0.5rem, 1vw, 0.8rem) !important;
   }
+
+  :global(
+    main[data-pvp-battle='true'][data-pvp-desktop-parity='true']
+      > footer
+      > button[data-pvp-spectator-key='true']
+  ) {
+    border-radius: var(--av-radius-sm) !important;
+  }
 }
 
 /* Mobile has a single authoritative turn readout in the command deck. The extra notice above the
