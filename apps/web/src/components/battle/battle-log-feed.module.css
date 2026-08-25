@@ -153,7 +153,7 @@
 }
 
 .action[data-significance='quiet'] > article {
-  opacity: 0.73;
+  opacity: 0.82;
 }
 
 .action[data-significance='quiet'] > article:hover,
@@ -236,12 +236,12 @@
 }
 
 .primaryLine span[data-role='target'] {
-  color: #d9dde0;
+  color: #b9cad5;
   font-weight: 650;
 }
 
 .primaryLine span[data-role='action'] {
-  color: var(--av-brass-200);
+  color: #dfbd78;
   font-weight: 700;
 }
 
@@ -251,29 +251,25 @@
 }
 
 .primaryLine span[data-role='outcome'][data-tone='damage'],
-.secondaryLine span[data-role='outcome'][data-tone='damage'],
-.details span[data-tone='damage'] {
-  color: #ef9b94;
+.secondaryLine span[data-role='outcome'][data-tone='damage'] {
+  color: #f18d84;
 }
 
 .primaryLine span[data-role='outcome'][data-tone='healing'],
 .primaryLine span[data-role='outcome'][data-tone='benefit'],
 .secondaryLine span[data-role='outcome'][data-tone='healing'],
-.secondaryLine span[data-role='outcome'][data-tone='benefit'],
-.details span[data-tone='healing'],
-.details span[data-tone='benefit'] {
-  color: var(--av-verdant-400);
+.secondaryLine span[data-role='outcome'][data-tone='benefit'] {
+  color: #7fce9e;
 }
 
 .primaryLine span[data-role='outcome'][data-tone='warning'],
-.secondaryLine span[data-role='outcome'][data-tone='warning'],
-.details span[data-tone='warning'] {
-  color: #e4bd79;
+.secondaryLine span[data-role='outcome'][data-tone='warning'] {
+  color: #e8bd73;
 }
 
 .secondaryLine {
   color: var(--av-text-dim);
-  font-size: 0.53rem;
+  font-size: 0.55rem;
   line-height: 1.35;
 }
 
@@ -329,7 +325,7 @@
 
 .details p {
   padding: 0.22rem 0 0.02rem 0.7rem;
-  color: rgba(198, 202, 206, 0.62);
+  color: rgba(205, 211, 216, 0.74);
   font: 560 0.45rem/1.38 var(--av-font-mono);
 }
 

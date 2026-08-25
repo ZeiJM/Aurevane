@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from 'react'
 
+import type { SkillNarrationTemplate } from '@aurevane/game-core/combat/battle-narration'
+
 import type { BattleLogView } from '@/server/battle/battle-log-service'
 
 import {
@@ -16,6 +18,7 @@ interface BattleLogFeedProps {
   entries: BattleLogView['entries']
   playerName?: string
   combatantNames?: Readonly<Record<string, string>>
+  skillNarrations?: Readonly<Record<string, SkillNarrationTemplate>>
   emptyMessage?: string
 }
 
@@ -66,11 +69,12 @@ export function BattleLogFeed({
   entries,
   playerName,
   combatantNames,
+  skillNarrations,
   emptyMessage = 'No committed battle actions yet.',
 }: BattleLogFeedProps) {
   const rounds = useMemo(
-    () => buildBattleLogPresentation(entries, { playerName, combatantNames }),
-    [combatantNames, entries, playerName],
+    () => buildBattleLogPresentation(entries, { playerName, combatantNames, skillNarrations }),
+    [combatantNames, entries, playerName, skillNarrations],
   )
   const [requestedRound, setRequestedRound] = useState<string | null | undefined>(undefined)
   const expandedRound = expandedRoundKey(rounds, requestedRound)
@@ -139,12 +143,11 @@ export function BattleLogFeed({
                           </details>
                         ) : null}
                       </div>
-                      <div className={styles.actionMeta} aria-hidden="true">
-                        {action.turnNumber !== null ? (
+                      {action.turnNumber !== null ? (
+                        <div className={styles.actionMeta} aria-hidden="true">
                           <small>Turn {action.turnNumber}</small>
-                        ) : null}
-                        <time dateTime={action.occurredAt}>{timeLabel(action.occurredAt)}</time>
-                      </div>
+                        </div>
+                      ) : null}
                     </article>
                   </li>
                 ))}

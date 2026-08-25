@@ -1,3 +1,4 @@
+import type { SkillNarrationTemplate } from './battle-narration'
 import { endTurn, spendAction, type BattleCombatant, type BattleState } from './battle-state'
 import {
   classifyFacingRelation,
@@ -75,6 +76,7 @@ export interface CombatActionDefinition {
   target: CombatTargetSpec
   cost: CombatActionCost
   requirements: readonly CombatUseRequirement[]
+  narration?: SkillNarrationTemplate
   effects: readonly CombatEffectDefinition[]
 }
 
@@ -208,6 +210,7 @@ export type CombatResolutionEvent =
       statusId: string
       stacks: number
       remainingOwnerTurnStarts: number
+      refreshed: boolean
     }
   | { event: 'status_expired'; combatantId: string; statusId: string }
   | { event: 'combatant_waited'; combatantId: string }
@@ -1088,6 +1091,7 @@ function applyEffect(
     }
   }
 
+  const existingStatus = getStatus(state, recipientId, effect.statusId)
   const nextState = applyStatusState(
     state,
     actorId,
@@ -1112,6 +1116,7 @@ function applyEffect(
         statusId: status.statusId,
         stacks: status.stacks,
         remainingOwnerTurnStarts: status.remainingOwnerTurnStarts,
+        refreshed: existingStatus !== null,
       },
     ],
   }

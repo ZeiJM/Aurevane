@@ -19,10 +19,12 @@ function combatLogTrigger(): HTMLButtonElement | null {
 export function DesktopBattleLogDock({
   battleSessionId,
   playerName,
+  combatantNames,
   eventDriven = false,
 }: {
   battleSessionId: string
   playerName?: string
+  combatantNames?: Readonly<Record<string, string>>
   eventDriven?: boolean
 }) {
   const [desktop, setDesktop] = useState(false)
@@ -89,6 +91,7 @@ export function DesktopBattleLogDock({
         battleVersion={refreshTick}
         open={open}
         playerName={playerName}
+        combatantNames={combatantNames}
         dockOnDesktop
       />
     </>

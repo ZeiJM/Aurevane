@@ -94,7 +94,7 @@ describe('sanitized battle log service', () => {
         tone: 'damage',
         facts: [
           { label: '13 DMG', tone: 'damage' },
-          { label: '67 HP', tone: 'neutral' },
+          { label: '67 HP remaining', tone: 'neutral' },
         ],
       }),
     )
@@ -107,7 +107,7 @@ describe('sanitized battle log service', () => {
         actionLabel: 'Basic Attack',
         facts: [
           { label: 'HIT', tone: 'damage' },
-          { label: '74% hit', tone: 'neutral' },
+          { label: '74% hit chance', tone: 'neutral' },
         ],
       }),
     )
@@ -119,7 +119,7 @@ describe('sanitized battle log service', () => {
         headline: 'Move',
         facts: [
           { label: '3, 2 → 4, 2', tone: 'neutral' },
-          { label: '1 Move', tone: 'neutral' },
+          { label: '1 Move spent', tone: 'neutral' },
         ],
       }),
     )
@@ -133,6 +133,50 @@ describe('sanitized battle log service', () => {
     expect(serialized).not.toContain('tieBreakSeed')
     expect(serialized).not.toContain('profileId')
     expect(serialized).not.toContain('raw')
+  })
+
+  it('translates timeout and Lowered Guard internals into player-facing facts', async () => {
+    const repository: BattleEventRepository = {
+      findBattleEvents: vi.fn(async () => [
+        {
+          battleVersion: 10,
+          eventIndex: 0,
+          event: {
+            event: 'pvp_turn_timed_out',
+            combatantId: 'character:player-1',
+            consecutiveMisses: 2,
+          },
+          createdAt: '2026-08-17T13:03:00.000Z',
+        },
+        {
+          battleVersion: 10,
+          eventIndex: 1,
+          event: {
+            event: 'pvp_lowered_guard_applied',
+            combatantId: 'character:player-1',
+            remainingOwnerTurnStarts: 1,
+            damageTakenMultiplierBasisPoints: 25_000,
+          },
+          createdAt: '2026-08-17T13:03:00.000Z',
+        },
+      ]),
+    }
+
+    const result = await createBattleLogService(repository).getLog(USER_ID, SESSION_ID)
+    const loweredGuard = result.entries.find(
+      (entry) => entry.eventType === 'pvp_lowered_guard_applied',
+    )
+    const timeout = result.entries.find((entry) => entry.eventType === 'pvp_turn_timed_out')
+    expect(loweredGuard?.facts).toEqual([
+      { label: 'Lowered Guard', tone: 'warning' },
+      { label: '1 turn', tone: 'neutral' },
+      { label: 'Takes 2.5× damage', tone: 'warning' },
+    ])
+    expect(timeout?.facts).toEqual([{ label: '2 consecutive timeouts', tone: 'warning' }])
+    const serialized = JSON.stringify(result)
+    expect(serialized).toContain('2 consecutive timeouts')
+    expect(serialized).not.toMatch(/\b2 misses\b/iu)
+    expect(serialized).not.toContain('25000')
   })
 
   it('carries authoritative round and turn context forward into later action entries', async () => {

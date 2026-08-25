@@ -183,7 +183,7 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         actorCombatantId,
         kind: 'movement',
         headline: 'Move',
-        facts: [...fact(route), ...fact(cost === null ? null : `${cost} Move`)],
+        facts: [...fact(route), ...fact(cost === null ? null : `${cost} Move spent`)],
       })
     }
     case 'movement_spent': {
@@ -254,7 +254,7 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         tone: 'damage',
         facts: [
           ...fact(amount === null ? null : `${amount} DMG`, 'damage'),
-          ...fact(hpAfter === null ? null : `${hpAfter} HP`),
+          ...fact(hpAfter === null ? null : `${hpAfter} HP remaining`),
         ],
       })
     }
@@ -277,7 +277,7 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         tone: 'healing',
         facts: [
           ...fact(amount === null ? null : `+${amount} HP`, 'healing'),
-          ...fact(hpAfter === null ? null : `${hpAfter} HP`),
+          ...fact(hpAfter === null ? null : `${hpAfter} HP remaining`),
         ],
       })
     }
@@ -322,11 +322,14 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
       const statusId = stringValue(event.statusId)
       const label = statusLabel(statusId)
       const remaining = numberValue(event.remainingOwnerTurnStarts)
+      const refreshed = event.refreshed === true
       const beneficial = statusId === 'guarded' || statusId?.startsWith('buff.') === true
       return createEntry(record, eventType, {
-        message: `${combatantLabel(event.targetCombatantId)} gained ${label}${remaining === null ? '' : ` for ${remaining} owner-turn start${remaining === 1 ? '' : 's'}`}.`,
-        messageTemplate: '{target} gained {status}.',
-        templateValues: { status: label },
+        message: refreshed
+          ? `${combatantLabel(event.targetCombatantId)} refreshed ${label}${remaining === null ? '' : ` for ${remaining} owner-turn start${remaining === 1 ? '' : 's'}`}.`
+          : `${combatantLabel(event.targetCombatantId)} gained ${label}${remaining === null ? '' : ` for ${remaining} owner-turn start${remaining === 1 ? '' : 's'}`}.`,
+        messageTemplate: refreshed ? "{target}'s {status} refreshed." : '{target} gained {status}.',
+        templateValues: { status: label, statusChange: refreshed ? 'REFRESHED' : 'APPLIED' },
         targetCombatantId,
         kind: beneficial && statusId === 'guarded' ? 'defense' : 'status',
         headline: label,
@@ -347,7 +350,7 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         targetCombatantId,
         kind: 'status',
         headline: label,
-        facts: fact('Expired'),
+        facts: [],
       })
     }
     case 'combatant_waited': {
@@ -420,7 +423,7 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         tone: hit ? 'damage' : 'warning',
         facts: [
           ...fact(hit ? 'HIT' : 'MISS', hit ? 'damage' : 'warning'),
-          ...fact(chance === null ? null : `${Math.round(chance / 100)}% hit`),
+          ...fact(chance === null ? null : `${Math.round(chance / 100)}% hit chance`),
         ],
       })
     }
@@ -436,24 +439,36 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         headline: 'Tactical Choice',
       })
     }
-    case 'pvp_turn_timed_out': {
+    case 'pvp_turn_timed_out':
+    case 'ai_turn_timed_out': {
       const actorCombatantId = stringValue(event.combatantId)
-      const misses = numberValue(event.consecutiveMisses)
+      const timeouts = numberValue(event.consecutiveMisses)
       return createEntry(record, eventType, {
-        message: `${combatantLabel(event.combatantId)} timed out${misses === null ? '' : ` (${misses} tracked miss${misses === 1 ? '' : 'es'})`}.`,
+        message: `${combatantLabel(event.combatantId)} timed out${timeouts === null ? '' : ` (${timeouts} consecutive timeout${timeouts === 1 ? '' : 's'})`}.`,
         messageTemplate: '{actor} timed out.',
         actorCombatantId,
         kind: 'turn',
         headline: 'Turn Timeout',
         tone: 'warning',
-        facts: fact(
-          misses === null ? 'Timed out' : `${misses} miss${misses === 1 ? '' : 'es'}`,
-          'warning',
-        ),
+        facts:
+          timeouts !== null && timeouts > 1
+            ? fact(`${timeouts} consecutive timeouts`, 'warning')
+            : [],
       })
     }
-    case 'pvp_lowered_guard_applied': {
+    case 'pvp_lowered_guard_applied':
+    case 'ai_lowered_guard_applied': {
       const targetCombatantId = stringValue(event.combatantId)
+      const remaining = numberValue(event.remainingOwnerTurnStarts)
+      const multiplier = numberValue(event.damageTakenMultiplierBasisPoints)
+      const multiplierValue = multiplier === null ? null : multiplier / 10_000
+      const multiplierLabel =
+        multiplierValue === null
+          ? null
+          : `Takes ${multiplierValue
+              .toFixed(2)
+              .replace(/\.0+$/u, '')
+              .replace(/(\.\d*[1-9])0+$/u, '$1')}× damage`
       return createEntry(record, eventType, {
         message: `${combatantLabel(event.combatantId)} gained Lowered Guard after the turn timer expired.`,
         messageTemplate: '{target} gained Lowered Guard.',
@@ -461,7 +476,11 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         kind: 'status',
         headline: 'Lowered Guard',
         tone: 'warning',
-        facts: fact('Lowered Guard', 'warning'),
+        facts: [
+          ...fact('Lowered Guard', 'warning'),
+          ...fact(remaining === null ? null : `${remaining} turn${remaining === 1 ? '' : 's'}`),
+          ...fact(multiplierLabel, 'warning'),
+        ],
       })
     }
     case 'pvp_combatant_surrendered': {

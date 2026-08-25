@@ -1,5 +1,7 @@
 'use client'
 
+import { useMemo } from 'react'
+
 import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
@@ -33,6 +35,17 @@ export function PvpBattleClientBoundary({
   metadata: PvpBattleMetadata
   playerName: string
 }) {
+  const combatantNames = useMemo(
+    () =>
+      Object.fromEntries(
+        metadata.participants.map((participant) => [
+          participant.combatantId,
+          participant.characterName,
+        ]),
+      ),
+    [metadata.participants],
+  )
+
   return (
     <>
       <PvpBattleExperience
@@ -61,6 +74,7 @@ export function PvpBattleClientBoundary({
       <DesktopBattleLogDock
         battleSessionId={initialBattle.battleSessionId}
         playerName={playerName}
+        combatantNames={combatantNames}
         eventDriven
       />
       <PvpBattleQualityControls

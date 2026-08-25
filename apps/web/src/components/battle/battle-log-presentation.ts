@@ -1,3 +1,8 @@
+import {
+  isSkillNarrationVariantValid,
+  type SkillNarrationTemplate,
+} from '@aurevane/game-core/combat/battle-narration'
+
 import type {
   BattleLogEntry,
   BattleLogFact,
@@ -40,9 +45,11 @@ export interface PresentedBattleLogRound {
 interface PresentationOptions {
   playerName?: string
   combatantNames?: Readonly<Record<string, string>>
+  skillNarrations?: Readonly<Record<string, SkillNarrationTemplate>>
 }
 
 interface ActionGroup {
+  key: string
   battleVersion: number
   entries: BattleLogEntry[]
   round: number | null
@@ -82,7 +89,10 @@ function combatantName(
   if (!combatantId) return null
   const exact = options.combatantNames?.[combatantId]
   if (exact) return exact
-  if (combatantId.startsWith('character:')) return options.playerName ?? 'Wayfarer'
+  if (combatantId.startsWith('character:')) {
+    if (options.combatantNames) return 'Opponent'
+    return options.playerName ?? 'Wayfarer'
+  }
   if (combatantId.startsWith('recruit:')) return 'Recruit'
   return 'Combatant'
 }
@@ -162,21 +172,34 @@ function groupActions(entries: BattleLogView['entries']): ActionGroup[] {
   return rawGroups.flatMap((group) => {
     const visible = group.entries.filter((entry) => !BOOKKEEPING_EVENTS.has(entry.eventType))
     if (visible.length === 0) return []
-    const contextEntry = visible[0]
-    if (!contextEntry) return []
 
-    return [
-      {
+    const expirations = visible.filter((entry) => entry.eventType === 'status_expired')
+    const mainEntries = visible.filter((entry) => entry.eventType !== 'status_expired')
+    const groups: ActionGroup[] = []
+
+    const addGroup = (groupEntries: BattleLogEntry[], key: string) => {
+      const contextEntry = groupEntries[0]
+      if (!contextEntry) return
+      groups.push({
+        key,
         battleVersion: group.battleVersion,
-        entries: visible,
-        round: contextEntry.round ?? visible.find((entry) => entry.round !== null)?.round ?? null,
+        entries: groupEntries,
+        round:
+          contextEntry.round ?? groupEntries.find((entry) => entry.round !== null)?.round ?? null,
         turnNumber:
           contextEntry.turnNumber ??
-          visible.find((entry) => entry.turnNumber !== null)?.turnNumber ??
+          groupEntries.find((entry) => entry.turnNumber !== null)?.turnNumber ??
           null,
-        occurredAt: group.entries[0]?.occurredAt ?? contextEntry.occurredAt,
-      },
-    ]
+        occurredAt: contextEntry.occurredAt,
+      })
+    }
+
+    if (mainEntries.length > 0) addGroup(mainEntries, `battle:${group.battleVersion}`)
+    for (const expiration of expirations) {
+      addGroup([expiration], `battle:${group.battleVersion}:expired:${expiration.eventIndex}`)
+    }
+
+    return groups
   })
 }
 
@@ -211,10 +234,14 @@ function statusApplicationSecondary(
   group: ActionGroup,
   options: PresentationOptions,
   consumed: Set<string>,
+  expectedTargetCombatantId?: string | null,
 ): readonly BattleLogSegment[] | null {
   const candidates = group.entries.filter(
     (entry) =>
-      entry.eventType === 'status_applied' || entry.eventType === 'pvp_lowered_guard_applied',
+      (entry.eventType === 'status_applied' ||
+        entry.eventType === 'pvp_lowered_guard_applied' ||
+        entry.eventType === 'ai_lowered_guard_applied') &&
+      (!expectedTargetCombatantId || entry.targetCombatantId === expectedTargetCombatantId),
   )
   const seen = new Set<string>()
   const entry = candidates.find((candidate) => {
@@ -228,29 +255,94 @@ function statusApplicationSecondary(
   const name = statusName(entry)
   const target = combatantName(entry.targetCombatantId, options)
   const duration = reasonableDurationLabel(entry)
+  const refreshed = entry.templateValues.statusChange === 'REFRESHED'
   const negative = statusIsNegative(name, entry)
   consumed.add(name.toLowerCase())
   if (duration) consumed.add(duration.toLowerCase())
+  const durationDisplay =
+    entry.eventType === 'pvp_lowered_guard_applied' && duration === '1 turn'
+      ? 'until next turn'
+      : duration
+
+  if (refreshed) {
+    return [
+      segment('↳ '),
+      ...(target ? [segment(`${target}'s `, 'target')] : []),
+      segment(name, 'outcome', negative ? 'warning' : 'benefit'),
+      segment(' refreshes'),
+      ...(durationDisplay ? [segment(` · ${durationDisplay}`)] : []),
+    ]
+  }
 
   return [
     segment('↳ '),
     ...(target ? [segment(target, 'target')] : []),
     segment(negative ? ' suffers ' : ' gains '),
     segment(name, 'outcome', negative ? 'warning' : 'benefit'),
-    ...(duration ? [segment(` · ${duration}`)] : []),
+    ...(durationDisplay ? [segment(` · ${durationDisplay}`)] : []),
   ]
+}
+
+type AttackNarrationOutcome = 'hit' | 'miss' | 'critical'
+
+function narratedAttackSegments(
+  template: string,
+  values: { actor: string; target: string; ability: string; damage: string },
+  tone: BattleLogTone,
+): readonly BattleLogSegment[] | null {
+  if (!isSkillNarrationVariantValid(template)) return null
+
+  const tokenPattern = /\{(actor|target|ability|damage)\}/gu
+  const segments: BattleLogSegment[] = []
+  let cursor = 0
+  for (const match of template.matchAll(tokenPattern)) {
+    const index = match.index ?? 0
+    if (index > cursor) segments.push(segment(template.slice(cursor, index)))
+    const token = match[1] as keyof typeof values
+    const value = values[token]
+    if (!value) return null
+    if (token === 'actor') segments.push(segment(value, 'actor'))
+    else if (token === 'target') segments.push(segment(value, 'target'))
+    else if (token === 'ability') segments.push(segment(value, 'action'))
+    else segments.push(segment(value, 'outcome', tone))
+    cursor = index + match[0].length
+  }
+  if (cursor < template.length) segments.push(segment(template.slice(cursor)))
+  return segments.length > 0 ? segments : null
 }
 
 function attackSegments(
   actor: string | null,
   target: string | null,
+  actionId: string | null,
   actionLabel: string | null,
   outcome: string,
   tone: BattleLogTone,
+  narrationOutcome: AttackNarrationOutcome,
+  options: PresentationOptions,
 ): readonly BattleLogSegment[] {
   const safeActor = actor ?? 'Combatant'
   const safeTarget = target ?? 'the target'
   const basic = !actionLabel || actionLabel === 'Basic Attack'
+  const authored = actionId ? options.skillNarrations?.[actionId]?.[narrationOutcome] : undefined
+
+  if (authored) {
+    const narrated = narratedAttackSegments(
+      authored,
+      {
+        actor: safeActor,
+        target: safeTarget,
+        ability: actionLabel ?? 'Attack',
+        damage: outcome,
+      },
+      tone,
+    )
+    if (narrated) {
+      return authored.includes('{damage}')
+        ? narrated
+        : [...narrated, segment(' — '), segment(outcome, 'outcome', tone)]
+    }
+  }
 
   if (basic) {
     return [
@@ -326,23 +418,56 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
       segment("'s turn expires — "),
       segment('action forfeited', 'outcome', 'warning'),
     ]
-    secondary = statusApplicationSecondary(group, options, consumed)
+    secondary = statusApplicationSecondary(group, options, consumed, timeout.actorCombatantId)
     kind = 'turn'
     consumed.add('timed out')
   } else if (resolved?.templateValues.outcome === 'MISSED') {
     const actor = combatantName(resolved.actorCombatantId, options)
     const target = combatantName(resolved.targetCombatantId, options)
-    primary = attackSegments(actor, target, actionLabel, 'Miss', 'warning')
+    primary = attackSegments(
+      actor,
+      target,
+      resolved.actionId,
+      actionLabel,
+      'Miss',
+      'warning',
+      'miss',
+      options,
+    )
     kind = 'offense'
     consumed.add('miss')
     consumed.add('missed')
-    secondary = statusApplicationSecondary(group, options, consumed)
+    secondary = statusApplicationSecondary(group, options, consumed, resolved.targetCombatantId)
   } else if (damage) {
     const actor = combatantName(damage.actorCombatantId, options)
     const target = combatantName(damage.targetCombatantId, options)
     const amount = damage.templateValues.amount?.trim()
     const outcome = amount ? `${amount} damage` : 'Damage dealt'
-    primary = attackSegments(actor, target, actionLabel, outcome, 'damage')
+    const selfDamage =
+      damage.actorCombatantId !== null &&
+      damage.targetCombatantId !== null &&
+      damage.actorCombatantId === damage.targetCombatantId
+    if (selfDamage) {
+      primary = [
+        segment(target ?? actor ?? 'Combatant', 'actor'),
+        segment(' takes '),
+        segment(outcome, 'outcome', 'damage'),
+        ...(actionLabel && actionLabel !== 'Basic Attack'
+          ? [segment(' from '), segment(actionLabel, 'action')]
+          : []),
+      ]
+    } else {
+      primary = attackSegments(
+        actor,
+        target,
+        damage.actionId,
+        actionLabel,
+        outcome,
+        'damage',
+        'hit',
+        options,
+      )
+    }
     kind = 'offense'
     if (amount) {
       consumed.add(`${amount} dmg`.toLowerCase())
@@ -359,7 +484,7 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
         segment(' is defeated', 'outcome', 'warning'),
       ]
     } else {
-      secondary = statusApplicationSecondary(group, options, consumed)
+      secondary = statusApplicationSecondary(group, options, consumed, damage.targetCombatantId)
     }
   } else if (healing) {
     const actor = combatantName(healing.actorCombatantId, options)
@@ -383,7 +508,7 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
     }
     kind = 'recovery'
     if (amount) consumed.add(`+${amount} hp`.toLowerCase())
-    secondary = statusApplicationSecondary(group, options, consumed)
+    secondary = statusApplicationSecondary(group, options, consumed, healing.targetCombatantId)
   } else if (moved) {
     const actor = combatantName(moved.actorCombatantId, options) ?? 'Combatant'
     const destination = movementDestination(moved)
@@ -400,12 +525,20 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
     const target = combatantName(statusApplied.targetCombatantId, options) ?? 'Combatant'
     const duration = reasonableDurationLabel(statusApplied)
     const negative = statusIsNegative(name, statusApplied)
-    primary = [
-      segment(target, 'target'),
-      segment(negative ? ' suffers ' : ' gains '),
-      segment(name, 'outcome', negative ? 'warning' : 'benefit'),
-      ...(duration ? [segment(` · ${duration}`)] : []),
-    ]
+    const refreshed = statusApplied.templateValues.statusChange === 'REFRESHED'
+    primary = refreshed
+      ? [
+          segment(`${target}'s `, 'target'),
+          segment(name, 'outcome', negative ? 'warning' : 'benefit'),
+          segment(' refreshes'),
+          ...(duration ? [segment(` · ${duration}`)] : []),
+        ]
+      : [
+          segment(target, 'target'),
+          segment(negative ? ' suffers ' : ' gains '),
+          segment(name, 'outcome', negative ? 'warning' : 'benefit'),
+          ...(duration ? [segment(` · ${duration}`)] : []),
+        ]
     kind = statusApplied.kind
     consumed.add(name.toLowerCase())
     if (duration) consumed.add(duration.toLowerCase())
@@ -447,7 +580,7 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
     .trim()
 
   return {
-    key: `battle:${group.battleVersion}`,
+    key: group.key,
     battleVersion: group.battleVersion,
     round: group.round,
     turnNumber: group.turnNumber,

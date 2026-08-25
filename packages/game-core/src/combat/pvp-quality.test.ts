@@ -148,6 +148,15 @@ describe('battle turn quality rules', () => {
     const firstMiss = timeoutPvpTurn(encounter('pvp'))
 
     expectLoweredGuardDamage(firstMiss.state, firstMiss.events, 'pvp_lowered_guard_applied')
+    expect(firstMiss.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event: 'pvp_lowered_guard_applied',
+          combatantId: 'player',
+          remainingOwnerTurnStarts: 1,
+        }),
+      ]),
+    )
     expect(loweredGuard(firstMiss.state, 'player')?.remainingOwnerTurnStarts).toBe(1)
   })
 

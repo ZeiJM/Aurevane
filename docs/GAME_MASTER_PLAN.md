@@ -4215,3 +4215,11 @@ Not collecting fifteen currencies.
 And not copying another game's implementation or assets.
 
 Aurevane should eventually feel like its own game—one where Primary/Secondary buildcraft, Resonance versus Essence, tactical combat, supernatural identity, equipment interactions, co-op Expeditions and competitive play form a recognizable whole.
+
+BATTLE LOG IDENTITY + SHORT SKILL NARRATION CONTRACT (2026-08-24)
+
+Battle history remains a presentation projection over committed server-authoritative events. PvP and spectator battle-log surfaces must resolve both actor and target from authoritative participant metadata (`combatantId -> characterName`); a `character:` prefix alone never proves that the combatant is the local viewer. This convention exists to prevent self-attribution bugs in player-vs-player logs.
+
+Player-facing entries prioritize immediate comprehension: who acted, what happened, who was affected, the important outcome, and concise status lifecycle. Useful optional tactical detail uses explicit labels such as `HP remaining`, `hit chance`, and `consecutive timeouts`; raw engine vocabulary, basis points, sentinel durations, RNG data, and state-machine labels remain hidden. Natural status expiration is a quiet standalone lifecycle event rather than unexplained detail attached to another action.
+
+Versioned Skill content may include optional short `hit`, `miss`, and future authoritative `critical` narration using the allow-listed `{actor}`, `{target}`, `{ability}`, and `{damage}` tokens. Generic narration is mandatory fallback. Authored text never determines combat outcomes. The later Master Panel Skill editor must edit this same contract with validation/preview/versioning rather than requiring a new battle-log architecture.
