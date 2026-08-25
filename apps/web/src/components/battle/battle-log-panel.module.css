@@ -271,7 +271,7 @@
     min-width: 0 !important;
     min-height: 8rem !important;
     max-height: none !important;
-    margin: var(--battle-log-dock-inset) var(--battle-log-dock-inset) var(--battle-log-dock-inset) 0;
+    margin: 0 calc(var(--battle-log-dock-inset) / 2);
     align-self: stretch !important;
   }
 }
