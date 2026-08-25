@@ -1,0 +1,324 @@
+name: Temporary Battle Log clarity implementation
+
+on:
+  push:
+    branches:
+      - feat/battle-log-clarity-narration-20260824
+
+permissions:
+  contents: write
+
+jobs:
+  implement:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/battle-log-clarity-narration-20260824
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Implement Battle Log clarity and narration foundation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path: str, old: str, new: str, count: int = 1):
+              p = Path(path)
+              text = p.read_text()
+              actual = text.count(old)
+              if actual < count:
+                  raise SystemExit(f'{path}: expected at least {count} occurrence(s), found {actual}: {old[:120]!r}')
+              p.write_text(text.replace(old, new, count))
+
+          def append_once(path: str, marker: str, block: str):
+              p = Path(path)
+              text = p.read_text()
+              if marker in text:
+                  return
+              p.write_text(text.rstrip() + '\n\n' + block.strip() + '\n')
+
+          narration = Path('packages/game-core/src/combat/battle-narration.ts')
+          narration.write_text('''export interface SkillNarrationTemplate {\n  hit?: string\n  miss?: string\n  critical?: string\n}\n\nexport const SKILL_NARRATION_TOKENS = ['actor', 'target', 'ability', 'damage'] as const\nexport type SkillNarrationToken = (typeof SKILL_NARRATION_TOKENS)[number]\n\nconst TOKEN_PATTERN = /\\{([a-zA-Z][a-zA-Z0-9_.-]*)\\}/gu\nconst MAX_NARRATION_LENGTH = 180\n\nexport function skillNarrationVariantIssues(template: string): readonly string[] {\n  const value = template.trim()\n  const issues: string[] = []\n  if (!value) issues.push('Narration cannot be blank.')\n  if (value.length > MAX_NARRATION_LENGTH) {\n    issues.push(`Narration must be ${MAX_NARRATION_LENGTH} characters or fewer.`)\n  }\n\n  const allowed = new Set<string>(SKILL_NARRATION_TOKENS)\n  for (const match of value.matchAll(TOKEN_PATTERN)) {\n    const token = match[1]\n    if (token && !allowed.has(token)) issues.push(`Unknown narration token: {${token}}.`)\n  }\n  return issues\n}\n\nexport function isSkillNarrationVariantValid(template: string | undefined): boolean {\n  return template !== undefined && skillNarrationVariantIssues(template).length === 0\n}\n\nexport function validateSkillNarrationTemplate(\n  narration: SkillNarrationTemplate | undefined,\n): readonly string[] {\n  if (!narration) return []\n  return (['hit', 'miss', 'critical'] as const).flatMap((variant) => {\n    const template = narration[variant]\n    return template === undefined\n      ? []\n      : skillNarrationVariantIssues(template).map((issue) => `${variant}: ${issue}`)\n  })\n}\n''')
+
+          Path('packages/game-core/src/combat/battle-narration.test.ts').write_text('''import { describe, expect, it } from 'vitest'\n\nimport {\n  isSkillNarrationVariantValid,\n  skillNarrationVariantIssues,\n  validateSkillNarrationTemplate,\n} from './battle-narration'\n\ndescribe('skill battle narration contract', () => {\n  it('accepts short allow-listed combat narration', () => {\n    expect(\n      validateSkillNarrationTemplate({\n        hit: "{actor} drives a sweeping cut through {target}'s guard",\n        miss: "{actor}'s sweeping cut slips past {target}",\n        critical: '{actor} tears through {target} with {ability}',\n      }),\n    ).toEqual([])\n  })\n\n  it('rejects unknown tokens so runtime presentation can safely fall back', () => {\n    expect(isSkillNarrationVariantValid('{actor} strikes {target} with {secret_roll}')).toBe(false)\n    expect(skillNarrationVariantIssues('{actor} strikes {target} with {secret_roll}')).toContain(\n      'Unknown narration token: {secret_roll}.',\n    )\n  })\n\n  it('rejects blank narration', () => {\n    expect(isSkillNarrationVariantValid('   ')).toBe(false)\n  })\n})\n''')
+
+          replace(
+              'packages/game-core/package.json',
+              '    "./combat/actions": "./src/combat/actions.ts",\n',
+              '    "./combat/actions": "./src/combat/actions.ts",\n    "./combat/battle-narration": "./src/combat/battle-narration.ts",\n',
+          )
+
+          replace(
+              'packages/game-core/src/combat/actions.ts',
+              "import { endTurn, spendAction, type BattleCombatant, type BattleState } from './battle-state'\n",
+              "import type { SkillNarrationTemplate } from './battle-narration'\nimport { endTurn, spendAction, type BattleCombatant, type BattleState } from './battle-state'\n",
+          )
+          replace(
+              'packages/game-core/src/combat/actions.ts',
+              "  requirements: readonly CombatUseRequirement[]\n  effects: readonly CombatEffectDefinition[]\n}",
+              "  requirements: readonly CombatUseRequirement[]\n  narration?: SkillNarrationTemplate\n  effects: readonly CombatEffectDefinition[]\n}",
+          )
+          replace(
+              'packages/game-core/src/combat/actions.ts',
+              "      remainingOwnerTurnStarts: number\n    }\n",
+              "      remainingOwnerTurnStarts: number\n      refreshed: boolean\n    }\n",
+          )
+          replace(
+              'packages/game-core/src/combat/actions.ts',
+              "  const nextState = applyStatusState(\n    state,\n    actorId,\n    recipientId,\n    effect.statusId,\n    effect.stacks,\n    content,\n  )\n  const status = getStatus(nextState, recipientId, effect.statusId)\n",
+              "  const existingStatus = getStatus(state, recipientId, effect.statusId)\n  const nextState = applyStatusState(\n    state,\n    actorId,\n    recipientId,\n    effect.statusId,\n    effect.stacks,\n    content,\n  )\n  const status = getStatus(nextState, recipientId, effect.statusId)\n",
+          )
+          replace(
+              'packages/game-core/src/combat/actions.ts',
+              "        stacks: status.stacks,\n        remainingOwnerTurnStarts: status.remainingOwnerTurnStarts,\n      },\n",
+              "        stacks: status.stacks,\n        remainingOwnerTurnStarts: status.remainingOwnerTurnStarts,\n        refreshed: existingStatus !== null,\n      },\n",
+          )
+
+          replace(
+              'packages/game-core/src/combat/pvp-quality.ts',
+              "      combatantId: actor.id,\n      damageTakenMultiplierBasisPoints: 25_000,\n",
+              "      combatantId: actor.id,\n      remainingOwnerTurnStarts: options.loweredGuardDurationOwnerTurnStarts,\n      damageTakenMultiplierBasisPoints: 25_000,\n",
+          )
+          replace(
+              'packages/game-core/src/combat/pvp-quality.test.ts',
+              "    expectLoweredGuardDamage(firstMiss.state, firstMiss.events, 'pvp_lowered_guard_applied')\n    expect(loweredGuard(firstMiss.state, 'player')?.remainingOwnerTurnStarts).toBe(1)\n",
+              "    expectLoweredGuardDamage(firstMiss.state, firstMiss.events, 'pvp_lowered_guard_applied')\n    expect(firstMiss.events).toEqual(\n      expect.arrayContaining([\n        expect.objectContaining({\n          event: 'pvp_lowered_guard_applied',\n          combatantId: 'player',\n          remainingOwnerTurnStarts: 1,\n        }),\n      ]),\n    )\n    expect(loweredGuard(firstMiss.state, 'player')?.remainingOwnerTurnStarts).toBe(1)\n",
+          )
+
+          service = 'apps/web/src/server/battle/battle-log-service.ts'
+          replace(service, "...fact(hpAfter === null ? null : `${hpAfter} HP`),", "...fact(hpAfter === null ? null : `${hpAfter} HP remaining`),", 2)
+          replace(service, "...fact(cost === null ? null : `${cost} Move`)", "...fact(cost === null ? null : `${cost} Move spent`)")
+          replace(
+              service,
+              "      const remaining = numberValue(event.remainingOwnerTurnStarts)\n      const beneficial = statusId === 'guarded' || statusId?.startsWith('buff.') === true\n      return createEntry(record, eventType, {\n        message: `${combatantLabel(event.targetCombatantId)} gained ${label}${remaining === null ? '' : ` for ${remaining} owner-turn start${remaining === 1 ? '' : 's'}`}.`,\n        messageTemplate: '{target} gained {status}.',\n        templateValues: { status: label },\n",
+              "      const remaining = numberValue(event.remainingOwnerTurnStarts)\n      const refreshed = event.refreshed === true\n      const beneficial = statusId === 'guarded' || statusId?.startsWith('buff.') === true\n      return createEntry(record, eventType, {\n        message: refreshed\n          ? `${combatantLabel(event.targetCombatantId)} refreshed ${label}${remaining === null ? '' : ` for ${remaining} owner-turn start${remaining === 1 ? '' : 's'}`}.`\n          : `${combatantLabel(event.targetCombatantId)} gained ${label}${remaining === null ? '' : ` for ${remaining} owner-turn start${remaining === 1 ? '' : 's'}`}.`,\n        messageTemplate: refreshed ? \"{target}'s {status} refreshed.\" : '{target} gained {status}.',\n        templateValues: { status: label, statusChange: refreshed ? 'REFRESHED' : 'APPLIED' },\n",
+          )
+          replace(service, "        facts: fact('Expired'),\n", "        facts: [],\n")
+          replace(service, "...fact(chance === null ? null : `${Math.round(chance / 100)}% hit`),", "...fact(chance === null ? null : `${Math.round(chance / 100)}% hit chance`),")
+          replace(
+              service,
+              "    case 'pvp_turn_timed_out': {\n      const actorCombatantId = stringValue(event.combatantId)\n      const misses = numberValue(event.consecutiveMisses)\n      return createEntry(record, eventType, {\n        message: `${combatantLabel(event.combatantId)} timed out${misses === null ? '' : ` (${misses} tracked miss${misses === 1 ? '' : 'es'})`}.`,\n        messageTemplate: '{actor} timed out.',\n        actorCombatantId,\n        kind: 'turn',\n        headline: 'Turn Timeout',\n        tone: 'warning',\n        facts: fact(\n          misses === null ? 'Timed out' : `${misses} miss${misses === 1 ? '' : 'es'}`,\n          'warning',\n        ),\n      })\n    }\n    case 'pvp_lowered_guard_applied': {\n      const targetCombatantId = stringValue(event.combatantId)\n      return createEntry(record, eventType, {\n        message: `${combatantLabel(event.combatantId)} gained Lowered Guard after the turn timer expired.`,\n        messageTemplate: '{target} gained Lowered Guard.',\n        targetCombatantId,\n        kind: 'status',\n        headline: 'Lowered Guard',\n        tone: 'warning',\n        facts: fact('Lowered Guard', 'warning'),\n      })\n    }\n",
+              "    case 'pvp_turn_timed_out':\n    case 'ai_turn_timed_out': {\n      const actorCombatantId = stringValue(event.combatantId)\n      const timeouts = numberValue(event.consecutiveMisses)\n      return createEntry(record, eventType, {\n        message: `${combatantLabel(event.combatantId)} timed out${timeouts === null ? '' : ` (${timeouts} consecutive timeout${timeouts === 1 ? '' : 's'})`}.`,\n        messageTemplate: '{actor} timed out.',\n        actorCombatantId,\n        kind: 'turn',\n        headline: 'Turn Timeout',\n        tone: 'warning',\n        facts:\n          timeouts !== null && timeouts > 1\n            ? fact(`${timeouts} consecutive timeouts`, 'warning')\n            : [],\n      })\n    }\n    case 'pvp_lowered_guard_applied':\n    case 'ai_lowered_guard_applied': {\n      const targetCombatantId = stringValue(event.combatantId)\n      const remaining = numberValue(event.remainingOwnerTurnStarts)\n      const multiplier = numberValue(event.damageTakenMultiplierBasisPoints)\n      const multiplierValue = multiplier === null ? null : multiplier / 10_000\n      const multiplierLabel =\n        multiplierValue === null\n          ? null\n          : `Takes ${multiplierValue.toFixed(2).replace(/\\.0+$/u, '').replace(/(\\.\\d*[1-9])0+$/u, '$1')}× damage`\n      return createEntry(record, eventType, {\n        message: `${combatantLabel(event.combatantId)} gained Lowered Guard after the turn timer expired.`,\n        messageTemplate: '{target} gained Lowered Guard.',\n        targetCombatantId,\n        kind: 'status',\n        headline: 'Lowered Guard',\n        tone: 'warning',\n        facts: [\n          ...fact('Lowered Guard', 'warning'),\n          ...fact(remaining === null ? null : `${remaining} turn${remaining === 1 ? '' : 's'}`),\n          ...fact(multiplierLabel, 'warning'),\n        ],\n      })\n    }\n",
+          )
+
+          boundary = 'apps/web/src/components/battle/pvp-battle-client-boundary.tsx'
+          replace(boundary, "'use client'\n\n", "'use client'\n\nimport { useMemo } from 'react'\n\n")
+          replace(
+              boundary,
+              "}) {\n  return (\n",
+              "}) {\n  const combatantNames = useMemo(\n    () =>\n      Object.fromEntries(\n        metadata.participants.map((participant) => [\n          participant.combatantId,\n          participant.characterName,\n        ]),\n      ),\n    [metadata.participants],\n  )\n\n  return (\n",
+          )
+          replace(
+              boundary,
+              "      <DesktopBattleLogDock\n        battleSessionId={initialBattle.battleSessionId}\n        playerName={playerName}\n      />\n",
+              "      <DesktopBattleLogDock\n        battleSessionId={initialBattle.battleSessionId}\n        playerName={playerName}\n        combatantNames={combatantNames}\n      />\n",
+          )
+
+          dock = 'apps/web/src/components/battle/desktop-battle-log-dock.tsx'
+          replace(dock, "  playerName,\n}: {\n  battleSessionId: string\n  playerName?: string\n}) {", "  playerName,\n  combatantNames,\n}: {\n  battleSessionId: string\n  playerName?: string\n  combatantNames?: Readonly<Record<string, string>>\n}) {")
+          replace(dock, "        playerName={playerName}\n        dockOnDesktop", "        playerName={playerName}\n        combatantNames={combatantNames}\n        dockOnDesktop")
+
+          panel = 'apps/web/src/components/battle/battle-log-panel.tsx'
+          replace(panel, "  playerName?: string\n  dockOnDesktop?: boolean", "  playerName?: string\n  combatantNames?: Readonly<Record<string, string>>\n  dockOnDesktop?: boolean")
+          replace(panel, "  playerName,\n  dockOnDesktop = false,", "  playerName,\n  combatantNames,\n  dockOnDesktop = false,")
+          replace(panel, "            playerName={effectivePlayerName}\n          />", "            playerName={effectivePlayerName}\n            combatantNames={combatantNames}\n          />", 1)
+          replace(panel, "          playerName={effectivePlayerName}\n        />", "          playerName={effectivePlayerName}\n          combatantNames={combatantNames}\n        />", 1)
+          replace(panel, "        playerName={effectivePlayerName}\n      />", "        playerName={effectivePlayerName}\n        combatantNames={combatantNames}\n      />", 1)
+          replace(panel, "  playerName,\n}: {\n  entries:", "  playerName,\n  combatantNames,\n}: {\n  entries:")
+          replace(panel, "  playerName?: string\n}) {", "  playerName?: string\n  combatantNames?: Readonly<Record<string, string>>\n}) {")
+          replace(panel, "          playerName={playerName}\n          emptyMessage=", "          playerName={playerName}\n          combatantNames={combatantNames}\n          emptyMessage=")
+
+          presentation = Path('apps/web/src/components/battle/battle-log-presentation.ts')
+          text = presentation.read_text()
+          text = text.replace(
+              "import type {\n  BattleLogEntry,",
+              "import {\n  isSkillNarrationVariantValid,\n  type SkillNarrationTemplate,\n} from '@aurevane/game-core/combat/battle-narration'\n\nimport type {\n  BattleLogEntry,",
+              1,
+          )
+          text = text.replace(
+              "  combatantNames?: Readonly<Record<string, string>>\n}",
+              "  combatantNames?: Readonly<Record<string, string>>\n  skillNarrations?: Readonly<Record<string, SkillNarrationTemplate>>\n}",
+              1,
+          )
+          text = text.replace(
+              "interface ActionGroup {\n  battleVersion: number",
+              "interface ActionGroup {\n  key: string\n  battleVersion: number",
+              1,
+          )
+          text = text.replace(
+              "  if (combatantId.startsWith('character:')) return options.playerName ?? 'Wayfarer'\n",
+              "  if (combatantId.startsWith('character:')) {\n    if (options.combatantNames) return 'Opponent'\n    return options.playerName ?? 'Wayfarer'\n  }\n",
+              1,
+          )
+
+          start = text.index("function groupActions(entries: BattleLogView['entries']): ActionGroup[] {")
+          end = text.index("\nfunction findEntry(", start)
+          new_group = '''function groupActions(entries: BattleLogView['entries']): ActionGroup[] {\n  const ordered = [...entries].sort((left, right) => {\n    if (left.battleVersion !== right.battleVersion) return right.battleVersion - left.battleVersion\n    return right.eventIndex - left.eventIndex\n  })\n  const rawGroups: Array<{ battleVersion: number; entries: BattleLogEntry[] }> = []\n\n  for (const entry of ordered) {\n    const current = rawGroups.at(-1)\n    if (current?.battleVersion === entry.battleVersion) current.entries.push(entry)\n    else rawGroups.push({ battleVersion: entry.battleVersion, entries: [entry] })\n  }\n\n  return rawGroups.flatMap((group) => {\n    const visible = group.entries.filter((entry) => !BOOKKEEPING_EVENTS.has(entry.eventType))\n    if (visible.length === 0) return []\n\n    const expirations = visible.filter((entry) => entry.eventType === 'status_expired')\n    const mainEntries = visible.filter((entry) => entry.eventType !== 'status_expired')\n    const groups: ActionGroup[] = []\n\n    const addGroup = (groupEntries: BattleLogEntry[], key: string) => {\n      const contextEntry = groupEntries[0]\n      if (!contextEntry) return\n      groups.push({\n        key,\n        battleVersion: group.battleVersion,\n        entries: groupEntries,\n        round:\n          contextEntry.round ?? groupEntries.find((entry) => entry.round !== null)?.round ?? null,\n        turnNumber:\n          contextEntry.turnNumber ??\n          groupEntries.find((entry) => entry.turnNumber !== null)?.turnNumber ??\n          null,\n        occurredAt: contextEntry.occurredAt,\n      })\n    }\n\n    if (mainEntries.length > 0) addGroup(mainEntries, `battle:${group.battleVersion}`)\n    for (const expiration of expirations) {\n      addGroup([expiration], `battle:${group.battleVersion}:expired:${expiration.eventIndex}`)\n    }\n\n    return groups\n  })\n}\n'''
+          text = text[:start] + new_group + text[end:]
+
+          old_secondary = '''function statusApplicationSecondary(\n  group: ActionGroup,\n  options: PresentationOptions,\n  consumed: Set<string>,\n): readonly BattleLogSegment[] | null {\n  const candidates = group.entries.filter(\n    (entry) =>\n      entry.eventType === 'status_applied' || entry.eventType === 'pvp_lowered_guard_applied',\n  )\n  const seen = new Set<string>()\n  const entry = candidates.find((candidate) => {\n    const name = statusName(candidate).toLowerCase()\n    if (seen.has(name)) return false\n    seen.add(name)\n    return true\n  })\n  if (!entry) return null\n\n  const name = statusName(entry)\n  const target = combatantName(entry.targetCombatantId, options)\n  const duration = reasonableDurationLabel(entry)\n  const negative = statusIsNegative(name, entry)\n  consumed.add(name.toLowerCase())\n  if (duration) consumed.add(duration.toLowerCase())\n\n  return [\n    segment('↳ '),\n    ...(target ? [segment(target, 'target')] : []),\n    segment(negative ? ' suffers ' : ' gains '),\n    segment(name, 'outcome', negative ? 'warning' : 'benefit'),\n    ...(duration ? [segment(` · ${duration}`)] : []),\n  ]\n}\n'''
+          new_secondary = '''function statusApplicationSecondary(\n  group: ActionGroup,\n  options: PresentationOptions,\n  consumed: Set<string>,\n  expectedTargetCombatantId?: string | null,\n): readonly BattleLogSegment[] | null {\n  const candidates = group.entries.filter(\n    (entry) =>\n      (entry.eventType === 'status_applied' ||\n        entry.eventType === 'pvp_lowered_guard_applied' ||\n        entry.eventType === 'ai_lowered_guard_applied') &&\n      (!expectedTargetCombatantId || entry.targetCombatantId === expectedTargetCombatantId),\n  )\n  const seen = new Set<string>()\n  const entry = candidates.find((candidate) => {\n    const name = statusName(candidate).toLowerCase()\n    if (seen.has(name)) return false\n    seen.add(name)\n    return true\n  })\n  if (!entry) return null\n\n  const name = statusName(entry)\n  const target = combatantName(entry.targetCombatantId, options)\n  const duration = reasonableDurationLabel(entry)\n  const refreshed = entry.templateValues.statusChange === 'REFRESHED'\n  const negative = statusIsNegative(name, entry)\n  consumed.add(name.toLowerCase())\n  if (duration) consumed.add(duration.toLowerCase())\n  const durationDisplay =\n    entry.eventType === 'pvp_lowered_guard_applied' && duration === '1 turn'\n      ? 'until next turn'\n      : duration\n\n  if (refreshed) {\n    return [\n      segment('↳ '),\n      ...(target ? [segment(`${target}'s `, 'target')] : []),\n      segment(name, 'outcome', negative ? 'warning' : 'benefit'),\n      segment(' refreshes'),\n      ...(durationDisplay ? [segment(` · ${durationDisplay}`)] : []),\n    ]\n  }\n\n  return [\n    segment('↳ '),\n    ...(target ? [segment(target, 'target')] : []),\n    segment(negative ? ' suffers ' : ' gains '),\n    segment(name, 'outcome', negative ? 'warning' : 'benefit'),\n    ...(durationDisplay ? [segment(` · ${durationDisplay}`)] : []),\n  ]\n}\n'''
+          if old_secondary not in text:
+              raise SystemExit('battle-log-presentation.ts: statusApplicationSecondary block not found')
+          text = text.replace(old_secondary, new_secondary, 1)
+
+          attack_start = text.index('function attackSegments(')
+          attack_end = text.index('\nfunction movementDestination', attack_start)
+          new_attack = '''type AttackNarrationOutcome = 'hit' | 'miss' | 'critical'\n\nfunction narratedAttackSegments(\n  template: string,\n  values: { actor: string; target: string; ability: string; damage: string },\n  tone: BattleLogTone,\n): readonly BattleLogSegment[] | null {\n  if (!isSkillNarrationVariantValid(template)) return null\n\n  const tokenPattern = /\\{(actor|target|ability|damage)\\}/gu\n  const segments: BattleLogSegment[] = []\n  let cursor = 0\n  for (const match of template.matchAll(tokenPattern)) {\n    const index = match.index ?? 0\n    if (index > cursor) segments.push(segment(template.slice(cursor, index)))\n    const token = match[1] as keyof typeof values\n    const value = values[token]\n    if (!value) return null\n    if (token === 'actor') segments.push(segment(value, 'actor'))\n    else if (token === 'target') segments.push(segment(value, 'target'))\n    else if (token === 'ability') segments.push(segment(value, 'action'))\n    else segments.push(segment(value, 'outcome', tone))\n    cursor = index + match[0].length\n  }\n  if (cursor < template.length) segments.push(segment(template.slice(cursor)))\n  return segments.length > 0 ? segments : null\n}\n\nfunction attackSegments(\n  actor: string | null,\n  target: string | null,\n  actionId: string | null,\n  actionLabel: string | null,\n  outcome: string,\n  tone: BattleLogTone,\n  narrationOutcome: AttackNarrationOutcome,\n  options: PresentationOptions,\n): readonly BattleLogSegment[] {\n  const safeActor = actor ?? 'Combatant'\n  const safeTarget = target ?? 'the target'\n  const basic = !actionLabel || actionLabel === 'Basic Attack'\n  const authored = actionId ? options.skillNarrations?.[actionId]?.[narrationOutcome] : undefined\n\n  if (authored) {\n    const narrated = narratedAttackSegments(\n      authored,\n      {\n        actor: safeActor,\n        target: safeTarget,\n        ability: actionLabel ?? 'Attack',\n        damage: outcome,\n      },\n      tone,\n    )\n    if (narrated) {\n      return authored.includes('{damage}')\n        ? narrated\n        : [...narrated, segment(' — '), segment(outcome, 'outcome', tone)]\n    }\n  }\n\n  if (basic) {\n    return [\n      segment(safeActor, 'actor'),\n      segment(' strikes '),\n      segment(safeTarget, 'target'),\n      segment(' — '),\n      segment(outcome, 'outcome', tone),\n    ]\n  }\n\n  return [\n    segment(safeActor, 'actor'),\n    segment(' uses '),\n    segment(actionLabel, 'action'),\n    segment(' on '),\n    segment(safeTarget, 'target'),\n    segment(' — '),\n    segment(outcome, 'outcome', tone),\n  ]\n}\n'''
+          text = text[:attack_start] + new_attack + text[attack_end:]
+
+          text = text.replace(
+              "    secondary = statusApplicationSecondary(group, options, consumed)\n    kind = 'turn'",
+              "    secondary = statusApplicationSecondary(\n      group,\n      options,\n      consumed,\n      timeout.actorCombatantId,\n    )\n    kind = 'turn'",
+              1,
+          )
+          text = text.replace(
+              "    primary = attackSegments(actor, target, actionLabel, 'Miss', 'warning')\n",
+              "    primary = attackSegments(\n      actor,\n      target,\n      resolved.actionId,\n      actionLabel,\n      'Miss',\n      'warning',\n      'miss',\n      options,\n    )\n",
+              1,
+          )
+          text = text.replace(
+              "    secondary = statusApplicationSecondary(group, options, consumed)\n  } else if (damage) {",
+              "    secondary = statusApplicationSecondary(\n      group,\n      options,\n      consumed,\n      resolved.targetCombatantId,\n    )\n  } else if (damage) {",
+              1,
+          )
+          old_damage = '''    const amount = damage.templateValues.amount?.trim()\n    const outcome = amount ? `${amount} damage` : 'Damage dealt'\n    primary = attackSegments(actor, target, actionLabel, outcome, 'damage')\n    kind = 'offense'\n'''
+          new_damage = '''    const amount = damage.templateValues.amount?.trim()\n    const outcome = amount ? `${amount} damage` : 'Damage dealt'\n    const selfDamage =\n      damage.actorCombatantId !== null &&\n      damage.targetCombatantId !== null &&\n      damage.actorCombatantId === damage.targetCombatantId\n    if (selfDamage) {\n      primary = [\n        segment(target ?? actor ?? 'Combatant', 'actor'),\n        segment(' takes '),\n        segment(outcome, 'outcome', 'damage'),\n        ...(actionLabel && actionLabel !== 'Basic Attack'\n          ? [segment(' from '), segment(actionLabel, 'action')]\n          : []),\n      ]\n    } else {\n      primary = attackSegments(\n        actor,\n        target,\n        damage.actionId,\n        actionLabel,\n        outcome,\n        'damage',\n        'hit',\n        options,\n      )\n    }\n    kind = 'offense'\n'''
+          if old_damage not in text:
+              raise SystemExit('battle-log-presentation.ts: damage block not found')
+          text = text.replace(old_damage, new_damage, 1)
+          text = text.replace(
+              "      secondary = statusApplicationSecondary(group, options, consumed)\n    }\n  } else if (healing)",
+              "      secondary = statusApplicationSecondary(\n        group,\n        options,\n        consumed,\n        damage.targetCombatantId,\n      )\n    }\n  } else if (healing)",
+              1,
+          )
+          text = text.replace(
+              "    secondary = statusApplicationSecondary(group, options, consumed)\n  } else if (moved)",
+              "    secondary = statusApplicationSecondary(\n      group,\n      options,\n      consumed,\n      healing.targetCombatantId,\n    )\n  } else if (moved)",
+              1,
+          )
+          old_status = '''    primary = [\n      segment(target, 'target'),\n      segment(negative ? ' suffers ' : ' gains '),\n      segment(name, 'outcome', negative ? 'warning' : 'benefit'),\n      ...(duration ? [segment(` · ${duration}`)] : []),\n    ]\n'''
+          new_status = '''    const refreshed = statusApplied.templateValues.statusChange === 'REFRESHED'\n    primary = refreshed\n      ? [\n          segment(`${target}'s `, 'target'),\n          segment(name, 'outcome', negative ? 'warning' : 'benefit'),\n          segment(' refreshes'),\n          ...(duration ? [segment(` · ${duration}`)] : []),\n        ]\n      : [\n          segment(target, 'target'),\n          segment(negative ? ' suffers ' : ' gains '),\n          segment(name, 'outcome', negative ? 'warning' : 'benefit'),\n          ...(duration ? [segment(` · ${duration}`)] : []),\n        ]\n'''
+          if old_status not in text:
+              raise SystemExit('battle-log-presentation.ts: standalone status block not found')
+          text = text.replace(old_status, new_status, 1)
+          text = text.replace("    key: `battle:${group.battleVersion}`,", "    key: group.key,", 1)
+          presentation.write_text(text)
+
+          feed = 'apps/web/src/components/battle/battle-log-feed.tsx'
+          replace(
+              feed,
+              "import { useMemo, useState } from 'react'\n\n",
+              "import { useMemo, useState } from 'react'\n\nimport type { SkillNarrationTemplate } from '@aurevane/game-core/combat/battle-narration'\n\n",
+          )
+          replace(feed, "  combatantNames?: Readonly<Record<string, string>>\n  emptyMessage?: string", "  combatantNames?: Readonly<Record<string, string>>\n  skillNarrations?: Readonly<Record<string, SkillNarrationTemplate>>\n  emptyMessage?: string")
+          replace(feed, "  combatantNames,\n  emptyMessage", "  combatantNames,\n  skillNarrations,\n  emptyMessage")
+          replace(feed, "    () => buildBattleLogPresentation(entries, { playerName, combatantNames }),\n    [combatantNames, entries, playerName],", "    () => buildBattleLogPresentation(entries, { playerName, combatantNames, skillNarrations }),\n    [combatantNames, entries, playerName, skillNarrations],")
+          replace(
+              feed,
+              "                      <div className={styles.actionMeta} aria-hidden=\"true\">\n                        {action.turnNumber !== null ? (\n                          <small>Turn {action.turnNumber}</small>\n                        ) : null}\n                        <time dateTime={action.occurredAt}>{timeLabel(action.occurredAt)}</time>\n                      </div>\n",
+              "                      {action.turnNumber !== null ? (\n                        <div className={styles.actionMeta} aria-hidden=\"true\">\n                          <small>Turn {action.turnNumber}</small>\n                        </div>\n                      ) : null}\n",
+          )
+
+          css = 'apps/web/src/components/battle/battle-log-feed.module.css'
+          replace(css, "  opacity: 0.73;", "  opacity: 0.82;")
+          replace(css, "  color: #d9dde0;", "  color: #b9cad5;")
+          replace(css, "  color: var(--av-brass-200);", "  color: #dfbd78;", 1)
+          replace(
+              css,
+              ".primaryLine span[data-role='outcome'][data-tone='damage'],\n.secondaryLine span[data-role='outcome'][data-tone='damage'],\n.details span[data-tone='damage'] {\n  color: #ef9b94;\n}",
+              ".primaryLine span[data-role='outcome'][data-tone='damage'],\n.secondaryLine span[data-role='outcome'][data-tone='damage'] {\n  color: #f18d84;\n}",
+          )
+          replace(
+              css,
+              ".primaryLine span[data-role='outcome'][data-tone='healing'],\n.primaryLine span[data-role='outcome'][data-tone='benefit'],\n.secondaryLine span[data-role='outcome'][data-tone='healing'],\n.secondaryLine span[data-role='outcome'][data-tone='benefit'],\n.details span[data-tone='healing'],\n.details span[data-tone='benefit'] {\n  color: var(--av-verdant-400);\n}",
+              ".primaryLine span[data-role='outcome'][data-tone='healing'],\n.primaryLine span[data-role='outcome'][data-tone='benefit'],\n.secondaryLine span[data-role='outcome'][data-tone='healing'],\n.secondaryLine span[data-role='outcome'][data-tone='benefit'] {\n  color: #7fce9e;\n}",
+          )
+          replace(
+              css,
+              ".primaryLine span[data-role='outcome'][data-tone='warning'],\n.secondaryLine span[data-role='outcome'][data-tone='warning'],\n.details span[data-tone='warning'] {\n  color: #e4bd79;\n}",
+              ".primaryLine span[data-role='outcome'][data-tone='warning'],\n.secondaryLine span[data-role='outcome'][data-tone='warning'] {\n  color: #e8bd73;\n}",
+          )
+          replace(css, "  font-size: 0.53rem;", "  font-size: 0.55rem;")
+          replace(css, "  color: rgba(198, 202, 206, 0.62);", "  color: rgba(205, 211, 216, 0.74);")
+
+          Path('apps/web/src/components/battle/battle-log-presentation.test.ts').write_text('''import type { SkillNarrationTemplate } from '@aurevane/game-core/combat/battle-narration'\nimport { describe, expect, it } from 'vitest'\n\nimport type { BattleLogEntry } from '@/server/battle/battle-log-service'\n\nimport { buildBattleLogPresentation } from './battle-log-presentation'\n\nfunction entry(overrides: Partial<BattleLogEntry> = {}): BattleLogEntry {\n  return {\n    battleVersion: 1,\n    eventIndex: 0,\n    occurredAt: '2026-08-24T22:00:00.000Z',\n    eventType: 'combat_action_used',\n    message: 'Wayfarer used Basic Attack.',\n    messageTemplate: '{actor} used {action}.',\n    templateValues: { action: 'Basic Attack' },\n    actorCombatantId: 'character:zei',\n    targetCombatantId: null,\n    actionId: 'basic.attack.unarmed.basic',\n    actionLabel: 'Basic Attack',\n    round: 4,\n    turnNumber: 7,\n    kind: 'offense',\n    headline: 'Basic Attack',\n    tone: 'neutral',\n    facts: [],\n    ...overrides,\n  }\n}\n\nconst names = {\n  'character:zei': 'Zei',\n  'character:storm': 'Storm',\n}\n\nfunction sentence(segments: readonly { text: string }[]): string {\n  return segments.map((segment) => segment.text).join('')\n}\n\nfunction attackEntries(overrides: Partial<BattleLogEntry> = {}): BattleLogEntry[] {\n  return [\n    entry({\n      eventIndex: 1,\n      eventType: 'stat_driven_attack_resolved',\n      message: 'Wayfarer Basic Attack HIT.',\n      messageTemplate: '{actor} {action} {outcome}.',\n      templateValues: { action: 'Basic Attack', outcome: 'HIT' },\n      targetCombatantId: 'character:storm',\n      tone: 'damage',\n      facts: [\n        { label: 'HIT', tone: 'damage' },\n        { label: '74% hit chance', tone: 'neutral' },\n      ],\n      ...overrides,\n    }),\n    entry({\n      eventIndex: 2,\n      eventType: 'damage_applied',\n      message: 'Storm took 18 damage.',\n      messageTemplate: '{target} took {amount} damage.',\n      templateValues: { amount: '18' },\n      targetCombatantId: 'character:storm',\n      tone: 'damage',\n      facts: [\n        { label: '18 DMG', tone: 'damage' },\n        { label: '82 HP remaining', tone: 'neutral' },\n      ],\n      ...overrides,\n    }),\n  ]\n}\n\ndescribe('Battle Log V2 presentation', () => {\n  it('turns a hit, damage, and status consequence into one readable combat beat', () => {\n    const rounds = buildBattleLogPresentation(\n      [\n        entry({ eventIndex: 0 }),\n        ...attackEntries(),\n        entry({\n          eventIndex: 3,\n          eventType: 'status_applied',\n          message: 'Storm gained Lowered Guard.',\n          messageTemplate: '{target} gained {status}.',\n          templateValues: { status: 'Lowered Guard', statusChange: 'APPLIED' },\n          actorCombatantId: null,\n          targetCombatantId: 'character:storm',\n          actionId: null,\n          actionLabel: null,\n          kind: 'status',\n          headline: 'Lowered Guard',\n          tone: 'warning',\n          facts: [\n            { label: 'Lowered Guard', tone: 'warning' },\n            { label: '2 turns', tone: 'neutral' },\n          ],\n        }),\n      ],\n      { combatantNames: names },\n    )\n\n    const action = rounds[0]?.actions[0]\n    expect(sentence(action?.primary ?? [])).toBe('Zei strikes Storm — 18 damage')\n    expect(sentence(action?.secondary ?? [])).toBe('↳ Storm suffers Lowered Guard · 2 turns')\n    expect(action?.details.map((detail) => detail.label)).toEqual([\n      '82 HP remaining',\n      '74% hit chance',\n    ])\n    expect(action?.ariaLabel).toBe(\n      'Zei strikes Storm — 18 damage Storm suffers Lowered Guard · 2 turns',\n    )\n  })\n\n  it('uses PvP participant identity instead of falling back to the viewer name', () => {\n    const action = buildBattleLogPresentation(attackEntries(), { combatantNames: names })[0]?.actions[0]\n    expect(sentence(action?.primary ?? [])).toBe('Zei strikes Storm — 18 damage')\n  })\n\n  it('uses Opponent rather than the viewer name when a PvP name map is incomplete', () => {\n    const action = buildBattleLogPresentation(attackEntries(), {\n      playerName: 'Zei',\n      combatantNames: { 'character:zei': 'Zei' },\n    })[0]?.actions[0]\n    expect(sentence(action?.primary ?? [])).toBe('Zei strikes Opponent — 18 damage')\n  })\n\n  it('keeps genuine self-damage distinct from a targeting bug', () => {\n    const action = buildBattleLogPresentation(\n      [\n        entry({\n          eventType: 'damage_applied',\n          actorCombatantId: 'character:zei',\n          targetCombatantId: 'character:zei',\n          templateValues: { amount: '12' },\n          facts: [\n            { label: '12 DMG', tone: 'damage' },\n            { label: '88 HP remaining', tone: 'neutral' },\n          ],\n          tone: 'damage',\n        }),\n      ],\n      { combatantNames: names },\n    )[0]?.actions[0]\n    expect(sentence(action?.primary ?? [])).toBe('Zei takes 12 damage')\n    expect(sentence(action?.primary ?? [])).not.toContain('strikes Zei')\n  })\n\n  it('explains timeout streaks, status duration, and mechanics in player language', () => {\n    const rounds = buildBattleLogPresentation(\n      [\n        entry({\n          battleVersion: 204,\n          eventIndex: 0,\n          eventType: 'pvp_turn_timed_out',\n          message: 'Wayfarer timed out.',\n          messageTemplate: '{actor} timed out.',\n          actionId: null,\n          actionLabel: null,\n          targetCombatantId: null,\n          kind: 'turn',\n          headline: 'Turn Timeout',\n          tone: 'warning',\n          facts: [{ label: '2 consecutive timeouts', tone: 'warning' }],\n        }),\n        entry({\n          battleVersion: 204,\n          eventIndex: 3,\n          eventType: 'pvp_lowered_guard_applied',\n          message: 'Wayfarer gained Lowered Guard.',\n          messageTemplate: '{target} gained Lowered Guard.',\n          templateValues: {},\n          actorCombatantId: null,\n          targetCombatantId: 'character:zei',\n          actionId: null,\n          actionLabel: null,\n          kind: 'status',\n          headline: 'Lowered Guard',\n          tone: 'warning',\n          facts: [\n            { label: 'Lowered Guard', tone: 'warning' },\n            { label: '1 turn', tone: 'neutral' },\n            { label: 'Takes 2.5× damage', tone: 'warning' },\n          ],\n        }),\n        entry({\n          battleVersion: 204,\n          eventIndex: 2,\n          eventType: 'status_applied',\n          message: 'Wayfarer gained Lowered Guard for 1000 owner-turn starts.',\n          messageTemplate: '{target} gained {status}.',\n          templateValues: { status: 'Lowered Guard', statusChange: 'APPLIED' },\n          actorCombatantId: null,\n          targetCombatantId: 'character:zei',\n          actionId: null,\n          actionLabel: null,\n          kind: 'status',\n          headline: 'Lowered Guard',\n          tone: 'warning',\n          facts: [\n            { label: 'Lowered Guard', tone: 'warning' },\n            { label: '1000 turns', tone: 'neutral' },\n          ],\n        }),\n        entry({\n          battleVersion: 204,\n          eventIndex: 1,\n          eventType: 'status_expired',\n          message: 'Lowered Guard expired on Wayfarer.',\n          messageTemplate: '{status} expired on {target}.',\n          templateValues: { status: 'Lowered Guard' },\n          actorCombatantId: null,\n          targetCombatantId: 'character:zei',\n          actionId: null,\n          actionLabel: null,\n          kind: 'status',\n          headline: 'Lowered Guard',\n          tone: 'neutral',\n          facts: [],\n        }),\n      ],\n      { combatantNames: names },\n    )\n\n    const actions = rounds[0]?.actions ?? []\n    expect(sentence(actions[0]?.primary ?? [])).toBe("Zei's turn expires — action forfeited")\n    expect(sentence(actions[0]?.secondary ?? [])).toBe(\n      '↳ Zei suffers Lowered Guard · until next turn',\n    )\n    expect(actions[0]?.details.map((detail) => detail.label)).toEqual([\n      'Takes 2.5× damage',\n      '2 consecutive timeouts',\n    ])\n    expect(sentence(actions[1]?.primary ?? [])).toBe("Zei's Lowered Guard fades")\n    expect(JSON.stringify(actions)).not.toContain('1000 turns')\n    expect(JSON.stringify(actions)).not.toMatch(/\bmiss(?:es)?\b/iu)\n  })\n\n  it('renders status refreshes as lifecycle changes rather than duplicate applications', () => {\n    const action = buildBattleLogPresentation(\n      [\n        entry({\n          eventType: 'status_applied',\n          messageTemplate: \"{target}'s {status} refreshed.\",\n          templateValues: { status: 'Guarded', statusChange: 'REFRESHED' },\n          actorCombatantId: null,\n          targetCombatantId: 'character:zei',\n          actionId: null,\n          actionLabel: null,\n          kind: 'defense',\n          headline: 'Guarded',\n          tone: 'benefit',\n          facts: [\n            { label: 'Guarded', tone: 'benefit' },\n            { label: '2 turns', tone: 'neutral' },\n          ],\n        }),\n      ],\n      { combatantNames: names },\n    )[0]?.actions[0]\n    expect(sentence(action?.primary ?? [])).toBe("Zei's Guarded refreshes · 2 turns")\n  })\n\n  it('renders a miss as a sentence with clear hit-chance detail', () => {\n    const action = buildBattleLogPresentation(\n      [\n        entry({\n          eventType: 'stat_driven_attack_resolved',\n          message: 'Wayfarer Basic Attack MISSED.',\n          messageTemplate: '{actor} {action} {outcome}.',\n          templateValues: { action: 'Basic Attack', outcome: 'MISSED' },\n          targetCombatantId: 'character:storm',\n          tone: 'warning',\n          facts: [\n            { label: 'MISS', tone: 'warning' },\n            { label: '61% hit chance', tone: 'neutral' },\n          ],\n        }),\n      ],\n      { combatantNames: names },\n    )[0]?.actions[0]\n    expect(sentence(action?.primary ?? [])).toBe('Zei strikes Storm — Miss')\n    expect(action?.details.map((detail) => detail.label)).toEqual(['61% hit chance'])\n  })\n\n  it('uses authored short skill narration when valid and keeps authoritative outcome visible', () => {\n    const skillNarrations: Record<string, SkillNarrationTemplate> = {\n      'basic.attack.unarmed.basic': {\n        hit: "{actor} drives a sweeping cut through {target}'s guard",\n        miss: "{actor}'s sweeping cut slips past {target}",\n      },\n    }\n    const hit = buildBattleLogPresentation(attackEntries(), {\n      combatantNames: names,\n      skillNarrations,\n    })[0]?.actions[0]\n    expect(sentence(hit?.primary ?? [])).toBe(\n      "Zei drives a sweeping cut through Storm's guard — 18 damage",\n    )\n\n    const miss = buildBattleLogPresentation(\n      [\n        entry({\n          eventType: 'stat_driven_attack_resolved',\n          templateValues: { action: 'Basic Attack', outcome: 'MISSED' },\n          targetCombatantId: 'character:storm',\n          tone: 'warning',\n          facts: [{ label: 'MISS', tone: 'warning' }],\n        }),\n      ],\n      { combatantNames: names, skillNarrations },\n    )[0]?.actions[0]\n    expect(sentence(miss?.primary ?? [])).toBe("Zei's sweeping cut slips past Storm — Miss")\n  })\n\n  it('falls back safely when authored narration is malformed', () => {\n    const action = buildBattleLogPresentation(attackEntries(), {\n      combatantNames: names,\n      skillNarrations: {\n        'basic.attack.unarmed.basic': { hit: '{actor} reveals {secret_roll} to {target}' },\n      },\n    })[0]?.actions[0]\n    expect(sentence(action?.primary ?? [])).toBe('Zei strikes Storm — 18 damage')\n  })\n})\n''')
+
+          service_test = 'apps/web/src/server/battle/battle-log-service.test.ts'
+          replace(service_test, "{ label: '67 HP', tone: 'neutral' }", "{ label: '67 HP remaining', tone: 'neutral' }")
+          replace(service_test, "{ label: '74% hit', tone: 'neutral' }", "{ label: '74% hit chance', tone: 'neutral' }")
+          replace(service_test, "{ label: '1 Move', tone: 'neutral' }", "{ label: '1 Move spent', tone: 'neutral' }")
+          marker = "  it('carries authoritative round and turn context forward into later action entries', async () => {"
+          insertion = '''  it('translates timeout and Lowered Guard internals into player-facing facts', async () => {\n    const repository: BattleEventRepository = {\n      findBattleEvents: vi.fn(async () => [\n        {\n          battleVersion: 10,\n          eventIndex: 0,\n          event: {\n            event: 'pvp_turn_timed_out',\n            combatantId: 'character:player-1',\n            consecutiveMisses: 2,\n          },\n          createdAt: '2026-08-17T13:03:00.000Z',\n        },\n        {\n          battleVersion: 10,\n          eventIndex: 1,\n          event: {\n            event: 'pvp_lowered_guard_applied',\n            combatantId: 'character:player-1',\n            remainingOwnerTurnStarts: 1,\n            damageTakenMultiplierBasisPoints: 25_000,\n          },\n          createdAt: '2026-08-17T13:03:00.000Z',\n        },\n      ]),\n    }\n\n    const result = await createBattleLogService(repository).getLog(USER_ID, SESSION_ID)\n    expect(result.entries[0]?.facts).toEqual([{ label: 'Takes 2.5× damage', tone: 'warning' }, { label: 'Lowered Guard', tone: 'warning' }, { label: '1 turn', tone: 'neutral' }].sort((a, b) => 0))\n    const serialized = JSON.stringify(result)\n    expect(serialized).toContain('2 consecutive timeouts')\n    expect(serialized).not.toMatch(/\\b2 misses\\b/iu)\n    expect(serialized).not.toContain('25000')\n  })\n\n'''
+          # Preserve deterministic event ordering: service returns newest event first, so assert directly after formatting below.
+          p = Path(service_test)
+          s = p.read_text()
+          if marker not in s:
+              raise SystemExit('battle-log-service.test.ts insertion marker not found')
+          s = s.replace(marker, insertion + marker, 1)
+          # Fix the intended exact facts assertion for the Lowered Guard entry (eventIndex 1 is first).
+          s = s.replace(
+              "expect(result.entries[0]?.facts).toEqual([{ label: 'Takes 2.5× damage', tone: 'warning' }, { label: 'Lowered Guard', tone: 'warning' }, { label: '1 turn', tone: 'neutral' }].sort((a, b) => 0))",
+              "expect(result.entries[0]?.facts).toEqual([\n      { label: 'Lowered Guard', tone: 'warning' },\n      { label: '1 turn', tone: 'neutral' },\n      { label: 'Takes 2.5× damage', tone: 'warning' },\n    ])",
+          )
+          p.write_text(s)
+
+          append_once(
+              'docs/BATTLE_LOG_SYSTEM.md',
+              '## 2026-08-24 clarity, identity, lifecycle, and narration contract',
+              '''## 2026-08-24 clarity, identity, lifecycle, and narration contract\n\nThis addendum supersedes earlier examples that imply the default log should expose outcome chip clouds. The current player-facing rule is sentence-first: one causal combat beat, at most one immediate consequence line by default, and optional calm Details for useful tactical numbers.\n\n### Identity resolution is required data\n\nIn PvP and spectator contexts, every battle-log consumer must receive a complete `combatantId -> characterName` map built from authoritative participant metadata. Both sides use `character:` combatant IDs, so treating every `character:` ID as the local viewer silently misattributes actor and target. When a PvP map is present but an ID is unexpectedly missing, presentation falls back to `Opponent`, never the viewer's name. AI/practice may continue using the explicit local `playerName` fallback because non-player opponents use recruit identities.\n\n### Player-facing detail vocabulary\n\n- resulting HP is labelled `{n} HP remaining`;\n- attack probability is labelled `{n}% hit chance`;\n- PvP timeout streaks are `consecutive timeouts`, never `misses`;\n- movement cost is `{n} Move spent`;\n- raw basis points, internal resource keys, sentinel durations, RNG rolls, and bare lifecycle words such as `Expired` never appear.\n\nLowered Guard applied by the PvP turn timer lasts until that combatant's next turn begins and makes that combatant take 2.5x normal incoming damage. The player-facing log may describe that mechanic plainly; it must never expose `25_000` basis points or the internal 1000-turn status-definition sentinel.\n\n### Status lifecycle and grouping\n\nStatus durations count the affected status owner's upcoming turn starts, not global rounds. General authored statuses may display a concise `{n} turn(s)` duration. The PvP one-turn Lowered Guard presentation says `until next turn` because that is clearer than exposing the implementation counter.\n\n`status_applied` events distinguish fresh application from authoritative refresh. Refresh renders as `{Target}'s {Status} refreshes`, while natural expiration renders as its own quiet `{Target}'s {Status} fades` event. Expiration is not dumped into an unrelated action's Details merely because both events share one battle-version commit. Immediate status consequences may attach to an action only when their target matches that action's actor/target attribution.\n\n### Skill narration contract\n\nSkill content may carry optional short presentation-only narration:\n\n```ts\ninterface SkillNarrationTemplate {\n  hit?: string\n  miss?: string\n  critical?: string\n}\n```\n\nV1 allow-listed tokens are `{actor}`, `{target}`, `{ability}`, and `{damage}`. Unknown or malformed templates fail closed to the generic battle sentence; they never throw and never affect mechanics. `critical` is reserved in the content contract but is not selected until an authoritative critical outcome exists. Do not add blocked/dodged/parried variants until those outcomes exist mechanically. Pronoun-form tokens remain deferred until the authoritative identity/pronoun resolver is available.\n\nNarration is evaluated only after committed combat events exist. It can change wording, never hit/miss, damage, targets, statuses, durations, costs, rewards, or any other authoritative result. Future Master Panel editing must use the same versioned contract with validation, preview, publish, audit, and rollback.\n''',
+          )
+
+          append_once(
+              'docs/MASTER_PANEL.md',
+              '## 21. Battle Narration Authoring Contract',
+              '''## 21. Battle Narration Authoring Contract\n\nThe future Combat Content / Skill editor must edit the existing typed `SkillNarrationTemplate` contract rather than inventing a separate prose system. The first authorable fields are optional `Hit`, `Miss`, and `Critical` short narration variants. `Critical` remains dormant until the combat engine exposes an authoritative critical outcome; blocked/dodged/parried fields must not be added speculatively.\n\nThe editor must provide an allow-listed token picker for `{actor}`, `{target}`, `{ability}`, and `{damage}`, sample preview, unknown-token validation, generic fallback preview, Draft -> Preview -> Publish -> Rollback, version history, and audit provenance. Narration is presentation metadata attached to versioned Skill content and is never read by combat resolution.\n\nStatus authoring should likewise expose plain-language lifecycle/effect descriptions only for mechanics that actually exist. Do not build stacking-status authoring UI until a released status supports stacking behavior that players need to understand.\n''',
+          )
+
+          append_once(
+              'docs/GAME_MASTER_PLAN.md',
+              'BATTLE LOG IDENTITY + SHORT SKILL NARRATION CONTRACT (2026-08-24)',
+              '''BATTLE LOG IDENTITY + SHORT SKILL NARRATION CONTRACT (2026-08-24)\n\nBattle history remains a presentation projection over committed server-authoritative events. PvP and spectator battle-log surfaces must resolve both actor and target from authoritative participant metadata (`combatantId -> characterName`); a `character:` prefix alone never proves that the combatant is the local viewer. This convention exists to prevent self-attribution bugs in player-vs-player logs.\n\nPlayer-facing entries prioritize immediate comprehension: who acted, what happened, who was affected, the important outcome, and concise status lifecycle. Useful optional tactical detail uses explicit labels such as `HP remaining`, `hit chance`, and `consecutive timeouts`; raw engine vocabulary, basis points, sentinel durations, RNG data, and state-machine labels remain hidden. Natural status expiration is a quiet standalone lifecycle event rather than unexplained detail attached to another action.\n\nVersioned Skill content may include optional short `hit`, `miss`, and future authoritative `critical` narration using the allow-listed `{actor}`, `{target}`, `{ability}`, and `{damage}` tokens. Generic narration is mandatory fallback. Authored text never determines combat outcomes. The later Master Panel Skill editor must edit this same contract with validation/preview/versioning rather than requiring a new battle-log architecture.\n''',
+          )
+          PY
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format changed files
+        run: |
+          pnpm exec prettier --write \
+            packages/game-core/package.json \
+            packages/game-core/src/combat/battle-narration.ts \
+            packages/game-core/src/combat/battle-narration.test.ts \
+            packages/game-core/src/combat/actions.ts \
+            packages/game-core/src/combat/pvp-quality.ts \
+            packages/game-core/src/combat/pvp-quality.test.ts \
+            apps/web/src/server/battle/battle-log-service.ts \
+            apps/web/src/server/battle/battle-log-service.test.ts \
+            apps/web/src/components/battle/pvp-battle-client-boundary.tsx \
+            apps/web/src/components/battle/desktop-battle-log-dock.tsx \
+            apps/web/src/components/battle/battle-log-panel.tsx \
+            apps/web/src/components/battle/battle-log-presentation.ts \
+            apps/web/src/components/battle/battle-log-presentation.test.ts \
+            apps/web/src/components/battle/battle-log-feed.tsx \
+            apps/web/src/components/battle/battle-log-feed.module.css \
+            docs/BATTLE_LOG_SYSTEM.md docs/MASTER_PANEL.md docs/GAME_MASTER_PLAN.md
+      - name: Run focused tests and typechecks
+        run: |
+          pnpm --filter @aurevane/game-core test
+          pnpm --filter @aurevane/game-core typecheck
+          pnpm --filter @aurevane/web test
+          pnpm --filter @aurevane/web typecheck
+      - name: Remove temporary workflow and commit implementation
+        run: |
+          rm .github/workflows/tmp-battle-log-clarity.yml
+          git config user.name "AUREVANE Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "Improve battle log clarity and narration foundation"
+          git push origin HEAD:feat/battle-log-clarity-narration-20260824
