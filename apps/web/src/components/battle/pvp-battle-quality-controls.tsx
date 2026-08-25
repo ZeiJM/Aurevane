@@ -74,15 +74,21 @@ export function PvpBattleQualityControls({
     battleIsActive && localCombatantId && activeCombatantId === localCombatantId,
   )
   const opponentClockTurn = Boolean(
-    clock &&
+    clock?.active &&
+      clock.combatantId &&
       localCombatantId &&
-      (clock.active
-        ? clock.combatantId && clock.combatantId !== localCombatantId
-        : battleIsActive &&
-          clock.turnTimerSeconds === null &&
-          activeCombatantId &&
-          activeCombatantId !== localCombatantId),
+      clock.combatantId !== localCombatantId,
   )
+  const opponentNoTimerTurn = Boolean(
+    clock &&
+      !clock.active &&
+      clock.turnTimerSeconds === null &&
+      battleIsActive &&
+      activeCombatantId &&
+      localCombatantId &&
+      activeCombatantId !== localCombatantId,
+  )
+  const showOpponentClock = opponentClockTurn || opponentNoTimerTurn
 
   useEffect(() => {
     const locate = () => {
@@ -298,7 +304,7 @@ export function PvpBattleQualityControls({
           )
         : null}
 
-      {commandTarget && battleIsActive && clock && opponentClockTurn
+      {commandTarget && battleIsActive && clock && showOpponentClock
         ? createPortal(
             <span
               data-pvp-opponent-turn-clock="true"
