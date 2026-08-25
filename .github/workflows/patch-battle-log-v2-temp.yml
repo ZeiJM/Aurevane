@@ -1,0 +1,42 @@
+name: Temporary Battle Log V2 accessibility patch
+
+on:
+  push:
+    branches:
+      - feat/battle-log-v2-narration-20260824
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/battle-log-v2-narration-20260824
+          fetch-depth: 0
+      - name: Preserve spacing between primary and secondary narration
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('apps/web/src/components/battle/battle-log-presentation.ts')
+          text = path.read_text()
+          old = """  const ariaLabel = [...primary, ...(secondary ?? [])]\n    .map((item) => item.text)\n    .join('')\n    .replace(/↳\\s*/gu, '')\n    .replace(/\\s+/gu, ' ')\n    .trim()\n"""
+          new = """  const ariaLabel = [primary, secondary ?? []]\n    .map((segments) => segments.map((item) => item.text).join(''))\n    .filter(Boolean)\n    .join(' ')\n    .replace(/↳\\s*/gu, '')\n    .replace(/\\s+/gu, ' ')\n    .trim()\n"""
+          if old not in text:
+              raise SystemExit('Expected ariaLabel block was not found')
+          path.write_text(text.replace(old, new))
+          PY
+      - name: Format patched file
+        run: npx --yes prettier@3.9.6 --write apps/web/src/components/battle/battle-log-presentation.ts
+      - name: Commit patch
+        run: |
+          git config user.name "AUREVANE Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add apps/web/src/components/battle/battle-log-presentation.ts
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "fix: preserve battle log narration spacing"
+          git push origin HEAD:feat/battle-log-v2-narration-20260824
