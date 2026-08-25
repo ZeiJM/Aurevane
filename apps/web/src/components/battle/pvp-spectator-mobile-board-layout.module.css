@@ -1,0 +1,48 @@
+.hook {
+  display: none;
+}
+
+/*
+ * The spectator board gained explicit 1fr rows + an aspect ratio for desktop fitting.
+ * On mobile the battlefield itself is content-sized, so those flexible rows can resolve
+ * without a usable block size and the tactical grid disappears. Keep the desktop model
+ * untouched; on mobile, let the square tiles establish the board's intrinsic row height.
+ */
+@media (max-width: 700px) {
+  :global(main[data-pvp-spectator='true'] #battlefield) {
+    grid-template-rows: auto auto auto auto !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] #battlefield > div:nth-child(2)) {
+    display: block !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding: 0.3rem !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] #battlefield > div:nth-child(2) > div) {
+    display: grid !important;
+    width: 100% !important;
+    height: auto !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    margin: 0 !important;
+    grid-template-rows: none !important;
+    grid-auto-rows: auto !important;
+    align-content: start !important;
+    aspect-ratio: auto !important;
+  }
+
+  :global(main[data-pvp-spectator='true'] #battlefield > div:nth-child(2) > div > button) {
+    width: auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    aspect-ratio: 1 !important;
+    align-self: start !important;
+  }
+}
