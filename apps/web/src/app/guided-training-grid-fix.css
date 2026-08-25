@@ -1,0 +1,42 @@
+/*
+ * Guided Fundamentals uses a deliberately compact 5 x 3 arena.
+ *
+ * The shared battle shell normally lets the board grow with the available stage.
+ * On this small arena that made fractional row tracks taller than the column tracks
+ * while the individual tiles were still forced square, so tiles visually overlapped
+ * and the board looked stretched. Let square tiles size the rows intrinsically and
+ * keep the training board at a deliberate, readable scale instead.
+ */
+
+main[aria-busy]:has(header button[aria-label*='of 4 criteria complete'])
+  #battlefield
+  > div:first-child
+  > div:first-child {
+  width: min(100%, 34rem) !important;
+  height: auto !important;
+  max-width: 34rem !important;
+  max-height: none !important;
+  grid-template-rows: none !important;
+  grid-auto-rows: auto !important;
+  gap: clamp(0.12rem, 0.28vw, 0.2rem) !important;
+  align-content: center !important;
+  align-self: center !important;
+  justify-self: center !important;
+  aspect-ratio: auto !important;
+  filter: drop-shadow(0 0.8rem 1.5rem rgba(0, 0, 0, 0.24));
+}
+
+main[aria-busy]:has(header button[aria-label*='of 4 criteria complete'])
+  #battlefield
+  > div:first-child {
+  place-items: center !important;
+}
+
+/* Preserve the compact board geometry on phones without reintroducing reserved height. */
+@media (max-width: 880px) {
+  main[aria-busy]:has(header button[aria-label*='of 4 criteria complete'])
+    #battlefield
+    > div:first-child {
+    place-items: start center !important;
+  }
+}
