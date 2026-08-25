@@ -32,6 +32,10 @@
     align-items: center !important;
     justify-self: stretch !important;
     padding: 0.3rem 0.5rem !important;
+    border: 1px solid rgba(207, 169, 93, 0.42) !important;
+    border-radius: var(--av-radius-sm) !important;
+    background: rgba(207, 169, 93, 0.045) !important;
+    box-sizing: border-box !important;
   }
 
   :global([data-pvp-header-economy='true'] > [data-pvp-header-victory-source='true']) {
@@ -82,7 +86,11 @@
   ) {
     grid-column: 4 !important;
     grid-row: 1 !important;
+    height: 2.15rem !important;
+    min-height: 2.15rem !important;
+    align-self: center !important;
     justify-self: end !important;
+    border-radius: var(--av-radius-sm) !important;
   }
 
   :global(main[data-pvp-battle='true'][data-pvp-desktop-parity='true'] > footer) {
