@@ -99,6 +99,8 @@
       > footer
       > button[data-pvp-spectator-key='true']
   ) {
+    min-height: 2rem !important;
+    align-content: center !important;
     border-radius: var(--av-radius-sm) !important;
   }
 }
