@@ -8,8 +8,12 @@ import {
 const BASE_URL = 'http://127.0.0.1:3100'
 
 function uniqueCharacterName(prefix: string): string {
-  const suffix = Date.now().toString(36).toUpperCase()
-  return `${prefix} ${suffix}`
+  const letters = Date.now()
+    .toString()
+    .split('')
+    .map((digit) => String.fromCharCode(65 + Number(digit)))
+    .join('')
+  return `${prefix} ${letters}`
 }
 
 test(
@@ -46,8 +50,14 @@ test(
       characterName: uniqueCharacterName('Viewer'),
     })
 
-    const hostContext = await browser.newContext({ baseURL: BASE_URL, storageState: hostStorage })
-    const guestContext = await browser.newContext({ baseURL: BASE_URL, storageState: guestStorage })
+    const hostContext = await browser.newContext({
+      baseURL: BASE_URL,
+      storageState: hostStorage,
+    })
+    const guestContext = await browser.newContext({
+      baseURL: BASE_URL,
+      storageState: guestStorage,
+    })
     const host = await hostContext.newPage()
     const guest = await guestContext.newPage()
 
@@ -99,7 +109,8 @@ test(
         const battlefield = document.querySelector<HTMLElement>('#battlefield')
         const scroller = battlefield?.children.item(1) as HTMLElement | null
         const board = scroller?.firstElementChild as HTMLElement | null
-        const tile = board?.querySelector<HTMLElement>('button[aria-label^="Tile "]') ?? null
+        const tile =
+          board?.querySelector<HTMLElement>('button[aria-label^="Tile "]') ?? null
         const measure = (element: HTMLElement | null) => {
           if (!element) return null
           const rect = element.getBoundingClientRect()
