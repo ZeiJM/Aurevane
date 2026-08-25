@@ -1,0 +1,37 @@
+name: Temporary Battle Log history formatting
+
+on:
+  push:
+    branches:
+      - fix/battle-log-full-history-final-20260825
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/battle-log-full-history-final-20260825
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format touched sources
+        run: pnpm exec prettier --write "apps/web/src/app/api/pvp/spectate/[battleKey]/route.ts" apps/web/src/components/battle/battle-log-feed.tsx apps/web/src/server/battle/supabase-battle-session-repository.ts apps/web/src/server/battle/supabase-battle-session-repository.test.ts
+      - name: Remove temporary workflow and commit
+        run: |
+          rm .github/workflows/temp-format-battle-log-history.yml
+          git config user.name "AUREVANE Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "Format Battle Log full-history fix"
+          git push origin HEAD:fix/battle-log-full-history-final-20260825
