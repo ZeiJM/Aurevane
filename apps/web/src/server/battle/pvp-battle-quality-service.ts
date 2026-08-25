@@ -129,7 +129,7 @@ async function previousTurnWasMissed(
     p_combatant_id: combatantId,
   })
   if (error || !isObject(data) || typeof data.previous_turn_missed !== 'boolean') {
-    throw unavailable('PvP battle timeout history is unavailable right now.')
+    throw unavailable('PvP timeout history is unavailable right now.')
   }
   return data.previous_turn_missed
 }
