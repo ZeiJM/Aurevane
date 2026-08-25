@@ -4,14 +4,13 @@
 
 @media (min-width: 821px) {
   :global(
-    body main[data-pvp-battle='true'][data-pvp-desktop-parity='true'] > header:first-child
+    main[data-pvp-battle='true'][data-pvp-desktop-parity='true'] > header:first-child
   ) {
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
   }
 
   :global(
-    body
-      main[data-pvp-battle='true'][data-pvp-desktop-parity='true']
+    main[data-pvp-battle='true'][data-pvp-desktop-parity='true']
       > header:first-child
       > div:first-child
   ) {
@@ -21,8 +20,7 @@
   }
 
   :global(
-    body
-      main[data-pvp-battle='true'][data-pvp-desktop-parity='true']
+    main[data-pvp-battle='true'][data-pvp-desktop-parity='true']
       > header:first-child
       > div[data-pvp-header-economy='true']
   ) {
@@ -35,8 +33,7 @@
   }
 
   :global(
-    body
-      main[data-pvp-battle='true'][data-pvp-desktop-parity='true']
+    main[data-pvp-battle='true'][data-pvp-desktop-parity='true']
       > header:first-child
       > div[data-pvp-header-economy='true']
       > button
@@ -45,8 +42,7 @@
   }
 
   :global(
-    body
-      main[data-pvp-battle='true'][data-pvp-desktop-parity='true']
+    main[data-pvp-battle='true'][data-pvp-desktop-parity='true']
       > header:first-child
       > button:last-child
   ) {
