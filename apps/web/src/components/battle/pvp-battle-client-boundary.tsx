@@ -61,6 +61,7 @@ export function PvpBattleClientBoundary({
       <DesktopBattleLogDock
         battleSessionId={initialBattle.battleSessionId}
         playerName={playerName}
+        eventDriven
       />
       <PvpBattleQualityControls
         battleSessionId={initialBattle.battleSessionId}
