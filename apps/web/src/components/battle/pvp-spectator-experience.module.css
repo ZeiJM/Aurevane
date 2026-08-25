@@ -601,12 +601,19 @@
   }
 
   .header {
-    align-items: stretch;
-    flex-direction: column;
+    display: contents;
+  }
+
+  .header > div:first-child {
+    order: 0;
     padding: 0.55rem;
+    border: 1px solid var(--av-border);
+    border-radius: 0.65rem;
+    background: rgba(10, 13, 19, 0.94);
   }
 
   .headerActions {
+    order: 3;
     width: 100%;
   }
 
@@ -620,6 +627,7 @@
   }
 
   .scoreboard {
+    order: 1;
     grid-template-columns: 1fr;
   }
 
@@ -632,6 +640,7 @@
   }
 
   .broadcast {
+    order: 2;
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
       'board'
@@ -640,11 +649,11 @@
   }
 
   .controlRail {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
   }
 
-  .pulseCard dl {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .pulseCard {
+    display: none;
   }
 
   .boardScroller {
@@ -667,9 +676,17 @@
 
   .commsStack {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(12rem, 18rem) minmax(14rem, 22rem);
+    grid-template-rows: minmax(14rem, 22rem) minmax(12rem, 18rem);
     min-height: 0;
     max-height: none;
+  }
+
+  .battleLogPanel {
+    order: 1;
+  }
+
+  .comms {
+    order: 2;
   }
 }
 
@@ -686,14 +703,6 @@
   .stopButton {
     padding-inline: 0.48rem;
     font-size: 0.44rem;
-  }
-
-  .controlRail {
-    grid-template-columns: 1fr;
-  }
-
-  .pulseCard dl {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .member {
