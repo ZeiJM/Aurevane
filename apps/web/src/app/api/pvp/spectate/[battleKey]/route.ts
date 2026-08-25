@@ -20,10 +20,7 @@ async function parseBattleKey(context: {
   return battleKey
 }
 
-export async function POST(
-  _request: Request,
-  context: { params: Promise<{ battleKey: string }> },
-) {
+export async function POST(_request: Request, context: { params: Promise<{ battleKey: string }> }) {
   try {
     const actor = await getAuthenticatedActor()
     const battleKey = await parseBattleKey(context)
@@ -50,10 +47,7 @@ export async function POST(
   }
 }
 
-export async function GET(
-  _request: Request,
-  context: { params: Promise<{ battleKey: string }> },
-) {
+export async function GET(_request: Request, context: { params: Promise<{ battleKey: string }> }) {
   try {
     const actor = await getAuthenticatedActor()
     const battleKey = await parseBattleKey(context)
