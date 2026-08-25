@@ -47,6 +47,12 @@ function fingerprint(value: unknown): string {
   return `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`
 }
 
+function deterministicIdempotencyKey(value: unknown): string {
+  const hex = createHash('sha256').update(JSON.stringify(value)).digest('hex')
+  const variantNibble = ((Number.parseInt(hex.charAt(16), 16) & 0x3) | 0x8).toString(16)
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-${variantNibble}${hex.slice(17, 20)}-${hex.slice(20, 32)}`
+}
+
 function parseClock(value: unknown): PvpTurnClockView | null {
   if (!isObject(value) || typeof value.active !== 'boolean') return null
   const turnTimerSeconds = value.turn_timer_seconds
@@ -123,7 +129,7 @@ async function previousTurnWasMissed(
     p_combatant_id: combatantId,
   })
   if (error || !isObject(data) || typeof data.previous_turn_missed !== 'boolean') {
-    throw unavailable('PvP timeout history is unavailable right now.')
+    throw unavailable('PvP battle timeout history is unavailable right now.')
   }
   return data.previous_turn_missed
 }
@@ -163,18 +169,21 @@ export async function tickPvpTurnClock(
   const consecutive = await previousTurnWasMissed(userId, battleSessionId, turn.combatantId)
   if (!consecutive) state = resetPvpMissedTurnStreak(state)
   const resolved = timeoutPvpTurn(state)
+  const timeoutIdentity = {
+    command: 'pvp.timeout.v1',
+    battleSessionId,
+    expectedBattleVersion: current.battleVersion,
+    turnNumber: clock.turnNumber,
+    combatantId: clock.combatantId,
+  }
 
   try {
     await repository.commitBattleIntent({
-      actorKey: userId,
-      idempotencyKey: randomUUID(),
-      requestFingerprint: fingerprint({
-        command: 'pvp.timeout.v1',
-        battleSessionId,
-        expectedBattleVersion: current.battleVersion,
-        turnNumber: clock.turnNumber,
-        combatantId: clock.combatantId,
-      }),
+      // Timeout authority belongs to the battle turn, not whichever participant/tab noticed it.
+      // Sharing both actor and idempotency identity collapses concurrent timeout polls into replay.
+      actorKey: `pvp-timeout:${battleSessionId}`,
+      idempotencyKey: deterministicIdempotencyKey(timeoutIdentity),
+      requestFingerprint: fingerprint(timeoutIdentity),
       userId,
       battleSessionId,
       expectedBattleVersion: current.battleVersion,
