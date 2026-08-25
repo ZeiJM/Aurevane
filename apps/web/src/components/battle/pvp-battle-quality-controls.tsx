@@ -73,21 +73,20 @@ export function PvpBattleQualityControls({
   const localTurn = Boolean(
     battleIsActive && localCombatantId && activeCombatantId === localCombatantId,
   )
-  const opponentClockTurn = Boolean(
-    clock?.active &&
-      clock.combatantId &&
-      localCombatantId &&
-      clock.combatantId !== localCombatantId,
-  )
-  const opponentNoTimerTurn = Boolean(
-    clock &&
-      !clock.active &&
-      clock.turnTimerSeconds === null &&
-      battleIsActive &&
-      activeCombatantId &&
-      localCombatantId &&
-      activeCombatantId !== localCombatantId,
-  )
+  const opponentClockTurn =
+    clock !== null &&
+    clock.active &&
+    Boolean(clock.combatantId) &&
+    Boolean(localCombatantId) &&
+    clock.combatantId !== localCombatantId
+  const opponentNoTimerTurn =
+    clock !== null &&
+    !clock.active &&
+    clock.turnTimerSeconds === null &&
+    battleIsActive &&
+    Boolean(activeCombatantId) &&
+    Boolean(localCombatantId) &&
+    activeCombatantId !== localCombatantId
   const showOpponentClock = opponentClockTurn || opponentNoTimerTurn
 
   useEffect(() => {
