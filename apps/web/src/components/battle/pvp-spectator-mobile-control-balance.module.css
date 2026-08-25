@@ -42,9 +42,11 @@
     min-width: 0;
     margin: 0 !important;
     overflow: hidden;
-    font-size: clamp(0.78rem, 3.4vw, 0.98rem) !important;
-    line-height: 1 !important;
+    color: var(--av-brass-300);
+    font: 800 0.5rem/1 var(--av-font-mono) !important;
+    letter-spacing: 0.07em;
     text-overflow: ellipsis;
+    text-transform: uppercase;
     white-space: nowrap;
   }
 
