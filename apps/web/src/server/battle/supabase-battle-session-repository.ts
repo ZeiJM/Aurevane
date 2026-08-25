@@ -169,12 +169,14 @@ export function createSupabaseBattleSessionRepository(): BattleSessionRepository
       return { result, replayed: row.replayed }
     },
 
-    async findBattleEvents(userId, battleSessionId, limit) {
+    async findBattleEvents(userId, battleSessionId, limit, before) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('get_battle_events_v2', {
+      const { data, error } = await supabase.rpc('get_battle_events_v3', {
         p_user_id: userId,
         p_battle_session_id: battleSessionId,
         p_limit: limit,
+        p_before_battle_version: before?.battleVersion ?? null,
+        p_before_event_index: before?.eventIndex ?? null,
       })
 
       if (error) throwRpcError(error)
