@@ -1,7 +1,6 @@
 'use client'
 
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
-import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 
 import { BattleLogFeed } from '@/components/battle/battle-log-feed'
@@ -71,7 +70,6 @@ export function PvpSpectatorExperience({
   initialSpectator: PvpSpectatorView
   initialParticipantTitles: Record<string, string | null>
 }) {
-  const router = useRouter()
   const [spectator, setSpectator] = useState(initialSpectator)
   const [participantTitles, setParticipantTitles] = useState(initialParticipantTitles)
   const [connectionNote, setConnectionNote] = useState<string | null>(null)
@@ -254,8 +252,7 @@ export function PvpSpectatorExperience({
         setStopping(false)
         return
       }
-      router.push('/game/battle')
-      router.refresh()
+      window.location.replace('/game/battle')
     } catch {
       setConnectionNote('Spectator state could not be cleared. Try again.')
       setStopping(false)
