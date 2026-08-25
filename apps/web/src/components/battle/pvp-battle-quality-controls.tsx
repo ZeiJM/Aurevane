@@ -31,8 +31,19 @@ function remainingSeconds(deadlineAt: string | null, now: number): number {
   return Math.max(0, Math.ceil((new Date(deadlineAt).getTime() - now) / 1000))
 }
 
-const CLOCK_POLL_MS = 1000
+const CLOCK_WATCHDOG_MS = 5000
+const CLOCK_RECONNECT_BASE_MS = 1000
+const CLOCK_DEADLINE_GRACE_MS = 150
+const CLOCK_MIN_DELAY_MS = 250
 const MAX_RECONNECT_DELAY_MS = 5000
+
+function nextClockRefreshDelay(clock: ClockView): number | null {
+  if (!clock.active || !clock.deadlineAt) return null
+  const deadline = new Date(clock.deadlineAt).getTime()
+  if (!Number.isFinite(deadline)) return CLOCK_RECONNECT_BASE_MS
+  const untilDeadline = deadline - Date.now() + CLOCK_DEADLINE_GRACE_MS
+  return Math.min(CLOCK_WATCHDOG_MS, Math.max(CLOCK_MIN_DELAY_MS, untilDeadline))
+}
 
 export function PvpBattleQualityControls({
   battleSessionId,
@@ -57,6 +68,7 @@ export function PvpBattleQualityControls({
       (participant) => participant.characterId === metadata.localCharacterId,
     )?.combatantId ?? null
   const battleIsActive = battle?.snapshot.tactical.battle.lifecycle === 'active'
+  const battleTurnNumber = battle?.snapshot.tactical.battle.turnNumber ?? null
   const activeCombatantId = battle?.snapshot.tactical.battle.currentTurn?.combatantId ?? null
   const localTurn = Boolean(
     battleIsActive && localCombatantId && activeCombatantId === localCombatantId,
@@ -110,49 +122,95 @@ export function PvpBattleQualityControls({
   }, [])
 
   useEffect(() => {
+    if (!battleIsActive) return
+
     let cancelled = false
     let timer: number | null = null
-    let reconnectDelay = CLOCK_POLL_MS
+    let controller: AbortController | null = null
+    let inFlight = false
+    let reconnectDelay = CLOCK_RECONNECT_BASE_MS
     let completed = false
 
+    const schedule = (delay: number) => {
+      if (cancelled || completed) return
+      if (timer !== null) window.clearTimeout(timer)
+      timer = window.setTimeout(() => void refresh(), delay)
+    }
+
     async function refresh() {
+      if (cancelled || completed || inFlight) return
+      inFlight = true
+      timer = null
+      controller = new AbortController()
+      let nextDelay: number | null = null
+
       try {
         const clockResponse = await fetch(`/api/pvp/battles/${battleSessionId}/turn-clock`, {
           method: 'POST',
           cache: 'no-store',
+          signal: controller.signal,
         })
         const clockBody = (await clockResponse.json()) as TickResponse
-        if (cancelled) return
+        if (cancelled || controller.signal.aborted) return
 
         if (clockResponse.ok && clockBody.tick) {
-          setClock(clockBody.tick.clock)
+          const nextClock = clockBody.tick.clock
+          setClock(nextClock)
           setError(null)
-          reconnectDelay = CLOCK_POLL_MS
+          reconnectDelay = CLOCK_RECONNECT_BASE_MS
 
           if (clockBody.tick.battle) {
             setBattle(clockBody.tick.battle)
             completed = clockBody.tick.battle.snapshot.tactical.battle.lifecycle === 'completed'
           }
+
+          nextDelay = nextClockRefreshDelay(nextClock)
         } else {
           setError(clockBody.error?.message ?? 'Turn clock unavailable.')
           reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY_MS)
+          nextDelay = reconnectDelay
         }
-      } catch {
-        if (!cancelled) {
+      } catch (refreshError) {
+        if (
+          !cancelled &&
+          !(refreshError instanceof DOMException && refreshError.name === 'AbortError')
+        ) {
           setError('Turn clock reconnecting…')
           reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY_MS)
+          nextDelay = reconnectDelay
         }
       } finally {
-        if (!cancelled && !completed) timer = window.setTimeout(refresh, reconnectDelay)
+        controller = null
+        inFlight = false
+        if (!cancelled && !completed && nextDelay !== null) schedule(nextDelay)
       }
     }
 
+    const wake = () => {
+      if (cancelled || document.visibilityState === 'hidden') return
+      if (timer !== null) {
+        window.clearTimeout(timer)
+        timer = null
+      }
+      void refresh()
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') wake()
+    }
+
     void refresh()
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', wake)
+
     return () => {
       cancelled = true
       if (timer !== null) window.clearTimeout(timer)
+      controller?.abort()
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', wake)
     }
-  }, [battleSessionId])
+  }, [battleIsActive, battleSessionId, activeCombatantId, battleTurnNumber])
 
   async function confirmSurrender() {
     if (surrendering) return
