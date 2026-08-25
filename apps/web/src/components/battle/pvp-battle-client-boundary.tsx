@@ -15,6 +15,7 @@ import { DesktopBattleLogDock } from './desktop-battle-log-dock'
 import { PvpBattleChatBridge } from './pvp-battle-chat-bridge'
 import { PvpBattleCompletionPanel } from './pvp-battle-completion-panel'
 import { PvpBattleExperience } from './pvp-battle-experience'
+import { PvpBattleHeaderCenterPolish } from './pvp-battle-header-center-polish'
 import { PvpBattleInspectPopup } from './pvp-battle-inspect-popup'
 import { PvpBattleKeyboardAssist } from './pvp-battle-keyboard-assist'
 import { PvpBattleQualityControls } from './pvp-battle-quality-controls'
@@ -41,6 +42,7 @@ export function PvpBattleClientBoundary({
         metadata={metadata}
       />
       <PvpDesktopParity initialBattle={initialBattle} metadata={metadata} />
+      <PvpBattleHeaderCenterPolish />
       <PvpSixCombatantRails initialBattle={initialBattle} metadata={metadata} />
       <PvpBattleReleasePolish />
       <PvpLegacyResultSuppressor />
