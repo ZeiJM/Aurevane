@@ -140,7 +140,9 @@ export function BattleLogFeed({
                         ) : null}
                       </div>
                       <div className={styles.actionMeta} aria-hidden="true">
-                        {action.turnNumber !== null ? <small>Turn {action.turnNumber}</small> : null}
+                        {action.turnNumber !== null ? (
+                          <small>Turn {action.turnNumber}</small>
+                        ) : null}
                         <time dateTime={action.occurredAt}>{timeLabel(action.occurredAt)}</time>
                       </div>
                     </article>

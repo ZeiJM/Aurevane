@@ -213,7 +213,8 @@ function statusApplicationSecondary(
   consumed: Set<string>,
 ): readonly BattleLogSegment[] | null {
   const candidates = group.entries.filter(
-    (entry) => entry.eventType === 'status_applied' || entry.eventType === 'pvp_lowered_guard_applied',
+    (entry) =>
+      entry.eventType === 'status_applied' || entry.eventType === 'pvp_lowered_guard_applied',
   )
   const seen = new Set<string>()
   const entry = candidates.find((candidate) => {
@@ -389,9 +390,7 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
     primary = [
       segment(actor, 'actor'),
       segment(' moves'),
-      ...(destination
-        ? [segment(' to '), segment(destination, 'outcome', 'neutral')]
-        : []),
+      ...(destination ? [segment(' to '), segment(destination, 'outcome', 'neutral')] : []),
     ]
     kind = 'movement'
     significance = 'quiet'
@@ -413,11 +412,7 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
   } else if (statusExpired) {
     const name = statusName(statusExpired)
     const target = combatantName(statusExpired.targetCombatantId, options) ?? 'Combatant'
-    primary = [
-      segment(`${target}'s `, 'target'),
-      segment(name, 'action'),
-      segment(' fades'),
-    ]
+    primary = [segment(`${target}'s `, 'target'), segment(name, 'action'), segment(' fades')]
     kind = 'status'
     significance = 'quiet'
     consumed.add(name.toLowerCase())

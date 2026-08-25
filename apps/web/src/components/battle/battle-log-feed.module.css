@@ -163,8 +163,7 @@
 
 .action[data-significance='highlight'] > article {
   background:
-    linear-gradient(90deg, rgba(207, 169, 93, 0.075), transparent 72%),
-    rgba(255, 255, 255, 0.008);
+    linear-gradient(90deg, rgba(207, 169, 93, 0.075), transparent 72%), rgba(255, 255, 255, 0.008);
   box-shadow: inset 0 0 1.1rem rgba(207, 169, 93, 0.025);
 }
 

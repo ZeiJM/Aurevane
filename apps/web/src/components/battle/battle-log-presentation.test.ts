@@ -94,7 +94,9 @@ describe('Battle Log V2 presentation', () => {
     expect(sentence(action?.primary ?? [])).toBe('Zei strikes Storm — 18 damage')
     expect(sentence(action?.secondary ?? [])).toBe('↳ Storm suffers Lowered Guard · 2 turns')
     expect(action?.details.map((detail) => detail.label)).toEqual(['82 HP', '74% hit'])
-    expect(action?.ariaLabel).toBe('Zei strikes Storm — 18 damage Storm suffers Lowered Guard · 2 turns')
+    expect(action?.ariaLabel).toBe(
+      'Zei strikes Storm — 18 damage Storm suffers Lowered Guard · 2 turns',
+    )
   })
 
   it('explains a timeout without leaking duplicate status pills or absurd raw durations', () => {
