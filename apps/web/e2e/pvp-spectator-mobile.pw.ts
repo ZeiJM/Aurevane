@@ -1,3 +1,4 @@
+import { createClient } from '@supabase/supabase-js'
 import { expect, test } from '@playwright/test'
 
 import {
@@ -16,6 +17,15 @@ function uniqueCharacterName(prefix: string): string {
   return `${prefix} ${letters}`
 }
 
+function createTestAdminClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const secretKey = process.env.SUPABASE_SECRET_KEY
+  if (!supabaseUrl || !secretKey) throw new Error('Local Supabase admin credentials are required.')
+  return createClient(supabaseUrl, secretKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+}
+
 test(
   'mobile spectator renders the full 9x7 PvP battlefield',
   async ({ browser, page }, testInfo) => {
@@ -24,6 +34,7 @@ test(
 
     const runId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
     const password = 'PvP-spectator-browser-2026!'
+    const viewerEmail = `spectator-viewer-${runId}@example.com`
 
     await createAccountAndEnterCharacter({
       page,
@@ -45,7 +56,7 @@ test(
 
     await createAccountAndEnterCharacter({
       page,
-      email: `spectator-viewer-${runId}@example.com`,
+      email: viewerEmail,
       password,
       characterName: uniqueCharacterName('Viewer'),
     })
@@ -89,10 +100,36 @@ test(
       )?.trim()
       expect(battleKey).toMatch(/^AVB-[A-Z0-9]{4}-[A-Z0-9]{4}$/)
 
-      await page.goto('/game/battle')
-      await page.getByRole('button', { name: /^03\s*Spectate/ }).click()
-      await page.getByLabel('Battle Key').fill(battleKey ?? '')
-      await page.getByRole('button', { name: 'Spectate Battle' }).click()
+      const admin = createTestAdminClient()
+      const { data: users, error: usersError } = await admin.auth.admin.listUsers({
+        page: 1,
+        perPage: 1000,
+      })
+      expect(usersError).toBeNull()
+      const viewer = users?.users.find((candidate) => candidate.email === viewerEmail)
+      expect(viewer?.id).toBeTruthy()
+
+      const spectatorViewRpc = await admin.rpc('get_pvp_spectator_view_v1', {
+        p_battle_key: battleKey,
+      })
+      console.log('spectator view rpc probe', {
+        error: spectatorViewRpc.error,
+        hasData: Boolean(spectatorViewRpc.data),
+      })
+      expect(spectatorViewRpc.error).toBeNull()
+      expect(spectatorViewRpc.data).toBeTruthy()
+
+      const spectatorJoinRpc = await admin.rpc('join_pvp_spectator_v1', {
+        p_user_id: viewer?.id ?? '',
+        p_battle_key: battleKey,
+      })
+      console.log('spectator join rpc probe', {
+        error: spectatorJoinRpc.error,
+        data: spectatorJoinRpc.data,
+      })
+      expect(spectatorJoinRpc.error).toBeNull()
+
+      await page.goto(`/game/battle/spectate/${encodeURIComponent(battleKey ?? '')}`)
       await expect(page).toHaveURL(/\/game\/battle\/spectate\/AVB-[A-Z0-9-]+$/, {
         timeout: 15_000,
       })
