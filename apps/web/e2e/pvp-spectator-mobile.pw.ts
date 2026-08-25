@@ -129,8 +129,8 @@ test(
       })
       expect(spectatorJoinRpc.error).toBeNull()
 
-      await page.goto(`/__diagnostics/mobile-spectator/${encodeURIComponent(battleKey ?? '')}`)
-      await expect(page).toHaveURL(/\/__diagnostics\/mobile-spectator\/AVB-[A-Z0-9-]+$/, {
+      await page.goto(`/diagnostics/mobile-spectator/${encodeURIComponent(battleKey ?? '')}`)
+      await expect(page).toHaveURL(/\/diagnostics\/mobile-spectator\/AVB-[A-Z0-9-]+$/, {
         timeout: 15_000,
       })
 
