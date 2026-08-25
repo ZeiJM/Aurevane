@@ -3,27 +3,17 @@
 }
 
 @media (min-width: 821px) {
-  :global(
-    main[data-pvp-battle='true'][data-pvp-desktop-parity='true'] > header:first-child
-  ) {
+  :global(main[data-pvp-battle='true'][data-pvp-desktop-parity='true'] > header:first-child) {
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
   }
 
-  :global(
-    main[data-pvp-battle='true'][data-pvp-desktop-parity='true']
-      > header:first-child
-      > div:first-child
-  ) {
+  :global(main[data-pvp-battle='true'] > header:first-child > div:first-child) {
     min-width: 0;
     justify-self: start;
     overflow: hidden;
   }
 
-  :global(
-    main[data-pvp-battle='true'][data-pvp-desktop-parity='true']
-      > header:first-child
-      > div[data-pvp-header-economy='true']
-  ) {
+  :global(main[data-pvp-battle='true'] [data-pvp-header-economy='true']) {
     width: max-content !important;
     max-width: 100% !important;
     justify-self: center !important;
@@ -32,20 +22,11 @@
     gap: 0.22rem 0.45rem !important;
   }
 
-  :global(
-    main[data-pvp-battle='true'][data-pvp-desktop-parity='true']
-      > header:first-child
-      > div[data-pvp-header-economy='true']
-      > button
-  ) {
+  :global(main[data-pvp-battle='true'] [data-pvp-header-economy='true'] > button) {
     margin-left: 0 !important;
   }
 
-  :global(
-    main[data-pvp-battle='true'][data-pvp-desktop-parity='true']
-      > header:first-child
-      > button:last-child
-  ) {
+  :global(main[data-pvp-battle='true'] > header:first-child > button:last-child) {
     justify-self: end;
   }
 }
