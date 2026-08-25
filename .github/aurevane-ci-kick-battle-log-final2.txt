@@ -1,0 +1,1 @@
+Final Battle Log validation retrigger after latest-main spectator CSS sync. This marker is removed immediately and is not part of the final change set.
