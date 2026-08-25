@@ -63,6 +63,18 @@
     display: none !important;
   }
 
+  :global(
+    main[data-pvp-spectator='true']
+      > section:first-of-type
+      article
+      > div:nth-child(2)
+      > div
+      > span:first-of-type
+      > small
+  ) {
+    display: none !important;
+  }
+
   :global(main[data-pvp-spectator='true'] #battlefield > div:first-child > div > strong::before) {
     content: 'Now acting: ';
   }
