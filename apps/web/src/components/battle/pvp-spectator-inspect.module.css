@@ -72,8 +72,7 @@
 }
 
 .inspectButton small {
-  color: var(--av-text-dim);
-  font: 650 0.36rem/1 var(--av-font-mono);
+  display: none;
 }
 
 .inspectButton[data-active] {
