@@ -50,6 +50,36 @@ second_join="$(join_spectator "$battle_key")"
 test "$first_join" = "$session_id"
 test "$second_join" = "$session_id"
 
+spectator_character="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  set role service_role;
+  select id::text
+  from public.create_character_v3(
+    '$spectator_user'::uuid,
+    0::smallint,
+    '00000000-0000-4000-8000-000000000951'::uuid,
+    'pvp-spectator-chat',
+    1,
+    'Arena Witness',
+    'arenawitness',
+    'androgynous',
+    'they_them',
+    'portrait.starter.wayfarer-01',
+    'appearance.starter.roadworn',
+    'vanguard',
+    6, 6, 6, 6, 6, 6
+  );")"
+test -n "$spectator_character"
+
+spectator_chat="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  set role service_role;
+  select sender_character_id::text || '|' || sender_character_name || '|' || body
+  from public.send_pvp_battle_chat_v1(
+    '$spectator_user'::uuid,
+    '$session_id'::uuid,
+    'Spectator check'
+  );")"
+test "$spectator_chat" = "$spectator_character|Arena Witness|Spectator check"
+
 state_count="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   select count(*)
   from app_private.pvp_active_spectating s
@@ -74,4 +104,4 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
 fi
 grep -Eqi 'permission denied|not allowed' /tmp/pvp-browser-spectator-join.err
 
-echo 'PvP spectator join regression checks passed.'
+echo 'PvP spectator join and chat regression checks passed.'
