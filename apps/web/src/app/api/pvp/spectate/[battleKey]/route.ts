@@ -3,7 +3,7 @@ import { parsePvpBattleKey } from '@aurevane/validation/combat/pvp'
 
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import {
-  joinPvpSpectation,
+  heartbeatPvpSpectation,
   leavePvpSpectation,
 } from '@/server/battle/pvp-battle-communication-service'
 import { loadPvpParticipantTitles } from '@/server/battle/pvp-battle-profile-service'
@@ -28,9 +28,12 @@ export async function GET(_request: Request, context: { params: Promise<{ battle
       throw new AurevaneError('INVALID_REQUEST', 'No active or completed PvP battle uses that key.')
     }
 
-    const battleSessionId = await joinPvpSpectation(actor.userId, battleKey)
-    if (!battleSessionId || battleSessionId !== spectator.battle.battleSessionId) {
-      throw new AurevaneError('INVALID_REQUEST', 'That battle is no longer available to spectate.')
+    const isActiveSpectator = await heartbeatPvpSpectation(
+      actor.userId,
+      spectator.battle.battleSessionId,
+    )
+    if (!isActiveSpectator) {
+      throw new AurevaneError('FORBIDDEN', 'That PvP battle is not available to this account.')
     }
 
     const participantTitles = await loadPvpParticipantTitles(
