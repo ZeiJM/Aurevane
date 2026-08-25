@@ -28,12 +28,11 @@
 }
 
 @media (min-width: 1041px) {
-  /* The shared dock already owns its own battlefield column. Visually center the panel in the
-     unused right-side battlefield canvas without changing the tactical board, dock width, or
-     battlefield grid tracks. The responsive negative shift grows only where wide desktops have
-     enough spare canvas to support it. */
+  /* The shared dock already owns its own battlefield column. Use the shared centering variable
+     from battle-log-panel.module.css as the single source of truth so this higher-specificity
+     polish rule cannot silently override subsequent centering adjustments. */
   :global(#battlefield[data-desktop-battle-log-open='true'] > [data-docked-battle-log='true']) {
-    transform: translateX(clamp(-4rem, calc(3.1rem - 5.9vw), -0.75rem)) !important;
+    transform: translateX(calc(-1 * var(--battle-log-dock-center-shift))) !important;
   }
 }
 
