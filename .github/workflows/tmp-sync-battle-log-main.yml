@@ -1,0 +1,30 @@
+name: Temporary Battle Log main sync
+
+on:
+  push:
+    branches:
+      - feat/battle-log-clarity-narration-20260824
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/battle-log-clarity-narration-20260824
+          fetch-depth: 0
+      - name: Merge latest main safely
+        run: |
+          git config user.name "AUREVANE Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git fetch origin main
+          git merge --no-edit origin/main
+      - name: Remove temporary workflow and push
+        run: |
+          rm .github/workflows/tmp-sync-battle-log-main.yml
+          git add -A
+          git commit -m "Remove temporary Battle Log main sync workflow"
+          git push origin HEAD:feat/battle-log-clarity-narration-20260824
