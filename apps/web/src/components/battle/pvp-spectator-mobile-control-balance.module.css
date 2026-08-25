@@ -64,7 +64,9 @@
      each piece of information. Identity stays on the left while HP/MP use the otherwise empty
      space on the right, shortening the card before the battlefield. */
   :global(
-    main[data-pvp-spectator='true'] aside[aria-label='Spectator match context'] > article:first-child
+    main[data-pvp-spectator='true']
+      aside[aria-label='Spectator match context']
+      > article:first-child
   ) {
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) auto !important;
