@@ -22,6 +22,26 @@ interface BattleLogFeedProps {
   emptyMessage?: string
 }
 
+function mergeRoundlessHistory(
+  rounds: readonly PresentedBattleLogRound[],
+): readonly PresentedBattleLogRound[] {
+  const roundless = rounds.filter((round) => round.round === null)
+  if (roundless.length === 0) return rounds
+
+  const numbered = rounds.filter((round) => round.round !== null)
+  if (numbered.length === 0) return rounds
+
+  const oldestNumbered = numbered.at(-1)
+  if (!oldestNumbered) return rounds
+  const roundlessActions = roundless.flatMap((round) => round.actions)
+
+  return numbered.map((round) =>
+    round.key === oldestNumbered.key
+      ? { ...round, actions: [...round.actions, ...roundlessActions] }
+      : round,
+  )
+}
+
 function expandedRoundKey(
   rounds: readonly PresentedBattleLogRound[],
   requestedRound: string | null | undefined,
@@ -73,7 +93,10 @@ export function BattleLogFeed({
   emptyMessage = 'No committed battle actions yet.',
 }: BattleLogFeedProps) {
   const rounds = useMemo(
-    () => buildBattleLogPresentation(entries, { playerName, combatantNames, skillNarrations }),
+    () =>
+      mergeRoundlessHistory(
+        buildBattleLogPresentation(entries, { playerName, combatantNames, skillNarrations }),
+      ),
     [combatantNames, entries, playerName, skillNarrations],
   )
   const [requestedRound, setRequestedRound] = useState<string | null | undefined>(undefined)
@@ -85,7 +108,7 @@ export function BattleLogFeed({
     <div className={styles.feed} data-testid="battle-log-feed">
       {rounds.map((round) => {
         const open = expandedRound === round.key
-        const roundLabel = round.round === null ? 'Recent' : `Round ${round.round}`
+        const roundLabel = round.round === null ? 'Battle' : `Round ${round.round}`
         return (
           <section className={styles.round} data-open={open || undefined} key={round.key}>
             <button
