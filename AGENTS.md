@@ -21,7 +21,7 @@
 - `docs/ITEMS_INVENTORY_LOADOUTS.md` governs items, equipment, inventory, consumables and loadouts.
 - `docs/COMBAT_AI_TRAINING.md` governs combat AI and Battle Hall behavior.
 - `docs/OWNER_OVERRIDE.md` and `docs/MASTER_PANEL.md` govern privileged operations.
-- `docs/ENGINEERING_EXECUTION_STANDARD.md`, `docs/PRODUCT_EXPERIENCE_CONTENT_SYSTEM.md`, `docs/PLAYER_MANUAL.md`, `docs/MONETIZATION.md`, `docs/MEDIA_PIPELINE.md`, and `docs/TECHNOLOGY_POLICY.md` remain authoritative in their domains.
+- `docs/ENGINEERING_EXECUTION_STANDARD.md`, `docs/CONCURRENT_AGENT_WORKFLOW.md`, `docs/PRODUCT_EXPERIENCE_CONTENT_SYSTEM.md`, `docs/PLAYER_MANUAL.md`, `docs/MONETIZATION.md`, `docs/MEDIA_PIPELINE.md`, and `docs/TECHNOLOGY_POLICY.md` remain authoritative in their domains.
 - Treat `docs/ART_BIBLE.md` and `docs/AUDIO_BIBLE.md` as authoritative when present.
 
 When current documents conflict with clearly historical text, use the newer Owner-approved current authority and reconcile the stale document rather than restoring retired rules.
@@ -279,6 +279,9 @@ Soulmark/Severance/Mantle belongs later. Frontier implementation is not Phase-3 
 - Build one small coherent ticket at a time unless the active mandate authorizes a larger verified batch.
 - Do not implement future roadmap systems merely because architecture anticipates them.
 - Inspect existing code and applicable authoritative docs before meaningful implementation.
+- When multiple coding chats/agents may be active, treat `main` as volatile and follow `docs/CONCURRENT_AGENT_WORKFLOW.md` before diagnosis, before editing, and again before finalizing.
+- Prefer one independent `agent/<short-task-name>` branch per concurrent coding task unless the Owner explicitly requires direct work on `main`.
+- Bug fixes require a focused regression guard when a practical automated test boundary exists; test both the behavior that must happen and the behavior that must not happen.
 - All valuable/persistent game state is server-authoritative.
 - The client submits intent; it does not determine combat, rewards, progression, inventory, PvP, Anomaly or Owner outcomes.
 - Validate all external input server-side.
@@ -300,7 +303,7 @@ Soulmark/Severance/Mantle belongs later. Frontier implementation is not Phase-3 
 
 ## 10. Required document reads by domain
 
-Before meaningful work, read `docs/ENGINEERING_EXECUTION_STANDARD.md`, inspect existing code, and read applicable domain authority.
+Before meaningful work, read `docs/ENGINEERING_EXECUTION_STANDARD.md`, read `docs/CONCURRENT_AGENT_WORKFLOW.md` whenever concurrent work is possible, inspect existing code, and read applicable domain authority.
 
 - **Current sequence/phase:** `docs/ROADMAP.md`, `TASKS.md`, current phase ticket file.
 - **Buildcraft:** Master Plan + build addendum + build roadmap/tickets.
@@ -378,3 +381,26 @@ When a newer Owner-approved design replaces an older term/mechanic:
 6. update player-facing Manual/public copy when the change is live/current;
 7. preserve historical snapshots only when clearly marked historical;
 8. never allow stale subordinate documentation to silently restore superseded rules.
+
+---
+
+## 16. Concurrent-chat freshness and regression gate
+
+When more than one coding chat/agent may be active, **current repository truth outranks chat memory, handoffs, screenshots, and earlier assumptions**.
+
+Mandatory behavior:
+
+1. refresh and inspect current `main` before diagnosis/editing;
+2. use an isolated task branch by default;
+3. trace the full authoritative execution path before fixing state/timer/realtime/persistence bugs;
+4. add a focused regression guard when practical;
+5. keep the code change surgical and preserve unrelated modes/behavior;
+6. run targeted checks and the repository quality gate appropriate to scope;
+7. refresh `main` again immediately before finalization;
+8. if `main` advanced, inspect and reconcile overlapping changes before pushing/merging;
+9. rerun verification after reconciliation/conflict resolution;
+10. inspect the final diff for unrelated churn and report exactly what was verified.
+
+For timer/state-machine defects, explicitly test the no-input/timeout path and terminal-state boundaries. A timeout must not imply victory, completion, reward, or successful action unless the authoritative rule explicitly requires it.
+
+The detailed commands and workflow are authoritative in `docs/CONCURRENT_AGENT_WORKFLOW.md`.
