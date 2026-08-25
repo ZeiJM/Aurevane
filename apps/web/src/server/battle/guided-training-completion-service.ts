@@ -2,7 +2,11 @@ import 'server-only'
 
 import { createHash } from 'node:crypto'
 
-import type { BattleEventRepository, BattleSessionRepository } from '@aurevane/db/battle-session'
+import type {
+  BattleEventRecord,
+  BattleEventRepository,
+  BattleSessionRepository,
+} from '@aurevane/db/battle-session'
 import {
   validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
@@ -57,8 +61,18 @@ function eventObject(value: unknown): Record<string, unknown> | null {
     : null
 }
 
+function isControlledTurnTimeout(
+  event: Record<string, unknown>,
+  controlledCombatantId: string,
+): boolean {
+  return (
+    (event.event === 'ai_turn_timed_out' || event.event === 'pvp_turn_timed_out') &&
+    event.combatantId === controlledCombatantId
+  )
+}
+
 export function readGuidedTrainingProgress(
-  events: readonly { event: unknown }[],
+  events: readonly Pick<BattleEventRecord, 'battleVersion' | 'event'>[],
   controlledCombatantId: string,
 ): GuidedTrainingProgress {
   const progress: GuidedTrainingProgress = {
@@ -66,6 +80,14 @@ export function readGuidedTrainingProgress(
     attack: false,
     guard: false,
     facing: false,
+  }
+  const timedOutBattleVersions = new Set<number>()
+
+  for (const record of events) {
+    const event = eventObject(record.event)
+    if (event && isControlledTurnTimeout(event, controlledCombatantId)) {
+      timedOutBattleVersions.add(record.battleVersion)
+    }
   }
 
   for (const record of events) {
@@ -95,7 +117,8 @@ export function readGuidedTrainingProgress(
     }
     if (
       (type === 'combatant_facing_changed' || type === 'final_facing_selected') &&
-      event.combatantId === controlledCombatantId
+      event.combatantId === controlledCombatantId &&
+      !timedOutBattleVersions.has(record.battleVersion)
     ) {
       progress.facing = true
     }
