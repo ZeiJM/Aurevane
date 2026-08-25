@@ -24,14 +24,14 @@
 .roundHeader {
   display: grid;
   width: 100%;
-  min-height: 2.35rem;
+  min-height: 2.32rem;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 0.5rem;
+  gap: 0.48rem;
   align-items: center;
-  padding: 0.52rem 0.72rem;
+  padding: 0.5rem 0.68rem;
   border: 0;
   color: inherit;
-  background: rgba(255, 255, 255, 0.018);
+  background: rgba(255, 255, 255, 0.014);
   cursor: pointer;
   text-align: left;
   transition:
@@ -40,13 +40,13 @@
 }
 
 .round[data-open] .roundHeader {
-  background: linear-gradient(90deg, rgba(194, 157, 86, 0.105), rgba(255, 255, 255, 0.012));
-  box-shadow: inset 2px 0 0 rgba(207, 169, 93, 0.44);
+  background: linear-gradient(90deg, rgba(194, 157, 86, 0.09), rgba(255, 255, 255, 0.008));
+  box-shadow: inset 2px 0 0 rgba(207, 169, 93, 0.42);
 }
 
 .roundHeader:hover,
 .roundHeader:focus-visible {
-  background: rgba(194, 157, 86, 0.08);
+  background: rgba(194, 157, 86, 0.07);
 }
 
 .roundHeader:focus-visible {
@@ -56,11 +56,11 @@
 
 .chevron {
   display: grid;
-  width: 1rem;
-  height: 1rem;
+  width: 0.92rem;
+  height: 0.92rem;
   place-items: center;
   color: var(--av-brass-300);
-  font: 800 0.9rem/1 var(--av-font-mono);
+  font: 800 0.86rem/1 var(--av-font-mono);
   transform: rotate(0deg);
   transition: transform 120ms ease;
 }
@@ -72,20 +72,20 @@
 .roundTitle {
   display: flex;
   min-width: 0;
-  gap: 0.45rem;
+  gap: 0.42rem;
   align-items: baseline;
 }
 
 .roundTitle strong {
   color: var(--av-text);
-  font: 700 0.73rem/1.15 var(--av-font-display);
+  font: 700 0.71rem/1.15 var(--av-font-display);
   letter-spacing: 0.01em;
 }
 
 .roundTitle small,
 .roundHeader time {
   color: var(--av-text-dim);
-  font: 650 0.45rem/1 var(--av-font-mono);
+  font: 650 0.43rem/1 var(--av-font-mono);
   letter-spacing: 0.035em;
   text-transform: uppercase;
 }
@@ -96,186 +96,288 @@
 
 .actions {
   display: grid;
-  background: rgba(2, 4, 7, 0.24);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: rgba(2, 4, 7, 0.2);
 }
 
 .action {
-  position: relative;
-  display: grid;
   min-width: 0;
-  grid-template-columns: 1.85rem minmax(0, 1fr) auto;
-  gap: 0.62rem;
-  align-items: start;
-  padding: 0.66rem 0.72rem;
+  margin: 0;
+  padding: 0;
   border-top: 1px solid rgba(255, 255, 255, 0.043);
 }
 
-.action::before {
+.action:first-child {
+  border-top-color: rgba(207, 169, 93, 0.09);
+}
+
+.action > article {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 1.48rem minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  align-items: start;
+  padding: 0.56rem 0.66rem 0.56rem 0.7rem;
+  outline: none;
+  transition:
+    background 120ms ease,
+    box-shadow 120ms ease,
+    opacity 120ms ease;
+}
+
+.action > article::before {
   position: absolute;
-  top: 0.42rem;
-  bottom: 0.42rem;
+  top: 0.5rem;
+  bottom: 0.5rem;
   left: 0;
   width: 2px;
   border-radius: 999px;
-  background: rgba(194, 157, 86, 0.26);
+  background: rgba(194, 157, 86, 0.2);
   content: '';
 }
 
-.action[data-tone='damage']::before {
-  background: rgba(230, 103, 94, 0.75);
+.action[data-tone='damage'] > article::before {
+  background: rgba(230, 103, 94, 0.68);
 }
 
-.action[data-tone='healing']::before,
-.action[data-tone='benefit']::before {
-  background: rgba(92, 188, 132, 0.68);
+.action[data-tone='healing'] > article::before,
+.action[data-tone='benefit'] > article::before {
+  background: rgba(92, 188, 132, 0.62);
 }
 
-.action[data-tone='warning']::before {
-  background: rgba(224, 164, 76, 0.78);
+.action[data-tone='warning'] > article::before {
+  background: rgba(224, 164, 76, 0.72);
+}
+
+.action[data-significance='quiet'] > article {
+  opacity: 0.73;
+}
+
+.action[data-significance='quiet'] > article:hover,
+.action[data-significance='quiet'] > article:focus-visible {
+  opacity: 1;
+}
+
+.action[data-significance='highlight'] > article {
+  background:
+    linear-gradient(90deg, rgba(207, 169, 93, 0.075), transparent 72%),
+    rgba(255, 255, 255, 0.008);
+  box-shadow: inset 0 0 1.1rem rgba(207, 169, 93, 0.025);
+}
+
+.action > article:hover,
+.action > article:focus-visible {
+  background: rgba(255, 255, 255, 0.022);
+}
+
+.action > article:focus-visible {
+  box-shadow: inset 0 0 0 1px rgba(218, 188, 123, 0.58);
 }
 
 .glyph {
   display: grid;
-  width: 1.72rem;
-  height: 1.72rem;
+  width: 1.42rem;
+  height: 1.42rem;
   place-items: center;
-  border: 1px solid rgba(205, 176, 110, 0.22);
-  border-radius: 0.45rem;
+  margin-top: 0.02rem;
+  border: 1px solid rgba(205, 176, 110, 0.18);
+  border-radius: 0.36rem;
   color: var(--av-brass-300);
-  background: rgba(205, 176, 110, 0.065);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
-  font-size: 0.72rem;
+  background: rgba(205, 176, 110, 0.045);
+  font-size: 0.64rem;
+  line-height: 1;
 }
 
 .action[data-kind='offense'] .glyph {
-  border-color: rgba(230, 103, 94, 0.24);
+  border-color: rgba(230, 103, 94, 0.2);
   color: #ef9b94;
-  background: rgba(230, 103, 94, 0.075);
+  background: rgba(230, 103, 94, 0.055);
 }
 
 .action[data-kind='recovery'] .glyph,
 .action[data-kind='defense'] .glyph {
-  border-color: rgba(92, 188, 132, 0.24);
+  border-color: rgba(92, 188, 132, 0.2);
   color: var(--av-verdant-400);
-  background: rgba(92, 188, 132, 0.065);
+  background: rgba(92, 188, 132, 0.05);
+}
+
+.action[data-kind='status'] .glyph,
+.action[data-kind='turn'] .glyph {
+  border-color: rgba(224, 164, 76, 0.18);
+  color: #d9b875;
+  background: rgba(224, 164, 76, 0.045);
 }
 
 .actionMain {
   display: grid;
   min-width: 0;
-  gap: 0.26rem;
+  gap: 0.18rem;
 }
 
-.actionHeading {
-  display: flex;
-  min-width: 0;
-  gap: 0.5rem;
-  align-items: flex-start;
-}
-
-.actionHeading strong {
-  min-width: 0;
-  flex: 1;
-  overflow-wrap: anywhere;
-  color: var(--av-text);
-  font: 680 0.7rem/1.22 var(--av-font-display);
-}
-
-.actionHeading small {
-  flex: none;
-  padding-top: 0.08rem;
-  color: var(--av-text-dim);
-  font: 650 0.43rem/1 var(--av-font-mono);
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-
-.subject,
-.fallback {
+.primaryLine,
+.secondaryLine,
+.details p {
   margin: 0;
   overflow-wrap: anywhere;
 }
 
-.subject {
+.primaryLine {
   color: var(--av-text-muted);
-  font-size: 0.6rem;
-  line-height: 1.32;
+  font-size: 0.64rem;
+  font-weight: 480;
+  line-height: 1.38;
 }
 
-.fallback {
-  color: var(--av-text-dim);
-  font-size: 0.57rem;
-  line-height: 1.4;
+.primaryLine span[data-role='actor'] {
+  color: var(--av-text);
+  font-weight: 760;
 }
 
-.facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.28rem;
-  margin-top: 0.06rem;
+.primaryLine span[data-role='target'] {
+  color: #d9dde0;
+  font-weight: 650;
 }
 
-.facts span {
-  display: inline-flex;
-  min-height: 1.08rem;
-  align-items: center;
-  padding: 0.16rem 0.34rem;
-  border: 1px solid rgba(255, 255, 255, 0.075);
-  border-radius: 999px;
-  color: var(--av-text-muted);
-  background: rgba(255, 255, 255, 0.032);
-  font: 700 0.44rem/1 var(--av-font-mono);
-  letter-spacing: 0.018em;
-  white-space: nowrap;
+.primaryLine span[data-role='action'] {
+  color: var(--av-brass-200);
+  font-weight: 700;
 }
 
-.facts span[data-tone='damage'] {
-  border-color: rgba(230, 103, 94, 0.24);
+.primaryLine span[data-role='outcome'] {
+  color: var(--av-text);
+  font-weight: 760;
+}
+
+.primaryLine span[data-role='outcome'][data-tone='damage'],
+.secondaryLine span[data-role='outcome'][data-tone='damage'],
+.details span[data-tone='damage'] {
   color: #ef9b94;
-  background: rgba(230, 103, 94, 0.07);
 }
 
-.facts span[data-tone='healing'],
-.facts span[data-tone='benefit'] {
-  border-color: rgba(92, 188, 132, 0.24);
+.primaryLine span[data-role='outcome'][data-tone='healing'],
+.primaryLine span[data-role='outcome'][data-tone='benefit'],
+.secondaryLine span[data-role='outcome'][data-tone='healing'],
+.secondaryLine span[data-role='outcome'][data-tone='benefit'],
+.details span[data-tone='healing'],
+.details span[data-tone='benefit'] {
   color: var(--av-verdant-400);
-  background: rgba(92, 188, 132, 0.065);
 }
 
-.facts span[data-tone='warning'] {
-  border-color: rgba(224, 164, 76, 0.28);
+.primaryLine span[data-role='outcome'][data-tone='warning'],
+.secondaryLine span[data-role='outcome'][data-tone='warning'],
+.details span[data-tone='warning'] {
   color: #e4bd79;
-  background: rgba(224, 164, 76, 0.07);
 }
 
-.actionTime {
-  padding-top: 0.12rem;
+.secondaryLine {
   color: var(--av-text-dim);
-  font: 650 0.43rem/1 var(--av-font-mono);
+  font-size: 0.53rem;
+  line-height: 1.35;
+}
+
+.secondaryLine span[data-role='actor'],
+.secondaryLine span[data-role='target'],
+.secondaryLine span[data-role='action'] {
+  color: var(--av-text-muted);
+  font-weight: 650;
+}
+
+.secondaryLine span[data-role='outcome'] {
+  font-weight: 700;
+}
+
+.actionMeta {
+  display: grid;
+  gap: 0.14rem;
+  justify-items: end;
+  padding-top: 0.08rem;
+  color: var(--av-text-dim);
+  font: 650 0.39rem/1.08 var(--av-font-mono);
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
   white-space: nowrap;
+}
+
+.details {
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 0.08rem;
+  color: var(--av-text-dim);
+}
+
+.details summary {
+  width: fit-content;
+  color: rgba(198, 202, 206, 0.58);
+  cursor: pointer;
+  font: 650 0.42rem/1.15 var(--av-font-mono);
+  letter-spacing: 0.025em;
+  text-transform: uppercase;
+  list-style-position: inside;
+}
+
+.details summary:hover,
+.details summary:focus-visible {
+  color: var(--av-brass-200);
+}
+
+.details summary:focus-visible {
+  outline: 1px solid rgba(218, 188, 123, 0.55);
+  outline-offset: 2px;
+}
+
+.details p {
+  padding: 0.22rem 0 0.02rem 0.7rem;
+  color: rgba(198, 202, 206, 0.62);
+  font: 560 0.45rem/1.38 var(--av-font-mono);
 }
 
 @media (max-width: 760px) {
   .roundHeader {
-    min-height: 2.4rem;
-    padding: 0.5rem 0.58rem;
+    min-height: 2.32rem;
+    padding: 0.48rem 0.56rem;
   }
 
-  .action {
-    grid-template-columns: 1.7rem minmax(0, 1fr);
-    gap: 0.48rem;
-    padding: 0.56rem 0.58rem;
-  }
-
-  .actionTime {
+  .roundHeader time {
     display: none;
   }
 
-  .actionHeading strong {
-    font-size: 0.7rem;
+  .action > article {
+    grid-template-columns: 1.36rem minmax(0, 1fr);
+    gap: 0.42rem;
+    padding: 0.52rem 0.56rem 0.52rem 0.6rem;
   }
 
-  .subject {
-    font-size: 0.61rem;
+  .glyph {
+    width: 1.3rem;
+    height: 1.3rem;
+    font-size: 0.6rem;
+  }
+
+  .primaryLine {
+    font-size: 0.63rem;
+    line-height: 1.42;
+  }
+
+  .secondaryLine {
+    font-size: 0.54rem;
+  }
+
+  .actionMeta {
+    display: none;
+  }
+
+  .details p {
+    padding-left: 0.45rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .roundHeader,
+  .chevron,
+  .action > article {
+    transition: none;
   }
 }
