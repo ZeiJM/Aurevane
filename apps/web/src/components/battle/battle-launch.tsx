@@ -246,6 +246,7 @@ export function BattleLaunch({
     setError(null)
     try {
       const response = await fetch(`/api/pvp/spectate/${encodeURIComponent(normalized)}`, {
+        method: 'POST',
         cache: 'no-store',
       })
       const body = (await response.json()) as ApiErrorBody & { spectator?: unknown }
