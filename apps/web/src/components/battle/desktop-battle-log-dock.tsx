@@ -20,10 +20,12 @@ export function DesktopBattleLogDock({
   battleSessionId,
   playerName,
   combatantNames,
+  eventDriven = false,
 }: {
   battleSessionId: string
   playerName?: string
   combatantNames?: Readonly<Record<string, string>>
+  eventDriven?: boolean
 }) {
   const [desktop, setDesktop] = useState(false)
   const [open, setOpen] = useState(false)
@@ -61,9 +63,23 @@ export function DesktopBattleLogDock({
 
   useEffect(() => {
     if (!desktop || !open) return
+
+    if (eventDriven) {
+      const refreshFromBattleState = (event: Event) => {
+        if (!(event instanceof CustomEvent)) return
+        const next = event.detail as
+          { battleSessionId?: unknown; battleVersion?: unknown } | undefined
+        if (next?.battleSessionId !== battleSessionId) return
+        if (typeof next.battleVersion !== 'number') return
+        setRefreshTick(next.battleVersion)
+      }
+      window.addEventListener('aurevane:pvp-battle-state', refreshFromBattleState)
+      return () => window.removeEventListener('aurevane:pvp-battle-state', refreshFromBattleState)
+    }
+
     const timer = window.setInterval(() => setRefreshTick((value) => value + 1), LOG_REFRESH_MS)
     return () => window.clearInterval(timer)
-  }, [desktop, open])
+  }, [battleSessionId, desktop, eventDriven, open])
 
   if (!desktop) return null
 
