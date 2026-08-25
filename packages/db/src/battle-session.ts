@@ -41,11 +41,6 @@ export interface BattleEventRecord {
   createdAt: string
 }
 
-export interface BattleEventCursor {
-  battleVersion: number
-  eventIndex: number
-}
-
 interface BattleIdempotentInput {
   actorKey: string
   idempotencyKey: string
@@ -90,6 +85,5 @@ export interface BattleEventRepository {
     userId: string,
     battleSessionId: string,
     limit: number,
-    before?: BattleEventCursor,
   ): Promise<readonly BattleEventRecord[]>
 }
