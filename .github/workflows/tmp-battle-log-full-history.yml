@@ -1,0 +1,261 @@
+name: Temporary Battle Log full-history integration
+
+on:
+  push:
+    branches:
+      - fix/battle-log-full-history-20260825
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/battle-log-full-history-20260825
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.4.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply surgical Battle Log history changes
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          service = Path('apps/web/src/server/battle/battle-log-service.ts')
+          text = service.read_text()
+          text = text.replace(
+              "import type { BattleEventRecord, BattleEventRepository } from '@aurevane/db/battle-session'",
+              "import type {\n  BattleEventCursor,\n  BattleEventRecord,\n  BattleEventRepository,\n} from '@aurevane/db/battle-session'",
+          )
+          text = text.replace('const BATTLE_LOG_LIMIT = 100', 'const BATTLE_LOG_PAGE_SIZE = 100')
+          anchor = """  for (const entry of oldestFirst) {
+    if (entry.eventType === 'round_started') turnNumber = null
+    if (entry.round !== null) round = entry.round
+    if (entry.turnNumber !== null) turnNumber = entry.turnNumber
+    context.set(eventKey(entry), {
+      round: entry.round ?? round,
+      turnNumber: entry.turnNumber ?? turnNumber,
+    })
+  }
+
+  return entries.map((entry) => {
+"""
+          replacement = """  for (const entry of oldestFirst) {
+    if (entry.eventType === 'round_started') turnNumber = null
+    if (entry.round !== null) round = entry.round
+    if (entry.turnNumber !== null) turnNumber = entry.turnNumber
+    context.set(eventKey(entry), {
+      round: entry.round ?? round,
+      turnNumber: entry.turnNumber ?? turnNumber,
+    })
+  }
+
+  let nextRound: number | null = null
+  for (let index = oldestFirst.length - 1; index >= 0; index -= 1) {
+    const entry = oldestFirst[index]
+    if (!entry) continue
+    const key = eventKey(entry)
+    const resolved = context.get(key)
+    if (!resolved) continue
+    if (resolved.round !== null) {
+      nextRound = resolved.round
+      continue
+    }
+    if (nextRound !== null) context.set(key, { ...resolved, round: nextRound })
+  }
+
+  return entries.map((entry) => {
+"""
+          if anchor not in text:
+              raise SystemExit('annotateBattleContext anchor not found')
+          text = text.replace(anchor, replacement, 1)
+          old = """export function createBattleLogService(repository: BattleEventRepository): BattleLogService {
+  return {
+    async getLog(userId, battleSessionId) {
+      const records = await repository.findBattleEvents(userId, battleSessionId, BATTLE_LOG_LIMIT)
+      return buildBattleLogView(battleSessionId, records)
+    },
+  }
+}
+"""
+          new = """async function findCompleteBattleHistory(
+  repository: BattleEventRepository,
+  userId: string,
+  battleSessionId: string,
+): Promise<BattleEventRecord[]> {
+  const records: BattleEventRecord[] = []
+  const seen = new Set<string>()
+  let before: BattleEventCursor | undefined
+
+  while (true) {
+    const page = before
+      ? await repository.findBattleEvents(userId, battleSessionId, BATTLE_LOG_PAGE_SIZE, before)
+      : await repository.findBattleEvents(userId, battleSessionId, BATTLE_LOG_PAGE_SIZE)
+    if (page.length === 0) break
+
+    for (const record of page) {
+      const key = `${record.battleVersion}:${record.eventIndex}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      records.push(record)
+    }
+
+    if (page.length < BATTLE_LOG_PAGE_SIZE) break
+    const oldest = page.at(-1)
+    if (!oldest) break
+    const nextBefore: BattleEventCursor = {
+      battleVersion: oldest.battleVersion,
+      eventIndex: oldest.eventIndex,
+    }
+    if (
+      before?.battleVersion === nextBefore.battleVersion &&
+      before.eventIndex === nextBefore.eventIndex
+    ) {
+      break
+    }
+    before = nextBefore
+  }
+
+  return records
+}
+
+export function createBattleLogService(repository: BattleEventRepository): BattleLogService {
+  return {
+    async getLog(userId, battleSessionId) {
+      const records = await findCompleteBattleHistory(repository, userId, battleSessionId)
+      return buildBattleLogView(battleSessionId, records)
+    },
+  }
+}
+"""
+          if old not in text:
+              raise SystemExit('createBattleLogService anchor not found')
+          text = text.replace(old, new, 1)
+          service.write_text(text)
+
+          feed = Path('apps/web/src/components/battle/battle-log-feed.tsx')
+          text = feed.read_text()
+          if "round.round === null ? 'Recent' : `Round ${round.round}`" not in text:
+              raise SystemExit('Recent label anchor not found')
+          text = text.replace(
+              "round.round === null ? 'Recent' : `Round ${round.round}`",
+              "round.round === null ? 'Battle' : `Round ${round.round}`",
+              1,
+          )
+          feed.write_text(text)
+
+          presentation = Path('apps/web/src/components/battle/battle-log-presentation.ts')
+          text = presentation.read_text()
+          if "action.round === null ? 'recent' : `round:${action.round}`" not in text:
+              raise SystemExit('recent presentation key anchor not found')
+          text = text.replace(
+              "action.round === null ? 'recent' : `round:${action.round}`",
+              "action.round === null ? 'battle' : `round:${action.round}`",
+              1,
+          )
+          presentation.write_text(text)
+
+          test = Path('apps/web/src/server/battle/battle-log-service.test.ts')
+          text = test.read_text()
+          addition = r'''
+
+  it('pages through the complete persisted event history instead of dropping early rounds', async () => {
+    const newestPage = Array.from({ length: 100 }, (_, index) => ({
+      battleVersion: 102 - index,
+      eventIndex: 0,
+      event: {
+        event: 'combatant_moved',
+        combatantId: 'character:player-1',
+        from: { x: 0, y: 0 },
+        to: { x: 1, y: 0 },
+        movementCost: 1,
+      },
+      createdAt: `2026-08-17T13:${String(59 - (index % 60)).padStart(2, '0')}:00.000Z`,
+    }))
+    const findBattleEvents = vi.fn(async (_userId, _battleSessionId, _limit, before) => {
+      if (!before) return newestPage
+      expect(before).toEqual({ battleVersion: 3, eventIndex: 0 })
+      return [
+        {
+          battleVersion: 2,
+          eventIndex: 0,
+          event: {
+            event: 'turn_started',
+            combatantId: 'character:player-1',
+            round: 1,
+            turnNumber: 1,
+          },
+          createdAt: '2026-08-17T12:01:00.000Z',
+        },
+        {
+          battleVersion: 1,
+          eventIndex: 0,
+          event: { event: 'round_started', round: 1 },
+          createdAt: '2026-08-17T12:00:00.000Z',
+        },
+      ]
+    })
+    const repository: BattleEventRepository = { findBattleEvents }
+
+    const result = await createBattleLogService(repository).getLog(USER_ID, SESSION_ID)
+
+    expect(findBattleEvents).toHaveBeenCalledTimes(2)
+    expect(findBattleEvents).toHaveBeenNthCalledWith(1, USER_ID, SESSION_ID, 100)
+    expect(findBattleEvents).toHaveBeenNthCalledWith(2, USER_ID, SESSION_ID, 100, {
+      battleVersion: 3,
+      eventIndex: 0,
+    })
+    expect(result.entries.some((entry) => entry.battleVersion === 1)).toBe(true)
+    expect(result.entries.find((entry) => entry.battleVersion === 102)).toEqual(
+      expect.objectContaining({ round: 1, turnNumber: 1 }),
+    )
+  })
+'''
+          marker = '\n})\n'
+          position = text.rfind(marker)
+          if position == -1:
+              raise SystemExit('service test suite end not found')
+          text = text[:position] + addition + text[position:]
+          test.write_text(text)
+
+          presentation_test = Path('apps/web/src/components/battle/battle-log-presentation.test.ts')
+          text = presentation_test.read_text()
+          addition = r'''
+
+  it('uses a neutral Battle fallback instead of a Recent bucket for roundless edge events', () => {
+    const rounds = buildBattleLogPresentation([entry({ round: null, turnNumber: null })], {
+      combatantNames: names,
+    })
+    expect(rounds[0]?.key).toBe('battle')
+    expect(rounds[0]?.round).toBeNull()
+  })
+'''
+          position = text.rfind(marker)
+          if position == -1:
+              raise SystemExit('presentation test suite end not found')
+          text = text[:position] + addition + text[position:]
+          presentation_test.write_text(text)
+          PY
+      - name: Format changed sources
+        run: pnpm exec prettier --write packages/db/src/battle-session.ts apps/web/src/server/battle/supabase-battle-session-repository.ts apps/web/src/server/battle/battle-log-service.ts apps/web/src/server/battle/battle-log-service.test.ts apps/web/src/components/battle/battle-log-feed.tsx apps/web/src/components/battle/battle-log-presentation.ts apps/web/src/components/battle/battle-log-presentation.test.ts supabase/migrations/20260825122500_battle_event_history_pagination.sql
+      - name: Run focused Battle Log tests
+        run: pnpm --filter @aurevane/web exec vitest run src/server/battle/battle-log-service.test.ts src/components/battle/battle-log-presentation.test.ts
+      - name: Commit integrated change and remove temporary workflow
+        shell: bash
+        run: |
+          rm .github/workflows/tmp-battle-log-full-history.yml
+          git config user.name "AUREVANE Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "Preserve complete Battle Log round history"
+          git push origin HEAD:fix/battle-log-full-history-20260825
