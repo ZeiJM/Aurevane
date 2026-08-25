@@ -171,24 +171,49 @@ export function createSupabaseBattleSessionRepository(): BattleSessionRepository
 
     async findBattleEvents(userId, battleSessionId, limit) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('get_battle_events_v2', {
-        p_user_id: userId,
-        p_battle_session_id: battleSessionId,
-        p_limit: limit,
-      })
+      const pageSize = Math.max(1, Math.min(limit, 100))
+      const records: BattleEventRecord[] = []
+      let beforeBattleVersion: number | null = null
+      let beforeEventIndex: number | null = null
 
-      if (error) throwRpcError(error)
-      const rows = parseBattleEventPersistenceRows(data)
-      if (!rows) {
-        throw persistenceUnavailable('The server returned an invalid battle-event result.')
+      while (true) {
+        const { data, error } = await supabase.rpc('get_battle_events_v3', {
+          p_user_id: userId,
+          p_battle_session_id: battleSessionId,
+          p_limit: pageSize,
+          p_before_battle_version: beforeBattleVersion,
+          p_before_event_index: beforeEventIndex,
+        })
+
+        if (error) throwRpcError(error)
+        const rows = parseBattleEventPersistenceRows(data)
+        if (!rows) {
+          throw persistenceUnavailable('The server returned an invalid battle-event result.')
+        }
+
+        records.push(
+          ...rows.map((row): BattleEventRecord => ({
+            battleVersion: row.battle_version,
+            eventIndex: row.event_index,
+            event: row.event,
+            createdAt: row.created_at,
+          })),
+        )
+
+        if (rows.length < pageSize) break
+        const oldest = rows.at(-1)
+        if (!oldest) break
+        if (
+          beforeBattleVersion === oldest.battle_version &&
+          beforeEventIndex === oldest.event_index
+        ) {
+          break
+        }
+        beforeBattleVersion = oldest.battle_version
+        beforeEventIndex = oldest.event_index
       }
 
-      return rows.map((row): BattleEventRecord => ({
-        battleVersion: row.battle_version,
-        eventIndex: row.event_index,
-        event: row.event,
-        createdAt: row.created_at,
-      }))
+      return records
     },
   }
 }
