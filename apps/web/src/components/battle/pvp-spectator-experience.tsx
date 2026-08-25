@@ -130,11 +130,11 @@ export function PvpSpectatorExperience({
     ? (tactical.terrains.find((terrain) => terrain.id === selectedTile.terrainId) ?? null)
     : null
 
-  const boardStyle = {
+  const boardStyle: CSSProperties = {
     gridTemplateColumns: `repeat(${tactical.width}, minmax(0, 1fr))`,
-    '--spectator-grid-rows': tactical.height,
-    '--spectator-grid-aspect': `${tactical.width} / ${tactical.height}`,
-  } as CSSProperties
+    gridTemplateRows: `repeat(${tactical.height}, minmax(0, 1fr))`,
+    aspectRatio: `${tactical.width} / ${tactical.height}`,
+  }
 
   const teamSummaries = Array.from({ length: teamCount }, (_, teamIndex) => {
     const members = spectator.participants.filter(
@@ -518,28 +518,8 @@ export function PvpSpectatorExperience({
                           data-team={participant.teamIndex}
                           data-active={placement.combatantId === activeCombatantId || undefined}
                           data-defeated={combatant?.hp === 0 || undefined}
-                          role={inspectMode ? 'button' : undefined}
-                          tabIndex={inspectMode ? 0 : -1}
-                          aria-label={inspectMode ? `Inspect ${participant.characterName}` : undefined}
-                          onClick={
-                            inspectMode
-                              ? (event) => {
-                                  event.stopPropagation()
-                                  setSelectedPosition({ ...tile.position })
-                                }
-                              : undefined
-                          }
-                          onKeyDown={
-                            inspectMode
-                              ? (event) => {
-                                  if (event.key === 'Enter' || event.key === ' ') {
-                                    event.preventDefault()
-                                    event.stopPropagation()
-                                    setSelectedPosition({ ...tile.position })
-                                  }
-                                }
-                              : undefined
-                          }
+                          data-desktop-inspect-combatant={placement.combatantId}
+                          title={`${participant.characterName} · ${teamName(participant.teamIndex)}`}
                         >
                           <CharacterPortraitImage
                             imageUrl={participant.profileImageUrl}
@@ -547,10 +527,10 @@ export function PvpSpectatorExperience({
                               participant.portraitRef as CharacterPortraitRef,
                             )}
                             className={styles.unitPortrait}
-                            sizes="68px"
+                            sizes="64px"
                             alt=""
                           />
-                          <i aria-hidden="true">{facingGlyph(placement.facing as Facing)}</i>
+                          <i>{facingGlyph(placement.facing as Facing)}</i>
                         </span>
                       ) : null}
                     </button>
@@ -558,8 +538,7 @@ export function PvpSpectatorExperience({
                 })}
               </div>
             </div>
-
-            <div className={inspectStyles.inspectDeck}>
+            <div className={inspectStyles.inspectDeck} aria-label="Spectator inspect controls">
               <button
                 type="button"
                 className={inspectStyles.inspectButton}
@@ -573,12 +552,11 @@ export function PvpSpectatorExperience({
               </button>
               <div className={inspectStyles.inspectContext}>{inspectContext()}</div>
             </div>
-
-            <div className={styles.legend}>
+            <div className={styles.legend} aria-label="Terrain legend">
               <span className={styles.terrainKey}>
                 <i className={styles.roughKey} aria-hidden="true" />
                 <span>
-                  <b>Difficult ground</b>
+                  <b>Difficult Ground</b>
                   <small>Higher movement cost</small>
                 </span>
               </span>
@@ -587,7 +565,7 @@ export function PvpSpectatorExperience({
                   ▲
                 </i>
                 <span>
-                  <b>Raised ground</b>
+                  <b>Raised Ground</b>
                   <small>Elevation +1</small>
                 </span>
               </span>
@@ -597,41 +575,39 @@ export function PvpSpectatorExperience({
           <div className={styles.commsStack}>
             <PvpBattleChat
               battleSessionId={battle.battleSessionId}
-              initialMessages={spectator.chatMessages}
-              canPost={false}
-              title="Battle Chat"
-              subtitle="Read only live feed"
-              compact
+              readOnly
+              combatantNames={combatantNames}
               className={styles.comms}
             />
             <section className={styles.battleLogPanel} aria-label="Spectator battle log">
-              <div className={styles.battleLogHeader}>
+              <header className={styles.battleLogHeader}>
                 <div>
                   <strong>Battle Log</strong>
-                  <small>Authoritative action history</small>
+                  <small>Rounds · actions · outcomes</small>
                 </div>
-              </div>
-              <div className={styles.battleLogBody}>
-                {battleLogError ? <p className={styles.battleLogNotice}>{battleLogError}</p> : null}
-                {battleLog ? (
-                  <BattleLogFeed log={battleLog} combatantNames={combatantNames} />
-                ) : battleLogError ? null : (
-                  <p className={styles.battleLogNotice}>Loading battle record…</p>
+              </header>
+              <div className={styles.battleLogBody} aria-live="polite">
+                {battleLogError ? (
+                  <p className={styles.battleLogNotice} role="status">
+                    {battleLogError}
+                  </p>
+                ) : (
+                  <BattleLogFeed
+                    entries={battleLog?.entries ?? []}
+                    combatantNames={combatantNames}
+                    emptyMessage="No committed battle actions yet."
+                  />
                 )}
               </div>
             </section>
           </div>
         </section>
       </main>
-
-      {inspectMode && selectedPlacement ? (
-        <DesktopBattleCombatantInspect
-          battle={battle}
-          metadata={inspectMetadata}
-          combatantId={selectedPlacement.combatantId}
-          onClose={() => setSelectedPosition(null)}
-        />
-      ) : null}
+      <DesktopBattleCombatantInspect
+        battleSessionId={battle.battleSessionId}
+        pvpMetadata={inspectMetadata}
+        battleView={battle}
+      />
     </>
   )
 }
