@@ -11,6 +11,7 @@ import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
 import styles from './desktop-battle-combatant-inspect.module.css'
+import { PvpBattleInspectPopup } from './pvp-battle-inspect-popup'
 
 const DESKTOP_QUERY = '(min-width: 881px)'
 const BASIS_POINTS = 10_000
@@ -358,176 +359,188 @@ export function DesktopBattleCombatantInspect({
     pvpMetadata,
   ])
 
-  if (!open) return null
+  const spectatorPopup =
+    battleView && pvpMetadata ? (
+      <PvpBattleInspectPopup
+        battleSessionId={battleSessionId}
+        metadata={pvpMetadata}
+        battleView={battleView}
+      />
+    ) : null
+
+  if (!open) return spectatorPopup
 
   const healthPercent = selected ? meterPercent(selected.combatant.hp, selected.combatant.maxHp) : 0
   const manaPercent = selected ? meterPercent(selected.combatant.mp, selected.combatant.maxMp) : 0
   const effectSummary = selected ? summarizeEffects(selected.statuses) : []
 
   return (
-    <div
-      className={styles.backdrop}
-      data-desktop-battle-inspect="true"
-      onPointerDown={() => setOpen(false)}
-    >
-      <section
-        className={styles.popup}
-        role="dialog"
-        aria-modal="true"
-        aria-label={selected ? `${selected.name} battle details` : 'Battle combatant details'}
-        onPointerDown={(event) => event.stopPropagation()}
+    <>
+      {spectatorPopup}
+      <div
+        className={styles.backdrop}
+        data-desktop-battle-inspect="true"
+        onPointerDown={() => setOpen(false)}
       >
-        {loading ? (
-          <div className={styles.loading}>Loading combatant details…</div>
-        ) : error ? (
-          <div className={styles.error} role="alert">
-            {error}
-          </div>
-        ) : selected ? (
-          <>
-            <button
-              type="button"
-              className={styles.close}
-              aria-label="Close combatant details"
-              onClick={() => setOpen(false)}
-            >
-              ×
-            </button>
-
-            <div className={styles.identityRow}>
-              <div className={styles.portrait}>
-                {selected.fallbackAssetId ? (
-                  <CharacterPortraitImage
-                    imageUrl={selected.imageUrl}
-                    fallbackAssetId={selected.fallbackAssetId}
-                    className={styles.portraitImage}
-                    sizes="9rem"
-                    alt={`${selected.name} portrait`}
-                  />
-                ) : (
-                  <span className={styles.fallbackPortrait} aria-hidden="true">
-                    {selected.name.slice(0, 1).toUpperCase()}
-                  </span>
-                )}
-              </div>
-              <div className={styles.identityCopy}>
-                <span>{selected.teamLabel}</span>
-                <h2>{selected.name}</h2>
-                <p>
-                  {selected.level
-                    ? `Level ${selected.level}${selected.active ? ' · Active turn' : ''}`
-                    : selected.active
-                      ? 'Active turn'
-                      : ''}
-                </p>
-              </div>
+        <section
+          className={styles.popup}
+          role="dialog"
+          aria-modal="true"
+          aria-label={selected ? `${selected.name} battle details` : 'Battle combatant details'}
+          onPointerDown={(event) => event.stopPropagation()}
+        >
+          {loading ? (
+            <div className={styles.loading}>Loading combatant details…</div>
+          ) : error ? (
+            <div className={styles.error} role="alert">
+              {error}
             </div>
+          ) : selected ? (
+            <>
+              <button
+                type="button"
+                className={styles.close}
+                aria-label="Close combatant details"
+                onClick={() => setOpen(false)}
+              >
+                ×
+              </button>
 
-            <div className={styles.resources}>
-              <div>
-                <span>HP</span>
-                <strong>
-                  {selected.combatant.hp}/{selected.combatant.maxHp}
-                </strong>
-                <i aria-hidden="true">
-                  <b style={{ width: `${healthPercent}%` }} />
-                </i>
-              </div>
-              <div>
-                <span>MP</span>
-                <strong>
-                  {selected.combatant.mp}/{selected.combatant.maxMp}
-                </strong>
-                <i aria-hidden="true">
-                  <b style={{ width: `${manaPercent}%` }} />
-                </i>
-              </div>
-            </div>
-
-            <dl className={styles.stats}>
-              <div>
-                <dt>Initiative</dt>
-                <dd>{selected.combatant.initiative}</dd>
-              </div>
-              <div>
-                <dt>Movement</dt>
-                <dd>{selected.combatant.baseMovementBudget}</dd>
-              </div>
-              <div>
-                <dt>Jump</dt>
-                <dd>{selected.profile?.jump ?? '—'}</dd>
-              </div>
-              <div>
-                <dt>Accuracy</dt>
-                <dd>{percentFromBasisPoints(selected.profile?.accuracy)}</dd>
-              </div>
-              <div>
-                <dt>Evasion</dt>
-                <dd>{percentFromBasisPoints(selected.profile?.evasion)}</dd>
-              </div>
-              <div>
-                <dt>Armor</dt>
-                <dd>{selected.profile?.armor ?? '—'}</dd>
-              </div>
-              <div>
-                <dt>Ward</dt>
-                <dd>{selected.profile?.ward ?? '—'}</dd>
-              </div>
-              <div>
-                <dt>Facing</dt>
-                <dd>
-                  {facingGlyph(selected.placement.facing)} {selected.placement.facing}
-                </dd>
-              </div>
-            </dl>
-
-            <section className={styles.effects} aria-label={`${selected.name} buffs and debuffs`}>
-              <div className={styles.effectsHeading}>
-                <span>Active effects</span>
-                <div className={styles.effectsSummary} aria-label="Current effect summary">
-                  {effectSummary.map((item) => (
-                    <span
-                      className={styles.effectSummaryChip}
-                      data-tone={item.tone}
-                      key={`${item.label}:${item.value}`}
-                      title={`${item.label} ${item.value}`}
-                    >
-                      <b>{item.label}</b>
-                      <strong>{item.value}</strong>
+              <div className={styles.identityRow}>
+                <div className={styles.portrait}>
+                  {selected.fallbackAssetId ? (
+                    <CharacterPortraitImage
+                      imageUrl={selected.imageUrl}
+                      fallbackAssetId={selected.fallbackAssetId}
+                      className={styles.portraitImage}
+                      sizes="9rem"
+                      alt={`${selected.name} portrait`}
+                    />
+                  ) : (
+                    <span className={styles.fallbackPortrait} aria-hidden="true">
+                      {selected.name.slice(0, 1).toUpperCase()}
                     </span>
-                  ))}
-                  <small title="Active status count">{selected.statuses.length}</small>
+                  )}
+                </div>
+                <div className={styles.identityCopy}>
+                  <span>{selected.teamLabel}</span>
+                  <h2>{selected.name}</h2>
+                  <p>
+                    {selected.level
+                      ? `Level ${selected.level}${selected.active ? ' · Active turn' : ''}`
+                      : selected.active
+                        ? 'Active turn'
+                        : ''}
+                  </p>
                 </div>
               </div>
-              {selected.statuses.length === 0 ? (
-                <p>No buffs or debuffs are active.</p>
-              ) : (
-                <div className={styles.effectIcons}>
-                  {selected.statuses.map((status) => {
-                    const label = statusLabel(status.statusId)
-                    const beneficial = statusIsBeneficial(status.statusId)
-                    return (
-                      <button
-                        type="button"
-                        key={`${status.statusId}:${status.sourceCombatantId}`}
-                        className={beneficial ? styles.buff : styles.debuff}
-                        title={label}
-                        aria-label={`${beneficial ? 'Buff' : 'Debuff'}: ${label}, ${status.remainingOwnerTurnStarts} turn${status.remainingOwnerTurnStarts === 1 ? '' : 's'} remaining`}
-                      >
-                        {beneficial ? '+' : '!'}
-                      </button>
-                    )
-                  })}
-                </div>
-              )}
-            </section>
 
-            <p className={styles.hint}>
-              Click an effect icon for its explanation. Click outside this window to close Inspect.
-            </p>
-          </>
-        ) : null}
-      </section>
-    </div>
+              <div className={styles.resources}>
+                <div>
+                  <span>HP</span>
+                  <strong>
+                    {selected.combatant.hp}/{selected.combatant.maxHp}
+                  </strong>
+                  <i aria-hidden="true">
+                    <b style={{ width: `${healthPercent}%` }} />
+                  </i>
+                </div>
+                <div>
+                  <span>MP</span>
+                  <strong>
+                    {selected.combatant.mp}/{selected.combatant.maxMp}
+                  </strong>
+                  <i aria-hidden="true">
+                    <b style={{ width: `${manaPercent}%` }} />
+                  </i>
+                </div>
+              </div>
+
+              <dl className={styles.stats}>
+                <div>
+                  <dt>Initiative</dt>
+                  <dd>{selected.combatant.initiative}</dd>
+                </div>
+                <div>
+                  <dt>Movement</dt>
+                  <dd>{selected.combatant.baseMovementBudget}</dd>
+                </div>
+                <div>
+                  <dt>Jump</dt>
+                  <dd>{selected.profile?.jump ?? '—'}</dd>
+                </div>
+                <div>
+                  <dt>Accuracy</dt>
+                  <dd>{percentFromBasisPoints(selected.profile?.accuracy)}</dd>
+                </div>
+                <div>
+                  <dt>Evasion</dt>
+                  <dd>{percentFromBasisPoints(selected.profile?.evasion)}</dd>
+                </div>
+                <div>
+                  <dt>Armor</dt>
+                  <dd>{selected.profile?.armor ?? '—'}</dd>
+                </div>
+                <div>
+                  <dt>Ward</dt>
+                  <dd>{selected.profile?.ward ?? '—'}</dd>
+                </div>
+                <div>
+                  <dt>Facing</dt>
+                  <dd>
+                    {facingGlyph(selected.placement.facing)} {selected.placement.facing}
+                  </dd>
+                </div>
+              </dl>
+
+              <section className={styles.effects} aria-label={`${selected.name} buffs and debuffs`}>
+                <div className={styles.effectsHeading}>
+                  <span>Active effects</span>
+                  <div className={styles.effectsSummary} aria-label="Current effect summary">
+                    {effectSummary.map((item) => (
+                      <span
+                        className={styles.effectSummaryChip}
+                        data-tone={item.tone}
+                        key={`${item.label}:${item.value}`}
+                        title={`${item.label} ${item.value}`}
+                      >
+                        <b>{item.label}</b>
+                        <strong>{item.value}</strong>
+                      </span>
+                    ))}
+                    <small title="Active status count">{selected.statuses.length}</small>
+                  </div>
+                </div>
+                {selected.statuses.length === 0 ? (
+                  <p>No buffs or debuffs are active.</p>
+                ) : (
+                  <div className={styles.effectIcons}>
+                    {selected.statuses.map((status) => {
+                      const label = statusLabel(status.statusId)
+                      const beneficial = statusIsBeneficial(status.statusId)
+                      return (
+                        <button
+                          type="button"
+                          key={`${status.statusId}:${status.sourceCombatantId}`}
+                          className={beneficial ? styles.buff : styles.debuff}
+                          title={label}
+                          aria-label={`${beneficial ? 'Buff' : 'Debuff'}: ${label}, ${status.remainingOwnerTurnStarts} turn${status.remainingOwnerTurnStarts === 1 ? '' : 's'} remaining`}
+                        >
+                          {beneficial ? '+' : '!'}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </section>
+
+              <p className={styles.hint}>
+                Click an effect icon for its explanation. Click outside this window to close Inspect.
+              </p>
+            </>
+          ) : null}
+        </section>
+      </div>
+    </>
   )
 }
