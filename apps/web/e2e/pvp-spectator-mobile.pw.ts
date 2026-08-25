@@ -129,8 +129,8 @@ test(
       })
       expect(spectatorJoinRpc.error).toBeNull()
 
-      await page.goto(`/game/battle/spectate/${encodeURIComponent(battleKey ?? '')}`)
-      await expect(page).toHaveURL(/\/game\/battle\/spectate\/AVB-[A-Z0-9-]+$/, {
+      await page.goto(`/__diagnostics/mobile-spectator/${encodeURIComponent(battleKey ?? '')}`)
+      await expect(page).toHaveURL(/\/__diagnostics\/mobile-spectator\/AVB-[A-Z0-9-]+$/, {
         timeout: 15_000,
       })
 
@@ -157,6 +157,8 @@ test(
             height: rect.height,
             display: style.display,
             overflow: style.overflow,
+            overflowX: style.overflowX,
+            overflowY: style.overflowY,
             gridTemplateRows: style.gridTemplateRows,
             gridTemplateColumns: style.gridTemplateColumns,
             aspectRatio: style.aspectRatio,
