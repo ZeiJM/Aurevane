@@ -27,68 +27,15 @@ jobs:
           set -e
           if [ "$merge_status" -ne 0 ]; then
             unresolved="$(git diff --name-only --diff-filter=U | sort)"
-            expected="$(printf '%s\n' \
-              'apps/web/src/components/battle/desktop-battle-log-dock.tsx' \
-              'apps/web/src/components/battle/pvp-battle-client-boundary.tsx' | sort)"
+            expected="$(printf '%s\n' 'apps/web/src/components/battle/desktop-battle-log-dock.tsx' 'apps/web/src/components/battle/pvp-battle-client-boundary.tsx' | sort)"
             if [ "$unresolved" != "$expected" ]; then
               echo "Unexpected merge conflicts:" >&2
               printf '%s\n' "$unresolved" >&2
               exit 1
             fi
-
-            git checkout --theirs -- \
-              apps/web/src/components/battle/desktop-battle-log-dock.tsx \
-              apps/web/src/components/battle/pvp-battle-client-boundary.tsx
-
-            python - <<'PY'
-            from pathlib import Path
-
-            dock = Path('apps/web/src/components/battle/desktop-battle-log-dock.tsx')
-            text = dock.read_text()
-            text = text.replace(
-                "  playerName,\n  eventDriven = false,\n}: {\n  battleSessionId: string\n  playerName?: string\n  eventDriven?: boolean\n}) {",
-                "  playerName,\n  combatantNames,\n  eventDriven = false,\n}: {\n  battleSessionId: string\n  playerName?: string\n  combatantNames?: Readonly<Record<string, string>>\n  eventDriven?: boolean\n}) {",
-                1,
-            )
-            text = text.replace(
-                "        playerName={playerName}\n        dockOnDesktop",
-                "        playerName={playerName}\n        combatantNames={combatantNames}\n        dockOnDesktop",
-                1,
-            )
-            dock.write_text(text)
-
-            boundary = Path('apps/web/src/components/battle/pvp-battle-client-boundary.tsx')
-            text = boundary.read_text()
-            text = text.replace("'use client'\n\n", "'use client'\n\nimport { useMemo } from 'react'\n\n", 1)
-            marker = "}) {\n  return (\n"
-            insertion = """}) {
-  const combatantNames = useMemo(
-    () =>
-      Object.fromEntries(
-        metadata.participants.map((participant) => [
-          participant.combatantId,
-          participant.characterName,
-        ]),
-      ),
-    [metadata.participants],
-  )
-
-  return (
-"""
-            if marker not in text:
-                raise SystemExit('PvpBattleClientBoundary insertion marker missing')
-            text = text.replace(marker, insertion, 1)
-            text = text.replace(
-                "        playerName={playerName}\n        eventDriven",
-                "        playerName={playerName}\n        combatantNames={combatantNames}\n        eventDriven",
-                1,
-            )
-            boundary.write_text(text)
-            PY
-
-            git add \
-              apps/web/src/components/battle/desktop-battle-log-dock.tsx \
-              apps/web/src/components/battle/pvp-battle-client-boundary.tsx
+            git checkout --theirs -- apps/web/src/components/battle/desktop-battle-log-dock.tsx apps/web/src/components/battle/pvp-battle-client-boundary.tsx
+            python -c "import base64; exec(base64.b64decode('CmZyb20gcGF0aGxpYiBpbXBvcnQgUGF0aAoKZG9jayA9IFBhdGgoImFwcHMvd2ViL3NyYy9jb21wb25lbnRzL2JhdHRsZS9kZXNrdG9wLWJhdHRsZS1sb2ctZG9jay50c3giKQp0ZXh0ID0gZG9jay5yZWFkX3RleHQoKQpvbGQgPSAiIiIgIHBsYXllck5hbWUsCiAgZXZlbnREcml2ZW4gPSBmYWxzZSwKfTogewogIGJhdHRsZVNlc3Npb25JZDogc3RyaW5nCiAgcGxheWVyTmFtZT86IHN0cmluZwogIGV2ZW50RHJpdmVuPzogYm9vbGVhbgp9KSB7IiIiCm5ldyA9ICIiIiAgcGxheWVyTmFtZSwKICBjb21iYXRhbnROYW1lcywKICBldmVudERyaXZlbiA9IGZhbHNlLAp9OiB7CiAgYmF0dGxlU2Vzc2lvbklkOiBzdHJpbmcKICBwbGF5ZXJOYW1lPzogc3RyaW5nCiAgY29tYmF0YW50TmFtZXM/OiBSZWFkb25seTxSZWNvcmQ8c3RyaW5nLCBzdHJpbmc+PgogIGV2ZW50RHJpdmVuPzogYm9vbGVhbgp9KSB7IiIiCmlmIG9sZCBub3QgaW4gdGV4dDoKICAgIHJhaXNlIFN5c3RlbUV4aXQoIkRlc2t0b3BCYXR0bGVMb2dEb2NrIHNpZ25hdHVyZSBtYXJrZXIgbWlzc2luZyIpCnRleHQgPSB0ZXh0LnJlcGxhY2Uob2xkLCBuZXcsIDEpCm9sZCA9ICIiIiAgICAgICAgcGxheWVyTmFtZT17cGxheWVyTmFtZX0KICAgICAgICBkb2NrT25EZXNrdG9wIiIiCm5ldyA9ICIiIiAgICAgICAgcGxheWVyTmFtZT17cGxheWVyTmFtZX0KICAgICAgICBjb21iYXRhbnROYW1lcz17Y29tYmF0YW50TmFtZXN9CiAgICAgICAgZG9ja09uRGVza3RvcCIiIgppZiBvbGQgbm90IGluIHRleHQ6CiAgICByYWlzZSBTeXN0ZW1FeGl0KCJEZXNrdG9wQmF0dGxlTG9nRG9jayBwYW5lbCBtYXJrZXIgbWlzc2luZyIpCnRleHQgPSB0ZXh0LnJlcGxhY2Uob2xkLCBuZXcsIDEpCmRvY2sud3JpdGVfdGV4dCh0ZXh0KQoKYm91bmRhcnkgPSBQYXRoKCJhcHBzL3dlYi9zcmMvY29tcG9uZW50cy9iYXR0bGUvcHZwLWJhdHRsZS1jbGllbnQtYm91bmRhcnkudHN4IikKdGV4dCA9IGJvdW5kYXJ5LnJlYWRfdGV4dCgpCm1hcmtlciA9ICIndXNlIGNsaWVudCdcblxuIgppZiBtYXJrZXIgbm90IGluIHRleHQ6CiAgICByYWlzZSBTeXN0ZW1FeGl0KCJQdnBCYXR0bGVDbGllbnRCb3VuZGFyeSBpbXBvcnQgbWFya2VyIG1pc3NpbmciKQp0ZXh0ID0gdGV4dC5yZXBsYWNlKG1hcmtlciwgIid1c2UgY2xpZW50J1xuXG5pbXBvcnQgeyB1c2VNZW1vIH0gZnJvbSAncmVhY3QnXG5cbiIsIDEpCm1hcmtlciA9ICIiIn0pIHsKICByZXR1cm4gKAoiIiIKaW5zZXJ0aW9uID0gIiIifSkgewogIGNvbnN0IGNvbWJhdGFudE5hbWVzID0gdXNlTWVtbygKICAgICgpID0+CiAgICAgIE9iamVjdC5mcm9tRW50cmllcygKICAgICAgICBtZXRhZGF0YS5wYXJ0aWNpcGFudHMubWFwKChwYXJ0aWNpcGFudCkgPT4gWwogICAgICAgICAgcGFydGljaXBhbnQuY29tYmF0YW50SWQsCiAgICAgICAgICBwYXJ0aWNpcGFudC5jaGFyYWN0ZXJOYW1lLAogICAgICAgIF0pLAogICAgICApLAogICAgW21ldGFkYXRhLnBhcnRpY2lwYW50c10sCiAgKQoKICByZXR1cm4gKAoiIiIKaWYgbWFya2VyIG5vdCBpbiB0ZXh0OgogICAgcmFpc2UgU3lzdGVtRXhpdCgiUHZwQmF0dGxlQ2xpZW50Qm91bmRhcnkgYm9keSBtYXJrZXIgbWlzc2luZyIpCnRleHQgPSB0ZXh0LnJlcGxhY2UobWFya2VyLCBpbnNlcnRpb24sIDEpCm9sZCA9ICIiIiAgICAgICAgcGxheWVyTmFtZT17cGxheWVyTmFtZX0KICAgICAgICBldmVudERyaXZlbiIiIgpuZXcgPSAiIiIgICAgICAgIHBsYXllck5hbWU9e3BsYXllck5hbWV9CiAgICAgICAgY29tYmF0YW50TmFtZXM9e2NvbWJhdGFudE5hbWVzfQogICAgICAgIGV2ZW50RHJpdmVuIiIiCmlmIG9sZCBub3QgaW4gdGV4dDoKICAgIHJhaXNlIFN5c3RlbUV4aXQoIlB2cEJhdHRsZUNsaWVudEJvdW5kYXJ5IGRvY2sgbWFya2VyIG1pc3NpbmciKQp0ZXh0ID0gdGV4dC5yZXBsYWNlKG9sZCwgbmV3LCAxKQpib3VuZGFyeS53cml0ZV90ZXh0KHRleHQpCg=='))"
+            git add apps/web/src/components/battle/desktop-battle-log-dock.tsx apps/web/src/components/battle/pvp-battle-client-boundary.tsx
             git commit --no-edit
           fi
       - name: Validate combined conflict resolution
