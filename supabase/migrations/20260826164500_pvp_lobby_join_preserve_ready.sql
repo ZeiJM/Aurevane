@@ -3,6 +3,7 @@ begin;
 -- Joining changes lobby membership, but it does not invalidate the explicit Ready
 -- choice of players who were already seated. The newly joined player still starts
 -- unready, so the lobby cannot start until that player explicitly readies up.
+-- Deliberately do not blanket-reset existing members after the insert below.
 create or replace function public.join_pvp_lobby_v1(
   p_user_id uuid,
   p_character_id uuid,
