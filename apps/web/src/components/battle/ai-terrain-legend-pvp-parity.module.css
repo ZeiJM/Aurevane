@@ -2,8 +2,23 @@
   display: none;
 }
 
+/* The AI battlefield used to subtract a fixed 1.45rem from the board viewport for its legacy
+   one-line legend. The PvP terrain key is taller, so make the battlefield itself own two rows:
+   a flexible board row plus a natural-height legend row. */
+:global([data-ai-terrain-layout='true']) {
+  display: grid !important;
+  grid-template-rows: minmax(0, 1fr) auto !important;
+  align-content: stretch !important;
+}
+
+:global([data-ai-terrain-layout='true'] > div:first-child) {
+  height: auto !important;
+  min-height: 0 !important;
+}
+
 :global([data-ai-terrain-legend='true']) {
   display: flex !important;
+  box-sizing: border-box !important;
   height: auto !important;
   min-height: 2.35rem !important;
   gap: 0.4rem !important;
@@ -16,11 +31,16 @@
   white-space: normal !important;
 }
 
+/* Match PvP's icon, padding, gap, border and type metrics exactly, but do not force the AI
+   cards to the PvP 15rem minimum width. These should stay compact around their content. */
 :global([data-ai-terrain-legend='true'] > span:nth-child(-n + 2)) {
   display: grid !important;
-  grid-template-columns: 1.55rem minmax(0, 1fr);
+  grid-template-columns: 1.55rem max-content;
   grid-template-rows: auto auto;
-  min-width: min(15rem, 48%);
+  width: max-content;
+  max-width: calc(50% - 0.2rem);
+  min-width: 0;
+  flex: 0 1 auto;
   gap: 0.08rem 0.42rem;
   align-items: center;
   padding: 0.28rem 0.45rem;
@@ -36,8 +56,10 @@
   display: none !important;
 }
 
+/* PvP uses 1.55rem square terrain swatches. Keep AI identical. */
 :global([data-ai-terrain-legend='true'] > span:nth-child(-n + 2)::before) {
   display: grid;
+  box-sizing: border-box;
   grid-column: 1;
   grid-row: 1 / 3;
   width: 1.55rem;
@@ -73,6 +95,7 @@
   color: var(--av-text-muted);
   font: 750 0.4rem/1 var(--av-font-mono);
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 :global([data-ai-terrain-legend='true'] > span:first-child > b::after) {
@@ -88,6 +111,7 @@
   grid-row: 2;
   color: var(--av-text-dim);
   font: 500 0.38rem/1.1 var(--av-font-sans);
+  white-space: nowrap;
 }
 
 :global([data-ai-terrain-legend='true'] > span:first-child::after) {
@@ -105,7 +129,15 @@
   }
 
   :global([data-ai-terrain-legend='true'] > span:nth-child(-n + 2)) {
+    grid-template-columns: 1.55rem minmax(0, 1fr);
+    width: auto;
+    max-width: none;
     min-width: 0;
     flex: 1 1 0;
+  }
+
+  :global([data-ai-terrain-legend='true'] > span:nth-child(-n + 2) > b::after),
+  :global([data-ai-terrain-legend='true'] > span:nth-child(-n + 2)::after) {
+    white-space: normal;
   }
 }
