@@ -120,8 +120,7 @@
   :global(
     main:not([data-pvp-battle='true']):has(section[aria-label='Tactical battlefield'])
       section[aria-label='Tactical battlefield']
-      > div:first-child
-      > div:first-child
+      [data-board-auto-fit]
   ) {
     width: min(100%, 38.75rem) !important;
     max-width: 38.75rem !important;
@@ -135,8 +134,7 @@
   :global(
     main:not([data-pvp-battle='true']):has(section[aria-label='Tactical battlefield'])
       section[aria-label='Tactical battlefield']
-      > div:first-child
-      > div:first-child
+      [data-board-auto-fit]
       > button
   ) {
     height: 100% !important;
