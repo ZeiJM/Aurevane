@@ -50,6 +50,7 @@ function syncTerrainLegend(battlefield: HTMLElement) {
   const legend = existing ?? legacy ?? null
   if (!legend) return
 
+  battlefield.dataset.aiTerrainLayout = 'true'
   legend.dataset.aiTerrainLegend = 'true'
   legend.setAttribute('aria-label', 'Terrain legend')
 
@@ -163,6 +164,10 @@ export function AiBattlePvpVisualSync({ playerName }: { playerName: string }) {
       observer.disconnect()
       if (frame !== null) window.cancelAnimationFrame(frame)
       document.querySelector('[data-ai-path-zero="true"]')?.remove()
+      const battlefield = document.querySelector<HTMLElement>(
+        'section[aria-label="Tactical battlefield"]',
+      )
+      if (battlefield?.dataset.pvpBattle !== 'true') delete battlefield?.dataset.aiTerrainLayout
     }
   }, [playerName])
 
