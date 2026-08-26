@@ -36,6 +36,56 @@ function cleanPathZeroMarker(marker: HTMLSpanElement) {
   delete marker.dataset.mapPortraitReady
 }
 
+function createTerrainKey(
+  kind: 'rough' | 'raised',
+  title: string,
+  detail: string,
+): HTMLSpanElement {
+  const key = document.createElement('span')
+  key.dataset.aiTerrainKey = kind
+
+  const swatch = document.createElement('i')
+  swatch.dataset.aiTerrainSwatch = kind
+  swatch.setAttribute('aria-hidden', 'true')
+  if (kind === 'raised') swatch.textContent = '▲'
+
+  const copy = document.createElement('span')
+  const heading = document.createElement('b')
+  heading.textContent = title
+  const description = document.createElement('small')
+  description.textContent = detail
+  copy.append(heading, description)
+
+  key.append(swatch, copy)
+  return key
+}
+
+function syncTerrainLegend(battlefield: HTMLElement) {
+  const existing = battlefield.querySelector<HTMLElement>(
+    ':scope > [data-ai-terrain-legend="true"]',
+  )
+  const legacy = Array.from(battlefield.children).find(
+    (child): child is HTMLElement =>
+      child instanceof HTMLElement &&
+      (child.textContent?.includes('legal/reachable') ?? false) &&
+      (child.textContent?.includes('rough = 50 AP') ?? false),
+  )
+  const legend = existing ?? legacy ?? null
+  if (!legend) return
+
+  legend.dataset.aiTerrainLegend = 'true'
+  legend.setAttribute('aria-label', 'Terrain legend')
+
+  const hasRoughKey = Boolean(legend.querySelector('[data-ai-terrain-key="rough"]'))
+  const hasRaisedKey = Boolean(legend.querySelector('[data-ai-terrain-key="raised"]'))
+  if (hasRoughKey && hasRaisedKey) return
+
+  legend.replaceChildren(
+    createTerrainKey('rough', 'Difficult Ground', 'Higher movement cost'),
+    createTerrainKey('raised', 'Raised Ground', 'Elevation +1'),
+  )
+}
+
 export function AiBattlePvpVisualSync({ playerName }: { playerName: string }) {
   useEffect(() => {
     let frame: number | null = null
@@ -73,6 +123,8 @@ export function AiBattlePvpVisualSync({ playerName }: { playerName: string }) {
       }
 
       if (!battlefield) return
+      syncTerrainLegend(battlefield)
+
       const tiles = Array.from(
         battlefield.querySelectorAll<HTMLButtonElement>('button[aria-label^="Tile "]'),
       )
