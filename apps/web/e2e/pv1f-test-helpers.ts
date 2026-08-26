@@ -21,29 +21,21 @@ function createTestAuthAdminClient() {
 
 async function confirmTestAccountEmail(email: string): Promise<void> {
   const supabase = createTestAuthAdminClient()
+  const { data, error } = await supabase.auth.admin.listUsers({
+    page: 1,
+    perPage: 1000,
+  })
 
-  for (let attempt = 0; attempt < 100; attempt += 1) {
-    const { data, error } = await supabase.auth.admin.listUsers({
-      page: 1,
-      perPage: 1000,
-    })
+  if (error) throw error
 
-    if (error) throw error
+  const user = data.users.find((candidate) => candidate.email === email)
+  if (!user) throw new Error('The browser-test account was not created in local Supabase.')
 
-    const user = data.users.find((candidate) => candidate.email === email)
-    if (user) {
-      const { error: confirmError } = await supabase.auth.admin.updateUserById(user.id, {
-        email_confirm: true,
-      })
+  const { error: confirmError } = await supabase.auth.admin.updateUserById(user.id, {
+    email_confirm: true,
+  })
 
-      if (confirmError) throw confirmError
-      return
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 100))
-  }
-
-  throw new Error('The browser-test account was not created in local Supabase.')
+  if (confirmError) throw confirmError
 }
 
 async function signInExistingAccount(input: {
@@ -129,7 +121,18 @@ export async function provisionAccountAndEnterCharacter(input: {
   password: string
   characterName: string
 }): Promise<void> {
-  await createAccountAndEnterCharacter(input)
+  const { page, email, password, characterName } = input
+  const supabase = createTestAuthAdminClient()
+  const { error } = await supabase.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  })
+
+  if (error) throw error
+
+  await signInExistingAccount({ page, email, password })
+  await createCharacterAfterSignIn({ page, characterName })
 }
 
 export async function signOutFromAccountMenu(page: Page): Promise<void> {
