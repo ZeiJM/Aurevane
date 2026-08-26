@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 
 import { PublicInformationShell } from '@/components/public-information/public-information-shell'
 import styles from '@/components/public-information/public-information-shell.module.css'
-import { rulesDocument } from '@/content/public-information'
+import { currentRulesDocument } from '@/content/current-rules'
 
 export const metadata: Metadata = {
   title: 'Rules | AUREVANE',
@@ -24,15 +24,15 @@ export default function RulesPage() {
           <dl className={styles.articleMeta}>
             <div>
               <dt>Version</dt>
-              <dd>{rulesDocument.version}</dd>
+              <dd>{currentRulesDocument.version}</dd>
             </div>
             <div>
               <dt>Effective scope</dt>
-              <dd>{rulesDocument.effectiveLabel}</dd>
+              <dd>{currentRulesDocument.effectiveLabel}</dd>
             </div>
             <div>
               <dt>Last updated</dt>
-              <dd>{rulesDocument.lastUpdated}</dd>
+              <dd>{currentRulesDocument.lastUpdated}</dd>
             </div>
           </dl>
         </div>
@@ -42,8 +42,9 @@ export default function RulesPage() {
           </span>
           <strong>Stable rules, honest scope.</strong>
           <p>
-            No speculative marketplace, ranked-PvP, guild, tournament, or mature social policy is
-            silently treated as active before those systems exist.
+            Direct private PvP and spectation are current Phase 2 test features. Ranked, marketplace,
+            guild, tournament, and mature social policy is published only when those systems become
+            real.
           </p>
         </aside>
       </section>
@@ -56,7 +57,7 @@ export default function RulesPage() {
           </div>
         </div>
         <ul className={styles.principles}>
-          {rulesDocument.principles.map((principle) => (
+          {currentRulesDocument.principles.map((principle) => (
             <li key={principle}>{principle}</li>
           ))}
         </ul>
@@ -64,7 +65,7 @@ export default function RulesPage() {
 
       <div className={styles.rulesLayout}>
         <nav className={styles.rulesNav} aria-label="Rules sections">
-          {rulesDocument.sections.map((section) => (
+          {currentRulesDocument.sections.map((section) => (
             <a href={`#${section.id}`} key={section.id}>
               {section.title}
             </a>
@@ -72,7 +73,7 @@ export default function RulesPage() {
         </nav>
 
         <div className={styles.ruleStack}>
-          {rulesDocument.sections.map((section) => (
+          {currentRulesDocument.sections.map((section) => (
             <section className={styles.ruleSection} id={section.id} key={section.id}>
               <span className={styles.eyebrow}>Rule section</span>
               <h2>{section.title}</h2>
