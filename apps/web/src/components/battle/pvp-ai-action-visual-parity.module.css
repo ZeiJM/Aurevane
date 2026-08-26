@@ -59,9 +59,7 @@
     button[aria-label^='Tile '][data-path]
 ) {
   border-color: rgba(98, 210, 138, 0.86) !important;
-  background:
-    linear-gradient(rgba(52, 150, 87, 0.13), rgba(52, 150, 87, 0.13)),
-    #12201a !important;
+  background: linear-gradient(rgba(52, 150, 87, 0.13), rgba(52, 150, 87, 0.13)), #12201a !important;
   box-shadow: inset 0 0 0 2px rgba(83, 188, 121, 0.3) !important;
 }
 

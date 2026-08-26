@@ -21,21 +21,29 @@ function createTestAuthAdminClient() {
 
 async function confirmTestAccountEmail(email: string): Promise<void> {
   const supabase = createTestAuthAdminClient()
-  const { data, error } = await supabase.auth.admin.listUsers({
-    page: 1,
-    perPage: 1000,
-  })
 
-  if (error) throw error
+  for (let attempt = 0; attempt < 20; attempt += 1) {
+    const { data, error } = await supabase.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    })
 
-  const user = data.users.find((candidate) => candidate.email === email)
-  if (!user) throw new Error('The browser-test account was not created in local Supabase.')
+    if (error) throw error
 
-  const { error: confirmError } = await supabase.auth.admin.updateUserById(user.id, {
-    email_confirm: true,
-  })
+    const user = data.users.find((candidate) => candidate.email === email)
+    if (user) {
+      const { error: confirmError } = await supabase.auth.admin.updateUserById(user.id, {
+        email_confirm: true,
+      })
 
-  if (confirmError) throw confirmError
+      if (confirmError) throw confirmError
+      return
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 100))
+  }
+
+  throw new Error('The browser-test account was not created in local Supabase.')
 }
 
 export async function createVerifiedAccountAndSignIn(input: {
