@@ -22,7 +22,7 @@ function createTestAuthAdminClient() {
 async function confirmTestAccountEmail(email: string): Promise<void> {
   const supabase = createTestAuthAdminClient()
 
-  for (let attempt = 0; attempt < 20; attempt += 1) {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
     const { data, error } = await supabase.auth.admin.listUsers({
       page: 1,
       perPage: 1000,
