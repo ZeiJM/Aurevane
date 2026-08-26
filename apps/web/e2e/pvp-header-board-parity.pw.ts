@@ -123,10 +123,10 @@ test('keeps the live desktop PvP header, opponent timer, and full board stable',
         )!
         const victoryElement = Array.from(
           economyElement.querySelectorAll<HTMLButtonElement>('button'),
-        ).find((button) => button.textContent?.includes('Victory Conditions'))!
+        ).find((button) => button.textContent?.toLowerCase().includes('victory conditions'))!
         const roundElement = Array.from(
           headerElement.querySelectorAll<HTMLButtonElement>('button'),
-        ).find((button) => button.textContent?.includes('COMBAT LOG'))!
+        ).find((button) => button.textContent?.toLowerCase().includes('combat log'))!
         const battlefieldElement = element.querySelector<HTMLElement>('#battlefield')!
         const viewportElement = battlefieldElement.firstElementChild as HTMLElement
         const boardElement = viewportElement.firstElementChild as HTMLElement
