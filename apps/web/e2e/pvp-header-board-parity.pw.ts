@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
+// Keep this as a rendered two-player regression: CSS-source assertions alone missed both failures.
 function uniqueIdentity(prefix: string): { email: string; characterName: string } {
   const seed = `${Date.now()}${Math.floor(Math.random() * 100_000)}`
   const nameSuffix = seed
