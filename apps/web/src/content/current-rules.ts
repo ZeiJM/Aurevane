@@ -1,4 +1,4 @@
-import { rulesDocument } from './public-information'
+import { rulesDocument, type PublicRuleSection } from './public-information'
 
 const LAST_UPDATED = '2026-08-26'
 
@@ -14,7 +14,7 @@ export const currentRulesDocument = {
     'Do not tamper with requests or authoritative state to manufacture progression, ownership, combat outcomes, or PvP advantage.',
     'Direct private PvP and keyed spectation are current Phase 2 test features; ranked matchmaking, seasons, tournaments, and mature competitive policy are not yet active.',
   ] as const,
-  sections: rulesDocument.sections.map((section) => {
+  sections: rulesDocument.sections.map((section): PublicRuleSection => {
     if (section.id !== 'current-scope') return section
 
     return {
