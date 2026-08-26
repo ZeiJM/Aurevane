@@ -86,7 +86,9 @@ test('Manual states the current phase boundary and documents live PvP without st
   await page.goto('/manual/start-here')
   await expect(page.getByText(/Phase 1 .* is complete/)).toBeVisible()
   await expect(page.getByText(/PV-1 \(Phase 2 test\)/).first()).toBeVisible()
-  await expect(page.getByText(/Phase 3 is not active while Phase 2 testing continues/)).toBeVisible()
+  await expect(
+    page.getByText(/Phase 3 is not active while Phase 2 testing continues/),
+  ).toBeVisible()
 
   await page.goto('/manual/pvp-spectation')
   await expect(page.getByRole('heading', { level: 1, name: 'PvP & Spectation' })).toBeVisible()
@@ -108,7 +110,9 @@ test('Manual publishes the authoritative six-point character creation budget', a
   await expect(page.getByText(/no more than 4 bonus points/)).toHaveCount(0)
 })
 
-test('Rules exposes stable anchors and the truthful current Phase 2 test scope', async ({ page }) => {
+test('Rules exposes stable anchors and the truthful current Phase 2 test scope', async ({
+  page,
+}) => {
   await page.goto('/rules#bugs-and-exploits')
   await expect(
     page.getByRole('heading', { level: 2, name: 'Bugs & Exploit Reporting' }),
