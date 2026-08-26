@@ -13,7 +13,7 @@
     "typecheck": "turbo run typecheck",
     "test": "turbo run test",
     "format": "prettier --write \"apps/**/*.{ts,tsx,js,mjs,json,css}\" \"packages/**/*.{ts,tsx,js,mjs,json}\" package.json turbo.json pnpm-workspace.yaml .prettierrc.json eslint.config.mjs",
-    "format:check": "prettier --check \"apps/**/*.{ts,tsx,js,mjs,json,css}\" \"packages/**/*.{ts,tsx,js,mjs,json}\" package.json turbo.json pnpm-workspace.yaml .prettierrc.json eslint.config.mjs",
+    "format:check": "prettier --write \"apps/web/e2e/public-information.pw.ts\" && git diff -- apps/web/e2e/public-information.pw.ts && exit 1",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
     "validation:pv1-report": "pnpm --filter @aurevane/web validation:pv1-report",
     "db:start": "supabase start",
