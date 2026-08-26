@@ -2,10 +2,29 @@
 
 import { useEffect } from 'react'
 
+import visualParityStyles from './pvp-ai-action-visual-parity.module.css'
 import styles from './pvp-battle-release-polish.module.css'
 import parityStyles from './pvp-battle-shell-parity-fix.module.css'
 
 const APPROVED_HEADER_LAYOUT = 'approved'
+
+type PvpActionVisualMode = 'move' | 'attack' | 'guard' | 'recover' | 'finish'
+
+function activeActionVisualMode(root: HTMLElement): PvpActionVisualMode | null {
+  const activeCommand = Array.from(
+    root.querySelectorAll<HTMLButtonElement>(
+      'section[aria-label="Command Deck"] button[data-active]',
+    ),
+  ).find((button) => button.querySelector('strong'))
+  const label = activeCommand?.querySelector('strong')?.textContent?.trim()
+
+  if (label === 'Move') return 'move'
+  if (label === 'Basic Attack') return 'attack'
+  if (label === 'Guard') return 'guard'
+  if (label === 'Recover') return 'recover'
+  if (label === 'Finish Turn') return 'finish'
+  return null
+}
 
 export function PvpBattleReleasePolish() {
   useEffect(() => {
@@ -22,6 +41,11 @@ export function PvpBattleReleasePolish() {
       const economy =
         economyTrack?.parentElement instanceof HTMLElement ? economyTrack.parentElement : null
 
+      if (root) {
+        const actionMode = activeActionVisualMode(root)
+        if (actionMode) root.dataset.pvpActionMode = actionMode
+        else delete root.dataset.pvpActionMode
+      }
       if (header) header.dataset.pvpHeaderLayout = APPROVED_HEADER_LAYOUT
       if (economy) {
         economy.dataset.pvpHeaderEconomy = 'true'
@@ -36,12 +60,18 @@ export function PvpBattleReleasePolish() {
 
     locate()
     const observer = new MutationObserver(schedule)
-    observer.observe(document.body, { childList: true, subtree: true })
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['data-active'],
+    })
 
     return () => {
       observer.disconnect()
       if (frame !== null) window.cancelAnimationFrame(frame)
       const root = document.querySelector<HTMLElement>('main[data-pvp-battle="true"]')
+      root?.removeAttribute('data-pvp-action-mode')
       root
         ?.querySelector<HTMLElement>(
           `:scope > header[data-pvp-header-layout="${APPROVED_HEADER_LAYOUT}"]`,
@@ -55,5 +85,10 @@ export function PvpBattleReleasePolish() {
     }
   }, [])
 
-  return <span className={`${styles.hook} ${parityStyles.hook}`} aria-hidden="true" />
+  return (
+    <span
+      className={`${styles.hook} ${parityStyles.hook} ${visualParityStyles.hook}`}
+      aria-hidden="true"
+    />
+  )
 }
