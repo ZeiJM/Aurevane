@@ -40,3 +40,5 @@ jobs:
           fi
           git commit -m "chore: format PvP action parity CSS"
           git push origin HEAD:fix/pvp-ai-action-visual-parity
+
+# Temporary trigger; remove before merge.
