@@ -80,9 +80,29 @@ test('Manual has stable article routes and deep section anchors', async ({ page 
   ).toBeVisible()
 })
 
-test('Rules exposes stable section anchors and truthful current-scope language', async ({
+test('Manual states the current phase boundary and documents live PvP without starting Phase 3', async ({
   page,
 }) => {
+  await page.goto('/manual/start-here')
+  await expect(page.getByText(/Phase 1 .* is complete/)).toBeVisible()
+  await expect(page.getByText(/PV-1 \(Phase 2 test\)/).first()).toBeVisible()
+  await expect(page.getByText(/Phase 3 is not active while Phase 2 testing continues/)).toBeVisible()
+
+  await page.goto('/manual/pvp-spectation')
+  await expect(page.getByRole('heading', { level: 1, name: 'PvP & Spectation' })).toBeVisible()
+  await expect(page.getByText(/Direct private PvP is playable now/)).toBeVisible()
+  await expect(page.getByText(/1v1, 2v2, 3v3/)).toBeVisible()
+  await expect(page.getByText(/ranked matchmaking, rating ladders, seasons, tournaments/i)).toBeVisible()
+})
+
+test('Manual publishes the authoritative six-point character creation budget', async ({ page }) => {
+  await page.goto('/manual/character-creation#six-attributes')
+  await expect(page.getByText(/exactly 6 additional whole-number points/)).toBeVisible()
+  await expect(page.getByText(/allow from 0 to 6 bonus points in any one attribute/)).toBeVisible()
+  await expect(page.getByText(/no more than 4 bonus points/)).toHaveCount(0)
+})
+
+test('Rules exposes stable anchors and the truthful current Phase 2 test scope', async ({ page }) => {
   await page.goto('/rules#bugs-and-exploits')
   await expect(
     page.getByRole('heading', { level: 2, name: 'Bugs & Exploit Reporting' }),
@@ -90,7 +110,10 @@ test('Rules exposes stable section anchors and truthful current-scope language',
   await expect(
     page.getByText(/Finding or accidentally triggering a bug is not misconduct/),
   ).toBeVisible()
-  await expect(page.getByText(/does not currently publish speculative marketplace/)).toBeVisible()
+
+  await page.goto('/rules#current-scope')
+  await expect(page.getByText(/direct private PvP and keyed spectation/i).first()).toBeVisible()
+  await expect(page.getByText(/ranked-matchmaking, rating, season, tournament/i)).toBeVisible()
 })
 
 test('an authenticated character keeps a direct return path while reading the Manual', async ({
