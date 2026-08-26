@@ -101,20 +101,33 @@
   pointer-events: none;
 }
 
+/* Desktop battle header controls use one compact height contract. Keep mobile presentation on its
+   existing responsive rules while preventing Victory Conditions and Combat Log from drifting. */
+@media (min-width: 821px) {
+  :global(
+    main:not([data-pvp-battle='true']):has(section[aria-label='Tactical battlefield'])
+      > header
+      [data-battle-victory-button='true']
+  ),
+  :global(
+    main:not([data-pvp-battle='true']):has(section[aria-label='Tactical battlefield'])
+      > header
+      > button[class*='roundButton']
+  ) {
+    height: 2.15rem !important;
+    min-height: 2.15rem !important;
+    align-self: center !important;
+    border-radius: var(--av-radius-sm) !important;
+    box-sizing: border-box !important;
+  }
+}
+
 /* Desktop AI deliberately uses the same stage proportions as PvP. Keep the full rail width even
    inside the base battle's <=1100px breakpoint so portraits remain substantial and the battlefield
    is not surrounded by oversized dead gutters. */
 @media (min-width: 881px) {
   :global(main:not([data-pvp-battle='true']):has(section[aria-label='Tactical battlefield'])) {
     height: 100dvh !important;
-  }
-
-  :global(
-    main:not([data-pvp-battle='true']):has(section[aria-label='Tactical battlefield'])
-      > header
-      > button[class*='roundButton']
-  ) {
-    border-radius: var(--av-radius-sm) !important;
   }
 
   :global(

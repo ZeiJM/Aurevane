@@ -11,7 +11,7 @@ function uniqueCharacterName(): string {
   return `Wayfarer ${letters}`
 }
 
-test('matches the desktop AI Combat Log shape to Victory Conditions without changing mobile', async ({
+test('keeps desktop AI Victory Conditions and Combat Log visually matched without changing mobile', async ({
   page,
 }, testInfo) => {
   test.slow()
@@ -45,6 +45,10 @@ test('matches the desktop AI Combat Log shape to Victory Conditions without chan
   const combatLogRadius = await combatLog.evaluate(
     (element) => window.getComputedStyle(element).borderTopLeftRadius,
   )
+  const victoryBox = await victoryConditions.boundingBox()
+  const combatLogBox = await combatLog.boundingBox()
+  expect(victoryBox).not.toBeNull()
+  expect(combatLogBox).not.toBeNull()
 
   if (testInfo.project.name === 'mobile-chromium') {
     expect(combatLogRadius).toBe('999px')
@@ -52,5 +56,8 @@ test('matches the desktop AI Combat Log shape to Victory Conditions without chan
   } else {
     expect(combatLogRadius).toBe(victoryRadius)
     expect(combatLogRadius).not.toBe('999px')
+    expect(Math.abs(victoryBox!.height - combatLogBox!.height)).toBeLessThanOrEqual(1)
+    expect(victoryBox!.height).toBeGreaterThanOrEqual(33)
+    expect(victoryBox!.height).toBeLessThanOrEqual(36)
   }
 })

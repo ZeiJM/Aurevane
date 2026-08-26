@@ -3,7 +3,8 @@
 }
 
 /* Desktop-only authority for the approved PvP header geometry. The native Victory Conditions
-   button stays inside the Action Economy container; no duplicate portal control is used. */
+   button stays inside the Action Economy container; no duplicate portal control is used. PvP keeps
+   its centered three-column layout while adopting the AI battle header's visual measurements. */
 @media (min-width: 821px) {
   :global(main[data-pvp-battle='true'][data-pvp-desktop-parity='true']) {
     height: 100dvh !important;
@@ -15,6 +16,9 @@
   ) {
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
     gap: 0.55rem !important;
+    min-height: 3.25rem !important;
+    padding: 0.35rem clamp(0.55rem, 1vw, 0.85rem) !important;
+    background: rgba(5, 8, 12, 0.96) !important;
   }
 
   :global(
@@ -34,7 +38,7 @@
     position: relative !important;
     grid-column: 2 !important;
     grid-row: 1 !important;
-    grid-template-columns: clamp(13.5rem, 26vw, 28rem) auto !important;
+    grid-template-columns: clamp(13rem, 24vw, 24rem) auto !important;
     grid-template-rows: auto auto !important;
     width: max-content !important;
     max-width: 100% !important;
@@ -66,10 +70,54 @@
       [data-pvp-header-economy='true'][data-pvp-header-layout='approved']
       > div:first-child
   ) {
+    display: flex !important;
     grid-column: 1 !important;
     grid-row: 1 !important;
-    min-height: 1.05rem !important;
+    min-height: 0 !important;
+    gap: 0.5rem !important;
+    align-items: center !important;
+    justify-content: space-between !important;
     padding: 0.3rem 0.5rem 0 !important;
+  }
+
+  :global(
+    main[data-pvp-battle='true']
+      [data-pvp-header-economy='true'][data-pvp-header-layout='approved']
+      > div:first-child
+      > span
+  ) {
+    color: var(--av-text-dim) !important;
+    font: 700 0.45rem/1 var(--av-font-mono) !important;
+    letter-spacing: 0.05em !important;
+    text-transform: uppercase !important;
+  }
+
+  :global(
+    main[data-pvp-battle='true']
+      [data-pvp-header-economy='true'][data-pvp-header-layout='approved']
+      > div:first-child
+      > strong
+  ) {
+    position: static !important;
+    left: auto !important;
+    margin-left: auto !important;
+    color: var(--av-text-muted) !important;
+    font: 750 0.58rem/1 var(--av-font-mono) !important;
+    transform: none !important;
+    white-space: nowrap !important;
+  }
+
+  :global(
+    main[data-pvp-battle='true']
+      [data-pvp-header-economy='true'][data-pvp-header-layout='approved']
+      > div:first-child
+      > small
+  ) {
+    color: #e8b676 !important;
+    font: 750 0.47rem/1 var(--av-font-mono) !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+    white-space: nowrap !important;
   }
 
   :global(
@@ -79,7 +127,9 @@
   ) {
     grid-column: 1 !important;
     grid-row: 2 !important;
+    height: 0.46rem !important;
     margin: 0 0.5rem 0.3rem !important;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035) !important;
   }
 
   :global(
@@ -89,12 +139,16 @@
   ) {
     grid-column: 2 !important;
     grid-row: 1 / span 2 !important;
-    width: auto !important;
+    width: max-content !important;
     min-width: 7.25rem !important;
+    max-width: max-content !important;
+    height: 2.15rem !important;
     min-height: 2.15rem !important;
     margin-left: 0 !important;
-    align-self: stretch !important;
+    align-self: center !important;
     justify-self: start !important;
+    border-radius: var(--av-radius-sm) !important;
+    box-sizing: border-box !important;
     white-space: nowrap !important;
   }
 
@@ -105,11 +159,32 @@
   ) {
     grid-column: 3 !important;
     grid-row: 1 !important;
+    min-width: 6.1rem !important;
     height: 2.15rem !important;
     min-height: 2.15rem !important;
+    gap: 0.08rem !important;
+    align-content: center !important;
     align-self: center !important;
     justify-self: end !important;
+    padding: 0.35rem 0.58rem !important;
+    border: 1px solid var(--av-border-strong) !important;
     border-radius: var(--av-radius-sm) !important;
+    color: var(--av-text) !important;
+    background: rgba(255, 255, 255, 0.025) !important;
+    font: 750 0.52rem/1 var(--av-font-mono) !important;
+    text-transform: uppercase !important;
+    box-sizing: border-box !important;
+  }
+
+  :global(
+    main[data-pvp-battle='true'][data-pvp-desktop-parity='true']
+      > header[data-pvp-header-layout='approved']
+      > button:last-child
+      > small
+  ) {
+    color: var(--av-text-dim) !important;
+    font-size: 0.39rem !important;
+    letter-spacing: 0.04em !important;
   }
 
   :global(main[data-pvp-battle='true'][data-pvp-desktop-parity='true'] > footer) {
