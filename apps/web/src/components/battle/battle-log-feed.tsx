@@ -12,6 +12,7 @@ import {
   type BattleLogSegment,
   type PresentedBattleLogRound,
 } from './battle-log-presentation'
+import { consolidatePresentedBattleLogRounds } from './battle-log-round-groups'
 import styles from './battle-log-feed.module.css'
 
 interface BattleLogFeedProps {
@@ -72,10 +73,14 @@ export function BattleLogFeed({
   skillNarrations,
   emptyMessage = 'No committed battle actions yet.',
 }: BattleLogFeedProps) {
-  const rounds = useMemo(
-    () => buildBattleLogPresentation(entries, { playerName, combatantNames, skillNarrations }),
-    [combatantNames, entries, playerName, skillNarrations],
-  )
+  const rounds = useMemo(() => {
+    const presented = buildBattleLogPresentation(entries, {
+      playerName,
+      combatantNames,
+      skillNarrations,
+    })
+    return consolidatePresentedBattleLogRounds(presented)
+  }, [combatantNames, entries, playerName, skillNarrations])
   const [requestedRound, setRequestedRound] = useState<string | null | undefined>(undefined)
   const expandedRound = expandedRoundKey(rounds, requestedRound)
 
@@ -83,11 +88,17 @@ export function BattleLogFeed({
 
   return (
     <div className={styles.feed} data-testid="battle-log-feed">
-      {rounds.map((round) => {
+      {rounds.map((round, index) => {
         const open = expandedRound === round.key
+        const latest = index === 0 && round.round !== null
         const roundLabel = round.round === null ? 'Battle' : `Round ${round.round}`
         return (
-          <section className={styles.round} data-open={open || undefined} key={round.key}>
+          <section
+            className={styles.round}
+            data-latest={latest || undefined}
+            data-open={open || undefined}
+            key={round.key}
+          >
             <button
               type="button"
               className={styles.roundHeader}
@@ -103,6 +114,7 @@ export function BattleLogFeed({
               </span>
               <span className={styles.roundTitle}>
                 <strong>{roundLabel}</strong>
+                {latest ? <em>Latest</em> : null}
                 <small>
                   {round.actions.length} action{round.actions.length === 1 ? '' : 's'}
                 </small>
@@ -133,9 +145,9 @@ export function BattleLogFeed({
                           <details className={styles.details}>
                             <summary>Details</summary>
                             <p>
-                              {action.details.map((item, index) => (
+                              {action.details.map((item, detailIndex) => (
                                 <span data-tone={item.tone} key={`${item.tone}:${item.label}`}>
-                                  {index > 0 ? ' · ' : ''}
+                                  {detailIndex > 0 ? ' · ' : ''}
                                   {item.label}
                                 </span>
                               ))}
