@@ -9,7 +9,21 @@
  * commits, and turn authority continue to come from PvpBattleExperience/server state.
  */
 
-/* Move: reachable/path tiles use the same green treatment as AI. */
+/*
+ * PvP keeps the last inspected/selected combatant marked with an inset gold outline.
+ * That is useful while inspecting, but it stacks as a second unrelated color box while
+ * Move/Attack/Guard/Recover/Finish Turn are active. AI does not layer that inspection cue
+ * over its action feedback, so suppress it only for active action modes.
+ */
+:global(
+  main[data-pvp-battle='true'][data-pvp-action-mode]
+    #battlefield
+    button[aria-label^='Tile '][data-selected]
+) {
+  outline: none !important;
+}
+
+/* Move: AI reachable tiles are border/glow only until an actual path is selected. */
 :global(
   main[data-pvp-battle='true'][data-pvp-action-mode='move']
     #battlefield
@@ -19,13 +33,36 @@
   box-shadow: inset 0 0 0.8rem rgba(62, 166, 96, 0.12) !important;
 }
 
+/* PvP normally fills every reachable tile green. Restore the AI tile surface underneath. */
+:global(
+  main[data-pvp-battle='true'][data-pvp-action-mode='move']
+    #battlefield
+    button[aria-label^='Tile '][data-reachable][data-terrain='open']:not([data-path])
+) {
+  background: linear-gradient(145deg, rgba(74, 91, 96, 0.32), rgba(25, 38, 45, 0.78)) !important;
+}
+
+:global(
+  main[data-pvp-battle='true'][data-pvp-action-mode='move']
+    #battlefield
+    button[aria-label^='Tile '][data-reachable][data-terrain='rough']:not([data-path])
+) {
+  background:
+    repeating-linear-gradient(135deg, rgba(160, 125, 79, 0.14) 0 3px, transparent 3px 8px),
+    linear-gradient(145deg, rgba(95, 72, 49, 0.5), rgba(39, 38, 35, 0.88)) !important;
+}
+
+/* Once a path exists, use the exact AI path fill/outline treatment. */
 :global(
   main[data-pvp-battle='true'][data-pvp-action-mode='move']
     #battlefield
     button[aria-label^='Tile '][data-path]
 ) {
-  border-color: rgba(110, 220, 142, 0.95) !important;
-  box-shadow: inset 0 0 0 2px rgba(78, 196, 111, 0.35) !important;
+  border-color: rgba(98, 210, 138, 0.86) !important;
+  background:
+    linear-gradient(rgba(52, 150, 87, 0.13), rgba(52, 150, 87, 0.13)),
+    #12201a !important;
+  box-shadow: inset 0 0 0 2px rgba(83, 188, 121, 0.3) !important;
 }
 
 /* AI marks every non-reachable destination unavailable, except the acting unit's tile. */
@@ -39,20 +76,20 @@
   filter: saturate(0.68);
 }
 
-/* Basic Attack: legal enemy is amber; adjacent illegal targets remain red. */
+/* Basic Attack: copy the AI target-relation presentation exactly. */
 :global(
   main[data-pvp-battle='true'][data-pvp-action-mode='attack']
     #battlefield
     button[aria-label^='Tile '][data-target='enemy']
 ) {
-  z-index: 2 !important;
+  z-index: 4 !important;
   border-color: rgba(239, 169, 75, 0.98) !important;
   background:
     linear-gradient(rgba(209, 121, 39, 0.13), rgba(209, 121, 39, 0.13)),
-    #1c1711 !important;
+    linear-gradient(145deg, rgba(74, 91, 96, 0.32), rgba(25, 38, 45, 0.78)) !important;
   box-shadow:
-    inset 0 0 0 2px rgba(239, 169, 75, 0.48),
-    0 0 0.75rem rgba(222, 131, 44, 0.24) !important;
+    inset 0 0 0 2px rgba(239, 169, 75, 0.5),
+    0 0 0.85rem rgba(222, 131, 44, 0.3) !important;
 }
 
 :global(
@@ -62,9 +99,10 @@
 ) {
   border-color: rgba(226, 83, 83, 0.9) !important;
   box-shadow: inset 0 0 0 2px rgba(206, 62, 62, 0.34) !important;
+  filter: saturate(0.78);
 }
 
-/* Guard / Recover: self-target stays visibly green, matching the AI selected-unit cue. */
+/* Guard / Recover: copy the AI friendly self-target infill and glow exactly. */
 :global(
   main[data-pvp-battle='true'][data-pvp-action-mode='guard']
     #battlefield
@@ -75,27 +113,30 @@
     #battlefield
     button[aria-label^='Tile '][data-target='friendly']
 ) {
-  z-index: 2 !important;
+  z-index: 4 !important;
   border-color: rgba(102, 218, 143, 0.98) !important;
+  background:
+    linear-gradient(rgba(54, 156, 91, 0.13), rgba(54, 156, 91, 0.13)),
+    linear-gradient(145deg, rgba(74, 91, 96, 0.32), rgba(25, 38, 45, 0.78)) !important;
   box-shadow:
-    inset 0 0 0 2px rgba(102, 218, 143, 0.46),
-    0 0 0.75rem rgba(70, 190, 112, 0.22) !important;
+    inset 0 0 0 2px rgba(102, 218, 143, 0.5),
+    0 0 0.85rem rgba(70, 190, 112, 0.28) !important;
 }
 
-/* Finish Turn: reinforce the shared AI/PvP facing-guide treatment over PvP desktop tile polish. */
+/* Finish Turn: copy the AI facing-guide surface, arrow, glow, and pulse exactly. */
 :global(
   main[data-pvp-battle='true'][data-pvp-action-mode='finish']
     #battlefield
     [data-facing-guide='true']
 ) {
-  z-index: 8 !important;
-  border-color: rgba(244, 204, 72, 0.98) !important;
+  z-index: 6 !important;
+  border-color: rgba(244, 205, 83, 0.94) !important;
   background:
-    linear-gradient(rgba(244, 204, 72, 0.16), rgba(244, 204, 72, 0.16)),
-    rgba(29, 26, 15, 0.95) !important;
+    linear-gradient(rgba(216, 174, 45, 0.14), rgba(216, 174, 45, 0.14)),
+    linear-gradient(145deg, rgba(74, 91, 96, 0.32), rgba(25, 38, 45, 0.78)) !important;
   box-shadow:
-    inset 0 0 0 2px rgba(244, 204, 72, 0.45),
-    0 0 0.9rem rgba(244, 204, 72, 0.32) !important;
+    inset 0 0 0 2px rgba(250, 212, 87, 0.48),
+    0 0 0.95rem rgba(239, 190, 53, 0.32) !important;
 }
 
 :global(
@@ -108,8 +149,35 @@
   z-index: 12;
   display: grid;
   place-items: center;
-  color: #ffe06e;
-  font: 800 clamp(1rem, 2.2vw, 1.7rem) / 1 var(--av-font-mono);
-  text-shadow: 0 0 0.75rem rgba(255, 214, 75, 0.9);
+  color: #f8d968;
+  font-size: clamp(1rem, 2.4vw, 1.7rem);
+  font-weight: 900;
+  line-height: 1;
+  text-shadow:
+    0 0 0.35rem rgba(251, 214, 93, 0.95),
+    0 1px 0 rgba(0, 0, 0, 0.85);
   pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  :global(
+    main[data-pvp-battle='true'][data-pvp-action-mode='finish']
+      #battlefield
+      [data-facing-guide='true']
+  ) {
+    animation: pvpAiFacingGuidePulse 1.1s ease-in-out infinite alternate;
+  }
+}
+
+@keyframes pvpAiFacingGuidePulse {
+  from {
+    box-shadow:
+      inset 0 0 0 2px rgba(250, 212, 87, 0.36),
+      0 0 0.55rem rgba(239, 190, 53, 0.2);
+  }
+  to {
+    box-shadow:
+      inset 0 0 0 2px rgba(250, 212, 87, 0.6),
+      0 0 1.05rem rgba(239, 190, 53, 0.4);
+  }
 }
