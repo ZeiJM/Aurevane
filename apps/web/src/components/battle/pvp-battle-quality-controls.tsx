@@ -98,7 +98,7 @@ export function PvpBattleQualityControls({
       let clockSlot =
         target?.querySelector<HTMLElement>(':scope > [data-pvp-turn-clock-slot="true"]') ?? null
       if (target && !clockSlot) {
-        clockSlot = document.createElement('span')
+        clockSlot = document.createElement('div')
         clockSlot.dataset.pvpTurnClockSlot = 'true'
         clockSlot.style.display = 'inline-flex'
         clockSlot.style.order = '1'
