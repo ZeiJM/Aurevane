@@ -109,7 +109,7 @@
   display: grid;
   place-items: center;
   color: #ffe06e;
-  font: 800 clamp(1rem, 2.2vw, 1.7rem)/1 var(--av-font-mono);
+  font: 800 clamp(1rem, 2.2vw, 1.7rem) / 1 var(--av-font-mono);
   text-shadow: 0 0 0.75rem rgba(255, 214, 75, 0.9);
   pointer-events: none;
 }
