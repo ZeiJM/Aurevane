@@ -76,9 +76,5 @@
 
   :global([data-ai-combatant-token='true']) {
     border-color: var(--battle-combatant-accent) !important;
-    box-shadow:
-      0 0 0 1px color-mix(in srgb, var(--battle-combatant-accent) 36%, transparent),
-      0 0 0.85rem color-mix(in srgb, var(--battle-combatant-accent) 52%, transparent),
-      0 0.35rem 0.9rem rgba(0, 0, 0, 0.4) !important;
   }
 }
