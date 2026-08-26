@@ -39,7 +39,7 @@ jobs:
       - name: Start local Supabase stack
         run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
 
-      - name: Verify desktop and mobile shell
+      - name: Verify desktop PvP recovery
         shell: bash
         run: |
           set -euo pipefail
@@ -64,7 +64,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL="$api_url" \
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
           SUPABASE_SECRET_KEY="$server_key" \
-          pnpm --filter @aurevane/web test:browser
+          pnpm --filter @aurevane/web exec playwright test e2e/pvp-header-board-parity.pw.ts --config=playwright.config.ts --project=desktop-chromium
 
       - name: Stop local Supabase services
         if: always()
