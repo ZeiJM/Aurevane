@@ -5,7 +5,11 @@ import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
-import { buildBattleLogView, type BattleLogView } from './battle-log-service'
+import {
+  buildBattleLogView,
+  collectBattleEventHistory,
+  type BattleLogView,
+} from './battle-log-service'
 
 export interface PvpBattleChatMessageView {
   id: number
@@ -195,14 +199,19 @@ export async function getPvpBattleLog(
   battleSessionId: string,
 ): Promise<BattleLogView> {
   const supabase = createSupabaseAdminClient()
-  const { data, error } = await supabase.rpc('list_pvp_battle_events_v1', {
-    p_user_id: userId,
-    p_battle_session_id: battleSessionId,
-    p_limit: 100,
+  const records = await collectBattleEventHistory(async (pageSize, before) => {
+    const { data, error } = await supabase.rpc('list_pvp_battle_events_v2', {
+      p_user_id: userId,
+      p_battle_session_id: battleSessionId,
+      p_limit: pageSize,
+      p_before_battle_version: before?.battleVersion ?? null,
+      p_before_event_index: before?.eventIndex ?? null,
+    })
+    if (error) mapRpcError(error)
+    if (!Array.isArray(data)) throw unavailable('The battle log returned invalid data.')
+    return data.map(parseEventRow)
   })
-  if (error) mapRpcError(error)
-  if (!Array.isArray(data)) throw unavailable('The battle log returned invalid data.')
-  return buildBattleLogView(battleSessionId, data.map(parseEventRow))
+  return buildBattleLogView(battleSessionId, records)
 }
 
 export async function sendPvpBattleChat(

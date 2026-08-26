@@ -1,6 +1,10 @@
 import 'server-only'
 
-import type { BattleEventRecord, BattleEventRepository } from '@aurevane/db/battle-session'
+import type {
+  BattleEventCursor,
+  BattleEventRecord,
+  BattleEventRepository,
+} from '@aurevane/db/battle-session'
 
 export type BattleLogKind =
   'offense' | 'movement' | 'defense' | 'recovery' | 'status' | 'resource' | 'turn' | 'system'
@@ -41,7 +45,7 @@ export interface BattleLogService {
   getLog(userId: string, battleSessionId: string): Promise<BattleLogView>
 }
 
-const BATTLE_LOG_LIMIT = 100
+const BATTLE_LOG_PAGE_SIZE = 100
 
 function stringValue(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null
@@ -548,6 +552,20 @@ function annotateBattleContext(entries: readonly BattleLogEntry[]): BattleLogEnt
     })
   }
 
+  let nextRound: number | null = null
+  for (let index = oldestFirst.length - 1; index >= 0; index -= 1) {
+    const entry = oldestFirst[index]
+    if (!entry) continue
+    const key = eventKey(entry)
+    const resolved = context.get(key)
+    if (!resolved) continue
+    if (resolved.round !== null) {
+      nextRound = resolved.round
+      continue
+    }
+    if (nextRound !== null) context.set(key, { ...resolved, round: nextRound })
+  }
+
   return entries.map((entry) => {
     const resolved = context.get(eventKey(entry))
     return resolved ? { ...entry, ...resolved } : entry
@@ -568,10 +586,54 @@ export function buildBattleLogView(
   }
 }
 
+export async function collectBattleEventHistory(
+  fetchPage: (
+    pageSize: number,
+    before?: BattleEventCursor,
+  ) => Promise<readonly BattleEventRecord[]>,
+): Promise<BattleEventRecord[]> {
+  const records: BattleEventRecord[] = []
+  const seen = new Set<string>()
+  let before: BattleEventCursor | undefined
+
+  while (true) {
+    const page = await fetchPage(BATTLE_LOG_PAGE_SIZE, before)
+    if (page.length === 0) break
+
+    for (const record of page) {
+      const key = `${record.battleVersion}:${record.eventIndex}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      records.push(record)
+    }
+
+    if (page.length < BATTLE_LOG_PAGE_SIZE) break
+    const oldest = page.at(-1)
+    if (!oldest) break
+    const nextBefore: BattleEventCursor = {
+      battleVersion: oldest.battleVersion,
+      eventIndex: oldest.eventIndex,
+    }
+    if (
+      before?.battleVersion === nextBefore.battleVersion &&
+      before.eventIndex === nextBefore.eventIndex
+    ) {
+      throw new Error('Battle event history pagination did not advance.')
+    }
+    before = nextBefore
+  }
+
+  return records
+}
+
 export function createBattleLogService(repository: BattleEventRepository): BattleLogService {
   return {
     async getLog(userId, battleSessionId) {
-      const records = await repository.findBattleEvents(userId, battleSessionId, BATTLE_LOG_LIMIT)
+      const records = await collectBattleEventHistory((pageSize, before) =>
+        before
+          ? repository.findBattleEvents(userId, battleSessionId, pageSize, before)
+          : repository.findBattleEvents(userId, battleSessionId, pageSize),
+      )
       return buildBattleLogView(battleSessionId, records)
     },
   }
