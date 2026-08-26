@@ -28,7 +28,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Apply surgical Battle Log history integration
         run: python scripts/temp-battle-log-full-history.py
-      - name: Format changed sources
+      - name: Format changed TypeScript
         run: >-
           pnpm exec prettier --write
           packages/db/src/battle-session.ts
@@ -40,7 +40,6 @@ jobs:
           apps/web/src/components/battle/battle-log-presentation.ts
           apps/web/src/components/battle/battle-log-presentation.test.ts
           apps/web/src/components/battle/battle-log-feed.tsx
-          supabase/migrations/20260826003500_battle_log_full_history_pagination.sql
       - name: Run focused Battle Log regression tests
         run: >-
           pnpm --filter @aurevane/web exec vitest run
