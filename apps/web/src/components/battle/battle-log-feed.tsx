@@ -85,7 +85,7 @@ export function BattleLogFeed({
     <div className={styles.feed} data-testid="battle-log-feed">
       {rounds.map((round) => {
         const open = expandedRound === round.key
-        const roundLabel = round.round === null ? 'Recent' : `Round ${round.round}`
+        const roundLabel = round.round === null ? 'Battle' : `Round ${round.round}`
         return (
           <section className={styles.round} data-open={open || undefined} key={round.key}>
             <button

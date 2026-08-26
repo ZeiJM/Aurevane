@@ -603,7 +603,7 @@ export function buildBattleLogPresentation(
   const rounds: PresentedBattleLogRound[] = []
 
   for (const action of actions) {
-    const key = action.round === null ? 'recent' : `round:${action.round}`
+    const key = action.round === null ? 'battle' : `round:${action.round}`
     const current = rounds.at(-1)
     if (current?.key === key) {
       ;(current.actions as PresentedBattleLogAction[]).push(action)

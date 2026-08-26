@@ -21,7 +21,9 @@ as $$
 declare
   v_limit integer := greatest(1, least(coalesce(p_limit, 100), 100));
 begin
-  if (p_before_battle_version is null) <> (p_before_event_index is null) then
+  if (p_before_battle_version is null) <> (p_before_event_index is null)
+    or coalesce(p_before_battle_version, 1) < 1
+    or coalesce(p_before_event_index, 0) < 0 then
     raise exception using errcode = '22023', message = 'BATTLE_EVENT_CURSOR_INVALID';
   end if;
 
@@ -86,7 +88,9 @@ declare
   v_authorized boolean;
   v_limit integer := greatest(1, least(coalesce(p_limit, 100), 100));
 begin
-  if (p_before_battle_version is null) <> (p_before_event_index is null) then
+  if (p_before_battle_version is null) <> (p_before_event_index is null)
+    or coalesce(p_before_battle_version, 1) < 1
+    or coalesce(p_before_event_index, 0) < 0 then
     raise exception using errcode = '22023', message = 'BATTLE_EVENT_CURSOR_INVALID';
   end if;
 
