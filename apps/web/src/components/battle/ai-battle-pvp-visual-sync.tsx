@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 
+import terrainStyles from './ai-terrain-legend-pvp-parity.module.css'
 import styles from './ai-battle-pvp-visual-sync.module.css'
 
 const COMMAND_LABELS = new Set([
@@ -191,5 +192,5 @@ export function AiBattlePvpVisualSync({ playerName }: { playerName: string }) {
     }
   }, [playerName])
 
-  return <span className={styles.hook} aria-hidden="true" />
+  return <span className={`${styles.hook} ${terrainStyles.hook}`} aria-hidden="true" />
 }
