@@ -61,7 +61,6 @@ export function PvpBattleQualityControls({
   const [surrenderDialogOpen, setSurrenderDialogOpen] = useState(false)
   const [surrendering, setSurrendering] = useState(false)
   const [commandTarget, setCommandTarget] = useState<HTMLElement | null>(null)
-  const [opponentClockTarget, setOpponentClockTarget] = useState<HTMLElement | null>(null)
   const [footerActionsTarget, setFooterActionsTarget] = useState<HTMLElement | null>(null)
 
   const localCombatantId =
@@ -97,9 +96,7 @@ export function PvpBattleQualityControls({
         root?.querySelector<HTMLElement>('section[aria-label="Command Deck"]') ?? null
       const target =
         commandDeck?.firstElementChild instanceof HTMLElement ? commandDeck.firstElementChild : null
-      const turnHeading = target?.querySelector<HTMLElement>(':scope > strong') ?? null
       setCommandTarget(target)
-      setOpponentClockTarget(turnHeading)
 
       const footer = root?.querySelector<HTMLElement>('footer') ?? null
       const footerActions = footer
@@ -116,6 +113,23 @@ export function PvpBattleQualityControls({
     observer.observe(document.body, { childList: true, subtree: true })
     return () => observer.disconnect()
   }, [])
+
+  useEffect(() => {
+    if (!commandTarget || !showOpponentClock) return
+    const notice = Array.from(commandTarget.children).find(
+      (candidate) =>
+        candidate instanceof HTMLSpanElement &&
+        candidate.dataset.pvpOpponentTurnClock !== 'true' &&
+        candidate.dataset.pvpTurnClock !== 'true',
+    )
+    if (!(notice instanceof HTMLElement)) return
+
+    const previousOrder = notice.style.order
+    notice.style.order = '2'
+    return () => {
+      notice.style.order = previousOrder
+    }
+  }, [commandTarget, showOpponentClock])
 
   useEffect(() => {
     const receiveBattleState = (event: Event) => {
@@ -306,12 +320,13 @@ export function PvpBattleQualityControls({
           )
         : null}
 
-      {opponentClockTarget && battleIsActive && clock && showOpponentClock
+      {commandTarget && battleIsActive && clock && showOpponentClock
         ? createPortal(
             <span
               data-pvp-opponent-turn-clock="true"
               style={{
                 display: 'inline-flex',
+                order: 1,
                 flex: '0 0 auto',
                 maxWidth: '100%',
                 marginLeft: '.45rem',
@@ -347,7 +362,7 @@ export function PvpBattleQualityControls({
                 {opponentTimerText}
               </span>
             </span>,
-            opponentClockTarget,
+            commandTarget,
           )
         : null}
 
