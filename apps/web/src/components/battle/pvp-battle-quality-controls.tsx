@@ -61,6 +61,7 @@ export function PvpBattleQualityControls({
   const [surrenderDialogOpen, setSurrenderDialogOpen] = useState(false)
   const [surrendering, setSurrendering] = useState(false)
   const [commandTarget, setCommandTarget] = useState<HTMLElement | null>(null)
+  const [turnClockTarget, setTurnClockTarget] = useState<HTMLElement | null>(null)
   const [footerActionsTarget, setFooterActionsTarget] = useState<HTMLElement | null>(null)
 
   const localCombatantId =
@@ -73,21 +74,17 @@ export function PvpBattleQualityControls({
   const localTurn = Boolean(
     battleIsActive && localCombatantId && activeCombatantId === localCombatantId,
   )
-  const opponentClockTurn =
-    clock !== null &&
-    clock.active &&
-    Boolean(clock.combatantId) &&
-    Boolean(localCombatantId) &&
-    clock.combatantId !== localCombatantId
-  const opponentNoTimerTurn =
-    clock !== null &&
-    !clock.active &&
-    clock.turnTimerSeconds === null &&
+  const opponentTurn = Boolean(
     battleIsActive &&
-    Boolean(activeCombatantId) &&
-    Boolean(localCombatantId) &&
-    activeCombatantId !== localCombatantId
-  const showOpponentClock = opponentClockTurn || opponentNoTimerTurn
+      activeCombatantId &&
+      localCombatantId &&
+      activeCombatantId !== localCombatantId,
+  )
+  const clockMatchesActiveTurn = Boolean(
+    clock?.combatantId && activeCombatantId && clock.combatantId === activeCombatantId,
+  )
+  const activeClockReady = Boolean(clock?.active && clockMatchesActiveTurn)
+  const configuredNoTimer = Boolean(clock && !clock.active && clock.turnTimerSeconds === null)
 
   useEffect(() => {
     const locate = () => {
@@ -97,6 +94,24 @@ export function PvpBattleQualityControls({
       const target =
         commandDeck?.firstElementChild instanceof HTMLElement ? commandDeck.firstElementChild : null
       setCommandTarget(target)
+
+      let clockSlot =
+        target?.querySelector<HTMLElement>(':scope > [data-pvp-turn-clock-slot="true"]') ?? null
+      if (target && !clockSlot) {
+        clockSlot = document.createElement('span')
+        clockSlot.dataset.pvpTurnClockSlot = 'true'
+        clockSlot.style.display = 'inline-flex'
+        clockSlot.style.order = '1'
+        clockSlot.style.flex = '0 0 auto'
+        clockSlot.style.alignItems = 'center'
+        clockSlot.style.overflow = 'visible'
+        clockSlot.style.visibility = 'visible'
+        clockSlot.style.opacity = '1'
+        const heading = target.querySelector<HTMLElement>(':scope > strong')
+        if (heading) heading.insertAdjacentElement('afterend', clockSlot)
+        else target.prepend(clockSlot)
+      }
+      setTurnClockTarget(clockSlot)
 
       const footer = root?.querySelector<HTMLElement>('footer') ?? null
       const footerActions = footer
@@ -115,10 +130,11 @@ export function PvpBattleQualityControls({
   }, [])
 
   useEffect(() => {
-    if (!commandTarget || !showOpponentClock) return
+    if (!commandTarget || !opponentTurn) return
     const notice = Array.from(commandTarget.children).find(
       (candidate) =>
         candidate instanceof HTMLSpanElement &&
+        candidate.dataset.pvpTurnClockSlot !== 'true' &&
         candidate.dataset.pvpOpponentTurnClock !== 'true' &&
         candidate.dataset.pvpTurnClock !== 'true',
     )
@@ -129,7 +145,7 @@ export function PvpBattleQualityControls({
     return () => {
       notice.style.order = previousOrder
     }
-  }, [commandTarget, showOpponentClock])
+  }, [commandTarget, opponentTurn])
 
   useEffect(() => {
     const receiveBattleState = (event: Event) => {
@@ -268,68 +284,71 @@ export function PvpBattleQualityControls({
   }
 
   const seconds = remainingSeconds(clock?.deadlineAt ?? null, now)
-  const timerText = clock?.active
+  const timerText = activeClockReady
     ? `${seconds}s`
-    : battleIsActive && clock?.turnTimerSeconds === null
+    : configuredNoTimer
       ? 'No timer'
-      : '—'
-  const opponentTimerText = clock?.active
+      : 'Timer syncing…'
+  const opponentTimerText = activeClockReady
     ? `${seconds}s left`
-    : battleIsActive && clock?.turnTimerSeconds === null
+    : configuredNoTimer
       ? 'No timer'
-      : '—'
-  const opponentTimerColor = clock?.active && seconds <= 10 ? '#ff8276' : '#e28a82'
+      : 'Timer syncing…'
+  const opponentTimerColor = activeClockReady && seconds <= 10 ? '#ff8276' : '#e28a82'
 
   return (
     <>
-      {commandTarget && localTurn
+      {turnClockTarget && localTurn
         ? createPortal(
             <span
               data-pvp-turn-clock="true"
               style={{
                 display: 'inline-flex',
-                order: 1,
                 flex: '0 0 auto',
                 maxWidth: '100%',
                 gap: '.34rem',
                 alignItems: 'center',
                 padding: '.2rem .38rem',
+                overflow: 'visible',
                 border: '1px solid rgba(111,172,143,.42)',
                 borderRadius: '999px',
                 background: 'rgba(75,143,111,.055)',
                 font: '750 .4rem/1 var(--av-font-mono)',
                 whiteSpace: 'nowrap',
+                visibility: 'visible',
+                opacity: 1,
               }}
               aria-live="polite"
               title={
-                clock?.turnTimerSeconds
-                  ? `${clock.turnTimerSeconds}-second PvP turn timer`
-                  : 'This PvP battle has no turn timer.'
+                configuredNoTimer
+                  ? 'This PvP battle has no turn timer.'
+                  : activeClockReady
+                    ? `${clock?.turnTimerSeconds}-second PvP turn timer`
+                    : 'PvP turn timer is synchronizing.'
               }
             >
               <span
                 style={{
-                  color: clock?.active && seconds <= 10 ? '#e48b78' : 'var(--av-brass-200)',
+                  overflow: 'visible',
+                  color: activeClockReady && seconds <= 10 ? '#e48b78' : 'var(--av-brass-200)',
                 }}
               >
                 {timerText}
               </span>
               {error ? <span style={{ color: '#e2a0a0' }}>{error}</span> : null}
             </span>,
-            commandTarget,
+            turnClockTarget,
           )
         : null}
 
-      {commandTarget && battleIsActive && clock && showOpponentClock
+      {turnClockTarget && opponentTurn
         ? createPortal(
             <span
               data-pvp-opponent-turn-clock="true"
               style={{
                 display: 'inline-flex',
-                order: 1,
                 flex: '0 0 auto',
                 maxWidth: '100%',
-                marginLeft: '.45rem',
                 alignItems: 'center',
                 padding: '.18rem .38rem',
                 overflow: 'visible',
@@ -342,12 +361,16 @@ export function PvpBattleQualityControls({
                 textOverflow: 'clip',
                 textTransform: 'none',
                 whiteSpace: 'nowrap',
+                visibility: 'visible',
+                opacity: 1,
               }}
               aria-live="polite"
               title={
-                clock.turnTimerSeconds
-                  ? `${seconds} seconds remain in the opponent's turn.`
-                  : 'This PvP battle has no turn timer.'
+                configuredNoTimer
+                  ? 'This PvP battle has no turn timer.'
+                  : activeClockReady
+                    ? `${seconds} seconds remain in the opponent's turn.`
+                    : 'Opponent turn timer is synchronizing.'
               }
             >
               <span
@@ -362,7 +385,7 @@ export function PvpBattleQualityControls({
                 {opponentTimerText}
               </span>
             </span>,
-            commandTarget,
+            turnClockTarget,
           )
         : null}
 
