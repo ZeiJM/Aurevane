@@ -18,9 +18,7 @@ describe('PvP AI-style header parity', () => {
   it('discovers the AP panel from its stable progressbar and mirrors Victory Conditions beside it', () => {
     const releasePolish = readLocalFile('pvp-battle-release-polish.tsx')
 
-    expect(releasePolish).toContain(
-      '[role="progressbar"][aria-label="Action Economy remaining"]',
-    )
+    expect(releasePolish).toContain('[role="progressbar"][aria-label="Action Economy remaining"]')
     expect(releasePolish).toContain("economy.dataset.pvpHeaderEconomy = 'true'")
     expect(releasePolish).toContain("button.textContent?.includes('Victory Conditions')")
     expect(releasePolish).toContain('data-pvp-header-victory-mirror="true"')
