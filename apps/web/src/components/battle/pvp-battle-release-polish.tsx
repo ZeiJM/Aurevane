@@ -1,16 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
+import { useEffect } from 'react'
 
 import styles from './pvp-battle-release-polish.module.css'
 import parityStyles from './pvp-battle-shell-parity-fix.module.css'
 
-export function PvpBattleReleasePolish() {
-  const [headerTarget, setHeaderTarget] = useState<HTMLElement | null>(null)
-  const [victorySource, setVictorySource] = useState<HTMLButtonElement | null>(null)
-  const [victoryCount, setVictoryCount] = useState('0/1')
+const APPROVED_HEADER_LAYOUT = 'approved'
 
+export function PvpBattleReleasePolish() {
   useEffect(() => {
     let frame: number | null = null
 
@@ -18,28 +15,18 @@ export function PvpBattleReleasePolish() {
       frame = null
       const root = document.querySelector<HTMLElement>('main[data-pvp-battle="true"]')
       const header = root?.querySelector<HTMLElement>(':scope > header') ?? null
-      const hookedEconomy =
-        root?.querySelector<HTMLElement>('[data-pvp-header-economy="true"]') ?? null
       const economyTrack =
         header?.querySelector<HTMLElement>(
           '[role="progressbar"][aria-label="Action Economy remaining"]',
         ) ?? null
       const economy =
-        hookedEconomy ??
-        (economyTrack?.parentElement instanceof HTMLElement ? economyTrack.parentElement : null)
+        economyTrack?.parentElement instanceof HTMLElement ? economyTrack.parentElement : null
 
-      if (economy) economy.dataset.pvpHeaderEconomy = 'true'
-      const source = economy
-        ? (Array.from(economy.querySelectorAll<HTMLButtonElement>('button')).find((button) =>
-            button.textContent?.includes('Victory Conditions'),
-          ) ?? null)
-        : null
-
-      if (source) source.dataset.pvpHeaderVictorySource = 'true'
-      const count = source?.querySelector<HTMLElement>('strong')?.textContent?.trim()
-      if (count) setVictoryCount((current) => (current === count ? current : count))
-      setHeaderTarget((current) => (current === header ? current : header))
-      setVictorySource((current) => (current === source ? current : source))
+      if (header) header.dataset.pvpHeaderLayout = APPROVED_HEADER_LAYOUT
+      if (economy) {
+        economy.dataset.pvpHeaderEconomy = 'true'
+        economy.dataset.pvpHeaderLayout = APPROVED_HEADER_LAYOUT
+      }
     }
 
     const schedule = () => {
@@ -49,32 +36,22 @@ export function PvpBattleReleasePolish() {
 
     locate()
     const observer = new MutationObserver(schedule)
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true })
+    observer.observe(document.body, { childList: true, subtree: true })
 
     return () => {
       observer.disconnect()
       if (frame !== null) window.cancelAnimationFrame(frame)
-      victorySource?.removeAttribute('data-pvp-header-victory-source')
+      const root = document.querySelector<HTMLElement>('main[data-pvp-battle="true"]')
+      root
+        ?.querySelector<HTMLElement>(`:scope > header[data-pvp-header-layout="${APPROVED_HEADER_LAYOUT}"]`)
+        ?.removeAttribute('data-pvp-header-layout')
+      root
+        ?.querySelector<HTMLElement>(
+          `[data-pvp-header-economy="true"][data-pvp-header-layout="${APPROVED_HEADER_LAYOUT}"]`,
+        )
+        ?.removeAttribute('data-pvp-header-layout')
     }
-  }, [victorySource])
+  }, [])
 
-  return (
-    <>
-      <span className={`${styles.hook} ${parityStyles.hook}`} aria-hidden="true" />
-      {headerTarget && victorySource
-        ? createPortal(
-            <button
-              type="button"
-              className={parityStyles.victoryMirror}
-              data-pvp-header-victory-mirror="true"
-              onClick={() => victorySource.click()}
-            >
-              <span>Victory Conditions</span>
-              <strong>{victoryCount}</strong>
-            </button>,
-            headerTarget,
-          )
-        : null}
-    </>
-  )
+  return <span className={`${styles.hook} ${parityStyles.hook}`} aria-hidden="true" />
 }
