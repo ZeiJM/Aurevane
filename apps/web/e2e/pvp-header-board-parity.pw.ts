@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
+import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueIdentity(prefix: string): { email: string; characterName: string } {
   const seed = `${Date.now()}${Math.floor(Math.random() * 100_000)}`
@@ -25,13 +25,13 @@ test('keeps the live desktop PvP header AI-aligned and the full board visible', 
   const guest = await guestContext.newPage()
 
   try {
-    await createAccountAndEnterCharacter({
+    await provisionAccountAndEnterCharacter({
       page: host,
       email: hostIdentity.email,
       password,
       characterName: hostIdentity.characterName,
     })
-    await createAccountAndEnterCharacter({
+    await provisionAccountAndEnterCharacter({
       page: guest,
       email: guestIdentity.email,
       password,
