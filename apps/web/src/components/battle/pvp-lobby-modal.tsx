@@ -164,10 +164,7 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
           schedulePoll()
           return
         }
-        if (
-          lobbyMutationPending.current ||
-          generation !== lobbyMutationGeneration.current
-        ) {
+        if (lobbyMutationPending.current || generation !== lobbyMutationGeneration.current) {
           schedulePoll()
           return
         }
