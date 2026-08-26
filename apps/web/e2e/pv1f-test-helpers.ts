@@ -129,18 +129,7 @@ export async function provisionAccountAndEnterCharacter(input: {
   password: string
   characterName: string
 }): Promise<void> {
-  const { page, email, password, characterName } = input
-  const supabase = createTestAuthAdminClient()
-  const { error } = await supabase.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-  })
-
-  if (error) throw error
-
-  await signInExistingAccount({ page, email, password })
-  await createCharacterAfterSignIn({ page, characterName })
+  await createAccountAndEnterCharacter(input)
 }
 
 export async function signOutFromAccountMenu(page: Page): Promise<void> {
