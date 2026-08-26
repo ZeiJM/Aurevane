@@ -46,8 +46,9 @@ test('keeps the live desktop PvP header AI-aligned and the full board visible', 
 
     await host.goto('/game/battle')
     await host.getByRole('button', { name: /Player vs Player/ }).click()
-    await expect(host.getByRole('heading', { name: /Challenge another player/ })).toBeVisible()
-    await host.getByRole('button', { name: 'Create Battle Lobby' }).click()
+    const createLobbyButton = host.getByRole('button', { name: 'Create Battle Lobby' })
+    await expect(createLobbyButton).toBeVisible()
+    await createLobbyButton.click()
 
     const hostDialog = host.getByRole('dialog', { name: 'The arena is waiting.' })
     await expect(hostDialog).toBeVisible()
