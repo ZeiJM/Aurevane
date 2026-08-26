@@ -4,7 +4,7 @@ This file reports the **current implementation/validation boundary**.
 
 `docs/GAME_MASTER_PLAN.md` defines the product. `docs/ROADMAP.md` defines phase sequence. Canonical domain documents define system rules. Current `docs/PHASE_*_TICKETS.md` files define exact active/next execution.
 
-**Reconciled:** 2026-08-23
+**Reconciled:** 2026-08-26
 
 ---
 
@@ -26,7 +26,8 @@ Official Phase-2 credit includes:
 - PvP communication/timing/reconnect foundations;
 - keyed read-only spectation;
 - spectator presence/chat/logs/Inspect;
-- multi-combatant desktop/mobile battle presentation.
+- multi-combatant desktop/mobile battle presentation;
+- Phase-2 Supabase performance baseline and additive FK-index hardening completed 2026-08-26 without changing gameplay/authority semantics.
 
 **ACTIVE VALIDATION GATE:** issue #105 — PV-1 Tactical Combat Human/Internal Validation — open until explicitly reconciled/closed.
 
@@ -38,8 +39,9 @@ Do not infer Phase-2 PASS from automation, merges or deployment.
 
 New implementation should be either:
 
-1. one contained Phase-2 correction justified by current testing; or
-2. **P3.1** after the Owner explicitly closes Phase 2.
+1. one contained Phase-2 correction justified by current testing;
+2. one evidence-backed behavior-preserving Phase-2 performance hardening item allowed by `docs/ROADMAP_PERFORMANCE_SCALING.md`; or
+3. **P3.1** after the Owner explicitly closes Phase 2.
 
 **NEXT MAJOR FEATURE PHASE:** Phase 3 — Signature Buildcraft Foundation.
 
@@ -58,9 +60,43 @@ Contained fixes may address real findings in:
 - communication/timing regressions;
 - active battle/spectation safety;
 - profile/training/session interactions affecting the tested flow;
-- genuine authority/security defects.
+- genuine authority/security defects;
+- measured request/database performance findings that can be corrected without changing gameplay behavior or authority boundaries.
 
 Do not convert testing into unrelated Phase-3/4 scope.
+
+Performance/scaling checkpoints are automatic at the boundaries defined in `docs/ROADMAP.md`; detailed behavior-preserving rules live in `docs/ROADMAP_PERFORMANCE_SCALING.md`.
+
+---
+
+## Phase-2 performance checkpoint — 2026-08-26
+
+Current evidence:
+
+- Supabase resource health is good with substantial headroom;
+- ordinary gameplay reads are fast;
+- request/polling shape is a larger future scaling concern than raw PostgreSQL execution;
+- `commit_battle_intent_v2` already contains idempotency, expected-version and row-lock protections and must not be weakened for performance;
+- active game-session leasing and character presence are separate responsibilities;
+- historical rollback volume and combat-write tail latency remain diagnosis/measurement items, not justification for speculative rewrites.
+
+Completed now:
+
+- added `app_private.pvp_lobby_members(user_id)` FK-supporting index;
+- added `app_private.product_validation_events(character_id)` FK-supporting index;
+- reran Supabase performance advisor and confirmed both unindexed-FK findings cleared;
+- preserved all gameplay, timer, session, combat, reward, progression and security semantics.
+
+Deferred until code tracing/measurement justifies a contained change:
+
+- request single-flight/deduplication;
+- hidden-tab/adaptive polling;
+- version-aware battle reads;
+- selective battle/clock/event read consolidation;
+- Realtime chat/presence or battle invalidation hints;
+- broader load/concurrency testing.
+
+Do not implement these merely because they are listed. Measure first and apply the smallest safe step.
 
 ---
 
@@ -69,9 +105,9 @@ Do not convert testing into unrelated Phase-3/4 scope.
 ```text
 OWNER TESTING / CURRENT STABILIZATION
   ↓
-Only justified contained Phase-2 corrections
+Only justified contained Phase-2 corrections / behavior-preserving hardening
   ↓
-Representative candidate / evidence review
+Automatic Phase-2 performance/scaling checkpoint + representative evidence review
   ↓
 EXPLICIT OWNER DECISION
   ├── NOT READY → smallest repeated defect → retest
@@ -103,6 +139,7 @@ Before runtime implementation:
 
 - inspect current repository truth;
 - reconcile the phase boundary;
+- run/reconcile the automatic performance checkpoint required by `docs/ROADMAP.md`;
 - preserve/reuse the current battle platform;
 - activate **P3.1 — Discipline Build Authority + Primary Base Profiles**.
 
@@ -191,7 +228,8 @@ Rules:
 
 ## Current documentation truth
 
-- `docs/ROADMAP.md` — current canonical phase plan.
+- `docs/ROADMAP.md` — current canonical phase plan, including automatic performance/scaling checkpoints.
+- `docs/ROADMAP_PERFORMANCE_SCALING.md` — Owner-approved behavior-preserving performance/scaling companion and checkpoint procedure.
 - `AGENTS.md` — permanent current coding/execution guidance.
 - `docs/COMBAT.md` — current combat authority.
 - `docs/PHASE_2_TICKETS.md` — historical Phase-2 record.
@@ -217,5 +255,6 @@ Passive Training early-stop reward semantics still require explicit canonical re
 5. Early-delivered compatible work receives roadmap credit and is reused later.
 6. Automated tests prove implementation safety, not fun/product validation.
 7. Reconcile repository truth at every phase boundary.
-8. Phase activation and deployment authorization are separate decisions.
-9. Keep this ledger current and concise.
+8. Run the roadmap's automatic performance/scaling checkpoint at defined phase/scale boundaries; optimize only measured bottlenecks without changing game behavior or authority semantics.
+9. Phase activation and deployment authorization are separate decisions.
+10. Keep this ledger current and concise.
