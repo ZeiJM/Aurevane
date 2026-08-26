@@ -16,7 +16,13 @@ function uniqueIdentity(prefix: string): { email: string; characterName: string 
   }
 }
 
-test('keeps the live desktop PvP header AI-aligned and the full board visible', async ({
+function readCountdownSeconds(text: string | null): number {
+  const match = text?.match(/(\d+)s left/)
+  if (!match) throw new Error(`Expected opponent countdown text, received: ${text ?? '<empty>'}`)
+  return Number(match[1])
+}
+
+test('keeps the live desktop PvP header, opponent timer, and full board stable', async ({
   browser,
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop PvP geometry regression')
@@ -74,6 +80,24 @@ test('keeps the live desktop PvP header AI-aligned and the full board visible', 
     await expect(guest).toHaveURL(/\/game\/battle\/[0-9a-f-]+$/i, { timeout: 20_000 })
 
     const root = host.locator("main[data-pvp-battle='true']")
+    const guestRoot = guest.locator("main[data-pvp-battle='true']")
+    await expect(root).toBeVisible()
+    await expect(guestRoot).toBeVisible()
+
+    const hostHasTurn = (await root.getAttribute('data-local-turn')) === 'true'
+    const waitingRoot = hostHasTurn ? guestRoot : root
+    const waitingPage = hostHasTurn ? guest : host
+    const opponentClock = waitingRoot.locator("[data-pvp-opponent-turn-clock='true']")
+
+    await expect(opponentClock).toBeVisible({ timeout: 10_000 })
+    await expect(opponentClock).toHaveText(/\d+s left/, { timeout: 10_000 })
+    const firstCountdown = readCountdownSeconds(await opponentClock.textContent())
+    expect(firstCountdown).toBeGreaterThan(0)
+    expect(firstCountdown).toBeLessThanOrEqual(60)
+    await waitingPage.waitForTimeout(1_400)
+    const secondCountdown = readCountdownSeconds(await opponentClock.textContent())
+    expect(secondCountdown).toBeLessThan(firstCountdown)
+
     const header = root.locator(':scope > header')
     const economy = header.locator("[data-pvp-header-economy='true']")
     const victory = economy.getByRole('button', { name: /Victory Conditions/i })
@@ -83,7 +107,6 @@ test('keeps the live desktop PvP header AI-aligned and the full board visible', 
     const board = viewport.locator(':scope > div').first()
     const tiles = board.locator("button[aria-label^='Tile ']")
 
-    await expect(root).toBeVisible()
     await expect(header).toHaveAttribute('data-pvp-header-layout', 'approved')
     await expect(economy).toHaveAttribute('data-pvp-header-layout', 'approved')
     await expect(victory).toBeVisible()
