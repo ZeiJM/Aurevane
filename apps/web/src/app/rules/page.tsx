@@ -42,9 +42,9 @@ export default function RulesPage() {
           </span>
           <strong>Stable rules, honest scope.</strong>
           <p>
-            Direct private PvP and spectation are current Phase 2 test features. Ranked, marketplace,
-            guild, tournament, and mature social policy is published only when those systems become
-            real.
+            Direct private PvP and spectation are current Phase 2 test features. Ranked,
+            marketplace, guild, tournament, and mature social policy is published only when those
+            systems become real.
           </p>
         </aside>
       </section>
