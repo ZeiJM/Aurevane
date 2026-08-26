@@ -117,7 +117,7 @@
     gap: 0.42rem !important;
   }
 
-  :global([data-ai-pvp-battlefield='true'] [data-board-auto-fit]) {
+  :global(#battlefield [data-board-auto-fit]) {
     width: min(100%, 38.75rem) !important;
     max-width: 38.75rem !important;
     max-height: 100% !important;
@@ -127,7 +127,7 @@
     row-gap: 0 !important;
   }
 
-  :global([data-ai-pvp-battlefield='true'] [data-board-auto-fit] > button) {
+  :global(#battlefield [data-board-auto-fit] > button) {
     height: 100% !important;
     align-self: stretch !important;
   }
