@@ -29,8 +29,7 @@
   }
 
   :global(
-    main[data-pvp-battle='true']
-      [data-pvp-header-economy='true'][data-pvp-header-layout='approved']
+    main[data-pvp-battle='true'] [data-pvp-header-economy='true'][data-pvp-header-layout='approved']
   ) {
     position: relative !important;
     grid-column: 2 !important;
