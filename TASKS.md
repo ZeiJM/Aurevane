@@ -4,13 +4,17 @@ This file reports the **current implementation/validation boundary**.
 
 `docs/GAME_MASTER_PLAN.md` defines the product. `docs/ROADMAP.md` defines phase sequence. Canonical domain documents define system rules. Current `docs/PHASE_*_TICKETS.md` files define exact active/next execution.
 
-**Reconciled:** 2026-08-23
+**Reconciled:** 2026-08-26
 
 ---
 
 ## Current status
 
-**Stage:** Phase 2 — Tactical Combat & Battle Platform — **Owner testing / stabilization / PV-1 exit validation**
+**Phase 1 — Character & Progression Foundation:** **COMPLETE by Owner decision.**
+
+Phase-1 credit includes the persistent account/character/progression foundation, six universal attributes, Character XP/level boundaries, character/profile identity, Passive Training, and the supporting player-shell foundations now used by later phases.
+
+**Stage:** Phase 2 — Tactical Combat & Battle Platform — **Owner testing / stabilization**.
 
 **Phase-2 implementation:** mature and substantially beyond the original minimum.
 
@@ -18,36 +22,31 @@ Official Phase-2 credit includes:
 
 - tactical combat and current 100-AP Action Economy;
 - movement/path/terrain/elevation/facing;
-- targeting/requirements/effects/status foundations;
+- Basic Attack / Guard / Recover and current command/preview flow;
 - authoritative persistence/reconnect/idempotency;
 - responsive battle UI/Inspect/forecasts/logs;
 - Recruit AI and Battle Hall / AI Sparring;
-- direct PvP lobbies/shared battles/multiple formats;
+- direct private PvP lobbies/shared battles/multiple formats;
 - PvP communication/timing/reconnect foundations;
 - keyed read-only spectation;
 - spectator presence/chat/logs/Inspect;
 - multi-combatant desktop/mobile battle presentation.
 
-**ACTIVE VALIDATION GATE:** issue #105 — PV-1 Tactical Combat Human/Internal Validation — open until explicitly reconciled/closed.
+**ACTIVE VALIDATION GATE:** issue #105 — **PV-1 (Phase 2 test)** — remains open while the Owner continues testing the tactical combat/battle platform.
+
+PV-1 is the Phase-2 human/product validation gate. It is **not** a Phase-1 gate, and automation or deployment does not close it automatically.
 
 **OWNER TESTING:** active.
 
-Do not infer Phase-2 PASS from automation, merges or deployment.
+**ACTIVE IMPLEMENTATION TICKET:** none beyond contained Phase-2 corrections, documentation reconciliation, and release hygiene justified by current testing.
 
-**ACTIVE IMPLEMENTATION TICKET:** none at this reconciliation point.
-
-New implementation should be either:
-
-1. one contained Phase-2 correction justified by current testing; or
-2. **P3.1** after the Owner explicitly closes Phase 2.
-
-**NEXT MAJOR FEATURE PHASE:** Phase 3 — Signature Buildcraft Foundation.
+**PHASE 3:** **NOT ACTIVE / NOT AUTHORIZED YET.** `docs/PHASE_3_TICKETS.md` remains the future execution sequence only after the Owner explicitly closes Phase 2 and instructs the project to proceed.
 
 ---
 
 ## Allowed while Phase 2 remains open
 
-Contained fixes may address real findings in:
+Contained work may address real findings in:
 
 - battle readability/scale;
 - multi-combatant rails/Inspect;
@@ -58,23 +57,33 @@ Contained fixes may address real findings in:
 - communication/timing regressions;
 - active battle/spectation safety;
 - profile/training/session interactions affecting the tested flow;
+- public Manual/Rules drift from the actual current build;
+- release/deployment hygiene;
 - genuine authority/security defects.
 
-Do not convert testing into unrelated Phase-3/4 scope.
+Do not convert testing or cleanup into unrelated Phase-3/4 scope.
 
 ---
 
-## Phase-2 exit sequence
+## Phase-2 / PV-1 relationship
+
+Use this wording when ambiguity is possible:
+
+> **PV-1 (Phase 2 test)**
+
+PV-1 exists to validate whether the Phase-2 Tactical Combat & Battle Platform is understandable, enjoyable, stable, and ready for an explicit Owner phase-exit decision.
 
 ```text
-OWNER TESTING / CURRENT STABILIZATION
+OWNER TESTING / PHASE-2 STABILIZATION
+  ↓
+PV-1 (PHASE 2 TEST)
   ↓
 Only justified contained Phase-2 corrections
   ↓
-Representative candidate / evidence review
+Owner evidence/review
   ↓
 EXPLICIT OWNER DECISION
-  ├── NOT READY → smallest repeated defect → retest
+  ├── KEEP TESTING → smallest repeated defect → retest
   └── PHASE 2 DONE
         ↓
       reconcile #105 + TASKS factually
@@ -86,31 +95,13 @@ EXPLICIT OWNER DECISION
 
 Never fabricate human evidence or metrics.
 
----
-
-## Owner Phase-3 activation rule
-
-If the Owner clearly says wording equivalent to:
-
-- “Phase 2 is done.”
-- “We are done with Phase 2; start Phase 3.”
-- “Proceed to Phase 3.”
-- “Code Phase 3.”
-
-then treat it as explicit authorization to transition the feature roadmap into Phase 3.
-
-Before runtime implementation:
-
-- inspect current repository truth;
-- reconcile the phase boundary;
-- preserve/reuse the current battle platform;
-- activate **P3.1 — Discipline Build Authority + Primary Base Profiles**.
-
-This does **not** authorize Vercel deployment.
+A statement that Phase 1 is complete does **not** close Phase 2. A PV-1 pass/decision should be recorded separately from the later explicit instruction to begin Phase 3 if the Owner chooses to keep polishing Phase 2 first.
 
 ---
 
-## Phase 3 execution sequence
+## Future Phase 3 execution sequence — inactive
+
+When, and only when, the Owner explicitly closes Phase 2 and authorizes Phase 3, the sequence remains:
 
 ```text
 P3.1 Discipline build authority + Primary profiles
@@ -161,9 +152,9 @@ Approved direction:
 - working far-inhabitant concept: Veyr;
 - long-term continuity threat: Inward Drift.
 
-This is future Phase-5+ scope and must not leak into active Phase 2/3 work.
+This is future Phase-5+ scope and must not leak into active Phase 2 work.
 
-### Anomalies — corrected definition
+### Anomalies
 
 Authority: `docs/ANOMALIES.md`.
 
@@ -177,34 +168,24 @@ Two Soulmarks
 Two Mantles
 ```
 
-Rules:
-
-- ordinary gameplay cannot earn/find/craft/trade/buy/roll these states;
-- the Unwritten Reach does not grant them;
-- only the protected Owner may create/revoke them by default;
-- creation uses audited server-authoritative Master Panel / Owner Override workflow;
-- standard ranked PvP excludes gameplay-affecting Anomalies by default;
-- analytics/support must identify exceptional state;
-- full Anomaly Console belongs to mature Master Panel work, with safe representation anticipated earlier when Soulmark/Mantle systems are built.
+Ordinary gameplay cannot earn/find/craft/trade/buy/roll these states. Creation/revocation uses audited server-authoritative Master Panel / Owner Override workflow, and gameplay-affecting Anomalies remain excluded from standard ranked PvP by default.
 
 ---
 
 ## Current documentation truth
 
-- `docs/ROADMAP.md` — current canonical phase plan.
-- `AGENTS.md` — permanent current coding/execution guidance.
+- `docs/ROADMAP.md` — canonical phase plan.
+- `AGENTS.md` — permanent coding/execution guidance.
 - `docs/COMBAT.md` — current combat authority.
+- `docs/ROADMAP_PRODUCT_VALIDATION.md` — validation authority; PV-1 is the Phase-2 tactical/battle-platform gate.
 - `docs/PHASE_2_TICKETS.md` — historical Phase-2 record.
-- `docs/PHASE_3_TICKETS.md` — exact next phase implementation sequence.
+- `docs/PHASE_3_TICKETS.md` — future exact Phase-3 sequence; inactive until explicit Owner authorization.
 - `docs/ROADMAP_BUILD_SYSTEM_REWORK.md` — build-system sequencing companion.
-- `docs/ROADMAP_PRODUCT_VALIDATION.md` — product validation gates.
 - `docs/REKINDLING_FRONTIER.md` — Rekindling + Unwritten Reach authority.
 - `docs/ANOMALIES.md` — Owner-only exceptional Anomaly authority.
 - `docs/OWNER_OVERRIDE.md` / `docs/MASTER_PANEL.md` — privileged operational authority.
 
-The old combined `docs/REKINDLING_FRONTIER_ANOMALIES.md` has been retired/removed so Anomalies cannot be mistaken for frontier rewards.
-
-Passive Training early-stop reward semantics still require explicit canonical reconciliation if runtime behavior and the current domain specification disagree. Do not silently choose.
+Passive Training early-stop reward semantics still require explicit canonical reconciliation if runtime behavior and a domain specification disagree. Do not silently choose.
 
 ---
 
@@ -215,7 +196,7 @@ Passive Training early-stop reward semantics still require explicit canonical re
 3. Owner testing may remain active while no implementation ticket is active.
 4. Never use future feature breadth to hide a failed validation gate.
 5. Early-delivered compatible work receives roadmap credit and is reused later.
-6. Automated tests prove implementation safety, not fun/product validation.
+6. Automated tests prove implementation safety, not human/product validation.
 7. Reconcile repository truth at every phase boundary.
 8. Phase activation and deployment authorization are separate decisions.
 9. Keep this ledger current and concise.
