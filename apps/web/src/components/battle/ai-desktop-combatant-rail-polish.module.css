@@ -14,7 +14,7 @@
     grid-template-rows: auto auto !important;
     gap: 0.32rem !important;
     padding: 0.38rem !important;
-    border-color: color-mix(in srgb, var(--battle-combatant-accent) 55%, #5b5547) !important;
+    border: 2px solid color-mix(in srgb, var(--battle-combatant-accent) 55%, #5b5547) !important;
     box-shadow:
       0 0 0.7rem color-mix(in srgb, var(--battle-combatant-accent) 12%, transparent),
       0 0.65rem 1.35rem rgba(0, 0, 0, 0.2) !important;
