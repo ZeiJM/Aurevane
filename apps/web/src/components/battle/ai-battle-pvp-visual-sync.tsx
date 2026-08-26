@@ -48,6 +48,8 @@ export function AiBattlePvpVisualSync({ playerName }: { playerName: string }) {
       const root = battlefield?.closest<HTMLElement>('main') ?? null
       if (!root || root.dataset.pvpBattle === 'true') return
 
+      if (battlefield) battlefield.dataset.aiPvpBattlefield = 'true'
+
       const commandDeck = root.querySelector<HTMLElement>('section[aria-label="Command Deck"]')
       if (commandDeck) {
         commandDeck.dataset.aiPvpVisualSync = 'true'
