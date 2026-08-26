@@ -1,0 +1,113 @@
+.hook {
+  display: none;
+}
+
+/*
+ * PvP action-grid parity with the AI battle presentation.
+ *
+ * This file is intentionally presentation-only. PvP legality, AP costs, previews,
+ * commits, and turn authority continue to come from PvpBattleExperience/server state.
+ */
+
+/* Move: reachable/path tiles use the same green treatment as AI. */
+:global(
+  main[data-pvp-battle='true'][data-pvp-action-mode='move']
+    #battlefield
+    button[aria-label^='Tile '][data-reachable]
+) {
+  border-color: rgba(98, 205, 132, 0.82) !important;
+  box-shadow: inset 0 0 0.8rem rgba(62, 166, 96, 0.12) !important;
+}
+
+:global(
+  main[data-pvp-battle='true'][data-pvp-action-mode='move']
+    #battlefield
+    button[aria-label^='Tile '][data-path]
+) {
+  border-color: rgba(110, 220, 142, 0.95) !important;
+  box-shadow: inset 0 0 0 2px rgba(78, 196, 111, 0.35) !important;
+}
+
+/* AI marks every non-reachable destination unavailable, except the acting unit's tile. */
+:global(
+  main[data-pvp-battle='true'][data-pvp-action-mode='move']
+    #battlefield
+    button[aria-label^='Tile ']:not([data-reachable]):not([data-path]):not(:has([data-active]))
+) {
+  border-color: rgba(214, 81, 81, 0.45) !important;
+  box-shadow: none !important;
+  filter: saturate(0.68);
+}
+
+/* Basic Attack: legal enemy is amber; adjacent illegal targets remain red. */
+:global(
+  main[data-pvp-battle='true'][data-pvp-action-mode='attack']
+    #battlefield
+    button[aria-label^='Tile '][data-target='enemy']
+) {
+  z-index: 2 !important;
+  border-color: rgba(239, 169, 75, 0.98) !important;
+  background: linear-gradient(rgba(209, 121, 39, 0.13), rgba(209, 121, 39, 0.13)), #1c1711 !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(239, 169, 75, 0.48),
+    0 0 0.75rem rgba(222, 131, 44, 0.24) !important;
+}
+
+:global(
+  main[data-pvp-battle='true'][data-pvp-action-mode='attack']
+    #battlefield
+    button[aria-label^='Tile '][data-target='illegal']
+) {
+  border-color: rgba(226, 83, 83, 0.9) !important;
+  box-shadow: inset 0 0 0 2px rgba(206, 62, 62, 0.34) !important;
+}
+
+/* Guard / Recover: self-target stays visibly green, matching the AI selected-unit cue. */
+:global(
+  main[data-pvp-battle='true'][data-pvp-action-mode='guard']
+    #battlefield
+    button[aria-label^='Tile '][data-target='friendly']
+),
+:global(
+  main[data-pvp-battle='true'][data-pvp-action-mode='recover']
+    #battlefield
+    button[aria-label^='Tile '][data-target='friendly']
+) {
+  z-index: 2 !important;
+  border-color: rgba(102, 218, 143, 0.98) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(102, 218, 143, 0.46),
+    0 0 0.75rem rgba(70, 190, 112, 0.22) !important;
+}
+
+/* Finish Turn: reinforce the shared AI/PvP facing-guide treatment over PvP desktop tile polish. */
+:global(
+  main[data-pvp-battle='true'][data-pvp-action-mode='finish']
+    #battlefield
+    [data-facing-guide='true']
+) {
+  z-index: 8 !important;
+  border-color: rgba(244, 204, 72, 0.98) !important;
+  background:
+    linear-gradient(rgba(244, 204, 72, 0.16), rgba(244, 204, 72, 0.16)),
+    rgba(29, 26, 15, 0.95) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(244, 204, 72, 0.45),
+    0 0 0.9rem rgba(244, 204, 72, 0.32) !important;
+}
+
+:global(
+  main[data-pvp-battle='true'][data-pvp-action-mode='finish']
+    #battlefield
+    [data-facing-arrow='true']
+) {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  display: grid;
+  place-items: center;
+  color: #ffe06e;
+  font: 800 clamp(1rem, 2.2vw, 1.7rem) / 1 var(--av-font-mono);
+  text-shadow: 0 0 0.75rem rgba(255, 214, 75, 0.9);
+  pointer-events: none;
+}
