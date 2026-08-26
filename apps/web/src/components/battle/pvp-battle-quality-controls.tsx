@@ -61,6 +61,7 @@ export function PvpBattleQualityControls({
   const [surrenderDialogOpen, setSurrenderDialogOpen] = useState(false)
   const [surrendering, setSurrendering] = useState(false)
   const [commandTarget, setCommandTarget] = useState<HTMLElement | null>(null)
+  const [opponentClockTarget, setOpponentClockTarget] = useState<HTMLElement | null>(null)
   const [footerActionsTarget, setFooterActionsTarget] = useState<HTMLElement | null>(null)
 
   const localCombatantId =
@@ -96,7 +97,9 @@ export function PvpBattleQualityControls({
         root?.querySelector<HTMLElement>('section[aria-label="Command Deck"]') ?? null
       const target =
         commandDeck?.firstElementChild instanceof HTMLElement ? commandDeck.firstElementChild : null
+      const turnHeading = target?.querySelector<HTMLElement>(':scope > strong') ?? null
       setCommandTarget(target)
+      setOpponentClockTarget(turnHeading)
 
       const footer = root?.querySelector<HTMLElement>('footer') ?? null
       const footerActions = footer
@@ -303,16 +306,15 @@ export function PvpBattleQualityControls({
           )
         : null}
 
-      {commandTarget && battleIsActive && clock && showOpponentClock
+      {opponentClockTarget && battleIsActive && clock && showOpponentClock
         ? createPortal(
             <span
               data-pvp-opponent-turn-clock="true"
               style={{
                 display: 'inline-flex',
-                order: 2,
                 flex: '0 0 auto',
                 maxWidth: '100%',
-                marginLeft: 'auto',
+                marginLeft: '.45rem',
                 alignItems: 'center',
                 padding: '.18rem .38rem',
                 overflow: 'visible',
@@ -322,6 +324,8 @@ export function PvpBattleQualityControls({
                 background: 'rgba(154, 54, 54, .08)',
                 font: '800 .42rem/1 var(--av-font-mono)',
                 letterSpacing: '.02em',
+                textOverflow: 'clip',
+                textTransform: 'none',
                 whiteSpace: 'nowrap',
               }}
               aria-live="polite"
@@ -336,12 +340,14 @@ export function PvpBattleQualityControls({
                   overflow: 'visible',
                   color: opponentTimerColor,
                   font: '800 .42rem/1 var(--av-font-mono)',
+                  textOverflow: 'clip',
+                  textTransform: 'none',
                 }}
               >
                 {opponentTimerText}
               </span>
             </span>,
-            commandTarget,
+            opponentClockTarget,
           )
         : null}
 
