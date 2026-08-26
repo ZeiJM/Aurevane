@@ -43,7 +43,9 @@ export function PvpBattleReleasePolish() {
       if (frame !== null) window.cancelAnimationFrame(frame)
       const root = document.querySelector<HTMLElement>('main[data-pvp-battle="true"]')
       root
-        ?.querySelector<HTMLElement>(`:scope > header[data-pvp-header-layout="${APPROVED_HEADER_LAYOUT}"]`)
+        ?.querySelector<HTMLElement>(
+          `:scope > header[data-pvp-header-layout="${APPROVED_HEADER_LAYOUT}"]`,
+        )
         ?.removeAttribute('data-pvp-header-layout')
       root
         ?.querySelector<HTMLElement>(
