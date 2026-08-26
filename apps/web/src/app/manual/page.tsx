@@ -18,9 +18,9 @@ export default function ManualPage() {
           <span className={styles.eyebrow}>Adventurer’s Guide</span>
           <h1 id="manual-title">Manual</h1>
           <p>
-            The canonical player guide to how AUREVANE’s current systems work. Roadmap mechanics
-            remain clearly separated from features that are already playable or available in the
-            active preview.
+            The canonical player guide to how AUREVANE’s current systems work. Phase 1 is complete;
+            Phase 2 combat, PvP, and spectation remain under PV-1 (Phase 2 test) while the Owner
+            continues testing and polishing the battle platform.
           </p>
         </div>
         <aside className={styles.heroPanel} aria-label="Manual editorial boundary">
@@ -29,8 +29,9 @@ export default function ManualPage() {
           </span>
           <strong>Current systems first.</strong>
           <p>
-            Character creation, six attributes, Battle Hall, Wayfarer’s Practice, profile identity,
-            and the current navigation model are documented from the same implementation you test.
+            Character creation, six attributes, Passive Training, Battle Hall, direct private PvP,
+            spectation, profile identity, and navigation are documented from the same implementation
+            you test.
           </p>
         </aside>
       </section>
