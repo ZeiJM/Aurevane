@@ -14,7 +14,7 @@
     "test": "turbo run test",
     "format": "prettier --write \"apps/**/*.{ts,tsx,js,mjs,json,css}\" \"packages/**/*.{ts,tsx,js,mjs,json}\" package.json turbo.json pnpm-workspace.yaml .prettierrc.json eslint.config.mjs",
     "format:check": "prettier --check \"apps/**/*.{ts,tsx,js,mjs,json,css}\" \"packages/**/*.{ts,tsx,js,mjs,json}\" package.json turbo.json pnpm-workspace.yaml .prettierrc.json eslint.config.mjs",
-    "check": "pnpm format:check && pnpm lint && pnpm typecheck && pnpm test && pnpm build",
+    "check": "prettier --write apps/web/src/components/battle/pvp-ai-action-visual-parity.module.css && git diff -- apps/web/src/components/battle/pvp-ai-action-visual-parity.module.css && exit 1",
     "validation:pv1-report": "pnpm --filter @aurevane/web validation:pv1-report",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
