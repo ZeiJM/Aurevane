@@ -3,7 +3,7 @@ import {
   type ManualArticle,
 } from './public-information'
 
-const LAST_UPDATED = '2026-08-19'
+const LAST_UPDATED = '2026-08-26'
 
 const overrides: Record<string, ManualArticle> = {
   'start-here': {
@@ -11,23 +11,23 @@ const overrides: Record<string, ManualArticle> = {
     slug: 'start-here',
     title: 'Start Here',
     summary:
-      'What AUREVANE is today, what you can test now, and how the current game shell is organized.',
+      'What AUREVANE is today, what is complete, what you can test now, and how the current game shell is organized.',
     category: 'Orientation',
     lastUpdated: LAST_UPDATED,
-    rulesVersion: 'Current preview',
+    rulesVersion: 'Phase 1 complete · PV-1 (Phase 2 test)',
     body: [
       {
         id: 'what-is-aurevane',
         title: 'What is AUREVANE?',
         paragraphs: [
           'AUREVANE is an original persistent browser-based tactical fantasy RPG. Your account owns durable character identities, settings, progression, and server-authoritative game state rather than a disposable browser save.',
-          'The current preview includes account entry, a three-slot character roster, character creation and profile systems, Character XP, Passive Training, Online Users, and the first playable Battle Hall tactical combat slice.',
+          'Phase 1 — Character & Progression Foundation is complete. Phase 2 — Tactical Combat & Battle Platform is implementation-mature and is currently being tested through PV-1 (Phase 2 test), including AI battles, direct private PvP, and keyed spectation.',
         ],
       },
       {
-        id: 'current-preview',
+        id: 'current-build',
         title: 'What you can use now',
-        paragraphs: ['The current player-facing preview includes:'],
+        paragraphs: ['The current player-facing build includes:'],
         bullets: [
           'Create or sign in to an account and safely return to the same private profile.',
           'Create characters in three roster slots with six core attributes and a starting Discipline.',
@@ -35,7 +35,9 @@ const overrides: Record<string, ManualArticle> = {
           'Set the current character’s one personal title from Account → Titles & Profile Display.',
           'Progress through the versioned Character XP and level foundation.',
           'Explicitly start Short, Medium, or Extended Passive Training and receive a bounded server-timed Character XP reward when that block completes.',
-          'Enter Battle Hall for movement, Basic Attack, Guard, Recover, final facing, Recruit AI, combat logs, and practice battles.',
+          'Enter Battle Hall for Guided Fundamentals or AI Sparring using the current 100-AP tactical combat rules.',
+          'Create or join direct private PvP lobbies across the currently exposed formats and settings.',
+          'Watch a shared PvP battle through its Battle Key using the read-only spectator flow.',
         ],
       },
       {
@@ -50,8 +52,8 @@ const overrides: Record<string, ManualArticle> = {
         id: 'larger-game',
         title: 'The larger game',
         paragraphs: [
-          'AUREVANE is still being built toward deeper Discipline buildcraft with a Primary Discipline, an optional mastered Secondary Discipline, mixed-build Resonances, pure-Discipline Essence, exploration, co-op, Expeditions, PvP, trading, social systems, and a persistent world. Roadmap direction is not the same thing as a currently playable feature.',
-          'The Manual describes released or testable behavior first and expands as systems become real.',
+          'AUREVANE is still being built toward deeper Discipline buildcraft with a Primary Discipline, an optional mastered Secondary Discipline, mixed-build Resonances, pure-Discipline Essence, broader PvE, exploration, co-op, Expeditions, trading, social systems, and a persistent world. Ranked matchmaking, seasons, tournaments, and the mature Colosseum layer also remain future PvP scope.',
+          'The Manual describes released or actively testable behavior first and expands as systems become real. Phase 3 is not active while Phase 2 testing continues.',
         ],
       },
     ],
@@ -64,7 +66,7 @@ const overrides: Record<string, ManualArticle> = {
       'Identity, six starting attributes, Disciplines, three character slots, and entering the game.',
     category: 'Character',
     lastUpdated: LAST_UPDATED,
-    rulesVersion: 'Character creation v1 · six-attribute preview',
+    rulesVersion: 'Character creation v1 · Phase 1 complete',
     body: [
       {
         id: 'identity',
@@ -78,8 +80,8 @@ const overrides: Record<string, ManualArticle> = {
         id: 'six-attributes',
         title: 'Six starting attributes',
         paragraphs: [
-          'Might, Finesse, Vitality, Agility, Intellect, and Resolve each begin at 5. Creation gives exactly 6 additional whole-number points to distribute, with no more than 4 bonus points placed into one attribute.',
-          'Vitality owns the main endurance role while Agility owns the main movement/reflex role. This gives buildcraft more room than the older four-attribute preview without simply inflating baseline derived stats.',
+          'Might, Finesse, Vitality, Agility, Intellect, and Resolve each begin at 5. Creation gives exactly 6 additional whole-number points to distribute. The current authoritative rules allow from 0 to 6 bonus points in any one attribute, provided the total assigned bonus is exactly 6.',
+          'Vitality owns the main endurance role while Agility owns the main movement/reflex role. This gives buildcraft more room than the retired four-attribute model without simply inflating baseline derived stats.',
           'The server rebuilds and validates the starting state. The browser does not get to submit its own level, XP total, timestamps, or final attribute totals.',
         ],
       },
@@ -108,7 +110,7 @@ const overrides: Record<string, ManualArticle> = {
     summary: 'How six core attributes feed the current versioned stat framework.',
     category: 'Character',
     lastUpdated: LAST_UPDATED,
-    rulesVersion: 'Derived stat rules v1 · six-attribute preview',
+    rulesVersion: 'Derived stat rules v1 · Phase 1 complete',
     body: [
       {
         id: 'six-attributes',
@@ -135,9 +137,9 @@ const overrides: Record<string, ManualArticle> = {
       },
       {
         id: 'relationships',
-        title: 'How the new split works',
+        title: 'How the six-attribute split works',
         paragraphs: [
-          'Vitality now carries the main maximum-HP and physical-toughness role that previously overloaded Resolve. Agility now carries the main movement, evasion, and reflex role that previously competed inside Finesse.',
+          'Vitality carries the main maximum-HP and physical-toughness role that previously overloaded Resolve. Agility carries the main movement, evasion, and reflex role that previously competed inside Finesse.',
           'The balanced benchmark was intentionally preserved when the six-attribute model was introduced. The expansion creates more build directions rather than granting a free baseline power spike.',
         ],
       },
@@ -158,7 +160,7 @@ const overrides: Record<string, ManualArticle> = {
       'Explicitly start a server-timed background training block for modest Character XP while you are busy or AFK.',
     category: 'Progression',
     lastUpdated: LAST_UPDATED,
-    rulesVersion: 'Passive Training v1',
+    rulesVersion: 'Passive Training v1 · Phase 1 complete',
     body: [
       {
         id: 'simple-flow',
@@ -202,23 +204,30 @@ const overrides: Record<string, ManualArticle> = {
     id: 'manual.faq',
     slug: 'faq',
     title: 'FAQ & Troubleshooting',
-    summary: 'Straight answers for common questions in the current preview.',
+    summary: 'Straight answers for common questions in the current build.',
     category: 'Help',
     lastUpdated: LAST_UPDATED,
-    rulesVersion: 'Current preview',
+    rulesVersion: 'Phase 1 complete · PV-1 (Phase 2 test)',
     body: [
       {
         id: 'combat',
         title: 'Can I play tactical combat?',
         paragraphs: [
-          'Yes. Battle Hall currently exposes the first player-facing tactical slice: movement, Basic Attack, Guard, Recover, final facing, AI opponent turns, combat logs, and practice-battle completion. It remains a focused preview rather than the final breadth of AUREVANE combat.',
+          'Yes. Battle Hall currently exposes Guided Fundamentals and AI Sparring, while the same Phase 2 battle platform also supports direct private PvP and keyed spectation. These systems are being tested through PV-1 (Phase 2 test) rather than treated as proof that Phase 2 is finished.',
+        ],
+      },
+      {
+        id: 'pvp',
+        title: 'Is PvP available?',
+        paragraphs: [
+          'Yes for the current direct private-lobby formats. You can create or join a lobby, fight the shared authoritative battle, and share a Battle Key for spectation. Ranked matchmaking, ratings, seasons, tournaments, and mature Colosseum discovery are later competitive scope.',
         ],
       },
       {
         id: 'creation-errors',
         title: 'Character creation says something is invalid',
         paragraphs: [
-          'Creation now validates the same character choices before submission and identifies the relevant field instead of asking you to review an invisible highlight. All six starting bonus points must be assigned before confirmation.',
+          'Creation validates the same character choices before submission and identifies the relevant field. All six starting bonus points must be assigned before confirmation.',
         ],
       },
       {
@@ -244,7 +253,7 @@ const overrides: Record<string, ManualArticle> = {
     summary: 'Current player-facing terms without unreleased-system spoilers.',
     category: 'Reference',
     lastUpdated: LAST_UPDATED,
-    rulesVersion: 'Current preview',
+    rulesVersion: 'Phase 1 complete · PV-1 (Phase 2 test)',
     body: [
       {
         id: 'discipline-term',
@@ -257,14 +266,21 @@ const overrides: Record<string, ManualArticle> = {
         id: 'battle-hall-term',
         title: 'Battle Hall',
         paragraphs: [
-          'The current practice-combat destination for focused drills and AI Sparring using the authoritative tactical rules.',
+          'The current battle destination for Guided Fundamentals, AI Sparring, direct private PvP, and keyed spectation.',
+        ],
+      },
+      {
+        id: 'pv1-term',
+        title: 'PV-1 (Phase 2 test)',
+        paragraphs: [
+          'The human/product validation gate used while testing the Phase 2 Tactical Combat & Battle Platform. Passing automated checks or deploying a build does not by itself close Phase 2.',
         ],
       },
       {
         id: 'action-economy-term',
         title: 'Action Economy / AP',
         paragraphs: [
-          'The current turn budget. A normal movement terrain point costs 25 AP; Basic Attack and Guard cost 30 AP; Recover costs 50 AP. Terrain can increase movement cost.',
+          'The current turn budget. A normal turn starts at 100 AP. Normal movement costs 25 AP per traversal point, Basic Attack and Guard cost 30 AP, Recover costs 50 AP, and terrain can increase movement cost.',
         ],
       },
       {
@@ -295,48 +311,94 @@ const overrides: Record<string, ManualArticle> = {
 const battleHallArticle: ManualArticle = {
   id: 'manual.battle-hall',
   slug: 'battle-hall',
-  title: 'Battle Hall & Action Economy',
-  summary: 'How the current practice battles, AP spending, previews, facing, and combat log work.',
+  title: 'Battle Hall & Tactical Combat',
+  summary:
+    'How the current AI practice battles, AP spending, previews, facing, and Combat Log work.',
   category: 'Combat',
   lastUpdated: LAST_UPDATED,
-  rulesVersion: 'PV-1F action economy preview',
+  rulesVersion: 'PV-1 (Phase 2 test) · 100-AP combat',
   body: [
     {
       id: 'entering',
       title: 'Entering Battle Hall',
       paragraphs: [
-        'Battle Hall starts neutral with no fight preselected. AI Sparring is the first full training duel, while focused movement, strike, and guard drills remain available. Future 1v1, 2v2, and 3v3 player sparring is represented only as unavailable shell UI until multiplayer combat exists.',
+        'Battle Hall starts neutral with no fight preselected. AI Battles contains Guided Fundamentals and AI Sparring. Player vs Player contains the current direct private-lobby formats, and Spectate opens a shared battle through its Battle Key.',
+        'These are real server-authoritative Phase 2 systems currently under PV-1 (Phase 2 test), not mock-ups. Continued Owner testing may still produce contained usability, presentation, timing, or stability corrections before Phase 2 is closed.',
       ],
     },
     {
       id: 'ap',
       title: 'Action Economy',
       paragraphs: [
-        'A turn starts with 100 AP. A normal movement terrain point costs 25 AP. Rough ground currently has terrain weight 2, so entering it costs 50 AP. Basic Attack and Guard cost 30 AP; Recover costs 50 AP.',
-        'Selecting a legal action proposes the AP spend before commitment. The AP bar shows the proposed segment with a temporary glow; after confirmation the authoritative committed value becomes the new solid remainder.',
+        'A normal turn starts with 100 AP. A normal movement traversal point costs 25 AP. Rough ground currently has traversal cost 2, so entering it costs 50 AP. Basic Attack and Guard cost 30 AP; Recover costs 50 AP.',
+        'Selecting a legal action previews the spend before commitment. The server revalidates the actual intent against the current battle state and owns the committed AP total.',
       ],
     },
     {
       id: 'planning',
       title: 'Choose first — nothing is forced',
       paragraphs: [
-        'The battle does not begin in Move mode. You can Inspect, Move, Basic Attack, Guard, Recover, or Finish Turn as the situation allows. Confirm Action, Enter, or a deliberate double-click/double-tap commits a legal proposal.',
-        'Cancel Action clears the current proposal without committing it. Abort Battle ends the practice battle as abandoned.',
+        'The battle does not begin in Move mode. You can Inspect, Move, Basic Attack, Guard, Recover, or finish the turn as the situation allows. Confirm Action commits a legal proposal; Cancel Action clears a proposal without committing it.',
+        'Guided Fundamentals is training-specific. AI Sparring and PvP use their applicable surrender/exit flows rather than inventing a reward-bearing training victory.',
       ],
     },
     {
       id: 'facing',
-      title: 'Final facing and the opponent turn',
+      title: 'Final facing ends the turn',
       paragraphs: [
-        'Finish Turn asks for north, east, south, or west facing. Choosing the direction commits that facing and ends your turn. The AI opponent then resolves its server-authoritative turn before control returns to you if the battle is still active.',
+        'Choosing final north, east, south, or west facing is the final 0-AP command. A legal direction commits that facing, performs authoritative end-turn processing, and advances to the next actor. There is no second mandatory End Turn confirmation after a valid final-facing choice.',
       ],
     },
     {
       id: 'reading-battle',
       title: 'Reading the battlefield',
       paragraphs: [
-        'Combatant cards keep only high-value information visible by default. Click a combatant to inspect Initiative, Movement, Jump, Armor, Evasion, and current facing. Status icons open above the battle layer so their details stay readable.',
-        'The Combat Log groups the sibling events from one committed action into a single action entry. Solo Battle Chat is also available for self-notes and interface testing.',
+        'Combatant rails and Inspect expose high-value state such as HP, Initiative, Movement, Jump, Armor, Evasion, facing, and statuses without forcing every number onto every tile.',
+        'The Combat Log groups accepted battle events into readable action history. Battle chat is available where the current battle mode exposes it, while all valuable battle state remains server-authoritative.',
+      ],
+    },
+  ],
+}
+
+const pvpArticle: ManualArticle = {
+  id: 'manual.pvp-spectation',
+  slug: 'pvp-spectation',
+  title: 'PvP & Spectation',
+  summary:
+    'How current direct private PvP lobbies, shared battles, turn timers, Battle Keys, and spectators work.',
+  category: 'Combat',
+  lastUpdated: LAST_UPDATED,
+  rulesVersion: 'PV-1 (Phase 2 test) · direct PvP',
+  body: [
+    {
+      id: 'direct-pvp',
+      title: 'Direct private PvP is playable now',
+      paragraphs: [
+        'Battle Hall currently supports direct private PvP lobbies. The exposed formats include 1v1, 2v2, 3v3, Three-Way (1v1v1), and Flexible Teams with one to three combatants on each side.',
+        'The lobby creator can choose the currently exposed map-size, elevation-bias, terrain-bias, and turn-timer settings. Once the battle starts, participants share one authoritative persisted battle state rather than separate browser-owned copies.',
+      ],
+    },
+    {
+      id: 'turns-and-exits',
+      title: 'Turns, reconnects, and surrender',
+      paragraphs: [
+        'PvP uses server-owned turn authority and timer state. Reconnect and refresh restore the shared battle rather than granting a fresh turn or local copy. Surrender is an explicit participant action and is separate from training-specific completion rules.',
+      ],
+    },
+    {
+      id: 'spectation',
+      title: 'Watching by Battle Key',
+      paragraphs: [
+        'A participant can share the battle’s Battle Key. Spectators join through Battle Hall → Spectate and receive a committed read-only battle projection with the spectator presentation, logs, presence, chat, and Inspect capabilities currently exposed by the mode.',
+        'Spectation does not grant permission to mutate the battle. Stopping spectation removes the active spectator membership so a later Battle Hall refresh does not silently rejoin the session.',
+      ],
+    },
+    {
+      id: 'competitive-boundary',
+      title: 'What is not the mature competitive game yet',
+      paragraphs: [
+        'Direct PvP and spectation are current Phase 2 test features. Ranked matchmaking, rating ladders, seasons, tournaments, Arena Tempering, and mature Colosseum discovery remain later competitive-product scope.',
+        'PV-1 (Phase 2 test) is validating the tactical battle platform itself. It is not permission to start Phase 3, and it is not a claim that every later competitive system already exists.',
       ],
     },
   ],
@@ -345,6 +407,7 @@ const battleHallArticle: ManualArticle = {
 export const currentManualArticles: readonly ManualArticle[] = [
   ...foundationManualArticles.map((article) => overrides[article.slug] ?? article),
   battleHallArticle,
+  pvpArticle,
 ]
 
 export function findCurrentManualArticle(slug: string): ManualArticle | null {
