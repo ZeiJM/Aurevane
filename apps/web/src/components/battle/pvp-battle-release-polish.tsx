@@ -18,7 +18,17 @@ export function PvpBattleReleasePolish() {
       frame = null
       const root = document.querySelector<HTMLElement>('main[data-pvp-battle="true"]')
       const header = root?.querySelector<HTMLElement>(':scope > header') ?? null
-      const economy = root?.querySelector<HTMLElement>('[data-pvp-header-economy="true"]') ?? null
+      const hookedEconomy =
+        root?.querySelector<HTMLElement>('[data-pvp-header-economy="true"]') ?? null
+      const economyTrack =
+        header?.querySelector<HTMLElement>(
+          '[role="progressbar"][aria-label="Action Economy remaining"]',
+        ) ?? null
+      const economy =
+        hookedEconomy ??
+        (economyTrack?.parentElement instanceof HTMLElement ? economyTrack.parentElement : null)
+
+      if (economy) economy.dataset.pvpHeaderEconomy = 'true'
       const source = economy
         ? (Array.from(economy.querySelectorAll<HTMLButtonElement>('button')).find((button) =>
             button.textContent?.includes('Victory Conditions'),
