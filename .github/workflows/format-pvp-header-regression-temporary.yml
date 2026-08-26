@@ -1,0 +1,42 @@
+name: Temporary PvP header regression formatter
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.event.pull_request.head.ref == 'agent/fix-live-pvp-header-ai-parity'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/fix-live-pvp-header-ai-parity
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format PvP header browser regression
+        run: pnpm exec prettier --write apps/web/e2e/pvp-header-ai-parity.pw.ts
+      - name: Commit formatting to feature branch
+        run: |
+          git config user.name "AUREVANE Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add apps/web/e2e/pvp-header-ai-parity.pw.ts
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "chore: format PvP header browser regression"
+          git push origin HEAD:agent/fix-live-pvp-header-ai-parity
