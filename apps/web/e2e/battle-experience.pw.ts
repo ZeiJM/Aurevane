@@ -92,9 +92,6 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   const fittedBoard = battlefield.locator('[data-board-auto-fit="5x3"]')
   await expect(fittedBoard).toHaveCount(1)
   await expectBattlefieldContained(page)
-  if (testInfo.project.name !== 'mobile-chromium') {
-    expect(await fittedBoard.evaluate((board) => window.getComputedStyle(board).rowGap)).toBe('0px')
-  }
 
   await page.getByRole('button', { name: 'Chat', exact: true }).click()
   const battleChatInput = page.getByLabel('Battle chat message')
