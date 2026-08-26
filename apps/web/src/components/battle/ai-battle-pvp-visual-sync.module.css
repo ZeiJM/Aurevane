@@ -111,6 +111,14 @@
 
   :global(
     main:not([data-pvp-battle='true']):has(section[aria-label='Tactical battlefield'])
+      > header
+      > button[class*='roundButton']
+  ) {
+    border-radius: var(--av-radius-sm) !important;
+  }
+
+  :global(
+    main:not([data-pvp-battle='true']):has(section[aria-label='Tactical battlefield'])
       section:has(> section[aria-label='Tactical battlefield'])
   ) {
     grid-template-columns: minmax(8.4rem, 10.5rem) minmax(0, 1fr) minmax(8.4rem, 10.5rem) !important;
