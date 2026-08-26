@@ -43,7 +43,7 @@
   min-height: 0;
   padding: 0.38rem;
   overflow: visible;
-  border: 1px solid color-mix(in srgb, var(--battle-combatant-accent) 55%, #5b5547);
+  border: 2px solid color-mix(in srgb, var(--battle-combatant-accent) 55%, #5b5547);
   border-radius: var(--av-radius-md);
   background: linear-gradient(160deg, rgba(18, 24, 34, 0.98), rgba(7, 10, 15, 0.98));
   box-shadow:
