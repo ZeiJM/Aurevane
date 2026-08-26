@@ -76,9 +76,9 @@ export function PvpBattleQualityControls({
   )
   const opponentTurn = Boolean(
     battleIsActive &&
-      activeCombatantId &&
-      localCombatantId &&
-      activeCombatantId !== localCombatantId,
+    activeCombatantId &&
+    localCombatantId &&
+    activeCombatantId !== localCombatantId,
   )
   const clockMatchesActiveTurn = Boolean(
     clock?.combatantId && activeCombatantId && clock.combatantId === activeCombatantId,
