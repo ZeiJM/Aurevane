@@ -1,0 +1,42 @@
+name: One-shot PvP action parity formatting
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - synchronize
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.event.pull_request.head.ref == 'fix/pvp-ai-action-visual-parity'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/pvp-ai-action-visual-parity
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format PvP action parity CSS
+        run: pnpm exec prettier --write apps/web/src/components/battle/pvp-ai-action-visual-parity.module.css
+      - name: Commit formatting to feature branch
+        run: |
+          git config user.name "AUREVANE Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add apps/web/src/components/battle/pvp-ai-action-visual-parity.module.css
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "chore: format PvP action parity CSS"
+          git push origin HEAD:fix/pvp-ai-action-visual-parity
