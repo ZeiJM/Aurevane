@@ -117,6 +117,12 @@
     gap: 0.42rem !important;
   }
 
+  /* Guided Fundamentals uses the compact 5x3 board. Target the board's own stable fit marker so
+     desktop row spacing is deterministic regardless of surrounding layout wrappers. */
+  :global([data-board-auto-fit='5x3']) {
+    row-gap: 0 !important;
+  }
+
   :global(
     main:not([data-pvp-battle='true']):has(section[aria-label='Tactical battlefield'])
       section[aria-label='Tactical battlefield']
