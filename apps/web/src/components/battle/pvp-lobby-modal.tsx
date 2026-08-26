@@ -76,6 +76,8 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
   const [copyNotice, setCopyNotice] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const startLock = useRef(false)
+  const lobbyMutationGeneration = useRef(0)
+  const lobbyMutationPending = useRef(false)
   const localMember = useMemo(
     () => lobby.members.find((member) => member.characterId === localCharacterId) ?? null,
     [lobby.members, localCharacterId],
@@ -138,30 +140,67 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
 
   useEffect(() => {
     let cancelled = false
-    const timer = window.setInterval(async () => {
+    let timer: number | null = null
+
+    function schedulePoll() {
+      if (cancelled) return
+      timer = window.setTimeout(() => {
+        void pollLobby()
+      }, 850)
+    }
+
+    async function pollLobby() {
+      if (cancelled) return
+      if (lobbyMutationPending.current) {
+        schedulePoll()
+        return
+      }
+
+      const generation = lobbyMutationGeneration.current
       try {
         const response = await fetch(`/api/pvp/lobbies/${lobby.lobbyId}`, { cache: 'no-store' })
         const body = (await response.json()) as { lobby?: PvpLobbyView } & ApiErrorBody
-        if (!response.ok || !body.lobby || cancelled) return
-        if (body.lobby.status === 'cancelled') {
-          setError('The lobby host closed this lobby.')
-          window.clearInterval(timer)
+        if (!response.ok || !body.lobby || cancelled) {
+          schedulePoll()
           return
         }
+        if (lobbyMutationPending.current || generation !== lobbyMutationGeneration.current) {
+          schedulePoll()
+          return
+        }
+
         setLobby(body.lobby)
+        if (body.lobby.status === 'cancelled') {
+          setError('The lobby host closed this lobby.')
+          return
+        }
       } catch {
         // The next poll can recover from a transient connection interruption.
       }
-    }, 850)
+      schedulePoll()
+    }
+
+    schedulePoll()
     return () => {
       cancelled = true
-      window.clearInterval(timer)
+      if (timer !== null) window.clearTimeout(timer)
     }
   }, [lobby.lobbyId])
+
+  function beginLobbyMutation() {
+    lobbyMutationPending.current = true
+    lobbyMutationGeneration.current += 1
+  }
+
+  function endLobbyMutation() {
+    lobbyMutationGeneration.current += 1
+    lobbyMutationPending.current = false
+  }
 
   async function toggleReady() {
     if (!localMember?.seated || pending) return
     setPending(true)
+    beginLobbyMutation()
     setError(null)
     try {
       const response = await fetch(`/api/pvp/lobbies/${lobby.lobbyId}/ready`, {
@@ -176,6 +215,7 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
     } catch (readyError) {
       setError(readyError instanceof Error ? readyError.message : 'Readiness could not be updated.')
     } finally {
+      endLobbyMutation()
       setPending(false)
     }
   }
@@ -192,6 +232,7 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
       return
     }
     setPending(true)
+    beginLobbyMutation()
     setError(null)
     try {
       const response = await fetch(`/api/pvp/lobbies/${lobby.lobbyId}/seat`, {
@@ -216,6 +257,7 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
             : 'That team move could not be made.',
       )
     } finally {
+      endLobbyMutation()
       setPending(false)
     }
   }
@@ -223,6 +265,7 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
   async function leaveLobby() {
     if (pending) return
     setPending(true)
+    beginLobbyMutation()
     setError(null)
     try {
       const response = await fetch(`/api/pvp/lobbies/${lobby.lobbyId}`, { method: 'DELETE' })
@@ -233,6 +276,8 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
       onLeave()
     } catch (leaveError) {
       setError(leaveError instanceof Error ? leaveError.message : 'The lobby could not be left.')
+    } finally {
+      endLobbyMutation()
       setPending(false)
     }
   }
