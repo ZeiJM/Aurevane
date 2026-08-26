@@ -38,6 +38,48 @@ async function confirmTestAccountEmail(email: string): Promise<void> {
   if (confirmError) throw confirmError
 }
 
+async function signInExistingAccount(input: {
+  page: Page
+  email: string
+  password: string
+}): Promise<void> {
+  const { page, email, password } = input
+
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Sign in' }).click()
+  await page.getByLabel('Email').fill(email)
+  await page.getByLabel('Password').fill(password)
+  await page.getByRole('button', { name: 'Enter AUREVANE' }).click()
+
+  await expect(page).toHaveURL(/\/game$/)
+  await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
+}
+
+async function createCharacterAfterSignIn(input: {
+  page: Page
+  characterName: string
+}): Promise<void> {
+  const { page, characterName } = input
+
+  await page.getByRole('link', { name: 'Create Character' }).first().click()
+  await expect(page).toHaveURL(/\/game\/create\/0$/)
+  await expect(page.getByTestId('character-creation')).toBeVisible()
+
+  await page.getByLabel('Character name').fill(characterName)
+  await page.getByRole('button', { name: 'Choose your discipline' }).click()
+
+  for (const attribute of ['might', 'finesse', 'vitality', 'agility', 'intellect', 'resolve']) {
+    await page.getByRole('button', { name: `Increase ${attribute} bonus` }).click()
+  }
+  await expect(page.getByTestId('attribute-points')).toContainText('0 bonus points remaining')
+
+  await page.getByRole('button', { name: 'Review character' }).click()
+  await page.getByRole('button', { name: 'Create character' }).click()
+
+  await expect(page).toHaveURL(/\/game\/character$/)
+  await expect(page.getByTestId('character-profile')).toContainText(characterName)
+}
+
 export async function createVerifiedAccountAndSignIn(input: {
   page: Page
   email: string
@@ -58,14 +100,7 @@ export async function createVerifiedAccountAndSignIn(input: {
   await expect(page.getByTestId('account-message')).toHaveAttribute('data-tone', 'neutral')
 
   await confirmTestAccountEmail(email)
-
-  await page.getByRole('button', { name: 'Sign in' }).click()
-  await page.getByLabel('Email').fill(email)
-  await page.getByLabel('Password').fill(password)
-  await page.getByRole('button', { name: 'Enter AUREVANE' }).click()
-
-  await expect(page).toHaveURL(/\/game$/)
-  await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
+  await signInExistingAccount({ page, email, password })
 }
 
 export async function createAccountAndEnterCharacter(input: {
@@ -77,23 +112,27 @@ export async function createAccountAndEnterCharacter(input: {
   const { page, email, password, characterName } = input
 
   await createVerifiedAccountAndSignIn({ page, email, password })
-  await page.getByRole('link', { name: 'Create Character' }).first().click()
-  await expect(page).toHaveURL(/\/game\/create\/0$/)
-  await expect(page.getByTestId('character-creation')).toBeVisible()
+  await createCharacterAfterSignIn({ page, characterName })
+}
 
-  await page.getByLabel('Character name').fill(characterName)
-  await page.getByRole('button', { name: 'Choose your discipline' }).click()
+export async function provisionAccountAndEnterCharacter(input: {
+  page: Page
+  email: string
+  password: string
+  characterName: string
+}): Promise<void> {
+  const { page, email, password, characterName } = input
+  const supabase = createTestAuthAdminClient()
+  const { error } = await supabase.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  })
 
-  for (const attribute of ['might', 'finesse', 'vitality', 'agility', 'intellect', 'resolve']) {
-    await page.getByRole('button', { name: `Increase ${attribute} bonus` }).click()
-  }
-  await expect(page.getByTestId('attribute-points')).toContainText('0 bonus points remaining')
+  if (error) throw error
 
-  await page.getByRole('button', { name: 'Review character' }).click()
-  await page.getByRole('button', { name: 'Create character' }).click()
-
-  await expect(page).toHaveURL(/\/game\/character$/)
-  await expect(page.getByTestId('character-profile')).toContainText(characterName)
+  await signInExistingAccount({ page, email, password })
+  await createCharacterAfterSignIn({ page, characterName })
 }
 
 export async function signOutFromAccountMenu(page: Page): Promise<void> {
