@@ -44,32 +44,23 @@
 
 :global(#battlefield [data-map-portrait-ready]) {
   isolation: isolate;
-  width: min(68%, 3.7rem) !important;
+  width: clamp(1.7rem, 56%, 2.75rem) !important;
   height: auto !important;
   aspect-ratio: 1;
 }
 
 :global(#battlefield [data-map-token-portrait]) {
   position: absolute;
-  inset: 0.12rem;
+  inset: 0;
   z-index: -1;
   display: grid;
   place-items: center;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.24);
+  border: 0;
   border-radius: 50%;
-  background: rgba(4, 7, 10, 0.92);
+  background: #080b10;
+  box-shadow: none;
   pointer-events: none;
-}
-
-:global(#battlefield [data-map-token-team='player']) {
-  border-color: rgba(103, 211, 145, 0.78);
-  box-shadow: inset 0 0 0.45rem rgba(57, 159, 96, 0.28);
-}
-
-:global(#battlefield [data-map-token-team='opponent']) {
-  border-color: rgba(224, 106, 91, 0.76);
-  box-shadow: inset 0 0 0.45rem rgba(176, 61, 54, 0.28);
 }
 
 :global(#battlefield [data-map-token-portrait] img),
