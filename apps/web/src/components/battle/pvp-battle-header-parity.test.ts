@@ -62,7 +62,9 @@ describe('PvP desktop header authority', () => {
     const [desktopCss, mobileCss = ''] = parityCss.split('@media (max-width: 820px)')
     const desktop = compact(desktopCss)
 
-    expect(desktop).toContain("[data-pvp-header-economy='true'][data-pvp-header-layout='approved']::before")
+    expect(desktop).toContain(
+      "[data-pvp-header-economy='true'][data-pvp-header-layout='approved']::before",
+    )
     expect(desktop).toContain('grid-row: 1 / span 2; align-self: stretch !important;')
     expect(desktop).toContain('border: 1px solid var(--av-border);')
     expect(desktop).toContain('background: rgba(255, 255, 255, 0.02);')
