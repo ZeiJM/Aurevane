@@ -2,7 +2,7 @@
 
 **Authority:** Derived from `docs/GAME_MASTER_PLAN.md` and Owner-approved domain specifications. If conflict exists, the Master Game Plan and applicable canonical domain specification win.
 
-**Synchronized:** 2026-08-23
+**Synchronized:** 2026-08-26
 
 This roadmap reflects the game that actually exists today. It formally credits early-delivered battle-platform work instead of pretending later phases must rebuild it.
 
@@ -31,6 +31,14 @@ If a later-phase capability is deliberately built early and remains reusable:
 
 This already applies to direct PvP, multi-combatant battles, spectation, battle communication, battle logs and responsive combat presentation delivered during Phase 2.
 
+## Continuous performance/scaling rule
+
+Performance and scaling are a **cross-cutting roadmap responsibility**, not work deferred only to Phase 15.
+
+`docs/ROADMAP_PERFORMANCE_SCALING.md` is the detailed companion for behavior-preserving performance work. Its checkpoints must be run automatically at the roadmap boundaries defined below.
+
+Performance work never authorizes a gameplay redesign, weakened server authority, weakened security, altered timers/rewards/progression, or speculative infrastructure complexity. Optimize only measured bottlenecks and preserve current game behavior unless a separate Owner-approved design explicitly changes it.
+
 ---
 
 # 2. Current operating state
@@ -51,11 +59,42 @@ Allowed now:
 
 - Owner testing of combat, PvP, spectator, profile/training/session interactions involved in the current test flow;
 - contained bug, authority, usability and presentation fixes discovered by testing;
+- contained evidence-backed, behavior-preserving performance hardening relevant to the current tested flow;
 - documentation/test reconciliation.
 
 Not allowed by default:
 
 - uncontrolled Phase-3/4 feature expansion while Phase 2 remains open.
+
+## Automatic performance/scaling checkpoints
+
+Run a performance checkpoint automatically when any of these boundaries is reached:
+
+1. the current Phase-2 stabilization/PV-1 exit review;
+2. every phase boundary that materially changes persistent state, request volume, concurrency, realtime traffic or data growth;
+3. before and after major multiplayer/social/economy scale steps, especially Phase 3 build snapshots, Phase 4 content expansion, Phase 6 co-op, Phase 7 Expeditions, Phase 8 competitive PvP, Phase 10 social systems and Phase 11 economy/trade;
+4. whenever monitoring shows a sustained regression in latency, errors, connections/pool pressure, CPU, memory, disk I/O, network, rollback/deadlock/lock-wait trends or database growth;
+5. Phase 15 full security/scale/exploit hardening before Closed Alpha readiness.
+
+Each automatic checkpoint should:
+
+- inspect current repository/runtime truth first;
+- baseline Supabase and Vercel health;
+- rerun Supabase performance/security advisors;
+- inspect request/RPC volume and p50/p95/p99 latency where available;
+- inspect duplicate/overlapping/in-flight reads before changing polling intervals;
+- inspect connections/pool pressure, locks/deadlocks, rollback/commit trends, CPU, memory, I/O, network/WAL and table growth where relevant;
+- apply only the smallest measured, behavior-preserving improvement;
+- rerun the applicable database/automated/browser/human validation flow;
+- stop when evidence no longer justifies added complexity.
+
+Current Phase-2 performance credit as of 2026-08-26:
+
+- Supabase baseline indicates healthy resource headroom and fast ordinary gameplay reads;
+- authoritative combat mutation already preserves idempotency, expected-version checks and row locking;
+- added the missing FK-supporting indexes for `app_private.pvp_lobby_members(user_id)` and `app_private.product_validation_events(character_id)`;
+- the Supabase performance advisor no longer reports those unindexed foreign keys;
+- polling/request-shape, historical rollback explanation and combat-write tail latency remain diagnosis/measurement items before any broader runtime optimization.
 
 ## Phase-2 exit
 
@@ -71,10 +110,11 @@ Before Phase-3 runtime work:
 
 1. inspect current `main`, open implementation PRs/issues and `TASKS.md`;
 2. reconcile the Phase-2/PV-1 boundary factually;
-3. never fabricate human evidence;
-4. preserve the existing combat/PvP/spectator platform;
-5. activate `docs/PHASE_3_TICKETS.md`;
-6. begin at **P3.1**.
+3. run the automatic Phase-2 performance/scaling checkpoint and record only measured findings/actions;
+4. never fabricate human evidence;
+5. preserve the existing combat/PvP/spectator platform;
+6. activate `docs/PHASE_3_TICKETS.md`;
+7. begin at **P3.1**.
 
 Phase activation does **not** authorize a Vercel deployment.
 
@@ -342,11 +382,21 @@ Later depth includes Secondary, mature Mastery, Skills, Resonance/Essence, super
 - Inspect;
 - mutation/security protections.
 
+### Performance hardening delivered during stabilization
+
+- baseline Supabase resource/RPC diagnosis;
+- verified separation of active game-session lease semantics from character presence;
+- verified battle-write idempotency/version/row-lock protections;
+- additive FK-supporting indexes for PvP lobby user lookups and product-validation character references;
+- no speculative removal of unused indexes and no weakening of authoritative combat/session behavior.
+
 ### Remaining
 
 Owner testing and formal Phase-2/PV-1 exit decision.
 
 Contained fixes may still address real current testing findings.
+
+Performance diagnosis may continue only through the behavior-preserving checkpoint contract above.
 
 **Status:** implementation mature and substantially above original minimum; Owner testing/PV-1 open.
 
@@ -710,6 +760,8 @@ Avoid generic purple-corruption/void-fog presentation.
 
 ## 🔵 Phase 15 — Security, Scale, Exploit Hardening & Closed-Alpha Readiness
 
+Phase 15 is the **full hardening pass**, not the first time performance is considered. It consumes the baselines and incremental checkpoints accumulated throughout earlier phases.
+
 Scope:
 
 - security/penetration/abuse review;
@@ -769,7 +821,9 @@ The approximate **180-day** first-cycle planning default remains subject to vali
 ```text
 OWNER TESTING / PHASE-2 STABILIZATION
         ↓
-Only justified contained Phase-2 fixes
+Contained correctness fixes + behavior-preserving performance checkpoint
+        ↓
+Measure / retest current battle-session-PvP flows
         ↓
 Representative candidate / evidence review
         ↓
@@ -786,6 +840,8 @@ EXPLICIT OWNER PHASE-2 DECISION
 
 The immediate development priority is therefore:
 
-> **Finish testing the battle platform, then build AUREVANE's signature buildcraft.**
+> **Finish testing and stabilizing the battle platform without changing its rules, then build AUREVANE's signature buildcraft.**
+
+Automatic performance/scaling checkpoints continue at the defined future boundaries; they are maintenance/hardening work, not permission to expand feature scope.
 
 The frontier, Rekindling replay systems and Owner-created Anomalies are approved long-horizon direction, not active Phase-2 scope.
