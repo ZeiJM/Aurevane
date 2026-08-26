@@ -240,4 +240,65 @@ describe('sanitized battle log service', () => {
     const result = await createBattleLogService(repository).getLog(USER_ID, SESSION_ID)
     expect(result.entries).toEqual([])
   })
+
+  it('pages through complete history, restores early round context, and never duplicates a page boundary', async () => {
+    const newestPage = Array.from({ length: 100 }, (_, index) => ({
+      battleVersion: 102 - index,
+      eventIndex: 0,
+      event: {
+        event: 'combatant_moved',
+        combatantId: 'character:player-1',
+        from: { x: 0, y: 0 },
+        to: { x: 1, y: 0 },
+        movementCost: 1,
+      },
+      createdAt: '2026-08-17T13:02:00.000Z',
+    }))
+    const findBattleEvents = vi.fn(
+      async (
+        _userId: string,
+        _battleSessionId: string,
+        _limit: number,
+        before?: { battleVersion: number; eventIndex: number },
+      ) => {
+        if (!before) return newestPage
+        expect(before).toEqual({ battleVersion: 3, eventIndex: 0 })
+        return [
+          newestPage.at(-1)!,
+          {
+            battleVersion: 2,
+            eventIndex: 0,
+            event: {
+              event: 'turn_started',
+              combatantId: 'character:player-1',
+              round: 1,
+              turnNumber: 1,
+            },
+            createdAt: '2026-08-17T12:01:00.000Z',
+          },
+          {
+            battleVersion: 1,
+            eventIndex: 0,
+            event: { event: 'round_started', round: 1 },
+            createdAt: '2026-08-17T12:00:00.000Z',
+          },
+        ]
+      },
+    )
+    const repository: BattleEventRepository = { findBattleEvents }
+
+    const result = await createBattleLogService(repository).getLog(USER_ID, SESSION_ID)
+
+    expect(findBattleEvents).toHaveBeenCalledTimes(2)
+    expect(findBattleEvents).toHaveBeenNthCalledWith(1, USER_ID, SESSION_ID, 100)
+    expect(findBattleEvents).toHaveBeenNthCalledWith(2, USER_ID, SESSION_ID, 100, {
+      battleVersion: 3,
+      eventIndex: 0,
+    })
+    expect(result.entries.some((entry) => entry.battleVersion === 1)).toBe(true)
+    expect(result.entries.filter((entry) => entry.battleVersion === 3)).toHaveLength(1)
+    expect(result.entries.find((entry) => entry.battleVersion === 102)).toEqual(
+      expect.objectContaining({ round: 1, turnNumber: 1 }),
+    )
+  })
 })

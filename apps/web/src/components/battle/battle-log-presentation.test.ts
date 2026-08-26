@@ -321,4 +321,13 @@ describe('Battle Log V2 presentation', () => {
     })[0]?.actions[0]
     expect(sentence(action?.primary ?? [])).toBe('Zei strikes Storm — 18 damage')
   })
+
+  it('uses a neutral Battle fallback rather than a Recent bucket for genuinely roundless events', () => {
+    const rounds = buildBattleLogPresentation([entry({ round: null, turnNumber: null })], {
+      combatantNames: names,
+    })
+    expect(rounds[0]?.key).toBe('battle')
+    expect(rounds[0]?.round).toBeNull()
+    expect(rounds.some((round) => round.key === 'recent')).toBe(false)
+  })
 })

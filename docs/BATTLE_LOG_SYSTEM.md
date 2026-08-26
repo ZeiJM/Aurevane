@@ -144,3 +144,10 @@ interface SkillNarrationTemplate {
 V1 allow-listed tokens are `{actor}`, `{target}`, `{ability}`, and `{damage}`. Unknown or malformed templates fail closed to the generic battle sentence; they never throw and never affect mechanics. `critical` is reserved in the content contract but is not selected until an authoritative critical outcome exists. Do not add blocked/dodged/parried variants until those outcomes exist mechanically. Pronoun-form tokens remain deferred until the authoritative identity/pronoun resolver is available.
 
 Narration is evaluated only after committed combat events exist. It can change wording, never hit/miss, damage, targets, statuses, durations, costs, rewards, or any other authoritative result. Future Master Panel editing must use the same versioned contract with validation, preview, publish, audit, and rollback.
+
+
+## Complete-history retention
+
+Battle Log history is the complete sanitized projection of the persisted battle event stream for the authorized battle, not a rolling recent-event window. Database reads remain bounded and keyset-paginated, while the server composes the pages before projection so early rounds do not disappear as a battle grows.
+
+Numbered rounds remain available for the entire battle and keep the existing newest-first/collapsed presentation. A genuinely roundless prelude may use the neutral `Battle` grouping, but the renderer does not expose a synthetic `Recent` bucket. Participant and active-spectator reads follow the same retention rule without changing combat authority or exposing raw event internals.
