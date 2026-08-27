@@ -38,11 +38,12 @@
     position: relative !important;
     grid-column: 2 !important;
     grid-row: 1 !important;
-    grid-template-columns: clamp(13rem, 24vw, 24rem) auto !important;
+    grid-template-columns: minmax(13rem, 24rem) 8.4rem !important;
     grid-template-rows: auto auto !important;
-    width: max-content !important;
+    width: min(100%, 32.95rem) !important;
+    min-height: 2.15rem !important;
     max-width: 100% !important;
-    gap: 0.22rem 0.45rem !important;
+    gap: 0.22rem 0.55rem !important;
     align-items: center !important;
     justify-self: center !important;
     padding: 0 !important;
@@ -51,6 +52,10 @@
     box-sizing: border-box !important;
   }
 
+  /* The first parity pass omitted align-self here. Because the parent grid centers its items and
+     this generated panel has no intrinsic height, it collapsed into a brass horizontal line. The
+     AI economy panel is a real full-height surface, so explicitly stretch this grid item across
+     both economy rows. */
   :global(
     main[data-pvp-battle='true']
       [data-pvp-header-economy='true'][data-pvp-header-layout='approved']::before
@@ -58,9 +63,11 @@
     display: block;
     grid-column: 1;
     grid-row: 1 / span 2;
+    align-self: stretch !important;
     border: 1px solid var(--av-border);
     border-radius: var(--av-radius-sm);
     background: rgba(255, 255, 255, 0.02);
+    box-sizing: border-box;
     content: '';
     pointer-events: none;
   }
@@ -132,6 +139,8 @@
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035) !important;
   }
 
+  /* Match the AI BattleLessonCoach Victory Conditions control instead of retaining the older PvP
+     all-caps/max-content presentation. */
   :global(
     main[data-pvp-battle='true']
       [data-pvp-header-economy='true'][data-pvp-header-layout='approved']
@@ -139,17 +148,48 @@
   ) {
     grid-column: 2 !important;
     grid-row: 1 / span 2 !important;
-    width: max-content !important;
-    min-width: 7.25rem !important;
-    max-width: max-content !important;
+    width: 8.4rem !important;
+    min-width: 8.4rem !important;
+    max-width: 8.4rem !important;
     height: 2.15rem !important;
     min-height: 2.15rem !important;
     margin-left: 0 !important;
+    gap: 0.48rem !important;
     align-self: center !important;
     justify-self: start !important;
+    padding: 0.32rem 0.48rem !important;
+    border: 1px solid var(--av-border) !important;
     border-radius: var(--av-radius-sm) !important;
+    color: var(--av-text-muted) !important;
+    background: rgba(207, 169, 93, 0.065) !important;
+    font: 700 0.56rem/1 var(--av-font-mono) !important;
+    box-shadow: none !important;
     box-sizing: border-box !important;
+    text-transform: none !important;
     white-space: nowrap !important;
+  }
+
+  :global(
+    main[data-pvp-battle='true']
+      [data-pvp-header-economy='true'][data-pvp-header-layout='approved']
+      > button
+      > span
+  ) {
+    color: var(--av-text-muted) !important;
+    font: inherit !important;
+    font-size: 0.46rem !important;
+    text-transform: none !important;
+  }
+
+  :global(
+    main[data-pvp-battle='true']
+      [data-pvp-header-economy='true'][data-pvp-header-layout='approved']
+      > button
+      > strong
+  ) {
+    color: var(--av-brass-200) !important;
+    font: inherit !important;
+    font-size: 0.5rem !important;
   }
 
   :global(
@@ -185,6 +225,23 @@
     color: var(--av-text-dim) !important;
     font-size: 0.39rem !important;
     letter-spacing: 0.04em !important;
+  }
+
+  /* The older global PvP fallback still advertises a 58rem board. Keep the established desktop
+     parity ceiling authoritative so the full 9x7 board remains visible instead of expanding until
+     lower rows are clipped. This selector deliberately outranks that fallback without affecting
+     mobile or changing tactical geometry. */
+  :global(
+    main[data-pvp-battle='true'][data-pvp-desktop-parity='true']
+      #battlefield
+      > div:first-child
+      > div:first-child
+  ) {
+    width: min(100%, 620px) !important;
+    min-width: 0 !important;
+    max-width: 620px !important;
+    height: auto !important;
+    max-height: 100% !important;
   }
 
   :global(main[data-pvp-battle='true'][data-pvp-desktop-parity='true'] > footer) {
