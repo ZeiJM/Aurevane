@@ -86,9 +86,9 @@
   font-style: normal;
 }
 
-/* Keep the accepted AI token placement, but trim the desktop footprint a final small step so the
-   occupied-token circle has visible breathing room below the tile coordinate label without
-   returning to the undersized 2.75rem presentation. */
+/* Keep the accepted AI token placement, but trim the desktop footprint one final small step so the
+   occupied-token circle has clear breathing room below the tile coordinate label without
+   changing the accepted 53% vertical placement. */
 @media (min-width: 821px) {
   :global(
     section#battlefield[data-ai-terrain-layout='true']
@@ -96,8 +96,8 @@
       > span:last-child
   ) {
     top: 53% !important;
-    width: clamp(2rem, 3.4vw, 3rem) !important;
-    height: clamp(2rem, 3.4vw, 3rem) !important;
+    width: clamp(2rem, 3.4vw, 2.9rem) !important;
+    height: clamp(2rem, 3.4vw, 2.9rem) !important;
     aspect-ratio: 1 !important;
   }
 }
