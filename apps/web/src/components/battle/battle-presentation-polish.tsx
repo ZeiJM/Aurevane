@@ -307,7 +307,12 @@ export function BattlePresentationPolish({
     const root =
       document.querySelector<HTMLElement>('main[data-pvp-battle="true"]') ?? document.body
     const observer = new MutationObserver(schedule)
-    observer.observe(root, { childList: true, subtree: true })
+    observer.observe(root, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['disabled'],
+    })
 
     const onDoubleClick = (event: MouseEvent) => {
       if (!isFinishMode()) return
