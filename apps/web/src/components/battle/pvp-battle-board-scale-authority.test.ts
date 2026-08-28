@@ -18,14 +18,18 @@ describe('final desktop PvP board scale authority', () => {
   it('loads after the older parity layers', () => {
     const releasePolish = readLocalFile('pvp-battle-release-polish.tsx')
 
-    expect(releasePolish).toContain("import boardScaleStyles from './pvp-battle-board-scale-authority.module.css'")
+    expect(releasePolish).toContain(
+      "import boardScaleStyles from './pvp-battle-board-scale-authority.module.css'",
+    )
     expect(releasePolish).toContain('${boardScaleStyles.hook}')
   })
 
   it('owns a flexible board row and one compact terrain row', () => {
     const css = compact(readLocalFile('pvp-battle-board-scale-authority.module.css'))
 
-    expect(css).toContain("main[data-pvp-battle='true'][data-pvp-desktop-parity='true'] #battlefield")
+    expect(css).toContain(
+      "main[data-pvp-battle='true'][data-pvp-desktop-parity='true'] #battlefield",
+    )
     expect(css).toContain('display: grid !important;')
     expect(css).toContain('grid-template-rows: minmax(0, 1fr) 2.35rem !important;')
     expect(css).toContain('height: 100% !important;')
