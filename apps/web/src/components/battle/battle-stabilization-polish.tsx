@@ -6,6 +6,7 @@ import styles from './battle-stabilization-polish.module.css'
 
 type Facing = 'north' | 'east' | 'south' | 'west'
 
+const MOBILE_PVP_QUERY = '(max-width: 820px)'
 const BASE_FACING_GLYPH = '←'
 const FACING_TRANSFORM: Record<Facing, string> = {
   west: 'none',
@@ -13,11 +14,6 @@ const FACING_TRANSFORM: Record<Facing, string> = {
   east: 'scaleX(-1)',
   south: 'rotate(-90deg)',
 }
-
-const BATTLEFIELD_SELECTORS = [
-  'section[aria-label="Tactical battlefield"]',
-  'section[aria-label="PvP tactical battlefield"]',
-] as const
 
 function facingFromGlyph(value: string): Facing | null {
   if (value.includes('↑')) return 'north'
@@ -40,48 +36,40 @@ function nativeFacingElement(unit: HTMLElement): HTMLElement | null {
   return (
     Array.from(unit.children).find((child): child is HTMLElement => {
       if (!(child instanceof HTMLElement)) return false
-      if (child.hasAttribute('data-battle-tile-facing')) return false
       if (child.hasAttribute('data-mobile-token-facing')) return false
       if (child.hasAttribute('data-mobile-token-meters')) return false
-      if (child.tagName !== 'SPAN' && child.tagName !== 'I') return false
       return facingFromGlyph(child.textContent?.trim() ?? '') !== null
     }) ?? null
   )
 }
 
-function restoreFacingPresentation(root: ParentNode = document): void {
-  for (const native of root.querySelectorAll<HTMLElement>('[data-battle-native-facing="true"]')) {
+function restoreNativeFacingMarkers(root: ParentNode = document): void {
+  for (const native of root.querySelectorAll<HTMLElement>('[data-mobile-native-facing="true"]')) {
     native.style.removeProperty('visibility')
-    delete native.dataset.battleNativeFacing
-  }
-
-  // Clean up the superseded mobile-only marker from the previous presentation pass as well.
-  for (const legacy of root.querySelectorAll<HTMLElement>('[data-mobile-native-facing="true"]')) {
-    legacy.style.removeProperty('visibility')
-    delete legacy.dataset.mobileNativeFacing
+    delete native.dataset.mobileNativeFacing
   }
   for (const marker of root.querySelectorAll<HTMLElement>('[data-mobile-token-facing="true"]')) {
     marker.remove()
   }
-  for (const marker of root.querySelectorAll<HTMLElement>('[data-battle-tile-facing="true"]')) {
-    marker.remove()
-  }
 }
 
-function createTileFacingMarker(tile: HTMLElement): HTMLElement {
+function createFacingMarker(unit: HTMLElement): HTMLElement {
   const marker = document.createElement('span')
-  marker.dataset.battleTileFacing = 'true'
+  marker.dataset.mobileTokenFacing = 'true'
   marker.setAttribute('aria-hidden', 'true')
   marker.textContent = BASE_FACING_GLYPH
 
-  // The tile is already position: relative in both battle renderers. Keeping this marker inside the
-  // tile guarantees it cannot protrude past a board edge regardless of the unit's facing direction.
+  // Canonical geometry is the approved red PvP token marker. Every direction reuses this exact
+  // glyph and box. East mirrors the west glyph horizontally instead of rotating it 180 degrees;
+  // that preserves the font's vertical baseline so left/right arrows sit at the exact same height.
   marker.style.position = 'absolute'
-  marker.style.right = '0.18rem'
-  marker.style.zIndex = '12'
+  marker.style.top = '-0.78rem'
+  marker.style.left = '50%'
+  marker.style.zIndex = '9'
   marker.style.display = 'grid'
   marker.style.width = '0.68rem'
   marker.style.height = '0.68rem'
+  marker.style.marginLeft = '-0.34rem'
   marker.style.placeItems = 'center'
   marker.style.color = '#f1d892'
   marker.style.fontFamily = 'var(--av-font-mono)'
@@ -93,43 +81,45 @@ function createTileFacingMarker(tile: HTMLElement): HTMLElement {
   marker.style.transformOrigin = '50% 50%'
   marker.style.pointerEvents = 'none'
 
-  tile.append(marker)
+  unit.append(marker)
   return marker
 }
 
-function syncBattlefieldFacingMarkers(): void {
-  for (const selector of BATTLEFIELD_SELECTORS) {
-    const battlefield = document.querySelector<HTMLElement>(selector)
-    if (!battlefield) continue
+function syncMobilePvpFacingMarkers(): void {
+  const root = document.querySelector<HTMLElement>('main[data-pvp-battle="true"]')
+  if (!root) return
 
-    for (const tile of battlefield.querySelectorAll<HTMLElement>('button[aria-label*="occupied by"]')) {
-      const unit = directUnit(tile)
-      if (!unit) continue
+  const media = window.matchMedia(MOBILE_PVP_QUERY)
+  if (!media.matches) {
+    restoreNativeFacingMarkers(root)
+    return
+  }
 
-      const nativeFacing = nativeFacingElement(unit)
-      if (!nativeFacing) continue
-      const facing = facingFromGlyph(nativeFacing.textContent?.trim() ?? '')
-      if (!facing) continue
+  const battlefield = root.querySelector<HTMLElement>(
+    'section[aria-label="PvP tactical battlefield"]',
+  )
+  if (!battlefield) return
 
-      if (nativeFacing.dataset.battleNativeFacing !== 'true') {
-        nativeFacing.dataset.battleNativeFacing = 'true'
-        nativeFacing.style.setProperty('visibility', 'hidden', 'important')
-      }
+  for (const tile of battlefield.querySelectorAll<HTMLElement>('button[aria-label*="occupied by"]')) {
+    const unit = directUnit(tile)
+    if (!unit) continue
 
-      // Remove the previous mobile-only clone if it happens to survive a hot/client transition.
-      unit.querySelector<HTMLElement>(':scope > [data-mobile-token-facing="true"]')?.remove()
+    const nativeFacing = nativeFacingElement(unit)
+    if (!nativeFacing) continue
+    const facing = facingFromGlyph(nativeFacing.textContent?.trim() ?? '')
+    if (!facing) continue
 
-      const marker =
-        tile.querySelector<HTMLElement>(':scope > [data-battle-tile-facing="true"]') ??
-        createTileFacingMarker(tile)
+    if (nativeFacing.dataset.mobileNativeFacing !== 'true') {
+      nativeFacing.dataset.mobileNativeFacing = 'true'
+      nativeFacing.style.setProperty('visibility', 'hidden', 'important')
+    }
 
-      // Raised-ground tiles already reserve the extreme top-right for the elevation glyph.
-      marker.style.top = tile.hasAttribute('data-elevation') ? '0.82rem' : '0.18rem'
-
-      if (marker.dataset.battleTileFacingDirection !== facing) {
-        marker.dataset.battleTileFacingDirection = facing
-        marker.style.transform = FACING_TRANSFORM[facing]
-      }
+    const marker =
+      unit.querySelector<HTMLElement>(':scope > [data-mobile-token-facing="true"]') ??
+      createFacingMarker(unit)
+    if (marker.dataset.mobileTokenFacingDirection !== facing) {
+      marker.dataset.mobileTokenFacingDirection = facing
+      marker.style.transform = FACING_TRANSFORM[facing]
     }
   }
 }
@@ -137,10 +127,11 @@ function syncBattlefieldFacingMarkers(): void {
 export function BattleStabilizationPolish() {
   useEffect(() => {
     let frame = 0
+    const media = window.matchMedia(MOBILE_PVP_QUERY)
 
     const run = () => {
       frame = 0
-      syncBattlefieldFacingMarkers()
+      syncMobilePvpFacingMarkers()
     }
     const schedule = () => {
       if (frame !== 0) return
@@ -149,18 +140,14 @@ export function BattleStabilizationPolish() {
 
     run()
     const observer = new MutationObserver(schedule)
-    observer.observe(document.body, {
-      childList: true,
-      subtree: true,
-      characterData: true,
-      attributes: true,
-      attributeFilter: ['aria-label', 'data-elevation'],
-    })
+    observer.observe(document.body, { childList: true, subtree: true, characterData: true })
+    media.addEventListener('change', schedule)
 
     return () => {
       observer.disconnect()
+      media.removeEventListener('change', schedule)
       if (frame !== 0) window.cancelAnimationFrame(frame)
-      restoreFacingPresentation()
+      restoreNativeFacingMarkers()
     }
   }, [])
 
