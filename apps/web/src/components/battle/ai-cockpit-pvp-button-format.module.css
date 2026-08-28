@@ -1,0 +1,49 @@
+.hook {
+  display: none;
+}
+
+/* The shared cockpit polish supplies the visual language for both battle modes. PvP's native
+   command layer then stretches the cost row and centers the action title. Mirror only that
+   formatting delta in AI so both cockpits read identically without changing command behavior. */
+:global(
+  main:not([data-pvp-battle='true'])
+    section[aria-label='Command Deck']
+    [data-battle-command]
+) {
+  justify-items: stretch !important;
+  text-align: center !important;
+}
+
+:global(
+  main:not([data-pvp-battle='true'])
+    section[aria-label='Command Deck']
+    [data-battle-command]
+    > span
+) {
+  width: max-content !important;
+  justify-self: start !important;
+}
+
+:global(
+  main:not([data-pvp-battle='true'])
+    section[aria-label='Command Deck']
+    [data-battle-command]
+    > strong
+) {
+  width: 100% !important;
+  justify-self: stretch !important;
+  text-align: center !important;
+}
+
+:global(
+  main:not([data-pvp-battle='true'])
+    section[aria-label='Command Deck']
+    [data-battle-command]
+    > small
+) {
+  box-sizing: border-box;
+  width: 100% !important;
+  justify-content: flex-start !important;
+  justify-self: stretch !important;
+  text-align: left !important;
+}
