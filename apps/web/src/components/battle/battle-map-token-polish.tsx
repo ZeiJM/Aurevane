@@ -5,8 +5,9 @@ import { useEffect } from 'react'
 const DESKTOP_PVP_TOKEN_QUERY = '(min-width: 821px)'
 const DESKTOP_PVP_TOKEN_SIZE = 'clamp(2rem, 3.4vw, 3.4rem)'
 const COMPACT_TOKEN_SIZE = 'clamp(1.7rem, 56%, 2.75rem)'
+const PLAYER_TOKEN_SHADOW = '0 0.45rem 1rem rgba(0, 0, 0, 0.35)'
 
-function polishBattlefieldTokens() {
+function polishBattlefieldTokens(playerName?: string) {
   const desktopPvpScale = window.matchMedia(DESKTOP_PVP_TOKEN_QUERY).matches
   const tokenSize = desktopPvpScale ? DESKTOP_PVP_TOKEN_SIZE : COMPACT_TOKEN_SIZE
   const occupiedTiles = Array.from(
@@ -17,7 +18,7 @@ function polishBattlefieldTokens() {
     const token = tile.querySelector<HTMLElement>(':scope > span:last-child')
     if (!token) continue
 
-    // Keep AI tokens on the same responsive footprint as the live PvP battlefield.
+    // Keep battle tokens on the same responsive footprint as the live PvP battlefield.
     token.style.position = 'absolute'
     token.style.top = '50%'
     token.style.left = '50%'
@@ -28,7 +29,14 @@ function polishBattlefieldTokens() {
     token.style.transform = 'translate(-50%, -50%)'
 
     const name = token.querySelector<HTMLElement>(':scope > strong')
-    if (name) name.style.display = 'none'
+    if (name) {
+      const isAiPlayerToken = Boolean(playerName && name.textContent?.trim() === playerName)
+      name.style.display = 'none'
+
+      // AI only: keep the player's green ownership border, but remove the extra active-turn halo ring.
+      // PvP does not pass playerName here, so its active-token presentation remains unchanged.
+      if (isAiPlayerToken) token.style.boxShadow = PLAYER_TOKEN_SHADOW
+    }
 
     for (const image of Array.from(token.querySelectorAll<HTMLImageElement>('img'))) {
       image.style.width = '100%'
@@ -40,21 +48,27 @@ function polishBattlefieldTokens() {
   }
 }
 
-export function BattleMapTokenPolish() {
+interface BattleMapTokenPolishProps {
+  playerName?: string
+}
+
+export function BattleMapTokenPolish({ playerName }: BattleMapTokenPolishProps = {}) {
   useEffect(() => {
-    polishBattlefieldTokens()
+    const polish = () => polishBattlefieldTokens(playerName)
+
+    polish()
     const battlefield = document.querySelector('#battlefield')
     if (!battlefield) return
 
-    const observer = new MutationObserver(polishBattlefieldTokens)
+    const observer = new MutationObserver(polish)
     observer.observe(battlefield, { childList: true, subtree: true })
-    window.addEventListener('resize', polishBattlefieldTokens)
+    window.addEventListener('resize', polish)
 
     return () => {
       observer.disconnect()
-      window.removeEventListener('resize', polishBattlefieldTokens)
+      window.removeEventListener('resize', polish)
     }
-  }, [])
+  }, [playerName])
 
   return null
 }
