@@ -136,26 +136,42 @@ function reconcileFacingGuides(playerName: string) {
   }
 }
 
+function createPolishedTerrainLegend(): HTMLDivElement {
+  const legend = document.createElement('div')
+  legend.dataset.terrainLegendPolish = 'true'
+  legend.setAttribute('aria-label', 'Terrain legend')
+  legend.innerHTML = `
+    <span data-terrain-chip="broken"><i aria-hidden="true"></i><b>Difficult Ground</b><small>Higher movement cost</small></span>
+    <span data-terrain-chip="raised"><i aria-hidden="true">▲</i><b>Raised Ground</b><small>Elevation +1</small></span>
+  `
+  return legend
+}
+
 function polishTerrainLegend() {
   const battlefield = document.querySelector<HTMLElement>('#battlefield')
   if (!battlefield) return
 
   const isPvpBattle = Boolean(battlefield.closest('main[data-pvp-battle="true"]'))
   const polishedLegend = battlefield.querySelector<HTMLElement>('[data-terrain-legend-polish]')
+  const nativeLegend = Array.from(battlefield.children).find(
+    (child): child is HTMLElement =>
+      child instanceof HTMLElement &&
+      child.getAttribute('aria-label') === 'Terrain legend' &&
+      !child.hasAttribute('data-terrain-legend-polish'),
+  )
 
-  // AI battles already transform their native battlefield legend into the detailed lower terrain
-  // key. Keep that single source of truth and reserve this injected compact key for PvP only.
+  // AI battles transform their native legend in place. PvP should do the same structurally: replace
+  // the native second-row legend with the detailed key instead of appending a third grid child. The
+  // old append behavior created an implicit grid row that consumed roughly half the battlefield and
+  // collapsed the otherwise-correct 9x7 board to a tiny footprint.
   if (!isPvpBattle) {
     polishedLegend?.remove()
+  } else if (nativeLegend) {
+    const replacement = polishedLegend ?? createPolishedTerrainLegend()
+    nativeLegend.replaceWith(replacement)
   } else if (!polishedLegend) {
-    const legend = document.createElement('div')
-    legend.dataset.terrainLegendPolish = 'true'
-    legend.setAttribute('aria-label', 'Terrain legend')
-    legend.innerHTML = `
-      <span data-terrain-chip="broken"><i aria-hidden="true"></i><b>Difficult Ground</b><small>Higher movement cost</small></span>
-      <span data-terrain-chip="raised"><i aria-hidden="true">▲</i><b>Raised Ground</b><small>Elevation +1</small></span>
-    `
-    battlefield.appendChild(legend)
+    // Defensive fallback for an unexpected battlefield without its native legend.
+    battlefield.appendChild(createPolishedTerrainLegend())
   }
 
   for (const tile of battlefield.querySelectorAll<HTMLButtonElement>('button[aria-label]')) {

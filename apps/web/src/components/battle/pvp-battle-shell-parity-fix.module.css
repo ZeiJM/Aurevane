@@ -227,9 +227,21 @@
     letter-spacing: 0.04em !important;
   }
 
-  /* Size the desktop board from the available battlefield height first. The 620px ceiling remains
-     the normal full-size target, but short desktop viewports can now shrink the complete board while
-     preserving its authored aspect ratio instead of clipping the lower rows. */
+  /* Older desktop parity layers assigned a percentage height to the board viewport. In this nested
+     grid that can participate in intrinsic track sizing and collapse the available height, which in
+     turn shrinks the height-driven board to a tiny footprint. Let the battlefield's minmax row own
+     the viewport height and explicitly stretch the viewport through that row instead. */
+  :global(
+    main[data-pvp-battle='true'][data-pvp-desktop-parity='true'] #battlefield > div:first-child
+  ) {
+    height: auto !important;
+    min-height: 0 !important;
+    align-self: stretch !important;
+  }
+
+  /* Size the desktop board from the real available battlefield height first. The 620px ceiling
+     remains the normal full-size target, while short desktop viewports can shrink the complete board
+     without clipping the lower rows. */
   :global(
     main[data-pvp-battle='true'][data-pvp-desktop-parity='true']
       #battlefield

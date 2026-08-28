@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 
 import visualParityStyles from './pvp-ai-action-visual-parity.module.css'
+import boardScaleStyles from './pvp-battle-board-scale-authority.module.css'
 import styles from './pvp-battle-release-polish.module.css'
 import parityStyles from './pvp-battle-shell-parity-fix.module.css'
 
@@ -87,7 +88,7 @@ export function PvpBattleReleasePolish() {
 
   return (
     <span
-      className={`${styles.hook} ${parityStyles.hook} ${visualParityStyles.hook}`}
+      className={`${styles.hook} ${parityStyles.hook} ${visualParityStyles.hook} ${boardScaleStyles.hook}`}
       aria-hidden="true"
     />
   )
