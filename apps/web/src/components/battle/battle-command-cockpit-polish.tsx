@@ -12,10 +12,16 @@ type IntentPreview = BattlePreviewView['preview']
 type ActionPreview = Extract<IntentPreview, { kind: 'action' }>
 
 type PreviewTone = 'chance' | 'damage' | 'heal' | 'effect' | 'cost' | 'blocked'
+type MobileTokenContext = 'ai' | 'pvp'
 
 interface PreviewChip {
   label: string
   tone: PreviewTone
+}
+
+interface MeterPair {
+  hp: string
+  mp: string
 }
 
 const COMMAND_SLUGS = new Map<string, CommandSlug>([
@@ -261,7 +267,8 @@ function showBattlePreview(deck: HTMLElement, preview: IntentPreview): void {
   if (!preview.legal && preview.issues[0]?.message) {
     previewElement.title = preview.issues[0].message
   } else if (preview.kind === 'action' && preview.hitChanceBasisPoints !== null) {
-    previewElement.title = 'Damage is shown for a successful hit; the final result is resolved by the server.'
+    previewElement.title =
+      'Damage is shown for a successful hit; the final result is resolved by the server.'
   } else {
     previewElement.title = 'Authoritative pre-commit action preview.'
   }
@@ -294,6 +301,116 @@ function readBattlePreview(body: unknown): BattlePreviewView | null {
   const preview = (candidate as { preview?: unknown }).preview
   if (!preview || typeof preview !== 'object') return null
   return candidate as BattlePreviewView
+}
+
+function directUnit(tile: HTMLElement): HTMLElement | null {
+  return (
+    Array.from(tile.children).find(
+      (child): child is HTMLElement =>
+        child instanceof HTMLElement && Boolean(child.querySelector(':scope > strong')),
+    ) ?? null
+  )
+}
+
+function meterWidth(fill: Element | null): string | null {
+  if (!(fill instanceof HTMLElement)) return null
+  return fill.style.width || null
+}
+
+function aiMeters(name: string): MeterPair | null {
+  const details = Array.from(
+    document.querySelectorAll<HTMLButtonElement>('button[aria-label$=" combat details"]'),
+  ).find((button) => button.getAttribute('aria-label') === `Show ${name} combat details`)
+  if (!details) return null
+
+  const hp = meterWidth(details.querySelector('span[aria-label*=" HP "] > i'))
+  const mp = meterWidth(details.querySelector('span[aria-label*=" MP "] > i'))
+  return hp && mp ? { hp, mp } : null
+}
+
+function pvpMeterMap(): Map<string, MeterPair> {
+  const result = new Map<string, MeterPair>()
+  const roster = document.querySelector<HTMLElement>('section[aria-label="PvP battle roster"]')
+  if (!roster) return result
+
+  Array.from(roster.children).forEach((teamElement, teamIndex) => {
+    for (const article of teamElement.querySelectorAll<HTMLElement>('article')) {
+      const name = article.querySelector<HTMLElement>('strong')?.textContent?.trim()
+      if (!name) continue
+      const fills = Array.from(article.querySelectorAll<HTMLElement>('span > i')).filter(
+        (fill) => Boolean(fill.style.width),
+      )
+      const hp = meterWidth(fills[0] ?? null)
+      const mp = meterWidth(fills[1] ?? null)
+      if (hp && mp) result.set(`${teamIndex}:${name}`, { hp, mp })
+    }
+  })
+
+  return result
+}
+
+function syncTokenMeter(
+  unit: HTMLElement,
+  meters: MeterPair,
+  context: MobileTokenContext,
+): void {
+  let host = unit.querySelector<HTMLElement>(':scope > [data-mobile-token-meters="true"]')
+  if (!host) {
+    host = document.createElement('span')
+    host.dataset.mobileTokenMeters = 'true'
+    host.dataset.mobileTokenContext = context
+    host.setAttribute('aria-hidden', 'true')
+
+    for (const resource of ['hp', 'mp'] as const) {
+      const track = document.createElement('span')
+      track.dataset.mobileTokenMeter = resource
+      const fill = document.createElement('i')
+      track.append(fill)
+      host.append(track)
+    }
+    unit.append(host)
+  }
+
+  host.dataset.mobileTokenContext = context
+  const hpFill = host.querySelector<HTMLElement>('[data-mobile-token-meter="hp"] > i')
+  const mpFill = host.querySelector<HTMLElement>('[data-mobile-token-meter="mp"] > i')
+  if (hpFill && hpFill.style.width !== meters.hp) hpFill.style.width = meters.hp
+  if (mpFill && mpFill.style.width !== meters.mp) mpFill.style.width = meters.mp
+}
+
+function syncAiTokenMeters(): void {
+  const battlefield = document.querySelector<HTMLElement>('section[aria-label="Tactical battlefield"]')
+  if (!battlefield) return
+
+  for (const tile of battlefield.querySelectorAll<HTMLElement>('button[aria-label*="occupied by"]')) {
+    const unit = directUnit(tile)
+    const name = unit?.querySelector<HTMLElement>(':scope > strong')?.textContent?.trim()
+    if (!unit || !name) continue
+    const meters = aiMeters(name)
+    if (meters) syncTokenMeter(unit, meters, 'ai')
+  }
+}
+
+function syncPvpTokenMeters(): void {
+  const battlefield = document.querySelector<HTMLElement>(
+    'section[aria-label="PvP tactical battlefield"]',
+  )
+  if (!battlefield) return
+
+  const metersByUnit = pvpMeterMap()
+  for (const tile of battlefield.querySelectorAll<HTMLElement>('button[aria-label*="occupied by"]')) {
+    const unit = directUnit(tile)
+    const name = unit?.querySelector<HTMLElement>(':scope > strong')?.textContent?.trim()
+    const team = unit?.dataset.team
+    if (!unit || !name || team === undefined) continue
+    const meters = metersByUnit.get(`${team}:${name}`)
+    if (meters) syncTokenMeter(unit, meters, 'pvp')
+  }
+}
+
+function syncBattlefieldTokenMeters(): void {
+  syncAiTokenMeters()
+  syncPvpTokenMeters()
 }
 
 function syncCommandDeck(deck: HTMLElement): void {
@@ -363,6 +480,7 @@ export function BattleCommandCockpitPolish() {
 
     const sync = () => {
       frame = 0
+      syncBattlefieldTokenMeters()
       for (const deck of decks()) syncCommandDeck(deck)
     }
 
@@ -429,7 +547,7 @@ export function BattleCommandCockpitPolish() {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['class', 'data-active', 'disabled'],
+      attributeFilter: ['class', 'data-active', 'disabled', 'style', 'aria-label'],
     })
     document.addEventListener('click', handleClick)
 
