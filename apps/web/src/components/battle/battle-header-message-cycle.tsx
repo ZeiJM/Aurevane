@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 
 const BATTLE_HEADER_MESSAGES = [
   'Steel is drawn. The battle is underway.',
@@ -10,23 +10,13 @@ const BATTLE_HEADER_MESSAGES = [
   'Every step has weight. Make this one count.',
 ] as const
 
-const MESSAGE_ROTATION_INTERVAL_MS = 12_000
-
-function shuffled(indices: readonly number[], avoidFirst: number | null): number[] {
-  const result = [...indices]
-  for (let index = result.length - 1; index > 0; index -= 1) {
-    const swapIndex = Math.floor(Math.random() * (index + 1))
-    ;[result[index], result[swapIndex]] = [result[swapIndex], result[index]]
+function stableMessageIndex(battleSessionId: string): number {
+  let hash = 2166136261
+  for (let index = 0; index < battleSessionId.length; index += 1) {
+    hash ^= battleSessionId.charCodeAt(index)
+    hash = Math.imul(hash, 16777619)
   }
-
-  if (avoidFirst !== null && result.length > 1 && result[0] === avoidFirst) {
-    const swapIndex = result.findIndex((candidate) => candidate !== avoidFirst)
-    if (swapIndex > 0) {
-      ;[result[0], result[swapIndex]] = [result[swapIndex], result[0]]
-    }
-  }
-
-  return result
+  return (hash >>> 0) % BATTLE_HEADER_MESSAGES.length
 }
 
 function headerObjectiveContainer(): HTMLElement | null {
@@ -92,15 +82,18 @@ function restoreNativeHeader(): void {
     })
 }
 
-export function BattleHeaderMessageCycle() {
+export function BattleHeaderMatchMessage({ battleSessionId }: { battleSessionId: string }) {
+  const message = useMemo(
+    () => BATTLE_HEADER_MESSAGES[stableMessageIndex(battleSessionId)],
+    [battleSessionId],
+  )
+
   useEffect(() => {
     let frame: number | null = null
-    let currentIndex = 0
-    let queue = shuffled([1, 2, 3, 4], currentIndex)
 
     const sync = () => {
       frame = null
-      syncVisibleMessage(BATTLE_HEADER_MESSAGES[currentIndex])
+      syncVisibleMessage(message)
     }
 
     const scheduleSync = () => {
@@ -108,29 +101,16 @@ export function BattleHeaderMessageCycle() {
       frame = window.requestAnimationFrame(sync)
     }
 
-    const advance = () => {
-      if (document.visibilityState === 'hidden') return
-      if (queue.length === 0) {
-        queue = shuffled([0, 1, 2, 3, 4], currentIndex)
-      }
-      const nextIndex = queue.shift()
-      if (nextIndex === undefined) return
-      currentIndex = nextIndex
-      scheduleSync()
-    }
-
     sync()
     const observer = new MutationObserver(scheduleSync)
     observer.observe(document.body, { childList: true, subtree: true })
-    const interval = window.setInterval(advance, MESSAGE_ROTATION_INTERVAL_MS)
 
     return () => {
       observer.disconnect()
-      window.clearInterval(interval)
       if (frame !== null) window.cancelAnimationFrame(frame)
       restoreNativeHeader()
     }
-  }, [])
+  }, [message])
 
   return null
 }
