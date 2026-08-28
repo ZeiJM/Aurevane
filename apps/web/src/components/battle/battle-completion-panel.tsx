@@ -81,7 +81,8 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
   const player = battleState.combatants.find((combatant) => combatant.teamId === 'players')
   const recruit = battleState.combatants.find((combatant) => combatant.teamId === 'opponents')
   const guidedTraining = recordId === 'guided-fundamentals'
-  const headline = guidedTraining ? 'Training Complete' : result
+  const guidedTrainingSucceeded = Boolean(guidedTraining && player && player.hp > 0)
+  const headline = guidedTrainingSucceeded ? 'Training Complete' : result
 
   async function loadBattleLog(): Promise<BattleLogView | null> {
     if (log) return log
@@ -170,17 +171,24 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
         className={styles.panel}
         aria-labelledby="battle-hall-result-title"
         data-testid="tactical-hall-result"
-        data-result={guidedTraining ? 'complete' : result.toLowerCase()}
+        data-result={guidedTrainingSucceeded ? 'complete' : result.toLowerCase()}
       >
         <div className={styles.resultHero}>
           <p className={styles.eyebrow}>
-            Battle Hall · {guidedTraining ? 'Guided Exercise Complete' : 'Practice Result'}
+            Battle Hall ·{' '}
+            {guidedTraining
+              ? guidedTrainingSucceeded
+                ? 'Guided Exercise Complete'
+                : 'Guided Exercise Result'
+              : 'Practice Result'}
           </p>
           <h2 id="battle-hall-result-title">{headline}</h2>
           <p>
-            {guidedTraining
+            {guidedTrainingSucceeded
               ? `All Guided Fundamentals criteria were verified from the committed battle record in Round ${battleState.round}.`
-              : `The exercise concluded in Round ${battleState.round}. The committed battle history remains available for review.`}
+              : guidedTraining
+                ? `The Wayfarer was defeated in Round ${battleState.round}, so the Guided Fundamentals exercise ended in defeat.`
+                : `The exercise concluded in Round ${battleState.round}. The committed battle history remains available for review.`}
           </p>
         </div>
 
@@ -207,7 +215,11 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
 
         <div className={styles.outcomeNote}>
           <strong>
-            {guidedTraining ? 'Lesson objective achieved' : 'Practice battle concluded'}
+            {guidedTraining
+              ? guidedTrainingSucceeded
+                ? 'Lesson objective achieved'
+                : 'Lesson failed'
+              : 'Practice battle concluded'}
           </strong>
           <p>
             Practice grants no Character XP, Mastery, loot, Crowns, PvP rating, or normal
