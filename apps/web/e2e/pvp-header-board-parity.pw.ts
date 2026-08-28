@@ -225,7 +225,9 @@ test('keeps the live desktop PvP header, opponent timer, and full board stable',
 
     await host.waitForTimeout(1_250)
     const afterPollGeometry = await readGeometry()
-    expect(afterPollGeometry.viewportHeight).toBeGreaterThan(afterPollGeometry.battlefieldHeight * 0.8)
+    expect(afterPollGeometry.viewportHeight).toBeGreaterThan(
+      afterPollGeometry.battlefieldHeight * 0.8,
+    )
     expect(afterPollGeometry.boardHeight).toBeGreaterThan(afterPollGeometry.viewportHeight * 0.72)
     expect(afterPollGeometry.boardWidth).toBeGreaterThan(afterPollGeometry.battlefieldWidth * 0.3)
     expect(afterPollGeometry.boardWidth).toBeLessThanOrEqual(621)
