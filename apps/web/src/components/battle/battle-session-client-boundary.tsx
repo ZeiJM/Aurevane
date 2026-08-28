@@ -14,6 +14,7 @@ import { BattleDirectionalAttackAssist } from './battle-directional-attack-assis
 import { BattleExperienceV2 } from './battle-experience-v2'
 import { BattleFacingQuickCommitAssist } from './battle-facing-quick-commit-assist'
 import { BattleFeedbackAssist } from './battle-feedback-assist'
+import { BattleHeaderMatchMessage } from './battle-header-message-cycle'
 import { BattleKeyboardAssist } from './battle-keyboard-assist'
 import { BattleLessonCoach } from './battle-lesson-coach'
 import { BattleMapTokenPolish } from './battle-map-token-polish'
@@ -70,6 +71,7 @@ export function BattleSessionClientBoundary({
       <BattleDirectionalAttackAssist playerName={playerName} />
       <BattleMapTokenPolish playerName={playerName} />
       <BattlePresentationPolish playerName={playerName} />
+      <BattleHeaderMatchMessage battleSessionId={initialBattle.battleSessionId} />
       <BattleFacingQuickCommitAssist playerName={playerName} />
       <BattleStatusEffectAssist />
       <DesktopBattleCombatantInspect
