@@ -4,8 +4,7 @@
 
 :global([data-battle-cockpit-polish='true']) {
   border-color: rgba(207, 169, 93, 0.3) !important;
-  background:
-    linear-gradient(180deg, rgba(15, 20, 29, 0.985), rgba(6, 9, 14, 0.99)) !important;
+  background: linear-gradient(180deg, rgba(15, 20, 29, 0.985), rgba(6, 9, 14, 0.99)) !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.025),
     0 0.5rem 1.35rem rgba(0, 0, 0, 0.22);
@@ -32,7 +31,12 @@
   color: var(--av-text-muted) !important;
   background:
     radial-gradient(circle at 100% 0, rgba(var(--cockpit-accent-rgb), 0.09), transparent 56%),
-    linear-gradient(160deg, rgba(var(--cockpit-accent-rgb), 0.055), rgba(255, 255, 255, 0.012) 58%, rgba(0, 0, 0, 0.1)) !important;
+    linear-gradient(
+      160deg,
+      rgba(var(--cockpit-accent-rgb), 0.055),
+      rgba(255, 255, 255, 0.012) 58%,
+      rgba(0, 0, 0, 0.1)
+    ) !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.025),
     inset 0 0 0 1px rgba(255, 255, 255, 0.01);
@@ -135,7 +139,12 @@
   border-color: rgba(var(--cockpit-accent-rgb), 0.68) !important;
   background:
     radial-gradient(circle at 100% 0, rgba(var(--cockpit-accent-rgb), 0.18), transparent 58%),
-    linear-gradient(160deg, rgba(var(--cockpit-accent-rgb), 0.1), rgba(255, 255, 255, 0.022) 58%, rgba(0, 0, 0, 0.08)) !important;
+    linear-gradient(
+      160deg,
+      rgba(var(--cockpit-accent-rgb), 0.1),
+      rgba(255, 255, 255, 0.022) 58%,
+      rgba(0, 0, 0, 0.08)
+    ) !important;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.045),
     0 0 0 1px rgba(var(--cockpit-accent-rgb), 0.08),
@@ -153,7 +162,12 @@
   color: var(--av-text) !important;
   background:
     radial-gradient(circle at 100% 0, rgba(var(--cockpit-accent-rgb), 0.24), transparent 60%),
-    linear-gradient(160deg, rgba(var(--cockpit-accent-rgb), 0.15), rgba(255, 255, 255, 0.026) 58%, rgba(0, 0, 0, 0.06)) !important;
+    linear-gradient(
+      160deg,
+      rgba(var(--cockpit-accent-rgb), 0.15),
+      rgba(255, 255, 255, 0.026) 58%,
+      rgba(0, 0, 0, 0.06)
+    ) !important;
   box-shadow:
     inset 0 0 0 1px rgba(var(--cockpit-accent-rgb), 0.12),
     0 0 0.75rem rgba(var(--cockpit-accent-rgb), 0.11),
@@ -216,7 +230,11 @@
   border-color: rgba(207, 169, 93, 0.27) !important;
   border-radius: 0.38rem !important;
   color: rgba(234, 214, 168, 0.84) !important;
-  background: linear-gradient(180deg, rgba(207, 169, 93, 0.065), rgba(255, 255, 255, 0.012)) !important;
+  background: linear-gradient(
+    180deg,
+    rgba(207, 169, 93, 0.065),
+    rgba(255, 255, 255, 0.012)
+  ) !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
   transition:
     border-color 140ms ease,

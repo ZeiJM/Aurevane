@@ -19,7 +19,8 @@ function syncCommandDeck(deck: HTMLElement): void {
   deck.dataset.battleCockpitPolish = 'true'
 
   const commandButtons = Array.from(deck.querySelectorAll<HTMLButtonElement>('button')).filter(
-    (button) => COMMAND_SLUGS.has(button.querySelector(':scope > strong')?.textContent?.trim() ?? ''),
+    (button) =>
+      COMMAND_SLUGS.has(button.querySelector(':scope > strong')?.textContent?.trim() ?? ''),
   )
 
   if (commandButtons.length > 0) {
