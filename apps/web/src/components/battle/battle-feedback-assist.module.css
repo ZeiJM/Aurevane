@@ -49,12 +49,12 @@
   aspect-ratio: 1;
 }
 
-/* Current desktop PvP deliberately enlarges occupied-tile tokens beyond its base token rule.
-   Mirror that final rendered footprint in AI battles rather than the stale pre-recovery size. */
+/* AI's fitted desktop tiles are shorter than PvP's. Keep the same token treatment but trim the
+   absolute footprint so portraits retain the same breathing room inside each tile. */
 @media (min-width: 821px) {
   :global(#battlefield [data-map-portrait-ready]) {
-    width: clamp(2rem, 3.4vw, 3.4rem) !important;
-    height: clamp(2rem, 3.4vw, 3.4rem) !important;
+    width: clamp(2rem, 3vw, 3rem) !important;
+    height: clamp(2rem, 3vw, 3rem) !important;
   }
 }
 
