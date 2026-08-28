@@ -86,9 +86,9 @@
   font-style: normal;
 }
 
-/* The live AI screenshot measures about 52px across while the PvP reference is about 65-66px.
-   A 3.2rem ceiling lands on the PvP footprint without returning to the old 3.4rem coordinate
-   overlap. Nudge the whole token down slightly so the larger circle keeps the tile label clear. */
+/* Keep the accepted AI token placement, but trim the desktop footprint very slightly so the
+   occupied-token circle clears the tile coordinate label without falling back to the undersized
+   2.75rem presentation. */
 @media (min-width: 821px) {
   :global(
     section#battlefield[data-ai-terrain-layout='true']
@@ -96,8 +96,8 @@
       > span:last-child
   ) {
     top: 53% !important;
-    width: clamp(2rem, 3.4vw, 3.2rem) !important;
-    height: clamp(2rem, 3.4vw, 3.2rem) !important;
+    width: clamp(2rem, 3.4vw, 3.1rem) !important;
+    height: clamp(2rem, 3.4vw, 3.1rem) !important;
     aspect-ratio: 1 !important;
   }
 }
