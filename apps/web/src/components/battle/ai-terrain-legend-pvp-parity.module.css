@@ -31,16 +31,13 @@
   white-space: normal !important;
 }
 
-/* Match PvP's icon, padding, gap, border and type metrics exactly, but do not force the AI
-   cards to the PvP 15rem minimum width. These should stay compact around their content. */
+/* Mirror the live PvP terrain-key card geometry. The legacy AI legend text remains in the React
+   tree, but is visually replaced by the same two-line PvP labels so React ownership stays intact. */
 :global([data-ai-terrain-legend='true'] > span:nth-child(-n + 2)) {
   display: grid !important;
-  grid-template-columns: 1.55rem max-content;
-  grid-template-rows: auto auto;
-  width: max-content;
-  max-width: calc(50% - 0.2rem);
-  min-width: 0;
-  flex: 0 1 auto;
+  grid-template-columns: 1.55rem minmax(0, 1fr);
+  grid-template-rows: min-content min-content;
+  min-width: min(15rem, 48%);
   gap: 0.08rem 0.42rem;
   align-items: center;
   padding: 0.28rem 0.45rem;
@@ -92,8 +89,13 @@
 }
 
 :global([data-ai-terrain-legend='true'] > span:nth-child(-n + 2) > b::after) {
-  color: var(--av-text-muted);
-  font: 750 0.4rem/1 var(--av-font-mono);
+  display: block !important;
+  color: var(--av-text-muted) !important;
+  content: '';
+  font: 750 0.4rem/1 var(--av-font-mono) !important;
+  line-height: 1 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
   text-transform: uppercase;
   white-space: nowrap;
 }
@@ -107,10 +109,15 @@
 }
 
 :global([data-ai-terrain-legend='true'] > span:nth-child(-n + 2)::after) {
+  display: block !important;
   grid-column: 2;
   grid-row: 2;
-  color: var(--av-text-dim);
-  font: 500 0.38rem/1.1 var(--av-font-sans);
+  min-height: 0.42rem;
+  color: var(--av-text-dim) !important;
+  font: 500 0.38rem/1.1 var(--av-font-sans) !important;
+  line-height: 1.1 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
   white-space: nowrap;
 }
 
@@ -122,6 +129,17 @@
   content: 'Elevation +1';
 }
 
+/* Match the final live PvP desktop occupied-token footprint exactly. This is the rule that wins in
+   PvP after its later release-polish layers, so AI should use the same dimensions rather than the
+   older 56%-of-tile base contract or the oversized 3.4rem recovery override. */
+@media (min-width: 821px) {
+  :global(section#battlefield[data-ai-terrain-layout='true'] [data-map-portrait-ready]) {
+    width: clamp(1.55rem, 2.5vw, 2.35rem) !important;
+    height: clamp(1.55rem, 2.5vw, 2.35rem) !important;
+    aspect-ratio: 1 !important;
+  }
+}
+
 @media (max-width: 820px) {
   :global([data-ai-terrain-legend='true']) {
     gap: 0.4rem !important;
@@ -129,9 +147,6 @@
   }
 
   :global([data-ai-terrain-legend='true'] > span:nth-child(-n + 2)) {
-    grid-template-columns: 1.55rem minmax(0, 1fr);
-    width: auto;
-    max-width: none;
     min-width: 0;
     flex: 1 1 0;
   }
