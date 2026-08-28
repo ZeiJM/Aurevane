@@ -7,7 +7,7 @@ const DESKTOP_PVP_TOKEN_SIZE = 'clamp(2rem, 3.4vw, 3.4rem)'
 const COMPACT_TOKEN_SIZE = 'clamp(1.7rem, 56%, 2.75rem)'
 const PLAYER_TOKEN_SHADOW = '0 0.45rem 1rem rgba(0, 0, 0, 0.35)'
 
-function polishBattlefieldTokens(playerName: string) {
+function polishBattlefieldTokens(playerName?: string) {
   const desktopPvpScale = window.matchMedia(DESKTOP_PVP_TOKEN_QUERY).matches
   const tokenSize = desktopPvpScale ? DESKTOP_PVP_TOKEN_SIZE : COMPACT_TOKEN_SIZE
   const occupiedTiles = Array.from(
@@ -18,7 +18,7 @@ function polishBattlefieldTokens(playerName: string) {
     const token = tile.querySelector<HTMLElement>(':scope > span:last-child')
     if (!token) continue
 
-    // Keep AI tokens on the same responsive footprint as the live PvP battlefield.
+    // Keep battle tokens on the same responsive footprint as the live PvP battlefield.
     token.style.position = 'absolute'
     token.style.top = '50%'
     token.style.left = '50%'
@@ -30,12 +30,12 @@ function polishBattlefieldTokens(playerName: string) {
 
     const name = token.querySelector<HTMLElement>(':scope > strong')
     if (name) {
-      const isPlayerToken = name.textContent?.trim() === playerName
+      const isAiPlayerToken = Boolean(playerName && name.textContent?.trim() === playerName)
       name.style.display = 'none'
 
-      // Keep the player's green ownership border, but remove the extra active-turn halo ring.
-      // The ordinary depth shadow remains so the portrait still separates cleanly from the tile.
-      if (isPlayerToken) token.style.boxShadow = PLAYER_TOKEN_SHADOW
+      // AI only: keep the player's green ownership border, but remove the extra active-turn halo ring.
+      // PvP does not pass playerName here, so its active-token presentation remains unchanged.
+      if (isAiPlayerToken) token.style.boxShadow = PLAYER_TOKEN_SHADOW
     }
 
     for (const image of Array.from(token.querySelectorAll<HTMLImageElement>('img'))) {
@@ -49,10 +49,10 @@ function polishBattlefieldTokens(playerName: string) {
 }
 
 interface BattleMapTokenPolishProps {
-  playerName: string
+  playerName?: string
 }
 
-export function BattleMapTokenPolish({ playerName }: BattleMapTokenPolishProps) {
+export function BattleMapTokenPolish({ playerName }: BattleMapTokenPolishProps = {}) {
   useEffect(() => {
     const polish = () => polishBattlefieldTokens(playerName)
 
