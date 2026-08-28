@@ -75,16 +75,18 @@ describe('PvP desktop battle layout authority', () => {
     expect(mobileCss).not.toContain('width: 8.4rem')
   })
 
-  it('keeps the desktop PvP board on the established compact scale without leaking to mobile', () => {
+  it('keeps the desktop PvP board compact and height-aware without leaking to mobile', () => {
     const parityCss = readLocalFile('pvp-battle-shell-parity-fix.module.css')
     const [desktopCss, mobileCss = ''] = parityCss.split('@media (max-width: 820px)')
     const desktop = compact(desktopCss)
 
     expect(desktop).toContain("main[data-pvp-battle='true'][data-pvp-desktop-parity='true']")
     expect(desktop).toContain('#battlefield > div:first-child > div:first-child')
-    expect(desktop).toContain('width: min(100%, 620px) !important;')
-    expect(desktop).toContain('max-width: 620px !important;')
+    expect(desktop).toContain('width: auto !important;')
+    expect(desktop).toContain('max-width: min(100%, 620px) !important;')
+    expect(desktop).toContain('height: min(100%, 482px) !important;')
     expect(desktop).toContain('max-height: 100% !important;')
+    expect(desktop).toContain('aspect-ratio: var(--battlefield-aspect-ratio) !important;')
     expect(mobileCss).not.toContain('620px')
   })
 })
