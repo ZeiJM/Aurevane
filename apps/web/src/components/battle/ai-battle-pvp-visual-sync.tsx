@@ -37,6 +37,17 @@ function cleanPathZeroMarker(marker: HTMLSpanElement) {
   delete marker.dataset.mapPortraitReady
 }
 
+function ensureTerrainDetail(item: HTMLElement, detailText: string) {
+  let detail = item.querySelector<HTMLElement>(':scope > small[data-ai-terrain-detail="true"]')
+  if (!detail) {
+    detail = document.createElement('small')
+    detail.dataset.aiTerrainDetail = 'true'
+    detail.setAttribute('aria-hidden', 'true')
+    item.append(detail)
+  }
+  if (detail.textContent !== detailText) detail.textContent = detailText
+}
+
 function syncTerrainLegend(battlefield: HTMLElement) {
   const existing = battlefield.querySelector<HTMLElement>(
     ':scope > [data-ai-terrain-legend="true"]',
@@ -57,8 +68,21 @@ function syncTerrainLegend(battlefield: HTMLElement) {
   const items = Array.from(legend.children).filter(
     (child): child is HTMLElement => child instanceof HTMLElement,
   )
-  items[0]?.setAttribute('aria-label', 'Difficult Ground. Higher movement cost.')
-  items[1]?.setAttribute('aria-label', 'Raised Ground. Elevation plus one.')
+
+  const difficult = items[0]
+  if (difficult) {
+    difficult.dataset.aiTerrainKey = 'rough'
+    difficult.setAttribute('aria-label', 'Difficult Ground. Higher movement cost.')
+    ensureTerrainDetail(difficult, 'Higher movement cost')
+  }
+
+  const raised = items[1]
+  if (raised) {
+    raised.dataset.aiTerrainKey = 'raised'
+    raised.setAttribute('aria-label', 'Raised Ground. Elevation plus one.')
+    ensureTerrainDetail(raised, 'Elevation +1')
+  }
+
   for (const item of items.slice(2)) item.setAttribute('aria-hidden', 'true')
 }
 
