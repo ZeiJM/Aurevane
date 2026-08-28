@@ -6,19 +6,14 @@
    command layer then stretches the cost row and centers the action title. Mirror only that
    formatting delta in AI so both cockpits read identically without changing command behavior. */
 :global(
-  main:not([data-pvp-battle='true'])
-    section[aria-label='Command Deck']
-    [data-battle-command]
+  main:not([data-pvp-battle='true']) section[aria-label='Command Deck'] [data-battle-command]
 ) {
   justify-items: stretch !important;
   text-align: center !important;
 }
 
 :global(
-  main:not([data-pvp-battle='true'])
-    section[aria-label='Command Deck']
-    [data-battle-command]
-    > span
+  main:not([data-pvp-battle='true']) section[aria-label='Command Deck'] [data-battle-command] > span
 ) {
   width: max-content !important;
   justify-self: start !important;
