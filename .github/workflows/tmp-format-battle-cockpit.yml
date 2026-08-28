@@ -1,21 +1,20 @@
 name: Temporary cockpit formatter
 
 on:
-  push:
-    branches:
-      - tmp/format-battle-cockpit-20260828
   pull_request:
     branches:
       - agent/battle-cockpit-button-polish-20260828
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   format:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: tmp/format-battle-cockpit-20260828
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -30,7 +29,16 @@ jobs:
           pnpm exec prettier --write \
             apps/web/src/components/battle/battle-command-cockpit-polish.tsx \
             apps/web/src/components/battle/battle-command-cockpit-polish.module.css
-          echo '--- TSX ---'
-          cat apps/web/src/components/battle/battle-command-cockpit-polish.tsx
-          echo '--- CSS ---'
-          cat apps/web/src/components/battle/battle-command-cockpit-polish.module.css
+          if git diff --quiet -- \
+            apps/web/src/components/battle/battle-command-cockpit-polish.tsx \
+            apps/web/src/components/battle/battle-command-cockpit-polish.module.css; then
+            echo 'Cockpit files already formatted.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            apps/web/src/components/battle/battle-command-cockpit-polish.tsx \
+            apps/web/src/components/battle/battle-command-cockpit-polish.module.css
+          git commit -m 'Format battle cockpit polish'
+          git push origin HEAD:tmp/format-battle-cockpit-20260828
