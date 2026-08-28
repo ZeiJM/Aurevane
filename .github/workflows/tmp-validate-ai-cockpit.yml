@@ -1,0 +1,44 @@
+name: Temporary AI cockpit validation
+
+on:
+  pull_request:
+    branches:
+      - fix/ai-cockpit-pvp-button-format-20260828
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: tmp/validate-ai-cockpit-pvp-button-20260828
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Verify touched formatting
+        run: |
+          pnpm exec prettier --check \
+            apps/web/src/components/battle/ai-cockpit-pvp-button-format.module.css \
+            apps/web/src/components/battle/ai-cockpit-pvp-button-format.tsx \
+            apps/web/src/components/battle/battle-session-client-boundary.tsx
+      - name: Lint touched TypeScript
+        working-directory: apps/web
+        run: |
+          pnpm exec eslint --max-warnings=0 \
+            src/components/battle/ai-cockpit-pvp-button-format.tsx \
+            src/components/battle/battle-session-client-boundary.tsx
+      - name: Typecheck web app
+        run: pnpm --filter @aurevane/web typecheck
+      - name: Test web app
+        run: pnpm --filter @aurevane/web test
+      - name: Build web app
+        run: pnpm --filter @aurevane/web build
