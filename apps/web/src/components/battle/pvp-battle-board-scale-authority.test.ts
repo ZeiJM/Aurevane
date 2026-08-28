@@ -24,7 +24,7 @@ describe('final desktop PvP board scale authority', () => {
     expect(releasePolish).toContain('${boardScaleStyles.hook}')
   })
 
-  it('owns a flexible board row and one naturally sized terrain row', () => {
+  it('owns a flexible board row and one naturally sized terrain key row', () => {
     const css = compact(readLocalFile('pvp-battle-board-scale-authority.module.css'))
 
     expect(css).toContain(
