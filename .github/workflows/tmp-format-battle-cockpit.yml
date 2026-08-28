@@ -32,11 +32,12 @@ jobs:
             apps/web/src/components/battle/battle-session-client-boundary.tsx \
             apps/web/src/components/battle/pvp-battle-client-boundary.tsx
       - name: Lint touched TypeScript
+        working-directory: apps/web
         run: |
           pnpm exec eslint --max-warnings=0 \
-            apps/web/src/components/battle/battle-command-cockpit-polish.tsx \
-            apps/web/src/components/battle/battle-session-client-boundary.tsx \
-            apps/web/src/components/battle/pvp-battle-client-boundary.tsx
+            src/components/battle/battle-command-cockpit-polish.tsx \
+            src/components/battle/battle-session-client-boundary.tsx \
+            src/components/battle/pvp-battle-client-boundary.tsx
       - name: Typecheck web app
         run: pnpm --filter @aurevane/web typecheck
       - name: Test web app
