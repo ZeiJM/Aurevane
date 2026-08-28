@@ -110,6 +110,7 @@ test('keeps the live desktop PvP header, opponent timer, and full board stable',
     const victory = economy.getByRole('button', { name: /Victory Conditions/i })
     const round = header.getByRole('button', { name: /Round \d+.*Combat Log/i })
     const battlefield = root.locator('#battlefield')
+    const terrainLegend = battlefield.locator(':scope > [aria-label="Terrain legend"]')
     const viewport = battlefield.locator(':scope > div').first()
     const board = viewport.locator(':scope > div').first()
     const tiles = board.locator("button[aria-label^='Tile ']")
@@ -118,6 +119,9 @@ test('keeps the live desktop PvP header, opponent timer, and full board stable',
     await expect(economy).toHaveAttribute('data-pvp-header-layout', 'approved')
     await expect(victory).toBeVisible()
     await expect(round).toBeVisible()
+    await expect(terrainLegend).toHaveCount(1)
+    await expect(terrainLegend).toHaveAttribute('data-terrain-legend-polish', 'true')
+    await expect(terrainLegend).toBeVisible()
     await expect(tiles).toHaveCount(63)
     await expect(board.getByRole('button', { name: /^Tile 9, 7;/ })).toBeVisible()
 
