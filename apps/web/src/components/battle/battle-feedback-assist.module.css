@@ -49,8 +49,8 @@
   aspect-ratio: 1;
 }
 
-/* Current desktop PvP deliberately enlarges occupied-tile tokens beyond its base token rule.
-   Mirror that final rendered footprint in AI battles rather than the stale pre-recovery size. */
+/* Keep AI occupied-tile tokens on the exact current PvP desktop footprint. The board geometry
+   below now matches PvP too, so this value is no longer compensating for an undersized AI grid. */
 @media (min-width: 821px) {
   :global(#battlefield [data-map-portrait-ready]) {
     width: clamp(2rem, 3.4vw, 3.4rem) !important;
@@ -125,16 +125,37 @@
   object-position: 50% 50%;
 }
 
+/* Use PvP's native battlefield padding rather than the old AI fit-to-height padding. */
 :global(#battlefield > div:first-child) {
   box-sizing: border-box;
-  padding: clamp(0.7rem, 1.6vw, 1.1rem) !important;
+  padding: clamp(0.45rem, 1vw, 0.8rem) !important;
 }
 
+/* BattleFeedbackAssist still measures the board for legacy interactions, but its measured inline
+   width/height must not control presentation. Let the same CSS footprint as current PvP win. */
 :global(#battlefield [data-board-auto-fit]) {
   align-self: center;
   justify-self: center;
-  max-width: none !important;
-  max-height: none !important;
+  margin: auto !important;
+}
+
+@media (min-width: 821px) {
+  :global(#battlefield > div:first-child) {
+    padding: 0.32rem !important;
+  }
+
+  :global(#battlefield > div:first-child > div),
+  :global(#battlefield [data-board-auto-fit]) {
+    width: min(100%, 38.75rem) !important;
+    max-width: 38.75rem !important;
+    height: auto !important;
+    max-height: 100% !important;
+    margin: auto !important;
+  }
+
+  :global(#battlefield button[aria-label^='Tile ']) {
+    aspect-ratio: 1;
+  }
 }
 
 :global([data-floating-chat='true']) {
@@ -194,10 +215,6 @@
 }
 
 @media (max-width: 760px) {
-  :global(#battlefield > div:first-child) {
-    padding: 0.65rem !important;
-  }
-
   :global([data-floating-chat='true']) {
     width: calc(100vw - 0.7rem) !important;
     min-width: calc(100vw - 0.7rem);
