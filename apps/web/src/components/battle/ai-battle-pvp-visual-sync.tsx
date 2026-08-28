@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react'
 
-import terrainStyles from './ai-terrain-legend-pvp-parity.module.css'
 import styles from './ai-battle-pvp-visual-sync.module.css'
 
 const COMMAND_LABELS = new Set([
@@ -35,55 +34,6 @@ function directUnitToken(tile: HTMLButtonElement): HTMLSpanElement | null {
 function cleanPathZeroMarker(marker: HTMLSpanElement) {
   marker.querySelector('[data-map-token-portrait]')?.remove()
   delete marker.dataset.mapPortraitReady
-}
-
-function ensureTerrainDetail(item: HTMLElement, detailText: string) {
-  let detail = item.querySelector<HTMLElement>(':scope > small[data-ai-terrain-detail="true"]')
-  if (!detail) {
-    detail = document.createElement('small')
-    detail.dataset.aiTerrainDetail = 'true'
-    detail.setAttribute('aria-hidden', 'true')
-    item.append(detail)
-  }
-  if (detail.textContent !== detailText) detail.textContent = detailText
-}
-
-function syncTerrainLegend(battlefield: HTMLElement) {
-  const existing = battlefield.querySelector<HTMLElement>(
-    ':scope > [data-ai-terrain-legend="true"]',
-  )
-  const legacy = Array.from(battlefield.children).find(
-    (child): child is HTMLElement =>
-      child instanceof HTMLElement &&
-      (child.textContent?.includes('legal/reachable') ?? false) &&
-      (child.textContent?.includes('rough = 50 AP') ?? false),
-  )
-  const legend = existing ?? legacy ?? null
-  if (!legend) return
-
-  battlefield.dataset.aiTerrainLayout = 'true'
-  legend.dataset.aiTerrainLegend = 'true'
-  legend.setAttribute('aria-label', 'Terrain legend')
-
-  const items = Array.from(legend.children).filter(
-    (child): child is HTMLElement => child instanceof HTMLElement,
-  )
-
-  const difficult = items[0]
-  if (difficult) {
-    difficult.dataset.aiTerrainKey = 'rough'
-    difficult.setAttribute('aria-label', 'Difficult Ground. Higher movement cost.')
-    ensureTerrainDetail(difficult, 'Higher movement cost')
-  }
-
-  const raised = items[1]
-  if (raised) {
-    raised.dataset.aiTerrainKey = 'raised'
-    raised.setAttribute('aria-label', 'Raised Ground. Elevation plus one.')
-    ensureTerrainDetail(raised, 'Elevation +1')
-  }
-
-  for (const item of items.slice(2)) item.setAttribute('aria-hidden', 'true')
 }
 
 export function AiBattlePvpVisualSync({ playerName }: { playerName: string }) {
@@ -123,7 +73,6 @@ export function AiBattlePvpVisualSync({ playerName }: { playerName: string }) {
       }
 
       if (!battlefield) return
-      syncTerrainLegend(battlefield)
 
       const tiles = Array.from(
         battlefield.querySelectorAll<HTMLButtonElement>('button[aria-label^="Tile "]'),
@@ -188,12 +137,8 @@ export function AiBattlePvpVisualSync({ playerName }: { playerName: string }) {
       observer.disconnect()
       if (frame !== null) window.cancelAnimationFrame(frame)
       document.querySelector('[data-ai-path-zero="true"]')?.remove()
-      const battlefield = document.querySelector<HTMLElement>(
-        'section[aria-label="Tactical battlefield"]',
-      )
-      if (battlefield?.dataset.pvpBattle !== 'true') delete battlefield?.dataset.aiTerrainLayout
     }
   }, [playerName])
 
-  return <span className={`${styles.hook} ${terrainStyles.hook}`} aria-hidden="true" />
+  return <span className={styles.hook} aria-hidden="true" />
 }
