@@ -1,0 +1,43 @@
+.hook {
+  display: none;
+}
+
+@media (min-width: 821px) {
+  :global(button[aria-label='Choose emoji']),
+  :global(button[aria-label='Choose recent emoji']) {
+    position: relative;
+    display: grid;
+    place-items: center;
+    font-size: 0 !important;
+    line-height: 0 !important;
+  }
+
+  :global(button[aria-label='Choose emoji'])::before,
+  :global(button[aria-label='Choose recent emoji'])::before {
+    content: '';
+    display: block;
+    box-sizing: border-box;
+    width: 0.92rem;
+    height: 0.92rem;
+    border: 1.35px solid currentColor;
+    border-radius: 50%;
+    background:
+      radial-gradient(circle at 34% 39%, currentColor 0 1px, transparent 1.15px),
+      radial-gradient(circle at 66% 39%, currentColor 0 1px, transparent 1.15px);
+    pointer-events: none;
+  }
+
+  :global(button[aria-label='Choose emoji'])::after,
+  :global(button[aria-label='Choose recent emoji'])::after {
+    content: '';
+    position: absolute;
+    top: 55%;
+    left: 50%;
+    width: 0.38rem;
+    height: 0.17rem;
+    transform: translate(-50%, -50%);
+    border-bottom: 1.35px solid currentColor;
+    border-radius: 0 0 0.4rem 0.4rem;
+    pointer-events: none;
+  }
+}

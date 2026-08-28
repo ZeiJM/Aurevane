@@ -10,6 +10,7 @@ import { AiBattleQualityControls } from './ai-battle-quality-controls'
 import { AiBattleSurrenderAssist } from './ai-battle-surrender-assist'
 import { AiDesktopCombatantRailPolish } from './ai-desktop-combatant-rail-polish'
 import { AiNativeTerrainLegend } from './ai-native-terrain-legend'
+import { BattleChatEmojiPolish } from './battle-chat-emoji-polish'
 import { BattleDirectionalAttackAssist } from './battle-directional-attack-assist'
 import { BattleExperienceV2 } from './battle-experience-v2'
 import { BattleFacingQuickCommitAssist } from './battle-facing-quick-commit-assist'
@@ -72,6 +73,7 @@ export function BattleSessionClientBoundary({
       <BattleMapTokenPolish playerName={playerName} />
       <BattlePresentationPolish playerName={playerName} />
       <BattleHeaderMatchMessage battleSessionId={initialBattle.battleSessionId} />
+      <BattleChatEmojiPolish />
       <BattleFacingQuickCommitAssist playerName={playerName} />
       <BattleStatusEffectAssist />
       <DesktopBattleCombatantInspect

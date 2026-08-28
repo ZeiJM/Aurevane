@@ -5,6 +5,7 @@ import { useMemo } from 'react'
 import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
+import { BattleChatEmojiPolish } from './battle-chat-emoji-polish'
 import { BattleDirectionalAttackAssist } from './battle-directional-attack-assist'
 import { BattleFacingQuickCommitAssist } from './battle-facing-quick-commit-assist'
 import { BattleHeaderMatchMessage } from './battle-header-message-cycle'
@@ -62,6 +63,7 @@ export function PvpBattleClientBoundary({
       <BattleMapTokenPolish />
       <BattlePresentationPolish playerName={playerName} pvpMetadata={metadata} />
       <BattleHeaderMatchMessage battleSessionId={initialBattle.battleSessionId} />
+      <BattleChatEmojiPolish />
       <BattleFacingQuickCommitAssist playerName={playerName} />
       <BattleStatusEffectAssist />
       <DesktopBattleCombatantInspect
