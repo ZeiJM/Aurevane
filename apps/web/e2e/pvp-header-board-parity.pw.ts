@@ -136,6 +136,10 @@ test('keeps the live desktop PvP header, opponent timer, and full board stable',
         const battlefieldElement = element.querySelector<HTMLElement>('#battlefield')!
         const viewportElement = battlefieldElement.firstElementChild as HTMLElement
         const boardElement = viewportElement.firstElementChild as HTMLElement
+        const legendElement = battlefieldElement.lastElementChild as HTMLElement
+        const firstTile = boardElement.querySelector<HTMLButtonElement>(
+          'button[aria-label^="Tile 1, 1;"]',
+        )!
         const lastTile = boardElement.querySelector<HTMLButtonElement>(
           'button[aria-label^="Tile 9, 7;"]',
         )!
@@ -145,8 +149,11 @@ test('keeps the live desktop PvP header, opponent timer, and full board stable',
         const headerRect = headerElement.getBoundingClientRect()
         const victoryRect = victoryElement.getBoundingClientRect()
         const roundRect = roundElement.getBoundingClientRect()
+        const battlefieldRect = battlefieldElement.getBoundingClientRect()
         const viewportRect = viewportElement.getBoundingClientRect()
         const boardRect = boardElement.getBoundingClientRect()
+        const legendRect = legendElement.getBoundingClientRect()
+        const firstTileRect = firstTile.getBoundingClientRect()
         const lastTileRect = lastTile.getBoundingClientRect()
         const trackRect = economyElement
           .querySelector<HTMLElement>('[role="progressbar"]')!
@@ -165,7 +172,13 @@ test('keeps the live desktop PvP header, opponent timer, and full board stable',
           victoryTextTransform: victoryStyle.textTransform,
           victoryBackground: victoryStyle.backgroundColor,
           trackHeight: trackRect.height,
+          battlefieldWidth: battlefieldRect.width,
+          battlefieldHeight: battlefieldRect.height,
+          viewportWidth: viewportRect.width,
+          viewportHeight: viewportRect.height,
+          legendHeight: legendRect.height,
           boardWidth: boardRect.width,
+          boardHeight: boardRect.height,
           boardLeft: boardRect.left,
           boardRight: boardRect.right,
           boardTop: boardRect.top,
@@ -174,6 +187,8 @@ test('keeps the live desktop PvP header, opponent timer, and full board stable',
           viewportRight: viewportRect.right,
           viewportTop: viewportRect.top,
           viewportBottom: viewportRect.bottom,
+          firstTileWidth: firstTileRect.width,
+          firstTileHeight: firstTileRect.height,
           lastTileRight: lastTileRect.right,
           lastTileBottom: lastTileRect.bottom,
         }
@@ -192,6 +207,14 @@ test('keeps the live desktop PvP header, opponent timer, and full board stable',
     expect(geometry.victoryTextTransform).toBe('none')
     expect(geometry.victoryBackground).not.toBe('rgba(0, 0, 0, 0)')
 
+    // The complete board must stay inside the battlefield, but it must also use the battlefield.
+    // The production regression that prompted this test satisfied containment with a tiny board,
+    // so guard the viewport fill and board footprint explicitly instead of checking only maxima.
+    expect(geometry.viewportHeight).toBeGreaterThan(geometry.battlefieldHeight * 0.8)
+    expect(geometry.boardHeight).toBeGreaterThan(geometry.viewportHeight * 0.72)
+    expect(geometry.boardWidth).toBeGreaterThan(geometry.battlefieldWidth * 0.3)
+    expect(Math.abs(geometry.boardWidth / geometry.boardHeight - 9 / 7)).toBeLessThanOrEqual(0.05)
+    expect(Math.abs(geometry.firstTileWidth - geometry.firstTileHeight)).toBeLessThanOrEqual(1.5)
     expect(geometry.boardWidth).toBeLessThanOrEqual(621)
     expect(geometry.boardLeft).toBeGreaterThanOrEqual(geometry.viewportLeft - 1)
     expect(geometry.boardRight).toBeLessThanOrEqual(geometry.viewportRight + 1)
@@ -202,6 +225,9 @@ test('keeps the live desktop PvP header, opponent timer, and full board stable',
 
     await host.waitForTimeout(1_250)
     const afterPollGeometry = await readGeometry()
+    expect(afterPollGeometry.viewportHeight).toBeGreaterThan(afterPollGeometry.battlefieldHeight * 0.8)
+    expect(afterPollGeometry.boardHeight).toBeGreaterThan(afterPollGeometry.viewportHeight * 0.72)
+    expect(afterPollGeometry.boardWidth).toBeGreaterThan(afterPollGeometry.battlefieldWidth * 0.3)
     expect(afterPollGeometry.boardWidth).toBeLessThanOrEqual(621)
     expect(afterPollGeometry.boardBottom).toBeLessThanOrEqual(afterPollGeometry.viewportBottom + 1)
   } finally {
