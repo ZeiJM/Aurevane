@@ -42,20 +42,13 @@
   color: #e29090;
 }
 
+/* Keep AI map portraits on the same tile-relative footprint as the native PvP unit contract.
+   This scales with short desktop boards instead of forcing a viewport-sized token over tile labels. */
 :global(#battlefield [data-map-portrait-ready]) {
   isolation: isolate;
   width: clamp(1.7rem, 56%, 2.75rem) !important;
   height: auto !important;
   aspect-ratio: 1;
-}
-
-/* Current desktop PvP deliberately enlarges occupied-tile tokens beyond its base token rule.
-   Mirror that final rendered footprint in AI battles rather than the stale pre-recovery size. */
-@media (min-width: 821px) {
-  :global(#battlefield [data-map-portrait-ready]) {
-    width: clamp(2rem, 3.4vw, 3.4rem) !important;
-    height: clamp(2rem, 3.4vw, 3.4rem) !important;
-  }
 }
 
 :global(#battlefield [data-map-token-portrait]) {
