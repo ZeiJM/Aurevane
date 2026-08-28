@@ -1,4 +1,4 @@
-name: Temporary cockpit formatter
+name: Temporary cockpit validation
 
 on:
   pull_request:
@@ -6,10 +6,10 @@ on:
       - agent/battle-cockpit-button-polish-20260828
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  format:
+  validate:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -24,21 +24,18 @@ jobs:
           corepack prepare pnpm@11.17.0 --activate
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Format cockpit files
+      - name: Verify cockpit formatting
         run: |
-          pnpm exec prettier --write \
+          pnpm exec prettier --check \
             apps/web/src/components/battle/battle-command-cockpit-polish.tsx \
-            apps/web/src/components/battle/battle-command-cockpit-polish.module.css
-          if git diff --quiet -- \
-            apps/web/src/components/battle/battle-command-cockpit-polish.tsx \
-            apps/web/src/components/battle/battle-command-cockpit-polish.module.css; then
-            echo 'Cockpit files already formatted.'
-            exit 0
-          fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add \
-            apps/web/src/components/battle/battle-command-cockpit-polish.tsx \
-            apps/web/src/components/battle/battle-command-cockpit-polish.module.css
-          git commit -m 'Format battle cockpit polish'
-          git push origin HEAD:tmp/format-battle-cockpit-20260828
+            apps/web/src/components/battle/battle-command-cockpit-polish.module.css \
+            apps/web/src/components/battle/battle-session-client-boundary.tsx \
+            apps/web/src/components/battle/pvp-battle-client-boundary.tsx
+      - name: Lint web app
+        run: pnpm --filter @aurevane/web lint
+      - name: Typecheck web app
+        run: pnpm --filter @aurevane/web typecheck
+      - name: Test web app
+        run: pnpm --filter @aurevane/web test
+      - name: Build web app
+        run: pnpm --filter @aurevane/web build
