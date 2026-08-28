@@ -24,6 +24,11 @@ export interface GuidedTrainingProgress {
   facing: boolean
 }
 
+type GuidedTrainingBattleStatus = {
+  lifecycle: StatDrivenCombatEncounterState['tactical']['battle']['lifecycle']
+  combatants: readonly { id: string; hp: number }[]
+}
+
 function fingerprint(value: unknown): string {
   return `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`
 }
@@ -69,6 +74,58 @@ function isControlledTurnTimeout(
     (event.event === 'ai_turn_timed_out' || event.event === 'pvp_turn_timed_out') &&
     event.combatantId === controlledCombatantId
   )
+}
+
+function hasGuidedTrainingCompletion(
+  events: readonly Pick<BattleEventRecord, 'event'>[],
+  controlledCombatantId: string,
+): boolean {
+  return events.some((record) => {
+    const event = eventObject(record.event)
+    return (
+      event?.event === 'guided_training_completed' &&
+      event.combatantId === controlledCombatantId
+    )
+  })
+}
+
+export function readGuidedTrainingCompletionDisposition(
+  battle: GuidedTrainingBattleStatus,
+  events: readonly Pick<BattleEventRecord, 'event'>[],
+  controlledCombatantId: string,
+): 'active' | 'replayed' {
+  const controlledCombatant = battle.combatants.find(
+    (combatant) => combatant.id === controlledCombatantId,
+  )
+  if (!controlledCombatant) {
+    throw new AurevaneError(
+      'PERSISTENCE_UNAVAILABLE',
+      'The training battle has no player actor.',
+    )
+  }
+
+  if (controlledCombatant.hp <= 0) {
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Guided training is lost when your combatant is defeated.',
+    )
+  }
+
+  if (battle.lifecycle === 'completed') {
+    if (hasGuidedTrainingCompletion(events, controlledCombatantId)) {
+      return 'replayed'
+    }
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'That guided exercise ended without a training victory.',
+    )
+  }
+
+  if (battle.lifecycle !== 'active') {
+    throw new AurevaneError('INVALID_REQUEST', 'That guided exercise is no longer active.')
+  }
+
+  return 'active'
 }
 
 export function readGuidedTrainingProgress(
@@ -174,14 +231,16 @@ export function createGuidedTrainingCompletionService(
 
       const state = readEncounter(session.snapshot)
       assertGuidedFundamentals(state)
-      if (state.tactical.battle.lifecycle === 'completed') {
+      const events = await repository.findBattleEvents(input.userId, input.battleSessionId, 100)
+      const disposition = readGuidedTrainingCompletionDisposition(
+        state.tactical.battle,
+        events,
+        controlled,
+      )
+      if (disposition === 'replayed') {
         return { battleVersion: session.battleVersion, replayed: true }
       }
-      if (state.tactical.battle.lifecycle !== 'active') {
-        throw new AurevaneError('INVALID_REQUEST', 'That guided exercise is no longer active.')
-      }
 
-      const events = await repository.findBattleEvents(input.userId, input.battleSessionId, 100)
       const progress = readGuidedTrainingProgress(events, controlled)
       const missing = GUIDED_TRAINING_CRITERIA.filter((criterion) => !progress[criterion])
       if (missing.length > 0) {
