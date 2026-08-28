@@ -68,7 +68,7 @@ export function BattleSessionClientBoundary({
         />
       ) : null}
       <BattleDirectionalAttackAssist playerName={playerName} />
-      <BattleMapTokenPolish />
+      <BattleMapTokenPolish playerName={playerName} />
       <BattlePresentationPolish playerName={playerName} />
       <BattleFacingQuickCommitAssist playerName={playerName} />
       <BattleStatusEffectAssist />
