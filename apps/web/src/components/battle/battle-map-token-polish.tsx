@@ -6,6 +6,7 @@ const DESKTOP_PVP_TOKEN_QUERY = '(min-width: 821px)'
 const DESKTOP_PVP_TOKEN_SIZE = 'clamp(2rem, 3.4vw, 3.4rem)'
 const COMPACT_TOKEN_SIZE = 'clamp(1.7rem, 56%, 2.75rem)'
 
+// Preview validation uses this file so Vercel exercises the exact token parity path.
 function polishBattlefieldTokens() {
   const desktopPvpScale = window.matchMedia(DESKTOP_PVP_TOKEN_QUERY).matches
   const tokenSize = desktopPvpScale ? DESKTOP_PVP_TOKEN_SIZE : COMPACT_TOKEN_SIZE
