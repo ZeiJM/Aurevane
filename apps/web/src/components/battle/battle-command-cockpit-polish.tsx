@@ -2,10 +2,21 @@
 
 import { useEffect } from 'react'
 
+import type { BattlePreviewView } from '@/server/battle/battle-preview-service'
+
 import contextStyles from './battle-command-context-guide.module.css'
 import styles from './battle-command-cockpit-polish.module.css'
 
 type CommandSlug = 'inspect' | 'move' | 'attack' | 'guard' | 'recover' | 'finish'
+type IntentPreview = BattlePreviewView['preview']
+type ActionPreview = Extract<IntentPreview, { kind: 'action' }>
+
+type PreviewTone = 'chance' | 'damage' | 'heal' | 'effect' | 'cost' | 'blocked'
+
+interface PreviewChip {
+  label: string
+  tone: PreviewTone
+}
 
 const COMMAND_SLUGS = new Map<string, CommandSlug>([
   ['Inspect', 'inspect'],
@@ -92,16 +103,197 @@ function markInstructionElements(deck: HTMLElement): InstructionElements | null 
   return { host, row, title, description }
 }
 
+function clearCommandPreview(deck: HTMLElement): void {
+  for (const preview of deck.querySelectorAll<HTMLElement>('[data-battle-target-preview="true"]')) {
+    preview.remove()
+  }
+}
+
 function showCommandDescription(deck: HTMLElement, slug: CommandSlug): void {
   const instruction = markInstructionElements(deck)
   if (!instruction?.description) return
 
+  clearCommandPreview(deck)
   const presentation = COMMAND_PRESENTATION[slug]
   instruction.row.dataset.battleCommandExplanation = slug
   instruction.title.textContent = presentation.title
   instruction.description.textContent = presentation.description
   instruction.description.style.display = ''
   instruction.description.title = presentation.description
+}
+
+function humanizeStatus(value: string): string {
+  const id = value.split(':')[0] ?? value
+  return id
+    .replace(/^status\./, '')
+    .replaceAll('.', ' ')
+    .replaceAll('-', ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+}
+
+function numericEffectDelta(
+  effect: ActionPreview['projectedEffects'][number],
+): number | null {
+  if (typeof effect.before !== 'number' || typeof effect.after !== 'number') return null
+  return effect.after - effect.before
+}
+
+function previewSlug(preview: IntentPreview): CommandSlug | null {
+  if (preview.kind === 'move') return 'move'
+  if (preview.kind === 'face' || preview.kind === 'end-turn') return 'finish'
+  if (preview.kind !== 'action') return null
+  if (preview.actionId === 'basic.attack.unarmed.basic') return 'attack'
+  if (preview.actionId === 'basic.guard') return 'guard'
+  if (preview.actionId === 'basic.recover') return 'recover'
+  return null
+}
+
+function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
+  if (!preview.legal) {
+    return [{ label: 'Blocked', tone: 'blocked' }]
+  }
+
+  const chips: PreviewChip[] = []
+  chips.push({
+    label:
+      preview.hitChanceBasisPoints === null
+        ? 'Success 100%'
+        : `Hit ${Math.round(preview.hitChanceBasisPoints / 100)}%`,
+    tone: 'chance',
+  })
+
+  if (preview.mitigatedBaseDamage !== null) {
+    chips.push({ label: `On hit ${preview.mitigatedBaseDamage} dmg`, tone: 'damage' })
+  } else {
+    const projectedDamage = preview.projectedEffects
+      .filter((effect) => effect.effectType === 'damage')
+      .reduce((total, effect) => {
+        const delta = numericEffectDelta(effect)
+        return total + (delta === null ? 0 : Math.max(0, -delta))
+      }, 0)
+    if (projectedDamage > 0) {
+      chips.push({ label: `${projectedDamage} dmg`, tone: 'damage' })
+    }
+  }
+
+  const projectedHealing = preview.projectedEffects
+    .filter((effect) => effect.effectType === 'healing')
+    .reduce((total, effect) => {
+      const delta = numericEffectDelta(effect)
+      return total + (delta === null ? 0 : Math.max(0, delta))
+    }, 0)
+  if (projectedHealing > 0) {
+    chips.push({ label: `Heal +${projectedHealing}`, tone: 'heal' })
+  }
+
+  const resourceDelta = preview.projectedEffects
+    .filter((effect) => effect.effectType === 'resource-change')
+    .reduce((total, effect) => total + (numericEffectDelta(effect) ?? 0), 0)
+  if (resourceDelta !== 0) {
+    chips.push({
+      label: `Resource ${resourceDelta > 0 ? '+' : ''}${resourceDelta}`,
+      tone: resourceDelta > 0 ? 'heal' : 'cost',
+    })
+  }
+
+  if (preview.actionId === 'basic.guard') {
+    chips.push({ label: 'Guarded', tone: 'effect' })
+    chips.push({ label: '-15% damage', tone: 'effect' })
+    chips.push({ label: '2 turns', tone: 'effect' })
+  } else {
+    const statuses = new Set(
+      preview.projectedEffects
+        .filter((effect) => effect.effectType === 'apply-status' && typeof effect.after === 'string')
+        .map((effect) => humanizeStatus(String(effect.after))),
+    )
+    for (const status of statuses) {
+      chips.push({ label: status, tone: 'effect' })
+    }
+  }
+
+  if (preview.affectedCombatantIds.length > 1) {
+    chips.push({ label: `${preview.affectedCombatantIds.length} targets`, tone: 'effect' })
+  }
+
+  return chips
+}
+
+function previewChips(preview: IntentPreview): PreviewChip[] {
+  if (!preview.legal) return [{ label: 'Blocked', tone: 'blocked' }]
+
+  if (preview.kind === 'move') {
+    return [
+      { label: `${preview.actionEconomyCost} AP`, tone: 'cost' },
+      { label: `${preview.actionEconomyAfter} AP left`, tone: 'effect' },
+      {
+        label: `${Math.max(0, preview.path.length - 1)} tile${preview.path.length === 2 ? '' : 's'}`,
+        tone: 'effect',
+      },
+    ]
+  }
+
+  if (preview.kind === 'action') return actionPreviewChips(preview)
+
+  if (preview.kind === 'face') {
+    return [
+      { label: 'Success 100%', tone: 'chance' },
+      { label: `Face ${humanizeStatus(preview.facing)}`, tone: 'effect' },
+      { label: 'Ends turn', tone: 'cost' },
+    ]
+  }
+
+  return [{ label: 'Choose facing', tone: 'effect' }]
+}
+
+function showBattlePreview(deck: HTMLElement, preview: IntentPreview): void {
+  const slug = previewSlug(preview)
+  if (!slug || slug === 'inspect') return
+
+  showCommandDescription(deck, slug)
+  const instruction = markInstructionElements(deck)
+  if (!instruction) return
+
+  const previewElement = document.createElement('div')
+  previewElement.dataset.battleTargetPreview = 'true'
+  previewElement.dataset.battlePreviewCommand = slug
+  previewElement.setAttribute('aria-label', 'Action preview')
+
+  if (!preview.legal && preview.issues[0]?.message) {
+    previewElement.title = preview.issues[0].message
+  } else if (preview.kind === 'action' && preview.hitChanceBasisPoints !== null) {
+    previewElement.title = 'Damage is shown for a successful hit; the final result is resolved by the server.'
+  } else {
+    previewElement.title = 'Authoritative pre-commit action preview.'
+  }
+
+  for (const chip of previewChips(preview)) {
+    const element = document.createElement('span')
+    element.dataset.battlePreviewChip = 'true'
+    element.dataset.battlePreviewTone = chip.tone
+    element.textContent = chip.label
+    previewElement.append(element)
+  }
+
+  instruction.row.append(previewElement)
+}
+
+function isBattlePreviewRequest(input: RequestInfo | URL): boolean {
+  try {
+    const raw = input instanceof Request ? input.url : input instanceof URL ? input.href : input
+    const path = new URL(raw, window.location.origin).pathname
+    return /^\/api\/battles\/[^/]+\/preview\/?$/.test(path)
+  } catch {
+    return false
+  }
+}
+
+function readBattlePreview(body: unknown): BattlePreviewView | null {
+  if (!body || typeof body !== 'object') return null
+  const candidate = (body as { battlePreview?: unknown }).battlePreview
+  if (!candidate || typeof candidate !== 'object') return null
+  const preview = (candidate as { preview?: unknown }).preview
+  if (!preview || typeof preview !== 'object') return null
+  return candidate as BattlePreviewView
 }
 
 function syncCommandDeck(deck: HTMLElement): void {
@@ -142,6 +334,11 @@ function syncCommandDeck(deck: HTMLElement): void {
     delete instruction.row.dataset.battleCommandExplanation
   }
 
+  const visiblePreview = deck.querySelector<HTMLElement>('[data-battle-target-preview="true"]')
+  if (visiblePreview && visiblePreview.dataset.battlePreviewCommand !== activeSlug) {
+    visiblePreview.remove()
+  }
+
   const facingButtons = Array.from(
     deck.querySelectorAll<HTMLButtonElement>('button[aria-label^="Face "]'),
   )
@@ -159,14 +356,14 @@ function syncCommandDeck(deck: HTMLElement): void {
 export function BattleCommandCockpitPolish() {
   useEffect(() => {
     let frame = 0
+    const previousFetch = window.fetch
+
+    const decks = () =>
+      document.querySelectorAll<HTMLElement>('section[aria-label="Command Deck"]')
 
     const sync = () => {
       frame = 0
-      for (const deck of document.querySelectorAll<HTMLElement>(
-        'section[aria-label="Command Deck"]',
-      )) {
-        syncCommandDeck(deck)
-      }
+      for (const deck of decks()) syncCommandDeck(deck)
     }
 
     const schedule = () => {
@@ -191,7 +388,42 @@ export function BattleCommandCockpitPolish() {
       window.requestAnimationFrame(() => showCommandDescription(deck, slug))
     }
 
+    const observedFetch: typeof window.fetch = (...args) => {
+      const observesPreview = isBattlePreviewRequest(args[0])
+      if (observesPreview) {
+        for (const deck of decks()) clearCommandPreview(deck)
+      }
+
+      // Return the exact Promise produced by the existing fetch implementation. The observer only
+      // reads a cloned preview response and never changes request timing, response bodies, or errors.
+      const responsePromise = previousFetch(...args)
+      if (observesPreview) {
+        void responsePromise
+          .then((response) => {
+            if (!response.ok) return
+            void response
+              .clone()
+              .json()
+              .then((body: unknown) => {
+                const battlePreview = readBattlePreview(body)
+                if (!battlePreview) return
+                // React applies the native preview state first. Two animation frames keep this
+                // presentation-only augmentation behind that render without intercepting input.
+                window.requestAnimationFrame(() =>
+                  window.requestAnimationFrame(() => {
+                    for (const deck of decks()) showBattlePreview(deck, battlePreview.preview)
+                  }),
+                )
+              })
+              .catch(() => undefined)
+          })
+          .catch(() => undefined)
+      }
+      return responsePromise
+    }
+
     sync()
+    window.fetch = observedFetch
     const observer = new MutationObserver(schedule)
     observer.observe(document.body, {
       childList: true,
@@ -204,6 +436,7 @@ export function BattleCommandCockpitPolish() {
     return () => {
       observer.disconnect()
       document.removeEventListener('click', handleClick)
+      if (window.fetch === observedFetch) window.fetch = previousFetch
       if (frame !== 0) window.cancelAnimationFrame(frame)
     }
   }, [])
