@@ -3,12 +3,12 @@
 import { useEffect } from 'react'
 
 const DESKTOP_PVP_TOKEN_QUERY = '(min-width: 821px)'
-const DESKTOP_PVP_TOKEN_SIZE = 'clamp(2rem, 3.4vw, 3.4rem)'
+const DESKTOP_AI_TOKEN_SIZE = 'clamp(2rem, 3vw, 3rem)'
 const COMPACT_TOKEN_SIZE = 'clamp(1.7rem, 56%, 2.75rem)'
 
 function polishBattlefieldTokens() {
   const desktopPvpScale = window.matchMedia(DESKTOP_PVP_TOKEN_QUERY).matches
-  const tokenSize = desktopPvpScale ? DESKTOP_PVP_TOKEN_SIZE : COMPACT_TOKEN_SIZE
+  const tokenSize = desktopPvpScale ? DESKTOP_AI_TOKEN_SIZE : COMPACT_TOKEN_SIZE
   const occupiedTiles = Array.from(
     document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label*="occupied by"]'),
   )
@@ -17,7 +17,7 @@ function polishBattlefieldTokens() {
     const token = tile.querySelector<HTMLElement>(':scope > span:last-child')
     if (!token) continue
 
-    // Keep AI tokens on the same responsive footprint as the live PvP battlefield.
+    // Keep the PvP visual weight while accounting for AI's shorter fitted battlefield tiles.
     token.style.position = 'absolute'
     token.style.top = '50%'
     token.style.left = '50%'
