@@ -56,6 +56,8 @@ test('keeps the desktop AI 9x7 grid evenly spaced with one lower terrain legend'
     const tile97Rect = tile97.getBoundingClientRect()
 
     return {
+      tileWidth: tile11Rect.width,
+      tileHeight: tile11Rect.height,
       columnGap: tile21Rect.left - tile11Rect.right,
       rowGap: tile12Rect.top - tile11Rect.bottom,
       boardLeft: boardRect.left,
@@ -71,8 +73,9 @@ test('keeps the desktop AI 9x7 grid evenly spaced with one lower terrain legend'
     }
   })
 
-  // The native board contract uses the same gap in both axes. A zero row gap with a retained
-  // column gap is the exact regression that produced the stretched-column screenshot.
+  // The PvP-style board contract uses square tiles and the same gap in both axes. A compressed row
+  // track with spare column space is the exact regression that produced the stretched-column view.
+  expect(Math.abs(geometry.tileWidth - geometry.tileHeight)).toBeLessThanOrEqual(1.5)
   expect(geometry.columnGap).toBeGreaterThan(0)
   expect(geometry.rowGap).toBeGreaterThan(0)
   expect(Math.abs(geometry.columnGap - geometry.rowGap)).toBeLessThanOrEqual(1.5)
