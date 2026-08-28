@@ -82,7 +82,9 @@ describe('PvP desktop battle layout authority', () => {
 
     expect(desktop).toContain("main[data-pvp-battle='true'][data-pvp-desktop-parity='true']")
     expect(desktop).toContain('#battlefield > div:first-child')
-    expect(desktop).toContain('height: auto !important; min-height: 0 !important; align-self: stretch !important;')
+    expect(desktop).toContain(
+      'height: auto !important; min-height: 0 !important; align-self: stretch !important;',
+    )
     expect(desktop).toContain('#battlefield > div:first-child > div:first-child')
     expect(desktop).toContain('width: auto !important;')
     expect(desktop).toContain('max-width: min(100%, 620px) !important;')
