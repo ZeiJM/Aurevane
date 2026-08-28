@@ -8,6 +8,7 @@ import type { BattleSessionView } from '@/server/battle/battle-session-service'
 import { AiBattlePvpVisualSync } from './ai-battle-pvp-visual-sync'
 import { AiBattleQualityControls } from './ai-battle-quality-controls'
 import { AiBattleSurrenderAssist } from './ai-battle-surrender-assist'
+import { AiCockpitPvpButtonFormat } from './ai-cockpit-pvp-button-format'
 import { AiDesktopCombatantRailPolish } from './ai-desktop-combatant-rail-polish'
 import { AiNativeTerrainLegend } from './ai-native-terrain-legend'
 import { BattleChatEmojiPolish } from './battle-chat-emoji-polish'
@@ -87,6 +88,7 @@ export function BattleSessionClientBoundary({
       <BattleRecruitRecoveryAssist />
       <BattleKeyboardAssist playerName={playerName} />
       <BattleCommandCockpitPolish />
+      <AiCockpitPvpButtonFormat />
       <BattleFeedbackAssist playerName={playerName} playerProfileImageUrl={playerProfileImageUrl} />
       <BattleUtilityWindows
         battleSessionId={initialBattle.battleSessionId}
