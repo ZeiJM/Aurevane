@@ -138,7 +138,9 @@
 
 /* The sync layer may briefly add a real detail node before React reconciles the legacy legend.
    Hide it so the stable pseudo-element line above is the single visual source of truth. */
-:global([data-ai-terrain-legend='true'] > span[data-ai-terrain-key] > small[data-ai-terrain-detail='true']) {
+:global(
+  [data-ai-terrain-legend='true'] > span[data-ai-terrain-key] > small[data-ai-terrain-detail='true']
+) {
   display: none !important;
 }
 
