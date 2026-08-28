@@ -38,9 +38,9 @@ function facingPadCenter(target: EventTarget | null): HTMLElement | null {
   return pad
 }
 
-function mobilePvpShortcutAvailable(): boolean {
+function mobileBattleShortcutAvailable(): boolean {
   return (
-    Boolean(document.querySelector('main[data-pvp-battle="true"]')) &&
+    Boolean(document.querySelector('#battlefield')) &&
     window.matchMedia('(max-width: 820px)').matches
   )
 }
@@ -217,7 +217,7 @@ export function BattleFacingQuickCommitAssist({ playerName }: { playerName: stri
     function handlePointerUp(event: PointerEvent) {
       if (event.pointerType !== 'touch' && event.pointerType !== 'pen') return
 
-      if (mobilePvpShortcutAvailable()) {
+      if (mobileBattleShortcutAvailable()) {
         if (finishTurnButton(event.target)) {
           handleCurrentFacingShortcut(event, 'finish-command')
           return
@@ -308,10 +308,10 @@ export function BattleFacingQuickCommitAssist({ playerName }: { playerName: stri
     }
 
     function handlePointerDown(event: PointerEvent) {
-      const pvpShortcutTarget =
-        mobilePvpShortcutAvailable() &&
+      const mobileShortcutTarget =
+        mobileBattleShortcutAvailable() &&
         Boolean(finishTurnButton(event.target) || facingPadCenter(event.target))
-      if (finalFacingButton(event.target) || facingGuide(event.target) || pvpShortcutTarget) return
+      if (finalFacingButton(event.target) || facingGuide(event.target) || mobileShortcutTarget) return
       if (!lastGuideSelection.current && !lastCurrentFacingTap.current) return
       clearSelection()
       lastGuideSelection.current = null
