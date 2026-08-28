@@ -6,6 +6,7 @@ import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
 import { BattleChatEmojiPolish } from './battle-chat-emoji-polish'
+import { BattleCommandCockpitPolish } from './battle-command-cockpit-polish'
 import { BattleDirectionalAttackAssist } from './battle-directional-attack-assist'
 import { BattleFacingQuickCommitAssist } from './battle-facing-quick-commit-assist'
 import { BattleHeaderMatchMessage } from './battle-header-message-cycle'
@@ -88,6 +89,7 @@ export function PvpBattleClientBoundary({
       />
       <PvpBattleInspectPopup battleSessionId={initialBattle.battleSessionId} metadata={metadata} />
       <PvpBattleCompletionPanel initialBattle={initialBattle} metadata={metadata} />
+      <BattleCommandCockpitPolish />
       <BattleStabilizationPolish />
     </>
   )

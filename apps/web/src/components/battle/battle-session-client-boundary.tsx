@@ -11,6 +11,7 @@ import { AiBattleSurrenderAssist } from './ai-battle-surrender-assist'
 import { AiDesktopCombatantRailPolish } from './ai-desktop-combatant-rail-polish'
 import { AiNativeTerrainLegend } from './ai-native-terrain-legend'
 import { BattleChatEmojiPolish } from './battle-chat-emoji-polish'
+import { BattleCommandCockpitPolish } from './battle-command-cockpit-polish'
 import { BattleDirectionalAttackAssist } from './battle-directional-attack-assist'
 import { BattleExperienceV2 } from './battle-experience-v2'
 import { BattleFacingQuickCommitAssist } from './battle-facing-quick-commit-assist'
@@ -85,6 +86,7 @@ export function BattleSessionClientBoundary({
       <BattleStickyActionAssist />
       <BattleRecruitRecoveryAssist />
       <BattleKeyboardAssist playerName={playerName} />
+      <BattleCommandCockpitPolish />
       <BattleFeedbackAssist playerName={playerName} playerProfileImageUrl={playerProfileImageUrl} />
       <BattleUtilityWindows
         battleSessionId={initialBattle.battleSessionId}
