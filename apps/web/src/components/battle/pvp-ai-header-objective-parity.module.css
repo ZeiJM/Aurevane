@@ -1,0 +1,55 @@
+.hook {
+  display: none;
+}
+
+/* Desktop PvP keeps its own battle-context kicker, but the visible battle-state line should use
+   the same two-line hierarchy as AI battles. Scope this after the existing PvP header authorities
+   so the centered Action Economy / Victory controls and right-side Round / Combat Log stay intact. */
+@media (min-width: 821px) {
+  :global(
+    main[data-pvp-battle='true'][data-pvp-desktop-parity='true']
+      > header[data-pvp-header-layout='approved']
+      > div:first-child
+  ) {
+    display: grid !important;
+    grid-column: 1 !important;
+    min-width: 0 !important;
+    gap: 0.12rem !important;
+    align-content: center !important;
+    justify-self: start !important;
+    overflow: visible !important;
+  }
+
+  :global(
+    main[data-pvp-battle='true'][data-pvp-desktop-parity='true']
+      > header[data-pvp-header-layout='approved']
+      > div:first-child
+      > span
+  ) {
+    display: block !important;
+    color: var(--av-brass-300) !important;
+    font: 700 0.46rem/1 var(--av-font-mono) !important;
+    letter-spacing: 0.07em !important;
+    text-transform: uppercase !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  :global(
+    main[data-pvp-battle='true'][data-pvp-desktop-parity='true']
+      > header[data-pvp-header-layout='approved']
+      > div:first-child
+      > strong
+  ) {
+    display: block !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    overflow: visible !important;
+    color: var(--av-text) !important;
+    font: 650 clamp(0.78rem, 1.25vw, 1rem)/1.08 var(--av-font-display) !important;
+    overflow-wrap: anywhere !important;
+    white-space: normal !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+}
