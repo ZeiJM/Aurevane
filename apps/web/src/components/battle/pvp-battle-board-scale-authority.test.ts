@@ -24,17 +24,20 @@ describe('final desktop PvP board scale authority', () => {
     expect(releasePolish).toContain('${boardScaleStyles.hook}')
   })
 
-  it('owns a flexible board row and one compact terrain row', () => {
+  it('owns a flexible board row and one naturally sized terrain row', () => {
     const css = compact(readLocalFile('pvp-battle-board-scale-authority.module.css'))
 
     expect(css).toContain(
       "main[data-pvp-battle='true'][data-pvp-desktop-parity='true'] #battlefield",
     )
     expect(css).toContain('display: grid !important;')
-    expect(css).toContain('grid-template-rows: minmax(0, 1fr) 2.35rem !important;')
+    expect(css).toContain('grid-template-rows: minmax(0, 1fr) auto !important;')
     expect(css).toContain('height: 100% !important;')
     expect(css).toContain("#battlefield > [aria-label='Terrain legend']")
-    expect(css).toContain('max-height: 2.35rem !important;')
+    expect(css).toContain('height: auto !important;')
+    expect(css).toContain('min-height: 2.35rem !important;')
+    expect(css).toContain('max-height: none !important;')
+    expect(css).toContain('overflow: visible !important;')
     expect(css).toContain('max-width: min(100%, 620px) !important;')
     expect(css).toContain('height: min(100%, 482px) !important;')
     expect(css).toContain('aspect-ratio: var(--battlefield-aspect-ratio) !important;')

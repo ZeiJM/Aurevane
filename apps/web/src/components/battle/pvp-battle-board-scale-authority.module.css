@@ -12,7 +12,7 @@
 @media (min-width: 821px) {
   :global(main[data-pvp-battle='true'][data-pvp-desktop-parity='true'] #battlefield) {
     display: grid !important;
-    grid-template-rows: minmax(0, 1fr) 2.35rem !important;
+    grid-template-rows: minmax(0, 1fr) auto !important;
     min-height: 0 !important;
     align-content: stretch !important;
   }
@@ -27,17 +27,21 @@
     align-self: stretch !important;
   }
 
+  /* The two-line PvP terrain chips are taller than the old 2.35rem single-line legend contract.
+     Let the single legend row use its natural content height instead of hard-cropping the swatches
+     and text. The flexible board row continues to consume all remaining battlefield height. */
   :global(
     main[data-pvp-battle='true'][data-pvp-desktop-parity='true']
       #battlefield
       > [aria-label='Terrain legend']
   ) {
     grid-row: 2 !important;
-    height: 2.35rem !important;
-    min-height: 0 !important;
-    max-height: 2.35rem !important;
+    box-sizing: border-box !important;
+    height: auto !important;
+    min-height: 2.35rem !important;
+    max-height: none !important;
     align-self: stretch !important;
-    overflow: hidden !important;
+    overflow: visible !important;
   }
 
   :global(
