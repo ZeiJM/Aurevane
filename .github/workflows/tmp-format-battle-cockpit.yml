@@ -1,0 +1,33 @@
+name: Temporary cockpit formatter
+
+on:
+  push:
+    branches:
+      - tmp/format-battle-cockpit-20260828
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format cockpit files
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/components/battle/battle-command-cockpit-polish.tsx \
+            apps/web/src/components/battle/battle-command-cockpit-polish.module.css
+          echo '--- TSX ---'
+          cat apps/web/src/components/battle/battle-command-cockpit-polish.tsx
+          echo '--- CSS ---'
+          cat apps/web/src/components/battle/battle-command-cockpit-polish.module.css
