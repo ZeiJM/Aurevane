@@ -83,8 +83,7 @@ function hasGuidedTrainingCompletion(
   return events.some((record) => {
     const event = eventObject(record.event)
     return (
-      event?.event === 'guided_training_completed' &&
-      event.combatantId === controlledCombatantId
+      event?.event === 'guided_training_completed' && event.combatantId === controlledCombatantId
     )
   })
 }
