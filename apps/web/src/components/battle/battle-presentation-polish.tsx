@@ -139,7 +139,15 @@ function reconcileFacingGuides(playerName: string) {
 function polishTerrainLegend() {
   const battlefield = document.querySelector<HTMLElement>('#battlefield')
   if (!battlefield) return
-  if (!battlefield.querySelector<HTMLElement>('[data-terrain-legend-polish]')) {
+
+  const isPvpBattle = Boolean(battlefield.closest('main[data-pvp-battle="true"]'))
+  const polishedLegend = battlefield.querySelector<HTMLElement>('[data-terrain-legend-polish]')
+
+  // AI battles already transform their native battlefield legend into the detailed lower terrain
+  // key. Keep that single source of truth and reserve this injected compact key for PvP only.
+  if (!isPvpBattle) {
+    polishedLegend?.remove()
+  } else if (!polishedLegend) {
     const legend = document.createElement('div')
     legend.dataset.terrainLegendPolish = 'true'
     legend.setAttribute('aria-label', 'Terrain legend')
