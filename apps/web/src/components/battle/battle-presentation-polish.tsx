@@ -95,10 +95,10 @@ function reconcileFacingGuides(playerName: string) {
   if (!origin || !coordinates) return
 
   const desired = [
-    { x: coordinates.x, y: coordinates.y - 1, direction: 'north', glyph: '↑' },
-    { x: coordinates.x + 1, y: coordinates.y, direction: 'east', glyph: '→' },
-    { x: coordinates.x, y: coordinates.y + 1, direction: 'south', glyph: '↓' },
-    { x: coordinates.x - 1, y: coordinates.y, direction: 'west', glyph: '←' },
+    { x: coordinates.x, y: coordinates.y - 1, direction: 'north' },
+    { x: coordinates.x + 1, y: coordinates.y, direction: 'east' },
+    { x: coordinates.x, y: coordinates.y + 1, direction: 'south' },
+    { x: coordinates.x - 1, y: coordinates.y, direction: 'west' },
   ] as const
   const desiredByCoordinate = new Map(desired.map((target) => [`${target.x}:${target.y}`, target]))
   const tiles = Array.from(document.querySelectorAll<HTMLButtonElement>('#battlefield button'))
@@ -112,8 +112,8 @@ function reconcileFacingGuides(playerName: string) {
       tile.removeAttribute('data-facing-direction')
       tile.removeAttribute('data-facing-quick-selected')
       tile.removeAttribute('aria-pressed')
-      tile.querySelector('[data-facing-arrow]')?.remove()
     }
+    tile.querySelector('[data-facing-arrow]')?.remove()
   }
 
   for (const target of desired) {
@@ -125,14 +125,7 @@ function reconcileFacingGuides(playerName: string) {
 
     tile.dataset.facingGuide = 'true'
     tile.dataset.facingDirection = target.direction
-    let arrow = tile.querySelector<HTMLElement>('[data-facing-arrow]')
-    if (!arrow) {
-      arrow = document.createElement('span')
-      arrow.dataset.facingArrow = 'true'
-      arrow.setAttribute('aria-hidden', 'true')
-      tile.appendChild(arrow)
-    }
-    if (arrow.textContent !== target.glyph) arrow.textContent = target.glyph
+    tile.querySelector('[data-facing-arrow]')?.remove()
   }
 }
 
