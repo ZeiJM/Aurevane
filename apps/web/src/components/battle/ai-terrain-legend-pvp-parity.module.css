@@ -83,15 +83,22 @@
   background: rgba(207, 169, 93, 0.12);
 }
 
+/* Keep both visible text lines on the React-owned <b> node. React may replace injected <small>
+   children during battle rerenders, but these two pseudo-elements remain attached to the stable
+   legend title node, so the PvP-style detail line cannot disappear after reconciliation. */
 :global([data-ai-terrain-legend='true'] > span[data-ai-terrain-key] > b) {
+  display: grid !important;
+  grid-template-rows: min-content min-content;
   grid-column: 2;
-  grid-row: 1;
+  grid-row: 1 / 3;
+  gap: 0.08rem;
+  align-content: center;
   color: transparent !important;
   font-size: 0 !important;
   line-height: 0 !important;
 }
 
-:global([data-ai-terrain-legend='true'] > span[data-ai-terrain-key] > b::after) {
+:global([data-ai-terrain-legend='true'] > span[data-ai-terrain-key] > b::before) {
   display: block !important;
   color: var(--av-text-muted) !important;
   font: 750 0.4rem/1 var(--av-font-mono) !important;
@@ -102,27 +109,37 @@
   white-space: nowrap;
 }
 
-:global([data-ai-terrain-key='rough'] > b::after) {
-  content: 'Difficult Ground';
-}
-
-:global([data-ai-terrain-key='raised'] > b::after) {
-  content: 'Raised Ground';
-}
-
-/* Use a real DOM node for the explanatory line. The previous ::after-only approach was visibly
-   absent in production even though the title pseudo-element rendered. */
-:global([data-ai-terrain-legend='true'] > span[data-ai-terrain-key] > small[data-ai-terrain-detail='true']) {
+:global([data-ai-terrain-legend='true'] > span[data-ai-terrain-key] > b::after) {
   display: block !important;
-  grid-column: 2;
-  grid-row: 2;
-  min-height: 0.42rem;
   color: var(--av-text-dim) !important;
   font: 500 0.38rem/1.1 var(--av-font-sans) !important;
   line-height: 1.1 !important;
   opacity: 1 !important;
   visibility: visible !important;
+  text-transform: none;
   white-space: nowrap;
+}
+
+:global([data-ai-terrain-key='rough'] > b::before) {
+  content: 'Difficult Ground';
+}
+
+:global([data-ai-terrain-key='raised'] > b::before) {
+  content: 'Raised Ground';
+}
+
+:global([data-ai-terrain-key='rough'] > b::after) {
+  content: 'Higher movement cost';
+}
+
+:global([data-ai-terrain-key='raised'] > b::after) {
+  content: 'Elevation +1';
+}
+
+/* The sync layer may briefly add a real detail node before React reconciles the legacy legend.
+   Hide it so the stable pseudo-element line above is the single visual source of truth. */
+:global([data-ai-terrain-legend='true'] > span[data-ai-terrain-key] > small[data-ai-terrain-detail='true']) {
+  display: none !important;
 }
 
 /* The 2.35rem rule still rendered visibly smaller than the PvP reference at the same desktop
@@ -154,12 +171,8 @@
     flex: 1 1 0;
   }
 
-  :global([data-ai-terrain-legend='true'] > span[data-ai-terrain-key] > b::after),
-  :global(
-    [data-ai-terrain-legend='true']
-      > span[data-ai-terrain-key]
-      > small[data-ai-terrain-detail='true']
-  ) {
+  :global([data-ai-terrain-legend='true'] > span[data-ai-terrain-key] > b::before),
+  :global([data-ai-terrain-legend='true'] > span[data-ai-terrain-key] > b::after) {
     white-space: normal;
   }
 }
