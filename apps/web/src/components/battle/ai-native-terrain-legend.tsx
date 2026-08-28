@@ -6,6 +6,7 @@ import { createPortal } from 'react-dom'
 import battleStyles from './battle-experience-v2.module.css'
 import styles from './ai-terrain-legend-pvp-parity.module.css'
 
+// Preview validation branch differs only by this comment; runtime behavior matches the fix branch.
 export function AiNativeTerrainLegend() {
   const [battlefield, setBattlefield] = useState<HTMLElement | null>(null)
 
