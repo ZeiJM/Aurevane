@@ -24,7 +24,6 @@ import { BattleMapTokenPolish } from './battle-map-token-polish'
 import { BattlePresentationPolish } from './battle-presentation-polish'
 import { BattleRecruitRecoveryAssist } from './battle-recruit-recovery-assist'
 import { BattleRuntimeProvider } from './battle-runtime-context'
-import { BattleStabilizationPolish } from './battle-stabilization-polish'
 import { BattleStatusEffectAssist } from './battle-status-effect-assist'
 import { BattleStickyActionAssist } from './battle-sticky-action-assist'
 import { BattleUtilityWindows } from './battle-utility-windows'
@@ -89,7 +88,6 @@ export function BattleSessionClientBoundary({
       <BattleRecruitRecoveryAssist />
       <BattleKeyboardAssist playerName={playerName} />
       <BattleCommandCockpitPolish />
-      <BattleStabilizationPolish />
       <AiCockpitPvpButtonFormat />
       <BattleFeedbackAssist playerName={playerName} playerProfileImageUrl={playerProfileImageUrl} />
       <BattleUtilityWindows
