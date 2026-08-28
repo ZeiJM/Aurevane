@@ -37,6 +37,12 @@ test('keeps the live desktop PvP header, opponent timer, and full board stable',
   const host = await hostContext.newPage()
   const guest = await guestContext.newPage()
 
+  // Reproduce the user's short desktop viewport (roughly 1920x768 at 125% display scaling).
+  await Promise.all([
+    host.setViewportSize({ width: 1536, height: 614 }),
+    guest.setViewportSize({ width: 1536, height: 614 }),
+  ])
+
   try {
     await provisionAccountAndEnterCharacter({
       page: host,

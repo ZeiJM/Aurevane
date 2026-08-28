@@ -227,21 +227,21 @@
     letter-spacing: 0.04em !important;
   }
 
-  /* The older global PvP fallback still advertises a 58rem board. Keep the established desktop
-     parity ceiling authoritative so the full 9x7 board remains visible instead of expanding until
-     lower rows are clipped. This selector deliberately outranks that fallback without affecting
-     mobile or changing tactical geometry. */
+  /* Size the desktop board from the available battlefield height first. The 620px ceiling remains
+     the normal full-size target, but short desktop viewports can now shrink the complete board while
+     preserving its authored aspect ratio instead of clipping the lower rows. */
   :global(
     main[data-pvp-battle='true'][data-pvp-desktop-parity='true']
       #battlefield
       > div:first-child
       > div:first-child
   ) {
-    width: min(100%, 620px) !important;
+    width: auto !important;
     min-width: 0 !important;
-    max-width: 620px !important;
-    height: auto !important;
+    max-width: min(100%, 620px) !important;
+    height: min(100%, 482px) !important;
     max-height: 100% !important;
+    aspect-ratio: var(--battlefield-aspect-ratio) !important;
   }
 
   :global(main[data-pvp-battle='true'][data-pvp-desktop-parity='true'] > footer) {
