@@ -8,11 +8,11 @@ type Facing = 'north' | 'east' | 'south' | 'west'
 
 const MOBILE_PVP_QUERY = '(max-width: 820px)'
 const BASE_FACING_GLYPH = '←'
-const FACING_ROTATION: Record<Facing, number> = {
-  west: 0,
-  north: 90,
-  east: 180,
-  south: -90,
+const FACING_TRANSFORM: Record<Facing, string> = {
+  west: 'none',
+  north: 'rotate(90deg)',
+  east: 'scaleX(-1)',
+  south: 'rotate(-90deg)',
 }
 
 function facingFromGlyph(value: string): Facing | null {
@@ -60,7 +60,8 @@ function createFacingMarker(unit: HTMLElement): HTMLElement {
   marker.textContent = BASE_FACING_GLYPH
 
   // Canonical geometry is the approved red PvP token marker. Every direction reuses this exact
-  // glyph and box, then rotates it around its center so Unicode arrow metrics can never diverge.
+  // glyph and box. East mirrors the west glyph horizontally instead of rotating it 180 degrees;
+  // that preserves the font's vertical baseline so left/right arrows sit at the exact same height.
   marker.style.position = 'absolute'
   marker.style.top = '-0.78rem'
   marker.style.left = '50%'
@@ -118,7 +119,7 @@ function syncMobilePvpFacingMarkers(): void {
       createFacingMarker(unit)
     if (marker.dataset.mobileTokenFacingDirection !== facing) {
       marker.dataset.mobileTokenFacingDirection = facing
-      marker.style.transform = `rotate(${FACING_ROTATION[facing]}deg)`
+      marker.style.transform = FACING_TRANSFORM[facing]
     }
   }
 }
