@@ -7,6 +7,7 @@ import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
 import { BattleDirectionalAttackAssist } from './battle-directional-attack-assist'
 import { BattleFacingQuickCommitAssist } from './battle-facing-quick-commit-assist'
+import { BattleHeaderMatchMessage } from './battle-header-message-cycle'
 import { BattleMapTokenPolish } from './battle-map-token-polish'
 import { BattlePresentationPolish } from './battle-presentation-polish'
 import { BattleStabilizationPolish } from './battle-stabilization-polish'
@@ -60,6 +61,7 @@ export function PvpBattleClientBoundary({
       <BattleDirectionalAttackAssist playerName={playerName} />
       <BattleMapTokenPolish />
       <BattlePresentationPolish playerName={playerName} pvpMetadata={metadata} />
+      <BattleHeaderMatchMessage battleSessionId={initialBattle.battleSessionId} />
       <BattleFacingQuickCommitAssist playerName={playerName} />
       <BattleStatusEffectAssist />
       <DesktopBattleCombatantInspect
