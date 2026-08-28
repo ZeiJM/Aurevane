@@ -124,7 +124,8 @@
 
 /* Desktop AI deliberately uses the same stage proportions as PvP. Keep the full rail width even
    inside the base battle's <=1100px breakpoint so portraits remain substantial and the battlefield
-   is not surrounded by oversized dead gutters. */
+   is not surrounded by oversized dead gutters. The board itself retains its native aspect-ratio and
+   gap contract so rows and columns scale together instead of being stretched independently. */
 @media (min-width: 881px) {
   :global(main:not([data-pvp-battle='true']):has(section[aria-label='Tactical battlefield'])) {
     height: 100dvh !important;
@@ -138,12 +139,6 @@
     gap: 0.42rem !important;
   }
 
-  /* Guided Fundamentals uses the compact 5x3 board. Target the board's own stable fit marker so
-     desktop row spacing is deterministic regardless of surrounding layout wrappers. */
-  :global([data-board-auto-fit='5x3']) {
-    row-gap: 0 !important;
-  }
-
   :global(
     main:not([data-pvp-battle='true']):has(section[aria-label='Tactical battlefield'])
       section[aria-label='Tactical battlefield']
@@ -153,21 +148,7 @@
     width: min(100%, 38.75rem) !important;
     max-width: 38.75rem !important;
     max-height: 100% !important;
-    grid-auto-rows: minmax(0, 1fr) !important;
-    align-content: stretch !important;
     margin: auto !important;
-    row-gap: 0 !important;
-  }
-
-  :global(
-    main:not([data-pvp-battle='true']):has(section[aria-label='Tactical battlefield'])
-      section[aria-label='Tactical battlefield']
-      > div:first-child
-      > div:first-child
-      > button
-  ) {
-    height: 100% !important;
-    align-self: stretch !important;
   }
 
   :global([data-ai-pvp-visual-sync='true'] [data-ai-command-button='true']) {
