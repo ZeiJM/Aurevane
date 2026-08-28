@@ -9,6 +9,7 @@ import { AiBattlePvpVisualSync } from './ai-battle-pvp-visual-sync'
 import { AiBattleQualityControls } from './ai-battle-quality-controls'
 import { AiBattleSurrenderAssist } from './ai-battle-surrender-assist'
 import { AiDesktopCombatantRailPolish } from './ai-desktop-combatant-rail-polish'
+import { AiNativeTerrainLegend } from './ai-native-terrain-legend'
 import { BattleDirectionalAttackAssist } from './battle-directional-attack-assist'
 import { BattleExperienceV2 } from './battle-experience-v2'
 import { BattleFacingQuickCommitAssist } from './battle-facing-quick-commit-assist'
@@ -55,6 +56,7 @@ export function BattleSessionClientBoundary({
         playerName={playerName}
         playerPortraitAssetId={playerPortraitAssetId}
       />
+      <AiNativeTerrainLegend />
       <AiBattlePvpVisualSync playerName={playerName} />
       <AiDesktopCombatantRailPolish playerName={playerName} />
       <AiBattleQualityControls battleSessionId={initialBattle.battleSessionId} />
