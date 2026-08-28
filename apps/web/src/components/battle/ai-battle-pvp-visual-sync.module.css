@@ -122,10 +122,9 @@
   }
 }
 
-/* Desktop AI deliberately uses the same stage proportions as PvP. Keep the full rail width even
-   inside the base battle's <=1100px breakpoint so portraits remain substantial and the battlefield
-   is not surrounded by oversized dead gutters. The board itself retains its native aspect-ratio and
-   gap contract so rows and columns scale together instead of being stretched independently. */
+/* Desktop AI uses the same height-aware 9x7 geometry contract as PvP. Width-first sizing could be
+   clamped by the battlefield's available height without shrinking the width, leaving spare space in
+   each column and producing the stretched-column look. Size from available height and preserve 9:7. */
 @media (min-width: 881px) {
   :global(main:not([data-pvp-battle='true']):has(section[aria-label='Tactical battlefield'])) {
     height: 100dvh !important;
@@ -139,16 +138,25 @@
     gap: 0.42rem !important;
   }
 
-  :global(
-    main:not([data-pvp-battle='true']):has(section[aria-label='Tactical battlefield'])
-      section[aria-label='Tactical battlefield']
-      > div:first-child
-      > div:first-child
-  ) {
-    width: min(100%, 38.75rem) !important;
-    max-width: 38.75rem !important;
+  :global([data-board-auto-fit='9x7']) {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: min(100%, 38.75rem) !important;
+    height: min(100%, 30.125rem) !important;
     max-height: 100% !important;
+    aspect-ratio: 9 / 7 !important;
     margin: auto !important;
+    gap: clamp(0.1rem, 0.25vw, 0.25rem) !important;
+  }
+
+  :global([data-board-auto-fit='9x7'] > button[aria-label^='Tile ']) {
+    width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    align-self: stretch !important;
+    justify-self: stretch !important;
+    box-sizing: border-box !important;
   }
 
   :global([data-ai-pvp-visual-sync='true'] [data-ai-command-button='true']) {
