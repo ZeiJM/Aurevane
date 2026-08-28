@@ -1,0 +1,50 @@
+.hook {
+  display: none;
+}
+
+/* Mobile PvP uses the same compact command-button contract as mobile AI battles. The shared
+   cockpit polish intentionally owns the visual language, but its generic mobile rules are taller
+   and re-show the shortcut badge that PvP's native mobile layout hides. Keep this override scoped
+   to PvP mobile only so desktop cockpit styling and battlefield geometry are untouched. */
+@media (max-width: 820px) {
+  :global(
+    main[data-pvp-battle='true'] section[aria-label='Command Deck'] [data-battle-command]
+  ) {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto auto !important;
+    min-height: 2.55rem !important;
+    gap: 0.1rem !important;
+    align-content: center !important;
+    justify-items: center !important;
+    padding: 0.3rem 0.36rem !important;
+    text-align: center !important;
+  }
+
+  :global(
+    main[data-pvp-battle='true'] section[aria-label='Command Deck'] [data-battle-command] > span
+  ) {
+    display: none !important;
+  }
+
+  :global(
+    main[data-pvp-battle='true'] section[aria-label='Command Deck'] [data-battle-command] > strong
+  ) {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    justify-self: stretch !important;
+    font: 600 0.57rem/1 var(--av-font-display) !important;
+    text-align: center !important;
+  }
+
+  :global(
+    main[data-pvp-battle='true'] section[aria-label='Command Deck'] [data-battle-command] > small
+  ) {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    width: 100% !important;
+    justify-self: stretch !important;
+    font: 650 0.36rem/1 var(--av-font-mono) !important;
+    text-align: center !important;
+  }
+}
