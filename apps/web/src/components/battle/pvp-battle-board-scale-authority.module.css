@@ -1,0 +1,56 @@
+.hook {
+  display: none;
+}
+
+/*
+ * Final desktop PvP battlefield sizing authority.
+ *
+ * Older presentation layers can still style the battlefield, but this module loads after them and
+ * owns only geometry: one flexible board row, one compact terrain row, and the established 620px
+ * board ceiling. Gameplay, AP, turn authority, timer behavior, and AI battles are untouched.
+ */
+@media (min-width: 821px) {
+  :global(main[data-pvp-battle='true'][data-pvp-desktop-parity='true'] #battlefield) {
+    display: grid !important;
+    grid-template-rows: minmax(0, 1fr) 2.35rem !important;
+    min-height: 0 !important;
+    align-content: stretch !important;
+  }
+
+  :global(
+    main[data-pvp-battle='true'][data-pvp-desktop-parity='true'] #battlefield > div:first-child
+  ) {
+    grid-row: 1 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    align-self: stretch !important;
+  }
+
+  :global(
+    main[data-pvp-battle='true'][data-pvp-desktop-parity='true']
+      #battlefield
+      > [aria-label='Terrain legend']
+  ) {
+    grid-row: 2 !important;
+    height: 2.35rem !important;
+    min-height: 0 !important;
+    max-height: 2.35rem !important;
+    align-self: stretch !important;
+    overflow: hidden !important;
+  }
+
+  :global(
+    main[data-pvp-battle='true'][data-pvp-desktop-parity='true']
+      #battlefield
+      > div:first-child
+      > div:first-child
+  ) {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: min(100%, 620px) !important;
+    height: min(100%, 482px) !important;
+    max-height: 100% !important;
+    aspect-ratio: var(--battlefield-aspect-ratio) !important;
+  }
+}
