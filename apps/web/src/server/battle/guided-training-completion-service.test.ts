@@ -3,7 +3,10 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
-import { readGuidedTrainingProgress } from './guided-training-completion-service'
+import {
+  readGuidedTrainingCompletionDisposition,
+  readGuidedTrainingProgress,
+} from './guided-training-completion-service'
 
 const CONTROLLED_COMBATANT_ID = 'character:player'
 const CREATED_AT = '2026-08-25T16:00:00.000Z'
@@ -16,6 +19,62 @@ function record(battleVersion: number, eventIndex: number, event: unknown): Batt
     createdAt: CREATED_AT,
   }
 }
+
+describe('guided training completion disposition', () => {
+  it('treats player defeat as a loss even when the battle is already completed', () => {
+    const events = [
+      record(2, 0, {
+        event: 'guided_training_completed',
+        combatantId: CONTROLLED_COMBATANT_ID,
+        criteria: ['move', 'attack', 'guard', 'facing'],
+      }),
+      record(2, 1, { event: 'battle_completed', winningTeamId: 'recruits' }),
+    ]
+
+    expect(() =>
+      readGuidedTrainingCompletionDisposition(
+        {
+          lifecycle: 'completed',
+          combatants: [{ id: CONTROLLED_COMBATANT_ID, hp: 0 }],
+        },
+        events,
+        CONTROLLED_COMBATANT_ID,
+      ),
+    ).toThrowError('Guided training is lost when your combatant is defeated.')
+  })
+
+  it('does not reinterpret an unrelated completed battle as a training victory', () => {
+    expect(() =>
+      readGuidedTrainingCompletionDisposition(
+        {
+          lifecycle: 'completed',
+          combatants: [{ id: CONTROLLED_COMBATANT_ID, hp: 12 }],
+        },
+        [record(7, 0, { event: 'battle_completed', winningTeamId: 'recruits' })],
+        CONTROLLED_COMBATANT_ID,
+      ),
+    ).toThrowError('That guided exercise ended without a training victory.')
+  })
+
+  it('still recognizes a legitimate prior guided-training completion as a replay', () => {
+    expect(
+      readGuidedTrainingCompletionDisposition(
+        {
+          lifecycle: 'completed',
+          combatants: [{ id: CONTROLLED_COMBATANT_ID, hp: 12 }],
+        },
+        [
+          record(7, 0, {
+            event: 'guided_training_completed',
+            combatantId: CONTROLLED_COMBATANT_ID,
+            criteria: ['move', 'attack', 'guard', 'facing'],
+          }),
+        ],
+        CONTROLLED_COMBATANT_ID,
+      ),
+    ).toBe('replayed')
+  })
+})
 
 describe('guided training completion progress', () => {
   it('does not count timer-expiry facing as intentional facing', () => {
