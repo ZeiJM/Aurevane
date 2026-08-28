@@ -31,13 +31,16 @@
   white-space: normal !important;
 }
 
-/* Mirror the live PvP terrain-key card geometry. The legacy AI legend text remains in the React
-   tree, but is visually replaced by the same two-line PvP labels so React ownership stays intact. */
-:global([data-ai-terrain-legend='true'] > span:nth-child(-n + 2)) {
+/* Keep the AI key compact like the rendered PvP reference: same two-line content, swatch size,
+   padding, spacing and typography without stretching both cards across most of the battlefield. */
+:global([data-ai-terrain-legend='true'] > span[data-ai-terrain-key]) {
   display: grid !important;
-  grid-template-columns: 1.55rem minmax(0, 1fr);
+  grid-template-columns: 1.55rem max-content;
   grid-template-rows: min-content min-content;
-  min-width: min(15rem, 48%);
+  width: max-content;
+  max-width: calc(50% - 0.2rem);
+  min-width: 0;
+  flex: 0 1 auto;
   gap: 0.08rem 0.42rem;
   align-items: center;
   padding: 0.28rem 0.45rem;
@@ -54,7 +57,7 @@
 }
 
 /* PvP uses 1.55rem square terrain swatches. Keep AI identical. */
-:global([data-ai-terrain-legend='true'] > span:nth-child(-n + 2)::before) {
+:global([data-ai-terrain-legend='true'] > span[data-ai-terrain-key]::before) {
   display: grid;
   box-sizing: border-box;
   grid-column: 1;
@@ -68,19 +71,19 @@
   font: 650 0.58rem/1 var(--av-font-mono);
 }
 
-:global([data-ai-terrain-legend='true'] > span:first-child::before) {
+:global([data-ai-terrain-key='rough']::before) {
   content: '';
   background:
     repeating-linear-gradient(135deg, rgba(160, 125, 79, 0.28) 0 3px, transparent 3px 7px),
     rgba(65, 51, 38, 0.78);
 }
 
-:global([data-ai-terrain-legend='true'] > span:nth-child(2)::before) {
+:global([data-ai-terrain-key='raised']::before) {
   content: '▲';
   background: rgba(207, 169, 93, 0.12);
 }
 
-:global([data-ai-terrain-legend='true'] > span:nth-child(-n + 2) > b) {
+:global([data-ai-terrain-legend='true'] > span[data-ai-terrain-key] > b) {
   grid-column: 2;
   grid-row: 1;
   color: transparent !important;
@@ -88,10 +91,9 @@
   line-height: 0 !important;
 }
 
-:global([data-ai-terrain-legend='true'] > span:nth-child(-n + 2) > b::after) {
+:global([data-ai-terrain-legend='true'] > span[data-ai-terrain-key] > b::after) {
   display: block !important;
   color: var(--av-text-muted) !important;
-  content: '';
   font: 750 0.4rem/1 var(--av-font-mono) !important;
   line-height: 1 !important;
   opacity: 1 !important;
@@ -100,15 +102,17 @@
   white-space: nowrap;
 }
 
-:global([data-ai-terrain-legend='true'] > span:first-child > b::after) {
+:global([data-ai-terrain-key='rough'] > b::after) {
   content: 'Difficult Ground';
 }
 
-:global([data-ai-terrain-legend='true'] > span:nth-child(2) > b::after) {
+:global([data-ai-terrain-key='raised'] > b::after) {
   content: 'Raised Ground';
 }
 
-:global([data-ai-terrain-legend='true'] > span:nth-child(-n + 2)::after) {
+/* Use a real DOM node for the explanatory line. The previous ::after-only approach was visibly
+   absent in production even though the title pseudo-element rendered. */
+:global([data-ai-terrain-legend='true'] > span[data-ai-terrain-key] > small[data-ai-terrain-detail='true']) {
   display: block !important;
   grid-column: 2;
   grid-row: 2;
@@ -121,21 +125,17 @@
   white-space: nowrap;
 }
 
-:global([data-ai-terrain-legend='true'] > span:first-child::after) {
-  content: 'Higher movement cost';
-}
-
-:global([data-ai-terrain-legend='true'] > span:nth-child(2)::after) {
-  content: 'Elevation +1';
-}
-
-/* Match the final live PvP desktop occupied-token footprint exactly. This is the rule that wins in
-   PvP after its later release-polish layers, so AI should use the same dimensions rather than the
-   older 56%-of-tile base contract or the oversized 3.4rem recovery override. */
+/* The 2.35rem rule still rendered visibly smaller than the PvP reference at the same desktop
+   viewport. Increase the AI occupied-token footprint one small step while keeping clear space for
+   tile coordinates and preserving the corrected Recruit fallback centering. */
 @media (min-width: 821px) {
-  :global(section#battlefield[data-ai-terrain-layout='true'] [data-map-portrait-ready]) {
-    width: clamp(1.55rem, 2.5vw, 2.35rem) !important;
-    height: clamp(1.55rem, 2.5vw, 2.35rem) !important;
+  :global(
+    section#battlefield[data-ai-terrain-layout='true']
+      button[aria-label*='occupied by']
+      > span:last-child
+  ) {
+    width: clamp(1.7rem, 2.75vw, 2.55rem) !important;
+    height: clamp(1.7rem, 2.75vw, 2.55rem) !important;
     aspect-ratio: 1 !important;
   }
 }
@@ -146,13 +146,20 @@
     overflow-x: auto !important;
   }
 
-  :global([data-ai-terrain-legend='true'] > span:nth-child(-n + 2)) {
+  :global([data-ai-terrain-legend='true'] > span[data-ai-terrain-key]) {
+    grid-template-columns: 1.55rem minmax(0, 1fr);
+    width: auto;
+    max-width: none;
     min-width: 0;
     flex: 1 1 0;
   }
 
-  :global([data-ai-terrain-legend='true'] > span:nth-child(-n + 2) > b::after),
-  :global([data-ai-terrain-legend='true'] > span:nth-child(-n + 2)::after) {
+  :global([data-ai-terrain-legend='true'] > span[data-ai-terrain-key] > b::after),
+  :global(
+    [data-ai-terrain-legend='true']
+      > span[data-ai-terrain-key]
+      > small[data-ai-terrain-detail='true']
+  ) {
     white-space: normal;
   }
 }
