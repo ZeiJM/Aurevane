@@ -16,6 +16,12 @@
   min-height: 0 !important;
 }
 
+/* BattlePresentationPolish historically appends a second terrain legend after the React-owned AI
+   legend. Keep the stable React legend and suppress that additive duplicate. */
+:global(#battlefield[data-ai-terrain-layout='true'] > [data-terrain-legend-polish='true']) {
+  display: none !important;
+}
+
 :global([data-ai-terrain-legend='true']) {
   display: flex !important;
   box-sizing: border-box !important;
