@@ -49,6 +49,15 @@
   aspect-ratio: 1;
 }
 
+/* Current desktop PvP deliberately enlarges occupied-tile tokens beyond its base token rule.
+   Mirror that final rendered footprint in AI battles rather than the stale pre-recovery size. */
+@media (min-width: 821px) {
+  :global(#battlefield [data-map-portrait-ready]) {
+    width: clamp(2rem, 3.4vw, 3.4rem) !important;
+    height: clamp(2rem, 3.4vw, 3.4rem) !important;
+  }
+}
+
 :global(#battlefield [data-map-token-portrait]) {
   position: absolute;
   inset: 0;
@@ -73,6 +82,27 @@
   min-height: 100%;
   object-fit: cover;
   object-position: 50% 50%;
+}
+
+/* AI opponents can use the rail's text fallback instead of an image. That rail fallback carries a
+   5rem minimum height and display-sized type, which overflows a map token. Normalize any cloned
+   non-image portrait source to the circular token frame so the glyph stays centered and uncropped. */
+:global(#battlefield [data-map-token-portrait] > :not(img):not(picture)) {
+  display: grid !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  place-items: center !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  color: #d7a1a1 !important;
+  background: transparent !important;
+  font: 500 clamp(1rem, 2vw, 1.65rem)/1 var(--av-font-display) !important;
+  text-align: center !important;
 }
 
 :global(#battlefield [data-map-portrait-ready] > strong) {

@@ -2,7 +2,13 @@
 
 import { useEffect } from 'react'
 
+const DESKTOP_PVP_TOKEN_QUERY = '(min-width: 821px)'
+const DESKTOP_PVP_TOKEN_SIZE = 'clamp(2rem, 3.4vw, 3.4rem)'
+const COMPACT_TOKEN_SIZE = 'clamp(1.7rem, 56%, 2.75rem)'
+
 function polishBattlefieldTokens() {
+  const desktopPvpScale = window.matchMedia(DESKTOP_PVP_TOKEN_QUERY).matches
+  const tokenSize = desktopPvpScale ? DESKTOP_PVP_TOKEN_SIZE : COMPACT_TOKEN_SIZE
   const occupiedTiles = Array.from(
     document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label*="occupied by"]'),
   )
@@ -11,13 +17,13 @@ function polishBattlefieldTokens() {
     const token = tile.querySelector<HTMLElement>(':scope > span:last-child')
     if (!token) continue
 
-    // Match PvP's map-token footprint without touching the battlefield grid or tile geometry.
+    // Keep AI tokens on the same responsive footprint as the live PvP battlefield.
     token.style.position = 'absolute'
     token.style.top = '50%'
     token.style.left = '50%'
     token.style.zIndex = '4'
-    token.style.width = 'clamp(1.7rem, 56%, 2.75rem)'
-    token.style.height = 'auto'
+    token.style.width = tokenSize
+    token.style.height = desktopPvpScale ? tokenSize : 'auto'
     token.style.aspectRatio = '1'
     token.style.transform = 'translate(-50%, -50%)'
 
@@ -42,7 +48,12 @@ export function BattleMapTokenPolish() {
 
     const observer = new MutationObserver(polishBattlefieldTokens)
     observer.observe(battlefield, { childList: true, subtree: true })
-    return () => observer.disconnect()
+    window.addEventListener('resize', polishBattlefieldTokens)
+
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', polishBattlefieldTokens)
+    }
   }, [])
 
   return null
