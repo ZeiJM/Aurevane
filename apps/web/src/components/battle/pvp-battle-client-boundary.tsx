@@ -30,6 +30,7 @@ import { PvpMobileCommandParity } from './pvp-mobile-command-parity'
 import { PvpQuickCommitAssist } from './pvp-quick-commit-assist'
 import { PvpDesktopParity } from './pvp-desktop-parity'
 import { PvpSixCombatantRails } from './pvp-six-combatant-rails'
+import { BattleScreenVisualContract } from './battle-screen-visual-contract'
 
 export function PvpBattleClientBoundary({
   initialBattle,
@@ -95,6 +96,7 @@ export function PvpBattleClientBoundary({
       <BattleCommandCockpitPolish />
       <PvpMobileCommandParity />
       <BattleStabilizationPolish />
+      <BattleScreenVisualContract />
     </>
   )
 }
