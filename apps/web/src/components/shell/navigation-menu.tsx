@@ -74,13 +74,13 @@ export function NavigationMenu({
         aria-label="Game navigation"
       >
         {activeSessionHref ? (
-          <Link href={activeSessionHref} onClick={closeMenu}>
+          <Link href={activeSessionHref} prefetch={false} onClick={closeMenu}>
             <strong>{activeSessionLabel ?? 'Return to Active Session'}</strong>
             <small>Restricted actions stay locked until this session ends</small>
           </Link>
         ) : null}
         {visibleNavigation.map((item) => (
-          <Link key={item.href} href={item.href} onClick={closeMenu}>
+          <Link key={item.href} href={item.href} prefetch={false} onClick={closeMenu}>
             <strong>{item.label}</strong>
             <small>{item.detail}</small>
           </Link>

@@ -5,6 +5,8 @@ import { createPortal } from 'react-dom'
 
 import styles from './battle-coordinate-toggle.module.css'
 
+const MOBILE_BATTLE_MEDIA = '(max-width: 820px)'
+
 export function BattleCoordinateToggle() {
   const [legend, setLegend] = useState<HTMLElement | null>(null)
   const [battlefield, setBattlefield] = useState<HTMLElement | null>(null)
@@ -12,6 +14,7 @@ export function BattleCoordinateToggle() {
 
   useEffect(() => {
     let frame = 0
+    const mobileMedia = window.matchMedia(MOBILE_BATTLE_MEDIA)
 
     const locate = () => {
       frame = 0
@@ -20,7 +23,9 @@ export function BattleCoordinateToggle() {
         nextBattlefield?.querySelector<HTMLElement>(':scope > [aria-label="Terrain legend"]') ?? null
 
       if (nextLegend) {
-        nextLegend.style.setProperty('display', 'flex', 'important')
+        // One shared component owns the responsive display primitive for both battle runtimes. This
+        // defeats older mode-specific hide rules while the shared stylesheet owns all geometry.
+        nextLegend.style.setProperty('display', mobileMedia.matches ? 'grid' : 'flex', 'important')
         nextLegend.style.setProperty('visibility', 'visible', 'important')
         nextLegend.style.setProperty('opacity', '1', 'important')
       }
@@ -35,11 +40,13 @@ export function BattleCoordinateToggle() {
     }
 
     locate()
+    mobileMedia.addEventListener('change', scheduleLocate)
     const observer = new MutationObserver(scheduleLocate)
     observer.observe(document.body, { childList: true, subtree: true })
 
     return () => {
       observer.disconnect()
+      mobileMedia.removeEventListener('change', scheduleLocate)
       if (frame !== 0) window.cancelAnimationFrame(frame)
     }
   }, [])

@@ -208,18 +208,10 @@ function syncAttackRangeMarkers(playerName: string) {
   }
 }
 
-function guardCanRepeat(playerName: string): boolean {
-  const rail = document.querySelector<HTMLElement>(
-    `aside[aria-label="${playerName} combat status"]`,
-  )
-  return !rail?.querySelector('[aria-label^="Guarded,"]')
-}
-
-function repeatableCommand(label: string, playerName: string): HTMLButtonElement | null {
-  if (!['Move', 'Basic Attack', 'Guard', 'Recover'].includes(label)) return null
+function repeatableCommand(label: string): HTMLButtonElement | null {
+  if (!['Move', 'Basic Attack', 'Recover'].includes(label)) return null
   const button = commandButton(label)
   if (!button || button.disabled) return null
-  if (label === 'Guard' && !guardCanRepeat(playerName)) return null
   return button
 }
 
@@ -289,7 +281,7 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
         const committing = confirm?.textContent?.includes('Committing') ?? false
         if (committing) return
 
-        const action = repeatableCommand(label, playerName)
+        const action = repeatableCommand(label)
         if (!action) {
           if (attempts > 8) window.clearInterval(timer)
           return
@@ -315,9 +307,15 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
       const deck = button.closest('section[aria-label="Command Deck"]')
       if (deck) {
         const label = button.querySelector('strong')?.textContent?.trim() ?? ''
-        if (['Move', 'Basic Attack', 'Guard', 'Recover'].includes(label) && !button.disabled) {
+        if (['Move', 'Basic Attack', 'Recover'].includes(label) && !button.disabled) {
           lastRepeatableCommand.current = label
           if (label !== 'Move') movementPlan.current = null
+        } else if (label === 'Guard') {
+          // Guard is intentionally one-shot. Its status forbids an immediate second Guard, so never
+          // schedule a synthetic repeat after confirmation even when older rail markup is absent.
+          lastRepeatableCommand.current = null
+          repeatSequence.current += 1
+          movementPlan.current = null
         }
         if (label === 'Finish Turn') {
           lastRepeatableCommand.current = null
@@ -338,7 +336,7 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
       document.removeEventListener('click', handleClick, true)
       repeatSequence.current += 1
     }
-  }, [playerName])
+  }, [])
 
   useEffect(() => {
     function cycleTarget(reverse: boolean) {
