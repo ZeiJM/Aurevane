@@ -9,6 +9,7 @@ import { AiBattleQualityControls } from './ai-battle-quality-controls'
 import { AiDesktopSameFacingKeyboardAssist } from './ai-desktop-same-facing-keyboard-assist'
 import { BattleChatEmojiPolish } from './battle-chat-emoji-polish'
 import { BattleCommandCockpitPolish } from './battle-command-cockpit-polish'
+import { BattleCoordinateToggle } from './battle-coordinate-toggle'
 import { BattleDirectionalAttackAssist } from './battle-directional-attack-assist'
 import { BattleExperience } from './battle-experience'
 import { BattleFacingQuickCommitAssist } from './battle-facing-quick-commit-assist'
@@ -72,6 +73,7 @@ export function BattleClientBoundary({
       />
 
       <BattleTerrainPresentationPolish />
+      <BattleCoordinateToggle />
       <BattleDirectionalAttackAssist playerName={runtime.playerName} />
       <BattleMapTokenPolish playerName={runtime.kind === 'pve' ? runtime.playerName : undefined} />
       <BattlePresentationPolish
