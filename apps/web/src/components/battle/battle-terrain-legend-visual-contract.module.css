@@ -1,0 +1,78 @@
+.hook {
+  display: none;
+}
+
+/*
+ * Final shared desktop terrain-control authority.
+ *
+ * BattleCoordinateToggle is mounted once for both runtimes, but older PvE/PvP polish modules can
+ * still arrive later in the cascade. Keep the final terrain-row geometry here, in the shared visual
+ * contract that mounts after runtime-specific helpers, so the same control cannot drift by mode.
+ */
+@media (min-width: 821px) {
+  :global(
+    main[data-battle-visual-contract='true']
+      #battlefield
+      > [aria-label='Terrain legend']
+  ) {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.4rem !important;
+  }
+
+  :global(
+    main[data-battle-visual-contract='true']
+      #battlefield
+      > [aria-label='Terrain legend']
+      > span
+  ),
+  :global(
+    main[data-battle-visual-contract='true']
+      #battlefield
+      > [aria-label='Terrain legend']
+      > button[data-terrain-coordinate-toggle='true']
+  ) {
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+    width: auto !important;
+    height: 1.72rem !important;
+    min-height: 1.72rem !important;
+    max-height: 1.72rem !important;
+    flex: 0 1 11.5rem !important;
+    align-self: center !important;
+    margin: 0 !important;
+  }
+
+  :global(
+    main[data-battle-visual-contract='true']
+      #battlefield
+      > [aria-label='Terrain legend']
+      > button[data-terrain-coordinate-toggle='true']
+  ) {
+    gap: 0.32rem !important;
+    padding: 0.14rem 0.42rem !important;
+  }
+
+  :global(
+    main[data-battle-visual-contract='true']
+      #battlefield
+      > [aria-label='Terrain legend']
+      > button[data-terrain-coordinate-toggle='true']
+      > i
+  ) {
+    width: 1.16rem !important;
+    height: 1.16rem !important;
+  }
+
+  :global(
+    main[data-battle-visual-contract='true']
+      #battlefield
+      > [aria-label='Terrain legend']
+      > button[data-terrain-coordinate-toggle='true']
+      > i::after
+  ) {
+    font-size: 0.46rem !important;
+  }
+}
