@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 
-const REPEATABLE_ACTIONS = new Set(['Move', 'Basic Attack', 'Guard', 'Recover'])
+const REPEATABLE_ACTIONS = new Set(['Move', 'Basic Attack', 'Recover'])
 const SETTLE_DELAYS_MS = [0, 24, 60, 120, 220] as const
 
 function textOf(element: Element | null): string {
@@ -85,7 +85,9 @@ export function BattleStickyActionAssist() {
       if (command) {
         const label = commandLabel(command)
         if (REPEATABLE_ACTIONS.has(label)) pendingRepeat.current = label
-        else if (label === 'Inspect' || label === 'Finish Turn') pendingRepeat.current = null
+        else if (label === 'Inspect' || label === 'Finish Turn' || label === 'Guard') {
+          pendingRepeat.current = null
+        }
       }
 
       if (confirmButton(event.target)) rememberCurrentAction()
