@@ -46,10 +46,32 @@
     max-height: none !important;
     overflow: visible !important;
     color: var(--av-text) !important;
-    font: 650 clamp(0.78rem, 1.25vw, 1rem)/1.18 var(--av-font-display) !important;
+    font: 650 clamp(0.73rem, 1.15vw, 0.93rem)/1.18 var(--av-font-display) !important;
     overflow-wrap: anywhere !important;
     white-space: normal !important;
     visibility: visible !important;
     opacity: 1 !important;
+  }
+
+  /* Desktop PvP coordinate-toggle typography mirrors the adjacent terrain key exactly:
+     0.4rem mono label over a 0.38rem sans supporting line. No button geometry or mobile styling changes. */
+  :global(
+    main[data-pvp-battle='true']
+      section#battlefield
+      > [aria-label='Terrain legend']
+      > button[data-terrain-coordinate-toggle='true']
+      > span
+  ) {
+    font: 750 0.4rem/1 var(--av-font-mono) !important;
+  }
+
+  :global(
+    main[data-pvp-battle='true']
+      section#battlefield
+      > [aria-label='Terrain legend']
+      > button[data-terrain-coordinate-toggle='true']
+      > span::after
+  ) {
+    font: 500 0.38rem/1.1 var(--av-font-sans) !important;
   }
 }
