@@ -87,6 +87,17 @@ function clearCoordinateToggle(): void {
   }
 }
 
+function directCombatantToken(tile: HTMLElement): HTMLElement | null {
+  return (
+    Array.from(tile.children).find(
+      (child): child is HTMLElement =>
+        child instanceof HTMLElement &&
+        child.matches('span') &&
+        Boolean(child.querySelector(':scope > strong')),
+    ) ?? null
+  )
+}
+
 function ensureElevationMarker(tile: HTMLElement, elevation: number): void {
   const existing = tile.querySelector<HTMLElement>(
     ':scope > [data-terrain-elevation-marker="true"]',
@@ -101,11 +112,24 @@ function ensureElevationMarker(tile: HTMLElement, elevation: number): void {
   if (!existing) {
     marker.dataset.terrainElevationMarker = 'true'
     marker.setAttribute('aria-hidden', 'true')
-    tile.append(marker)
   }
 
   const cue = `▲${elevation}`
   if (marker.textContent !== cue) marker.textContent = cue
+
+  // Several established battle-presentation helpers intentionally treat the occupied combatant
+  // token as the tile's final direct span. Never append this visual marker after that token: doing
+  // so makes those helpers mistake the elevation cue for the combatant and center/style it. Keep
+  // the token's existing last-child contract intact by placing the elevation marker immediately
+  // before the token whenever the tile is occupied.
+  const token = directCombatantToken(tile)
+  if (token) {
+    if (marker.parentElement !== tile || marker.nextElementSibling !== token) {
+      tile.insertBefore(marker, token)
+    }
+  } else if (marker.parentElement !== tile) {
+    tile.append(marker)
+  }
 }
 
 function syncTilePresentation(): void {
