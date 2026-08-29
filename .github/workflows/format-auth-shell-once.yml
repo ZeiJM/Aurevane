@@ -12,12 +12,12 @@ permissions:
 
 jobs:
   format:
-    if: github.event.pull_request.head.ref == 'preview/finesse-silver-20260821'
+    if: github.event.pull_request.head.ref == 'agent/ai-action-commit-production-release'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: agent/ai-action-commit-production-release
           fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
@@ -28,15 +28,15 @@ jobs:
           corepack prepare pnpm@11.17.0 --activate
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Format blocking shell CSS
-        run: pnpm exec prettier --write apps/web/src/components/shell/authenticated-game-shell.module.css
-      - name: Commit formatting to main
+      - name: Format AI turn clock CSS
+        run: pnpm exec prettier --write apps/web/src/components/battle/ai-battle-quality-controls.module.css
+      - name: Commit formatting to release branch
         run: |
           git config user.name "AUREVANE Release Bot"
           git config user.email "actions@users.noreply.github.com"
-          git add apps/web/src/components/shell/authenticated-game-shell.module.css
+          git add apps/web/src/components/battle/ai-battle-quality-controls.module.css
           if git diff --cached --quiet; then
             exit 0
           fi
-          git commit -m "chore: format authenticated shell css"
-          git push origin HEAD:main
+          git commit -m "chore: format AI turn clock CSS"
+          git push origin HEAD:agent/ai-action-commit-production-release
