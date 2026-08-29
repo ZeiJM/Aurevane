@@ -292,7 +292,9 @@ function showBattlePreview(deck: HTMLElement, preview: IntentPreview): void {
   const slug = previewSlug(preview)
   if (!slug || slug === 'inspect') return
 
-  showCommandDescription(deck, slug, { clearPreview: false })
+  if (isPvpDeck(deck)) {
+    showCommandDescription(deck, slug, { clearPreview: false })
+  }
   const instruction = markInstructionElements(deck)
   if (!instruction) return
 
