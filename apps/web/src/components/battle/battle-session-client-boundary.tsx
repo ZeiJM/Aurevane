@@ -67,7 +67,10 @@ export function BattleSessionClientBoundary({
       <BattleTerrainPresentationPolish />
       <AiBattlePvpVisualSync playerName={playerName} />
       <AiDesktopCombatantRailPolish playerName={playerName} />
-      <AiBattleQualityControls battleSessionId={initialBattle.battleSessionId} playerName={playerName} />
+      <AiBattleQualityControls
+        battleSessionId={initialBattle.battleSessionId}
+        playerName={playerName}
+      />
       <AiBattleSurrenderAssist battleSessionId={initialBattle.battleSessionId} />
       {lessonActive ? (
         <BattleLessonCoach

@@ -41,7 +41,9 @@ function markSemanticControls(root: HTMLElement) {
   const battlefield = root.querySelector<HTMLElement>('#battlefield')
   mark(battlefield, 'battleSharedBattlefield')
 
-  for (const tile of battlefield?.querySelectorAll<HTMLButtonElement>('button[aria-label*="occupied by"]') ?? []) {
+  for (const tile of battlefield?.querySelectorAll<HTMLButtonElement>(
+    'button[aria-label*="occupied by"]',
+  ) ?? []) {
     const token = Array.from(tile.children).find(
       (child): child is HTMLElement =>
         child instanceof HTMLElement && Boolean(child.querySelector(':scope > strong')),

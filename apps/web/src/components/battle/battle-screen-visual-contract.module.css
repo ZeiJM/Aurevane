@@ -228,11 +228,7 @@
     place-items: center !important;
   }
 
-  :global(
-    main[data-battle-visual-contract='true']
-      #battlefield
-      > [aria-label='Terrain legend']
-  ) {
+  :global(main[data-battle-visual-contract='true'] #battlefield > [aria-label='Terrain legend']) {
     grid-row: 2 !important;
     box-sizing: border-box !important;
     height: auto !important;
@@ -423,19 +419,35 @@
     font-size: 0.63rem !important;
   }
 
-  :global(main[data-battle-visual-contract='true'] [data-battle-facing-control='true'] > button:nth-of-type(1)) {
+  :global(
+    main[data-battle-visual-contract='true']
+      [data-battle-facing-control='true']
+      > button:nth-of-type(1)
+  ) {
     grid-column: 1 !important;
   }
 
-  :global(main[data-battle-visual-contract='true'] [data-battle-facing-control='true'] > button:nth-of-type(2)) {
+  :global(
+    main[data-battle-visual-contract='true']
+      [data-battle-facing-control='true']
+      > button:nth-of-type(2)
+  ) {
     grid-column: 2 !important;
   }
 
-  :global(main[data-battle-visual-contract='true'] [data-battle-facing-control='true'] > button:nth-of-type(3)) {
+  :global(
+    main[data-battle-visual-contract='true']
+      [data-battle-facing-control='true']
+      > button:nth-of-type(3)
+  ) {
     grid-column: 4 !important;
   }
 
-  :global(main[data-battle-visual-contract='true'] [data-battle-facing-control='true'] > button:nth-of-type(4)) {
+  :global(
+    main[data-battle-visual-contract='true']
+      [data-battle-facing-control='true']
+      > button:nth-of-type(4)
+  ) {
     grid-column: 5 !important;
   }
 
