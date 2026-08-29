@@ -93,22 +93,8 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(fittedBoard).toHaveCount(1)
   await expectBattlefieldContained(page)
 
-  await page.getByRole('button', { name: 'Chat', exact: true }).click()
-  const battleChatInput = page.getByLabel('Battle chat message')
-  await battleChatInput.fill('Testing solo battle chat⚔️')
-  await page.getByRole('button', { name: 'Send' }).click()
-  await expect(page.getByText('Testing solo battle chat⚔️', { exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'Choose emoji' }).click()
-  await expect(page.getByRole('button', { name: 'Insert ⚔️' })).toBeVisible()
-  await battleChatInput.click()
-  await expect(page.getByRole('group', { name: 'Recent emoji' })).toHaveCount(0)
-  await expect(battleChatInput).toBeVisible()
-  if (testInfo.project.name === 'mobile-chromium') {
-    await page.getByRole('button', { name: 'Close battle chat' }).click()
-  } else {
-    await page.mouse.click(1, 1)
-  }
-  await expect(battleChatInput).toHaveCount(0)
+  // Chat is a PvP capability, not part of the shared PvE battle presentation.
+  await expect(page.getByRole('button', { name: /^Chat/ })).toHaveCount(0)
 
   if (testInfo.project.name === 'mobile-chromium') {
     const playerTile = page.getByRole('button', {
@@ -162,8 +148,8 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     'Rough ground costs 50 AP',
   )
   await page.getByRole('button', { name: /Tile 4, 2; open-ground; elevation 0/ }).click()
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Path ready: 100 AP')
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('0 AP will remain')
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText('100 AP')
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText('0 AP left')
   if (testInfo.project.name !== 'mobile-chromium') {
     const pathZero = battlefield.locator('[data-ai-path-zero="true"]')
     await expect(pathZero).toHaveCount(1)
