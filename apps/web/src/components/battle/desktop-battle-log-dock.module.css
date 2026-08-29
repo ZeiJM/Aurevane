@@ -32,11 +32,13 @@
     pointer-events: none;
   }
 
-  /* The dock is active from 821px upward, so its visual centering rule must use the same desktop
-     range. Consume the shared centering variable as the single source of truth; compact desktop
-     already resolves that variable to a safe 0.35rem, while wide desktop gets the larger tuned
-     shift. */
-  :global(#battlefield[data-desktop-battle-log-open='true'] > [data-docked-battle-log='true']) {
+  /* The existing PvP dock uses a small tuned left shift. Keep that behavior isolated to PvP so
+     the high-z-index log cannot slide back over PvE's real terrain-footer column. */
+  :global(
+    main[data-pvp-battle='true']
+      #battlefield[data-desktop-battle-log-open='true']
+      > [data-docked-battle-log='true']
+  ) {
     transform: translateX(calc(-1 * var(--battle-log-dock-center-shift))) !important;
   }
 
@@ -61,6 +63,7 @@
     min-height: 0 !important;
     align-self: stretch !important;
     justify-self: stretch !important;
+    transform: none !important;
   }
 
   /* PvE's battlefield sits between two combatant rails, so opening the dock leaves less footer
