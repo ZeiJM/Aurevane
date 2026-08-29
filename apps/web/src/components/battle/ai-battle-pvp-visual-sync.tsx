@@ -36,6 +36,32 @@ function cleanPathZeroMarker(marker: HTMLSpanElement) {
   delete marker.dataset.mapPortraitReady
 }
 
+function markAiHeader(root: HTMLElement) {
+  root.dataset.aiBattleRoot = 'true'
+
+  const header = root.querySelector<HTMLElement>(':scope > header')
+  if (!header) return
+  header.dataset.aiBattleHeader = 'true'
+
+  const objective = header.firstElementChild
+  if (objective instanceof HTMLElement) objective.dataset.aiBattleObjective = 'true'
+
+  const economyTrack = header.querySelector<HTMLElement>(
+    '[role="progressbar"][aria-label="Action Economy remaining"]',
+  )
+  const economy = economyTrack?.parentElement
+  if (economy instanceof HTMLElement) economy.dataset.aiBattleEconomy = 'true'
+
+  const round = Array.from(header.children).find(
+    (child): child is HTMLButtonElement =>
+      child instanceof HTMLButtonElement && child.textContent?.includes('Combat Log') === true,
+  )
+  if (round) round.dataset.aiBattleRound = 'true'
+
+  const victory = header.querySelector<HTMLButtonElement>('button[aria-label^="Victory conditions"]')
+  if (victory) victory.dataset.aiBattleVictory = 'true'
+}
+
 export function AiBattlePvpVisualSync({ playerName }: { playerName: string }) {
   useEffect(() => {
     let frame: number | null = null
@@ -47,6 +73,8 @@ export function AiBattlePvpVisualSync({ playerName }: { playerName: string }) {
       )
       const root = battlefield?.closest<HTMLElement>('main') ?? null
       if (!root || root.dataset.pvpBattle === 'true') return
+
+      markAiHeader(root)
 
       const commandDeck = root.querySelector<HTMLElement>('section[aria-label="Command Deck"]')
       if (commandDeck) {
@@ -80,6 +108,9 @@ export function AiBattlePvpVisualSync({ playerName }: { playerName: string }) {
       let pathActive = false
 
       for (const tile of tiles) {
+        const unitToken = directUnitToken(tile)
+        if (unitToken) unitToken.dataset.aiBattleToken = 'true'
+
         const marker = directNumericMarker(tile)
         if (marker && marker.dataset.aiPathZero !== 'true') {
           marker.dataset.aiPathNumber = 'true'
@@ -137,6 +168,20 @@ export function AiBattlePvpVisualSync({ playerName }: { playerName: string }) {
       observer.disconnect()
       if (frame !== null) window.cancelAnimationFrame(frame)
       document.querySelector('[data-ai-path-zero="true"]')?.remove()
+
+      for (const root of document.querySelectorAll<HTMLElement>('[data-ai-battle-root="true"]')) {
+        delete root.dataset.aiBattleRoot
+        for (const element of root.querySelectorAll<HTMLElement>(
+          '[data-ai-battle-header], [data-ai-battle-objective], [data-ai-battle-economy], [data-ai-battle-round], [data-ai-battle-victory], [data-ai-battle-token]',
+        )) {
+          delete element.dataset.aiBattleHeader
+          delete element.dataset.aiBattleObjective
+          delete element.dataset.aiBattleEconomy
+          delete element.dataset.aiBattleRound
+          delete element.dataset.aiBattleVictory
+          delete element.dataset.aiBattleToken
+        }
+      }
     }
   }, [playerName])
 
