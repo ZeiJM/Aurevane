@@ -112,20 +112,23 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     await expect(combatantDialog).toHaveCount(0)
     await expect(playerTile).toBeVisible()
     await expect(recruitTile).toBeVisible()
-    await expect(
-      page.getByRole('button', { name: `Show ${characterName} combat details` }),
-    ).toBeHidden()
+    await expect(page.getByRole('button', { name: `Inspect ${characterName}`, exact: true })).toBeHidden()
   } else {
     await inspectButton.click()
-    await page.getByRole('button', { name: `Show ${characterName} combat details` }).click()
+    const playerRailButton = page.getByRole('button', {
+      name: `Inspect ${characterName}`,
+      exact: true,
+    })
+    const recruitRailButton = page.getByRole('button', { name: 'Inspect Recruit', exact: true })
+    await playerRailButton.click()
     const combatantDialog = page.getByRole('dialog', { name: `${characterName} battle details` })
     await expect(combatantDialog).toBeVisible()
     await expect(combatantDialog.getByText('Initiative', { exact: true })).toBeVisible()
     await expect(combatantDialog.getByText('AP', { exact: true })).toHaveCount(0)
     await page.mouse.click(1, 1)
     await expect(combatantDialog).toHaveCount(0)
-    const playerRail = page.locator(`aside[aria-label="${characterName} combat status"]`)
-    const recruitRail = page.locator('aside[aria-label="Recruit combat status"]')
+    const playerRail = playerRailButton.locator('..')
+    const recruitRail = recruitRailButton.locator('..')
     await expect(playerRail.getByText(characterName, { exact: true })).toBeVisible()
     await expect(recruitRail.getByText('Recruit', { exact: true })).toBeVisible()
     const playerTokenName = page
