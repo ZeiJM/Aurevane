@@ -62,9 +62,9 @@ export function BattleTerrainPresentationPolish() {
       frame = window.requestAnimationFrame(run)
     }
 
-    run()
     const observer = new MutationObserver(schedule)
     observer.observe(document.body, { childList: true, subtree: true, characterData: true })
+    schedule()
 
     return () => {
       observer.disconnect()
