@@ -113,7 +113,8 @@ lobby_joined="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres 
   set role service_role;
   select public.get_pvp_lobby_v1('$user_one'::uuid, '$lobby_id'::uuid)::text;")"
 test "$(printf '%s' "$lobby_joined" | jq -r '.members | length')" = '2'
-test "$(printf '%s' "$lobby_joined" | jq -r '[.members[].ready] | all(. == false)')" = 'true'
+test "$(printf '%s' "$lobby_joined" | jq -r '.members[] | select(.user_id == "'"$user_one"'") | .ready')" = 'true'
+test "$(printf '%s' "$lobby_joined" | jq -r '.members[] | select(.user_id == "'"$user_two"'") | .ready')" = 'false'
 test "$(printf '%s' "$lobby_joined" | jq -r '.members[] | select(.user_id == "'"$user_two"'") | .team_index')" = '1'
 
 for user_id in "$user_one" "$user_two"; do
