@@ -110,7 +110,9 @@ function markInstructionElements(deck: HTMLElement): InstructionElements | null 
 }
 
 function clearCommandPreview(deck: HTMLElement): void {
-  for (const preview of deck.querySelectorAll<HTMLElement>('[data-battle-target-preview="true"]')) {
+  for (const preview of deck.querySelectorAll<HTMLElement>(
+    '[data-battle-target-preview="true"][data-battle-preview-key]',
+  )) {
     preview.remove()
   }
 }
@@ -296,7 +298,9 @@ function showBattlePreview(deck: HTMLElement, preview: IntentPreview): void {
 
   const chips = previewChips(preview)
   const previewKey = JSON.stringify({ slug, chips })
-  const existing = deck.querySelector<HTMLElement>('[data-battle-target-preview="true"]')
+  const existing = deck.querySelector<HTMLElement>(
+    '[data-battle-target-preview="true"][data-battle-preview-key]',
+  )
   if (existing?.dataset.battlePreviewKey === previewKey) return
   existing?.remove()
 
@@ -493,7 +497,9 @@ function syncCommandDeck(deck: HTMLElement): void {
     delete instruction.row.dataset.battleCommandExplanation
   }
 
-  const visiblePreview = deck.querySelector<HTMLElement>('[data-battle-target-preview="true"]')
+  const visiblePreview = deck.querySelector<HTMLElement>(
+    '[data-battle-target-preview="true"][data-battle-preview-key]',
+  )
   if (visiblePreview && visiblePreview.dataset.battlePreviewCommand !== activeSlug) {
     visiblePreview.remove()
   }
