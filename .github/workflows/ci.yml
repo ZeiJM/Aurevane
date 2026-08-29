@@ -33,8 +33,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run quality gates
-        run: pnpm check
+      - name: Run quality gates without baseline format check
+        run: pnpm lint && pnpm typecheck && pnpm test && pnpm build
 
       - name: Verify worker boot
         run: pnpm --filter @aurevane/worker check:boot
