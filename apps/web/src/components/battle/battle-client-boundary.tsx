@@ -32,6 +32,7 @@ import { BattleUtilityWindows } from './battle-utility-windows'
 import { DesktopBattleCombatantInspect } from './desktop-battle-combatant-inspect'
 import { DesktopBattleLogDock } from './desktop-battle-log-dock'
 import { MobileBattleCombatantPopup } from './mobile-battle-combatant-popup'
+import { PveBattleCompletionBridge } from './pve-battle-completion-bridge'
 import { PvpBattleChatBridge } from './pvp-battle-chat-bridge'
 import { PvpBattleCompletionPanel } from './pvp-battle-completion-panel'
 import { PvpBattleInspectPopup } from './pvp-battle-inspect-popup'
@@ -101,6 +102,7 @@ export function BattleClientBoundary({
               recordId={battleHallRecord?.id ?? 'recruit-sparring'}
             />
           ) : null}
+          <PveBattleCompletionBridge initialBattle={initialBattle} />
           <DesktopBattleCombatantInspect
             battleSessionId={initialBattle.battleSessionId}
             playerName={runtime.playerName}
