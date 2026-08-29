@@ -34,4 +34,73 @@
   :global(#battlefield[data-desktop-battle-log-open='true'] > [data-docked-battle-log='true']) {
     transform: translateX(calc(-1 * var(--battle-log-dock-center-shift))) !important;
   }
+
+  /* PvE uses the same dock component as PvP, but its battlefield also owns the AI terrain-footer
+     portal. Keep the board row definite while the log is open so the dock stretches to the exact
+     board height instead of collapsing to the height of the rendered round cards and leaving a
+     dark void beneath it. */
+  :global(
+    main:not([data-pvp-battle='true']) #battlefield[data-desktop-battle-log-open='true']
+  ) {
+    grid-template-rows: minmax(0, 1fr) auto !important;
+    align-content: stretch !important;
+  }
+
+  :global(
+    main:not([data-pvp-battle='true'])
+      #battlefield[data-desktop-battle-log-open='true']
+      > [data-docked-battle-log='true']
+  ) {
+    height: calc(
+      100% - var(--battle-log-dock-vertical-inset) - var(--battle-log-dock-vertical-inset)
+    ) !important;
+    min-height: 0 !important;
+    align-self: stretch !important;
+    justify-self: stretch !important;
+  }
+
+  /* The difficult-terrain key is part of the battlefield contract and must not disappear merely
+     because the log column is open. Preserve the AI native legend, hide only the old legacy key,
+     and allow both terrain keys to shrink evenly beside the coordinate switch on narrower desktop
+     battlefields. */
+  :global(
+    main:not([data-pvp-battle='true'])
+      #battlefield[data-desktop-battle-log-open='true']
+      > [data-ai-native-terrain-legend='true']
+  ) {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  :global(
+    main:not([data-pvp-battle='true'])
+      #battlefield[data-desktop-battle-log-open='true']
+      > [data-ai-native-terrain-legend='true']
+      > span
+  ) {
+    display: flex !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    flex: 1 1 0 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  :global(
+    main:not([data-pvp-battle='true'])
+      #battlefield[data-desktop-battle-log-open='true']
+      > [data-ai-native-terrain-legend='true']
+      > span:first-child
+  ) {
+    display: flex !important;
+  }
+
+  :global(
+    main:not([data-pvp-battle='true'])
+      #battlefield[data-desktop-battle-log-open='true']
+      > [data-ai-legacy-terrain-legend='true']
+  ) {
+    display: none !important;
+  }
 }
