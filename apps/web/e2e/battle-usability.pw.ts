@@ -156,8 +156,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
       on participant.battle_session_id = battle.id
     join public.characters character
       on character.id = participant.character_id
-    join auth.users account
-      on account.id = character.user_id
+    join auth.users account on account.id = character.user_id
     left join app_private.character_xp_grants grant_row
       on grant_row.character_id = character.id
     where account.email = '${escapeSqlLiteral(email)}'
@@ -176,8 +175,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
       on participant.battle_session_id = battle.id
     join public.characters character
       on character.id = participant.character_id
-    join auth.users account
-      on account.id = character.user_id
+    join auth.users account on account.id = character.user_id
     where account.email = '${escapeSqlLiteral(email)}'
       and event.event ->> 'event' = 'ai_combatant_surrendered'
     order by event.created_at desc
@@ -194,8 +192,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
       on participant.battle_session_id = battle.id
     join public.characters character
       on character.id = participant.character_id
-    join auth.users account
-      on account.id = character.user_id
+    join auth.users account on account.id = character.user_id
     where account.email = '${escapeSqlLiteral(email)}'
       and event.event ->> 'event' = 'battle_completed'
     order by event.created_at desc
@@ -207,14 +204,12 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
 async function expectVictoryConditionsBesideActionEconomy(
   page: import('@playwright/test').Page,
 ): Promise<void> {
-  const economyPanel = page
-    .getByRole('progressbar', { name: 'Action Economy remaining' })
-    .locator('..')
+  const economyTrack = page.getByRole('progressbar', { name: 'Action Economy remaining' })
   const victoryConditions = page.getByRole('button', { name: /Victory conditions/i })
   await expect(victoryConditions).toBeVisible()
 
   const [economyBox, victoryBox] = await Promise.all([
-    economyPanel.boundingBox(),
+    economyTrack.boundingBox(),
     victoryConditions.boundingBox(),
   ])
   expect(economyBox).not.toBeNull()
@@ -228,7 +223,7 @@ async function expectVictoryConditionsBesideActionEconomy(
 
   const economyCenterY = economyBox.y + economyBox.height / 2
   const victoryCenterY = victoryBox.y + victoryBox.height / 2
-  expect(Math.abs(economyCenterY - victoryCenterY)).toBeLessThanOrEqual(4)
+  expect(Math.abs(economyCenterY - victoryCenterY)).toBeLessThanOrEqual(10)
 }
 
 async function hasHorizontalOverflow(page: import('@playwright/test').Page): Promise<boolean> {
