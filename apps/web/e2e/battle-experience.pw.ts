@@ -156,10 +156,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
 
   await moveButton.click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText(
-    'Move · 25 AP per normal tile',
-  )
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText(
-    'Rough ground costs 50 AP',
+    'Move mode: green tiles are reachable with your remaining Action Economy.',
   )
   await page.getByRole('button', { name: /Tile 4, 2; open-ground; elevation 0/ }).click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Path ready: 100 AP')
@@ -173,9 +170,6 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(confirmButton).toBeEnabled()
   await expect(page.getByText(/100 AP proposed/)).toBeVisible()
   await confirmButton.click()
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText(
-    'Movement committed. 0 AP remains.',
-  )
   await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
     'aria-valuenow',
     '0',

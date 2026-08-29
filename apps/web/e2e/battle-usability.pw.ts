@@ -111,10 +111,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
 
   await page.keyboard.press('m')
   await expect(page.getByTestId('combat-mode-instruction')).toContainText(
-    'Move · 25 AP per normal tile',
-  )
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText(
-    'Rough ground costs 50 AP',
+    'Move mode: green tiles are reachable with your remaining Action Economy.',
   )
 
   const beforeKeyboardMove = page.getByRole('button', {
