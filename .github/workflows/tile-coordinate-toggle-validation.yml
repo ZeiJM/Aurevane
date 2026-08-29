@@ -1,0 +1,44 @@
+name: Tile coordinate toggle validation
+
+on:
+  push:
+    branches:
+      - "agent/tile-coordinate-toggle-validation"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Targeted feature validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint changed component
+        run: pnpm --filter @aurevane/web exec eslint src/components/battle/battle-terrain-presentation-polish.tsx --max-warnings=0
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
