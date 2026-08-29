@@ -10,7 +10,6 @@ import { AiBattleQualityControls } from './ai-battle-quality-controls'
 import { AiBattleSurrenderAssist } from './ai-battle-surrender-assist'
 import { AiCockpitPvpButtonFormat } from './ai-cockpit-pvp-button-format'
 import { AiDesktopCombatantRailPolish } from './ai-desktop-combatant-rail-polish'
-import { AiDesktopSameFacingKeyboardAssist } from './ai-desktop-same-facing-keyboard-assist'
 import { AiNativeTerrainLegend } from './ai-native-terrain-legend'
 import { BattleChatEmojiPolish } from './battle-chat-emoji-polish'
 import { BattleCommandCockpitPolish } from './battle-command-cockpit-polish'
@@ -89,7 +88,6 @@ export function BattleSessionClientBoundary({
       />
       <BattleStickyActionAssist />
       <BattleRecruitRecoveryAssist />
-      <AiDesktopSameFacingKeyboardAssist playerName={playerName} />
       <BattleKeyboardAssist playerName={playerName} />
       <BattleCommandCockpitPolish />
       <AiCockpitPvpButtonFormat />
