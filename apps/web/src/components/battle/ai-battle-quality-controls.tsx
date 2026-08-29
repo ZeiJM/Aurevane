@@ -55,27 +55,31 @@ export function AiBattleQualityControls({
       )
 
       if (heading) {
-        heading.style.order = '0'
+        if (heading.style.order !== '0') heading.style.order = '0'
         const current = heading.textContent?.trim() ?? ''
         const nativeNeutralHeading = /^choose\s+(?:your\s+|an\s+)?action$/i.test(current)
         const ownsNeutralHeading = heading.dataset.aiNeutralTurnHeading === 'true'
 
         if (!activeCommand && (nativeNeutralHeading || ownsNeutralHeading)) {
-          heading.dataset.aiNeutralTurnHeading = 'true'
+          if (!ownsNeutralHeading) heading.dataset.aiNeutralTurnHeading = 'true'
           const turnHeading = `${playerName}’s Turn`
           if (heading.textContent !== turnHeading) heading.textContent = turnHeading
         } else if (activeCommand || (!nativeNeutralHeading && !ownsNeutralHeading)) {
-          delete heading.dataset.aiNeutralTurnHeading
+          if (ownsNeutralHeading) delete heading.dataset.aiNeutralTurnHeading
         }
 
         const neutralTurnHeading = heading.dataset.aiNeutralTurnHeading === 'true'
         if (helper) {
-          helper.style.order = '2'
-          if (neutralTurnHeading) helper.style.display = 'none'
-          else helper.style.removeProperty('display')
+          if (helper.style.order !== '2') helper.style.order = '2'
+          if (neutralTurnHeading) {
+            if (helper.style.display !== 'none') helper.style.display = 'none'
+          } else if (helper.style.display) {
+            helper.style.removeProperty('display')
+          }
         }
       }
-      setCommandTarget(target)
+
+      setCommandTarget((currentTarget) => (currentTarget === target ? currentTarget : target))
     }
 
     locate()
@@ -85,7 +89,9 @@ export function AiBattleQualityControls({
       subtree: true,
       characterData: true,
       attributes: true,
-      attributeFilter: ['data-active', 'data-battle-active', 'class'],
+      // Watch React-owned action-state markers only. data-battle-active is written by the cockpit
+      // polish observer; observing it here created an observer feedback loop during action commits.
+      attributeFilter: ['data-active', 'class'],
     })
     return () => observer.disconnect()
   }, [playerName])
