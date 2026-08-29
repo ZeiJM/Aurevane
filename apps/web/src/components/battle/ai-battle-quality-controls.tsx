@@ -19,9 +19,35 @@ interface TickResponse {
   error?: { message?: string }
 }
 
+const CLOCK_WATCHDOG_MS = 5000
+const CLOCK_RECONNECT_BASE_MS = 1000
+const CLOCK_DEADLINE_GRACE_MS = 150
+const CLOCK_MIN_DELAY_MS = 250
+const CLOCK_REQUEST_TIMEOUT_MS = 8000
+const MAX_RECONNECT_DELAY_MS = 5000
+
 function remainingSeconds(deadlineAt: string | null, now: number): number {
   if (!deadlineAt || now <= 0) return 0
   return Math.max(0, Math.ceil((new Date(deadlineAt).getTime() - now) / 1000))
+}
+
+function clocksEqual(left: ClockView | null, right: ClockView): boolean {
+  return Boolean(
+    left &&
+      left.active === right.active &&
+      left.turnNumber === right.turnNumber &&
+      left.combatantId === right.combatantId &&
+      left.deadlineAt === right.deadlineAt &&
+      left.expired === right.expired,
+  )
+}
+
+function nextClockRefreshDelay(clock: ClockView): number {
+  if (!clock.active || !clock.deadlineAt) return CLOCK_WATCHDOG_MS
+  const deadline = new Date(clock.deadlineAt).getTime()
+  if (!Number.isFinite(deadline)) return CLOCK_RECONNECT_BASE_MS
+  const untilDeadline = deadline - Date.now() + CLOCK_DEADLINE_GRACE_MS
+  return Math.min(CLOCK_WATCHDOG_MS, Math.max(CLOCK_MIN_DELAY_MS, untilDeadline))
 }
 
 export function AiBattleQualityControls({
@@ -39,10 +65,16 @@ export function AiBattleQualityControls({
   const reloading = useRef(false)
 
   useEffect(() => {
+    const battlefield = document.querySelector<HTMLElement>('#battlefield')
+    const root = battlefield?.closest<HTMLElement>('main') ?? null
+    if (!root || root.dataset.pvpBattle === 'true') return
+
+    let frame: number | null = null
+
     const locate = () => {
-      const root = document.querySelector<HTMLElement>('#battlefield')?.closest<HTMLElement>('main')
+      frame = null
       const strip =
-        root?.querySelector<HTMLElement>('[data-testid="combat-mode-instruction"]') ?? null
+        root.querySelector<HTMLElement>('[data-testid="combat-mode-instruction"]') ?? null
       const target =
         strip?.firstElementChild instanceof HTMLElement ? strip.firstElementChild : null
       const heading = target?.querySelector<HTMLElement>(':scope > strong') ?? null
@@ -71,13 +103,9 @@ export function AiBattleQualityControls({
         }
       }
 
-      // PvP command-strip parity: keep the React-owned explanatory copy available in the DOM for
-      // semantics, but remove it from the visual layout. Preview-chip placement is intentionally
-      // CSS-owned so desktop and mobile can use their appropriate responsive geometry without
-      // inline styles fighting the mobile grid.
-      if (helper) {
-        helper.style.setProperty('display', 'none', 'important')
-      }
+      // Keep the explanatory React copy available semantically without letting it occupy the
+      // PvP-style command strip. Preview placement remains CSS-owned and the clock owns the far edge.
+      if (helper) helper.style.setProperty('display', 'none', 'important')
       if (notice) {
         notice.style.setProperty('position', 'absolute', 'important')
         notice.style.setProperty('width', '1px', 'important')
@@ -90,27 +118,34 @@ export function AiBattleQualityControls({
         notice.style.setProperty('border', '0', 'important')
       }
 
-      // Do not enqueue a React state update for every DOM mutation. Action commits cause several
-      // synchronous mutations; repeatedly setting the same portal target can feed back into React's
-      // commit cycle. Only update state when React has actually replaced the target element.
+      // Action commits produce several synchronous DOM mutations. Never enqueue React state when
+      // the portal host is unchanged; doing so was the source of an earlier update-depth loop.
       if (commandTargetRef.current !== target) {
         commandTargetRef.current = target
         setCommandTarget(target)
       }
     }
 
+    const schedule = () => {
+      if (frame !== null) return
+      frame = window.requestAnimationFrame(locate)
+    }
+
     locate()
-    const observer = new MutationObserver(locate)
-    observer.observe(document.body, {
+    const observer = new MutationObserver(schedule)
+    observer.observe(root, {
       childList: true,
       subtree: true,
-      characterData: true,
       attributes: true,
-      // Watch React-owned action-state markers only. data-battle-active is written by the cockpit
-      // polish observer; observing it here created an observer feedback loop during action commits.
+      // Watch React-owned action markers only. Presentation-owned data-battle-active and inline
+      // presentation styles are deliberately excluded to prevent observer feedback.
       attributeFilter: ['data-active', 'class'],
     })
-    return () => observer.disconnect()
+
+    return () => {
+      observer.disconnect()
+      if (frame !== null) window.cancelAnimationFrame(frame)
+    }
   }, [playerName])
 
   useEffect(() => {
@@ -143,37 +178,106 @@ export function AiBattleQualityControls({
   useEffect(() => {
     let cancelled = false
     let timer: number | null = null
+    let controller: AbortController | null = null
+    let requestTimeout: number | null = null
+    let inFlight = false
+    let reconnectDelay = CLOCK_RECONNECT_BASE_MS
+
+    const clearRequestTimeout = () => {
+      if (requestTimeout === null) return
+      window.clearTimeout(requestTimeout)
+      requestTimeout = null
+    }
+
+    const schedule = (delay: number) => {
+      if (cancelled || reloading.current) return
+      if (timer !== null) window.clearTimeout(timer)
+      timer = window.setTimeout(() => void refresh(), delay)
+    }
 
     async function refresh() {
+      if (cancelled || reloading.current || inFlight) return
+      if (document.visibilityState === 'hidden') {
+        schedule(CLOCK_WATCHDOG_MS)
+        return
+      }
+
+      inFlight = true
+      timer = null
+      controller = new AbortController()
+      const activeController = controller
+      requestTimeout = window.setTimeout(() => activeController.abort(), CLOCK_REQUEST_TIMEOUT_MS)
+      let nextDelay = CLOCK_WATCHDOG_MS
+
       try {
         const response = await fetch(`/api/battles/${battleSessionId}/turn-clock`, {
           method: 'POST',
           cache: 'no-store',
+          signal: activeController.signal,
         })
         const body = (await response.json()) as TickResponse
-        if (cancelled) return
+        if (cancelled || activeController.signal.aborted) return
+
         if (!response.ok || !body.tick) {
           setError(body.error?.message ?? 'Turn clock unavailable.')
+          reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY_MS)
+          nextDelay = reconnectDelay
         } else {
-          setClock(body.tick.clock)
+          const nextClock = body.tick.clock
+          setClock((current) => (clocksEqual(current, nextClock) ? current : nextClock))
           setError(null)
+          reconnectDelay = CLOCK_RECONNECT_BASE_MS
+          nextDelay = nextClockRefreshDelay(nextClock)
+
           if (body.tick.timedOut && !reloading.current) {
             reloading.current = true
             window.setTimeout(() => window.location.reload(), 80)
             return
           }
         }
-      } catch {
-        if (!cancelled) setError('Turn clock reconnecting…')
+      } catch (refreshError) {
+        if (
+          !cancelled &&
+          !(refreshError instanceof DOMException && refreshError.name === 'AbortError')
+        ) {
+          setError('Turn clock reconnecting…')
+        } else if (!cancelled && activeController.signal.aborted) {
+          setError('Turn clock reconnecting…')
+        }
+        reconnectDelay = Math.min(reconnectDelay * 2, MAX_RECONNECT_DELAY_MS)
+        nextDelay = reconnectDelay
       } finally {
-        if (!cancelled && !reloading.current) timer = window.setTimeout(refresh, 650)
+        clearRequestTimeout()
+        if (controller === activeController) controller = null
+        inFlight = false
+        if (!cancelled && !reloading.current) schedule(nextDelay)
       }
     }
 
+    const wake = () => {
+      if (cancelled || document.visibilityState === 'hidden') return
+      if (timer !== null) {
+        window.clearTimeout(timer)
+        timer = null
+      }
+      void refresh()
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') wake()
+    }
+
     void refresh()
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener('focus', wake)
+
     return () => {
       cancelled = true
       if (timer !== null) window.clearTimeout(timer)
+      clearRequestTimeout()
+      controller?.abort()
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', wake)
     }
   }, [battleSessionId])
 
