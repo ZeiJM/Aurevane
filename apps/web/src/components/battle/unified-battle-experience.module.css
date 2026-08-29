@@ -259,8 +259,8 @@
   :global([data-unified-command-deck='true'] > div:first-child) {
     grid-column: 1 / -1;
     grid-row: 1;
-    min-height: 2.4rem !important;
-    padding: 0.35rem 0.5rem !important;
+    min-height: 2rem !important;
+    padding: 0.3rem 0.5rem !important;
   }
 
   :global([data-unified-command-deck='true'] > div:nth-child(2)) {
