@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 import styles from './battle-terrain-presentation-polish.module.css'
 
@@ -9,32 +10,50 @@ const TERRAIN_TERMINOLOGY = new Map([
   ['Raised Ground', 'Elevated Ground'],
 ])
 
-function syncTerrainPresentation(): void {
-  for (const key of document.querySelectorAll<HTMLElement>(
-    "[aria-label='Terrain legend'] > span",
-  )) {
-    const label = key.querySelector<HTMLElement>('b')
-    if (!label) continue
+const TERRAIN_LEGEND_SELECTOR = [
+  "section[aria-label='Tactical battlefield'] > [aria-label='Terrain legend']",
+  "section[aria-label='PvP tactical battlefield'] > [aria-label='Terrain legend']",
+].join(', ')
 
-    const current = label.textContent?.trim() ?? ''
-    const replacement = TERRAIN_TERMINOLOGY.get(current)
-    if (replacement) label.textContent = replacement
+const BATTLEFIELD_SELECTOR = [
+  "section[aria-label='Tactical battlefield']",
+  "section[aria-label='PvP tactical battlefield']",
+].join(', ')
 
-    const resolvedLabel = replacement ?? current
-    if (resolvedLabel === 'Elevated Ground') {
-      const description = key.querySelector<HTMLElement>('small')
-      if (description) description.textContent = 'Access depends on Jump'
+function syncTerrainPresentation(): HTMLElement | null {
+  const legends = document.querySelectorAll<HTMLElement>(TERRAIN_LEGEND_SELECTOR)
+
+  for (const legend of legends) {
+    for (const key of legend.querySelectorAll<HTMLElement>(':scope > span')) {
+      const label = key.querySelector<HTMLElement>('b')
+      if (!label) continue
+
+      const current = label.textContent?.trim() ?? ''
+      const replacement = TERRAIN_TERMINOLOGY.get(current)
+      if (replacement) label.textContent = replacement
+
+      const resolvedLabel = replacement ?? current
+      if (resolvedLabel === 'Elevated Ground') {
+        const description = key.querySelector<HTMLElement>('small')
+        if (description) description.textContent = 'Access depends on Jump'
+      }
     }
   }
+
+  return legends.item(0)
 }
 
 export function BattleTerrainPresentationPolish() {
+  const [legend, setLegend] = useState<HTMLElement | null>(null)
+  const [showCoordinates, setShowCoordinates] = useState(false)
+
   useEffect(() => {
     let frame = 0
 
     const run = () => {
       frame = 0
-      syncTerrainPresentation()
+      const nextLegend = syncTerrainPresentation()
+      setLegend((current) => (current === nextLegend ? current : nextLegend))
     }
     const schedule = () => {
       if (frame !== 0) return
@@ -51,5 +70,38 @@ export function BattleTerrainPresentationPolish() {
     }
   }, [])
 
-  return <span className={styles.hook} aria-hidden="true" />
+  useEffect(() => {
+    const battlefield = legend?.closest<HTMLElement>(BATTLEFIELD_SELECTOR) ?? null
+    if (!battlefield) return
+
+    if (showCoordinates) battlefield.dataset.showCoordinates = 'true'
+    else delete battlefield.dataset.showCoordinates
+
+    return () => {
+      delete battlefield.dataset.showCoordinates
+    }
+  }, [legend, showCoordinates])
+
+  return (
+    <>
+      <span className={styles.hook} aria-hidden="true" />
+      {legend
+        ? createPortal(
+            <button
+              type="button"
+              className={styles.coordinateToggle}
+              role="switch"
+              aria-checked={showCoordinates}
+              aria-label={showCoordinates ? 'Hide tile coordinates' : 'Show tile coordinates'}
+              title={showCoordinates ? 'Hide tile coordinates' : 'Show tile coordinates'}
+              onClick={() => setShowCoordinates((current) => !current)}
+            >
+              <span>Coords</span>
+              <i aria-hidden="true" />
+            </button>,
+            legend,
+          )
+        : null}
+    </>
+  )
 }
