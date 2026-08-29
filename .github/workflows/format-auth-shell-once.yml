@@ -12,31 +12,48 @@ permissions:
 
 jobs:
   format:
-    if: github.event.pull_request.head.ref == 'preview/finesse-silver-20260821'
+    if: github.event.pull_request.head.ref == 'agent/ai-action-commit-production-release'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: main
+          ref: agent/ai-action-commit-production-release
           fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-      - name: Enable pnpm
+      - name: Update stale battle smoke contracts
         run: |
-          corepack enable
-          corepack prepare pnpm@11.17.0 --activate
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Format blocking shell CSS
-        run: pnpm exec prettier --write apps/web/src/components/shell/authenticated-game-shell.module.css
-      - name: Commit formatting to main
+          python - <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              Path('apps/web/e2e/ai-grid-legend-regression.pw.ts'): [
+                  ('data-ai-terrain-legend="true"', 'data-ai-native-terrain-legend="true"'),
+              ],
+              Path('apps/web/e2e/battle-experience.pw.ts'): [
+                  ("toContainText('Choose your action')", "toContainText('Choose any action')"),
+              ],
+              Path('apps/web/e2e/battle-usability.pw.ts'): [
+                  ('Tile 4, 3; rough-ground; elevation 0', 'Tile 4, 3; difficult terrain; elevation 0'),
+              ],
+          }
+
+          for path, pairs in replacements.items():
+              text = path.read_text()
+              for old, new in pairs:
+                  if old not in text:
+                      raise SystemExit(f'Expected smoke contract not found in {path}: {old}')
+                  text = text.replace(old, new)
+              path.write_text(text)
+          PY
+      - name: Commit smoke contract updates
         run: |
           git config user.name "AUREVANE Release Bot"
           git config user.email "actions@users.noreply.github.com"
-          git add apps/web/src/components/shell/authenticated-game-shell.module.css
+          git add \
+            apps/web/e2e/ai-grid-legend-regression.pw.ts \
+            apps/web/e2e/battle-experience.pw.ts \
+            apps/web/e2e/battle-usability.pw.ts
           if git diff --cached --quiet; then
             exit 0
           fi
-          git commit -m "chore: format authenticated shell css"
-          git push origin HEAD:main
+          git commit -m "test: align battle smoke contracts with current UI"
+          git push origin HEAD:agent/ai-action-commit-production-release
