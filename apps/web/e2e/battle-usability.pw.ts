@@ -83,7 +83,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
-  const commandContext = commandDeck.locator(':scope > div').first()
+  const commandContext = commandDeck.locator('[data-battle-instruction-row="true"]')
   await expect(battlefield).toBeVisible()
   await expectVictoryConditionsBesideActionEconomy(page)
   await expect(
@@ -124,7 +124,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   await page.getByRole('button', { name: 'Cancel Action' }).click()
 
   await commandDeck.getByRole('button', { name: /Inspect/ }).click()
-  await expect(commandContext).toContainText('Inspect mode')
+  await expect(commandContext).toContainText('Review terrain and unit details')
   await page.getByRole('button', { name: /Tile 4, 3; rough-ground; elevation 0/ }).click()
   await expect(commandContext).toContainText('Rough ground')
   await expect(commandContext).toContainText('50 AP')
