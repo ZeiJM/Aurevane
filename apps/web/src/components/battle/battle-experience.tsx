@@ -1444,6 +1444,13 @@ export function BattleExperience({
             </p>
             <button
               type="button"
+              onClick={() => setSurrenderOpen(false)}
+              disabled={surrenderPending}
+            >
+              Stay in battle
+            </button>
+            <button
+              type="button"
               onClick={() => void confirmPveSurrender()}
               disabled={surrenderPending}
             >
