@@ -83,6 +83,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
+  const commandContext = commandDeck.locator(':scope > div').first()
   await expect(battlefield).toBeVisible()
   await expectVictoryConditionsBesideActionEconomy(page)
   await expect(
@@ -110,27 +111,23 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   }
 
   await page.keyboard.press('m')
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText(
-    'Move · 25 AP per normal tile',
-  )
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText(
-    'Rough ground costs 50 AP',
-  )
+  await expect(commandContext).toContainText('Move · 25 AP per normal tile')
+  await expect(commandContext).toContainText('Rough ground costs 50 AP')
 
   const beforeKeyboardMove = page.getByRole('button', {
     name: new RegExp(`Tile 2, 4;.*occupied by ${characterName}`),
   })
   await expect(beforeKeyboardMove).toBeVisible()
   await page.keyboard.press('ArrowRight')
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('25 AP')
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('75 AP left')
+  await expect(commandContext).toContainText('25 AP')
+  await expect(commandContext).toContainText('75 AP left')
   await page.getByRole('button', { name: 'Cancel Action' }).click()
 
   await commandDeck.getByRole('button', { name: /Inspect/ }).click()
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Inspect mode')
+  await expect(commandContext).toContainText('Inspect mode')
   await page.getByRole('button', { name: /Tile 4, 3; rough-ground; elevation 0/ }).click()
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Rough ground')
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('50 AP')
+  await expect(commandContext).toContainText('Rough ground')
+  await expect(commandContext).toContainText('50 AP')
 
   const battleUrl = page.url()
   await page.getByRole('button', { name: 'Surrender', exact: true }).click()
