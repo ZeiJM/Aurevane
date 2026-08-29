@@ -55,7 +55,7 @@ export function PvpBattleQualityControls({
   metadata: PvpBattleMetadata
 }) {
   const [clock, setClock] = useState<ClockView | null>(null)
-  const [now, setNow] = useState(0)
+  const [now, setNow] = useState(() => Date.now())
   const [battle, setBattle] = useState<BattleSessionView | null>(initialBattle)
   const [error, setError] = useState<string | null>(null)
   const [surrenderDialogOpen, setSurrenderDialogOpen] = useState(false)
