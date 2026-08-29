@@ -108,8 +108,14 @@ function ensureElevationMarker(tile: HTMLElement, elevation: number): void {
     return
   }
 
-  const marker = existing ?? document.createElement('span')
-  if (!existing) {
+  // The battlefield's established token-polish routines intentionally use a direct `span:last-child`
+  // contract to identify combatant tokens. A span-based elevation marker can therefore be mistaken
+  // for a token during refresh/hydration and receive persistent inline centering styles. Make the
+  // elevation cue structurally impossible to match that contract by using a dedicated <i> element.
+  let marker = existing
+  if (!marker || marker.tagName !== 'I') {
+    existing?.remove()
+    marker = document.createElement('i')
     marker.dataset.terrainElevationMarker = 'true'
     marker.setAttribute('aria-hidden', 'true')
   }
@@ -117,11 +123,8 @@ function ensureElevationMarker(tile: HTMLElement, elevation: number): void {
   const cue = `▲${elevation}`
   if (marker.textContent !== cue) marker.textContent = cue
 
-  // Several established battle-presentation helpers intentionally treat the occupied combatant
-  // token as the tile's final direct span. Never append this visual marker after that token: doing
-  // so makes those helpers mistake the elevation cue for the combatant and center/style it. Keep
-  // the token's existing last-child contract intact by placing the elevation marker immediately
-  // before the token whenever the tile is occupied.
+  // Preserve the combatant token as the tile's final direct span for all existing helpers. The
+  // marker remains a sibling owned only by terrain presentation and never participates in hit tests.
   const token = directCombatantToken(tile)
   if (token) {
     if (marker.parentElement !== tile || marker.nextElementSibling !== token) {
@@ -150,7 +153,6 @@ function syncTilePresentation(): void {
     if (elevation > 0) tile.dataset.terrainElevated = 'true'
     else delete tile.dataset.terrainElevated
 
-    // Retire the previous synthetic pill cue and replace it with one small native-looking corner label.
     delete tile.dataset.terrainElevationCue
     ensureElevationMarker(tile, elevation)
 
