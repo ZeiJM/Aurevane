@@ -72,14 +72,26 @@
 }
 
 /* Desktop only: match the PvP turn timer text size to the Command Deck's "Choose an action"
-   heading (0.64rem). Keep the timer's existing mono face, pill styling, spacing, and all mobile
-   sizing unchanged. */
+   heading (0.72rem in the desktop parity layer). Keep the timer's existing mono face, pill styling,
+   spacing, and all mobile sizing unchanged. */
 @media (min-width: 821px) {
   :global([data-pvp-turn-clock='true']),
   :global([data-pvp-turn-clock='true'] > span),
   :global([data-pvp-opponent-turn-clock='true']),
   :global([data-pvp-opponent-turn-clock='true'] > span) {
-    font-size: 0.64rem !important;
+    font-size: 0.72rem !important;
+  }
+}
+
+/* Mobile only: halve the existing 2px team-colored portrait ring without changing token size,
+   portraits, active-turn glow, facing marker, meters, or desktop presentation. */
+@media (max-width: 820px) {
+  :global(
+    section[aria-label='PvP tactical battlefield']
+      button[aria-label*='occupied by']
+      > span:last-child
+  ) {
+    border-width: 1px !important;
   }
 }
 
