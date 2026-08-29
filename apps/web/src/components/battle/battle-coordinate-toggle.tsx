@@ -19,6 +19,12 @@ export function BattleCoordinateToggle() {
       const nextLegend =
         nextBattlefield?.querySelector<HTMLElement>(':scope > [aria-label="Terrain legend"]') ?? null
 
+      if (nextLegend) {
+        nextLegend.style.setProperty('display', 'flex', 'important')
+        nextLegend.style.setProperty('visibility', 'visible', 'important')
+        nextLegend.style.setProperty('opacity', '1', 'important')
+      }
+
       setBattlefield((current) => (current === nextBattlefield ? current : nextBattlefield))
       setLegend((current) => (current === nextLegend ? current : nextLegend))
     }
