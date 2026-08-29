@@ -154,10 +154,12 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('100 AP')
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('0 AP left')
   if (testInfo.project.name !== 'mobile-chromium') {
-    const pathZero = battlefield.locator('[data-ai-path-zero="true"]')
-    await expect(pathZero).toHaveCount(1)
-    await expect(pathZero.locator('[data-map-token-portrait]')).toHaveCount(0)
-    await expect(battlefield.locator('[data-map-token-team="player"]')).toHaveCount(1)
+    await expect(battlefield.getByText('0', { exact: true })).toHaveCount(1)
+    await expect(
+      page
+        .getByRole('button', { name: new RegExp(`occupied by ${characterName}`) })
+        .locator(':scope > span:last-child'),
+    ).toHaveCount(1)
   }
   await expect(confirmButton).toBeEnabled()
   await expect(page.getByText(/100 AP proposed/)).toBeVisible()
@@ -202,7 +204,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     await guardButton.click()
   }
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Guard ready')
-  await expect(battlefield.locator('button[data-target-relation="friendly"]')).toHaveCount(1)
+  await expect(battlefield.locator('button[data-target="friendly"]')).toHaveCount(1)
   await expect(confirmButton).toBeEnabled()
   await confirmButton.click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Guarded for 2 turns', {
@@ -233,12 +235,12 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   }
 
   await attackButton.click()
-  const rangedTiles = battlefield.locator('button[data-attack-range]')
+  const rangedTiles = battlefield.locator('button[data-target]')
   await expect(rangedTiles).toHaveCount(4)
-  await expect(battlefield.locator('button[data-target-relation="enemy"]')).toHaveCount(1)
-  await expect(battlefield.locator('button[data-target-relation="illegal"]')).toHaveCount(3)
+  await expect(battlefield.locator('button[data-target="enemy"]')).toHaveCount(1)
+  await expect(battlefield.locator('button[data-target="illegal"]')).toHaveCount(3)
   const recruitTarget = page.getByRole('button', { name: /occupied by Recruit/ })
-  await expect(recruitTarget).toHaveAttribute('data-target-relation', 'enemy')
+  await expect(recruitTarget).toHaveAttribute('data-target', 'enemy')
   await recruitTarget.click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Basic Attack ready')
   await expect(confirmButton).toBeEnabled()
