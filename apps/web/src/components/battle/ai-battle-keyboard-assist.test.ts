@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  currentFacingControlLabel,
-  isCurrentFacingFinishKey,
-} from './ai-battle-keyboard-assist'
+import { currentFacingControlLabel, isCurrentFacingFinishKey } from './ai-battle-keyboard-assist'
 
 describe('AI battle desktop current-facing finish shortcut', () => {
   it('recognizes a fresh unmodified Space press but not hold-repeat or modified keys', () => {
