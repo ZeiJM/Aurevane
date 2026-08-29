@@ -1,0 +1,59 @@
+.hook {
+  display: none;
+}
+
+/* BattleLessonCoach places the AI Victory Conditions button directly in the header. Keep equal
+   outer tracks so Action Economy + Victory Conditions form one mathematically centered cluster. */
+@media (min-width: 881px) {
+  :global(
+    main:not([data-pvp-battle='true'])[data-battle-visual-contract='true']
+      > header[data-battle-shared-header='true']
+  ) {
+    grid-template-columns:
+      minmax(10rem, 1fr) minmax(24rem, 34rem) 8.4rem minmax(10rem, 1fr) !important;
+  }
+
+  :global(
+    main:not([data-pvp-battle='true'])[data-battle-visual-contract='true']
+      > header[data-battle-shared-header='true']
+      > [data-battle-shared-objective='true']
+  ) {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    justify-self: start !important;
+  }
+
+  :global(
+    main:not([data-pvp-battle='true'])[data-battle-visual-contract='true']
+      > header[data-battle-shared-header='true']
+      > [data-battle-shared-economy='true']
+  ) {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    justify-self: stretch !important;
+  }
+
+  :global(
+    main:not([data-pvp-battle='true'])[data-battle-visual-contract='true']
+      > header[data-battle-shared-header='true']
+      > [data-battle-shared-header-action='victory']
+  ) {
+    position: static !important;
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+    width: 8.4rem !important;
+    min-width: 8.4rem !important;
+    max-width: 8.4rem !important;
+    justify-self: stretch !important;
+  }
+
+  :global(
+    main:not([data-pvp-battle='true'])[data-battle-visual-contract='true']
+      > header[data-battle-shared-header='true']
+      > [data-battle-shared-header-action='round-log']
+  ) {
+    grid-column: 4 !important;
+    grid-row: 1 !important;
+    justify-self: end !important;
+  }
+}
