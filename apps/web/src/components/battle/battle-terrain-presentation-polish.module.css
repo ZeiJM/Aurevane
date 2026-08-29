@@ -103,9 +103,13 @@
   position: absolute;
   top: 0.11rem;
   right: 0.13rem;
+  bottom: auto;
+  left: auto;
   z-index: 7;
   display: grid;
+  box-sizing: border-box;
   min-width: 1.05rem;
+  width: auto;
   height: 0.72rem;
   padding: 0 0.13rem;
   place-items: center;
@@ -124,7 +128,7 @@
 }
 
 :global(section#battlefield [data-terrain-native-elevation='true']) {
-  visibility: hidden !important;
+  display: none !important;
 }
 
 /* Legend cards keep their current footprint. Their material cues now match the map treatment. */
