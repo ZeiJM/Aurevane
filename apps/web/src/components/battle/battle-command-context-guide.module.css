@@ -141,10 +141,25 @@
   margin-left: auto !important;
 }
 
-/* AI command-strip parity with PvP: instructional prose is deliberately removed. The neutral
-   turn clock owns the far-right slot, and authoritative preview chips occupy the space immediately
-   after the active command name. This changes presentation only; previews and combat authority
-   remain server-driven. */
+/* AI command-strip parity with PvP: the old prose is removed from the visual layout. The live
+   notice remains available to assistive technology, while the action title + authoritative preview
+   chips fill the left side and the turn clock owns the far-right slot. */
+:global(main:not([data-pvp-battle='true']) [data-battle-instruction-host='true'] > small) {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+:global(main:not([data-pvp-battle='true']) [data-battle-instruction-row='true']) {
+  grid-column: 1 / -1 !important;
+}
+
 :global(main:not([data-pvp-battle='true']) [data-battle-instruction-description='true']) {
   display: none !important;
 }
