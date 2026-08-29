@@ -141,6 +141,29 @@
   margin-left: auto !important;
 }
 
+/* AI command-strip parity with PvP: instructional prose is deliberately removed. The neutral
+   turn clock owns the far-right slot, and authoritative preview chips occupy the space immediately
+   after the active command name. This changes presentation only; previews and combat authority
+   remain server-driven. */
+:global(main:not([data-pvp-battle='true']) [data-battle-instruction-description='true']) {
+  display: none !important;
+}
+
+:global(main:not([data-pvp-battle='true']) [data-battle-target-preview='true']) {
+  order: 1 !important;
+  flex: 1 1 auto !important;
+  max-width: none !important;
+  margin-left: 0.42rem;
+  margin-right: 0.42rem;
+  justify-content: flex-start;
+  overflow: visible;
+}
+
+:global(main:not([data-pvp-battle='true']) [data-ai-turn-clock='true']) {
+  order: 2 !important;
+  margin-left: auto !important;
+}
+
 @media (max-width: 1100px) and (min-width: 821px) {
   :global([data-battle-target-preview='true']) {
     max-width: 42%;
@@ -149,6 +172,10 @@
   :global([data-battle-target-preview='true'])
     :global([data-battle-preview-chip='true']:nth-child(n + 4)) {
     display: none;
+  }
+
+  :global(main:not([data-pvp-battle='true']) [data-battle-target-preview='true']) {
+    max-width: none !important;
   }
 }
 
@@ -233,6 +260,11 @@
     margin-left: 0;
     overflow: visible;
     flex-wrap: wrap;
+  }
+
+  :global(main:not([data-pvp-battle='true']) [data-battle-target-preview='true']) {
+    grid-row: 2 !important;
+    margin: 0 !important;
   }
 
   :global([data-battle-preview-chip='true']) {
