@@ -15,6 +15,7 @@ import { BattlePresentationPolish } from './battle-presentation-polish'
 import { BattleStabilizationPolish } from './battle-stabilization-polish'
 import { BattleStatusEffectAssist } from './battle-status-effect-assist'
 import { BattleStickyActionAssist } from './battle-sticky-action-assist'
+import { BattleTerrainPresentationPolish } from './battle-terrain-presentation-polish'
 import { DesktopBattleCombatantInspect } from './desktop-battle-combatant-inspect'
 import { DesktopBattleLogDock } from './desktop-battle-log-dock'
 import { PvpBattleChatBridge } from './pvp-battle-chat-bridge'
@@ -57,6 +58,7 @@ export function PvpBattleClientBoundary({
         initialBattle={initialBattle}
         metadata={metadata}
       />
+      <BattleTerrainPresentationPolish />
       <PvpDesktopParity initialBattle={initialBattle} metadata={metadata} />
       <PvpSixCombatantRails initialBattle={initialBattle} metadata={metadata} />
       <PvpBattleReleasePolish />
