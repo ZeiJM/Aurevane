@@ -10,6 +10,7 @@ import { AiBattleQualityControls } from './ai-battle-quality-controls'
 import { AiBattleSurrenderAssist } from './ai-battle-surrender-assist'
 import { AiCockpitPvpButtonFormat } from './ai-cockpit-pvp-button-format'
 import { AiDesktopCombatantRailPolish } from './ai-desktop-combatant-rail-polish'
+import { AiDesktopSameFacingKeyboardAssist } from './ai-desktop-same-facing-keyboard-assist'
 import { AiNativeTerrainLegend } from './ai-native-terrain-legend'
 import { BattleChatEmojiPolish } from './battle-chat-emoji-polish'
 import { BattleCommandCockpitPolish } from './battle-command-cockpit-polish'
@@ -31,6 +32,7 @@ import { BattleUtilityWindows } from './battle-utility-windows'
 import { DesktopBattleCombatantInspect } from './desktop-battle-combatant-inspect'
 import { DesktopBattleLogDock } from './desktop-battle-log-dock'
 import { MobileBattleCombatantPopup } from './mobile-battle-combatant-popup'
+import { BattleScreenVisualContract } from './battle-screen-visual-contract'
 
 interface BattleSessionClientBoundaryProps {
   initialBattle: BattleSessionView
@@ -65,10 +67,7 @@ export function BattleSessionClientBoundary({
       <BattleTerrainPresentationPolish />
       <AiBattlePvpVisualSync playerName={playerName} />
       <AiDesktopCombatantRailPolish playerName={playerName} />
-      <AiBattleQualityControls
-        battleSessionId={initialBattle.battleSessionId}
-        playerName={playerName}
-      />
+      <AiBattleQualityControls battleSessionId={initialBattle.battleSessionId} playerName={playerName} />
       <AiBattleSurrenderAssist battleSessionId={initialBattle.battleSessionId} />
       {lessonActive ? (
         <BattleLessonCoach
@@ -91,6 +90,7 @@ export function BattleSessionClientBoundary({
       />
       <BattleStickyActionAssist />
       <BattleRecruitRecoveryAssist />
+      <AiDesktopSameFacingKeyboardAssist playerName={playerName} />
       <BattleKeyboardAssist playerName={playerName} />
       <BattleCommandCockpitPolish />
       <AiCockpitPvpButtonFormat />
@@ -109,6 +109,7 @@ export function BattleSessionClientBoundary({
         playerPortraitAssetId={playerPortraitAssetId}
         playerProfileImageUrl={playerProfileImageUrl}
       />
+      <BattleScreenVisualContract />
     </BattleRuntimeProvider>
   )
 }
