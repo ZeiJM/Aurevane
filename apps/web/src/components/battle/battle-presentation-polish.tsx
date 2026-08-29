@@ -131,47 +131,6 @@ function reconcileFacingGuides(playerName: string) {
   }
 }
 
-function createPolishedTerrainLegend(): HTMLDivElement {
-  const legend = document.createElement('div')
-  legend.dataset.terrainLegendPolish = 'true'
-  legend.setAttribute('aria-label', 'Terrain legend')
-  legend.innerHTML = `
-    <span data-terrain-chip="broken"><i aria-hidden="true"></i><b>Difficult Ground</b><small>Higher movement cost</small></span>
-    <span data-terrain-chip="raised"><i aria-hidden="true">▲</i><b>Raised Ground</b><small>Elevation +1</small></span>
-  `
-  return legend
-}
-
-function polishTerrainLegend() {
-  const battlefield = document.querySelector<HTMLElement>('#battlefield')
-  if (!battlefield) return
-
-  const isPvpBattle = Boolean(battlefield.closest('main[data-pvp-battle="true"]'))
-  const polishedLegend = battlefield.querySelector<HTMLElement>('[data-terrain-legend-polish]')
-  const nativeLegend = Array.from(battlefield.children).find(
-    (child): child is HTMLElement =>
-      child instanceof HTMLElement &&
-      child.getAttribute('aria-label') === 'Terrain legend' &&
-      !child.hasAttribute('data-terrain-legend-polish'),
-  )
-
-  if (!isPvpBattle) {
-    polishedLegend?.remove()
-  } else if (nativeLegend) {
-    const replacement = polishedLegend ?? createPolishedTerrainLegend()
-    nativeLegend.replaceWith(replacement)
-  } else if (!polishedLegend) {
-    battlefield.appendChild(createPolishedTerrainLegend())
-  }
-
-  for (const tile of battlefield.querySelectorAll<HTMLButtonElement>('button[aria-label]')) {
-    const label = tile.getAttribute('aria-label')
-    if (label?.includes('rough ground')) {
-      tile.setAttribute('aria-label', label.replace('rough ground', 'difficult ground'))
-    }
-  }
-}
-
 function polishHeader() {
   const track = document.querySelector<HTMLElement>(
     '[role="progressbar"][aria-label="Action Economy remaining"]',
@@ -188,7 +147,7 @@ function polishHeader() {
     objective.textContent = 'Steel is drawn. The battle is underway.'
   }
 
-  const economy = track?.parentElement?.parentElement
+  const economy = track.parentElement
   if (economy instanceof HTMLElement && economy.dataset.battleEconomyPanel !== 'true') {
     economy.dataset.battleEconomyPanel = 'true'
   }
@@ -296,7 +255,6 @@ export function BattlePresentationPolish({
     const run = () => {
       frame = null
       polishHeader()
-      polishTerrainLegend()
       polishPortraits()
       reconcileFacingGuides(playerName)
       applyPvpIdentityColors(pvpMetadata)
