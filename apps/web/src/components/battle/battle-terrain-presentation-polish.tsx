@@ -15,76 +15,73 @@ function readElevation(tile: HTMLElement): number {
   return match ? Number(match[1]) : 0
 }
 
-function syncLegendTerminology(): void {
-  for (const key of document.querySelectorAll<HTMLElement>("[aria-label='Terrain legend'] > span")) {
+function syncLegendTerminology(battlefield: HTMLElement): void {
+  for (const key of battlefield.querySelectorAll<HTMLElement>("[aria-label='Terrain legend'] > span")) {
     const label = key.querySelector<HTMLElement>('b')
     if (!label) continue
 
     const current = label.textContent?.trim() ?? ''
     const replacement = TERRAIN_TERMINOLOGY.get(current)
-    if (replacement) label.textContent = replacement
+    if (replacement && label.textContent !== replacement) label.textContent = replacement
 
     const resolvedLabel = replacement ?? current
     if (resolvedLabel === 'Elevated Ground') {
       const description = key.querySelector<HTMLElement>('small')
-      if (description) description.textContent = 'Access depends on Jump'
+      if (description && description.textContent !== 'Access depends on Jump') {
+        description.textContent = 'Access depends on Jump'
+      }
     }
   }
 }
 
 function syncCoordinateToggleState(toggle: HTMLButtonElement, showCoordinates: boolean): void {
-  toggle.setAttribute('aria-checked', String(showCoordinates))
-  toggle.title = `Tile coordinates: ${showCoordinates ? 'on' : 'off'}`
+  const checked = String(showCoordinates)
+  const title = `Tile coordinates: ${showCoordinates ? 'on' : 'off'}`
+  if (toggle.getAttribute('aria-checked') !== checked) toggle.setAttribute('aria-checked', checked)
+  if (toggle.title !== title) toggle.title = title
 }
 
-function syncCoordinateToggle(): void {
-  for (const battlefield of document.querySelectorAll<HTMLElement>('section#battlefield')) {
-    const legend = battlefield.querySelector<HTMLElement>(":scope > [aria-label='Terrain legend']")
-    if (!legend) continue
+function syncCoordinateToggle(battlefield: HTMLElement): void {
+  const legend = battlefield.querySelector<HTMLElement>(":scope > [aria-label='Terrain legend']")
+  if (!legend) return
 
-    let toggle = legend.querySelector<HTMLButtonElement>(
-      ":scope > button[data-terrain-coordinate-toggle='true']",
-    )
+  let toggle = legend.querySelector<HTMLButtonElement>(
+    ":scope > button[data-terrain-coordinate-toggle='true']",
+  )
 
-    if (!toggle) {
-      const createdToggle = document.createElement('button')
-      createdToggle.type = 'button'
-      createdToggle.className = coordinateStyles.coordinateToggle
-      createdToggle.dataset.terrainCoordinateToggle = 'true'
-      createdToggle.setAttribute('role', 'switch')
-      createdToggle.setAttribute('aria-label', 'Tile coordinates')
+  if (!toggle) {
+    const createdToggle = document.createElement('button')
+    createdToggle.type = 'button'
+    createdToggle.className = coordinateStyles.coordinateToggle
+    createdToggle.dataset.terrainCoordinateToggle = 'true'
+    createdToggle.setAttribute('role', 'switch')
+    createdToggle.setAttribute('aria-label', 'Tile coordinates')
 
-      const label = document.createElement('span')
-      label.textContent = 'Coords'
+    const label = document.createElement('span')
+    label.textContent = 'Coords'
 
-      const track = document.createElement('i')
-      track.setAttribute('aria-hidden', 'true')
+    const track = document.createElement('i')
+    track.setAttribute('aria-hidden', 'true')
 
-      createdToggle.append(track, label)
-      createdToggle.addEventListener('click', () => {
-        const showCoordinates = battlefield.dataset.showCoordinates !== 'true'
-        if (showCoordinates) battlefield.dataset.showCoordinates = 'true'
-        else delete battlefield.dataset.showCoordinates
-        syncCoordinateToggleState(createdToggle, showCoordinates)
-      })
-      legend.append(createdToggle)
-      toggle = createdToggle
-    }
-
-    syncCoordinateToggleState(toggle, battlefield.dataset.showCoordinates === 'true')
+    createdToggle.append(track, label)
+    createdToggle.addEventListener('click', () => {
+      const showCoordinates = battlefield.dataset.showCoordinates !== 'true'
+      if (showCoordinates) battlefield.dataset.showCoordinates = 'true'
+      else delete battlefield.dataset.showCoordinates
+      syncCoordinateToggleState(createdToggle, showCoordinates)
+    })
+    legend.append(createdToggle)
+    toggle = createdToggle
   }
+
+  syncCoordinateToggleState(toggle, battlefield.dataset.showCoordinates === 'true')
 }
 
-function clearCoordinateToggle(): void {
-  for (const battlefield of document.querySelectorAll<HTMLElement>('section#battlefield')) {
-    delete battlefield.dataset.showCoordinates
-  }
-
-  for (const toggle of document.querySelectorAll<HTMLButtonElement>(
-    "button[data-terrain-coordinate-toggle='true']",
-  )) {
-    toggle.remove()
-  }
+function clearCoordinateToggle(battlefield: HTMLElement): void {
+  delete battlefield.dataset.showCoordinates
+  battlefield
+    .querySelectorAll<HTMLButtonElement>("button[data-terrain-coordinate-toggle='true']")
+    .forEach((toggle) => toggle.remove())
 }
 
 function directCombatantToken(tile: HTMLElement): HTMLElement | null {
@@ -135,10 +132,8 @@ function ensureElevationMarker(tile: HTMLElement, elevation: number): void {
   }
 }
 
-function syncTilePresentation(): void {
-  for (const tile of document.querySelectorAll<HTMLElement>(
-    "section#battlefield button[aria-label^='Tile ']",
-  )) {
+function syncTilePresentation(battlefield: HTMLElement): void {
+  for (const tile of battlefield.querySelectorAll<HTMLElement>("button[aria-label^='Tile ']")) {
     const label = tile.getAttribute('aria-label') ?? ''
     const difficult =
       tile.dataset.terrain === 'rough' ||
@@ -168,29 +163,30 @@ function syncTilePresentation(): void {
     }
 
     if (difficult) {
-      tile.setAttribute(
-        'aria-label',
-        label
-          .replace('; rough-ground;', '; difficult terrain;')
-          .replace('; rough ground;', '; difficult terrain;'),
-      )
+      const nextLabel = label
+        .replace('; rough-ground;', '; difficult terrain;')
+        .replace('; rough ground;', '; difficult terrain;')
+      if (nextLabel !== label) tile.setAttribute('aria-label', nextLabel)
     }
   }
 }
 
-function syncTerrainPresentation(): void {
-  syncLegendTerminology()
-  syncCoordinateToggle()
-  syncTilePresentation()
+function syncTerrainPresentation(battlefield: HTMLElement): void {
+  syncLegendTerminology(battlefield)
+  syncCoordinateToggle(battlefield)
+  syncTilePresentation(battlefield)
 }
 
 export function BattleTerrainPresentationPolish() {
   useEffect(() => {
+    const battlefield = document.querySelector<HTMLElement>('section#battlefield')
+    if (!battlefield) return
+
     let frame = 0
 
     const run = () => {
       frame = 0
-      syncTerrainPresentation()
+      syncTerrainPresentation(battlefield)
     }
     const schedule = () => {
       if (frame !== 0) return
@@ -199,13 +195,16 @@ export function BattleTerrainPresentationPolish() {
 
     run()
     const observer = new MutationObserver(schedule)
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true })
+    // Terrain presentation owns only the battlefield subtree. Observing document.body caused every
+    // unrelated React commit and portal update to rescan the grid, and same-value legend writes could
+    // keep that observer hot. Keep the watch local and make text writes idempotent.
+    observer.observe(battlefield, { childList: true, subtree: true, characterData: true })
 
     return () => {
       observer.disconnect()
       if (frame !== 0) window.cancelAnimationFrame(frame)
-      clearCoordinateToggle()
-      for (const marker of document.querySelectorAll<HTMLElement>(
+      clearCoordinateToggle(battlefield)
+      for (const marker of battlefield.querySelectorAll<HTMLElement>(
         '[data-terrain-elevation-marker="true"]',
       )) {
         marker.remove()
