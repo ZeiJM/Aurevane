@@ -16,7 +16,7 @@ import { AiNativeTerrainLegend } from './ai-native-terrain-legend'
 import { BattleChatEmojiPolish } from './battle-chat-emoji-polish'
 import { BattleCommandCockpitPolish } from './battle-command-cockpit-polish'
 import { BattleDirectionalAttackAssist } from './battle-directional-attack-assist'
-import { BattleExperienceV2 } from './battle-experience-v2'
+import { BattleExperience } from './battle-experience'
 import { BattleFacingQuickCommitAssist } from './battle-facing-quick-commit-assist'
 import { BattleFeedbackAssist } from './battle-feedback-assist'
 import { BattleHeaderMatchMessage } from './battle-header-message-cycle'
@@ -38,6 +38,7 @@ import { BattleScreenVisualContract } from './battle-screen-visual-contract'
 interface BattleSessionClientBoundaryProps {
   initialBattle: BattleSessionView
   playerName: string
+  playerLevel: number
   playerPortraitAssetId: ImageAssetId
   playerProfileImageUrl?: string | null
 }
@@ -45,6 +46,7 @@ interface BattleSessionClientBoundaryProps {
 export function BattleSessionClientBoundary({
   initialBattle,
   playerName,
+  playerLevel,
   playerPortraitAssetId,
   playerProfileImageUrl = null,
 }: BattleSessionClientBoundaryProps) {
@@ -58,11 +60,16 @@ export function BattleSessionClientBoundary({
 
   return (
     <BattleRuntimeProvider playerName={playerName}>
-      <BattleExperienceV2
+      <BattleExperience
         key={initialBattle.battleVersion}
         initialBattle={initialBattle}
-        playerName={playerName}
-        playerPortraitAssetId={playerPortraitAssetId}
+        runtime={{
+          kind: 'pve',
+          playerName,
+          playerLevel,
+          playerPortraitAssetId,
+          playerProfileImageUrl,
+        }}
       />
       <AiNativeTerrainLegend />
       <BattleTerrainPresentationPolish />
