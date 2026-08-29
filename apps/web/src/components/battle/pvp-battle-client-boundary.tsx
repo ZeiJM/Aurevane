@@ -12,6 +12,7 @@ import { BattleFacingQuickCommitAssist } from './battle-facing-quick-commit-assi
 import { BattleHeaderMatchMessage } from './battle-header-message-cycle'
 import { BattleMapTokenPolish } from './battle-map-token-polish'
 import { BattlePresentationPolish } from './battle-presentation-polish'
+import { BattleScreenVisualContract } from './battle-screen-visual-contract'
 import { BattleStabilizationPolish } from './battle-stabilization-polish'
 import { BattleStatusEffectAssist } from './battle-status-effect-assist'
 import { BattleStickyActionAssist } from './battle-sticky-action-assist'
@@ -19,18 +20,18 @@ import { BattleTerrainPresentationPolish } from './battle-terrain-presentation-p
 import { DesktopBattleCombatantInspect } from './desktop-battle-combatant-inspect'
 import { DesktopBattleLogDock } from './desktop-battle-log-dock'
 import { PvpBattleChatBridge } from './pvp-battle-chat-bridge'
+import { PvpBattleCommandPreview } from './pvp-battle-command-preview'
 import { PvpBattleCompletionPanel } from './pvp-battle-completion-panel'
 import { PvpBattleExperience } from './pvp-battle-experience'
 import { PvpBattleInspectPopup } from './pvp-battle-inspect-popup'
 import { PvpBattleKeyboardAssist } from './pvp-battle-keyboard-assist'
 import { PvpBattleQualityControls } from './pvp-battle-quality-controls'
 import { PvpBattleReleasePolish } from './pvp-battle-release-polish'
+import { PvpDesktopParity } from './pvp-desktop-parity'
 import { PvpLegacyResultSuppressor } from './pvp-legacy-result-suppressor'
 import { PvpMobileCommandParity } from './pvp-mobile-command-parity'
 import { PvpQuickCommitAssist } from './pvp-quick-commit-assist'
-import { PvpDesktopParity } from './pvp-desktop-parity'
 import { PvpSixCombatantRails } from './pvp-six-combatant-rails'
-import { BattleScreenVisualContract } from './battle-screen-visual-contract'
 
 export function PvpBattleClientBoundary({
   initialBattle,
@@ -94,6 +95,7 @@ export function PvpBattleClientBoundary({
       <PvpBattleInspectPopup battleSessionId={initialBattle.battleSessionId} metadata={metadata} />
       <PvpBattleCompletionPanel initialBattle={initialBattle} metadata={metadata} />
       <BattleCommandCockpitPolish />
+      <PvpBattleCommandPreview />
       <PvpMobileCommandParity />
       <BattleStabilizationPolish />
       <BattleScreenVisualContract />
