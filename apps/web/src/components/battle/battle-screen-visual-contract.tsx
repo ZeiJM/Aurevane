@@ -2,8 +2,9 @@
 
 import { useEffect } from 'react'
 
-import headerStyles from './battle-unified-header-authority.module.css'
+import scaleStyles from './battle-pvp-scale-authority.module.css'
 import styles from './battle-screen-visual-contract.module.css'
+import headerStyles from './battle-unified-header-authority.module.css'
 
 function textOf(element: Element | null): string {
   return element?.textContent?.trim() ?? ''
@@ -42,7 +43,9 @@ function markSemanticControls(root: HTMLElement) {
   const battlefield = root.querySelector<HTMLElement>('#battlefield')
   mark(battlefield, 'battleSharedBattlefield')
 
-  for (const tile of battlefield?.querySelectorAll<HTMLButtonElement>('button[aria-label*="occupied by"]') ?? []) {
+  for (const tile of battlefield?.querySelectorAll<HTMLButtonElement>(
+    'button[aria-label*="occupied by"]',
+  ) ?? []) {
     const token = Array.from(tile.children).find(
       (child): child is HTMLElement =>
         child instanceof HTMLElement && Boolean(child.querySelector(':scope > strong')),
@@ -102,5 +105,10 @@ export function BattleScreenVisualContract() {
     }
   }, [])
 
-  return <span className={`${styles.hook} ${headerStyles.hook}`} aria-hidden="true" />
+  return (
+    <span
+      className={`${styles.hook} ${headerStyles.hook} ${scaleStyles.hook}`}
+      aria-hidden="true"
+    />
+  )
 }
