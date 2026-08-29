@@ -6,7 +6,7 @@ import { BattleLogPanel } from './battle-log-panel'
 import styles from './desktop-battle-log-dock.module.css'
 
 const DESKTOP_QUERY = '(min-width: 821px)'
-const LOG_REFRESH_MS = 1200
+const LOG_REFRESH_MS = 5000
 
 function combatLogTrigger(): HTMLButtonElement | null {
   return (
