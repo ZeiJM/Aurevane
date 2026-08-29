@@ -1,0 +1,46 @@
+.hook {
+  display: none;
+}
+
+@media (min-width: 821px) {
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true']
+      > header[data-unified-battle-header='true'][data-battle-shared-header='true']
+  ) {
+    grid-template-columns: minmax(10rem, 1fr) minmax(24rem, 34rem) minmax(10rem, 1fr) !important;
+  }
+
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true']
+      [data-unified-battle-economy='true'][data-battle-shared-economy='true']
+  ) {
+    position: relative !important;
+    grid-column: 2 !important;
+    grid-template-columns: minmax(0, 1fr) 8.6rem !important;
+    grid-template-rows: auto auto !important;
+    width: 100% !important;
+    max-width: 34rem !important;
+    gap: 0.22rem 0.4rem !important;
+    justify-self: center !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true']
+      > header[data-unified-battle-header='true']
+      > button[data-battle-shared-header-action='round-log']
+  ) {
+    grid-column: 3 !important;
+    justify-self: end !important;
+  }
+
+  :global(
+    main[data-battle-kind='pve'][data-battle-visual-contract='true']
+      > header[data-unified-battle-header='true']
+      > button[data-battle-shared-header-action='round-log']
+  ) {
+    border-radius: var(--av-radius-sm) !important;
+  }
+}
