@@ -1,29 +1,17 @@
 import { describe, expect, it } from 'vitest'
 
-import { currentFacingControlLabel, isCurrentFacingFinishKey } from './ai-battle-keyboard-assist'
+import { endTurnControlLabel } from './battle-keyboard-assist'
 
-describe('AI battle desktop current-facing finish shortcut', () => {
-  it('recognizes a fresh unmodified Space press but not hold-repeat or modified keys', () => {
-    const base = {
-      code: 'Space',
-      repeat: false,
-      shiftKey: false,
-      altKey: false,
-      ctrlKey: false,
-      metaKey: false,
-    }
-
-    expect(isCurrentFacingFinishKey(base)).toBe(true)
-    expect(isCurrentFacingFinishKey({ ...base, repeat: true })).toBe(false)
-    expect(isCurrentFacingFinishKey({ ...base, shiftKey: true })).toBe(false)
-    expect(isCurrentFacingFinishKey({ ...base, code: 'Enter' })).toBe(false)
+describe('AI battle current-facing end-turn shortcut', () => {
+  it('uses the normal Finish Turn path before Final Facing is active', () => {
+    expect(endTurnControlLabel(false, ['unit', '↑'])).toBeNull()
   })
 
-  it('resolves the existing player-facing glyph to the matching Final Facing control', () => {
-    expect(currentFacingControlLabel(['unit', '↑'])).toBe('Face north')
-    expect(currentFacingControlLabel(['unit', '→'])).toBe('Face east')
-    expect(currentFacingControlLabel(['unit', '↓'])).toBe('Face south')
-    expect(currentFacingControlLabel(['unit', '←'])).toBe('Face west')
-    expect(currentFacingControlLabel(['unit'])).toBeNull()
+  it('resolves the current facing once Final Facing is active', () => {
+    expect(endTurnControlLabel(true, ['unit', '↑'])).toBe('Face north')
+    expect(endTurnControlLabel(true, ['unit', '→'])).toBe('Face east')
+    expect(endTurnControlLabel(true, ['unit', '↓'])).toBe('Face south')
+    expect(endTurnControlLabel(true, ['unit', '←'])).toBe('Face west')
+    expect(endTurnControlLabel(true, ['unit'])).toBeNull()
   })
 })
