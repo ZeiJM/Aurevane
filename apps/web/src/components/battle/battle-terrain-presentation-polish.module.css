@@ -132,30 +132,62 @@
   transform: rotate(18deg);
 }
 
-/* Elevated Ground key: a restrained raised slab matching the perimeter treatment on the map. */
+/*
+ * Elevated Ground key: a centred two-step raised slab. It fills the icon cell more confidently
+ * than the previous tiny off-centre rectangle while still matching the understated tile rim.
+ */
 :global(section#battlefield > [aria-label='Terrain legend'] > span:nth-child(2) > i) {
   position: relative;
   overflow: hidden;
-  border-color: rgba(194, 170, 116, 0.38) !important;
+  border-color: rgba(194, 170, 116, 0.44) !important;
   color: transparent !important;
-  background: linear-gradient(145deg, rgba(50, 49, 41, 0.94), rgba(21, 22, 21, 0.98)) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  background:
+    radial-gradient(circle at 50% 42%, rgba(230, 207, 153, 0.08), transparent 70%),
+    linear-gradient(145deg, rgba(50, 49, 41, 0.96), rgba(20, 21, 20, 0.99)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    inset 0 -0.18rem 0.32rem rgba(0, 0, 0, 0.18);
   font-size: 0 !important;
   text-shadow: none !important;
 }
 
+/* Rear/lower tier gives the icon an immediately readable stepped-elevation silhouette. */
+:global(section#battlefield > [aria-label='Terrain legend'] > span:nth-child(2) > i)::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 1.06rem;
+  height: 0.62rem;
+  box-sizing: border-box;
+  border: 1px solid rgba(157, 137, 96, 0.5);
+  border-top-color: rgba(213, 191, 139, 0.56);
+  border-right-color: rgba(82, 67, 47, 0.58);
+  border-bottom: 2px solid rgba(43, 36, 28, 0.84);
+  border-radius: 0.08rem;
+  background: linear-gradient(180deg, rgba(158, 142, 105, 0.16), rgba(48, 44, 35, 0.28));
+  box-shadow: 0 0.13rem 0 rgba(8, 9, 8, 0.7);
+  content: '';
+  transform: translate(-50%, -38%);
+}
+
+/* Brighter upper tier is centred above the lower slab rather than pinned to one corner. */
 :global(section#battlefield > [aria-label='Terrain legend'] > span:nth-child(2) > i)::before {
   position: absolute;
-  top: 0.35rem;
-  left: 0.28rem;
-  width: 0.94rem;
-  height: 0.5rem;
-  border: 1px solid rgba(217, 194, 142, 0.6);
-  border-top: 2px solid rgba(243, 222, 171, 0.78);
-  border-right-color: rgba(98, 78, 53, 0.5);
-  border-bottom: 2px solid rgba(63, 52, 38, 0.7);
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  width: 0.86rem;
+  height: 0.45rem;
+  box-sizing: border-box;
+  border: 1px solid rgba(221, 198, 145, 0.7);
+  border-top: 2px solid rgba(247, 225, 173, 0.86);
+  border-right-color: rgba(105, 84, 57, 0.62);
+  border-bottom: 2px solid rgba(67, 55, 40, 0.78);
   border-radius: 0.07rem;
-  background: linear-gradient(180deg, rgba(220, 197, 143, 0.11), rgba(42, 39, 31, 0.16));
-  box-shadow: 0 0.12rem 0 rgba(9, 10, 9, 0.76);
+  background: linear-gradient(180deg, rgba(229, 207, 154, 0.17), rgba(68, 62, 47, 0.22));
+  box-shadow:
+    0 0.1rem 0 rgba(11, 11, 9, 0.74),
+    0 0 0.18rem rgba(221, 194, 133, 0.08);
   content: '';
+  transform: translate(-50%, -72%);
 }
