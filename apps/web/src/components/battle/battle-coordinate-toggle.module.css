@@ -249,18 +249,18 @@
     font-size: 0.46rem;
   }
 
-  /* Exactly halve the 0.4rem desktop COORDS label on phones. Target the label directly rather
-     than relying on inherited button font-size so other battle styles cannot undo the reduction. */
+  /* Keep the compact mobile layout, but restore the COORDS / On-Off copy to its prior readable
+     size. Only the text size changes here; button dimensions, spacing, icon, and alignment stay put. */
   .coordinateToggle > span {
     gap: 0.045rem;
     justify-items: center;
-    font-size: 0.2rem !important;
+    font-size: 0.29rem !important;
     line-height: 1 !important;
     text-align: center;
   }
 
   .coordinateToggle > span::after {
-    font-size: 0.18rem !important;
+    font-size: 0.27rem !important;
     line-height: 1 !important;
   }
 }
