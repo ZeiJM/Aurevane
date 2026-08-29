@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 
 interface ClockView {
   active: boolean
@@ -46,8 +45,7 @@ export function AiBattleQualityControls({
       const target =
         strip?.firstElementChild instanceof HTMLElement ? strip.firstElementChild : null
       const heading = target?.querySelector<HTMLElement>(':scope > strong') ?? null
-      const helper =
-        target?.querySelector<HTMLElement>(':scope > span:not([data-ai-turn-clock="true"])') ?? null
+      const helper = target?.querySelector<HTMLElement>(':scope > span') ?? null
       const notice = strip?.querySelector<HTMLElement>(':scope > small') ?? null
       const deck = strip?.closest<HTMLElement>('section[aria-label="Command Deck"]') ?? null
       const activeCommand = Boolean(
@@ -71,12 +69,12 @@ export function AiBattleQualityControls({
         }
       }
 
-      // PvP command-strip parity: keep the React-owned explanatory copy available in the DOM for
-      // semantics, but remove it from the visual layout. Preview-chip placement is intentionally
-      // CSS-owned so desktop and mobile can use their appropriate responsive geometry without
-      // inline styles fighting the mobile grid.
+      // Keep the clock inside the native React-owned description span instead of portaling a new
+      // React child into the command row. Action commits reconcile this row synchronously; mixing a
+      // second React portal into the same child list could leave React removing a node it no longer
+      // owns and crash the browser. Reusing the existing span preserves one DOM owner for the row.
       if (helper) {
-        helper.style.setProperty('display', 'none', 'important')
+        helper.dataset.aiTurnClock = 'true'
       }
       if (notice) {
         notice.style.setProperty('position', 'absolute', 'important')
@@ -90,12 +88,11 @@ export function AiBattleQualityControls({
         notice.style.setProperty('border', '0', 'important')
       }
 
-      // Do not enqueue a React state update for every DOM mutation. Action commits cause several
-      // synchronous mutations; repeatedly setting the same portal target can feed back into React's
-      // commit cycle. Only update state when React has actually replaced the target element.
-      if (commandTargetRef.current !== target) {
-        commandTargetRef.current = target
-        setCommandTarget(target)
+      // Only update state when React has replaced the native helper element. The observer sees many
+      // mutations during a command commit, so repeated updates for the same node would be wasteful.
+      if (commandTargetRef.current !== helper) {
+        commandTargetRef.current = helper
+        setCommandTarget(helper)
       }
     }
 
@@ -178,39 +175,38 @@ export function AiBattleQualityControls({
   }, [battleSessionId])
 
   const seconds = remainingSeconds(clock?.deadlineAt ?? null, now)
+  const clockLabel = clock?.active ? `${seconds}s left` : 'Opponent turn'
 
-  if (!commandTarget) return null
+  useEffect(() => {
+    if (!commandTarget) return
 
-  return createPortal(
-    <span
-      data-ai-turn-clock="true"
-      style={{
-        display: 'inline-flex',
-        order: 3,
-        flex: '0 0 auto',
-        maxWidth: '100%',
-        gap: '.34rem',
-        alignItems: 'center',
-        marginLeft: 'auto',
-        padding: '.2rem .38rem',
-        border: '1px solid rgba(111,172,143,.42)',
-        borderRadius: '999px',
-        background: 'rgba(75,143,111,.055)',
-        font: '750 .4rem/1 var(--av-font-mono)',
-        whiteSpace: 'nowrap',
-      }}
-      aria-live="polite"
-      title="Each player turn lasts 60 seconds. Two consecutive timeouts apply Lowered Guard."
-    >
-      <span
-        style={{
-          color: clock?.active && seconds <= 10 ? '#e48b78' : 'var(--av-brass-200)',
-        }}
-      >
-        {clock?.active ? `${seconds}s left` : 'Opponent turn'}
-      </span>
-      {error ? <span style={{ color: '#e2a0a0' }}>{error}</span> : null}
-    </span>,
-    commandTarget,
-  )
+    const visibleLabel = error ? `${clockLabel} · ${error}` : clockLabel
+    if (commandTarget.textContent !== visibleLabel) commandTarget.textContent = visibleLabel
+
+    commandTarget.dataset.aiTurnClock = 'true'
+    commandTarget.setAttribute('aria-live', 'polite')
+    commandTarget.setAttribute(
+      'title',
+      error ?? 'Each player turn lasts 60 seconds. Two consecutive timeouts apply Lowered Guard.',
+    )
+    commandTarget.style.setProperty('display', 'inline-flex', 'important')
+    commandTarget.style.setProperty('grid-column', '2', 'important')
+    commandTarget.style.setProperty('grid-row', '1', 'important')
+    commandTarget.style.setProperty('justify-self', 'end', 'important')
+    commandTarget.style.setProperty('max-width', '100%')
+    commandTarget.style.setProperty('gap', '.34rem')
+    commandTarget.style.setProperty('align-items', 'center')
+    commandTarget.style.setProperty('padding', '.2rem .38rem')
+    commandTarget.style.setProperty('border', '1px solid rgba(111,172,143,.42)')
+    commandTarget.style.setProperty('border-radius', '999px')
+    commandTarget.style.setProperty('background', 'rgba(75,143,111,.055)')
+    commandTarget.style.setProperty('font', '750 .4rem/1 var(--av-font-mono)')
+    commandTarget.style.setProperty('white-space', 'nowrap')
+    commandTarget.style.setProperty(
+      'color',
+      error ? '#e2a0a0' : clock?.active && seconds <= 10 ? '#e48b78' : 'var(--av-brass-200)',
+    )
+  }, [clock?.active, clockLabel, commandTarget, error, seconds])
+
+  return null
 }
