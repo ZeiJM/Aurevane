@@ -80,7 +80,12 @@ function inspectModeActive(): boolean {
   const inspect = buttons.find(
     (button) => button.querySelector('strong')?.textContent?.trim() === 'Inspect',
   )
-  return Boolean(inspect && `${inspect.className}`.includes('commandActive'))
+  if (!inspect) return false
+  return (
+    inspect.hasAttribute('data-active') ||
+    inspect.getAttribute('aria-pressed') === 'true' ||
+    `${inspect.className}`.includes('commandActive')
+  )
 }
 
 function readSelectedCombatant(
