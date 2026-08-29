@@ -2,18 +2,21 @@
   display: none;
 }
 
-/* The shared cockpit polish supplies the visual language for both battle modes. PvP's native
-   command layer then stretches the cost row and centers the action title. Mirror only that
-   formatting delta in AI so both cockpits read identically without changing command behavior. */
+/* Keep AI action-card content on the same desktop alignment contract as PvP. */
 :global(
-  main:not([data-pvp-battle='true']) section[aria-label='Command Deck'] [data-battle-command]
+  main:not([data-pvp-battle='true'])
+    section[aria-label='Command Deck']
+    [data-battle-command]
 ) {
   justify-items: stretch !important;
   text-align: center !important;
 }
 
 :global(
-  main:not([data-pvp-battle='true']) section[aria-label='Command Deck'] [data-battle-command] > span
+  main:not([data-pvp-battle='true'])
+    section[aria-label='Command Deck']
+    [data-battle-command]
+    > span
 ) {
   width: max-content !important;
   justify-self: start !important;
@@ -36,9 +39,48 @@
     [data-battle-command]
     > small
 ) {
-  box-sizing: border-box;
   width: 100% !important;
   justify-content: flex-start !important;
   justify-self: stretch !important;
   text-align: left !important;
+}
+
+/* PvP desktop now treats the turn countdown as a peer of the command heading rather than tiny
+   metadata. Mirror that exact readability change in AI without altering the cockpit footprint. */
+@media (min-width: 821px) {
+  :global(
+    main:not([data-pvp-battle='true'])
+      section[aria-label='Command Deck']
+      [data-ai-turn-clock='true']
+  ),
+  :global(
+    main:not([data-pvp-battle='true'])
+      section[aria-label='Command Deck']
+      [data-ai-turn-clock='true']
+      > span
+  ) {
+    font-size: 0.72rem !important;
+  }
+}
+
+/* On phone-width AI battles use the same two-column action cockpit rhythm as PvP, with the facing
+   control remaining the full-width row beneath it. This is presentation-only: command legality,
+   AP, previews, facing commits, and server authority are untouched. */
+@media (max-width: 580px) {
+  :global(
+    main:not([data-pvp-battle='true'])
+      section[aria-label='Command Deck']
+      [data-battle-command-group='true']
+  ) {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  :global(
+    main:not([data-pvp-battle='true'])
+      section[aria-label='Command Deck']
+      [data-battle-facing-control='true']
+  ) {
+    width: 100% !important;
+  }
 }
