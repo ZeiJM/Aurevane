@@ -86,10 +86,28 @@
   font-style: normal;
 }
 
-/* Keep the accepted AI token placement, but trim the desktop footprint one final small step so the
-   occupied-token circle has clear breathing room below the tile coordinate label without
-   changing the accepted 53% vertical placement. */
+/* Desktop AI uses the exact compact three-control footer contract already approved in PvP.
+   The coordinate switch must never inherit a stretching button rule: when it became a tall red
+   panel it consumed the battlefield's flexible row and made the 9x7 board shrink. Keep all three
+   footer controls on one natural-height row with matching footprints. */
 @media (min-width: 821px) {
+  .terrainKey,
+  :global(
+    section#battlefield[data-ai-terrain-layout='true']
+      > [data-ai-native-terrain-legend='true']
+      > button[data-terrain-coordinate-toggle='true']
+  ) {
+    box-sizing: border-box !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 11.5rem !important;
+    height: 2.1rem !important;
+    min-height: 2.1rem !important;
+    max-height: 2.1rem !important;
+    flex: 0 1 11.5rem !important;
+    align-self: center !important;
+  }
+
   :global(
     section#battlefield[data-ai-terrain-layout='true']
       button[aria-label*='occupied by']
