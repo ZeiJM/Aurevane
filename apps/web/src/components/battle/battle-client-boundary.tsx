@@ -39,7 +39,6 @@ import { PvpBattleInspectPopup } from './pvp-battle-inspect-popup'
 import { PvpBattleKeyboardAssist } from './pvp-battle-keyboard-assist'
 import { PvpBattleQualityControls } from './pvp-battle-quality-controls'
 import { PvpBattleReleasePolish } from './pvp-battle-release-polish'
-import { PvpMobileCommandParity } from './pvp-mobile-command-parity'
 import { PvpQuickCommitAssist } from './pvp-quick-commit-assist'
 
 export function BattleClientBoundary({
@@ -146,7 +145,6 @@ export function BattleClientBoundary({
             metadata={runtime.metadata}
           />
           <PvpBattleCompletionPanel initialBattle={initialBattle} metadata={runtime.metadata} />
-          <PvpMobileCommandParity />
           <BattleStabilizationPolish />
           <DesktopBattleCombatantInspect
             battleSessionId={initialBattle.battleSessionId}
