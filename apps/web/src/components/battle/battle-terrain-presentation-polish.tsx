@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 
+import coordinateStyles from './battle-coordinate-toggle.module.css'
 import styles from './battle-terrain-presentation-polish.module.css'
 
 const TERRAIN_TERMINOLOGY = new Map([
@@ -48,7 +49,7 @@ function syncCoordinateToggle(): void {
     if (!toggle) {
       toggle = document.createElement('button')
       toggle.type = 'button'
-      toggle.className = styles.coordinateToggle
+      toggle.className = coordinateStyles.coordinateToggle
       toggle.dataset.terrainCoordinateToggle = 'true'
       toggle.setAttribute('role', 'switch')
       toggle.setAttribute('aria-label', 'Tile coordinates')
