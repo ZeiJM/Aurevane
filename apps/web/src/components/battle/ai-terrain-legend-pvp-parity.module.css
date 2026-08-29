@@ -122,12 +122,62 @@
 
 @media (max-width: 820px) {
   .legend {
-    gap: 0.4rem;
-    overflow-x: auto;
+    gap: 0.25rem;
+    padding-right: 0.3rem;
+    padding-left: 0.3rem;
+    overflow-x: hidden;
   }
 
   .terrainKey {
     min-width: 0;
+    min-height: 2rem;
     flex: 1 1 0;
+    padding-right: 0.28rem;
+    padding-left: 0.28rem;
+  }
+
+  /* Pin the AI coordinate switch to the already-approved PvP phone footprint. This selector is
+     scoped to the native AI terrain legend, so no general button sizing or board geometry changes. */
+  :global(
+    section#battlefield[data-ai-terrain-layout='true']
+      > [data-ai-native-terrain-legend='true']
+      > button[data-terrain-coordinate-toggle='true']
+  ) {
+    box-sizing: border-box !important;
+    width: 4.15rem !important;
+    min-width: 4.15rem !important;
+    max-width: 4.15rem !important;
+    height: 2rem !important;
+    min-height: 2rem !important;
+    max-height: 2rem !important;
+    flex: 0 0 4.15rem !important;
+    gap: 0.16rem !important;
+    align-self: center !important;
+    justify-self: auto !important;
+    margin: 0 !important;
+    padding: 0.24rem 0.18rem !important;
+  }
+
+  :global(
+    section#battlefield[data-ai-terrain-layout='true']
+      > [data-ai-native-terrain-legend='true']
+      > button[data-terrain-coordinate-toggle='true']
+      > span
+  ) {
+    gap: 0.045rem !important;
+    justify-items: center !important;
+    font-size: 0.4rem !important;
+    line-height: 1 !important;
+    text-align: center !important;
+  }
+
+  :global(
+    section#battlefield[data-ai-terrain-layout='true']
+      > [data-ai-native-terrain-legend='true']
+      > button[data-terrain-coordinate-toggle='true']
+      > span::after
+  ) {
+    font-size: 0.38rem !important;
+    line-height: 1.1 !important;
   }
 }
