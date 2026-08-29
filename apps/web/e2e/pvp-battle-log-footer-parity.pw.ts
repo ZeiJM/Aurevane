@@ -89,7 +89,9 @@ test('keeps the desktop PvP battle log filled through the terrain footer row', a
 
     const geometry = await battlefield.evaluate((element) => {
       const dockElement = element.querySelector<HTMLElement>('[data-docked-battle-log="true"]')!
-      const legendElement = element.querySelector<HTMLElement>(':scope > [aria-label="Terrain legend"]')!
+      const legendElement = element.querySelector<HTMLElement>(
+        ':scope > [aria-label="Terrain legend"]',
+      )!
       const dockRect = dockElement.getBoundingClientRect()
       const legendRect = legendElement.getBoundingClientRect()
       const battlefieldRect = element.getBoundingClientRect()
