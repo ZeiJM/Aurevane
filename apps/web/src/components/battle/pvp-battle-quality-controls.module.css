@@ -71,6 +71,18 @@
   cursor: not-allowed;
 }
 
+/* Desktop only: match the PvP turn timer text size to the Command Deck's "Choose an action"
+   heading (0.64rem). Keep the timer's existing mono face, pill styling, spacing, and all mobile
+   sizing unchanged. */
+@media (min-width: 821px) {
+  :global([data-pvp-turn-clock='true']),
+  :global([data-pvp-turn-clock='true'] > span),
+  :global([data-pvp-opponent-turn-clock='true']),
+  :global([data-pvp-opponent-turn-clock='true'] > span) {
+    font-size: 0.64rem !important;
+  }
+}
+
 @media (max-width: 520px) {
   .actions {
     display: grid;
