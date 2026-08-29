@@ -310,7 +310,6 @@ function LogPanel({
       >
         <div>
           <strong>Battle Log</strong>
-          <span>Rounds · actions · outcomes</span>
         </div>
         {onClose ? (
           <button
