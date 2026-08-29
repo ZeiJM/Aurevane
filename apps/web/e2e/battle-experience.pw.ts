@@ -66,7 +66,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
 
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
-  const commandContext = commandDeck.locator(':scope > div').first()
+  const commandContext = commandDeck.locator('[data-battle-instruction-row="true"]')
   const inspectButton = commandDeck.getByRole('button', { name: /Inspect/ })
   const moveButton = commandDeck.getByRole('button', { name: /Move/ })
   const attackButton = commandDeck.getByRole('button', { name: /Basic Attack/ })
@@ -174,7 +174,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(criteriaButton).not.toHaveAttribute('data-new-progress', 'true')
 
   await finishButton.click()
-  await expect(commandContext).toContainText('direction you choose immediately ends the turn')
+  await expect(commandContext).toContainText('Choose your final facing to end the turn')
   await page.getByRole('button', { name: 'Face east' }).click()
 
   await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
