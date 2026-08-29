@@ -2,7 +2,6 @@
 
 import { useEffect } from 'react'
 
-import coordinateStyles from './battle-coordinate-toggle.module.css'
 import styles from './battle-terrain-presentation-polish.module.css'
 
 const TERRAIN_TERMINOLOGY = new Map([
@@ -32,56 +31,6 @@ function syncLegendTerminology(battlefield: HTMLElement): void {
       }
     }
   }
-}
-
-function syncCoordinateToggleState(toggle: HTMLButtonElement, showCoordinates: boolean): void {
-  const checked = String(showCoordinates)
-  const title = `Tile coordinates: ${showCoordinates ? 'on' : 'off'}`
-  if (toggle.getAttribute('aria-checked') !== checked) toggle.setAttribute('aria-checked', checked)
-  if (toggle.title !== title) toggle.title = title
-}
-
-function syncCoordinateToggle(battlefield: HTMLElement): void {
-  const legend = battlefield.querySelector<HTMLElement>(":scope > [aria-label='Terrain legend']")
-  if (!legend) return
-
-  let toggle = legend.querySelector<HTMLButtonElement>(
-    ":scope > button[data-terrain-coordinate-toggle='true']",
-  )
-
-  if (!toggle) {
-    const createdToggle = document.createElement('button')
-    createdToggle.type = 'button'
-    createdToggle.className = coordinateStyles.coordinateToggle
-    createdToggle.dataset.terrainCoordinateToggle = 'true'
-    createdToggle.setAttribute('role', 'switch')
-    createdToggle.setAttribute('aria-label', 'Tile coordinates')
-
-    const label = document.createElement('span')
-    label.textContent = 'Coords'
-
-    const track = document.createElement('i')
-    track.setAttribute('aria-hidden', 'true')
-
-    createdToggle.append(track, label)
-    createdToggle.addEventListener('click', () => {
-      const showCoordinates = battlefield.dataset.showCoordinates !== 'true'
-      if (showCoordinates) battlefield.dataset.showCoordinates = 'true'
-      else delete battlefield.dataset.showCoordinates
-      syncCoordinateToggleState(createdToggle, showCoordinates)
-    })
-    legend.append(createdToggle)
-    toggle = createdToggle
-  }
-
-  syncCoordinateToggleState(toggle, battlefield.dataset.showCoordinates === 'true')
-}
-
-function clearCoordinateToggle(battlefield: HTMLElement): void {
-  delete battlefield.dataset.showCoordinates
-  battlefield
-    .querySelectorAll<HTMLButtonElement>("button[data-terrain-coordinate-toggle='true']")
-    .forEach((toggle) => toggle.remove())
 }
 
 function directCombatantToken(tile: HTMLElement): HTMLElement | null {
@@ -164,7 +113,6 @@ function syncTilePresentation(battlefield: HTMLElement): void {
 
 function syncTerrainPresentation(battlefield: HTMLElement): void {
   syncLegendTerminology(battlefield)
-  syncCoordinateToggle(battlefield)
   syncTilePresentation(battlefield)
 }
 
@@ -191,7 +139,6 @@ export function BattleTerrainPresentationPolish() {
     return () => {
       observer.disconnect()
       if (frame !== 0) window.cancelAnimationFrame(frame)
-      clearCoordinateToggle(battlefield)
       for (const marker of battlefield.querySelectorAll<HTMLElement>(
         '[data-terrain-elevation-marker="true"]',
       )) {
