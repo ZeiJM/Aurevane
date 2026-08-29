@@ -6,7 +6,7 @@ import { BattleLogPanel } from './battle-log-panel'
 import styles from './desktop-battle-log-dock.module.css'
 
 const DESKTOP_QUERY = '(min-width: 821px)'
-const LOG_REFRESH_MS = 1200
+const LOG_REFRESH_MS = 5000
 
 function combatLogTrigger(): HTMLButtonElement | null {
   return (
@@ -77,6 +77,8 @@ export function DesktopBattleLogDock({
       return () => window.removeEventListener('aurevane:pvp-battle-state', refreshFromBattleState)
     }
 
+    // PvE has no multiplayer state event to drive this dock yet. Five seconds keeps an open log
+    // reasonably fresh without issuing a database-backed history request every 1.2 seconds.
     const timer = window.setInterval(() => setRefreshTick((value) => value + 1), LOG_REFRESH_MS)
     return () => window.clearInterval(timer)
   }, [battleSessionId, desktop, eventDriven, open])
