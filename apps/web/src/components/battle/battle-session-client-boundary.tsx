@@ -26,6 +26,7 @@ import { BattleRecruitRecoveryAssist } from './battle-recruit-recovery-assist'
 import { BattleRuntimeProvider } from './battle-runtime-context'
 import { BattleStatusEffectAssist } from './battle-status-effect-assist'
 import { BattleStickyActionAssist } from './battle-sticky-action-assist'
+import { BattleTerrainPresentationPolish } from './battle-terrain-presentation-polish'
 import { BattleUtilityWindows } from './battle-utility-windows'
 import { DesktopBattleCombatantInspect } from './desktop-battle-combatant-inspect'
 import { DesktopBattleLogDock } from './desktop-battle-log-dock'
@@ -61,6 +62,7 @@ export function BattleSessionClientBoundary({
         playerPortraitAssetId={playerPortraitAssetId}
       />
       <AiNativeTerrainLegend />
+      <BattleTerrainPresentationPolish />
       <AiBattlePvpVisualSync playerName={playerName} />
       <AiDesktopCombatantRailPolish playerName={playerName} />
       <AiBattleQualityControls battleSessionId={initialBattle.battleSessionId} />
