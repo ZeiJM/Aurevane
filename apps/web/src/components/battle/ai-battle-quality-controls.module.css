@@ -2,12 +2,16 @@
   display: none;
 }
 
-:global([data-testid='combat-mode-instruction'][data-ai-turn-clock='true']) {
+:global(
+  [data-testid='combat-mode-instruction'][data-ai-turn-clock='true']
+) {
   position: relative;
   padding-right: 4.9rem;
 }
 
-:global([data-testid='combat-mode-instruction'][data-ai-turn-clock='true'])::after {
+:global(
+  [data-testid='combat-mode-instruction'][data-ai-turn-clock='true']
+)::after {
   position: absolute;
   top: 50%;
   right: 0.42rem;
@@ -27,17 +31,21 @@
 }
 
 :global(
-    [data-testid='combat-mode-instruction'][data-ai-turn-clock='true'][data-ai-turn-clock-critical='true']
-  )::after {
+  [data-testid='combat-mode-instruction'][data-ai-turn-clock='true'][data-ai-turn-clock-critical='true']
+)::after {
   color: #e48b78;
 }
 
 @media (max-width: 820px) {
-  :global([data-testid='combat-mode-instruction'][data-ai-turn-clock='true']) {
+  :global(
+    [data-testid='combat-mode-instruction'][data-ai-turn-clock='true']
+  ) {
     padding-right: 4.45rem;
   }
 
-  :global([data-testid='combat-mode-instruction'][data-ai-turn-clock='true'])::after {
+  :global(
+    [data-testid='combat-mode-instruction'][data-ai-turn-clock='true']
+  )::after {
     right: 0.28rem;
     padding-right: 0.3rem;
     padding-left: 0.3rem;
