@@ -48,8 +48,6 @@ export function AiBattleQualityControls({
       const heading = target?.querySelector<HTMLElement>(':scope > strong') ?? null
       const helper =
         target?.querySelector<HTMLElement>(':scope > span:not([data-ai-turn-clock="true"])') ?? null
-      const preview =
-        target?.querySelector<HTMLElement>(':scope > [data-battle-target-preview="true"]') ?? null
       const notice = strip?.querySelector<HTMLElement>(':scope > small') ?? null
       const deck = strip?.closest<HTMLElement>('section[aria-label="Command Deck"]') ?? null
       const activeCommand = Boolean(
@@ -73,10 +71,10 @@ export function AiBattleQualityControls({
         }
       }
 
-      // PvP command-strip parity: AI should show only the action title and authoritative preview
-      // chips on the left, with the turn clock isolated at the far right. These inline-important
-      // presentation constraints intentionally outrank the generic command explanation rule without
-      // changing preview generation, action legality, or any server-authoritative combat state.
+      // PvP command-strip parity: keep the React-owned explanatory copy available in the DOM for
+      // semantics, but remove it from the visual layout. Preview-chip placement is intentionally
+      // CSS-owned so desktop and mobile can use their appropriate responsive geometry without
+      // inline styles fighting the mobile grid.
       if (helper) {
         helper.style.setProperty('display', 'none', 'important')
       }
@@ -90,15 +88,6 @@ export function AiBattleQualityControls({
         notice.style.setProperty('clip', 'rect(0, 0, 0, 0)', 'important')
         notice.style.setProperty('white-space', 'nowrap', 'important')
         notice.style.setProperty('border', '0', 'important')
-      }
-      if (preview) {
-        preview.style.setProperty('order', '1', 'important')
-        preview.style.setProperty('flex', '0 1 auto', 'important')
-        preview.style.setProperty('max-width', 'none', 'important')
-        preview.style.setProperty('margin-left', '.42rem', 'important')
-        preview.style.setProperty('margin-right', '.42rem', 'important')
-        preview.style.setProperty('justify-content', 'flex-start', 'important')
-        preview.style.setProperty('overflow', 'visible', 'important')
       }
 
       // Do not enqueue a React state update for every DOM mutation. Action commits cause several
