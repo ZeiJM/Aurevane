@@ -20,7 +20,9 @@ export function BattleCoordinateToggle() {
         nextBattlefield?.querySelector<HTMLElement>(':scope > [aria-label="Terrain legend"]') ?? null
 
       if (nextLegend) {
-        nextLegend.style.setProperty('display', 'flex', 'important')
+        // Layout belongs to the shared stylesheet: desktop is a flex row and mobile is an equal
+        // three-column grid. Do not pin display inline or runtime-specific CSS can never harmonize.
+        nextLegend.style.removeProperty('display')
         nextLegend.style.setProperty('visibility', 'visible', 'important')
         nextLegend.style.setProperty('opacity', '1', 'important')
       }
