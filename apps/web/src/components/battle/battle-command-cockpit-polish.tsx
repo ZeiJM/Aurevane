@@ -550,19 +550,17 @@ export function BattleCommandCockpitPolish() {
       const label = button.querySelector(':scope > strong')?.textContent?.trim() ?? ''
       const slug = COMMAND_SLUGS.get(label)
       const deck = button.closest<HTMLElement>('section[aria-label="Command Deck"]')
-      if (!slug || !deck || !isPvpDeck(deck)) return
+      if (!slug || !deck) return
 
-      // PvE command copy is owned by the shared renderer. This compatibility presentation is only
-      // retained for PvP while the remaining PvP-specific polish is migrated into shared markup.
+      // Let the native battle handler enter its real mode first, then update presentation only.
+      // The AI description remains visually hidden by the shared context CSS.
       window.requestAnimationFrame(() => showCommandDescription(deck, slug))
     }
 
     const observedFetch: typeof window.fetch = (...args) => {
       const observesPreview = isBattlePreviewRequest(args[0])
       if (observesPreview) {
-        for (const deck of decks()) {
-          if (isPvpDeck(deck)) clearCommandPreview(deck)
-        }
+        for (const deck of decks()) clearCommandPreview(deck)
       }
 
       // Return the exact Promise produced by the existing fetch implementation. The observer only
@@ -582,9 +580,7 @@ export function BattleCommandCockpitPolish() {
                 // presentation-only augmentation behind that render without intercepting input.
                 window.requestAnimationFrame(() =>
                   window.requestAnimationFrame(() => {
-                    for (const deck of decks()) {
-                      if (isPvpDeck(deck)) showBattlePreview(deck, battlePreview.preview)
-                    }
+                    for (const deck of decks()) showBattlePreview(deck, battlePreview.preview)
                   }),
                 )
               })
