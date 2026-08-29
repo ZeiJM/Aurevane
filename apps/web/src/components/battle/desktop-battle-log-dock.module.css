@@ -67,20 +67,26 @@
   }
 
   /* PvE's battlefield sits between two combatant rails, so opening the dock leaves less footer
-     width than PvP has. Keep the same three approved controls and visual treatment, but give them a
-     real compact grid while the desktop log is open. The two semantic terrain keys share the
-     remaining width and the coordinate switch uses a fixed compact footprint instead of reserving
-     an 11.5rem flex basis that can squeeze Elevated Ground completely out of view. */
+     width than PvP has. Keep both semantic terrain keys and the coordinate switch inside the real
+     footer column. The terrain keys split the available space evenly; the coordinate switch uses
+     the same compact footprint as the shared mobile contract instead of squeezing Elevated Ground
+     out of the rendered footer. */
   :global(
     main:not([data-pvp-battle='true'])
       #battlefield[data-desktop-battle-log-open='true']
       > [data-ai-native-terrain-legend='true']
   ) {
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 5.25rem !important;
-    gap: 0.3rem !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 4.15rem !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 2.35rem !important;
+    max-height: none !important;
+    gap: 0.22rem !important;
     align-items: center !important;
     justify-content: stretch !important;
+    overflow: visible !important;
     visibility: visible !important;
     opacity: 1 !important;
   }
@@ -92,12 +98,29 @@
       > span
   ) {
     display: flex !important;
+    position: static !important;
     width: 100% !important;
     min-width: 0 !important;
     max-width: none !important;
+    height: auto !important;
+    min-height: 2rem !important;
     flex: none !important;
-    padding-right: 0.3rem !important;
-    padding-left: 0.3rem !important;
+    align-items: center !important;
+    gap: 0.28rem !important;
+    margin: 0 !important;
+    padding: 0.28rem 0.34rem !important;
+    overflow: visible !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  :global(
+    main:not([data-pvp-battle='true'])
+      #battlefield[data-desktop-battle-log-open='true']
+      > [data-ai-native-terrain-legend='true']
+      > span:nth-child(2)
+  ) {
+    display: flex !important;
     visibility: visible !important;
     opacity: 1 !important;
   }
@@ -109,7 +132,10 @@
       > span
       > span
   ) {
+    display: grid !important;
     min-width: 0 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
 
   :global(
@@ -131,6 +157,8 @@
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
 
   :global(
@@ -140,22 +168,18 @@
       > button[data-terrain-coordinate-toggle='true']
   ) {
     box-sizing: border-box !important;
-    width: 5.25rem !important;
-    min-width: 5.25rem !important;
-    max-width: 5.25rem !important;
-    flex: 0 0 5.25rem !important;
-    gap: 0.18rem !important;
-    padding-right: 0.24rem !important;
-    padding-left: 0.24rem !important;
-  }
-
-  :global(
-    main:not([data-pvp-battle='true'])
-      #battlefield[data-desktop-battle-log-open='true']
-      > [data-ai-native-terrain-legend='true']
-      > span:first-child
-  ) {
-    display: flex !important;
+    width: 4.15rem !important;
+    min-width: 4.15rem !important;
+    max-width: 4.15rem !important;
+    height: 2rem !important;
+    min-height: 2rem !important;
+    max-height: 2rem !important;
+    flex: 0 0 4.15rem !important;
+    gap: 0.16rem !important;
+    margin: 0 !important;
+    padding: 0.24rem 0.18rem !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
 
   :global(
