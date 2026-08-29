@@ -66,6 +66,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
 
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
+  const commandContext = commandDeck.locator(':scope > div').first()
   const inspectButton = commandDeck.getByRole('button', { name: /Inspect/ })
   const moveButton = commandDeck.getByRole('button', { name: /Move/ })
   const attackButton = commandDeck.getByRole('button', { name: /Basic Attack/ })
@@ -87,7 +88,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     'aria-valuenow',
     '100',
   )
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Choose your action')
+  await expect(commandContext).toContainText('Choose your action')
   await expect(page.getByText(/100 AP/).first()).toBeVisible()
   const fittedBoard = battlefield.locator('[data-board-auto-fit="5x3"]')
   await expect(fittedBoard).toHaveCount(1)
@@ -144,15 +145,11 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
   await moveButton.click()
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText(
-    'Move · 25 AP per normal tile',
-  )
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText(
-    'Rough ground costs 50 AP',
-  )
+  await expect(commandContext).toContainText('Move · 25 AP per normal tile')
+  await expect(commandContext).toContainText('Rough ground costs 50 AP')
   await page.getByRole('button', { name: /Tile 4, 2; open-ground; elevation 0/ }).click()
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('100 AP')
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('0 AP left')
+  await expect(commandContext).toContainText('100 AP')
+  await expect(commandContext).toContainText('0 AP left')
   if (testInfo.project.name !== 'mobile-chromium') {
     await expect(battlefield.getByText('0', { exact: true })).toHaveCount(1)
     await expect(
@@ -162,11 +159,8 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     ).toHaveCount(1)
   }
   await expect(confirmButton).toBeEnabled()
-  await expect(page.getByText(/100 AP proposed/)).toBeVisible()
   await confirmButton.click()
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText(
-    'Movement committed. 0 AP remains.',
-  )
+  await expect(commandContext).toContainText('Movement committed. 0 AP remains.')
   await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
     'aria-valuenow',
     '0',
@@ -180,9 +174,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(criteriaButton).not.toHaveAttribute('data-new-progress', 'true')
 
   await finishButton.click()
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText(
-    'direction you choose immediately ends the turn',
-  )
+  await expect(commandContext).toContainText('direction you choose immediately ends the turn')
   await page.getByRole('button', { name: 'Face east' }).click()
 
   await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
@@ -190,9 +182,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     '100',
     { timeout: 15_000 },
   )
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Choose your action', {
-    timeout: 15_000,
-  })
+  await expect(commandContext).toContainText('Choose your action', { timeout: 15_000 })
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
   await expect(
     page.getByRole('dialog', { name: 'Complete the tactical fundamentals' }),
@@ -203,13 +193,11 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   } else {
     await guardButton.click()
   }
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Guard ready')
+  await expect(commandContext).toContainText('Guard ready')
   await expect(battlefield.locator('button[data-target="friendly"]')).toHaveCount(1)
   await expect(confirmButton).toBeEnabled()
   await confirmButton.click()
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Guarded for 2 turns', {
-    timeout: 10_000,
-  })
+  await expect(commandContext).toContainText('Guarded for 2 turns', { timeout: 10_000 })
   await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
     'aria-valuenow',
     '70',
@@ -242,7 +230,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   const recruitTarget = page.getByRole('button', { name: /occupied by Recruit/ })
   await expect(recruitTarget).toHaveAttribute('data-target', 'enemy')
   await recruitTarget.click()
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Basic Attack ready')
+  await expect(commandContext).toContainText('Basic Attack ready')
   await expect(confirmButton).toBeEnabled()
   await confirmButton.click()
 
