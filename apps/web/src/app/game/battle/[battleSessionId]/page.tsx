@@ -110,6 +110,7 @@ export default async function BattleSessionPage({
       <BattleSessionClientBoundary
         initialBattle={battle}
         playerName={character.name}
+        playerLevel={character.level}
         playerPortraitAssetId={getStarterPortraitImageAssetId(character.portraitRef)}
         playerProfileImageUrl={playerProfileImageUrl}
       />
