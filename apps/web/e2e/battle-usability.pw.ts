@@ -90,7 +90,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   ).toBeVisible()
   await expect(page.getByRole('button', { name: /Tile 8, 4;.*occupied by Recruit/ })).toBeVisible()
   await expect(
-    page.getByRole('button', { name: /Tile 4, 3; rough-ground; elevation 0/ }),
+    page.getByRole('button', { name: /Tile 4, 3; difficult terrain; elevation 0/ }),
   ).toBeVisible()
   await expect(
     page.getByRole('button', { name: /Tile 5, 2; open-ground; elevation 1/ }),
@@ -127,7 +127,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
 
   await page.getByRole('button', { name: /Inspect/ }).click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Inspect mode')
-  await page.getByRole('button', { name: /Tile 4, 3; rough-ground; elevation 0/ }).click()
+  await page.getByRole('button', { name: /Tile 4, 3; difficult terrain; elevation 0/ }).click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Rough ground')
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('50 AP')
 

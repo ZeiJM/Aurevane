@@ -87,7 +87,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     'aria-valuenow',
     '100',
   )
-  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Choose your action')
+  await expect(page.getByTestId('combat-mode-instruction')).toContainText('Choose any action')
   await expect(page.getByText(/100 AP/).first()).toBeVisible()
   const fittedBoard = battlefield.locator('[data-board-auto-fit="5x3"]')
   await expect(fittedBoard).toHaveCount(1)

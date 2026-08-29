@@ -38,8 +38,8 @@ test('keeps the desktop AI 9x7 grid evenly spaced with one lower terrain legend'
 
   // AI owns one transformed, detailed legend below the board. The presentation helper must not
   // inject a second compact row above it.
-  await expect(battlefield.locator('[data-ai-terrain-legend="true"]')).toHaveCount(1)
-  await expect(battlefield.locator('[data-ai-terrain-legend="true"]')).toBeVisible()
+  await expect(battlefield.locator('[data-ai-native-terrain-legend="true"]')).toHaveCount(1)
+  await expect(battlefield.locator('[data-ai-native-terrain-legend="true"]')).toBeVisible()
   await expect(battlefield.locator('[data-terrain-legend-polish]')).toHaveCount(0)
 
   const geometry = await board.evaluate((element) => {
