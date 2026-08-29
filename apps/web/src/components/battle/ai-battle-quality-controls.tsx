@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 
+import styles from './ai-battle-quality-controls.module.css'
+
 interface ClockView {
   active: boolean
   turnNumber: number | null
@@ -33,7 +35,7 @@ export function AiBattleQualityControls({
   const [clock, setClock] = useState<ClockView | null>(null)
   const [now, setNow] = useState(() => Date.now())
   const [error, setError] = useState<string | null>(null)
-  const commandTargetRef = useRef<HTMLElement | null>(null)
+  const commandStripRef = useRef<HTMLElement | null>(null)
   const reloading = useRef(false)
 
   useEffect(() => {
@@ -44,7 +46,6 @@ export function AiBattleQualityControls({
       const target =
         strip?.firstElementChild instanceof HTMLElement ? strip.firstElementChild : null
       const heading = target?.querySelector<HTMLElement>(':scope > strong') ?? null
-      const helper = target?.querySelector<HTMLElement>(':scope > span') ?? null
       const notice = strip?.querySelector<HTMLElement>(':scope > small') ?? null
       const deck = strip?.closest<HTMLElement>('section[aria-label="Command Deck"]') ?? null
       const activeCommand = Boolean(
@@ -68,13 +69,7 @@ export function AiBattleQualityControls({
         }
       }
 
-      // Keep the clock inside the native React-owned description span instead of portaling a new
-      // React child into the command row. Action commits reconcile this row synchronously; mixing a
-      // second React portal into the same child list could leave React removing a node it no longer
-      // owns and crash the browser. Reusing the existing span preserves one DOM owner for the row.
-      if (helper) {
-        helper.dataset.aiTurnClock = 'true'
-      }
+      if (strip) strip.dataset.aiTurnClock = 'true'
       if (notice) {
         notice.style.setProperty('position', 'absolute', 'important')
         notice.style.setProperty('width', '1px', 'important')
@@ -87,9 +82,10 @@ export function AiBattleQualityControls({
         notice.style.setProperty('border', '0', 'important')
       }
 
-      // The DOM node is external mutable state, so keep it in a ref rather than React state. The
-      // 250 ms clock tick refreshes presentation shortly after React replaces the native helper.
-      commandTargetRef.current = helper
+      // Keep React as the sole owner of the command strip's child nodes. The clock is painted by a
+      // CSS pseudo-element from data attributes on the native strip, so action commits can freely
+      // reconcile the instruction text without a portal or imperative text-node replacement.
+      commandStripRef.current = strip
     }
 
     locate()
@@ -103,7 +99,15 @@ export function AiBattleQualityControls({
       // polish observer; observing it here created an observer feedback loop during action commits.
       attributeFilter: ['data-active', 'class'],
     })
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      const strip = commandStripRef.current
+      if (strip) {
+        delete strip.dataset.aiTurnClock
+        delete strip.dataset.aiTurnClockLabel
+        delete strip.dataset.aiTurnClockCritical
+      }
+    }
   }, [playerName])
 
   useEffect(() => {
@@ -174,36 +178,17 @@ export function AiBattleQualityControls({
   const clockLabel = clock?.active ? `${seconds}s left` : 'Opponent turn'
 
   useEffect(() => {
-    const commandTarget = commandTargetRef.current
-    if (!commandTarget) return
+    const strip = commandStripRef.current
+    if (!strip) return
 
-    const visibleLabel = error ? `${clockLabel} · ${error}` : clockLabel
-    if (commandTarget.textContent !== visibleLabel) commandTarget.textContent = visibleLabel
-
-    commandTarget.dataset.aiTurnClock = 'true'
-    commandTarget.setAttribute('aria-live', 'polite')
-    commandTarget.setAttribute(
+    strip.dataset.aiTurnClock = 'true'
+    strip.dataset.aiTurnClockLabel = clockLabel
+    strip.dataset.aiTurnClockCritical = error || (clock?.active && seconds <= 10) ? 'true' : 'false'
+    strip.setAttribute(
       'title',
       error ?? 'Each player turn lasts 60 seconds. Two consecutive timeouts apply Lowered Guard.',
     )
-    commandTarget.style.setProperty('display', 'inline-flex', 'important')
-    commandTarget.style.setProperty('grid-column', '2', 'important')
-    commandTarget.style.setProperty('grid-row', '1', 'important')
-    commandTarget.style.setProperty('justify-self', 'end', 'important')
-    commandTarget.style.setProperty('max-width', '100%')
-    commandTarget.style.setProperty('gap', '.34rem')
-    commandTarget.style.setProperty('align-items', 'center')
-    commandTarget.style.setProperty('padding', '.2rem .38rem')
-    commandTarget.style.setProperty('border', '1px solid rgba(111,172,143,.42)')
-    commandTarget.style.setProperty('border-radius', '999px')
-    commandTarget.style.setProperty('background', 'rgba(75,143,111,.055)')
-    commandTarget.style.setProperty('font', '750 .4rem/1 var(--av-font-mono)')
-    commandTarget.style.setProperty('white-space', 'nowrap')
-    commandTarget.style.setProperty(
-      'color',
-      error ? '#e2a0a0' : clock?.active && seconds <= 10 ? '#e48b78' : 'var(--av-brass-200)',
-    )
   }, [clock?.active, clockLabel, error, seconds])
 
-  return null
+  return <span className={styles.hook} aria-hidden="true" />
 }
