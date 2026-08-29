@@ -40,7 +40,12 @@ export function AiNativeTerrainLegend() {
   if (!battlefield) return null
 
   return createPortal(
-    <div className={styles.legend} aria-label="Terrain legend" data-ai-native-terrain-legend="true">
+    <div
+      className={styles.legend}
+      aria-label="Terrain legend"
+      data-ai-native-terrain-legend="true"
+      data-ai-terrain-legend="true"
+    >
       <span className={styles.terrainKey}>
         <i className={styles.roughKey} aria-hidden="true" />
         <span>

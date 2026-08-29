@@ -52,6 +52,11 @@ export interface BattleActionPreview {
     before: number | string
     after: number | string
   }[]
+  projectedStatuses: readonly {
+    statusId: string
+    durationOwnerTurnStarts: number | null
+    damageTakenMultiplierBasisPoints: number | null
+  }[]
   mpCost: number
   actionEconomyCost: number
   actionEconomyBefore: number
@@ -194,6 +199,19 @@ function previewIntent(
       action.sourceType === 'basic-attack'
         ? forecastStatDrivenAttack(prepared, action, intent.target, PV1F_COMBAT_CONTENT)
         : null
+    const projectedStatuses = action.effects.flatMap((effect) => {
+      if (effect.type !== 'apply-status') return []
+      const status = PV1F_COMBAT_CONTENT.statuses.find(
+        (candidate) => candidate.id === effect.statusId,
+      )
+      return [
+        {
+          statusId: effect.statusId,
+          durationOwnerTurnStarts: status?.durationOwnerTurnStarts ?? null,
+          damageTakenMultiplierBasisPoints: status?.damageTakenMultiplierBasisPoints ?? null,
+        },
+      ]
+    })
     return {
       kind: 'action',
       legal: evaluation.legal && affordable,
@@ -203,6 +221,7 @@ function previewIntent(
       affectedTiles: evaluation.affectedTiles,
       affectedCombatantIds: evaluation.affectedCombatantIds,
       projectedEffects: evaluation.projectedEffects,
+      projectedStatuses,
       mpCost: evaluation.mpCost,
       actionEconomyCost: cost,
       actionEconomyBefore: before,

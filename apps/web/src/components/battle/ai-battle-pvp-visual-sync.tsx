@@ -64,16 +64,16 @@ function markAiHeader(root: HTMLElement) {
 
 export function AiBattlePvpVisualSync({ playerName }: { playerName: string }) {
   useEffect(() => {
+    const battlefield = document.querySelector<HTMLElement>(
+      'section[aria-label="Tactical battlefield"]',
+    )
+    const root = battlefield?.closest<HTMLElement>('main') ?? null
+    if (!battlefield || !root || root.dataset.pvpBattle === 'true') return
+
     let frame: number | null = null
 
     const sync = () => {
       frame = null
-      const battlefield = document.querySelector<HTMLElement>(
-        'section[aria-label="Tactical battlefield"]',
-      )
-      const root = battlefield?.closest<HTMLElement>('main') ?? null
-      if (!root || root.dataset.pvpBattle === 'true') return
-
       markAiHeader(root)
 
       const commandDeck = root.querySelector<HTMLElement>('section[aria-label="Command Deck"]')
@@ -99,8 +99,6 @@ export function AiBattlePvpVisualSync({ playerName }: { playerName: string }) {
         const facingPad = facingButtons[0]?.parentElement
         if (facingPad instanceof HTMLElement) facingPad.dataset.aiFacingPad = 'true'
       }
-
-      if (!battlefield) return
 
       const tiles = Array.from(
         battlefield.querySelectorAll<HTMLButtonElement>('button[aria-label^="Tile "]'),
@@ -157,7 +155,7 @@ export function AiBattlePvpVisualSync({ playerName }: { playerName: string }) {
 
     sync()
     const observer = new MutationObserver(schedule)
-    observer.observe(document.body, {
+    observer.observe(root, {
       childList: true,
       subtree: true,
       attributes: true,
@@ -167,20 +165,18 @@ export function AiBattlePvpVisualSync({ playerName }: { playerName: string }) {
     return () => {
       observer.disconnect()
       if (frame !== null) window.cancelAnimationFrame(frame)
-      document.querySelector('[data-ai-path-zero="true"]')?.remove()
+      battlefield.querySelector('[data-ai-path-zero="true"]')?.remove()
 
-      for (const root of document.querySelectorAll<HTMLElement>('[data-ai-battle-root="true"]')) {
-        delete root.dataset.aiBattleRoot
-        for (const element of root.querySelectorAll<HTMLElement>(
-          '[data-ai-battle-header], [data-ai-battle-objective], [data-ai-battle-economy], [data-ai-battle-round], [data-ai-battle-victory], [data-ai-battle-token]',
-        )) {
-          delete element.dataset.aiBattleHeader
-          delete element.dataset.aiBattleObjective
-          delete element.dataset.aiBattleEconomy
-          delete element.dataset.aiBattleRound
-          delete element.dataset.aiBattleVictory
-          delete element.dataset.aiBattleToken
-        }
+      delete root.dataset.aiBattleRoot
+      for (const element of root.querySelectorAll<HTMLElement>(
+        '[data-ai-battle-header], [data-ai-battle-objective], [data-ai-battle-economy], [data-ai-battle-round], [data-ai-battle-victory], [data-ai-battle-token]',
+      )) {
+        delete element.dataset.aiBattleHeader
+        delete element.dataset.aiBattleObjective
+        delete element.dataset.aiBattleEconomy
+        delete element.dataset.aiBattleRound
+        delete element.dataset.aiBattleVictory
+        delete element.dataset.aiBattleToken
       }
     }
   }, [playerName])

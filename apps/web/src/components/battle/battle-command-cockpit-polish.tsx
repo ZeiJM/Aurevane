@@ -115,17 +115,39 @@ function clearCommandPreview(deck: HTMLElement): void {
   }
 }
 
-function showCommandDescription(deck: HTMLElement, slug: CommandSlug): void {
+function isPvpDeck(deck: HTMLElement): boolean {
+  return deck.closest<HTMLElement>('main')?.dataset.pvpBattle === 'true'
+}
+
+function semanticDescription(deck: HTMLElement, slug: CommandSlug): string {
+  if (!isPvpDeck(deck) && slug === 'move') {
+    return 'Move · 25 AP per normal tile. Green tiles are reachable. Rough ground costs 50 AP. Click a destination to draw the numbered path.'
+  }
+  return COMMAND_PRESENTATION[slug].description
+}
+
+function showCommandDescription(
+  deck: HTMLElement,
+  slug: CommandSlug,
+  options: { clearPreview?: boolean } = {},
+): void {
   const instruction = markInstructionElements(deck)
   if (!instruction?.description) return
 
-  clearCommandPreview(deck)
+  if (options.clearPreview !== false) clearCommandPreview(deck)
   const presentation = COMMAND_PRESENTATION[slug]
+  const description = semanticDescription(deck, slug)
   instruction.row.dataset.battleCommandExplanation = slug
-  instruction.title.textContent = presentation.title
-  instruction.description.textContent = presentation.description
-  instruction.description.style.display = ''
-  instruction.description.title = presentation.description
+  if (instruction.title.textContent !== presentation.title) {
+    instruction.title.textContent = presentation.title
+  }
+  if (instruction.description.textContent !== description) {
+    instruction.description.textContent = description
+  }
+  if (instruction.description.style.display) instruction.description.style.display = ''
+  if (instruction.description.title !== presentation.description) {
+    instruction.description.title = presentation.description
+  }
 }
 
 function humanizeStatus(value: string): string {
@@ -202,11 +224,24 @@ function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
     })
   }
 
-  if (preview.actionId === 'basic.guard') {
-    chips.push({ label: 'Guarded', tone: 'effect' })
-    chips.push({ label: '-15% damage', tone: 'effect' })
-    chips.push({ label: '2 turns', tone: 'effect' })
-  } else {
+  for (const status of preview.projectedStatuses) {
+    chips.push({ label: humanizeStatus(status.statusId), tone: 'effect' })
+    if (
+      status.damageTakenMultiplierBasisPoints !== null &&
+      status.damageTakenMultiplierBasisPoints < 10_000
+    ) {
+      const reduction = Math.round((10_000 - status.damageTakenMultiplierBasisPoints) / 100)
+      chips.push({ label: `-${reduction}% damage`, tone: 'effect' })
+    }
+    if (status.durationOwnerTurnStarts !== null) {
+      chips.push({
+        label: `${status.durationOwnerTurnStarts} turn${status.durationOwnerTurnStarts === 1 ? '' : 's'}`,
+        tone: 'effect',
+      })
+    }
+  }
+
+  if (preview.projectedStatuses.length === 0) {
     const statuses = new Set(
       preview.projectedEffects
         .filter((effect) => effect.effectType === 'apply-status' && typeof effect.after === 'string')
@@ -255,13 +290,20 @@ function showBattlePreview(deck: HTMLElement, preview: IntentPreview): void {
   const slug = previewSlug(preview)
   if (!slug || slug === 'inspect') return
 
-  showCommandDescription(deck, slug)
+  showCommandDescription(deck, slug, { clearPreview: false })
   const instruction = markInstructionElements(deck)
   if (!instruction) return
+
+  const chips = previewChips(preview)
+  const previewKey = JSON.stringify({ slug, chips })
+  const existing = deck.querySelector<HTMLElement>('[data-battle-target-preview="true"]')
+  if (existing?.dataset.battlePreviewKey === previewKey) return
+  existing?.remove()
 
   const previewElement = document.createElement('div')
   previewElement.dataset.battleTargetPreview = 'true'
   previewElement.dataset.battlePreviewCommand = slug
+  previewElement.dataset.battlePreviewKey = previewKey
   previewElement.setAttribute('aria-label', 'Action preview')
 
   if (!preview.legal && preview.issues[0]?.message) {
@@ -273,7 +315,7 @@ function showBattlePreview(deck: HTMLElement, preview: IntentPreview): void {
     previewElement.title = 'Authoritative pre-commit action preview.'
   }
 
-  for (const chip of previewChips(preview)) {
+  for (const chip of chips) {
     const element = document.createElement('span')
     element.dataset.battlePreviewChip = 'true'
     element.dataset.battlePreviewTone = chip.tone
@@ -472,11 +514,14 @@ function syncCommandDeck(deck: HTMLElement): void {
 
 export function BattleCommandCockpitPolish() {
   useEffect(() => {
+    const initialDeck = document.querySelector<HTMLElement>('section[aria-label="Command Deck"]')
+    const battleRoot = initialDeck?.closest<HTMLElement>('main') ?? null
+    if (!initialDeck || !battleRoot) return
+
     let frame = 0
     const previousFetch = window.fetch
 
-    const decks = () =>
-      document.querySelectorAll<HTMLElement>('section[aria-label="Command Deck"]')
+    const decks = () => battleRoot.querySelectorAll<HTMLElement>('section[aria-label="Command Deck"]')
 
     const sync = () => {
       frame = 0
@@ -494,15 +539,15 @@ export function BattleCommandCockpitPolish() {
       const button = element?.closest<HTMLButtonElement>(
         'section[aria-label="Command Deck"] button',
       )
-      if (!button || button.disabled) return
+      if (!button || button.disabled || !battleRoot.contains(button)) return
 
       const label = button.querySelector(':scope > strong')?.textContent?.trim() ?? ''
       const slug = COMMAND_SLUGS.get(label)
       const deck = button.closest<HTMLElement>('section[aria-label="Command Deck"]')
       if (!slug || !deck) return
 
-      // Let the native battle handler enter its real mode first, then replace only the instructional
-      // copy. This does not intercept the command, alter combat state, or touch battlefield sizing.
+      // Let the native battle handler enter its real mode first, then update presentation only.
+      // The AI description remains visually hidden by the shared context CSS.
       window.requestAnimationFrame(() => showCommandDescription(deck, slug))
     }
 
@@ -543,11 +588,11 @@ export function BattleCommandCockpitPolish() {
     sync()
     window.fetch = observedFetch
     const observer = new MutationObserver(schedule)
-    observer.observe(document.body, {
+    observer.observe(battleRoot, {
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['class', 'data-active', 'disabled', 'style', 'aria-label'],
+      attributeFilter: ['class', 'data-active', 'disabled', 'aria-label'],
     })
     document.addEventListener('click', handleClick)
 

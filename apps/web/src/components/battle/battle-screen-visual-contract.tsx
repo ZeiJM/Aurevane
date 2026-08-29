@@ -65,12 +65,14 @@ function markSemanticControls(root: HTMLElement) {
 
 export function BattleScreenVisualContract() {
   useEffect(() => {
+    const root = findBattleRoot()
+    if (!root) return
+
     let frame = 0
 
     const sync = () => {
       frame = 0
-      const root = findBattleRoot()
-      if (root) markSemanticControls(root)
+      markSemanticControls(root)
     }
     const schedule = () => {
       if (frame !== 0) return
@@ -79,7 +81,7 @@ export function BattleScreenVisualContract() {
 
     sync()
     const observer = new MutationObserver(schedule)
-    observer.observe(document.body, {
+    observer.observe(root, {
       childList: true,
       subtree: true,
       attributes: true,

@@ -13,7 +13,6 @@ import { AiDesktopCombatantRailPolish } from './ai-desktop-combatant-rail-polish
 import { AiDesktopSameFacingKeyboardAssist } from './ai-desktop-same-facing-keyboard-assist'
 import { AiNativeTerrainLegend } from './ai-native-terrain-legend'
 import { BattleChatEmojiPolish } from './battle-chat-emoji-polish'
-import { BattleCommandCockpitPolish } from './battle-command-cockpit-polish'
 import { BattleDirectionalAttackAssist } from './battle-directional-attack-assist'
 import { BattleExperienceV2 } from './battle-experience-v2'
 import { BattleFacingQuickCommitAssist } from './battle-facing-quick-commit-assist'
@@ -92,7 +91,6 @@ export function BattleSessionClientBoundary({
       <BattleRecruitRecoveryAssist />
       <AiDesktopSameFacingKeyboardAssist playerName={playerName} />
       <BattleKeyboardAssist playerName={playerName} />
-      <BattleCommandCockpitPolish />
       <AiCockpitPvpButtonFormat />
       <BattleFeedbackAssist playerName={playerName} playerProfileImageUrl={playerProfileImageUrl} />
       <BattleUtilityWindows
