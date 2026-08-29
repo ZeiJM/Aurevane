@@ -167,9 +167,11 @@
     min-width: 4.15rem;
     min-height: 2rem;
     flex-basis: 4.15rem;
-    gap: 0.2rem;
-    padding: 0.24rem 0.25rem;
-    font-size: 0.33rem;
+    gap: 0.16rem;
+    justify-content: center;
+    padding: 0.24rem 0.18rem;
+    font-size: 0.29rem;
+    text-align: center;
   }
 
   .coordinateToggle > i {
@@ -181,7 +183,12 @@
     font-size: 0.46rem;
   }
 
+  .coordinateToggle > span {
+    justify-items: center;
+    text-align: center;
+  }
+
   .coordinateToggle > span::after {
-    font-size: 0.3rem;
+    font-size: 0.27rem;
   }
 }
