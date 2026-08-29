@@ -46,7 +46,7 @@
     max-height: none !important;
     overflow: visible !important;
     color: var(--av-text) !important;
-    font: 650 clamp(0.78rem, 1.25vw, 1rem)/1.08 var(--av-font-display) !important;
+    font: 650 clamp(0.78rem, 1.25vw, 1rem)/1.18 var(--av-font-display) !important;
     overflow-wrap: anywhere !important;
     white-space: normal !important;
     visibility: visible !important;
