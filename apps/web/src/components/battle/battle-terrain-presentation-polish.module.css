@@ -14,8 +14,7 @@
 )::before {
   position: absolute;
   inset: 0.12rem;
-  z-index: 0;
-  border-radius: max(0.08rem, calc(inherit - 0.08rem));
+  border-radius: inherit;
   background:
     radial-gradient(circle at 24% 28%, rgba(211, 163, 97, 0.2) 0 5%, transparent 6%),
     radial-gradient(circle at 72% 68%, rgba(96, 64, 39, 0.32) 0 6%, transparent 7%),
@@ -32,7 +31,7 @@
   pointer-events: none;
 }
 
-/* A warm inner rim and directional light make elevation readable without moving the tile or
+/* A warm inner rim and directional edge make elevation readable without moving the tile or
    changing its dimensions. PvP already owns ::after for elevation, so this intentionally refines
    that same presentation surface rather than introducing another layer. */
 :global(
@@ -45,36 +44,18 @@
 )::after {
   position: absolute;
   inset: 0.14rem;
-  z-index: 1;
   border: 1px solid rgba(219, 195, 139, 0.3);
   border-top-color: rgba(241, 220, 168, 0.48);
   border-left-color: rgba(226, 202, 150, 0.35);
   border-right-color: rgba(123, 96, 59, 0.28);
   border-bottom-color: rgba(88, 68, 43, 0.38);
-  border-radius: max(0.08rem, calc(inherit - 0.08rem));
-  background: linear-gradient(180deg, rgba(232, 207, 151, 0.075), transparent 34%);
+  border-radius: inherit;
   box-shadow:
-    inset 0 0.12rem 0.24rem rgba(247, 225, 173, 0.07),
-    inset 0 -0.16rem 0.28rem rgba(4, 6, 8, 0.22),
+    inset 0 0.12rem 0.24rem rgba(247, 225, 173, 0.06),
+    inset 0 -0.16rem 0.28rem rgba(4, 6, 8, 0.2),
     0 -1px 0 rgba(231, 207, 154, 0.12);
   content: '';
   pointer-events: none;
-}
-
-/* Keep terrain metadata and units visually above the decorative surfaces. This does not alter
-   their geometry or pointer behavior. */
-:global(
-  section[aria-label='Tactical battlefield']
-    button[aria-label^='Tile ']
-    > *
-),
-:global(
-  section[aria-label='PvP tactical battlefield']
-    button[aria-label^='Tile ']
-    > *
-) {
-  position: relative;
-  z-index: 2;
 }
 
 /* Legend cards retain their exact footprint; only material, edge definition, and key artwork are
