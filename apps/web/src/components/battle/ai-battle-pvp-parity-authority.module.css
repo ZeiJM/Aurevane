@@ -1,0 +1,330 @@
+.hook {
+  display: none;
+}
+
+/*
+ * AI/PvE parity authority.
+ *
+ * The shared BattleCommandCockpitPolish now drives both PvP and AI battles. Older AI-specific
+ * fallback rules still exist for safety, so this late-loaded bridge gives the shared cockpit
+ * contract final authority whenever both hooks are present. Gameplay, AP, pathing, turn timing,
+ * and server authority are untouched.
+ */
+:global(
+  main[data-ai-battle-root='true']
+    section[aria-label='Command Deck']
+    [data-ai-command-button='true'][data-battle-command]
+) {
+  --cockpit-accent-rgb: 207, 169, 93;
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  grid-template-rows: auto auto auto !important;
+  gap: 0.24rem !important;
+  min-height: 3.35rem !important;
+  align-content: center !important;
+  justify-items: start !important;
+  padding: 0.44rem 0.52rem 0.46rem 0.62rem !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(var(--cockpit-accent-rgb), 0.24) !important;
+  border-radius: 0.42rem !important;
+  color: var(--av-text-muted) !important;
+  background:
+    radial-gradient(circle at 100% 0, rgba(var(--cockpit-accent-rgb), 0.09), transparent 56%),
+    linear-gradient(
+      160deg,
+      rgba(var(--cockpit-accent-rgb), 0.055),
+      rgba(255, 255, 255, 0.012) 58%,
+      rgba(0, 0, 0, 0.1)
+    ) !important;
+  text-align: left !important;
+}
+
+:global(
+  main[data-ai-battle-root='true']
+    section[aria-label='Command Deck']
+    [data-battle-command='inspect']
+) {
+  --cockpit-accent-rgb: 127, 169, 189;
+}
+
+:global(
+  main[data-ai-battle-root='true']
+    section[aria-label='Command Deck']
+    [data-battle-command='move']
+) {
+  --cockpit-accent-rgb: 102, 177, 145;
+}
+
+:global(
+  main[data-ai-battle-root='true']
+    section[aria-label='Command Deck']
+    [data-battle-command='attack']
+) {
+  --cockpit-accent-rgb: 205, 126, 97;
+}
+
+:global(
+  main[data-ai-battle-root='true']
+    section[aria-label='Command Deck']
+    [data-battle-command='guard']
+) {
+  --cockpit-accent-rgb: 108, 145, 198;
+}
+
+:global(
+  main[data-ai-battle-root='true']
+    section[aria-label='Command Deck']
+    [data-battle-command='recover']
+) {
+  --cockpit-accent-rgb: 144, 177, 105;
+}
+
+:global(
+  main[data-ai-battle-root='true']
+    section[aria-label='Command Deck']
+    [data-battle-command='finish']
+) {
+  --cockpit-accent-rgb: 207, 169, 93;
+}
+
+:global(
+  main[data-ai-battle-root='true']
+    section[aria-label='Command Deck']
+    [data-ai-command-button='true'][data-battle-command]
+    > span
+) {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  display: inline-flex !important;
+  width: max-content !important;
+  min-height: 0.92rem;
+  align-items: center;
+  justify-content: center;
+  justify-self: start !important;
+  padding: 0.16rem 0.3rem;
+  border: 1px solid rgba(var(--cockpit-accent-rgb), 0.22);
+  border-radius: 999px;
+  color: rgba(225, 229, 235, 0.72) !important;
+  background: rgba(var(--cockpit-accent-rgb), 0.055);
+  font: 760 0.34rem/1 var(--av-font-mono) !important;
+}
+
+:global(
+  main[data-ai-battle-root='true']
+    section[aria-label='Command Deck']
+    [data-ai-command-button='true'][data-battle-command]
+    > strong
+) {
+  grid-column: 1 !important;
+  grid-row: 2 !important;
+  width: 100% !important;
+  justify-self: stretch !important;
+  overflow: hidden;
+  color: var(--av-text) !important;
+  font: 650 0.7rem/1.02 var(--av-font-display) !important;
+  text-align: center !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+:global(
+  main[data-ai-battle-root='true']
+    section[aria-label='Command Deck']
+    [data-ai-command-button='true'][data-battle-command]
+    > small
+) {
+  grid-column: 1 !important;
+  grid-row: 3 !important;
+  display: inline-flex;
+  width: 100% !important;
+  min-height: 0.9rem;
+  align-items: center;
+  justify-content: flex-start !important;
+  justify-self: stretch !important;
+  padding: 0.13rem 0.3rem;
+  border: 1px solid rgba(var(--cockpit-accent-rgb), 0.13);
+  border-radius: 999px;
+  color: rgba(190, 197, 207, 0.68) !important;
+  background: rgba(3, 5, 9, 0.32);
+  font: 680 0.36rem/1 var(--av-font-mono) !important;
+  text-align: left !important;
+}
+
+:global(
+  main[data-ai-battle-root='true']
+    section[aria-label='Command Deck']
+    [data-ai-command-button='true'][data-battle-command][data-selected='true']
+),
+:global(
+  main[data-ai-battle-root='true']
+    section[aria-label='Command Deck']
+    [data-ai-command-button='true'][data-battle-command][data-battle-active='true']
+) {
+  border-color: rgba(var(--cockpit-accent-rgb), 0.86) !important;
+  color: var(--av-text) !important;
+  background:
+    radial-gradient(circle at 100% 0, rgba(var(--cockpit-accent-rgb), 0.24), transparent 60%),
+    linear-gradient(
+      160deg,
+      rgba(var(--cockpit-accent-rgb), 0.15),
+      rgba(255, 255, 255, 0.026) 58%,
+      rgba(0, 0, 0, 0.06)
+    ) !important;
+}
+
+:global(
+  main[data-ai-battle-root='true']
+    section[aria-label='Command Deck']
+    [data-ai-command-button='true'][data-battle-command]:hover:not(:disabled)
+) {
+  border-color: rgba(var(--cockpit-accent-rgb), 0.68) !important;
+  color: var(--av-text) !important;
+  background:
+    radial-gradient(circle at 100% 0, rgba(var(--cockpit-accent-rgb), 0.18), transparent 58%),
+    linear-gradient(
+      160deg,
+      rgba(var(--cockpit-accent-rgb), 0.1),
+      rgba(255, 255, 255, 0.022) 58%,
+      rgba(0, 0, 0, 0.08)
+    ) !important;
+}
+
+:global(
+  main[data-ai-battle-root='true']
+    section[aria-label='Command Deck']
+    [data-ai-command-button='true'][data-battle-command]:disabled
+) {
+  opacity: 0.56 !important;
+}
+
+/* Shared facing-control styling wins over the older AI fallback dimensions. */
+:global(
+  main[data-ai-battle-root='true']
+    section[aria-label='Command Deck']
+    [data-ai-facing-pad='true'][data-battle-facing-control='true']
+) {
+  border-color: rgba(207, 169, 93, 0.24) !important;
+  border-radius: 0.42rem !important;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(207, 169, 93, 0.055), transparent 68%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.018), rgba(0, 0, 0, 0.055)) !important;
+}
+
+:global(
+  main[data-ai-battle-root='true']
+    section[aria-label='Command Deck']
+    [data-ai-facing-pad='true'][data-battle-facing-control='true']
+    > button[data-ai-facing-button='true']
+) {
+  border-color: rgba(207, 169, 93, 0.27) !important;
+  border-radius: 0.38rem !important;
+  color: rgba(234, 214, 168, 0.84) !important;
+  background: linear-gradient(
+    180deg,
+    rgba(207, 169, 93, 0.065),
+    rgba(255, 255, 255, 0.012)
+  ) !important;
+}
+
+/* Desktop AI now follows the same final battlefield geometry authority as PvP. */
+@media (min-width: 821px) {
+  :global(main[data-ai-battle-root='true'] #battlefield) {
+    display: grid !important;
+    grid-template-rows: minmax(0, 1fr) auto !important;
+    min-height: 0 !important;
+    align-content: stretch !important;
+  }
+
+  :global(main[data-ai-battle-root='true'] #battlefield > div:first-child) {
+    grid-row: 1 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    align-self: stretch !important;
+    place-items: center !important;
+  }
+
+  :global(main[data-ai-battle-root='true'] #battlefield > [aria-label='Terrain legend']) {
+    grid-row: 2 !important;
+    box-sizing: border-box !important;
+    height: auto !important;
+    min-height: 2.35rem !important;
+    max-height: none !important;
+    align-self: stretch !important;
+    overflow: visible !important;
+  }
+
+  :global(main[data-ai-battle-root='true'] #battlefield > div:first-child > div:first-child) {
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: min(100%, 620px) !important;
+    height: min(100%, 482px) !important;
+    max-height: 100% !important;
+    aspect-ratio: 9 / 7 !important;
+    margin: auto !important;
+  }
+}
+
+/* Phone AI command deck uses the exact compact two-column PvP action rhythm. */
+@media (max-width: 820px) {
+  :global(
+    main[data-ai-battle-root='true']
+      section[aria-label='Command Deck']
+      [data-ai-command-button='true'][data-battle-command]
+  ) {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto auto !important;
+    min-height: 2.55rem !important;
+    gap: 0.1rem !important;
+    align-content: center !important;
+    justify-items: center !important;
+    padding: 0.3rem 0.36rem !important;
+    text-align: center !important;
+  }
+
+  :global(
+    main[data-ai-battle-root='true']
+      section[aria-label='Command Deck']
+      [data-ai-command-button='true'][data-battle-command]
+      > span
+  ) {
+    display: none !important;
+  }
+
+  :global(
+    main[data-ai-battle-root='true']
+      section[aria-label='Command Deck']
+      [data-ai-command-button='true'][data-battle-command]
+      > strong
+  ) {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    justify-self: stretch !important;
+    font: 600 0.57rem/1 var(--av-font-display) !important;
+    text-align: center !important;
+  }
+
+  :global(
+    main[data-ai-battle-root='true']
+      section[aria-label='Command Deck']
+      [data-ai-command-button='true'][data-battle-command]
+      > small
+  ) {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    justify-content: center !important;
+    justify-self: stretch !important;
+    background: transparent !important;
+    font: 650 0.36rem/1 var(--av-font-mono) !important;
+    text-align: center !important;
+  }
+
+  :global(main[data-ai-battle-root='true'] [data-ai-battle-victory='true']) {
+    text-transform: uppercase !important;
+  }
+}
