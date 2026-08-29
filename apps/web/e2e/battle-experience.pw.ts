@@ -66,7 +66,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
 
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
-  const commandContext = commandDeck.locator('[data-battle-instruction-row="true"]')
+  const commandContext = commandDeck.getByTestId('combat-mode-instruction')
   const inspectButton = commandDeck.getByRole('button', { name: /Inspect/ })
   const moveButton = commandDeck.getByRole('button', { name: /Move/ })
   const attackButton = commandDeck.getByRole('button', { name: /Basic Attack/ })
