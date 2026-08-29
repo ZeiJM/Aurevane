@@ -91,12 +91,13 @@ test('keeps the unified PvP battle usable on mobile', async ({ browser }, testIn
     const waitingPage = hostHasTurn ? guest : host
 
     const battlefield = activeRoot.locator('#battlefield')
+    const board = battlefield.locator("[data-board-auto-fit='9x7']")
     const terrainLegend = battlefield.locator(':scope > [aria-label="Terrain legend"]')
     const commandDeck = activeRoot.getByRole('region', { name: 'Command Deck' })
 
     await expect(battlefield).toBeVisible()
     await expect(commandDeck).toBeVisible()
-    await expect(battlefield.locator("button[aria-label^='Tile ']")).toHaveCount(63)
+    await expect(board.locator(":scope > button[aria-label^='Tile ']")).toHaveCount(63)
     await expect(terrainLegend).toHaveCount(1)
     await expect(terrainLegend).toBeVisible()
     await expect(battlefield.locator('[data-terrain-legend-polish]')).toHaveCount(0)
