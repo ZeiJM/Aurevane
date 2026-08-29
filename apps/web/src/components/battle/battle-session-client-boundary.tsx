@@ -1,13 +1,10 @@
 'use client'
 
-import {
-  getTacticalHallRecordFromScenarioSourceId,
-} from '@aurevane/game-core/combat/tactical-hall-records'
+import { getTacticalHallRecordFromScenarioSourceId } from '@aurevane/game-core/combat/tactical-hall-records'
 
 import type { ImageAssetId } from '@/media/registry'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
-import { AiBattleKeyboardAssist } from './ai-battle-keyboard-assist'
 import { AiBattlePvpVisualSync } from './ai-battle-pvp-visual-sync'
 import { AiBattleQualityControls } from './ai-battle-quality-controls'
 import { AiBattleSurrenderAssist } from './ai-battle-surrender-assist'
@@ -21,6 +18,7 @@ import { BattleExperienceV2 } from './battle-experience-v2'
 import { BattleFacingQuickCommitAssist } from './battle-facing-quick-commit-assist'
 import { BattleFeedbackAssist } from './battle-feedback-assist'
 import { BattleHeaderMatchMessage } from './battle-header-message-cycle'
+import { BattleKeyboardAssist } from './battle-keyboard-assist'
 import { BattleLessonCoach } from './battle-lesson-coach'
 import { BattleMapTokenPolish } from './battle-map-token-polish'
 import { BattlePresentationPolish } from './battle-presentation-polish'
@@ -90,7 +88,7 @@ export function BattleSessionClientBoundary({
       />
       <BattleStickyActionAssist />
       <BattleRecruitRecoveryAssist />
-      <AiBattleKeyboardAssist playerName={playerName} />
+      <BattleKeyboardAssist playerName={playerName} />
       <BattleCommandCockpitPolish />
       <AiCockpitPvpButtonFormat />
       <BattleFeedbackAssist playerName={playerName} playerProfileImageUrl={playerProfileImageUrl} />
