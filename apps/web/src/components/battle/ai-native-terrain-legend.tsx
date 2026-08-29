@@ -44,7 +44,7 @@ export function AiNativeTerrainLegend() {
       <span className={styles.terrainKey}>
         <i className={styles.roughKey} aria-hidden="true" />
         <span>
-          <b>Difficult Ground</b>
+          <b>Difficult Terrain</b>
           <small>Higher movement cost</small>
         </span>
       </span>
@@ -53,7 +53,7 @@ export function AiNativeTerrainLegend() {
           ▲
         </i>
         <span>
-          <b>Raised Ground</b>
+          <b>Elevated Ground</b>
           <small>Elevation +1</small>
         </span>
       </span>
