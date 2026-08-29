@@ -2,6 +2,7 @@ import 'server-only'
 
 import type { AuthenticatedActor } from '@aurevane/game-core/command'
 import { AurevaneError } from '@aurevane/game-core/errors'
+import { cache } from 'react'
 
 import { getVerifiedAuthClaims } from '@/lib/supabase/auth'
 import {
@@ -9,7 +10,12 @@ import {
   readVerifiedGameSessionIdentity,
 } from '@/server/account/active-game-session'
 
-export async function getAuthenticatedActor(): Promise<AuthenticatedActor> {
+/**
+ * Server Component request memoization only. React invalidates this cache between requests, so
+ * every navigation still re-verifies authentication and the single-active-session lease while
+ * duplicate reads inside the same render share one authoritative result.
+ */
+export const getAuthenticatedActor = cache(async (): Promise<AuthenticatedActor> => {
   const claims = await getVerifiedAuthClaims()
   const identity = readVerifiedGameSessionIdentity(claims)
 
@@ -26,4 +32,4 @@ export async function getAuthenticatedActor(): Promise<AuthenticatedActor> {
   }
 
   return { userId: identity.userId }
-}
+})
