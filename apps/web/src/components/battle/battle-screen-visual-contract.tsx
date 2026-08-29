@@ -28,7 +28,7 @@ function markSemanticControls(root: HTMLElement) {
   const economyTrack = header?.querySelector<HTMLElement>(
     '[role="progressbar"][aria-label="Action Economy remaining"]',
   )
-  mark(economyTrack?.parentElement?.parentElement ?? null, 'battleSharedEconomy')
+  mark(economyTrack?.parentElement ?? null, 'battleSharedEconomy')
 
   for (const button of header?.querySelectorAll<HTMLButtonElement>('button') ?? []) {
     const copy = textOf(button)
