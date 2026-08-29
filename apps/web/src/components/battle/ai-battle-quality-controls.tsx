@@ -35,6 +35,7 @@ export function AiBattleQualityControls({
   const [now, setNow] = useState(() => Date.now())
   const [error, setError] = useState<string | null>(null)
   const [commandTarget, setCommandTarget] = useState<HTMLElement | null>(null)
+  const commandTargetRef = useRef<HTMLElement | null>(null)
   const reloading = useRef(false)
 
   useEffect(() => {
@@ -79,7 +80,13 @@ export function AiBattleQualityControls({
         }
       }
 
-      setCommandTarget((currentTarget) => (currentTarget === target ? currentTarget : target))
+      // Do not enqueue a React state update for every DOM mutation. Action commits cause several
+      // synchronous mutations; repeatedly setting the same portal target can feed back into React's
+      // commit cycle. Only update state when React has actually replaced the target element.
+      if (commandTargetRef.current !== target) {
+        commandTargetRef.current = target
+        setCommandTarget(target)
+      }
     }
 
     locate()
