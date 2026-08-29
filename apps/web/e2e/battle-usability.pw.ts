@@ -126,7 +126,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('75 AP left')
   await page.getByRole('button', { name: 'Cancel Action' }).click()
 
-  await page.getByRole('button', { name: /Inspect/ }).click()
+  await commandDeck.getByRole('button', { name: /Inspect/ }).click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Inspect mode')
   await page.getByRole('button', { name: /Tile 4, 3; rough-ground; elevation 0/ }).click()
   await expect(page.getByTestId('combat-mode-instruction')).toContainText('Rough ground')
