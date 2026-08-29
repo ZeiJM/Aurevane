@@ -1,9 +1,6 @@
 import { expect, test, type Locator } from '@playwright/test'
 
-import {
-  createAccountAndEnterCharacter,
-  provisionAccountAndEnterCharacter,
-} from './pv1f-test-helpers'
+import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueIdentity(prefix: string): { email: string; characterName: string } {
   const seed = `${Date.now()}${Math.floor(Math.random() * 100_000)}`
@@ -61,7 +58,7 @@ test('keeps PvE terrain controls visually unified on desktop and mobile', async 
   const identity = uniqueIdentity('TerrainPvE')
   const password = 'AurevaneTest!42'
 
-  await createAccountAndEnterCharacter({
+  await provisionAccountAndEnterCharacter({
     page,
     email: identity.email,
     password,
