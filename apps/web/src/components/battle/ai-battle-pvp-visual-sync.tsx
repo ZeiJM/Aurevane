@@ -58,8 +58,32 @@ function markAiHeader(root: HTMLElement) {
   )
   if (round) round.dataset.aiBattleRound = 'true'
 
-  const victory = header.querySelector<HTMLButtonElement>('button[aria-label^="Victory conditions"]')
+  const victory = Array.from(header.querySelectorAll<HTMLButtonElement>('button')).find((button) => {
+    const aria = button.getAttribute('aria-label')?.toLowerCase() ?? ''
+    const text = button.textContent?.trim() ?? ''
+    return aria.startsWith('victory conditions') || text.includes('Victory Conditions')
+  })
   if (victory) victory.dataset.aiBattleVictory = 'true'
+}
+
+function markAiFooter(root: HTMLElement) {
+  const footer = root.querySelector<HTMLElement>(':scope > footer')
+  if (!footer) return
+
+  const buttons = Array.from(footer.querySelectorAll<HTMLButtonElement>('button'))
+  const cancel = buttons.find((button) => button.textContent?.includes('Cancel Action')) ?? null
+  const actionGroup = cancel?.parentElement
+  if (actionGroup instanceof HTMLElement) actionGroup.dataset.aiPvpFooterActions = 'true'
+
+  for (const button of buttons) {
+    const text = button.textContent?.trim() ?? ''
+    if (text.includes('Cancel Action')) button.dataset.aiPvpFooterAction = 'cancel'
+    else if (text.includes('Confirm Action') || text.includes('Committing')) {
+      button.dataset.aiPvpFooterAction = 'confirm'
+    } else if (text.includes('Abort Battle') || text.includes('Surrender')) {
+      button.dataset.aiPvpFooterAction = 'danger'
+    }
+  }
 }
 
 export function AiBattlePvpVisualSync({ playerName }: { playerName: string }) {
@@ -75,6 +99,7 @@ export function AiBattlePvpVisualSync({ playerName }: { playerName: string }) {
       if (!root || root.dataset.pvpBattle === 'true') return
 
       markAiHeader(root)
+      markAiFooter(root)
 
       const commandDeck = root.querySelector<HTMLElement>('section[aria-label="Command Deck"]')
       if (commandDeck) {
@@ -109,7 +134,14 @@ export function AiBattlePvpVisualSync({ playerName }: { playerName: string }) {
 
       for (const tile of tiles) {
         const unitToken = directUnitToken(tile)
-        if (unitToken) unitToken.dataset.aiBattleToken = 'true'
+        if (unitToken) {
+          unitToken.dataset.aiBattleToken = 'true'
+          unitToken.dataset.aiTokenTeam = tile
+            .getAttribute('aria-label')
+            ?.includes(`occupied by ${playerName}`)
+            ? 'player'
+            : 'opponent'
+        }
 
         const marker = directNumericMarker(tile)
         if (marker && marker.dataset.aiPathZero !== 'true') {
@@ -172,7 +204,7 @@ export function AiBattlePvpVisualSync({ playerName }: { playerName: string }) {
       for (const root of document.querySelectorAll<HTMLElement>('[data-ai-battle-root="true"]')) {
         delete root.dataset.aiBattleRoot
         for (const element of root.querySelectorAll<HTMLElement>(
-          '[data-ai-battle-header], [data-ai-battle-objective], [data-ai-battle-economy], [data-ai-battle-round], [data-ai-battle-victory], [data-ai-battle-token]',
+          '[data-ai-battle-header], [data-ai-battle-objective], [data-ai-battle-economy], [data-ai-battle-round], [data-ai-battle-victory], [data-ai-battle-token], [data-ai-pvp-footer-actions], [data-ai-pvp-footer-action]',
         )) {
           delete element.dataset.aiBattleHeader
           delete element.dataset.aiBattleObjective
@@ -180,6 +212,9 @@ export function AiBattlePvpVisualSync({ playerName }: { playerName: string }) {
           delete element.dataset.aiBattleRound
           delete element.dataset.aiBattleVictory
           delete element.dataset.aiBattleToken
+          delete element.dataset.aiTokenTeam
+          delete element.dataset.aiPvpFooterActions
+          delete element.dataset.aiPvpFooterAction
         }
       }
     }
