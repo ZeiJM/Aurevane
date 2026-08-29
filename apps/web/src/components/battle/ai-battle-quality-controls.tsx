@@ -24,7 +24,13 @@ function remainingSeconds(deadlineAt: string | null, now: number): number {
   return Math.max(0, Math.ceil((new Date(deadlineAt).getTime() - now) / 1000))
 }
 
-export function AiBattleQualityControls({ battleSessionId }: { battleSessionId: string }) {
+export function AiBattleQualityControls({
+  battleSessionId,
+  playerName,
+}: {
+  battleSessionId: string
+  playerName: string
+}) {
   const [clock, setClock] = useState<ClockView | null>(null)
   const [now, setNow] = useState(() => Date.now())
   const [error, setError] = useState<string | null>(null)
@@ -41,12 +47,33 @@ export function AiBattleQualityControls({ battleSessionId }: { battleSessionId: 
       const heading = target?.querySelector<HTMLElement>(':scope > strong') ?? null
       const helper =
         target?.querySelector<HTMLElement>(':scope > span:not([data-ai-turn-clock="true"])') ?? null
+      const deck = strip?.closest<HTMLElement>('section[aria-label="Command Deck"]') ?? null
+      const activeCommand = Boolean(
+        deck?.querySelector(
+          '[data-battle-command][data-battle-active="true"], button[data-active], button[class*="commandActive"]',
+        ),
+      )
 
-      if (heading) heading.style.order = '0'
-      if (helper) {
-        helper.style.order = '2'
-        if (heading?.textContent?.trim() === 'Choose your action') helper.style.display = 'none'
-        else helper.style.removeProperty('display')
+      if (heading) {
+        heading.style.order = '0'
+        const current = heading.textContent?.trim() ?? ''
+        const nativeNeutralHeading = /^choose\s+(?:your\s+|an\s+)?action$/i.test(current)
+        const ownsNeutralHeading = heading.dataset.aiNeutralTurnHeading === 'true'
+
+        if (!activeCommand && (nativeNeutralHeading || ownsNeutralHeading)) {
+          heading.dataset.aiNeutralTurnHeading = 'true'
+          const turnHeading = `${playerName}’s Turn`
+          if (heading.textContent !== turnHeading) heading.textContent = turnHeading
+        } else if (activeCommand || (!nativeNeutralHeading && !ownsNeutralHeading)) {
+          delete heading.dataset.aiNeutralTurnHeading
+        }
+
+        const neutralTurnHeading = heading.dataset.aiNeutralTurnHeading === 'true'
+        if (helper) {
+          helper.style.order = '2'
+          if (neutralTurnHeading) helper.style.display = 'none'
+          else helper.style.removeProperty('display')
+        }
       }
       setCommandTarget(target)
     }
@@ -57,9 +84,11 @@ export function AiBattleQualityControls({ battleSessionId }: { battleSessionId: 
       childList: true,
       subtree: true,
       characterData: true,
+      attributes: true,
+      attributeFilter: ['data-active', 'data-battle-active', 'class'],
     })
     return () => observer.disconnect()
-  }, [])
+  }, [playerName])
 
   useEffect(() => {
     function closeStatusPopupFromOutside(event: PointerEvent) {
@@ -140,9 +169,9 @@ export function AiBattleQualityControls({ battleSessionId }: { battleSessionId: 
         gap: '.34rem',
         alignItems: 'center',
         padding: '.2rem .38rem',
-        border: '1px solid rgba(212,186,130,.34)',
+        border: '1px solid rgba(111,172,143,.42)',
         borderRadius: '999px',
-        background: 'rgba(255,255,255,.025)',
+        background: 'rgba(75,143,111,.055)',
         font: '750 .4rem/1 var(--av-font-mono)',
         whiteSpace: 'nowrap',
       }}
@@ -154,10 +183,7 @@ export function AiBattleQualityControls({ battleSessionId }: { battleSessionId: 
           color: clock?.active && seconds <= 10 ? '#e48b78' : 'var(--av-brass-200)',
         }}
       >
-        {clock?.active ? `${seconds}s` : '—'}
-      </span>
-      <span style={{ color: 'var(--av-text-dim)' }}>
-        {clock?.active ? 'Your turn' : 'Opponent turn'}
+        {clock?.active ? `${seconds}s left` : 'Opponent turn'}
       </span>
       {error ? <span style={{ color: '#e2a0a0' }}>{error}</span> : null}
     </span>,
