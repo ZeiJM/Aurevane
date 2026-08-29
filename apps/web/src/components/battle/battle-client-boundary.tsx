@@ -17,6 +17,7 @@ import { BattleFeedbackAssist } from './battle-feedback-assist'
 import { BattleHeaderMatchMessage } from './battle-header-message-cycle'
 import { BattleKeyboardAssist } from './battle-keyboard-assist'
 import { BattleLessonCoach } from './battle-lesson-coach'
+import { BattleLessonCoachSemantics } from './battle-lesson-coach-semantics'
 import { BattleMapTokenPolish } from './battle-map-token-polish'
 import { BattlePresentationPolish } from './battle-presentation-polish'
 import { BattleRecruitRecoveryAssist } from './battle-recruit-recovery-assist'
@@ -93,6 +94,7 @@ export function BattleClientBoundary({
             battleSessionId={initialBattle.battleSessionId}
             playerName={runtime.playerName}
           />
+          <BattleLessonCoachSemantics />
           {lessonActive ? (
             <BattleLessonCoach
               battleSessionId={initialBattle.battleSessionId}
