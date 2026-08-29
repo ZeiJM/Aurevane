@@ -136,7 +136,7 @@ function polishHeader() {
     '[role="progressbar"][aria-label="Action Economy remaining"]',
   )
   const header = track?.closest('header')
-  if (!header) return
+  if (!track || !header) return
 
   const strongs = Array.from(header.querySelectorAll<HTMLElement>('strong'))
   const objective = strongs.find((strong) => {
