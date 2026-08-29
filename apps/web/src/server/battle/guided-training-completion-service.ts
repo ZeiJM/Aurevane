@@ -97,10 +97,7 @@ export function readGuidedTrainingCompletionDisposition(
     (combatant) => combatant.id === controlledCombatantId,
   )
   if (!controlledCombatant) {
-    throw new AurevaneError(
-      'PERSISTENCE_UNAVAILABLE',
-      'The training battle has no player actor.',
-    )
+    throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The training battle has no player actor.')
   }
 
   if (controlledCombatant.hp <= 0) {

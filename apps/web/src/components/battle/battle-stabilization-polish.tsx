@@ -100,7 +100,9 @@ function syncMobilePvpFacingMarkers(): void {
   )
   if (!battlefield) return
 
-  for (const tile of battlefield.querySelectorAll<HTMLElement>('button[aria-label*="occupied by"]')) {
+  for (const tile of battlefield.querySelectorAll<HTMLElement>(
+    'button[aria-label*="occupied by"]',
+  )) {
     const unit = directUnit(tile)
     if (!unit) continue
 

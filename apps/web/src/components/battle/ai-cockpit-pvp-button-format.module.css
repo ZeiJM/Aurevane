@@ -4,19 +4,14 @@
 
 /* Keep AI action-card content on the same desktop alignment contract as PvP. */
 :global(
-  main:not([data-pvp-battle='true'])
-    section[aria-label='Command Deck']
-    [data-battle-command]
+  main:not([data-pvp-battle='true']) section[aria-label='Command Deck'] [data-battle-command]
 ) {
   justify-items: stretch !important;
   text-align: center !important;
 }
 
 :global(
-  main:not([data-pvp-battle='true'])
-    section[aria-label='Command Deck']
-    [data-battle-command]
-    > span
+  main:not([data-pvp-battle='true']) section[aria-label='Command Deck'] [data-battle-command] > span
 ) {
   width: max-content !important;
   justify-self: start !important;

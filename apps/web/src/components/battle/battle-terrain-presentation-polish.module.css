@@ -14,10 +14,10 @@
   background:
     linear-gradient(28deg, transparent 0 47%, rgba(224, 166, 91, 0.22) 48% 49.5%, transparent 50.5%)
       14% 18% / 64% 56% no-repeat,
-    linear-gradient(-42deg, transparent 0 47%, rgba(73, 48, 31, 0.5) 48% 50%, transparent 51%)
-      88% 70% / 68% 62% no-repeat,
-    linear-gradient(78deg, transparent 0 48%, rgba(193, 136, 72, 0.14) 49% 50%, transparent 51%)
-      38% 94% / 44% 48% no-repeat,
+    linear-gradient(-42deg, transparent 0 47%, rgba(73, 48, 31, 0.5) 48% 50%, transparent 51%) 88%
+      70% / 68% 62% no-repeat,
+    linear-gradient(78deg, transparent 0 48%, rgba(193, 136, 72, 0.14) 49% 50%, transparent 51%) 38%
+      94% / 44% 48% no-repeat,
     radial-gradient(ellipse at 24% 31%, rgba(205, 151, 83, 0.16) 0 8%, transparent 9%),
     radial-gradient(ellipse at 73% 65%, rgba(55, 38, 28, 0.29) 0 10%, transparent 11%),
     linear-gradient(145deg, rgba(103, 72, 43, 0.22), rgba(37, 29, 25, 0.13));

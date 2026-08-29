@@ -137,9 +137,7 @@ function humanizeStatus(value: string): string {
     .replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
 
-function numericEffectDelta(
-  effect: ActionPreview['projectedEffects'][number],
-): number | null {
+function numericEffectDelta(effect: ActionPreview['projectedEffects'][number]): number | null {
   if (typeof effect.before !== 'number' || typeof effect.after !== 'number') return null
   return effect.after - effect.before
 }
@@ -209,7 +207,9 @@ function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
   } else {
     const statuses = new Set(
       preview.projectedEffects
-        .filter((effect) => effect.effectType === 'apply-status' && typeof effect.after === 'string')
+        .filter(
+          (effect) => effect.effectType === 'apply-status' && typeof effect.after === 'string',
+        )
         .map((effect) => humanizeStatus(String(effect.after))),
     )
     for (const status of statuses) {
@@ -337,8 +337,8 @@ function pvpMeterMap(): Map<string, MeterPair> {
     for (const article of teamElement.querySelectorAll<HTMLElement>('article')) {
       const name = article.querySelector<HTMLElement>('strong')?.textContent?.trim()
       if (!name) continue
-      const fills = Array.from(article.querySelectorAll<HTMLElement>('span > i')).filter(
-        (fill) => Boolean(fill.style.width),
+      const fills = Array.from(article.querySelectorAll<HTMLElement>('span > i')).filter((fill) =>
+        Boolean(fill.style.width),
       )
       const hp = meterWidth(fills[0] ?? null)
       const mp = meterWidth(fills[1] ?? null)
@@ -349,11 +349,7 @@ function pvpMeterMap(): Map<string, MeterPair> {
   return result
 }
 
-function syncTokenMeter(
-  unit: HTMLElement,
-  meters: MeterPair,
-  context: MobileTokenContext,
-): void {
+function syncTokenMeter(unit: HTMLElement, meters: MeterPair, context: MobileTokenContext): void {
   let host = unit.querySelector<HTMLElement>(':scope > [data-mobile-token-meters="true"]')
   if (!host) {
     host = document.createElement('span')
@@ -379,10 +375,14 @@ function syncTokenMeter(
 }
 
 function syncAiTokenMeters(): void {
-  const battlefield = document.querySelector<HTMLElement>('section[aria-label="Tactical battlefield"]')
+  const battlefield = document.querySelector<HTMLElement>(
+    'section[aria-label="Tactical battlefield"]',
+  )
   if (!battlefield) return
 
-  for (const tile of battlefield.querySelectorAll<HTMLElement>('button[aria-label*="occupied by"]')) {
+  for (const tile of battlefield.querySelectorAll<HTMLElement>(
+    'button[aria-label*="occupied by"]',
+  )) {
     const unit = directUnit(tile)
     const name = unit?.querySelector<HTMLElement>(':scope > strong')?.textContent?.trim()
     if (!unit || !name) continue
@@ -398,7 +398,9 @@ function syncPvpTokenMeters(): void {
   if (!battlefield) return
 
   const metersByUnit = pvpMeterMap()
-  for (const tile of battlefield.querySelectorAll<HTMLElement>('button[aria-label*="occupied by"]')) {
+  for (const tile of battlefield.querySelectorAll<HTMLElement>(
+    'button[aria-label*="occupied by"]',
+  )) {
     const unit = directUnit(tile)
     const name = unit?.querySelector<HTMLElement>(':scope > strong')?.textContent?.trim()
     const team = unit?.dataset.team
@@ -475,8 +477,7 @@ export function BattleCommandCockpitPolish() {
     let frame = 0
     const previousFetch = window.fetch
 
-    const decks = () =>
-      document.querySelectorAll<HTMLElement>('section[aria-label="Command Deck"]')
+    const decks = () => document.querySelectorAll<HTMLElement>('section[aria-label="Command Deck"]')
 
     const sync = () => {
       frame = 0
