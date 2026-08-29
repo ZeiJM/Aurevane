@@ -336,7 +336,7 @@ export function BattleExperience({
         clearPlanning()
         setNotice('Battle complete.')
       } else if (!wasLocal && isLocal) {
-        setNotice('Your turn. Choose an action.')
+        setNotice('Your turn. Choose your action.')
       } else if (wasLocal && !isLocal) {
         clearPlanning()
         setNotice(
@@ -943,7 +943,7 @@ export function BattleExperience({
       : !localTurn && battleState.lifecycle === 'active'
         ? `${activeName}’s Turn`
         : mode === 'none'
-          ? 'Choose an action'
+          ? 'Choose your action'
           : mode === 'finish'
             ? 'Choose final facing'
             : mode.replace('-', ' ')
@@ -1172,7 +1172,7 @@ export function BattleExperience({
                     data-target={targetRelation}
                     data-selected={selected || undefined}
                     onClick={() => handleTile(tile.position)}
-                    aria-label={`Tile ${tile.position.x + 1}, ${tile.position.y + 1}; ${terrain} ground; elevation ${tile.elevation}${participant ? `; occupied by ${participant.name}` : ''}`}
+                    aria-label={`Tile ${tile.position.x + 1}, ${tile.position.y + 1}; ${tile.terrainId}; elevation ${tile.elevation}${participant ? `; occupied by ${participant.name}` : ''}`}
                   >
                     <span className={styles.tileMeta}>
                       {tile.position.x + 1},{tile.position.y + 1}
@@ -1218,7 +1218,7 @@ export function BattleExperience({
             <span className={styles.terrainKey}>
               <i className={styles.roughKey} aria-hidden="true" />
               <span>
-                <b>Difficult Ground</b>
+                <b>Difficult Terrain</b>
                 <small>Higher movement cost</small>
               </span>
             </span>
@@ -1227,7 +1227,7 @@ export function BattleExperience({
                 ▲
               </i>
               <span>
-                <b>Raised Ground</b>
+                <b>Elevated Ground</b>
                 <small>Elevation +1</small>
               </span>
             </span>
