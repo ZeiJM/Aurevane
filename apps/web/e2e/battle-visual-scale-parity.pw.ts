@@ -1,4 +1,4 @@
-import { expect, test, type BrowserContext, type Page } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
@@ -37,17 +37,10 @@ function uniqueIdentity(prefix: string): { email: string; characterName: string 
   }
 }
 
-function roundedRect(element: Element) {
-  const rect = element.getBoundingClientRect()
-  return {
-    width: Math.round(rect.width * 10) / 10,
-    height: Math.round(rect.height * 10) / 10,
-  }
-}
-
 async function captureBattleGeometry(page: Page): Promise<BattleGeometry> {
-  await expect(page.locator("main[data-unified-battle='true'][data-battle-visual-contract='true']"))
-    .toBeVisible()
+  await expect(
+    page.locator("main[data-unified-battle='true'][data-battle-visual-contract='true']"),
+  ).toBeVisible()
   await expect(page.locator('#battlefield [data-board-auto-fit="9x7"]')).toBeVisible()
 
   return page.evaluate(() => {
@@ -70,7 +63,9 @@ async function captureBattleGeometry(page: Page): Promise<BattleGeometry> {
     )!
     const commandDeck = root.querySelector<HTMLElement>('[data-unified-command-deck="true"]')!
     const commandContext = commandDeck.firstElementChild as HTMLElement
-    const commandButton = commandDeck.querySelector<HTMLElement>(':scope > div:nth-child(2) > button')!
+    const commandButton = commandDeck.querySelector<HTMLElement>(
+      ':scope > div:nth-child(2) > button',
+    )!
     const footer = root.querySelector<HTMLElement>(':scope > footer')!
     const footerButtons = Array.from(footer.querySelectorAll<HTMLButtonElement>('button'))
     const cancel = footerButtons.find((button) => button.textContent?.includes('Cancel Action'))!
@@ -78,9 +73,14 @@ async function captureBattleGeometry(page: Page): Promise<BattleGeometry> {
 
     const visibleArticles = Array.from(content.querySelectorAll<HTMLElement>('aside article')).filter(
       (article) => {
-        const rect = article.getBoundingClientRect()
+        const articleRect = article.getBoundingClientRect()
         const style = window.getComputedStyle(article)
-        return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden'
+        return (
+          articleRect.width > 0 &&
+          articleRect.height > 0 &&
+          style.display !== 'none' &&
+          style.visibility !== 'hidden'
+        )
       },
     )
     const railCard = visibleArticles[0]!
@@ -150,10 +150,7 @@ async function enterPveBattle(page: Page) {
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
 }
 
-async function enterPvpBattle(
-  host: Page,
-  guest: Page,
-): Promise<void> {
+async function enterPvpBattle(host: Page, guest: Page): Promise<void> {
   const hostIdentity = uniqueIdentity('ScaleHost')
   const guestIdentity = uniqueIdentity('ScaleGuest')
   const password = 'AurevaneTest!42'
@@ -192,12 +189,6 @@ async function enterPvpBattle(
   await guestDialog.getByRole('button', { name: 'Mark Ready' }).click()
   await hostDialog.getByRole('button', { name: 'Mark Ready' }).click()
   await expect(host).toHaveURL(/\/game\/battle\/[0-9a-f-]+$/i, { timeout: 20_000 })
-}
-
-async function createMatchedContext(
-  browser: Parameters<typeof test>[0] extends never ? never : never,
-): Promise<BrowserContext> {
-  return browser
 }
 
 // The two modes are rendered at the same viewport in the same test. The PvP screen is the visual
