@@ -66,7 +66,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
 
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
-  const commandContext = commandDeck.getByTestId('combat-mode-instruction')
+  const commandContext = commandDeck.locator(':scope > div').first()
   const inspectButton = commandDeck.getByRole('button', { name: /Inspect/ })
   const moveButton = commandDeck.getByRole('button', { name: /Move/ })
   const attackButton = commandDeck.getByRole('button', { name: /Basic Attack/ })
@@ -94,7 +94,6 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(fittedBoard).toHaveCount(1)
   await expectBattlefieldContained(page)
 
-  // Chat is a PvP capability, not part of the shared PvE battle presentation.
   await expect(page.getByRole('button', { name: /^Chat/ })).toHaveCount(0)
 
   if (testInfo.project.name === 'mobile-chromium') {
