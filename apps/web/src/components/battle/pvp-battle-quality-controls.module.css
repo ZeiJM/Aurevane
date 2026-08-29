@@ -83,15 +83,16 @@
   }
 }
 
-/* Mobile only: halve the existing 2px team-colored portrait ring without changing token size,
-   portraits, active-turn glow, facing marker, meters, or desktop presentation. */
+/* Mobile only: keep the slimmer team-colored portrait ring, but add 15% thickness for clearer
+   visibility without changing token size, portraits, active-turn glow, facing marker, meters, or
+   desktop presentation. */
 @media (max-width: 820px) {
   :global(
     section[aria-label='PvP tactical battlefield']
       button[aria-label*='occupied by']
       > span:last-child
   ) {
-    border-width: 1px !important;
+    border-width: 1.15px !important;
   }
 }
 
