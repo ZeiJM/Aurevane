@@ -12,7 +12,10 @@ import {
   type BattleLogSegment,
   type PresentedBattleLogRound,
 } from './battle-log-presentation'
-import { consolidatePresentedBattleLogRounds } from './battle-log-round-groups'
+import {
+  consolidatePresentedBattleLogRounds,
+  limitPresentedBattleLogTurns,
+} from './battle-log-round-groups'
 import styles from './battle-log-feed.module.css'
 
 interface BattleLogFeedProps {
@@ -79,7 +82,8 @@ export function BattleLogFeed({
       combatantNames,
       skillNarrations,
     })
-    return consolidatePresentedBattleLogRounds(presented)
+    const consolidated = consolidatePresentedBattleLogRounds(presented)
+    return limitPresentedBattleLogTurns(consolidated)
   }, [combatantNames, entries, playerName, skillNarrations])
   const [requestedRound, setRequestedRound] = useState<string | null | undefined>(undefined)
   const expandedRound = expandedRoundKey(rounds, requestedRound)
