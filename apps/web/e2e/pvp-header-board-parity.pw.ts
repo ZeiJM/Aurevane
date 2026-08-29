@@ -120,8 +120,11 @@ test('keeps the live desktop PvP header, opponent timer, and full board stable',
     await expect(victory).toBeVisible()
     await expect(round).toBeVisible()
     await expect(terrainLegend).toHaveCount(1)
-    await expect(terrainLegend).toHaveAttribute('data-terrain-legend-polish', 'true')
     await expect(terrainLegend).toBeVisible()
+    await expect(terrainLegend.getByText('Difficult Terrain')).toBeVisible()
+    await expect(terrainLegend.getByText('Elevated Ground')).toBeVisible()
+    await expect(battlefield.locator('[data-terrain-legend-polish]')).toHaveCount(0)
+    await expect(terrainLegend.getByRole('switch', { name: 'Tile coordinates' })).toBeVisible()
     await expect(tiles).toHaveCount(63)
     await expect(board.getByRole('button', { name: /^Tile 9, 7;/ })).toBeVisible()
 
