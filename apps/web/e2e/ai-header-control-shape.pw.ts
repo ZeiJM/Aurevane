@@ -59,5 +59,23 @@ test('keeps desktop AI Victory Conditions and Combat Log visually matched withou
     expect(Math.abs(victoryBox!.height - combatLogBox!.height)).toBeLessThanOrEqual(1)
     expect(victoryBox!.height).toBeGreaterThanOrEqual(33)
     expect(victoryBox!.height).toBeLessThanOrEqual(36)
+
+    const centeredCluster = await victoryConditions.evaluate((victory) => {
+      const header = victory.closest('header')!
+      const economy = header.querySelector<HTMLElement>('[data-battle-shared-economy="true"]')!
+      const headerRect = header.getBoundingClientRect()
+      const economyRect = economy.getBoundingClientRect()
+      const victoryRect = victory.getBoundingClientRect()
+      const clusterLeft = Math.min(economyRect.left, victoryRect.left)
+      const clusterRight = Math.max(economyRect.right, victoryRect.right)
+      return {
+        headerMidpoint: headerRect.left + headerRect.width / 2,
+        clusterMidpoint: clusterLeft + (clusterRight - clusterLeft) / 2,
+      }
+    })
+
+    expect(Math.abs(centeredCluster.clusterMidpoint - centeredCluster.headerMidpoint)).toBeLessThanOrEqual(
+      2,
+    )
   }
 })
