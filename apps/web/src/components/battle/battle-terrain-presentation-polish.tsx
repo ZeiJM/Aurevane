@@ -9,13 +9,22 @@ const TERRAIN_TERMINOLOGY = new Map([
   ['Raised Ground', 'Elevated Ground'],
 ])
 
-function syncTerrainTerminology(): void {
-  for (const label of document.querySelectorAll<HTMLElement>(
-    "[aria-label='Terrain legend'] b",
+function syncTerrainPresentation(): void {
+  for (const key of document.querySelectorAll<HTMLElement>(
+    "[aria-label='Terrain legend'] > span",
   )) {
+    const label = key.querySelector<HTMLElement>('b')
+    if (!label) continue
+
     const current = label.textContent?.trim() ?? ''
     const replacement = TERRAIN_TERMINOLOGY.get(current)
     if (replacement) label.textContent = replacement
+
+    const resolvedLabel = replacement ?? current
+    if (resolvedLabel === 'Elevated Ground') {
+      const description = key.querySelector<HTMLElement>('small')
+      if (description) description.textContent = 'Access depends on Jump'
+    }
   }
 }
 
@@ -25,7 +34,7 @@ export function BattleTerrainPresentationPolish() {
 
     const run = () => {
       frame = 0
-      syncTerrainTerminology()
+      syncTerrainPresentation()
     }
     const schedule = () => {
       if (frame !== 0) return
