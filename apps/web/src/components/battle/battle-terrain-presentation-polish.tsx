@@ -60,7 +60,7 @@ function syncCoordinateToggle(): void {
       const track = document.createElement('i')
       track.setAttribute('aria-hidden', 'true')
 
-      createdToggle.append(label, track)
+      createdToggle.append(track, label)
       createdToggle.addEventListener('click', () => {
         const showCoordinates = battlefield.dataset.showCoordinates !== 'true'
         if (showCoordinates) battlefield.dataset.showCoordinates = 'true'
