@@ -33,7 +33,6 @@ export function AiBattleQualityControls({
   const [clock, setClock] = useState<ClockView | null>(null)
   const [now, setNow] = useState(() => Date.now())
   const [error, setError] = useState<string | null>(null)
-  const [commandTarget, setCommandTarget] = useState<HTMLElement | null>(null)
   const commandTargetRef = useRef<HTMLElement | null>(null)
   const reloading = useRef(false)
 
@@ -88,12 +87,9 @@ export function AiBattleQualityControls({
         notice.style.setProperty('border', '0', 'important')
       }
 
-      // Only update state when React has replaced the native helper element. The observer sees many
-      // mutations during a command commit, so repeated updates for the same node would be wasteful.
-      if (commandTargetRef.current !== helper) {
-        commandTargetRef.current = helper
-        setCommandTarget(helper)
-      }
+      // The DOM node is external mutable state, so keep it in a ref rather than React state. The
+      // 250 ms clock tick refreshes presentation shortly after React replaces the native helper.
+      commandTargetRef.current = helper
     }
 
     locate()
@@ -178,6 +174,7 @@ export function AiBattleQualityControls({
   const clockLabel = clock?.active ? `${seconds}s left` : 'Opponent turn'
 
   useEffect(() => {
+    const commandTarget = commandTargetRef.current
     if (!commandTarget) return
 
     const visibleLabel = error ? `${clockLabel} · ${error}` : clockLabel
@@ -206,7 +203,7 @@ export function AiBattleQualityControls({
       'color',
       error ? '#e2a0a0' : clock?.active && seconds <= 10 ? '#e48b78' : 'var(--av-brass-200)',
     )
-  }, [clock?.active, clockLabel, commandTarget, error, seconds])
+  }, [clock?.active, clockLabel, error, seconds])
 
   return null
 }
