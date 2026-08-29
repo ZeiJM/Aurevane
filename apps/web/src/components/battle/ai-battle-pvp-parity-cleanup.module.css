@@ -1,0 +1,101 @@
+.hook {
+  display: none;
+}
+
+/*
+ * Final AI-only cleanup beneath the shared PvP presentation contract.
+ * These rules remove legacy visual annotations without changing terrain cost, pathing,
+ * combat state, hit testing, or any server-authoritative battle behavior.
+ */
+:global(
+  main[data-ai-battle-root='true']
+    #battlefield
+    button[data-terrain-presentation='difficult']
+    > span
+    > b:not([data-terrain-native-elevation='true'])
+) {
+  display: none !important;
+}
+
+/*
+ * The recruit has no approved portrait asset yet. Replace the raw "R" fallback with a neutral
+ * opponent bust so AI tokens read like combatants rather than debug markers. If a real image is
+ * supplied later these span-only selectors stop applying automatically.
+ */
+:global(
+  main[data-ai-battle-root='true']
+    aside[aria-label='Recruit combat status']
+    button[aria-label='Show Recruit combat details']
+    > span:first-child
+),
+:global(
+  main[data-ai-battle-root='true']
+    #battlefield
+    [data-map-token-portrait][data-map-token-team='opponent']
+    > span:first-child
+) {
+  position: relative !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  text-shadow: none !important;
+}
+
+:global(
+  main[data-ai-battle-root='true']
+    aside[aria-label='Recruit combat status']
+    button[aria-label='Show Recruit combat details']
+    > span:first-child
+)::before,
+:global(
+  main[data-ai-battle-root='true']
+    #battlefield
+    [data-map-token-portrait][data-map-token-team='opponent']
+    > span:first-child
+)::before {
+  position: absolute;
+  top: 20%;
+  left: 50%;
+  z-index: 2;
+  width: 34%;
+  aspect-ratio: 1;
+  box-sizing: border-box;
+  border: 1px solid rgba(232, 196, 193, 0.72);
+  border-radius: 48% 48% 44% 44%;
+  background: linear-gradient(155deg, rgba(224, 214, 208, 0.94), rgba(105, 84, 90, 0.96));
+  box-shadow:
+    inset 0 -0.12rem 0.2rem rgba(38, 22, 28, 0.35),
+    0 0 0.42rem rgba(183, 91, 96, 0.18);
+  content: '';
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+:global(
+  main[data-ai-battle-root='true']
+    aside[aria-label='Recruit combat status']
+    button[aria-label='Show Recruit combat details']
+    > span:first-child
+)::after,
+:global(
+  main[data-ai-battle-root='true']
+    #battlefield
+    [data-map-token-portrait][data-map-token-team='opponent']
+    > span:first-child
+)::after {
+  position: absolute;
+  bottom: 14%;
+  left: 50%;
+  z-index: 1;
+  width: 62%;
+  height: 36%;
+  box-sizing: border-box;
+  border: 1px solid rgba(206, 157, 158, 0.54);
+  border-radius: 50% 50% 24% 24% / 68% 68% 32% 32%;
+  background: linear-gradient(180deg, rgba(148, 111, 116, 0.94), rgba(57, 38, 45, 0.98));
+  box-shadow:
+    inset 0 1px 0 rgba(242, 215, 209, 0.16),
+    0 0 0.48rem rgba(132, 55, 65, 0.18);
+  content: '';
+  pointer-events: none;
+  transform: translateX(-50%);
+}
