@@ -47,12 +47,12 @@ function syncCoordinateToggle(): void {
     )
 
     if (!toggle) {
-      toggle = document.createElement('button')
-      toggle.type = 'button'
-      toggle.className = coordinateStyles.coordinateToggle
-      toggle.dataset.terrainCoordinateToggle = 'true'
-      toggle.setAttribute('role', 'switch')
-      toggle.setAttribute('aria-label', 'Tile coordinates')
+      const createdToggle = document.createElement('button')
+      createdToggle.type = 'button'
+      createdToggle.className = coordinateStyles.coordinateToggle
+      createdToggle.dataset.terrainCoordinateToggle = 'true'
+      createdToggle.setAttribute('role', 'switch')
+      createdToggle.setAttribute('aria-label', 'Tile coordinates')
 
       const label = document.createElement('span')
       label.textContent = 'Coords'
@@ -60,14 +60,15 @@ function syncCoordinateToggle(): void {
       const track = document.createElement('i')
       track.setAttribute('aria-hidden', 'true')
 
-      toggle.append(label, track)
-      toggle.addEventListener('click', () => {
+      createdToggle.append(label, track)
+      createdToggle.addEventListener('click', () => {
         const showCoordinates = battlefield.dataset.showCoordinates !== 'true'
         if (showCoordinates) battlefield.dataset.showCoordinates = 'true'
         else delete battlefield.dataset.showCoordinates
-        syncCoordinateToggleState(toggle, showCoordinates)
+        syncCoordinateToggleState(createdToggle, showCoordinates)
       })
-      legend.append(toggle)
+      legend.append(createdToggle)
+      toggle = createdToggle
     }
 
     syncCoordinateToggleState(toggle, battlefield.dataset.showCoordinates === 'true')
