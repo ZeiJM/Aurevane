@@ -83,7 +83,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
-  const commandContext = commandDeck.getByTestId('combat-mode-instruction')
+  const commandContext = commandDeck.locator(':scope > div').first()
   await expect(battlefield).toBeVisible()
   await expectVictoryConditionsBesideActionEconomy(page)
   await expect(
