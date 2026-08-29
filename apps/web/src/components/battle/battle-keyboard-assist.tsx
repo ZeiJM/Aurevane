@@ -11,6 +11,8 @@ import {
 } from '@aurevane/validation/player/combat-controls'
 import { useEffect, useRef, useState } from 'react'
 
+type Facing = 'north' | 'east' | 'south' | 'west'
+
 function isTextEntryTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false
   if (target.isContentEditable) return true
@@ -60,6 +62,29 @@ function playerTile(playerName: string): HTMLButtonElement | null {
   )
 }
 
+function facingFromGlyph(text: string): Facing | null {
+  if (text.includes('↑')) return 'north'
+  if (text.includes('→')) return 'east'
+  if (text.includes('↓')) return 'south'
+  if (text.includes('←')) return 'west'
+  return null
+}
+
+export function currentFacingControlLabel(glyphTexts: readonly string[]): string | null {
+  for (const text of glyphTexts) {
+    const facing = facingFromGlyph(text)
+    if (facing) return `Face ${facing}`
+  }
+  return null
+}
+
+export function endTurnControlLabel(
+  finalFacingActive: boolean,
+  glyphTexts: readonly string[],
+): string | null {
+  return finalFacingActive ? currentFacingControlLabel(glyphTexts) : null
+}
+
 function legalVisibleTargetButtons(playerName: string): HTMLButtonElement[] {
   return Array.from(
     document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label*="occupied by"]'),
@@ -101,6 +126,19 @@ function facingModeIsActive(): boolean {
     document.querySelector<HTMLButtonElement>('[aria-label="Face west"]:not(:disabled)') &&
     document.querySelector<HTMLButtonElement>('[aria-label="Face east"]:not(:disabled)'),
   )
+}
+
+function currentFacingControl(playerName: string): HTMLButtonElement | null {
+  const tile = playerTile(playerName)
+  if (!tile) return null
+
+  const label = endTurnControlLabel(
+    facingModeIsActive(),
+    Array.from(tile.querySelectorAll<HTMLElement>('i, span')).map(
+      (candidate) => candidate.textContent?.trim() ?? '',
+    ),
+  )
+  return label ? document.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`) : null
 }
 
 function planningButton(text: string): HTMLButtonElement | null {
@@ -427,7 +465,9 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
         lastRepeatableCommand.current = null
         repeatSequence.current += 1
         movementPlan.current = null
-        commandButton('Finish Turn', 'End Turn', 'Facing / End Turn')?.click()
+        const facingControl = currentFacingControl(playerName)
+        if (facingControl && !facingControl.disabled) facingControl.click()
+        else commandButton('Finish Turn', 'End Turn', 'Facing / End Turn')?.click()
         return true
       }
       if (action === 'confirm') {
@@ -490,6 +530,7 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
           return
         event.preventDefault()
         event.stopImmediatePropagation()
+        if (action === 'endTurn' && event.repeat) return
         execute(action)
         return
       }
