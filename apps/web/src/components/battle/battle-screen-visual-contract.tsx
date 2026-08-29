@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 
+import headerStyles from './battle-header-centering.module.css'
 import styles from './battle-screen-visual-contract.module.css'
 
 function textOf(element: Element | null): string {
@@ -101,5 +102,5 @@ export function BattleScreenVisualContract() {
     }
   }, [])
 
-  return <span className={styles.hook} aria-hidden="true" />
+  return <span className={`${styles.hook} ${headerStyles.hook}`} aria-hidden="true" />
 }
