@@ -256,12 +256,21 @@
 }
 
 /*
- * Mobile uses the same mode-neutral ownership rule. All three legend items receive one equal flex
- * share and the same height so PvE/PvP cannot drift back to the old fixed-width coordinate chip.
+ * Mobile uses a three-column grid instead of competing flex-basis rules. This makes the outer
+ * footprint mathematically identical for both terrain keys and the shared coordinate control in
+ * PvE and PvP, regardless of intrinsic text width or legacy button sizing.
  */
 @media (max-width: 820px) {
-  :global(section#battlefield > [aria-label='Terrain legend']) {
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true']
+      section#battlefield
+      > [aria-label='Terrain legend']
+  ) {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
     gap: 0.25rem !important;
+    align-items: stretch !important;
+    justify-content: stretch !important;
     padding-right: 0.3rem !important;
     padding-left: 0.3rem !important;
     overflow-x: hidden !important;
@@ -281,29 +290,38 @@
   ) {
     box-sizing: border-box !important;
     min-width: 0 !important;
-    width: auto !important;
+    width: 100% !important;
     max-width: none !important;
     height: 2rem !important;
     min-height: 2rem !important;
     max-height: 2rem !important;
-    flex: 1 1 0 !important;
-    align-self: center !important;
+    align-self: stretch !important;
     margin: 0 !important;
   }
 
-  :global(section#battlefield > [aria-label='Terrain legend'] > span) {
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true']
+      section#battlefield
+      > [aria-label='Terrain legend']
+      > span
+  ) {
     padding-right: 0.28rem !important;
     padding-left: 0.28rem !important;
   }
 
-  .coordinateToggle {
-    min-width: 0;
-    min-height: 2rem;
-    flex: 1 1 0;
-    gap: 0.16rem;
-    justify-content: center;
-    padding: 0.24rem 0.18rem;
-    text-align: center;
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true']
+      section#battlefield
+      > [aria-label='Terrain legend']
+      > button[data-terrain-coordinate-toggle='true']
+  ) {
+    display: flex !important;
+    flex: none !important;
+    gap: 0.16rem !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0.24rem 0.18rem !important;
+    text-align: center !important;
   }
 
   .coordinateToggle > i {
