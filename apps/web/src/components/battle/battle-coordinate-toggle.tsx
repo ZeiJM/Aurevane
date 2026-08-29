@@ -15,9 +15,7 @@ export function BattleCoordinateToggle() {
 
     const locate = () => {
       frame = 0
-      const nextBattlefield = document.querySelector<HTMLElement>(
-        'section#battlefield[aria-label="Tactical battlefield"]',
-      )
+      const nextBattlefield = document.querySelector<HTMLElement>('section#battlefield')
       const nextLegend =
         nextBattlefield?.querySelector<HTMLElement>(':scope > [aria-label="Terrain legend"]') ?? null
 
