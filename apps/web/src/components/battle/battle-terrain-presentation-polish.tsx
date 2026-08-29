@@ -35,7 +35,9 @@ function syncTerrainPresentation(): HTMLElement | null {
       const resolvedLabel = replacement ?? current
       if (resolvedLabel === 'Elevated Ground') {
         const description = key.querySelector<HTMLElement>('small')
-        if (description) description.textContent = 'Access depends on Jump'
+        if (description?.textContent?.trim() !== 'Access depends on Jump') {
+          if (description) description.textContent = 'Access depends on Jump'
+        }
       }
     }
   }
@@ -92,8 +94,8 @@ export function BattleTerrainPresentationPolish() {
               className={styles.coordinateToggle}
               role="switch"
               aria-checked={showCoordinates}
-              aria-label={showCoordinates ? 'Hide tile coordinates' : 'Show tile coordinates'}
-              title={showCoordinates ? 'Hide tile coordinates' : 'Show tile coordinates'}
+              aria-label="Tile coordinates"
+              title={`Tile coordinates: ${showCoordinates ? 'on' : 'off'}`}
               onClick={() => setShowCoordinates((current) => !current)}
             >
               <span>Coords</span>
