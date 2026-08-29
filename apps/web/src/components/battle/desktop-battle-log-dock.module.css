@@ -46,24 +46,6 @@
     transform: translateX(calc(-1 * var(--battle-log-dock-center-shift))) !important;
   }
 
-  /* PvE does not need the PvP dock's tuned horizontal centering shift. */
-  :global(
-    main:not([data-pvp-battle='true'])
-      #battlefield[data-desktop-battle-log-open='true']
-      > [data-docked-battle-log='true']
-  ) {
-    transform: none !important;
-  }
-
-  /* Keep the existing PvP horizontal centering behavior while sharing PvE's two-row dock fill. */
-  :global(
-    main[data-pvp-battle='true']
-      #battlefield[data-desktop-battle-log-open='true']
-      > [data-docked-battle-log='true']
-  ) {
-    transform: translateX(calc(-1 * var(--battle-log-dock-center-shift))) !important;
-  }
-
   /* PvE's battlefield sits between two combatant rails, so opening the dock leaves less footer
      width than PvP has. Keep the same three approved controls and visual treatment, but give them a
      real compact grid while the desktop log is open. The two semantic terrain keys share the
