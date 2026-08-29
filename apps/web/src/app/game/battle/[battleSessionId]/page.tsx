@@ -5,8 +5,7 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 import { BattleAudioGate } from '@/components/battle/battle-audio-gate'
-import { BattleSessionClientBoundary } from '@/components/battle/battle-session-client-boundary'
-import { PvpBattleClientBoundary } from '@/components/battle/pvp-battle-client-boundary'
+import { BattleClientBoundary } from '@/components/battle/battle-client-boundary'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
@@ -75,10 +74,13 @@ export default async function BattleSessionPage({
 
     return (
       <BattleAudioGate>
-        <PvpBattleClientBoundary
+        <BattleClientBoundary
           initialBattle={battle}
-          metadata={pvpMetadata}
-          playerName={character.name}
+          runtime={{
+            kind: 'pvp',
+            playerName: character.name,
+            metadata: pvpMetadata,
+          }}
         />
       </BattleAudioGate>
     )
@@ -107,12 +109,15 @@ export default async function BattleSessionPage({
 
   return (
     <BattleAudioGate>
-      <BattleSessionClientBoundary
+      <BattleClientBoundary
         initialBattle={battle}
-        playerName={character.name}
-        playerLevel={character.level}
-        playerPortraitAssetId={getStarterPortraitImageAssetId(character.portraitRef)}
-        playerProfileImageUrl={playerProfileImageUrl}
+        runtime={{
+          kind: 'pve',
+          playerName: character.name,
+          playerLevel: character.level,
+          playerPortraitAssetId: getStarterPortraitImageAssetId(character.portraitRef),
+          playerProfileImageUrl,
+        }}
       />
     </BattleAudioGate>
   )
