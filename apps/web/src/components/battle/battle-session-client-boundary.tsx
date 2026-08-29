@@ -5,6 +5,7 @@ import { getTacticalHallRecordFromScenarioSourceId } from '@aurevane/game-core/c
 import type { ImageAssetId } from '@/media/registry'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
+import { AiBattlePvpParityAuthority } from './ai-battle-pvp-parity-authority'
 import { AiBattlePvpVisualSync } from './ai-battle-pvp-visual-sync'
 import { AiBattleQualityControls } from './ai-battle-quality-controls'
 import { AiBattleSurrenderAssist } from './ai-battle-surrender-assist'
@@ -13,6 +14,7 @@ import { AiDesktopCombatantRailPolish } from './ai-desktop-combatant-rail-polish
 import { AiDesktopSameFacingKeyboardAssist } from './ai-desktop-same-facing-keyboard-assist'
 import { AiNativeTerrainLegend } from './ai-native-terrain-legend'
 import { BattleChatEmojiPolish } from './battle-chat-emoji-polish'
+import { BattleCommandCockpitPolish } from './battle-command-cockpit-polish'
 import { BattleDirectionalAttackAssist } from './battle-directional-attack-assist'
 import { BattleExperienceV2 } from './battle-experience-v2'
 import { BattleFacingQuickCommitAssist } from './battle-facing-quick-commit-assist'
@@ -91,7 +93,9 @@ export function BattleSessionClientBoundary({
       <BattleRecruitRecoveryAssist />
       <AiDesktopSameFacingKeyboardAssist playerName={playerName} />
       <BattleKeyboardAssist playerName={playerName} />
+      <BattleCommandCockpitPolish />
       <AiCockpitPvpButtonFormat />
+      <AiBattlePvpParityAuthority />
       <BattleFeedbackAssist playerName={playerName} playerProfileImageUrl={playerProfileImageUrl} />
       <BattleUtilityWindows
         battleSessionId={initialBattle.battleSessionId}
