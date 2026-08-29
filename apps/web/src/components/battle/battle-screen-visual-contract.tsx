@@ -2,8 +2,9 @@
 
 import { useEffect } from 'react'
 
-import headerStyles from './battle-unified-header-authority.module.css'
 import styles from './battle-screen-visual-contract.module.css'
+import terrainLegendStyles from './battle-terrain-legend-visual-contract.module.css'
+import headerStyles from './battle-unified-header-authority.module.css'
 
 function textOf(element: Element | null): string {
   return element?.textContent?.trim() ?? ''
@@ -102,5 +103,10 @@ export function BattleScreenVisualContract() {
     }
   }, [])
 
-  return <span className={`${styles.hook} ${headerStyles.hook}`} aria-hidden="true" />
+  return (
+    <span
+      className={`${styles.hook} ${terrainLegendStyles.hook} ${headerStyles.hook}`}
+      aria-hidden="true"
+    />
+  )
 }
