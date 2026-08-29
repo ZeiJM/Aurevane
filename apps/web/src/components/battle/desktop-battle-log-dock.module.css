@@ -3,67 +3,35 @@
 }
 
 @media (min-width: 821px) {
-  /* PvP currently finishes its terrain footer beneath the dedicated log column with a visual
-     continuation. Keep that existing PvP treatment isolated to PvP; PvE must not depend on the
-     terrain legend painting an otherwise empty grid cell. */
+  /* The desktop log owns the same two-row battlefield area in both battle modes. PvE already used
+     this structural fill to avoid an unowned lower-right grid cell; PvP now uses that same layout
+     instead of painting the terrain-footer cell black with a mode-specific pseudo-element. */
   :global(
-    main[data-pvp-battle='true']
-      #battlefield[data-desktop-battle-log-open='true']
-      > [aria-label='Terrain legend']
-  ) {
-    position: relative !important;
-    z-index: 2;
-    overflow: visible !important;
-  }
-
-  :global(
-    main[data-pvp-battle='true']
-      #battlefield[data-desktop-battle-log-open='true']
-      > [aria-label='Terrain legend']
-  )::after {
-    position: absolute;
-    top: -1px;
-    bottom: 0;
-    left: 100%;
-    width: calc(var(--battle-log-dock-gap) + var(--battle-log-dock-width));
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    background: rgba(3, 7, 11, 0.98);
-    content: '';
-    pointer-events: none;
-  }
-
-  /* The existing PvP dock uses a small tuned left shift. Keep that behavior isolated to PvP so
-     the high-z-index log cannot slide back over PvE's real terrain-footer column. */
-  :global(
-    main[data-pvp-battle='true']
-      #battlefield[data-desktop-battle-log-open='true']
-      > [data-docked-battle-log='true']
-  ) {
-    transform: translateX(calc(-1 * var(--battle-log-dock-center-shift))) !important;
-  }
-
-  /* PvE owns an additional native terrain-footer row. Give the log a real grid area spanning both
-     battlefield rows instead of sizing it with a percentage-height calculation against a runtime
-     layout. This removes the unowned lower-right cell that could become a large black void when
-     the percentage height resolved from an indefinite ancestor. */
-  :global(
-    main:not([data-pvp-battle='true']) #battlefield[data-desktop-battle-log-open='true']
-  ) {
-    grid-template-rows: minmax(0, 1fr) auto !important;
-    align-content: stretch !important;
-  }
-
-  :global(
-    main:not([data-pvp-battle='true'])
-      #battlefield[data-desktop-battle-log-open='true']
-      > [data-docked-battle-log='true']
+    #battlefield[data-desktop-battle-log-open='true'] > [data-docked-battle-log='true']
   ) {
     grid-row: 1 / span 2 !important;
     height: auto !important;
     min-height: 0 !important;
     align-self: stretch !important;
     justify-self: stretch !important;
+  }
+
+  /* PvE does not need the PvP dock's tuned horizontal centering shift. */
+  :global(
+    main:not([data-pvp-battle='true'])
+      #battlefield[data-desktop-battle-log-open='true']
+      > [data-docked-battle-log='true']
+  ) {
     transform: none !important;
+  }
+
+  /* Keep the existing PvP horizontal centering behavior while sharing PvE's two-row dock fill. */
+  :global(
+    main[data-pvp-battle='true']
+      #battlefield[data-desktop-battle-log-open='true']
+      > [data-docked-battle-log='true']
+  ) {
+    transform: translateX(calc(-1 * var(--battle-log-dock-center-shift))) !important;
   }
 
   /* PvE's battlefield sits between two combatant rails, so opening the dock leaves less footer
