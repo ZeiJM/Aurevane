@@ -5,7 +5,7 @@
   flex: 1 1 auto;
   align-items: center;
   gap: 0.42rem;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .context > strong {
@@ -17,13 +17,22 @@
 
 .preview {
   display: inline-flex !important;
-  min-width: 0 !important;
+  min-width: max-content !important;
   max-width: none !important;
-  flex: 0 1 auto !important;
+  flex: 0 0 auto !important;
   align-items: center;
   gap: 0.24rem;
   margin: 0 !important;
-  overflow: hidden;
+  overflow: visible !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.preview > :global([data-battle-preview-chip='true']) {
+  display: inline-flex !important;
+  flex: 0 0 auto !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }
 
 :global(
@@ -54,6 +63,7 @@
     grid-template-rows: auto auto;
     width: 100%;
     gap: 0.2rem 0.45rem;
+    overflow: visible;
   }
 
   .context > strong {
@@ -69,7 +79,8 @@
     grid-column: 1 / -1;
     grid-row: 2;
     width: 100%;
+    min-width: 0 !important;
     flex-wrap: wrap;
-    overflow: visible;
+    overflow: visible !important;
   }
 }
