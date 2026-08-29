@@ -16,7 +16,7 @@ function uniqueIdentity(prefix: string): { email: string; characterName: string 
   }
 }
 
-test('keeps the desktop PvP battle log filled through the terrain footer row', async ({
+test('keeps the desktop PvP battle log above the terrain footer row', async ({
   browser,
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop PvP battle-log regression')
@@ -95,21 +95,36 @@ test('keeps the desktop PvP battle log filled through the terrain footer row', a
       const dockRect = dockElement.getBoundingClientRect()
       const legendRect = legendElement.getBoundingClientRect()
       const battlefieldRect = element.getBoundingClientRect()
-      const legendAfter = window.getComputedStyle(legendElement, '::after')
+      const dockStyle = window.getComputedStyle(dockElement)
+      const footerContinuation = window.getComputedStyle(element, '::after')
 
       return {
         dockBottom: dockRect.bottom,
         legendTop: legendRect.top,
         legendBottom: legendRect.bottom,
         battlefieldBottom: battlefieldRect.bottom,
-        legacyContinuationContent: legendAfter.content,
+        dockGridRowStart: dockStyle.gridRowStart,
+        dockGridRowEnd: dockStyle.gridRowEnd,
+        footerContinuationContent: footerContinuation.content,
+        footerContinuationGridRowStart: footerContinuation.gridRowStart,
+        footerContinuationBorderTopStyle: footerContinuation.borderTopStyle,
       }
     })
 
-    expect(geometry.dockBottom).toBeGreaterThan(geometry.legendTop)
-    expect(Math.abs(geometry.dockBottom - geometry.legendBottom)).toBeLessThanOrEqual(8)
-    expect(Math.abs(geometry.dockBottom - geometry.battlefieldBottom)).toBeLessThanOrEqual(8)
-    expect(geometry.legacyContinuationContent).toBe('none')
+    // The log must stop above the terrain-key row, leaving only the intentional dock inset before
+    // the footer boundary. The footer itself still reaches the battlefield bottom.
+    expect(geometry.dockBottom).toBeLessThanOrEqual(geometry.legendTop + 1)
+    expect(geometry.legendTop - geometry.dockBottom).toBeGreaterThanOrEqual(-1)
+    expect(geometry.legendTop - geometry.dockBottom).toBeLessThanOrEqual(8)
+    expect(Math.abs(geometry.legendBottom - geometry.battlefieldBottom)).toBeLessThanOrEqual(8)
+    expect(geometry.dockGridRowStart).toBe('1')
+    expect(geometry.dockGridRowEnd).toBe('auto')
+
+    // The right-side footer cell carries only the terrain divider, not a black continuation of the
+    // Battle Log. This preserves the previous void fix while keeping the log box out of the keys.
+    expect(geometry.footerContinuationContent).not.toBe('none')
+    expect(geometry.footerContinuationGridRowStart).toBe('2')
+    expect(geometry.footerContinuationBorderTopStyle).toBe('solid')
   } finally {
     await Promise.all([hostContext.close(), guestContext.close()])
   }
