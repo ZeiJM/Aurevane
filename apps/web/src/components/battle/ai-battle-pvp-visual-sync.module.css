@@ -183,4 +183,96 @@
     width: 100%;
     text-align: center;
   }
+
+  /* Use explicit AI-owned hooks instead of structural :has() matching for the mobile header.
+     This keeps the change isolated from login/game shells and avoids the selector regression that
+     prompted the previous rollback. */
+  :global(main[data-ai-battle-root='true'] > header[data-ai-battle-header='true']) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(7.6rem, 8.4rem) !important;
+    grid-template-rows: auto auto auto !important;
+    gap: 0.45rem 0.5rem !important;
+    align-items: center !important;
+    padding: 0.48rem 0.55rem 0.55rem !important;
+  }
+
+  :global([data-ai-battle-objective='true']) {
+    grid-column: 1 / -1 !important;
+    grid-row: 1 !important;
+    min-width: 0 !important;
+    gap: 0.08rem !important;
+    align-content: center !important;
+  }
+
+  :global([data-ai-battle-objective='true'] > strong) {
+    display: none !important;
+  }
+
+  :global([data-ai-battle-objective='true'] > span) {
+    color: var(--av-brass-300) !important;
+    font: 700 0.46rem/1 var(--av-font-mono) !important;
+    letter-spacing: 0.07em !important;
+    text-transform: uppercase !important;
+  }
+
+  :global([data-ai-battle-economy='true']) {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    align-self: stretch !important;
+    margin: 0 !important;
+  }
+
+  :global([data-ai-battle-victory='true']) {
+    position: static !important;
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 8.4rem !important;
+    height: auto !important;
+    min-height: 100% !important;
+    align-self: stretch !important;
+    justify-self: stretch !important;
+    margin: 0 !important;
+  }
+
+  :global([data-ai-battle-round='true']) {
+    grid-column: 1 / -1 !important;
+    grid-row: 3 !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-height: 2.6rem !important;
+    align-self: center !important;
+    justify-self: stretch !important;
+    margin: 0 !important;
+    border-radius: 999px !important;
+  }
+
+  /* AI mobile tokens now use the same live portrait footprint and current team-ring weight as PvP.
+     Only the portrait layer is lifted above the token background; facing, meters and tile labels keep
+     their existing z-order. */
+  :global(main[data-ai-battle-root='true'] #battlefield [data-ai-battle-token='true']) {
+    width: clamp(1.7rem, 56%, 2.75rem) !important;
+    height: auto !important;
+    aspect-ratio: 1 !important;
+    border-width: 1.27px !important;
+  }
+
+  :global(main[data-ai-battle-root='true'] #battlefield [data-map-token-portrait]) {
+    z-index: 0 !important;
+  }
+
+  :global(main[data-ai-battle-root='true'] #battlefield [data-map-token-portrait] img),
+  :global(main[data-ai-battle-root='true'] #battlefield [data-map-token-portrait] picture),
+  :global(main[data-ai-battle-root='true'] #battlefield [data-map-token-portrait] picture img) {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    object-fit: cover !important;
+    object-position: 50% 50% !important;
+  }
 }
