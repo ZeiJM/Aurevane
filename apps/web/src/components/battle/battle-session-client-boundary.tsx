@@ -32,6 +32,7 @@ import { BattleUtilityWindows } from './battle-utility-windows'
 import { DesktopBattleCombatantInspect } from './desktop-battle-combatant-inspect'
 import { DesktopBattleLogDock } from './desktop-battle-log-dock'
 import { MobileBattleCombatantPopup } from './mobile-battle-combatant-popup'
+import { BattleScreenVisualContract } from './battle-screen-visual-contract'
 
 interface BattleSessionClientBoundaryProps {
   initialBattle: BattleSessionView
@@ -108,6 +109,7 @@ export function BattleSessionClientBoundary({
         playerPortraitAssetId={playerPortraitAssetId}
         playerProfileImageUrl={playerProfileImageUrl}
       />
+      <BattleScreenVisualContract />
     </BattleRuntimeProvider>
   )
 }
