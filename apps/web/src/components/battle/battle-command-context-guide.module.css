@@ -160,13 +160,20 @@
   grid-column: 1 / -1 !important;
 }
 
+/* This selector deliberately matches the generic command-explanation selector's specificity so
+   the AI-only hide cannot be overridden when Guard/Attack/Recover becomes active. */
+:global(
+  main:not([data-pvp-battle='true'])
+    [data-battle-instruction-row='true'][data-battle-command-explanation]
+    [data-battle-instruction-description='true']
+),
 :global(main:not([data-pvp-battle='true']) [data-battle-instruction-description='true']) {
   display: none !important;
 }
 
 :global(main:not([data-pvp-battle='true']) [data-battle-target-preview='true']) {
   order: 1 !important;
-  flex: 1 1 auto !important;
+  flex: 0 1 auto !important;
   max-width: none !important;
   margin-left: 0.42rem;
   margin-right: 0.42rem;
@@ -277,9 +284,22 @@
     flex-wrap: wrap;
   }
 
+  /* AI mobile mirrors the same information hierarchy as desktop while respecting phone width:
+     action title + timer on row one, authoritative preview chips directly beneath on row two.
+     The removed prose does not reserve a ghost row. */
+  :global(main:not([data-pvp-battle='true']) [data-battle-instruction-row='true']) {
+    grid-template-rows: auto auto !important;
+  }
+
   :global(main:not([data-pvp-battle='true']) [data-battle-target-preview='true']) {
+    grid-column: 1 / -1 !important;
     grid-row: 2 !important;
+    width: 100% !important;
+    max-width: 100% !important;
     margin: 0 !important;
+    justify-content: flex-start !important;
+    overflow: visible !important;
+    flex-wrap: wrap !important;
   }
 
   :global([data-battle-preview-chip='true']) {
