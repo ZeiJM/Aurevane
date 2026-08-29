@@ -31,9 +31,8 @@
   pointer-events: none;
 }
 
-/* A warm inner rim and directional edge make elevation readable without moving the tile or
-   changing its dimensions. PvP already owns ::after for elevation, so this intentionally refines
-   that same presentation surface rather than introducing another layer. */
+/* Elevated ground is intentionally restrained: a bright upper lip, darker lower edge, and a very
+   soft vertical lift. It reads as a raised surface without adding another framed box inside the tile. */
 :global(
   section[aria-label='Tactical battlefield']
     button[aria-label^='Tile ']:not([aria-label*='; elevation 0'])
@@ -43,17 +42,22 @@
     button[aria-label^='Tile '][data-elevation]
 )::after {
   position: absolute;
-  inset: 0.14rem;
-  border: 1px solid rgba(219, 195, 139, 0.3);
-  border-top-color: rgba(241, 220, 168, 0.48);
-  border-left-color: rgba(226, 202, 150, 0.35);
-  border-right-color: rgba(123, 96, 59, 0.28);
-  border-bottom-color: rgba(88, 68, 43, 0.38);
+  inset: 0.08rem;
+  border: 0;
   border-radius: inherit;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(232, 207, 151, 0.11) 0,
+      rgba(232, 207, 151, 0.025) 24%,
+      transparent 48%,
+      rgba(4, 6, 8, 0.12) 100%
+    );
   box-shadow:
-    inset 0 0.12rem 0.24rem rgba(247, 225, 173, 0.06),
-    inset 0 -0.16rem 0.28rem rgba(4, 6, 8, 0.2),
-    0 -1px 0 rgba(231, 207, 154, 0.12);
+    inset 0 2px 0 rgba(236, 214, 162, 0.28),
+    inset 1px 0 0 rgba(221, 197, 143, 0.11),
+    inset -1px 0 0 rgba(54, 45, 32, 0.18),
+    inset 0 -3px 0 rgba(5, 7, 9, 0.28);
   content: '';
   pointer-events: none;
 }
@@ -99,6 +103,7 @@
     inset 0 -0.2rem 0.4rem rgba(10, 7, 5, 0.2);
 }
 
+/* A small raised platform replaces the triangle so the key matches the understated map cue. */
 :global(
   section[aria-label='Tactical battlefield']
     > [aria-label='Terrain legend']
@@ -111,14 +116,35 @@
     > span:nth-child(2)
     > i
 ) {
-  border-color: rgba(218, 191, 130, 0.5) !important;
-  color: #f2dfad !important;
-  background:
-    linear-gradient(180deg, rgba(233, 207, 148, 0.18), transparent 38%),
-    linear-gradient(145deg, rgba(78, 67, 46, 0.72), rgba(28, 27, 23, 0.92)) !important;
-  box-shadow:
-    inset 0 2px 0 rgba(243, 220, 166, 0.12),
-    inset 0 -3px 0 rgba(17, 14, 10, 0.22),
-    0 -1px 0 rgba(225, 199, 141, 0.1);
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+  position: relative;
+  overflow: hidden;
+  border-color: rgba(194, 170, 116, 0.4) !important;
+  color: transparent !important;
+  background: rgba(28, 29, 27, 0.9) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  font-size: 0 !important;
+  text-shadow: none !important;
+}
+
+:global(
+  section[aria-label='Tactical battlefield']
+    > [aria-label='Terrain legend']
+    > span:nth-child(2)
+    > i
+)::before,
+:global(
+  section[aria-label='PvP tactical battlefield']
+    > [aria-label='Terrain legend']
+    > span:nth-child(2)
+    > i
+)::before {
+  width: 0.88rem;
+  height: 0.46rem;
+  border: 1px solid rgba(231, 207, 151, 0.66);
+  border-top-color: rgba(246, 226, 176, 0.86);
+  border-bottom-color: rgba(82, 67, 45, 0.72);
+  border-radius: 0.08rem;
+  background: linear-gradient(180deg, rgba(219, 194, 137, 0.12), rgba(39, 36, 29, 0.2));
+  box-shadow: 0 0.16rem 0 -0.06rem rgba(10, 11, 10, 0.92);
+  content: '';
 }
