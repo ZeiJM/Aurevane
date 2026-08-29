@@ -65,7 +65,10 @@ export function BattleSessionClientBoundary({
       <BattleTerrainPresentationPolish />
       <AiBattlePvpVisualSync playerName={playerName} />
       <AiDesktopCombatantRailPolish playerName={playerName} />
-      <AiBattleQualityControls battleSessionId={initialBattle.battleSessionId} playerName={playerName} />
+      <AiBattleQualityControls
+        battleSessionId={initialBattle.battleSessionId}
+        playerName={playerName}
+      />
       <AiBattleSurrenderAssist battleSessionId={initialBattle.battleSessionId} />
       {lessonActive ? (
         <BattleLessonCoach
@@ -91,7 +94,10 @@ export function BattleSessionClientBoundary({
       <AiBattleKeyboardAssist playerName={playerName} />
       <BattleCommandCockpitPolish />
       <AiCockpitPvpButtonFormat />
-      <BattleFeedbackAssist playerName={playerName} playerProfileImageUrl={playerProfileImageUrl} />
+      <BattleFeedbackAssist
+        playerName={playerName}
+        playerProfileImageUrl={playerProfileImageUrl}
+      />
       <BattleUtilityWindows
         battleSessionId={initialBattle.battleSessionId}
         playerName={playerName}
