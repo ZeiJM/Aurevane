@@ -1,0 +1,143 @@
+.hook {
+  display: none;
+}
+
+/* Terrain polish is strictly visual. These overlays live inside the existing tile box and never
+   participate in layout, hit testing, movement, elevation, or board sizing. */
+:global(
+  section[aria-label='Tactical battlefield']
+    button[aria-label^='Tile '][aria-label*='; rough-ground;']
+)::before,
+:global(
+  section[aria-label='PvP tactical battlefield']
+    button[aria-label^='Tile '][data-terrain='rough']
+)::before {
+  position: absolute;
+  inset: 0.12rem;
+  z-index: 0;
+  border-radius: max(0.08rem, calc(inherit - 0.08rem));
+  background:
+    radial-gradient(circle at 24% 28%, rgba(211, 163, 97, 0.2) 0 5%, transparent 6%),
+    radial-gradient(circle at 72% 68%, rgba(96, 64, 39, 0.32) 0 6%, transparent 7%),
+    repeating-linear-gradient(
+      135deg,
+      rgba(191, 142, 79, 0.18) 0 0.1rem,
+      transparent 0.1rem 0.43rem
+    );
+  box-shadow:
+    inset 0 0 0 1px rgba(181, 132, 73, 0.08),
+    inset 0 -0.22rem 0.5rem rgba(20, 13, 9, 0.16);
+  content: '';
+  opacity: 0.82;
+  pointer-events: none;
+}
+
+/* A warm inner rim and directional light make elevation readable without moving the tile or
+   changing its dimensions. PvP already owns ::after for elevation, so this intentionally refines
+   that same presentation surface rather than introducing another layer. */
+:global(
+  section[aria-label='Tactical battlefield']
+    button[aria-label^='Tile ']:not([aria-label*='; elevation 0'])
+)::after,
+:global(
+  section[aria-label='PvP tactical battlefield']
+    button[aria-label^='Tile '][data-elevation]
+)::after {
+  position: absolute;
+  inset: 0.14rem;
+  z-index: 1;
+  border: 1px solid rgba(219, 195, 139, 0.3);
+  border-top-color: rgba(241, 220, 168, 0.48);
+  border-left-color: rgba(226, 202, 150, 0.35);
+  border-right-color: rgba(123, 96, 59, 0.28);
+  border-bottom-color: rgba(88, 68, 43, 0.38);
+  border-radius: max(0.08rem, calc(inherit - 0.08rem));
+  background: linear-gradient(180deg, rgba(232, 207, 151, 0.075), transparent 34%);
+  box-shadow:
+    inset 0 0.12rem 0.24rem rgba(247, 225, 173, 0.07),
+    inset 0 -0.16rem 0.28rem rgba(4, 6, 8, 0.22),
+    0 -1px 0 rgba(231, 207, 154, 0.12);
+  content: '';
+  pointer-events: none;
+}
+
+/* Keep terrain metadata and units visually above the decorative surfaces. This does not alter
+   their geometry or pointer behavior. */
+:global(
+  section[aria-label='Tactical battlefield']
+    button[aria-label^='Tile ']
+    > *
+),
+:global(
+  section[aria-label='PvP tactical battlefield']
+    button[aria-label^='Tile ']
+    > *
+) {
+  position: relative;
+  z-index: 2;
+}
+
+/* Legend cards retain their exact footprint; only material, edge definition, and key artwork are
+   refined to match the map treatment. */
+:global(
+  section[aria-label='Tactical battlefield']
+    > [aria-label='Terrain legend']
+    > span
+),
+:global(
+  section[aria-label='PvP tactical battlefield']
+    > [aria-label='Terrain legend']
+    > span
+) {
+  background:
+    linear-gradient(145deg, rgba(18, 22, 24, 0.92), rgba(6, 9, 12, 0.9)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.025),
+    0 0.18rem 0.5rem rgba(0, 0, 0, 0.12);
+}
+
+:global(
+  section[aria-label='Tactical battlefield']
+    > [aria-label='Terrain legend']
+    > span:first-child
+    > i
+),
+:global(
+  section[aria-label='PvP tactical battlefield']
+    > [aria-label='Terrain legend']
+    > span:first-child
+    > i
+) {
+  border-color: rgba(190, 139, 79, 0.48) !important;
+  background:
+    radial-gradient(circle at 28% 30%, rgba(217, 166, 99, 0.28) 0 7%, transparent 8%),
+    repeating-linear-gradient(135deg, rgba(180, 128, 70, 0.3) 0 3px, transparent 3px 8px),
+    linear-gradient(145deg, rgba(82, 58, 39, 0.9), rgba(35, 28, 23, 0.96)) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(229, 180, 110, 0.06),
+    inset 0 -0.2rem 0.4rem rgba(10, 7, 5, 0.2);
+}
+
+:global(
+  section[aria-label='Tactical battlefield']
+    > [aria-label='Terrain legend']
+    > span:nth-child(2)
+    > i
+),
+:global(
+  section[aria-label='PvP tactical battlefield']
+    > [aria-label='Terrain legend']
+    > span:nth-child(2)
+    > i
+) {
+  border-color: rgba(218, 191, 130, 0.5) !important;
+  color: #f2dfad !important;
+  background:
+    linear-gradient(180deg, rgba(233, 207, 148, 0.18), transparent 38%),
+    linear-gradient(145deg, rgba(78, 67, 46, 0.72), rgba(28, 27, 23, 0.92)) !important;
+  box-shadow:
+    inset 0 2px 0 rgba(243, 220, 166, 0.12),
+    inset 0 -3px 0 rgba(17, 14, 10, 0.22),
+    0 -1px 0 rgba(225, 199, 141, 0.1);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.75);
+}
