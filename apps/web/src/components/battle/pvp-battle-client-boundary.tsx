@@ -8,10 +8,13 @@ import type { BattleSessionView } from '@/server/battle/battle-session-service'
 import { BattleChatEmojiPolish } from './battle-chat-emoji-polish'
 import { BattleCommandCockpitPolish } from './battle-command-cockpit-polish'
 import { BattleDirectionalAttackAssist } from './battle-directional-attack-assist'
+import { BattleExperience } from './battle-experience'
 import { BattleFacingQuickCommitAssist } from './battle-facing-quick-commit-assist'
 import { BattleHeaderMatchMessage } from './battle-header-message-cycle'
 import { BattleMapTokenPolish } from './battle-map-token-polish'
 import { BattlePresentationPolish } from './battle-presentation-polish'
+import { BattleRuntimeProvider } from './battle-runtime-context'
+import { BattleScreenVisualContract } from './battle-screen-visual-contract'
 import { BattleStabilizationPolish } from './battle-stabilization-polish'
 import { BattleStatusEffectAssist } from './battle-status-effect-assist'
 import { BattleStickyActionAssist } from './battle-sticky-action-assist'
@@ -20,7 +23,6 @@ import { DesktopBattleCombatantInspect } from './desktop-battle-combatant-inspec
 import { DesktopBattleLogDock } from './desktop-battle-log-dock'
 import { PvpBattleChatBridge } from './pvp-battle-chat-bridge'
 import { PvpBattleCompletionPanel } from './pvp-battle-completion-panel'
-import { PvpBattleExperience } from './pvp-battle-experience'
 import { PvpBattleInspectPopup } from './pvp-battle-inspect-popup'
 import { PvpBattleKeyboardAssist } from './pvp-battle-keyboard-assist'
 import { PvpBattleQualityControls } from './pvp-battle-quality-controls'
@@ -28,9 +30,6 @@ import { PvpBattleReleasePolish } from './pvp-battle-release-polish'
 import { PvpLegacyResultSuppressor } from './pvp-legacy-result-suppressor'
 import { PvpMobileCommandParity } from './pvp-mobile-command-parity'
 import { PvpQuickCommitAssist } from './pvp-quick-commit-assist'
-import { PvpDesktopParity } from './pvp-desktop-parity'
-import { PvpSixCombatantRails } from './pvp-six-combatant-rails'
-import { BattleScreenVisualContract } from './battle-screen-visual-contract'
 
 export function PvpBattleClientBoundary({
   initialBattle,
@@ -53,15 +52,13 @@ export function PvpBattleClientBoundary({
   )
 
   return (
-    <>
-      <PvpBattleExperience
+    <BattleRuntimeProvider playerName={playerName}>
+      <BattleExperience
         key={initialBattle.battleVersion}
         initialBattle={initialBattle}
-        metadata={metadata}
+        runtime={{ kind: 'pvp', playerName, metadata }}
       />
       <BattleTerrainPresentationPolish />
-      <PvpDesktopParity initialBattle={initialBattle} metadata={metadata} />
-      <PvpSixCombatantRails initialBattle={initialBattle} metadata={metadata} />
       <PvpBattleReleasePolish />
       <PvpLegacyResultSuppressor />
       <BattleDirectionalAttackAssist playerName={playerName} />
@@ -97,6 +94,6 @@ export function PvpBattleClientBoundary({
       <PvpMobileCommandParity />
       <BattleStabilizationPolish />
       <BattleScreenVisualContract />
-    </>
+    </BattleRuntimeProvider>
   )
 }
