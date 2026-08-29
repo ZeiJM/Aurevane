@@ -12,7 +12,7 @@ function uniqueCharacterName(): string {
   return `Grid Guard ${suffix}`
 }
 
-test('keeps the desktop AI 9x7 grid, terrain legend, and battle log dock structurally aligned', async ({
+test('keeps the desktop AI 9x7 grid, shared terrain legend, and battle log dock structurally aligned', async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop AI geometry regression')
@@ -32,20 +32,22 @@ test('keeps the desktop AI 9x7 grid, terrain legend, and battle log dock structu
 
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   const board = battlefield.locator('[data-board-auto-fit="9x7"]')
-  const terrainLegend = battlefield.locator('[data-ai-native-terrain-legend="true"]')
+  const terrainLegend = battlefield.locator(':scope > [aria-label="Terrain legend"]')
 
   await expect(battlefield).toBeVisible()
   await expect(board).toHaveCount(1)
   await expect(board.locator("button[aria-label^='Tile ']")).toHaveCount(63)
 
-  // PvE owns one native detailed legend below the board. The legacy legend remains hidden and the
-  // presentation helper must not inject a second compact row above it.
+  // PvE and PvP now share one canonical terrain legend directly below the board. Retired AI-only
+  // portal and legacy legend layers must stay absent so presentation cannot drift by battle mode.
   await expect(terrainLegend).toHaveCount(1)
   await expect(terrainLegend).toBeVisible()
   await expect(terrainLegend.getByText('Difficult Terrain')).toBeVisible()
   await expect(terrainLegend.getByText('Elevated Ground')).toBeVisible()
-  await expect(battlefield.locator('[data-ai-legacy-terrain-legend="true"]')).toBeHidden()
+  await expect(battlefield.locator('[data-ai-native-terrain-legend="true"]')).toHaveCount(0)
+  await expect(battlefield.locator('[data-ai-legacy-terrain-legend="true"]')).toHaveCount(0)
   await expect(battlefield.locator('[data-terrain-legend-polish]')).toHaveCount(0)
+  await expect(terrainLegend.getByRole('switch', { name: 'Tile coordinates' })).toBeVisible()
 
   const geometry = await board.evaluate((element) => {
     const tile11 = element.querySelector<HTMLButtonElement>('button[aria-label^="Tile 1, 1;"]')!
@@ -103,7 +105,7 @@ test('keeps the desktop AI 9x7 grid, terrain legend, and battle log dock structu
 
   const dockGeometry = await battlefield.evaluate((element) => {
     const docked = element.querySelector<HTMLElement>('[data-docked-battle-log="true"]')!
-    const legend = element.querySelector<HTMLElement>('[data-ai-native-terrain-legend="true"]')!
+    const legend = element.querySelector<HTMLElement>(':scope > [aria-label="Terrain legend"]')!
     const difficult = legend.children[0] as HTMLElement
     const elevated = legend.children[1] as HTMLElement
     const coordinate = legend.querySelector<HTMLElement>(
@@ -148,8 +150,8 @@ test('keeps the desktop AI 9x7 grid, terrain legend, and battle log dock structu
   expect(dockGeometry.dockGridRowStart).toBe('1')
   expect(dockGeometry.dockGridRowEnd).toBe('span 2')
 
-  // All three footer controls must remain inside the real PvE terrain-footer column after the log
-  // opens. This catches the clipping that previously made Elevated Ground appear to disappear.
+  // All three shared footer controls must remain inside the terrain-footer column after the log
+  // opens. This catches clipping without depending on the retired AI-only legend portal.
   expect(dockGeometry.difficultLeft).toBeGreaterThanOrEqual(dockGeometry.legendLeft - 1)
   expect(dockGeometry.elevatedLeft).toBeGreaterThanOrEqual(dockGeometry.difficultRight - 1)
   expect(dockGeometry.coordinateLeft).toBeGreaterThanOrEqual(dockGeometry.elevatedRight - 1)
