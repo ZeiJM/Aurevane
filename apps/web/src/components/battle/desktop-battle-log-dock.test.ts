@@ -38,6 +38,18 @@ describe('desktop battle log PvP/PvE presentation parity', () => {
     )
   })
 
+  it('keeps the dock centering shift in PvP and removes it from PvE', () => {
+    const css = compact(readLocalFile('desktop-battle-log-dock.module.css'))
+
+    expect(css).toContain(
+      "main[data-pvp-battle='true'] #battlefield[data-desktop-battle-log-open='true'] > [data-docked-battle-log='true']",
+    )
+    expect(css).toContain(
+      'transform: translateX(calc(-1 * var(--battle-log-dock-center-shift))) !important;',
+    )
+    expect(css).toContain('transform: none !important;')
+  })
+
   it('keeps the footer continuation hack PvP-only', () => {
     const css = compact(readLocalFile('desktop-battle-log-dock.module.css'))
 
