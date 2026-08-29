@@ -3,17 +3,23 @@
 }
 
 @media (min-width: 821px) {
-  /* Finish the terrain-legend footer beneath the dedicated log column without changing the
-     legend's own width or moving its contents. This only paints the missing continuation across
-     the grid gap and log column, so the battlefield reads as one complete framed surface. */
-  :global(#battlefield[data-desktop-battle-log-open='true'] > [aria-label='Terrain legend']) {
+  /* PvP currently finishes its terrain footer beneath the dedicated log column with a visual
+     continuation. Keep that existing PvP treatment isolated to PvP; PvE must not depend on the
+     terrain legend painting an otherwise empty grid cell. */
+  :global(
+    main[data-pvp-battle='true']
+      #battlefield[data-desktop-battle-log-open='true']
+      > [aria-label='Terrain legend']
+  ) {
     position: relative !important;
     z-index: 2;
     overflow: visible !important;
   }
 
   :global(
-    #battlefield[data-desktop-battle-log-open='true'] > [aria-label='Terrain legend']
+    main[data-pvp-battle='true']
+      #battlefield[data-desktop-battle-log-open='true']
+      > [aria-label='Terrain legend']
   )::after {
     position: absolute;
     top: -1px;
@@ -29,16 +35,15 @@
   /* The dock is active from 821px upward, so its visual centering rule must use the same desktop
      range. Consume the shared centering variable as the single source of truth; compact desktop
      already resolves that variable to a safe 0.35rem, while wide desktop gets the larger tuned
-     shift. This avoids both the old competing transform and the 821-1040px transform:none dead
-     zone without changing grid tracks, panel dimensions, or the tactical board. */
+     shift. */
   :global(#battlefield[data-desktop-battle-log-open='true'] > [data-docked-battle-log='true']) {
     transform: translateX(calc(-1 * var(--battle-log-dock-center-shift))) !important;
   }
 
-  /* PvE uses the same dock component as PvP, but its battlefield also owns the AI terrain-footer
-     portal. Keep the board row definite while the log is open so the dock stretches to the exact
-     board height instead of collapsing to the height of the rendered round cards and leaving a
-     dark void beneath it. */
+  /* PvE owns an additional native terrain-footer row. Give the log a real grid area spanning both
+     battlefield rows instead of sizing it with a percentage-height calculation against a runtime
+     layout. This removes the unowned lower-right cell that could become a large black void when
+     the percentage height resolved from an indefinite ancestor. */
   :global(
     main:not([data-pvp-battle='true']) #battlefield[data-desktop-battle-log-open='true']
   ) {
@@ -51,24 +56,28 @@
       #battlefield[data-desktop-battle-log-open='true']
       > [data-docked-battle-log='true']
   ) {
-    height: calc(
-      100% - var(--battle-log-dock-vertical-inset) - var(--battle-log-dock-vertical-inset)
-    ) !important;
+    grid-row: 1 / span 2 !important;
+    height: auto !important;
     min-height: 0 !important;
     align-self: stretch !important;
     justify-self: stretch !important;
   }
 
-  /* The difficult-terrain key is part of the battlefield contract and must not disappear merely
-     because the log column is open. Preserve the AI native legend, hide only the old legacy key,
-     and allow both terrain keys to shrink evenly beside the coordinate switch on narrower desktop
-     battlefields. */
+  /* PvE's battlefield sits between two combatant rails, so opening the dock leaves less footer
+     width than PvP has. Keep the same three approved controls and visual treatment, but give them a
+     real compact grid while the desktop log is open. The two semantic terrain keys share the
+     remaining width and the coordinate switch uses a fixed compact footprint instead of reserving
+     an 11.5rem flex basis that can squeeze Elevated Ground completely out of view. */
   :global(
     main:not([data-pvp-battle='true'])
       #battlefield[data-desktop-battle-log-open='true']
       > [data-ai-native-terrain-legend='true']
   ) {
-    display: flex !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 5.25rem !important;
+    gap: 0.3rem !important;
+    align-items: center !important;
+    justify-content: stretch !important;
     visibility: visible !important;
     opacity: 1 !important;
   }
@@ -80,11 +89,61 @@
       > span
   ) {
     display: flex !important;
+    width: 100% !important;
     min-width: 0 !important;
     max-width: none !important;
-    flex: 1 1 0 !important;
+    flex: none !important;
+    padding-right: 0.3rem !important;
+    padding-left: 0.3rem !important;
     visibility: visible !important;
     opacity: 1 !important;
+  }
+
+  :global(
+    main:not([data-pvp-battle='true'])
+      #battlefield[data-desktop-battle-log-open='true']
+      > [data-ai-native-terrain-legend='true']
+      > span
+      > span
+  ) {
+    min-width: 0 !important;
+  }
+
+  :global(
+    main:not([data-pvp-battle='true'])
+      #battlefield[data-desktop-battle-log-open='true']
+      > [data-ai-native-terrain-legend='true']
+      > span
+      b
+  ),
+  :global(
+    main:not([data-pvp-battle='true'])
+      #battlefield[data-desktop-battle-log-open='true']
+      > [data-ai-native-terrain-legend='true']
+      > span
+      small
+  ) {
+    display: block !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  :global(
+    main:not([data-pvp-battle='true'])
+      #battlefield[data-desktop-battle-log-open='true']
+      > [data-ai-native-terrain-legend='true']
+      > button[data-terrain-coordinate-toggle='true']
+  ) {
+    box-sizing: border-box !important;
+    width: 5.25rem !important;
+    min-width: 5.25rem !important;
+    max-width: 5.25rem !important;
+    flex: 0 0 5.25rem !important;
+    gap: 0.18rem !important;
+    padding-right: 0.24rem !important;
+    padding-left: 0.24rem !important;
   }
 
   :global(
