@@ -12,7 +12,7 @@ function uniqueCharacterName(): string {
   return `Grid Guard ${suffix}`
 }
 
-test('keeps the desktop AI 9x7 grid evenly spaced with one lower terrain legend', async ({
+test('keeps the desktop AI 9x7 grid, terrain legend, and battle log dock structurally aligned', async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop AI geometry regression')
@@ -32,14 +32,19 @@ test('keeps the desktop AI 9x7 grid evenly spaced with one lower terrain legend'
 
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   const board = battlefield.locator('[data-board-auto-fit="9x7"]')
+  const terrainLegend = battlefield.locator('[data-ai-native-terrain-legend="true"]')
+
   await expect(battlefield).toBeVisible()
   await expect(board).toHaveCount(1)
   await expect(board.locator("button[aria-label^='Tile ']")).toHaveCount(63)
 
-  // AI owns one transformed, detailed legend below the board. The presentation helper must not
-  // inject a second compact row above it.
-  await expect(battlefield.locator('[data-ai-terrain-legend="true"]')).toHaveCount(1)
-  await expect(battlefield.locator('[data-ai-terrain-legend="true"]')).toBeVisible()
+  // PvE owns one native detailed legend below the board. The legacy legend remains hidden and the
+  // presentation helper must not inject a second compact row above it.
+  await expect(terrainLegend).toHaveCount(1)
+  await expect(terrainLegend).toBeVisible()
+  await expect(terrainLegend.getByText('Difficult Terrain')).toBeVisible()
+  await expect(terrainLegend.getByText('Elevated Ground')).toBeVisible()
+  await expect(battlefield.locator('[data-ai-legacy-terrain-legend="true"]')).toBeHidden()
   await expect(battlefield.locator('[data-terrain-legend-polish]')).toHaveCount(0)
 
   const geometry = await board.evaluate((element) => {
@@ -86,4 +91,67 @@ test('keeps the desktop AI 9x7 grid evenly spaced with one lower terrain legend'
   expect(geometry.boardBottom).toBeLessThanOrEqual(geometry.viewportBottom + 1)
   expect(geometry.lastTileRight).toBeLessThanOrEqual(geometry.viewportRight + 1)
   expect(geometry.lastTileBottom).toBeLessThanOrEqual(geometry.viewportBottom + 1)
+
+  await page.getByRole('button', { name: /Combat Log/ }).click()
+
+  const dock = battlefield.locator('[data-docked-battle-log="true"]')
+  await expect(dock).toBeVisible()
+  await expect(terrainLegend).toBeVisible()
+  await expect(terrainLegend.getByText('Difficult Terrain')).toBeVisible()
+  await expect(terrainLegend.getByText('Elevated Ground')).toBeVisible()
+  await expect(terrainLegend.getByRole('switch', { name: 'Tile coordinates' })).toBeVisible()
+
+  const dockGeometry = await battlefield.evaluate((element) => {
+    const docked = element.querySelector<HTMLElement>('[data-docked-battle-log="true"]')!
+    const legend = element.querySelector<HTMLElement>('[data-ai-native-terrain-legend="true"]')!
+    const difficult = legend.children[0] as HTMLElement
+    const elevated = legend.children[1] as HTMLElement
+    const coordinate = legend.querySelector<HTMLElement>(
+      'button[data-terrain-coordinate-toggle="true"]',
+    )!
+    const battlefieldRect = element.getBoundingClientRect()
+    const dockRect = docked.getBoundingClientRect()
+    const legendRect = legend.getBoundingClientRect()
+    const difficultRect = difficult.getBoundingClientRect()
+    const elevatedRect = elevated.getBoundingClientRect()
+    const coordinateRect = coordinate.getBoundingClientRect()
+    const dockStyle = getComputedStyle(docked)
+
+    return {
+      battlefieldTop: battlefieldRect.top,
+      battlefieldBottom: battlefieldRect.bottom,
+      dockTop: dockRect.top,
+      dockBottom: dockRect.bottom,
+      legendLeft: legendRect.left,
+      legendRight: legendRect.right,
+      legendTop: legendRect.top,
+      legendBottom: legendRect.bottom,
+      difficultLeft: difficultRect.left,
+      difficultRight: difficultRect.right,
+      elevatedLeft: elevatedRect.left,
+      elevatedRight: elevatedRect.right,
+      coordinateLeft: coordinateRect.left,
+      coordinateRight: coordinateRect.right,
+      dockGridRowStart: dockStyle.gridRowStart,
+      dockGridRowEnd: dockStyle.gridRowEnd,
+    }
+  })
+
+  // The PvE log owns a real grid area spanning the board and footer rows. Its lower edge should
+  // therefore reach the battlefield bottom (allowing only the intentional small vertical inset),
+  // rather than ending above a large unowned black cell beneath the rendered rounds.
+  expect(dockGeometry.dockTop).toBeGreaterThanOrEqual(dockGeometry.battlefieldTop - 1)
+  expect(dockGeometry.battlefieldBottom - dockGeometry.dockBottom).toBeGreaterThanOrEqual(0)
+  expect(dockGeometry.battlefieldBottom - dockGeometry.dockBottom).toBeLessThanOrEqual(16)
+  expect(dockGeometry.legendTop).toBeLessThan(dockGeometry.legendBottom)
+  expect(dockGeometry.legendBottom).toBeLessThanOrEqual(dockGeometry.battlefieldBottom + 1)
+  expect(dockGeometry.dockGridRowStart).toBe('1')
+  expect(dockGeometry.dockGridRowEnd).toBe('span 2')
+
+  // All three footer controls must remain inside the real PvE terrain-footer column after the log
+  // opens. This catches the clipping that previously made Elevated Ground appear to disappear.
+  expect(dockGeometry.difficultLeft).toBeGreaterThanOrEqual(dockGeometry.legendLeft - 1)
+  expect(dockGeometry.elevatedLeft).toBeGreaterThanOrEqual(dockGeometry.difficultRight - 1)
+  expect(dockGeometry.coordinateLeft).toBeGreaterThanOrEqual(dockGeometry.elevatedRight - 1)
+  expect(dockGeometry.coordinateRight).toBeLessThanOrEqual(dockGeometry.legendRight + 1)
 })
