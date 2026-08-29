@@ -82,9 +82,7 @@ function currentFacingControl(playerName: string): HTMLButtonElement | null {
       (candidate) => candidate.textContent?.trim() ?? '',
     ),
   )
-  return label
-    ? document.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`)
-    : null
+  return label ? document.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`) : null
 }
 
 /**
