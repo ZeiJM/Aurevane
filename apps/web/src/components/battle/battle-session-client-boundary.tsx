@@ -25,6 +25,7 @@ import { BattleMapTokenPolish } from './battle-map-token-polish'
 import { BattlePresentationPolish } from './battle-presentation-polish'
 import { BattleRecruitRecoveryAssist } from './battle-recruit-recovery-assist'
 import { BattleRuntimeProvider } from './battle-runtime-context'
+import { BattleScreenVisualContract } from './battle-screen-visual-contract'
 import { BattleStatusEffectAssist } from './battle-status-effect-assist'
 import { BattleStickyActionAssist } from './battle-sticky-action-assist'
 import { BattleTerrainPresentationPolish } from './battle-terrain-presentation-polish'
@@ -77,6 +78,7 @@ export function BattleSessionClientBoundary({
       <BattleDirectionalAttackAssist playerName={playerName} />
       <BattleMapTokenPolish playerName={playerName} />
       <BattlePresentationPolish playerName={playerName} />
+      <BattleScreenVisualContract />
       <BattleHeaderMatchMessage battleSessionId={initialBattle.battleSessionId} />
       <BattleChatEmojiPolish />
       <BattleFacingQuickCommitAssist playerName={playerName} />
