@@ -97,12 +97,12 @@ describe('Battle Log round grouping', () => {
     const result = limitPresentedBattleLogTurns(consolidatePresentedBattleLogRounds(turnRounds))
     const retainedActions = result.flatMap((group) => group.actions)
     const retainedTurns = [...new Set(retainedActions.flatMap((item) => item.turnNumber ?? []))]
+    const latestTurnActionKeys = retainedActions
+      .filter((item) => item.turnNumber === 12)
+      .map((item) => item.key)
 
     expect(retainedTurns).toEqual([12, 11, 10, 9, 8, 7, 6, 5, 4, 3])
-    expect(retainedActions.filter((item) => item.turnNumber === 12).map((item) => item.key)).toEqual([
-      'turn-12-extra',
-      'turn-12',
-    ])
+    expect(latestTurnActionKeys).toEqual(['turn-12-extra', 'turn-12'])
     expect(retainedActions.some((item) => item.turnNumber === 2)).toBe(false)
     expect(retainedActions.some((item) => item.turnNumber === 1)).toBe(false)
   })
