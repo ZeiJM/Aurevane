@@ -135,6 +135,25 @@ function ensureElevationMarker(tile: HTMLElement, elevation: number): void {
   }
 }
 
+function normalizeNativeTileMeta(tile: HTMLElement): void {
+  const meta = Array.from(tile.children).find(
+    (child): child is HTMLSpanElement => child instanceof HTMLSpanElement,
+  )
+  if (!meta) return
+
+  // PvP uses clean x,y coordinates and communicates difficult terrain through the tile material and
+  // legend. Remove the old PvE-only R50 badge and normalize the coordinate separator to the PvP form.
+  for (const badge of Array.from(meta.querySelectorAll<HTMLElement>(':scope > b'))) {
+    if (badge.textContent?.trim().toUpperCase() === 'R50') badge.remove()
+  }
+
+  for (const node of Array.from(meta.childNodes)) {
+    if (node.nodeType !== Node.TEXT_NODE || !node.textContent) continue
+    const normalized = node.textContent.replace(/^(\s*\d+)\.(\d+)/, '$1,$2')
+    if (normalized !== node.textContent) node.textContent = normalized
+  }
+}
+
 function syncTilePresentation(): void {
   for (const tile of document.querySelectorAll<HTMLElement>(
     "section#battlefield button[aria-label^='Tile ']",
@@ -155,6 +174,7 @@ function syncTilePresentation(): void {
 
     delete tile.dataset.terrainElevationCue
     ensureElevationMarker(tile, elevation)
+    normalizeNativeTileMeta(tile)
 
     for (const candidate of tile.querySelectorAll<HTMLElement>(
       'b, span:not([data-terrain-elevation-marker="true"])',
