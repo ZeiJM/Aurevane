@@ -87,6 +87,27 @@ function clearCoordinateToggle(): void {
   }
 }
 
+function ensureElevationMarker(tile: HTMLElement, elevation: number): void {
+  const existing = tile.querySelector<HTMLElement>(
+    ':scope > [data-terrain-elevation-marker="true"]',
+  )
+
+  if (elevation <= 0) {
+    existing?.remove()
+    return
+  }
+
+  const marker = existing ?? document.createElement('span')
+  if (!existing) {
+    marker.dataset.terrainElevationMarker = 'true'
+    marker.setAttribute('aria-hidden', 'true')
+    tile.append(marker)
+  }
+
+  const cue = `▲${elevation}`
+  if (marker.textContent !== cue) marker.textContent = cue
+}
+
 function syncTilePresentation(): void {
   for (const tile of document.querySelectorAll<HTMLElement>(
     "section#battlefield button[aria-label^='Tile ']",
@@ -102,15 +123,16 @@ function syncTilePresentation(): void {
     if (difficult) tile.dataset.terrainPresentation = 'difficult'
     else delete tile.dataset.terrainPresentation
 
-    if (elevation > 0) {
-      tile.dataset.terrainElevated = 'true'
-      tile.dataset.terrainElevationCue = `▲${elevation}`
-    } else {
-      delete tile.dataset.terrainElevated
-      delete tile.dataset.terrainElevationCue
-    }
+    if (elevation > 0) tile.dataset.terrainElevated = 'true'
+    else delete tile.dataset.terrainElevated
 
-    for (const candidate of tile.querySelectorAll<HTMLElement>('b, span')) {
+    // Retire the previous synthetic pill cue and replace it with one small native-looking corner label.
+    delete tile.dataset.terrainElevationCue
+    ensureElevationMarker(tile, elevation)
+
+    for (const candidate of tile.querySelectorAll<HTMLElement>(
+      'b, span:not([data-terrain-elevation-marker="true"])',
+    )) {
       const text = candidate.textContent?.trim() ?? ''
       if (/^▲\d*$/.test(text)) {
         candidate.dataset.terrainNativeElevation = 'true'
@@ -122,7 +144,9 @@ function syncTilePresentation(): void {
     if (difficult) {
       tile.setAttribute(
         'aria-label',
-        label.replace('; rough-ground;', '; difficult terrain;').replace('; rough ground;', '; difficult terrain;'),
+        label
+          .replace('; rough-ground;', '; difficult terrain;')
+          .replace('; rough ground;', '; difficult terrain;'),
       )
     }
   }
@@ -155,6 +179,11 @@ export function BattleTerrainPresentationPolish() {
       observer.disconnect()
       if (frame !== 0) window.cancelAnimationFrame(frame)
       clearCoordinateToggle()
+      for (const marker of document.querySelectorAll<HTMLElement>(
+        '[data-terrain-elevation-marker="true"]',
+      )) {
+        marker.remove()
+      }
     }
   }, [])
 
