@@ -2,8 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-import styles from './ai-battle-quality-controls.module.css'
-
 interface ClockView {
   active: boolean
   turnNumber: number | null
@@ -19,6 +17,45 @@ interface TickResponse {
   }
   error?: { message?: string }
 }
+
+const turnClockStyles = `
+[data-testid='combat-mode-instruction'][data-ai-turn-clock='true'] {
+  position: relative;
+  padding-right: 4.9rem;
+}
+[data-testid='combat-mode-instruction'][data-ai-turn-clock='true']::after {
+  position: absolute;
+  top: 50%;
+  right: 0.42rem;
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.25rem;
+  padding: 0.2rem 0.38rem;
+  border: 1px solid rgba(111, 172, 143, 0.42);
+  border-radius: 999px;
+  background: rgba(75, 143, 111, 0.055);
+  color: var(--av-brass-200);
+  content: attr(data-ai-turn-clock-label);
+  font: 750 0.4rem/1 var(--av-font-mono);
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+[data-testid='combat-mode-instruction'][data-ai-turn-clock='true'][data-ai-turn-clock-critical='true']::after {
+  color: #e48b78;
+}
+@media (max-width: 820px) {
+  [data-testid='combat-mode-instruction'][data-ai-turn-clock='true'] {
+    padding-right: 4.45rem;
+  }
+  [data-testid='combat-mode-instruction'][data-ai-turn-clock='true']::after {
+    right: 0.28rem;
+    padding-right: 0.3rem;
+    padding-left: 0.3rem;
+    font-size: 0.37rem;
+  }
+}
+`
 
 function remainingSeconds(deadlineAt: string | null, now: number): number {
   if (!deadlineAt || now <= 0) return 0
@@ -190,5 +227,5 @@ export function AiBattleQualityControls({
     )
   }, [clock?.active, clockLabel, error, seconds])
 
-  return <span className={styles.hook} aria-hidden="true" />
+  return <style>{turnClockStyles}</style>
 }
