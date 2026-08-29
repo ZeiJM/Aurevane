@@ -1,0 +1,171 @@
+.hook {
+  display: none;
+}
+
+/* Owner-verified shared battle corrections.
+   Keep these rules inside BattleScreenVisualContract so PvP and PvE cannot drift again. */
+
+/* PvE's compact command strip carries more useful action context than the older PvP copy.
+   Preserve the shared semantic title and append the same cost/context cue in both modes. */
+:global(
+  [data-battle-instruction-row='true'][data-battle-command-explanation='move']
+    [data-battle-instruction-title='true']::after
+) {
+  content: ' · 25 AP per normal tile';
+}
+
+:global(
+  [data-battle-instruction-row='true'][data-battle-command-explanation='attack']
+    [data-battle-instruction-title='true']::after
+) {
+  content: ' · 30 AP';
+}
+
+:global(
+  [data-battle-instruction-row='true'][data-battle-command-explanation='guard']
+    [data-battle-instruction-title='true']::after
+) {
+  content: ' · 30 AP';
+}
+
+:global(
+  [data-battle-instruction-row='true'][data-battle-command-explanation='recover']
+    [data-battle-instruction-title='true']::after
+) {
+  content: ' · 50 AP';
+}
+
+:global(
+  [data-battle-instruction-row='true'][data-battle-command-explanation='finish']
+    [data-battle-instruction-title='true']::after
+) {
+  content: ' · choose facing';
+}
+
+/* PvP now uses the same compact title + authoritative preview-chip hierarchy as PvE.
+   The underlying live description remains in the DOM for assistive technology. */
+:global(
+  main[data-pvp-battle='true']
+    [data-battle-instruction-row='true'][data-battle-command-explanation]
+    [data-battle-instruction-description='true']
+) {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+@media (min-width: 821px) {
+  /* Center Action Economy + Victory Conditions as the actual middle header cluster.
+     Symmetric outer tracks keep the cluster centered even when the Round / Combat Log control
+     is wider or narrower than the objective copy. */
+  :global(main[data-battle-visual-contract='true'] > header[data-battle-shared-header='true']) {
+    grid-template-columns: minmax(10rem, 1fr) minmax(24rem, 34rem) minmax(10rem, 1fr) !important;
+  }
+
+  :global([data-battle-shared-objective='true']) {
+    grid-column: 1 !important;
+    justify-self: start !important;
+  }
+
+  :global([data-battle-shared-economy='true']) {
+    grid-column: 2 !important;
+    justify-self: center !important;
+  }
+
+  :global([data-battle-shared-header-action='round-log']) {
+    grid-column: 3 !important;
+    justify-self: end !important;
+  }
+}
+
+@media (min-width: 1400px) {
+  /* Desktop Battle Log owns the unused canvas to the right of the centered 620px board.
+     Do not convert the battlefield into a second content column: that retrofit changed the board
+     geometry every time the log opened. The dock is instead overlaid only in the neutral side
+     canvas, while the board and terrain footer keep their normal one-column layout. */
+  :global(
+    main[data-battle-visual-contract='true']
+      #battlefield[data-desktop-battle-log-open='true']
+  ) {
+    position: relative !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: minmax(0, 1fr) auto !important;
+    column-gap: 0 !important;
+  }
+
+  :global(
+    main[data-battle-visual-contract='true']
+      #battlefield[data-desktop-battle-log-open='true']
+      > div:first-child
+  ) {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  :global(
+    main[data-battle-visual-contract='true']
+      #battlefield[data-desktop-battle-log-open='true']
+      > [aria-label='Terrain legend']
+  ) {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    width: 100% !important;
+  }
+
+  :global(
+    main[data-battle-visual-contract='true']
+      #battlefield[data-desktop-battle-log-open='true']
+      > [aria-label='Terrain legend']::after
+  ) {
+    display: none !important;
+    content: none !important;
+  }
+
+  :global(
+    main[data-battle-visual-contract='true']
+      #battlefield[data-desktop-battle-log-open='true']
+      > [data-docked-battle-log='true']
+  ) {
+    position: absolute !important;
+    top: var(--battle-log-dock-vertical-inset, 0.34rem) !important;
+    right: 0 !important;
+    bottom: 2.7rem !important;
+    left: calc(50% + 310px) !important;
+    z-index: 45 !important;
+    display: flex !important;
+    width: auto !important;
+    height: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    align-items: stretch !important;
+    justify-content: center !important;
+    align-self: auto !important;
+    justify-self: auto !important;
+    box-sizing: border-box !important;
+    margin: 0 !important;
+    padding: 0 0.65rem 0.2rem !important;
+    transform: none !important;
+    pointer-events: none;
+  }
+
+  :global(
+    main[data-battle-visual-contract='true']
+      #battlefield[data-desktop-battle-log-open='true']
+      > [data-docked-battle-log='true']
+      > :first-child
+  ) {
+    width: min(21rem, 100%) !important;
+    max-width: 21rem !important;
+    min-width: 0 !important;
+    margin-inline: auto !important;
+    pointer-events: auto;
+  }
+}

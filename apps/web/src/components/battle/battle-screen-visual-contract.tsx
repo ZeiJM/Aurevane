@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 
+import followupStyles from './battle-screen-owner-followup.module.css'
 import styles from './battle-screen-visual-contract.module.css'
 
 function textOf(element: Element | null): string {
@@ -101,5 +102,5 @@ export function BattleScreenVisualContract() {
     }
   }, [])
 
-  return <span className={styles.hook} aria-hidden="true" />
+  return <span className={`${styles.hook} ${followupStyles.hook}`} aria-hidden="true" />
 }
