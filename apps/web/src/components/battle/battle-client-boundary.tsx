@@ -15,6 +15,7 @@ import { BattleExperience } from './battle-experience'
 import { BattleFacingQuickCommitAssist } from './battle-facing-quick-commit-assist'
 import { BattleFeedbackAssist } from './battle-feedback-assist'
 import { BattleHeaderMatchMessage } from './battle-header-message-cycle'
+import { BattleInspectTerrainContext } from './battle-inspect-terrain-context'
 import { BattleKeyboardAssist } from './battle-keyboard-assist'
 import { BattleLessonCoach } from './battle-lesson-coach'
 import { BattleLessonCoachSemantics } from './battle-lesson-coach-semantics'
@@ -87,6 +88,7 @@ export function BattleClientBoundary({
       <BattleStatusEffectAssist />
       <BattleStickyActionAssist />
       <BattleCommandCockpitPolish />
+      <BattleInspectTerrainContext />
 
       {runtime.kind === 'pve' ? (
         <>
