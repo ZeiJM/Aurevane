@@ -12,46 +12,31 @@ permissions:
 
 jobs:
   format:
-    if: github.event.pull_request.head.ref == 'agent/ai-action-commit-production-release'
+    if: github.event.pull_request.head.ref == 'preview/finesse-silver-20260821'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: agent/ai-action-commit-production-release
+          ref: main
           fetch-depth: 0
-      - name: Align movement smoke checks with stable battle state
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
         run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          experience = Path('apps/web/e2e/battle-experience.pw.ts')
-          text = experience.read_text()
-          old = """  await expect(page.getByTestId('combat-mode-instruction')).toContainText(\n    'Move · 25 AP per normal tile',\n  )\n  await expect(page.getByTestId('combat-mode-instruction')).toContainText(\n    'Rough ground costs 50 AP',\n  )"""
-          new = """  await expect(page.getByTestId('combat-mode-instruction')).toContainText(\n    'Move mode: green tiles are reachable with your remaining Action Economy.',\n  )"""
-          if old not in text:
-              raise SystemExit('Expected legacy movement guidance assertions not found in battle-experience.pw.ts')
-          text = text.replace(old, new, 1)
-          old_commit = """  await expect(page.getByTestId('combat-mode-instruction')).toContainText(\n    'Movement committed. 0 AP remains.',\n  )\n"""
-          if old_commit not in text:
-              raise SystemExit('Expected transient movement-commit assertion not found in battle-experience.pw.ts')
-          text = text.replace(old_commit, '', 1)
-          experience.write_text(text)
-
-          usability = Path('apps/web/e2e/battle-usability.pw.ts')
-          text = usability.read_text()
-          old = """  await expect(page.getByTestId('combat-mode-instruction')).toContainText(\n    'Move · 25 AP per normal tile',\n  )\n  await expect(page.getByTestId('combat-mode-instruction')).toContainText(\n    'Rough ground costs 50 AP',\n  )"""
-          new = """  await expect(page.getByTestId('combat-mode-instruction')).toContainText(\n    'Move mode: green tiles are reachable with your remaining Action Economy.',\n  )"""
-          if old not in text:
-              raise SystemExit('Expected legacy movement guidance assertions not found in battle-usability.pw.ts')
-          usability.write_text(text.replace(old, new, 1))
-          PY
-      - name: Commit smoke contract updates
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format blocking shell CSS
+        run: pnpm exec prettier --write apps/web/src/components/shell/authenticated-game-shell.module.css
+      - name: Commit formatting to main
         run: |
           git config user.name "AUREVANE Release Bot"
           git config user.email "actions@users.noreply.github.com"
-          git add apps/web/e2e/battle-experience.pw.ts apps/web/e2e/battle-usability.pw.ts
+          git add apps/web/src/components/shell/authenticated-game-shell.module.css
           if git diff --cached --quiet; then
             exit 0
           fi
-          git commit -m "test: assert stable movement state in browser smoke"
-          git push origin HEAD:agent/ai-action-commit-production-release
+          git commit -m "chore: format authenticated shell css"
+          git push origin HEAD:main
