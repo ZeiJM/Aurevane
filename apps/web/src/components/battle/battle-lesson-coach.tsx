@@ -5,7 +5,6 @@ import {
   type TacticalHallRecordId,
 } from '@aurevane/game-core/combat/tactical-hall-records'
 import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 
 import type { GuidedTrainingProgress } from '@/server/battle/guided-training-completion-service'
 
@@ -58,8 +57,8 @@ function progressCount(progress: GuidedTrainingProgress): number {
   return GUIDED_CRITERIA.filter((criterion) => progress[criterion.id]).length
 }
 
-function useHeaderCriteriaTarget(): HTMLElement | null {
-  const [headerTarget, setHeaderTarget] = useState<HTMLElement | null>(null)
+function useVictoryControlTarget(): HTMLButtonElement | null {
+  const [victoryTarget, setVictoryTarget] = useState<HTMLButtonElement | null>(null)
 
   useEffect(() => {
     let frame = 0
@@ -67,7 +66,7 @@ function useHeaderCriteriaTarget(): HTMLElement | null {
     let activeEconomy: HTMLElement | null = null
     let activeObjective: HTMLElement | null = null
     let activeRound: HTMLElement | null = null
-    let activeVictory: HTMLElement | null = null
+    let activeVictory: HTMLButtonElement | null = null
 
     const clearVictoryPosition = () => {
       if (!activeVictory) return
@@ -110,12 +109,16 @@ function useHeaderCriteriaTarget(): HTMLElement | null {
                 element instanceof HTMLButtonElement && element.textContent?.includes('Combat Log'),
             ) as HTMLElement | undefined) ?? null)
       const victory =
-        header?.querySelector<HTMLElement>('button[aria-label^="Victory conditions"]') ?? null
+        header === null
+          ? null
+          : (Array.from(header.querySelectorAll<HTMLButtonElement>('button')).find((button) =>
+              button.textContent?.includes('Victory Conditions'),
+            ) ?? null)
 
-      if (!header || !economy || !objective || !round) {
+      if (!header || !economy || !objective || !round || !victory) {
         if (activeHeader && !activeHeader.isConnected) {
           clearInlineLayout()
-          setHeaderTarget(null)
+          setVictoryTarget(null)
         }
         return
       }
@@ -144,27 +147,25 @@ function useHeaderCriteriaTarget(): HTMLElement | null {
       economy.style.gridColumn = compact ? '1' : '2'
       economy.style.gridRow = compact ? '2' : '1'
 
-      if (victory) {
-        if (activeVictory && activeVictory !== victory) clearVictoryPosition()
-        activeVictory = victory
-        if (compact) {
-          for (const property of ['position', 'left', 'top', 'width', 'height', 'z-index']) {
-            victory.style.removeProperty(property)
-          }
-        } else {
-          const headerRect = header.getBoundingClientRect()
-          const economyRect = economy.getBoundingClientRect()
-          const columnGap = Number.parseFloat(window.getComputedStyle(header).columnGap) || 0
-          victory.style.position = 'absolute'
-          victory.style.left = `${economyRect.right - headerRect.left + columnGap}px`
-          victory.style.top = `${economyRect.top - headerRect.top}px`
-          victory.style.width = '8.4rem'
-          victory.style.height = `${economyRect.height}px`
-          victory.style.zIndex = '1'
+      if (activeVictory && activeVictory !== victory) clearVictoryPosition()
+      activeVictory = victory
+      if (compact) {
+        for (const property of ['position', 'left', 'top', 'width', 'height', 'z-index']) {
+          victory.style.removeProperty(property)
         }
+      } else {
+        const headerRect = header.getBoundingClientRect()
+        const economyRect = economy.getBoundingClientRect()
+        const columnGap = Number.parseFloat(window.getComputedStyle(header).columnGap) || 0
+        victory.style.position = 'absolute'
+        victory.style.left = `${economyRect.right - headerRect.left + columnGap}px`
+        victory.style.top = `${economyRect.top - headerRect.top}px`
+        victory.style.width = '8.4rem'
+        victory.style.height = `${economyRect.height}px`
+        victory.style.zIndex = '1'
       }
 
-      setHeaderTarget((current) => (current === header ? current : header))
+      setVictoryTarget((current) => (current === victory ? current : victory))
     }
 
     const scheduleLocate = () => {
@@ -184,7 +185,53 @@ function useHeaderCriteriaTarget(): HTMLElement | null {
     }
   }, [])
 
-  return headerTarget
+  return victoryTarget
+}
+
+function useVictoryControlBridge({
+  target,
+  counter,
+  ariaLabel,
+  hasUnseenProgress,
+  onOpen,
+}: {
+  target: HTMLButtonElement | null
+  counter: string
+  ariaLabel: string
+  hasUnseenProgress?: boolean
+  onOpen: () => void
+}) {
+  useEffect(() => {
+    if (!target) return
+
+    const label = target.querySelector<HTMLElement>('span')
+    const counterNode = target.querySelector<HTMLElement>('strong')
+    const previousAriaLabel = target.getAttribute('aria-label')
+    const previousCounter = counterNode?.textContent ?? null
+    const previousNewProgress = target.getAttribute('data-new-progress')
+
+    if (label && label.textContent !== 'Victory Conditions') label.textContent = 'Victory Conditions'
+    if (counterNode) counterNode.textContent = counter
+    target.setAttribute('aria-label', ariaLabel)
+    if (hasUnseenProgress) target.dataset.newProgress = 'true'
+    else delete target.dataset.newProgress
+
+    const openCoach = (event: MouseEvent) => {
+      event.preventDefault()
+      event.stopPropagation()
+      onOpen()
+    }
+
+    target.addEventListener('click', openCoach, true)
+    return () => {
+      target.removeEventListener('click', openCoach, true)
+      if (previousAriaLabel === null) target.removeAttribute('aria-label')
+      else target.setAttribute('aria-label', previousAriaLabel)
+      if (counterNode && previousCounter !== null) counterNode.textContent = previousCounter
+      if (previousNewProgress === null) delete target.dataset.newProgress
+      else target.setAttribute('data-new-progress', previousNewProgress)
+    }
+  }, [ariaLabel, counter, hasUnseenProgress, onOpen, target])
 }
 
 export function BattleLessonCoach({ battleSessionId, recordId }: BattleLessonCoachProps) {
@@ -196,59 +243,48 @@ export function BattleLessonCoach({ battleSessionId, recordId }: BattleLessonCoa
 
 function StandardBattleCriteria({ recordId }: { recordId: TacticalHallRecordId }) {
   const [open, setOpen] = useState(false)
-  const headerTarget = useHeaderCriteriaTarget()
+  const victoryTarget = useVictoryControlTarget()
   const record = getTacticalHallRecord(recordId)
 
-  return (
-    <>
-      {headerTarget
-        ? createPortal(
-            <button
-              className={styles.guidedReopen}
-              type="button"
-              aria-label="Victory conditions, 0 of 1 objectives complete"
-              onClick={() => setOpen(true)}
-            >
-              <span>Victory Conditions</span>
-              <strong>0/1</strong>
-            </button>,
-            headerTarget,
-          )
-        : null}
-      {open ? (
-        <div className={styles.guidedBackdrop} onPointerDown={() => setOpen(false)}>
-          <section
-            className={styles.guidedPanel}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="battle-criteria-title"
-            onPointerDown={(event) => event.stopPropagation()}
-          >
-            <button
-              className={styles.guidedClose}
-              type="button"
-              aria-label="Close victory conditions"
-              onClick={() => setOpen(false)}
-            >
-              ×
-            </button>
-            <span>Battle Hall · {record.name}</span>
-            <h2 id="battle-criteria-title">Victory conditions</h2>
-            <p>
-              Defeat all opposing combatants. When no enemy combatants remain able to fight, the
-              battle ends in victory.
-            </p>
-            <div className={styles.guidedFooter}>
-              <span>0/1 objectives complete</span>
-              <button type="button" onClick={() => setOpen(false)}>
-                Return to battle
-              </button>
-            </div>
-          </section>
+  useVictoryControlBridge({
+    target: victoryTarget,
+    counter: '0/1',
+    ariaLabel: 'Victory conditions, 0 of 1 objectives complete',
+    onOpen: () => setOpen(true),
+  })
+
+  return open ? (
+    <div className={styles.guidedBackdrop} onPointerDown={() => setOpen(false)}>
+      <section
+        className={styles.guidedPanel}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="battle-criteria-title"
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <button
+          className={styles.guidedClose}
+          type="button"
+          aria-label="Close victory conditions"
+          onClick={() => setOpen(false)}
+        >
+          ×
+        </button>
+        <span>Battle Hall · {record.name}</span>
+        <h2 id="battle-criteria-title">Victory conditions</h2>
+        <p>
+          Defeat all opposing combatants. When no enemy combatants remain able to fight, the battle
+          ends in victory.
+        </p>
+        <div className={styles.guidedFooter}>
+          <span>0/1 objectives complete</span>
+          <button type="button" onClick={() => setOpen(false)}>
+            Return to battle
+          </button>
         </div>
-      ) : null}
-    </>
-  )
+      </section>
+    </div>
+  ) : null
 }
 
 function GuidedFundamentalsCriteria({ battleSessionId }: { battleSessionId: string }) {
@@ -256,9 +292,20 @@ function GuidedFundamentalsCriteria({ battleSessionId }: { battleSessionId: stri
   const [progress, setProgress] = useState<GuidedTrainingProgress>(EMPTY_PROGRESS)
   const [error, setError] = useState<string | null>(null)
   const [hasUnseenProgress, setHasUnseenProgress] = useState(false)
-  const headerTarget = useHeaderCriteriaTarget()
+  const victoryTarget = useVictoryControlTarget()
   const latestProgress = useRef<GuidedTrainingProgress>(EMPTY_PROGRESS)
   const completing = useRef(false)
+
+  useVictoryControlBridge({
+    target: victoryTarget,
+    counter: `${progressCount(progress)}/${GUIDED_CRITERIA.length}`,
+    ariaLabel: `Victory conditions, ${progressCount(progress)} of ${GUIDED_CRITERIA.length} criteria complete${hasUnseenProgress ? ', new progress' : ''}`,
+    hasUnseenProgress,
+    onOpen: () => {
+      setHasUnseenProgress(false)
+      setOpen(true)
+    },
+  })
 
   useEffect(() => {
     let cancelled = false
@@ -324,85 +371,58 @@ function GuidedFundamentalsCriteria({ battleSessionId }: { battleSessionId: stri
     }
   }, [battleSessionId])
 
-  return (
-    <>
-      {headerTarget
-        ? createPortal(
-            <button
-              className={styles.guidedReopen}
-              type="button"
-              data-new-progress={hasUnseenProgress || undefined}
-              aria-label={`Victory conditions, ${progressCount(progress)} of ${GUIDED_CRITERIA.length} criteria complete${hasUnseenProgress ? ', new progress' : ''}`}
-              onClick={() => {
-                setHasUnseenProgress(false)
-                setOpen(true)
-              }}
-            >
-              <span>Victory Conditions</span>
-              <strong>
-                {progressCount(progress)}/{GUIDED_CRITERIA.length}
-              </strong>
-            </button>,
-            headerTarget,
-          )
-        : null}
-      {open ? (
-        <div className={styles.guidedBackdrop} onPointerDown={() => setOpen(false)}>
-          <section
-            className={styles.guidedPanel}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="guided-training-title"
-            onPointerDown={(event) => event.stopPropagation()}
+  return open ? (
+    <div className={styles.guidedBackdrop} onPointerDown={() => setOpen(false)}>
+      <section
+        className={styles.guidedPanel}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="guided-training-title"
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <button
+          className={styles.guidedClose}
+          type="button"
+          aria-label="Close victory conditions"
+          onClick={() => setOpen(false)}
+        >
+          ×
+        </button>
+        <span>Battle Hall · Guided Fundamentals</span>
+        <h2 id="guided-training-title">
+          {progressComplete(progress) ? 'Training complete' : 'Complete the tactical fundamentals'}
+        </h2>
+        <p>
+          This battle has an alternate victory condition: complete every server-recorded criterion.
+          New progress highlights the Victory Conditions button instead of interrupting your turn.
+        </p>
+        <ol className={styles.criteria}>
+          {GUIDED_CRITERIA.map((criterion) => {
+            const complete = progress[criterion.id]
+            return (
+              <li key={criterion.id} data-complete={complete || undefined}>
+                <strong>
+                  {complete ? '✓' : '○'} {criterion.label}
+                </strong>
+                <small>{criterion.why}</small>
+              </li>
+            )
+          })}
+        </ol>
+        {error ? <p className={styles.guidedError}>{error}</p> : null}
+        <div className={styles.guidedFooter}>
+          <span>
+            {progressCount(progress)}/{GUIDED_CRITERIA.length} complete
+          </span>
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            disabled={progressComplete(progress)}
           >
-            <button
-              className={styles.guidedClose}
-              type="button"
-              aria-label="Close victory conditions"
-              onClick={() => setOpen(false)}
-            >
-              ×
-            </button>
-            <span>Battle Hall · Guided Fundamentals</span>
-            <h2 id="guided-training-title">
-              {progressComplete(progress)
-                ? 'Training complete'
-                : 'Complete the tactical fundamentals'}
-            </h2>
-            <p>
-              This battle has an alternate victory condition: complete every server-recorded
-              criterion. New progress highlights the Victory Conditions button instead of
-              interrupting your turn.
-            </p>
-            <ol className={styles.criteria}>
-              {GUIDED_CRITERIA.map((criterion) => {
-                const complete = progress[criterion.id]
-                return (
-                  <li key={criterion.id} data-complete={complete || undefined}>
-                    <strong>
-                      {complete ? '✓' : '○'} {criterion.label}
-                    </strong>
-                    <small>{criterion.why}</small>
-                  </li>
-                )
-              })}
-            </ol>
-            {error ? <p className={styles.guidedError}>{error}</p> : null}
-            <div className={styles.guidedFooter}>
-              <span>
-                {progressCount(progress)}/{GUIDED_CRITERIA.length} complete
-              </span>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                disabled={progressComplete(progress)}
-              >
-                Continue training
-              </button>
-            </div>
-          </section>
+            Continue training
+          </button>
         </div>
-      ) : null}
-    </>
-  )
+      </section>
+    </div>
+  ) : null
 }
