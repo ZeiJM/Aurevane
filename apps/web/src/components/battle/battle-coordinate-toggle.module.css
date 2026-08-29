@@ -249,19 +249,19 @@
     font-size: 0.46rem;
   }
 
-  /* Keep the compact mobile layout, but restore the COORDS / On-Off copy to its prior readable
-     size. Only the text size changes here; button dimensions, spacing, icon, and alignment stay put. */
+  /* Match the mobile terrain-key typography: COORDS mirrors the 0.4rem key label and On/Off mirrors
+     the 0.38rem supporting line. Button dimensions, icon, spacing, and alignment remain unchanged. */
   .coordinateToggle > span {
     gap: 0.045rem;
     justify-items: center;
-    font-size: 0.29rem !important;
+    font-size: 0.4rem !important;
     line-height: 1 !important;
     text-align: center;
   }
 
   .coordinateToggle > span::after {
-    font-size: 0.27rem !important;
-    line-height: 1 !important;
+    font-size: 0.38rem !important;
+    line-height: 1.1 !important;
   }
 }
 
