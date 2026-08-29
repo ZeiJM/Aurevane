@@ -26,9 +26,12 @@ export function AiNativeTerrainLegend() {
       legacyLegend.setAttribute('aria-hidden', 'true')
     }
 
-    setBattlefield(target)
+    // Mount the portal on the next frame instead of synchronously setting React state from the
+    // effect body. The visual result is unchanged while complying with the hooks lifecycle rule.
+    const frame = window.requestAnimationFrame(() => setBattlefield(target))
 
     return () => {
+      window.cancelAnimationFrame(frame)
       delete target.dataset.aiTerrainLayout
       if (legacyLegend) {
         delete legacyLegend.dataset.aiLegacyTerrainLegend
