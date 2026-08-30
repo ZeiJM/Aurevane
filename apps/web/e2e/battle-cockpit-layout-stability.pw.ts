@@ -14,7 +14,7 @@ function uniqueIdentity(prefix: string): { email: string; characterName: string 
     .join('')
 
   return {
-    email: `${prefix}.${seed}@example.com`,
+    email: `${prefix.toLowerCase()}.${seed}@example.com`,
     characterName: `${prefix} ${suffix}`,
   }
 }
