@@ -25,6 +25,7 @@ import { BattleMobileTokenMeters } from './battle-mobile-token-meters'
 import { BattlePresentationPolish } from './battle-presentation-polish'
 import { BattlePveCommandContextParity } from './battle-pve-command-context-parity'
 import { BattleRecruitRecoveryAssist } from './battle-recruit-recovery-assist'
+import { BattleRoundTimer } from './battle-round-timer'
 import { buildBattleViewModel, type BattleRuntime } from './battle-runtime'
 import { BattleRuntimeProvider } from './battle-runtime-context'
 import { BattleScreenVisualContract } from './battle-screen-visual-contract'
@@ -90,6 +91,7 @@ export function BattleClientBoundary({
       <BattleChatEmojiPolish />
       <BattleFacingQuickCommitAssist playerName={runtime.playerName} />
       <PvpQuickCommitAssist />
+      <BattleRoundTimer initialBattle={initialBattle} />
       <BattleStatusEffectAssist />
       <BattleStickyActionAssist />
       <BattleCommandCockpitPolish />
