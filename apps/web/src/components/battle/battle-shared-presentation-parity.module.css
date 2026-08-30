@@ -172,6 +172,7 @@
     left: 50% !important;
     z-index: 4 !important;
     display: grid !important;
+    box-sizing: border-box !important;
     width: clamp(1.7rem, 56%, 2.75rem) !important;
     height: clamp(1.7rem, 56%, 2.75rem) !important;
     aspect-ratio: 1 / 1 !important;
@@ -200,15 +201,24 @@
   ) {
     position: absolute !important;
     inset: 0 !important;
+    box-sizing: border-box !important;
     width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
     height: 100% !important;
-    max-width: none !important;
-    max-height: none !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
     overflow: hidden !important;
     border-radius: 50% !important;
     clip-path: circle(50% at 50% 50%) !important;
     object-fit: cover !important;
     object-position: 50% 50% !important;
+    translate: none !important;
+    scale: none !important;
+    transform: none !important;
+    transform-origin: 50% 50% !important;
   }
 
   :global(
