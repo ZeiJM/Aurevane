@@ -154,7 +154,7 @@
   }
 
   /* One mobile token contract for PvE and PvP. This explicitly removes the old AI-only portrait
-     footprint differences while preserving team color, active state, facing and server state. */
+     footprint differences while preserving the exact current PvP ring, shadow, facing and state. */
   :global(
     main[data-unified-battle='true'][data-battle-visual-contract='true']
       #battlefield
@@ -175,17 +175,6 @@
     background: #080b10 !important;
     box-shadow: 0 0.35rem 0.9rem rgba(0, 0, 0, 0.5) !important;
     transform: translate(-50%, -50%) !important;
-  }
-
-  :global(
-    main[data-unified-battle='true'][data-battle-visual-contract='true']
-      #battlefield
-      [data-battle-shared-token='true'][data-active]
-  ) {
-    box-shadow:
-      0 0 0 3px rgba(212, 186, 130, 0.22),
-      0 0 1rem rgba(212, 186, 130, 0.35),
-      0 0.35rem 0.9rem rgba(0, 0, 0, 0.5) !important;
   }
 
   :global(
