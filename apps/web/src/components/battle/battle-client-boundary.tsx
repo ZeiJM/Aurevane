@@ -22,7 +22,6 @@ import { BattleLessonCoach } from './battle-lesson-coach'
 import { BattleLessonCoachSemantics } from './battle-lesson-coach-semantics'
 import { BattleMapTokenPolish } from './battle-map-token-polish'
 import { BattlePresentationPolish } from './battle-presentation-polish'
-import { BattlePveCommandContextParity } from './battle-pve-command-context-parity'
 import { BattleRecruitRecoveryAssist } from './battle-recruit-recovery-assist'
 import { buildBattleViewModel, type BattleRuntime } from './battle-runtime'
 import { BattleRuntimeProvider } from './battle-runtime-context'
@@ -90,7 +89,6 @@ export function BattleClientBoundary({
       <BattleStatusEffectAssist />
       <BattleStickyActionAssist />
       <BattleCommandCockpitPolish />
-      <BattlePveCommandContextParity />
       <BattleCockpitLayoutStabilizer playerName={runtime.playerName} />
       <BattleInspectTerrainContext />
 
