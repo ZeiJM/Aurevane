@@ -36,7 +36,7 @@
     main[data-unified-battle='true'][data-battle-kind='pve']
       #battlefield
       button[aria-label*='occupied by']
-      > [data-battle-shared-token='true']
+      > span:last-child
       > [data-map-token-portrait='true']
   ) {
     display: none !important;
