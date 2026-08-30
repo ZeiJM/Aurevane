@@ -2,9 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
-const MOBILE_HEADER =
-  /^(Steel is drawn\.|Stand fast\.|Hold your nerve\.|Press forward\.|Make this move count\.)$/
-const DESKTOP_HEADER =
+const SHARED_HEADER =
   /^(Steel is drawn\. The battle is underway\.|Stand fast\. The field belongs to the resolute\.|Hold your nerve\. One clear move can turn the tide\.|Press forward\. Fortune follows the decisive\.|Every step has weight\. Make this one count\.)$/
 
 function uniqueIdentity(prefix: string): { email: string; characterName: string } {
@@ -20,10 +18,10 @@ function uniqueIdentity(prefix: string): { email: string; characterName: string 
   }
 }
 
-async function expectSharedHeader(root: ReturnType<Page['locator']>, mobile: boolean) {
+async function expectSharedHeader(root: ReturnType<Page['locator']>) {
   const message = root.locator('[data-battle-header-message="true"]')
   await expect(message).toBeVisible()
-  await expect(message).toHaveText(mobile ? MOBILE_HEADER : DESKTOP_HEADER)
+  await expect(message).toHaveText(SHARED_HEADER)
 }
 
 async function expectMobileTokenMeters(root: ReturnType<Page['locator']>) {
@@ -47,16 +45,45 @@ async function expectMobileTokenMeters(root: ReturnType<Page['locator']>) {
       const meterElement = tokenElement.querySelector<HTMLElement>(
         ':scope > [data-mobile-token-meters="true"]',
       )!
-      const hp = meterElement.querySelector<HTMLElement>('[data-mobile-token-meter="hp"] > i')!
-      const mp = meterElement.querySelector<HTMLElement>('[data-mobile-token-meter="mp"] > i')!
+      const hpTrack = meterElement.querySelector<HTMLElement>('[data-mobile-token-meter="hp"]')!
+      const mpTrack = meterElement.querySelector<HTMLElement>('[data-mobile-token-meter="mp"]')!
+      const hp = hpTrack.querySelector<HTMLElement>(':scope > i')!
+      const mp = mpTrack.querySelector<HTMLElement>(':scope > i')!
+      const arrow = tokenElement.querySelector<HTMLElement>(':scope > i')!
+      const portraitCandidates = Array.from(tokenElement.children).filter(
+        (child): child is HTMLElement =>
+          child instanceof HTMLElement &&
+          (child.classList.contains('character-portrait-media') ||
+            Array.from(child.classList).some((className) => className.includes('unitPortraitFallback'))),
+      )
+      const portrait = portraitCandidates[0]!
       const tileRect = element.getBoundingClientRect()
       const tokenRect = tokenElement.getBoundingClientRect()
       const meterRect = meterElement.getBoundingClientRect()
+      const hpTrackRect = hpTrack.getBoundingClientRect()
+      const mpTrackRect = mpTrack.getBoundingClientRect()
+      const arrowRect = arrow.getBoundingClientRect()
+      const portraitRect = portrait.getBoundingClientRect()
       return {
+        tileTop: tileRect.top,
         tileBottom: tileRect.bottom,
+        tokenLeft: tokenRect.left,
+        tokenRight: tokenRect.right,
+        tokenTop: tokenRect.top,
         tokenBottom: tokenRect.bottom,
+        meterLeft: meterRect.left,
+        meterRight: meterRect.right,
         meterTop: meterRect.top,
         meterBottom: meterRect.bottom,
+        meterGap: mpTrackRect.top - hpTrackRect.bottom,
+        arrowTop: arrowRect.top,
+        arrowBottom: arrowRect.bottom,
+        portraitLeft: portraitRect.left,
+        portraitRight: portraitRect.right,
+        portraitTop: portraitRect.top,
+        portraitBottom: portraitRect.bottom,
+        portraitCount: portraitCandidates.length,
+        portraitClipPath: getComputedStyle(portrait).clipPath,
         hpWidth: hp.getBoundingClientRect().width,
         mpWidth: mp.getBoundingClientRect().width,
         hpBackground: getComputedStyle(hp).backgroundImage,
@@ -64,8 +91,23 @@ async function expectMobileTokenMeters(root: ReturnType<Page['locator']>) {
       }
     })
 
+    const tokenCenter = (geometry.tokenLeft + geometry.tokenRight) / 2
+    const meterCenter = (geometry.meterLeft + geometry.meterRight) / 2
+    expect(Math.abs(meterCenter - tokenCenter)).toBeLessThanOrEqual(1)
+    expect(geometry.meterGap).toBeGreaterThanOrEqual(0)
+    expect(geometry.meterGap).toBeLessThanOrEqual(2)
     expect(geometry.meterTop).toBeGreaterThanOrEqual(geometry.tokenBottom - 3)
     expect(geometry.meterBottom).toBeLessThanOrEqual(geometry.tileBottom + 2)
+
+    expect(geometry.portraitCount).toBe(1)
+    expect(geometry.portraitClipPath).not.toBe('none')
+    expect(geometry.portraitLeft).toBeGreaterThanOrEqual(geometry.tokenLeft - 1)
+    expect(geometry.portraitRight).toBeLessThanOrEqual(geometry.tokenRight + 1)
+    expect(geometry.portraitTop).toBeGreaterThanOrEqual(geometry.tokenTop - 1)
+    expect(geometry.portraitBottom).toBeLessThanOrEqual(geometry.tokenBottom + 1)
+
+    expect(geometry.arrowTop).toBeGreaterThanOrEqual(geometry.tileTop - 1)
+    expect(geometry.arrowBottom).toBeLessThanOrEqual(geometry.tokenTop + 3)
     expect(geometry.hpWidth).toBeGreaterThan(0)
     expect(geometry.mpWidth).toBeGreaterThanOrEqual(0)
     expect(geometry.hpBackground).not.toBe(geometry.mpBackground)
@@ -178,7 +220,7 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
 
   const root = page.locator("main[data-unified-battle='true'][data-battle-kind='pve']")
   await expect(root).toBeVisible()
-  await expectSharedHeader(root, mobile)
+  await expectSharedHeader(root)
 
   const context = root.getByRole('region', { name: 'Command Deck' })
   await expect(context.locator('[data-ai-turn-clock="true"]')).toHaveText(/^\d+s$/)
@@ -283,7 +325,7 @@ test('keeps requested PvP presentation parity on desktop and mobile', async ({
     const activePage = hostTurn ? host : guest
     const activeName = hostTurn ? hostIdentity.characterName : guestIdentity.characterName
 
-    await expectSharedHeader(activeRoot, mobile)
+    await expectSharedHeader(activeRoot)
     await selectMoveAndVerifySharedTreatment(activeRoot)
 
     if (mobile) {
