@@ -89,7 +89,7 @@
   /* The portrait is the body of each desktop combatant card. Keep only a compact information strip
      above it and let the shared accent border close directly around the image on the other sides. */
   :global(
-    main[data-unified-battle='true'][data-battle-visual-contract='true']
+    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
       [data-unified-combatant-rail='true']
       > div
       > article
@@ -156,9 +156,10 @@
   /* One mobile token contract for PvE and PvP. This explicitly removes the old AI-only portrait
      footprint differences while preserving the exact current PvP ring, shadow, facing and state. */
   :global(
-    main[data-unified-battle='true'][data-battle-visual-contract='true']
+    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
       #battlefield
-      [data-battle-shared-token='true']
+      button[aria-label*='occupied by']
+      > [data-battle-shared-token='true']
   ) {
     position: absolute !important;
     top: 50% !important;
@@ -178,21 +179,24 @@
   }
 
   :global(
-    main[data-unified-battle='true'][data-battle-visual-contract='true']
+    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
       #battlefield
-      [data-battle-shared-token='true']
+      button[aria-label*='occupied by']
+      > [data-battle-shared-token='true']
       img
   ),
   :global(
-    main[data-unified-battle='true'][data-battle-visual-contract='true']
+    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
       #battlefield
-      [data-battle-shared-token='true']
+      button[aria-label*='occupied by']
+      > [data-battle-shared-token='true']
       picture
   ),
   :global(
-    main[data-unified-battle='true'][data-battle-visual-contract='true']
+    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
       #battlefield
-      [data-battle-shared-token='true']
+      button[aria-label*='occupied by']
+      > [data-battle-shared-token='true']
       picture
       img
   ) {
