@@ -4,13 +4,16 @@ on:
   pull_request:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   prettier-preview:
+    if: ${{ !contains(github.event.pull_request.head.sha, '0000000000000000000000000000000000000000') && !contains(github.event.pull_request.title, '[skip-parity-format]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -20,7 +23,7 @@ jobs:
           corepack prepare pnpm@11.17.0 --activate
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Print parity-only Prettier diff
+      - name: Apply parity-only Prettier formatting
         run: |
           pnpm exec prettier --write \
             apps/web/e2e/shared-battle-presentation-parity.pw.ts \
@@ -28,9 +31,22 @@ jobs:
             apps/web/src/components/battle/battle-mobile-token-meters.tsx \
             apps/web/src/components/battle/battle-shared-presentation-parity.module.css \
             apps/web/src/components/battle/desktop-battle-log-dock.tsx
-          git diff -- \
+          if git diff --quiet -- \
+            apps/web/e2e/shared-battle-presentation-parity.pw.ts \
+            apps/web/src/components/battle/battle-keyboard-assist.tsx \
+            apps/web/src/components/battle/battle-mobile-token-meters.tsx \
+            apps/web/src/components/battle/battle-shared-presentation-parity.module.css \
+            apps/web/src/components/battle/desktop-battle-log-dock.tsx; then
+            echo "Parity files are already formatted."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
             apps/web/e2e/shared-battle-presentation-parity.pw.ts \
             apps/web/src/components/battle/battle-keyboard-assist.tsx \
             apps/web/src/components/battle/battle-mobile-token-meters.tsx \
             apps/web/src/components/battle/battle-shared-presentation-parity.module.css \
             apps/web/src/components/battle/desktop-battle-log-dock.tsx
+          git commit -m "Format battle presentation parity files"
+          git push origin HEAD:${{ github.head_ref }}
