@@ -158,10 +158,10 @@ test('keeps the desktop AI 9x7 grid, shared terrain legend, and battle log dock 
   expect(dockGeometry.dockGridRowStart).toBe('1')
   expect(dockGeometry.dockGridRowEnd).toBe('auto')
 
-  // PvE must use the same inward horizontal placement as the approved PvP dock rather than
-  // cancelling the shared transform and pinning the Battle Log against the battlefield edge.
-  expect(dockGeometry.dockTranslateX).toBeLessThan(-20)
-  expect(dockGeometry.battlefieldRight - dockGeometry.dockRight).toBeGreaterThan(20)
+  // PvE and PvP share the same inward transform. Keep a visible gutter from the battlefield edge,
+  // but allow the approved small rightward correction that visually centers the log in its slot.
+  expect(dockGeometry.dockTranslateX).toBeLessThan(-12)
+  expect(dockGeometry.battlefieldRight - dockGeometry.dockRight).toBeGreaterThan(12)
 
   // Continue only the footer divider through the right-hand log column. This avoids restoring the
   // old black lower-right void while keeping the Battle Log box itself out of the footer row.

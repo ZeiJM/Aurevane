@@ -96,12 +96,16 @@ test('keeps the desktop PvP battle log above the terrain footer row', async ({
       const legendRect = legendElement.getBoundingClientRect()
       const battlefieldRect = element.getBoundingClientRect()
       const dockStyle = window.getComputedStyle(dockElement)
+      const dockTransform = new DOMMatrixReadOnly(dockStyle.transform)
       const footerContinuation = window.getComputedStyle(element, '::after')
 
       return {
+        dockRight: dockRect.right,
         dockBottom: dockRect.bottom,
+        dockTranslateX: dockTransform.m41,
         legendTop: legendRect.top,
         legendBottom: legendRect.bottom,
+        battlefieldRight: battlefieldRect.right,
         battlefieldBottom: battlefieldRect.bottom,
         dockGridRowStart: dockStyle.gridRowStart,
         dockGridRowEnd: dockStyle.gridRowEnd,
@@ -119,6 +123,11 @@ test('keeps the desktop PvP battle log above the terrain footer row', async ({
     expect(Math.abs(geometry.legendBottom - geometry.battlefieldBottom)).toBeLessThanOrEqual(8)
     expect(geometry.dockGridRowStart).toBe('1')
     expect(geometry.dockGridRowEnd).toBe('auto')
+
+    // PvP uses the same shared inward transform as PvE. Keep a visible gutter from the battlefield
+    // edge while allowing the small rightward correction that centers the log in its reserved slot.
+    expect(geometry.dockTranslateX).toBeLessThan(-12)
+    expect(geometry.battlefieldRight - geometry.dockRight).toBeGreaterThan(12)
 
     // The right-side footer cell carries only the terrain divider, not a black continuation of the
     // Battle Log. This preserves the previous void fix while keeping the log box out of the keys.
