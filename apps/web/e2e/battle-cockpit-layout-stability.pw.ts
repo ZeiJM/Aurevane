@@ -29,7 +29,10 @@ async function expectStableFullDesktopCockpit(page: Page) {
   await expect(commands).toHaveCount(6)
   await expect(facingPad).toBeHidden()
 
-  const [deckBox, commandRowBox] = await Promise.all([deck.boundingBox(), commandRow.boundingBox()])
+  const [deckBox, commandRowBox] = await Promise.all([
+    deck.boundingBox(),
+    commandRow.boundingBox(),
+  ])
   expect(deckBox).not.toBeNull()
   expect(commandRowBox).not.toBeNull()
   expect(commandRowBox!.left - deckBox!.left).toBeLessThanOrEqual(12)
