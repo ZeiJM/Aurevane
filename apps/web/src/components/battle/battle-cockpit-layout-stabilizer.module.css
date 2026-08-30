@@ -11,11 +11,7 @@
     grid-template-columns: minmax(0, 1fr) !important;
   }
 
-  :global(
-    main[data-unified-battle='true']
-      [data-unified-command-deck='true']
-      > div:nth-child(2)
-  ) {
+  :global(main[data-unified-battle='true'] [data-unified-command-deck='true'] > div:nth-child(2)) {
     grid-column: 1 / -1 !important;
     width: 100%;
   }
@@ -23,10 +19,7 @@
 
 @media (min-width: 821px) and (min-height: 721px) {
   :global(
-    main[data-unified-battle='true']
-      [data-unified-command-deck='true']
-      > div:nth-child(2)
-      > button
+    main[data-unified-battle='true'] [data-unified-command-deck='true'] > div:nth-child(2) > button
   ) {
     min-height: 6.35rem !important;
   }
