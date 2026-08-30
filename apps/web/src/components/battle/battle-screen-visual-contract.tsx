@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 
 import scaleStyles from './battle-pvp-scale-authority.module.css'
+import parityStyles from './battle-shared-presentation-parity.module.css'
 import styles from './battle-screen-visual-contract.module.css'
 import headerStyles from './battle-unified-header-authority.module.css'
 
@@ -19,9 +20,36 @@ function findBattleRoot(): HTMLElement | null {
   return document.querySelector<HTMLElement>('#battlefield')?.closest<HTMLElement>('main') ?? null
 }
 
+function markSharedActionMode(root: HTMLElement) {
+  const active = Array.from(
+    root.querySelectorAll<HTMLButtonElement>(
+      'section[aria-label="Command Deck"] button[data-active], section[aria-label="Command Deck"] button[data-battle-active="true"]',
+    ),
+  ).find((button) => button.querySelector(':scope > strong'))
+  const label = active?.querySelector(':scope > strong')?.textContent?.trim() ?? ''
+  const next =
+    label === 'Move'
+      ? 'move'
+      : label === 'Basic Attack'
+        ? 'attack'
+        : label === 'Guard'
+          ? 'guard'
+          : label === 'Recover'
+            ? 'recover'
+            : label === 'Finish Turn'
+              ? 'finish'
+              : label === 'Inspect'
+                ? 'inspect'
+                : null
+
+  if (next) root.dataset.battleActionMode = next
+  else delete root.dataset.battleActionMode
+}
+
 function markSemanticControls(root: HTMLElement) {
   root.dataset.battleVisualContract = 'true'
   root.dataset.battleMode = root.dataset.pvpBattle === 'true' ? 'pvp' : 'pve'
+  markSharedActionMode(root)
 
   const header = root.querySelector<HTMLElement>(':scope > header')
   mark(header, 'battleSharedHeader')
@@ -93,6 +121,7 @@ export function BattleScreenVisualContract() {
         'class',
         'disabled',
         'data-active',
+        'data-battle-active',
         'data-selected',
         'data-board-auto-fit',
         'aria-pressed',
@@ -101,13 +130,14 @@ export function BattleScreenVisualContract() {
 
     return () => {
       observer.disconnect()
+      delete root.dataset.battleActionMode
       if (frame !== 0) window.cancelAnimationFrame(frame)
     }
   }, [])
 
   return (
     <span
-      className={`${styles.hook} ${headerStyles.hook} ${scaleStyles.hook}`}
+      className={`${styles.hook} ${headerStyles.hook} ${scaleStyles.hook} ${parityStyles.hook}`}
       aria-hidden="true"
     />
   )
