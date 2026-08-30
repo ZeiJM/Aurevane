@@ -45,119 +45,124 @@ async function expectStableFullDesktopCockpit(page: Page) {
   })
 }
 
-test('keeps the shared PvE desktop cockpit at its full scale before and after action selection', async ({
-  page,
-}, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop shared cockpit regression')
-  test.slow()
+test(
+  'keeps the shared PvE desktop cockpit at its full scale before and after action selection',
+  async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop shared cockpit regression')
+    test.slow()
 
-  await page.setViewportSize({ width: 1440, height: 900 })
-  const identity = uniqueIdentity('CockpitPve')
-  await createAccountAndEnterCharacter({
-    page,
-    email: identity.email,
-    password: 'AurevaneTest!42',
-    characterName: identity.characterName,
-  })
-  await page.goto('/game/battle')
-  await page.getByLabel('Battle mode').selectOption('recruit-sparring')
-  await page.getByRole('button', { name: 'Enter Battle' }).click()
-  await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
-
-  await expectStableFullDesktopCockpit(page)
-})
-
-test('keeps the shared PvP desktop cockpit at the same full scale', async ({ browser }, testInfo) => {
-  test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop shared cockpit regression')
-  test.slow()
-
-  const password = 'AurevaneTest!42'
-  const hostIdentity = uniqueIdentity('CockpitHost')
-  const guestIdentity = uniqueIdentity('CockpitGuest')
-  const hostContext = await browser.newContext({
-    baseURL: 'http://127.0.0.1:3100',
-    viewport: { width: 1440, height: 900 },
-  })
-  const guestContext = await browser.newContext({
-    baseURL: 'http://127.0.0.1:3100',
-    viewport: { width: 1440, height: 900 },
-  })
-  const host = await hostContext.newPage()
-  const guest = await guestContext.newPage()
-
-  try {
-    await provisionAccountAndEnterCharacter({
-      page: host,
-      email: hostIdentity.email,
-      password,
-      characterName: hostIdentity.characterName,
+    await page.setViewportSize({ width: 1440, height: 900 })
+    const identity = uniqueIdentity('CockpitPve')
+    await createAccountAndEnterCharacter({
+      page,
+      email: identity.email,
+      password: 'AurevaneTest!42',
+      characterName: identity.characterName,
     })
-    await provisionAccountAndEnterCharacter({
-      page: guest,
-      email: guestIdentity.email,
-      password,
-      characterName: guestIdentity.characterName,
+    await page.goto('/game/battle')
+    await page.getByLabel('Battle mode').selectOption('recruit-sparring')
+    await page.getByRole('button', { name: 'Enter Battle' }).click()
+    await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
+
+    await expectStableFullDesktopCockpit(page)
+  },
+)
+
+test(
+  'keeps the shared PvP desktop cockpit at the same full scale',
+  async ({ browser }, testInfo) => {
+    test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop shared cockpit regression')
+    test.slow()
+
+    const password = 'AurevaneTest!42'
+    const hostIdentity = uniqueIdentity('CockpitHost')
+    const guestIdentity = uniqueIdentity('CockpitGuest')
+    const hostContext = await browser.newContext({
+      baseURL: 'http://127.0.0.1:3100',
+      viewport: { width: 1440, height: 900 },
     })
+    const guestContext = await browser.newContext({
+      baseURL: 'http://127.0.0.1:3100',
+      viewport: { width: 1440, height: 900 },
+    })
+    const host = await hostContext.newPage()
+    const guest = await guestContext.newPage()
 
-    await host.goto('/game/battle')
-    await host.getByRole('button', { name: /Player vs Player/ }).click()
-    await host.getByRole('button', { name: 'Create Battle Lobby' }).click()
+    try {
+      await provisionAccountAndEnterCharacter({
+        page: host,
+        email: hostIdentity.email,
+        password,
+        characterName: hostIdentity.characterName,
+      })
+      await provisionAccountAndEnterCharacter({
+        page: guest,
+        email: guestIdentity.email,
+        password,
+        characterName: guestIdentity.characterName,
+      })
 
-    const hostDialog = host.getByRole('dialog', { name: 'The arena is waiting.' })
-    await expect(hostDialog).toBeVisible()
-    const lobbyKey = (
-      await hostDialog
-        .locator('button')
-        .filter({ hasText: 'Lobby Key' })
-        .locator('strong')
-        .textContent()
-    )?.trim()
-    expect(lobbyKey).toMatch(/^AVL-[A-Z0-9]{4}-[A-Z0-9]{4}$/)
+      await host.goto('/game/battle')
+      await host.getByRole('button', { name: /Player vs Player/ }).click()
+      await host.getByRole('button', { name: 'Create Battle Lobby' }).click()
 
-    await guest.goto(`/game/battle?join=${encodeURIComponent(lobbyKey!)}`)
-    const guestDialog = guest.getByRole('dialog', { name: 'The arena is waiting.' })
-    await expect(guestDialog).toBeVisible()
-    await guestDialog.getByRole('button', { name: 'Mark Ready' }).click()
-    await hostDialog.getByRole('button', { name: 'Mark Ready' }).click()
-    await expect(host).toHaveURL(/\/game\/battle\/[0-9a-f-]+$/i, { timeout: 20_000 })
+      const hostDialog = host.getByRole('dialog', { name: 'The arena is waiting.' })
+      await expect(hostDialog).toBeVisible()
+      const lobbyKey = (
+        await hostDialog
+          .locator('button')
+          .filter({ hasText: 'Lobby Key' })
+          .locator('strong')
+          .textContent()
+      )?.trim()
+      expect(lobbyKey).toMatch(/^AVL-[A-Z0-9]{4}-[A-Z0-9]{4}$/)
 
-    await expectStableFullDesktopCockpit(host)
-  } finally {
-    await Promise.all([hostContext.close(), guestContext.close()])
-  }
-})
+      await guest.goto(`/game/battle?join=${encodeURIComponent(lobbyKey!)}`)
+      const guestDialog = guest.getByRole('dialog', { name: 'The arena is waiting.' })
+      await expect(guestDialog).toBeVisible()
+      await guestDialog.getByRole('button', { name: 'Mark Ready' }).click()
+      await hostDialog.getByRole('button', { name: 'Mark Ready' }).click()
+      await expect(host).toHaveURL(/\/game\/battle\/[0-9a-f-]+$/i, { timeout: 20_000 })
 
-test('removes the mobile final-facing pad while Finish Turn keeps the current facing', async ({
-  page,
-}, testInfo) => {
-  test.skip(testInfo.project.name !== 'mobile-chromium', 'Mobile shared cockpit regression')
-  test.slow()
+      await expectStableFullDesktopCockpit(host)
+    } finally {
+      await Promise.all([hostContext.close(), guestContext.close()])
+    }
+  },
+)
 
-  const identity = uniqueIdentity('CockpitMobile')
-  await createAccountAndEnterCharacter({
-    page,
-    email: identity.email,
-    password: 'AurevaneTest!42',
-    characterName: identity.characterName,
-  })
-  await page.goto('/game/battle')
-  await page.getByLabel('Battle mode').selectOption('recruit-sparring')
-  await page.getByRole('button', { name: 'Enter Battle' }).click()
-  await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
+test(
+  'removes the mobile final-facing pad while Finish Turn keeps the current facing',
+  async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== 'mobile-chromium', 'Mobile shared cockpit regression')
+    test.slow()
 
-  const deck = page.locator('section[aria-label="Command Deck"]')
-  const facingPad = deck.locator('[data-unified-facing-pad="true"]')
-  const finishTurn = deck.getByRole('button', { name: /Finish Turn/ })
+    const identity = uniqueIdentity('CockpitMobile')
+    await createAccountAndEnterCharacter({
+      page,
+      email: identity.email,
+      password: 'AurevaneTest!42',
+      characterName: identity.characterName,
+    })
+    await page.goto('/game/battle')
+    await page.getByLabel('Battle mode').selectOption('recruit-sparring')
+    await page.getByRole('button', { name: 'Enter Battle' }).click()
+    await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
 
-  await expect(facingPad).toBeHidden()
-  await expect(finishTurn).toContainText('Keep facing + end')
+    const deck = page.locator('section[aria-label="Command Deck"]')
+    const facingPad = deck.locator('[data-unified-facing-pad="true"]')
+    const finishTurn = deck.getByRole('button', { name: /Finish Turn/ })
 
-  const finalTurnResponse = page.waitForResponse(
-    (response) =>
-      response.request().method() === 'POST' &&
-      /\/api\/battles\/[0-9a-f-]+\/final-turn$/i.test(new URL(response.url()).pathname),
-  )
-  await finishTurn.click()
-  expect((await finalTurnResponse).ok()).toBe(true)
-  await expect(facingPad).toBeHidden()
-})
+    await expect(facingPad).toBeHidden()
+    await expect(finishTurn).toContainText('Keep facing + end')
+
+    const finalTurnResponse = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        /\/api\/battles\/[0-9a-f-]+\/final-turn$/i.test(new URL(response.url()).pathname),
+    )
+    await finishTurn.click()
+    expect((await finalTurnResponse).ok()).toBe(true)
+    await expect(facingPad).toBeHidden()
+  },
+)
