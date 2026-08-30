@@ -135,7 +135,7 @@ test('mobile Finish Turn opens battlefield facing guides and commits a double-ta
   test.skip(testInfo.project.name !== 'mobile-chromium', 'Mobile shared cockpit regression')
   test.slow()
 
-  const identity = uniqueIdentity('CockpitMobileFacing')
+  const identity = uniqueIdentity('MobFace')
   await createAccountAndEnterCharacter({
     page,
     email: identity.email,
@@ -213,7 +213,7 @@ test('mobile double-tap Finish Turn keeps the current facing as a shortcut', asy
   test.skip(testInfo.project.name !== 'mobile-chromium', 'Mobile shared cockpit regression')
   test.slow()
 
-  const identity = uniqueIdentity('CockpitMobileShortcut')
+  const identity = uniqueIdentity('MobKeep')
   await createAccountAndEnterCharacter({
     page,
     email: identity.email,
