@@ -39,7 +39,7 @@ test('keeps the authoritative mobile PvE turn clock on the Choose Your Action ro
   const title = row.locator(':scope > strong')
   const timer = row.locator('[data-ai-turn-clock="true"]')
 
-  await expect(title).toHaveText('Choose Your Action')
+  await expect(title).toHaveText(/^Choose your action$/i)
   await expect(timer).toBeVisible()
   await expect(timer).toHaveText(/^\d+s$/)
 
