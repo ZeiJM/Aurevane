@@ -83,7 +83,12 @@ function commandButton(...labels: string[]): HTMLButtonElement | null {
 
 function commandIsActive(...labels: string[]): boolean {
   const button = commandButton(...labels)
-  return Boolean(button && `${button.className}`.includes('commandActive'))
+  return Boolean(
+    button &&
+      (button.hasAttribute('data-active') ||
+        button.dataset.battleActive === 'true' ||
+        `${button.className}`.includes('commandActive')),
+  )
 }
 
 function attackModeIsActive(): boolean {
@@ -389,7 +394,7 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
       )
       if (!target || target.disabled) return false
       if ((target.getAttribute('aria-label') ?? '').includes('occupied by ')) return false
-      if (!`${target.className}`.includes('tileReachable')) return false
+      if (!target.hasAttribute('data-reachable')) return false
 
       movementPlan.current = {
         committedOriginKey: committedKey,
