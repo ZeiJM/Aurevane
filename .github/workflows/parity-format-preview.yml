@@ -1,0 +1,36 @@
+name: Parity format preview
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  prettier-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Print parity-only Prettier diff
+        run: |
+          pnpm exec prettier --write \
+            apps/web/e2e/shared-battle-presentation-parity.pw.ts \
+            apps/web/src/components/battle/battle-keyboard-assist.tsx \
+            apps/web/src/components/battle/battle-mobile-token-meters.tsx \
+            apps/web/src/components/battle/battle-shared-presentation-parity.module.css \
+            apps/web/src/components/battle/desktop-battle-log-dock.tsx
+          git diff -- \
+            apps/web/e2e/shared-battle-presentation-parity.pw.ts \
+            apps/web/src/components/battle/battle-keyboard-assist.tsx \
+            apps/web/src/components/battle/battle-mobile-token-meters.tsx \
+            apps/web/src/components/battle/battle-shared-presentation-parity.module.css \
+            apps/web/src/components/battle/desktop-battle-log-dock.tsx
