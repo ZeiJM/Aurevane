@@ -21,6 +21,7 @@ import { BattleKeyboardAssist } from './battle-keyboard-assist'
 import { BattleLessonCoach } from './battle-lesson-coach'
 import { BattleLessonCoachSemantics } from './battle-lesson-coach-semantics'
 import { BattleMapTokenPolish } from './battle-map-token-polish'
+import { BattleMobileTokenMeters } from './battle-mobile-token-meters'
 import { BattlePresentationPolish } from './battle-presentation-polish'
 import { BattlePveCommandContextParity } from './battle-pve-command-context-parity'
 import { BattleRecruitRecoveryAssist } from './battle-recruit-recovery-assist'
@@ -80,6 +81,7 @@ export function BattleClientBoundary({
       <BattleCoordinateToggle />
       <BattleDirectionalAttackAssist playerName={runtime.playerName} />
       <BattleMapTokenPolish playerName={runtime.kind === 'pve' ? runtime.playerName : undefined} />
+      <BattleMobileTokenMeters initialBattle={initialBattle} combatantNames={combatantNames} />
       <BattlePresentationPolish
         playerName={runtime.playerName}
         pvpMetadata={runtime.kind === 'pvp' ? runtime.metadata : undefined}
