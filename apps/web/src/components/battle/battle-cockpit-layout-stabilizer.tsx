@@ -47,7 +47,15 @@ function currentFacingControl(playerName: string): HTMLButtonElement | null {
     : null
 }
 
+function hideFacingPads() {
+  document
+    .querySelectorAll<HTMLElement>('[data-unified-facing-pad="true"]')
+    .forEach((pad) => pad.style.setProperty('display', 'none', 'important'))
+}
+
 function syncFinishTurnCopy() {
+  hideFacingPads()
+
   const deck = document.querySelector<HTMLElement>('section[aria-label="Command Deck"]')
   if (!deck) return
   const button = Array.from(deck.querySelectorAll<HTMLButtonElement>('button')).find(
@@ -88,13 +96,19 @@ export function BattleCockpitLayoutStabilizer({ playerName }: { playerName: stri
       // unchanged while the obsolete directional pad stays out of both desktop and mobile layout.
       queuedFrame.current = window.requestAnimationFrame(() => {
         queuedFrame.current = 0
+        hideFacingPads()
         commitCurrentFacing()
       })
     }
 
     syncFinishTurnCopy()
     const observer = new MutationObserver(syncFinishTurnCopy)
-    observer.observe(document.body, { childList: true, subtree: true })
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ['data-open'],
+      childList: true,
+      subtree: true,
+    })
     document.addEventListener('click', handleClick, true)
 
     return () => {
