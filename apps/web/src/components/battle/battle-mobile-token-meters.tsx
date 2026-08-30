@@ -4,6 +4,8 @@ import { useEffect, useRef } from 'react'
 
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
+import styles from './battle-mobile-token-meters.module.css'
+
 const MOBILE_QUERY = '(max-width: 820px)'
 
 function percent(value: number, maximum: number): string {
@@ -125,5 +127,5 @@ export function BattleMobileTokenMeters({
     }
   }, [combatantNames, initialBattle])
 
-  return null
+  return <span className={styles.hook} aria-hidden="true" />
 }
