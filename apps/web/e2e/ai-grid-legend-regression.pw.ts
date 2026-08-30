@@ -38,8 +38,6 @@ test('keeps the desktop AI 9x7 grid, shared terrain legend, and battle log dock 
   await expect(board).toHaveCount(1)
   await expect(board.locator("button[aria-label^='Tile ']")).toHaveCount(63)
 
-  // PvE and PvP now share one canonical terrain legend directly below the board. Retired AI-only
-  // portal and legacy legend layers must stay absent so presentation cannot drift by battle mode.
   await expect(terrainLegend).toHaveCount(1)
   await expect(terrainLegend).toBeVisible()
   await expect(terrainLegend.getByText('Difficult Terrain')).toBeVisible()
@@ -80,8 +78,6 @@ test('keeps the desktop AI 9x7 grid, shared terrain legend, and battle log dock 
     }
   })
 
-  // The PvP-style board contract uses square tiles and the same gap in both axes. A compressed row
-  // track with spare column space is the exact regression that produced the stretched-column view.
   expect(Math.abs(geometry.tileWidth - geometry.tileHeight)).toBeLessThanOrEqual(1.5)
   expect(geometry.columnGap).toBeGreaterThan(0)
   expect(geometry.rowGap).toBeGreaterThan(0)
@@ -105,6 +101,7 @@ test('keeps the desktop AI 9x7 grid, shared terrain legend, and battle log dock 
 
   const dockGeometry = await battlefield.evaluate((element) => {
     const docked = element.querySelector<HTMLElement>('[data-docked-battle-log="true"]')!
+    const boardElement = element.querySelector<HTMLElement>('[data-board-auto-fit="9x7"]')!
     const legend = element.querySelector<HTMLElement>(':scope > [aria-label="Terrain legend"]')!
     const difficult = legend.children[0] as HTMLElement
     const elevated = legend.children[1] as HTMLElement
@@ -112,6 +109,7 @@ test('keeps the desktop AI 9x7 grid, shared terrain legend, and battle log dock 
       'button[data-terrain-coordinate-toggle="true"]',
     )!
     const battlefieldRect = element.getBoundingClientRect()
+    const boardRect = boardElement.getBoundingClientRect()
     const dockRect = docked.getBoundingClientRect()
     const legendRect = legend.getBoundingClientRect()
     const difficultRect = difficult.getBoundingClientRect()
@@ -122,9 +120,10 @@ test('keeps the desktop AI 9x7 grid, shared terrain legend, and battle log dock 
     const footerContinuation = getComputedStyle(element, '::after')
 
     return {
-      battlefieldTop: battlefieldRect.top,
       battlefieldRight: battlefieldRect.right,
       battlefieldBottom: battlefieldRect.bottom,
+      boardTop: boardRect.top,
+      boardBottom: boardRect.bottom,
       dockTop: dockRect.top,
       dockRight: dockRect.right,
       dockBottom: dockRect.bottom,
@@ -147,30 +146,21 @@ test('keeps the desktop AI 9x7 grid, shared terrain legend, and battle log dock 
     }
   })
 
-  // The shared desktop log now owns only the board row. Its lower edge must stop just above the
-  // terrain-key footer, leaving the intentional dock inset instead of covering the final key row.
-  expect(dockGeometry.dockTop).toBeGreaterThanOrEqual(dockGeometry.battlefieldTop - 1)
-  expect(dockGeometry.dockBottom).toBeLessThanOrEqual(dockGeometry.legendTop + 1)
-  expect(dockGeometry.legendTop - dockGeometry.dockBottom).toBeGreaterThanOrEqual(-1)
-  expect(dockGeometry.legendTop - dockGeometry.dockBottom).toBeLessThanOrEqual(8)
+  expect(Math.abs(dockGeometry.dockTop - dockGeometry.boardTop)).toBeLessThanOrEqual(3)
+  expect(Math.abs(dockGeometry.dockBottom - dockGeometry.boardBottom)).toBeLessThanOrEqual(3)
+  expect(dockGeometry.dockBottom).toBeLessThan(dockGeometry.legendTop)
   expect(dockGeometry.legendTop).toBeLessThan(dockGeometry.legendBottom)
   expect(dockGeometry.legendBottom).toBeLessThanOrEqual(dockGeometry.battlefieldBottom + 1)
   expect(dockGeometry.dockGridRowStart).toBe('1')
   expect(dockGeometry.dockGridRowEnd).toBe('auto')
 
-  // PvE and PvP share the same inward transform. Keep a visible gutter from the battlefield edge,
-  // but allow the approved small rightward correction that visually centers the log in its slot.
   expect(dockGeometry.dockTranslateX).toBeLessThan(-12)
   expect(dockGeometry.battlefieldRight - dockGeometry.dockRight).toBeGreaterThan(12)
 
-  // Continue only the footer divider through the right-hand log column. This avoids restoring the
-  // old black lower-right void while keeping the Battle Log box itself out of the footer row.
   expect(dockGeometry.footerContinuationContent).not.toBe('none')
   expect(dockGeometry.footerContinuationGridRowStart).toBe('2')
   expect(dockGeometry.footerContinuationBorderTopStyle).toBe('solid')
 
-  // All three shared footer controls must remain inside the terrain-footer column after the log
-  // opens. This catches clipping without depending on the retired AI-only legend portal.
   expect(dockGeometry.difficultLeft).toBeGreaterThanOrEqual(dockGeometry.legendLeft - 1)
   expect(dockGeometry.elevatedLeft).toBeGreaterThanOrEqual(dockGeometry.difficultRight - 1)
   expect(dockGeometry.coordinateLeft).toBeGreaterThanOrEqual(dockGeometry.elevatedRight - 1)
