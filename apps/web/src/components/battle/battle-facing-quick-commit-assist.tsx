@@ -331,7 +331,8 @@ export function BattleFacingQuickCommitAssist({ playerName }: { playerName: stri
       if (!document.querySelector('button[aria-label^="Face "]:not(:disabled)')) {
         clearSelection()
         lastGuideSelection.current = null
-        lastCurrentFacingTap.current = null
+        // Keep the first Finish Turn tap alive across the React render that opens facing mode.
+        // The timestamp window still expires it naturally, and unrelated pointer input clears it.
       }
     })
     observer.observe(document.body, { childList: true, subtree: true, attributes: true })

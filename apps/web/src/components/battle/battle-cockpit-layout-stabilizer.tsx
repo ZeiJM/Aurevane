@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 
 import styles from './battle-cockpit-layout-stabilizer.module.css'
 
+const MOBILE_QUERY = '(max-width: 820px)'
 const FACING_GLYPHS = {
   north: '↑',
   east: '→',
@@ -63,7 +64,8 @@ function syncFinishTurnCopy() {
       candidate.querySelector(':scope > strong')?.textContent?.trim() === 'Finish Turn',
   )
   const cost = button?.querySelector<HTMLElement>(':scope > small')
-  if (cost && cost.textContent !== 'Keep facing + end') cost.textContent = 'Keep facing + end'
+  const copy = window.matchMedia(MOBILE_QUERY).matches ? 'Choose facing + end' : 'Keep facing + end'
+  if (cost && cost.textContent !== copy) cost.textContent = copy
 }
 
 export function BattleCockpitLayoutStabilizer({ playerName }: { playerName: string }) {
@@ -86,14 +88,14 @@ export function BattleCockpitLayoutStabilizer({ playerName }: { playerName: stri
 
     const handleClick = (event: MouseEvent) => {
       const button = finishTurnButton(event.target)
-      if (!button || button.disabled) return
+      if (!button || button.disabled || window.matchMedia(MOBILE_QUERY).matches) return
 
       if (queuedFrame.current !== 0) window.cancelAnimationFrame(queuedFrame.current)
       if (retryFrame.current !== 0) window.cancelAnimationFrame(retryFrame.current)
 
-      // Let the real battle button enter its native finish mode first. On the next frame, invoke the
-      // hidden current-facing control so the existing server-authoritative final-turn path remains
-      // unchanged while the obsolete directional pad stays out of both desktop and mobile layout.
+      // Desktop keeps its compact one-click current-facing shortcut. Mobile deliberately stops here:
+      // its native click only enters facing mode so the battlefield guides can be double-tapped, while
+      // BattleFacingQuickCommitAssist owns the separate double-tap Finish Turn shortcut.
       queuedFrame.current = window.requestAnimationFrame(() => {
         queuedFrame.current = 0
         hideFacingPads()
@@ -109,10 +111,13 @@ export function BattleCockpitLayoutStabilizer({ playerName }: { playerName: stri
       childList: true,
       subtree: true,
     })
+    const media = window.matchMedia(MOBILE_QUERY)
+    media.addEventListener('change', syncFinishTurnCopy)
     document.addEventListener('click', handleClick, true)
 
     return () => {
       observer.disconnect()
+      media.removeEventListener('change', syncFinishTurnCopy)
       document.removeEventListener('click', handleClick, true)
       if (queuedFrame.current !== 0) window.cancelAnimationFrame(queuedFrame.current)
       if (retryFrame.current !== 0) window.cancelAnimationFrame(retryFrame.current)

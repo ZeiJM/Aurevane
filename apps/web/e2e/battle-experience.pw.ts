@@ -174,8 +174,15 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(criteriaButton).not.toHaveAttribute('data-new-progress', 'true')
 
   await expect(facingPad).toBeHidden()
-  await expect(finishButton).toContainText('Keep facing + end')
-  await finishButton.click()
+  if (testInfo.project.name === 'mobile-chromium') {
+    await expect(finishButton).toContainText('Choose facing + end')
+    await finishButton.tap()
+    await page.waitForTimeout(80)
+    await finishButton.tap()
+  } else {
+    await expect(finishButton).toContainText('Keep facing + end')
+    await finishButton.click()
+  }
 
   await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
     'aria-valuenow',
