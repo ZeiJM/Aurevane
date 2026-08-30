@@ -36,6 +36,7 @@ import { DesktopBattleCombatantInspect } from './desktop-battle-combatant-inspec
 import { DesktopBattleLogDock } from './desktop-battle-log-dock'
 import { MobileBattleCombatantPopup } from './mobile-battle-combatant-popup'
 import { PveBattleCompletionBridge } from './pve-battle-completion-bridge'
+import { PveDesktopMoveKeyboardParity } from './pve-desktop-move-keyboard-parity'
 import { PvpBattleChatBridge } from './pvp-battle-chat-bridge'
 import { PvpBattleCompletionPanel } from './pvp-battle-completion-panel'
 import { PvpBattleInspectPopup } from './pvp-battle-inspect-popup'
@@ -116,6 +117,7 @@ export function BattleClientBoundary({
           />
           <BattleRecruitRecoveryAssist />
           <AiDesktopSameFacingKeyboardAssist playerName={runtime.playerName} />
+          <PveDesktopMoveKeyboardParity playerName={runtime.playerName} />
           <BattleKeyboardAssist playerName={runtime.playerName} />
           <BattleFeedbackAssist
             playerName={runtime.playerName}
