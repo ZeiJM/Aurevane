@@ -16,7 +16,7 @@ function uniqueIdentity(prefix: string): { email: string; characterName: string 
   }
 }
 
-test('keeps the desktop PvP battle log above the terrain footer row', async ({
+test('keeps the desktop PvP battle log aligned to the tactical grid above the terrain footer', async ({
   browser,
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop PvP battle-log regression')
@@ -89,10 +89,12 @@ test('keeps the desktop PvP battle log above the terrain footer row', async ({
 
     const geometry = await battlefield.evaluate((element) => {
       const dockElement = element.querySelector<HTMLElement>('[data-docked-battle-log="true"]')!
+      const boardElement = element.querySelector<HTMLElement>('[data-board-auto-fit="9x7"]')!
       const legendElement = element.querySelector<HTMLElement>(
         ':scope > [aria-label="Terrain legend"]',
       )!
       const dockRect = dockElement.getBoundingClientRect()
+      const boardRect = boardElement.getBoundingClientRect()
       const legendRect = legendElement.getBoundingClientRect()
       const battlefieldRect = element.getBoundingClientRect()
       const dockStyle = window.getComputedStyle(dockElement)
@@ -100,7 +102,10 @@ test('keeps the desktop PvP battle log above the terrain footer row', async ({
       const footerContinuation = window.getComputedStyle(element, '::after')
 
       return {
+        boardTop: boardRect.top,
+        boardBottom: boardRect.bottom,
         dockRight: dockRect.right,
+        dockTop: dockRect.top,
         dockBottom: dockRect.bottom,
         dockTranslateX: dockTransform.m41,
         legendTop: legendRect.top,
@@ -115,17 +120,16 @@ test('keeps the desktop PvP battle log above the terrain footer row', async ({
       }
     })
 
-    // The log must stop above the terrain-key row, leaving only the intentional dock inset before
-    // the footer boundary. The footer itself still reaches the battlefield bottom.
-    expect(geometry.dockBottom).toBeLessThanOrEqual(geometry.legendTop + 1)
-    expect(geometry.legendTop - geometry.dockBottom).toBeGreaterThanOrEqual(-1)
-    expect(geometry.legendTop - geometry.dockBottom).toBeLessThanOrEqual(8)
+    // The user-facing contract is now exact board alignment: the dock's top and bottom track the
+    // rendered 9x7 grid while the terrain footer stays below it as its own row.
+    expect(Math.abs(geometry.dockTop - geometry.boardTop)).toBeLessThanOrEqual(3)
+    expect(Math.abs(geometry.dockBottom - geometry.boardBottom)).toBeLessThanOrEqual(3)
+    expect(geometry.dockBottom).toBeLessThan(geometry.legendTop)
     expect(Math.abs(geometry.legendBottom - geometry.battlefieldBottom)).toBeLessThanOrEqual(8)
     expect(geometry.dockGridRowStart).toBe('1')
     expect(geometry.dockGridRowEnd).toBe('auto')
 
-    // PvP uses the same shared inward transform as PvE. Keep a visible gutter from the battlefield
-    // edge while allowing the small rightward correction that centers the log in its reserved slot.
+    // PvP and PvE keep the same shared inward transform and right-side gutter.
     expect(geometry.dockTranslateX).toBeLessThan(-12)
     expect(geometry.battlefieldRight - geometry.dockRight).toBeGreaterThan(12)
 

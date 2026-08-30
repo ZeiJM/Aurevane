@@ -3,12 +3,29 @@
 import { useEffect, useMemo } from 'react'
 
 const BATTLE_HEADER_MESSAGES = [
-  'Steel is drawn. The battle is underway.',
-  'Stand fast. The field belongs to the resolute.',
-  'Hold your nerve. One clear move can turn the tide.',
-  'Press forward. Fortune follows the decisive.',
-  'Every step has weight. Make this one count.',
+  {
+    desktop: 'Steel is drawn. The battle is underway.',
+    mobile: 'Steel is drawn.',
+  },
+  {
+    desktop: 'Stand fast. The field belongs to the resolute.',
+    mobile: 'Stand fast.',
+  },
+  {
+    desktop: 'Hold your nerve. One clear move can turn the tide.',
+    mobile: 'Hold your nerve.',
+  },
+  {
+    desktop: 'Press forward. Fortune follows the decisive.',
+    mobile: 'Press forward.',
+  },
+  {
+    desktop: 'Every step has weight. Make this one count.',
+    mobile: 'Make this move count.',
+  },
 ] as const
+
+const MOBILE_QUERY = '(max-width: 820px)'
 
 function stableMessageIndex(battleSessionId: string): number {
   let hash = 2166136261
@@ -41,6 +58,7 @@ function syncVisibleMessage(message: string): void {
   const container = headerObjectiveContainer()
   if (!container) return
 
+  container.dataset.battleSharedHeaderMessageHost = 'true'
   const existing = container.querySelector<HTMLElement>(
     ':scope > [data-battle-header-message="true"]',
   )
@@ -80,6 +98,10 @@ function restoreNativeHeader(): void {
       source.removeAttribute('aria-hidden')
       source.style.removeProperty('display')
     })
+
+  document
+    .querySelectorAll<HTMLElement>('[data-battle-shared-header-message-host="true"]')
+    .forEach((host) => host.removeAttribute('data-battle-shared-header-message-host'))
 }
 
 export function BattleHeaderMatchMessage({ battleSessionId }: { battleSessionId: string }) {
@@ -89,11 +111,12 @@ export function BattleHeaderMatchMessage({ battleSessionId }: { battleSessionId:
   )
 
   useEffect(() => {
+    const media = window.matchMedia(MOBILE_QUERY)
     let frame: number | null = null
 
     const sync = () => {
       frame = null
-      syncVisibleMessage(message)
+      syncVisibleMessage(media.matches ? message.mobile : message.desktop)
     }
 
     const scheduleSync = () => {
@@ -104,9 +127,11 @@ export function BattleHeaderMatchMessage({ battleSessionId }: { battleSessionId:
     sync()
     const observer = new MutationObserver(scheduleSync)
     observer.observe(document.body, { childList: true, subtree: true })
+    media.addEventListener('change', scheduleSync)
 
     return () => {
       observer.disconnect()
+      media.removeEventListener('change', scheduleSync)
       if (frame !== null) window.cancelAnimationFrame(frame)
       restoreNativeHeader()
     }

@@ -1,0 +1,287 @@
+.hook {
+  display: none;
+}
+
+/* The PvE Move treatment is the shared presentation authority for every battle mode. Reachable
+   destinations stay readable without becoming a solid green carpet; the actual numbered path gets
+   the stronger green fill and outline. Combat legality still comes from the shared renderer/server. */
+:global(
+  main[data-battle-action-mode='move'] #battlefield button[aria-label^='Tile '][data-reachable]
+) {
+  border-color: rgba(98, 205, 132, 0.82) !important;
+  box-shadow: inset 0 0 0.8rem rgba(62, 166, 96, 0.12) !important;
+}
+
+:global(
+  main[data-battle-action-mode='move']
+    #battlefield
+    button[aria-label^='Tile '][data-reachable][data-terrain='open']:not([data-path])
+) {
+  background: linear-gradient(145deg, rgba(74, 91, 96, 0.32), rgba(25, 38, 45, 0.78)) !important;
+}
+
+:global(
+  main[data-battle-action-mode='move']
+    #battlefield
+    button[aria-label^='Tile '][data-reachable][data-terrain='rough']:not([data-path])
+) {
+  background:
+    repeating-linear-gradient(135deg, rgba(160, 125, 79, 0.14) 0 3px, transparent 3px 8px),
+    linear-gradient(145deg, rgba(95, 72, 49, 0.5), rgba(39, 38, 35, 0.88)) !important;
+}
+
+:global(main[data-battle-action-mode='move'] #battlefield button[aria-label^='Tile '][data-path]) {
+  border-color: rgba(98, 210, 138, 0.86) !important;
+  background: linear-gradient(rgba(52, 150, 87, 0.13), rgba(52, 150, 87, 0.13)), #12201a !important;
+  box-shadow: inset 0 0 0 2px rgba(83, 188, 121, 0.3) !important;
+}
+
+:global(
+  main[data-battle-action-mode='move']
+    #battlefield
+    button[aria-label^='Tile ']:not([data-reachable]):not([data-path]):not(:has([data-active]))
+) {
+  border-color: rgba(214, 81, 81, 0.45) !important;
+  box-shadow: none !important;
+  filter: saturate(0.68);
+}
+
+/* Pooled battle copy is shared by PvE/PvP. Desktop keeps the approved two-line PvE hierarchy. */
+@media (min-width: 821px) {
+  :global([data-battle-shared-header-message-host='true']) {
+    display: grid !important;
+    min-width: 0 !important;
+    gap: 0.12rem !important;
+    align-content: center !important;
+    overflow: hidden !important;
+  }
+
+  :global([data-battle-shared-header-message-host='true'] > span:first-child) {
+    display: block !important;
+    color: var(--av-brass-300) !important;
+    font: 700 0.46rem/1 var(--av-font-mono) !important;
+    letter-spacing: 0.07em !important;
+    text-transform: uppercase !important;
+  }
+
+  :global(
+    main[data-unified-battle='true']
+      [data-battle-shared-header-message-host='true']
+      > [data-battle-header-message='true']
+  ) {
+    display: block !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    color: var(--av-text) !important;
+    font: 650 clamp(0.73rem, 1.15vw, 0.93rem)/1.18 var(--av-font-display) !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  /* The portrait is the body of each desktop combatant card. Keep only a compact information strip
+     above it and let the shared accent border close directly around the image on the other sides. */
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
+      [data-unified-combatant-rail='true']
+      > div
+      > article
+  ) {
+    grid-template-rows: auto minmax(0, 1fr) !important;
+    gap: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+}
+
+@media (max-width: 820px) {
+  /* Mobile no longer duplicates the combatants above the map. This catches Team 1/2 and any third
+     faction in 1v1v1 because all of them live inside the one shared Battle roster section. */
+  :global(main[data-unified-battle='true'] > section[aria-label='Battle roster']) {
+    display: none !important;
+  }
+
+  /* Keep only the concise turn state above the grid. The changing arena/status prose is redundant
+     on mobile once the shared pooled header message is present. */
+  :global(main[data-unified-battle='true'] [data-battle-notice='true'] > span) {
+    display: none !important;
+  }
+
+  :global(main[data-unified-battle='true'] [data-battle-notice='true']) {
+    min-height: 0 !important;
+    padding-top: 0.28rem !important;
+    padding-bottom: 0.28rem !important;
+  }
+
+  /* Keep the PvE-style battle message without making the sticky mobile header taller: eyebrow and
+     the shortened pooled line share one compact row. The stronger shared selector intentionally
+     wins over retired AI-only mobile rules that used to hide the objective strong entirely. */
+  :global(main[data-unified-battle='true'] [data-battle-shared-header-message-host='true']) {
+    display: flex !important;
+    min-width: 0 !important;
+    gap: 0.35rem !important;
+    align-items: baseline !important;
+    overflow: hidden !important;
+    white-space: nowrap !important;
+  }
+
+  :global(
+    main[data-unified-battle='true']
+      [data-battle-shared-header-message-host='true']
+      > span:first-child
+  ) {
+    display: inline !important;
+    flex: 0 0 auto !important;
+    color: var(--av-brass-300) !important;
+    font: 700 0.4rem/1 var(--av-font-mono) !important;
+    letter-spacing: 0.06em !important;
+    text-transform: uppercase !important;
+  }
+
+  :global(
+    main[data-unified-battle='true']
+      [data-battle-shared-header-message-host='true']
+      > [data-battle-header-message='true']
+  ) {
+    display: block !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    color: var(--av-text) !important;
+    font: 600 0.64rem/1.05 var(--av-font-display) !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  /* One mobile token contract for PvE and PvP. This explicitly removes the old AI-only portrait
+     footprint differences while preserving the exact current PvP ring, shadow, facing and state. */
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
+      #battlefield
+      button[aria-label*='occupied by']
+      > [data-battle-shared-token='true']
+  ) {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    z-index: 4 !important;
+    display: grid !important;
+    width: clamp(1.7rem, 56%, 2.75rem) !important;
+    height: auto !important;
+    aspect-ratio: 1 / 1 !important;
+    place-items: center !important;
+    overflow: visible !important;
+    border-width: 1.27px !important;
+    border-radius: 50% !important;
+    background: #080b10 !important;
+    box-shadow: 0 0.35rem 0.9rem rgba(0, 0, 0, 0.5) !important;
+    transform: translate(-50%, -50%) !important;
+  }
+
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
+      #battlefield
+      button[aria-label*='occupied by']
+      > [data-battle-shared-token='true']
+      img
+  ),
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
+      #battlefield
+      button[aria-label*='occupied by']
+      > [data-battle-shared-token='true']
+      picture
+  ),
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
+      #battlefield
+      button[aria-label*='occupied by']
+      > [data-battle-shared-token='true']
+      picture
+      img
+  ) {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    object-position: 50% 50% !important;
+  }
+
+  /* Quick-read resource bars sit inside the lower portrait edge. They are deliberately tiny so the
+     face remains readable: HP on top, MP below, both backed by a translucent dark rail. */
+  :global(main[data-unified-battle='true'] #battlefield [data-mobile-token-meters='true']) {
+    position: absolute !important;
+    right: 13% !important;
+    bottom: 11% !important;
+    left: 13% !important;
+    z-index: 7 !important;
+    display: grid !important;
+    gap: 1px !important;
+    padding: 1px !important;
+    overflow: hidden !important;
+    border-radius: 3px !important;
+    background: rgba(2, 5, 8, 0.78) !important;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06) !important;
+    pointer-events: none !important;
+  }
+
+  :global(
+    main[data-unified-battle='true']
+      #battlefield
+      [data-mobile-token-meters='true']
+      > [data-mobile-token-meter]
+  ) {
+    position: relative !important;
+    display: block !important;
+    width: 100% !important;
+    height: 2px !important;
+    overflow: hidden !important;
+    border-radius: 999px !important;
+    background: rgba(255, 255, 255, 0.16) !important;
+  }
+
+  :global(main[data-unified-battle='true'] #battlefield [data-mobile-token-meter] > i) {
+    display: block !important;
+    height: 100% !important;
+    border-radius: inherit !important;
+  }
+
+  :global(main[data-unified-battle='true'] #battlefield [data-mobile-token-meter='hp'] > i) {
+    background: linear-gradient(90deg, #3e9d61, #6ed88d) !important;
+  }
+
+  :global(main[data-unified-battle='true'] #battlefield [data-mobile-token-meter='mp'] > i) {
+    background: linear-gradient(90deg, #4168aa, #78a4e8) !important;
+  }
+
+  /* PvE uses the same full-width mobile danger action as PvP. Cancel/Confirm keep their paired row;
+     Surrender owns the row beneath them instead of appearing as a cramped third button. */
+  :global(main[data-battle-kind='pve'] > footer[data-unified-battle-footer='true'] > div) {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    gap: 0.3rem !important;
+    justify-self: stretch !important;
+  }
+
+  :global(
+    main[data-battle-kind='pve']
+      > footer[data-unified-battle-footer='true']
+      > div
+      > button[data-unified-surrender='true']
+  ) {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    min-height: 2rem !important;
+    border: 1px solid rgba(201, 80, 80, 0.78) !important;
+    color: #f2b0b0 !important;
+    background: rgba(126, 38, 38, 0.35) !important;
+  }
+}
