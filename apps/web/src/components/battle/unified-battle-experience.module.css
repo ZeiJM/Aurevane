@@ -250,9 +250,9 @@
     display: grid !important;
     grid-column: 1 / -1;
     grid-row: 2;
-    grid-template-columns: minmax(0, 1fr) 7rem !important;
+    grid-template-columns: minmax(0, 1fr) !important;
     grid-template-rows: auto auto !important;
-    gap: 0.32rem 0.35rem !important;
+    gap: 0.32rem !important;
     padding: 0.4rem !important;
   }
 
@@ -264,7 +264,7 @@
   }
 
   :global([data-unified-command-deck='true'] > div:nth-child(2)) {
-    grid-column: 1;
+    grid-column: 1 / -1;
     grid-row: 2;
     gap: 0.26rem !important;
   }
@@ -275,7 +275,7 @@
   }
 
   :global([data-unified-command-deck='true'] > [data-unified-facing-pad='true']) {
-    grid-column: 2;
+    grid-column: 1;
     grid-row: 2;
   }
 
