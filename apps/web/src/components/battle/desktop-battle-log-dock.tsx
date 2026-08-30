@@ -16,6 +16,43 @@ function combatLogTrigger(): HTMLButtonElement | null {
   )
 }
 
+function battleGridGeometry(): {
+  battlefield: HTMLElement
+  viewport: HTMLElement
+  board: HTMLElement
+} | null {
+  const battlefield = document.querySelector<HTMLElement>('#battlefield')
+  const viewport = battlefield?.firstElementChild
+  const board = viewport?.querySelector<HTMLElement>('[data-board-auto-fit="9x7"]') ?? null
+  if (!battlefield || !(viewport instanceof HTMLElement) || !board) return null
+  return { battlefield, viewport, board }
+}
+
+function syncBattleLogGridInsets(): void {
+  const geometry = battleGridGeometry()
+  if (!geometry) return
+
+  const viewportRect = geometry.viewport.getBoundingClientRect()
+  const boardRect = geometry.board.getBoundingClientRect()
+  const topInset = Math.max(0, boardRect.top - viewportRect.top)
+  const bottomInset = Math.max(0, viewportRect.bottom - boardRect.bottom)
+
+  const topValue = `${topInset}px`
+  const bottomValue = `${bottomInset}px`
+  if (geometry.battlefield.style.getPropertyValue('--battle-log-grid-top-inset') !== topValue) {
+    geometry.battlefield.style.setProperty('--battle-log-grid-top-inset', topValue)
+  }
+  if (geometry.battlefield.style.getPropertyValue('--battle-log-grid-bottom-inset') !== bottomValue) {
+    geometry.battlefield.style.setProperty('--battle-log-grid-bottom-inset', bottomValue)
+  }
+}
+
+function clearBattleLogGridInsets(): void {
+  const battlefield = document.querySelector<HTMLElement>('#battlefield')
+  battlefield?.style.removeProperty('--battle-log-grid-top-inset')
+  battlefield?.style.removeProperty('--battle-log-grid-bottom-inset')
+}
+
 export function DesktopBattleLogDock({
   battleSessionId,
   playerName,
@@ -59,6 +96,39 @@ export function DesktopBattleLogDock({
     if (!desktop) return
     const trigger = combatLogTrigger()
     trigger?.setAttribute('aria-expanded', String(open))
+  }, [desktop, open])
+
+  useEffect(() => {
+    if (!desktop || !open) {
+      clearBattleLogGridInsets()
+      return
+    }
+
+    let frame = 0
+    const schedule = () => {
+      if (frame !== 0) return
+      frame = window.requestAnimationFrame(() => {
+        frame = 0
+        syncBattleLogGridInsets()
+      })
+    }
+
+    const geometry = battleGridGeometry()
+    const resizeObserver = new ResizeObserver(schedule)
+    if (geometry) {
+      resizeObserver.observe(geometry.battlefield)
+      resizeObserver.observe(geometry.viewport)
+      resizeObserver.observe(geometry.board)
+    }
+
+    schedule()
+    window.addEventListener('resize', schedule)
+    return () => {
+      resizeObserver.disconnect()
+      window.removeEventListener('resize', schedule)
+      if (frame !== 0) window.cancelAnimationFrame(frame)
+      clearBattleLogGridInsets()
+    }
   }, [desktop, open])
 
   useEffect(() => {
