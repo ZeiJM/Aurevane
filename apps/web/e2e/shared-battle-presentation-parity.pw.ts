@@ -2,8 +2,10 @@ import { expect, test, type Page } from '@playwright/test'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
-const MOBILE_HEADER = /^(Steel is drawn\.|Stand fast\.|Hold your nerve\.|Press forward\.|Make this move count\.)$/
-const DESKTOP_HEADER = /^(Steel is drawn\. The battle is underway\.|Stand fast\. The field belongs to the resolute\.|Hold your nerve\. One clear move can turn the tide\.|Press forward\. Fortune follows the decisive\.|Every step has weight\. Make this one count\.)$/
+const MOBILE_HEADER =
+  /^(Steel is drawn\.|Stand fast\.|Hold your nerve\.|Press forward\.|Make this move count\.)$/
+const DESKTOP_HEADER =
+  /^(Steel is drawn\. The battle is underway\.|Stand fast\. The field belongs to the resolute\.|Hold your nerve\. One clear move can turn the tide\.|Press forward\. Fortune follows the decisive\.|Every step has weight\. Make this one count\.)$/
 
 function uniqueIdentity(prefix: string): { email: string; characterName: string } {
   const seed = `${Date.now()}${Math.floor(Math.random() * 100_000)}`
@@ -39,8 +41,12 @@ async function expectMobileTokenMeters(root: ReturnType<Page['locator']>) {
     await expect(meters.locator('[data-mobile-token-meter="mp"]')).toHaveCount(1)
 
     const geometry = await tile.evaluate((element) => {
-      const tokenElement = element.querySelector<HTMLElement>(':scope > [data-battle-shared-token="true"]')!
-      const meterElement = tokenElement.querySelector<HTMLElement>(':scope > [data-mobile-token-meters="true"]')!
+      const tokenElement = element.querySelector<HTMLElement>(
+        ':scope > [data-battle-shared-token="true"]',
+      )!
+      const meterElement = tokenElement.querySelector<HTMLElement>(
+        ':scope > [data-mobile-token-meters="true"]',
+      )!
       const hp = meterElement.querySelector<HTMLElement>('[data-mobile-token-meter="hp"] > i')!
       const mp = meterElement.querySelector<HTMLElement>('[data-mobile-token-meter="mp"] > i')!
       const tileRect = element.getBoundingClientRect()
@@ -68,13 +74,17 @@ async function expectMobileTokenMeters(root: ReturnType<Page['locator']>) {
 
 async function selectMoveAndVerifySharedTreatment(root: ReturnType<Page['locator']>) {
   const battlefield = root.locator('#battlefield')
-  const move = root.getByRole('region', { name: 'Command Deck' }).getByRole('button', { name: /Move/ })
+  const move = root
+    .getByRole('region', { name: 'Command Deck' })
+    .getByRole('button', { name: /Move/ })
   await move.click()
   await expect(root).toHaveAttribute('data-battle-action-mode', 'move')
 
   const reachable = battlefield.locator('button[data-reachable]')
   await expect.poll(() => reachable.count()).toBeGreaterThan(0)
-  const borderColor = await reachable.first().evaluate((element) => getComputedStyle(element).borderColor)
+  const borderColor = await reachable
+    .first()
+    .evaluate((element) => getComputedStyle(element).borderColor)
   expect(borderColor).toMatch(/98, 205, 132|98, 210, 138/)
 }
 
@@ -85,8 +95,12 @@ async function plotOneDesktopWasdStep(
 ) {
   const battlefield = root.locator('#battlefield')
   const key = await battlefield.evaluate((element, name) => {
-    const tiles = Array.from(element.querySelectorAll<HTMLButtonElement>('button[aria-label^="Tile "]'))
-    const actor = tiles.find((tile) => (tile.getAttribute('aria-label') ?? '').includes(`occupied by ${name}`))
+    const tiles = Array.from(
+      element.querySelectorAll<HTMLButtonElement>('button[aria-label^="Tile "]'),
+    )
+    const actor = tiles.find((tile) =>
+      (tile.getAttribute('aria-label') ?? '').includes(`occupied by ${name}`),
+    )
     const actorMatch = actor?.getAttribute('aria-label')?.match(/^Tile\s+(\d+),\s*(\d+)/i)
     if (!actorMatch) return null
     const x = Number(actorMatch[1])
@@ -117,7 +131,9 @@ async function expectDesktopRailPortraitFill(root: ReturnType<Page['locator']>) 
   await expect(card).toBeVisible()
   const geometry = await card.evaluate((element) => {
     const heading = element.firstElementChild as HTMLElement
-    const portrait = element.querySelector<HTMLButtonElement>('button[data-desktop-inspect-combatant]')!
+    const portrait = element.querySelector<HTMLButtonElement>(
+      'button[data-desktop-inspect-combatant]',
+    )!
     const cardRect = element.getBoundingClientRect()
     const headingRect = heading.getBoundingClientRect()
     const portraitRect = portrait.getBoundingClientRect()
@@ -138,9 +154,14 @@ async function expectDesktopRailPortraitFill(root: ReturnType<Page['locator']>) 
   expect(Math.abs(geometry.portraitTop - geometry.headingBottom)).toBeLessThanOrEqual(2)
 }
 
-test('keeps requested PvE presentation parity on desktop and mobile', async ({ page }, testInfo) => {
+test('keeps requested PvE presentation parity on desktop and mobile', async ({
+  page,
+}, testInfo) => {
   const mobile = testInfo.project.name === 'mobile-chromium'
-  test.skip(!mobile && testInfo.project.name !== 'desktop-chromium', 'Shared PvE presentation regression')
+  test.skip(
+    !mobile && testInfo.project.name !== 'desktop-chromium',
+    'Shared PvE presentation regression',
+  )
   test.slow()
 
   const identity = uniqueIdentity('SharedPve')
@@ -190,16 +211,26 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({ p
   }
 })
 
-test('keeps requested PvP presentation parity on desktop and mobile', async ({ browser }, testInfo) => {
+test('keeps requested PvP presentation parity on desktop and mobile', async ({
+  browser,
+}, testInfo) => {
   const mobile = testInfo.project.name === 'mobile-chromium'
-  test.skip(!mobile && testInfo.project.name !== 'desktop-chromium', 'Shared PvP presentation regression')
+  test.skip(
+    !mobile && testInfo.project.name !== 'desktop-chromium',
+    'Shared PvP presentation regression',
+  )
   test.slow()
 
   const password = 'AurevaneTest!42'
   const hostIdentity = uniqueIdentity('SharedPvpHost')
   const guestIdentity = uniqueIdentity('SharedPvpGuest')
   const contextOptions = mobile
-    ? { baseURL: 'http://127.0.0.1:3100', viewport: { width: 412, height: 915 }, isMobile: true, hasTouch: true }
+    ? {
+        baseURL: 'http://127.0.0.1:3100',
+        viewport: { width: 412, height: 915 },
+        isMobile: true,
+        hasTouch: true,
+      }
     : { baseURL: 'http://127.0.0.1:3100', viewport: { width: 1440, height: 900 } }
   const hostContext = await browser.newContext(contextOptions)
   const guestContext = await browser.newContext(contextOptions)
@@ -207,15 +238,31 @@ test('keeps requested PvP presentation parity on desktop and mobile', async ({ b
   const guest = await guestContext.newPage()
 
   try {
-    await provisionAccountAndEnterCharacter({ page: host, email: hostIdentity.email, password, characterName: hostIdentity.characterName })
-    await provisionAccountAndEnterCharacter({ page: guest, email: guestIdentity.email, password, characterName: guestIdentity.characterName })
+    await provisionAccountAndEnterCharacter({
+      page: host,
+      email: hostIdentity.email,
+      password,
+      characterName: hostIdentity.characterName,
+    })
+    await provisionAccountAndEnterCharacter({
+      page: guest,
+      email: guestIdentity.email,
+      password,
+      characterName: guestIdentity.characterName,
+    })
 
     await host.goto('/game/battle')
     await host.getByRole('button', { name: /Player vs Player/ }).click()
     await host.getByRole('button', { name: 'Create Battle Lobby' }).click()
     const hostDialog = host.getByRole('dialog', { name: 'The arena is waiting.' })
     await expect(hostDialog).toBeVisible()
-    const lobbyKey = (await hostDialog.locator('button').filter({ hasText: 'Lobby Key' }).locator('strong').textContent())?.trim()
+    const lobbyKey = (
+      await hostDialog
+        .locator('button')
+        .filter({ hasText: 'Lobby Key' })
+        .locator('strong')
+        .textContent()
+    )?.trim()
     expect(lobbyKey).toMatch(/^AVL-[A-Z0-9]{4}-[A-Z0-9]{4}$/)
 
     await guest.goto(`/game/battle?join=${encodeURIComponent(lobbyKey!)}`)

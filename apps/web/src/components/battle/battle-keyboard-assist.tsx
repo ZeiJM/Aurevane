@@ -85,9 +85,9 @@ function commandIsActive(...labels: string[]): boolean {
   const button = commandButton(...labels)
   return Boolean(
     button &&
-      (button.hasAttribute('data-active') ||
-        button.dataset.battleActive === 'true' ||
-        `${button.className}`.includes('commandActive')),
+    (button.hasAttribute('data-active') ||
+      button.dataset.battleActive === 'true' ||
+      `${button.className}`.includes('commandActive')),
   )
 }
 

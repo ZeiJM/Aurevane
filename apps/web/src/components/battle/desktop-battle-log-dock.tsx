@@ -42,7 +42,9 @@ function syncBattleLogGridInsets(): void {
   if (geometry.battlefield.style.getPropertyValue('--battle-log-grid-top-inset') !== topValue) {
     geometry.battlefield.style.setProperty('--battle-log-grid-top-inset', topValue)
   }
-  if (geometry.battlefield.style.getPropertyValue('--battle-log-grid-bottom-inset') !== bottomValue) {
+  if (
+    geometry.battlefield.style.getPropertyValue('--battle-log-grid-bottom-inset') !== bottomValue
+  ) {
     geometry.battlefield.style.setProperty('--battle-log-grid-bottom-inset', bottomValue)
   }
 }

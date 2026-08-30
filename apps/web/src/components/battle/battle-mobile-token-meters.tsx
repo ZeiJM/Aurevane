@@ -74,7 +74,10 @@ export function BattleMobileTokenMeters({
       }
 
       const combatants = new Map(
-        battle.current.snapshot.tactical.battle.combatants.map((combatant) => [combatant.id, combatant]),
+        battle.current.snapshot.tactical.battle.combatants.map((combatant) => [
+          combatant.id,
+          combatant,
+        ]),
       )
 
       for (const tile of battlefield.querySelectorAll<HTMLButtonElement>(
