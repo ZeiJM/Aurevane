@@ -222,6 +222,72 @@
     object-position: 50% 50% !important;
   }
 
+  /* Quick-read resource bars sit inside the lower portrait edge. They are deliberately tiny so the
+     face remains readable: HP on top, MP below, both backed by a translucent dark rail. */
+  :global(
+    main[data-unified-battle='true']
+      #battlefield
+      [data-mobile-token-meters='true']
+  ) {
+    position: absolute !important;
+    right: 13% !important;
+    bottom: 11% !important;
+    left: 13% !important;
+    z-index: 7 !important;
+    display: grid !important;
+    gap: 1px !important;
+    padding: 1px !important;
+    overflow: hidden !important;
+    border-radius: 3px !important;
+    background: rgba(2, 5, 8, 0.78) !important;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06) !important;
+    pointer-events: none !important;
+  }
+
+  :global(
+    main[data-unified-battle='true']
+      #battlefield
+      [data-mobile-token-meters='true']
+      > [data-mobile-token-meter]
+  ) {
+    position: relative !important;
+    display: block !important;
+    width: 100% !important;
+    height: 2px !important;
+    overflow: hidden !important;
+    border-radius: 999px !important;
+    background: rgba(255, 255, 255, 0.16) !important;
+  }
+
+  :global(
+    main[data-unified-battle='true']
+      #battlefield
+      [data-mobile-token-meter]
+      > i
+  ) {
+    display: block !important;
+    height: 100% !important;
+    border-radius: inherit !important;
+  }
+
+  :global(
+    main[data-unified-battle='true']
+      #battlefield
+      [data-mobile-token-meter='hp']
+      > i
+  ) {
+    background: linear-gradient(90deg, #3e9d61, #6ed88d) !important;
+  }
+
+  :global(
+    main[data-unified-battle='true']
+      #battlefield
+      [data-mobile-token-meter='mp']
+      > i
+  ) {
+    background: linear-gradient(90deg, #4168aa, #78a4e8) !important;
+  }
+
   /* PvE uses the same full-width mobile danger action as PvP. Cancel/Confirm keep their paired row;
      Surrender owns the row beneath them instead of appearing as a cramped third button. */
   :global(
