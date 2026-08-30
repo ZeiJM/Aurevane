@@ -89,6 +89,7 @@ export function BattleClientBoundary({
       <BattleHeaderMatchMessage battleSessionId={initialBattle.battleSessionId} />
       <BattleChatEmojiPolish />
       <BattleFacingQuickCommitAssist playerName={runtime.playerName} />
+      <PvpQuickCommitAssist />
       <BattleStatusEffectAssist />
       <BattleStickyActionAssist />
       <BattleCommandCockpitPolish />
@@ -138,7 +139,6 @@ export function BattleClientBoundary({
         <>
           <PvpBattleReleasePolish />
           <PvpBattleKeyboardAssist playerName={runtime.playerName} />
-          <PvpQuickCommitAssist />
           <PvpBattleChatBridge
             battleSessionId={initialBattle.battleSessionId}
             metadata={runtime.metadata}
