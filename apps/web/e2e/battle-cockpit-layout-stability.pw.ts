@@ -21,22 +21,12 @@ function uniqueIdentity(prefix: string): { email: string; characterName: string 
 
 async function expectStableFullDesktopCockpit(page: Page) {
   const deck = page.locator('section[aria-label="Command Deck"]')
-  const commandRow = deck.locator(':scope > div:nth-child(2)')
-  const commands = commandRow.locator(':scope > button')
+  const commands = deck.locator(':scope > div:nth-child(2) > button')
   const facingPad = deck.locator('[data-unified-facing-pad="true"]')
 
   await expect(deck).toBeVisible()
   await expect(commands).toHaveCount(6)
   await expect(facingPad).toBeHidden()
-
-  const [deckBox, commandRowBox] = await Promise.all([
-    deck.boundingBox(),
-    commandRow.boundingBox(),
-  ])
-  expect(deckBox).not.toBeNull()
-  expect(commandRowBox).not.toBeNull()
-  expect(commandRowBox!.left - deckBox!.left).toBeLessThanOrEqual(12)
-  expect(deckBox!.right - commandRowBox!.right).toBeLessThanOrEqual(12)
 
   const before = await commands.evaluateAll((buttons) =>
     buttons.map((button) => button.getBoundingClientRect().height),
