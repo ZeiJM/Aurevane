@@ -114,16 +114,17 @@
     padding-bottom: 0.28rem !important;
   }
 
-  /* Keep the PvE-style battle message without making the sticky mobile header taller: eyebrow and
-     the shortened pooled line share one compact row. The stronger shared selector intentionally
-     wins over retired AI-only mobile rules that used to hide the objective strong entirely. */
+  /* Keep the full desktop battle line on mobile, but give it the same compact visual weight as the
+     Battle Hall eyebrow. The eyebrow stays left while the message owns the right edge of the row. */
   :global(main[data-unified-battle='true'] [data-battle-shared-header-message-host='true']) {
     display: flex !important;
+    width: 100% !important;
     min-width: 0 !important;
-    gap: 0.35rem !important;
-    align-items: baseline !important;
-    overflow: hidden !important;
-    white-space: nowrap !important;
+    gap: 0.6rem !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    overflow: visible !important;
+    white-space: normal !important;
   }
 
   :global(
@@ -134,7 +135,7 @@
     display: inline !important;
     flex: 0 0 auto !important;
     color: var(--av-brass-300) !important;
-    font: 700 0.4rem/1 var(--av-font-mono) !important;
+    font: 700 0.4rem/1.15 var(--av-font-mono) !important;
     letter-spacing: 0.06em !important;
     text-transform: uppercase !important;
   }
@@ -147,18 +148,19 @@
     display: block !important;
     flex: 1 1 auto !important;
     min-width: 0 !important;
-    max-width: 100% !important;
-    overflow: hidden !important;
+    max-width: 62% !important;
+    overflow: visible !important;
     color: var(--av-text) !important;
-    font: 600 0.64rem/1.05 var(--av-font-display) !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
+    font: 600 0.4rem/1.15 var(--av-font-display) !important;
+    text-align: right !important;
+    text-overflow: clip !important;
+    white-space: normal !important;
     visibility: visible !important;
     opacity: 1 !important;
   }
 
-  /* One mobile token contract for PvE and PvP. This explicitly removes the old AI-only portrait
-     footprint differences while preserving the exact current PvP ring, shadow, facing and state. */
+  /* One mobile token contract for PvE and PvP. The token keeps overflow visible so the facing arrow
+     can sit above it, while the portrait itself is hard-clipped to the circular ring. */
   :global(
     main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
       #battlefield
@@ -170,8 +172,9 @@
     left: 50% !important;
     z-index: 4 !important;
     display: grid !important;
+    box-sizing: border-box !important;
     width: clamp(1.7rem, 56%, 2.75rem) !important;
-    height: auto !important;
+    height: clamp(1.7rem, 56%, 2.75rem) !important;
     aspect-ratio: 1 / 1 !important;
     place-items: center !important;
     overflow: visible !important;
@@ -187,78 +190,70 @@
       #battlefield
       button[aria-label*='occupied by']
       > [data-battle-shared-token='true']
-      img
+      > .character-portrait-media
   ),
   :global(
     main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
       #battlefield
       button[aria-label*='occupied by']
       > [data-battle-shared-token='true']
-      picture
-  ),
-  :global(
-    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
-      #battlefield
-      button[aria-label*='occupied by']
-      > [data-battle-shared-token='true']
-      picture
-      img
+      > [class*='unitPortraitFallback']
   ) {
-    display: block !important;
+    position: absolute !important;
+    inset: 0 !important;
+    box-sizing: border-box !important;
     width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
     height: 100% !important;
-    max-width: none !important;
-    max-height: none !important;
+    min-height: 0 !important;
+    max-height: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
     border-radius: 50% !important;
+    clip-path: circle(50% at 50% 50%) !important;
     object-fit: cover !important;
     object-position: 50% 50% !important;
-  }
-
-  /* Quick-read resource bars sit inside the lower portrait edge. They are deliberately tiny so the
-     face remains readable: HP on top, MP below, both backed by a translucent dark rail. */
-  :global(main[data-unified-battle='true'] #battlefield [data-mobile-token-meters='true']) {
-    position: absolute !important;
-    right: 13% !important;
-    bottom: 11% !important;
-    left: 13% !important;
-    z-index: 7 !important;
-    display: grid !important;
-    gap: 1px !important;
-    padding: 1px !important;
-    overflow: hidden !important;
-    border-radius: 3px !important;
-    background: rgba(2, 5, 8, 0.78) !important;
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06) !important;
-    pointer-events: none !important;
+    translate: none !important;
+    scale: none !important;
+    transform: none !important;
+    transform-origin: 50% 50% !important;
   }
 
   :global(
-    main[data-unified-battle='true']
+    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
       #battlefield
-      [data-mobile-token-meters='true']
-      > [data-mobile-token-meter]
+      button[aria-label*='occupied by']
+      > [data-battle-shared-token='true']
+      > .character-portrait-media
   ) {
-    position: relative !important;
     display: block !important;
-    width: 100% !important;
-    height: 2px !important;
-    overflow: hidden !important;
-    border-radius: 999px !important;
-    background: rgba(255, 255, 255, 0.16) !important;
   }
 
-  :global(main[data-unified-battle='true'] #battlefield [data-mobile-token-meter] > i) {
-    display: block !important;
-    height: 100% !important;
-    border-radius: inherit !important;
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
+      #battlefield
+      button[aria-label*='occupied by']
+      > [data-battle-shared-token='true']
+      > [class*='unitPortraitFallback']
+  ) {
+    display: grid !important;
+    place-items: center !important;
   }
 
-  :global(main[data-unified-battle='true'] #battlefield [data-mobile-token-meter='hp'] > i) {
-    background: linear-gradient(90deg, #3e9d61, #6ed88d) !important;
-  }
-
-  :global(main[data-unified-battle='true'] #battlefield [data-mobile-token-meter='mp'] > i) {
-    background: linear-gradient(90deg, #4168aa, #78a4e8) !important;
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
+      #battlefield
+      button[aria-label*='occupied by']
+      > [data-battle-shared-token='true']
+      > i
+  ) {
+    top: -0.48rem !important;
+    z-index: 9 !important;
+    font-size: 0.58rem !important;
+    line-height: 1 !important;
+    pointer-events: none !important;
   }
 
   /* PvE uses the same full-width mobile danger action as PvP. Cancel/Confirm keep their paired row;
