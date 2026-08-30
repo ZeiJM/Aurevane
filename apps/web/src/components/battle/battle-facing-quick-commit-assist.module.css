@@ -26,7 +26,7 @@
   /* Every occupied battle token uses the approved player-arrow footprint, regardless of whether
      the combatant is the local player, an AI recruit, or another PvP player. */
   :global(
-    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
+    main[data-unified-battle='true']
       #battlefield
       button[aria-label*='occupied by']
       > span:last-child
