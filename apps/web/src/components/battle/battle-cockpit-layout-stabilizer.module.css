@@ -12,7 +12,9 @@
   }
 
   :global(
-    main[data-unified-battle='true'] [data-unified-command-deck='true'] > div:nth-child(2)
+    main[data-unified-battle='true']
+      [data-unified-command-deck='true']
+      > div:nth-child(2)
   ) {
     grid-column: 1 / -1 !important;
     width: 100%;
