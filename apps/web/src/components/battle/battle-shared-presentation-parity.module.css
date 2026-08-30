@@ -200,7 +200,6 @@
   ) {
     position: absolute !important;
     inset: 0 !important;
-    display: block !important;
     width: 100% !important;
     height: 100% !important;
     max-width: none !important;
@@ -210,6 +209,27 @@
     clip-path: circle(50% at 50% 50%) !important;
     object-fit: cover !important;
     object-position: 50% 50% !important;
+  }
+
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
+      #battlefield
+      button[aria-label*='occupied by']
+      > [data-battle-shared-token='true']
+      > .character-portrait-media
+  ) {
+    display: block !important;
+  }
+
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
+      #battlefield
+      button[aria-label*='occupied by']
+      > [data-battle-shared-token='true']
+      > [class*='unitPortraitFallback']
+  ) {
+    display: grid !important;
+    place-items: center !important;
   }
 
   :global(
