@@ -72,6 +72,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   const attackButton = commandDeck.getByRole('button', { name: /Basic Attack/ })
   const guardButton = commandDeck.getByRole('button', { name: /Guard/ })
   const finishButton = commandDeck.getByRole('button', { name: /Finish Turn/ })
+  const facingPad = commandDeck.locator('[data-unified-facing-pad="true"]')
   const confirmButton = page.getByRole('button', { name: 'Confirm Action' })
   const criteriaButton = page.getByRole('button', { name: /Victory conditions/i })
 
@@ -172,9 +173,9 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await openCriteriaAndClose(page, '1/4 complete')
   await expect(criteriaButton).not.toHaveAttribute('data-new-progress', 'true')
 
+  await expect(facingPad).toBeHidden()
+  await expect(finishButton).toContainText('Keep facing + end')
   await finishButton.click()
-  await expect(commandContext).toContainText('Choose your final facing to end the turn')
-  await page.getByRole('button', { name: 'Face east' }).click()
 
   await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
     'aria-valuenow',
@@ -182,6 +183,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     { timeout: 15_000 },
   )
   await expect(commandContext).toContainText('Choose your action', { timeout: 15_000 })
+  await expect(facingPad).toBeHidden()
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
   await expect(
     page.getByRole('dialog', { name: 'Complete the tactical fundamentals' }),
