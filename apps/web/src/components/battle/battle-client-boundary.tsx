@@ -8,6 +8,7 @@ import type { BattleSessionView } from '@/server/battle/battle-session-service'
 import { AiBattleQualityControls } from './ai-battle-quality-controls'
 import { AiDesktopSameFacingKeyboardAssist } from './ai-desktop-same-facing-keyboard-assist'
 import { BattleChatEmojiPolish } from './battle-chat-emoji-polish'
+import { BattleCockpitLayoutStabilizer } from './battle-cockpit-layout-stabilizer'
 import { BattleCommandCockpitPolish } from './battle-command-cockpit-polish'
 import { BattleCoordinateToggle } from './battle-coordinate-toggle'
 import { BattleDirectionalAttackAssist } from './battle-directional-attack-assist'
@@ -88,6 +89,7 @@ export function BattleClientBoundary({
       <BattleStatusEffectAssist />
       <BattleStickyActionAssist />
       <BattleCommandCockpitPolish />
+      <BattleCockpitLayoutStabilizer playerName={runtime.playerName} />
       <BattleInspectTerrainContext />
 
       {runtime.kind === 'pve' ? (
