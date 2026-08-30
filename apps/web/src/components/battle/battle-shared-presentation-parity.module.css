@@ -70,7 +70,11 @@
     text-transform: uppercase !important;
   }
 
-  :global([data-battle-header-message='true']) {
+  :global(
+    main[data-unified-battle='true']
+      [data-battle-shared-header-message-host='true']
+      > [data-battle-header-message='true']
+  ) {
     display: block !important;
     max-width: 100% !important;
     overflow: hidden !important;
@@ -78,6 +82,22 @@
     font: 650 clamp(0.73rem, 1.15vw, 0.93rem)/1.18 var(--av-font-display) !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+
+  /* The portrait is the body of each desktop combatant card. Keep only a compact information strip
+     above it and let the shared accent border close directly around the image on the other sides. */
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true']
+      [data-unified-combatant-rail='true']
+      > div
+      > article
+  ) {
+    grid-template-rows: auto minmax(0, 1fr) !important;
+    gap: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
   }
 }
 
@@ -89,8 +109,11 @@
   }
 
   /* Keep the PvE-style battle message without making the sticky mobile header taller: eyebrow and
-     the shortened pooled line share one compact row. */
-  :global([data-battle-shared-header-message-host='true']) {
+     the shortened pooled line share one compact row. The stronger shared selector intentionally
+     wins over retired AI-only mobile rules that used to hide the objective strong entirely. */
+  :global(
+    main[data-unified-battle='true'] [data-battle-shared-header-message-host='true']
+  ) {
     display: flex !important;
     min-width: 0 !important;
     gap: 0.35rem !important;
@@ -99,7 +122,11 @@
     white-space: nowrap !important;
   }
 
-  :global([data-battle-shared-header-message-host='true'] > span:first-child) {
+  :global(
+    main[data-unified-battle='true']
+      [data-battle-shared-header-message-host='true']
+      > span:first-child
+  ) {
     display: inline !important;
     flex: 0 0 auto !important;
     color: var(--av-brass-300) !important;
@@ -108,7 +135,11 @@
     text-transform: uppercase !important;
   }
 
-  :global([data-battle-header-message='true']) {
+  :global(
+    main[data-unified-battle='true']
+      [data-battle-shared-header-message-host='true']
+      > [data-battle-header-message='true']
+  ) {
     display: block !important;
     flex: 1 1 auto !important;
     min-width: 0 !important;
@@ -120,5 +151,97 @@
     white-space: nowrap !important;
     visibility: visible !important;
     opacity: 1 !important;
+  }
+
+  /* One mobile token contract for PvE and PvP. This explicitly removes the old AI-only portrait
+     footprint differences while preserving team color, active state, facing and server state. */
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true']
+      #battlefield
+      [data-battle-shared-token='true']
+  ) {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    z-index: 4 !important;
+    display: grid !important;
+    width: clamp(1.7rem, 56%, 2.75rem) !important;
+    height: auto !important;
+    aspect-ratio: 1 / 1 !important;
+    place-items: center !important;
+    overflow: visible !important;
+    border-width: 1.27px !important;
+    border-radius: 50% !important;
+    background: #080b10 !important;
+    box-shadow: 0 0.35rem 0.9rem rgba(0, 0, 0, 0.5) !important;
+    transform: translate(-50%, -50%) !important;
+  }
+
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true']
+      #battlefield
+      [data-battle-shared-token='true'][data-active]
+  ) {
+    box-shadow:
+      0 0 0 3px rgba(212, 186, 130, 0.22),
+      0 0 1rem rgba(212, 186, 130, 0.35),
+      0 0.35rem 0.9rem rgba(0, 0, 0, 0.5) !important;
+  }
+
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true']
+      #battlefield
+      [data-battle-shared-token='true']
+      img
+  ),
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true']
+      #battlefield
+      [data-battle-shared-token='true']
+      picture
+  ),
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true']
+      #battlefield
+      [data-battle-shared-token='true']
+      picture
+      img
+  ) {
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: none !important;
+    max-height: none !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    object-position: 50% 50% !important;
+  }
+
+  /* PvE uses the same full-width mobile danger action as PvP. Cancel/Confirm keep their paired row;
+     Surrender owns the row beneath them instead of appearing as a cramped third button. */
+  :global(
+    main[data-battle-kind='pve']
+      > footer[data-unified-battle-footer='true']
+      > div
+  ) {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    gap: 0.3rem !important;
+    justify-self: stretch !important;
+  }
+
+  :global(
+    main[data-battle-kind='pve']
+      > footer[data-unified-battle-footer='true']
+      > div
+      > button[data-unified-surrender='true']
+  ) {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    min-height: 2rem !important;
+    border: 1px solid rgba(201, 80, 80, 0.78) !important;
+    color: #f2b0b0 !important;
+    background: rgba(126, 38, 38, 0.35) !important;
   }
 }
