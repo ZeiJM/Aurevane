@@ -51,7 +51,8 @@ function syncFinishTurnCopy() {
   const deck = document.querySelector<HTMLElement>('section[aria-label="Command Deck"]')
   if (!deck) return
   const button = Array.from(deck.querySelectorAll<HTMLButtonElement>('button')).find(
-    (candidate) => candidate.querySelector(':scope > strong')?.textContent?.trim() === 'Finish Turn',
+    (candidate) =>
+      candidate.querySelector(':scope > strong')?.textContent?.trim() === 'Finish Turn',
   )
   const cost = button?.querySelector<HTMLElement>(':scope > small')
   if (cost && cost.textContent !== 'Keep facing + end') cost.textContent = 'Keep facing + end'
