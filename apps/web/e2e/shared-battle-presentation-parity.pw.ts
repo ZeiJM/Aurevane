@@ -54,7 +54,9 @@ async function expectMobileTokenMeters(root: ReturnType<Page['locator']>) {
         (child): child is HTMLElement =>
           child instanceof HTMLElement &&
           (child.classList.contains('character-portrait-media') ||
-            Array.from(child.classList).some((className) => className.includes('unitPortraitFallback'))),
+            Array.from(child.classList).some((className) =>
+              className.includes('unitPortraitFallback'),
+            )),
       )
       const portrait = portraitCandidates[0]!
       const tileRect = element.getBoundingClientRect()
