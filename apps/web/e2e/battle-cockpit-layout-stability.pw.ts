@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Page, type Request } from '@playwright/test'
 
 import {
   createAccountAndEnterCharacter,
@@ -177,7 +177,7 @@ test('mobile Finish Turn opens battlefield facing guides and commits a double-ta
   arrowGeometry.forEach((arrow) => expect(Math.abs(arrow.centerOffset)).toBeLessThanOrEqual(1))
 
   let finalTurnRequests = 0
-  const countFinalTurn = (request: { method(): string; url(): string }) => {
+  const countFinalTurn = (request: Request) => {
     if (
       request.method() === 'POST' &&
       /\/api\/battles\/[0-9a-f-]+\/final-turn$/i.test(new URL(request.url()).pathname)
@@ -192,8 +192,8 @@ test('mobile Finish Turn opens battlefield facing guides and commits a double-ta
   await page.waitForTimeout(200)
   expect(finalTurnRequests).toBe(0)
 
-  const northGuide = facingGuides.filter({ has: page.locator('[data-never-match]') }).or(
-    page.locator('#battlefield button[data-facing-guide="true"][data-facing-direction="north"]'),
+  const northGuide = page.locator(
+    '#battlefield button[data-facing-guide="true"][data-facing-direction="north"]',
   )
   const finalTurnResponse = page.waitForResponse(
     (response) =>
