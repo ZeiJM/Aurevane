@@ -24,8 +24,7 @@
 
 @media (max-width: 820px) {
   /* The player token is the mobile facing-marker reference. Force every canonical AI/PvP token
-     arrow onto that exact footprint so fallback portraits and remote combatants cannot inherit the
-     older smaller/lower indicator. */
+     arrow onto that exact footprint while keeping the marker inside its occupied grid cell. */
   :global(
     main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
       #battlefield
@@ -34,7 +33,7 @@
       > i
   ) {
     position: absolute !important;
-    top: -0.78rem !important;
+    top: -0.58rem !important;
     right: auto !important;
     bottom: auto !important;
     left: 50% !important;
