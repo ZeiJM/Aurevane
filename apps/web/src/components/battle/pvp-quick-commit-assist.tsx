@@ -5,13 +5,16 @@ import { useEffect, useRef } from 'react'
 const DOUBLE_TAP_WINDOW_MS = 760
 const CONFIRM_WAIT_MS = 1500
 const SYNTHETIC_CLICK_SUPPRESS_MS = 520
+const QUICK_COMMANDS = ['Move', 'Basic Attack', 'Guard', 'Recover'] as const
+
+type QuickCommand = (typeof QUICK_COMMANDS)[number]
 
 function textOf(element: Element | null): string {
   return element?.textContent?.trim() ?? ''
 }
 
 function battleRoot(): HTMLElement | null {
-  return document.querySelector<HTMLElement>('main[data-pvp-battle="true"]')
+  return document.querySelector<HTMLElement>('main[data-unified-battle="true"][data-battle-kind]')
 }
 
 function confirmButton(): HTMLButtonElement | null {
@@ -24,42 +27,69 @@ function confirmButton(): HTMLButtonElement | null {
   )
 }
 
+function isQuickCommand(value: string): value is QuickCommand {
+  return QUICK_COMMANDS.some((command) => command === value)
+}
+
 function commandButton(target: Element | null): HTMLButtonElement | null {
   const button = target?.closest<HTMLButtonElement>('section[aria-label="Command Deck"] button')
   if (!button) return null
   const label = textOf(button.querySelector('strong'))
-  return ['Move', 'Basic Attack', 'Guard', 'Recover'].includes(label) ? button : null
+  return isQuickCommand(label) ? button : null
 }
 
-function battlefieldTile(target: Element | null): HTMLButtonElement | null {
-  const tile =
-    target?.closest<HTMLButtonElement>('#battlefield button[aria-label^="Tile "]') ?? null
-  return tile?.dataset.facingGuide === 'true' ? null : tile
-}
-
-function quickKey(target: Element | null): string | null {
-  const command = commandButton(target)
-  if (command) return `command:${textOf(command.querySelector('strong'))}`
-  const tile = battlefieldTile(target)
-  if (tile) return `tile:${tile.getAttribute('aria-label') ?? ''}`
-  return null
-}
-
-function commandLabelForKey(key: string): string | null {
-  return key.startsWith('command:') ? key.slice('command:'.length) : null
-}
-
-function activeCommandLabel(): string | null {
+function activeCommandLabel(): QuickCommand | null {
   const root = battleRoot()
   if (!root) return null
   const active = Array.from(
     root.querySelectorAll<HTMLButtonElement>(
       'section[aria-label="Command Deck"] button[data-active]',
     ),
-  ).find((button) =>
-    ['Move', 'Basic Attack', 'Guard', 'Recover'].includes(textOf(button.querySelector('strong'))),
-  )
-  return active ? textOf(active.querySelector('strong')) : null
+  ).find((button) => isQuickCommand(textOf(button.querySelector('strong'))))
+  const label = active ? textOf(active.querySelector('strong')) : ''
+  return isQuickCommand(label) ? label : null
+}
+
+function battlefieldTile(target: Element | null): HTMLButtonElement | null {
+  const tile =
+    target?.closest<HTMLButtonElement>('#battlefield button[aria-label^="Tile "]') ?? null
+  if (!tile || tile.dataset.facingGuide === 'true') return null
+
+  const active = activeCommandLabel()
+  if (active === 'Move') {
+    return tile.hasAttribute('data-reachable') || tile.hasAttribute('data-path') ? tile : null
+  }
+  if (active === 'Basic Attack') {
+    return tile.dataset.target === 'enemy' || tile.dataset.attackRange === 'legal' ? tile : null
+  }
+  if (active === 'Guard' || active === 'Recover') {
+    return tile.dataset.target === 'friendly' || tile.dataset.targetRelation === 'friendly'
+      ? tile
+      : null
+  }
+  return null
+}
+
+function quickKey(target: Element | null): string | null {
+  const command = commandButton(target)
+  if (command) return `command:${textOf(command.querySelector('strong'))}`
+
+  const tile = battlefieldTile(target)
+  const active = activeCommandLabel()
+  if (tile && active) return `tile:${active}:${tile.getAttribute('aria-label') ?? ''}`
+  return null
+}
+
+function commandLabelForKey(key: string): QuickCommand | null {
+  if (key.startsWith('command:')) {
+    const label = key.slice('command:'.length)
+    return isQuickCommand(label) ? label : null
+  }
+  if (!key.startsWith('tile:')) return null
+  const labelEnd = key.indexOf(':', 'tile:'.length)
+  if (labelEnd < 0) return null
+  const label = key.slice('tile:'.length, labelEnd)
+  return isQuickCommand(label) ? label : null
 }
 
 function requestConfirmWhenReady(key: string) {
@@ -92,7 +122,10 @@ export function PvpQuickCommitAssist() {
       if (!isCoarse || (event.pointerType !== 'touch' && event.pointerType !== 'pen')) return
       const target = event.target instanceof Element ? event.target : null
       const key = quickKey(target)
-      if (!key) return
+      if (!key) {
+        lastTap.current = null
+        return
+      }
 
       const now = Date.now()
       const previous = lastTap.current
@@ -108,8 +141,8 @@ export function PvpQuickCommitAssist() {
       lastTap.current = null
       const confirm = confirmButton()
 
-      // If the first tap already produced a legal authoritative preview, commit immediately and
-      // suppress the browser's synthetic second click so it cannot restart the same command.
+      // Tap one still uses the native authoritative preview path. Tap two commits that same legal
+      // Move/Attack/Guard/Recover preview on both PvE and PvP mobile battles.
       if (confirm && !confirm.disabled) {
         event.preventDefault()
         event.stopImmediatePropagation()
@@ -118,9 +151,9 @@ export function PvpQuickCommitAssist() {
         return
       }
 
-      // Otherwise let the second native click finish selecting/re-previewing the command or tile,
-      // then commit the moment the server-backed preview enables Confirm Action. This is important
-      // for Guard/Recover and for slower mobile networks where preview state arrives after tap #2.
+      // A slower preview may not have enabled Confirm Action by the second pointer-up. Let the
+      // native click finish selecting the same target, then commit as soon as that matching mode's
+      // server-backed preview becomes legal. Changing modes cancels the wait.
       requestConfirmWhenReady(key)
     }
 

@@ -219,6 +219,8 @@ export function BattleFacingQuickCommitAssist({ playerName }: { playerName: stri
 
       if (mobileBattleShortcutAvailable()) {
         if (finishTurnButton(event.target)) {
+          // Tap one is deliberately allowed through to the real command button so it only opens
+          // facing mode. Tap two, while that mode is active, commits the current facing below.
           handleCurrentFacingShortcut(event, 'finish-command')
           return
         }
@@ -298,9 +300,16 @@ export function BattleFacingQuickCommitAssist({ playerName }: { playerName: stri
         return
       }
 
-      // Dedicated Final Facing controls are deliberately untouched: one native click/tap chooses
-      // the direction and immediately ends the round through the battle component's real handler.
-      if (finalFacingButton(event.target)) {
+      const directFacing = finalFacingButton(event.target)
+      if (directFacing) {
+        // Mobile final-facing choice is map-first: a trusted one-tap on the hidden/native control
+        // must never end the round. Only the programmatic click produced by a confirmed double tap
+        // is allowed through. Desktop retains the original one-click facing controls.
+        if (mobileBattleShortcutAvailable() && event.isTrusted) {
+          event.preventDefault()
+          event.stopImmediatePropagation()
+          return
+        }
         clearSelection({ restorePreview: false })
         lastGuideSelection.current = null
         lastCurrentFacingTap.current = null
@@ -322,6 +331,7 @@ export function BattleFacingQuickCommitAssist({ playerName }: { playerName: stri
       if (!document.querySelector('button[aria-label^="Face "]:not(:disabled)')) {
         clearSelection()
         lastGuideSelection.current = null
+        lastCurrentFacingTap.current = null
       }
     })
     observer.observe(document.body, { childList: true, subtree: true, attributes: true })
