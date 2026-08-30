@@ -4,8 +4,8 @@
 
 @media (max-width: 820px) {
   /* Mobile quick-read resources live just beneath the circular battlefield portrait, matching the
-     approved reference: HP first in red, MP second in blue. The bars stay inside the tile footprint
-     and do not change token size or interfere with facing/elevation markers. */
+     approved reference: HP first in red, MP second in blue. Center the pair on the token so neither
+     rail can drift into an adjacent tile, and keep the two resources visually tight. */
   :global(
     main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
       #battlefield
@@ -14,16 +14,18 @@
       > [data-mobile-token-meters='true']
   ) {
     position: absolute !important;
-    right: 3% !important;
+    right: auto !important;
     bottom: -22% !important;
-    left: 3% !important;
+    left: 50% !important;
     z-index: 8 !important;
     display: grid !important;
-    gap: clamp(1px, 0.3vw, 2px) !important;
+    width: 94% !important;
+    gap: 1px !important;
     padding: 0 !important;
     overflow: visible !important;
     background: transparent !important;
     box-shadow: none !important;
+    transform: translateX(-50%) !important;
     pointer-events: none !important;
   }
 
