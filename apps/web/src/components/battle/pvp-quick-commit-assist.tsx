@@ -14,9 +14,7 @@ function textOf(element: Element | null): string {
 }
 
 function battleRoot(): HTMLElement | null {
-  return document.querySelector<HTMLElement>(
-    'main[data-unified-battle="true"][data-battle-kind]',
-  )
+  return document.querySelector<HTMLElement>('main[data-unified-battle="true"][data-battle-kind]')
 }
 
 function confirmButton(): HTMLButtonElement | null {
