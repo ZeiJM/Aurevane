@@ -26,15 +26,13 @@
   gap: var(--rail-card-gap);
   min-width: 0;
   min-height: 0;
-  align-content: center;
+  align-content: start;
+  justify-self: center;
 }
 
-.railLeft .stack {
-  justify-self: start;
-}
-
+.railLeft .stack,
 .railRight .stack {
-  justify-self: end;
+  justify-self: center;
 }
 
 .card {
