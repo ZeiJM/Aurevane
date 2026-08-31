@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useLayoutEffect } from 'react'
 
 const DESKTOP_PVP_TOKEN_QUERY = '(min-width: 821px)'
 const DESKTOP_PVP_TOKEN_SIZE = 'clamp(2rem, 3.4vw, 3.4rem)'
@@ -113,7 +113,7 @@ interface BattleMapTokenPolishProps {
 }
 
 export function BattleMapTokenPolish({ playerName }: BattleMapTokenPolishProps = {}) {
-  useEffect(() => {
+  useLayoutEffect(() => {
     const polish = () => polishBattlefieldTokens(playerName)
 
     polish()
