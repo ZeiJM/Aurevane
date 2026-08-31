@@ -15,8 +15,7 @@ const DEFENSE_COLOR = '#6c91c6'
 const TARGET_SHADOWS: Readonly<Record<string, string>> = {
   [DAMAGE_COLOR]:
     'inset 0 0 0 2px rgba(255, 118, 111, 0.46), 0 0 0.75rem rgba(255, 118, 111, 0.22)',
-  [HEALING_COLOR]:
-    'inset 0 0 0 2px rgba(89, 211, 155, 0.46), 0 0 0.75rem rgba(89, 211, 155, 0.22)',
+  [HEALING_COLOR]: 'inset 0 0 0 2px rgba(89, 211, 155, 0.46), 0 0 0.75rem rgba(89, 211, 155, 0.22)',
   [DEFENSE_COLOR]:
     'inset 0 0 0 2px rgba(108, 145, 198, 0.46), 0 0 0.75rem rgba(108, 145, 198, 0.22)',
 }
