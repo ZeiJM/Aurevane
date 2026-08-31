@@ -9,39 +9,20 @@ const COMPACT_TOKEN_SIZE = 'clamp(1.7rem, 56%, 2.75rem)'
 const LARGE_COMPACT_TOKEN_SIZE = 'clamp(1.25rem, 72%, 1.75rem)'
 const PLAYER_TOKEN_SHADOW = '0 0.45rem 1rem rgba(0, 0, 0, 0.35)'
 
-function tileCoordinates(tile: HTMLButtonElement): { x: number; y: number } | null {
-  const match = tile.getAttribute('aria-label')?.match(/^Tile\s+(\d+),\s*(\d+)/i)
-  if (!match) return null
-  return { x: Number(match[1]), y: Number(match[2]) }
-}
-
 function syncBoardScale(): { width: number; height: number } | null {
   const board = document.querySelector<HTMLElement>('#battlefield [data-board-auto-fit]')
   if (!board) return null
 
-  const tiles = Array.from(board.querySelectorAll<HTMLButtonElement>('button[aria-label^="Tile "]'))
-  let width = 0
-  let height = 0
-  for (const tile of tiles) {
-    const coordinates = tileCoordinates(tile)
-    if (!coordinates) continue
-    width = Math.max(width, coordinates.x)
-    height = Math.max(height, coordinates.y)
-  }
+  const fit = board.dataset.boardAutoFit?.match(/^(\d+)x(\d+)$/)
+  if (!fit) return null
+
+  const width = Number(fit[1])
+  const height = Number(fit[2])
   if (width <= 0 || height <= 0) return null
 
-  // React can briefly expose a partially reconciled tile list while a submitted action or recruit
-  // turn replaces the tactical snapshot. Never publish that transient partial rectangle as a new
-  // board size: doing so makes the 9x7 Guided Fundamentals board visibly snap smaller for a frame.
-  if (tiles.length !== width * height) return null
-
-  const fit = `${width}x${height}`
-  if (board.dataset.boardAutoFit !== fit) board.dataset.boardAutoFit = fit
-
-  // Keep the renderer's real board ratio authoritative for every arena. The old presentation
-  // authority assumed 9x7, which is what stretched the 13x9 large-map cells into rectangles.
-  board.style.setProperty('aspect-ratio', `${width} / ${height}`, 'important')
-
+  // BattleExperience publishes the authoritative tactical width/height directly. This helper only
+  // preserves the established large-board cap; it no longer derives board geometry from live tile
+  // DOM, so transient React reconciliation cannot change the board-size contract.
   if (width === 13 && height === 9) {
     board.style.setProperty('box-sizing', 'border-box', 'important')
     board.style.setProperty('width', 'min(100%, 620px)', 'important')
