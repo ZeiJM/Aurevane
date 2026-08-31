@@ -57,6 +57,20 @@ function progressCount(progress: GuidedTrainingProgress): number {
   return GUIDED_CRITERIA.filter((criterion) => progress[criterion.id]).length
 }
 
+function VictoryCloseGlyph() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+      <path
+        d="M2.75 2.75 9.25 9.25M9.25 2.75 2.75 9.25"
+        fill="none"
+        stroke="currentColor"
+        strokeLinecap="round"
+        strokeWidth="1.35"
+      />
+    </svg>
+  )
+}
+
 function findVictoryControl(): HTMLButtonElement | null {
   const header = document.querySelector<HTMLElement>('header[data-unified-battle-header="true"]')
   if (!header) return null
@@ -178,7 +192,7 @@ function StandardBattleCriteria({ recordId }: { recordId: TacticalHallRecordId }
           aria-label="Close victory conditions"
           onClick={() => setOpen(false)}
         >
-          ×
+          <VictoryCloseGlyph />
         </button>
         <span>Battle Hall · {record.name}</span>
         <h2 id="battle-criteria-title">Victory conditions</h2>
@@ -296,7 +310,7 @@ function GuidedFundamentalsCriteria({ battleSessionId }: { battleSessionId: stri
           aria-label="Close victory conditions"
           onClick={() => setOpen(false)}
         >
-          ×
+          <VictoryCloseGlyph />
         </button>
         <span>Battle Hall · Guided Fundamentals</span>
         <h2 id="guided-training-title">
