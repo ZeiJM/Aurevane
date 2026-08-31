@@ -21,26 +21,17 @@ function createTestAuthAdminClient() {
 
 async function confirmTestAccountEmail(email: string): Promise<void> {
   const supabase = createTestAuthAdminClient()
-  let userId: string | null = null
+  const { data, error } = await supabase.auth.admin.listUsers({
+    page: 1,
+    perPage: 1000,
+  })
 
-  await expect
-    .poll(
-      async () => {
-        const { data, error } = await supabase.auth.admin.listUsers({
-          page: 1,
-          perPage: 1000,
-        })
-        if (error) throw error
-        userId = data.users.find((candidate) => candidate.email === email)?.id ?? null
-        return userId
-      },
-      { timeout: 10_000 },
-    )
-    .not.toBeNull()
+  if (error) throw error
 
-  if (!userId) throw new Error('The browser-test account was not created in local Supabase.')
+  const user = data.users.find((candidate) => candidate.email === email)
+  if (!user) throw new Error('The browser-test account was not created in local Supabase.')
 
-  const { error: confirmError } = await supabase.auth.admin.updateUserById(userId, {
+  const { error: confirmError } = await supabase.auth.admin.updateUserById(user.id, {
     email_confirm: true,
   })
 
@@ -85,7 +76,7 @@ async function createCharacterAfterSignIn(input: {
   await page.getByRole('button', { name: 'Review character' }).click()
   await page.getByRole('button', { name: 'Create character' }).click()
 
-  await expect(page).toHaveURL(/\/game\/character$/, { timeout: 15_000 })
+  await expect(page).toHaveURL(/\/game\/character$/)
   await expect(page.getByTestId('character-profile')).toContainText(characterName)
 }
 
