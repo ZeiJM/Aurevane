@@ -24,6 +24,7 @@ import { BattleMapTokenPolish } from './battle-map-token-polish'
 import { BattleMobileTokenMeters } from './battle-mobile-token-meters'
 import { BattlePresentationPolish } from './battle-presentation-polish'
 import { BattlePveCommandContextParity } from './battle-pve-command-context-parity'
+import { BattlePveSurrenderParity } from './battle-pve-surrender-parity'
 import { BattleRecruitRecoveryAssist } from './battle-recruit-recovery-assist'
 import { buildBattleViewModel, type BattleRuntime } from './battle-runtime'
 import { BattleRuntimeProvider } from './battle-runtime-context'
@@ -80,7 +81,7 @@ export function BattleClientBoundary({
       <BattleTerrainPresentationPolish />
       <BattleCoordinateToggle />
       <BattleDirectionalAttackAssist playerName={runtime.playerName} />
-      <BattleMapTokenPolish playerName={runtime.kind === 'pve' ? runtime.playerName : undefined} />
+      <BattleMapTokenPolish playerName={runtime.playerName} />
       <BattleMobileTokenMeters initialBattle={initialBattle} combatantNames={combatantNames} />
       <BattlePresentationPolish
         playerName={runtime.playerName}
@@ -103,6 +104,7 @@ export function BattleClientBoundary({
             playerName={runtime.playerName}
           />
           <BattlePveCommandContextParity />
+          <BattlePveSurrenderParity />
           <BattleLessonCoachSemantics />
           {lessonActive ? (
             <BattleLessonCoach
