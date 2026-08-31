@@ -349,10 +349,7 @@ describe('Battle Log V2 presentation', () => {
     )[0]?.actions[0]
 
     expect(sentence(action?.primary ?? [])).toBe('Zei moves')
-    expect(action?.details.map((detail) => detail.label)).toEqual([
-      '1, 1 → 2, 1',
-      '25 Move spent',
-    ])
+    expect(action?.details.map((detail) => detail.label)).toEqual(['1, 1 → 2, 1', '25 Move spent'])
   })
 
   it('describes a defensive action once and keeps its status as the immediate consequence', () => {
@@ -393,27 +390,28 @@ describe('Battle Log V2 presentation', () => {
   })
 
   it('keeps a finishing action visible when battle completion shares its committed version', () => {
-    const actions = buildBattleLogPresentation(
-      [
-        ...attackEntries(),
-        entry({
-          eventIndex: 3,
-          eventType: 'battle_completed',
-          message: 'Battle completed.',
-          messageTemplate: 'Battle completed.',
-          templateValues: {},
-          actorCombatantId: null,
-          targetCombatantId: null,
-          actionId: null,
-          actionLabel: null,
-          kind: 'system',
-          headline: 'Battle Complete',
-          tone: 'benefit',
-          facts: [{ label: 'Complete', tone: 'benefit' }],
-        }),
-      ],
-      { combatantNames: names },
-    )[0]?.actions ?? []
+    const actions =
+      buildBattleLogPresentation(
+        [
+          ...attackEntries(),
+          entry({
+            eventIndex: 3,
+            eventType: 'battle_completed',
+            message: 'Battle completed.',
+            messageTemplate: 'Battle completed.',
+            templateValues: {},
+            actorCombatantId: null,
+            targetCombatantId: null,
+            actionId: null,
+            actionLabel: null,
+            kind: 'system',
+            headline: 'Battle Complete',
+            tone: 'benefit',
+            facts: [{ label: 'Complete', tone: 'benefit' }],
+          }),
+        ],
+        { combatantNames: names },
+      )[0]?.actions ?? []
 
     expect(sentence(actions[0]?.primary ?? [])).toBe('Battle complete')
     expect(sentence(actions[1]?.primary ?? [])).toBe('Zei strikes Storm — 18 damage')

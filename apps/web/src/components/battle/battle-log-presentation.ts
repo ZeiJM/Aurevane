@@ -474,25 +474,19 @@ function attackSegments(
     ]
   }
 
-  return namedAttackSegments(
-    safeActor,
-    safeTarget,
-    actionLabel,
-    outcome,
-    tone,
-    narrationOutcome,
-  )
+  return namedAttackSegments(safeActor, safeTarget, actionLabel, outcome, tone, narrationOutcome)
 }
 
-function actionUseSegments(
-  actor: string,
-  actionLabel: string,
-): readonly BattleLogSegment[] {
+function actionUseSegments(actor: string, actionLabel: string): readonly BattleLogSegment[] {
   if (actionLabel === 'Guard') {
     return [segment(actor, 'actor'), segment(' braces with '), segment(actionLabel, 'action')]
   }
   if (actionLabel === 'Recover') {
-    return [segment(actor, 'actor'), segment(' regains footing with '), segment(actionLabel, 'action')]
+    return [
+      segment(actor, 'actor'),
+      segment(' regains footing with '),
+      segment(actionLabel, 'action'),
+    ]
   }
   return [segment(actor, 'actor'), segment(' invokes '), segment(actionLabel, 'action')]
 }
