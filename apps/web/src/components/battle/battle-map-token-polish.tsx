@@ -12,6 +12,14 @@ const DAMAGE_COLOR = '#ff766f'
 const HEALING_COLOR = '#59d39b'
 const DEFENSE_COLOR = '#6c91c6'
 
+const TARGET_SHADOWS: Readonly<Record<string, string>> = {
+  [DAMAGE_COLOR]:
+    'inset 0 0 0 2px rgba(255, 118, 111, 0.46), 0 0 0.75rem rgba(255, 118, 111, 0.22)',
+  [HEALING_COLOR]: 'inset 0 0 0 2px rgba(89, 211, 155, 0.46), 0 0 0.75rem rgba(89, 211, 155, 0.22)',
+  [DEFENSE_COLOR]:
+    'inset 0 0 0 2px rgba(108, 145, 198, 0.46), 0 0 0.75rem rgba(108, 145, 198, 0.22)',
+}
+
 function syncBoardScale(): { width: number; height: number } | null {
   const board = document.querySelector<HTMLElement>('#battlefield [data-board-auto-fit]')
   if (!board) return null
@@ -55,6 +63,18 @@ function activeSemanticColor(tile: HTMLButtonElement): string | null {
   return null
 }
 
+function syncSemanticTargetTile(tile: HTMLButtonElement, semanticAccent: string | null): void {
+  if (!semanticAccent) {
+    tile.style.removeProperty('border-color')
+    tile.style.removeProperty('box-shadow')
+    return
+  }
+
+  tile.style.setProperty('border-color', semanticAccent, 'important')
+  const shadow = TARGET_SHADOWS[semanticAccent]
+  if (shadow) tile.style.setProperty('box-shadow', shadow, 'important')
+}
+
 function polishBattlefieldTokens(
   playerName?: string,
   combatantAccents: Readonly<Record<string, string>> = {},
@@ -96,6 +116,7 @@ function polishBattlefieldTokens(
     const combatantName = name?.textContent?.trim() ?? ''
     const identityAccent = combatantName ? combatantAccents[combatantName] : undefined
     const semanticAccent = activeSemanticColor(tile)
+    syncSemanticTargetTile(tile, semanticAccent)
     const tokenAccent = semanticAccent ?? identityAccent
     if (tokenAccent) token.style.setProperty('border-color', tokenAccent, 'important')
     else token.style.removeProperty('border-color')

@@ -32,9 +32,9 @@ describe('PvP lobby presentation and refresh contract', () => {
 
     expect(launch).toContain("'aurevane:pvp-lobby-id'")
     expect(launch).toContain('sessionStorage.getItem(PVP_LOBBY_SESSION_STORAGE_KEY)')
-    expect(launch).toContain("fetch(`/api/pvp/lobbies/${encodeURIComponent(lobbyId)}`")
+    expect(launch).toContain('fetch(`/api/pvp/lobbies/${encodeURIComponent(restoredLobbyId)}`')
     expect(launch).toContain("if (body.lobby.status !== 'waiting')")
-    expect(launch).toContain("sessionStorage.setItem(PVP_LOBBY_SESSION_STORAGE_KEY, lobby.lobbyId)")
+    expect(launch).toContain('sessionStorage.setItem(PVP_LOBBY_SESSION_STORAGE_KEY, lobby.lobbyId)')
     expect(launch).toContain('onLeave={dismissPvpLobby}')
   })
 
