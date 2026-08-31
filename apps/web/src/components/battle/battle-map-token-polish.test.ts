@@ -18,11 +18,16 @@ describe('battlefield semantic target polish', () => {
     expect(source).toContain("const HEALING_COLOR = '#59d39b'")
     expect(source).toContain("const DEFENSE_COLOR = '#6c91c6'")
     expect(source).toContain(
+      "'section[aria-label=\"Command Deck\"] button[data-active=\"true\"]'",
+    )
+    expect(source).toContain("if (label === 'Guard') return 'guard'")
+    expect(source).toContain(
       "if (activeCommand === 'recover' && targetRelation === 'friendly') return HEALING_COLOR",
     )
     expect(source).toContain(
       "if (activeCommand === 'guard' && targetRelation === 'friendly') return DEFENSE_COLOR",
     )
+    expect(source).toContain("attributeFilter: ['data-active', 'data-battle-active']")
     expect(source).toContain("tile.style.setProperty('background-color', background, 'important')")
     expect(source).toContain("tile.style.setProperty('border-color', semanticAccent, 'important')")
     expect(source).toContain("tile.style.setProperty('box-shadow', shadow, 'important')")
