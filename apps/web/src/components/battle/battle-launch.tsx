@@ -260,9 +260,9 @@ export function BattleLaunch({
     }
 
     let cancelled = false
-    async function restoreLobby() {
+    async function restoreLobby(restoredLobbyId: string) {
       try {
-        const response = await fetch(`/api/pvp/lobbies/${encodeURIComponent(lobbyId)}`, {
+        const response = await fetch(`/api/pvp/lobbies/${encodeURIComponent(restoredLobbyId)}`, {
           cache: 'no-store',
         })
         const body = (await response.json()) as { lobby?: PvpLobbyView } & ApiErrorBody
@@ -286,7 +286,7 @@ export function BattleLaunch({
       }
     }
 
-    void restoreLobby()
+    void restoreLobby(lobbyId)
     return () => {
       cancelled = true
     }
