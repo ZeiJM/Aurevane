@@ -6,9 +6,7 @@ import {
   type PresentedBattleLogRound,
 } from './battle-log-presentation'
 
-function movementActorsByVersion(
-  entries: BattleLogView['entries'],
-): ReadonlyMap<number, string> {
+function movementActorsByVersion(entries: BattleLogView['entries']): ReadonlyMap<number, string> {
   const actors = new Map<number, string>()
 
   for (const entry of entries) {
@@ -19,10 +17,7 @@ function movementActorsByVersion(
   return actors
 }
 
-/**
- * A plotted path can emit one authoritative movement event per traversed tile. Keep those raw
- * events intact, but present one player-facing movement beat for a continuous same-combatant move.
- */
+/** Keep raw path-step events while showing one movement beat for a continuous move. */
 export function summarizeConsecutiveBattleLogMovement(
   rounds: readonly PresentedBattleLogRound[],
   entries: BattleLogView['entries'],
@@ -34,10 +29,14 @@ export function summarizeConsecutiveBattleLogMovement(
 
     for (const action of round.actions) {
       const previous = summarized.at(-1)
-      const actor =
-        action.kind === 'movement' ? movementActors.get(action.battleVersion) : undefined
-      const previousActor =
-        previous?.kind === 'movement' ? movementActors.get(previous.battleVersion) : undefined
+      let actor: string | undefined
+      let previousActor: string | undefined
+
+      if (action.kind === 'movement') actor = movementActors.get(action.battleVersion)
+      if (previous?.kind === 'movement') {
+        previousActor = movementActors.get(previous.battleVersion)
+      }
+
       const sameContinuousMove =
         Boolean(actor) &&
         previous?.kind === 'movement' &&
@@ -48,13 +47,12 @@ export function summarizeConsecutiveBattleLogMovement(
       summarized.push(action)
     }
 
-    return summarized.length === round.actions.length ? round : { ...round, actions: summarized }
+    if (summarized.length === round.actions.length) return round
+    return { ...round, actions: summarized }
   })
 }
 
-export function countSummarizedBattleLogActions(
-  entries: BattleLogView['entries'],
-): number {
+export function countSummarizedBattleLogActions(entries: BattleLogView['entries']): number {
   const rounds = summarizeConsecutiveBattleLogMovement(
     buildBattleLogPresentation(entries),
     entries,
