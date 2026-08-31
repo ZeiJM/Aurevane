@@ -36,9 +36,7 @@ function directToken(tile: HTMLButtonElement): HTMLElement | null {
 }
 
 function polishDesktopBoardGeometry() {
-  const board = document.querySelector<HTMLElement>(
-    "#battlefield [data-board-auto-fit='9x7']",
-  )
+  const board = document.querySelector<HTMLElement>("#battlefield [data-board-auto-fit='9x7']")
   const viewport = board?.parentElement
   if (!board || !(viewport instanceof HTMLElement)) return
 
@@ -79,10 +77,7 @@ function polishDesktopBoardGeometry() {
   }
 }
 
-function normalizeFacingArrows(
-  occupiedTiles: HTMLButtonElement[],
-  playerName: string | undefined,
-) {
+function normalizeFacingArrows(occupiedTiles: HTMLButtonElement[], playerName: string | undefined) {
   const referenceTile = playerName
     ? occupiedTiles.find((tile) =>
         tile.getAttribute('aria-label')?.includes(`occupied by ${playerName}`),
