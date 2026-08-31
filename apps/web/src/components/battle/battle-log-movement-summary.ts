@@ -53,10 +53,7 @@ export function summarizeConsecutiveBattleLogMovement(
 }
 
 export function countSummarizedBattleLogActions(entries: BattleLogView['entries']): number {
-  const rounds = summarizeConsecutiveBattleLogMovement(
-    buildBattleLogPresentation(entries),
-    entries,
-  )
+  const rounds = summarizeConsecutiveBattleLogMovement(buildBattleLogPresentation(entries), entries)
 
   return rounds.reduce((total, round) => total + round.actions.length, 0)
 }
