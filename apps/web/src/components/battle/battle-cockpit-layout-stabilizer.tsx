@@ -5,21 +5,13 @@ import { useEffect, useRef } from 'react'
 import styles from './battle-cockpit-layout-stabilizer.module.css'
 
 const MOBILE_QUERY = '(max-width: 820px)'
-const FACING_GLYPHS = {
-  north: '↑',
-  east: '→',
-  south: '↓',
-  west: '←',
-} as const
+type Facing = 'north' | 'east' | 'south' | 'west'
 
-type Facing = keyof typeof FACING_GLYPHS
-
-function facingFromGlyph(glyph: string): Facing | null {
-  if (glyph.includes(FACING_GLYPHS.north)) return 'north'
-  if (glyph.includes(FACING_GLYPHS.east)) return 'east'
-  if (glyph.includes(FACING_GLYPHS.south)) return 'south'
-  if (glyph.includes(FACING_GLYPHS.west)) return 'west'
-  return null
+function facingFromIndicator(indicator: HTMLElement | null): Facing | null {
+  const facing = indicator?.dataset.facing
+  return facing === 'north' || facing === 'east' || facing === 'south' || facing === 'west'
+    ? facing
+    : null
 }
 
 function finishTurnButton(target: EventTarget | null): HTMLButtonElement | null {
@@ -39,10 +31,9 @@ function currentFacingControl(playerName: string): HTMLButtonElement | null {
   )
   if (!tile) return null
 
-  const facingGlyph = Array.from(tile.querySelectorAll<HTMLElement>('i, span'))
-    .map((candidate) => candidate.textContent?.trim() ?? '')
-    .find((text) => facingFromGlyph(text) !== null)
-  const facing = facingGlyph ? facingFromGlyph(facingGlyph) : null
+  const facing = facingFromIndicator(
+    tile.querySelector<HTMLElement>('[data-battle-facing-indicator="true"]'),
+  )
   return facing
     ? document.querySelector<HTMLButtonElement>(`button[aria-label="Face ${facing}"]`)
     : null

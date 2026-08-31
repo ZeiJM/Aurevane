@@ -2,14 +2,7 @@
 
 import { useLayoutEffect } from 'react'
 
-const FACING_GLYPHS = {
-  '↑': 'north',
-  '→': 'east',
-  '↓': 'south',
-  '←': 'west',
-} as const
-
-type FacingGlyph = keyof typeof FACING_GLYPHS
+type Facing = 'north' | 'east' | 'south' | 'west'
 
 function isTextEntryTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false
@@ -59,13 +52,14 @@ function currentFacingButton(playerName: string): HTMLButtonElement | null {
   )
   if (!tile) return null
 
-  const glyph = Array.from(tile.querySelectorAll<HTMLElement>('i, span'))
-    .map((candidate) => candidate.textContent?.trim() ?? '')
-    .find((text): text is FacingGlyph => text in FACING_GLYPHS)
-  if (!glyph) return null
-
-  const facing = FACING_GLYPHS[glyph]
-  return document.querySelector<HTMLButtonElement>(`button[aria-label="Face ${facing}"]`)
+  const value = tile.querySelector<HTMLElement>(
+    '[data-battle-facing-indicator="true"]',
+  )?.dataset.facing
+  const facing: Facing | null =
+    value === 'north' || value === 'east' || value === 'south' || value === 'west' ? value : null
+  return facing
+    ? document.querySelector<HTMLButtonElement>(`button[aria-label="Face ${facing}"]`)
+    : null
 }
 
 /**

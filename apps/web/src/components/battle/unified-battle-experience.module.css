@@ -217,7 +217,8 @@
   }
 
   :global([data-unified-battlefield='true'] > div:first-child) {
-    height: calc(100% - 2.35rem) !important;
+    height: 100% !important;
+    min-height: 0 !important;
     padding: 0.32rem !important;
     place-items: center !important;
   }
