@@ -151,7 +151,7 @@ test('fits three square portrait cards cleanly in each desktop PvP rail', async 
       }),
     )
 
-    for (const geometry of geometries) {
+    for (const [railIndex, geometry] of geometries.entries()) {
       expect(geometry.rail.height).toBeGreaterThan(0)
       expect(geometry.cards).toHaveLength(3)
       expect(geometry.stack.width).toBeLessThanOrEqual(geometry.rail.width + 1)
@@ -160,7 +160,8 @@ test('fits three square portrait cards cleanly in each desktop PvP rail', async 
 
       const railCenter = (geometry.rail.left + geometry.rail.right) / 2
       const stackCenter = (geometry.stack.left + geometry.stack.right) / 2
-      expect(Math.abs(stackCenter - railCenter)).toBeLessThanOrEqual(1)
+      const expectedOpticalOffset = railIndex === 0 ? -3 : 3
+      expect(Math.abs(stackCenter - railCenter - expectedOpticalOffset)).toBeLessThanOrEqual(1)
 
       for (const { card, heading, portrait, image } of geometry.cards) {
         expect(Math.abs(portrait.width - portrait.height)).toBeLessThanOrEqual(1)
