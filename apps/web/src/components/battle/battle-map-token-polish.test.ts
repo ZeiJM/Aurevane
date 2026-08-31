@@ -1,0 +1,36 @@
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+import { describe, expect, it } from 'vitest'
+
+const here = dirname(fileURLToPath(import.meta.url))
+
+function readLocalFile(name: string): string {
+  return readFileSync(join(here, name), 'utf8')
+}
+
+describe('battlefield semantic target polish', () => {
+  it('uses the reserved damage, healing, and defense colors for legal target tiles', () => {
+    const source = readLocalFile('battle-map-token-polish.tsx')
+
+    expect(source).toContain("const DAMAGE_COLOR = '#ff766f'")
+    expect(source).toContain("const HEALING_COLOR = '#59d39b'")
+    expect(source).toContain("const DEFENSE_COLOR = '#6c91c6'")
+    expect(source).toContain(
+      "if (activeCommand === 'recover' && targetRelation === 'friendly') return HEALING_COLOR",
+    )
+    expect(source).toContain(
+      "if (activeCommand === 'guard' && targetRelation === 'friendly') return DEFENSE_COLOR",
+    )
+    expect(source).toContain("tile.style.setProperty('border-color', semanticAccent, 'important')")
+    expect(source).toContain("tile.style.setProperty('box-shadow', shadow, 'important')")
+  })
+
+  it('clears the semantic tile override when the target is no longer active', () => {
+    const source = readLocalFile('battle-map-token-polish.tsx')
+
+    expect(source).toContain("tile.style.removeProperty('border-color')")
+    expect(source).toContain("tile.style.removeProperty('box-shadow')")
+  })
+})
