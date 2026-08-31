@@ -33,17 +33,6 @@ function expandedRoundKey(
   return rounds.some((round) => round.key === requestedRound) ? requestedRound : defaultRound
 }
 
-function kindGlyph(kind: string): string {
-  if (kind === 'offense') return '⚔'
-  if (kind === 'movement') return '↗'
-  if (kind === 'defense') return '◇'
-  if (kind === 'recovery') return '✚'
-  if (kind === 'status') return '◆'
-  if (kind === 'resource') return '◈'
-  if (kind === 'turn') return '◷'
-  return '•'
-}
-
 function timeLabel(value: string): string {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ''
@@ -62,12 +51,23 @@ function renderSegments(segments: readonly BattleLogSegment[]) {
   ))
 }
 
-function playerFacingEntries(entries: BattleLogView['entries']): BattleLogView['entries'] {
-  return entries.filter((entry) => entry.eventType !== 'combatant_moved')
+function renderSecondarySegments(segments: readonly BattleLogSegment[]) {
+  return segments.map((item, index) => {
+    const text = index === 0 && item.text === '↳ ' ? '- ' : item.text
+    return (
+      <span
+        data-role={item.role ?? 'text'}
+        data-tone={item.tone}
+        key={`${index}:${item.role ?? 'text'}:${text}`}
+      >
+        {text}
+      </span>
+    )
+  })
 }
 
 export function countBattleLogActions(entries: BattleLogView['entries']): number {
-  return countPresentedBattleLogActions(playerFacingEntries(entries))
+  return countPresentedBattleLogActions(entries)
 }
 
 export function BattleLogFeed({
@@ -78,7 +78,7 @@ export function BattleLogFeed({
   emptyMessage = 'No committed battle actions yet.',
 }: BattleLogFeedProps) {
   const rounds = useMemo(() => {
-    const presented = buildBattleLogPresentation(playerFacingEntries(entries), {
+    const presented = buildBattleLogPresentation(entries, {
       playerName,
       combatantNames,
       skillNarrations,
@@ -92,17 +92,11 @@ export function BattleLogFeed({
 
   return (
     <div className={styles.feed} data-testid="battle-log-feed">
-      {rounds.map((round, index) => {
+      {rounds.map((round) => {
         const open = expandedRound === round.key
-        const latest = index === 0 && round.round !== null
         const roundLabel = round.round === null ? 'Battle' : `Round ${round.round}`
         return (
-          <section
-            className={styles.round}
-            data-latest={latest || undefined}
-            data-open={open || undefined}
-            key={round.key}
-          >
+          <section className={styles.round} data-open={open || undefined} key={round.key}>
             <button
               type="button"
               className={styles.roundHeader}
@@ -116,13 +110,7 @@ export function BattleLogFeed({
               <span className={styles.chevron} aria-hidden="true">
                 ›
               </span>
-              <span className={styles.roundTitle}>
-                <strong>{roundLabel}</strong>
-                {latest ? <em>Latest</em> : null}
-                <small>
-                  {round.actions.length} action{round.actions.length === 1 ? '' : 's'}
-                </small>
-              </span>
+              <strong className={styles.roundTitle}>{roundLabel}</strong>
               <time dateTime={round.occurredAt}>{timeLabel(round.occurredAt)}</time>
             </button>
 
@@ -137,19 +125,14 @@ export function BattleLogFeed({
                     key={action.key}
                   >
                     <article tabIndex={0} aria-label={action.ariaLabel}>
-                      <span className={styles.glyph} aria-hidden="true">
-                        {kindGlyph(action.kind)}
-                      </span>
-                      <div className={styles.actionMain}>
-                        <p className={styles.primaryLine}>{renderSegments(action.primary)}</p>
-                        {action.secondary ? (
-                          <p className={styles.secondaryLine}>{renderSegments(action.secondary)}</p>
-                        ) : null}
-                      </div>
-                      {action.turnNumber !== null ? (
-                        <div className={styles.actionMeta} aria-hidden="true">
-                          <small>Turn {action.turnNumber}</small>
-                        </div>
+                      <p className={styles.primaryLine}>
+                        <span className={styles.eventNumber}>#{action.battleVersion}:</span>{' '}
+                        {renderSegments(action.primary)}
+                      </p>
+                      {action.secondary ? (
+                        <p className={styles.secondaryLine}>
+                          {renderSecondarySegments(action.secondary)}
+                        </p>
                       ) : null}
                     </article>
                   </li>
