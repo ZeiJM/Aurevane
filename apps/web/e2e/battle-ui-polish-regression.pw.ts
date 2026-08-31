@@ -114,6 +114,10 @@ test('uses medium Guided Fundamentals and keeps PvE surrender/results', async ({
   await expect(board).toHaveAttribute('data-board-auto-fit', '9x7')
   await expect(board.locator('button[aria-label^="Tile "]')).toHaveCount(63)
 
+  const coach = page.getByRole('dialog', { name: 'Complete the tactical fundamentals' })
+  await expect(coach).toBeVisible()
+  await coach.getByRole('button', { name: 'Continue training' }).click()
+
   await root.getByRole('button', { name: 'Surrender', exact: true }).click()
   await expectSurrenderActionsInline(page)
   await page
