@@ -66,6 +66,8 @@ const BOOKKEEPING_EVENTS = new Set([
   'recruit_ai_decision',
 ])
 
+const STANDALONE_EVENTS = new Set(['status_expired', 'battle_completed', 'battle_abandoned'])
+
 const TONE_PRIORITY: Record<BattleLogTone, number> = {
   neutral: 0,
   benefit: 1,
@@ -173,8 +175,8 @@ function groupActions(entries: BattleLogView['entries']): ActionGroup[] {
     const visible = group.entries.filter((entry) => !BOOKKEEPING_EVENTS.has(entry.eventType))
     if (visible.length === 0) return []
 
-    const expirations = visible.filter((entry) => entry.eventType === 'status_expired')
-    const mainEntries = visible.filter((entry) => entry.eventType !== 'status_expired')
+    const mainEntries = visible.filter((entry) => !STANDALONE_EVENTS.has(entry.eventType))
+    const standaloneEntries = visible.filter((entry) => STANDALONE_EVENTS.has(entry.eventType))
     const groups: ActionGroup[] = []
 
     const addGroup = (groupEntries: BattleLogEntry[], key: string) => {
@@ -195,11 +197,16 @@ function groupActions(entries: BattleLogView['entries']): ActionGroup[] {
     }
 
     if (mainEntries.length > 0) addGroup(mainEntries, `battle:${group.battleVersion}`)
-    for (const expiration of expirations) {
-      addGroup([expiration], `battle:${group.battleVersion}:expired:${expiration.eventIndex}`)
+    for (const standalone of standaloneEntries) {
+      addGroup(
+        [standalone],
+        `battle:${group.battleVersion}:${standalone.eventType}:${standalone.eventIndex}`,
+      )
     }
 
-    return groups
+    return groups.sort((left, right) => {
+      return (right.entries[0]?.eventIndex ?? 0) - (left.entries[0]?.eventIndex ?? 0)
+    })
   })
 }
 
@@ -311,6 +318,119 @@ function narratedAttackSegments(
   return segments.length > 0 ? segments : null
 }
 
+function namedAttackSegments(
+  actor: string,
+  target: string,
+  actionLabel: string,
+  outcome: string,
+  tone: BattleLogTone,
+  narrationOutcome: AttackNarrationOutcome,
+): readonly BattleLogSegment[] {
+  const miss = narrationOutcome === 'miss'
+  const label = actionLabel.toLowerCase()
+  const suffix = [segment(' — '), segment(outcome, 'outcome', tone)]
+
+  if (/(fire|flame|ember|pyre|inferno|blaze)/u.test(label)) {
+    return [
+      segment(actor, 'actor'),
+      segment(' sends '),
+      segment(actionLabel, 'action'),
+      segment(miss ? ' blazing past ' : ' blazing into '),
+      segment(target, 'target'),
+      ...suffix,
+    ]
+  }
+  if (/(frost|ice|rime|glacier|winter)/u.test(label)) {
+    return [
+      segment(actor, 'actor'),
+      ...(miss
+        ? [segment("'s "), segment(actionLabel, 'action'), segment(' flashes cold past ')]
+        : [segment(' drives the chill of '), segment(actionLabel, 'action'), segment(' into ')]),
+      segment(target, 'target'),
+      ...suffix,
+    ]
+  }
+  if (/(lightning|storm|thunder|volt|spark)/u.test(label)) {
+    return [
+      segment(actor, 'actor'),
+      ...(miss
+        ? [segment("'s "), segment(actionLabel, 'action'), segment(' cracks past ')]
+        : [segment(' arcs '), segment(actionLabel, 'action'), segment(' through ')]),
+      segment(target, 'target'),
+      ...suffix,
+    ]
+  }
+  if (/(shadow|night|void|gloom|umbra)/u.test(label)) {
+    return [
+      segment(actor, 'actor'),
+      ...(miss
+        ? [segment("'s "), segment(actionLabel, 'action'), segment(' slips past ')]
+        : [segment(' folds '), segment(actionLabel, 'action'), segment(' around ')]),
+      segment(target, 'target'),
+      ...suffix,
+    ]
+  }
+  if (/(radiant|light|dawn|sun|solar)/u.test(label)) {
+    return [
+      segment(actor, 'actor'),
+      ...(miss
+        ? [segment("'s "), segment(actionLabel, 'action'), segment(' flares past ')]
+        : [segment(' casts '), segment(actionLabel, 'action'), segment(' across ')]),
+      segment(target, 'target'),
+      ...suffix,
+    ]
+  }
+  if (/(slash|rend|cleave|cut|blade|edge)/u.test(label)) {
+    return [
+      segment(actor, 'actor'),
+      ...(miss
+        ? [segment("'s "), segment(actionLabel, 'action'), segment(' cuts past ')]
+        : [segment(' carves into '), segment(target, 'target'), segment(' with ')]),
+      ...(miss ? [segment(target, 'target')] : [segment(actionLabel, 'action')]),
+      ...suffix,
+    ]
+  }
+  if (/(strike|bash|smash|crush|hammer|impact)/u.test(label)) {
+    return [
+      segment(actor, 'actor'),
+      ...(miss
+        ? [segment("'s "), segment(actionLabel, 'action'), segment(' crashes wide of ')]
+        : [segment(' drives '), segment(actionLabel, 'action'), segment(' into ')]),
+      segment(target, 'target'),
+      ...suffix,
+    ]
+  }
+  if (/(shot|arrow|bolt|snipe|volley)/u.test(label)) {
+    return [
+      segment(actor, 'actor'),
+      ...(miss
+        ? [segment("'s "), segment(actionLabel, 'action'), segment(' whistles past ')]
+        : [segment(' sends '), segment(actionLabel, 'action'), segment(' into ')]),
+      segment(target, 'target'),
+      ...suffix,
+    ]
+  }
+  if (/(poison|venom|toxin|blight)/u.test(label)) {
+    return [
+      segment(actor, 'actor'),
+      ...(miss
+        ? [segment("'s "), segment(actionLabel, 'action'), segment(' fails to catch ')]
+        : [segment(' delivers '), segment(actionLabel, 'action'), segment(' to ')]),
+      segment(target, 'target'),
+      ...suffix,
+    ]
+  }
+
+  return [
+    segment(actor, 'actor'),
+    segment(miss ? ' sends ' : ' unleashes '),
+    segment(actionLabel, 'action'),
+    segment(miss ? ' toward ' : ' on '),
+    segment(target, 'target'),
+    ...suffix,
+  ]
+}
+
 function attackSegments(
   actor: string | null,
   target: string | null,
@@ -354,21 +474,27 @@ function attackSegments(
     ]
   }
 
-  return [
-    segment(safeActor, 'actor'),
-    segment(' uses '),
-    segment(actionLabel, 'action'),
-    segment(' on '),
-    segment(safeTarget, 'target'),
-    segment(' — '),
-    segment(outcome, 'outcome', tone),
-  ]
+  return namedAttackSegments(
+    safeActor,
+    safeTarget,
+    actionLabel,
+    outcome,
+    tone,
+    narrationOutcome,
+  )
 }
 
-function movementDestination(entry: BattleLogEntry): string | null {
-  const route = entry.facts.find((item) => item.label.includes('→'))?.label
-  if (!route) return null
-  return route.split('→').at(-1)?.trim() || null
+function actionUseSegments(
+  actor: string,
+  actionLabel: string,
+): readonly BattleLogSegment[] {
+  if (actionLabel === 'Guard') {
+    return [segment(actor, 'actor'), segment(' braces with '), segment(actionLabel, 'action')]
+  }
+  if (actionLabel === 'Recover') {
+    return [segment(actor, 'actor'), segment(' regains footing with '), segment(actionLabel, 'action')]
+  }
+  return [segment(actor, 'actor'), segment(' invokes '), segment(actionLabel, 'action')]
 }
 
 function presentAction(group: ActionGroup, options: PresentationOptions): PresentedBattleLogAction {
@@ -388,6 +514,7 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
   const statusExpired = findEntry(group, 'status_expired')
   const waited = findEntry(group, 'combatant_waited')
   const resource = findEntry(group, 'resource_changed') ?? findEntry(group, 'mp_spent')
+  const actionUsed = findEntry(group, 'combat_action_used')
   const actionLabel = usefulActionLabel(group.entries)
 
   let primary: readonly BattleLogSegment[]
@@ -491,7 +618,16 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
     const target = combatantName(healing.targetCombatantId, options)
     const amount = healing.templateValues.amount?.trim()
     const outcome = amount ? `+${amount} HP` : 'HP restored'
-    if (actor && target && actor !== target) {
+    if (actionLabel && actionLabel !== 'Recover') {
+      primary = [
+        segment(actor ?? target ?? 'Combatant', 'actor'),
+        segment(' channels '),
+        segment(actionLabel, 'action'),
+        ...(target && target !== actor ? [segment(' into '), segment(target, 'target')] : []),
+        segment(' — '),
+        segment(outcome, 'outcome', 'healing'),
+      ]
+    } else if (actor && target && actor !== target) {
       primary = [
         segment(actor, 'actor'),
         segment(' restores '),
@@ -511,37 +647,43 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
     secondary = statusApplicationSecondary(group, options, consumed, healing.targetCombatantId)
   } else if (moved) {
     const actor = combatantName(moved.actorCombatantId, options) ?? 'Combatant'
-    const destination = movementDestination(moved)
-    primary = [
-      segment(actor, 'actor'),
-      segment(' moves'),
-      ...(destination ? [segment(' to '), segment(destination, 'outcome', 'neutral')] : []),
-    ]
+    primary = [segment(actor, 'actor'), segment(' moves')]
     kind = 'movement'
     significance = 'quiet'
-    if (destination) consumed.add(destination.toLowerCase())
   } else if (statusApplied) {
-    const name = statusName(statusApplied)
-    const target = combatantName(statusApplied.targetCombatantId, options) ?? 'Combatant'
-    const duration = reasonableDurationLabel(statusApplied)
-    const negative = statusIsNegative(name, statusApplied)
-    const refreshed = statusApplied.templateValues.statusChange === 'REFRESHED'
-    primary = refreshed
-      ? [
-          segment(`${target}'s `, 'target'),
-          segment(name, 'outcome', negative ? 'warning' : 'benefit'),
-          segment(' refreshes'),
-          ...(duration ? [segment(` · ${duration}`)] : []),
-        ]
-      : [
-          segment(target, 'target'),
-          segment(negative ? ' suffers ' : ' gains '),
-          segment(name, 'outcome', negative ? 'warning' : 'benefit'),
-          ...(duration ? [segment(` · ${duration}`)] : []),
-        ]
-    kind = statusApplied.kind
-    consumed.add(name.toLowerCase())
-    if (duration) consumed.add(duration.toLowerCase())
+    if (actionUsed && actionLabel) {
+      const actor = combatantName(actionUsed.actorCombatantId, options) ?? 'Combatant'
+      primary = actionUseSegments(actor, actionLabel)
+      secondary = statusApplicationSecondary(
+        group,
+        options,
+        consumed,
+        statusApplied.targetCombatantId,
+      )
+      kind = actionUsed.kind
+    } else {
+      const name = statusName(statusApplied)
+      const target = combatantName(statusApplied.targetCombatantId, options) ?? 'Combatant'
+      const duration = reasonableDurationLabel(statusApplied)
+      const negative = statusIsNegative(name, statusApplied)
+      const refreshed = statusApplied.templateValues.statusChange === 'REFRESHED'
+      primary = refreshed
+        ? [
+            segment(`${target}'s `, 'target'),
+            segment(name, 'outcome', negative ? 'warning' : 'benefit'),
+            segment(' refreshes'),
+            ...(duration ? [segment(` · ${duration}`)] : []),
+          ]
+        : [
+            segment(target, 'target'),
+            segment(negative ? ' suffers ' : ' gains '),
+            segment(name, 'outcome', negative ? 'warning' : 'benefit'),
+            ...(duration ? [segment(` · ${duration}`)] : []),
+          ]
+      kind = statusApplied.kind
+      consumed.add(name.toLowerCase())
+      if (duration) consumed.add(duration.toLowerCase())
+    }
   } else if (statusExpired) {
     const name = statusName(statusExpired)
     const target = combatantName(statusExpired.targetCombatantId, options) ?? 'Combatant'
@@ -556,6 +698,10 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
     kind = 'turn'
     significance = 'quiet'
     consumed.add('no action')
+  } else if (actionUsed && actionLabel) {
+    const actor = combatantName(actionUsed.actorCombatantId, options) ?? 'Combatant'
+    primary = actionUseSegments(actor, actionLabel)
+    kind = actionUsed.kind
   } else if (resource) {
     primary = [segment(renderEntry(resource, options))]
     kind = resource.kind
