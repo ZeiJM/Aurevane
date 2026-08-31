@@ -12,6 +12,12 @@ const DAMAGE_COLOR = '#ff766f'
 const HEALING_COLOR = '#59d39b'
 const DEFENSE_COLOR = '#6c91c6'
 
+const TARGET_BACKGROUNDS: Readonly<Record<string, string>> = {
+  [DAMAGE_COLOR]: 'rgba(255, 118, 111, 0.18)',
+  [HEALING_COLOR]: 'rgba(89, 211, 155, 0.18)',
+  [DEFENSE_COLOR]: 'rgba(108, 145, 198, 0.2)',
+}
+
 const TARGET_SHADOWS: Readonly<Record<string, string>> = {
   [DAMAGE_COLOR]:
     'inset 0 0 0 2px rgba(255, 118, 111, 0.46), 0 0 0.75rem rgba(255, 118, 111, 0.22)',
@@ -65,11 +71,14 @@ function activeSemanticColor(tile: HTMLButtonElement): string | null {
 
 function syncSemanticTargetTile(tile: HTMLButtonElement, semanticAccent: string | null): void {
   if (!semanticAccent) {
+    tile.style.removeProperty('background-color')
     tile.style.removeProperty('border-color')
     tile.style.removeProperty('box-shadow')
     return
   }
 
+  const background = TARGET_BACKGROUNDS[semanticAccent]
+  if (background) tile.style.setProperty('background-color', background, 'important')
   tile.style.setProperty('border-color', semanticAccent, 'important')
   const shadow = TARGET_SHADOWS[semanticAccent]
   if (shadow) tile.style.setProperty('box-shadow', shadow, 'important')
