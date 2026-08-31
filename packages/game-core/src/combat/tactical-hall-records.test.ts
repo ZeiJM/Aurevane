@@ -17,11 +17,12 @@ describe('P2.7 Battle Hall teaching records', () => {
       'recruit-sparring',
     ])
     expect(getTacticalHallRecord('guided-fundamentals').combinedDuel).toBe(false)
+    expect(getTacticalHallRecord('guided-fundamentals').defaultArenaId).toBe('duel-yard')
     expect(getTacticalHallRecord('recruit-sparring').combinedDuel).toBe(true)
     expect(
-      P2_7_TACTICAL_HALL_RECORDS.filter((record) => !record.combinedDuel).every(
-        (record) => record.defaultArenaId === 'basic-training-floor',
-      ),
+      P2_7_TACTICAL_HALL_RECORDS.filter(
+        (record) => record.id !== 'guided-fundamentals' && !record.combinedDuel,
+      ).every((record) => record.defaultArenaId === 'basic-training-floor'),
     ).toBe(true)
   })
 
@@ -38,7 +39,7 @@ describe('P2.7 Battle Hall teaching records', () => {
   it('can recover a record from canonical arena, lesson and difficulty provenance', () => {
     expect(
       getTacticalHallRecordFromScenarioSourceId(
-        'scenario:p2-7-recruit:basic-training-floor:guided-fundamentals:easy',
+        'scenario:p2-7-recruit:duel-yard:guided-fundamentals:easy',
       )?.id,
     ).toBe('guided-fundamentals')
     expect(

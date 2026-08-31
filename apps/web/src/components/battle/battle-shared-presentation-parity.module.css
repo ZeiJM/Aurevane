@@ -46,6 +46,87 @@
   filter: saturate(0.68);
 }
 
+/* PvE surrender deliberately mirrors the approved PvP surrender card. The existing PvE surrender
+   endpoint and button behavior stay untouched; this only gives both modes the same presentation. */
+:global(
+  main[data-battle-kind='pve'] > div:has(> section[aria-labelledby='battle-surrender-title'])
+) {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 18000 !important;
+  display: grid !important;
+  place-items: center !important;
+  padding: 1rem !important;
+  background: rgba(0, 0, 0, 0.76) !important;
+  backdrop-filter: blur(0.5rem) !important;
+}
+
+:global(section[aria-labelledby='battle-surrender-title']) {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  width: min(100%, 30rem) !important;
+  gap: 0.4rem !important;
+  padding: 1rem !important;
+  border: 1px solid rgba(201, 80, 80, 0.55) !important;
+  border-radius: var(--av-radius-lg) !important;
+  background: #0c1017 !important;
+  box-shadow: 0 2rem 5rem rgba(0, 0, 0, 0.68) !important;
+}
+
+:global(section[aria-labelledby='battle-surrender-title'] > span),
+:global(section[aria-labelledby='battle-surrender-title'] > h2),
+:global(section[aria-labelledby='battle-surrender-title'] > p) {
+  grid-column: 1 / -1 !important;
+}
+
+:global(section[aria-labelledby='battle-surrender-title'] > span) {
+  color: #dd9a9a !important;
+  font: 700 0.48rem/1 var(--av-font-mono) !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+}
+
+:global(section[aria-labelledby='battle-surrender-title'] > h2) {
+  margin: 0.05rem 0 !important;
+  font: 500 1.55rem/1 var(--av-font-display) !important;
+}
+
+:global(section[aria-labelledby='battle-surrender-title'] > p) {
+  margin: 0 0 0.4rem !important;
+  color: var(--av-text-muted) !important;
+  font-size: 0.7rem !important;
+  line-height: 1.48 !important;
+}
+
+:global(section[aria-labelledby='battle-surrender-title'] > button) {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 2rem !important;
+  padding: 0.42rem 0.7rem !important;
+  border-radius: var(--av-radius-sm) !important;
+  font: 750 0.47rem/1.15 var(--av-font-mono) !important;
+  letter-spacing: 0.035em !important;
+  text-transform: uppercase !important;
+  cursor: pointer !important;
+}
+
+:global(section[aria-labelledby='battle-surrender-title'] > button:first-of-type) {
+  border: 1px solid var(--av-border-strong) !important;
+  color: var(--av-text-muted) !important;
+  background: transparent !important;
+}
+
+:global(section[aria-labelledby='battle-surrender-title'] > button:last-of-type) {
+  border: 1px solid rgba(201, 80, 80, 0.78) !important;
+  color: #f2b0b0 !important;
+  background: rgba(126, 38, 38, 0.35) !important;
+}
+
+:global(section[aria-labelledby='battle-surrender-title'] > button:disabled) {
+  cursor: not-allowed !important;
+  opacity: 0.4 !important;
+}
+
 /* Pooled battle copy is shared by PvE/PvP. Desktop keeps the approved two-line PvE hierarchy. */
 @media (min-width: 821px) {
   :global([data-battle-shared-header-message-host='true']) {
@@ -92,6 +173,21 @@
     gap: 0 !important;
     padding: 0 !important;
     overflow: hidden !important;
+  }
+
+  /* Large PvP boards are 13x9. This rule prevents the older 9x7 desktop fit authority from
+     squeezing them into a 9:7 rectangle while BattleMapTokenPolish performs its runtime sync. */
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
+      #battlefield
+      [data-board-auto-fit='13x9']
+  ) {
+    box-sizing: border-box !important;
+    width: min(100%, 620px) !important;
+    max-width: 620px !important;
+    height: auto !important;
+    max-height: none !important;
+    aspect-ratio: 13 / 9 !important;
   }
 }
 
@@ -185,6 +281,19 @@
     transform: translate(-50%, -50%) !important;
   }
 
+  /* Large-map mobile tiles are much smaller. Lower the absolute token floor so portraits and meters
+     stay inside the square cells instead of retaining the medium-map footprint. */
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
+      #battlefield
+      [data-board-auto-fit='13x9']
+      button[aria-label*='occupied by']
+      > [data-battle-shared-token='true']
+  ) {
+    width: clamp(1.25rem, 72%, 1.75rem) !important;
+    height: clamp(1.25rem, 72%, 1.75rem) !important;
+  }
+
   :global(
     main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
       #battlefield
@@ -242,17 +351,32 @@
     place-items: center !important;
   }
 
+  /* This is the final mobile facing-arrow authority. Target both the semantic token marker and the
+     renderer's direct token shape so AI recruits, PvP opponents and local players cannot diverge. */
   :global(
     main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
       #battlefield
       button[aria-label*='occupied by']
       > [data-battle-shared-token='true']
       > i
+  ),
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
+      #battlefield
+      button[aria-label*='occupied by']
+      > span:last-child
+      > i
   ) {
-    top: -0.48rem !important;
+    position: absolute !important;
+    top: -0.58rem !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: 50% !important;
     z-index: 9 !important;
-    font-size: 0.58rem !important;
-    line-height: 1 !important;
+    color: #f1d892 !important;
+    font: 900 0.68rem/1 var(--av-font-mono) !important;
+    text-shadow: 0 1px 3px #000 !important;
+    transform: translateX(-50%) !important;
     pointer-events: none !important;
   }
 
@@ -278,5 +402,20 @@
     border: 1px solid rgba(201, 80, 80, 0.78) !important;
     color: #f2b0b0 !important;
     background: rgba(126, 38, 38, 0.35) !important;
+  }
+}
+
+@media (max-width: 520px) {
+  :global(section[aria-labelledby='battle-surrender-title']) {
+    width: min(100%, 28rem) !important;
+    gap: 0.35rem !important;
+    padding: 0.85rem !important;
+  }
+
+  :global(section[aria-labelledby='battle-surrender-title'] > button) {
+    min-height: 2.35rem !important;
+    padding: 0.45rem 0.42rem !important;
+    font-size: 0.43rem !important;
+    white-space: normal !important;
   }
 }
