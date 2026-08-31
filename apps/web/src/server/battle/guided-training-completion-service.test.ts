@@ -1,9 +1,10 @@
-import type { BattleEventRecord } from '@aurevane/db/battle-session'
+import type { BattleEventRecord, BattleEventRepository } from '@aurevane/db/battle-session'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
 import {
+  collectGuidedTrainingEventHistory,
   readGuidedTrainingCompletionDisposition,
   readGuidedTrainingProgress,
 } from './guided-training-completion-service'
@@ -167,5 +168,50 @@ describe('guided training completion progress', () => {
       guard: true,
       facing: false,
     })
+  })
+
+  it('keeps earned non-lethal criteria after more than one event page of later turns', async () => {
+    const latestPage = Array.from({ length: 100 }, (_, index) =>
+      record(220 - index, 0, {
+        event: 'combatant_waited',
+        combatantId: CONTROLLED_COMBATANT_ID,
+      }),
+    )
+    const olderPage = [
+      record(11, 0, {
+        event: 'combatant_moved',
+        combatantId: CONTROLLED_COMBATANT_ID,
+        from: { x: 0, y: 0 },
+        to: { x: 1, y: 0 },
+        movementCost: 1,
+      }),
+      record(10, 0, {
+        event: 'combat_action_used',
+        actorId: CONTROLLED_COMBATANT_ID,
+        actionId: 'basic.attack.unarmed.basic',
+      }),
+      record(9, 0, {
+        event: 'final_facing_selected',
+        combatantId: CONTROLLED_COMBATANT_ID,
+        facing: 'east',
+      }),
+    ]
+    const findBattleEvents = vi
+      .fn<BattleEventRepository['findBattleEvents']>()
+      .mockResolvedValueOnce(latestPage)
+      .mockResolvedValueOnce(olderPage)
+    const repository: BattleEventRepository = { findBattleEvents }
+
+    const history = await collectGuidedTrainingEventHistory(
+      repository,
+      'user:test',
+      'battle:test',
+    )
+    const progress = readGuidedTrainingProgress(history, CONTROLLED_COMBATANT_ID)
+
+    expect(findBattleEvents).toHaveBeenCalledTimes(2)
+    expect(findBattleEvents.mock.calls[0]?.[2]).toBe(100)
+    expect(findBattleEvents.mock.calls[1]?.[3]).toEqual({ battleVersion: 121, eventIndex: 0 })
+    expect(progress).toEqual({ move: true, attack: true, guard: false, facing: true })
   })
 })
