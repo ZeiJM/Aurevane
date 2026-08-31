@@ -202,11 +202,7 @@ describe('guided training completion progress', () => {
       .mockResolvedValueOnce(olderPage)
     const repository: BattleEventRepository = { findBattleEvents }
 
-    const history = await collectGuidedTrainingEventHistory(
-      repository,
-      'user:test',
-      'battle:test',
-    )
+    const history = await collectGuidedTrainingEventHistory(repository, 'user:test', 'battle:test')
     const progress = readGuidedTrainingProgress(history, CONTROLLED_COMBATANT_ID)
 
     expect(findBattleEvents).toHaveBeenCalledTimes(2)
