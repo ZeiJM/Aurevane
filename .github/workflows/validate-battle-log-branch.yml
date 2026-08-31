@@ -28,10 +28,11 @@ jobs:
             apps/web/src/components/battle/battle-log-presentation.ts \
             apps/web/src/components/battle/battle-log-presentation.test.ts
       - name: Lint changed files
+        working-directory: apps/web
         run: |
           pnpm exec eslint \
-            apps/web/src/components/battle/battle-log-presentation.ts \
-            apps/web/src/components/battle/battle-log-presentation.test.ts \
+            src/components/battle/battle-log-presentation.ts \
+            src/components/battle/battle-log-presentation.test.ts \
             --max-warnings=0
       - name: Run battle log presentation tests
         run: pnpm --filter @aurevane/web exec vitest run src/components/battle/battle-log-presentation.test.ts
