@@ -23,6 +23,7 @@ describe('battlefield semantic target polish', () => {
     expect(source).toContain(
       "if (activeCommand === 'guard' && targetRelation === 'friendly') return DEFENSE_COLOR",
     )
+    expect(source).toContain("tile.style.setProperty('background-color', background, 'important')")
     expect(source).toContain("tile.style.setProperty('border-color', semanticAccent, 'important')")
     expect(source).toContain("tile.style.setProperty('box-shadow', shadow, 'important')")
   })
@@ -30,6 +31,7 @@ describe('battlefield semantic target polish', () => {
   it('clears the semantic tile override when the target is no longer active', () => {
     const source = readLocalFile('battle-map-token-polish.tsx')
 
+    expect(source).toContain("tile.style.removeProperty('background-color')")
     expect(source).toContain("tile.style.removeProperty('border-color')")
     expect(source).toContain("tile.style.removeProperty('box-shadow')")
   })
