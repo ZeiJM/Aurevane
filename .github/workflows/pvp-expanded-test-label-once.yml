@@ -1,0 +1,39 @@
+name: Update PvP expanded test label once
+
+on:
+  push:
+    branches:
+      - "agent/fix-pvp-lobby-refresh-build"
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: ${{ !contains(github.event.head_commit.message, '[expanded-test-label]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/fix-pvp-lobby-refresh-build
+      - name: Update renamed map-size selector
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('apps/web/e2e/battle-ui-polish-regression.pw.ts')
+          text = path.read_text()
+          old = ".getByRole('button', { name: 'Large' })"
+          new = ".getByRole('button', { name: 'Expanded' })"
+          if text.count(old) != 1:
+              raise SystemExit(f'Expected exactly one Large map selector, found {text.count(old)}')
+          path.write_text(text.replace(old, new))
+          PY
+          git diff --check
+      - name: Commit test update
+        run: |
+          git config user.name "Nicholas JM"
+          git config user.email "283436098+ZeiJM@users.noreply.github.com"
+          git add apps/web/e2e/battle-ui-polish-regression.pw.ts
+          git commit -m "Update Expanded PvP browser selector [expanded-test-label]"
+          git push origin HEAD:agent/fix-pvp-lobby-refresh-build
