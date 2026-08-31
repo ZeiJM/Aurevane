@@ -37,4 +37,11 @@ describe('PvP lobby presentation and refresh contract', () => {
     expect(launch).toContain("sessionStorage.setItem(PVP_LOBBY_SESSION_STORAGE_KEY, lobby.lobbyId)")
     expect(launch).toContain('onLeave={dismissPvpLobby}')
   })
+
+  it('restores an existing joined lobby before replaying a join-link request', () => {
+    const launch = readLocalFile('battle-launch.tsx')
+
+    expect(launch).toContain('function joinFromInitialKey()')
+    expect(launch).not.toContain('if (initialJoinKey || restoreAttempted.current)')
+  })
 })
