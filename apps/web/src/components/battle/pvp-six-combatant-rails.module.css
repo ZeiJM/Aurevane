@@ -37,17 +37,11 @@
 }
 
 .stack[data-count='2'] {
-  width: min(
-    100%,
-    calc((100cqh - var(--rail-card-gap) - (2 * var(--rail-heading-height))) / 2)
-  );
+  width: min(100%, calc((100cqh - 4.7rem) / 2));
 }
 
 .stack[data-count='3'] {
-  width: min(
-    100%,
-    calc((100cqh - (2 * var(--rail-card-gap)) - (3 * var(--rail-heading-height))) / 3)
-  );
+  width: min(100%, calc((100cqh - 7.25rem) / 3));
 }
 
 .card {
