@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { buildBattleLogActionNumbers } from './battle-log-feed'
-import type {
-  PresentedBattleLogAction,
-  PresentedBattleLogRound,
-} from './battle-log-presentation'
+import type { PresentedBattleLogAction, PresentedBattleLogRound } from './battle-log-presentation'
 
 function action(key: string, battleVersion: number, occurredAt: string): PresentedBattleLogAction {
   return {

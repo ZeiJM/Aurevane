@@ -144,7 +144,9 @@ export function BattleLogFeed({
                   >
                     <article tabIndex={0} aria-label={action.ariaLabel}>
                       <p className={styles.primaryLine}>
-                        <span className={styles.eventNumber}>#{actionNumbers.get(action.key)}:</span>{' '}
+                        <span className={styles.eventNumber}>
+                          #{actionNumbers.get(action.key)}:
+                        </span>{' '}
                         {renderSegments(action.primary)}
                       </p>
                       {action.secondary ? (
