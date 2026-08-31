@@ -72,7 +72,9 @@
 .roundTitle {
   min-width: 0;
   color: rgba(224, 232, 238, 0.92);
-  font: 720 0.66rem/1.1 var(--av-font-sans);
+  font-size: 0.66rem;
+  font-weight: 720;
+  line-height: 1.1;
   letter-spacing: 0;
 }
 
