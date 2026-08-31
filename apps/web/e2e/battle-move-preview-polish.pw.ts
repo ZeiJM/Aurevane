@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
+import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueIdentity(project: string): { email: string; characterName: string } {
   const seed = `${Date.now()}${Math.floor(Math.random() * 100_000)}`
@@ -20,7 +20,7 @@ test('keeps Move reachable tiles rich green and unreachable tiles neutral', asyn
   test.slow()
 
   const identity = uniqueIdentity(testInfo.project.name)
-  await provisionAccountAndEnterCharacter({
+  await createAccountAndEnterCharacter({
     page,
     email: identity.email,
     password: 'AurevaneTest!42',
