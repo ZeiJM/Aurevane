@@ -20,6 +20,10 @@
   fill: currentColor;
 }
 
+.compatibilityGlyph {
+  display: none !important;
+}
+
 .indicator[data-facing='north'] {
   transform: translateX(-50%) rotate(0deg);
 }
