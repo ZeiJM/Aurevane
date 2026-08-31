@@ -6,7 +6,9 @@ import {
   type PresentedBattleLogRound,
 } from './battle-log-presentation'
 
-function movementActorsByVersion(entries: BattleLogView['entries']): ReadonlyMap<number, string> {
+function movementActorsByVersion(
+  entries: BattleLogView['entries'],
+): ReadonlyMap<number, string> {
   const actors = new Map<number, string>()
 
   for (const entry of entries) {
@@ -50,7 +52,9 @@ export function summarizeConsecutiveBattleLogMovement(
   })
 }
 
-export function countSummarizedBattleLogActions(entries: BattleLogView['entries']): number {
+export function countSummarizedBattleLogActions(
+  entries: BattleLogView['entries'],
+): number {
   const rounds = summarizeConsecutiveBattleLogMovement(
     buildBattleLogPresentation(entries),
     entries,
