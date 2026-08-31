@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef, useState } from 'react'
 
 import type { BattleFacing } from './battle-geometry'
 import styles from './battle-facing-indicator.module.css'
@@ -22,7 +22,7 @@ function facingFromGlyph(value: string): BattleFacing | null {
 
 export function BattleFacingIndicator({ facing }: { facing: BattleFacing }) {
   const [displayFacing, setDisplayFacing] = useState(facing)
-  const compatibilityGlyphRef = useRef<HTMLSpanElement | null>(null)
+  const compatibilityGlyphRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => setDisplayFacing(facing), [facing])
 
@@ -41,18 +41,20 @@ export function BattleFacingIndicator({ facing }: { facing: BattleFacing }) {
   }, [])
 
   return (
-    <div
-      className={styles.indicator}
-      data-battle-facing-indicator="true"
-      data-facing={displayFacing}
-      aria-hidden="true"
-    >
-      <svg viewBox="0 0 12 12" focusable="false" aria-hidden="true">
-        <path d="M6 0.8 10.4 5.2H7.4V11.2H4.6V5.2H1.6L6 0.8Z" />
-      </svg>
-      <span ref={compatibilityGlyphRef} className={styles.compatibilityGlyph}>
+    <Fragment>
+      <div
+        className={styles.indicator}
+        data-battle-facing-indicator="true"
+        data-facing={displayFacing}
+        aria-hidden="true"
+      >
+        <svg viewBox="0 0 12 12" focusable="false" aria-hidden="true">
+          <path d="M6 0.8 10.4 5.2H7.4V11.2H4.6V5.2H1.6L6 0.8Z" />
+        </svg>
+      </div>
+      <i ref={compatibilityGlyphRef} className={styles.compatibilityGlyph} aria-hidden="true">
         {FACING_GLYPHS[displayFacing]}
-      </span>
-    </div>
+      </i>
+    </Fragment>
   )
 }
