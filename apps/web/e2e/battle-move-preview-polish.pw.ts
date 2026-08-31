@@ -59,9 +59,9 @@ test('keeps Move reachable tiles rich green and unreachable tiles neutral', asyn
     return { borderColor: style.borderColor, boxShadow: style.boxShadow }
   })
 
-  expect(reachableStyle.borderColor).toBe('rgba(102, 218, 143, 0.98)')
+  expect(reachableStyle.borderColor).toBe('rgba(98, 210, 138, 0.86)')
   expect(reachableStyle.boxShadow).toContain('inset')
-  expect(reachableStyle.boxShadow).toContain('102, 218, 143')
+  expect(reachableStyle.boxShadow).toContain('98, 210, 138')
   expect(neutralStyle.borderColor).not.toContain('226, 83, 83')
   expect(neutralStyle.boxShadow).not.toContain('206, 62, 62')
 
