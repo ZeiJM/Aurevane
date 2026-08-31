@@ -17,7 +17,7 @@ describe('battlefield semantic target polish', () => {
     expect(source).toContain("const DAMAGE_COLOR = '#ff766f'")
     expect(source).toContain("const HEALING_COLOR = '#59d39b'")
     expect(source).toContain("const DEFENSE_COLOR = '#6c91c6'")
-    expect(source).toContain("'section[aria-label=\"Command Deck\"] button[data-active=\"true\"]'")
+    expect(source).toContain('section[aria-label="Command Deck"] button[data-active="true"]')
     expect(source).toContain("if (label === 'Guard') return 'guard'")
     expect(source).toContain(
       "if (activeCommand === 'recover' && targetRelation === 'friendly') return HEALING_COLOR",
