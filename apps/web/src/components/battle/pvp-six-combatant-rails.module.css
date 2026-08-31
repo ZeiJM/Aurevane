@@ -5,6 +5,7 @@
   min-width: 0;
   min-height: 0;
   height: 100%;
+  place-items: start center;
   container-type: size;
 }
 
@@ -26,15 +27,12 @@
   gap: var(--rail-card-gap);
   min-width: 0;
   min-height: 0;
-  align-content: center;
+  align-content: start;
 }
 
-.railLeft .stack {
-  justify-self: start;
-}
-
+.railLeft .stack,
 .railRight .stack {
-  justify-self: end;
+  justify-self: center;
 }
 
 .card {
