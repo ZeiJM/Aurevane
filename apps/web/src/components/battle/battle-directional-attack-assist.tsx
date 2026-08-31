@@ -67,22 +67,10 @@ function confirmButton(): HTMLButtonElement | null {
   )
 }
 
-function commitWhenPreviewReady() {
-  let attempts = 0
-  const timer = window.setInterval(() => {
-    attempts += 1
-    const confirm = confirmButton()
-    if (confirm && !confirm.disabled) {
-      window.clearInterval(timer)
-      confirm.click()
-      return
-    }
-    if (attempts >= 40 || !attackModeIsActive()) window.clearInterval(timer)
-  }, 50)
-}
-
 export function BattleDirectionalAttackAssist({ playerName }: { playerName: string }) {
   useEffect(() => {
+    let armedTarget: string | null = null
+
     function handleKeyDown(event: KeyboardEvent) {
       if (
         isTextEntryTarget(event.target) ||
@@ -94,7 +82,11 @@ export function BattleDirectionalAttackAssist({ playerName }: { playerName: stri
         return
       }
       const direction = directionForCode(event.code)
-      if (!direction || !attackModeIsActive()) return
+      if (!direction) return
+      if (!attackModeIsActive()) {
+        armedTarget = null
+        return
+      }
 
       const actor = playerTile(playerName)
       const origin = actor ? tilePosition(actor) : null
@@ -109,9 +101,19 @@ export function BattleDirectionalAttackAssist({ playerName }: { playerName: stri
 
       event.preventDefault()
       event.stopImmediatePropagation()
+
+      if (armedTarget === targetPrefix) {
+        const confirm = confirmButton()
+        if (confirm && !confirm.disabled) {
+          armedTarget = null
+          confirm.click()
+          return
+        }
+      }
+
       target.focus({ preventScroll: true })
       target.click()
-      commitWhenPreviewReady()
+      armedTarget = targetPrefix
     }
 
     window.addEventListener('keydown', handleKeyDown, true)
