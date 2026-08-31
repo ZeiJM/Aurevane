@@ -42,25 +42,28 @@ test(
     const occupied = root.locator('#battlefield button[aria-label*="occupied by"]')
     await expect.poll(() => occupied.count()).toBeGreaterThanOrEqual(2)
 
-    const tokenGeometry = await occupied.evaluateAll((tiles, playerName) => {
-      return tiles.map((tile) => {
-        const token = tile.querySelector<HTMLElement>(':scope > span:last-child')!
-        const arrow = token.querySelector<HTMLElement>(':scope > i')!
-        const tileRect = tile.getBoundingClientRect()
-        const tokenRect = token.getBoundingClientRect()
-        const arrowRect = arrow.getBoundingClientRect()
-        const arrowStyle = getComputedStyle(arrow)
-        return {
-          player: (tile.getAttribute('aria-label') ?? '').includes(`occupied by ${playerName}`),
-          tileWidth: tileRect.width,
-          tileHeight: tileRect.height,
-          tokenWidth: tokenRect.width,
-          tokenHeight: tokenRect.height,
-          arrowTopOffset: arrowRect.top - tokenRect.top,
-          arrowFontSize: Number.parseFloat(arrowStyle.fontSize),
-        }
-      })
-    }, identity.characterName)
+    const tokenGeometry = await occupied.evaluateAll(
+      (tiles, playerName) => {
+        return tiles.map((tile) => {
+          const token = tile.querySelector<HTMLElement>(':scope > span:last-child')!
+          const arrow = token.querySelector<HTMLElement>(':scope > i')!
+          const tileRect = tile.getBoundingClientRect()
+          const tokenRect = token.getBoundingClientRect()
+          const arrowRect = arrow.getBoundingClientRect()
+          const arrowStyle = getComputedStyle(arrow)
+          return {
+            player: (tile.getAttribute('aria-label') ?? '').includes(`occupied by ${playerName}`),
+            tileWidth: tileRect.width,
+            tileHeight: tileRect.height,
+            tokenWidth: tokenRect.width,
+            tokenHeight: tokenRect.height,
+            arrowTopOffset: arrowRect.top - tokenRect.top,
+            arrowFontSize: Number.parseFloat(arrowStyle.fontSize),
+          }
+        })
+      },
+      identity.characterName,
+    )
 
     const playerToken = tokenGeometry.find((geometry) => geometry.player)
     expect(playerToken).toBeTruthy()
