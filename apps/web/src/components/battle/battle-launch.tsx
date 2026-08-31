@@ -244,10 +244,20 @@ export function BattleLaunch({
   )
 
   useEffect(() => {
-    if (initialJoinKey || restoreAttempted.current) return
+    if (restoreAttempted.current) return
     restoreAttempted.current = true
+
+    function joinFromInitialKey() {
+      if (!initialJoinKey || joinAttempted.current) return
+      joinAttempted.current = true
+      void joinLobby(initialJoinKey)
+    }
+
     const lobbyId = sessionStorage.getItem(PVP_LOBBY_SESSION_STORAGE_KEY)
-    if (!lobbyId) return
+    if (!lobbyId) {
+      joinFromInitialKey()
+      return
+    }
 
     let cancelled = false
     async function restoreLobby() {
@@ -260,11 +270,13 @@ export function BattleLaunch({
         if (!response.ok || !body.lobby) {
           if (response.status >= 400 && response.status < 500) {
             sessionStorage.removeItem(PVP_LOBBY_SESSION_STORAGE_KEY)
+            joinFromInitialKey()
           }
           return
         }
         if (body.lobby.status !== 'waiting') {
           sessionStorage.removeItem(PVP_LOBBY_SESSION_STORAGE_KEY)
+          joinFromInitialKey()
           return
         }
         setSection('pvp')
@@ -278,12 +290,6 @@ export function BattleLaunch({
     return () => {
       cancelled = true
     }
-  }, [initialJoinKey])
-
-  useEffect(() => {
-    if (!initialJoinKey || joinAttempted.current) return
-    joinAttempted.current = true
-    void joinLobby(initialJoinKey)
   }, [initialJoinKey, joinLobby])
 
   async function spectateBattle() {
