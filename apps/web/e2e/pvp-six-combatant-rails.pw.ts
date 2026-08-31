@@ -83,7 +83,9 @@ test('fits three square portrait cards cleanly in each desktop PvP rail', async 
         const stackRect = stack.getBoundingClientRect()
         const cards = Array.from(stack.querySelectorAll<HTMLElement>('article')).map((card) => {
           const heading = card.firstElementChild as HTMLElement
-          const portrait = card.querySelector<HTMLElement>('button[data-desktop-inspect-combatant]')!
+          const portrait = card.querySelector<HTMLElement>(
+            'button[data-desktop-inspect-combatant]',
+          )!
           const image = portrait.querySelector<HTMLElement>('.character-portrait-media')!
           const cardRect = card.getBoundingClientRect()
           const headingRect = heading.getBoundingClientRect()
