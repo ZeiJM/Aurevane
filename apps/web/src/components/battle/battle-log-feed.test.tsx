@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  buildBattleLogActionNumbers,
-  buildBattleLogTranscriptLines,
-} from './battle-log-feed'
+import { buildBattleLogActionNumbers, buildBattleLogTranscriptLines } from './battle-log-feed'
 import type {
   BattleLogSegment,
   PresentedBattleLogAction,

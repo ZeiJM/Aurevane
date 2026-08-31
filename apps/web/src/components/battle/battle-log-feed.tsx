@@ -137,8 +137,7 @@ export function buildBattleLogTranscriptLines(
     }
   }
 
-  const recipient =
-    lastSegmentWithRole(primary, 'target') ?? lastSegmentWithRole(primary, 'actor')
+  const recipient = lastSegmentWithRole(primary, 'target') ?? lastSegmentWithRole(primary, 'actor')
   if (!recipient) return { primary: action.primary, secondaryLines: existingSecondary }
 
   const resultLine: readonly BattleLogSegment[] = [
