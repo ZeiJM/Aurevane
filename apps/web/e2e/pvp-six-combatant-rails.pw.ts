@@ -4,9 +4,14 @@ import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueIdentity(prefix: string): { email: string; characterName: string } {
   const seed = `${Date.now()}${Math.floor(Math.random() * 100_000)}`
+  const suffix = seed
+    .slice(-7)
+    .split('')
+    .map((digit) => String.fromCharCode(65 + Number(digit)))
+    .join('')
   return {
     email: `${prefix}.${seed}@example.com`,
-    characterName: `${prefix}${seed.slice(-7)}`,
+    characterName: `${prefix} ${suffix}`,
   }
 }
 
