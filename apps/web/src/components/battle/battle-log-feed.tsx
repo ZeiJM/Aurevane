@@ -66,6 +66,23 @@ function renderSecondarySegments(segments: readonly BattleLogSegment[]) {
   })
 }
 
+export function buildBattleLogActionNumbers(
+  rounds: readonly PresentedBattleLogRound[],
+): ReadonlyMap<string, number> {
+  const actions = rounds.flatMap((round) => round.actions)
+  const chronological = [...actions].sort((left, right) => {
+    if (left.battleVersion !== right.battleVersion) {
+      return left.battleVersion - right.battleVersion
+    }
+
+    const timeOrder = left.occurredAt.localeCompare(right.occurredAt)
+    if (timeOrder !== 0) return timeOrder
+    return left.key.localeCompare(right.key)
+  })
+
+  return new Map(chronological.map((action, index) => [action.key, index + 1]))
+}
+
 export function countBattleLogActions(entries: BattleLogView['entries']): number {
   return countPresentedBattleLogActions(entries)
 }
@@ -85,6 +102,7 @@ export function BattleLogFeed({
     })
     return consolidatePresentedBattleLogRounds(presented)
   }, [combatantNames, entries, playerName, skillNarrations])
+  const actionNumbers = useMemo(() => buildBattleLogActionNumbers(rounds), [rounds])
   const [requestedRound, setRequestedRound] = useState<string | null | undefined>(undefined)
   const expandedRound = expandedRoundKey(rounds, requestedRound)
 
@@ -126,7 +144,9 @@ export function BattleLogFeed({
                   >
                     <article tabIndex={0} aria-label={action.ariaLabel}>
                       <p className={styles.primaryLine}>
-                        <span className={styles.eventNumber}>#{action.battleVersion}:</span>{' '}
+                        <span className={styles.eventNumber}>
+                          #{actionNumbers.get(action.key)}:
+                        </span>{' '}
                         {renderSegments(action.primary)}
                       </p>
                       {action.secondary ? (
