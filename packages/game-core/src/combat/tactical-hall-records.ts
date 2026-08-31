@@ -23,7 +23,7 @@ export const P2_7_TACTICAL_HALL_RECORDS: readonly TacticalHallRecordDefinition[]
     name: 'Guided Fundamentals',
     purpose:
       'Learn movement, Action Economy, attacking, Guard, recovery, and final facing inside one guided exercise.',
-    defaultArenaId: 'basic-training-floor',
+    defaultArenaId: 'duel-yard',
     coachSteps: [
       'Move at least one tile. Positioning decides what you can threaten, which terrain you can exploit, and how much AP remains for the rest of the turn.',
       'Commit a Basic Attack. Range and target choice turn positioning into pressure while the forecast teaches you to read risk before spending AP.',
