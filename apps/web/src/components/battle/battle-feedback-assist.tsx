@@ -232,49 +232,6 @@ function syncMapPortraits(playerName: string, playerProfileImageUrl?: string | n
   syncMapTokenPortrait('Recruit', 'opponent')
 }
 
-function fitBattlefieldBoard() {
-  const battlefield = document.querySelector<HTMLElement>('#battlefield')
-  const viewport = battlefield?.firstElementChild
-  const board = viewport?.firstElementChild
-  if (!(viewport instanceof HTMLElement) || !(board instanceof HTMLElement)) return
-
-  const tiles = Array.from(board.querySelectorAll<HTMLButtonElement>('button[aria-label^="Tile "]'))
-  if (tiles.length === 0) return
-
-  let columns = 0
-  let rows = 0
-  for (const tile of tiles) {
-    const position = parseTilePosition(tile)
-    if (!position) continue
-    columns = Math.max(columns, position.x)
-    rows = Math.max(rows, position.y)
-  }
-  if (columns <= 0 || rows <= 0) return
-
-  const viewportStyle = window.getComputedStyle(viewport)
-  const horizontalPadding =
-    Number.parseFloat(viewportStyle.paddingLeft) + Number.parseFloat(viewportStyle.paddingRight)
-  const verticalPadding =
-    Number.parseFloat(viewportStyle.paddingTop) + Number.parseFloat(viewportStyle.paddingBottom)
-  const availableWidth = Math.max(1, viewport.clientWidth - horizontalPadding)
-  const availableHeight = Math.max(1, viewport.clientHeight - verticalPadding)
-  const ratio = columns / rows
-
-  let fittedWidth = availableWidth
-  let fittedHeight = fittedWidth / ratio
-  if (fittedHeight > availableHeight) {
-    fittedHeight = availableHeight
-    fittedWidth = fittedHeight * ratio
-  }
-
-  board.style.width = `${Math.floor(fittedWidth)}px`
-  board.style.height = `${Math.floor(fittedHeight)}px`
-  board.style.maxWidth = '100%'
-  board.style.maxHeight = '100%'
-  board.style.margin = 'auto'
-  board.dataset.boardAutoFit = `${columns}x${rows}`
-}
-
 function emojiStorageKey(playerName: string): string {
   return `aurevane:battle-recent-emojis:${encodeURIComponent(playerName)}`
 }
@@ -505,7 +462,6 @@ export function BattleFeedbackAssist({
       syncActionEconomyBar()
       applyCustomPortrait(playerName, playerProfileImageUrl)
       syncMapPortraits(playerName, playerProfileImageUrl)
-      fitBattlefieldBoard()
       enhanceChat(playerName)
       syncCombatantDetailDismissal()
     }
@@ -517,13 +473,6 @@ export function BattleFeedbackAssist({
     refresh()
     const observer = new MutationObserver(scheduleRefresh)
     observer.observe(document.body, { childList: true, subtree: true, characterData: true })
-
-    const battlefield = document.querySelector<HTMLElement>('#battlefield')
-    const viewport = battlefield?.firstElementChild
-    const resizeObserver = new ResizeObserver(scheduleRefresh)
-    if (battlefield) resizeObserver.observe(battlefield)
-    if (viewport instanceof HTMLElement) resizeObserver.observe(viewport)
-    window.addEventListener('resize', scheduleRefresh)
 
     function handleDocumentPointer(event: PointerEvent) {
       if (!(event.target instanceof Node)) return
@@ -558,8 +507,6 @@ export function BattleFeedbackAssist({
     document.addEventListener('pointerdown', handleDocumentPointer, true)
     return () => {
       observer.disconnect()
-      resizeObserver.disconnect()
-      window.removeEventListener('resize', scheduleRefresh)
       if (frame !== 0) window.cancelAnimationFrame(frame)
       document.removeEventListener('pointerdown', handleDocumentPointer, true)
       for (const tile of Array.from(
