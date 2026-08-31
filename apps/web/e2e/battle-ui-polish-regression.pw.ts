@@ -39,7 +39,9 @@ async function expectLargeBoardGeometry(root: ReturnType<Page['locator']>) {
     const tiles = Array.from(
       element.querySelectorAll<HTMLButtonElement>('button[aria-label^="Tile "]'),
     )
-    const occupied = tiles.filter((tile) => tile.getAttribute('aria-label')?.includes('occupied by'))
+    const occupied = tiles.filter((tile) =>
+      tile.getAttribute('aria-label')?.includes('occupied by'),
+    )
     const sampleTiles = [tiles[0], tiles[Math.floor(tiles.length / 2)], tiles.at(-1)].filter(
       (tile): tile is HTMLButtonElement => Boolean(tile),
     )
@@ -85,7 +87,7 @@ async function expectLargeBoardGeometry(root: ReturnType<Page['locator']>) {
   expect(new Set(geometry.arrows.map((arrow) => arrow.left)).size).toBe(1)
 }
 
-test('uses the medium arena for Guided Fundamentals and keeps the PvE surrender/result UI intact', async ({
+test('uses medium Guided Fundamentals and keeps PvE surrender/results', async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name === 'laptop-chromium', 'Focused battle UI regression')
@@ -126,9 +128,7 @@ test('uses the medium arena for Guided Fundamentals and keeps the PvE surrender/
   await expect(result.getByRole('button', { name: 'Run Lesson Again' })).toBeVisible()
 })
 
-test('keeps large PvP tiles square, scales tokens down, and preserves the shared surrender/result UI', async ({
-  browser,
-}, testInfo) => {
+test('keeps large PvP geometry, tokens, surrender, and results', async ({ browser }, testInfo) => {
   test.skip(testInfo.project.name === 'laptop-chromium', 'Focused battle UI regression')
   test.slow()
 
