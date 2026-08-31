@@ -151,9 +151,7 @@ test('mobile Finish Turn opens battlefield facing guides and commits a double-ta
   const facingPad = deck.locator('[data-unified-facing-pad="true"]')
   const finishTurn = deck.getByRole('button', { name: /Finish Turn/ })
   const facingGuides = page.locator('#battlefield button[data-facing-guide="true"]')
-  const tokenArrows = page.locator(
-    '#battlefield button[aria-label*="occupied by"] > span:last-child > i',
-  )
+  const tokenArrows = page.locator('#battlefield [data-battle-facing-indicator="true"]')
 
   await expect(facingPad).toBeHidden()
   await expect(finishTurn).toContainText('Choose facing + end')
@@ -165,15 +163,19 @@ test('mobile Finish Turn opens battlefield facing guides and commits a double-ta
       const arrowRect = arrow.getBoundingClientRect()
       const tokenRect = token.getBoundingClientRect()
       return {
-        fontSize: Number.parseFloat(getComputedStyle(arrow).fontSize),
+        width: arrowRect.width,
+        height: arrowRect.height,
         topOffset: arrowRect.top - tokenRect.top,
         centerOffset:
           (arrowRect.left + arrowRect.right) / 2 - (tokenRect.left + tokenRect.right) / 2,
+        path: arrow.querySelector('path')?.getAttribute('d') ?? '',
       }
     }),
   )
-  expect(Math.abs(arrowGeometry[0]!.fontSize - arrowGeometry[1]!.fontSize)).toBeLessThanOrEqual(0.1)
+  expect(Math.abs(arrowGeometry[0]!.width - arrowGeometry[1]!.width)).toBeLessThanOrEqual(0.5)
+  expect(Math.abs(arrowGeometry[0]!.height - arrowGeometry[1]!.height)).toBeLessThanOrEqual(0.5)
   expect(Math.abs(arrowGeometry[0]!.topOffset - arrowGeometry[1]!.topOffset)).toBeLessThanOrEqual(1)
+  expect(arrowGeometry[0]!.path).toBe(arrowGeometry[1]!.path)
   arrowGeometry.forEach((arrow) => expect(Math.abs(arrow.centerOffset)).toBeLessThanOrEqual(1))
 
   let finalTurnRequests = 0
