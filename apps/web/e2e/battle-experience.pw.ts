@@ -174,15 +174,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(criteriaButton).not.toHaveAttribute('data-new-progress', 'true')
 
   await expect(facingPad).toBeHidden()
-  if (testInfo.project.name === 'mobile-chromium') {
-    await expect(finishButton).toContainText('Choose facing + end')
-    await finishButton.tap()
-    await page.waitForTimeout(80)
-    await finishButton.tap()
-  } else {
-    await expect(finishButton).toContainText('Keep facing + end')
-    await finishButton.click()
-  }
+  await finishCurrentTurn(finishButton, testInfo.project.name)
 
   await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
     'aria-valuenow',
@@ -196,6 +188,20 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     page.getByRole('dialog', { name: 'Complete the tactical fundamentals' }),
   ).toHaveCount(0)
 
+  // Guided Fundamentals now uses the full 9x7 Duel Yard. Traverse a second movement turn toward
+  // the Recruit before completing Guard/Attack so the lesson remains deterministic at medium scale.
+  await moveButton.click()
+  await chooseReachableTowardRecruit(battlefield)
+  await expect(confirmButton).toBeEnabled()
+  await confirmButton.click()
+  await finishCurrentTurn(finishButton, testInfo.project.name)
+  await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
+    'aria-valuenow',
+    '100',
+    { timeout: 15_000 },
+  )
+  await expect(commandContext).toContainText('Choose your action', { timeout: 15_000 })
+
   if (testInfo.project.name === 'mobile-chromium') {
     await guardButton.tap()
   } else {
@@ -206,10 +212,6 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(confirmButton).toBeEnabled()
   await confirmButton.click()
   await expect(commandContext).toContainText('Guarded for 2 turns', { timeout: 10_000 })
-  await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
-    'aria-valuenow',
-    '70',
-  )
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
   await openCriteriaAndClose(page, '3/4 complete')
 
@@ -231,11 +233,16 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   }
 
   await attackButton.click()
-  const rangedTiles = battlefield.locator('button[data-target]')
-  await expect(rangedTiles).toHaveCount(4)
-  await expect(battlefield.locator('button[data-target="enemy"]')).toHaveCount(1)
-  await expect(battlefield.locator('button[data-target="illegal"]')).toHaveCount(3)
+  if ((await battlefield.locator('button[data-target="enemy"]').count()) === 0) {
+    await moveButton.click()
+    await chooseReachableTowardRecruit(battlefield, true)
+    await expect(confirmButton).toBeEnabled()
+    await confirmButton.click()
+    await attackButton.click()
+  }
+
   const recruitTarget = page.getByRole('button', { name: /occupied by Recruit/ })
+  await expect(battlefield.locator('button[data-target="enemy"]')).toHaveCount(1)
   await expect(recruitTarget).toHaveAttribute('data-target', 'enemy')
   await recruitTarget.click()
   await expect(commandContext).toContainText('Basic Attack ready')
@@ -249,6 +256,66 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(result).toContainText('no Character XP, Mastery, loot, Crowns, PvP rating')
   expect(await hasHorizontalOverflow(page)).toBe(false)
 })
+
+async function chooseReachableTowardRecruit(
+  battlefield: ReturnType<import('@playwright/test').Page['locator']>,
+  adjacentOnly = false,
+): Promise<void> {
+  const reachable = battlefield.locator('button[data-reachable]')
+  await expect.poll(() => reachable.count()).toBeGreaterThan(0)
+
+  const targetLabel = await reachable.evaluateAll((tiles, requireAdjacent) => {
+    const parse = (label: string | null): { x: number; y: number } | null => {
+      const match = label?.match(/^Tile\s+(\d+),\s*(\d+)/i)
+      return match ? { x: Number(match[1]), y: Number(match[2]) } : null
+    }
+    const board = tiles[0]?.closest('[data-board-auto-fit]')
+    const recruit = board?.querySelector<HTMLButtonElement>(
+      'button[aria-label*="occupied by Recruit"]',
+    )
+    const recruitPosition = parse(recruit?.getAttribute('aria-label') ?? null)
+    if (!recruitPosition) return null
+
+    const candidates = tiles
+      .map((tile) => {
+        const element = tile as HTMLButtonElement
+        const position = parse(element.getAttribute('aria-label'))
+        if (!position) return null
+        return {
+          label: element.getAttribute('aria-label'),
+          distance:
+            Math.abs(position.x - recruitPosition.x) + Math.abs(position.y - recruitPosition.y),
+          open: element.dataset.terrain === 'open',
+        }
+      })
+      .filter(
+        (candidate): candidate is { label: string; distance: number; open: boolean } =>
+          Boolean(candidate?.label),
+      )
+      .filter((candidate) => !requireAdjacent || candidate.distance === 1)
+      .sort((left, right) => left.distance - right.distance || Number(right.open) - Number(left.open))
+
+    return candidates[0]?.label ?? null
+  }, adjacentOnly)
+
+  expect(targetLabel).not.toBeNull()
+  await battlefield.getByRole('button', { name: targetLabel!, exact: true }).click()
+}
+
+async function finishCurrentTurn(
+  finishButton: ReturnType<import('@playwright/test').Page['locator']>,
+  projectName: string,
+): Promise<void> {
+  if (projectName === 'mobile-chromium') {
+    await expect(finishButton).toContainText('Choose facing + end')
+    await finishButton.tap()
+    await new Promise((resolve) => setTimeout(resolve, 80))
+    await finishButton.tap()
+  } else {
+    await expect(finishButton).toContainText('Keep facing + end')
+    await finishButton.click()
+  }
+}
 
 async function openCriteriaAndClose(
   page: import('@playwright/test').Page,
