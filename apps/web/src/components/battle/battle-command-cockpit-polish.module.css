@@ -71,7 +71,7 @@
 }
 
 :global([data-battle-command='attack']) {
-  --cockpit-accent-rgb: 205, 126, 97;
+  --cockpit-accent-rgb: 255, 118, 111;
 }
 
 :global([data-battle-command='guard']) {
@@ -79,7 +79,7 @@
 }
 
 :global([data-battle-command='recover']) {
-  --cockpit-accent-rgb: 144, 177, 105;
+  --cockpit-accent-rgb: 89, 211, 155;
 }
 
 :global([data-battle-command='finish']) {
