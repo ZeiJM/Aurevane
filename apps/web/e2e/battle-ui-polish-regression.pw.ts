@@ -23,10 +23,7 @@ async function expectSurrenderActionsInline(page: Page, dialogName = 'Surrender 
   await expect(stay).toBeVisible()
   await expect(confirm).toBeVisible()
 
-  const geometry = await Promise.all([
-    stay.boundingBox(),
-    confirm.boundingBox(),
-  ])
+  const geometry = await Promise.all([stay.boundingBox(), confirm.boundingBox()])
   expect(geometry[0]).not.toBeNull()
   expect(geometry[1]).not.toBeNull()
   expect(Math.abs(geometry[0]!.y - geometry[1]!.y)).toBeLessThanOrEqual(2)
@@ -36,10 +33,12 @@ async function expectSurrenderActionsInline(page: Page, dialogName = 'Surrender 
 async function expectLargeBoardGeometry(root: ReturnType<Page['locator']>) {
   const board = root.locator('#battlefield [data-board-auto-fit]')
   await expect(board).toHaveAttribute('data-board-auto-fit', '13x9')
-  await expect(root.locator('#battlefield button[aria-label^="Tile "]')).toHaveCount(117)
+  await expect(board.locator('button[aria-label^="Tile "]')).toHaveCount(117)
 
   const geometry = await board.evaluate((element) => {
-    const tiles = Array.from(element.querySelectorAll<HTMLButtonElement>('button[aria-label^="Tile "]'))
+    const tiles = Array.from(
+      element.querySelectorAll<HTMLButtonElement>('button[aria-label^="Tile "]'),
+    )
     const occupied = tiles.filter((tile) => tile.getAttribute('aria-label')?.includes('occupied by'))
     const sampleTiles = [tiles[0], tiles[Math.floor(tiles.length / 2)], tiles.at(-1)].filter(
       (tile): tile is HTMLButtonElement => Boolean(tile),
@@ -109,17 +108,16 @@ test('uses the medium arena for Guided Fundamentals and keeps the PvE surrender/
 
   const root = page.locator("main[data-unified-battle='true'][data-battle-kind='pve']")
   await expect(root).toBeVisible()
-  await expect(root.locator('#battlefield [data-board-auto-fit]')).toHaveAttribute(
-    'data-board-auto-fit',
-    '9x7',
-  )
-  await expect(root.locator('#battlefield button[aria-label^="Tile "]')).toHaveCount(63)
+  const board = root.locator('#battlefield [data-board-auto-fit]')
+  await expect(board).toHaveAttribute('data-board-auto-fit', '9x7')
+  await expect(board.locator('button[aria-label^="Tile "]')).toHaveCount(63)
 
   await root.getByRole('button', { name: 'Surrender', exact: true }).click()
   await expectSurrenderActionsInline(page)
-  await page.getByRole('dialog', { name: 'Surrender this battle?' }).getByRole('button', {
-    name: 'Confirm Surrender',
-  }).click()
+  await page
+    .getByRole('dialog', { name: 'Surrender this battle?' })
+    .getByRole('button', { name: 'Confirm Surrender' })
+    .click()
 
   const result = page.getByTestId('battle-result-overlay')
   await expect(result).toBeVisible()
