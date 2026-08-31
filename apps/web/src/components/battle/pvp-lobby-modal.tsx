@@ -294,6 +294,7 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
 
   const filled = lobby.members.filter((member) => member.seated).length
   const readyCount = lobby.members.filter((member) => member.seated && member.ready).length
+  const mapSizeLabel = settings.mapSize === 'medium' ? 'Standard' : 'Expanded'
   const turnTimerLabel =
     settings.turnTimerSeconds === null ? 'No timer' : `${settings.turnTimerSeconds} seconds`
 
@@ -342,7 +343,7 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
           }}
         >
           {[
-            ['Map size', settings.mapSize],
+            ['Map size', mapSizeLabel],
             ['Elevation', settings.elevationBias],
             ['Difficult ground', settings.terrainBias],
             ['Turn timer', turnTimerLabel],
