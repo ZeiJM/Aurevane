@@ -45,6 +45,22 @@ async function expectStableFullDesktopCockpit(page: Page) {
   })
 }
 
+async function waitForLocalTurn(page: Page) {
+  await expect(page.locator("main[data-unified-battle='true']")).toHaveAttribute(
+    'data-local-turn',
+    'true',
+    { timeout: 15_000 },
+  )
+}
+
+function finalTurnResponse(page: Page) {
+  return page.waitForResponse(
+    (response) =>
+      response.request().method() === 'POST' &&
+      /\/api\/battles\/[0-9a-f-]+\/final-turn$/i.test(new URL(response.url()).pathname),
+  )
+}
+
 test('keeps the shared PvE desktop cockpit at its full scale before and after action selection', async ({
   page,
 }, testInfo) => {
@@ -65,6 +81,81 @@ test('keeps the shared PvE desktop cockpit at its full scale before and after ac
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
 
   await expectStableFullDesktopCockpit(page)
+})
+
+test('desktop Finish Turn opens facing selection and keeps explicit facing shortcuts', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop facing-control regression')
+  test.slow()
+
+  const identity = uniqueIdentity('DeskFace')
+  await createAccountAndEnterCharacter({
+    page,
+    email: identity.email,
+    password: 'AurevaneTest!42',
+    characterName: identity.characterName,
+  })
+  await page.goto('/game/battle')
+  await page.getByLabel('Battle mode').selectOption('recruit-sparring')
+  await page.getByRole('button', { name: 'Enter Battle' }).click()
+  await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
+
+  const root = page.locator("main[data-unified-battle='true']")
+  const deck = page.locator('section[aria-label="Command Deck"]')
+  const finishTurn = deck.getByRole('button', { name: /Finish Turn/ })
+  const facingGuides = page.locator('#battlefield button[data-facing-guide="true"]')
+
+  await waitForLocalTurn(page)
+  await expect(finishTurn).toContainText('Choose facing + end')
+
+  let requests = 0
+  const countFinalTurn = (request: Request) => {
+    if (
+      request.method() === 'POST' &&
+      /\/api\/battles\/[0-9a-f-]+\/final-turn$/i.test(new URL(request.url()).pathname)
+    ) {
+      requests += 1
+    }
+  }
+  page.on('request', countFinalTurn)
+
+  await finishTurn.click()
+  await expect(facingGuides).toHaveCount(4)
+  await page.waitForTimeout(180)
+  expect(requests).toBe(0)
+  await expect(root).toHaveAttribute('data-local-turn', 'true')
+
+  const northGuide = page.locator(
+    '#battlefield button[data-facing-guide="true"][data-facing-direction="north"]',
+  )
+  const guideCommit = finalTurnResponse(page)
+  await northGuide.dblclick()
+  expect((await guideCommit).ok()).toBe(true)
+  expect(requests).toBe(1)
+  await waitForLocalTurn(page)
+
+  await finishTurn.click()
+  await expect(facingGuides).toHaveCount(4)
+  const wasdCommit = finalTurnResponse(page)
+  await page.keyboard.press('KeyD')
+  expect((await wasdCommit).ok()).toBe(true)
+  expect(requests).toBe(2)
+  await waitForLocalTurn(page)
+
+  const spaceCommit = finalTurnResponse(page)
+  await page.keyboard.press('Space')
+  await expect(facingGuides).toHaveCount(4)
+  await page.keyboard.press('Space')
+  expect((await spaceCommit).ok()).toBe(true)
+  expect(requests).toBe(3)
+  await waitForLocalTurn(page)
+
+  const doubleClickCommit = finalTurnResponse(page)
+  await finishTurn.dblclick()
+  expect((await doubleClickCommit).ok()).toBe(true)
+  expect(requests).toBe(4)
+  page.off('request', countFinalTurn)
 })
 
 test('keeps the shared PvP desktop cockpit at the same full scale', async ({
@@ -129,7 +220,7 @@ test('keeps the shared PvP desktop cockpit at the same full scale', async ({
   }
 })
 
-test('mobile Finish Turn opens battlefield facing guides and commits a double-tapped direction', async ({
+test('mobile Finish Turn opens clean facing guides and commits a double-tapped direction', async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-chromium', 'Mobile shared cockpit regression')
@@ -176,6 +267,17 @@ test('mobile Finish Turn opens battlefield facing guides and commits a double-ta
   expect(Math.abs(arrowGeometry[0]!.topOffset - arrowGeometry[1]!.topOffset)).toBeLessThanOrEqual(1)
   arrowGeometry.forEach((arrow) => expect(Math.abs(arrow.centerOffset)).toBeLessThanOrEqual(1))
 
+  const guard = deck.getByRole('button', { name: /Guard/ })
+  await guard.tap()
+  const instruction = deck.locator('[data-pve-pvp-context-parity="true"]')
+  const title = instruction.locator('[data-battle-instruction-title="true"]')
+  const firstChip = instruction.locator('[data-battle-target-preview="true"] [data-battle-preview-chip="true"]').first()
+  await expect(firstChip).toBeVisible()
+  const alignment = await Promise.all([title.boundingBox(), firstChip.boundingBox()])
+  expect(alignment[0]).not.toBeNull()
+  expect(alignment[1]).not.toBeNull()
+  expect(Math.abs(alignment[0]!.x - alignment[1]!.x)).toBeLessThanOrEqual(2)
+
   let finalTurnRequests = 0
   const countFinalTurn = (request: Request) => {
     if (
@@ -189,20 +291,20 @@ test('mobile Finish Turn opens battlefield facing guides and commits a double-ta
 
   await finishTurn.tap()
   await expect(facingGuides).toHaveCount(4)
+  const guideGlyphs = await facingGuides.evaluateAll((guides) =>
+    guides.map((guide) => getComputedStyle(guide, '::before').content),
+  )
+  guideGlyphs.forEach((content) => expect(['none', 'normal', '""']).toContain(content))
   await page.waitForTimeout(200)
   expect(finalTurnRequests).toBe(0)
 
   const northGuide = page.locator(
     '#battlefield button[data-facing-guide="true"][data-facing-direction="north"]',
   )
-  const finalTurnResponse = page.waitForResponse(
-    (response) =>
-      response.request().method() === 'POST' &&
-      /\/api\/battles\/[0-9a-f-]+\/final-turn$/i.test(new URL(response.url()).pathname),
-  )
+  const finalTurn = finalTurnResponse(page)
   await northGuide.tap()
   await northGuide.tap()
-  expect((await finalTurnResponse).ok()).toBe(true)
+  expect((await finalTurn).ok()).toBe(true)
   expect(finalTurnRequests).toBe(1)
   page.off('request', countFinalTurn)
 })
@@ -228,14 +330,10 @@ test('mobile double-tap Finish Turn keeps the current facing as a shortcut', asy
   const finishTurn = page
     .locator('section[aria-label="Command Deck"]')
     .getByRole('button', { name: /Finish Turn/ })
-  const finalTurnResponse = page.waitForResponse(
-    (response) =>
-      response.request().method() === 'POST' &&
-      /\/api\/battles\/[0-9a-f-]+\/final-turn$/i.test(new URL(response.url()).pathname),
-  )
+  const finalTurn = finalTurnResponse(page)
 
   await finishTurn.tap()
   await page.waitForTimeout(80)
   await finishTurn.tap()
-  expect((await finalTurnResponse).ok()).toBe(true)
+  expect((await finalTurn).ok()).toBe(true)
 })
