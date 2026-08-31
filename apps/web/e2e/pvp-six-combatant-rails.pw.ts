@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
+import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueIdentity(prefix: string): { email: string; characterName: string } {
   const seed = `${Date.now()}${Math.floor(Math.random() * 100_000)}`
@@ -30,13 +30,13 @@ test('fits three square portrait cards cleanly in each desktop PvP rail', async 
   ])
 
   try {
-    await provisionAccountAndEnterCharacter({
+    await createAccountAndEnterCharacter({
       page: host,
       email: hostIdentity.email,
       password,
       characterName: hostIdentity.characterName,
     })
-    await provisionAccountAndEnterCharacter({
+    await createAccountAndEnterCharacter({
       page: guest,
       email: guestIdentity.email,
       password,
@@ -133,6 +133,7 @@ test('fits three square portrait cards cleanly in each desktop PvP rail', async 
             top: railRect.top,
             bottom: railRect.bottom,
             width: railRect.width,
+            height: railRect.height,
           },
           stack: {
             left: stackRect.left,
@@ -147,6 +148,7 @@ test('fits three square portrait cards cleanly in each desktop PvP rail', async 
     )
 
     for (const geometry of geometries) {
+      expect(geometry.rail.height).toBeGreaterThan(0)
       expect(geometry.cards).toHaveLength(3)
       expect(geometry.stack.width).toBeLessThanOrEqual(geometry.rail.width + 1)
       expect(geometry.stack.top).toBeGreaterThanOrEqual(geometry.rail.top - 1)
