@@ -35,15 +35,35 @@ function directToken(tile: HTMLButtonElement): HTMLElement | null {
   return tile.querySelector<HTMLElement>(':scope > span:last-child')
 }
 
+function setImportantStyle(element: HTMLElement, property: string, value: string): void {
+  if (
+    element.style.getPropertyValue(property) === value &&
+    element.style.getPropertyPriority(property) === 'important'
+  ) {
+    return
+  }
+  element.style.setProperty(property, value, 'important')
+}
+
+function battleBoard(): HTMLElement | null {
+  return document.querySelector<HTMLElement>("#battlefield [data-board-auto-fit='9x7']")
+}
+
 function polishDesktopBoardGeometry() {
-  const board = document.querySelector<HTMLElement>("#battlefield [data-board-auto-fit='9x7']")
+  const board = battleBoard()
   const viewport = board?.parentElement
   if (!board || !(viewport instanceof HTMLElement)) return
 
   if (!window.matchMedia(DESKTOP_BATTLE_QUERY).matches) {
-    board.removeAttribute('data-battle-square-geometry')
-    board.style.removeProperty('width')
-    board.style.removeProperty('height')
+    if (board.dataset.battleSquareGeometry === 'true') {
+      board.removeAttribute('data-battle-square-geometry')
+      board.style.removeProperty('width')
+      board.style.removeProperty('height')
+      setImportantStyle(board, 'aspect-ratio', '9 / 7')
+      for (const tile of board.querySelectorAll<HTMLButtonElement>(':scope > button')) {
+        tile.style.removeProperty('aspect-ratio')
+      }
+    }
     return
   }
 
@@ -68,12 +88,12 @@ function polishDesktopBoardGeometry() {
   const width = tileSize * BOARD_COLUMNS + columnGap * (BOARD_COLUMNS - 1)
   const height = tileSize * BOARD_ROWS + rowGap * (BOARD_ROWS - 1)
   board.dataset.battleSquareGeometry = 'true'
-  board.style.setProperty('width', `${width}px`, 'important')
-  board.style.setProperty('height', `${height}px`, 'important')
-  board.style.setProperty('aspect-ratio', 'auto', 'important')
+  setImportantStyle(board, 'width', `${width}px`)
+  setImportantStyle(board, 'height', `${height}px`)
+  setImportantStyle(board, 'aspect-ratio', 'auto')
 
   for (const tile of board.querySelectorAll<HTMLButtonElement>(':scope > button')) {
-    tile.style.setProperty('aspect-ratio', '1 / 1', 'important')
+    setImportantStyle(tile, 'aspect-ratio', '1 / 1')
   }
 }
 
@@ -156,22 +176,47 @@ interface BattleMapTokenPolishProps {
 
 export function BattleMapTokenPolish({ playerName }: BattleMapTokenPolishProps = {}) {
   useEffect(() => {
-    const polish = () => polishBattlefieldTokens(playerName)
+    let frame: number | null = null
+    let observedBoard: HTMLElement | null = null
+    let boardStyleObserver: MutationObserver | null = null
+
+    const schedule = () => {
+      if (frame !== null) return
+      frame = window.requestAnimationFrame(polish)
+    }
+
+    const observeBoardStyle = () => {
+      const nextBoard = battleBoard()
+      if (nextBoard === observedBoard) return
+      boardStyleObserver?.disconnect()
+      observedBoard = nextBoard
+      if (!nextBoard) return
+      boardStyleObserver = new MutationObserver(schedule)
+      boardStyleObserver.observe(nextBoard, { attributes: true, attributeFilter: ['style'] })
+    }
+
+    const polish = () => {
+      frame = null
+      polishBattlefieldTokens(playerName)
+      observeBoardStyle()
+    }
 
     polish()
     const battlefield = document.querySelector<HTMLElement>('#battlefield')
     if (!battlefield) return
 
-    const observer = new MutationObserver(polish)
+    const observer = new MutationObserver(schedule)
     observer.observe(battlefield, { childList: true, subtree: true })
-    const resizeObserver = new ResizeObserver(polish)
+    const resizeObserver = new ResizeObserver(schedule)
     resizeObserver.observe(battlefield)
-    window.addEventListener('resize', polish)
+    window.addEventListener('resize', schedule)
 
     return () => {
       observer.disconnect()
       resizeObserver.disconnect()
-      window.removeEventListener('resize', polish)
+      boardStyleObserver?.disconnect()
+      if (frame !== null) window.cancelAnimationFrame(frame)
+      window.removeEventListener('resize', schedule)
     }
   }, [playerName])
 
