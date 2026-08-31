@@ -162,13 +162,15 @@
   color: rgba(235, 241, 245, 0.96);
 }
 
+/* Ability/action text stays warm-neutral so it never competes with outcome semantics. */
 .primaryLine span[data-role='action'] {
-  color: #dfbd78;
+  color: #e3d7bb;
   font-weight: 660;
 }
 
+/* Defense is intentionally cyan: distinct from healing green and effect violet. */
 .action[data-kind='defense'] .primaryLine span[data-role='action'] {
-  color: #70bfd4;
+  color: #68bdd8;
 }
 
 .primaryLine span[data-role='outcome'] {
@@ -176,26 +178,31 @@
   font-weight: 680;
 }
 
+/* Red is reserved for direct damage. */
 .primaryLine span[data-role='outcome'][data-tone='damage'],
 .secondaryLine span[data-role='outcome'][data-tone='damage'] {
   color: #ff746c;
 }
 
+/* Green is reserved for HP recovery/healing. */
 .primaryLine span[data-role='outcome'][data-tone='healing'],
 .secondaryLine span[data-role='outcome'][data-tone='healing'] {
   color: #66d3a1;
 }
 
+/* Teal is a non-damage beneficial outcome that is not itself a named clickable effect. */
 .primaryLine span[data-role='outcome'][data-tone='benefit'],
 .secondaryLine span[data-role='outcome'][data-tone='benefit'] {
-  color: #77cbd8;
+  color: #72c6b7;
 }
 
+/* Amber is reserved for misses, timeouts, and harmful warning outcomes. */
 .primaryLine span[data-role='outcome'][data-tone='warning'],
 .secondaryLine span[data-role='outcome'][data-tone='warning'] {
-  color: #ddb36f;
+  color: #f0a45f;
 }
 
+/* Violet always means a named combat effect that can be inspected. */
 .primaryLine span[data-semantic='effect'],
 .secondaryLine span[data-semantic='effect'] {
   color: #b79ae8;
@@ -228,7 +235,7 @@
 }
 
 .secondaryLine span[data-role='action'] {
-  color: #dfbd78;
+  color: #e3d7bb;
   font-weight: 600;
 }
 
@@ -236,10 +243,11 @@
   color: rgba(153, 171, 183, 0.76);
 }
 
+/* Blue-gray is reserved for status lifecycle and system/turn narration. */
 .action[data-kind='status'] .primaryLine,
 .action[data-kind='turn'] .primaryLine,
 .action[data-kind='system'] .primaryLine {
-  color: #86a1b3;
+  color: #829caf;
 }
 
 .action[data-kind='system'][data-significance='highlight'] .primaryLine {
