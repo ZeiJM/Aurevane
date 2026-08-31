@@ -23,10 +23,7 @@ export function pvpParticipantAccent(
   seatIndex: number,
   teamCount: number,
 ): string {
-  const familyCount = Math.min(
-    BATTLE_TEAM_ACCENTS.length,
-    Math.max(1, Math.trunc(teamCount)),
-  )
+  const familyCount = Math.min(BATTLE_TEAM_ACCENTS.length, Math.max(1, Math.trunc(teamCount)))
   const familyIndex = Math.abs(Math.trunc(teamIndex)) % familyCount
   const family = BATTLE_TEAM_ACCENTS[familyIndex] ?? BATTLE_TEAM_ACCENTS[0]
   const shadeIndex = Math.abs(Math.trunc(seatIndex)) % family.length
