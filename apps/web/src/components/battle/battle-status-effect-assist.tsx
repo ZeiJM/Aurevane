@@ -25,16 +25,29 @@ function humanize(value: string): string {
 }
 
 function durationFromText(text: string): string | null {
-  const match = text.match(/(\d+)\s+turns?\s+remaining/i)
-  return match ? `${match[1]} turn${match[1] === '1' ? '' : 's'} remaining` : null
+  const remaining = text.match(/(\d+)\s+turns?\s+remaining/i)
+  if (remaining) {
+    return `${remaining[1]} turn${remaining[1] === '1' ? '' : 's'} remaining`
+  }
+  const turns = text.match(/\b(\d+)\s+turns?\b/i)
+  if (turns) return `${turns[1]} turn${turns[1] === '1' ? '' : 's'}`
+  if (/until next turn/i.test(text)) return 'Until next turn'
+  return null
+}
+
+function explicitEffectKind(value: string | undefined): EffectDetails['kind'] | null {
+  if (value === 'Buff' || value === 'Debuff' || value === 'Effect') return value
+  return null
 }
 
 function detailsFromTrigger(trigger: HTMLElement): EffectDetails {
   const text = trigger.textContent?.trim() ?? ''
   const title = trigger.getAttribute('title') ?? ''
   const aria = trigger.getAttribute('aria-label') ?? ''
-  const source = `${text} ${title} ${aria}`.toLowerCase()
-  const duration = durationFromText(`${text} ${aria}`)
+  const explicitName = trigger.dataset.battleEffectName?.trim() ?? ''
+  const source = `${explicitName} ${text} ${title} ${aria}`.toLowerCase()
+  const duration =
+    trigger.dataset.battleEffectDuration?.trim() || durationFromText(`${text} ${aria}`)
 
   if (
     source.includes('lowered guard') ||
@@ -45,7 +58,7 @@ function detailsFromTrigger(trigger: HTMLElement): EffectDetails {
       title: 'Lowered Guard',
       kind: 'Debuff',
       description:
-        'Your defenses are exposed. While Lowered Guard is active, incoming damage is multiplied by 2.5×. In PvP it is applied after a genuine turn-timer expiry and lasts for the next owner-turn start.',
+        'Defenses are exposed. While Lowered Guard is active, incoming damage is multiplied by 2.5×. In PvP it is applied after a genuine turn-timer expiry and lasts for the next owner-turn start.',
       duration,
     }
   }
@@ -61,6 +74,7 @@ function detailsFromTrigger(trigger: HTMLElement): EffectDetails {
   }
 
   const rawLabel =
+    explicitName ||
     trigger.querySelector('strong')?.textContent?.trim() ||
     trigger.getAttribute('title') ||
     trigger.getAttribute('aria-label') ||
@@ -71,10 +85,13 @@ function detailsFromTrigger(trigger: HTMLElement): EffectDetails {
     .replace(/,.*$/, '')
     .replace(/·.*$/, '')
     .trim()
+  const kind =
+    explicitEffectKind(trigger.dataset.battleEffectKind) ??
+    (source.includes('debuff') ? 'Debuff' : source.includes('buff') ? 'Buff' : 'Effect')
 
   return {
     title: humanize(cleanLabel),
-    kind: source.includes('debuff') ? 'Debuff' : source.includes('buff') ? 'Buff' : 'Effect',
+    kind,
     description:
       'This combat effect is currently modifying the combatant. Its remaining duration is shown below when the battle state provides one.',
     duration,
