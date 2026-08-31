@@ -30,9 +30,14 @@
   align-content: start;
 }
 
-.railLeft .stack,
+.railLeft .stack {
+  justify-self: center;
+  transform: translateX(-0.1875rem);
+}
+
 .railRight .stack {
   justify-self: center;
+  transform: translateX(0.1875rem);
 }
 
 .card {

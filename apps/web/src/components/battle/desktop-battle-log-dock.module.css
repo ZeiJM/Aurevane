@@ -6,7 +6,8 @@
   /* Keep the shared desktop Battle Log in the board row only. The terrain-key footer remains its
      own row in both battle modes, and the measured viewport insets trim the dock to the exact
      rendered 9x7 tactical grid instead of the taller board viewport. The approved inward shift
-     remains shared, with the small rightward correction that visually centers the dock. */
+     remains shared; only a one-eighth-rem optical correction is needed to center the fixed dock in
+     the available right-side space. */
   :global(
     #battlefield[data-desktop-battle-log-open='true'] > [data-docked-battle-log='true']
   ) {
@@ -17,7 +18,7 @@
     margin-bottom: var(--battle-log-grid-bottom-inset, 0px) !important;
     align-self: stretch !important;
     justify-self: stretch !important;
-    transform: translateX(calc(-1 * var(--battle-log-dock-center-shift) + 0.5rem)) !important;
+    transform: translateX(calc(-1 * var(--battle-log-dock-center-shift) + 0.125rem)) !important;
   }
 
   /* The terrain legend occupies column one, so continue only its subtle top divider through the
