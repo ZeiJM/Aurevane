@@ -280,6 +280,15 @@
     grid-row: 2;
   }
 
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true']
+      > footer[data-unified-battle-footer='true']
+  ) {
+    position: relative !important;
+    inset: auto !important;
+    width: auto !important;
+  }
+
   :global(main[data-unified-battle='true'] > footer) {
     min-height: 2.85rem !important;
     padding: 0.32rem 0.6rem !important;
