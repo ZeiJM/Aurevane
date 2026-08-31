@@ -8,12 +8,15 @@ import type { BattleLogView } from '@/server/battle/battle-log-service'
 
 import {
   buildBattleLogPresentation,
-  countPresentedBattleLogActions,
   type BattleLogSegment,
   type PresentedBattleLogAction,
   type PresentedBattleLogRound,
 } from './battle-log-presentation'
 import { consolidatePresentedBattleLogRounds } from './battle-log-round-groups'
+import {
+  countSummarizedBattleLogActions,
+  summarizeConsecutiveBattleLogMovement,
+} from './battle-log-movement-summary'
 import { useBattleCombatantAccents } from './battle-runtime-context'
 import styles from './battle-log-feed.module.css'
 
@@ -231,7 +234,7 @@ export function buildBattleLogActionNumbers(
 }
 
 export function countBattleLogActions(entries: BattleLogView['entries']): number {
-  return countPresentedBattleLogActions(entries)
+  return countSummarizedBattleLogActions(entries)
 }
 
 export function BattleLogFeed({
@@ -248,7 +251,8 @@ export function BattleLogFeed({
       combatantNames,
       skillNarrations,
     })
-    return consolidatePresentedBattleLogRounds(presented)
+    const consolidated = consolidatePresentedBattleLogRounds(presented)
+    return summarizeConsecutiveBattleLogMovement(consolidated, entries)
   }, [combatantNames, entries, playerName, skillNarrations])
   const actionNumbers = useMemo(() => buildBattleLogActionNumbers(rounds), [rounds])
   const [requestedRound, setRequestedRound] = useState<string | null | undefined>(undefined)
