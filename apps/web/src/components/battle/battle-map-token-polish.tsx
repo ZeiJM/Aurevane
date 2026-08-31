@@ -57,10 +57,23 @@ function syncBoardScale(): { width: number; height: number } | null {
   return { width, height }
 }
 
+function activeCommandSlug(): string | null {
+  const nativeActive = document.querySelector<HTMLButtonElement>(
+    'section[aria-label="Command Deck"] button[data-active="true"]',
+  )
+  const label = nativeActive?.querySelector<HTMLElement>(':scope > strong')?.textContent?.trim()
+  if (label === 'Basic Attack') return 'attack'
+  if (label === 'Recover') return 'recover'
+  if (label === 'Guard') return 'guard'
+
+  return (
+    document.querySelector<HTMLElement>('[data-battle-command][data-battle-active="true"]')?.dataset
+      .battleCommand ?? null
+  )
+}
+
 function activeSemanticColor(tile: HTMLButtonElement): string | null {
-  const activeCommand = document.querySelector<HTMLElement>(
-    '[data-battle-command][data-battle-active="true"]',
-  )?.dataset.battleCommand
+  const activeCommand = activeCommandSlug()
   const targetRelation = tile.dataset.target
 
   if (activeCommand === 'attack' && targetRelation === 'enemy') return DAMAGE_COLOR
@@ -173,12 +186,12 @@ export function BattleMapTokenPolish({
       attributeFilter: ['data-target'],
     })
 
-    const commandGroup = document.querySelector('[data-battle-command-group="true"]')
-    const commandObserver = commandGroup ? new MutationObserver(polish) : null
-    commandObserver?.observe(commandGroup!, {
+    const commandDeck = document.querySelector('section[aria-label="Command Deck"]')
+    const commandObserver = commandDeck ? new MutationObserver(polish) : null
+    commandObserver?.observe(commandDeck!, {
       subtree: true,
       attributes: true,
-      attributeFilter: ['data-battle-active'],
+      attributeFilter: ['data-active', 'data-battle-active'],
     })
 
     window.addEventListener('resize', polish)
