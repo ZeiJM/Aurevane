@@ -14,6 +14,8 @@ import {
 import { getTacticalHallRecordFromScenarioSourceId } from '@aurevane/game-core/combat/tactical-hall-records'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
+import { collectBattleEventHistory } from './battle-log-service'
+
 export const GUIDED_TRAINING_CRITERIA = ['move', 'attack', 'guard', 'facing'] as const
 export type GuidedTrainingCriterion = (typeof GUIDED_TRAINING_CRITERIA)[number]
 
@@ -183,6 +185,21 @@ export function readGuidedTrainingProgress(
   return progress
 }
 
+export async function collectGuidedTrainingEventHistory(
+  repository: BattleEventRepository,
+  userId: string,
+  battleSessionId: string,
+): Promise<BattleEventRecord[]> {
+  // These criteria describe accomplishments, not current-state conditions. Once the player has
+  // legitimately performed one, later rounds must never erase it merely because its source event
+  // aged out of a rolling event window.
+  return collectBattleEventHistory((pageSize, before) =>
+    before
+      ? repository.findBattleEvents(userId, battleSessionId, pageSize, before)
+      : repository.findBattleEvents(userId, battleSessionId, pageSize),
+  )
+}
+
 export function createGuidedTrainingCompletionService(
   repository: BattleSessionRepository & BattleEventRepository,
 ) {
@@ -204,7 +221,7 @@ export function createGuidedTrainingCompletionService(
           'The training battle has no player actor.',
         )
       }
-      const events = await repository.findBattleEvents(userId, battleSessionId, 100)
+      const events = await collectGuidedTrainingEventHistory(repository, userId, battleSessionId)
       return readGuidedTrainingProgress(events, controlled)
     },
 
@@ -230,7 +247,11 @@ export function createGuidedTrainingCompletionService(
 
       const state = readEncounter(session.snapshot)
       assertGuidedFundamentals(state)
-      const events = await repository.findBattleEvents(input.userId, input.battleSessionId, 100)
+      const events = await collectGuidedTrainingEventHistory(
+        repository,
+        input.userId,
+        input.battleSessionId,
+      )
       const disposition = readGuidedTrainingCompletionDisposition(
         state.tactical.battle,
         events,

@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 
 import guidedBoardStyles from './battle-guided-board-stability.module.css'
+import moveStyles from './battle-move-preview-authority.module.css'
 import scaleStyles from './battle-pvp-scale-authority.module.css'
 import parityStyles from './battle-shared-presentation-parity.module.css'
 import styles from './battle-screen-visual-contract.module.css'
@@ -138,7 +139,7 @@ export function BattleScreenVisualContract() {
 
   return (
     <span
-      className={`${styles.hook} ${headerStyles.hook} ${scaleStyles.hook} ${parityStyles.hook} ${guidedBoardStyles.hook}`}
+      className={`${styles.hook} ${headerStyles.hook} ${scaleStyles.hook} ${parityStyles.hook} ${guidedBoardStyles.hook} ${moveStyles.hook}`}
       aria-hidden="true"
     />
   )

@@ -1,0 +1,46 @@
+.hook {
+  display: none;
+}
+
+/*
+ * Move communicates where the player can go. Unreachable cells stay visually neutral instead of
+ * adding a redundant negative/red state; Attack keeps its own target/illegal presentation.
+ */
+:global(
+  main[data-unified-battle='true'][data-battle-action-mode='move']
+    #battlefield
+    button[aria-label^='Tile ']:not([data-reachable]):not([data-path])
+) {
+  border-color: rgba(188, 201, 211, 0.2) !important;
+  box-shadow: none !important;
+  filter: none !important;
+}
+
+/* Reachable movement keeps the established battle green while using the same richer inset-ring +
+   soft-glow language as Attack and Facing. The tile's terrain surface remains intact underneath. */
+:global(
+  main[data-unified-battle='true'][data-battle-action-mode='move']
+    #battlefield
+    button[aria-label^='Tile '][data-reachable]
+) {
+  z-index: 2;
+  border-color: rgba(98, 210, 138, 0.86) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(98, 210, 138, 0.48),
+    inset 0 0 1.1rem rgba(54, 156, 91, 0.1),
+    0 0 0.72rem rgba(70, 190, 112, 0.2) !important;
+}
+
+/* The chosen route is deliberately one step stronger than the general reachable field. */
+:global(
+  main[data-unified-battle='true'][data-battle-action-mode='move']
+    #battlefield
+    button[aria-label^='Tile '][data-path]
+) {
+  z-index: 3;
+  border-color: rgb(124, 230, 158) !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(124, 230, 158, 0.68),
+    inset 0 0 1.2rem rgba(65, 174, 104, 0.14),
+    0 0 0.85rem rgba(82, 204, 125, 0.3) !important;
+}

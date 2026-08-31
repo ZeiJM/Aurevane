@@ -4,6 +4,8 @@
   display: grid;
   min-width: 0;
   min-height: 0;
+  height: 100%;
+  container-type: size;
 }
 
 .railLeft {
@@ -17,28 +19,38 @@
 }
 
 .stack {
+  --rail-card-gap: 0.4rem;
+  --rail-heading-height: 2.15rem;
   display: grid;
-  gap: 0.4rem;
+  width: 100%;
+  gap: var(--rail-card-gap);
   min-width: 0;
   min-height: 0;
   align-content: start;
 }
 
+.railLeft .stack {
+  justify-self: start;
+}
+
+.railRight .stack {
+  justify-self: end;
+}
+
 .stack[data-count='2'] {
-  height: 100%;
-  grid-template-rows: repeat(2, minmax(0, 1fr));
+  width: min(100%, calc((100cqh - 4.7rem) / 2));
 }
 
 .stack[data-count='3'] {
-  height: 100%;
-  grid-template-rows: repeat(3, minmax(0, 1fr));
+  width: min(100%, calc((100cqh - 7.25rem) / 3));
 }
 
 .card {
   position: relative;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: var(--rail-heading-height) auto;
   gap: 0;
+  width: 100%;
   min-width: 0;
   min-height: 0;
   padding: 0;
@@ -49,12 +61,6 @@
   box-shadow:
     0 0 0.7rem color-mix(in srgb, var(--battle-combatant-accent) 12%, transparent),
     0 0.65rem 1.35rem rgba(0, 0, 0, 0.2);
-}
-
-.stack[data-count='2'] .card,
-.stack[data-count='3'] .card {
-  height: 100%;
-  grid-template-rows: auto minmax(0, 1fr);
 }
 
 .card[data-active] {
@@ -73,12 +79,14 @@
 .heading {
   display: flex;
   min-width: 0;
+  height: var(--rail-heading-height);
   gap: 0.28rem;
   align-items: center;
   justify-content: space-between;
   padding: 0.34rem 0.36rem 0.32rem;
+  overflow: hidden;
   border-bottom: 1px solid color-mix(in srgb, var(--battle-combatant-accent) 28%, transparent);
-  background: rgba(5, 8, 12, 0.74);
+  background: rgba(5, 8, 12, 0.9);
 }
 
 .heading > div:first-child {
@@ -138,21 +146,17 @@
   position: relative;
   display: block;
   width: 100%;
+  height: auto;
   min-width: 0;
   min-height: 0;
-  aspect-ratio: 1;
+  aspect-ratio: 1 / 1;
+  padding: 0;
   overflow: hidden;
   border: 0;
   border-radius: 0;
   background: #080b10;
   box-shadow: none;
   cursor: pointer;
-}
-
-.stack[data-count='2'] .portraitButton,
-.stack[data-count='3'] .portraitButton {
-  height: 100%;
-  aspect-ratio: auto;
 }
 
 .portraitButton:hover {
@@ -169,6 +173,7 @@
   display: block;
   width: 100%;
   height: 100%;
+  margin: 0;
   object-fit: cover;
 }
 

@@ -163,6 +163,15 @@
 @media (min-width: 821px) {
   :global(
     main[data-unified-battle='true'][data-battle-visual-contract='true']
+      section#battlefield[data-show-coordinates='true']
+      button[aria-label^='Tile ']
+      > span:first-child
+  ) {
+    font-size: calc(0.3rem + 1px) !important;
+  }
+
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true']
       section#battlefield
       > [aria-label='Terrain legend']
       > span
