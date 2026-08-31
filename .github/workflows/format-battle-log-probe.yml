@@ -1,7 +1,9 @@
 name: Temporary Battle Log format probe
 
 on:
-  pull_request:
+  push:
+    branches:
+      - agent/fix-guard-tile-movement-summary
 
 jobs:
   format:
