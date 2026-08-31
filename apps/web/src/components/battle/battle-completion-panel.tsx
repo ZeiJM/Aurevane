@@ -12,6 +12,8 @@ import type { BattleLogView } from '@/server/battle/battle-log-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
 import styles from './battle-completion-panel.module.css'
+import { BattleLogFeed, countBattleLogActions } from './battle-log-feed'
+import { useBattlePlayerName } from './battle-runtime-context'
 
 interface BattleCompletionPanelProps {
   battle: BattleSessionView
@@ -62,6 +64,7 @@ function formatFullLog(log: BattleLogView): string {
 
 export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
   const router = useRouter()
+  const playerName = useBattlePlayerName()
   const [retryPending, setRetryPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [logOpen, setLogOpen] = useState(false)
@@ -241,21 +244,18 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
           <section className={styles.logReview} aria-label="Committed battle log review">
             <div className={styles.logHeader}>
               <strong>Committed Battle Log</strong>
-              <span>{log?.entries.length ?? 0} events</span>
+              <span>{log ? countBattleLogActions(log.entries) : 0} actions</span>
             </div>
             {log && log.entries.length > 0 ? (
-              <ol>
-                {[...log.entries].reverse().map((entry) => (
-                  <li key={`${entry.battleVersion}:${entry.eventIndex}`}>
-                    <small>
-                      v{entry.battleVersion}.{entry.eventIndex}
-                    </small>
-                    <span>{entry.message}</span>
-                  </li>
-                ))}
-              </ol>
+              <div className={styles.logTranscript}>
+                <BattleLogFeed
+                  entries={log.entries}
+                  playerName={playerName ?? undefined}
+                  emptyMessage="No committed battle actions were recorded."
+                />
+              </div>
             ) : (
-              <p>No committed battle events were recorded.</p>
+              <p>No committed battle actions were recorded.</p>
             )}
           </section>
         ) : null}
