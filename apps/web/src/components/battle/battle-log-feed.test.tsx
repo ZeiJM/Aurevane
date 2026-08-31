@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
-import { buildBattleLogActionNumbers, buildBattleLogTranscriptLines } from './battle-log-feed'
+import type { BattleLogEntry } from '@/server/battle/battle-log-service'
+
+import {
+  buildBattleLogActionNumbers,
+  buildBattleLogTranscriptLines,
+  countBattleLogActions,
+  summarizeConsecutiveBattleLogMovement,
+} from './battle-log-feed'
 import type {
   BattleLogSegment,
   PresentedBattleLogAction,
@@ -21,6 +28,32 @@ function action(key: string, battleVersion: number, occurredAt: string): Present
     secondary: null,
     details: [],
     ariaLabel: key,
+  }
+}
+
+function movementEntry(
+  battleVersion: number,
+  actorCombatantId: string,
+  turnNumber = 3,
+): BattleLogEntry {
+  return {
+    battleVersion,
+    eventIndex: 0,
+    occurredAt: `2026-08-31T17:50:${String(battleVersion).padStart(2, '0')}.000Z`,
+    eventType: 'combatant_moved',
+    message: 'Combatant moved.',
+    messageTemplate: '{actor} moved.',
+    templateValues: {},
+    actorCombatantId,
+    targetCombatantId: null,
+    actionId: null,
+    actionLabel: null,
+    round: 2,
+    turnNumber,
+    kind: 'movement',
+    headline: 'Move',
+    tone: 'neutral',
+    facts: [],
   }
 }
 
@@ -67,6 +100,54 @@ describe('Battle Log display numbering', () => {
       ['battle:11', 7],
       ['battle:12', 8],
     ])
+  })
+
+  it('counts a continuous same-character path as one movement action', () => {
+    const entries = [
+      movementEntry(7, 'character:zei'),
+      movementEntry(6, 'character:zei'),
+      movementEntry(5, 'character:zei'),
+    ]
+
+    expect(countBattleLogActions(entries)).toBe(1)
+  })
+
+  it('does not merge movement from different characters or different turns', () => {
+    const entries = [
+      movementEntry(8, 'character:storm', 4),
+      movementEntry(7, 'character:zei', 4),
+      movementEntry(6, 'character:zei', 3),
+      movementEntry(5, 'character:zei', 3),
+    ]
+
+    expect(countBattleLogActions(entries)).toBe(3)
+  })
+
+  it('keeps only one visible movement beat for consecutive path steps', () => {
+    const newestMove = {
+      ...action('battle:7', 7, '2026-08-31T17:50:07.000Z'),
+      round: 2,
+      turnNumber: 3,
+      kind: 'movement' as const,
+    }
+    const olderMove = {
+      ...action('battle:6', 6, '2026-08-31T17:50:06.000Z'),
+      round: 2,
+      turnNumber: 3,
+      kind: 'movement' as const,
+    }
+    const rounds: PresentedBattleLogRound[] = [
+      {
+        key: 'round:2',
+        round: 2,
+        occurredAt: newestMove.occurredAt,
+        actions: [newestMove, olderMove],
+      },
+    ]
+    const entries = [movementEntry(7, 'character:zei'), movementEntry(6, 'character:zei')]
+
+    const summarized = summarizeConsecutiveBattleLogMovement(rounds, entries)
+    expect(summarized[0]?.actions.map((item) => item.key)).toEqual(['battle:7'])
   })
 })
 
