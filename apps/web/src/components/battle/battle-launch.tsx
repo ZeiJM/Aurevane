@@ -60,6 +60,7 @@ const DIFFICULTIES: readonly { id: AiDifficulty; label: string; description: str
 ]
 
 const DEFAULT_PVP_MODE: PvpMode = '1v1'
+const PVP_LOBBY_SESSION_STORAGE_KEY = 'aurevane:pvp-lobby-id'
 const PVP_MODES: readonly { id: PvpMode; label: string; detail: string }[] = [
   { id: '1v1', label: '1v1 Duel', detail: 'Two combatants · one per side' },
   { id: '2v2', label: '2v2 Clash', detail: 'Four combatants · two per side' },
@@ -94,6 +95,7 @@ export function BattleLaunch({
   const router = useRouter()
   const launchLock = useRef(false)
   const joinAttempted = useRef(false)
+  const restoreAttempted = useRef(false)
   const [section, setSection] = useState<HallSection>('ai')
   const [recordId, setRecordId] = useState<TacticalHallRecordId | null>(null)
   const [arenaId, setArenaId] = useState<TacticalHallArenaId>('duel-yard')
@@ -125,6 +127,17 @@ export function BattleLaunch({
     setRecordId(nextRecordId)
     setArenaId(nextRecord.defaultArenaId)
     setError(null)
+  }
+
+  function openPvpLobby(lobby: PvpLobbyView) {
+    sessionStorage.setItem(PVP_LOBBY_SESSION_STORAGE_KEY, lobby.lobbyId)
+    setSection('pvp')
+    setPvpLobby(lobby)
+  }
+
+  function dismissPvpLobby() {
+    sessionStorage.removeItem(PVP_LOBBY_SESSION_STORAGE_KEY)
+    setPvpLobby(null)
   }
 
   async function launchAiBattle() {
@@ -186,7 +199,7 @@ export function BattleLaunch({
       if (!response.ok || !body.lobby) {
         throw new Error(body.error?.message ?? 'The PvP lobby could not be created.')
       }
-      setPvpLobby(body.lobby)
+      openPvpLobby(body.lobby)
     } catch (lobbyError) {
       setError(
         lobbyError instanceof Error ? lobbyError.message : 'The PvP lobby could not be created.',
@@ -219,6 +232,7 @@ export function BattleLaunch({
           throw new Error(body.error?.message ?? 'That lobby could not be joined.')
         }
         setJoinKey(normalized)
+        sessionStorage.setItem(PVP_LOBBY_SESSION_STORAGE_KEY, body.lobby.lobbyId)
         setPvpLobby(body.lobby)
       } catch (joinError) {
         setError(joinError instanceof Error ? joinError.message : 'That lobby could not be joined.')
@@ -230,9 +244,52 @@ export function BattleLaunch({
   )
 
   useEffect(() => {
-    if (!initialJoinKey || joinAttempted.current) return
-    joinAttempted.current = true
-    void joinLobby(initialJoinKey)
+    if (restoreAttempted.current) return
+    restoreAttempted.current = true
+
+    function joinFromInitialKey() {
+      if (!initialJoinKey || joinAttempted.current) return
+      joinAttempted.current = true
+      void joinLobby(initialJoinKey)
+    }
+
+    const lobbyId = sessionStorage.getItem(PVP_LOBBY_SESSION_STORAGE_KEY)
+    if (!lobbyId) {
+      joinFromInitialKey()
+      return
+    }
+
+    let cancelled = false
+    async function restoreLobby() {
+      try {
+        const response = await fetch(`/api/pvp/lobbies/${encodeURIComponent(lobbyId)}`, {
+          cache: 'no-store',
+        })
+        const body = (await response.json()) as { lobby?: PvpLobbyView } & ApiErrorBody
+        if (cancelled) return
+        if (!response.ok || !body.lobby) {
+          if (response.status >= 400 && response.status < 500) {
+            sessionStorage.removeItem(PVP_LOBBY_SESSION_STORAGE_KEY)
+            joinFromInitialKey()
+          }
+          return
+        }
+        if (body.lobby.status !== 'waiting') {
+          sessionStorage.removeItem(PVP_LOBBY_SESSION_STORAGE_KEY)
+          joinFromInitialKey()
+          return
+        }
+        setSection('pvp')
+        setPvpLobby(body.lobby)
+      } catch {
+        // Keep the stored lobby id so a transient connection problem does not discard the lobby.
+      }
+    }
+
+    void restoreLobby()
+    return () => {
+      cancelled = true
+    }
   }, [initialJoinKey, joinLobby])
 
   async function spectateBattle() {
@@ -482,7 +539,7 @@ export function BattleLaunch({
                         onClick={() => setMapSize(value)}
                         disabled={pending}
                       >
-                        {value === 'medium' ? 'Medium' : 'Large'}
+                        {value === 'medium' ? 'Standard' : 'Expanded'}
                       </button>
                     ))}
                   </div>
@@ -656,7 +713,7 @@ export function BattleLaunch({
         <PvpLobbyModal
           initialLobby={pvpLobby}
           localCharacterId={characterId}
-          onLeave={() => setPvpLobby(null)}
+          onLeave={dismissPvpLobby}
         />
       ) : null}
     </section>
