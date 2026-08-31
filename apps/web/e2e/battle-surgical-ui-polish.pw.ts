@@ -102,7 +102,7 @@ test(
     const dialog = page.getByRole('dialog', { name: 'Surrender this battle?' })
     await expect(dialog).toBeVisible()
     await expect(dialog).toHaveAttribute('data-pve-surrender-modal', 'true')
-    await expect(dialog.locator(':scope > span')).toHaveText('Battle Hall · PvE')
+    await expect(dialog.locator(':scope > span')).toHaveText('Battle Hall • PvE')
 
     const stay = dialog.getByRole('button', { name: 'Stay in battle' })
     const confirm = dialog.getByRole('button', { name: 'Confirm Surrender' })
