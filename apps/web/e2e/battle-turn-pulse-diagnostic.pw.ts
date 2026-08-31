@@ -161,18 +161,38 @@ test('diagnoses desktop Finish Turn battlefield geometry through Recruit handoff
 
   expect(samples.length).toBeGreaterThan(5)
   const simplified = samples.map((sample) => {
-    const battlefield = sample.battlefield as { height: number }
-    const content = sample.content as { height: number; gridTemplateRows: string }
+    const rootGeometry = sample.root as {
+      height: number
+      gridTemplateRows: string
+      position: string
+    }
+    const battlefield = sample.battlefield as { height: number; bottom: number }
+    const content = sample.content as {
+      height: number
+      bottom: number
+      gridTemplateRows: string
+    }
     const deck = sample.deck as { height: number; gridTemplateRows: string }
     const context = sample.context as { height: number }
     const commands = sample.commands as { height: number }
-    const footer = sample.footer as { height: number; top: number }
+    const footer = sample.footer as {
+      height: number
+      top: number
+      bottom: number
+      position: string
+      display: string
+    }
     return {
       localTurn: sample.localTurn,
       ariaBusy: sample.ariaBusy,
       actionMode: sample.actionMode,
+      rootHeight: rootGeometry.height,
+      rootRows: rootGeometry.gridTemplateRows,
+      rootPosition: rootGeometry.position,
       battlefieldHeight: battlefield.height,
+      battlefieldBottom: battlefield.bottom,
       contentHeight: content.height,
+      contentBottom: content.bottom,
       contentRows: content.gridTemplateRows,
       deckHeight: deck.height,
       deckRows: deck.gridTemplateRows,
@@ -180,6 +200,9 @@ test('diagnoses desktop Finish Turn battlefield geometry through Recruit handoff
       commandsHeight: commands.height,
       footerHeight: footer.height,
       footerTop: footer.top,
+      footerBottom: footer.bottom,
+      footerPosition: footer.position,
+      footerDisplay: footer.display,
     }
   })
   const unique = simplified.filter(
