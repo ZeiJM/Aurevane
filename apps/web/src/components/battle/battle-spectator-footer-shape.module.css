@@ -1,0 +1,8 @@
+.hook {
+  display: none;
+}
+
+/* The copyable spectator key and spectator-count control are one footer control family. */
+:global(main[data-pvp-battle='true'] > footer > button:nth-child(2)) {
+  border-radius: var(--av-radius-sm) !important;
+}

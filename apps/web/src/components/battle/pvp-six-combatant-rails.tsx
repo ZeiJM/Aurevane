@@ -79,7 +79,9 @@ function RailCard({
     >
       <div className={styles.heading}>
         <div>
-          <span>{friendly ? 'Character' : `Opponent · Team ${participant.teamIndex + 1}`}</span>
+          <span>
+            {friendly ? 'Character' : 'Opponent'} · Team {participant.teamIndex + 1}
+          </span>
           <strong>{participant.characterName}</strong>
         </div>
         <div className={styles.turnState}>

@@ -22,4 +22,14 @@
     max-height: 100% !important;
     aspect-ratio: 9 / 7 !important;
   }
+
+  /* Desktop facing is communicated and committed on the battlefield itself. Keeping the auxiliary
+     facing pad in the command-deck grid made the deck taller only while Finish Turn was open; when
+     Recruit took over it collapsed and the battlefield expanded for one turn, then shrank again.
+     Remove that non-visible desktop grid participant so Finish Turn -> Recruit keeps one footprint. */
+  :global(
+    main[data-unified-battle='true'][data-battle-kind='pve'] [data-unified-facing-pad='true']
+  ) {
+    display: none !important;
+  }
 }
