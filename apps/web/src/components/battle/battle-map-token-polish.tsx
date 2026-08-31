@@ -32,23 +32,22 @@ function syncBoardScale(): { width: number; height: number } | null {
   const fit = `${width}x${height}`
   if (board.dataset.boardAutoFit !== fit) board.dataset.boardAutoFit = fit
 
-  // The old presentation authority assumed every board was 9x7. A large 13x9 map therefore got
-  // forced into the wrong aspect ratio on desktop, stretching each cell horizontally. Correct the
-  // board itself here; individual tiles already own aspect-ratio: 1 in the canonical renderer.
+  // Keep the renderer's real board ratio authoritative for every arena. The old presentation
+  // authority assumed 9x7, which is what stretched the 13x9 large-map cells into rectangles.
+  board.style.setProperty('aspect-ratio', `${width} / ${height}`, 'important')
+
   if (width === 13 && height === 9) {
     board.style.setProperty('box-sizing', 'border-box', 'important')
     board.style.setProperty('width', 'min(100%, 620px)', 'important')
     board.style.setProperty('max-width', '620px', 'important')
     board.style.setProperty('height', 'auto', 'important')
     board.style.setProperty('max-height', 'none', 'important')
-    board.style.setProperty('aspect-ratio', '13 / 9', 'important')
   } else {
     board.style.removeProperty('box-sizing')
     board.style.removeProperty('width')
     board.style.removeProperty('max-width')
     board.style.removeProperty('height')
     board.style.removeProperty('max-height')
-    board.style.removeProperty('aspect-ratio')
   }
 
   return { width, height }
