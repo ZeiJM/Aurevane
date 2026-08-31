@@ -19,15 +19,21 @@ function syncBoardScale(): { width: number; height: number } | null {
   const board = document.querySelector<HTMLElement>('#battlefield [data-board-auto-fit]')
   if (!board) return null
 
+  const tiles = Array.from(board.querySelectorAll<HTMLButtonElement>('button[aria-label^="Tile "]'))
   let width = 0
   let height = 0
-  for (const tile of board.querySelectorAll<HTMLButtonElement>('button[aria-label^="Tile "]')) {
+  for (const tile of tiles) {
     const coordinates = tileCoordinates(tile)
     if (!coordinates) continue
     width = Math.max(width, coordinates.x)
     height = Math.max(height, coordinates.y)
   }
   if (width <= 0 || height <= 0) return null
+
+  // React can briefly expose a partially reconciled tile list while a submitted action or recruit
+  // turn replaces the tactical snapshot. Never publish that transient partial rectangle as a new
+  // board size: doing so makes the 9x7 Guided Fundamentals board visibly snap smaller for a frame.
+  if (tiles.length !== width * height) return null
 
   const fit = `${width}x${height}`
   if (board.dataset.boardAutoFit !== fit) board.dataset.boardAutoFit = fit
