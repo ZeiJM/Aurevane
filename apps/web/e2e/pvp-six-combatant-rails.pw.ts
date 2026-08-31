@@ -75,7 +75,7 @@ test('fits three square portrait cards cleanly in each desktop PvP rail', async 
     await expect(rails.nth(1).locator('article')).toHaveCount(1)
 
     const geometries = await rails.evaluateAll((elements) =>
-      elements.map((rail, railIndex) => {
+      elements.map((rail) => {
         const railElement = rail as HTMLElement
         const stack = railElement.firstElementChild as HTMLElement
         const source = stack.querySelector<HTMLElement>('article')!
@@ -131,7 +131,6 @@ test('fits three square portrait cards cleanly in each desktop PvP rail', async 
         else stack.dataset.count = originalCount
 
         return {
-          railIndex,
           rail: {
             left: railRect.left,
             right: railRect.right,
@@ -156,13 +155,12 @@ test('fits three square portrait cards cleanly in each desktop PvP rail', async 
       expect(geometry.rail.height).toBeGreaterThan(0)
       expect(geometry.cards).toHaveLength(3)
       expect(geometry.stack.width).toBeLessThanOrEqual(geometry.rail.width + 1)
-      expect(geometry.stack.top).toBeGreaterThanOrEqual(geometry.rail.top - 1)
+      expect(Math.abs(geometry.stack.top - geometry.rail.top)).toBeLessThanOrEqual(1)
       expect(geometry.stack.bottom).toBeLessThanOrEqual(geometry.rail.bottom + 1)
-      if (geometry.railIndex === 0) {
-        expect(Math.abs(geometry.stack.left - geometry.rail.left)).toBeLessThanOrEqual(1)
-      } else {
-        expect(Math.abs(geometry.stack.right - geometry.rail.right)).toBeLessThanOrEqual(1)
-      }
+
+      const railCenter = (geometry.rail.left + geometry.rail.right) / 2
+      const stackCenter = (geometry.stack.left + geometry.stack.right) / 2
+      expect(Math.abs(stackCenter - railCenter)).toBeLessThanOrEqual(1)
 
       for (const { card, heading, portrait, image } of geometry.cards) {
         expect(Math.abs(portrait.width - portrait.height)).toBeLessThanOrEqual(1)
