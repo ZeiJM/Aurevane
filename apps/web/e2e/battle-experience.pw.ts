@@ -84,14 +84,14 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(battlefield).toBeVisible()
   await expect(commandDeck).toBeVisible()
   await expect(criteriaButton).toBeVisible()
-  await expect(page.getByRole('button', { name: /^Tile / })).toHaveCount(15)
+  await expect(page.getByRole('button', { name: /^Tile / })).toHaveCount(63)
   await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
     'aria-valuenow',
     '100',
   )
   await expect(commandContext).toContainText('Choose your action')
   await expect(page.getByText(/100 AP/).first()).toBeVisible()
-  const fittedBoard = battlefield.locator('[data-board-auto-fit="5x3"]')
+  const fittedBoard = battlefield.locator('[data-board-auto-fit="9x7"]')
   await expect(fittedBoard).toHaveCount(1)
   await expectBattlefieldContained(page)
 
