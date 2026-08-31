@@ -64,8 +64,7 @@ function syncFinishTurnCopy() {
       candidate.querySelector(':scope > strong')?.textContent?.trim() === 'Finish Turn',
   )
   const cost = button?.querySelector<HTMLElement>(':scope > small')
-  const copy = window.matchMedia(MOBILE_QUERY).matches ? 'Choose facing + end' : 'Keep facing + end'
-  if (cost && cost.textContent !== copy) cost.textContent = copy
+  if (cost && cost.textContent !== 'Choose facing + end') cost.textContent = 'Choose facing + end'
 }
 
 export function BattleCockpitLayoutStabilizer({ playerName }: { playerName: string }) {
@@ -86,16 +85,17 @@ export function BattleCockpitLayoutStabilizer({ playerName }: { playerName: stri
       }
     }
 
-    const handleClick = (event: MouseEvent) => {
+    const handleDoubleClick = (event: MouseEvent) => {
       const button = finishTurnButton(event.target)
       if (!button || button.disabled || window.matchMedia(MOBILE_QUERY).matches) return
 
+      event.preventDefault()
+      event.stopImmediatePropagation()
       if (queuedFrame.current !== 0) window.cancelAnimationFrame(queuedFrame.current)
       if (retryFrame.current !== 0) window.cancelAnimationFrame(retryFrame.current)
 
-      // Desktop keeps its compact one-click current-facing shortcut. Mobile deliberately stops here:
-      // its native click only enters facing mode so the battlefield guides can be double-tapped, while
-      // BattleFacingQuickCommitAssist owns the separate double-tap Finish Turn shortcut.
+      // Desktop single-click now only opens final-facing selection. A deliberate double-click keeps
+      // the actor's existing facing as the shortcut, matching the two-Space keyboard contract.
       queuedFrame.current = window.requestAnimationFrame(() => {
         queuedFrame.current = 0
         hideFacingPads()
@@ -113,12 +113,12 @@ export function BattleCockpitLayoutStabilizer({ playerName }: { playerName: stri
     })
     const media = window.matchMedia(MOBILE_QUERY)
     media.addEventListener('change', syncFinishTurnCopy)
-    document.addEventListener('click', handleClick, true)
+    document.addEventListener('dblclick', handleDoubleClick, true)
 
     return () => {
       observer.disconnect()
       media.removeEventListener('change', syncFinishTurnCopy)
-      document.removeEventListener('click', handleClick, true)
+      document.removeEventListener('dblclick', handleDoubleClick, true)
       if (queuedFrame.current !== 0) window.cancelAnimationFrame(queuedFrame.current)
       if (retryFrame.current !== 0) window.cancelAnimationFrame(retryFrame.current)
     }
