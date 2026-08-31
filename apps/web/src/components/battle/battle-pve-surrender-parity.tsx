@@ -14,8 +14,8 @@ function markPveSurrenderDialog(): void {
   modal.dataset.pveSurrenderModal = 'true'
 
   const eyebrow = modal.querySelector<HTMLElement>(':scope > span')
-  if (eyebrow && eyebrow.textContent !== 'Battle Hall · PvE') {
-    eyebrow.textContent = 'Battle Hall · PvE'
+  if (eyebrow && eyebrow.textContent !== 'Battle Hall • PvE') {
+    eyebrow.textContent = 'Battle Hall • PvE'
   }
 
   const buttons = Array.from(modal.querySelectorAll<HTMLButtonElement>(':scope > button'))
