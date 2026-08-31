@@ -62,8 +62,12 @@ function renderSegments(segments: readonly BattleLogSegment[]) {
   ))
 }
 
+function playerFacingEntries(entries: BattleLogView['entries']): BattleLogView['entries'] {
+  return entries.filter((entry) => entry.eventType !== 'combatant_moved')
+}
+
 export function countBattleLogActions(entries: BattleLogView['entries']): number {
-  return countPresentedBattleLogActions(entries)
+  return countPresentedBattleLogActions(playerFacingEntries(entries))
 }
 
 export function BattleLogFeed({
@@ -74,7 +78,7 @@ export function BattleLogFeed({
   emptyMessage = 'No committed battle actions yet.',
 }: BattleLogFeedProps) {
   const rounds = useMemo(() => {
-    const presented = buildBattleLogPresentation(entries, {
+    const presented = buildBattleLogPresentation(playerFacingEntries(entries), {
       playerName,
       combatantNames,
       skillNarrations,
@@ -140,19 +144,6 @@ export function BattleLogFeed({
                         <p className={styles.primaryLine}>{renderSegments(action.primary)}</p>
                         {action.secondary ? (
                           <p className={styles.secondaryLine}>{renderSegments(action.secondary)}</p>
-                        ) : null}
-                        {action.details.length > 0 ? (
-                          <details className={styles.details}>
-                            <summary>Details</summary>
-                            <p>
-                              {action.details.map((item, detailIndex) => (
-                                <span data-tone={item.tone} key={`${item.tone}:${item.label}`}>
-                                  {detailIndex > 0 ? ' · ' : ''}
-                                  {item.label}
-                                </span>
-                              ))}
-                            </p>
-                          </details>
                         ) : null}
                       </div>
                       {action.turnNumber !== null ? (
