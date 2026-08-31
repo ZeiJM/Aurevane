@@ -9,6 +9,7 @@ import type { RecruitTurnView } from '@/server/battle/battle-recruit-ai-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
 import { pvpParticipantAccent } from './battle-combatant-colors'
+import { BattleFacingIndicator } from './battle-facing-indicator'
 import {
   buildReachablePaths,
   facingGlyph,
@@ -1125,7 +1126,11 @@ export function BattleExperience({
           data-unified-battlefield="true"
         >
           <div className={styles.boardViewport}>
-            <div className={styles.board} style={boardStyle} data-board-auto-fit="9x7">
+            <div
+              className={styles.board}
+              style={boardStyle}
+              data-board-auto-fit={`${tactical.width}x${tactical.height}`}
+            >
               {tactical.tiles.map((tile) => {
                 const key = positionKey(tile.position)
                 const placement = placementByTile.get(key)
@@ -1205,7 +1210,7 @@ export function BattleExperience({
                             {participant.name.charAt(0).toUpperCase()}
                           </span>
                         )}
-                        <i>{facingGlyph(placement.facing)}</i>
+                        <BattleFacingIndicator facing={placement.facing} />
                         <strong>{participant.name}</strong>
                       </span>
                     ) : null}
