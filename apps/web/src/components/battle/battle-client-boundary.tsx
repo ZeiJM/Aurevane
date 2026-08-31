@@ -96,7 +96,10 @@ export function BattleClientBoundary({
       <BattleCoordinateToggle />
       <BattleDirectionalAttackAssist playerName={runtime.playerName} />
       <BattleSelfActionQuickCommitAssist />
-      <BattleMapTokenPolish playerName={runtime.kind === 'pve' ? runtime.playerName : undefined} />
+      <BattleMapTokenPolish
+        playerName={runtime.kind === 'pve' ? runtime.playerName : undefined}
+        combatantAccents={combatantAccents}
+      />
       <BattleMobileTokenMeters initialBattle={initialBattle} combatantNames={combatantNames} />
       <BattlePresentationPolish
         playerName={runtime.playerName}

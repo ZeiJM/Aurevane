@@ -165,9 +165,9 @@
   font-weight: 640;
 }
 
-/* Gold means an explicit defensive action such as Guard. */
+/* Blue means an explicit defensive action such as Guard. */
 .action[data-kind='defense'] .primaryLine span[data-role='action'] {
-  color: #e6c16b;
+  color: #6c91c6;
 }
 
 .primaryLine span[data-role='outcome'] {

@@ -8,6 +8,9 @@ const LARGE_DESKTOP_TOKEN_SIZE = 'clamp(1.6rem, 72%, 2.15rem)'
 const COMPACT_TOKEN_SIZE = 'clamp(1.7rem, 56%, 2.75rem)'
 const LARGE_COMPACT_TOKEN_SIZE = 'clamp(1.25rem, 72%, 1.75rem)'
 const PLAYER_TOKEN_SHADOW = '0 0.45rem 1rem rgba(0, 0, 0, 0.35)'
+const DAMAGE_COLOR = '#ff766f'
+const HEALING_COLOR = '#59d39b'
+const DEFENSE_COLOR = '#6c91c6'
 
 function syncBoardScale(): { width: number; height: number } | null {
   const board = document.querySelector<HTMLElement>('#battlefield [data-board-auto-fit]')
@@ -40,7 +43,22 @@ function syncBoardScale(): { width: number; height: number } | null {
   return { width, height }
 }
 
-function polishBattlefieldTokens(playerName?: string) {
+function activeSemanticColor(tile: HTMLButtonElement): string | null {
+  const activeCommand = document.querySelector<HTMLElement>(
+    '[data-battle-command][data-battle-active="true"]',
+  )?.dataset.battleCommand
+  const targetRelation = tile.dataset.target
+
+  if (activeCommand === 'attack' && targetRelation === 'enemy') return DAMAGE_COLOR
+  if (activeCommand === 'recover' && targetRelation === 'friendly') return HEALING_COLOR
+  if (activeCommand === 'guard' && targetRelation === 'friendly') return DEFENSE_COLOR
+  return null
+}
+
+function polishBattlefieldTokens(
+  playerName?: string,
+  combatantAccents: Readonly<Record<string, string>> = {},
+) {
   const desktopPvpScale = window.matchMedia(DESKTOP_PVP_TOKEN_QUERY).matches
   const board = syncBoardScale()
   const largeBoard = board?.width === 13 && board.height === 9
@@ -75,12 +93,19 @@ function polishBattlefieldTokens(playerName?: string) {
     token.style.setProperty('transform', 'translate(-50%, -50%)', 'important')
 
     const name = token.querySelector<HTMLElement>(':scope > strong')
+    const combatantName = name?.textContent?.trim() ?? ''
+    const identityAccent = combatantName ? combatantAccents[combatantName] : undefined
+    const semanticAccent = activeSemanticColor(tile)
+    const tokenAccent = semanticAccent ?? identityAccent
+    if (tokenAccent) token.style.setProperty('border-color', tokenAccent, 'important')
+    else token.style.removeProperty('border-color')
+
     if (name) {
-      const isAiPlayerToken = Boolean(playerName && name.textContent?.trim() === playerName)
+      const isAiPlayerToken = Boolean(playerName && combatantName === playerName)
       name.style.display = 'none'
 
-      // AI only: keep the player's green ownership border, but remove the extra active-turn halo ring.
-      // PvP does not pass playerName here, so its active-token presentation remains unchanged.
+      // AI only: remove the extra active-turn halo ring while preserving the shared identity or
+      // semantic border. PvP does not pass playerName here, so its active-token halo is unchanged.
       if (isAiPlayerToken) token.style.boxShadow = PLAYER_TOKEN_SHADOW
     }
 
@@ -96,25 +121,44 @@ function polishBattlefieldTokens(playerName?: string) {
 
 interface BattleMapTokenPolishProps {
   playerName?: string
+  combatantAccents?: Readonly<Record<string, string>>
 }
 
-export function BattleMapTokenPolish({ playerName }: BattleMapTokenPolishProps = {}) {
+export function BattleMapTokenPolish({
+  playerName,
+  combatantAccents = {},
+}: BattleMapTokenPolishProps = {}) {
   useLayoutEffect(() => {
-    const polish = () => polishBattlefieldTokens(playerName)
+    const polish = () => polishBattlefieldTokens(playerName, combatantAccents)
 
     polish()
     const battlefield = document.querySelector('#battlefield')
     if (!battlefield) return
 
-    const observer = new MutationObserver(polish)
-    observer.observe(battlefield, { childList: true, subtree: true })
+    const battlefieldObserver = new MutationObserver(polish)
+    battlefieldObserver.observe(battlefield, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['data-target'],
+    })
+
+    const commandGroup = document.querySelector('[data-battle-command-group="true"]')
+    const commandObserver = commandGroup ? new MutationObserver(polish) : null
+    commandObserver?.observe(commandGroup!, {
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['data-battle-active'],
+    })
+
     window.addEventListener('resize', polish)
 
     return () => {
-      observer.disconnect()
+      battlefieldObserver.disconnect()
+      commandObserver?.disconnect()
       window.removeEventListener('resize', polish)
     }
-  }, [playerName])
+  }, [combatantAccents, playerName])
 
   return null
 }
