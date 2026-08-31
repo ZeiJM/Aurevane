@@ -1,0 +1,91 @@
+.hook {
+  display: none;
+}
+
+:global([data-pve-surrender-backdrop='true']) {
+  z-index: 18000 !important;
+  padding: 1rem !important;
+  background: rgba(0, 0, 0, 0.76) !important;
+  backdrop-filter: blur(0.5rem) !important;
+}
+
+:global([data-pve-surrender-modal='true']) {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto auto !important;
+  width: min(100%, 30rem) !important;
+  gap: 0 0.4rem !important;
+  padding: 1rem !important;
+  border: 1px solid rgba(201, 80, 80, 0.55) !important;
+  border-radius: var(--av-radius-lg) !important;
+  background: #0c1017 !important;
+  box-shadow: 0 2rem 5rem rgba(0, 0, 0, 0.68) !important;
+}
+
+:global([data-pve-surrender-modal='true'] > span),
+:global([data-pve-surrender-modal='true'] > h2),
+:global([data-pve-surrender-modal='true'] > p) {
+  grid-column: 1 / -1 !important;
+}
+
+:global([data-pve-surrender-modal='true'] > span) {
+  color: #dd9a9a !important;
+  font: 700 0.48rem/1 var(--av-font-mono) !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+}
+
+:global([data-pve-surrender-modal='true'] > h2) {
+  margin: 0.45rem 0 !important;
+  font: 500 1.55rem/1 var(--av-font-display) !important;
+}
+
+:global([data-pve-surrender-modal='true'] > p) {
+  margin: 0 !important;
+  color: var(--av-text-muted) !important;
+  font-size: 0.7rem !important;
+  line-height: 1.48 !important;
+}
+
+:global([data-pve-surrender-modal='true'] > button) {
+  min-height: 2rem !important;
+  margin: 0.8rem 0 0 !important;
+  padding: 0.42rem 0.7rem !important;
+  border-radius: var(--av-radius-sm) !important;
+  font: 750 0.47rem/1 var(--av-font-mono) !important;
+  letter-spacing: 0.035em !important;
+  text-transform: uppercase !important;
+  cursor: pointer !important;
+}
+
+:global([data-pve-surrender-stay='true']) {
+  grid-column: 2 !important;
+  border: 1px solid var(--av-border-strong) !important;
+  color: var(--av-text-muted) !important;
+  background: transparent !important;
+}
+
+:global([data-pve-surrender-confirm='true']) {
+  grid-column: 3 !important;
+  border: 1px solid rgba(201, 80, 80, 0.78) !important;
+  color: #f2b0b0 !important;
+  background: rgba(126, 38, 38, 0.35) !important;
+}
+
+:global([data-pve-surrender-modal='true'] > button:disabled) {
+  opacity: 0.4 !important;
+  cursor: not-allowed !important;
+}
+
+@media (max-width: 520px) {
+  :global([data-pve-surrender-modal='true']) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+
+  :global([data-pve-surrender-stay='true']) {
+    grid-column: 1 !important;
+  }
+
+  :global([data-pve-surrender-confirm='true']) {
+    grid-column: 2 !important;
+  }
+}
