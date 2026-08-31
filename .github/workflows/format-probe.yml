@@ -1,0 +1,26 @@
+name: Format probe
+
+on:
+  push:
+    branches:
+      - "agent/fix-guard-grid-target-blue"
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: |
+          pnpm exec prettier --write apps/web/src/components/battle/battle-map-token-polish.tsx
+          git diff -- apps/web/src/components/battle/battle-map-token-polish.tsx
