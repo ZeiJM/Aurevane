@@ -1,4 +1,7 @@
 .feed {
+  --battle-log-number-column: 2.2rem;
+  --battle-log-number-gap: 0.34rem;
+
   display: block;
   min-width: 0;
   padding: 0;
@@ -114,7 +117,7 @@
 }
 
 .action[data-significance='quiet'] {
-  opacity: 0.72;
+  opacity: 0.74;
 }
 
 .primaryLine,
@@ -124,32 +127,50 @@
 }
 
 .primaryLine {
+  display: grid;
+  grid-template-columns: var(--battle-log-number-column) minmax(0, 1fr);
+  column-gap: var(--battle-log-number-gap);
+  align-items: baseline;
   color: rgba(205, 216, 224, 0.88);
   font-size: 0.62rem;
   font-weight: 460;
   line-height: 1.43;
 }
 
+.primaryContent {
+  min-width: 0;
+}
+
 .eventNumber {
+  justify-self: end;
   color: rgba(169, 188, 201, 0.67);
   font-family: var(--av-font-mono);
   font-size: 0.57rem;
   font-weight: 600;
+  white-space: nowrap;
 }
 
-.primaryLine span[data-role='actor'] {
-  color: rgba(235, 241, 245, 0.96);
+.primaryLine span[data-role='actor'],
+.primaryLine span[data-role='target'],
+.secondaryLine span[data-role='actor'],
+.secondaryLine span[data-role='target'] {
   font-weight: 680;
 }
 
+.primaryLine span[data-role='actor'],
 .primaryLine span[data-role='target'] {
-  color: #b9cad5;
-  font-weight: 620;
+  color: rgba(235, 241, 245, 0.96);
 }
 
+/* Ability/action text stays warm-neutral so it never competes with outcome semantics. */
 .primaryLine span[data-role='action'] {
-  color: #dfbd78;
+  color: #e3d7bb;
   font-weight: 660;
+}
+
+/* Defense is intentionally cyan: distinct from healing green and effect violet. */
+.action[data-kind='defense'] .primaryLine span[data-role='action'] {
+  color: #68bdd8;
 }
 
 .primaryLine span[data-role='outcome'] {
@@ -157,47 +178,88 @@
   font-weight: 680;
 }
 
+/* Red is reserved for direct damage. */
 .primaryLine span[data-role='outcome'][data-tone='damage'],
 .secondaryLine span[data-role='outcome'][data-tone='damage'] {
-  color: #ef877f;
+  color: #ff746c;
 }
 
+/* Green is reserved for HP recovery/healing. */
 .primaryLine span[data-role='outcome'][data-tone='healing'],
-.primaryLine span[data-role='outcome'][data-tone='benefit'],
-.secondaryLine span[data-role='outcome'][data-tone='healing'],
-.secondaryLine span[data-role='outcome'][data-tone='benefit'] {
-  color: #79c99a;
+.secondaryLine span[data-role='outcome'][data-tone='healing'] {
+  color: #66d3a1;
 }
 
-.primaryLine span[data-role='outcome'][data-tone='warning'] {
-  color: #e1b970;
+/* Teal is a non-damage beneficial outcome that is not itself a named clickable effect. */
+.primaryLine span[data-role='outcome'][data-tone='benefit'],
+.secondaryLine span[data-role='outcome'][data-tone='benefit'] {
+  color: #72c6b7;
+}
+
+/* Amber is reserved for misses, timeouts, and harmful warning outcomes. */
+.primaryLine span[data-role='outcome'][data-tone='warning'],
+.secondaryLine span[data-role='outcome'][data-tone='warning'] {
+  color: #f0a45f;
+}
+
+/* Violet always means a named combat effect that can be inspected. */
+.primaryLine span[data-semantic='effect'],
+.secondaryLine span[data-semantic='effect'] {
+  color: #b79ae8;
+  font-weight: 680;
+}
+
+:global([data-battle-effect-trigger='true'][data-semantic='effect']) {
+  border-bottom: 1px dotted rgba(183, 154, 232, 0.5);
+  cursor: pointer;
+  text-underline-offset: 0.12em;
+  touch-action: manipulation;
+}
+
+:global([data-battle-effect-trigger='true'][data-semantic='effect']:hover) {
+  filter: brightness(1.12);
 }
 
 .secondaryLine {
-  margin-top: 0.06rem;
-  color: #78a9cd;
+  margin-top: 0.07rem;
+  margin-left: calc(var(--battle-log-number-column) + var(--battle-log-number-gap));
+  color: rgba(184, 198, 208, 0.78);
   font-size: 0.58rem;
   font-weight: 500;
   line-height: 1.4;
 }
 
 .secondaryLine span[data-role='actor'],
-.secondaryLine span[data-role='target'],
-.secondaryLine span[data-role='action'],
-.secondaryLine span[data-role='outcome'][data-tone='warning'] {
-  color: inherit;
-  font-weight: 560;
+.secondaryLine span[data-role='target'] {
+  color: rgba(226, 235, 241, 0.9);
+}
+
+.secondaryLine span[data-role='action'] {
+  color: #e3d7bb;
+  font-weight: 600;
 }
 
 .action[data-kind='movement'] .primaryLine {
-  color: rgba(176, 193, 204, 0.72);
+  color: rgba(153, 171, 183, 0.76);
 }
 
-.action[data-kind='movement'] .primaryLine span[data-role='actor'] {
-  color: rgba(213, 224, 231, 0.82);
+/* Blue-gray is reserved for status lifecycle and system/turn narration. */
+.action[data-kind='status'] .primaryLine,
+.action[data-kind='turn'] .primaryLine,
+.action[data-kind='system'] .primaryLine {
+  color: #829caf;
+}
+
+.action[data-kind='system'][data-significance='highlight'] .primaryLine {
+  color: #d6c48e;
 }
 
 @media (max-width: 760px) {
+  .feed {
+    --battle-log-number-column: 2.05rem;
+    --battle-log-number-gap: 0.3rem;
+  }
+
   .roundHeader {
     min-height: 1.82rem;
     gap: 0.28rem;

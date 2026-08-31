@@ -10,6 +10,7 @@ import { AiDesktopSameFacingKeyboardAssist } from './ai-desktop-same-facing-keyb
 import { BattleChatEmojiPolish } from './battle-chat-emoji-polish'
 import { BattleCockpitLayoutStabilizer } from './battle-cockpit-layout-stabilizer'
 import { BattleCommandCockpitPolish } from './battle-command-cockpit-polish'
+import { pvpParticipantAccent } from './battle-combatant-colors'
 import { BattleCoordinateToggle } from './battle-coordinate-toggle'
 import { BattleDirectionalAttackAssist } from './battle-directional-attack-assist'
 import { BattleExperience } from './battle-experience'
@@ -53,13 +54,26 @@ export function BattleClientBoundary({
   initialBattle: BattleSessionView
   runtime: BattleRuntime
 }) {
-  const viewModel = useMemo(() => buildBattleViewModel(initialBattle, runtime), [initialBattle, runtime])
+  const viewModel = useMemo(
+    () => buildBattleViewModel(initialBattle, runtime),
+    [initialBattle, runtime],
+  )
   const combatantNames = useMemo(
     () =>
       Object.fromEntries(
         viewModel.participants.map((participant) => [participant.combatantId, participant.name]),
       ),
     [viewModel.participants],
+  )
+  const combatantAccents = useMemo(
+    () =>
+      Object.fromEntries(
+        viewModel.participants.map((participant) => [
+          participant.name,
+          pvpParticipantAccent(participant.teamIndex, participant.seatIndex, viewModel.teamCount),
+        ]),
+      ),
+    [viewModel.participants, viewModel.teamCount],
   )
   const scenario = initialBattle.snapshot.statBridge.combatants.find(
     (profile) => profile.provenance.kind === 'scenario',
@@ -71,7 +85,7 @@ export function BattleClientBoundary({
     runtime.kind === 'pve' && initialBattle.snapshot.tactical.battle.lifecycle === 'active'
 
   return (
-    <BattleRuntimeProvider playerName={runtime.playerName}>
+    <BattleRuntimeProvider playerName={runtime.playerName} combatantAccents={combatantAccents}>
       <BattleExperience
         key={initialBattle.battleVersion}
         initialBattle={initialBattle}

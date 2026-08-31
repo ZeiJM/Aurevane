@@ -14,6 +14,7 @@ import {
   type PresentedBattleLogRound,
 } from './battle-log-presentation'
 import { consolidatePresentedBattleLogRounds } from './battle-log-round-groups'
+import { useBattleCombatantAccents } from './battle-runtime-context'
 import styles from './battle-log-feed.module.css'
 
 interface BattleLogFeedProps {
@@ -27,6 +28,14 @@ interface BattleLogFeedProps {
 export interface BattleLogTranscriptLines {
   primary: readonly BattleLogSegment[]
   secondaryLines: readonly (readonly BattleLogSegment[])[]
+}
+
+type TranscriptLineKind = 'primary' | 'secondary'
+
+interface EffectMetadata {
+  name: string
+  kind: 'Buff' | 'Debuff' | 'Effect'
+  duration: string | null
 }
 
 function expandedRoundKey(
@@ -45,25 +54,76 @@ function timeLabel(value: string): string {
   return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
-function renderSegments(segments: readonly BattleLogSegment[]) {
-  return segments.map((item, index) => (
-    <span
-      data-role={item.role ?? 'text'}
-      data-tone={item.tone}
-      key={`${index}:${item.role ?? 'text'}:${item.text}`}
-    >
-      {item.text}
-    </span>
-  ))
+function combatantAccent(
+  item: BattleLogSegment,
+  combatantAccents: Readonly<Record<string, string>>,
+): string | undefined {
+  if (item.role !== 'actor' && item.role !== 'target') return undefined
+  const label = item.text
+    .trim()
+    .replace(/[’']s$/u, '')
+    .replace(/[,:;.]$/u, '')
+  return combatantAccents[label]
 }
 
-function renderSecondarySegments(segments: readonly BattleLogSegment[]) {
+function effectDuration(segments: readonly BattleLogSegment[]): string | null {
+  const text = segments.map((item) => item.text).join(' ')
+  const explicit = text.match(/·\s*([^·]+)$/u)?.[1]?.trim()
+  if (explicit) return explicit
+  const turns = text.match(/\b(\d+)\s+turns?\b/iu)
+  return turns?.[0] ?? null
+}
+
+function effectMetadata(
+  item: BattleLogSegment,
+  action: PresentedBattleLogAction,
+  lineKind: TranscriptLineKind,
+  segments: readonly BattleLogSegment[],
+): EffectMetadata | null {
+  const role = item.role ?? 'text'
+  const text = item.text.trim()
+  if (!text || /\bmiss(?:ed)?\b/iu.test(text)) return null
+
+  const standaloneStatus =
+    lineKind === 'primary' && action.kind === 'status' && (role === 'action' || role === 'outcome')
+  const consequenceEffect =
+    lineKind === 'secondary' &&
+    role === 'outcome' &&
+    (item.tone === 'benefit' || item.tone === 'warning')
+
+  if (!standaloneStatus && !consequenceEffect) return null
+
+  return {
+    name: text,
+    kind: item.tone === 'warning' ? 'Debuff' : item.tone === 'benefit' ? 'Buff' : 'Effect',
+    duration: effectDuration(segments),
+  }
+}
+
+function renderTranscriptSegments(
+  segments: readonly BattleLogSegment[],
+  action: PresentedBattleLogAction,
+  lineKind: TranscriptLineKind,
+  combatantAccents: Readonly<Record<string, string>>,
+) {
   return segments.map((item, index) => {
-    const text = index === 0 && item.text === '↳ ' ? '- ' : item.text
+    const text = lineKind === 'secondary' && index === 0 && item.text === '↳ ' ? '- ' : item.text
+    const accent = combatantAccent(item, combatantAccents)
+    const effect = effectMetadata(item, action, lineKind, segments)
+
     return (
       <span
         data-role={item.role ?? 'text'}
         data-tone={item.tone}
+        data-semantic={effect ? 'effect' : undefined}
+        data-battle-effect-trigger={effect ? 'true' : undefined}
+        data-battle-effect-name={effect?.name}
+        data-battle-effect-kind={effect?.kind}
+        data-battle-effect-duration={effect?.duration ?? undefined}
+        role={effect ? 'button' : undefined}
+        tabIndex={effect ? 0 : undefined}
+        aria-label={effect ? `Explain ${effect.name}` : undefined}
+        style={accent ? { color: accent } : undefined}
         key={`${index}:${item.role ?? 'text'}:${text}`}
       >
         {text}
@@ -181,6 +241,7 @@ export function BattleLogFeed({
   skillNarrations,
   emptyMessage = 'No committed battle actions yet.',
 }: BattleLogFeedProps) {
+  const combatantAccents = useBattleCombatantAccents()
   const rounds = useMemo(() => {
     const presented = buildBattleLogPresentation(entries, {
       playerName,
@@ -235,12 +296,19 @@ export function BattleLogFeed({
                         <p className={styles.primaryLine}>
                           <span className={styles.eventNumber}>
                             #{actionNumbers.get(action.key)}:
-                          </span>{' '}
-                          {renderSegments(transcript.primary)}
+                          </span>
+                          <span className={styles.primaryContent}>
+                            {renderTranscriptSegments(
+                              transcript.primary,
+                              action,
+                              'primary',
+                              combatantAccents,
+                            )}
+                          </span>
                         </p>
                         {transcript.secondaryLines.map((line, index) => (
                           <p className={styles.secondaryLine} key={`${action.key}:result:${index}`}>
-                            {renderSecondarySegments(line)}
+                            {renderTranscriptSegments(line, action, 'secondary', combatantAccents)}
                           </p>
                         ))}
                       </article>

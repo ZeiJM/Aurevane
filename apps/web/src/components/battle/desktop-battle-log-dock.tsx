@@ -136,21 +136,27 @@ export function DesktopBattleLogDock({
   useEffect(() => {
     if (!desktop || !open) return
 
-    if (eventDriven) {
-      const refreshFromBattleState = (event: Event) => {
-        if (!(event instanceof CustomEvent)) return
-        const next = event.detail as
-          { battleSessionId?: unknown; battleVersion?: unknown } | undefined
-        if (next?.battleSessionId !== battleSessionId) return
-        if (typeof next.battleVersion !== 'number') return
-        setRefreshTick(next.battleVersion)
-      }
-      window.addEventListener('aurevane:pvp-battle-state', refreshFromBattleState)
-      return () => window.removeEventListener('aurevane:pvp-battle-state', refreshFromBattleState)
+    const refreshFromBattleState = (event: Event) => {
+      if (!(event instanceof CustomEvent)) return
+      const next = event.detail as
+        { battleSessionId?: unknown; battleVersion?: unknown } | undefined
+      if (next?.battleSessionId !== battleSessionId) return
+      if (typeof next.battleVersion !== 'number') return
+      setRefreshTick(next.battleVersion)
     }
+    const eventName = eventDriven ? 'aurevane:pvp-battle-state' : 'aurevane:battle-state'
+    window.addEventListener(eventName, refreshFromBattleState)
 
-    const timer = window.setInterval(() => setRefreshTick((value) => value + 1), LOG_REFRESH_MS)
-    return () => window.clearInterval(timer)
+    // PvE keeps a quiet fallback poll in case a browser misses an event, but normal combat updates
+    // now refresh immediately from the authoritative battle-state event instead of waiting 5s.
+    const timer = eventDriven
+      ? null
+      : window.setInterval(() => setRefreshTick((value) => value + 1), LOG_REFRESH_MS)
+
+    return () => {
+      window.removeEventListener(eventName, refreshFromBattleState)
+      if (timer !== null) window.clearInterval(timer)
+    }
   }, [battleSessionId, desktop, eventDriven, open])
 
   if (!desktop) return null
