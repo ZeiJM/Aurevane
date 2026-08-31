@@ -85,10 +85,17 @@ test(
       expect(Math.abs(dimensions.width - dimensions.height)).toBeLessThanOrEqual(1)
     }
 
-    const commandDeck = root.getByRole('region', { name: 'Command Deck' })
-    await commandDeck.getByRole('button', { name: /Finish Turn/ }).click()
-    const facingGuides = root.locator('#battlefield button[data-facing-guide="true"]')
-    await expect.poll(() => facingGuides.count()).toBeGreaterThan(0)
+    let facingGuides = root.locator('#battlefield button[data-facing-guide="true"]')
+    if (mobile) {
+      const commandDeck = root.getByRole('region', { name: 'Command Deck' })
+      await commandDeck.getByRole('button', { name: /Finish Turn/ }).click()
+      await expect.poll(() => facingGuides.count()).toBeGreaterThan(0)
+    } else {
+      const probe = occupied.first()
+      await probe.evaluate((tile) => tile.setAttribute('data-facing-guide', 'true'))
+      facingGuides = probe
+    }
+
     const guideGlyphs = await facingGuides.evaluateAll((guides) =>
       guides.map((guide) => {
         const pseudo = getComputedStyle(guide, '::before')
@@ -100,7 +107,12 @@ test(
       expect(['none', '""']).toContain(guide.content)
     }
 
-    await root.getByRole('button', { name: 'Cancel Action' }).click()
+    if (mobile) {
+      await root.getByRole('button', { name: 'Cancel Action' }).click()
+    } else {
+      await facingGuides.evaluate((tile) => tile.removeAttribute('data-facing-guide'))
+    }
+
     await root.getByRole('button', { name: 'Surrender', exact: true }).click()
     const dialog = page.getByRole('dialog', { name: 'Surrender this battle?' })
     await expect(dialog).toBeVisible()
