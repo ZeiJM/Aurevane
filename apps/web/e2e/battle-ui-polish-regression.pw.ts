@@ -30,6 +30,70 @@ async function expectSurrenderActionsInline(page: Page, dialogName = 'Surrender 
   expect(geometry[0]!.x + geometry[0]!.width).toBeLessThanOrEqual(geometry[1]!.x + 2)
 }
 
+async function expectCanonicalFacingIndicators(root: ReturnType<Page['locator']>) {
+  const indicators = root.locator('[data-battle-facing-indicator="true"]')
+  await expect.poll(() => indicators.count()).toBeGreaterThanOrEqual(2)
+
+  const geometry = await indicators.evaluateAll((elements) =>
+    elements.map((element) => {
+      const indicator = element as HTMLElement
+      const token = indicator.parentElement as HTMLElement
+      const indicatorRect = indicator.getBoundingClientRect()
+      const tokenRect = token.getBoundingClientRect()
+      return {
+        width: indicatorRect.width,
+        height: indicatorRect.height,
+        centerOffset:
+          indicatorRect.left + indicatorRect.width / 2 - (tokenRect.left + tokenRect.width / 2),
+        topOffset: indicatorRect.top - tokenRect.top,
+        path: indicator.querySelector('path')?.getAttribute('d') ?? '',
+      }
+    }),
+  )
+
+  expect(geometry.length).toBeGreaterThanOrEqual(2)
+  const reference = geometry[0]!
+  for (const indicator of geometry) {
+    expect(Math.abs(indicator.width - reference.width)).toBeLessThanOrEqual(0.5)
+    expect(Math.abs(indicator.height - reference.height)).toBeLessThanOrEqual(0.5)
+    expect(Math.abs(indicator.centerOffset)).toBeLessThanOrEqual(0.75)
+    expect(Math.abs(indicator.topOffset - reference.topOffset)).toBeLessThanOrEqual(0.75)
+    expect(indicator.path).toBe(reference.path)
+  }
+
+  const rotations = await indicators.first().evaluate((element) => {
+    const indicator = element as HTMLElement
+    const token = indicator.parentElement as HTMLElement
+    const original = indicator.dataset.facing
+    const directions = ['north', 'east', 'south', 'west'] as const
+    const samples = directions.map((direction) => {
+      indicator.dataset.facing = direction
+      const indicatorRect = indicator.getBoundingClientRect()
+      const tokenRect = token.getBoundingClientRect()
+      return {
+        direction,
+        width: indicatorRect.width,
+        height: indicatorRect.height,
+        centerOffset:
+          indicatorRect.left + indicatorRect.width / 2 - (tokenRect.left + tokenRect.width / 2),
+        topOffset: indicatorRect.top - tokenRect.top,
+        transform: getComputedStyle(indicator).transform,
+      }
+    })
+    if (original) indicator.dataset.facing = original
+    return samples
+  })
+
+  const rotationReference = rotations[0]!
+  expect(new Set(rotations.map((sample) => sample.transform)).size).toBe(4)
+  for (const sample of rotations) {
+    expect(Math.abs(sample.width - rotationReference.width)).toBeLessThanOrEqual(0.5)
+    expect(Math.abs(sample.height - rotationReference.height)).toBeLessThanOrEqual(0.5)
+    expect(Math.abs(sample.centerOffset)).toBeLessThanOrEqual(0.75)
+    expect(Math.abs(sample.topOffset - rotationReference.topOffset)).toBeLessThanOrEqual(0.75)
+  }
+}
+
 async function expectLargeBoardGeometry(root: ReturnType<Page['locator']>) {
   const board = root.locator('#battlefield [data-board-auto-fit]')
   await expect(board).toHaveAttribute('data-board-auto-fit', '13x9')
@@ -60,31 +124,107 @@ async function expectLargeBoardGeometry(root: ReturnType<Page['locator']>) {
       const tile = token.parentElement as HTMLElement
       return token.getBoundingClientRect().width / tile.getBoundingClientRect().width
     })
-    const arrows = tokens
-      .map((token) => token.querySelector<HTMLElement>(':scope > i'))
-      .filter((arrow): arrow is HTMLElement => Boolean(arrow))
-      .map((arrow) => ({
-        fontSize: getComputedStyle(arrow).fontSize,
-        top: getComputedStyle(arrow).top,
-        left: getComputedStyle(arrow).left,
-        transform: getComputedStyle(arrow).transform,
-      }))
+    const indicators = tokens
+      .map((token) =>
+        token.querySelector<HTMLElement>(':scope > [data-battle-facing-indicator="true"]'),
+      )
+      .filter((indicator): indicator is HTMLElement => Boolean(indicator))
+      .map((indicator) => {
+        const rect = indicator.getBoundingClientRect()
+        return {
+          width: rect.width,
+          height: rect.height,
+          top: getComputedStyle(indicator).top,
+          left: getComputedStyle(indicator).left,
+          path: indicator.querySelector('path')?.getAttribute('d') ?? '',
+        }
+      })
     const rect = element.getBoundingClientRect()
     return {
       boardRatio: rect.width / rect.height,
       tileRatios,
       tokenRatios,
-      arrows,
+      indicators,
     }
   })
 
   expect(Math.abs(geometry.boardRatio - 13 / 9)).toBeLessThan(0.03)
   for (const ratio of geometry.tileRatios) expect(Math.abs(ratio - 1)).toBeLessThan(0.04)
   for (const ratio of geometry.tokenRatios) expect(ratio).toBeLessThanOrEqual(0.82)
-  expect(geometry.arrows.length).toBeGreaterThanOrEqual(2)
-  expect(new Set(geometry.arrows.map((arrow) => arrow.fontSize)).size).toBe(1)
-  expect(new Set(geometry.arrows.map((arrow) => arrow.top)).size).toBe(1)
-  expect(new Set(geometry.arrows.map((arrow) => arrow.left)).size).toBe(1)
+  expect(geometry.indicators.length).toBeGreaterThanOrEqual(2)
+  expect(new Set(geometry.indicators.map((indicator) => indicator.width.toFixed(2))).size).toBe(1)
+  expect(new Set(geometry.indicators.map((indicator) => indicator.height.toFixed(2))).size).toBe(1)
+  expect(new Set(geometry.indicators.map((indicator) => indicator.top)).size).toBe(1)
+  expect(new Set(geometry.indicators.map((indicator) => indicator.left)).size).toBe(1)
+  expect(new Set(geometry.indicators.map((indicator) => indicator.path)).size).toBe(1)
+}
+
+async function sampleGuidedBoardAcrossFinishTurn(
+  page: Page,
+  root: ReturnType<Page['locator']>,
+  board: ReturnType<Page['locator']>,
+  mobile: boolean,
+) {
+  const baseline = await board.boundingBox()
+  expect(baseline).not.toBeNull()
+  if (!baseline) return
+
+  await board.evaluate((element) => {
+    const state = window as typeof window & {
+      __guidedBoardSamples?: Array<{ width: number; height: number; fit: string | undefined }>
+      __stopGuidedBoardSamples?: boolean
+    }
+    state.__guidedBoardSamples = []
+    state.__stopGuidedBoardSamples = false
+    const sample = () => {
+      const rect = element.getBoundingClientRect()
+      state.__guidedBoardSamples?.push({
+        width: rect.width,
+        height: rect.height,
+        fit: (element as HTMLElement).dataset.boardAutoFit,
+      })
+      if (!state.__stopGuidedBoardSamples) window.requestAnimationFrame(sample)
+    }
+    sample()
+  })
+
+  const finalTurnResponse = page.waitForResponse(
+    (response) => response.request().method() === 'POST' && response.url().includes('/final-turn'),
+  )
+  const recruitTurnResponse = page.waitForResponse(
+    (response) => response.request().method() === 'POST' && response.url().includes('/recruit-turn'),
+  )
+  const finish = root.getByRole('button', { name: /Finish Turn/ })
+  await expect(finish).toContainText('Choose facing + end')
+
+  if (mobile) {
+    await finish.tap()
+    await page.waitForTimeout(80)
+    await finish.tap()
+  } else {
+    await finish.click()
+    await finish.press('KeyD')
+  }
+
+  await finalTurnResponse
+  await recruitTurnResponse
+  await expect(root).toHaveAttribute('data-local-turn', 'true', { timeout: 15_000 })
+
+  const samples = await page.evaluate(() => {
+    const state = window as typeof window & {
+      __guidedBoardSamples?: Array<{ width: number; height: number; fit: string | undefined }>
+      __stopGuidedBoardSamples?: boolean
+    }
+    state.__stopGuidedBoardSamples = true
+    return state.__guidedBoardSamples ?? []
+  })
+
+  expect(samples.length).toBeGreaterThan(5)
+  for (const sample of samples) {
+    expect(sample.fit).toBe('9x7')
+    expect(Math.abs(sample.width - baseline.width)).toBeLessThanOrEqual(1)
+    expect(Math.abs(sample.height - baseline.height)).toBeLessThanOrEqual(1)
+  }
 }
 
 test('uses medium Guided Fundamentals and keeps PvE surrender/results', async ({
@@ -117,6 +257,14 @@ test('uses medium Guided Fundamentals and keeps PvE surrender/results', async ({
   const coach = page.getByRole('dialog', { name: 'Complete the tactical fundamentals' })
   await expect(coach).toBeVisible()
   await coach.getByRole('button', { name: 'Continue training' }).click()
+
+  await expectCanonicalFacingIndicators(root)
+  await sampleGuidedBoardAcrossFinishTurn(
+    page,
+    root,
+    board,
+    testInfo.project.name === 'mobile-chromium',
+  )
 
   await root.getByRole('button', { name: 'Surrender', exact: true }).click()
   await expectSurrenderActionsInline(page)
@@ -196,6 +344,7 @@ test('keeps large PvP geometry, tokens, surrender, and results', async ({ browse
     const root = host.locator("main[data-unified-battle='true'][data-battle-kind='pvp']")
     await expect(root).toBeVisible()
     await expectLargeBoardGeometry(root)
+    await expectCanonicalFacingIndicators(root)
 
     await root.getByRole('button', { name: 'Surrender', exact: true }).click()
     await expectSurrenderActionsInline(host)
