@@ -7,6 +7,7 @@ import moveStyles from './battle-move-preview-authority.module.css'
 import scaleStyles from './battle-pvp-scale-authority.module.css'
 import parityStyles from './battle-shared-presentation-parity.module.css'
 import styles from './battle-screen-visual-contract.module.css'
+import spectatorFooterStyles from './battle-spectator-footer-shape.module.css'
 import headerStyles from './battle-unified-header-authority.module.css'
 
 function textOf(element: Element | null): string {
@@ -139,7 +140,7 @@ export function BattleScreenVisualContract() {
 
   return (
     <span
-      className={`${styles.hook} ${headerStyles.hook} ${scaleStyles.hook} ${parityStyles.hook} ${guidedBoardStyles.hook} ${moveStyles.hook}`}
+      className={`${styles.hook} ${headerStyles.hook} ${scaleStyles.hook} ${parityStyles.hook} ${guidedBoardStyles.hook} ${moveStyles.hook} ${spectatorFooterStyles.hook}`}
       aria-hidden="true"
     />
   )
