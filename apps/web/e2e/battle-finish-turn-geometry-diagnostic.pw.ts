@@ -48,6 +48,63 @@ test('diagnoses Guided Fundamentals geometry through finish turn', async ({ page
     state.__guidedGeometrySamples = []
     state.__stopGuidedGeometrySamples = false
 
+    const matchingSizingRules = (target: HTMLElement) => {
+      const matches: Array<Record<string, string>> = []
+
+      const walk = (rules: CSSRuleList, source: string) => {
+        for (const rule of Array.from(rules)) {
+          if (rule instanceof CSSStyleRule) {
+            let matched = false
+            try {
+              matched = target.matches(rule.selectorText)
+            } catch {
+              matched = false
+            }
+            if (!matched) continue
+
+            const style = rule.style
+            const width = style.getPropertyValue('width')
+            const height = style.getPropertyValue('height')
+            const maxWidth = style.getPropertyValue('max-width')
+            const maxHeight = style.getPropertyValue('max-height')
+            if (!width && !height && !maxWidth && !maxHeight) continue
+
+            matches.push({
+              source,
+              selector: rule.selectorText,
+              width,
+              height,
+              maxWidth,
+              maxHeight,
+              widthPriority: style.getPropertyPriority('width'),
+              heightPriority: style.getPropertyPriority('height'),
+              maxWidthPriority: style.getPropertyPriority('max-width'),
+              maxHeightPriority: style.getPropertyPriority('max-height'),
+            })
+            continue
+          }
+
+          if ('cssRules' in rule) {
+            try {
+              walk((rule as CSSGroupingRule).cssRules, source)
+            } catch {
+              // Ignore browser-managed grouping rules that cannot be inspected.
+            }
+          }
+        }
+      }
+
+      for (const sheet of Array.from(document.styleSheets)) {
+        try {
+          walk(sheet.cssRules, sheet.href ?? 'inline')
+        } catch {
+          // Same-origin build styles are readable; ignore any browser-injected inaccessible sheet.
+        }
+      }
+
+      return matches
+    }
+
     const sample = () => {
       const boardElement = element as HTMLElement
       const viewport = boardElement.parentElement as HTMLElement
@@ -70,6 +127,7 @@ test('diagnoses Guided Fundamentals geometry through finish turn', async ({ page
       const viewportStyle = getComputedStyle(viewport)
       const battlefieldStyle = getComputedStyle(battlefield)
       const contentStyle = getComputedStyle(content)
+      const busy = rootElement?.getAttribute('aria-busy') ?? ''
 
       state.__guidedGeometrySamples?.push({
         boardWidth: boardRect.width,
@@ -90,11 +148,13 @@ test('diagnoses Guided Fundamentals geometry through finish turn', async ({ page
         boardCssHeight: boardStyle.height,
         boardMaxWidth: boardStyle.maxWidth,
         boardMaxHeight: boardStyle.maxHeight,
+        boardInlineStyle: boardElement.getAttribute('style') ?? '',
+        boardRules: busy ? JSON.stringify(matchingSizingRules(boardElement)) : '',
         viewportCssWidth: viewportStyle.width,
         battlefieldCssWidth: battlefieldStyle.width,
         contentColumns: contentStyle.gridTemplateColumns,
         localTurn: rootElement?.dataset.localTurn ?? '',
-        busy: rootElement?.getAttribute('aria-busy') ?? '',
+        busy,
         actionMode: rootElement?.dataset.battleActionMode ?? '',
         fit: boardElement.dataset.boardAutoFit ?? '',
       })
