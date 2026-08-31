@@ -105,20 +105,24 @@
 }
 
 @media (max-width: 820px) {
-  /* Keep the selected skill and its authoritative preview on one compact row. The title owns only
-     its natural width; the chips begin after a small breathing gap and never wrap below it. */
+  /* Mobile deliberately uses two clean rows now: action title + timer, then the authoritative
+     preview chips. This keeps the first chip aligned directly under the title instead of starting
+     slightly to its right when the chip group wraps. */
   :global(
     main[data-battle-kind='pve']
       section[aria-label='Command Deck']
       [data-pve-pvp-context-parity='true']
   ) {
-    display: flex !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    grid-template-rows: auto auto !important;
     width: 100% !important;
     min-width: 0 !important;
-    gap: 0.36rem !important;
+    column-gap: 0.55rem !important;
+    row-gap: 0.2rem !important;
     align-items: center !important;
-    justify-content: flex-start !important;
-    overflow: hidden !important;
+    justify-content: stretch !important;
+    overflow: visible !important;
   }
 
   :global(
@@ -127,11 +131,11 @@
       [data-pve-pvp-context-parity='true']
       > [data-battle-instruction-title='true']
   ) {
-    grid-column: auto !important;
-    grid-row: auto !important;
-    flex: 0 0 auto !important;
-    overflow: visible !important;
-    text-overflow: clip !important;
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
     white-space: nowrap !important;
   }
 
@@ -141,19 +145,22 @@
       [data-pve-pvp-context-parity='true']
       > [data-battle-target-preview='true']
   ) {
-    grid-column: auto !important;
-    grid-row: auto !important;
-    display: inline-flex !important;
-    width: auto !important;
+    grid-column: 1 / -1 !important;
+    grid-row: 2 !important;
+    display: flex !important;
+    width: 100% !important;
     min-width: 0 !important;
-    max-width: none !important;
-    flex: 1 1 auto !important;
+    max-width: 100% !important;
     gap: 0.18rem !important;
     margin: 0 !important;
+    padding: 0 !important;
     align-items: center !important;
     justify-content: flex-start !important;
-    overflow: hidden !important;
-    flex-wrap: nowrap !important;
+    justify-self: stretch !important;
+    overflow: visible !important;
+    flex-wrap: wrap !important;
+    translate: none !important;
+    transform: none !important;
   }
 
   :global(
@@ -164,6 +171,7 @@
       > [data-battle-preview-chip='true']
   ) {
     min-height: 1.05rem !important;
+    margin-left: 0 !important;
     padding: 0.14rem 0.28rem !important;
     font-size: 0.31rem !important;
     white-space: nowrap !important;
@@ -175,9 +183,12 @@
       [data-pve-pvp-context-parity='true']
       > [data-pve-quality-portal='true']
   ) {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
     order: 3 !important;
     flex: 0 0 auto !important;
-    margin-left: auto !important;
+    justify-self: end !important;
+    margin-left: 0 !important;
   }
 
   :global(

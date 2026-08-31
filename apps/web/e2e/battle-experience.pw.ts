@@ -306,14 +306,14 @@ async function finishCurrentTurn(
   finishButton: ReturnType<import('@playwright/test').Page['locator']>,
   projectName: string,
 ): Promise<void> {
+  await expect(finishButton).toContainText('Choose facing + end')
   if (projectName === 'mobile-chromium') {
-    await expect(finishButton).toContainText('Choose facing + end')
     await finishButton.tap()
     await new Promise((resolve) => setTimeout(resolve, 80))
     await finishButton.tap()
   } else {
-    await expect(finishButton).toContainText('Keep facing + end')
     await finishButton.click()
+    await finishButton.press('KeyD')
   }
 }
 
