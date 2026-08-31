@@ -4,12 +4,13 @@
 
 /*
  * Move communicates where the player can go. Unreachable cells stay visually neutral instead of
- * adding a redundant negative/red state; Attack keeps its own target/illegal presentation.
+ * adding a redundant negative/red state; Attack keeps its own target/illegal presentation. Include
+ * the complete shared battle contract here so older parity rules cannot repaint Move-only cells red.
  */
 :global(
-  main[data-unified-battle='true'][data-battle-action-mode='move']
+  main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind][data-battle-action-mode='move']
     #battlefield
-    button[aria-label^='Tile ']:not([data-reachable]):not([data-path])
+    button[aria-label^='Tile ']:not([data-reachable]):not([data-path]):not(:has([data-active]))
 ) {
   border-color: rgba(188, 201, 211, 0.2) !important;
   box-shadow: none !important;
