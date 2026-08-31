@@ -232,7 +232,7 @@ describe('Battle Log V2 presentation', () => {
     ])
     expect(sentence(actions[1]?.primary ?? [])).toBe("Zei's Lowered Guard fades")
     expect(JSON.stringify(actions)).not.toContain('1000 turns')
-    expect(JSON.stringify(actions)).not.toMatch(/miss(?:es)?/iu)
+    expect(JSON.stringify(actions)).not.toMatch(/\bmiss(?:es)?\b/iu)
   })
 
   it('renders status refreshes as lifecycle changes rather than duplicate applications', () => {
@@ -310,6 +310,111 @@ describe('Battle Log V2 presentation', () => {
       { combatantNames: names, skillNarrations },
     )[0]?.actions[0]
     expect(sentence(miss?.primary ?? [])).toBe("Zei's sweeping cut slips past Storm — Miss")
+  })
+
+  it('gives named skills a concise deterministic description when authored narration is absent', () => {
+    const action = buildBattleLogPresentation(
+      attackEntries({ actionId: 'skill.ember-lance', actionLabel: 'Ember Lance' }),
+      { combatantNames: names },
+    )[0]?.actions[0]
+
+    expect(sentence(action?.primary ?? [])).toBe(
+      'Zei sends Ember Lance blazing into Storm — 18 damage',
+    )
+    expect(action?.details.map((detail) => detail.label)).toEqual([
+      '82 HP remaining',
+      '74% hit chance',
+    ])
+  })
+
+  it('keeps movement readable while leaving coordinates and cost in Details', () => {
+    const action = buildBattleLogPresentation(
+      [
+        entry({
+          eventType: 'combatant_moved',
+          message: 'Wayfarer moved from 1, 1 to 2, 1 for 25 Movement.',
+          messageTemplate: '{actor} moved from 1, 1 to 2, 1.',
+          templateValues: {},
+          actionId: null,
+          actionLabel: null,
+          kind: 'movement',
+          headline: 'Move',
+          facts: [
+            { label: '1, 1 → 2, 1', tone: 'neutral' },
+            { label: '25 Move spent', tone: 'neutral' },
+          ],
+        }),
+      ],
+      { combatantNames: names },
+    )[0]?.actions[0]
+
+    expect(sentence(action?.primary ?? [])).toBe('Zei moves')
+    expect(action?.details.map((detail) => detail.label)).toEqual(['1, 1 → 2, 1', '25 Move spent'])
+  })
+
+  it('describes a defensive action once and keeps its status as the immediate consequence', () => {
+    const action = buildBattleLogPresentation(
+      [
+        entry({
+          eventIndex: 0,
+          actionId: 'basic.guard',
+          actionLabel: 'Guard',
+          templateValues: { action: 'Guard' },
+          kind: 'defense',
+          headline: 'Guard',
+        }),
+        entry({
+          eventIndex: 1,
+          eventType: 'status_applied',
+          message: 'Wayfarer gained Guarded.',
+          messageTemplate: '{target} gained {status}.',
+          templateValues: { status: 'Guarded', statusChange: 'APPLIED' },
+          actorCombatantId: null,
+          targetCombatantId: 'character:zei',
+          actionId: null,
+          actionLabel: null,
+          kind: 'defense',
+          headline: 'Guarded',
+          tone: 'benefit',
+          facts: [
+            { label: 'Guarded', tone: 'benefit' },
+            { label: '1 turn', tone: 'neutral' },
+          ],
+        }),
+      ],
+      { combatantNames: names },
+    )[0]?.actions[0]
+
+    expect(sentence(action?.primary ?? [])).toBe('Zei braces with Guard')
+    expect(sentence(action?.secondary ?? [])).toBe('↳ Zei gains Guarded · 1 turn')
+  })
+
+  it('keeps a finishing action visible when battle completion shares its committed version', () => {
+    const actions =
+      buildBattleLogPresentation(
+        [
+          ...attackEntries(),
+          entry({
+            eventIndex: 3,
+            eventType: 'battle_completed',
+            message: 'Battle completed.',
+            messageTemplate: 'Battle completed.',
+            templateValues: {},
+            actorCombatantId: null,
+            targetCombatantId: null,
+            actionId: null,
+            actionLabel: null,
+            kind: 'system',
+            headline: 'Battle Complete',
+            tone: 'benefit',
+            facts: [{ label: 'Complete', tone: 'benefit' }],
+          }),
+        ],
+        { combatantNames: names },
+      )[0]?.actions ?? []
+
+    expect(sentence(actions[0]?.primary ?? [])).toBe('Battle complete')
+    expect(sentence(actions[1]?.primary ?? [])).toBe('Zei strikes Storm — 18 damage')
   })
 
   it('falls back safely when authored narration is malformed', () => {
