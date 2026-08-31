@@ -56,6 +56,8 @@ test('diagnoses Guided Fundamentals geometry through finish turn', async ({ page
       const deck = content.querySelector<HTMLElement>('section[aria-label="Command Deck"]')
       const context = deck?.firstElementChild as HTMLElement | null
       const rootElement = content.closest<HTMLElement>('main')
+      const footer = rootElement?.querySelector<HTMLElement>(':scope > footer')
+      const rails = content.querySelectorAll<HTMLElement>('[data-unified-combatant-rail="true"]')
       const boardRect = boardElement.getBoundingClientRect()
       const viewportRect = viewport.getBoundingClientRect()
       const battlefieldRect = battlefield.getBoundingClientRect()
@@ -63,6 +65,11 @@ test('diagnoses Guided Fundamentals geometry through finish turn', async ({ page
       const deckRect = deck?.getBoundingClientRect()
       const contextRect = context?.getBoundingClientRect()
       const rootRect = rootElement?.getBoundingClientRect()
+      const footerRect = footer?.getBoundingClientRect()
+      const boardStyle = getComputedStyle(boardElement)
+      const viewportStyle = getComputedStyle(viewport)
+      const battlefieldStyle = getComputedStyle(battlefield)
+      const contentStyle = getComputedStyle(content)
 
       state.__guidedGeometrySamples?.push({
         boardWidth: boardRect.width,
@@ -76,6 +83,19 @@ test('diagnoses Guided Fundamentals geometry through finish turn', async ({ page
         deckHeight: deckRect?.height ?? 0,
         contextHeight: contextRect?.height ?? 0,
         rootHeight: rootRect?.height ?? 0,
+        footerHeight: footerRect?.height ?? 0,
+        leftRailWidth: rails[0]?.getBoundingClientRect().width ?? 0,
+        rightRailWidth: rails[1]?.getBoundingClientRect().width ?? 0,
+        boardCssWidth: boardStyle.width,
+        boardCssHeight: boardStyle.height,
+        boardMaxWidth: boardStyle.maxWidth,
+        boardMaxHeight: boardStyle.maxHeight,
+        viewportCssWidth: viewportStyle.width,
+        battlefieldCssWidth: battlefieldStyle.width,
+        contentColumns: contentStyle.gridTemplateColumns,
+        localTurn: rootElement?.dataset.localTurn ?? '',
+        busy: rootElement?.getAttribute('aria-busy') ?? '',
+        actionMode: rootElement?.dataset.battleActionMode ?? '',
         fit: boardElement.dataset.boardAutoFit ?? '',
       })
       if (!state.__stopGuidedGeometrySamples) window.requestAnimationFrame(sample)
@@ -109,12 +129,18 @@ test('diagnoses Guided Fundamentals geometry through finish turn', async ({ page
   const numbers = [
     'boardWidth',
     'boardHeight',
+    'viewportWidth',
     'viewportHeight',
+    'battlefieldWidth',
     'battlefieldHeight',
+    'contentWidth',
     'contentHeight',
     'deckHeight',
     'contextHeight',
     'rootHeight',
+    'footerHeight',
+    'leftRailWidth',
+    'rightRailWidth',
   ] as const
   const summary = Object.fromEntries(
     numbers.map((key) => {
@@ -122,6 +148,15 @@ test('diagnoses Guided Fundamentals geometry through finish turn', async ({ page
       return [key, { min: Math.min(...values), max: Math.max(...values) }]
     }),
   )
+  const states = Array.from(
+    new Map(
+      samples.map((sample) => [
+        [sample.boardWidth, sample.boardHeight, sample.localTurn, sample.busy].join(':'),
+        sample,
+      ]),
+    ).values(),
+  )
   console.log('guided-finish-geometry', JSON.stringify(summary))
+  console.log('guided-finish-states', JSON.stringify(states))
   expect(samples.length).toBeGreaterThan(5)
 })
