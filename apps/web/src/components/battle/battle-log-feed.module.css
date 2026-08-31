@@ -1,6 +1,6 @@
 .feed {
-  --battle-log-number-column: 2.2rem;
-  --battle-log-number-gap: 0.34rem;
+  --battle-log-number-column: 1.9rem;
+  --battle-log-number-gap: 0.28rem;
 
   display: block;
   min-width: 0;
@@ -116,10 +116,6 @@
   outline-offset: 2px;
 }
 
-.action[data-significance='quiet'] {
-  opacity: 0.74;
-}
-
 .primaryLine,
 .secondaryLine {
   margin: 0;
@@ -142,7 +138,7 @@
 }
 
 .eventNumber {
-  justify-self: end;
+  justify-self: start;
   color: rgba(169, 188, 201, 0.67);
   font-family: var(--av-font-mono);
   font-size: 0.57rem;
@@ -159,58 +155,59 @@
 
 .primaryLine span[data-role='actor'],
 .primaryLine span[data-role='target'] {
-  color: rgba(235, 241, 245, 0.96);
+  color: rgba(229, 236, 241, 0.94);
 }
 
-/* Ability/action text stays warm-neutral so it never competes with outcome semantics. */
-.primaryLine span[data-role='action'] {
-  color: #e3d7bb;
-  font-weight: 660;
+/* Most action prose stays neutral. Color is reserved for identity and meaning, not decoration. */
+.primaryLine span[data-role='action'],
+.secondaryLine span[data-role='action'] {
+  color: #dfe6ea;
+  font-weight: 640;
 }
 
-/* Defense is intentionally cyan: distinct from healing green and effect violet. */
+/* Gold means an explicit defensive action such as Guard. */
 .action[data-kind='defense'] .primaryLine span[data-role='action'] {
-  color: #68bdd8;
+  color: #e6c16b;
 }
 
 .primaryLine span[data-role='outcome'] {
-  color: rgba(235, 241, 245, 0.96);
+  color: rgba(232, 238, 242, 0.94);
   font-weight: 680;
 }
 
-/* Red is reserved for direct damage. */
+/* Red is used only for direct HP damage. */
 .primaryLine span[data-role='outcome'][data-tone='damage'],
 .secondaryLine span[data-role='outcome'][data-tone='damage'] {
-  color: #ff746c;
+  color: #ff766f;
 }
 
-/* Green is reserved for HP recovery/healing. */
+/* Green is used only for HP recovery/healing. */
 .primaryLine span[data-role='outcome'][data-tone='healing'],
 .secondaryLine span[data-role='outcome'][data-tone='healing'] {
-  color: #66d3a1;
+  color: #59d39b;
 }
 
-/* Teal is a non-damage beneficial outcome that is not itself a named clickable effect. */
+/* Generic benefits stay neutral; named effects receive the dedicated effect color below. */
 .primaryLine span[data-role='outcome'][data-tone='benefit'],
 .secondaryLine span[data-role='outcome'][data-tone='benefit'] {
-  color: #72c6b7;
+  color: #c8d2d8;
 }
 
-/* Amber is reserved for misses, timeouts, and harmful warning outcomes. */
+/* Orange means a warning/result failure such as Miss or a timeout consequence. */
 .primaryLine span[data-role='outcome'][data-tone='warning'],
 .secondaryLine span[data-role='outcome'][data-tone='warning'] {
-  color: #f0a45f;
+  color: #e8a15f;
 }
 
-/* Violet always means a named combat effect that can be inspected. */
+/* Cyan always means a named combat effect. The same effect keeps this color when applied or fading. */
 .primaryLine span[data-semantic='effect'],
 .secondaryLine span[data-semantic='effect'] {
-  color: #b79ae8;
+  color: #72c7e8;
   font-weight: 680;
 }
 
 :global([data-battle-effect-trigger='true'][data-semantic='effect']) {
-  border-bottom: 1px dotted rgba(183, 154, 232, 0.5);
+  border-bottom: 1px dotted rgba(114, 199, 232, 0.5);
   cursor: pointer;
   text-underline-offset: 0.12em;
   touch-action: manipulation;
@@ -234,30 +231,25 @@
   color: rgba(226, 235, 241, 0.9);
 }
 
-.secondaryLine span[data-role='action'] {
-  color: #e3d7bb;
-  font-weight: 600;
-}
-
 .action[data-kind='movement'] .primaryLine {
   color: rgba(153, 171, 183, 0.76);
 }
 
-/* Blue-gray is reserved for status lifecycle and system/turn narration. */
+/* Status lifecycle and system narration are deliberately neutral so they never mimic an outcome. */
 .action[data-kind='status'] .primaryLine,
 .action[data-kind='turn'] .primaryLine,
 .action[data-kind='system'] .primaryLine {
-  color: #829caf;
+  color: rgba(162, 177, 188, 0.78);
 }
 
 .action[data-kind='system'][data-significance='highlight'] .primaryLine {
-  color: #d6c48e;
+  color: #d4c79d;
 }
 
 @media (max-width: 760px) {
   .feed {
-    --battle-log-number-column: 2.05rem;
-    --battle-log-number-gap: 0.3rem;
+    --battle-log-number-column: 1.78rem;
+    --battle-log-number-gap: 0.25rem;
   }
 
   .roundHeader {
