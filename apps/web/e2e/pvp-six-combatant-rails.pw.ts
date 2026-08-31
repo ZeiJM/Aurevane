@@ -69,7 +69,7 @@ test('fits three square portrait cards cleanly in each desktop PvP rail', async 
     await hostDialog.getByRole('button', { name: 'Mark Ready' }).click()
     await expect(host).toHaveURL(/\/game\/battle\/[0-9a-f-]+$/i, { timeout: 20_000 })
 
-    const rails = host.locator("aside[data-six-combatant-rail='true']")
+    const rails = host.locator("aside[data-unified-combatant-rail='true']")
     await expect(rails).toHaveCount(2)
     await expect(rails.nth(0).locator('article')).toHaveCount(1)
     await expect(rails.nth(1).locator('article')).toHaveCount(1)
