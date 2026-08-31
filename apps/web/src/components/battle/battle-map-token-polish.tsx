@@ -114,13 +114,14 @@ function polishBattlefieldTokens(playerName?: string) {
     const token = directToken(tile)
     if (!token) continue
 
-    // Keep every badge comfortably inside its square grid cell at both desktop and phone scales.
+    // Keep every badge comfortably inside its grid cell and force a true circle even while a
+    // responsive board is settling from a temporarily non-square tile geometry.
     token.style.setProperty('position', 'absolute', 'important')
     token.style.setProperty('top', '50%', 'important')
     token.style.setProperty('left', '50%', 'important')
     token.style.setProperty('z-index', '4', 'important')
     token.style.setProperty('width', tokenSize, 'important')
-    token.style.setProperty('height', tokenSize, 'important')
+    token.style.setProperty('height', 'auto', 'important')
     token.style.setProperty('aspect-ratio', '1 / 1', 'important')
     token.style.setProperty('transform', 'translate(-50%, -50%)', 'important')
 
