@@ -6,8 +6,8 @@ import {
   buildBattleLogActionNumbers,
   buildBattleLogTranscriptLines,
   countBattleLogActions,
-  summarizeConsecutiveBattleLogMovement,
 } from './battle-log-feed'
+import { summarizeConsecutiveBattleLogMovement } from './battle-log-movement-summary'
 import type {
   BattleLogSegment,
   PresentedBattleLogAction,
