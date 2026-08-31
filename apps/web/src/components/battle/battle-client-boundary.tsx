@@ -28,6 +28,7 @@ import { BattleRecruitRecoveryAssist } from './battle-recruit-recovery-assist'
 import { buildBattleViewModel, type BattleRuntime } from './battle-runtime'
 import { BattleRuntimeProvider } from './battle-runtime-context'
 import { BattleScreenVisualContract } from './battle-screen-visual-contract'
+import { BattleSelfActionQuickCommitAssist } from './battle-self-action-quick-commit-assist'
 import { BattleStabilizationPolish } from './battle-stabilization-polish'
 import { BattleStatusEffectAssist } from './battle-status-effect-assist'
 import { BattleStickyActionAssist } from './battle-sticky-action-assist'
@@ -80,6 +81,7 @@ export function BattleClientBoundary({
       <BattleTerrainPresentationPolish />
       <BattleCoordinateToggle />
       <BattleDirectionalAttackAssist playerName={runtime.playerName} />
+      <BattleSelfActionQuickCommitAssist />
       <BattleMapTokenPolish playerName={runtime.kind === 'pve' ? runtime.playerName : undefined} />
       <BattleMobileTokenMeters initialBattle={initialBattle} combatantNames={combatantNames} />
       <BattlePresentationPolish
