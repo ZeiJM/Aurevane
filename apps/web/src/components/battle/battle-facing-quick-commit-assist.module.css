@@ -84,3 +84,10 @@
     content: '←';
   }
 }
+
+/* Direction is communicated by which adjacent yellow tile is chosen; do not duplicate it with a
+   glyph inside the tile. Keep this final and viewport-neutral so desktop and mobile agree. */
+:global(#battlefield button[data-facing-guide='true'])::before {
+  display: none !important;
+  content: '' !important;
+}
