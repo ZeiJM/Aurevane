@@ -36,11 +36,6 @@
   transform: translateX(-50%) rotate(270deg);
 }
 
-.legacyGlyph {
-  opacity: 0 !important;
-  pointer-events: none !important;
-}
-
 @media (max-width: 820px) {
   .indicator {
     top: -0.58rem;
