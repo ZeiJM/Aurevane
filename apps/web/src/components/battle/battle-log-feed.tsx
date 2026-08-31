@@ -85,9 +85,7 @@ function effectMetadata(
   if (!text || /\bmiss(?:ed)?\b/iu.test(text)) return null
 
   const standaloneStatus =
-    lineKind === 'primary' &&
-    action.kind === 'status' &&
-    (role === 'action' || role === 'outcome')
+    lineKind === 'primary' && action.kind === 'status' && (role === 'action' || role === 'outcome')
   const consequenceEffect =
     lineKind === 'secondary' &&
     role === 'outcome' &&

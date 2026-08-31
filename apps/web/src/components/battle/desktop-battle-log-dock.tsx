@@ -138,7 +138,8 @@ export function DesktopBattleLogDock({
 
     const refreshFromBattleState = (event: Event) => {
       if (!(event instanceof CustomEvent)) return
-      const next = event.detail as { battleSessionId?: unknown; battleVersion?: unknown } | undefined
+      const next = event.detail as
+        { battleSessionId?: unknown; battleVersion?: unknown } | undefined
       if (next?.battleSessionId !== battleSessionId) return
       if (typeof next.battleVersion !== 'number') return
       setRefreshTick(next.battleVersion)

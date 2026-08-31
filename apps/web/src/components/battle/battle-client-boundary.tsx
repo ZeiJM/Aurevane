@@ -53,7 +53,10 @@ export function BattleClientBoundary({
   initialBattle: BattleSessionView
   runtime: BattleRuntime
 }) {
-  const viewModel = useMemo(() => buildBattleViewModel(initialBattle, runtime), [initialBattle, runtime])
+  const viewModel = useMemo(
+    () => buildBattleViewModel(initialBattle, runtime),
+    [initialBattle, runtime],
+  )
   const combatantNames = useMemo(
     () =>
       Object.fromEntries(
