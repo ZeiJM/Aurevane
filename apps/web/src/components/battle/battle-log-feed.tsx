@@ -229,7 +229,9 @@ export function buildBattleLogActionNumbers(
   return new Map(chronological.map((action, index) => [action.key, index + 1]))
 }
 
-function movementActorsByVersion(entries: BattleLogView['entries']): ReadonlyMap<number, string> {
+function movementActorsByVersion(
+  entries: BattleLogView['entries'],
+): ReadonlyMap<number, string> {
   const actors = new Map<number, string>()
   for (const entry of entries) {
     if (entry.eventType !== 'combatant_moved' || !entry.actorCombatantId) continue
@@ -253,7 +255,8 @@ export function summarizeConsecutiveBattleLogMovement(
 
     for (const action of round.actions) {
       const previous = summarized.at(-1)
-      const actor = action.kind === 'movement' ? movementActors.get(action.battleVersion) : undefined
+      const actor =
+        action.kind === 'movement' ? movementActors.get(action.battleVersion) : undefined
       const previousActor =
         previous?.kind === 'movement' ? movementActors.get(previous.battleVersion) : undefined
       const sameContinuousMove =
@@ -271,7 +274,10 @@ export function summarizeConsecutiveBattleLogMovement(
 }
 
 export function countBattleLogActions(entries: BattleLogView['entries']): number {
-  const rounds = summarizeConsecutiveBattleLogMovement(buildBattleLogPresentation(entries), entries)
+  const rounds = summarizeConsecutiveBattleLogMovement(
+    buildBattleLogPresentation(entries),
+    entries,
+  )
   return rounds.reduce((total, round) => total + round.actions.length, 0)
 }
 
