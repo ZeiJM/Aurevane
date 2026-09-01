@@ -18,26 +18,43 @@ import {
   type GridPosition,
 } from './board'
 import {
+  PV1F_BASIC_ATTACK_COST,
+  PV1F_BASIC_ATTACK_ID,
+  PV1F_GUARD_ACTION_ID,
+  PV1F_GUARD_COST,
+  PV1F_MOVEMENT_COST_PER_TERRAIN_POINT,
+  PV1F_MP_RECOVER_ACTION_ID,
+  PV1F_MP_RECOVER_COST,
+  PV1F_RECOVER_ACTION_ID,
+  PV1F_RECOVER_COST,
+  pv1fFlatActionCost,
+} from './pv1f-skills'
+import {
   executeStatDrivenAttack,
   reattachStatDrivenCombatBridge,
   validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
 } from './stat-driven-combat'
 
+export {
+  PV1F_BASIC_ATTACK_COST,
+  PV1F_BASIC_ATTACK_ID,
+  PV1F_GUARD_ACTION_ID,
+  PV1F_GUARD_COST,
+  PV1F_MOVEMENT_COST_PER_TERRAIN_POINT,
+  PV1F_MP_RECOVER_ACTION_ID,
+  PV1F_MP_RECOVER_COST,
+  PV1F_RECOVER_ACTION_ID,
+  PV1F_RECOVER_COST,
+} from './pv1f-skills'
+
 export const PV1F_ACTION_ECONOMY_MAXIMUM = 100 as const
-export const PV1F_MOVEMENT_COST_PER_TERRAIN_POINT = 25 as const
-export const PV1F_BASIC_ATTACK_COST = 30 as const
-export const PV1F_GUARD_COST = 30 as const
-export const PV1F_RECOVER_COST = 50 as const
 export const PV1F_RECOVER_PERCENT = 10 as const
+export const PV1F_MP_RECOVER_PERCENT = 10 as const
 
 export const PV1F_ACTION_ECONOMY_RESOURCE_KEY = 'pv1f.action-economy' as const
 export const PV1F_ACTION_ECONOMY_TURN_KEY = 'pv1f.action-economy-turn' as const
 export const PV1F_BASIC_ATTACK_DAMAGE_KEY = 'pv1f.basic-attack-damage' as const
-
-export const PV1F_BASIC_ATTACK_ID = 'basic.attack.unarmed.basic' as const
-export const PV1F_GUARD_ACTION_ID = 'basic.guard' as const
-export const PV1F_RECOVER_ACTION_ID = 'basic.recover' as const
 
 export const PV1F_GUARDED_STATUS: CombatStatusDefinition = {
   id: 'guarded',
@@ -128,7 +145,7 @@ export function createPv1fRecoverAction(maxHp: number): CombatActionDefinition {
     id: PV1F_RECOVER_ACTION_ID,
     version: 1,
     sourceType: 'basic-action',
-    tags: ['basic', 'recovery'],
+    tags: ['basic', 'recovery', 'heal'],
     target: {
       kind: 'self',
       teamPolicy: 'self',
@@ -142,6 +159,32 @@ export function createPv1fRecoverAction(maxHp: number): CombatActionDefinition {
     cost: { spendsAction: true, mp: 0 },
     requirements: [{ kind: 'actor-hp-at-most', basisPoints: 9_999 }],
     effects: [{ type: 'healing', recipient: 'actor', amount }],
+  }
+}
+
+export function createPv1fMpRecoveryAction(maxMp: number): CombatActionDefinition {
+  if (!Number.isSafeInteger(maxMp) || maxMp < 1) {
+    throw new RangeError('Maximum MP must be a positive safe integer.')
+  }
+  const amount = Math.max(1, Math.round(maxMp * (PV1F_MP_RECOVER_PERCENT / 100)))
+  return {
+    id: PV1F_MP_RECOVER_ACTION_ID,
+    version: 1,
+    sourceType: 'basic-action',
+    tags: ['basic', 'recovery', 'heal', 'mp'],
+    target: {
+      kind: 'self',
+      teamPolicy: 'self',
+      shape: { kind: 'single' },
+      minimumRange: 0,
+      maximumRange: 0,
+      requiresLineOfSight: false,
+      maximumElevationDifference: null,
+      friendlyFire: 'allies-only',
+    },
+    cost: { spendsAction: true, mp: 0 },
+    requirements: [],
+    effects: [{ type: 'resource-change', recipient: 'actor', resource: 'mp', delta: amount }],
   }
 }
 
@@ -236,9 +279,8 @@ export function preparePv1fTurnEconomy(
 }
 
 export function pv1fActionCost(actionId: string): number {
-  if (actionId === PV1F_BASIC_ATTACK_ID) return PV1F_BASIC_ATTACK_COST
-  if (actionId === PV1F_GUARD_ACTION_ID) return PV1F_GUARD_COST
-  if (actionId === PV1F_RECOVER_ACTION_ID) return PV1F_RECOVER_COST
+  const cost = pv1fFlatActionCost(actionId)
+  if (cost !== null) return cost
   throw new Error(`No PV-1F Action Economy cost is registered for ${actionId}.`)
 }
 
@@ -433,6 +475,7 @@ export function resolvePv1fActionDefinition(
   }
   if (actionId === PV1F_GUARD_ACTION_ID) return PV1F_GUARD_ACTION
   if (actionId === PV1F_RECOVER_ACTION_ID) return createPv1fRecoverAction(actor.maxHp)
+  if (actionId === PV1F_MP_RECOVER_ACTION_ID) return createPv1fMpRecoveryAction(actor.maxMp)
   throw new Error(`Unsupported PV-1F action ${actionId}.`)
 }
 
