@@ -114,12 +114,14 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   for (const geometry of artworkGeometries) {
     expect(geometry, 'Every command card should expose artwork geometry.').not.toBeNull()
     if (!geometry) continue
-    expect(geometry.imageWidth, `${geometry.slot} artwork should fit inside its frame.`).toBeLessThan(
-      geometry.artworkWidth,
-    )
-    expect(geometry.imageHeight, `${geometry.slot} artwork should fit inside its frame.`).toBeLessThan(
-      geometry.artworkHeight,
-    )
+    expect(
+      geometry.imageWidth,
+      `${geometry.slot} artwork should fit inside its frame.`,
+    ).toBeLessThan(geometry.artworkWidth)
+    expect(
+      geometry.imageHeight,
+      `${geometry.slot} artwork should fit inside its frame.`,
+    ).toBeLessThan(geometry.artworkHeight)
     expect(geometry.imageWidth).toBeGreaterThan(geometry.artworkWidth - 6)
     expect(geometry.imageHeight).toBeGreaterThan(geometry.artworkHeight - 6)
     expectNear(geometry.imageCenterX, geometry.artworkCenterX)
