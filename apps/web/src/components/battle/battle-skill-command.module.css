@@ -290,6 +290,14 @@
   text-align: center;
 }
 
+@media (min-width: 821px) and (min-height: 721px) {
+  .shell,
+  .action {
+    height: 100%;
+    min-height: 6rem !important;
+  }
+}
+
 @media (max-height: 720px) and (min-width: 881px) {
   .shell,
   .action {
