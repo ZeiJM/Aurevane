@@ -106,13 +106,19 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   }
 
   const inspectGeometry = await inspectCard.evaluate((card) => {
-    const artwork = card.querySelector<HTMLElement>(':scope > span')
+    const action = card.querySelector<HTMLElement>('button[data-battle-command="inspect"]')
+    const artwork = card.querySelector<HTMLElement>('[data-battle-command-artwork="static"]')
     const image = artwork?.querySelector<HTMLImageElement>('img')
-    if (!artwork || !image) return null
+    if (!action || !artwork || !image) return null
+    const actionRect = action.getBoundingClientRect()
     const artworkRect = artwork.getBoundingClientRect()
     const imageRect = image.getBoundingClientRect()
     return {
       pointerEvents: getComputedStyle(artwork).pointerEvents,
+      actionLeft: actionRect.left,
+      actionTop: actionRect.top,
+      actionRight: actionRect.right,
+      actionBottom: actionRect.bottom,
       artworkCenterX: (artworkRect.left + artworkRect.right) / 2,
       artworkCenterY: (artworkRect.top + artworkRect.bottom) / 2,
       imageCenterX: (imageRect.left + imageRect.right) / 2,
@@ -125,11 +131,17 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   expect(inspectGeometry.pointerEvents).toBe('none')
   expectNear(inspectGeometry.imageCenterX, inspectGeometry.artworkCenterX)
   expectNear(inspectGeometry.imageCenterY, inspectGeometry.artworkCenterY)
+  expect(inspectGeometry.artworkCenterX).toBeGreaterThan(inspectGeometry.actionLeft)
+  expect(inspectGeometry.artworkCenterX).toBeLessThan(inspectGeometry.actionRight)
+  expect(inspectGeometry.artworkCenterY).toBeGreaterThan(inspectGeometry.actionTop)
+  expect(inspectGeometry.artworkCenterY).toBeLessThan(inspectGeometry.actionBottom)
 
-  const inspectBox = await inspectCard.boundingBox()
-  expect(inspectBox).not.toBeNull()
-  if (!inspectBox) return
-  await inspectCard.click({ position: { x: inspectBox.width - 12, y: inspectBox.height / 2 } })
+  await inspectAction.click({
+    position: {
+      x: inspectGeometry.artworkCenterX - inspectGeometry.actionLeft,
+      y: inspectGeometry.artworkCenterY - inspectGeometry.actionTop,
+    },
+  })
   await expect(inspectAction).toHaveAttribute('data-battle-active', 'true')
 
   const initialImage = healArtwork.locator('img')
