@@ -50,7 +50,8 @@ export function formatBattleLogForClipboard(
   const rounds = summarizeConsecutiveBattleLogMovement(consolidated, entries)
   const actionNumbers = buildBattleLogActionNumbers(rounds)
   const chronologicalRounds = [...rounds].sort(
-    (left, right) => firstActionNumber(left, actionNumbers) - firstActionNumber(right, actionNumbers),
+    (left, right) =>
+      firstActionNumber(left, actionNumbers) - firstActionNumber(right, actionNumbers),
   )
 
   const blocks = chronologicalRounds.map((round) => {
