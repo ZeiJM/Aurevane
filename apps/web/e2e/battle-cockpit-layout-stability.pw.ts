@@ -21,7 +21,7 @@ function uniqueIdentity(prefix: string): { email: string; characterName: string 
 
 async function expectStableFullDesktopCockpit(page: Page) {
   const deck = page.locator('section[aria-label="Command Deck"]')
-  const commands = deck.locator(':scope > div:nth-child(2) > button')
+  const commands = deck.locator('[data-command-card] > button[data-battle-command]')
   const facingPad = deck.locator('[data-unified-facing-pad="true"]')
 
   await expect(deck).toBeVisible()
