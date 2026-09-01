@@ -21,23 +21,23 @@ function uniqueIdentity(prefix: string): { email: string; characterName: string 
 
 async function expectStableFullDesktopCockpit(page: Page) {
   const deck = page.locator('section[aria-label="Command Deck"]')
-  const commands = deck.locator('[data-command-card] > button[data-battle-command]')
+  const commands = deck.locator('[data-command-card]')
   const facingPad = deck.locator('[data-unified-facing-pad="true"]')
 
   await expect(deck).toBeVisible()
   await expect(commands).toHaveCount(6)
   await expect(facingPad).toBeHidden()
 
-  const before = await commands.evaluateAll((buttons) =>
-    buttons.map((button) => button.getBoundingClientRect().height),
+  const before = await commands.evaluateAll((cards) =>
+    cards.map((card) => card.getBoundingClientRect().height),
   )
   expect(Math.min(...before)).toBeGreaterThanOrEqual(95)
 
   await deck.getByRole('button', { name: /Move/ }).click()
   await expect(facingPad).toBeHidden()
 
-  const after = await commands.evaluateAll((buttons) =>
-    buttons.map((button) => button.getBoundingClientRect().height),
+  const after = await commands.evaluateAll((cards) =>
+    cards.map((card) => card.getBoundingClientRect().height),
   )
   expect(after).toHaveLength(before.length)
   after.forEach((height, index) => {
