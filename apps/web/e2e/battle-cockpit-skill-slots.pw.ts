@@ -11,6 +11,10 @@ function uniqueCharacterName(): string {
   return `Wayfarer ${letters}`
 }
 
+function expectNear(left: number, right: number): void {
+  expect(Math.abs(left - right)).toBeLessThanOrEqual(1)
+}
+
 test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   page,
 }, testInfo) => {
@@ -83,20 +87,20 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   expect(cardGeometry).not.toBeNull()
   if (!cardGeometry) return
   expect(cardGeometry.labelLeft).toBeGreaterThan(cardGeometry.actionLeft)
-  expect(Math.abs(cardGeometry.labelLeft - cardGeometry.costLeft)).toBeLessThanOrEqual(1)
+  expectNear(cardGeometry.labelLeft, cardGeometry.costLeft)
   expect(cardGeometry.labelTextAlign).toBe('left')
   expect(cardGeometry.costTextAlign).toBe('left')
   expect(cardGeometry.imageWidth).toBeGreaterThanOrEqual(cardGeometry.artworkWidth - 2)
   expect(cardGeometry.imageHeight).toBeGreaterThanOrEqual(cardGeometry.artworkHeight - 2)
-  expect(Math.abs(cardGeometry.imageCenterX - cardGeometry.artworkCenterX)).toBeLessThanOrEqual(1)
-  expect(Math.abs(cardGeometry.imageCenterY - cardGeometry.artworkCenterY)).toBeLessThanOrEqual(1)
+  expectNear(cardGeometry.imageCenterX, cardGeometry.artworkCenterX)
+  expectNear(cardGeometry.imageCenterY, cardGeometry.artworkCenterY)
 
   if (testInfo.project.name === 'mobile-chromium') {
     expect(cardGeometry.hotkeyDisplay).toBe('none')
     expect(cardGeometry.labelBottom).toBeLessThanOrEqual(cardGeometry.costTop + 1)
   } else {
     expect(cardGeometry.hotkeyDisplay).not.toBe('none')
-    expect(Math.abs(cardGeometry.hotkeyLeft - cardGeometry.labelLeft)).toBeLessThanOrEqual(1)
+    expectNear(cardGeometry.hotkeyLeft, cardGeometry.labelLeft)
     expect(cardGeometry.hotkeyBottom).toBeLessThanOrEqual(cardGeometry.labelTop)
     expect(cardGeometry.labelBottom).toBeLessThanOrEqual(cardGeometry.costTop)
   }
@@ -119,8 +123,8 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   expect(inspectGeometry).not.toBeNull()
   if (!inspectGeometry) return
   expect(inspectGeometry.pointerEvents).toBe('none')
-  expect(Math.abs(inspectGeometry.imageCenterX - inspectGeometry.artworkCenterX)).toBeLessThanOrEqual(1)
-  expect(Math.abs(inspectGeometry.imageCenterY - inspectGeometry.artworkCenterY)).toBeLessThanOrEqual(1)
+  expectNear(inspectGeometry.imageCenterX, inspectGeometry.artworkCenterX)
+  expectNear(inspectGeometry.imageCenterY, inspectGeometry.artworkCenterY)
 
   const inspectBox = await inspectCard.boundingBox()
   expect(inspectBox).not.toBeNull()
