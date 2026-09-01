@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="MP Recovery">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0" stop-color="#123650"/>
+      <stop offset="0.48" stop-color="#071923"/>
+      <stop offset="1" stop-color="#03080d"/>
+    </radialGradient>
+    <radialGradient id="mana" cx="50%" cy="42%" r="54%">
+      <stop offset="0" stop-color="#d7fbff"/>
+      <stop offset="0.18" stop-color="#7ce7ff"/>
+      <stop offset="0.5" stop-color="#298dcc"/>
+      <stop offset="1" stop-color="#0c3159" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rune" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#bff7ff"/>
+      <stop offset="0.5" stop-color="#53c8f0"/>
+      <stop offset="1" stop-color="#4f79d8"/>
+    </linearGradient>
+    <filter id="glow" x="-70%" y="-70%" width="240%" height="240%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="22"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <circle cx="256" cy="248" r="182" fill="none" stroke="#245675" stroke-width="3" opacity="0.52"/>
+  <circle cx="256" cy="248" r="158" fill="none" stroke="#5fc8e8" stroke-width="2" opacity="0.32" stroke-dasharray="8 15"/>
+  <circle cx="256" cy="248" r="116" fill="url(#mana)" opacity="0.86" filter="url(#soft)"/>
+  <g opacity="0.42" stroke="#4ab7d7" stroke-width="2">
+    <path d="M256 58v64M256 374v70M66 248h68M378 248h68"/>
+    <path d="M121 113l47 47M344 336l49 49M391 108l-49 49M169 335l-50 50"/>
+  </g>
+  <g fill="none" stroke="url(#rune)" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)">
+    <path d="M256 111c-55 62-94 112-94 169 0 59 42 106 94 106s94-47 94-106c0-57-39-107-94-169Z" stroke-width="13"/>
+    <path d="M207 277c10 31 28 48 54 51" stroke-width="9" opacity="0.9"/>
+    <path d="M256 166v182" stroke-width="5" opacity="0.82"/>
+    <path d="M207 237h98M217 305h78" stroke-width="5" opacity="0.72"/>
+  </g>
+  <g fill="#bff8ff" filter="url(#glow)">
+    <circle cx="256" cy="83" r="7"/>
+    <circle cx="148" cy="181" r="5"/>
+    <circle cx="365" cy="181" r="5"/>
+    <circle cx="142" cy="326" r="4"/>
+    <circle cx="371" cy="326" r="4"/>
+  </g>
+  <path d="M117 410c38-18 84-26 139-26s101 8 139 26" fill="none" stroke="#64cae8" stroke-width="3" opacity="0.35"/>
+  <rect x="10" y="10" width="492" height="492" rx="34" fill="none" stroke="#6cd7ef" stroke-width="2" opacity="0.18"/>
+</svg>

@@ -84,9 +84,9 @@
   border: 1px solid var(--av-border-strong) !important;
 }
 
-/* Final PvP command-card footprint. BattleCommandCockpitPolish still owns the shared semantic
-   accent colors and active-state treatment; this authority prevents PvP/PvE size drift. */
-:global(main[data-battle-visual-contract='true'] [data-battle-command]) {
+/* Legacy command-card footprint. Category skill-slot cards carry data-command-slot and own their
+   newer artwork/text geometry, while this contract continues to protect untouched legacy cards. */
+:global(main[data-battle-visual-contract='true'] [data-battle-command]:not([data-command-slot])) {
   grid-template-columns: 2.1rem minmax(0, 1fr) !important;
   grid-template-rows: auto auto !important;
   min-height: 2.55rem !important;
@@ -96,7 +96,11 @@
   padding: 0.3rem 0.36rem !important;
 }
 
-:global(main[data-battle-visual-contract='true'] [data-battle-command] > span) {
+:global(
+  main[data-battle-visual-contract='true']
+    [data-battle-command]:not([data-command-slot])
+    > span
+) {
   grid-column: 1 !important;
   grid-row: 1 / -1 !important;
   width: max-content !important;
@@ -104,20 +108,36 @@
   justify-self: start !important;
 }
 
-:global(main[data-battle-visual-contract='true'] [data-battle-command] > strong),
-:global(main[data-battle-visual-contract='true'] [data-battle-command] > small) {
+:global(
+  main[data-battle-visual-contract='true']
+    [data-battle-command]:not([data-command-slot])
+    > strong
+),
+:global(
+  main[data-battle-visual-contract='true']
+    [data-battle-command]:not([data-command-slot])
+    > small
+) {
   grid-column: 2 !important;
   width: 100% !important;
   justify-self: stretch !important;
 }
 
-:global(main[data-battle-visual-contract='true'] [data-battle-command] > strong) {
+:global(
+  main[data-battle-visual-contract='true']
+    [data-battle-command]:not([data-command-slot])
+    > strong
+) {
   grid-row: 1 !important;
   font: 600 0.57rem/1 var(--av-font-display) !important;
   text-align: center !important;
 }
 
-:global(main[data-battle-visual-contract='true'] [data-battle-command] > small) {
+:global(
+  main[data-battle-visual-contract='true']
+    [data-battle-command]:not([data-command-slot])
+    > small
+) {
   grid-row: 2 !important;
   font: 650 0.36rem/1 var(--av-font-mono) !important;
   text-align: left !important;
@@ -287,7 +307,9 @@
     border-radius: clamp(0.18rem, 0.35vw, 0.4rem) !important;
   }
 
-  :global(main[data-battle-visual-contract='true'] [data-battle-command]) {
+  :global(
+    main[data-battle-visual-contract='true'] [data-battle-command]:not([data-command-slot])
+  ) {
     min-height: 2.75rem !important;
     padding: 0.3rem 0.38rem !important;
   }
@@ -316,8 +338,10 @@
     row-gap: 0.18rem !important;
   }
 
-  /* Exact approved PvP compact mobile command-card footprint. */
-  :global(main[data-battle-visual-contract='true'] [data-battle-command]) {
+  /* Exact approved PvP compact mobile command-card footprint for untouched legacy command cards. */
+  :global(
+    main[data-battle-visual-contract='true'] [data-battle-command]:not([data-command-slot])
+  ) {
     grid-template-columns: minmax(0, 1fr) !important;
     grid-template-rows: auto auto !important;
     min-height: 2.55rem !important;
@@ -328,23 +352,43 @@
     text-align: center !important;
   }
 
-  :global(main[data-battle-visual-contract='true'] [data-battle-command] > span) {
+  :global(
+    main[data-battle-visual-contract='true']
+      [data-battle-command]:not([data-command-slot])
+      > span
+  ) {
     display: none !important;
   }
 
-  :global(main[data-battle-visual-contract='true'] [data-battle-command] > strong),
-  :global(main[data-battle-visual-contract='true'] [data-battle-command] > small) {
+  :global(
+    main[data-battle-visual-contract='true']
+      [data-battle-command]:not([data-command-slot])
+      > strong
+  ),
+  :global(
+    main[data-battle-visual-contract='true']
+      [data-battle-command]:not([data-command-slot])
+      > small
+  ) {
     grid-column: 1 !important;
     width: 100% !important;
     justify-self: stretch !important;
     text-align: center !important;
   }
 
-  :global(main[data-battle-visual-contract='true'] [data-battle-command] > strong) {
+  :global(
+    main[data-battle-visual-contract='true']
+      [data-battle-command]:not([data-command-slot])
+      > strong
+  ) {
     grid-row: 1 !important;
   }
 
-  :global(main[data-battle-visual-contract='true'] [data-battle-command] > small) {
+  :global(
+    main[data-battle-visual-contract='true']
+      [data-battle-command]:not([data-command-slot])
+      > small
+  ) {
     grid-row: 2 !important;
   }
 

@@ -17,7 +17,7 @@ const ACTION_ARTWORK = new Map<string, string>([
   [PV1F_BASIC_ATTACK_ID, '/media/skills/basic-attack.jpg'],
   [PV1F_GUARD_ACTION_ID, '/media/skills/guard.jpg'],
   [PV1F_RECOVER_ACTION_ID, '/media/skills/hp-recovery.jpg'],
-  [PV1F_MP_RECOVER_ACTION_ID, '/media/skills/mp-recovery.jpg'],
+  [PV1F_MP_RECOVER_ACTION_ID, '/media/skills/mp-recovery.svg'],
 ])
 
 export function battleSkillArtwork(actionId: string): string {

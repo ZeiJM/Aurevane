@@ -1,6 +1,8 @@
 .shell {
   --skill-rgb: 207, 169, 93;
   position: relative;
+  display: block;
+  width: 100%;
   min-width: 0;
   min-height: 4.45rem;
 }
@@ -35,12 +37,13 @@
   width: 100%;
   min-width: 0;
   min-height: 4.45rem !important;
+  box-sizing: border-box;
   grid-template-columns: minmax(0, 1fr) !important;
-  grid-template-rows: auto auto auto !important;
-  gap: 0.2rem !important;
-  align-content: center !important;
-  justify-items: start !important;
-  padding: 0.48rem 4.15rem 0.48rem 0.68rem !important;
+  grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr) !important;
+  gap: 0.08rem !important;
+  align-content: stretch !important;
+  justify-items: stretch !important;
+  padding: 0.52rem 4.55rem 0.52rem 0.76rem !important;
   overflow: hidden !important;
   border: 1px solid rgba(var(--skill-rgb), 0.34) !important;
   border-radius: 0.46rem !important;
@@ -69,6 +72,8 @@
   display: inline-flex !important;
   grid-column: 1 !important;
   grid-row: 1 !important;
+  justify-self: start !important;
+  align-self: start !important;
   width: fit-content;
   min-height: 0 !important;
   align-items: center;
@@ -79,15 +84,20 @@
   background: rgba(3, 6, 10, 0.48) !important;
   font: 760 0.34rem/1 var(--av-font-mono) !important;
   letter-spacing: 0.035em;
+  text-align: left !important;
 }
 
 .action > strong {
   grid-column: 1 !important;
   grid-row: 2 !important;
+  justify-self: stretch !important;
+  align-self: center !important;
+  width: 100% !important;
   max-width: 100%;
+  margin: 0 !important;
   overflow: hidden;
   color: #f2efe7 !important;
-  font: 650 0.76rem/1.03 var(--av-font-display) !important;
+  font: 650 0.8rem/1.04 var(--av-font-display) !important;
   text-align: left !important;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -97,13 +107,18 @@
   display: block !important;
   grid-column: 1 !important;
   grid-row: 3 !important;
+  justify-self: stretch !important;
+  align-self: end !important;
+  width: 100% !important;
   min-height: 0 !important;
+  margin: 0 !important;
   padding: 0 !important;
   border: 0 !important;
   color: rgba(var(--skill-rgb), 0.9) !important;
   background: transparent !important;
   font: 720 0.4rem/1 var(--av-font-mono) !important;
   letter-spacing: 0.035em;
+  text-align: left !important;
   white-space: nowrap;
 }
 
@@ -141,12 +156,14 @@
   position: absolute;
   z-index: 2;
   top: 50%;
-  right: 0.48rem;
+  right: 0.5rem;
   display: grid;
-  width: 3.28rem;
-  height: 3.28rem;
+  width: 3.55rem;
+  height: 3.55rem;
   overflow: hidden;
   place-items: center;
+  box-sizing: border-box;
+  margin: 0;
   padding: 0;
   border: 1px solid rgba(var(--skill-rgb), 0.52);
   border-radius: 0.42rem;
@@ -157,14 +174,25 @@
   transform: translateY(-50%);
 }
 
+.artwork {
+  pointer-events: none;
+}
+
 .artwork img,
 .artworkTrigger img {
+  position: absolute;
+  inset: 0;
+  display: block;
   width: 100%;
   height: 100%;
+  max-width: none;
+  margin: 0;
   object-fit: cover;
+  object-position: center center;
 }
 
 .artworkTrigger {
+  appearance: none;
   cursor: pointer;
   transition:
     border-color 140ms ease,
@@ -259,11 +287,13 @@
 }
 
 .selectorOption > img {
+  display: block;
   width: 2.5rem;
   height: 2.5rem;
   border: 1px solid rgba(var(--skill-rgb), 0.32);
   border-radius: 0.3rem;
   object-fit: cover;
+  object-position: center;
 }
 
 .selectorOption > span {
@@ -296,6 +326,25 @@
     height: 100%;
     min-height: 6rem !important;
   }
+
+  .action {
+    padding: 0.68rem 5.4rem 0.68rem 0.82rem !important;
+  }
+
+  .artwork,
+  .artworkTrigger {
+    right: 0.58rem;
+    width: 4.35rem;
+    height: 4.35rem;
+  }
+
+  .action > strong {
+    font-size: 0.86rem !important;
+  }
+
+  .action > small {
+    font-size: 0.42rem !important;
+  }
 }
 
 @media (max-height: 720px) and (min-width: 881px) {
@@ -306,12 +355,12 @@
 
   .artwork,
   .artworkTrigger {
-    width: 2.95rem;
-    height: 2.95rem;
+    width: 3.05rem;
+    height: 3.05rem;
   }
 
   .action {
-    padding-right: 3.7rem !important;
+    padding: 0.4rem 3.82rem 0.4rem 0.62rem !important;
   }
 }
 
@@ -322,14 +371,14 @@
   }
 
   .action {
-    padding-right: 3.55rem !important;
+    padding: 0.44rem 3.72rem 0.44rem 0.64rem !important;
   }
 
   .artwork,
   .artworkTrigger {
     right: 0.42rem;
-    width: 2.75rem;
-    height: 2.75rem;
+    width: 2.95rem;
+    height: 2.95rem;
   }
 }
 
@@ -340,10 +389,12 @@
   }
 
   .action {
-    grid-template-rows: auto auto !important;
-    gap: 0.16rem !important;
-    align-content: center !important;
-    padding: 0.26rem 2.78rem 0.26rem 0.48rem !important;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) !important;
+    gap: 0.04rem !important;
+    align-content: stretch !important;
+    justify-items: stretch !important;
+    padding: 0.27rem 2.86rem 0.27rem 0.5rem !important;
+    text-align: left !important;
   }
 
   .action > .hotkey {
@@ -352,20 +403,30 @@
 
   .action > strong {
     grid-row: 1 !important;
+    justify-self: stretch !important;
+    align-self: end !important;
+    width: 100% !important;
     font-size: 0.66rem !important;
+    line-height: 1 !important;
+    text-align: left !important;
     white-space: normal;
   }
 
   .action > small {
     grid-row: 2 !important;
+    justify-self: stretch !important;
+    align-self: start !important;
+    width: 100% !important;
+    padding-top: 0.14rem !important;
     font-size: 0.34rem !important;
+    text-align: left !important;
   }
 
   .artwork,
   .artworkTrigger {
     right: 0.3rem;
-    width: 2.1rem;
-    height: 2.1rem;
+    width: 2.18rem;
+    height: 2.18rem;
     border-radius: 0.34rem;
   }
 
