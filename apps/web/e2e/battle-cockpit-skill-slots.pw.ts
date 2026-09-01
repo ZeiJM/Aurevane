@@ -84,8 +84,12 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   expect(Math.abs(cardGeometry.labelLeft - cardGeometry.costLeft)).toBeLessThanOrEqual(1)
   expect(cardGeometry.imageWidth).toBeGreaterThanOrEqual(cardGeometry.artworkWidth - 2)
   expect(cardGeometry.imageHeight).toBeGreaterThanOrEqual(cardGeometry.artworkHeight - 2)
-  expect(Math.abs(cardGeometry.imageCenterX - cardGeometry.artworkCenterX)).toBeLessThanOrEqual(1)
-  expect(Math.abs(cardGeometry.imageCenterY - cardGeometry.artworkCenterY)).toBeLessThanOrEqual(1)
+  expect(
+    Math.abs(cardGeometry.imageCenterX - cardGeometry.artworkCenterX),
+  ).toBeLessThanOrEqual(1)
+  expect(
+    Math.abs(cardGeometry.imageCenterY - cardGeometry.artworkCenterY),
+  ).toBeLessThanOrEqual(1)
 
   if (testInfo.project.name === 'mobile-chromium') {
     expect(cardGeometry.hotkeyDisplay).toBe('none')
