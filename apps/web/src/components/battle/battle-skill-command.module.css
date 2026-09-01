@@ -188,7 +188,7 @@
   max-width: none;
   margin: 0;
   object-fit: cover;
-  object-position: center center;
+  object-position: 50% 50%;
 }
 
 .artworkTrigger {
@@ -217,17 +217,48 @@
 
 .artworkTrigger > span {
   position: absolute;
-  right: 0.13rem;
-  bottom: 0.13rem;
+  right: 0.12rem;
+  bottom: 0.12rem;
   display: grid;
-  width: 0.9rem;
-  height: 0.9rem;
+  width: 1.08rem;
+  height: 0.86rem;
   place-items: center;
-  border: 1px solid rgba(226, 205, 153, 0.5);
-  border-radius: 999px;
-  color: #f0d995;
-  background: rgba(4, 7, 11, 0.88);
-  font: 800 0.48rem/1 var(--av-font-mono);
+  overflow: hidden;
+  border: 1px solid rgba(239, 220, 168, 0.58);
+  border-radius: 0.34rem;
+  color: transparent;
+  background:
+    linear-gradient(180deg, rgba(28, 34, 38, 0.88), rgba(4, 8, 11, 0.96)),
+    rgba(var(--skill-rgb), 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 0 0 1px rgba(var(--skill-rgb), 0.12),
+    0 0.18rem 0.45rem rgba(0, 0, 0, 0.45),
+    0 0 0.42rem rgba(var(--skill-rgb), 0.18);
+  font-size: 0;
+  backdrop-filter: blur(0.3rem);
+}
+
+.artworkTrigger > span::before,
+.artworkTrigger > span::after {
+  position: absolute;
+  left: 50%;
+  width: 0.28rem;
+  height: 0.28rem;
+  border-right: 1.5px solid #f0d995;
+  border-bottom: 1.5px solid #f0d995;
+  content: '';
+  transform: translateX(-50%) rotate(45deg);
+  filter: drop-shadow(0 0 0.18rem rgba(240, 217, 149, 0.35));
+}
+
+.artworkTrigger > span::before {
+  top: 0.08rem;
+}
+
+.artworkTrigger > span::after {
+  top: 0.27rem;
+  opacity: 0.78;
 }
 
 .selector {
@@ -385,7 +416,18 @@
 @media (max-width: 580px) {
   .shell,
   .action {
+    width: 100% !important;
+    height: 100%;
     min-height: 2.55rem !important;
+  }
+
+  /* An older cockpit observer can still mark the first category card as the command group. The
+     shared group contract is a two-column grid on mobile, so neutralize that legacy marker when it
+     lands on a category-card shell. The real command deck already owns the 2 x 3 grid. */
+  :global(main[data-battle-visual-contract='true']) .shell[data-battle-command-group='true'] {
+    display: block !important;
+    grid-template-columns: none !important;
+    gap: 0 !important;
   }
 
   .action {
@@ -431,11 +473,19 @@
   }
 
   .artworkTrigger > span {
-    right: 0.08rem;
-    bottom: 0.08rem;
-    width: 0.72rem;
+    right: 0.06rem;
+    bottom: 0.06rem;
+    width: 0.9rem;
     height: 0.72rem;
-    font-size: 0.4rem;
+    border-radius: 0.28rem;
+  }
+
+  .artworkTrigger > span::before {
+    top: 0.05rem;
+  }
+
+  .artworkTrigger > span::after {
+    top: 0.22rem;
   }
 
   .selector {
