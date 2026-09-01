@@ -2,11 +2,12 @@
   display: none;
 }
 
-/* Keep AI action-card content on the same desktop alignment contract as PvP. */
+/* Keep legacy AI action-card content on the same desktop alignment contract as PvP. The new
+   slot-based skill cards own their own left-aligned presentation through BattleSkillCommand. */
 :global(
   main:not([data-pvp-battle='true'])
     section[aria-label='Command Deck']
-    [data-battle-command]
+    [data-battle-command]:not([data-command-slot])
 ) {
   justify-items: stretch !important;
   text-align: center !important;
@@ -15,7 +16,7 @@
 :global(
   main:not([data-pvp-battle='true'])
     section[aria-label='Command Deck']
-    [data-battle-command]
+    [data-battle-command]:not([data-command-slot])
     > span
 ) {
   width: max-content !important;
@@ -25,7 +26,7 @@
 :global(
   main:not([data-pvp-battle='true'])
     section[aria-label='Command Deck']
-    [data-battle-command]
+    [data-battle-command]:not([data-command-slot])
     > strong
 ) {
   width: 100% !important;
@@ -36,7 +37,7 @@
 :global(
   main:not([data-pvp-battle='true'])
     section[aria-label='Command Deck']
-    [data-battle-command]
+    [data-battle-command]:not([data-command-slot])
     > small
 ) {
   width: 100% !important;
