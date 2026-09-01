@@ -176,7 +176,7 @@ describe('battle turn quality rules', () => {
     )
   })
 
-  it('keeps the existing two-miss Lowered Guard rule for AI battles', () => {
+  it('keeps the two-miss AI rule while limiting Lowered Guard to one turn', () => {
     const firstPlayerMiss = timeoutAiTurn(encounter('ai')).state
     expect(loweredGuard(firstPlayerMiss, 'player')).toBeUndefined()
 
@@ -188,5 +188,22 @@ describe('battle turn quality rules', () => {
       secondPlayerMiss.events,
       'ai_lowered_guard_applied',
     )
+    expect(loweredGuard(secondPlayerMiss.state, 'player')?.remainingOwnerTurnStarts).toBe(1)
+    expect(secondPlayerMiss.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event: 'ai_lowered_guard_applied',
+          combatantId: 'player',
+          remainingOwnerTurnStarts: 1,
+        }),
+      ]),
+    )
+
+    const playerReturns = timeoutAiTurn(secondPlayerMiss.state).state
+    expect(playerReturns.tactical.battle.currentTurn?.combatantId).toBe('player')
+    expect(loweredGuard(playerReturns, 'player')).toBeUndefined()
+
+    const nextPlayerMiss = timeoutAiTurn(playerReturns)
+    expect(loweredGuard(nextPlayerMiss.state, 'player')?.remainingOwnerTurnStarts).toBe(1)
   })
 })
