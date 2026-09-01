@@ -43,7 +43,11 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   const initialImage = healArtwork.locator('img')
   await expect(initialImage).toHaveAttribute('src', '/media/skills/hp-recovery.jpg')
   await expect
-    .poll(() => initialImage.evaluate((image) => image.complete && image.naturalWidth > 0))
+    .poll(() =>
+      initialImage.evaluate(
+        (image) => image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0,
+      ),
+    )
     .toBe(true)
 
   await healArtwork.click()
@@ -64,7 +68,11 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   const mpImage = healArtwork.locator('img')
   await expect(mpImage).toHaveAttribute('src', '/media/skills/mp-recovery.jpg')
   await expect
-    .poll(() => mpImage.evaluate((image) => image.complete && image.naturalWidth > 0))
+    .poll(() =>
+      mpImage.evaluate(
+        (image) => image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0,
+      ),
+    )
     .toBe(true)
 
   await healArtwork.click()
