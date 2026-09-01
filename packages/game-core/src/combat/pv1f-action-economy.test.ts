@@ -9,6 +9,8 @@ import {
   PV1F_ACTION_ECONOMY_RESOURCE_KEY,
   PV1F_BASIC_ATTACK_COST,
   PV1F_BASIC_ATTACK_ID,
+  PV1F_MP_RECOVER_ACTION_ID,
+  PV1F_MP_RECOVER_COST,
 } from './pv1f-action-economy'
 import {
   createStatDrivenCombatEncounterState,
@@ -138,5 +140,39 @@ describe('PV-1F lethal Action Economy resolution', () => {
 
   it('commits a Recruit lethal attack and completes the battle', () => {
     expectLethalResolution('recruit', 'player')
+  })
+})
+
+describe('PV-1F MP Recovery', () => {
+  it('restores 10% max MP and spends the configured AP cost', () => {
+    const encounter = lethalEncounter('player')
+    const player = encounter.tactical.battle.combatants.find((combatant) => combatant.id === 'player')
+    if (!player) throw new Error('Expected player combatant.')
+    player.mp = 5
+
+    const transition = executePv1fAction(encounter, PV1F_MP_RECOVER_ACTION_ID, { kind: 'self' })
+    const nextPlayer = transition.state.tactical.battle.combatants.find(
+      (combatant) => combatant.id === 'player',
+    )
+    const economy = nextPlayer?.temporaryResources.find(
+      (resource) => resource.key === PV1F_ACTION_ECONOMY_RESOURCE_KEY,
+    )
+
+    expect(nextPlayer?.mp).toBe(7)
+    expect(economy?.current).toBe(100 - PV1F_MP_RECOVER_COST)
+  })
+
+  it('clamps MP Recovery at maximum MP', () => {
+    const encounter = lethalEncounter('player')
+    const player = encounter.tactical.battle.combatants.find((combatant) => combatant.id === 'player')
+    if (!player) throw new Error('Expected player combatant.')
+    player.mp = 19
+
+    const transition = executePv1fAction(encounter, PV1F_MP_RECOVER_ACTION_ID, { kind: 'self' })
+    const nextPlayer = transition.state.tactical.battle.combatants.find(
+      (combatant) => combatant.id === 'player',
+    )
+
+    expect(nextPlayer?.mp).toBe(20)
   })
 })
