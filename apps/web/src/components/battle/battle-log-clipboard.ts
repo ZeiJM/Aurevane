@@ -2,15 +2,12 @@ import type { SkillNarrationTemplate } from '@aurevane/game-core/combat/battle-n
 
 import type { BattleLogView } from '@/server/battle/battle-log-service'
 
+import { buildBattleLogActionNumbers, buildBattleLogTranscriptLines } from './battle-log-feed'
 import {
   buildBattleLogPresentation,
   type BattleLogSegment,
   type PresentedBattleLogRound,
 } from './battle-log-presentation'
-import {
-  buildBattleLogActionNumbers,
-  buildBattleLogTranscriptLines,
-} from './battle-log-feed'
 import { summarizeConsecutiveBattleLogMovement } from './battle-log-movement-summary'
 import { consolidatePresentedBattleLogRounds } from './battle-log-round-groups'
 
