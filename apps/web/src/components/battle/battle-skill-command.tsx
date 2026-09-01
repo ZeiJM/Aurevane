@@ -133,6 +133,11 @@ export function BattleSkillCommand({
         <span className={styles.hotkey}>{hotkey}</span>
         <strong>{label}</strong>
         <small>{cost}</small>
+        {!canSwap ? (
+          <span className={styles.artwork} data-battle-command-artwork="static" aria-hidden="true">
+            <img src={artworkSrc} alt="" />
+          </span>
+        ) : null}
       </button>
 
       {canSwap && selector ? (
@@ -140,6 +145,7 @@ export function BattleSkillCommand({
           ref={artworkRef}
           type="button"
           className={styles.artworkTrigger}
+          data-battle-command-artwork="selector"
           aria-haspopup="listbox"
           aria-expanded={selectorOpen}
           aria-label={`Choose ${selector.categoryLabel} skill. ${label} selected.`}
@@ -148,11 +154,7 @@ export function BattleSkillCommand({
           <img src={artworkSrc} alt="" aria-hidden="true" />
           <span aria-hidden="true">⌄</span>
         </button>
-      ) : (
-        <span className={styles.artwork} aria-hidden="true">
-          <img src={artworkSrc} alt="" />
-        </span>
-      )}
+      ) : null}
 
       {selectorOpen && selector && typeof document !== 'undefined'
         ? createPortal(
