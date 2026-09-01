@@ -32,6 +32,8 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
 
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
+  const inspectCard = commandDeck.locator('[data-command-card="inspect"]')
+  const inspectAction = inspectCard.locator('button[data-battle-command="inspect"]')
   const healCard = commandDeck.locator('[data-command-card="recover"]')
   const healAction = healCard.locator('button[data-battle-command="recover"]')
   const healArtwork = healCard.getByRole('button', { name: /Choose Heal skill/i })
@@ -59,14 +61,14 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
       actionLeft: actionRect.left,
       hotkeyDisplay: getComputedStyle(hotkey).display,
       hotkeyLeft: hotkeyRect.left,
-      hotkeyTop: hotkeyRect.top,
       hotkeyBottom: hotkeyRect.bottom,
       labelLeft: labelRect.left,
       labelTop: labelRect.top,
       labelBottom: labelRect.bottom,
+      labelTextAlign: getComputedStyle(label).textAlign,
       costLeft: costRect.left,
       costTop: costRect.top,
-      costBottom: costRect.bottom,
+      costTextAlign: getComputedStyle(cost).textAlign,
       artworkWidth: artworkRect.width,
       artworkHeight: artworkRect.height,
       imageWidth: imageRect.width,
@@ -82,14 +84,12 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   if (!cardGeometry) return
   expect(cardGeometry.labelLeft).toBeGreaterThan(cardGeometry.actionLeft)
   expect(Math.abs(cardGeometry.labelLeft - cardGeometry.costLeft)).toBeLessThanOrEqual(1)
+  expect(cardGeometry.labelTextAlign).toBe('left')
+  expect(cardGeometry.costTextAlign).toBe('left')
   expect(cardGeometry.imageWidth).toBeGreaterThanOrEqual(cardGeometry.artworkWidth - 2)
   expect(cardGeometry.imageHeight).toBeGreaterThanOrEqual(cardGeometry.artworkHeight - 2)
-  expect(
-    Math.abs(cardGeometry.imageCenterX - cardGeometry.artworkCenterX),
-  ).toBeLessThanOrEqual(1)
-  expect(
-    Math.abs(cardGeometry.imageCenterY - cardGeometry.artworkCenterY),
-  ).toBeLessThanOrEqual(1)
+  expect(Math.abs(cardGeometry.imageCenterX - cardGeometry.artworkCenterX)).toBeLessThanOrEqual(1)
+  expect(Math.abs(cardGeometry.imageCenterY - cardGeometry.artworkCenterY)).toBeLessThanOrEqual(1)
 
   if (testInfo.project.name === 'mobile-chromium') {
     expect(cardGeometry.hotkeyDisplay).toBe('none')
@@ -100,6 +100,33 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
     expect(cardGeometry.hotkeyBottom).toBeLessThanOrEqual(cardGeometry.labelTop)
     expect(cardGeometry.labelBottom).toBeLessThanOrEqual(cardGeometry.costTop)
   }
+
+  const inspectGeometry = await inspectCard.evaluate((card) => {
+    const artwork = card.querySelector<HTMLElement>(':scope > span')
+    const image = artwork?.querySelector<HTMLImageElement>('img')
+    if (!artwork || !image) return null
+    const artworkRect = artwork.getBoundingClientRect()
+    const imageRect = image.getBoundingClientRect()
+    return {
+      pointerEvents: getComputedStyle(artwork).pointerEvents,
+      artworkCenterX: (artworkRect.left + artworkRect.right) / 2,
+      artworkCenterY: (artworkRect.top + artworkRect.bottom) / 2,
+      imageCenterX: (imageRect.left + imageRect.right) / 2,
+      imageCenterY: (imageRect.top + imageRect.bottom) / 2,
+    }
+  })
+
+  expect(inspectGeometry).not.toBeNull()
+  if (!inspectGeometry) return
+  expect(inspectGeometry.pointerEvents).toBe('none')
+  expect(Math.abs(inspectGeometry.imageCenterX - inspectGeometry.artworkCenterX)).toBeLessThanOrEqual(1)
+  expect(Math.abs(inspectGeometry.imageCenterY - inspectGeometry.artworkCenterY)).toBeLessThanOrEqual(1)
+
+  const inspectBox = await inspectCard.boundingBox()
+  expect(inspectBox).not.toBeNull()
+  if (!inspectBox) return
+  await inspectCard.click({ position: { x: inspectBox.width - 12, y: inspectBox.height / 2 } })
+  await expect(inspectAction).toHaveAttribute('data-battle-active', 'true')
 
   const initialImage = healArtwork.locator('img')
   await expect(initialImage).toHaveAttribute('src', '/media/skills/hp-recovery.jpg')
@@ -127,7 +154,7 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   await expect(healArtwork).toHaveAttribute('aria-label', /MP Recovery selected/i)
 
   const mpImage = healArtwork.locator('img')
-  await expect(mpImage).toHaveAttribute('src', '/media/skills/mp-recovery.jpg')
+  await expect(mpImage).toHaveAttribute('src', '/media/skills/mp-recovery.svg')
   await expect
     .poll(() =>
       mpImage.evaluate(
