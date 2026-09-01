@@ -63,7 +63,9 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
 
   const mpImage = healArtwork.locator('img')
   await expect(mpImage).toHaveAttribute('src', '/media/skills/mp-recovery.jpg')
-  await expect.poll(() => mpImage.evaluate((image) => image.complete && image.naturalWidth > 0)).toBe(true)
+  await expect
+    .poll(() => mpImage.evaluate((image) => image.complete && image.naturalWidth > 0))
+    .toBe(true)
 
   await healArtwork.click()
   await page.getByRole('option', { name: /HP Recovery/ }).click()
