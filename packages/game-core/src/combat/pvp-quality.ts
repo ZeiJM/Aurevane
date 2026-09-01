@@ -88,7 +88,7 @@ export function timeoutAiTurn(state: StatDrivenCombatEncounterState): PvpQuality
     loweredGuardEvent: 'ai_lowered_guard_applied',
     label: 'AI battle',
     loweredGuardEveryTimeout: false,
-    loweredGuardDurationOwnerTurnStarts: null,
+    loweredGuardDurationOwnerTurnStarts: 1,
   })
 }
 
