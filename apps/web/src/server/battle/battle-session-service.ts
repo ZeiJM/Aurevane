@@ -42,6 +42,8 @@ import type {
   BattleIntent,
 } from '@aurevane/validation/combat/battle-session'
 
+import { battleActionResourceIssue } from './battle-action-resource-availability'
+
 const PV1F_RULES_VERSION = 2
 const PV1F_CONTENT_VERSION = 2
 const PV1F_BASE_MOVEMENT_UNITS = 10
@@ -311,7 +313,11 @@ function resolveIntent(
 ): { state: StatDrivenCombatEncounterState; events: readonly unknown[] } {
   try {
     if (intent.kind === 'move') return executePv1fMovement(state, intent.path)
-    if (intent.kind === 'action') return executePv1fAction(state, intent.actionId, intent.target)
+    if (intent.kind === 'action') {
+      const resourceIssue = battleActionResourceIssue(state, intent)
+      if (resourceIssue) throw invalidBattleIntent(resourceIssue.message)
+      return executePv1fAction(state, intent.actionId, intent.target)
+    }
     if (intent.kind === 'face') return finishPv1fTurn(state, intent.facing)
     throw invalidBattleIntent('Choose a final facing direction to finish the turn.')
   } catch (error) {
