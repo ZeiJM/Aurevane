@@ -146,7 +146,9 @@ describe('PV-1F lethal Action Economy resolution', () => {
 describe('PV-1F MP Recovery', () => {
   it('restores 10% max MP and spends the configured AP cost', () => {
     const encounter = lethalEncounter('player')
-    const player = encounter.tactical.battle.combatants.find((combatant) => combatant.id === 'player')
+    const player = encounter.tactical.battle.combatants.find(
+      (combatant) => combatant.id === 'player',
+    )
     if (!player) throw new Error('Expected player combatant.')
     player.mp = 5
 
@@ -164,7 +166,9 @@ describe('PV-1F MP Recovery', () => {
 
   it('clamps MP Recovery at maximum MP', () => {
     const encounter = lethalEncounter('player')
-    const player = encounter.tactical.battle.combatants.find((combatant) => combatant.id === 'player')
+    const player = encounter.tactical.battle.combatants.find(
+      (combatant) => combatant.id === 'player',
+    )
     if (!player) throw new Error('Expected player combatant.')
     player.mp = 19
 
