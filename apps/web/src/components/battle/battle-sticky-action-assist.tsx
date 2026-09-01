@@ -2,7 +2,9 @@
 
 import { useEffect, useRef } from 'react'
 
-const REPEATABLE_ACTIONS = new Set(['Move', 'Basic Attack', 'Recover'])
+type RepeatableCommandSlot = 'move' | 'attack' | 'recover'
+
+const REPEATABLE_COMMAND_SLOTS = new Set<RepeatableCommandSlot>(['move', 'attack', 'recover'])
 const SETTLE_DELAYS_MS = [0, 24, 60, 120, 220] as const
 
 function textOf(element: Element | null): string {
@@ -11,19 +13,24 @@ function textOf(element: Element | null): string {
 
 function commandButtons(): HTMLButtonElement[] {
   return Array.from(
-    document.querySelectorAll<HTMLButtonElement>('section[aria-label="Command Deck"] button'),
+    document.querySelectorAll<HTMLButtonElement>(
+      'section[aria-label="Command Deck"] button[data-battle-command]',
+    ),
   )
 }
 
-function commandLabel(button: HTMLButtonElement): string {
-  return textOf(button.querySelector('strong'))
+function commandSlot(button: HTMLButtonElement): string {
+  return button.dataset.battleCommand ?? ''
+}
+
+function isRepeatableCommandSlot(value: string): value is RepeatableCommandSlot {
+  return REPEATABLE_COMMAND_SLOTS.has(value as RepeatableCommandSlot)
 }
 
 function activeCommand(): HTMLButtonElement | null {
   return (
     commandButtons().find((button) => {
-      const label = commandLabel(button)
-      if (!REPEATABLE_ACTIONS.has(label)) return false
+      if (!isRepeatableCommandSlot(commandSlot(button))) return false
       return (
         button.getAttribute('data-active') === 'true' ||
         button.hasAttribute('data-active') ||
@@ -48,19 +55,14 @@ function actionEconomy(): number | null {
   return Number.isFinite(value) ? value : null
 }
 
-function minimumCost(label: string): number {
-  if (label === 'Move') return 25
-  if (label === 'Basic Attack' || label === 'Guard') return 30
-  if (label === 'Recover') return 50
-  return Number.POSITIVE_INFINITY
-}
-
-function findCommand(label: string): HTMLButtonElement | null {
-  return commandButtons().find((button) => commandLabel(button) === label) ?? null
+function findCommand(slot: RepeatableCommandSlot): HTMLButtonElement | null {
+  return document.querySelector<HTMLButtonElement>(
+    `section[aria-label="Command Deck"] button[data-battle-command="${slot}"]`,
+  )
 }
 
 export function BattleStickyActionAssist() {
-  const pendingRepeat = useRef<string | null>(null)
+  const pendingRepeat = useRef<RepeatableCommandSlot | null>(null)
   const lastKnownEconomy = useRef<number | null>(null)
   const settleTimer = useRef<number | null>(null)
 
@@ -73,19 +75,19 @@ export function BattleStickyActionAssist() {
 
     function rememberCurrentAction() {
       const active = activeCommand()
-      const label = active ? commandLabel(active) : ''
-      if (REPEATABLE_ACTIONS.has(label)) pendingRepeat.current = label
+      const slot = active ? commandSlot(active) : ''
+      if (isRepeatableCommandSlot(slot)) pendingRepeat.current = slot
     }
 
     function handleClick(event: MouseEvent) {
       const element = event.target instanceof Element ? event.target : null
       const command = element?.closest<HTMLButtonElement>(
-        'section[aria-label="Command Deck"] button',
+        'section[aria-label="Command Deck"] button[data-battle-command]',
       )
       if (command) {
-        const label = commandLabel(command)
-        if (REPEATABLE_ACTIONS.has(label)) pendingRepeat.current = label
-        else if (label === 'Inspect' || label === 'Finish Turn' || label === 'Guard') {
+        const slot = commandSlot(command)
+        if (isRepeatableCommandSlot(slot)) pendingRepeat.current = slot
+        else if (slot === 'inspect' || slot === 'finish' || slot === 'guard') {
           pendingRepeat.current = null
         }
       }
@@ -97,27 +99,21 @@ export function BattleStickyActionAssist() {
       const element = event.target instanceof Element ? event.target : null
       if (
         element?.closest('#battlefield button[aria-label^="Tile "]') ||
-        element?.closest('section[aria-label="Command Deck"] button')
+        element?.closest('section[aria-label="Command Deck"] button[data-battle-command]')
       ) {
         rememberCurrentAction()
       }
     }
 
-    function settleRestore(label: string, attempt: number) {
+    function settleRestore(slot: RepeatableCommandSlot, attempt: number) {
       clearSettleTimer()
       const delay = SETTLE_DELAYS_MS[Math.min(attempt, SETTLE_DELAYS_MS.length - 1)]
       settleTimer.current = window.setTimeout(() => {
         settleTimer.current = null
-        if (pendingRepeat.current !== label) return
+        if (pendingRepeat.current !== slot) return
 
-        const current = findCommand(label)
-        const currentEconomy = actionEconomy()
-        if (
-          !current ||
-          current.disabled ||
-          currentEconomy === null ||
-          currentEconomy < minimumCost(label)
-        ) {
+        const current = findCommand(slot)
+        if (!current || current.disabled) {
           pendingRepeat.current = null
           return
         }
@@ -129,7 +125,7 @@ export function BattleStickyActionAssist() {
         }
 
         if (attempt < SETTLE_DELAYS_MS.length - 1) {
-          settleRestore(label, attempt + 1)
+          settleRestore(slot, attempt + 1)
           return
         }
 
@@ -144,17 +140,19 @@ export function BattleStickyActionAssist() {
 
       const previousEconomy = lastKnownEconomy.current
       lastKnownEconomy.current = economy
-      const label = pendingRepeat.current
-      if (!label || previousEconomy === null || economy >= previousEconomy) return
+      const slot = pendingRepeat.current
+      if (!slot || previousEconomy === null || economy >= previousEconomy) return
 
-      const button = findCommand(label)
-      if (!button || button.disabled || economy < minimumCost(label)) {
+      const button = findCommand(slot)
+      if (!button || button.disabled) {
         pendingRepeat.current = null
         clearSettleTimer()
         return
       }
 
-      settleRestore(label, 0)
+      // Affordability belongs to the currently equipped skill. The rendered slot button already
+      // reflects that server-backed cost, so sticky restore must not hardcode Basic-skill AP values.
+      settleRestore(slot, 0)
     }
 
     lastKnownEconomy.current = actionEconomy()

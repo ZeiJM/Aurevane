@@ -96,7 +96,7 @@ async function captureBattleScaleGeometry(page: Page): Promise<BattleScaleGeomet
     const commandDeck = root.querySelector<HTMLElement>('[data-unified-command-deck="true"]')!
     const commandContext = commandDeck.firstElementChild as HTMLElement
     const commandButton = commandDeck.querySelector<HTMLElement>(
-      ':scope > div:nth-child(2) > button',
+      '[data-command-card] > button[data-battle-command]',
     )!
     const footer = root.querySelector<HTMLElement>(':scope > footer')!
     const footerButtons = Array.from(footer.querySelectorAll<HTMLButtonElement>('button'))

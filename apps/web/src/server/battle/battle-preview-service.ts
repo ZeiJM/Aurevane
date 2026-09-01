@@ -17,6 +17,8 @@ import {
 import { AurevaneError, StaleBattleVersionError } from '@aurevane/game-core/errors'
 import type { BattleIntent } from '@aurevane/validation/combat/battle-session'
 
+import { battleActionResourceIssue } from './battle-action-resource-availability'
+
 export interface BattlePreviewIssue {
   code: string
   message: string
@@ -195,6 +197,7 @@ function previewIntent(
     const economy = readPv1fActionEconomy(prepared)
     const before = economy?.current ?? 0
     const affordable = before >= cost
+    const resourceIssue = battleActionResourceIssue(prepared, intent)
     const forecast =
       action.sourceType === 'basic-attack'
         ? forecastStatDrivenAttack(prepared, action, intent.target, PV1F_COMBAT_CONTENT)
@@ -214,13 +217,13 @@ function previewIntent(
     })
     return {
       kind: 'action',
-      legal: evaluation.legal && affordable,
+      legal: evaluation.legal && affordable && !resourceIssue,
       actionId: evaluation.actionId,
       actorId: evaluation.actorId,
       primaryCombatantId: evaluation.primaryCombatantId,
       affectedTiles: evaluation.affectedTiles,
       affectedCombatantIds: evaluation.affectedCombatantIds,
-      projectedEffects: evaluation.projectedEffects,
+      projectedEffects: resourceIssue ? [] : evaluation.projectedEffects,
       projectedStatuses,
       mpCost: evaluation.mpCost,
       actionEconomyCost: cost,
@@ -232,6 +235,7 @@ function previewIntent(
       mitigatedBaseDamage: forecast?.mitigatedBaseDamage ?? null,
       issues: [
         ...evaluation.issues.map((entry) => issue(entry.code, entry.message)),
+        ...(resourceIssue ? [issue(resourceIssue.code, resourceIssue.message)] : []),
         ...(affordable
           ? []
           : [

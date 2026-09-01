@@ -28,7 +28,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   await page.getByRole('button', { name: 'Account' }).click()
   await page.getByRole('menuitem', { name: 'Controls & Keybinds' }).click()
   await expect(page).toHaveURL(/\/game\/settings\/controls$/)
-  await page.getByRole('button', { name: 'Change Move keybind' }).click()
+  await page.getByRole('button', { name: 'Change Movement Skill keybind' }).click()
   await page.keyboard.press('m')
   await expect(page.getByTestId('keybind-move')).toContainText('M')
   await expect(page.getByTestId('keybind-recover')).toContainText('5')
@@ -104,7 +104,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   await expect(commandDeck.getByRole('button', { name: /Move/ })).toContainText('M · WASD')
   await expect(commandDeck.getByRole('button', { name: /Basic Attack/ })).toContainText('3')
   await expect(commandDeck.getByRole('button', { name: /Guard/ })).toContainText('4')
-  await expect(commandDeck.getByRole('button', { name: /Recover/ })).toContainText('5')
+  await expect(commandDeck.locator('button[data-battle-command="recover"]')).toContainText('5')
   expect(await hasHorizontalOverflow(page)).toBe(false)
   if (testInfo.project.name !== 'mobile-chromium') {
     expect(await hasVerticalPageOverflow(page)).toBe(false)

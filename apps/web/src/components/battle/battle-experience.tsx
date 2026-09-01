@@ -1,5 +1,15 @@
 'use client'
 
+import {
+  PV1F_BASIC_ATTACK_COST,
+  PV1F_BASIC_ATTACK_ID,
+  PV1F_GUARD_ACTION_ID,
+  PV1F_GUARD_COST,
+  PV1F_MP_RECOVER_ACTION_ID,
+  PV1F_MP_RECOVER_COST,
+  PV1F_RECOVER_ACTION_ID,
+  PV1F_RECOVER_COST,
+} from '@aurevane/game-core/combat/pv1f-skills'
 import type { BattleIntent } from '@aurevane/validation/combat/battle-session'
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
 
@@ -28,20 +38,39 @@ import {
   type BattlePresentationParticipant,
   type BattleRuntime,
 } from './battle-runtime'
+import { BattleSkillCommand } from './battle-skill-command'
+import { BATTLE_COMMAND_ARTWORK, battleSkillArtwork } from './battle-skill-presentation'
 import styles from './pvp-battle-experience.module.css'
 import railStyles from './pvp-six-combatant-rails.module.css'
 import bridgeStyles from './unified-battle-experience.module.css'
 
-const BASIC_ATTACK_ID = 'basic.attack.unarmed.basic'
-const GUARD_ID = 'basic.guard'
-const RECOVER_ID = 'basic.recover'
+const BASIC_ATTACK_ID = PV1F_BASIC_ATTACK_ID
+const GUARD_ID = PV1F_GUARD_ACTION_ID
+const RECOVER_ID = PV1F_RECOVER_ACTION_ID
+const MP_RECOVER_ID = PV1F_MP_RECOVER_ACTION_ID
 const ACTION_ECONOMY_KEY = 'pv1f.action-economy'
-const ATTACK_COST = 30
-const GUARD_COST = 30
-const RECOVER_COST = 50
+const ATTACK_COST = PV1F_BASIC_ATTACK_COST
+const GUARD_COST = PV1F_GUARD_COST
+const RECOVER_COST = PV1F_RECOVER_COST
+const MP_RECOVER_COST = PV1F_MP_RECOVER_COST
 const ACTIVE_PLAYER_POLL_MS = 900
 const WAITING_PLAYER_POLL_MS = 1000
 const COMMIT_POLL_RETRY_MS = 120
+
+const HEAL_SELECTOR_OPTIONS = [
+  {
+    id: RECOVER_ID,
+    label: 'HP Recovery',
+    cost: `${RECOVER_COST} AP`,
+    artworkSrc: battleSkillArtwork(RECOVER_ID),
+  },
+  {
+    id: MP_RECOVER_ID,
+    label: 'MP Recovery',
+    cost: `${MP_RECOVER_COST} AP`,
+    artworkSrc: battleSkillArtwork(MP_RECOVER_ID),
+  },
+] as const
 
 type Mode = 'none' | 'inspect' | 'move' | 'attack' | 'guard' | 'recover' | 'finish'
 type Tactical = BattleSessionView['snapshot']['tactical']
@@ -165,6 +194,7 @@ export function BattleExperience({
   const [pendingIntent, setPendingIntent] = useState<BattleIntent | null>(null)
   const [preview, setPreview] = useState<BattlePreviewView | null>(null)
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null)
+  const [selectedHealActionId, setSelectedHealActionId] = useState<string>(RECOVER_ID)
   const [notice, setNotice] = useState(
     runtime.kind === 'pvp'
       ? 'Arena linked. Waiting for the authoritative turn state.'
@@ -208,6 +238,12 @@ export function BattleExperience({
   const planningDisabled =
     !localTurn || battleState.lifecycle !== 'active' || commitPending || recruitPending
   const activeName = battleParticipantName(viewModel, battleState.currentTurn?.combatantId)
+  const selectedHealIsMp = selectedHealActionId === MP_RECOVER_ID
+  const selectedHealName = selectedHealIsMp ? 'MP Recovery' : 'HP Recovery'
+  const selectedHealCost = selectedHealIsMp ? MP_RECOVER_COST : RECOVER_COST
+  const selectedHealAtMaximum = selectedHealIsMp
+    ? !localCombatant || localCombatant.mp >= localCombatant.maxMp
+    : !localCombatant || localCombatant.hp >= localCombatant.maxHp
 
   const placementByTile = useMemo(
     () =>
@@ -447,7 +483,9 @@ export function BattleExperience({
         } else if (result.kind === 'action' && result.actionId === GUARD_ID) {
           setNotice('Guard ready · 30 AP · incoming damage reduced for 2 turns.')
         } else if (result.kind === 'action' && result.actionId === RECOVER_ID) {
-          setNotice('Recover ready · 50 AP · restores 10% maximum HP.')
+          setNotice('HP Recovery ready · 50 AP · restores 10% maximum HP.')
+        } else if (result.kind === 'action' && result.actionId === MP_RECOVER_ID) {
+          setNotice('MP Recovery ready · 50 AP · restores 10% maximum MP.')
         }
       } catch (error) {
         if (sequence === previewSequence.current) {
@@ -585,6 +623,17 @@ export function BattleExperience({
                 ? Math.max(0, nextLocalCombatant.hp - beforeLocal.hp)
                 : 0
             setNotice(`Recovered ${healed} HP. ${remaining} AP remains.`)
+          } else if (intent.kind === 'action' && intent.actionId === MP_RECOVER_ID) {
+            const beforeLocal = localCombatantId
+              ? before.snapshot.tactical.battle.combatants.find(
+                  (combatant) => combatant.id === localCombatantId,
+                )
+              : null
+            const restored =
+              beforeLocal && nextLocalCombatant
+                ? Math.max(0, nextLocalCombatant.mp - beforeLocal.mp)
+                : 0
+            setNotice(`Recovered ${restored} MP. ${remaining} AP remains.`)
           }
         }
       } catch (error) {
@@ -618,7 +667,11 @@ export function BattleExperience({
       if (nextMode === 'guard') {
         void requestPreview({ kind: 'action', actionId: GUARD_ID, target: { kind: 'self' } })
       } else if (nextMode === 'recover') {
-        void requestPreview({ kind: 'action', actionId: RECOVER_ID, target: { kind: 'self' } })
+        void requestPreview({
+          kind: 'action',
+          actionId: selectedHealActionId,
+          target: { kind: 'self' },
+        })
       } else if (nextMode === 'move') {
         setNotice('Move mode · green tiles are reachable with your remaining AP.')
       } else if (nextMode === 'attack') {
@@ -629,7 +682,7 @@ export function BattleExperience({
         setNotice('Inspect mode · choose any combatant on the board.')
       }
     },
-    [clearPlanning, planningDisabled, requestPreview],
+    [clearPlanning, planningDisabled, requestPreview, selectedHealActionId],
   )
 
   const handleTile = useCallback(
@@ -947,7 +1000,9 @@ export function BattleExperience({
           ? 'Choose your action'
           : mode === 'finish'
             ? 'Choose final facing'
-            : mode.replace('-', ' ')
+            : mode === 'recover'
+              ? selectedHealName
+              : mode.replace('-', ' ')
   const contextDescription =
     mode === 'inspect' && selectedParticipant && selectedCombatant && selectedPlacement
       ? `Team ${selectedParticipant.teamIndex + 1} · HP ${selectedCombatant.hp}/${selectedCombatant.maxHp} · MP ${selectedCombatant.mp}/${selectedCombatant.maxMp} · Facing ${selectedPlacement.facing} ${facingGlyph(selectedPlacement.facing)}`
@@ -1262,58 +1317,79 @@ export function BattleExperience({
             </div>
           )}
           <div className={styles.commands}>
-            <CommandButton
-              number="00"
+            <BattleSkillCommand
+              slot="inspect"
+              hotkey="00"
               label="Inspect"
               cost="Free"
+              artworkSrc={BATTLE_COMMAND_ARTWORK.inspect}
               active={mode === 'inspect'}
               disabled={false}
-              onClick={() => chooseMode('inspect')}
+              onActivate={() => chooseMode('inspect')}
             />
-            <CommandButton
-              number="01"
+            <BattleSkillCommand
+              slot="move"
+              hotkey="01"
               label="Move"
-              cost="25+ AP"
+              cost={`${MOVE_COST_PER_TERRAIN_POINT} AP`}
+              artworkSrc={BATTLE_COMMAND_ARTWORK.move}
               active={mode === 'move'}
               disabled={planningDisabled || actionEconomy < MOVE_COST_PER_TERRAIN_POINT}
-              onClick={() => chooseMode('move')}
+              onActivate={() => chooseMode('move')}
             />
-            <CommandButton
-              number="02"
+            <BattleSkillCommand
+              slot="attack"
+              hotkey="02"
               label="Basic Attack"
-              cost="30 AP"
+              cost={`${ATTACK_COST} AP`}
+              artworkSrc={BATTLE_COMMAND_ARTWORK.attack}
               active={mode === 'attack'}
               disabled={planningDisabled || actionEconomy < ATTACK_COST}
-              onClick={() => chooseMode('attack')}
+              onActivate={() => chooseMode('attack')}
             />
-            <CommandButton
-              number="03"
+            <BattleSkillCommand
+              slot="guard"
+              hotkey="03"
               label="Guard"
-              cost="30 AP"
+              cost={`${GUARD_COST} AP`}
+              artworkSrc={BATTLE_COMMAND_ARTWORK.guard}
               active={mode === 'guard'}
               disabled={planningDisabled || actionEconomy < GUARD_COST}
-              onClick={() => chooseMode('guard')}
+              onActivate={() => chooseMode('guard')}
             />
-            <CommandButton
-              number="04"
-              label="Recover"
-              cost="50 AP"
+            <BattleSkillCommand
+              slot="recover"
+              hotkey="04"
+              label={selectedHealName}
+              cost={`${selectedHealCost} AP`}
+              artworkSrc={battleSkillArtwork(selectedHealActionId)}
               active={mode === 'recover'}
               disabled={
-                planningDisabled ||
-                actionEconomy < RECOVER_COST ||
-                !localCombatant ||
-                localCombatant.hp >= localCombatant.maxHp
+                planningDisabled || actionEconomy < selectedHealCost || selectedHealAtMaximum
               }
-              onClick={() => chooseMode('recover')}
+              onActivate={() => chooseMode('recover')}
+              selector={{
+                categoryLabel: 'Heal',
+                selectedId: selectedHealActionId,
+                options: HEAL_SELECTOR_OPTIONS,
+                onSelect: (skillId) => {
+                  if (skillId === selectedHealActionId) return
+                  setSelectedHealActionId(skillId)
+                  if (mode === 'recover') clearPlanning()
+                  const nextName = skillId === MP_RECOVER_ID ? 'MP Recovery' : 'HP Recovery'
+                  setNotice(`${nextName} equipped in the Heal slot.`)
+                },
+              }}
             />
-            <CommandButton
-              number="05"
+            <BattleSkillCommand
+              slot="finish"
+              hotkey="05"
               label="Finish Turn"
-              cost="Face + end"
+              cost="Choose facing + end"
+              artworkSrc={BATTLE_COMMAND_ARTWORK.finish}
               active={mode === 'finish'}
               disabled={planningDisabled}
-              onClick={() => chooseMode('finish')}
+              onActivate={() => chooseMode('finish')}
             />
           </div>
 
@@ -1465,35 +1541,6 @@ export function BattleExperience({
         </div>
       ) : null}
     </main>
-  )
-}
-
-function CommandButton({
-  number,
-  label,
-  cost,
-  active,
-  disabled,
-  onClick,
-}: {
-  number: string
-  label: string
-  cost: string
-  active: boolean
-  disabled: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      data-active={active || undefined}
-      disabled={disabled}
-      onClick={onClick}
-    >
-      <span>{number}</span>
-      <strong>{label}</strong>
-      <small>{cost}</small>
-    </button>
   )
 }
 
