@@ -22,7 +22,9 @@ interface BattleLogClipboardOptions {
 
 function segmentText(segments: readonly BattleLogSegment[], secondary = false): string {
   return segments
-    .map((segment, index) => (secondary && index === 0 && segment.text === '↳ ' ? '- ' : segment.text))
+    .map((segment, index) =>
+      secondary && index === 0 && segment.text === '↳ ' ? '- ' : segment.text,
+    )
     .join('')
     .trimEnd()
 }
