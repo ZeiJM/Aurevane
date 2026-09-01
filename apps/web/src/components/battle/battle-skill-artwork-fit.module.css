@@ -1,0 +1,14 @@
+.frame > img {
+  width: calc(100% - 0.2rem) !important;
+  height: calc(100% - 0.2rem) !important;
+  object-fit: cover !important;
+  object-position: 50% 50% !important;
+  transform: translate(-50%, -50%) !important;
+  border-radius: 0.4rem;
+}
+
+@media (max-width: 580px) {
+  .frame > img {
+    border-radius: 0.3rem;
+  }
+}
