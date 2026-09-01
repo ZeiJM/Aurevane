@@ -5,6 +5,7 @@
   width: 100%;
   min-width: 0;
   min-height: 4.45rem;
+  isolation: isolate;
 }
 
 .shell[data-command-card='inspect'] {
@@ -35,26 +36,29 @@
   position: relative;
   display: grid !important;
   width: 100%;
+  height: 100%;
   min-width: 0;
   min-height: 4.45rem !important;
   box-sizing: border-box;
   grid-template-columns: minmax(0, 1fr) !important;
-  grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr) !important;
-  gap: 0.08rem !important;
-  align-content: stretch !important;
-  justify-items: stretch !important;
-  padding: 0.52rem 4.55rem 0.52rem 0.76rem !important;
+  grid-template-rows: auto auto auto !important;
+  gap: 0.17rem !important;
+  align-content: center !important;
+  justify-items: start !important;
+  padding: 0.58rem 4.55rem 0.58rem 0.78rem !important;
   overflow: hidden !important;
-  border: 1px solid rgba(var(--skill-rgb), 0.34) !important;
-  border-radius: 0.46rem !important;
+  border: 1px solid rgba(var(--skill-rgb), 0.4) !important;
+  border-radius: 0.58rem !important;
   color: var(--av-text-muted) !important;
   background:
-    radial-gradient(circle at 100% 50%, rgba(var(--skill-rgb), 0.12), transparent 52%),
-    linear-gradient(155deg, rgba(var(--skill-rgb), 0.075), rgba(9, 13, 19, 0.96) 54%, #070a0f) !important;
+    linear-gradient(90deg, rgba(var(--skill-rgb), 0.09), transparent 39%),
+    radial-gradient(circle at 91% 50%, rgba(var(--skill-rgb), 0.16), transparent 43%),
+    linear-gradient(160deg, rgba(15, 21, 29, 0.98), rgba(7, 10, 15, 0.985) 67%, #05080c) !important;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.04),
-    inset 3px 0 0 rgba(var(--skill-rgb), 0.74),
-    0 0.32rem 0.9rem rgba(0, 0, 0, 0.2) !important;
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    inset 3px 0 0 rgba(var(--skill-rgb), 0.82),
+    inset 0 0 0 1px rgba(var(--skill-rgb), 0.035),
+    0 0.38rem 1rem rgba(0, 0, 0, 0.24) !important;
   text-align: left !important;
   cursor: pointer;
   transition:
@@ -68,21 +72,41 @@
   display: none !important;
 }
 
+.action::after {
+  position: absolute;
+  top: 0.55rem;
+  right: 4.18rem;
+  bottom: 0.55rem;
+  width: 1px;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    rgba(var(--skill-rgb), 0.18) 24%,
+    rgba(var(--skill-rgb), 0.28) 50%,
+    rgba(var(--skill-rgb), 0.18) 76%,
+    transparent
+  );
+  content: '';
+  pointer-events: none;
+}
+
 .action > .hotkey {
   display: inline-flex !important;
   grid-column: 1 !important;
   grid-row: 1 !important;
   justify-self: start !important;
-  align-self: start !important;
+  align-self: center !important;
   width: fit-content;
   min-height: 0 !important;
   align-items: center;
-  padding: 0.16rem 0.3rem !important;
-  border: 1px solid rgba(var(--skill-rgb), 0.28) !important;
-  border-radius: 0.24rem !important;
-  color: rgba(235, 226, 204, 0.78) !important;
-  background: rgba(3, 6, 10, 0.48) !important;
-  font: 760 0.34rem/1 var(--av-font-mono) !important;
+  margin: 0 0 0.04rem !important;
+  padding: 0.16rem 0.32rem !important;
+  border: 1px solid rgba(var(--skill-rgb), 0.3) !important;
+  border-radius: 0.26rem !important;
+  color: rgba(239, 231, 211, 0.8) !important;
+  background: rgba(3, 6, 10, 0.55) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+  font: 760 0.35rem/1 var(--av-font-mono) !important;
   letter-spacing: 0.035em;
   text-align: left !important;
 }
@@ -96,10 +120,12 @@
   max-width: 100%;
   margin: 0 !important;
   overflow: hidden;
-  color: #f2efe7 !important;
-  font: 650 0.8rem/1.04 var(--av-font-display) !important;
+  color: #f3f0e8 !important;
+  font: 670 0.82rem/1.03 var(--av-font-display) !important;
+  letter-spacing: 0.006em;
   text-align: left !important;
   text-overflow: ellipsis;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.42);
   white-space: nowrap;
 }
 
@@ -108,32 +134,35 @@
   grid-column: 1 !important;
   grid-row: 3 !important;
   justify-self: stretch !important;
-  align-self: end !important;
+  align-self: center !important;
   width: 100% !important;
   min-height: 0 !important;
   margin: 0 !important;
   padding: 0 !important;
   border: 0 !important;
-  color: rgba(var(--skill-rgb), 0.9) !important;
+  color: rgba(var(--skill-rgb), 0.96) !important;
   background: transparent !important;
-  font: 720 0.4rem/1 var(--av-font-mono) !important;
-  letter-spacing: 0.035em;
+  font: 740 0.41rem/1 var(--av-font-mono) !important;
+  letter-spacing: 0.045em;
   text-align: left !important;
+  text-shadow: 0 0 0.4rem rgba(var(--skill-rgb), 0.12);
   white-space: nowrap;
 }
 
 .action:not(:disabled):hover,
 .action:not(:disabled):focus-visible,
 .action[data-active] {
-  border-color: rgba(var(--skill-rgb), 0.82) !important;
+  border-color: rgba(var(--skill-rgb), 0.86) !important;
   background:
-    radial-gradient(circle at 100% 50%, rgba(var(--skill-rgb), 0.22), transparent 55%),
-    linear-gradient(155deg, rgba(var(--skill-rgb), 0.13), rgba(9, 13, 19, 0.97) 54%, #070a0f) !important;
+    linear-gradient(90deg, rgba(var(--skill-rgb), 0.14), transparent 42%),
+    radial-gradient(circle at 91% 50%, rgba(var(--skill-rgb), 0.24), transparent 46%),
+    linear-gradient(160deg, rgba(16, 23, 31, 0.99), rgba(7, 10, 15, 0.99) 67%, #05080c) !important;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
     inset 3px 0 0 rgba(var(--skill-rgb), 1),
-    0 0 0.7rem rgba(var(--skill-rgb), 0.12),
-    0 0.4rem 1rem rgba(0, 0, 0, 0.26) !important;
+    inset 0 0 0 1px rgba(var(--skill-rgb), 0.06),
+    0 0 0.8rem rgba(var(--skill-rgb), 0.14),
+    0 0.44rem 1.1rem rgba(0, 0, 0, 0.28) !important;
 }
 
 .action:not(:disabled):hover {
@@ -165,12 +194,16 @@
   box-sizing: border-box;
   margin: 0;
   padding: 0;
-  border: 1px solid rgba(var(--skill-rgb), 0.52);
-  border-radius: 0.42rem;
-  background: #070a0f;
+  border: 1px solid rgba(var(--skill-rgb), 0.62);
+  border-radius: 0.5rem;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(var(--skill-rgb), 0.11), transparent 70%),
+    #05080c;
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.035),
-    0 0 0.55rem rgba(var(--skill-rgb), 0.12);
+    inset 0 0 0 1px rgba(255, 255, 255, 0.045),
+    inset 0 0 1rem rgba(0, 0, 0, 0.22),
+    0 0 0.68rem rgba(var(--skill-rgb), 0.16),
+    0 0.28rem 0.7rem rgba(0, 0, 0, 0.3);
   transform: translateY(-50%);
 }
 
@@ -181,7 +214,8 @@
 .artwork img,
 .artworkTrigger img {
   position: absolute;
-  inset: 0;
+  top: 50%;
+  left: 50%;
   display: block;
   width: 100%;
   height: 100%;
@@ -189,6 +223,26 @@
   margin: 0;
   object-fit: cover;
   object-position: 50% 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* The starter JPEGs were cropped from the original concept sheet and include some of the old card
+   chrome around their edges. Overscan the raster art inside the new frame so the actual skill
+   subject, rather than that legacy crop, is what reads as centered on both desktop and mobile. */
+.artwork img[src$='.jpg'],
+.artworkTrigger img[src$='.jpg'] {
+  width: 113%;
+  height: 113%;
+}
+
+.artwork img[src$='basic-attack.jpg'],
+.artworkTrigger img[src$='basic-attack.jpg'],
+.artwork img[src$='hp-recovery.jpg'],
+.artworkTrigger img[src$='hp-recovery.jpg'],
+.artwork img[src$='finish-turn.jpg'],
+.artworkTrigger img[src$='finish-turn.jpg'] {
+  width: 124%;
+  height: 124%;
 }
 
 .artworkTrigger {
@@ -203,11 +257,13 @@
 .artworkTrigger:hover,
 .artworkTrigger:focus-visible,
 .artworkTrigger[aria-expanded='true'] {
-  border-color: rgba(var(--skill-rgb), 0.95);
+  border-color: rgba(var(--skill-rgb), 0.96);
   box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
-    0 0 0.85rem rgba(var(--skill-rgb), 0.28);
-  transform: translateY(-50%) scale(1.025);
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    inset 0 0 1rem rgba(0, 0, 0, 0.16),
+    0 0 0.95rem rgba(var(--skill-rgb), 0.3),
+    0 0.3rem 0.8rem rgba(0, 0, 0, 0.32);
+  transform: translateY(-50%) scale(1.018);
 }
 
 .artworkTrigger:focus-visible {
@@ -219,22 +275,23 @@
   position: absolute;
   right: 0.12rem;
   bottom: 0.12rem;
+  z-index: 3;
   display: grid;
-  width: 1.08rem;
-  height: 0.86rem;
+  width: 1.12rem;
+  height: 0.88rem;
   place-items: center;
   overflow: hidden;
-  border: 1px solid rgba(239, 220, 168, 0.58);
+  border: 1px solid rgba(239, 220, 168, 0.66);
   border-radius: 0.34rem;
   color: transparent;
   background:
-    linear-gradient(180deg, rgba(28, 34, 38, 0.88), rgba(4, 8, 11, 0.96)),
+    linear-gradient(180deg, rgba(30, 35, 40, 0.92), rgba(3, 7, 11, 0.97)),
     rgba(var(--skill-rgb), 0.12);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 0 0 1px rgba(var(--skill-rgb), 0.12),
-    0 0.18rem 0.45rem rgba(0, 0, 0, 0.45),
-    0 0 0.42rem rgba(var(--skill-rgb), 0.18);
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 0 0 1px rgba(var(--skill-rgb), 0.14),
+    0 0.18rem 0.48rem rgba(0, 0, 0, 0.48),
+    0 0 0.48rem rgba(var(--skill-rgb), 0.2);
   font-size: 0;
   backdrop-filter: blur(0.3rem);
 }
@@ -243,13 +300,14 @@
 .artworkTrigger > span::after {
   position: absolute;
   left: 50%;
-  width: 0.28rem;
-  height: 0.28rem;
+  width: 0.29rem;
+  height: 0.29rem;
   border-right: 1.5px solid #f0d995;
   border-bottom: 1.5px solid #f0d995;
   content: '';
   transform: translateX(-50%) rotate(45deg);
-  filter: drop-shadow(0 0 0.18rem rgba(240, 217, 149, 0.35));
+  filter: drop-shadow(0 0 0.18rem rgba(240, 217, 149, 0.38));
+  transition: transform 140ms ease;
 }
 
 .artworkTrigger > span::before {
@@ -257,8 +315,21 @@
 }
 
 .artworkTrigger > span::after {
-  top: 0.27rem;
-  opacity: 0.78;
+  top: 0.28rem;
+  opacity: 0.8;
+}
+
+.artworkTrigger[aria-expanded='true'] > span::before,
+.artworkTrigger[aria-expanded='true'] > span::after {
+  transform: translateX(-50%) rotate(225deg);
+}
+
+.artworkTrigger[aria-expanded='true'] > span::before {
+  top: 0.25rem;
+}
+
+.artworkTrigger[aria-expanded='true'] > span::after {
+  top: 0.06rem;
 }
 
 .selector {
@@ -359,22 +430,31 @@
   }
 
   .action {
-    padding: 0.68rem 5.4rem 0.68rem 0.82rem !important;
+    gap: 0.2rem !important;
+    padding: 0.72rem 5.48rem 0.72rem 0.88rem !important;
+  }
+
+  .action::after {
+    right: 5.04rem;
   }
 
   .artwork,
   .artworkTrigger {
     right: 0.58rem;
-    width: 4.35rem;
-    height: 4.35rem;
+    width: 4.42rem;
+    height: 4.42rem;
+  }
+
+  .action > .hotkey {
+    font-size: 0.36rem !important;
   }
 
   .action > strong {
-    font-size: 0.86rem !important;
+    font-size: 0.9rem !important;
   }
 
   .action > small {
-    font-size: 0.42rem !important;
+    font-size: 0.44rem !important;
   }
 }
 
@@ -384,14 +464,29 @@
     min-height: 3.95rem !important;
   }
 
-  .artwork,
-  .artworkTrigger {
-    width: 3.05rem;
-    height: 3.05rem;
+  .action {
+    gap: 0.12rem !important;
+    padding: 0.42rem 3.88rem 0.42rem 0.64rem !important;
   }
 
-  .action {
-    padding: 0.4rem 3.82rem 0.4rem 0.62rem !important;
+  .action::after {
+    top: 0.4rem;
+    right: 3.54rem;
+    bottom: 0.4rem;
+  }
+
+  .artwork,
+  .artworkTrigger {
+    width: 3.08rem;
+    height: 3.08rem;
+  }
+
+  .action > strong {
+    font-size: 0.72rem !important;
+  }
+
+  .action > small {
+    font-size: 0.37rem !important;
   }
 }
 
@@ -402,7 +497,12 @@
   }
 
   .action {
-    padding: 0.44rem 3.72rem 0.44rem 0.64rem !important;
+    gap: 0.14rem !important;
+    padding: 0.46rem 3.74rem 0.46rem 0.66rem !important;
+  }
+
+  .action::after {
+    right: 3.43rem;
   }
 
   .artwork,
@@ -431,12 +531,18 @@
   }
 
   .action {
-    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr) !important;
-    gap: 0.04rem !important;
-    align-content: stretch !important;
+    grid-template-rows: auto auto !important;
+    gap: 0.11rem !important;
+    align-content: center !important;
     justify-items: stretch !important;
-    padding: 0.27rem 2.86rem 0.27rem 0.5rem !important;
+    padding: 0.3rem 2.86rem 0.3rem 0.52rem !important;
     text-align: left !important;
+  }
+
+  .action::after {
+    top: 0.3rem;
+    right: 2.62rem;
+    bottom: 0.3rem;
   }
 
   .action > .hotkey {
@@ -448,7 +554,7 @@
     justify-self: stretch !important;
     align-self: end !important;
     width: 100% !important;
-    font-size: 0.66rem !important;
+    font-size: 0.67rem !important;
     line-height: 1 !important;
     text-align: left !important;
     white-space: normal;
@@ -459,8 +565,8 @@
     justify-self: stretch !important;
     align-self: start !important;
     width: 100% !important;
-    padding-top: 0.14rem !important;
-    font-size: 0.34rem !important;
+    padding-top: 0 !important;
+    font-size: 0.35rem !important;
     text-align: left !important;
   }
 
@@ -469,13 +575,13 @@
     right: 0.3rem;
     width: 2.18rem;
     height: 2.18rem;
-    border-radius: 0.34rem;
+    border-radius: 0.38rem;
   }
 
   .artworkTrigger > span {
     right: 0.06rem;
     bottom: 0.06rem;
-    width: 0.9rem;
+    width: 0.92rem;
     height: 0.72rem;
     border-radius: 0.28rem;
   }
@@ -486,6 +592,14 @@
 
   .artworkTrigger > span::after {
     top: 0.22rem;
+  }
+
+  .artworkTrigger[aria-expanded='true'] > span::before {
+    top: 0.21rem;
+  }
+
+  .artworkTrigger[aria-expanded='true'] > span::after {
+    top: 0.04rem;
   }
 
   .selector {
