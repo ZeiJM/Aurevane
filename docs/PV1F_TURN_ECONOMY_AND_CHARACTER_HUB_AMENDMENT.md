@@ -6,6 +6,8 @@
 
 This document records an explicit owner-approved revision made during failed human product validation. Where this document conflicts with the older validation-slice rules in `docs/COMBAT.md`, **this amendment wins for the systems named here**. Rules not changed here remain governed by the normal canonical combat documents.
 
+**Current-authority note:** `docs/COMBAT.md` was synchronized on 2026-08-19 after this amendment and is now the definitive combat authority. The Action Economy values and examples below are synchronized to that later canonical implementation so this historical corrective document cannot reintroduce superseded balance values.
+
 The purpose is not to expand into Phase 3. It is to make the existing tactical slice understandable, efficient and testable enough to earn a human PV-1 decision.
 
 ## 1. Character and account journey
@@ -71,7 +73,7 @@ The server stores, resets, validates and spends this value. The browser only dis
 | Command | Action Economy cost | Notes |
 |---|---:|---|
 | Inspect | 0 | Utility mode; no authoritative state change |
-| Move | 10 per terrain traversal-cost unit | Normal terrain cost 1 = 10; rough cost 2 = 20 |
+| Move | 25 per terrain traversal-cost unit | Normal terrain cost 1 = 25; rough cost 2 = 50 |
 | Basic Attack | 30 | Can be used more than once if enough economy remains and legality allows |
 | Guard | 30 | Applies Guarded; see §6 |
 | Recover | 50 | Restores 10% max HP; see §7 |
@@ -81,9 +83,9 @@ There is no hidden browser-side refund or second Action pool. Multiple moves/act
 
 Examples:
 
-- Move two normal tiles (20) → Basic Attack (30) → Move one tile (10) → Guard (30) → finish facing: 90 spent.
+- Move one normal tile (25) → Basic Attack (30) → Guard (30) → finish facing: 85 spent.
 - Basic Attack (30) → Basic Attack (30) → Basic Attack (30) → finish facing: 90 spent, if every attack is otherwise legal.
-- Move through one rough tile (20) → Recover (50) → Move two normal tiles (20) → finish facing: 90 spent.
+- Move through one rough tile (50) → Recover (50) → finish facing: 100 spent.
 
 ## 5. Basic Attack v2 starter formula
 
