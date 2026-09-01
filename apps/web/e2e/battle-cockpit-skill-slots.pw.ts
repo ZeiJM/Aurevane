@@ -40,6 +40,63 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   await expect(healAction).toContainText('50 AP')
   const slotHotkeyBefore = await healAction.locator(':scope > span').textContent()
 
+  const cardGeometry = await healCard.evaluate((card) => {
+    const action = card.querySelector<HTMLElement>('[data-battle-command="recover"]')
+    const hotkey = action?.querySelector<HTMLElement>(':scope > span')
+    const label = action?.querySelector<HTMLElement>(':scope > strong')
+    const cost = action?.querySelector<HTMLElement>(':scope > small')
+    const artwork = card.querySelector<HTMLElement>('button[aria-haspopup="listbox"]')
+    const image = artwork?.querySelector<HTMLImageElement>('img')
+    if (!action || !hotkey || !label || !cost || !artwork || !image) return null
+
+    const actionRect = action.getBoundingClientRect()
+    const hotkeyRect = hotkey.getBoundingClientRect()
+    const labelRect = label.getBoundingClientRect()
+    const costRect = cost.getBoundingClientRect()
+    const artworkRect = artwork.getBoundingClientRect()
+    const imageRect = image.getBoundingClientRect()
+    return {
+      actionLeft: actionRect.left,
+      hotkeyDisplay: getComputedStyle(hotkey).display,
+      hotkeyLeft: hotkeyRect.left,
+      hotkeyTop: hotkeyRect.top,
+      hotkeyBottom: hotkeyRect.bottom,
+      labelLeft: labelRect.left,
+      labelTop: labelRect.top,
+      labelBottom: labelRect.bottom,
+      costLeft: costRect.left,
+      costTop: costRect.top,
+      costBottom: costRect.bottom,
+      artworkWidth: artworkRect.width,
+      artworkHeight: artworkRect.height,
+      imageWidth: imageRect.width,
+      imageHeight: imageRect.height,
+      artworkCenterX: (artworkRect.left + artworkRect.right) / 2,
+      artworkCenterY: (artworkRect.top + artworkRect.bottom) / 2,
+      imageCenterX: (imageRect.left + imageRect.right) / 2,
+      imageCenterY: (imageRect.top + imageRect.bottom) / 2,
+    }
+  })
+
+  expect(cardGeometry).not.toBeNull()
+  if (!cardGeometry) return
+  expect(cardGeometry.labelLeft).toBeGreaterThan(cardGeometry.actionLeft)
+  expect(Math.abs(cardGeometry.labelLeft - cardGeometry.costLeft)).toBeLessThanOrEqual(1)
+  expect(cardGeometry.imageWidth).toBeGreaterThanOrEqual(cardGeometry.artworkWidth - 2)
+  expect(cardGeometry.imageHeight).toBeGreaterThanOrEqual(cardGeometry.artworkHeight - 2)
+  expect(Math.abs(cardGeometry.imageCenterX - cardGeometry.artworkCenterX)).toBeLessThanOrEqual(1)
+  expect(Math.abs(cardGeometry.imageCenterY - cardGeometry.artworkCenterY)).toBeLessThanOrEqual(1)
+
+  if (testInfo.project.name === 'mobile-chromium') {
+    expect(cardGeometry.hotkeyDisplay).toBe('none')
+    expect(cardGeometry.labelBottom).toBeLessThanOrEqual(cardGeometry.costTop + 1)
+  } else {
+    expect(cardGeometry.hotkeyDisplay).not.toBe('none')
+    expect(Math.abs(cardGeometry.hotkeyLeft - cardGeometry.labelLeft)).toBeLessThanOrEqual(1)
+    expect(cardGeometry.hotkeyBottom).toBeLessThanOrEqual(cardGeometry.labelTop)
+    expect(cardGeometry.labelBottom).toBeLessThanOrEqual(cardGeometry.costTop)
+  }
+
   const initialImage = healArtwork.locator('img')
   await expect(initialImage).toHaveAttribute('src', '/media/skills/hp-recovery.jpg')
   await expect
