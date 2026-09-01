@@ -57,10 +57,11 @@ function commandIsActive(label: string): boolean {
 }
 
 function confirmButton(): HTMLButtonElement | null {
-  return (
-    Array.from(document.querySelectorAll<HTMLButtonElement>('footer button')).find((button) =>
-      button.textContent?.startsWith('Confirm Action'),
-    ) ?? null
+  // The first press selects Guard/Recover and starts its preview request. The second press must
+  // commit through the real footer action, so use the stable unified footer structure rather than
+  // presentation text that may be decorated by battle UI polish.
+  return document.querySelector<HTMLButtonElement>(
+    'footer[data-unified-battle-footer="true"] > div > button:nth-of-type(2)',
   )
 }
 
