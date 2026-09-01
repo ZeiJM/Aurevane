@@ -61,7 +61,8 @@ function combatantLabel(value: unknown): string {
 function actionLabel(value: unknown): string {
   if (value === 'basic.attack.unarmed.basic') return 'Basic Attack'
   if (value === 'basic.guard') return 'Guard'
-  if (value === 'basic.recover') return 'Recover'
+  if (value === 'basic.recover') return 'HP Recovery'
+  if (value === 'basic.recover.mp') return 'MP Recovery'
   if (typeof value !== 'string' || value.length === 0) return 'Action'
   return value
     .split(/[._-]+/u)
@@ -72,7 +73,7 @@ function actionLabel(value: unknown): string {
 
 function actionKind(value: unknown): BattleLogKind {
   if (value === 'basic.guard') return 'defense'
-  if (value === 'basic.recover') return 'recovery'
+  if (value === 'basic.recover' || value === 'basic.recover.mp') return 'recovery'
   return 'offense'
 }
 
@@ -275,9 +276,9 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
         actorCombatantId,
         targetCombatantId,
         actionId,
-        actionLabel: actionId ? actionLabel(actionId) : 'Recover',
+        actionLabel: actionId ? actionLabel(actionId) : 'HP Recovery',
         kind: 'recovery',
-        headline: actionId ? actionLabel(actionId) : 'Recover',
+        headline: actionId ? actionLabel(actionId) : 'HP Recovery',
         tone: 'healing',
         facts: [
           ...fact(amount === null ? null : `+${amount} HP`, 'healing'),
@@ -303,21 +304,29 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
       })
     }
     case 'resource_changed': {
+      const actorCombatantId = stringValue(event.sourceCombatantId)
       const targetCombatantId = stringValue(event.targetCombatantId)
+      const actionId = stringValue(event.actionId)
       const delta = numberValue(event.delta)
       const resource = stringValue(event.resource)?.toUpperCase() ?? 'RESOURCE'
-      const direction = delta !== null && delta < 0 ? 'spent' : 'gained'
+      const recovery = actionId === 'basic.recover.mp' && delta !== null && delta > 0
+      const direction = recovery ? 'recovered' : delta !== null && delta < 0 ? 'spent' : 'gained'
       const amount = delta === null ? 'resolved' : Math.abs(delta)
+      const label = actionId ? actionLabel(actionId) : null
       return createEntry(record, eventType, {
         message: `${combatantLabel(event.targetCombatantId)} ${direction} ${amount} ${resource}.`,
         messageTemplate: '{target} {direction} {amount} {resource}.',
         templateValues: { direction, amount: String(amount), resource },
+        actorCombatantId,
         targetCombatantId,
-        kind: 'resource',
-        headline: resource,
-        tone: delta !== null && delta > 0 ? 'benefit' : 'neutral',
+        actionId,
+        actionLabel: label,
+        kind: recovery ? 'recovery' : 'resource',
+        headline: recovery ? 'MP Recovery' : resource,
+        tone: recovery ? 'healing' : delta !== null && delta > 0 ? 'benefit' : 'neutral',
         facts: fact(
           delta === null ? resource : `${delta > 0 ? '+' : '−'}${Math.abs(delta)} ${resource}`,
+          recovery ? 'healing' : 'neutral',
         ),
       })
     }
