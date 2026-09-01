@@ -12,6 +12,7 @@ import type { BattleLogView } from '@/server/battle/battle-log-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
 import styles from './battle-completion-panel.module.css'
+import { formatBattleLogForClipboard } from './battle-log-clipboard'
 import { BattleLogFeed, countBattleLogActions } from './battle-log-feed'
 import { useBattlePlayerName } from './battle-runtime-context'
 
@@ -50,16 +51,6 @@ function readScenarioSourceId(battle: BattleSessionView): string | null {
 function readAiDifficulty(sourceId: string | null): 'easy' | 'standard' | 'high' {
   const value = sourceId?.split(':').at(-1)
   return value === 'easy' || value === 'high' || value === 'standard' ? value : 'standard'
-}
-
-function formatFullLog(log: BattleLogView): string {
-  return [...log.entries]
-    .reverse()
-    .map((entry) => {
-      const when = new Date(entry.occurredAt).toISOString()
-      return `[${when}] v${entry.battleVersion}.${entry.eventIndex} ${entry.message}`
-    })
-    .join('\n')
 }
 
 export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
@@ -123,7 +114,9 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
     const current = await loadBattleLog()
     if (!current) return
     try {
-      await navigator.clipboard.writeText(formatFullLog(current))
+      await navigator.clipboard.writeText(
+        formatBattleLogForClipboard(current.entries, { playerName: playerName ?? undefined }),
+      )
       setCopyNotice('Full battle log copied')
       window.setTimeout(() => setCopyNotice(null), 1800)
     } catch {
