@@ -1,16 +1,23 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
 import styles from './battle-coordinate-toggle.module.css'
 
 const MOBILE_BATTLE_MEDIA = '(max-width: 820px)'
 
+function applyCoordinateVisibility(battlefield: HTMLElement | null, showCoordinates: boolean) {
+  if (!battlefield) return
+  if (showCoordinates) battlefield.dataset.showCoordinates = 'true'
+  else delete battlefield.dataset.showCoordinates
+}
+
 export function BattleCoordinateToggle() {
   const [legend, setLegend] = useState<HTMLElement | null>(null)
-  const [battlefield, setBattlefield] = useState<HTMLElement | null>(null)
   const [showCoordinates, setShowCoordinates] = useState(false)
+  const battlefieldRef = useRef<HTMLElement | null>(null)
+  const showCoordinatesRef = useRef(false)
 
   useEffect(() => {
     let frame = 0
@@ -30,7 +37,11 @@ export function BattleCoordinateToggle() {
         nextLegend.style.setProperty('opacity', '1', 'important')
       }
 
-      setBattlefield((current) => (current === nextBattlefield ? current : nextBattlefield))
+      if (battlefieldRef.current !== nextBattlefield) {
+        applyCoordinateVisibility(battlefieldRef.current, false)
+        battlefieldRef.current = nextBattlefield
+      }
+      applyCoordinateVisibility(nextBattlefield, showCoordinatesRef.current)
       setLegend((current) => (current === nextLegend ? current : nextLegend))
     }
 
@@ -48,18 +59,10 @@ export function BattleCoordinateToggle() {
       observer.disconnect()
       mobileMedia.removeEventListener('change', scheduleLocate)
       if (frame !== 0) window.cancelAnimationFrame(frame)
+      applyCoordinateVisibility(battlefieldRef.current, false)
+      battlefieldRef.current = null
     }
   }, [])
-
-  useEffect(() => {
-    if (!battlefield) return
-    if (showCoordinates) battlefield.dataset.showCoordinates = 'true'
-    else delete battlefield.dataset.showCoordinates
-
-    return () => {
-      delete battlefield.dataset.showCoordinates
-    }
-  }, [battlefield, showCoordinates])
 
   if (!legend) return null
 
@@ -71,7 +74,12 @@ export function BattleCoordinateToggle() {
       aria-checked={showCoordinates}
       className={styles.coordinateToggle}
       data-terrain-coordinate-toggle="true"
-      onClick={() => setShowCoordinates((current) => !current)}
+      onClick={() => {
+        const nextShowCoordinates = !showCoordinates
+        showCoordinatesRef.current = nextShowCoordinates
+        setShowCoordinates(nextShowCoordinates)
+        applyCoordinateVisibility(battlefieldRef.current, nextShowCoordinates)
+      }}
     >
       <i aria-hidden="true" />
       <span>Coords</span>
