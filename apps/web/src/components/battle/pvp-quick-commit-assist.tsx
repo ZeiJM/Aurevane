@@ -5,9 +5,9 @@ import { useEffect, useRef } from 'react'
 const DOUBLE_TAP_WINDOW_MS = 760
 const CONFIRM_WAIT_MS = 1500
 const SYNTHETIC_CLICK_SUPPRESS_MS = 520
-const QUICK_COMMANDS = ['Move', 'Basic Attack', 'Guard', 'Recover'] as const
+const QUICK_COMMAND_SLOTS = ['move', 'attack', 'guard', 'recover'] as const
 
-type QuickCommand = (typeof QUICK_COMMANDS)[number]
+type QuickCommandSlot = (typeof QUICK_COMMAND_SLOTS)[number]
 
 function textOf(element: Element | null): string {
   return element?.textContent?.trim() ?? ''
@@ -27,27 +27,31 @@ function confirmButton(): HTMLButtonElement | null {
   )
 }
 
-function isQuickCommand(value: string): value is QuickCommand {
-  return QUICK_COMMANDS.some((command) => command === value)
+function isQuickCommandSlot(value: string): value is QuickCommandSlot {
+  return QUICK_COMMAND_SLOTS.some((slot) => slot === value)
+}
+
+function commandSlot(button: HTMLButtonElement | null): QuickCommandSlot | null {
+  const slot = button?.dataset.battleCommand ?? ''
+  return isQuickCommandSlot(slot) ? slot : null
 }
 
 function commandButton(target: Element | null): HTMLButtonElement | null {
-  const button = target?.closest<HTMLButtonElement>('section[aria-label="Command Deck"] button')
-  if (!button) return null
-  const label = textOf(button.querySelector('strong'))
-  return isQuickCommand(label) ? button : null
+  const button = target?.closest<HTMLButtonElement>(
+    'section[aria-label="Command Deck"] button[data-battle-command]',
+  )
+  return commandSlot(button ?? null) ? (button ?? null) : null
 }
 
-function activeCommandLabel(): QuickCommand | null {
+function activeCommandSlot(): QuickCommandSlot | null {
   const root = battleRoot()
   if (!root) return null
   const active = Array.from(
     root.querySelectorAll<HTMLButtonElement>(
-      'section[aria-label="Command Deck"] button[data-active]',
+      'section[aria-label="Command Deck"] button[data-active][data-battle-command]',
     ),
-  ).find((button) => isQuickCommand(textOf(button.querySelector('strong'))))
-  const label = active ? textOf(active.querySelector('strong')) : ''
-  return isQuickCommand(label) ? label : null
+  ).find((button) => commandSlot(button) !== null)
+  return commandSlot(active ?? null)
 }
 
 function battlefieldTile(target: Element | null): HTMLButtonElement | null {
@@ -55,14 +59,14 @@ function battlefieldTile(target: Element | null): HTMLButtonElement | null {
     target?.closest<HTMLButtonElement>('#battlefield button[aria-label^="Tile "]') ?? null
   if (!tile || tile.dataset.facingGuide === 'true') return null
 
-  const active = activeCommandLabel()
-  if (active === 'Move') {
+  const active = activeCommandSlot()
+  if (active === 'move') {
     return tile.hasAttribute('data-reachable') || tile.hasAttribute('data-path') ? tile : null
   }
-  if (active === 'Basic Attack') {
+  if (active === 'attack') {
     return tile.dataset.target === 'enemy' || tile.dataset.attackRange === 'legal' ? tile : null
   }
-  if (active === 'Guard' || active === 'Recover') {
+  if (active === 'guard' || active === 'recover') {
     return tile.dataset.target === 'friendly' || tile.dataset.targetRelation === 'friendly'
       ? tile
       : null
@@ -72,32 +76,33 @@ function battlefieldTile(target: Element | null): HTMLButtonElement | null {
 
 function quickKey(target: Element | null): string | null {
   const command = commandButton(target)
-  if (command) return `command:${textOf(command.querySelector('strong'))}`
+  const slot = commandSlot(command)
+  if (slot) return `command:${slot}`
 
   const tile = battlefieldTile(target)
-  const active = activeCommandLabel()
+  const active = activeCommandSlot()
   if (tile && active) return `tile:${active}:${tile.getAttribute('aria-label') ?? ''}`
   return null
 }
 
-function commandLabelForKey(key: string): QuickCommand | null {
+function commandSlotForKey(key: string): QuickCommandSlot | null {
   if (key.startsWith('command:')) {
-    const label = key.slice('command:'.length)
-    return isQuickCommand(label) ? label : null
+    const slot = key.slice('command:'.length)
+    return isQuickCommandSlot(slot) ? slot : null
   }
   if (!key.startsWith('tile:')) return null
-  const labelEnd = key.indexOf(':', 'tile:'.length)
-  if (labelEnd < 0) return null
-  const label = key.slice('tile:'.length, labelEnd)
-  return isQuickCommand(label) ? label : null
+  const slotEnd = key.indexOf(':', 'tile:'.length)
+  if (slotEnd < 0) return null
+  const slot = key.slice('tile:'.length, slotEnd)
+  return isQuickCommandSlot(slot) ? slot : null
 }
 
 function requestConfirmWhenReady(key: string) {
   const started = performance.now()
-  const commandLabel = commandLabelForKey(key)
+  const expectedSlot = commandSlotForKey(key)
 
   const attempt = () => {
-    if (commandLabel && activeCommandLabel() !== commandLabel) return
+    if (expectedSlot && activeCommandSlot() !== expectedSlot) return
 
     const confirm = confirmButton()
     if (confirm && !confirm.disabled) {
@@ -142,7 +147,7 @@ export function PvpQuickCommitAssist() {
       const confirm = confirmButton()
 
       // Tap one still uses the native authoritative preview path. Tap two commits that same legal
-      // Move/Attack/Guard/Recover preview on both PvE and PvP mobile battles.
+      // category-slot preview on both PvE and PvP mobile battles.
       if (confirm && !confirm.disabled) {
         event.preventDefault()
         event.stopImmediatePropagation()
@@ -152,7 +157,7 @@ export function PvpQuickCommitAssist() {
       }
 
       // A slower preview may not have enabled Confirm Action by the second pointer-up. Let the
-      // native click finish selecting the same target, then commit as soon as that matching mode's
+      // native click finish selecting the same target, then commit as soon as that matching slot's
       // server-backed preview becomes legal. Changing modes cancels the wait.
       requestConfirmWhenReady(key)
     }

@@ -4,18 +4,33 @@ import {
   COMBAT_KEYBIND_ACTIONS,
   DEFAULT_COMBAT_KEYBINDS,
   combatKeybindChord,
+  formatCombatKeybind,
   parseCombatKeybindMap,
   type CombatKeybindAction,
   type CombatKeybindMap,
 } from '@aurevane/validation/player/combat-controls'
 import { useEffect, useRef, useState } from 'react'
 
-type SelfAction = Extract<CombatKeybindAction, 'guard' | 'recover'>
+type CommandSlot = 'inspect' | 'move' | 'attack' | 'guard' | 'recover' | 'finish'
+type CategoryAction = Extract<CombatKeybindAction, 'move' | 'basicAttack' | 'guard' | 'recover'>
 
-const SELF_ACTION_LABELS: Record<SelfAction, string> = {
-  guard: 'Guard',
-  recover: 'Recover',
+type SlotBinding = readonly [CombatKeybindAction, CommandSlot]
+
+const CATEGORY_ACTION_SLOTS: Record<CategoryAction, CommandSlot> = {
+  move: 'move',
+  basicAttack: 'attack',
+  guard: 'guard',
+  recover: 'recover',
 }
+
+const VISIBLE_COMMAND_SLOTS: readonly SlotBinding[] = [
+  ['inspect', 'inspect'],
+  ['move', 'move'],
+  ['basicAttack', 'attack'],
+  ['guard', 'guard'],
+  ['recover', 'recover'],
+  ['endTurn', 'finish'],
+]
 
 function isTextEntryTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false
@@ -37,16 +52,18 @@ function configuredAction(bindings: CombatKeybindMap, chord: string): CombatKeyb
   )
 }
 
-function commandButton(label: string): HTMLButtonElement | null {
-  return (
-    Array.from(
-      document.querySelectorAll<HTMLButtonElement>('section[aria-label="Command Deck"] button'),
-    ).find((button) => button.querySelector('strong')?.textContent?.trim() === label) ?? null
+function isCategoryAction(action: CombatKeybindAction): action is CategoryAction {
+  return action === 'move' || action === 'basicAttack' || action === 'guard' || action === 'recover'
+}
+
+function commandButton(slot: CommandSlot): HTMLButtonElement | null {
+  return document.querySelector<HTMLButtonElement>(
+    `section[aria-label="Command Deck"] button[data-battle-command="${slot}"]`,
   )
 }
 
-function commandIsActive(label: string): boolean {
-  const button = commandButton(label)
+function commandIsActive(slot: CommandSlot): boolean {
+  const button = commandButton(slot)
   return Boolean(
     button &&
     !button.disabled &&
@@ -56,10 +73,20 @@ function commandIsActive(label: string): boolean {
   )
 }
 
+function syncVisibleCommandHotkeys(bindings: CombatKeybindMap) {
+  for (const [action, slot] of VISIBLE_COMMAND_SLOTS) {
+    const button = commandButton(slot)
+    const badge = button?.querySelector<HTMLElement>(':scope > span')
+    if (!badge) continue
+    const binding = formatCombatKeybind(bindings[action])
+    const label = action === 'move' || action === 'endTurn' ? `${binding} · WASD` : binding
+    if (badge.textContent !== label) badge.textContent = label
+  }
+}
+
 function confirmButton(): HTMLButtonElement | null {
-  // The first press selects Guard/Recover and starts its preview request. The second press must
-  // commit through the real footer action, so use the stable unified footer structure rather than
-  // presentation text that may be decorated by battle UI polish.
+  // A second press for the current self-action slot commits through the real unified footer, so
+  // the shortcut never bypasses the authoritative preview/confirmation path.
   return document.querySelector<HTMLButtonElement>(
     'footer[data-unified-battle-footer="true"] > div > button:nth-of-type(2)',
   )
@@ -90,13 +117,35 @@ export function BattleSelfActionQuickCommitAssist() {
   }, [])
 
   useEffect(() => {
-    function commitWhenPreviewReady(label: string) {
+    let frame = 0
+    const sync = () => {
+      frame = 0
+      syncVisibleCommandHotkeys(bindings)
+    }
+    const schedule = () => {
+      if (frame !== 0) return
+      frame = window.requestAnimationFrame(sync)
+    }
+
+    sync()
+    const observer = new MutationObserver(schedule)
+    const deck = document.querySelector('section[aria-label="Command Deck"]')
+    if (deck) observer.observe(deck, { childList: true, subtree: true })
+
+    return () => {
+      observer.disconnect()
+      if (frame !== 0) window.cancelAnimationFrame(frame)
+    }
+  }, [bindings])
+
+  useEffect(() => {
+    function commitWhenPreviewReady(slot: CommandSlot) {
       const sequence = ++commitSequence.current
       let attempts = 0
 
       const tryCommit = () => {
         attempts += 1
-        if (sequence !== commitSequence.current || attempts > 40 || !commandIsActive(label)) {
+        if (sequence !== commitSequence.current || attempts > 40 || !commandIsActive(slot)) {
           return true
         }
 
@@ -128,17 +177,26 @@ export function BattleSelfActionQuickCommitAssist() {
       }
 
       const action = configuredAction(bindings, eventChord(event))
-      if (action !== 'guard' && action !== 'recover') return
+      if (!action || !isCategoryAction(action)) return
 
-      const label = SELF_ACTION_LABELS[action]
-      if (!commandIsActive(label)) {
-        commitSequence.current += 1
+      const slot = CATEGORY_ACTION_SLOTS[action]
+      const button = commandButton(slot)
+      if (!button) return
+
+      if ((action === 'guard' || action === 'recover') && commandIsActive(slot)) {
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        commitWhenPreviewReady(slot)
         return
       }
 
+      // Category hotkeys belong to the cockpit slot, not to the currently displayed skill name.
+      // Clicking the actual button preserves every existing preview, legality, and server-authority
+      // boundary while allowing a future skill swap to keep the player's configured keybind.
       event.preventDefault()
       event.stopImmediatePropagation()
-      commitWhenPreviewReady(label)
+      commitSequence.current += 1
+      button.click()
     }
 
     window.addEventListener('keydown', handleKeyDown, true)

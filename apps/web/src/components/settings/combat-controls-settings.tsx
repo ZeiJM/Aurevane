@@ -20,12 +20,22 @@ interface CombatControlsSettingsProps {
 const ACTION_COPY: Record<CombatKeybindAction, { label: string; description: string }> = {
   inspect: { label: 'Inspect', description: 'Open optional terrain and combatant inspection.' },
   move: {
-    label: 'Move',
-    description: 'Enter movement planning. A normal tile costs 25 AP.',
+    label: 'Movement Skill',
+    description:
+      'Activate the currently equipped Movement skill. With Move equipped, a normal tile costs 25 AP.',
   },
-  basicAttack: { label: 'Basic Attack', description: 'Enter normal Basic Attack targeting.' },
-  guard: { label: 'Guard', description: 'Preview the defensive Guard action.' },
-  recover: { label: 'Recover', description: 'Preview the self-healing Recover action.' },
+  basicAttack: {
+    label: 'Attack Skill',
+    description: 'Activate the currently equipped Attack skill and enter its targeting or preview flow.',
+  },
+  guard: {
+    label: 'Defense Skill',
+    description: 'Activate the currently equipped Defense skill and enter its preview flow.',
+  },
+  recover: {
+    label: 'Heal Skill',
+    description: 'Activate the currently equipped Heal skill, such as HP Recovery or MP Recovery.',
+  },
   endTurn: {
     label: 'Finish Turn',
     description: 'Choose final facing; the chosen direction immediately ends the turn.',
@@ -143,10 +153,11 @@ export function CombatControlsSettings({ initialBindings }: CombatControlsSettin
   return (
     <section className={styles.panel} aria-label="Combat controls settings">
       <p className={styles.intro}>
-        Keybinds follow your account and trigger the same visible controls you can click. They never
-        bypass battle previews, confirmation, legality checks, or server authority. While Move is
-        active, WASD and the arrow keys select adjacent destinations; Enter confirms a legal
-        proposal.
+        Keybinds follow your account and trigger the same visible cockpit slots you can click.
+        Movement, Attack, Defense, and Heal bindings stay with their slot when you switch the
+        equipped skill. They never bypass battle previews, confirmation, legality checks, or server
+        authority. When Move is the equipped Movement skill and active, WASD and the arrow keys
+        select adjacent destinations; Enter confirms a legal proposal.
       </p>
 
       <div className={styles.grid}>
