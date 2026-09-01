@@ -197,8 +197,7 @@
   border: 1px solid rgba(var(--skill-rgb), 0.62);
   border-radius: 0.5rem;
   background:
-    radial-gradient(circle at 50% 45%, rgba(var(--skill-rgb), 0.11), transparent 70%),
-    #05080c;
+    radial-gradient(circle at 50% 45%, rgba(var(--skill-rgb), 0.11), transparent 70%), #05080c;
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.045),
     inset 0 0 1rem rgba(0, 0, 0, 0.22),
