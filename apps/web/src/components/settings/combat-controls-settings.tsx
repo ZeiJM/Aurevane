@@ -26,7 +26,8 @@ const ACTION_COPY: Record<CombatKeybindAction, { label: string; description: str
   },
   basicAttack: {
     label: 'Attack Skill',
-    description: 'Activate the currently equipped Attack skill and enter its targeting or preview flow.',
+    description:
+      'Activate the currently equipped Attack skill and enter its targeting or preview flow.',
   },
   guard: {
     label: 'Defense Skill',
