@@ -255,7 +255,7 @@
   white-space: nowrap;
 }
 
-@media (min-width: 821px) {
+@media (min-width: 821px), (any-hover: hover) and (any-pointer: fine) {
   .windowHeader button[data-hide-desktop='true'] {
     display: none;
   }

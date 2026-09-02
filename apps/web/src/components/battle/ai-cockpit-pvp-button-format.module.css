@@ -48,7 +48,7 @@
 
 /* PvP desktop now treats the turn countdown as a peer of the command heading rather than tiny
    metadata. Mirror that exact readability change in AI without altering the cockpit footprint. */
-@media (min-width: 821px) {
+@media (min-width: 821px), (any-hover: hover) and (any-pointer: fine) {
   :global(
     main:not([data-pvp-battle='true'])
       section[aria-label='Command Deck']

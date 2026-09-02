@@ -282,7 +282,7 @@
   box-shadow: 0 0 0.8rem rgba(83, 173, 105, 0.18);
 }
 
-@media (min-width: 881px) {
+@media (min-width: 881px), (any-hover: hover) and (any-pointer: fine) {
   :global(header:has(> button[aria-label^='Victory conditions'])) {
     grid-template-columns:
       minmax(10rem, 1fr) minmax(13rem, 24rem) 8.4rem
@@ -305,7 +305,7 @@
   }
 }
 
-@media (max-width: 880px) {
+@media (max-width: 880px) and (any-hover: none) and (any-pointer: coarse) {
   :global(header:has(> [data-victory-criteria-layout='true'])) {
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-rows: auto auto auto;
@@ -341,7 +341,7 @@
 }
 
 /* desktop-centered-battle-header-v2 */
-@media (min-width: 881px) {
+@media (min-width: 881px), (any-hover: hover) and (any-pointer: fine) {
   :global(header:has(> [data-victory-criteria-layout='true'])) {
     grid-template-columns: minmax(10rem, 1fr) minmax(22rem, 35rem) minmax(10rem, 1fr) !important;
     grid-template-rows: auto auto !important;

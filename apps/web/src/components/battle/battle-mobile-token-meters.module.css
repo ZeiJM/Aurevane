@@ -2,7 +2,7 @@
   display: none;
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px) and (any-hover: none) and (any-pointer: coarse) {
   /* Mobile quick-read resources live just beneath the circular battlefield portrait, matching the
      approved reference: HP first in red, MP second in blue. Center the pair on the token so neither
      rail can drift into an adjacent tile, and keep the two resources visually tight. */

@@ -90,7 +90,7 @@
    The coordinate switch must never inherit a stretching button rule: when it became a tall red
    panel it consumed the battlefield's flexible row and made the 9x7 board shrink. Keep all three
    footer controls on one natural-height row with matching footprints. */
-@media (min-width: 821px) {
+@media (min-width: 821px), (any-hover: hover) and (any-pointer: fine) {
   .terrainKey,
   :global(
     section#battlefield[data-ai-terrain-layout='true']
@@ -120,7 +120,7 @@
   }
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px) and (any-hover: none) and (any-pointer: coarse) {
   .legend {
     gap: 0.25rem;
     padding-right: 0.3rem;

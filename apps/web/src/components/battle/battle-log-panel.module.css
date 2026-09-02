@@ -222,7 +222,7 @@
   text-align: center;
 }
 
-@media (min-width: 821px) {
+@media (min-width: 821px), (any-hover: hover) and (any-pointer: fine) {
   :global(#battlefield[data-desktop-battle-log-open='true']) {
     --battle-log-dock-width: clamp(16.5rem, 21vw, 21rem);
     --battle-log-dock-gap: clamp(0.6rem, 0.8vw, 0.85rem);
@@ -287,7 +287,7 @@
   }
 }
 
-@media (max-width: 820px) {
+@media (max-width: 820px) and (any-hover: none) and (any-pointer: coarse) {
   .docked {
     display: none;
   }

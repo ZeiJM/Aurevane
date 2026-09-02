@@ -2,7 +2,7 @@
   display: none;
 }
 
-@media (min-width: 821px) {
+@media (min-width: 821px), (any-hover: hover) and (any-pointer: fine) {
   :global(main[data-pvp-battle='true'][data-pvp-desktop-parity='true'] > header:first-child) {
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
   }

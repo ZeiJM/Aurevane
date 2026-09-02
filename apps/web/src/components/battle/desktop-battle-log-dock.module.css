@@ -2,7 +2,7 @@
   display: none;
 }
 
-@media (min-width: 821px) {
+@media (min-width: 821px), (any-hover: hover) and (any-pointer: fine) {
   /* Keep the shared desktop Battle Log in the board row only. The terrain-key footer remains its
      own row in both battle modes, and the measured viewport insets trim the dock to the exact
      rendered 9x7 tactical grid instead of the taller board viewport. The approved inward shift

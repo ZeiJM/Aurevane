@@ -21,6 +21,10 @@ import type { BattleSessionView } from '@/server/battle/battle-session-service'
 import { pvpParticipantAccent } from './battle-combatant-colors'
 import { BattleFacingIndicator } from './battle-facing-indicator'
 import {
+  BATTLE_INSPECT_CLOSED_EVENT,
+  type BattleInspectClosedDetail,
+} from './battle-inspect-lifecycle'
+import {
   buildReachablePaths,
   facingGlyph,
   meterPercent,
@@ -223,6 +227,8 @@ export function BattleExperience({
   const battlePollController = useRef<AbortController | null>(null)
   const recruitAttemptedVersion = useRef<number | null>(null)
   const recruitLock = useRef(false)
+  const modeRef = useRef<Mode>('none')
+  modeRef.current = mode
 
   const { selectedSkillId, selectSkill } = useBattleSkillSelections(
     initialBattle.battleSessionId,
@@ -323,6 +329,26 @@ export function BattleExperience({
     setSelectedUnitId(null)
     setPreviewPending(false)
   }, [])
+
+  useEffect(() => {
+    function handleInspectClosed(event: Event) {
+      const detail = (event as CustomEvent<BattleInspectClosedDetail>).detail
+      if (detail?.battleSessionId !== initialBattle.battleSessionId || modeRef.current !== 'inspect') {
+        return
+      }
+
+      clearPlanning()
+      setNotice('Inspection closed. Choose your action.')
+      window.requestAnimationFrame(() => {
+        document
+          .querySelector<HTMLElement>('main[data-unified-battle="true"]')
+          ?.focus({ preventScroll: true })
+      })
+    }
+
+    window.addEventListener(BATTLE_INSPECT_CLOSED_EVENT, handleInspectClosed)
+    return () => window.removeEventListener(BATTLE_INSPECT_CLOSED_EVENT, handleInspectClosed)
+  }, [clearPlanning, initialBattle.battleSessionId])
 
   const refreshBattle = useCallback(
     async (message = 'Battle state reloaded.') => {
@@ -1024,6 +1050,8 @@ export function BattleExperience({
       data-battle-kind={runtime.kind}
       data-pvp-battle={runtime.kind === 'pvp' ? 'true' : undefined}
       data-local-turn={localTurn || undefined}
+      data-battle-keyboard-focus-root="true"
+      tabIndex={-1}
       aria-busy={recruitPending || undefined}
     >
       <header className={styles.header} data-unified-battle-header="true">

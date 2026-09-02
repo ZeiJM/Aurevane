@@ -5,7 +5,7 @@
 /* Desktop-only authority for the approved PvP header geometry. The native Victory Conditions
    button stays inside the Action Economy container; no duplicate portal control is used. PvP keeps
    its centered three-column layout while adopting the AI battle header's visual measurements. */
-@media (min-width: 821px) {
+@media (min-width: 821px), (any-hover: hover) and (any-pointer: fine) {
   :global(main[data-pvp-battle='true'][data-pvp-desktop-parity='true']) {
     height: 100dvh !important;
   }
@@ -278,7 +278,7 @@
 
 /* Mobile has a single authoritative turn readout in the command deck. The extra notice above the
    battlefield repeats the same state and wastes valuable vertical space, so remove it entirely. */
-@media (max-width: 820px) {
+@media (max-width: 820px) and (any-hover: none) and (any-pointer: coarse) {
   :global([data-pvp-notice='true']) {
     display: none !important;
   }

@@ -2,7 +2,7 @@
   display: none;
 }
 
-@media (min-width: 821px) {
+@media (min-width: 821px), (any-hover: hover) and (any-pointer: fine) {
   :global(
     main[data-unified-battle='true'][data-battle-visual-contract='true']
       > header[data-unified-battle-header='true'][data-battle-shared-header='true']

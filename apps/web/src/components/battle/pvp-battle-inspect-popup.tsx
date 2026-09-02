@@ -1,7 +1,7 @@
 'use client'
 
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { getStarterPortraitImageAssetId } from '@/media/character'
@@ -14,9 +14,11 @@ import {
   statusIsBeneficial,
   statusLabel,
 } from './battle-effect-summary'
+import { dispatchBattleInspectClosed } from './battle-inspect-lifecycle'
 import styles from './mobile-battle-combatant-popup.module.css'
 
 const ACTION_ECONOMY_KEY = 'pv1f.action-economy'
+const DESKTOP_POINTER_QUERY = '(any-hover: hover) and (any-pointer: fine)'
 
 type GridPosition = { x: number; y: number }
 type BattleSnapshot = BattleSessionView['snapshot']
@@ -128,12 +130,21 @@ export function PvpBattleInspectPopup({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<SelectedCombatant | null>(null)
+  const openRef = useRef(false)
+
+  const closeInspect = useCallback(() => {
+    if (!openRef.current) return
+    openRef.current = false
+    setOpen(false)
+    dispatchBattleInspectClosed(battleSessionId)
+  }, [battleSessionId])
 
   useEffect(() => {
     let requestSequence = 0
 
     async function openCombatant(position: GridPosition) {
       const sequence = ++requestSequence
+      openRef.current = true
       setOpen(true)
       setLoading(!battleView)
       setError(null)
@@ -169,7 +180,7 @@ export function PvpBattleInspectPopup({
     }
 
     function handleBattlefieldClick(event: MouseEvent) {
-      if (!inspectModeActive()) return
+      if (window.matchMedia(DESKTOP_POINTER_QUERY).matches || !inspectModeActive()) return
       const target = event.target instanceof Element ? event.target : null
       const tile = target?.closest<HTMLButtonElement>(
         '#battlefield button[aria-label^="Tile "][aria-label*="occupied by"]',
@@ -185,7 +196,7 @@ export function PvpBattleInspectPopup({
     }
 
     function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') setOpen(false)
+      if (event.key === 'Escape') closeInspect()
     }
 
     document.addEventListener('click', handleBattlefieldClick, true)
@@ -195,7 +206,7 @@ export function PvpBattleInspectPopup({
       document.removeEventListener('click', handleBattlefieldClick, true)
       window.removeEventListener('keydown', handleEscape)
     }
-  }, [battleSessionId, battleView, metadata])
+  }, [battleSessionId, battleView, closeInspect, metadata])
 
   const healthPercent = useMemo(() => {
     if (!selected || selected.combatant.maxHp <= 0) return 0
@@ -213,7 +224,7 @@ export function PvpBattleInspectPopup({
     <div
       className={styles.backdrop}
       data-pvp-inspect-popup="true"
-      onPointerDown={() => setOpen(false)}
+      onPointerDown={closeInspect}
     >
       <section
         className={styles.popup}

@@ -1151,7 +1151,7 @@
   }
 }
 
-@media (max-width: 880px) {
+@media (max-width: 880px) and (any-hover: none) and (any-pointer: coarse) {
   .shell {
     grid-template-rows: auto auto auto;
     height: auto;

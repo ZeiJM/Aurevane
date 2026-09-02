@@ -2,7 +2,7 @@
   display: none;
 }
 
-@media (min-width: 821px) {
+@media (min-width: 821px), (any-hover: hover) and (any-pointer: fine) {
   :global(button[aria-label='Choose emoji']),
   :global(button[aria-label='Choose recent emoji']) {
     position: relative;

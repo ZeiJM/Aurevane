@@ -6,7 +6,7 @@
   display: none !important;
 }
 
-@media (min-width: 821px) {
+@media (min-width: 821px), (any-hover: hover) and (any-pointer: fine) {
   :global(main[data-unified-battle='true'] [data-unified-command-deck='true']) {
     grid-template-columns: minmax(0, 1fr) !important;
   }

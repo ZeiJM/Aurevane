@@ -5,7 +5,7 @@
 /* Guided Fundamentals used to carry a legacy aria-busy override that forced the 9x7 board down to
    34rem while the Recruit turn was resolving. The tactical dimensions do not change during that
    handoff, so keep the shared 620 x 482 geometry authority in force through the pending frame. */
-@media (min-width: 821px) {
+@media (min-width: 821px), (any-hover: hover) and (any-pointer: fine) {
   :global(
     body:not(:has(main[data-pvp-battle='true']))
       main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind='pve'][aria-busy]:has(

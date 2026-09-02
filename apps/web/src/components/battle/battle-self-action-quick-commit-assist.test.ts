@@ -11,7 +11,7 @@ function source(file = 'battle-self-action-quick-commit-assist.tsx'): string {
 }
 
 describe('category-slot hotkeys and self-action double-press shortcuts', () => {
-  it('owns desktop category hotkeys without re-registering when account bindings refresh', () => {
+  it('owns category hotkeys at every viewport without re-registering when account bindings refresh', () => {
     const content = source()
 
     expect(content).toContain('useLayoutEffect(() => {')
@@ -20,6 +20,7 @@ describe('category-slot hotkeys and self-action double-press shortcuts', () => {
     expect(content).toContain("window.addEventListener('keydown', handleKeyDown, true)")
     expect(content).toContain('event.stopImmediatePropagation()')
     expect(content).toContain('event.repeat')
+    expect(content).not.toContain("matchMedia('(min-width: 821px)')")
   })
 
   it('dispatches swappable recovery by stable slot and commits through semantic battle controls', () => {
@@ -34,7 +35,8 @@ describe('category-slot hotkeys and self-action double-press shortcuts', () => {
     expect(content).toContain("button.textContent?.includes('Confirm Action')")
     expect(content).not.toContain('button:nth-of-type(2)')
     expect(content).toContain("action === 'guard' || action === 'recover'")
-    expect(content).toContain('if (activeSlot && activeSlot !== slot) return')
+    expect(content).toContain('if (activeSlot && activeSlot !== slot) {')
+    expect(content).toContain('TRANSIENT_SECOND_PRESS_MS')
     expect(content).toContain('button.click()')
     expect(content).toContain('confirm.click()')
   })
@@ -51,7 +53,8 @@ describe('category-slot hotkeys and self-action double-press shortcuts', () => {
     for (const file of ['battle-keyboard-assist.tsx', 'pvp-battle-keyboard-assist.tsx']) {
       const content = source(file)
       expect(content).toContain('function isSharedCategoryAction(action: CombatKeybindAction)')
-      expect(content).toContain('if (isSharedCategoryAction(action)) return')
+      expect(content).toContain("if (isSharedCategoryAction(action) || action === 'endTurn') return")
+      expect(content).not.toContain("window.matchMedia('(min-width: 821px)').matches")
       expect(content).toContain("['recover', ['Recover', 'HP Recovery', 'MP Recovery']]")
     }
   })

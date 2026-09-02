@@ -7,7 +7,6 @@ import {
 } from '@aurevane/validation/player/combat-controls'
 import { useEffect, useLayoutEffect, useRef } from 'react'
 
-const DESKTOP_QUERY = '(min-width: 821px)'
 const TRANSIENT_SECOND_PRESS_MS = 800
 const FACING_READY_WAIT_MS = 1500
 const FACING_LABELS = ['north', 'east', 'south', 'west'] as const

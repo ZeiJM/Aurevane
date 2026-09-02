@@ -13,7 +13,7 @@
   display: none;
 }
 
-@media (max-width: 880px) {
+@media (max-width: 880px) and (any-hover: none) and (any-pointer: coarse) {
   /* The two large combatant rails are the main source of vertical scroll on phones. Their live
      information remains available through the tap popup below. */
   :global(main[aria-busy] aside[aria-label$=' combat status']) {

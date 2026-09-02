@@ -58,6 +58,26 @@ async function readFacingGlyph(root: Locator, playerName: string): Promise<strin
   }, playerName)
 }
 
+async function openInspectAndDismiss(page: Page, root: Locator, targetName: string) {
+  const inspect = root.locator(
+    'section[aria-label="Command Deck"] button[data-battle-command="inspect"]',
+  )
+  await inspect.click()
+  const target = root.locator(
+    `#battlefield button[aria-label*="occupied by ${targetName}"]`,
+  )
+  await target.click()
+
+  const dialog = page.getByRole('dialog', { name: `${targetName} battle details` })
+  await expect(dialog).toBeVisible({ timeout: 5_000 })
+  const backdrop = page.locator('[data-desktop-battle-inspect="true"]')
+  await expect(backdrop).toBeVisible()
+  await backdrop.click({ position: { x: 5, y: 5 } })
+  await expect(dialog).toBeHidden()
+  await expect(inspect).not.toHaveAttribute('data-active', 'true')
+  await expect(root).toBeFocused()
+}
+
 async function finishTurnKeepingFacing(page: Page, root: Locator, testRepeat = false) {
   await expect(root).toHaveAttribute('data-local-turn', 'true', { timeout: 12_000 })
   await expect(root).toHaveAttribute('data-finish-turn-hotkey-owner', 'ready', { timeout: 5_000 })
@@ -140,6 +160,47 @@ test('previews Guard on the first shortcut press and commits it only on a second
   await expect(economy).toHaveAttribute('aria-valuenow', '70')
 })
 
+test('keeps Guard double-press reliable after Inspect closes in a narrow desktop window', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name === 'mobile-chromium', 'Physical keyboard regression')
+  test.slow()
+
+  await page.setViewportSize({ width: 750, height: 900 })
+  const root = await enterGuidedBattle(page)
+  const playerTile = root.locator('#battlefield button[aria-label*="occupied by"]').first()
+  const targetName = ((await playerTile.getAttribute('aria-label')) ?? '').includes('Recruit')
+    ? 'QuickGuard'
+    : 'Recruit'
+
+  const inspect = root.locator(
+    'section[aria-label="Command Deck"] button[data-battle-command="inspect"]',
+  )
+  await inspect.click()
+  const target = root.locator('#battlefield button[aria-label*="occupied by Recruit"]')
+  await target.click()
+  const dialog = page.getByRole('dialog', { name: /Recruit battle details/ })
+  await expect(dialog).toBeVisible({ timeout: 5_000 })
+  const backdrop = page.locator('[data-desktop-battle-inspect="true"]')
+  await backdrop.click({ position: { x: 5, y: 5 } })
+  await expect(dialog).toBeHidden()
+  await expect(inspect).not.toHaveAttribute('data-active', 'true')
+  await expect(root).toBeFocused()
+
+  const confirm = root.getByRole('button', { name: 'Confirm Action' })
+  const economy = root.getByRole('progressbar', { name: 'Action Economy remaining' })
+  await page.keyboard.press('Digit4')
+  await expect(confirm).toBeEnabled()
+
+  const commitResponse = page.waitForResponse((response) => {
+    const request = response.request()
+    return request.method() === 'POST' && new URL(response.url()).pathname.endsWith('/intents')
+  })
+  await page.keyboard.press('Digit4')
+  expect((await commitResponse).status()).toBe(200)
+  await expect(economy).toHaveAttribute('aria-valuenow', '70')
+})
+
 test('keeps desktop PvP Space-to-finish reliable across repeated turn handoffs', async ({
   browser,
 }, testInfo) => {
@@ -212,6 +273,16 @@ test('keeps desktop PvP Space-to-finish reliable across repeated turn handoffs',
       : { page: host, root: hostRoot, name: hostIdentity.characterName, facing: hostFacing }
 
     for (let cycle = 0; cycle < 3; cycle += 1) {
+      if (cycle === 1) {
+        await Promise.all([
+          first.page.setViewportSize({ width: 750, height: 900 }),
+          second.page.setViewportSize({ width: 750, height: 900 }),
+        ])
+        await expect(first.root).toBeVisible()
+        await expect(second.root).toBeVisible()
+        await openInspectAndDismiss(first.page, first.root, second.name)
+      }
+
       await finishTurnKeepingFacing(first.page, first.root, cycle === 0)
       await expect(second.root).toHaveAttribute('data-local-turn', 'true', { timeout: 12_000 })
       expect(await readFacingGlyph(first.root, first.name)).toBe(first.facing)

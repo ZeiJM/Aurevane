@@ -205,7 +205,7 @@
   }
 }
 
-@media (max-width: 880px) {
+@media (max-width: 880px) and (any-hover: none) and (any-pointer: coarse) {
   .rails {
     top: 0.35rem;
     right: 0.35rem;

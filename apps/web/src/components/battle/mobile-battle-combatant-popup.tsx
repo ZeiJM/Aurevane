@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import type { ImageAssetId } from '@/media/registry'
@@ -12,9 +12,10 @@ import {
   statusIsBeneficial,
   statusLabel,
 } from './battle-effect-summary'
+import { dispatchBattleInspectClosed } from './battle-inspect-lifecycle'
 import styles from './mobile-battle-combatant-popup.module.css'
 
-const MOBILE_QUERY = '(max-width: 880px)'
+const DESKTOP_POINTER_QUERY = '(any-hover: hover) and (any-pointer: fine)'
 const ACTION_ECONOMY_KEY = 'pv1f.action-economy'
 
 type GridPosition = { x: number; y: number }
@@ -132,12 +133,21 @@ export function MobileBattleCombatantPopup({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<SelectedCombatant | null>(null)
+  const openRef = useRef(false)
+
+  const closeInspect = useCallback(() => {
+    if (!openRef.current) return
+    openRef.current = false
+    setOpen(false)
+    dispatchBattleInspectClosed(battleSessionId)
+  }, [battleSessionId])
 
   useEffect(() => {
     let requestSequence = 0
 
     async function openCombatant(position: GridPosition) {
       const sequence = ++requestSequence
+      openRef.current = true
       setOpen(true)
       setLoading(true)
       setError(null)
@@ -168,7 +178,7 @@ export function MobileBattleCombatantPopup({
     }
 
     function handleBattlefieldClick(event: MouseEvent) {
-      if (!window.matchMedia(MOBILE_QUERY).matches || !inspectModeActive()) return
+      if (window.matchMedia(DESKTOP_POINTER_QUERY).matches || !inspectModeActive()) return
       const target = event.target instanceof Element ? event.target : null
       const tile = target?.closest<HTMLButtonElement>(
         '#battlefield button[aria-label^="Tile "][aria-label*="occupied by"]',
@@ -188,7 +198,7 @@ export function MobileBattleCombatantPopup({
     }
 
     function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') setOpen(false)
+      if (event.key === 'Escape') closeInspect()
     }
 
     document.addEventListener('click', handleBattlefieldClick, true)
@@ -198,7 +208,7 @@ export function MobileBattleCombatantPopup({
       document.removeEventListener('click', handleBattlefieldClick, true)
       window.removeEventListener('keydown', handleEscape)
     }
-  }, [battleSessionId, playerName])
+  }, [battleSessionId, closeInspect, playerName])
 
   const healthPercent = useMemo(() => {
     if (!selected || selected.combatant.maxHp <= 0) return 0
@@ -213,7 +223,7 @@ export function MobileBattleCombatantPopup({
   if (!open) return null
 
   return (
-    <div className={styles.backdrop} onPointerDown={() => setOpen(false)} data-mobile-battle-popup>
+    <div className={styles.backdrop} onPointerDown={closeInspect} data-mobile-battle-popup>
       <section
         className={styles.popup}
         role="dialog"

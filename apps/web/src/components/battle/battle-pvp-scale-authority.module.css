@@ -9,7 +9,7 @@
  * same battlefield, rails and command deck for PvP and PvE; this layer makes the final computed
  * geometry mode-neutral so later PvP/PvE compatibility polish cannot change the scale of one mode.
  */
-@media (min-width: 821px) {
+@media (min-width: 821px), (any-hover: hover) and (any-pointer: fine) {
   :global(
     main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
   ) {
@@ -355,7 +355,7 @@
 
 /* Mobile remains responsive, but token and action-control scale still come from the same authority
  * so desktop parity work cannot create a second mode-specific mobile footprint. */
-@media (max-width: 820px) {
+@media (max-width: 820px) and (any-hover: none) and (any-pointer: coarse) {
   :global(
     main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
       #battlefield
