@@ -51,7 +51,9 @@
 
   .close::before,
   .close::after {
-    grid-area: 1 / 1;
+    position: absolute;
+    top: 50%;
+    left: 50%;
     width: 0.7rem;
     height: 1px;
     border-radius: 999px;
@@ -60,11 +62,11 @@
   }
 
   .close::before {
-    transform: rotate(45deg);
+    transform: translate(-50%, -50%) rotate(45deg);
   }
 
   .close::after {
-    transform: rotate(-45deg);
+    transform: translate(-50%, -50%) rotate(-45deg);
   }
 
   .identityRow {
