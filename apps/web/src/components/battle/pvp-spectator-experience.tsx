@@ -498,7 +498,11 @@ export function PvpSpectatorExperience({
               <small>Read-only tactical view</small>
             </div>
             <div className={styles.boardScroller}>
-              <div className={styles.board} style={boardStyle}>
+              <div
+                className={styles.board}
+                style={boardStyle}
+                data-board-auto-fit={`${tactical.width}x${tactical.height}`}
+              >
                 {tactical.tiles.map((tile) => {
                   const key = positionKey(tile.position)
                   const placement = placementByTile.get(key)
@@ -536,7 +540,7 @@ export function PvpSpectatorExperience({
                     >
                       <span className={styles.tileMeta}>
                         {x}.{y}
-                        {terrain === 'rough' ? <b>R50</b> : null}
+                        {terrain === 'rough' ? <b data-spectator-terrain-cost="true">R50</b> : null}
                         {tile.elevation > 0 ? <b>▲{tile.elevation}</b> : null}
                       </span>
                       {participant && placement ? (

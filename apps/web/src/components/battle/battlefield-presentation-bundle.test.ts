@@ -33,4 +33,14 @@ describe('shared battlefield presentation bundle', () => {
     expect(spectator).toContain('pvpParticipantAccent(')
     expect(spectator).toContain('battleSessionId={spectator.battle.battleSessionId}')
   })
+
+  it('keeps spectator mobile board metadata aligned with playable token sizing and hides R50', () => {
+    const spectator = readLocalFile('pvp-spectator-experience.tsx')
+    const mobileLayout = readLocalFile('pvp-spectator-mobile-board-layout.module.css')
+
+    expect(spectator).toContain('data-board-auto-fit={`${tactical.width}x${tactical.height}`}')
+    expect(spectator).toContain('data-spectator-terrain-cost="true"')
+    expect(mobileLayout).toContain("[data-spectator-terrain-cost='true']")
+    expect(mobileLayout).toContain('display: none !important;')
+  })
 })

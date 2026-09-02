@@ -39,6 +39,21 @@ describe('battlefield semantic target polish', () => {
     expect(source).toContain("tile.style.removeProperty('box-shadow')")
   })
 
+  it('keeps shared token identity authority from being overwritten by playable-only polish', () => {
+    const shared = readLocalFile('battle-map-token-polish.tsx')
+    const playable = readLocalFile('battle-presentation-polish.tsx')
+
+    expect(shared).toContain("token.style.setProperty('border-color', tokenAccent, 'important')")
+    expect(shared).toContain('const compactViewport = !desktopPvpScale')
+    expect(shared).toContain(
+      "token.style.setProperty('box-shadow', PLAYER_TOKEN_SHADOW, 'important')",
+    )
+    expect(playable).toContain('pvpParticipantAccent(')
+    expect(playable).not.toContain('COMBATANT_COLORS')
+    expect(playable).not.toContain('token.style.borderColor')
+    expect(playable).not.toContain('token.style.boxShadow')
+  })
+
   it('keeps participant card accents on tokens even when the hidden token name is absent', () => {
     const source = readLocalFile('battle-map-token-polish.tsx')
 
