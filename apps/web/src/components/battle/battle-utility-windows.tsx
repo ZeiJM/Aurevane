@@ -15,6 +15,8 @@ import { createPortal } from 'react-dom'
 import type { BattleLogView } from '@/server/battle/battle-log-service'
 
 import { BattleLogFeed } from './battle-log-feed'
+import { useDesktopBattleLayout } from './battle-responsive-layout'
+import { useBattleSessionUiBoolean } from './battle-session-ui-state'
 import styles from './battle-utility-windows.module.css'
 
 interface BattleUtilityWindowsProps {
@@ -247,7 +249,8 @@ export function BattleUtilityWindows({ battleSessionId, playerName }: BattleUtil
     () => true,
     () => false,
   )
-  const [logOpen, setLogOpen] = useState(false)
+  const [logOpen, setLogOpen] = useBattleSessionUiBoolean(battleSessionId, 'battleLogOpen')
+  const desktopBattleLayout = useDesktopBattleLayout()
   const [chatOpen, setChatOpen] = useState(false)
   const [chatDraft, setChatDraft] = useState('')
   const [chatMessages, setChatMessages] = useState<LocalChatMessage[]>([])
@@ -319,7 +322,7 @@ export function BattleUtilityWindows({ battleSessionId, playerName }: BattleUtil
 
     document.addEventListener('click', interceptUtilityTrigger, true)
     return () => document.removeEventListener('click', interceptUtilityTrigger, true)
-  }, [])
+  }, [setLogOpen])
 
   useEffect(() => {
     if (!window.matchMedia(DESKTOP_QUERY).matches) {
@@ -366,14 +369,14 @@ export function BattleUtilityWindows({ battleSessionId, playerName }: BattleUtil
   }, [battleSessionId])
 
   useEffect(() => {
-    if (!logOpen) return
+    if (!logOpen || desktopBattleLayout) return
     const initialTimer = window.setTimeout(() => void loadLog(), 0)
     const timer = window.setInterval(() => void loadLog(), 1200)
     return () => {
       window.clearTimeout(initialTimer)
       window.clearInterval(timer)
     }
-  }, [loadLog, logOpen])
+  }, [desktopBattleLayout, loadLog, logOpen])
 
   function sendChatMessage(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -392,7 +395,7 @@ export function BattleUtilityWindows({ battleSessionId, playerName }: BattleUtil
 
   return createPortal(
     <>
-      {logOpen ? (
+      {logOpen && !desktopBattleLayout ? (
         <UtilityWindow
           title="Battle Log"
           meta="Rounds · actions · outcomes · drag header · resize corner"

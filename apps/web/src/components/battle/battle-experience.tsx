@@ -30,7 +30,6 @@ import {
   type BattleFacing,
   type BattleGridPosition,
 } from './battle-geometry'
-import { BattleLogPanel } from './battle-log-panel'
 import {
   battleParticipantName,
   buildBattleViewModel,
@@ -40,6 +39,8 @@ import {
 } from './battle-runtime'
 import { BattleSkillCommand } from './battle-skill-command'
 import { BATTLE_COMMAND_ARTWORK, battleSkillArtwork } from './battle-skill-presentation'
+import { useBattleSkillSelections } from './battle-skill-selection'
+import { useBattleSessionUiBoolean } from './battle-session-ui-state'
 import styles from './pvp-battle-experience.module.css'
 import railStyles from './pvp-six-combatant-rails.module.css'
 import bridgeStyles from './unified-battle-experience.module.css'
@@ -71,6 +72,13 @@ const HEAL_SELECTOR_OPTIONS = [
     artworkSrc: battleSkillArtwork(MP_RECOVER_ID),
   },
 ] as const
+
+const BATTLE_SKILL_CATEGORIES = {
+  heal: {
+    defaultSkillId: RECOVER_ID,
+    skillIds: HEAL_SELECTOR_OPTIONS.map((option) => option.id),
+  },
+} as const
 
 type Mode = 'none' | 'inspect' | 'move' | 'attack' | 'guard' | 'recover' | 'finish'
 type Tactical = BattleSessionView['snapshot']['tactical']
@@ -194,7 +202,6 @@ export function BattleExperience({
   const [pendingIntent, setPendingIntent] = useState<BattleIntent | null>(null)
   const [preview, setPreview] = useState<BattlePreviewView | null>(null)
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null)
-  const [selectedHealActionId, setSelectedHealActionId] = useState<string>(RECOVER_ID)
   const [notice, setNotice] = useState(
     runtime.kind === 'pvp'
       ? 'Arena linked. Waiting for the authoritative turn state.'
@@ -204,7 +211,6 @@ export function BattleExperience({
   const [commitPending, setCommitPending] = useState(false)
   const [copyNotice, setCopyNotice] = useState(false)
   const [victoryOpen, setVictoryOpen] = useState(false)
-  const [logOpen, setLogOpen] = useState(false)
   const [recruitPending, setRecruitPending] = useState(false)
   const [recruitFailed, setRecruitFailed] = useState(false)
   const [surrenderOpen, setSurrenderOpen] = useState(false)
@@ -217,6 +223,16 @@ export function BattleExperience({
   const battlePollController = useRef<AbortController | null>(null)
   const recruitAttemptedVersion = useRef<number | null>(null)
   const recruitLock = useRef(false)
+
+  const { selectedSkillId, selectSkill } = useBattleSkillSelections(
+    initialBattle.battleSessionId,
+    BATTLE_SKILL_CATEGORIES,
+  )
+  const selectedHealActionId = selectedSkillId('heal')
+  const [logOpen, setLogOpen] = useBattleSessionUiBoolean(
+    initialBattle.battleSessionId,
+    'battleLogOpen',
+  )
 
   const capabilities = useMemo(() => deriveBattleCapabilities(runtime), [runtime])
   const viewModel = useMemo(() => buildBattleViewModel(initialBattle, runtime), [initialBattle, runtime])
@@ -297,13 +313,6 @@ export function BattleExperience({
       : 0
   const livingTeams = livingTeamIndexes(battle, viewModel.participantByCombatant)
   const objectiveComplete = battleState.lifecycle === 'completed'
-  const combatantNames = useMemo(
-    () =>
-      Object.fromEntries(
-        viewModel.participants.map((participant) => [participant.combatantId, participant.name]),
-      ),
-    [viewModel.participants],
-  )
 
   const clearPlanning = useCallback((nextMode: Mode = 'none') => {
     previewSequence.current += 1
@@ -1374,7 +1383,7 @@ export function BattleExperience({
                 options: HEAL_SELECTOR_OPTIONS,
                 onSelect: (skillId) => {
                   if (skillId === selectedHealActionId) return
-                  setSelectedHealActionId(skillId)
+                  selectSkill('heal', skillId)
                   if (mode === 'recover') clearPlanning()
                   const nextName = skillId === MP_RECOVER_ID ? 'MP Recovery' : 'HP Recovery'
                   setNotice(`${nextName} equipped in the Heal slot.`)
@@ -1462,15 +1471,6 @@ export function BattleExperience({
           ) : null}
         </div>
       </footer>
-
-      <BattleLogPanel
-        battleSessionId={battle.battleSessionId}
-        battleVersion={battle.battleVersion}
-        open={logOpen}
-        onClose={() => setLogOpen(false)}
-        playerName={runtime.playerName}
-        combatantNames={combatantNames}
-      />
 
       {recruitFailed ? (
         <button

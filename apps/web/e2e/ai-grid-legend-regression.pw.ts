@@ -90,7 +90,12 @@ test('keeps the desktop AI 9x7 grid, shared terrain legend, and battle log dock 
   expect(geometry.lastTileRight).toBeLessThanOrEqual(geometry.viewportRight + 1)
   expect(geometry.lastTileBottom).toBeLessThanOrEqual(geometry.viewportBottom + 1)
 
-  await page.getByRole('button', { name: /Combat Log/ }).click()
+  const coordinateToggle = terrainLegend.getByRole('switch', { name: 'Tile coordinates' })
+  const combatLogButton = page.getByRole('button', { name: /Combat Log/ })
+  await expect(coordinateToggle).toHaveAttribute('aria-checked', 'false')
+  await coordinateToggle.click()
+  await expect(coordinateToggle).toHaveAttribute('aria-checked', 'true')
+  await combatLogButton.click()
 
   const dock = battlefield.locator('[data-docked-battle-log="true"]')
   await expect(dock).toBeVisible()
@@ -98,6 +103,21 @@ test('keeps the desktop AI 9x7 grid, shared terrain legend, and battle log dock 
   await expect(terrainLegend.getByText('Difficult Terrain')).toBeVisible()
   await expect(terrainLegend.getByText('Elevated Ground')).toBeVisible()
   await expect(terrainLegend.getByRole('switch', { name: 'Tile coordinates' })).toBeVisible()
+
+  await page.reload()
+  await expect(coordinateToggle).toHaveAttribute('aria-checked', 'true')
+  await expect(dock).toBeVisible()
+
+  await coordinateToggle.click()
+  await combatLogButton.click()
+  await expect(coordinateToggle).toHaveAttribute('aria-checked', 'false')
+  await expect(dock).toHaveCount(0)
+
+  await page.reload()
+  await expect(coordinateToggle).toHaveAttribute('aria-checked', 'false')
+  await expect(dock).toHaveCount(0)
+  await combatLogButton.click()
+  await expect(dock).toBeVisible()
 
   const dockGeometry = await battlefield.evaluate((element) => {
     const docked = element.querySelector<HTMLElement>('[data-docked-battle-log="true"]')!

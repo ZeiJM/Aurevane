@@ -239,8 +239,22 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
     )
     .toBe(true)
 
-  await healArtwork.click()
+  await page.reload()
+  const refreshedCommandDeck = page.getByRole('region', { name: 'Command Deck' })
+  const refreshedHealCard = refreshedCommandDeck.locator('[data-command-card="recover"]')
+  const refreshedHealAction = refreshedHealCard.locator('button[data-battle-command="recover"]')
+  const refreshedHealArtwork = refreshedHealCard.getByRole('button', {
+    name: /Choose Heal skill/i,
+  })
+  await expect(refreshedHealAction).toContainText('MP Recovery')
+  await expect(refreshedHealArtwork).toHaveAttribute('aria-label', /MP Recovery selected/i)
+  await expect(refreshedHealArtwork.locator('img')).toHaveAttribute(
+    'src',
+    '/media/skills/mp-recovery.svg',
+  )
+
+  await refreshedHealArtwork.click()
   await page.getByRole('option', { name: /HP Recovery/ }).click()
-  await expect(healAction).toContainText('HP Recovery')
-  await expect(healAction.locator(':scope > span')).toHaveText(slotHotkeyBefore ?? '')
+  await expect(refreshedHealAction).toContainText('HP Recovery')
+  await expect(refreshedHealAction.locator(':scope > span')).toHaveText(slotHotkeyBefore ?? '')
 })

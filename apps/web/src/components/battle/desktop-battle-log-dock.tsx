@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 
 import { BattleLogPanel } from './battle-log-panel'
+import { useBattleSessionUiBoolean } from './battle-session-ui-state'
 import styles from './desktop-battle-log-dock.module.css'
 
 const DESKTOP_QUERY = '(min-width: 821px)'
@@ -67,7 +68,7 @@ export function DesktopBattleLogDock({
   eventDriven?: boolean
 }) {
   const [desktop, setDesktop] = useState(false)
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useBattleSessionUiBoolean(battleSessionId, 'battleLogOpen')
   const [refreshTick, setRefreshTick] = useState(0)
 
   useEffect(() => {
@@ -92,7 +93,7 @@ export function DesktopBattleLogDock({
 
     document.addEventListener('click', interceptLogTrigger, true)
     return () => document.removeEventListener('click', interceptLogTrigger, true)
-  }, [desktop])
+  }, [desktop, setOpen])
 
   useEffect(() => {
     if (!desktop) return

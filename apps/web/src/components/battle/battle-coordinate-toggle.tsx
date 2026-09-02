@@ -3,14 +3,17 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 
+import { useBattleSessionUiBoolean } from './battle-session-ui-state'
 import styles from './battle-coordinate-toggle.module.css'
 
 const MOBILE_BATTLE_MEDIA = '(max-width: 820px)'
 
-export function BattleCoordinateToggle() {
+export function BattleCoordinateToggle({ battleSessionId }: { battleSessionId: string }) {
   const [legend, setLegend] = useState<HTMLElement | null>(null)
-  const [battlefield, setBattlefield] = useState<HTMLElement | null>(null)
-  const [showCoordinates, setShowCoordinates] = useState(false)
+  const [showCoordinates, setShowCoordinates] = useBattleSessionUiBoolean(
+    battleSessionId,
+    'coordinatesVisible',
+  )
 
   useEffect(() => {
     let frame = 0
@@ -20,7 +23,8 @@ export function BattleCoordinateToggle() {
       frame = 0
       const nextBattlefield = document.querySelector<HTMLElement>('section#battlefield')
       const nextLegend =
-        nextBattlefield?.querySelector<HTMLElement>(':scope > [aria-label="Terrain legend"]') ?? null
+        nextBattlefield?.querySelector<HTMLElement>(':scope > [aria-label="Terrain legend"]') ??
+        null
 
       if (nextLegend) {
         // One shared component owns the responsive display primitive for both battle runtimes. This
@@ -30,7 +34,6 @@ export function BattleCoordinateToggle() {
         nextLegend.style.setProperty('opacity', '1', 'important')
       }
 
-      setBattlefield((current) => (current === nextBattlefield ? current : nextBattlefield))
       setLegend((current) => (current === nextLegend ? current : nextLegend))
     }
 
@@ -52,14 +55,24 @@ export function BattleCoordinateToggle() {
   }, [])
 
   useEffect(() => {
-    if (!battlefield) return
-    if (showCoordinates) battlefield.dataset.showCoordinates = 'true'
-    else delete battlefield.dataset.showCoordinates
+    const sync = () => {
+      const battlefield = document.querySelector<HTMLElement>('section#battlefield')
+      if (!battlefield) return
+      if (showCoordinates) battlefield.dataset.showCoordinates = 'true'
+      else delete battlefield.dataset.showCoordinates
+    }
+
+    sync()
+    const observer = new MutationObserver(sync)
+    observer.observe(document.body, { childList: true, subtree: true })
 
     return () => {
+      observer.disconnect()
+      const battlefield = document.querySelector<HTMLElement>('section#battlefield')
+      if (!battlefield) return
       delete battlefield.dataset.showCoordinates
     }
-  }, [battlefield, showCoordinates])
+  }, [showCoordinates])
 
   if (!legend) return null
 

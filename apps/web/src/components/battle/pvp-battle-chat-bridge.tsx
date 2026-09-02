@@ -6,10 +6,11 @@ import { createPortal } from 'react-dom'
 import type { PvpSpectatorPresenceView } from '@/server/battle/pvp-battle-communication-service'
 import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 
+import { useDesktopBattleLayout } from './battle-responsive-layout'
+import { useBattleSessionUiBoolean } from './battle-session-ui-state'
 import { PvpBattleChat } from './pvp-battle-chat'
 import styles from './pvp-battle-chat-bridge.module.css'
 
-const DESKTOP_QUERY = '(min-width: 821px)'
 const VIEWPORT_MARGIN = 4
 const MIN_WINDOW_WIDTH = 256
 const MIN_WINDOW_HEIGHT = 160
@@ -114,7 +115,14 @@ export function PvpBattleChatBridge({
   const [open, setOpen] = useState(false)
   const [requestedTab, setRequestedTab] = useState<'chat' | 'log'>('chat')
   const [unread, setUnread] = useState(0)
-  const [desktop, setDesktop] = useState(false)
+  const desktop = useDesktopBattleLayout()
+  const [battleLogOpen, setBattleLogOpen] = useBattleSessionUiBoolean(
+    battleSessionId,
+    'battleLogOpen',
+  )
+  const mobileBattleLogOpen = battleLogOpen && !desktop
+  const panelOpen = open || mobileBattleLogOpen
+  const effectiveRequestedTab = mobileBattleLogOpen ? 'log' : requestedTab
   const [spectatorCount, setSpectatorCount] = useState(0)
   const [spectators, setSpectators] = useState<PvpSpectatorPresenceView[]>([])
   const [footerTarget, setFooterTarget] = useState<HTMLElement | null>(null)
@@ -129,14 +137,6 @@ export function PvpBattleChatBridge({
       ),
     [metadata.participants],
   )
-
-  useEffect(() => {
-    const query = window.matchMedia(DESKTOP_QUERY)
-    const sync = () => setDesktop(query.matches)
-    sync()
-    query.addEventListener('change', sync)
-    return () => query.removeEventListener('change', sync)
-  }, [])
 
   useEffect(() => {
     let frame = 0
@@ -162,17 +162,20 @@ export function PvpBattleChatBridge({
     const openChat = (event: Event) => {
       event.preventDefault()
       event.stopPropagation()
+      setBattleLogOpen(false)
       setRequestedTab('chat')
       setUnread(0)
-      setOpen((current) => (requestedTab === 'chat' ? !current : true))
+      setOpen(effectiveRequestedTab === 'chat' ? !panelOpen : true)
     }
 
     const openLog = (event: Event) => {
       if (desktop) return
       event.preventDefault()
       event.stopPropagation()
+      const nextOpen = !(panelOpen && effectiveRequestedTab === 'log')
       setRequestedTab('log')
-      setOpen((current) => (requestedTab === 'log' ? !current : true))
+      setOpen(false)
+      setBattleLogOpen(nextOpen)
     }
 
     const sync = () => {
@@ -209,12 +212,18 @@ export function PvpBattleChatBridge({
           badge?.remove()
           badge = null
         }
-        chatButton.setAttribute('aria-expanded', open && requestedTab === 'chat' ? 'true' : 'false')
+        chatButton.setAttribute(
+          'aria-expanded',
+          panelOpen && effectiveRequestedTab === 'chat' ? 'true' : 'false',
+        )
         chatButton.dataset.hasUnread = unread > 0 ? 'true' : ''
       }
 
       if (!desktop && logButton) {
-        logButton.setAttribute('aria-expanded', open && requestedTab === 'log' ? 'true' : 'false')
+        logButton.setAttribute(
+          'aria-expanded',
+          panelOpen && effectiveRequestedTab === 'log' ? 'true' : 'false',
+        )
       }
     }
 
@@ -227,10 +236,10 @@ export function PvpBattleChatBridge({
       attachedLog?.removeEventListener('click', openLog, true)
       badge?.remove()
     }
-  }, [desktop, open, requestedTab, unread])
+  }, [desktop, effectiveRequestedTab, panelOpen, setBattleLogOpen, unread])
 
   useEffect(() => {
-    if (!desktop || open) return
+    if (!desktop || panelOpen) return
     const panel = panelRef.current
     if (!panel) return
     panel.style.removeProperty('left')
@@ -239,10 +248,10 @@ export function PvpBattleChatBridge({
     panel.style.removeProperty('bottom')
     panel.style.removeProperty('width')
     panel.style.removeProperty('height')
-  }, [desktop, open])
+  }, [desktop, panelOpen])
 
   useEffect(() => {
-    if (!desktop || !open) return
+    if (!desktop || !panelOpen) return
     function closeOutside(event: PointerEvent) {
       if (!(event.target instanceof Node)) return
       if (panelRef.current?.contains(event.target)) return
@@ -251,7 +260,19 @@ export function PvpBattleChatBridge({
     }
     document.addEventListener('pointerdown', closeOutside, true)
     return () => document.removeEventListener('pointerdown', closeOutside, true)
-  }, [desktop, open])
+  }, [desktop, panelOpen])
+
+  const closePanel = () => {
+    setOpen(false)
+    setBattleLogOpen(false)
+  }
+
+  const selectRequestedTab = (tab: 'chat' | 'log') => {
+    setRequestedTab(tab)
+    if (desktop) return
+    setOpen(tab === 'chat')
+    setBattleLogOpen(tab === 'log')
+  }
 
   function beginDrag(event: ReactPointerEvent<HTMLElement>) {
     if (!desktop || event.button !== 0) return
@@ -326,9 +347,9 @@ export function PvpBattleChatBridge({
         ref={panelRef}
         id="pvp-battle-chat-panel"
         className={styles.panel}
-        data-open={open || undefined}
+        data-open={panelOpen || undefined}
         data-desktop={desktop || undefined}
-        aria-hidden={!open}
+        aria-hidden={!panelOpen}
       >
         <div className={styles.panelTop} onPointerDown={beginDrag}>
           <div>
@@ -338,7 +359,7 @@ export function PvpBattleChatBridge({
           <button
             type="button"
             className={styles.closeButton}
-            onClick={() => setOpen(false)}
+            onClick={closePanel}
             aria-label="Close battle communication"
           >
             ×
@@ -347,12 +368,12 @@ export function PvpBattleChatBridge({
         <PvpBattleChat
           battleSessionId={battleSessionId}
           readOnly={false}
-          open={open}
+          open={panelOpen}
           localCharacterId={metadata.localCharacterId}
           showBattleLog={!desktop}
           showSpectatorPresence={false}
-          requestedTab={desktop ? 'chat' : requestedTab}
-          onRequestedTabChange={setRequestedTab}
+          requestedTab={desktop ? 'chat' : effectiveRequestedTab}
+          onRequestedTabChange={selectRequestedTab}
           onUnreadChange={setUnread}
           onSpectatorCountChange={setSpectatorCount}
           onSpectatorsChange={setSpectators}

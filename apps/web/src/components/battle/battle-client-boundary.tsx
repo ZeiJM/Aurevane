@@ -93,7 +93,7 @@ export function BattleClientBoundary({
       />
 
       <BattleTerrainPresentationPolish />
-      <BattleCoordinateToggle />
+      <BattleCoordinateToggle battleSessionId={initialBattle.battleSessionId} />
       <BattleDirectionalAttackAssist playerName={runtime.playerName} />
       <BattleSelfActionQuickCommitAssist />
       <BattleMapTokenPolish
