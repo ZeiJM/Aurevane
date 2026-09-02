@@ -224,6 +224,56 @@ describe('battle turn quality rules', () => {
     )
   })
 
+  it('applies one-turn Lowered Guard after all six forfeits across three no-action rounds', () => {
+    let state = encounter('pvp')
+
+    for (let timeoutIndex = 0; timeoutIndex < 6; timeoutIndex += 1) {
+      const timedOutCombatantId = state.tactical.battle.currentTurn?.combatantId
+      expect(timedOutCombatantId).toBeDefined()
+      expect(state.tactical.battle.round).toBe(Math.floor(timeoutIndex / 2) + 1)
+
+      const previousHp = state.tactical.battle.combatants.find(
+        (combatant) => combatant.id === timedOutCombatantId,
+      )?.hp
+      const timedOut = timeoutPvpTurn(state)
+      const nextCombatantId = timedOut.state.tactical.battle.currentTurn?.combatantId
+
+      expect(timedOut.events).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            event: 'pvp_turn_timed_out',
+            combatantId: timedOutCombatantId,
+          }),
+          expect.objectContaining({
+            event: 'pvp_lowered_guard_applied',
+            combatantId: timedOutCombatantId,
+            remainingOwnerTurnStarts: 1,
+            damageTakenMultiplierBasisPoints: 25_000,
+          }),
+        ]),
+      )
+      expect(loweredGuard(timedOut.state, timedOutCombatantId ?? '')).toMatchObject({
+        stacks: 1,
+        remainingOwnerTurnStarts: 1,
+      })
+      expect(loweredGuard(timedOut.state, nextCombatantId ?? '')).toBeUndefined()
+
+      const attacked = executePv1fAction(timedOut.state, PV1F_BASIC_ATTACK_ID, {
+        kind: 'unit',
+        combatantId: timedOutCombatantId ?? '',
+      })
+      expect(
+        attacked.state.tactical.battle.combatants.find(
+          (combatant) => combatant.id === timedOutCombatantId,
+        )?.hp,
+      ).toBe((previousHp ?? 0) - 25)
+
+      state = timedOut.state
+    }
+
+    expect(state.tactical.battle.round).toBe(4)
+  })
+
   it('keeps the two-miss AI rule while limiting Lowered Guard to one turn', () => {
     const firstPlayerMiss = timeoutAiTurn(encounter('ai')).state
     expect(loweredGuard(firstPlayerMiss, 'player')).toBeUndefined()

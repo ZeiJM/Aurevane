@@ -235,7 +235,9 @@ describe('Battle Log V2 presentation', () => {
       'Takes 2.5× damage',
       '2 consecutive timeouts',
     ])
-    expect(sentence(actions[1]?.primary ?? [])).toBe("Zei's Lowered Guard fades")
+    expect(sentence(actions[1]?.primary ?? [])).toBe(
+      "Zei's Lowered Guard fades as their turn begins",
+    )
     expect(JSON.stringify(actions)).not.toContain('1000 turns')
     expect(JSON.stringify(actions)).not.toMatch(/\bmiss(?:es)?\b/iu)
   })

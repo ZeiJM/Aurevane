@@ -703,7 +703,11 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
   } else if (statusExpired) {
     const name = statusName(statusExpired)
     const target = combatantName(statusExpired.targetCombatantId, options) ?? 'Combatant'
-    primary = [segment(`${target}'s `, 'target'), segment(name, 'action'), segment(' fades')]
+    primary = [
+      segment(`${target}'s `, 'target'),
+      segment(name, 'action'),
+      segment(' fades as their turn begins'),
+    ]
     kind = 'status'
     significance = 'quiet'
     consumed.add(name.toLowerCase())

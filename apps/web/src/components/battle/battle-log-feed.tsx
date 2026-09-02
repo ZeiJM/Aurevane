@@ -257,6 +257,9 @@ export function BattleLogFeed({
   const actionNumbers = useMemo(() => buildBattleLogActionNumbers(rounds), [rounds])
   const [requestedRound, setRequestedRound] = useState<string | null | undefined>(undefined)
   const expandedRound = expandedRoundKey(rounds, requestedRound)
+  const battleFinished = entries.some(
+    (entry) => entry.eventType === 'battle_completed' || entry.eventType === 'battle_abandoned',
+  )
 
   if (rounds.length === 0) return <p className={styles.empty}>{emptyMessage}</p>
 
@@ -265,6 +268,10 @@ export function BattleLogFeed({
       {rounds.map((round) => {
         const open = expandedRound === round.key
         const roundLabel = round.round === null ? 'Battle' : `Round ${round.round}`
+        const roundTitle =
+          !battleFinished && round.key === rounds[0]?.key && round.round !== null
+            ? `${roundLabel} · In progress`
+            : roundLabel
         return (
           <section className={styles.round} data-open={open || undefined} key={round.key}>
             <button
@@ -280,7 +287,7 @@ export function BattleLogFeed({
               <span className={styles.chevron} aria-hidden="true">
                 ›
               </span>
-              <strong className={styles.roundTitle}>{roundLabel}</strong>
+              <strong className={styles.roundTitle}>{roundTitle}</strong>
               <time dateTime={round.occurredAt}>{timeLabel(round.occurredAt)}</time>
             </button>
 
