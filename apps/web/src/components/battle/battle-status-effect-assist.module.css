@@ -59,14 +59,18 @@
 }
 
 .close {
+  display: grid;
   width: 2rem;
   height: 2rem;
+  padding: 0;
+  place-items: center;
   border: 1px solid rgba(205, 171, 102, 0.35);
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.03);
   color: #d8c79f;
   font-size: 1.1rem;
   line-height: 1;
+  text-align: center;
 }
 
 .dialog p {
