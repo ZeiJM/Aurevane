@@ -506,7 +506,6 @@ export function DesktopBattleCombatantInspect({
                       <strong>{item.value}</strong>
                     </span>
                   ))}
-                  <small title="Active status count">{selected.statuses.length}</small>
                 </div>
               </div>
               {selected.statuses.length === 0 ? (
