@@ -15,6 +15,17 @@
   justify-content: center !important;
 }
 
+/*
+ * Active-turn state is already communicated by the facing marker and surrounding battle UI.
+ * Keep the map token itself on its normal neutral depth shadow so the identity ring stays the only
+ * persistent circular accent instead of gaining a second brass halo.
+ */
+:global(
+  section#battlefield button[aria-label*='occupied by'] > [data-team][data-active]
+) {
+  box-shadow: 0 0.35rem 0.9rem rgba(0, 0, 0, 0.5) !important;
+}
+
 @media (min-width: 821px) {
   :global(
     section#battlefield
@@ -141,5 +152,16 @@
     justify-content: center !important;
     padding: 0.24rem 0.18rem !important;
     text-align: center !important;
+  }
+
+  /* Spectator coordinates sit in the occupied tile corner; keep the mobile identity ring slim so
+     the coordinate label remains readable without changing playable battle token geometry. */
+  :global(
+    main[data-pvp-spectator='true']
+      section#battlefield
+      button[aria-label*='occupied by']
+      > [data-team]
+  ) {
+    border-width: 1px !important;
   }
 }
