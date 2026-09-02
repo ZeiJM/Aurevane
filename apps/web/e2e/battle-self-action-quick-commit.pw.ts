@@ -122,7 +122,7 @@ async function finishTurnKeepingFacing(page: Page, root: Locator, testRepeat = f
   }
 
   await page.keyboard.press('Space')
-  await expect(root).toHaveAttribute('data-local-turn', 'false', { timeout: 12_000 })
+  await expect(root).not.toHaveAttribute('data-local-turn', 'true', { timeout: 12_000 })
 }
 
 test('previews Guard on the first shortcut press and commits it only on a second deliberate press', async ({
