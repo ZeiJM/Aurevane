@@ -39,14 +39,20 @@ function currentFacingControl(playerName: string): HTMLButtonElement | null {
     : null
 }
 
-function hideFacingPads() {
-  document
-    .querySelectorAll<HTMLElement>('[data-unified-facing-pad="true"]')
-    .forEach((pad) => pad.style.setProperty('display', 'none', 'important'))
+function syncFacingPads() {
+  document.querySelectorAll<HTMLElement>('[data-unified-facing-pad="true"]').forEach((pad) => {
+    if (pad.hasAttribute('data-open')) {
+      // React owns the live Final Facing state. Remove the stabilizer's dormant inline hide so
+      // the open-state CSS can render the controls and keyboard/pointer commits can reach them.
+      pad.style.removeProperty('display')
+      return
+    }
+    pad.style.setProperty('display', 'none', 'important')
+  })
 }
 
 function syncFinishTurnCopy() {
-  hideFacingPads()
+  syncFacingPads()
 
   const deck = document.querySelector<HTMLElement>('section[aria-label="Command Deck"]')
   if (!deck) return
@@ -89,7 +95,7 @@ export function BattleCockpitLayoutStabilizer({ playerName }: { playerName: stri
       // the actor's existing facing as the shortcut, matching the two-Space keyboard contract.
       queuedFrame.current = window.requestAnimationFrame(() => {
         queuedFrame.current = 0
-        hideFacingPads()
+        syncFacingPads()
         commitCurrentFacing()
       })
     }

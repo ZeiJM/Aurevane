@@ -206,7 +206,7 @@
   background: linear-gradient(90deg, #33548d, #6d98dc);
 }
 
-@media (min-width: 821px) {
+@media (min-width: 821px), (any-hover: hover) and (any-pointer: fine) {
   :global([data-pvp-desktop-content='true'] > aside:not([data-six-combatant-rail='true'])) {
     display: none !important;
   }

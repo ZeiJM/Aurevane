@@ -6,7 +6,6 @@ import { useMemo } from 'react'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
 import { AiBattleQualityControls } from './ai-battle-quality-controls'
-import { AiDesktopSameFacingKeyboardAssist } from './ai-desktop-same-facing-keyboard-assist'
 import { BattleChatEmojiPolish } from './battle-chat-emoji-polish'
 import { BattleCockpitLayoutStabilizer } from './battle-cockpit-layout-stabilizer'
 import { BattleCommandCockpitPolish } from './battle-command-cockpit-polish'
@@ -16,7 +15,9 @@ import { BattleExperience } from './battle-experience'
 import { BattleFacingQuickCommitAssist } from './battle-facing-quick-commit-assist'
 import { BattleFeedbackAssist } from './battle-feedback-assist'
 import { BattlefieldPresentationBundle } from './battlefield-presentation-bundle'
+import { BattleFinishTurnKeyboardAssist } from './battle-finish-turn-keyboard-assist'
 import { BattleHeaderMatchMessage } from './battle-header-message-cycle'
+import { BattleInteractionLifecycleProvider } from './battle-interaction-lifecycle'
 import { BattleInspectTerrainContext } from './battle-inspect-terrain-context'
 import { BattleKeyboardAssist } from './battle-keyboard-assist'
 import { BattleLessonCoach } from './battle-lesson-coach'
@@ -84,107 +85,109 @@ export function BattleClientBoundary({
 
   return (
     <BattleRuntimeProvider playerName={runtime.playerName} combatantAccents={combatantAccents}>
-      <BattleExperience
-        key={initialBattle.battleVersion}
-        initialBattle={initialBattle}
-        runtime={runtime}
-      />
+      <BattleInteractionLifecycleProvider>
+        <BattleSelfActionQuickCommitAssist />
+        <BattleFinishTurnKeyboardAssist playerName={runtime.playerName} />
+        <BattleExperience
+          key={initialBattle.battleVersion}
+          initialBattle={initialBattle}
+          runtime={runtime}
+        />
 
-      <BattlefieldPresentationBundle
-        battleSessionId={initialBattle.battleSessionId}
-        playerName={runtime.kind === 'pve' ? runtime.playerName : undefined}
-        combatantAccents={combatantAccents}
-      />
-      <BattleDirectionalAttackAssist playerName={runtime.playerName} />
-      <BattleSelfActionQuickCommitAssist />
-      <BattleMobileTokenMeters initialBattle={initialBattle} combatantNames={combatantNames} />
-      <BattlePresentationPolish
-        playerName={runtime.playerName}
-        pvpMetadata={runtime.kind === 'pvp' ? runtime.metadata : undefined}
-      />
-      <BattleHeaderMatchMessage battleSessionId={initialBattle.battleSessionId} />
-      <BattleChatEmojiPolish />
-      <BattleFacingQuickCommitAssist playerName={runtime.playerName} />
-      <PvpQuickCommitAssist />
-      <BattleStatusEffectAssist />
-      <BattleStickyActionAssist />
-      <BattleCommandCockpitPolish />
-      <BattleCockpitLayoutStabilizer playerName={runtime.playerName} />
-      <BattleInspectTerrainContext />
+        <BattlefieldPresentationBundle
+          battleSessionId={initialBattle.battleSessionId}
+          playerName={runtime.kind === 'pve' ? runtime.playerName : undefined}
+          combatantAccents={combatantAccents}
+        />
+        <BattleDirectionalAttackAssist playerName={runtime.playerName} />
+        <BattleMobileTokenMeters initialBattle={initialBattle} combatantNames={combatantNames} />
+        <BattlePresentationPolish
+          playerName={runtime.playerName}
+          pvpMetadata={runtime.kind === 'pvp' ? runtime.metadata : undefined}
+        />
+        <BattleHeaderMatchMessage battleSessionId={initialBattle.battleSessionId} />
+        <BattleChatEmojiPolish />
+        <BattleFacingQuickCommitAssist playerName={runtime.playerName} />
+        <PvpQuickCommitAssist />
+        <BattleStatusEffectAssist />
+        <BattleStickyActionAssist />
+        <BattleCommandCockpitPolish />
+        <BattleCockpitLayoutStabilizer playerName={runtime.playerName} />
+        <BattleInspectTerrainContext />
 
-      {runtime.kind === 'pve' ? (
-        <>
-          <AiBattleQualityControls
-            battleSessionId={initialBattle.battleSessionId}
-            playerName={runtime.playerName}
-          />
-          <BattlePveCommandContextParity />
-          <BattleLessonCoachSemantics />
-          {lessonActive ? (
-            <BattleLessonCoach
+        {runtime.kind === 'pve' ? (
+          <>
+            <AiBattleQualityControls
               battleSessionId={initialBattle.battleSessionId}
-              recordId={battleHallRecord?.id ?? 'recruit-sparring'}
+              playerName={runtime.playerName}
             />
-          ) : null}
-          <PveBattleCompletionBridge initialBattle={initialBattle} />
-          <DesktopBattleCombatantInspect
-            battleSessionId={initialBattle.battleSessionId}
-            playerName={runtime.playerName}
-            playerPortraitAssetId={runtime.playerPortraitAssetId}
-            playerProfileImageUrl={runtime.playerProfileImageUrl}
-          />
-          <BattleRecruitRecoveryAssist />
-          <AiDesktopSameFacingKeyboardAssist playerName={runtime.playerName} />
-          <BattleKeyboardAssist playerName={runtime.playerName} />
-          <BattleFeedbackAssist
-            playerName={runtime.playerName}
-            playerProfileImageUrl={runtime.playerProfileImageUrl}
-          />
-          <BattleUtilityWindows
-            battleSessionId={initialBattle.battleSessionId}
-            playerName={runtime.playerName}
-          />
-          <MobileBattleCombatantPopup
-            battleSessionId={initialBattle.battleSessionId}
-            playerName={runtime.playerName}
-            playerPortraitAssetId={runtime.playerPortraitAssetId}
-            playerProfileImageUrl={runtime.playerProfileImageUrl}
-          />
-        </>
-      ) : (
-        <>
-          <PvpBattleReleasePolish />
-          <PvpBattleKeyboardAssist playerName={runtime.playerName} />
-          <PvpBattleChatBridge
-            battleSessionId={initialBattle.battleSessionId}
-            metadata={runtime.metadata}
-          />
-          <PvpBattleQualityControls
-            battleSessionId={initialBattle.battleSessionId}
-            initialBattle={initialBattle}
-            metadata={runtime.metadata}
-          />
-          <PvpBattleInspectPopup
-            battleSessionId={initialBattle.battleSessionId}
-            metadata={runtime.metadata}
-          />
-          <PvpBattleCompletionPanel initialBattle={initialBattle} metadata={runtime.metadata} />
-          <BattleStabilizationPolish />
-          <DesktopBattleCombatantInspect
-            battleSessionId={initialBattle.battleSessionId}
-            playerName={runtime.playerName}
-            pvpMetadata={runtime.metadata}
-          />
-        </>
-      )}
+            <BattlePveCommandContextParity />
+            <BattleLessonCoachSemantics />
+            {lessonActive ? (
+              <BattleLessonCoach
+                battleSessionId={initialBattle.battleSessionId}
+                recordId={battleHallRecord?.id ?? 'recruit-sparring'}
+              />
+            ) : null}
+            <PveBattleCompletionBridge initialBattle={initialBattle} />
+            <DesktopBattleCombatantInspect
+              battleSessionId={initialBattle.battleSessionId}
+              playerName={runtime.playerName}
+              playerPortraitAssetId={runtime.playerPortraitAssetId}
+              playerProfileImageUrl={runtime.playerProfileImageUrl}
+            />
+            <BattleRecruitRecoveryAssist />
+            <BattleKeyboardAssist playerName={runtime.playerName} />
+            <BattleFeedbackAssist
+              playerName={runtime.playerName}
+              playerProfileImageUrl={runtime.playerProfileImageUrl}
+            />
+            <BattleUtilityWindows
+              battleSessionId={initialBattle.battleSessionId}
+              playerName={runtime.playerName}
+            />
+            <MobileBattleCombatantPopup
+              battleSessionId={initialBattle.battleSessionId}
+              playerName={runtime.playerName}
+              playerPortraitAssetId={runtime.playerPortraitAssetId}
+              playerProfileImageUrl={runtime.playerProfileImageUrl}
+            />
+          </>
+        ) : (
+          <>
+            <PvpBattleReleasePolish />
+            <PvpBattleKeyboardAssist playerName={runtime.playerName} />
+            <PvpBattleChatBridge
+              battleSessionId={initialBattle.battleSessionId}
+              metadata={runtime.metadata}
+            />
+            <PvpBattleQualityControls
+              battleSessionId={initialBattle.battleSessionId}
+              initialBattle={initialBattle}
+              metadata={runtime.metadata}
+            />
+            <PvpBattleInspectPopup
+              battleSessionId={initialBattle.battleSessionId}
+              metadata={runtime.metadata}
+            />
+            <PvpBattleCompletionPanel initialBattle={initialBattle} metadata={runtime.metadata} />
+            <BattleStabilizationPolish />
+            <DesktopBattleCombatantInspect
+              battleSessionId={initialBattle.battleSessionId}
+              playerName={runtime.playerName}
+              pvpMetadata={runtime.metadata}
+            />
+          </>
+        )}
 
-      <DesktopBattleLogDock
-        battleSessionId={initialBattle.battleSessionId}
-        playerName={runtime.playerName}
-        combatantNames={combatantNames}
-        eventDriven={runtime.kind === 'pvp'}
-      />
-      <BattleScreenVisualContract />
+        <DesktopBattleLogDock
+          battleSessionId={initialBattle.battleSessionId}
+          playerName={runtime.playerName}
+          combatantNames={combatantNames}
+          eventDriven={runtime.kind === 'pvp'}
+        />
+        <BattleScreenVisualContract />
+      </BattleInteractionLifecycleProvider>
     </BattleRuntimeProvider>
   )
 }
