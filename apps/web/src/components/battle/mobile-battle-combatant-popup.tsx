@@ -6,6 +6,12 @@ import { CharacterPortraitImage } from '@/components/character/character-portrai
 import type { ImageAssetId } from '@/media/registry'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
+import {
+  aggregateBattleStatusStacks,
+  formatStatusStackCount,
+  statusIsBeneficial,
+  statusLabel,
+} from './battle-effect-summary'
 import styles from './mobile-battle-combatant-popup.module.css'
 
 const MOBILE_QUERY = '(max-width: 880px)'
@@ -60,17 +66,6 @@ function facingGlyph(facing: Placement['facing']): string {
   if (facing === 'east') return '→'
   if (facing === 'south') return '↓'
   return '←'
-}
-
-function statusLabel(statusId: string): string {
-  if (statusId === 'guarded') return 'Guarded'
-  return statusId
-    .replace(/^buff\./, '')
-    .replace(/^debuff\./, '')
-    .split('.')
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
 }
 
 function inspectModeActive(): boolean {
@@ -213,6 +208,7 @@ export function MobileBattleCombatantPopup({
     if (!selected || selected.combatant.maxMp <= 0) return 0
     return Math.max(0, Math.min(100, (selected.combatant.mp / selected.combatant.maxMp) * 100))
   }, [selected])
+  const effectStatuses = selected ? aggregateBattleStatusStacks(selected.statuses) : []
 
   if (!open) return null
 
@@ -325,15 +321,18 @@ export function MobileBattleCombatantPopup({
 
             <section className={styles.effects} aria-label={`${selected.name} active effects`}>
               <span>Active effects</span>
-              {selected.statuses.length === 0 ? (
+              {effectStatuses.length === 0 ? (
                 <p>No buffs or debuffs are active.</p>
               ) : (
                 <ul>
-                  {selected.statuses.map((status) => (
-                    <li key={`${status.statusId}:${status.sourceCombatantId}`}>
+                  {effectStatuses.map((status) => (
+                    <li
+                      key={`${status.statusId}:${status.statusVersion}`}
+                      data-tone={statusIsBeneficial(status.statusId) ? 'buff' : 'debuff'}
+                    >
                       <strong>
                         {statusLabel(status.statusId)}
-                        {status.stacks > 1 ? ` ×${status.stacks}` : ''}
+                        <b>{formatStatusStackCount(status.statusId, status.stacks)}</b>
                       </strong>
                       <small>
                         {status.remainingOwnerTurnStarts} turn
