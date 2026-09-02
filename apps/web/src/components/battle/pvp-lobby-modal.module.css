@@ -344,11 +344,65 @@
 }
 
 .footer > div:first-child > button {
+  display: inline-flex;
   width: max-content;
-  border: 0;
-  color: #e6c275;
-  background: transparent;
+  min-height: 2.55rem;
+  gap: 0.45rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0.62rem 0.9rem;
+  border: 1px solid rgba(211, 173, 92, 0.46);
+  border-radius: 0.4rem;
+  color: #f0d087;
+  background:
+    linear-gradient(180deg, rgba(211, 173, 92, 0.12), rgba(112, 76, 28, 0.08)),
+    rgba(7, 10, 15, 0.76);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 231, 172, 0.05),
+    0 0.45rem 1.2rem rgba(0, 0, 0, 0.18);
+  font: 800 0.48rem/1.15 var(--av-font-mono);
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
   cursor: pointer;
+  transition:
+    border-color 140ms ease,
+    color 140ms ease,
+    background 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease;
+}
+
+.footer > div:first-child > button::before {
+  color: #ddb65f;
+  content: '←';
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
+.footer > div:first-child > button:hover {
+  border-color: rgba(238, 197, 107, 0.76);
+  color: #f7dfa5;
+  background:
+    linear-gradient(180deg, rgba(211, 173, 92, 0.18), rgba(112, 76, 28, 0.12)),
+    rgba(9, 12, 18, 0.88);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 231, 172, 0.08),
+    0 0.55rem 1.4rem rgba(0, 0, 0, 0.24),
+    0 0 1.2rem rgba(211, 173, 92, 0.07);
+  transform: translateY(-1px);
+}
+
+.footer > div:first-child > button:focus-visible {
+  border-color: rgba(238, 197, 107, 0.9);
+  outline: none;
+  box-shadow:
+    0 0 0 2px rgba(9, 13, 20, 0.96),
+    0 0 0 3px rgba(238, 197, 107, 0.72),
+    0 0.55rem 1.4rem rgba(0, 0, 0, 0.24);
+}
+
+.footer > div:first-child > button:active {
+  transform: translateY(0);
 }
 
 .actions {
@@ -453,6 +507,10 @@
   .keyStack,
   .actions {
     grid-template-columns: 1fr;
+  }
+
+  .footer > div:first-child > button {
+    width: 100%;
   }
 
   .filledSeat {
