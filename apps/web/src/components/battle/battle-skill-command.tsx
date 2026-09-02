@@ -11,6 +11,7 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 
+import artworkFitStyles from './battle-skill-artwork-fit.module.css'
 import styles from './battle-skill-command.module.css'
 
 export type BattleCommandSlot = 'inspect' | 'move' | 'attack' | 'guard' | 'recover' | 'finish'
@@ -139,7 +140,11 @@ export function BattleSkillCommand({
         <strong>{label}</strong>
         <small>{cost}</small>
         {!canSwap ? (
-          <span className={styles.artwork} data-battle-command-artwork="static" aria-hidden="true">
+          <span
+            className={`${styles.artwork} ${artworkFitStyles.frame}`}
+            data-battle-command-artwork="static"
+            aria-hidden="true"
+          >
             <SkillArtworkImage src={artworkSrc} />
           </span>
         ) : null}
@@ -149,7 +154,7 @@ export function BattleSkillCommand({
         <button
           ref={artworkRef}
           type="button"
-          className={styles.artworkTrigger}
+          className={`${styles.artworkTrigger} ${artworkFitStyles.frame}`}
           data-battle-command-artwork="selector"
           aria-haspopup="listbox"
           aria-expanded={selectorOpen}
