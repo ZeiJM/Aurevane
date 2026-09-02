@@ -1,0 +1,32 @@
+name: One-shot spectator parity validation
+
+on:
+  push:
+    branches:
+      - agent/spectator-battlefield-parity
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck web
+        run: pnpm --filter @aurevane/web typecheck
+      - name: Run focused battle presentation tests
+        run: >-
+          pnpm --filter @aurevane/web exec vitest run
+          src/components/battle/battlefield-presentation-bundle.test.ts
+          src/components/battle/battle-map-token-polish.test.ts

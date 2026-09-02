@@ -8,6 +8,10 @@ battle presentation from drifting apart again.
 
 - **Playable PvP is the canonical visual/presentation reference for shared battle UI.**
 - PvE / AI Battles must inherit every applicable PvP presentation change by default.
+- Spectator battlefields must inherit every applicable playable battlefield presentation change by
+  default. Playable and spectator battle surfaces must both mount `BattlefieldPresentationBundle`;
+  add mode-neutral battlefield visual polish there rather than wiring it only in
+  `BattleClientBoundary` or `PvpSpectatorExperience`.
 - When changing PvP presentation, explicitly classify the change as **desktop**, **mobile**, or
   **both**, then apply the same applicable change to PvE in the same work item.
 - Do not maintain a second visually independent PvE implementation when a shared component,

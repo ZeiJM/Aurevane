@@ -105,4 +105,9 @@
     min-width: 0 !important;
     justify-self: stretch;
   }
+
+  :global(main[data-pvp-spectator='true'] > header > div:last-child > button:first-child) {
+    justify-items: center;
+    text-align: center !important;
+  }
 }
