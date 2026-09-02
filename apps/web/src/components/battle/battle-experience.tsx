@@ -226,7 +226,8 @@ export function BattleExperience({
   const recruitLock = useRef(false)
   const modeRef = useRef<Mode>('none')
   modeRef.current = mode
-  const { registerInspectCloseHandler } = useBattleInteractionLifecycle()
+  const { registerFinishTurnHandler, registerInspectCloseHandler } =
+    useBattleInteractionLifecycle()
 
   const { selectedSkillId, selectSkill } = useBattleSkillSelections(
     initialBattle.battleSessionId,
@@ -260,6 +261,8 @@ export function BattleExperience({
   const actionEconomy = localTurn ? readEconomy(localCombatant) : 0
   const planningDisabled =
     !localTurn || battleState.lifecycle !== 'active' || commitPending || recruitPending
+  const planningDisabledRef = useRef(planningDisabled)
+  planningDisabledRef.current = planningDisabled
   const activeName = battleParticipantName(viewModel, battleState.currentTurn?.combatantId)
   const selectedHealIsMp = selectedHealActionId === MP_RECOVER_ID
   const selectedHealName = selectedHealIsMp ? 'MP Recovery' : 'HP Recovery'
@@ -343,6 +346,15 @@ export function BattleExperience({
       })
     })
   }, [clearPlanning, registerInspectCloseHandler])
+
+  useEffect(() => {
+    return registerFinishTurnHandler(() => {
+      if (planningDisabledRef.current) return false
+      clearPlanning('finish')
+      setNotice('Choose final facing with the buttons, WASD, or arrow keys to end the turn.')
+      return true
+    })
+  }, [clearPlanning, registerFinishTurnHandler])
 
   const refreshBattle = useCallback(
     async (message = 'Battle state reloaded.') => {
