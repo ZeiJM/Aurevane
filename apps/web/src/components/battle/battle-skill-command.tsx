@@ -1,6 +1,5 @@
 'use client'
 
-import Image from 'next/image'
 import {
   useCallback,
   useEffect,
@@ -28,10 +27,6 @@ export interface BattleSkillSelectorConfig {
   selectedId: string
   options: readonly BattleSkillSelectorOption[]
   onSelect: (id: string) => void
-}
-
-function SkillArtworkImage({ src }: { src: string }) {
-  return <Image src={src} alt="" width={64} height={64} unoptimized aria-hidden="true" />
 }
 
 export function BattleSkillCommand({
@@ -145,7 +140,7 @@ export function BattleSkillCommand({
             data-battle-command-artwork="static"
             aria-hidden="true"
           >
-            <SkillArtworkImage src={artworkSrc} />
+            <img src={artworkSrc} alt="" />
           </span>
         ) : null}
       </button>
@@ -161,7 +156,7 @@ export function BattleSkillCommand({
           aria-label={`Choose ${selector.categoryLabel} skill. ${label} selected.`}
           onClick={() => setSelectorOpen((open) => !open)}
         >
-          <SkillArtworkImage src={artworkSrc} />
+          <img src={artworkSrc} alt="" aria-hidden="true" />
           <span aria-hidden="true">⌄</span>
         </button>
       ) : null}
@@ -191,7 +186,7 @@ export function BattleSkillCommand({
                       closeSelector(true)
                     }}
                   >
-                    <SkillArtworkImage src={option.artworkSrc} />
+                    <img src={option.artworkSrc} alt="" aria-hidden="true" />
                     <span>
                       <strong>{option.label}</strong>
                       <small>{option.cost}</small>
