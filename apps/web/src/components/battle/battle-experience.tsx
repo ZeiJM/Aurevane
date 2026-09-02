@@ -226,8 +226,7 @@ export function BattleExperience({
   const recruitLock = useRef(false)
   const modeRef = useRef<Mode>('none')
   modeRef.current = mode
-  const { registerFinishTurnHandler, registerInspectCloseHandler } =
-    useBattleInteractionLifecycle()
+  const { registerFinishTurnHandler, registerInspectCloseHandler } = useBattleInteractionLifecycle()
 
   const { selectedSkillId, selectSkill } = useBattleSkillSelections(
     initialBattle.battleSessionId,
