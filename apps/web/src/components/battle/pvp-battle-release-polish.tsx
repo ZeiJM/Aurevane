@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 
+import spectatorFooterStyles from './battle-spectator-footer-shape.module.css'
 import visualParityStyles from './pvp-ai-action-visual-parity.module.css'
 import objectiveParityStyles from './pvp-ai-header-objective-parity.module.css'
 import boardScaleStyles from './pvp-battle-board-scale-authority.module.css'
@@ -89,7 +90,7 @@ export function PvpBattleReleasePolish() {
 
   return (
     <span
-      className={`${styles.hook} ${parityStyles.hook} ${visualParityStyles.hook} ${objectiveParityStyles.hook} ${boardScaleStyles.hook}`}
+      className={`${styles.hook} ${parityStyles.hook} ${visualParityStyles.hook} ${objectiveParityStyles.hook} ${boardScaleStyles.hook} ${spectatorFooterStyles.hook}`}
       aria-hidden="true"
     />
   )
