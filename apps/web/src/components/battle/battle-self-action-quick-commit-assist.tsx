@@ -68,9 +68,7 @@ function isCommandSlot(value: string | undefined): value is CommandSlot {
 }
 
 function battleRoot(): HTMLElement | null {
-  return document.querySelector<HTMLElement>(
-    'main[data-unified-battle="true"][data-battle-kind]',
-  )
+  return document.querySelector<HTMLElement>('main[data-unified-battle="true"][data-battle-kind]')
 }
 
 function commandButton(slot: CommandSlot): HTMLButtonElement | null {
