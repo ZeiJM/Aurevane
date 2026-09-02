@@ -37,6 +37,21 @@ jobs:
       - name: Start local Supabase stack
         run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
 
+      - name: Build web
+        shell: bash
+        run: |
+          set -euo pipefail
+          status_env="$(pnpm exec supabase status -o env)"
+          eval "$(printf '%s\n' "$status_env" | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY|SECRET_KEY)=')"
+          server_key="${SECRET_KEY:-${SERVICE_ROLE_KEY:-}}"
+          api_url='http://127.0.0.1:54321'
+          AUREVANE_ENV=local \
+          NEXT_PUBLIC_AUREVANE_ENV=local \
+          NEXT_PUBLIC_SUPABASE_URL="$api_url" \
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
+          SUPABASE_SECRET_KEY="$server_key" \
+          pnpm --filter @aurevane/web build
+
       - name: Inject runner-only DOM diagnostics
         shell: bash
         run: |
