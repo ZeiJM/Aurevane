@@ -65,6 +65,17 @@ function currentFacing(root: HTMLElement, playerName: string): Facing | null {
     root.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label*="occupied by"]'),
   ).find((tile) => (tile.getAttribute('aria-label') ?? '').includes(`occupied by ${playerName}`))
   if (playerTile) {
+    const indicator = playerTile.querySelector<HTMLElement>('[data-battle-facing-indicator="true"]')
+    const indicatorFacing = indicator?.dataset.facing
+    if (
+      indicatorFacing === 'north' ||
+      indicatorFacing === 'east' ||
+      indicatorFacing === 'south' ||
+      indicatorFacing === 'west'
+    ) {
+      return indicatorFacing
+    }
+
     const ariaFacing = facingFromText(playerTile.getAttribute('aria-label') ?? '')
     if (ariaFacing) return ariaFacing
 
@@ -85,14 +96,6 @@ function currentFacingButton(root: HTMLElement, playerName: string): HTMLButtonE
   if (!facing) return null
   const button = root.querySelector<HTMLButtonElement>(`button[aria-label="Face ${facing}"]`)
   return button && !button.disabled ? button : null
-}
-
-function finishTurnIsActive(button: HTMLButtonElement): boolean {
-  return (
-    button.hasAttribute('data-active') ||
-    button.dataset.battleActive === 'true' ||
-    `${button.className}`.includes('commandActive')
-  )
 }
 
 export function BattleFinishTurnKeyboardAssist({ playerName }: { playerName: string }) {
@@ -199,7 +202,7 @@ export function BattleFinishTurnKeyboardAssist({ playerName }: { playerName: str
       const transientSecondPress =
         firstPressAt !== null && now - firstPressAt <= TRANSIENT_SECOND_PRESS_MS
 
-      if (finishTurnIsActive(finishTurn) || transientSecondPress) {
+      if (transientSecondPress) {
         commitCurrentFacingWhenReady()
         return
       }
