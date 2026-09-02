@@ -49,11 +49,13 @@ describe('category-slot hotkeys and self-action double-press shortcuts', () => {
     expect(content).toContain('document.hidden || !document.hasFocus()')
   })
 
-  it('keeps legacy PvE and PvP keyboard assists from consuming shared category hotkeys', () => {
+  it('keeps legacy PvE and PvP keyboard assists from consuming desktop shared category hotkeys', () => {
     for (const file of ['battle-keyboard-assist.tsx', 'pvp-battle-keyboard-assist.tsx']) {
       const content = source(file)
       expect(content).toContain('function isSharedCategoryAction(action: CombatKeybindAction)')
-      expect(content).toContain('if (isSharedCategoryAction(action)) return')
+      expect(content).toContain(
+        "if (isSharedCategoryAction(action) && window.matchMedia('(min-width: 821px)').matches)",
+      )
       expect(content).toContain("['recover', ['Recover', 'HP Recovery', 'MP Recovery']]")
     }
   })
