@@ -317,3 +317,12 @@
     width: 100%;
   }
 }
+
+/* Final Facing must remain visible whenever BattleExperience opens the facing pad. */
+:global(
+  main[data-unified-battle='true']
+    [data-unified-command-deck='true']
+    > [data-unified-facing-pad='true'][data-open='true']
+) {
+  display: grid !important;
+}
