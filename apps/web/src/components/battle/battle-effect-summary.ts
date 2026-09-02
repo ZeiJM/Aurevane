@@ -116,13 +116,5 @@ export function summarizeBattleEffects(
     })
   }
 
-  for (const status of groupedStatuses) {
-    summary.push({
-      label: statusLabel(status.statusId),
-      value: formatStatusStackCount(status.statusId, status.stacks),
-      tone: statusIsBeneficial(status.statusId) ? 'buff' : 'debuff',
-    })
-  }
-
   return summary
 }
