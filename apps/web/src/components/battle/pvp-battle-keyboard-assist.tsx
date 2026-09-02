@@ -120,6 +120,10 @@ function configuredAction(bindings: CombatKeybindMap, chord: string): CombatKeyb
   )
 }
 
+function isSharedCategoryAction(action: CombatKeybindAction): boolean {
+  return action === 'move' || action === 'basicAttack' || action === 'guard' || action === 'recover'
+}
+
 function defaultAction(chord: string): CombatKeybindAction | null {
   return (
     COMBAT_KEYBIND_ACTIONS.find(
@@ -157,7 +161,7 @@ function syncVisibleCommandLabels(bindings: CombatKeybindMap) {
     ['move', ['Move']],
     ['basicAttack', ['Basic Attack']],
     ['guard', ['Guard']],
-    ['recover', ['Recover']],
+    ['recover', ['Recover', 'HP Recovery', 'MP Recovery']],
     ['endTurn', ['Finish Turn', 'End Turn', 'Facing / End Turn']],
   ]
 
@@ -296,7 +300,7 @@ export function PvpBattleKeyboardAssist({ playerName }: { playerName: string }) 
         return true
       }
       if (action === 'recover') {
-        commandButton('Recover')?.click()
+        commandButton('Recover', 'HP Recovery', 'MP Recovery')?.click()
         return true
       }
       if (action === 'endTurn') {
@@ -360,6 +364,9 @@ export function PvpBattleKeyboardAssist({ playerName }: { playerName: string }) 
       const chord = eventChord(event)
       const action = configuredAction(bindings, chord)
       if (action) {
+        // Move / Attack / Guard / Recovery are owned by BattleSelfActionQuickCommitAssist. Yield
+        // before consuming the event so listener registration order can never change their result.
+        if (isSharedCategoryAction(action)) return
         if ((action === 'nextTarget' || action === 'previousTarget') && !attackModeIsActive())
           return
         event.preventDefault()
