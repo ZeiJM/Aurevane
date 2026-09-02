@@ -268,10 +268,7 @@ export function BattleLogFeed({
       {rounds.map((round) => {
         const open = expandedRound === round.key
         const roundLabel = round.round === null ? 'Battle' : `Round ${round.round}`
-        const roundTitle =
-          !battleFinished && round.key === rounds[0]?.key && round.round !== null
-            ? `${roundLabel} · In progress`
-            : roundLabel
+        const inProgress = !battleFinished && round.key === rounds[0]?.key && round.round !== null
         return (
           <section className={styles.round} data-open={open || undefined} key={round.key}>
             <button
@@ -287,7 +284,15 @@ export function BattleLogFeed({
               <span className={styles.chevron} aria-hidden="true">
                 ›
               </span>
-              <strong className={styles.roundTitle}>{roundTitle}</strong>
+              <strong className={styles.roundTitle}>
+                {roundLabel}
+                {inProgress ? (
+                  <>
+                    {' · '}
+                    <span className={styles.inProgress}>In progress</span>
+                  </>
+                ) : null}
+              </strong>
               <time dateTime={round.occurredAt}>{timeLabel(round.occurredAt)}</time>
             </button>
 

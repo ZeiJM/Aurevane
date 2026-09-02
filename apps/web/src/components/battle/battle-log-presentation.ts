@@ -549,8 +549,8 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
     const actor = combatantName(timeout.actorCombatantId, options) ?? 'Combatant'
     primary = [
       segment(actor, 'actor'),
-      segment(' hesitates — '),
-      segment('the moment passes', 'outcome', 'warning'),
+      segment(' hesitates... '),
+      segment('the moment passes!', 'outcome', 'warning'),
     ]
     secondary = statusApplicationSecondary(group, options, consumed, timeout.actorCombatantId)
     kind = 'turn'
@@ -704,6 +704,7 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
     const name = statusName(statusExpired)
     const target = combatantName(statusExpired.targetCombatantId, options) ?? 'Combatant'
     primary = [
+      segment('* '),
       segment(`${target}'s `, 'target'),
       segment(name, 'action'),
       segment(' fades as their turn begins'),
