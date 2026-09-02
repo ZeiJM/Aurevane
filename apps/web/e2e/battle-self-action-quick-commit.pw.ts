@@ -60,6 +60,7 @@ async function readFacingGlyph(root: Locator, playerName: string): Promise<strin
 
 async function finishTurnKeepingFacing(page: Page, root: Locator, testRepeat = false) {
   await expect(root).toHaveAttribute('data-local-turn', 'true', { timeout: 12_000 })
+  await expect(root).toHaveAttribute('data-finish-turn-hotkey-owner', 'ready', { timeout: 5_000 })
   const finish = root.locator(
     'section[aria-label="Command Deck"] button[data-battle-command="finish"]',
   )
