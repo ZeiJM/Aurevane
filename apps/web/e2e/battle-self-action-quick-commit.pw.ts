@@ -40,7 +40,7 @@ async function enterGuidedBattle(page: Page) {
   return root
 }
 
-test('previews Guard on the first shortcut press and commits it on the second', async ({
+test('previews Guard on the first shortcut press and commits it only on a second deliberate press', async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name === 'mobile-chromium', 'Desktop keyboard shortcut contract')
@@ -56,6 +56,23 @@ test('previews Guard on the first shortcut press and commits it on the second', 
   await expect(economy).toHaveAttribute('aria-valuenow', '100')
 
   await page.keyboard.press('Digit4')
+  await expect(confirm).toBeEnabled()
+  await expect(economy).toHaveAttribute('aria-valuenow', '100')
+
+  // Holding a key must never count as the deliberate second press. Chromium and Edge both expose
+  // OS-repeat through KeyboardEvent.repeat, so synthesize that condition explicitly here.
+  await page.evaluate(() => {
+    window.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        code: 'Digit4',
+        key: '4',
+        repeat: true,
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+  })
+  await page.waitForTimeout(100)
   await expect(confirm).toBeEnabled()
   await expect(economy).toHaveAttribute('aria-valuenow', '100')
 
