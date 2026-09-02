@@ -57,7 +57,7 @@ export function statusLabel(statusId: string): string {
 
 export function formatStatusStackCount(statusId: string, stacks: number): string {
   const count = Math.max(1, stacks)
-  return `${statusIsBeneficial(statusId) ? '+' : '−'}${count}`
+  return `×${count}`
 }
 
 export function aggregateBattleStatusStacks<T extends BattleStatusSummaryInput>(

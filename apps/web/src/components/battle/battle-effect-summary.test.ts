@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import { aggregateBattleStatusStacks, summarizeBattleEffects } from './battle-effect-summary'
+import {
+  aggregateBattleStatusStacks,
+  formatStatusStackCount,
+  summarizeBattleEffects,
+} from './battle-effect-summary'
 
 describe('battle effect summary', () => {
   it('shows Lowered Guard as 250% incoming damage instead of a +150% delta', () => {
@@ -32,5 +36,10 @@ describe('battle effect summary', () => {
         { statusId: 'buff.focus', statusVersion: 1, stacks: 2 },
       ]),
     ).toEqual([{ statusId: 'buff.focus', statusVersion: 1, stacks: 3 }])
+  })
+
+  it('uses neutral multiplication notation for every status counter', () => {
+    expect(formatStatusStackCount('guarded', 3)).toBe('×3')
+    expect(formatStatusStackCount('lowered-guard', 3)).toBe('×3')
   })
 })
