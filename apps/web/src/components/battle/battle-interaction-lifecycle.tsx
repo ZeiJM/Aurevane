@@ -49,7 +49,7 @@ export function BattleInteractionLifecycleProvider({ children }: { children: Rea
   }, [])
 
   const registerFinishTurnHandler = useCallback((handler: FinishTurnHandler) => {
-    // Readiness follows the registered BattleExperience handler rather than DOM/hydration timing.
+    // Readiness follows the live BattleExperience handler rather than DOM or hydration timing.
     finishTurnHandlerRef.current = handler
     setFinishTurnReady(true)
     return () => {
