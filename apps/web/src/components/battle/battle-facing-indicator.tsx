@@ -1,6 +1,6 @@
 'use client'
 
-import { Fragment, useEffect, useRef, useState } from 'react'
+import { Fragment, useEffect, useRef } from 'react'
 
 import type { BattleFacing } from './battle-geometry'
 import styles from './battle-facing-indicator.module.css'
@@ -21,18 +21,17 @@ function facingFromGlyph(value: string): BattleFacing | null {
 }
 
 export function BattleFacingIndicator({ facing }: { facing: BattleFacing }) {
-  const [displayFacing, setDisplayFacing] = useState(facing)
+  const indicatorRef = useRef<HTMLDivElement | null>(null)
   const compatibilityGlyphRef = useRef<HTMLElement | null>(null)
 
-  useEffect(() => setDisplayFacing(facing), [facing])
-
   useEffect(() => {
+    const indicator = indicatorRef.current
     const glyph = compatibilityGlyphRef.current
-    if (!glyph) return
+    if (!indicator || !glyph) return
 
     const syncLegacyPreview = () => {
       const nextFacing = facingFromGlyph(glyph.textContent ?? '')
-      if (nextFacing) setDisplayFacing(nextFacing)
+      if (nextFacing) indicator.dataset.facing = nextFacing
     }
 
     const observer = new MutationObserver(syncLegacyPreview)
@@ -43,9 +42,10 @@ export function BattleFacingIndicator({ facing }: { facing: BattleFacing }) {
   return (
     <Fragment>
       <div
+        ref={indicatorRef}
         className={styles.indicator}
         data-battle-facing-indicator="true"
-        data-facing={displayFacing}
+        data-facing={facing}
         aria-hidden="true"
       >
         <svg viewBox="0 0 12 12" focusable="false" aria-hidden="true">
@@ -53,7 +53,7 @@ export function BattleFacingIndicator({ facing }: { facing: BattleFacing }) {
         </svg>
       </div>
       <i ref={compatibilityGlyphRef} className={styles.compatibilityGlyph} aria-hidden="true">
-        {FACING_GLYPHS[displayFacing]}
+        {FACING_GLYPHS[facing]}
       </i>
     </Fragment>
   )
