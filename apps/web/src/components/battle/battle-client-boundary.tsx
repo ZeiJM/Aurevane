@@ -11,17 +11,16 @@ import { BattleChatEmojiPolish } from './battle-chat-emoji-polish'
 import { BattleCockpitLayoutStabilizer } from './battle-cockpit-layout-stabilizer'
 import { BattleCommandCockpitPolish } from './battle-command-cockpit-polish'
 import { pvpParticipantAccent } from './battle-combatant-colors'
-import { BattleCoordinateToggle } from './battle-coordinate-toggle'
 import { BattleDirectionalAttackAssist } from './battle-directional-attack-assist'
 import { BattleExperience } from './battle-experience'
 import { BattleFacingQuickCommitAssist } from './battle-facing-quick-commit-assist'
 import { BattleFeedbackAssist } from './battle-feedback-assist'
+import { BattlefieldPresentationBundle } from './battlefield-presentation-bundle'
 import { BattleHeaderMatchMessage } from './battle-header-message-cycle'
 import { BattleInspectTerrainContext } from './battle-inspect-terrain-context'
 import { BattleKeyboardAssist } from './battle-keyboard-assist'
 import { BattleLessonCoach } from './battle-lesson-coach'
 import { BattleLessonCoachSemantics } from './battle-lesson-coach-semantics'
-import { BattleMapTokenPolish } from './battle-map-token-polish'
 import { BattleMobileTokenMeters } from './battle-mobile-token-meters'
 import { BattlePresentationPolish } from './battle-presentation-polish'
 import { BattlePveCommandContextParity } from './battle-pve-command-context-parity'
@@ -33,7 +32,6 @@ import { BattleSelfActionQuickCommitAssist } from './battle-self-action-quick-co
 import { BattleStabilizationPolish } from './battle-stabilization-polish'
 import { BattleStatusEffectAssist } from './battle-status-effect-assist'
 import { BattleStickyActionAssist } from './battle-sticky-action-assist'
-import { BattleTerrainPresentationPolish } from './battle-terrain-presentation-polish'
 import { BattleUtilityWindows } from './battle-utility-windows'
 import { DesktopBattleCombatantInspect } from './desktop-battle-combatant-inspect'
 import { DesktopBattleLogDock } from './desktop-battle-log-dock'
@@ -92,14 +90,13 @@ export function BattleClientBoundary({
         runtime={runtime}
       />
 
-      <BattleTerrainPresentationPolish />
-      <BattleCoordinateToggle battleSessionId={initialBattle.battleSessionId} />
-      <BattleDirectionalAttackAssist playerName={runtime.playerName} />
-      <BattleSelfActionQuickCommitAssist />
-      <BattleMapTokenPolish
+      <BattlefieldPresentationBundle
+        battleSessionId={initialBattle.battleSessionId}
         playerName={runtime.kind === 'pve' ? runtime.playerName : undefined}
         combatantAccents={combatantAccents}
       />
+      <BattleDirectionalAttackAssist playerName={runtime.playerName} />
+      <BattleSelfActionQuickCommitAssist />
       <BattleMobileTokenMeters initialBattle={initialBattle} combatantNames={combatantNames} />
       <BattlePresentationPolish
         playerName={runtime.playerName}
