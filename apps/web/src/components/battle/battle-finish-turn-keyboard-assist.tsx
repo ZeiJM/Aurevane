@@ -24,18 +24,20 @@ function isTextEntryTarget(target: EventTarget | null): boolean {
   )
 }
 
-function activeBattleRoot(): HTMLElement | null {
+function visibleBattleRoot(): HTMLElement | null {
   const roots = Array.from(
     document.querySelectorAll<HTMLElement>('main[data-unified-battle="true"][data-battle-kind]'),
   )
   return (
     roots.find(
-      (root) =>
-        root.dataset.localTurn === 'true' &&
-        root.getClientRects().length > 0 &&
-        root.ariaHidden !== 'true',
+      (root) => root.getClientRects().length > 0 && root.ariaHidden !== 'true',
     ) ?? null
   )
+}
+
+function activeBattleRoot(): HTMLElement | null {
+  const root = visibleBattleRoot()
+  return root?.dataset.localTurn === 'true' ? root : null
 }
 
 function finishTurnButton(root: HTMLElement): HTMLButtonElement | null {
@@ -126,6 +128,9 @@ export function BattleFinishTurnKeyboardAssist({ playerName }: { playerName: str
   }, [])
 
   useLayoutEffect(() => {
+    const mountedRoot = visibleBattleRoot()
+    if (mountedRoot) mountedRoot.dataset.finishTurnHotkeyOwner = 'ready'
+
     function cancelPendingCommit() {
       pendingCommitSequenceRef.current += 1
       firstPressAtRef.current = null
@@ -224,6 +229,9 @@ export function BattleFinishTurnKeyboardAssist({ playerName }: { playerName: str
     document.addEventListener('visibilitychange', handleVisibilityChange)
     return () => {
       pendingCommitSequenceRef.current += 1
+      if (mountedRoot?.dataset.finishTurnHotkeyOwner === 'ready') {
+        delete mountedRoot.dataset.finishTurnHotkeyOwner
+      }
       window.removeEventListener('keydown', handleKeyDown, true)
       window.removeEventListener('blur', handleBlur)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
