@@ -179,6 +179,44 @@ describe('sanitized battle log service', () => {
     expect(serialized).not.toContain('25000')
   })
 
+  it('describes an added status stack instead of reducing it to a duration refresh', async () => {
+    const repository: BattleEventRepository = {
+      findBattleEvents: vi.fn(async () => [
+        {
+          battleVersion: 11,
+          eventIndex: 0,
+          event: {
+            event: 'status_applied',
+            actionId: 'basic.guard',
+            sourceCombatantId: 'character:player-1',
+            targetCombatantId: 'character:player-1',
+            statusId: 'guarded',
+            stacks: 2,
+            remainingOwnerTurnStarts: 2,
+            refreshed: true,
+            stacked: true,
+          },
+          createdAt: '2026-08-17T13:04:00.000Z',
+        },
+      ]),
+    }
+
+    const result = await createBattleLogService(repository).getLog(USER_ID, SESSION_ID)
+
+    expect(result.entries[0]).toEqual(
+      expect.objectContaining({
+        message: 'Wayfarer stacked Guarded to ×2 for 2 owner-turn starts.',
+        messageTemplate: "{target}'s {status} stacks to ×{stacks}.",
+        templateValues: { status: 'Guarded', statusChange: 'STACKED', stacks: '2' },
+        facts: [
+          { label: 'Guarded', tone: 'benefit' },
+          { label: '×2 stacks', tone: 'neutral' },
+          { label: '2 turns', tone: 'neutral' },
+        ],
+      }),
+    )
+  })
+
   it('carries authoritative round and turn context forward into later action entries', async () => {
     const repository: BattleEventRepository = {
       findBattleEvents: vi.fn(async () => [

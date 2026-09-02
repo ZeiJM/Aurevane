@@ -168,7 +168,11 @@ describe('Battle Log V2 presentation', () => {
           eventType: 'pvp_lowered_guard_applied',
           message: 'Wayfarer gained Lowered Guard.',
           messageTemplate: '{target} gained Lowered Guard.',
-          templateValues: {},
+          templateValues: {
+            status: 'Lowered Guard',
+            statusChange: 'STACKED',
+            stacks: '2',
+          },
           actorCombatantId: null,
           targetCombatantId: 'character:zei',
           actionId: null,
@@ -178,6 +182,7 @@ describe('Battle Log V2 presentation', () => {
           tone: 'warning',
           facts: [
             { label: 'Lowered Guard', tone: 'warning' },
+            { label: '×2 stacks', tone: 'neutral' },
             { label: '1 turn', tone: 'neutral' },
             { label: 'Takes 2.5× damage', tone: 'warning' },
           ],
@@ -224,7 +229,7 @@ describe('Battle Log V2 presentation', () => {
     const actions = rounds[0]?.actions ?? []
     expect(sentence(actions[0]?.primary ?? [])).toBe("Zei's turn expires — action forfeited")
     expect(sentence(actions[0]?.secondary ?? [])).toBe(
-      '↳ Zei suffers Lowered Guard · until next turn',
+      "↳ Zei's Lowered Guard stacks to ×2 · until next turn",
     )
     expect(actions[0]?.details.map((detail) => detail.label)).toEqual([
       'Takes 2.5× damage',
@@ -258,6 +263,28 @@ describe('Battle Log V2 presentation', () => {
       { combatantNames: names },
     )[0]?.actions[0]
     expect(sentence(action?.primary ?? [])).toBe("Zei's Guarded refreshes · 2 turns")
+  })
+
+  it('renders added status stacks with the authoritative total', () => {
+    const action = buildBattleLogPresentation(
+      [
+        entry({
+          eventType: 'status_applied',
+          messageTemplate: "{target}'s {status} stacks to ×{stacks}.",
+          templateValues: { status: 'Guarded', statusChange: 'STACKED', stacks: '2' },
+          targetCombatantId: 'character:zei',
+          tone: 'benefit',
+          facts: [
+            { label: 'Guarded', tone: 'benefit' },
+            { label: '×2 stacks', tone: 'neutral' },
+            { label: '2 turns', tone: 'neutral' },
+          ],
+        }),
+      ],
+      { combatantNames: names },
+    )[0]?.actions[0]
+
+    expect(sentence(action?.primary ?? [])).toBe("Zei's Guarded stacks to ×2 · 2 turns")
   })
 
   it('renders a miss as a sentence with clear hit-chance detail', () => {

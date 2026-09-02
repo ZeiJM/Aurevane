@@ -331,7 +331,10 @@ export function MobileBattleCombatantPopup({
                 <ul>
                   {selected.statuses.map((status) => (
                     <li key={`${status.statusId}:${status.sourceCombatantId}`}>
-                      <strong>{statusLabel(status.statusId)}</strong>
+                      <strong>
+                        {statusLabel(status.statusId)}
+                        {status.stacks > 1 ? ` ×${status.stacks}` : ''}
+                      </strong>
                       <small>
                         {status.remainingOwnerTurnStarts} turn
                         {status.remainingOwnerTurnStarts === 1 ? '' : 's'} remaining

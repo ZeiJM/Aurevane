@@ -176,6 +176,54 @@ describe('battle turn quality rules', () => {
     )
   })
 
+  it('adds a Lowered Guard stack when the timed-out combatant already has the debuff', () => {
+    const firstMiss = timeoutPvpTurn(encounter('pvp')).state
+    const stackedInput = {
+      ...firstMiss,
+      statusState: firstMiss.statusState.map((row) =>
+        row.combatantId === 'opponent'
+          ? {
+              ...row,
+              statuses: [
+                {
+                  statusId: PVP_LOWERED_GUARD_STATUS_ID,
+                  statusVersion: 1,
+                  stacks: 1,
+                  remainingOwnerTurnStarts: 1,
+                  sourceCombatantId: 'opponent',
+                },
+              ],
+            }
+          : row,
+      ),
+    }
+
+    const secondApplication = timeoutPvpTurn(stackedInput)
+
+    expect(loweredGuard(secondApplication.state, 'opponent')).toMatchObject({
+      stacks: 2,
+      remainingOwnerTurnStarts: 1,
+    })
+    expect(secondApplication.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event: 'status_applied',
+          statusId: PVP_LOWERED_GUARD_STATUS_ID,
+          stacks: 2,
+          refreshed: true,
+        }),
+      ]),
+    )
+
+    const attacked = executePv1fAction(secondApplication.state, PV1F_BASIC_ATTACK_ID, {
+      kind: 'unit',
+      combatantId: 'opponent',
+    })
+    expect(attacked.state.tactical.battle.combatants.find((row) => row.id === 'opponent')?.hp).toBe(
+      38,
+    )
+  })
+
   it('keeps the two-miss AI rule while limiting Lowered Guard to one turn', () => {
     const firstPlayerMiss = timeoutAiTurn(encounter('ai')).state
     expect(loweredGuard(firstPlayerMiss, 'player')).toBeUndefined()

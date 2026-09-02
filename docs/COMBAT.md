@@ -163,9 +163,14 @@ The result then passes through current accuracy/evasion, Armor/defense, facing, 
 
 ### Guard — 30 AP
 
-Guard applies **15% incoming-damage reduction for 2 authoritative turns** in the current validation rules.
+Guard applies one stack of **15% incoming-damage reduction for 2 authoritative turns** in the
+current validation rules. Guarded may be reapplied up to three stacks; each application spends AP,
+adds a stack until the cap, and refreshes the shared authoritative duration.
 
 The duration follows authoritative turn progression, not client animation timing.
+
+Released buffs and debuffs use their authored stack cap rather than a universal one-stack block.
+Lowered Guard uses the same three-stack cap and retains its one-owner-turn-start duration.
 
 ### Recover — 50 AP
 

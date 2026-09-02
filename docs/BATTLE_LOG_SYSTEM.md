@@ -123,6 +123,10 @@ In PvP and spectator contexts, every battle-log consumer must receive a complete
 
 Lowered Guard applied by the PvP turn timer lasts until that combatant's next turn begins and makes that combatant take 2.5x normal incoming damage. The player-facing log may describe that mechanic plainly; it must never expose `25_000` basis points or the internal 1000-turn status-definition sentinel.
 
+Guarded and Lowered Guard currently allow up to three stacks. Reapplication adds a stack until the
+cap and refreshes the shared duration; log and inspector presentation should expose the resulting
+authoritative stack count rather than describing an added stack as only a refresh.
+
 ### Status lifecycle and grouping
 
 Status durations count the affected status owner's upcoming turn starts, not global rounds. General authored statuses may display a concise `{n} turn(s)` duration. The PvP one-turn Lowered Guard presentation says `until next turn` because that is clearer than exposing the implementation counter.
