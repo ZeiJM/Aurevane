@@ -159,14 +159,15 @@ function polishBattlefieldTokens(
     if (tokenAccent) token.style.setProperty('border-color', tokenAccent, 'important')
     else token.style.removeProperty('border-color')
 
-    if (name) {
-      const isAiPlayerToken = Boolean(playerName && combatantName === playerName)
-      name.style.display = 'none'
-
-      // AI only: remove the extra active-turn halo ring while preserving the shared identity or
-      // semantic border. PvP does not pass playerName here, so its active-token halo is unchanged.
-      if (isAiPlayerToken) token.style.boxShadow = PLAYER_TOKEN_SHADOW
+    const isAiPlayerToken = Boolean(playerName && combatantName === playerName)
+    const compactViewport = !desktopPvpScale
+    if (compactViewport || isAiPlayerToken) {
+      token.style.setProperty('box-shadow', PLAYER_TOKEN_SHADOW, 'important')
+    } else {
+      token.style.removeProperty('box-shadow')
     }
+
+    if (name) name.style.display = 'none'
 
     for (const image of Array.from(token.querySelectorAll<HTMLImageElement>('img'))) {
       image.style.width = '100%'

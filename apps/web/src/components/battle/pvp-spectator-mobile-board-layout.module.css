@@ -31,4 +31,8 @@
     height: auto !important;
     min-height: auto !important;
   }
+
+  :global(main[data-pvp-spectator='true'] #battlefield [data-spectator-terrain-cost='true']) {
+    display: none !important;
+  }
 }

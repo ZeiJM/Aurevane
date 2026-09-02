@@ -4,9 +4,7 @@ import { useEffect } from 'react'
 
 import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 
-const COMBATANT_COLORS = ['#67c98a', '#dc6a66', '#67aee8', '#d9ad5c', '#a984e8', '#df7eb5'] as const
-const MOBILE_BATTLE_QUERY = '(max-width: 820px)'
-const MOBILE_TOKEN_SHADOW = '0 0.35rem 0.9rem rgba(0, 0, 0, 0.5)'
+import { pvpParticipantAccent } from './battle-combatant-colors'
 
 function textOf(element: Element | null): string {
   return element?.textContent?.trim() ?? ''
@@ -161,17 +159,17 @@ function polishHeader() {
 
 function applyPvpIdentityColors(metadata: PvpBattleMetadata | undefined) {
   if (!metadata) return
-  const mobileBattlefield = window.matchMedia(MOBILE_BATTLE_QUERY).matches
   const ordered = [...metadata.participants].sort(
     (a, b) =>
       a.teamIndex - b.teamIndex ||
       a.seatIndex - b.seatIndex ||
       a.characterId.localeCompare(b.characterId),
   )
+  const teamCount = Math.max(1, new Set(ordered.map((participant) => participant.teamIndex)).size)
   const colors = new Map(
-    ordered.map((participant, index) => [
+    ordered.map((participant) => [
       participant.characterName,
-      COMBATANT_COLORS[index % COMBATANT_COLORS.length],
+      pvpParticipantAccent(participant.teamIndex, participant.seatIndex, teamCount),
     ]),
   )
 
@@ -187,14 +185,6 @@ function applyPvpIdentityColors(metadata: PvpBattleMetadata | undefined) {
     if (!color) continue
     if (tile.style.getPropertyValue('--combatant-accent') !== color) {
       tile.style.setProperty('--combatant-accent', color)
-    }
-    const token = tile.querySelector<HTMLElement>(':scope > span:last-child')
-    if (token) {
-      if (token.style.borderColor !== color) token.style.borderColor = color
-      const shadow = mobileBattlefield
-        ? MOBILE_TOKEN_SHADOW
-        : `0 0 0 2px ${color}55, 0 0 1rem ${color}88`
-      if (token.style.boxShadow !== shadow) token.style.boxShadow = shadow
     }
   }
 
@@ -220,15 +210,11 @@ function applyPvpIdentityColors(metadata: PvpBattleMetadata | undefined) {
 }
 
 function polishPortraits() {
-  const mobileBattlefield = window.matchMedia(MOBILE_BATTLE_QUERY).matches
   for (const tile of document.querySelectorAll<HTMLButtonElement>(
     '#battlefield button[aria-label*="occupied by"]',
   )) {
     const token = tile.querySelector<HTMLElement>(':scope > span:last-child')
     if (!token) continue
-    if (mobileBattlefield && token.style.boxShadow !== MOBILE_TOKEN_SHADOW) {
-      token.style.boxShadow = MOBILE_TOKEN_SHADOW
-    }
     for (const image of token.querySelectorAll<HTMLImageElement>('img')) {
       image.style.display = 'block'
       image.style.width = '100%'
@@ -276,9 +262,6 @@ export function BattlePresentationPolish({
       attributeFilter: ['disabled'],
     })
 
-    const media = window.matchMedia(MOBILE_BATTLE_QUERY)
-    media.addEventListener('change', schedule)
-
     const onDoubleClick = (event: MouseEvent) => {
       if (!isFinishMode()) return
       const tile = (event.target as Element | null)?.closest<HTMLButtonElement>(
@@ -313,7 +296,6 @@ export function BattlePresentationPolish({
     window.addEventListener('keydown', onKeyDown, true)
     return () => {
       observer.disconnect()
-      media.removeEventListener('change', schedule)
       if (frame !== null) window.cancelAnimationFrame(frame)
       clearFacingGuides()
       document.removeEventListener('dblclick', onDoubleClick, true)
