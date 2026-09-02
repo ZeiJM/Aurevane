@@ -1,7 +1,6 @@
 'use client'
 
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
-import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { useEffect, useState } from 'react'
 
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
@@ -10,12 +9,11 @@ import type { ImageAssetId } from '@/media/registry'
 import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
+import { statusIsBeneficial, summarizeBattleEffects } from './battle-effect-summary'
 import styles from './desktop-battle-combatant-inspect.module.css'
 import { PvpBattleInspectPopup } from './pvp-battle-inspect-popup'
 
 const DESKTOP_QUERY = '(min-width: 881px)'
-const BASIS_POINTS = 10_000
-
 type GridPosition = { x: number; y: number }
 type BattleSnapshot = BattleSessionView['snapshot']
 type Combatant = BattleSnapshot['tactical']['battle']['combatants'][number]
@@ -23,8 +21,6 @@ type Placement = BattleSnapshot['tactical']['placements'][number]
 type Profile = BattleSnapshot['statBridge']['combatants'][number]
 type CombatStatus = BattleSnapshot['statusState'][number]['statuses'][number]
 type InspectMetadata = Pick<PvpBattleMetadata, 'participants'>
-type EffectSummaryTone = 'buff' | 'debuff' | 'neutral'
-type EffectSummaryItem = { label: string; value: string; tone: EffectSummaryTone }
 
 type SelectedCombatant = {
   combatant: Combatant
@@ -93,13 +89,6 @@ function percentFromBasisPoints(value: number | null | undefined): string {
   return `${Math.round(value / 100)}%`
 }
 
-function signedPercentFromBasisPointDelta(value: number): string {
-  if (value === 0) return '±0%'
-  const percent = Math.abs(value) / 100
-  const compact = Number.isInteger(percent) ? String(percent) : percent.toFixed(1)
-  return `${value > 0 ? '+' : '−'}${compact}%`
-}
-
 function statusLabel(statusId: string): string {
   if (statusId === 'guarded') return 'Guarded'
   if (statusId === 'lowered-guard' || statusId === 'lowered.guard') return 'Lowered Guard'
@@ -112,50 +101,6 @@ function statusLabel(statusId: string): string {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ')
-}
-
-function statusIsBeneficial(statusId: string): boolean {
-  return statusId === 'guarded' || statusId.startsWith('buff.')
-}
-
-function summarizeEffects(statuses: readonly CombatStatus[]): EffectSummaryItem[] {
-  let buffStacks = 0
-  let debuffStacks = 0
-  let damageTakenMultiplier = BASIS_POINTS
-  let measuredDamageTaken = false
-
-  for (const status of statuses) {
-    const stacks = Math.max(1, status.stacks)
-    if (statusIsBeneficial(status.statusId)) buffStacks += stacks
-    else debuffStacks += stacks
-
-    const definition = PV1F_COMBAT_CONTENT.statuses.find(
-      (candidate) => candidate.id === status.statusId && candidate.version === status.statusVersion,
-    )
-    if (!definition || definition.damageTakenMultiplierBasisPoints === BASIS_POINTS) continue
-
-    measuredDamageTaken = true
-    for (let stack = 0; stack < stacks; stack += 1) {
-      damageTakenMultiplier = Math.round(
-        (damageTakenMultiplier * definition.damageTakenMultiplierBasisPoints) / BASIS_POINTS,
-      )
-    }
-  }
-
-  const summary: EffectSummaryItem[] = []
-  if (measuredDamageTaken) {
-    const delta = damageTakenMultiplier - BASIS_POINTS
-    summary.push({
-      label: 'DMG IN',
-      value: signedPercentFromBasisPointDelta(delta),
-      tone: delta < 0 ? 'buff' : delta > 0 ? 'debuff' : 'neutral',
-    })
-  }
-  if (buffStacks > 0) summary.push({ label: 'BUFF', value: `+${buffStacks}`, tone: 'buff' })
-  if (debuffStacks > 0) {
-    summary.push({ label: 'DEBUFF', value: `−${debuffStacks}`, tone: 'debuff' })
-  }
-  return summary
 }
 
 function displayNameForCombatant(combatantId: string, playerName: string | null): string {
@@ -372,7 +317,7 @@ export function DesktopBattleCombatantInspect({
 
   const healthPercent = selected ? meterPercent(selected.combatant.hp, selected.combatant.maxHp) : 0
   const manaPercent = selected ? meterPercent(selected.combatant.mp, selected.combatant.maxMp) : 0
-  const effectSummary = selected ? summarizeEffects(selected.statuses) : []
+  const effectSummary = selected ? summarizeBattleEffects(selected.statuses) : []
 
   const desktopPopup = (
     <div
