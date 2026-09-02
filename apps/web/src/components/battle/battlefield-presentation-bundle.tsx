@@ -1,7 +1,5 @@
 'use client'
 
-import type { ReadonlyRecord } from 'type-fest'
-
 import { BattleCoordinateToggle } from './battle-coordinate-toggle'
 import { BattleMapTokenPolish } from './battle-map-token-polish'
 import { BattleTerrainPresentationPolish } from './battle-terrain-presentation-polish'
