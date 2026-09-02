@@ -84,6 +84,7 @@ export function BattleClientBoundary({
 
   return (
     <BattleRuntimeProvider playerName={runtime.playerName} combatantAccents={combatantAccents}>
+      <BattleFinishTurnKeyboardAssist playerName={runtime.playerName} />
       <BattleExperience
         key={initialBattle.battleVersion}
         initialBattle={initialBattle}
@@ -97,7 +98,6 @@ export function BattleClientBoundary({
       />
       <BattleDirectionalAttackAssist playerName={runtime.playerName} />
       <BattleSelfActionQuickCommitAssist />
-      <BattleFinishTurnKeyboardAssist playerName={runtime.playerName} />
       <BattleMobileTokenMeters initialBattle={initialBattle} combatantNames={combatantNames} />
       <BattlePresentationPolish
         playerName={runtime.playerName}
