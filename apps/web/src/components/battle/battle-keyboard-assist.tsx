@@ -127,6 +127,10 @@ function configuredAction(bindings: CombatKeybindMap, chord: string): CombatKeyb
   )
 }
 
+function isSharedCategoryAction(action: CombatKeybindAction): boolean {
+  return action === 'move' || action === 'basicAttack' || action === 'guard' || action === 'recover'
+}
+
 function defaultAction(chord: string): CombatKeybindAction | null {
   return (
     COMBAT_KEYBIND_ACTIONS.find(
@@ -164,7 +168,7 @@ function syncVisibleCommandLabels(bindings: CombatKeybindMap) {
     ['move', ['Move']],
     ['basicAttack', ['Basic Attack']],
     ['guard', ['Guard']],
-    ['recover', ['Recover']],
+    ['recover', ['Recover', 'HP Recovery', 'MP Recovery']],
     ['endTurn', ['Finish Turn', 'End Turn', 'Facing / End Turn']],
   ]
   for (const [action, labels] of commands) {
@@ -214,7 +218,7 @@ function syncAttackRangeMarkers(playerName: string) {
 }
 
 function repeatableCommand(label: string): HTMLButtonElement | null {
-  if (!['Move', 'Basic Attack', 'Recover'].includes(label)) return null
+  if (!['Move', 'Basic Attack', 'Recover', 'HP Recovery', 'MP Recovery'].includes(label)) return null
   const button = commandButton(label)
   if (!button || button.disabled) return null
   return button
@@ -312,7 +316,10 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
       const deck = button.closest('section[aria-label="Command Deck"]')
       if (deck) {
         const label = button.querySelector('strong')?.textContent?.trim() ?? ''
-        if (['Move', 'Basic Attack', 'Recover'].includes(label) && !button.disabled) {
+        if (
+          ['Move', 'Basic Attack', 'Recover', 'HP Recovery', 'MP Recovery'].includes(label) &&
+          !button.disabled
+        ) {
           lastRepeatableCommand.current = label
           if (label !== 'Move') movementPlan.current = null
         } else if (label === 'Guard') {
@@ -423,7 +430,7 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
         return true
       }
       if (action === 'recover') {
-        commandButton('Recover')?.click()
+        commandButton('Recover', 'HP Recovery', 'MP Recovery')?.click()
         return true
       }
       if (action === 'endTurn') {
@@ -489,6 +496,9 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
       const chord = eventChord(event)
       const action = configuredAction(bindings, chord)
       if (action) {
+        // Desktop Move / Attack / Guard / Recovery belong to BattleSelfActionQuickCommitAssist.
+        // Mobile keeps this existing handler because the shared quick-commit owner is desktop-only.
+        if (isSharedCategoryAction(action) && window.matchMedia('(min-width: 821px)').matches) return
         if ((action === 'nextTarget' || action === 'previousTarget') && !attackModeIsActive())
           return
         event.preventDefault()

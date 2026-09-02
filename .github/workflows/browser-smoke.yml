@@ -32,8 +32,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install Chromium
-        run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
+      - name: Install Chromium and Microsoft Edge
+        run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium msedge
 
       - name: Start local Supabase stack
         run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
@@ -64,6 +64,16 @@ jobs:
           NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
           SUPABASE_SECRET_KEY="$server_key" \
           pnpm --filter @aurevane/web test:browser
+
+          AUREVANE_ENV=local \
+          NEXT_PUBLIC_AUREVANE_ENV=local \
+          NEXT_PUBLIC_SUPABASE_URL="$api_url" \
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
+          SUPABASE_SECRET_KEY="$server_key" \
+          pnpm --filter @aurevane/web exec playwright test \
+            e2e/battle-self-action-quick-commit.pw.ts \
+            e2e/battle-recovery-hotkey.pw.ts \
+            --config=playwright.edge.config.ts
 
       - name: Stop local Supabase services
         if: always()

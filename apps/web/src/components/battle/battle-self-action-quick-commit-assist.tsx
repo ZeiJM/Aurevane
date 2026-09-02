@@ -9,7 +9,7 @@ import {
   type CombatKeybindAction,
   type CombatKeybindMap,
 } from '@aurevane/validation/player/combat-controls'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 type CommandSlot = 'inspect' | 'move' | 'attack' | 'guard' | 'recover' | 'finish'
 type CategoryAction = Extract<CombatKeybindAction, 'move' | 'basicAttack' | 'guard' | 'recover'>
@@ -56,21 +56,62 @@ function isCategoryAction(action: CombatKeybindAction): action is CategoryAction
   return action === 'move' || action === 'basicAttack' || action === 'guard' || action === 'recover'
 }
 
+function isCommandSlot(value: string | undefined): value is CommandSlot {
+  return (
+    value === 'inspect' ||
+    value === 'move' ||
+    value === 'attack' ||
+    value === 'guard' ||
+    value === 'recover' ||
+    value === 'finish'
+  )
+}
+
+function battleRoot(): HTMLElement | null {
+  const roots = document.querySelectorAll<HTMLElement>(
+    'main[data-unified-battle="true"][data-battle-kind]',
+  )
+  return (
+    Array.from(roots).find(
+      (root) => root.isConnected && root.getClientRects().length > 0 && root.ariaHidden !== 'true',
+    ) ?? null
+  )
+}
+
 function commandButton(slot: CommandSlot): HTMLButtonElement | null {
-  return document.querySelector<HTMLButtonElement>(
-    `section[aria-label="Command Deck"] button[data-battle-command="${slot}"]`,
+  return (
+    battleRoot()?.querySelector<HTMLButtonElement>(
+      `section[aria-label="Command Deck"] button[data-battle-command="${slot}"]`,
+    ) ?? null
+  )
+}
+
+function buttonIsActive(button: HTMLButtonElement): boolean {
+  return (
+    button.hasAttribute('data-active') ||
+    button.dataset.battleActive === 'true' ||
+    `${button.className}`.includes('commandActive')
   )
 }
 
 function commandIsActive(slot: CommandSlot): boolean {
   const button = commandButton(slot)
-  return Boolean(
-    button &&
-    !button.disabled &&
-    (button.hasAttribute('data-active') ||
-      button.dataset.battleActive === 'true' ||
-      `${button.className}`.includes('commandActive')),
+  return Boolean(button && !button.disabled && buttonIsActive(button))
+}
+
+function activeCommandSlot(): CommandSlot | null {
+  const root = battleRoot()
+  if (!root) return null
+
+  const buttons = root.querySelectorAll<HTMLButtonElement>(
+    'section[aria-label="Command Deck"] button[data-battle-command]',
   )
+  for (const button of buttons) {
+    if (!buttonIsActive(button)) continue
+    const slot = button.dataset.battleCommand
+    if (isCommandSlot(slot)) return slot
+  }
+  return null
 }
 
 function syncVisibleCommandHotkeys(bindings: CombatKeybindMap) {
@@ -85,15 +126,22 @@ function syncVisibleCommandHotkeys(bindings: CombatKeybindMap) {
 }
 
 function confirmButton(): HTMLButtonElement | null {
-  // A second press for the current self-action slot commits through the real unified footer, so
-  // the shortcut never bypasses the authoritative preview/confirmation path.
-  return document.querySelector<HTMLButtonElement>(
-    'footer[data-unified-battle-footer="true"] > div > button:nth-of-type(2)',
+  const footer = battleRoot()?.querySelector<HTMLElement>(
+    'footer[data-unified-battle-footer="true"]',
+  )
+  if (!footer) return null
+
+  // Resolve the semantic action inside the active battle instead of relying on footer child order.
+  return (
+    Array.from(footer.querySelectorAll<HTMLButtonElement>('button')).find((button) =>
+      button.textContent?.includes('Confirm Action'),
+    ) ?? null
   )
 }
 
 export function BattleSelfActionQuickCommitAssist() {
   const [bindings, setBindings] = useState<CombatKeybindMap>(DEFAULT_COMBAT_KEYBINDS)
+  const bindingsRef = useRef<CombatKeybindMap>(DEFAULT_COMBAT_KEYBINDS)
   const commitSequence = useRef(0)
 
   useEffect(() => {
@@ -104,7 +152,12 @@ export function BattleSelfActionQuickCommitAssist() {
         const response = await fetch('/api/account/controls', { method: 'GET', cache: 'no-store' })
         const body = (await response.json()) as { controls?: { combatKeybinds?: unknown } }
         const parsed = parseCombatKeybindMap(body.controls?.combatKeybinds)
-        if (!cancelled && response.ok && parsed) setBindings(parsed)
+        if (!cancelled && response.ok && parsed) {
+          // Keep keyboard ownership stable while preferences refresh. Re-registering the capture
+          // listener here creates an ordering race with the legacy PvE/PvP keyboard helpers.
+          bindingsRef.current = parsed
+          setBindings(parsed)
+        }
       } catch {
         // Default combat bindings remain valid if preferences cannot be refreshed mid-battle.
       }
@@ -129,7 +182,7 @@ export function BattleSelfActionQuickCommitAssist() {
 
     sync()
     const observer = new MutationObserver(schedule)
-    const deck = document.querySelector('section[aria-label="Command Deck"]')
+    const deck = battleRoot()?.querySelector('section[aria-label="Command Deck"]')
     if (deck) observer.observe(deck, { childList: true, subtree: true })
 
     return () => {
@@ -138,29 +191,39 @@ export function BattleSelfActionQuickCommitAssist() {
     }
   }, [bindings])
 
-  useEffect(() => {
+  // Category cockpit keys need one deterministic capture owner. Register in the layout phase and
+  // keep this listener mounted for the component lifetime so async control refreshes cannot reorder
+  // it behind the older PvE/PvP keyboard assists on different browsers or network timings.
+  useLayoutEffect(() => {
+    const cancelPendingCommit = () => {
+      commitSequence.current += 1
+    }
+
     function commitWhenPreviewReady(slot: CommandSlot) {
       const sequence = ++commitSequence.current
-      let attempts = 0
+      const startedAt = performance.now()
 
       const tryCommit = () => {
-        attempts += 1
-        if (sequence !== commitSequence.current || attempts > 40 || !commandIsActive(slot)) {
-          return true
-        }
+        if (sequence !== commitSequence.current || document.hidden || !document.hasFocus()) return
+
+        // A React preview refresh may briefly replace the active button. Treat a temporary lack of
+        // an active slot as transitional, but abort if the player has actually armed another slot.
+        const activeSlot = activeCommandSlot()
+        if (activeSlot && activeSlot !== slot) return
 
         const confirm = confirmButton()
-        if (!confirm || confirm.disabled) return false
-        commitSequence.current += 1
-        confirm.click()
-        return true
+        if (confirm && !confirm.disabled) {
+          commitSequence.current += 1
+          confirm.click()
+          return
+        }
+
+        if (performance.now() - startedAt < 1_600) {
+          window.requestAnimationFrame(tryCommit)
+        }
       }
 
-      if (tryCommit()) return
-
-      const timer = window.setInterval(() => {
-        if (tryCommit()) window.clearInterval(timer)
-      }, 50)
+      tryCommit()
     }
 
     function handleKeyDown(event: KeyboardEvent) {
@@ -176,7 +239,7 @@ export function BattleSelfActionQuickCommitAssist() {
         return
       }
 
-      const action = configuredAction(bindings, eventChord(event))
+      const action = configuredAction(bindingsRef.current, eventChord(event))
       if (!action || !isCategoryAction(action)) return
 
       const slot = CATEGORY_ACTION_SLOTS[action]
@@ -192,19 +255,27 @@ export function BattleSelfActionQuickCommitAssist() {
 
       // Category hotkeys belong to the cockpit slot, not to the currently displayed skill name.
       // Clicking the actual button preserves every existing preview, legality, and server-authority
-      // boundary while allowing a future skill swap to keep the player's configured keybind.
+      // boundary while allowing HP/MP Recovery swaps to keep the same configured keybind.
       event.preventDefault()
       event.stopImmediatePropagation()
       commitSequence.current += 1
       button.click()
     }
 
-    window.addEventListener('keydown', handleKeyDown, true)
-    return () => {
-      commitSequence.current += 1
-      window.removeEventListener('keydown', handleKeyDown, true)
+    function handleVisibilityChange() {
+      if (document.hidden) cancelPendingCommit()
     }
-  }, [bindings])
+
+    window.addEventListener('keydown', handleKeyDown, true)
+    window.addEventListener('blur', cancelPendingCommit)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => {
+      cancelPendingCommit()
+      window.removeEventListener('keydown', handleKeyDown, true)
+      window.removeEventListener('blur', cancelPendingCommit)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [])
 
   return null
 }
