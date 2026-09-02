@@ -112,7 +112,7 @@ export function BattleFinishTurnKeyboardAssist({ playerName }: { playerName: str
         const parsed = parseCombatKeybindMap(body.controls?.combatKeybinds)
         if (!cancelled && response.ok && parsed) bindingsRef.current = parsed
       } catch {
-        // Default bindings remain authoritative for this session if preferences cannot be refreshed.
+        // Keep default bindings for this session if preferences cannot be refreshed.
       }
     }
 
