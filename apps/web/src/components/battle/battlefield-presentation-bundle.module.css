@@ -20,9 +20,7 @@
  * Keep the map token itself on its normal neutral depth shadow so the identity ring stays the only
  * persistent circular accent instead of gaining a second brass halo.
  */
-:global(
-  section#battlefield button[aria-label*='occupied by'] > [data-team][data-active]
-) {
+:global(section#battlefield button[aria-label*='occupied by'] > [data-team][data-active]) {
   box-shadow: 0 0.35rem 0.9rem rgba(0, 0, 0, 0.5) !important;
 }
 
