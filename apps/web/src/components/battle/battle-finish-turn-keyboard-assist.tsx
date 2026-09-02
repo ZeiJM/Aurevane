@@ -97,6 +97,18 @@ function currentFacingButton(root: HTMLElement, playerName: string): HTMLButtonE
   return button && !button.disabled ? button : null
 }
 
+function markDecision(root: HTMLElement | null, decision: string, event?: KeyboardEvent) {
+  if (!root) return
+  root.dataset.finishTurnHotkeyLastDecision = decision
+  if (event) {
+    root.dataset.finishTurnHotkeyLastCode = event.code || '(empty)'
+    root.dataset.finishTurnHotkeyLastTarget =
+      event.target instanceof HTMLElement
+        ? `${event.target.tagName}:${event.target.getAttribute('aria-label') ?? ''}`
+        : 'non-html'
+  }
+}
+
 export function BattleFinishTurnKeyboardAssist({ playerName }: { playerName: string }) {
   const bindingsRef = useRef<CombatKeybindMap>(DEFAULT_COMBAT_KEYBINDS)
   const playerNameRef = useRef(playerName)
@@ -151,6 +163,7 @@ export function BattleFinishTurnKeyboardAssist({ playerName }: { playerName: str
           const facing = currentFacingButton(root, playerNameRef.current)
           if (facing) {
             firstPressAtRef.current = null
+            markDecision(root, 'handled-second')
             facing.click()
             return
           }
@@ -160,6 +173,7 @@ export function BattleFinishTurnKeyboardAssist({ playerName }: { playerName: str
           window.requestAnimationFrame(attempt)
         } else {
           firstPressAtRef.current = null
+          markDecision(root, 'second-facing-unavailable')
         }
       }
 
@@ -167,26 +181,47 @@ export function BattleFinishTurnKeyboardAssist({ playerName }: { playerName: str
     }
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (
-        event.repeat ||
-        isTextEntryTarget(event.target) ||
-        !event.code ||
-        event.altKey ||
-        event.ctrlKey ||
-        event.metaKey ||
-        !window.matchMedia(DESKTOP_QUERY).matches
-      ) {
+      const observedRoot = visibleBattleRoot()
+      markDecision(observedRoot, 'observed', event)
+
+      if (event.repeat) {
+        markDecision(observedRoot, 'repeat', event)
+        return
+      }
+      if (isTextEntryTarget(event.target)) {
+        markDecision(observedRoot, 'text-entry', event)
+        return
+      }
+      if (!event.code) {
+        markDecision(observedRoot, 'no-code', event)
+        return
+      }
+      if (event.altKey || event.ctrlKey || event.metaKey) {
+        markDecision(observedRoot, 'modifier', event)
+        return
+      }
+      if (!window.matchMedia(DESKTOP_QUERY).matches) {
+        markDecision(observedRoot, 'not-desktop', event)
         return
       }
 
       const binding = bindingsRef.current.endTurn
-      if (event.code !== binding.code || event.shiftKey !== binding.shift) return
+      if (event.code !== binding.code || event.shiftKey !== binding.shift) {
+        markDecision(observedRoot, `binding-mismatch:${binding.code}:${binding.shift}`, event)
+        return
+      }
 
       const root = activeBattleRoot()
-      if (!root) return
+      if (!root) {
+        markDecision(observedRoot, 'no-root', event)
+        return
+      }
 
       const finishTurn = finishTurnButton(root)
-      if (!finishTurn || finishTurn.disabled) return
+      if (!finishTurn || finishTurn.disabled) {
+        markDecision(root, 'finish-unavailable', event)
+        return
+      }
 
       event.preventDefault()
       event.stopImmediatePropagation()
@@ -195,7 +230,10 @@ export function BattleFinishTurnKeyboardAssist({ playerName }: { playerName: str
         const facing = currentFacingButton(root, playerNameRef.current)
         if (facing) {
           cancelPendingCommit()
+          markDecision(root, 'handled-facing', event)
           facing.click()
+        } else {
+          markDecision(root, 'facing-current-unavailable', event)
         }
         return
       }
@@ -206,11 +244,13 @@ export function BattleFinishTurnKeyboardAssist({ playerName }: { playerName: str
         firstPressAt !== null && now - firstPressAt <= TRANSIENT_SECOND_PRESS_MS
 
       if (transientSecondPress) {
+        markDecision(root, 'handled-transient-second', event)
         commitCurrentFacingWhenReady()
         return
       }
 
       firstPressAtRef.current = now
+      markDecision(root, 'handled-first', event)
       finishTurn.click()
     }
 
