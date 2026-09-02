@@ -38,7 +38,6 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
   const inspectCard = commandDeck.locator('[data-command-card="inspect"]')
   const inspectAction = inspectCard.locator('button[data-battle-command="inspect"]')
-  const attackCard = commandDeck.locator('[data-command-card="attack"]')
   const healCard = commandDeck.locator('[data-command-card="recover"]')
   const healAction = healCard.locator('button[data-battle-command="recover"]')
   const healArtwork = healCard.getByRole('button', { name: /Choose Heal skill/i })
@@ -52,16 +51,12 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
     const hotkey = action?.querySelector<HTMLElement>(':scope > span')
     const label = action?.querySelector<HTMLElement>(':scope > strong')
     const cost = action?.querySelector<HTMLElement>(':scope > small')
-    const artwork = card.querySelector<HTMLElement>('button[aria-haspopup="listbox"]')
-    const image = artwork?.querySelector<HTMLImageElement>('img')
-    if (!action || !hotkey || !label || !cost || !artwork || !image) return null
+    if (!action || !hotkey || !label || !cost) return null
 
     const actionRect = action.getBoundingClientRect()
     const hotkeyRect = hotkey.getBoundingClientRect()
     const labelRect = label.getBoundingClientRect()
     const costRect = cost.getBoundingClientRect()
-    const artworkRect = artwork.getBoundingClientRect()
-    const imageRect = image.getBoundingClientRect()
     return {
       actionLeft: actionRect.left,
       hotkeyDisplay: getComputedStyle(hotkey).display,
@@ -74,14 +69,6 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
       costLeft: costRect.left,
       costTop: costRect.top,
       costTextAlign: getComputedStyle(cost).textAlign,
-      artworkWidth: artworkRect.width,
-      artworkHeight: artworkRect.height,
-      imageWidth: imageRect.width,
-      imageHeight: imageRect.height,
-      artworkCenterX: (artworkRect.left + artworkRect.right) / 2,
-      artworkCenterY: (artworkRect.top + artworkRect.bottom) / 2,
-      imageCenterX: (imageRect.left + imageRect.right) / 2,
-      imageCenterY: (imageRect.top + imageRect.bottom) / 2,
     }
   })
 
@@ -91,10 +78,6 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   expectNear(cardGeometry.labelLeft, cardGeometry.costLeft)
   expect(cardGeometry.labelTextAlign).toBe('left')
   expect(cardGeometry.costTextAlign).toBe('left')
-  expect(cardGeometry.imageWidth).toBeGreaterThan(cardGeometry.artworkWidth + 2)
-  expect(cardGeometry.imageHeight).toBeGreaterThan(cardGeometry.artworkHeight + 2)
-  expectNear(cardGeometry.imageCenterX, cardGeometry.artworkCenterX)
-  expectNear(cardGeometry.imageCenterY, cardGeometry.artworkCenterY)
   expect(cardGeometry.costTop - cardGeometry.labelBottom).toBeLessThanOrEqual(8)
 
   if (testInfo.project.name === 'mobile-chromium') {
@@ -105,6 +88,44 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
     expectNear(cardGeometry.hotkeyLeft, cardGeometry.labelLeft)
     expect(cardGeometry.hotkeyBottom).toBeLessThanOrEqual(cardGeometry.labelTop)
     expect(cardGeometry.labelBottom).toBeLessThanOrEqual(cardGeometry.costTop)
+  }
+
+  const artworkGeometries = await commandDeck.locator('[data-command-card]').evaluateAll((cards) =>
+    cards.map((card) => {
+      const artwork = card.querySelector<HTMLElement>('[data-battle-command-artwork]')
+      const image = artwork?.querySelector<HTMLImageElement>('img')
+      if (!artwork || !image) return null
+      const artworkRect = artwork.getBoundingClientRect()
+      const imageRect = image.getBoundingClientRect()
+      return {
+        slot: card.getAttribute('data-command-card'),
+        artworkWidth: artworkRect.width,
+        artworkHeight: artworkRect.height,
+        imageWidth: imageRect.width,
+        imageHeight: imageRect.height,
+        artworkCenterX: (artworkRect.left + artworkRect.right) / 2,
+        artworkCenterY: (artworkRect.top + artworkRect.bottom) / 2,
+        imageCenterX: (imageRect.left + imageRect.right) / 2,
+        imageCenterY: (imageRect.top + imageRect.bottom) / 2,
+      }
+    }),
+  )
+
+  for (const geometry of artworkGeometries) {
+    expect(geometry, 'Every command card should expose artwork geometry.').not.toBeNull()
+    if (!geometry) continue
+    expect(
+      geometry.imageWidth,
+      `${geometry.slot} artwork should fit inside its frame.`,
+    ).toBeLessThan(geometry.artworkWidth)
+    expect(
+      geometry.imageHeight,
+      `${geometry.slot} artwork should fit inside its frame.`,
+    ).toBeLessThan(geometry.artworkHeight)
+    expect(geometry.imageWidth).toBeGreaterThan(geometry.artworkWidth - 6)
+    expect(geometry.imageHeight).toBeGreaterThan(geometry.artworkHeight - 6)
+    expectNear(geometry.imageCenterX, geometry.artworkCenterX)
+    expectNear(geometry.imageCenterY, geometry.artworkCenterY)
   }
 
   const inspectGeometry = await inspectCard.evaluate((card) => {
@@ -137,28 +158,6 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   expect(inspectGeometry.artworkCenterX).toBeLessThan(inspectGeometry.actionRight)
   expect(inspectGeometry.artworkCenterY).toBeGreaterThan(inspectGeometry.actionTop)
   expect(inspectGeometry.artworkCenterY).toBeLessThan(inspectGeometry.actionBottom)
-
-  const attackGeometry = await attackCard.evaluate((card) => {
-    const artwork = card.querySelector<HTMLElement>('[data-battle-command-artwork="static"]')
-    const image = artwork?.querySelector<HTMLImageElement>('img')
-    if (!artwork || !image) return null
-    const artworkRect = artwork.getBoundingClientRect()
-    const imageRect = image.getBoundingClientRect()
-    return {
-      artworkWidth: artworkRect.width,
-      imageWidth: imageRect.width,
-      artworkCenterX: (artworkRect.left + artworkRect.right) / 2,
-      artworkCenterY: (artworkRect.top + artworkRect.bottom) / 2,
-      imageCenterX: (imageRect.left + imageRect.right) / 2,
-      imageCenterY: (imageRect.top + imageRect.bottom) / 2,
-    }
-  })
-
-  expect(attackGeometry).not.toBeNull()
-  if (!attackGeometry) return
-  expect(attackGeometry.imageWidth).toBeGreaterThan(attackGeometry.artworkWidth + 2)
-  expectNear(attackGeometry.imageCenterX, attackGeometry.artworkCenterX)
-  expectNear(attackGeometry.imageCenterY, attackGeometry.artworkCenterY)
 
   if (testInfo.project.name === 'mobile-chromium') {
     const mobileCardRects = await commandDeck.locator('[data-command-card]').evaluateAll((cards) =>
