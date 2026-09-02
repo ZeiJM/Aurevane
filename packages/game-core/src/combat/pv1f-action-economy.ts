@@ -51,6 +51,7 @@ export {
 export const PV1F_ACTION_ECONOMY_MAXIMUM = 100 as const
 export const PV1F_RECOVER_PERCENT = 10 as const
 export const PV1F_MP_RECOVER_PERCENT = 10 as const
+export const PV1F_STATUS_MAXIMUM_STACKS = 3 as const
 
 export const PV1F_ACTION_ECONOMY_RESOURCE_KEY = 'pv1f.action-economy' as const
 export const PV1F_ACTION_ECONOMY_TURN_KEY = 'pv1f.action-economy-turn' as const
@@ -59,7 +60,7 @@ export const PV1F_BASIC_ATTACK_DAMAGE_KEY = 'pv1f.basic-attack-damage' as const
 export const PV1F_GUARDED_STATUS: CombatStatusDefinition = {
   id: 'guarded',
   version: 1,
-  maximumStacks: 1,
+  maximumStacks: PV1F_STATUS_MAXIMUM_STACKS,
   durationOwnerTurnStarts: 2,
   damageTakenMultiplierBasisPoints: 8_500,
 }
@@ -69,7 +70,7 @@ export const PV1F_GUARDED_STATUS: CombatStatusDefinition = {
 export const PV1F_LOWERED_GUARD_STATUS: CombatStatusDefinition = {
   id: 'lowered-guard',
   version: 1,
-  maximumStacks: 1,
+  maximumStacks: PV1F_STATUS_MAXIMUM_STACKS,
   durationOwnerTurnStarts: 1,
   damageTakenMultiplierBasisPoints: 25_000,
 }
@@ -94,7 +95,7 @@ export const PV1F_GUARD_ACTION: CombatActionDefinition = {
     friendlyFire: 'allies-only',
   },
   cost: { spendsAction: true, mp: 0 },
-  requirements: [{ kind: 'actor-status-absent', statusId: 'guarded' }],
+  requirements: [],
   effects: [{ type: 'apply-status', recipient: 'actor', statusId: 'guarded', stacks: 1 }],
 }
 

@@ -211,6 +211,7 @@ export type CombatResolutionEvent =
       stacks: number
       remainingOwnerTurnStarts: number
       refreshed: boolean
+      stacked: boolean
     }
   | { event: 'status_expired'; combatantId: string; statusId: string }
   | { event: 'combatant_waited'; combatantId: string }
@@ -229,7 +230,7 @@ export interface CombatEncounterIssue {
 export const P2_3_GUARDED_STATUS: CombatStatusDefinition = {
   id: 'guarded',
   version: 1,
-  maximumStacks: 1,
+  maximumStacks: 3,
   durationOwnerTurnStarts: 1,
   damageTakenMultiplierBasisPoints: 8_000,
 }
@@ -254,7 +255,7 @@ export const P2_3_GUARD_ACTION: CombatActionDefinition = {
     friendlyFire: 'allies-only',
   },
   cost: { spendsAction: true, mp: 0 },
-  requirements: [{ kind: 'actor-status-absent', statusId: 'guarded' }],
+  requirements: [],
   effects: [{ type: 'apply-status', recipient: 'actor', statusId: 'guarded', stacks: 1 }],
 }
 
@@ -1117,6 +1118,7 @@ function applyEffect(
         stacks: status.stacks,
         remainingOwnerTurnStarts: status.remainingOwnerTurnStarts,
         refreshed: existingStatus !== null,
+        stacked: existingStatus !== null && status.stacks > existingStatus.stacks,
       },
     ],
   }

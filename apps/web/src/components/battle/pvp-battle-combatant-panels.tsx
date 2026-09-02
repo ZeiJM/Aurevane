@@ -90,11 +90,12 @@ function Panel({
                   data-debuff={loweredGuard || undefined}
                   title={
                     loweredGuard
-                      ? 'Lowered Guard · takes 2.5× damage from all sources'
-                      : status.statusId
+                      ? `Lowered Guard${status.stacks > 1 ? ` ×${status.stacks}` : ''} · each stack multiplies incoming damage by 2.5×`
+                      : `${status.statusId}${status.stacks > 1 ? ` ×${status.stacks}` : ''}`
                   }
                 >
                   {loweredGuard ? 'LG↓' : '◇'}
+                  {status.stacks > 1 ? `×${status.stacks}` : ''}
                 </b>
               )
             })

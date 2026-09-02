@@ -246,17 +246,6 @@
     color: #e89a9a;
   }
 
-  .effectsHeading small {
-    display: grid;
-    min-width: 1.35rem;
-    height: 1.35rem;
-    place-items: center;
-    border: 1px solid var(--av-border);
-    border-radius: 999px;
-    color: var(--av-text-dim);
-    font: 700 0.45rem/1 var(--av-font-mono);
-  }
-
   .effects p,
   .hint {
     margin: 0;

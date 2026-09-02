@@ -278,7 +278,7 @@ describe('P2.3 targeting, actions and effects', () => {
     )
   })
 
-  it('rejects Guard while the actor already has Guarded', () => {
+  it('allows Guarded to stack when Guard is applied again', () => {
     const state = activeEncounter({
       statusState: [
         {
@@ -296,12 +296,66 @@ describe('P2.3 targeting, actions and effects', () => {
       ],
     })
 
-    expect(
-      evaluateCombatAction(state, P2_3_GUARD_ACTION, { kind: 'self' }, P2_3_COMBAT_CONTENT),
-    ).toMatchObject({
-      legal: false,
-      issues: [expect.objectContaining({ code: 'requirement-not-met' })],
+    const evaluation = evaluateCombatAction(
+      state,
+      P2_3_GUARD_ACTION,
+      { kind: 'self' },
+      P2_3_COMBAT_CONTENT,
+    )
+    expect(evaluation).toMatchObject({ legal: true, issues: [] })
+
+    const guarded = executeCombatAction(
+      state,
+      P2_3_GUARD_ACTION,
+      { kind: 'self' },
+      P2_3_COMBAT_CONTENT,
+    )
+    expect(guarded.state.statusState[1]?.statuses).toEqual([
+      {
+        statusId: 'guarded',
+        statusVersion: 1,
+        stacks: 2,
+        remainingOwnerTurnStarts: 1,
+        sourceCombatantId: 'wayfarer',
+      },
+    ])
+    expect(guarded.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          event: 'status_applied',
+          statusId: 'guarded',
+          stacks: 2,
+          refreshed: true,
+        }),
+      ]),
+    )
+  })
+
+  it('caps current Guarded stacks at three while still allowing a duration refresh', () => {
+    const state = activeEncounter({
+      statusState: [
+        {
+          combatantId: 'wayfarer',
+          statuses: [
+            {
+              statusId: 'guarded',
+              statusVersion: 1,
+              stacks: 3,
+              remainingOwnerTurnStarts: 1,
+              sourceCombatantId: 'wayfarer',
+            },
+          ],
+        },
+      ],
     })
+
+    const guarded = executeCombatAction(
+      state,
+      P2_3_GUARD_ACTION,
+      { kind: 'self' },
+      P2_3_COMBAT_CONTENT,
+    )
+    expect(guarded.state.statusState[1]?.statuses[0]?.stacks).toBe(3)
   })
 
   it('requires final facing before Wait can end the turn', () => {

@@ -451,7 +451,6 @@ export function DesktopBattleCombatantInspect({
                       <strong>{item.value}</strong>
                     </span>
                   ))}
-                  <small title="Active status count">{selected.statuses.length}</small>
                 </div>
               </div>
               {selected.statuses.length === 0 ? (
@@ -466,10 +465,11 @@ export function DesktopBattleCombatantInspect({
                         type="button"
                         key={`${status.statusId}:${status.sourceCombatantId}`}
                         className={beneficial ? styles.buff : styles.debuff}
-                        title={label}
-                        aria-label={`${beneficial ? 'Buff' : 'Debuff'}: ${label}, ${status.remainingOwnerTurnStarts} turn${status.remainingOwnerTurnStarts === 1 ? '' : 's'} remaining`}
+                        title={`${label}${status.stacks > 1 ? ` ×${status.stacks}` : ''}`}
+                        aria-label={`${beneficial ? 'Buff' : 'Debuff'}: ${label}, ${status.stacks} stack${status.stacks === 1 ? '' : 's'}, ${status.remainingOwnerTurnStarts} turn${status.remainingOwnerTurnStarts === 1 ? '' : 's'} remaining`}
                       >
                         {beneficial ? '+' : '!'}
+                        {status.stacks > 1 ? status.stacks : null}
                       </button>
                     )
                   })}

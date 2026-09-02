@@ -336,19 +336,32 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
       const label = statusLabel(statusId)
       const remaining = numberValue(event.remainingOwnerTurnStarts)
       const refreshed = event.refreshed === true
+      const stacked = event.stacked === true
+      const stacks = numberValue(event.stacks)
       const beneficial = statusId === 'guarded' || statusId?.startsWith('buff.') === true
       return createEntry(record, eventType, {
-        message: refreshed
-          ? `${combatantLabel(event.targetCombatantId)} refreshed ${label}${remaining === null ? '' : ` for ${remaining} owner-turn start${remaining === 1 ? '' : 's'}`}.`
-          : `${combatantLabel(event.targetCombatantId)} gained ${label}${remaining === null ? '' : ` for ${remaining} owner-turn start${remaining === 1 ? '' : 's'}`}.`,
-        messageTemplate: refreshed ? "{target}'s {status} refreshed." : '{target} gained {status}.',
-        templateValues: { status: label, statusChange: refreshed ? 'REFRESHED' : 'APPLIED' },
+        message: stacked
+          ? `${combatantLabel(event.targetCombatantId)} stacked ${label}${stacks === null ? '' : ` to ×${stacks}`}${remaining === null ? '' : ` for ${remaining} owner-turn start${remaining === 1 ? '' : 's'}`}.`
+          : refreshed
+            ? `${combatantLabel(event.targetCombatantId)} refreshed ${label}${remaining === null ? '' : ` for ${remaining} owner-turn start${remaining === 1 ? '' : 's'}`}.`
+            : `${combatantLabel(event.targetCombatantId)} gained ${label}${remaining === null ? '' : ` for ${remaining} owner-turn start${remaining === 1 ? '' : 's'}`}.`,
+        messageTemplate: stacked
+          ? "{target}'s {status} stacks to ×{stacks}."
+          : refreshed
+            ? "{target}'s {status} refreshed."
+            : '{target} gained {status}.',
+        templateValues: {
+          status: label,
+          statusChange: stacked ? 'STACKED' : refreshed ? 'REFRESHED' : 'APPLIED',
+          ...(stacks === null ? {} : { stacks: String(stacks) }),
+        },
         targetCombatantId,
         kind: beneficial && statusId === 'guarded' ? 'defense' : 'status',
         headline: label,
         tone: beneficial ? 'benefit' : 'neutral',
         facts: [
           ...fact(label, beneficial ? 'benefit' : 'neutral'),
+          ...fact(stacks !== null && stacks > 1 ? `×${stacks} stacks` : null),
           ...fact(remaining === null ? null : `${remaining} turn${remaining === 1 ? '' : 's'}`),
         ],
       })
@@ -474,6 +487,8 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
       const targetCombatantId = stringValue(event.combatantId)
       const remaining = numberValue(event.remainingOwnerTurnStarts)
       const multiplier = numberValue(event.damageTakenMultiplierBasisPoints)
+      const stacks = numberValue(event.stacks)
+      const stacked = event.stacked === true
       const multiplierValue = multiplier === null ? null : multiplier / 10_000
       const multiplierLabel =
         multiplierValue === null
@@ -483,14 +498,24 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
               .replace(/\.0+$/u, '')
               .replace(/(\.\d*[1-9])0+$/u, '$1')}× damage`
       return createEntry(record, eventType, {
-        message: `${combatantLabel(event.combatantId)} gained Lowered Guard after the turn timer expired.`,
-        messageTemplate: '{target} gained Lowered Guard.',
+        message: stacked
+          ? `${combatantLabel(event.combatantId)} stacked Lowered Guard${stacks === null ? '' : ` to ×${stacks}`} after the turn timer expired.`
+          : `${combatantLabel(event.combatantId)} gained Lowered Guard after the turn timer expired.`,
+        messageTemplate: stacked
+          ? "{target}'s {status} stacks to ×{stacks}."
+          : '{target} gained Lowered Guard.',
+        templateValues: {
+          status: 'Lowered Guard',
+          statusChange: stacked ? 'STACKED' : 'APPLIED',
+          ...(stacks === null ? {} : { stacks: String(stacks) }),
+        },
         targetCombatantId,
         kind: 'status',
         headline: 'Lowered Guard',
         tone: 'warning',
         facts: [
           ...fact('Lowered Guard', 'warning'),
+          ...fact(stacks !== null && stacks > 1 ? `×${stacks} stacks` : null),
           ...fact(remaining === null ? null : `${remaining} turn${remaining === 1 ? '' : 's'}`),
           ...fact(multiplierLabel, 'warning'),
         ],

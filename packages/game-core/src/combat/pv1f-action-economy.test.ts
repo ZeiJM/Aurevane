@@ -9,6 +9,8 @@ import {
   PV1F_ACTION_ECONOMY_RESOURCE_KEY,
   PV1F_BASIC_ATTACK_COST,
   PV1F_BASIC_ATTACK_ID,
+  PV1F_GUARD_ACTION_ID,
+  PV1F_GUARD_COST,
   PV1F_MP_RECOVER_ACTION_ID,
   PV1F_MP_RECOVER_COST,
 } from './pv1f-action-economy'
@@ -178,5 +180,28 @@ describe('PV-1F MP Recovery', () => {
     )
 
     expect(nextPlayer?.mp).toBe(20)
+  })
+})
+
+describe('PV-1F status stacking', () => {
+  it('allows Guard to add another Guarded stack and charges AP for each application', () => {
+    const firstGuard = executePv1fAction(lethalEncounter('player'), PV1F_GUARD_ACTION_ID, {
+      kind: 'self',
+    })
+    const secondGuard = executePv1fAction(firstGuard.state, PV1F_GUARD_ACTION_ID, {
+      kind: 'self',
+    })
+    const player = secondGuard.state.tactical.battle.combatants.find(
+      (combatant) => combatant.id === 'player',
+    )
+    const economy = player?.temporaryResources.find(
+      (resource) => resource.key === PV1F_ACTION_ECONOMY_RESOURCE_KEY,
+    )
+    const guarded = secondGuard.state.statusState
+      .find((row) => row.combatantId === 'player')
+      ?.statuses.find((status) => status.statusId === 'guarded')
+
+    expect(guarded).toMatchObject({ stacks: 2, remainingOwnerTurnStarts: 2 })
+    expect(economy?.current).toBe(100 - PV1F_GUARD_COST * 2)
   })
 })

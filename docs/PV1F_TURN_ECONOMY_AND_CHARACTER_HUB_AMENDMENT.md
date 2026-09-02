@@ -114,8 +114,8 @@ Guard applies the beneficial **Guarded** status:
 
 - incoming damage multiplier: **85%** (15% reduction);
 - duration: **2 owner-turn starts**;
-- maximum stacks: 1;
-- reapplying while the same Guarded status is active is not legal unless later content explicitly changes the stacking rule.
+- maximum stacks: 3;
+- reapplying adds a stack until the cap and refreshes the shared duration.
 
 Guard is a real status/effect, not a temporary UI flag.
 
@@ -181,6 +181,9 @@ Statuses are mini-icons near the combatant card:
 
 - beneficial effects: **green border/treatment**;
 - harmful effects: **red border/treatment**.
+
+Released statuses may stack to their authored cap. The current Guarded and Lowered Guard effects
+allow three stacks, and battle presentation shows the authoritative stack count.
 
 Clicking a portrait or status icon opens one dismissible contextual bubble showing effect name, polarity, remaining duration and concise mechanical summary. Clicking the facing indicator opens a concise facing explanation.
 

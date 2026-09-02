@@ -263,13 +263,26 @@ function statusApplicationSecondary(
   const target = combatantName(entry.targetCombatantId, options)
   const duration = reasonableDurationLabel(entry)
   const refreshed = entry.templateValues.statusChange === 'REFRESHED'
+  const stacked = entry.templateValues.statusChange === 'STACKED'
+  const stacks = entry.templateValues.stacks?.trim()
   const negative = statusIsNegative(name, entry)
   consumed.add(name.toLowerCase())
   if (duration) consumed.add(duration.toLowerCase())
+  if (stacks) consumed.add(`×${stacks} stacks`.toLowerCase())
   const durationDisplay =
     entry.eventType === 'pvp_lowered_guard_applied' && duration === '1 turn'
       ? 'until next turn'
       : duration
+
+  if (stacked) {
+    return [
+      segment('↳ '),
+      ...(target ? [segment(`${target}'s `, 'target')] : []),
+      segment(name, 'outcome', negative ? 'warning' : 'benefit'),
+      segment(` stacks${stacks ? ` to ×${stacks}` : ''}`),
+      ...(durationDisplay ? [segment(` · ${durationDisplay}`)] : []),
+    ]
+  }
 
   if (refreshed) {
     return [
@@ -661,19 +674,28 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
       const duration = reasonableDurationLabel(statusApplied)
       const negative = statusIsNegative(name, statusApplied)
       const refreshed = statusApplied.templateValues.statusChange === 'REFRESHED'
-      primary = refreshed
+      const stacked = statusApplied.templateValues.statusChange === 'STACKED'
+      const stacks = statusApplied.templateValues.stacks?.trim()
+      primary = stacked
         ? [
             segment(`${target}'s `, 'target'),
             segment(name, 'outcome', negative ? 'warning' : 'benefit'),
-            segment(' refreshes'),
+            segment(` stacks${stacks ? ` to ×${stacks}` : ''}`),
             ...(duration ? [segment(` · ${duration}`)] : []),
           ]
-        : [
-            segment(target, 'target'),
-            segment(negative ? ' suffers ' : ' gains '),
-            segment(name, 'outcome', negative ? 'warning' : 'benefit'),
-            ...(duration ? [segment(` · ${duration}`)] : []),
-          ]
+        : refreshed
+          ? [
+              segment(`${target}'s `, 'target'),
+              segment(name, 'outcome', negative ? 'warning' : 'benefit'),
+              segment(' refreshes'),
+              ...(duration ? [segment(` · ${duration}`)] : []),
+            ]
+          : [
+              segment(target, 'target'),
+              segment(negative ? ' suffers ' : ' gains '),
+              segment(name, 'outcome', negative ? 'warning' : 'benefit'),
+              ...(duration ? [segment(` · ${duration}`)] : []),
+            ]
       kind = statusApplied.kind
       consumed.add(name.toLowerCase())
       if (duration) consumed.add(duration.toLowerCase())
