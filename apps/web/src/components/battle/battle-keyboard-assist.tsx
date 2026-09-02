@@ -218,10 +218,7 @@ function syncAttackRangeMarkers(playerName: string) {
 }
 
 function repeatableCommand(label: string): HTMLButtonElement | null {
-  if (
-    !['Move', 'Basic Attack', 'Recover', 'HP Recovery', 'MP Recovery'].includes(label)
-  )
-    return null
+  if (!['Move', 'Basic Attack', 'Recover', 'HP Recovery', 'MP Recovery'].includes(label)) return null
   const button = commandButton(label)
   if (!button || button.disabled) return null
   return button
@@ -499,9 +496,9 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
       const chord = eventChord(event)
       const action = configuredAction(bindings, chord)
       if (action) {
-        // Move / Attack / Guard / Recovery are owned by BattleSelfActionQuickCommitAssist. Yield
-        // before consuming the event so listener registration order can never change their result.
-        if (isSharedCategoryAction(action)) return
+        // Desktop Move / Attack / Guard / Recovery belong to BattleSelfActionQuickCommitAssist.
+        // Mobile keeps this existing handler because the shared quick-commit owner is desktop-only.
+        if (isSharedCategoryAction(action) && window.matchMedia('(min-width: 821px)').matches) return
         if ((action === 'nextTarget' || action === 'previousTarget') && !attackModeIsActive())
           return
         event.preventDefault()
