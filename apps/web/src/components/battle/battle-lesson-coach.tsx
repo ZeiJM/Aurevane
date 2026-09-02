@@ -128,18 +128,24 @@ function useVictoryControlBridge({
   useEffect(() => {
     if (!target) return
 
-    const label = target.querySelector<HTMLElement>('span')
-    const counterNode = target.querySelector<HTMLElement>('strong')
-    const previousAriaLabel = target.getAttribute('aria-label')
+    // `target` is a React hook argument, so treat it only as the identity/change signal. Query the
+    // live DOM node separately before applying this compatibility bridge; this keeps imperative DOM
+    // ownership explicit rather than mutating a hook argument.
+    const mutableTarget = findVictoryControl()
+    if (!mutableTarget || mutableTarget !== target) return
+
+    const label = mutableTarget.querySelector<HTMLElement>('span')
+    const counterNode = mutableTarget.querySelector<HTMLElement>('strong')
+    const previousAriaLabel = mutableTarget.getAttribute('aria-label')
     const previousCounter = counterNode?.textContent ?? null
-    const previousNewProgress = target.getAttribute('data-new-progress')
+    const previousNewProgress = mutableTarget.getAttribute('data-new-progress')
 
     if (label && label.textContent !== 'Victory Conditions')
       label.textContent = 'Victory Conditions'
     if (counterNode) counterNode.textContent = counter
-    target.setAttribute('aria-label', ariaLabel)
-    if (hasUnseenProgress) target.dataset.newProgress = 'true'
-    else delete target.dataset.newProgress
+    mutableTarget.setAttribute('aria-label', ariaLabel)
+    if (hasUnseenProgress) mutableTarget.dataset.newProgress = 'true'
+    else delete mutableTarget.dataset.newProgress
 
     const openCoach = (event: MouseEvent) => {
       event.preventDefault()
@@ -147,14 +153,14 @@ function useVictoryControlBridge({
       onOpen()
     }
 
-    target.addEventListener('click', openCoach, true)
+    mutableTarget.addEventListener('click', openCoach, true)
     return () => {
-      target.removeEventListener('click', openCoach, true)
-      if (previousAriaLabel === null) target.removeAttribute('aria-label')
-      else target.setAttribute('aria-label', previousAriaLabel)
+      mutableTarget.removeEventListener('click', openCoach, true)
+      if (previousAriaLabel === null) mutableTarget.removeAttribute('aria-label')
+      else mutableTarget.setAttribute('aria-label', previousAriaLabel)
       if (counterNode && previousCounter !== null) counterNode.textContent = previousCounter
-      if (previousNewProgress === null) delete target.dataset.newProgress
-      else target.setAttribute('data-new-progress', previousNewProgress)
+      if (previousNewProgress === null) delete mutableTarget.dataset.newProgress
+      else mutableTarget.setAttribute('data-new-progress', previousNewProgress)
     }
   }, [ariaLabel, counter, hasUnseenProgress, onOpen, target])
 }
