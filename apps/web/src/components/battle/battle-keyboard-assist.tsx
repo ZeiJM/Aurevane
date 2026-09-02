@@ -218,7 +218,10 @@ function syncAttackRangeMarkers(playerName: string) {
 }
 
 function repeatableCommand(label: string): HTMLButtonElement | null {
-  if (!['Move', 'Basic Attack', 'Recover', 'HP Recovery', 'MP Recovery'].includes(label)) return null
+  if (
+    !['Move', 'Basic Attack', 'Recover', 'HP Recovery', 'MP Recovery'].includes(label)
+  )
+    return null
   const button = commandButton(label)
   if (!button || button.disabled) return null
   return button
