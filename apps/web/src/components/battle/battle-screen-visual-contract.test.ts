@@ -14,17 +14,16 @@ function compact(value: string): string {
   return value.replace(/\s+/g, ' ').trim()
 }
 
-describe('PvP-first shared battle visual contract', () => {
-  it('is mounted by both playable battle boundaries', () => {
-    const pvp = readLocalFile('pvp-battle-client-boundary.tsx')
-    const pve = readLocalFile('battle-session-client-boundary.tsx')
+describe('shared battle visual contract', () => {
+  it('uses one mode-aware semantic contract for playable PvE and PvP battle roots', () => {
+    const contract = readLocalFile('battle-screen-visual-contract.tsx')
 
-    for (const source of [pvp, pve]) {
-      expect(source).toContain(
-        "import { BattleScreenVisualContract } from './battle-screen-visual-contract'",
-      )
-      expect(source).toContain('<BattleScreenVisualContract />')
-    }
+    expect(contract).toContain("document.querySelector<HTMLElement>('#battlefield')")
+    expect(contract).toContain(
+      "root.dataset.battleMode = root.dataset.pvpBattle === 'true' ? 'pvp' : 'pve'",
+    )
+    expect(contract).toContain("root.dataset.battleVisualContract = 'true'")
+    expect(contract).toContain("mark(battlefield, 'battleSharedBattlefield')")
   })
 
   it('uses the final PvP desktop shell and board geometry as the shared authority', () => {
@@ -48,12 +47,13 @@ describe('PvP-first shared battle visual contract', () => {
     expect(css).toContain('grid-template-columns: repeat(5, minmax(0, 1fr)) !important;')
   })
 
-  it('does not absorb PvP-only spectator, battle-key, chat transport or timer mechanics', () => {
+  it('keeps spectator footer shaping visual-only and excludes PvP transport or timer mechanics', () => {
     const contract = readLocalFile('battle-screen-visual-contract.tsx')
 
-    expect(contract).not.toContain('spectat')
+    expect(contract).toContain("import spectatorFooterStyles from './battle-spectator-footer-shape.module.css'")
     expect(contract).not.toContain('battleKey')
     expect(contract).not.toContain('PvpBattleChatBridge')
     expect(contract).not.toContain('turnClock')
+    expect(contract).not.toContain('/api/pvp')
   })
 })
