@@ -34,8 +34,7 @@ function visibleBattleRoot(): HTMLElement | null {
 }
 
 function activeBattleRoot(): HTMLElement | null {
-  const root = visibleBattleRoot()
-  return root?.dataset.localTurn === 'true' ? root : null
+  return visibleBattleRoot()
 }
 
 function finishTurnButton(root: HTMLElement): HTMLButtonElement | null {
