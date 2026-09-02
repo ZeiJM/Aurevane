@@ -33,7 +33,8 @@ function visibleBattleRoot(): HTMLElement | null {
 }
 
 function activeBattleRoot(): HTMLElement | null {
-  return visibleBattleRoot()
+  const root = visibleBattleRoot()
+  return root?.dataset.localTurn === 'true' ? root : null
 }
 
 function finishTurnButton(root: HTMLElement): HTMLButtonElement | null {
@@ -135,11 +136,39 @@ export function BattleFinishTurnKeyboardAssist({ playerName }: { playerName: str
     }
   }, [])
 
-  useLayoutEffect(() => {
-    // Expose owner readiness so browser regressions never race initial battle hydration.
-    const mountedRoot = visibleBattleRoot()
-    if (mountedRoot) mountedRoot.dataset.finishTurnHotkeyOwner = 'ready'
+  useEffect(() => {
+    let cancelled = false
+    let frame = 0
+    let markedRoot: HTMLElement | null = null
 
+    // Readiness is deliberately post-hydration. Two animation frames ensure React has completed the
+    // battle commit before the shortcut can advertise itself as ready to a user or regression test.
+    const markReady = () => {
+      if (cancelled) return
+      const root = visibleBattleRoot()
+      const finish = root ? finishTurnButton(root) : null
+      if (root && finish) {
+        root.dataset.finishTurnHotkeyOwner = 'ready'
+        markedRoot = root
+        return
+      }
+      frame = window.requestAnimationFrame(markReady)
+    }
+
+    frame = window.requestAnimationFrame(() => {
+      frame = window.requestAnimationFrame(markReady)
+    })
+
+    return () => {
+      cancelled = true
+      if (frame) window.cancelAnimationFrame(frame)
+      if (markedRoot?.dataset.finishTurnHotkeyOwner === 'ready') {
+        delete markedRoot.dataset.finishTurnHotkeyOwner
+      }
+    }
+  }, [])
+
+  useLayoutEffect(() => {
     function cancelPendingCommit() {
       pendingCommitSequenceRef.current += 1
       firstPressAtRef.current = null
@@ -249,7 +278,17 @@ export function BattleFinishTurnKeyboardAssist({ playerName }: { playerName: str
 
       firstPressAtRef.current = now
       markDecision(root, 'handled-first', event)
-      finishTurn.click()
+      window.requestAnimationFrame(() => {
+        if (document.hidden) return
+        const currentRoot = activeBattleRoot()
+        const currentFinish = currentRoot ? finishTurnButton(currentRoot) : null
+        if (!currentRoot || !currentFinish || currentFinish.disabled) {
+          firstPressAtRef.current = null
+          markDecision(currentRoot ?? root, 'first-activation-unavailable')
+          return
+        }
+        currentFinish.click()
+      })
     }
 
     function handleBlur() {
@@ -265,9 +304,6 @@ export function BattleFinishTurnKeyboardAssist({ playerName }: { playerName: str
     document.addEventListener('visibilitychange', handleVisibilityChange)
     return () => {
       pendingCommitSequenceRef.current += 1
-      if (mountedRoot?.dataset.finishTurnHotkeyOwner === 'ready') {
-        delete mountedRoot.dataset.finishTurnHotkeyOwner
-      }
       window.removeEventListener('keydown', handleKeyDown, true)
       window.removeEventListener('blur', handleBlur)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
