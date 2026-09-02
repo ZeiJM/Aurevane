@@ -63,9 +63,7 @@ function facingFromText(value: string): Facing | null {
 function currentFacing(root: HTMLElement, playerName: string): Facing | null {
   const playerTile = Array.from(
     root.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label*="occupied by"]'),
-  ).find((tile) =>
-    (tile.getAttribute('aria-label') ?? '').includes(`occupied by ${playerName}`),
-  )
+  ).find((tile) => (tile.getAttribute('aria-label') ?? '').includes(`occupied by ${playerName}`))
   if (playerTile) {
     const ariaFacing = facingFromText(playerTile.getAttribute('aria-label') ?? '')
     if (ariaFacing) return ariaFacing
