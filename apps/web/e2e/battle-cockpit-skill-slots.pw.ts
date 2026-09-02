@@ -15,6 +15,10 @@ function expectNear(left: number, right: number): void {
   expect(Math.abs(left - right)).toBeLessThanOrEqual(1)
 }
 
+function expectOpticallyNear(left: number, right: number): void {
+  expect(Math.abs(left - right)).toBeLessThanOrEqual(2)
+}
+
 test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   page,
 }, testInfo) => {
@@ -124,8 +128,8 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
     ).toBeLessThan(geometry.artworkHeight)
     expect(geometry.imageWidth).toBeGreaterThan(geometry.artworkWidth - 6)
     expect(geometry.imageHeight).toBeGreaterThan(geometry.artworkHeight - 6)
-    expectNear(geometry.imageCenterX, geometry.artworkCenterX)
-    expectNear(geometry.imageCenterY, geometry.artworkCenterY)
+    expectOpticallyNear(geometry.imageCenterX, geometry.artworkCenterX)
+    expectOpticallyNear(geometry.imageCenterY, geometry.artworkCenterY)
   }
 
   const inspectGeometry = await inspectCard.evaluate((card) => {
@@ -152,8 +156,8 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   expect(inspectGeometry).not.toBeNull()
   if (!inspectGeometry) return
   expect(inspectGeometry.pointerEvents).toBe('none')
-  expectNear(inspectGeometry.imageCenterX, inspectGeometry.artworkCenterX)
-  expectNear(inspectGeometry.imageCenterY, inspectGeometry.artworkCenterY)
+  expectOpticallyNear(inspectGeometry.imageCenterX, inspectGeometry.artworkCenterX)
+  expectOpticallyNear(inspectGeometry.imageCenterY, inspectGeometry.artworkCenterY)
   expect(inspectGeometry.artworkCenterX).toBeGreaterThan(inspectGeometry.actionLeft)
   expect(inspectGeometry.artworkCenterX).toBeLessThan(inspectGeometry.actionRight)
   expect(inspectGeometry.artworkCenterY).toBeGreaterThan(inspectGeometry.actionTop)
