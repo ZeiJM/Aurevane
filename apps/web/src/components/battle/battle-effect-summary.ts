@@ -9,7 +9,7 @@ export type BattleEffectSummaryItem = {
   tone: BattleEffectSummaryTone
 }
 
-type BattleStatusSummaryInput = {
+export type BattleStatusSummaryInput = {
   statusId: string
   statusVersion: number
   stacks: number
@@ -39,18 +39,59 @@ export function statusIsBeneficial(statusId: string): boolean {
   return statusId === 'guarded' || statusId.startsWith('buff.')
 }
 
-export function summarizeBattleEffects(
-  statuses: readonly BattleStatusSummaryInput[],
-): BattleEffectSummaryItem[] {
-  let buffStacks = 0
-  let debuffStacks = 0
-  let damageTakenMultiplier = BASIS_POINTS
-  let measuredDamageTaken = false
+export function statusLabel(statusId: string): string {
+  if (statusId === 'guarded') return 'Guarded'
+  if (statusId === 'lowered-guard' || statusId === 'lowered.guard') return 'Lowered Guard'
+
+  const readableId = statusId
+    .replace(/^(?:buff|debuff)[._:-]/u, '')
+    .replace(/[._-]+/gu, ' ')
+    .trim()
+  if (!readableId) return statusId
+
+  return readableId
+    .split(/\s+/u)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
+export function formatStatusStackCount(statusId: string, stacks: number): string {
+  const count = Math.max(1, stacks)
+  return `${statusIsBeneficial(statusId) ? '+' : '−'}${count}`
+}
+
+export function aggregateBattleStatusStacks<T extends BattleStatusSummaryInput>(
+  statuses: readonly T[],
+): T[] {
+  const grouped = new Map<string, T>()
 
   for (const status of statuses) {
     const stacks = Math.max(1, status.stacks)
-    if (statusIsBeneficial(status.statusId)) buffStacks += stacks
-    else debuffStacks += stacks
+    const key = `${status.statusId}:${status.statusVersion}`
+    const existing = grouped.get(key)
+    if (!existing) {
+      grouped.set(key, { ...status, stacks })
+      continue
+    }
+
+    grouped.set(key, {
+      ...existing,
+      stacks: Math.max(1, existing.stacks) + stacks,
+    })
+  }
+
+  return [...grouped.values()]
+}
+
+export function summarizeBattleEffects(
+  statuses: readonly BattleStatusSummaryInput[],
+): BattleEffectSummaryItem[] {
+  let damageTakenMultiplier = BASIS_POINTS
+  let measuredDamageTaken = false
+  const groupedStatuses = aggregateBattleStatusStacks(statuses)
+
+  for (const status of groupedStatuses) {
+    const stacks = Math.max(1, status.stacks)
 
     const definition = PV1F_COMBAT_CONTENT.statuses.find(
       (candidate) => candidate.id === status.statusId && candidate.version === status.statusVersion,
@@ -74,9 +115,14 @@ export function summarizeBattleEffects(
       tone: delta < 0 ? 'buff' : delta > 0 ? 'debuff' : 'neutral',
     })
   }
-  if (buffStacks > 0) summary.push({ label: 'BUFF', value: `+${buffStacks}`, tone: 'buff' })
-  if (debuffStacks > 0) {
-    summary.push({ label: 'DEBUFF', value: `−${debuffStacks}`, tone: 'debuff' })
+
+  for (const status of groupedStatuses) {
+    summary.push({
+      label: statusLabel(status.statusId),
+      value: formatStatusStackCount(status.statusId, status.stacks),
+      tone: statusIsBeneficial(status.statusId) ? 'buff' : 'debuff',
+    })
   }
+
   return summary
 }
