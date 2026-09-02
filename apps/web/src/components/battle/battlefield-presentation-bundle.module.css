@@ -47,9 +47,7 @@
   }
 
   :global(
-    section#battlefield[data-show-coordinates='true']
-      button[aria-label^='Tile ']
-      > span:first-child
+    section#battlefield[data-show-coordinates='true'] button[aria-label^='Tile '] > span:first-child
   ) {
     font-size: calc(0.3rem + 1px) !important;
   }
