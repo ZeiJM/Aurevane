@@ -254,7 +254,7 @@ export function BattleSelfActionQuickCommitAssist() {
 
       const slot = CATEGORY_ACTION_SLOTS[action]
       const button = commandButton(slot)
-      if (!button || button.disabled) return
+      if (!button) return
 
       const now = performance.now()
       const armed = armedCategoryRef.current
