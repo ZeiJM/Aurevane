@@ -9,7 +9,13 @@ import type { ImageAssetId } from '@/media/registry'
 import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
-import { statusIsBeneficial, summarizeBattleEffects } from './battle-effect-summary'
+import {
+  aggregateBattleStatusStacks,
+  formatStatusStackCount,
+  statusIsBeneficial,
+  statusLabel,
+  summarizeBattleEffects,
+} from './battle-effect-summary'
 import styles from './desktop-battle-combatant-inspect.module.css'
 import { PvpBattleInspectPopup } from './pvp-battle-inspect-popup'
 
@@ -87,20 +93,6 @@ function meterPercent(value: number, maximum: number): number {
 function percentFromBasisPoints(value: number | null | undefined): string {
   if (value === null || value === undefined) return '—'
   return `${Math.round(value / 100)}%`
-}
-
-function statusLabel(statusId: string): string {
-  if (statusId === 'guarded') return 'Guarded'
-  if (statusId === 'lowered-guard' || statusId === 'lowered.guard') return 'Lowered Guard'
-  return statusId
-    .replace(/^buff\./, '')
-    .replace(/^debuff\./, '')
-    .replaceAll('-', ' ')
-    .replaceAll('.', ' ')
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
 }
 
 function displayNameForCombatant(combatantId: string, playerName: string | null): string {
@@ -318,6 +310,7 @@ export function DesktopBattleCombatantInspect({
   const healthPercent = selected ? meterPercent(selected.combatant.hp, selected.combatant.maxHp) : 0
   const manaPercent = selected ? meterPercent(selected.combatant.mp, selected.combatant.maxMp) : 0
   const effectSummary = selected ? summarizeBattleEffects(selected.statuses) : []
+  const effectStatuses = selected ? aggregateBattleStatusStacks(selected.statuses) : []
 
   const desktopPopup = (
     <div
@@ -453,23 +446,24 @@ export function DesktopBattleCombatantInspect({
                   ))}
                 </div>
               </div>
-              {selected.statuses.length === 0 ? (
+              {effectStatuses.length === 0 ? (
                 <p>No buffs or debuffs are active.</p>
               ) : (
                 <div className={styles.effectIcons}>
-                  {selected.statuses.map((status) => {
+                  {effectStatuses.map((status) => {
                     const label = statusLabel(status.statusId)
                     const beneficial = statusIsBeneficial(status.statusId)
+                    const stackCount = formatStatusStackCount(status.statusId, status.stacks)
                     return (
                       <button
                         type="button"
-                        key={`${status.statusId}:${status.sourceCombatantId}`}
+                        key={`${status.statusId}:${status.statusVersion}`}
                         className={beneficial ? styles.buff : styles.debuff}
-                        title={`${label}${status.stacks > 1 ? ` ×${status.stacks}` : ''}`}
-                        aria-label={`${beneficial ? 'Buff' : 'Debuff'}: ${label}, ${status.stacks} stack${status.stacks === 1 ? '' : 's'}, ${status.remainingOwnerTurnStarts} turn${status.remainingOwnerTurnStarts === 1 ? '' : 's'} remaining`}
+                        title={`${label} ${stackCount} · ${status.remainingOwnerTurnStarts} turn${status.remainingOwnerTurnStarts === 1 ? '' : 's'} remaining`}
+                        aria-label={`${beneficial ? 'Buff' : 'Debuff'}: ${label}, ${stackCount}, ${status.remainingOwnerTurnStarts} turn${status.remainingOwnerTurnStarts === 1 ? '' : 's'} remaining`}
                       >
-                        {beneficial ? '+' : '!'}
-                        {status.stacks > 1 ? status.stacks : null}
+                        <span>{label}</span>
+                        <strong>{stackCount}</strong>
                       </button>
                     )
                   })}

@@ -9,6 +9,12 @@ import { getStarterPortraitImageAssetId } from '@/media/character'
 import type { PvpBattleMetadata, PvpBattleParticipantView } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
+import {
+  aggregateBattleStatusStacks,
+  formatStatusStackCount,
+  statusIsBeneficial,
+  statusLabel,
+} from './battle-effect-summary'
 import styles from './pvp-battle-combatant-panels.module.css'
 
 const COMBATANT_COLORS = ['#67c98a', '#dc6a66', '#67aee8', '#d9ad5c', '#a984e8', '#df7eb5'] as const
@@ -38,6 +44,7 @@ function Panel({
   const statuses =
     battle.snapshot.statusState.find((row) => row.combatantId === participant.combatantId)
       ?.statuses ?? []
+  const effectStatuses = aggregateBattleStatusStacks(statuses)
   if (!combatant) return null
 
   const style = { '--combatant-accent': accent } as CSSProperties
@@ -81,21 +88,23 @@ function Panel({
       <div className={styles.effects} aria-label={`${participant.characterName} status effects`}>
         <span>Effects</span>
         <div>
-          {statuses.length > 0 ? (
-            statuses.map((status) => {
+          {effectStatuses.length > 0 ? (
+            effectStatuses.map((status) => {
               const loweredGuard = status.statusId === 'lowered-guard'
+              const label = statusLabel(status.statusId)
+              const stackCount = formatStatusStackCount(status.statusId, status.stacks)
               return (
                 <b
-                  key={status.statusId}
-                  data-debuff={loweredGuard || undefined}
+                  key={`${status.statusId}:${status.statusVersion}`}
+                  data-debuff={!statusIsBeneficial(status.statusId) || undefined}
                   title={
                     loweredGuard
-                      ? `Lowered Guard${status.stacks > 1 ? ` ×${status.stacks}` : ''} · each stack multiplies incoming damage by 2.5×`
-                      : `${status.statusId}${status.stacks > 1 ? ` ×${status.stacks}` : ''}`
+                      ? `${label} ${stackCount} · each stack multiplies incoming damage by 2.5×`
+                      : `${label} ${stackCount}`
                   }
                 >
-                  {loweredGuard ? 'LG↓' : '◇'}
-                  {status.stacks > 1 ? `×${status.stacks}` : ''}
+                  <span>{label}</span>
+                  <strong>{stackCount}</strong>
                 </b>
               )
             })
