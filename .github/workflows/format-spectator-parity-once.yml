@@ -1,0 +1,57 @@
+name: One-shot spectator parity formatting
+
+on:
+  push:
+    branches:
+      - agent/spectator-battlefield-parity
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/spectator-battlefield-parity
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format spectator parity files
+        run: >-
+          pnpm exec prettier --write
+          apps/web/src/app/game/battle/spectate/[battleKey]/page.tsx
+          apps/web/src/components/battle/battle-client-boundary.tsx
+          apps/web/src/components/battle/battle-map-token-polish.tsx
+          apps/web/src/components/battle/battle-map-token-polish.test.ts
+          apps/web/src/components/battle/battlefield-presentation-bundle.tsx
+          apps/web/src/components/battle/battlefield-presentation-bundle.module.css
+          apps/web/src/components/battle/battlefield-presentation-bundle.test.ts
+          apps/web/src/components/battle/pvp-spectator-mobile-control-balance.module.css
+      - name: Commit formatting to branch
+        run: |
+          git config user.name "AUREVANE Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add \
+            apps/web/src/app/game/battle/spectate/[battleKey]/page.tsx \
+            apps/web/src/components/battle/battle-client-boundary.tsx \
+            apps/web/src/components/battle/battle-map-token-polish.tsx \
+            apps/web/src/components/battle/battle-map-token-polish.test.ts \
+            apps/web/src/components/battle/battlefield-presentation-bundle.tsx \
+            apps/web/src/components/battle/battlefield-presentation-bundle.module.css \
+            apps/web/src/components/battle/battlefield-presentation-bundle.test.ts \
+            apps/web/src/components/battle/pvp-spectator-mobile-control-balance.module.css
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git commit -m "chore: format spectator parity files"
+          git push origin HEAD:agent/spectator-battlefield-parity
