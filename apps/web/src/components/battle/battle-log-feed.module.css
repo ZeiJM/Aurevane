@@ -31,7 +31,7 @@
   display: grid;
   width: 100%;
   min-height: 1.9rem;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 0.32rem;
   align-items: center;
   padding: 0.34rem 0.5rem;
@@ -83,13 +83,6 @@
 
 .inProgress {
   color: var(--av-brass-300);
-}
-
-.roundHeader time {
-  color: rgba(190, 204, 214, 0.62);
-  font: 560 0.42rem/1 var(--av-font-mono);
-  letter-spacing: 0.01em;
-  white-space: nowrap;
 }
 
 .actions {
@@ -269,10 +262,6 @@
 
   .roundTitle {
     font-size: 0.64rem;
-  }
-
-  .roundHeader time {
-    font-size: 0.39rem;
   }
 
   .actions {
