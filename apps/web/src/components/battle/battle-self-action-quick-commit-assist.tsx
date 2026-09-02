@@ -68,7 +68,14 @@ function isCommandSlot(value: string | undefined): value is CommandSlot {
 }
 
 function battleRoot(): HTMLElement | null {
-  return document.querySelector<HTMLElement>('main[data-unified-battle="true"][data-battle-kind]')
+  const roots = document.querySelectorAll<HTMLElement>(
+    'main[data-unified-battle="true"][data-battle-kind]',
+  )
+  return (
+    Array.from(roots).find(
+      (root) => root.isConnected && root.getClientRects().length > 0 && root.ariaHidden !== 'true',
+    ) ?? null
+  )
 }
 
 function commandButton(slot: CommandSlot): HTMLButtonElement | null {
@@ -188,12 +195,16 @@ export function BattleSelfActionQuickCommitAssist() {
   // keep this listener mounted for the component lifetime so async control refreshes cannot reorder
   // it behind the older PvE/PvP keyboard assists on different browsers or network timings.
   useLayoutEffect(() => {
+    const cancelPendingCommit = () => {
+      commitSequence.current += 1
+    }
+
     function commitWhenPreviewReady(slot: CommandSlot) {
       const sequence = ++commitSequence.current
       const startedAt = performance.now()
 
       const tryCommit = () => {
-        if (sequence !== commitSequence.current) return
+        if (sequence !== commitSequence.current || document.hidden || !document.hasFocus()) return
 
         // A React preview refresh may briefly replace the active button. Treat a temporary lack of
         // an active slot as transitional, but abort if the player has actually armed another slot.
@@ -251,10 +262,18 @@ export function BattleSelfActionQuickCommitAssist() {
       button.click()
     }
 
+    function handleVisibilityChange() {
+      if (document.hidden) cancelPendingCommit()
+    }
+
     window.addEventListener('keydown', handleKeyDown, true)
+    window.addEventListener('blur', cancelPendingCommit)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
     return () => {
-      commitSequence.current += 1
+      cancelPendingCommit()
       window.removeEventListener('keydown', handleKeyDown, true)
+      window.removeEventListener('blur', cancelPendingCommit)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [])
 
