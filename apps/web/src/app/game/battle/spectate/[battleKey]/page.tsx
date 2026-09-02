@@ -4,6 +4,8 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
 import { BattleAudioGate } from '@/components/battle/battle-audio-gate'
+import { pvpParticipantAccent } from '@/components/battle/battle-combatant-colors'
+import { BattlefieldPresentationBundle } from '@/components/battle/battlefield-presentation-bundle'
 import { BattleStatusEffectAssist } from '@/components/battle/battle-status-effect-assist'
 import { PvpSpectatorExperience } from '@/components/battle/pvp-spectator-experience'
 import { PvpSpectatorViewportPolish } from '@/components/battle/pvp-spectator-viewport-polish'
@@ -66,12 +68,23 @@ export default async function PvpSpectatorPage({
   if (!battleKey) redirect('/game/battle')
 
   const { spectator, participantTitles } = await loadSpectatorPageData(actor.userId, battleKey)
+  const teamCount = spectator.mode === '1v1v1' ? 3 : 2
+  const combatantAccents = Object.fromEntries(
+    spectator.participants.map((participant) => [
+      participant.characterName,
+      pvpParticipantAccent(participant.teamIndex, participant.seatIndex, teamCount),
+    ]),
+  )
 
   return (
     <BattleAudioGate>
       <PvpSpectatorExperience
         initialSpectator={spectator}
         initialParticipantTitles={participantTitles}
+      />
+      <BattlefieldPresentationBundle
+        battleSessionId={spectator.battle.battleSessionId}
+        combatantAccents={combatantAccents}
       />
       <PvpSpectatorViewportPolish />
       <BattleStatusEffectAssist />
