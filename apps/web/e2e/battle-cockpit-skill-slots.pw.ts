@@ -42,10 +42,14 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
   const inspectCard = commandDeck.locator('[data-command-card="inspect"]')
   const inspectAction = inspectCard.locator('button[data-battle-command="inspect"]')
+  const attackArtwork = commandDeck.locator(
+    '[data-command-card="attack"] [data-battle-command-artwork] img',
+  )
   const healCard = commandDeck.locator('[data-command-card="recover"]')
   const healAction = healCard.locator('button[data-battle-command="recover"]')
   const healArtwork = healCard.getByRole('button', { name: /Choose Heal skill/i })
 
+  await expect(attackArtwork).toHaveAttribute('src', '/media/skills/basic-attack-fist.webp')
   await expect(healAction).toContainText('HP Recovery')
   await expect(healAction).toContainText('50 AP')
   const slotHotkeyBefore = await healAction.locator(':scope > span').textContent()
@@ -193,7 +197,7 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   await expect(inspectAction).toHaveAttribute('data-battle-active', 'true')
 
   const initialImage = healArtwork.locator('img')
-  await expect(initialImage).toHaveAttribute('src', '/media/skills/hp-recovery.jpg')
+  await expect(initialImage).toHaveAttribute('src', '/media/skills/hp-recovery-centered.svg')
   await expect
     .poll(() =>
       initialImage.evaluate(
