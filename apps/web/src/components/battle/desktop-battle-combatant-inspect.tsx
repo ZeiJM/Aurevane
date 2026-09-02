@@ -1,7 +1,7 @@
 'use client'
 
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { getStarterPortraitImageAssetId } from '@/media/character'
@@ -17,9 +17,10 @@ import {
   summarizeBattleEffects,
 } from './battle-effect-summary'
 import styles from './desktop-battle-combatant-inspect.module.css'
+import { useBattleInteractionLifecycle } from './battle-interaction-lifecycle'
 import { PvpBattleInspectPopup } from './pvp-battle-inspect-popup'
 
-const DESKTOP_QUERY = '(min-width: 881px)'
+const DESKTOP_POINTER_QUERY = '(any-hover: hover) and (any-pointer: fine)'
 type GridPosition = { x: number; y: number }
 type BattleSnapshot = BattleSessionView['snapshot']
 type Combatant = BattleSnapshot['tactical']['battle']['combatants'][number]
@@ -198,12 +199,22 @@ export function DesktopBattleCombatantInspect({
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [selected, setSelected] = useState<SelectedCombatant | null>(null)
+  const openRef = useRef(false)
+  const { closeInspectMode } = useBattleInteractionLifecycle()
+
+  const closeInspect = useCallback(() => {
+    if (!openRef.current) return
+    openRef.current = false
+    setOpen(false)
+    closeInspectMode()
+  }, [closeInspectMode])
 
   useEffect(() => {
     let requestSequence = 0
 
     async function openCombatant(target: OpenTarget) {
       const sequence = ++requestSequence
+      openRef.current = true
       setOpen(true)
       setLoading(!battleView)
       setError(null)
@@ -248,7 +259,7 @@ export function DesktopBattleCombatantInspect({
     }
 
     function handleClick(event: MouseEvent) {
-      if (!window.matchMedia(DESKTOP_QUERY).matches || !inspectModeActive()) return
+      if (!window.matchMedia(DESKTOP_POINTER_QUERY).matches || !inspectModeActive()) return
       const target = event.target instanceof Element ? event.target : null
       if (!target) return
 
@@ -277,7 +288,7 @@ export function DesktopBattleCombatantInspect({
     }
 
     function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') setOpen(false)
+      if (event.key === 'Escape') closeInspect()
     }
 
     document.addEventListener('click', handleClick, true)
@@ -290,6 +301,7 @@ export function DesktopBattleCombatantInspect({
   }, [
     battleSessionId,
     battleView,
+    closeInspect,
     playerName,
     playerPortraitAssetId,
     playerProfileImageUrl,
@@ -316,7 +328,7 @@ export function DesktopBattleCombatantInspect({
     <div
       className={styles.backdrop}
       data-desktop-battle-inspect="true"
-      onPointerDown={() => setOpen(false)}
+      onPointerDown={closeInspect}
     >
       <section
         className={styles.popup}
@@ -337,7 +349,7 @@ export function DesktopBattleCombatantInspect({
               type="button"
               className={styles.close}
               aria-label="Close combatant details"
-              onClick={() => setOpen(false)}
+              onClick={closeInspect}
             >
               ×
             </button>

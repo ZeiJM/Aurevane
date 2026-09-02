@@ -23,6 +23,8 @@ const CATEGORY_ACTION_SLOTS: Record<CategoryAction, CommandSlot> = {
   recover: 'recover',
 }
 
+const TRANSIENT_SECOND_PRESS_MS = 800
+
 const VISIBLE_COMMAND_SLOTS: readonly SlotBinding[] = [
   ['inspect', 'inspect'],
   ['move', 'move'],
@@ -143,6 +145,7 @@ export function BattleSelfActionQuickCommitAssist() {
   const [bindings, setBindings] = useState<CombatKeybindMap>(DEFAULT_COMBAT_KEYBINDS)
   const bindingsRef = useRef<CombatKeybindMap>(DEFAULT_COMBAT_KEYBINDS)
   const commitSequence = useRef(0)
+  const armedCategoryRef = useRef<{ slot: CommandSlot; armedAt: number } | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -197,6 +200,7 @@ export function BattleSelfActionQuickCommitAssist() {
   useLayoutEffect(() => {
     const cancelPendingCommit = () => {
       commitSequence.current += 1
+      armedCategoryRef.current = null
     }
 
     function commitWhenPreviewReady(slot: CommandSlot) {
@@ -209,7 +213,13 @@ export function BattleSelfActionQuickCommitAssist() {
         // A React preview refresh may briefly replace the active button. Treat a temporary lack of
         // an active slot as transitional, but abort if the player has actually armed another slot.
         const activeSlot = activeCommandSlot()
-        if (activeSlot && activeSlot !== slot) return
+        if (activeSlot && activeSlot !== slot) {
+          // A just-closed Inspect popup or a very fast second keypress can leave the previous
+          // command marked active for a frame. Give React a short transition window instead of
+          // treating that stale DOM marker as a reason to discard the deliberate second press.
+          if (performance.now() - startedAt < 300) window.requestAnimationFrame(tryCommit)
+          return
+        }
 
         const confirm = confirmButton()
         if (confirm && !confirm.disabled) {
@@ -228,13 +238,13 @@ export function BattleSelfActionQuickCommitAssist() {
 
     function handleKeyDown(event: KeyboardEvent) {
       if (
+        event.isComposing ||
         isTextEntryTarget(event.target) ||
         event.repeat ||
         event.altKey ||
         event.ctrlKey ||
         event.metaKey ||
-        !event.code ||
-        !window.matchMedia('(min-width: 821px)').matches
+        !event.code
       ) {
         return
       }
@@ -244,11 +254,20 @@ export function BattleSelfActionQuickCommitAssist() {
 
       const slot = CATEGORY_ACTION_SLOTS[action]
       const button = commandButton(slot)
-      if (!button) return
+      if (!button || button.disabled) return
 
-      if ((action === 'guard' || action === 'recover') && commandIsActive(slot)) {
+      const now = performance.now()
+      const armed = armedCategoryRef.current
+      const deliberateSecondPress =
+        armed?.slot === slot && now - armed.armedAt <= TRANSIENT_SECOND_PRESS_MS
+
+      if (
+        (action === 'guard' || action === 'recover') &&
+        (commandIsActive(slot) || deliberateSecondPress)
+      ) {
         event.preventDefault()
         event.stopImmediatePropagation()
+        armedCategoryRef.current = null
         commitWhenPreviewReady(slot)
         return
       }
@@ -259,6 +278,7 @@ export function BattleSelfActionQuickCommitAssist() {
       event.preventDefault()
       event.stopImmediatePropagation()
       commitSequence.current += 1
+      armedCategoryRef.current = { slot, armedAt: now }
       button.click()
     }
 
