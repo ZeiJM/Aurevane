@@ -1,0 +1,305 @@
+name: One-shot deterministic Finish Turn handler
+
+on:
+  push:
+    branches:
+      - agent/battle-input-responsive-consistency-v3
+    paths:
+      - .github/workflows/one-shot-finish-turn-react-owner.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: agent/battle-input-responsive-consistency-v3
+          fetch-depth: 0
+
+      - name: Apply deterministic React ownership patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          python <<'PY'
+          from pathlib import Path
+
+          root = Path('.')
+
+          quick_path = root / 'apps/web/src/components/battle/battle-self-action-quick-commit-assist.tsx'
+          quick = quick_path.read_text()
+          old = '      if (!button || button.disabled) return\n'
+          if quick.count(old) != 1:
+              raise SystemExit(f'quick owner button guard mismatch: {quick.count(old)}')
+          quick_path.write_text(quick.replace(old, '      if (!button) return\n', 1))
+
+          lifecycle_path = root / 'apps/web/src/components/battle/battle-interaction-lifecycle.tsx'
+          lifecycle_path.write_text("""'use client'
+
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
+
+type InspectCloseHandler = () => void
+type FinishTurnHandler = () => boolean
+
+type BattleInteractionLifecycleValue = {
+  registerInspectCloseHandler: (handler: InspectCloseHandler) => () => void
+  closeInspectMode: () => void
+  registerFinishTurnHandler: (handler: FinishTurnHandler) => () => void
+  requestFinishTurn: () => boolean
+  finishTurnReady: boolean
+}
+
+const EMPTY_LIFECYCLE: BattleInteractionLifecycleValue = {
+  registerInspectCloseHandler: () => () => undefined,
+  closeInspectMode: () => undefined,
+  registerFinishTurnHandler: () => () => undefined,
+  requestFinishTurn: () => false,
+  finishTurnReady: false,
+}
+
+const BattleInteractionLifecycleContext =
+  createContext<BattleInteractionLifecycleValue>(EMPTY_LIFECYCLE)
+
+export function BattleInteractionLifecycleProvider({ children }: { children: ReactNode }) {
+  const inspectCloseHandlerRef = useRef<InspectCloseHandler | null>(null)
+  const finishTurnHandlerRef = useRef<FinishTurnHandler | null>(null)
+  const [finishTurnReady, setFinishTurnReady] = useState(false)
+
+  const registerInspectCloseHandler = useCallback((handler: InspectCloseHandler) => {
+    inspectCloseHandlerRef.current = handler
+    return () => {
+      if (inspectCloseHandlerRef.current === handler) inspectCloseHandlerRef.current = null
+    }
+  }, [])
+
+  const closeInspectMode = useCallback(() => {
+    inspectCloseHandlerRef.current?.()
+  }, [])
+
+  const registerFinishTurnHandler = useCallback((handler: FinishTurnHandler) => {
+    finishTurnHandlerRef.current = handler
+    setFinishTurnReady(true)
+    return () => {
+      if (finishTurnHandlerRef.current !== handler) return
+      finishTurnHandlerRef.current = null
+      setFinishTurnReady(false)
+    }
+  }, [])
+
+  const requestFinishTurn = useCallback(() => finishTurnHandlerRef.current?.() ?? false, [])
+
+  const value = useMemo(
+    () => ({
+      registerInspectCloseHandler,
+      closeInspectMode,
+      registerFinishTurnHandler,
+      requestFinishTurn,
+      finishTurnReady,
+    }),
+    [
+      closeInspectMode,
+      finishTurnReady,
+      registerFinishTurnHandler,
+      registerInspectCloseHandler,
+      requestFinishTurn,
+    ],
+  )
+
+  return (
+    <BattleInteractionLifecycleContext.Provider value={value}>
+      {children}
+    </BattleInteractionLifecycleContext.Provider>
+  )
+}
+
+export function useBattleInteractionLifecycle(): BattleInteractionLifecycleValue {
+  return useContext(BattleInteractionLifecycleContext)
+}
+""")
+
+          experience_path = root / 'apps/web/src/components/battle/battle-experience.tsx'
+          experience = experience_path.read_text()
+          old = '  const { registerInspectCloseHandler } = useBattleInteractionLifecycle()\n'
+          new = """  const { registerFinishTurnHandler, registerInspectCloseHandler } =
+    useBattleInteractionLifecycle()
+"""
+          if experience.count(old) != 1:
+              raise SystemExit(f'experience lifecycle destructure mismatch: {experience.count(old)}')
+          experience = experience.replace(old, new, 1)
+
+          old = """  const planningDisabled =
+    !localTurn || battleState.lifecycle !== 'active' || commitPending || recruitPending
+"""
+          new = old + """  const planningDisabledRef = useRef(planningDisabled)
+  planningDisabledRef.current = planningDisabled
+"""
+          if experience.count(old) != 1:
+              raise SystemExit(f'experience planningDisabled mismatch: {experience.count(old)}')
+          experience = experience.replace(old, new, 1)
+
+          marker = """  useEffect(() => {
+    return registerInspectCloseHandler(() => {
+      if (modeRef.current !== 'inspect') return
+      clearPlanning()
+      setNotice('Inspection closed. Choose your action.')
+      window.requestAnimationFrame(() => {
+        document
+          .querySelector<HTMLElement>('main[data-battle-keyboard-focus-root="true"]')
+          ?.focus({ preventScroll: true })
+      })
+    })
+  }, [clearPlanning, registerInspectCloseHandler])
+
+"""
+          addition = marker + """  useEffect(() => {
+    return registerFinishTurnHandler(() => {
+      if (planningDisabledRef.current) return false
+      clearPlanning('finish')
+      setNotice('Choose final facing with the buttons, WASD, or arrow keys to end the turn.')
+      return true
+    })
+  }, [clearPlanning, registerFinishTurnHandler])
+
+"""
+          if experience.count(marker) != 1:
+              raise SystemExit(f'experience inspect effect mismatch: {experience.count(marker)}')
+          experience = experience.replace(marker, addition, 1)
+          experience_path.write_text(experience)
+
+          finish_path = root / 'apps/web/src/components/battle/battle-finish-turn-keyboard-assist.tsx'
+          finish = finish_path.read_text()
+          import_marker = "import { useEffect, useLayoutEffect, useRef } from 'react'\n"
+          import_new = import_marker + "\nimport { useBattleInteractionLifecycle } from './battle-interaction-lifecycle'\n"
+          if finish.count(import_marker) != 1:
+              raise SystemExit('finish owner React import mismatch')
+          finish = finish.replace(import_marker, import_new, 1)
+
+          old = """function activeBattleRoot(): HTMLElement | null {
+  return visibleBattleRoot()
+}
+"""
+          new = """function activeBattleRoot(): HTMLElement | null {
+  const root = visibleBattleRoot()
+  return root?.dataset.localTurn === 'true' ? root : null
+}
+"""
+          if finish.count(old) != 1:
+              raise SystemExit('finish owner active root mismatch')
+          finish = finish.replace(old, new, 1)
+
+          old = """export function BattleFinishTurnKeyboardAssist({ playerName }: { playerName: string }) {
+  const bindingsRef = useRef<CombatKeybindMap>(DEFAULT_COMBAT_KEYBINDS)
+  const playerNameRef = useRef(playerName)
+  const firstPressAtRef = useRef<number | null>(null)
+  const pendingCommitSequenceRef = useRef(0)
+  playerNameRef.current = playerName
+"""
+          new = """export function BattleFinishTurnKeyboardAssist({ playerName }: { playerName: string }) {
+  const { finishTurnReady, requestFinishTurn } = useBattleInteractionLifecycle()
+  const bindingsRef = useRef<CombatKeybindMap>(DEFAULT_COMBAT_KEYBINDS)
+  const playerNameRef = useRef(playerName)
+  const requestFinishTurnRef = useRef(requestFinishTurn)
+  const firstPressAtRef = useRef<number | null>(null)
+  const pendingCommitSequenceRef = useRef(0)
+  playerNameRef.current = playerName
+  requestFinishTurnRef.current = requestFinishTurn
+"""
+          if finish.count(old) != 1:
+              raise SystemExit('finish owner component header mismatch')
+          finish = finish.replace(old, new, 1)
+
+          old = """  useLayoutEffect(() => {
+    // Expose owner readiness so browser regressions never race initial battle hydration.
+    const mountedRoot = visibleBattleRoot()
+    if (mountedRoot) mountedRoot.dataset.finishTurnHotkeyOwner = 'ready'
+
+    function cancelPendingCommit() {
+"""
+          new = """  useLayoutEffect(() => {
+    const root = visibleBattleRoot()
+    if (!root) return
+    if (finishTurnReady) root.dataset.finishTurnHotkeyOwner = 'ready'
+    else delete root.dataset.finishTurnHotkeyOwner
+    return () => {
+      if (root.dataset.finishTurnHotkeyOwner === 'ready') {
+        delete root.dataset.finishTurnHotkeyOwner
+      }
+    }
+  }, [finishTurnReady])
+
+  useLayoutEffect(() => {
+    function cancelPendingCommit() {
+"""
+          if finish.count(old) != 1:
+              raise SystemExit('finish owner readiness block mismatch')
+          finish = finish.replace(old, new, 1)
+
+          old = """      firstPressAtRef.current = now
+      markDecision(root, 'handled-first', event)
+      finishTurn.click()
+"""
+          new = """      if (!requestFinishTurnRef.current()) {
+        firstPressAtRef.current = null
+        markDecision(root, 'finish-handler-unavailable', event)
+        return
+      }
+
+      firstPressAtRef.current = now
+      markDecision(root, 'handled-first', event)
+"""
+          if finish.count(old) != 1:
+              raise SystemExit('finish owner first press block mismatch')
+          finish = finish.replace(old, new, 1)
+
+          old = """      if (mountedRoot?.dataset.finishTurnHotkeyOwner === 'ready') {
+        delete mountedRoot.dataset.finishTurnHotkeyOwner
+      }
+"""
+          if finish.count(old) != 1:
+              raise SystemExit('finish owner cleanup mismatch')
+          finish = finish.replace(old, '', 1)
+          finish_path.write_text(finish)
+          PY
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Format, clean helper, and commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm exec prettier --write \
+            apps/web/src/components/battle/battle-self-action-quick-commit-assist.tsx \
+            apps/web/src/components/battle/battle-interaction-lifecycle.tsx \
+            apps/web/src/components/battle/battle-experience.tsx \
+            apps/web/src/components/battle/battle-finish-turn-keyboard-assist.tsx
+          rm .github/workflows/one-shot-finish-turn-react-owner.yml
+          git config user.name 'aurevane-release-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -A
+          git commit -m 'fix: hand Finish Turn directly to battle state'
+          git push origin HEAD:agent/battle-input-responsive-consistency-v3
