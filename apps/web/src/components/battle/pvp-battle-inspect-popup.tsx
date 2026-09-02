@@ -8,6 +8,12 @@ import { getStarterPortraitImageAssetId } from '@/media/character'
 import type { PvpBattleMetadata, PvpBattleParticipantView } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
+import {
+  aggregateBattleStatusStacks,
+  formatStatusStackCount,
+  statusIsBeneficial,
+  statusLabel,
+} from './battle-effect-summary'
 import styles from './mobile-battle-combatant-popup.module.css'
 
 const ACTION_ECONOMY_KEY = 'pv1f.action-economy'
@@ -54,17 +60,6 @@ function facingGlyph(facing: Placement['facing']): string {
   if (facing === 'east') return '→'
   if (facing === 'south') return '↓'
   return '←'
-}
-
-function statusLabel(statusId: string): string {
-  if (statusId === 'guarded') return 'Guarded'
-  return statusId
-    .replace(/^buff\./, '')
-    .replace(/^debuff\./, '')
-    .split('.')
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
 }
 
 function inspectModeActive(): boolean {
@@ -210,6 +205,7 @@ export function PvpBattleInspectPopup({
     if (!selected || selected.combatant.maxMp <= 0) return 0
     return Math.max(0, Math.min(100, (selected.combatant.mp / selected.combatant.maxMp) * 100))
   }, [selected])
+  const effectStatuses = selected ? aggregateBattleStatusStacks(selected.statuses) : []
 
   if (!open) return null
 
@@ -330,15 +326,18 @@ export function PvpBattleInspectPopup({
               aria-label={`${selected.participant.characterName} active effects`}
             >
               <span>Active effects</span>
-              {selected.statuses.length === 0 ? (
+              {effectStatuses.length === 0 ? (
                 <p>No buffs or debuffs are active.</p>
               ) : (
                 <ul>
-                  {selected.statuses.map((status) => (
-                    <li key={`${status.statusId}:${status.sourceCombatantId}`}>
+                  {effectStatuses.map((status) => (
+                    <li
+                      key={`${status.statusId}:${status.statusVersion}`}
+                      data-tone={statusIsBeneficial(status.statusId) ? 'buff' : 'debuff'}
+                    >
                       <strong>
                         {statusLabel(status.statusId)}
-                        {status.stacks > 1 ? ` ×${status.stacks}` : ''}
+                        <b>{formatStatusStackCount(status.statusId, status.stacks)}</b>
                       </strong>
                       <small>
                         {status.remainingOwnerTurnStarts} turn
