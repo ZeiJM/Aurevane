@@ -38,4 +38,15 @@ describe('battlefield semantic target polish', () => {
     expect(source).toContain("tile.style.removeProperty('border-color')")
     expect(source).toContain("tile.style.removeProperty('box-shadow')")
   })
+
+  it('keeps participant card accents on tokens even when the hidden token name is absent', () => {
+    const source = readLocalFile('battle-map-token-polish.tsx')
+
+    expect(source).toContain('const combatantName = combatantNameForTile(tile, token, combatantAccents)')
+    expect(source).toContain('const occupiedName = label.match(/occupied by ([^;]+)(?:;|$)/i)')
+    expect(source).toContain(
+      'const identityAccent = combatantName ? combatantAccents[combatantName] : undefined',
+    )
+    expect(source).toContain("token.style.setProperty('border-color', tokenAccent, 'important')")
+  })
 })
