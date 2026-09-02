@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   patch:
-    if: github.actor != 'github-actions[bot]'
+    if: ${{ github.actor != 'github-actions[bot]' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -37,14 +37,14 @@ jobs:
           new = """  await page.keyboard.press('Space')
   await expect(root).toHaveAttribute('data-finish-turn-hotkey-last-decision', 'handled-first')
 
-  const facingState = await expect
+  await expect
     .poll(
       () =>
         root.evaluate((element) => {
           const pad = element.querySelector<HTMLElement>('[data-unified-facing-pad=\"true\"]')
           if (!pad) return { exists: false }
           const buttons = Array.from(
-            pad.querySelectorAll<HTMLButtonElement>('button[aria-label^=\"Face \" ]'),
+            pad.querySelectorAll<HTMLButtonElement>('button[aria-label^=\"Face \"]'),
           )
           const style = getComputedStyle(pad)
           const hiddenAncestor = pad.closest<HTMLElement>('[aria-hidden=\"true\"]')
@@ -72,7 +72,6 @@ jobs:
       hiddenAncestor: null,
     })
 
-  void facingState
   await expect(root.getByRole('button', { name: 'Face north' })).toBeEnabled()
   await expect(root.getByRole('button', { name: 'Face east' })).toBeEnabled()
   await expect(root.getByRole('button', { name: 'Face south' })).toBeEnabled()
