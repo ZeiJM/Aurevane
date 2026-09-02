@@ -50,26 +50,15 @@ test('routes the Recovery hotkey to the stable slot after swapping HP Recovery t
   // resource legality. The keyboard contract is slot-based: Digit5 must reach this same button
   // whether it currently presents HP Recovery or MP Recovery.
   await recovery.evaluate((button) => {
-    const target = button as HTMLButtonElement & { __originalClick?: () => void }
+    const target = button as HTMLButtonElement
     const originalClick = target.click.bind(target)
-    target.__originalClick = originalClick
-    ;(window as typeof window & { __aurevaneRecoveryHotkeyClicks?: number })
-      .__aurevaneRecoveryHotkeyClicks = 0
+    target.dataset.hotkeyClickCount = '0'
     target.click = () => {
-      const state = window as typeof window & { __aurevaneRecoveryHotkeyClicks?: number }
-      state.__aurevaneRecoveryHotkeyClicks = (state.__aurevaneRecoveryHotkeyClicks ?? 0) + 1
+      target.dataset.hotkeyClickCount = String(Number(target.dataset.hotkeyClickCount ?? '0') + 1)
       originalClick()
     }
   })
 
   await page.keyboard.press('Digit5')
-  await expect
-    .poll(() =>
-      page.evaluate(
-        () =>
-          (window as typeof window & { __aurevaneRecoveryHotkeyClicks?: number })
-            .__aurevaneRecoveryHotkeyClicks ?? 0,
-      ),
-    )
-    .toBe(1)
+  await expect(recovery).toHaveAttribute('data-hotkey-click-count', '1')
 })
