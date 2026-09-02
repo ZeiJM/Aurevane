@@ -1,0 +1,74 @@
+name: One-shot battle input release validation
+
+on:
+  push:
+    branches:
+      - agent/battle-input-responsive-consistency-v3
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Chrome and Edge battle input release gate
+    if: github.event.head_commit.message == 'ci: add focused battle input release validation'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium and Microsoft Edge
+        run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium msedge
+
+      - name: Start local Supabase stack
+        run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+
+      - name: Build and validate affected battle inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          status_env="$(pnpm exec supabase status -o env)"
+          eval "$(printf '%s\n' "$status_env" | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY|SECRET_KEY)=')"
+          test -n "${ANON_KEY:-}"
+          server_key="${SECRET_KEY:-${SERVICE_ROLE_KEY:-}}"
+          test -n "$server_key"
+          api_url='http://127.0.0.1:54321'
+
+          export AUREVANE_ENV=local
+          export NEXT_PUBLIC_AUREVANE_ENV=local
+          export NEXT_PUBLIC_SUPABASE_URL="$api_url"
+          export NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY"
+          export SUPABASE_SECRET_KEY="$server_key"
+
+          pnpm --filter @aurevane/web build
+
+          pnpm --filter @aurevane/web exec playwright test \
+            e2e/battle-self-action-quick-commit.pw.ts \
+            e2e/battle-recovery-hotkey.pw.ts \
+            --config=playwright.config.ts \
+            --project=desktop-chromium
+
+          pnpm --filter @aurevane/web exec playwright test \
+            e2e/battle-self-action-quick-commit.pw.ts \
+            e2e/battle-recovery-hotkey.pw.ts \
+            --config=playwright.edge.config.ts
+
+      - name: Stop local Supabase services
+        if: always()
+        run: pnpm exec supabase stop --no-backup
