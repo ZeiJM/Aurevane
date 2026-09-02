@@ -227,7 +227,7 @@ describe('Battle Log V2 presentation', () => {
     )
 
     const actions = rounds[0]?.actions ?? []
-    expect(sentence(actions[0]?.primary ?? [])).toBe("Zei's turn expires — action forfeited")
+    expect(sentence(actions[0]?.primary ?? [])).toBe('Zei hesitates — the moment passes')
     expect(sentence(actions[0]?.secondary ?? [])).toBe(
       "↳ Zei's Lowered Guard stacks to ×2 · until next turn",
     )
