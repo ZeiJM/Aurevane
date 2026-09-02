@@ -4,13 +4,13 @@ This file reports the **current implementation/validation boundary**.
 
 `docs/GAME_MASTER_PLAN.md` defines the product. `docs/ROADMAP.md` defines phase sequence. Canonical domain documents define system rules. Current `docs/PHASE_*_TICKETS.md` files define exact active/next execution.
 
-**Reconciled:** 2026-08-26
+**Reconciled:** 2026-09-02
 
 ---
 
 ## Current status
 
-**Stage:** Phase 2 — Tactical Combat & Battle Platform — **Owner testing / stabilization / PV-1 exit validation**
+**Stage:** Phase 2 — Tactical Combat & Battle Platform — **Owner testing / final stabilization / pre-Phase-3 closeout**
 
 **Phase-2 implementation:** mature and substantially beyond the original minimum.
 
@@ -27,15 +27,22 @@ Official Phase-2 credit includes:
 - keyed read-only spectation;
 - spectator presence/chat/logs/Inspect;
 - multi-combatant desktop/mobile battle presentation;
+- shared PvE/PvP battlefield-presentation foundations;
+- stable battle-cockpit operational skill slots, selector behavior and slot-owned hotkey foundations;
+- HP/MP Recovery swapping in the Heal cockpit slot as an early reusable skill-selection proof;
 - Phase-2 Supabase performance baseline and additive FK-index hardening completed 2026-08-26 without changing gameplay/authority semantics.
+
+The cockpit/skill-selection work above is **early compatible Phase-3 credit**, not completion of the Phase-3 Skill schema, persistent 8-pure/6-mixed loadout authority, cooldown engine, Resonance, Essence or build snapshots.
 
 **ACTIVE VALIDATION GATE:** issue #105 — PV-1 Tactical Combat Human/Internal Validation — open until explicitly reconciled/closed.
 
-**OWNER TESTING:** active.
+**OWNER TESTING:** active. The Owner has one additional separate test pending before the final Phase-2 decision.
 
 Do not infer Phase-2 PASS from automation, merges or deployment.
 
 **ACTIVE IMPLEMENTATION TICKET:** none at this reconciliation point.
+
+**ACTIVE CONTAINED CORRECTION:** PR #363 — repeated Finish Turn hotkey stabilization — remains separate from this closeout audit and should be reconciled through the Owner's current test flow.
 
 New implementation should be either:
 
@@ -44,6 +51,51 @@ New implementation should be either:
 3. **P3.1** after the Owner explicitly closes Phase 2.
 
 **NEXT MAJOR FEATURE PHASE:** Phase 3 — Signature Buildcraft Foundation.
+
+---
+
+## Pre-Phase-3 closeout audit — 2026-09-02
+
+A conservative repository/roadmap audit was performed before the Owner's final Phase-2 test.
+
+### Repository hygiene accepted
+
+The following historical scaffolding is safe to retire because it is not runtime code and its one-time purpose is complete:
+
+- split `.bootstrap/GAME_MASTER_PLAN.md.gz.b64.part*` payload files;
+- `.github/workflows/bootstrap-master-plan.yml`, which only reconstructed the already-present authoritative master plan;
+- `.github/workflows/format-auth-shell-once.yml`, a branch-specific one-shot formatter;
+- `.github/final-format-auth-shell.trigger`, which explicitly said to remove it before merge.
+
+These removals do not alter gameplay, combat authority, database behavior, Vercel runtime behavior or player-facing presentation.
+
+### Runtime cleanup boundary
+
+Older review work identified several apparently unused battle components. They are **not** being deleted merely because an older branch called them dead. Current `main` has moved substantially since that review, including hotkey and shared-presentation work. Any runtime-component deletion must be supported by current import/reference evidence and normal CI/browser validation first.
+
+This is intentional conservatism: repository cleanliness does not justify risking the current known-good battle behavior.
+
+### Roadmap reconciliation
+
+Phase 3 should reuse the early battle-cockpit work already delivered during Phase 2:
+
+- four operational cockpit categories (`movement`, `attack`, `defense`, `heal`);
+- stable slot-owned keybind identities;
+- selector-versus-execute interaction separation;
+- media/artwork hooks;
+- shared PvE/PvP cockpit behavior;
+- HP/MP Recovery as a real same-slot swap proof.
+
+However, those four visible cockpit categories are **not** the Phase-3 persistent Skill-capacity model. Canonical Phase 3 remains:
+
+```text
+Pure:  up to 8 Primary Discipline Skills + 1 Essence Skill outside the cap
+Mixed: 6 total Discipline Skills across Primary + Secondary + Resonance passive
+```
+
+The complete committed build snapshot is the source of truth. Cockpit selectors expose legal actions from that snapshot; they do not reduce the build to four total Skills. AI likewise must enumerate legal actions from the authoritative snapshot rather than only the four cards currently visible.
+
+See `docs/ROADMAP_COCKPIT_SKILL_SLOTS.md` for the reconciled cockpit contract.
 
 ---
 
@@ -103,11 +155,11 @@ Do not implement these merely because they are listed. Measure first and apply t
 ## Phase-2 exit sequence
 
 ```text
-OWNER TESTING / CURRENT STABILIZATION
+OWNER FINAL TEST / CURRENT STABILIZATION
   ↓
-Only justified contained Phase-2 corrections / behavior-preserving hardening
+Reconcile PR #363 or any other justified contained correction
   ↓
-Automatic Phase-2 performance/scaling checkpoint + representative evidence review
+Automatic Phase-2 performance/scaling evidence review
   ↓
 EXPLICIT OWNER DECISION
   ├── NOT READY → smallest repeated defect → retest
@@ -140,7 +192,7 @@ Before runtime implementation:
 - inspect current repository truth;
 - reconcile the phase boundary;
 - run/reconcile the automatic performance checkpoint required by `docs/ROADMAP.md`;
-- preserve/reuse the current battle platform;
+- preserve/reuse the current battle platform and early cockpit foundations;
 - activate **P3.1 — Discipline Build Authority + Primary Base Profiles**.
 
 This does **not** authorize Vercel deployment.
@@ -230,6 +282,7 @@ Rules:
 
 - `docs/ROADMAP.md` — current canonical phase plan, including automatic performance/scaling checkpoints.
 - `docs/ROADMAP_PERFORMANCE_SCALING.md` — Owner-approved behavior-preserving performance/scaling companion and checkpoint procedure.
+- `docs/ROADMAP_COCKPIT_SKILL_SLOTS.md` — early cockpit foundation and its Phase-3 integration boundary.
 - `AGENTS.md` — permanent current coding/execution guidance.
 - `docs/COMBAT.md` — current combat authority.
 - `docs/PHASE_2_TICKETS.md` — historical Phase-2 record.
