@@ -7,6 +7,8 @@ import {
 } from '@aurevane/validation/player/combat-controls'
 import { useEffect, useLayoutEffect, useRef } from 'react'
 
+import { useBattleInteractionLifecycle } from './battle-interaction-lifecycle'
+
 const TRANSIENT_SECOND_PRESS_MS = 800
 const FACING_READY_WAIT_MS = 1500
 const FACING_LABELS = ['north', 'east', 'south', 'west'] as const
@@ -110,11 +112,14 @@ function markDecision(root: HTMLElement | null, decision: string, event?: Keyboa
 }
 
 export function BattleFinishTurnKeyboardAssist({ playerName }: { playerName: string }) {
+  const { finishTurnReady, requestFinishTurn } = useBattleInteractionLifecycle()
   const bindingsRef = useRef<CombatKeybindMap>(DEFAULT_COMBAT_KEYBINDS)
   const playerNameRef = useRef(playerName)
+  const requestFinishTurnRef = useRef(requestFinishTurn)
   const firstPressAtRef = useRef<number | null>(null)
   const pendingCommitSequenceRef = useRef(0)
   playerNameRef.current = playerName
+  requestFinishTurnRef.current = requestFinishTurn
 
   useEffect(() => {
     let cancelled = false
@@ -137,36 +142,17 @@ export function BattleFinishTurnKeyboardAssist({ playerName }: { playerName: str
   }, [])
 
   useEffect(() => {
-    let cancelled = false
-    let frame = 0
-    let markedRoot: HTMLElement | null = null
-
-    // Readiness is deliberately post-hydration. Two animation frames ensure React has completed the
-    // battle commit before the shortcut can advertise itself as ready to a user or regression test.
-    const markReady = () => {
-      if (cancelled) return
-      const root = visibleBattleRoot()
-      const finish = root ? finishTurnButton(root) : null
-      if (root && finish) {
-        root.dataset.finishTurnHotkeyOwner = 'ready'
-        markedRoot = root
-        return
-      }
-      frame = window.requestAnimationFrame(markReady)
-    }
-
-    frame = window.requestAnimationFrame(() => {
-      frame = window.requestAnimationFrame(markReady)
-    })
+    const root = visibleBattleRoot()
+    if (!root) return
+    if (finishTurnReady) root.dataset.finishTurnHotkeyOwner = 'ready'
+    else delete root.dataset.finishTurnHotkeyOwner
 
     return () => {
-      cancelled = true
-      if (frame) window.cancelAnimationFrame(frame)
-      if (markedRoot?.dataset.finishTurnHotkeyOwner === 'ready') {
-        delete markedRoot.dataset.finishTurnHotkeyOwner
+      if (root.dataset.finishTurnHotkeyOwner === 'ready') {
+        delete root.dataset.finishTurnHotkeyOwner
       }
     }
-  }, [])
+  }, [finishTurnReady])
 
   useLayoutEffect(() => {
     function cancelPendingCommit() {
@@ -276,19 +262,14 @@ export function BattleFinishTurnKeyboardAssist({ playerName }: { playerName: str
         return
       }
 
+      if (!requestFinishTurnRef.current()) {
+        firstPressAtRef.current = null
+        markDecision(root, 'finish-handler-unavailable', event)
+        return
+      }
+
       firstPressAtRef.current = now
       markDecision(root, 'handled-first', event)
-      window.requestAnimationFrame(() => {
-        if (document.hidden) return
-        const currentRoot = activeBattleRoot()
-        const currentFinish = currentRoot ? finishTurnButton(currentRoot) : null
-        if (!currentRoot || !currentFinish || currentFinish.disabled) {
-          firstPressAtRef.current = null
-          markDecision(currentRoot ?? root, 'first-activation-unavailable')
-          return
-        }
-        currentFinish.click()
-      })
     }
 
     function handleBlur() {
