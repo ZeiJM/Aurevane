@@ -126,6 +126,7 @@ export function BattleFinishTurnKeyboardAssist({ playerName }: { playerName: str
   }, [])
 
   useLayoutEffect(() => {
+    // Expose owner readiness so browser regressions never race initial battle hydration.
     const mountedRoot = visibleBattleRoot()
     if (mountedRoot) mountedRoot.dataset.finishTurnHotkeyOwner = 'ready'
 
