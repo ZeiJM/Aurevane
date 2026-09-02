@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Crimson armored fist">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="45%" r="70%">
+      <stop offset="0" stop-color="#4d0f18"/>
+      <stop offset="0.52" stop-color="#18070c"/>
+      <stop offset="1" stop-color="#05070a"/>
+    </radialGradient>
+    <linearGradient id="steel" x1="15%" y1="10%" x2="85%" y2="90%">
+      <stop offset="0" stop-color="#fff1ea"/>
+      <stop offset="0.09" stop-color="#d06a6a"/>
+      <stop offset="0.28" stop-color="#6c242d"/>
+      <stop offset="0.55" stop-color="#240b10"/>
+      <stop offset="0.78" stop-color="#5f1721"/>
+      <stop offset="1" stop-color="#12060a"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffb2a7"/>
+      <stop offset="0.5" stop-color="#ff3a3f"/>
+      <stop offset="1" stop-color="#7d0d19"/>
+    </linearGradient>
+    <filter id="glow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="10" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="soft" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="5"/></filter>
+  </defs>
+  <rect width="512" height="512" rx="58" fill="url(#bg)"/>
+  <circle cx="258" cy="245" r="185" fill="none" stroke="#a9222f" stroke-opacity="0.22" stroke-width="3"/>
+  <circle cx="258" cy="245" r="150" fill="none" stroke="#ff3443" stroke-opacity="0.13" stroke-width="2"/>
+  <g opacity="0.62" filter="url(#soft)" fill="#ed2435">
+    <path d="M67 245 150 220 125 252 177 258 94 285Z"/><path d="M444 183 370 210 397 177 351 174 429 143Z"/>
+    <path d="M410 332 342 305 369 339 328 349 422 373Z"/><path d="M115 127 178 167 151 122 197 111 102 84Z"/>
+  </g>
+  <g filter="url(#glow)" opacity="0.82" stroke="#ff3040" stroke-linecap="round">
+    <path d="M93 346 158 305" stroke-width="8"/><path d="M382 107 341 166" stroke-width="7"/>
+    <path d="M412 278 366 266" stroke-width="6"/><path d="M155 93 184 151" stroke-width="5"/>
+  </g>
+  <path d="M186 354 317 340 346 444 197 457Z" fill="url(#steel)" stroke="url(#edge)" stroke-width="7"/>
+  <path d="M204 382 325 370" stroke="#f59b94" stroke-opacity="0.55" stroke-width="8"/>
+  <path d="M214 418 334 404" stroke="#6f151f" stroke-width="12"/>
+  <path d="M150 195 199 153 300 146 357 185 357 286 322 358 221 373 156 324 134 253Z" fill="url(#steel)" stroke="url(#edge)" stroke-width="8"/>
+  <path d="M174 234 326 221 339 284 301 331 224 343 171 305Z" fill="#14070b" fill-opacity="0.72" stroke="#8f2630" stroke-width="4"/>
+  <g fill="url(#steel)" stroke="url(#edge)" stroke-width="7">
+    <path d="M136 176 150 112 202 102 222 158 206 207 159 211Z"/>
+    <path d="M199 152 209 84 266 79 282 145 263 196 218 202Z"/>
+    <path d="M263 145 277 91 332 99 345 159 325 205 282 195Z"/>
+    <path d="M325 163 344 123 390 145 384 203 353 232 322 205Z"/>
+  </g>
+  <g fill="#f5c6bc" fill-opacity="0.18" stroke="#ffc2b7" stroke-opacity="0.48" stroke-width="3">
+    <path d="M157 130 195 122 202 157 164 165Z"/><path d="M225 105 261 102 266 140 229 145Z"/>
+    <path d="M290 112 326 118 328 156 291 151Z"/><path d="M349 148 377 162 372 194 344 184Z"/>
+  </g>
+  <path d="M140 250 100 286 113 337 172 350 232 304 206 248Z" fill="url(#steel)" stroke="url(#edge)" stroke-width="8"/>
+  <path d="M126 303 171 276 205 292 163 326 131 323Z" fill="#ffb0a5" fill-opacity="0.18"/>
+  <g fill="none" stroke="#ff8e88" stroke-opacity="0.48" stroke-width="4">
+    <path d="M206 207 218 245 281 195 284 230 325 205 326 221"/><path d="M173 305 224 343 221 373"/><path d="M301 331 322 358"/>
+  </g>
+  <g fill="none" stroke="#ff3446" stroke-linecap="round" filter="url(#glow)">
+    <path d="M110 196 177 174" stroke-width="5"/><path d="M341 269 407 246" stroke-width="5"/>
+    <path d="M150 391 189 359" stroke-width="4"/><path d="M345 382 390 411" stroke-width="4"/>
+  </g>
+  <path d="M180 128 198 118 205 152 192 174" fill="none" stroke="#fff1e8" stroke-opacity="0.72" stroke-width="6" stroke-linecap="round"/>
+  <path d="M230 102 251 99" stroke="#fff1e8" stroke-opacity="0.65" stroke-width="6" stroke-linecap="round"/>
+</svg>
