@@ -81,6 +81,10 @@
   letter-spacing: 0;
 }
 
+.inProgress {
+  color: var(--av-brass-300);
+}
+
 .roundHeader time {
   color: rgba(190, 204, 214, 0.62);
   font: 560 0.42rem/1 var(--av-font-mono);

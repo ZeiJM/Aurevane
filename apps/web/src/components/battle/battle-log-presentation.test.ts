@@ -227,7 +227,7 @@ describe('Battle Log V2 presentation', () => {
     )
 
     const actions = rounds[0]?.actions ?? []
-    expect(sentence(actions[0]?.primary ?? [])).toBe('Zei hesitates — the moment passes')
+    expect(sentence(actions[0]?.primary ?? [])).toBe('Zei hesitates... the moment passes!')
     expect(sentence(actions[0]?.secondary ?? [])).toBe(
       "↳ Zei's Lowered Guard stacks to ×2 · until next turn",
     )
@@ -236,7 +236,7 @@ describe('Battle Log V2 presentation', () => {
       '2 consecutive timeouts',
     ])
     expect(sentence(actions[1]?.primary ?? [])).toBe(
-      "Zei's Lowered Guard fades as their turn begins",
+      "* Zei's Lowered Guard fades as their turn begins",
     )
     expect(JSON.stringify(actions)).not.toContain('1000 turns')
     expect(JSON.stringify(actions)).not.toMatch(/\bmiss(?:es)?\b/iu)
