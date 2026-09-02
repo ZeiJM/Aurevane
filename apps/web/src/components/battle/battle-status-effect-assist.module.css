@@ -59,6 +59,7 @@
 }
 
 .close {
+  position: relative;
   display: grid;
   width: 2rem;
   height: 2rem;
@@ -68,9 +69,29 @@
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.03);
   color: #d8c79f;
-  font-size: 1.1rem;
+  font-size: 0;
   line-height: 1;
   text-align: center;
+}
+
+.close::before,
+.close::after {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.7rem;
+  height: 1px;
+  border-radius: 999px;
+  background: currentColor;
+  content: '';
+}
+
+.close::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.close::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
 }
 
 .dialog p {
