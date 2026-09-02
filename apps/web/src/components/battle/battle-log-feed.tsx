@@ -51,12 +51,6 @@ function expandedRoundKey(
   return rounds.some((round) => round.key === requestedRound) ? requestedRound : defaultRound
 }
 
-function timeLabel(value: string): string {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return ''
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-}
-
 function combatantAccent(
   item: BattleLogSegment,
   combatantAccents: Readonly<Record<string, string>>,
@@ -293,7 +287,6 @@ export function BattleLogFeed({
                   </>
                 ) : null}
               </strong>
-              <time dateTime={round.occurredAt}>{timeLabel(round.occurredAt)}</time>
             </button>
 
             {open ? (
