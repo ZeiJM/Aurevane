@@ -29,9 +29,7 @@ function visibleBattleRoot(): HTMLElement | null {
     document.querySelectorAll<HTMLElement>('main[data-unified-battle="true"][data-battle-kind]'),
   )
   return (
-    roots.find(
-      (root) => root.getClientRects().length > 0 && root.ariaHidden !== 'true',
-    ) ?? null
+    roots.find((root) => root.getClientRects().length > 0 && root.ariaHidden !== 'true') ?? null
   )
 }
 

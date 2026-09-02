@@ -364,9 +364,13 @@ export function PvpBattleKeyboardAssist({ playerName }: { playerName: string }) 
       const chord = eventChord(event)
       const action = configuredAction(bindings, chord)
       if (action) {
-        // Desktop Move / Attack / Guard / Recovery belong to BattleSelfActionQuickCommitAssist.
-        // Mobile keeps this existing handler because the shared quick-commit owner is desktop-only.
-        if (isSharedCategoryAction(action) && window.matchMedia('(min-width: 821px)').matches) return
+        // Desktop category actions and Finish Turn belong to persistent shared owners.
+        // Mobile keeps this existing handler because those owners are desktop-only.
+        if (
+          (isSharedCategoryAction(action) || action === 'endTurn') &&
+          window.matchMedia('(min-width: 821px)').matches
+        )
+          return
         if ((action === 'nextTarget' || action === 'previousTarget') && !attackModeIsActive())
           return
         event.preventDefault()
