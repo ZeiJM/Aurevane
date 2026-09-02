@@ -1,0 +1,391 @@
+name: One-shot battle input consistency v3
+
+on:
+  push:
+    branches:
+      - agent/battle-input-responsive-consistency-v3
+    paths:
+      - .github/workflows/one-shot-battle-input-consistency-v3.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: agent/battle-input-responsive-consistency-v3
+          fetch-depth: 0
+
+      - name: Fetch validated hotkey work
+        run: git fetch origin agent/final-facing-hotkey-reliability-v2
+
+      - name: Apply clean consistency patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          old_ref='origin/agent/final-facing-hotkey-reliability-v2'
+
+          files=(
+            apps/web/e2e/battle-self-action-quick-commit.pw.ts
+            apps/web/src/components/battle/battle-client-boundary.tsx
+            apps/web/src/components/battle/battle-experience.tsx
+            apps/web/src/components/battle/battle-finish-turn-keyboard-assist.tsx
+            apps/web/src/components/battle/battle-keyboard-assist.tsx
+            apps/web/src/components/battle/battle-self-action-quick-commit-assist.test.ts
+            apps/web/src/components/battle/battle-self-action-quick-commit-assist.tsx
+            apps/web/src/components/battle/desktop-battle-combatant-inspect.module.css
+            apps/web/src/components/battle/desktop-battle-combatant-inspect.tsx
+            apps/web/src/components/battle/mobile-battle-combatant-popup.module.css
+            apps/web/src/components/battle/mobile-battle-combatant-popup.tsx
+            apps/web/src/components/battle/pvp-battle-experience.module.css
+            apps/web/src/components/battle/pvp-battle-inspect-popup.tsx
+            apps/web/src/components/battle/pvp-battle-keyboard-assist.tsx
+            apps/web/src/components/battle/pvp-six-combatant-rails.module.css
+            apps/web/src/components/battle/battle-skill-command.module.css
+            apps/web/src/components/battle/unified-battle-experience.module.css
+          )
+          git checkout "$old_ref" -- "${files[@]}"
+
+          python <<'PY'
+          from pathlib import Path
+
+          root = Path('.')
+
+          def read(path: str) -> str:
+              return (root / path).read_text()
+
+          def write(path: str, text: str) -> None:
+              (root / path).write_text(text)
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              text = read(path)
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected one match, found {count}: {old!r}')
+              write(path, text.replace(old, new, 1))
+
+          # Finish Turn is a physical keyboard contract, not a viewport-width contract.
+          finish_path = 'apps/web/src/components/battle/battle-finish-turn-keyboard-assist.tsx'
+          finish = read(finish_path)
+          obsolete = """      if (!window.matchMedia(DESKTOP_QUERY).matches) {
+                markDecision(observedRoot, 'not-desktop', event)
+                return
+              }
+          """
+          # Match exact source indentation defensively using the actual block text.
+          obsolete = """      if (!window.matchMedia(DESKTOP_QUERY).matches) {
+                markDecision(observedRoot, 'not-desktop', event)
+                return
+              }
+          """.replace('        markDecision', '        markDecision').replace('        return', '        return').replace('      }\n          ', '      }\n')
+          exact = """      if (!window.matchMedia(DESKTOP_QUERY).matches) {
+                markDecision(observedRoot, 'not-desktop', event)
+                return
+              }
+          """
+          # Simpler literal from the file.
+          exact = "      if (!window.matchMedia(DESKTOP_QUERY).matches) {\n        markDecision(observedRoot, 'not-desktop', event)\n        return\n      }\n\n"
+          if exact not in finish:
+              raise SystemExit('Finish Turn desktop-width guard not found')
+          finish = finish.replace(exact, '', 1)
+          finish = finish.replace(
+              "      if (event.repeat) {\n",
+              "      if (event.repeat) {\n",
+              1,
+          )
+          finish = finish.replace(
+              "      if (isTextEntryTarget(event.target)) {\n",
+              "      if (event.isComposing) {\n        markDecision(observedRoot, 'composing', event)\n        return\n      }\n      if (isTextEntryTarget(event.target)) {\n",
+              1,
+          )
+          write(finish_path, finish)
+
+          quick_path = 'apps/web/src/components/battle/battle-self-action-quick-commit-assist.tsx'
+          quick = read(quick_path)
+          quick = quick.replace(
+              "      if (\n        isTextEntryTarget(event.target) ||\n",
+              "      if (\n        event.isComposing ||\n        isTextEntryTarget(event.target) ||\n",
+              1,
+          )
+          write(quick_path, quick)
+
+          # One React lifecycle bridge links visual Inspect dismissal back to BattleExperience state.
+          lifecycle_path = root / 'apps/web/src/components/battle/battle-interaction-lifecycle.tsx'
+          lifecycle_path.write_text("""'use client'
+
+import { createContext, useCallback, useContext, useMemo, useRef, type ReactNode } from 'react'
+
+type InspectCloseHandler = () => void
+
+type BattleInteractionLifecycleValue = {
+  registerInspectCloseHandler: (handler: InspectCloseHandler) => () => void
+  closeInspectMode: () => void
+}
+
+const EMPTY_LIFECYCLE: BattleInteractionLifecycleValue = {
+  registerInspectCloseHandler: () => () => undefined,
+  closeInspectMode: () => undefined,
+}
+
+const BattleInteractionLifecycleContext =
+  createContext<BattleInteractionLifecycleValue>(EMPTY_LIFECYCLE)
+
+export function BattleInteractionLifecycleProvider({ children }: { children: ReactNode }) {
+  const inspectCloseHandlerRef = useRef<InspectCloseHandler | null>(null)
+
+  const registerInspectCloseHandler = useCallback((handler: InspectCloseHandler) => {
+    inspectCloseHandlerRef.current = handler
+    return () => {
+      if (inspectCloseHandlerRef.current === handler) inspectCloseHandlerRef.current = null
+    }
+  }, [])
+
+  const closeInspectMode = useCallback(() => {
+    inspectCloseHandlerRef.current?.()
+  }, [])
+
+  const value = useMemo(
+    () => ({ registerInspectCloseHandler, closeInspectMode }),
+    [closeInspectMode, registerInspectCloseHandler],
+  )
+
+  return (
+    <BattleInteractionLifecycleContext.Provider value={value}>
+      {children}
+    </BattleInteractionLifecycleContext.Provider>
+  )
+}
+
+export function useBattleInteractionLifecycle(): BattleInteractionLifecycleValue {
+  return useContext(BattleInteractionLifecycleContext)
+}
+""")
+
+          boundary_path = 'apps/web/src/components/battle/battle-client-boundary.tsx'
+          boundary = read(boundary_path)
+          boundary = boundary.replace(
+              "import { BattleHeaderMatchMessage } from './battle-header-message-cycle'\n",
+              "import { BattleHeaderMatchMessage } from './battle-header-message-cycle'\nimport { BattleInteractionLifecycleProvider } from './battle-interaction-lifecycle'\n",
+              1,
+          )
+          boundary = boundary.replace(
+              "    <BattleRuntimeProvider playerName={runtime.playerName} combatantAccents={combatantAccents}>\n      <BattleFinishTurnKeyboardAssist playerName={runtime.playerName} />\n      <BattleExperience\n",
+              "    <BattleRuntimeProvider playerName={runtime.playerName} combatantAccents={combatantAccents}>\n      <BattleInteractionLifecycleProvider>\n        <BattleSelfActionQuickCommitAssist />\n        <BattleFinishTurnKeyboardAssist playerName={runtime.playerName} />\n        <BattleExperience\n",
+              1,
+          )
+          boundary = boundary.replace("      <BattleSelfActionQuickCommitAssist />\n", '', 1)
+          boundary = boundary.replace(
+              "      <BattleScreenVisualContract />\n    </BattleRuntimeProvider>\n",
+              "      <BattleScreenVisualContract />\n      </BattleInteractionLifecycleProvider>\n    </BattleRuntimeProvider>\n",
+              1,
+          )
+          write(boundary_path, boundary)
+
+          experience_path = 'apps/web/src/components/battle/battle-experience.tsx'
+          experience = read(experience_path)
+          experience = experience.replace(
+              "import {\n  BATTLE_INSPECT_CLOSED_EVENT,\n  type BattleInspectClosedDetail,\n} from './battle-inspect-lifecycle'\n",
+              "import { useBattleInteractionLifecycle } from './battle-interaction-lifecycle'\n",
+              1,
+          )
+          experience = experience.replace(
+              "  const modeRef = useRef<Mode>('none')\n  modeRef.current = mode\n\n  const { selectedSkillId, selectSkill } = useBattleSkillSelections(\n",
+              "  const modeRef = useRef<Mode>('none')\n  modeRef.current = mode\n  const { registerInspectCloseHandler } = useBattleInteractionLifecycle()\n\n  const { selectedSkillId, selectSkill } = useBattleSkillSelections(\n",
+              1,
+          )
+          old_effect = """  useEffect(() => {
+    function handleInspectClosed(event: Event) {
+      const detail = (event as CustomEvent<BattleInspectClosedDetail>).detail
+      if (detail?.battleSessionId !== initialBattle.battleSessionId || modeRef.current !== 'inspect') {
+        return
+      }
+
+      clearPlanning()
+      setNotice('Inspection closed. Choose your action.')
+      window.requestAnimationFrame(() => {
+        document
+          .querySelector<HTMLElement>('main[data-unified-battle="true"]')
+          ?.focus({ preventScroll: true })
+      })
+    }
+
+    window.addEventListener(BATTLE_INSPECT_CLOSED_EVENT, handleInspectClosed)
+    return () => window.removeEventListener(BATTLE_INSPECT_CLOSED_EVENT, handleInspectClosed)
+  }, [clearPlanning, initialBattle.battleSessionId])
+
+"""
+          new_effect = """  useEffect(() => {
+    return registerInspectCloseHandler(() => {
+      if (modeRef.current !== 'inspect') return
+      clearPlanning()
+      setNotice('Inspection closed. Choose your action.')
+      window.requestAnimationFrame(() => {
+        document
+          .querySelector<HTMLElement>('main[data-battle-keyboard-focus-root="true"]')
+          ?.focus({ preventScroll: true })
+      })
+    })
+  }, [clearPlanning, registerInspectCloseHandler])
+
+"""
+          if old_effect not in experience:
+              raise SystemExit('BattleExperience inspect-close effect not found')
+          experience = experience.replace(old_effect, new_effect, 1)
+          write(experience_path, experience)
+
+          for popup_path in [
+              'apps/web/src/components/battle/desktop-battle-combatant-inspect.tsx',
+              'apps/web/src/components/battle/mobile-battle-combatant-popup.tsx',
+              'apps/web/src/components/battle/pvp-battle-inspect-popup.tsx',
+          ]:
+              popup = read(popup_path)
+              popup = popup.replace(
+                  "import { dispatchBattleInspectClosed } from './battle-inspect-lifecycle'",
+                  "import { useBattleInteractionLifecycle } from './battle-interaction-lifecycle'",
+                  1,
+              )
+              marker = "  const [selected, setSelected] = useState<SelectedCombatant | null>(null)\n  const openRef = useRef(false)\n"
+              if marker not in popup:
+                  raise SystemExit(f'{popup_path}: selected/openRef marker not found')
+              popup = popup.replace(
+                  marker,
+                  marker + "  const { closeInspectMode } = useBattleInteractionLifecycle()\n",
+                  1,
+              )
+              popup = popup.replace('    dispatchBattleInspectClosed(battleSessionId)\n', '    closeInspectMode()\n', 1)
+              popup = popup.replace('  }, [battleSessionId])\n', '  }, [closeInspectMode])\n', 1)
+              write(popup_path, popup)
+
+          # Keep the modern battle presentation on fine-pointer desktops even when the window is
+          # narrow, while retaining the existing compact mobile presentation for coarse touch input.
+          presentation_assertions = {
+              'apps/web/src/components/battle/unified-battle-experience.module.css': [
+                  "@media (min-width: 821px), (any-hover: hover) and (any-pointer: fine) {",
+                  "@media (max-width: 820px) and (any-hover: none) and (any-pointer: coarse) {",
+              ],
+              'apps/web/src/components/battle/pvp-battle-experience.module.css': [
+                  "@media (max-width: 820px) and (any-hover: none) and (any-pointer: coarse) {",
+              ],
+              'apps/web/src/components/battle/mobile-battle-combatant-popup.module.css': [
+                  "@media (max-width: 880px) and (any-hover: none) and (any-pointer: coarse) {",
+              ],
+              'apps/web/src/components/battle/desktop-battle-combatant-inspect.module.css': [
+                  "@media (min-width: 881px), (any-hover: hover) and (any-pointer: fine) {",
+              ],
+              'apps/web/src/components/battle/battle-skill-command.module.css': [
+                  "@media (max-width: 820px) and (any-hover: none) and (any-pointer: coarse) {",
+              ],
+              'apps/web/src/components/battle/pvp-six-combatant-rails.module.css': [
+                  "@media (min-width: 821px), (any-hover: hover) and (any-pointer: fine) {",
+              ],
+          }
+          for path, needles in presentation_assertions.items():
+              text = read(path)
+              for needle in needles:
+                  if needle not in text:
+                      raise SystemExit(f'{path}: expected presentation rule missing: {needle}')
+
+          test_path = 'apps/web/e2e/battle-self-action-quick-commit.pw.ts'
+          test_text = read(test_path)
+          helper_marker = "async function openInspectAndDismiss(page: Page, root: Locator, targetName: string) {\n"
+          helper = """async function expectFinePointerDesktopPresentation(page: Page, root: Locator) {
+  expect(
+    await page.evaluate(() =>
+      window.matchMedia('(any-hover: hover) and (any-pointer: fine)').matches,
+    ),
+  ).toBe(true)
+  await expect(root.locator('section[aria-label="Battle roster"]')).toBeHidden()
+  const rails = root.locator('aside[data-unified-combatant-rail="true"]')
+  await expect(rails).toHaveCount(2)
+  await expect(rails.first()).toBeVisible()
+  await expect(page.locator('[data-mobile-battle-popup]')).toHaveCount(0)
+}
+
+"""
+          if helper_marker not in test_text:
+              raise SystemExit('E2E helper insertion point not found')
+          test_text = test_text.replace(helper_marker, helper + helper_marker, 1)
+          test_text = test_text.replace(
+              "  const playerTile = root.locator('#battlefield button[aria-label*=\"occupied by\"]').first()\n  const targetName = ((await playerTile.getAttribute('aria-label')) ?? '').includes('Recruit')\n    ? 'QuickGuard'\n    : 'Recruit'\n\n  const inspect = root.locator(\n",
+              "  await expectFinePointerDesktopPresentation(page, root)\n\n  const inspect = root.locator(\n",
+              1,
+          )
+          test_text = test_text.replace('    for (let cycle = 0; cycle < 3; cycle += 1) {\n', '    for (let cycle = 0; cycle < 5; cycle += 1) {\n', 1)
+          test_text = test_text.replace(
+              "        await expect(first.root).toBeVisible()\n        await expect(second.root).toBeVisible()\n        await openInspectAndDismiss(first.page, first.root, second.name)\n      }\n",
+              "        await expectFinePointerDesktopPresentation(first.page, first.root)\n        await expectFinePointerDesktopPresentation(second.page, second.root)\n        await openInspectAndDismiss(first.page, first.root, second.name)\n      } else if (cycle === 3) {\n        await Promise.all([\n          first.page.setViewportSize({ width: 1280, height: 900 }),\n          second.page.setViewportSize({ width: 1280, height: 900 }),\n        ])\n        await expectFinePointerDesktopPresentation(first.page, first.root)\n        await openInspectAndDismiss(second.page, second.root, first.name)\n      } else if (cycle === 4) {\n        await Promise.all([\n          first.page.setViewportSize({ width: 750, height: 900 }),\n          second.page.setViewportSize({ width: 750, height: 900 }),\n        ])\n        await expectFinePointerDesktopPresentation(first.page, first.root)\n        await expectFinePointerDesktopPresentation(second.page, second.root)\n      }\n",
+              1,
+          )
+          write(test_path, test_text)
+
+          # Static invariants for the clean ownership architecture.
+          for path in [
+              'apps/web/src/components/battle/battle-keyboard-assist.tsx',
+              'apps/web/src/components/battle/pvp-battle-keyboard-assist.tsx',
+          ]:
+              text = read(path)
+              if "if (isSharedCategoryAction(action) || action === 'endTurn') return" not in text:
+                  raise SystemExit(f'{path}: legacy shared-action yield missing')
+              if "window.matchMedia('(min-width: 821px)').matches" in text:
+                  raise SystemExit(f'{path}: viewport-width input ownership still present')
+
+          if "matchMedia('(min-width: 821px)')" in read(quick_path):
+              raise SystemExit('Quick-commit owner still has viewport-width ownership')
+          if 'DESKTOP_QUERY' in read(finish_path):
+              raise SystemExit('Finish Turn owner still has viewport-width ownership')
+          PY
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Format owned files
+        shell: bash
+        run: |
+          pnpm exec prettier --write \
+            apps/web/e2e/battle-self-action-quick-commit.pw.ts \
+            apps/web/src/components/battle/battle-client-boundary.tsx \
+            apps/web/src/components/battle/battle-experience.tsx \
+            apps/web/src/components/battle/battle-finish-turn-keyboard-assist.tsx \
+            apps/web/src/components/battle/battle-interaction-lifecycle.tsx \
+            apps/web/src/components/battle/battle-keyboard-assist.tsx \
+            apps/web/src/components/battle/battle-self-action-quick-commit-assist.test.ts \
+            apps/web/src/components/battle/battle-self-action-quick-commit-assist.tsx \
+            apps/web/src/components/battle/desktop-battle-combatant-inspect.module.css \
+            apps/web/src/components/battle/desktop-battle-combatant-inspect.tsx \
+            apps/web/src/components/battle/mobile-battle-combatant-popup.module.css \
+            apps/web/src/components/battle/mobile-battle-combatant-popup.tsx \
+            apps/web/src/components/battle/pvp-battle-experience.module.css \
+            apps/web/src/components/battle/pvp-battle-inspect-popup.tsx \
+            apps/web/src/components/battle/pvp-battle-keyboard-assist.tsx \
+            apps/web/src/components/battle/pvp-six-combatant-rails.module.css \
+            apps/web/src/components/battle/battle-skill-command.module.css \
+            apps/web/src/components/battle/unified-battle-experience.module.css
+          git diff --check
+
+      - name: Commit clean patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/one-shot-battle-input-consistency-v3.yml
+          git config user.name 'aurevane-release-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -A
+          git commit -m 'fix: unify battle input across resize and inspect'
+          git push origin HEAD:agent/battle-input-responsive-consistency-v3
