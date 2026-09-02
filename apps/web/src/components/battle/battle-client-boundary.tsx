@@ -6,7 +6,6 @@ import { useMemo } from 'react'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
 import { AiBattleQualityControls } from './ai-battle-quality-controls'
-import { AiDesktopSameFacingKeyboardAssist } from './ai-desktop-same-facing-keyboard-assist'
 import { BattleChatEmojiPolish } from './battle-chat-emoji-polish'
 import { BattleCockpitLayoutStabilizer } from './battle-cockpit-layout-stabilizer'
 import { BattleCommandCockpitPolish } from './battle-command-cockpit-polish'
@@ -16,6 +15,7 @@ import { BattleExperience } from './battle-experience'
 import { BattleFacingQuickCommitAssist } from './battle-facing-quick-commit-assist'
 import { BattleFeedbackAssist } from './battle-feedback-assist'
 import { BattlefieldPresentationBundle } from './battlefield-presentation-bundle'
+import { BattleFinishTurnKeyboardAssist } from './battle-finish-turn-keyboard-assist'
 import { BattleHeaderMatchMessage } from './battle-header-message-cycle'
 import { BattleInspectTerrainContext } from './battle-inspect-terrain-context'
 import { BattleKeyboardAssist } from './battle-keyboard-assist'
@@ -97,6 +97,7 @@ export function BattleClientBoundary({
       />
       <BattleDirectionalAttackAssist playerName={runtime.playerName} />
       <BattleSelfActionQuickCommitAssist />
+      <BattleFinishTurnKeyboardAssist playerName={runtime.playerName} />
       <BattleMobileTokenMeters initialBattle={initialBattle} combatantNames={combatantNames} />
       <BattlePresentationPolish
         playerName={runtime.playerName}
@@ -134,7 +135,6 @@ export function BattleClientBoundary({
             playerProfileImageUrl={runtime.playerProfileImageUrl}
           />
           <BattleRecruitRecoveryAssist />
-          <AiDesktopSameFacingKeyboardAssist playerName={runtime.playerName} />
           <BattleKeyboardAssist playerName={runtime.playerName} />
           <BattleFeedbackAssist
             playerName={runtime.playerName}
