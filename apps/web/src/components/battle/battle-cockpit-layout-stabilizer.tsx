@@ -40,17 +40,15 @@ function currentFacingControl(playerName: string): HTMLButtonElement | null {
 }
 
 function syncFacingPads() {
-  document
-    .querySelectorAll<HTMLElement>('[data-unified-facing-pad="true"]')
-    .forEach((pad) => {
-      if (pad.hasAttribute('data-open')) {
-        // React owns the live Final Facing state. Remove the stabilizer's dormant inline hide so
-        // the open-state CSS can render the controls and keyboard/pointer commits can reach them.
-        pad.style.removeProperty('display')
-        return
-      }
-      pad.style.setProperty('display', 'none', 'important')
-    })
+  document.querySelectorAll<HTMLElement>('[data-unified-facing-pad="true"]').forEach((pad) => {
+    if (pad.hasAttribute('data-open')) {
+      // React owns the live Final Facing state. Remove the stabilizer's dormant inline hide so
+      // the open-state CSS can render the controls and keyboard/pointer commits can reach them.
+      pad.style.removeProperty('display')
+      return
+    }
+    pad.style.setProperty('display', 'none', 'important')
+  })
 }
 
 function syncFinishTurnCopy() {
