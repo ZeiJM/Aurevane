@@ -97,6 +97,22 @@ function syncSemanticTargetTile(tile: HTMLButtonElement, semanticAccent: string 
   if (shadow) tile.style.setProperty('box-shadow', shadow, 'important')
 }
 
+function combatantNameForTile(
+  tile: HTMLButtonElement,
+  token: HTMLElement,
+  combatantAccents: Readonly<Record<string, string>>,
+): string {
+  const tokenName = token.querySelector<HTMLElement>(':scope > strong')?.textContent?.trim() ?? ''
+  if (tokenName && combatantAccents[tokenName]) return tokenName
+
+  // Shared battle rendering is allowed to remove or relocate the hidden token-name element. The
+  // tile's accessibility label remains the stable identity source in both playable and spectator
+  // views, so use it as the fallback instead of reverting to legacy team red/green borders.
+  const label = tile.getAttribute('aria-label') ?? ''
+  const occupiedName = label.match(/occupied by ([^;]+)(?:;|$)/i)?.[1]?.trim() ?? ''
+  return occupiedName && combatantAccents[occupiedName] ? occupiedName : tokenName
+}
+
 function polishBattlefieldTokens(
   playerName?: string,
   combatantAccents: Readonly<Record<string, string>> = {},
@@ -135,7 +151,7 @@ function polishBattlefieldTokens(
     token.style.setProperty('transform', 'translate(-50%, -50%)', 'important')
 
     const name = token.querySelector<HTMLElement>(':scope > strong')
-    const combatantName = name?.textContent?.trim() ?? ''
+    const combatantName = combatantNameForTile(tile, token, combatantAccents)
     const identityAccent = combatantName ? combatantAccents[combatantName] : undefined
     const semanticAccent = activeSemanticColor(tile)
     syncSemanticTargetTile(tile, semanticAccent)
