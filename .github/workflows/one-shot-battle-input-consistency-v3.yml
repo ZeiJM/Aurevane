@@ -22,7 +22,9 @@ jobs:
       - name: Fetch source branch
         run: git fetch origin agent/final-facing-hotkey-reliability-v2
       - name: Apply patch
-        run: python .github/scripts/one-shot-battle-input-consistency-v3.py
+        run: |
+          python .github/scripts/fix-one-shot-battle-input-consistency-v3.py
+          python .github/scripts/one-shot-battle-input-consistency-v3.py
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -58,6 +60,7 @@ jobs:
           git diff --check
           rm .github/workflows/one-shot-battle-input-consistency-v3.yml
           rm .github/scripts/one-shot-battle-input-consistency-v3.py
+          rm .github/scripts/fix-one-shot-battle-input-consistency-v3.py
           git config user.name aurevane-release-bot
           git config user.email actions@users.noreply.github.com
           git add -A
