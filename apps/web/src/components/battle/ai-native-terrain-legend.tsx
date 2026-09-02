@@ -26,9 +26,10 @@ export function AiNativeTerrainLegend() {
       legacyLegend.setAttribute('aria-hidden', 'true')
     }
 
-    setBattlefield(target)
+    const frame = window.requestAnimationFrame(() => setBattlefield(target))
 
     return () => {
+      window.cancelAnimationFrame(frame)
       delete target.dataset.aiTerrainLayout
       if (legacyLegend) {
         delete legacyLegend.dataset.aiLegacyTerrainLegend
