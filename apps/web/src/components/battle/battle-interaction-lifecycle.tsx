@@ -1,17 +1,32 @@
 'use client'
 
-import { createContext, useCallback, useContext, useMemo, useRef, type ReactNode } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 
 type InspectCloseHandler = () => void
+type FinishTurnHandler = () => boolean
 
 type BattleInteractionLifecycleValue = {
   registerInspectCloseHandler: (handler: InspectCloseHandler) => () => void
   closeInspectMode: () => void
+  registerFinishTurnHandler: (handler: FinishTurnHandler) => () => void
+  requestFinishTurn: () => boolean
+  finishTurnReady: boolean
 }
 
 const EMPTY_LIFECYCLE: BattleInteractionLifecycleValue = {
   registerInspectCloseHandler: () => () => undefined,
   closeInspectMode: () => undefined,
+  registerFinishTurnHandler: () => () => undefined,
+  requestFinishTurn: () => false,
+  finishTurnReady: false,
 }
 
 const BattleInteractionLifecycleContext =
@@ -19,6 +34,8 @@ const BattleInteractionLifecycleContext =
 
 export function BattleInteractionLifecycleProvider({ children }: { children: ReactNode }) {
   const inspectCloseHandlerRef = useRef<InspectCloseHandler | null>(null)
+  const finishTurnHandlerRef = useRef<FinishTurnHandler | null>(null)
+  const [finishTurnReady, setFinishTurnReady] = useState(false)
 
   const registerInspectCloseHandler = useCallback((handler: InspectCloseHandler) => {
     inspectCloseHandlerRef.current = handler
@@ -31,9 +48,33 @@ export function BattleInteractionLifecycleProvider({ children }: { children: Rea
     inspectCloseHandlerRef.current?.()
   }, [])
 
+  const registerFinishTurnHandler = useCallback((handler: FinishTurnHandler) => {
+    finishTurnHandlerRef.current = handler
+    setFinishTurnReady(true)
+    return () => {
+      if (finishTurnHandlerRef.current !== handler) return
+      finishTurnHandlerRef.current = null
+      setFinishTurnReady(false)
+    }
+  }, [])
+
+  const requestFinishTurn = useCallback(() => finishTurnHandlerRef.current?.() ?? false, [])
+
   const value = useMemo(
-    () => ({ registerInspectCloseHandler, closeInspectMode }),
-    [closeInspectMode, registerInspectCloseHandler],
+    () => ({
+      registerInspectCloseHandler,
+      closeInspectMode,
+      registerFinishTurnHandler,
+      requestFinishTurn,
+      finishTurnReady,
+    }),
+    [
+      closeInspectMode,
+      finishTurnReady,
+      registerFinishTurnHandler,
+      registerInspectCloseHandler,
+      requestFinishTurn,
+    ],
   )
 
   return (
