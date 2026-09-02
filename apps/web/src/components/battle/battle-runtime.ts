@@ -130,7 +130,8 @@ export function buildBattleViewModel(
   battle: BattleSessionView,
   runtime: BattleRuntime,
 ): BattleViewModel {
-  const participants = runtime.kind === 'pvp' ? pvpParticipants(runtime) : pveParticipants(battle, runtime)
+  const participants =
+    runtime.kind === 'pvp' ? pvpParticipants(runtime) : pveParticipants(battle, runtime)
   const participantByCombatant = new Map(
     participants.map((participant) => [participant.combatantId, participant] as const),
   )

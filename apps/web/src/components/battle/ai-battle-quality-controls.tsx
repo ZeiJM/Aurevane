@@ -45,11 +45,11 @@ function remainingSeconds(deadlineAt: string | null, now: number): number {
 function clocksEqual(left: ClockView | null, right: ClockView): boolean {
   return Boolean(
     left &&
-      left.active === right.active &&
-      left.turnNumber === right.turnNumber &&
-      left.combatantId === right.combatantId &&
-      left.deadlineAt === right.deadlineAt &&
-      left.expired === right.expired,
+    left.active === right.active &&
+    left.turnNumber === right.turnNumber &&
+    left.combatantId === right.combatantId &&
+    left.deadlineAt === right.deadlineAt &&
+    left.expired === right.expired,
   )
 }
 
@@ -155,7 +155,9 @@ function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
   if ((preview.projectedStatuses ?? []).length === 0) {
     const statuses = new Set(
       preview.projectedEffects
-        .filter((effect) => effect.effectType === 'apply-status' && typeof effect.after === 'string')
+        .filter(
+          (effect) => effect.effectType === 'apply-status' && typeof effect.after === 'string',
+        )
         .map((effect) => humanizeStatus(String(effect.after))),
     )
     for (const status of statuses) chips.push({ label: status, tone: 'effect' })
@@ -229,8 +231,10 @@ export function AiBattleQualityControls({
 
     const locate = () => {
       frame = null
-      const strip = root.querySelector<HTMLElement>('[data-testid="combat-mode-instruction"]') ?? null
-      const target = strip?.firstElementChild instanceof HTMLElement ? strip.firstElementChild : null
+      const strip =
+        root.querySelector<HTMLElement>('[data-testid="combat-mode-instruction"]') ?? null
+      const target =
+        strip?.firstElementChild instanceof HTMLElement ? strip.firstElementChild : null
       if (strip && target) markInstructionStructure(strip, target)
 
       if (commandTargetRef.current !== target) {
@@ -246,7 +250,9 @@ export function AiBattleQualityControls({
 
     const clearPreviewFromCommand = (event: Event) => {
       const element = event.target instanceof Element ? event.target : null
-      const button = element?.closest<HTMLButtonElement>('section[aria-label="Command Deck"] button')
+      const button = element?.closest<HTMLButtonElement>(
+        'section[aria-label="Command Deck"] button',
+      )
       if (!button || !root.contains(button)) return
       setPreview(null)
     }

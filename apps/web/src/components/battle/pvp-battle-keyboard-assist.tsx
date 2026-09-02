@@ -366,7 +366,8 @@ export function PvpBattleKeyboardAssist({ playerName }: { playerName: string }) 
       if (action) {
         // Desktop Move / Attack / Guard / Recovery belong to BattleSelfActionQuickCommitAssist.
         // Mobile keeps this existing handler because the shared quick-commit owner is desktop-only.
-        if (isSharedCategoryAction(action) && window.matchMedia('(min-width: 821px)').matches) return
+        if (isSharedCategoryAction(action) && window.matchMedia('(min-width: 821px)').matches)
+          return
         if ((action === 'nextTarget' || action === 'previousTarget') && !attackModeIsActive())
           return
         event.preventDefault()

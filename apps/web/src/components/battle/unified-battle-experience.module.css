@@ -3,8 +3,7 @@
   place-items: center;
   color: var(--av-brass-200);
   background:
-    radial-gradient(circle at 50% 30%, rgba(207, 169, 93, 0.12), transparent 55%),
-    #080b10;
+    radial-gradient(circle at 50% 30%, rgba(207, 169, 93, 0.12), transparent 55%), #080b10;
   font: 700 0.8rem/1 var(--av-font-display);
 }
 
@@ -243,7 +242,9 @@
     height: clamp(2rem, 3.4vw, 3.4rem) !important;
   }
 
-  :global([data-unified-battlefield='true'] button[aria-label*='occupied by'] > span:last-child > strong) {
+  :global(
+    [data-unified-battlefield='true'] button[aria-label*='occupied by'] > span:last-child > strong
+  ) {
     display: none !important;
   }
 

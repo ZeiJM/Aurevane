@@ -235,7 +235,10 @@ export function BattleExperience({
   )
 
   const capabilities = useMemo(() => deriveBattleCapabilities(runtime), [runtime])
-  const viewModel = useMemo(() => buildBattleViewModel(initialBattle, runtime), [initialBattle, runtime])
+  const viewModel = useMemo(
+    () => buildBattleViewModel(initialBattle, runtime),
+    [initialBattle, runtime],
+  )
   const tactical = battle.snapshot.tactical
   const battleState = tactical.battle
   const localParticipant = viewModel.localParticipant
@@ -351,7 +354,9 @@ export function BattleExperience({
       }
       if (response.status === 409 && body.error?.code === 'STALE_VERSION') {
         try {
-          await refreshBattle('The battle changed elsewhere. Your unfinished selection was cleared.')
+          await refreshBattle(
+            'The battle changed elsewhere. Your unfinished selection was cleared.',
+          )
         } catch (refreshError) {
           setNotice(
             refreshError instanceof Error
@@ -371,7 +376,8 @@ export function BattleExperience({
       const current = battleRef.current
       if (next.battleVersion <= current.battleVersion) return
 
-      const wasLocal = current.snapshot.tactical.battle.currentTurn?.combatantId === localCombatantId
+      const wasLocal =
+        current.snapshot.tactical.battle.currentTurn?.combatantId === localCombatantId
       const nextBattleState = next.snapshot.tactical.battle
       const isLocal = nextBattleState.currentTurn?.combatantId === localCombatantId
 
@@ -398,7 +404,9 @@ export function BattleExperience({
 
   useEffect(() => {
     battleRef.current = battle
-    window.dispatchEvent(new CustomEvent<BattleSessionView>('aurevane:battle-state', { detail: battle }))
+    window.dispatchEvent(
+      new CustomEvent<BattleSessionView>('aurevane:battle-state', { detail: battle }),
+    )
     if (runtime.kind === 'pvp') {
       window.dispatchEvent(
         new CustomEvent<BattleSessionView>('aurevane:pvp-battle-state', { detail: battle }),
@@ -461,7 +469,13 @@ export function BattleExperience({
       battlePollController.current = null
       battlePollInFlight.current = false
     }
-  }, [applyRemoteBattle, battle.battleSessionId, battleState.lifecycle, localCombatantId, runtime.kind])
+  }, [
+    applyRemoteBattle,
+    battle.battleSessionId,
+    battleState.lifecycle,
+    localCombatantId,
+    runtime.kind,
+  ])
 
   const requestPreview = useCallback(
     async (intent: BattleIntent) => {
@@ -486,7 +500,9 @@ export function BattleExperience({
         if (!result.legal) {
           setNotice(result.issues[0]?.message ?? 'That command is not legal right now.')
         } else if (result.kind === 'move') {
-          setNotice(`Movement ready · ${result.actionEconomyCost} AP · ${result.actionEconomyAfter} AP remains.`)
+          setNotice(
+            `Movement ready · ${result.actionEconomyCost} AP · ${result.actionEconomyAfter} AP remains.`,
+          )
         } else if (result.kind === 'action' && result.actionId === BASIC_ATTACK_ID) {
           setNotice(`Basic Attack ready · ${result.actionEconomyCost} AP.`)
         } else if (result.kind === 'action' && result.actionId === GUARD_ID) {
@@ -601,7 +617,9 @@ export function BattleExperience({
         } else {
           clearPlanning()
           if (intent.kind === 'face') {
-            setNotice(`Finished facing ${intent.facing} ${facingGlyph(intent.facing)}. Recruit turn begins.`)
+            setNotice(
+              `Finished facing ${intent.facing} ${facingGlyph(intent.facing)}. Recruit turn begins.`,
+            )
           } else if (intent.kind === 'move') {
             setNotice(`Movement committed. ${remaining} AP remains.`)
           } else if (intent.kind === 'action' && intent.actionId === BASIC_ATTACK_ID) {
@@ -1163,7 +1181,11 @@ export function BattleExperience({
       </section>
 
       <section className={styles.content} data-unified-battle-content="true">
-        <div className={styles.notice} data-local-turn={localTurn || undefined} data-battle-notice="true">
+        <div
+          className={styles.notice}
+          data-local-turn={localTurn || undefined}
+          data-battle-notice="true"
+        >
           <strong>
             {localTurn
               ? 'Your turn'
@@ -1211,10 +1233,10 @@ export function BattleExperience({
                 const inAttackRange = mode === 'attack' && attackRange.has(key)
                 const legalEnemy = Boolean(
                   inAttackRange &&
-                    participant &&
-                    participant.teamIndex !== localTeamIndex &&
-                    combatant &&
-                    combatant.hp > 0,
+                  participant &&
+                  participant.teamIndex !== localTeamIndex &&
+                  combatant &&
+                  combatant.hp > 0,
                 )
                 const selfTarget =
                   (mode === 'guard' || mode === 'recover') &&
@@ -1312,7 +1334,11 @@ export function BattleExperience({
           teamCount={viewModel.teamCount}
         />
 
-        <section className={styles.commandDeck} aria-label="Command Deck" data-unified-command-deck="true">
+        <section
+          className={styles.commandDeck}
+          aria-label="Command Deck"
+          data-unified-command-deck="true"
+        >
           {runtime.kind === 'pve' ? (
             <div className={styles.context} data-testid="combat-mode-instruction">
               <div className={bridgeStyles.aiQualityPortalSlot} />
@@ -1576,7 +1602,11 @@ function DesktopBattleRail({
           if (!combatant || !placement) return null
           const active =
             battle.snapshot.tactical.battle.currentTurn?.combatantId === participant.combatantId
-          const accent = pvpParticipantAccent(participant.teamIndex, participant.seatIndex, teamCount)
+          const accent = pvpParticipantAccent(
+            participant.teamIndex,
+            participant.seatIndex,
+            teamCount,
+          )
           const accentStyle = { '--battle-combatant-accent': accent } as CSSProperties
 
           return (
@@ -1589,7 +1619,11 @@ function DesktopBattleRail({
             >
               <div className={railStyles.heading}>
                 <div>
-                  <span>{participant.local ? 'Character' : `Opponent · Team ${participant.teamIndex + 1}`}</span>
+                  <span>
+                    {participant.local
+                      ? 'Character'
+                      : `Opponent · Team ${participant.teamIndex + 1}`}
+                  </span>
                   <strong>{participant.name}</strong>
                 </div>
                 <div className={railStyles.turnState}>

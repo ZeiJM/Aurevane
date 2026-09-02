@@ -10,9 +10,7 @@
  * geometry mode-neutral so later PvP/PvE compatibility polish cannot change the scale of one mode.
  */
 @media (min-width: 821px) {
-  :global(
-    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
-  ) {
+  :global(main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]) {
     grid-template-rows: auto minmax(0, 1fr) auto !important;
     width: 100% !important;
     height: 100dvh !important;

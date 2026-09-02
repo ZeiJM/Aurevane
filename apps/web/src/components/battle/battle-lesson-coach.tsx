@@ -134,7 +134,8 @@ function useVictoryControlBridge({
     const previousCounter = counterNode?.textContent ?? null
     const previousNewProgress = target.getAttribute('data-new-progress')
 
-    if (label && label.textContent !== 'Victory Conditions') label.textContent = 'Victory Conditions'
+    if (label && label.textContent !== 'Victory Conditions')
+      label.textContent = 'Victory Conditions'
     if (counterNode) counterNode.textContent = counter
     target.setAttribute('aria-label', ariaLabel)
     if (hasUnseenProgress) target.dataset.newProgress = 'true'

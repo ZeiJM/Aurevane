@@ -113,7 +113,9 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     await expect(combatantDialog).toHaveCount(0)
     await expect(playerTile).toBeVisible()
     await expect(recruitTile).toBeVisible()
-    await expect(page.getByRole('button', { name: `Inspect ${characterName}`, exact: true })).toBeHidden()
+    await expect(
+      page.getByRole('button', { name: `Inspect ${characterName}`, exact: true }),
+    ).toBeHidden()
   } else {
     await inspectButton.click()
     const playerRailButton = page.getByRole('button', {
@@ -288,12 +290,13 @@ async function chooseReachableTowardRecruit(
           open: element.dataset.terrain === 'open',
         }
       })
-      .filter(
-        (candidate): candidate is { label: string; distance: number; open: boolean } =>
-          Boolean(candidate?.label),
+      .filter((candidate): candidate is { label: string; distance: number; open: boolean } =>
+        Boolean(candidate?.label),
       )
       .filter((candidate) => !requireAdjacent || candidate.distance === 1)
-      .sort((left, right) => left.distance - right.distance || Number(right.open) - Number(left.open))
+      .sort(
+        (left, right) => left.distance - right.distance || Number(right.open) - Number(left.open),
+      )
 
     return candidates[0]?.label ?? null
   }, adjacentOnly)

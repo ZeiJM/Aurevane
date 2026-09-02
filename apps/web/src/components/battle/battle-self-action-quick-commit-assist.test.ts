@@ -43,7 +43,9 @@ describe('category-slot hotkeys and self-action double-press shortcuts', () => {
     const content = source()
 
     expect(content).toContain("window.addEventListener('blur', cancelPendingCommit)")
-    expect(content).toContain("document.addEventListener('visibilitychange', handleVisibilityChange)")
+    expect(content).toContain(
+      "document.addEventListener('visibilitychange', handleVisibilityChange)",
+    )
     expect(content).toContain('document.hidden || !document.hasFocus()')
   })
 

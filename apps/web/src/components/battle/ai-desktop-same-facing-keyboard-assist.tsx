@@ -18,18 +18,16 @@ function desktopAiBattleIsActive(): boolean {
   const battlefield = document.querySelector<HTMLElement>('#battlefield')
   const root = battlefield?.closest<HTMLElement>('main') ?? null
   return Boolean(
-    root &&
-      root.dataset.pvpBattle !== 'true' &&
-      window.matchMedia('(min-width: 821px)').matches,
+    root && root.dataset.pvpBattle !== 'true' && window.matchMedia('(min-width: 821px)').matches,
   )
 }
 
 function finalFacingModeIsActive(): boolean {
   return Boolean(
     document.querySelector<HTMLButtonElement>('button[aria-label="Face north"]:not(:disabled)') &&
-      document.querySelector<HTMLButtonElement>('button[aria-label="Face east"]:not(:disabled)') &&
-      document.querySelector<HTMLButtonElement>('button[aria-label="Face south"]:not(:disabled)') &&
-      document.querySelector<HTMLButtonElement>('button[aria-label="Face west"]:not(:disabled)'),
+    document.querySelector<HTMLButtonElement>('button[aria-label="Face east"]:not(:disabled)') &&
+    document.querySelector<HTMLButtonElement>('button[aria-label="Face south"]:not(:disabled)') &&
+    document.querySelector<HTMLButtonElement>('button[aria-label="Face west"]:not(:disabled)'),
   )
 }
 
@@ -52,9 +50,8 @@ function currentFacingButton(playerName: string): HTMLButtonElement | null {
   )
   if (!tile) return null
 
-  const value = tile.querySelector<HTMLElement>(
-    '[data-battle-facing-indicator="true"]',
-  )?.dataset.facing
+  const value = tile.querySelector<HTMLElement>('[data-battle-facing-indicator="true"]')?.dataset
+    .facing
   const facing: Facing | null =
     value === 'north' || value === 'east' || value === 'south' || value === 'west' ? value : null
   return facing

@@ -320,7 +320,8 @@ export function BattleFacingQuickCommitAssist({ playerName }: { playerName: stri
       const mobileShortcutTarget =
         mobileBattleShortcutAvailable() &&
         Boolean(finishTurnButton(event.target) || facingPadCenter(event.target))
-      if (finalFacingButton(event.target) || facingGuide(event.target) || mobileShortcutTarget) return
+      if (finalFacingButton(event.target) || facingGuide(event.target) || mobileShortcutTarget)
+        return
       if (!lastGuideSelection.current && !lastCurrentFacingTap.current) return
       clearSelection()
       lastGuideSelection.current = null

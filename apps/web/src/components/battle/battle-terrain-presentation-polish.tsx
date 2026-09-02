@@ -15,7 +15,9 @@ function readElevation(tile: HTMLElement): number {
 }
 
 function syncLegendTerminology(battlefield: HTMLElement): void {
-  for (const key of battlefield.querySelectorAll<HTMLElement>("[aria-label='Terrain legend'] > span")) {
+  for (const key of battlefield.querySelectorAll<HTMLElement>(
+    "[aria-label='Terrain legend'] > span",
+  )) {
     const label = key.querySelector<HTMLElement>('b')
     if (!label) continue
 

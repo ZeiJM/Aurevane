@@ -20,7 +20,9 @@ describe('PvP-first shared battle visual contract', () => {
     const pve = readLocalFile('battle-session-client-boundary.tsx')
 
     for (const source of [pvp, pve]) {
-      expect(source).toContain("import { BattleScreenVisualContract } from './battle-screen-visual-contract'")
+      expect(source).toContain(
+        "import { BattleScreenVisualContract } from './battle-screen-visual-contract'",
+      )
       expect(source).toContain('<BattleScreenVisualContract />')
     }
   })
