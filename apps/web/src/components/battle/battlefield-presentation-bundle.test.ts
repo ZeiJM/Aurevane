@@ -43,4 +43,15 @@ describe('shared battlefield presentation bundle', () => {
     expect(mobileLayout).toContain("[data-spectator-terrain-cost='true']")
     expect(mobileLayout).toContain('display: none !important;')
   })
+
+  it('keeps active tokens halo-free and spectator mobile identity rings slim', () => {
+    const styles = readLocalFile('battlefield-presentation-bundle.module.css')
+
+    expect(styles).toContain(
+      "section#battlefield button[aria-label*='occupied by'] > [data-team][data-active]",
+    )
+    expect(styles).toContain('box-shadow: 0 0.35rem 0.9rem rgba(0, 0, 0, 0.5) !important;')
+    expect(styles).toContain("main[data-pvp-spectator='true']")
+    expect(styles).toContain('border-width: 1px !important;')
+  })
 })
