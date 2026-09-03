@@ -102,3 +102,5 @@ export function validateDisciplineSkillLoadout(
 
   return issues
 }
+
+// P3.4 exact-head validation trigger; removed in the next commit.
