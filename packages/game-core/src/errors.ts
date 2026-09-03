@@ -9,6 +9,7 @@ export type AurevaneErrorCode =
   | 'CHARACTER_RESELECT_COOLDOWN'
   | 'TITLE_UNAVAILABLE'
   | 'TITLE_ALREADY_SET'
+  | 'BUILD_ATTUNEMENT_COOLDOWN'
   | 'PERSISTENCE_UNAVAILABLE'
 
 export class AurevaneError extends Error {

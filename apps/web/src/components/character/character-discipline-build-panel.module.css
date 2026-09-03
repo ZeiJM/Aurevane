@@ -48,16 +48,16 @@
 
 .dialog {
   display: grid;
-  width: min(44rem, 100%);
-  max-height: min(82vh, 44rem);
+  width: min(46rem, 100%);
+  max-height: min(86vh, 48rem);
   gap: 0.75rem;
   overflow: auto;
   padding: 1rem;
   border: 1px solid var(--av-border-strong);
   border-radius: var(--av-radius-md);
+  color: var(--av-text);
   background: #0a0d12;
   box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.48);
-  color: var(--av-text);
 }
 
 .header,
@@ -69,7 +69,7 @@
 }
 
 .header span,
-.current > span,
+.current span,
 .selector > span,
 .previewHeading span {
   display: block;
@@ -105,17 +105,27 @@
 .current,
 .preview {
   display: grid;
-  gap: 0.42rem;
+  gap: 0.65rem;
   padding: 0.75rem;
   border: 1px solid rgba(184, 177, 163, 0.1);
   border-radius: var(--av-radius-sm);
   background: rgba(5, 7, 10, 0.52);
 }
 
-.current > strong,
+.current {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.current > div {
+  display: grid;
+  align-content: start;
+  gap: 0.35rem;
+}
+
+.current strong,
 .previewHeading strong {
   color: var(--av-brass-300);
-  font: 500 1.15rem/1 var(--av-font-display);
+  font: 500 1.08rem/1 var(--av-font-display);
 }
 
 .current p,
@@ -126,13 +136,21 @@
 }
 
 .current small,
-.previewHeading small {
+.previewHeading small,
+.selector small {
   color: var(--av-text-dim);
-  font: 600 0.52rem/1.3 var(--av-font-mono);
+  font: 600 0.52rem/1.35 var(--av-font-mono);
+}
+
+.slots {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
 }
 
 .selector {
   display: grid;
+  align-content: start;
   gap: 0.35rem;
 }
 
@@ -142,8 +160,8 @@
   padding: 0.5rem 0.65rem;
   border: 1px solid var(--av-border-strong);
   border-radius: var(--av-radius-sm);
-  background: #080b10;
   color: var(--av-text);
+  background: #080b10;
 }
 
 .deltas {
@@ -161,10 +179,19 @@
   background: #080b10;
 }
 
+.deltas > p {
+  grid-column: 1 / -1;
+  padding: 0.55rem;
+  border: 1px solid rgba(184, 177, 163, 0.08);
+  border-radius: var(--av-radius-sm);
+  background: #080b10;
+}
+
 .deltas span,
 .deltas em,
 .status,
-.attributeNote {
+.attributeNote,
+.commitment {
   font-size: 0.68rem;
 }
 
@@ -182,6 +209,20 @@
   padding-top: 0.15rem;
   line-height: 1.45;
   opacity: 0.82;
+}
+
+.commitment {
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.6rem;
+  border-left: 2px solid rgba(207, 169, 93, 0.56);
+  color: var(--av-text-muted);
+  background: rgba(207, 169, 93, 0.05);
+  line-height: 1.4;
+}
+
+.commitment strong {
+  color: var(--av-brass-300);
 }
 
 .preview button {
@@ -228,13 +269,18 @@
   }
 
   .dialog {
-    max-height: 88vh;
+    max-height: 90vh;
     padding: 0.75rem;
   }
 
   .header,
   .previewHeading {
     gap: 0.55rem;
+  }
+
+  .current,
+  .slots {
+    grid-template-columns: 1fr;
   }
 
   .deltas {

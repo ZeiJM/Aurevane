@@ -18,6 +18,7 @@ const vanguard = {
   name: 'Vanguard',
   summary: 'Balanced armed combat.',
   enabledForPrimary: true,
+  enabledForSecondary: true,
 } as const
 
 it('adds the Primary base profile without mutating player-assigned attributes', () => {
