@@ -3,7 +3,11 @@ import { describe, expect, it } from 'vitest'
 import { createCombatEncounterState } from './actions'
 import { createPendingBattle, startBattle } from './battle-state'
 import { createTacticalBattleState } from './board'
-import { spendPv1fActionEconomy } from './pv1f-action-economy'
+import {
+  executePv1fAction,
+  PV1F_RECOVER_ACTION_ID,
+  spendPv1fActionEconomy,
+} from './pv1f-action-economy'
 import {
   chooseRecruitAiDecision,
   createRecruitAiKnowledge,
@@ -241,5 +245,33 @@ describe('P2.6 Recruit AI', () => {
         profile: { ...RECRUIT_WEAK_PROFILE, maxCandidates: 10_000 },
       }),
     ).toThrow(/maxCandidates/)
+  })
+})
+
+describe('P3.3 Recruit AI cooldown parity', () => {
+  it('removes Recovery from AI candidates while the same server cooldown is active', () => {
+    const state = encounter({
+      width: 2,
+      recruitPosition: { x: 1, y: 0 },
+      playerPosition: { x: 0, y: 0 },
+      recruitHp: 20,
+    })
+    const recoveryBiased: RecruitAiProfile = {
+      ...RECRUIT_WEAK_PROFILE,
+      attackUtility: 0,
+      movementUtility: 0,
+      guardUtility: 0,
+      recoverUtility: 1_000,
+    }
+    const before = chooseRecruitAiDecision({ state, profile: recoveryBiased, tieBreakSeed: 55 })
+    expect(before.intent).toMatchObject({ kind: 'action', actionId: PV1F_RECOVER_ACTION_ID })
+
+    const used = executePv1fAction(state, PV1F_RECOVER_ACTION_ID, { kind: 'self' })
+    const during = chooseRecruitAiDecision({
+      state: used.state,
+      profile: recoveryBiased,
+      tieBreakSeed: 55,
+    })
+    expect(during.intent).not.toMatchObject({ kind: 'action', actionId: PV1F_RECOVER_ACTION_ID })
   })
 })

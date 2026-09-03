@@ -14,7 +14,8 @@ import {
 export const COMBAT_ENCOUNTER_SCHEMA_VERSION = 1 as const
 export const COMBAT_BASIS_POINTS = 10_000 as const
 
-export type CombatActionSourceType = 'basic-attack' | 'basic-action' | 'scenario' | 'test'
+export type CombatActionSourceType =
+  'basic-attack' | 'basic-action' | 'discipline-skill' | 'scenario' | 'test'
 export type CombatTargetKind = 'self' | 'unit' | 'ground-tile' | 'empty-tile'
 export type CombatTargetTeamPolicy = 'self' | 'ally' | 'enemy' | 'any'
 export type CombatFriendlyFirePolicy =
@@ -131,6 +132,7 @@ export type CombatActionIssueCode =
   | 'battle-not-active'
   | 'action-already-spent'
   | 'insufficient-mp'
+  | 'cooldown-active'
   | 'invalid-target-kind'
   | 'target-not-found'
   | 'target-defeated'
@@ -1430,7 +1432,7 @@ function validateCombatActionDefinition(
   assertPositiveSafeInteger(action.version, 'action version')
   assertKnownString(
     action.sourceType,
-    ['basic-attack', 'basic-action', 'scenario', 'test'],
+    ['basic-attack', 'basic-action', 'discipline-skill', 'scenario', 'test'],
     'action source type',
   )
   assertKnownString(

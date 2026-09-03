@@ -5,7 +5,10 @@ import { createPendingBattle, startBattle } from './battle-state'
 import { createTacticalBattleState } from './board'
 import {
   createPv1fTemporaryResources,
+  evaluatePv1fAction,
   executePv1fAction,
+  finishPv1fTurn,
+  readPv1fActionCooldown,
   PV1F_ACTION_ECONOMY_RESOURCE_KEY,
   PV1F_BASIC_ATTACK_COST,
   PV1F_BASIC_ATTACK_ID,
@@ -13,6 +16,8 @@ import {
   PV1F_GUARD_COST,
   PV1F_MP_RECOVER_ACTION_ID,
   PV1F_MP_RECOVER_COST,
+  PV1F_RECOVER_ACTION_ID,
+  PV1F_RECOVERY_COOLDOWN_OWNER_TURNS,
 } from './pv1f-action-economy'
 import {
   createStatDrivenCombatEncounterState,
@@ -203,5 +208,66 @@ describe('PV-1F status stacking', () => {
 
     expect(guarded).toMatchObject({ stacks: 2, remainingOwnerTurnStarts: 2 })
     expect(economy?.current).toBe(100 - PV1F_GUARD_COST * 2)
+  })
+})
+
+describe('P3.3 recovery cooldown authority', () => {
+  function backToPlayer(state: StatDrivenCombatEncounterState): StatDrivenCombatEncounterState {
+    const recruitTurn = finishPv1fTurn(state, 'east').state
+    return finishPv1fTurn(recruitTurn, 'west').state
+  }
+
+  it('shares the canonical two-own-turn Recovery cooldown across HP and MP recovery', () => {
+    const encounter = lethalEncounter('player')
+    const player = encounter.tactical.battle.combatants.find(
+      (combatant) => combatant.id === 'player',
+    )
+    if (!player) throw new Error('Expected player combatant.')
+    player.hp = 25
+    player.mp = 5
+
+    const used = executePv1fAction(encounter, PV1F_RECOVER_ACTION_ID, { kind: 'self' })
+    expect(PV1F_RECOVERY_COOLDOWN_OWNER_TURNS).toBe(2)
+    expect(readPv1fActionCooldown(used.state, 'player', PV1F_MP_RECOVER_ACTION_ID)).toMatchObject({
+      active: true,
+      ownerTurns: 2,
+      ticksRemaining: 3,
+    })
+    expect(
+      evaluatePv1fAction(used.state, PV1F_MP_RECOVER_ACTION_ID, { kind: 'self' }).evaluation,
+    ).toMatchObject({
+      legal: false,
+      issues: expect.arrayContaining([expect.objectContaining({ code: 'cooldown-active' })]),
+    })
+  })
+
+  it('survives reconnect serialization and unlocks only after two complete future owner turns', () => {
+    const encounter = lethalEncounter('player')
+    const player = encounter.tactical.battle.combatants.find(
+      (combatant) => combatant.id === 'player',
+    )
+    if (!player) throw new Error('Expected player combatant.')
+    player.hp = 25
+
+    const used = executePv1fAction(encounter, PV1F_RECOVER_ACTION_ID, { kind: 'self' })
+    const reconnected = JSON.parse(JSON.stringify(used.state)) as StatDrivenCombatEncounterState
+
+    const firstFutureTurn = backToPlayer(reconnected)
+    expect(
+      evaluatePv1fAction(firstFutureTurn, PV1F_RECOVER_ACTION_ID, { kind: 'self' }).evaluation
+        .legal,
+    ).toBe(false)
+
+    const secondFutureTurn = backToPlayer(firstFutureTurn)
+    expect(
+      evaluatePv1fAction(secondFutureTurn, PV1F_RECOVER_ACTION_ID, { kind: 'self' }).evaluation
+        .legal,
+    ).toBe(false)
+
+    const readyTurn = backToPlayer(secondFutureTurn)
+    expect(readPv1fActionCooldown(readyTurn, 'player', PV1F_RECOVER_ACTION_ID)?.active).toBe(false)
+    expect(
+      evaluatePv1fAction(readyTurn, PV1F_RECOVER_ACTION_ID, { kind: 'self' }).evaluation.legal,
+    ).toBe(true)
   })
 })

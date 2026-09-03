@@ -12,6 +12,12 @@ import {
 } from './actions'
 import type { BattleCombatant, BattleFacing, BattleTemporaryResource } from './battle-state'
 import {
+  advanceSkillCooldownsAtOwnerTurnStart,
+  applySkillCooldown,
+  readSkillCooldown,
+  type SkillCooldownDefinition,
+} from './skill-cooldowns'
+import {
   evaluateCurrentMovementPath,
   moveCurrentCombatant,
   selectCurrentFinalFacing,
@@ -24,9 +30,7 @@ import {
   PV1F_GUARD_COST,
   PV1F_MOVEMENT_COST_PER_TERRAIN_POINT,
   PV1F_MP_RECOVER_ACTION_ID,
-  PV1F_MP_RECOVER_COST,
   PV1F_RECOVER_ACTION_ID,
-  PV1F_RECOVER_COST,
   pv1fFlatActionCost,
 } from './pv1f-skills'
 import {
@@ -52,6 +56,12 @@ export const PV1F_ACTION_ECONOMY_MAXIMUM = 100 as const
 export const PV1F_RECOVER_PERCENT = 10 as const
 export const PV1F_MP_RECOVER_PERCENT = 10 as const
 export const PV1F_STATUS_MAXIMUM_STACKS = 3 as const
+export const PV1F_RECOVERY_COOLDOWN_OWNER_TURNS = 2 as const
+
+export const PV1F_RECOVERY_COOLDOWN: SkillCooldownDefinition = {
+  key: 'basic.recovery',
+  ownerTurns: PV1F_RECOVERY_COOLDOWN_OWNER_TURNS,
+}
 
 export const PV1F_ACTION_ECONOMY_RESOURCE_KEY = 'pv1f.action-economy' as const
 export const PV1F_ACTION_ECONOMY_TURN_KEY = 'pv1f.action-economy-turn' as const
@@ -240,12 +250,10 @@ export function readPv1fBasicAttackDamage(
   )
 }
 
-export function preparePv1fTurnEconomy(
-  state: StatDrivenCombatEncounterState,
-): StatDrivenCombatEncounterState {
+function preparePv1fTurnEconomyTransition(state: StatDrivenCombatEncounterState): Pv1fTransition {
   const battle = state.tactical.battle
   const turn = battle.currentTurn
-  if (battle.lifecycle !== 'active' || !turn) return state
+  if (battle.lifecycle !== 'active' || !turn) return { state, events: [] }
 
   const actor = getCombatant(state, turn.combatantId)
   const marker = actor.temporaryResources.find(
@@ -254,9 +262,10 @@ export function preparePv1fTurnEconomy(
   const economy = actor.temporaryResources.find(
     (resource) => resource.key === PV1F_ACTION_ECONOMY_RESOURCE_KEY,
   )
-  if (marker?.current === battle.turnNumber && economy) return state
+  if (marker?.current === battle.turnNumber && economy) return { state, events: [] }
 
-  const resources = replaceResources(actor.temporaryResources, [
+  const cooldownTransition = advanceSkillCooldownsAtOwnerTurnStart(actor)
+  const resources = replaceResources(cooldownTransition.combatant.temporaryResources, [
     {
       key: PV1F_ACTION_ECONOMY_RESOURCE_KEY,
       current: PV1F_ACTION_ECONOMY_MAXIMUM,
@@ -269,14 +278,40 @@ export function preparePv1fTurnEconomy(
     },
   ])
 
-  return withCombatantAndTurn(
-    state,
-    { ...actor, temporaryResources: resources },
-    {
-      ...turn,
-      actionState: 'ready',
-    },
-  )
+  return {
+    state: withCombatantAndTurn(
+      state,
+      { ...cooldownTransition.combatant, temporaryResources: resources },
+      {
+        ...turn,
+        actionState: 'ready',
+      },
+    ),
+    events: cooldownTransition.events,
+  }
+}
+
+export function preparePv1fTurnEconomy(
+  state: StatDrivenCombatEncounterState,
+): StatDrivenCombatEncounterState {
+  return preparePv1fTurnEconomyTransition(state).state
+}
+
+export function pv1fCooldownForAction(actionId: string): SkillCooldownDefinition | null {
+  if (actionId === PV1F_RECOVER_ACTION_ID || actionId === PV1F_MP_RECOVER_ACTION_ID) {
+    return PV1F_RECOVERY_COOLDOWN
+  }
+  return null
+}
+
+export function readPv1fActionCooldown(
+  state: StatDrivenCombatEncounterState,
+  combatantId: string,
+  actionId: string,
+) {
+  const definition = pv1fCooldownForAction(actionId)
+  if (!definition) return null
+  return readSkillCooldown(getCombatant(state, combatantId), definition)
 }
 
 export function pv1fActionCost(actionId: string): number {
@@ -372,7 +407,25 @@ export function evaluatePv1fAction(
   if (!actorId) throw new Error('PV-1F action evaluation requires an active turn.')
   const action = resolvePv1fActionDefinition(prepared, actorId, actionId)
   const cost = pv1fActionCost(action.id)
-  const evaluation = evaluateCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT)
+  const baseEvaluation = evaluateCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT)
+  const cooldownDefinition = pv1fCooldownForAction(action.id)
+  const cooldown = cooldownDefinition
+    ? readSkillCooldown(getCombatant(prepared, actorId), cooldownDefinition)
+    : null
+  const evaluation =
+    cooldown?.active === true
+      ? {
+          ...baseEvaluation,
+          legal: false,
+          issues: [
+            ...baseEvaluation.issues,
+            {
+              code: 'cooldown-active' as const,
+              message: `That action is cooling down (${cooldown.ticksRemaining} owner-turn tick${cooldown.ticksRemaining === 1 ? '' : 's'} remain).`,
+            },
+          ],
+        }
+      : baseEvaluation
   return { prepared, action, cost, evaluation }
 }
 
@@ -381,7 +434,10 @@ export function executePv1fAction(
   actionId: string,
   target: CombatTargetSelection,
 ): Pv1fTransition {
-  const { prepared, action, cost } = evaluatePv1fAction(state, actionId, target)
+  const { prepared, action, cost, evaluation } = evaluatePv1fAction(state, actionId, target)
+  if (!evaluation.legal) {
+    throw new Error(evaluation.issues[0]?.message ?? 'That action is not legal.')
+  }
   if (!canAffordPv1fEconomy(prepared, cost)) {
     throw new Error('Not enough Action Economy remains for that action.')
   }
@@ -398,12 +454,24 @@ export function executePv1fAction(
             events: resolved.events,
           }
         })()
-  const next = spendPv1fActionEconomyForActor(transition.state, actorId, cost)
+  let next = spendPv1fActionEconomyForActor(transition.state, actorId, cost)
+  const cooldownDefinition = pv1fCooldownForAction(action.id)
+  const cooldownEvents: readonly unknown[] = cooldownDefinition
+    ? (() => {
+        const started = applySkillCooldown(getCombatant(next, actorId), cooldownDefinition, {
+          actionId: action.id,
+          definitionVersion: action.version,
+        })
+        next = withCombatant(next, started.combatant)
+        return started.events
+      })()
+    : []
   const remaining = readPv1fActionEconomy(next, actorId)?.current ?? 0
   return {
     state: next,
     events: [
       ...transition.events,
+      ...cooldownEvents,
       { event: 'action_economy_spent', combatantId: actorId, amount: cost, remaining },
     ],
   }
@@ -459,9 +527,10 @@ export function finishPv1fTurn(
   )
   const ended = endCombatTurn(encounter, PV1F_COMBAT_CONTENT)
   const bridged = reattachStatDrivenCombatBridge(ended.state, prepared.statBridge)
+  const nextTurn = preparePv1fTurnEconomyTransition(bridged)
   return {
-    state: preparePv1fTurnEconomy(bridged),
-    events: [...selected.events, ...ended.events],
+    state: nextTurn.state,
+    events: [...selected.events, ...ended.events, ...nextTurn.events],
   }
 }
 
