@@ -118,10 +118,6 @@ export function CharacterDisciplineBuildPanel({
   const [message, setMessage] = useState<string | null>(null)
 
   useEffect(() => {
-    setRemaining({
-      primary: attunement.primaryRemainingSeconds,
-      secondary: attunement.secondaryRemainingSeconds,
-    })
     const timer = window.setInterval(() => {
       setRemaining((value) => ({
         primary: Math.max(0, value.primary - 1),
@@ -129,11 +125,7 @@ export function CharacterDisciplineBuildPanel({
       }))
     }, 1000)
     return () => window.clearInterval(timer)
-  }, [
-    attunement.primaryRemainingSeconds,
-    attunement.secondaryRemainingSeconds,
-    attunement.serverNow,
-  ])
+  }, [])
 
   const primaryOptions = useMemo(() => {
     return availablePrimaries.some((entry) => entry.definition.id === current.definition.id)
@@ -178,9 +170,9 @@ export function CharacterDisciplineBuildPanel({
 
   const commitBlocked = Boolean(
     pendingCommit ||
-    !preview ||
-    (preview.changes.primary && remaining.primary > 0) ||
-    (preview.changes.secondary && remaining.secondary > 0),
+      !preview ||
+      (preview.changes.primary && remaining.primary > 0) ||
+      (preview.changes.secondary && remaining.secondary > 0),
   )
 
   async function previewSelection(primaryDisciplineId: string, secondaryDisciplineId: string) {
@@ -216,6 +208,10 @@ export function CharacterDisciplineBuildPanel({
       setCurrent(body.preview.current)
       setCurrentSecondary(body.preview.currentSecondary)
       setAttunement(body.preview.attunement)
+      setRemaining({
+        primary: body.preview.attunement.primaryRemainingSeconds,
+        secondary: body.preview.attunement.secondaryRemainingSeconds,
+      })
       setPreview(body.preview)
     } catch {
       setPreview(null)
@@ -254,6 +250,10 @@ export function CharacterDisciplineBuildPanel({
       setSelectedPrimaryId(body.context.current.definition.id)
       setSelectedSecondaryId(body.context.currentSecondary?.id ?? '')
       setAttunement(body.context.attunement)
+      setRemaining({
+        primary: body.context.attunement.primaryRemainingSeconds,
+        secondary: body.context.attunement.secondaryRemainingSeconds,
+      })
       setPreview(null)
 
       if (changedPrimary && !changedSecondary) {
