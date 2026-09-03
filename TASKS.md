@@ -4,7 +4,7 @@ This file reports the **current implementation/validation boundary**.
 
 `docs/GAME_MASTER_PLAN.md` defines the product. `docs/ROADMAP.md` defines phase sequence. Canonical domain documents define system rules. `docs/PHASE_3_TICKETS.md` defines the active implementation sequence.
 
-**Reconciled:** 2026-09-02
+**Reconciled:** 2026-09-03
 
 ---
 
@@ -24,9 +24,9 @@ This file reports the **current implementation/validation boundary**.
 
 **PV-1 / issue #105:** reconcile as completed by Owner phase-exit decision. Do not invent additional human evidence.
 
-**ACTIVE IMPLEMENTATION TICKET:** **P3.1 — Discipline Build Authority + Primary Base Profiles**.
+**ACTIVE IMPLEMENTATION TICKET:** **P3.2 — Secondary Discipline + Independent Attunement Cooldowns**.
 
-No Phase-3 runtime implementation is performed by the closeout itself. The next implementation work should start from current `main`, audit/reuse the existing battle platform, and execute P3.1 first.
+P3.1 has a validated implementation candidate in PR #368 at `28c00c92f242b4344f8dae80ef8c32e05774a694` and is the direct dependency for P3.2. P3.2 now implements the optional mastered Secondary slot plus independent server-owned Primary/Secondary attunement cooldowns and is in final validation. Do not start P3.3 until P3.2 is closed or the Owner explicitly authorizes parallel work.
 
 ---
 
@@ -108,11 +108,11 @@ P3.8 Representative buildcraft slice + PV-2 readiness
 
 Phase 3 feeds PV-2 before Phase-4 roster expansion.
 
-### P3.1 starting contract
+### Active P3.2 contract
 
-P3.1 must create/reconcile one authoritative persistent build-state boundary and make Primary Discipline mechanically meaningful through versioned base-stat profiles while preserving separately owned player-assigned attributes.
+P3.1 supplies the validated authoritative persistent build-state boundary, versioned Primary definitions/base profiles, deterministic derived-stat recomputation, build versioning, idempotency and Profile preview/commit flow through dependency PR #368.
 
-Start by auditing current repository truth against `docs/PHASE_3_TICKETS.md`; do not assume older Phase-1 Primary placeholders already satisfy the mature P3.1 contract.
+P3.2 adds only the next canonical layer: an optional mastered Secondary, no second base-stat profile, independent trusted-server Primary/Secondary attunement deadlines, preview-versus-commit separation, reconnect/device-clock safety, auditable legality and understandable Profile lock state. Mature Skill schema/cooldowns, Skill loadouts, Resonance and Essence remain deferred to P3.3+.
 
 ---
 
