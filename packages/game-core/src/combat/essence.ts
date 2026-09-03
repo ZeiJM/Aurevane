@@ -101,7 +101,9 @@ export function validateEssenceDefinition(definition: EssenceDefinition): readon
   if (!definition.name.trim()) issues.push('name')
   if (!definition.description.trim()) issues.push('description')
   if (definition.skill.id !== definition.essenceId) issues.push('skill.id')
-  if (definition.skill.contentVersion !== definition.contentVersion) issues.push('skill.contentVersion')
+  if (definition.skill.contentVersion !== definition.contentVersion) {
+    issues.push('skill.contentVersion')
+  }
   if (definition.skill.sourceDisciplineId !== definition.sourceDisciplineId) {
     issues.push('skill.sourceDisciplineId')
   }
