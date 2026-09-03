@@ -13,6 +13,11 @@ on:
       - 'apps/web/src/app/game/character/page.tsx'
       - 'apps/web/src/components/character/character-profile-shell.tsx'
       - 'apps/web/src/components/character/character-skill-build-panel.tsx'
+      - 'apps/web/src/app/game/battle/[battleSessionId]/page.tsx'
+      - 'apps/web/src/components/battle/battle-runtime.ts'
+      - 'apps/web/src/components/battle/battle-client-boundary.tsx'
+      - 'apps/web/src/components/battle/battle-resonance-indicator.tsx'
+      - 'apps/web/src/components/battle/battle-resonance-indicator.module.css'
       - '.github/workflows/resonance-build.yml'
   push:
     branches:
@@ -28,6 +33,11 @@ on:
       - 'apps/web/src/app/game/character/page.tsx'
       - 'apps/web/src/components/character/character-profile-shell.tsx'
       - 'apps/web/src/components/character/character-skill-build-panel.tsx'
+      - 'apps/web/src/app/game/battle/[battleSessionId]/page.tsx'
+      - 'apps/web/src/components/battle/battle-runtime.ts'
+      - 'apps/web/src/components/battle/battle-client-boundary.tsx'
+      - 'apps/web/src/components/battle/battle-resonance-indicator.tsx'
+      - 'apps/web/src/components/battle/battle-resonance-indicator.module.css'
       - '.github/workflows/resonance-build.yml'
 
 permissions:
@@ -58,7 +68,12 @@ jobs:
             apps/web/src/server/character/supabase-character-build-repository.ts \
             apps/web/src/app/game/character/page.tsx \
             apps/web/src/components/character/character-profile-shell.tsx \
-            apps/web/src/components/character/character-skill-build-panel.tsx
+            apps/web/src/components/character/character-skill-build-panel.tsx \
+            'apps/web/src/app/game/battle/[battleSessionId]/page.tsx' \
+            apps/web/src/components/battle/battle-runtime.ts \
+            apps/web/src/components/battle/battle-client-boundary.tsx \
+            apps/web/src/components/battle/battle-resonance-indicator.tsx \
+            apps/web/src/components/battle/battle-resonance-indicator.module.css
       - name: Focused lint
         run: |
           pnpm exec eslint \
@@ -69,7 +84,11 @@ jobs:
             apps/web/src/server/character/supabase-character-build-repository.ts \
             apps/web/src/app/game/character/page.tsx \
             apps/web/src/components/character/character-profile-shell.tsx \
-            apps/web/src/components/character/character-skill-build-panel.tsx
+            apps/web/src/components/character/character-skill-build-panel.tsx \
+            'apps/web/src/app/game/battle/[battleSessionId]/page.tsx' \
+            apps/web/src/components/battle/battle-runtime.ts \
+            apps/web/src/components/battle/battle-client-boundary.tsx \
+            apps/web/src/components/battle/battle-resonance-indicator.tsx
       - name: Game core typecheck
         run: pnpm --filter @aurevane/game-core typecheck
       - name: Focused web typecheck
@@ -86,7 +105,11 @@ jobs:
               "src/server/character/supabase-character-build-repository.ts",
               "src/app/game/character/page.tsx",
               "src/components/character/character-profile-shell.tsx",
-              "src/components/character/character-skill-build-panel.tsx"
+              "src/components/character/character-skill-build-panel.tsx",
+              "src/app/game/battle/[battleSessionId]/page.tsx",
+              "src/components/battle/battle-runtime.ts",
+              "src/components/battle/battle-client-boundary.tsx",
+              "src/components/battle/battle-resonance-indicator.tsx"
             ],
             "exclude": ["node_modules"]
           }
