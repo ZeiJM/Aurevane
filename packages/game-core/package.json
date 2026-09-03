@@ -18,6 +18,7 @@
     "./combat/actions": "./src/combat/actions.ts",
     "./combat/mature-skills": "./src/combat/mature-skills.ts",
     "./combat/resonance": "./src/combat/resonance.ts",
+    "./combat/pv1f-resonance": "./src/combat/pv1f-resonance.ts",
     "./combat/skill-cooldowns": "./src/combat/skill-cooldowns.ts",
     "./combat/battle-narration": "./src/combat/battle-narration.ts",
     "./combat/battle-exit": "./src/combat/battle-exit.ts",
