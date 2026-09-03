@@ -11,6 +11,9 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import type {
   CharacterActiveBuildRecord,
   CharacterBuildRepository,
+  CharacterCommittedBuildSnapshotRecord,
+  CharacterEquippedDisciplineSkillRecord,
+  CharacterLearnedSkillRecord,
   DisciplineCatalogEntry,
 } from './character-build-service'
 
@@ -199,6 +202,122 @@ function parseChangeResult(
   return build ? { build, replayed: row.replayed } : null
 }
 
+function parseLearnedSkill(row: unknown): CharacterLearnedSkillRecord | null {
+  if (!isRecord(row)) return null
+  const contentVersion = integer(row.skill_content_version)
+  if (
+    typeof row.skill_id !== 'string' ||
+    contentVersion === null ||
+    typeof row.source_discipline_id !== 'string' ||
+    typeof row.learned_at !== 'string'
+  ) {
+    return null
+  }
+  return {
+    skillId: row.skill_id,
+    contentVersion,
+    sourceDisciplineId: row.source_discipline_id,
+    learnedAt: row.learned_at,
+  }
+}
+
+function parseEquippedSkill(row: unknown): CharacterEquippedDisciplineSkillRecord | null {
+  if (!isRecord(row)) return null
+  const slotIndex = integer(row.slot_index)
+  const contentVersion = integer(row.skill_content_version)
+  if (
+    slotIndex === null ||
+    slotIndex < 1 ||
+    typeof row.skill_id !== 'string' ||
+    contentVersion === null ||
+    typeof row.source_discipline_id !== 'string' ||
+    typeof row.equipped_at !== 'string'
+  ) {
+    return null
+  }
+  return {
+    slotIndex,
+    skillId: row.skill_id,
+    contentVersion,
+    sourceDisciplineId: row.source_discipline_id,
+    equippedAt: row.equipped_at,
+  }
+}
+
+function parseSnapshotSkill(value: unknown) {
+  if (!isRecord(value)) return null
+  const slotIndex = integer(value.slotIndex)
+  const contentVersion = integer(value.contentVersion)
+  if (
+    slotIndex === null ||
+    typeof value.skillId !== 'string' ||
+    contentVersion === null ||
+    typeof value.sourceDisciplineId !== 'string'
+  ) {
+    return null
+  }
+  return {
+    slotIndex,
+    skillId: value.skillId,
+    contentVersion,
+    sourceDisciplineId: value.sourceDisciplineId,
+  }
+}
+
+function parseCommittedSnapshot(value: unknown): CharacterCommittedBuildSnapshotRecord | null {
+  if (!isRecord(value) || !isRecord(value.primary) || !isRecord(value.extensions)) return null
+  const schemaVersion = integer(value.schemaVersion)
+  const buildVersion = integer(value.buildVersion)
+  const primaryDefinitionVersion = integer(value.primary.definitionVersion)
+  const primaryProfileVersion = integer(value.primary.profileVersion)
+  if (
+    schemaVersion === null ||
+    buildVersion === null ||
+    typeof value.primary.disciplineId !== 'string' ||
+    primaryDefinitionVersion === null ||
+    primaryProfileVersion === null ||
+    !Array.isArray(value.disciplineSkills) ||
+    value.extensions.resonance !== null ||
+    value.extensions.essence !== null ||
+    !Array.isArray(value.extensions.equipmentSkills) ||
+    value.extensions.equipmentSkills.length !== 0 ||
+    value.extensions.supernatural !== null ||
+    value.extensions.prestige !== null
+  ) {
+    return null
+  }
+
+  let secondary: CharacterCommittedBuildSnapshotRecord['secondary'] = null
+  if (value.secondary !== null) {
+    if (!isRecord(value.secondary)) return null
+    const definitionVersion = integer(value.secondary.definitionVersion)
+    if (typeof value.secondary.disciplineId !== 'string' || definitionVersion === null) return null
+    secondary = { disciplineId: value.secondary.disciplineId, definitionVersion }
+  }
+
+  const disciplineSkills = value.disciplineSkills.map(parseSnapshotSkill)
+  if (disciplineSkills.some((entry) => entry === null)) return null
+
+  return {
+    schemaVersion,
+    buildVersion,
+    primary: {
+      disciplineId: value.primary.disciplineId,
+      definitionVersion: primaryDefinitionVersion,
+      profileVersion: primaryProfileVersion,
+    },
+    secondary,
+    disciplineSkills: disciplineSkills as CharacterCommittedBuildSnapshotRecord['disciplineSkills'],
+    extensions: {
+      resonance: null,
+      essence: null,
+      equipmentSkills: [],
+      supernatural: null,
+      prestige: null,
+    },
+  }
+}
+
 export function createSupabaseCharacterBuildRepository(): CharacterBuildRepository {
   return {
     async findActiveBuild(userId, characterId) {
@@ -224,6 +343,43 @@ export function createSupabaseCharacterBuildRepository(): CharacterBuildReposito
       const parsed = data.map(parseCatalogEntry)
       if (parsed.some((entry) => entry === null)) throw unavailable()
       return parsed as DisciplineCatalogEntry[]
+    },
+
+    async listLearnedSkills(userId, characterId) {
+      const supabase = createSupabaseAdminClient()
+      const { data, error } = await supabase.rpc('get_character_learned_skills_v1', {
+        p_user_id: userId,
+        p_character_id: characterId,
+      })
+      if (error || !Array.isArray(data)) throw unavailable()
+      const parsed = data.map(parseLearnedSkill)
+      if (parsed.some((entry) => entry === null)) throw unavailable()
+      return parsed as CharacterLearnedSkillRecord[]
+    },
+
+    async listEquippedDisciplineSkills(userId, characterId) {
+      const supabase = createSupabaseAdminClient()
+      const { data, error } = await supabase.rpc('get_character_discipline_skill_loadout_v1', {
+        p_user_id: userId,
+        p_character_id: characterId,
+      })
+      if (error || !Array.isArray(data)) throw unavailable()
+      const parsed = data.map(parseEquippedSkill)
+      if (parsed.some((entry) => entry === null)) throw unavailable()
+      return parsed as CharacterEquippedDisciplineSkillRecord[]
+    },
+
+    async loadCommittedBuildSnapshot(userId, characterId) {
+      const supabase = createSupabaseAdminClient()
+      const { data, error } = await supabase.rpc('get_character_committed_build_snapshot_v1', {
+        p_user_id: userId,
+        p_character_id: characterId,
+      })
+      if (error) throw unavailable()
+      if (data === null) return null
+      const parsed = parseCommittedSnapshot(data)
+      if (!parsed) throw unavailable()
+      return parsed
     },
 
     async changeDisciplines(input) {
@@ -280,6 +436,51 @@ export function createSupabaseCharacterBuildRepository(): CharacterBuildReposito
       const candidate = Array.isArray(data) && data.length === 1 ? parseChangeResult(data[0]) : null
       if (!candidate) throw unavailable()
       return candidate
+    },
+
+    async saveDisciplineSkills(input) {
+      const supabase = createSupabaseAdminClient()
+      const { data, error } = await supabase.rpc('save_character_discipline_skill_loadout_v1', {
+        p_user_id: input.userId,
+        p_character_id: input.characterId,
+        p_expected_build_version: input.expectedBuildVersion,
+        p_skills: input.skills.map((skill) => ({
+          skillId: skill.skillId,
+          contentVersion: skill.contentVersion,
+          sourceDisciplineId: skill.sourceDisciplineId,
+        })),
+        p_idempotency_key: input.idempotencyKey,
+        p_request_fingerprint: input.requestFingerprint,
+      })
+      if (error) {
+        if (error.message.includes('CHARACTER_BUILD_VERSION_CONFLICT')) {
+          throw new AurevaneError(
+            'STALE_VERSION',
+            'The build changed. Refresh and review the Skills again.',
+          )
+        }
+        if (error.message.includes('CHARACTER_SKILL_LOADOUT_IDEMPOTENCY_CONFLICT')) {
+          throw new AurevaneError(
+            'IDEMPOTENCY_CONFLICT',
+            'That Skill build request key was already used for a different save.',
+          )
+        }
+        if (
+          error.message.includes('DISCIPLINE_SKILL_CAPACITY_EXCEEDED') ||
+          error.message.includes('DUPLICATE_DISCIPLINE_SKILL') ||
+          error.message.includes('DISCIPLINE_SKILL_SOURCE_INACTIVE') ||
+          error.message.includes('DISCIPLINE_SKILL_NOT_LEARNED') ||
+          error.message.includes('SKILL_LOADOUT_REFERENCE_INVALID') ||
+          error.message.includes('SKILL_LOADOUT_INVALID')
+        ) {
+          throw new AurevaneError('INVALID_REQUEST', 'That Discipline Skill loadout is not legal.')
+        }
+        throw unavailable()
+      }
+      const row = Array.isArray(data) && data.length === 1 && isRecord(data[0]) ? data[0] : null
+      const buildVersion = row ? integer(row.build_version) : null
+      if (!row || buildVersion === null || typeof row.replayed !== 'boolean') throw unavailable()
+      return { buildVersion, replayed: row.replayed }
     },
   }
 }
