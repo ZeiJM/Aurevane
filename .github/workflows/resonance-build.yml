@@ -5,6 +5,10 @@ on:
     paths:
       - 'packages/game-core/src/combat/resonance.ts'
       - 'packages/game-core/src/combat/resonance.test.ts'
+      - 'packages/game-core/src/combat/pv1f-resonance.ts'
+      - 'packages/game-core/src/combat/pv1f-resonance.test.ts'
+      - 'packages/game-core/src/combat/pv1f-action-economy.ts'
+      - 'packages/game-core/src/combat/pv1f-action-economy.test.ts'
       - 'packages/game-core/src/combat/mature-skills.ts'
       - 'packages/game-core/package.json'
       - 'apps/web/src/server/character/character-build-service.ts'
@@ -21,10 +25,14 @@ on:
       - '.github/workflows/resonance-build.yml'
   push:
     branches:
-      - 'agent/p3-5-resonance-framework'
+      - 'agent/p3-5-*'
     paths:
       - 'packages/game-core/src/combat/resonance.ts'
       - 'packages/game-core/src/combat/resonance.test.ts'
+      - 'packages/game-core/src/combat/pv1f-resonance.ts'
+      - 'packages/game-core/src/combat/pv1f-resonance.test.ts'
+      - 'packages/game-core/src/combat/pv1f-action-economy.ts'
+      - 'packages/game-core/src/combat/pv1f-action-economy.test.ts'
       - 'packages/game-core/src/combat/mature-skills.ts'
       - 'packages/game-core/package.json'
       - 'apps/web/src/server/character/character-build-service.ts'
@@ -62,6 +70,8 @@ jobs:
           pnpm exec prettier --check \
             packages/game-core/src/combat/resonance.ts \
             packages/game-core/src/combat/resonance.test.ts \
+            packages/game-core/src/combat/pv1f-resonance.ts \
+            packages/game-core/src/combat/pv1f-resonance.test.ts \
             packages/game-core/package.json \
             apps/web/src/server/character/character-build-service.ts \
             apps/web/src/server/character/character-build-service.test.ts \
@@ -79,6 +89,8 @@ jobs:
           pnpm exec eslint \
             packages/game-core/src/combat/resonance.ts \
             packages/game-core/src/combat/resonance.test.ts \
+            packages/game-core/src/combat/pv1f-resonance.ts \
+            packages/game-core/src/combat/pv1f-resonance.test.ts \
             apps/web/src/server/character/character-build-service.ts \
             apps/web/src/server/character/character-build-service.test.ts \
             apps/web/src/server/character/supabase-character-build-repository.ts \
@@ -120,6 +132,8 @@ jobs:
         run: |
           pnpm --filter @aurevane/game-core exec vitest run \
             src/combat/resonance.test.ts \
+            src/combat/pv1f-resonance.test.ts \
+            src/combat/pv1f-action-economy.test.ts \
             src/combat/mature-skills.test.ts
           pnpm --filter @aurevane/web exec vitest run \
             src/server/character/character-build-service.test.ts
