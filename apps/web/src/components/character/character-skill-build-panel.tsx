@@ -73,9 +73,8 @@ export function CharacterSkillBuildPanel({
   const [open, setOpen] = useState(false)
   const [buildVersion, setBuildVersion] = useState(initialBuildVersion)
   const [capacity, setCapacity] = useState(initialCapacity)
-  const [learnedSkills, setLearnedSkills] = useState<readonly SkillCatalogEntryView[]>(
-    initialLearnedSkills,
-  )
+  const [learnedSkills, setLearnedSkills] =
+    useState<readonly SkillCatalogEntryView[]>(initialLearnedSkills)
   const [committedIds, setCommittedIds] = useState<string[]>(initialIds)
   const [selectedIds, setSelectedIds] = useState<string[]>(initialIds)
   const [pending, setPending] = useState(false)
@@ -151,7 +150,9 @@ export function CharacterSkillBuildPanel({
         aria-label={`Manage Discipline Skills. ${selectedIds.length} of ${capacity} equipped.`}
         onClick={() => setOpen(true)}
       >
-        <strong>Skills {selectedIds.length}/{capacity}</strong>
+        <strong>
+          Skills {selectedIds.length}/{capacity}
+        </strong>
         <small>Build v{buildVersion}</small>
       </button>
 
@@ -193,8 +194,8 @@ export function CharacterSkillBuildPanel({
             <p className={styles.rule}>
               {secondaryDiscipline
                 ? 'Mixed builds may equip six total Discipline Skills across the active pair.'
-                : 'Pure builds may equip up to eight learned Skills from the Primary Discipline.'}
-              {' '}Other future Skill sources use their own bounded slots and do not consume this cap.
+                : 'Pure builds may equip up to eight learned Skills from the Primary Discipline.'}{' '}
+              Other future Skill sources use their own bounded slots and do not consume this cap.
             </p>
 
             <div className={styles.skillList} data-testid="learned-skill-list">
@@ -221,7 +222,9 @@ export function CharacterSkillBuildPanel({
                         <span>
                           <strong>{skillName(entry.definition)}</strong>
                           <small>
-                            {titleCase(entry.definition.sourceDisciplineId)} Discipline · {entry.definition.apCost} AP · {entry.definition.cooldown.ownerTurns} owner-turn cooldown
+                            {titleCase(entry.definition.sourceDisciplineId)} Discipline ·{' '}
+                            {entry.definition.apCost} AP · {entry.definition.cooldown.ownerTurns}{' '}
+                            owner-turn cooldown
                           </small>
                         </span>
                       </label>

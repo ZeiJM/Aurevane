@@ -177,8 +177,14 @@ describe('character build service', () => {
     ])
     expect(context.disciplineSkills.capacity).toBe(8)
     expect(context.disciplineSkills.learnedSkills).toEqual([
-      expect.objectContaining({ definition: expect.objectContaining({ id: learnedVanguard.skillId }), activeSource: true }),
-      expect.objectContaining({ definition: expect.objectContaining({ id: learnedLifebinder.skillId }), activeSource: false }),
+      expect.objectContaining({
+        definition: expect.objectContaining({ id: learnedVanguard.skillId }),
+        activeSource: true,
+      }),
+      expect.objectContaining({
+        definition: expect.objectContaining({ id: learnedLifebinder.skillId }),
+        activeSource: false,
+      }),
     ])
     expect(source.attributes).toEqual(before)
   })
@@ -361,7 +367,9 @@ describe('character build service', () => {
     ])
     expect(captured.value?.requestFingerprint).toMatch(/^sha256:[0-9a-f]{64}$/)
     expect(result.build.buildVersion).toBe(2)
-    expect(result.disciplineSkills.equippedSkills[0]?.definition.id).toBe('vanguard.forceful-strike')
+    expect(result.disciplineSkills.equippedSkills[0]?.definition.id).toBe(
+      'vanguard.forceful-strike',
+    )
   })
 
   it('rejects a learned Skill from an inactive Discipline in a pure build', async () => {

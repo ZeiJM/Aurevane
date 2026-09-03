@@ -300,7 +300,9 @@ function resolveEquippedSkill(
 ): CharacterEquippedDisciplineSkill {
   const definition = resolveMatureSkillVersion(record.skillId, record.contentVersion)
   if (!definition || definition.sourceDisciplineId !== record.sourceDisciplineId) {
-    throw persistenceUnavailable('An equipped Skill references a stale or disabled content version.')
+    throw persistenceUnavailable(
+      'An equipped Skill references a stale or disabled content version.',
+    )
   }
   return { definition, slotIndex: record.slotIndex, equippedAt: record.equippedAt }
 }
@@ -407,7 +409,10 @@ export async function loadCharacterCommittedBuildSnapshot(
       throw persistenceUnavailable('The committed build snapshot contains an invalid Skill.')
     }
   }
-  if (snapshot.disciplineSkills.length > disciplineSkillCapacity(snapshot.secondary?.disciplineId ?? null)) {
+  if (
+    snapshot.disciplineSkills.length >
+    disciplineSkillCapacity(snapshot.secondary?.disciplineId ?? null)
+  ) {
     throw persistenceUnavailable('The committed build snapshot exceeds Skill capacity.')
   }
   return snapshot
@@ -513,7 +518,10 @@ export async function saveCharacterDisciplineSkills(
   repository: CharacterBuildRepository,
 ): Promise<DisciplineSkillSaveResult> {
   validateCommitInput(input)
-  if (!Array.isArray(input.skillIds) || input.skillIds.some((skillId) => typeof skillId !== 'string')) {
+  if (
+    !Array.isArray(input.skillIds) ||
+    input.skillIds.some((skillId) => typeof skillId !== 'string')
+  ) {
     throw new AurevaneError('INVALID_REQUEST', 'The Discipline Skill selection is invalid.')
   }
 
@@ -545,7 +553,10 @@ export async function saveCharacterDisciplineSkills(
     })),
   })
   if (issues.length > 0) {
-    throw new AurevaneError('INVALID_REQUEST', issues[0]?.message ?? 'That Skill loadout is invalid.')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      issues[0]?.message ?? 'That Skill loadout is invalid.',
+    )
   }
 
   const currentIds = context.disciplineSkills.equippedSkills.map((entry) => entry.definition.id)
@@ -553,7 +564,10 @@ export async function saveCharacterDisciplineSkills(
     currentIds.length === selected.length &&
     currentIds.every((skillId, index) => skillId === selected[index]?.skillId)
   ) {
-    throw new AurevaneError('INVALID_REQUEST', 'That Discipline Skill loadout is already committed.')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'That Discipline Skill loadout is already committed.',
+    )
   }
 
   const requestFingerprint = `sha256:${createHash('sha256')
