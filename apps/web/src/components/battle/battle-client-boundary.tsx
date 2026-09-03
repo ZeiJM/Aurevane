@@ -24,6 +24,7 @@ import { BattleLessonCoach } from './battle-lesson-coach'
 import { BattleLessonCoachSemantics } from './battle-lesson-coach-semantics'
 import { BattleMobileTokenMeters } from './battle-mobile-token-meters'
 import { BattlePresentationPolish } from './battle-presentation-polish'
+import { BattleResonanceIndicator } from './battle-resonance-indicator'
 import { BattlePveCommandContextParity } from './battle-pve-command-context-parity'
 import { BattleRecruitRecoveryAssist } from './battle-recruit-recovery-assist'
 import { buildBattleViewModel, type BattleRuntime } from './battle-runtime'
@@ -110,6 +111,7 @@ export function BattleClientBoundary({
         <BattleFacingQuickCommitAssist playerName={runtime.playerName} />
         <PvpQuickCommitAssist />
         <BattleStatusEffectAssist />
+        {runtime.resonance ? <BattleResonanceIndicator resonance={runtime.resonance} /> : null}
         <BattleStickyActionAssist />
         <BattleCommandCockpitPolish />
         <BattleCockpitLayoutStabilizer playerName={runtime.playerName} />
