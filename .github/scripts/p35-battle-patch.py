@@ -30,13 +30,13 @@ sub(runtime, r"(kind: 'pvp'\n)", r"\1      resonance?: BattleResonancePresentati
 boundary = 'apps/web/src/components/battle/battle-client-boundary.tsx'
 sub(
     boundary,
-    r"(import \{ BattleMobileActionBar \} from './battle-mobile-action-bar'\n)",
+    r"(import \{ BattlePresentationPolish \} from './battle-presentation-polish'\n)",
     r"\1import { BattleResonanceIndicator } from './battle-resonance-indicator'\n",
 )
 sub(
     boundary,
-    r"(      <BattleStatusEffectAssist state=\{statusEffectAssist\} onClose=\{closeStatusEffectAssist\} />\n)",
-    r"\1      {runtime.resonance ? <BattleResonanceIndicator resonance={runtime.resonance} /> : null}\n",
+    r"(        <BattleStatusEffectAssist />\n)",
+    r"\1        {runtime.resonance ? <BattleResonanceIndicator resonance={runtime.resonance} /> : null}\n",
 )
 
 page = 'apps/web/src/app/game/battle/[battleSessionId]/page.tsx'
