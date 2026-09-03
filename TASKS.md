@@ -2,148 +2,87 @@
 
 This file reports the **current implementation/validation boundary**.
 
-`docs/GAME_MASTER_PLAN.md` defines the product. `docs/ROADMAP.md` defines phase sequence. Canonical domain documents define system rules. Current `docs/PHASE_*_TICKETS.md` files define exact active/next execution.
+`docs/GAME_MASTER_PLAN.md` defines the product. `docs/ROADMAP.md` defines phase sequence. Canonical domain documents define system rules. `docs/PHASE_3_TICKETS.md` defines the active implementation sequence.
 
-**Reconciled:** 2026-08-26
+**Reconciled:** 2026-09-02
 
 ---
 
 ## Current status
 
-**Stage:** Phase 2 — Tactical Combat & Battle Platform — **Owner testing / stabilization / PV-1 exit validation**
+**Stage:** Phase 3 — Signature Buildcraft Foundation — **activated by explicit Owner Phase-2 closure**.
 
-**Phase-2 implementation:** mature and substantially beyond the original minimum.
+**Phase 2:** CLOSED on 2026-09-02 by explicit Owner decision after the final production regression test. The Owner reported the live build “works perfectly.” No tester counts, ratings, or other human-validation metrics are inferred beyond that explicit statement.
 
-Official Phase-2 credit includes:
+**Production closeout baseline:**
 
-- tactical combat and current 100-AP Action Economy;
+- `main` commit `1355fbd710c480ca1d075254a5559568708bde3c`;
+- Vercel production deployment for that exact commit reached `READY`;
+- production alias verified at `aurevane.vercel.app`;
+- focused final battle-input release validation passed 4/4 in Chromium and 4/4 in real Microsoft Edge;
+- the final regression covered Recovery slot swapping, Guard deliberate double-press, Inspect dismissal after narrow-window resize, OS-repeat protection, and repeated PvP Space → Space Finish Turn handoffs while preserving facing.
+
+**PV-1 / issue #105:** reconcile as completed by Owner phase-exit decision. Do not invent additional human evidence.
+
+**ACTIVE IMPLEMENTATION TICKET:** **P3.1 — Discipline Build Authority + Primary Base Profiles**.
+
+No Phase-3 runtime implementation is performed by the closeout itself. The next implementation work should start from current `main`, audit/reuse the existing battle platform, and execute P3.1 first.
+
+---
+
+## Phase-2 delivered platform to preserve
+
+Phase 2 substantially exceeded the original minimum and now supplies reusable foundations for later phases:
+
+- deterministic server-authoritative tactical combat;
+- current 100-AP Action Economy;
 - movement/path/terrain/elevation/facing;
 - targeting/requirements/effects/status foundations;
-- authoritative persistence/reconnect/idempotency;
-- responsive battle UI/Inspect/forecasts/logs;
-- Recruit AI and Battle Hall / AI Sparring;
-- direct PvP lobbies/shared battles/multiple formats;
-- PvP communication/timing/reconnect foundations;
-- keyed read-only spectation;
-- spectator presence/chat/logs/Inspect;
-- multi-combatant desktop/mobile battle presentation;
-- Phase-2 Supabase performance baseline and additive FK-index hardening completed 2026-08-26 without changing gameplay/authority semantics.
+- authoritative persistence/reconnect/idempotency/concurrency behavior;
+- Battle Hall / Recruit AI;
+- direct PvP lobbies and shared battles;
+- multiple PvP combatant formats;
+- battle communication/timing/reconnect foundations;
+- keyed read-only spectation with spectator presence/chat/logs/Inspect;
+- responsive desktop/mobile battle presentation;
+- shared PvE/PvP battlefield presentation;
+- battle logs, forecasts, Inspect and cockpit controls;
+- stable category-owned hotkeys;
+- HP/MP Recovery same-slot swapping as an early reusable action-selection proof.
 
-**ACTIVE VALIDATION GATE:** issue #105 — PV-1 Tactical Combat Human/Internal Validation — open until explicitly reconciled/closed.
-
-**OWNER TESTING:** active.
-
-Do not infer Phase-2 PASS from automation, merges or deployment.
-
-**ACTIVE IMPLEMENTATION TICKET:** none at this reconciliation point.
-
-New implementation should be either:
-
-1. one contained Phase-2 correction justified by current testing;
-2. one evidence-backed behavior-preserving Phase-2 performance hardening item allowed by `docs/ROADMAP_PERFORMANCE_SCALING.md`; or
-3. **P3.1** after the Owner explicitly closes Phase 2.
-
-**NEXT MAJOR FEATURE PHASE:** Phase 3 — Signature Buildcraft Foundation.
+Phase 3 must build on these assets rather than recreate battle UI, PvP, spectation, hotkey ownership, or basic combat execution.
 
 ---
 
-## Allowed while Phase 2 remains open
+## Phase-boundary performance / security checkpoint — 2026-09-02
 
-Contained fixes may address real findings in:
+The required phase-boundary checkpoint was rerun before activating Phase 3.
 
-- battle readability/scale;
-- multi-combatant rails/Inspect;
-- PvP handoff/responsiveness;
-- AI/PvP desktop/mobile parity;
-- spectator clarity;
-- battle logs;
-- communication/timing regressions;
-- active battle/spectation safety;
-- profile/training/session interactions affecting the tested flow;
-- genuine authority/security defects;
-- measured request/database performance findings that can be corrected without changing gameplay behavior or authority boundaries.
+Current observed platform state:
 
-Do not convert testing into unrelated Phase-3/4 scope.
+- Supabase project status: `ACTIVE_HEALTHY`;
+- latest exact Phase-2 production Vercel deployment: `READY`;
+- Supabase performance advisor reports only informational unused-index candidates; **do not delete indexes merely because they are currently unused**;
+- Supabase security advisor reports informational RLS-enabled/no-policy notices plus leaked-password protection disabled. These are recorded follow-up/security-hardening items, not evidence of a Phase-2 runtime regression. Preserve fail-closed/server-only access patterns and review the advisories deliberately rather than adding speculative policy changes.
 
-Performance/scaling checkpoints are automatic at the boundaries defined in `docs/ROADMAP.md`; detailed behavior-preserving rules live in `docs/ROADMAP_PERFORMANCE_SCALING.md`.
+Performance/scaling remains cross-cutting. Measure before optimizing; never weaken server authority, security, idempotency, battle versioning, rewards, progression, or timer semantics for performance.
 
 ---
 
-## Phase-2 performance checkpoint — 2026-08-26
+## Phase-2 repository closeout
 
-Current evidence:
+Closeout hygiene removes only historical scaffolding with no runtime authority:
 
-- Supabase resource health is good with substantial headroom;
-- ordinary gameplay reads are fast;
-- request/polling shape is a larger future scaling concern than raw PostgreSQL execution;
-- `commit_battle_intent_v2` already contains idempotency, expected-version and row-lock protections and must not be weakened for performance;
-- active game-session leasing and character presence are separate responsibilities;
-- historical rollback volume and combat-write tail latency remain diagnosis/measurement items, not justification for speculative rewrites.
+- split `.bootstrap/GAME_MASTER_PLAN.md.gz.b64.part*` reconstruction payloads;
+- the completed master-plan bootstrap workflow;
+- the obsolete branch-specific authenticated-shell one-shot formatter;
+- its historical `Remove before merge` trigger.
 
-Completed now:
+The canonical `docs/GAME_MASTER_PLAN.md` remains authoritative.
 
-- added `app_private.pvp_lobby_members(user_id)` FK-supporting index;
-- added `app_private.product_validation_events(character_id)` FK-supporting index;
-- reran Supabase performance advisor and confirmed both unindexed-FK findings cleared;
-- preserved all gameplay, timer, session, combat, reward, progression and security semantics.
+Stale Phase-2 implementation PRs are to be closed as superseded by the tested production baseline. Closing a stale PR does not erase its Git history and it may be inspected later if a regression requires archaeology.
 
-Deferred until code tracing/measurement justifies a contained change:
-
-- request single-flight/deduplication;
-- hidden-tab/adaptive polling;
-- version-aware battle reads;
-- selective battle/clock/event read consolidation;
-- Realtime chat/presence or battle invalidation hints;
-- broader load/concurrency testing.
-
-Do not implement these merely because they are listed. Measure first and apply the smallest safe step.
-
----
-
-## Phase-2 exit sequence
-
-```text
-OWNER TESTING / CURRENT STABILIZATION
-  ↓
-Only justified contained Phase-2 corrections / behavior-preserving hardening
-  ↓
-Automatic Phase-2 performance/scaling checkpoint + representative evidence review
-  ↓
-EXPLICIT OWNER DECISION
-  ├── NOT READY → smallest repeated defect → retest
-  └── PHASE 2 DONE
-        ↓
-      reconcile #105 + TASKS factually
-        ↓
-      activate docs/PHASE_3_TICKETS.md
-        ↓
-      start P3.1
-```
-
-Never fabricate human evidence or metrics.
-
----
-
-## Owner Phase-3 activation rule
-
-If the Owner clearly says wording equivalent to:
-
-- “Phase 2 is done.”
-- “We are done with Phase 2; start Phase 3.”
-- “Proceed to Phase 3.”
-- “Code Phase 3.”
-
-then treat it as explicit authorization to transition the feature roadmap into Phase 3.
-
-Before runtime implementation:
-
-- inspect current repository truth;
-- reconcile the phase boundary;
-- run/reconcile the automatic performance checkpoint required by `docs/ROADMAP.md`;
-- preserve/reuse the current battle platform;
-- activate **P3.1 — Discipline Build Authority + Primary Base Profiles**.
-
-This does **not** authorize Vercel deployment.
+Do **not** delete runtime battle components merely because an older branch once considered them unused. Any future runtime cleanup requires fresh current-main import/reference evidence plus normal validation.
 
 ---
 
@@ -169,92 +108,40 @@ P3.8 Representative buildcraft slice + PV-2 readiness
 
 Phase 3 feeds PV-2 before Phase-4 roster expansion.
 
+### P3.1 starting contract
+
+P3.1 must create/reconcile one authoritative persistent build-state boundary and make Primary Discipline mechanically meaningful through versioned base-stat profiles while preserving separately owned player-assigned attributes.
+
+Start by auditing current repository truth against `docs/PHASE_3_TICKETS.md`; do not assume older Phase-1 Primary placeholders already satisfy the mature P3.1 contract.
+
 ---
 
-## Approved future long-horizon direction — not active implementation
+## Cockpit / Skill-capacity integration rule
 
-### Rekindling replay differentiation
+The existing four battle cockpit operational categories are an action-selection/presentation layer, **not** the persistent Phase-3 Skill-capacity model.
 
-Authority: `docs/REKINDLING_FRONTIER.md`.
-
-Approved direction:
-
-- Rekindling should not repeat the identical progression journey;
-- use Memory Carryover, Echo Routes, history-aware NPC/mentor interactions, alternate progression/build goals, abbreviated mastered tutorials and Hall of Selves;
-- later cycles remain meaningful long journeys rather than becoming a trivial XP multiplier loop.
-
-### The Unwritten Reach
-
-Authority: `docs/REKINDLING_FRONTIER.md`.
-
-Approved direction:
-
-- common phrase: Edge of the World;
-- working system/lore name: Unwritten Reach;
-- persistent Anchors + mutable Driftspace;
-- deterministic Cartographic Drift;
-- Frontier Acumen based on demonstrated knowledge;
-- legendary explorer identity through rare deeds/Chronicle attribution;
-- working far-inhabitant concept: Veyr;
-- long-term continuity threat: Inward Drift.
-
-This is future Phase-5+ scope and must not leak into active Phase 2/3 work.
-
-### Anomalies — corrected definition
-
-Authority: `docs/ANOMALIES.md`.
-
-Anomaly means **Owner-granted exceptional character state**, not frontier rarity/acquisition.
-
-Initial approved forms:
+Canonical capacity remains:
 
 ```text
-Soulmark + Mantle
-Two Soulmarks
-Two Mantles
+Pure:  up to 8 Primary Discipline Skills + 1 Essence Skill outside the cap
+Mixed: 6 total Discipline Skills across Primary + Secondary + Resonance passive
 ```
 
-Rules:
+The complete committed legal build snapshot must remain authoritative. The cockpit derives legal actions from that snapshot plus canonical basic actions. AI must enumerate all legal actions from the same authoritative snapshot rather than being limited to the four human-visible cockpit cards.
 
-- ordinary gameplay cannot earn/find/craft/trade/buy/roll these states;
-- the Unwritten Reach does not grant them;
-- only the protected Owner may create/revoke them by default;
-- creation uses audited server-authoritative Master Panel / Owner Override workflow;
-- standard ranked PvP excludes gameplay-affecting Anomalies by default;
-- analytics/support must identify exceptional state;
-- full Anomaly Console belongs to mature Master Panel work, with safe representation anticipated earlier when Soulmark/Mantle systems are built.
-
----
-
-## Current documentation truth
-
-- `docs/ROADMAP.md` — current canonical phase plan, including automatic performance/scaling checkpoints.
-- `docs/ROADMAP_PERFORMANCE_SCALING.md` — Owner-approved behavior-preserving performance/scaling companion and checkpoint procedure.
-- `AGENTS.md` — permanent current coding/execution guidance.
-- `docs/COMBAT.md` — current combat authority.
-- `docs/PHASE_2_TICKETS.md` — historical Phase-2 record.
-- `docs/PHASE_3_TICKETS.md` — exact next phase implementation sequence.
-- `docs/ROADMAP_BUILD_SYSTEM_REWORK.md` — build-system sequencing companion.
-- `docs/ROADMAP_PRODUCT_VALIDATION.md` — product validation gates.
-- `docs/REKINDLING_FRONTIER.md` — Rekindling + Unwritten Reach authority.
-- `docs/ANOMALIES.md` — Owner-only exceptional Anomaly authority.
-- `docs/OWNER_OVERRIDE.md` / `docs/MASTER_PANEL.md` — privileged operational authority.
-
-The old combined `docs/REKINDLING_FRONTIER_ANOMALIES.md` has been retired/removed so Anomalies cannot be mistaken for frontier rewards.
-
-Passive Training early-stop reward semantics still require explicit canonical reconciliation if runtime behavior and the current domain specification disagree. Do not silently choose.
+See `docs/ROADMAP_COCKPIT_SKILL_SLOTS.md`.
 
 ---
 
 ## Permanent execution rules
 
-1. Inspect current `main`, open implementation/validation PRs/issues, roadmap and canonical domain docs before work.
-2. One canonical implementation/correction boundary is active at a time unless the Owner authorizes a wider verified batch.
-3. Owner testing may remain active while no implementation ticket is active.
-4. Never use future feature breadth to hide a failed validation gate.
-5. Early-delivered compatible work receives roadmap credit and is reused later.
-6. Automated tests prove implementation safety, not fun/product validation.
-7. Reconcile repository truth at every phase boundary.
-8. Run the roadmap's automatic performance/scaling checkpoint at defined phase/scale boundaries; optimize only measured bottlenecks without changing game behavior or authority semantics.
-9. Phase activation and deployment authorization are separate decisions.
+1. Inspect current `main`, open implementation/validation work, roadmap and canonical domain docs before implementation.
+2. One canonical implementation ticket is active at a time unless the Owner authorizes a wider verified batch.
+3. Preserve compatible early-delivered foundations and give them roadmap credit.
+4. Automated tests prove implementation safety, not fun/product validation.
+5. Run the roadmap performance/scaling checkpoint at defined boundaries; optimize only measured bottlenecks.
+6. Phase activation and deployment authorization are separate decisions.
+7. All authoritative build, combat, progression, reward, inventory, PvP and persistence state remains server-owned.
+8. Never silently redesign or remove mechanics; reconcile conflicts against the Master Plan and applicable canonical specification.
+9. Keep temporary one-shot workflows/triggers out of `main` after their purpose is complete.
 10. Keep this ledger current and concise.
