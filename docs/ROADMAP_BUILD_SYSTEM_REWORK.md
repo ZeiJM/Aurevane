@@ -2,7 +2,7 @@
 
 **Status:** Binding build-system sequencing companion to `docs/ROADMAP.md` and `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md`.
 
-**Reconciled:** 2026-08-23
+**Reconciled:** 2026-09-02
 
 **Authority:** `docs/GAME_MASTER_PLAN.md` remains highest product authority. `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md` defines the approved build contract. `docs/ROADMAP.md` defines current phase sequence. `docs/PHASE_3_TICKETS.md` defines the exact Phase-3 implementation order.
 
@@ -81,22 +81,25 @@ Primary supplies the active Discipline base-stat profile. Player-assigned attrib
 
 ---
 
-# 3. Current Phase 2 boundary
+# 3. Phase-3 active boundary
 
-Until Phase 2 is explicitly closed, substantial buildcraft implementation remains blocked.
+Phase 2 is formally closed. Its mature battle/PvP/spectator/cockpit platform is frozen as reusable infrastructure unless a genuine regression is discovered.
 
-Phase-2 code only needs to remain compatible with later buildcraft:
+Phase 3 is active and proceeds one canonical ticket at a time from `docs/PHASE_3_TICKETS.md`, beginning with P3.1. Compatible Phase-2 foundations receive reuse credit rather than being rebuilt.
 
-- current 100-AP combat can price Skills;
-- combat can represent cooldown state;
-- typed Skill source identities can exist;
-- Profile can become the build headquarters;
-- battle sessions can consume committed build snapshots;
-- AI/PvP foundations can later consume the same build legality.
+The inherited platform already provides:
 
-Do not use future build spectacle to hide a failed basic combat/usability proof.
+- the current 100-AP combat authority that later Skills will use;
+- typed battle action/source foundations;
+- persisted/reconnect-safe battle sessions;
+- shared PvE/PvP battle presentation and authority;
+- stable cockpit action categories and slot-owned hotkeys;
+- selector-versus-execute behavior demonstrated by HP/MP Recovery swapping;
+- AI, PvP and spectation foundations that later consume committed legal build snapshots.
 
-When the Owner explicitly says Phase 2 is done / start or code Phase 3, follow `docs/PHASE_3_TICKETS.md`.
+Phase-3 work must extend these foundations without turning the battle screen into a persistent respec editor or reducing the full committed build to the four visible cockpit categories.
+
+Production deployment remains a separate Owner-controlled action.
 
 ---
 
