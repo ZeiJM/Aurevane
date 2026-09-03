@@ -2,7 +2,7 @@ import 'server-only'
 
 import { createHash } from 'node:crypto'
 
-import type { CharacterRecord } from '@aurevane/db/character'
+import type { PersistedCharacter } from '@aurevane/game-core/character/persistence'
 import {
   buildPrimaryDisciplinePreview,
   type DisciplineDefinition,
@@ -52,23 +52,12 @@ export interface PrimaryDisciplineChangeResult extends CharacterBuildContext {
   replayed: boolean
 }
 
-function characterAttributes(character: CharacterRecord) {
-  return {
-    might: character.might,
-    finesse: character.finesse,
-    vitality: character.vitality,
-    agility: character.agility,
-    intellect: character.intellect,
-    resolve: character.resolve,
-  }
-}
-
 function calculatePreview(
-  character: CharacterRecord,
+  character: PersistedCharacter,
   entry: PrimaryDisciplineCatalogEntry,
 ): PrimaryDisciplinePreview {
   return buildPrimaryDisciplinePreview({
-    attributes: characterAttributes(character),
+    attributes: character.attributes,
     level: character.level,
     primaryDefinition: entry.definition,
     primaryProfile: entry.profile,
@@ -77,7 +66,7 @@ function calculatePreview(
 
 export async function loadCharacterBuildContext(
   userId: string,
-  character: CharacterRecord,
+  character: PersistedCharacter,
   repository: CharacterBuildRepository,
 ): Promise<CharacterBuildContext> {
   const [build, availablePrimaries] = await Promise.all([
@@ -99,7 +88,7 @@ export async function loadCharacterBuildContext(
 
 export async function previewCharacterPrimaryDiscipline(
   userId: string,
-  character: CharacterRecord,
+  character: PersistedCharacter,
   primaryDisciplineId: string,
   repository: CharacterBuildRepository,
 ): Promise<{ current: PrimaryDisciplinePreview; proposed: PrimaryDisciplinePreview; buildVersion: number }> {
@@ -122,7 +111,7 @@ export async function previewCharacterPrimaryDiscipline(
 
 export async function changeCharacterPrimaryDiscipline(
   userId: string,
-  character: CharacterRecord,
+  character: PersistedCharacter,
   input: { expectedBuildVersion: number; primaryDisciplineId: string; idempotencyKey: string },
   repository: CharacterBuildRepository,
 ): Promise<PrimaryDisciplineChangeResult> {
