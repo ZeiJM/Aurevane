@@ -78,7 +78,11 @@ function formatDuration(totalSeconds: number): string {
   const hours = Math.floor(totalSeconds / 3600)
   const minutes = Math.floor((totalSeconds % 3600) / 60)
   const seconds = totalSeconds % 60
-  return [hours > 0 ? `${hours}h` : '', minutes > 0 || hours > 0 ? `${minutes}m` : '', `${seconds}s`]
+  return [
+    hours > 0 ? `${hours}h` : '',
+    minutes > 0 || hours > 0 ? `${minutes}m` : '',
+    `${seconds}s`,
+  ]
     .filter(Boolean)
     .join(' ')
 }
@@ -102,9 +106,7 @@ export function CharacterDisciplineBuildPanel({
   const [current, setCurrent] = useState(initialCurrent)
   const [currentSecondary, setCurrentSecondary] = useState(initialCurrentSecondary)
   const [selectedPrimaryId, setSelectedPrimaryId] = useState(initialCurrent.definition.id)
-  const [selectedSecondaryId, setSelectedSecondaryId] = useState(
-    initialCurrentSecondary?.id ?? '',
-  )
+  const [selectedSecondaryId, setSelectedSecondaryId] = useState(initialCurrentSecondary?.id ?? '')
   const [preview, setPreview] = useState<BuildPreviewResponse['preview'] | null>(null)
   const [attunement, setAttunement] = useState(initialAttunement)
   const [remaining, setRemaining] = useState({
@@ -176,9 +178,9 @@ export function CharacterDisciplineBuildPanel({
 
   const commitBlocked = Boolean(
     pendingCommit ||
-      !preview ||
-      (preview.changes.primary && remaining.primary > 0) ||
-      (preview.changes.secondary && remaining.secondary > 0),
+    !preview ||
+    (preview.changes.primary && remaining.primary > 0) ||
+    (preview.changes.secondary && remaining.secondary > 0),
   )
 
   async function previewSelection(primaryDisciplineId: string, secondaryDisciplineId: string) {
@@ -360,9 +362,7 @@ export function CharacterDisciplineBuildPanel({
                 <span>Proposed Secondary</span>
                 <select
                   value={selectedSecondaryId}
-                  onChange={(event) =>
-                    void previewSelection(selectedPrimaryId, event.target.value)
-                  }
+                  onChange={(event) => void previewSelection(selectedPrimaryId, event.target.value)}
                   disabled={pendingPreview || pendingCommit || remaining.secondary > 0}
                 >
                   <option value="">None — pure build</option>
@@ -398,7 +398,9 @@ export function CharacterDisciplineBuildPanel({
                     <span>Proposed build</span>
                     <strong>
                       {preview.proposed.definition.name}
-                      {preview.proposedSecondary ? ` + ${preview.proposedSecondary.name}` : ' · Pure'}
+                      {preview.proposedSecondary
+                        ? ` + ${preview.proposedSecondary.name}`
+                        : ' · Pure'}
                     </strong>
                   </div>
                   <small>Build v{buildVersion}</small>

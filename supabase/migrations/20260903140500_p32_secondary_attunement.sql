@@ -199,7 +199,7 @@ begin
     p_source_kind,
     p_source_id
   )
-  on conflict (character_id, discipline_id) do nothing;
+  on conflict on constraint character_discipline_masteries_pkey do nothing;
 
   get diagnostics v_rows_inserted = row_count;
 

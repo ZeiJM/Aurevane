@@ -54,10 +54,7 @@ export interface ChangeDisciplinesInput {
 
 export interface CharacterBuildRepository {
   findActiveBuild(userId: string, characterId: string): Promise<CharacterActiveBuildRecord | null>
-  listDisciplines(
-    userId: string,
-    characterId: string,
-  ): Promise<readonly DisciplineCatalogEntry[]>
+  listDisciplines(userId: string, characterId: string): Promise<readonly DisciplineCatalogEntry[]>
   changeDisciplines(
     input: ChangeDisciplinesInput,
   ): Promise<{ build: CharacterActiveBuildRecord; replayed: boolean }>
@@ -129,10 +126,7 @@ function buildAttunementView(build: CharacterActiveBuildRecord): CharacterAttune
     serverNow: build.serverNow,
     primaryLockedUntil: build.primaryAttunementLockedUntil,
     secondaryLockedUntil: build.secondaryAttunementLockedUntil,
-    primaryRemainingSeconds: secondsRemaining(
-      build.primaryAttunementLockedUntil,
-      build.serverNow,
-    ),
+    primaryRemainingSeconds: secondsRemaining(build.primaryAttunementLockedUntil, build.serverNow),
     secondaryRemainingSeconds: secondsRemaining(
       build.secondaryAttunementLockedUntil,
       build.serverNow,
@@ -251,7 +245,7 @@ export async function previewCharacterDisciplines(
     ? input.secondaryDisciplineId === null
       ? null
       : (input.secondaryDisciplineId ?? '').trim()
-    : context.currentSecondary?.id ?? null
+    : (context.currentSecondary?.id ?? null)
 
   if (hasSecondaryInput && input.secondaryDisciplineId !== null && !secondaryId) {
     throw new AurevaneError('INVALID_REQUEST', 'Choose a valid Secondary Discipline to preview.')
@@ -304,10 +298,7 @@ export async function previewCharacterPrimaryDiscipline(
   }
 }
 
-function validateCommitInput(input: {
-  expectedBuildVersion: number
-  idempotencyKey: string
-}) {
+function validateCommitInput(input: { expectedBuildVersion: number; idempotencyKey: string }) {
   if (!Number.isInteger(input.expectedBuildVersion) || input.expectedBuildVersion < 1) {
     throw new AurevaneError(
       'INVALID_REQUEST',
@@ -354,7 +345,7 @@ export async function changeCharacterDisciplines(
     ? input.secondaryDisciplineId === null
       ? null
       : (input.secondaryDisciplineId ?? '').trim()
-    : context.currentSecondary?.id ?? null
+    : (context.currentSecondary?.id ?? null)
   if (hasSecondaryInput && input.secondaryDisciplineId !== null && !secondaryId) {
     throw new AurevaneError('INVALID_REQUEST', 'Choose a valid Secondary Discipline to commit.')
   }

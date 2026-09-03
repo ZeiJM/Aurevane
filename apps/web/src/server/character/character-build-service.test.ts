@@ -76,11 +76,7 @@ const aetherist = entry(
   { maxMp: 20, mysticPower: 5, maxHp: -8 },
   '2026-09-02T00:00:00.000Z',
 )
-const lifebinder = entry(
-  'lifebinder',
-  { maxHp: 8, maxMp: 15, ward: 4 },
-  '2026-09-02T01:00:00.000Z',
-)
+const lifebinder = entry('lifebinder', { maxHp: 8, maxMp: 15, ward: 4 }, '2026-09-02T01:00:00.000Z')
 
 function build(
   source = vanguard,
