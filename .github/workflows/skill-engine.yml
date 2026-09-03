@@ -34,6 +34,7 @@ jobs:
             packages/game-core/src/combat/actions.ts \
             packages/game-core/src/combat/mature-skills.ts \
             packages/game-core/src/combat/mature-skills.test.ts \
+            packages/game-core/src/combat/mature-skill-lifecycle.test.ts \
             packages/game-core/src/combat/skill-cooldowns.ts \
             packages/game-core/src/combat/pv1f-action-economy.ts \
             packages/game-core/src/combat/pv1f-action-economy.test.ts \
@@ -45,6 +46,7 @@ jobs:
             packages/game-core/src/combat/actions.ts \
             packages/game-core/src/combat/mature-skills.ts \
             packages/game-core/src/combat/mature-skills.test.ts \
+            packages/game-core/src/combat/mature-skill-lifecycle.test.ts \
             packages/game-core/src/combat/skill-cooldowns.ts \
             packages/game-core/src/combat/pv1f-action-economy.ts \
             packages/game-core/src/combat/pv1f-action-economy.test.ts \
@@ -55,6 +57,7 @@ jobs:
         run: |
           pnpm --filter @aurevane/game-core exec vitest run \
             src/combat/mature-skills.test.ts \
+            src/combat/mature-skill-lifecycle.test.ts \
             src/combat/pv1f-action-economy.test.ts \
             src/combat/recruit-ai.test.ts
       - name: Production workspace build
