@@ -7,7 +7,9 @@ import { resolveMatureSkillVersion } from './mature-skills'
 import {
   createPv1fTemporaryResources,
   finishPv1fTurn,
+  preparePv1fTurnEconomy,
   readPv1fActionEconomy,
+  spendPv1fActionEconomy,
 } from './pv1f-action-economy'
 import { executePv1fMatureSkillWithResonance } from './pv1f-resonance'
 import { createResonanceCombatState, resolveResonanceForPair } from './resonance'
@@ -183,12 +185,8 @@ describe('P3.5 Resonance on the authoritative PV-1F Skill path', () => {
     const heal = resolveMatureSkillVersion('lifebinder.mending-light', 1)
     if (!resonance || !heal) throw new Error('Expected representative P3.5 content.')
 
-    const state = encounter()
-    const player = state.tactical.battle.combatants.find((row) => row.id === 'player')
-    if (!player) throw new Error('Expected player combatant.')
-    player.temporaryResources = player.temporaryResources.map((resource) =>
-      resource.key === 'pv1f.action-economy' ? { ...resource, current: 40 } : resource,
-    )
+    const state = spendPv1fActionEconomy(preparePv1fTurnEconomy(encounter()), 60)
+    expect(readPv1fActionEconomy(state, 'player')?.current).toBe(40)
     const resonanceState = createResonanceCombatState(resonance)
 
     expect(() =>
