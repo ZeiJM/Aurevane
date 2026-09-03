@@ -25,6 +25,17 @@ jobs:
           corepack prepare pnpm@11.17.0 --activate
       - name: Apply shared executor correction
         run: python .github/scripts/p33-shared-executor.py
+      - name: Normalize generated integration test
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('packages/game-core/src/combat/pv1f-action-economy.test.ts')
+          text = path.read_text(encoding='utf-8')
+          marker = "\\n\\ndescribe('P3.3 mature Skill Action Economy integration'"
+          if marker not in text:
+              raise RuntimeError('Expected generated P3.3 test marker was not found.')
+          path.write_text(text.replace('\\n', '\n'), encoding='utf-8')
+          PY
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Format focused files
@@ -60,7 +71,7 @@ jobs:
           git config user.name 'Nicholas JM'
           git config user.email '283436098+ZeiJM@users.noreply.github.com'
           git restore --source=HEAD -- .github/workflows/p33-shared-executor.yml
-          rm -f .github/scripts/p33-shared-executor.py
+          rm -f .github/scripts/p33-shared-executor.py .github/scripts/p33-correction-trigger.txt
           git add -A
           git commit -m 'Integrate P3.3 Skill cooldowns with shared combat authority'
           git push origin HEAD:agent/p3-3-mature-skill-cooldowns
