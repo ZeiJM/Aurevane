@@ -10,6 +10,8 @@ import {
   type PrimaryDisciplineCatalogEntry,
 } from './character-build-service'
 
+vi.mock('server-only', () => ({}))
+
 const userId = '00000000-0000-4000-8000-000000000801'
 
 function character(): PersistedCharacter {
