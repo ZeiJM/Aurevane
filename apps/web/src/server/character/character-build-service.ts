@@ -9,6 +9,15 @@ import {
   type PrimaryDisciplineBaseProfile,
   type PrimaryDisciplinePreview,
 } from '@aurevane/game-core/character/discipline-build'
+import {
+  disciplineSkillCapacity,
+  validateDisciplineSkillLoadout,
+  type DisciplineSkillReference,
+} from '@aurevane/game-core/character/discipline-skill-loadout'
+import {
+  resolveMatureSkillVersion,
+  type MatureSkillDefinition,
+} from '@aurevane/game-core/combat/mature-skills'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 export interface CharacterAttunementPolicy {
@@ -40,6 +49,37 @@ export interface DisciplineCatalogEntry {
 export type PrimaryDisciplineCatalogEntry = DisciplineCatalogEntry
 export type SecondaryDisciplineCatalogEntry = DisciplineCatalogEntry & { masteredAt: string }
 
+export interface CharacterLearnedSkillRecord extends DisciplineSkillReference {
+  learnedAt: string
+}
+
+export interface CharacterEquippedDisciplineSkillRecord extends DisciplineSkillReference {
+  slotIndex: number
+  equippedAt: string
+}
+
+export interface CharacterCommittedBuildSnapshotRecord {
+  schemaVersion: number
+  buildVersion: number
+  primary: {
+    disciplineId: string
+    definitionVersion: number
+    profileVersion: number
+  }
+  secondary: {
+    disciplineId: string
+    definitionVersion: number
+  } | null
+  disciplineSkills: readonly (DisciplineSkillReference & { slotIndex: number })[]
+  extensions: {
+    resonance: null
+    essence: null
+    equipmentSkills: readonly never[]
+    supernatural: null
+    prestige: null
+  }
+}
+
 export interface ChangeDisciplinesInput {
   userId: string
   characterId: string
@@ -52,12 +92,36 @@ export interface ChangeDisciplinesInput {
   requestFingerprint: string
 }
 
+export interface SaveDisciplineSkillsInput {
+  userId: string
+  characterId: string
+  expectedBuildVersion: number
+  skills: readonly DisciplineSkillReference[]
+  idempotencyKey: string
+  requestFingerprint: string
+}
+
 export interface CharacterBuildRepository {
   findActiveBuild(userId: string, characterId: string): Promise<CharacterActiveBuildRecord | null>
   listDisciplines(userId: string, characterId: string): Promise<readonly DisciplineCatalogEntry[]>
+  listLearnedSkills(
+    userId: string,
+    characterId: string,
+  ): Promise<readonly CharacterLearnedSkillRecord[]>
+  listEquippedDisciplineSkills(
+    userId: string,
+    characterId: string,
+  ): Promise<readonly CharacterEquippedDisciplineSkillRecord[]>
+  loadCommittedBuildSnapshot(
+    userId: string,
+    characterId: string,
+  ): Promise<CharacterCommittedBuildSnapshotRecord | null>
   changeDisciplines(
     input: ChangeDisciplinesInput,
   ): Promise<{ build: CharacterActiveBuildRecord; replayed: boolean }>
+  saveDisciplineSkills(
+    input: SaveDisciplineSkillsInput,
+  ): Promise<{ buildVersion: number; replayed: boolean }>
 }
 
 export interface CharacterAttunementView {
@@ -69,6 +133,31 @@ export interface CharacterAttunementView {
   secondaryRemainingSeconds: number
 }
 
+export interface CharacterSkillCatalogEntry {
+  definition: MatureSkillDefinition
+  learnedAt: string
+  activeSource: boolean
+}
+
+export interface CharacterEquippedDisciplineSkill {
+  definition: MatureSkillDefinition
+  slotIndex: number
+  equippedAt: string
+}
+
+export interface CharacterDisciplineSkillLoadoutView {
+  capacity: number
+  learnedSkills: readonly CharacterSkillCatalogEntry[]
+  equippedSkills: readonly CharacterEquippedDisciplineSkill[]
+  extensions: {
+    resonance: null
+    essence: null
+    equipmentSkills: readonly never[]
+    supernatural: null
+    prestige: null
+  }
+}
+
 export interface CharacterBuildContext {
   build: CharacterActiveBuildRecord
   current: PrimaryDisciplinePreview
@@ -76,6 +165,7 @@ export interface CharacterBuildContext {
   availablePrimaries: readonly PrimaryDisciplineCatalogEntry[]
   availableSecondaries: readonly SecondaryDisciplineCatalogEntry[]
   attunement: CharacterAttunementView
+  disciplineSkills: CharacterDisciplineSkillLoadoutView
 }
 
 export interface CharacterBuildPreview {
@@ -92,6 +182,10 @@ export interface CharacterBuildPreview {
 }
 
 export interface DisciplineChangeResult extends CharacterBuildContext {
+  replayed: boolean
+}
+
+export interface DisciplineSkillSaveResult extends CharacterBuildContext {
   replayed: boolean
 }
 
@@ -193,20 +287,84 @@ function resolvedSecondaryDefinition(
   return selectedSecondary(id, context.availableSecondaries).definition
 }
 
+function resolveLearnedSkill(record: CharacterLearnedSkillRecord): CharacterSkillCatalogEntry {
+  const definition = resolveMatureSkillVersion(record.skillId, record.contentVersion)
+  if (!definition || definition.sourceDisciplineId !== record.sourceDisciplineId) {
+    throw persistenceUnavailable('A learned Skill references a stale or disabled content version.')
+  }
+  return { definition, learnedAt: record.learnedAt, activeSource: false }
+}
+
+function resolveEquippedSkill(
+  record: CharacterEquippedDisciplineSkillRecord,
+): CharacterEquippedDisciplineSkill {
+  const definition = resolveMatureSkillVersion(record.skillId, record.contentVersion)
+  if (!definition || definition.sourceDisciplineId !== record.sourceDisciplineId) {
+    throw persistenceUnavailable('An equipped Skill references a stale or disabled content version.')
+  }
+  return { definition, slotIndex: record.slotIndex, equippedAt: record.equippedAt }
+}
+
+function buildDisciplineSkillView(
+  build: CharacterActiveBuildRecord,
+  learnedRecords: readonly CharacterLearnedSkillRecord[],
+  equippedRecords: readonly CharacterEquippedDisciplineSkillRecord[],
+): CharacterDisciplineSkillLoadoutView {
+  const activeSources = new Set(
+    build.secondaryDefinition
+      ? [build.primaryDefinition.id, build.secondaryDefinition.id]
+      : [build.primaryDefinition.id],
+  )
+  const learnedSkills = learnedRecords.map(resolveLearnedSkill).map((entry) => ({
+    ...entry,
+    activeSource: activeSources.has(entry.definition.sourceDisciplineId),
+  }))
+  const equippedSkills = equippedRecords.map(resolveEquippedSkill)
+  const issues = validateDisciplineSkillLoadout({
+    primaryDisciplineId: build.primaryDefinition.id,
+    secondaryDisciplineId: build.secondaryDefinition?.id ?? null,
+    equipped: equippedSkills.map((entry) => ({
+      skillId: entry.definition.id,
+      contentVersion: entry.definition.contentVersion,
+      sourceDisciplineId: entry.definition.sourceDisciplineId,
+    })),
+    learned: learnedSkills.map((entry) => ({
+      skillId: entry.definition.id,
+      contentVersion: entry.definition.contentVersion,
+      sourceDisciplineId: entry.definition.sourceDisciplineId,
+    })),
+  })
+  if (issues.length > 0) {
+    throw persistenceUnavailable(`The committed Skill loadout is illegal: ${issues[0]?.message}`)
+  }
+
+  return {
+    capacity: disciplineSkillCapacity(build.secondaryDefinition?.id ?? null),
+    learnedSkills,
+    equippedSkills,
+    extensions: {
+      resonance: null,
+      essence: null,
+      equipmentSkills: [],
+      supernatural: null,
+      prestige: null,
+    },
+  }
+}
+
 export async function loadCharacterBuildContext(
   userId: string,
   character: PersistedCharacter,
   repository: CharacterBuildRepository,
 ): Promise<CharacterBuildContext> {
-  const [build, catalog] = await Promise.all([
+  const [build, catalog, learnedSkills, equippedSkills] = await Promise.all([
     repository.findActiveBuild(userId, character.id),
     repository.listDisciplines(userId, character.id),
+    repository.listLearnedSkills(userId, character.id),
+    repository.listEquippedDisciplineSkills(userId, character.id),
   ])
   if (!build) {
-    throw new AurevaneError(
-      'PERSISTENCE_UNAVAILABLE',
-      'The character build is unavailable right now.',
-    )
+    throw persistenceUnavailable('The character build is unavailable right now.')
   }
   const { availablePrimaries, availableSecondaries } = availableCatalog(catalog)
   return {
@@ -222,7 +380,37 @@ export async function loadCharacterBuildContext(
     availablePrimaries,
     availableSecondaries,
     attunement: buildAttunementView(build),
+    disciplineSkills: buildDisciplineSkillView(build, learnedSkills, equippedSkills),
   }
+}
+
+export async function loadCharacterCommittedBuildSnapshot(
+  userId: string,
+  characterId: string,
+  repository: CharacterBuildRepository,
+): Promise<CharacterCommittedBuildSnapshotRecord> {
+  const snapshot = await repository.loadCommittedBuildSnapshot(userId, characterId)
+  if (!snapshot) throw persistenceUnavailable('The committed build snapshot is unavailable.')
+
+  const activeSources = new Set(
+    snapshot.secondary
+      ? [snapshot.primary.disciplineId, snapshot.secondary.disciplineId]
+      : [snapshot.primary.disciplineId],
+  )
+  for (const skill of snapshot.disciplineSkills) {
+    const definition = resolveMatureSkillVersion(skill.skillId, skill.contentVersion)
+    if (
+      !definition ||
+      definition.sourceDisciplineId !== skill.sourceDisciplineId ||
+      !activeSources.has(skill.sourceDisciplineId)
+    ) {
+      throw persistenceUnavailable('The committed build snapshot contains an invalid Skill.')
+    }
+  }
+  if (snapshot.disciplineSkills.length > disciplineSkillCapacity(snapshot.secondary?.disciplineId ?? null)) {
+    throw persistenceUnavailable('The committed build snapshot exceeds Skill capacity.')
+  }
+  return snapshot
 }
 
 export async function previewCharacterDisciplines(
@@ -314,6 +502,83 @@ function validateCommitInput(input: { expectedBuildVersion: number; idempotencyK
   }
 }
 
+export async function saveCharacterDisciplineSkills(
+  userId: string,
+  character: PersistedCharacter,
+  input: {
+    expectedBuildVersion: number
+    skillIds: readonly string[]
+    idempotencyKey: string
+  },
+  repository: CharacterBuildRepository,
+): Promise<DisciplineSkillSaveResult> {
+  validateCommitInput(input)
+  if (!Array.isArray(input.skillIds) || input.skillIds.some((skillId) => typeof skillId !== 'string')) {
+    throw new AurevaneError('INVALID_REQUEST', 'The Discipline Skill selection is invalid.')
+  }
+
+  const context = await loadCharacterBuildContext(userId, character, repository)
+  const learnedById = new Map(
+    context.disciplineSkills.learnedSkills.map((entry) => [entry.definition.id, entry] as const),
+  )
+  const selected = input.skillIds.map((candidate) => {
+    const skillId = candidate.trim()
+    const entry = learnedById.get(skillId)
+    if (!skillId || !entry) {
+      throw new AurevaneError('INVALID_REQUEST', 'Only learned Discipline Skills may be equipped.')
+    }
+    return {
+      skillId: entry.definition.id,
+      contentVersion: entry.definition.contentVersion,
+      sourceDisciplineId: entry.definition.sourceDisciplineId,
+    } satisfies DisciplineSkillReference
+  })
+
+  const issues = validateDisciplineSkillLoadout({
+    primaryDisciplineId: context.current.definition.id,
+    secondaryDisciplineId: context.currentSecondary?.id ?? null,
+    equipped: selected,
+    learned: context.disciplineSkills.learnedSkills.map((entry) => ({
+      skillId: entry.definition.id,
+      contentVersion: entry.definition.contentVersion,
+      sourceDisciplineId: entry.definition.sourceDisciplineId,
+    })),
+  })
+  if (issues.length > 0) {
+    throw new AurevaneError('INVALID_REQUEST', issues[0]?.message ?? 'That Skill loadout is invalid.')
+  }
+
+  const currentIds = context.disciplineSkills.equippedSkills.map((entry) => entry.definition.id)
+  if (
+    currentIds.length === selected.length &&
+    currentIds.every((skillId, index) => skillId === selected[index]?.skillId)
+  ) {
+    throw new AurevaneError('INVALID_REQUEST', 'That Discipline Skill loadout is already committed.')
+  }
+
+  const requestFingerprint = `sha256:${createHash('sha256')
+    .update(
+      JSON.stringify({
+        command: 'character.discipline-skills.save.v1',
+        characterId: character.id,
+        expectedBuildVersion: input.expectedBuildVersion,
+        skills: selected,
+      }),
+    )
+    .digest('hex')}`
+
+  const saved = await repository.saveDisciplineSkills({
+    userId,
+    characterId: character.id,
+    expectedBuildVersion: input.expectedBuildVersion,
+    skills: selected,
+    idempotencyKey: input.idempotencyKey,
+    requestFingerprint,
+  })
+  const next = await loadCharacterBuildContext(userId, character, repository)
+  return { ...next, replayed: saved.replayed }
+}
+
 export async function changeCharacterDisciplines(
   userId: string,
   character: PersistedCharacter,
@@ -393,22 +658,8 @@ export async function changeCharacterDisciplines(
     requestFingerprint,
   })
 
-  return {
-    build: changed.build,
-    current: calculatePreview(character, {
-      definition: changed.build.primaryDefinition,
-      profile: changed.build.primaryProfile,
-      masteredAt:
-        context.availableSecondaries.find(
-          (entry) => entry.definition.id === changed.build.primaryDefinition.id,
-        )?.masteredAt ?? null,
-    }),
-    currentSecondary: changed.build.secondaryDefinition,
-    availablePrimaries: context.availablePrimaries,
-    availableSecondaries: context.availableSecondaries,
-    attunement: buildAttunementView(changed.build),
-    replayed: changed.replayed,
-  }
+  const next = await loadCharacterBuildContext(userId, character, repository)
+  return { ...next, replayed: changed.replayed }
 }
 
 export async function changeCharacterPrimaryDiscipline(
@@ -418,4 +669,8 @@ export async function changeCharacterPrimaryDiscipline(
   repository: CharacterBuildRepository,
 ): Promise<DisciplineChangeResult> {
   return changeCharacterDisciplines(userId, character, input, repository)
+}
+
+function persistenceUnavailable(detail: string): AurevaneError {
+  return new AurevaneError('PERSISTENCE_UNAVAILABLE', detail)
 }
