@@ -1,0 +1,122 @@
+.panel {
+  display: grid;
+  gap: 1rem;
+  padding: 1.1rem;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 1rem;
+  background: color-mix(in srgb, currentColor 4%, transparent);
+}
+
+.header,
+.previewHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.header span,
+.current > span,
+.selector > span,
+.previewHeading span {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.68;
+}
+
+.header h2,
+.current p,
+.preview p {
+  margin: 0;
+}
+
+.current,
+.preview {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.9rem;
+  border-radius: 0.8rem;
+  background: color-mix(in srgb, currentColor 5%, transparent);
+}
+
+.selector {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.selector select {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid color-mix(in srgb, currentColor 24%, transparent);
+  border-radius: 0.65rem;
+  background: inherit;
+  color: inherit;
+}
+
+.deltas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: 0.55rem;
+}
+
+.deltas > div {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.65rem;
+  border-radius: 0.6rem;
+  background: color-mix(in srgb, currentColor 5%, transparent);
+}
+
+.deltas span,
+.deltas em,
+.status,
+.attributeNote,
+.current small,
+.previewHeading small {
+  font-size: 0.82rem;
+}
+
+.deltas em {
+  margin-left: 0.25rem;
+  font-style: normal;
+  opacity: 0.78;
+}
+
+.attributeNote {
+  padding-top: 0.25rem;
+  line-height: 1.5;
+  opacity: 0.8;
+}
+
+.preview button {
+  min-height: 2.75rem;
+  padding: 0.65rem 0.9rem;
+  border: 0;
+  border-radius: 0.65rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.preview button:disabled,
+.selector select:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.status {
+  margin: 0;
+  line-height: 1.45;
+}
+
+@media (max-width: 640px) {
+  .header,
+  .previewHeading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
