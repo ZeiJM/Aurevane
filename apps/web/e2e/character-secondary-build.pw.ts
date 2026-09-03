@@ -12,7 +12,7 @@ function uniqueCharacterName(): string {
   return `Secondary ${letters}`
 }
 
-async function recordMastery(characterName: string, disciplineId: string): Promise<void> {
+async function recordMastery(characterId: string, disciplineId: string): Promise<void> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const secretKey = process.env.SUPABASE_SECRET_KEY
   if (!supabaseUrl || !secretKey) {
@@ -22,15 +22,8 @@ async function recordMastery(characterName: string, disciplineId: string): Promi
   const admin = createClient(supabaseUrl, secretKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   })
-  const { data: character, error: characterError } = await admin
-    .from('characters')
-    .select('id')
-    .eq('name', characterName)
-    .single()
-  if (characterError || !character) throw characterError ?? new Error('Character unavailable.')
-
   const { error: masteryError } = await admin.rpc('record_character_discipline_mastery_v1', {
-    p_character_id: character.id,
+    p_character_id: characterId,
     p_discipline_id: disciplineId,
     p_source_kind: 'system',
     p_source_id: 'browser-proof.p3.2',
@@ -55,7 +48,14 @@ test('Profile equips a mastered Secondary with an independent attunement lock', 
     characterName,
   })
 
-  await recordMastery(characterName, 'aetherist')
+  const selectedCharacterCookie = (await page.context().cookies()).find(
+    (cookie) => cookie.name === 'aurevane_selected_character',
+  )
+  if (!selectedCharacterCookie) {
+    throw new Error('The selected character cookie is unavailable for the P3.2 browser proof.')
+  }
+
+  await recordMastery(selectedCharacterCookie.value, 'aetherist')
   await page.reload()
 
   const panel = page.getByTestId('primary-build-panel')
