@@ -1,0 +1,68 @@
+name: Apply P3.3 implementation
+
+on:
+  push:
+    branches:
+      - agent/p3-3-mature-skill-cooldowns
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Apply P3.3 patch
+        run: python .github/scripts/apply-p33.py
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format P3.3 files
+        run: |
+          pnpm exec prettier --write \
+            packages/game-core/src/combat/actions.ts \
+            packages/game-core/src/combat/mature-skills.ts \
+            packages/game-core/src/combat/mature-skills.test.ts \
+            packages/game-core/src/combat/skill-cooldowns.ts \
+            packages/game-core/src/combat/pv1f-action-economy.ts \
+            packages/game-core/src/combat/pv1f-action-economy.test.ts \
+            packages/game-core/src/combat/recruit-ai.test.ts \
+            packages/game-core/package.json \
+            .github/workflows/skill-engine.yml
+      - name: Focused lint
+        run: |
+          pnpm exec eslint \
+            packages/game-core/src/combat/actions.ts \
+            packages/game-core/src/combat/mature-skills.ts \
+            packages/game-core/src/combat/mature-skills.test.ts \
+            packages/game-core/src/combat/skill-cooldowns.ts \
+            packages/game-core/src/combat/pv1f-action-economy.ts \
+            packages/game-core/src/combat/pv1f-action-economy.test.ts \
+            packages/game-core/src/combat/recruit-ai.test.ts
+      - name: Game core typecheck
+        run: pnpm --filter @aurevane/game-core typecheck
+      - name: P3.3 focused tests
+        run: |
+          pnpm --filter @aurevane/game-core exec vitest run \
+            src/combat/mature-skills.test.ts \
+            src/combat/pv1f-action-economy.test.ts \
+            src/combat/recruit-ai.test.ts
+      - name: Production workspace build
+        run: pnpm build
+      - name: Commit durable P3.3 implementation
+        run: |
+          git config user.name 'Nicholas JM'
+          git config user.email '283436098+ZeiJM@users.noreply.github.com'
+          git add -A
+          git commit -m 'Implement P3.3 mature Skill schema and cooldown engine'
+          git push origin HEAD:agent/p3-3-mature-skill-cooldowns
