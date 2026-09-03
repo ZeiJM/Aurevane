@@ -40,7 +40,8 @@ export function executePv1fMatureSkillWithResonance(input: {
     input.combatContext,
   )
   const actorId = readActionActorId(resolution.events)
-  if (!actorId) throw new Error('PV-1F Resonance resolution did not emit a combat action event.')
+  if (!actorId)
+    throw new Error('PV-1F Resonance resolution did not emit a combat action event.')
 
   const resonanceEvents: ResonanceCombatEvent[] = []
   let nextArmedByActionId = input.resonanceState.armedByActionId
@@ -107,7 +108,9 @@ function insertResonanceEventsAfterActionUse(
   resonanceEvents: readonly ResonanceCombatEvent[],
 ): readonly unknown[] {
   if (resonanceEvents.length === 0) return combatEvents
-  const actionIndex = combatEvents.findIndex((event) => readEventName(event) === 'combat_action_used')
+  const actionIndex = combatEvents.findIndex(
+    (event) => readEventName(event) === 'combat_action_used',
+  )
   if (actionIndex < 0) return [...resonanceEvents, ...combatEvents]
   return [
     ...combatEvents.slice(0, actionIndex + 1),
