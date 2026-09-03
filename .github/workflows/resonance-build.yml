@@ -25,6 +25,7 @@ on:
       - '.github/workflows/resonance-build.yml'
   push:
     branches:
+      - main
       - 'agent/p3-5-*'
     paths:
       - 'packages/game-core/src/combat/resonance.ts'
