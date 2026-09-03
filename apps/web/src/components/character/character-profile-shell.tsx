@@ -59,9 +59,11 @@ export function CharacterProfileShell({
               <Kicker marker="◆">Character Profile</Kicker>
               <div className={styles.nameLine}>
                 <h1>{profile.identity.name}</h1>
-                <span className={styles.disciplinePill}>
-                  {primaryBuild.current.definition.name}
-                </span>
+                <CharacterPrimaryBuildPanel
+                  initialBuildVersion={primaryBuild.buildVersion}
+                  initialCurrent={primaryBuild.current}
+                  availablePrimaries={primaryBuild.availablePrimaries}
+                />
                 {personalTitle ? (
                   <span className={styles.personalTitlePill}>{personalTitle}</span>
                 ) : null}
@@ -103,12 +105,6 @@ export function CharacterProfileShell({
             cycleNumber={profile.progression.cycleNumber}
             attributes={profile.attributes}
             derived={primaryBuild.current.derived}
-          />
-
-          <CharacterPrimaryBuildPanel
-            initialBuildVersion={primaryBuild.buildVersion}
-            initialCurrent={primaryBuild.current}
-            availablePrimaries={primaryBuild.availablePrimaries}
           />
         </Surface>
 
