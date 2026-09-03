@@ -89,7 +89,10 @@ revoke all on function app_private.resolve_essence_reference_v1(text, text)
 grant execute on function app_private.resolve_essence_reference_v1(text, text)
   to service_role;
 
-create or replace function public.get_character_committed_build_snapshot_v1(
+-- Keep the P3.5 v1 snapshot contract stable for existing consumers. P3.6 adds an
+-- additive v2 snapshot that carries the pure-build Essence extension; P3.7 can
+-- deliberately promote shared battle/AI consumers to this richer version.
+create or replace function public.get_character_committed_build_snapshot_v2(
   p_user_id uuid,
   p_character_id uuid
 )
@@ -143,9 +146,9 @@ as $$
     and build.character_id = p_character_id;
 $$;
 
-revoke all on function public.get_character_committed_build_snapshot_v1(uuid, uuid)
+revoke all on function public.get_character_committed_build_snapshot_v2(uuid, uuid)
   from public, anon, authenticated;
-grant execute on function public.get_character_committed_build_snapshot_v1(uuid, uuid)
+grant execute on function public.get_character_committed_build_snapshot_v2(uuid, uuid)
   to service_role;
 
 commit;
