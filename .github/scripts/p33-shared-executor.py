@@ -76,8 +76,8 @@ replace_once(
 )
 replace_once(
     economy_test,
-    "  evaluatePv1fAction,\n  executePv1fAction,\n",
-    "  evaluatePv1fAction,\n  evaluatePv1fMatureSkill,\n  executePv1fAction,\n  executePv1fMatureSkill,\n",
+    "  evaluatePv1fAction,\n  executePv1fAction,\n  finishPv1fTurn,\n  readPv1fActionCooldown,\n",
+    "  evaluatePv1fAction,\n  evaluatePv1fMatureSkill,\n  executePv1fAction,\n  executePv1fMatureSkill,\n  finishPv1fTurn,\n  readPv1fActionCooldown,\n  readPv1fActionEconomy,\n",
 )
 with Path(economy_test).open('a', encoding='utf-8') as handle:
     handle.write(r'''\n\ndescribe('P3.3 mature Skill Action Economy integration', () => {\n  it('spends authored AP, starts cooldown, and remains blocked after reconnect', () => {\n    const definition = resolveMatureSkillVersion('lifebinder.mending-light', 1)\n    if (!definition) throw new Error('Expected representative Lifebinder Skill.')\n    const state = lethalEncounter('player')\n    const player = state.tactical.battle.combatants.find((combatant) => combatant.id === 'player')\n    if (!player) throw new Error('Expected player combatant.')\n    player.hp = 25\n\n    const used = executePv1fMatureSkill(state, definition, { kind: 'self' })\n    expect(readPv1fActionEconomy(used.state, 'player')?.current).toBe(55)\n    expect(used.events).toContainEqual(\n      expect.objectContaining({\n        event: 'skill_cooldown_started',\n        actionId: definition.id,\n        definitionVersion: definition.contentVersion,\n      }),\n    )\n\n    const reconnected = JSON.parse(JSON.stringify(used.state)) as StatDrivenCombatEncounterState\n    const blocked = evaluatePv1fMatureSkill(reconnected, definition, { kind: 'self' })\n    expect(blocked.evaluation.legal).toBe(false)\n    expect(blocked.evaluation.issues).toContainEqual(\n      expect.objectContaining({ code: 'cooldown-active' }),\n    )\n  })\n})\n''')
