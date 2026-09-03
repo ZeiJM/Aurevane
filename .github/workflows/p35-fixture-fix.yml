@@ -24,14 +24,16 @@ jobs:
 
           path = Path('apps/web/src/server/character/character-build-service.test.ts')
           text = path.read_text()
-          old = """              resonanceId: 'resonance.lifebinder-vanguard.mercys-edge',
-              contentVersion: 1,
-              disciplinePair: ['lifebinder', 'vanguard'],
-"""
-          new = """              resonanceId: 'resonance.lifebinder-vanguard.mercys-edge',
-              contentVersion: 1,
-              disciplinePair: ['lifebinder', 'vanguard'] as const,
-"""
+          old = (
+              "              resonanceId: 'resonance.lifebinder-vanguard.mercys-edge',\n"
+              "              contentVersion: 1,\n"
+              "              disciplinePair: ['lifebinder', 'vanguard'],\n"
+          )
+          new = (
+              "              resonanceId: 'resonance.lifebinder-vanguard.mercys-edge',\n"
+              "              contentVersion: 1,\n"
+              "              disciplinePair: ['lifebinder', 'vanguard'] as const,\n"
+          )
           if text.count(old) != 1:
               raise SystemExit(f'Expected one exact fixture match, found {text.count(old)}')
           path.write_text(text.replace(old, new))
