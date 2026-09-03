@@ -19,8 +19,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Verify expected starting head
-        run: test "$(git rev-parse HEAD)" = '82b24bcd82c73334f7304be7c0dbc52910183345'
+      - name: Verify expected P3.2 ancestor
+        run: git merge-base --is-ancestor '82b24bcd82c73334f7304be7c0dbc52910183345' HEAD
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
