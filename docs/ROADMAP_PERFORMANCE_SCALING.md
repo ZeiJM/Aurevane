@@ -62,7 +62,7 @@ Run a performance checkpoint automatically when any of the following is true:
 
 High-value planned checkpoints include:
 
-- current Phase-2 stabilization / PV-1 exit;
+- completed Phase-2 stabilization / PV-1 exit checkpoint, retained as the comparison baseline;
 - Phase 3 build snapshots and build-state reads;
 - Phase 4 roster/content expansion;
 - Phase 6 co-op concurrency;
@@ -94,9 +94,9 @@ For each automatic checkpoint:
 
 ---
 
-# 5. Phase-2 work
+# 5. Phase-2 checkpoint — closed baseline
 
-Phase 2 is still a stabilization/PV-1 boundary, so performance work is intentionally narrow.
+Phase 2 is formally closed. The work below is retained as the measured PV-1/Phase-2 comparison baseline; Phase-3 checkpoints must preserve those authority and behavior guarantees.
 
 ## P2-PERF.1 — Diagnosis and baselining
 
@@ -212,19 +212,13 @@ Do not do these merely as speculative optimization:
 # 8. Execution order
 
 ```text
-CURRENT PHASE-2 STABILIZATION
+PHASE-2 CHECKPOINT COMPLETE                  2026-09-03
   ↓
-Baseline + code-path diagnosis
+PHASE 3 ACTIVE
   ↓
-Verified additive FK indexes                 DONE 2026-08-26
+P3.1 authoritative build-state boundary
   ↓
-Measure again
-  ↓
-Trace and remove only proven duplicate/overlapping reads
-  ↓
-Measure + PV-1 regression checks
-  ↓
-PHASE-2 OWNER EXIT DECISION
+Measure build-state read/write behavior and preserve server authority
   ↓
 Future automatic performance checkpoints at phase/scale boundaries
   ↓

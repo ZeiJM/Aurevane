@@ -2,7 +2,7 @@
 
 **Authority:** Derived from `docs/GAME_MASTER_PLAN.md` and Owner-approved domain specifications. If conflict exists, the Master Game Plan and applicable canonical domain specification win.
 
-**Synchronized:** 2026-08-26
+**Synchronized:** 2026-09-03
 
 This roadmap reflects the game that actually exists today. It formally credits early-delivered battle-platform work instead of pretending later phases must rebuild it.
 
@@ -47,30 +47,32 @@ Performance work never authorizes a gameplay redesign, weakened server authority
 |---|---|---|
 | Phase 0 — Engineering Foundation | ✅ Substantially complete | Core technical/security/deployment foundations exist. |
 | Phase 1 — Character & Progression Foundation | ✅ Substantially complete | Character/account/profile/progression/equipment foundations exist. |
-| Phase 2 — Tactical Combat & Battle Platform | 🧪 Implementation mature; Owner testing / PV-1 exit open | Combat, AI, direct PvP and spectation foundations are delivered and being tested. |
-| Phase 3 — Signature Buildcraft Foundation | 🔜 Next major feature phase | Begins only after explicit Phase-2 closure. |
+| Phase 2 — Tactical Combat & Battle Platform | ✅ Closed / PV-1 passed | Mature combat, AI, direct PvP and spectation foundations are preserved for reuse. |
+| Phase 3 — Signature Buildcraft Foundation | 🛠️ Active — P3.1 | Phase 3 is active on the formally closed Phase-2 baseline. |
 | Phase 4+ | 🔜 Planned | Later phases inherit compatible early work rather than restarting. |
 
 ## Current decision boundary
 
-AUREVANE is currently at the **Phase-2 stabilization / validation boundary**.
+AUREVANE is now in **Phase 3 — Signature Buildcraft Foundation**. Phase 2 is formally closed and its battle platform is a preserved dependency, not active redesign scope.
 
-Allowed now:
+Active now:
 
-- Owner testing of combat, PvP, spectator, profile/training/session interactions involved in the current test flow;
-- contained bug, authority, usability and presentation fixes discovered by testing;
-- contained evidence-backed, behavior-preserving performance hardening relevant to the current tested flow;
-- documentation/test reconciliation.
+- execute one canonical Phase-3 ticket at a time from `docs/PHASE_3_TICKETS.md`;
+- begin with P3.1 Discipline build authority + Primary profiles;
+- reuse compatible Phase-1 character/profile foundations and the mature Phase-2 battle platform;
+- run behavior-preserving performance/security checks at the Phase-3 build-state boundaries.
 
 Not allowed by default:
 
-- uncontrolled Phase-3/4 feature expansion while Phase 2 remains open.
+- reopening or redesigning Phase-2 systems without a genuine regression;
+- pulling later Phase-3 tickets or Phase-4+ content into P3.1 without a tightly coupled prerequisite;
+- Vercel deployment unless separately authorized by the Owner.
 
 ## Automatic performance/scaling checkpoints
 
 Run a performance checkpoint automatically when any of these boundaries is reached:
 
-1. the current Phase-2 stabilization/PV-1 exit review;
+1. the completed Phase-2 stabilization/PV-1 exit review, retained as the comparison baseline;
 2. every phase boundary that materially changes persistent state, request volume, concurrency, realtime traffic or data growth;
 3. before and after major multiplayer/social/economy scale steps, especially Phase 3 build snapshots, Phase 4 content expansion, Phase 6 co-op, Phase 7 Expeditions, Phase 8 competitive PvP, Phase 10 social systems and Phase 11 economy/trade;
 4. whenever monitoring shows a sustained regression in latency, errors, connections/pool pressure, CPU, memory, disk I/O, network, rollback/deadlock/lock-wait trends or database growth;
@@ -96,27 +98,11 @@ Current Phase-2 performance credit as of 2026-08-26:
 - the Supabase performance advisor no longer reports those unindexed foreign keys;
 - polling/request-shape, historical rollback explanation and combat-write tail latency remain diagnosis/measurement items before any broader runtime optimization.
 
-## Phase-2 exit
+## Phase-2 exit — completed 2026-09-03
 
-Phase 2 closes when the Owner explicitly decides the current combat/battle platform is ready to move forward after the relevant testing/evidence review.
+Phase 2 is formally closed. PV-1 reconciliation, repository cleanup, the performance/security checkpoint and the Phase-3 handoff were completed on `main` at `20ed23527695f5320345428587472be7248e7ac7`.
 
-If the Owner says wording equivalent to:
-
-> “Phase 2 is done. Start/code Phase 3.”
-
-that is the phase-transition instruction.
-
-Before Phase-3 runtime work:
-
-1. inspect current `main`, open implementation PRs/issues and `TASKS.md`;
-2. reconcile the Phase-2/PV-1 boundary factually;
-3. run the automatic Phase-2 performance/scaling checkpoint and record only measured findings/actions;
-4. never fabricate human evidence;
-5. preserve the existing combat/PvP/spectator platform;
-6. activate `docs/PHASE_3_TICKETS.md`;
-7. begin at **P3.1**.
-
-Phase activation does **not** authorize a Vercel deployment.
+Phase 3 therefore inherits the existing combat/PvP/spectator platform. Phase activation still does **not** authorize a Vercel deployment.
 
 ---
 
@@ -325,7 +311,7 @@ Later depth includes Secondary, mature Mastery, Skills, Resonance/Essence, super
 
 ---
 
-## 🧪 Phase 2 — Tactical Combat & Battle Platform
+## ✅ Phase 2 — Tactical Combat & Battle Platform
 
 **Goal:** prove a readable deterministic server-authoritative tactical game and reusable battle platform before build/content volume multiplies.
 
@@ -390,19 +376,17 @@ Later depth includes Secondary, mature Mastery, Skills, Resonance/Essence, super
 - additive FK-supporting indexes for PvP lobby user lookups and product-validation character references;
 - no speculative removal of unused indexes and no weakening of authoritative combat/session behavior.
 
-### Remaining
+### Closeout
 
-Owner testing and formal Phase-2/PV-1 exit decision.
+Phase 2 is formally closed and PV-1 is reconciled. Genuine regressions may still be fixed, but the delivered combat/battle platform is not reopened for redesign by default.
 
-Contained fixes may still address real current testing findings.
+Performance diagnosis continues only through the behavior-preserving checkpoint contract above.
 
-Performance diagnosis may continue only through the behavior-preserving checkpoint contract above.
-
-**Status:** implementation mature and substantially above original minimum; Owner testing/PV-1 open.
+**Status:** ✅ Closed; mature reusable platform for Phase 3.
 
 ---
 
-## 🔜 Phase 3 — Signature Buildcraft Foundation
+## 🛠️ Phase 3 — Signature Buildcraft Foundation
 
 **Goal:** turn the battle platform into AUREVANE's distinctive build game.
 
@@ -819,29 +803,19 @@ The approximate **180-day** first-cycle planning default remains subject to vali
 # 7. Immediate execution sequence
 
 ```text
-OWNER TESTING / PHASE-2 STABILIZATION
+PHASE 2 CLOSED / PV-1 RECONCILED
         ↓
-Contained correctness fixes + behavior-preserving performance checkpoint
+PHASE 3 ACTIVE
         ↓
-Measure / retest current battle-session-PvP flows
+P3.1 Discipline build authority + Primary profiles
         ↓
-Representative candidate / evidence review
-        ↓
-EXPLICIT OWNER PHASE-2 DECISION
-        ├── NOT READY → smallest repeated defect → retest
-        └── PHASE 2 DONE
-                 ↓
-          reconcile #105 + TASKS
-                 ↓
-          activate PHASE_3_TICKETS
-                 ↓
-          P3.1 Discipline build authority
+P3.2–P3.8 in canonical ticket order
 ```
 
 The immediate development priority is therefore:
 
-> **Finish testing and stabilizing the battle platform without changing its rules, then build AUREVANE's signature buildcraft.**
+> **Complete P3.1 on the preserved Phase-2 platform, then proceed one canonical Phase-3 ticket at a time.**
 
 Automatic performance/scaling checkpoints continue at the defined future boundaries; they are maintenance/hardening work, not permission to expand feature scope.
 
-The frontier, Rekindling replay systems and Owner-created Anomalies are approved long-horizon direction, not active Phase-2 scope.
+The frontier, Rekindling replay systems and Owner-created Anomalies remain approved long-horizon direction, not active P3.1 scope.

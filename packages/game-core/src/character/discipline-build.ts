@@ -86,10 +86,7 @@ export function calculateCharacterBuildDerivedStats(
     throw new RangeError('Primary Discipline definition/profile mismatch.')
   }
 
-  const base = calculateDerivedStats(
-    { attributes: input.attributes, level: input.level },
-    ruleset,
-  )
+  const base = calculateDerivedStats({ attributes: input.attributes, level: input.level }, ruleset)
   const primaryModifiers: BuildDerivedStatModifier[] = DERIVED_STAT_IDS.flatMap((statId) => {
     const amount = input.primaryProfile.statOffsets[statId]
     return amount === undefined || amount === 0
@@ -103,7 +100,11 @@ export function calculateCharacterBuildDerivedStats(
         ]
   })
 
-  return applyBuildDerivedStatModifiers(base, [...primaryModifiers, ...(input.modifiers ?? [])], ruleset)
+  return applyBuildDerivedStatModifiers(
+    base,
+    [...primaryModifiers, ...(input.modifiers ?? [])],
+    ruleset,
+  )
 }
 
 export function buildPrimaryDisciplinePreview(

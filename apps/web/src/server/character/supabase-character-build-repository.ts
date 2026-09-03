@@ -111,7 +111,9 @@ function parseActiveBuild(row: unknown): CharacterActiveBuildRecord | null {
   }
 }
 
-function parseChangeResult(row: unknown): { build: CharacterActiveBuildRecord; replayed: boolean } | null {
+function parseChangeResult(
+  row: unknown,
+): { build: CharacterActiveBuildRecord; replayed: boolean } | null {
   if (!isRecord(row) || typeof row.replayed !== 'boolean' || typeof row.changed_at !== 'string') {
     return null
   }
@@ -167,7 +169,10 @@ export function createSupabaseCharacterBuildRepository(): CharacterBuildReposito
       })
       if (error) {
         if (error.message.includes('CHARACTER_BUILD_VERSION_CONFLICT')) {
-          throw new AurevaneError('STALE_VERSION', 'The build changed. Refresh and review it again.')
+          throw new AurevaneError(
+            'STALE_VERSION',
+            'The build changed. Refresh and review it again.',
+          )
         }
         if (error.message.includes('CHARACTER_BUILD_IDEMPOTENCY_CONFLICT')) {
           throw new AurevaneError(
@@ -191,5 +196,8 @@ export function createSupabaseCharacterBuildRepository(): CharacterBuildReposito
 }
 
 function unavailable(): AurevaneError {
-  return new AurevaneError('PERSISTENCE_UNAVAILABLE', 'Character build data is unavailable right now.')
+  return new AurevaneError(
+    'PERSISTENCE_UNAVAILABLE',
+    'Character build data is unavailable right now.',
+  )
 }

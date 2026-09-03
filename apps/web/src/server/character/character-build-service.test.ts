@@ -102,7 +102,9 @@ describe('character build service', () => {
 
     expect(result.current.definition.id).toBe('vanguard')
     expect(result.proposed.definition.id).toBe('aetherist')
-    expect(result.proposed.derived.stats.maxMp.value).toBeGreaterThan(result.current.derived.stats.maxMp.value)
+    expect(result.proposed.derived.stats.maxMp.value).toBeGreaterThan(
+      result.current.derived.stats.maxMp.value,
+    )
     expect(change).not.toHaveBeenCalled()
   })
 

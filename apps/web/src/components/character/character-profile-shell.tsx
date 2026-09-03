@@ -59,7 +59,9 @@ export function CharacterProfileShell({
               <Kicker marker="◆">Character Profile</Kicker>
               <div className={styles.nameLine}>
                 <h1>{profile.identity.name}</h1>
-                <span className={styles.disciplinePill}>{primaryBuild.current.definition.name}</span>
+                <span className={styles.disciplinePill}>
+                  {primaryBuild.current.definition.name}
+                </span>
                 {personalTitle ? (
                   <span className={styles.personalTitlePill}>{personalTitle}</span>
                 ) : null}

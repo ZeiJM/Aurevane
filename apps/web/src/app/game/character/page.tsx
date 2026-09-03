@@ -62,11 +62,7 @@ export default async function CharacterProfilePage() {
         character.progressionCycle.number,
         createSupabaseProgressionRepository(),
       ),
-      loadCharacterBuildContext(
-        actor.userId,
-        character,
-        createSupabaseCharacterBuildRepository(),
-      ),
+      loadCharacterBuildContext(actor.userId, character, createSupabaseCharacterBuildRepository()),
     ])
   } catch (error) {
     if (isAurevaneError(error) && error.code === 'PERSISTENCE_UNAVAILABLE') {

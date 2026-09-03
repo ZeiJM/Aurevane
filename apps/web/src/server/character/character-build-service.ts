@@ -74,7 +74,10 @@ export async function loadCharacterBuildContext(
     repository.listPrimaryDisciplines(),
   ])
   if (!build) {
-    throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The character build is unavailable right now.')
+    throw new AurevaneError(
+      'PERSISTENCE_UNAVAILABLE',
+      'The character build is unavailable right now.',
+    )
   }
   return {
     build,
@@ -91,7 +94,11 @@ export async function previewCharacterPrimaryDiscipline(
   character: PersistedCharacter,
   primaryDisciplineId: string,
   repository: CharacterBuildRepository,
-): Promise<{ current: PrimaryDisciplinePreview; proposed: PrimaryDisciplinePreview; buildVersion: number }> {
+): Promise<{
+  current: PrimaryDisciplinePreview
+  proposed: PrimaryDisciplinePreview
+  buildVersion: number
+}> {
   if (!primaryDisciplineId.trim()) {
     throw new AurevaneError('INVALID_REQUEST', 'Choose a Primary Discipline to preview.')
   }
@@ -116,9 +123,16 @@ export async function changeCharacterPrimaryDiscipline(
   repository: CharacterBuildRepository,
 ): Promise<PrimaryDisciplineChangeResult> {
   if (!Number.isInteger(input.expectedBuildVersion) || input.expectedBuildVersion < 1) {
-    throw new AurevaneError('INVALID_REQUEST', 'The build version is invalid. Refresh and try again.')
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'The build version is invalid. Refresh and try again.',
+    )
   }
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(input.idempotencyKey)) {
+  if (
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+      input.idempotencyKey,
+    )
+  ) {
     throw new AurevaneError('INVALID_REQUEST', 'The build request key is invalid.')
   }
 

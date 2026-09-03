@@ -25,12 +25,15 @@ test('Profile previews and commits Primary Discipline without changing assigned 
   await expect(panel).toContainText('Vanguard')
   await expect(panel).toContainText('Build v1')
 
-  const attributesBefore = Object.fromEntries(
+  const attributesBefore = new Map(
     await Promise.all(
-      ATTRIBUTE_IDS.map(async (id) => [
-        id,
-        await page.getByTestId(`profile-attribute-${id}`).locator('strong').innerText(),
-      ]),
+      ATTRIBUTE_IDS.map(
+        async (id) =>
+          [
+            id,
+            await page.getByTestId(`profile-attribute-${id}`).locator('strong').innerText(),
+          ] as const,
+      ),
     ),
   )
   const maxHpBefore = await page.getByTestId('derived-stat-maxHp').locator('strong').innerText()
@@ -48,7 +51,7 @@ test('Profile previews and commits Primary Discipline without changing assigned 
   await expect(panel).toContainText('Aetherist is now the committed Primary Discipline.')
   await expect(panel).toContainText('Build v2')
 
-  for (const [id, value] of Object.entries(attributesBefore)) {
+  for (const [id, value] of attributesBefore) {
     await expect(page.getByTestId(`profile-attribute-${id}`).locator('strong')).toHaveText(value)
   }
 
@@ -59,7 +62,7 @@ test('Profile previews and commits Primary Discipline without changing assigned 
   await expect(page.getByTestId('primary-build-panel')).toContainText('Aetherist')
   await expect(page.getByTestId('primary-build-panel')).toContainText('Build v2')
   await expect(page.getByTestId('derived-stat-maxHp').locator('strong')).toHaveText(maxHpAfter)
-  for (const [id, value] of Object.entries(attributesBefore)) {
+  for (const [id, value] of attributesBefore) {
     await expect(page.getByTestId(`profile-attribute-${id}`).locator('strong')).toHaveText(value)
   }
 })

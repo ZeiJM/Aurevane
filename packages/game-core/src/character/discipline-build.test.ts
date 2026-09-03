@@ -54,7 +54,9 @@ describe('Primary Discipline build calculation', () => {
       },
       modifiers: [{ sourceId: 'effect.test', statId: 'armor' as const, amount: 3 }],
     }
-    expect(calculateCharacterBuildDerivedStats(input)).toEqual(calculateCharacterBuildDerivedStats(input))
+    expect(calculateCharacterBuildDerivedStats(input)).toEqual(
+      calculateCharacterBuildDerivedStats(input),
+    )
   })
 
   it('fails closed for disabled or mismatched Primary definitions', () => {

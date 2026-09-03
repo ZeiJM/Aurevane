@@ -359,14 +359,14 @@ begin
     raise exception using errcode = '22023', message = 'PRIMARY_DISCIPLINE_ALREADY_ACTIVE';
   end if;
 
-  update app_private.character_active_builds
+  update app_private.character_active_builds build
   set
     build_version = v_build.build_version + 1,
     primary_discipline_id = v_definition.discipline_id,
     primary_definition_version = v_definition.definition_version,
     primary_profile_version = v_profile.profile_version,
     updated_at = v_changed_at
-  where character_id = v_build.character_id;
+  where build.character_id = v_build.character_id;
 
   insert into app_private.character_build_change_audit (
     id,

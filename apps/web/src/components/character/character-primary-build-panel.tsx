@@ -135,7 +135,11 @@ export function CharacterPrimaryBuildPanel({
   }
 
   return (
-    <section className={styles.panel} aria-labelledby="primary-build-heading" data-testid="primary-build-panel">
+    <section
+      className={styles.panel}
+      aria-labelledby="primary-build-heading"
+      data-testid="primary-build-panel"
+    >
       <header className={styles.header}>
         <div>
           <span>Authoritative build</span>
@@ -149,7 +153,8 @@ export function CharacterPrimaryBuildPanel({
         <strong>{current.definition.name}</strong>
         <p>{current.definition.summary}</p>
         <small>
-          Definition v{current.definition.definitionVersion} · Base profile v{current.profile.profileVersion}
+          Definition v{current.definition.definitionVersion} · Base profile v
+          {current.profile.profileVersion}
         </small>
       </div>
 
@@ -161,7 +166,10 @@ export function CharacterPrimaryBuildPanel({
           disabled={pendingPreview || pendingCommit}
         >
           {availablePrimaries.map((entry) => (
-            <option key={`${entry.definition.id}:${entry.definition.definitionVersion}`} value={entry.definition.id}>
+            <option
+              key={`${entry.definition.id}:${entry.definition.definitionVersion}`}
+              value={entry.definition.id}
+            >
               {entry.definition.name}
             </option>
           ))}
@@ -188,8 +196,7 @@ export function CharacterPrimaryBuildPanel({
                   <div key={entry.id}>
                     <span>{entry.label}</span>
                     <strong>
-                      {entry.current} → {entry.proposed}{' '}
-                      <em>{delta > 0 ? `+${delta}` : delta}</em>
+                      {entry.current} → {entry.proposed} <em>{delta > 0 ? `+${delta}` : delta}</em>
                     </strong>
                   </div>
                 )
@@ -199,7 +206,8 @@ export function CharacterPrimaryBuildPanel({
             )}
           </div>
           <p className={styles.attributeNote}>
-            Your assigned Might, Finesse, Vitality, Agility, Intellect, and Resolve are preserved exactly. Only the Primary base profile changes.
+            Your assigned Might, Finesse, Vitality, Agility, Intellect, and Resolve are preserved
+            exactly. Only the Primary base profile changes.
           </p>
           <button type="button" onClick={() => void commit()} disabled={pendingCommit}>
             {pendingCommit ? 'Committing…' : `Commit ${proposed.definition.name} as Primary`}
@@ -207,7 +215,11 @@ export function CharacterPrimaryBuildPanel({
         </div>
       ) : null}
 
-      {message ? <p className={styles.status} role="status">{message}</p> : null}
+      {message ? (
+        <p className={styles.status} role="status">
+          {message}
+        </p>
+      ) : null}
     </section>
   )
 }
