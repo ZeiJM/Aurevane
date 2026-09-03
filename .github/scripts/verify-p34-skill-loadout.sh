@@ -311,7 +311,7 @@ snapshot="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d p
     coalesce(snapshot -> 'secondary' ->> 'disciplineId', '') || '|' ||
     jsonb_array_length(snapshot -> 'disciplineSkills')::text || '|' ||
     (snapshot -> 'disciplineSkills' -> 0 ->> 'skillId') || '|' ||
-    (snapshot -> 'extensions' ->> 'resonance') || '|' ||
+    coalesce(snapshot -> 'extensions' ->> 'resonance', '') || '|' ||
     jsonb_array_length(snapshot -> 'extensions' -> 'equipmentSkills')::text
   from (
     select public.get_character_committed_build_snapshot_v1(
