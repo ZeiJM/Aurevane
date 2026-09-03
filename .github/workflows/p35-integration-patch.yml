@@ -1,5 +1,6 @@
 name: P3.5 Integration Patch
 
+# Temporary one-shot helper. Removed before the P3.5 PR.
 on:
   push:
     branches:
