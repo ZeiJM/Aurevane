@@ -429,7 +429,7 @@ describe('character build service', () => {
             resonance: {
               resonanceId: 'resonance.lifebinder-vanguard.mercys-edge',
               contentVersion: 1,
-              disciplinePair: ['lifebinder', 'vanguard'],
+              disciplinePair: ['lifebinder', 'vanguard'] as const,
             },
             essence: null,
             equipmentSkills: [],
