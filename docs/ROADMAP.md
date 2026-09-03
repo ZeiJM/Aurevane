@@ -48,7 +48,7 @@ Performance work never authorizes a gameplay redesign, weakened server authority
 | Phase 0 — Engineering Foundation | ✅ Substantially complete | Core technical/security/deployment foundations exist. |
 | Phase 1 — Character & Progression Foundation | ✅ Substantially complete | Character/account/profile/progression/equipment foundations exist. |
 | Phase 2 — Tactical Combat & Battle Platform | ✅ Closed / PV-1 passed | Mature combat, AI, direct PvP and spectation foundations are preserved for reuse. |
-| Phase 3 — Signature Buildcraft Foundation | 🛠️ Active — P3.2 | P3.1 is validated on the stacked dependency; P3.2 is the current implementation/validation ticket. |
+| Phase 3 — Signature Buildcraft Foundation | 🛠️ Active — P3.3 | P3.1 and P3.2 are validated stacked dependencies; P3.3 is the current implementation/validation ticket. |
 | Phase 4+ | 🔜 Planned | Later phases inherit compatible early work rather than restarting. |
 
 ## Current decision boundary
@@ -58,14 +58,14 @@ AUREVANE is now in **Phase 3 — Signature Buildcraft Foundation**. Phase 2 is f
 Active now:
 
 - execute one canonical Phase-3 ticket at a time from `docs/PHASE_3_TICKETS.md`;
-- preserve the validated P3.1 Discipline build authority + Primary profiles dependency and execute P3.2 Secondary + independent attunement cooldowns;
+- preserve the validated P3.1 Discipline build authority + Primary profiles and P3.2 Secondary + independent attunement dependencies, then execute P3.3 mature Skill schema + generic cooldown authority;
 - reuse compatible Phase-1 character/profile foundations and the mature Phase-2 battle platform;
 - run behavior-preserving performance/security checks at the Phase-3 build-state boundaries.
 
 Not allowed by default:
 
 - reopening or redesigning Phase-2 systems without a genuine regression;
-- pulling P3.3+ or Phase-4+ content into P3.2 without a tightly coupled prerequisite;
+- pulling P3.4+ or Phase-4+ content into P3.3 without a tightly coupled prerequisite;
 - Vercel deployment unless separately authorized by the Owner.
 
 ## Automatic performance/scaling checkpoints
