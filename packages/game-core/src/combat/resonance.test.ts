@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { createCombatEncounterState } from './actions'
 import { createPendingBattle, endTurn, startBattle } from './battle-state'
-import { createTacticalBattleState } from './board'
+import { createTacticalBattleState, selectCurrentFinalFacing } from './board'
 import { resolveMatureSkillVersion } from './mature-skills'
 import {
   P35_REPRESENTATIVE_RESONANCES,
@@ -79,12 +79,18 @@ function encounter() {
 }
 
 function nextPlayerAction(state: ReturnType<typeof encounter>) {
-  const recruitEnded = endTurn(endTurn(state.tactical.battle).state).state
+  const playerFacing = selectCurrentFinalFacing(state.tactical, 'east').state
+  const recruitTurn = endTurn(playerFacing.battle).state
+  const recruitFacing = selectCurrentFinalFacing(
+    { ...playerFacing, battle: recruitTurn },
+    'west',
+  ).state
+  const playerTurn = endTurn(recruitFacing.battle).state
   return {
     ...state,
     tactical: {
-      ...state.tactical,
-      battle: recruitEnded,
+      ...recruitFacing,
+      battle: playerTurn,
     },
   }
 }
