@@ -11,32 +11,38 @@ permissions:
   contents: write
 
 jobs:
-  diagnose:
+  patch:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
           ref: agent/p3-5-resonance-framework
-      - name: Record anchor diagnostics
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Apply P3.5 integration
+        run: python3 .github/scripts/p35-integration-patch.py
+      - name: Format integration files
         run: |
-          python3 <<'PY' > .github/p35-anchor-diagnostic.txt
-          from pathlib import Path
-          checks = {
-            'service-import': (Path('apps/web/src/server/character/character-build-service.ts'), "from '@aurevane/game-core/combat/mature-skills'\nimport { AurevaneError }"),
-            'service-snapshot-interface': (Path('apps/web/src/server/character/character-build-service.ts'), 'export interface CharacterCommittedBuildSnapshotRecord'),
-            'service-loadout-interface': (Path('apps/web/src/server/character/character-build-service.ts'), 'export interface CharacterDisciplineSkillLoadoutView'),
-            'service-return': (Path('apps/web/src/server/character/character-build-service.ts'), 'resonance: null,\n      essence: null,'),
-            'repo-parser': (Path('apps/web/src/server/character/supabase-character-build-repository.ts'), 'value.extensions.resonance !== null ||'),
-            'shell-import': (Path('apps/web/src/components/character/character-profile-shell.tsx'), "import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'"),
-            'page-equipped': (Path('apps/web/src/app/game/character/page.tsx'), 'equippedSkills: disciplineBuild.disciplineSkills.equippedSkills,'),
-            'panel-extension': (Path('apps/web/src/components/character/character-skill-build-panel.tsx'), 'Resonance / Essence — reserved for P3.5–P3.6'),
-            'test-schema3': (Path('apps/web/src/server/character/character-build-service.test.ts'), 'schemaVersion: 3,'),
-          }
-          for name, (path, needle) in checks.items():
-              print(f'{name}={path.read_text().count(needle)}')
-          PY
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm exec prettier --write \
+            apps/web/src/server/character/character-build-service.ts \
+            apps/web/src/server/character/supabase-character-build-repository.ts \
+            apps/web/src/server/character/character-build-service.test.ts \
+            apps/web/src/app/game/character/page.tsx \
+            apps/web/src/components/character/character-profile-shell.tsx \
+            apps/web/src/components/character/character-skill-build-panel.tsx
+      - name: Commit integration
+        run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add .github/p35-anchor-diagnostic.txt
-          git commit -m 'chore: record P3.5 patch diagnostics'
+          git add \
+            apps/web/src/server/character/character-build-service.ts \
+            apps/web/src/server/character/supabase-character-build-repository.ts \
+            apps/web/src/server/character/character-build-service.test.ts \
+            apps/web/src/app/game/character/page.tsx \
+            apps/web/src/components/character/character-profile-shell.tsx \
+            apps/web/src/components/character/character-skill-build-panel.tsx
+          git commit -m 'P3.5 integrate Resonance build snapshot and Profile'
           git push origin HEAD:agent/p3-5-resonance-framework
