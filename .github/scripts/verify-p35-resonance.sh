@@ -35,11 +35,13 @@ character_id="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres 
   );")"
 test -n "$character_id"
 
+# P3.5 derives Resonance from the committed Discipline pair and does not add a new
+# character-owned persistent build field. A fresh P3.2-only build must therefore remain schema v2.
 initial="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
   select schema_version::text || '|' || build_version::text || '|' || primary_discipline_id || '|' || coalesce(secondary_discipline_id, '')
   from public.get_character_active_build_v2('$user_id'::uuid, '$character_id'::uuid);")"
-test "$initial" = '4|1|vanguard|'
+test "$initial" = '2|1|vanguard|'
 
 pure_snapshot="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
@@ -49,7 +51,7 @@ pure_snapshot="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres
   from (
     select public.get_character_committed_build_snapshot_v1('$user_id'::uuid, '$character_id'::uuid) as snapshot
   ) resolved;")"
-test "$pure_snapshot" = '4|'
+test "$pure_snapshot" = '2|'
 
 privileges="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   select
@@ -92,7 +94,7 @@ mixed_change="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres 
     '00000000-0000-4000-8000-000000003502'::uuid,
     'sha256:p35-mixed'
   );")"
-test "$mixed_change" = '4|2|vanguard|lifebinder'
+test "$mixed_change" = '2|2|vanguard|lifebinder'
 
 mixed_snapshot="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
@@ -105,7 +107,7 @@ mixed_snapshot="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgre
   from (
     select public.get_character_committed_build_snapshot_v1('$user_id'::uuid, '$character_id'::uuid) as snapshot
   ) resolved;")"
-test "$mixed_snapshot" = '4|resonance.lifebinder-vanguard.mercys-edge|1|lifebinder|vanguard'
+test "$mixed_snapshot" = '2|resonance.lifebinder-vanguard.mercys-edge|1|lifebinder|vanguard'
 
 # Content disablement fails closed: the pair cannot fabricate or retain a disabled Resonance.
 docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
@@ -145,7 +147,7 @@ pure_again="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d
     '00000000-0000-4000-8000-000000003503'::uuid,
     'sha256:p35-pure-again'
   );")"
-test "$pure_again" = '4|3|'
+test "$pure_again" = '2|3|'
 
 resolved_pure_again="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;

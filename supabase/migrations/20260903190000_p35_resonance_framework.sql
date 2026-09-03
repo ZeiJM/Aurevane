@@ -54,33 +54,10 @@ insert into app_private.resonance_definitions (
   true
 );
 
-alter table app_private.character_active_builds
-  alter column schema_version set default 4;
-
-update app_private.character_active_builds
-set schema_version = 4
-where schema_version < 4;
-
-create or replace function app_private.enforce_character_active_build_schema_v4()
-returns trigger
-language plpgsql
-security definer
-set search_path = pg_catalog, public, app_private
-as $$
-begin
-  new.schema_version := greatest(new.schema_version, 4);
-  return new;
-end;
-$$;
-
-revoke all on function app_private.enforce_character_active_build_schema_v4()
-  from public, anon, authenticated;
-
-create trigger character_active_builds_minimum_schema_v4
-  before insert or update of schema_version
-  on app_private.character_active_builds
-  for each row
-  execute function app_private.enforce_character_active_build_schema_v4();
+-- Resonance is derived from the already-committed Primary/Secondary pair. It adds no
+-- character-owned persistent field, so it must not globally upgrade or rewrite the active-build
+-- schema version. P3.2-only builds remain v2 and P3.4 Skill-state builds remain v3 until a later
+-- persisted build feature has an actual schema reason to advance them.
 
 create or replace function app_private.resolve_resonance_reference_v1(
   p_primary_discipline_id text,
