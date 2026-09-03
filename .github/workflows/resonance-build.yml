@@ -10,6 +10,7 @@ on:
       - 'packages/game-core/src/combat/pv1f-action-economy.ts'
       - 'packages/game-core/src/combat/pv1f-action-economy.test.ts'
       - 'packages/game-core/src/combat/mature-skills.ts'
+      - 'packages/game-core/src/combat/mature-skill-lifecycle.test.ts'
       - 'packages/game-core/package.json'
       - 'apps/web/src/server/character/character-build-service.ts'
       - 'apps/web/src/server/character/character-build-service.test.ts'
@@ -35,6 +36,7 @@ on:
       - 'packages/game-core/src/combat/pv1f-action-economy.ts'
       - 'packages/game-core/src/combat/pv1f-action-economy.test.ts'
       - 'packages/game-core/src/combat/mature-skills.ts'
+      - 'packages/game-core/src/combat/mature-skill-lifecycle.test.ts'
       - 'packages/game-core/package.json'
       - 'apps/web/src/server/character/character-build-service.ts'
       - 'apps/web/src/server/character/character-build-service.test.ts'
@@ -73,6 +75,7 @@ jobs:
             packages/game-core/src/combat/resonance.test.ts \
             packages/game-core/src/combat/pv1f-resonance.ts \
             packages/game-core/src/combat/pv1f-resonance.test.ts \
+            packages/game-core/src/combat/mature-skill-lifecycle.test.ts \
             packages/game-core/package.json \
             apps/web/src/server/character/character-build-service.ts \
             apps/web/src/server/character/character-build-service.test.ts \
@@ -92,6 +95,7 @@ jobs:
             packages/game-core/src/combat/resonance.test.ts \
             packages/game-core/src/combat/pv1f-resonance.ts \
             packages/game-core/src/combat/pv1f-resonance.test.ts \
+            packages/game-core/src/combat/mature-skill-lifecycle.test.ts \
             apps/web/src/server/character/character-build-service.ts \
             apps/web/src/server/character/character-build-service.test.ts \
             apps/web/src/server/character/supabase-character-build-repository.ts \
@@ -135,7 +139,8 @@ jobs:
             src/combat/resonance.test.ts \
             src/combat/pv1f-resonance.test.ts \
             src/combat/pv1f-action-economy.test.ts \
-            src/combat/mature-skills.test.ts
+            src/combat/mature-skills.test.ts \
+            src/combat/mature-skill-lifecycle.test.ts
           pnpm --filter @aurevane/web exec vitest run \
             src/server/character/character-build-service.test.ts
       - name: Production workspace build
