@@ -64,27 +64,12 @@ jobs:
           corepack prepare pnpm@11.17.0 --activate
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Focused formatting
+      - name: Exact formatting diff
         run: |
-          pnpm exec prettier --check \
+          pnpm exec prettier --write \
             packages/game-core/src/combat/essence.ts \
-            packages/game-core/src/combat/essence.test.ts \
-            packages/game-core/src/combat/mature-skill-lifecycle.test.ts \
-            packages/game-core/package.json
-      - name: Focused lint
-        run: |
-          pnpm exec eslint \
+            packages/game-core/src/combat/essence.test.ts
+          git diff -- \
             packages/game-core/src/combat/essence.ts \
-            packages/game-core/src/combat/essence.test.ts \
-            packages/game-core/src/combat/mature-skill-lifecycle.test.ts
-      - name: Game core typecheck
-        run: pnpm --filter @aurevane/game-core typecheck
-      - name: Focused P3.6 tests
-        run: |
-          pnpm --filter @aurevane/game-core exec vitest run \
-            src/combat/essence.test.ts \
-            src/combat/mature-skills.test.ts \
-            src/combat/mature-skill-lifecycle.test.ts \
-            src/combat/pv1f-action-economy.test.ts
-      - name: Production workspace build
-        run: pnpm build
+            packages/game-core/src/combat/essence.test.ts
+          exit 1
