@@ -25,6 +25,8 @@ jobs:
           corepack prepare pnpm@11.17.0 --activate
       - name: Apply P3.3 patch
         run: python .github/scripts/apply-p33.py
+      - name: Apply P3.3 lint postfix
+        run: python .github/scripts/p33-postfix.py
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Format P3.3 files
