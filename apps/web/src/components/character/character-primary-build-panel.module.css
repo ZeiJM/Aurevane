@@ -40,6 +40,7 @@
   z-index: 90;
   display: grid;
   place-items: center;
+  overflow: auto;
   padding: 1rem;
   background: rgba(2, 4, 7, 0.78);
   backdrop-filter: blur(0.35rem);
