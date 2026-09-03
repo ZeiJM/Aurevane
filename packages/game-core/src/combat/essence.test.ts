@@ -197,7 +197,7 @@ describe('P3.6 versioned pure Essence framework', () => {
       }),
     ).toThrow('That Essence Skill is not legal for the committed Discipline build.')
 
-    expect(readPv1fActionEconomy(state, 'player')).toBeNull()
+    expect(readPv1fActionEconomy(state, 'player')?.current).toBe(100)
     expect(state.tactical.battle.combatants.find((row) => row.id === 'recruit')?.hp).toBe(50)
   })
 })
