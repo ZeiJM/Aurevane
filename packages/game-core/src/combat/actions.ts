@@ -1,4 +1,11 @@
 import type { SkillNarrationTemplate } from './battle-narration'
+import {
+  applySkillCooldown,
+  readSkillCooldown,
+  validateSkillCooldownDefinition,
+  type SkillCooldownDefinition,
+  type SkillCooldownEvent,
+} from './skill-cooldowns'
 import { endTurn, spendAction, type BattleCombatant, type BattleState } from './battle-state'
 import {
   classifyFacingRelation,
@@ -77,6 +84,7 @@ export interface CombatActionDefinition {
   target: CombatTargetSpec
   cost: CombatActionCost
   requirements: readonly CombatUseRequirement[]
+  cooldown?: SkillCooldownDefinition
   narration?: SkillNarrationTemplate
   effects: readonly CombatEffectDefinition[]
 }
@@ -174,6 +182,7 @@ export interface CombatActionEvaluation {
 
 export type CombatResolutionEvent =
   | TacticalBattleEvent
+  | SkillCooldownEvent
   | { event: 'combat_action_used'; actionId: string; actorId: string }
   | { event: 'mp_spent'; combatantId: string; amount: number; remaining: number }
   | {
@@ -372,6 +381,15 @@ export function evaluateCombatAction(
   }
 
   const actor = getCombatant(battle, actorId)
+  if (action.cooldown) {
+    const cooldown = readSkillCooldown(actor, action.cooldown)
+    if (cooldown.active) {
+      issues.push({
+        code: 'cooldown-active',
+        message: `That Skill is cooling down (${cooldown.ticksRemaining} owner-turn tick${cooldown.ticksRemaining === 1 ? '' : 's'} remain).`,
+      })
+    }
+  }
   if (actor.mp < action.cost.mp) {
     issues.push({ code: 'insufficient-mp', message: 'The actor does not have enough MP.' })
   }
@@ -507,6 +525,16 @@ export function executeCombatAction(
       nextState = applied.state
       events.push(...applied.events)
     }
+  }
+
+  if (action.cooldown) {
+    const cooldown = applySkillCooldown(
+      getCombatant(nextState.tactical.battle, actorId),
+      action.cooldown,
+      { actionId: action.id, definitionVersion: action.version },
+    )
+    nextState = withUpdatedCombatant(nextState, actorId, cooldown.combatant)
+    events.push(...cooldown.events)
   }
 
   const completion = completeBattleIfResolved(nextState)
@@ -1430,6 +1458,12 @@ function validateCombatActionDefinition(
 ): void {
   collectRequiredIdentity(action.id, 'action id')
   assertPositiveSafeInteger(action.version, 'action version')
+  if (action.cooldown) {
+    const cooldownIssues = validateSkillCooldownDefinition(action.cooldown)
+    if (cooldownIssues.length > 0) {
+      throw new TypeError(`Invalid action cooldown definition: ${cooldownIssues.join(', ')}.`)
+    }
+  }
   assertKnownString(
     action.sourceType,
     ['basic-attack', 'basic-action', 'discipline-skill', 'scenario', 'test'],

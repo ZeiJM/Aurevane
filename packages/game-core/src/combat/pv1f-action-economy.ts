@@ -12,6 +12,12 @@ import {
 } from './actions'
 import type { BattleCombatant, BattleFacing, BattleTemporaryResource } from './battle-state'
 import {
+  resolveMatureSkillForContext,
+  toCombatActionDefinition,
+  type MatureSkillCombatContext,
+  type MatureSkillDefinition,
+} from './mature-skills'
+import {
   advanceSkillCooldownsAtOwnerTurnStart,
   applySkillCooldown,
   readSkillCooldown,
@@ -472,6 +478,61 @@ export function executePv1fAction(
     events: [
       ...transition.events,
       ...cooldownEvents,
+      { event: 'action_economy_spent', combatantId: actorId, amount: cost, remaining },
+    ],
+  }
+}
+
+export function evaluatePv1fMatureSkill(
+  state: StatDrivenCombatEncounterState,
+  definition: MatureSkillDefinition,
+  target: CombatTargetSelection,
+  combatContext: MatureSkillCombatContext = 'pve',
+): {
+  prepared: StatDrivenCombatEncounterState
+  action: CombatActionDefinition
+  cost: number
+  evaluation: CombatActionEvaluation
+} {
+  const prepared = preparePv1fTurnEconomy(state)
+  const resolved = resolveMatureSkillForContext(definition, combatContext)
+  const action = toCombatActionDefinition(definition, combatContext)
+  return {
+    prepared,
+    action,
+    cost: resolved.apCost,
+    evaluation: evaluateCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT),
+  }
+}
+
+export function executePv1fMatureSkill(
+  state: StatDrivenCombatEncounterState,
+  definition: MatureSkillDefinition,
+  target: CombatTargetSelection,
+  combatContext: MatureSkillCombatContext = 'pve',
+): Pv1fTransition {
+  const { prepared, action, cost, evaluation } = evaluatePv1fMatureSkill(
+    state,
+    definition,
+    target,
+    combatContext,
+  )
+  if (!evaluation.legal) {
+    throw new Error(evaluation.issues[0]?.message ?? 'That mature Skill is not legal.')
+  }
+  if (!canAffordPv1fEconomy(prepared, cost)) {
+    throw new Error('Not enough Action Economy remains for that mature Skill.')
+  }
+  const actorId = prepared.tactical.battle.currentTurn?.combatantId
+  if (!actorId) throw new Error('Mature Skill execution requires an active turn.')
+  const resolved = executeCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT)
+  let next = reattachStatDrivenCombatBridge(resolved.state, prepared.statBridge)
+  next = spendPv1fActionEconomyForActor(next, actorId, cost)
+  const remaining = readPv1fActionEconomy(next, actorId)?.current ?? 0
+  return {
+    state: next,
+    events: [
+      ...resolved.events,
       { event: 'action_economy_spent', combatantId: actorId, amount: cost, remaining },
     ],
   }

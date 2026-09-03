@@ -107,6 +107,16 @@ describe('P3.3 mature Skill schema', () => {
     expect(resolved.state.tactical.battle.combatants.find((row) => row.id === 'player')?.hp).toBe(
       46,
     )
+    const actor = resolved.state.tactical.battle.combatants.find((row) => row.id === 'player')
+    if (!actor) throw new Error('Expected player combatant after Skill use.')
+    expect(readSkillCooldown(actor, definition.cooldown)).toMatchObject({
+      active: true,
+      ownerTurns: 2,
+      ticksRemaining: 3,
+    })
+    const blocked = evaluateCombatAction(resolved.state, action, { kind: 'self' }, { statuses: [] })
+    expect(blocked.legal).toBe(false)
+    expect(blocked.issues).toContainEqual(expect.objectContaining({ code: 'cooldown-active' }))
   })
 
   it('applies deterministic PvE/PvP override hooks without mutating the source definition', () => {

@@ -280,6 +280,7 @@ export function toCombatActionDefinition(
     target: resolved.target,
     cost: { spendsAction: true, mp: 0 },
     requirements: resolved.requirements,
+    cooldown: resolved.cooldown,
     effects: resolved.effects,
   }
 }

@@ -1,14 +1,19 @@
 import { describe, expect, it } from 'vitest'
 
+import { resolveMatureSkillVersion } from './mature-skills'
+
 import { createCombatEncounterState } from './actions'
 import { createPendingBattle, startBattle } from './battle-state'
 import { createTacticalBattleState } from './board'
 import {
   createPv1fTemporaryResources,
   evaluatePv1fAction,
+  evaluatePv1fMatureSkill,
   executePv1fAction,
+  executePv1fMatureSkill,
   finishPv1fTurn,
   readPv1fActionCooldown,
+  readPv1fActionEconomy,
   PV1F_ACTION_ECONOMY_RESOURCE_KEY,
   PV1F_BASIC_ATTACK_COST,
   PV1F_BASIC_ATTACK_ID,
@@ -269,5 +274,33 @@ describe('P3.3 recovery cooldown authority', () => {
     expect(
       evaluatePv1fAction(readyTurn, PV1F_RECOVER_ACTION_ID, { kind: 'self' }).evaluation.legal,
     ).toBe(true)
+  })
+})
+
+describe('P3.3 mature Skill Action Economy integration', () => {
+  it('spends authored AP, starts cooldown, and remains blocked after reconnect', () => {
+    const definition = resolveMatureSkillVersion('lifebinder.mending-light', 1)
+    if (!definition) throw new Error('Expected representative Lifebinder Skill.')
+    const state = lethalEncounter('player')
+    const player = state.tactical.battle.combatants.find((combatant) => combatant.id === 'player')
+    if (!player) throw new Error('Expected player combatant.')
+    player.hp = 25
+
+    const used = executePv1fMatureSkill(state, definition, { kind: 'self' })
+    expect(readPv1fActionEconomy(used.state, 'player')?.current).toBe(55)
+    expect(used.events).toContainEqual(
+      expect.objectContaining({
+        event: 'skill_cooldown_started',
+        actionId: definition.id,
+        definitionVersion: definition.contentVersion,
+      }),
+    )
+
+    const reconnected = JSON.parse(JSON.stringify(used.state)) as StatDrivenCombatEncounterState
+    const blocked = evaluatePv1fMatureSkill(reconnected, definition, { kind: 'self' })
+    expect(blocked.evaluation.legal).toBe(false)
+    expect(blocked.evaluation.issues).toContainEqual(
+      expect.objectContaining({ code: 'cooldown-active' }),
+    )
   })
 })
