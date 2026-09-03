@@ -37,7 +37,9 @@ export interface ChangePrimaryDisciplineInput {
 export interface CharacterBuildRepository {
   findActiveBuild(userId: string, characterId: string): Promise<CharacterActiveBuildRecord | null>
   listPrimaryDisciplines(): Promise<readonly PrimaryDisciplineCatalogEntry[]>
-  changePrimaryDiscipline(input: ChangePrimaryDisciplineInput): Promise<CharacterActiveBuildRecord>
+  changePrimaryDiscipline(
+    input: ChangePrimaryDisciplineInput,
+  ): Promise<{ build: CharacterActiveBuildRecord; replayed: boolean }>
 }
 
 export interface CharacterBuildContext {
@@ -85,13 +87,12 @@ export async function loadCharacterBuildContext(
   if (!build) {
     throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The character build is unavailable right now.')
   }
-  const pinnedEntry: PrimaryDisciplineCatalogEntry = {
-    definition: build.primaryDefinition,
-    profile: build.primaryProfile,
-  }
   return {
     build,
-    current: calculatePreview(character, pinnedEntry),
+    current: calculatePreview(character, {
+      definition: build.primaryDefinition,
+      profile: build.primaryProfile,
+    }),
     availablePrimaries,
   }
 }
@@ -152,7 +153,7 @@ export async function changeCharacterPrimaryDiscipline(
     )
     .digest('hex')}`
 
-  const build = await repository.changePrimaryDiscipline({
+  const changed = await repository.changePrimaryDiscipline({
     userId,
     characterId: character.id,
     expectedBuildVersion: input.expectedBuildVersion,
@@ -162,12 +163,12 @@ export async function changeCharacterPrimaryDiscipline(
   })
 
   return {
-    build,
+    build: changed.build,
     current: calculatePreview(character, {
-      definition: build.primaryDefinition,
-      profile: build.primaryProfile,
+      definition: changed.build.primaryDefinition,
+      profile: changed.build.primaryProfile,
     }),
     availablePrimaries: catalog,
-    replayed: false,
+    replayed: changed.replayed,
   }
 }
