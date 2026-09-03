@@ -50,6 +50,7 @@ export function CharacterPrimaryBuildPanel({
   availablePrimaries,
 }: CharacterPrimaryBuildPanelProps) {
   const router = useRouter()
+  const [open, setOpen] = useState(false)
   const [buildVersion, setBuildVersion] = useState(initialBuildVersion)
   const [current, setCurrent] = useState(initialCurrent)
   const [selectedId, setSelectedId] = useState(initialCurrent.definition.id)
@@ -135,91 +136,115 @@ export function CharacterPrimaryBuildPanel({
   }
 
   return (
-    <section
-      className={styles.panel}
-      aria-labelledby="primary-build-heading"
-      data-testid="primary-build-panel"
-    >
-      <header className={styles.header}>
-        <div>
-          <span>Authoritative build</span>
-          <h2 id="primary-build-heading">Primary Discipline</h2>
-        </div>
-        <strong>Build v{buildVersion}</strong>
-      </header>
-
-      <div className={styles.current}>
-        <span>Committed Primary</span>
+    <div className={styles.root} data-testid="primary-build-panel">
+      <button
+        type="button"
+        className={styles.trigger}
+        aria-haspopup="dialog"
+        aria-label={`Manage Primary Discipline. Current: ${current.definition.name}, Build v${buildVersion}`}
+        onClick={() => setOpen(true)}
+      >
         <strong>{current.definition.name}</strong>
-        <p>{current.definition.summary}</p>
-        <small>
-          Definition v{current.definition.definitionVersion} · Base profile v
-          {current.profile.profileVersion}
-        </small>
-      </div>
+        <small>Build v{buildVersion}</small>
+      </button>
 
-      <label className={styles.selector}>
-        <span>Proposed Primary</span>
-        <select
-          value={selectedId}
-          onChange={(event) => void preview(event.target.value)}
-          disabled={pendingPreview || pendingCommit}
-        >
-          {availablePrimaries.map((entry) => (
-            <option
-              key={`${entry.definition.id}:${entry.definition.definitionVersion}`}
-              value={entry.definition.id}
-            >
-              {entry.definition.name}
-            </option>
-          ))}
-        </select>
-      </label>
+      {open ? (
+        <div className={styles.backdrop} role="presentation" onPointerDown={() => setOpen(false)}>
+          <section
+            className={styles.dialog}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="primary-build-heading"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <header className={styles.header}>
+              <div>
+                <span>Authoritative build</span>
+                <h2 id="primary-build-heading">Primary Discipline</h2>
+              </div>
+              <button type="button" className={styles.close} onClick={() => setOpen(false)}>
+                Close
+              </button>
+            </header>
 
-      {pendingPreview ? <p className={styles.status}>Calculating authoritative preview…</p> : null}
-
-      {proposed ? (
-        <div className={styles.preview} data-testid="primary-build-preview">
-          <div className={styles.previewHeading}>
-            <div>
-              <span>Proposed profile</span>
-              <strong>{proposed.definition.name}</strong>
+            <div className={styles.current}>
+              <span>Committed Primary</span>
+              <strong>{current.definition.name}</strong>
+              <p>{current.definition.summary}</p>
+              <small>
+                Definition v{current.definition.definitionVersion} · Base profile v
+                {current.profile.profileVersion} · Build v{buildVersion}
+              </small>
             </div>
-            <small>Profile v{proposed.profile.profileVersion}</small>
-          </div>
-          <p>{proposed.definition.summary}</p>
-          <div className={styles.deltas}>
-            {deltas.length > 0 ? (
-              deltas.map((entry) => {
-                const delta = entry.proposed - entry.current
-                return (
-                  <div key={entry.id}>
-                    <span>{entry.label}</span>
-                    <strong>
-                      {entry.current} → {entry.proposed} <em>{delta > 0 ? `+${delta}` : delta}</em>
-                    </strong>
+
+            <label className={styles.selector}>
+              <span>Proposed Primary</span>
+              <select
+                value={selectedId}
+                onChange={(event) => void preview(event.target.value)}
+                disabled={pendingPreview || pendingCommit}
+              >
+                {availablePrimaries.map((entry) => (
+                  <option
+                    key={`${entry.definition.id}:${entry.definition.definitionVersion}`}
+                    value={entry.definition.id}
+                  >
+                    {entry.definition.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            {pendingPreview ? (
+              <p className={styles.status}>Calculating authoritative preview…</p>
+            ) : null}
+
+            {proposed ? (
+              <div className={styles.preview} data-testid="primary-build-preview">
+                <div className={styles.previewHeading}>
+                  <div>
+                    <span>Proposed profile</span>
+                    <strong>{proposed.definition.name}</strong>
                   </div>
-                )
-              })
-            ) : (
-              <p>No displayed derived stat changes for this profile.</p>
-            )}
-          </div>
-          <p className={styles.attributeNote}>
-            Your assigned Might, Finesse, Vitality, Agility, Intellect, and Resolve are preserved
-            exactly. Only the Primary base profile changes.
-          </p>
-          <button type="button" onClick={() => void commit()} disabled={pendingCommit}>
-            {pendingCommit ? 'Committing…' : `Commit ${proposed.definition.name} as Primary`}
-          </button>
+                  <small>Profile v{proposed.profile.profileVersion}</small>
+                </div>
+                <p>{proposed.definition.summary}</p>
+                <div className={styles.deltas}>
+                  {deltas.length > 0 ? (
+                    deltas.map((entry) => {
+                      const delta = entry.proposed - entry.current
+                      return (
+                        <div key={entry.id}>
+                          <span>{entry.label}</span>
+                          <strong>
+                            {entry.current} → {entry.proposed}{' '}
+                            <em>{delta > 0 ? `+${delta}` : delta}</em>
+                          </strong>
+                        </div>
+                      )
+                    })
+                  ) : (
+                    <p>No displayed derived stat changes for this profile.</p>
+                  )}
+                </div>
+                <p className={styles.attributeNote}>
+                  Your assigned Might, Finesse, Vitality, Agility, Intellect, and Resolve are
+                  preserved exactly. Only the Primary base profile changes.
+                </p>
+                <button type="button" onClick={() => void commit()} disabled={pendingCommit}>
+                  {pendingCommit ? 'Committing…' : `Commit ${proposed.definition.name} as Primary`}
+                </button>
+              </div>
+            ) : null}
+
+            {message ? (
+              <p className={styles.status} role="status">
+                {message}
+              </p>
+            ) : null}
+          </section>
         </div>
       ) : null}
-
-      {message ? (
-        <p className={styles.status} role="status">
-          {message}
-        </p>
-      ) : null}
-    </section>
+    </div>
   )
 }
