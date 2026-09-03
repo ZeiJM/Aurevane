@@ -160,9 +160,9 @@ describe('P3.3 representative mature Skill lifecycle acceptance', () => {
         cooldownKey: definition.cooldown.key,
       }),
     )
-    expect(evaluatePv1fMatureSkill(readyTurn.state, definition, { kind: 'self' }).evaluation.legal).toBe(
-      true,
-    )
+    expect(
+      evaluatePv1fMatureSkill(readyTurn.state, definition, { kind: 'self' }).evaluation.legal,
+    ).toBe(true)
 
     const reused = executePv1fMatureSkill(readyTurn.state, definition, { kind: 'self' })
     expect(reused.events).toContainEqual(
