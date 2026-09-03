@@ -102,3 +102,5 @@ export function validateDisciplineSkillLoadout(
 
   return issues
 }
+
+// P3.4 validation trigger; removed by the next commit.
