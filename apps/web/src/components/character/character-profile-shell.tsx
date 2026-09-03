@@ -74,6 +74,11 @@ export function CharacterProfileShell({
     timeZone: 'UTC',
   }).format(new Date(profile.timestamps.createdAt))
   const progress = profile.progression.progress
+  const skillBuildKey = [
+    disciplineBuild.buildVersion,
+    disciplineBuild.current.definition.id,
+    disciplineBuild.currentSecondary?.id ?? 'pure',
+  ].join(':')
 
   return (
     <AuthenticatedShellFrame sessionLabel="Character Profile">
@@ -101,6 +106,7 @@ export function CharacterProfileShell({
                   initialAttunement={disciplineBuild.attunement}
                 />
                 <CharacterSkillBuildPanel
+                  key={skillBuildKey}
                   initialBuildVersion={disciplineBuild.buildVersion}
                   primaryDiscipline={{
                     id: disciplineBuild.current.definition.id,
