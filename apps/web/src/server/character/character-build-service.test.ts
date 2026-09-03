@@ -118,10 +118,12 @@ describe('character build service', () => {
   it('commits only the target identity/version command and preserves replay information', async () => {
     const source = character()
     const before = structuredClone(source.attributes)
-    let captured: Parameters<CharacterBuildRepository['changePrimaryDiscipline']>[0] | null = null
+    const captured: {
+      value?: Parameters<CharacterBuildRepository['changePrimaryDiscipline']>[0]
+    } = {}
     const repo = repository({
       changePrimaryDiscipline: vi.fn(async (input) => {
-        captured = input
+        captured.value = input
         return { build: build(aetherist, 2), replayed: true }
       }),
     })
@@ -139,7 +141,7 @@ describe('character build service', () => {
 
     expect(result.replayed).toBe(true)
     expect(result.build.buildVersion).toBe(2)
-    expect(captured).toEqual(
+    expect(captured.value).toEqual(
       expect.objectContaining({
         userId,
         characterId: source.id,
@@ -147,7 +149,7 @@ describe('character build service', () => {
         primaryDisciplineId: 'aetherist',
       }),
     )
-    expect(captured?.requestFingerprint).toMatch(/^sha256:[0-9a-f]{64}$/)
+    expect(captured.value?.requestFingerprint).toMatch(/^sha256:[0-9a-f]{64}$/)
     expect(source.attributes).toEqual(before)
   })
 })
