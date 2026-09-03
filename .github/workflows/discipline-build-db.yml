@@ -7,11 +7,13 @@ on:
       - '.github/scripts/verify-p31-discipline-build-authority.sh'
       - '.github/scripts/verify-p32-secondary-attunement.sh'
       - '.github/scripts/verify-p34-skill-loadout.sh'
+      - '.github/scripts/verify-p35-resonance.sh'
       - '.github/workflows/discipline-build-db.yml'
       - 'apps/web/src/server/character/character-build-service.ts'
       - 'apps/web/src/server/character/supabase-character-build-repository.ts'
       - 'apps/web/src/app/api/character/build/skills/**'
       - 'packages/game-core/src/character/discipline-skill-loadout*'
+      - 'packages/game-core/src/combat/resonance*'
   push:
     branches:
       - main
@@ -21,11 +23,13 @@ on:
       - '.github/scripts/verify-p31-discipline-build-authority.sh'
       - '.github/scripts/verify-p32-secondary-attunement.sh'
       - '.github/scripts/verify-p34-skill-loadout.sh'
+      - '.github/scripts/verify-p35-resonance.sh'
       - '.github/workflows/discipline-build-db.yml'
       - 'apps/web/src/server/character/character-build-service.ts'
       - 'apps/web/src/server/character/supabase-character-build-repository.ts'
       - 'apps/web/src/app/api/character/build/skills/**'
       - 'packages/game-core/src/character/discipline-skill-loadout*'
+      - 'packages/game-core/src/combat/resonance*'
 
 permissions:
   contents: read
@@ -70,6 +74,12 @@ jobs:
           set -E
           trap 'echo "P3.4 verifier failed at line ${BASH_LINENO[0]}." >&2' ERR
           source .github/scripts/verify-p34-skill-loadout.sh
+
+      - name: Verify P3.5 Resonance authority
+        run: |
+          set -E
+          trap 'echo "P3.5 verifier failed at line ${BASH_LINENO[0]}." >&2' ERR
+          source .github/scripts/verify-p35-resonance.sh
 
       - name: Stop local Supabase services
         if: always()
