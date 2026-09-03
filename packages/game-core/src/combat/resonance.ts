@@ -142,9 +142,7 @@ export function canonicalResonancePair(
     : [secondDisciplineId, firstDisciplineId]
 }
 
-export function validateResonanceDefinition(
-  definition: ResonanceDefinition,
-): readonly string[] {
+export function validateResonanceDefinition(definition: ResonanceDefinition): readonly string[] {
   const issues: string[] = []
   if (!STABLE_ID_PATTERN.test(definition.id)) issues.push('id')
   if (!Number.isSafeInteger(definition.contentVersion) || definition.contentVersion < 1) {
@@ -184,10 +182,7 @@ export function validateResonanceDefinition(
   ) {
     issues.push('trigger.sourceDiscipline')
   }
-  if (
-    definition.trigger.payoffEffects.length < 1 ||
-    definition.trigger.payoffEffects.length > 3
-  ) {
+  if (definition.trigger.payoffEffects.length < 1 || definition.trigger.payoffEffects.length > 3) {
     issues.push('trigger.payoffEffects')
   }
   if (
@@ -236,9 +231,7 @@ export function resonanceSnapshotReference(
   }
 }
 
-export function createResonanceCombatState(
-  definition: ResonanceDefinition,
-): ResonanceCombatState {
+export function createResonanceCombatState(definition: ResonanceDefinition): ResonanceCombatState {
   assertUsableResonance(definition)
   return {
     resonanceId: definition.id,
@@ -377,15 +370,9 @@ function assertUsableResonance(definition: ResonanceDefinition): void {
   if (!definition.enabled) throw new RangeError('That Resonance version is disabled.')
 }
 
-function assertMatchingState(
-  definition: ResonanceDefinition,
-  state: ResonanceCombatState,
-): void {
+function assertMatchingState(definition: ResonanceDefinition, state: ResonanceCombatState): void {
   assertUsableResonance(definition)
-  if (
-    state.resonanceId !== definition.id ||
-    state.contentVersion !== definition.contentVersion
-  ) {
+  if (state.resonanceId !== definition.id || state.contentVersion !== definition.contentVersion) {
     throw new RangeError('Resonance combat state does not match the active definition version.')
   }
 }
