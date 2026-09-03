@@ -4,6 +4,15 @@ import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 const ATTRIBUTE_IDS = ['might', 'finesse', 'vitality', 'agility', 'intellect', 'resolve'] as const
 
+function uniqueCharacterName(): string {
+  const letters = Date.now()
+    .toString()
+    .split('')
+    .map((digit) => String.fromCharCode(65 + Number(digit)))
+    .join('')
+  return `Primary ${letters}`
+}
+
 test('Profile previews and commits Primary Discipline without changing assigned attributes', async ({
   page,
 }, testInfo) => {
@@ -17,7 +26,7 @@ test('Profile previews and commits Primary Discipline without changing assigned 
     page,
     email: `p31-primary-${slug}-${Date.now()}@example.com`,
     password: 'P31-primary-build-2026!',
-    characterName: `P31 ${Date.now().toString().slice(-7)}`,
+    characterName: uniqueCharacterName(),
   })
 
   const panel = page.getByTestId('primary-build-panel')
@@ -38,6 +47,7 @@ test('Profile previews and commits Primary Discipline without changing assigned 
   )
   const maxHpBefore = await page.getByTestId('derived-stat-maxHp').locator('strong').innerText()
 
+  await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
   await page.getByLabel('Proposed Primary').selectOption('aetherist')
   const preview = page.getByTestId('primary-build-preview')
   await expect(preview).toBeVisible()
@@ -48,7 +58,10 @@ test('Profile previews and commits Primary Discipline without changing assigned 
 
   await page.getByRole('button', { name: 'Commit Aetherist as Primary' }).click()
   await expect(preview).toBeHidden()
-  await expect(panel).toContainText('Aetherist is now the committed Primary Discipline.')
+  await expect(page.getByRole('status')).toContainText(
+    'Aetherist is now the committed Primary Discipline.',
+  )
+  await expect(panel).toContainText('Aetherist')
   await expect(panel).toContainText('Build v2')
 
   for (const [id, value] of attributesBefore) {
