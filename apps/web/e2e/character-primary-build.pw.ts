@@ -45,15 +45,16 @@ test('Profile previews and commits Primary Discipline without changing assigned 
       ),
     ),
   )
-  const maxHpBefore = await page.getByTestId('derived-stat-maxHp').locator('strong').innerText()
+  const maxHp = page.getByTestId('derived-stat-maxHp').locator('strong')
+  const maxHpBefore = await maxHp.innerText()
 
   await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
   await page.getByLabel('Proposed Primary').selectOption('aetherist')
   const preview = page.getByTestId('primary-build-preview')
   await expect(preview).toBeVisible()
   await expect(preview).toContainText('Aetherist')
-  await expect(preview).toContainText('Max HP')
-  await expect(preview).toContainText('Max MP')
+  await expect(preview).toContainText('Maximum HP')
+  await expect(preview).toContainText('Maximum MP')
   await expect(preview).toContainText('preserved exactly')
 
   await page.getByRole('button', { name: 'Commit Aetherist as Primary' }).click()
@@ -68,8 +69,8 @@ test('Profile previews and commits Primary Discipline without changing assigned 
     await expect(page.getByTestId(`profile-attribute-${id}`).locator('strong')).toHaveText(value)
   }
 
-  const maxHpAfter = await page.getByTestId('derived-stat-maxHp').locator('strong').innerText()
-  expect(maxHpAfter).not.toBe(maxHpBefore)
+  await expect(maxHp).not.toHaveText(maxHpBefore)
+  const maxHpAfter = await maxHp.innerText()
 
   await page.reload()
   await expect(page.getByTestId('primary-build-panel')).toContainText('Aetherist')
