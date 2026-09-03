@@ -5,10 +5,14 @@ import {
   changeCharacterDisciplines,
   changeCharacterPrimaryDiscipline,
   loadCharacterBuildContext,
+  loadCharacterCommittedBuildSnapshot,
   previewCharacterDisciplines,
   previewCharacterPrimaryDiscipline,
+  saveCharacterDisciplineSkills,
   type CharacterActiveBuildRecord,
   type CharacterBuildRepository,
+  type CharacterEquippedDisciplineSkillRecord,
+  type CharacterLearnedSkillRecord,
   type DisciplineCatalogEntry,
 } from './character-build-service'
 
@@ -78,6 +82,29 @@ const aetherist = entry(
 )
 const lifebinder = entry('lifebinder', { maxHp: 8, maxMp: 15, ward: 4 }, '2026-09-02T01:00:00.000Z')
 
+const learnedVanguard: CharacterLearnedSkillRecord = {
+  skillId: 'vanguard.forceful-strike',
+  contentVersion: 2,
+  sourceDisciplineId: 'vanguard',
+  learnedAt: '2026-09-02T02:00:00.000Z',
+}
+const learnedLifebinder: CharacterLearnedSkillRecord = {
+  skillId: 'lifebinder.mending-light',
+  contentVersion: 1,
+  sourceDisciplineId: 'lifebinder',
+  learnedAt: '2026-09-02T03:00:00.000Z',
+}
+
+function equippedVanguard(slotIndex = 1): CharacterEquippedDisciplineSkillRecord {
+  return {
+    slotIndex,
+    skillId: learnedVanguard.skillId,
+    contentVersion: learnedVanguard.contentVersion,
+    sourceDisciplineId: learnedVanguard.sourceDisciplineId,
+    equippedAt: '2026-09-03T00:00:00.000Z',
+  }
+}
+
 function build(
   source = vanguard,
   buildVersion = 1,
@@ -86,7 +113,7 @@ function build(
 ): CharacterActiveBuildRecord {
   return {
     characterId: character().id,
-    schemaVersion: 2,
+    schemaVersion: 3,
     buildVersion,
     primaryDefinition: source.definition,
     primaryProfile: source.profile,
@@ -107,16 +134,33 @@ function repository(overrides: Partial<CharacterBuildRepository> = {}): Characte
   return {
     findActiveBuild: vi.fn(async () => build()),
     listDisciplines: vi.fn(async () => [vanguard, aetherist, lifebinder]),
+    listLearnedSkills: vi.fn(async () => [learnedVanguard, learnedLifebinder]),
+    listEquippedDisciplineSkills: vi.fn(async () => []),
+    loadCommittedBuildSnapshot: vi.fn(async () => ({
+      schemaVersion: 3,
+      buildVersion: 1,
+      primary: { disciplineId: 'vanguard', definitionVersion: 1, profileVersion: 1 },
+      secondary: null,
+      disciplineSkills: [],
+      extensions: {
+        resonance: null,
+        essence: null,
+        equipmentSkills: [],
+        supernatural: null,
+        prestige: null,
+      },
+    })),
     changeDisciplines: vi.fn(async () => ({
       build: build(aetherist, 2),
       replayed: false,
     })),
+    saveDisciplineSkills: vi.fn(async () => ({ buildVersion: 2, replayed: false })),
     ...overrides,
   }
 }
 
 describe('character build service', () => {
-  it('computes the committed Primary from the pinned profile while preserving assigned attributes', async () => {
+  it('computes the committed Primary and exposes learned Skills without changing assigned attributes', async () => {
     const source = character()
     const before = structuredClone(source.attributes)
     const context = await loadCharacterBuildContext(userId, source, repository())
@@ -127,9 +171,14 @@ describe('character build service', () => {
       inputValue: 20,
     })
     expect(context.currentSecondary).toBeNull()
-    expect(context.availableSecondaries.map((entry) => entry.definition.id)).toEqual([
+    expect(context.availableSecondaries.map((candidate) => candidate.definition.id)).toEqual([
       'aetherist',
       'lifebinder',
+    ])
+    expect(context.disciplineSkills.capacity).toBe(8)
+    expect(context.disciplineSkills.learnedSkills).toEqual([
+      expect.objectContaining({ definition: expect.objectContaining({ id: learnedVanguard.skillId }), activeSource: true }),
+      expect.objectContaining({ definition: expect.objectContaining({ id: learnedLifebinder.skillId }), activeSource: false }),
     ])
     expect(source.attributes).toEqual(before)
   })
@@ -201,20 +250,20 @@ describe('character build service', () => {
     expect(context.attunement.secondaryRemainingSeconds).toBe(1800)
   })
 
-  it('commits a combined change as one versioned authoritative command', async () => {
+  it('commits a combined Discipline change as one versioned authoritative command', async () => {
     const source = character()
     const before = structuredClone(source.attributes)
     const captured: { value?: Parameters<CharacterBuildRepository['changeDisciplines']>[0] } = {}
+    const nextBuild = build(aetherist, 2, lifebinder, {
+      primary: '2026-09-03T04:00:00.000Z',
+      secondary: '2026-09-03T04:00:00.000Z',
+    })
+    const find = vi.fn().mockResolvedValueOnce(build()).mockResolvedValue(nextBuild)
     const repo = repository({
+      findActiveBuild: find,
       changeDisciplines: vi.fn(async (input) => {
         captured.value = input
-        return {
-          build: build(aetherist, 2, lifebinder, {
-            primary: '2026-09-03T04:00:00.000Z',
-            secondary: '2026-09-03T04:00:00.000Z',
-          }),
-          replayed: true,
-        }
+        return { build: nextBuild, replayed: true }
       }),
     })
 
@@ -250,7 +299,9 @@ describe('character build service', () => {
 
   it('preserves the Primary-only compatibility command through the generic authority path', async () => {
     const captured: { value?: Parameters<CharacterBuildRepository['changeDisciplines']>[0] } = {}
+    const find = vi.fn().mockResolvedValueOnce(build()).mockResolvedValue(build(aetherist, 2))
     const repo = repository({
+      findActiveBuild: find,
       changeDisciplines: vi.fn(async (input) => {
         captured.value = input
         return { build: build(aetherist, 2), replayed: false }
@@ -275,5 +326,98 @@ describe('character build service', () => {
         secondaryDisciplineId: null,
       }),
     )
+  })
+
+  it('normalizes a Skill save from learned server data and returns the committed loadout', async () => {
+    const captured: { value?: Parameters<CharacterBuildRepository['saveDisciplineSkills']>[0] } = {}
+    const find = vi.fn().mockResolvedValueOnce(build()).mockResolvedValue(build(vanguard, 2))
+    const equipped = vi.fn().mockResolvedValueOnce([]).mockResolvedValue([equippedVanguard()])
+    const repo = repository({
+      findActiveBuild: find,
+      listEquippedDisciplineSkills: equipped,
+      saveDisciplineSkills: vi.fn(async (input) => {
+        captured.value = input
+        return { buildVersion: 2, replayed: false }
+      }),
+    })
+
+    const result = await saveCharacterDisciplineSkills(
+      userId,
+      character(),
+      {
+        expectedBuildVersion: 1,
+        skillIds: ['vanguard.forceful-strike'],
+        idempotencyKey: '00000000-0000-4000-8000-000000000805',
+      },
+      repo,
+    )
+
+    expect(captured.value?.skills).toEqual([
+      {
+        skillId: 'vanguard.forceful-strike',
+        contentVersion: 2,
+        sourceDisciplineId: 'vanguard',
+      },
+    ])
+    expect(captured.value?.requestFingerprint).toMatch(/^sha256:[0-9a-f]{64}$/)
+    expect(result.build.buildVersion).toBe(2)
+    expect(result.disciplineSkills.equippedSkills[0]?.definition.id).toBe('vanguard.forceful-strike')
+  })
+
+  it('rejects a learned Skill from an inactive Discipline in a pure build', async () => {
+    await expect(
+      saveCharacterDisciplineSkills(
+        userId,
+        character(),
+        {
+          expectedBuildVersion: 1,
+          skillIds: ['lifebinder.mending-light'],
+          idempotencyKey: '00000000-0000-4000-8000-000000000806',
+        },
+        repository(),
+      ),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+  })
+
+  it('loads a stable committed snapshot independently of Profile draft state', async () => {
+    const snapshot = await loadCharacterCommittedBuildSnapshot(
+      userId,
+      character().id,
+      repository({
+        loadCommittedBuildSnapshot: vi.fn(async () => ({
+          schemaVersion: 3,
+          buildVersion: 7,
+          primary: { disciplineId: 'vanguard', definitionVersion: 1, profileVersion: 1 },
+          secondary: { disciplineId: 'lifebinder', definitionVersion: 1 },
+          disciplineSkills: [
+            {
+              slotIndex: 1,
+              skillId: 'vanguard.forceful-strike',
+              contentVersion: 2,
+              sourceDisciplineId: 'vanguard',
+            },
+            {
+              slotIndex: 2,
+              skillId: 'lifebinder.mending-light',
+              contentVersion: 1,
+              sourceDisciplineId: 'lifebinder',
+            },
+          ],
+          extensions: {
+            resonance: null,
+            essence: null,
+            equipmentSkills: [],
+            supernatural: null,
+            prestige: null,
+          },
+        })),
+      }),
+    )
+
+    expect(snapshot.buildVersion).toBe(7)
+    expect(snapshot.disciplineSkills.map((skill) => skill.skillId)).toEqual([
+      'vanguard.forceful-strike',
+      'lifebinder.mending-light',
+    ])
   })
 })
