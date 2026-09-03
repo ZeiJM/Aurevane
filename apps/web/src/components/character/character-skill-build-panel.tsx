@@ -2,7 +2,7 @@
 
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import { useRouter } from 'next/navigation'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 
 import styles from './character-skill-build-panel.module.css'
 
@@ -54,6 +54,12 @@ function skillName(skill: MatureSkillDefinition): string {
   return titleCase(tail)
 }
 
+function orderedSkillIds(equippedSkills: readonly EquippedSkillView[]): string[] {
+  return [...equippedSkills]
+    .sort((left, right) => left.slotIndex - right.slotIndex)
+    .map((entry) => entry.definition.id)
+}
+
 export function CharacterSkillBuildPanel({
   initialBuildVersion,
   primaryDiscipline,
@@ -63,27 +69,17 @@ export function CharacterSkillBuildPanel({
   initialEquippedSkills,
 }: CharacterSkillBuildPanelProps) {
   const router = useRouter()
+  const initialIds = orderedSkillIds(initialEquippedSkills)
   const [open, setOpen] = useState(false)
   const [buildVersion, setBuildVersion] = useState(initialBuildVersion)
   const [capacity, setCapacity] = useState(initialCapacity)
   const [learnedSkills, setLearnedSkills] = useState<readonly SkillCatalogEntryView[]>(
     initialLearnedSkills,
   )
-  const [selectedIds, setSelectedIds] = useState<string[]>(
-    [...initialEquippedSkills]
-      .sort((left, right) => left.slotIndex - right.slotIndex)
-      .map((entry) => entry.definition.id),
-  )
+  const [committedIds, setCommittedIds] = useState<string[]>(initialIds)
+  const [selectedIds, setSelectedIds] = useState<string[]>(initialIds)
   const [pending, setPending] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
-
-  const committedIds = useMemo(
-    () =>
-      [...initialEquippedSkills]
-        .sort((left, right) => left.slotIndex - right.slotIndex)
-        .map((entry) => entry.definition.id),
-    [initialEquippedSkills],
-  )
 
   const dirty =
     committedIds.length !== selectedIds.length ||
@@ -131,14 +127,12 @@ export function CharacterSkillBuildPanel({
         return
       }
 
+      const nextIds = orderedSkillIds(body.context.disciplineSkills.equippedSkills)
       setBuildVersion(body.context.build.buildVersion)
       setCapacity(body.context.disciplineSkills.capacity)
       setLearnedSkills(body.context.disciplineSkills.learnedSkills)
-      setSelectedIds(
-        [...body.context.disciplineSkills.equippedSkills]
-          .sort((left, right) => left.slotIndex - right.slotIndex)
-          .map((entry) => entry.definition.id),
-      )
+      setCommittedIds(nextIds)
+      setSelectedIds(nextIds)
       setMessage('The Discipline Skill loadout is now committed.')
       router.refresh()
     } catch {
