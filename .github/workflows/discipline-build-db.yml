@@ -6,9 +6,12 @@ on:
       - 'supabase/migrations/**'
       - '.github/scripts/verify-p31-discipline-build-authority.sh'
       - '.github/scripts/verify-p32-secondary-attunement.sh'
+      - '.github/scripts/verify-p34-skill-loadout.sh'
       - '.github/workflows/discipline-build-db.yml'
       - 'apps/web/src/server/character/character-build-service.ts'
       - 'apps/web/src/server/character/supabase-character-build-repository.ts'
+      - 'apps/web/src/app/api/character/build/skills/**'
+      - 'packages/game-core/src/character/discipline-skill-loadout*'
   push:
     branches:
       - main
@@ -17,9 +20,12 @@ on:
       - 'supabase/migrations/**'
       - '.github/scripts/verify-p31-discipline-build-authority.sh'
       - '.github/scripts/verify-p32-secondary-attunement.sh'
+      - '.github/scripts/verify-p34-skill-loadout.sh'
       - '.github/workflows/discipline-build-db.yml'
       - 'apps/web/src/server/character/character-build-service.ts'
       - 'apps/web/src/server/character/supabase-character-build-repository.ts'
+      - 'apps/web/src/app/api/character/build/skills/**'
+      - 'packages/game-core/src/character/discipline-skill-loadout*'
 
 permissions:
   contents: read
@@ -28,7 +34,7 @@ jobs:
   discipline-build:
     name: Discipline build authority
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     steps:
       - name: Checkout
@@ -58,6 +64,9 @@ jobs:
 
       - name: Verify P3.2 Secondary and attunement authority
         run: bash .github/scripts/verify-p32-secondary-attunement.sh
+
+      - name: Verify P3.4 Skill loadout authority
+        run: bash .github/scripts/verify-p34-skill-loadout.sh
 
       - name: Stop local Supabase services
         if: always()
