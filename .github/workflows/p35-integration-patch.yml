@@ -1,0 +1,381 @@
+name: P3.5 Integration Patch
+
+on:
+  push:
+    branches:
+      - 'agent/p3-5-resonance-framework'
+    paths:
+      - '.github/workflows/p35-integration-patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/p3-5-resonance-framework
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Apply P3.5 integration patch
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str):
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected one replacement, found {count}')
+              p.write_text(text.replace(old, new, 1))
+
+          service = 'apps/web/src/server/character/character-build-service.ts'
+          replace_once(service, """import {
+            resolveMatureSkillVersion,
+            type MatureSkillDefinition,
+          } from '@aurevane/game-core/combat/mature-skills'
+          import { AurevaneError } from '@aurevane/game-core/errors'
+          """, """import {
+            resolveMatureSkillVersion,
+            type MatureSkillDefinition,
+          } from '@aurevane/game-core/combat/mature-skills'
+          import {
+            resonanceSnapshotReference,
+            resolveResonanceForPair,
+            type ResonanceDefinition,
+            type ResonanceSnapshotReference,
+          } from '@aurevane/game-core/combat/resonance'
+          import { AurevaneError } from '@aurevane/game-core/errors'
+          """)
+          replace_once(service, """  extensions: {
+            resonance: null
+            essence: null
+            equipmentSkills: readonly never[]
+            supernatural: null
+            prestige: null
+          }
+          }
+
+          export interface ChangeDisciplinesInput""", """  extensions: {
+            resonance: ResonanceSnapshotReference | null
+            essence: null
+            equipmentSkills: readonly never[]
+            supernatural: null
+            prestige: null
+          }
+          }
+
+          export interface ChangeDisciplinesInput""")
+          replace_once(service, """export interface CharacterDisciplineSkillLoadoutView {
+            capacity: number
+            learnedSkills: readonly CharacterSkillCatalogEntry[]
+            equippedSkills: readonly CharacterEquippedDisciplineSkill[]
+            extensions: {
+              resonance: null
+              essence: null
+              equipmentSkills: readonly never[]
+              supernatural: null
+              prestige: null
+            }
+          }""", """export interface CharacterDisciplineSkillLoadoutView {
+            capacity: number
+            learnedSkills: readonly CharacterSkillCatalogEntry[]
+            equippedSkills: readonly CharacterEquippedDisciplineSkill[]
+            extensions: {
+              resonance: ResonanceDefinition | null
+              essence: null
+              equipmentSkills: readonly never[]
+              supernatural: null
+              prestige: null
+            }
+          }""")
+          replace_once(service, """    extensions: {
+              resonance: null,
+              essence: null,
+              equipmentSkills: [],
+              supernatural: null,
+              prestige: null,
+            },
+          }
+          }
+
+          export async function loadCharacterBuildContext""", """    extensions: {
+              resonance: resolveResonanceForPair(
+                build.primaryDefinition.id,
+                build.secondaryDefinition?.id ?? null,
+              ),
+              essence: null,
+              equipmentSkills: [],
+              supernatural: null,
+              prestige: null,
+            },
+          }
+          }
+
+          export async function loadCharacterBuildContext""")
+          replace_once(service, """  if (
+            snapshot.disciplineSkills.length >
+            disciplineSkillCapacity(snapshot.secondary?.disciplineId ?? null)
+          ) {
+            throw persistenceUnavailable('The committed build snapshot exceeds Skill capacity.')
+          }
+          return snapshot
+          }""", """  if (
+            snapshot.disciplineSkills.length >
+            disciplineSkillCapacity(snapshot.secondary?.disciplineId ?? null)
+          ) {
+            throw persistenceUnavailable('The committed build snapshot exceeds Skill capacity.')
+          }
+
+          const persistedResonance = snapshot.extensions.resonance
+          const latestResonance = resolveResonanceForPair(
+            snapshot.primary.disciplineId,
+            snapshot.secondary?.disciplineId ?? null,
+          )
+          if (!persistedResonance) {
+            if (latestResonance) {
+              throw persistenceUnavailable('The committed build snapshot is missing its Resonance.')
+            }
+          } else {
+            const resolved = resolveResonanceForPair(
+              snapshot.primary.disciplineId,
+              snapshot.secondary?.disciplineId ?? null,
+              persistedResonance.contentVersion,
+            )
+            if (!resolved) {
+              throw persistenceUnavailable('The committed build snapshot contains an invalid Resonance.')
+            }
+            const expected = resonanceSnapshotReference(resolved)
+            if (
+              expected.resonanceId !== persistedResonance.resonanceId ||
+              expected.contentVersion !== persistedResonance.contentVersion ||
+              expected.disciplinePair[0] !== persistedResonance.disciplinePair[0] ||
+              expected.disciplinePair[1] !== persistedResonance.disciplinePair[1]
+            ) {
+              throw persistenceUnavailable('The committed build snapshot contains an invalid Resonance.')
+            }
+          }
+          return snapshot
+          }""")
+
+          repo = 'apps/web/src/server/character/supabase-character-build-repository.ts'
+          replace_once(repo, """function parseCommittedSnapshot(value: unknown): CharacterCommittedBuildSnapshotRecord | null {
+          """, """function parseSnapshotResonance(
+            value: unknown,
+          ): CharacterCommittedBuildSnapshotRecord['extensions']['resonance'] | undefined {
+            if (value === null) return null
+            if (!isRecord(value)) return undefined
+            const contentVersion = integer(value.contentVersion)
+            if (
+              typeof value.resonanceId !== 'string' ||
+              contentVersion === null ||
+              !Array.isArray(value.disciplinePair) ||
+              value.disciplinePair.length !== 2 ||
+              typeof value.disciplinePair[0] !== 'string' ||
+              typeof value.disciplinePair[1] !== 'string'
+            ) {
+              return undefined
+            }
+            return {
+              resonanceId: value.resonanceId,
+              contentVersion,
+              disciplinePair: [value.disciplinePair[0], value.disciplinePair[1]],
+            }
+          }
+
+          function parseCommittedSnapshot(value: unknown): CharacterCommittedBuildSnapshotRecord | null {
+          """)
+          replace_once(repo, """    !Array.isArray(value.disciplineSkills) ||
+            value.extensions.resonance !== null ||
+            value.extensions.essence !== null ||""", """    !Array.isArray(value.disciplineSkills) ||
+            value.extensions.essence !== null ||""")
+          replace_once(repo, """  const disciplineSkills = value.disciplineSkills.map(parseSnapshotSkill)
+            if (disciplineSkills.some((entry) => entry === null)) return null
+
+            return {""", """  const disciplineSkills = value.disciplineSkills.map(parseSnapshotSkill)
+            if (disciplineSkills.some((entry) => entry === null)) return null
+            const resonance = parseSnapshotResonance(value.extensions.resonance)
+            if (resonance === undefined) return null
+
+            return {""")
+          replace_once(repo, """    extensions: {
+                resonance: null,
+                essence: null,""", """    extensions: {
+                resonance,
+                essence: null,""")
+
+          shell = 'apps/web/src/components/character/character-profile-shell.tsx'
+          replace_once(shell, """import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
+          import { Kicker, Surface } from '@aurevane/ui'
+          """, """import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
+          import type { ResonanceDefinition } from '@aurevane/game-core/combat/resonance'
+          import { Kicker, Surface } from '@aurevane/ui'
+          """)
+          replace_once(shell, """      equippedSkills: readonly {
+                definition: MatureSkillDefinition
+                slotIndex: number
+                equippedAt: string
+              }[]
+            }
+          }""", """      equippedSkills: readonly {
+                definition: MatureSkillDefinition
+                slotIndex: number
+                equippedAt: string
+              }[]
+              extensions: {
+                resonance: ResonanceDefinition | null
+              }
+            }
+          }""")
+          replace_once(shell, """                  initialEquippedSkills={disciplineBuild.disciplineSkills.equippedSkills}
+                />""", """                  initialEquippedSkills={disciplineBuild.disciplineSkills.equippedSkills}
+                  initialResonance={disciplineBuild.disciplineSkills.extensions.resonance}
+                />""")
+
+          page = 'apps/web/src/app/game/character/page.tsx'
+          replace_once(page, """          equippedSkills: disciplineBuild.disciplineSkills.equippedSkills,
+                },""", """          equippedSkills: disciplineBuild.disciplineSkills.equippedSkills,
+                  extensions: disciplineBuild.disciplineSkills.extensions,
+                },""")
+
+          panel = 'apps/web/src/components/character/character-skill-build-panel.tsx'
+          replace_once(panel, """import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
+          import { useRouter } from 'next/navigation'
+          """, """import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
+          import type { ResonanceDefinition } from '@aurevane/game-core/combat/resonance'
+          import { useRouter } from 'next/navigation'
+          """)
+          replace_once(panel, """  initialLearnedSkills: readonly SkillCatalogEntryView[]
+            initialEquippedSkills: readonly EquippedSkillView[]
+          }""", """  initialLearnedSkills: readonly SkillCatalogEntryView[]
+            initialEquippedSkills: readonly EquippedSkillView[]
+            initialResonance: ResonanceDefinition | null
+          }""")
+          replace_once(panel, """  initialLearnedSkills,
+            initialEquippedSkills,
+          }: CharacterSkillBuildPanelProps) {""", """  initialLearnedSkills,
+            initialEquippedSkills,
+            initialResonance,
+          }: CharacterSkillBuildPanelProps) {""")
+          replace_once(panel, """            <div className={styles.extensions}>
+              <strong>Build extensions</strong>
+              <span>Resonance / Essence — reserved for P3.5–P3.6</span>
+              <span>Equipment Skills — reserved</span>
+              <span>Supernatural — reserved for later phases</span>
+              <span>Prestige — reserved</span>
+            </div>""", """            <div className={styles.extensions}>
+              <strong>Build extensions</strong>
+              {initialResonance ? (
+                <>
+                  <span data-testid=\"active-resonance\">
+                    Resonance · {initialResonance.name} · content v{initialResonance.contentVersion}
+                  </span>
+                  <span>{initialResonance.description}</span>
+                </>
+              ) : secondaryDiscipline ? (
+                <span>No authored Resonance is available for this Discipline pair yet.</span>
+              ) : (
+                <span>Resonance — available only to an eligible mixed build.</span>
+              )}
+              <span>Essence — reserved for P3.6</span>
+              <span>Equipment Skills — reserved</span>
+              <span>Supernatural — reserved for later phases</span>
+              <span>Prestige — reserved</span>
+            </div>""")
+
+          test = 'apps/web/src/server/character/character-build-service.test.ts'
+          p = Path(test)
+          text = p.read_text().replace('schemaVersion: 3,', 'schemaVersion: 4,')
+          anchor = """    expect(source.attributes).toEqual(before)
+            })
+
+            it('previews a legal proposed Primary without writing it', async () => {"""
+          insert = """    expect(source.attributes).toEqual(before)
+            })
+
+            it('resolves the current mixed-build Resonance from the authoritative Discipline pair', async () => {
+              const context = await loadCharacterBuildContext(
+                userId,
+                character(),
+                repository({ findActiveBuild: vi.fn(async () => build(vanguard, 4, lifebinder)) }),
+              )
+
+              expect(context.disciplineSkills.extensions.resonance).toMatchObject({
+                id: 'resonance.lifebinder-vanguard.mercys-edge',
+                contentVersion: 1,
+                disciplinePair: ['lifebinder', 'vanguard'],
+              })
+            })
+
+            it('previews a legal proposed Primary without writing it', async () => {"""
+          if text.count(anchor) != 1:
+              raise SystemExit(f'{test}: mixed Resonance test anchor missing')
+          text = text.replace(anchor, insert, 1)
+          old = """          extensions: {
+                    resonance: null,
+                    essence: null,
+                    equipmentSkills: [],
+                    supernatural: null,
+                    prestige: null,
+                  },"""
+          new = """          extensions: {
+                    resonance: {
+                      resonanceId: 'resonance.lifebinder-vanguard.mercys-edge',
+                      contentVersion: 1,
+                      disciplinePair: ['lifebinder', 'vanguard'],
+                    },
+                    essence: null,
+                    equipmentSkills: [],
+                    supernatural: null,
+                    prestige: null,
+                  },"""
+          if text.count(old) != 1:
+              raise SystemExit(f'{test}: expected one mixed snapshot extension, found {text.count(old)}')
+          text = text.replace(old, new, 1)
+          expect_anchor = """    expect(snapshot.disciplineSkills.map((skill) => skill.skillId)).toEqual([
+              'vanguard.forceful-strike',
+              'lifebinder.mending-light',
+            ])
+          """
+          expect_new = """    expect(snapshot.disciplineSkills.map((skill) => skill.skillId)).toEqual([
+              'vanguard.forceful-strike',
+              'lifebinder.mending-light',
+            ])
+            expect(snapshot.extensions.resonance).toEqual({
+              resonanceId: 'resonance.lifebinder-vanguard.mercys-edge',
+              contentVersion: 1,
+              disciplinePair: ['lifebinder', 'vanguard'],
+            })
+          """
+          if text.count(expect_anchor) != 1:
+              raise SystemExit(f'{test}: snapshot expectation anchor missing')
+          p.write_text(text.replace(expect_anchor, expect_new, 1))
+          PY
+      - name: Format integration files
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm exec prettier --write \
+            apps/web/src/server/character/character-build-service.ts \
+            apps/web/src/server/character/supabase-character-build-repository.ts \
+            apps/web/src/server/character/character-build-service.test.ts \
+            apps/web/src/app/game/character/page.tsx \
+            apps/web/src/components/character/character-profile-shell.tsx \
+            apps/web/src/components/character/character-skill-build-panel.tsx
+      - name: Commit integration
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            apps/web/src/server/character/character-build-service.ts \
+            apps/web/src/server/character/supabase-character-build-repository.ts \
+            apps/web/src/server/character/character-build-service.test.ts \
+            apps/web/src/app/game/character/page.tsx \
+            apps/web/src/components/character/character-profile-shell.tsx \
+            apps/web/src/components/character/character-skill-build-panel.tsx
+          git commit -m 'P3.5 integrate Resonance build snapshot and Profile'
+          git push origin HEAD:agent/p3-5-resonance-framework
