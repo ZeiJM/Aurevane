@@ -113,7 +113,7 @@ function build(
 ): CharacterActiveBuildRecord {
   return {
     characterId: character().id,
-    schemaVersion: 3,
+    schemaVersion: 4,
     buildVersion,
     primaryDefinition: source.definition,
     primaryProfile: source.profile,
@@ -137,7 +137,7 @@ function repository(overrides: Partial<CharacterBuildRepository> = {}): Characte
     listLearnedSkills: vi.fn(async () => [learnedVanguard, learnedLifebinder]),
     listEquippedDisciplineSkills: vi.fn(async () => []),
     loadCommittedBuildSnapshot: vi.fn(async () => ({
-      schemaVersion: 3,
+      schemaVersion: 4,
       buildVersion: 1,
       primary: { disciplineId: 'vanguard', definitionVersion: 1, profileVersion: 1 },
       secondary: null,
@@ -187,6 +187,20 @@ describe('character build service', () => {
       }),
     ])
     expect(source.attributes).toEqual(before)
+  })
+
+  it('resolves the current mixed-build Resonance from the authoritative Discipline pair', async () => {
+    const context = await loadCharacterBuildContext(
+      userId,
+      character(),
+      repository({ findActiveBuild: vi.fn(async () => build(vanguard, 4, lifebinder)) }),
+    )
+
+    expect(context.disciplineSkills.extensions.resonance).toMatchObject({
+      id: 'resonance.lifebinder-vanguard.mercys-edge',
+      contentVersion: 1,
+      disciplinePair: ['lifebinder', 'vanguard'],
+    })
   })
 
   it('previews a legal proposed Primary without writing it', async () => {
@@ -393,7 +407,7 @@ describe('character build service', () => {
       character().id,
       repository({
         loadCommittedBuildSnapshot: vi.fn(async () => ({
-          schemaVersion: 3,
+          schemaVersion: 4,
           buildVersion: 7,
           primary: { disciplineId: 'vanguard', definitionVersion: 1, profileVersion: 1 },
           secondary: { disciplineId: 'lifebinder', definitionVersion: 1 },
@@ -412,7 +426,11 @@ describe('character build service', () => {
             },
           ],
           extensions: {
-            resonance: null,
+            resonance: {
+              resonanceId: 'resonance.lifebinder-vanguard.mercys-edge',
+              contentVersion: 1,
+              disciplinePair: ['lifebinder', 'vanguard'],
+            },
             essence: null,
             equipmentSkills: [],
             supernatural: null,
@@ -427,5 +445,10 @@ describe('character build service', () => {
       'vanguard.forceful-strike',
       'lifebinder.mending-light',
     ])
+    expect(snapshot.extensions.resonance).toEqual({
+      resonanceId: 'resonance.lifebinder-vanguard.mercys-edge',
+      contentVersion: 1,
+      disciplinePair: ['lifebinder', 'vanguard'],
+    })
   })
 })

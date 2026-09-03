@@ -18,6 +18,12 @@ import {
   resolveMatureSkillVersion,
   type MatureSkillDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
+import {
+  resonanceSnapshotReference,
+  resolveResonanceForPair,
+  type ResonanceDefinition,
+  type ResonanceSnapshotReference,
+} from '@aurevane/game-core/combat/resonance'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 export interface CharacterAttunementPolicy {
@@ -72,7 +78,7 @@ export interface CharacterCommittedBuildSnapshotRecord {
   } | null
   disciplineSkills: readonly (DisciplineSkillReference & { slotIndex: number })[]
   extensions: {
-    resonance: null
+    resonance: ResonanceSnapshotReference | null
     essence: null
     equipmentSkills: readonly never[]
     supernatural: null
@@ -150,7 +156,7 @@ export interface CharacterDisciplineSkillLoadoutView {
   learnedSkills: readonly CharacterSkillCatalogEntry[]
   equippedSkills: readonly CharacterEquippedDisciplineSkill[]
   extensions: {
-    resonance: null
+    resonance: ResonanceDefinition | null
     essence: null
     equipmentSkills: readonly never[]
     supernatural: null
@@ -345,7 +351,10 @@ function buildDisciplineSkillView(
     learnedSkills,
     equippedSkills,
     extensions: {
-      resonance: null,
+      resonance: resolveResonanceForPair(
+        build.primaryDefinition.id,
+        build.secondaryDefinition?.id ?? null,
+      ),
       essence: null,
       equipmentSkills: [],
       supernatural: null,
@@ -414,6 +423,35 @@ export async function loadCharacterCommittedBuildSnapshot(
     disciplineSkillCapacity(snapshot.secondary?.disciplineId ?? null)
   ) {
     throw persistenceUnavailable('The committed build snapshot exceeds Skill capacity.')
+  }
+
+  const persistedResonance = snapshot.extensions.resonance
+  const latestResonance = resolveResonanceForPair(
+    snapshot.primary.disciplineId,
+    snapshot.secondary?.disciplineId ?? null,
+  )
+  if (!persistedResonance) {
+    if (latestResonance) {
+      throw persistenceUnavailable('The committed build snapshot is missing its Resonance.')
+    }
+  } else {
+    const resolved = resolveResonanceForPair(
+      snapshot.primary.disciplineId,
+      snapshot.secondary?.disciplineId ?? null,
+      persistedResonance.contentVersion,
+    )
+    if (!resolved) {
+      throw persistenceUnavailable('The committed build snapshot contains an invalid Resonance.')
+    }
+    const expected = resonanceSnapshotReference(resolved)
+    if (
+      expected.resonanceId !== persistedResonance.resonanceId ||
+      expected.contentVersion !== persistedResonance.contentVersion ||
+      expected.disciplinePair[0] !== persistedResonance.disciplinePair[0] ||
+      expected.disciplinePair[1] !== persistedResonance.disciplinePair[1]
+    ) {
+      throw persistenceUnavailable('The committed build snapshot contains an invalid Resonance.')
+    }
   }
   return snapshot
 }

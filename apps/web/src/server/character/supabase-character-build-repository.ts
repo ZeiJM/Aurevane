@@ -264,6 +264,29 @@ function parseSnapshotSkill(value: unknown) {
   }
 }
 
+function parseSnapshotResonance(
+  value: unknown,
+): CharacterCommittedBuildSnapshotRecord['extensions']['resonance'] | undefined {
+  if (value === null) return null
+  if (!isRecord(value)) return undefined
+  const contentVersion = integer(value.contentVersion)
+  if (
+    typeof value.resonanceId !== 'string' ||
+    contentVersion === null ||
+    !Array.isArray(value.disciplinePair) ||
+    value.disciplinePair.length !== 2 ||
+    typeof value.disciplinePair[0] !== 'string' ||
+    typeof value.disciplinePair[1] !== 'string'
+  ) {
+    return undefined
+  }
+  return {
+    resonanceId: value.resonanceId,
+    contentVersion,
+    disciplinePair: [value.disciplinePair[0], value.disciplinePair[1]],
+  }
+}
+
 function parseCommittedSnapshot(value: unknown): CharacterCommittedBuildSnapshotRecord | null {
   if (!isRecord(value) || !isRecord(value.primary) || !isRecord(value.extensions)) return null
   const schemaVersion = integer(value.schemaVersion)
@@ -277,7 +300,6 @@ function parseCommittedSnapshot(value: unknown): CharacterCommittedBuildSnapshot
     primaryDefinitionVersion === null ||
     primaryProfileVersion === null ||
     !Array.isArray(value.disciplineSkills) ||
-    value.extensions.resonance !== null ||
     value.extensions.essence !== null ||
     !Array.isArray(value.extensions.equipmentSkills) ||
     value.extensions.equipmentSkills.length !== 0 ||
@@ -297,6 +319,8 @@ function parseCommittedSnapshot(value: unknown): CharacterCommittedBuildSnapshot
 
   const disciplineSkills = value.disciplineSkills.map(parseSnapshotSkill)
   if (disciplineSkills.some((entry) => entry === null)) return null
+  const resonance = parseSnapshotResonance(value.extensions.resonance)
+  if (resonance === undefined) return null
 
   return {
     schemaVersion,
@@ -309,7 +333,7 @@ function parseCommittedSnapshot(value: unknown): CharacterCommittedBuildSnapshot
     secondary,
     disciplineSkills: disciplineSkills as CharacterCommittedBuildSnapshotRecord['disciplineSkills'],
     extensions: {
-      resonance: null,
+      resonance,
       essence: null,
       equipmentSkills: [],
       supernatural: null,
