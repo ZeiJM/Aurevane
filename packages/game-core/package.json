@@ -7,6 +7,7 @@
     "./character/creation": "./src/character/creation.ts",
     "./character/derived-stats": "./src/character/derived-stats.ts",
     "./character/discipline-build": "./src/character/discipline-build.ts",
+    "./character/discipline-skill-loadout": "./src/character/discipline-skill-loadout.ts",
     "./character/foundation-disciplines": "./src/character/foundation-disciplines.ts",
     "./character/persistence": "./src/character/persistence.ts",
     "./character/profile": "./src/character/profile.ts",
