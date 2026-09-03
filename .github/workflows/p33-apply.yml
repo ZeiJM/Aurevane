@@ -61,10 +61,12 @@ jobs:
             src/combat/recruit-ai.test.ts
       - name: Production workspace build
         run: pnpm build
-      - name: Commit durable P3.3 implementation
+      - name: Commit durable P3.3 source implementation
         run: |
           git config user.name 'Nicholas JM'
           git config user.email '283436098+ZeiJM@users.noreply.github.com'
+          rm -f .github/workflows/skill-engine.yml
+          git restore --source=HEAD -- .github/workflows/p33-apply.yml
           git add -A
           git commit -m 'Implement P3.3 mature Skill schema and cooldown engine'
           git push origin HEAD:agent/p3-3-mature-skill-cooldowns
