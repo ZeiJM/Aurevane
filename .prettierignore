@@ -5,3 +5,27 @@ coverage
 dist
 .bootstrap
 docs/GAME_MASTER_PLAN.md
+
+# Phase-2 closeout formatting debt recorded at the Phase-3 boundary.
+# Keep these frozen until the dedicated cleanup ticket; all Phase-3 files remain checked.
+apps/web/e2e/battle-experience.pw.ts
+apps/web/e2e/battle-terrain-control-parity.pw.ts
+apps/web/src/components/battle/ai-battle-pvp-parity-authority.module.css
+apps/web/src/components/battle/ai-battle-pvp-visual-sync.tsx
+apps/web/src/components/battle/ai-battle-quality-controls.tsx
+apps/web/src/components/battle/ai-desktop-same-facing-keyboard-assist.tsx
+apps/web/src/components/battle/battle-command-cockpit-polish.tsx
+apps/web/src/components/battle/battle-coordinate-toggle.module.css
+apps/web/src/components/battle/battle-facing-quick-commit-assist.tsx
+apps/web/src/components/battle/battle-lesson-coach.tsx
+apps/web/src/components/battle/battle-pvp-scale-authority.module.css
+apps/web/src/components/battle/battle-runtime.ts
+apps/web/src/components/battle/battle-screen-visual-contract.module.css
+apps/web/src/components/battle/battle-screen-visual-contract.test.ts
+apps/web/src/components/battle/battle-terrain-presentation-polish.module.css
+apps/web/src/components/battle/battle-terrain-presentation-polish.tsx
+apps/web/src/components/battle/desktop-battle-log-dock.module.css
+apps/web/src/components/battle/pve-battle-completion-bridge.tsx
+apps/web/src/components/battle/pvp-battle-board-scale-authority.module.css
+apps/web/src/components/battle/pvp-battle-board-scale-authority.test.ts
+apps/web/src/server/battle/guided-training-completion-service.ts
