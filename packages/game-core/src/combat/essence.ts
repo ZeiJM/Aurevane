@@ -122,8 +122,7 @@ export function resolveEssenceForBuild(
 ): EssenceDefinition | null {
   if (secondaryDisciplineId !== null) return null
   const candidates = P36_REPRESENTATIVE_ESSENCES.filter(
-    (definition) =>
-      definition.enabled && definition.sourceDisciplineId === primaryDisciplineId,
+    (definition) => definition.enabled && definition.sourceDisciplineId === primaryDisciplineId,
   )
   if (contentVersion !== undefined) {
     return candidates.find((definition) => definition.contentVersion === contentVersion) ?? null
