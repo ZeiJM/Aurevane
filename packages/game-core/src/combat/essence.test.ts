@@ -141,9 +141,7 @@ describe('P3.6 versioned pure Essence framework', () => {
       selection: { kind: 'unit', combatantId: 'recruit' },
     })
     expect(readPv1fActionEconomy(pve.state, 'player')?.current).toBe(45)
-    expect(
-      pve.state.tactical.battle.combatants.find((row) => row.id === 'recruit')?.hp,
-    ).toBe(30)
+    expect(pve.state.tactical.battle.combatants.find((row) => row.id === 'recruit')?.hp).toBe(30)
     expect(pve.events).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
