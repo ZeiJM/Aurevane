@@ -35,10 +35,10 @@ import { AurevaneError } from '@aurevane/game-core/errors'
 import type { PvpMapBias, PvpMapSize, PvpTurnTimerSeconds } from '@aurevane/validation/combat/pvp'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
-import { loadCharacterCombatBuildSnapshot } from '@/server/character/character-combat-build-snapshot'
 import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
 
+import { loadCharacterCombatBuildSnapshot } from '../character/character-combat-build-snapshot'
 import { getPvpLobby, type PvpLobbyMemberView } from './pvp-lobby-service'
 
 const PVP_RULES_VERSION = 2
