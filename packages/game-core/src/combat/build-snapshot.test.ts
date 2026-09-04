@@ -169,9 +169,7 @@ describe('P3.7 immutable combat build snapshot bridge', () => {
       secondary: { disciplineId: 'lifebinder', definitionVersion: 1 },
     }
     expect(validateCombatBuildSnapshot(mixedWithEssence)).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ field: 'extensions.essence' }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ field: 'extensions.essence' })]),
     )
 
     const pureWithResonance: CombatBuildSnapshot = {
@@ -187,9 +185,7 @@ describe('P3.7 immutable combat build snapshot bridge', () => {
       },
     }
     expect(validateCombatBuildSnapshot(pureWithResonance)).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ field: 'extensions.resonance' }),
-      ]),
+      expect.arrayContaining([expect.objectContaining({ field: 'extensions.resonance' })]),
     )
 
     const invalidSkills: CombatBuildSnapshot = {
@@ -234,5 +230,25 @@ describe('P3.7 immutable combat build snapshot bridge', () => {
         expect.objectContaining({ field: 'buildBridge.combatants.0.combatantId' }),
       ]),
     )
+  })
+
+  it('rejects a malformed persisted snapshot without throwing through nested access', () => {
+    const state = encounter() as StatDrivenCombatEncounterState & { buildBridge: unknown }
+    state.buildBridge = {
+      schemaVersion: 1,
+      combatants: [
+        {
+          combatantId: 'character:00000000-0000-4000-8000-000000003701',
+          characterId: '00000000-0000-4000-8000-000000003701',
+          snapshot: { schemaVersion: 1 },
+        },
+      ],
+    }
+
+    expect(() => validateCombatBuildBridge(state, true)).not.toThrow()
+    expect(validateCombatBuildBridge(state, true)).toEqual([
+      { field: 'buildBridge', message: 'Combat build bridge shape is invalid.' },
+    ])
+    expect(readCombatBuildSnapshot(state, 'character:00000000-0000-4000-8000-000000003701')).toBeNull()
   })
 })
