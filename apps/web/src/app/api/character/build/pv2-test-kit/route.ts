@@ -9,12 +9,12 @@ import { loadSelectedCharacter } from '@/server/character/selected-character'
 import { toServerErrorResponse } from '@/server/http/error-response'
 
 export async function POST() {
-  if (!isPv2BuildcraftTestKitEnabled()) {
-    return Response.json({ error: { message: 'Not found.' } }, { status: 404 })
-  }
-
   try {
     const actor = await getAuthenticatedActor()
+    if (!(await isPv2BuildcraftTestKitEnabled(actor.userId))) {
+      return Response.json({ error: { message: 'Not found.' } }, { status: 404 })
+    }
+
     const character = await loadSelectedCharacter(actor)
     if (!character) {
       throw new AurevaneError('INVALID_REQUEST', 'Select a character before preparing PV-2.')
