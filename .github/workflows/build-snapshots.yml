@@ -5,6 +5,7 @@ on:
     paths:
       - 'packages/game-core/src/combat/build-snapshot.ts'
       - 'packages/game-core/src/combat/build-snapshot.test.ts'
+      - 'packages/game-core/src/combat/battle-authority-build-snapshot.ts'
       - 'packages/game-core/src/combat/recruit-ai.ts'
       - 'packages/game-core/src/combat/recruit-ai-build.ts'
       - 'packages/game-core/src/combat/recruit-ai-build.test.ts'
@@ -12,13 +13,15 @@ on:
       - 'packages/game-core/package.json'
       - 'apps/web/src/server/character/character-combat-build-snapshot.ts'
       - 'apps/web/src/server/character/character-combat-build-snapshot.test.ts'
+      - 'apps/web/src/server/battle/battle-build-authority.ts'
+      - 'apps/web/src/server/battle/battle-essence-authority.test.ts'
+      - 'apps/web/src/server/battle/pvp-lobby-service.ts'
+      - 'apps/web/src/server/battle/pvp-lobby-essence-authority.test.ts'
       - 'apps/web/src/server/battle/build-snapshotted-battle-session-repository.ts'
       - 'apps/web/src/server/battle/build-snapshotted-battle-session-repository.test.ts'
       - 'apps/web/src/server/battle/battle-recruit-ai-service.ts'
       - 'apps/web/src/server/battle/battle-recruit-ai-service.test.ts'
       - 'apps/web/src/server/battle/battle-recruit-ai-build.test.ts'
-      - 'apps/web/src/server/battle/battle-session-service.ts'
-      - 'apps/web/src/server/battle/battle-session-service.test.ts'
       - 'apps/web/src/server/battle/pvp-lobby-quality-service.ts'
       - 'apps/web/src/server/battle/pvp-lobby-quality-service.test.ts'
       - 'apps/web/src/app/api/battles/route.ts'
@@ -31,6 +34,7 @@ on:
     paths:
       - 'packages/game-core/src/combat/build-snapshot.ts'
       - 'packages/game-core/src/combat/build-snapshot.test.ts'
+      - 'packages/game-core/src/combat/battle-authority-build-snapshot.ts'
       - 'packages/game-core/src/combat/recruit-ai.ts'
       - 'packages/game-core/src/combat/recruit-ai-build.ts'
       - 'packages/game-core/src/combat/recruit-ai-build.test.ts'
@@ -38,13 +42,15 @@ on:
       - 'packages/game-core/package.json'
       - 'apps/web/src/server/character/character-combat-build-snapshot.ts'
       - 'apps/web/src/server/character/character-combat-build-snapshot.test.ts'
+      - 'apps/web/src/server/battle/battle-build-authority.ts'
+      - 'apps/web/src/server/battle/battle-essence-authority.test.ts'
+      - 'apps/web/src/server/battle/pvp-lobby-service.ts'
+      - 'apps/web/src/server/battle/pvp-lobby-essence-authority.test.ts'
       - 'apps/web/src/server/battle/build-snapshotted-battle-session-repository.ts'
       - 'apps/web/src/server/battle/build-snapshotted-battle-session-repository.test.ts'
       - 'apps/web/src/server/battle/battle-recruit-ai-service.ts'
       - 'apps/web/src/server/battle/battle-recruit-ai-service.test.ts'
       - 'apps/web/src/server/battle/battle-recruit-ai-build.test.ts'
-      - 'apps/web/src/server/battle/battle-session-service.ts'
-      - 'apps/web/src/server/battle/battle-session-service.test.ts'
       - 'apps/web/src/server/battle/pvp-lobby-quality-service.ts'
       - 'apps/web/src/server/battle/pvp-lobby-quality-service.test.ts'
       - 'apps/web/src/app/api/battles/route.ts'
@@ -73,11 +79,16 @@ jobs:
           pnpm exec prettier --check \
             packages/game-core/src/combat/build-snapshot.ts \
             packages/game-core/src/combat/build-snapshot.test.ts \
+            packages/game-core/src/combat/battle-authority-build-snapshot.ts \
             packages/game-core/src/combat/recruit-ai-build.ts \
             packages/game-core/src/combat/recruit-ai-build.test.ts \
             packages/game-core/package.json \
             apps/web/src/server/character/character-combat-build-snapshot.ts \
             apps/web/src/server/character/character-combat-build-snapshot.test.ts \
+            apps/web/src/server/battle/battle-build-authority.ts \
+            apps/web/src/server/battle/battle-essence-authority.test.ts \
+            apps/web/src/server/battle/pvp-lobby-service.ts \
+            apps/web/src/server/battle/pvp-lobby-essence-authority.test.ts \
             apps/web/src/server/battle/build-snapshotted-battle-session-repository.ts \
             apps/web/src/server/battle/build-snapshotted-battle-session-repository.test.ts \
             apps/web/src/server/battle/battle-recruit-ai-service.ts \
@@ -90,10 +101,15 @@ jobs:
           pnpm exec eslint \
             packages/game-core/src/combat/build-snapshot.ts \
             packages/game-core/src/combat/build-snapshot.test.ts \
+            packages/game-core/src/combat/battle-authority-build-snapshot.ts \
             packages/game-core/src/combat/recruit-ai-build.ts \
             packages/game-core/src/combat/recruit-ai-build.test.ts \
             apps/web/src/server/character/character-combat-build-snapshot.ts \
             apps/web/src/server/character/character-combat-build-snapshot.test.ts \
+            apps/web/src/server/battle/battle-build-authority.ts \
+            apps/web/src/server/battle/battle-essence-authority.test.ts \
+            apps/web/src/server/battle/pvp-lobby-service.ts \
+            apps/web/src/server/battle/pvp-lobby-essence-authority.test.ts \
             apps/web/src/server/battle/build-snapshotted-battle-session-repository.ts \
             apps/web/src/server/battle/build-snapshotted-battle-session-repository.test.ts \
             apps/web/src/server/battle/battle-recruit-ai-service.ts \
@@ -117,4 +133,8 @@ jobs:
             src/server/battle/build-snapshotted-battle-session-repository.test.ts \
             src/server/battle/battle-recruit-ai-service.test.ts \
             src/server/battle/battle-recruit-ai-build.test.ts \
+            src/server/battle/battle-essence-authority.test.ts \
+            src/server/battle/pvp-lobby-essence-authority.test.ts \
             src/server/battle/pvp-lobby-quality-service.test.ts
+      - name: Production workspace build
+        run: pnpm build
