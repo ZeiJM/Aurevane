@@ -79,7 +79,11 @@ export function validateCombatBuildSnapshot(
   const secondaryId = snapshot.secondary?.disciplineId ?? null
   if (snapshot.secondary) {
     stableIdIssue(issues, snapshot.secondary.disciplineId, 'secondary.disciplineId')
-    positiveIntegerIssue(issues, snapshot.secondary.definitionVersion, 'secondary.definitionVersion')
+    positiveIntegerIssue(
+      issues,
+      snapshot.secondary.definitionVersion,
+      'secondary.definitionVersion',
+    )
     if (snapshot.secondary.disciplineId === snapshot.primary.disciplineId) {
       issues.push({
         field: 'secondary.disciplineId',
@@ -209,7 +213,9 @@ export function validateCombatBuildBridge(
   }
   const issues: CombatBuildSnapshotIssue[] = []
   if (state.buildBridge.schemaVersion !== COMBAT_BUILD_BRIDGE_SCHEMA_VERSION) {
-    return [{ field: 'buildBridge.schemaVersion', message: 'Unsupported combat build bridge schema.' }]
+    return [
+      { field: 'buildBridge.schemaVersion', message: 'Unsupported combat build bridge schema.' },
+    ]
   }
 
   const combatantIds = new Set(state.tactical.battle.combatants.map((combatant) => combatant.id))
@@ -224,13 +230,22 @@ export function validateCombatBuildBridge(
       issues.push({ field: `${prefix}.characterId`, message: 'Invalid character ID.' })
     }
     if (!combatantIds.has(entry.combatantId)) {
-      issues.push({ field: `${prefix}.combatantId`, message: 'Build snapshot combatant is absent.' })
+      issues.push({
+        field: `${prefix}.combatantId`,
+        message: 'Build snapshot combatant is absent.',
+      })
     }
     if (seenCombatants.has(entry.combatantId)) {
-      issues.push({ field: `${prefix}.combatantId`, message: 'Build snapshot combatants must be unique.' })
+      issues.push({
+        field: `${prefix}.combatantId`,
+        message: 'Build snapshot combatants must be unique.',
+      })
     }
     if (seenCharacters.has(entry.characterId)) {
-      issues.push({ field: `${prefix}.characterId`, message: 'Build snapshot characters must be unique.' })
+      issues.push({
+        field: `${prefix}.characterId`,
+        message: 'Build snapshot characters must be unique.',
+      })
     }
     for (const issue of validateCombatBuildSnapshot(entry.snapshot)) {
       issues.push({ field: `${prefix}.snapshot.${issue.field}`, message: issue.message })
@@ -246,7 +261,10 @@ export function readCombatBuildSnapshot(
   combatantId: string,
 ): CombatBuildSnapshot | null {
   if (!isBridge(state.buildBridge)) return null
-  return state.buildBridge.combatants.find((entry) => entry.combatantId === combatantId)?.snapshot ?? null
+  return (
+    state.buildBridge.combatants.find((entry) => entry.combatantId === combatantId)?.snapshot ??
+    null
+  )
 }
 
 function copyEntry(entry: CombatBuildBridgeEntry): CombatBuildBridgeEntry {
@@ -315,7 +333,8 @@ function isSnapshotShape(value: unknown): value is CombatBuildSnapshot {
     return false
   }
   if (value.secondary !== null && !isSecondaryShape(value.secondary)) return false
-  if (value.extensions.resonance !== null && !isResonanceShape(value.extensions.resonance)) return false
+  if (value.extensions.resonance !== null && !isResonanceShape(value.extensions.resonance))
+    return false
   if (value.extensions.essence !== null && !isEssenceShape(value.extensions.essence)) return false
   return true
 }
@@ -364,11 +383,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function stableIdIssue(
-  issues: CombatBuildSnapshotIssue[],
-  value: string,
-  field: string,
-): void {
+function stableIdIssue(issues: CombatBuildSnapshotIssue[], value: string, field: string): void {
   if (!STABLE_ID_PATTERN.test(value)) issues.push({ field, message: 'Invalid stable content ID.' })
 }
 
