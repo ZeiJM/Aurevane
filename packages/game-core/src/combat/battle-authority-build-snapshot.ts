@@ -1,4 +1,5 @@
 import {
+  readCombatBuildSnapshot,
   validateCombatBuildSnapshot,
   type CombatBuildSnapshot,
 } from './build-snapshot'
@@ -119,12 +120,21 @@ function parseSnapshot(value: unknown): CombatBuildSnapshot | null {
 }
 
 export function readBattleAuthorityCombatBuildSnapshot(
-  state: StatDrivenCombatEncounterState & { readonly buildAuthority?: unknown },
+  state: StatDrivenCombatEncounterState & {
+    readonly buildAuthority?: unknown
+    readonly buildBridge?: unknown
+  },
   combatantId: string,
 ): CombatBuildSnapshot | null {
-  if (!isRecord(state.buildAuthority) || !Array.isArray(state.buildAuthority.combatants)) return null
-  const entry = state.buildAuthority.combatants.find(
-    (candidate) => isRecord(candidate) && candidate.combatantId === combatantId,
-  )
-  return parseSnapshot(entry)
+  if (isRecord(state.buildAuthority) && Array.isArray(state.buildAuthority.combatants)) {
+    const entry = state.buildAuthority.combatants.find(
+      (candidate) => isRecord(candidate) && candidate.combatantId === combatantId,
+    )
+    const snapshot = parseSnapshot(entry)
+    if (snapshot) return snapshot
+  }
+
+  // Compatibility only for pre-reconciliation P3.7 fixtures/old persisted snapshots.
+  // New battles use buildAuthority and never create a parallel buildBridge.
+  return readCombatBuildSnapshot(state, combatantId)
 }
