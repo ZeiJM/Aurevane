@@ -9,6 +9,9 @@
 - `docs/PHASE_2_TICKETS.md` is historical.
 - `docs/PHASE_3_TICKETS.md` is the exact next implementation sequence once Phase 2 is explicitly closed.
 - `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md` governs Primary/Secondary Disciplines, Skills, Resonance, Essence, Soulmarks, Severance/Mantles and related build rules.
+- `docs/SOUL_STATES.md` governs **Soul State / Soul States** as the canonical umbrella terminology for Unawakened, Soulmarked, and Soul-Severed character identity.
+- `docs/AUREVANE_IDENTITY_STANDARD.md` governs cross-domain creative identity/originality and the permanent AUREVANE content test.
+- `docs/LORE_CONTENT_IDENTITY_FRAMEWORK.md` governs practical lore-authoring identity for settlements, regions, creatures, ruins, quests, recurring NPCs, and everyday culture.
 - `docs/ROADMAP_BUILD_SYSTEM_REWORK.md` is the current build-system sequencing companion.
 - `docs/COMBAT.md` is current combat authority.
 - `docs/ROADMAP_PRODUCT_VALIDATION.md` defines evidence gates.
@@ -78,11 +81,15 @@ Use current player-facing terms:
 - **Skill**
 - **Resonance**
 - **Essence / Discipline Essence**
-- **Soulmark**
+- **Soul State / Soul States**
+- **Unawakened**
+- **Soulmark / Soulmarked**
 - **The Severance / Soul-Severed**
 - **Mantle**
 - **Battle Hall**
 - **Passive Training**
+
+When referring specifically to the Unawakened / Soulmarked / Soul-Severed identity layer, use **Soul State**, not generic player-facing labels such as “supernatural path,” “supernatural fork,” or a Profile section named “Supernatural.” The ordinary English word *supernatural* may still describe broader creatures, events, powers, or phenomena where it is genuinely the correct word.
 
 Retired player-facing terminology includes Current Discipline, Legacy Discipline, Art as the generic ability term, Confluence, separate Trait/Reaction/Movement Art/Ultimate slots and Tactical Hall.
 
@@ -99,7 +106,7 @@ DISCIPLINE SKILLS
 +
 RESONANCE OR PURE ESSENCE
 +
-SOULMARK OR SOUL-SEVERED / MANTLE
+SOUL STATE: SOULMARKED OR SOUL-SEVERED / MANTLE
 +
 EQUIPMENT + EQUIPMENT SKILLS
 +
@@ -132,7 +139,7 @@ Do not reintroduce retired separate Trait/Reaction/Movement Art/Ultimate loadout
 
 **Anomaly is not a frontier rarity or acquisition system.**
 
-Per `docs/ANOMALIES.md`, an Anomaly is a protected **Owner-granted exceptional character state** that deliberately bypasses normal supernatural exclusivity.
+Per `docs/ANOMALIES.md`, an Anomaly is a protected **Owner-granted exceptional character state** that deliberately bypasses ordinary Soul State exclusivity.
 
 Initial approved forms:
 
@@ -310,14 +317,16 @@ Before meaningful work, read `docs/ENGINEERING_EXECUTION_STANDARD.md`, read `doc
 - **Combat:** `docs/COMBAT.md`.
 - **Items/equipment/loadouts:** `docs/ITEMS_INVENTORY_LOADOUTS.md`.
 - **Progression/Rekindling:** progression/pacing docs + `docs/REKINDLING_FRONTIER.md` where relevant.
+- **Soul States:** `docs/SOUL_STATES.md` + applicable Soulmark/Severance/Mantle authority; do not restore generic “supernatural path” umbrella terminology.
 - **Frontier:** `docs/REKINDLING_FRONTIER.md` + `docs/LORE_FRONTIER_CONTINUITY.md` + Lore Bible + Living World Story.
 - **Anomaly:** `docs/ANOMALIES.md` + `docs/OWNER_OVERRIDE.md` + `docs/MASTER_PANEL.md` + PvP rules where relevant.
 - **Combat AI/Battle Hall:** Combat + Combat AI Training.
 - **Major player-facing pages:** Product Experience Content System.
 - **Owner/player exceptional mutation:** Owner Override + Master Panel + Anomalies when applicable.
-- **Narrative/world:** Lore Bible + `docs/LORE_FRONTIER_CONTINUITY.md` + Living World Story.
+- **Narrative/world:** Lore Bible + `docs/LORE_FRONTIER_CONTINUITY.md` + `docs/LORE_REGIONS_CIVILIZATIONS.md` + `docs/AUREVANE_IDENTITY_STANDARD.md` + `docs/LORE_CONTENT_IDENTITY_FRAMEWORK.md` + Living World Story.
+- **Creative/content authoring:** `docs/AUREVANE_IDENTITY_STANDARD.md` always; then the applicable lore/world/art/audio/content authority.
 - **Premium commerce:** Monetization + security/operations docs.
-- **Player-facing terminology/copy:** Player Manual and current public copy.
+- **Player-facing terminology/copy:** Player Manual + `docs/SOUL_STATES.md` + current public copy.
 
 Never assume a package, table, route, system or feature exists. Verify it.
 
@@ -404,3 +413,37 @@ Mandatory behavior:
 For timer/state-machine defects, explicitly test the no-input/timeout path and terminal-state boundaries. A timeout must not imply victory, completion, reward, or successful action unless the authoritative rule explicitly requires it.
 
 The detailed commands and workflow are authoritative in `docs/CONCURRENT_AGENT_WORKFLOW.md`.
+
+---
+
+## 17. AUREVANE identity/originality gate
+
+All meaningful new creative content must respect `docs/AUREVANE_IDENTITY_STANDARD.md`.
+
+Permanent test:
+
+> **Could this appear essentially unchanged in another fantasy RPG?**
+
+If yes, ask:
+
+> **What makes this version unmistakably AUREVANE without merely giving it a stranger proper noun?**
+
+Requirements:
+
+- familiar fantasy scaffolding is allowed when it improves clarity;
+- generic execution is not;
+- regions are concepts plus material cultures, not biome stereotypes;
+- internal disagreement is mandatory for major cultures;
+- ordinary life must remain interesting without the central cosmic mystery;
+- not every creature, ruin, quest, religion, or conflict is secretly about Aurevane;
+- continuity contradictions must be evidenced and rule-bound rather than random “glitch” content;
+- important choices should leave persistent acknowledgement when practical;
+- recurring NPCs should have lives, relationships, beliefs, and goals beyond exposition;
+- Soul States should eventually matter socially/culturally without becoming two monolithic factions;
+- visual/audio identity should rely on material, form, history, relationship, motif, and behavior rather than elemental palette alone;
+- plain understandable names are preferable to artificial fantasy complexity when no setting-specific term is needed;
+- gameplay clarity and fun outrank forced novelty.
+
+For settlements, creatures, ruins, quests, and recurring NPCs, use the practical authoring packets in `docs/LORE_CONTENT_IDENTITY_FRAMEWORK.md` when applicable.
+
+The desired result is not “everything is weird.” The desired result is **specificity, continuity, consequence, and a world whose identity survives after proper nouns are removed**.
