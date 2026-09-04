@@ -7,6 +7,7 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 const PV2_TEST_DISCIPLINES = ['vanguard', 'lifebinder'] as const
 const PV2_TEST_SOURCE_ID = 'pv2-buildcraft-test-kit:v1'
+const PV2_TEST_PREVIEW_BRANCH = 'agent/p3-8-representative-buildcraft-slice'
 
 export interface Pv2BuildcraftTestKitResult {
   readonly masteredDisciplines: number
@@ -14,7 +15,11 @@ export interface Pv2BuildcraftTestKitResult {
 }
 
 export function isPv2BuildcraftTestKitEnabled(): boolean {
-  return process.env.AUREVANE_PV2_TEST_MODE === '1'
+  if (process.env.AUREVANE_PV2_TEST_MODE === '1') return true
+  return (
+    process.env.VERCEL_ENV === 'preview' &&
+    process.env.VERCEL_GIT_COMMIT_REF === PV2_TEST_PREVIEW_BRANCH
+  )
 }
 
 export async function preparePv2BuildcraftTestKit(
