@@ -1,4 +1,7 @@
-import { disciplineSkillCapacity, type DisciplineSkillReference } from '../character/discipline-skill-loadout'
+import {
+  disciplineSkillCapacity,
+  type DisciplineSkillReference,
+} from '../character/discipline-skill-loadout'
 import type { EssenceSnapshotReference } from './essence'
 import type { ResonanceSnapshotReference } from './resonance'
 import type { StatDrivenCombatEncounterState } from './stat-driven-combat'
@@ -259,7 +262,10 @@ function copyEntry(entry: CombatBuildBridgeEntry): CombatBuildBridgeEntry {
         resonance: entry.snapshot.extensions.resonance
           ? {
               ...entry.snapshot.extensions.resonance,
-              disciplinePair: [...entry.snapshot.extensions.resonance.disciplinePair] as [string, string],
+              disciplinePair: [...entry.snapshot.extensions.resonance.disciplinePair] as [
+                string,
+                string,
+              ],
             }
           : null,
         essence: entry.snapshot.extensions.essence
@@ -274,22 +280,88 @@ function copyEntry(entry: CombatBuildBridgeEntry): CombatBuildBridgeEntry {
 }
 
 function isBridge(value: unknown): value is CombatBuildBridgeState {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return false
-  const candidate = value as Record<string, unknown>
-  if (!Number.isSafeInteger(candidate.schemaVersion) || !Array.isArray(candidate.combatants)) {
-    return false
-  }
-  return candidate.combatants.every((entry) => {
-    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return false
-    const record = entry as Record<string, unknown>
+  if (!isRecord(value)) return false
+  if (!Number.isSafeInteger(value.schemaVersion) || !Array.isArray(value.combatants)) return false
+  return value.combatants.every((entry) => {
+    if (!isRecord(entry)) return false
     return (
-      typeof record.combatantId === 'string' &&
-      typeof record.characterId === 'string' &&
-      record.snapshot !== null &&
-      typeof record.snapshot === 'object' &&
-      !Array.isArray(record.snapshot)
+      typeof entry.combatantId === 'string' &&
+      typeof entry.characterId === 'string' &&
+      isSnapshotShape(entry.snapshot)
     )
   })
+}
+
+function isSnapshotShape(value: unknown): value is CombatBuildSnapshot {
+  if (!isRecord(value) || !isRecord(value.primary) || !isRecord(value.extensions)) return false
+  if (
+    typeof value.schemaVersion !== 'number' ||
+    typeof value.sourceBuildSchemaVersion !== 'number' ||
+    typeof value.sourceBuildVersion !== 'number' ||
+    typeof value.fingerprint !== 'string' ||
+    typeof value.primary.disciplineId !== 'string' ||
+    typeof value.primary.definitionVersion !== 'number' ||
+    typeof value.primary.profileVersion !== 'number' ||
+    !Array.isArray(value.disciplineSkills) ||
+    !Array.isArray(value.extensions.equipmentSkills)
+  ) {
+    return false
+  }
+  if (
+    value.extensions.supernatural !== null ||
+    value.extensions.prestige !== null ||
+    !value.disciplineSkills.every(isSkillShape)
+  ) {
+    return false
+  }
+  if (value.secondary !== null && !isSecondaryShape(value.secondary)) return false
+  if (value.extensions.resonance !== null && !isResonanceShape(value.extensions.resonance)) return false
+  if (value.extensions.essence !== null && !isEssenceShape(value.extensions.essence)) return false
+  return true
+}
+
+function isSkillShape(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    typeof value.slotIndex === 'number' &&
+    typeof value.skillId === 'string' &&
+    typeof value.contentVersion === 'number' &&
+    typeof value.sourceDisciplineId === 'string'
+  )
+}
+
+function isSecondaryShape(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    typeof value.disciplineId === 'string' &&
+    typeof value.definitionVersion === 'number'
+  )
+}
+
+function isResonanceShape(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    typeof value.resonanceId === 'string' &&
+    typeof value.contentVersion === 'number' &&
+    Array.isArray(value.disciplinePair) &&
+    value.disciplinePair.length === 2 &&
+    value.disciplinePair.every((disciplineId) => typeof disciplineId === 'string')
+  )
+}
+
+function isEssenceShape(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    typeof value.essenceId === 'string' &&
+    typeof value.contentVersion === 'number' &&
+    typeof value.sourceDisciplineId === 'string' &&
+    typeof value.skillId === 'string' &&
+    typeof value.skillContentVersion === 'number'
+  )
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function stableIdIssue(
