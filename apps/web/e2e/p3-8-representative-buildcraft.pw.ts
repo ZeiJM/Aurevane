@@ -46,6 +46,12 @@ test('PV-2 Profile flow compares pure eight-Skill Essence with mixed six-Skill R
     'Ready: 2 representative Disciplines and 14 Skills are available',
   )
 
+  // The kit triggers a Next.js server refresh after the authoritative grants.
+  // Reload here so the proof waits for that refreshed learned-Skill catalog rather
+  // than racing the client remount while opening the Skills dialog.
+  await page.reload()
+  await expect(page.getByTestId('character-profile')).toBeVisible()
+
   await page.getByRole('button', { name: /Manage Discipline Skills/ }).click()
   await expect(page.getByTestId('skill-capacity')).toHaveText('0 / 8')
   await expect(page.getByTestId('active-essence')).toContainText('Essence Skill')
