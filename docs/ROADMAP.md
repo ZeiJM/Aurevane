@@ -48,7 +48,7 @@ Performance work never authorizes a gameplay redesign, weakened server authority
 | Phase 0 — Engineering Foundation | ✅ Substantially complete | Core technical/security/deployment foundations exist. |
 | Phase 1 — Character & Progression Foundation | ✅ Substantially complete | Character/account/profile/progression/equipment foundations exist. |
 | Phase 2 — Tactical Combat & Battle Platform | ✅ Closed / PV-1 passed | Mature combat, AI, direct PvP and spectation foundations are preserved for reuse. |
-| Phase 3 — Signature Buildcraft Foundation | 🛠️ Active — P3.1 | Phase 3 is active on the formally closed Phase-2 baseline. |
+| Phase 3 — Signature Buildcraft Foundation | 🛠️ Active — P3.2 | P3.1 is validated on the stacked dependency; P3.2 is the current implementation/validation ticket. |
 | Phase 4+ | 🔜 Planned | Later phases inherit compatible early work rather than restarting. |
 
 ## Current decision boundary
@@ -58,14 +58,14 @@ AUREVANE is now in **Phase 3 — Signature Buildcraft Foundation**. Phase 2 is f
 Active now:
 
 - execute one canonical Phase-3 ticket at a time from `docs/PHASE_3_TICKETS.md`;
-- begin with P3.1 Discipline build authority + Primary profiles;
+- preserve the validated P3.1 Discipline build authority + Primary profiles dependency and execute P3.2 Secondary + independent attunement cooldowns;
 - reuse compatible Phase-1 character/profile foundations and the mature Phase-2 battle platform;
 - run behavior-preserving performance/security checks at the Phase-3 build-state boundaries.
 
 Not allowed by default:
 
 - reopening or redesigning Phase-2 systems without a genuine regression;
-- pulling later Phase-3 tickets or Phase-4+ content into P3.1 without a tightly coupled prerequisite;
+- pulling P3.3+ or Phase-4+ content into P3.2 without a tightly coupled prerequisite;
 - Vercel deployment unless separately authorized by the Owner.
 
 ## Automatic performance/scaling checkpoints
@@ -417,6 +417,8 @@ Phase outcome:
 - first minimum safe authoring/validation tooling.
 
 No Soulmark/Mantle or frontier implementation is required here.
+
+**Current ticket:** P3.1 is implemented and validated in dependency PR #368 (`28c00c92f242b4344f8dae80ef8c32e05774a694`). P3.2 is the active ticket; P3.3 remains deferred until P3.2 closeout unless the Owner explicitly authorizes parallel work.
 
 **Gate:** players understand and voluntarily experiment with Primary/Secondary, Skills, cooldowns and pure-vs-mixed identity.
 

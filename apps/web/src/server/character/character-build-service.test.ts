@@ -2,12 +2,14 @@ import type { PersistedCharacter } from '@aurevane/game-core/character/persisten
 import { describe, expect, it, vi } from 'vitest'
 
 import {
+  changeCharacterDisciplines,
   changeCharacterPrimaryDiscipline,
   loadCharacterBuildContext,
+  previewCharacterDisciplines,
   previewCharacterPrimaryDiscipline,
   type CharacterActiveBuildRecord,
   type CharacterBuildRepository,
-  type PrimaryDisciplineCatalogEntry,
+  type DisciplineCatalogEntry,
 } from './character-build-service'
 
 vi.mock('server-only', () => ({}))
@@ -45,31 +47,58 @@ function character(): PersistedCharacter {
 }
 
 function entry(
-  id: 'vanguard' | 'aetherist',
+  id: 'vanguard' | 'aetherist' | 'lifebinder',
   offsets: Record<string, number>,
-): PrimaryDisciplineCatalogEntry {
+  masteredAt: string | null = null,
+): DisciplineCatalogEntry {
+  const names = {
+    vanguard: 'Vanguard',
+    aetherist: 'Aetherist',
+    lifebinder: 'Lifebinder',
+  } as const
   return {
     definition: {
       id,
       definitionVersion: 1,
-      name: id === 'vanguard' ? 'Vanguard' : 'Aetherist',
+      name: names[id],
       summary: `${id} summary`,
       enabledForPrimary: true,
+      enabledForSecondary: true,
     },
     profile: { disciplineId: id, profileVersion: 1, statOffsets: offsets },
+    masteredAt,
   }
 }
 
 const vanguard = entry('vanguard', { maxHp: 20, armor: 5 })
-const aetherist = entry('aetherist', { maxMp: 20, mysticPower: 5, maxHp: -8 })
+const aetherist = entry(
+  'aetherist',
+  { maxMp: 20, mysticPower: 5, maxHp: -8 },
+  '2026-09-02T00:00:00.000Z',
+)
+const lifebinder = entry('lifebinder', { maxHp: 8, maxMp: 15, ward: 4 }, '2026-09-02T01:00:00.000Z')
 
-function build(source = vanguard, buildVersion = 1): CharacterActiveBuildRecord {
+function build(
+  source = vanguard,
+  buildVersion = 1,
+  secondary: DisciplineCatalogEntry | null = null,
+  locks: { primary?: string | null; secondary?: string | null } = {},
+): CharacterActiveBuildRecord {
   return {
     characterId: character().id,
-    schemaVersion: 1,
+    schemaVersion: 2,
     buildVersion,
     primaryDefinition: source.definition,
     primaryProfile: source.profile,
+    secondaryDefinition: secondary?.definition ?? null,
+    primaryAttunementLockedUntil: locks.primary ?? null,
+    secondaryAttunementLockedUntil: locks.secondary ?? null,
+    attunementPolicy: {
+      version: 1,
+      primaryCooldownSeconds: 14_400,
+      secondaryCooldownSeconds: 14_400,
+    },
+    serverNow: '2026-09-03T00:00:00.000Z',
     updatedAt: '2026-09-02T00:00:00.000Z',
   }
 }
@@ -77,8 +106,11 @@ function build(source = vanguard, buildVersion = 1): CharacterActiveBuildRecord 
 function repository(overrides: Partial<CharacterBuildRepository> = {}): CharacterBuildRepository {
   return {
     findActiveBuild: vi.fn(async () => build()),
-    listPrimaryDisciplines: vi.fn(async () => [vanguard, aetherist]),
-    changePrimaryDiscipline: vi.fn(async () => ({ build: build(aetherist, 2), replayed: false })),
+    listDisciplines: vi.fn(async () => [vanguard, aetherist, lifebinder]),
+    changeDisciplines: vi.fn(async () => ({
+      build: build(aetherist, 2),
+      replayed: false,
+    })),
     ...overrides,
   }
 }
@@ -94,12 +126,17 @@ describe('character build service', () => {
       sourceId: 'discipline.primary.vanguard.profile.1',
       inputValue: 20,
     })
+    expect(context.currentSecondary).toBeNull()
+    expect(context.availableSecondaries.map((entry) => entry.definition.id)).toEqual([
+      'aetherist',
+      'lifebinder',
+    ])
     expect(source.attributes).toEqual(before)
   })
 
   it('previews a legal proposed Primary without writing it', async () => {
     const change = vi.fn(async () => ({ build: build(aetherist, 2), replayed: false }))
-    const repo = repository({ changePrimaryDiscipline: change })
+    const repo = repository({ changeDisciplines: change })
     const result = await previewCharacterPrimaryDiscipline(userId, character(), 'aetherist', repo)
 
     expect(result.current.definition.id).toBe('vanguard')
@@ -110,32 +147,84 @@ describe('character build service', () => {
     expect(change).not.toHaveBeenCalled()
   })
 
-  it('fails closed before persistence for an unknown Primary', async () => {
-    const repo = repository()
+  it('previews a mastered Secondary without adding a second base-stat profile or starting a timer', async () => {
+    const change = vi.fn(async () => ({
+      build: build(vanguard, 2, aetherist),
+      replayed: false,
+    }))
+    const repo = repository({ changeDisciplines: change })
+    const result = await previewCharacterDisciplines(
+      userId,
+      character(),
+      { secondaryDisciplineId: 'aetherist' },
+      repo,
+    )
+
+    expect(result.proposed.definition.id).toBe('vanguard')
+    expect(result.proposed.derived).toEqual(result.current.derived)
+    expect(result.proposedSecondary?.id).toBe('aetherist')
+    expect(result.changes).toEqual({ primary: false, secondary: true })
+    expect(result.attunement.secondaryRemainingSeconds).toBe(0)
+    expect(change).not.toHaveBeenCalled()
+  })
+
+  it('fails closed before persistence for an unmastered Secondary', async () => {
+    const unmasteredAetherist = entry('aetherist', { maxMp: 20 }, null)
+    const repo = repository({
+      listDisciplines: vi.fn(async () => [vanguard, unmasteredAetherist]),
+    })
     await expect(
-      previewCharacterPrimaryDiscipline(userId, character(), 'forged-discipline', repo),
+      previewCharacterDisciplines(
+        userId,
+        character(),
+        { secondaryDisciplineId: 'aetherist' },
+        repo,
+      ),
     ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
   })
 
-  it('commits only the target identity/version command and preserves replay information', async () => {
+  it('reports server-derived remaining attunement without consulting the browser clock', async () => {
+    const context = await loadCharacterBuildContext(
+      userId,
+      character(),
+      repository({
+        findActiveBuild: vi.fn(async () =>
+          build(vanguard, 3, aetherist, {
+            primary: '2026-09-03T01:00:00.000Z',
+            secondary: '2026-09-03T00:30:00.000Z',
+          }),
+        ),
+      }),
+    )
+
+    expect(context.attunement.primaryRemainingSeconds).toBe(3600)
+    expect(context.attunement.secondaryRemainingSeconds).toBe(1800)
+  })
+
+  it('commits a combined change as one versioned authoritative command', async () => {
     const source = character()
     const before = structuredClone(source.attributes)
-    const captured: {
-      value?: Parameters<CharacterBuildRepository['changePrimaryDiscipline']>[0]
-    } = {}
+    const captured: { value?: Parameters<CharacterBuildRepository['changeDisciplines']>[0] } = {}
     const repo = repository({
-      changePrimaryDiscipline: vi.fn(async (input) => {
+      changeDisciplines: vi.fn(async (input) => {
         captured.value = input
-        return { build: build(aetherist, 2), replayed: true }
+        return {
+          build: build(aetherist, 2, lifebinder, {
+            primary: '2026-09-03T04:00:00.000Z',
+            secondary: '2026-09-03T04:00:00.000Z',
+          }),
+          replayed: true,
+        }
       }),
     })
 
-    const result = await changeCharacterPrimaryDiscipline(
+    const result = await changeCharacterDisciplines(
       userId,
       source,
       {
         expectedBuildVersion: 1,
         primaryDisciplineId: 'aetherist',
+        secondaryDisciplineId: 'lifebinder',
         idempotencyKey: '00000000-0000-4000-8000-000000000803',
       },
       repo,
@@ -143,15 +232,48 @@ describe('character build service', () => {
 
     expect(result.replayed).toBe(true)
     expect(result.build.buildVersion).toBe(2)
+    expect(result.currentSecondary?.id).toBe('lifebinder')
     expect(captured.value).toEqual(
       expect.objectContaining({
         userId,
         characterId: source.id,
         expectedBuildVersion: 1,
+        changePrimary: true,
         primaryDisciplineId: 'aetherist',
+        changeSecondary: true,
+        secondaryDisciplineId: 'lifebinder',
       }),
     )
     expect(captured.value?.requestFingerprint).toMatch(/^sha256:[0-9a-f]{64}$/)
     expect(source.attributes).toEqual(before)
+  })
+
+  it('preserves the Primary-only compatibility command through the generic authority path', async () => {
+    const captured: { value?: Parameters<CharacterBuildRepository['changeDisciplines']>[0] } = {}
+    const repo = repository({
+      changeDisciplines: vi.fn(async (input) => {
+        captured.value = input
+        return { build: build(aetherist, 2), replayed: false }
+      }),
+    })
+
+    await changeCharacterPrimaryDiscipline(
+      userId,
+      character(),
+      {
+        expectedBuildVersion: 1,
+        primaryDisciplineId: 'aetherist',
+        idempotencyKey: '00000000-0000-4000-8000-000000000804',
+      },
+      repo,
+    )
+
+    expect(captured.value).toEqual(
+      expect.objectContaining({
+        changePrimary: true,
+        changeSecondary: false,
+        secondaryDisciplineId: null,
+      }),
+    )
   })
 })

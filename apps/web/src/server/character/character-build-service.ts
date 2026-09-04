@@ -11,45 +11,93 @@ import {
 } from '@aurevane/game-core/character/discipline-build'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
+export interface CharacterAttunementPolicy {
+  version: number
+  primaryCooldownSeconds: number
+  secondaryCooldownSeconds: number
+}
+
 export interface CharacterActiveBuildRecord {
   characterId: string
   schemaVersion: number
   buildVersion: number
   primaryDefinition: DisciplineDefinition
   primaryProfile: PrimaryDisciplineBaseProfile
+  secondaryDefinition: DisciplineDefinition | null
+  primaryAttunementLockedUntil: string | null
+  secondaryAttunementLockedUntil: string | null
+  attunementPolicy: CharacterAttunementPolicy
+  serverNow: string
   updatedAt: string
 }
 
-export interface PrimaryDisciplineCatalogEntry {
+export interface DisciplineCatalogEntry {
   definition: DisciplineDefinition
   profile: PrimaryDisciplineBaseProfile
+  masteredAt: string | null
 }
 
-export interface ChangePrimaryDisciplineInput {
+export type PrimaryDisciplineCatalogEntry = DisciplineCatalogEntry
+export type SecondaryDisciplineCatalogEntry = DisciplineCatalogEntry & { masteredAt: string }
+
+export interface ChangeDisciplinesInput {
   userId: string
   characterId: string
   expectedBuildVersion: number
+  changePrimary: boolean
   primaryDisciplineId: string
+  changeSecondary: boolean
+  secondaryDisciplineId: string | null
   idempotencyKey: string
   requestFingerprint: string
 }
 
 export interface CharacterBuildRepository {
   findActiveBuild(userId: string, characterId: string): Promise<CharacterActiveBuildRecord | null>
-  listPrimaryDisciplines(): Promise<readonly PrimaryDisciplineCatalogEntry[]>
-  changePrimaryDiscipline(
-    input: ChangePrimaryDisciplineInput,
+  listDisciplines(userId: string, characterId: string): Promise<readonly DisciplineCatalogEntry[]>
+  changeDisciplines(
+    input: ChangeDisciplinesInput,
   ): Promise<{ build: CharacterActiveBuildRecord; replayed: boolean }>
+}
+
+export interface CharacterAttunementView {
+  policy: CharacterAttunementPolicy
+  serverNow: string
+  primaryLockedUntil: string | null
+  secondaryLockedUntil: string | null
+  primaryRemainingSeconds: number
+  secondaryRemainingSeconds: number
 }
 
 export interface CharacterBuildContext {
   build: CharacterActiveBuildRecord
   current: PrimaryDisciplinePreview
+  currentSecondary: DisciplineDefinition | null
   availablePrimaries: readonly PrimaryDisciplineCatalogEntry[]
+  availableSecondaries: readonly SecondaryDisciplineCatalogEntry[]
+  attunement: CharacterAttunementView
 }
 
-export interface PrimaryDisciplineChangeResult extends CharacterBuildContext {
+export interface CharacterBuildPreview {
+  current: PrimaryDisciplinePreview
+  currentSecondary: DisciplineDefinition | null
+  proposed: PrimaryDisciplinePreview
+  proposedSecondary: DisciplineDefinition | null
+  buildVersion: number
+  changes: {
+    primary: boolean
+    secondary: boolean
+  }
+  attunement: CharacterAttunementView
+}
+
+export interface DisciplineChangeResult extends CharacterBuildContext {
   replayed: boolean
+}
+
+export interface BuildSelectionInput {
+  primaryDisciplineId?: string
+  secondaryDisciplineId?: string | null
 }
 
 function calculatePreview(
@@ -64,14 +112,95 @@ function calculatePreview(
   })
 }
 
+function secondsRemaining(lockedUntil: string | null, serverNow: string): number {
+  if (!lockedUntil) return 0
+  const lockedMs = Date.parse(lockedUntil)
+  const serverMs = Date.parse(serverNow)
+  if (!Number.isFinite(lockedMs) || !Number.isFinite(serverMs)) return 0
+  return Math.max(0, Math.ceil((lockedMs - serverMs) / 1000))
+}
+
+function buildAttunementView(build: CharacterActiveBuildRecord): CharacterAttunementView {
+  return {
+    policy: build.attunementPolicy,
+    serverNow: build.serverNow,
+    primaryLockedUntil: build.primaryAttunementLockedUntil,
+    secondaryLockedUntil: build.secondaryAttunementLockedUntil,
+    primaryRemainingSeconds: secondsRemaining(build.primaryAttunementLockedUntil, build.serverNow),
+    secondaryRemainingSeconds: secondsRemaining(
+      build.secondaryAttunementLockedUntil,
+      build.serverNow,
+    ),
+  }
+}
+
+function availableCatalog(catalog: readonly DisciplineCatalogEntry[]) {
+  const availablePrimaries = catalog.filter(
+    (entry): entry is PrimaryDisciplineCatalogEntry => entry.definition.enabledForPrimary,
+  )
+  const availableSecondaries = catalog.filter(
+    (entry): entry is SecondaryDisciplineCatalogEntry =>
+      entry.definition.enabledForSecondary && entry.masteredAt !== null,
+  )
+  return { availablePrimaries, availableSecondaries }
+}
+
+function selectedPrimary(
+  id: string,
+  availablePrimaries: readonly PrimaryDisciplineCatalogEntry[],
+): PrimaryDisciplineCatalogEntry {
+  const entry = availablePrimaries.find((candidate) => candidate.definition.id === id)
+  if (!entry) {
+    throw new AurevaneError('INVALID_REQUEST', 'That Primary Discipline is not available.')
+  }
+  return entry
+}
+
+function selectedSecondary(
+  id: string,
+  availableSecondaries: readonly SecondaryDisciplineCatalogEntry[],
+): SecondaryDisciplineCatalogEntry {
+  const entry = availableSecondaries.find((candidate) => candidate.definition.id === id)
+  if (!entry) {
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'That Secondary Discipline is unavailable or has not been mastered.',
+    )
+  }
+  return entry
+}
+
+function resolvedPrimaryEntry(
+  id: string,
+  context: CharacterBuildContext,
+): PrimaryDisciplineCatalogEntry {
+  if (id === context.current.definition.id) {
+    return {
+      definition: context.current.definition,
+      profile: context.current.profile,
+      masteredAt: null,
+    }
+  }
+  return selectedPrimary(id, context.availablePrimaries)
+}
+
+function resolvedSecondaryDefinition(
+  id: string | null,
+  context: CharacterBuildContext,
+): DisciplineDefinition | null {
+  if (id === null) return null
+  if (id === context.currentSecondary?.id) return context.currentSecondary
+  return selectedSecondary(id, context.availableSecondaries).definition
+}
+
 export async function loadCharacterBuildContext(
   userId: string,
   character: PersistedCharacter,
   repository: CharacterBuildRepository,
 ): Promise<CharacterBuildContext> {
-  const [build, availablePrimaries] = await Promise.all([
+  const [build, catalog] = await Promise.all([
     repository.findActiveBuild(userId, character.id),
-    repository.listPrimaryDisciplines(),
+    repository.listDisciplines(userId, character.id),
   ])
   if (!build) {
     throw new AurevaneError(
@@ -79,13 +208,70 @@ export async function loadCharacterBuildContext(
       'The character build is unavailable right now.',
     )
   }
+  const { availablePrimaries, availableSecondaries } = availableCatalog(catalog)
   return {
     build,
     current: calculatePreview(character, {
       definition: build.primaryDefinition,
       profile: build.primaryProfile,
+      masteredAt:
+        catalog.find((entry) => entry.definition.id === build.primaryDefinition.id)?.masteredAt ??
+        null,
     }),
+    currentSecondary: build.secondaryDefinition,
     availablePrimaries,
+    availableSecondaries,
+    attunement: buildAttunementView(build),
+  }
+}
+
+export async function previewCharacterDisciplines(
+  userId: string,
+  character: PersistedCharacter,
+  input: BuildSelectionInput,
+  repository: CharacterBuildRepository,
+): Promise<CharacterBuildPreview> {
+  const context = await loadCharacterBuildContext(userId, character, repository)
+  const primaryId =
+    input.primaryDisciplineId === undefined
+      ? context.current.definition.id
+      : input.primaryDisciplineId.trim()
+  if (!primaryId) {
+    throw new AurevaneError('INVALID_REQUEST', 'Choose a Primary Discipline to preview.')
+  }
+
+  const hasSecondaryInput = Object.prototype.hasOwnProperty.call(input, 'secondaryDisciplineId')
+  const secondaryId = hasSecondaryInput
+    ? input.secondaryDisciplineId === null
+      ? null
+      : (input.secondaryDisciplineId ?? '').trim()
+    : (context.currentSecondary?.id ?? null)
+
+  if (hasSecondaryInput && input.secondaryDisciplineId !== null && !secondaryId) {
+    throw new AurevaneError('INVALID_REQUEST', 'Choose a valid Secondary Discipline to preview.')
+  }
+
+  const primary = resolvedPrimaryEntry(primaryId, context)
+  const secondary = resolvedSecondaryDefinition(secondaryId, context)
+
+  if (secondary?.id === primary.definition.id) {
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Primary and Secondary Discipline must be different.',
+    )
+  }
+
+  return {
+    current: context.current,
+    currentSecondary: context.currentSecondary,
+    proposed: calculatePreview(character, primary),
+    proposedSecondary: secondary,
+    buildVersion: context.build.buildVersion,
+    changes: {
+      primary: primary.definition.id !== context.current.definition.id,
+      secondary: (secondary?.id ?? null) !== (context.currentSecondary?.id ?? null),
+    },
+    attunement: context.attunement,
   }
 }
 
@@ -99,29 +285,20 @@ export async function previewCharacterPrimaryDiscipline(
   proposed: PrimaryDisciplinePreview
   buildVersion: number
 }> {
-  if (!primaryDisciplineId.trim()) {
-    throw new AurevaneError('INVALID_REQUEST', 'Choose a Primary Discipline to preview.')
-  }
-  const context = await loadCharacterBuildContext(userId, character, repository)
-  const proposedEntry = context.availablePrimaries.find(
-    (entry) => entry.definition.id === primaryDisciplineId && entry.definition.enabledForPrimary,
+  const preview = await previewCharacterDisciplines(
+    userId,
+    character,
+    { primaryDisciplineId },
+    repository,
   )
-  if (!proposedEntry) {
-    throw new AurevaneError('INVALID_REQUEST', 'That Primary Discipline is not available.')
-  }
   return {
-    current: context.current,
-    proposed: calculatePreview(character, proposedEntry),
-    buildVersion: context.build.buildVersion,
+    current: preview.current,
+    proposed: preview.proposed,
+    buildVersion: preview.buildVersion,
   }
 }
 
-export async function changeCharacterPrimaryDiscipline(
-  userId: string,
-  character: PersistedCharacter,
-  input: { expectedBuildVersion: number; primaryDisciplineId: string; idempotencyKey: string },
-  repository: CharacterBuildRepository,
-): Promise<PrimaryDisciplineChangeResult> {
+function validateCommitInput(input: { expectedBuildVersion: number; idempotencyKey: string }) {
   if (!Number.isInteger(input.expectedBuildVersion) || input.expectedBuildVersion < 1) {
     throw new AurevaneError(
       'INVALID_REQUEST',
@@ -135,32 +312,83 @@ export async function changeCharacterPrimaryDiscipline(
   ) {
     throw new AurevaneError('INVALID_REQUEST', 'The build request key is invalid.')
   }
+}
 
-  const catalog = await repository.listPrimaryDisciplines()
-  const proposed = catalog.find(
-    (entry) =>
-      entry.definition.id === input.primaryDisciplineId && entry.definition.enabledForPrimary,
-  )
-  if (!proposed) {
-    throw new AurevaneError('INVALID_REQUEST', 'That Primary Discipline is not available.')
+export async function changeCharacterDisciplines(
+  userId: string,
+  character: PersistedCharacter,
+  input: {
+    expectedBuildVersion: number
+    primaryDisciplineId?: string
+    secondaryDisciplineId?: string | null
+    idempotencyKey: string
+  },
+  repository: CharacterBuildRepository,
+): Promise<DisciplineChangeResult> {
+  validateCommitInput(input)
+  const context = await loadCharacterBuildContext(userId, character, repository)
+
+  const hasPrimaryInput = Object.prototype.hasOwnProperty.call(input, 'primaryDisciplineId')
+  const hasSecondaryInput = Object.prototype.hasOwnProperty.call(input, 'secondaryDisciplineId')
+  if (!hasPrimaryInput && !hasSecondaryInput) {
+    throw new AurevaneError('INVALID_REQUEST', 'Choose a Discipline change to commit.')
+  }
+
+  const primaryId = hasPrimaryInput
+    ? (input.primaryDisciplineId ?? '').trim()
+    : context.current.definition.id
+  if (!primaryId) {
+    throw new AurevaneError('INVALID_REQUEST', 'Choose a Primary Discipline to commit.')
+  }
+
+  const secondaryId = hasSecondaryInput
+    ? input.secondaryDisciplineId === null
+      ? null
+      : (input.secondaryDisciplineId ?? '').trim()
+    : (context.currentSecondary?.id ?? null)
+  if (hasSecondaryInput && input.secondaryDisciplineId !== null && !secondaryId) {
+    throw new AurevaneError('INVALID_REQUEST', 'Choose a valid Secondary Discipline to commit.')
+  }
+
+  const primary = resolvedPrimaryEntry(primaryId, context)
+  const secondary = resolvedSecondaryDefinition(secondaryId, context)
+
+  if (secondary?.id === primary.definition.id) {
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Primary and Secondary Discipline must be different.',
+    )
+  }
+
+  const changePrimary = primary.definition.id !== context.current.definition.id
+  const changeSecondary = (secondary?.id ?? null) !== (context.currentSecondary?.id ?? null)
+
+  if (!changePrimary && !changeSecondary) {
+    throw new AurevaneError('INVALID_REQUEST', 'That Discipline build is already committed.')
   }
 
   const requestFingerprint = `sha256:${createHash('sha256')
     .update(
       JSON.stringify({
-        command: 'character.primary.change.v1',
+        command: 'character.disciplines.change.v2',
         characterId: character.id,
         expectedBuildVersion: input.expectedBuildVersion,
-        primaryDisciplineId: input.primaryDisciplineId,
+        changePrimary,
+        primaryDisciplineId: primary.definition.id,
+        changeSecondary,
+        secondaryDisciplineId: secondary?.id ?? null,
       }),
     )
     .digest('hex')}`
 
-  const changed = await repository.changePrimaryDiscipline({
+  const changed = await repository.changeDisciplines({
     userId,
     characterId: character.id,
     expectedBuildVersion: input.expectedBuildVersion,
-    primaryDisciplineId: input.primaryDisciplineId,
+    changePrimary,
+    primaryDisciplineId: primary.definition.id,
+    changeSecondary,
+    secondaryDisciplineId: secondary?.id ?? null,
     idempotencyKey: input.idempotencyKey,
     requestFingerprint,
   })
@@ -170,8 +398,24 @@ export async function changeCharacterPrimaryDiscipline(
     current: calculatePreview(character, {
       definition: changed.build.primaryDefinition,
       profile: changed.build.primaryProfile,
+      masteredAt:
+        context.availableSecondaries.find(
+          (entry) => entry.definition.id === changed.build.primaryDefinition.id,
+        )?.masteredAt ?? null,
     }),
-    availablePrimaries: catalog,
+    currentSecondary: changed.build.secondaryDefinition,
+    availablePrimaries: context.availablePrimaries,
+    availableSecondaries: context.availableSecondaries,
+    attunement: buildAttunementView(changed.build),
     replayed: changed.replayed,
   }
+}
+
+export async function changeCharacterPrimaryDiscipline(
+  userId: string,
+  character: PersistedCharacter,
+  input: { expectedBuildVersion: number; primaryDisciplineId: string; idempotencyKey: string },
+  repository: CharacterBuildRepository,
+): Promise<DisciplineChangeResult> {
+  return changeCharacterDisciplines(userId, character, input, repository)
 }

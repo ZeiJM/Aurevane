@@ -1,0 +1,64 @@
+name: Discipline Build DB
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - '.github/scripts/verify-p31-discipline-build-authority.sh'
+      - '.github/scripts/verify-p32-secondary-attunement.sh'
+      - '.github/workflows/discipline-build-db.yml'
+      - 'apps/web/src/server/character/character-build-service.ts'
+      - 'apps/web/src/server/character/supabase-character-build-repository.ts'
+  push:
+    branches:
+      - main
+      - 'agent/**'
+    paths:
+      - 'supabase/migrations/**'
+      - '.github/scripts/verify-p31-discipline-build-authority.sh'
+      - '.github/scripts/verify-p32-secondary-attunement.sh'
+      - '.github/workflows/discipline-build-db.yml'
+      - 'apps/web/src/server/character/character-build-service.ts'
+      - 'apps/web/src/server/character/supabase-character-build-repository.ts'
+
+permissions:
+  contents: read
+
+jobs:
+  discipline-build:
+    name: Discipline build authority
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Start local Supabase stack
+        run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+
+      - name: Rebuild database from migrations
+        run: pnpm exec supabase db reset --local
+
+      - name: Verify P3.1 Primary build authority
+        run: bash .github/scripts/verify-p31-discipline-build-authority.sh
+
+      - name: Verify P3.2 Secondary and attunement authority
+        run: bash .github/scripts/verify-p32-secondary-attunement.sh
+
+      - name: Stop local Supabase services
+        if: always()
+        run: pnpm exec supabase stop --no-backup

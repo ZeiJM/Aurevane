@@ -55,9 +55,9 @@ export default async function CharacterProfilePage() {
   if (!character) redirect('/game')
 
   let levelCurve
-  let primaryBuild
+  let disciplineBuild
   try {
-    ;[levelCurve, primaryBuild] = await Promise.all([
+    ;[levelCurve, disciplineBuild] = await Promise.all([
       loadLevelProgressionCurve(
         character.progressionCycle.number,
         createSupabaseProgressionRepository(),
@@ -90,10 +90,13 @@ export default async function CharacterProfilePage() {
   return (
     <CharacterProfileShell
       profile={buildCharacterProfileReadModel(character, levelCurve)}
-      primaryBuild={{
-        buildVersion: primaryBuild.build.buildVersion,
-        current: primaryBuild.current,
-        availablePrimaries: primaryBuild.availablePrimaries,
+      disciplineBuild={{
+        buildVersion: disciplineBuild.build.buildVersion,
+        current: disciplineBuild.current,
+        currentSecondary: disciplineBuild.currentSecondary,
+        availablePrimaries: disciplineBuild.availablePrimaries,
+        availableSecondaries: disciplineBuild.availableSecondaries,
+        attunement: disciplineBuild.attunement,
       }}
       personalTitle={personalTitle}
       imageUrl={imageUrl}

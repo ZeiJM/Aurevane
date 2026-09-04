@@ -14,6 +14,7 @@ export interface DisciplineDefinition {
   name: string
   summary: string
   enabledForPrimary: boolean
+  enabledForSecondary: boolean
 }
 
 export interface PrimaryDisciplineBaseProfile {

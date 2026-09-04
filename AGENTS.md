@@ -7,7 +7,7 @@
 - `docs/ROADMAP.md` is the authoritative current phase sequence and must reflect repository truth, not obsolete historical sequencing.
 - `TASKS.md` is the active implementation/validation ledger.
 - `docs/PHASE_2_TICKETS.md` is historical.
-- `docs/PHASE_3_TICKETS.md` is the exact next implementation sequence once Phase 2 is explicitly closed.
+- `docs/PHASE_3_TICKETS.md` is the exact active Phase-3 implementation sequence.
 - `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md` governs Primary/Secondary Disciplines, Skills, Resonance, Essence, Soulmarks, Severance/Mantles and related build rules.
 - `docs/ROADMAP_BUILD_SYSTEM_REWORK.md` is the current build-system sequencing companion.
 - `docs/COMBAT.md` is current combat authority.
@@ -35,11 +35,11 @@ Current state:
 ```text
 Phase 0 — Engineering Foundation               substantially complete
 Phase 1 — Character & Progression Foundation  substantially complete
-Phase 2 — Tactical Combat & Battle Platform   implementation mature; Owner testing / PV-1 exit open
-Phase 3 — Signature Buildcraft Foundation     next major phase after explicit Phase-2 closure
+Phase 2 — Tactical Combat & Battle Platform   closed; PV-1 passed by explicit Owner decision
+Phase 3 — Signature Buildcraft Foundation     active; P3.2 after validated P3.1 dependency
 ```
 
-Phase 2 formally includes reusable tactical combat, Recruit AI/Battle Hall, direct PvP, multi-combatant battles, spectation, battle communication, battle logs and responsive battle presentation already delivered.
+Phase 2 is formally closed and its reusable tactical combat, Recruit AI/Battle Hall, direct PvP, multi-combatant battles, spectation, battle communication, battle logs and responsive battle presentation are preserved dependencies for Phase 3.
 
 Later phases inherit compatible early-delivered systems and audit them instead of rebuilding them solely because older roadmaps scheduled them later.
 
@@ -56,7 +56,7 @@ then treat that as explicit authorization to close the current Phase-2 feature p
 
 Do not ask the Owner to repeat an unambiguous transition instruction because an older issue/document remains open.
 
-Before Phase-3 runtime code:
+The completed Phase-2 → Phase-3 transition protocol was:
 
 1. inspect current `main`, recent commits, open implementation PRs/issues and `TASKS.md`;
 2. reconcile the Phase-2/PV-1 boundary factually;
@@ -66,6 +66,8 @@ Before Phase-3 runtime code:
 6. start at **P3.1**.
 
 Phase-transition authorization does **not** authorize Vercel deployment.
+
+Current execution: P3.1 is implemented and validated in PR #368 at `28c00c92f242b4344f8dae80ef8c32e05774a694`; P3.2 is active. Do not begin P3.3 until P3.2 closeout unless the Owner explicitly authorizes parallel work.
 
 ---
 

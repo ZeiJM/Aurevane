@@ -6,7 +6,7 @@ import type {
 import type { CharacterProfileReadModel } from '@aurevane/game-core/character/profile'
 import { Kicker, Surface } from '@aurevane/ui'
 
-import { CharacterPrimaryBuildPanel } from '@/components/character/character-primary-build-panel'
+import { CharacterDisciplineBuildPanel } from '@/components/character/character-discipline-build-panel'
 import { CharacterProfileDetails } from '@/components/character/character-profile-details'
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
@@ -19,12 +19,30 @@ interface PrimaryOption {
   profile: PrimaryDisciplineBaseProfile
 }
 
+interface SecondaryOption extends PrimaryOption {
+  masteredAt: string
+}
+
 interface CharacterProfileShellProps {
   profile: CharacterProfileReadModel
-  primaryBuild: {
+  disciplineBuild: {
     buildVersion: number
     current: PrimaryDisciplinePreview
+    currentSecondary: DisciplineDefinition | null
     availablePrimaries: readonly PrimaryOption[]
+    availableSecondaries: readonly SecondaryOption[]
+    attunement: {
+      policy: {
+        version: number
+        primaryCooldownSeconds: number
+        secondaryCooldownSeconds: number
+      }
+      serverNow: string
+      primaryLockedUntil: string | null
+      secondaryLockedUntil: string | null
+      primaryRemainingSeconds: number
+      secondaryRemainingSeconds: number
+    }
   }
   personalTitle?: string | null
   imageUrl?: string | null
@@ -32,7 +50,7 @@ interface CharacterProfileShellProps {
 
 export function CharacterProfileShell({
   profile,
-  primaryBuild,
+  disciplineBuild,
   personalTitle = null,
   imageUrl = null,
 }: CharacterProfileShellProps) {
@@ -59,10 +77,13 @@ export function CharacterProfileShell({
               <Kicker marker="◆">Character Profile</Kicker>
               <div className={styles.nameLine}>
                 <h1>{profile.identity.name}</h1>
-                <CharacterPrimaryBuildPanel
-                  initialBuildVersion={primaryBuild.buildVersion}
-                  initialCurrent={primaryBuild.current}
-                  availablePrimaries={primaryBuild.availablePrimaries}
+                <CharacterDisciplineBuildPanel
+                  initialBuildVersion={disciplineBuild.buildVersion}
+                  initialCurrent={disciplineBuild.current}
+                  initialCurrentSecondary={disciplineBuild.currentSecondary}
+                  availablePrimaries={disciplineBuild.availablePrimaries}
+                  availableSecondaries={disciplineBuild.availableSecondaries}
+                  initialAttunement={disciplineBuild.attunement}
                 />
                 {personalTitle ? (
                   <span className={styles.personalTitlePill}>{personalTitle}</span>
@@ -71,7 +92,7 @@ export function CharacterProfileShell({
               <p className={styles.subtitle}>
                 Character Level <strong>{profile.progression.level}</strong>
               </p>
-              <p className={styles.discipline}>{primaryBuild.current.definition.summary}</p>
+              <p className={styles.discipline}>{disciplineBuild.current.definition.summary}</p>
 
               <div className={styles.levelProgress} data-testid="level-progress">
                 <div>
@@ -104,7 +125,7 @@ export function CharacterProfileShell({
             pronounLabel={profile.identity.pronounLabel}
             cycleNumber={profile.progression.cycleNumber}
             attributes={profile.attributes}
-            derived={primaryBuild.current.derived}
+            derived={disciplineBuild.current.derived}
           />
         </Surface>
 
