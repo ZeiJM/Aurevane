@@ -1,12 +1,54 @@
 name: Shared Build Snapshots
 
 on:
+  pull_request:
+    paths:
+      - 'packages/game-core/src/combat/build-snapshot.ts'
+      - 'packages/game-core/src/combat/build-snapshot.test.ts'
+      - 'packages/game-core/src/combat/recruit-ai.ts'
+      - 'packages/game-core/src/combat/recruit-ai-build.ts'
+      - 'packages/game-core/src/combat/recruit-ai-build.test.ts'
+      - 'packages/game-core/src/combat/pv1f-action-economy.ts'
+      - 'packages/game-core/package.json'
+      - 'apps/web/src/server/character/character-combat-build-snapshot.ts'
+      - 'apps/web/src/server/character/character-combat-build-snapshot.test.ts'
+      - 'apps/web/src/server/battle/build-snapshotted-battle-session-repository.ts'
+      - 'apps/web/src/server/battle/build-snapshotted-battle-session-repository.test.ts'
+      - 'apps/web/src/server/battle/battle-recruit-ai-service.ts'
+      - 'apps/web/src/server/battle/battle-recruit-ai-service.test.ts'
+      - 'apps/web/src/server/battle/battle-recruit-ai-build.test.ts'
+      - 'apps/web/src/server/battle/battle-session-service.ts'
+      - 'apps/web/src/server/battle/battle-session-service.test.ts'
+      - 'apps/web/src/server/battle/pvp-lobby-quality-service.ts'
+      - 'apps/web/src/server/battle/pvp-lobby-quality-service.test.ts'
+      - 'apps/web/src/app/api/battles/route.ts'
+      - 'apps/web/src/app/api/pvp/lobbies/[lobbyId]/start/route.ts'
+      - '.github/workflows/build-snapshots.yml'
   push:
     branches:
+      - main
       - 'agent/p3-7-*'
     paths:
+      - 'packages/game-core/src/combat/build-snapshot.ts'
+      - 'packages/game-core/src/combat/build-snapshot.test.ts'
+      - 'packages/game-core/src/combat/recruit-ai.ts'
       - 'packages/game-core/src/combat/recruit-ai-build.ts'
+      - 'packages/game-core/src/combat/recruit-ai-build.test.ts'
+      - 'packages/game-core/src/combat/pv1f-action-economy.ts'
+      - 'packages/game-core/package.json'
+      - 'apps/web/src/server/character/character-combat-build-snapshot.ts'
+      - 'apps/web/src/server/character/character-combat-build-snapshot.test.ts'
+      - 'apps/web/src/server/battle/build-snapshotted-battle-session-repository.ts'
+      - 'apps/web/src/server/battle/build-snapshotted-battle-session-repository.test.ts'
       - 'apps/web/src/server/battle/battle-recruit-ai-service.ts'
+      - 'apps/web/src/server/battle/battle-recruit-ai-service.test.ts'
+      - 'apps/web/src/server/battle/battle-recruit-ai-build.test.ts'
+      - 'apps/web/src/server/battle/battle-session-service.ts'
+      - 'apps/web/src/server/battle/battle-session-service.test.ts'
+      - 'apps/web/src/server/battle/pvp-lobby-quality-service.ts'
+      - 'apps/web/src/server/battle/pvp-lobby-quality-service.test.ts'
+      - 'apps/web/src/app/api/battles/route.ts'
+      - 'apps/web/src/app/api/pvp/lobbies/[lobbyId]/start/route.ts'
       - '.github/workflows/build-snapshots.yml'
 
 permissions:
@@ -26,12 +68,53 @@ jobs:
           corepack prepare pnpm@11.17.0 --activate
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Exact formatting diff
+      - name: Focused formatting
         run: |
-          pnpm exec prettier --write \
+          pnpm exec prettier --check \
+            packages/game-core/src/combat/build-snapshot.ts \
+            packages/game-core/src/combat/build-snapshot.test.ts \
             packages/game-core/src/combat/recruit-ai-build.ts \
-            apps/web/src/server/battle/battle-recruit-ai-service.ts
-          git diff -- \
+            packages/game-core/src/combat/recruit-ai-build.test.ts \
+            packages/game-core/package.json \
+            apps/web/src/server/character/character-combat-build-snapshot.ts \
+            apps/web/src/server/character/character-combat-build-snapshot.test.ts \
+            apps/web/src/server/battle/build-snapshotted-battle-session-repository.ts \
+            apps/web/src/server/battle/build-snapshotted-battle-session-repository.test.ts \
+            apps/web/src/server/battle/battle-recruit-ai-service.ts \
+            apps/web/src/server/battle/battle-recruit-ai-build.test.ts \
+            apps/web/src/server/battle/pvp-lobby-quality-service.ts \
+            apps/web/src/server/battle/pvp-lobby-quality-service.test.ts \
+            apps/web/src/app/api/battles/route.ts
+      - name: Focused lint
+        run: |
+          pnpm exec eslint \
+            packages/game-core/src/combat/build-snapshot.ts \
+            packages/game-core/src/combat/build-snapshot.test.ts \
             packages/game-core/src/combat/recruit-ai-build.ts \
-            apps/web/src/server/battle/battle-recruit-ai-service.ts
-          exit 1
+            packages/game-core/src/combat/recruit-ai-build.test.ts \
+            apps/web/src/server/character/character-combat-build-snapshot.ts \
+            apps/web/src/server/character/character-combat-build-snapshot.test.ts \
+            apps/web/src/server/battle/build-snapshotted-battle-session-repository.ts \
+            apps/web/src/server/battle/build-snapshotted-battle-session-repository.test.ts \
+            apps/web/src/server/battle/battle-recruit-ai-service.ts \
+            apps/web/src/server/battle/battle-recruit-ai-build.test.ts \
+            apps/web/src/server/battle/pvp-lobby-quality-service.ts \
+            apps/web/src/server/battle/pvp-lobby-quality-service.test.ts \
+            apps/web/src/app/api/battles/route.ts
+      - name: Game core typecheck
+        run: pnpm --filter @aurevane/game-core typecheck
+      - name: Web typecheck
+        run: pnpm --filter @aurevane/web typecheck
+      - name: Focused P3.7 game-core tests
+        run: |
+          pnpm --filter @aurevane/game-core exec vitest run \
+            src/combat/build-snapshot.test.ts \
+            src/combat/recruit-ai-build.test.ts
+      - name: Focused P3.7 web tests
+        run: |
+          pnpm --filter @aurevane/web exec vitest run \
+            src/server/character/character-combat-build-snapshot.test.ts \
+            src/server/battle/build-snapshotted-battle-session-repository.test.ts \
+            src/server/battle/battle-recruit-ai-service.test.ts \
+            src/server/battle/battle-recruit-ai-build.test.ts \
+            src/server/battle/pvp-lobby-quality-service.test.ts
