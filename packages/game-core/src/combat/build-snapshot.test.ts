@@ -249,6 +249,8 @@ describe('P3.7 immutable combat build snapshot bridge', () => {
     expect(validateCombatBuildBridge(state, true)).toEqual([
       { field: 'buildBridge', message: 'Combat build bridge shape is invalid.' },
     ])
-    expect(readCombatBuildSnapshot(state, 'character:00000000-0000-4000-8000-000000003701')).toBeNull()
+    expect(
+      readCombatBuildSnapshot(state, 'character:00000000-0000-4000-8000-000000003701'),
+    ).toBeNull()
   })
 })
