@@ -271,9 +271,7 @@ describe('P3.6 battle Essence authority', () => {
     if (!committed) throw new Error('Expected the Essence battle commit.')
     const next = committed.nextSnapshot as BattleAuthoritativeEncounterState
     expect(readPv1fActionEconomy(next, PLAYER_ID)?.current).toBe(45)
-    expect(next.tactical.battle.combatants.find((row) => row.id === 'recruit:p2-4-1')?.hp).toBe(
-      60,
-    )
+    expect(next.tactical.battle.combatants.find((row) => row.id === 'recruit:p2-4-1')?.hp).toBe(60)
     expect(committed.events).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -310,9 +308,9 @@ describe('P3.6 battle Essence authority', () => {
     const reconnected = await service.getSession(USER_ID, SESSION_ID)
     expect(builds.loadCommittedBuildSnapshot).toHaveBeenCalledTimes(1)
     expect(reconnected.snapshot.buildAuthority).toEqual(created.snapshot.buildAuthority)
-    expect(
-      reconnected.snapshot.buildAuthority?.combatants[0]?.extensions.essence?.essenceId,
-    ).toBe('essence.vanguard.unbroken-strike')
+    expect(reconnected.snapshot.buildAuthority?.combatants[0]?.extensions.essence?.essenceId).toBe(
+      'essence.vanguard.unbroken-strike',
+    )
   })
 
   it('pins no Essence for a mixed build and rejects fabricated Essence actions before commit', async () => {
