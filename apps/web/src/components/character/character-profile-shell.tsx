@@ -4,11 +4,13 @@ import type {
   PrimaryDisciplinePreview,
 } from '@aurevane/game-core/character/discipline-build'
 import type { CharacterProfileReadModel } from '@aurevane/game-core/character/profile'
+import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import { Kicker, Surface } from '@aurevane/ui'
 
 import { CharacterDisciplineBuildPanel } from '@/components/character/character-discipline-build-panel'
 import { CharacterProfileDetails } from '@/components/character/character-profile-details'
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
+import { CharacterSkillBuildPanel } from '@/components/character/character-skill-build-panel'
 import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 
@@ -43,6 +45,19 @@ interface CharacterProfileShellProps {
       primaryRemainingSeconds: number
       secondaryRemainingSeconds: number
     }
+    disciplineSkills: {
+      capacity: number
+      learnedSkills: readonly {
+        definition: MatureSkillDefinition
+        learnedAt: string
+        activeSource: boolean
+      }[]
+      equippedSkills: readonly {
+        definition: MatureSkillDefinition
+        slotIndex: number
+        equippedAt: string
+      }[]
+    }
   }
   personalTitle?: string | null
   imageUrl?: string | null
@@ -59,6 +74,11 @@ export function CharacterProfileShell({
     timeZone: 'UTC',
   }).format(new Date(profile.timestamps.createdAt))
   const progress = profile.progression.progress
+  const skillBuildKey = [
+    disciplineBuild.buildVersion,
+    disciplineBuild.current.definition.id,
+    disciplineBuild.currentSecondary?.id ?? 'pure',
+  ].join(':')
 
   return (
     <AuthenticatedShellFrame sessionLabel="Character Profile">
@@ -84,6 +104,25 @@ export function CharacterProfileShell({
                   availablePrimaries={disciplineBuild.availablePrimaries}
                   availableSecondaries={disciplineBuild.availableSecondaries}
                   initialAttunement={disciplineBuild.attunement}
+                />
+                <CharacterSkillBuildPanel
+                  key={skillBuildKey}
+                  initialBuildVersion={disciplineBuild.buildVersion}
+                  primaryDiscipline={{
+                    id: disciplineBuild.current.definition.id,
+                    name: disciplineBuild.current.definition.name,
+                  }}
+                  secondaryDiscipline={
+                    disciplineBuild.currentSecondary
+                      ? {
+                          id: disciplineBuild.currentSecondary.id,
+                          name: disciplineBuild.currentSecondary.name,
+                        }
+                      : null
+                  }
+                  initialCapacity={disciplineBuild.disciplineSkills.capacity}
+                  initialLearnedSkills={disciplineBuild.disciplineSkills.learnedSkills}
+                  initialEquippedSkills={disciplineBuild.disciplineSkills.equippedSkills}
                 />
                 {personalTitle ? (
                   <span className={styles.personalTitlePill}>{personalTitle}</span>

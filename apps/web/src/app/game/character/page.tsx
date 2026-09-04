@@ -84,7 +84,6 @@ export default async function CharacterProfilePage() {
     if (!(isAurevaneError(error) && error.code === 'PERSISTENCE_UNAVAILABLE')) {
       throw error
     }
-    // Cosmetic identity reads must not make the authoritative character profile unavailable.
   }
 
   return (
@@ -97,6 +96,11 @@ export default async function CharacterProfilePage() {
         availablePrimaries: disciplineBuild.availablePrimaries,
         availableSecondaries: disciplineBuild.availableSecondaries,
         attunement: disciplineBuild.attunement,
+        disciplineSkills: {
+          capacity: disciplineBuild.disciplineSkills.capacity,
+          learnedSkills: disciplineBuild.disciplineSkills.learnedSkills,
+          equippedSkills: disciplineBuild.disciplineSkills.equippedSkills,
+        },
       }}
       personalTitle={personalTitle}
       imageUrl={imageUrl}
