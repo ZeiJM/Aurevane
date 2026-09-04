@@ -43,9 +43,8 @@ import type {
   BattleIntent,
 } from '@aurevane/validation/combat/battle-session'
 
-import type { CharacterBuildRepository } from '@/server/character/character-build-service'
-import { loadCharacterCommittedBuildSnapshot } from '@/server/character/character-build-service'
-
+import type { CharacterBuildRepository } from '../character/character-build-service'
+import { loadCharacterCommittedBuildSnapshot } from '../character/character-build-service'
 import { battleActionResourceIssue } from './battle-action-resource-availability'
 import {
   battleBuildAuthorityForCombatant,
@@ -374,9 +373,7 @@ function resolveIntent(
       if (resourceIssue) throw invalidBattleIntent(resourceIssue.message)
 
       const actorId = state.tactical.battle.currentTurn?.combatantId
-      const build = actorId
-        ? battleBuildAuthorityForCombatant(state.buildAuthority, actorId)
-        : null
+      const build = actorId ? battleBuildAuthorityForCombatant(state.buildAuthority, actorId) : null
       const essence = actorId ? resolveBattleEssenceDefinition(state.buildAuthority, actorId) : null
       if (build && essence && intent.actionId === essence.skill.id && state.buildAuthority) {
         return preserveBuildAuthority(
