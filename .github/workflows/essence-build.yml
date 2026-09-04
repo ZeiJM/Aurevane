@@ -1,11 +1,52 @@
 name: Essence Build
 
 on:
+  pull_request:
+    paths:
+      - 'packages/game-core/src/combat/essence.ts'
+      - 'packages/game-core/src/combat/essence.test.ts'
+      - 'packages/game-core/src/combat/mature-skills.ts'
+      - 'packages/game-core/src/combat/mature-skill-lifecycle.test.ts'
+      - 'packages/game-core/src/combat/pv1f-action-economy.ts'
+      - 'packages/game-core/src/combat/pv1f-action-economy.test.ts'
+      - 'packages/game-core/package.json'
+      - 'apps/web/src/server/character/character-build-service.ts'
+      - 'apps/web/src/server/character/character-build-service.test.ts'
+      - 'apps/web/src/server/character/character-build-essence.test.ts'
+      - 'apps/web/src/server/character/supabase-character-build-repository.ts'
+      - 'apps/web/src/app/game/character/page.tsx'
+      - 'apps/web/src/components/character/character-profile-shell.tsx'
+      - 'apps/web/src/components/character/character-skill-build-panel.tsx'
+      - 'apps/web/src/app/game/battle/[battleSessionId]/page.tsx'
+      - 'apps/web/src/components/battle/battle-runtime.ts'
+      - 'apps/web/src/components/battle/battle-client-boundary.tsx'
+      - 'apps/web/src/components/battle/battle-essence-indicator.tsx'
+      - 'apps/web/src/components/battle/battle-essence-indicator.module.css'
+      - '.github/workflows/essence-build.yml'
   push:
     branches:
+      - main
       - 'agent/p3-6-*'
     paths:
+      - 'packages/game-core/src/combat/essence.ts'
+      - 'packages/game-core/src/combat/essence.test.ts'
+      - 'packages/game-core/src/combat/mature-skills.ts'
+      - 'packages/game-core/src/combat/mature-skill-lifecycle.test.ts'
+      - 'packages/game-core/src/combat/pv1f-action-economy.ts'
+      - 'packages/game-core/src/combat/pv1f-action-economy.test.ts'
+      - 'packages/game-core/package.json'
       - 'apps/web/src/server/character/character-build-service.ts'
+      - 'apps/web/src/server/character/character-build-service.test.ts'
+      - 'apps/web/src/server/character/character-build-essence.test.ts'
+      - 'apps/web/src/server/character/supabase-character-build-repository.ts'
+      - 'apps/web/src/app/game/character/page.tsx'
+      - 'apps/web/src/components/character/character-profile-shell.tsx'
+      - 'apps/web/src/components/character/character-skill-build-panel.tsx'
+      - 'apps/web/src/app/game/battle/[battleSessionId]/page.tsx'
+      - 'apps/web/src/components/battle/battle-runtime.ts'
+      - 'apps/web/src/components/battle/battle-client-boundary.tsx'
+      - 'apps/web/src/components/battle/battle-essence-indicator.tsx'
+      - 'apps/web/src/components/battle/battle-essence-indicator.module.css'
       - '.github/workflows/essence-build.yml'
 
 permissions:
@@ -25,8 +66,53 @@ jobs:
           corepack prepare pnpm@11.17.0 --activate
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Exact formatting diff
+      - name: Focused formatting
         run: |
-          pnpm exec prettier --write apps/web/src/server/character/character-build-service.ts
-          git diff -- apps/web/src/server/character/character-build-service.ts
-          exit 1
+          pnpm exec prettier --check \
+            packages/game-core/src/combat/essence.ts \
+            packages/game-core/src/combat/essence.test.ts \
+            packages/game-core/src/combat/mature-skill-lifecycle.test.ts \
+            packages/game-core/package.json \
+            apps/web/src/server/character/character-build-service.ts \
+            apps/web/src/server/character/character-build-essence.test.ts \
+            apps/web/src/server/character/supabase-character-build-repository.ts \
+            apps/web/src/components/character/character-profile-shell.tsx \
+            apps/web/src/components/character/character-skill-build-panel.tsx \
+            'apps/web/src/app/game/battle/[battleSessionId]/page.tsx' \
+            apps/web/src/components/battle/battle-runtime.ts \
+            apps/web/src/components/battle/battle-client-boundary.tsx \
+            apps/web/src/components/battle/battle-essence-indicator.tsx \
+            apps/web/src/components/battle/battle-essence-indicator.module.css
+      - name: Focused lint
+        run: |
+          pnpm exec eslint \
+            packages/game-core/src/combat/essence.ts \
+            packages/game-core/src/combat/essence.test.ts \
+            packages/game-core/src/combat/mature-skill-lifecycle.test.ts \
+            apps/web/src/server/character/character-build-service.ts \
+            apps/web/src/server/character/character-build-essence.test.ts \
+            apps/web/src/server/character/supabase-character-build-repository.ts \
+            apps/web/src/components/character/character-profile-shell.tsx \
+            apps/web/src/components/character/character-skill-build-panel.tsx \
+            'apps/web/src/app/game/battle/[battleSessionId]/page.tsx' \
+            apps/web/src/components/battle/battle-runtime.ts \
+            apps/web/src/components/battle/battle-client-boundary.tsx \
+            apps/web/src/components/battle/battle-essence-indicator.tsx
+      - name: Game core typecheck
+        run: pnpm --filter @aurevane/game-core typecheck
+      - name: Web typecheck
+        run: pnpm --filter @aurevane/web typecheck
+      - name: Focused P3.6 game-core tests
+        run: |
+          pnpm --filter @aurevane/game-core exec vitest run \
+            src/combat/essence.test.ts \
+            src/combat/mature-skills.test.ts \
+            src/combat/mature-skill-lifecycle.test.ts \
+            src/combat/pv1f-action-economy.test.ts
+      - name: Focused P3.6 web tests
+        run: |
+          pnpm --filter @aurevane/web exec vitest run \
+            src/server/character/character-build-service.test.ts \
+            src/server/character/character-build-essence.test.ts
+      - name: Production workspace build
+        run: pnpm build
