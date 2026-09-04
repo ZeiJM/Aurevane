@@ -87,6 +87,8 @@ export default async function CharacterProfilePage() {
     }
   }
 
+  const pv2TestKitEnabled = await isPv2BuildcraftTestKitEnabled(actor.userId)
+
   return (
     <CharacterProfileShell
       profile={buildCharacterProfileReadModel(character, levelCurve)}
@@ -106,7 +108,7 @@ export default async function CharacterProfilePage() {
       }}
       personalTitle={personalTitle}
       imageUrl={imageUrl}
-      pv2TestKitEnabled={isPv2BuildcraftTestKitEnabled()}
+      pv2TestKitEnabled={pv2TestKitEnabled}
     />
   )
 }
