@@ -175,15 +175,17 @@ function validateCanonicalCombatSnapshot(snapshot: CombatBuildSnapshot): boolean
     const definition = resolveMatureSkillVersion(skill.skillId, skill.contentVersion)
     if (!definition || definition.sourceDisciplineId !== skill.sourceDisciplineId) return false
   }
-  return fingerprintCombatSnapshot({
-    schemaVersion: snapshot.schemaVersion,
-    sourceBuildSchemaVersion: snapshot.sourceBuildSchemaVersion,
-    sourceBuildVersion: snapshot.sourceBuildVersion,
-    primary: snapshot.primary,
-    secondary: snapshot.secondary,
-    disciplineSkills: snapshot.disciplineSkills,
-    extensions: snapshot.extensions,
-  }) === snapshot.fingerprint
+  return (
+    fingerprintCombatSnapshot({
+      schemaVersion: snapshot.schemaVersion,
+      sourceBuildSchemaVersion: snapshot.sourceBuildSchemaVersion,
+      sourceBuildVersion: snapshot.sourceBuildVersion,
+      primary: snapshot.primary,
+      secondary: snapshot.secondary,
+      disciplineSkills: snapshot.disciplineSkills,
+      extensions: snapshot.extensions,
+    }) === snapshot.fingerprint
+  )
 }
 
 function parseCombatant(value: unknown): BattleBuildAuthorityCombatantSnapshot | null {
