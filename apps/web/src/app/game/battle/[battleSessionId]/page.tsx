@@ -1,6 +1,4 @@
 import { isStarterCharacterPortraitRef } from '@aurevane/game-core/character/starter-options'
-import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
-import { resolveResonanceForPair } from '@aurevane/game-core/combat/resonance'
 import { isAurevaneError } from '@aurevane/game-core/errors'
 import { parseBattleSessionId } from '@aurevane/validation/combat/battle-session'
 import { headers } from 'next/headers'
@@ -12,71 +10,50 @@ import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
 import { getAuthenticatedActor } from '@/server/auth/actor'
+import {
+  resolveBattleEssenceDefinition,
+  resolveBattleResonanceDefinition,
+} from '@/server/battle/battle-build-authority'
 import { createBattleSessionService } from '@/server/battle/battle-session-service'
 import { getPvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import { createSupabaseBattleSessionRepository } from '@/server/battle/supabase-battle-session-repository'
-import { loadCharacterCommittedBuildSnapshot } from '@/server/character/character-build-service'
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
-import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
 
 export const dynamic = 'force-dynamic'
 
-async function loadBattleBuildExtensions(userId: string, characterId: string) {
-  try {
-    const snapshot = await loadCharacterCommittedBuildSnapshot(
-      userId,
-      characterId,
-      createSupabaseCharacterBuildRepository(),
-    )
-    const secondaryDisciplineId = snapshot.secondary?.disciplineId ?? null
+function battleBuildExtensions(
+  battle: Awaited<ReturnType<ReturnType<typeof createBattleSessionService>['getSession']>>,
+  combatantId: string,
+) {
+  const authority = battle.snapshot.buildAuthority
+  const resonanceDefinition = resolveBattleResonanceDefinition(authority, combatantId)
+  const essenceDefinition = resolveBattleEssenceDefinition(authority, combatantId)
+  const combatContext = authority?.combatContext
+  const essenceOverride = combatContext
+    ? essenceDefinition?.skill.overrides[combatContext]
+    : undefined
 
-    let resonance = null
-    const resonanceReference = snapshot.extensions.resonance
-    if (resonanceReference) {
-      const definition = resolveResonanceForPair(
-        snapshot.primary.disciplineId,
-        secondaryDisciplineId,
-        resonanceReference.contentVersion,
-      )
-      if (definition && definition.id === resonanceReference.resonanceId) {
-        resonance = {
-          id: definition.id,
-          contentVersion: definition.contentVersion,
-          name: definition.name,
-          description: definition.description,
+  return {
+    resonance: resonanceDefinition
+      ? {
+          id: resonanceDefinition.id,
+          contentVersion: resonanceDefinition.contentVersion,
+          name: resonanceDefinition.name,
+          description: resonanceDefinition.description,
         }
-      }
-    }
-
-    let essence = null
-    const essenceReference = snapshot.extensions.essence
-    if (essenceReference) {
-      const definition = resolveEssenceForBuild(
-        snapshot.primary.disciplineId,
-        secondaryDisciplineId,
-        essenceReference.contentVersion,
-      )
-      if (
-        definition &&
-        definition.essenceId === essenceReference.essenceId &&
-        definition.skill.id === essenceReference.skillId &&
-        definition.skill.contentVersion === essenceReference.skillContentVersion
-      ) {
-        essence = {
-          id: definition.essenceId,
-          contentVersion: definition.contentVersion,
-          name: definition.name,
-          description: definition.description,
-          apCost: definition.skill.apCost,
-          cooldownOwnerTurns: definition.skill.cooldown.ownerTurns,
+      : null,
+    essence: essenceDefinition
+      ? {
+          id: essenceDefinition.essenceId,
+          contentVersion: essenceDefinition.contentVersion,
+          name: essenceDefinition.name,
+          description: essenceDefinition.description,
+          apCost: essenceOverride?.apCost ?? essenceDefinition.skill.apCost,
+          cooldownOwnerTurns:
+            essenceOverride?.cooldownOwnerTurns ?? essenceDefinition.skill.cooldown.ownerTurns,
         }
-      }
-    }
-
-    return { resonance, essence }
-  } catch {
-    return { resonance: null, essence: null }
+      : null,
   }
 }
 
@@ -133,7 +110,7 @@ export default async function BattleSessionPage({
     if (!character || !isStarterCharacterPortraitRef(character.portraitRef)) {
       redirect('/game/battle')
     }
-    const buildExtensions = await loadBattleBuildExtensions(actor.userId, character.id)
+    const buildExtensions = battleBuildExtensions(battle, `character:${character.id}`)
 
     return (
       <BattleAudioGate>
@@ -172,7 +149,7 @@ export default async function BattleSessionPage({
     // Cosmetic display failure falls back to the built-in portrait.
   }
 
-  const buildExtensions = await loadBattleBuildExtensions(actor.userId, character.id)
+  const buildExtensions = battleBuildExtensions(battle, `character:${character.id}`)
 
   return (
     <BattleAudioGate>

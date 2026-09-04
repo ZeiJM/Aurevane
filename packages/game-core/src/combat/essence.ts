@@ -1,10 +1,15 @@
-import type { CombatTargetSelection } from './actions'
+import type { CombatActionEvaluation, CombatTargetSelection } from './actions'
 import {
   type MatureSkillCombatContext,
   type MatureSkillDefinition,
   validateMatureSkillDefinition,
 } from './mature-skills'
-import { executePv1fMatureSkill, type Pv1fTransition } from './pv1f-action-economy'
+import {
+  evaluatePv1fMatureSkill,
+  executePv1fMatureSkill,
+  readPv1fActionEconomy,
+  type Pv1fTransition,
+} from './pv1f-action-economy'
 import type { StatDrivenCombatEncounterState } from './stat-driven-combat'
 
 export const ESSENCE_SCHEMA_VERSION = 1 as const
@@ -30,6 +35,19 @@ export interface EssenceSnapshotReference {
   readonly sourceDisciplineId: string
   readonly skillId: string
   readonly skillContentVersion: number
+}
+
+export interface EssenceAiEvaluation {
+  readonly essenceId: string
+  readonly contentVersion: number
+  readonly skillId: string
+  readonly legal: boolean
+  readonly affordable: boolean
+  readonly apCost: number
+  readonly actionEconomyRemaining: number
+  readonly baseUtility: number
+  readonly purposeTags: readonly string[]
+  readonly combatEvaluation: CombatActionEvaluation
 }
 
 export const P36_REPRESENTATIVE_ESSENCES = [
@@ -143,6 +161,58 @@ export function essenceSnapshotReference(definition: EssenceDefinition): Essence
   }
 }
 
+function resolveLegalEssence(
+  essence: EssenceDefinition,
+  primaryDisciplineId: string,
+  secondaryDisciplineId: string | null,
+): EssenceDefinition | null {
+  assertUsableEssence(essence)
+  const resolved = resolveEssenceForBuild(
+    primaryDisciplineId,
+    secondaryDisciplineId,
+    essence.contentVersion,
+  )
+  return resolved?.essenceId === essence.essenceId ? resolved : null
+}
+
+export function evaluatePv1fEssenceSkillForAi(input: {
+  readonly state: StatDrivenCombatEncounterState
+  readonly essence: EssenceDefinition
+  readonly primaryDisciplineId: string
+  readonly secondaryDisciplineId: string | null
+  readonly combatContext: MatureSkillCombatContext
+  readonly selection: CombatTargetSelection
+}): EssenceAiEvaluation | null {
+  const essence = resolveLegalEssence(
+    input.essence,
+    input.primaryDisciplineId,
+    input.secondaryDisciplineId,
+  )
+  if (!essence || !essence.skill.ai.enabled) return null
+
+  const evaluated = evaluatePv1fMatureSkill(
+    input.state,
+    essence.skill,
+    input.selection,
+    input.combatContext,
+  )
+  const actionEconomyRemaining = readPv1fActionEconomy(evaluated.prepared)?.current ?? 0
+  const affordable = actionEconomyRemaining >= evaluated.cost
+
+  return {
+    essenceId: essence.essenceId,
+    contentVersion: essence.contentVersion,
+    skillId: essence.skill.id,
+    legal: evaluated.evaluation.legal && affordable,
+    affordable,
+    apCost: evaluated.cost,
+    actionEconomyRemaining,
+    baseUtility: essence.skill.ai.baseUtility,
+    purposeTags: essence.skill.ai.purposeTags,
+    combatEvaluation: evaluated.evaluation,
+  }
+}
+
 export function executePv1fEssenceSkill(input: {
   readonly state: StatDrivenCombatEncounterState
   readonly essence: EssenceDefinition
@@ -151,21 +221,15 @@ export function executePv1fEssenceSkill(input: {
   readonly combatContext: MatureSkillCombatContext
   readonly selection: CombatTargetSelection
 }): Pv1fTransition {
-  assertUsableEssence(input.essence)
-  const resolved = resolveEssenceForBuild(
+  const resolved = resolveLegalEssence(
+    input.essence,
     input.primaryDisciplineId,
     input.secondaryDisciplineId,
-    input.essence.contentVersion,
   )
-  if (!resolved || resolved.essenceId !== input.essence.essenceId) {
+  if (!resolved) {
     throw new Error('That Essence Skill is not legal for the committed Discipline build.')
   }
-  return executePv1fMatureSkill(
-    input.state,
-    input.essence.skill,
-    input.selection,
-    input.combatContext,
-  )
+  return executePv1fMatureSkill(input.state, resolved.skill, input.selection, input.combatContext)
 }
 
 function assertUsableEssence(definition: EssenceDefinition): void {

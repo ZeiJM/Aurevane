@@ -5,7 +5,6 @@ import { assertNoActiveBattle } from '@/server/account/active-game-session'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { handleCreateBattleSessionRequest } from '@/server/battle/battle-session-handler'
 import { createBattleSessionService } from '@/server/battle/battle-session-service'
-import { createBuildSnapshottedBattleSessionRepository } from '@/server/battle/build-snapshotted-battle-session-repository'
 import { createSupabaseBattleSessionRepository } from '@/server/battle/supabase-battle-session-repository'
 import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
@@ -48,10 +47,8 @@ export async function POST(request: Request) {
       getActor: async () => actor,
       service: createBattleSessionService({
         characters: createSupabaseCharacterRepository(),
-        battles: createBuildSnapshottedBattleSessionRepository({
-          battles: createSupabaseBattleSessionRepository(),
-          builds: createSupabaseCharacterBuildRepository(),
-        }),
+        battles: createSupabaseBattleSessionRepository(),
+        builds: createSupabaseCharacterBuildRepository(),
       }),
     })
   } catch (error) {
