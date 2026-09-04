@@ -11,6 +11,7 @@
 - `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md` governs Primary/Secondary Disciplines, Skills, Resonance, Essence, Soulmarks, Severance/Mantles and related build rules.
 - `docs/SOUL_STATES.md` governs **Soul State / Soul States** as the canonical umbrella terminology for Unawakened, Soulmarked, and Soul-Severed character identity.
 - `docs/AUREVANE_IDENTITY_STANDARD.md` governs cross-domain creative identity/originality and the permanent AUREVANE content test.
+- `docs/AUREVANE_IDENTITY_CONSULTANT_SYNTHESIS.md` is the newer authoritative refinement incorporating the approved outcomes of the adversarial external originality review; it controls on the specific refinements it states.
 - `docs/LORE_CONTENT_IDENTITY_FRAMEWORK.md` governs practical lore-authoring identity for settlements, regions, creatures, ruins, quests, recurring NPCs, and everyday culture.
 - `docs/ROADMAP_BUILD_SYSTEM_REWORK.md` is the current build-system sequencing companion.
 - `docs/COMBAT.md` is current combat authority.
@@ -323,8 +324,8 @@ Before meaningful work, read `docs/ENGINEERING_EXECUTION_STANDARD.md`, read `doc
 - **Combat AI/Battle Hall:** Combat + Combat AI Training.
 - **Major player-facing pages:** Product Experience Content System.
 - **Owner/player exceptional mutation:** Owner Override + Master Panel + Anomalies when applicable.
-- **Narrative/world:** Lore Bible + `docs/LORE_FRONTIER_CONTINUITY.md` + `docs/LORE_REGIONS_CIVILIZATIONS.md` + `docs/AUREVANE_IDENTITY_STANDARD.md` + `docs/LORE_CONTENT_IDENTITY_FRAMEWORK.md` + Living World Story.
-- **Creative/content authoring:** `docs/AUREVANE_IDENTITY_STANDARD.md` always; then the applicable lore/world/art/audio/content authority.
+- **Narrative/world:** Lore Bible + `docs/LORE_FRONTIER_CONTINUITY.md` + `docs/LORE_REGIONS_CIVILIZATIONS.md` + `docs/AUREVANE_IDENTITY_STANDARD.md` + `docs/AUREVANE_IDENTITY_CONSULTANT_SYNTHESIS.md` + `docs/LORE_CONTENT_IDENTITY_FRAMEWORK.md` + Living World Story.
+- **Creative/content authoring:** `docs/AUREVANE_IDENTITY_STANDARD.md` + `docs/AUREVANE_IDENTITY_CONSULTANT_SYNTHESIS.md` always; then the applicable lore/world/art/audio/content authority.
 - **Premium commerce:** Monetization + security/operations docs.
 - **Player-facing terminology/copy:** Player Manual + `docs/SOUL_STATES.md` + current public copy.
 
@@ -418,7 +419,7 @@ The detailed commands and workflow are authoritative in `docs/CONCURRENT_AGENT_W
 
 ## 17. AUREVANE identity/originality gate
 
-All meaningful new creative content must respect `docs/AUREVANE_IDENTITY_STANDARD.md`.
+All meaningful new creative content must respect `docs/AUREVANE_IDENTITY_STANDARD.md` and the approved refinements in `docs/AUREVANE_IDENTITY_CONSULTANT_SYNTHESIS.md`.
 
 Permanent test:
 
@@ -437,13 +438,20 @@ Requirements:
 - ordinary life must remain interesting without the central cosmic mystery;
 - not every creature, ruin, quest, religion, or conflict is secretly about Aurevane;
 - continuity contradictions must be evidenced and rule-bound rather than random “glitch” content;
+- over-consistency is a useful continuity-creature subtype, not a universal creature rule;
+- archaeology should distinguish ordinary dispute from authentic contradiction;
 - important choices should leave persistent acknowledgement when practical;
-- recurring NPCs should have lives, relationships, beliefs, and goals beyond exposition;
+- recurring NPCs should have lives, relationships, beliefs, and goals beyond exposition, including some deliberately ordinary/low-stakes recurring figures;
 - Soul States should eventually matter socially/culturally without becoming two monolithic factions;
-- visual/audio identity should rely on material, form, history, relationship, motif, and behavior rather than elemental palette alone;
+- do not invent universal Soul-Severed civic/metaphysical incapacities without explicit later authority;
+- Aurevane should be capable of correctly identifying specific injustice while making the wrong universal inference from it;
+- mature Disciplines need distinct tactical propositions, not merely fantasy-class renaming;
+- visual/audio identity should rely on material, form, history, relationship, motif, livelihood, and behavior rather than elemental palette alone;
 - plain understandable names are preferable to artificial fantasy complexity when no setting-specific term is needed;
+- mechanical clarity must not depend on lore literacy;
+- routine ambient NPC dialogue should remain concrete and human rather than constantly philosophical;
 - gameplay clarity and fun outrank forced novelty.
 
-For settlements, creatures, ruins, quests, and recurring NPCs, use the practical authoring packets in `docs/LORE_CONTENT_IDENTITY_FRAMEWORK.md` when applicable.
+For settlements, creatures, ruins, quests, and recurring NPCs, use the practical authoring packets in `docs/LORE_CONTENT_IDENTITY_FRAMEWORK.md` and the proof-set refinements in `docs/AUREVANE_IDENTITY_CONSULTANT_SYNTHESIS.md` when applicable.
 
 The desired result is not “everything is weird.” The desired result is **specificity, continuity, consequence, and a world whose identity survives after proper nouns are removed**.
