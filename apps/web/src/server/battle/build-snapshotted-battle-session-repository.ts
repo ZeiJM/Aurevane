@@ -2,10 +2,7 @@ import 'server-only'
 
 import { createHash } from 'node:crypto'
 
-import type {
-  BattleSessionRepository,
-  CreateBattleSessionInput,
-} from '@aurevane/db/battle-session'
+import type { BattleSessionRepository, CreateBattleSessionInput } from '@aurevane/db/battle-session'
 import {
   attachCombatBuildBridge,
   type CombatBuildBridgeEntry,
