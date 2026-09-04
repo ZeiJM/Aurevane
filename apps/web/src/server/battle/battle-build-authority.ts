@@ -1,12 +1,22 @@
 import 'server-only'
 
+import { createHash } from 'node:crypto'
+
+import {
+  COMBAT_BUILD_SNAPSHOT_SCHEMA_VERSION,
+  validateCombatBuildSnapshot,
+  type CombatBuildSnapshot,
+} from '@aurevane/game-core/combat/build-snapshot'
 import {
   essenceSnapshotReference,
   resolveEssenceForBuild,
   type EssenceDefinition,
   type EssenceSnapshotReference,
 } from '@aurevane/game-core/combat/essence'
-import type { MatureSkillCombatContext } from '@aurevane/game-core/combat/mature-skills'
+import {
+  resolveMatureSkillVersion,
+  type MatureSkillCombatContext,
+} from '@aurevane/game-core/combat/mature-skills'
 import {
   resonanceSnapshotReference,
   resolveResonanceForPair,
@@ -21,10 +31,13 @@ export const BATTLE_BUILD_AUTHORITY_SCHEMA_VERSION = 1 as const
 export interface BattleBuildAuthorityCombatantSnapshot {
   combatantId: string
   characterId: string
+  snapshotSchemaVersion: typeof COMBAT_BUILD_SNAPSHOT_SCHEMA_VERSION
   buildSchemaVersion: number
   buildVersion: number
+  fingerprint: string
   primary: CharacterCommittedBuildSnapshotRecord['primary']
   secondary: CharacterCommittedBuildSnapshotRecord['secondary']
+  disciplineSkills: CharacterCommittedBuildSnapshotRecord['disciplineSkills']
   extensions: {
     resonance: ResonanceSnapshotReference | null
     essence: EssenceSnapshotReference | null
@@ -100,14 +113,89 @@ function parseEssenceReference(value: unknown): EssenceSnapshotReference | null 
   }
 }
 
+function parseDisciplineSkills(
+  value: unknown,
+): CharacterCommittedBuildSnapshotRecord['disciplineSkills'] | null {
+  if (!Array.isArray(value)) return null
+  const parsed: Array<CharacterCommittedBuildSnapshotRecord['disciplineSkills'][number]> = []
+  for (const candidate of value) {
+    if (
+      !isRecord(candidate) ||
+      !positiveInteger(candidate.slotIndex) ||
+      !nonEmptyString(candidate.skillId) ||
+      !positiveInteger(candidate.contentVersion) ||
+      !nonEmptyString(candidate.sourceDisciplineId)
+    ) {
+      return null
+    }
+    parsed.push({
+      slotIndex: candidate.slotIndex,
+      skillId: candidate.skillId,
+      contentVersion: candidate.contentVersion,
+      sourceDisciplineId: candidate.sourceDisciplineId,
+    })
+  }
+  return parsed.sort((left, right) => left.slotIndex - right.slotIndex)
+}
+
+function combatSnapshotFromCommitted(
+  snapshot: CharacterCommittedBuildSnapshotRecord,
+): Omit<CombatBuildSnapshot, 'fingerprint'> {
+  return {
+    schemaVersion: COMBAT_BUILD_SNAPSHOT_SCHEMA_VERSION,
+    sourceBuildSchemaVersion: snapshot.schemaVersion,
+    sourceBuildVersion: snapshot.buildVersion,
+    primary: { ...snapshot.primary },
+    secondary: snapshot.secondary ? { ...snapshot.secondary } : null,
+    disciplineSkills: [...snapshot.disciplineSkills]
+      .sort((left, right) => left.slotIndex - right.slotIndex)
+      .map((skill) => ({ ...skill })),
+    extensions: {
+      resonance: snapshot.extensions.resonance
+        ? {
+            ...snapshot.extensions.resonance,
+            disciplinePair: [...snapshot.extensions.resonance.disciplinePair] as [string, string],
+          }
+        : null,
+      essence: snapshot.extensions.essence ? { ...snapshot.extensions.essence } : null,
+      equipmentSkills: [],
+      supernatural: null,
+      prestige: null,
+    },
+  }
+}
+
+function fingerprintCombatSnapshot(snapshot: Omit<CombatBuildSnapshot, 'fingerprint'>): string {
+  return `sha256:${createHash('sha256').update(JSON.stringify(snapshot)).digest('hex')}`
+}
+
+function validateCanonicalCombatSnapshot(snapshot: CombatBuildSnapshot): boolean {
+  if (validateCombatBuildSnapshot(snapshot).length > 0) return false
+  for (const skill of snapshot.disciplineSkills) {
+    const definition = resolveMatureSkillVersion(skill.skillId, skill.contentVersion)
+    if (!definition || definition.sourceDisciplineId !== skill.sourceDisciplineId) return false
+  }
+  return fingerprintCombatSnapshot({
+    schemaVersion: snapshot.schemaVersion,
+    sourceBuildSchemaVersion: snapshot.sourceBuildSchemaVersion,
+    sourceBuildVersion: snapshot.sourceBuildVersion,
+    primary: snapshot.primary,
+    secondary: snapshot.secondary,
+    disciplineSkills: snapshot.disciplineSkills,
+    extensions: snapshot.extensions,
+  }) === snapshot.fingerprint
+}
+
 function parseCombatant(value: unknown): BattleBuildAuthorityCombatantSnapshot | null {
   if (!isRecord(value) || !isRecord(value.primary) || !isRecord(value.extensions)) return null
   if (
     !nonEmptyString(value.combatantId) ||
     !nonEmptyString(value.characterId) ||
     value.combatantId !== `character:${value.characterId}` ||
+    value.snapshotSchemaVersion !== COMBAT_BUILD_SNAPSHOT_SCHEMA_VERSION ||
     !positiveInteger(value.buildSchemaVersion) ||
     !positiveInteger(value.buildVersion) ||
+    !nonEmptyString(value.fingerprint) ||
     !nonEmptyString(value.primary.disciplineId) ||
     !positiveInteger(value.primary.definitionVersion) ||
     !positiveInteger(value.primary.profileVersion)
@@ -131,9 +219,32 @@ function parseCombatant(value: unknown): BattleBuildAuthorityCombatantSnapshot |
     }
   }
 
+  const disciplineSkills = parseDisciplineSkills(value.disciplineSkills)
   const resonance = parseResonanceReference(value.extensions.resonance)
   const essence = parseEssenceReference(value.extensions.essence)
-  if (resonance === undefined || essence === undefined) return null
+  if (!disciplineSkills || resonance === undefined || essence === undefined) return null
+
+  const combatSnapshot: CombatBuildSnapshot = {
+    schemaVersion: COMBAT_BUILD_SNAPSHOT_SCHEMA_VERSION,
+    sourceBuildSchemaVersion: value.buildSchemaVersion,
+    sourceBuildVersion: value.buildVersion,
+    fingerprint: value.fingerprint,
+    primary: {
+      disciplineId: value.primary.disciplineId,
+      definitionVersion: value.primary.definitionVersion,
+      profileVersion: value.primary.profileVersion,
+    },
+    secondary,
+    disciplineSkills,
+    extensions: {
+      resonance,
+      essence,
+      equipmentSkills: [],
+      supernatural: null,
+      prestige: null,
+    },
+  }
+  if (!validateCanonicalCombatSnapshot(combatSnapshot)) return null
 
   const secondaryDisciplineId = secondary?.disciplineId ?? null
   const expectedResonance = resolveResonanceForPair(
@@ -180,14 +291,13 @@ function parseCombatant(value: unknown): BattleBuildAuthorityCombatantSnapshot |
   return {
     combatantId: value.combatantId,
     characterId: value.characterId,
+    snapshotSchemaVersion: COMBAT_BUILD_SNAPSHOT_SCHEMA_VERSION,
     buildSchemaVersion: value.buildSchemaVersion,
     buildVersion: value.buildVersion,
-    primary: {
-      disciplineId: value.primary.disciplineId,
-      definitionVersion: value.primary.definitionVersion,
-      profileVersion: value.primary.profileVersion,
-    },
+    fingerprint: value.fingerprint,
+    primary: combatSnapshot.primary,
     secondary,
+    disciplineSkills,
     extensions: { resonance, essence },
   }
 }
@@ -228,23 +338,34 @@ export function createBattleBuildAuthoritySnapshot(
   const value = {
     schemaVersion: BATTLE_BUILD_AUTHORITY_SCHEMA_VERSION,
     combatContext,
-    combatants: inputs.map(({ combatantId, characterId, snapshot }) => ({
-      combatantId,
-      characterId,
-      buildSchemaVersion: snapshot.schemaVersion,
-      buildVersion: snapshot.buildVersion,
-      primary: { ...snapshot.primary },
-      secondary: snapshot.secondary ? { ...snapshot.secondary } : null,
-      extensions: {
-        resonance: snapshot.extensions.resonance
-          ? {
-              ...snapshot.extensions.resonance,
-              disciplinePair: [...snapshot.extensions.resonance.disciplinePair] as [string, string],
-            }
-          : null,
-        essence: snapshot.extensions.essence ? { ...snapshot.extensions.essence } : null,
-      },
-    })),
+    combatants: inputs.map(({ combatantId, characterId, snapshot }) => {
+      const combatSnapshot = combatSnapshotFromCommitted(snapshot)
+      return {
+        combatantId,
+        characterId,
+        snapshotSchemaVersion: combatSnapshot.schemaVersion,
+        buildSchemaVersion: combatSnapshot.sourceBuildSchemaVersion,
+        buildVersion: combatSnapshot.sourceBuildVersion,
+        fingerprint: fingerprintCombatSnapshot(combatSnapshot),
+        primary: { ...combatSnapshot.primary },
+        secondary: combatSnapshot.secondary ? { ...combatSnapshot.secondary } : null,
+        disciplineSkills: combatSnapshot.disciplineSkills.map((skill) => ({ ...skill })),
+        extensions: {
+          resonance: combatSnapshot.extensions.resonance
+            ? {
+                ...combatSnapshot.extensions.resonance,
+                disciplinePair: [...combatSnapshot.extensions.resonance.disciplinePair] as [
+                  string,
+                  string,
+                ],
+              }
+            : null,
+          essence: combatSnapshot.extensions.essence
+            ? { ...combatSnapshot.extensions.essence }
+            : null,
+        },
+      }
+    }),
   }
   const parsed = parseBattleBuildAuthoritySnapshot(value)
   if (!parsed) throw new TypeError('Cannot create an invalid battle build-authority snapshot.')
