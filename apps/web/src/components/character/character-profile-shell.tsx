@@ -4,6 +4,7 @@ import type {
   PrimaryDisciplinePreview,
 } from '@aurevane/game-core/character/discipline-build'
 import type { CharacterProfileReadModel } from '@aurevane/game-core/character/profile'
+import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { ResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { Kicker, Surface } from '@aurevane/ui'
@@ -60,6 +61,7 @@ interface CharacterProfileShellProps {
       }[]
       extensions: {
         resonance: ResonanceDefinition | null
+        essence: EssenceDefinition | null
       }
     }
   }
@@ -128,6 +130,7 @@ export function CharacterProfileShell({
                   initialLearnedSkills={disciplineBuild.disciplineSkills.learnedSkills}
                   initialEquippedSkills={disciplineBuild.disciplineSkills.equippedSkills}
                   initialResonance={disciplineBuild.disciplineSkills.extensions.resonance}
+                  initialEssence={disciplineBuild.disciplineSkills.extensions.essence}
                 />
                 {personalTitle ? (
                   <span className={styles.personalTitlePill}>{personalTitle}</span>
