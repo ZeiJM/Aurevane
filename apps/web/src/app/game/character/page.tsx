@@ -15,6 +15,7 @@ import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadCharacterBuildContext } from '@/server/character/character-build-service'
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 import { loadCharacterTitleState } from '@/server/character/character-title-service'
+import { isPv2BuildcraftTestKitEnabled } from '@/server/character/pv2-buildcraft-test-kit'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
 import { loadLevelProgressionCurve } from '@/server/progression/progression-service'
@@ -105,6 +106,7 @@ export default async function CharacterProfilePage() {
       }}
       personalTitle={personalTitle}
       imageUrl={imageUrl}
+      pv2TestKitEnabled={isPv2BuildcraftTestKitEnabled()}
     />
   )
 }
