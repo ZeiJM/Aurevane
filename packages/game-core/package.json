@@ -16,6 +16,7 @@
     "./character/starter-options": "./src/character/starter-options.ts",
     "./character/wayfarers-practice": "./src/character/wayfarers-practice.ts",
     "./combat/actions": "./src/combat/actions.ts",
+    "./combat/build-snapshot": "./src/combat/build-snapshot.ts",
     "./combat/mature-skills": "./src/combat/mature-skills.ts",
     "./combat/resonance": "./src/combat/resonance.ts",
     "./combat/pv1f-resonance": "./src/combat/pv1f-resonance.ts",
