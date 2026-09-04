@@ -1,4 +1,5 @@
 import { isStarterCharacterPortraitRef } from '@aurevane/game-core/character/starter-options'
+import { resolveResonanceForPair } from '@aurevane/game-core/combat/resonance'
 import { isAurevaneError } from '@aurevane/game-core/errors'
 import { parseBattleSessionId } from '@aurevane/validation/combat/battle-session'
 import { headers } from 'next/headers'
@@ -13,10 +14,38 @@ import { getAuthenticatedActor } from '@/server/auth/actor'
 import { createBattleSessionService } from '@/server/battle/battle-session-service'
 import { getPvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import { createSupabaseBattleSessionRepository } from '@/server/battle/supabase-battle-session-repository'
+import { loadCharacterCommittedBuildSnapshot } from '@/server/character/character-build-service'
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
+import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
 
 export const dynamic = 'force-dynamic'
+
+async function loadBattleResonance(userId: string, characterId: string) {
+  try {
+    const snapshot = await loadCharacterCommittedBuildSnapshot(
+      userId,
+      characterId,
+      createSupabaseCharacterBuildRepository(),
+    )
+    const reference = snapshot.extensions.resonance
+    if (!reference) return null
+    const definition = resolveResonanceForPair(
+      snapshot.primary.disciplineId,
+      snapshot.secondary?.disciplineId ?? null,
+      reference.contentVersion,
+    )
+    if (!definition || definition.id !== reference.resonanceId) return null
+    return {
+      id: definition.id,
+      contentVersion: definition.contentVersion,
+      name: definition.name,
+      description: definition.description,
+    }
+  } catch {
+    return null
+  }
+}
 
 export default async function BattleSessionPage({
   params,
@@ -79,6 +108,7 @@ export default async function BattleSessionPage({
           runtime={{
             kind: 'pvp',
             playerName: character.name,
+            resonance: await loadBattleResonance(actor.userId, character.id),
             metadata: pvpMetadata,
           }}
         />
@@ -114,6 +144,7 @@ export default async function BattleSessionPage({
         runtime={{
           kind: 'pve',
           playerName: character.name,
+          resonance: await loadBattleResonance(actor.userId, character.id),
           playerLevel: character.level,
           playerPortraitAssetId: getStarterPortraitImageAssetId(character.portraitRef),
           playerProfileImageUrl,

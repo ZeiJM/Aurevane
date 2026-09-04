@@ -100,6 +100,7 @@ export default async function CharacterProfilePage() {
           capacity: disciplineBuild.disciplineSkills.capacity,
           learnedSkills: disciplineBuild.disciplineSkills.learnedSkills,
           equippedSkills: disciplineBuild.disciplineSkills.equippedSkills,
+          extensions: disciplineBuild.disciplineSkills.extensions,
         },
       }}
       personalTitle={personalTitle}

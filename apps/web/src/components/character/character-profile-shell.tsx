@@ -5,6 +5,7 @@ import type {
 } from '@aurevane/game-core/character/discipline-build'
 import type { CharacterProfileReadModel } from '@aurevane/game-core/character/profile'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
+import type { ResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { Kicker, Surface } from '@aurevane/ui'
 
 import { CharacterDisciplineBuildPanel } from '@/components/character/character-discipline-build-panel'
@@ -57,6 +58,9 @@ interface CharacterProfileShellProps {
         slotIndex: number
         equippedAt: string
       }[]
+      extensions: {
+        resonance: ResonanceDefinition | null
+      }
     }
   }
   personalTitle?: string | null
@@ -123,6 +127,7 @@ export function CharacterProfileShell({
                   initialCapacity={disciplineBuild.disciplineSkills.capacity}
                   initialLearnedSkills={disciplineBuild.disciplineSkills.learnedSkills}
                   initialEquippedSkills={disciplineBuild.disciplineSkills.equippedSkills}
+                  initialResonance={disciplineBuild.disciplineSkills.extensions.resonance}
                 />
                 {personalTitle ? (
                   <span className={styles.personalTitlePill}>{personalTitle}</span>

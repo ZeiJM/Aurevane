@@ -5,9 +5,17 @@ import type { ImageAssetId } from '@/media/registry'
 import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
+export interface BattleResonancePresentation {
+  id: string
+  contentVersion: number
+  name: string
+  description: string
+}
+
 export type BattleRuntime =
   | {
       kind: 'pve'
+      resonance?: BattleResonancePresentation | null
       playerName: string
       playerLevel: number
       playerPortraitAssetId: ImageAssetId
@@ -15,6 +23,7 @@ export type BattleRuntime =
     }
   | {
       kind: 'pvp'
+      resonance?: BattleResonancePresentation | null
       playerName: string
       metadata: PvpBattleMetadata
     }
@@ -130,7 +139,8 @@ export function buildBattleViewModel(
   battle: BattleSessionView,
   runtime: BattleRuntime,
 ): BattleViewModel {
-  const participants = runtime.kind === 'pvp' ? pvpParticipants(runtime) : pveParticipants(battle, runtime)
+  const participants =
+    runtime.kind === 'pvp' ? pvpParticipants(runtime) : pveParticipants(battle, runtime)
   const participantByCombatant = new Map(
     participants.map((participant) => [participant.combatantId, participant] as const),
   )

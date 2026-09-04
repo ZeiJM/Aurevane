@@ -1,6 +1,7 @@
 'use client'
 
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
+import type { ResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -25,6 +26,7 @@ interface CharacterSkillBuildPanelProps {
   initialCapacity: number
   initialLearnedSkills: readonly SkillCatalogEntryView[]
   initialEquippedSkills: readonly EquippedSkillView[]
+  initialResonance: ResonanceDefinition | null
 }
 
 interface SkillCommitResponse {
@@ -67,6 +69,7 @@ export function CharacterSkillBuildPanel({
   initialCapacity,
   initialLearnedSkills,
   initialEquippedSkills,
+  initialResonance,
 }: CharacterSkillBuildPanelProps) {
   const router = useRouter()
   const initialIds = orderedSkillIds(initialEquippedSkills)
@@ -260,7 +263,19 @@ export function CharacterSkillBuildPanel({
 
             <div className={styles.extensions}>
               <strong>Build extensions</strong>
-              <span>Resonance / Essence — reserved for P3.5–P3.6</span>
+              {initialResonance ? (
+                <>
+                  <span data-testid="active-resonance">
+                    Resonance · {initialResonance.name} · content v{initialResonance.contentVersion}
+                  </span>
+                  <span>{initialResonance.description}</span>
+                </>
+              ) : secondaryDiscipline ? (
+                <span>No authored Resonance is available for this Discipline pair yet.</span>
+              ) : (
+                <span>Resonance — available only to an eligible mixed build.</span>
+              )}
+              <span>Essence — reserved for P3.6</span>
               <span>Equipment Skills — reserved</span>
               <span>Supernatural — reserved for later phases</span>
               <span>Prestige — reserved</span>
