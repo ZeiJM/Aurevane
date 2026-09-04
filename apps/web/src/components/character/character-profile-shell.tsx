@@ -83,10 +83,15 @@ export function CharacterProfileShell({
     timeZone: 'UTC',
   }).format(new Date(profile.timestamps.createdAt))
   const progress = profile.progression.progress
+  const learnedSkillCatalogKey = disciplineBuild.disciplineSkills.learnedSkills
+    .map((entry) => `${entry.definition.id}@${entry.definition.contentVersion}`)
+    .sort()
+    .join(',')
   const skillBuildKey = [
     disciplineBuild.buildVersion,
     disciplineBuild.current.definition.id,
     disciplineBuild.currentSecondary?.id ?? 'pure',
+    learnedSkillCatalogKey,
   ].join(':')
 
   return (
