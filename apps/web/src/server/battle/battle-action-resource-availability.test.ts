@@ -13,7 +13,7 @@ function stateWithMp(mp: number, maxMp = 20): StatDrivenCombatEncounterState {
         combatants: [{ id: 'player', mp, maxMp }],
       },
     },
-  } as StatDrivenCombatEncounterState
+  } as unknown as StatDrivenCombatEncounterState
 }
 
 describe('battleActionResourceIssue', () => {
