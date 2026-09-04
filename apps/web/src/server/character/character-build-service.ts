@@ -457,10 +457,7 @@ export async function loadCharacterCommittedBuildSnapshot(
   }
 
   const persistedEssence = snapshot.extensions.essence
-  const latestEssence = resolveEssenceForBuild(
-    snapshot.primary.disciplineId,
-    secondaryDisciplineId,
-  )
+  const latestEssence = resolveEssenceForBuild(snapshot.primary.disciplineId, secondaryDisciplineId)
   if (!persistedEssence) {
     if (latestEssence) {
       throw persistenceUnavailable('The committed build snapshot is missing its Essence.')
