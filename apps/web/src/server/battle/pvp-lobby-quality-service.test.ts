@@ -187,7 +187,8 @@ describe('P3.7 direct PvP committed build snapshots', () => {
   it('persists the same frozen build grammar for both PvP participants', async () => {
     await startPvpLobbyWithQuality(hostUserId, lobbyId)
 
-    const state = mocks.createdBattleArgs?.p_initial_snapshot as StatDrivenCombatEncounterState | undefined
+    const state = mocks.createdBattleArgs?.p_initial_snapshot as
+      StatDrivenCombatEncounterState | undefined
     expect(state).toBeDefined()
     if (!state) throw new Error('Expected PvP initial snapshot.')
 
