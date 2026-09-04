@@ -12,6 +12,7 @@ import {
   P2_2_VERTICAL_SLICE_TERRAINS,
   createTacticalBattleState,
 } from '@aurevane/game-core/combat/board'
+import { executePv1fEssenceSkill } from '@aurevane/game-core/combat/essence'
 import {
   calculatePv1fBasicAttackDamage,
   createPv1fTemporaryResources,
@@ -42,17 +43,31 @@ import type {
   BattleIntent,
 } from '@aurevane/validation/combat/battle-session'
 
+import type { CharacterBuildRepository } from '@/server/character/character-build-service'
+import { loadCharacterCommittedBuildSnapshot } from '@/server/character/character-build-service'
+
 import { battleActionResourceIssue } from './battle-action-resource-availability'
+import {
+  battleBuildAuthorityForCombatant,
+  createBattleBuildAuthoritySnapshot,
+  parseBattleBuildAuthoritySnapshot,
+  resolveBattleEssenceDefinition,
+  type BattleBuildAuthoritySnapshot,
+} from './battle-build-authority'
 
 const PV1F_RULES_VERSION = 2
 const PV1F_CONTENT_VERSION = 2
 const PV1F_BASE_MOVEMENT_UNITS = 10
 
-type ProjectedBattleState = Omit<StatDrivenCombatEncounterState['tactical']['battle'], 'rng'>
-type ProjectedTacticalState = Omit<StatDrivenCombatEncounterState['tactical'], 'battle'> & {
+export type BattleAuthoritativeEncounterState = StatDrivenCombatEncounterState & {
+  buildAuthority?: BattleBuildAuthoritySnapshot
+}
+
+type ProjectedBattleState = Omit<BattleAuthoritativeEncounterState['tactical']['battle'], 'rng'>
+type ProjectedTacticalState = Omit<BattleAuthoritativeEncounterState['tactical'], 'battle'> & {
   battle: ProjectedBattleState
 }
-export type BattleSessionProjection = Omit<StatDrivenCombatEncounterState, 'tactical'> & {
+export type BattleSessionProjection = Omit<BattleAuthoritativeEncounterState, 'tactical'> & {
   tactical: ProjectedTacticalState
 }
 
@@ -90,6 +105,7 @@ export interface BattleSessionService {
 interface Dependencies {
   characters: CharacterRepository
   battles: BattleSessionRepository
+  builds?: CharacterBuildRepository
 }
 
 function invalidBattleIntent(
@@ -238,22 +254,48 @@ function createVerticalSliceEncounter(
   )
 }
 
-function readPersistedEncounter(snapshot: unknown): StatDrivenCombatEncounterState {
+function validateBattleBuildAuthorityCoverage(
+  state: StatDrivenCombatEncounterState,
+  authority: BattleBuildAuthoritySnapshot,
+): void {
+  const characterProfiles = state.statBridge.combatants.filter(
+    (profile) => profile.provenance.kind === 'character-derived',
+  )
+  if (characterProfiles.length !== authority.combatants.length) throw persistenceInvalid()
+
+  for (const profile of characterProfiles) {
+    const build = battleBuildAuthorityForCombatant(authority, profile.combatantId)
+    if (
+      !build ||
+      profile.provenance.sourceId !== `character:${build.characterId}` ||
+      build.combatantId !== profile.combatantId
+    ) {
+      throw persistenceInvalid()
+    }
+  }
+}
+
+function readPersistedEncounter(snapshot: unknown): BattleAuthoritativeEncounterState {
   if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
     throw persistenceInvalid()
   }
   try {
-    const candidate = snapshot as StatDrivenCombatEncounterState
+    const candidate = snapshot as BattleAuthoritativeEncounterState
     const issues = validateStatDrivenCombatEncounterState(candidate)
     if (issues.length > 0) throw persistenceInvalid()
-    return candidate
+
+    if (!Object.prototype.hasOwnProperty.call(candidate, 'buildAuthority')) return candidate
+    const authority = parseBattleBuildAuthoritySnapshot(candidate.buildAuthority)
+    if (!authority) throw persistenceInvalid()
+    validateBattleBuildAuthorityCoverage(candidate, authority)
+    return { ...candidate, buildAuthority: authority }
   } catch (error) {
     if (error instanceof AurevaneError) throw error
     throw persistenceInvalid()
   }
 }
 
-function projectBattleSnapshot(state: StatDrivenCombatEncounterState): BattleSessionProjection {
+function projectBattleSnapshot(state: BattleAuthoritativeEncounterState): BattleSessionProjection {
   const battle = state.tactical.battle
   return {
     ...state,
@@ -276,7 +318,7 @@ function projectBattleSnapshot(state: StatDrivenCombatEncounterState): BattleSes
 }
 
 function assertControlledCombatantProjection(
-  state: StatDrivenCombatEncounterState,
+  state: BattleAuthoritativeEncounterState,
   controlledCombatantIds: readonly string[],
 ): void {
   if (
@@ -293,7 +335,7 @@ function assertControlledCombatantProjection(
 }
 
 function assertPlayerControlledTurn(
-  state: StatDrivenCombatEncounterState,
+  state: BattleAuthoritativeEncounterState,
   controlledCombatantIds: readonly string[],
 ): void {
   const battle = state.tactical.battle
@@ -307,18 +349,54 @@ function assertPlayerControlledTurn(
   }
 }
 
+function preserveBuildAuthority(
+  source: BattleAuthoritativeEncounterState,
+  transition: { state: StatDrivenCombatEncounterState; events: readonly unknown[] },
+): { state: BattleAuthoritativeEncounterState; events: readonly unknown[] } {
+  return {
+    state: source.buildAuthority
+      ? { ...transition.state, buildAuthority: source.buildAuthority }
+      : transition.state,
+    events: transition.events,
+  }
+}
+
 function resolveIntent(
-  state: StatDrivenCombatEncounterState,
+  state: BattleAuthoritativeEncounterState,
   intent: BattleIntent,
-): { state: StatDrivenCombatEncounterState; events: readonly unknown[] } {
+): { state: BattleAuthoritativeEncounterState; events: readonly unknown[] } {
   try {
-    if (intent.kind === 'move') return executePv1fMovement(state, intent.path)
+    if (intent.kind === 'move') {
+      return preserveBuildAuthority(state, executePv1fMovement(state, intent.path))
+    }
     if (intent.kind === 'action') {
       const resourceIssue = battleActionResourceIssue(state, intent)
       if (resourceIssue) throw invalidBattleIntent(resourceIssue.message)
-      return executePv1fAction(state, intent.actionId, intent.target)
+
+      const actorId = state.tactical.battle.currentTurn?.combatantId
+      const build = actorId
+        ? battleBuildAuthorityForCombatant(state.buildAuthority, actorId)
+        : null
+      const essence = actorId ? resolveBattleEssenceDefinition(state.buildAuthority, actorId) : null
+      if (build && essence && intent.actionId === essence.skill.id && state.buildAuthority) {
+        return preserveBuildAuthority(
+          state,
+          executePv1fEssenceSkill({
+            state,
+            essence,
+            primaryDisciplineId: build.primary.disciplineId,
+            secondaryDisciplineId: build.secondary?.disciplineId ?? null,
+            combatContext: state.buildAuthority.combatContext,
+            selection: intent.target,
+          }),
+        )
+      }
+
+      return preserveBuildAuthority(state, executePv1fAction(state, intent.actionId, intent.target))
     }
-    if (intent.kind === 'face') return finishPv1fTurn(state, intent.facing)
+    if (intent.kind === 'face') {
+      return preserveBuildAuthority(state, finishPv1fTurn(state, intent.facing))
+    }
     throw invalidBattleIntent('Choose a final facing direction to finish the turn.')
   } catch (error) {
     if (error instanceof AurevaneError) throw error
@@ -343,6 +421,7 @@ async function findOwnedCharacter(
 export function createBattleSessionService({
   characters,
   battles,
+  builds,
 }: Dependencies): BattleSessionService {
   return {
     async createSession(command) {
@@ -354,18 +433,34 @@ export function createBattleSessionService({
       const arenaId = command.arenaId ?? 'basic-training-floor'
       const aiDifficulty = command.aiDifficulty ?? 'standard'
       const battleHallRecordId = command.battleHallRecordId ?? 'recruit-sparring'
-      const encounter = createVerticalSliceEncounter(
+      const baseEncounter = createVerticalSliceEncounter(
         character,
         arenaId,
         aiDifficulty,
         battleHallRecordId,
       )
+      const encounter: BattleAuthoritativeEncounterState = builds
+        ? {
+            ...baseEncounter,
+            buildAuthority: createBattleBuildAuthoritySnapshot('pve', [
+              {
+                combatantId: `character:${character.id}`,
+                characterId: character.id,
+                snapshot: await loadCharacterCommittedBuildSnapshot(
+                  command.userId,
+                  character.id,
+                  builds,
+                ),
+              },
+            ]),
+          }
+        : baseEncounter
       const battle = encounter.tactical.battle
       const persisted = await battles.createBattleSession({
         actorKey: command.userId,
         idempotencyKey: command.idempotencyKey,
         requestFingerprint: fingerprint({
-          command: 'battle.create.v3',
+          command: 'battle.create.v4',
           userId: command.userId,
           characterId: command.characterId,
           arenaId,
@@ -432,7 +527,7 @@ export function createBattleSessionService({
       const state = readPersistedEncounter(current.snapshot)
       assertControlledCombatantProjection(state, current.controlledCombatantIds)
       const requestFingerprint = fingerprint({
-        command: 'battle.intent.v2',
+        command: 'battle.intent.v3',
         battleSessionId: command.battleSessionId,
         expectedBattleVersion: command.expectedBattleVersion,
         intent: command.intent,
