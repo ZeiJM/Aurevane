@@ -14,6 +14,7 @@ on:
       - 'apps/web/src/server/character/character-build-service.test.ts'
       - 'apps/web/src/server/character/character-build-essence.test.ts'
       - 'apps/web/src/server/character/supabase-character-build-repository.ts'
+      - 'apps/web/src/server/battle/battle-action-resource-availability.test.ts'
       - 'apps/web/src/app/game/character/page.tsx'
       - 'apps/web/src/components/character/character-profile-shell.tsx'
       - 'apps/web/src/components/character/character-skill-build-panel.tsx'
@@ -39,6 +40,7 @@ on:
       - 'apps/web/src/server/character/character-build-service.test.ts'
       - 'apps/web/src/server/character/character-build-essence.test.ts'
       - 'apps/web/src/server/character/supabase-character-build-repository.ts'
+      - 'apps/web/src/server/battle/battle-action-resource-availability.test.ts'
       - 'apps/web/src/app/game/character/page.tsx'
       - 'apps/web/src/components/character/character-profile-shell.tsx'
       - 'apps/web/src/components/character/character-skill-build-panel.tsx'
@@ -76,6 +78,7 @@ jobs:
             apps/web/src/server/character/character-build-service.ts \
             apps/web/src/server/character/character-build-essence.test.ts \
             apps/web/src/server/character/supabase-character-build-repository.ts \
+            apps/web/src/server/battle/battle-action-resource-availability.test.ts \
             apps/web/src/components/character/character-profile-shell.tsx \
             apps/web/src/components/character/character-skill-build-panel.tsx \
             'apps/web/src/app/game/battle/[battleSessionId]/page.tsx' \
@@ -113,6 +116,7 @@ jobs:
         run: |
           pnpm --filter @aurevane/web exec vitest run \
             src/server/character/character-build-service.test.ts \
-            src/server/character/character-build-essence.test.ts
+            src/server/character/character-build-essence.test.ts \
+            src/server/battle/battle-action-resource-availability.test.ts
       - name: Production workspace build
         run: pnpm build
