@@ -12,10 +12,20 @@ export interface BattleResonancePresentation {
   description: string
 }
 
+export interface BattleEssencePresentation {
+  id: string
+  contentVersion: number
+  name: string
+  description: string
+  apCost: number
+  cooldownOwnerTurns: number
+}
+
 export type BattleRuntime =
   | {
       kind: 'pve'
       resonance?: BattleResonancePresentation | null
+      essence?: BattleEssencePresentation | null
       playerName: string
       playerLevel: number
       playerPortraitAssetId: ImageAssetId
@@ -24,6 +34,7 @@ export type BattleRuntime =
   | {
       kind: 'pvp'
       resonance?: BattleResonancePresentation | null
+      essence?: BattleEssencePresentation | null
       playerName: string
       metadata: PvpBattleMetadata
     }
