@@ -13,8 +13,8 @@ import {
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
-import { loadCharacterCombatBuildSnapshot } from '@/server/character/character-combat-build-snapshot'
-import type { CharacterBuildRepository } from '@/server/character/character-build-service'
+import { loadCharacterCombatBuildSnapshot } from '../character/character-combat-build-snapshot'
+import type { CharacterBuildRepository } from '../character/character-build-service'
 
 interface Dependencies {
   battles: BattleSessionRepository
