@@ -20,6 +20,11 @@ async function setSkill(page: Page, name: string, checked: boolean): Promise<voi
   if ((await checkbox.isChecked()) !== checked) await checkbox.click()
 }
 
+async function reloadProfile(page: Page): Promise<void> {
+  await page.reload()
+  await expect(page.getByTestId('character-profile')).toBeVisible()
+}
+
 test('PV-2 Profile flow compares pure eight-Skill Essence with mixed six-Skill Resonance', async ({
   page,
 }, testInfo) => {
@@ -46,11 +51,9 @@ test('PV-2 Profile flow compares pure eight-Skill Essence with mixed six-Skill R
     'Ready: 2 representative Disciplines and 14 Skills are available',
   )
 
-  // The kit triggers a Next.js server refresh after the authoritative grants.
-  // Reload here so the proof waits for that refreshed learned-Skill catalog rather
-  // than racing the client remount while opening the Skills dialog.
-  await page.reload()
-  await expect(page.getByTestId('character-profile')).toBeVisible()
+  // Each authoritative commit triggers a Next.js server refresh. Reload at those
+  // boundaries so this proof verifies persisted state rather than racing a client remount.
+  await reloadProfile(page)
 
   await page.getByRole('button', { name: /Manage Discipline Skills/ }).click()
   await expect(page.getByTestId('skill-capacity')).toHaveText('0 / 8')
@@ -75,13 +78,14 @@ test('PV-2 Profile flow compares pure eight-Skill Essence with mixed six-Skill R
   await expect(page.getByTestId('skill-capacity')).toHaveText('8 / 8')
   await page.getByRole('button', { name: 'Commit Skill loadout' }).click()
   await expect(page.getByRole('status')).toContainText('Discipline Skill loadout is now committed')
-  await page.getByRole('button', { name: 'Close' }).click()
+  await reloadProfile(page)
 
   await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
   await page.getByLabel('Proposed Secondary').selectOption('lifebinder')
   await expect(page.getByTestId('primary-build-preview')).toContainText('Vanguard + Lifebinder')
   await page.getByRole('button', { name: 'Commit Discipline changes' }).click()
   await expect(page.getByTestId('primary-build-panel')).toContainText('Vanguard + Lifebinder')
+  await reloadProfile(page)
 
   await page.getByRole('button', { name: /Manage Discipline Skills/ }).click()
   await expect(page.getByTestId('skill-capacity')).toHaveText('6 / 6')
@@ -101,7 +105,7 @@ test('PV-2 Profile flow compares pure eight-Skill Essence with mixed six-Skill R
   await page.getByRole('button', { name: 'Commit Skill loadout' }).click()
   await expect(page.getByRole('status')).toContainText('Discipline Skill loadout is now committed')
 
-  await page.reload()
+  await reloadProfile(page)
   await page.getByRole('button', { name: /Manage Discipline Skills/ }).click()
   await expect(page.getByTestId('skill-capacity')).toHaveText('6 / 6')
   await expect(page.getByTestId('active-resonance')).toContainText("Mercy's Edge")
