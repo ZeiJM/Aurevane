@@ -287,6 +287,31 @@ function parseSnapshotResonance(
   }
 }
 
+function parseSnapshotEssence(
+  value: unknown,
+): CharacterCommittedBuildSnapshotRecord['extensions']['essence'] | undefined {
+  if (value === null) return null
+  if (!isRecord(value)) return undefined
+  const contentVersion = integer(value.contentVersion)
+  const skillContentVersion = integer(value.skillContentVersion)
+  if (
+    typeof value.essenceId !== 'string' ||
+    contentVersion === null ||
+    typeof value.sourceDisciplineId !== 'string' ||
+    typeof value.skillId !== 'string' ||
+    skillContentVersion === null
+  ) {
+    return undefined
+  }
+  return {
+    essenceId: value.essenceId,
+    contentVersion,
+    sourceDisciplineId: value.sourceDisciplineId,
+    skillId: value.skillId,
+    skillContentVersion,
+  }
+}
+
 function parseCommittedSnapshot(value: unknown): CharacterCommittedBuildSnapshotRecord | null {
   if (!isRecord(value) || !isRecord(value.primary) || !isRecord(value.extensions)) return null
   const schemaVersion = integer(value.schemaVersion)
@@ -300,7 +325,6 @@ function parseCommittedSnapshot(value: unknown): CharacterCommittedBuildSnapshot
     primaryDefinitionVersion === null ||
     primaryProfileVersion === null ||
     !Array.isArray(value.disciplineSkills) ||
-    value.extensions.essence !== null ||
     !Array.isArray(value.extensions.equipmentSkills) ||
     value.extensions.equipmentSkills.length !== 0 ||
     value.extensions.supernatural !== null ||
@@ -321,6 +345,8 @@ function parseCommittedSnapshot(value: unknown): CharacterCommittedBuildSnapshot
   if (disciplineSkills.some((entry) => entry === null)) return null
   const resonance = parseSnapshotResonance(value.extensions.resonance)
   if (resonance === undefined) return null
+  const essence = parseSnapshotEssence(value.extensions.essence)
+  if (essence === undefined) return null
 
   return {
     schemaVersion,
@@ -334,7 +360,7 @@ function parseCommittedSnapshot(value: unknown): CharacterCommittedBuildSnapshot
     disciplineSkills: disciplineSkills as CharacterCommittedBuildSnapshotRecord['disciplineSkills'],
     extensions: {
       resonance,
-      essence: null,
+      essence,
       equipmentSkills: [],
       supernatural: null,
       prestige: null,
@@ -395,7 +421,7 @@ export function createSupabaseCharacterBuildRepository(): CharacterBuildReposito
 
     async loadCommittedBuildSnapshot(userId, characterId) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('get_character_committed_build_snapshot_v1', {
+      const { data, error } = await supabase.rpc('get_character_committed_build_snapshot_v2', {
         p_user_id: userId,
         p_character_id: characterId,
       })

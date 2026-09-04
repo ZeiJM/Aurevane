@@ -11,6 +11,7 @@ import { BattleCockpitLayoutStabilizer } from './battle-cockpit-layout-stabilize
 import { BattleCommandCockpitPolish } from './battle-command-cockpit-polish'
 import { pvpParticipantAccent } from './battle-combatant-colors'
 import { BattleDirectionalAttackAssist } from './battle-directional-attack-assist'
+import { BattleEssenceIndicator } from './battle-essence-indicator'
 import { BattleExperience } from './battle-experience'
 import { BattleFacingQuickCommitAssist } from './battle-facing-quick-commit-assist'
 import { BattleFeedbackAssist } from './battle-feedback-assist'
@@ -111,7 +112,11 @@ export function BattleClientBoundary({
         <BattleFacingQuickCommitAssist playerName={runtime.playerName} />
         <PvpQuickCommitAssist />
         <BattleStatusEffectAssist />
-        {runtime.resonance ? <BattleResonanceIndicator resonance={runtime.resonance} /> : null}
+        {runtime.resonance ? (
+          <BattleResonanceIndicator resonance={runtime.resonance} />
+        ) : runtime.essence ? (
+          <BattleEssenceIndicator essence={runtime.essence} />
+        ) : null}
         <BattleStickyActionAssist />
         <BattleCommandCockpitPolish />
         <BattleCockpitLayoutStabilizer playerName={runtime.playerName} />

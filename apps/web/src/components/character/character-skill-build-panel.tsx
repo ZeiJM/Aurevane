@@ -1,5 +1,6 @@
 'use client'
 
+import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { ResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { useRouter } from 'next/navigation'
@@ -27,6 +28,7 @@ interface CharacterSkillBuildPanelProps {
   initialLearnedSkills: readonly SkillCatalogEntryView[]
   initialEquippedSkills: readonly EquippedSkillView[]
   initialResonance: ResonanceDefinition | null
+  initialEssence: EssenceDefinition | null
 }
 
 interface SkillCommitResponse {
@@ -70,6 +72,7 @@ export function CharacterSkillBuildPanel({
   initialLearnedSkills,
   initialEquippedSkills,
   initialResonance,
+  initialEssence,
 }: CharacterSkillBuildPanelProps) {
   const router = useRouter()
   const initialIds = orderedSkillIds(initialEquippedSkills)
@@ -196,9 +199,8 @@ export function CharacterSkillBuildPanel({
 
             <p className={styles.rule}>
               {secondaryDiscipline
-                ? 'Mixed builds may equip six total Discipline Skills across the active pair.'
-                : 'Pure builds may equip up to eight learned Skills from the Primary Discipline.'}{' '}
-              Other future Skill sources use their own bounded slots and do not consume this cap.
+                ? 'Mixed builds may equip six total Discipline Skills across the active pair and gain their resolved Resonance passive.'
+                : 'Pure builds may equip up to eight learned Skills from the Primary Discipline and gain one eligible Essence Skill outside that cap.'}
             </p>
 
             <div className={styles.skillList} data-testid="learned-skill-list">
@@ -275,7 +277,22 @@ export function CharacterSkillBuildPanel({
               ) : (
                 <span>Resonance — available only to an eligible mixed build.</span>
               )}
-              <span>Essence — reserved for P3.6</span>
+              {initialEssence ? (
+                <>
+                  <span data-testid="active-essence">
+                    Essence Skill · {initialEssence.name} · content v{initialEssence.contentVersion}
+                  </span>
+                  <span>
+                    {initialEssence.description} {initialEssence.skill.apCost} AP ·{' '}
+                    {initialEssence.skill.cooldown.ownerTurns} owner-turn cooldown · outside the{' '}
+                    {capacity}-Skill Discipline cap.
+                  </span>
+                </>
+              ) : secondaryDiscipline ? (
+                <span>Essence — unavailable while a Secondary Discipline is active.</span>
+              ) : (
+                <span>No authored Essence is available for this Primary Discipline yet.</span>
+              )}
               <span>Equipment Skills — reserved</span>
               <span>Supernatural — reserved for later phases</span>
               <span>Prestige — reserved</span>
