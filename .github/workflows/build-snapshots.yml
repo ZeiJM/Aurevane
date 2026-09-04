@@ -66,6 +66,8 @@ jobs:
             apps/web/src/server/character/character-combat-build-snapshot.test.ts \
             apps/web/src/server/battle/build-snapshotted-battle-session-repository.ts \
             apps/web/src/server/battle/build-snapshotted-battle-session-repository.test.ts \
+            apps/web/src/server/battle/pvp-lobby-quality-service.ts \
+            apps/web/src/server/battle/pvp-lobby-quality-service.test.ts \
             apps/web/src/app/api/battles/route.ts
       - name: Focused lint
         run: |
@@ -76,6 +78,8 @@ jobs:
             apps/web/src/server/character/character-combat-build-snapshot.test.ts \
             apps/web/src/server/battle/build-snapshotted-battle-session-repository.ts \
             apps/web/src/server/battle/build-snapshotted-battle-session-repository.test.ts \
+            apps/web/src/server/battle/pvp-lobby-quality-service.ts \
+            apps/web/src/server/battle/pvp-lobby-quality-service.test.ts \
             apps/web/src/app/api/battles/route.ts
       - name: Game core typecheck
         run: pnpm --filter @aurevane/game-core typecheck
@@ -87,4 +91,5 @@ jobs:
         run: |
           pnpm --filter @aurevane/web exec vitest run \
             src/server/character/character-combat-build-snapshot.test.ts \
-            src/server/battle/build-snapshotted-battle-session-repository.test.ts
+            src/server/battle/build-snapshotted-battle-session-repository.test.ts \
+            src/server/battle/pvp-lobby-quality-service.test.ts
