@@ -6,6 +6,7 @@ import { createTacticalBattleState } from './board'
 import {
   P36_REPRESENTATIVE_ESSENCES,
   essenceSnapshotReference,
+  evaluatePv1fEssenceSkillForAi,
   executePv1fEssenceSkill,
   resolveEssenceForBuild,
   validateEssenceDefinition,
@@ -126,6 +127,53 @@ describe('P3.6 versioned pure Essence framework', () => {
       skillId: 'essence.vanguard.unbroken-strike',
       skillContentVersion: 1,
     })
+  })
+
+  it('gives AI the same pure-build legality, AP override, target evaluation, and authored utility', () => {
+    const essence = resolveEssenceForBuild('vanguard', null)
+    if (!essence) throw new Error('Expected representative Vanguard Essence.')
+    const selection = { kind: 'unit', combatantId: 'recruit' } as const
+
+    const pve = evaluatePv1fEssenceSkillForAi({
+      state: encounter(),
+      essence,
+      primaryDisciplineId: 'vanguard',
+      secondaryDisciplineId: null,
+      combatContext: 'pve',
+      selection,
+    })
+    expect(pve).toMatchObject({
+      essenceId: 'essence.vanguard.unbroken-strike',
+      skillId: 'essence.vanguard.unbroken-strike',
+      legal: true,
+      affordable: true,
+      apCost: 55,
+      actionEconomyRemaining: 100,
+      baseUtility: 92,
+      purposeTags: ['damage', 'finisher', 'pure-build'],
+      combatEvaluation: { legal: true, primaryCombatantId: 'recruit' },
+    })
+
+    const pvp = evaluatePv1fEssenceSkillForAi({
+      state: encounter(),
+      essence,
+      primaryDisciplineId: 'vanguard',
+      secondaryDisciplineId: null,
+      combatContext: 'pvp',
+      selection,
+    })
+    expect(pvp?.apCost).toBe(60)
+
+    expect(
+      evaluatePv1fEssenceSkillForAi({
+        state: encounter(),
+        essence,
+        primaryDisciplineId: 'vanguard',
+        secondaryDisciplineId: 'lifebinder',
+        combatContext: 'pve',
+        selection,
+      }),
+    ).toBeNull()
   })
 
   it('uses the canonical PV-1F Skill path for AP, cooldown, effects, and PvP overrides', () => {
