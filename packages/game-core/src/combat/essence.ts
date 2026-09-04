@@ -229,12 +229,7 @@ export function executePv1fEssenceSkill(input: {
   if (!resolved) {
     throw new Error('That Essence Skill is not legal for the committed Discipline build.')
   }
-  return executePv1fMatureSkill(
-    input.state,
-    resolved.skill,
-    input.selection,
-    input.combatContext,
-  )
+  return executePv1fMatureSkill(input.state, resolved.skill, input.selection, input.combatContext)
 }
 
 function assertUsableEssence(definition: EssenceDefinition): void {
