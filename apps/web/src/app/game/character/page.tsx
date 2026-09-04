@@ -12,9 +12,11 @@ import {
   getActiveSpectatingForUser,
 } from '@/server/account/active-game-session'
 import { getAuthenticatedActor } from '@/server/auth/actor'
+import { loadCharacterBuildContext } from '@/server/character/character-build-service'
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 import { loadCharacterTitleState } from '@/server/character/character-title-service'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
+import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
 import { loadLevelProgressionCurve } from '@/server/progression/progression-service'
 import { createSupabaseProgressionRepository } from '@/server/progression/supabase-progression-repository'
 
@@ -53,11 +55,15 @@ export default async function CharacterProfilePage() {
   if (!character) redirect('/game')
 
   let levelCurve
+  let primaryBuild
   try {
-    levelCurve = await loadLevelProgressionCurve(
-      character.progressionCycle.number,
-      createSupabaseProgressionRepository(),
-    )
+    ;[levelCurve, primaryBuild] = await Promise.all([
+      loadLevelProgressionCurve(
+        character.progressionCycle.number,
+        createSupabaseProgressionRepository(),
+      ),
+      loadCharacterBuildContext(actor.userId, character, createSupabaseCharacterBuildRepository()),
+    ])
   } catch (error) {
     if (isAurevaneError(error) && error.code === 'PERSISTENCE_UNAVAILABLE') {
       return <AuthenticatedGameRecovery />
@@ -84,6 +90,11 @@ export default async function CharacterProfilePage() {
   return (
     <CharacterProfileShell
       profile={buildCharacterProfileReadModel(character, levelCurve)}
+      primaryBuild={{
+        buildVersion: primaryBuild.build.buildVersion,
+        current: primaryBuild.current,
+        availablePrimaries: primaryBuild.availablePrimaries,
+      }}
       personalTitle={personalTitle}
       imageUrl={imageUrl}
     />

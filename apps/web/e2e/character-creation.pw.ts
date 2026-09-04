@@ -37,7 +37,7 @@ test('creates a slotted character, persists its profile, and resumes it across s
   for (const attribute of ['might', 'finesse', 'vitality', 'agility', 'intellect', 'resolve']) {
     await expect(page.getByTestId(`profile-attribute-${attribute}`)).toContainText('6')
   }
-  await expect(page.getByTestId('derived-stat-maxHp')).toContainText('164')
+  await expect(page.getByTestId('derived-stat-maxHp')).toContainText('184')
   await expect(page.getByTestId('derived-stat-maxMp')).toContainText('90')
   await expect(page.getByTestId('derived-stat-accuracy')).toContainText('74%')
   await expect(page.getByTestId('derived-stat-criticalChance')).toContainText('8%')

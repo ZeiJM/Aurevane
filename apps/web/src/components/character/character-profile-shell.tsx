@@ -1,6 +1,12 @@
+import type {
+  DisciplineDefinition,
+  PrimaryDisciplineBaseProfile,
+  PrimaryDisciplinePreview,
+} from '@aurevane/game-core/character/discipline-build'
 import type { CharacterProfileReadModel } from '@aurevane/game-core/character/profile'
 import { Kicker, Surface } from '@aurevane/ui'
 
+import { CharacterPrimaryBuildPanel } from '@/components/character/character-primary-build-panel'
 import { CharacterProfileDetails } from '@/components/character/character-profile-details'
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
@@ -8,14 +14,25 @@ import { getStarterPortraitImageAssetId } from '@/media/character'
 
 import styles from './character-profile-shell.module.css'
 
+interface PrimaryOption {
+  definition: DisciplineDefinition
+  profile: PrimaryDisciplineBaseProfile
+}
+
 interface CharacterProfileShellProps {
   profile: CharacterProfileReadModel
+  primaryBuild: {
+    buildVersion: number
+    current: PrimaryDisciplinePreview
+    availablePrimaries: readonly PrimaryOption[]
+  }
   personalTitle?: string | null
   imageUrl?: string | null
 }
 
 export function CharacterProfileShell({
   profile,
+  primaryBuild,
   personalTitle = null,
   imageUrl = null,
 }: CharacterProfileShellProps) {
@@ -42,7 +59,11 @@ export function CharacterProfileShell({
               <Kicker marker="◆">Character Profile</Kicker>
               <div className={styles.nameLine}>
                 <h1>{profile.identity.name}</h1>
-                <span className={styles.disciplinePill}>{profile.foundationDiscipline.name}</span>
+                <CharacterPrimaryBuildPanel
+                  initialBuildVersion={primaryBuild.buildVersion}
+                  initialCurrent={primaryBuild.current}
+                  availablePrimaries={primaryBuild.availablePrimaries}
+                />
                 {personalTitle ? (
                   <span className={styles.personalTitlePill}>{personalTitle}</span>
                 ) : null}
@@ -50,7 +71,7 @@ export function CharacterProfileShell({
               <p className={styles.subtitle}>
                 Character Level <strong>{profile.progression.level}</strong>
               </p>
-              <p className={styles.discipline}>{profile.foundationDiscipline.summary}</p>
+              <p className={styles.discipline}>{primaryBuild.current.definition.summary}</p>
 
               <div className={styles.levelProgress} data-testid="level-progress">
                 <div>
@@ -83,7 +104,7 @@ export function CharacterProfileShell({
             pronounLabel={profile.identity.pronounLabel}
             cycleNumber={profile.progression.cycleNumber}
             attributes={profile.attributes}
-            derived={profile.derived}
+            derived={primaryBuild.current.derived}
           />
         </Surface>
 
