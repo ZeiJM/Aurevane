@@ -63,10 +63,7 @@ export async function POST(request: Request) {
       repository,
     )
     const loadouts = await listCharacterSavedBuildLoadouts(actor.userId, character.id, repository)
-    return Response.json(
-      { saved, loadouts },
-      { headers: { 'Cache-Control': 'private, no-store' } },
-    )
+    return Response.json({ saved, loadouts }, { headers: { 'Cache-Control': 'private, no-store' } })
   } catch (error) {
     return toServerErrorResponse(error)
   }
