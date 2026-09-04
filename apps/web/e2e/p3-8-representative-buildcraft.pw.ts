@@ -3,7 +3,11 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueCharacterName(): string {
-  const suffix = Date.now().toString(36).replace(/[^a-z]/gi, '').slice(-7) || 'tester'
+  const suffix =
+    Date.now()
+      .toString(36)
+      .replace(/[^a-z]/gi, '')
+      .slice(-7) || 'tester'
   return `Buildcraft ${suffix}`
 }
 
@@ -45,7 +49,9 @@ test('PV-2 Profile flow compares pure eight-Skill Essence with mixed six-Skill R
   await page.getByRole('button', { name: /Manage Discipline Skills/ }).click()
   await expect(page.getByTestId('skill-capacity')).toHaveText('0 / 8')
   await expect(page.getByTestId('active-essence')).toContainText('Essence Skill')
-  await expect(page.getByText('Resonance — available only to an eligible mixed build.')).toBeVisible()
+  await expect(
+    page.getByText('Resonance — available only to an eligible mixed build.'),
+  ).toBeVisible()
 
   for (const skill of [
     'Forceful Strike',
@@ -74,7 +80,9 @@ test('PV-2 Profile flow compares pure eight-Skill Essence with mixed six-Skill R
   await page.getByRole('button', { name: /Manage Discipline Skills/ }).click()
   await expect(page.getByTestId('skill-capacity')).toHaveText('6 / 6')
   await expect(page.getByTestId('active-resonance')).toContainText("Mercy's Edge")
-  await expect(page.getByText('Essence — unavailable while a Secondary Discipline is active.')).toBeVisible()
+  await expect(
+    page.getByText('Essence — unavailable while a Secondary Discipline is active.'),
+  ).toBeVisible()
 
   for (const skill of ['Guard Break', 'Rally', 'Shield Bash']) {
     await setSkill(page, skill, false)

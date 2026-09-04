@@ -348,9 +348,7 @@ export const P33_REPRESENTATIVE_DISCIPLINE_SKILLS = [
     apCost: 40,
     target: nearbyAllyTarget,
     requirements: [],
-    effects: [
-      { type: 'apply-status', recipient: 'primary-unit', statusId: 'guarded', stacks: 1 },
-    ],
+    effects: [{ type: 'apply-status', recipient: 'primary-unit', statusId: 'guarded', stacks: 1 }],
     tags: ['discipline', 'lifebinder', 'defense', 'support', 'guard'],
     cooldown: { key: 'lifebinder.barrier', ownerTurns: 3 },
     ai: { enabled: true, baseUtility: 67, purposeTags: ['defense', 'support'] },

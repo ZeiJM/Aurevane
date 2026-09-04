@@ -21,10 +21,7 @@ export async function POST() {
     }
 
     const result = await preparePv2BuildcraftTestKit(actor.userId, character.id)
-    return Response.json(
-      { result },
-      { headers: { 'Cache-Control': 'private, no-store' } },
-    )
+    return Response.json({ result }, { headers: { 'Cache-Control': 'private, no-store' } })
   } catch (error) {
     return toServerErrorResponse(error)
   }
