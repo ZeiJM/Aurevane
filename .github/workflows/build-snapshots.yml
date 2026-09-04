@@ -82,20 +82,6 @@ jobs:
           corepack prepare pnpm@11.17.0 --activate
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Diagnose P3.7 formatting delta
-        run: |
-          pnpm exec prettier --write \
-            apps/web/src/server/battle/battle-build-authority.ts \
-            apps/web/src/server/character/character-saved-build-loadout-service.ts \
-            apps/web/src/server/character/character-saved-build-loadout-service.test.ts \
-            apps/web/src/server/character/supabase-character-saved-build-loadout-repository.ts \
-            apps/web/src/app/api/character/build/loadouts/route.ts
-          git diff --exit-code -- \
-            apps/web/src/server/battle/battle-build-authority.ts \
-            apps/web/src/server/character/character-saved-build-loadout-service.ts \
-            apps/web/src/server/character/character-saved-build-loadout-service.test.ts \
-            apps/web/src/server/character/supabase-character-saved-build-loadout-repository.ts \
-            apps/web/src/app/api/character/build/loadouts/route.ts
       - name: Focused formatting
         run: |
           pnpm exec prettier --check \
