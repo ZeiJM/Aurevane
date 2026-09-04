@@ -10,6 +10,19 @@ import {
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
+vi.mock('@/lib/supabase/admin', () => ({ createSupabaseAdminClient: vi.fn() }))
+vi.mock('@/server/character/character-build-service', () => ({
+  loadCharacterCommittedBuildSnapshot: vi.fn(),
+}))
+vi.mock('@/server/character/character-profile-display-service', () => ({
+  loadPublicCharacterProfileImageMap: vi.fn(),
+}))
+vi.mock('@/server/character/supabase-character-build-repository', () => ({
+  createSupabaseCharacterBuildRepository: vi.fn(),
+}))
+vi.mock('@/server/character/supabase-character-repository', () => ({
+  createSupabaseCharacterRepository: vi.fn(),
+}))
 
 import type { CharacterCommittedBuildSnapshotRecord } from '@/server/character/character-build-service'
 
