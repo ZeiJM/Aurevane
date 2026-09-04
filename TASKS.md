@@ -24,9 +24,9 @@ This file reports the **current implementation/validation boundary**.
 
 **PV-1 / issue #105:** reconcile as completed by Owner phase-exit decision. Do not invent additional human evidence.
 
-**ACTIVE IMPLEMENTATION TICKET:** **P3.2 — Secondary Discipline + Independent Attunement Cooldowns**.
+**ACTIVE IMPLEMENTATION TICKET:** **P3.3 — Mature Skill Schema + Generic Cooldown Engine**.
 
-P3.1 has a validated implementation candidate in PR #368 at `28c00c92f242b4344f8dae80ef8c32e05774a694` and is the direct dependency for P3.2. P3.2 now implements the optional mastered Secondary slot plus independent server-owned Primary/Secondary attunement cooldowns and is in final validation. Do not start P3.3 until P3.2 is closed or the Owner explicitly authorizes parallel work.
+P3.1 remains the validated foundational dependency in PR #368. P3.2 is implemented and validated in stacked PR #369 at `f1910fbea315a48f5ff932f1e0640aa9ac1e4752`. The Owner explicitly authorized continuing Phase 3, so P3.3 is now the active implementation/validation ticket on top of that exact P3.2 head. P3.4 persistent learned/equipped Skill loadouts and pure/mixed capacity remain deferred until P3.3 closeout.
 
 ---
 
@@ -108,11 +108,11 @@ P3.8 Representative buildcraft slice + PV-2 readiness
 
 Phase 3 feeds PV-2 before Phase-4 roster expansion.
 
-### Active P3.2 contract
+### Active P3.3 contract
 
-P3.1 supplies the validated authoritative persistent build-state boundary, versioned Primary definitions/base profiles, deterministic derived-stat recomputation, build versioning, idempotency and Profile preview/commit flow through dependency PR #368.
+P3.1 supplies the authoritative persistent build-state boundary and versioned Primary profiles. P3.2 adds the optional mastered Secondary plus independent trusted-server Primary/Secondary attunement deadlines through stacked PR #369.
 
-P3.2 adds only the next canonical layer: an optional mastered Secondary, no second base-stat profile, independent trusted-server Primary/Secondary attunement deadlines, preview-versus-commit separation, reconnect/device-clock safety, auditable legality and understandable Profile lock state. Mature Skill schema/cooldowns, Skill loadouts, Resonance and Essence remain deferred to P3.3+.
+P3.3 adds only the next canonical layer: versioned mature Skill definitions, reusable server-owned owner-turn cooldown state, deterministic readiness across persisted battle snapshots, shared target/requirement/effect legality, shared AI legality, PvE/PvP tuning hooks and representative data-defined Discipline Skills. The canonical Recover command now uses its specified two-owner-turn cooldown while Move, Basic Attack and Guard remain cooldown-exempt. Persistent learned/equipped Skill loadouts, pure/mixed capacity enforcement and Profile configuration remain deferred to P3.4.
 
 ---
 

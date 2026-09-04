@@ -36,7 +36,7 @@ Current state:
 Phase 0 — Engineering Foundation               substantially complete
 Phase 1 — Character & Progression Foundation  substantially complete
 Phase 2 — Tactical Combat & Battle Platform   closed; PV-1 passed by explicit Owner decision
-Phase 3 — Signature Buildcraft Foundation     active; P3.2 after validated P3.1 dependency
+Phase 3 — Signature Buildcraft Foundation     active; P3.3 after validated P3.1/P3.2 dependencies
 ```
 
 Phase 2 is formally closed and its reusable tactical combat, Recruit AI/Battle Hall, direct PvP, multi-combatant battles, spectation, battle communication, battle logs and responsive battle presentation are preserved dependencies for Phase 3.
@@ -67,7 +67,7 @@ The completed Phase-2 → Phase-3 transition protocol was:
 
 Phase-transition authorization does **not** authorize Vercel deployment.
 
-Current execution: P3.1 is implemented and validated in PR #368 at `28c00c92f242b4344f8dae80ef8c32e05774a694`; P3.2 is active. Do not begin P3.3 until P3.2 closeout unless the Owner explicitly authorizes parallel work.
+Current execution: P3.1 is implemented and validated in PR #368 at `28c00c92f242b4344f8dae80ef8c32e05774a694`; P3.2 is implemented and validated in stacked PR #369 at `f1910fbea315a48f5ff932f1e0640aa9ac1e4752`; the Owner explicitly authorized continuing Phase 3 and P3.3 is active. Do not begin P3.4 until P3.3 closeout unless the Owner explicitly authorizes parallel work.
 
 ---
 
