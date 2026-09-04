@@ -1,5 +1,5 @@
 import type { CombatActionEvaluation, CombatTargetSelection } from './actions'
-import { readCombatBuildSnapshot } from './build-snapshot'
+import { readBattleAuthorityCombatBuildSnapshot } from './battle-authority-build-snapshot'
 import { resolveEssenceForBuild } from './essence'
 import { resolveMatureSkillVersion, type MatureSkillDefinition } from './mature-skills'
 import {
@@ -80,7 +80,7 @@ export function committedMatureSkills(
   state: StatDrivenCombatEncounterState,
   combatantId: string,
 ): readonly MatureSkillDefinition[] {
-  const snapshot = readCombatBuildSnapshot(state, combatantId)
+  const snapshot = readBattleAuthorityCombatBuildSnapshot(state, combatantId)
   if (!snapshot) return []
 
   const definitions: MatureSkillDefinition[] = []
