@@ -98,9 +98,7 @@ function preserveFrozenBuildMetadata(
 ): BuildExtendedEncounterState {
   return {
     ...next,
-    ...(previous.buildAuthority !== undefined
-      ? { buildAuthority: previous.buildAuthority }
-      : {}),
+    ...(previous.buildAuthority !== undefined ? { buildAuthority: previous.buildAuthority } : {}),
     ...(previous.buildBridge !== undefined ? { buildBridge: previous.buildBridge } : {}),
   }
 }
