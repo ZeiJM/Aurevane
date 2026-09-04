@@ -33,6 +33,10 @@ type ProjectedTacticalState = Omit<StatDrivenCombatEncounterState['tactical'], '
 type RecruitBattleProjection = Omit<StatDrivenCombatEncounterState, 'tactical'> & {
   tactical: ProjectedTacticalState
 }
+type BuildExtendedEncounterState = StatDrivenCombatEncounterState & {
+  readonly buildAuthority?: unknown
+  readonly buildBridge?: unknown
+}
 
 export interface RecruitTurnView {
   battleSessionId: string
@@ -73,18 +77,31 @@ function persistenceInvalid(message = 'The stored battle state is invalid.'): Au
   return new AurevaneError('PERSISTENCE_UNAVAILABLE', message)
 }
 
-function readPersistedEncounter(snapshot: unknown): StatDrivenCombatEncounterState {
+function readPersistedEncounter(snapshot: unknown): BuildExtendedEncounterState {
   if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
     throw persistenceInvalid()
   }
   try {
-    const candidate = snapshot as StatDrivenCombatEncounterState
+    const candidate = snapshot as BuildExtendedEncounterState
     const issues = validateStatDrivenCombatEncounterState(candidate)
     if (issues.length > 0) throw persistenceInvalid()
     return candidate
   } catch (error) {
     if (error instanceof AurevaneError) throw error
     throw persistenceInvalid()
+  }
+}
+
+function preserveFrozenBuildMetadata(
+  previous: BuildExtendedEncounterState,
+  next: StatDrivenCombatEncounterState,
+): BuildExtendedEncounterState {
+  return {
+    ...next,
+    ...(previous.buildAuthority !== undefined
+      ? { buildAuthority: previous.buildAuthority }
+      : {}),
+    ...(previous.buildBridge !== undefined ? { buildBridge: previous.buildBridge } : {}),
   }
 }
 
@@ -249,6 +266,7 @@ export function createBattleRecruitAiService(
           }),
         })
         const resolved = resolveRecruitIntent(state, decision.intent)
+        const nextState = preserveFrozenBuildMetadata(state, resolved.state)
         const event = decisionEvent(decision, turn.combatantId)
         const requestFingerprint = fingerprint({
           command: 'battle.recruit-ai.v2',
@@ -270,7 +288,7 @@ export function createBattleRecruitAiService(
           userId: command.userId,
           battleSessionId: initial.battleSessionId,
           expectedBattleVersion: battleVersion,
-          nextSnapshot: resolved.state,
+          nextSnapshot: nextState,
           events: [event, ...resolved.events],
         })
 
