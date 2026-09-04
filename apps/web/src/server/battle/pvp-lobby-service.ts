@@ -32,10 +32,20 @@ import { AurevaneError } from '@aurevane/game-core/errors'
 import type { PvpMode } from '@aurevane/validation/combat/pvp'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import {
+  loadCharacterCommittedBuildSnapshot,
+  type CharacterCommittedBuildSnapshotRecord,
+} from '@/server/character/character-build-service'
 import { loadPublicCharacterProfileImageMap } from '@/server/character/character-profile-display-service'
+import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
 
-import type { BattleSessionProjection, BattleSessionView } from './battle-session-service'
+import { createBattleBuildAuthoritySnapshot } from './battle-build-authority'
+import type {
+  BattleAuthoritativeEncounterState,
+  BattleSessionProjection,
+  BattleSessionView,
+} from './battle-session-service'
 
 const PVP_RULES_VERSION = 2
 const PVP_CONTENT_VERSION = 2
@@ -106,6 +116,12 @@ interface JoinLobbyInput {
   userId: string
   characterId: string
   lobbyKey: string
+}
+
+interface PvpEncounterRosterEntry {
+  member: PvpLobbyMemberView
+  character: CharacterRecord
+  buildSnapshot: CharacterCommittedBuildSnapshotRecord
 }
 
 type JsonObject = Record<string, unknown>
@@ -347,10 +363,10 @@ function spawnFor(
   return { position: { x: Math.floor(width / 2), y: 0 }, facing: 'south' }
 }
 
-function createPvpEncounter(
-  roster: readonly { member: PvpLobbyMemberView; character: CharacterRecord }[],
+export function createPvpEncounter(
+  roster: readonly PvpEncounterRosterEntry[],
   teamSizes: readonly [number, number, number],
-): StatDrivenCombatEncounterState {
+): BattleAuthoritativeEncounterState {
   const arena = getTacticalHallArena('duel-yard')
   const profiles = []
   const movementProfiles = []
@@ -419,7 +435,7 @@ function createPvpEncounter(
     }),
   ).state
 
-  return preparePv1fTurnEconomy(
+  const encounter = preparePv1fTurnEconomy(
     createStatDrivenCombatEncounterState(
       createCombatEncounterState(
         createTacticalBattleState({
@@ -435,6 +451,18 @@ function createPvpEncounter(
       profiles,
     ),
   )
+
+  return {
+    ...encounter,
+    buildAuthority: createBattleBuildAuthoritySnapshot(
+      'pvp',
+      roster.map(({ character, buildSnapshot }) => ({
+        combatantId: `character:${character.id}`,
+        characterId: character.id,
+        snapshot: buildSnapshot,
+      })),
+    ),
+  }
 }
 
 function projectSnapshot(input: unknown): BattleSessionProjection {
@@ -543,7 +571,8 @@ export async function startPvpLobby(
   }
 
   const characters = createSupabaseCharacterRepository()
-  const roster: Array<{ member: PvpLobbyMemberView; character: CharacterRecord }> = []
+  const builds = createSupabaseCharacterBuildRepository()
+  const roster: PvpEncounterRosterEntry[] = []
   for (const member of lobby.members) {
     const character = characters.findByOwnerId
       ? await characters.findByOwnerId(member.userId, member.characterId)
@@ -551,7 +580,12 @@ export async function startPvpLobby(
     if (!character) {
       throw new AurevaneError('INVALID_REQUEST', 'A lobby character is no longer available.')
     }
-    roster.push({ member, character })
+    const buildSnapshot = await loadCharacterCommittedBuildSnapshot(
+      member.userId,
+      character.id,
+      builds,
+    )
+    roster.push({ member, character, buildSnapshot })
   }
 
   const encounter = createPvpEncounter(roster, lobby.teamSizes)
