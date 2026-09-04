@@ -15,6 +15,12 @@ import {
   type DisciplineSkillReference,
 } from '@aurevane/game-core/character/discipline-skill-loadout'
 import {
+  essenceSnapshotReference,
+  resolveEssenceForBuild,
+  type EssenceDefinition,
+  type EssenceSnapshotReference,
+} from '@aurevane/game-core/combat/essence'
+import {
   resolveMatureSkillVersion,
   type MatureSkillDefinition,
 } from '@aurevane/game-core/combat/mature-skills'
@@ -79,7 +85,7 @@ export interface CharacterCommittedBuildSnapshotRecord {
   disciplineSkills: readonly (DisciplineSkillReference & { slotIndex: number })[]
   extensions: {
     resonance: ResonanceSnapshotReference | null
-    essence: null
+    essence: EssenceSnapshotReference | null
     equipmentSkills: readonly never[]
     supernatural: null
     prestige: null
@@ -157,7 +163,7 @@ export interface CharacterDisciplineSkillLoadoutView {
   equippedSkills: readonly CharacterEquippedDisciplineSkill[]
   extensions: {
     resonance: ResonanceDefinition | null
-    essence: null
+    essence: EssenceDefinition | null
     equipmentSkills: readonly never[]
     supernatural: null
     prestige: null
@@ -318,6 +324,7 @@ function buildDisciplineSkillView(
   learnedRecords: readonly CharacterLearnedSkillRecord[],
   equippedRecords: readonly CharacterEquippedDisciplineSkillRecord[],
 ): CharacterDisciplineSkillLoadoutView {
+  const secondaryDisciplineId = build.secondaryDefinition?.id ?? null
   const activeSources = new Set(
     build.secondaryDefinition
       ? [build.primaryDefinition.id, build.secondaryDefinition.id]
@@ -330,7 +337,7 @@ function buildDisciplineSkillView(
   const equippedSkills = equippedRecords.map(resolveEquippedSkill)
   const issues = validateDisciplineSkillLoadout({
     primaryDisciplineId: build.primaryDefinition.id,
-    secondaryDisciplineId: build.secondaryDefinition?.id ?? null,
+    secondaryDisciplineId,
     equipped: equippedSkills.map((entry) => ({
       skillId: entry.definition.id,
       contentVersion: entry.definition.contentVersion,
@@ -347,15 +354,12 @@ function buildDisciplineSkillView(
   }
 
   return {
-    capacity: disciplineSkillCapacity(build.secondaryDefinition?.id ?? null),
+    capacity: disciplineSkillCapacity(secondaryDisciplineId),
     learnedSkills,
     equippedSkills,
     extensions: {
-      resonance: resolveResonanceForPair(
-        build.primaryDefinition.id,
-        build.secondaryDefinition?.id ?? null,
-      ),
-      essence: null,
+      resonance: resolveResonanceForPair(build.primaryDefinition.id, secondaryDisciplineId),
+      essence: resolveEssenceForBuild(build.primaryDefinition.id, secondaryDisciplineId),
       equipmentSkills: [],
       supernatural: null,
       prestige: null,
@@ -403,6 +407,7 @@ export async function loadCharacterCommittedBuildSnapshot(
   const snapshot = await repository.loadCommittedBuildSnapshot(userId, characterId)
   if (!snapshot) throw persistenceUnavailable('The committed build snapshot is unavailable.')
 
+  const secondaryDisciplineId = snapshot.secondary?.disciplineId ?? null
   const activeSources = new Set(
     snapshot.secondary
       ? [snapshot.primary.disciplineId, snapshot.secondary.disciplineId]
@@ -418,17 +423,14 @@ export async function loadCharacterCommittedBuildSnapshot(
       throw persistenceUnavailable('The committed build snapshot contains an invalid Skill.')
     }
   }
-  if (
-    snapshot.disciplineSkills.length >
-    disciplineSkillCapacity(snapshot.secondary?.disciplineId ?? null)
-  ) {
+  if (snapshot.disciplineSkills.length > disciplineSkillCapacity(secondaryDisciplineId)) {
     throw persistenceUnavailable('The committed build snapshot exceeds Skill capacity.')
   }
 
   const persistedResonance = snapshot.extensions.resonance
   const latestResonance = resolveResonanceForPair(
     snapshot.primary.disciplineId,
-    snapshot.secondary?.disciplineId ?? null,
+    secondaryDisciplineId,
   )
   if (!persistedResonance) {
     if (latestResonance) {
@@ -437,7 +439,7 @@ export async function loadCharacterCommittedBuildSnapshot(
   } else {
     const resolved = resolveResonanceForPair(
       snapshot.primary.disciplineId,
-      snapshot.secondary?.disciplineId ?? null,
+      secondaryDisciplineId,
       persistedResonance.contentVersion,
     )
     if (!resolved) {
@@ -453,6 +455,37 @@ export async function loadCharacterCommittedBuildSnapshot(
       throw persistenceUnavailable('The committed build snapshot contains an invalid Resonance.')
     }
   }
+
+  const persistedEssence = snapshot.extensions.essence
+  const latestEssence = resolveEssenceForBuild(
+    snapshot.primary.disciplineId,
+    secondaryDisciplineId,
+  )
+  if (!persistedEssence) {
+    if (latestEssence) {
+      throw persistenceUnavailable('The committed build snapshot is missing its Essence.')
+    }
+  } else {
+    const resolved = resolveEssenceForBuild(
+      snapshot.primary.disciplineId,
+      secondaryDisciplineId,
+      persistedEssence.contentVersion,
+    )
+    if (!resolved) {
+      throw persistenceUnavailable('The committed build snapshot contains an invalid Essence.')
+    }
+    const expected = essenceSnapshotReference(resolved)
+    if (
+      expected.essenceId !== persistedEssence.essenceId ||
+      expected.contentVersion !== persistedEssence.contentVersion ||
+      expected.sourceDisciplineId !== persistedEssence.sourceDisciplineId ||
+      expected.skillId !== persistedEssence.skillId ||
+      expected.skillContentVersion !== persistedEssence.skillContentVersion
+    ) {
+      throw persistenceUnavailable('The committed build snapshot contains an invalid Essence.')
+    }
+  }
+
   return snapshot
 }
 
