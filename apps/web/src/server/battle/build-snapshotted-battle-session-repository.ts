@@ -16,10 +16,8 @@ import {
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
-import {
-  loadCharacterCombatBuildSnapshot,
-  type CharacterBuildRepository,
-} from '@/server/character/character-combat-build-snapshot'
+import { loadCharacterCombatBuildSnapshot } from '@/server/character/character-combat-build-snapshot'
+import type { CharacterBuildRepository } from '@/server/character/character-build-service'
 
 interface Dependencies {
   battles: BattleSessionRepository
