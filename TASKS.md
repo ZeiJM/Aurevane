@@ -2,7 +2,7 @@
 
 This file reports the **current implementation/validation boundary**.
 
-`docs/GAME_MASTER_PLAN.md` defines the product. `docs/ROADMAP.md` defines phase sequence. Canonical domain documents define system rules. `docs/PHASE_3_TICKETS.md` defines the active implementation sequence.
+`docs/GAME_MASTER_PLAN.md` defines the product. `docs/ROADMAP.md` defines phase sequence. Canonical domain documents define system rules. `docs/PHASE_3_TICKETS.md` defines the Phase-3 implementation contract. `docs/ROADMAP_PRODUCT_VALIDATION.md` defines PV-2 evidence requirements.
 
 **Reconciled:** 2026-09-04
 
@@ -10,164 +10,140 @@ This file reports the **current implementation/validation boundary**.
 
 ## Current status
 
-**Stage:** Phase 3 — Signature Buildcraft Foundation — **P3.7 implementation/validation closed; P3.8 activated as the next implementation ticket**.
+**Stage:** Phase 3 — Signature Buildcraft Foundation — **IMPLEMENTATION COMPLETE; OWNER PV-2 HUMAN VALIDATION READY / NOT YET PASSED**.
 
-**Phase 2:** CLOSED on 2026-09-02 by explicit Owner decision after the final production regression test. The Owner reported the live build “works perfectly.” No tester counts, ratings, or other human-validation metrics are inferred beyond that explicit statement.
+**Phase 2:** CLOSED on 2026-09-02 by explicit Owner decision after the final production regression test. PV-1 is reconciled as completed by that Owner phase-exit decision; do not invent additional human evidence.
 
-**Production closeout baseline:**
+**Phase 3 implementation:** P3.1 through P3.8 are merged to `main` and deployed on the existing no-cost Supabase/Vercel stack.
 
-- `main` commit `1355fbd710c480ca1d075254a5559568708bde3c`;
-- Vercel production deployment for that exact commit reached `READY`;
-- production alias verified at `aurevane.vercel.app`;
-- focused final battle-input release validation passed 4/4 in Chromium and 4/4 in real Microsoft Edge;
-- the final regression covered Recovery slot swapping, Guard deliberate double-press, Inspect dismissal after narrow-window resize, OS-repeat protection, and repeated PvP Space → Space Finish Turn handoffs while preserving facing.
+**Phase 4:** **NOT ACTIVATED.** Roster expansion remains blocked on the Owner PV-2 product decision.
 
-**PV-1 / issue #105:** reconciled as completed by Owner phase-exit decision. Do not invent additional human evidence.
-
-**ACTIVE IMPLEMENTATION TICKET:** **P3.8 — Representative Buildcraft Slice + PV-2 Readiness**.
-
-P3.1 through P3.7 are implemented in the current stacked Phase-3 sequence. The final P3.7 runtime candidate is `2455eb7733358b2af3800083a37a749cde6c2916` on `agent/p3-7-shared-build-snapshots`.
-
-P3.7 closeout evidence includes:
-
-- shared immutable committed build snapshots across Recruit AI and direct PvP;
-- Primary/Secondary, ordered Discipline Skills, resolved Resonance/Essence and content/build version identity carried by the battle authority snapshot;
-- persisted battle snapshots remain frozen across Profile changes and reconnect;
-- Recruit AI preserves the frozen build authority through shared combat-state transitions;
-- saved-loadout server/API foundation captures only the current authoritative legal build and activates only a stored server-owned slot;
-- saved-loadout activation remains atomic, optimistic-versioned, idempotent and subject to mastery, Skill legality and independent Primary/Secondary attunement cooldowns;
-- focused Shared Build Snapshots validation passed formatting, lint, game-core/web typechecks, 9/9 focused game-core tests, 19/19 focused web tests and the full production workspace build;
-- fresh cumulative Discipline Build DB validation passed migration rebuild plus P3.1, P3.2, P3.4, P3.5, P3.6 and P3.7 authority verifiers;
-- current-head database-foundation validation remains green;
-- repository-wide aggregate quality remains blocked only by the inherited set of 20 pre-existing Phase-2 battle/UI Prettier files. P3.7-owned formatting debt is cleared; do not churn those unrelated files as part of P3.7 closeout.
-
-No deployment has been performed or authorized for Phase 3.
+**Active implementation ticket:** none. The next action is human product validation, not more Phase-3 coding.
 
 ---
 
-## Phase-2 delivered platform to preserve
+## Phase-3 production baseline
 
-Phase 2 substantially exceeded the original minimum and supplies reusable foundations for later phases:
+Runtime/test-access closeout:
 
-- deterministic server-authoritative tactical combat;
-- current 100-AP Action Economy;
-- movement/path/terrain/elevation/facing;
-- targeting/requirements/effects/status foundations;
-- authoritative persistence/reconnect/idempotency/concurrency behavior;
-- Battle Hall / Recruit AI;
-- direct PvP lobbies and shared battles;
-- multiple PvP combatant formats;
-- battle communication/timing/reconnect foundations;
-- keyed read-only spectation with spectator presence/chat/logs/Inspect;
-- responsive desktop/mobile battle presentation;
-- shared PvE/PvP battlefield presentation;
-- battle logs, forecasts, Inspect and cockpit controls;
-- stable category-owned hotkeys;
-- HP/MP Recovery same-slot swapping as an early reusable action-selection proof.
+- P3.1–P3.8 implementation merged through `main` commit `76446155d69ae283c8be1ba3f5525a0bf381b8cb`;
+- Owner-only production PV-2 access merged at `abb7ae3cc50b4bc67efa8c9abc04251abdc02be7`;
+- Vercel production deployment for `abb7ae3cc50b4bc67efa8c9abc04251abdc02be7` reached `READY`;
+- production alias verified at `https://aurevane.vercel.app`;
+- live Supabase Phase-3 migrations are applied through the private PV-2 tester allowlist migration;
+- all 10 pre-existing characters were backfilled with authoritative active-build rows during Phase-3 migration preparation;
+- the private PV-2 allowlist contains exactly one enabled Owner tester account;
+- browser roles cannot read/write the allowlist table or execute its privileged lookup RPC directly;
+- the PV-2 preparation route re-checks server authorization and selected-character ownership before granting representative test facts.
 
-Phase 3 must build on these assets rather than recreate battle UI, PvP, spectation, hotkey ownership or basic combat execution.
+No paid Supabase branch or paid Vercel resource was created.
 
 ---
 
-## Phase-boundary performance / security checkpoint — 2026-09-02
+## Phase-3 delivered buildcraft platform
 
-The required phase-boundary checkpoint was rerun before activating Phase 3.
+Phase 3 now provides:
 
-Current observed platform state:
+- authoritative versioned Primary Discipline build state and base profiles;
+- separately owned player-assigned attributes preserved across Primary changes;
+- optional mastered Secondary Discipline;
+- independent server-owned Primary/Secondary attunement cooldowns;
+- mature versioned Discipline Skill definitions;
+- generic server-authoritative owner-turn cooldown engine;
+- persistent learned/equipped Discipline Skill authority;
+- pure capacity: up to 8 Discipline Skills + Essence outside the cap;
+- mixed capacity: 6 total Discipline Skills + Resonance;
+- Profile as the persistent build headquarters;
+- first representative Resonance framework and mixed build;
+- first representative Essence framework and pure build;
+- immutable committed build snapshots shared by Recruit AI and direct PvP;
+- battle snapshot persistence across reconnect/Profile changes;
+- saved-loadout authority with atomic activation, legality checks, idempotency and attunement protection;
+- representative Vanguard/Lifebinder content sufficient for the PV-2 slice;
+- owner-only production preparation path for the representative PV-2 character facts.
 
-- Supabase project status: `ACTIVE_HEALTHY`;
-- latest exact Phase-2 production Vercel deployment: `READY`;
-- Supabase performance advisor reports only informational unused-index candidates; **do not delete indexes merely because they are currently unused**;
-- Supabase security advisor reports informational RLS-enabled/no-policy notices plus leaked-password protection disabled. These are recorded follow-up/security-hardening items, not evidence of a Phase-2 runtime regression. Preserve fail-closed/server-only access patterns and review the advisories deliberately rather than adding speculative policy changes.
-
-Performance/scaling remains cross-cutting. Measure before optimizing; never weaken server authority, security, idempotency, battle versioning, rewards, progression or timer semantics for performance.
-
----
-
-## Phase-2 repository closeout
-
-Closeout hygiene removes only historical scaffolding with no runtime authority:
-
-- split `.bootstrap/GAME_MASTER_PLAN.md.gz.b64.part*` reconstruction payloads;
-- the completed master-plan bootstrap workflow;
-- the obsolete branch-specific authenticated-shell one-shot formatter;
-- its historical `Remove before merge` trigger.
-
-The canonical `docs/GAME_MASTER_PLAN.md` remains authoritative.
-
-Stale Phase-2 implementation PRs are to be closed as superseded by the tested production baseline. Closing a stale PR does not erase its Git history and it may be inspected later if a regression requires archaeology.
-
-Do **not** delete runtime battle components merely because an older branch once considered them unused. Any future runtime cleanup requires fresh current-main import/reference evidence plus normal validation.
+The existing Phase-2 tactical battle/PvP/spectator platform remains the execution foundation; Phase 3 did not fork a parallel combat rule path.
 
 ---
 
-## Phase 3 execution sequence
+## Automated closeout evidence
+
+The final Owner-access candidate passed the focused Phase-3 preservation gates:
+
+- Representative Buildcraft — **PASS**;
+- Discipline Build DB — **PASS**;
+- Foundation Security DB — **PASS**;
+- Battle Session DB — **PASS**;
+- Wayfarer's Practice DB — **PASS**;
+- Profile Skill Build — **PASS**;
+- Resonance Build — **PASS**;
+- Essence Build — **PASS**.
+
+The final representative browser proof exercises production-equivalent Profile flow for:
+
+- PV-2 test preparation;
+- pure Vanguard `8 / 8` Skill configuration with active Essence;
+- committed pure loadout persistence;
+- Vanguard + Lifebinder Secondary preview/commit;
+- mixed `6 / 6` configuration;
+- active `Mercy's Edge` Resonance;
+- Essence removal while Secondary is active;
+- committed mixed loadout persistence.
+
+Repository-wide aggregate CI still reports inherited Phase-2 formatting debt outside the Phase-3 changes. Browser Smoke has historically contained the inherited desktop Recruit-handoff sub-pixel geometry assertion (1.125 px observed versus 1 px tolerance); this is not a Phase-3 build-legality failure and must not be silently suppressed or confused with PV-2 evidence.
+
+Automated correctness is **not** a PV-2 PASS.
+
+---
+
+## Owner PV-2 handoff
+
+Use `docs/PV2_OWNER_TEST_RUNBOOK.md` and the live site:
+
+`https://aurevane.vercel.app`
+
+The Owner test should answer the product questions defined in `docs/ROADMAP_PRODUCT_VALIDATION.md`, especially whether the representative build system creates understandable, curiosity-driven experimentation around:
+
+- Primary versus Secondary;
+- Primary base-profile consequences;
+- pure 8 + Essence versus mixed 6 + Resonance;
+- Skill sources/AP/cooldowns;
+- meaningful tactical changes between builds;
+- build-configuration friction and recovery from poor experiments;
+- mandatory, pointless, redundant or unreadable combinations.
+
+Do not fabricate tester counts, ratings, direct-PvP human evidence or a PASS decision. Record only what the Owner actually tests/reports.
+
+---
+
+## Phase-3 / Phase-4 boundary
+
+Phase 3 has reached its implementation gate from `docs/PHASE_3_TICKETS.md`: the representative slice is deployed and ready for the PV-2 product decision.
+
+The next state transition is one of:
 
 ```text
-P3.1 Discipline build authority + Primary profiles
-  ↓
-P3.2 Secondary + independent attunement cooldowns
-  ↓
-P3.3 Mature Skill schema + cooldown engine
-  ↓
-P3.4 Profile Skill configuration + pure/mixed capacity
-  ↓
-P3.5 Resonance framework + mixed proof
-  ↓
-P3.6 Essence framework + pure proof
-  ↓
-P3.7 Shared AI / PvP / saved-loadout build snapshots
-  ↓
-P3.8 Representative buildcraft slice + PV-2 readiness
+PV-2 PASS
+  → explicitly close Phase 3 and activate Phase 4
+
+PV-2 ITERATE
+  → reopen only the smallest weak Phase-3 layer identified by evidence
+
+PV-2 INCONCLUSIVE
+  → gather the missing human evidence without expanding the roster
 ```
 
-Phase 3 feeds PV-2 before Phase-4 roster expansion.
-
-### Active P3.8 contract
-
-P3.8 is the representative integration/readiness slice, not a new foundational subsystem and not a roster-scale content pass.
-
-Use the smallest coherent representative set that honestly proves:
-
-- materially different Primary identities;
-- Secondary mixing;
-- legal pure 8 Discipline Skills + Essence versus mixed 6 total Discipline Skills + Resonance;
-- multiple real Skills and server-authoritative cooldowns;
-- representative equipment interactions where current item foundations support them without inventing unsupported systems;
-- shared AI and direct-PvP legality from the same committed build snapshot;
-- clear Profile configuration/comparison across the representative builds;
-- PV-2 readiness and factual evidence hooks for later human product validation.
-
-Do not pull later Soul State/Soulmark/Severance/Mantle runtime into Phase 3. Do not confuse automated implementation validation with PV-2 human product evidence. Do not scale the roster before the representative buildcraft thesis is proven.
-
----
-
-## Cockpit / Skill-capacity integration rule
-
-The existing four battle cockpit operational categories are an action-selection/presentation layer, **not** the persistent Phase-3 Skill-capacity model.
-
-Canonical capacity remains:
-
-```text
-Pure:  up to 8 Primary Discipline Skills + 1 Essence Skill outside the cap
-Mixed: 6 total Discipline Skills across Primary + Secondary + Resonance passive
-```
-
-The complete committed legal build snapshot remains authoritative. The cockpit derives legal actions from that snapshot plus canonical basic actions. AI must enumerate all legal actions from the same authoritative snapshot rather than being limited to the four human-visible cockpit cards.
-
-See `docs/ROADMAP_COCKPIT_SKILL_SLOTS.md`.
+Do not start broad roster production, large Resonance matrices, Soulmark/Mantle runtime, frontier systems or other later-phase expansion before the Owner PV-2 decision.
 
 ---
 
 ## Permanent execution rules
 
-1. Inspect current `main`, open implementation/validation work, roadmap and canonical domain docs before implementation.
+1. Inspect current `main`, roadmap, canonical specs and validation state before implementation.
 2. One canonical implementation ticket is active at a time unless the Owner authorizes a wider verified batch.
-3. Preserve compatible early-delivered foundations and give them roadmap credit.
-4. Automated tests prove implementation safety, not fun/product validation.
-5. Run the roadmap performance/scaling checkpoint at defined boundaries; optimize only measured bottlenecks.
-6. Phase activation and deployment authorization are separate decisions.
-7. All authoritative build, combat, progression, reward, inventory, PvP and persistence state remains server-owned.
-8. Never silently redesign or remove mechanics; reconcile conflicts against the Master Plan and applicable canonical specification.
-9. Keep temporary one-shot workflows/triggers out of `main` after their purpose is complete.
-10. Keep this ledger current and concise.
+3. Automated tests prove implementation safety, not fun/product validation.
+4. Phase activation and deployment authorization are separate decisions.
+5. All authoritative build, combat, progression, reward, inventory, PvP and persistence state remains server-owned.
+6. Never silently redesign/remove mechanics or weaken authority/security to simplify implementation.
+7. Keep temporary validation/support access bounded, auditable and fail-closed.
+8. Keep this ledger current and concise.
