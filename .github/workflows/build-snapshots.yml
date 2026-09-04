@@ -13,6 +13,9 @@ on:
       - 'packages/game-core/package.json'
       - 'apps/web/src/server/character/character-combat-build-snapshot.ts'
       - 'apps/web/src/server/character/character-combat-build-snapshot.test.ts'
+      - 'apps/web/src/server/character/character-saved-build-loadout-service.ts'
+      - 'apps/web/src/server/character/character-saved-build-loadout-service.test.ts'
+      - 'apps/web/src/server/character/supabase-character-saved-build-loadout-repository.ts'
       - 'apps/web/src/server/battle/battle-build-authority.ts'
       - 'apps/web/src/server/battle/battle-essence-authority.test.ts'
       - 'apps/web/src/server/battle/pvp-lobby-service.ts'
@@ -26,6 +29,7 @@ on:
       - 'apps/web/src/server/battle/pvp-lobby-quality-service.test.ts'
       - 'apps/web/src/app/api/battles/route.ts'
       - 'apps/web/src/app/api/pvp/lobbies/[lobbyId]/start/route.ts'
+      - 'apps/web/src/app/api/character/build/loadouts/route.ts'
       - '.github/workflows/build-snapshots.yml'
   push:
     branches:
@@ -42,6 +46,9 @@ on:
       - 'packages/game-core/package.json'
       - 'apps/web/src/server/character/character-combat-build-snapshot.ts'
       - 'apps/web/src/server/character/character-combat-build-snapshot.test.ts'
+      - 'apps/web/src/server/character/character-saved-build-loadout-service.ts'
+      - 'apps/web/src/server/character/character-saved-build-loadout-service.test.ts'
+      - 'apps/web/src/server/character/supabase-character-saved-build-loadout-repository.ts'
       - 'apps/web/src/server/battle/battle-build-authority.ts'
       - 'apps/web/src/server/battle/battle-essence-authority.test.ts'
       - 'apps/web/src/server/battle/pvp-lobby-service.ts'
@@ -55,6 +62,7 @@ on:
       - 'apps/web/src/server/battle/pvp-lobby-quality-service.test.ts'
       - 'apps/web/src/app/api/battles/route.ts'
       - 'apps/web/src/app/api/pvp/lobbies/[lobbyId]/start/route.ts'
+      - 'apps/web/src/app/api/character/build/loadouts/route.ts'
       - '.github/workflows/build-snapshots.yml'
 
 permissions:
@@ -74,6 +82,20 @@ jobs:
           corepack prepare pnpm@11.17.0 --activate
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Diagnose P3.7 formatting delta
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/server/battle/battle-build-authority.ts \
+            apps/web/src/server/character/character-saved-build-loadout-service.ts \
+            apps/web/src/server/character/character-saved-build-loadout-service.test.ts \
+            apps/web/src/server/character/supabase-character-saved-build-loadout-repository.ts \
+            apps/web/src/app/api/character/build/loadouts/route.ts
+          git diff --exit-code -- \
+            apps/web/src/server/battle/battle-build-authority.ts \
+            apps/web/src/server/character/character-saved-build-loadout-service.ts \
+            apps/web/src/server/character/character-saved-build-loadout-service.test.ts \
+            apps/web/src/server/character/supabase-character-saved-build-loadout-repository.ts \
+            apps/web/src/app/api/character/build/loadouts/route.ts
       - name: Focused formatting
         run: |
           pnpm exec prettier --check \
@@ -85,6 +107,9 @@ jobs:
             packages/game-core/package.json \
             apps/web/src/server/character/character-combat-build-snapshot.ts \
             apps/web/src/server/character/character-combat-build-snapshot.test.ts \
+            apps/web/src/server/character/character-saved-build-loadout-service.ts \
+            apps/web/src/server/character/character-saved-build-loadout-service.test.ts \
+            apps/web/src/server/character/supabase-character-saved-build-loadout-repository.ts \
             apps/web/src/server/battle/battle-build-authority.ts \
             apps/web/src/server/battle/battle-essence-authority.test.ts \
             apps/web/src/server/battle/pvp-lobby-service.ts \
@@ -95,7 +120,8 @@ jobs:
             apps/web/src/server/battle/battle-recruit-ai-build.test.ts \
             apps/web/src/server/battle/pvp-lobby-quality-service.ts \
             apps/web/src/server/battle/pvp-lobby-quality-service.test.ts \
-            apps/web/src/app/api/battles/route.ts
+            apps/web/src/app/api/battles/route.ts \
+            apps/web/src/app/api/character/build/loadouts/route.ts
       - name: Focused lint
         run: |
           pnpm exec eslint \
@@ -106,6 +132,9 @@ jobs:
             packages/game-core/src/combat/recruit-ai-build.test.ts \
             apps/web/src/server/character/character-combat-build-snapshot.ts \
             apps/web/src/server/character/character-combat-build-snapshot.test.ts \
+            apps/web/src/server/character/character-saved-build-loadout-service.ts \
+            apps/web/src/server/character/character-saved-build-loadout-service.test.ts \
+            apps/web/src/server/character/supabase-character-saved-build-loadout-repository.ts \
             apps/web/src/server/battle/battle-build-authority.ts \
             apps/web/src/server/battle/battle-essence-authority.test.ts \
             apps/web/src/server/battle/pvp-lobby-service.ts \
@@ -116,7 +145,8 @@ jobs:
             apps/web/src/server/battle/battle-recruit-ai-build.test.ts \
             apps/web/src/server/battle/pvp-lobby-quality-service.ts \
             apps/web/src/server/battle/pvp-lobby-quality-service.test.ts \
-            apps/web/src/app/api/battles/route.ts
+            apps/web/src/app/api/battles/route.ts \
+            apps/web/src/app/api/character/build/loadouts/route.ts
       - name: Game core typecheck
         run: pnpm --filter @aurevane/game-core typecheck
       - name: Web typecheck
@@ -130,6 +160,7 @@ jobs:
         run: |
           pnpm --filter @aurevane/web exec vitest run \
             src/server/character/character-combat-build-snapshot.test.ts \
+            src/server/character/character-saved-build-loadout-service.test.ts \
             src/server/battle/build-snapshotted-battle-session-repository.test.ts \
             src/server/battle/battle-recruit-ai-service.test.ts \
             src/server/battle/battle-recruit-ai-build.test.ts \
