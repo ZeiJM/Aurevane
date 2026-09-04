@@ -1,0 +1,41 @@
+.root {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.root strong {
+  font-size: 0.95rem;
+}
+
+.root p {
+  margin: 0;
+  color: var(--text-muted, currentColor);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.root button {
+  width: 100%;
+  min-height: 2.75rem;
+  border: 1px solid color-mix(in srgb, currentColor 28%, transparent);
+  border-radius: 0.7rem;
+  padding: 0.65rem 0.8rem;
+  background: color-mix(in srgb, currentColor 9%, transparent);
+  color: inherit;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.root button:hover:not(:disabled) {
+  background: color-mix(in srgb, currentColor 14%, transparent);
+}
+
+.root button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+
+.root .status {
+  font-size: 0.8rem;
+}
