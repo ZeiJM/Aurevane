@@ -18,6 +18,10 @@ import {
   type GridPosition,
 } from '@aurevane/game-core/combat/board'
 import {
+  attachCombatBuildBridge,
+  type CombatBuildSnapshot,
+} from '@aurevane/game-core/combat/build-snapshot'
+import {
   calculatePv1fBasicAttackDamage,
   createPv1fTemporaryResources,
   preparePv1fTurnEconomy,
@@ -31,8 +35,10 @@ import { AurevaneError } from '@aurevane/game-core/errors'
 import type { PvpMapBias, PvpMapSize, PvpTurnTimerSeconds } from '@aurevane/validation/combat/pvp'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
 
+import { loadCharacterCombatBuildSnapshot } from '../character/character-combat-build-snapshot'
 import { getPvpLobby, type PvpLobbyMemberView } from './pvp-lobby-service'
 
 const PVP_RULES_VERSION = 2
@@ -44,6 +50,12 @@ export interface PvpLobbyMapSettings {
   elevationBias: PvpMapBias
   terrainBias: PvpMapBias
   turnTimerSeconds: PvpTurnTimerSeconds
+}
+
+interface PvpRosterEntry {
+  member: PvpLobbyMemberView
+  character: CharacterRecord
+  buildSnapshot: CombatBuildSnapshot
 }
 
 function unavailable(message = 'PvP staging services are unavailable right now.'): AurevaneError {
@@ -199,7 +211,7 @@ function createRandomPvpTiles(
 }
 
 function createPvpEncounter(
-  roster: readonly { member: PvpLobbyMemberView; character: CharacterRecord }[],
+  roster: readonly PvpRosterEntry[],
   teamSizes: readonly [number, number, number],
   settings: PvpLobbyMapSettings,
 ) {
@@ -287,7 +299,7 @@ function createPvpEncounter(
     }),
   ).state
 
-  return preparePv1fTurnEconomy(
+  const encounter = preparePv1fTurnEconomy(
     createStatDrivenCombatEncounterState(
       createCombatEncounterState(
         createTacticalBattleState({
@@ -302,6 +314,14 @@ function createPvpEncounter(
       ),
       profiles,
     ),
+  )
+  return attachCombatBuildBridge(
+    encounter,
+    roster.map(({ character, buildSnapshot }) => ({
+      combatantId: `character:${character.id}`,
+      characterId: character.id,
+      snapshot: buildSnapshot,
+    })),
   )
 }
 
@@ -322,7 +342,8 @@ export async function startPvpLobbyWithQuality(
 
   const settings = await getPvpLobbyMapSettings(userId, lobbyId)
   const characters = createSupabaseCharacterRepository()
-  const roster: Array<{ member: PvpLobbyMemberView; character: CharacterRecord }> = []
+  const builds = createSupabaseCharacterBuildRepository()
+  const roster: PvpRosterEntry[] = []
   for (const member of lobby.members) {
     const character = characters.findByOwnerId
       ? await characters.findByOwnerId(member.userId, member.characterId)
@@ -330,7 +351,12 @@ export async function startPvpLobbyWithQuality(
     if (!character) {
       throw new AurevaneError('INVALID_REQUEST', 'A lobby character is no longer available.')
     }
-    roster.push({ member, character })
+    const buildSnapshot = await loadCharacterCombatBuildSnapshot(
+      member.userId,
+      member.characterId,
+      builds,
+    )
+    roster.push({ member, character, buildSnapshot })
   }
 
   const encounter = createPvpEncounter(roster, lobby.teamSizes, settings)

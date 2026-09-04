@@ -4,17 +4,16 @@ import { createHash, randomUUID } from 'node:crypto'
 
 import type { BattleSessionRepository } from '@aurevane/db/battle-session'
 import {
-  chooseRecruitAiDecision,
+  executeBuildAwareRecruitAiAction,
+  chooseBuildAwareRecruitAiDecision,
+} from '@aurevane/game-core/combat/recruit-ai-build'
+import {
   getRecruitAiProfile,
   type RecruitAiDecision,
   type RecruitAiDifficulty,
   type RecruitAiIntent,
 } from '@aurevane/game-core/combat/recruit-ai'
-import {
-  executePv1fAction,
-  executePv1fMovement,
-  finishPv1fTurn,
-} from '@aurevane/game-core/combat/pv1f-action-economy'
+import { executePv1fMovement, finishPv1fTurn } from '@aurevane/game-core/combat/pv1f-action-economy'
 import {
   validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
@@ -33,6 +32,10 @@ type ProjectedTacticalState = Omit<StatDrivenCombatEncounterState['tactical'], '
 }
 type RecruitBattleProjection = Omit<StatDrivenCombatEncounterState, 'tactical'> & {
   tactical: ProjectedTacticalState
+}
+type BuildExtendedEncounterState = StatDrivenCombatEncounterState & {
+  readonly buildAuthority?: unknown
+  readonly buildBridge?: unknown
 }
 
 export interface RecruitTurnView {
@@ -74,18 +77,29 @@ function persistenceInvalid(message = 'The stored battle state is invalid.'): Au
   return new AurevaneError('PERSISTENCE_UNAVAILABLE', message)
 }
 
-function readPersistedEncounter(snapshot: unknown): StatDrivenCombatEncounterState {
+function readPersistedEncounter(snapshot: unknown): BuildExtendedEncounterState {
   if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
     throw persistenceInvalid()
   }
   try {
-    const candidate = snapshot as StatDrivenCombatEncounterState
+    const candidate = snapshot as BuildExtendedEncounterState
     const issues = validateStatDrivenCombatEncounterState(candidate)
     if (issues.length > 0) throw persistenceInvalid()
     return candidate
   } catch (error) {
     if (error instanceof AurevaneError) throw error
     throw persistenceInvalid()
+  }
+}
+
+function preserveFrozenBuildMetadata(
+  previous: BuildExtendedEncounterState,
+  next: StatDrivenCombatEncounterState,
+): BuildExtendedEncounterState {
+  return {
+    ...next,
+    ...(previous.buildAuthority !== undefined ? { buildAuthority: previous.buildAuthority } : {}),
+    ...(previous.buildBridge !== undefined ? { buildBridge: previous.buildBridge } : {}),
   }
 }
 
@@ -117,7 +131,9 @@ function resolveRecruitIntent(
 ): { state: StatDrivenCombatEncounterState; events: readonly unknown[] } {
   try {
     if (intent.kind === 'move') return executePv1fMovement(state, intent.path)
-    if (intent.kind === 'action') return executePv1fAction(state, intent.actionId, intent.target)
+    if (intent.kind === 'action') {
+      return executeBuildAwareRecruitAiAction(state, intent.actionId, intent.target)
+    }
     if (intent.kind === 'face') return finishPv1fTurn(state, intent.facing)
 
     const activeId = state.tactical.battle.currentTurn?.combatantId
@@ -235,7 +251,7 @@ export function createBattleRecruitAiService(
         }
 
         const difficulty = recruitDifficultyForActor(state, turn.combatantId)
-        const decision = chooseRecruitAiDecision({
+        const decision = chooseBuildAwareRecruitAiDecision({
           state,
           profile: getRecruitAiProfile(difficulty),
           tieBreakSeed: deriveRecruitTieBreakSeed({
@@ -248,6 +264,7 @@ export function createBattleRecruitAiService(
           }),
         })
         const resolved = resolveRecruitIntent(state, decision.intent)
+        const nextState = preserveFrozenBuildMetadata(state, resolved.state)
         const event = decisionEvent(decision, turn.combatantId)
         const requestFingerprint = fingerprint({
           command: 'battle.recruit-ai.v2',
@@ -269,7 +286,7 @@ export function createBattleRecruitAiService(
           userId: command.userId,
           battleSessionId: initial.battleSessionId,
           expectedBattleVersion: battleVersion,
-          nextSnapshot: resolved.state,
+          nextSnapshot: nextState,
           events: [event, ...resolved.events],
         })
 
