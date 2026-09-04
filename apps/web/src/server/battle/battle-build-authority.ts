@@ -57,7 +57,11 @@ function nonEmptyString(value: unknown): value is string {
 
 function parseResonanceReference(value: unknown): ResonanceSnapshotReference | null | undefined {
   if (value === null) return null
-  if (!isRecord(value) || !Array.isArray(value.disciplinePair) || value.disciplinePair.length !== 2) {
+  if (
+    !isRecord(value) ||
+    !Array.isArray(value.disciplinePair) ||
+    value.disciplinePair.length !== 2
+  ) {
     return undefined
   }
   if (
@@ -188,7 +192,9 @@ function parseCombatant(value: unknown): BattleBuildAuthorityCombatantSnapshot |
   }
 }
 
-export function parseBattleBuildAuthoritySnapshot(value: unknown): BattleBuildAuthoritySnapshot | null {
+export function parseBattleBuildAuthoritySnapshot(
+  value: unknown,
+): BattleBuildAuthoritySnapshot | null {
   if (
     !isRecord(value) ||
     value.schemaVersion !== BATTLE_BUILD_AUTHORITY_SCHEMA_VERSION ||
