@@ -14,19 +14,30 @@ export interface Pv2BuildcraftTestKitResult {
   readonly learnedSkills: number
 }
 
-export function isPv2BuildcraftTestKitEnabled(): boolean {
+export async function isPv2BuildcraftTestKitEnabled(userId?: string): Promise<boolean> {
   if (process.env.AUREVANE_PV2_TEST_MODE === '1') return true
-  return (
+  if (
     process.env.VERCEL_ENV === 'preview' &&
     process.env.VERCEL_GIT_COMMIT_REF === PV2_TEST_PREVIEW_BRANCH
-  )
+  ) {
+    return true
+  }
+
+  if (process.env.VERCEL_ENV !== 'production' || !userId) return false
+
+  const supabase = createSupabaseAdminClient()
+  const { data, error } = await supabase.rpc('is_pv2_buildcraft_tester_v1', {
+    p_user_id: userId,
+  })
+
+  return !error && data === true
 }
 
 export async function preparePv2BuildcraftTestKit(
   userId: string,
   characterId: string,
 ): Promise<Pv2BuildcraftTestKitResult> {
-  if (!isPv2BuildcraftTestKitEnabled()) {
+  if (!(await isPv2BuildcraftTestKitEnabled(userId))) {
     throw new AurevaneError('INVALID_REQUEST', 'The PV-2 buildcraft test kit is not available.')
   }
 
