@@ -20,6 +20,10 @@ test('PV-2 Profile flow compares pure eight-Skill Essence with mixed six-Skill R
   page,
 }, testInfo) => {
   test.skip(
+    process.env.AUREVANE_PV2_TEST_MODE !== '1',
+    'PV-2 representative buildcraft is available only in an explicitly enabled preview.',
+  )
+  test.skip(
     testInfo.project.name !== 'desktop-chromium',
     'One authenticated Chromium proof covers the P3.8 representative buildcraft flow.',
   )
