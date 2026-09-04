@@ -53,7 +53,7 @@ pure_snapshot="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres
     (snapshot -> 'extensions' -> 'essence' ->> 'skillContentVersion') || '|' ||
     jsonb_array_length(snapshot -> 'disciplineSkills')::text
   from (
-    select public.get_character_committed_build_snapshot_v1('$user_id'::uuid, '$character_id'::uuid) as snapshot
+    select public.get_character_committed_build_snapshot_v2('$user_id'::uuid, '$character_id'::uuid) as snapshot
   ) resolved;")"
 test "$pure_snapshot" = '2||essence.vanguard.unbroken-strike|1|vanguard|essence.vanguard.unbroken-strike|1|0'
 
@@ -107,7 +107,7 @@ mixed_snapshot="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgre
     (snapshot -> 'extensions' -> 'resonance' ->> 'resonanceId') || '|' ||
     jsonb_array_length(snapshot -> 'disciplineSkills')::text
   from (
-    select public.get_character_committed_build_snapshot_v1('$user_id'::uuid, '$character_id'::uuid) as snapshot
+    select public.get_character_committed_build_snapshot_v2('$user_id'::uuid, '$character_id'::uuid) as snapshot
   ) resolved;")"
 test "$mixed_snapshot" = '|resonance.lifebinder-vanguard.mercys-edge|0'
 
@@ -140,7 +140,7 @@ restored_snapshot="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U post
     coalesce(snapshot -> 'extensions' ->> 'resonance', '') || '|' ||
     jsonb_array_length(snapshot -> 'disciplineSkills')::text
   from (
-    select public.get_character_committed_build_snapshot_v1('$user_id'::uuid, '$character_id'::uuid) as snapshot
+    select public.get_character_committed_build_snapshot_v2('$user_id'::uuid, '$character_id'::uuid) as snapshot
   ) resolved;")"
 test "$restored_snapshot" = 'essence.vanguard.unbroken-strike||0'
 
