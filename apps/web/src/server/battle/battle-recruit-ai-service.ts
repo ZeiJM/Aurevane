@@ -4,14 +4,16 @@ import { createHash, randomUUID } from 'node:crypto'
 
 import type { BattleSessionRepository } from '@aurevane/db/battle-session'
 import {
-  chooseRecruitAiDecision,
+  executeBuildAwareRecruitAiAction,
+  chooseBuildAwareRecruitAiDecision,
+} from '@aurevane/game-core/combat/recruit-ai-build'
+import {
   getRecruitAiProfile,
   type RecruitAiDecision,
   type RecruitAiDifficulty,
   type RecruitAiIntent,
 } from '@aurevane/game-core/combat/recruit-ai'
 import {
-  executePv1fAction,
   executePv1fMovement,
   finishPv1fTurn,
 } from '@aurevane/game-core/combat/pv1f-action-economy'
@@ -117,7 +119,9 @@ function resolveRecruitIntent(
 ): { state: StatDrivenCombatEncounterState; events: readonly unknown[] } {
   try {
     if (intent.kind === 'move') return executePv1fMovement(state, intent.path)
-    if (intent.kind === 'action') return executePv1fAction(state, intent.actionId, intent.target)
+    if (intent.kind === 'action') {
+      return executeBuildAwareRecruitAiAction(state, intent.actionId, intent.target)
+    }
     if (intent.kind === 'face') return finishPv1fTurn(state, intent.facing)
 
     const activeId = state.tactical.battle.currentTurn?.combatantId
@@ -235,7 +239,7 @@ export function createBattleRecruitAiService(
         }
 
         const difficulty = recruitDifficultyForActor(state, turn.combatantId)
-        const decision = chooseRecruitAiDecision({
+        const decision = chooseBuildAwareRecruitAiDecision({
           state,
           profile: getRecruitAiProfile(difficulty),
           tieBreakSeed: deriveRecruitTieBreakSeed({
