@@ -168,8 +168,10 @@ function projectedEffectUtility(evaluation: CombatActionEvaluation): number {
     if (typeof effect.before !== 'number' || typeof effect.after !== 'number') {
       return utility + (effect.effectType === 'apply-status' ? 8 : 0)
     }
-    if (effect.effectType === 'damage') return utility + Math.max(0, effect.before - effect.after) * 2
-    if (effect.effectType === 'healing') return utility + Math.max(0, effect.after - effect.before) * 2
+    if (effect.effectType === 'damage')
+      return utility + Math.max(0, effect.before - effect.after) * 2
+    if (effect.effectType === 'healing')
+      return utility + Math.max(0, effect.after - effect.before) * 2
     if (effect.effectType === 'resource-change') {
       return utility + Math.max(0, effect.after - effect.before)
     }
