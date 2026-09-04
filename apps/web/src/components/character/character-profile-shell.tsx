@@ -12,6 +12,7 @@ import { Kicker, Surface } from '@aurevane/ui'
 import { CharacterDisciplineBuildPanel } from '@/components/character/character-discipline-build-panel'
 import { CharacterProfileDetails } from '@/components/character/character-profile-details'
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
+import { CharacterPv2TestKit } from '@/components/character/character-pv2-test-kit'
 import { CharacterSkillBuildPanel } from '@/components/character/character-skill-build-panel'
 import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
 import { getStarterPortraitImageAssetId } from '@/media/character'
@@ -67,6 +68,7 @@ interface CharacterProfileShellProps {
   }
   personalTitle?: string | null
   imageUrl?: string | null
+  pv2TestKitEnabled?: boolean
 }
 
 export function CharacterProfileShell({
@@ -74,6 +76,7 @@ export function CharacterProfileShell({
   disciplineBuild,
   personalTitle = null,
   imageUrl = null,
+  pv2TestKitEnabled = false,
 }: CharacterProfileShellProps) {
   const created = new Intl.DateTimeFormat('en', {
     dateStyle: 'medium',
@@ -177,6 +180,12 @@ export function CharacterProfileShell({
         </Surface>
 
         <aside className={styles.sidebar}>
+          {pv2TestKitEnabled ? (
+            <Surface className={styles.sideCard} tone="quiet">
+              <Kicker marker="◇">Validation Preview</Kicker>
+              <CharacterPv2TestKit />
+            </Surface>
+          ) : null}
           <Surface className={styles.sideCard} tone="quiet">
             <Kicker marker="◇">Character Record</Kicker>
             <dl className={styles.record}>
