@@ -165,7 +165,8 @@ describe('P3.6 direct PvP Essence authority', () => {
           secondary: { disciplineId: 'lifebinder' },
           extensions: {
             resonance: expect.objectContaining({
-              disciplinePair: ['vanguard', 'lifebinder'],
+              resonanceId: 'resonance.lifebinder-vanguard.mercys-edge',
+              disciplinePair: ['lifebinder', 'vanguard'],
             }),
             essence: null,
           },
