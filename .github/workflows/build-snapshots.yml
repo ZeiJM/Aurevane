@@ -11,8 +11,10 @@ on:
       - 'apps/web/src/server/character/character-combat-build-snapshot.test.ts'
       - 'apps/web/src/server/battle/battle-session-service.ts'
       - 'apps/web/src/server/battle/battle-session-service.test.ts'
-      - 'apps/web/src/server/battle/pvp-lobby-service.ts'
-      - 'apps/web/src/server/battle/pvp-lobby-service.test.ts'
+      - 'apps/web/src/server/battle/pvp-lobby-quality-service.ts'
+      - 'apps/web/src/server/battle/pvp-lobby-quality-service.test.ts'
+      - 'apps/web/src/app/api/battles/route.ts'
+      - 'apps/web/src/app/api/pvp/lobbies/[lobbyId]/start/route.ts'
       - '.github/workflows/build-snapshots.yml'
   push:
     branches:
@@ -27,8 +29,10 @@ on:
       - 'apps/web/src/server/character/character-combat-build-snapshot.test.ts'
       - 'apps/web/src/server/battle/battle-session-service.ts'
       - 'apps/web/src/server/battle/battle-session-service.test.ts'
-      - 'apps/web/src/server/battle/pvp-lobby-service.ts'
-      - 'apps/web/src/server/battle/pvp-lobby-service.test.ts'
+      - 'apps/web/src/server/battle/pvp-lobby-quality-service.ts'
+      - 'apps/web/src/server/battle/pvp-lobby-quality-service.test.ts'
+      - 'apps/web/src/app/api/battles/route.ts'
+      - 'apps/web/src/app/api/pvp/lobbies/[lobbyId]/start/route.ts'
       - '.github/workflows/build-snapshots.yml'
 
 permissions:
@@ -53,13 +57,21 @@ jobs:
           pnpm exec prettier --check \
             packages/game-core/src/combat/build-snapshot.ts \
             packages/game-core/src/combat/build-snapshot.test.ts \
-            packages/game-core/package.json
+            packages/game-core/package.json \
+            apps/web/src/server/character/character-combat-build-snapshot.ts \
+            apps/web/src/server/character/character-combat-build-snapshot.test.ts
       - name: Focused lint
         run: |
           pnpm exec eslint \
             packages/game-core/src/combat/build-snapshot.ts \
-            packages/game-core/src/combat/build-snapshot.test.ts
+            packages/game-core/src/combat/build-snapshot.test.ts \
+            apps/web/src/server/character/character-combat-build-snapshot.ts \
+            apps/web/src/server/character/character-combat-build-snapshot.test.ts
       - name: Game core typecheck
         run: pnpm --filter @aurevane/game-core typecheck
+      - name: Web typecheck
+        run: pnpm --filter @aurevane/web typecheck
       - name: Focused P3.7 game-core tests
         run: pnpm --filter @aurevane/game-core exec vitest run src/combat/build-snapshot.test.ts
+      - name: Focused P3.7 web tests
+        run: pnpm --filter @aurevane/web exec vitest run src/server/character/character-combat-build-snapshot.test.ts
