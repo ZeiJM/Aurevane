@@ -12,7 +12,6 @@ import { Kicker, Surface } from '@aurevane/ui'
 import { CharacterDisciplineBuildPanel } from '@/components/character/character-discipline-build-panel'
 import { CharacterProfileDetails } from '@/components/character/character-profile-details'
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
-import { CharacterPv2TestKit } from '@/components/character/character-pv2-test-kit'
 import { CharacterSkillBuildPanel } from '@/components/character/character-skill-build-panel'
 import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
 import { getStarterPortraitImageAssetId } from '@/media/character'
@@ -76,12 +75,7 @@ export function CharacterProfileShell({
   disciplineBuild,
   personalTitle = null,
   imageUrl = null,
-  pv2TestKitEnabled = false,
 }: CharacterProfileShellProps) {
-  const created = new Intl.DateTimeFormat('en', {
-    dateStyle: 'medium',
-    timeZone: 'UTC',
-  }).format(new Date(profile.timestamps.createdAt))
   const progress = profile.progression.progress
   const learnedSkillCatalogKey = disciplineBuild.disciplineSkills.learnedSkills
     .map((entry) => `${entry.definition.id}@${entry.definition.contentVersion}`)
@@ -93,6 +87,9 @@ export function CharacterProfileShell({
     disciplineBuild.currentSecondary?.id ?? 'pure',
     learnedSkillCatalogKey,
   ].join(':')
+  const equippedCount = disciplineBuild.disciplineSkills.equippedSkills.length
+  const essence = disciplineBuild.disciplineSkills.extensions.essence
+  const resonance = disciplineBuild.disciplineSkills.extensions.resonance
 
   return (
     <AuthenticatedShellFrame sessionLabel="Character Profile">
@@ -111,35 +108,14 @@ export function CharacterProfileShell({
               <Kicker marker="◆">Character Profile</Kicker>
               <div className={styles.nameLine}>
                 <h1>{profile.identity.name}</h1>
-                <CharacterDisciplineBuildPanel
-                  initialBuildVersion={disciplineBuild.buildVersion}
-                  initialCurrent={disciplineBuild.current}
-                  initialCurrentSecondary={disciplineBuild.currentSecondary}
-                  availablePrimaries={disciplineBuild.availablePrimaries}
-                  availableSecondaries={disciplineBuild.availableSecondaries}
-                  initialAttunement={disciplineBuild.attunement}
-                />
-                <CharacterSkillBuildPanel
-                  key={skillBuildKey}
-                  initialBuildVersion={disciplineBuild.buildVersion}
-                  primaryDiscipline={{
-                    id: disciplineBuild.current.definition.id,
-                    name: disciplineBuild.current.definition.name,
-                  }}
-                  secondaryDiscipline={
-                    disciplineBuild.currentSecondary
-                      ? {
-                          id: disciplineBuild.currentSecondary.id,
-                          name: disciplineBuild.currentSecondary.name,
-                        }
-                      : null
-                  }
-                  initialCapacity={disciplineBuild.disciplineSkills.capacity}
-                  initialLearnedSkills={disciplineBuild.disciplineSkills.learnedSkills}
-                  initialEquippedSkills={disciplineBuild.disciplineSkills.equippedSkills}
-                  initialResonance={disciplineBuild.disciplineSkills.extensions.resonance}
-                  initialEssence={disciplineBuild.disciplineSkills.extensions.essence}
-                />
+                <span className={styles.disciplinePill} data-testid="primary-discipline-chip">
+                  {disciplineBuild.current.definition.name}
+                </span>
+                {disciplineBuild.currentSecondary ? (
+                  <span className={styles.disciplinePill} data-testid="secondary-discipline-chip">
+                    {disciplineBuild.currentSecondary.name}
+                  </span>
+                ) : null}
                 {personalTitle ? (
                   <span className={styles.personalTitlePill}>{personalTitle}</span>
                 ) : null}
@@ -184,38 +160,81 @@ export function CharacterProfileShell({
           />
         </Surface>
 
-        <aside className={styles.sidebar}>
-          {pv2TestKitEnabled ? (
-            <Surface className={styles.sideCard} tone="quiet">
-              <Kicker marker="◇">Validation Preview</Kicker>
-              <CharacterPv2TestKit />
-            </Surface>
-          ) : null}
-          <Surface className={styles.sideCard} tone="quiet">
-            <Kicker marker="◇">Character Record</Kicker>
-            <dl className={styles.record}>
+        <aside className={styles.sidebar} aria-label="Character build workspace">
+          <Surface className={`${styles.sideCard} ${styles.buildCard}`} tone="quiet">
+            <Kicker marker="◇">Build</Kicker>
+            <div className={styles.buildSection}>
               <div>
-                <dt>Slot</dt>
-                <dd>{profile.slotIndex + 1}</dd>
+                <span>Disciplines</span>
+                <strong>
+                  {disciplineBuild.current.definition.name}
+                  {disciplineBuild.currentSecondary
+                    ? ` + ${disciplineBuild.currentSecondary.name}`
+                    : ' · Pure'}
+                </strong>
+                <small>
+                  {disciplineBuild.currentSecondary
+                    ? 'Two Disciplines · Resonance active when authored.'
+                    : 'One Discipline · Essence active when authored.'}
+                </small>
               </div>
+              <CharacterDisciplineBuildPanel
+                initialBuildVersion={disciplineBuild.buildVersion}
+                initialCurrent={disciplineBuild.current}
+                initialCurrentSecondary={disciplineBuild.currentSecondary}
+                availablePrimaries={disciplineBuild.availablePrimaries}
+                availableSecondaries={disciplineBuild.availableSecondaries}
+                initialAttunement={disciplineBuild.attunement}
+              />
+            </div>
+
+            <div className={styles.buildSection}>
               <div>
-                <dt>Character Level</dt>
-                <dd>{profile.progression.level}</dd>
+                <span>Tagged Techniques</span>
+                <strong>
+                  {equippedCount} / {disciplineBuild.disciplineSkills.capacity}
+                </strong>
+                <small>
+                  {disciplineBuild.currentSecondary
+                    ? 'Tag up to two Techniques from each active Discipline.'
+                    : 'Tag up to four Techniques from your Discipline.'}
+                </small>
               </div>
-              <div>
-                <dt>Total XP</dt>
-                <dd>{profile.progression.xp.toLocaleString('en')}</dd>
-              </div>
-              <div>
-                <dt>Created</dt>
-                <dd>{created}</dd>
-              </div>
-            </dl>
+              <CharacterSkillBuildPanel
+                key={skillBuildKey}
+                initialBuildVersion={disciplineBuild.buildVersion}
+                primaryDiscipline={{
+                  id: disciplineBuild.current.definition.id,
+                  name: disciplineBuild.current.definition.name,
+                }}
+                secondaryDiscipline={
+                  disciplineBuild.currentSecondary
+                    ? {
+                        id: disciplineBuild.currentSecondary.id,
+                        name: disciplineBuild.currentSecondary.name,
+                      }
+                    : null
+                }
+                initialCapacity={disciplineBuild.disciplineSkills.capacity}
+                initialLearnedSkills={disciplineBuild.disciplineSkills.learnedSkills}
+                initialEquippedSkills={disciplineBuild.disciplineSkills.equippedSkills}
+                initialResonance={resonance}
+                initialEssence={essence}
+              />
+            </div>
+
+            <div className={styles.buildIdentity}>
+              <span>{resonance ? 'Resonance' : 'Essence'}</span>
+              <strong>{resonance?.name ?? essence?.name ?? 'None available'}</strong>
+              <small>
+                {resonance?.description ??
+                  essence?.description ??
+                  (disciplineBuild.currentSecondary
+                    ? 'No authored Resonance is available for this pair yet.'
+                    : 'No authored Essence is available for this Discipline yet.')}
+              </small>
+            </div>
           </Surface>
-          <p className={styles.accountHint}>
-            Manage this character&apos;s personal title and profile image from{' '}
-            <strong>Account → Titles &amp; Profile Display</strong>.
-          </p>
         </aside>
       </div>
     </AuthenticatedShellFrame>

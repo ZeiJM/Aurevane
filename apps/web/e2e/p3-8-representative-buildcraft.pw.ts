@@ -25,7 +25,7 @@ async function reloadProfile(page: Page): Promise<void> {
   await expect(page.getByTestId('character-profile')).toBeVisible()
 }
 
-test('PV-2 Profile flow compares pure eight-Skill Essence with mixed six-Skill Resonance', async ({
+test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Resonance', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -44,40 +44,30 @@ test('PV-2 Profile flow compares pure eight-Skill Essence with mixed six-Skill R
     characterName: uniqueCharacterName(),
   })
 
-  const kit = page.getByTestId('pv2-test-kit')
-  await expect(kit).toBeVisible()
-  await kit.getByRole('button', { name: 'Prepare PV-2 buildcraft test' }).click()
-  await expect(kit.getByRole('status')).toContainText(
-    'Ready: 2 representative Disciplines and 14 Skills are available',
-  )
-
-  // Each authoritative commit triggers a Next.js server refresh. Reload at those
-  // boundaries so this proof verifies persisted state rather than racing a client remount.
+  // The owner-only PV-2 preparation API remains available in explicit test mode, but its old
+  // Profile card was intentionally removed when the right rail became the Build workspace.
+  const prepared = await page.evaluate(async () => {
+    const response = await fetch('/api/character/build/pv2-test-kit', { method: 'POST' })
+    return { ok: response.ok, body: await response.json() }
+  })
+  expect(prepared.ok).toBe(true)
+  expect(prepared.body).toMatchObject({
+    result: { masteredDisciplines: 2, learnedSkills: 14 },
+  })
   await reloadProfile(page)
 
-  await page.getByRole('button', { name: /Manage Discipline Skills/ }).click()
-  await expect(page.getByTestId('skill-capacity')).toHaveText('0 / 8')
-  await expect(page.getByTestId('active-essence')).toContainText('Essence Skill')
-  await expect(
-    page.getByText('Resonance — available only to an eligible mixed build.'),
-  ).toBeVisible()
+  await page.getByRole('button', { name: /Tag Techniques/ }).click()
+  await expect(page.getByTestId('skill-capacity')).toHaveText('0 / 4')
+  await expect(page.getByTestId('active-essence')).toContainText('Unbroken Strike')
+  await expect(page.getByTestId('active-resonance')).toHaveCount(0)
 
-  for (const skill of [
-    'Forceful Strike',
-    'Cleave',
-    'Guard Break',
-    'Brace',
-    'Rally',
-    'Shield Bash',
-    'Second Wind',
-    'Sweeping Strike',
-  ]) {
+  for (const skill of ['Forceful Strike', 'Cleave', 'Brace', 'Shield Bash']) {
     await setSkill(page, skill, true)
   }
 
-  await expect(page.getByTestId('skill-capacity')).toHaveText('8 / 8')
-  await page.getByRole('button', { name: 'Commit Skill loadout' }).click()
-  await expect(page.getByRole('status')).toContainText('Discipline Skill loadout is now committed')
+  await expect(page.getByTestId('skill-capacity')).toHaveText('4 / 4')
+  await page.getByRole('button', { name: 'Commit tagged Techniques' }).click()
+  await expect(page.getByRole('status')).toContainText('Tagged Techniques committed')
   await reloadProfile(page)
 
   await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
@@ -87,32 +77,28 @@ test('PV-2 Profile flow compares pure eight-Skill Essence with mixed six-Skill R
   await expect(page.getByTestId('primary-build-panel')).toContainText('Vanguard + Lifebinder')
   await reloadProfile(page)
 
-  await page.getByRole('button', { name: /Manage Discipline Skills/ }).click()
-  await expect(page.getByTestId('skill-capacity')).toHaveText('6 / 6')
+  await page.getByRole('button', { name: /Tag Techniques/ }).click()
+  await expect(page.getByTestId('skill-capacity')).toHaveText('2 / 4')
+  await expect(page.getByTestId('mixed-technique-split')).toContainText('Vanguard')
+  await expect(page.getByTestId('mixed-technique-split')).toContainText('2 / 2')
   await expect(page.getByTestId('active-resonance')).toContainText("Mercy's Edge")
-  await expect(
-    page.getByText('Essence — unavailable while a Secondary Discipline is active.'),
-  ).toBeVisible()
+  await expect(page.getByTestId('active-essence')).toHaveCount(0)
 
-  for (const skill of ['Guard Break', 'Rally', 'Shield Bash']) {
-    await setSkill(page, skill, false)
-  }
-  for (const skill of ['Mending Light', 'Barrier', 'Renew']) {
-    await setSkill(page, skill, true)
-  }
+  await setSkill(page, 'Mending Light', true)
+  await setSkill(page, 'Barrier', true)
 
-  await expect(page.getByTestId('skill-capacity')).toHaveText('6 / 6')
-  await page.getByRole('button', { name: 'Commit Skill loadout' }).click()
-  await expect(page.getByRole('status')).toContainText('Discipline Skill loadout is now committed')
+  await expect(page.getByTestId('skill-capacity')).toHaveText('4 / 4')
+  await expect(page.getByTestId('mixed-technique-split')).toContainText('Lifebinder')
+  await page.getByRole('button', { name: 'Commit tagged Techniques' }).click()
+  await expect(page.getByRole('status')).toContainText('Tagged Techniques committed')
 
   await reloadProfile(page)
-  await page.getByRole('button', { name: /Manage Discipline Skills/ }).click()
-  await expect(page.getByTestId('skill-capacity')).toHaveText('6 / 6')
+  await page.getByRole('button', { name: /Tag Techniques/ }).click()
+  await expect(page.getByTestId('skill-capacity')).toHaveText('4 / 4')
   await expect(page.getByTestId('active-resonance')).toContainText("Mercy's Edge")
+  await expect(page.getByTestId('active-essence')).toHaveCount(0)
   await expect(skillRow(page, 'Forceful Strike').getByRole('checkbox')).toBeChecked()
-  await expect(skillRow(page, 'Brace').getByRole('checkbox')).toBeChecked()
   await expect(skillRow(page, 'Cleave').getByRole('checkbox')).toBeChecked()
   await expect(skillRow(page, 'Mending Light').getByRole('checkbox')).toBeChecked()
   await expect(skillRow(page, 'Barrier').getByRole('checkbox')).toBeChecked()
-  await expect(skillRow(page, 'Renew').getByRole('checkbox')).toBeChecked()
 })

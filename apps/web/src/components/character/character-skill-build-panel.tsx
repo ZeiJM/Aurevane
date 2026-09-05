@@ -34,8 +34,6 @@ interface CharacterSkillBuildPanelProps {
 interface SkillCommitResponse {
   context?: {
     build: { buildVersion: number }
-    current: { definition: { id: string; name: string } }
-    currentSecondary: { id: string; name: string } | null
     disciplineSkills: {
       capacity: number
       learnedSkills: readonly SkillCatalogEntryView[]
@@ -90,6 +88,15 @@ export function CharacterSkillBuildPanel({
     committedIds.length !== selectedIds.length ||
     committedIds.some((skillId, index) => skillId !== selectedIds[index])
 
+  function selectedSourceCount(sourceDisciplineId: string): number {
+    const selected = new Set(selectedIds)
+    return learnedSkills.filter(
+      (entry) =>
+        selected.has(entry.definition.id) &&
+        entry.definition.sourceDisciplineId === sourceDisciplineId,
+    ).length
+  }
+
   function toggle(skill: SkillCatalogEntryView) {
     if (!skill.activeSource || pending) return
     const id = skill.definition.id
@@ -97,6 +104,15 @@ export function CharacterSkillBuildPanel({
     setSelectedIds((current) => {
       if (current.includes(id)) return current.filter((candidate) => candidate !== id)
       if (current.length >= capacity) return current
+      if (secondaryDiscipline) {
+        const selected = new Set(current)
+        const sameSourceCount = learnedSkills.filter(
+          (entry) =>
+            selected.has(entry.definition.id) &&
+            entry.definition.sourceDisciplineId === skill.definition.sourceDisciplineId,
+        ).length
+        if (sameSourceCount >= 2) return current
+      }
       return [...current, id]
     })
   }
@@ -128,7 +144,7 @@ export function CharacterSkillBuildPanel({
       })
       const body = (await response.json()) as SkillCommitResponse
       if (!response.ok || !body.context) {
-        setMessage(body.error?.message ?? 'The Skill loadout could not be saved.')
+        setMessage(body.error?.message ?? 'The tagged Techniques could not be saved.')
         return
       }
 
@@ -138,7 +154,7 @@ export function CharacterSkillBuildPanel({
       setLearnedSkills(body.context.disciplineSkills.learnedSkills)
       setCommittedIds(nextIds)
       setSelectedIds(nextIds)
-      setMessage('The Discipline Skill loadout is now committed.')
+      setMessage('Tagged Techniques committed.')
       router.refresh()
     } catch {
       setMessage('The build service could not be reached. Nothing was changed.')
@@ -153,13 +169,13 @@ export function CharacterSkillBuildPanel({
         type="button"
         className={styles.trigger}
         aria-haspopup="dialog"
-        aria-label={`Manage Discipline Skills. ${selectedIds.length} of ${capacity} equipped.`}
+        aria-label={`Tag Techniques. ${selectedIds.length} of ${capacity} tagged.`}
         onClick={() => setOpen(true)}
       >
-        <strong>
-          Skills {selectedIds.length}/{capacity}
-        </strong>
-        <small>Build v{buildVersion}</small>
+        <strong>Tag Techniques</strong>
+        <small>
+          {selectedIds.length} / {capacity} tagged
+        </small>
       </button>
 
       {open ? (
@@ -174,7 +190,7 @@ export function CharacterSkillBuildPanel({
             <header className={styles.header}>
               <div>
                 <span>Authoritative build</span>
-                <h2 id="skill-build-heading">Skills</h2>
+                <h2 id="skill-build-heading">Techniques</h2>
               </div>
               <button type="button" className={styles.close} onClick={() => setOpen(false)}>
                 Close
@@ -190,7 +206,7 @@ export function CharacterSkillBuildPanel({
                 </strong>
               </div>
               <div>
-                <span>Discipline Skill capacity</span>
+                <span>Tagged Techniques</span>
                 <strong data-testid="skill-capacity">
                   {selectedIds.length} / {capacity}
                 </strong>
@@ -199,17 +215,34 @@ export function CharacterSkillBuildPanel({
 
             <p className={styles.rule}>
               {secondaryDiscipline
-                ? 'Mixed builds may equip six total Discipline Skills across the active pair and gain their resolved Resonance passive.'
-                : 'Pure builds may equip up to eight learned Skills from the Primary Discipline and gain one eligible Essence Skill outside that cap.'}
+                ? `Mixed builds tag four Techniques total: up to two from ${primaryDiscipline.name} and two from ${secondaryDiscipline.name}. Resonance is granted outside those four slots.`
+                : `Pure builds tag up to four learned Techniques from ${primaryDiscipline.name}. An eligible Essence Technique is granted outside those four slots.`}
             </p>
+
+            {secondaryDiscipline ? (
+              <div className={styles.summary} data-testid="mixed-technique-split">
+                <div>
+                  <span>{primaryDiscipline.name}</span>
+                  <strong>{selectedSourceCount(primaryDiscipline.id)} / 2</strong>
+                </div>
+                <div>
+                  <span>{secondaryDiscipline.name}</span>
+                  <strong>{selectedSourceCount(secondaryDiscipline.id)} / 2</strong>
+                </div>
+              </div>
+            ) : null}
 
             <div className={styles.skillList} data-testid="learned-skill-list">
               {learnedSkills.length === 0 ? (
-                <p className={styles.empty}>No learned Discipline Skills are available yet.</p>
+                <p className={styles.empty}>No learned Discipline Techniques are available yet.</p>
               ) : (
                 learnedSkills.map((entry) => {
                   const selected = selectedIds.includes(entry.definition.id)
                   const order = selectedIds.indexOf(entry.definition.id)
+                  const sourceCount = selectedSourceCount(entry.definition.sourceDisciplineId)
+                  const disabledBySource = Boolean(
+                    secondaryDiscipline && !selected && sourceCount >= 2,
+                  )
                   const disabledByCapacity = !selected && selectedIds.length >= capacity
                   return (
                     <article
@@ -221,13 +254,15 @@ export function CharacterSkillBuildPanel({
                         <input
                           type="checkbox"
                           checked={selected}
-                          disabled={!entry.activeSource || pending || disabledByCapacity}
+                          disabled={
+                            !entry.activeSource || pending || disabledByCapacity || disabledBySource
+                          }
                           onChange={() => toggle(entry)}
                         />
                         <span>
                           <strong>{skillName(entry.definition)}</strong>
                           <small>
-                            {titleCase(entry.definition.sourceDisciplineId)} Discipline ·{' '}
+                            {titleCase(entry.definition.sourceDisciplineId)} ·{' '}
                             {entry.definition.apCost} AP · {entry.definition.cooldown.ownerTurns}{' '}
                             owner-turn cooldown
                           </small>
@@ -236,11 +271,11 @@ export function CharacterSkillBuildPanel({
                       <p>
                         {entry.activeSource
                           ? `Learned · content v${entry.definition.contentVersion}`
-                          : 'Learned, but its source Discipline is not active in this build.'}
+                          : 'Learned, but its Discipline is not active in this build.'}
                       </p>
                       {selected ? (
-                        <div className={styles.orderControls} aria-label="Skill order controls">
-                          <span>Slot {order + 1}</span>
+                        <div className={styles.orderControls} aria-label="Technique order controls">
+                          <span>Tag {order + 1}</span>
                           <button
                             type="button"
                             onClick={() => move(entry.definition.id, -1)}
@@ -264,38 +299,19 @@ export function CharacterSkillBuildPanel({
             </div>
 
             <div className={styles.extensions}>
-              <strong>Build extensions</strong>
+              <strong>Build identity</strong>
               {initialResonance ? (
                 <>
-                  <span data-testid="active-resonance">
-                    Resonance · {initialResonance.name} · content v{initialResonance.contentVersion}
-                  </span>
+                  <span data-testid="active-resonance">Resonance · {initialResonance.name}</span>
                   <span>{initialResonance.description}</span>
                 </>
-              ) : secondaryDiscipline ? (
-                <span>No authored Resonance is available for this Discipline pair yet.</span>
-              ) : (
-                <span>Resonance — available only to an eligible mixed build.</span>
-              )}
+              ) : null}
               {initialEssence ? (
                 <>
-                  <span data-testid="active-essence">
-                    Essence Skill · {initialEssence.name} · content v{initialEssence.contentVersion}
-                  </span>
-                  <span>
-                    {initialEssence.description} {initialEssence.skill.apCost} AP ·{' '}
-                    {initialEssence.skill.cooldown.ownerTurns} owner-turn cooldown · outside the{' '}
-                    {capacity}-Skill Discipline cap.
-                  </span>
+                  <span data-testid="active-essence">Essence · {initialEssence.name}</span>
+                  <span>{initialEssence.description} Outside the four tagged Technique slots.</span>
                 </>
-              ) : secondaryDiscipline ? (
-                <span>Essence — unavailable while a Secondary Discipline is active.</span>
-              ) : (
-                <span>No authored Essence is available for this Primary Discipline yet.</span>
-              )}
-              <span>Equipment Skills — reserved</span>
-              <span>Supernatural — reserved for later phases</span>
-              <span>Prestige — reserved</span>
+              ) : null}
             </div>
 
             <div className={styles.actions}>
@@ -305,10 +321,10 @@ export function CharacterSkillBuildPanel({
                 onClick={() => setSelectedIds([])}
                 disabled={pending || selectedIds.length === 0}
               >
-                Clear selection
+                Clear tags
               </button>
               <button type="button" onClick={() => void save()} disabled={!dirty || pending}>
-                {pending ? 'Saving…' : 'Commit Skill loadout'}
+                {pending ? 'Saving…' : 'Commit tagged Techniques'}
               </button>
             </div>
 

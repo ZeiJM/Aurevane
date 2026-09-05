@@ -5,6 +5,21 @@ import type { ImageAssetId } from '@/media/registry'
 import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
+export type BattleTechniqueCategory = 'attack' | 'defense' | 'heal'
+
+export interface BattleTechniquePresentation {
+  id: string
+  contentVersion: number
+  sourceDisciplineId: string
+  name: string
+  apCost: number
+  cooldownOwnerTurns: number
+  category: BattleTechniqueCategory
+  targetKind: 'self' | 'unit' | 'ground-tile' | 'empty-tile'
+  minimumRange: number
+  maximumRange: number
+}
+
 export interface BattleResonancePresentation {
   id: string
   contentVersion: number
@@ -21,23 +36,25 @@ export interface BattleEssencePresentation {
   cooldownOwnerTurns: number
 }
 
+interface BattleBuildPresentation {
+  techniques?: readonly BattleTechniquePresentation[]
+  resonance?: BattleResonancePresentation | null
+  essence?: BattleEssencePresentation | null
+}
+
 export type BattleRuntime =
-  | {
+  | (BattleBuildPresentation & {
       kind: 'pve'
-      resonance?: BattleResonancePresentation | null
-      essence?: BattleEssencePresentation | null
       playerName: string
       playerLevel: number
       playerPortraitAssetId: ImageAssetId
       playerProfileImageUrl: string | null
-    }
-  | {
+    })
+  | (BattleBuildPresentation & {
       kind: 'pvp'
-      resonance?: BattleResonancePresentation | null
-      essence?: BattleEssencePresentation | null
       playerName: string
       metadata: PvpBattleMetadata
-    }
+    })
 
 export interface BattleCapabilities {
   chat: boolean

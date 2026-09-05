@@ -4,6 +4,7 @@ import type { BattleSessionRecord, BattleSessionRepository } from '@aurevane/db/
 import {
   PV1F_COMBAT_CONTENT,
   evaluatePv1fAction,
+  evaluatePv1fMatureSkill,
   evaluatePv1fMovement,
   finishPv1fTurn,
   readPv1fActionEconomy,
@@ -14,10 +15,16 @@ import {
   type CombatDefenseKind,
   type StatDrivenCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
+import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { AurevaneError, StaleBattleVersionError } from '@aurevane/game-core/errors'
 import type { BattleIntent } from '@aurevane/validation/combat/battle-session'
 
 import { battleActionResourceIssue } from './battle-action-resource-availability'
+import {
+  battleBuildAuthorityForCombatant,
+  resolveBattleEssenceDefinition,
+  type BattleBuildAuthoritySnapshot,
+} from './battle-build-authority'
 
 export interface BattlePreviewIssue {
   code: string
@@ -189,11 +196,29 @@ function previewIntent(
   }
 
   if (intent.kind === 'action') {
-    const { prepared, action, cost, evaluation } = evaluatePv1fAction(
-      state,
-      intent.actionId,
-      intent.target,
+    const actorId = state.tactical.battle.currentTurn?.combatantId ?? null
+    const authority = (
+      state as StatDrivenCombatEncounterState & {
+        buildAuthority?: BattleBuildAuthoritySnapshot
+      }
+    ).buildAuthority
+    const build = actorId ? battleBuildAuthorityForCombatant(authority, actorId) : null
+    const essence = actorId ? resolveBattleEssenceDefinition(authority, actorId) : null
+    const taggedTechnique = build?.disciplineSkills.find(
+      (reference) => reference.skillId === intent.actionId,
     )
+    const matureDefinition = taggedTechnique
+      ? resolveMatureSkillVersion(taggedTechnique.skillId, taggedTechnique.contentVersion)
+      : null
+    const resolved =
+      essence && essence.skill.id === intent.actionId && authority
+        ? evaluatePv1fMatureSkill(state, essence.skill, intent.target, authority.combatContext)
+        : matureDefinition &&
+            matureDefinition.sourceDisciplineId === taggedTechnique?.sourceDisciplineId &&
+            authority
+          ? evaluatePv1fMatureSkill(state, matureDefinition, intent.target, authority.combatContext)
+          : evaluatePv1fAction(state, intent.actionId, intent.target)
+    const { prepared, action, cost, evaluation } = resolved
     const economy = readPv1fActionEconomy(prepared)
     const before = economy?.current ?? 0
     const affordable = before >= cost

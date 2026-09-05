@@ -102,8 +102,8 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
     '100',
   )
   await expect(commandDeck.getByRole('button', { name: /Move/ })).toContainText('M · WASD')
-  await expect(commandDeck.getByRole('button', { name: /Basic Attack/ })).toContainText('3')
-  await expect(commandDeck.getByRole('button', { name: /Guard/ })).toContainText('4')
+  await expect(commandDeck.locator('button[data-battle-command="attack"]')).toContainText('3')
+  await expect(commandDeck.locator('button[data-battle-command="guard"]')).toContainText('4')
   await expect(commandDeck.locator('button[data-battle-command="recover"]')).toContainText('5')
   expect(await hasHorizontalOverflow(page)).toBe(false)
   if (testInfo.project.name !== 'mobile-chromium') {

@@ -90,7 +90,7 @@ learned_count="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres
   from public.get_character_learned_skills_v1('$user_id'::uuid, '$character_id'::uuid);")"
 test "$learned_count" = '14'
 
-pure_payload='[{"skillId":"vanguard.forceful-strike","contentVersion":2,"sourceDisciplineId":"vanguard"},{"skillId":"vanguard.cleave","contentVersion":1,"sourceDisciplineId":"vanguard"},{"skillId":"vanguard.guard-break","contentVersion":1,"sourceDisciplineId":"vanguard"},{"skillId":"vanguard.brace","contentVersion":1,"sourceDisciplineId":"vanguard"},{"skillId":"vanguard.rally","contentVersion":1,"sourceDisciplineId":"vanguard"},{"skillId":"vanguard.shield-bash","contentVersion":1,"sourceDisciplineId":"vanguard"},{"skillId":"vanguard.second-wind","contentVersion":1,"sourceDisciplineId":"vanguard"},{"skillId":"vanguard.sweeping-strike","contentVersion":1,"sourceDisciplineId":"vanguard"}]'
+pure_payload='[{"skillId":"vanguard.forceful-strike","contentVersion":2,"sourceDisciplineId":"vanguard"},{"skillId":"vanguard.cleave","contentVersion":1,"sourceDisciplineId":"vanguard"},{"skillId":"vanguard.guard-break","contentVersion":1,"sourceDisciplineId":"vanguard"},{"skillId":"vanguard.brace","contentVersion":1,"sourceDisciplineId":"vanguard"}]'
 
 pure_save="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
@@ -101,7 +101,7 @@ pure_save="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d 
     1,
     '$pure_payload'::jsonb,
     '00000000-0000-4000-8000-000000003802'::uuid,
-    'sha256:p38-pure-eight'
+    'sha256:p38-pure-four'
   );")"
 test "$pure_save" = '2|false'
 
@@ -115,7 +115,7 @@ pure_snapshot="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres
   from (
     select public.get_character_committed_build_snapshot_v2('$user_id'::uuid, '$character_id'::uuid) as snapshot
   ) resolved;")"
-test "$pure_snapshot" = '8|||essence.vanguard.unbroken-strike'
+test "$pure_snapshot" = '4|||essence.vanguard.unbroken-strike'
 
 mastery="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
@@ -144,13 +144,13 @@ mixed_change="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres 
   );")"
 test "$mixed_change" = '3|vanguard|lifebinder'
 
-pruned_to_six="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+pruned_to_two="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
   select count(*)::text
   from public.get_character_discipline_skill_loadout_v1('$user_id'::uuid, '$character_id'::uuid);")"
-test "$pruned_to_six" = '6'
+test "$pruned_to_two" = '2'
 
-mixed_payload='[{"skillId":"vanguard.forceful-strike","contentVersion":2,"sourceDisciplineId":"vanguard"},{"skillId":"vanguard.brace","contentVersion":1,"sourceDisciplineId":"vanguard"},{"skillId":"vanguard.cleave","contentVersion":1,"sourceDisciplineId":"vanguard"},{"skillId":"lifebinder.mending-light","contentVersion":1,"sourceDisciplineId":"lifebinder"},{"skillId":"lifebinder.barrier","contentVersion":1,"sourceDisciplineId":"lifebinder"},{"skillId":"lifebinder.renew","contentVersion":1,"sourceDisciplineId":"lifebinder"}]'
+mixed_payload='[{"skillId":"vanguard.forceful-strike","contentVersion":2,"sourceDisciplineId":"vanguard"},{"skillId":"vanguard.brace","contentVersion":1,"sourceDisciplineId":"vanguard"},{"skillId":"lifebinder.mending-light","contentVersion":1,"sourceDisciplineId":"lifebinder"},{"skillId":"lifebinder.barrier","contentVersion":1,"sourceDisciplineId":"lifebinder"}]'
 
 mixed_save="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
@@ -161,7 +161,7 @@ mixed_save="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d
     3,
     '$mixed_payload'::jsonb,
     '00000000-0000-4000-8000-000000003804'::uuid,
-    'sha256:p38-mixed-six'
+    'sha256:p38-mixed-four'
   );")"
 test "$mixed_save" = '4|false'
 
@@ -177,7 +177,7 @@ mixed_snapshot="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgre
   from (
     select public.get_character_committed_build_snapshot_v2('$user_id'::uuid, '$character_id'::uuid) as snapshot
   ) resolved;")"
-test "$mixed_snapshot" = '6|lifebinder|resonance.lifebinder-vanguard.mercys-edge||2'
+test "$mixed_snapshot" = '4|lifebinder|resonance.lifebinder-vanguard.mercys-edge||2'
 
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role service_role;
@@ -187,11 +187,11 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
     4,
     '$pure_payload'::jsonb,
     '00000000-0000-4000-8000-000000003805'::uuid,
-    'sha256:p38-illegal-mixed-eight'
+    'sha256:p38-illegal-mixed-source-overflow'
   );" >/tmp/p38-over6.out 2>/tmp/p38-over6.err; then
-  echo 'Expected the mixed build to reject the eight-Skill pure loadout.' >&2
+  echo 'Expected the mixed build to reject more than two tagged Techniques from one Discipline.' >&2
   exit 1
 fi
-grep -Fq 'DISCIPLINE_SKILL_CAPACITY_EXCEEDED' /tmp/p38-over6.err
+grep -Fq 'DISCIPLINE_SKILL_SOURCE_CAPACITY_EXCEEDED' /tmp/p38-over6.err
 
 echo 'P3.8 representative pure/mixed buildcraft database authority verified.'

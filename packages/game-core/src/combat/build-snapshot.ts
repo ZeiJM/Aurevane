@@ -95,8 +95,22 @@ export function validateCombatBuildSnapshot(
   if (snapshot.disciplineSkills.length > disciplineSkillCapacity(secondaryId)) {
     issues.push({
       field: 'disciplineSkills',
-      message: 'Combat build snapshot exceeds Discipline Skill capacity.',
+      message: 'Combat build snapshot exceeds tagged Technique capacity.',
     })
+  }
+  if (secondaryId !== null) {
+    const primaryCount = snapshot.disciplineSkills.filter(
+      (skill) => skill.sourceDisciplineId === snapshot.primary.disciplineId,
+    ).length
+    const secondaryCount = snapshot.disciplineSkills.filter(
+      (skill) => skill.sourceDisciplineId === secondaryId,
+    ).length
+    if (primaryCount > 2 || secondaryCount > 2) {
+      issues.push({
+        field: 'disciplineSkills',
+        message: 'Mixed combat builds may tag at most two Techniques from each Discipline.',
+      })
+    }
   }
   const allowedSources = new Set(
     secondaryId === null
