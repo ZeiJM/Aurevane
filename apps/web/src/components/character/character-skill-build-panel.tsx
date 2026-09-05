@@ -4,7 +4,7 @@ import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { ResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useState, type CSSProperties } from 'react'
 
 import { battleSkillArtwork } from '../battle/battle-skill-presentation'
 import styles from './character-skill-build-panel.module.css'
@@ -42,6 +42,31 @@ interface SkillCommitResponse {
     }
   }
   error?: { message?: string }
+}
+
+const DISCIPLINE_PALETTE: Readonly<Record<string, { accent: string; deep: string }>> = {
+  vanguard: { accent: '232 119 76', deep: '117 50 31' },
+  lifebinder: { accent: '93 207 149', deep: '32 99 67' },
+  aetherist: { accent: '160 126 241', deep: '73 47 132' },
+  farstrider: { accent: '116 195 104', deep: '51 93 43' },
+  shadehand: { accent: '202 104 181', deep: '92 43 83' },
+  ironfist: { accent: '229 170 79', deep: '109 70 29' },
+}
+
+function paletteFor(disciplineId: string): { accent: string; deep: string } {
+  return DISCIPLINE_PALETTE[disciplineId] ?? { accent: '197 158 92', deep: '102 78 41' }
+}
+
+function skillPaletteStyle(disciplineId: string): CSSProperties {
+  const palette = paletteFor(disciplineId)
+  return {
+    '--skill-accent': palette.accent,
+    '--skill-deep': palette.deep,
+  } as CSSProperties
+}
+
+function chipPaletteStyle(disciplineId: string): CSSProperties {
+  return { '--chip': paletteFor(disciplineId).accent } as CSSProperties
 }
 
 function titleCase(value: string): string {
@@ -214,11 +239,23 @@ export function CharacterSkillBuildPanel({
                     {secondaryDiscipline ? ` + ${secondaryDiscipline.name}` : ' · Pure'}
                   </strong>
                   <div className={styles.disciplineChips}>
-                    <span data-discipline={primaryDiscipline.id}>{primaryDiscipline.name}</span>
+                    <span
+                      data-discipline={primaryDiscipline.id}
+                      style={chipPaletteStyle(primaryDiscipline.id)}
+                    >
+                      {primaryDiscipline.name}
+                    </span>
                     {secondaryDiscipline ? (
-                      <span data-discipline={secondaryDiscipline.id}>{secondaryDiscipline.name}</span>
+                      <span
+                        data-discipline={secondaryDiscipline.id}
+                        style={chipPaletteStyle(secondaryDiscipline.id)}
+                      >
+                        {secondaryDiscipline.name}
+                      </span>
                     ) : (
-                      <span data-pure="true">Pure build</span>
+                      <span data-pure="true" style={{ '--chip': '202 169 104' } as CSSProperties}>
+                        Pure build
+                      </span>
                     )}
                   </div>
                   <p className={styles.rule}>
@@ -296,6 +333,7 @@ export function CharacterSkillBuildPanel({
                           data-active-source={entry.activeSource ? 'true' : 'false'}
                           data-selected={selected ? 'true' : 'false'}
                           data-source={entry.definition.sourceDisciplineId}
+                          style={skillPaletteStyle(entry.definition.sourceDisciplineId)}
                         >
                           <label className={styles.skillToggle}>
                             <input
