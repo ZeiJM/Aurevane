@@ -1,0 +1,99 @@
+name: Phase 3 Correction Finalizer
+
+on:
+  push:
+    branches:
+      - fix/phase3-build-ui-techniques-20260904
+    paths:
+      - .github/workflows/phase3-correction-finalize.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/phase3-build-ui-techniques-20260904
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Finalize correction contracts
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f'missing expected text in {path}: {old[:100]!r}')
+              p.write_text(text.replace(old, new, 1))
+
+          replace(
+            'packages/game-core/src/character/discipline-skill-loadout.ts',
+            "export function disciplineSkillCapacity(_secondaryDisciplineId: string | null): number {\n  return PURE_DISCIPLINE_SKILL_CAPACITY\n}\n",
+            "export function disciplineSkillCapacity(secondaryDisciplineId: string | null): number {\n  return secondaryDisciplineId === null\n    ? PURE_DISCIPLINE_SKILL_CAPACITY\n    : MIXED_DISCIPLINE_SKILL_CAPACITY\n}\n",
+          )
+
+          for path in [
+            'apps/web/src/server/character/character-build-service.test.ts',
+            'apps/web/src/server/character/character-build-essence.test.ts',
+          ]:
+              p = Path(path)
+              text = p.read_text()
+              text = text.replace('expect(context.disciplineSkills.capacity).toBe(8)', 'expect(context.disciplineSkills.capacity).toBe(4)')
+              text = text.replace('expect(context.disciplineSkills.capacity).toBe(6)', 'expect(context.disciplineSkills.capacity).toBe(4)')
+              p.write_text(text)
+
+          replace(
+            'apps/web/src/components/battle/battle-runtime.ts',
+            "  targetKind: 'self' | 'unit' | 'ground-tile' | 'empty-tile'\n",
+            "  targetKind: 'self' | 'unit' | 'ground-tile' | 'empty-tile'\n  minimumRange: number\n  maximumRange: number\n",
+          )
+          replace(
+            'apps/web/src/app/game/battle/[battleSessionId]/page.tsx',
+            "        targetKind: definition.target.kind,\n",
+            "        targetKind: definition.target.kind,\n        minimumRange: definition.target.minimumRange,\n        maximumRange: definition.target.maximumRange,\n",
+          )
+          replace(
+            'apps/web/src/components/battle/battle-experience.tsx',
+            """        if (!attackRange.has(key) || !target || !targetCombatant || targetCombatant.hp <= 0) {\n          setNotice('That unit is not in range for the selected Technique.')\n          return\n        }\n""",
+            """        const selectedTechnique =\n          mode === 'attack'\n            ? selectedAttackTechnique\n            : mode === 'guard'\n              ? selectedDefenseTechnique\n              : selectedHealTechnique\n        const minimumRange = selectedTechnique?.minimumRange ?? 1\n        const maximumRange = selectedTechnique?.maximumRange ?? 1\n        const distance = localPlacement\n          ? Math.abs(position.x - localPlacement.position.x) +\n            Math.abs(position.y - localPlacement.position.y)\n          : Number.MAX_SAFE_INTEGER\n        if (\n          distance < minimumRange ||\n          distance > maximumRange ||\n          !target ||\n          !targetCombatant ||\n          targetCombatant.hp <= 0\n        ) {\n          setNotice('That unit is not in range for the selected Technique.')\n          return\n        }\n""",
+          )
+          replace(
+            'apps/web/src/components/battle/battle-experience.tsx',
+            """      selectedAttackActionId,\n      selectedDefenseActionId,\n      effectiveHealActionId,\n      viewModel.participantByCombatant,\n""",
+            """      selectedAttackActionId,\n      selectedAttackTechnique,\n      selectedDefenseActionId,\n      selectedDefenseTechnique,\n      effectiveHealActionId,\n      selectedHealTechnique,\n      viewModel.participantByCombatant,\n""",
+          )
+          PY
+
+          pnpm exec prettier --write \
+            packages/game-core/src/character/discipline-skill-loadout.ts \
+            apps/web/src/server/character/character-build-service.test.ts \
+            apps/web/src/server/character/character-build-essence.test.ts \
+            apps/web/src/components/battle/battle-runtime.ts \
+            'apps/web/src/app/game/battle/[battleSessionId]/page.tsx' \
+            apps/web/src/components/battle/battle-experience.tsx
+      - name: Commit final corrections
+        run: |
+          git config user.name "Aurevane Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add \
+            packages/game-core/src/character/discipline-skill-loadout.ts \
+            apps/web/src/server/character/character-build-service.test.ts \
+            apps/web/src/server/character/character-build-essence.test.ts \
+            apps/web/src/components/battle/battle-runtime.ts \
+            'apps/web/src/app/game/battle/[battleSessionId]/page.tsx' \
+            apps/web/src/components/battle/battle-experience.tsx
+          git commit -m "Finalize four-technique correction contracts"
+          git push origin HEAD:fix/phase3-build-ui-techniques-20260904
