@@ -1,14 +1,11 @@
 .page {
+  position: relative;
   min-height: 0;
   padding: clamp(0.55rem, 1vw, 0.8rem);
 }
 
 .heading {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.8rem;
-  padding: 0.05rem 0.1rem 0.55rem;
+  padding: 0.05rem 9rem 0.55rem 0.1rem;
   border-bottom: 1px solid var(--av-border);
 }
 
@@ -16,9 +13,29 @@
   min-width: 0;
 }
 
+.titleRow {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.12rem;
+}
+
 .heading h1 {
-  margin: 0.12rem 0 0;
+  margin: 0;
   font: 500 clamp(1.45rem, 2.2vw, 1.9rem)/1 var(--av-font-display);
+}
+
+.onlineCount {
+  display: grid;
+  width: 1.8rem;
+  height: 1.8rem;
+  flex: none;
+  place-items: center;
+  border: 1px solid rgba(91, 186, 124, 0.45);
+  border-radius: 999px;
+  color: #9ed8b2;
+  background: rgba(67, 140, 92, 0.1);
+  font: 650 0.78rem/1 var(--av-font-display);
 }
 
 .heading p {
@@ -29,28 +46,19 @@
   line-height: 1.35;
 }
 
-.heading > strong {
-  display: grid;
-  min-width: 2.4rem;
-  height: 2.4rem;
-  flex: none;
-  place-items: center;
-  padding: 0 0.55rem;
-  border: 1px solid rgba(91, 186, 124, 0.45);
-  border-radius: 999px;
-  color: #9ed8b2;
-  background: rgba(67, 140, 92, 0.1);
-  font: 650 1rem/1 var(--av-font-display);
-}
-
-/* Keep the directory toggle visually tucked beneath the online-count badge on desktop. */
+/* The directory toggle now occupies the clean header action slot formerly used by the count badge. */
 .page > .heading + div > button[aria-pressed] {
-  transform: translateY(-2rem);
+  position: absolute;
+  top: 1.45rem;
+  right: clamp(0.65rem, 1vw, 0.9rem);
+  z-index: 2;
+  transform: none;
+  white-space: nowrap;
 }
 
-@media (max-width: 620px) {
+@media (max-width: 700px) {
   .heading {
-    align-items: flex-start;
+    padding-right: 0.1rem;
   }
 
   .heading p {
@@ -58,6 +66,6 @@
   }
 
   .page > .heading + div > button[aria-pressed] {
-    transform: none;
+    position: static;
   }
 }
