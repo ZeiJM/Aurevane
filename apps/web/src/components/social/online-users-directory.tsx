@@ -16,6 +16,7 @@ import {
 import styles from './online-users-directory.module.css'
 
 type PresenceCharacter = OnlineCharacter | CharacterPresenceDirectoryEntry
+type DirectorySortOrder = LastSeenSortOrder | 'alphabetical'
 
 function publicIdentityTags(
   character: PresenceCharacter,
@@ -78,7 +79,7 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
   const [loadingDirectory, setLoadingDirectory] = useState(false)
   const [directoryError, setDirectoryError] = useState<string | null>(null)
   const [classFilter, setClassFilter] = useState('all')
-  const [sortOrder, setSortOrder] = useState<LastSeenSortOrder>('recent')
+  const [sortOrder, setSortOrder] = useState<DirectorySortOrder>('recent')
   const [nowMs, setNowMs] = useState(0)
 
   const classOptions = useMemo(() => {
@@ -98,7 +99,7 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
         : source
 
     return [...filtered].sort((left, right) => {
-      if (showAll) {
+      if (showAll && sortOrder !== 'alphabetical') {
         const lastSeenDifference = compareLastSeenAt(left.lastSeenAt, right.lastSeenAt, sortOrder)
         if (lastSeenDifference !== 0) return lastSeenDifference
       }
@@ -178,10 +179,11 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
               <span>Sort</span>
               <select
                 value={sortOrder}
-                onChange={(event) => setSortOrder(event.target.value as LastSeenSortOrder)}
+                onChange={(event) => setSortOrder(event.target.value as DirectorySortOrder)}
               >
                 <option value="recent">Last seen: most recent</option>
                 <option value="oldest">Last seen: least recent</option>
+                <option value="alphabetical">Alphabetical: A to Z</option>
               </select>
             </label>
             <span className={styles.directorySummary}>
@@ -224,7 +226,7 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
       {orderedCharacters.length > 0 ? (
         <div className={styles.list}>
           {orderedCharacters.map((character) => {
-            const tags = publicIdentityTags(character)
+            const discipline = readableIdentity(character.disciplineId)
             const online = isOnline(character)
             const lastSeen = formatLastSeenAt(character.lastSeenAt, currentNow)
             return (
@@ -245,7 +247,7 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
                   <strong>{character.name}</strong>
                   <small>
                     Level {character.level}
-                    {tags.length > 0 ? ` · ${tags.map((tag) => tag.label).join(' · ')}` : ''}
+                    {discipline ? ` · ${discipline}` : ''}
                   </small>
                 </span>
                 <span className={online ? styles.online : styles.lastSeen}>
