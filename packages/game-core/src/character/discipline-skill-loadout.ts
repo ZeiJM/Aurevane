@@ -1,5 +1,6 @@
-export const PURE_DISCIPLINE_SKILL_CAPACITY = 8 as const
-export const MIXED_DISCIPLINE_SKILL_CAPACITY = 6 as const
+export const PURE_DISCIPLINE_SKILL_CAPACITY = 4 as const
+export const MIXED_DISCIPLINE_SKILL_CAPACITY = 4 as const
+export const MIXED_DISCIPLINE_SKILL_SOURCE_CAPACITY = 2 as const
 
 export interface DisciplineSkillReference {
   readonly skillId: string
@@ -10,6 +11,7 @@ export interface DisciplineSkillReference {
 export interface DisciplineSkillLoadoutIssue {
   readonly code:
     | 'capacity-exceeded'
+    | 'mixed-source-capacity-exceeded'
     | 'duplicate-skill'
     | 'invalid-skill-reference'
     | 'inactive-skill-source'
@@ -27,10 +29,8 @@ export interface DisciplineSkillLoadoutValidationInput {
 
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/
 
-export function disciplineSkillCapacity(secondaryDisciplineId: string | null): number {
-  return secondaryDisciplineId === null
-    ? PURE_DISCIPLINE_SKILL_CAPACITY
-    : MIXED_DISCIPLINE_SKILL_CAPACITY
+export function disciplineSkillCapacity(_secondaryDisciplineId: string | null): number {
+  return PURE_DISCIPLINE_SKILL_CAPACITY
 }
 
 function key(reference: DisciplineSkillReference): string {
@@ -54,8 +54,30 @@ export function validateDisciplineSkillLoadout(
   if (input.equipped.length > capacity) {
     issues.push({
       code: 'capacity-exceeded',
-      message: `That build may equip at most ${capacity} Discipline Skills.`,
+      message: `That build may tag at most ${capacity} Discipline Techniques.`,
     })
+  }
+
+  if (input.secondaryDisciplineId !== null) {
+    const primaryCount = input.equipped.filter(
+      (reference) => reference.sourceDisciplineId === input.primaryDisciplineId,
+    ).length
+    const secondaryCount = input.equipped.filter(
+      (reference) => reference.sourceDisciplineId === input.secondaryDisciplineId,
+    ).length
+
+    if (primaryCount > MIXED_DISCIPLINE_SKILL_SOURCE_CAPACITY) {
+      issues.push({
+        code: 'mixed-source-capacity-exceeded',
+        message: `A mixed build may tag at most ${MIXED_DISCIPLINE_SKILL_SOURCE_CAPACITY} Techniques from the Primary Discipline.`,
+      })
+    }
+    if (secondaryCount > MIXED_DISCIPLINE_SKILL_SOURCE_CAPACITY) {
+      issues.push({
+        code: 'mixed-source-capacity-exceeded',
+        message: `A mixed build may tag at most ${MIXED_DISCIPLINE_SKILL_SOURCE_CAPACITY} Techniques from the Secondary Discipline.`,
+      })
+    }
   }
 
   const allowedSources = new Set(
@@ -70,7 +92,7 @@ export function validateDisciplineSkillLoadout(
     if (!validReference(reference)) {
       issues.push({
         code: 'invalid-skill-reference',
-        message: 'A Discipline Skill reference is invalid.',
+        message: 'A Discipline Technique reference is invalid.',
         skillId: reference.skillId,
       })
       continue
@@ -78,7 +100,7 @@ export function validateDisciplineSkillLoadout(
     if (seen.has(reference.skillId)) {
       issues.push({
         code: 'duplicate-skill',
-        message: 'A Discipline Skill may only be equipped once.',
+        message: 'A Discipline Technique may only be tagged once.',
         skillId: reference.skillId,
       })
     }
@@ -87,14 +109,14 @@ export function validateDisciplineSkillLoadout(
     if (!allowedSources.has(reference.sourceDisciplineId)) {
       issues.push({
         code: 'inactive-skill-source',
-        message: 'That Discipline Skill does not come from an active Discipline.',
+        message: 'That Technique does not come from an active Discipline.',
         skillId: reference.skillId,
       })
     }
     if (!learned.has(key(reference))) {
       issues.push({
         code: 'skill-not-learned',
-        message: 'That Discipline Skill has not been learned for this character.',
+        message: 'That Discipline Technique has not been learned for this character.',
         skillId: reference.skillId,
       })
     }
