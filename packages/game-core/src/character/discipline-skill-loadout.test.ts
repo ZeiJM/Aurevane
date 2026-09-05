@@ -14,13 +14,13 @@ function skill(
   return { skillId, contentVersion, sourceDisciplineId }
 }
 
-describe('P3.4 Discipline Skill loadout authority', () => {
-  it('uses the canonical eight-pure / six-mixed capacity contract', () => {
-    expect(disciplineSkillCapacity(null)).toBe(8)
-    expect(disciplineSkillCapacity('lifebinder')).toBe(6)
+describe('P3.4 Discipline Technique loadout authority', () => {
+  it('uses the canonical four-technique capacity for pure and mixed builds', () => {
+    expect(disciplineSkillCapacity(null)).toBe(4)
+    expect(disciplineSkillCapacity('lifebinder')).toBe(4)
   })
 
-  it('accepts learned Primary Skills for a pure build and rejects Secondary sources', () => {
+  it('accepts learned Primary Techniques for a pure build and rejects Secondary sources', () => {
     const learned = [skill('vanguard.forceful-strike', 'vanguard', 2)]
     expect(
       validateDisciplineSkillLoadout({
@@ -41,34 +41,47 @@ describe('P3.4 Discipline Skill loadout authority', () => {
     ).toContainEqual(expect.objectContaining({ code: 'inactive-skill-source' }))
   })
 
-  it('accepts a mixed split without assuming a fixed Primary/Secondary ratio', () => {
-    const learned = [
+  it('accepts a mixed 2 + 2 split and rejects three Techniques from either source', () => {
+    const valid = [
       skill('vanguard.one', 'vanguard'),
       skill('vanguard.two', 'vanguard'),
       skill('lifebinder.one', 'lifebinder'),
       skill('lifebinder.two', 'lifebinder'),
-      skill('lifebinder.three', 'lifebinder'),
-      skill('lifebinder.four', 'lifebinder'),
     ]
     expect(
       validateDisciplineSkillLoadout({
         primaryDisciplineId: 'vanguard',
         secondaryDisciplineId: 'lifebinder',
-        equipped: learned,
-        learned,
+        equipped: valid,
+        learned: valid,
       }),
     ).toEqual([])
+
+    const invalid = [
+      skill('vanguard.one', 'vanguard'),
+      skill('vanguard.two', 'vanguard'),
+      skill('vanguard.three', 'vanguard'),
+      skill('lifebinder.one', 'lifebinder'),
+    ]
+    expect(
+      validateDisciplineSkillLoadout({
+        primaryDisciplineId: 'vanguard',
+        secondaryDisciplineId: 'lifebinder',
+        equipped: invalid,
+        learned: invalid,
+      }),
+    ).toContainEqual(expect.objectContaining({ code: 'mixed-source-capacity-exceeded' }))
   })
 
   it('rejects over-capacity, duplicate, and unlearned selections', () => {
-    const equipped = Array.from({ length: 7 }, (_, index) =>
+    const equipped = Array.from({ length: 5 }, (_, index) =>
       skill(`vanguard.skill-${index + 1}`, 'vanguard'),
     )
-    equipped[6] = equipped[0]
-    const learned = equipped.slice(0, 5)
+    equipped[4] = equipped[0]
+    const learned = equipped.slice(0, 3)
     const issues = validateDisciplineSkillLoadout({
       primaryDisciplineId: 'vanguard',
-      secondaryDisciplineId: 'lifebinder',
+      secondaryDisciplineId: null,
       equipped,
       learned,
     })
