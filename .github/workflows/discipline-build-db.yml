@@ -71,6 +71,26 @@ jobs:
       - name: Rebuild database from migrations
         run: pnpm exec supabase db reset --local
 
+      - name: Verify temporary zero-second testing policy
+        run: |
+          db_container="$(docker ps --filter 'name=supabase_db_' --format '{{.Names}}' | head -n 1)"
+          test -n "$db_container"
+          policy="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+            select state.current_policy_version::text || '|' || policy.primary_cooldown_seconds::text || '|' || policy.secondary_cooldown_seconds::text
+            from app_private.character_build_attunement_policy_state state
+            join app_private.character_build_attunement_policies policy
+              on policy.version = state.current_policy_version
+            where state.singleton;")"
+          test "$policy" = '2|0|0'
+
+      - name: Enable original attunement policy for regression matrix
+        run: |
+          db_container="$(docker ps --filter 'name=supabase_db_' --format '{{.Names}}' | head -n 1)"
+          docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+            update app_private.character_build_attunement_policy_state
+            set current_policy_version = 1, updated_at = clock_timestamp()
+            where singleton;" >/dev/null
+
       - name: Verify P3.1 Primary build authority
         run: bash .github/scripts/verify-p31-discipline-build-authority.sh
 
@@ -100,6 +120,19 @@ jobs:
           set -E
           trap 'echo "P3.7 verifier failed at line ${BASH_LINENO[0]}." >&2' ERR
           source .github/scripts/verify-p37-saved-build-loadouts.sh
+
+      - name: Restore zero-second testing policy
+        run: |
+          db_container="$(docker ps --filter 'name=supabase_db_' --format '{{.Names}}' | head -n 1)"
+          docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+            update app_private.character_build_attunement_policy_state
+            set current_policy_version = 2, updated_at = clock_timestamp()
+            where singleton;
+            update app_private.character_active_builds
+            set primary_attunement_locked_until = null,
+                secondary_attunement_locked_until = null,
+                last_attunement_policy_version = 2,
+                updated_at = clock_timestamp();" >/dev/null
 
       - name: Verify P3.8 representative buildcraft authority
         run: |
