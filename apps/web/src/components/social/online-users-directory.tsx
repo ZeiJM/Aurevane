@@ -117,9 +117,7 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
 
   useEffect(() => {
     if (!showAll) return
-    const updateClock = () => setNowMs(Date.now())
-    updateClock()
-    const interval = window.setInterval(updateClock, 60_000)
+    const interval = window.setInterval(() => setNowMs(Date.now()), 60_000)
     return () => window.clearInterval(interval)
   }, [showAll])
 
@@ -153,11 +151,12 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
       setShowAll(false)
       return
     }
+    setNowMs(Date.now())
     setShowAll(true)
     void loadDirectory()
   }
 
-  const currentNow = nowMs || Date.now()
+  const currentNow = nowMs
 
   return (
     <>
@@ -216,7 +215,9 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
 
       {!loadingDirectory && !directoryError && orderedCharacters.length === 0 ? (
         <p className={styles.empty}>
-          {showAll ? 'No characters match the selected filters.' : 'No characters are currently visible online.'}
+          {showAll
+            ? 'No characters match the selected filters.'
+            : 'No characters are currently visible online.'}
         </p>
       ) : null}
 
@@ -275,9 +276,7 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
             </button>
             <div className={styles.portraitStage}>
               <Portrait character={selected} large />
-              <span
-                className={isOnline(selected) ? styles.liveBadge : styles.offlineBadge}
-              >
+              <span className={isOnline(selected) ? styles.liveBadge : styles.offlineBadge}>
                 {isOnline(selected) ? '● Online' : '○ Offline'}
               </span>
             </div>
