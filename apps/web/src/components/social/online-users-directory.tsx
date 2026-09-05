@@ -2,22 +2,23 @@
 
 import { useEffect, useMemo, useState } from 'react'
 
-import type { OnlineCharacter } from '@/server/presence/character-presence-service'
+import type {
+  CharacterPresenceDirectoryEntry,
+  OnlineCharacter,
+} from '@/server/presence/character-presence-service'
 
+import {
+  compareLastSeenAt,
+  formatLastSeenAt,
+  readableIdentity,
+  type LastSeenSortOrder,
+} from './online-users-directory-utils'
 import styles from './online-users-directory.module.css'
 
-function readableIdentity(value: string | null): string | null {
-  if (!value) return null
-  return value
-    .replace(/^starter[.:_-]?/i, '')
-    .split(/[._-]+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
-}
+type PresenceCharacter = OnlineCharacter | CharacterPresenceDirectoryEntry
 
 function publicIdentityTags(
-  character: OnlineCharacter,
+  character: PresenceCharacter,
 ): Array<{ kind: 'Discipline' | 'Personal Title'; label: string }> {
   const discipline = readableIdentity(character.disciplineId)
   const tags: Array<{ kind: 'Discipline' | 'Personal Title'; label: string }> = []
@@ -33,7 +34,17 @@ function onlineNameBucket(name: string): number {
   return 2
 }
 
-function Portrait({ character, large = false }: { character: OnlineCharacter; large?: boolean }) {
+function compareNames(left: PresenceCharacter, right: PresenceCharacter): number {
+  const bucketDifference = onlineNameBucket(left.name) - onlineNameBucket(right.name)
+  if (bucketDifference !== 0) return bucketDifference
+  return left.name.localeCompare(right.name, 'en', { sensitivity: 'base', numeric: true })
+}
+
+function isOnline(character: PresenceCharacter): boolean {
+  return 'isOnline' in character ? character.isOnline : true
+}
+
+function Portrait({ character, large = false }: { character: PresenceCharacter; large?: boolean }) {
   const [failed, setFailed] = useState(false)
   const className = large ? styles.heroPortrait : styles.avatar
 
@@ -61,16 +72,39 @@ function Portrait({ character, large = false }: { character: OnlineCharacter; la
 }
 
 export function OnlineUsersDirectory({ characters }: { characters: OnlineCharacter[] }) {
-  const [selected, setSelected] = useState<OnlineCharacter | null>(null)
-  const orderedCharacters = useMemo(
-    () =>
-      [...characters].sort((left, right) => {
-        const bucketDifference = onlineNameBucket(left.name) - onlineNameBucket(right.name)
-        if (bucketDifference !== 0) return bucketDifference
-        return left.name.localeCompare(right.name, 'en', { sensitivity: 'base', numeric: true })
-      }),
-    [characters],
-  )
+  const [selected, setSelected] = useState<PresenceCharacter | null>(null)
+  const [showAll, setShowAll] = useState(false)
+  const [directory, setDirectory] = useState<CharacterPresenceDirectoryEntry[] | null>(null)
+  const [loadingDirectory, setLoadingDirectory] = useState(false)
+  const [directoryError, setDirectoryError] = useState<string | null>(null)
+  const [classFilter, setClassFilter] = useState('all')
+  const [sortOrder, setSortOrder] = useState<LastSeenSortOrder>('recent')
+  const [nowMs, setNowMs] = useState(0)
+
+  const classOptions = useMemo(() => {
+    const options = new Map<string, string>()
+    for (const character of directory ?? []) {
+      const label = readableIdentity(character.disciplineId)
+      if (character.disciplineId && label) options.set(character.disciplineId, label)
+    }
+    return [...options.entries()].sort((left, right) => left[1].localeCompare(right[1], 'en'))
+  }, [directory])
+
+  const orderedCharacters = useMemo(() => {
+    const source: PresenceCharacter[] = showAll ? (directory ?? []) : characters
+    const filtered =
+      showAll && classFilter !== 'all'
+        ? source.filter((character) => character.disciplineId === classFilter)
+        : source
+
+    return [...filtered].sort((left, right) => {
+      if (showAll) {
+        const lastSeenDifference = compareLastSeenAt(left.lastSeenAt, right.lastSeenAt, sortOrder)
+        if (lastSeenDifference !== 0) return lastSeenDifference
+      }
+      return compareNames(left, right)
+    })
+  }, [characters, classFilter, directory, showAll, sortOrder])
 
   useEffect(() => {
     if (!selected) return
@@ -81,38 +115,147 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
     return () => window.removeEventListener('keydown', close)
   }, [selected])
 
-  if (orderedCharacters.length === 0) {
-    return <p className={styles.empty}>No characters are currently visible online.</p>
+  useEffect(() => {
+    if (!showAll) return
+    const interval = window.setInterval(() => setNowMs(Date.now()), 60_000)
+    return () => window.clearInterval(interval)
+  }, [showAll])
+
+  async function loadDirectory() {
+    setLoadingDirectory(true)
+    setDirectoryError(null)
+    try {
+      const response = await fetch('/api/presence/directory', { cache: 'no-store' })
+      if (!response.ok) throw new Error('directory request failed')
+      const payload: unknown = await response.json()
+      if (
+        !payload ||
+        typeof payload !== 'object' ||
+        !('characters' in payload) ||
+        !Array.isArray(payload.characters)
+      ) {
+        throw new Error('directory response was invalid')
+      }
+      setDirectory(payload.characters as CharacterPresenceDirectoryEntry[])
+    } catch {
+      setDirectory(null)
+      setDirectoryError('The full character directory is unavailable right now.')
+    } finally {
+      setLoadingDirectory(false)
+    }
   }
+
+  function toggleDirectory() {
+    setSelected(null)
+    if (showAll) {
+      setShowAll(false)
+      return
+    }
+    setNowMs(Date.now())
+    setShowAll(true)
+    void loadDirectory()
+  }
+
+  const currentNow = nowMs
 
   return (
     <>
-      <div className={styles.list}>
-        {orderedCharacters.map((character) => {
-          const tags = publicIdentityTags(character)
-          return (
-            <button
-              type="button"
-              className={styles.characterCard}
-              key={character.characterId}
-              onClick={() => setSelected(character)}
-            >
-              <span className={styles.avatarWrap}>
-                <Portrait character={character} />
-                <i className={styles.presenceDot} aria-hidden="true" />
-              </span>
-              <span className={styles.identity}>
-                <strong>{character.name}</strong>
-                <small>
-                  Level {character.level}
-                  {tags.length > 0 ? ` · ${tags.map((tag) => tag.label).join(' · ')}` : ''}
-                </small>
-              </span>
-              <span className={styles.online}>Online</span>
-            </button>
-          )
-        })}
+      <div className={styles.toolbar}>
+        {showAll && directory ? (
+          <div className={styles.filters} aria-label="Character directory filters">
+            <label>
+              <span>Class</span>
+              <select value={classFilter} onChange={(event) => setClassFilter(event.target.value)}>
+                <option value="all">All classes</option>
+                {classOptions.map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>Sort</span>
+              <select
+                value={sortOrder}
+                onChange={(event) => setSortOrder(event.target.value as LastSeenSortOrder)}
+              >
+                <option value="recent">Last seen: most recent</option>
+                <option value="oldest">Last seen: least recent</option>
+              </select>
+            </label>
+            <span className={styles.directorySummary}>
+              {orderedCharacters.length} of {directory.length} characters
+            </span>
+          </div>
+        ) : (
+          <span className={styles.toolbarSpacer} />
+        )}
+        <button
+          type="button"
+          className={`${styles.toggleButton} ${showAll ? styles.toggleButtonActive : ''}`}
+          aria-pressed={showAll}
+          onClick={toggleDirectory}
+        >
+          {showAll ? 'Show online only' : 'Show all characters'}
+        </button>
       </div>
+
+      {showAll && loadingDirectory ? (
+        <p className={styles.loading}>Loading character directory…</p>
+      ) : null}
+      {showAll && directoryError ? (
+        <div className={styles.error} role="status">
+          <span>{directoryError}</span>
+          <button type="button" onClick={() => void loadDirectory()}>
+            Retry
+          </button>
+        </div>
+      ) : null}
+
+      {!loadingDirectory && !directoryError && orderedCharacters.length === 0 ? (
+        <p className={styles.empty}>
+          {showAll
+            ? 'No characters match the selected filters.'
+            : 'No characters are currently visible online.'}
+        </p>
+      ) : null}
+
+      {orderedCharacters.length > 0 ? (
+        <div className={styles.list}>
+          {orderedCharacters.map((character) => {
+            const tags = publicIdentityTags(character)
+            const online = isOnline(character)
+            const lastSeen = formatLastSeenAt(character.lastSeenAt, currentNow)
+            return (
+              <button
+                type="button"
+                className={styles.characterCard}
+                key={character.characterId}
+                onClick={() => setSelected(character)}
+              >
+                <span className={styles.avatarWrap}>
+                  <Portrait character={character} />
+                  <i
+                    className={`${styles.presenceDot} ${online ? '' : styles.presenceDotOffline}`}
+                    aria-hidden="true"
+                  />
+                </span>
+                <span className={styles.identity}>
+                  <strong>{character.name}</strong>
+                  <small>
+                    Level {character.level}
+                    {tags.length > 0 ? ` · ${tags.map((tag) => tag.label).join(' · ')}` : ''}
+                  </small>
+                </span>
+                <span className={online ? styles.online : styles.lastSeen}>
+                  {online ? 'Online' : lastSeen}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      ) : null}
 
       {selected ? (
         <div className={styles.backdrop} onPointerDown={() => setSelected(null)}>
@@ -133,7 +276,9 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
             </button>
             <div className={styles.portraitStage}>
               <Portrait character={selected} large />
-              <span className={styles.liveBadge}>● Online</span>
+              <span className={isOnline(selected) ? styles.liveBadge : styles.offlineBadge}>
+                {isOnline(selected) ? '● Online' : '○ Offline'}
+              </span>
             </div>
             <div className={styles.profileCopy}>
               <span>Public character profile</span>
@@ -189,7 +334,11 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
                 </div>
                 <div>
                   <dt>Presence</dt>
-                  <dd>Online</dd>
+                  <dd>
+                    {isOnline(selected)
+                      ? 'Online'
+                      : formatLastSeenAt(selected.lastSeenAt, currentNow)}
+                  </dd>
                 </div>
               </dl>
               <p className={styles.privacyNote}>
