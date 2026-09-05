@@ -891,7 +891,25 @@ export function BattleExperience({
         const targetCombatant = battleState.combatants.find(
           (combatant) => combatant.id === placement.combatantId,
         )
-        if (!attackRange.has(key) || !target || !targetCombatant || targetCombatant.hp <= 0) {
+        const selectedTechnique =
+          mode === 'attack'
+            ? selectedAttackTechnique
+            : mode === 'guard'
+              ? selectedDefenseTechnique
+              : selectedHealTechnique
+        const minimumRange = selectedTechnique?.minimumRange ?? 1
+        const maximumRange = selectedTechnique?.maximumRange ?? 1
+        const distance = localPlacement
+          ? Math.abs(position.x - localPlacement.position.x) +
+            Math.abs(position.y - localPlacement.position.y)
+          : Number.MAX_SAFE_INTEGER
+        if (
+          distance < minimumRange ||
+          distance > maximumRange ||
+          !target ||
+          !targetCombatant ||
+          targetCombatant.hp <= 0
+        ) {
           setNotice('That unit is not in range for the selected Technique.')
           return
         }
@@ -923,8 +941,11 @@ export function BattleExperience({
       reachablePaths,
       requestPreview,
       selectedAttackActionId,
+      selectedAttackTechnique,
       selectedDefenseActionId,
+      selectedDefenseTechnique,
       effectiveHealActionId,
+      selectedHealTechnique,
       viewModel.participantByCombatant,
     ],
   )

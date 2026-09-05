@@ -16,6 +16,8 @@ export interface BattleTechniquePresentation {
   cooldownOwnerTurns: number
   category: BattleTechniqueCategory
   targetKind: 'self' | 'unit' | 'ground-tile' | 'empty-tile'
+  minimumRange: number
+  maximumRange: number
 }
 
 export interface BattleResonancePresentation {

@@ -29,8 +29,10 @@ export interface DisciplineSkillLoadoutValidationInput {
 
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/
 
-export function disciplineSkillCapacity(_secondaryDisciplineId: string | null): number {
-  return PURE_DISCIPLINE_SKILL_CAPACITY
+export function disciplineSkillCapacity(secondaryDisciplineId: string | null): number {
+  return secondaryDisciplineId === null
+    ? PURE_DISCIPLINE_SKILL_CAPACITY
+    : MIXED_DISCIPLINE_SKILL_CAPACITY
 }
 
 function key(reference: DisciplineSkillReference): string {

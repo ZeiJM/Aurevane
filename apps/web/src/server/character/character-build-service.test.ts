@@ -175,7 +175,7 @@ describe('character build service', () => {
       'aetherist',
       'lifebinder',
     ])
-    expect(context.disciplineSkills.capacity).toBe(8)
+    expect(context.disciplineSkills.capacity).toBe(4)
     expect(context.disciplineSkills.learnedSkills).toEqual([
       expect.objectContaining({
         definition: expect.objectContaining({ id: learnedVanguard.skillId }),

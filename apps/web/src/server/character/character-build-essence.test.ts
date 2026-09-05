@@ -125,7 +125,7 @@ describe('P3.6 character build Essence authority', () => {
   it('derives the representative Essence for a pure build outside Discipline Skill capacity', async () => {
     const context = await loadCharacterBuildContext(userId, character(), repository())
 
-    expect(context.disciplineSkills.capacity).toBe(8)
+    expect(context.disciplineSkills.capacity).toBe(4)
     expect(context.disciplineSkills.equippedSkills).toEqual([])
     expect(context.disciplineSkills.extensions.resonance).toBeNull()
     expect(context.disciplineSkills.extensions.essence).toMatchObject({
@@ -148,7 +148,7 @@ describe('P3.6 character build Essence authority', () => {
       repository({ findActiveBuild: vi.fn(async () => activeBuild(lifebinder)) }),
     )
 
-    expect(context.disciplineSkills.capacity).toBe(6)
+    expect(context.disciplineSkills.capacity).toBe(4)
     expect(context.disciplineSkills.extensions.essence).toBeNull()
     expect(context.disciplineSkills.extensions.resonance).toMatchObject({
       id: 'resonance.lifebinder-vanguard.mercys-edge',

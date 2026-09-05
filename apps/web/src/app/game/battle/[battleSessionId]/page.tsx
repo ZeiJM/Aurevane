@@ -68,6 +68,8 @@ function battleBuildExtensions(
         cooldownOwnerTurns: override?.cooldownOwnerTurns ?? definition.cooldown.ownerTurns,
         category: techniqueCategory(definition.tags),
         targetKind: definition.target.kind,
+        minimumRange: definition.target.minimumRange,
+        maximumRange: definition.target.maximumRange,
       },
     ]
   })
