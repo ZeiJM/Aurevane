@@ -233,6 +233,29 @@ export function BattleExperience({
     BATTLE_SKILL_CATEGORIES,
   )
   const selectedHealActionId = selectedSkillId('heal')
+  const attackTechniques = runtime.techniques?.filter((technique) => technique.category === 'attack') ?? []
+  const defenseTechniques = runtime.techniques?.filter((technique) => technique.category === 'defense') ?? []
+  const healTechniques = runtime.techniques?.filter((technique) => technique.category === 'heal') ?? []
+  const [selectedAttackActionId, setSelectedAttackActionId] = useState(BASIC_ATTACK_ID)
+  const [selectedDefenseActionId, setSelectedDefenseActionId] = useState(GUARD_ID)
+  const [selectedTechniqueHealId, setSelectedTechniqueHealId] = useState<string | null>(null)
+  const attackOptions = [
+    { id: BASIC_ATTACK_ID, label: 'Basic Attack', cost: `${ATTACK_COST} AP`, artworkSrc: BATTLE_COMMAND_ARTWORK.attack },
+    ...attackTechniques.map((technique) => ({ id: technique.id, label: technique.name, cost: `${technique.apCost} AP`, artworkSrc: battleSkillArtwork(technique.id) })),
+    ...(runtime.essence ? [{ id: runtime.essence.id, label: runtime.essence.name, cost: `${runtime.essence.apCost} AP`, artworkSrc: battleSkillArtwork(runtime.essence.id) }] : []),
+  ]
+  const defenseOptions = [
+    { id: GUARD_ID, label: 'Guard', cost: `${GUARD_COST} AP`, artworkSrc: BATTLE_COMMAND_ARTWORK.guard },
+    ...defenseTechniques.map((technique) => ({ id: technique.id, label: technique.name, cost: `${technique.apCost} AP`, artworkSrc: battleSkillArtwork(technique.id) })),
+  ]
+  const recoveryOptions = [
+    ...HEAL_SELECTOR_OPTIONS,
+    ...healTechniques.map((technique) => ({ id: technique.id, label: technique.name, cost: `${technique.apCost} AP`, artworkSrc: battleSkillArtwork(technique.id) })),
+  ]
+  const selectedAttack = attackOptions.find((option) => option.id === selectedAttackActionId) ?? attackOptions[0]!
+  const selectedDefense = defenseOptions.find((option) => option.id === selectedDefenseActionId) ?? defenseOptions[0]!
+  const effectiveHealActionId = selectedTechniqueHealId ?? selectedHealActionId
+  const selectedHealOption = recoveryOptions.find((option) => option.id === effectiveHealActionId) ?? recoveryOptions[0]!
   const [logOpen, setLogOpen] = useBattleSessionUiBoolean(
     initialBattle.battleSessionId,
     'battleLogOpen',
@@ -263,12 +286,19 @@ export function BattleExperience({
   const planningDisabledRef = useRef(planningDisabled)
   planningDisabledRef.current = planningDisabled
   const activeName = battleParticipantName(viewModel, battleState.currentTurn?.combatantId)
-  const selectedHealIsMp = selectedHealActionId === MP_RECOVER_ID
-  const selectedHealName = selectedHealIsMp ? 'MP Recovery' : 'HP Recovery'
-  const selectedHealCost = selectedHealIsMp ? MP_RECOVER_COST : RECOVER_COST
-  const selectedHealAtMaximum = selectedHealIsMp
+  const selectedHealIsMp = effectiveHealActionId === MP_RECOVER_ID
+  const selectedHealName = selectedHealOption.label
+  const selectedHealCost = Number.parseInt(selectedHealOption.cost, 10)
+  const selectedHealAtMaximum = effectiveHealActionId === MP_RECOVER_ID
     ? !localCombatant || localCombatant.mp >= localCombatant.maxMp
-    : !localCombatant || localCombatant.hp >= localCombatant.maxHp
+    : effectiveHealActionId === RECOVER_ID
+      ? !localCombatant || localCombatant.hp >= localCombatant.maxHp
+      : false
+  const selectedAttackCost = Number.parseInt(selectedAttack.cost, 10)
+  const selectedDefenseCost = Number.parseInt(selectedDefense.cost, 10)
+  const selectedAttackTechnique = runtime.techniques?.find((technique) => technique.id === selectedAttackActionId)
+  const selectedDefenseTechnique = runtime.techniques?.find((technique) => technique.id === selectedDefenseActionId)
+  const selectedHealTechnique = runtime.techniques?.find((technique) => technique.id === effectiveHealActionId)
 
   const placementByTile = useMemo(
     () =>
@@ -720,24 +750,45 @@ export function BattleExperience({
       if (planningDisabled && nextMode !== 'inspect') return
       clearPlanning(nextMode)
       if (nextMode === 'guard') {
-        void requestPreview({ kind: 'action', actionId: GUARD_ID, target: { kind: 'self' } })
+        if (!selectedDefenseTechnique || selectedDefenseTechnique.targetKind === 'self') {
+          void requestPreview({ kind: 'action', actionId: selectedDefenseActionId, target: { kind: 'self' } })
+        } else {
+          setNotice(`${selectedDefense.label} · choose a target on the board.`)
+        }
       } else if (nextMode === 'recover') {
-        void requestPreview({
-          kind: 'action',
-          actionId: selectedHealActionId,
-          target: { kind: 'self' },
-        })
+        if (!selectedHealTechnique || selectedHealTechnique.targetKind === 'self') {
+          void requestPreview({ kind: 'action', actionId: effectiveHealActionId, target: { kind: 'self' } })
+        } else {
+          setNotice(`${selectedHealName} · choose a target on the board.`)
+        }
       } else if (nextMode === 'move') {
         setNotice('Move mode · green tiles are reachable with your remaining AP.')
       } else if (nextMode === 'attack') {
-        setNotice('Basic Attack · only the four adjacent tiles are in range.')
+        if (selectedAttackTechnique?.targetKind === 'self') {
+          void requestPreview({ kind: 'action', actionId: selectedAttackActionId, target: { kind: 'self' } })
+        } else {
+          setNotice(`${selectedAttack.label} · choose a legal target on the board.`)
+        }
       } else if (nextMode === 'finish') {
         setNotice('Choose final facing with the buttons, WASD, or arrow keys to end the turn.')
       } else if (nextMode === 'inspect') {
         setNotice('Inspect mode · choose any combatant on the board.')
       }
     },
-    [clearPlanning, planningDisabled, requestPreview, selectedHealActionId],
+    [
+      clearPlanning,
+      effectiveHealActionId,
+      planningDisabled,
+      requestPreview,
+      selectedAttack.label,
+      selectedAttackActionId,
+      selectedAttackTechnique,
+      selectedDefense.label,
+      selectedDefenseActionId,
+      selectedDefenseTechnique,
+      selectedHealName,
+      selectedHealTechnique,
+    ],
   )
 
   const handleTile = useCallback(
@@ -766,29 +817,33 @@ export function BattleExperience({
         return
       }
 
-      if (mode === 'attack') {
+      if (mode === 'attack' || mode === 'guard' || mode === 'recover') {
+        const selectedActionId =
+          mode === 'attack'
+            ? selectedAttackActionId
+            : mode === 'guard'
+              ? selectedDefenseActionId
+              : effectiveHealActionId
         if (!placement || !localParticipant) {
-          setNotice('Choose an adjacent enemy combatant.')
+          setNotice('Choose a combatant target.')
           return
         }
         const target = viewModel.participantByCombatant.get(placement.combatantId)
         const targetCombatant = battleState.combatants.find(
           (combatant) => combatant.id === placement.combatantId,
         )
-        if (
-          !attackRange.has(key) ||
-          !target ||
-          target.teamIndex === localParticipant.teamIndex ||
-          !targetCombatant ||
-          targetCombatant.hp <= 0
-        ) {
-          setNotice('That unit is not a legal Basic Attack target.')
+        if (!attackRange.has(key) || !target || !targetCombatant || targetCombatant.hp <= 0) {
+          setNotice('That unit is not in range for the selected Technique.')
+          return
+        }
+        if (mode === 'attack' && selectedActionId === BASIC_ATTACK_ID && target.teamIndex === localParticipant.teamIndex) {
+          setNotice('Basic Attack requires an enemy target.')
           return
         }
         setSelectedUnitId(placement.combatantId)
         void requestPreview({
           kind: 'action',
-          actionId: BASIC_ATTACK_ID,
+          actionId: selectedActionId,
           target: { kind: 'unit', combatantId: placement.combatantId },
         })
       }
@@ -804,6 +859,9 @@ export function BattleExperience({
       planningDisabled,
       reachablePaths,
       requestPreview,
+      selectedAttackActionId,
+      selectedDefenseActionId,
+      effectiveHealActionId,
       viewModel.participantByCombatant,
     ],
   )
@@ -1405,29 +1463,51 @@ export function BattleExperience({
             <BattleSkillCommand
               slot="attack"
               hotkey="02"
-              label="Basic Attack"
-              cost={`${ATTACK_COST} AP`}
-              artworkSrc={BATTLE_COMMAND_ARTWORK.attack}
+              label={selectedAttack.label}
+              cost={selectedAttack.cost}
+              artworkSrc={selectedAttack.artworkSrc}
               active={mode === 'attack'}
-              disabled={planningDisabled || actionEconomy < ATTACK_COST}
+              disabled={planningDisabled || actionEconomy < selectedAttackCost}
               onActivate={() => chooseMode('attack')}
+              selector={{
+                categoryLabel: 'Attack',
+                selectedId: selectedAttackActionId,
+                options: attackOptions,
+                onSelect: (actionId) => {
+                  setSelectedAttackActionId(actionId)
+                  if (mode === 'attack') clearPlanning()
+                  const option = attackOptions.find((candidate) => candidate.id === actionId)
+                  if (option) setNotice(`${option.label} equipped in the Attack slot.`)
+                },
+              }}
             />
             <BattleSkillCommand
               slot="guard"
               hotkey="03"
-              label="Guard"
-              cost={`${GUARD_COST} AP`}
-              artworkSrc={BATTLE_COMMAND_ARTWORK.guard}
+              label={selectedDefense.label}
+              cost={selectedDefense.cost}
+              artworkSrc={selectedDefense.artworkSrc}
               active={mode === 'guard'}
-              disabled={planningDisabled || actionEconomy < GUARD_COST}
+              disabled={planningDisabled || actionEconomy < selectedDefenseCost}
               onActivate={() => chooseMode('guard')}
+              selector={{
+                categoryLabel: 'Guard',
+                selectedId: selectedDefenseActionId,
+                options: defenseOptions,
+                onSelect: (actionId) => {
+                  setSelectedDefenseActionId(actionId)
+                  if (mode === 'guard') clearPlanning()
+                  const option = defenseOptions.find((candidate) => candidate.id === actionId)
+                  if (option) setNotice(`${option.label} equipped in the Guard slot.`)
+                },
+              }}
             />
             <BattleSkillCommand
               slot="recover"
               hotkey="04"
               label={selectedHealName}
               cost={`${selectedHealCost} AP`}
-              artworkSrc={battleSkillArtwork(selectedHealActionId)}
+              artworkSrc={selectedHealOption.artworkSrc}
               active={mode === 'recover'}
               disabled={
                 planningDisabled || actionEconomy < selectedHealCost || selectedHealAtMaximum
@@ -1435,14 +1515,18 @@ export function BattleExperience({
               onActivate={() => chooseMode('recover')}
               selector={{
                 categoryLabel: 'Heal',
-                selectedId: selectedHealActionId,
-                options: HEAL_SELECTOR_OPTIONS,
+                selectedId: effectiveHealActionId,
+                options: recoveryOptions,
                 onSelect: (skillId) => {
-                  if (skillId === selectedHealActionId) return
-                  selectSkill('heal', skillId)
+                  if (skillId === RECOVER_ID || skillId === MP_RECOVER_ID) {
+                    setSelectedTechniqueHealId(null)
+                    selectSkill('heal', skillId)
+                  } else {
+                    setSelectedTechniqueHealId(skillId)
+                  }
                   if (mode === 'recover') clearPlanning()
-                  const nextName = skillId === MP_RECOVER_ID ? 'MP Recovery' : 'HP Recovery'
-                  setNotice(`${nextName} equipped in the Heal slot.`)
+                  const option = recoveryOptions.find((candidate) => candidate.id === skillId)
+                  if (option) setNotice(`${option.label} equipped in the Recovery slot.`)
                 },
               }}
             />

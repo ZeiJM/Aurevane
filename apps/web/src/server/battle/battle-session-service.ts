@@ -13,10 +13,12 @@ import {
   createTacticalBattleState,
 } from '@aurevane/game-core/combat/board'
 import { executePv1fEssenceSkill } from '@aurevane/game-core/combat/essence'
+import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import {
   calculatePv1fBasicAttackDamage,
   createPv1fTemporaryResources,
   executePv1fAction,
+  executePv1fMatureSkill,
   executePv1fMovement,
   finishPv1fTurn,
   preparePv1fTurnEconomy,
@@ -387,6 +389,31 @@ function resolveIntent(
             selection: intent.target,
           }),
         )
+      }
+
+      const taggedTechnique = build?.disciplineSkills.find(
+        (reference) => reference.skillId === intent.actionId,
+      )
+      if (taggedTechnique && state.buildAuthority) {
+        const definition = resolveMatureSkillVersion(
+          taggedTechnique.skillId,
+          taggedTechnique.contentVersion,
+        )
+        if (!definition || definition.sourceDisciplineId !== taggedTechnique.sourceDisciplineId) {
+          throw invalidBattleIntent('That tagged Technique is no longer available.')
+        }
+        return preserveBuildAuthority(
+          state,
+          executePv1fMatureSkill(
+            state,
+            definition,
+            intent.target,
+            state.buildAuthority.combatContext,
+          ),
+        )
+      }
+      if (resolveMatureSkillVersion(intent.actionId)) {
+        throw invalidBattleIntent('That Technique is not tagged in this battle build.')
       }
 
       return preserveBuildAuthority(state, executePv1fAction(state, intent.actionId, intent.target))
