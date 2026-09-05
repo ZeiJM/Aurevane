@@ -197,9 +197,11 @@ function previewIntent(
 
   if (intent.kind === 'action') {
     const actorId = state.tactical.battle.currentTurn?.combatantId ?? null
-    const authority = (state as StatDrivenCombatEncounterState & {
-      buildAuthority?: BattleBuildAuthoritySnapshot
-    }).buildAuthority
+    const authority = (
+      state as StatDrivenCombatEncounterState & {
+        buildAuthority?: BattleBuildAuthoritySnapshot
+      }
+    ).buildAuthority
     const build = actorId ? battleBuildAuthorityForCombatant(authority, actorId) : null
     const essence = actorId ? resolveBattleEssenceDefinition(authority, actorId) : null
     const taggedTechnique = build?.disciplineSkills.find(
@@ -214,12 +216,7 @@ function previewIntent(
         : matureDefinition &&
             matureDefinition.sourceDisciplineId === taggedTechnique?.sourceDisciplineId &&
             authority
-          ? evaluatePv1fMatureSkill(
-              state,
-              matureDefinition,
-              intent.target,
-              authority.combatContext,
-            )
+          ? evaluatePv1fMatureSkill(state, matureDefinition, intent.target, authority.combatContext)
           : evaluatePv1fAction(state, intent.actionId, intent.target)
     const { prepared, action, cost, evaluation } = resolved
     const economy = readPv1fActionEconomy(prepared)

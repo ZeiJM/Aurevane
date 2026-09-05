@@ -173,7 +173,9 @@ export function CharacterSkillBuildPanel({
         onClick={() => setOpen(true)}
       >
         <strong>Tag Techniques</strong>
-        <small>{selectedIds.length} / {capacity} tagged</small>
+        <small>
+          {selectedIds.length} / {capacity} tagged
+        </small>
       </button>
 
       {open ? (
@@ -238,7 +240,9 @@ export function CharacterSkillBuildPanel({
                   const selected = selectedIds.includes(entry.definition.id)
                   const order = selectedIds.indexOf(entry.definition.id)
                   const sourceCount = selectedSourceCount(entry.definition.sourceDisciplineId)
-                  const disabledBySource = Boolean(secondaryDiscipline && !selected && sourceCount >= 2)
+                  const disabledBySource = Boolean(
+                    secondaryDiscipline && !selected && sourceCount >= 2,
+                  )
                   const disabledByCapacity = !selected && selectedIds.length >= capacity
                   return (
                     <article
@@ -258,8 +262,9 @@ export function CharacterSkillBuildPanel({
                         <span>
                           <strong>{skillName(entry.definition)}</strong>
                           <small>
-                            {titleCase(entry.definition.sourceDisciplineId)} · {entry.definition.apCost}{' '}
-                            AP · {entry.definition.cooldown.ownerTurns} owner-turn cooldown
+                            {titleCase(entry.definition.sourceDisciplineId)} ·{' '}
+                            {entry.definition.apCost} AP · {entry.definition.cooldown.ownerTurns}{' '}
+                            owner-turn cooldown
                           </small>
                         </span>
                       </label>
@@ -304,9 +309,7 @@ export function CharacterSkillBuildPanel({
               {initialEssence ? (
                 <>
                   <span data-testid="active-essence">Essence · {initialEssence.name}</span>
-                  <span>
-                    {initialEssence.description} Outside the four tagged Technique slots.
-                  </span>
+                  <span>{initialEssence.description} Outside the four tagged Technique slots.</span>
                 </>
               ) : null}
             </div>

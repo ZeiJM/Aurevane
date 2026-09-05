@@ -34,7 +34,7 @@ function titleCase(value: string): string {
 }
 
 function techniqueCategory(tags: readonly string[]): BattleTechniqueCategory {
-  if (tags.includes('heal') || tags.includes('recovery') || tags.includes('support')) return 'heal'
+  if (tags.includes('heal') || tags.includes('recovery')) return 'heal'
   if (tags.includes('defense') || tags.includes('guard')) return 'defense'
   return 'attack'
 }
@@ -48,7 +48,9 @@ function battleBuildExtensions(
   const resonanceDefinition = resolveBattleResonanceDefinition(authority, combatantId)
   const essenceDefinition = resolveBattleEssenceDefinition(authority, combatantId)
   const combatContext = authority?.combatContext
-  const essenceOverride = combatContext ? essenceDefinition?.skill.overrides[combatContext] : undefined
+  const essenceOverride = combatContext
+    ? essenceDefinition?.skill.overrides[combatContext]
+    : undefined
   const techniques = (build?.disciplineSkills ?? []).flatMap((reference) => {
     const definition = resolveMatureSkillVersion(reference.skillId, reference.contentVersion)
     if (!definition || definition.sourceDisciplineId !== reference.sourceDisciplineId) return []
@@ -142,7 +144,8 @@ export default async function BattleSessionPage({
     const character = characters.findByOwnerId
       ? await characters.findByOwnerId(actor.userId, pvpMetadata.localCharacterId)
       : null
-    if (!character || !isStarterCharacterPortraitRef(character.portraitRef)) redirect('/game/battle')
+    if (!character || !isStarterCharacterPortraitRef(character.portraitRef))
+      redirect('/game/battle')
     const buildExtensions = battleBuildExtensions(battle, `character:${character.id}`)
 
     return (

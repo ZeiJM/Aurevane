@@ -15,7 +15,7 @@ export interface BattleTechniquePresentation {
   apCost: number
   cooldownOwnerTurns: number
   category: BattleTechniqueCategory
-  targetKind: 'self' | 'unit' | 'tile'
+  targetKind: 'self' | 'unit' | 'ground-tile' | 'empty-tile'
 }
 
 export interface BattleResonancePresentation {

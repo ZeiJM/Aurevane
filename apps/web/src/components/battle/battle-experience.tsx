@@ -233,29 +233,69 @@ export function BattleExperience({
     BATTLE_SKILL_CATEGORIES,
   )
   const selectedHealActionId = selectedSkillId('heal')
-  const attackTechniques = runtime.techniques?.filter((technique) => technique.category === 'attack') ?? []
-  const defenseTechniques = runtime.techniques?.filter((technique) => technique.category === 'defense') ?? []
-  const healTechniques = runtime.techniques?.filter((technique) => technique.category === 'heal') ?? []
-  const [selectedAttackActionId, setSelectedAttackActionId] = useState(BASIC_ATTACK_ID)
-  const [selectedDefenseActionId, setSelectedDefenseActionId] = useState(GUARD_ID)
+  const attackTechniques =
+    runtime.techniques?.filter((technique) => technique.category === 'attack') ?? []
+  const defenseTechniques =
+    runtime.techniques?.filter((technique) => technique.category === 'defense') ?? []
+  const healTechniques =
+    runtime.techniques?.filter((technique) => technique.category === 'heal') ?? []
+  const [selectedAttackActionId, setSelectedAttackActionId] = useState<string>(BASIC_ATTACK_ID)
+  const [selectedDefenseActionId, setSelectedDefenseActionId] = useState<string>(GUARD_ID)
   const [selectedTechniqueHealId, setSelectedTechniqueHealId] = useState<string | null>(null)
   const attackOptions = [
-    { id: BASIC_ATTACK_ID, label: 'Basic Attack', cost: `${ATTACK_COST} AP`, artworkSrc: BATTLE_COMMAND_ARTWORK.attack },
-    ...attackTechniques.map((technique) => ({ id: technique.id, label: technique.name, cost: `${technique.apCost} AP`, artworkSrc: battleSkillArtwork(technique.id) })),
-    ...(runtime.essence ? [{ id: runtime.essence.id, label: runtime.essence.name, cost: `${runtime.essence.apCost} AP`, artworkSrc: battleSkillArtwork(runtime.essence.id) }] : []),
+    {
+      id: BASIC_ATTACK_ID,
+      label: 'Basic Attack',
+      cost: `${ATTACK_COST} AP`,
+      artworkSrc: BATTLE_COMMAND_ARTWORK.attack,
+    },
+    ...attackTechniques.map((technique) => ({
+      id: technique.id,
+      label: technique.name,
+      cost: `${technique.apCost} AP`,
+      artworkSrc: battleSkillArtwork(technique.id),
+    })),
+    ...(runtime.essence
+      ? [
+          {
+            id: runtime.essence.id,
+            label: runtime.essence.name,
+            cost: `${runtime.essence.apCost} AP`,
+            artworkSrc: battleSkillArtwork(runtime.essence.id),
+          },
+        ]
+      : []),
   ]
   const defenseOptions = [
-    { id: GUARD_ID, label: 'Guard', cost: `${GUARD_COST} AP`, artworkSrc: BATTLE_COMMAND_ARTWORK.guard },
-    ...defenseTechniques.map((technique) => ({ id: technique.id, label: technique.name, cost: `${technique.apCost} AP`, artworkSrc: battleSkillArtwork(technique.id) })),
+    {
+      id: GUARD_ID,
+      label: 'Guard',
+      cost: `${GUARD_COST} AP`,
+      artworkSrc: BATTLE_COMMAND_ARTWORK.guard,
+    },
+    ...defenseTechniques.map((technique) => ({
+      id: technique.id,
+      label: technique.name,
+      cost: `${technique.apCost} AP`,
+      artworkSrc: battleSkillArtwork(technique.id),
+    })),
   ]
   const recoveryOptions = [
     ...HEAL_SELECTOR_OPTIONS,
-    ...healTechniques.map((technique) => ({ id: technique.id, label: technique.name, cost: `${technique.apCost} AP`, artworkSrc: battleSkillArtwork(technique.id) })),
+    ...healTechniques.map((technique) => ({
+      id: technique.id,
+      label: technique.name,
+      cost: `${technique.apCost} AP`,
+      artworkSrc: battleSkillArtwork(technique.id),
+    })),
   ]
-  const selectedAttack = attackOptions.find((option) => option.id === selectedAttackActionId) ?? attackOptions[0]!
-  const selectedDefense = defenseOptions.find((option) => option.id === selectedDefenseActionId) ?? defenseOptions[0]!
+  const selectedAttack =
+    attackOptions.find((option) => option.id === selectedAttackActionId) ?? attackOptions[0]!
+  const selectedDefense =
+    defenseOptions.find((option) => option.id === selectedDefenseActionId) ?? defenseOptions[0]!
   const effectiveHealActionId = selectedTechniqueHealId ?? selectedHealActionId
-  const selectedHealOption = recoveryOptions.find((option) => option.id === effectiveHealActionId) ?? recoveryOptions[0]!
+  const selectedHealOption =
+    recoveryOptions.find((option) => option.id === effectiveHealActionId) ?? recoveryOptions[0]!
   const [logOpen, setLogOpen] = useBattleSessionUiBoolean(
     initialBattle.battleSessionId,
     'battleLogOpen',
@@ -289,16 +329,23 @@ export function BattleExperience({
   const selectedHealIsMp = effectiveHealActionId === MP_RECOVER_ID
   const selectedHealName = selectedHealOption.label
   const selectedHealCost = Number.parseInt(selectedHealOption.cost, 10)
-  const selectedHealAtMaximum = effectiveHealActionId === MP_RECOVER_ID
-    ? !localCombatant || localCombatant.mp >= localCombatant.maxMp
-    : effectiveHealActionId === RECOVER_ID
-      ? !localCombatant || localCombatant.hp >= localCombatant.maxHp
-      : false
+  const selectedHealAtMaximum =
+    effectiveHealActionId === MP_RECOVER_ID
+      ? !localCombatant || localCombatant.mp >= localCombatant.maxMp
+      : effectiveHealActionId === RECOVER_ID
+        ? !localCombatant || localCombatant.hp >= localCombatant.maxHp
+        : false
   const selectedAttackCost = Number.parseInt(selectedAttack.cost, 10)
   const selectedDefenseCost = Number.parseInt(selectedDefense.cost, 10)
-  const selectedAttackTechnique = runtime.techniques?.find((technique) => technique.id === selectedAttackActionId)
-  const selectedDefenseTechnique = runtime.techniques?.find((technique) => technique.id === selectedDefenseActionId)
-  const selectedHealTechnique = runtime.techniques?.find((technique) => technique.id === effectiveHealActionId)
+  const selectedAttackTechnique = runtime.techniques?.find(
+    (technique) => technique.id === selectedAttackActionId,
+  )
+  const selectedDefenseTechnique = runtime.techniques?.find(
+    (technique) => technique.id === selectedDefenseActionId,
+  )
+  const selectedHealTechnique = runtime.techniques?.find(
+    (technique) => technique.id === effectiveHealActionId,
+  )
 
   const placementByTile = useMemo(
     () =>
@@ -751,13 +798,21 @@ export function BattleExperience({
       clearPlanning(nextMode)
       if (nextMode === 'guard') {
         if (!selectedDefenseTechnique || selectedDefenseTechnique.targetKind === 'self') {
-          void requestPreview({ kind: 'action', actionId: selectedDefenseActionId, target: { kind: 'self' } })
+          void requestPreview({
+            kind: 'action',
+            actionId: selectedDefenseActionId,
+            target: { kind: 'self' },
+          })
         } else {
           setNotice(`${selectedDefense.label} · choose a target on the board.`)
         }
       } else if (nextMode === 'recover') {
         if (!selectedHealTechnique || selectedHealTechnique.targetKind === 'self') {
-          void requestPreview({ kind: 'action', actionId: effectiveHealActionId, target: { kind: 'self' } })
+          void requestPreview({
+            kind: 'action',
+            actionId: effectiveHealActionId,
+            target: { kind: 'self' },
+          })
         } else {
           setNotice(`${selectedHealName} · choose a target on the board.`)
         }
@@ -765,7 +820,11 @@ export function BattleExperience({
         setNotice('Move mode · green tiles are reachable with your remaining AP.')
       } else if (nextMode === 'attack') {
         if (selectedAttackTechnique?.targetKind === 'self') {
-          void requestPreview({ kind: 'action', actionId: selectedAttackActionId, target: { kind: 'self' } })
+          void requestPreview({
+            kind: 'action',
+            actionId: selectedAttackActionId,
+            target: { kind: 'self' },
+          })
         } else {
           setNotice(`${selectedAttack.label} · choose a legal target on the board.`)
         }
@@ -836,7 +895,11 @@ export function BattleExperience({
           setNotice('That unit is not in range for the selected Technique.')
           return
         }
-        if (mode === 'attack' && selectedActionId === BASIC_ATTACK_ID && target.teamIndex === localParticipant.teamIndex) {
+        if (
+          mode === 'attack' &&
+          selectedActionId === BASIC_ATTACK_ID &&
+          target.teamIndex === localParticipant.teamIndex
+        ) {
           setNotice('Basic Attack requires an enemy target.')
           return
         }
