@@ -1,0 +1,50 @@
+name: Phase 3 Browser Selector Fixer
+
+on:
+  push:
+    branches:
+      - fix/phase3-build-ui-techniques-20260904
+    paths:
+      - .github/workflows/phase3-browser-selector-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/phase3-build-ui-techniques-20260904
+          fetch-depth: 0
+      - name: Update cockpit selector locators
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f'missing expected text in {path}: {old!r}')
+              p.write_text(text.replace(old, new))
+
+          replace(
+              'apps/web/e2e/battle-experience.pw.ts',
+              "  const attackButton = commandDeck.getByRole('button', { name: /Basic Attack/ })\n  const guardButton = commandDeck.getByRole('button', { name: /Guard/ })\n",
+              "  const attackButton = commandDeck.locator('button[data-battle-command=\"attack\"]')\n  const guardButton = commandDeck.locator('button[data-battle-command=\"guard\"]')\n",
+          )
+          replace(
+              'apps/web/e2e/battle-usability.pw.ts',
+              "  await expect(commandDeck.getByRole('button', { name: /Basic Attack/ })).toContainText('3')\n  await expect(commandDeck.getByRole('button', { name: /Guard/ })).toContainText('4')\n",
+              "  await expect(commandDeck.locator('button[data-battle-command=\"attack\"]')).toContainText('3')\n  await expect(commandDeck.locator('button[data-battle-command=\"guard\"]')).toContainText('4')\n",
+          )
+          PY
+      - name: Commit selector updates
+        run: |
+          git config user.name "Aurevane Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add apps/web/e2e/battle-experience.pw.ts apps/web/e2e/battle-usability.pw.ts
+          git commit -m "Update battle browser selectors for cockpit dropdowns"
+          git push origin HEAD:fix/phase3-build-ui-techniques-20260904
