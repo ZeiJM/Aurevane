@@ -43,6 +43,11 @@
   font: 650 1rem/1 var(--av-font-display);
 }
 
+/* Keep the directory toggle visually tucked beneath the online-count badge on desktop. */
+.page > .heading + div > button[aria-pressed] {
+  transform: translateY(-2rem);
+}
+
 @media (max-width: 620px) {
   .heading {
     align-items: flex-start;
@@ -50,5 +55,9 @@
 
   .heading p {
     font-size: 0.58rem;
+  }
+
+  .page > .heading + div > button[aria-pressed] {
+    transform: none;
   }
 }
