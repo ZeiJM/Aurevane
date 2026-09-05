@@ -1,0 +1,108 @@
+name: Phase 3 Correction Fixer
+
+on:
+  push:
+    branches:
+      - fix/phase3-build-ui-techniques-20260904
+    paths:
+      - .github/workflows/phase3-correction-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/phase3-build-ui-techniques-20260904
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Apply correction fixes
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              if old not in text:
+                  raise SystemExit(f'missing expected text in {path}: {old[:80]!r}')
+              p.write_text(text.replace(old, new, 1))
+
+          replace(
+              'apps/web/src/components/battle/battle-runtime.ts',
+              "  targetKind: 'self' | 'unit' | 'tile'\n",
+              "  targetKind: 'self' | 'unit' | 'ground-tile' | 'empty-tile'\n",
+          )
+          replace(
+              'apps/web/src/components/battle/battle-experience.tsx',
+              '  const [selectedAttackActionId, setSelectedAttackActionId] = useState(BASIC_ATTACK_ID)\n',
+              '  const [selectedAttackActionId, setSelectedAttackActionId] = useState<string>(BASIC_ATTACK_ID)\n',
+          )
+          replace(
+              'apps/web/src/components/battle/battle-experience.tsx',
+              '  const [selectedDefenseActionId, setSelectedDefenseActionId] = useState(GUARD_ID)\n',
+              '  const [selectedDefenseActionId, setSelectedDefenseActionId] = useState<string>(GUARD_ID)\n',
+          )
+          replace(
+              'apps/web/src/app/game/battle/[battleSessionId]/page.tsx',
+              "  if (tags.includes('heal') || tags.includes('recovery') || tags.includes('support')) return 'heal'\n  if (tags.includes('defense') || tags.includes('guard')) return 'defense'\n",
+              "  if (tags.includes('heal') || tags.includes('recovery')) return 'heal'\n  if (tags.includes('defense') || tags.includes('guard')) return 'defense'\n",
+          )
+
+          p = Path('.github/scripts/verify-p38-representative-buildcraft.sh')
+          text = p.read_text()
+          lines = text.splitlines()
+          pure_payload = "pure_payload='[{\"skillId\":\"vanguard.forceful-strike\",\"contentVersion\":2,\"sourceDisciplineId\":\"vanguard\"},{\"skillId\":\"vanguard.cleave\",\"contentVersion\":1,\"sourceDisciplineId\":\"vanguard\"},{\"skillId\":\"vanguard.guard-break\",\"contentVersion\":1,\"sourceDisciplineId\":\"vanguard\"},{\"skillId\":\"vanguard.brace\",\"contentVersion\":1,\"sourceDisciplineId\":\"vanguard\"}]'"
+          mixed_payload = "mixed_payload='[{\"skillId\":\"vanguard.forceful-strike\",\"contentVersion\":2,\"sourceDisciplineId\":\"vanguard\"},{\"skillId\":\"vanguard.brace\",\"contentVersion\":1,\"sourceDisciplineId\":\"vanguard\"},{\"skillId\":\"lifebinder.mending-light\",\"contentVersion\":1,\"sourceDisciplineId\":\"lifebinder\"},{\"skillId\":\"lifebinder.barrier\",\"contentVersion\":1,\"sourceDisciplineId\":\"lifebinder\"}]'"
+          for i, line in enumerate(lines):
+              if line.startswith("pure_payload="):
+                  lines[i] = pure_payload
+              elif line.startswith("mixed_payload="):
+                  lines[i] = mixed_payload
+          text = '\n'.join(lines) + '\n'
+          text = text.replace('sha256:p38-pure-eight', 'sha256:p38-pure-four')
+          text = text.replace("test \"$pure_snapshot\" = '8|||essence.vanguard.unbroken-strike'", "test \"$pure_snapshot\" = '4|||essence.vanguard.unbroken-strike'")
+          text = text.replace('pruned_to_six', 'pruned_to_two')
+          text = text.replace("test \"$pruned_to_two\" = '6'", "test \"$pruned_to_two\" = '2'")
+          text = text.replace('sha256:p38-mixed-six', 'sha256:p38-mixed-four')
+          text = text.replace("test \"$mixed_snapshot\" = '6|lifebinder|resonance.lifebinder-vanguard.mercys-edge||2'", "test \"$mixed_snapshot\" = '4|lifebinder|resonance.lifebinder-vanguard.mercys-edge||2'")
+          text = text.replace('sha256:p38-illegal-mixed-eight', 'sha256:p38-illegal-mixed-source-overflow')
+          text = text.replace('Expected the mixed build to reject the eight-Skill pure loadout.', 'Expected the mixed build to reject more than two tagged Techniques from one Discipline.')
+          text = text.replace("grep -Fq 'DISCIPLINE_SKILL_CAPACITY_EXCEEDED' /tmp/p38-over6.err", "grep -Fq 'DISCIPLINE_SKILL_SOURCE_CAPACITY_EXCEEDED' /tmp/p38-over6.err")
+          p.write_text(text)
+          PY
+
+          pnpm exec prettier --write \
+            apps/web/src/components/character/character-skill-build-panel.tsx \
+            'apps/web/src/app/game/battle/[battleSessionId]/page.tsx' \
+            apps/web/src/components/battle/battle-runtime.ts \
+            apps/web/src/components/battle/battle-experience.tsx \
+            apps/web/src/server/battle/battle-session-service.ts \
+            apps/web/src/server/battle/battle-preview-service.ts \
+            packages/game-core/src/combat/build-snapshot.ts
+      - name: Commit fixes
+        run: |
+          git config user.name "Aurevane Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add \
+            .github/scripts/verify-p38-representative-buildcraft.sh \
+            apps/web/src/components/character/character-skill-build-panel.tsx \
+            'apps/web/src/app/game/battle/[battleSessionId]/page.tsx' \
+            apps/web/src/components/battle/battle-runtime.ts \
+            apps/web/src/components/battle/battle-experience.tsx \
+            apps/web/src/server/battle/battle-session-service.ts \
+            apps/web/src/server/battle/battle-preview-service.ts \
+            packages/game-core/src/combat/build-snapshot.ts
+          git commit -m "Fix Phase 3 correction validation contracts"
+          git push origin HEAD:fix/phase3-build-ui-techniques-20260904
