@@ -1,48 +1,62 @@
 .root {
-  display: inline-flex;
+  display: block;
+  width: 100%;
   min-width: 0;
 }
 
 .trigger {
-  display: inline-flex;
-  min-height: 1.6rem;
+  display: flex;
+  width: 100%;
+  min-height: 3rem;
   align-items: center;
-  gap: 0.38rem;
-  padding: 0.3rem 0.55rem;
-  border: 1px solid rgba(207, 169, 93, 0.46);
-  border-radius: 999px;
-  color: var(--av-brass-300);
-  background: rgba(207, 169, 93, 0.08);
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(207, 169, 93, 0.52);
+  border-radius: var(--av-radius-sm);
+  color: var(--av-brass-200);
+  background: linear-gradient(135deg, rgba(207, 169, 93, 0.1), rgba(207, 169, 93, 0.025));
   cursor: pointer;
+  text-align: left;
 }
 
 .trigger strong,
 .trigger small {
-  font: 700 0.54rem/1 var(--av-font-mono);
-  letter-spacing: 0.05em;
+  display: none;
+}
+
+.trigger::before {
+  content: 'Discipline Management';
+  font: 700 0.68rem/1 var(--av-font-mono);
+  letter-spacing: 0.055em;
   text-transform: uppercase;
 }
 
-.trigger small {
-  color: var(--av-text-dim);
-  font-size: 0.46rem;
+.trigger::after {
+  content: 'Open  ›';
+  color: var(--av-text-muted);
+  font: 650 0.52rem/1 var(--av-font-mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .trigger:hover,
 .trigger:focus-visible {
-  border-color: rgba(207, 169, 93, 0.78);
-  background: rgba(207, 169, 93, 0.13);
+  border-color: rgba(224, 190, 118, 0.9);
+  background: linear-gradient(135deg, rgba(207, 169, 93, 0.17), rgba(207, 169, 93, 0.05));
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(207, 169, 93, 0.12);
 }
 
 .backdrop {
   position: fixed;
   inset: 0;
-  z-index: 90;
+  z-index: 1200;
   display: grid;
   place-items: center;
   overflow: auto;
   padding: 1rem;
-  background: rgba(2, 4, 7, 0.78);
+  background: rgba(2, 4, 7, 0.82);
   backdrop-filter: blur(0.35rem);
 }
 
@@ -250,17 +264,16 @@
 
 @media (max-width: 640px) {
   .trigger {
-    min-height: 1.28rem;
-    gap: 0.22rem;
-    padding: 0.22rem 0.38rem;
+    min-height: 2.8rem;
+    padding: 0.58rem 0.65rem;
   }
 
-  .trigger strong {
-    font-size: 0.44rem;
+  .trigger::before {
+    font-size: 0.6rem;
   }
 
-  .trigger small {
-    font-size: 0.4rem;
+  .trigger::after {
+    font-size: 0.46rem;
   }
 
   .backdrop {
