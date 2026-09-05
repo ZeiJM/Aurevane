@@ -298,7 +298,10 @@ export function CharacterSkillBuildPanel({
 
                 <section className={styles.tipCard}>
                   <span>Battle sync</span>
-                  <p>Technique artwork here is pulled from the same battle artwork resolver as the cockpit.</p>
+                  <p>
+                    Technique artwork here is pulled from the same battle artwork resolver as the
+                    cockpit.
+                  </p>
                 </section>
               </aside>
 
@@ -313,7 +316,9 @@ export function CharacterSkillBuildPanel({
 
                 <div className={styles.skillList} data-testid="learned-skill-list">
                   {learnedSkills.length === 0 ? (
-                    <p className={styles.empty}>No learned Discipline Techniques are available yet.</p>
+                    <p className={styles.empty}>
+                      No learned Discipline Techniques are available yet.
+                    </p>
                   ) : (
                     learnedSkills.map((entry) => {
                       const selected = selectedIds.includes(entry.definition.id)
@@ -366,7 +371,10 @@ export function CharacterSkillBuildPanel({
                           </label>
 
                           {selected ? (
-                            <div className={styles.orderControls} aria-label="Technique order controls">
+                            <div
+                              className={styles.orderControls}
+                              aria-label="Technique order controls"
+                            >
                               <span>Tag {order + 1}</span>
                               <button
                                 type="button"

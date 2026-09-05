@@ -58,8 +58,7 @@
   overflow: hidden;
   background:
     radial-gradient(circle at 18% 10%, rgba(163, 83, 53, 0.13), transparent 30%),
-    radial-gradient(circle at 82% 12%, rgba(56, 118, 103, 0.12), transparent 28%),
-    rgb(2 5 9 / 88%);
+    radial-gradient(circle at 82% 12%, rgba(56, 118, 103, 0.12), transparent 28%), rgb(2 5 9 / 88%);
   padding: clamp(0.65rem, 1.5vw, 1.35rem);
   backdrop-filter: blur(12px);
 }
@@ -74,8 +73,7 @@
   border: 1px solid rgba(183, 161, 118, 0.28);
   border-radius: 1rem;
   background:
-    linear-gradient(180deg, rgba(17, 22, 29, 0.98), rgba(7, 10, 15, 0.99)),
-    var(--surface-elevated);
+    linear-gradient(180deg, rgba(17, 22, 29, 0.98), rgba(7, 10, 15, 0.99)), var(--surface-elevated);
   box-shadow:
     0 1.5rem 5rem rgb(0 0 0 / 55%),
     inset 0 1px 0 rgba(255, 255, 255, 0.025);
