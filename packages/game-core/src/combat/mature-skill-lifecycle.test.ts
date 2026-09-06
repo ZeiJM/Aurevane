@@ -117,9 +117,7 @@ describe('mature Skill repeat-use lifecycle', () => {
     expect(first.events).not.toContainEqual(
       expect.objectContaining({ event: 'skill_cooldown_started' }),
     )
-    expect(first.state.tactical.battle.combatants.find((row) => row.id === 'player')?.hp).toBe(
-      41,
-    )
+    expect(first.state.tactical.battle.combatants.find((row) => row.id === 'player')?.hp).toBe(41)
 
     const preview = evaluatePv1fMatureSkill(first.state, definition, { kind: 'self' })
     expect(preview.evaluation.legal).toBe(true)
@@ -136,9 +134,7 @@ describe('mature Skill repeat-use lifecycle', () => {
         effectivenessBasisPoints: PV1F_REPEAT_SKILL_EFFECTIVENESS_BASIS_POINTS,
       }),
     )
-    expect(repeated.state.tactical.battle.combatants.find((row) => row.id === 'player')?.hp).toBe(
-      49,
-    )
+    expect(repeated.state.tactical.battle.combatants.find((row) => row.id === 'player')?.hp).toBe(49)
   })
 
   it('persists repeat-use state through reconnect and across turn boundaries', () => {
