@@ -14,8 +14,10 @@ import {
   DERIVED_STAT_PROFILE_GROUPS,
   DERIVED_STAT_PROFILE_HELP,
 } from '@aurevane/game-core/character/profile-stat-content'
+import Image from 'next/image'
 import { useEffect, useState, type CSSProperties } from 'react'
 
+import compactStyles from './character-profile-details-compact.module.css'
 import styles from './character-profile-details.module.css'
 
 interface CharacterProfileDetailsProps {
@@ -42,13 +44,19 @@ const attributeLabels = {
   resolve: 'Resolve',
 } as const
 
-const attributeGlyphs = {
-  might: 'M',
-  finesse: 'F',
-  vitality: 'V',
-  agility: 'A',
-  intellect: 'I',
-  resolve: 'R',
+const attributeIconSources: Readonly<Record<CharacterAttributeId, string>> = {
+  might: '/media/profile/might.svg',
+  finesse: '/media/profile/finesse.svg',
+  vitality: '/media/profile/vitality.svg',
+  agility: '/media/profile/agility.svg',
+  intellect: '/media/profile/intellect.svg',
+  resolve: '/media/profile/resolve.svg',
+}
+
+const factIconSources = {
+  gender: '/media/profile/gender.svg',
+  pronouns: '/media/profile/pronouns.svg',
+  rekindling: '/media/profile/rekindling.svg',
 } as const
 
 const groupGlyphs = {
@@ -119,20 +127,38 @@ export function CharacterProfileDetails({
   }, [detail])
 
   return (
-    <>
-      <div className={styles.identityFacts} aria-label="Character identity details">
-        <div className={styles.identityFact}>
-          <span className={styles.factGlyph} aria-hidden="true">
-            G
+    <div className={compactStyles.details}>
+      <div
+        className={styles.identityFacts}
+        data-profile-facts
+        aria-label="Character identity details"
+      >
+        <div className={styles.identityFact} data-profile-fact>
+          <span className={`${styles.factGlyph} ${compactStyles.factGlyph}`} aria-hidden="true">
+            <Image
+              className={compactStyles.factIcon}
+              src={factIconSources.gender}
+              width={96}
+              height={96}
+              sizes="2rem"
+              alt=""
+            />
           </span>
           <span className={styles.factCopy}>
             <small>Gender</small>
             <strong>{presentationLabel}</strong>
           </span>
         </div>
-        <div className={styles.identityFact}>
-          <span className={styles.factGlyph} aria-hidden="true">
-            P
+        <div className={styles.identityFact} data-profile-fact>
+          <span className={`${styles.factGlyph} ${compactStyles.factGlyph}`} aria-hidden="true">
+            <Image
+              className={compactStyles.factIcon}
+              src={factIconSources.pronouns}
+              width={96}
+              height={96}
+              sizes="2rem"
+              alt=""
+            />
           </span>
           <span className={styles.factCopy}>
             <small>Pronouns</small>
@@ -142,6 +168,7 @@ export function CharacterProfileDetails({
         <button
           type="button"
           className={styles.identityFact}
+          data-profile-fact
           onClick={() =>
             setDetail({
               eyebrow: 'Rekindling record',
@@ -150,8 +177,15 @@ export function CharacterProfileDetails({
             })
           }
         >
-          <span className={styles.factGlyph} aria-hidden="true">
-            R
+          <span className={`${styles.factGlyph} ${compactStyles.factGlyph}`} aria-hidden="true">
+            <Image
+              className={compactStyles.factIcon}
+              src={factIconSources.rekindling}
+              width={96}
+              height={96}
+              sizes="2rem"
+              alt=""
+            />
           </span>
           <span className={styles.factCopy}>
             <small>Rekindling Cycle</small>
@@ -160,8 +194,8 @@ export function CharacterProfileDetails({
         </button>
       </div>
 
-      <section className={styles.section} aria-labelledby="attributes-title">
-        <header className={styles.sectionHeader}>
+      <section className={styles.section} data-profile-section aria-labelledby="attributes-title">
+        <header className={styles.sectionHeader} data-profile-section-header>
           <div className={styles.sectionTitleLine}>
             <h2 id="attributes-title">Core Attributes</h2>
             <span aria-hidden="true" />
@@ -190,8 +224,18 @@ export function CharacterProfileDetails({
                   })
                 }
               >
-                <span className={styles.attributeGlyph} aria-hidden="true">
-                  {attributeGlyphs[attributeId]}
+                <span
+                  className={`${styles.attributeGlyph} ${compactStyles.attributeGlyph}`}
+                  aria-hidden="true"
+                >
+                  <Image
+                    className={compactStyles.attributeIcon}
+                    src={attributeIconSources[attributeId]}
+                    width={96}
+                    height={96}
+                    sizes="2.25rem"
+                    alt=""
+                  />
                 </span>
                 <span className={styles.attributeCopy}>
                   <span className={styles.attributeLabel}>{attributeLabels[attributeId]}</span>
@@ -203,17 +247,22 @@ export function CharacterProfileDetails({
         </div>
       </section>
 
-      <section className={styles.section} aria-labelledby="derived-title">
-        <header className={styles.sectionHeader}>
+      <section className={styles.section} data-profile-section aria-labelledby="derived-title">
+        <header className={styles.sectionHeader} data-profile-section-header>
           <div className={styles.sectionTitleLine}>
             <h2 id="derived-title">Combat &amp; Adventure Stats</h2>
             <span aria-hidden="true" />
           </div>
           <small>Derived from your attributes</small>
         </header>
-        <div className={styles.statGroups}>
+        <div className={styles.statGroups} data-profile-stat-groups>
           {orderedDerivedStatGroups.map((group) => (
-            <section className={styles.statGroup} key={group.id} aria-label={group.label}>
+            <section
+              className={styles.statGroup}
+              key={group.id}
+              data-profile-stat-group
+              aria-label={group.label}
+            >
               <h3>
                 <span className={styles.groupGlyph} aria-hidden="true">
                   {groupGlyphs[group.id]}
@@ -308,7 +357,7 @@ export function CharacterProfileDetails({
           </section>
         </div>
       ) : null}
-    </>
+    </div>
   )
 }
 
