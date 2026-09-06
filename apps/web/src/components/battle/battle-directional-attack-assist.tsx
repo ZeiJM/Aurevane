@@ -79,25 +79,20 @@ function targetInDirection(
       (entry): entry is { button: HTMLButtonElement; position: { x: number; y: number } } =>
         entry.position !== null && !entry.button.disabled && isLegalAttackTarget(entry.button),
     )
-    .filter(({ position }) => {
-      if (direction.dx !== 0) {
-        return (
-          position.y === origin.y &&
-          Math.sign(position.x - origin.x) === direction.dx &&
-          position.x !== origin.x
-        )
-      }
-      return (
-        position.x === origin.x &&
-        Math.sign(position.y - origin.y) === direction.dy &&
-        position.y !== origin.y
-      )
+    .map((entry) => {
+      const deltaX = entry.position.x - origin.x
+      const deltaY = entry.position.y - origin.y
+      const forward = deltaX * direction.dx + deltaY * direction.dy
+      const perpendicular = direction.dx !== 0 ? Math.abs(deltaY) : Math.abs(deltaX)
+      const distance = Math.abs(deltaX) + Math.abs(deltaY)
+      return { ...entry, forward, perpendicular, distance }
     })
+    .filter((entry) => entry.forward > 0)
     .sort(
       (left, right) =>
-        Math.abs(left.position.x - origin.x) +
-        Math.abs(left.position.y - origin.y) -
-        (Math.abs(right.position.x - origin.x) + Math.abs(right.position.y - origin.y)),
+        left.perpendicular - right.perpendicular ||
+        right.forward - left.forward ||
+        left.distance - right.distance,
     )
 
   return candidates[0]?.button ?? null
