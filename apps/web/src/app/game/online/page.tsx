@@ -37,19 +37,7 @@ export default async function OnlineUsersPage() {
     >
       <Surface className={styles.page} tone="elevated">
         <header className={styles.heading}>
-          <div>
-            <Kicker marker="◇">Live presence</Kicker>
-            <div className={styles.titleRow}>
-              <h1>Online Users</h1>
-              <strong className={styles.onlineCount} aria-label={`${online.length} online users`}>
-                {online.length}
-              </strong>
-            </div>
-            <p>
-              Select a character to view their public identity. Presence remains visible while they
-              are active and for up to ten minutes after their last heartbeat.
-            </p>
-          </div>
+          <Kicker marker="◇">Live presence</Kicker>
         </header>
 
         <OnlineUsersDirectory characters={online} />
