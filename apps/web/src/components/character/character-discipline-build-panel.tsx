@@ -4,6 +4,7 @@ import type { PrimaryDisciplinePreview } from '@aurevane/game-core/character/dis
 import type { Route } from 'next'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 
 import styles from './character-discipline-build-panel.module.css'
 
@@ -132,6 +133,20 @@ export function CharacterDisciplineBuildPanel({
     }, 1000)
     return () => window.clearInterval(timer)
   }, [])
+
+  useEffect(() => {
+    if (!open) return
+
+    const previousBodyOverflow = document.body.style.overflow
+    const previousDocumentOverflow = document.documentElement.style.overflow
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow
+      document.documentElement.style.overflow = previousDocumentOverflow
+    }
+  }, [open])
 
   const primaryOptions = useMemo(() => {
     return availablePrimaries.some((entry) => entry.definition.id === current.definition.id)
@@ -311,187 +326,190 @@ export function CharacterDisciplineBuildPanel({
         <small>Build v{buildVersion}</small>
       </button>
 
-      {open ? (
-        <div
-          className={styles.backdrop}
-          role="presentation"
-          onPointerDown={() => setPanelOpen(false)}
-        >
-          <section
-            className={styles.dialog}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="discipline-build-heading"
-            onPointerDown={(event) => event.stopPropagation()}
-          >
-            <header className={styles.header}>
-              <div>
-                <span>Authoritative build</span>
-                <h2 id="discipline-build-heading">Disciplines</h2>
-              </div>
-              <button type="button" className={styles.close} onClick={() => setPanelOpen(false)}>
-                Close
-              </button>
-            </header>
-
-            <div className={styles.current}>
-              <div>
-                <span>Committed Primary</span>
-                <strong>{current.definition.name}</strong>
-                <p>{current.definition.summary}</p>
-                <small>
-                  Definition v{current.definition.definitionVersion} · Base profile v
-                  {current.profile.profileVersion}
-                </small>
-              </div>
-              <div>
-                <span>Committed Secondary</span>
-                <strong>{currentSecondary?.name ?? 'None — pure build'}</strong>
-                <p>
-                  {currentSecondary?.summary ??
-                    'No Secondary is equipped. Secondary never contributes a second base-stat profile.'}
-                </p>
-              </div>
-            </div>
-
-            <div className={styles.slots}>
-              <label className={styles.selector}>
-                <span>Proposed Primary</span>
-                <select
-                  value={selectedPrimaryId}
-                  onChange={(event) =>
-                    void previewSelection(event.target.value, selectedSecondaryId)
-                  }
-                  disabled={pendingPreview || pendingCommit || remaining.primary > 0}
-                >
-                  {primaryOptions.map((entry) => (
-                    <option
-                      key={`${entry.definition.id}:${entry.definition.definitionVersion}`}
-                      value={entry.definition.id}
-                    >
-                      {entry.definition.name}
-                    </option>
-                  ))}
-                </select>
-                <small data-testid="primary-attunement-status">
-                  {remaining.primary > 0
-                    ? `Primary locked: ${formatDuration(remaining.primary)} remaining`
-                    : `Primary ready · next change locks for ${policyDuration(attunement.policy.primaryCooldownSeconds)}`}
-                </small>
-              </label>
-
-              <label className={styles.selector}>
-                <span>Proposed Secondary</span>
-                <select
-                  value={selectedSecondaryId}
-                  onChange={(event) => void previewSelection(selectedPrimaryId, event.target.value)}
-                  disabled={pendingPreview || pendingCommit || remaining.secondary > 0}
-                >
-                  <option value="">None — pure build</option>
-                  {secondaryOptions.map((entry) => (
-                    <option
-                      key={`${entry.definition.id}:${entry.definition.definitionVersion}`}
-                      value={entry.definition.id}
-                      disabled={entry.definition.id === selectedPrimaryId}
-                    >
-                      {entry.definition.name}
-                    </option>
-                  ))}
-                </select>
-                <small data-testid="secondary-attunement-status">
-                  {remaining.secondary > 0
-                    ? `Secondary locked: ${formatDuration(remaining.secondary)} remaining`
-                    : `Secondary ready · next change locks for ${policyDuration(attunement.policy.secondaryCooldownSeconds)}`}
-                </small>
-                {availableSecondaries.length === 0 && !currentSecondary ? (
-                  <small>No mastered Secondary Disciplines are available yet.</small>
-                ) : null}
-              </label>
-            </div>
-
-            {pendingPreview ? (
-              <p className={styles.status}>Calculating authoritative preview…</p>
-            ) : null}
-
-            {preview ? (
-              <div className={styles.preview} data-testid="primary-build-preview">
-                <div className={styles.previewHeading}>
+      {open && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              className={styles.backdrop}
+              role="presentation"
+              onPointerDown={() => setPanelOpen(false)}
+            >
+              <section
+                className={styles.dialog}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="discipline-build-heading"
+                onPointerDown={(event) => event.stopPropagation()}
+              >
+                <header className={styles.header}>
                   <div>
-                    <span>Proposed build</span>
-                    <strong>
-                      {preview.proposed.definition.name}
-                      {preview.proposedSecondary
-                        ? ` + ${preview.proposedSecondary.name}`
-                        : ' · Pure'}
-                    </strong>
+                    <span>Authoritative build</span>
+                    <h2 id="discipline-build-heading">Disciplines</h2>
                   </div>
-                  <small>Build v{buildVersion}</small>
-                </div>
-                <p>{preview.proposed.definition.summary}</p>
-                {preview.proposedSecondary ? <p>{preview.proposedSecondary.summary}</p> : null}
+                  <button type="button" className={styles.close} onClick={() => setPanelOpen(false)}>
+                    Close
+                  </button>
+                </header>
 
-                <div className={styles.deltas}>
-                  {deltas.length > 0 ? (
-                    deltas.map((entry) => {
-                      const delta = entry.proposed - entry.current
-                      return (
-                        <div key={entry.id}>
-                          <span>{entry.label}</span>
-                          <strong>
-                            {entry.current} → {entry.proposed}{' '}
-                            <em>{delta > 0 ? `+${delta}` : delta}</em>
-                          </strong>
-                        </div>
-                      )
-                    })
-                  ) : (
+                <div className={styles.current}>
+                  <div>
+                    <span>Committed Primary</span>
+                    <strong>{current.definition.name}</strong>
+                    <p>{current.definition.summary}</p>
+                    <small>
+                      Definition v{current.definition.definitionVersion} · Base profile v
+                      {current.profile.profileVersion}
+                    </small>
+                  </div>
+                  <div>
+                    <span>Committed Secondary</span>
+                    <strong>{currentSecondary?.name ?? 'None — pure build'}</strong>
                     <p>
-                      No Primary base-stat change. Secondary contributes no second base-stat
-                      profile.
+                      {currentSecondary?.summary ??
+                        'No Secondary is equipped. Secondary never contributes a second base-stat profile.'}
                     </p>
-                  )}
+                  </div>
                 </div>
 
-                <p className={styles.attributeNote}>
-                  Your assigned Might, Finesse, Vitality, Agility, Intellect, and Resolve are
-                  preserved exactly. Only the Primary supplies the active Discipline base profile.
-                </p>
+                <div className={styles.slots}>
+                  <label className={styles.selector}>
+                    <span>Proposed Primary</span>
+                    <select
+                      value={selectedPrimaryId}
+                      onChange={(event) =>
+                        void previewSelection(event.target.value, selectedSecondaryId)
+                      }
+                      disabled={pendingPreview || pendingCommit || remaining.primary > 0}
+                    >
+                      {primaryOptions.map((entry) => (
+                        <option
+                          key={`${entry.definition.id}:${entry.definition.definitionVersion}`}
+                          value={entry.definition.id}
+                        >
+                          {entry.definition.name}
+                        </option>
+                      ))}
+                    </select>
+                    <small data-testid="primary-attunement-status">
+                      {remaining.primary > 0
+                        ? `Primary locked: ${formatDuration(remaining.primary)} remaining`
+                        : `Primary ready · next change locks for ${policyDuration(attunement.policy.primaryCooldownSeconds)}`}
+                    </small>
+                  </label>
 
-                <div className={styles.commitment}>
-                  <strong>Commitment</strong>
-                  <span>Previewing starts no timer.</span>
-                  {preview.changes.primary ? (
-                    <span>
-                      Committing the Primary change starts its independent{' '}
-                      {policyDuration(attunement.policy.primaryCooldownSeconds)} lock.
-                    </span>
-                  ) : null}
-                  {preview.changes.secondary ? (
-                    <span>
-                      Committing the Secondary change starts its independent{' '}
-                      {policyDuration(attunement.policy.secondaryCooldownSeconds)} lock.
-                    </span>
-                  ) : null}
+                  <label className={styles.selector}>
+                    <span>Proposed Secondary</span>
+                    <select
+                      value={selectedSecondaryId}
+                      onChange={(event) => void previewSelection(selectedPrimaryId, event.target.value)}
+                      disabled={pendingPreview || pendingCommit || remaining.secondary > 0}
+                    >
+                      <option value="">None — pure build</option>
+                      {secondaryOptions.map((entry) => (
+                        <option
+                          key={`${entry.definition.id}:${entry.definition.definitionVersion}`}
+                          value={entry.definition.id}
+                          disabled={entry.definition.id === selectedPrimaryId}
+                        >
+                          {entry.definition.name}
+                        </option>
+                      ))}
+                    </select>
+                    <small data-testid="secondary-attunement-status">
+                      {remaining.secondary > 0
+                        ? `Secondary locked: ${formatDuration(remaining.secondary)} remaining`
+                        : `Secondary ready · next change locks for ${policyDuration(attunement.policy.secondaryCooldownSeconds)}`}
+                    </small>
+                    {availableSecondaries.length === 0 && !currentSecondary ? (
+                      <small>No mastered Secondary Disciplines are available yet.</small>
+                    ) : null}
+                  </label>
                 </div>
 
-                <button type="button" onClick={() => void commit()} disabled={commitBlocked}>
-                  {pendingCommit
-                    ? 'Committing…'
-                    : preview.changes.primary && !preview.changes.secondary
-                      ? `Commit ${preview.proposed.definition.name} as Primary`
-                      : 'Commit Discipline changes'}
-                </button>
-              </div>
-            ) : null}
+                {pendingPreview ? (
+                  <p className={styles.status}>Calculating authoritative preview…</p>
+                ) : null}
 
-            {message ? (
-              <p className={styles.status} role="status">
-                {message}
-              </p>
-            ) : null}
-          </section>
-        </div>
-      ) : null}
+                {preview ? (
+                  <div className={styles.preview} data-testid="primary-build-preview">
+                    <div className={styles.previewHeading}>
+                      <div>
+                        <span>Proposed build</span>
+                        <strong>
+                          {preview.proposed.definition.name}
+                          {preview.proposedSecondary
+                            ? ` + ${preview.proposedSecondary.name}`
+                            : ' · Pure'}
+                        </strong>
+                      </div>
+                      <small>Build v{buildVersion}</small>
+                    </div>
+                    <p>{preview.proposed.definition.summary}</p>
+                    {preview.proposedSecondary ? <p>{preview.proposedSecondary.summary}</p> : null}
+
+                    <div className={styles.deltas}>
+                      {deltas.length > 0 ? (
+                        deltas.map((entry) => {
+                          const delta = entry.proposed - entry.current
+                          return (
+                            <div key={entry.id}>
+                              <span>{entry.label}</span>
+                              <strong>
+                                {entry.current} → {entry.proposed}{' '}
+                                <em>{delta > 0 ? `+${delta}` : delta}</em>
+                              </strong>
+                            </div>
+                          )
+                        })
+                      ) : (
+                        <p>
+                          No Primary base-stat change. Secondary contributes no second base-stat
+                          profile.
+                        </p>
+                      )}
+                    </div>
+
+                    <p className={styles.attributeNote}>
+                      Your assigned Might, Finesse, Vitality, Agility, Intellect, and Resolve are
+                      preserved exactly. Only the Primary supplies the active Discipline base profile.
+                    </p>
+
+                    <div className={styles.commitment}>
+                      <strong>Commitment</strong>
+                      <span>Previewing starts no timer.</span>
+                      {preview.changes.primary ? (
+                        <span>
+                          Committing the Primary change starts its independent{' '}
+                          {policyDuration(attunement.policy.primaryCooldownSeconds)} lock.
+                        </span>
+                      ) : null}
+                      {preview.changes.secondary ? (
+                        <span>
+                          Committing the Secondary change starts its independent{' '}
+                          {policyDuration(attunement.policy.secondaryCooldownSeconds)} lock.
+                        </span>
+                      ) : null}
+                    </div>
+
+                    <button type="button" onClick={() => void commit()} disabled={commitBlocked}>
+                      {pendingCommit
+                        ? 'Committing…'
+                        : preview.changes.primary && !preview.changes.secondary
+                          ? `Commit ${preview.proposed.definition.name} as Primary`
+                          : 'Commit Discipline changes'}
+                    </button>
+                  </div>
+                ) : null}
+
+                {message ? (
+                  <p className={styles.status} role="status">
+                    {message}
+                  </p>
+                ) : null}
+              </section>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   )
 }
