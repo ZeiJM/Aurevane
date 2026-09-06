@@ -11,7 +11,8 @@
 
 .heading {
   position: relative;
-  padding: clamp(0.85rem, 1.35vw, 1.15rem) 10rem clamp(0.75rem, 1.15vw, 1rem)
+  min-height: 3.25rem;
+  padding: clamp(0.8rem, 1.2vw, 1rem) 10rem clamp(0.72rem, 1vw, 0.9rem)
     clamp(0.85rem, 1.35vw, 1.15rem);
   border-bottom: 1px solid rgba(207, 169, 93, 0.2);
   background:
@@ -26,60 +27,20 @@
   left: 0;
   height: 1px;
   content: '';
-  background: linear-gradient(90deg, rgba(207, 169, 93, 0.42), transparent 38%, transparent 72%, rgba(95, 188, 133, 0.14));
+  background: linear-gradient(
+    90deg,
+    rgba(207, 169, 93, 0.42),
+    transparent 38%,
+    transparent 72%,
+    rgba(95, 188, 133, 0.14)
+  );
   pointer-events: none;
-}
-
-.heading > div {
-  min-width: 0;
-}
-
-.titleRow {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin-top: 0.18rem;
-}
-
-.heading h1 {
-  margin: 0;
-  color: var(--av-text);
-  font: 500 clamp(1.65rem, 2.4vw, 2.1rem)/0.98 var(--av-font-display);
-  letter-spacing: -0.012em;
-  text-shadow: 0 0.08rem 0 rgba(0, 0, 0, 0.75);
-}
-
-.onlineCount {
-  position: relative;
-  display: grid;
-  width: 1.9rem;
-  height: 1.9rem;
-  flex: none;
-  place-items: center;
-  border: 1px solid rgba(95, 188, 133, 0.46);
-  border-radius: 999px;
-  color: #a6dfba;
-  background:
-    radial-gradient(circle at 35% 28%, rgba(133, 222, 166, 0.15), transparent 55%),
-    rgba(39, 105, 64, 0.12);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.015),
-    0 0 1rem rgba(70, 170, 105, 0.08);
-  font: 650 0.78rem/1 var(--av-font-display);
-}
-
-.heading p {
-  max-width: 66rem;
-  margin: 0.3rem 0 0;
-  color: var(--av-text-muted);
-  font-size: 0.64rem;
-  line-height: 1.45;
 }
 
 /* The directory toggle owns the header action slot while its state remains managed by the client directory. */
 .page > .heading + div > button[aria-pressed] {
   position: absolute;
-  top: clamp(0.85rem, 1.35vw, 1.15rem);
+  top: clamp(0.7rem, 1vw, 0.85rem);
   right: clamp(0.85rem, 1.35vw, 1.15rem);
   z-index: 2;
   transform: none;
@@ -88,11 +49,8 @@
 
 @media (max-width: 700px) {
   .heading {
+    min-height: auto;
     padding-right: 0.85rem;
-  }
-
-  .heading p {
-    font-size: 0.59rem;
   }
 
   .page > .heading + div > button[aria-pressed] {
