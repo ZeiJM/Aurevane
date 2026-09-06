@@ -23,6 +23,17 @@ async function setSkill(page: Page, name: string, checked: boolean): Promise<voi
 async function reloadProfile(page: Page): Promise<void> {
   await page.reload()
   await expect(page.getByTestId('character-profile')).toBeVisible()
+
+  // Profile build panels intentionally persist through refresh via URL state. Confirm that
+  // persisted panel is restored, then close it so the next buildcraft step can open the other
+  // authoritative panel rather than clicking through a modal backdrop.
+  const openDialog = page.getByRole('dialog')
+  if ((await openDialog.count()) > 0) {
+    const dialog = openDialog.first()
+    await expect(dialog).toBeVisible()
+    await dialog.getByRole('button', { name: 'Close' }).click()
+    await expect(dialog).toHaveCount(0)
+  }
 }
 
 test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Resonance', async ({
