@@ -37,14 +37,41 @@
   pointer-events: none;
 }
 
-/* The directory toggle owns the header action slot while its state remains managed by the client directory. */
+/* Keep the directory toggle optically centered in the compact page-header band. */
 .page > .heading + div > button[aria-pressed] {
   position: absolute;
-  top: clamp(0.7rem, 1vw, 0.85rem);
+  top: 50%;
   right: clamp(0.85rem, 1.35vw, 1.15rem);
   z-index: 2;
-  transform: none;
+  transform: translateY(-50%);
   white-space: nowrap;
+}
+
+/* Make the live-roster count read as an online status chip rather than a neutral counter. */
+.page section[aria-label='Online character roster'] > header > span:last-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.36rem;
+  border-color: rgba(95, 188, 133, 0.46);
+  color: #a6dfba;
+  background:
+    linear-gradient(180deg, rgba(55, 126, 82, 0.15), rgba(55, 126, 82, 0.07)),
+    rgba(8, 20, 13, 0.8);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.025),
+    0 0 0.85rem rgba(70, 170, 105, 0.11);
+}
+
+.page section[aria-label='Online character roster'] > header > span:last-child::before {
+  width: 0.4rem;
+  height: 0.4rem;
+  flex: none;
+  border-radius: 50%;
+  background: var(--av-verdant-400);
+  box-shadow:
+    0 0 0 1px rgba(95, 188, 133, 0.15),
+    0 0 0.55rem rgba(92, 214, 138, 0.42);
+  content: '';
 }
 
 @media (max-width: 700px) {
@@ -55,5 +82,6 @@
 
   .page > .heading + div > button[aria-pressed] {
     position: static;
+    transform: none;
   }
 }
