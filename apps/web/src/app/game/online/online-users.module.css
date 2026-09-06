@@ -82,8 +82,7 @@
 }
 
 /* Keep the public profile popup focused on character identity and status. */
-.page [role='dialog'] p,
-.page [role='dialog'] button:disabled {
+.page [role='dialog'] p {
   display: none;
 }
 
@@ -92,19 +91,84 @@
   line-height: 1.2 !important;
 }
 
-/* Replace the redundant profile eyebrow with the character's live/offline status. */
-.page [role='dialog'] [class*='profileCopy'] > div:first-child > div:first-child {
-  visibility: hidden;
-}
-
+/* Remove the old profile eyebrow and the portrait-overlay presence badge. */
+.page [role='dialog'] [class*='profileCopy'] > div:first-child > div:first-child,
 .page [role='dialog'] [class*='portraitStage'] > [class*='liveBadge'],
 .page [role='dialog'] [class*='portraitStage'] > [class*='offlineBadge'] {
-  top: 2.15rem;
-  right: auto;
-  bottom: auto;
-  left: calc(100% + clamp(1.25rem, 3vw, 2.1rem));
-  z-index: 3;
+  display: none !important;
+}
+
+/* Reuse the planned social-action controls as a compact header row beside presence. */
+.page [role='dialog'] [class*='futureActions'] {
+  order: -1;
+  display: flex;
+  grid-template-columns: none;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.page [role='dialog'] [class*='futureActions']::before,
+.page [role='dialog'] [class*='futureActions'] > button {
+  box-sizing: border-box;
+  display: inline-flex;
+  width: 4.8rem;
+  min-width: 4.8rem;
+  min-height: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.55rem;
+  border: 1px solid rgba(207, 169, 93, 0.28);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(207, 169, 93, 0.075), rgba(207, 169, 93, 0.025)),
+    rgba(8, 11, 16, 0.82);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.022);
+  font: 750 0.44rem/1 var(--av-font-mono);
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
   white-space: nowrap;
+}
+
+.page [role='dialog'] [class*='futureActions'] > button {
+  border-color: rgba(207, 169, 93, 0.28) !important;
+  color: transparent;
+  background:
+    linear-gradient(180deg, rgba(207, 169, 93, 0.075), rgba(207, 169, 93, 0.025)),
+    rgba(8, 11, 16, 0.82) !important;
+  opacity: 1;
+  cursor: not-allowed;
+  font-size: 0 !important;
+}
+
+.page [role='dialog'] [class*='futureActions'] > button::after {
+  color: #cfc2a8;
+  font: 750 0.44rem/1 var(--av-font-mono);
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+}
+
+.page [role='dialog'] [class*='futureActions'] > button:first-child::after {
+  content: 'Message';
+}
+
+.page [role='dialog'] [class*='futureActions'] > button:last-child::after {
+  content: 'Add friend';
+}
+
+.page [role='dialog']:has([class*='liveBadge']) [class*='futureActions']::before {
+  border-color: rgba(95, 188, 133, 0.4);
+  color: var(--av-verdant-400);
+  background: rgba(8, 20, 13, 0.9);
+  content: '● Online';
+}
+
+.page [role='dialog']:has([class*='offlineBadge']) [class*='futureActions']::before {
+  border-color: rgba(151, 157, 168, 0.3);
+  color: var(--av-text-dim);
+  background: rgba(9, 12, 17, 0.92);
+  content: '○ Offline';
 }
 
 @media (max-width: 700px) {
@@ -124,13 +188,7 @@
     transform: none;
   }
 
-  .page [role='dialog'] [class*='portraitStage'] {
-    position: static;
-  }
-
-  .page [role='dialog'] [class*='portraitStage'] > [class*='liveBadge'],
-  .page [role='dialog'] [class*='portraitStage'] > [class*='offlineBadge'] {
-    top: 0.75rem;
-    left: 0.85rem;
+  .page [role='dialog'] [class*='futureActions'] {
+    justify-content: flex-start;
   }
 }
