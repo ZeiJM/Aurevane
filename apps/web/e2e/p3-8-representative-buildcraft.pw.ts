@@ -15,6 +15,19 @@ function skillRow(page: Page, name: string): Locator {
   return page.getByTestId('learned-skill-list').locator('article').filter({ hasText: name }).first()
 }
 
+function tileCoordinates(label: string | null): { x: number; y: number } | null {
+  const match = label?.match(/^Tile (\d+), (\d+);/)
+  if (!match) return null
+  return { x: Number(match[1]), y: Number(match[2]) }
+}
+
+function tileDistance(
+  first: { x: number; y: number },
+  second: { x: number; y: number },
+): number {
+  return Math.abs(first.x - second.x) + Math.abs(first.y - second.y)
+}
+
 async function setSkill(page: Page, name: string, checked: boolean): Promise<void> {
   const checkbox = skillRow(page, name).getByRole('checkbox')
   if ((await checkbox.isChecked()) !== checked) await checkbox.click()
@@ -48,11 +61,12 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
     'One authenticated Chromium proof covers the P3.8 representative buildcraft flow.',
   )
 
+  const characterName = uniqueCharacterName()
   await provisionAccountAndEnterCharacter({
     page,
     email: `p38-buildcraft-${Date.now()}@example.com`,
     password: 'P38-buildcraft-browser-2026!',
-    characterName: uniqueCharacterName(),
+    characterName,
   })
 
   // The owner-only PV-2 preparation API remains available in explicit test mode, but its old
@@ -130,11 +144,77 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await page.getByRole('button', { name: 'Enter Battle' }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
 
+  const battleRoot = page.locator('[data-unified-battle="true"]')
+  const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
   const commandContext = commandDeck.locator(':scope > div').first()
+  const moveAction = commandDeck.locator('button[data-command-slot="move"]')
   const attackCard = commandDeck.locator('[data-command-card="attack"]')
   const attackAction = attackCard.locator('button[data-command-slot="attack"]')
   const attackArtwork = attackCard.getByRole('button', { name: /Choose Attack skill/i })
+  const finishAction = commandDeck.locator('button[data-command-slot="finish"]')
+  const confirmAction = page.getByRole('button', { name: /Confirm Action/ })
+  const actionEconomy = page.getByRole('progressbar', { name: 'Action Economy remaining' })
+
+  // Forceful Strike is intentionally melee (range 1). The regression first approaches the
+  // Recruit through the real movement/turn flow so the keyboard proof tests a genuinely legal
+  // Technique target instead of assuming the two combatants spawn adjacent.
+  for (let approachTurn = 0; approachTurn < 3; approachTurn += 1) {
+    const playerTile = battlefield.getByRole('button', {
+      name: new RegExp(`occupied by ${characterName}`),
+    })
+    const recruitTile = battlefield.getByRole('button', { name: /occupied by Recruit/ })
+    const playerPosition = tileCoordinates(await playerTile.getAttribute('aria-label'))
+    const recruitPosition = tileCoordinates(await recruitTile.getAttribute('aria-label'))
+    expect(playerPosition).not.toBeNull()
+    expect(recruitPosition).not.toBeNull()
+    if (!playerPosition || !recruitPosition) break
+    if (tileDistance(playerPosition, recruitPosition) === 1) break
+
+    await moveAction.click()
+    const reachableTiles = battlefield.locator('button[data-reachable="true"]')
+    await expect(reachableTiles.first()).toBeVisible()
+
+    let destinationLabel: string | null = null
+    let destinationDistance = Number.POSITIVE_INFINITY
+    for (let index = 0; index < (await reachableTiles.count()); index += 1) {
+      const candidate = reachableTiles.nth(index)
+      const label = await candidate.getAttribute('aria-label')
+      const position = tileCoordinates(label)
+      if (!position || !label) continue
+      const distance = tileDistance(position, recruitPosition)
+      if (distance < destinationDistance) {
+        destinationDistance = distance
+        destinationLabel = label
+      }
+    }
+
+    expect(destinationLabel).not.toBeNull()
+    await battlefield.getByRole('button', { name: destinationLabel!, exact: true }).click()
+    await expect(confirmAction).toBeEnabled()
+    await confirmAction.click()
+    await expect(moveAction).not.toHaveAttribute('data-battle-active', 'true', { timeout: 8000 })
+    await expect(actionEconomy).not.toHaveAttribute('aria-valuenow', '100')
+
+    // Start the Technique proof on a fresh owner turn so its AP budget cannot depend on how much
+    // movement was needed to reach melee range. The Recruit may also close the final gap itself.
+    await finishAction.click()
+    await finishAction.press('KeyD')
+    await expect(actionEconomy).toHaveAttribute('aria-valuenow', '100', { timeout: 15000 })
+    await expect(battleRoot).toHaveAttribute('data-local-turn', 'true')
+  }
+
+  const adjacentPlayer = tileCoordinates(
+    await battlefield
+      .getByRole('button', { name: new RegExp(`occupied by ${characterName}`) })
+      .getAttribute('aria-label'),
+  )
+  const adjacentRecruit = tileCoordinates(
+    await battlefield.getByRole('button', { name: /occupied by Recruit/ }).getAttribute('aria-label'),
+  )
+  expect(adjacentPlayer).not.toBeNull()
+  expect(adjacentRecruit).not.toBeNull()
+  expect(tileDistance(adjacentPlayer!, adjacentRecruit!)).toBe(1)
 
   await attackArtwork.click()
   const attackSelector = page.getByRole('listbox', { name: 'Attack skills' })
@@ -164,7 +244,6 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(commandContext).toContainText('Forceful Strike')
   await expect(commandContext).toContainText(/Hit \d+%/)
   await expect(commandContext).toContainText(/On hit \d+ dmg/)
-  const confirmAction = page.getByRole('button', { name: /Confirm Action/ })
   await expect(confirmAction).toBeEnabled()
 
   await page.keyboard.press(attackDirection!)
