@@ -1,0 +1,65 @@
+name: Temporary Profile typed-route fixer
+
+on:
+  push:
+    branches:
+      - fix/battle-technique-authority-profile-20260906
+    paths:
+      - '.github/workflows/temp-route-type-fix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/battle-technique-authority-profile-20260906
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Apply typed-route fix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          paths = [
+              Path('apps/web/src/components/character/character-discipline-build-panel.tsx'),
+              Path('apps/web/src/components/character/character-skill-build-panel.tsx'),
+          ]
+          old = "    const query = params.toString()\n    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })"
+          new = "    const query = params.toString()\n    const href = (query ? `${pathname}?${query}` : pathname) as Route\n    router.replace(href, { scroll: false })"
+
+          for path in paths:
+              text = path.read_text()
+              nav_import = "import { usePathname, useRouter, useSearchParams } from 'next/navigation'"
+              route_import = "import type { Route } from 'next'\n"
+              if "import type { Route } from 'next'" not in text:
+                  if nav_import not in text:
+                      raise SystemExit(f'Expected navigation import not found in {path}')
+                  text = text.replace(nav_import, route_import + nav_import, 1)
+              if old not in text:
+                  raise SystemExit(f'Expected router.replace block not found in {path}')
+              text = text.replace(old, new, 1)
+              path.write_text(text)
+          PY
+          pnpm exec prettier --write \
+            apps/web/src/components/character/character-discipline-build-panel.tsx \
+            apps/web/src/components/character/character-skill-build-panel.tsx
+      - name: Commit typed-route fix
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            apps/web/src/components/character/character-discipline-build-panel.tsx \
+            apps/web/src/components/character/character-skill-build-panel.tsx
+          git commit -m 'Fix typed Profile panel routes'
+          git push origin HEAD:fix/battle-technique-authority-profile-20260906
