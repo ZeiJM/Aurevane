@@ -34,6 +34,15 @@ function titleCase(value: string): string {
 }
 
 function techniqueCategory(tags: readonly string[]): BattleTechniqueCategory {
+  if (tags.includes('cockpit:recovery')) return 'heal'
+  if (tags.includes('cockpit:defense')) return 'defense'
+  if (tags.includes('cockpit:attack')) return 'attack'
+  if (tags.includes('cockpit:inspect') || tags.includes('cockpit:movement')) {
+    throw new Error('That Technique cockpit category is not executable in the current battle runtime.')
+  }
+
+  // Legacy definitions remain readable, but new authored Techniques should carry one explicit
+  // cockpit:* tag so mixed-purpose effect tags never decide presentation by accident.
   if (tags.includes('heal') || tags.includes('recovery')) return 'heal'
   if (tags.includes('defense') || tags.includes('guard')) return 'defense'
   return 'attack'
