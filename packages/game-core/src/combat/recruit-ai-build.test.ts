@@ -177,7 +177,7 @@ describe('P3.7 build-aware Recruit AI', () => {
     expect(decision.reason).toBe('legal-damage')
   })
 
-  it('executes a committed Essence through canonical AP/cooldown combat authority', () => {
+  it('executes a committed Essence through canonical AP/repeat-use combat authority', () => {
     const result = executeBuildAwareRecruitAiAction(
       encounter(),
       'essence.vanguard.unbroken-strike',
@@ -186,19 +186,19 @@ describe('P3.7 build-aware Recruit AI', () => {
 
     expect(readPv1fActionEconomy(result.state, actorId)?.current).toBe(45)
     expect(result.state.tactical.battle.combatants.find((row) => row.id === targetId)?.hp).toBe(30)
-    expect(result.events).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          event: 'skill_cooldown_started',
-          actionId: 'essence.vanguard.unbroken-strike',
-        }),
-        expect.objectContaining({
-          event: 'action_economy_spent',
-          combatantId: actorId,
-          amount: 55,
-          remaining: 45,
-        }),
-      ]),
+    expect(result.events).not.toContainEqual(
+      expect.objectContaining({
+        event: 'skill_cooldown_started',
+        actionId: 'essence.vanguard.unbroken-strike',
+      }),
+    )
+    expect(result.events).toContainEqual(
+      expect.objectContaining({
+        event: 'action_economy_spent',
+        combatantId: actorId,
+        amount: 55,
+        remaining: 45,
+      }),
     )
   })
 
