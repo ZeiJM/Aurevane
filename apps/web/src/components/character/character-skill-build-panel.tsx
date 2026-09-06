@@ -375,9 +375,7 @@ export function CharacterSkillBuildPanel({
                               />
                             </span>
                             <div className={polish.signatureCopy}>
-                              <strong data-testid="active-essence">
-                                {initialEssence.name}
-                              </strong>
+                              <strong data-testid="active-essence">{initialEssence.name}</strong>
                               <span className={styles.metaRow}>
                                 <small style={chipPaletteStyle(initialEssence.sourceDisciplineId)}>
                                   {titleCase(initialEssence.sourceDisciplineId)}
