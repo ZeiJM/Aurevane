@@ -68,6 +68,12 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await reloadProfile(page)
 
   await page.getByRole('button', { name: /Tag Techniques/ }).click()
+  const techniquesOverlay = page.locator('body > [data-techniques-overlay="true"]')
+  await expect(techniquesOverlay).toBeVisible()
+  await expect(techniquesOverlay.getByRole('dialog', { name: 'Techniques' })).toBeVisible()
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflow)).toBe(
+    'hidden',
+  )
   await expect(page.getByTestId('skill-capacity')).toHaveText('0 / 4')
   await expect(page.getByTestId('active-essence')).toContainText('Unbroken Strike')
   await expect(page.getByTestId('active-resonance')).toHaveCount(0)
