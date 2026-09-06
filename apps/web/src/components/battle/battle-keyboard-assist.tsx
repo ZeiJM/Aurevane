@@ -169,6 +169,39 @@ function directionForCode(code: string): { dx: number; dy: number } | null {
   return null
 }
 
+function isLegalAttackTarget(button: HTMLButtonElement): boolean {
+  return button.dataset.target === 'enemy' || button.dataset.attackRange === 'legal'
+}
+
+function targetInDirection(
+  origin: { x: number; y: number },
+  direction: { dx: number; dy: number },
+): HTMLButtonElement | null {
+  const candidates = battleTiles()
+    .map((button) => ({ button, position: tilePosition(button) }))
+    .filter(
+      (entry): entry is { button: HTMLButtonElement; position: { x: number; y: number } } =>
+        entry.position !== null && !entry.button.disabled && isLegalAttackTarget(entry.button),
+    )
+    .map((entry) => {
+      const deltaX = entry.position.x - origin.x
+      const deltaY = entry.position.y - origin.y
+      const forward = deltaX * direction.dx + deltaY * direction.dy
+      const perpendicular = direction.dx !== 0 ? Math.abs(deltaY) : Math.abs(deltaX)
+      const distance = Math.abs(deltaX) + Math.abs(deltaY)
+      return { ...entry, forward, perpendicular, distance }
+    })
+    .filter((entry) => entry.forward > 0)
+    .sort(
+      (left, right) =>
+        left.perpendicular - right.perpendicular ||
+        right.forward - left.forward ||
+        left.distance - right.distance,
+    )
+
+  return candidates[0]?.button ?? null
+}
+
 function chooseFacing(direction: { dx: number; dy: number }): boolean {
   const label =
     direction.dy < 0
@@ -254,6 +287,7 @@ function repeatableCommand(label: string): HTMLButtonElement | null {
 export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
   const [bindings, setBindings] = useState<CombatKeybindMap>(DEFAULT_COMBAT_KEYBINDS)
   const targetIndex = useRef(-1)
+  const armedAttackTarget = useRef<string | null>(null)
   const movementPlan = useRef<{
     committedOriginKey: string
     endpoint: { x: number; y: number }
@@ -284,6 +318,7 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
       syncVisibleCommandLabels(bindings)
       syncAttackRangeMarkers(playerName)
       if (!moveModeIsActive()) movementPlan.current = null
+      if (!attackModeIsActive()) armedAttackTarget.current = null
     }
 
     syncBattlePresentation()
@@ -507,6 +542,7 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
 
       const movementDirection = directionForCode(event.code)
       if (movementDirection && moveModeIsActive()) {
+        armedAttackTarget.current = null
         event.preventDefault()
         event.stopImmediatePropagation()
         moveAdjacent(movementDirection)
@@ -514,6 +550,7 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
       }
 
       if (movementDirection && facingModeIsActive()) {
+        armedAttackTarget.current = null
         event.preventDefault()
         event.stopImmediatePropagation()
         chooseFacing(movementDirection)
@@ -521,8 +558,27 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
       }
 
       if (movementDirection && attackModeIsActive()) {
-        // Directional Attack targeting has its own capture listener so swapped Techniques can use
-        // the selected Technique's live target relation and the normal authoritative preview path.
+        const actor = playerTile(playerName)
+        const origin = actor ? tilePosition(actor) : null
+        const target = origin ? targetInDirection(origin, movementDirection) : null
+        if (!target) return
+
+        const targetKey = target.getAttribute('aria-label') ?? ''
+        event.preventDefault()
+        event.stopImmediatePropagation()
+
+        if (armedAttackTarget.current === targetKey) {
+          const confirm = planningButton('Confirm Action')
+          if (confirm && !confirm.disabled) {
+            armedAttackTarget.current = null
+            confirm.click()
+            return
+          }
+        }
+
+        target.focus({ preventScroll: true })
+        target.click()
+        armedAttackTarget.current = targetKey
         return
       }
 
