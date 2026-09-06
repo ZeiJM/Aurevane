@@ -5,7 +5,8 @@ import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-sk
 import type { ResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import type { Route } from 'next'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useState, type CSSProperties } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
 
 import { battleSkillArtwork } from '../battle/battle-skill-presentation'
 import styles from './character-skill-build-panel.module.css'
@@ -116,6 +117,20 @@ export function CharacterSkillBuildPanel({
   const [pending, setPending] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
+  useEffect(() => {
+    if (!open) return
+
+    const previousBodyOverflow = document.body.style.overflow
+    const previousDocumentOverflow = document.documentElement.style.overflow
+    document.body.style.overflow = 'hidden'
+    document.documentElement.style.overflow = 'hidden'
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow
+      document.documentElement.style.overflow = previousDocumentOverflow
+    }
+  }, [open])
+
   const dirty =
     committedIds.length !== selectedIds.length ||
     committedIds.some((skillId, index) => skillId !== selectedIds[index])
@@ -211,207 +226,220 @@ export function CharacterSkillBuildPanel({
         </small>
       </button>
 
-      {open ? (
-        <div
-          className={styles.backdrop}
-          role="presentation"
-          onPointerDown={() => setPanelOpen(false)}
-        >
-          <section
-            className={styles.dialog}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="skill-build-heading"
-            onPointerDown={(event) => event.stopPropagation()}
-          >
-            <header className={styles.header}>
-              <div className={styles.headingCopy}>
-                <span>Authoritative build</span>
-                <h2 id="skill-build-heading">Techniques</h2>
-                <p>Shape the four combat Techniques that appear in your battle cockpit.</p>
-              </div>
-              <div className={styles.headerActions}>
-                <div className={styles.capacityBadge} data-testid="skill-capacity">
-                  <strong>{selectedIds.length}</strong>
-                  <span>{` / ${capacity}`}</span>
-                </div>
-                <button type="button" className={styles.close} onClick={() => setPanelOpen(false)}>
-                  Close
-                </button>
-              </div>
-            </header>
-
-            <div className={styles.workspace}>
-              <aside className={styles.buildRail}>
-                <section className={styles.buildCard}>
-                  <span className={styles.eyebrow}>Active build</span>
-                  <strong className={styles.buildName}>
-                    {primaryDiscipline.name}
-                    {secondaryDiscipline ? ` + ${secondaryDiscipline.name}` : ' · Pure'}
-                  </strong>
-                  <div className={styles.disciplineChips}>
-                    <span
-                      data-discipline={primaryDiscipline.id}
-                      style={chipPaletteStyle(primaryDiscipline.id)}
-                    >
-                      {primaryDiscipline.name}
-                    </span>
-                    {secondaryDiscipline ? (
-                      <span
-                        data-discipline={secondaryDiscipline.id}
-                        style={chipPaletteStyle(secondaryDiscipline.id)}
-                      >
-                        {secondaryDiscipline.name}
-                      </span>
-                    ) : (
-                      <span data-pure="true" style={{ '--chip': '202 169 104' } as CSSProperties}>
-                        Pure build
-                      </span>
-                    )}
-                  </div>
-                  <p className={styles.rule}>
-                    {secondaryDiscipline
-                      ? `Tag four total: up to two from ${primaryDiscipline.name} and two from ${secondaryDiscipline.name}.`
-                      : `Tag up to four learned ${primaryDiscipline.name} Techniques.`}
-                  </p>
-                </section>
-
-                {secondaryDiscipline ? (
-                  <section className={styles.splitCard} data-testid="mixed-technique-split">
-                    <div>
-                      <span>{primaryDiscipline.name}</span>
-                      <strong>{selectedSourceCount(primaryDiscipline.id)} / 2</strong>
-                    </div>
-                    <div>
-                      <span>{secondaryDiscipline.name}</span>
-                      <strong>{selectedSourceCount(secondaryDiscipline.id)} / 2</strong>
-                    </div>
-                  </section>
-                ) : null}
-
-                {(initialResonance || initialEssence) && (
-                  <section className={styles.extensions}>
-                    <span className={styles.eyebrow}>Granted identity</span>
-                    {initialResonance ? (
-                      <div className={styles.identityItem}>
-                        <strong data-testid="active-resonance">{initialResonance.name}</strong>
-                        <span>Resonance · outside tagged slots</span>
-                      </div>
-                    ) : null}
-                    {initialEssence ? (
-                      <div className={styles.identityItem}>
-                        <strong data-testid="active-essence">{initialEssence.name}</strong>
-                        <span>Essence · outside tagged slots</span>
-                      </div>
-                    ) : null}
-                  </section>
-                )}
-
-                <section className={styles.tipCard}>
-                  <span>Battle sync</span>
-                  <p>
-                    Technique artwork here is pulled from the same battle artwork resolver as the
-                    cockpit.
-                  </p>
-                </section>
-              </aside>
-
-              <section className={styles.techniqueArea} aria-label="Learned Techniques">
-                <div className={styles.techniqueHeading}>
-                  <div>
-                    <span>Learned Techniques</span>
-                    <strong>Select your combat loadout</strong>
-                  </div>
-                  <small>Click a card to tag or untag it.</small>
-                </div>
-
-                <div className={styles.skillList} data-testid="learned-skill-list">
-                  {learnedSkills.length === 0 ? (
-                    <p className={styles.empty}>
-                      No learned Discipline Techniques are available yet.
-                    </p>
-                  ) : (
-                    learnedSkills.map((entry) => {
-                      const selected = selectedIds.includes(entry.definition.id)
-                      const sourceCount = selectedSourceCount(entry.definition.sourceDisciplineId)
-                      const disabledBySource = Boolean(
-                        secondaryDiscipline && !selected && sourceCount >= 2,
-                      )
-                      const disabledByCapacity = !selected && selectedIds.length >= capacity
-                      const disabled =
-                        !entry.activeSource || pending || disabledByCapacity || disabledBySource
-
-                      return (
-                        <article
-                          key={`${entry.definition.id}:${entry.definition.contentVersion}`}
-                          className={styles.skill}
-                          data-active-source={entry.activeSource ? 'true' : 'false'}
-                          data-selected={selected ? 'true' : 'false'}
-                          data-source={entry.definition.sourceDisciplineId}
-                          style={skillPaletteStyle(entry.definition.sourceDisciplineId)}
-                        >
-                          <label className={styles.skillToggle}>
-                            <input
-                              type="checkbox"
-                              checked={selected}
-                              disabled={disabled}
-                              onChange={() => toggle(entry)}
-                            />
-                            <span className={styles.artFrame} aria-hidden="true">
-                              <img
-                                className={styles.skillArt}
-                                src={battleSkillArtwork(entry.definition.id)}
-                                alt=""
-                              />
-                            </span>
-                            <span className={styles.skillCopy}>
-                              <strong>{skillName(entry.definition)}</strong>
-                              <span className={styles.metaRow}>
-                                <small>{titleCase(entry.definition.sourceDisciplineId)}</small>
-                                <small>{entry.definition.apCost} AP</small>
-                                <small>{entry.definition.cooldown.ownerTurns}T CD</small>
-                              </span>
-                              <span className={styles.learnedState}>
-                                {entry.activeSource
-                                  ? `Learned · v${entry.definition.contentVersion}`
-                                  : 'Inactive Discipline'}
-                              </span>
-                            </span>
-                          </label>
-                        </article>
-                      )
-                    })
-                  )}
-                </div>
-              </section>
-            </div>
-
-            <footer className={styles.actions}>
-              <div className={styles.actionStatus}>
-                <strong>{dirty ? 'Unsaved loadout changes' : 'Loadout synchronized'}</strong>
-                <span>Build v{buildVersion}</span>
-              </div>
-              <button
-                type="button"
-                className={styles.secondaryAction}
-                onClick={() => setSelectedIds([])}
-                disabled={pending || selectedIds.length === 0}
+      {open && typeof document !== 'undefined'
+        ? createPortal(
+            <div
+              className={styles.backdrop}
+              data-techniques-overlay="true"
+              role="presentation"
+              onPointerDown={() => setPanelOpen(false)}
+            >
+              <section
+                className={styles.dialog}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="skill-build-heading"
+                onPointerDown={(event) => event.stopPropagation()}
               >
-                Clear tags
-              </button>
-              <button type="button" onClick={() => void save()} disabled={!dirty || pending}>
-                {pending ? 'Saving…' : 'Commit tagged Techniques'}
-              </button>
-            </footer>
+                <header className={styles.header}>
+                  <div className={styles.headingCopy}>
+                    <span>Authoritative build</span>
+                    <h2 id="skill-build-heading">Techniques</h2>
+                    <p>Shape the four combat Techniques that appear in your battle cockpit.</p>
+                  </div>
+                  <div className={styles.headerActions}>
+                    <div className={styles.capacityBadge} data-testid="skill-capacity">
+                      <strong>{selectedIds.length}</strong>
+                      <span>{` / ${capacity}`}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.close}
+                      onClick={() => setPanelOpen(false)}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </header>
 
-            {message ? (
-              <p className={styles.status} role="status">
-                {message}
-              </p>
-            ) : null}
-          </section>
-        </div>
-      ) : null}
+                <div className={styles.workspace}>
+                  <aside className={styles.buildRail}>
+                    <section className={styles.buildCard}>
+                      <span className={styles.eyebrow}>Active build</span>
+                      <strong className={styles.buildName}>
+                        {primaryDiscipline.name}
+                        {secondaryDiscipline ? ` + ${secondaryDiscipline.name}` : ' · Pure'}
+                      </strong>
+                      <div className={styles.disciplineChips}>
+                        <span
+                          data-discipline={primaryDiscipline.id}
+                          style={chipPaletteStyle(primaryDiscipline.id)}
+                        >
+                          {primaryDiscipline.name}
+                        </span>
+                        {secondaryDiscipline ? (
+                          <span
+                            data-discipline={secondaryDiscipline.id}
+                            style={chipPaletteStyle(secondaryDiscipline.id)}
+                          >
+                            {secondaryDiscipline.name}
+                          </span>
+                        ) : (
+                          <span
+                            data-pure="true"
+                            style={{ '--chip': '202 169 104' } as CSSProperties}
+                          >
+                            Pure build
+                          </span>
+                        )}
+                      </div>
+                      <p className={styles.rule}>
+                        {secondaryDiscipline
+                          ? `Tag four total: up to two from ${primaryDiscipline.name} and two from ${secondaryDiscipline.name}.`
+                          : `Tag up to four learned ${primaryDiscipline.name} Techniques.`}
+                      </p>
+                    </section>
+
+                    {secondaryDiscipline ? (
+                      <section className={styles.splitCard} data-testid="mixed-technique-split">
+                        <div>
+                          <span>{primaryDiscipline.name}</span>
+                          <strong>{selectedSourceCount(primaryDiscipline.id)} / 2</strong>
+                        </div>
+                        <div>
+                          <span>{secondaryDiscipline.name}</span>
+                          <strong>{selectedSourceCount(secondaryDiscipline.id)} / 2</strong>
+                        </div>
+                      </section>
+                    ) : null}
+
+                    {(initialResonance || initialEssence) && (
+                      <section className={styles.extensions}>
+                        <span className={styles.eyebrow}>Granted identity</span>
+                        {initialResonance ? (
+                          <div className={styles.identityItem}>
+                            <strong data-testid="active-resonance">{initialResonance.name}</strong>
+                            <span>Resonance · outside tagged slots</span>
+                          </div>
+                        ) : null}
+                        {initialEssence ? (
+                          <div className={styles.identityItem}>
+                            <strong data-testid="active-essence">{initialEssence.name}</strong>
+                            <span>Essence · outside tagged slots</span>
+                          </div>
+                        ) : null}
+                      </section>
+                    )}
+
+                    <section className={styles.tipCard}>
+                      <span>Battle sync</span>
+                      <p>
+                        Technique artwork here is pulled from the same battle artwork resolver as
+                        the cockpit.
+                      </p>
+                    </section>
+                  </aside>
+
+                  <section className={styles.techniqueArea} aria-label="Learned Techniques">
+                    <div className={styles.techniqueHeading}>
+                      <div>
+                        <span>Learned Techniques</span>
+                        <strong>Select your combat loadout</strong>
+                      </div>
+                      <small>Click a card to tag or untag it.</small>
+                    </div>
+
+                    <div className={styles.skillList} data-testid="learned-skill-list">
+                      {learnedSkills.length === 0 ? (
+                        <p className={styles.empty}>
+                          No learned Discipline Techniques are available yet.
+                        </p>
+                      ) : (
+                        learnedSkills.map((entry) => {
+                          const selected = selectedIds.includes(entry.definition.id)
+                          const sourceCount = selectedSourceCount(
+                            entry.definition.sourceDisciplineId,
+                          )
+                          const disabledBySource = Boolean(
+                            secondaryDiscipline && !selected && sourceCount >= 2,
+                          )
+                          const disabledByCapacity = !selected && selectedIds.length >= capacity
+                          const disabled =
+                            !entry.activeSource || pending || disabledByCapacity || disabledBySource
+
+                          return (
+                            <article
+                              key={`${entry.definition.id}:${entry.definition.contentVersion}`}
+                              className={styles.skill}
+                              data-active-source={entry.activeSource ? 'true' : 'false'}
+                              data-selected={selected ? 'true' : 'false'}
+                              data-source={entry.definition.sourceDisciplineId}
+                              style={skillPaletteStyle(entry.definition.sourceDisciplineId)}
+                            >
+                              <label className={styles.skillToggle}>
+                                <input
+                                  type="checkbox"
+                                  checked={selected}
+                                  disabled={disabled}
+                                  onChange={() => toggle(entry)}
+                                />
+                                <span className={styles.artFrame} aria-hidden="true">
+                                  <img
+                                    className={styles.skillArt}
+                                    src={battleSkillArtwork(entry.definition.id)}
+                                    alt=""
+                                  />
+                                </span>
+                                <span className={styles.skillCopy}>
+                                  <strong>{skillName(entry.definition)}</strong>
+                                  <span className={styles.metaRow}>
+                                    <small>{titleCase(entry.definition.sourceDisciplineId)}</small>
+                                    <small>{entry.definition.apCost} AP</small>
+                                    <small>{entry.definition.cooldown.ownerTurns}T CD</small>
+                                  </span>
+                                  <span className={styles.learnedState}>
+                                    {entry.activeSource
+                                      ? `Learned · v${entry.definition.contentVersion}`
+                                      : 'Inactive Discipline'}
+                                  </span>
+                                </span>
+                              </label>
+                            </article>
+                          )
+                        })
+                      )}
+                    </div>
+                  </section>
+                </div>
+
+                <footer className={styles.actions}>
+                  <div className={styles.actionStatus}>
+                    <strong>{dirty ? 'Unsaved loadout changes' : 'Loadout synchronized'}</strong>
+                    <span>Build v{buildVersion}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className={styles.secondaryAction}
+                    onClick={() => setSelectedIds([])}
+                    disabled={pending || selectedIds.length === 0}
+                  >
+                    Clear tags
+                  </button>
+                  <button type="button" onClick={() => void save()} disabled={!dirty || pending}>
+                    {pending ? 'Saving…' : 'Commit tagged Techniques'}
+                  </button>
+                </footer>
+
+                {message ? (
+                  <p className={styles.status} role="status">
+                    {message}
+                  </p>
+                ) : null}
+              </section>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   )
 }
