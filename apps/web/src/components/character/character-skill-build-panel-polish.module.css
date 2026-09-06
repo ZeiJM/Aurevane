@@ -13,14 +13,25 @@
   align-items: center;
   justify-content: center;
   column-gap: 0.22rem;
+  border-color: rgb(var(--chip) / 30%) !important;
+  background: linear-gradient(135deg, rgb(var(--chip) / 18%), rgb(var(--chip) / 7%)) !important;
   padding-inline: 0.72rem !important;
+  box-shadow: inset 0 0 1.4rem rgb(var(--chip) / 7%) !important;
   font-size: 0.78rem !important;
+}
+
+.capacityBadge strong {
+  color: rgb(var(--chip) / 96%) !important;
 }
 
 .capacityBadge strong,
 .capacityBadge > span:not(.counterName) {
   font-size: 0.78rem !important;
   line-height: 1 !important;
+}
+
+.capacityBadge > span:not(.counterName) {
+  color: rgb(var(--chip) / 72%) !important;
 }
 
 .counterName {
@@ -63,6 +74,7 @@
 }
 
 .signatureCard {
+  --skill-accent: 197 158 92;
   display: grid;
   grid-template-columns: 3.6rem minmax(0, 1fr);
   gap: 0.62rem;
@@ -109,7 +121,7 @@
 }
 
 .typeChip {
-  --chip: 104 151 202;
+  --skill-accent: 104 151 202;
 }
 
 .techniqueHeading {
