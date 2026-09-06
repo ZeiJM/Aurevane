@@ -1,0 +1,117 @@
+.layout {
+  min-height: 0;
+}
+
+@media (min-width: 981px) and (max-height: 1100px) {
+  .layout {
+    gap: 0.72rem;
+  }
+
+  .profile {
+    padding: 0.72rem !important;
+  }
+
+  .hero {
+    grid-template-columns: 7.5rem minmax(0, 1fr);
+    gap: 0.72rem;
+  }
+
+  .portrait {
+    width: 7.5rem;
+    height: 8.6rem;
+    min-height: 0;
+  }
+
+  .identity {
+    justify-content: center;
+    padding-block: 0;
+  }
+
+  .identity h1 {
+    font-size: clamp(2.35rem, 3.7vw, 3.2rem);
+  }
+
+  .identity > p {
+    line-height: 1.25;
+  }
+
+  .identity > p:nth-of-type(2) {
+    margin-bottom: 0.38rem;
+  }
+
+  .buildCard {
+    padding: 0.78rem !important;
+  }
+
+  .buildCard > div:first-child {
+    padding-bottom: 0.58rem;
+  }
+
+  .buildCard > section {
+    gap: 0.5rem;
+    padding: 0.62rem 0;
+  }
+
+  .buildCard > section:last-child {
+    padding-bottom: 0.1rem;
+  }
+}
+
+@media (min-width: 981px) and (max-height: 900px) {
+  .layout {
+    gap: 0.55rem;
+  }
+
+  .profile {
+    padding: 0.55rem !important;
+  }
+
+  .hero {
+    grid-template-columns: 6.6rem minmax(0, 1fr);
+    gap: 0.58rem;
+  }
+
+  .portrait {
+    width: 6.6rem;
+    height: 7.25rem;
+  }
+
+  .identity h1 {
+    font-size: clamp(2.05rem, 3.35vw, 2.75rem);
+  }
+
+  .identity > p {
+    font-size: 0.6rem;
+  }
+
+  .identity > p:nth-of-type(2) {
+    margin-bottom: 0.28rem;
+    font-size: 0.64rem;
+  }
+
+  .identity [data-testid='level-progress'] {
+    gap: 0.22rem;
+  }
+
+  .buildCard {
+    padding: 0.62rem !important;
+  }
+
+  .buildCard > div:first-child {
+    padding-bottom: 0.42rem;
+  }
+
+  .buildCard > section {
+    gap: 0.38rem;
+    padding: 0.48rem 0;
+  }
+
+  .buildCard > section strong {
+    font-size: 0.96rem;
+  }
+
+  .buildCard > section small {
+    font-size: 0.58rem;
+    line-height: 1.35;
+  }
+}
