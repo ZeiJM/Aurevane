@@ -520,6 +520,12 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
         return
       }
 
+      if (movementDirection && attackModeIsActive()) {
+        // Directional Attack targeting has its own capture listener so swapped Techniques can use
+        // the selected Technique's live target relation and the normal authoritative preview path.
+        return
+      }
+
       const chord = eventChord(event)
       const action = configuredAction(bindings, chord)
       if (action) {
