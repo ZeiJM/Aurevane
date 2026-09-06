@@ -8,10 +8,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 
-import {
-  battleResonanceArtwork,
-  battleSkillArtwork,
-} from '../battle/battle-skill-presentation'
+import { battleResonanceArtwork, battleSkillArtwork } from '../battle/battle-skill-presentation'
 import polish from './character-skill-build-panel-polish.module.css'
 import styles from './character-skill-build-panel.module.css'
 
@@ -172,9 +169,7 @@ export function CharacterSkillBuildPanel({
   }
 
   const primarySelected = selectedSourceCount(primaryDiscipline.id)
-  const secondarySelected = secondaryDiscipline
-    ? selectedSourceCount(secondaryDiscipline.id)
-    : 0
+  const secondarySelected = secondaryDiscipline ? selectedSourceCount(secondaryDiscipline.id) : 0
   const mixedSelectionValid =
     !secondaryDiscipline ||
     selectedIds.length === 0 ||
@@ -354,10 +349,7 @@ export function CharacterSkillBuildPanel({
                               </strong>
                               <span className={styles.metaRow}>
                                 {initialResonance.disciplinePair.map((disciplineId) => (
-                                  <small
-                                    key={disciplineId}
-                                    style={chipPaletteStyle(disciplineId)}
-                                  >
+                                  <small key={disciplineId} style={chipPaletteStyle(disciplineId)}>
                                     {titleCase(disciplineId)}
                                   </small>
                                 ))}
@@ -381,9 +373,7 @@ export function CharacterSkillBuildPanel({
                                 Essence Skill — {initialEssence.name}
                               </strong>
                               <span className={styles.metaRow}>
-                                <small
-                                  style={chipPaletteStyle(initialEssence.sourceDisciplineId)}
-                                >
+                                <small style={chipPaletteStyle(initialEssence.sourceDisciplineId)}>
                                   {titleCase(initialEssence.sourceDisciplineId)}
                                 </small>
                                 <small>{initialEssence.skill.apCost} AP</small>
@@ -414,9 +404,7 @@ export function CharacterSkillBuildPanel({
                             entry.definition.sourceDisciplineId,
                           )
                           const disabledBySource = Boolean(
-                            secondaryDiscipline &&
-                              !selected &&
-                              sourceCount >= MIXED_SOURCE_MAXIMUM,
+                            secondaryDiscipline && !selected && sourceCount >= MIXED_SOURCE_MAXIMUM,
                           )
                           const disabledByCapacity = !selected && selectedIds.length >= capacity
                           const disabled = pending || disabledByCapacity || disabledBySource
