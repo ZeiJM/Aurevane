@@ -41,36 +41,58 @@ describe('P3.4 Discipline Technique loadout authority', () => {
     ).toContainEqual(expect.objectContaining({ code: 'inactive-skill-source' }))
   })
 
-  it('accepts a mixed 2 + 2 split and rejects three Techniques from either source', () => {
-    const valid = [
-      skill('vanguard.one', 'vanguard'),
-      skill('vanguard.two', 'vanguard'),
-      skill('lifebinder.one', 'lifebinder'),
-      skill('lifebinder.two', 'lifebinder'),
+  it.each([
+    [1, 3],
+    [2, 2],
+    [3, 1],
+  ])('accepts a mixed %i + %i split', (primaryCount, secondaryCount) => {
+    const equipped = [
+      ...Array.from({ length: primaryCount }, (_, index) =>
+        skill(`vanguard.skill-${index + 1}`, 'vanguard'),
+      ),
+      ...Array.from({ length: secondaryCount }, (_, index) =>
+        skill(`lifebinder.skill-${index + 1}`, 'lifebinder'),
+      ),
     ]
+
     expect(
       validateDisciplineSkillLoadout({
         primaryDisciplineId: 'vanguard',
         secondaryDisciplineId: 'lifebinder',
-        equipped: valid,
-        learned: valid,
+        equipped,
+        learned: equipped,
       }),
     ).toEqual([])
+  })
 
-    const invalid = [
-      skill('vanguard.one', 'vanguard'),
-      skill('vanguard.two', 'vanguard'),
-      skill('vanguard.three', 'vanguard'),
-      skill('lifebinder.one', 'lifebinder'),
-    ]
+  it('rejects a mixed 4 + 0 split and any non-empty one-source mixed loadout', () => {
+    const fourPrimary = Array.from({ length: 4 }, (_, index) =>
+      skill(`vanguard.skill-${index + 1}`, 'vanguard'),
+    )
+    const onePrimary = [skill('vanguard.skill-1', 'vanguard')]
+
     expect(
       validateDisciplineSkillLoadout({
         primaryDisciplineId: 'vanguard',
         secondaryDisciplineId: 'lifebinder',
-        equipped: invalid,
-        learned: invalid,
+        equipped: fourPrimary,
+        learned: fourPrimary,
       }),
-    ).toContainEqual(expect.objectContaining({ code: 'mixed-source-capacity-exceeded' }))
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'mixed-source-capacity-exceeded' }),
+        expect.objectContaining({ code: 'mixed-source-required' }),
+      ]),
+    )
+
+    expect(
+      validateDisciplineSkillLoadout({
+        primaryDisciplineId: 'vanguard',
+        secondaryDisciplineId: 'lifebinder',
+        equipped: onePrimary,
+        learned: onePrimary,
+      }),
+    ).toContainEqual(expect.objectContaining({ code: 'mixed-source-required' }))
   })
 
   it('rejects over-capacity, duplicate, and unlearned selections', () => {
