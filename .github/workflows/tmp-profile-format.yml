@@ -1,0 +1,33 @@
+name: Temporary profile formatter
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/tmp-profile-format.yml'
+      - 'apps/web/src/components/character/character-profile-details.module.css'
+
+permissions:
+  contents: read
+
+jobs:
+  format-profile-css:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format and print profile CSS
+        run: |
+          pnpm exec prettier --write apps/web/src/components/character/character-profile-details.module.css
+          echo 'PROFILE_CSS_BASE64_BEGIN'
+          base64 -w0 apps/web/src/components/character/character-profile-details.module.css
+          echo
+          echo 'PROFILE_CSS_BASE64_END'
