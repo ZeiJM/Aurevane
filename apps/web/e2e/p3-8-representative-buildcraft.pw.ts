@@ -15,6 +15,16 @@ function skillRow(page: Page, name: string): Locator {
   return page.getByTestId('learned-skill-list').locator('article').filter({ hasText: name }).first()
 }
 
+function tileCoordinates(label: string | null): { x: number; y: number } | null {
+  const match = label?.match(/^Tile (\d+), (\d+);/)
+  if (!match) return null
+  return { x: Number(match[1]), y: Number(match[2]) }
+}
+
+function tileDistance(first: { x: number; y: number }, second: { x: number; y: number }): number {
+  return Math.abs(first.x - second.x) + Math.abs(first.y - second.y)
+}
+
 async function setSkill(page: Page, name: string, checked: boolean): Promise<void> {
   const checkbox = skillRow(page, name).getByRole('checkbox')
   if ((await checkbox.isChecked()) !== checked) await checkbox.click()
@@ -48,11 +58,12 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
     'One authenticated Chromium proof covers the P3.8 representative buildcraft flow.',
   )
 
+  const characterName = uniqueCharacterName()
   await provisionAccountAndEnterCharacter({
     page,
     email: `p38-buildcraft-${Date.now()}@example.com`,
     password: 'P38-buildcraft-browser-2026!',
-    characterName: uniqueCharacterName(),
+    characterName,
   })
 
   // The owner-only PV-2 preparation API remains available in explicit test mode, but its old
@@ -119,8 +130,8 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(skillRow(page, 'Mending Light').getByRole('checkbox')).toBeChecked()
   await expect(skillRow(page, 'Barrier').getByRole('checkbox')).toBeChecked()
 
-  // Tagged Techniques must keep the cockpit slot's keyboard contract and receive the same
-  // authoritative preview chips as the original basic actions after a skill swap.
+  // Tagged Techniques must keep the cockpit slot's keyboard contract and reach the same
+  // authoritative preview/confirm path used by mouse input after a skill swap.
   const techniquesDialog = page.getByRole('dialog', { name: 'Techniques' })
   await techniquesDialog.getByRole('button', { name: 'Close' }).click()
   await page.getByRole('button', { name: 'Navigation' }).click()
@@ -130,11 +141,76 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await page.getByRole('button', { name: 'Enter Battle' }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
 
+  const battleRoot = page.locator('[data-unified-battle="true"]')
+  const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
   const commandContext = commandDeck.locator(':scope > div').first()
+  const moveAction = commandDeck.locator('button[data-command-slot="move"]')
   const attackCard = commandDeck.locator('[data-command-card="attack"]')
   const attackAction = attackCard.locator('button[data-command-slot="attack"]')
   const attackArtwork = attackCard.getByRole('button', { name: /Choose Attack skill/i })
+  const finishAction = commandDeck.locator('button[data-command-slot="finish"]')
+  const confirmAction = page.getByRole('button', { name: /Confirm Action/ })
+  const actionEconomy = page.getByRole('progressbar', { name: 'Action Economy remaining' })
+
+  // Forceful Strike is melee (range 1). Approach the Recruit through real movement/turn flow so
+  // the keyboard regression test never depends on a lucky adjacent spawn.
+  for (let approachTurn = 0; approachTurn < 3; approachTurn += 1) {
+    const playerTile = battlefield.getByRole('button', {
+      name: new RegExp(`occupied by ${characterName}`),
+    })
+    const recruitTile = battlefield.getByRole('button', { name: /occupied by Recruit/ })
+    const playerPosition = tileCoordinates(await playerTile.getAttribute('aria-label'))
+    const recruitPosition = tileCoordinates(await recruitTile.getAttribute('aria-label'))
+    expect(playerPosition).not.toBeNull()
+    expect(recruitPosition).not.toBeNull()
+    if (!playerPosition || !recruitPosition) break
+    if (tileDistance(playerPosition, recruitPosition) === 1) break
+
+    await moveAction.click()
+    const reachableTiles = battlefield.locator('button[data-reachable="true"]')
+    await expect(reachableTiles.first()).toBeVisible()
+
+    let destinationLabel: string | null = null
+    let destinationDistance = Number.POSITIVE_INFINITY
+    for (let index = 0; index < (await reachableTiles.count()); index += 1) {
+      const candidate = reachableTiles.nth(index)
+      const label = await candidate.getAttribute('aria-label')
+      const position = tileCoordinates(label)
+      if (!position || !label) continue
+      const distance = tileDistance(position, recruitPosition)
+      if (distance < destinationDistance) {
+        destinationDistance = distance
+        destinationLabel = label
+      }
+    }
+
+    expect(destinationLabel).not.toBeNull()
+    await battlefield.getByRole('button', { name: destinationLabel!, exact: true }).click()
+    await expect(confirmAction).toBeEnabled()
+    await confirmAction.click()
+    await expect(actionEconomy).not.toHaveAttribute('aria-valuenow', '100')
+
+    // Start the Technique proof on a fresh owner turn so its AP budget cannot depend on movement.
+    await finishAction.click()
+    await finishAction.press('KeyD')
+    await expect(actionEconomy).toHaveAttribute('aria-valuenow', '100', { timeout: 15000 })
+    await expect(battleRoot).toHaveAttribute('data-local-turn', 'true')
+  }
+
+  const adjacentPlayer = tileCoordinates(
+    await battlefield
+      .getByRole('button', { name: new RegExp(`occupied by ${characterName}`) })
+      .getAttribute('aria-label'),
+  )
+  const adjacentRecruit = tileCoordinates(
+    await battlefield
+      .getByRole('button', { name: /occupied by Recruit/ })
+      .getAttribute('aria-label'),
+  )
+  expect(adjacentPlayer).not.toBeNull()
+  expect(adjacentRecruit).not.toBeNull()
+  expect(tileDistance(adjacentPlayer!, adjacentRecruit!)).toBe(1)
 
   await attackArtwork.click()
   const attackSelector = page.getByRole('listbox', { name: 'Attack skills' })
@@ -145,41 +221,29 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await page.keyboard.press('Digit3')
   await expect(attackAction).toHaveAttribute('data-battle-active', 'true')
 
-  const battleSessionId = page.url().split('/').at(-1)
-  expect(battleSessionId).toMatch(/^[0-9a-f-]{36}$/)
-  if (!battleSessionId) return
+  let attackDirection: string | null = null
+  for (const key of ['KeyW', 'KeyA', 'KeyS', 'KeyD']) {
+    await page.keyboard.press(key)
+    try {
+      await expect(confirmAction).toBeEnabled({ timeout: 1500 })
+      attackDirection = key
+      break
+    } catch {
+      // Try the next cardinal direction until the current battle layout yields the legal Recruit.
+    }
+  }
 
-  await page.route(`**/api/battles/${battleSessionId}/preview`, async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        battlePreview: {
-          preview: {
-            kind: 'action',
-            legal: true,
-            issues: [],
-            actionId: 'vanguard.forceful-strike',
-            hitChanceBasisPoints: 6500,
-            mitigatedBaseDamage: 18,
-            projectedEffects: [],
-            projectedStatuses: [],
-            affectedCombatantIds: ['recruit:1'],
-          },
-        },
-      }),
-    })
-  })
-
-  await page.evaluate(async (id) => {
-    await fetch(`/api/battles/${id}/preview`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: '{}',
-    })
-  }, battleSessionId)
-
+  expect(attackDirection).not.toBeNull()
   await expect(commandContext).toContainText('Forceful Strike')
-  await expect(commandContext).toContainText('Hit 65%')
-  await expect(commandContext).toContainText('On hit 18 dmg')
+  await expect(confirmAction).toBeEnabled()
+
+  await page.keyboard.press(attackDirection!)
+  await expect(confirmAction).toBeDisabled({ timeout: 8000 })
+  await expect(attackAction).not.toHaveAttribute('data-battle-active', 'true', { timeout: 8000 })
+
+  // Space still enters final-facing authority, but the retired inline row must stay hidden.
+  await page.keyboard.press('Space')
+  const legacyFacingRow = page.locator('[data-unified-facing-pad="true"]')
+  await expect(legacyFacingRow).toHaveAttribute('data-open', 'true')
+  await expect(legacyFacingRow).toBeHidden()
 })
