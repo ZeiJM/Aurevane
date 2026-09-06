@@ -34,6 +34,10 @@ export interface AiTurnClockTick {
 }
 
 type JsonObject = Record<string, unknown>
+type BuildExtendedEncounterState = StatDrivenCombatEncounterState & {
+  readonly buildAuthority?: unknown
+  readonly buildBridge?: unknown
+}
 
 function isObject(value: unknown): value is JsonObject {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
@@ -67,12 +71,23 @@ function parseClock(value: unknown): AiTurnClockView | null {
   }
 }
 
-function readEncounter(value: unknown): StatDrivenCombatEncounterState {
+function readEncounter(value: unknown): BuildExtendedEncounterState {
   if (!isObject(value)) throw unavailable('The stored AI battle state is invalid.')
-  const state = value as unknown as StatDrivenCombatEncounterState
+  const state = value as unknown as BuildExtendedEncounterState
   const issues = validateStatDrivenCombatEncounterState(state)
   if (issues.length > 0) throw unavailable('The stored AI battle state is invalid.')
   return state
+}
+
+function preserveFrozenBuildMetadata(
+  previous: BuildExtendedEncounterState,
+  next: StatDrivenCombatEncounterState,
+): BuildExtendedEncounterState {
+  return {
+    ...next,
+    ...(previous.buildAuthority !== undefined ? { buildAuthority: previous.buildAuthority } : {}),
+    ...(previous.buildBridge !== undefined ? { buildBridge: previous.buildBridge } : {}),
+  }
 }
 
 function unavailable(
@@ -137,7 +152,8 @@ export async function tickAiTurnClock(
   }
 
   const controlledCombatantId = current.controlledCombatantIds[0]
-  let state = readEncounter(current.snapshot)
+  const initialState = readEncounter(current.snapshot)
+  let state: StatDrivenCombatEncounterState = initialState
   const turn = state.tactical.battle.currentTurn
   if (
     state.tactical.battle.lifecycle !== 'active' ||
@@ -154,6 +170,7 @@ export async function tickAiTurnClock(
   const consecutive = await previousTurnWasMissed(userId, battleSessionId, controlledCombatantId)
   if (!consecutive) state = resetAiMissedTurnStreak(state)
   const resolved = timeoutAiTurn(state)
+  const nextState = preserveFrozenBuildMetadata(initialState, resolved.state)
 
   try {
     await repository.commitBattleIntent({
@@ -169,7 +186,7 @@ export async function tickAiTurnClock(
       userId,
       battleSessionId,
       expectedBattleVersion: current.battleVersion,
-      nextSnapshot: resolved.state,
+      nextSnapshot: nextState,
       events: resolved.events,
     })
   } catch (error) {
