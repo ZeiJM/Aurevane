@@ -16,6 +16,7 @@ import { CharacterSkillBuildPanel } from '@/components/character/character-skill
 import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 
+import compactStyles from './character-profile-shell-compact.module.css'
 import styles from './character-profile-shell.module.css'
 
 interface PrimaryOption {
@@ -96,10 +97,13 @@ export function CharacterProfileShell({
 
   return (
     <AuthenticatedShellFrame sessionLabel="Character Profile">
-      <div className={styles.layout}>
-        <Surface className={styles.profile} tone="elevated">
-          <header className={styles.hero} data-testid="character-profile">
-            <div className={styles.portrait}>
+      <div className={`${styles.layout} ${compactStyles.layout}`}>
+        <Surface className={`${styles.profile} ${compactStyles.profile}`} tone="elevated">
+          <header
+            className={`${styles.hero} ${compactStyles.hero}`}
+            data-testid="character-profile"
+          >
+            <div className={`${styles.portrait} ${compactStyles.portrait}`}>
               <CharacterPortraitImage
                 imageUrl={imageUrl}
                 fallbackAssetId={getStarterPortraitImageAssetId(profile.identity.portraitRef)}
@@ -107,7 +111,7 @@ export function CharacterProfileShell({
                 alt={`${profile.identity.name} portrait`}
               />
             </div>
-            <div className={styles.identity}>
+            <div className={`${styles.identity} ${compactStyles.identity}`}>
               <Kicker marker="◆">Character Profile</Kicker>
               <div className={styles.nameLine}>
                 <h1>{profile.identity.name}</h1>
@@ -162,8 +166,11 @@ export function CharacterProfileShell({
           />
         </Surface>
 
-        <aside className={styles.sidebar} aria-label="Character build workspace">
-          <Surface className={`${styles.sideCard} ${styles.buildCard}`} tone="quiet">
+        <aside className={`${styles.sidebar} ${compactStyles.sidebar}`} aria-label="Character build workspace">
+          <Surface
+            className={`${styles.sideCard} ${styles.buildCard} ${compactStyles.buildCard}`}
+            tone="quiet"
+          >
             <div className={styles.buildHeading}>
               <Kicker marker="◇">Build</Kicker>
             </div>
