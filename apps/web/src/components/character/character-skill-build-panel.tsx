@@ -350,7 +350,9 @@ export function CharacterSkillBuildPanel({
                               />
                             </span>
                             <div className={polish.signatureCopy}>
-                              <strong data-testid="active-resonance">{initialResonance.name}</strong>
+                              <strong data-testid="active-resonance">
+                                {initialResonance.name}
+                              </strong>
                               <span className={styles.metaRow}>
                                 {initialResonance.disciplinePair.map((disciplineId) => (
                                   <small key={disciplineId} style={chipPaletteStyle(disciplineId)}>
