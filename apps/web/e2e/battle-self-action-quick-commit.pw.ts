@@ -100,10 +100,11 @@ async function finishTurnKeepingFacing(page: Page, root: Locator, testRepeat = f
 
   await page.keyboard.press('Space')
   await expect(root).toHaveAttribute('data-finish-turn-hotkey-last-decision', 'handled-first')
-  await expect(root.getByRole('button', { name: 'Face north' })).toBeEnabled()
-  await expect(root.getByRole('button', { name: 'Face east' })).toBeEnabled()
-  await expect(root.getByRole('button', { name: 'Face south' })).toBeEnabled()
-  await expect(root.getByRole('button', { name: 'Face west' })).toBeEnabled()
+  await expect(root.locator('button[aria-label="Face north"]')).toBeEnabled()
+  await expect(root.locator('button[aria-label="Face east"]')).toBeEnabled()
+  await expect(root.locator('button[aria-label="Face south"]')).toBeEnabled()
+  await expect(root.locator('button[aria-label="Face west"]')).toBeEnabled()
+  await expect(root.locator('[data-unified-facing-pad="true"]')).toBeHidden()
 
   if (testRepeat) {
     await page.evaluate(() => {
