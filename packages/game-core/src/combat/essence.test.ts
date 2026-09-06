@@ -176,7 +176,7 @@ describe('P3.6 versioned pure Essence framework', () => {
     ).toBeNull()
   })
 
-  it('uses the canonical PV-1F Skill path for AP, effects, repeat-use authority, and PvP overrides', () => {
+  it('uses canonical PV-1F Essence authority for AP, effects, repeat-use, and PvP', () => {
     const essence = resolveEssenceForBuild('vanguard', null)
     if (!essence) throw new Error('Expected representative Vanguard Essence.')
 
