@@ -156,5 +156,7 @@ export function BattleDirectionalAttackAssist({ playerName }: { playerName: stri
     return () => window.removeEventListener('keydown', handleKeyDown, true)
   }, [playerName])
 
-  return null
+  // Final-facing authority remains mounted for keyboard/map-guide behavior; only the retired
+  // inline row is visually suppressed so Space cannot paint controls across the command cockpit.
+  return <style>{'[data-unified-facing-pad="true"] { display: none !important; }'}</style>
 }
