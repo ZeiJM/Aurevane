@@ -272,19 +272,19 @@ describe('P3.6 battle Essence authority', () => {
     const next = committed.nextSnapshot as BattleAuthoritativeEncounterState
     expect(readPv1fActionEconomy(next, PLAYER_ID)?.current).toBe(45)
     expect(next.tactical.battle.combatants.find((row) => row.id === 'recruit:p2-4-1')?.hp).toBe(60)
-    expect(committed.events).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          event: 'skill_cooldown_started',
-          actionId: 'essence.vanguard.unbroken-strike',
-        }),
-        expect.objectContaining({
-          event: 'action_economy_spent',
-          combatantId: PLAYER_ID,
-          amount: 55,
-          remaining: 45,
-        }),
-      ]),
+    expect(committed.events).not.toContainEqual(
+      expect.objectContaining({
+        event: 'skill_cooldown_started',
+        actionId: 'essence.vanguard.unbroken-strike',
+      }),
+    )
+    expect(committed.events).toContainEqual(
+      expect.objectContaining({
+        event: 'action_economy_spent',
+        combatantId: PLAYER_ID,
+        amount: 55,
+        remaining: 45,
+      }),
     )
     expect(result.snapshot.buildAuthority).toEqual(created.snapshot.buildAuthority)
   })
