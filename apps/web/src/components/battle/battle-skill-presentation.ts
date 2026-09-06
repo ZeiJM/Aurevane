@@ -30,6 +30,8 @@ export const PHASE_3_COMBAT_ACTION_IDS = [
   'lifebinder.renew',
   'lifebinder.sanctuary',
   'lifebinder.fortifying-light',
+  'lifebinder.vital-sever',
+  'lifebinder.searing-bloom',
   'essence.vanguard.unbroken-strike',
 ] as const
 
@@ -50,6 +52,8 @@ export const PHASE_3_COMBAT_ARTWORK = {
   'lifebinder.renew': '/media/skills/phase3/lifebinder-renew.webp',
   'lifebinder.sanctuary': '/media/skills/phase3/lifebinder-sanctuary.webp',
   'lifebinder.fortifying-light': '/media/skills/phase3/lifebinder-fortifying-light.webp',
+  'lifebinder.vital-sever': '/media/skills/phase3/lifebinder-fortifying-light.webp',
+  'lifebinder.searing-bloom': '/media/skills/phase3/lifebinder-sanctuary.webp',
   'essence.vanguard.unbroken-strike': '/media/skills/phase3/essence-vanguard-unbroken-strike.webp',
 } as const satisfies Record<(typeof PHASE_3_COMBAT_ACTION_IDS)[number], string>
 
