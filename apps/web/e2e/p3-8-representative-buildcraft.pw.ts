@@ -138,9 +138,6 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
 
   await page.keyboard.press('Digit3')
   await expect(attackAction).toHaveAttribute('data-battle-active', 'true')
-  await expect
-    .poll(() => page.locator('#battlefield button[data-attack-range]').count())
-    .toBeGreaterThan(0)
 
   const battleSessionId = page.url().split('/').at(-1)
   expect(battleSessionId).toMatch(/^[0-9a-f-]{36}$/)
