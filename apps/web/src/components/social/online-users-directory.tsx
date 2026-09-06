@@ -293,6 +293,13 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
         <div className={styles.backdrop} onPointerDown={() => setSelected(null)}>
           <section
             className={styles.profileCard}
+            style={{
+              borderColor: 'rgba(207, 169, 93, 0.42)',
+              background:
+                'radial-gradient(circle at 92% 5%, rgba(95,188,133,.08), transparent 15rem), radial-gradient(circle at 58% 0%, rgba(162,123,226,.08), transparent 18rem), linear-gradient(145deg, #0b1017, #090d13 72%)',
+              boxShadow:
+                'inset 0 1px 0 rgba(255,255,255,.035), 0 2.4rem 7rem rgba(0,0,0,.82), 0 0 0 1px rgba(207,169,93,.035)',
+            }}
             role="dialog"
             aria-modal="true"
             aria-labelledby="online-profile-name"
@@ -301,93 +308,189 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
             <button
               type="button"
               className={styles.close}
+              style={{
+                borderColor: 'rgba(207,169,93,.22)',
+                background: 'rgba(5,8,12,.9)',
+                boxShadow: '0 .45rem 1rem rgba(0,0,0,.28)',
+              }}
               aria-label="Close public character profile"
               onClick={() => setSelected(null)}
             >
               ×
             </button>
-            <div className={styles.portraitStage}>
+            <div
+              className={styles.portraitStage}
+              style={{
+                background:
+                  'radial-gradient(circle at 48% 22%, rgba(207,169,93,.2), transparent 46%), linear-gradient(180deg, rgba(255,255,255,.02), transparent 40%), #06090d',
+                boxShadow: 'inset -1px 0 0 rgba(207,169,93,.12)',
+              }}
+            >
               <Portrait character={selected} large />
               <span className={isOnline(selected) ? styles.liveBadge : styles.offlineBadge}>
                 {isOnline(selected) ? '● Online' : '○ Offline'}
               </span>
             </div>
             <div className={styles.profileCopy}>
-              <span>Public character profile</span>
-              <h2
-                id="online-profile-name"
+              <div
                 style={{
-                  fontSize:
-                    selected.name.length > 20
-                      ? 'clamp(1.35rem, 3.2vw, 2.1rem)'
-                      : selected.name.length > 14
-                        ? 'clamp(1.65rem, 4vw, 2.6rem)'
-                        : 'clamp(2rem, 5vw, 3.2rem)',
-                  lineHeight: 0.95,
-                  overflowWrap: 'anywhere',
+                  display: 'grid',
+                  gap: '.65rem',
+                  paddingBottom: '.95rem',
+                  borderBottom: '1px solid rgba(207,169,93,.13)',
                 }}
               >
-                {selected.name}
-              </h2>
-              <div aria-label="Character identity tags" style={{ display: 'grid', gap: '0.5rem' }}>
-                <span
+                <div
                   style={{
-                    color: 'var(--av-text-dim)',
-                    font: '700 0.46rem/1 var(--av-font-mono)',
-                    letterSpacing: '0.05em',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '.45rem',
+                    color: 'var(--av-brass-300)',
+                    font: '750 .5rem/1 var(--av-font-mono)',
+                    letterSpacing: '.08em',
                     textTransform: 'uppercase',
                   }}
                 >
-                  Identity
-                </span>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.38rem' }}>
-                  {publicIdentityTags(selected).length > 0 ? (
-                    publicIdentityTags(selected).map((tag) => (
-                      <span
-                        key={`${tag.kind}:${tag.label}`}
-                        title={tag.kind}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          padding: '0.42rem 0.58rem',
-                          border: '1px solid rgba(207,169,93,.4)',
-                          borderRadius: '999px',
-                          color:
-                            tag.kind === 'Personal Title'
-                              ? 'var(--av-verdant-400)'
-                              : 'var(--av-brass-200)',
-                          background:
-                            tag.kind === 'Personal Title'
-                              ? 'rgba(76,147,104,.08)'
-                              : 'rgba(207,169,93,.065)',
-                          font: '700 .5rem/1 var(--av-font-mono)',
-                        }}
-                      >
-                        {tag.label}
+                  <span
+                    aria-hidden="true"
+                    style={{
+                      display: 'grid',
+                      width: '1.35rem',
+                      height: '1.35rem',
+                      placeItems: 'center',
+                      border: '1px solid rgba(162,123,226,.32)',
+                      borderRadius: '50%',
+                      color: '#bda3eb',
+                      background: 'rgba(116,91,166,.07)',
+                      fontSize: '.55rem',
+                    }}
+                  >
+                    ◇
+                  </span>
+                  Public character profile
+                </div>
+                <h2
+                  id="online-profile-name"
+                  style={{
+                    margin: 0,
+                    color: '#f3ead8',
+                    fontSize:
+                      selected.name.length > 20
+                        ? 'clamp(1.35rem, 3.2vw, 2.1rem)'
+                        : selected.name.length > 14
+                          ? 'clamp(1.65rem, 4vw, 2.6rem)'
+                          : 'clamp(2rem, 5vw, 3.2rem)',
+                    lineHeight: 0.95,
+                    letterSpacing: '-.015em',
+                    overflowWrap: 'anywhere',
+                    textShadow: '0 .08rem 0 rgba(0,0,0,.55)',
+                  }}
+                >
+                  {selected.name}
+                </h2>
+                <div aria-label="Character identity tags" style={{ display: 'grid', gap: '.38rem' }}>
+                  <span
+                    style={{
+                      color: 'var(--av-text-dim)',
+                      font: '700 0.43rem/1 var(--av-font-mono)',
+                      letterSpacing: '0.065em',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    Identity
+                  </span>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '.38rem' }}>
+                    {publicIdentityTags(selected).length > 0 ? (
+                      publicIdentityTags(selected).map((tag) => (
+                        <span
+                          key={`${tag.kind}:${tag.label}`}
+                          title={tag.kind}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            minHeight: '1.8rem',
+                            padding: '.38rem .62rem',
+                            border:
+                              tag.kind === 'Personal Title'
+                                ? '1px solid rgba(95,188,133,.34)'
+                                : '1px solid rgba(207,169,93,.38)',
+                            borderRadius: '999px',
+                            color:
+                              tag.kind === 'Personal Title'
+                                ? '#a4ddb7'
+                                : 'var(--av-brass-200)',
+                            background:
+                              tag.kind === 'Personal Title'
+                                ? 'linear-gradient(180deg, rgba(55,126,82,.13), rgba(55,126,82,.05))'
+                                : 'linear-gradient(180deg, rgba(207,169,93,.09), rgba(207,169,93,.035))',
+                            boxShadow: 'inset 0 1px 0 rgba(255,255,255,.025)',
+                            font: '700 .48rem/1 var(--av-font-mono)',
+                          }}
+                        >
+                          {tag.label}
+                        </span>
+                      ))
+                    ) : (
+                      <span style={{ color: 'var(--av-text-dim)', fontSize: '.62rem' }}>
+                        No public identity tags are set.
                       </span>
-                    ))
-                  ) : (
-                    <span style={{ color: 'var(--av-text-dim)', fontSize: '.62rem' }}>
-                      No public identity tags are set.
-                    </span>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
-              <dl>
-                <div>
+
+              <dl style={{ gap: '.55rem' }}>
+                <div
+                  style={{
+                    position: 'relative',
+                    overflow: 'hidden',
+                    borderColor: 'rgba(207,169,93,.18)',
+                    background:
+                      'linear-gradient(135deg, rgba(207,169,93,.055), rgba(255,255,255,.012)), rgba(5,8,12,.36)',
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,.018)',
+                  }}
+                >
                   <dt>Character Level</dt>
-                  <dd>{selected.level}</dd>
+                  <dd style={{ color: '#f1e7d4', fontSize: '1.05rem' }}>{selected.level}</dd>
                 </div>
-                <div>
+                <div
+                  style={{
+                    position: 'relative',
+                    overflow: 'hidden',
+                    borderColor: isOnline(selected)
+                      ? 'rgba(95,188,133,.24)'
+                      : 'rgba(151,157,168,.2)',
+                    background: isOnline(selected)
+                      ? 'linear-gradient(135deg, rgba(55,126,82,.09), rgba(255,255,255,.012)), rgba(5,8,12,.36)'
+                      : 'linear-gradient(135deg, rgba(120,128,140,.045), rgba(255,255,255,.012)), rgba(5,8,12,.36)',
+                    boxShadow: 'inset 0 1px 0 rgba(255,255,255,.018)',
+                  }}
+                >
                   <dt>Presence</dt>
-                  <dd>
+                  <dd
+                    style={{
+                      color: isOnline(selected) ? '#a4ddb7' : '#e8e1d3',
+                      fontSize: '.9rem',
+                      lineHeight: 1.25,
+                    }}
+                  >
                     {isOnline(selected)
-                      ? 'Online'
+                      ? 'Online now'
                       : formatLastSeenAt(selected.lastSeenAt, currentNow)}
                   </dd>
                 </div>
               </dl>
-              <p className={styles.privacyNote}>
+
+              <p
+                className={styles.privacyNote}
+                style={{
+                  padding: '.68rem .76rem',
+                  border: '1px solid rgba(162,123,226,.14)',
+                  borderRadius: 'var(--av-radius-sm)',
+                  background:
+                    'linear-gradient(90deg, rgba(116,91,166,.055), rgba(255,255,255,.008))',
+                }}
+              >
                 Public profiles intentionally omit combat stats, inventory, currencies, account
                 identity, and other private character data.
               </p>
@@ -395,11 +498,23 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
                 <button
                   type="button"
                   disabled
+                  style={{
+                    borderColor: 'rgba(207,169,93,.16)',
+                    background: 'rgba(255,255,255,.012)',
+                  }}
                   title="Direct messages arrive with the social phase."
                 >
                   Send Direct Message · Planned
                 </button>
-                <button type="button" disabled title="Friends arrive with the social phase.">
+                <button
+                  type="button"
+                  disabled
+                  style={{
+                    borderColor: 'rgba(207,169,93,.16)',
+                    background: 'rgba(255,255,255,.012)',
+                  }}
+                  title="Friends arrive with the social phase."
+                >
                   Add Friend · Planned
                 </button>
               </div>
