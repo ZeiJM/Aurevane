@@ -46,6 +46,13 @@ describe('PvP-first shared battle visual contract', () => {
     expect(css).toContain('grid-template-columns: repeat(5, minmax(0, 1fr)) !important;')
   })
 
+  it('keeps the legacy final-facing pad mounted for keyboard authority but removes it from layout', () => {
+    const contract = readLocalFile('battle-screen-visual-contract.tsx')
+
+    expect(contract).toContain("'[data-unified-facing-pad=\"true\"]'")
+    expect(contract).toContain("facingPad.style.setProperty('display', 'none', 'important')")
+  })
+
   it('does not absorb PvP-only spectator, battle-key, chat transport or timer mechanics', () => {
     const contract = readLocalFile('battle-screen-visual-contract.tsx')
 
