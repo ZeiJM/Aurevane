@@ -46,31 +46,31 @@ const attributeLabels = {
 const ATTRIBUTE_COLORS: Readonly<
   Record<CharacterAttributeId, { solid: string; tint: string; soft: string }>
 > = {
-  might: { solid: '#ff7068', tint: 'rgba(255, 112, 104, 0.38)', soft: 'rgba(255, 112, 104, 0.20)' },
+  might: { solid: '#ff756e', tint: 'rgba(255, 117, 110, 0.28)', soft: 'rgba(255, 117, 110, 0.12)' },
   finesse: {
-    solid: '#c7ced8',
-    tint: 'rgba(199, 206, 216, 0.34)',
-    soft: 'rgba(199, 206, 216, 0.18)',
+    solid: '#d7dde6',
+    tint: 'rgba(215, 221, 230, 0.24)',
+    soft: 'rgba(215, 221, 230, 0.10)',
   },
   vitality: {
-    solid: '#72d97b',
-    tint: 'rgba(114, 217, 123, 0.38)',
-    soft: 'rgba(114, 217, 123, 0.20)',
+    solid: '#78e183',
+    tint: 'rgba(120, 225, 131, 0.28)',
+    soft: 'rgba(120, 225, 131, 0.12)',
   },
   agility: {
-    solid: '#f4dc61',
-    tint: 'rgba(244, 220, 97, 0.38)',
-    soft: 'rgba(244, 220, 97, 0.20)',
+    solid: '#f6df67',
+    tint: 'rgba(246, 223, 103, 0.28)',
+    soft: 'rgba(246, 223, 103, 0.12)',
   },
   intellect: {
-    solid: '#c282ff',
-    tint: 'rgba(194, 130, 255, 0.38)',
-    soft: 'rgba(194, 130, 255, 0.20)',
+    solid: '#ca8dff',
+    tint: 'rgba(202, 141, 255, 0.28)',
+    soft: 'rgba(202, 141, 255, 0.12)',
   },
   resolve: {
-    solid: '#70a9ff',
-    tint: 'rgba(112, 169, 255, 0.38)',
-    soft: 'rgba(112, 169, 255, 0.20)',
+    solid: '#78b0ff',
+    tint: 'rgba(120, 176, 255, 0.28)',
+    soft: 'rgba(120, 176, 255, 0.12)',
   },
 }
 
@@ -139,8 +139,8 @@ export function CharacterProfileDetails({
             <h2 id="attributes-title">Character strengths</h2>
           </div>
           <small>
-            Each core attribute has its own color. Derived stats reuse those colors to show what
-            feeds them.
+            Each core attribute owns a color. Derived stats carry those colors forward so their
+            weighting stays readable at a glance.
           </small>
         </header>
         <div className={styles.attributeGrid}>
@@ -180,8 +180,8 @@ export function CharacterProfileDetails({
             <h2 id="derived-title">Current values</h2>
           </div>
           <small>
-            Select a stat for details. Colored backgrounds identify its contributing core
-            attributes.
+            Select a stat for details. The bright rail shows the relative weighting of its
+            contributing core attributes.
           </small>
         </header>
         <div className={styles.statGroups}>
@@ -219,19 +219,34 @@ export function CharacterProfileDetails({
                       <span className={styles.statLabel}>{stat.label}</span>
                       <strong>{formatDerivedStat(stat)}</strong>
                       {sources.length > 0 ? (
-                        <span className={styles.lineage} aria-label={lineageLabel}>
-                          {sources.map((source) => (
-                            <i
-                              key={source.id}
-                              title={attributeLabels[source.id]}
-                              style={
-                                {
-                                  '--source-color': ATTRIBUTE_COLORS[source.id].solid,
-                                } as CSSProperties
-                              }
-                            />
-                          ))}
-                        </span>
+                        <>
+                          <span className={styles.lineage} aria-label={lineageLabel}>
+                            {sources.map((source) => (
+                              <i
+                                key={source.id}
+                                title={attributeLabels[source.id]}
+                                style={
+                                  {
+                                    '--source-color': ATTRIBUTE_COLORS[source.id].solid,
+                                  } as CSSProperties
+                                }
+                              />
+                            ))}
+                          </span>
+                          <span className={styles.lineageRail} aria-hidden="true">
+                            {sources.map((source) => (
+                              <i
+                                key={source.id}
+                                style={
+                                  {
+                                    '--source-color': ATTRIBUTE_COLORS[source.id].solid,
+                                    flexGrow: source.weight,
+                                  } as CSSProperties
+                                }
+                              />
+                            ))}
+                          </span>
+                        </>
                       ) : null}
                     </button>
                   )
@@ -279,7 +294,7 @@ function createLineageBackground(sources: readonly AttributeSource[]): string {
   if (sources.length === 0) return '#080b10'
   if (sources.length === 1) {
     const color = ATTRIBUTE_COLORS[sources[0].id]
-    return `linear-gradient(145deg, ${color.tint} 0%, ${color.soft} 58%, rgba(8, 11, 16, 0.94) 100%)`
+    return `linear-gradient(145deg, ${color.tint} 0%, ${color.soft} 48%, rgba(8, 11, 16, 0.96) 100%)`
   }
 
   const totalWeight = sources.reduce((total, source) => total + source.weight, 0)
