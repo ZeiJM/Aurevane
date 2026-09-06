@@ -81,6 +81,17 @@
   content: '';
 }
 
+/* Keep the public profile popup focused on character identity and status. */
+.page [role='dialog'] p,
+.page [role='dialog'] button:disabled {
+  display: none;
+}
+
+.page [role='dialog'] dl dd {
+  font-size: 0.72rem !important;
+  line-height: 1.2 !important;
+}
+
 @media (max-width: 700px) {
   .heading {
     height: auto;
