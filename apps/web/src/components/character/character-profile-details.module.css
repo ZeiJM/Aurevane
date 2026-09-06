@@ -408,8 +408,7 @@ button.identityFact:focus-visible {
   border: 1px solid rgba(207, 169, 93, 0.62);
   border-radius: var(--av-radius-md);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 35%),
-    rgba(11, 16, 23, 0.99);
+    linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 35%), rgba(11, 16, 23, 0.99);
   box-shadow: 0 1rem 2.8rem rgba(0, 0, 0, 0.64);
 }
 
