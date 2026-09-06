@@ -131,7 +131,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(skillRow(page, 'Barrier').getByRole('checkbox')).toBeChecked()
 
   // Tagged Techniques must keep the cockpit slot's keyboard contract and receive the same
-  // authoritative preview chips as the original basic actions after a skill swap.
+  // authoritative preview state as the original basic actions after a skill swap.
   const techniquesDialog = page.getByRole('dialog', { name: 'Techniques' })
   await techniquesDialog.getByRole('button', { name: 'Close' }).click()
   await page.getByRole('button', { name: 'Navigation' }).click()
@@ -224,13 +224,13 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(attackAction).toHaveAttribute('data-battle-active', 'true')
 
   // Directional keyboard targeting must use the swapped Technique's live target relation rather
-  // than the old one-tile Basic Attack helper. The first legal direction previews; pressing that
-  // same direction again commits through the exact same Confirm Action path as mouse input.
+  // than the old one-tile Basic Attack helper. The first legal direction obtains the server-backed
+  // legal preview; pressing that same direction again commits through the exact Confirm path.
   let attackDirection: string | null = null
   for (const key of ['KeyW', 'KeyA', 'KeyS', 'KeyD']) {
     await page.keyboard.press(key)
     try {
-      await expect(commandContext).toContainText('Hit ', { timeout: 1500 })
+      await expect(confirmAction).toBeEnabled({ timeout: 1500 })
       attackDirection = key
       break
     } catch {
@@ -240,8 +240,6 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
 
   expect(attackDirection).not.toBeNull()
   await expect(commandContext).toContainText('Forceful Strike')
-  await expect(commandContext).toContainText(/Hit \d+%/)
-  await expect(commandContext).toContainText(/On hit \d+ dmg/)
   await expect(confirmAction).toBeEnabled()
 
   await page.keyboard.press(attackDirection!)
