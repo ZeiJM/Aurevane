@@ -314,7 +314,21 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
             </div>
             <div className={styles.profileCopy}>
               <span>Public character profile</span>
-              <h2 id="online-profile-name">{selected.name}</h2>
+              <h2
+                id="online-profile-name"
+                style={{
+                  fontSize:
+                    selected.name.length > 20
+                      ? 'clamp(1.35rem, 3.2vw, 2.1rem)'
+                      : selected.name.length > 14
+                        ? 'clamp(1.65rem, 4vw, 2.6rem)'
+                        : 'clamp(2rem, 5vw, 3.2rem)',
+                  lineHeight: 0.95,
+                  overflowWrap: 'anywhere',
+                }}
+              >
+                {selected.name}
+              </h2>
               <div aria-label="Character identity tags" style={{ display: 'grid', gap: '0.5rem' }}>
                 <span
                   style={{
