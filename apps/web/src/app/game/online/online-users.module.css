@@ -11,7 +11,7 @@
 
 .heading {
   position: relative;
-  min-height: 3.25rem;
+  height: 3.25rem;
   padding: clamp(0.8rem, 1.2vw, 1rem) 10rem clamp(0.72rem, 1vw, 0.9rem)
     clamp(0.85rem, 1.35vw, 1.15rem);
   border-bottom: 1px solid rgba(207, 169, 93, 0.2);
@@ -37,13 +37,20 @@
   pointer-events: none;
 }
 
-/* Keep the directory toggle optically centered in the compact page-header band. */
-.page > .heading + div > button[aria-pressed] {
+/* Overlay the client-owned directory toolbar onto the same row as Live Presence. */
+.page > .heading + div {
   position: absolute;
-  top: 50%;
+  top: 0;
   right: clamp(0.85rem, 1.35vw, 1.15rem);
   z-index: 2;
-  transform: translateY(-50%);
+  height: 3.25rem;
+  display: flex;
+  align-items: center;
+}
+
+.page > .heading + div > button[aria-pressed] {
+  position: static;
+  transform: none;
   white-space: nowrap;
 }
 
@@ -76,8 +83,14 @@
 
 @media (max-width: 700px) {
   .heading {
+    height: auto;
     min-height: auto;
     padding-right: 0.85rem;
+  }
+
+  .page > .heading + div {
+    position: static;
+    height: auto;
   }
 
   .page > .heading + div > button[aria-pressed] {
