@@ -366,23 +366,24 @@ export function BattleExperience({
   const attackRange = useMemo(() => {
     const result = new Set<string>()
     if (!localPlacement) return result
-    for (const position of [
-      { x: localPlacement.position.x + 1, y: localPlacement.position.y },
-      { x: localPlacement.position.x - 1, y: localPlacement.position.y },
-      { x: localPlacement.position.x, y: localPlacement.position.y + 1 },
-      { x: localPlacement.position.x, y: localPlacement.position.y - 1 },
-    ]) {
-      if (
-        position.x >= 0 &&
-        position.x < tactical.width &&
-        position.y >= 0 &&
-        position.y < tactical.height
-      ) {
-        result.add(positionKey(position))
+
+    const minimumRange = selectedAttackTechnique?.minimumRange ?? 1
+    const maximumRange = selectedAttackTechnique?.maximumRange ?? 1
+    for (const tile of tactical.tiles) {
+      const distance =
+        Math.abs(tile.position.x - localPlacement.position.x) +
+        Math.abs(tile.position.y - localPlacement.position.y)
+      if (distance >= minimumRange && distance <= maximumRange) {
+        result.add(positionKey(tile.position))
       }
     }
     return result
-  }, [localPlacement, tactical.height, tactical.width])
+  }, [
+    localPlacement,
+    selectedAttackTechnique?.maximumRange,
+    selectedAttackTechnique?.minimumRange,
+    tactical.tiles,
+  ])
 
   const selectedParticipant = selectedUnitId
     ? (viewModel.participantByCombatant.get(selectedUnitId) ?? null)

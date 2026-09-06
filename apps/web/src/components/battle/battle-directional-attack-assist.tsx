@@ -32,17 +32,23 @@ function battleTiles(): HTMLButtonElement[] {
   )
 }
 
-function basicAttackButton(): HTMLButtonElement | null {
+function attackButton(): HTMLButtonElement | null {
+  const deck = document.querySelector<HTMLElement>('section[aria-label="Command Deck"]')
+  if (!deck) return null
+
   return (
-    Array.from(
-      document.querySelectorAll<HTMLButtonElement>('section[aria-label="Command Deck"] button'),
-    ).find((button) => button.querySelector('strong')?.textContent?.trim() === 'Basic Attack') ??
+    deck.querySelector<HTMLButtonElement>(
+      'button[data-command-slot="attack"], button[data-battle-command="attack"]',
+    ) ??
+    Array.from(deck.querySelectorAll<HTMLButtonElement>('button')).find(
+      (button) => button.querySelector('strong')?.textContent?.trim() === 'Basic Attack',
+    ) ??
     null
   )
 }
 
 function attackModeIsActive(): boolean {
-  const button = basicAttackButton()
+  const button = attackButton()
   if (!button || button.disabled) return false
   return button.hasAttribute('data-active') || `${button.className}`.includes('commandActive')
 }

@@ -64,7 +64,7 @@ function legalVisibleTargetButtons(playerName: string): HTMLButtonElement[] {
   return Array.from(
     document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label*="occupied by"]'),
   ).filter((button) => {
-    if (button.disabled) return false
+    if (button.disabled || button.dataset.target !== 'enemy') return false
     const label = button.getAttribute('aria-label') ?? ''
     return !label.includes(`occupied by ${playerName}`)
   })
@@ -376,9 +376,7 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
   useEffect(() => {
     function cycleTarget(reverse: boolean) {
       if (!attackModeIsActive()) return false
-      const targets = legalVisibleTargetButtons(playerName).filter(
-        (button) => button.dataset.attackRange === 'legal',
-      )
+      const targets = legalVisibleTargetButtons(playerName)
       if (targets.length === 0) return false
       const direction = reverse ? -1 : 1
       targetIndex.current =
