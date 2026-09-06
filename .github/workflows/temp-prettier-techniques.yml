@@ -1,0 +1,43 @@
+name: Temp Techniques Prettier
+
+on:
+  push:
+    branches:
+      - fix/techniques-ui-repeat-use-20260906
+
+permissions:
+  contents: read
+
+jobs:
+  format-diff:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - name: Format focused files
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/components/character/character-skill-build-panel.tsx \
+            apps/web/src/components/character/character-skill-build-panel-polish.module.css \
+            packages/game-core/src/character/discipline-skill-loadout.ts \
+            packages/game-core/src/character/discipline-skill-loadout.test.ts \
+            packages/game-core/src/combat/pv1f-action-economy.ts \
+            packages/game-core/src/combat/mature-skill-lifecycle.test.ts \
+            docs/GAME_MASTER_PLAN_TECHNIQUE_REPEAT_USE_ADDENDUM.md \
+            docs/ROADMAP_TECHNIQUE_REPEAT_USE.md
+      - name: Show formatter diff
+        run: git diff --no-ext-diff -- \
+          apps/web/src/components/character/character-skill-build-panel.tsx \
+          apps/web/src/components/character/character-skill-build-panel-polish.module.css \
+          packages/game-core/src/character/discipline-skill-loadout.ts \
+          packages/game-core/src/character/discipline-skill-loadout.test.ts \
+          packages/game-core/src/combat/pv1f-action-economy.ts \
+          packages/game-core/src/combat/mature-skill-lifecycle.test.ts \
+          docs/GAME_MASTER_PLAN_TECHNIQUE_REPEAT_USE_ADDENDUM.md \
+          docs/ROADMAP_TECHNIQUE_REPEAT_USE.md
