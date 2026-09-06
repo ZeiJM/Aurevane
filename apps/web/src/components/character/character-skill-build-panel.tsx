@@ -172,7 +172,7 @@ export function CharacterSkillBuildPanel({
   const secondarySelected = secondaryDiscipline ? selectedSourceCount(secondaryDiscipline.id) : 0
   const mixedSelectionValid =
     !secondaryDiscipline ||
-    selectedIds.length === 0 ||
+    selectedIds.length < capacity ||
     (primarySelected > 0 && secondarySelected > 0)
 
   function toggle(skill: SkillCatalogEntryView) {
@@ -198,7 +198,7 @@ export function CharacterSkillBuildPanel({
   async function save() {
     if (!dirty || pending) return
     if (!mixedSelectionValid) {
-      setMessage('Select at least one Technique from each active Discipline.')
+      setMessage('A full mixed loadout needs at least one Technique from each active Discipline.')
       return
     }
 
@@ -234,6 +234,12 @@ export function CharacterSkillBuildPanel({
       setPending(false)
     }
   }
+
+  const signatureLabel = initialResonance
+    ? 'Build Signature · Resonance'
+    : initialEssence
+      ? 'Build Signature · Essence Skill'
+      : 'Build Signature'
 
   return (
     <div className={styles.root} data-testid="skill-build-panel">
@@ -317,7 +323,7 @@ export function CharacterSkillBuildPanel({
                       <span className={styles.eyebrow}>Active build</span>
                       <strong className={styles.buildName}>
                         {primaryDiscipline.name}
-                        {secondaryDiscipline ? ` + ${secondaryDiscipline.name}` : ' · Pure'}
+                        {secondaryDiscipline ? ` + ${secondaryDiscipline.name}` : ''}
                       </strong>
                     </section>
 
@@ -333,7 +339,7 @@ export function CharacterSkillBuildPanel({
 
                     {(initialResonance || initialEssence) && (
                       <section className={`${styles.extensions} ${polish.signatureSection}`}>
-                        <span className={styles.eyebrow}>Build Signature</span>
+                        <span className={styles.eyebrow}>{signatureLabel}</span>
                         {initialResonance ? (
                           <article className={polish.signatureCard}>
                             <span className={polish.signatureArtFrame} aria-hidden="true">
@@ -344,9 +350,7 @@ export function CharacterSkillBuildPanel({
                               />
                             </span>
                             <div className={polish.signatureCopy}>
-                              <strong data-testid="active-resonance">
-                                Resonance — {initialResonance.name}
-                              </strong>
+                              <strong data-testid="active-resonance">{initialResonance.name}</strong>
                               <span className={styles.metaRow}>
                                 {initialResonance.disciplinePair.map((disciplineId) => (
                                   <small key={disciplineId} style={chipPaletteStyle(disciplineId)}>
@@ -369,9 +373,7 @@ export function CharacterSkillBuildPanel({
                               />
                             </span>
                             <div className={polish.signatureCopy}>
-                              <strong data-testid="active-essence">
-                                Essence Skill — {initialEssence.name}
-                              </strong>
+                              <strong data-testid="active-essence">{initialEssence.name}</strong>
                               <span className={styles.metaRow}>
                                 <small style={chipPaletteStyle(initialEssence.sourceDisciplineId)}>
                                   {titleCase(initialEssence.sourceDisciplineId)}
