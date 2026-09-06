@@ -81,10 +81,7 @@ export function validateDisciplineSkillLoadout(
         message: `A mixed build may tag at most ${MIXED_DISCIPLINE_SKILL_SOURCE_CAPACITY} Techniques from the Secondary Discipline.`,
       })
     }
-    if (
-      input.equipped.length === capacity &&
-      (primaryCount === 0 || secondaryCount === 0)
-    ) {
+    if (input.equipped.length === capacity && (primaryCount === 0 || secondaryCount === 0)) {
       issues.push({
         code: 'mixed-source-required',
         message: 'A full mixed build must tag at least one Technique from each active Discipline.',
