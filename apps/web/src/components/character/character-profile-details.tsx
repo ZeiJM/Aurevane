@@ -42,34 +42,50 @@ const attributeLabels = {
   resolve: 'Resolve',
 } as const
 
+const attributeGlyphs = {
+  might: 'M',
+  finesse: 'F',
+  vitality: 'V',
+  agility: 'A',
+  intellect: 'I',
+  resolve: 'R',
+} as const
+
+const groupGlyphs = {
+  vitals: '+',
+  tempo: '↗',
+  offense: '×',
+  defense: '◈',
+} as const
+
 const ATTRIBUTE_COLORS: Readonly<
   Record<CharacterAttributeId, { solid: string; tint: string; soft: string }>
 > = {
-  might: { solid: '#ff756e', tint: 'rgba(255, 117, 110, 0.28)', soft: 'rgba(255, 117, 110, 0.12)' },
+  might: { solid: '#ff756e', tint: 'rgba(255, 117, 110, 0.32)', soft: 'rgba(255, 117, 110, 0.17)' },
   finesse: {
     solid: '#d7dde6',
-    tint: 'rgba(215, 221, 230, 0.24)',
-    soft: 'rgba(215, 221, 230, 0.10)',
+    tint: 'rgba(215, 221, 230, 0.28)',
+    soft: 'rgba(215, 221, 230, 0.15)',
   },
   vitality: {
     solid: '#78e183',
-    tint: 'rgba(120, 225, 131, 0.28)',
-    soft: 'rgba(120, 225, 131, 0.12)',
+    tint: 'rgba(120, 225, 131, 0.32)',
+    soft: 'rgba(120, 225, 131, 0.17)',
   },
   agility: {
     solid: '#f6df67',
-    tint: 'rgba(246, 223, 103, 0.28)',
-    soft: 'rgba(246, 223, 103, 0.12)',
+    tint: 'rgba(246, 223, 103, 0.32)',
+    soft: 'rgba(246, 223, 103, 0.17)',
   },
   intellect: {
     solid: '#ca8dff',
-    tint: 'rgba(202, 141, 255, 0.28)',
-    soft: 'rgba(202, 141, 255, 0.12)',
+    tint: 'rgba(202, 141, 255, 0.32)',
+    soft: 'rgba(202, 141, 255, 0.17)',
   },
   resolve: {
     solid: '#78b0ff',
-    tint: 'rgba(120, 176, 255, 0.28)',
-    soft: 'rgba(120, 176, 255, 0.12)',
+    tint: 'rgba(120, 176, 255, 0.32)',
+    soft: 'rgba(120, 176, 255, 0.17)',
   },
 }
 
@@ -105,17 +121,27 @@ export function CharacterProfileDetails({
   return (
     <>
       <div className={styles.identityFacts} aria-label="Character identity details">
-        <div>
-          <span>Gender</span>
-          <strong>{presentationLabel}</strong>
+        <div className={styles.identityFact}>
+          <span className={styles.factGlyph} aria-hidden="true">
+            G
+          </span>
+          <span className={styles.factCopy}>
+            <small>Gender</small>
+            <strong>{presentationLabel}</strong>
+          </span>
         </div>
-        <div>
-          <span>Pronouns</span>
-          <strong>{pronounLabel}</strong>
+        <div className={styles.identityFact}>
+          <span className={styles.factGlyph} aria-hidden="true">
+            P
+          </span>
+          <span className={styles.factCopy}>
+            <small>Pronouns</small>
+            <strong>{pronounLabel}</strong>
+          </span>
         </div>
         <button
           type="button"
-          style={{ gridColumn: 'span 2', borderRight: 0 }}
+          className={styles.identityFact}
           onClick={() =>
             setDetail({
               eyebrow: 'Rekindling record',
@@ -124,14 +150,23 @@ export function CharacterProfileDetails({
             })
           }
         >
-          <span>Rekindling Cycle</span>
-          <strong>{cycleNumber}</strong>
+          <span className={styles.factGlyph} aria-hidden="true">
+            R
+          </span>
+          <span className={styles.factCopy}>
+            <small>Rekindling Cycle</small>
+            <strong>{cycleNumber}</strong>
+          </span>
         </button>
       </div>
 
       <section className={styles.section} aria-labelledby="attributes-title">
-        <header>
-          <h2 id="attributes-title">Core Attributes</h2>
+        <header className={styles.sectionHeader}>
+          <div className={styles.sectionTitleLine}>
+            <h2 id="attributes-title">Core Attributes</h2>
+            <span aria-hidden="true" />
+          </div>
+          <small>Foundation of your potential</small>
         </header>
         <div className={styles.attributeGrid}>
           {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => {
@@ -139,7 +174,6 @@ export function CharacterProfileDetails({
             const style = {
               '--attribute-color': color.solid,
               '--attribute-tint': color.tint,
-              alignItems: 'center',
             } as CSSProperties
             return (
               <button
@@ -156,8 +190,13 @@ export function CharacterProfileDetails({
                   })
                 }
               >
-                <span>{attributeLabels[attributeId]}</span>
-                <strong>{attributes[attributeId]}</strong>
+                <span className={styles.attributeGlyph} aria-hidden="true">
+                  {attributeGlyphs[attributeId]}
+                </span>
+                <span className={styles.attributeCopy}>
+                  <span className={styles.attributeLabel}>{attributeLabels[attributeId]}</span>
+                  <strong>{attributes[attributeId]}</strong>
+                </span>
               </button>
             )
           })}
@@ -165,17 +204,27 @@ export function CharacterProfileDetails({
       </section>
 
       <section className={styles.section} aria-labelledby="derived-title">
-        <header>
-          <h2 id="derived-title">Combat &amp; Adventure Stats</h2>
+        <header className={styles.sectionHeader}>
+          <div className={styles.sectionTitleLine}>
+            <h2 id="derived-title">Combat &amp; Adventure Stats</h2>
+            <span aria-hidden="true" />
+          </div>
+          <small>Derived from your attributes</small>
         </header>
         <div className={styles.statGroups}>
           {orderedDerivedStatGroups.map((group) => (
             <section className={styles.statGroup} key={group.id} aria-label={group.label}>
-              <h3>{group.label}</h3>
+              <h3>
+                <span className={styles.groupGlyph} aria-hidden="true">
+                  {groupGlyphs[group.id]}
+                </span>
+                {group.label}
+              </h3>
               <div>
                 {group.statIds.map((statId) => {
                   const stat = derived.stats[statId]
                   const sources = getAttributeSources(stat)
+                  const formattedValue = formatDerivedStat(stat)
                   const style = {
                     '--lineage-background': createLineageBackground(sources),
                     '--lineage-border': createLineageBorder(sources),
@@ -191,7 +240,7 @@ export function CharacterProfileDetails({
                       data-testid={`derived-stat-${statId}`}
                       data-source-count={sources.length}
                       style={style}
-                      title={lineageLabel}
+                      aria-label={`${stat.label}, ${formattedValue}. ${lineageLabel}. Select for details.`}
                       onClick={() =>
                         setDetail({
                           eyebrow: group.label,
@@ -201,7 +250,7 @@ export function CharacterProfileDetails({
                       }
                     >
                       <span className={styles.statLabel}>{stat.label}</span>
-                      <strong>{formatDerivedStat(stat)}</strong>
+                      <strong>{formattedValue}</strong>
                       {sources.length > 0 ? (
                         <>
                           <span className={styles.lineage} aria-label={lineageLabel}>
@@ -278,7 +327,7 @@ function createLineageBackground(sources: readonly AttributeSource[]): string {
   if (sources.length === 0) return '#080b10'
   if (sources.length === 1) {
     const color = ATTRIBUTE_COLORS[sources[0].id]
-    return `linear-gradient(145deg, ${color.tint} 0%, ${color.soft} 48%, rgba(8, 11, 16, 0.96) 100%)`
+    return `linear-gradient(145deg, ${color.tint} 0%, ${color.soft} 52%, rgba(8, 11, 16, 0.96) 100%)`
   }
 
   const totalWeight = sources.reduce((total, source) => total + source.weight, 0)
