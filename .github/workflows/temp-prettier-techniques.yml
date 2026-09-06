@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - fix/techniques-ui-repeat-use-20260906
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
