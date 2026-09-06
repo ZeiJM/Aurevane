@@ -35,12 +35,4 @@ jobs:
             docs/GAME_MASTER_PLAN_TECHNIQUE_REPEAT_USE_ADDENDUM.md \
             docs/ROADMAP_TECHNIQUE_REPEAT_USE.md
       - name: Show formatter diff
-        run: git diff --no-ext-diff -- \
-          apps/web/src/components/character/character-skill-build-panel.tsx \
-          apps/web/src/components/character/character-skill-build-panel-polish.module.css \
-          packages/game-core/src/character/discipline-skill-loadout.ts \
-          packages/game-core/src/character/discipline-skill-loadout.test.ts \
-          packages/game-core/src/combat/pv1f-action-economy.ts \
-          packages/game-core/src/combat/mature-skill-lifecycle.test.ts \
-          docs/GAME_MASTER_PLAN_TECHNIQUE_REPEAT_USE_ADDENDUM.md \
-          docs/ROADMAP_TECHNIQUE_REPEAT_USE.md
+        run: git diff --no-ext-diff
