@@ -65,11 +65,14 @@ describe('P3.4 Discipline Technique loadout authority', () => {
     ).toEqual([])
   })
 
-  it('rejects a mixed 4 + 0 split and any non-empty one-source mixed loadout', () => {
+  it('rejects a full mixed 4 + 0 split but allows partial one-source transition loadouts', () => {
     const fourPrimary = Array.from({ length: 4 }, (_, index) =>
       skill(`vanguard.skill-${index + 1}`, 'vanguard'),
     )
-    const onePrimary = [skill('vanguard.skill-1', 'vanguard')]
+    const partialPrimary = [
+      skill('vanguard.skill-1', 'vanguard'),
+      skill('vanguard.skill-2', 'vanguard'),
+    ]
 
     expect(
       validateDisciplineSkillLoadout({
@@ -89,10 +92,10 @@ describe('P3.4 Discipline Technique loadout authority', () => {
       validateDisciplineSkillLoadout({
         primaryDisciplineId: 'vanguard',
         secondaryDisciplineId: 'lifebinder',
-        equipped: onePrimary,
-        learned: onePrimary,
+        equipped: partialPrimary,
+        learned: partialPrimary,
       }),
-    ).toContainEqual(expect.objectContaining({ code: 'mixed-source-required' }))
+    ).toEqual([])
   })
 
   it('rejects over-capacity, duplicate, and unlearned selections', () => {

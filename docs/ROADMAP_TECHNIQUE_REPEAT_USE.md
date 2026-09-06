@@ -19,12 +19,15 @@ PURE
 
 MIXED
 up to 4 total across Primary + Secondary
-non-empty loadout must contain at least 1 from each
+partial 0–3 selections may temporarily come from one active Discipline
 full-loadout splits: 1–3 / 2–2 / 3–1
+full 4–0 / 0–4 allocations are illegal
 + Resonance passive
 ```
 
 The mature Discipline library can still grow beyond four learned Techniques. The four-Technique rule is the active combat selection/cockpit capacity, not a limit on how many Skills a Discipline can eventually teach.
+
+Partial mixed selections remain legal so changing Disciplines cannot strand a character in an unreadable or unusable build before the player finishes configuring all four slots. The requirement to use both active Disciplines applies when the four-slot mixed loadout is full.
 
 ---
 
@@ -48,11 +51,15 @@ Basic-action cooldowns such as the current Recover timer remain separate until e
 
 The current focused implementation must establish:
 
-- server-authoritative mixed 1–3 / 2–2 / 3–1 legality;
+- server-authoritative four-slot mixed 1–3 / 2–2 / 3–1 legality;
+- legal partial mixed selections during build transitions;
+- database and application validation using the same mixed-loadout contract;
 - Profile picker filtered to active Disciplines only;
 - source/AP/cockpit-type Technique metadata;
 - retired cooldown/learned-version clutter removed from Profile cards;
 - Build Signature presentation for Resonance/Essence with artwork;
+- contextual `Build Signature · Essence Skill` / `Build Signature · Resonance` headings without duplicate type prefixes in the signature name;
+- pure Active Build labels using the Discipline name without a redundant `Pure` suffix;
 - repeat-use marker in authoritative battle state;
 - 50% effect transformation used by both preview and execution;
 - no mature-Skill cooldown lockout on the canonical combat path;

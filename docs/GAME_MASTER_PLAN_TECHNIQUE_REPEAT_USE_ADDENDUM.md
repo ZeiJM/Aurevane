@@ -26,7 +26,7 @@ The pure Discipline's **Essence Skill remains outside those four selected Techni
 
 A Primary + Secondary build may select up to four learned Discipline Techniques total across the two active Disciplines.
 
-A non-empty mixed loadout must include at least one Technique from **each** active Discipline.
+A **full four-Technique mixed loadout** must include at least one Technique from **each** active Discipline. Partial mixed loadouts with fewer than four selected Techniques may temporarily come from one active Discipline while the player configures or transitions the build; they are not treated as a completed four-slot allocation.
 
 For a full four-Technique loadout the legal splits are:
 
@@ -37,14 +37,14 @@ PRIMARY / SECONDARY
 3 / 1
 ```
 
-The following is illegal:
+The following full allocations are illegal:
 
 ```text
 0 / 4
 4 / 0
 ```
 
-The server must enforce this rule authoritatively. The browser may guide selection but cannot be the legality boundary.
+The server must enforce this rule authoritatively. The browser may guide selection but cannot be the legality boundary. Discipline changes must not strand a character in an unreadable or unusable build merely because the previous partial selection belongs to only one of the newly active Disciplines.
 
 Mixed builds retain their resolved Resonance passive and do not gain a pure Essence while a Secondary is active.
 
@@ -121,13 +121,21 @@ Resonance is displayed in Profile as part of the character's **Build Signature**
 
 Essence remains the pure-build signature Skill outside the four selected Technique slots.
 
-Profile presentation uses:
+Profile presentation uses a contextual Build Signature heading:
 
 ```text
-Essence Skill — {Name}
+Build Signature · Essence Skill
+{Name}
 ```
 
-The Essence card shows its artwork, source Discipline, AP cost, and cockpit role/type.
+For a mixed build with Resonance the corresponding heading is:
+
+```text
+Build Signature · Resonance
+{Name}
+```
+
+The signature card shows its artwork and relevant source/AP/type metadata without repeating “Essence Skill —” or “Resonance —” before the name.
 
 Essence uses the same no-cooldown / consecutive-use 50% effectiveness rule as other authored Skills.
 
@@ -156,8 +164,12 @@ It must:
 - omit learned-version text from ordinary player-facing cards;
 - omit retired turn-cooldown chips from authored Skill cards;
 - show one pure Discipline selection counter or one counter per active Discipline for mixed builds;
-- communicate the mixed 1–3 / 2–2 / 3–1 rule without redundant helper copy;
+- communicate the mixed 1–3 / 2–2 / 3–1 full-loadout rule without redundant helper copy;
+- permit partial mixed selections while a build is being configured;
 - present Essence/Resonance in a premium Build Signature surface with artwork;
+- label that surface `Build Signature · Essence Skill` or `Build Signature · Resonance` as applicable;
+- show the signature name without repeating the signature type in front of it;
+- show a pure Active Build as the Discipline name alone, without a redundant “Pure” suffix;
 - keep commit/clear actions readable and consistent with the rest of the Profile UI.
 
 ---
