@@ -233,7 +233,7 @@ export function CharacterSkillBuildPanel({
               <div className={styles.headerActions}>
                 <div className={styles.capacityBadge} data-testid="skill-capacity">
                   <strong>{selectedIds.length}</strong>
-                  <span>/ {capacity} tagged</span>
+                  <span>{` / ${capacity}`}</span>
                 </div>
                 <button type="button" className={styles.close} onClick={() => setPanelOpen(false)}>
                   Close
