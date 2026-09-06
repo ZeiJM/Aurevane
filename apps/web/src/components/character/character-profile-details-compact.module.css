@@ -25,6 +25,10 @@
   filter: drop-shadow(0 0 0.34rem color-mix(in srgb, var(--attribute-color) 26%, transparent));
 }
 
+.details [data-testid^='profile-attribute-']::after {
+  display: none !important;
+}
+
 @media (min-width: 761px) and (max-height: 1100px) {
   .details [data-profile-facts] {
     margin: 0.58rem 0 0.55rem;
