@@ -151,8 +151,8 @@ function showCommandDescription(
     instruction.description.textContent = description
   }
   if (instruction.description.style.display) instruction.description.style.display = ''
-  if (instruction.description.title !== presentation.description) {
-    instruction.description.title = presentation.description
+  if (instruction.description.title !== description) {
+    instruction.description.title = description
   }
 }
 

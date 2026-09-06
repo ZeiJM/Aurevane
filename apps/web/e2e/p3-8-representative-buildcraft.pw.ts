@@ -112,4 +112,71 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(skillRow(page, 'Cleave').getByRole('checkbox')).toBeChecked()
   await expect(skillRow(page, 'Mending Light').getByRole('checkbox')).toBeChecked()
   await expect(skillRow(page, 'Barrier').getByRole('checkbox')).toBeChecked()
+
+  // Tagged Techniques must keep the cockpit slot's keyboard contract and receive the same
+  // authoritative preview chips as the original basic actions after a skill swap.
+  const techniquesDialog = page.getByRole('dialog', { name: 'Techniques' })
+  await techniquesDialog.getByRole('button', { name: 'Close' }).click()
+  await page.getByRole('button', { name: 'Navigation' }).click()
+  await page.getByRole('link', { name: /Battle Hall/ }).click()
+  await expect(page).toHaveURL(/\/game\/battle$/)
+  await page.getByLabel('Battle mode').selectOption('recruit-sparring')
+  await page.getByRole('button', { name: 'Enter Battle' }).click()
+  await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
+
+  const commandDeck = page.getByRole('region', { name: 'Command Deck' })
+  const commandContext = commandDeck.locator(':scope > div').first()
+  const attackCard = commandDeck.locator('[data-command-card="attack"]')
+  const attackAction = attackCard.locator('button[data-command-slot="attack"]')
+  const attackArtwork = attackCard.getByRole('button', { name: /Choose Attack skill/i })
+
+  await attackArtwork.click()
+  const attackSelector = page.getByRole('listbox', { name: 'Attack skills' })
+  await expect(attackSelector.getByRole('option', { name: /Forceful Strike/ })).toBeVisible()
+  await attackSelector.getByRole('option', { name: /Forceful Strike/ }).click()
+  await expect(attackAction).toContainText('Forceful Strike')
+
+  await page.keyboard.press('Digit3')
+  await expect(attackAction).toHaveAttribute('data-battle-active', 'true')
+  await expect
+    .poll(() => page.locator('#battlefield button[data-attack-range]').count())
+    .toBeGreaterThan(0)
+
+  const battleSessionId = page.url().split('/').at(-1)
+  expect(battleSessionId).toMatch(/^[0-9a-f-]{36}$/)
+  if (!battleSessionId) return
+
+  await page.route(`**/api/battles/${battleSessionId}/preview`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        battlePreview: {
+          preview: {
+            kind: 'action',
+            legal: true,
+            issues: [],
+            actionId: 'vanguard.forceful-strike',
+            hitChanceBasisPoints: 6500,
+            mitigatedBaseDamage: 18,
+            projectedEffects: [],
+            projectedStatuses: [],
+            affectedCombatantIds: ['recruit:1'],
+          },
+        },
+      }),
+    })
+  })
+
+  await page.evaluate(async (id) => {
+    await fetch(`/api/battles/${id}/preview`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}',
+    })
+  }, battleSessionId)
+
+  await expect(commandContext).toContainText('Forceful Strike')
+  await expect(commandContext).toContainText('Hit 65%')
+  await expect(commandContext).toContainText('On hit 18 dmg')
 })
