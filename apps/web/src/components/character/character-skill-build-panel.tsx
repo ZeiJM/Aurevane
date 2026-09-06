@@ -170,6 +170,12 @@ export function CharacterSkillBuildPanel({
 
   const primarySelected = selectedSourceCount(primaryDiscipline.id)
   const secondarySelected = secondaryDiscipline ? selectedSourceCount(secondaryDiscipline.id) : 0
+  const primaryMixedLimit = secondaryDiscipline
+    ? Math.min(MIXED_SOURCE_MAXIMUM, capacity - secondarySelected)
+    : capacity
+  const secondaryMixedLimit = secondaryDiscipline
+    ? Math.min(MIXED_SOURCE_MAXIMUM, capacity - primarySelected)
+    : capacity
   const mixedSelectionValid =
     !secondaryDiscipline ||
     selectedIds.length < capacity ||
@@ -285,7 +291,7 @@ export function CharacterSkillBuildPanel({
                           >
                             <span className={polish.counterName}>{primaryDiscipline.name}</span>
                             <strong>{primarySelected}</strong>
-                            <span>{` / ${capacity}`}</span>
+                            <span>{` / ${primaryMixedLimit}`}</span>
                           </div>
                           <div
                             className={`${styles.capacityBadge} ${polish.capacityBadge}`}
@@ -293,7 +299,7 @@ export function CharacterSkillBuildPanel({
                           >
                             <span className={polish.counterName}>{secondaryDiscipline.name}</span>
                             <strong>{secondarySelected}</strong>
-                            <span>{` / ${capacity}`}</span>
+                            <span>{` / ${secondaryMixedLimit}`}</span>
                           </div>
                         </>
                       ) : (
@@ -326,16 +332,6 @@ export function CharacterSkillBuildPanel({
                         {secondaryDiscipline ? ` + ${secondaryDiscipline.name}` : ''}
                       </strong>
                     </section>
-
-                    {secondaryDiscipline ? (
-                      <section
-                        className={`${styles.splitCard} ${polish.mixedRuleCard}`}
-                        data-testid="mixed-technique-split"
-                      >
-                        <strong>4 Techniques total</strong>
-                        <span>Use a 1–3, 2–2, or 3–1 Discipline split.</span>
-                      </section>
-                    ) : null}
 
                     {(initialResonance || initialEssence) && (
                       <section className={`${styles.extensions} ${polish.signatureSection}`}>
