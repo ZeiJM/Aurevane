@@ -9,6 +9,7 @@ import {
   evaluatePv1fMatureSkill,
   executePv1fMatureSkill,
   finishPv1fTurn,
+  PV1F_REPEAT_SKILL_EFFECTIVENESS_BASIS_POINTS,
 } from './pv1f-action-economy'
 import {
   createStatDrivenCombatEncounterState,
@@ -102,75 +103,55 @@ function lifecycleEncounter(): StatDrivenCombatEncounterState {
   ])
 }
 
-function advanceFullRound(state: StatDrivenCombatEncounterState) {
+function advanceFullRound(state: StatDrivenCombatEncounterState): StatDrivenCombatEncounterState {
   const recruitTurn = finishPv1fTurn(state, 'east')
-  const playerTurn = finishPv1fTurn(recruitTurn.state, 'west')
-  return {
-    state: playerTurn.state,
-    events: [...recruitTurn.events, ...playerTurn.events],
-  }
+  return finishPv1fTurn(recruitTurn.state, 'west').state
 }
 
-describe('P3.3 representative mature Skill lifecycle acceptance', () => {
-  it('uses, cools down, survives reconnect, becomes ready, and can be used again', () => {
+describe('mature Skill repeat-use lifecycle', () => {
+  it('keeps a Skill available and applies 50% effectiveness to consecutive uses', () => {
     const definition = resolveMatureSkillVersion('lifebinder.mending-light', 1)
     if (!definition) throw new Error('Expected representative Lifebinder Skill.')
 
-    const used = executePv1fMatureSkill(lifecycleEncounter(), definition, { kind: 'self' })
-    expect(used.events).toContainEqual(
+    const first = executePv1fMatureSkill(lifecycleEncounter(), definition, { kind: 'self' })
+    expect(first.events).not.toContainEqual(
+      expect.objectContaining({ event: 'skill_cooldown_started' }),
+    )
+    expect(first.state.tactical.battle.combatants.find((row) => row.id === 'player')?.hp).toBe(41)
+
+    const preview = evaluatePv1fMatureSkill(first.state, definition, { kind: 'self' })
+    expect(preview.evaluation.legal).toBe(true)
+    expect(preview.repeatPenaltyApplied).toBe(true)
+    expect(preview.evaluation.projectedEffects).toContainEqual(
+      expect.objectContaining({ effectType: 'healing', before: 41, after: 49 }),
+    )
+
+    const repeated = executePv1fMatureSkill(first.state, definition, { kind: 'self' })
+    expect(repeated.events).toContainEqual(
       expect.objectContaining({
-        event: 'skill_cooldown_started',
-        cooldownKey: definition.cooldown.key,
+        event: 'skill_repeat_penalty_applied',
         actionId: definition.id,
-        definitionVersion: definition.contentVersion,
+        effectivenessBasisPoints: PV1F_REPEAT_SKILL_EFFECTIVENESS_BASIS_POINTS,
       }),
     )
-
-    const reconnected = JSON.parse(JSON.stringify(used.state)) as StatDrivenCombatEncounterState
-    expect(
-      evaluatePv1fMatureSkill(reconnected, definition, { kind: 'self' }).evaluation,
-    ).toMatchObject({
-      legal: false,
-      issues: expect.arrayContaining([expect.objectContaining({ code: 'cooldown-active' })]),
-    })
-
-    const firstFutureOwnerTurn = advanceFullRound(reconnected)
-    expect(
-      evaluatePv1fMatureSkill(firstFutureOwnerTurn.state, definition, { kind: 'self' }).evaluation
-        .legal,
-    ).toBe(false)
-    expect(firstFutureOwnerTurn.events).not.toContainEqual(
-      expect.objectContaining({ event: 'skill_cooldown_ready' }),
+    expect(repeated.state.tactical.battle.combatants.find((row) => row.id === 'player')?.hp).toBe(
+      49,
     )
+  })
 
-    const secondFutureOwnerTurn = advanceFullRound(firstFutureOwnerTurn.state)
-    expect(
-      evaluatePv1fMatureSkill(secondFutureOwnerTurn.state, definition, { kind: 'self' }).evaluation
-        .legal,
-    ).toBe(false)
-    expect(secondFutureOwnerTurn.events).not.toContainEqual(
-      expect.objectContaining({ event: 'skill_cooldown_ready' }),
-    )
+  it('persists repeat-use state through reconnect and across turn boundaries', () => {
+    const definition = resolveMatureSkillVersion('lifebinder.mending-light', 1)
+    if (!definition) throw new Error('Expected representative Lifebinder Skill.')
 
-    const readyTurn = advanceFullRound(secondFutureOwnerTurn.state)
-    expect(readyTurn.events).toContainEqual(
-      expect.objectContaining({
-        event: 'skill_cooldown_ready',
-        combatantId: 'player',
-        cooldownKey: definition.cooldown.key,
-      }),
-    )
-    expect(
-      evaluatePv1fMatureSkill(readyTurn.state, definition, { kind: 'self' }).evaluation.legal,
-    ).toBe(true)
+    const first = executePv1fMatureSkill(lifecycleEncounter(), definition, { kind: 'self' })
+    const reconnected = JSON.parse(JSON.stringify(first.state)) as StatDrivenCombatEncounterState
+    const nextOwnerTurn = advanceFullRound(reconnected)
+    const preview = evaluatePv1fMatureSkill(nextOwnerTurn, definition, { kind: 'self' })
 
-    const reused = executePv1fMatureSkill(readyTurn.state, definition, { kind: 'self' })
-    expect(reused.events).toContainEqual(
-      expect.objectContaining({
-        event: 'skill_cooldown_started',
-        cooldownKey: definition.cooldown.key,
-      }),
+    expect(preview.evaluation.legal).toBe(true)
+    expect(preview.repeatPenaltyApplied).toBe(true)
+    expect(preview.evaluation.projectedEffects).toContainEqual(
+      expect.objectContaining({ effectType: 'healing', before: 41, after: 49 }),
     )
-    expect(reused.state.tactical.battle.combatants.find((row) => row.id === 'player')?.hp).toBe(50)
   })
 })

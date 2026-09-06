@@ -1,6 +1,6 @@
 export const PURE_DISCIPLINE_SKILL_CAPACITY = 4 as const
 export const MIXED_DISCIPLINE_SKILL_CAPACITY = 4 as const
-export const MIXED_DISCIPLINE_SKILL_SOURCE_CAPACITY = 2 as const
+export const MIXED_DISCIPLINE_SKILL_SOURCE_CAPACITY = 3 as const
 
 export interface DisciplineSkillReference {
   readonly skillId: string
@@ -12,6 +12,7 @@ export interface DisciplineSkillLoadoutIssue {
   readonly code:
     | 'capacity-exceeded'
     | 'mixed-source-capacity-exceeded'
+    | 'mixed-source-required'
     | 'duplicate-skill'
     | 'invalid-skill-reference'
     | 'inactive-skill-source'
@@ -78,6 +79,12 @@ export function validateDisciplineSkillLoadout(
       issues.push({
         code: 'mixed-source-capacity-exceeded',
         message: `A mixed build may tag at most ${MIXED_DISCIPLINE_SKILL_SOURCE_CAPACITY} Techniques from the Secondary Discipline.`,
+      })
+    }
+    if (input.equipped.length > 0 && (primaryCount === 0 || secondaryCount === 0)) {
+      issues.push({
+        code: 'mixed-source-required',
+        message: 'A mixed build must tag at least one Technique from each active Discipline.',
       })
     }
   }

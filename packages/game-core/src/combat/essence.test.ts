@@ -176,7 +176,7 @@ describe('P3.6 versioned pure Essence framework', () => {
     ).toBeNull()
   })
 
-  it('uses the canonical PV-1F Skill path for AP, cooldown, effects, and PvP overrides', () => {
+  it('uses canonical PV-1F Essence authority for AP, effects, repeat-use, and PvP', () => {
     const essence = resolveEssenceForBuild('vanguard', null)
     if (!essence) throw new Error('Expected representative Vanguard Essence.')
 
@@ -190,21 +190,16 @@ describe('P3.6 versioned pure Essence framework', () => {
     })
     expect(readPv1fActionEconomy(pve.state, 'player')?.current).toBe(45)
     expect(pve.state.tactical.battle.combatants.find((row) => row.id === 'recruit')?.hp).toBe(30)
-    expect(pve.events).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          event: 'skill_cooldown_started',
-          cooldownKey: essence.skill.cooldown.key,
-          actionId: essence.skill.id,
-          definitionVersion: essence.skill.contentVersion,
-        }),
-        expect.objectContaining({
-          event: 'action_economy_spent',
-          combatantId: 'player',
-          amount: 55,
-          remaining: 45,
-        }),
-      ]),
+    expect(pve.events).not.toContainEqual(
+      expect.objectContaining({ event: 'skill_cooldown_started', actionId: essence.skill.id }),
+    )
+    expect(pve.events).toContainEqual(
+      expect.objectContaining({
+        event: 'action_economy_spent',
+        combatantId: 'player',
+        amount: 55,
+        remaining: 45,
+      }),
     )
 
     const pvp = executePv1fEssenceSkill({

@@ -7,6 +7,7 @@ import {
   type CombatActionDefinition,
   type CombatActionEvaluation,
   type CombatContentCatalog,
+  type CombatEffectDefinition,
   type CombatStatusDefinition,
   type CombatTargetSelection,
 } from './actions'
@@ -63,6 +64,8 @@ export const PV1F_RECOVER_PERCENT = 10 as const
 export const PV1F_MP_RECOVER_PERCENT = 10 as const
 export const PV1F_STATUS_MAXIMUM_STACKS = 3 as const
 export const PV1F_RECOVERY_COOLDOWN_OWNER_TURNS = 2 as const
+export const PV1F_REPEAT_SKILL_EFFECTIVENESS_BASIS_POINTS = 5_000 as const
+export const PV1F_LAST_MATURE_SKILL_RESOURCE_PREFIX = 'pv1f.last-mature-skill.' as const
 
 export const PV1F_RECOVERY_COOLDOWN: SkillCooldownDefinition = {
   key: 'basic.recovery',
@@ -461,6 +464,7 @@ export function executePv1fAction(
           }
         })()
   let next = spendPv1fActionEconomyForActor(transition.state, actorId, cost)
+  next = clearLastMatureSkill(next, actorId)
   const cooldownDefinition = pv1fCooldownForAction(action.id)
   const cooldownEvents: readonly unknown[] = cooldownDefinition
     ? (() => {
@@ -493,15 +497,27 @@ export function evaluatePv1fMatureSkill(
   action: CombatActionDefinition
   cost: number
   evaluation: CombatActionEvaluation
+  repeatPenaltyApplied: boolean
 } {
   const prepared = preparePv1fTurnEconomy(state)
+  const actorId = prepared.tactical.battle.currentTurn?.combatantId
+  if (!actorId) throw new Error('Mature Skill evaluation requires an active turn.')
   const resolved = resolveMatureSkillForContext(definition, combatContext)
-  const action = toCombatActionDefinition(definition, combatContext)
+  const baseAction = toCombatActionDefinition(definition, combatContext)
+  const repeatPenaltyApplied = lastMatureSkillId(prepared, actorId) === definition.id
+  const action: CombatActionDefinition = {
+    ...baseAction,
+    cooldown: undefined,
+    effects: repeatPenaltyApplied
+      ? scaleRepeatedMatureSkillEffects(baseAction.effects)
+      : baseAction.effects,
+  }
   return {
     prepared,
     action,
     cost: resolved.apCost,
     evaluation: evaluateCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT),
+    repeatPenaltyApplied,
   }
 }
 
@@ -511,7 +527,7 @@ export function executePv1fMatureSkill(
   target: CombatTargetSelection,
   combatContext: MatureSkillCombatContext = 'pve',
 ): Pv1fTransition {
-  const { prepared, action, cost, evaluation } = evaluatePv1fMatureSkill(
+  const { prepared, action, cost, evaluation, repeatPenaltyApplied } = evaluatePv1fMatureSkill(
     state,
     definition,
     target,
@@ -528,11 +544,22 @@ export function executePv1fMatureSkill(
   const resolved = executeCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT)
   let next = reattachStatDrivenCombatBridge(resolved.state, prepared.statBridge)
   next = spendPv1fActionEconomyForActor(next, actorId, cost)
+  next = markLastMatureSkill(next, actorId, definition.id)
   const remaining = readPv1fActionEconomy(next, actorId)?.current ?? 0
   return {
     state: next,
     events: [
       ...resolved.events,
+      ...(repeatPenaltyApplied
+        ? [
+            {
+              event: 'skill_repeat_penalty_applied',
+              combatantId: actorId,
+              actionId: definition.id,
+              effectivenessBasisPoints: PV1F_REPEAT_SKILL_EFFECTIVENESS_BASIS_POINTS,
+            },
+          ]
+        : []),
       { event: 'action_economy_spent', combatantId: actorId, amount: cost, remaining },
     ],
   }
@@ -565,7 +592,8 @@ export function executePv1fMovement(
     createCombatEncounterState(moved.state, prepared.statusState),
     prepared.statBridge,
   )
-  const next = spendPv1fActionEconomy(encounter, economyCost)
+  let next = spendPv1fActionEconomy(encounter, economyCost)
+  next = clearLastMatureSkill(next, actorId)
   const remaining = readPv1fActionEconomy(next, actorId)?.current ?? 0
   return {
     state: next,
@@ -608,6 +636,78 @@ export function resolvePv1fActionDefinition(
   if (actionId === PV1F_RECOVER_ACTION_ID) return createPv1fRecoverAction(actor.maxHp)
   if (actionId === PV1F_MP_RECOVER_ACTION_ID) return createPv1fMpRecoveryAction(actor.maxMp)
   throw new Error(`Unsupported PV-1F action ${actionId}.`)
+}
+
+function lastMatureSkillId(
+  state: StatDrivenCombatEncounterState,
+  combatantId: string,
+): string | null {
+  const marker = getCombatant(state, combatantId).temporaryResources.find((resource) =>
+    resource.key.startsWith(PV1F_LAST_MATURE_SKILL_RESOURCE_PREFIX),
+  )
+  return marker?.key.slice(PV1F_LAST_MATURE_SKILL_RESOURCE_PREFIX.length) ?? null
+}
+
+function clearLastMatureSkill(
+  state: StatDrivenCombatEncounterState,
+  combatantId: string,
+): StatDrivenCombatEncounterState {
+  const combatant = getCombatant(state, combatantId)
+  const temporaryResources = combatant.temporaryResources.filter(
+    (resource) => !resource.key.startsWith(PV1F_LAST_MATURE_SKILL_RESOURCE_PREFIX),
+  )
+  if (temporaryResources.length === combatant.temporaryResources.length) return state
+  return withCombatant(state, { ...combatant, temporaryResources })
+}
+
+function markLastMatureSkill(
+  state: StatDrivenCombatEncounterState,
+  combatantId: string,
+  skillId: string,
+): StatDrivenCombatEncounterState {
+  const combatant = getCombatant(state, combatantId)
+  const marker: BattleTemporaryResource = {
+    key: `${PV1F_LAST_MATURE_SKILL_RESOURCE_PREFIX}${skillId}`,
+    current: 1,
+    maximum: 1,
+  }
+  const temporaryResources = [
+    ...combatant.temporaryResources.filter(
+      (resource) => !resource.key.startsWith(PV1F_LAST_MATURE_SKILL_RESOURCE_PREFIX),
+    ),
+    marker,
+  ].sort((left, right) => left.key.localeCompare(right.key))
+  return withCombatant(state, { ...combatant, temporaryResources })
+}
+
+function scaleRepeatedMatureSkillEffects(
+  effects: readonly CombatEffectDefinition[],
+): readonly CombatEffectDefinition[] {
+  const scaled: CombatEffectDefinition[] = []
+  for (const effect of effects) {
+    if (effect.type === 'damage' || effect.type === 'healing') {
+      scaled.push({ ...effect, amount: halfPositiveMagnitude(effect.amount) })
+      continue
+    }
+    if (effect.type === 'resource-change') {
+      scaled.push({ ...effect, delta: halfSignedMagnitude(effect.delta) })
+      continue
+    }
+    const stacks = Math.floor(effect.stacks / 2)
+    if (stacks > 0) scaled.push({ ...effect, stacks })
+  }
+  return scaled
+}
+
+function halfPositiveMagnitude(value: number): number {
+  if (value <= 0) return 0
+  return Math.max(1, Math.floor(value / 2))
+}
+
+function halfSignedMagnitude(value: number): number {
+  if (value === 0) return 0
+  const magnitude = Math.max(1, Math.floor(Math.abs(value) / 2))
+  return value < 0 ? -magnitude : magnitude
 }
 
 function getCombatant(state: StatDrivenCombatEncounterState, combatantId: string): BattleCombatant {

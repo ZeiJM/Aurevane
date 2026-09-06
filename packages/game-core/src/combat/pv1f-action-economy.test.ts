@@ -278,7 +278,7 @@ describe('P3.3 recovery cooldown authority', () => {
 })
 
 describe('P3.3 mature Skill Action Economy integration', () => {
-  it('spends authored AP, starts cooldown, and remains blocked after reconnect', () => {
+  it('spends authored AP and remains available after reconnect with repeat falloff', () => {
     const definition = resolveMatureSkillVersion('lifebinder.mending-light', 1)
     if (!definition) throw new Error('Expected representative Lifebinder Skill.')
     const state = lethalEncounter('player')
@@ -288,19 +288,13 @@ describe('P3.3 mature Skill Action Economy integration', () => {
 
     const used = executePv1fMatureSkill(state, definition, { kind: 'self' })
     expect(readPv1fActionEconomy(used.state, 'player')?.current).toBe(55)
-    expect(used.events).toContainEqual(
-      expect.objectContaining({
-        event: 'skill_cooldown_started',
-        actionId: definition.id,
-        definitionVersion: definition.contentVersion,
-      }),
+    expect(used.events).not.toContainEqual(
+      expect.objectContaining({ event: 'skill_cooldown_started' }),
     )
 
     const reconnected = JSON.parse(JSON.stringify(used.state)) as StatDrivenCombatEncounterState
-    const blocked = evaluatePv1fMatureSkill(reconnected, definition, { kind: 'self' })
-    expect(blocked.evaluation.legal).toBe(false)
-    expect(blocked.evaluation.issues).toContainEqual(
-      expect.objectContaining({ code: 'cooldown-active' }),
-    )
+    const repeated = evaluatePv1fMatureSkill(reconnected, definition, { kind: 'self' })
+    expect(repeated.evaluation.legal).toBe(true)
+    expect(repeated.repeatPenaltyApplied).toBe(true)
   })
 })

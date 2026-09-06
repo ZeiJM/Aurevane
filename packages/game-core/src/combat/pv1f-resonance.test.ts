@@ -111,7 +111,7 @@ function nextPlayerTurn(state: StatDrivenCombatEncounterState): StatDrivenCombat
 }
 
 describe('P3.5 Resonance on the authoritative PV-1F Skill path', () => {
-  it('spends authored AP, starts cooldowns, and applies the bounded payoff', () => {
+  it('spends authored AP, avoids mature-Skill cooldowns, and applies the bounded payoff', () => {
     const resonance = resolveResonanceForPair('vanguard', 'lifebinder')
     const heal = resolveMatureSkillVersion('lifebinder.mending-light', 1)
     const strike = resolveMatureSkillVersion('vanguard.forceful-strike', 2)
@@ -128,6 +128,9 @@ describe('P3.5 Resonance on the authoritative PV-1F Skill path', () => {
 
     expect(readPv1fActionEconomy(setup.state, 'player')?.current).toBe(55)
     expect(setup.resonanceState.armedByActionId).toBe(heal.id)
+    expect(setup.events).not.toContainEqual(
+      expect.objectContaining({ event: 'skill_cooldown_started', actionId: heal.id }),
+    )
     expect(setup.events).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -135,11 +138,6 @@ describe('P3.5 Resonance on the authoritative PV-1F Skill path', () => {
           combatantId: 'player',
           amount: 45,
           remaining: 55,
-        }),
-        expect.objectContaining({
-          event: 'skill_cooldown_started',
-          actionId: heal.id,
-          definitionVersion: heal.contentVersion,
         }),
         expect.objectContaining({ event: 'resonance_armed', resonanceId: resonance.id }),
       ]),
@@ -157,6 +155,9 @@ describe('P3.5 Resonance on the authoritative PV-1F Skill path', () => {
     expect(readPv1fActionEconomy(payoff.state, 'player')?.current).toBe(60)
     expect(payoff.state.tactical.battle.combatants.find((row) => row.id === 'recruit')?.hp).toBe(32)
     expect(payoff.resonanceState.armedByActionId).toBeNull()
+    expect(payoff.events).not.toContainEqual(
+      expect.objectContaining({ event: 'skill_cooldown_started', actionId: strike.id }),
+    )
     expect(payoff.events).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -164,11 +165,6 @@ describe('P3.5 Resonance on the authoritative PV-1F Skill path', () => {
           combatantId: 'player',
           amount: 40,
           remaining: 60,
-        }),
-        expect.objectContaining({
-          event: 'skill_cooldown_started',
-          actionId: strike.id,
-          definitionVersion: strike.contentVersion,
         }),
         expect.objectContaining({
           event: 'resonance_activated',
