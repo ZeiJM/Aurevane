@@ -1,7 +1,8 @@
 'use client'
 
 import type { PrimaryDisciplinePreview } from '@aurevane/game-core/character/discipline-build'
-import { useRouter } from 'next/navigation'
+import type { Route } from 'next'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 
 import styles from './character-discipline-build-panel.module.css'
@@ -73,6 +74,9 @@ interface BuildCommitResponse {
   error?: { message?: string }
 }
 
+const PROFILE_PANEL_QUERY = 'profilePanel'
+const DISCIPLINES_PANEL = 'disciplines'
+
 function formatDuration(totalSeconds: number): string {
   if (totalSeconds <= 0) return 'Ready'
   const hours = Math.floor(totalSeconds / 3600)
@@ -101,7 +105,9 @@ export function CharacterDisciplineBuildPanel({
   initialAttunement,
 }: CharacterDisciplineBuildPanelProps) {
   const router = useRouter()
-  const [open, setOpen] = useState(false)
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const open = searchParams.get(PROFILE_PANEL_QUERY) === DISCIPLINES_PANEL
   const [buildVersion, setBuildVersion] = useState(initialBuildVersion)
   const [current, setCurrent] = useState(initialCurrent)
   const [currentSecondary, setCurrentSecondary] = useState(initialCurrentSecondary)
@@ -174,6 +180,18 @@ export function CharacterDisciplineBuildPanel({
     (preview.changes.primary && remaining.primary > 0) ||
     (preview.changes.secondary && remaining.secondary > 0),
   )
+
+  function setPanelOpen(nextOpen: boolean) {
+    const params = new URLSearchParams(searchParams.toString())
+    if (nextOpen) {
+      params.set(PROFILE_PANEL_QUERY, DISCIPLINES_PANEL)
+    } else if (params.get(PROFILE_PANEL_QUERY) === DISCIPLINES_PANEL) {
+      params.delete(PROFILE_PANEL_QUERY)
+    }
+    const query = params.toString()
+    const href = (query ? `${pathname}?${query}` : pathname) as Route
+    router.replace(href, { scroll: false })
+  }
 
   async function previewSelection(primaryDisciplineId: string, secondaryDisciplineId: string) {
     setSelectedPrimaryId(primaryDisciplineId)
@@ -284,7 +302,7 @@ export function CharacterDisciplineBuildPanel({
         className={styles.trigger}
         aria-haspopup="dialog"
         aria-label={`Manage Primary Discipline and Secondary Discipline. Current: ${current.definition.name}${currentSecondary ? ` plus ${currentSecondary.name}` : ' pure'}, Build v${buildVersion}`}
-        onClick={() => setOpen(true)}
+        onClick={() => setPanelOpen(true)}
       >
         <strong>
           {current.definition.name}
@@ -294,7 +312,11 @@ export function CharacterDisciplineBuildPanel({
       </button>
 
       {open ? (
-        <div className={styles.backdrop} role="presentation" onPointerDown={() => setOpen(false)}>
+        <div
+          className={styles.backdrop}
+          role="presentation"
+          onPointerDown={() => setPanelOpen(false)}
+        >
           <section
             className={styles.dialog}
             role="dialog"
@@ -307,7 +329,7 @@ export function CharacterDisciplineBuildPanel({
                 <span>Authoritative build</span>
                 <h2 id="discipline-build-heading">Disciplines</h2>
               </div>
-              <button type="button" className={styles.close} onClick={() => setOpen(false)}>
+              <button type="button" className={styles.close} onClick={() => setPanelOpen(false)}>
                 Close
               </button>
             </header>

@@ -14,6 +14,11 @@ import { createBattleSessionChangedInvalidation } from '@aurevane/realtime'
 
 import type { BattleSessionProjection, BattleSessionView } from './battle-session-service'
 
+type BuildExtendedEncounterState = StatDrivenCombatEncounterState & {
+  readonly buildAuthority?: unknown
+  readonly buildBridge?: unknown
+}
+
 export interface PreviewBattleFinalTurnCommand {
   userId: string
   battleSessionId: string
@@ -54,14 +59,14 @@ function fingerprint(value: unknown): string {
   return `sha256:${createHash('sha256').update(JSON.stringify(value)).digest('hex')}`
 }
 
-function readPersistedEncounter(record: BattleSessionRecord): StatDrivenCombatEncounterState {
+function readPersistedEncounter(record: BattleSessionRecord): BuildExtendedEncounterState {
   const snapshot = record.snapshot
   if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
     throw persistenceInvalid()
   }
 
   try {
-    const candidate = snapshot as StatDrivenCombatEncounterState
+    const candidate = snapshot as BuildExtendedEncounterState
     const issues = validateStatDrivenCombatEncounterState(candidate)
     if (issues.length > 0) throw persistenceInvalid()
     if (
@@ -75,6 +80,17 @@ function readPersistedEncounter(record: BattleSessionRecord): StatDrivenCombatEn
   } catch (error) {
     if (error instanceof AurevaneError) throw error
     throw persistenceInvalid()
+  }
+}
+
+function preserveFrozenBuildMetadata(
+  previous: BuildExtendedEncounterState,
+  next: StatDrivenCombatEncounterState,
+): BuildExtendedEncounterState {
+  return {
+    ...next,
+    ...(previous.buildAuthority !== undefined ? { buildAuthority: previous.buildAuthority } : {}),
+    ...(previous.buildBridge !== undefined ? { buildBridge: previous.buildBridge } : {}),
   }
 }
 
@@ -219,6 +235,7 @@ export function createBattleFinalTurnService(
       const state = readPersistedEncounter(current)
       assertControlledTurn(state, current.controlledCombatantIds)
       const resolved = resolveFinalTurn(state, command.facing)
+      const nextState = preserveFrozenBuildMetadata(state, resolved.state)
       const committed = await battles.commitBattleIntent({
         actorKey: command.userId,
         idempotencyKey: command.idempotencyKey,
@@ -226,7 +243,7 @@ export function createBattleFinalTurnService(
         userId: command.userId,
         battleSessionId: command.battleSessionId,
         expectedBattleVersion: command.expectedBattleVersion,
-        nextSnapshot: resolved.state,
+        nextSnapshot: nextState,
         events: resolved.events,
       })
 

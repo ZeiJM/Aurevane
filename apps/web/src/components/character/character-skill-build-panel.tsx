@@ -3,7 +3,8 @@
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { ResonanceDefinition } from '@aurevane/game-core/combat/resonance'
-import { useRouter } from 'next/navigation'
+import type { Route } from 'next'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useState, type CSSProperties } from 'react'
 
 import { battleSkillArtwork } from '../battle/battle-skill-presentation'
@@ -43,6 +44,9 @@ interface SkillCommitResponse {
   }
   error?: { message?: string }
 }
+
+const PROFILE_PANEL_QUERY = 'profilePanel'
+const TECHNIQUES_PANEL = 'techniques'
 
 const DISCIPLINE_PALETTE: Readonly<Record<string, { accent: string; deep: string }>> = {
   vanguard: { accent: '232 119 76', deep: '117 50 31' },
@@ -99,8 +103,10 @@ export function CharacterSkillBuildPanel({
   initialEssence,
 }: CharacterSkillBuildPanelProps) {
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const initialIds = orderedSkillIds(initialEquippedSkills)
-  const [open, setOpen] = useState(false)
+  const open = searchParams.get(PROFILE_PANEL_QUERY) === TECHNIQUES_PANEL
   const [buildVersion, setBuildVersion] = useState(initialBuildVersion)
   const [capacity, setCapacity] = useState(initialCapacity)
   const [learnedSkills, setLearnedSkills] =
@@ -113,6 +119,18 @@ export function CharacterSkillBuildPanel({
   const dirty =
     committedIds.length !== selectedIds.length ||
     committedIds.some((skillId, index) => skillId !== selectedIds[index])
+
+  function setPanelOpen(nextOpen: boolean) {
+    const params = new URLSearchParams(searchParams.toString())
+    if (nextOpen) {
+      params.set(PROFILE_PANEL_QUERY, TECHNIQUES_PANEL)
+    } else if (params.get(PROFILE_PANEL_QUERY) === TECHNIQUES_PANEL) {
+      params.delete(PROFILE_PANEL_QUERY)
+    }
+    const query = params.toString()
+    const href = (query ? `${pathname}?${query}` : pathname) as Route
+    router.replace(href, { scroll: false })
+  }
 
   function selectedSourceCount(sourceDisciplineId: string): number {
     const selected = new Set(selectedIds)
@@ -140,17 +158,6 @@ export function CharacterSkillBuildPanel({
         if (sameSourceCount >= 2) return current
       }
       return [...current, id]
-    })
-  }
-
-  function move(skillId: string, delta: -1 | 1) {
-    setSelectedIds((current) => {
-      const index = current.indexOf(skillId)
-      const target = index + delta
-      if (index < 0 || target < 0 || target >= current.length) return current
-      const next = [...current]
-      ;[next[index], next[target]] = [next[target]!, next[index]!]
-      return next
     })
   }
 
@@ -196,7 +203,7 @@ export function CharacterSkillBuildPanel({
         className={styles.trigger}
         aria-haspopup="dialog"
         aria-label={`Tag Techniques. ${selectedIds.length} of ${capacity} tagged.`}
-        onClick={() => setOpen(true)}
+        onClick={() => setPanelOpen(true)}
       >
         <strong>Tag Techniques</strong>
         <small>
@@ -205,7 +212,11 @@ export function CharacterSkillBuildPanel({
       </button>
 
       {open ? (
-        <div className={styles.backdrop} role="presentation" onPointerDown={() => setOpen(false)}>
+        <div
+          className={styles.backdrop}
+          role="presentation"
+          onPointerDown={() => setPanelOpen(false)}
+        >
           <section
             className={styles.dialog}
             role="dialog"
@@ -222,9 +233,9 @@ export function CharacterSkillBuildPanel({
               <div className={styles.headerActions}>
                 <div className={styles.capacityBadge} data-testid="skill-capacity">
                   <strong>{selectedIds.length}</strong>
-                  <span>/ {capacity} tagged</span>
+                  <span>{` / ${capacity}`}</span>
                 </div>
-                <button type="button" className={styles.close} onClick={() => setOpen(false)}>
+                <button type="button" className={styles.close} onClick={() => setPanelOpen(false)}>
                   Close
                 </button>
               </div>
@@ -309,7 +320,7 @@ export function CharacterSkillBuildPanel({
                 <div className={styles.techniqueHeading}>
                   <div>
                     <span>Learned Techniques</span>
-                    <strong>Select and order your combat loadout</strong>
+                    <strong>Select your combat loadout</strong>
                   </div>
                   <small>Click a card to tag or untag it.</small>
                 </div>
@@ -322,7 +333,6 @@ export function CharacterSkillBuildPanel({
                   ) : (
                     learnedSkills.map((entry) => {
                       const selected = selectedIds.includes(entry.definition.id)
-                      const order = selectedIds.indexOf(entry.definition.id)
                       const sourceCount = selectedSourceCount(entry.definition.sourceDisciplineId)
                       const disabledBySource = Boolean(
                         secondaryDiscipline && !selected && sourceCount >= 2,
@@ -353,7 +363,6 @@ export function CharacterSkillBuildPanel({
                                 src={battleSkillArtwork(entry.definition.id)}
                                 alt=""
                               />
-                              {selected ? <em>{order + 1}</em> : null}
                             </span>
                             <span className={styles.skillCopy}>
                               <strong>{skillName(entry.definition)}</strong>
@@ -369,33 +378,6 @@ export function CharacterSkillBuildPanel({
                               </span>
                             </span>
                           </label>
-
-                          {selected ? (
-                            <div
-                              className={styles.orderControls}
-                              aria-label="Technique order controls"
-                            >
-                              <span>Tag {order + 1}</span>
-                              <button
-                                type="button"
-                                aria-label={`Move ${skillName(entry.definition)} earlier`}
-                                title="Move earlier"
-                                onClick={() => move(entry.definition.id, -1)}
-                                disabled={order <= 0 || pending}
-                              >
-                                ↑
-                              </button>
-                              <button
-                                type="button"
-                                aria-label={`Move ${skillName(entry.definition)} later`}
-                                title="Move later"
-                                onClick={() => move(entry.definition.id, 1)}
-                                disabled={order < 0 || order >= selectedIds.length - 1 || pending}
-                              >
-                                ↓
-                              </button>
-                            </div>
-                          ) : null}
                         </article>
                       )
                     })

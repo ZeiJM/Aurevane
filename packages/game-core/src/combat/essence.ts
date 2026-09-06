@@ -80,7 +80,7 @@ export const P36_REPRESENTATIVE_ESSENCES = [
       },
       requirements: [],
       effects: [{ type: 'damage', recipient: 'primary-unit', amount: 20 }],
-      tags: ['essence', 'vanguard', 'attack', 'melee'],
+      tags: ['essence', 'vanguard', 'attack', 'melee', 'cockpit:attack'],
       cooldown: { key: 'essence.vanguard.unbroken-strike', ownerTurns: 3 },
       ai: {
         enabled: true,
