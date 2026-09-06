@@ -92,9 +92,19 @@
   line-height: 1.2 !important;
 }
 
-/* Remove the redundant public-profile eyebrow so the character name leads the card. */
-.page [role='dialog'] > div:last-child > div:first-child > div:first-child {
-  display: none;
+/* Replace the redundant profile eyebrow with the character's live/offline status. */
+.page [role='dialog'] [class*='profileCopy'] > div:first-child > div:first-child {
+  visibility: hidden;
+}
+
+.page [role='dialog'] [class*='portraitStage'] > [class*='liveBadge'],
+.page [role='dialog'] [class*='portraitStage'] > [class*='offlineBadge'] {
+  top: 2.15rem;
+  right: auto;
+  bottom: auto;
+  left: calc(100% + clamp(1.25rem, 3vw, 2.1rem));
+  z-index: 3;
+  white-space: nowrap;
 }
 
 @media (max-width: 700px) {
@@ -112,5 +122,15 @@
   .page > .heading + div > button[aria-pressed] {
     position: static;
     transform: none;
+  }
+
+  .page [role='dialog'] [class*='portraitStage'] {
+    position: static;
+  }
+
+  .page [role='dialog'] [class*='portraitStage'] > [class*='liveBadge'],
+  .page [role='dialog'] [class*='portraitStage'] > [class*='offlineBadge'] {
+    top: 0.75rem;
+    left: 0.85rem;
   }
 }
