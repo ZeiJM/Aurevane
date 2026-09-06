@@ -138,10 +138,14 @@ function showCommandDescription(
 
   if (options.clearPreview !== false) clearCommandPreview(deck)
   const presentation = COMMAND_PRESENTATION[slug]
-  const description = semanticDescription(deck, slug)
+  const displayTitle = commandDisplayLabel(deck, slug)
+  const customTechnique = displayTitle !== presentation.title
+  const description = customTechnique
+    ? 'Review the authoritative target preview, effects, and legality before committing.'
+    : semanticDescription(deck, slug)
   instruction.row.dataset.battleCommandExplanation = slug
-  if (instruction.title.textContent !== presentation.title) {
-    instruction.title.textContent = presentation.title
+  if (instruction.title.textContent !== displayTitle) {
+    instruction.title.textContent = displayTitle
   }
   if (instruction.description.textContent !== description) {
     instruction.description.textContent = description
@@ -161,21 +165,69 @@ function humanizeStatus(value: string): string {
     .replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
 
-function numericEffectDelta(
-  effect: ActionPreview['projectedEffects'][number],
-): number | null {
+function numericEffectDelta(effect: ActionPreview['projectedEffects'][number]): number | null {
   if (typeof effect.before !== 'number' || typeof effect.after !== 'number') return null
   return effect.after - effect.before
 }
 
-function previewSlug(preview: IntentPreview): CommandSlug | null {
+function isCommandSlug(value: string | undefined): value is CommandSlug {
+  return (
+    value === 'inspect' ||
+    value === 'move' ||
+    value === 'attack' ||
+    value === 'guard' ||
+    value === 'recover' ||
+    value === 'finish'
+  )
+}
+
+function commandButtonForSlug(deck: HTMLElement, slug: CommandSlug): HTMLButtonElement | null {
+  return (
+    deck.querySelector<HTMLButtonElement>(`button[data-command-slot="${slug}"]`) ??
+    deck.querySelector<HTMLButtonElement>(`button[data-battle-command="${slug}"]`)
+  )
+}
+
+function commandButtonIsActive(button: HTMLButtonElement): boolean {
+  return (
+    button.hasAttribute('data-active') ||
+    button.dataset.battleActive === 'true' ||
+    `${button.className}`.includes('commandActive')
+  )
+}
+
+function activeCommandSlug(deck: HTMLElement): CommandSlug | null {
+  for (const button of deck.querySelectorAll<HTMLButtonElement>(
+    'button[data-command-slot], button[data-battle-command]',
+  )) {
+    if (!commandButtonIsActive(button)) continue
+    const slot = button.dataset.commandSlot ?? button.dataset.battleCommand
+    if (isCommandSlug(slot)) return slot
+  }
+  return null
+}
+
+function commandDisplayLabel(deck: HTMLElement, slug: CommandSlug): string {
+  return (
+    commandButtonForSlug(deck, slug)
+      ?.querySelector<HTMLElement>(':scope > strong')
+      ?.textContent?.trim() || COMMAND_PRESENTATION[slug].title
+  )
+}
+
+function previewSlug(preview: IntentPreview, deck: HTMLElement): CommandSlug | null {
   if (preview.kind === 'move') return 'move'
   if (preview.kind === 'face' || preview.kind === 'end-turn') return 'finish'
   if (preview.kind !== 'action') return null
   if (preview.actionId === 'basic.attack.unarmed.basic') return 'attack'
   if (preview.actionId === 'basic.guard') return 'guard'
   if (preview.actionId === 'basic.recover') return 'recover'
-  return null
+
+  // Mature Techniques use their frozen action id rather than a legacy basic-action id. The
+  // authoritative preview is already tied to the currently armed cockpit action, so use the stable
+  // cockpit slot to classify presentation instead of guessing from the Technique name.
+  const active = activeCommandSlug(deck)
+  return active === 'attack' || active === 'guard' || active === 'recover' ? active : null
 }
 
 function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
@@ -246,7 +298,9 @@ function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
   if (preview.projectedStatuses.length === 0) {
     const statuses = new Set(
       preview.projectedEffects
-        .filter((effect) => effect.effectType === 'apply-status' && typeof effect.after === 'string')
+        .filter(
+          (effect) => effect.effectType === 'apply-status' && typeof effect.after === 'string',
+        )
         .map((effect) => humanizeStatus(String(effect.after))),
     )
     for (const status of statuses) {
@@ -289,7 +343,7 @@ function previewChips(preview: IntentPreview): PreviewChip[] {
 }
 
 function showBattlePreview(deck: HTMLElement, preview: IntentPreview): void {
-  const slug = previewSlug(preview)
+  const slug = previewSlug(preview, deck)
   if (!slug || slug === 'inspect') return
 
   if (isPvpDeck(deck)) {
@@ -385,8 +439,8 @@ function pvpMeterMap(): Map<string, MeterPair> {
     for (const article of teamElement.querySelectorAll<HTMLElement>('article')) {
       const name = article.querySelector<HTMLElement>('strong')?.textContent?.trim()
       if (!name) continue
-      const fills = Array.from(article.querySelectorAll<HTMLElement>('span > i')).filter(
-        (fill) => Boolean(fill.style.width),
+      const fills = Array.from(article.querySelectorAll<HTMLElement>('span > i')).filter((fill) =>
+        Boolean(fill.style.width),
       )
       const hp = meterWidth(fills[0] ?? null)
       const mp = meterWidth(fills[1] ?? null)
@@ -397,11 +451,7 @@ function pvpMeterMap(): Map<string, MeterPair> {
   return result
 }
 
-function syncTokenMeter(
-  unit: HTMLElement,
-  meters: MeterPair,
-  context: MobileTokenContext,
-): void {
+function syncTokenMeter(unit: HTMLElement, meters: MeterPair, context: MobileTokenContext): void {
   let host = unit.querySelector<HTMLElement>(':scope > [data-mobile-token-meters="true"]')
   if (!host) {
     host = document.createElement('span')
@@ -427,10 +477,14 @@ function syncTokenMeter(
 }
 
 function syncAiTokenMeters(): void {
-  const battlefield = document.querySelector<HTMLElement>('section[aria-label="Tactical battlefield"]')
+  const battlefield = document.querySelector<HTMLElement>(
+    'section[aria-label="Tactical battlefield"]',
+  )
   if (!battlefield) return
 
-  for (const tile of battlefield.querySelectorAll<HTMLElement>('button[aria-label*="occupied by"]')) {
+  for (const tile of battlefield.querySelectorAll<HTMLElement>(
+    'button[aria-label*="occupied by"]',
+  )) {
     const unit = directUnit(tile)
     const name = unit?.querySelector<HTMLElement>(':scope > strong')?.textContent?.trim()
     if (!unit || !name) continue
@@ -446,7 +500,9 @@ function syncPvpTokenMeters(): void {
   if (!battlefield) return
 
   const metersByUnit = pvpMeterMap()
-  for (const tile of battlefield.querySelectorAll<HTMLElement>('button[aria-label*="occupied by"]')) {
+  for (const tile of battlefield.querySelectorAll<HTMLElement>(
+    'button[aria-label*="occupied by"]',
+  )) {
     const unit = directUnit(tile)
     const name = unit?.querySelector<HTMLElement>(':scope > strong')?.textContent?.trim()
     const team = unit?.dataset.team
@@ -464,10 +520,14 @@ function syncBattlefieldTokenMeters(): void {
 function syncCommandDeck(deck: HTMLElement): void {
   deck.dataset.battleCockpitPolish = 'true'
 
-  const commandButtons = Array.from(deck.querySelectorAll<HTMLButtonElement>('button')).filter(
-    (button) =>
-      COMMAND_SLUGS.has(button.querySelector(':scope > strong')?.textContent?.trim() ?? ''),
-  )
+  const commandButtons = Array.from(
+    deck.querySelectorAll<HTMLButtonElement>(
+      'button[data-command-slot], button[data-battle-command]',
+    ),
+  ).filter((button) => {
+    const slot = button.dataset.commandSlot ?? button.dataset.battleCommand
+    return isCommandSlug(slot)
+  })
   let activeSlug: CommandSlug | null = null
 
   if (commandButtons.length > 0) {
@@ -475,16 +535,13 @@ function syncCommandDeck(deck: HTMLElement): void {
     if (commandGroup instanceof HTMLElement) commandGroup.dataset.battleCommandGroup = 'true'
 
     for (const button of commandButtons) {
-      const label = button.querySelector(':scope > strong')?.textContent?.trim() ?? ''
-      const slug = COMMAND_SLUGS.get(label)
-      if (!slug) continue
-      button.dataset.battleCommand = slug
+      const slot = button.dataset.commandSlot ?? button.dataset.battleCommand
+      if (!isCommandSlug(slot)) continue
+      button.dataset.battleCommand = slot
 
-      const active =
-        button.hasAttribute('data-active') || `${button.className}`.includes('commandActive')
-      if (active) {
+      if (commandButtonIsActive(button)) {
         button.dataset.battleActive = 'true'
-        activeSlug = slug
+        activeSlug = slot
       } else {
         delete button.dataset.battleActive
       }
@@ -529,7 +586,8 @@ export function BattleCommandCockpitPolish() {
     let frame = 0
     const previousFetch = window.fetch
 
-    const decks = () => battleRoot.querySelectorAll<HTMLElement>('section[aria-label="Command Deck"]')
+    const decks = () =>
+      battleRoot.querySelectorAll<HTMLElement>('section[aria-label="Command Deck"]')
 
     const sync = () => {
       frame = 0
@@ -549,10 +607,10 @@ export function BattleCommandCockpitPolish() {
       )
       if (!button || button.disabled || !battleRoot.contains(button)) return
 
-      const label = button.querySelector(':scope > strong')?.textContent?.trim() ?? ''
-      const slug = COMMAND_SLUGS.get(label)
       const deck = button.closest<HTMLElement>('section[aria-label="Command Deck"]')
-      if (!slug || !deck) return
+      const slot = button.dataset.commandSlot ?? button.dataset.battleCommand
+      if (!deck || !isCommandSlug(slot)) return
+      const slug = slot
 
       // Let the native battle handler enter its real mode first, then update presentation only.
       // The AI description remains visually hidden by the shared context CSS.
