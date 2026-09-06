@@ -1,0 +1,68 @@
+name: Temporary battle/profile formatter
+
+on:
+  push:
+    branches:
+      - fix/battle-technique-authority-profile-20260906
+    paths:
+      - '.github/workflows/temp-format-battle-profile-fix.yml'
+      - 'apps/web/src/app/game/battle/[battleSessionId]/page.tsx'
+      - 'apps/web/src/components/battle/battle-skill-command.tsx'
+      - 'apps/web/src/components/character/character-discipline-build-panel.tsx'
+      - 'apps/web/src/components/character/character-skill-build-panel.tsx'
+      - 'apps/web/src/server/battle/ai-battle-quality-service.ts'
+      - 'apps/web/src/server/battle/battle-final-turn-service.ts'
+      - 'apps/web/src/server/battle/battle-final-turn-service.test.ts'
+      - 'packages/game-core/src/combat/essence.ts'
+      - 'packages/game-core/src/combat/mature-skills.ts'
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/battle-technique-authority-profile-20260906
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format release files
+        run: |
+          pnpm exec prettier --write \
+            'apps/web/src/app/game/battle/[battleSessionId]/page.tsx' \
+            apps/web/src/components/battle/battle-skill-command.tsx \
+            apps/web/src/components/character/character-discipline-build-panel.tsx \
+            apps/web/src/components/character/character-skill-build-panel.tsx \
+            apps/web/src/server/battle/ai-battle-quality-service.ts \
+            apps/web/src/server/battle/battle-final-turn-service.ts \
+            apps/web/src/server/battle/battle-final-turn-service.test.ts \
+            packages/game-core/src/combat/essence.ts \
+            packages/game-core/src/combat/mature-skills.ts
+      - name: Commit formatting
+        run: |
+          if git diff --quiet; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            'apps/web/src/app/game/battle/[battleSessionId]/page.tsx' \
+            apps/web/src/components/battle/battle-skill-command.tsx \
+            apps/web/src/components/character/character-discipline-build-panel.tsx \
+            apps/web/src/components/character/character-skill-build-panel.tsx \
+            apps/web/src/server/battle/ai-battle-quality-service.ts \
+            apps/web/src/server/battle/battle-final-turn-service.ts \
+            apps/web/src/server/battle/battle-final-turn-service.test.ts \
+            packages/game-core/src/combat/essence.ts \
+            packages/game-core/src/combat/mature-skills.ts
+          git commit -m 'Format battle and Profile regression fixes'
+          git push origin HEAD:fix/battle-technique-authority-profile-20260906
