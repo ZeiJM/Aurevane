@@ -1,12 +1,33 @@
 .page {
   position: relative;
   min-height: 0;
-  padding: clamp(0.55rem, 1vw, 0.8rem);
+  overflow: hidden;
+  padding: 0;
+  background:
+    radial-gradient(circle at 14% 0%, rgba(116, 91, 166, 0.08), transparent 28rem),
+    radial-gradient(circle at 88% 8%, rgba(63, 137, 91, 0.055), transparent 24rem),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.012), transparent 14rem);
 }
 
 .heading {
-  padding: 0.05rem 9rem 0.55rem 0.1rem;
-  border-bottom: 1px solid var(--av-border);
+  position: relative;
+  padding: clamp(0.85rem, 1.35vw, 1.15rem) 10rem clamp(0.75rem, 1.15vw, 1rem)
+    clamp(0.85rem, 1.35vw, 1.15rem);
+  border-bottom: 1px solid rgba(207, 169, 93, 0.2);
+  background:
+    linear-gradient(90deg, rgba(207, 169, 93, 0.028), transparent 40%),
+    rgba(5, 8, 12, 0.1);
+}
+
+.heading::after {
+  position: absolute;
+  right: 0;
+  bottom: -1px;
+  left: 0;
+  height: 1px;
+  content: '';
+  background: linear-gradient(90deg, rgba(207, 169, 93, 0.42), transparent 38%, transparent 72%, rgba(95, 188, 133, 0.14));
+  pointer-events: none;
 }
 
 .heading > div {
@@ -16,41 +37,50 @@
 .titleRow {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  margin-top: 0.12rem;
+  gap: 0.6rem;
+  margin-top: 0.18rem;
 }
 
 .heading h1 {
   margin: 0;
-  font: 500 clamp(1.45rem, 2.2vw, 1.9rem)/1 var(--av-font-display);
+  color: var(--av-text);
+  font: 500 clamp(1.65rem, 2.4vw, 2.1rem)/0.98 var(--av-font-display);
+  letter-spacing: -0.012em;
+  text-shadow: 0 0.08rem 0 rgba(0, 0, 0, 0.75);
 }
 
 .onlineCount {
+  position: relative;
   display: grid;
-  width: 1.8rem;
-  height: 1.8rem;
+  width: 1.9rem;
+  height: 1.9rem;
   flex: none;
   place-items: center;
-  border: 1px solid rgba(91, 186, 124, 0.45);
+  border: 1px solid rgba(95, 188, 133, 0.46);
   border-radius: 999px;
-  color: #9ed8b2;
-  background: rgba(67, 140, 92, 0.1);
+  color: #a6dfba;
+  background:
+    radial-gradient(circle at 35% 28%, rgba(133, 222, 166, 0.15), transparent 55%),
+    rgba(39, 105, 64, 0.12);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.015),
+    0 0 1rem rgba(70, 170, 105, 0.08);
   font: 650 0.78rem/1 var(--av-font-display);
 }
 
 .heading p {
-  max-width: 62rem;
-  margin: 0.22rem 0 0;
+  max-width: 66rem;
+  margin: 0.3rem 0 0;
   color: var(--av-text-muted);
-  font-size: 0.62rem;
-  line-height: 1.35;
+  font-size: 0.64rem;
+  line-height: 1.45;
 }
 
-/* The directory toggle now occupies the clean header action slot formerly used by the count badge. */
+/* The directory toggle owns the header action slot while its state remains managed by the client directory. */
 .page > .heading + div > button[aria-pressed] {
   position: absolute;
-  top: 1.45rem;
-  right: clamp(0.65rem, 1vw, 0.9rem);
+  top: clamp(0.85rem, 1.35vw, 1.15rem);
+  right: clamp(0.85rem, 1.35vw, 1.15rem);
   z-index: 2;
   transform: none;
   white-space: nowrap;
@@ -58,11 +88,11 @@
 
 @media (max-width: 700px) {
   .heading {
-    padding-right: 0.1rem;
+    padding-right: 0.85rem;
   }
 
   .heading p {
-    font-size: 0.58rem;
+    font-size: 0.59rem;
   }
 
   .page > .heading + div > button[aria-pressed] {
