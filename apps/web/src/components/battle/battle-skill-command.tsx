@@ -165,12 +165,7 @@ export function BattleSkillCommand({
           aria-label={`Choose ${selector.categoryLabel} skill. ${label} selected.`}
           onClick={() => setSelectorOpen((open) => !open)}
         >
-          <img
-            src={artworkSrc}
-            alt=""
-            aria-hidden="true"
-            onError={fallbackBrokenArtwork}
-          />
+          <img src={artworkSrc} alt="" aria-hidden="true" onError={fallbackBrokenArtwork} />
           <span aria-hidden="true">⌄</span>
         </button>
       ) : null}

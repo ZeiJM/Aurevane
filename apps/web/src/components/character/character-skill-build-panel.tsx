@@ -233,11 +233,7 @@ export function CharacterSkillBuildPanel({
                   <strong>{selectedIds.length}</strong>
                   <span>/ {capacity} tagged</span>
                 </div>
-                <button
-                  type="button"
-                  className={styles.close}
-                  onClick={() => setPanelOpen(false)}
-                >
+                <button type="button" className={styles.close} onClick={() => setPanelOpen(false)}>
                   Close
                 </button>
               </div>

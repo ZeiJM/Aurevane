@@ -310,7 +310,11 @@ export function CharacterDisciplineBuildPanel({
       </button>
 
       {open ? (
-        <div className={styles.backdrop} role="presentation" onPointerDown={() => setPanelOpen(false)}>
+        <div
+          className={styles.backdrop}
+          role="presentation"
+          onPointerDown={() => setPanelOpen(false)}
+        >
           <section
             className={styles.dialog}
             role="dialog"

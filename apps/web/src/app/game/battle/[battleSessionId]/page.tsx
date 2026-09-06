@@ -59,7 +59,9 @@ function battleBuildExtensions(
   const resonanceDefinition = resolveBattleResonanceDefinition(authority, combatantId)
   const essenceDefinition = resolveBattleEssenceDefinition(authority, combatantId)
   const combatContext = authority?.combatContext
-  const essenceOverride = combatContext ? essenceDefinition?.skill.overrides[combatContext] : undefined
+  const essenceOverride = combatContext
+    ? essenceDefinition?.skill.overrides[combatContext]
+    : undefined
   const techniques = (build?.disciplineSkills ?? []).flatMap((reference) => {
     const definition = resolveMatureSkillVersion(reference.skillId, reference.contentVersion)
     if (!definition || definition.sourceDisciplineId !== reference.sourceDisciplineId) return []
