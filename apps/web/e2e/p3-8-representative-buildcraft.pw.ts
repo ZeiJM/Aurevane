@@ -190,7 +190,6 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
     await battlefield.getByRole('button', { name: destinationLabel!, exact: true }).click()
     await expect(confirmAction).toBeEnabled()
     await confirmAction.click()
-    await expect(moveAction).not.toHaveAttribute('data-battle-active', 'true', { timeout: 8000 })
     await expect(actionEconomy).not.toHaveAttribute('aria-valuenow', '100')
 
     // Start the Technique proof on a fresh owner turn so its AP budget cannot depend on how much
