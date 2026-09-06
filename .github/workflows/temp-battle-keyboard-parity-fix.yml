@@ -1,0 +1,57 @@
+name: Temporary battle keyboard parity fix
+
+on:
+  push:
+    branches:
+      - fix/battle-keyboard-parity-facing-overlay-20260906
+    paths:
+      - .github/workflows/temp-battle-keyboard-parity-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/battle-keyboard-parity-facing-overlay-20260906
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Apply keyboard and facing patch
+        run: python .github/scripts/temp_battle_keyboard_parity_patch.py
+      - name: Format touched files
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/components/battle/battle-directional-attack-assist.tsx \
+            apps/web/src/components/battle/battle-keyboard-assist.tsx \
+            apps/web/src/components/battle/battle-experience.tsx \
+            apps/web/src/components/battle/unified-battle-experience.module.css
+      - name: Validate focused files
+        run: |
+          pnpm exec prettier --check \
+            apps/web/src/components/battle/battle-directional-attack-assist.tsx \
+            apps/web/src/components/battle/battle-keyboard-assist.tsx \
+            apps/web/src/components/battle/battle-experience.tsx \
+            apps/web/src/components/battle/unified-battle-experience.module.css
+          pnpm --filter @aurevane/web typecheck
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            apps/web/src/components/battle/battle-directional-attack-assist.tsx \
+            apps/web/src/components/battle/battle-keyboard-assist.tsx \
+            apps/web/src/components/battle/battle-experience.tsx \
+            apps/web/src/components/battle/unified-battle-experience.module.css
+          git commit -m "Fix tagged Technique keyboard parity and facing layout"
+          git push origin HEAD:fix/battle-keyboard-parity-facing-overlay-20260906
