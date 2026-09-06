@@ -71,6 +71,43 @@ interface CharacterProfileShellProps {
   pv2TestKitEnabled?: boolean
 }
 
+interface DisciplineSummaryView {
+  id: string
+  name: string
+  summary: string
+}
+
+const DUAL_DISCIPLINE_PROFILE_SUMMARIES: Readonly<Record<string, string>> = {
+  'aetherist+farstrider': 'Mobile arcane pressure with flexible positioning.',
+  'aetherist+ironfist': 'Explosive arcane power backed by close-range force.',
+  'aetherist+lifebinder': 'Restorative magic reinforced by arcane power.',
+  'aetherist+shadehand': 'Arcane force delivered through deceptive precision.',
+  'aetherist+vanguard': 'Armored pressure backed by arcane force.',
+  'farstrider+ironfist': 'Mobile pressure backed by decisive close-range force.',
+  'farstrider+lifebinder': 'Mobile support with sustained restorative control.',
+  'farstrider+shadehand': 'Swift repositioning with precise opportunistic attacks.',
+  'farstrider+vanguard': 'Durable frontline control with mobile reach.',
+  'ironfist+lifebinder': 'Close-range resilience sustained by restorative power.',
+  'ironfist+shadehand': 'Deceptive precision reinforced by brutal close-quarters force.',
+  'ironfist+vanguard': 'Relentless close-quarters pressure with hardened defense.',
+  'lifebinder+shadehand': 'Elusive support blending restoration and subtle strikes.',
+  'lifebinder+vanguard': 'Frontline defense with restorative support.',
+  'shadehand+vanguard': 'Heavy defense paired with deceptive precision.',
+}
+
+function getDisciplineProfileSummary(
+  primary: DisciplineSummaryView,
+  secondary: DisciplineSummaryView | null,
+): string {
+  if (!secondary) return primary.summary
+
+  const pairKey = [primary.id, secondary.id].sort().join('+')
+  return (
+    DUAL_DISCIPLINE_PROFILE_SUMMARIES[pairKey] ??
+    `${primary.name} and ${secondary.name} techniques woven into a hybrid combat style.`
+  )
+}
+
 export function CharacterProfileShell({
   profile,
   disciplineBuild,
@@ -94,6 +131,10 @@ export function CharacterProfileShell({
   const buildLabel = disciplineBuild.currentSecondary
     ? `${disciplineBuild.current.definition.name} + ${disciplineBuild.currentSecondary.name}`
     : `${disciplineBuild.current.definition.name} · Pure`
+  const disciplineSummary = getDisciplineProfileSummary(
+    disciplineBuild.current.definition,
+    disciplineBuild.currentSecondary,
+  )
 
   return (
     <AuthenticatedShellFrame sessionLabel="Character Profile">
@@ -127,16 +168,11 @@ export function CharacterProfileShell({
                   <span className={styles.personalTitlePill}>{personalTitle}</span>
                 ) : null}
               </div>
-              <p className={styles.subtitle}>
-                Character Level <strong>{profile.progression.level}</strong>
-              </p>
-              <p className={styles.discipline}>{disciplineBuild.current.definition.summary}</p>
+              <p className={styles.discipline}>{disciplineSummary}</p>
 
               <div className={styles.levelProgress} data-testid="level-progress">
                 <div>
-                  <span>
-                    {progress.isMaxLevel ? 'Level cap' : `Toward Level ${progress.level + 1}`}
-                  </span>
+                  <span>Character Level {profile.progression.level}</span>
                   <strong>
                     {progress.isMaxLevel
                       ? `${profile.progression.xp.toLocaleString('en')} XP`
@@ -168,25 +204,20 @@ export function CharacterProfileShell({
 
         <aside
           className={`${styles.sidebar} ${compactStyles.sidebar}`}
-          aria-label="Character build workspace"
+          aria-label="Combat loadout workspace"
         >
           <Surface
             className={`${styles.sideCard} ${styles.buildCard} ${compactStyles.buildCard}`}
             tone="quiet"
           >
             <div className={styles.buildHeading}>
-              <Kicker marker="◇">Build</Kicker>
+              <Kicker marker="◇">Combat Loadout</Kicker>
             </div>
 
             <section className={styles.buildSection} aria-labelledby="build-disciplines-heading">
               <div className={styles.buildSectionHeader}>
                 <span id="build-disciplines-heading">Disciplines</span>
                 <strong>{buildLabel}</strong>
-                <small>
-                  {disciplineBuild.currentSecondary
-                    ? 'Mixed build · Resonance replaces Essence.'
-                    : 'Pure build · Essence available when authored.'}
-                </small>
               </div>
               <CharacterDisciplineBuildPanel
                 initialBuildVersion={disciplineBuild.buildVersion}
@@ -204,11 +235,6 @@ export function CharacterProfileShell({
                 <strong>
                   {equippedCount} / {disciplineBuild.disciplineSkills.capacity} tagged
                 </strong>
-                <small>
-                  {disciplineBuild.currentSecondary
-                    ? 'Choose two Techniques from each active Discipline.'
-                    : 'Choose up to four Techniques from your Discipline.'}
-                </small>
               </div>
               <CharacterSkillBuildPanel
                 key={skillBuildKey}
@@ -233,7 +259,7 @@ export function CharacterProfileShell({
               />
             </section>
 
-            <section className={styles.buildIdentity} aria-label="Build identity">
+            <section className={styles.buildIdentity} aria-label="Combat loadout identity">
               <span>{resonance ? 'Resonance' : 'Essence'}</span>
               <strong>{resonance?.name ?? essence?.name ?? 'None available'}</strong>
               <small>
