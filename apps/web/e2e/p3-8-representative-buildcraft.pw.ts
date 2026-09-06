@@ -164,12 +164,12 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(commandContext).toContainText('Forceful Strike')
   await expect(commandContext).toContainText(/Hit \d+%/)
   await expect(commandContext).toContainText(/On hit \d+ dmg/)
-  await expect(page.getByRole('button', { name: /Confirm Action/ })).toBeEnabled()
+  const confirmAction = page.getByRole('button', { name: /Confirm Action/ })
+  await expect(confirmAction).toBeEnabled()
 
   await page.keyboard.press(attackDirection!)
-  await expect(page.getByRole('button', { name: /Confirm Action/ })).toHaveCount(0, {
-    timeout: 8000,
-  })
+  await expect(confirmAction).toBeDisabled({ timeout: 8000 })
+  await expect(attackAction).not.toHaveAttribute('data-battle-active', 'true', { timeout: 8000 })
 
   // Space still enters final-facing authority, but its retired inline control row must remain
   // visually hidden so it cannot draw guide lines across the command cards.
