@@ -95,7 +95,8 @@ function targetInDirection(
     })
     .sort(
       (left, right) =>
-        Math.abs(left.position.x - origin.x) + Math.abs(left.position.y - origin.y) -
+        Math.abs(left.position.x - origin.x) +
+        Math.abs(left.position.y - origin.y) -
         (Math.abs(right.position.x - origin.x) + Math.abs(right.position.y - origin.y)),
     )
 

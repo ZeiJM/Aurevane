@@ -205,7 +205,11 @@ function syncVisibleCommandLabels(bindings: CombatKeybindMap) {
 
 function syncAttackRangeMarkers(playerName: string) {
   const tiles = battleTiles()
-  if (!attackModeIsActive()) {
+  const attack = commandButton('Basic Attack')
+  const attackName = attack?.querySelector('strong')?.textContent?.trim()
+  if (!attackModeIsActive() || attackName !== 'Basic Attack') {
+    // Mature Techniques own their targeting presentation through data-target. Do not project the
+    // legacy one-tile Basic Attack marker over a swapped Attack Technique.
     for (const tile of tiles) tile.removeAttribute('data-attack-range')
     return
   }
@@ -377,7 +381,7 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
     function cycleTarget(reverse: boolean) {
       if (!attackModeIsActive()) return false
       const targets = legalVisibleTargetButtons(playerName).filter(
-        (button) => button.dataset.attackRange === 'legal',
+        (button) => button.dataset.target === 'enemy' || button.dataset.attackRange === 'legal',
       )
       if (targets.length === 0) return false
       const direction = reverse ? -1 : 1

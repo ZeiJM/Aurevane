@@ -658,7 +658,9 @@
 }
 
 .facingRow[data-open] {
-  display: flex;
+  /* The native final-facing controls remain mounted for keyboard/map-guide authority, but the
+     legacy inline row must not paint across the modern command cockpit. */
+  display: none;
 }
 
 .facingRow > span {

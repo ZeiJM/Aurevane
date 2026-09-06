@@ -145,41 +145,36 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await page.keyboard.press('Digit3')
   await expect(attackAction).toHaveAttribute('data-battle-active', 'true')
 
-  const battleSessionId = page.url().split('/').at(-1)
-  expect(battleSessionId).toMatch(/^[0-9a-f-]{36}$/)
-  if (!battleSessionId) return
+  // Directional keyboard targeting must use the swapped Technique's live target relation rather
+  // than the old one-tile Basic Attack helper. The first legal direction previews; pressing that
+  // same direction again commits through the exact same Confirm Action path as mouse input.
+  let attackDirection: string | null = null
+  for (const key of ['KeyW', 'KeyA', 'KeyS', 'KeyD']) {
+    await page.keyboard.press(key)
+    try {
+      await expect(commandContext).toContainText('Hit ', { timeout: 1500 })
+      attackDirection = key
+      break
+    } catch {
+      // Try the next cardinal direction until the current battle layout yields a legal enemy.
+    }
+  }
 
-  await page.route(`**/api/battles/${battleSessionId}/preview`, async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        battlePreview: {
-          preview: {
-            kind: 'action',
-            legal: true,
-            issues: [],
-            actionId: 'vanguard.forceful-strike',
-            hitChanceBasisPoints: 6500,
-            mitigatedBaseDamage: 18,
-            projectedEffects: [],
-            projectedStatuses: [],
-            affectedCombatantIds: ['recruit:1'],
-          },
-        },
-      }),
-    })
+  expect(attackDirection).not.toBeNull()
+  await expect(commandContext).toContainText('Forceful Strike')
+  await expect(commandContext).toContainText(/Hit \d+%/)
+  await expect(commandContext).toContainText(/On hit \d+ dmg/)
+  await expect(page.getByRole('button', { name: /Confirm Action/ })).toBeEnabled()
+
+  await page.keyboard.press(attackDirection!)
+  await expect(page.getByRole('button', { name: /Confirm Action/ })).toHaveCount(0, {
+    timeout: 8000,
   })
 
-  await page.evaluate(async (id) => {
-    await fetch(`/api/battles/${id}/preview`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: '{}',
-    })
-  }, battleSessionId)
-
-  await expect(commandContext).toContainText('Forceful Strike')
-  await expect(commandContext).toContainText('Hit 65%')
-  await expect(commandContext).toContainText('On hit 18 dmg')
+  // Space still enters final-facing authority, but its retired inline control row must remain
+  // visually hidden so it cannot draw guide lines across the command cards.
+  await page.keyboard.press('Space')
+  const legacyFacingRow = page.locator('[data-unified-facing-pad="true"]')
+  await expect(legacyFacingRow).toHaveAttribute('data-open', '')
+  await expect(legacyFacingRow).toBeHidden()
 })
