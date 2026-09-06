@@ -279,7 +279,7 @@ export function CharacterSkillBuildPanel({
                           >
                             <span className={polish.counterName}>{primaryDiscipline.name}</span>
                             <strong>{primarySelected}</strong>
-                            <span>{` / ${MIXED_SOURCE_MAXIMUM}`}</span>
+                            <span>{` / ${capacity}`}</span>
                           </div>
                           <div
                             className={`${styles.capacityBadge} ${polish.capacityBadge}`}
@@ -287,7 +287,7 @@ export function CharacterSkillBuildPanel({
                           >
                             <span className={polish.counterName}>{secondaryDiscipline.name}</span>
                             <strong>{secondarySelected}</strong>
-                            <span>{` / ${MIXED_SOURCE_MAXIMUM}`}</span>
+                            <span>{` / ${capacity}`}</span>
                           </div>
                         </>
                       ) : (
