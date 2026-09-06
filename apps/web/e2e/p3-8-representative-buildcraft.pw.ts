@@ -21,10 +21,7 @@ function tileCoordinates(label: string | null): { x: number; y: number } | null 
   return { x: Number(match[1]), y: Number(match[2]) }
 }
 
-function tileDistance(
-  first: { x: number; y: number },
-  second: { x: number; y: number },
-): number {
+function tileDistance(first: { x: number; y: number }, second: { x: number; y: number }): number {
   return Math.abs(first.x - second.x) + Math.abs(first.y - second.y)
 }
 
@@ -210,7 +207,9 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
       .getAttribute('aria-label'),
   )
   const adjacentRecruit = tileCoordinates(
-    await battlefield.getByRole('button', { name: /occupied by Recruit/ }).getAttribute('aria-label'),
+    await battlefield
+      .getByRole('button', { name: /occupied by Recruit/ })
+      .getAttribute('aria-label'),
   )
   expect(adjacentPlayer).not.toBeNull()
   expect(adjacentRecruit).not.toBeNull()
