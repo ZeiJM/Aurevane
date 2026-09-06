@@ -19,7 +19,6 @@ import { useEffect, useState, type CSSProperties } from 'react'
 import styles from './character-profile-details.module.css'
 
 interface CharacterProfileDetailsProps {
-  slotIndex: number
   presentationLabel: string
   pronounLabel: string
   cycleNumber: number
@@ -74,8 +73,18 @@ const ATTRIBUTE_COLORS: Readonly<
   },
 }
 
+const DERIVED_STAT_GROUP_ORDER = {
+  vitals: 0,
+  tempo: 1,
+  offense: 2,
+  defense: 3,
+} as const
+
+const orderedDerivedStatGroups = [...DERIVED_STAT_PROFILE_GROUPS].sort(
+  (left, right) => DERIVED_STAT_GROUP_ORDER[left.id] - DERIVED_STAT_GROUP_ORDER[right.id],
+)
+
 export function CharacterProfileDetails({
-  slotIndex,
   presentationLabel,
   pronounLabel,
   cycleNumber,
@@ -96,21 +105,8 @@ export function CharacterProfileDetails({
   return (
     <>
       <div className={styles.identityFacts} aria-label="Character identity details">
-        <button
-          type="button"
-          onClick={() =>
-            setDetail({
-              eyebrow: 'Character record',
-              title: `Slot ${slotIndex + 1}`,
-              body: 'A slot is this character’s place on your account roster. Slots keep separate characters, progression, identity, and battle state from one another.',
-            })
-          }
-        >
-          <span>Roster slot</span>
-          <strong>{slotIndex + 1}</strong>
-        </button>
         <div>
-          <span>Presentation</span>
+          <span>Gender</span>
           <strong>{presentationLabel}</strong>
         </div>
         <div>
@@ -119,29 +115,23 @@ export function CharacterProfileDetails({
         </div>
         <button
           type="button"
+          style={{ gridColumn: 'span 2', borderRight: 0 }}
           onClick={() =>
             setDetail({
-              eyebrow: 'Progression record',
-              title: `Cycle ${cycleNumber}`,
-              body: 'A progression cycle is the numbered era of this character’s long-term progression record. It lets future progression resets or major seasonal rules preserve history without mixing separate progression eras.',
+              eyebrow: 'Rekindling record',
+              title: `Rekindling Cycle ${cycleNumber}`,
+              body: 'A Rekindling Cycle is the numbered era of this character’s long-term progression record. It preserves history across later Rekindlings without mixing separate progression eras.',
             })
           }
         >
-          <span>Progression cycle</span>
+          <span>Rekindling Cycle</span>
           <strong>{cycleNumber}</strong>
         </button>
       </div>
 
       <section className={styles.section} aria-labelledby="attributes-title">
         <header>
-          <div>
-            <span>Core attributes</span>
-            <h2 id="attributes-title">Character strengths</h2>
-          </div>
-          <small>
-            Each core attribute owns a color. Derived stats carry those colors forward so their
-            weighting stays readable at a glance.
-          </small>
+          <h2 id="attributes-title">Core Attributes</h2>
         </header>
         <div className={styles.attributeGrid}>
           {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => {
@@ -175,17 +165,10 @@ export function CharacterProfileDetails({
 
       <section className={styles.section} aria-labelledby="derived-title">
         <header>
-          <div>
-            <span>Combat &amp; adventure stats</span>
-            <h2 id="derived-title">Current values</h2>
-          </div>
-          <small>
-            Select a stat for details. The bright rail shows the relative weighting of its
-            contributing core attributes.
-          </small>
+          <h2 id="derived-title">Combat &amp; Adventure Stats</h2>
         </header>
         <div className={styles.statGroups}>
-          {DERIVED_STAT_PROFILE_GROUPS.map((group) => (
+          {orderedDerivedStatGroups.map((group) => (
             <section className={styles.statGroup} key={group.id} aria-label={group.label}>
               <h3>{group.label}</h3>
               <div>
