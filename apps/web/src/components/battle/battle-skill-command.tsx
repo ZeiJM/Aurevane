@@ -7,11 +7,13 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type SyntheticEvent,
 } from 'react'
 import { createPortal } from 'react-dom'
 
 import artworkFitStyles from './battle-skill-artwork-fit.module.css'
 import styles from './battle-skill-command.module.css'
+import { BATTLE_MISSING_ARTWORK } from './battle-skill-presentation'
 
 export type BattleCommandSlot = 'inspect' | 'move' | 'attack' | 'guard' | 'recover' | 'finish'
 
@@ -27,6 +29,13 @@ export interface BattleSkillSelectorConfig {
   selectedId: string
   options: readonly BattleSkillSelectorOption[]
   onSelect: (id: string) => void
+}
+
+function fallbackBrokenArtwork(event: SyntheticEvent<HTMLImageElement>): void {
+  const image = event.currentTarget
+  if (image.getAttribute('src') === BATTLE_MISSING_ARTWORK) return
+  image.onerror = null
+  image.src = BATTLE_MISSING_ARTWORK
 }
 
 export function BattleSkillCommand({
@@ -140,7 +149,7 @@ export function BattleSkillCommand({
             data-battle-command-artwork="static"
             aria-hidden="true"
           >
-            <img src={artworkSrc} alt="" />
+            <img src={artworkSrc} alt="" onError={fallbackBrokenArtwork} />
           </span>
         ) : null}
       </button>
@@ -156,7 +165,12 @@ export function BattleSkillCommand({
           aria-label={`Choose ${selector.categoryLabel} skill. ${label} selected.`}
           onClick={() => setSelectorOpen((open) => !open)}
         >
-          <img src={artworkSrc} alt="" aria-hidden="true" />
+          <img
+            src={artworkSrc}
+            alt=""
+            aria-hidden="true"
+            onError={fallbackBrokenArtwork}
+          />
           <span aria-hidden="true">⌄</span>
         </button>
       ) : null}
@@ -186,7 +200,12 @@ export function BattleSkillCommand({
                       closeSelector(true)
                     }}
                   >
-                    <img src={option.artworkSrc} alt="" aria-hidden="true" />
+                    <img
+                      src={option.artworkSrc}
+                      alt=""
+                      aria-hidden="true"
+                      onError={fallbackBrokenArtwork}
+                    />
                     <span>
                       <strong>{option.label}</strong>
                       <small>{option.cost}</small>
