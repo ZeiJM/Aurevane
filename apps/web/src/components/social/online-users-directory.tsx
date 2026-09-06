@@ -158,10 +158,50 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
   }
 
   const currentNow = nowMs
+  const rosterCount = showAll
+    ? directory
+      ? `${orderedCharacters.length} shown`
+      : loadingDirectory
+        ? 'Loading…'
+        : 'Directory'
+    : `${characters.length} online`
 
   return (
     <>
       <div className={styles.toolbar}>
+        <span className={styles.toolbarSpacer} />
+        <button
+          type="button"
+          className={`${styles.toggleButton} ${showAll ? styles.toggleButtonActive : ''}`}
+          aria-pressed={showAll}
+          onClick={toggleDirectory}
+        >
+          {showAll ? 'Show online only' : 'Show all characters'}
+        </button>
+      </div>
+
+      <section
+        className={styles.rosterPanel}
+        aria-label={showAll ? 'All character directory' : 'Online character roster'}
+      >
+        <header className={styles.rosterHeader}>
+          <div className={styles.rosterHeading}>
+            <span className={styles.rosterMarker} aria-hidden="true">
+              ◇
+            </span>
+            <div>
+              <span className={styles.rosterKicker}>{showAll ? 'Directory' : 'Live roster'}</span>
+              <strong>{showAll ? 'Known adventurers' : 'Active adventurers'}</strong>
+              <small>
+                {showAll
+                  ? 'Browse the realm by class or recent activity.'
+                  : 'Characters with an active presence heartbeat.'}
+              </small>
+            </div>
+          </div>
+          <span className={styles.rosterCount}>{rosterCount}</span>
+        </header>
+
         {showAll && directory ? (
           <div className={styles.filters} aria-label="Character directory filters">
             <label>
@@ -190,74 +230,64 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
               {orderedCharacters.length} of {directory.length} characters
             </span>
           </div>
-        ) : (
-          <span className={styles.toolbarSpacer} />
-        )}
-        <button
-          type="button"
-          className={`${styles.toggleButton} ${showAll ? styles.toggleButtonActive : ''}`}
-          aria-pressed={showAll}
-          onClick={toggleDirectory}
-        >
-          {showAll ? 'Show online only' : 'Show all characters'}
-        </button>
-      </div>
+        ) : null}
 
-      {showAll && loadingDirectory ? (
-        <p className={styles.loading}>Loading character directory…</p>
-      ) : null}
-      {showAll && directoryError ? (
-        <div className={styles.error} role="status">
-          <span>{directoryError}</span>
-          <button type="button" onClick={() => void loadDirectory()}>
-            Retry
-          </button>
-        </div>
-      ) : null}
+        {showAll && loadingDirectory ? (
+          <p className={styles.loading}>Loading character directory…</p>
+        ) : null}
+        {showAll && directoryError ? (
+          <div className={styles.error} role="status">
+            <span>{directoryError}</span>
+            <button type="button" onClick={() => void loadDirectory()}>
+              Retry
+            </button>
+          </div>
+        ) : null}
 
-      {!loadingDirectory && !directoryError && orderedCharacters.length === 0 ? (
-        <p className={styles.empty}>
-          {showAll
-            ? 'No characters match the selected filters.'
-            : 'No characters are currently visible online.'}
-        </p>
-      ) : null}
+        {!loadingDirectory && !directoryError && orderedCharacters.length === 0 ? (
+          <p className={styles.empty}>
+            {showAll
+              ? 'No characters match the selected filters.'
+              : 'No characters are currently visible online.'}
+          </p>
+        ) : null}
 
-      {orderedCharacters.length > 0 ? (
-        <div className={styles.list}>
-          {orderedCharacters.map((character) => {
-            const discipline = readableIdentity(character.disciplineId)
-            const online = isOnline(character)
-            const lastSeen = formatLastSeenAt(character.lastSeenAt, currentNow)
-            return (
-              <button
-                type="button"
-                className={styles.characterCard}
-                key={character.characterId}
-                onClick={() => setSelected(character)}
-              >
-                <span className={styles.avatarWrap}>
-                  <Portrait character={character} />
-                  <i
-                    className={`${styles.presenceDot} ${online ? '' : styles.presenceDotOffline}`}
-                    aria-hidden="true"
-                  />
-                </span>
-                <span className={styles.identity}>
-                  <strong>{character.name}</strong>
-                  <small>
-                    Level {character.level}
-                    {discipline ? ` · ${discipline}` : ''}
-                  </small>
-                </span>
-                <span className={online ? styles.online : styles.lastSeen}>
-                  {online ? 'Online' : lastSeen}
-                </span>
-              </button>
-            )
-          })}
-        </div>
-      ) : null}
+        {orderedCharacters.length > 0 ? (
+          <div className={styles.list}>
+            {orderedCharacters.map((character) => {
+              const discipline = readableIdentity(character.disciplineId)
+              const online = isOnline(character)
+              const lastSeen = formatLastSeenAt(character.lastSeenAt, currentNow)
+              return (
+                <button
+                  type="button"
+                  className={`${styles.characterCard} ${online ? styles.characterCardOnline : ''}`}
+                  key={character.characterId}
+                  onClick={() => setSelected(character)}
+                >
+                  <span className={styles.avatarWrap}>
+                    <Portrait character={character} />
+                    <i
+                      className={`${styles.presenceDot} ${online ? '' : styles.presenceDotOffline}`}
+                      aria-hidden="true"
+                    />
+                  </span>
+                  <span className={styles.identity}>
+                    <strong>{character.name}</strong>
+                    <small>
+                      Level {character.level}
+                      {discipline ? ` · ${discipline}` : ''}
+                    </small>
+                  </span>
+                  <span className={online ? styles.online : styles.lastSeen}>
+                    {online ? 'Online' : lastSeen}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        ) : null}
+      </section>
 
       {selected ? (
         <div className={styles.backdrop} onPointerDown={() => setSelected(null)}>
