@@ -3,6 +3,7 @@
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { ResonanceDefinition } from '@aurevane/game-core/combat/resonance'
+import type { Route } from 'next'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useState, type CSSProperties } from 'react'
 
@@ -127,7 +128,8 @@ export function CharacterSkillBuildPanel({
       params.delete(PROFILE_PANEL_QUERY)
     }
     const query = params.toString()
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false })
+    const href = (query ? `${pathname}?${query}` : pathname) as Route
+    router.replace(href, { scroll: false })
   }
 
   function selectedSourceCount(sourceDisciplineId: string): number {
