@@ -70,12 +70,34 @@ function legalVisibleTargetButtons(playerName: string): HTMLButtonElement[] {
   })
 }
 
+const LEGACY_COMMAND_SLOTS: Readonly<Record<string, string>> = {
+  Inspect: 'inspect',
+  Move: 'move',
+  'Basic Attack': 'attack',
+  Guard: 'guard',
+  Recover: 'recover',
+  'HP Recovery': 'recover',
+  'MP Recovery': 'recover',
+  'Finish Turn': 'finish',
+  'End Turn': 'finish',
+  'Facing / End Turn': 'finish',
+}
+
 function commandButton(...labels: string[]): HTMLButtonElement | null {
-  const buttons = Array.from(
-    document.querySelectorAll<HTMLButtonElement>('section[aria-label="Command Deck"] button'),
-  )
+  const root = document.querySelector<HTMLElement>('section[aria-label="Command Deck"]')
+  if (!root) return null
+
+  for (const label of labels) {
+    const slot = LEGACY_COMMAND_SLOTS[label]
+    if (!slot) continue
+    const stable = root.querySelector<HTMLButtonElement>(
+      `button[data-command-slot="${slot}"], button[data-battle-command="${slot}"]`,
+    )
+    if (stable) return stable
+  }
+
   return (
-    buttons.find((button) =>
+    Array.from(root.querySelectorAll<HTMLButtonElement>('button')).find((button) =>
       labels.includes(button.querySelector('strong')?.textContent?.trim() ?? ''),
     ) ?? null
   )

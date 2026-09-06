@@ -52,18 +52,21 @@
 .backdrop {
   position: fixed;
   inset: 0;
-  z-index: 1200;
+  z-index: 5000;
   display: grid;
+  isolation: isolate;
   place-items: center;
   overflow: hidden;
   background:
     radial-gradient(circle at 18% 10%, rgba(163, 83, 53, 0.13), transparent 30%),
-    radial-gradient(circle at 82% 12%, rgba(56, 118, 103, 0.12), transparent 28%), rgb(2 5 9 / 88%);
+    radial-gradient(circle at 82% 12%, rgba(56, 118, 103, 0.12), transparent 28%), rgb(2 5 9 / 96%);
   padding: clamp(0.65rem, 1.5vw, 1.35rem);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
 }
 
 .dialog {
+  position: relative;
+  z-index: 1;
   display: flex;
   width: min(82rem, 100%);
   max-height: calc(100dvh - 1.3rem);
