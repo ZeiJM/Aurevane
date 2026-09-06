@@ -24,6 +24,17 @@ function findBattleRoot(): HTMLElement | null {
   return document.querySelector<HTMLElement>('#battlefield')?.closest<HTMLElement>('main') ?? null
 }
 
+function suppressLegacyFacingPad(root: HTMLElement) {
+  const facingPad = root.querySelector<HTMLElement>('[data-unified-facing-pad="true"]')
+  if (!facingPad) return
+
+  // The facing buttons remain mounted and enabled in facing mode because the existing Space,
+  // double-Space and WASD helpers use them as the client bridge into the authoritative final-turn
+  // action. Only the retired cockpit rail is removed from layout. Inline !important deliberately
+  // outranks the older shared visual-contract rule that can otherwise force this rail to display.
+  facingPad.style.setProperty('display', 'none', 'important')
+}
+
 function markSharedActionMode(root: HTMLElement) {
   const active = Array.from(
     root.querySelectorAll<HTMLButtonElement>(
@@ -54,6 +65,7 @@ function markSemanticControls(root: HTMLElement) {
   root.dataset.battleVisualContract = 'true'
   root.dataset.battleMode = root.dataset.pvpBattle === 'true' ? 'pvp' : 'pve'
   markSharedActionMode(root)
+  suppressLegacyFacingPad(root)
 
   const header = root.querySelector<HTMLElement>(':scope > header')
   mark(header, 'battleSharedHeader')
