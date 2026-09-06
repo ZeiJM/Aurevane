@@ -1,0 +1,146 @@
+.counterGroup {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.capacityBadge {
+  min-width: 7.75rem;
+  display: grid !important;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  justify-content: center;
+  column-gap: 0.22rem;
+  padding-inline: 0.72rem !important;
+  font-size: 0.78rem !important;
+}
+
+.capacityBadge strong,
+.capacityBadge > span:not(.counterName) {
+  font-size: 0.78rem !important;
+  line-height: 1 !important;
+}
+
+.counterName {
+  overflow: hidden;
+  color: rgb(var(--chip) / 92%);
+  font: 750 0.58rem/1 var(--av-font-mono) !important;
+  letter-spacing: 0.045em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.standardButton {
+  min-height: 2.55rem !important;
+  padding: 0.58rem 0.82rem !important;
+  font-size: 0.78rem !important;
+  line-height: 1.05 !important;
+  font-weight: 720 !important;
+}
+
+.mixedRuleCard {
+  display: grid !important;
+  grid-template-columns: 1fr !important;
+  gap: 0.24rem !important;
+}
+
+.mixedRuleCard strong {
+  color: #d9c9ad !important;
+  font: 760 0.7rem/1.2 var(--av-font-mono) !important;
+}
+
+.mixedRuleCard span {
+  color: var(--text-muted) !important;
+  font-size: 0.64rem !important;
+  line-height: 1.42 !important;
+}
+
+.signatureSection {
+  gap: 0.58rem !important;
+}
+
+.signatureCard {
+  display: grid;
+  grid-template-columns: 3.6rem minmax(0, 1fr);
+  gap: 0.62rem;
+  align-items: center;
+  min-width: 0;
+  padding-top: 0.1rem;
+}
+
+.signatureArtFrame {
+  display: grid;
+  width: 3.6rem;
+  height: 3.6rem;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(203, 179, 132, 0.24);
+  border-radius: 0.66rem;
+  background: rgba(2, 5, 9, 0.5);
+  box-shadow: inset 0 0 1rem rgba(207, 169, 93, 0.08);
+}
+
+.signatureArt {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.signatureCopy {
+  display: grid;
+  min-width: 0;
+  gap: 0.28rem;
+}
+
+.signatureCopy > strong {
+  color: #e5dac7;
+  font-size: 0.72rem;
+  line-height: 1.22;
+}
+
+.signatureCopy p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.58rem;
+  line-height: 1.42;
+}
+
+.typeChip {
+  --chip: 104 151 202;
+}
+
+.techniqueHeading {
+  min-height: 1.35rem;
+}
+
+.techniqueHeading > strong {
+  color: #ddd2c2;
+  font-size: 0.76rem;
+  line-height: 1.2;
+}
+
+.actions {
+  justify-content: flex-end !important;
+}
+
+@media (max-width: 720px) {
+  .counterGroup {
+    justify-content: flex-start;
+  }
+
+  .capacityBadge {
+    min-width: 7.1rem;
+  }
+
+  .signatureCard {
+    grid-template-columns: 3.2rem minmax(0, 1fr);
+  }
+
+  .signatureArtFrame {
+    width: 3.2rem;
+    height: 3.2rem;
+  }
+}
