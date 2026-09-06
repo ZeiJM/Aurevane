@@ -38,7 +38,9 @@ function techniqueCategory(tags: readonly string[]): BattleTechniqueCategory {
   if (tags.includes('cockpit:defense')) return 'defense'
   if (tags.includes('cockpit:attack')) return 'attack'
   if (tags.includes('cockpit:inspect') || tags.includes('cockpit:movement')) {
-    throw new Error('That Technique cockpit category is not executable in the current battle runtime.')
+    throw new Error(
+      'That Technique cockpit category is not executable in the current battle runtime.',
+    )
   }
 
   // Legacy definitions remain readable, but new authored Techniques should carry one explicit
@@ -57,9 +59,7 @@ function battleBuildExtensions(
   const resonanceDefinition = resolveBattleResonanceDefinition(authority, combatantId)
   const essenceDefinition = resolveBattleEssenceDefinition(authority, combatantId)
   const combatContext = authority?.combatContext
-  const essenceOverride = combatContext
-    ? essenceDefinition?.skill.overrides[combatContext]
-    : undefined
+  const essenceOverride = combatContext ? essenceDefinition?.skill.overrides[combatContext] : undefined
   const techniques = (build?.disciplineSkills ?? []).flatMap((reference) => {
     const definition = resolveMatureSkillVersion(reference.skillId, reference.contentVersion)
     if (!definition || definition.sourceDisciplineId !== reference.sourceDisciplineId) return []
