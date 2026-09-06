@@ -154,7 +154,6 @@ export function CharacterProfileShell({
           </header>
 
           <CharacterProfileDetails
-            slotIndex={profile.slotIndex}
             presentationLabel={profile.identity.presentationLabel}
             pronounLabel={profile.identity.pronounLabel}
             cycleNumber={profile.progression.cycleNumber}
@@ -167,7 +166,6 @@ export function CharacterProfileShell({
           <Surface className={`${styles.sideCard} ${styles.buildCard}`} tone="quiet">
             <div className={styles.buildHeading}>
               <Kicker marker="◇">Build</Kicker>
-              <p>Shape the active combat loadout.</p>
             </div>
 
             <section className={styles.buildSection} aria-labelledby="build-disciplines-heading">
