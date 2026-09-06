@@ -166,7 +166,10 @@ export function CharacterProfileShell({
           />
         </Surface>
 
-        <aside className={`${styles.sidebar} ${compactStyles.sidebar}`} aria-label="Character build workspace">
+        <aside
+          className={`${styles.sidebar} ${compactStyles.sidebar}`}
+          aria-label="Character build workspace"
+        >
           <Surface
             className={`${styles.sideCard} ${styles.buildCard} ${compactStyles.buildCard}`}
             tone="quiet"
