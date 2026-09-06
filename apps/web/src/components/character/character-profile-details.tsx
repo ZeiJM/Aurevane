@@ -139,6 +139,7 @@ export function CharacterProfileDetails({
             const style = {
               '--attribute-color': color.solid,
               '--attribute-tint': color.tint,
+              alignItems: 'center',
             } as CSSProperties
             return (
               <button
