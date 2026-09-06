@@ -29,6 +29,6 @@ jobs:
       - name: Check touched formatting
         run: pnpm exec prettier --check apps/web/src/components/character/character-profile-details.tsx apps/web/src/components/character/character-profile-details.module.css apps/web/src/components/character/character-profile-shell.module.css
       - name: Lint changed component
-        run: pnpm exec eslint apps/web/src/components/character/character-profile-details.tsx --max-warnings=0
+        run: pnpm --filter @aurevane/web exec eslint src/components/character/character-profile-details.tsx --max-warnings=0
       - name: Web typecheck
         run: pnpm --filter @aurevane/web typecheck
