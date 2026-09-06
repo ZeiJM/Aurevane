@@ -104,6 +104,7 @@ async function finishTurnKeepingFacing(page: Page, root: Locator, testRepeat = f
   await expect(root.getByRole('button', { name: 'Face east' })).toBeEnabled()
   await expect(root.getByRole('button', { name: 'Face south' })).toBeEnabled()
   await expect(root.getByRole('button', { name: 'Face west' })).toBeEnabled()
+  await expect(root.locator('[data-unified-facing-pad="true"]')).toBeHidden()
 
   if (testRepeat) {
     await page.evaluate(() => {
