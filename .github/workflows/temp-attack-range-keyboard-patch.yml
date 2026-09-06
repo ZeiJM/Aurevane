@@ -6,6 +6,7 @@ on:
       - fix/technique-keyboard-facing-ui-20260906
     paths:
       - .github/workflows/temp-attack-range-keyboard-patch.yml
+      - .github/scripts/temp_attack_range_keyboard_patch.py
 
 permissions:
   contents: write
