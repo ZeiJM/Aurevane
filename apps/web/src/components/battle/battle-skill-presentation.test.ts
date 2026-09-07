@@ -50,7 +50,7 @@ describe('battle skill artwork presentation', () => {
     expect(battleSkillArtwork(PV1F_MP_RECOVER_ACTION_ID)).toBe('/media/skills/mp-recovery.svg')
   })
 
-  it('keeps established Phase 3 artwork and gives newly authored Lifebinder actions distinct art', () => {
+  it('keeps established Phase 3 artwork and gives newly authored Lifebinder actions distinct curated art', () => {
     const generatedIds = new Set<string>(GENERATED_LIFEBINDER_IDS)
     const resolvedArtwork = PHASE_3_COMBAT_ACTION_IDS.map((actionId) => {
       const artwork = battleSkillArtwork(actionId)
@@ -67,15 +67,17 @@ describe('battle skill artwork presentation', () => {
       battleSkillArtwork(actionId),
     )
     expect(new Set(lifebinderArtwork).size).toBe(GENERATED_LIFEBINDER_IDS.length)
-    expect(lifebinderArtwork.every((source) => source.startsWith('data:image/svg+xml,'))).toBe(true)
+    expect(
+      lifebinderArtwork.every((source) => source.startsWith('/media/skills/dark-fantasy/')),
+    ).toBe(true)
     expect(battleSkillArtwork('future.skill')).toBe(BATTLE_MISSING_ARTWORK)
   })
 
-  it('gives the Foundation trio Techniques and Essences non-missing generated artwork', () => {
+  it('gives the Foundation trio Techniques and Essences non-missing curated artwork', () => {
     for (const skillId of FOUNDATION_TRIO_SAMPLE_IDS) {
       const artwork = battleSkillArtwork(skillId)
       expect(artwork).not.toBe(BATTLE_MISSING_ARTWORK)
-      expect(artwork.startsWith('data:image/svg+xml,')).toBe(true)
+      expect(artwork.startsWith('/media/skills/dark-fantasy/')).toBe(true)
     }
   })
 
@@ -89,7 +91,7 @@ describe('battle skill artwork presentation', () => {
 
     const expandedResonance = battleResonanceArtwork('resonance.aetherist-farstrider.arcane-hunt')
     expect(expandedResonance).not.toBe(BATTLE_MISSING_ARTWORK)
-    expect(expandedResonance.startsWith('data:image/svg+xml,')).toBe(true)
+    expect(expandedResonance.startsWith('/media/skills/dark-fantasy/')).toBe(true)
     expect(battleResonanceArtwork('future.resonance')).toBe(BATTLE_MISSING_ARTWORK)
   })
 })
