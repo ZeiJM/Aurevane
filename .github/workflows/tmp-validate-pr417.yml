@@ -1,0 +1,78 @@
+name: Validate PR417 Expanded Class Content
+
+on:
+  push:
+    branches:
+      - content/foundation-trio-skills-20260907
+    paths:
+      - '.github/workflows/tmp-validate-pr417.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: content/foundation-trio-skills-20260907
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Focused formatting
+        run: |
+          pnpm exec prettier --check \
+            apps/web/src/components/battle/battle-cockpit-layout-stabilizer.tsx \
+            apps/web/src/components/battle/battle-cockpit-selection-storage.ts \
+            apps/web/src/components/battle/battle-cockpit-selection-storage.test.ts \
+            apps/web/src/components/battle/battle-skill-presentation.ts \
+            apps/web/src/components/battle/battle-skill-presentation.test.ts \
+            apps/web/src/components/character/character-profile-details.module.css \
+            apps/web/src/components/character/character-profile-shell.module.css \
+            apps/web/src/components/character/character-profile-shell.tsx \
+            packages/game-core/src/combat/foundation-trio-content.test.ts \
+            packages/game-core/src/combat/foundation-trio-essences.ts \
+            packages/game-core/src/combat/foundation-trio-resonances.ts \
+            packages/game-core/src/combat/foundation-trio-skills.ts \
+            packages/game-core/src/combat/essence.ts \
+            packages/game-core/src/combat/mature-skills.ts \
+            packages/game-core/src/combat/pv1f-action-economy.ts \
+            packages/game-core/src/combat/resonance.ts
+      - name: Focused lint
+        run: |
+          pnpm exec eslint \
+            apps/web/src/components/battle/battle-cockpit-layout-stabilizer.tsx \
+            apps/web/src/components/battle/battle-cockpit-selection-storage.ts \
+            apps/web/src/components/battle/battle-cockpit-selection-storage.test.ts \
+            apps/web/src/components/battle/battle-skill-presentation.ts \
+            apps/web/src/components/battle/battle-skill-presentation.test.ts \
+            apps/web/src/components/character/character-profile-shell.tsx \
+            packages/game-core/src/combat/foundation-trio-content.test.ts \
+            packages/game-core/src/combat/foundation-trio-essences.ts \
+            packages/game-core/src/combat/foundation-trio-resonances.ts \
+            packages/game-core/src/combat/foundation-trio-skills.ts \
+            packages/game-core/src/combat/essence.ts \
+            packages/game-core/src/combat/mature-skills.ts \
+            packages/game-core/src/combat/pv1f-action-economy.ts \
+            packages/game-core/src/combat/resonance.ts
+      - name: Focused tests
+        run: |
+          pnpm --filter @aurevane/game-core exec vitest run src/combat/foundation-trio-content.test.ts
+          pnpm --filter @aurevane/web exec vitest run \
+            src/components/battle/battle-cockpit-selection-storage.test.ts \
+            src/components/battle/battle-skill-presentation.test.ts \
+            src/components/battle/battle-skill-selection.test.ts \
+            src/components/battle/battle-session-ui-state.test.ts
+      - name: Typechecks
+        run: |
+          pnpm --filter @aurevane/game-core typecheck
+          pnpm --filter @aurevane/web typecheck
+      - name: Production build
+        run: pnpm build
