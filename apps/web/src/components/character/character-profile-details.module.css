@@ -64,6 +64,11 @@ button.identityFact:focus-visible {
   min-width: 0;
 }
 
+button.identityFact .factCopy {
+  justify-items: center;
+  text-align: center;
+}
+
 .factCopy small {
   color: var(--av-text-dim);
   font: 700 0.46rem/1 var(--av-font-mono);

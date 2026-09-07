@@ -1,3 +1,4 @@
+import { FOUNDATION_TRIO_RESONANCES } from './foundation-trio-resonances'
 import {
   executeCombatAction,
   type CombatContentCatalog,
@@ -129,6 +130,7 @@ export const P35_REPRESENTATIVE_RESONANCES = [
       validationTags: ['p3.5', 'representative', 'skill-sequence', 'bounded'],
     },
   },
+  ...FOUNDATION_TRIO_RESONANCES,
 ] as const satisfies readonly ResonanceDefinition[]
 
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/

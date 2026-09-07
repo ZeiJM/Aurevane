@@ -1,4 +1,5 @@
 import type { CombatActionEvaluation, CombatTargetSelection } from './actions'
+import { FOUNDATION_TRIO_ESSENCES } from './foundation-trio-essences'
 import {
   type MatureSkillCombatContext,
   type MatureSkillDefinition,
@@ -165,6 +166,7 @@ export const P36_REPRESENTATIVE_ESSENCES = [
       validationTags: ['p3.6', 'representative', 'pure-only', 'owner-approved-offense'],
     },
   },
+  ...FOUNDATION_TRIO_ESSENCES,
 ] as const satisfies readonly EssenceDefinition[]
 
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/
