@@ -80,7 +80,7 @@ describe('Primary Discipline build calculation', () => {
     ).toThrow('mismatch')
   })
 
-  it('preserves clamps when Primary or other modifiers are applied', () => {
+  it('preserves global clamps when Primary or other modifiers are applied', () => {
     const result = calculateCharacterBuildDerivedStats({
       attributes,
       level: 1,
@@ -88,10 +88,20 @@ describe('Primary Discipline build calculation', () => {
       primaryProfile: {
         disciplineId: 'vanguard',
         profileVersion: 1,
-        statOffsets: { accuracy: 10_000 },
+        statOffsets: {
+          accuracy: 10_000,
+          evasion: 10_000,
+          criticalChance: 10_000,
+          movement: 10,
+          jump: 10,
+        },
       },
     })
     expect(result.stats.accuracy.value).toBe(9500)
+    expect(result.stats.evasion.value).toBe(1500)
+    expect(result.stats.criticalChance.value).toBe(3000)
+    expect(result.stats.movement.value).toBe(5)
+    expect(result.stats.jump.value).toBe(3)
     expect(result.stats.accuracy.unclampedValue).toBeGreaterThan(9500)
   })
 })
