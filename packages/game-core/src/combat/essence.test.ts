@@ -110,8 +110,10 @@ describe('P3.6 versioned pure Essence framework', () => {
       expect(validateEssenceDefinition(definition)).toEqual([])
     }
 
-    const pure = resolveEssenceForBuild('vanguard', null)
-    expect(pure?.essenceId).toBe('essence.vanguard.unbroken-strike')
+    const vanguard = resolveEssenceForBuild('vanguard', null)
+    expect(vanguard?.essenceId).toBe('essence.vanguard.unbroken-strike')
+    const lifebinder = resolveEssenceForBuild('lifebinder', null)
+    expect(lifebinder?.essenceId).toBe('essence.lifebinder.verdant-rupture')
     expect(resolveEssenceForBuild('vanguard', 'lifebinder')).toBeNull()
     expect(resolveEssenceForBuild('unknown-discipline', null)).toBeNull()
   })
@@ -219,6 +221,25 @@ describe('P3.6 versioned pure Essence framework', () => {
         remaining: 40,
       }),
     )
+  })
+
+  it('executes Verdant Rupture as the pure Lifebinder offensive Essence Skill', () => {
+    const essence = resolveEssenceForBuild('lifebinder', null)
+    if (!essence) throw new Error('Expected representative Lifebinder Essence.')
+
+    const result = executePv1fEssenceSkill({
+      state: encounter(),
+      essence,
+      primaryDisciplineId: 'lifebinder',
+      secondaryDisciplineId: null,
+      combatContext: 'pve',
+      selection: { kind: 'unit', combatantId: 'recruit' },
+    })
+
+    expect(essence.name).toBe('Verdant Rupture')
+    expect(essence.skill.tags).toEqual(expect.arrayContaining(['attack', 'cockpit:attack']))
+    expect(readPv1fActionEconomy(result.state, 'player')?.current).toBe(45)
+    expect(result.state.tactical.battle.combatants.find((row) => row.id === 'recruit')?.hp).toBe(32)
   })
 
   it('fails closed for a mixed build before spending AP or applying effects', () => {
