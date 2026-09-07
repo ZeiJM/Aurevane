@@ -15,7 +15,7 @@ const expectedStartingBonuses = {
 describe('Foundation Discipline attribute identities', () => {
   it('keeps every recommended starter spread inside the shared six-point creation budget', () => {
     for (const discipline of FOUNDATION_DISCIPLINES) {
-      const spent = Object.values(discipline.startingAttributeBonuses).reduce(
+      const spent = Object.values(discipline.startingAttributeBonuses).reduce<number>(
         (total, value) => total + value,
         0,
       )
