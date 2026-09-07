@@ -373,10 +373,11 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
                 <h2>Starting attributes</h2>
                 <p>
                   Every attribute begins at {CHARACTER_CREATION_RULES_V1.attributes.baseline}. Your
-                  Discipline loads a recommended {CHARACTER_CREATION_RULES_V1.attributes.bonusBudget}
-                  -point starting spread, and you can redistribute every point before creation.
-                  Vitality owns endurance; Agility owns movement and reflex, so the older attributes
-                  no longer have to carry too many jobs at once.
+                  Discipline loads a recommended starting spread of{' '}
+                  {CHARACTER_CREATION_RULES_V1.attributes.bonusBudget} bonus points, and you can
+                  redistribute every point before creation. Vitality owns endurance; Agility owns
+                  movement and reflex, so the older attributes no longer have to carry too many jobs
+                  at once.
                 </p>
               </div>
               <strong data-testid="attribute-points">
