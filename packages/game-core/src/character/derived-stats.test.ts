@@ -17,7 +17,7 @@ const balancedAttributes = {
 }
 
 describe('derived stat framework', () => {
-  it('calculates the deterministic Phase 1 balanced level-1 profile', () => {
+  it('calculates the deterministic balanced level-1 profile', () => {
     const snapshot = calculateDerivedStats({ attributes: balancedAttributes, level: 1 })
 
     expect(snapshot.rulesVersion).toBe(1)
@@ -31,8 +31,8 @@ describe('derived stat framework', () => {
     expect(snapshot.stats.evasion.value).toBe(900)
     expect(snapshot.stats.criticalChance.value).toBe(800)
     expect(snapshot.stats.initiative.value).toBe(28)
-    expect(snapshot.stats.movement.value).toBe(4)
-    expect(snapshot.stats.jump.value).toBe(1)
+    expect(snapshot.stats.movement.value).toBe(2)
+    expect(snapshot.stats.jump.value).toBe(0)
     expect(snapshot.stats.statusResistance.value).toBe(600)
   })
 
@@ -99,15 +99,15 @@ describe('derived stat framework', () => {
         intellect: 1000,
         resolve: 1000,
       },
-      level: 100,
+      level: 50,
     })
 
     expect(snapshot.stats.accuracy.value).toBe(9500)
-    expect(snapshot.stats.evasion.value).toBe(7500)
-    expect(snapshot.stats.criticalChance.value).toBe(5000)
+    expect(snapshot.stats.evasion.value).toBe(1500)
+    expect(snapshot.stats.criticalChance.value).toBe(3000)
     expect(snapshot.stats.statusResistance.value).toBe(7500)
-    expect(snapshot.stats.movement.value).toBe(8)
-    expect(snapshot.stats.jump.value).toBe(4)
+    expect(snapshot.stats.movement.value).toBe(5)
+    expect(snapshot.stats.jump.value).toBe(3)
   })
 
   it('rejects invalid character inputs', () => {
@@ -117,7 +117,7 @@ describe('derived stat framework', () => {
     expect(() => calculateDerivedStats({ attributes: balancedAttributes, level: 0 })).toThrow(
       RangeError,
     )
-    expect(() => calculateDerivedStats({ attributes: balancedAttributes, level: 101 })).toThrow(
+    expect(() => calculateDerivedStats({ attributes: balancedAttributes, level: 51 })).toThrow(
       RangeError,
     )
   })
