@@ -55,6 +55,23 @@ Example principle: an offensive mage may have bounded physical/off-role attribut
 
 Current Foundation numeric off-identity ceilings are intentionally not invented by this addendum. They must be explicitly balance-authored and owner-approved before activation.
 
+### 4.1 Foundation starting identities
+
+Choosing a Foundation Discipline at character creation preloads a **recommended starting spread** for the existing six-point creation bonus budget. This makes the Discipline's intended identity immediately visible without locking the player into a template.
+
+Current recommended spreads:
+
+- **Vanguard** — Focus: Might and Vitality. Starting bonus spread: **+3 Might, +3 Vitality**.
+- **Farstrider** — Focus: Finesse and Agility. Starting bonus spread: **+4 Finesse, +2 Agility**.
+- **Shadehand** — Focus: Finesse and Agility. Starting bonus spread: **+2 Finesse, +4 Agility**.
+- **Ironfist** — Focus: Might and Agility. Starting bonus spread: **+4 Might, +2 Agility**.
+- **Aetherist** — Focus: Intellect and Resolve. Starting bonus spread: **+4 Intellect, +2 Resolve**.
+- **Lifebinder** — Focus: Intellect and Resolve. Starting bonus spread: **+2 Intellect, +4 Resolve**.
+
+These spreads are **defaults, not caps**. Before creating the character, the player may redistribute the full six-point starting bonus budget however they wish under the active legal rules. Later full attribute resets likewise include these starting points.
+
+Future Foundation or advanced Disciplines must define focus metadata and an intentional starting identity where applicable instead of inheriting a generic stat template by accident.
+
 ## 5. Primary Discipline changes never destroy player points
 
 Changing Primary Discipline must validate the character's existing personal allocation against the proposed Discipline policy.
@@ -93,7 +110,7 @@ The implementation sequence for this system is:
 
 1. **Authoritative global rules** — Level 50, +1 point per gained Level, global Crit/Evasion/Movement/Jump ceilings, and 20 AP movement cost.
 2. **Authoritative allocation persistence** — Level-derived point budget, ordinary point spending, full-pool resets, idempotency, audit history, and five-use 30-day reset-window enforcement.
-3. **Profile experience** — available-point allocation, full Reset Attributes workflow, reset count/renewal visibility, and Primary focus-stat presentation.
+3. **Profile and creation experience** — available-point allocation, full Reset Attributes workflow, reset count/renewal visibility, Primary focus-stat presentation, and editable Foundation starting-identity presets.
 4. **Primary swap compatibility** — proposed Primary changes validate the current allocation first; illegal allocations must be redistributed and are never silently clamped.
 5. **Discipline balance authoring** — numeric off-identity attribute ceilings and any Discipline-specific derived-stat ceilings are added only after explicit balance review and owner approval.
 
