@@ -8,6 +8,9 @@ on:
       - '.github/workflows/attribute-allocation.yml'
       - 'packages/game-core/src/character/attribute-allocation.ts'
       - 'packages/game-core/src/character/attribute-allocation.test.ts'
+      - 'packages/game-core/src/character/derived-stats.ts'
+      - 'packages/game-core/src/character/derived-stats.test.ts'
+      - 'packages/game-core/src/character/discipline-build.test.ts'
       - 'apps/web/src/server/character/character-attribute-service.ts'
       - 'apps/web/src/server/character/supabase-character-attribute-repository.ts'
       - 'apps/web/src/app/api/character/attributes/route.ts'
@@ -23,6 +26,8 @@ on:
       - '.github/scripts/verify-character-attribute-allocation.sh'
       - '.github/workflows/attribute-allocation.yml'
       - 'packages/game-core/src/character/attribute-allocation.ts'
+      - 'packages/game-core/src/character/derived-stats.ts'
+      - 'packages/game-core/src/character/discipline-build.test.ts'
       - 'apps/web/src/server/character/character-attribute-service.ts'
       - 'apps/web/src/server/character/supabase-character-attribute-repository.ts'
       - 'apps/web/src/app/api/character/attributes/route.ts'
@@ -60,6 +65,9 @@ jobs:
           pnpm exec prettier --check \
             packages/game-core/src/character/attribute-allocation.ts \
             packages/game-core/src/character/attribute-allocation.test.ts \
+            packages/game-core/src/character/derived-stats.ts \
+            packages/game-core/src/character/derived-stats.test.ts \
+            packages/game-core/src/character/discipline-build.test.ts \
             apps/web/src/server/character/character-attribute-service.ts \
             apps/web/src/server/character/supabase-character-attribute-repository.ts \
             apps/web/src/app/api/character/attributes/route.ts \
@@ -75,7 +83,11 @@ jobs:
         run: pnpm --filter @aurevane/web typecheck
 
       - name: Focused game-core tests
-        run: pnpm --filter @aurevane/game-core exec vitest run src/character/attribute-allocation.test.ts
+        run: |
+          pnpm --filter @aurevane/game-core exec vitest run \
+            src/character/attribute-allocation.test.ts \
+            src/character/derived-stats.test.ts \
+            src/character/discipline-build.test.ts
 
       - name: Start local Supabase stack
         run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
