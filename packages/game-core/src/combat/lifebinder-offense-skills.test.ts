@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  resolveMatureSkillVersion,
-  validateMatureSkillDefinition,
-} from './mature-skills'
+import { resolveMatureSkillVersion, validateMatureSkillDefinition } from './mature-skills'
 
 describe('Lifebinder offensive Techniques', () => {
   it('defines Vital Sever as a ranged single-target Attack Technique', () => {
