@@ -89,6 +89,10 @@ These use the existing server-authoritative two-Skill sequence framework and bou
 
 The active-Discipline provisioning authority is expanded so Aetherist, Farstrider, and Shadehand characters receive their eight authored Techniques exactly like Vanguard and Lifebinder. Existing eligible characters are backfilled by migration; future active-Discipline changes provision automatically.
 
+## Media presentation
+
+The expanded Techniques, Essences, and Resonances receive deterministic class-colored interim artwork so every card has a distinct visual identity while the dedicated production-art pass is still pending. Lifebinder's newly added **Vital Sever**, **Searing Bloom**, and **Verdant Rupture** likewise use distinct artwork instead of reusing existing Lifebinder card images.
+
 ## Content boundary
 
-Ironfist is not part of this expansion. Its catalog should be authored as its own focused class-content ticket rather than filled with placeholders. Dedicated production artwork/audio for these new Skills is also a separate media pass; until then the existing missing-art fallback is intentional.
+Ironfist is not part of this expansion. Its catalog should be authored as its own focused class-content ticket rather than filled with placeholders. Dedicated production illustration and audio can replace the interim generated presentation later without changing the authoritative Skill IDs or mechanics.
