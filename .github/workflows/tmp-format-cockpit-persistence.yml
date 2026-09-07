@@ -1,0 +1,48 @@
+name: Format Cockpit Persistence
+
+on:
+  push:
+    branches:
+      - content/foundation-trio-skills-20260907
+    paths:
+      - '.github/workflows/tmp-format-cockpit-persistence.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: content/foundation-trio-skills-20260907
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format cockpit persistence files
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/components/battle/battle-cockpit-layout-stabilizer.tsx \
+            apps/web/src/components/battle/battle-cockpit-selection-storage.ts \
+            apps/web/src/components/battle/battle-cockpit-selection-storage.test.ts \
+            apps/web/src/components/battle/battle-skill-presentation.ts \
+            packages/game-core/src/combat/foundation-trio-skills.ts \
+            packages/game-core/src/combat/foundation-trio-essences.ts
+          git config user.name "Aurevane Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add \
+            apps/web/src/components/battle/battle-cockpit-layout-stabilizer.tsx \
+            apps/web/src/components/battle/battle-cockpit-selection-storage.ts \
+            apps/web/src/components/battle/battle-cockpit-selection-storage.test.ts \
+            apps/web/src/components/battle/battle-skill-presentation.ts \
+            packages/game-core/src/combat/foundation-trio-skills.ts \
+            packages/game-core/src/combat/foundation-trio-essences.ts
+          git diff --cached --quiet || git commit -m "Format cockpit persistence changes"
+          git push origin HEAD:content/foundation-trio-skills-20260907
