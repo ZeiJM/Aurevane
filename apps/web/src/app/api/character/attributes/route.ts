@@ -90,10 +90,10 @@ function parseAttributes(value: unknown): CharacterAttributes {
   const attributes = {} as CharacterAttributes
   for (const attributeId of CHARACTER_ATTRIBUTE_IDS) {
     const candidate = record[attributeId]
-    if (!Number.isSafeInteger(candidate) || (candidate as number) < 1) {
+    if (typeof candidate !== 'number' || !Number.isSafeInteger(candidate) || candidate < 1) {
       throw new AurevaneError('INVALID_REQUEST', `Provide a valid ${attributeId} value.`)
     }
-    attributes[attributeId] = candidate as number
+    attributes[attributeId] = candidate
   }
   return attributes
 }
