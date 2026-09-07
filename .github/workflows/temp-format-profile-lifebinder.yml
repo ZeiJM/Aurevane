@@ -1,0 +1,36 @@
+name: Temporary focused formatter
+
+on:
+  pull_request:
+    paths:
+      - 'packages/game-core/src/combat/mature-skills.ts'
+      - 'packages/game-core/src/combat/lifebinder-offense-skills.test.ts'
+      - 'apps/web/src/components/battle/battle-skill-presentation.ts'
+      - 'apps/web/src/components/character/character-profile-details-compact.module.css'
+      - '.github/workflows/temp-format-profile-lifebinder.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  format-preview:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: corepack enable && corepack prepare pnpm@11.17.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - name: Show exact Prettier diff
+        run: |
+          pnpm exec prettier --write \
+            packages/game-core/src/combat/mature-skills.ts \
+            packages/game-core/src/combat/lifebinder-offense-skills.test.ts \
+            apps/web/src/components/battle/battle-skill-presentation.ts \
+            apps/web/src/components/character/character-profile-details-compact.module.css
+          git diff -- \
+            packages/game-core/src/combat/mature-skills.ts \
+            packages/game-core/src/combat/lifebinder-offense-skills.test.ts \
+            apps/web/src/components/battle/battle-skill-presentation.ts \
+            apps/web/src/components/character/character-profile-details-compact.module.css
