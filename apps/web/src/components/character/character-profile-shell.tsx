@@ -158,7 +158,8 @@ export function CharacterProfileShell({
     disciplineBuild.currentSecondary,
   )
   const focusAttributes: readonly CharacterAttributeId[] =
-    foundationDisciplineAttributePolicy(disciplineBuild.current.definition.id)?.focusAttributes ?? []
+    foundationDisciplineAttributePolicy(disciplineBuild.current.definition.id)?.focusAttributes ??
+    []
 
   return (
     <AuthenticatedShellFrame sessionLabel="Character Profile">
