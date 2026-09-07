@@ -145,7 +145,11 @@ export function validateDisciplineAttributePolicy(
   policy: DisciplineAttributePolicy,
 ): readonly AttributeAllocationIssue[] {
   const issues: AttributeAllocationIssue[] = []
-  if (!policy.disciplineId.trim() || !Number.isInteger(policy.policyVersion) || policy.policyVersion < 1) {
+  if (
+    !policy.disciplineId.trim() ||
+    !Number.isInteger(policy.policyVersion) ||
+    policy.policyVersion < 1
+  ) {
     issues.push({
       code: 'invalid-discipline-policy',
       field: 'policy',
@@ -294,7 +298,8 @@ export function resolveAttributeResetWindow(input: {
   if (!Number.isFinite(nowMs)) throw new RangeError('Attribute reset server time is invalid.')
 
   const durationMs = ATTRIBUTE_RESET_WINDOW_DAYS * 24 * 60 * 60 * 1000
-  const existingStartMs = input.windowStartedAt === null ? Number.NaN : Date.parse(input.windowStartedAt)
+  const existingStartMs =
+    input.windowStartedAt === null ? Number.NaN : Date.parse(input.windowStartedAt)
   const expired = !Number.isFinite(existingStartMs) || nowMs >= existingStartMs + durationMs
   const windowStartedAtMs = expired ? nowMs : existingStartMs
   const used = expired ? 0 : Math.min(input.used, ATTRIBUTE_RESET_LIMIT_PER_WINDOW)
