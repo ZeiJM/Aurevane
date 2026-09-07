@@ -156,7 +156,15 @@ export const FOUNDATION_TRIO_ESSENCES = [
           facingModifiersBasisPoints: { front: 12_000, side: 16_000, rear: 22_000 },
         },
       ],
-      tags: ['essence', 'shadehand', 'attack', 'melee', 'opportunist', 'finisher', 'cockpit:attack'],
+      tags: [
+        'essence',
+        'shadehand',
+        'attack',
+        'melee',
+        'opportunist',
+        'finisher',
+        'cockpit:attack',
+      ],
       cooldown: { key: 'essence.shadehand.perfect-opening', ownerTurns: 4 },
       ai: {
         enabled: true,
