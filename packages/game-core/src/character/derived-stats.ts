@@ -310,9 +310,7 @@ export function calculateDerivedStats(
   }
 
   if (!Number.isInteger(input.level) || input.level < 1 || input.level > CURRENT_LEVEL_CAP) {
-    throw new RangeError(
-      `Character level must be a whole number from 1 to ${CURRENT_LEVEL_CAP}.`,
-    )
+    throw new RangeError(`Character level must be a whole number from 1 to ${CURRENT_LEVEL_CAP}.`)
   }
 
   for (const attributeId of CHARACTER_ATTRIBUTE_IDS) {
