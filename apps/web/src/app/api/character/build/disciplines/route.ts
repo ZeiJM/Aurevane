@@ -1,3 +1,7 @@
+import {
+  foundationDisciplineAttributePolicy,
+  validateAllocationForPrimaryDisciplineChange,
+} from '@aurevane/game-core/character/attribute-allocation'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { getAuthenticatedActor } from '@/server/auth/actor'
@@ -47,6 +51,27 @@ function readSelection(body: Record<string, unknown>): BuildSelectionInput {
   return input
 }
 
+function assertPrimaryAllocationCompatible(
+  character: Awaited<ReturnType<typeof loadSelectedCharacter>>,
+  selection: BuildSelectionInput,
+) {
+  if (!character || selection.primaryDisciplineId === undefined) return
+  const policy = foundationDisciplineAttributePolicy(selection.primaryDisciplineId.trim())
+  if (!policy) return
+
+  const issues = validateAllocationForPrimaryDisciplineChange(
+    character.attributes,
+    character.level,
+    policy,
+  )
+  if (issues.length > 0) {
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      `${issues[0]?.message ?? 'The current attribute allocation is not legal for that Primary Discipline'} Redistribute the excess points with Reset Attributes before changing Primary Discipline.`,
+    )
+  }
+}
+
 export async function GET() {
   try {
     const { actor, character } = await selectedCharacter()
@@ -65,6 +90,7 @@ export async function POST(request: Request) {
   try {
     const { actor, character } = await selectedCharacter()
     const selection = readSelection(await readJson(request))
+    assertPrimaryAllocationCompatible(character, selection)
     const preview = await previewCharacterDisciplines(
       actor.userId,
       character,
@@ -85,6 +111,7 @@ export async function PUT(request: Request) {
       typeof body.expectedBuildVersion === 'number' ? body.expectedBuildVersion : Number.NaN
     const idempotencyKey = typeof body.idempotencyKey === 'string' ? body.idempotencyKey : ''
     const selection = readSelection(body)
+    assertPrimaryAllocationCompatible(character, selection)
     const context = await changeCharacterDisciplines(
       actor.userId,
       character,
