@@ -32,8 +32,9 @@ Normal minimum-value validation still applies, as do any active Primary Discipli
 
 Production reset allowance:
 
-- **5 resets per rolling 30-day window**;
-- the allowance replenishes to 5 when a new window begins;
+- **5 resets per 30-day reset window**;
+- the timer begins when the first reset in a fresh window is committed;
+- all 5 resets replenish together after the 30-day window expires;
 - reset usage and window timing are server-authoritative.
 
 ## 4. Discipline caps are identity guardrails, not templates
@@ -85,3 +86,15 @@ Current global caps/defaults:
 Action Economy does not increase the character's Movement allowance. A character may only traverse up to the server-owned Movement budget for that turn even if sufficient AP remains.
 
 Discipline base profiles, equipment, attributes, and temporary effects may help a build reach a global ceiling, but they do not bypass these global caps unless a future explicitly authored rule supersedes this addendum.
+
+## 8. Implementation roadmap and balance status
+
+The implementation sequence for this system is:
+
+1. **Authoritative global rules** — Level 50, +1 point per gained Level, global Crit/Evasion/Movement/Jump ceilings, and 20 AP movement cost.
+2. **Authoritative allocation persistence** — Level-derived point budget, ordinary point spending, full-pool resets, idempotency, audit history, and five-use 30-day reset-window enforcement.
+3. **Profile experience** — available-point allocation, full Reset Attributes workflow, reset count/renewal visibility, and Primary focus-stat presentation.
+4. **Primary swap compatibility** — proposed Primary changes validate the current allocation first; illegal allocations must be redistributed and are never silently clamped.
+5. **Discipline balance authoring** — numeric off-identity attribute ceilings and any Discipline-specific derived-stat ceilings are added only after explicit balance review and owner approval.
+
+Items 1–4 are the implementation target for the current progression pass. Item 5 remains a balance-authoring task so current and future Disciplines can receive deliberate ceilings without turning focus attributes into hard templates.
