@@ -1,4 +1,4 @@
-name: Repair and Validate Dark Fantasy Artwork
+name: Scan Dark Fantasy Artwork Payloads
 
 on:
   push:
@@ -8,92 +8,61 @@ on:
       - '.github/workflows/tmp-dark-art-fix.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  repair-and-validate:
+  scan:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
           ref: art/dark-fantasy-technique-art-20260907
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-      - name: Enable pnpm
-        run: |
-          corepack enable
-          corepack prepare pnpm@11.17.0 --activate
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Repair WebP payloads and update artwork expectations
+      - name: Scan embedded WebP payloads
         run: |
           python - <<'PY'
           from pathlib import Path
           import base64
+          import binascii
           import re
           import struct
 
           art_dir = Path('apps/web/src/components/battle/dark-fantasy-art')
-          data_re = re.compile(r"data:image/webp;base64,([A-Za-z0-9+/=]+)")
+          entry_re = re.compile(
+              r"['\"]([^'\"]+)['\"]\s*:\s*['\"]data:image/webp;base64,([^'\"]+)['\"]",
+              re.S,
+          )
+          bad = []
+          total = 0
+          valid = 0
+          repairable = 0
 
           for path in sorted(art_dir.glob('*-dark-fantasy-artwork*.ts')):
               text = path.read_text()
-              repaired = 0
+              for artwork_id, payload in entry_re.findall(text):
+                  total += 1
+                  try:
+                      raw = base64.b64decode(payload, validate=True)
+                  except binascii.Error as exc:
+                      bad.append((artwork_id, path.name, f'base64: {exc}'))
+                      continue
 
-              def fix(match):
-                  nonlocal_repaired = None
-                  payload = match.group(1)
-                  raw = base64.b64decode(payload)
                   if len(raw) < 12 or raw[:4] != b'RIFF' or raw[8:12] != b'WEBP':
-                      raise SystemExit(f'{path}: invalid WebP header')
+                      bad.append((artwork_id, path.name, 'invalid WebP header'))
+                      continue
+
                   expected = struct.unpack('<I', raw[4:8])[0] + 8
                   if expected > len(raw):
-                      raise SystemExit(f'{path}: truncated WebP payload ({len(raw)} < {expected})')
+                      bad.append((artwork_id, path.name, f'truncated RIFF: {len(raw)} < {expected}'))
+                      continue
                   if expected < len(raw):
-                      raw = raw[:expected]
-                      fix.repaired += 1
-                  return 'data:image/webp;base64,' + base64.b64encode(raw).decode('ascii')
+                      repairable += 1
+                      print(f'REPAIRABLE trailing bytes: {artwork_id} ({path.name}) {len(raw)} -> {expected}')
+                  valid += 1
 
-              fix.repaired = 0
-              text = data_re.sub(fix, text)
-              repaired = fix.repaired
-              path.write_text(text)
-              if repaired:
-                  print(f'Repaired {repaired} WebP payload(s) in {path}')
+          print(f'TOTAL={total} VALID={valid} REPAIRABLE={repairable} BAD={len(bad)}')
+          for artwork_id, filename, reason in bad:
+              print(f'BAD {artwork_id} | {filename} | {reason}')
 
-          test_path = Path('apps/web/src/components/battle/battle-skill-presentation.test.ts')
-          test = test_path.read_text()
-          test = test.replace("startsWith('data:image/svg+xml,')", "startsWith('data:image/webp;base64,')")
-          test = test.replace('non-missing generated artwork', 'non-missing curated artwork')
-          test_path.write_text(test)
+          if bad:
+              raise SystemExit(2)
           PY
-      - name: Format focused files
-        run: |
-          pnpm exec prettier --write \
-            apps/web/src/components/battle/battle-skill-presentation.test.ts \
-            apps/web/src/components/battle/dark-fantasy-art/*.ts
-      - name: Focused formatting
-        run: |
-          pnpm exec prettier --check \
-            apps/web/src/components/battle/battle-skill-presentation.ts \
-            apps/web/src/components/battle/battle-skill-presentation.test.ts \
-            apps/web/src/components/battle/dark-fantasy-art/*.ts
-      - name: Artwork and presentation tests
-        run: |
-          pnpm --filter @aurevane/web exec vitest run \
-            src/components/battle/dark-fantasy-art/index.test.ts \
-            src/components/battle/battle-skill-presentation.test.ts
-      - name: Web typecheck
-        run: pnpm --filter @aurevane/web typecheck
-      - name: Production build
-        run: pnpm build
-      - name: Commit validated repairs
-        run: |
-          git config user.name "Aurevane Automation"
-          git config user.email "actions@users.noreply.github.com"
-          git add \
-            apps/web/src/components/battle/battle-skill-presentation.test.ts \
-            apps/web/src/components/battle/dark-fantasy-art
-          git diff --cached --quiet || git commit -m "Validate curated dark-fantasy artwork"
-          git push origin HEAD:art/dark-fantasy-technique-art-20260907
