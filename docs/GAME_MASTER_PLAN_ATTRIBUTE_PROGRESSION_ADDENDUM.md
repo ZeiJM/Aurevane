@@ -1,0 +1,87 @@
+# AUREVANE — Attribute Progression and Stat Guardrails Addendum
+
+**Status:** Owner-approved authoritative addendum to `docs/GAME_MASTER_PLAN.md`.
+
+**Direction approved:** 2026-09-06.
+
+This addendum supersedes conflicting earlier wording about the current Level cap, per-Level core-attribute growth, attribute redistribution, Discipline-specific attribute ceilings, and the global Critical Chance / Evasion / Movement / Jump limits.
+
+## 1. Current Level cap
+
+The current production Level cap is **50**.
+
+The progression curve remains versioned and server-authoritative. Historical XP above the current cap may be preserved, but current Level resolution cannot exceed 50.
+
+## 2. Core-attribute point growth
+
+Characters gain **1 additional assignable core-attribute point for every Level gained after Level 1**.
+
+The Level-1 creation pool is the existing six-attribute starting allocation. Those starting points are not permanently locked to their original attributes.
+
+At Level 50, a character therefore has the full Level-1 pool plus 49 earned points available for legal allocation.
+
+Unspent earned points may remain unassigned until the player chooses to spend them.
+
+## 3. Full redistribution / reset
+
+An attribute reset returns the character's **entire legal core-attribute pool**, including the points originally distributed during character creation, for redistribution.
+
+The reset does not merely refund points earned after Level 1.
+
+Normal minimum-value validation still applies, as do any active Primary Discipline off-identity ceilings.
+
+Production reset allowance:
+
+- **5 resets per rolling 30-day window**;
+- the allowance replenishes to 5 when a new window begins;
+- reset usage and window timing are server-authoritative.
+
+## 4. Discipline caps are identity guardrails, not templates
+
+Primary Discipline may define:
+
+- focus attributes;
+- optional ceilings on off-identity attributes;
+- optional bounded secondary-stat constraints where specifically authored.
+
+The intent is **not** to make characters of the same Discipline converge on identical stat lines.
+
+A Discipline's focus attributes are the axes it is expected to specialize in and **must not receive restrictive Discipline attribute caps**. Players may distribute heavily or lightly among those focus attributes according to their build goals.
+
+Off-identity ceilings exist only where necessary to preserve class identity and balance. An omitted ceiling means the attribute is uncapped by that Discipline policy.
+
+Example principle: an offensive mage may have bounded physical/off-role attributes while Intellect and other authored magical focus attributes remain open to player specialization.
+
+Current Foundation numeric off-identity ceilings are intentionally not invented by this addendum. They must be explicitly balance-authored and owner-approved before activation.
+
+## 5. Primary Discipline changes never destroy player points
+
+Changing Primary Discipline must validate the character's existing personal allocation against the proposed Discipline policy.
+
+If the new Primary makes the allocation illegal:
+
+- the change must not silently clamp, delete, or reassign points;
+- the player must be told which allocations are illegal;
+- the affected points remain owned by the character and must be redistributed into a legal build before the change can be committed.
+
+Secondary Discipline does not provide a second core-attribute cap profile unless a future explicit rule says otherwise.
+
+## 6. Discipline selection readability
+
+Before committing a Primary Discipline, the player-facing selection/preview experience should expose that Discipline's focus attributes and any active off-identity ceilings so the build consequences are understandable before commitment.
+
+The policy model must remain reusable for future Disciplines rather than hard-coding one-off validation into individual UI screens.
+
+## 7. Global derived-stat and mobility guardrails
+
+Current global caps/defaults:
+
+- **Critical Chance:** maximum **30%**;
+- **Evasion:** maximum **15%**;
+- **Movement:** baseline **2**, maximum **5**;
+- **Jump:** baseline **0**, maximum **3**;
+- **Movement Action Economy cost:** **20 AP per terrain-cost point**.
+
+Action Economy does not increase the character's Movement allowance. A character may only traverse up to the server-owned Movement budget for that turn even if sufficient AP remains.
+
+Discipline base profiles, equipment, attributes, and temporary effects may help a build reach a global ceiling, but they do not bypass these global caps unless a future explicitly authored rule supersedes this addendum.
