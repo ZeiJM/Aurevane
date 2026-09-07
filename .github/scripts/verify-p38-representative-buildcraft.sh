@@ -70,14 +70,19 @@ lifebinder_skills=(
   'lifebinder.renew|1'
   'lifebinder.sanctuary|1'
   'lifebinder.fortifying-light|1'
+  'lifebinder.vital-sever|1'
+  'lifebinder.searing-bloom|1'
 )
 
+# Vanguard is provisioned automatically because it is the active Primary.
 for entry in "${vanguard_skills[@]}"; do
   IFS='|' read -r skill_id version <<<"$entry"
   result="$(record_unlock "$skill_id" "$version" 'vanguard')"
-  test "$result" = "$skill_id|false"
+  test "$result" = "$skill_id|true"
 done
 
+# The test kit may still pre-unlock the future Secondary; the active-build trigger will
+# harmlessly replay these facts when Lifebinder becomes active.
 for entry in "${lifebinder_skills[@]}"; do
   IFS='|' read -r skill_id version <<<"$entry"
   result="$(record_unlock "$skill_id" "$version" 'lifebinder')"
@@ -88,7 +93,7 @@ learned_count="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres
   set role service_role;
   select count(*)::text
   from public.get_character_learned_skills_v1('$user_id'::uuid, '$character_id'::uuid);")"
-test "$learned_count" = '14'
+test "$learned_count" = '16'
 
 pure_payload='[{"skillId":"vanguard.forceful-strike","contentVersion":2,"sourceDisciplineId":"vanguard"},{"skillId":"vanguard.cleave","contentVersion":1,"sourceDisciplineId":"vanguard"},{"skillId":"vanguard.guard-break","contentVersion":1,"sourceDisciplineId":"vanguard"},{"skillId":"vanguard.brace","contentVersion":1,"sourceDisciplineId":"vanguard"}]'
 
@@ -189,7 +194,7 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
     '00000000-0000-4000-8000-000000003805'::uuid,
     'sha256:p38-illegal-mixed-source-overflow'
   );" >/tmp/p38-over6.out 2>/tmp/p38-over6.err; then
-  echo 'Expected the mixed build to reject more than two tagged Techniques from one Discipline.' >&2
+  echo 'Expected the mixed build to reject four Techniques from one Discipline.' >&2
   exit 1
 fi
 grep -Fq 'DISCIPLINE_SKILL_SOURCE_CAPACITY_EXCEEDED' /tmp/p38-over6.err
