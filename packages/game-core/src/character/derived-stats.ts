@@ -3,6 +3,7 @@ import {
   type CharacterAttributeId,
   type CharacterAttributes,
 } from './creation'
+import { CURRENT_LEVEL_CAP } from './progression'
 
 export const DERIVED_STAT_IDS = [
   'maxHp',
@@ -75,11 +76,10 @@ export interface DerivedStatRulesetIssue {
 }
 
 /**
- * Development balance for the Phase 1 profile framework.
+ * Development balance for the universal six-attribute framework.
  *
- * Six attributes deliberately separate endurance and movement/reflex from the older overloaded
- * Resolve/Finesse pair while preserving the same all-baseline derived values. Coefficients remain
- * centralized/versioned development balance rather than launch promises.
+ * Global percentage and mobility ceilings are hard gameplay guardrails. Primary Discipline identity
+ * and player-assigned attributes may change the route to those ceilings, but cannot exceed them.
  */
 export const DERIVED_STAT_RULESET_V1: DerivedStatRuleset = {
   version: 1,
@@ -164,7 +164,7 @@ export const DERIVED_STAT_RULESET_V1: DerivedStatRuleset = {
       attributeWeights: { agility: 80, resolve: 20 },
       divisor: 1,
       minimum: 0,
-      maximum: 7500,
+      maximum: 1500,
     },
     {
       id: 'criticalChance',
@@ -175,7 +175,7 @@ export const DERIVED_STAT_RULESET_V1: DerivedStatRuleset = {
       attributeWeights: { finesse: 50 },
       divisor: 1,
       minimum: 0,
-      maximum: 5000,
+      maximum: 3000,
     },
     {
       id: 'initiative',
@@ -191,23 +191,23 @@ export const DERIVED_STAT_RULESET_V1: DerivedStatRuleset = {
       id: 'movement',
       label: 'Movement',
       unit: 'steps',
-      baseNumerator: 40,
+      baseNumerator: 20,
       perLevelNumerator: 0,
       attributeWeights: { agility: 1 },
       divisor: 10,
-      minimum: 4,
-      maximum: 8,
+      minimum: 2,
+      maximum: 5,
     },
     {
       id: 'jump',
       label: 'Jump',
       unit: 'height',
-      baseNumerator: 20,
+      baseNumerator: 0,
       perLevelNumerator: 0,
       attributeWeights: { might: 1, agility: 1 },
       divisor: 20,
-      minimum: 1,
-      maximum: 4,
+      minimum: 0,
+      maximum: 3,
     },
     {
       id: 'statusResistance',
@@ -309,8 +309,10 @@ export function calculateDerivedStats(
     throw new Error(`Invalid derived-stat ruleset: ${issues[0].field}: ${issues[0].message}`)
   }
 
-  if (!Number.isInteger(input.level) || input.level < 1 || input.level > 100) {
-    throw new RangeError('Character level must be a whole number from 1 to 100.')
+  if (!Number.isInteger(input.level) || input.level < 1 || input.level > CURRENT_LEVEL_CAP) {
+    throw new RangeError(
+      `Character level must be a whole number from 1 to ${CURRENT_LEVEL_CAP}.`,
+    )
   }
 
   for (const attributeId of CHARACTER_ATTRIBUTE_IDS) {
