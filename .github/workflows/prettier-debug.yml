@@ -1,0 +1,26 @@
+name: Prettier Debug
+
+on:
+  push:
+    branches:
+      - 'polish/profile-center-lifebinder-attacks-20260906'
+
+permissions:
+  contents: read
+
+jobs:
+  diff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+      - run: |
+          pnpm exec prettier --write packages/game-core/src/combat/essence.test.ts apps/web/src/components/battle/battle-skill-presentation.ts
+          git diff -- packages/game-core/src/combat/essence.test.ts apps/web/src/components/battle/battle-skill-presentation.ts
+          test -z "$(git status --short -- packages/game-core/src/combat/essence.test.ts apps/web/src/components/battle/battle-skill-presentation.ts)"
