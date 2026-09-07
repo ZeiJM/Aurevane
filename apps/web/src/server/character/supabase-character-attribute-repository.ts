@@ -57,7 +57,8 @@ export function createSupabaseCharacterAttributeRepository(): CharacterAttribute
       }
 
       const candidate = Array.isArray(data) && data.length === 1 ? data[0] : null
-      if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) throw unavailable()
+      if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate))
+        throw unavailable()
       const record = candidate as Record<string, unknown>
       return {
         allocation: parseAllocation(record),
