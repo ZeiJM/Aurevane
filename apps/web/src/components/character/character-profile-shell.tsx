@@ -1,3 +1,8 @@
+import { foundationDisciplineAttributePolicy } from '@aurevane/game-core/character/attribute-allocation'
+import type {
+  CharacterAttributeId,
+  CharacterAttributes,
+} from '@aurevane/game-core/character/creation'
 import type {
   DisciplineDefinition,
   PrimaryDisciplineBaseProfile,
@@ -9,6 +14,7 @@ import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-sk
 import type { ResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { Kicker, Surface } from '@aurevane/ui'
 
+import { CharacterAttributeAllocationPanel } from '@/components/character/character-attribute-allocation-panel'
 import { CharacterDisciplineBuildPanel } from '@/components/character/character-discipline-build-panel'
 import { CharacterProfileDetails } from '@/components/character/character-profile-details'
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
@@ -28,8 +34,23 @@ interface SecondaryOption extends PrimaryOption {
   masteredAt: string
 }
 
+interface AttributeAllocationView {
+  characterId: string
+  attributes: CharacterAttributes
+  level: number
+  pointPool: number
+  spentPoints: number
+  unspentPoints: number
+  resetWindowStartedAt: string | null
+  resetUsed: number
+  resetRemaining: number
+  resetRenewsAt: string | null
+  serverNow: string
+}
+
 interface CharacterProfileShellProps {
   profile: CharacterProfileReadModel
+  attributeAllocation: AttributeAllocationView
   disciplineBuild: {
     buildVersion: number
     current: PrimaryDisciplinePreview
@@ -110,6 +131,7 @@ function getDisciplineProfileSummary(
 
 export function CharacterProfileShell({
   profile,
+  attributeAllocation,
   disciplineBuild,
   personalTitle = null,
   imageUrl = null,
@@ -135,6 +157,8 @@ export function CharacterProfileShell({
     disciplineBuild.current.definition,
     disciplineBuild.currentSecondary,
   )
+  const focusAttributes: readonly CharacterAttributeId[] =
+    foundationDisciplineAttributePolicy(disciplineBuild.current.definition.id)?.focusAttributes ?? []
 
   return (
     <AuthenticatedShellFrame sessionLabel="Character Profile">
@@ -201,6 +225,11 @@ export function CharacterProfileShell({
             cycleNumber={profile.progression.cycleNumber}
             attributes={profile.attributes}
             derived={disciplineBuild.current.derived}
+          />
+
+          <CharacterAttributeAllocationPanel
+            initialAllocation={attributeAllocation}
+            focusAttributes={focusAttributes}
           />
         </Surface>
 
