@@ -43,13 +43,18 @@ const attributeCopy = {
   resolve: 'Willpower: MP support, ward, initiative steadiness, and status resistance.',
 } as const
 
-const emptyBonuses: CharacterAttributeBonuses = {
-  might: 0,
-  finesse: 0,
-  vitality: 0,
-  agility: 0,
-  intellect: 0,
-  resolve: 0,
+function starterBonusesForDiscipline(disciplineId: string): CharacterAttributeBonuses {
+  const discipline = FOUNDATION_DISCIPLINES.find((candidate) => candidate.id === disciplineId)
+  return discipline
+    ? { ...discipline.startingAttributeBonuses }
+    : {
+        might: 0,
+        finesse: 0,
+        vitality: 0,
+        agility: 0,
+        intellect: 0,
+        resolve: 0,
+      }
 }
 
 export function CharacterCreationExperience({ slotIndex }: CharacterCreationExperienceProps) {
@@ -62,7 +67,9 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
     STARTER_CHARACTER_APPEARANCES[0].ref,
   )
   const [foundationDisciplineId, setFoundationDisciplineId] = useState('vanguard')
-  const [attributeBonuses, setAttributeBonuses] = useState<CharacterAttributeBonuses>(emptyBonuses)
+  const [attributeBonuses, setAttributeBonuses] = useState<CharacterAttributeBonuses>(() =>
+    starterBonusesForDiscipline('vanguard'),
+  )
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [invalidFields, setInvalidFields] = useState<readonly string[]>([])
@@ -350,6 +357,7 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
                       onChange={() => {
                         changed()
                         setFoundationDisciplineId(discipline.id)
+                        setAttributeBonuses(starterBonusesForDiscipline(discipline.id))
                       }}
                       type="radio"
                     />
@@ -364,10 +372,11 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
               <div>
                 <h2>Starting attributes</h2>
                 <p>
-                  Every attribute begins at {CHARACTER_CREATION_RULES_V1.attributes.baseline}. Spend
-                  exactly {CHARACTER_CREATION_RULES_V1.attributes.bonusBudget} bonus points to shape
-                  your strengths. Vitality owns endurance; Agility owns movement and reflex, so the
-                  older attributes no longer have to carry too many jobs at once.
+                  Every attribute begins at {CHARACTER_CREATION_RULES_V1.attributes.baseline}. Your
+                  Discipline loads a recommended {CHARACTER_CREATION_RULES_V1.attributes.bonusBudget}
+                  -point starting spread, and you can redistribute every point before creation.
+                  Vitality owns endurance; Agility owns movement and reflex, so the older attributes
+                  no longer have to carry too many jobs at once.
                 </p>
               </div>
               <strong data-testid="attribute-points">
