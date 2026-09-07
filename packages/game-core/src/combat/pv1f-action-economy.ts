@@ -94,8 +94,16 @@ export const PV1F_LOWERED_GUARD_STATUS: CombatStatusDefinition = {
   damageTakenMultiplierBasisPoints: 25_000,
 }
 
+export const PV1F_EXPOSED_STATUS: CombatStatusDefinition = {
+  id: 'exposed',
+  version: 1,
+  maximumStacks: 1,
+  durationOwnerTurnStarts: 2,
+  damageTakenMultiplierBasisPoints: 11_500,
+}
+
 export const PV1F_COMBAT_CONTENT: CombatContentCatalog = {
-  statuses: [PV1F_GUARDED_STATUS, PV1F_LOWERED_GUARD_STATUS],
+  statuses: [PV1F_GUARDED_STATUS, PV1F_LOWERED_GUARD_STATUS, PV1F_EXPOSED_STATUS],
 }
 
 export const PV1F_GUARD_ACTION: CombatActionDefinition = {

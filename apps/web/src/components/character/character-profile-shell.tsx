@@ -156,17 +156,19 @@ export function CharacterProfileShell({
               <Kicker marker="◆">Character Profile</Kicker>
               <div className={styles.nameLine}>
                 <h1>{profile.identity.name}</h1>
-                <span className={styles.disciplinePill} data-testid="primary-discipline-chip">
-                  {disciplineBuild.current.definition.name}
-                </span>
-                {disciplineBuild.currentSecondary ? (
-                  <span className={styles.disciplinePill} data-testid="secondary-discipline-chip">
-                    {disciplineBuild.currentSecondary.name}
+                <div className={styles.nameTags}>
+                  <span className={styles.disciplinePill} data-testid="primary-discipline-chip">
+                    {disciplineBuild.current.definition.name}
                   </span>
-                ) : null}
-                {personalTitle ? (
-                  <span className={styles.personalTitlePill}>{personalTitle}</span>
-                ) : null}
+                  {disciplineBuild.currentSecondary ? (
+                    <span className={styles.disciplinePill} data-testid="secondary-discipline-chip">
+                      {disciplineBuild.currentSecondary.name}
+                    </span>
+                  ) : null}
+                  {personalTitle ? (
+                    <span className={styles.personalTitlePill}>{personalTitle}</span>
+                  ) : null}
+                </div>
               </div>
               <p className={styles.discipline}>{disciplineSummary}</p>
 

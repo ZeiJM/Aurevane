@@ -1,3 +1,4 @@
+import { FOUNDATION_TRIO_DISCIPLINE_SKILLS } from './foundation-trio-skills'
 import type {
   CombatActionDefinition,
   CombatEffectDefinition,
@@ -474,6 +475,7 @@ export const P33_REPRESENTATIVE_DISCIPLINE_SKILLS = [
     media: representativeMedia('lifebinder.searing-bloom'),
     authoring: representativeAuthoring('p3.8', 'owner-approved-offense'),
   },
+  ...FOUNDATION_TRIO_DISCIPLINE_SKILLS,
 ] as const satisfies readonly MatureSkillDefinition[]
 
 export function validateMatureSkillDefinition(
