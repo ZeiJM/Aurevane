@@ -160,6 +160,8 @@ export function BattleSkillCommand({
           type="button"
           className={`${styles.artworkTrigger} ${artworkFitStyles.frame}`}
           data-battle-command-artwork="selector"
+          data-battle-skill-selector-category={selector.categoryLabel}
+          data-battle-selected-skill-id={selector.selectedId}
           aria-haspopup="listbox"
           aria-expanded={selectorOpen}
           aria-label={`Choose ${selector.categoryLabel} skill. ${label} selected.`}
@@ -177,6 +179,7 @@ export function BattleSkillCommand({
               className={styles.selector}
               style={selectorStyle}
               role="listbox"
+              data-battle-skill-listbox-category={selector.categoryLabel}
               aria-label={`${selector.categoryLabel} skills`}
             >
               <span className={styles.selectorHeading}>{selector.categoryLabel}</span>
@@ -187,6 +190,7 @@ export function BattleSkillCommand({
                     key={option.id}
                     type="button"
                     role="option"
+                    data-battle-skill-option-id={option.id}
                     aria-selected={selected}
                     className={styles.selectorOption}
                     data-selected={selected || undefined}
