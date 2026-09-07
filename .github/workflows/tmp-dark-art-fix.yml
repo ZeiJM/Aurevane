@@ -1,4 +1,4 @@
-name: Scan Dark Fantasy Artwork Payloads
+name: Export and Validate Dark Fantasy Artwork
 
 on:
   push:
@@ -8,61 +8,160 @@ on:
       - '.github/workflows/tmp-dark-art-fix.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  scan:
+  export-and-validate:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
           ref: art/dark-fantasy-technique-art-20260907
-      - name: Scan embedded WebP payloads
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Export curated WebPs and rewrite static artwork map
         run: |
           python - <<'PY'
           from pathlib import Path
           import base64
-          import binascii
           import re
           import struct
 
           art_dir = Path('apps/web/src/components/battle/dark-fantasy-art')
+          public_dir = Path('apps/web/public/media/skills/dark-fantasy')
+          public_dir.mkdir(parents=True, exist_ok=True)
+
           entry_re = re.compile(
               r"['\"]([^'\"]+)['\"]\s*:\s*['\"]data:image/webp;base64,([^'\"]+)['\"]",
               re.S,
           )
-          bad = []
-          total = 0
-          valid = 0
-          repairable = 0
+          broken_id = 'resonance.shadehand-vanguard.broken-line'
+          entries = {}
 
           for path in sorted(art_dir.glob('*-dark-fantasy-artwork*.ts')):
-              text = path.read_text()
-              for artwork_id, payload in entry_re.findall(text):
-                  total += 1
-                  try:
-                      raw = base64.b64decode(payload, validate=True)
-                  except binascii.Error as exc:
-                      bad.append((artwork_id, path.name, f'base64: {exc}'))
+              for artwork_id, payload in entry_re.findall(path.read_text()):
+                  if artwork_id == broken_id:
                       continue
-
+                  raw = base64.b64decode(payload, validate=True)
                   if len(raw) < 12 or raw[:4] != b'RIFF' or raw[8:12] != b'WEBP':
-                      bad.append((artwork_id, path.name, 'invalid WebP header'))
-                      continue
-
+                      raise SystemExit(f'{artwork_id}: invalid WebP header')
                   expected = struct.unpack('<I', raw[4:8])[0] + 8
-                  if expected > len(raw):
-                      bad.append((artwork_id, path.name, f'truncated RIFF: {len(raw)} < {expected}'))
-                      continue
-                  if expected < len(raw):
-                      repairable += 1
-                      print(f'REPAIRABLE trailing bytes: {artwork_id} ({path.name}) {len(raw)} -> {expected}')
-                  valid += 1
+                  if expected != len(raw):
+                      raise SystemExit(f'{artwork_id}: RIFF size mismatch {len(raw)} != {expected}')
+                  filename = artwork_id.replace('.', '-') + '.webp'
+                  (public_dir / filename).write_bytes(raw)
+                  entries[artwork_id] = f'/media/skills/dark-fantasy/{filename}'
 
-          print(f'TOTAL={total} VALID={valid} REPAIRABLE={repairable} BAD={len(bad)}')
-          for artwork_id, filename, reason in bad:
-              print(f'BAD {artwork_id} | {filename} | {reason}')
+          broken_payload = Path('.github/tmp/broken-line.webp.b64').read_text().strip()
+          broken_raw = base64.b64decode(broken_payload, validate=True)
+          if broken_raw[:4] != b'RIFF' or broken_raw[8:12] != b'WEBP':
+              raise SystemExit('broken-line replacement is not a WebP')
+          broken_expected = struct.unpack('<I', broken_raw[4:8])[0] + 8
+          if broken_expected != len(broken_raw):
+              raise SystemExit(
+                  f'broken-line replacement RIFF mismatch {len(broken_raw)} != {broken_expected}'
+              )
+          broken_filename = broken_id.replace('.', '-') + '.webp'
+          (public_dir / broken_filename).write_bytes(broken_raw)
+          entries[broken_id] = f'/media/skills/dark-fantasy/{broken_filename}'
 
-          if bad:
-              raise SystemExit(2)
+          if len(entries) != 39:
+              raise SystemExit(f'expected 39 curated artwork entries, got {len(entries)}')
+
+          lines = ['export const DARK_FANTASY_COMBAT_ARTWORK = {']
+          for artwork_id in sorted(entries):
+              lines.append(f"  '{artwork_id}': '{entries[artwork_id]}',")
+          lines.extend([
+              '} as const',
+              '',
+              'export function darkFantasyCombatArtwork(artworkId: string): string | null {',
+              '  return DARK_FANTASY_COMBAT_ARTWORK[',
+              '    artworkId as keyof typeof DARK_FANTASY_COMBAT_ARTWORK',
+              '  ] ?? null',
+              '}',
+              '',
+          ])
+          (art_dir / 'index.ts').write_text('\n'.join(lines))
+
+          index_test = """import { readFileSync } from 'node:fs'
+          import { resolve } from 'node:path'
+
+          import { describe, expect, it } from 'vitest'
+
+          import { battleResonanceArtwork, battleSkillArtwork } from '../battle-skill-presentation'
+          import { DARK_FANTASY_COMBAT_ARTWORK } from './index'
+
+          describe('dark-fantasy combat artwork', () => {
+            it('ships a distinct valid static WebP for every newly authored Technique, Essence, and Resonance', () => {
+              const entries = Object.entries(DARK_FANTASY_COMBAT_ARTWORK)
+              expect(entries).toHaveLength(39)
+              expect(new Set(entries.map(([, artwork]) => artwork)).size).toBe(entries.length)
+
+              for (const [artworkId, artwork] of entries) {
+                expect(artwork.startsWith('/media/skills/dark-fantasy/'), artworkId).toBe(true)
+                expect(artwork.endsWith('.webp'), artworkId).toBe(true)
+                const bytes = readFileSync(resolve(process.cwd(), 'public', artwork.slice(1)))
+                expect(bytes.subarray(0, 4).toString('ascii'), artworkId).toBe('RIFF')
+                expect(bytes.subarray(8, 12).toString('ascii'), artworkId).toBe('WEBP')
+                expect(bytes.readUInt32LE(4) + 8, artworkId).toBe(bytes.length)
+              }
+            })
+
+            it('uses the curated dark-fantasy artwork before generated sigils', () => {
+              expect(battleSkillArtwork('lifebinder.vital-sever')).toBe(
+                DARK_FANTASY_COMBAT_ARTWORK['lifebinder.vital-sever'],
+              )
+              expect(battleSkillArtwork('essence.aetherist.aether-nova')).toBe(
+                DARK_FANTASY_COMBAT_ARTWORK['essence.aetherist.aether-nova'],
+              )
+              expect(battleResonanceArtwork('resonance.farstrider-shadehand.marked-opening')).toBe(
+                DARK_FANTASY_COMBAT_ARTWORK['resonance.farstrider-shadehand.marked-opening'],
+              )
+            })
+          })
+          """
+          (art_dir / 'index.test.ts').write_text(index_test)
+
+          presentation_test = Path('apps/web/src/components/battle/battle-skill-presentation.test.ts')
+          test = presentation_test.read_text()
+          test = test.replace("startsWith('data:image/svg+xml,')", "startsWith('/media/skills/dark-fantasy/')")
+          test = test.replace('newly authored Lifebinder actions distinct art', 'newly authored Lifebinder actions distinct curated art')
+          test = test.replace('non-missing generated artwork', 'non-missing curated artwork')
+          presentation_test.write_text(test)
           PY
+      - name: Remove embedded artwork modules and temporary automation
+        run: |
+          rm apps/web/src/components/battle/dark-fantasy-art/*-dark-fantasy-artwork*.ts
+          rm -f .github/workflows/tmp-dark-art-patch.yml
+          rm -f .github/workflows/tmp-validate-dark-art.yml
+          rm -f .github/tmp/broken-line.webp.b64
+      - name: Format focused source files
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/components/battle/battle-skill-presentation.ts \
+            apps/web/src/components/battle/battle-skill-presentation.test.ts \
+            apps/web/src/components/battle/dark-fantasy-art/index.ts \
+            apps/web/src/components/battle/dark-fantasy-art/index.test.ts
+      - name: Focused artwork tests
+        run: |
+          pnpm --filter @aurevane/web exec vitest run \
+            src/components/battle/dark-fantasy-art/index.test.ts \
+            src/components/battle/battle-skill-presentation.test.ts
+      - name: Web typecheck
+        run: pnpm --filter @aurevane/web typecheck
+      - name: Production build
+        run: pnpm build
+      - name: Commit validated static artwork implementation
+        run: |
+          git config user.name "Aurevane Automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Store dark-fantasy artwork as static WebP assets"
+          git push origin HEAD:art/dark-fantasy-technique-art-20260907
