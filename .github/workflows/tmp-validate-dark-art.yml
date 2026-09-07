@@ -1,0 +1,47 @@
+name: Validate Dark Fantasy Combat Artwork
+
+on:
+  push:
+    branches:
+      - art/dark-fantasy-technique-art-20260907
+    paths:
+      - '.github/workflows/tmp-validate-dark-art.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: art/dark-fantasy-technique-art-20260907
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Focused formatting
+        run: |
+          pnpm exec prettier --check \
+            apps/web/src/components/battle/battle-skill-presentation.ts \
+            apps/web/src/components/battle/dark-fantasy-art/*.ts
+      - name: Focused lint
+        run: |
+          pnpm exec eslint \
+            apps/web/src/components/battle/battle-skill-presentation.ts \
+            apps/web/src/components/battle/dark-fantasy-art/*.ts
+      - name: Artwork and presentation tests
+        run: |
+          pnpm --filter @aurevane/web exec vitest run \
+            src/components/battle/dark-fantasy-art/index.test.ts \
+            src/components/battle/battle-skill-presentation.test.ts
+      - name: Web typecheck
+        run: pnpm --filter @aurevane/web typecheck
+      - name: Production build
+        run: pnpm build
