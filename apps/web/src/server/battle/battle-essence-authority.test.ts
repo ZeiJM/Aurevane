@@ -205,9 +205,7 @@ function positionPlayerAdjacent(state: BattleAuthoritativeEncounterState) {
   const tactical = {
     ...state.tactical,
     placements: state.tactical.placements.map((placement) =>
-      placement.combatantId === PLAYER_ID
-        ? { ...placement, position: { x: 3, y: 1 } }
-        : placement,
+      placement.combatantId === PLAYER_ID ? { ...placement, position: { x: 3, y: 1 } } : placement,
     ),
   }
   const base = reattachStatDrivenCombatBridge(
