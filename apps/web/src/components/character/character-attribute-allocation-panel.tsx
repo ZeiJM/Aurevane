@@ -48,7 +48,8 @@ export function CharacterAttributeAllocationPanel({
   )
   const availableDraft = Math.max(0, allocation.pointPool - spentDraft)
   const hasChanges = CHARACTER_ATTRIBUTE_IDS.some((id) => draft[id] !== allocation.attributes[id])
-  const canSaveSpend = !resetMode && hasChanges && spentDraft > allocation.spentPoints && availableDraft >= 0
+  const canSaveSpend =
+    !resetMode && hasChanges && spentDraft > allocation.spentPoints && availableDraft >= 0
   const canSaveReset =
     resetMode && hasChanges && availableDraft === 0 && allocation.resetRemaining > 0
 
@@ -100,7 +101,9 @@ export function CharacterAttributeAllocationPanel({
       setMessage(mode === 'reset' ? 'Attributes reset successfully.' : 'Attribute points assigned.')
       router.refresh()
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'The attribute change could not be saved.')
+      setMessage(
+        error instanceof Error ? error.message : 'The attribute change could not be saved.',
+      )
     } finally {
       setSaveState('idle')
     }
@@ -112,7 +115,8 @@ export function CharacterAttributeAllocationPanel({
         <div>
           <h2 id="attribute-allocation-title">Attribute Points</h2>
           <p>
-            Level {allocation.level} · {availableDraft} point{availableDraft === 1 ? '' : 's'} available
+            Level {allocation.level} · {availableDraft} point{availableDraft === 1 ? '' : 's'}{' '}
+            available
           </p>
         </div>
         <div className={styles.resetSummary}>
@@ -161,7 +165,12 @@ export function CharacterAttributeAllocationPanel({
       <div className={styles.actions}>
         {resetMode ? (
           <>
-            <button type="button" className={styles.secondary} onClick={cancelReset} disabled={saveState === 'saving'}>
+            <button
+              type="button"
+              className={styles.secondary}
+              onClick={cancelReset}
+              disabled={saveState === 'saving'}
+            >
               Cancel Reset
             </button>
             <button type="button" onClick={save} disabled={!canSaveReset || saveState === 'saving'}>
@@ -187,8 +196,8 @@ export function CharacterAttributeAllocationPanel({
 
       {resetMode ? (
         <p className={styles.notice}>
-          Reset mode unlocks the full pool, including starting attributes. Redistribute all {allocation.pointPool}{' '}
-          points before confirming. This uses 1 reset.
+          Reset mode unlocks the full pool, including starting attributes. Redistribute all{' '}
+          {allocation.pointPool} points before confirming. This uses 1 reset.
         </p>
       ) : null}
       {message ? <p className={styles.message}>{message}</p> : null}
