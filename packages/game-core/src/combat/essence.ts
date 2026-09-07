@@ -150,7 +150,13 @@ export const P36_REPRESENTATIVE_ESSENCES = [
       authoring: {
         schemaVersion: 1,
         status: 'representative',
-        validationTags: ['p3.6', 'representative', 'essence', 'pure-only', 'owner-approved-offense'],
+        validationTags: [
+          'p3.6',
+          'representative',
+          'essence',
+          'pure-only',
+          'owner-approved-offense',
+        ],
       },
     },
     authoring: {
