@@ -68,39 +68,27 @@ function syncFinishTurnCopy() {
   if (cost && cost.textContent !== 'Choose facing + end') cost.textContent = 'Choose facing + end'
 }
 
-function skillSelectorCategory(listbox: HTMLElement): string | null {
-  const label = listbox.getAttribute('aria-label')?.trim() ?? ''
-  return label.endsWith(' skills') ? label.slice(0, -' skills'.length).trim() || null : null
-}
-
 function skillSelectorTrigger(category: string): HTMLButtonElement | null {
   return (
     Array.from(
-      document.querySelectorAll<HTMLButtonElement>('button[aria-haspopup="listbox"]'),
-    ).find((button) =>
-      (button.getAttribute('aria-label') ?? '').startsWith(`Choose ${category} skill.`),
-    ) ?? null
+      document.querySelectorAll<HTMLButtonElement>('[data-battle-skill-selector-category]'),
+    ).find((button) => button.dataset.battleSkillSelectorCategory === category) ?? null
   )
 }
 
-function selectedSkillLabel(category: string): string | null {
-  const trigger = skillSelectorTrigger(category)
-  const label = trigger?.getAttribute('aria-label') ?? ''
-  const prefix = `Choose ${category} skill. `
-  const suffix = ' selected.'
-  if (!label.startsWith(prefix) || !label.endsWith(suffix)) return null
-  return label.slice(prefix.length, -suffix.length).trim() || null
+function selectedSkillId(category: string): string | null {
+  return skillSelectorTrigger(category)?.dataset.battleSelectedSkillId ?? null
 }
 
-function selectorOption(category: string, skillLabel: string): HTMLButtonElement | null {
-  const listbox = Array.from(document.querySelectorAll<HTMLElement>('[role="listbox"]')).find(
-    (candidate) => candidate.getAttribute('aria-label') === `${category} skills`,
-  )
+function selectorOption(category: string, skillId: string): HTMLButtonElement | null {
+  const listbox = Array.from(
+    document.querySelectorAll<HTMLElement>('[data-battle-skill-listbox-category]'),
+  ).find((candidate) => candidate.dataset.battleSkillListboxCategory === category)
   if (!listbox) return null
 
   return (
-    Array.from(listbox.querySelectorAll<HTMLButtonElement>('button[role="option"]')).find(
-      (option) => option.querySelector('strong')?.textContent?.trim() === skillLabel,
+    Array.from(listbox.querySelectorAll<HTMLButtonElement>('[data-battle-skill-option-id]')).find(
+      (option) => option.dataset.battleSkillOptionId === skillId,
     ) ?? null
   )
 }
@@ -119,16 +107,16 @@ export function BattleCockpitLayoutStabilizer({ playerName }: { playerName: stri
 
     const persistSkillSelection = (event: MouseEvent) => {
       const target = event.target instanceof Element ? event.target : null
-      const option = target?.closest<HTMLButtonElement>('button[role="option"]') ?? null
-      const listbox = option?.closest<HTMLElement>('[role="listbox"]') ?? null
-      const category = listbox ? skillSelectorCategory(listbox) : null
-      const skillLabel = option?.querySelector('strong')?.textContent?.trim() ?? ''
-      if (!category || !skillLabel) return
+      const option = target?.closest<HTMLButtonElement>('[data-battle-skill-option-id]') ?? null
+      const listbox = option?.closest<HTMLElement>('[data-battle-skill-listbox-category]') ?? null
+      const category = listbox?.dataset.battleSkillListboxCategory ?? ''
+      const skillId = option?.dataset.battleSkillOptionId ?? ''
+      if (!category || !skillId) return
 
       const current = readBattleCockpitSelections(window.sessionStorage, battleScope)
       writeBattleCockpitSelections(window.sessionStorage, battleScope, {
         ...current,
-        [category]: skillLabel,
+        [category]: skillId,
       })
     }
 
@@ -138,7 +126,7 @@ export function BattleCockpitLayoutStabilizer({ playerName }: { playerName: stri
 
       const saved = Object.entries(
         readBattleCockpitSelections(window.sessionStorage, battleScope),
-      ).filter(([category, skillLabel]) => selectedSkillLabel(category) !== skillLabel)
+      ).filter(([category, skillId]) => selectedSkillId(category) !== skillId)
       if (saved.length === 0) return
 
       restoringSelection = true
@@ -149,7 +137,7 @@ export function BattleCockpitLayoutStabilizer({ playerName }: { playerName: stri
           return
         }
 
-        const [category, skillLabel] = entry
+        const [category, skillId] = entry
         const trigger = skillSelectorTrigger(category)
         if (!trigger) {
           restoreAt(index + 1)
@@ -158,9 +146,9 @@ export function BattleCockpitLayoutStabilizer({ playerName }: { playerName: stri
 
         trigger.click()
         window.requestAnimationFrame(() => {
-          const option = selectorOption(category, skillLabel)
+          const option = selectorOption(category, skillId)
           if (option) option.click()
-          restoreAt(index + 1)
+          window.requestAnimationFrame(() => restoreAt(index + 1))
         })
       }
 
@@ -213,7 +201,11 @@ export function BattleCockpitLayoutStabilizer({ playerName }: { playerName: stri
     const observer = new MutationObserver(sync)
     observer.observe(document.body, {
       attributes: true,
-      attributeFilter: ['data-open', 'aria-label'],
+      attributeFilter: [
+        'data-open',
+        'data-battle-selected-skill-id',
+        'data-battle-skill-selector-category',
+      ],
       childList: true,
       subtree: true,
     })
