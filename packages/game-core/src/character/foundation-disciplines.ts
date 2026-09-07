@@ -1,10 +1,5 @@
 export type FoundationAttributeId =
-  | 'might'
-  | 'finesse'
-  | 'vitality'
-  | 'agility'
-  | 'intellect'
-  | 'resolve'
+  'might' | 'finesse' | 'vitality' | 'agility' | 'intellect' | 'resolve'
 
 export type FoundationStartingAttributeBonuses = Readonly<Record<FoundationAttributeId, number>>
 
