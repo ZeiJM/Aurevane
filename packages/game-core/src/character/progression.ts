@@ -1,4 +1,4 @@
-export const CURRENT_LEVEL_CAP = 100 as const
+export const CURRENT_LEVEL_CAP = 50 as const
 export const XP_PROGRESS_BASIS_POINTS = 10_000 as const
 
 export interface LevelProgressionCurve {
