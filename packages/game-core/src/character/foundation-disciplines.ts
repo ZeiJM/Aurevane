@@ -2,32 +2,32 @@ export const FOUNDATION_DISCIPLINES = [
   {
     id: 'vanguard',
     name: 'Vanguard',
-    summary: 'Balanced armed combat.',
+    summary: 'Balanced armed combat. Focus: Might and Vitality.',
   },
   {
     id: 'farstrider',
     name: 'Farstrider',
-    summary: 'Ranged combat and battlefield awareness.',
+    summary: 'Ranged combat and battlefield awareness. Focus: Finesse and Agility.',
   },
   {
     id: 'shadehand',
     name: 'Shadehand',
-    summary: 'Mobility, trickery, and opportunism.',
+    summary: 'Mobility, trickery, and opportunism. Focus: Finesse and Agility.',
   },
   {
     id: 'ironfist',
     name: 'Ironfist',
-    summary: 'Unarmed martial combat.',
+    summary: 'Unarmed martial combat. Focus: Might and Agility.',
   },
   {
     id: 'aetherist',
     name: 'Aetherist',
-    summary: 'Foundation offensive magic.',
+    summary: 'Foundation offensive magic. Focus: Intellect and Resolve.',
   },
   {
     id: 'lifebinder',
     name: 'Lifebinder',
-    summary: 'Foundation healing and support magic.',
+    summary: 'Foundation healing and support magic. Focus: Intellect and Resolve.',
   },
 ] as const
 
