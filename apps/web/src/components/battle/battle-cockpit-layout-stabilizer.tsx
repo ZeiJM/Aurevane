@@ -75,9 +75,10 @@ function skillSelectorCategory(listbox: HTMLElement): string | null {
 
 function skillSelectorTrigger(category: string): HTMLButtonElement | null {
   return (
-    Array.from(document.querySelectorAll<HTMLButtonElement>('button[aria-haspopup="listbox"]')).find(
-      (button) =>
-        (button.getAttribute('aria-label') ?? '').startsWith(`Choose ${category} skill.`),
+    Array.from(
+      document.querySelectorAll<HTMLButtonElement>('button[aria-haspopup="listbox"]'),
+    ).find((button) =>
+      (button.getAttribute('aria-label') ?? '').startsWith(`Choose ${category} skill.`),
     ) ?? null
   )
 }
