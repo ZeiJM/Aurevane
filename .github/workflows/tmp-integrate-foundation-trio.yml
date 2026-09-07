@@ -1,0 +1,93 @@
+name: Integrate Foundation Trio Content
+
+on:
+  push:
+    branches:
+      - content/foundation-trio-skills-20260907
+    paths:
+      - '.github/workflows/tmp-integrate-foundation-trio.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: content/foundation-trio-skills-20260907
+      - name: Integrate authored class content
+        shell: bash
+        run: |
+          python <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              target = Path(path)
+              text = target.read_text(encoding='utf-8')
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'Expected one marker in {path}, found {count}: {old[:120]!r}')
+              target.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          replace_once(
+              'packages/game-core/src/combat/mature-skills.ts',
+              "import type {\n  CombatActionDefinition,",
+              "import { FOUNDATION_TRIO_DISCIPLINE_SKILLS } from './foundation-trio-skills'\nimport type {\n  CombatActionDefinition,",
+          )
+          replace_once(
+              'packages/game-core/src/combat/mature-skills.ts',
+              "    authoring: representativeAuthoring('p3.8', 'owner-approved-offense'),\n  },\n] as const satisfies readonly MatureSkillDefinition[]",
+              "    authoring: representativeAuthoring('p3.8', 'owner-approved-offense'),\n  },\n  ...FOUNDATION_TRIO_DISCIPLINE_SKILLS,\n] as const satisfies readonly MatureSkillDefinition[]",
+          )
+
+          replace_once(
+              'packages/game-core/src/combat/essence.ts',
+              "import type { CombatActionEvaluation, CombatTargetSelection } from './actions'\n",
+              "import type { CombatActionEvaluation, CombatTargetSelection } from './actions'\nimport { FOUNDATION_TRIO_ESSENCES } from './foundation-trio-essences'\n",
+          )
+          replace_once(
+              'packages/game-core/src/combat/essence.ts',
+              "  },\n] as const satisfies readonly EssenceDefinition[]\n\nconst STABLE_ID_PATTERN",
+              "  },\n  ...FOUNDATION_TRIO_ESSENCES,\n] as const satisfies readonly EssenceDefinition[]\n\nconst STABLE_ID_PATTERN",
+          )
+
+          replace_once(
+              'packages/game-core/src/combat/resonance.ts',
+              "import {\n  executeCombatAction,",
+              "import { FOUNDATION_TRIO_RESONANCES } from './foundation-trio-resonances'\nimport {\n  executeCombatAction,",
+          )
+          replace_once(
+              'packages/game-core/src/combat/resonance.ts',
+              "  },\n] as const satisfies readonly ResonanceDefinition[]\n\nconst STABLE_ID_PATTERN",
+              "  },\n  ...FOUNDATION_TRIO_RESONANCES,\n] as const satisfies readonly ResonanceDefinition[]\n\nconst STABLE_ID_PATTERN",
+          )
+
+          replace_once(
+              'packages/game-core/src/combat/pv1f-action-economy.ts',
+              "export const PV1F_COMBAT_CONTENT: CombatContentCatalog = {\n  statuses: [PV1F_GUARDED_STATUS, PV1F_LOWERED_GUARD_STATUS],\n}",
+              "export const PV1F_EXPOSED_STATUS: CombatStatusDefinition = {\n  id: 'exposed',\n  version: 1,\n  maximumStacks: 1,\n  durationOwnerTurnStarts: 2,\n  damageTakenMultiplierBasisPoints: 11_500,\n}\n\nexport const PV1F_COMBAT_CONTENT: CombatContentCatalog = {\n  statuses: [PV1F_GUARDED_STATUS, PV1F_LOWERED_GUARD_STATUS, PV1F_EXPOSED_STATUS],\n}",
+          )
+
+          replace_once(
+              'apps/web/src/components/character/character-profile-details.module.css',
+              ".factCopy {\n  display: grid;\n  gap: 0.24rem;\n  min-width: 0;\n}\n",
+              ".factCopy {\n  display: grid;\n  gap: 0.24rem;\n  min-width: 0;\n}\n\nbutton.identityFact .factCopy {\n  justify-items: center;\n  text-align: center;\n}\n",
+          )
+          PY
+
+      - name: Commit integration and remove temporary workflow
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/tmp-integrate-foundation-trio.yml
+          git add \
+            packages/game-core/src/combat/mature-skills.ts \
+            packages/game-core/src/combat/essence.ts \
+            packages/game-core/src/combat/resonance.ts \
+            packages/game-core/src/combat/pv1f-action-economy.ts \
+            apps/web/src/components/character/character-profile-details.module.css
+          git commit -m 'Wire Foundation trio content into combat and profile UI'
+          git push origin HEAD:content/foundation-trio-skills-20260907
