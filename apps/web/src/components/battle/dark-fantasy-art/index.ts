@@ -29,7 +29,5 @@ export const DARK_FANTASY_COMBAT_ARTWORK = {
 } as const
 
 export function darkFantasyCombatArtwork(artworkId: string): string | null {
-  return DARK_FANTASY_COMBAT_ARTWORK[
-    artworkId as keyof typeof DARK_FANTASY_COMBAT_ARTWORK
-  ] ?? null
+  return DARK_FANTASY_COMBAT_ARTWORK[artworkId as keyof typeof DARK_FANTASY_COMBAT_ARTWORK] ?? null
 }

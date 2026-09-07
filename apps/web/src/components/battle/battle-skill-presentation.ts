@@ -5,6 +5,8 @@ import {
   PV1F_RECOVER_ACTION_ID,
 } from '@aurevane/game-core/combat/pv1f-skills'
 
+import { darkFantasyCombatArtwork } from './dark-fantasy-art'
+
 export const BATTLE_COMMAND_ARTWORK = {
   inspect: '/media/skills/inspect.webp',
   move: '/media/skills/move.webp',
@@ -181,11 +183,15 @@ const ACTION_ARTWORK = new Map<string, string>([
 const RESONANCE_ARTWORK = new Map<string, string>(Object.entries(PHASE_3_RESONANCE_ARTWORK))
 
 export function battleSkillArtwork(actionId: string): string {
+  const curatedArtwork = darkFantasyCombatArtwork(actionId)
+  if (curatedArtwork) return curatedArtwork
   if (GENERATED_COMBAT_ARTWORK_IDS.has(actionId)) return generatedSkillArtwork(actionId)
   return ACTION_ARTWORK.get(actionId) ?? BATTLE_MISSING_ARTWORK
 }
 
 export function battleResonanceArtwork(resonanceId: string): string {
+  const curatedArtwork = darkFantasyCombatArtwork(resonanceId)
+  if (curatedArtwork) return curatedArtwork
   if (GENERATED_RESONANCE_ARTWORK_IDS.has(resonanceId)) {
     return generatedResonanceArtwork(resonanceId)
   }
