@@ -7,7 +7,6 @@ import type {
 } from '@aurevane/db/battle-session'
 import type { CharacterRecord, CharacterRepository } from '@aurevane/db/character'
 import { createCombatEncounterState } from '@aurevane/game-core/combat/actions'
-import { moveCurrentCombatant } from '@aurevane/game-core/combat/board'
 import {
   essenceSnapshotReference,
   resolveEssenceForBuild,
@@ -203,14 +202,16 @@ function battleRepository() {
 }
 
 function positionPlayerAdjacent(state: BattleAuthoritativeEncounterState) {
-  const positioned = moveCurrentCombatant(state.tactical, [
-    { x: 0, y: 1 },
-    { x: 1, y: 1 },
-    { x: 2, y: 1 },
-    { x: 3, y: 1 },
-  ])
+  const tactical = {
+    ...state.tactical,
+    placements: state.tactical.placements.map((placement) =>
+      placement.combatantId === PLAYER_ID
+        ? { ...placement, position: { x: 3, y: 1 } }
+        : placement,
+    ),
+  }
   const base = reattachStatDrivenCombatBridge(
-    createCombatEncounterState(positioned.state, state.statusState),
+    createCombatEncounterState(tactical, state.statusState),
     state.statBridge,
   )
   return state.buildAuthority ? { ...base, buildAuthority: state.buildAuthority } : base
