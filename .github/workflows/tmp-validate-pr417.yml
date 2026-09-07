@@ -32,6 +32,7 @@ jobs:
             apps/web/src/components/battle/battle-cockpit-layout-stabilizer.tsx \
             apps/web/src/components/battle/battle-cockpit-selection-storage.ts \
             apps/web/src/components/battle/battle-cockpit-selection-storage.test.ts \
+            apps/web/src/components/battle/battle-skill-command.tsx \
             apps/web/src/components/battle/battle-skill-presentation.ts \
             apps/web/src/components/battle/battle-skill-presentation.test.ts \
             apps/web/src/components/character/character-profile-details.module.css \
@@ -51,6 +52,7 @@ jobs:
             apps/web/src/components/battle/battle-cockpit-layout-stabilizer.tsx \
             apps/web/src/components/battle/battle-cockpit-selection-storage.ts \
             apps/web/src/components/battle/battle-cockpit-selection-storage.test.ts \
+            apps/web/src/components/battle/battle-skill-command.tsx \
             apps/web/src/components/battle/battle-skill-presentation.ts \
             apps/web/src/components/battle/battle-skill-presentation.test.ts \
             apps/web/src/components/character/character-profile-shell.tsx \
