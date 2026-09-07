@@ -59,7 +59,7 @@ returns table (
   agility integer,
   intellect integer,
   resolve integer,
-  level smallint,
+  level integer,
   point_pool integer,
   spent_points integer,
   unspent_points integer,
@@ -71,7 +71,7 @@ returns table (
 )
 language sql
 security definer
-stable
+volatile
 set search_path = pg_catalog, public, app_private
 as $$
   with server_clock as (
@@ -160,7 +160,7 @@ returns table (
   agility integer,
   intellect integer,
   resolve integer,
-  level smallint,
+  level integer,
   point_pool integer,
   spent_points integer,
   unspent_points integer,
@@ -190,11 +190,21 @@ declare
   v_reset_started timestamptz;
   v_reset_used integer := 0;
 begin
+  if p_user_id is null or p_character_id is null or p_idempotency_key is null then
+    raise exception using errcode = '22023', message = 'CHARACTER_ATTRIBUTE_IDENTITY_INVALID';
+  end if;
+
   if p_mode not in ('spend', 'reset') then
     raise exception using errcode = '22023', message = 'CHARACTER_ATTRIBUTE_MODE_INVALID';
   end if;
 
-  if least(p_might, p_finesse, p_vitality, p_agility, p_intellect, p_resolve) < 1 then
+  if p_might is null
+    or p_finesse is null
+    or p_vitality is null
+    or p_agility is null
+    or p_intellect is null
+    or p_resolve is null
+    or least(p_might, p_finesse, p_vitality, p_agility, p_intellect, p_resolve) < 1 then
     raise exception using errcode = '22023', message = 'CHARACTER_ATTRIBUTE_VALUE_INVALID';
   end if;
 
@@ -242,7 +252,7 @@ begin
       (audit.after_attributes ->> 'agility')::integer,
       (audit.after_attributes ->> 'intellect')::integer,
       (audit.after_attributes ->> 'resolve')::integer,
-      audit.level_at_change,
+      audit.level_at_change::integer,
       audit.point_pool::integer,
       (
         (audit.after_attributes ->> 'might')::integer +
