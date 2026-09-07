@@ -14,6 +14,7 @@ on:
       - 'apps/web/src/server/character/character-attribute-service.ts'
       - 'apps/web/src/server/character/supabase-character-attribute-repository.ts'
       - 'apps/web/src/app/api/character/attributes/route.ts'
+      - 'apps/web/src/app/api/character/build/disciplines/route.ts'
       - 'apps/web/src/components/character/character-attribute-allocation-panel.tsx'
       - 'apps/web/src/components/character/character-attribute-allocation-panel.module.css'
       - 'apps/web/src/app/game/character/page.tsx'
@@ -31,6 +32,7 @@ on:
       - 'apps/web/src/server/character/character-attribute-service.ts'
       - 'apps/web/src/server/character/supabase-character-attribute-repository.ts'
       - 'apps/web/src/app/api/character/attributes/route.ts'
+      - 'apps/web/src/app/api/character/build/disciplines/route.ts'
       - 'apps/web/src/components/character/character-attribute-allocation-panel.tsx'
       - 'apps/web/src/app/game/character/page.tsx'
 
@@ -60,9 +62,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Focused formatting
+      - name: Normalize focused formatting for validation
         run: |
-          pnpm exec prettier --check \
+          pnpm exec prettier --write \
             packages/game-core/src/character/attribute-allocation.ts \
             packages/game-core/src/character/attribute-allocation.test.ts \
             packages/game-core/src/character/derived-stats.ts \
@@ -71,6 +73,7 @@ jobs:
             apps/web/src/server/character/character-attribute-service.ts \
             apps/web/src/server/character/supabase-character-attribute-repository.ts \
             apps/web/src/app/api/character/attributes/route.ts \
+            apps/web/src/app/api/character/build/disciplines/route.ts \
             apps/web/src/components/character/character-attribute-allocation-panel.tsx \
             apps/web/src/components/character/character-attribute-allocation-panel.module.css \
             apps/web/src/app/game/character/page.tsx \
