@@ -12,11 +12,13 @@ import {
   getActiveSpectatingForUser,
 } from '@/server/account/active-game-session'
 import { getAuthenticatedActor } from '@/server/auth/actor'
+import { loadCharacterAttributeAllocation } from '@/server/character/character-attribute-service'
 import { loadCharacterBuildContext } from '@/server/character/character-build-service'
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 import { loadCharacterTitleState } from '@/server/character/character-title-service'
 import { isPv2BuildcraftTestKitEnabled } from '@/server/character/pv2-buildcraft-test-kit'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
+import { createSupabaseCharacterAttributeRepository } from '@/server/character/supabase-character-attribute-repository'
 import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
 import { loadLevelProgressionCurve } from '@/server/progression/progression-service'
 import { createSupabaseProgressionRepository } from '@/server/progression/supabase-progression-repository'
@@ -57,13 +59,19 @@ export default async function CharacterProfilePage() {
 
   let levelCurve
   let disciplineBuild
+  let attributeAllocation
   try {
-    ;[levelCurve, disciplineBuild] = await Promise.all([
+    ;[levelCurve, disciplineBuild, attributeAllocation] = await Promise.all([
       loadLevelProgressionCurve(
         character.progressionCycle.number,
         createSupabaseProgressionRepository(),
       ),
       loadCharacterBuildContext(actor.userId, character, createSupabaseCharacterBuildRepository()),
+      loadCharacterAttributeAllocation(
+        actor.userId,
+        character,
+        createSupabaseCharacterAttributeRepository(),
+      ),
     ])
   } catch (error) {
     if (isAurevaneError(error) && error.code === 'PERSISTENCE_UNAVAILABLE') {
@@ -92,6 +100,7 @@ export default async function CharacterProfilePage() {
   return (
     <CharacterProfileShell
       profile={buildCharacterProfileReadModel(character, levelCurve)}
+      attributeAllocation={attributeAllocation}
       disciplineBuild={{
         buildVersion: disciplineBuild.build.buildVersion,
         current: disciplineBuild.current,
