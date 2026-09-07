@@ -1,4 +1,4 @@
-name: Fix and Validate Dark Fantasy Artwork
+name: Repair and Validate Dark Fantasy Artwork
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   contents: write
 
 jobs:
-  fix-and-validate:
+  repair-and-validate:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -26,25 +26,41 @@ jobs:
           corepack prepare pnpm@11.17.0 --activate
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Replace truncated resonance art and update presentation expectations
+      - name: Repair WebP payloads and update artwork expectations
         run: |
           python - <<'PY'
           from pathlib import Path
+          import base64
           import re
+          import struct
 
-          artwork_path = Path('apps/web/src/components/battle/dark-fantasy-art/resonance-dark-fantasy-artwork-1.ts')
-          artwork = artwork_path.read_text()
-          replacement = 'data:image/webp;base64,UklGRm4GAABXRUJQVlA4IGIGAADQGwCdASpQAFAAPrVMnUqnJCKhszmcyOAWiWUAx1HiCf7zB39Og3gX5PQC7RfsgGY9B5/jCDS3aAHkyf7Hkq1D2EoFmaQzkpf48bK/tU+JVNTmPMV8YlACcsUXTBBDKiX1mtRBtmyWbltKy5GCe2LF5F+JrsarOclxU/yfUqEQDMr3gdrN8yoLdYIOt2UX5QxQsu9sxf3PnFNwvdC2hz/wfI3lmARNtXU7pIyRkooSxucxPjV4NcT0LUEKt6aOnK5YROa3LkGansQtfSulbtChm+HbvcCMo+hnWRmulil0jvnhPVgsIAAA/vlDYkcahGUiOe978Tfqh7dUBMeuxJriSqlrZOkZCN8/hca0T3xI8Dt9fkpBc9lpbjOTPYoAxwXUvFifvh7xnLFYxgYcbVEe5gHlUrA1OYmPyfyg9jJOX5kfv2Br2OZVm43nA6QZGxJZFGSounlnqgsJZXJFfVfiKOt0xobp6XKrVqoe6XUJSdq0HZNFSocr4OtqcI3zLUZoMg1uUZclMopi2jBE3ExSrAylc0YPKQaySVo9BVfXmvsdsrBcgijLIxDODxZWTarmfv3kZpvy2puzS3xXMTgEOXImLNAQvbEcuIw/lf5EyZ89JwVVJ7toXarEEt3dKQwBn2T5uuiva+1CFpBAm3Ifk410OyaHUvg488/l/eaOOxu4UM7tSOK+iOv0xK/CjP2VlRHPvfLQWAUeMUN9Kf01KNCzqfaUcUQOl2T1hEtmZCm4vnFO1Rt54cNplO45UfFDHdL7vtGDEra0ctR9+0intsRlXLBx7s/QtCXUi5vNWqFmwIijUuxO1D8ndgBxkJXeUqxJUgJyISmSCGnL2m5QVoufuxeqIsAmukjHeEL+UeJOnUSvZncC9nOn/UxXT6p3nKy4MHljmbtSUVseYSeE33qMP0HS26YulYO/mbYDl8PtyzI1pRdbpf+mCgQrpFugPEjBnAc6mypQUI5/785ozy8hvEYD/0b1hbyida1FoFflVm5NUQKsM7HlVbQ6eAPZf6Q2bck9veXX6I56W+9bDNA9pTl7yxVpiKXRPewwtF3aacwZme0gj4T2dwMx8KDoHVvdImumFlFsO86CQwB1e8Dzc0FITwWOJOegCvIoufUqkO0KZgv72UC24MuCeccCmlQ6VBMYbmqymIJzzuj0ajupHAoCh02aG9SZHNwVBegAKBYADjkM23UF5+ryBYeOcdyyL2C4JUzo47ROnxEP8V7nQwXUH7hzwvMM47c6/TmOp1qXnkuwVlyCM/6p/Mceq4Yd2PXLKhMJjtsDuesX8PbzVopkEHfrTt0f3Suvd2IhpGb/Tbgbnbwr+GUEtVBkFTaHCadIdrjmG+zhtCz50EawKdKO9hoUiD4mp0F2P5P/KIcHvRJRJyM5zkgRilJhO2tDZ/lKemoJn4i2TxP68831hGhVEXDc29lXMvt9Dn5lEUQotXRWiWfWgCMMKVmmDrve4OPBFudwMB2u3lEGdiOdzyXE8BTBAS6FD0uCQBFul062JHbuAbWn4etJvUHVbLHwwnT15+n0yG5p8BFN3F+Ee9zzkQuh+6LT8SNcM+DR21aRSOJVFc3Re5fgV+nS93PzBNFsO86QIrwAj+E6ZZTlzvATQAzQMdV+5dILELCQ7Yl60u22NLrL2wPcHYkGoiqOqSjoX0kmBsrnHnJuWsor8nujUqgo+dg93r1vP7B4Mhj3eC0stagGzbPiWJWwSZhDejWhisM/j0e/iSg1vVXwW7D4oR0roMJdaup9aS65/BFEjrrXw2L266O0xrCoxu0vjeGeqbD4n7I2/KYS4a6DjgsOcYZ5ABwkjIQfm0udFWXSMeZYPTMIsJHupoOlwx/bFz4ddRtX6cqqZp5VVCBK+TEqvcC9afHTlmBTL6iK61NLSTjEMEPNNDgHihOsIlIomk/omzcGHdlDL/e9yUPHVSj3QGzeGoFFhHefOy58XwfpdaGyjFESFDsSp/s0a/MaYcnDf7ZTmz4L2KQAZq2hcV7eqTrPl5DG0Tlxlk7e7caE4862NnWVdhYTvyRLHggQzaEyAURNo5frF9AvwQgCQovv4a6UYMFe/jiyqP2/5WN032PVP8db6PAVDyEP8cYm0J6d9dCSLYc4zRo6mVxQxjiFVxx4czkO9AE6lCljv6YMlS1Tkczs/HFNDMEYAA=='
-          pattern = r'  "resonance\.shadehand-vanguard\.broken-line": ".*?",\n'
-          updated, count = re.subn(
-              pattern,
-              f'  "resonance.shadehand-vanguard.broken-line": "{replacement}",\n',
-              artwork,
-              count=1,
-          )
-          if count != 1:
-              raise SystemExit(f'broken-line artwork replacement count was {count}')
-          artwork_path.write_text(updated)
+          art_dir = Path('apps/web/src/components/battle/dark-fantasy-art')
+          data_re = re.compile(r"data:image/webp;base64,([A-Za-z0-9+/=]+)")
+
+          for path in sorted(art_dir.glob('*-dark-fantasy-artwork*.ts')):
+              text = path.read_text()
+              repaired = 0
+
+              def fix(match):
+                  nonlocal_repaired = None
+                  payload = match.group(1)
+                  raw = base64.b64decode(payload)
+                  if len(raw) < 12 or raw[:4] != b'RIFF' or raw[8:12] != b'WEBP':
+                      raise SystemExit(f'{path}: invalid WebP header')
+                  expected = struct.unpack('<I', raw[4:8])[0] + 8
+                  if expected > len(raw):
+                      raise SystemExit(f'{path}: truncated WebP payload ({len(raw)} < {expected})')
+                  if expected < len(raw):
+                      raw = raw[:expected]
+                      fix.repaired += 1
+                  return 'data:image/webp;base64,' + base64.b64encode(raw).decode('ascii')
+
+              fix.repaired = 0
+              text = data_re.sub(fix, text)
+              repaired = fix.repaired
+              path.write_text(text)
+              if repaired:
+                  print(f'Repaired {repaired} WebP payload(s) in {path}')
 
           test_path = Path('apps/web/src/components/battle/battle-skill-presentation.test.ts')
           test = test_path.read_text()
@@ -56,7 +72,13 @@ jobs:
         run: |
           pnpm exec prettier --write \
             apps/web/src/components/battle/battle-skill-presentation.test.ts \
-            apps/web/src/components/battle/dark-fantasy-art/resonance-dark-fantasy-artwork-1.ts
+            apps/web/src/components/battle/dark-fantasy-art/*.ts
+      - name: Focused formatting
+        run: |
+          pnpm exec prettier --check \
+            apps/web/src/components/battle/battle-skill-presentation.ts \
+            apps/web/src/components/battle/battle-skill-presentation.test.ts \
+            apps/web/src/components/battle/dark-fantasy-art/*.ts
       - name: Artwork and presentation tests
         run: |
           pnpm --filter @aurevane/web exec vitest run \
@@ -66,12 +88,12 @@ jobs:
         run: pnpm --filter @aurevane/web typecheck
       - name: Production build
         run: pnpm build
-      - name: Commit validated fixes
+      - name: Commit validated repairs
         run: |
           git config user.name "Aurevane Automation"
           git config user.email "actions@users.noreply.github.com"
           git add \
             apps/web/src/components/battle/battle-skill-presentation.test.ts \
-            apps/web/src/components/battle/dark-fantasy-art/resonance-dark-fantasy-artwork-1.ts
-          git diff --cached --quiet || git commit -m "Validate dark-fantasy artwork payloads"
+            apps/web/src/components/battle/dark-fantasy-art
+          git diff --cached --quiet || git commit -m "Validate curated dark-fantasy artwork"
           git push origin HEAD:art/dark-fantasy-technique-art-20260907
