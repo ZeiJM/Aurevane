@@ -2,6 +2,11 @@
   min-width: 0;
 }
 
+.details [data-profile-fact] {
+  grid-template-columns: 2rem fit-content(calc(100% - 2.58rem));
+  justify-content: center;
+}
+
 .factGlyph,
 .attributeGlyph {
   overflow: visible;

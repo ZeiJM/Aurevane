@@ -143,10 +143,10 @@ pure_snapshot="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres
 test "$pure_snapshot" = '|essence.vanguard.unbroken-strike|'
 
 # Corrupt the private saved target to prove activation is transactional: the Discipline change
-# happens first inside the RPC, but the invalid Skill save must roll the entire statement back.
+# happens first inside the RPC, but a genuinely unlearned Skill must roll the entire statement back.
 docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   update app_private.character_saved_build_loadouts
-  set discipline_skills = '[{\"skillId\":\"lifebinder.mending-light\",\"contentVersion\":1,\"sourceDisciplineId\":\"lifebinder\"}]'::jsonb
+  set discipline_skills = '[{\"skillId\":\"lifebinder.unlearned-sentinel\",\"contentVersion\":1,\"sourceDisciplineId\":\"lifebinder\"}]'::jsonb
   where character_id = '$character_id'::uuid and slot_index = 2;" >/dev/null
 
 docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "

@@ -74,18 +74,19 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   })
   expect(prepared.ok).toBe(true)
   expect(prepared.body).toMatchObject({
-    result: { masteredDisciplines: 2, learnedSkills: 14 },
+    result: { masteredDisciplines: 2, learnedSkills: 16 },
   })
   await reloadProfile(page)
 
-  await page.getByRole('button', { name: /Tag Techniques/ }).click()
+  await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const techniquesOverlay = page.locator('body > [data-techniques-overlay="true"]')
   await expect(techniquesOverlay).toBeVisible()
   await expect(techniquesOverlay.getByRole('dialog', { name: 'Techniques' })).toBeVisible()
   expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflow)).toBe(
     'hidden',
   )
-  await expect(page.getByTestId('skill-capacity')).toHaveText('0 / 4')
+  await expect(page.getByTestId('skill-capacity')).toContainText('Vanguard')
+  await expect(page.getByTestId('skill-capacity')).toContainText('0 / 4')
   await expect(page.getByTestId('active-essence')).toContainText('Unbroken Strike')
   await expect(page.getByTestId('active-resonance')).toHaveCount(0)
 
@@ -93,9 +94,9 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
     await setSkill(page, skill, true)
   }
 
-  await expect(page.getByTestId('skill-capacity')).toHaveText('4 / 4')
-  await page.getByRole('button', { name: 'Commit tagged Techniques' }).click()
-  await expect(page.getByRole('status')).toContainText('Tagged Techniques committed')
+  await expect(page.getByTestId('skill-capacity')).toContainText('4 / 4')
+  await page.getByRole('button', { name: 'Commit Selected Techniques' }).click()
+  await expect(page.getByRole('status')).toContainText('Selected Techniques committed')
   await reloadProfile(page)
 
   await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
@@ -105,24 +106,27 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(page.getByTestId('primary-build-panel')).toContainText('Vanguard + Lifebinder')
   await reloadProfile(page)
 
-  await page.getByRole('button', { name: /Tag Techniques/ }).click()
-  await expect(page.getByTestId('skill-capacity')).toHaveText('2 / 4')
-  await expect(page.getByTestId('mixed-technique-split')).toContainText('Vanguard')
-  await expect(page.getByTestId('mixed-technique-split')).toContainText('2 / 2')
+  await page.getByRole('button', { name: /Manage Techniques/ }).click()
+  const mixedCapacity = page.getByTestId('skill-capacity')
+  await expect(mixedCapacity).toContainText('Vanguard')
+  await expect(mixedCapacity).toContainText('2 / 3')
+  await expect(mixedCapacity).toContainText('Lifebinder')
+  await expect(mixedCapacity).toContainText('0 / 2')
   await expect(page.getByTestId('active-resonance')).toContainText("Mercy's Edge")
   await expect(page.getByTestId('active-essence')).toHaveCount(0)
 
   await setSkill(page, 'Mending Light', true)
   await setSkill(page, 'Barrier', true)
 
-  await expect(page.getByTestId('skill-capacity')).toHaveText('4 / 4')
-  await expect(page.getByTestId('mixed-technique-split')).toContainText('Lifebinder')
-  await page.getByRole('button', { name: 'Commit tagged Techniques' }).click()
-  await expect(page.getByRole('status')).toContainText('Tagged Techniques committed')
+  await expect(mixedCapacity).toContainText('Vanguard')
+  await expect(mixedCapacity).toContainText('Lifebinder')
+  await expect(mixedCapacity).toContainText('2 / 2')
+  await page.getByRole('button', { name: 'Commit Selected Techniques' }).click()
+  await expect(page.getByRole('status')).toContainText('Selected Techniques committed')
 
   await reloadProfile(page)
-  await page.getByRole('button', { name: /Tag Techniques/ }).click()
-  await expect(page.getByTestId('skill-capacity')).toHaveText('4 / 4')
+  await page.getByRole('button', { name: /Manage Techniques/ }).click()
+  await expect(page.getByTestId('skill-capacity')).toContainText('2 / 2')
   await expect(page.getByTestId('active-resonance')).toContainText("Mercy's Edge")
   await expect(page.getByTestId('active-essence')).toHaveCount(0)
   await expect(skillRow(page, 'Forceful Strike').getByRole('checkbox')).toBeChecked()

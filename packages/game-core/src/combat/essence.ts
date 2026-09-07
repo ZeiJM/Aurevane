@@ -105,6 +105,66 @@ export const P36_REPRESENTATIVE_ESSENCES = [
       validationTags: ['p3.6', 'representative', 'pure-only'],
     },
   },
+  {
+    essenceId: 'essence.lifebinder.verdant-rupture',
+    contentVersion: 1,
+    enabled: true,
+    sourceDisciplineId: 'lifebinder',
+    name: 'Verdant Rupture',
+    description:
+      'A pure Lifebinder Essence Skill: condense restorative force into a violent bloom that tears through a distant enemy.',
+    skill: {
+      id: 'essence.lifebinder.verdant-rupture',
+      contentVersion: 1,
+      enabled: true,
+      nameRef: 'essence.lifebinder.verdant-rupture.name',
+      descriptionRef: 'essence.lifebinder.verdant-rupture.description',
+      sourceDisciplineId: 'lifebinder',
+      unlockRequirement: { kind: 'discipline-mastery', minimumStage: 1 },
+      apCost: 55,
+      target: {
+        kind: 'unit',
+        teamPolicy: 'enemy',
+        shape: { kind: 'single' },
+        minimumRange: 1,
+        maximumRange: 3,
+        requiresLineOfSight: true,
+        maximumElevationDifference: 2,
+        friendlyFire: 'enemies-only',
+      },
+      requirements: [],
+      effects: [{ type: 'damage', recipient: 'primary-unit', amount: 18 }],
+      tags: ['essence', 'lifebinder', 'attack', 'mystic', 'ranged', 'cockpit:attack'],
+      cooldown: { key: 'essence.lifebinder.verdant-rupture', ownerTurns: 3 },
+      ai: {
+        enabled: true,
+        baseUtility: 90,
+        purposeTags: ['damage', 'pressure', 'pure-build'],
+      },
+      overrides: { pvp: { apCost: 60 } },
+      media: {
+        iconKey: 'essence.lifebinder.verdant-rupture.icon',
+        audioCueKey: 'essence.lifebinder.verdant-rupture.audio',
+        vfxKey: 'essence.lifebinder.verdant-rupture.vfx',
+      },
+      authoring: {
+        schemaVersion: 1,
+        status: 'representative',
+        validationTags: [
+          'p3.6',
+          'representative',
+          'essence',
+          'pure-only',
+          'owner-approved-offense',
+        ],
+      },
+    },
+    authoring: {
+      schemaVersion: ESSENCE_SCHEMA_VERSION,
+      status: 'representative',
+      validationTags: ['p3.6', 'representative', 'pure-only', 'owner-approved-offense'],
+    },
+  },
 ] as const satisfies readonly EssenceDefinition[]
 
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/

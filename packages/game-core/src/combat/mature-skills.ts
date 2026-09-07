@@ -95,6 +95,17 @@ const nearbyAllyTarget: CombatTargetSpec = {
   friendlyFire: 'allies-only',
 }
 
+const nearbyEnemyTarget: CombatTargetSpec = {
+  kind: 'unit',
+  teamPolicy: 'enemy',
+  shape: { kind: 'single' },
+  minimumRange: 1,
+  maximumRange: 3,
+  requiresLineOfSight: true,
+  maximumElevationDifference: 2,
+  friendlyFire: 'enemies-only',
+}
+
 function representativeMedia(skillId: string): MatureSkillMediaHooks {
   return {
     iconKey: `skill.${skillId}.icon`,
@@ -421,6 +432,47 @@ export const P33_REPRESENTATIVE_DISCIPLINE_SKILLS = [
     overrides: {},
     media: representativeMedia('lifebinder.fortifying-light'),
     authoring: representativeAuthoring('p3.8', 'nonfinal-content-name'),
+  },
+  {
+    id: 'lifebinder.vital-sever',
+    contentVersion: 1,
+    enabled: true,
+    nameRef: 'skill.lifebinder.vital-sever.name',
+    descriptionRef: 'skill.lifebinder.vital-sever.description',
+    sourceDisciplineId: 'lifebinder',
+    unlockRequirement: { kind: 'discipline-mastery', minimumStage: 1 },
+    apCost: 40,
+    target: nearbyEnemyTarget,
+    requirements: [],
+    effects: [{ type: 'damage', recipient: 'primary-unit', amount: 10 }],
+    tags: ['discipline', 'lifebinder', 'attack', 'mystic', 'ranged', 'cockpit:attack'],
+    cooldown: { key: 'lifebinder.vital-sever', ownerTurns: 2 },
+    ai: { enabled: true, baseUtility: 69, purposeTags: ['damage', 'pressure'] },
+    overrides: {},
+    media: representativeMedia('lifebinder.vital-sever'),
+    authoring: representativeAuthoring('p3.8', 'owner-approved-offense'),
+  },
+  {
+    id: 'lifebinder.searing-bloom',
+    contentVersion: 1,
+    enabled: true,
+    nameRef: 'skill.lifebinder.searing-bloom.name',
+    descriptionRef: 'skill.lifebinder.searing-bloom.description',
+    sourceDisciplineId: 'lifebinder',
+    unlockRequirement: { kind: 'discipline-mastery', minimumStage: 1 },
+    apCost: 55,
+    target: {
+      ...nearbyEnemyTarget,
+      shape: { kind: 'circle', radius: 1 },
+    },
+    requirements: [],
+    effects: [{ type: 'damage', recipient: 'affected-units', amount: 7 }],
+    tags: ['discipline', 'lifebinder', 'attack', 'mystic', 'ranged', 'area', 'cockpit:attack'],
+    cooldown: { key: 'lifebinder.searing-bloom', ownerTurns: 3 },
+    ai: { enabled: true, baseUtility: 66, purposeTags: ['damage', 'area', 'pressure'] },
+    overrides: {},
+    media: representativeMedia('lifebinder.searing-bloom'),
+    authoring: representativeAuthoring('p3.8', 'owner-approved-offense'),
   },
 ] as const satisfies readonly MatureSkillDefinition[]
 

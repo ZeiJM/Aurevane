@@ -41,6 +41,13 @@ initial="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d po
   from public.get_character_active_build_v2('$user_id'::uuid, '$character_id'::uuid);")"
 test "$initial" = '2|1|vanguard|'
 
+lifebinder_definition="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  select essence_id || '|' || skill_id || '|' || enabled::text
+  from app_private.essence_definitions
+  where source_discipline_id = 'lifebinder'
+    and content_version = 1;")"
+test "$lifebinder_definition" = 'essence.lifebinder.verdant-rupture|essence.lifebinder.verdant-rupture|true'
+
 pure_snapshot="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
   select
