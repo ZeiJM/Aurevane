@@ -28,34 +28,13 @@ set
   description = excluded.description,
   enabled = excluded.enabled;
 
-create or replace function public.ensure_character_active_discipline_skills_v1(
-  p_user_id uuid,
-  p_character_id uuid
-)
-returns integer
+create or replace function app_private.provision_active_discipline_skills_v1()
+returns trigger
 language plpgsql
 security definer
 set search_path = pg_catalog, public, app_private
 as $$
-declare
-  v_primary_discipline_id text;
-  v_secondary_discipline_id text;
-  v_rows_inserted integer := 0;
 begin
-  select
-    build.primary_discipline_id,
-    build.secondary_discipline_id
-  into
-    v_primary_discipline_id,
-    v_secondary_discipline_id
-  from app_private.character_active_builds build
-  where build.user_id = p_user_id
-    and build.character_id = p_character_id;
-
-  if not found then
-    raise exception using errcode = 'P0001', message = 'CHARACTER_BUILD_NOT_FOUND';
-  end if;
-
   insert into app_private.character_skill_unlocks (
     character_id,
     skill_id,
@@ -66,7 +45,7 @@ begin
     source_id
   )
   select
-    p_character_id,
+    new.character_id,
     catalog.skill_id,
     catalog.skill_content_version,
     catalog.source_discipline_id,
@@ -92,22 +71,26 @@ begin
       ('lifebinder'::text, 'lifebinder.vital-sever'::text, 1::integer),
       ('lifebinder'::text, 'lifebinder.searing-bloom'::text, 1::integer)
   ) as catalog(source_discipline_id, skill_id, skill_content_version)
-  where catalog.source_discipline_id = v_primary_discipline_id
-     or catalog.source_discipline_id = v_secondary_discipline_id
+  where catalog.source_discipline_id = new.primary_discipline_id
+     or catalog.source_discipline_id = new.secondary_discipline_id
   on conflict (character_id, skill_id) do nothing;
 
-  get diagnostics v_rows_inserted = row_count;
-  return v_rows_inserted;
+  return new;
 end;
 $$;
 
-comment on function public.ensure_character_active_discipline_skills_v1(uuid, uuid) is
-  'Server-only idempotent provisioning for authored active-Discipline Techniques. Vanguard and Lifebinder each receive their full eight-Technique catalog when that Discipline is active.';
+comment on function app_private.provision_active_discipline_skills_v1() is
+  'Server-owned provisioning for authored Discipline Techniques. Newly active Vanguard/Lifebinder Disciplines receive their full eight-Technique catalog; learned facts remain durable while picker visibility stays active-source-only.';
 
-revoke all on function public.ensure_character_active_discipline_skills_v1(uuid, uuid)
-  from public, anon, authenticated;
-grant execute on function public.ensure_character_active_discipline_skills_v1(uuid, uuid)
-  to service_role;
+revoke all on function app_private.provision_active_discipline_skills_v1() from public, anon, authenticated;
+
+drop trigger if exists character_active_discipline_skill_provision_v1
+  on app_private.character_active_builds;
+
+create trigger character_active_discipline_skill_provision_v1
+  after insert or update of primary_discipline_id, secondary_discipline_id
+  on app_private.character_active_builds
+  for each row execute function app_private.provision_active_discipline_skills_v1();
 
 with catalog(source_discipline_id, skill_id, skill_content_version) as (
   values
