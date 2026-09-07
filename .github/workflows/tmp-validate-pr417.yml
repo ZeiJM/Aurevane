@@ -78,3 +78,5 @@ jobs:
           pnpm --filter @aurevane/web typecheck
       - name: Production build
         run: pnpm build
+
+# Final validation trigger after formatting correction.
