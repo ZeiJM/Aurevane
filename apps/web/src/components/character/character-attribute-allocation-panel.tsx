@@ -67,9 +67,12 @@ export function CharacterAttributeAllocationPanel({
   const canSaveReset = hasResetChanges && resetAvailable === 0 && allocation.resetRemaining > 0
 
   useEffect(() => {
+    if (resetOpen) setResetDraft(allocation.attributes)
+  }, [resetOpen, allocation.attributes])
+
+  useEffect(() => {
     if (!resetOpen) return
 
-    setResetDraft(allocation.attributes)
     const previousBodyOverflow = document.body.style.overflow
     const previousDocumentOverflow = document.documentElement.style.overflow
     document.body.style.overflow = 'hidden'
@@ -87,7 +90,7 @@ export function CharacterAttributeAllocationPanel({
     }
     // setPanelOpen intentionally reads the current URL state; resetOpen is the lifecycle boundary.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resetOpen, allocation.attributes, saveState])
+  }, [resetOpen, saveState])
 
   function setPanelOpen(nextOpen: boolean) {
     const params = new URLSearchParams(searchParams.toString())
