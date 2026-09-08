@@ -11,6 +11,13 @@ import {
 } from '@aurevane/validation/player/combat-controls'
 import { useEffect, useRef, useState } from 'react'
 
+import {
+  createKeyboardMovementPlan,
+  keyboardMovementEndpoint,
+  projectKeyboardMovementStep,
+  type KeyboardMovementPlan,
+} from './battle-keyboard-movement-plan'
+
 function isTextEntryTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false
   return (
@@ -110,9 +117,9 @@ function facingModeIsActive(): boolean {
   if (!root) return false
   return Boolean(
     root.querySelector<HTMLButtonElement>('button[aria-label="Face north"]:not(:disabled)') &&
-    root.querySelector<HTMLButtonElement>('button[aria-label="Face south"]:not(:disabled)') &&
-    root.querySelector<HTMLButtonElement>('button[aria-label="Face west"]:not(:disabled)') &&
-    root.querySelector<HTMLButtonElement>('button[aria-label="Face east"]:not(:disabled)'),
+      root.querySelector<HTMLButtonElement>('button[aria-label="Face south"]:not(:disabled)') &&
+      root.querySelector<HTMLButtonElement>('button[aria-label="Face west"]:not(:disabled)') &&
+      root.querySelector<HTMLButtonElement>('button[aria-label="Face east"]:not(:disabled)'),
   )
 }
 
@@ -208,10 +215,7 @@ function legalAttackTargets(playerName: string): HTMLButtonElement[] {
 export function PvpBattleKeyboardAssist({ playerName }: { playerName: string }) {
   const [bindings, setBindings] = useState<CombatKeybindMap>(DEFAULT_COMBAT_KEYBINDS)
   const targetIndex = useRef(-1)
-  const movementPlan = useRef<{
-    committedOriginKey: string
-    endpoint: { x: number; y: number }
-  } | null>(null)
+  const movementPlan = useRef<KeyboardMovementPlan | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -278,14 +282,18 @@ export function PvpBattleKeyboardAssist({ playerName }: { playerName: string }) 
 
       const committedKey = positionKey(committed)
       if (!movementPlan.current || movementPlan.current.committedOriginKey !== committedKey) {
-        movementPlan.current = { committedOriginKey: committedKey, endpoint: committed }
+        movementPlan.current = createKeyboardMovementPlan(committedKey, committed)
       }
 
-      const base = movementPlan.current.endpoint
+      const base = keyboardMovementEndpoint(movementPlan.current)
       const targetPosition = { x: base.x + direction.dx, y: base.y + direction.dy }
-      if (targetPosition.x === committed.x && targetPosition.y === committed.y) {
-        commandButton('Move')?.click()
-        movementPlan.current = { committedOriginKey: committedKey, endpoint: committed }
+      const projection = projectKeyboardMovementStep(movementPlan.current, targetPosition)
+
+      if (projection.kind === 'cancel') {
+        const move = commandButton('Move')
+        if (!move || move.disabled) return false
+        move.click()
+        movementPlan.current = projection.plan
         actorTile.focus({ preventScroll: true })
         return true
       }
@@ -298,7 +306,7 @@ export function PvpBattleKeyboardAssist({ playerName }: { playerName: string }) 
       if ((target.getAttribute('aria-label') ?? '').includes('occupied by ')) return false
       if (!target.hasAttribute('data-reachable')) return false
 
-      movementPlan.current = { committedOriginKey: committedKey, endpoint: targetPosition }
+      movementPlan.current = projection.plan
       target.focus({ preventScroll: true })
       target.click()
       return true
