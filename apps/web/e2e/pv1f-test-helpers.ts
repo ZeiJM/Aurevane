@@ -68,9 +68,6 @@ async function createCharacterAfterSignIn(input: {
   await page.getByLabel('Character name').fill(characterName)
   await page.getByRole('button', { name: 'Choose your discipline' }).click()
 
-  for (const attribute of ['might', 'finesse', 'vitality', 'agility', 'intellect', 'resolve']) {
-    await page.getByRole('button', { name: `Increase ${attribute} bonus` }).click()
-  }
   await expect(page.getByTestId('attribute-points')).toContainText('0 bonus points remaining')
 
   await page.getByRole('button', { name: 'Review character' }).click()
