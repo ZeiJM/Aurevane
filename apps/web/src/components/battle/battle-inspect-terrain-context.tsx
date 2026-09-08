@@ -1,5 +1,6 @@
 'use client'
 
+import { PV1F_MOVEMENT_COST_PER_TERRAIN_POINT } from '@aurevane/game-core/combat/pv1f-skills'
 import { useEffect } from 'react'
 
 function isInspectActive(deck: HTMLElement): boolean {
@@ -45,7 +46,7 @@ export function describeTerrainLabel(label: string): {
   const rough = terrainId === 'rough-ground'
   const elevated = elevationLevel > 0
   const terrainName = elevated ? 'Elevated ground' : rough ? 'Rough ground' : 'Open ground'
-  const entryCost = rough ? 50 : 25
+  const entryCost = PV1F_MOVEMENT_COST_PER_TERRAIN_POINT * (rough ? 2 : 1)
 
   return {
     title: `${terrainName} · Tile ${x},${y}`,
