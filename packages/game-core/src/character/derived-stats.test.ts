@@ -28,12 +28,21 @@ describe('derived stat framework', () => {
     expect(snapshot.stats.armor.value).toBe(23)
     expect(snapshot.stats.ward.value).toBe(23)
     expect(snapshot.stats.accuracy.value).toBe(7400)
-    expect(snapshot.stats.evasion.value).toBe(900)
-    expect(snapshot.stats.criticalChance.value).toBe(800)
+    expect(snapshot.stats.evasion.value).toBe(300)
+    expect(snapshot.stats.criticalChance.value).toBe(280)
     expect(snapshot.stats.initiative.value).toBe(28)
     expect(snapshot.stats.movement.value).toBe(2)
     expect(snapshot.stats.jump.value).toBe(0)
     expect(snapshot.stats.statusResistance.value).toBe(600)
+  })
+
+  it('keeps early percentage pacing below the global ceilings', () => {
+    const snapshot = calculateDerivedStats({ attributes: balancedAttributes, level: 1 })
+
+    expect(snapshot.stats.evasion.value).toBeLessThan(1500)
+    expect(snapshot.stats.criticalChance.value).toBeLessThan(3000)
+    expect(snapshot.stats.evasion.value).toBeLessThanOrEqual(500)
+    expect(snapshot.stats.criticalChance.value).toBeLessThanOrEqual(500)
   })
 
   it('applies level growth from level steps after level 1', () => {
