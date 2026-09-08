@@ -59,7 +59,7 @@ export interface DisciplineCatalogEntry {
 }
 
 export type PrimaryDisciplineCatalogEntry = DisciplineCatalogEntry
-export type SecondaryDisciplineCatalogEntry = DisciplineCatalogEntry & { masteredAt: string }
+export type SecondaryDisciplineCatalogEntry = DisciplineCatalogEntry
 
 export interface CharacterLearnedSkillRecord extends DisciplineSkillReference {
   learnedAt: string
@@ -245,8 +245,7 @@ function availableCatalog(catalog: readonly DisciplineCatalogEntry[]) {
     (entry): entry is PrimaryDisciplineCatalogEntry => entry.definition.enabledForPrimary,
   )
   const availableSecondaries = catalog.filter(
-    (entry): entry is SecondaryDisciplineCatalogEntry =>
-      entry.definition.enabledForSecondary && entry.masteredAt !== null,
+    (entry): entry is SecondaryDisciplineCatalogEntry => entry.definition.enabledForSecondary,
   )
   return { availablePrimaries, availableSecondaries }
 }
@@ -268,10 +267,7 @@ function selectedSecondary(
 ): SecondaryDisciplineCatalogEntry {
   const entry = availableSecondaries.find((candidate) => candidate.definition.id === id)
   if (!entry) {
-    throw new AurevaneError(
-      'INVALID_REQUEST',
-      'That Secondary Discipline is unavailable or has not been mastered.',
-    )
+    throw new AurevaneError('INVALID_REQUEST', 'That Secondary Discipline is not available.')
   }
   return entry
 }
