@@ -1,5 +1,6 @@
 'use client'
 
+import { PV1F_MOVEMENT_COST_PER_TERRAIN_POINT } from '@aurevane/game-core/combat/pv1f-skills'
 import { useEffect } from 'react'
 
 import type { BattlePreviewView } from '@/server/battle/battle-preview-service'
@@ -123,7 +124,8 @@ function isPvpDeck(deck: HTMLElement): boolean {
 
 function semanticDescription(deck: HTMLElement, slug: CommandSlug): string {
   if (!isPvpDeck(deck) && slug === 'move') {
-    return 'Move · 25 AP per normal tile. Green tiles are reachable. Rough ground costs 50 AP. Click a destination to draw the numbered path.'
+    const normalTileCost = PV1F_MOVEMENT_COST_PER_TERRAIN_POINT
+    return `Move · ${normalTileCost} AP per normal tile. Green tiles are reachable. Rough ground costs ${normalTileCost * 2} AP. Click a destination to draw the numbered path.`
   }
   return COMMAND_PRESENTATION[slug].description
 }
