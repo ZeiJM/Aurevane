@@ -11,6 +11,13 @@ import {
 } from '@aurevane/validation/player/combat-controls'
 import { useEffect, useRef, useState } from 'react'
 
+import {
+  createKeyboardMovementPlan,
+  keyboardMovementEndpoint,
+  projectKeyboardMovementStep,
+  type KeyboardMovementPlan,
+} from './battle-keyboard-movement-plan'
+
 function isTextEntryTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false
   if (target.isContentEditable) return true
@@ -40,10 +47,6 @@ function tileElevation(button: HTMLButtonElement): number | null {
 
 function positionKey(position: { x: number; y: number }): string {
   return `${position.x}:${position.y}`
-}
-
-function positionsEqual(left: { x: number; y: number }, right: { x: number; y: number }): boolean {
-  return left.x === right.x && left.y === right.y
 }
 
 function battleTiles(): HTMLButtonElement[] {
@@ -107,9 +110,9 @@ function commandIsActive(...labels: string[]): boolean {
   const button = commandButton(...labels)
   return Boolean(
     button &&
-    (button.hasAttribute('data-active') ||
-      button.dataset.battleActive === 'true' ||
-      `${button.className}`.includes('commandActive')),
+      (button.hasAttribute('data-active') ||
+        button.dataset.battleActive === 'true' ||
+        `${button.className}`.includes('commandActive')),
   )
 }
 
@@ -124,9 +127,9 @@ function moveModeIsActive(): boolean {
 function facingModeIsActive(): boolean {
   return Boolean(
     document.querySelector<HTMLButtonElement>('[aria-label="Face north"]:not(:disabled)') &&
-    document.querySelector<HTMLButtonElement>('[aria-label="Face south"]:not(:disabled)') &&
-    document.querySelector<HTMLButtonElement>('[aria-label="Face west"]:not(:disabled)') &&
-    document.querySelector<HTMLButtonElement>('[aria-label="Face east"]:not(:disabled)'),
+      document.querySelector<HTMLButtonElement>('[aria-label="Face south"]:not(:disabled)') &&
+      document.querySelector<HTMLButtonElement>('[aria-label="Face west"]:not(:disabled)') &&
+      document.querySelector<HTMLButtonElement>('[aria-label="Face east"]:not(:disabled)'),
   )
 }
 
@@ -250,10 +253,7 @@ function repeatableCommand(label: string): HTMLButtonElement | null {
 export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
   const [bindings, setBindings] = useState<CombatKeybindMap>(DEFAULT_COMBAT_KEYBINDS)
   const targetIndex = useRef(-1)
-  const movementPlan = useRef<{
-    committedOriginKey: string
-    endpoint: { x: number; y: number }
-  } | null>(null)
+  const movementPlan = useRef<KeyboardMovementPlan | null>(null)
   const lastRepeatableCommand = useRef<string | null>(null)
   const repeatSequence = useRef(0)
 
@@ -401,19 +401,18 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
 
       const committedKey = positionKey(committed)
       if (!movementPlan.current || movementPlan.current.committedOriginKey !== committedKey) {
-        movementPlan.current = { committedOriginKey: committedKey, endpoint: committed }
+        movementPlan.current = createKeyboardMovementPlan(committedKey, committed)
       }
 
-      const base = movementPlan.current.endpoint
+      const base = keyboardMovementEndpoint(movementPlan.current)
       const targetPosition = { x: base.x + direction.dx, y: base.y + direction.dy }
+      const projection = projectKeyboardMovementStep(movementPlan.current, targetPosition)
 
-      // Crossing back through the committed origin cancels the current movement projection without
-      // leaving Move mode. The next direction can then project immediately to the opposite side.
-      if (positionsEqual(targetPosition, committed)) {
+      if (projection.kind === 'cancel') {
         const move = commandButton('Move')
         if (!move || move.disabled) return false
         move.click()
-        movementPlan.current = { committedOriginKey: committedKey, endpoint: committed }
+        movementPlan.current = projection.plan
         actorTile.focus({ preventScroll: true })
         return true
       }
@@ -426,10 +425,7 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
       if ((target.getAttribute('aria-label') ?? '').includes('occupied by ')) return false
       if (!target.hasAttribute('data-reachable')) return false
 
-      movementPlan.current = {
-        committedOriginKey: committedKey,
-        endpoint: targetPosition,
-      }
+      movementPlan.current = projection.plan
       target.focus({ preventScroll: true })
       target.click()
       return true
