@@ -145,11 +145,11 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
   await moveButton.click()
-  await expect(commandContext).toContainText('Move · 25 AP per normal tile')
-  await expect(commandContext).toContainText('Rough ground costs 50 AP')
+  await expect(commandContext).toContainText('Move · 20 AP per normal tile')
+  await expect(commandContext).toContainText('Rough ground costs 40 AP')
   await page.getByRole('button', { name: /Tile 4, 2; open-ground; elevation 0/ }).click()
-  await expect(commandContext).toContainText('100 AP')
-  await expect(commandContext).toContainText('0 AP left')
+  await expect(commandContext).toContainText('80 AP')
+  await expect(commandContext).toContainText('20 AP left')
   if (testInfo.project.name !== 'mobile-chromium') {
     await expect(battlefield.getByText('0', { exact: true })).toHaveCount(1)
     await expect(
@@ -160,10 +160,10 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   }
   await expect(confirmButton).toBeEnabled()
   await confirmButton.click()
-  await expect(commandContext).toContainText('Movement committed. 0 AP remains.')
+  await expect(commandContext).toContainText('Movement committed. 20 AP remains.')
   await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
     'aria-valuenow',
-    '0',
+    '20',
   )
   await expect(attackButton).toBeDisabled()
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
