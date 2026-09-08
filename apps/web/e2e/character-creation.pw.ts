@@ -51,7 +51,7 @@ test('creates a slotted character, persists its profile, and resumes it across s
   await expect(page.getByTestId('derived-stat-criticalChance')).toContainText('7.5%')
 
   const levelProgress = page.getByTestId('level-progress')
-  await expect(levelProgress).toContainText('Level 2')
+  await expect(levelProgress).toContainText('Character Level 1')
   await expect(levelProgress).toContainText('0 / 100 XP')
   await expect(page.getByRole('progressbar', { name: 'Level progress' })).toHaveAttribute(
     'aria-valuenow',
