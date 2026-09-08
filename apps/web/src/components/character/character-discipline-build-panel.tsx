@@ -27,7 +27,7 @@ interface PrimaryOption {
 }
 
 interface SecondaryOption extends PrimaryOption {
-  masteredAt: string
+  masteredAt: string | null
 }
 
 interface AttunementView {
@@ -171,7 +171,7 @@ export function CharacterDisciplineBuildPanel({
       {
         definition: currentSecondary,
         profile: current.profile,
-        masteredAt: 'committed',
+        masteredAt: null,
       },
       ...availableSecondaries,
     ]
@@ -420,7 +420,7 @@ export function CharacterDisciplineBuildPanel({
                         : `Secondary ready · next change locks for ${policyDuration(attunement.policy.secondaryCooldownSeconds)}`}
                     </small>
                     {availableSecondaries.length === 0 && !currentSecondary ? (
-                      <small>No mastered Secondary Disciplines are available yet.</small>
+                      <small>No Secondary Disciplines are available yet.</small>
                     ) : null}
                   </label>
                 </div>
