@@ -85,7 +85,7 @@ curve="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
   set role service_role;
   select curve_version::text || '|' || max_level::text || '|' || array_length(cumulative_xp_by_level, 1)::text || '|' || cumulative_xp_by_level[1]::text || '|' || cumulative_xp_by_level[2]::text
   from public.get_level_progression_curve_v1(1);")"
-test "$curve" = '1|100|100|0|100'
+test "$curve" = '2|50|50|0|100'
 
 private_access="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
   select
@@ -116,7 +116,7 @@ test "$first_after" = '650'
 test "$first_level_before" = '1'
 test "$first_level_after" = '5'
 test "$first_reached" = '5'
-test "$first_curve" = '1'
+test "$first_curve" = '2'
 
 first_ledger_count="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
   select count(*) from app_private.character_xp_grants where id = '$first_id'::uuid;")"
@@ -128,7 +128,7 @@ telemetry="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
     (seconds_since_cycle_start >= 0)::text
   from app_private.character_xp_grants
   where id = '$first_id'::uuid;")"
-test "$telemetry" = 'system|ci.progression|progression.integration|1|1|5|5|true'
+test "$telemetry" = 'system|ci.progression|progression.integration|2|1|5|5|true'
 
 if grant_xp "$character_one" '00000000-0000-4000-8000-000000001503' 'p15:different' 650 >/tmp/p15-idempotency.out 2>/tmp/p15-idempotency.err; then
   echo 'Expected conflicting XP idempotency fingerprint to fail.' >&2
@@ -201,17 +201,17 @@ test "$concurrent_ledger_count" = '2'
 
 cap="$(grant_xp "$character_one" '00000000-0000-4000-8000-000000001508' 'p15:cap' 9223372036854775807 'ci.cap' 'progression.cap')"
 IFS='|' read -r _ _ _ cap_applied _ cap_after _ cap_level_after cap_reached _ <<<"$cap"
-test "$cap_level_after" = '100'
-test "$cap_reached" = '100'
+test "$cap_level_after" = '50'
+test "$cap_reached" = '50'
 test "$cap_applied" -gt 0
 
 cap_threshold="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
-  select cumulative_xp_by_level[max_level] from app_private.level_progression_curves where version = 1;")"
+  select cumulative_xp_by_level[max_level] from app_private.level_progression_curves where version = 2;")"
 test "$cap_after" = "$cap_threshold"
 
 at_cap="$(grant_xp "$character_one" '00000000-0000-4000-8000-000000001509' 'p15:at-cap' 1 'ci.cap' 'progression.cap')"
 IFS='|' read -r _ _ _ at_cap_applied _ at_cap_after _ at_cap_level_after at_cap_reached _ <<<"$at_cap"
 test "$at_cap_applied" = '0'
 test "$at_cap_after" = "$cap_threshold"
-test "$at_cap_level_after" = '100'
+test "$at_cap_level_after" = '50'
 test -z "$at_cap_reached"

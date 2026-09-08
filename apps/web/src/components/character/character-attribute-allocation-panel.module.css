@@ -1,0 +1,141 @@
+.panel {
+  margin-top: 1.25rem;
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  border-radius: 0.9rem;
+  background: color-mix(in srgb, currentColor 3%, transparent);
+}
+
+.header,
+.actions,
+.attribute,
+.controls {
+  display: flex;
+  align-items: center;
+}
+
+.header {
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.9rem;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.header p,
+.resetSummary span,
+.notice,
+.message {
+  margin: 0;
+  opacity: 0.72;
+  font-size: 0.8rem;
+}
+
+.resetSummary {
+  display: grid;
+  justify-items: end;
+  gap: 0.1rem;
+  text-align: right;
+}
+
+.resetSummary strong {
+  font-size: 0.82rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.attribute {
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.65rem 0.7rem;
+  border: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+  border-radius: 0.65rem;
+}
+
+.attribute > div:first-child {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.attribute span {
+  font-size: 0.84rem;
+}
+
+.attribute small {
+  font-size: 0.66rem;
+  opacity: 0.65;
+}
+
+.controls {
+  gap: 0.45rem;
+}
+
+.controls strong {
+  min-width: 1.7rem;
+  text-align: center;
+}
+
+.controls button,
+.actions button {
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  color: inherit;
+  cursor: pointer;
+}
+
+.controls button {
+  width: 1.85rem;
+  height: 1.85rem;
+  font-size: 1rem;
+}
+
+.actions {
+  justify-content: flex-end;
+  gap: 0.55rem;
+  margin-top: 0.85rem;
+}
+
+.actions button {
+  padding: 0.55rem 0.8rem;
+  font-weight: 700;
+}
+
+.actions .secondary {
+  background: transparent;
+}
+
+.controls button:disabled,
+.actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.notice,
+.message {
+  margin-top: 0.65rem;
+  line-height: 1.45;
+}
+
+@media (max-width: 640px) {
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .resetSummary {
+    justify-items: start;
+    text-align: left;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -167,7 +167,7 @@ export function validateStatDrivenCombatEncounterState(
     collectBasisPointIssue(issues, profile.evasion, `${prefix}.evasion`)
     collectNonNegativeIntegerIssue(issues, profile.armor, `${prefix}.armor`)
     collectNonNegativeIntegerIssue(issues, profile.ward, `${prefix}.ward`)
-    collectPositiveIntegerIssue(issues, profile.jump, `${prefix}.jump`)
+    collectNonNegativeIntegerIssue(issues, profile.jump, `${prefix}.jump`)
     if (seen.has(profile.combatantId)) {
       issues.push({
         field: `${prefix}.combatantId`,

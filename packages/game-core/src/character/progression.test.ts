@@ -11,8 +11,8 @@ import {
 function testCurve(): LevelProgressionCurve {
   return {
     version: 7,
-    maxLevel: 100,
-    cumulativeXpByLevel: Array.from({ length: 100 }, (_, index) => index * 100),
+    maxLevel: 50,
+    cumulativeXpByLevel: Array.from({ length: 50 }, (_, index) => index * 100),
   }
 }
 
@@ -42,11 +42,11 @@ describe('Level and XP progression', () => {
   })
 
   it('caps Level at the curve maximum while tolerating historical excess XP', () => {
-    const exactCap = resolveLevelProgress(9900, testCurve())
+    const exactCap = resolveLevelProgress(4900, testCurve())
     const aboveCap = resolveLevelProgress(50_000, testCurve())
 
-    expect(exactCap).toMatchObject({ level: 100, isMaxLevel: true, nextLevelThreshold: null })
-    expect(aboveCap).toMatchObject({ level: 100, isMaxLevel: true, totalXp: 50_000 })
+    expect(exactCap).toMatchObject({ level: 50, isMaxLevel: true, nextLevelThreshold: null })
+    expect(aboveCap).toMatchObject({ level: 50, isMaxLevel: true, totalXp: 50_000 })
   })
 
   it('applies XP without exceeding the configured cap threshold', () => {
@@ -61,19 +61,19 @@ describe('Level and XP progression', () => {
       isMaxLevel: false,
     })
 
-    expect(resolveXpGrant(9895, 500, testCurve())).toMatchObject({
+    expect(resolveXpGrant(4895, 500, testCurve())).toMatchObject({
       requestedAmount: 500,
       appliedAmount: 5,
-      xpAfter: 9900,
-      levelAfter: 100,
+      xpAfter: 4900,
+      levelAfter: 50,
       isMaxLevel: true,
     })
 
-    expect(resolveXpGrant(9900, 500, testCurve())).toMatchObject({
+    expect(resolveXpGrant(4900, 500, testCurve())).toMatchObject({
       requestedAmount: 500,
       appliedAmount: 0,
-      xpAfter: 9900,
-      levelAfter: 100,
+      xpAfter: 4900,
+      levelAfter: 50,
       isMaxLevel: true,
     })
   })

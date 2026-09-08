@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./character/attribute-allocation": "./src/character/attribute-allocation.ts",
     "./character/creation": "./src/character/creation.ts",
     "./character/derived-stats": "./src/character/derived-stats.ts",
     "./character/discipline-build": "./src/character/discipline-build.ts",

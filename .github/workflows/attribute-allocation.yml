@@ -1,0 +1,137 @@
+name: Attribute Allocation
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - '.github/scripts/verify-character-attribute-allocation.sh'
+      - '.github/workflows/attribute-allocation.yml'
+      - 'packages/game-core/src/character/attribute-allocation.ts'
+      - 'packages/game-core/src/character/attribute-allocation.test.ts'
+      - 'packages/game-core/src/character/derived-stats.ts'
+      - 'packages/game-core/src/character/derived-stats.test.ts'
+      - 'packages/game-core/src/character/discipline-build.test.ts'
+      - 'packages/game-core/src/character/foundation-disciplines.ts'
+      - 'packages/game-core/src/character/foundation-disciplines.test.ts'
+      - 'apps/web/src/server/character/character-attribute-service.ts'
+      - 'apps/web/src/server/character/supabase-character-attribute-repository.ts'
+      - 'apps/web/src/app/api/character/attributes/route.ts'
+      - 'apps/web/src/app/api/character/build/disciplines/route.ts'
+      - 'apps/web/src/components/character/character-attribute-allocation-panel.tsx'
+      - 'apps/web/src/components/character/character-attribute-allocation-panel.module.css'
+      - 'apps/web/src/components/character/character-creation-experience.tsx'
+      - 'apps/web/src/app/game/character/page.tsx'
+      - 'apps/web/src/components/character/character-profile-shell.tsx'
+  push:
+    branches:
+      - main
+    paths:
+      - 'supabase/migrations/**'
+      - '.github/scripts/verify-character-attribute-allocation.sh'
+      - '.github/workflows/attribute-allocation.yml'
+      - 'packages/game-core/src/character/attribute-allocation.ts'
+      - 'packages/game-core/src/character/attribute-allocation.test.ts'
+      - 'packages/game-core/src/character/derived-stats.ts'
+      - 'packages/game-core/src/character/derived-stats.test.ts'
+      - 'packages/game-core/src/character/discipline-build.test.ts'
+      - 'packages/game-core/src/character/foundation-disciplines.ts'
+      - 'packages/game-core/src/character/foundation-disciplines.test.ts'
+      - 'apps/web/src/server/character/character-attribute-service.ts'
+      - 'apps/web/src/server/character/supabase-character-attribute-repository.ts'
+      - 'apps/web/src/app/api/character/attributes/route.ts'
+      - 'apps/web/src/app/api/character/build/disciplines/route.ts'
+      - 'apps/web/src/components/character/character-attribute-allocation-panel.tsx'
+      - 'apps/web/src/components/character/character-attribute-allocation-panel.module.css'
+      - 'apps/web/src/components/character/character-creation-experience.tsx'
+      - 'apps/web/src/app/game/character/page.tsx'
+      - 'apps/web/src/components/character/character-profile-shell.tsx'
+
+permissions:
+  contents: read
+
+jobs:
+  authority:
+    name: Attribute authority
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify focused formatting is committed
+        run: |
+          pnpm exec prettier --write \
+            packages/game-core/src/character/attribute-allocation.ts \
+            packages/game-core/src/character/attribute-allocation.test.ts \
+            packages/game-core/src/character/derived-stats.ts \
+            packages/game-core/src/character/derived-stats.test.ts \
+            packages/game-core/src/character/discipline-build.test.ts \
+            packages/game-core/src/character/foundation-disciplines.ts \
+            packages/game-core/src/character/foundation-disciplines.test.ts \
+            apps/web/src/server/character/character-attribute-service.ts \
+            apps/web/src/server/character/supabase-character-attribute-repository.ts \
+            apps/web/src/app/api/character/attributes/route.ts \
+            apps/web/src/app/api/character/build/disciplines/route.ts \
+            apps/web/src/components/character/character-attribute-allocation-panel.tsx \
+            apps/web/src/components/character/character-attribute-allocation-panel.module.css \
+            apps/web/src/components/character/character-creation-experience.tsx \
+            apps/web/src/app/game/character/page.tsx \
+            apps/web/src/components/character/character-profile-shell.tsx
+          git diff --exit-code -- \
+            packages/game-core/src/character/attribute-allocation.ts \
+            packages/game-core/src/character/attribute-allocation.test.ts \
+            packages/game-core/src/character/derived-stats.ts \
+            packages/game-core/src/character/derived-stats.test.ts \
+            packages/game-core/src/character/discipline-build.test.ts \
+            packages/game-core/src/character/foundation-disciplines.ts \
+            packages/game-core/src/character/foundation-disciplines.test.ts \
+            apps/web/src/server/character/character-attribute-service.ts \
+            apps/web/src/server/character/supabase-character-attribute-repository.ts \
+            apps/web/src/app/api/character/attributes/route.ts \
+            apps/web/src/app/api/character/build/disciplines/route.ts \
+            apps/web/src/components/character/character-attribute-allocation-panel.tsx \
+            apps/web/src/components/character/character-attribute-allocation-panel.module.css \
+            apps/web/src/components/character/character-creation-experience.tsx \
+            apps/web/src/app/game/character/page.tsx \
+            apps/web/src/components/character/character-profile-shell.tsx
+
+      - name: Game core typecheck
+        run: pnpm --filter @aurevane/game-core typecheck
+
+      - name: Web typecheck
+        run: pnpm --filter @aurevane/web typecheck
+
+      - name: Focused game-core tests
+        run: |
+          pnpm --filter @aurevane/game-core exec vitest run \
+            src/character/attribute-allocation.test.ts \
+            src/character/derived-stats.test.ts \
+            src/character/discipline-build.test.ts \
+            src/character/foundation-disciplines.test.ts
+
+      - name: Start local Supabase stack
+        run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+
+      - name: Rebuild database from migrations
+        run: pnpm exec supabase db reset --local
+
+      - name: Verify attribute allocation authority
+        run: bash .github/scripts/verify-character-attribute-allocation.sh
+
+      - name: Stop local Supabase services
+        if: always()
+        run: pnpm exec supabase stop --no-backup
