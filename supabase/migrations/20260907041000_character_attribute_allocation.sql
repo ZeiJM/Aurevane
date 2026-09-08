@@ -380,7 +380,7 @@ begin
       v_reset_used,
       v_now
     )
-    on conflict (character_id) do update
+    on conflict on constraint character_attribute_reset_windows_pkey do update
     set
       user_id = excluded.user_id,
       window_started_at = excluded.window_started_at,
