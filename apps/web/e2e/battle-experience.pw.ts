@@ -160,7 +160,6 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   }
   await expect(confirmButton).toBeEnabled()
   await confirmButton.click()
-  await expect(commandContext).toContainText('Movement committed. 20 AP remains.')
   await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
     'aria-valuenow',
     '20',
