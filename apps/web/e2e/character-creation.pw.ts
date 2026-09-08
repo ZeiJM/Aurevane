@@ -34,13 +34,21 @@ test('creates a slotted character, persists its profile, and resumes it across s
   const profile = page.getByTestId('character-profile')
   await expect(profile).toContainText(characterName)
   await expect(profile).toContainText('Level 1')
-  for (const attribute of ['might', 'finesse', 'vitality', 'agility', 'intellect', 'resolve']) {
-    await expect(page.getByTestId(`profile-attribute-${attribute}`)).toContainText('6')
+  const expectedStarterAttributes = {
+    might: '8',
+    finesse: '5',
+    vitality: '8',
+    agility: '5',
+    intellect: '5',
+    resolve: '5',
+  } as const
+  for (const [attribute, expectedValue] of Object.entries(expectedStarterAttributes)) {
+    await expect(page.getByTestId(`profile-attribute-${attribute}`)).toContainText(expectedValue)
   }
-  await expect(page.getByTestId('derived-stat-maxHp')).toContainText('184')
-  await expect(page.getByTestId('derived-stat-maxMp')).toContainText('90')
-  await expect(page.getByTestId('derived-stat-accuracy')).toContainText('74%')
-  await expect(page.getByTestId('derived-stat-criticalChance')).toContainText('8%')
+  await expect(page.getByTestId('derived-stat-maxHp')).toContainText('212')
+  await expect(page.getByTestId('derived-stat-maxMp')).toContainText('80')
+  await expect(page.getByTestId('derived-stat-accuracy')).toContainText('72.5%')
+  await expect(page.getByTestId('derived-stat-criticalChance')).toContainText('7.5%')
 
   const levelProgress = page.getByTestId('level-progress')
   await expect(levelProgress).toContainText('Level 2')
