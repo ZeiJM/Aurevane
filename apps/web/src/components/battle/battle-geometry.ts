@@ -1,6 +1,8 @@
+import { PV1F_MOVEMENT_COST_PER_TERRAIN_POINT } from '@aurevane/game-core/combat/pv1f-skills'
+
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
-export const MOVE_COST_PER_TERRAIN_POINT = 25
+export const MOVE_COST_PER_TERRAIN_POINT = PV1F_MOVEMENT_COST_PER_TERRAIN_POINT
 
 export type BattleGridPosition = { x: number; y: number }
 export type BattleFacing = 'north' | 'east' | 'south' | 'west'
