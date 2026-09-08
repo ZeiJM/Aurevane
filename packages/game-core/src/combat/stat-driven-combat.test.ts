@@ -37,7 +37,7 @@ function profile(
     evasion: 0,
     armor: 0,
     ward: 0,
-    jump: 1,
+    jump: 0,
     ...overrides,
   }
 }
