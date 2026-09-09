@@ -4,7 +4,15 @@ import {
   CHARACTER_ATTRIBUTE_LABELS,
   foundationDisciplineAttributePolicy,
 } from '@aurevane/game-core/character/attribute-allocation'
-import type { PrimaryDisciplinePreview } from '@aurevane/game-core/character/discipline-build'
+import {
+  CHARACTER_ATTRIBUTE_IDS,
+  type CharacterAttributeId,
+  type CharacterAttributes,
+} from '@aurevane/game-core/character/creation'
+import type {
+  DerivedStatUnit,
+  PrimaryDisciplinePreview,
+} from '@aurevane/game-core/character/discipline-build'
 import type { Route } from 'next'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
@@ -55,6 +63,7 @@ interface CharacterDisciplineBuildPanelProps {
   availablePrimaries: readonly PrimaryOption[]
   availableSecondaries: readonly SecondaryOption[]
   initialAttunement: AttunementView
+  coreAttributes: CharacterAttributes
 }
 
 interface BuildPreviewResponse {
@@ -80,6 +89,8 @@ interface BuildCommitResponse {
   error?: { message?: string }
 }
 
+type DeltaDirection = 'increase' | 'decrease' | 'neutral'
+
 const PROFILE_PANEL_QUERY = 'profilePanel'
 const DISCIPLINES_PANEL = 'disciplines'
 
@@ -102,10 +113,38 @@ function policyDuration(seconds: number): string {
   return formatDuration(seconds)
 }
 
-function focusLabel(disciplineId: string): string {
+function focusAttributes(disciplineId: string): readonly CharacterAttributeId[] {
+  return foundationDisciplineAttributePolicy(disciplineId)?.focusAttributes ?? []
+}
+
+function deltaDirection(current: number, proposed: number): DeltaDirection {
+  if (proposed > current) return 'increase'
+  if (proposed < current) return 'decrease'
+  return 'neutral'
+}
+
+function formatDerivedValue(value: number, unit: DerivedStatUnit): string {
+  if (unit === 'basisPoints') {
+    const percent = value / 100
+    return `${Number.isInteger(percent) ? percent.toFixed(0) : percent.toFixed(1)}%`
+  }
+  return value.toLocaleString('en')
+}
+
+function FocusBadges({ disciplineId }: { disciplineId: string }) {
   const policy = foundationDisciplineAttributePolicy(disciplineId)
-  if (!policy) return 'Authored identity'
-  return policy.focusAttributes.map((id) => CHARACTER_ATTRIBUTE_LABELS[id]).join(' + ')
+  if (!policy) return <span className={styles.identityBadge}>Authored identity</span>
+
+  return (
+    <div className={styles.focusBadges} aria-label="Discipline focus attributes">
+      {policy.focusAttributes.map((attributeId) => (
+        <span className={styles.focusBadge} key={attributeId}>
+          {CHARACTER_ATTRIBUTE_LABELS[attributeId]}
+        </span>
+      ))}
+      <span className={styles.capBadge}>Other core stats ≤ 30</span>
+    </div>
+  )
 }
 
 export function CharacterDisciplineBuildPanel({
@@ -115,6 +154,7 @@ export function CharacterDisciplineBuildPanel({
   availablePrimaries,
   availableSecondaries,
   initialAttunement,
+  coreAttributes,
 }: CharacterDisciplineBuildPanelProps) {
   const router = useRouter()
   const pathname = usePathname()
@@ -188,23 +228,47 @@ export function CharacterDisciplineBuildPanel({
     ]
   }, [availableSecondaries, current.profile, currentSecondary])
 
-  const deltas = useMemo(() => {
-    if (!preview) return []
-    return Object.values(current.derived.stats)
-      .map((stat) => ({
-        id: stat.id,
-        label: stat.label,
-        current: stat.value,
-        proposed: preview.proposed.derived.stats[stat.id].value,
-      }))
-      .filter((entry) => entry.current !== entry.proposed)
+  const visiblePrimaryOptions = useMemo(
+    () =>
+      primaryOptions.filter(
+        (entry) => !selectedSecondaryId || entry.definition.id !== selectedSecondaryId,
+      ),
+    [primaryOptions, selectedSecondaryId],
+  )
+  const visibleSecondaryOptions = useMemo(
+    () => secondaryOptions.filter((entry) => entry.definition.id !== selectedPrimaryId),
+    [secondaryOptions, selectedPrimaryId],
+  )
+
+  const adventureDeltas = useMemo(() => {
+    const proposed = preview?.proposed ?? current
+    return Object.values(current.derived.stats).map((stat) => ({
+      id: stat.id,
+      label: stat.label,
+      unit: stat.unit,
+      current: stat.value,
+      proposed: proposed.derived.stats[stat.id].value,
+      direction: deltaDirection(stat.value, proposed.derived.stats[stat.id].value),
+    }))
   }, [current, preview])
+
+  const coreDeltas = useMemo(
+    () =>
+      CHARACTER_ATTRIBUTE_IDS.map((attributeId) => ({
+        id: attributeId,
+        label: CHARACTER_ATTRIBUTE_LABELS[attributeId],
+        current: coreAttributes[attributeId],
+        proposed: coreAttributes[attributeId],
+        direction: 'neutral' as const,
+      })),
+    [coreAttributes],
+  )
 
   const commitBlocked = Boolean(
     pendingCommit ||
-    !preview ||
-    (preview.changes.primary && remaining.primary > 0) ||
-    (preview.changes.secondary && remaining.secondary > 0),
+      !preview ||
+      (preview.changes.primary && remaining.primary > 0) ||
+      (preview.changes.secondary && remaining.secondary > 0),
   )
 
   function setPanelOpen(nextOpen: boolean) {
@@ -220,6 +284,11 @@ export function CharacterDisciplineBuildPanel({
   }
 
   async function previewSelection(primaryDisciplineId: string, secondaryDisciplineId: string) {
+    if (secondaryDisciplineId && primaryDisciplineId === secondaryDisciplineId) {
+      setMessage('Primary and Secondary Disciplines must be different.')
+      return
+    }
+
     setSelectedPrimaryId(primaryDisciplineId)
     setSelectedSecondaryId(secondaryDisciplineId)
     setMessage(null)
@@ -363,8 +432,8 @@ export function CharacterDisciplineBuildPanel({
                     <span>Authoritative build</span>
                     <h2 id="discipline-build-heading">Discipline Management</h2>
                     <p>
-                      Choose identity first. Review every server-calculated change before
-                      committing.
+                      Every active Foundation Discipline is open during testing. Primary changes
+                      affect your derived stats; Secondary changes do not add a second stat profile.
                     </p>
                   </div>
                   <button
@@ -385,9 +454,7 @@ export function CharacterDisciplineBuildPanel({
                     <div>
                       <span>Committed Primary</span>
                       <strong>{current.definition.name}</strong>
-                      <small className={styles.focus}>
-                        Focus · {focusLabel(current.definition.id)}
-                      </small>
+                      <FocusBadges disciplineId={current.definition.id} />
                       <p>{current.definition.summary}</p>
                       <small>
                         Definition v{current.definition.definitionVersion} · Base profile v
@@ -409,11 +476,7 @@ export function CharacterDisciplineBuildPanel({
                     <div>
                       <span>Committed Secondary</span>
                       <strong>{currentSecondary?.name ?? 'None — pure build'}</strong>
-                      {currentSecondary ? (
-                        <small className={styles.focus}>
-                          Identity · {focusLabel(currentSecondary.id)}
-                        </small>
-                      ) : null}
+                      {currentSecondary ? <FocusBadges disciplineId={currentSecondary.id} /> : null}
                       <p>
                         {currentSecondary?.summary ??
                           'No Secondary is equipped. Secondary never contributes a second base-stat profile.'}
@@ -428,10 +491,10 @@ export function CharacterDisciplineBuildPanel({
                       <span>Foundation identities</span>
                       <h3 id="foundation-roster-heading">Choose a proposed Primary</h3>
                     </div>
-                    <small>Focus stats remain Discipline-uncapped</small>
+                    <small>The selected Secondary is hidden from this list.</small>
                   </div>
                   <div className={styles.rosterGrid}>
-                    {primaryOptions.map((entry) => {
+                    {visiblePrimaryOptions.map((entry) => {
                       const selected = entry.definition.id === selectedPrimaryId
                       return (
                         <button
@@ -449,9 +512,9 @@ export function CharacterDisciplineBuildPanel({
                             disciplineId={entry.definition.id}
                             className={styles.cardSigil}
                           />
-                          <span>
+                          <span className={styles.cardCopy}>
                             <strong>{entry.definition.name}</strong>
-                            <small>{focusLabel(entry.definition.id)}</small>
+                            <FocusBadges disciplineId={entry.definition.id} />
                           </span>
                         </button>
                       )
@@ -469,7 +532,7 @@ export function CharacterDisciplineBuildPanel({
                       }
                       disabled={pendingPreview || pendingCommit || remaining.primary > 0}
                     >
-                      {primaryOptions.map((entry) => (
+                      {visiblePrimaryOptions.map((entry) => (
                         <option
                           key={`${entry.definition.id}:${entry.definition.definitionVersion}`}
                           value={entry.definition.id}
@@ -495,11 +558,10 @@ export function CharacterDisciplineBuildPanel({
                       disabled={pendingPreview || pendingCommit || remaining.secondary > 0}
                     >
                       <option value="">None — pure build</option>
-                      {secondaryOptions.map((entry) => (
+                      {visibleSecondaryOptions.map((entry) => (
                         <option
                           key={`${entry.definition.id}:${entry.definition.definitionVersion}`}
                           value={entry.definition.id}
-                          disabled={entry.definition.id === selectedPrimaryId}
                         >
                           {entry.definition.name}
                         </option>
@@ -510,9 +572,11 @@ export function CharacterDisciplineBuildPanel({
                         ? `Secondary locked: ${formatDuration(remaining.secondary)} remaining`
                         : `Secondary ready · next change locks for ${policyDuration(attunement.policy.secondaryCooldownSeconds)}`}
                     </small>
-                    {availableSecondaries.length === 0 && !currentSecondary ? (
-                      <small>No mastered Secondary Disciplines are available yet.</small>
-                    ) : null}
+                    {visibleSecondaryOptions.length === 0 && !currentSecondary ? (
+                      <small>No active Secondary Disciplines are available.</small>
+                    ) : (
+                      <small>The selected Primary is hidden from Secondary choices.</small>
+                    )}
                   </label>
                 </div>
 
@@ -536,39 +600,67 @@ export function CharacterDisciplineBuildPanel({
                               ? ` + ${preview.proposedSecondary.name}`
                               : ' · Pure'}
                           </strong>
+                          <FocusBadges disciplineId={preview.proposed.definition.id} />
                         </div>
                       </div>
                       <small>Build v{buildVersion}</small>
                     </div>
-                    <p>{preview.proposed.definition.summary}</p>
-                    {preview.proposedSecondary ? <p>{preview.proposedSecondary.summary}</p> : null}
 
-                    <div className={styles.deltas}>
-                      {deltas.length > 0 ? (
-                        deltas.map((entry) => {
-                          const delta = entry.proposed - entry.current
-                          return (
-                            <div key={entry.id}>
+                    <div className={styles.statComparisonGrid}>
+                      <section className={styles.statComparison}>
+                        <div className={styles.statComparisonHeading}>
+                          <span>Core stats</span>
+                          <small>Personal allocation is preserved</small>
+                        </div>
+                        <div className={styles.statRows}>
+                          {coreDeltas.map((entry) => (
+                            <div
+                              className={styles.statDelta}
+                              data-direction={entry.direction}
+                              key={entry.id}
+                            >
                               <span>{entry.label}</span>
                               <strong>
-                                {entry.current} → {entry.proposed}{' '}
-                                <em>{delta > 0 ? `+${delta}` : delta}</em>
+                                {entry.current} <small>→</small> {entry.proposed}
                               </strong>
                             </div>
-                          )
-                        })
-                      ) : (
-                        <p>
-                          No Primary base-stat change. Secondary contributes no second base-stat
-                          profile.
-                        </p>
-                      )}
+                          ))}
+                        </div>
+                      </section>
+
+                      <section className={styles.statComparison}>
+                        <div className={styles.statComparisonHeading}>
+                          <span>Adventure stats</span>
+                          <small>Primary profile comparison</small>
+                        </div>
+                        <div className={styles.statRows}>
+                          {adventureDeltas.map((entry) => (
+                            <div
+                              className={styles.statDelta}
+                              data-direction={entry.direction}
+                              key={entry.id}
+                            >
+                              <span>{entry.label}</span>
+                              <strong>
+                                {formatDerivedValue(entry.current, entry.unit)} <small>→</small>{' '}
+                                {formatDerivedValue(entry.proposed, entry.unit)}
+                              </strong>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    </div>
+
+                    <div className={styles.legend} aria-label="Stat preview legend">
+                      <span data-direction="increase">Increase</span>
+                      <span data-direction="decrease">Decrease</span>
+                      <span data-direction="neutral">Unchanged</span>
                     </div>
 
                     <p className={styles.attributeNote}>
-                      Your assigned Might, Finesse, Vitality, Agility, Intellect, and Resolve are
-                      preserved exactly. Only the Primary supplies the active Discipline base
-                      profile.
+                      Primary changes never rewrite your assigned Might, Finesse, Vitality, Agility,
+                      Intellect, or Resolve. If the proposed Primary makes that allocation illegal,
+                      the server will require redistribution before the swap can be committed.
                     </p>
 
                     <div className={styles.commitment}>
