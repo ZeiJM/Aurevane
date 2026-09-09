@@ -9,10 +9,8 @@ import {
   type CharacterAttributeId,
   type CharacterAttributes,
 } from '@aurevane/game-core/character/creation'
-import type {
-  DerivedStatUnit,
-  PrimaryDisciplinePreview,
-} from '@aurevane/game-core/character/discipline-build'
+import type { PrimaryDisciplinePreview } from '@aurevane/game-core/character/discipline-build'
+import type { DerivedStatUnit } from '@aurevane/game-core/character/derived-stats'
 import type { Route } from 'next'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
@@ -132,12 +130,14 @@ function formatDerivedValue(value: number, unit: DerivedStatUnit): string {
 }
 
 function FocusBadges({ disciplineId }: { disciplineId: string }) {
-  const policy = foundationDisciplineAttributePolicy(disciplineId)
-  if (!policy) return <span className={styles.identityBadge}>Authored identity</span>
+  const attributes = focusAttributes(disciplineId)
+  if (attributes.length === 0) {
+    return <span className={styles.identityBadge}>Authored identity</span>
+  }
 
   return (
     <div className={styles.focusBadges} aria-label="Discipline focus attributes">
-      {policy.focusAttributes.map((attributeId) => (
+      {attributes.map((attributeId) => (
         <span className={styles.focusBadge} key={attributeId}>
           {CHARACTER_ATTRIBUTE_LABELS[attributeId]}
         </span>
