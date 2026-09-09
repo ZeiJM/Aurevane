@@ -262,7 +262,9 @@ async function chooseReachableTowardRecruit(
       return match ? { x: Number(match[1]), y: Number(match[2]) } : null
     }
     const board = tiles[0]?.closest('[data-board-auto-fit]')
-    const recruit = board?.querySelector<HTMLButtonElement>('button[aria-label*="occupied by Recruit"]')
+    const recruit = board?.querySelector<HTMLButtonElement>(
+      'button[aria-label*="occupied by Recruit"]',
+    )
     const recruitPosition = parse(recruit?.getAttribute('aria-label') ?? null)
     if (!recruitPosition) return null
 
@@ -278,9 +280,8 @@ async function chooseReachableTowardRecruit(
           open: element.dataset.terrain === 'open',
         }
       })
-      .filter(
-        (candidate): candidate is { label: string; distance: number; open: boolean } =>
-          Boolean(candidate?.label),
+      .filter((candidate): candidate is { label: string; distance: number; open: boolean } =>
+        Boolean(candidate?.label),
       )
       .filter((candidate) => !requireAdjacent || candidate.distance === 1)
       .sort(
