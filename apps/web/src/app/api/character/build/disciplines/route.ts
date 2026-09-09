@@ -45,10 +45,7 @@ function readSelection(body: Record<string, unknown>): BuildSelectionInput {
     input.primaryDisciplineId = body.primaryDisciplineId
   }
   if (Object.prototype.hasOwnProperty.call(body, 'secondaryDisciplineId')) {
-    if (
-      body.secondaryDisciplineId !== null &&
-      typeof body.secondaryDisciplineId !== 'string'
-    ) {
+    if (body.secondaryDisciplineId !== null && typeof body.secondaryDisciplineId !== 'string') {
       throw new AurevaneError('INVALID_REQUEST', 'The Secondary Discipline selection is invalid.')
     }
     input.secondaryDisciplineId = body.secondaryDisciplineId as string | null
