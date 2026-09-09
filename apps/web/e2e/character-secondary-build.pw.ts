@@ -86,7 +86,7 @@ test('Profile equips a mastered Secondary with an independent attunement lock', 
   await expect(preview).toBeVisible()
   await expect(preview).toContainText('Vanguard + Aetherist')
   await expect(preview).toContainText('Build v1')
-  await expect(preview).toContainText('Secondary contributes no second base-stat profile')
+  await expect(preview).toContainText('Primary profile comparison')
   await expect(preview).toContainText('Previewing starts no timer')
   await expect(page.getByTestId('secondary-attunement-status')).toContainText('Secondary ready')
 
