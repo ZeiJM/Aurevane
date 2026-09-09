@@ -2,7 +2,7 @@
 
 **Status:** Owner-approved authoritative addendum to `docs/GAME_MASTER_PLAN.md`.
 
-**Direction approved:** 2026-09-06.
+**Direction approved:** 2026-09-06. **Foundation non-focus cap policy approved:** 2026-09-08.
 
 This addendum supersedes conflicting earlier wording about the current Level cap, per-Level core-attribute growth, attribute redistribution, Discipline-specific attribute ceilings, and the global Critical Chance / Evasion / Movement / Jump limits.
 
@@ -42,33 +42,33 @@ Production reset allowance:
 Primary Discipline may define:
 
 - focus attributes;
-- optional ceilings on off-identity attributes;
+- ceilings on off-identity attributes;
 - optional bounded secondary-stat constraints where specifically authored.
 
 The intent is **not** to make characters of the same Discipline converge on identical stat lines.
 
 A Discipline's focus attributes are the axes it is expected to specialize in and **must not receive restrictive Discipline attribute caps**. Players may distribute heavily or lightly among those focus attributes according to their build goals.
 
-Off-identity ceilings exist only where necessary to preserve class identity and balance. An omitted ceiling means the attribute is uncapped by that Discipline policy.
+For the current six Foundation Disciplines, every non-focus core attribute has an owner-approved **maximum value of 30 while that Discipline is Primary**. Focus attributes remain uncapped by Discipline identity. This ceiling is deliberately permissive enough for serious hybrid investment while preventing an extreme off-role allocation from functionally replacing the selected Primary Discipline.
 
-Example principle: an offensive mage may have bounded physical/off-role attributes while Intellect and other authored magical focus attributes remain open to player specialization.
+Global derived-stat ceilings remain independently authoritative. Reaching a Discipline attribute ceiling does not bypass Critical Chance, Evasion, Movement, Jump, Accuracy, Status Resistance, or any other authored derived-stat limit.
 
-Current Foundation numeric off-identity ceilings are intentionally not invented by this addendum. They must be explicitly balance-authored and owner-approved before activation.
+Future Disciplines may define exceptional off-identity policies only when their mechanics justify doing so. An omitted ceiling in a future policy means that attribute is uncapped by that specific Discipline policy.
 
-### 4.1 Foundation starting identities
+### 4.1 Foundation starting identities and active ceilings
 
 Choosing a Foundation Discipline at character creation preloads a **recommended starting spread** for the existing six-point creation bonus budget. This makes the Discipline's intended identity immediately visible without locking the player into a template.
 
-Current recommended spreads:
+Current Foundation policies:
 
-- **Vanguard** — Focus: Might and Vitality. Starting bonus spread: **+3 Might, +3 Vitality**.
-- **Farstrider** — Focus: Finesse and Agility. Starting bonus spread: **+4 Finesse, +2 Agility**.
-- **Shadehand** — Focus: Finesse and Agility. Starting bonus spread: **+2 Finesse, +4 Agility**.
-- **Ironfist** — Focus: Might and Agility. Starting bonus spread: **+4 Might, +2 Agility**.
-- **Aetherist** — Focus: Intellect and Resolve. Starting bonus spread: **+4 Intellect, +2 Resolve**.
-- **Lifebinder** — Focus: Intellect and Resolve. Starting bonus spread: **+2 Intellect, +4 Resolve**.
+- **Vanguard** — Focus: Might and Vitality. Starting bonus spread: **+3 Might, +3 Vitality**. Non-focus cap **30** on Finesse, Agility, Intellect, and Resolve.
+- **Farstrider** — Focus: Finesse and Agility. Starting bonus spread: **+4 Finesse, +2 Agility**. Non-focus cap **30** on Might, Vitality, Intellect, and Resolve.
+- **Shadehand** — Focus: Finesse and Agility. Starting bonus spread: **+2 Finesse, +4 Agility**. Non-focus cap **30** on Might, Vitality, Intellect, and Resolve.
+- **Ironfist** — Focus: Might and Agility. Starting bonus spread: **+4 Might, +2 Agility**. Non-focus cap **30** on Finesse, Vitality, Intellect, and Resolve.
+- **Aetherist** — Focus: Intellect and Resolve. Starting bonus spread: **+4 Intellect, +2 Resolve**. Non-focus cap **30** on Might, Finesse, Vitality, and Agility.
+- **Lifebinder** — Focus: Intellect and Resolve. Starting bonus spread: **+2 Intellect, +4 Resolve**. Non-focus cap **30** on Might, Finesse, Vitality, and Agility.
 
-These spreads are **defaults, not caps**. Before creating the character, the player may redistribute the full six-point starting bonus budget however they wish under the active legal rules. Later full attribute resets likewise include these starting points.
+These starting spreads are **defaults, not caps**. Before creating the character, the player may redistribute the full six-point starting bonus budget however they wish under the active legal rules. Later full attribute resets likewise include these starting points.
 
 Future Foundation or advanced Disciplines must define focus metadata and an intentional starting identity where applicable instead of inheriting a generic stat template by accident.
 
@@ -87,6 +87,8 @@ Secondary Discipline does not provide a second core-attribute cap profile unless
 ## 6. Discipline selection readability
 
 Before committing a Primary Discipline, the player-facing selection/preview experience should expose that Discipline's focus attributes and any active off-identity ceilings so the build consequences are understandable before commitment.
+
+The Profile attribute allocator must also surface the active Primary's off-identity ceilings and prevent the local draft controls from intentionally stepping beyond them. This client behavior is explanatory and preventative only; the server remains authoritative and must independently validate every committed allocation.
 
 The policy model must remain reusable for future Disciplines rather than hard-coding one-off validation into individual UI screens.
 
@@ -112,6 +114,6 @@ The implementation sequence for this system is:
 2. **Authoritative allocation persistence** — Level-derived point budget, ordinary point spending, full-pool resets, idempotency, audit history, and five-use 30-day reset-window enforcement.
 3. **Profile and creation experience** — available-point allocation, full Reset Attributes workflow, reset count/renewal visibility, Primary focus-stat presentation, and editable Foundation starting-identity presets.
 4. **Primary swap compatibility** — proposed Primary changes validate the current allocation first; illegal allocations must be redistributed and are never silently clamped.
-5. **Discipline balance authoring** — numeric off-identity attribute ceilings and any Discipline-specific derived-stat ceilings are added only after explicit balance review and owner approval.
+5. **Foundation off-identity balance policy** — current Foundation focus attributes remain uncapped by Discipline identity and all four non-focus attributes use the approved **30-point ceiling**.
 
-Items 1–4 are the implementation target for the current progression pass. Item 5 remains a balance-authoring task so current and future Disciplines can receive deliberate ceilings without turning focus attributes into hard templates.
+Items 1–5 are now the approved target for the current progression pass. Future Discipline-specific derived-stat ceilings or exceptional attribute policies remain separate balance-authoring tasks and must be explicitly reviewed rather than inferred from the Foundation rule.
