@@ -10,6 +10,7 @@ export const ATTRIBUTE_POINTS_PER_LEVEL = 1 as const
 export const ATTRIBUTE_RESET_LIMIT_PER_WINDOW = 5 as const
 export const ATTRIBUTE_RESET_WINDOW_DAYS = 30 as const
 export const MINIMUM_CHARACTER_ATTRIBUTE = 1 as const
+export const FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP = 30 as const
 export const STARTING_ATTRIBUTE_POINT_POOL =
   CHARACTER_CREATION_RULES_V1.attributes.baseline * CHARACTER_ATTRIBUTE_IDS.length +
   CHARACTER_CREATION_RULES_V1.attributes.bonusBudget
@@ -36,45 +37,77 @@ export interface DisciplineAttributePolicy {
 }
 
 /**
- * Initial Foundation identity metadata. Numeric off-identity ceilings remain deliberately unset until
- * their balance values are owner-approved; the validator is already able to enforce them once authored.
+ * Foundation identity policy v2. Focus attributes remain uncapped for build diversity. Every other core
+ * attribute uses the owner-approved 30-point off-identity ceiling, which is permissive enough for hybrid
+ * builds while preventing a Primary Discipline from being functionally replaced by an extreme off-role
+ * single-stat allocation. Global derived-stat ceilings remain authoritative and apply after attributes.
  */
 export const FOUNDATION_DISCIPLINE_ATTRIBUTE_POLICIES = [
   {
     disciplineId: 'vanguard',
-    policyVersion: 1,
+    policyVersion: 2,
     focusAttributes: ['might', 'vitality'],
-    attributeCaps: {},
+    attributeCaps: {
+      finesse: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+      agility: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+      intellect: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+      resolve: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+    },
   },
   {
     disciplineId: 'farstrider',
-    policyVersion: 1,
+    policyVersion: 2,
     focusAttributes: ['finesse', 'agility'],
-    attributeCaps: {},
+    attributeCaps: {
+      might: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+      vitality: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+      intellect: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+      resolve: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+    },
   },
   {
     disciplineId: 'shadehand',
-    policyVersion: 1,
+    policyVersion: 2,
     focusAttributes: ['finesse', 'agility'],
-    attributeCaps: {},
+    attributeCaps: {
+      might: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+      vitality: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+      intellect: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+      resolve: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+    },
   },
   {
     disciplineId: 'ironfist',
-    policyVersion: 1,
+    policyVersion: 2,
     focusAttributes: ['might', 'agility'],
-    attributeCaps: {},
+    attributeCaps: {
+      finesse: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+      vitality: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+      intellect: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+      resolve: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+    },
   },
   {
     disciplineId: 'aetherist',
-    policyVersion: 1,
+    policyVersion: 2,
     focusAttributes: ['intellect', 'resolve'],
-    attributeCaps: {},
+    attributeCaps: {
+      might: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+      finesse: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+      vitality: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+      agility: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+    },
   },
   {
     disciplineId: 'lifebinder',
-    policyVersion: 1,
+    policyVersion: 2,
     focusAttributes: ['intellect', 'resolve'],
-    attributeCaps: {},
+    attributeCaps: {
+      might: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+      finesse: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+      vitality: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+      agility: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+    },
   },
 ] as const satisfies readonly DisciplineAttributePolicy[]
 

@@ -27,6 +27,7 @@ interface AttributeAllocationState {
 interface CharacterAttributeAllocationPanelProps {
   initialAllocation: AttributeAllocationState
   focusAttributes: readonly CharacterAttributeId[]
+  attributeCaps: Readonly<Partial<Record<CharacterAttributeId, number>>>
 }
 
 type SaveState = 'idle' | 'saving'
@@ -34,6 +35,7 @@ type SaveState = 'idle' | 'saving'
 export function CharacterAttributeAllocationPanel({
   initialAllocation,
   focusAttributes,
+  attributeCaps,
 }: CharacterAttributeAllocationPanelProps) {
   const router = useRouter()
   const [allocation, setAllocation] = useState(initialAllocation)
@@ -57,7 +59,9 @@ export function CharacterAttributeAllocationPanel({
     setMessage(null)
     setDraft((current) => {
       const nextValue = current[attributeId] + delta
+      const attributeCap = attributeCaps[attributeId]
       if (nextValue < 1) return current
+      if (delta > 0 && attributeCap !== undefined && nextValue > attributeCap) return current
       if (delta > 0 && spent(current) >= allocation.pointPool) return current
       if (!resetMode && delta < 0) return current
       return { ...current, [attributeId]: nextValue }
@@ -128,13 +132,20 @@ export function CharacterAttributeAllocationPanel({
       <div className={styles.grid}>
         {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => {
           const isFocus = focusAttributes.includes(attributeId)
+          const attributeCap = attributeCaps[attributeId]
           const canDecrease = resetMode && draft[attributeId] > 1
-          const canIncrease = spentDraft < allocation.pointPool
+          const canIncrease =
+            spentDraft < allocation.pointPool &&
+            (attributeCap === undefined || draft[attributeId] < attributeCap)
           return (
             <div className={styles.attribute} key={attributeId}>
               <div>
                 <span>{CHARACTER_ATTRIBUTE_LABELS[attributeId]}</span>
-                {isFocus ? <small>Primary focus</small> : null}
+                {isFocus ? (
+                  <small>Primary focus</small>
+                ) : attributeCap !== undefined ? (
+                  <small>Primary cap {attributeCap}</small>
+                ) : null}
               </div>
               <div className={styles.controls}>
                 {resetMode ? (
