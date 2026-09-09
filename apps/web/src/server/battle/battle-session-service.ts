@@ -58,7 +58,7 @@ import {
 
 const PV1F_RULES_VERSION = 2
 const PV1F_CONTENT_VERSION = 2
-const PV1F_BASE_MOVEMENT_UNITS = 10
+const PV1F_RECRUIT_MOVEMENT_UNITS = 10
 
 export type BattleAuthoritativeEncounterState = StatDrivenCombatEncounterState & {
   buildAuthority?: BattleBuildAuthoritySnapshot
@@ -203,7 +203,7 @@ function createVerticalSliceEncounter(
           id: playerCombatantId,
           teamId: 'players',
           initiative: derived.stats.initiative.value,
-          baseMovementBudget: PV1F_BASE_MOVEMENT_UNITS,
+          baseMovementBudget: derived.stats.movement.value,
           hp: derived.stats.maxHp.value,
           maxHp: derived.stats.maxHp.value,
           mp: derived.stats.maxMp.value,
@@ -214,7 +214,7 @@ function createVerticalSliceEncounter(
           id: recruitCombatantId,
           teamId: 'opponents',
           initiative: 5,
-          baseMovementBudget: PV1F_BASE_MOVEMENT_UNITS,
+          baseMovementBudget: PV1F_RECRUIT_MOVEMENT_UNITS,
           hp: 80,
           maxHp: 80,
           mp: 25,
