@@ -31,7 +31,7 @@ async function recordMastery(characterId: string, disciplineId: string): Promise
   if (masteryError) throw masteryError
 }
 
-test('Profile equips a mastered Secondary with an independent attunement lock', async ({
+test('Profile equips a mastered Secondary with independent attunement authority', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -96,9 +96,9 @@ test('Profile equips a mastered Secondary with an independent attunement lock', 
   )
   await expect(panel).toContainText('Vanguard + Aetherist')
   await expect(maxHp).toHaveText(maxHpBeforeSecondary)
-  await expect(secondary).toBeDisabled()
+  await expect(secondary).toBeEnabled()
   await expect(primary).toBeEnabled()
-  await expect(page.getByTestId('secondary-attunement-status')).toContainText('Secondary locked')
+  await expect(page.getByTestId('secondary-attunement-status')).toContainText('Secondary ready')
   await expect(page.getByTestId('primary-attunement-status')).toContainText('Primary ready')
 
   await primary.selectOption('lifebinder')
@@ -110,10 +110,10 @@ test('Profile equips a mastered Secondary with an independent attunement lock', 
     'Lifebinder is now the committed Primary Discipline.',
   )
   await expect(panel).toContainText('Lifebinder + Aetherist')
-  await expect(primary).toBeDisabled()
-  await expect(secondary).toBeDisabled()
-  await expect(page.getByTestId('primary-attunement-status')).toContainText('Primary locked')
-  await expect(page.getByTestId('secondary-attunement-status')).toContainText('Secondary locked')
+  await expect(primary).toBeEnabled()
+  await expect(secondary).toBeEnabled()
+  await expect(page.getByTestId('primary-attunement-status')).toContainText('Primary ready')
+  await expect(page.getByTestId('secondary-attunement-status')).toContainText('Secondary ready')
   await expect(panel.getByRole('button')).toHaveAccessibleName(/Build v3/)
 
   await page.reload()
@@ -122,6 +122,6 @@ test('Profile equips a mastered Secondary with an independent attunement lock', 
   await expect(dialog).toContainText('Lifebinder')
   await expect(dialog).toContainText('Committed Secondary')
   await expect(dialog).toContainText('Aetherist')
-  await expect(primary).toBeDisabled()
-  await expect(secondary).toBeDisabled()
+  await expect(primary).toBeEnabled()
+  await expect(secondary).toBeEnabled()
 })
