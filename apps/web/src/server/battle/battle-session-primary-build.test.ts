@@ -116,6 +116,7 @@ describe('battle session committed Primary stat authority', () => {
     }
 
     let createInput: CreateBattleSessionInput | null = null
+    const readCreateInput = (): CreateBattleSessionInput | null => createInput
     const battles: BattleSessionRepository = {
       createBattleSession: vi.fn(async (input) => {
         createInput = input
@@ -159,8 +160,9 @@ describe('battle session committed Primary stat authority', () => {
       idempotencyKey: '44444444-4444-4444-8444-444444444444',
     })
 
-    if (!createInput) throw new Error('Expected a persisted battle snapshot.')
-    const state = createInput.initialSnapshot as StatDrivenCombatEncounterState
+    const persistedInput = readCreateInput()
+    if (!persistedInput) throw new Error('Expected a persisted battle snapshot.')
+    const state = persistedInput.initialSnapshot as StatDrivenCombatEncounterState
     const player = state.tactical.battle.combatants.find(
       (combatant) => combatant.id === `character:${CHARACTER_ID}`,
     )
