@@ -157,9 +157,7 @@ export function CharacterProfileShell({
     disciplineBuild.current.definition,
     disciplineBuild.currentSecondary,
   )
-  const attributePolicy = foundationDisciplineAttributePolicy(
-    disciplineBuild.current.definition.id,
-  )
+  const attributePolicy = foundationDisciplineAttributePolicy(disciplineBuild.current.definition.id)
   const focusAttributes: readonly CharacterAttributeId[] = attributePolicy?.focusAttributes ?? []
 
   return (
