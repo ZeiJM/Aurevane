@@ -6,7 +6,9 @@
   background: color-mix(in srgb, currentColor 3%, transparent);
 }
 
+.summaryHeader,
 .header,
+.summaryActions,
 .actions,
 .attribute,
 .controls {
@@ -14,17 +16,22 @@
   align-items: center;
 }
 
+.summaryHeader,
 .header {
   justify-content: space-between;
   gap: 1rem;
-  margin-bottom: 0.9rem;
 }
 
+.summaryHeader h2,
 .header h2 {
   margin: 0;
+}
+
+.summaryHeader h2 {
   font-size: 1rem;
 }
 
+.summaryHeader p,
 .header p,
 .resetSummary span,
 .notice,
@@ -45,6 +52,91 @@
   font-size: 0.82rem;
 }
 
+.summaryActions,
+.actions {
+  justify-content: flex-end;
+  gap: 0.55rem;
+}
+
+.summaryActions {
+  margin-top: 0.85rem;
+}
+
+.summaryActions button,
+.actions button,
+.close,
+.controls button {
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 0.55rem;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  color: inherit;
+  cursor: pointer;
+}
+
+.summaryActions button,
+.actions button,
+.close {
+  padding: 0.55rem 0.8rem;
+  font-weight: 700;
+}
+
+.secondary,
+.close {
+  background: transparent !important;
+}
+
+.summaryActions button:disabled,
+.actions button:disabled,
+.close:disabled,
+.controls button:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10020;
+  display: grid;
+  place-items: center;
+  padding: clamp(1rem, 4vw, 2.5rem);
+  background: rgba(2, 4, 8, 0.78);
+  backdrop-filter: blur(8px);
+}
+
+.dialog {
+  width: min(46rem, 100%);
+  max-height: min(46rem, calc(100dvh - 2rem));
+  overflow: auto;
+  padding: clamp(1rem, 2.5vw, 1.4rem);
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 1rem;
+  background: color-mix(in srgb, #080c12 96%, currentColor 4%);
+  box-shadow: 0 1.4rem 4rem rgba(0, 0, 0, 0.48);
+}
+
+.header {
+  align-items: flex-start;
+  margin-bottom: 1rem;
+}
+
+.header > div:first-child {
+  display: grid;
+  gap: 0.22rem;
+}
+
+.header > div:first-child > span {
+  opacity: 0.62;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.header h2 {
+  font-size: clamp(1.25rem, 3vw, 1.7rem);
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -54,9 +146,10 @@
 .attribute {
   justify-content: space-between;
   gap: 0.75rem;
-  padding: 0.65rem 0.7rem;
+  padding: 0.75rem;
   border: 1px solid color-mix(in srgb, currentColor 10%, transparent);
   border-radius: 0.65rem;
+  background: color-mix(in srgb, currentColor 2%, transparent);
 }
 
 .attribute > div:first-child {
@@ -82,15 +175,6 @@
   text-align: center;
 }
 
-.controls button,
-.actions button {
-  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
-  border-radius: 0.55rem;
-  background: color-mix(in srgb, currentColor 8%, transparent);
-  color: inherit;
-  cursor: pointer;
-}
-
 .controls button {
   width: 1.85rem;
   height: 1.85rem;
@@ -98,24 +182,7 @@
 }
 
 .actions {
-  justify-content: flex-end;
-  gap: 0.55rem;
-  margin-top: 0.85rem;
-}
-
-.actions button {
-  padding: 0.55rem 0.8rem;
-  font-weight: 700;
-}
-
-.actions .secondary {
-  background: transparent;
-}
-
-.controls button:disabled,
-.actions button:disabled {
-  cursor: not-allowed;
-  opacity: 0.4;
+  margin-top: 0.9rem;
 }
 
 .notice,
@@ -125,6 +192,7 @@
 }
 
 @media (max-width: 640px) {
+  .summaryHeader,
   .header {
     align-items: flex-start;
     flex-direction: column;
@@ -133,6 +201,27 @@
   .resetSummary {
     justify-items: start;
     text-align: left;
+  }
+
+  .summaryActions,
+  .actions {
+    justify-content: stretch;
+  }
+
+  .summaryActions button,
+  .actions button {
+    flex: 1;
+  }
+
+  .backdrop {
+    place-items: end center;
+    padding: 0;
+  }
+
+  .dialog {
+    width: 100%;
+    max-height: 88dvh;
+    border-radius: 1rem 1rem 0 0;
   }
 
   .grid {
