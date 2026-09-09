@@ -7,7 +7,7 @@ import {
 } from '@aurevane/game-core/character/creation'
 import { CHARACTER_ATTRIBUTE_LABELS } from '@aurevane/game-core/character/attribute-allocation'
 import { useRouter } from 'next/navigation'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 import styles from './character-attribute-allocation-panel.module.css'
 
@@ -40,6 +40,7 @@ export function CharacterAttributeAllocationPanel({
   const router = useRouter()
   const [allocation, setAllocation] = useState(initialAllocation)
   const [draft, setDraft] = useState<CharacterAttributes>(initialAllocation.attributes)
+  const [open, setOpen] = useState(false)
   const [resetMode, setResetMode] = useState(false)
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [message, setMessage] = useState<string | null>(null)
@@ -55,6 +56,20 @@ export function CharacterAttributeAllocationPanel({
   const canSaveReset =
     resetMode && hasChanges && availableDraft === 0 && allocation.resetRemaining > 0
 
+  useEffect(() => {
+    if (!open) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && saveState !== 'saving') closeManager()
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [open, saveState])
+
   function changeAttribute(attributeId: CharacterAttributeId, delta: number) {
     setMessage(null)
     setDraft((current) => {
@@ -68,16 +83,32 @@ export function CharacterAttributeAllocationPanel({
     })
   }
 
+  function openManager() {
+    setMessage(null)
+    setDraft(allocation.attributes)
+    setResetMode(false)
+    setOpen(true)
+  }
+
   function beginReset() {
+    if (allocation.resetRemaining <= 0) return
     setMessage(null)
     setDraft(allocation.attributes)
     setResetMode(true)
+    setOpen(true)
   }
 
   function cancelReset() {
     setMessage(null)
     setDraft(allocation.attributes)
     setResetMode(false)
+  }
+
+  function closeManager() {
+    if (saveState === 'saving') return
+    setDraft(allocation.attributes)
+    setResetMode(false)
+    setOpen(false)
   }
 
   async function save() {
@@ -102,6 +133,7 @@ export function CharacterAttributeAllocationPanel({
       setAllocation(body.allocation)
       setDraft(body.allocation.attributes)
       setResetMode(false)
+      setOpen(false)
       setMessage(mode === 'reset' ? 'Attributes reset successfully.' : 'Attribute points assigned.')
       router.refresh()
     } catch (error) {
@@ -115,12 +147,12 @@ export function CharacterAttributeAllocationPanel({
 
   return (
     <section className={styles.panel} aria-labelledby="attribute-allocation-title">
-      <header className={styles.header}>
+      <header className={styles.summaryHeader}>
         <div>
           <h2 id="attribute-allocation-title">Attribute Points</h2>
           <p>
-            Level {allocation.level} · {availableDraft} point{availableDraft === 1 ? '' : 's'}{' '}
-            available
+            Level {allocation.level} · {allocation.unspentPoints} point
+            {allocation.unspentPoints === 1 ? '' : 's'} available
           </p>
         </div>
         <div className={styles.resetSummary}>
@@ -129,89 +161,156 @@ export function CharacterAttributeAllocationPanel({
         </div>
       </header>
 
-      <div className={styles.grid}>
-        {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => {
-          const isFocus = focusAttributes.includes(attributeId)
-          const attributeCap = attributeCaps[attributeId]
-          const canDecrease = resetMode && draft[attributeId] > 1
-          const canIncrease =
-            spentDraft < allocation.pointPool &&
-            (attributeCap === undefined || draft[attributeId] < attributeCap)
-          return (
-            <div className={styles.attribute} key={attributeId}>
+      <div className={styles.summaryActions}>
+        <button type="button" className={styles.secondary} onClick={openManager}>
+          Manage Attributes
+        </button>
+        <button
+          type="button"
+          onClick={beginReset}
+          disabled={allocation.resetRemaining <= 0 || saveState === 'saving'}
+        >
+          Reset Attributes
+        </button>
+      </div>
+
+      {message ? <p className={styles.message}>{message}</p> : null}
+
+      {open ? (
+        <div
+          className={styles.backdrop}
+          role="presentation"
+          onPointerDown={() => closeManager()}
+          data-testid="attribute-allocation-backdrop"
+        >
+          <section
+            className={styles.dialog}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="attribute-allocation-dialog-title"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <header className={styles.header}>
               <div>
-                <span>{CHARACTER_ATTRIBUTE_LABELS[attributeId]}</span>
-                {isFocus ? (
-                  <small>Primary focus</small>
-                ) : attributeCap !== undefined ? (
-                  <small>Primary cap {attributeCap}</small>
-                ) : null}
+                <span>{resetMode ? 'Full redistribution' : 'Character progression'}</span>
+                <h2 id="attribute-allocation-dialog-title">
+                  {resetMode ? 'Reset Attributes' : 'Manage Attributes'}
+                </h2>
+                <p>
+                  Level {allocation.level} · {availableDraft} point
+                  {availableDraft === 1 ? '' : 's'} available
+                </p>
               </div>
-              <div className={styles.controls}>
-                {resetMode ? (
+              <button
+                type="button"
+                className={styles.close}
+                onClick={closeManager}
+                disabled={saveState === 'saving'}
+              >
+                Close
+              </button>
+            </header>
+
+            <div className={styles.grid}>
+              {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => {
+                const isFocus = focusAttributes.includes(attributeId)
+                const attributeCap = attributeCaps[attributeId]
+                const canDecrease = resetMode && draft[attributeId] > 1
+                const canIncrease =
+                  spentDraft < allocation.pointPool &&
+                  (attributeCap === undefined || draft[attributeId] < attributeCap)
+                return (
+                  <div className={styles.attribute} key={attributeId}>
+                    <div>
+                      <span>{CHARACTER_ATTRIBUTE_LABELS[attributeId]}</span>
+                      {isFocus ? (
+                        <small>Primary focus</small>
+                      ) : attributeCap !== undefined ? (
+                        <small>Primary cap {attributeCap}</small>
+                      ) : null}
+                    </div>
+                    <div className={styles.controls}>
+                      {resetMode ? (
+                        <button
+                          type="button"
+                          onClick={() => changeAttribute(attributeId, -1)}
+                          disabled={!canDecrease || saveState === 'saving'}
+                          aria-label={`Decrease ${CHARACTER_ATTRIBUTE_LABELS[attributeId]}`}
+                        >
+                          −
+                        </button>
+                      ) : null}
+                      <strong>{draft[attributeId]}</strong>
+                      <button
+                        type="button"
+                        onClick={() => changeAttribute(attributeId, 1)}
+                        disabled={!canIncrease || saveState === 'saving'}
+                        aria-label={`Increase ${CHARACTER_ATTRIBUTE_LABELS[attributeId]}`}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            {resetMode ? (
+              <p className={styles.notice}>
+                Reset mode unlocks the full pool, including starting attributes. Redistribute all{' '}
+                {allocation.pointPool} points before confirming. This uses 1 reset.
+              </p>
+            ) : (
+              <p className={styles.notice}>
+                New Level points can be assigned here. Existing points stay locked unless you use a
+                full Attribute Reset.
+              </p>
+            )}
+
+            {message ? <p className={styles.message}>{message}</p> : null}
+
+            <div className={styles.actions}>
+              {resetMode ? (
+                <>
                   <button
                     type="button"
-                    onClick={() => changeAttribute(attributeId, -1)}
-                    disabled={!canDecrease || saveState === 'saving'}
-                    aria-label={`Decrease ${CHARACTER_ATTRIBUTE_LABELS[attributeId]}`}
+                    className={styles.secondary}
+                    onClick={cancelReset}
+                    disabled={saveState === 'saving'}
                   >
-                    −
+                    Back to Point Spend
                   </button>
-                ) : null}
-                <strong>{draft[attributeId]}</strong>
-                <button
-                  type="button"
-                  onClick={() => changeAttribute(attributeId, 1)}
-                  disabled={!canIncrease || saveState === 'saving'}
-                  aria-label={`Increase ${CHARACTER_ATTRIBUTE_LABELS[attributeId]}`}
-                >
-                  +
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    onClick={save}
+                    disabled={!canSaveReset || saveState === 'saving'}
+                  >
+                    {saveState === 'saving' ? 'Saving…' : 'Confirm Reset'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className={styles.secondary}
+                    onClick={beginReset}
+                    disabled={allocation.resetRemaining <= 0 || saveState === 'saving'}
+                  >
+                    Reset Attributes
+                  </button>
+                  <button
+                    type="button"
+                    onClick={save}
+                    disabled={!canSaveSpend || saveState === 'saving'}
+                  >
+                    {saveState === 'saving' ? 'Saving…' : 'Assign Points'}
+                  </button>
+                </>
+              )}
             </div>
-          )
-        })}
-      </div>
-
-      <div className={styles.actions}>
-        {resetMode ? (
-          <>
-            <button
-              type="button"
-              className={styles.secondary}
-              onClick={cancelReset}
-              disabled={saveState === 'saving'}
-            >
-              Cancel Reset
-            </button>
-            <button type="button" onClick={save} disabled={!canSaveReset || saveState === 'saving'}>
-              {saveState === 'saving' ? 'Saving…' : 'Confirm Reset'}
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              type="button"
-              className={styles.secondary}
-              onClick={beginReset}
-              disabled={allocation.resetRemaining <= 0 || saveState === 'saving'}
-            >
-              Reset Attributes
-            </button>
-            <button type="button" onClick={save} disabled={!canSaveSpend || saveState === 'saving'}>
-              {saveState === 'saving' ? 'Saving…' : 'Assign Points'}
-            </button>
-          </>
-        )}
-      </div>
-
-      {resetMode ? (
-        <p className={styles.notice}>
-          Reset mode unlocks the full pool, including starting attributes. Redistribute all{' '}
-          {allocation.pointPool} points before confirming. This uses 1 reset.
-        </p>
+          </section>
+        </div>
       ) : null}
-      {message ? <p className={styles.message}>{message}</p> : null}
     </section>
   )
 }
