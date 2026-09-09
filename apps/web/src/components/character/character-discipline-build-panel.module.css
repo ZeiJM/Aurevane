@@ -91,9 +91,7 @@
   border: 1px solid var(--av-border-strong);
   border-radius: var(--av-radius-md);
   color: var(--av-text);
-  background:
-    radial-gradient(circle at 16% 0, rgba(207, 169, 93, 0.07), transparent 27%),
-    #0a0d12;
+  background: radial-gradient(circle at 16% 0, rgba(207, 169, 93, 0.07), transparent 27%), #0a0d12;
   box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.58);
 }
 

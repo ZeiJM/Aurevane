@@ -362,9 +362,16 @@ export function CharacterDisciplineBuildPanel({
                   <div>
                     <span>Authoritative build</span>
                     <h2 id="discipline-build-heading">Discipline Management</h2>
-                    <p>Choose identity first. Review every server-calculated change before committing.</p>
+                    <p>
+                      Choose identity first. Review every server-calculated change before
+                      committing.
+                    </p>
                   </div>
-                  <button type="button" className={styles.close} onClick={() => setPanelOpen(false)}>
+                  <button
+                    type="button"
+                    className={styles.close}
+                    onClick={() => setPanelOpen(false)}
+                  >
                     Close
                   </button>
                 </header>
@@ -378,7 +385,9 @@ export function CharacterDisciplineBuildPanel({
                     <div>
                       <span>Committed Primary</span>
                       <strong>{current.definition.name}</strong>
-                      <small className={styles.focus}>Focus · {focusLabel(current.definition.id)}</small>
+                      <small className={styles.focus}>
+                        Focus · {focusLabel(current.definition.id)}
+                      </small>
                       <p>{current.definition.summary}</p>
                       <small>
                         Definition v{current.definition.definitionVersion} · Base profile v
@@ -393,13 +402,17 @@ export function CharacterDisciplineBuildPanel({
                         className={styles.currentSigil}
                       />
                     ) : (
-                      <span className={styles.pureSigil} aria-hidden="true">◇</span>
+                      <span className={styles.pureSigil} aria-hidden="true">
+                        ◇
+                      </span>
                     )}
                     <div>
                       <span>Committed Secondary</span>
                       <strong>{currentSecondary?.name ?? 'None — pure build'}</strong>
                       {currentSecondary ? (
-                        <small className={styles.focus}>Identity · {focusLabel(currentSecondary.id)}</small>
+                        <small className={styles.focus}>
+                          Identity · {focusLabel(currentSecondary.id)}
+                        </small>
                       ) : null}
                       <p>
                         {currentSecondary?.summary ??
@@ -476,7 +489,9 @@ export function CharacterDisciplineBuildPanel({
                     <span>Proposed Secondary</span>
                     <select
                       value={selectedSecondaryId}
-                      onChange={(event) => void previewSelection(selectedPrimaryId, event.target.value)}
+                      onChange={(event) =>
+                        void previewSelection(selectedPrimaryId, event.target.value)
+                      }
                       disabled={pendingPreview || pendingCommit || remaining.secondary > 0}
                     >
                       <option value="">None — pure build</option>
@@ -552,7 +567,8 @@ export function CharacterDisciplineBuildPanel({
 
                     <p className={styles.attributeNote}>
                       Your assigned Might, Finesse, Vitality, Agility, Intellect, and Resolve are
-                      preserved exactly. Only the Primary supplies the active Discipline base profile.
+                      preserved exactly. Only the Primary supplies the active Discipline base
+                      profile.
                     </p>
 
                     <div className={styles.commitment}>

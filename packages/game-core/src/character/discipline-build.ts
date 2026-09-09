@@ -179,7 +179,9 @@ function applyBuildDerivedStatModifiers(
     const current = stats[statId]
     if (!rule || !current) throw new TypeError('Primary Discipline cap targets an unknown rule.')
     if (rule.minimum !== undefined && disciplineCap < rule.minimum) {
-      throw new RangeError('Primary Discipline derived-stat cap cannot be below the global minimum.')
+      throw new RangeError(
+        'Primary Discipline derived-stat cap cannot be below the global minimum.',
+      )
     }
 
     const effectiveMaximum =
