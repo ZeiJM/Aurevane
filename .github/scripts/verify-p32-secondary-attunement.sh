@@ -68,6 +68,15 @@ attributes_before="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U post
   from public.characters where id = '$character_id'::uuid;")"
 test "$attributes_before" = '7|6|5|6|5|7'
 
+# The current testing release intentionally auto-grants all active Secondary Disciplines. Remove only
+# those support grants from this legacy P3.2 fixture so the original mastery fail-closed regression
+# still proves the underlying authority contract independently of the temporary testing entitlement.
+docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  delete from app_private.character_discipline_masteries
+  where character_id = '$character_id'::uuid
+    and source_kind = 'support'
+    and source_id = 'active-player-discipline-testing:v1';" >/dev/null
+
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
   set role service_role;
   select * from public.change_character_disciplines_v2(
