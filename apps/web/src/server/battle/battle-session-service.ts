@@ -4,6 +4,7 @@ import { createHash, randomInt, randomUUID } from 'node:crypto'
 
 import type { BattleSessionRepository } from '@aurevane/db/battle-session'
 import type { CharacterRecord, CharacterRepository } from '@aurevane/db/character'
+import { calculateCharacterBuildDerivedStats } from '@aurevane/game-core/character/discipline-build'
 import { calculateDerivedStats } from '@aurevane/game-core/character/derived-stats'
 import { createCombatEncounterState } from '@aurevane/game-core/combat/actions'
 import { createPendingBattle, startBattle } from '@aurevane/game-core/combat/battle-state'
@@ -45,7 +46,10 @@ import type {
   BattleIntent,
 } from '@aurevane/validation/combat/battle-session'
 
-import type { CharacterBuildRepository } from '../character/character-build-service'
+import type {
+  CharacterActiveBuildRecord,
+  CharacterBuildRepository,
+} from '../character/character-build-service'
 import { loadCharacterCommittedBuildSnapshot } from '../character/character-build-service'
 import { battleActionResourceIssue } from './battle-action-resource-availability'
 import {
@@ -152,21 +156,27 @@ function createVerticalSliceEncounter(
   arenaId: TacticalHallArenaId,
   aiDifficulty: BattleAiDifficulty,
   battleHallRecordId: BattleHallRecordId,
+  committedBuild: CharacterActiveBuildRecord | null,
 ): StatDrivenCombatEncounterState {
   const arena = getTacticalHallArena(arenaId)
   const playerCombatantId = `character:${character.id}`
   const recruitCombatantId = 'recruit:p2-4-1'
-  const derived = calculateDerivedStats({
-    attributes: {
-      might: character.might,
-      finesse: character.finesse,
-      vitality: character.vitality,
-      agility: character.agility,
-      intellect: character.intellect,
-      resolve: character.resolve,
-    },
-    level: character.level,
-  })
+  const attributes = {
+    might: character.might,
+    finesse: character.finesse,
+    vitality: character.vitality,
+    agility: character.agility,
+    intellect: character.intellect,
+    resolve: character.resolve,
+  }
+  const derived = committedBuild
+    ? calculateCharacterBuildDerivedStats({
+        attributes,
+        level: character.level,
+        primaryDefinition: committedBuild.primaryDefinition,
+        primaryProfile: committedBuild.primaryProfile,
+      })
+    : calculateDerivedStats({ attributes, level: character.level })
   const playerProfile = createCharacterDerivedCombatProfile(
     playerCombatantId,
     character.id,
@@ -454,6 +464,16 @@ export function createBattleSessionService({
         throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
       }
 
+      const committedBuild = builds
+        ? await builds.findActiveBuild(command.userId, command.characterId)
+        : null
+      if (builds && !committedBuild) {
+        throw new AurevaneError(
+          'PERSISTENCE_UNAVAILABLE',
+          'The committed character build is unavailable right now.',
+        )
+      }
+
       const arenaId = command.arenaId ?? 'basic-training-floor'
       const aiDifficulty = command.aiDifficulty ?? 'standard'
       const battleHallRecordId = command.battleHallRecordId ?? 'recruit-sparring'
@@ -462,6 +482,7 @@ export function createBattleSessionService({
         arenaId,
         aiDifficulty,
         battleHallRecordId,
+        committedBuild,
       )
       const encounter: BattleAuthoritativeEncounterState = builds
         ? {
