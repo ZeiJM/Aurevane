@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   ATTRIBUTE_RESET_LIMIT_PER_WINDOW,
   FOUNDATION_DISCIPLINE_ATTRIBUTE_POLICIES,
+  FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
   STARTING_ATTRIBUTE_POINT_POOL,
   attributePointPoolForLevel,
   consumeAttributeReset,
@@ -122,13 +123,94 @@ describe('attribute allocation guardrails', () => {
     expect(attributes).toEqual(before)
   })
 
-  it('ships Foundation focus metadata without inventing unapproved numeric attribute ceilings', () => {
+  it('ships Foundation policy v2 with uncapped focus attributes and a 30-point non-focus ceiling', () => {
+    expect(FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP).toBe(30)
     expect(FOUNDATION_DISCIPLINE_ATTRIBUTE_POLICIES).toHaveLength(6)
+
+    for (const policy of FOUNDATION_DISCIPLINE_ATTRIBUTE_POLICIES) {
+      expect(policy.policyVersion).toBe(2)
+      expect(validateDisciplineAttributePolicy(policy)).toEqual([])
+      expect(Object.keys(policy.attributeCaps)).toHaveLength(4)
+      for (const focusAttribute of policy.focusAttributes) {
+        expect(policy.attributeCaps).not.toHaveProperty(focusAttribute)
+      }
+      for (const cap of Object.values(policy.attributeCaps)) {
+        expect(cap).toBe(FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP)
+      }
+    }
+
     expect(foundationDisciplineAttributePolicy('aetherist')?.focusAttributes).toEqual([
       'intellect',
       'resolve',
     ])
-    expect(foundationDisciplineAttributePolicy('aetherist')?.attributeCaps).toEqual({})
+    expect(foundationDisciplineAttributePolicy('aetherist')?.attributeCaps).toEqual({
+      might: 30,
+      finesse: 30,
+      vitality: 30,
+      agility: 30,
+    })
+  })
+
+  it('allows a serious Level 50 hybrid at the non-focus ceiling and rejects only the point beyond it', () => {
+    const policy = foundationDisciplineAttributePolicy('aetherist')
+    expect(policy).not.toBeNull()
+
+    const legalHybrid = {
+      might: 30,
+      finesse: 3,
+      vitality: 3,
+      agility: 3,
+      intellect: 40,
+      resolve: 6,
+    }
+    const illegalHybrid = {
+      ...legalHybrid,
+      might: 31,
+      intellect: 39,
+    }
+
+    expect(
+      validateAttributeAllocation({
+        attributes: legalHybrid,
+        level: 50,
+        policy,
+        requireFullPool: true,
+      }),
+    ).toEqual([])
+    expect(
+      validateAttributeAllocation({
+        attributes: illegalHybrid,
+        level: 50,
+        policy,
+        requireFullPool: true,
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'discipline-cap-exceeded', field: 'attributes.might' }),
+      ]),
+    )
+  })
+
+  it('requires redistribution before a Primary swap when the target Discipline makes a 31-point stat non-focus', () => {
+    const attributes = {
+      might: 31,
+      finesse: 3,
+      vitality: 39,
+      agility: 3,
+      intellect: 6,
+      resolve: 3,
+    }
+    const before = { ...attributes }
+    const aetherist = foundationDisciplineAttributePolicy('aetherist')
+    expect(aetherist).not.toBeNull()
+
+    expect(validateAllocationForPrimaryDisciplineChange(attributes, 50, aetherist!)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'discipline-cap-exceeded', field: 'attributes.might' }),
+        expect.objectContaining({ code: 'discipline-cap-exceeded', field: 'attributes.vitality' }),
+      ]),
+    )
+    expect(attributes).toEqual(before)
   })
 
   it('allows five resets per 30-day window and replenishes the full allowance when the window renews', () => {
