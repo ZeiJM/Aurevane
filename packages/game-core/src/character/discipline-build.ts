@@ -21,6 +21,11 @@ export interface PrimaryDisciplineBaseProfile {
   disciplineId: string
   profileVersion: number
   statOffsets: Readonly<Partial<Record<DerivedStatId, number>>>
+  /**
+   * Optional final ceilings authored for this Primary Discipline. Missing entries use the normal global
+   * rules only. When both a global maximum and a Discipline cap exist, the lower ceiling wins.
+   */
+  statCaps?: Readonly<Partial<Record<DerivedStatId, number>>>
 }
 
 export interface BuildDerivedStatModifier {
@@ -67,6 +72,15 @@ export function validatePrimaryDisciplineBaseProfile(
       issues.push(`statOffsets.${statId}`)
     }
   }
+  for (const [statId, cap] of Object.entries(profile.statCaps ?? {})) {
+    if (
+      !DERIVED_STAT_IDS.includes(statId as DerivedStatId) ||
+      !Number.isSafeInteger(cap) ||
+      cap < 0
+    ) {
+      issues.push(`statCaps.${statId}`)
+    }
+  }
   return issues
 }
 
@@ -105,6 +119,7 @@ export function calculateCharacterBuildDerivedStats(
     base,
     [...primaryModifiers, ...(input.modifiers ?? [])],
     ruleset,
+    input.primaryProfile.statCaps ?? {},
   )
 }
 
@@ -123,6 +138,7 @@ function applyBuildDerivedStatModifiers(
   snapshot: DerivedStatSnapshot,
   modifiers: readonly BuildDerivedStatModifier[],
   ruleset: DerivedStatRuleset,
+  disciplineCaps: Readonly<Partial<Record<DerivedStatId, number>>>,
 ): DerivedStatSnapshot {
   const stats = { ...snapshot.stats }
   for (const modifier of modifiers) {
@@ -157,5 +173,30 @@ function applyBuildDerivedStatModifiers(
       ],
     }
   }
+
+  for (const [rawStatId, disciplineCap] of Object.entries(disciplineCaps)) {
+    const statId = rawStatId as DerivedStatId
+    if (!DERIVED_STAT_IDS.includes(statId) || !Number.isSafeInteger(disciplineCap)) {
+      throw new TypeError('Primary Discipline derived-stat cap is invalid.')
+    }
+    const rule = ruleset.rules.find((candidate) => candidate.id === statId)
+    const current = stats[statId]
+    if (!rule || !current) throw new TypeError('Primary Discipline cap targets an unknown rule.')
+    if (rule.minimum !== undefined && disciplineCap < rule.minimum) {
+      throw new RangeError('Primary Discipline derived-stat cap cannot be below the global minimum.')
+    }
+
+    const effectiveMaximum =
+      rule.maximum === undefined ? disciplineCap : Math.min(rule.maximum, disciplineCap)
+    let value = current.unclampedValue
+    if (rule.minimum !== undefined) value = Math.max(value, rule.minimum)
+    value = Math.min(value, effectiveMaximum)
+
+    stats[statId] = {
+      ...current,
+      value,
+    }
+  }
+
   return { ...snapshot, stats }
 }
