@@ -65,9 +65,10 @@ function assertPrimaryAllocationCompatible(
     policy,
   )
   if (issues.length > 0) {
+    const issueSummary = issues.map((issue) => issue.message).join(' ')
     throw new AurevaneError(
       'INVALID_REQUEST',
-      `${issues[0]?.message ?? 'The current attribute allocation is not legal for that Primary Discipline'} Redistribute the excess points with Reset Attributes before changing Primary Discipline.`,
+      `${issueSummary || 'The current attribute allocation is not legal for that Primary Discipline.'} Redistribute the excess points with Reset Attributes before changing Primary Discipline.`,
     )
   }
 }
