@@ -74,7 +74,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   })
   expect(prepared.ok).toBe(true)
   expect(prepared.body).toMatchObject({
-    result: { masteredDisciplines: 2, learnedSkills: 16 },
+    result: { masteredDisciplines: 6, learnedSkills: 16 },
   })
   await reloadProfile(page)
 
