@@ -1,3 +1,8 @@
+import {
+  foundationDisciplineAttributePolicy,
+  projectAllocationForPrimaryDisciplineChange,
+} from '@aurevane/game-core/character/attribute-allocation'
+import { buildPrimaryDisciplinePreview } from '@aurevane/game-core/character/discipline-build'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { getAuthenticatedActor } from '@/server/auth/actor'
@@ -72,7 +77,42 @@ export async function POST(request: Request) {
       selection,
       createSupabaseCharacterBuildRepository(),
     )
-    return Response.json({ preview }, { headers: { 'Cache-Control': 'private, no-store' } })
+
+    const currentPolicy = foundationDisciplineAttributePolicy(preview.current.definition.id)
+    const proposedPolicy = foundationDisciplineAttributePolicy(preview.proposed.definition.id)
+    if (!currentPolicy || !proposedPolicy) {
+      throw new AurevaneError('INVALID_REQUEST', 'The selected Primary Discipline is unavailable.')
+    }
+
+    const projection = projectAllocationForPrimaryDisciplineChange({
+      attributes: character.attributes,
+      level: character.level,
+      currentPolicy,
+      proposedPolicy,
+    })
+    if (projection.issues.length > 0) {
+      throw new AurevaneError(
+        'INVALID_REQUEST',
+        projection.issues[0]?.message ?? 'That Primary Discipline cannot use the current Core Stats.',
+      )
+    }
+
+    const alignedPreview = {
+      ...preview,
+      currentAttributes: character.attributes,
+      proposedAttributes: projection.attributes,
+      proposed: buildPrimaryDisciplinePreview({
+        attributes: projection.attributes,
+        level: character.level,
+        primaryDefinition: preview.proposed.definition,
+        primaryProfile: preview.proposed.profile,
+      }),
+    }
+
+    return Response.json(
+      { preview: alignedPreview },
+      { headers: { 'Cache-Control': 'private, no-store' } },
+    )
   } catch (error) {
     return toServerErrorResponse(error)
   }
@@ -86,13 +126,27 @@ export async function PUT(request: Request) {
       typeof body.expectedBuildVersion === 'number' ? body.expectedBuildVersion : Number.NaN
     const idempotencyKey = typeof body.idempotencyKey === 'string' ? body.idempotencyKey : ''
     const selection = readSelection(body)
-    const context = await changeCharacterDisciplines(
+    const changed = await changeCharacterDisciplines(
       actor.userId,
       character,
       { expectedBuildVersion, idempotencyKey, ...selection },
       createSupabaseCharacterBuildRepositoryV3(),
     )
-    return Response.json({ context }, { headers: { 'Cache-Control': 'private, no-store' } })
+
+    const refreshedCharacter = await loadSelectedCharacter(actor)
+    if (!refreshedCharacter) {
+      throw new AurevaneError('PERSISTENCE_UNAVAILABLE', 'The updated character is unavailable.')
+    }
+    const freshContext = await loadCharacterBuildContext(
+      actor.userId,
+      refreshedCharacter,
+      createSupabaseCharacterBuildRepository(),
+    )
+
+    return Response.json(
+      { context: { ...freshContext, replayed: changed.replayed } },
+      { headers: { 'Cache-Control': 'private, no-store' } },
+    )
   } catch (error) {
     return toServerErrorResponse(error)
   }
