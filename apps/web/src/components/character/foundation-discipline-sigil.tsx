@@ -49,9 +49,9 @@ export function FoundationDisciplineSigil({
   if (disciplineId === 'ironfist') {
     return (
       <svg {...common}>
-        <path d="M18 28V16c0-4 6-4 6 0v9M24 24V12c0-4 6-4 6 0v12M30 23V11c0-4 6-4 6 0v13M36 24v-9c0-4 6-4 6 0v16" />
-        <path d="M18 27c-6-2-9 5-5 9l8 9c3 4 7 7 14 7h3c8 0 13-6 13-14v-7c0-5-3-8-9-8" />
-        <path d="M19 28h17" />
+        <path d="m32 7 7 11 12 5-7 9 5 13-12-2-5 14-5-14-12 2 5-13-7-9 12-5 7-11Z" />
+        <path d="m23 25 9 7 9-7M22 39l10-7 10 7" />
+        <path d="M17 13 9 21M47 13l8 8M12 49l8-8M52 49l-8-8" />
       </svg>
     )
   }
