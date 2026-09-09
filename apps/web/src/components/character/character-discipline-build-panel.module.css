@@ -5,45 +5,65 @@
 }
 
 .trigger {
-  display: flex;
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr) auto;
   width: 100%;
-  min-height: 3rem;
+  min-height: 3.6rem;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
+  gap: 0.7rem;
   padding: 0.65rem 0.75rem;
   border: 1px solid rgba(207, 169, 93, 0.52);
   border-radius: var(--av-radius-sm);
   color: var(--av-brass-200);
-  background: linear-gradient(135deg, rgba(207, 169, 93, 0.1), rgba(207, 169, 93, 0.025));
+  background:
+    radial-gradient(circle at 10% 50%, rgba(207, 169, 93, 0.14), transparent 28%),
+    linear-gradient(135deg, rgba(207, 169, 93, 0.1), rgba(207, 169, 93, 0.025));
   cursor: pointer;
   text-align: left;
 }
 
-.trigger strong,
-.trigger small {
-  display: none;
+.triggerSigil {
+  width: 2.2rem;
+  height: 2.2rem;
+  padding: 0.25rem;
+  border: 1px solid rgba(207, 169, 93, 0.35);
+  border-radius: 50%;
+  color: var(--av-brass-300);
+  background: rgba(5, 8, 12, 0.48);
 }
 
-.trigger::before {
-  content: 'Discipline Management';
-  font: 700 0.68rem/1 var(--av-font-mono);
-  letter-spacing: 0.055em;
+.triggerCopy {
+  display: grid;
+  min-width: 0;
+  gap: 0.2rem;
+}
+
+.triggerCopy > span,
+.triggerAction {
+  color: var(--av-text-dim);
+  font: 700 0.5rem/1 var(--av-font-mono);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
-.trigger::after {
-  content: 'Open  ›';
+.triggerCopy strong {
+  overflow: hidden;
+  color: var(--av-brass-200);
+  font: 500 0.92rem/1.1 var(--av-font-display);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.triggerAction {
   color: var(--av-text-muted);
-  font: 650 0.52rem/1 var(--av-font-mono);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .trigger:hover,
 .trigger:focus-visible {
   border-color: rgba(224, 190, 118, 0.9);
-  background: linear-gradient(135deg, rgba(207, 169, 93, 0.17), rgba(207, 169, 93, 0.05));
+  background:
+    radial-gradient(circle at 10% 50%, rgba(207, 169, 93, 0.2), transparent 31%),
+    linear-gradient(135deg, rgba(207, 169, 93, 0.17), rgba(207, 169, 93, 0.05));
   outline: none;
   box-shadow: 0 0 0 2px rgba(207, 169, 93, 0.12);
 }
@@ -63,20 +83,23 @@
 
 .dialog {
   display: grid;
-  width: min(46rem, 100%);
-  max-height: min(86dvh, 48rem);
-  gap: 0.75rem;
+  width: min(58rem, 100%);
+  max-height: min(90dvh, 54rem);
+  gap: 0.85rem;
   overflow: auto;
   padding: 1rem;
   border: 1px solid var(--av-border-strong);
   border-radius: var(--av-radius-md);
   color: var(--av-text);
-  background: #0a0d12;
+  background:
+    radial-gradient(circle at 16% 0, rgba(207, 169, 93, 0.07), transparent 27%),
+    #0a0d12;
   box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.58);
 }
 
 .header,
-.previewHeading {
+.previewHeading,
+.rosterHeading {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -86,7 +109,8 @@
 .header span,
 .current span,
 .selector > span,
-.previewHeading span {
+.previewHeading span,
+.rosterHeading span {
   display: block;
   margin-bottom: 0.25rem;
   color: var(--av-text-dim);
@@ -96,13 +120,23 @@
 }
 
 .header h2,
+.header p,
 .current p,
-.preview p {
+.preview p,
+.rosterHeading h3 {
   margin: 0;
 }
 
 .header h2 {
-  font: 500 1.6rem/1 var(--av-font-display);
+  font: 500 1.75rem/1 var(--av-font-display);
+}
+
+.header p {
+  max-width: 39rem;
+  margin-top: 0.35rem;
+  color: var(--av-text-dim);
+  font-size: 0.72rem;
+  line-height: 1.4;
 }
 
 .close {
@@ -118,10 +152,11 @@
 }
 
 .current,
-.preview {
+.preview,
+.roster {
   display: grid;
-  gap: 0.65rem;
-  padding: 0.75rem;
+  gap: 0.7rem;
+  padding: 0.8rem;
   border: 1px solid rgba(184, 177, 163, 0.1);
   border-radius: var(--av-radius-sm);
   background: rgba(5, 7, 10, 0.52);
@@ -131,10 +166,40 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.current > div {
+.currentDiscipline {
   display: grid;
+  grid-template-columns: 3.25rem minmax(0, 1fr);
   align-content: start;
-  gap: 0.35rem;
+  align-items: start;
+  gap: 0.7rem;
+  min-width: 0;
+  padding: 0.65rem;
+  border: 1px solid rgba(207, 169, 93, 0.12);
+  border-radius: var(--av-radius-sm);
+  background: rgba(8, 11, 16, 0.72);
+}
+
+.currentDiscipline > div {
+  display: grid;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.currentSigil,
+.pureSigil {
+  width: 3rem;
+  height: 3rem;
+  padding: 0.38rem;
+  border: 1px solid rgba(207, 169, 93, 0.32);
+  border-radius: 50%;
+  color: var(--av-brass-300);
+  background: rgba(207, 169, 93, 0.045);
+}
+
+.pureSigil {
+  display: grid;
+  place-items: center;
+  font: 500 1.45rem/1 var(--av-font-display);
 }
 
 .current strong,
@@ -152,9 +217,106 @@
 
 .current small,
 .previewHeading small,
-.selector small {
+.selector small,
+.rosterHeading small {
   color: var(--av-text-dim);
   font: 600 0.52rem/1.35 var(--av-font-mono);
+}
+
+.focus {
+  color: color-mix(in srgb, var(--av-brass-300) 72%, var(--av-text-dim)) !important;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.rosterHeading {
+  align-items: end;
+}
+
+.rosterHeading h3 {
+  color: var(--av-text);
+  font: 500 1.08rem/1.05 var(--av-font-display);
+}
+
+.rosterGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.disciplineCard {
+  display: grid;
+  grid-template-columns: 2.7rem minmax(0, 1fr);
+  gap: 0.55rem;
+  align-items: center;
+  min-width: 0;
+  min-height: 4rem;
+  padding: 0.55rem;
+  border: 1px solid rgba(184, 177, 163, 0.13);
+  border-radius: var(--av-radius-sm);
+  color: var(--av-text-muted);
+  background: #080b10;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    transform 140ms ease;
+}
+
+.disciplineCard:hover:not(:disabled),
+.disciplineCard:focus-visible:not(:disabled) {
+  outline: none;
+  border-color: rgba(207, 169, 93, 0.52);
+  background: rgba(207, 169, 93, 0.065);
+  transform: translateY(-1px);
+}
+
+.disciplineCard[data-selected='true'] {
+  border-color: rgba(224, 190, 118, 0.84);
+  color: var(--av-text);
+  background:
+    radial-gradient(circle at 15% 50%, rgba(207, 169, 93, 0.15), transparent 34%),
+    rgba(207, 169, 93, 0.055);
+  box-shadow: inset 0 0 0 1px rgba(207, 169, 93, 0.09);
+}
+
+.disciplineCard:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.cardSigil {
+  width: 2.55rem;
+  height: 2.55rem;
+  padding: 0.3rem;
+  border: 1px solid rgba(207, 169, 93, 0.22);
+  border-radius: 50%;
+  color: var(--av-brass-300);
+  background: rgba(207, 169, 93, 0.035);
+}
+
+.disciplineCard > span {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.disciplineCard strong {
+  overflow: hidden;
+  color: inherit;
+  font: 500 0.9rem/1 var(--av-font-display);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.disciplineCard small {
+  overflow: hidden;
+  color: var(--av-text-dim);
+  font: 650 0.47rem/1.15 var(--av-font-mono);
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .slots {
@@ -177,6 +339,22 @@
   border-radius: var(--av-radius-sm);
   color: var(--av-text);
   background: #080b10;
+}
+
+.proposedIdentity {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.previewSigil {
+  width: 2.8rem;
+  height: 2.8rem;
+  padding: 0.34rem;
+  border: 1px solid rgba(207, 169, 93, 0.25);
+  border-radius: 50%;
+  color: var(--av-brass-300);
+  background: rgba(207, 169, 93, 0.04);
 }
 
 .deltas {
@@ -263,18 +441,16 @@
   line-height: 1.45;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 760px) {
   .trigger {
-    min-height: 2.8rem;
-    padding: 0.58rem 0.65rem;
+    grid-template-columns: 2.2rem minmax(0, 1fr) auto;
+    min-height: 3.25rem;
+    padding: 0.55rem 0.6rem;
   }
 
-  .trigger::before {
-    font-size: 0.6rem;
-  }
-
-  .trigger::after {
-    font-size: 0.46rem;
+  .triggerSigil {
+    width: 2rem;
+    height: 2rem;
   }
 
   .backdrop {
@@ -283,12 +459,14 @@
   }
 
   .dialog {
-    max-height: 90dvh;
+    width: 100%;
+    max-height: 92dvh;
     padding: 0.75rem;
   }
 
   .header,
-  .previewHeading {
+  .previewHeading,
+  .rosterHeading {
     gap: 0.55rem;
   }
 
@@ -297,7 +475,26 @@
     grid-template-columns: 1fr;
   }
 
+  .rosterGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .deltas {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 430px) {
+  .triggerAction {
+    display: none;
+  }
+
+  .trigger {
+    grid-template-columns: 2.2rem minmax(0, 1fr);
+  }
+
+  .rosterGrid,
+  .deltas {
+    grid-template-columns: 1fr;
   }
 }
