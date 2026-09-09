@@ -103,7 +103,9 @@ function mixedSnapshot(): CharacterCommittedBuildSnapshotRecord {
   }
 }
 
-function activeBuildFor(snapshot: CharacterCommittedBuildSnapshotRecord): CharacterActiveBuildRecord {
+function activeBuildFor(
+  snapshot: CharacterCommittedBuildSnapshotRecord,
+): CharacterActiveBuildRecord {
   return {
     characterId: CHARACTER_ID,
     schemaVersion: 2,

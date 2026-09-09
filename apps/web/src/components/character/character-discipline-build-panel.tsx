@@ -266,9 +266,9 @@ export function CharacterDisciplineBuildPanel({
 
   const commitBlocked = Boolean(
     pendingCommit ||
-      !preview ||
-      (preview.changes.primary && remaining.primary > 0) ||
-      (preview.changes.secondary && remaining.secondary > 0),
+    !preview ||
+    (preview.changes.primary && remaining.primary > 0) ||
+    (preview.changes.secondary && remaining.secondary > 0),
   )
 
   function setPanelOpen(nextOpen: boolean) {
