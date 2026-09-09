@@ -43,6 +43,16 @@ it('adds the Primary base profile without mutating player-assigned attributes', 
 })
 
 describe('Primary Discipline build calculation', () => {
+  it('uses the current derived-stat ruleset by default', () => {
+    const result = calculateCharacterBuildDerivedStats({
+      attributes,
+      level: 1,
+      primaryDefinition: vanguard,
+      primaryProfile: { disciplineId: 'vanguard', profileVersion: 1, statOffsets: {} },
+    })
+    expect(result.rulesVersion).toBe(2)
+  })
+
   it('is deterministic for the same versioned build inputs', () => {
     const input = {
       attributes,
@@ -103,5 +113,51 @@ describe('Primary Discipline build calculation', () => {
     expect(result.stats.movement.value).toBe(5)
     expect(result.stats.jump.value).toBe(3)
     expect(result.stats.accuracy.unclampedValue).toBeGreaterThan(9500)
+  })
+
+  it('uses the lower of the global maximum and a Primary-specific derived-stat cap', () => {
+    const stricter = calculateCharacterBuildDerivedStats({
+      attributes,
+      level: 1,
+      primaryDefinition: vanguard,
+      primaryProfile: {
+        disciplineId: 'vanguard',
+        profileVersion: 1,
+        statOffsets: { accuracy: 10_000 },
+        statCaps: { accuracy: 9000 },
+      },
+    })
+    const looser = calculateCharacterBuildDerivedStats({
+      attributes,
+      level: 1,
+      primaryDefinition: vanguard,
+      primaryProfile: {
+        disciplineId: 'vanguard',
+        profileVersion: 1,
+        statOffsets: { accuracy: 10_000 },
+        statCaps: { accuracy: 9900 },
+      },
+    })
+
+    expect(stricter.stats.accuracy.value).toBe(9000)
+    expect(looser.stats.accuracy.value).toBe(9500)
+    expect(stricter.stats.accuracy.unclampedValue).toBeGreaterThan(9500)
+  })
+
+  it('allows a Primary cap on a derived stat with no global maximum', () => {
+    const result = calculateCharacterBuildDerivedStats({
+      attributes,
+      level: 10,
+      primaryDefinition: vanguard,
+      primaryProfile: {
+        disciplineId: 'vanguard',
+        profileVersion: 1,
+        statOffsets: { maxHp: 500 },
+        statCaps: { maxHp: 300 },
+      },
+    })
+
+    expect(result.stats.maxHp.unclampedValue).toBeGreaterThan(300)
+    expect(result.stats.maxHp.value).toBe(300)
   })
 })
