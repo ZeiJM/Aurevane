@@ -331,8 +331,8 @@ export function CharacterAttributeAllocationPanel({
             {resetMode ? (
               <p className={styles.notice}>
                 Full redistribution includes the attributes you started the game with. Allocate all{' '}
-                {allocation.pointPool} points before confirming. This consumes 1 of your 5 resets for
-                the current 30-day window.
+                {allocation.pointPool} points before confirming. This consumes 1 of your 5 resets
+                for the current 30-day window.
               </p>
             ) : (
               <p className={styles.notice}>
