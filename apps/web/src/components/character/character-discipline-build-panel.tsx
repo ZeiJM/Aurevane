@@ -70,6 +70,8 @@ interface BuildPreviewResponse {
     currentSecondary: DisciplineDefinitionView | null
     proposed: PrimaryDisciplinePreview
     proposedSecondary: DisciplineDefinitionView | null
+    currentAttributes: CharacterAttributes
+    proposedAttributes: CharacterAttributes
     buildVersion: number
     changes: { primary: boolean; secondary: boolean }
     attunement: AttunementView
@@ -252,17 +254,17 @@ export function CharacterDisciplineBuildPanel({
     }))
   }, [current, preview])
 
-  const coreDeltas = useMemo(
-    () =>
-      CHARACTER_ATTRIBUTE_IDS.map((attributeId) => ({
-        id: attributeId,
-        label: CHARACTER_ATTRIBUTE_LABELS[attributeId],
-        current: coreAttributes[attributeId],
-        proposed: coreAttributes[attributeId],
-        direction: 'neutral' as const,
-      })),
-    [coreAttributes],
-  )
+  const coreDeltas = useMemo(() => {
+    const currentAttributes = preview?.currentAttributes ?? coreAttributes
+    const proposedAttributes = preview?.proposedAttributes ?? coreAttributes
+    return CHARACTER_ATTRIBUTE_IDS.map((attributeId) => ({
+      id: attributeId,
+      label: CHARACTER_ATTRIBUTE_LABELS[attributeId],
+      current: currentAttributes[attributeId],
+      proposed: proposedAttributes[attributeId],
+      direction: deltaDirection(currentAttributes[attributeId], proposedAttributes[attributeId]),
+    }))
+  }, [coreAttributes, preview])
 
   const commitBlocked = Boolean(
     pendingCommit ||
@@ -658,9 +660,11 @@ export function CharacterDisciplineBuildPanel({
                     </div>
 
                     <p className={styles.attributeNote}>
-                      Primary changes never rewrite your assigned Might, Finesse, Vitality, Agility,
-                      Intellect, or Resolve. If the proposed Primary makes that allocation illegal,
-                      the server will require redistribution before the swap can be committed.
+                      Primary changes preserve your personal Might, Finesse, Vitality, Agility,
+                      Intellect, and Resolve allocation while replacing the Primary-owned Core Stat
+                      base. Effective values may change. If the projected allocation exceeds the new
+                      Primary's off-identity cap, the server requires redistribution before the swap
+                      can be committed.
                     </p>
 
                     <div className={styles.commitment}>
