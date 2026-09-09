@@ -104,4 +104,50 @@ describe('Primary Discipline build calculation', () => {
     expect(result.stats.jump.value).toBe(3)
     expect(result.stats.accuracy.unclampedValue).toBeGreaterThan(9500)
   })
+
+  it('uses the lower of the global maximum and a Primary Discipline-specific derived-stat cap', () => {
+    const stricterPrimary = calculateCharacterBuildDerivedStats({
+      attributes,
+      level: 1,
+      primaryDefinition: vanguard,
+      primaryProfile: {
+        disciplineId: 'vanguard',
+        profileVersion: 1,
+        statOffsets: { accuracy: 10_000 },
+        statCaps: { accuracy: 9000 },
+      },
+    })
+    const looserPrimary = calculateCharacterBuildDerivedStats({
+      attributes,
+      level: 1,
+      primaryDefinition: vanguard,
+      primaryProfile: {
+        disciplineId: 'vanguard',
+        profileVersion: 1,
+        statOffsets: { accuracy: 10_000 },
+        statCaps: { accuracy: 9900 },
+      },
+    })
+
+    expect(stricterPrimary.stats.accuracy.value).toBe(9000)
+    expect(looserPrimary.stats.accuracy.value).toBe(9500)
+    expect(stricterPrimary.stats.accuracy.unclampedValue).toBeGreaterThan(9500)
+  })
+
+  it('allows an optional Primary cap on a derived stat that has no global maximum', () => {
+    const result = calculateCharacterBuildDerivedStats({
+      attributes,
+      level: 10,
+      primaryDefinition: vanguard,
+      primaryProfile: {
+        disciplineId: 'vanguard',
+        profileVersion: 1,
+        statOffsets: { maxHp: 500 },
+        statCaps: { maxHp: 300 },
+      },
+    })
+
+    expect(result.stats.maxHp.unclampedValue).toBeGreaterThan(300)
+    expect(result.stats.maxHp.value).toBe(300)
+  })
 })
