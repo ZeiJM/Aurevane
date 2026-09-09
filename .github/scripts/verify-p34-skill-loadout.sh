@@ -98,6 +98,15 @@ pure_replay="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -
   );")"
 test "$pure_replay" = '2|true'
 
+# The current testing release intentionally auto-grants active Secondary Disciplines. Remove only
+# those support grants from this legacy P3.4 fixture so manual mastery and skill-provisioning
+# regressions continue to prove their original authority path independently of testing access.
+docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  delete from app_private.character_discipline_masteries
+  where character_id = '$character_id'::uuid
+    and source_kind = 'support'
+    and source_id = 'active-player-discipline-testing:v1';" >/dev/null
+
 mastery="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
   select discipline_id || '|' || replayed::text
