@@ -31,7 +31,7 @@ character_id="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres 
     'portrait.starter.wayfarer-01',
     'appearance.starter.roadworn',
     'vanguard',
-    7, 6, 5, 6, 5, 7
+    12, 4, 7, 4, 3, 6
   );")"
 test -n "$character_id"
 
