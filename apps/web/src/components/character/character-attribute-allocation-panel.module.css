@@ -134,9 +134,7 @@
   border: 1px solid rgba(207, 169, 93, 0.22);
   border-radius: 1rem;
   color: var(--av-text);
-  background:
-    radial-gradient(circle at 12% 0, rgba(207, 169, 93, 0.075), transparent 30%),
-    #080c12;
+  background: radial-gradient(circle at 12% 0, rgba(207, 169, 93, 0.075), transparent 30%), #080c12;
   box-shadow: 0 1.6rem 4.5rem rgba(0, 0, 0, 0.56);
 }
 
