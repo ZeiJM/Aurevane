@@ -1,11 +1,16 @@
 'use client'
 
+import {
+  CHARACTER_ATTRIBUTE_LABELS,
+  foundationDisciplineAttributePolicy,
+} from '@aurevane/game-core/character/attribute-allocation'
 import type { PrimaryDisciplinePreview } from '@aurevane/game-core/character/discipline-build'
 import type { Route } from 'next'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 
+import { FoundationDisciplineSigil } from './foundation-discipline-sigil'
 import styles from './character-discipline-build-panel.module.css'
 
 interface DisciplineDefinitionView {
@@ -95,6 +100,12 @@ function formatDuration(totalSeconds: number): string {
 function policyDuration(seconds: number): string {
   if (seconds % 3600 === 0) return `${seconds / 3600}h`
   return formatDuration(seconds)
+}
+
+function focusLabel(disciplineId: string): string {
+  const policy = foundationDisciplineAttributePolicy(disciplineId)
+  if (!policy) return 'Authored identity'
+  return policy.focusAttributes.map((id) => CHARACTER_ATTRIBUTE_LABELS[id]).join(' + ')
 }
 
 export function CharacterDisciplineBuildPanel({
@@ -319,11 +330,18 @@ export function CharacterDisciplineBuildPanel({
         aria-label={`Manage Primary Discipline and Secondary Discipline. Current: ${current.definition.name}${currentSecondary ? ` plus ${currentSecondary.name}` : ' pure'}, Build v${buildVersion}`}
         onClick={() => setPanelOpen(true)}
       >
-        <strong>
-          {current.definition.name}
-          {currentSecondary ? ` + ${currentSecondary.name}` : ' · Pure'}
-        </strong>
-        <small>Build v{buildVersion}</small>
+        <FoundationDisciplineSigil
+          disciplineId={current.definition.id}
+          className={styles.triggerSigil}
+        />
+        <span className={styles.triggerCopy}>
+          <span>Discipline Management</span>
+          <strong>
+            {current.definition.name}
+            {currentSecondary ? ` + ${currentSecondary.name}` : ' · Pure'}
+          </strong>
+        </span>
+        <span className={styles.triggerAction}>Open ›</span>
       </button>
 
       {open && typeof document !== 'undefined'
@@ -343,7 +361,8 @@ export function CharacterDisciplineBuildPanel({
                 <header className={styles.header}>
                   <div>
                     <span>Authoritative build</span>
-                    <h2 id="discipline-build-heading">Disciplines</h2>
+                    <h2 id="discipline-build-heading">Discipline Management</h2>
+                    <p>Choose identity first. Review every server-calculated change before committing.</p>
                   </div>
                   <button type="button" className={styles.close} onClick={() => setPanelOpen(false)}>
                     Close
@@ -351,24 +370,81 @@ export function CharacterDisciplineBuildPanel({
                 </header>
 
                 <div className={styles.current}>
-                  <div>
-                    <span>Committed Primary</span>
-                    <strong>{current.definition.name}</strong>
-                    <p>{current.definition.summary}</p>
-                    <small>
-                      Definition v{current.definition.definitionVersion} · Base profile v
-                      {current.profile.profileVersion}
-                    </small>
+                  <div className={styles.currentDiscipline}>
+                    <FoundationDisciplineSigil
+                      disciplineId={current.definition.id}
+                      className={styles.currentSigil}
+                    />
+                    <div>
+                      <span>Committed Primary</span>
+                      <strong>{current.definition.name}</strong>
+                      <small className={styles.focus}>Focus · {focusLabel(current.definition.id)}</small>
+                      <p>{current.definition.summary}</p>
+                      <small>
+                        Definition v{current.definition.definitionVersion} · Base profile v
+                        {current.profile.profileVersion}
+                      </small>
+                    </div>
                   </div>
-                  <div>
-                    <span>Committed Secondary</span>
-                    <strong>{currentSecondary?.name ?? 'None — pure build'}</strong>
-                    <p>
-                      {currentSecondary?.summary ??
-                        'No Secondary is equipped. Secondary never contributes a second base-stat profile.'}
-                    </p>
+                  <div className={styles.currentDiscipline}>
+                    {currentSecondary ? (
+                      <FoundationDisciplineSigil
+                        disciplineId={currentSecondary.id}
+                        className={styles.currentSigil}
+                      />
+                    ) : (
+                      <span className={styles.pureSigil} aria-hidden="true">◇</span>
+                    )}
+                    <div>
+                      <span>Committed Secondary</span>
+                      <strong>{currentSecondary?.name ?? 'None — pure build'}</strong>
+                      {currentSecondary ? (
+                        <small className={styles.focus}>Identity · {focusLabel(currentSecondary.id)}</small>
+                      ) : null}
+                      <p>
+                        {currentSecondary?.summary ??
+                          'No Secondary is equipped. Secondary never contributes a second base-stat profile.'}
+                      </p>
+                    </div>
                   </div>
                 </div>
+
+                <section className={styles.roster} aria-labelledby="foundation-roster-heading">
+                  <div className={styles.rosterHeading}>
+                    <div>
+                      <span>Foundation identities</span>
+                      <h3 id="foundation-roster-heading">Choose a proposed Primary</h3>
+                    </div>
+                    <small>Focus stats remain Discipline-uncapped</small>
+                  </div>
+                  <div className={styles.rosterGrid}>
+                    {primaryOptions.map((entry) => {
+                      const selected = entry.definition.id === selectedPrimaryId
+                      return (
+                        <button
+                          key={`roster:${entry.definition.id}:${entry.definition.definitionVersion}`}
+                          type="button"
+                          className={styles.disciplineCard}
+                          data-selected={selected ? 'true' : 'false'}
+                          aria-pressed={selected}
+                          onClick={() =>
+                            void previewSelection(entry.definition.id, selectedSecondaryId)
+                          }
+                          disabled={pendingPreview || pendingCommit || remaining.primary > 0}
+                        >
+                          <FoundationDisciplineSigil
+                            disciplineId={entry.definition.id}
+                            className={styles.cardSigil}
+                          />
+                          <span>
+                            <strong>{entry.definition.name}</strong>
+                            <small>{focusLabel(entry.definition.id)}</small>
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </section>
 
                 <div className={styles.slots}>
                   <label className={styles.selector}>
@@ -432,14 +508,20 @@ export function CharacterDisciplineBuildPanel({
                 {preview ? (
                   <div className={styles.preview} data-testid="primary-build-preview">
                     <div className={styles.previewHeading}>
-                      <div>
-                        <span>Proposed build</span>
-                        <strong>
-                          {preview.proposed.definition.name}
-                          {preview.proposedSecondary
-                            ? ` + ${preview.proposedSecondary.name}`
-                            : ' · Pure'}
-                        </strong>
+                      <div className={styles.proposedIdentity}>
+                        <FoundationDisciplineSigil
+                          disciplineId={preview.proposed.definition.id}
+                          className={styles.previewSigil}
+                        />
+                        <div>
+                          <span>Proposed build</span>
+                          <strong>
+                            {preview.proposed.definition.name}
+                            {preview.proposedSecondary
+                              ? ` + ${preview.proposedSecondary.name}`
+                              : ' · Pure'}
+                          </strong>
+                        </div>
                       </div>
                       <small>Build v{buildVersion}</small>
                     </div>
