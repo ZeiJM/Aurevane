@@ -1,0 +1,29 @@
+name: Format helper battle experience
+
+on:
+  push:
+    branches:
+      - agent/format-helper-battle-experience
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - name: Format and print battle experience
+        run: |
+          pnpm exec prettier --write apps/web/e2e/battle-experience.pw.ts
+          echo 'FORMATTED_FILE_BEGIN'
+          base64 -w 0 apps/web/e2e/battle-experience.pw.ts
+          echo
+          echo 'FORMATTED_FILE_END'
