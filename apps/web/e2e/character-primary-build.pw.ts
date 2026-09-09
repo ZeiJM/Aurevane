@@ -53,8 +53,14 @@ test('Profile previews and commits Primary Discipline without changing assigned 
   await expect(dialog).toContainText('Committed Primary')
   await expect(dialog).toContainText('Vanguard')
 
-  const primary = page.getByLabel('Proposed Primary', { exact: true })
-  const secondary = page.getByLabel('Proposed Secondary', { exact: true })
+  const primary = dialog
+    .locator('label')
+    .filter({ hasText: /^Proposed Primary/ })
+    .locator('select')
+  const secondary = dialog
+    .locator('label')
+    .filter({ hasText: /^Proposed Secondary/ })
+    .locator('select')
   await expect(secondary.locator('option[value="vanguard"]')).toHaveCount(0)
   await primary.selectOption('aetherist')
 
