@@ -29,7 +29,7 @@ create_character() {
 
   psql_service "
     select id::text
-    from public.create_character_v2(
+    from public.create_character_v3(
       '$user_id'::uuid,
       '$slot'::smallint,
       '$idempotency_key'::uuid,
@@ -42,7 +42,7 @@ create_character() {
       'portrait.starter.wayfarer-01',
       'appearance.starter.roadworn',
       'vanguard',
-      6, 6, 6, 6
+      12, 4, 7, 4, 3, 6
     );"
 }
 
