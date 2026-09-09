@@ -18,6 +18,22 @@ export function positionsEqual(left: BattleGridPosition, right: BattleGridPositi
   return left.x === right.x && left.y === right.y
 }
 
+/**
+ * Returns the shortened projected path when the player selects a tile already contained earlier in
+ * the current projection. The committed origin is represented by an empty projected path so the UI
+ * can retract all the way back to zero uncommitted movement without cancelling Move mode.
+ */
+export function retractProjectedPath(
+  path: readonly BattleGridPosition[],
+  target: BattleGridPosition,
+): BattleGridPosition[] | null {
+  const targetIndex = path.findIndex((position) => positionsEqual(position, target))
+  if (targetIndex < 0 || targetIndex === path.length - 1) return null
+  return targetIndex === 0
+    ? []
+    : path.slice(0, targetIndex + 1).map((position) => ({ ...position }))
+}
+
 export function facingGlyph(facing: BattleFacing): string {
   if (facing === 'north') return '↑'
   if (facing === 'east') return '→'

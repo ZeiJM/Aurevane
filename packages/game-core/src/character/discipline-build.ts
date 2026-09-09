@@ -2,7 +2,7 @@ import type { CharacterAttributes } from './creation'
 import {
   calculateDerivedStats,
   DERIVED_STAT_IDS,
-  DERIVED_STAT_RULESET_V1,
+  DERIVED_STAT_RULESET_V2,
   type DerivedStatId,
   type DerivedStatRuleset,
   type DerivedStatSnapshot,
@@ -21,6 +21,7 @@ export interface PrimaryDisciplineBaseProfile {
   disciplineId: string
   profileVersion: number
   statOffsets: Readonly<Partial<Record<DerivedStatId, number>>>
+  statCaps?: Readonly<Partial<Record<DerivedStatId, number>>>
 }
 
 export interface BuildDerivedStatModifier {
@@ -67,12 +68,21 @@ export function validatePrimaryDisciplineBaseProfile(
       issues.push(`statOffsets.${statId}`)
     }
   }
+  for (const [statId, cap] of Object.entries(profile.statCaps ?? {})) {
+    if (
+      !DERIVED_STAT_IDS.includes(statId as DerivedStatId) ||
+      !Number.isSafeInteger(cap) ||
+      cap < 0
+    ) {
+      issues.push(`statCaps.${statId}`)
+    }
+  }
   return issues
 }
 
 export function calculateCharacterBuildDerivedStats(
   input: CharacterBuildDerivedStatInput,
-  ruleset: DerivedStatRuleset = DERIVED_STAT_RULESET_V1,
+  ruleset: DerivedStatRuleset = DERIVED_STAT_RULESET_V2,
 ): DerivedStatSnapshot {
   if (validateDisciplineDefinition(input.primaryDefinition).length > 0) {
     throw new TypeError('Primary Discipline definition is invalid.')
@@ -105,12 +115,13 @@ export function calculateCharacterBuildDerivedStats(
     base,
     [...primaryModifiers, ...(input.modifiers ?? [])],
     ruleset,
+    input.primaryProfile.statCaps ?? {},
   )
 }
 
 export function buildPrimaryDisciplinePreview(
   input: CharacterBuildDerivedStatInput,
-  ruleset: DerivedStatRuleset = DERIVED_STAT_RULESET_V1,
+  ruleset: DerivedStatRuleset = DERIVED_STAT_RULESET_V2,
 ): PrimaryDisciplinePreview {
   return {
     definition: input.primaryDefinition,
@@ -123,6 +134,7 @@ function applyBuildDerivedStatModifiers(
   snapshot: DerivedStatSnapshot,
   modifiers: readonly BuildDerivedStatModifier[],
   ruleset: DerivedStatRuleset,
+  disciplineCaps: Readonly<Partial<Record<DerivedStatId, number>>>,
 ): DerivedStatSnapshot {
   const stats = { ...snapshot.stats }
   for (const modifier of modifiers) {
@@ -157,5 +169,29 @@ function applyBuildDerivedStatModifiers(
       ],
     }
   }
+
+  for (const [rawStatId, disciplineCap] of Object.entries(disciplineCaps)) {
+    const statId = rawStatId as DerivedStatId
+    if (!DERIVED_STAT_IDS.includes(statId) || !Number.isSafeInteger(disciplineCap)) {
+      throw new TypeError('Primary Discipline derived-stat cap is invalid.')
+    }
+    const rule = ruleset.rules.find((candidate) => candidate.id === statId)
+    const current = stats[statId]
+    if (!rule || !current) throw new TypeError('Primary Discipline cap targets an unknown rule.')
+    if (rule.minimum !== undefined && disciplineCap < rule.minimum) {
+      throw new RangeError(
+        'Primary Discipline derived-stat cap cannot be below the global minimum.',
+      )
+    }
+
+    const effectiveMaximum =
+      rule.maximum === undefined ? disciplineCap : Math.min(rule.maximum, disciplineCap)
+    let value = current.unclampedValue
+    if (rule.minimum !== undefined) value = Math.max(value, rule.minimum)
+    value = Math.min(value, effectiveMaximum)
+
+    stats[statId] = { ...current, value }
+  }
+
   return { ...snapshot, stats }
 }

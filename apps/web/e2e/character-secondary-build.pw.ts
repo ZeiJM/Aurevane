@@ -31,7 +31,7 @@ async function recordMastery(characterId: string, disciplineId: string): Promise
   if (masteryError) throw masteryError
 }
 
-test('Profile equips a mastered Secondary with an independent attunement lock', async ({
+test('Profile equips a mastered Secondary with independent attunement authority', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -62,21 +62,31 @@ test('Profile equips a mastered Secondary with an independent attunement lock', 
   const maxHp = page.getByTestId('derived-stat-maxHp').locator('strong')
   const maxHpBeforeSecondary = await maxHp.innerText()
   await expect(panel).toContainText('Vanguard · Pure')
-  await expect(panel).toContainText('Build v1')
 
   await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
-  const primary = page.getByLabel('Proposed Primary')
-  const secondary = page.getByLabel('Proposed Secondary')
+  const dialog = page.getByRole('dialog', { name: 'Discipline Management' })
+  const primary = dialog
+    .locator('label')
+    .filter({ hasText: /^Proposed Primary/ })
+    .locator('select')
+  const secondary = dialog
+    .locator('label')
+    .filter({ hasText: /^Proposed Secondary/ })
+    .locator('select')
+  await expect(dialog).toBeVisible()
   await expect(primary).toBeEnabled()
   await expect(secondary).toBeEnabled()
   await expect(secondary.locator('option[value="aetherist"]')).toHaveText('Aetherist')
+  await expect(secondary.locator('option[value="vanguard"]')).toHaveCount(0)
   await expect(page.getByTestId('secondary-attunement-status')).toContainText('Secondary ready')
 
   await secondary.selectOption('aetherist')
+  await expect(primary.locator('option[value="aetherist"]')).toHaveCount(0)
   const preview = page.getByTestId('primary-build-preview')
   await expect(preview).toBeVisible()
   await expect(preview).toContainText('Vanguard + Aetherist')
-  await expect(preview).toContainText('Secondary contributes no second base-stat profile')
+  await expect(preview).toContainText('Build v1')
+  await expect(preview).toContainText('Primary profile comparison')
   await expect(preview).toContainText('Previewing starts no timer')
   await expect(page.getByTestId('secondary-attunement-status')).toContainText('Secondary ready')
 
@@ -85,31 +95,33 @@ test('Profile equips a mastered Secondary with an independent attunement lock', 
     'Aetherist is now the committed Secondary Discipline.',
   )
   await expect(panel).toContainText('Vanguard + Aetherist')
-  await expect(panel).toContainText('Build v2')
   await expect(maxHp).toHaveText(maxHpBeforeSecondary)
-  await expect(secondary).toBeDisabled()
+  await expect(secondary).toBeEnabled()
   await expect(primary).toBeEnabled()
-  await expect(page.getByTestId('secondary-attunement-status')).toContainText('Secondary locked')
+  await expect(page.getByTestId('secondary-attunement-status')).toContainText('Secondary ready')
   await expect(page.getByTestId('primary-attunement-status')).toContainText('Primary ready')
 
   await primary.selectOption('lifebinder')
   await expect(preview).toBeVisible()
   await expect(preview).toContainText('Lifebinder + Aetherist')
+  await expect(preview).toContainText('Build v2')
   await page.getByRole('button', { name: 'Commit Lifebinder as Primary' }).click()
   await expect(page.getByRole('status')).toContainText(
     'Lifebinder is now the committed Primary Discipline.',
   )
   await expect(panel).toContainText('Lifebinder + Aetherist')
-  await expect(panel).toContainText('Build v3')
-  await expect(primary).toBeDisabled()
-  await expect(secondary).toBeDisabled()
-  await expect(page.getByTestId('primary-attunement-status')).toContainText('Primary locked')
-  await expect(page.getByTestId('secondary-attunement-status')).toContainText('Secondary locked')
+  await expect(primary).toBeEnabled()
+  await expect(secondary).toBeEnabled()
+  await expect(page.getByTestId('primary-attunement-status')).toContainText('Primary ready')
+  await expect(page.getByTestId('secondary-attunement-status')).toContainText('Secondary ready')
+  await expect(panel.getByRole('button')).toHaveAccessibleName(/Build v3/)
 
   await page.reload()
-  await expect(panel).toContainText('Lifebinder + Aetherist')
-  await expect(panel).toContainText('Build v3')
-  await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
-  await expect(page.getByLabel('Proposed Primary')).toBeDisabled()
-  await expect(page.getByLabel('Proposed Secondary')).toBeDisabled()
+  await expect(dialog).toBeVisible()
+  await expect(dialog).toContainText('Committed Primary')
+  await expect(dialog).toContainText('Lifebinder')
+  await expect(dialog).toContainText('Committed Secondary')
+  await expect(dialog).toContainText('Aetherist')
+  await expect(primary).toBeEnabled()
+  await expect(secondary).toBeEnabled()
 })

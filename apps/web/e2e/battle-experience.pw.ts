@@ -75,6 +75,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   const facingPad = commandDeck.locator('[data-unified-facing-pad="true"]')
   const confirmButton = page.getByRole('button', { name: 'Confirm Action' })
   const criteriaButton = page.getByRole('button', { name: /Victory conditions/i })
+  const apRemaining = page.getByRole('progressbar', { name: 'Action Economy remaining' })
 
   await expect(
     page.getByRole('dialog', { name: 'Complete the tactical fundamentals' }),
@@ -85,10 +86,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(commandDeck).toBeVisible()
   await expect(criteriaButton).toBeVisible()
   await expect(page.getByRole('button', { name: /^Tile / })).toHaveCount(63)
-  await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
-    'aria-valuenow',
-    '100',
-  )
+  await expect(apRemaining).toHaveAttribute('aria-valuenow', '100')
   await expect(commandContext).toContainText('Choose your action')
   await expect(page.getByText(/100 AP/).first()).toBeVisible()
   const fittedBoard = battlefield.locator('[data-board-auto-fit="9x7"]')
@@ -113,7 +111,9 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     await expect(combatantDialog).toHaveCount(0)
     await expect(playerTile).toBeVisible()
     await expect(recruitTile).toBeVisible()
-    await expect(page.getByRole('button', { name: `Inspect ${characterName}`, exact: true })).toBeHidden()
+    await expect(
+      page.getByRole('button', { name: `Inspect ${characterName}`, exact: true }),
+    ).toBeHidden()
   } else {
     await inspectButton.click()
     const playerRailButton = page.getByRole('button', {
@@ -147,9 +147,14 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await moveButton.click()
   await expect(commandContext).toContainText('Move · 20 AP per normal tile')
   await expect(commandContext).toContainText('Rough ground costs 40 AP')
+
+  // Full AP is not permission to move past the character's server-owned Movement allowance.
   await page.getByRole('button', { name: /Tile 4, 2; open-ground; elevation 0/ }).click()
-  await expect(commandContext).toContainText('80 AP')
-  await expect(commandContext).toContainText('20 AP left')
+  await expect(commandContext).toContainText('That tile is not reachable')
+  await expect(apRemaining).toHaveAttribute('aria-valuenow', '100')
+  await expect(confirmButton).toBeDisabled()
+
+  await chooseReachableTowardRecruit(battlefield)
   if (testInfo.project.name !== 'mobile-chromium') {
     await expect(battlefield.getByText('0', { exact: true })).toHaveCount(1)
     await expect(
@@ -160,11 +165,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   }
   await expect(confirmButton).toBeEnabled()
   await confirmButton.click()
-  await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
-    'aria-valuenow',
-    '20',
-  )
-  await expect(attackButton).toBeDisabled()
+
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
   await expect(
     page.getByRole('dialog', { name: 'Complete the tactical fundamentals' }),
@@ -175,11 +176,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(facingPad).toBeHidden()
   await finishCurrentTurn(finishButton, testInfo.project.name)
 
-  await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
-    'aria-valuenow',
-    '100',
-    { timeout: 15_000 },
-  )
+  await expect(apRemaining).toHaveAttribute('aria-valuenow', '100', { timeout: 15_000 })
   await expect(commandContext).toContainText('Choose your action', { timeout: 15_000 })
   await expect(facingPad).toBeHidden()
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
@@ -194,11 +191,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(confirmButton).toBeEnabled()
   await confirmButton.click()
   await finishCurrentTurn(finishButton, testInfo.project.name)
-  await expect(page.getByRole('progressbar', { name: 'Action Economy remaining' })).toHaveAttribute(
-    'aria-valuenow',
-    '100',
-    { timeout: 15_000 },
-  )
+  await expect(apRemaining).toHaveAttribute('aria-valuenow', '100', { timeout: 15_000 })
   await expect(commandContext).toContainText('Choose your action', { timeout: 15_000 })
 
   if (testInfo.project.name === 'mobile-chromium') {
@@ -287,12 +280,13 @@ async function chooseReachableTowardRecruit(
           open: element.dataset.terrain === 'open',
         }
       })
-      .filter(
-        (candidate): candidate is { label: string; distance: number; open: boolean } =>
-          Boolean(candidate?.label),
+      .filter((candidate): candidate is { label: string; distance: number; open: boolean } =>
+        Boolean(candidate?.label),
       )
       .filter((candidate) => !requireAdjacent || candidate.distance === 1)
-      .sort((left, right) => left.distance - right.distance || Number(right.open) - Number(left.open))
+      .sort(
+        (left, right) => left.distance - right.distance || Number(right.open) - Number(left.open),
+      )
 
     return candidates[0]?.label ?? null
   }, adjacentOnly)

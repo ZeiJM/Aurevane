@@ -258,6 +258,7 @@ export function CharacterProfileShell({
                 availablePrimaries={disciplineBuild.availablePrimaries}
                 availableSecondaries={disciplineBuild.availableSecondaries}
                 initialAttunement={disciplineBuild.attunement}
+                coreAttributes={profile.attributes}
               />
             </section>
 

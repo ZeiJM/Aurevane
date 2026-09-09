@@ -208,8 +208,8 @@ describe('P2.4 battle session service', () => {
     expect(persistedSnapshot.tactical.battle.rng.seed).toBeLessThanOrEqual(0xffff_ffff)
     expect(persistedSnapshot.tactical.battle.lifecycle).toBe('active')
     expect(player).toMatchObject({
-      initiative: 28,
-      baseMovementBudget: 10,
+      initiative: 14,
+      baseMovementBudget: 2,
       hp: 164,
       maxHp: 164,
       mp: 90,
@@ -219,15 +219,15 @@ describe('P2.4 battle session service', () => {
       provenance: {
         kind: 'character-derived',
         sourceId: `character:${CHARACTER_ID}`,
-        sourceRulesVersion: 1,
+        sourceRulesVersion: 2,
       },
-      accuracy: 7_400,
-      evasion: 900,
+      accuracy: 6_650,
+      evasion: 170,
       armor: 23,
       ward: 23,
-      jump: 1,
+      jump: 0,
     })
-    expect(playerMovementProfile?.maxElevationStep).toBe(1)
+    expect(playerMovementProfile?.maxElevationStep).toBe(0)
     expect(
       persistedSnapshot.tactical.tiles.find(
         (tile) => tile.position.x === 2 && tile.position.y === 0,
@@ -269,20 +269,39 @@ describe('P2.4 battle session service', () => {
     )
 
     expect(player).toMatchObject({
-      initiative: 27,
-      baseMovementBudget: 10,
+      initiative: 13,
+      baseMovementBudget: 2,
       hp: 162,
       maxHp: 162,
       mp: 80,
       maxMp: 80,
     })
     expect(profile).toMatchObject({
-      accuracy: 7_750,
-      evasion: 880,
+      accuracy: 6_815,
+      evasion: 165,
       armor: 22,
       ward: 20,
-      jump: 1,
+      jump: 0,
     })
+  })
+
+  it('uses the derived Movement stat as the authoritative player movement budget up to its cap', async () => {
+    const character = characterRecord({
+      foundationDisciplineId: 'farstrider',
+      agility: 55,
+      level: 50,
+    })
+    const { persistedSnapshot } = await createPersistedFixture(character)
+    const player = persistedSnapshot.tactical.battle.combatants.find(
+      (combatant) => combatant.id === `character:${CHARACTER_ID}`,
+    )
+    const recruit = persistedSnapshot.tactical.battle.combatants.find(
+      (combatant) => combatant.id === 'recruit:p2-4-1',
+    )
+
+    expect(player?.baseMovementBudget).toBe(5)
+    expect(persistedSnapshot.tactical.battle.currentTurn?.movementRemaining).toBe(5)
+    expect(recruit?.baseMovementBudget).toBe(10)
   })
 
   it('resolves a legal move on the server before persisting the next snapshot', async () => {
@@ -322,8 +341,37 @@ describe('P2.4 battle session service', () => {
     ).toEqual({ x: 1, y: 1 })
   })
 
+  it('rejects contiguous movement beyond the character Movement stat even when AP is available', async () => {
+    const { battles, service, record } = await createPersistedFixture()
+    battles.findBattleSession.mockResolvedValue(record)
+
+    await expect(
+      service.submitIntent({
+        userId: USER_ID,
+        battleSessionId: SESSION_ID,
+        expectedBattleVersion: 1,
+        idempotencyKey: '59595959-5959-4595-8595-595959595959',
+        intent: {
+          kind: 'move',
+          path: [
+            { x: 0, y: 1 },
+            { x: 1, y: 1 },
+            { x: 2, y: 1 },
+            { x: 3, y: 1 },
+          ],
+        },
+      }),
+    ).rejects.toMatchObject({ code: 'INVALID_REQUEST' })
+    expect(battles.commitBattleIntent).not.toHaveBeenCalled()
+  })
+
   it('uses authoritative stat reliability and RNG when resolving a basic attack', async () => {
-    const { battles, service, record, persistedSnapshot } = await createPersistedFixture()
+    const character = characterRecord({
+      foundationDisciplineId: 'farstrider',
+      agility: 55,
+      level: 50,
+    })
+    const { battles, service, record, persistedSnapshot } = await createPersistedFixture(character)
     const positioned = moveCurrentCombatant(persistedSnapshot.tactical, [
       { x: 0, y: 1 },
       { x: 1, y: 1 },
@@ -359,7 +407,7 @@ describe('P2.4 battle session service', () => {
           event: 'stat_driven_attack_resolved',
           actorId: `character:${CHARACTER_ID}`,
           targetId: 'recruit:p2-4-1',
-          hitChanceBasisPoints: 6_600,
+          hitChanceBasisPoints: 6_830,
           defenseKind: 'armor',
           defenseRating: 20,
           rulesVersion: 1,

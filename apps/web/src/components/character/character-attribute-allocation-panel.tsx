@@ -1,17 +1,19 @@
 'use client'
 
+import { CHARACTER_ATTRIBUTE_LABELS } from '@aurevane/game-core/character/attribute-allocation'
 import {
   CHARACTER_ATTRIBUTE_IDS,
   type CharacterAttributeId,
   type CharacterAttributes,
 } from '@aurevane/game-core/character/creation'
-import { CHARACTER_ATTRIBUTE_LABELS } from '@aurevane/game-core/character/attribute-allocation'
-import { useRouter } from 'next/navigation'
-import { useMemo, useState } from 'react'
+import type { Route } from 'next'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import styles from './character-attribute-allocation-panel.module.css'
 
 interface AttributeAllocationState {
+  characterId: string
   attributes: CharacterAttributes
   level: number
   pointPool: number
@@ -31,6 +33,11 @@ interface CharacterAttributeAllocationPanelProps {
 }
 
 type SaveState = 'idle' | 'saving'
+type AttributePanelMode = 'spend' | 'reset'
+
+const PROFILE_PANEL_QUERY = 'profilePanel'
+const ATTRIBUTE_PANEL = 'attributes'
+const ATTRIBUTE_MODE_QUERY = 'attributeMode'
 
 export function CharacterAttributeAllocationPanel({
   initialAllocation,
@@ -38,12 +45,15 @@ export function CharacterAttributeAllocationPanel({
   attributeCaps,
 }: CharacterAttributeAllocationPanelProps) {
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [allocation, setAllocation] = useState(initialAllocation)
   const [draft, setDraft] = useState<CharacterAttributes>(initialAllocation.attributes)
-  const [resetMode, setResetMode] = useState(false)
   const [saveState, setSaveState] = useState<SaveState>('idle')
   const [message, setMessage] = useState<string | null>(null)
 
+  const open = searchParams.get(PROFILE_PANEL_QUERY) === ATTRIBUTE_PANEL
+  const resetMode = open && searchParams.get(ATTRIBUTE_MODE_QUERY) === 'reset'
   const spentDraft = useMemo(
     () => CHARACTER_ATTRIBUTE_IDS.reduce((total, id) => total + draft[id], 0),
     [draft],
@@ -54,6 +64,60 @@ export function CharacterAttributeAllocationPanel({
     !resetMode && hasChanges && spentDraft > allocation.spentPoints && availableDraft >= 0
   const canSaveReset =
     resetMode && hasChanges && availableDraft === 0 && allocation.resetRemaining > 0
+
+  const setPanelOpen = useCallback(
+    (nextOpen: boolean, mode: AttributePanelMode = 'spend') => {
+      const params = new URLSearchParams(searchParams.toString())
+      if (nextOpen) {
+        params.set(PROFILE_PANEL_QUERY, ATTRIBUTE_PANEL)
+        if (mode === 'reset') params.set(ATTRIBUTE_MODE_QUERY, 'reset')
+        else params.delete(ATTRIBUTE_MODE_QUERY)
+      } else if (params.get(PROFILE_PANEL_QUERY) === ATTRIBUTE_PANEL) {
+        params.delete(PROFILE_PANEL_QUERY)
+        params.delete(ATTRIBUTE_MODE_QUERY)
+      }
+      const query = params.toString()
+      const href = (query ? `${pathname}?${query}` : pathname) as Route
+      router.replace(href, { scroll: false })
+    },
+    [pathname, router, searchParams],
+  )
+
+  const closeManager = useCallback(
+    (dismissAutomaticPrompt = true) => {
+      if (saveState === 'saving') return
+      if (dismissAutomaticPrompt && allocation.unspentPoints > 0) {
+        window.sessionStorage.setItem(autoPromptKey(allocation), 'dismissed')
+      }
+      setDraft(allocation.attributes)
+      setMessage(null)
+      setPanelOpen(false)
+    },
+    [allocation, saveState, setPanelOpen],
+  )
+
+  useEffect(() => {
+    if (!open) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && saveState !== 'saving') closeManager(true)
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [closeManager, open, saveState])
+
+  useEffect(() => {
+    if (open || allocation.unspentPoints <= 0) return
+    if (window.sessionStorage.getItem(autoPromptKey(allocation)) === 'dismissed') return
+
+    setDraft(allocation.attributes)
+    setMessage(null)
+    setPanelOpen(true, 'spend')
+  }, [allocation, open, setPanelOpen])
 
   function changeAttribute(attributeId: CharacterAttributeId, delta: number) {
     setMessage(null)
@@ -68,16 +132,23 @@ export function CharacterAttributeAllocationPanel({
     })
   }
 
-  function beginReset() {
+  function openManager() {
     setMessage(null)
     setDraft(allocation.attributes)
-    setResetMode(true)
+    setPanelOpen(true, 'spend')
+  }
+
+  function beginReset() {
+    if (allocation.resetRemaining <= 0) return
+    setMessage(null)
+    setDraft(allocation.attributes)
+    setPanelOpen(true, 'reset')
   }
 
   function cancelReset() {
     setMessage(null)
     setDraft(allocation.attributes)
-    setResetMode(false)
+    setPanelOpen(true, 'spend')
   }
 
   async function save() {
@@ -101,8 +172,18 @@ export function CharacterAttributeAllocationPanel({
 
       setAllocation(body.allocation)
       setDraft(body.allocation.attributes)
-      setResetMode(false)
-      setMessage(mode === 'reset' ? 'Attributes reset successfully.' : 'Attribute points assigned.')
+      if (mode === 'reset') {
+        setMessage('Attributes redistributed successfully.')
+        setPanelOpen(false)
+      } else if (body.allocation.unspentPoints > 0) {
+        setMessage(
+          `${body.allocation.unspentPoints} point${body.allocation.unspentPoints === 1 ? '' : 's'} still available.`,
+        )
+        setPanelOpen(true, 'spend')
+      } else {
+        setMessage('Attribute points assigned.')
+        setPanelOpen(false)
+      }
       router.refresh()
     } catch (error) {
       setMessage(
@@ -115,103 +196,197 @@ export function CharacterAttributeAllocationPanel({
 
   return (
     <section className={styles.panel} aria-labelledby="attribute-allocation-title">
-      <header className={styles.header}>
+      <div className={styles.compactBar}>
         <div>
-          <h2 id="attribute-allocation-title">Attribute Points</h2>
+          <h2 id="attribute-allocation-title">Attribute Management</h2>
           <p>
-            Level {allocation.level} · {availableDraft} point{availableDraft === 1 ? '' : 's'}{' '}
-            available
+            {allocation.unspentPoints > 0
+              ? `${allocation.unspentPoints} unspent point${allocation.unspentPoints === 1 ? '' : 's'} ready`
+              : 'Your current allocation is committed'}
           </p>
         </div>
-        <div className={styles.resetSummary}>
-          <strong>{allocation.resetRemaining} / 5 resets</strong>
-          <span>{resetRenewalLabel(allocation.resetRenewsAt)}</span>
+        <div className={styles.summaryActions}>
+          {allocation.unspentPoints > 0 ? (
+            <button type="button" className={styles.spendButton} onClick={openManager}>
+              Spend {allocation.unspentPoints} Point{allocation.unspentPoints === 1 ? '' : 's'}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className={styles.resetButton}
+            onClick={beginReset}
+            disabled={allocation.resetRemaining <= 0 || saveState === 'saving'}
+          >
+            Reset / Redistribute Attributes
+          </button>
         </div>
-      </header>
+      </div>
 
-      <div className={styles.grid}>
-        {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => {
-          const isFocus = focusAttributes.includes(attributeId)
-          const attributeCap = attributeCaps[attributeId]
-          const canDecrease = resetMode && draft[attributeId] > 1
-          const canIncrease =
-            spentDraft < allocation.pointPool &&
-            (attributeCap === undefined || draft[attributeId] < attributeCap)
-          return (
-            <div className={styles.attribute} key={attributeId}>
+      {!open && message ? <p className={styles.message}>{message}</p> : null}
+
+      {open ? (
+        <div
+          className={styles.backdrop}
+          role="presentation"
+          onPointerDown={() => closeManager(true)}
+          data-testid="attribute-allocation-backdrop"
+        >
+          <section
+            className={styles.dialog}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="attribute-allocation-dialog-title"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <header className={styles.header}>
               <div>
-                <span>{CHARACTER_ATTRIBUTE_LABELS[attributeId]}</span>
-                {isFocus ? (
-                  <small>Primary focus</small>
-                ) : attributeCap !== undefined ? (
-                  <small>Primary cap {attributeCap}</small>
-                ) : null}
+                <span>{resetMode ? 'Full redistribution' : 'Character progression'}</span>
+                <h2 id="attribute-allocation-dialog-title">
+                  {resetMode ? 'Redistribute Attributes' : 'Spend Attribute Points'}
+                </h2>
+                <p>
+                  Level {allocation.level} · {availableDraft} point
+                  {availableDraft === 1 ? '' : 's'} available
+                </p>
               </div>
-              <div className={styles.controls}>
-                {resetMode ? (
-                  <button
-                    type="button"
-                    onClick={() => changeAttribute(attributeId, -1)}
-                    disabled={!canDecrease || saveState === 'saving'}
-                    aria-label={`Decrease ${CHARACTER_ATTRIBUTE_LABELS[attributeId]}`}
-                  >
-                    −
-                  </button>
-                ) : null}
-                <strong>{draft[attributeId]}</strong>
-                <button
-                  type="button"
-                  onClick={() => changeAttribute(attributeId, 1)}
-                  disabled={!canIncrease || saveState === 'saving'}
-                  aria-label={`Increase ${CHARACTER_ATTRIBUTE_LABELS[attributeId]}`}
-                >
-                  +
-                </button>
+              <button
+                type="button"
+                className={styles.close}
+                onClick={() => closeManager(true)}
+                disabled={saveState === 'saving'}
+              >
+                Close
+              </button>
+            </header>
+
+            <div className={styles.modalMeta}>
+              <div>
+                <span>Point pool</span>
+                <strong>{allocation.pointPool}</strong>
+              </div>
+              <div>
+                <span>Unspent</span>
+                <strong>{availableDraft}</strong>
+              </div>
+              <div>
+                <span>Resets available</span>
+                <strong>{allocation.resetRemaining} / 5</strong>
+              </div>
+              <div>
+                <span>Reset refresh</span>
+                <strong>{resetRenewalLabel(allocation.resetRenewsAt)}</strong>
               </div>
             </div>
-          )
-        })}
-      </div>
 
-      <div className={styles.actions}>
-        {resetMode ? (
-          <>
-            <button
-              type="button"
-              className={styles.secondary}
-              onClick={cancelReset}
-              disabled={saveState === 'saving'}
-            >
-              Cancel Reset
-            </button>
-            <button type="button" onClick={save} disabled={!canSaveReset || saveState === 'saving'}>
-              {saveState === 'saving' ? 'Saving…' : 'Confirm Reset'}
-            </button>
-          </>
-        ) : (
-          <>
-            <button
-              type="button"
-              className={styles.secondary}
-              onClick={beginReset}
-              disabled={allocation.resetRemaining <= 0 || saveState === 'saving'}
-            >
-              Reset Attributes
-            </button>
-            <button type="button" onClick={save} disabled={!canSaveSpend || saveState === 'saving'}>
-              {saveState === 'saving' ? 'Saving…' : 'Assign Points'}
-            </button>
-          </>
-        )}
-      </div>
+            <div className={styles.grid}>
+              {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => {
+                const isFocus = focusAttributes.includes(attributeId)
+                const attributeCap = attributeCaps[attributeId]
+                const canDecrease = resetMode && draft[attributeId] > 1
+                const canIncrease =
+                  spentDraft < allocation.pointPool &&
+                  (attributeCap === undefined || draft[attributeId] < attributeCap)
+                return (
+                  <div
+                    className={styles.attribute}
+                    key={attributeId}
+                    data-focus={isFocus ? 'true' : 'false'}
+                  >
+                    <div>
+                      <span>{CHARACTER_ATTRIBUTE_LABELS[attributeId]}</span>
+                      {isFocus ? (
+                        <small>Primary focus · uncapped by Discipline</small>
+                      ) : attributeCap !== undefined ? (
+                        <small>Primary cap {attributeCap}</small>
+                      ) : (
+                        <small>No Primary cap</small>
+                      )}
+                    </div>
+                    <div className={styles.controls}>
+                      {resetMode ? (
+                        <button
+                          type="button"
+                          onClick={() => changeAttribute(attributeId, -1)}
+                          disabled={!canDecrease || saveState === 'saving'}
+                          aria-label={`Decrease ${CHARACTER_ATTRIBUTE_LABELS[attributeId]}`}
+                        >
+                          −
+                        </button>
+                      ) : null}
+                      <strong>{draft[attributeId]}</strong>
+                      <button
+                        type="button"
+                        onClick={() => changeAttribute(attributeId, 1)}
+                        disabled={!canIncrease || saveState === 'saving'}
+                        aria-label={`Increase ${CHARACTER_ATTRIBUTE_LABELS[attributeId]}`}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
 
-      {resetMode ? (
-        <p className={styles.notice}>
-          Reset mode unlocks the full pool, including starting attributes. Redistribute all{' '}
-          {allocation.pointPool} points before confirming. This uses 1 reset.
-        </p>
+            {resetMode ? (
+              <p className={styles.notice}>
+                Full redistribution includes the attributes you started the game with. Allocate all{' '}
+                {allocation.pointPool} points before confirming. This consumes 1 of your 5 resets
+                for the current 30-day window.
+              </p>
+            ) : (
+              <p className={styles.notice}>
+                Spend newly earned points here. Existing committed points stay untouched unless you
+                enter full redistribution mode.
+              </p>
+            )}
+
+            {message ? <p className={styles.message}>{message}</p> : null}
+
+            <div className={styles.actions}>
+              {resetMode ? (
+                <>
+                  <button
+                    type="button"
+                    className={styles.secondary}
+                    onClick={cancelReset}
+                    disabled={saveState === 'saving'}
+                  >
+                    Back to Point Spend
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.confirmReset}
+                    onClick={save}
+                    disabled={!canSaveReset || saveState === 'saving'}
+                  >
+                    {saveState === 'saving' ? 'Saving…' : 'Confirm Redistribution'}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className={styles.resetButton}
+                    onClick={beginReset}
+                    disabled={allocation.resetRemaining <= 0 || saveState === 'saving'}
+                  >
+                    Reset / Redistribute
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.spendButton}
+                    onClick={save}
+                    disabled={!canSaveSpend || saveState === 'saving'}
+                  >
+                    {saveState === 'saving' ? 'Saving…' : 'Commit Attribute Points'}
+                  </button>
+                </>
+              )}
+            </div>
+          </section>
+        </div>
       ) : null}
-      {message ? <p className={styles.message}>{message}</p> : null}
     </section>
   )
 }
@@ -220,9 +395,13 @@ function spent(attributes: CharacterAttributes): number {
   return CHARACTER_ATTRIBUTE_IDS.reduce((total, id) => total + attributes[id], 0)
 }
 
+function autoPromptKey(allocation: AttributeAllocationState): string {
+  return `aurevane:attribute-prompt:${allocation.characterId}:${allocation.pointPool}:${allocation.spentPoints}`
+}
+
 function resetRenewalLabel(renewsAt: string | null): string {
-  if (!renewsAt) return '30-day timer starts on your next reset'
+  if (!renewsAt) return 'Starts on next reset'
   const date = new Date(renewsAt)
-  if (Number.isNaN(date.getTime())) return 'Refresh date unavailable'
-  return `Refreshes ${date.toLocaleDateString()}`
+  if (Number.isNaN(date.getTime())) return 'Unavailable'
+  return date.toLocaleDateString()
 }

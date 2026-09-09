@@ -76,10 +76,8 @@ export interface DerivedStatRulesetIssue {
 }
 
 /**
- * Development balance for the universal six-attribute framework.
- *
- * Global percentage and mobility ceilings are hard gameplay guardrails. Primary Discipline identity
- * and player-assigned attributes may change the route to those ceilings, but cannot exceed them.
+ * Original universal six-attribute balance. Retained as an explicit version for historical
+ * snapshots/tests; new live calculations use V2 below.
  */
 export const DERIVED_STAT_RULESET_V1: DerivedStatRuleset = {
   version: 1,
@@ -223,6 +221,79 @@ export const DERIVED_STAT_RULESET_V1: DerivedStatRuleset = {
   ],
 }
 
+/**
+ * Current Level-50 balance.
+ *
+ * V2 deliberately makes percentage reliability and mobility mature across a character's whole
+ * Level range instead of granting near-endgame values at Level 1. Core attributes remain important
+ * at every Level, while the previously approved global ceilings remain hard guardrails.
+ *
+ * HP/MP/Power/Armor/Ward keep their established V1 formulas. Accuracy, Evasion, Critical Chance,
+ * Initiative, Movement, Jump, and Status Resistance receive gentler attribute coefficients plus
+ * Level growth so focused builds still become exceptional without front-loading their ceiling.
+ */
+export const DERIVED_STAT_RULESET_V2: DerivedStatRuleset = {
+  version: 2,
+  rules: DERIVED_STAT_RULESET_V1.rules.map((rule): DerivedStatRule => {
+    switch (rule.id) {
+      case 'accuracy':
+        return {
+          ...rule,
+          baseNumerator: 6200,
+          perLevelNumerator: 20,
+          attributeWeights: { finesse: 60, intellect: 15 },
+        }
+      case 'evasion':
+        return {
+          ...rule,
+          baseNumerator: 50,
+          perLevelNumerator: 6,
+          attributeWeights: { agility: 15, resolve: 5 },
+        }
+      case 'criticalChance':
+        return {
+          ...rule,
+          baseNumerator: 100,
+          perLevelNumerator: 14,
+          attributeWeights: { finesse: 25 },
+        }
+      case 'initiative':
+        return {
+          ...rule,
+          baseNumerator: 10,
+          perLevelNumerator: 1,
+          attributeWeights: { agility: 2, resolve: 1 },
+          divisor: 2,
+        }
+      case 'movement':
+        return {
+          ...rule,
+          baseNumerator: 40,
+          perLevelNumerator: 1,
+          attributeWeights: { agility: 1 },
+          divisor: 25,
+        }
+      case 'jump':
+        return {
+          ...rule,
+          baseNumerator: -20,
+          perLevelNumerator: 1,
+          attributeWeights: { might: 1, agility: 1 },
+          divisor: 30,
+        }
+      case 'statusResistance':
+        return {
+          ...rule,
+          baseNumerator: 0,
+          perLevelNumerator: 30,
+          attributeWeights: { resolve: 70 },
+        }
+      default:
+        return { ...rule, attributeWeights: { ...rule.attributeWeights } }
+    }
+  }),
+}
+
 export function validateDerivedStatRuleset(
   ruleset: DerivedStatRuleset,
 ): readonly DerivedStatRulesetIssue[] {
@@ -302,7 +373,7 @@ export function validateDerivedStatRuleset(
 
 export function calculateDerivedStats(
   input: DerivedStatInput,
-  ruleset: DerivedStatRuleset = DERIVED_STAT_RULESET_V1,
+  ruleset: DerivedStatRuleset = DERIVED_STAT_RULESET_V2,
 ): DerivedStatSnapshot {
   const issues = validateDerivedStatRuleset(ruleset)
   if (issues.length > 0) {
@@ -346,9 +417,7 @@ export function calculateDerivedStats(
 
     for (const attributeId of CHARACTER_ATTRIBUTE_IDS) {
       const coefficient = rule.attributeWeights[attributeId]
-      if (coefficient === undefined || coefficient === 0) {
-        continue
-      }
+      if (coefficient === undefined || coefficient === 0) continue
 
       contributions.push({
         sourceKind: 'attribute',
@@ -377,19 +446,12 @@ export function calculateDerivedStats(
     }
   }
 
-  return {
-    rulesVersion: ruleset.version,
-    stats,
-  }
+  return { rulesVersion: ruleset.version, stats }
 }
 
 function clamp(value: number, minimum: number | undefined, maximum: number | undefined): number {
   let result = value
-  if (minimum !== undefined) {
-    result = Math.max(result, minimum)
-  }
-  if (maximum !== undefined) {
-    result = Math.min(result, maximum)
-  }
+  if (minimum !== undefined) result = Math.max(result, minimum)
+  if (maximum !== undefined) result = Math.min(result, maximum)
   return result
 }

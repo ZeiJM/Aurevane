@@ -1,12 +1,14 @@
 import 'server-only'
 
+import { FOUNDATION_DISCIPLINES } from '@aurevane/game-core/character/foundation-disciplines'
 import { P33_REPRESENTATIVE_DISCIPLINE_SKILLS } from '@aurevane/game-core/combat/mature-skills'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
-const PV2_TEST_DISCIPLINES = ['vanguard', 'lifebinder'] as const
-const PV2_TEST_SOURCE_ID = 'pv2-buildcraft-test-kit:v1'
+const PV2_TEST_MASTERED_DISCIPLINES = FOUNDATION_DISCIPLINES.map((discipline) => discipline.id)
+const PV2_TEST_SKILL_DISCIPLINES = ['vanguard', 'lifebinder'] as const
+const PV2_TEST_SOURCE_ID = 'pv2-buildcraft-test-kit:v2'
 const PV2_TEST_PREVIEW_BRANCH = 'agent/p3-8-representative-buildcraft-slice'
 
 export interface Pv2BuildcraftTestKitResult {
@@ -54,7 +56,7 @@ export async function preparePv2BuildcraftTestKit(
     throw new AurevaneError('INVALID_REQUEST', 'The selected character is not available.')
   }
 
-  for (const disciplineId of PV2_TEST_DISCIPLINES) {
+  for (const disciplineId of PV2_TEST_MASTERED_DISCIPLINES) {
     const { error } = await supabase.rpc('record_character_discipline_mastery_v1', {
       p_character_id: characterId,
       p_discipline_id: disciplineId,
@@ -67,7 +69,7 @@ export async function preparePv2BuildcraftTestKit(
   const representativeSkills = P33_REPRESENTATIVE_DISCIPLINE_SKILLS.filter(
     (skill) =>
       skill.enabled &&
-      PV2_TEST_DISCIPLINES.some((disciplineId) => disciplineId === skill.sourceDisciplineId),
+      PV2_TEST_SKILL_DISCIPLINES.some((disciplineId) => disciplineId === skill.sourceDisciplineId),
   )
 
   for (const skill of representativeSkills) {
@@ -83,7 +85,7 @@ export async function preparePv2BuildcraftTestKit(
   }
 
   return {
-    masteredDisciplines: PV2_TEST_DISCIPLINES.length,
+    masteredDisciplines: PV2_TEST_MASTERED_DISCIPLINES.length,
     learnedSkills: representativeSkills.length,
   }
 }
