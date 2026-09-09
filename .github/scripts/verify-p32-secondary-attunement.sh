@@ -40,7 +40,7 @@ create_test_character() {
       'portrait.starter.wayfarer-01',
       'appearance.starter.roadworn',
       'vanguard',
-      7, 6, 5, 6, 5, 7
+      12, 4, 7, 4, 3, 6
     );"
 }
 
@@ -66,7 +66,7 @@ test "$initial" = '2|1|vanguard||14400|14400'
 attributes_before="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   select might::text || '|' || finesse::text || '|' || vitality::text || '|' || agility::text || '|' || intellect::text || '|' || resolve::text
   from public.characters where id = '$character_id'::uuid;")"
-test "$attributes_before" = '7|6|5|6|5|7'
+test "$attributes_before" = '12|4|7|4|3|6'
 
 # The current testing release intentionally auto-grants all active Secondary Disciplines. Remove only
 # those support grants from this legacy P3.2 fixture so the original mastery fail-closed regression
