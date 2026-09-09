@@ -22,6 +22,7 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('server-only', () => ({}))
 
 import type {
+  CharacterActiveBuildRecord,
   CharacterBuildRepository,
   CharacterCommittedBuildSnapshotRecord,
 } from '@/server/character/character-build-service'
@@ -102,6 +103,52 @@ function mixedSnapshot(): CharacterCommittedBuildSnapshotRecord {
   }
 }
 
+function activeBuildFor(snapshot: CharacterCommittedBuildSnapshotRecord): CharacterActiveBuildRecord {
+  return {
+    characterId: CHARACTER_ID,
+    schemaVersion: 2,
+    buildVersion: snapshot.buildVersion,
+    primaryDefinition: {
+      id: snapshot.primary.disciplineId,
+      definitionVersion: snapshot.primary.definitionVersion,
+      name: 'Vanguard',
+      summary: 'Front-line pressure and durable physical control.',
+      enabledForPrimary: true,
+      enabledForSecondary: true,
+    },
+    primaryProfile: {
+      disciplineId: snapshot.primary.disciplineId,
+      profileVersion: snapshot.primary.profileVersion,
+      statOffsets: {
+        maxHp: 20,
+        physicalPower: 2,
+        armor: 5,
+        ward: 1,
+        initiative: -1,
+      },
+    },
+    secondaryDefinition: snapshot.secondary
+      ? {
+          id: snapshot.secondary.disciplineId,
+          definitionVersion: snapshot.secondary.definitionVersion,
+          name: 'Lifebinder',
+          summary: 'Mystic sustain and restorative control.',
+          enabledForPrimary: true,
+          enabledForSecondary: true,
+        }
+      : null,
+    primaryAttunementLockedUntil: null,
+    secondaryAttunementLockedUntil: null,
+    attunementPolicy: {
+      version: 2,
+      primaryCooldownSeconds: 0,
+      secondaryCooldownSeconds: 0,
+    },
+    serverNow: CREATED_AT,
+    updatedAt: CREATED_AT,
+  }
+}
+
 function characterRepository(): CharacterRepository {
   return {
     findByOwnerSlot: vi.fn(async () => characterRecord()),
@@ -115,7 +162,7 @@ function buildRepository(initial: CharacterCommittedBuildSnapshotRecord) {
   let snapshot = initial
   const loadCommittedBuildSnapshot = vi.fn(async () => snapshot)
   const repository: CharacterBuildRepository = {
-    findActiveBuild: vi.fn(async () => null),
+    findActiveBuild: vi.fn(async () => activeBuildFor(snapshot)),
     listDisciplines: vi.fn(async () => []),
     listLearnedSkills: vi.fn(async () => []),
     listEquippedDisciplineSkills: vi.fn(async () => []),
