@@ -29,7 +29,9 @@ export function retractProjectedPath(
 ): BattleGridPosition[] | null {
   const targetIndex = path.findIndex((position) => positionsEqual(position, target))
   if (targetIndex < 0 || targetIndex === path.length - 1) return null
-  return targetIndex === 0 ? [] : path.slice(0, targetIndex + 1).map((position) => ({ ...position }))
+  return targetIndex === 0
+    ? []
+    : path.slice(0, targetIndex + 1).map((position) => ({ ...position }))
 }
 
 export function facingGlyph(facing: BattleFacing): string {
