@@ -1,5 +1,9 @@
 'use client'
 
+import {
+  CHARACTER_ATTRIBUTE_LABELS,
+  foundationDisciplineAttributePolicy,
+} from '@aurevane/game-core/character/attribute-allocation'
 import type { PrimaryDisciplinePreview } from '@aurevane/game-core/character/discipline-build'
 import type { Route } from 'next'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
@@ -97,6 +101,21 @@ function policyDuration(seconds: number): string {
   return formatDuration(seconds)
 }
 
+function primaryAttributePolicySummary(disciplineId: string): string | null {
+  const policy = foundationDisciplineAttributePolicy(disciplineId)
+  if (!policy) return null
+
+  const focus = policy.focusAttributes.map((attributeId) => CHARACTER_ATTRIBUTE_LABELS[attributeId])
+  const caps = Object.entries(policy.attributeCaps).map(
+    ([attributeId, cap]) =>
+      `${CHARACTER_ATTRIBUTE_LABELS[attributeId as keyof typeof CHARACTER_ATTRIBUTE_LABELS]} ${cap}`,
+  )
+
+  return caps.length > 0
+    ? `Focus: ${focus.join(' + ')}. Off-identity caps: ${caps.join(', ')}.`
+    : `Focus: ${focus.join(' + ')}. No off-identity attribute caps.`
+}
+
 export function CharacterDisciplineBuildPanel({
   initialBuildVersion,
   initialCurrent,
@@ -123,6 +142,7 @@ export function CharacterDisciplineBuildPanel({
   const [pendingPreview, setPendingPreview] = useState(false)
   const [pendingCommit, setPendingCommit] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+  const selectedPrimaryPolicySummary = primaryAttributePolicySummary(selectedPrimaryId)
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -394,6 +414,9 @@ export function CharacterDisciplineBuildPanel({
                         ? `Primary locked: ${formatDuration(remaining.primary)} remaining`
                         : `Primary ready · next change locks for ${policyDuration(attunement.policy.primaryCooldownSeconds)}`}
                     </small>
+                    {selectedPrimaryPolicySummary ? (
+                      <small data-testid="primary-attribute-policy">{selectedPrimaryPolicySummary}</small>
+                    ) : null}
                   </label>
 
                   <label className={styles.selector}>
