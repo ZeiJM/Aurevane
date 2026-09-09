@@ -13,15 +13,18 @@ import {
 import type { PersistedCharacter } from '@aurevane/game-core/character/persistence'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
-export type CharacterAttributeChangeMode = 'spend' | 'reset'
+export type CharacterAttributeChangeMode = 'spend' | 'reset' | 'convert'
 
 export interface CharacterAttributeAllocationView {
   characterId: string
   attributes: CharacterAttributes
+  baseAttributes: CharacterAttributes
   level: number
   pointPool: number
+  personalPointPool: number
   spentPoints: number
   unspentPoints: number
+  conversionRequired: boolean
   resetWindowStartedAt: string | null
   resetUsed: number
   resetRemaining: number
@@ -74,7 +77,7 @@ export async function commitCharacterAttributeAllocation(
   },
   repository: CharacterAttributeRepository,
 ): Promise<{ allocation: CharacterAttributeAllocationView; replayed: boolean }> {
-  if (input.mode !== 'spend' && input.mode !== 'reset') {
+  if (!['spend', 'reset', 'convert'].includes(input.mode)) {
     throw new AurevaneError('INVALID_REQUEST', 'Choose a valid attribute allocation action.')
   }
   if (!isUuid(input.idempotencyKey)) {
@@ -83,16 +86,30 @@ export async function commitCharacterAttributeAllocation(
 
   const current = await loadCharacterAttributeAllocation(userId, character, repository)
   const policy = foundationDisciplineAttributePolicy(input.primaryDisciplineId)
+  if (!policy) {
+    throw new AurevaneError('INVALID_REQUEST', 'The active Primary Discipline is unavailable.')
+  }
   const issues = validateAttributeAllocation({
     attributes: input.attributes,
     level: current.level,
     policy,
-    requireFullPool: input.mode === 'reset',
+    requireFullPool: input.mode === 'reset' || input.mode === 'convert',
   })
   if (issues.length > 0) {
     throw new AurevaneError(
       'INVALID_REQUEST',
       issues[0]?.message ?? 'That attribute allocation is invalid.',
+    )
+  }
+
+  if (input.mode === 'convert') {
+    if (!current.conversionRequired) {
+      throw new AurevaneError('INVALID_REQUEST', 'Core Stat conversion is already complete.')
+    }
+  } else if (current.conversionRequired) {
+    throw new AurevaneError(
+      'INVALID_REQUEST',
+      'Redistribute your Core Stats once before spending or resetting points.',
     )
   }
 
@@ -108,7 +125,7 @@ export async function commitCharacterAttributeAllocation(
     if (sumAttributes(input.attributes) <= current.spentPoints) {
       throw new AurevaneError('INVALID_REQUEST', 'Assign at least one available attribute point.')
     }
-  } else if (current.resetRemaining <= 0) {
+  } else if (input.mode === 'reset' && current.resetRemaining <= 0) {
     throw new AurevaneError(
       'INVALID_REQUEST',
       'No attribute resets remain in the current 30-day window.',
@@ -118,7 +135,7 @@ export async function commitCharacterAttributeAllocation(
   const requestFingerprint = `sha256:${createHash('sha256')
     .update(
       JSON.stringify({
-        command: 'character.attributes.allocate.v1',
+        command: 'character.attributes.allocate.v2',
         characterId: character.id,
         mode: input.mode,
         attributes: input.attributes,
