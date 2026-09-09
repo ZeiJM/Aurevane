@@ -6,7 +6,7 @@ on:
       - agent/format-helper-battle-experience
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   format:
@@ -20,10 +20,15 @@ jobs:
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
       - run: pnpm install --frozen-lockfile
-      - name: Format and print battle experience
+      - name: Format and commit battle experience
         run: |
           pnpm exec prettier --write apps/web/e2e/battle-experience.pw.ts
-          echo 'FORMATTED_FILE_BEGIN'
-          base64 -w 0 apps/web/e2e/battle-experience.pw.ts
-          echo
-          echo 'FORMATTED_FILE_END'
+          if git diff --quiet -- apps/web/e2e/battle-experience.pw.ts; then
+            echo 'Already formatted.'
+            exit 0
+          fi
+          git config user.name 'Aurevane CI'
+          git config user.email 'actions@users.noreply.github.com'
+          git add apps/web/e2e/battle-experience.pw.ts
+          git commit -m 'Format battle experience regression'
+          git push
