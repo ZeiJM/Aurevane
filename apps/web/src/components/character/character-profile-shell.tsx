@@ -157,9 +157,10 @@ export function CharacterProfileShell({
     disciplineBuild.current.definition,
     disciplineBuild.currentSecondary,
   )
-  const focusAttributes: readonly CharacterAttributeId[] =
-    foundationDisciplineAttributePolicy(disciplineBuild.current.definition.id)?.focusAttributes ??
-    []
+  const attributePolicy = foundationDisciplineAttributePolicy(
+    disciplineBuild.current.definition.id,
+  )
+  const focusAttributes: readonly CharacterAttributeId[] = attributePolicy?.focusAttributes ?? []
 
   return (
     <AuthenticatedShellFrame sessionLabel="Character Profile">
@@ -231,6 +232,7 @@ export function CharacterProfileShell({
           <CharacterAttributeAllocationPanel
             initialAllocation={attributeAllocation}
             focusAttributes={focusAttributes}
+            attributeCaps={attributePolicy?.attributeCaps ?? {}}
           />
         </Surface>
 
