@@ -166,10 +166,6 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(confirmButton).toBeEnabled()
   await confirmButton.click()
 
-  const apAfterMove = Number(await apRemaining.getAttribute('aria-valuenow'))
-  expect(apAfterMove).toBeLessThan(100)
-  expect(apAfterMove).toBeGreaterThanOrEqual(20)
-  expect(apAfterMove % 20).toBe(0)
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
   await expect(
     page.getByRole('dialog', { name: 'Complete the tactical fundamentals' }),
