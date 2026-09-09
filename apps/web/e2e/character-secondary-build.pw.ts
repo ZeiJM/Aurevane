@@ -65,8 +65,14 @@ test('Profile equips a mastered Secondary with an independent attunement lock', 
 
   await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
   const dialog = page.getByRole('dialog', { name: 'Discipline Management' })
-  const primary = page.getByLabel('Proposed Primary', { exact: true })
-  const secondary = page.getByLabel('Proposed Secondary', { exact: true })
+  const primary = dialog
+    .locator('label')
+    .filter({ hasText: /^Proposed Primary/ })
+    .locator('select')
+  const secondary = dialog
+    .locator('label')
+    .filter({ hasText: /^Proposed Secondary/ })
+    .locator('select')
   await expect(dialog).toBeVisible()
   await expect(primary).toBeEnabled()
   await expect(secondary).toBeEnabled()
@@ -116,6 +122,6 @@ test('Profile equips a mastered Secondary with an independent attunement lock', 
   await expect(dialog).toContainText('Lifebinder')
   await expect(dialog).toContainText('Committed Secondary')
   await expect(dialog).toContainText('Aetherist')
-  await expect(page.getByLabel('Proposed Primary', { exact: true })).toBeDisabled()
-  await expect(page.getByLabel('Proposed Secondary', { exact: true })).toBeDisabled()
+  await expect(primary).toBeDisabled()
+  await expect(secondary).toBeDisabled()
 })
