@@ -37,10 +37,13 @@ interface SecondaryOption extends PrimaryOption {
 interface AttributeAllocationView {
   characterId: string
   attributes: CharacterAttributes
+  baseAttributes: CharacterAttributes
   level: number
   pointPool: number
+  personalPointPool: number
   spentPoints: number
   unspentPoints: number
+  conversionRequired: boolean
   resetWindowStartedAt: string | null
   resetUsed: number
   resetRemaining: number
