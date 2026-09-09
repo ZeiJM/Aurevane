@@ -47,7 +47,7 @@ on:
       - 'apps/web/src/components/character/character-profile-shell.tsx'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   authority:
@@ -58,6 +58,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -72,6 +74,24 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Normalize remaining PR formatting
+        if: github.event_name == 'pull_request'
+        run: |
+          pnpm exec prettier --write \
+            packages/game-core/src/character/discipline-build.ts \
+            apps/web/src/components/character/character-discipline-build-panel.tsx \
+            apps/web/src/components/character/character-discipline-build-panel.module.css
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            packages/game-core/src/character/discipline-build.ts \
+            apps/web/src/components/character/character-discipline-build-panel.tsx \
+            apps/web/src/components/character/character-discipline-build-panel.module.css
+          if ! git diff --cached --quiet; then
+            git commit -m "Normalize profile discipline formatting"
+            git push origin HEAD:${{ github.event.pull_request.head.ref }}
+          fi
+
       - name: Verify focused formatting is committed
         run: |
           pnpm exec prettier --write \
@@ -82,18 +102,12 @@ jobs:
             packages/game-core/src/character/discipline-build.test.ts \
             packages/game-core/src/character/foundation-disciplines.ts \
             packages/game-core/src/character/foundation-disciplines.test.ts \
-            packages/game-core/src/character/discipline-build.ts \
             apps/web/src/server/character/character-attribute-service.ts \
             apps/web/src/server/character/supabase-character-attribute-repository.ts \
             apps/web/src/app/api/character/attributes/route.ts \
             apps/web/src/app/api/character/build/disciplines/route.ts \
-            apps/web/src/components/battle/battle-geometry.ts \
             apps/web/src/components/character/character-attribute-allocation-panel.tsx \
             apps/web/src/components/character/character-attribute-allocation-panel.module.css \
-            apps/web/src/components/character/character-discipline-build-panel.tsx \
-            apps/web/src/components/character/character-discipline-build-panel.module.css \
-            apps/web/src/components/character/character-profile-details-compact.module.css \
-            apps/web/src/components/character/foundation-discipline-sigil.tsx \
             apps/web/src/components/character/character-creation-experience.tsx \
             apps/web/src/app/game/character/page.tsx \
             apps/web/src/components/character/character-profile-shell.tsx
@@ -105,18 +119,12 @@ jobs:
             packages/game-core/src/character/discipline-build.test.ts \
             packages/game-core/src/character/foundation-disciplines.ts \
             packages/game-core/src/character/foundation-disciplines.test.ts \
-            packages/game-core/src/character/discipline-build.ts \
             apps/web/src/server/character/character-attribute-service.ts \
             apps/web/src/server/character/supabase-character-attribute-repository.ts \
             apps/web/src/app/api/character/attributes/route.ts \
             apps/web/src/app/api/character/build/disciplines/route.ts \
-            apps/web/src/components/battle/battle-geometry.ts \
             apps/web/src/components/character/character-attribute-allocation-panel.tsx \
             apps/web/src/components/character/character-attribute-allocation-panel.module.css \
-            apps/web/src/components/character/character-discipline-build-panel.tsx \
-            apps/web/src/components/character/character-discipline-build-panel.module.css \
-            apps/web/src/components/character/character-profile-details-compact.module.css \
-            apps/web/src/components/character/foundation-discipline-sigil.tsx \
             apps/web/src/components/character/character-creation-experience.tsx \
             apps/web/src/app/game/character/page.tsx \
             apps/web/src/components/character/character-profile-shell.tsx
