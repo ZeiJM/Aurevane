@@ -127,7 +127,10 @@ export function CharacterAttributeAllocationPanel({
     setMessage(null)
     setDraft((current) => {
       const nextValue = current[attributeId] + delta
-      const minimum = mode === 'spend' ? allocation.attributes[attributeId] : allocation.baseAttributes[attributeId]
+      const minimum =
+        mode === 'spend'
+          ? allocation.attributes[attributeId]
+          : allocation.baseAttributes[attributeId]
       const cap = attributeCaps[attributeId]
       if (nextValue < minimum) return current
       if (delta > 0 && cap !== undefined && nextValue > cap) return current
@@ -167,7 +170,9 @@ export function CharacterAttributeAllocationPanel({
       if (mode === 'reset') setResetOpen(false)
       router.refresh()
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'The Core Stat change could not be saved.')
+      setMessage(
+        error instanceof Error ? error.message : 'The Core Stat change could not be saved.',
+      )
     } finally {
       setSaveState('idle')
     }
@@ -202,13 +207,24 @@ export function CharacterAttributeAllocationPanel({
           >
             <header className={styles.header}>
               <div>
-                <span>{mode === 'reset' ? 'Full redistribution' : mode === 'convert' ? 'Core profile conversion' : 'Level gained'}</span>
+                <span>
+                  {mode === 'reset'
+                    ? 'Full redistribution'
+                    : mode === 'convert'
+                      ? 'Core profile conversion'
+                      : 'Level gained'}
+                </span>
                 <h2 id="attribute-allocation-dialog-title">
                   {mode === 'reset' ? 'Redistribute Attributes' : 'Spend Core Stat Points'}
                 </h2>
               </div>
               {!forced ? (
-                <button type="button" className={styles.close} onClick={closeReset} disabled={saveState === 'saving'}>
+                <button
+                  type="button"
+                  className={styles.close}
+                  onClick={closeReset}
+                  disabled={saveState === 'saving'}
+                >
                   Close
                 </button>
               ) : null}
@@ -216,10 +232,22 @@ export function CharacterAttributeAllocationPanel({
 
             {mode === 'reset' ? (
               <div className={styles.modalMeta}>
-                <div><span>Point pool</span><strong>{allocation.pointPool}</strong></div>
-                <div><span>Unspent</span><strong>{availableDraft}</strong></div>
-                <div><span>Resets available</span><strong>{allocation.resetRemaining} / 5</strong></div>
-                <div><span>Reset refresh</span><strong>{resetRenewalLabel(allocation.resetRenewsAt)}</strong></div>
+                <div>
+                  <span>Point pool</span>
+                  <strong>{allocation.pointPool}</strong>
+                </div>
+                <div>
+                  <span>Unspent</span>
+                  <strong>{availableDraft}</strong>
+                </div>
+                <div>
+                  <span>Resets available</span>
+                  <strong>{allocation.resetRemaining} / 5</strong>
+                </div>
+                <div>
+                  <span>Reset refresh</span>
+                  <strong>{resetRenewalLabel(allocation.resetRenewsAt)}</strong>
+                </div>
               </div>
             ) : (
               <div className={styles.forcedCounter} aria-live="polite">
@@ -232,11 +260,20 @@ export function CharacterAttributeAllocationPanel({
               {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => {
                 const isFocus = focusAttributes.includes(attributeId)
                 const cap = attributeCaps[attributeId]
-                const minimum = mode === 'spend' ? allocation.attributes[attributeId] : allocation.baseAttributes[attributeId]
+                const minimum =
+                  mode === 'spend'
+                    ? allocation.attributes[attributeId]
+                    : allocation.baseAttributes[attributeId]
                 const canDecrease = draft[attributeId] > minimum
-                const canIncrease = spentDraft < allocation.pointPool && (cap === undefined || draft[attributeId] < cap)
+                const canIncrease =
+                  spentDraft < allocation.pointPool &&
+                  (cap === undefined || draft[attributeId] < cap)
                 return (
-                  <div className={styles.attribute} key={attributeId} data-focus={isFocus ? 'true' : 'false'}>
+                  <div
+                    className={styles.attribute}
+                    key={attributeId}
+                    data-focus={isFocus ? 'true' : 'false'}
+                  >
                     <div>
                       <span>{CHARACTER_ATTRIBUTE_LABELS[attributeId]}</span>
                       <small>
@@ -246,17 +283,35 @@ export function CharacterAttributeAllocationPanel({
                     </div>
                     <div className={styles.controls}>
                       {mode !== 'spend' ? (
-                        <button type="button" onClick={() => changeAttribute(attributeId, -1)} disabled={!canDecrease || saveState === 'saving'} aria-label={`Decrease ${CHARACTER_ATTRIBUTE_LABELS[attributeId]}`}>−</button>
+                        <button
+                          type="button"
+                          onClick={() => changeAttribute(attributeId, -1)}
+                          disabled={!canDecrease || saveState === 'saving'}
+                          aria-label={`Decrease ${CHARACTER_ATTRIBUTE_LABELS[attributeId]}`}
+                        >
+                          −
+                        </button>
                       ) : null}
                       <strong>{draft[attributeId]}</strong>
-                      <button type="button" onClick={() => changeAttribute(attributeId, 1)} disabled={!canIncrease || saveState === 'saving'} aria-label={`Increase ${CHARACTER_ATTRIBUTE_LABELS[attributeId]}`}>+</button>
+                      <button
+                        type="button"
+                        onClick={() => changeAttribute(attributeId, 1)}
+                        disabled={!canIncrease || saveState === 'saving'}
+                        aria-label={`Increase ${CHARACTER_ATTRIBUTE_LABELS[attributeId]}`}
+                      >
+                        +
+                      </button>
                     </div>
                   </div>
                 )
               })}
             </div>
 
-            {message ? <p className={styles.message} role="alert">{message}</p> : null}
+            {message ? (
+              <p className={styles.message} role="alert">
+                {message}
+              </p>
+            ) : null}
 
             <div className={styles.actions}>
               <button

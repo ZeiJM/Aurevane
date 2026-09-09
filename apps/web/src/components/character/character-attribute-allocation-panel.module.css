@@ -18,7 +18,11 @@
   color: inherit;
   background: rgba(255, 255, 255, 0.035);
   cursor: pointer;
-  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease, opacity 140ms ease;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    transform 140ms ease,
+    opacity 140ms ease;
 }
 
 .resetButton,
@@ -37,7 +41,9 @@
   border-color: rgba(209, 73, 73, 0.72);
   color: #ffe5e5;
   background: linear-gradient(135deg, rgba(155, 32, 39, 0.9), rgba(111, 20, 28, 0.94));
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.035), 0 0.5rem 1.5rem rgba(93, 16, 22, 0.18);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.035),
+    0 0.5rem 1.5rem rgba(93, 16, 22, 0.18);
 }
 
 .spendButton {
@@ -88,9 +94,10 @@
   color: var(--av-text);
   background:
     radial-gradient(circle at 12% 0, rgba(207, 169, 93, 0.11), transparent 30%),
-    radial-gradient(circle at 100% 100%, rgba(90, 115, 160, 0.07), transparent 32%),
-    #080c12;
-  box-shadow: 0 1.8rem 5rem rgba(0, 0, 0, 0.62), inset 0 0 0 1px rgba(255, 255, 255, 0.018);
+    radial-gradient(circle at 100% 100%, rgba(90, 115, 160, 0.07), transparent 32%), #080c12;
+  box-shadow:
+    0 1.8rem 5rem rgba(0, 0, 0, 0.62),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.018);
 }
 
 .header {

@@ -485,7 +485,9 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
               {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => (
                 <div key={attributeId}>
                   <dt>{attributeId[0].toUpperCase() + attributeId.slice(1)}</dt>
-                  <dd>{selectedDiscipline.baseAttributes[attributeId] + attributeBonuses[attributeId]}</dd>
+                  <dd>
+                    {selectedDiscipline.baseAttributes[attributeId] + attributeBonuses[attributeId]}
+                  </dd>
                 </div>
               ))}
             </dl>

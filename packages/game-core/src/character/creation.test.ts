@@ -162,7 +162,9 @@ describe('character creation domain', () => {
         attributeBonuses: { ...discipline.startingAttributeBonuses },
       })
       expect(character.foundationDisciplineId).toBe(discipline.id)
-      expect(Object.values(character.attributes).reduce((total, value) => total + value, 0)).toBe(36)
+      expect(Object.values(character.attributes).reduce((total, value) => total + value, 0)).toBe(
+        36,
+      )
       fingerprints.add(JSON.stringify(character.attributes))
     }
     expect(fingerprints.size).toBe(6)

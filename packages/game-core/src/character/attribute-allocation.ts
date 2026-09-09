@@ -376,7 +376,14 @@ export function projectAllocationForPrimaryDisciplineChange(input: {
   if (currentIssues.length > 0) {
     return {
       attributes: { ...input.attributes },
-      personalAttributes: { might: 0, finesse: 0, vitality: 0, agility: 0, intellect: 0, resolve: 0 },
+      personalAttributes: {
+        might: 0,
+        finesse: 0,
+        vitality: 0,
+        agility: 0,
+        intellect: 0,
+        resolve: 0,
+      },
       issues: currentIssues,
     }
   }

@@ -32,7 +32,10 @@ export function createSupabaseCharacterBuildRepositoryV3(): CharacterBuildReposi
 
       if (error) {
         if (error.message.includes('CHARACTER_BUILD_VERSION_CONFLICT')) {
-          throw new AurevaneError('STALE_VERSION', 'The build changed. Refresh and review it again.')
+          throw new AurevaneError(
+            'STALE_VERSION',
+            'The build changed. Refresh and review it again.',
+          )
         }
         if (error.message.includes('CHARACTER_BUILD_IDEMPOTENCY_CONFLICT')) {
           throw new AurevaneError(

@@ -38,9 +38,9 @@ describe('attribute allocation guardrails', () => {
       vanguard,
     )
     expect(unspentAttributePoints(starting, 10)).toBe(9)
-    expect(validateAttributeAllocation({ attributes: starting, level: 10, policy: vanguard })).toEqual(
-      [],
-    )
+    expect(
+      validateAttributeAllocation({ attributes: starting, level: 10, policy: vanguard }),
+    ).toEqual([])
   })
 
   it('never allows a redistribution to spend below the fixed Primary base', () => {
@@ -107,7 +107,14 @@ describe('attribute allocation guardrails', () => {
       validateDisciplineAttributePolicy({
         disciplineId: 'bad-mage',
         policyVersion: 1,
-        baseAttributes: { might: 2, finesse: 3, vitality: 4, agility: 3, intellect: 10, resolve: 9 },
+        baseAttributes: {
+          might: 2,
+          finesse: 3,
+          vitality: 4,
+          agility: 3,
+          intellect: 10,
+          resolve: 9,
+        },
         focusAttributes: ['intellect'],
         attributeCaps: {},
       }),

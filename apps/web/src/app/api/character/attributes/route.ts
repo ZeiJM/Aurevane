@@ -46,9 +46,7 @@ export async function PUT(request: Request) {
     await assertGameplayMutationAllowed(actor.userId)
     const body = await readObject(request)
     const mode =
-      body.mode === 'spend' || body.mode === 'reset' || body.mode === 'convert'
-        ? body.mode
-        : null
+      body.mode === 'spend' || body.mode === 'reset' || body.mode === 'convert' ? body.mode : null
     if (!mode) throw new AurevaneError('INVALID_REQUEST', 'Choose a valid attribute action.')
 
     const attributes = parseAttributes(body.attributes)
