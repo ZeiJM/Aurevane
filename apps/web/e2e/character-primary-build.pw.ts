@@ -32,7 +32,10 @@ test('Profile previews and commits Primary Discipline while preserving personal 
 
   const panel = page.getByTestId('primary-build-panel')
   await expect(panel).toBeVisible()
-  await expect(panel).toContainText('Vanguard · Pure')
+  const launcher = panel.getByRole('button', { name: /Manage Primary Discipline/ })
+  await expect(launcher).toBeVisible()
+  await expect(launcher).toHaveText('Discipline Management')
+  await expect(panel).not.toContainText('Vanguard · Pure')
 
   const attributesBefore = new Map(
     await Promise.all(
@@ -60,7 +63,7 @@ test('Profile previews and commits Primary Discipline while preserving personal 
   const maxHp = page.getByTestId('derived-stat-maxHp').locator('strong')
   const maxHpBefore = await maxHp.innerText()
 
-  await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
+  await launcher.click()
   const dialog = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(dialog).toBeVisible()
   await expect(dialog).toContainText('Committed Primary')
@@ -93,7 +96,8 @@ test('Profile previews and commits Primary Discipline while preserving personal 
   await expect(page.getByRole('status')).toContainText(
     'Aetherist is now the committed Primary Discipline.',
   )
-  await expect(panel).toContainText('Aetherist · Pure')
+  await expect(launcher).toHaveText('Discipline Management')
+  await expect(panel).not.toContainText('Aetherist · Pure')
 
   for (const id of ATTRIBUTE_IDS) {
     const expected = expectedAetheristAttributes.get(id)
