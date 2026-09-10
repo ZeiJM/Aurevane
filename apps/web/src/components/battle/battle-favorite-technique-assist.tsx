@@ -5,6 +5,7 @@ import { useEffect, useRef } from 'react'
 import {
   readFavoriteTechniques,
   type FavoriteTechniqueCategory,
+  type FavoriteTechniqueSelection,
 } from './favorite-technique-storage'
 
 const SELECTOR_LABEL: Readonly<Record<FavoriteTechniqueCategory, string>> = {
@@ -20,7 +21,10 @@ function selectorTrigger(category: FavoriteTechniqueCategory): HTMLButtonElement
   )
 }
 
-function optionFor(category: FavoriteTechniqueCategory, skillId: string): HTMLButtonElement | null {
+function optionFor(
+  category: FavoriteTechniqueCategory,
+  favorite: FavoriteTechniqueSelection,
+): HTMLButtonElement | null {
   const label = SELECTOR_LABEL[category]
   const listbox = document.querySelector<HTMLElement>(
     `[data-battle-skill-listbox-category="${label}"]`,
@@ -28,7 +32,10 @@ function optionFor(category: FavoriteTechniqueCategory, skillId: string): HTMLBu
   if (!listbox) return null
   return (
     Array.from(listbox.querySelectorAll<HTMLButtonElement>('button[data-battle-skill-option-id]')).find(
-      (option) => option.dataset.battleSkillOptionId === skillId,
+      (option) => {
+        const optionLabel = option.querySelector<HTMLElement>('strong')?.textContent?.trim()
+        return option.dataset.battleSkillOptionId === favorite.id || optionLabel === favorite.label
+      },
     ) ?? null
   )
 }
@@ -63,7 +70,11 @@ export function BattleFavoriteTechniqueAssist({ characterId }: { characterId: st
 
       const trigger = selectorTrigger(category)
       if (!trigger) return
-      if (trigger.dataset.battleSelectedSkillId === favorite.id) {
+      const currentlySelected = trigger.getAttribute('aria-label') ?? ''
+      if (
+        trigger.dataset.battleSelectedSkillId === favorite.id ||
+        currentlySelected.includes(`${favorite.label} selected`)
+      ) {
         markApplied(category)
         return
       }
@@ -81,7 +92,7 @@ export function BattleFavoriteTechniqueAssist({ characterId }: { characterId: st
           return
         }
 
-        const option = optionFor(category, favorite.id)
+        const option = optionFor(category, favorite)
         if (!option) {
           const label = SELECTOR_LABEL[category]
           const openList = document.querySelector(
