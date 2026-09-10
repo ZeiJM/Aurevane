@@ -7,6 +7,8 @@ import { redirect } from 'next/navigation'
 
 import { BattleAudioGate } from '@/components/battle/battle-audio-gate'
 import { BattleClientBoundary } from '@/components/battle/battle-client-boundary'
+import { BattleFavoriteTechniqueAssist } from '@/components/battle/battle-favorite-technique-assist'
+import { BattleMoveKeyboardBridge } from '@/components/battle/battle-move-keyboard-bridge'
 import type { BattleTechniqueCategory } from '@/components/battle/battle-runtime'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getStarterPortraitImageAssetId } from '@/media/character'
@@ -163,6 +165,7 @@ export default async function BattleSessionPage({
 
     return (
       <BattleAudioGate>
+        <BattleFavoriteTechniqueAssist characterId={character.id} />
         <BattleClientBoundary
           initialBattle={battle}
           runtime={{
@@ -201,6 +204,8 @@ export default async function BattleSessionPage({
 
   return (
     <BattleAudioGate>
+      <BattleFavoriteTechniqueAssist characterId={character.id} />
+      <BattleMoveKeyboardBridge />
       <BattleClientBoundary
         initialBattle={battle}
         runtime={{
