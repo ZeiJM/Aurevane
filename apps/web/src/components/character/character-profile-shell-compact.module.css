@@ -13,10 +13,17 @@
 
 .buildCard [data-testid='skill-build-panel'] > button strong::after {
   content: 'Manage Techniques' !important;
+  font: 750 0.56rem/1 var(--av-font-mono);
+  letter-spacing: 0.06em;
 }
 
 .buildCard [data-testid='skill-build-panel'] > button small {
   display: none !important;
+}
+
+.buildCard [data-testid='skill-build-panel'] > button {
+  justify-content: center;
+  text-align: center;
 }
 
 @media (min-width: 981px) {
@@ -158,11 +165,6 @@
 
 @media (max-width: 760px) {
   .portrait {
-    transform: translateY(0.28rem);
-  }
-
-  .buildCard [data-testid='skill-build-panel'] > button {
-    justify-content: center;
-    text-align: center;
+    transform: translateY(0.48rem);
   }
 }

@@ -19,6 +19,10 @@ import { CharacterDisciplineBuildPanel } from '@/components/character/character-
 import { CharacterProfileDetails } from '@/components/character/character-profile-details'
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import { CharacterSkillBuildPanel } from '@/components/character/character-skill-build-panel'
+import {
+  battleResonanceArtwork,
+  battleSkillArtwork,
+} from '@/components/battle/battle-skill-presentation'
 import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 
@@ -150,12 +154,8 @@ export function CharacterProfileShell({
     disciplineBuild.currentSecondary?.id ?? 'pure',
     learnedSkillCatalogKey,
   ].join(':')
-  const equippedCount = disciplineBuild.disciplineSkills.equippedSkills.length
   const essence = disciplineBuild.disciplineSkills.extensions.essence
   const resonance = disciplineBuild.disciplineSkills.extensions.resonance
-  const buildLabel = disciplineBuild.currentSecondary
-    ? `${disciplineBuild.current.definition.name} + ${disciplineBuild.currentSecondary.name}`
-    : disciplineBuild.current.definition.name
   const disciplineSummary = getDisciplineProfileSummary(
     disciplineBuild.current.definition,
     disciplineBuild.currentSecondary,
@@ -251,8 +251,7 @@ export function CharacterProfileShell({
 
             <section className={styles.buildSection} aria-labelledby="build-disciplines-heading">
               <div className={styles.buildSectionHeader}>
-                <span id="build-disciplines-heading">Disciplines</span>
-                <strong>{buildLabel}</strong>
+                <strong id="build-disciplines-heading">Disciplines</strong>
               </div>
               <CharacterDisciplineBuildPanel
                 initialBuildVersion={disciplineBuild.buildVersion}
@@ -267,10 +266,7 @@ export function CharacterProfileShell({
 
             <section className={styles.buildSection} aria-labelledby="build-techniques-heading">
               <div className={styles.buildSectionHeader}>
-                <span id="build-techniques-heading">Techniques</span>
-                <strong>
-                  {equippedCount} / {disciplineBuild.disciplineSkills.capacity} tagged
-                </strong>
+                <strong id="build-techniques-heading">Techniques</strong>
               </div>
               <CharacterSkillBuildPanel
                 key={skillBuildKey}
@@ -296,15 +292,29 @@ export function CharacterProfileShell({
             </section>
 
             <section className={styles.buildIdentity} aria-label="Combat loadout identity">
-              <span>{resonance ? 'Resonance' : 'Essence'}</span>
-              <strong>{resonance?.name ?? essence?.name ?? 'None available'}</strong>
-              <small>
-                {resonance?.description ??
-                  essence?.description ??
-                  (disciplineBuild.currentSecondary
-                    ? 'No authored Resonance is available for this pair yet.'
-                    : 'No authored Essence is available for this Discipline yet.')}
-              </small>
+              {resonance || essence ? (
+                <span className={styles.buildIdentityArt} aria-hidden="true">
+                  <img
+                    src={
+                      resonance
+                        ? battleResonanceArtwork(resonance.id)
+                        : battleSkillArtwork(essence!.skill.id)
+                    }
+                    alt=""
+                  />
+                </span>
+              ) : null}
+              <div className={styles.buildIdentityCopy}>
+                <span>{resonance ? 'Resonance' : 'Essence'}</span>
+                <strong>{resonance?.name ?? essence?.name ?? 'None available'}</strong>
+                <small>
+                  {resonance?.description ??
+                    essence?.description ??
+                    (disciplineBuild.currentSecondary
+                      ? 'No authored Resonance is available for this pair yet.'
+                      : 'No authored Essence is available for this Discipline yet.')}
+                </small>
+              </div>
             </section>
           </Surface>
         </aside>

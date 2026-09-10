@@ -519,7 +519,11 @@ export function CharacterDisciplineBuildPanel({
                 ) : null}
 
                 {preview ? (
-                  <div className={styles.preview} data-testid="primary-build-preview">
+                  <div
+                    className={styles.preview}
+                    data-testid="primary-build-preview"
+                    data-primary-change={preview.changes.primary ? 'true' : 'false'}
+                  >
                     <div className={styles.previewHeading}>
                       <div className={styles.proposedIdentity}>
                         <FoundationDisciplineSigil
@@ -539,55 +543,59 @@ export function CharacterDisciplineBuildPanel({
                       </div>
                     </div>
 
-                    <div className={styles.statComparisonGrid}>
-                      <section className={styles.statComparison}>
-                        <div className={styles.statComparisonHeading}>
-                          <span>Core stats</span>
-                        </div>
-                        <div className={styles.statRows}>
-                          {coreDeltas.map((entry) => (
-                            <div
-                              className={styles.statDelta}
-                              data-direction={entry.direction}
-                              key={entry.id}
-                            >
-                              <span>{entry.label}</span>
-                              <strong>
-                                {entry.current} <small>→</small> {entry.proposed}
-                              </strong>
-                            </div>
-                          ))}
-                        </div>
-                      </section>
+                    {preview.changes.primary ? (
+                      <div className={styles.statComparisonGrid}>
+                        <section className={styles.statComparison}>
+                          <div className={styles.statComparisonHeading}>
+                            <span>Core stats</span>
+                          </div>
+                          <div className={styles.statRows}>
+                            {coreDeltas.map((entry) => (
+                              <div
+                                className={styles.statDelta}
+                                data-direction={entry.direction}
+                                key={entry.id}
+                              >
+                                <span>{entry.label}</span>
+                                <strong>
+                                  {entry.current} <small>→</small> {entry.proposed}
+                                </strong>
+                              </div>
+                            ))}
+                          </div>
+                        </section>
 
-                      <section className={styles.statComparison}>
-                        <div className={styles.statComparisonHeading}>
-                          <span>Adventure stats</span>
-                        </div>
-                        <div className={styles.statRows}>
-                          {adventureDeltas.map((entry) => (
-                            <div
-                              className={styles.statDelta}
-                              data-direction={entry.direction}
-                              key={entry.id}
-                            >
-                              <span>{entry.label}</span>
-                              <strong>
-                                {formatDerivedValue(entry.current, entry.unit)} <small>→</small>{' '}
-                                {formatDerivedValue(entry.proposed, entry.unit)}
-                              </strong>
-                            </div>
-                          ))}
-                        </div>
-                      </section>
-                    </div>
+                        <section className={styles.statComparison}>
+                          <div className={styles.statComparisonHeading}>
+                            <span>Adventure stats</span>
+                          </div>
+                          <div className={styles.statRows}>
+                            {adventureDeltas.map((entry) => (
+                              <div
+                                className={styles.statDelta}
+                                data-direction={entry.direction}
+                                key={entry.id}
+                              >
+                                <span>{entry.label}</span>
+                                <strong>
+                                  {formatDerivedValue(entry.current, entry.unit)} <small>→</small>{' '}
+                                  {formatDerivedValue(entry.proposed, entry.unit)}
+                                </strong>
+                              </div>
+                            ))}
+                          </div>
+                        </section>
+                      </div>
+                    ) : null}
 
                     <div className={styles.previewFooter}>
-                      <div className={styles.legend} aria-label="Stat preview legend">
-                        <span data-direction="increase">Increase</span>
-                        <span data-direction="decrease">Decrease</span>
-                        <span data-direction="neutral">Unchanged</span>
-                      </div>
+                      {preview.changes.primary ? (
+                        <div className={styles.legend} aria-label="Stat preview legend">
+                          <span data-direction="increase">Increase</span>
+                          <span data-direction="decrease">Decrease</span>
+                          <span data-direction="neutral">Unchanged</span>
+                        </div>
+                      ) : null}
                       <button type="button" onClick={() => void commit()} disabled={commitBlocked}>
                         {pendingCommit
                           ? 'Committing…'

@@ -33,13 +33,10 @@ test('Profile previews and commits Primary Discipline while preserving personal 
   const panel = page.getByTestId('primary-build-panel')
   await expect(panel).toBeVisible()
   const launcher = panel.getByRole('button', { name: /Manage Primary Discipline/ })
-  const disciplineBuildLabel = page
-    .locator('#build-disciplines-heading')
-    .locator('..')
-    .locator('strong')
+  const primaryDisciplineChip = page.getByTestId('primary-discipline-chip')
   await expect(launcher).toBeVisible()
   await expect(launcher).toHaveText('Discipline Management')
-  await expect(disciplineBuildLabel).toHaveText('Vanguard')
+  await expect(primaryDisciplineChip).toHaveText('Vanguard')
 
   const attributesBefore = new Map(
     await Promise.all(
@@ -105,7 +102,7 @@ test('Profile previews and commits Primary Discipline while preserving personal 
     'Aetherist is now the committed Primary Discipline.',
   )
   await expect(launcher).toHaveText('Discipline Management')
-  await expect(disciplineBuildLabel).toHaveText('Aetherist')
+  await expect(primaryDisciplineChip).toHaveText('Aetherist')
 
   for (const id of ATTRIBUTE_IDS) {
     const expected = expectedAetheristAttributes.get(id)
