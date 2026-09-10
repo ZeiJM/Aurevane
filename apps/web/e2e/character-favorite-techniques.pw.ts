@@ -98,7 +98,9 @@ test('favorite Technique is visible, character-scoped, persistent, unique per ca
   await expect(attackArtwork).toHaveAttribute('data-battle-selected-skill-id', /unbroken-strike/)
 })
 
-test('favorite Technique controls stay visible and usable on mobile', async ({ page }, testInfo) => {
+test('favorite Technique controls stay visible and usable on mobile', async ({
+  page,
+}, testInfo) => {
   test.skip(testInfo.project.name !== 'mobile-chromium', 'Mobile favorite-control usability proof')
 
   await provisionAccountAndEnterCharacter({
