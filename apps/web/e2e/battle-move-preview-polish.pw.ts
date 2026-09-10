@@ -33,7 +33,12 @@ async function readPlottedPath(battlefield: Locator): Promise<PathPoint[]> {
           y: match ? Number(match[2]) : Number.NaN,
         }
       })
-      .filter((point) => Number.isFinite(point.index) && Number.isFinite(point.x) && Number.isFinite(point.y))
+      .filter(
+        (point) =>
+          Number.isFinite(point.index) &&
+          Number.isFinite(point.x) &&
+          Number.isFinite(point.y),
+      )
       .sort((a, b) => a.index - b.index),
   )
 }
@@ -51,7 +56,10 @@ function reverseKey(from: PathPoint, to: PathPoint): string {
 async function plotMultiStepPath(battlefield: Locator): Promise<PathPoint[]> {
   const labels = await battlefield
     .locator("button[aria-label^='Tile '][data-reachable]")
-    .evaluateAll((tiles) => tiles.map((tile) => tile.getAttribute('aria-label')).filter(Boolean) as string[])
+    .evaluateAll(
+      (tiles) =>
+        tiles.map((tile) => tile.getAttribute('aria-label')).filter(Boolean) as string[],
+    )
 
   for (const label of labels) {
     await battlefield.getByRole('button', { name: label, exact: true }).click()
@@ -164,4 +172,4 @@ test('keeps Move reachable tiles rich green and supports keyboard/mouse path bac
 
   await battlefield.locator("button[data-path-index='0']").click()
   await expect(battlefield.locator('button[data-path-index]')).toHaveCount(0)
-})
+}
