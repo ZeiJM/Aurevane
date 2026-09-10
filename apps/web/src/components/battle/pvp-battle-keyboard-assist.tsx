@@ -25,16 +25,6 @@ function eventChord(event: KeyboardEvent): string {
   return combatKeybindChord({ code: event.code, shift: event.shiftKey })
 }
 
-function tilePosition(button: HTMLButtonElement): { x: number; y: number } | null {
-  const match = button.getAttribute('aria-label')?.match(/^Tile\s+(\d+),\s*(\d+)/i)
-  if (!match) return null
-  return { x: Number(match[1]) - 1, y: Number(match[2]) - 1 }
-}
-
-function positionKey(position: { x: number; y: number }): string {
-  return `${position.x}:${position.y}`
-}
-
 function battleRoot(): HTMLElement | null {
   return document.querySelector<HTMLElement>('main[data-pvp-battle="true"]')
 }
@@ -46,14 +36,6 @@ function battleTiles(): HTMLButtonElement[] {
         root.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label^="Tile "]'),
       )
     : []
-}
-
-function playerTile(playerName: string): HTMLButtonElement | null {
-  return (
-    battleTiles().find((button) =>
-      (button.getAttribute('aria-label') ?? '').includes(`occupied by ${playerName}`),
-    ) ?? null
-  )
 }
 
 const LEGACY_COMMAND_SLOTS: Readonly<Record<string, string>> = {
@@ -208,10 +190,6 @@ function legalAttackTargets(playerName: string): HTMLButtonElement[] {
 export function PvpBattleKeyboardAssist({ playerName }: { playerName: string }) {
   const [bindings, setBindings] = useState<CombatKeybindMap>(DEFAULT_COMBAT_KEYBINDS)
   const targetIndex = useRef(-1)
-  const movementPlan = useRef<{
-    committedOriginKey: string
-    endpoint: { x: number; y: number }
-  } | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -236,7 +214,6 @@ export function PvpBattleKeyboardAssist({ playerName }: { playerName: string }) 
     const sync = () => {
       frame = 0
       syncVisibleCommandLabels(bindings)
-      if (!moveModeIsActive()) movementPlan.current = null
     }
     const schedule = () => {
       if (frame !== 0) return
@@ -270,40 +247,6 @@ export function PvpBattleKeyboardAssist({ playerName }: { playerName: string }) 
       return true
     }
 
-    function moveAdjacent(direction: { dx: number; dy: number }): boolean {
-      if (!moveModeIsActive()) return false
-      const actorTile = playerTile(playerName)
-      const committed = actorTile ? tilePosition(actorTile) : null
-      if (!actorTile || !committed) return false
-
-      const committedKey = positionKey(committed)
-      if (!movementPlan.current || movementPlan.current.committedOriginKey !== committedKey) {
-        movementPlan.current = { committedOriginKey: committedKey, endpoint: committed }
-      }
-
-      const base = movementPlan.current.endpoint
-      const targetPosition = { x: base.x + direction.dx, y: base.y + direction.dy }
-      if (targetPosition.x === committed.x && targetPosition.y === committed.y) {
-        commandButton('Move')?.click()
-        movementPlan.current = { committedOriginKey: committedKey, endpoint: committed }
-        actorTile.focus({ preventScroll: true })
-        return true
-      }
-
-      const prefix = `Tile ${targetPosition.x + 1}, ${targetPosition.y + 1};`
-      const target = battleTiles().find((button) =>
-        (button.getAttribute('aria-label') ?? '').startsWith(prefix),
-      )
-      if (!target || target.disabled || target.hasAttribute('data-facing-guide')) return false
-      if ((target.getAttribute('aria-label') ?? '').includes('occupied by ')) return false
-      if (!target.hasAttribute('data-reachable')) return false
-
-      movementPlan.current = { committedOriginKey: committedKey, endpoint: targetPosition }
-      target.focus({ preventScroll: true })
-      target.click()
-      return true
-    }
-
     function execute(action: CombatKeybindAction): boolean {
       if (action === 'inspect') {
         commandButton('Inspect')?.click()
@@ -326,7 +269,6 @@ export function PvpBattleKeyboardAssist({ playerName }: { playerName: string }) 
         return true
       }
       if (action === 'endTurn') {
-        movementPlan.current = null
         commandButton('Finish Turn', 'End Turn', 'Facing / End Turn')?.click()
         return true
       }
@@ -370,9 +312,8 @@ export function PvpBattleKeyboardAssist({ playerName }: { playerName: string }) 
 
       const movementDirection = directionForCode(event.code)
       if (movementDirection && moveModeIsActive()) {
-        event.preventDefault()
-        event.stopImmediatePropagation()
-        moveAdjacent(movementDirection)
+        // Move preview keyboard editing is owned by BattleMovementKeyboardAssist for both PvE and PvP.
+        // Do not consume the event here; the shared owner reads the rendered live path and trims it.
         return
       }
 
