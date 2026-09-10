@@ -387,7 +387,9 @@ export function CharacterDisciplineBuildPanel({
         type="button"
         className={styles.trigger}
         aria-haspopup="dialog"
-        aria-label={`Manage Primary Discipline and Secondary Discipline. Current: ${current.definition.name}${currentSecondary ? ` plus ${currentSecondary.name}` : ' pure'}, Build v${buildVersion}`}
+        aria-label={`Manage Primary Discipline and Secondary Discipline. Current: ${current.definition.name}${
+          currentSecondary ? ` plus ${currentSecondary.name}` : ''
+        }`}
         onClick={() => setPanelOpen(true)}
       >
         <span className={styles.triggerSigils} aria-hidden="true">
@@ -430,7 +432,11 @@ export function CharacterDisciplineBuildPanel({
                   </button>
                 </header>
 
-                <div className={styles.current} aria-label="Committed Disciplines">
+                <div
+                  className={styles.current}
+                  aria-label="Committed Disciplines"
+                  style={currentSecondary ? undefined : { gridTemplateColumns: '1fr' }}
+                >
                   <div className={styles.currentDiscipline}>
                     <FoundationDisciplineSigil
                       disciplineId={current.definition.id}
@@ -441,53 +447,19 @@ export function CharacterDisciplineBuildPanel({
                       <strong>{current.definition.name}</strong>
                     </div>
                   </div>
-                  <div className={styles.currentDiscipline}>
-                    {currentSecondary ? (
+                  {currentSecondary ? (
+                    <div className={styles.currentDiscipline}>
                       <FoundationDisciplineSigil
                         disciplineId={currentSecondary.id}
                         className={styles.currentSigil}
                       />
-                    ) : (
-                      <span className={styles.pureSigil} aria-hidden="true">
-                        ◇
-                      </span>
-                    )}
-                    <div>
-                      <span>Committed Secondary</span>
-                      <strong>{currentSecondary?.name ?? 'None — pure build'}</strong>
+                      <div>
+                        <span>Committed Secondary</span>
+                        <strong>{currentSecondary.name}</strong>
+                      </div>
                     </div>
-                  </div>
+                  ) : null}
                 </div>
-
-                <section className={styles.roster} aria-label="Choose a proposed Primary">
-                  <div className={styles.rosterGrid}>
-                    {visiblePrimaryOptions.map((entry) => {
-                      const selected = entry.definition.id === selectedPrimaryId
-                      return (
-                        <button
-                          key={`roster:${entry.definition.id}:${entry.definition.definitionVersion}`}
-                          type="button"
-                          className={styles.disciplineCard}
-                          data-selected={selected ? 'true' : 'false'}
-                          aria-pressed={selected}
-                          onClick={() =>
-                            void previewSelection(entry.definition.id, selectedSecondaryId)
-                          }
-                          disabled={pendingPreview || pendingCommit || remaining.primary > 0}
-                        >
-                          <FoundationDisciplineSigil
-                            disciplineId={entry.definition.id}
-                            className={styles.cardSigil}
-                          />
-                          <span className={styles.cardCopy}>
-                            <strong>{entry.definition.name}</strong>
-                            <FocusBadges disciplineId={entry.definition.id} />
-                          </span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </section>
 
                 <div className={styles.slots}>
                   <label className={styles.selector}>
@@ -524,7 +496,7 @@ export function CharacterDisciplineBuildPanel({
                       }
                       disabled={pendingPreview || pendingCommit || remaining.secondary > 0}
                     >
-                      <option value="">None — pure build</option>
+                      <option value="">None</option>
                       {visibleSecondaryOptions.map((entry) => (
                         <option
                           key={`${entry.definition.id}:${entry.definition.definitionVersion}`}
@@ -560,19 +532,17 @@ export function CharacterDisciplineBuildPanel({
                             {preview.proposed.definition.name}
                             {preview.proposedSecondary
                               ? ` + ${preview.proposedSecondary.name}`
-                              : ' · Pure'}
+                              : ''}
                           </strong>
                           <FocusBadges disciplineId={preview.proposed.definition.id} />
                         </div>
                       </div>
-                      <small>Build v{buildVersion}</small>
                     </div>
 
                     <div className={styles.statComparisonGrid}>
                       <section className={styles.statComparison}>
                         <div className={styles.statComparisonHeading}>
                           <span>Core stats</span>
-                          <small>Personal allocation is preserved</small>
                         </div>
                         <div className={styles.statRows}>
                           {coreDeltas.map((entry) => (

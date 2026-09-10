@@ -155,7 +155,7 @@ export function CharacterProfileShell({
   const resonance = disciplineBuild.disciplineSkills.extensions.resonance
   const buildLabel = disciplineBuild.currentSecondary
     ? `${disciplineBuild.current.definition.name} + ${disciplineBuild.currentSecondary.name}`
-    : `${disciplineBuild.current.definition.name} · Pure`
+    : disciplineBuild.current.definition.name
   const disciplineSummary = getDisciplineProfileSummary(
     disciplineBuild.current.definition,
     disciplineBuild.currentSecondary,
