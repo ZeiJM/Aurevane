@@ -60,14 +60,12 @@ test('Profile equips a mastered Secondary with independent attunement authority'
 
   const panel = page.getByTestId('primary-build-panel')
   const launcher = panel.getByRole('button', { name: /Manage Primary Discipline/ })
-  const disciplineBuildLabel = page
-    .locator('#build-disciplines-heading')
-    .locator('..')
-    .locator('strong')
+  const primaryDisciplineChip = page.getByTestId('primary-discipline-chip')
+  const secondaryDisciplineChip = page.getByTestId('secondary-discipline-chip')
   const maxHp = page.getByTestId('derived-stat-maxHp').locator('strong')
   const maxHpBeforeSecondary = await maxHp.innerText()
   await expect(launcher).toHaveText('Discipline Management')
-  await expect(disciplineBuildLabel).toHaveText('Vanguard')
+  await expect(primaryDisciplineChip).toHaveText('Vanguard')
 
   await launcher.click()
   const dialog = page.getByRole('dialog', { name: 'Discipline Management' })
@@ -107,7 +105,8 @@ test('Profile equips a mastered Secondary with independent attunement authority'
     'Aetherist is now the committed Secondary Discipline.',
   )
   await expect(launcher).toHaveText('Discipline Management')
-  await expect(disciplineBuildLabel).toHaveText('Vanguard + Aetherist')
+  await expect(primaryDisciplineChip).toHaveText('Vanguard')
+  await expect(secondaryDisciplineChip).toHaveText('Aetherist')
   const triggerSigils = launcher.locator('svg')
   await expect(triggerSigils).toHaveCount(2)
   const primarySigilBox = await triggerSigils.nth(0).boundingBox()
@@ -136,7 +135,8 @@ test('Profile equips a mastered Secondary with independent attunement authority'
     'Lifebinder is now the committed Primary Discipline.',
   )
   await expect(launcher).toHaveText('Discipline Management')
-  await expect(disciplineBuildLabel).toHaveText('Lifebinder + Aetherist')
+  await expect(primaryDisciplineChip).toHaveText('Lifebinder')
+  await expect(secondaryDisciplineChip).toHaveText('Aetherist')
   await expect(primary).toBeEnabled()
   await expect(secondary).toBeEnabled()
   await expect(page.getByTestId('primary-attunement-status')).toHaveCount(0)
