@@ -11,7 +11,11 @@ interface PathPoint {
 type KeyboardScheme = 'wasd' | 'arrows'
 
 function uniqueCharacterName(): string {
-  const suffix = Date.now().toString(36).replace(/[^a-z]/gi, '').slice(-7) || 'walker'
+  const suffix =
+    Date.now()
+      .toString(36)
+      .replace(/[^a-z]/gi, '')
+      .slice(-7) || 'walker'
   return `Backtrack ${suffix}`
 }
 
@@ -77,15 +81,15 @@ async function reverseWholePreview({
   scheme: KeyboardScheme
 }) {
   const path = await plotMultiStepPath(battlefield)
-  const committedActorTile = battlefield.locator(
-    `button[aria-label*="occupied by ${actorName}"]`,
-  )
+  const committedActorTile = battlefield.locator(`button[aria-label*="occupied by ${actorName}"]`)
   const committedActorLabel = await committedActorTile.getAttribute('aria-label')
   expect(committedActorLabel).toBeTruthy()
 
   for (let index = path.length - 1; index > 0; index -= 1) {
     await page.keyboard.press(reverseKey(path[index]!, path[index - 1]!, scheme), { delay: 0 })
-    await expect(battlefield.locator('button[data-path-index]')).toHaveCount(index === 1 ? 0 : index)
+    await expect(battlefield.locator('button[data-path-index]')).toHaveCount(
+      index === 1 ? 0 : index,
+    )
     await expect(root).toHaveAttribute('data-battle-action-mode', 'move')
     await expect(committedActorTile).toHaveAttribute('aria-label', committedActorLabel!)
   }
