@@ -73,9 +73,10 @@ export async function AuthenticatedShellFrame({
   let onlineCount = 0
   try {
     const actor = await getAuthenticatedActor()
-    const [activeBattle, activeSpectating] = await Promise.all([
+    const [activeBattle, activeSpectating, selectedCharacter] = await Promise.all([
       getActiveBattleForUser(actor.userId).catch(() => null),
       getActiveSpectatingForUser(actor.userId).catch(() => null),
+      loadSelectedCharacter(actor),
     ])
     activeBattleHref = activeBattle
       ? (`/game/battle/${activeBattle.battleSessionId}` as Route)
@@ -84,7 +85,7 @@ export async function AuthenticatedShellFrame({
       !activeBattle && activeSpectating
         ? (`/game/battle/spectate/${activeSpectating.battleKey}` as Route)
         : null
-    activeCharacter = await loadSelectedCharacter(actor)
+    activeCharacter = selectedCharacter
     if (activeCharacter) {
       try {
         const [display, online] = await Promise.all([
