@@ -60,7 +60,10 @@ test('Profile equips a mastered Secondary with independent attunement authority'
 
   const panel = page.getByTestId('primary-build-panel')
   const launcher = panel.getByRole('button', { name: /Manage Primary Discipline/ })
-  const disciplineBuildLabel = page.locator('#build-disciplines-heading').locator('..').locator('strong')
+  const disciplineBuildLabel = page
+    .locator('#build-disciplines-heading')
+    .locator('..')
+    .locator('strong')
   const maxHp = page.getByTestId('derived-stat-maxHp').locator('strong')
   const maxHpBeforeSecondary = await maxHp.innerText()
   await expect(launcher).toHaveText('Discipline Management')
