@@ -38,10 +38,11 @@
 .triggerSigils {
   position: relative;
   display: inline-flex;
-  min-width: 2rem;
+  min-width: max-content;
   height: 1.8rem;
   align-items: center;
   justify-content: center;
+  gap: 0.34rem;
 }
 
 .triggerSigil {
@@ -53,9 +54,9 @@
 }
 
 .triggerSigilSecondary {
-  margin-left: -0.46rem;
-  color: color-mix(in srgb, var(--av-brass-200) 78%, #93a9cf);
-  transform: translateY(0.12rem) scale(0.88);
+  margin-left: 0;
+  color: var(--av-brass-300);
+  transform: none;
 }
 
 .triggerLabel {
@@ -506,13 +507,13 @@
 
 @media (max-width: 640px) {
   .backdrop {
-    align-items: end;
-    padding: 0.3rem;
+    place-items: center;
+    padding: max(0.55rem, env(safe-area-inset-top)) 0.3rem max(0.55rem, env(safe-area-inset-bottom));
   }
 
   .dialog {
     width: 100%;
-    max-height: 95dvh;
+    max-height: 90dvh;
     padding: 0.65rem;
   }
 

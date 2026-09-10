@@ -97,8 +97,8 @@ test('Profile equips a mastered Secondary with independent attunement authority'
   await expect(preview).toBeVisible()
   await expect(preview).toContainText('Vanguard + Aetherist')
   await expect(preview).not.toContainText('Build v1')
-  await expect(preview).toContainText('Core stats')
-  await expect(preview).toContainText('Adventure stats')
+  await expect(preview).not.toContainText('Core stats')
+  await expect(preview).not.toContainText('Adventure stats')
   await expect(preview).not.toContainText('Personal allocation is preserved')
   await expect(page.getByTestId('secondary-attunement-status')).toHaveCount(0)
 
@@ -108,6 +108,17 @@ test('Profile equips a mastered Secondary with independent attunement authority'
   )
   await expect(launcher).toHaveText('Discipline Management')
   await expect(disciplineBuildLabel).toHaveText('Vanguard + Aetherist')
+  const triggerSigils = launcher.locator('svg')
+  await expect(triggerSigils).toHaveCount(2)
+  const primarySigilBox = await triggerSigils.nth(0).boundingBox()
+  const secondarySigilBox = await triggerSigils.nth(1).boundingBox()
+  if (!primarySigilBox || !secondarySigilBox) {
+    throw new Error('The committed Discipline sigils are unavailable for layout verification.')
+  }
+  expect(secondarySigilBox.x - (primarySigilBox.x + primarySigilBox.width)).toBeGreaterThanOrEqual(
+    3,
+  )
+  expect(Math.abs(primarySigilBox.height - secondarySigilBox.height)).toBeLessThanOrEqual(1)
   await expect(maxHp).toHaveText(maxHpBeforeSecondary)
   await expect(secondary).toBeEnabled()
   await expect(primary).toBeEnabled()
@@ -117,6 +128,8 @@ test('Profile equips a mastered Secondary with independent attunement authority'
   await primary.selectOption('lifebinder')
   await expect(preview).toBeVisible()
   await expect(preview).toContainText('Lifebinder + Aetherist')
+  await expect(preview).toContainText('Core stats')
+  await expect(preview).toContainText('Adventure stats')
   await expect(preview).not.toContainText('Build v2')
   await page.getByRole('button', { name: 'Commit Lifebinder as Primary' }).click()
   await expect(page.getByRole('status')).toContainText(
@@ -137,4 +150,45 @@ test('Profile equips a mastered Secondary with independent attunement authority'
   await expect(dialog).toContainText('Aetherist')
   await expect(primary).toBeEnabled()
   await expect(secondary).toBeEnabled()
+})
+
+test('mobile Profile balances the portrait and centers Discipline Management', async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    testInfo.project.name !== 'mobile-chromium',
+    'This proof targets the mobile Profile and modal layout.',
+  )
+
+  const characterName = uniqueCharacterName()
+  await provisionAccountAndEnterCharacter({
+    page,
+    email: `profile-mobile-polish-${Date.now()}@example.com`,
+    password: 'Profile-mobile-polish-2026!',
+    characterName,
+  })
+
+  const profile = page.getByTestId('character-profile')
+  const portrait = profile.getByRole('img', { name: `${characterName} portrait` }).locator('..')
+  const portraitTranslateY = await portrait.evaluate((element) => {
+    const transform = getComputedStyle(element).transform
+    return transform === 'none' ? 0 : new DOMMatrix(transform).m42
+  })
+  expect(portraitTranslateY).toBeGreaterThanOrEqual(7)
+
+  const launcher = page
+    .getByTestId('primary-build-panel')
+    .getByRole('button', { name: /Manage Primary Discipline/ })
+  await launcher.click()
+  const dialog = page.getByRole('dialog', { name: 'Discipline Management' })
+  await expect(dialog).toBeVisible()
+
+  const dialogBox = await dialog.boundingBox()
+  const viewport = page.viewportSize()
+  if (!dialogBox || !viewport) {
+    throw new Error('The mobile Discipline dialog geometry is unavailable.')
+  }
+  const dialogCenterY = dialogBox.y + dialogBox.height / 2
+  expect(Math.abs(dialogCenterY - viewport.height / 2)).toBeLessThanOrEqual(12)
+  expect(dialogBox.y).toBeGreaterThan(8)
 })
