@@ -1,0 +1,202 @@
+/*
+ * Desktop-only readability layer.
+ *
+ * This intentionally targets non-battle page shells instead of changing the root rem scale.
+ * That keeps battle presentation and mobile sizing unchanged while lifting undersized support
+ * copy, labels, navigation, and dense profile text to a practical desktop reading floor.
+ */
+
+@media (min-width: 761px) {
+  [data-testid='authenticated-shell'] .brand__wordmark small,
+  [data-testid='public-information-shell'] .brand__wordmark small,
+  [data-testid='account-shell'] .brand__wordmark small,
+  [data-character-select-page='true'] .brand__wordmark small,
+  [data-testid='character-creation'] .brand__wordmark small {
+    font-size: 0.7rem;
+  }
+
+  [data-testid='authenticated-shell'] .av-kicker,
+  [data-testid='public-information-shell'] .av-kicker,
+  [data-testid='account-shell'] .av-kicker,
+  [data-character-select-page='true'] .av-kicker,
+  [data-testid='character-creation'] .av-kicker {
+    font-size: 0.76rem;
+    letter-spacing: 0.12em;
+  }
+
+  [data-testid='authenticated-shell'] header nav a,
+  [data-testid='public-information-shell'] header nav a,
+  [data-testid='account-shell'] header nav a,
+  [data-character-select-page='true'] header nav a {
+    font-size: 0.72rem;
+    letter-spacing: 0.045em;
+  }
+
+  [data-testid='authenticated-shell'] main p {
+    font-size: clamp(0.82rem, 0.72vw, 0.9rem);
+    line-height: 1.5;
+  }
+
+  [data-testid='authenticated-shell'] main small {
+    font-size: clamp(0.72rem, 0.62vw, 0.78rem);
+    line-height: 1.3;
+  }
+
+  [data-testid='authenticated-shell'] main :where(label, legend) {
+    font-size: 0.8rem;
+  }
+
+  [data-testid='authenticated-shell'] main :where(input, textarea, select) {
+    font-size: 0.86rem;
+  }
+
+  [data-testid='authenticated-shell'] .av-button {
+    font-size: 0.82rem;
+    letter-spacing: 0.06em;
+  }
+
+  [data-testid='authenticated-shell'] footer :where(a, button) {
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+  }
+
+  /* Character profile: preserve the compact viewport fit, but never achieve it with microtext. */
+  [data-testid='authenticated-shell'] [data-profile-fact] small,
+  [data-testid='authenticated-shell'] [data-profile-section-header] > small {
+    font-size: 0.7rem;
+    line-height: 1.15;
+  }
+
+  [data-testid='authenticated-shell'] [data-profile-fact] strong {
+    font-size: 0.76rem;
+    line-height: 1.15;
+  }
+
+  [data-testid='authenticated-shell'] [data-testid^='profile-attribute-'] > :last-child > span {
+    font-size: 0.74rem;
+    line-height: 1.1;
+  }
+
+  [data-testid='authenticated-shell'] [data-profile-stat-group] > h3 {
+    font-size: 0.7rem;
+    letter-spacing: 0.055em;
+  }
+
+  [data-testid='authenticated-shell'] [data-testid^='derived-stat-'] > span:first-child {
+    font-size: 0.72rem;
+    line-height: 1.12;
+  }
+
+  [data-testid='authenticated-shell'] [data-testid^='derived-stat-'] > strong {
+    font-size: 0.8rem;
+  }
+
+  [data-testid='authenticated-shell'] [data-testid='skill-build-panel'] :where(p, small) {
+    font-size: 0.72rem;
+    line-height: 1.3;
+  }
+
+  [data-testid='authenticated-shell'] [data-testid='skill-build-panel'] > button strong::after {
+    font-size: 0.72rem;
+  }
+
+  /* Public guide/news/rules are reading surfaces, so body copy can be a little more generous. */
+  [data-testid='public-information-shell'] main :where(p, li) {
+    font-size: clamp(0.88rem, 1vw, 1rem);
+    line-height: 1.55;
+  }
+
+  [data-testid='public-information-shell'] main :where(small, dt) {
+    font-size: 0.74rem;
+    line-height: 1.3;
+  }
+
+  [data-testid='public-information-shell'] main dd,
+  [data-testid='public-information-shell'] main nav a {
+    font-size: 0.8rem;
+  }
+
+  /* Account entry remains a one-screen desktop gateway; reduce spare density before text. */
+  [data-testid='account-shell'] main p {
+    font-size: clamp(0.82rem, 0.8vw, 0.94rem);
+    line-height: 1.48;
+  }
+
+  [data-testid='account-shell'] main :where(label > span, summary, small) {
+    font-size: 0.72rem;
+    line-height: 1.3;
+  }
+
+  [data-testid='account-shell'] main :where(input, button) {
+    font-size: 0.8rem;
+  }
+
+  [data-testid='account-shell'] footer {
+    font-size: 0.66rem;
+  }
+
+  /* Character select uses large artwork, so its copy can grow without increasing card height. */
+  [data-character-select-page='true'] main p {
+    font-size: 0.82rem;
+    line-height: 1.45;
+  }
+
+  [data-character-select-page='true'] main :where(small, label > span) {
+    font-size: 0.72rem;
+    line-height: 1.3;
+  }
+
+  [data-character-select-page='true'] main :where(button, a) {
+    font-size: 0.72rem;
+  }
+
+  /* Character creation already has desktop-only scale rules; only raise its smallest text tiers. */
+  [data-testid='character-creation'] :where(p, label, legend) {
+    font-size: clamp(0.8rem, 0.75vw, 0.9rem);
+    line-height: 1.45;
+  }
+
+  [data-testid='character-creation'] small {
+    font-size: 0.72rem;
+    line-height: 1.3;
+  }
+
+  [data-testid='character-creation'] :where(button, input, select, textarea) {
+    font-size: 0.8rem;
+  }
+}
+
+/*
+ * On short desktop viewports, recover vertical room from spacing rather than shrinking text.
+ * These are deliberately modest so the established composition and no-scroll goal remain intact.
+ */
+@media (min-width: 981px) and (max-height: 900px) {
+  [data-testid='authenticated-shell'] main {
+    padding-block: 0.3rem;
+  }
+
+  [data-testid='authenticated-shell'] [data-profile-section] {
+    padding-top: 0.32rem;
+  }
+
+  [data-testid='authenticated-shell'] [data-profile-section] + [data-profile-section] {
+    margin-top: 0.32rem;
+  }
+
+  [data-testid='authenticated-shell'] [data-profile-section-header] {
+    margin-bottom: 0.24rem;
+  }
+
+  [data-testid='authenticated-shell'] [data-profile-stat-group] {
+    padding-block: 0.34rem;
+  }
+
+  [data-testid='account-shell'] main {
+    gap: 0.5rem;
+    padding-block: 0.5rem;
+  }
+
+  [data-character-select-page='true'] main {
+    padding-block: 0.55rem;
+  }
+}
