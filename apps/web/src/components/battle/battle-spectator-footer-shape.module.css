@@ -2,15 +2,31 @@
   display: none;
 }
 
-/* Keep the copyable spectator key visually paired with the spectator-count control. */
-:global(main[data-pvp-battle='true'] > footer > [data-pvp-spectator-key='true']) {
+/*
+ * PvP-only affordance: keep the Spectator Key and Spectators presence control as one
+ * coherent pill family without changing either control's existing color/status treatment.
+ */
+:global(main[data-pvp-battle='true'] > footer > [data-pvp-spectator-key='true']),
+:global(
+    main[data-pvp-battle='true']
+      > footer
+      > [data-pvp-footer-presence='true']
+      > button
+  ) {
   min-height: 2rem !important;
   box-sizing: border-box;
-  border-radius: var(--av-radius-sm) !important;
+  border-radius: 999px !important;
 }
 
 @media (max-width: 820px) {
-  :global(main[data-pvp-battle='true'] > footer > [data-pvp-spectator-key='true']) {
+  :global(main[data-pvp-battle='true'] > footer > [data-pvp-spectator-key='true']),
+  :global(
+      main[data-pvp-battle='true']
+        > footer
+        > [data-pvp-footer-presence='true']
+        > button
+    ) {
     min-height: 2.7rem !important;
+    border-radius: 999px !important;
   }
 }
