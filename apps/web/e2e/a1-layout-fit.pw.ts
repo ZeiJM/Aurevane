@@ -11,9 +11,7 @@ function uniqueCharacterName(): string {
   return `Fit ${letters}`
 }
 
-test('keeps the core A1 surfaces readable and inside the initial desktop and laptop viewport', async ({
-  page,
-}, testInfo) => {
+test('keeps A1 surfaces readable and within viewport', async ({ page }, testInfo) => {
   test.skip(
     testInfo.project.name === 'mobile-chromium',
     'Desktop readability and no-scroll fitting are intentionally separate from phone layout.',
@@ -105,9 +103,8 @@ async function expectMinimumFontSize(
   const fontSize = await locator.evaluate((element) =>
     Number.parseFloat(window.getComputedStyle(element).fontSize),
   )
-  expect(fontSize, `${surface} should meet the desktop readability floor`).toBeGreaterThanOrEqual(
-    minimumPx,
-  )
+  const readabilityMessage = `${surface} should meet the desktop readability floor`
+  expect(fontSize, readabilityMessage).toBeGreaterThanOrEqual(minimumPx)
 }
 
 async function expectInitialViewportFit(
