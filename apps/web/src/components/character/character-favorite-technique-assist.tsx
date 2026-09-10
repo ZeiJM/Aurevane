@@ -1,7 +1,5 @@
 'use client'
 
-import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
-import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import { useEffect } from 'react'
 
 import {
@@ -15,29 +13,6 @@ interface FavoriteCandidate {
   id: string
   label: string
   category: FavoriteTechniqueCategory
-  sourceDisciplineId: string
-}
-
-function titleCase(value: string): string {
-  return value
-    .split(/[._-]/g)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
-}
-
-function skillLabel(skill: MatureSkillDefinition): string {
-  const tail = skill.id.includes('.') ? skill.id.slice(skill.id.indexOf('.') + 1) : skill.id
-  return titleCase(tail)
-}
-
-function favoriteCategory(tags: readonly string[]): FavoriteTechniqueCategory {
-  if (tags.includes('cockpit:recovery')) return 'heal'
-  if (tags.includes('cockpit:defense')) return 'defense'
-  if (tags.includes('cockpit:attack')) return 'attack'
-  if (tags.includes('heal') || tags.includes('recovery')) return 'heal'
-  if (tags.includes('defense') || tags.includes('guard')) return 'defense'
-  return 'attack'
 }
 
 function categoryLabel(category: FavoriteTechniqueCategory): string {
@@ -46,21 +21,26 @@ function categoryLabel(category: FavoriteTechniqueCategory): string {
   return 'Attack'
 }
 
-function cardSkillName(card: HTMLElement): string {
-  return card.querySelector<HTMLElement>('label strong')?.textContent?.trim() ?? ''
+function categoryFromCard(card: HTMLElement): FavoriteTechniqueCategory {
+  const chips = Array.from(card.querySelectorAll<HTMLElement>('small'))
+  const type = chips.at(-1)?.textContent?.trim().toLowerCase() ?? ''
+  if (type === 'recovery' || type === 'heal') return 'heal'
+  if (type === 'defense' || type === 'guard') return 'defense'
+  return 'attack'
 }
 
-function cardSource(card: HTMLElement): string {
-  return card.dataset.source ?? ''
+function candidateForCard(card: HTMLElement): FavoriteCandidate | null {
+  const label =
+    card.querySelector<HTMLElement>('[data-testid="active-essence"]')?.textContent?.trim() ??
+    card.querySelector<HTMLElement>('label strong')?.textContent?.trim() ??
+    ''
+  if (!label) return null
+  return { id: label, label, category: categoryFromCard(card) }
 }
 
-function syncStar(
-  host: HTMLElement,
-  candidate: FavoriteCandidate,
-  characterId: string,
-): HTMLButtonElement {
+function syncStar(host: HTMLElement, candidate: FavoriteCandidate, characterId: string): void {
   let star = host.querySelector<HTMLButtonElement>(
-    `:scope > button[data-favorite-technique-star="true"]`,
+    ':scope > button[data-favorite-technique-star="true"]',
   )
   if (!star) {
     star = document.createElement('button')
@@ -74,8 +54,8 @@ function syncStar(
     host.append(star)
   }
 
-  const favorites = readFavoriteTechniques(window.localStorage, characterId)
-  const active = favorites[candidate.category]?.id === candidate.id
+  const favorite = readFavoriteTechniques(window.localStorage, characterId)[candidate.category]
+  const active = favorite?.id === candidate.id
   star.dataset.favoriteTechniqueId = candidate.id
   star.dataset.favoriteTechniqueCategory = candidate.category
   star.setAttribute('aria-pressed', active ? 'true' : 'false')
@@ -88,7 +68,8 @@ function syncStar(
   star.title = active
     ? `Favorite ${categoryLabel(candidate.category)} Technique`
     : `Make favorite ${categoryLabel(candidate.category)} Technique`
-  star.textContent = active ? '★' : '☆'
+  const glyph = active ? '★' : '☆'
+  if (star.textContent !== glyph) star.textContent = glyph
 
   star.onclick = (event) => {
     event.preventDefault()
@@ -105,37 +86,11 @@ function syncStar(
     )
     window.dispatchEvent(new CustomEvent('aurevane:favorite-techniques-changed'))
   }
-
-  return star
 }
 
-export function CharacterFavoriteTechniqueAssist({
-  characterId,
-  skills,
-  essence,
-}: {
-  characterId: string
-  skills: readonly MatureSkillDefinition[]
-  essence: EssenceDefinition | null
-}) {
+export function CharacterFavoriteTechniqueAssist({ characterId }: { characterId: string }) {
   useEffect(() => {
-    const candidates: FavoriteCandidate[] = skills.map((skill) => ({
-      id: skill.id,
-      label: skillLabel(skill),
-      category: favoriteCategory(skill.tags),
-      sourceDisciplineId: skill.sourceDisciplineId,
-    }))
-    const essenceCandidate: FavoriteCandidate | null = essence
-      ? {
-          id: essence.skill.id,
-          label: essence.name,
-          category: favoriteCategory(essence.skill.tags),
-          sourceDisciplineId: essence.sourceDisciplineId,
-        }
-      : null
-
     function renderStars() {
-      const favorites = readFavoriteTechniques(window.localStorage, characterId)
       const list = document.querySelector<HTMLElement>('[data-testid="learned-skill-list"]')
       if (list) {
         for (const card of list.querySelectorAll<HTMLElement>('article[data-active-source="true"]')) {
@@ -146,44 +101,16 @@ export function CharacterFavoriteTechniqueAssist({
             existing?.remove()
             continue
           }
-
-          const candidate = candidates.find(
-            (entry) => entry.label === cardSkillName(card) && entry.sourceDisciplineId === cardSource(card),
-          )
-          if (!candidate) {
-            existing?.remove()
-            continue
-          }
-          syncStar(card, candidate, characterId)
+          const candidate = candidateForCard(card)
+          if (candidate) syncStar(card, candidate, characterId)
         }
       }
 
       const essenceLabel = document.querySelector<HTMLElement>('[data-testid="active-essence"]')
       const essenceCard = essenceLabel?.closest<HTMLElement>('article') ?? null
-      if (essenceCard && essenceCandidate) {
-        syncStar(essenceCard, essenceCandidate, characterId)
-      }
-
-      for (const star of document.querySelectorAll<HTMLButtonElement>(
-        'button[data-favorite-technique-star="true"]',
-      )) {
-        const category = star.dataset.favoriteTechniqueCategory as FavoriteTechniqueCategory | undefined
-        const skillId = star.dataset.favoriteTechniqueId
-        if (!category || !skillId) continue
-        const active = favorites[category]?.id === skillId
-        star.setAttribute('aria-pressed', active ? 'true' : 'false')
-        star.textContent = active ? '★' : '☆'
-        const candidate = [...candidates, ...(essenceCandidate ? [essenceCandidate] : [])].find(
-          (entry) => entry.id === skillId,
-        )
-        if (candidate) {
-          star.setAttribute(
-            'aria-label',
-            active
-              ? `Remove ${candidate.label} as favorite ${categoryLabel(category)} Technique`
-              : `Set ${candidate.label} as favorite ${categoryLabel(category)} Technique`,
-          )
-        }
+      if (essenceCard) {
+        const candidate = candidateForCard(essenceCard)
+        if (candidate) syncStar(essenceCard, candidate, characterId)
       }
     }
 
@@ -201,7 +128,7 @@ export function CharacterFavoriteTechniqueAssist({
       observer.disconnect()
       window.removeEventListener('aurevane:favorite-techniques-changed', renderStars)
     }
-  }, [characterId, essence, skills])
+  }, [characterId])
 
   return null
 }
