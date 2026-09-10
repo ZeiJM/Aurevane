@@ -17,8 +17,7 @@ export type FavoriteTechniqueSelections = Readonly<
 
 export type FavoriteTechniqueStorage = Pick<Storage, 'getItem' | 'setItem'>
 
-export const BATTLE_FAVORITE_TECHNIQUE_SELECT_EVENT =
-  'aurevane:battle-favorite-technique-select'
+export const BATTLE_FAVORITE_TECHNIQUE_SELECT_EVENT = 'aurevane:battle-favorite-technique-select'
 
 const STORAGE_KEY_PREFIX = 'aurevane:favorite-techniques:v1:'
 
