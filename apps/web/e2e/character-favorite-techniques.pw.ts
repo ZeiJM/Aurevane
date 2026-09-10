@@ -16,8 +16,10 @@ function skillCard(page: Page, name: string) {
 }
 
 async function openTechniques(page: Page) {
-  await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const dialog = page.getByRole('dialog', { name: 'Techniques' })
+  if (!(await dialog.isVisible())) {
+    await page.getByRole('button', { name: /Manage Techniques/ }).click()
+  }
   await expect(dialog).toBeVisible()
   return dialog
 }
