@@ -1,3 +1,4 @@
+import { getFoundationDiscipline } from '@aurevane/game-core/character/foundation-disciplines'
 import { expect, test } from '@playwright/test'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
@@ -13,7 +14,7 @@ function uniqueCharacterName(): string {
   return `Primary ${letters}`
 }
 
-test('Profile previews and commits Primary Discipline without changing assigned attributes', async ({
+test('Profile previews and commits Primary Discipline while preserving personal allocation', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -44,6 +45,18 @@ test('Profile previews and commits Primary Discipline without changing assigned 
       ),
     ),
   )
+  const vanguard = getFoundationDiscipline('vanguard')
+  const aetherist = getFoundationDiscipline('aetherist')
+  if (!vanguard || !aetherist) throw new Error('Foundation Primary profiles are unavailable.')
+
+  const expectedAetheristAttributes = new Map(
+    ATTRIBUTE_IDS.map((id) => {
+      const before = Number(attributesBefore.get(id))
+      const personal = before - vanguard.baseAttributes[id]
+      return [id, String(aetherist.baseAttributes[id] + personal)] as const
+    }),
+  )
+
   const maxHp = page.getByTestId('derived-stat-maxHp').locator('strong')
   const maxHpBefore = await maxHp.innerText()
 
@@ -82,8 +95,14 @@ test('Profile previews and commits Primary Discipline without changing assigned 
   )
   await expect(panel).toContainText('Aetherist · Pure')
 
-  for (const [id, value] of attributesBefore) {
-    await expect(page.getByTestId(`profile-attribute-${id}`).locator('strong')).toHaveText(value)
+  for (const id of ATTRIBUTE_IDS) {
+    const expected = expectedAetheristAttributes.get(id)
+    if (!expected) throw new Error(`Missing expected ${id} value.`)
+    await expect(page.getByTestId(`profile-attribute-${id}`).locator('strong')).toHaveText(expected)
+
+    const before = Number(attributesBefore.get(id))
+    const after = Number(expected)
+    expect(after - aetherist.baseAttributes[id]).toBe(before - vanguard.baseAttributes[id])
   }
 
   await expect(maxHp).not.toHaveText(maxHpBefore)
@@ -98,8 +117,10 @@ test('Profile previews and commits Primary Discipline without changing assigned 
   await expect(dialog).toContainText('Committed Primary')
   await expect(dialog).toContainText('Aetherist')
   await expect(page.getByTestId('derived-stat-maxHp').locator('strong')).toHaveText(maxHpAfter)
-  for (const [id, value] of attributesBefore) {
-    await expect(page.getByTestId(`profile-attribute-${id}`).locator('strong')).toHaveText(value)
+  for (const id of ATTRIBUTE_IDS) {
+    const expected = expectedAetheristAttributes.get(id)
+    if (!expected) throw new Error(`Missing expected persisted ${id} value.`)
+    await expect(page.getByTestId(`profile-attribute-${id}`).locator('strong')).toHaveText(expected)
   }
 
   await page.mouse.click(1, 1)
