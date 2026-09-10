@@ -97,25 +97,34 @@ test('keeps Spectator Key and Spectators controls in the same pill family', asyn
     await expect(spectatorKey).toBeVisible()
     await expect(spectators).toBeVisible({ timeout: 10_000 })
 
-    const shapes = await Promise.all(
-      [spectatorKey, spectators].map((locator) =>
-        locator.evaluate((element) => {
-          const rect = element.getBoundingClientRect()
-          const style = window.getComputedStyle(element)
-          return {
-            height: rect.height,
-            radius: Number.parseFloat(style.borderTopLeftRadius),
-          }
-        }),
-      ),
-    )
+    const readShape = (locator: typeof spectatorKey) =>
+      locator.evaluate((element) => {
+        const rect = element.getBoundingClientRect()
+        const style = window.getComputedStyle(element)
+        return {
+          height: rect.height,
+          radius: Number.parseFloat(style.borderTopLeftRadius),
+        }
+      })
 
-    for (const shape of shapes) {
-      expect(shape.height).toBeGreaterThan(0)
-      expect(shape.radius).toBeGreaterThanOrEqual(shape.height / 2 - 1)
-    }
+    const [spectatorKeyShape, spectatorsShape] = await Promise.all([
+      readShape(spectatorKey),
+      readShape(spectators),
+    ])
 
-    expect(Math.abs(shapes[0]!.height - shapes[1]!.height)).toBeLessThanOrEqual(1)
+    expect(spectatorKeyShape.height, 'Spectator Key height').toBeGreaterThan(0)
+    expect(
+      spectatorKeyShape.radius,
+      `Spectator Key should be pill-shaped: ${JSON.stringify(spectatorKeyShape)}`,
+    ).toBeGreaterThanOrEqual(spectatorKeyShape.height / 2 - 1)
+
+    expect(spectatorsShape.height, 'Spectators height').toBeGreaterThan(0)
+    expect(
+      spectatorsShape.radius,
+      `Spectators should be pill-shaped: ${JSON.stringify(spectatorsShape)}`,
+    ).toBeGreaterThanOrEqual(spectatorsShape.height / 2 - 1)
+
+    expect(Math.abs(spectatorKeyShape.height - spectatorsShape.height)).toBeLessThanOrEqual(1)
 
     await expect(spectators).toHaveAttribute('aria-expanded', 'false')
     await spectators.click()
