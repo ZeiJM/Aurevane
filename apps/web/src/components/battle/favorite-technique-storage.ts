@@ -7,11 +7,18 @@ export interface FavoriteTechniqueSelection {
   label: string
 }
 
+export interface BattleFavoriteTechniqueSelectDetail extends FavoriteTechniqueSelection {
+  categoryLabel: string
+}
+
 export type FavoriteTechniqueSelections = Readonly<
   Partial<Record<FavoriteTechniqueCategory, FavoriteTechniqueSelection>>
 >
 
 export type FavoriteTechniqueStorage = Pick<Storage, 'getItem' | 'setItem'>
+
+export const BATTLE_FAVORITE_TECHNIQUE_SELECT_EVENT =
+  'aurevane:battle-favorite-technique-select'
 
 const STORAGE_KEY_PREFIX = 'aurevane:favorite-techniques:v1:'
 
