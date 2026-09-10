@@ -31,7 +31,7 @@ character_id="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres 
     'portrait.starter.wayfarer-01',
     'appearance.starter.roadworn',
     'vanguard',
-    7, 6, 5, 6, 5, 7
+    12, 4, 7, 4, 3, 6
   );")"
 test -n "$character_id"
 
@@ -51,7 +51,7 @@ attributes_before="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U post
   select might::text || '|' || finesse::text || '|' || vitality::text || '|' || agility::text || '|' || intellect::text || '|' || resolve::text
   from public.characters
   where id = '$character_id'::uuid;")"
-test "$attributes_before" = '7|6|5|6|5|7'
+test "$attributes_before" = '12|4|7|4|3|6'
 
 change_one="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;

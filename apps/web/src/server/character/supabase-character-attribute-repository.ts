@@ -1,18 +1,19 @@
 import 'server-only'
 
+import { AurevaneError } from '@aurevane/game-core/errors'
+
+import { createSupabaseAdminClient } from '@/lib/supabase/admin'
+
 import type {
   CharacterAttributeAllocationView,
   CharacterAttributeRepository,
 } from './character-attribute-service'
-import { AurevaneError } from '@aurevane/game-core/errors'
-
-import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export function createSupabaseCharacterAttributeRepository(): CharacterAttributeRepository {
   return {
     async loadAllocation(userId, characterId) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('get_character_attribute_allocation_v1', {
+      const { data, error } = await supabase.rpc('get_character_attribute_allocation_v2', {
         p_user_id: userId,
         p_character_id: characterId,
       })
@@ -23,7 +24,7 @@ export function createSupabaseCharacterAttributeRepository(): CharacterAttribute
 
     async commitAllocation(input) {
       const supabase = createSupabaseAdminClient()
-      const { data, error } = await supabase.rpc('commit_character_attribute_allocation_v1', {
+      const { data, error } = await supabase.rpc('commit_character_attribute_allocation_v2', {
         p_user_id: input.userId,
         p_character_id: input.characterId,
         p_mode: input.mode,
@@ -50,6 +51,12 @@ export function createSupabaseCharacterAttributeRepository(): CharacterAttribute
             'No attribute resets remain in the current 30-day window.',
           )
         }
+        if (error.message.includes('CHARACTER_CORE_CONVERSION_REQUIRED')) {
+          throw new AurevaneError(
+            'INVALID_REQUEST',
+            'Redistribute your Core Stats once before continuing.',
+          )
+        }
         if (error.code === '22023') {
           throw new AurevaneError('INVALID_REQUEST', humanizeDatabaseValidation(error.message))
         }
@@ -57,8 +64,9 @@ export function createSupabaseCharacterAttributeRepository(): CharacterAttribute
       }
 
       const candidate = Array.isArray(data) && data.length === 1 ? data[0] : null
-      if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate))
+      if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
         throw unavailable()
+      }
       const record = candidate as Record<string, unknown>
       return {
         allocation: parseAllocation(record),
@@ -71,7 +79,7 @@ export function createSupabaseCharacterAttributeRepository(): CharacterAttribute
 function parseAllocation(value: unknown): CharacterAttributeAllocationView {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw unavailable()
   const row = value as Record<string, unknown>
-  const allocation: CharacterAttributeAllocationView = {
+  return {
     characterId: stringField(row.character_id),
     attributes: {
       might: integerField(row.might),
@@ -81,23 +89,43 @@ function parseAllocation(value: unknown): CharacterAttributeAllocationView {
       intellect: integerField(row.intellect),
       resolve: integerField(row.resolve),
     },
+    baseAttributes: attributesField(row.base_attributes),
     level: integerField(row.level),
     pointPool: integerField(row.point_pool),
+    personalPointPool: integerField(row.personal_point_pool),
     spentPoints: integerField(row.spent_points),
     unspentPoints: integerField(row.unspent_points),
+    conversionRequired: booleanField(row.conversion_required),
     resetWindowStartedAt: nullableStringField(row.reset_window_started_at),
     resetUsed: integerField(row.reset_used),
     resetRemaining: integerField(row.reset_remaining),
     resetRenewsAt: nullableStringField(row.reset_renews_at),
     serverNow: stringField(row.server_now),
   }
-  return allocation
+}
+
+function attributesField(value: unknown): CharacterAttributeAllocationView['baseAttributes'] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw unavailable()
+  const attributes = value as Record<string, unknown>
+  return {
+    might: integerField(attributes.might),
+    finesse: integerField(attributes.finesse),
+    vitality: integerField(attributes.vitality),
+    agility: integerField(attributes.agility),
+    intellect: integerField(attributes.intellect),
+    resolve: integerField(attributes.resolve),
+  }
 }
 
 function integerField(value: unknown): number {
   const parsed = typeof value === 'number' ? value : Number(value)
   if (!Number.isSafeInteger(parsed)) throw unavailable()
   return parsed
+}
+
+function booleanField(value: unknown): boolean {
+  if (typeof value !== 'boolean') throw unavailable()
+  return value
 }
 
 function stringField(value: unknown): string {
@@ -111,6 +139,9 @@ function nullableStringField(value: unknown): string | null {
 }
 
 function humanizeDatabaseValidation(message: string): string {
+  if (message.includes('CHARACTER_CORE_ALLOCATION_INVALID')) {
+    return 'That allocation is outside your Primary Discipline base, point pool, or off-focus limits.'
+  }
   if (message.includes('CHARACTER_ATTRIBUTE_POINT_POOL_EXCEEDED')) {
     return 'That allocation exceeds the character’s available attribute points.'
   }

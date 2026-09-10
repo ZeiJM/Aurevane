@@ -23,8 +23,9 @@ test -n "$db_container"
 character_one="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
   select id::text
-  from public.create_base_character_v1(
+  from public.create_character_v3(
     '$user_one'::uuid,
+    0::smallint,
     '00000000-0000-4000-8000-000000002501'::uuid,
     'p25:event-read:character',
     1,
@@ -35,7 +36,7 @@ character_one="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres
     'portrait.starter.wayfarer-01',
     'appearance.starter.roadworn',
     'vanguard',
-    6, 6, 6, 6
+    12, 4, 7, 4, 3, 6
   );")"
 test -n "$character_one"
 

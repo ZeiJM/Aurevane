@@ -4,6 +4,10 @@ import {
   type CharacterAttributeId,
   type CharacterAttributes,
 } from './creation'
+import {
+  FOUNDATION_DISCIPLINES,
+  FOUNDATION_DISCIPLINE_BASE_ATTRIBUTE_TOTAL,
+} from './foundation-disciplines'
 import { CURRENT_LEVEL_CAP } from './progression'
 
 export const ATTRIBUTE_POINTS_PER_LEVEL = 1 as const
@@ -11,9 +15,10 @@ export const ATTRIBUTE_RESET_LIMIT_PER_WINDOW = 5 as const
 export const ATTRIBUTE_RESET_WINDOW_DAYS = 30 as const
 export const MINIMUM_CHARACTER_ATTRIBUTE = 1 as const
 export const FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP = 30 as const
-export const STARTING_ATTRIBUTE_POINT_POOL =
-  CHARACTER_CREATION_RULES_V1.attributes.baseline * CHARACTER_ATTRIBUTE_IDS.length +
+export const PERSONAL_STARTING_ATTRIBUTE_POINT_POOL =
   CHARACTER_CREATION_RULES_V1.attributes.bonusBudget
+export const STARTING_ATTRIBUTE_POINT_POOL =
+  FOUNDATION_DISCIPLINE_BASE_ATTRIBUTE_TOTAL + PERSONAL_STARTING_ATTRIBUTE_POINT_POOL
 
 export const CHARACTER_ATTRIBUTE_LABELS: Readonly<Record<CharacterAttributeId, string>> = {
   might: 'Might',
@@ -27,93 +32,42 @@ export const CHARACTER_ATTRIBUTE_LABELS: Readonly<Record<CharacterAttributeId, s
 export interface DisciplineAttributePolicy {
   disciplineId: string
   policyVersion: number
-  /** Attributes that express the Discipline's intended strengths. Focus attributes are not capped. */
+  /** Fixed Primary-owned values. Personal points are always layered on top of this profile. */
+  baseAttributes: Readonly<Record<CharacterAttributeId, number>>
+  /** A Discipline may intentionally focus on either two or three Core Stats. */
   focusAttributes: readonly CharacterAttributeId[]
-  /**
-   * Optional ceilings for off-identity attributes only. Missing entries are intentionally uncapped.
-   * Balance content may add ceilings later without changing allocation validation semantics.
-   */
+  /** Optional ceilings for off-identity effective attributes only. */
   attributeCaps: Readonly<Partial<Record<CharacterAttributeId, number>>>
 }
 
+function offFocusCaps(focusAttributes: readonly CharacterAttributeId[]) {
+  const focus = new Set<CharacterAttributeId>(focusAttributes)
+  return Object.fromEntries(
+    CHARACTER_ATTRIBUTE_IDS.filter((attributeId) => !focus.has(attributeId)).map((attributeId) => [
+      attributeId,
+      FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+    ]),
+  ) as Partial<Record<CharacterAttributeId, number>>
+}
+
 /**
- * Foundation identity policy v2. Focus attributes remain uncapped for build diversity. Every other core
- * attribute uses the owner-approved 30-point off-identity ceiling, which is permissive enough for hybrid
- * builds while preventing a Primary Discipline from being functionally replaced by an extreme off-role
- * single-stat allocation. Global derived-stat ceilings remain authoritative and apply after attributes.
+ * Foundation identity policy v3. The Primary now owns a fixed 31-point Core Stat base, while all
+ * creation/level points remain player-owned. Focus attributes stay uncapped and all non-focus
+ * attributes retain the owner-approved 30-point effective ceiling.
  */
-export const FOUNDATION_DISCIPLINE_ATTRIBUTE_POLICIES = [
-  {
-    disciplineId: 'vanguard',
-    policyVersion: 2,
-    focusAttributes: ['might', 'vitality'],
-    attributeCaps: {
-      finesse: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
-      agility: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
-      intellect: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
-      resolve: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
-    },
-  },
-  {
-    disciplineId: 'farstrider',
-    policyVersion: 2,
-    focusAttributes: ['finesse', 'agility'],
-    attributeCaps: {
-      might: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
-      vitality: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
-      intellect: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
-      resolve: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
-    },
-  },
-  {
-    disciplineId: 'shadehand',
-    policyVersion: 2,
-    focusAttributes: ['finesse', 'agility'],
-    attributeCaps: {
-      might: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
-      vitality: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
-      intellect: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
-      resolve: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
-    },
-  },
-  {
-    disciplineId: 'ironfist',
-    policyVersion: 2,
-    focusAttributes: ['might', 'agility'],
-    attributeCaps: {
-      finesse: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
-      vitality: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
-      intellect: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
-      resolve: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
-    },
-  },
-  {
-    disciplineId: 'aetherist',
-    policyVersion: 2,
-    focusAttributes: ['intellect', 'resolve'],
-    attributeCaps: {
-      might: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
-      finesse: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
-      vitality: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
-      agility: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
-    },
-  },
-  {
-    disciplineId: 'lifebinder',
-    policyVersion: 2,
-    focusAttributes: ['intellect', 'resolve'],
-    attributeCaps: {
-      might: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
-      finesse: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
-      vitality: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
-      agility: FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
-    },
-  },
-] as const satisfies readonly DisciplineAttributePolicy[]
+export const FOUNDATION_DISCIPLINE_ATTRIBUTE_POLICIES: readonly DisciplineAttributePolicy[] =
+  FOUNDATION_DISCIPLINES.map((discipline) => ({
+    disciplineId: discipline.id,
+    policyVersion: 3,
+    baseAttributes: discipline.baseAttributes,
+    focusAttributes: discipline.focusAttributes,
+    attributeCaps: offFocusCaps(discipline.focusAttributes),
+  }))
 
 export type AttributeAllocationIssueCode =
   | 'invalid-level'
   | 'invalid-attribute'
+  | 'below-discipline-base'
   | 'point-pool-exceeded'
   | 'point-pool-incomplete'
   | 'discipline-cap-exceeded'
@@ -129,7 +83,7 @@ export interface AttributeAllocationValidationInput {
   attributes: CharacterAttributes
   level: number
   policy?: DisciplineAttributePolicy | null
-  /** Respec/reset commits must spend the entire legal point pool. */
+  /** Respec/reset commits must spend the entire legal effective point pool. */
   requireFullPool?: boolean
 }
 
@@ -140,9 +94,20 @@ export interface AttributeResetWindowState {
   renewsAt: string
 }
 
+export interface PrimaryDisciplineAllocationProjection {
+  attributes: CharacterAttributes
+  personalAttributes: CharacterAttributes
+  issues: readonly AttributeAllocationIssue[]
+}
+
+export function personalAttributePointPoolForLevel(level: number): number {
+  assertLevel(level)
+  return PERSONAL_STARTING_ATTRIBUTE_POINT_POOL + (level - 1) * ATTRIBUTE_POINTS_PER_LEVEL
+}
+
 export function attributePointPoolForLevel(level: number): number {
   assertLevel(level)
-  return STARTING_ATTRIBUTE_POINT_POOL + (level - 1) * ATTRIBUTE_POINTS_PER_LEVEL
+  return FOUNDATION_DISCIPLINE_BASE_ATTRIBUTE_TOTAL + personalAttributePointPoolForLevel(level)
 }
 
 export function attributePointsSpent(attributes: CharacterAttributes): number {
@@ -158,6 +123,46 @@ export function attributePointsSpent(attributes: CharacterAttributes): number {
     throw new RangeError('Attribute point total exceeded the safe integer range.')
   }
   return total
+}
+
+export function personalAttributesFromEffective(
+  attributes: CharacterAttributes,
+  policy: DisciplineAttributePolicy,
+): CharacterAttributes {
+  const result = {} as CharacterAttributes
+  for (const attributeId of CHARACTER_ATTRIBUTE_IDS) {
+    const value = attributes[attributeId] - policy.baseAttributes[attributeId]
+    if (!Number.isSafeInteger(value) || value < 0) {
+      throw new RangeError(
+        `${CHARACTER_ATTRIBUTE_LABELS[attributeId]} is below the fixed ${policy.disciplineId} base.`,
+      )
+    }
+    result[attributeId] = value
+  }
+  return result
+}
+
+export function effectiveAttributesFromPersonal(
+  personalAttributes: CharacterAttributes,
+  policy: DisciplineAttributePolicy,
+): CharacterAttributes {
+  const result = {} as CharacterAttributes
+  for (const attributeId of CHARACTER_ATTRIBUTE_IDS) {
+    const personal = personalAttributes[attributeId]
+    if (!Number.isSafeInteger(personal) || personal < 0) {
+      throw new RangeError('Personal Core Stat allocations must be non-negative safe integers.')
+    }
+    result[attributeId] = policy.baseAttributes[attributeId] + personal
+  }
+  return result
+}
+
+export function personalAttributePointsSpent(
+  attributes: CharacterAttributes,
+  policy: DisciplineAttributePolicy,
+): number {
+  const personal = personalAttributesFromEffective(attributes, policy)
+  return CHARACTER_ATTRIBUTE_IDS.reduce((total, attributeId) => total + personal[attributeId], 0)
 }
 
 export function unspentAttributePoints(attributes: CharacterAttributes, level: number): number {
@@ -190,6 +195,14 @@ export function validateDisciplineAttributePolicy(
     })
   }
 
+  if (policy.focusAttributes.length < 2 || policy.focusAttributes.length > 3) {
+    issues.push({
+      code: 'invalid-discipline-policy',
+      field: 'policy.focusAttributes',
+      message: 'A Discipline must focus on either two or three Core Stats.',
+    })
+  }
+
   const focus = new Set<CharacterAttributeId>()
   for (const attributeId of policy.focusAttributes) {
     if (!CHARACTER_ATTRIBUTE_IDS.includes(attributeId)) {
@@ -208,6 +221,27 @@ export function validateDisciplineAttributePolicy(
       })
     }
     focus.add(attributeId)
+  }
+
+  let baseTotal = 0
+  for (const attributeId of CHARACTER_ATTRIBUTE_IDS) {
+    const base = policy.baseAttributes[attributeId]
+    if (!Number.isSafeInteger(base) || base < MINIMUM_CHARACTER_ATTRIBUTE) {
+      issues.push({
+        code: 'invalid-discipline-policy',
+        field: `policy.baseAttributes.${attributeId}`,
+        message: 'Discipline base attributes must be positive safe integers.',
+      })
+      continue
+    }
+    baseTotal += base
+  }
+  if (baseTotal !== FOUNDATION_DISCIPLINE_BASE_ATTRIBUTE_TOTAL) {
+    issues.push({
+      code: 'invalid-discipline-policy',
+      field: 'policy.baseAttributes',
+      message: `Discipline base attributes must total ${FOUNDATION_DISCIPLINE_BASE_ATTRIBUTE_TOTAL}.`,
+    })
   }
 
   for (const [rawAttributeId, cap] of Object.entries(policy.attributeCaps)) {
@@ -269,6 +303,15 @@ export function validateAttributeAllocation(
     }
     total += value
 
+    const base = input.policy?.baseAttributes[attributeId]
+    if (base !== undefined && value < base) {
+      issues.push({
+        code: 'below-discipline-base',
+        field: `attributes.${attributeId}`,
+        message: `${CHARACTER_ATTRIBUTE_LABELS[attributeId]} cannot be below the ${input.policy?.disciplineId ?? 'Primary Discipline'} base of ${base}.`,
+      })
+    }
+
     const cap = input.policy?.attributeCaps[attributeId]
     if (cap !== undefined && value > cap) {
       issues.push({
@@ -293,13 +336,13 @@ export function validateAttributeAllocation(
     issues.push({
       code: 'point-pool-exceeded',
       field: 'attributes',
-      message: `Level ${input.level} provides ${pool} total attribute points, but ${total} are assigned.`,
+      message: `Level ${input.level} provides ${pool} total effective Core Stat points, but ${total} are assigned.`,
     })
   } else if (input.requireFullPool && total !== pool) {
     issues.push({
       code: 'point-pool-incomplete',
       field: 'attributes',
-      message: `A full redistribution must assign all ${pool} available attribute points.`,
+      message: `A full redistribution must assign all ${pool} available effective Core Stat points.`,
     })
   }
 
@@ -307,9 +350,9 @@ export function validateAttributeAllocation(
 }
 
 /**
- * Primary changes validate the existing personal allocation against the proposed policy only. The
- * allocation is never rewritten, clamped, or destroyed; callers can require redistribution when issues
- * are returned.
+ * Legacy compatibility helper: validates an effective allocation against one proposed policy without
+ * mutating it. New Primary-swap paths should use projectAllocationForPrimaryDisciplineChange so the
+ * player-owned portion moves intact from the old base to the new base.
  */
 export function validateAllocationForPrimaryDisciplineChange(
   attributes: CharacterAttributes,
@@ -317,6 +360,42 @@ export function validateAllocationForPrimaryDisciplineChange(
   proposedPolicy: DisciplineAttributePolicy,
 ): readonly AttributeAllocationIssue[] {
   return validateAttributeAllocation({ attributes, level, policy: proposedPolicy })
+}
+
+export function projectAllocationForPrimaryDisciplineChange(input: {
+  attributes: CharacterAttributes
+  level: number
+  currentPolicy: DisciplineAttributePolicy
+  proposedPolicy: DisciplineAttributePolicy
+}): PrimaryDisciplineAllocationProjection {
+  const currentIssues = validateAttributeAllocation({
+    attributes: input.attributes,
+    level: input.level,
+    policy: input.currentPolicy,
+  })
+  if (currentIssues.length > 0) {
+    return {
+      attributes: { ...input.attributes },
+      personalAttributes: {
+        might: 0,
+        finesse: 0,
+        vitality: 0,
+        agility: 0,
+        intellect: 0,
+        resolve: 0,
+      },
+      issues: currentIssues,
+    }
+  }
+
+  const personalAttributes = personalAttributesFromEffective(input.attributes, input.currentPolicy)
+  const attributes = effectiveAttributesFromPersonal(personalAttributes, input.proposedPolicy)
+  const issues = validateAttributeAllocation({
+    attributes,
+    level: input.level,
+    policy: input.proposedPolicy,
+  })
+  return { attributes, personalAttributes, issues }
 }
 
 export function resolveAttributeResetWindow(input: {

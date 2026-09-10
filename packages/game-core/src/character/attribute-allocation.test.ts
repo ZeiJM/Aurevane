@@ -4,213 +4,186 @@ import {
   ATTRIBUTE_RESET_LIMIT_PER_WINDOW,
   FOUNDATION_DISCIPLINE_ATTRIBUTE_POLICIES,
   FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP,
+  PERSONAL_STARTING_ATTRIBUTE_POINT_POOL,
   STARTING_ATTRIBUTE_POINT_POOL,
   attributePointPoolForLevel,
   consumeAttributeReset,
+  effectiveAttributesFromPersonal,
   foundationDisciplineAttributePolicy,
+  personalAttributePointPoolForLevel,
+  personalAttributesFromEffective,
+  projectAllocationForPrimaryDisciplineChange,
   resolveAttributeResetWindow,
   unspentAttributePoints,
-  validateAllocationForPrimaryDisciplineChange,
   validateAttributeAllocation,
   validateDisciplineAttributePolicy,
   type DisciplineAttributePolicy,
 } from './attribute-allocation'
 
 describe('attribute allocation guardrails', () => {
-  it('grants one total core-attribute point for every Level after Level 1', () => {
+  it('keeps 36 effective points at Level 1 while only five are player-owned', () => {
     expect(STARTING_ATTRIBUTE_POINT_POOL).toBe(36)
+    expect(PERSONAL_STARTING_ATTRIBUTE_POINT_POOL).toBe(5)
     expect(attributePointPoolForLevel(1)).toBe(36)
     expect(attributePointPoolForLevel(2)).toBe(37)
     expect(attributePointPoolForLevel(50)).toBe(85)
+    expect(personalAttributePointPoolForLevel(1)).toBe(5)
+    expect(personalAttributePointPoolForLevel(50)).toBe(54)
   })
 
-  it('allows level-earned points to remain unspent until the player assigns them', () => {
-    const starting = {
-      might: 6,
-      finesse: 6,
-      vitality: 6,
-      agility: 6,
-      intellect: 6,
-      resolve: 6,
-    }
+  it('allows level-earned personal points to remain unspent until the player assigns them', () => {
+    const vanguard = foundationDisciplineAttributePolicy('vanguard')!
+    const starting = effectiveAttributesFromPersonal(
+      { might: 2, finesse: 0, vitality: 2, agility: 0, intellect: 0, resolve: 1 },
+      vanguard,
+    )
     expect(unspentAttributePoints(starting, 10)).toBe(9)
-    expect(validateAttributeAllocation({ attributes: starting, level: 10 })).toEqual([])
-  })
-
-  it('treats the entire starter pool as redistributable rather than permanently locking baseline values', () => {
-    const redistributed = {
-      might: 1,
-      finesse: 1,
-      vitality: 1,
-      agility: 1,
-      intellect: 31,
-      resolve: 1,
-    }
     expect(
-      validateAttributeAllocation({
-        attributes: redistributed,
-        level: 1,
-        policy: foundationDisciplineAttributePolicy('aetherist'),
-        requireFullPool: true,
-      }),
+      validateAttributeAllocation({ attributes: starting, level: 10, policy: vanguard }),
     ).toEqual([])
   })
 
-  it('keeps focus attributes uncapped while enforcing only explicitly authored off-identity ceilings', () => {
+  it('never allows a redistribution to spend below the fixed Primary base', () => {
+    const aetherist = foundationDisciplineAttributePolicy('aetherist')!
+    const illegal = {
+      might: 1,
+      finesse: 3,
+      vitality: 4,
+      agility: 3,
+      intellect: 15,
+      resolve: 10,
+    }
+    expect(
+      validateAttributeAllocation({
+        attributes: illegal,
+        level: 1,
+        policy: aetherist,
+        requireFullPool: true,
+      }),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'below-discipline-base', field: 'attributes.might' }),
+      ]),
+    )
+  })
+
+  it('round-trips player-owned allocations independently from the Primary base', () => {
+    const vanguard = foundationDisciplineAttributePolicy('vanguard')!
+    const personal = { might: 1, finesse: 0, vitality: 2, agility: 0, intellect: 0, resolve: 2 }
+    const effective = effectiveAttributesFromPersonal(personal, vanguard)
+    expect(personalAttributesFromEffective(effective, vanguard)).toEqual(personal)
+    expect(Object.values(effective).reduce((total, value) => total + value, 0)).toBe(36)
+  })
+
+  it('keeps focus attributes uncapped while enforcing only authored off-identity ceilings', () => {
     const policy: DisciplineAttributePolicy = {
       disciplineId: 'test-mage',
       policyVersion: 1,
+      baseAttributes: { might: 3, finesse: 3, vitality: 4, agility: 3, intellect: 9, resolve: 9 },
       focusAttributes: ['intellect', 'resolve'],
       attributeCaps: { might: 8, finesse: 10, vitality: 12, agility: 10 },
     }
 
     const legal = {
       might: 8,
-      finesse: 1,
-      vitality: 1,
-      agility: 1,
-      intellect: 24,
-      resolve: 1,
+      finesse: 3,
+      vitality: 4,
+      agility: 3,
+      intellect: 9,
+      resolve: 9,
     }
-    const illegal = { ...legal, might: 9, intellect: 23 }
+    const illegal = { ...legal, might: 9, intellect: 8 }
 
-    expect(validateAttributeAllocation({ attributes: legal, level: 1, policy })).toEqual([])
-    expect(validateAttributeAllocation({ attributes: illegal, level: 1, policy })).toEqual(
+    expect(validateAttributeAllocation({ attributes: legal, level: 5, policy })).toEqual([])
+    expect(validateAttributeAllocation({ attributes: illegal, level: 5, policy })).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ code: 'discipline-cap-exceeded', field: 'attributes.might' }),
       ]),
     )
   })
 
-  it('rejects policies that attempt to cap their own focus attributes', () => {
+  it('requires every policy to define exactly two or three unique focus attributes and 31 base points', () => {
     expect(
       validateDisciplineAttributePolicy({
         disciplineId: 'bad-mage',
         policyVersion: 1,
+        baseAttributes: {
+          might: 2,
+          finesse: 3,
+          vitality: 4,
+          agility: 3,
+          intellect: 10,
+          resolve: 9,
+        },
         focusAttributes: ['intellect'],
-        attributeCaps: { intellect: 20 },
+        attributeCaps: {},
       }),
     ).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           code: 'invalid-discipline-policy',
-          field: 'policy.attributeCaps.intellect',
+          field: 'policy.focusAttributes',
         }),
       ]),
     )
   })
 
-  it('checks a proposed Primary without mutating or silently clamping the player allocation', () => {
-    const proposedPolicy: DisciplineAttributePolicy = {
-      disciplineId: 'bounded-mage',
-      policyVersion: 1,
-      focusAttributes: ['intellect'],
-      attributeCaps: { might: 8 },
-    }
-    const attributes = {
-      might: 12,
-      finesse: 1,
-      vitality: 1,
-      agility: 1,
-      intellect: 20,
-      resolve: 1,
-    }
-
-    const before = { ...attributes }
-    expect(validateAllocationForPrimaryDisciplineChange(attributes, 1, proposedPolicy)).toEqual(
-      expect.arrayContaining([expect.objectContaining({ code: 'discipline-cap-exceeded' })]),
-    )
-    expect(attributes).toEqual(before)
-  })
-
-  it('ships Foundation policy v2 with uncapped focus attributes and a 30-point non-focus ceiling', () => {
+  it('ships Foundation policy v3 with mixed 2/3 focus counts and a 30-point non-focus ceiling', () => {
     expect(FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP).toBe(30)
     expect(FOUNDATION_DISCIPLINE_ATTRIBUTE_POLICIES).toHaveLength(6)
 
+    const focusCounts = new Set<number>()
     for (const policy of FOUNDATION_DISCIPLINE_ATTRIBUTE_POLICIES) {
-      expect(policy.policyVersion).toBe(2)
+      expect(policy.policyVersion).toBe(3)
       expect(validateDisciplineAttributePolicy(policy)).toEqual([])
-      expect(Object.keys(policy.attributeCaps)).toHaveLength(4)
+      expect(Object.keys(policy.attributeCaps)).toHaveLength(6 - policy.focusAttributes.length)
       for (const focusAttribute of policy.focusAttributes) {
         expect(policy.attributeCaps).not.toHaveProperty(focusAttribute)
       }
       for (const cap of Object.values(policy.attributeCaps)) {
         expect(cap).toBe(FOUNDATION_NON_FOCUS_ATTRIBUTE_CAP)
       }
+      focusCounts.add(policy.focusAttributes.length)
     }
+    expect(focusCounts).toEqual(new Set([2, 3]))
+  })
 
-    expect(foundationDisciplineAttributePolicy('aetherist')?.focusAttributes).toEqual([
-      'intellect',
-      'resolve',
-    ])
-    expect(foundationDisciplineAttributePolicy('aetherist')?.attributeCaps).toEqual({
-      might: 30,
-      finesse: 30,
-      vitality: 30,
-      agility: 30,
+  it('moves only the fixed Primary base while preserving every personal point on a legal swap', () => {
+    const vanguard = foundationDisciplineAttributePolicy('vanguard')!
+    const aetherist = foundationDisciplineAttributePolicy('aetherist')!
+    const personal = { might: 2, finesse: 0, vitality: 1, agility: 0, intellect: 1, resolve: 1 }
+    const current = effectiveAttributesFromPersonal(personal, vanguard)
+
+    const projected = projectAllocationForPrimaryDisciplineChange({
+      attributes: current,
+      level: 1,
+      currentPolicy: vanguard,
+      proposedPolicy: aetherist,
     })
+
+    expect(projected.issues).toEqual([])
+    expect(projected.personalAttributes).toEqual(personal)
+    expect(projected.attributes).toEqual(effectiveAttributesFromPersonal(personal, aetherist))
+    expect(Object.values(projected.attributes).reduce((total, value) => total + value, 0)).toBe(36)
   })
 
-  it('allows a serious Level 50 hybrid at the non-focus ceiling and rejects only the point beyond it', () => {
-    const policy = foundationDisciplineAttributePolicy('aetherist')
-    expect(policy).not.toBeNull()
+  it('rejects a projected swap when preserved personal investment would exceed a target off-focus cap', () => {
+    const aetherist = foundationDisciplineAttributePolicy('aetherist')!
+    const vanguard = foundationDisciplineAttributePolicy('vanguard')!
+    const personal = { might: 0, finesse: 28, vitality: 0, agility: 0, intellect: 20, resolve: 1 }
+    const current = effectiveAttributesFromPersonal(personal, aetherist)
 
-    const legalHybrid = {
-      might: 30,
-      finesse: 3,
-      vitality: 3,
-      agility: 3,
-      intellect: 40,
-      resolve: 6,
-    }
-    const illegalHybrid = {
-      ...legalHybrid,
-      might: 31,
-      intellect: 39,
-    }
-
-    expect(
-      validateAttributeAllocation({
-        attributes: legalHybrid,
-        level: 50,
-        policy,
-        requireFullPool: true,
-      }),
-    ).toEqual([])
-    expect(
-      validateAttributeAllocation({
-        attributes: illegalHybrid,
-        level: 50,
-        policy,
-        requireFullPool: true,
-      }),
-    ).toEqual(
+    const projected = projectAllocationForPrimaryDisciplineChange({
+      attributes: current,
+      level: 45,
+      currentPolicy: aetherist,
+      proposedPolicy: vanguard,
+    })
+    expect(projected.issues).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ code: 'discipline-cap-exceeded', field: 'attributes.might' }),
+        expect.objectContaining({ code: 'discipline-cap-exceeded', field: 'attributes.finesse' }),
       ]),
     )
-  })
-
-  it('requires redistribution before a Primary swap when the target Discipline makes a 31-point stat non-focus', () => {
-    const attributes = {
-      might: 31,
-      finesse: 3,
-      vitality: 39,
-      agility: 3,
-      intellect: 6,
-      resolve: 3,
-    }
-    const before = { ...attributes }
-    const aetherist = foundationDisciplineAttributePolicy('aetherist')
-    expect(aetherist).not.toBeNull()
-
-    expect(validateAllocationForPrimaryDisciplineChange(attributes, 50, aetherist!)).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ code: 'discipline-cap-exceeded', field: 'attributes.might' }),
-        expect.objectContaining({ code: 'discipline-cap-exceeded', field: 'attributes.vitality' }),
-      ]),
-    )
-    expect(attributes).toEqual(before)
   })
 
   it('allows five resets per 30-day window and replenishes the full allowance when the window renews', () => {

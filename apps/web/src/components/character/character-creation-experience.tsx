@@ -76,6 +76,9 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
   const idempotencyKey = useRef<string | null>(null)
   const stepHeading = useRef<HTMLHeadingElement>(null)
 
+  const selectedDiscipline =
+    FOUNDATION_DISCIPLINES.find((candidate) => candidate.id === foundationDisciplineId) ??
+    FOUNDATION_DISCIPLINES[0]
   const spentPoints = CHARACTER_ATTRIBUTE_IDS.reduce(
     (total, attributeId) => total + attributeBonuses[attributeId],
     0,
@@ -169,9 +172,6 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
         return
       }
 
-      // The API establishes this character as the active selection in this response. Use a full
-      // navigation so the next server render cannot reuse an RSC result created before the
-      // selection cookie existed.
       window.location.assign('/game/character')
     } catch {
       setErrorMessage('Character creation could not reach the server. Your choices are still here.')
@@ -334,9 +334,9 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
               Choose your first Discipline.
             </h1>
             <p className={styles.intro}>
-              A Discipline is a learnable combat tradition that shapes your starting tools and
-              tactical style. It is your first direction, not a permanent class or build lock; later
-              progression can broaden and combine what your character knows.
+              Your Primary Discipline supplies a permanent class-owned Core Stat base while it is
+              equipped. Your personal points sit on top of that base and remain yours if you change
+              Primary later.
             </p>
 
             <fieldset
@@ -370,25 +370,25 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
 
             <div className={styles.attributeHeader}>
               <div>
-                <h2>Starting attributes</h2>
+                <h2>Starting Core Stats</h2>
                 <p>
-                  Every attribute begins at {CHARACTER_CREATION_RULES_V1.attributes.baseline}. Your
-                  Discipline loads a recommended starting spread of{' '}
-                  {CHARACTER_CREATION_RULES_V1.attributes.bonusBudget} bonus points, and you can
-                  redistribute every point before creation. Vitality owns endurance; Agility owns
-                  movement and reflex, so the older attributes no longer have to carry too many jobs
-                  at once.
+                  {selectedDiscipline.name} supplies a fixed{' '}
+                  {CHARACTER_CREATION_RULES_V1.attributes.disciplineBaseTotal}-point base profile.
+                  You also receive {CHARACTER_CREATION_RULES_V1.attributes.bonusBudget} personal
+                  points to distribute as you see fit. Those personal points—and every point earned
+                  from later Levels—stay with your character when Primary changes.
                 </p>
               </div>
               <strong data-testid="attribute-points">
-                {remainingPoints} bonus points remaining
+                {remainingPoints} personal points remaining
               </strong>
             </div>
 
             <div className={styles.attributeGrid}>
               {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => {
                 const bonus = attributeBonuses[attributeId]
-                const total = CHARACTER_CREATION_RULES_V1.attributes.baseline + bonus
+                const base = selectedDiscipline.baseAttributes[attributeId]
+                const total = base + bonus
                 return (
                   <div
                     className={styles.attributeCard}
@@ -401,7 +401,7 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
                       <strong>{attributeId[0].toUpperCase() + attributeId.slice(1)}</strong>
                       <small>{attributeCopy[attributeId]}</small>
                       <small>
-                        Base {CHARACTER_CREATION_RULES_V1.attributes.baseline} · Total {total}
+                        Discipline base {base} · Personal +{bonus} · Total {total}
                       </small>
                     </div>
                     <div className={styles.attributeControl}>
@@ -457,8 +457,9 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
               Confirm this character.
             </h1>
             <p className={styles.intro}>
-              The server revalidates every choice, reserves the name, creates the character
-              atomically in Slot {slotIndex + 1}, and takes you straight into that character.
+              The server revalidates the Primary-owned base and all five personal points, reserves
+              the name, creates the character atomically in Slot {slotIndex + 1}, and takes you
+              straight into that character.
             </p>
             <dl className={styles.reviewGrid}>
               <div>
@@ -471,9 +472,7 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
               </div>
               <div>
                 <dt>Discipline</dt>
-                <dd>
-                  {FOUNDATION_DISCIPLINES.find((item) => item.id === foundationDisciplineId)?.name}
-                </dd>
+                <dd>{selectedDiscipline.name}</dd>
               </div>
               <div>
                 <dt>Presentation</dt>
@@ -487,8 +486,7 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
                 <div key={attributeId}>
                   <dt>{attributeId[0].toUpperCase() + attributeId.slice(1)}</dt>
                   <dd>
-                    {CHARACTER_CREATION_RULES_V1.attributes.baseline +
-                      attributeBonuses[attributeId]}
+                    {selectedDiscipline.baseAttributes[attributeId] + attributeBonuses[attributeId]}
                   </dd>
                 </div>
               ))}

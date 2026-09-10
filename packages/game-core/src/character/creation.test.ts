@@ -12,7 +12,7 @@ import {
   type CharacterCreationCommandV1,
   type CharacterCreationIntent,
 } from './creation'
-import { FOUNDATION_DISCIPLINES } from './foundation-disciplines'
+import { FOUNDATION_DISCIPLINES, getFoundationDiscipline } from './foundation-disciplines'
 
 function validIntent() {
   return {
@@ -27,7 +27,7 @@ function validIntent() {
       vitality: 1,
       agility: 1,
       intellect: 1,
-      resolve: 1,
+      resolve: 0,
     },
     foundationDisciplineId: 'vanguard',
   }
@@ -67,7 +67,8 @@ describe('character creation domain', () => {
     ).toBe(false)
   })
 
-  it('requires the exact configurable six-point bonus budget', () => {
+  it('requires the exact configurable five-point personal budget', () => {
+    expect(CHARACTER_CREATION_RULES_V1.attributes.bonusBudget).toBe(5)
     const tooFew = validateCharacterCreationIntent({
       ...validIntent(),
       attributeBonuses: {
@@ -75,7 +76,7 @@ describe('character creation domain', () => {
         finesse: 1,
         vitality: 1,
         agility: 1,
-        intellect: 1,
+        intellect: 0,
         resolve: 0,
       },
     })
@@ -87,7 +88,7 @@ describe('character creation domain', () => {
         vitality: 1,
         agility: 1,
         intellect: 1,
-        resolve: 1,
+        resolve: 0,
       },
     })
 
@@ -95,42 +96,32 @@ describe('character creation domain', () => {
     expect(tooMany.ok).toBe(false)
   })
 
-  it('allows the full six-point budget to be placed into one attribute', () => {
-    const validation = validateCharacterCreationIntent({
+  it('allows the full five-point personal budget to be placed into one attribute', () => {
+    const input = {
       ...validIntent(),
       attributeBonuses: {
-        might: 6,
+        might: 5,
         finesse: 0,
         vitality: 0,
         agility: 0,
         intellect: 0,
         resolve: 0,
       },
-    })
-    expect(validation.ok).toBe(true)
+    }
+    expect(validateCharacterCreationIntent(input).ok).toBe(true)
 
-    const character = buildInitialCharacterState({
-      ...validIntent(),
-      attributeBonuses: {
-        might: 6,
-        finesse: 0,
-        vitality: 0,
-        agility: 0,
-        intellect: 0,
-        resolve: 0,
-      },
-    })
-    expect(character.attributes.might).toBe(11)
-    expect(character.attributes.finesse).toBe(5)
+    const character = buildInitialCharacterState(input)
+    expect(character.attributes.might).toBe(12)
+    expect(character.attributes.finesse).toBe(4)
   })
 
-  it('rejects invalid, missing, or unexpected attribute values', () => {
+  it('rejects invalid, missing, or unexpected personal attribute values', () => {
     const manipulated = [
-      { might: -1, finesse: 1, vitality: 1, agility: 1, intellect: 2, resolve: 2 },
-      { might: 0.5, finesse: 1, vitality: 1, agility: 1, intellect: 1, resolve: 1.5 },
-      { might: 7, finesse: 0, vitality: 0, agility: 0, intellect: 0, resolve: -1 },
-      { might: 1, finesse: 1, vitality: 1, agility: 1, intellect: 2 },
-      { might: 1, finesse: 1, vitality: 1, agility: 1, intellect: 1, resolve: 1, luck: 0 },
+      { might: -1, finesse: 1, vitality: 1, agility: 1, intellect: 2, resolve: 1 },
+      { might: 0.5, finesse: 1, vitality: 1, agility: 1, intellect: 1, resolve: 0.5 },
+      { might: 6, finesse: 0, vitality: 0, agility: 0, intellect: 0, resolve: -1 },
+      { might: 1, finesse: 1, vitality: 1, agility: 1, intellect: 1 },
+      { might: 1, finesse: 1, vitality: 1, agility: 1, intellect: 1, resolve: 0, luck: 0 },
     ]
 
     for (const attributeBonuses of manipulated) {
@@ -138,37 +129,45 @@ describe('character creation domain', () => {
     }
   })
 
-  it('never allows creation choices to lower an attribute below the shared baseline', () => {
+  it('layers personal choices on top of the chosen Discipline base without rewriting it', () => {
+    const discipline = getFoundationDiscipline('vanguard')!
     const character = buildInitialCharacterState({
       ...validIntent(),
       attributeBonuses: {
         might: 4,
         finesse: 0,
         vitality: 1,
-        agility: 1,
+        agility: 0,
         intellect: 0,
         resolve: 0,
       },
     })
 
-    expect(character.attributes.might).toBe(9)
+    expect(character.attributes.might).toBe(discipline.baseAttributes.might + 4)
     for (const attributeId of CHARACTER_ATTRIBUTE_IDS) {
       expect(character.attributes[attributeId]).toBeGreaterThanOrEqual(
-        CHARACTER_CREATION_RULES_V1.attributes.baseline,
+        discipline.baseAttributes[attributeId],
       )
     }
   })
 
-  it('references all six Disciplines without implementing Discipline gameplay', () => {
+  it('produces a distinct Level-1 Core Stat identity for every starter Discipline', () => {
     expect(FOUNDATION_DISCIPLINES).toHaveLength(6)
+    const fingerprints = new Set<string>()
 
     for (const discipline of FOUNDATION_DISCIPLINES) {
       const character = buildInitialCharacterState({
         ...validIntent(),
         foundationDisciplineId: discipline.id,
+        attributeBonuses: { ...discipline.startingAttributeBonuses },
       })
       expect(character.foundationDisciplineId).toBe(discipline.id)
+      expect(Object.values(character.attributes).reduce((total, value) => total + value, 0)).toBe(
+        36,
+      )
+      fingerprints.add(JSON.stringify(character.attributes))
     }
+    expect(fingerprints.size).toBe(6)
   })
 
   it('rejects invented Discipline identifiers', () => {
@@ -201,7 +200,7 @@ describe('character creation domain', () => {
     ).toBe(false)
   })
 
-  it('builds deterministic canonical level-1 seed state', () => {
+  it('builds deterministic canonical Level-1 state from Vanguard base plus five personal points', () => {
     const first = buildInitialCharacterState(validIntent())
     const second = buildInitialCharacterState(validIntent())
 
@@ -215,11 +214,11 @@ describe('character creation domain', () => {
       progressionCycle: { number: 1 },
     })
     expect(first.attributes).toEqual({
-      might: 6,
-      finesse: 6,
-      vitality: 6,
-      agility: 6,
-      intellect: 6,
+      might: 8,
+      finesse: 5,
+      vitality: 8,
+      agility: 5,
+      intellect: 4,
       resolve: 6,
     })
   })

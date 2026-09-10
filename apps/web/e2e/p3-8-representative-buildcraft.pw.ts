@@ -99,11 +99,25 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(page.getByRole('status')).toContainText('Selected Techniques committed')
   await reloadProfile(page)
 
-  await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
+  const disciplinePanel = page.getByTestId('primary-build-panel')
+  const disciplineLauncher = disciplinePanel.getByRole('button', {
+    name: /Manage Primary Discipline/,
+  })
+  await disciplineLauncher.click()
+  const disciplineDialog = page.getByRole('dialog', { name: 'Discipline Management' })
+  await expect(disciplineDialog).toBeVisible()
   await page.getByLabel('Proposed Secondary').selectOption('lifebinder')
   await expect(page.getByTestId('primary-build-preview')).toContainText('Vanguard + Lifebinder')
   await page.getByRole('button', { name: 'Commit Discipline changes' }).click()
-  await expect(page.getByTestId('primary-build-panel')).toContainText('Vanguard + Lifebinder')
+  await expect(page.getByRole('status')).toContainText(
+    'Lifebinder is now the committed Secondary Discipline.',
+  )
+  await expect(disciplineLauncher).toHaveText('Discipline Management')
+  await expect(disciplinePanel).not.toContainText('Vanguard + Lifebinder')
+  await expect(disciplineDialog).toContainText('Committed Primary')
+  await expect(disciplineDialog).toContainText('Vanguard')
+  await expect(disciplineDialog).toContainText('Committed Secondary')
+  await expect(disciplineDialog).toContainText('Lifebinder')
   await reloadProfile(page)
 
   await page.getByRole('button', { name: /Manage Techniques/ }).click()

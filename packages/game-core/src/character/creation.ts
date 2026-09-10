@@ -1,4 +1,9 @@
-import { isFoundationDisciplineId, type FoundationDisciplineId } from './foundation-disciplines'
+import {
+  FOUNDATION_DISCIPLINE_BASE_ATTRIBUTE_TOTAL,
+  getFoundationDiscipline,
+  isFoundationDisciplineId,
+  type FoundationDisciplineId,
+} from './foundation-disciplines'
 
 export const CHARACTER_ATTRIBUTE_IDS = [
   'might',
@@ -60,9 +65,9 @@ export const CHARACTER_CREATION_RULES_V1 = {
     maximumCodePoints: 24,
   },
   attributes: {
-    baseline: 5,
-    bonusBudget: 6,
-    maximumBonusPerAttribute: 6,
+    disciplineBaseTotal: FOUNDATION_DISCIPLINE_BASE_ATTRIBUTE_TOTAL,
+    bonusBudget: 5,
+    maximumBonusPerAttribute: 5,
   },
   initialProgression: {
     level: 1,
@@ -98,6 +103,7 @@ export interface CharacterCreationIntent {
   pronounPresetId: string
   portraitRef: string
   starterAppearanceRef: string
+  /** Five player-owned Core Stat points layered on top of the chosen Primary Discipline base. */
   attributeBonuses: CharacterAttributeBonuses
   foundationDisciplineId: string
 }
@@ -270,7 +276,7 @@ function validateAttributeBonuses(
     issues.push({
       code: 'attribute_budget_mismatch',
       field: 'attributeBonuses',
-      message: `Spend exactly ${CHARACTER_CREATION_RULES_V1.attributes.bonusBudget} attribute bonus points.`,
+      message: `Spend exactly ${CHARACTER_CREATION_RULES_V1.attributes.bonusBudget} personal Core Stat points.`,
     })
     return null
   }
@@ -414,6 +420,17 @@ export function buildInitialCharacterState(
   if (!validation.ok) throw new CharacterCreationRuleError(validation.issues)
 
   const { value } = validation
+  const discipline = getFoundationDiscipline(value.foundationDisciplineId)
+  if (!discipline) {
+    throw new CharacterCreationRuleError([
+      {
+        code: 'invalid_foundation_discipline',
+        field: 'foundationDisciplineId',
+        message: 'Choose one of the available starter Disciplines.',
+      },
+    ])
+  }
+
   return {
     rulesVersion: 1,
     name: value.name,
@@ -424,12 +441,12 @@ export function buildInitialCharacterState(
     starterAppearanceRef: value.starterAppearanceRef,
     foundationDisciplineId: value.foundationDisciplineId,
     attributes: {
-      might: CHARACTER_CREATION_RULES_V1.attributes.baseline + value.attributeBonuses.might,
-      finesse: CHARACTER_CREATION_RULES_V1.attributes.baseline + value.attributeBonuses.finesse,
-      vitality: CHARACTER_CREATION_RULES_V1.attributes.baseline + value.attributeBonuses.vitality,
-      agility: CHARACTER_CREATION_RULES_V1.attributes.baseline + value.attributeBonuses.agility,
-      intellect: CHARACTER_CREATION_RULES_V1.attributes.baseline + value.attributeBonuses.intellect,
-      resolve: CHARACTER_CREATION_RULES_V1.attributes.baseline + value.attributeBonuses.resolve,
+      might: discipline.baseAttributes.might + value.attributeBonuses.might,
+      finesse: discipline.baseAttributes.finesse + value.attributeBonuses.finesse,
+      vitality: discipline.baseAttributes.vitality + value.attributeBonuses.vitality,
+      agility: discipline.baseAttributes.agility + value.attributeBonuses.agility,
+      intellect: discipline.baseAttributes.intellect + value.attributeBonuses.intellect,
+      resolve: discipline.baseAttributes.resolve + value.attributeBonuses.resolve,
     },
     level: CHARACTER_CREATION_RULES_V1.initialProgression.level,
     xp: CHARACTER_CREATION_RULES_V1.initialProgression.xp,

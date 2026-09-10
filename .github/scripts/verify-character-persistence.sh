@@ -56,7 +56,7 @@ create_character_sql() {
       'portrait.starter.wayfarer-01',
       'appearance.starter.roadworn',
       'vanguard',
-      6, 6, 6, 6, 6, 6
+      12, 4, 7, 4, 3, 6
     );"
 }
 
@@ -129,7 +129,7 @@ slot_snapshot="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc 
   set role service_role;
   select count(*)::text || '|' || min(vitality)::text || '|' || min(agility)::text
   from public.get_character_slots_v2('$user_one'::uuid);")"
-test "$slot_snapshot" = '2|6|6'
+test "$slot_snapshot" = '2|7|4'
 
 switch_result="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
   set role service_role;
@@ -203,7 +203,7 @@ own_one="$(curl --fail-with-body --silent --show-error \
   --header "apikey: $ANON_KEY" \
   --header "Authorization: Bearer $token_one")"
 printf '%s' "$own_one" | jq -e --arg first "$first_id" --arg third "$third_id" --arg user "$user_one" \
-  'length == 2 and .[0].id == $first and .[0].user_id == $user and .[0].level == 1 and .[0].xp == 0 and .[0].slot_index == 0 and .[0].vitality == 6 and .[0].agility == 6 and .[0].personal_title == "Dawn Warden" and .[1].id == $third and .[1].slot_index == 1' >/dev/null
+  'length == 2 and .[0].id == $first and .[0].user_id == $user and .[0].level == 1 and .[0].xp == 0 and .[0].slot_index == 0 and .[0].vitality == 7 and .[0].agility == 4 and .[0].personal_title == "Dawn Warden" and .[1].id == $third and .[1].slot_index == 1' >/dev/null
 
 cross_one="$(curl --fail-with-body --silent --show-error \
   "$api_url/rest/v1/characters?select=id&user_id=eq.$user_two" \
