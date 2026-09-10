@@ -22,6 +22,7 @@ on:
       - 'apps/web/src/components/character/character-creation-experience.tsx'
       - 'apps/web/src/app/game/character/page.tsx'
       - 'apps/web/src/components/character/character-profile-shell.tsx'
+      - 'apps/web/e2e/character-level-up-attribute-allocation.pw.ts'
   push:
     branches:
       - main
@@ -45,6 +46,7 @@ on:
       - 'apps/web/src/components/character/character-creation-experience.tsx'
       - 'apps/web/src/app/game/character/page.tsx'
       - 'apps/web/src/components/character/character-profile-shell.tsx'
+      - 'apps/web/e2e/character-level-up-attribute-allocation.pw.ts'
 
 permissions:
   contents: read
@@ -90,7 +92,8 @@ jobs:
             apps/web/src/components/character/character-attribute-allocation-panel.module.css \
             apps/web/src/components/character/character-creation-experience.tsx \
             apps/web/src/app/game/character/page.tsx \
-            apps/web/src/components/character/character-profile-shell.tsx
+            apps/web/src/components/character/character-profile-shell.tsx \
+            apps/web/e2e/character-level-up-attribute-allocation.pw.ts
           git diff --exit-code -- \
             packages/game-core/src/character/attribute-allocation.ts \
             packages/game-core/src/character/attribute-allocation.test.ts \
@@ -107,7 +110,8 @@ jobs:
             apps/web/src/components/character/character-attribute-allocation-panel.module.css \
             apps/web/src/components/character/character-creation-experience.tsx \
             apps/web/src/app/game/character/page.tsx \
-            apps/web/src/components/character/character-profile-shell.tsx
+            apps/web/src/components/character/character-profile-shell.tsx \
+            apps/web/e2e/character-level-up-attribute-allocation.pw.ts
 
       - name: Game core typecheck
         run: pnpm --filter @aurevane/game-core typecheck
