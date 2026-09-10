@@ -1,6 +1,12 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Locator } from '@playwright/test'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
+
+interface PathPoint {
+  index: number
+  x: number
+  y: number
+}
 
 function uniqueIdentity(project: string): { email: string; characterName: string } {
   const seed = `${Date.now()}${Math.floor(Math.random() * 100_000)}`
@@ -15,7 +21,51 @@ function uniqueIdentity(project: string): { email: string; characterName: string
   }
 }
 
-test('keeps Move reachable tiles rich green and unreachable tiles neutral', async ({
+async function readPlottedPath(battlefield: Locator): Promise<PathPoint[]> {
+  return battlefield.locator('button[data-path-index]').evaluateAll((tiles) =>
+    tiles
+      .map((tile) => {
+        const label = tile.getAttribute('aria-label') ?? ''
+        const match = label.match(/^Tile (\d+), (\d+);/)
+        return {
+          index: Number(tile.getAttribute('data-path-index')),
+          x: match ? Number(match[1]) : Number.NaN,
+          y: match ? Number(match[2]) : Number.NaN,
+        }
+      })
+      .filter((point) => Number.isFinite(point.index) && Number.isFinite(point.x) && Number.isFinite(point.y))
+      .sort((a, b) => a.index - b.index),
+  )
+}
+
+function reverseKey(from: PathPoint, to: PathPoint): string {
+  const deltaX = to.x - from.x
+  const deltaY = to.y - from.y
+  if (deltaX === 1 && deltaY === 0) return 'ArrowRight'
+  if (deltaX === -1 && deltaY === 0) return 'ArrowLeft'
+  if (deltaX === 0 && deltaY === 1) return 'ArrowDown'
+  if (deltaX === 0 && deltaY === -1) return 'ArrowUp'
+  throw new Error(`Non-cardinal path step ${from.x},${from.y} -> ${to.x},${to.y}`)
+}
+
+async function plotMultiStepPath(battlefield: Locator): Promise<PathPoint[]> {
+  const labels = await battlefield
+    .locator("button[aria-label^='Tile '][data-reachable]")
+    .evaluateAll((tiles) => tiles.map((tile) => tile.getAttribute('aria-label')).filter(Boolean) as string[])
+
+  for (const label of labels) {
+    await battlefield.getByRole('button', { name: label, exact: true }).click()
+    const plotted = await readPlottedPath(battlefield)
+    if (plotted.length >= 3) return plotted
+
+    const origin = battlefield.locator("button[data-path-index='0']")
+    if ((await origin.count()) > 0) await origin.click()
+  }
+
+  throw new Error('The seeded battle did not expose a multi-step reachable Move path.')
+}
+
+test('keeps Move reachable tiles rich green and supports keyboard/mouse path backtracking', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -83,4 +133,35 @@ test('keeps Move reachable tiles rich green and unreachable tiles neutral', asyn
   expect(pathStyle.borderColor).toBe('rgb(124, 230, 158)')
   expect(pathStyle.boxShadow).toContain('inset')
   expect(pathStyle.boxShadow).toContain('124, 230, 158')
+
+  if (testInfo.project.name !== 'desktop-chromium') return
+
+  const currentOrigin = battlefield.locator("button[data-path-index='0']")
+  if ((await currentOrigin.count()) > 0) await currentOrigin.click()
+
+  const keyboardPath = await plotMultiStepPath(battlefield)
+  const reverseKeys: string[] = []
+  for (let index = keyboardPath.length - 1; index > 0; index -= 1) {
+    reverseKeys.push(reverseKey(keyboardPath[index]!, keyboardPath[index - 1]!))
+  }
+
+  await page.evaluate((keys) => {
+    for (const key of keys) {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }))
+    }
+  }, reverseKeys)
+
+  await expect(battlefield.locator('button[data-path-index]')).toHaveCount(0)
+  await expect(page.locator('[data-battle-notice="true"]')).toContainText(
+    'Move preview returned to your current tile.',
+  )
+
+  const mousePath = await plotMultiStepPath(battlefield)
+  const trimIndex = Math.max(1, mousePath.length - 2)
+  await battlefield.locator(`button[data-path-index='${trimIndex}']`).click()
+  await expect(battlefield.locator('button[data-path-index]')).toHaveCount(trimIndex + 1)
+  await expect(battlefield.locator(`button[data-path-index='${trimIndex + 1}']`)).toHaveCount(0)
+
+  await battlefield.locator("button[data-path-index='0']").click()
+  await expect(battlefield.locator('button[data-path-index]')).toHaveCount(0)
 })
