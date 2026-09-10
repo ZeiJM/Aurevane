@@ -4,7 +4,6 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 
 import { PvpBattleKeyInputAssist } from '@/components/battle/pvp-battle-key-input-assist'
-import { CharacterFavoriteTechniqueAssist } from '@/components/character/character-favorite-technique-assist'
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import railStyles from '@/components/public-information/public-header-rail.module.css'
 import { AccountMenu } from '@/components/shell/account-menu'
@@ -115,7 +114,6 @@ export async function AuthenticatedShellFrame({
   return (
     <div className={styles.shell} data-testid="authenticated-shell">
       <PvpBattleKeyInputAssist />
-      {activeCharacter ? <CharacterFavoriteTechniqueAssist characterId={activeCharacter.id} /> : null}
       <a className="skip-link" href="#game-main">
         Skip to game content
       </a>
