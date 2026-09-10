@@ -39,7 +39,9 @@ test('Foundation Discipline sigils resolve to production artwork on desktop and 
     characterName: uniqueCharacterName(testInfo.project.name),
   })
 
-  const launcher = page.getByRole('button', { name: /Manage Primary Discipline and Secondary Discipline/ })
+  const launcher = page.getByRole('button', {
+    name: /Manage Primary Discipline and Secondary Discipline/,
+  })
   await expect(launcher).toBeVisible()
   const vanguardImage = launcher.locator('img[src*="disc_vanguard_icon_v01.svg"]')
   await expect(vanguardImage).toBeVisible()
