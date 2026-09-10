@@ -102,7 +102,10 @@ export default async function CharacterProfilePage() {
     }
     throw attributeAllocationResult.reason
   }
-  if (titleStateResult.status === 'rejected' && !isPersistenceUnavailable(titleStateResult.reason)) {
+  if (
+    titleStateResult.status === 'rejected' &&
+    !isPersistenceUnavailable(titleStateResult.reason)
+  ) {
     throw titleStateResult.reason
   }
   if (
@@ -118,7 +121,8 @@ export default async function CharacterProfilePage() {
   const attributeAllocation = attributeAllocationResult.value
   const personalTitle =
     titleStateResult.status === 'fulfilled' ? titleStateResult.value.personalTitle : null
-  const imageUrl = displayStateResult.status === 'fulfilled' ? displayStateResult.value.imageUrl : null
+  const imageUrl =
+    displayStateResult.status === 'fulfilled' ? displayStateResult.value.imageUrl : null
   const pv2TestKitEnabled = pv2TestKitResult.value
 
   return (
