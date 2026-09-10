@@ -89,14 +89,7 @@ function parseAllocation(value: unknown): CharacterAttributeAllocationView {
       intellect: integerField(row.intellect),
       resolve: integerField(row.resolve),
     },
-    baseAttributes: {
-      might: integerField(row.base_might),
-      finesse: integerField(row.base_finesse),
-      vitality: integerField(row.base_vitality),
-      agility: integerField(row.base_agility),
-      intellect: integerField(row.base_intellect),
-      resolve: integerField(row.base_resolve),
-    },
+    baseAttributes: attributesField(row.base_attributes),
     level: integerField(row.level),
     pointPool: integerField(row.point_pool),
     personalPointPool: integerField(row.personal_point_pool),
@@ -108,6 +101,19 @@ function parseAllocation(value: unknown): CharacterAttributeAllocationView {
     resetRemaining: integerField(row.reset_remaining),
     resetRenewsAt: nullableStringField(row.reset_renews_at),
     serverNow: stringField(row.server_now),
+  }
+}
+
+function attributesField(value: unknown): CharacterAttributeAllocationView['baseAttributes'] {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) throw unavailable()
+  const attributes = value as Record<string, unknown>
+  return {
+    might: integerField(attributes.might),
+    finesse: integerField(attributes.finesse),
+    vitality: integerField(attributes.vitality),
+    agility: integerField(attributes.agility),
+    intellect: integerField(attributes.intellect),
+    resolve: integerField(attributes.resolve),
   }
 }
 
