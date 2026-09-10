@@ -172,4 +172,4 @@ test('keeps Move reachable tiles rich green and supports keyboard/mouse path bac
 
   await battlefield.locator("button[data-path-index='0']").click()
   await expect(battlefield.locator('button[data-path-index]')).toHaveCount(0)
-}
+})
