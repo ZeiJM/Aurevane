@@ -45,22 +45,17 @@ test('keeps A1 surfaces readable and within viewport', async ({ page }, testInfo
 
   await expect(page.getByTestId('character-profile')).toContainText(characterName)
   await expectMinimumFontSize(
-    page.locator("[data-profile-fact] small").first(),
+    page.locator('[data-profile-fact] small').first(),
     11,
     'Character Profile identity label',
   )
   await expectMinimumFontSize(
-    page
-      .getByTestId('profile-attribute-might')
-      .locator(':scope > span:last-child > span'),
+    page.getByTestId('profile-attribute-might').locator(':scope > span:last-child > span'),
     11.5,
     'Character Profile attribute label',
   )
   await expectMinimumFontSize(
-    page
-      .locator("[data-testid^='derived-stat-']")
-      .first()
-      .locator(':scope > span:first-child'),
+    page.locator("[data-testid^='derived-stat-']").first().locator(':scope > span:first-child'),
     11.5,
     'Character Profile derived-stat label',
   )
