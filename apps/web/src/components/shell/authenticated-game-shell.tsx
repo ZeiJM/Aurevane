@@ -18,7 +18,7 @@ import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 import {
-  listOnlineCharacters,
+  countOnlineCharacters,
   touchCharacterPresence,
 } from '@/server/presence/character-presence-service'
 
@@ -88,15 +88,15 @@ export async function AuthenticatedShellFrame({
     activeCharacter = selectedCharacter
     if (activeCharacter) {
       try {
-        const [display, online] = await Promise.all([
+        const [display, count] = await Promise.all([
           loadCharacterProfileDisplay(actor.userId, activeCharacter.id),
           (async () => {
             await touchCharacterPresence(actor.userId, activeCharacter.id)
-            return listOnlineCharacters()
+            return countOnlineCharacters()
           })(),
         ])
         activeImageUrl = display.imageUrl
-        onlineCount = online.length
+        onlineCount = count
       } catch {
         // Profile display and presence are supplementary. The authenticated shell remains usable.
       }
