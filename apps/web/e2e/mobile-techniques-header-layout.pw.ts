@@ -56,7 +56,10 @@ test('mobile mixed-build Technique counters sit below the title without collidin
   await expect(page.getByTestId('character-profile')).toBeVisible()
   await closeOpenDialog(page)
 
-  await page.getByTestId('primary-build-panel').getByRole('button', { name: /Manage Primary Discipline/ }).click()
+  await page
+    .getByTestId('primary-build-panel')
+    .getByRole('button', { name: /Manage Primary Discipline/ })
+    .click()
   const disciplineDialog = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(disciplineDialog).toBeVisible()
   await page.getByLabel('Proposed Secondary').selectOption('lifebinder')
