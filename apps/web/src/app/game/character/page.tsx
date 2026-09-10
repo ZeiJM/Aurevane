@@ -3,7 +3,6 @@ import { isAurevaneError } from '@aurevane/game-core/errors'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
-import { CharacterFavoriteTechniqueAssist } from '@/components/character/character-favorite-technique-assist'
 import { CharacterProfileShell } from '@/components/character/character-profile-shell'
 import { AuthenticatedGameRecovery } from '@/components/shell/authenticated-game-shell'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
@@ -99,29 +98,26 @@ export default async function CharacterProfilePage() {
   const pv2TestKitEnabled = await isPv2BuildcraftTestKitEnabled(actor.userId)
 
   return (
-    <>
-      <CharacterFavoriteTechniqueAssist characterId={character.id} />
-      <CharacterProfileShell
-        profile={buildCharacterProfileReadModel(character, levelCurve)}
-        attributeAllocation={attributeAllocation}
-        disciplineBuild={{
-          buildVersion: disciplineBuild.build.buildVersion,
-          current: disciplineBuild.current,
-          currentSecondary: disciplineBuild.currentSecondary,
-          availablePrimaries: disciplineBuild.availablePrimaries,
-          availableSecondaries: disciplineBuild.availableSecondaries,
-          attunement: disciplineBuild.attunement,
-          disciplineSkills: {
-            capacity: disciplineBuild.disciplineSkills.capacity,
-            learnedSkills: disciplineBuild.disciplineSkills.learnedSkills,
-            equippedSkills: disciplineBuild.disciplineSkills.equippedSkills,
-            extensions: disciplineBuild.disciplineSkills.extensions,
-          },
-        }}
-        personalTitle={personalTitle}
-        imageUrl={imageUrl}
-        pv2TestKitEnabled={pv2TestKitEnabled}
-      />
-    </>
+    <CharacterProfileShell
+      profile={buildCharacterProfileReadModel(character, levelCurve)}
+      attributeAllocation={attributeAllocation}
+      disciplineBuild={{
+        buildVersion: disciplineBuild.build.buildVersion,
+        current: disciplineBuild.current,
+        currentSecondary: disciplineBuild.currentSecondary,
+        availablePrimaries: disciplineBuild.availablePrimaries,
+        availableSecondaries: disciplineBuild.availableSecondaries,
+        attunement: disciplineBuild.attunement,
+        disciplineSkills: {
+          capacity: disciplineBuild.disciplineSkills.capacity,
+          learnedSkills: disciplineBuild.disciplineSkills.learnedSkills,
+          equippedSkills: disciplineBuild.disciplineSkills.equippedSkills,
+          extensions: disciplineBuild.disciplineSkills.extensions,
+        },
+      }}
+      personalTitle={personalTitle}
+      imageUrl={imageUrl}
+      pv2TestKitEnabled={pv2TestKitEnabled}
+    />
   )
 }

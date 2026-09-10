@@ -8,7 +8,9 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 
+import type { FavoriteTechniqueCategory } from '../battle/favorite-technique-storage'
 import { battleResonanceArtwork, battleSkillArtwork } from '../battle/battle-skill-presentation'
+import { FavoriteTechniqueButton } from './favorite-technique-button'
 import polish from './character-skill-build-panel-polish.module.css'
 import styles from './character-skill-build-panel.module.css'
 
@@ -25,6 +27,7 @@ interface EquippedSkillView {
 }
 
 interface CharacterSkillBuildPanelProps {
+  characterId: string
   initialBuildVersion: number
   primaryDiscipline: { id: string; name: string }
   secondaryDiscipline: { id: string; name: string } | null
@@ -94,6 +97,14 @@ function cockpitType(skill: MatureSkillDefinition): string {
   return cockpitTag ? titleCase(cockpitTag.slice('cockpit:'.length)) : 'Technique'
 }
 
+function favoriteCategory(skill: MatureSkillDefinition): FavoriteTechniqueCategory | null {
+  const type = cockpitType(skill).toLowerCase()
+  if (type === 'attack') return 'attack'
+  if (type === 'defense' || type === 'guard') return 'defense'
+  if (type === 'heal' || type === 'recovery') return 'heal'
+  return null
+}
+
 function orderedSkillIds(equippedSkills: readonly EquippedSkillView[]): string[] {
   return [...equippedSkills]
     .sort((left, right) => left.slotIndex - right.slotIndex)
@@ -101,6 +112,7 @@ function orderedSkillIds(equippedSkills: readonly EquippedSkillView[]): string[]
 }
 
 export function CharacterSkillBuildPanel({
+  characterId,
   initialBuildVersion,
   primaryDiscipline,
   secondaryDiscipline,
@@ -246,6 +258,7 @@ export function CharacterSkillBuildPanel({
     : initialEssence
       ? 'Build Signature · Essence Skill'
       : 'Build Signature'
+  const essenceFavoriteCategory = initialEssence ? favoriteCategory(initialEssence.skill) : null
 
   return (
     <div className={styles.root} data-testid="skill-build-panel">
@@ -383,6 +396,14 @@ export function CharacterSkillBuildPanel({
                               </span>
                               <p>{initialEssence.description}</p>
                             </div>
+                            {essenceFavoriteCategory ? (
+                              <FavoriteTechniqueButton
+                                characterId={characterId}
+                                techniqueId={initialEssence.skill.id}
+                                label={initialEssence.name}
+                                category={essenceFavoriteCategory}
+                              />
+                            ) : null}
                           </article>
                         ) : null}
                       </section>
@@ -408,6 +429,8 @@ export function CharacterSkillBuildPanel({
                           )
                           const disabledByCapacity = !selected && selectedIds.length >= capacity
                           const disabled = pending || disabledByCapacity || disabledBySource
+                          const category = favoriteCategory(entry.definition)
+                          const label = skillName(entry.definition)
 
                           return (
                             <article
@@ -433,7 +456,7 @@ export function CharacterSkillBuildPanel({
                                   />
                                 </span>
                                 <span className={styles.skillCopy}>
-                                  <strong>{skillName(entry.definition)}</strong>
+                                  <strong>{label}</strong>
                                   <span className={styles.metaRow}>
                                     <small>{titleCase(entry.definition.sourceDisciplineId)}</small>
                                     <small>{entry.definition.apCost} AP</small>
@@ -443,6 +466,15 @@ export function CharacterSkillBuildPanel({
                                   </span>
                                 </span>
                               </label>
+                              {category ? (
+                                <FavoriteTechniqueButton
+                                  characterId={characterId}
+                                  techniqueId={entry.definition.id}
+                                  label={label}
+                                  category={category}
+                                  disabled={!selected || pending}
+                                />
+                              ) : null}
                             </article>
                           )
                         })

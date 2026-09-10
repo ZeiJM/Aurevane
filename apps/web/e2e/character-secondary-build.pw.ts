@@ -107,7 +107,7 @@ test('Profile equips a mastered Secondary with independent attunement authority'
   await expect(launcher).toHaveText('Discipline Management')
   await expect(primaryDisciplineChip).toHaveText('Vanguard')
   await expect(secondaryDisciplineChip).toHaveText('Aetherist')
-  const triggerSigils = launcher.locator('svg')
+  const triggerSigils = launcher.locator('img[src*="/media/art/disciplines/"]')
   await expect(triggerSigils).toHaveCount(2)
   const primarySigilBox = await triggerSigils.nth(0).boundingBox()
   const secondarySigilBox = await triggerSigils.nth(1).boundingBox()
