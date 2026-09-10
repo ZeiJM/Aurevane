@@ -169,7 +169,8 @@ test('mobile Profile balances the portrait and centers Discipline Management', a
   })
 
   const profile = page.getByTestId('character-profile')
-  const portrait = profile.getByRole('img', { name: `${characterName} portrait` }).locator('..')
+  const portrait = profile.locator('.character-portrait-media').locator('..')
+  await expect(portrait).toBeVisible()
   const portraitTranslateY = await portrait.evaluate((element) => {
     const transform = getComputedStyle(element).transform
     return transform === 'none' ? 0 : new DOMMatrix(transform).m42
