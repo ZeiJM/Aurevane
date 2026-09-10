@@ -45,7 +45,7 @@ export function BattleFavoriteTechniqueAssist({ characterId }: { characterId: st
   const pending = useRef(new Set<FavoriteTechniqueCategory>())
 
   useEffect(() => {
-    const resolvedCharacterId = characterId
+    const resolvedCharacterId = characterId ?? ''
     if (!resolvedCharacterId) return
 
     let cancelled = false
