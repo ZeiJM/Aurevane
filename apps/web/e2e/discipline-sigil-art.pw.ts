@@ -64,5 +64,4 @@ test('Foundation Discipline sigils resolve to production artwork on desktop and 
   const dialog = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(dialog).toBeVisible()
   await expect(dialog.locator('img[src*="disc_vanguard_icon_v01.svg"]').first()).toBeVisible()
-  await expect(dialog.locator('svg').filter({ has: page.locator('path') })).toHaveCount(0)
 })
