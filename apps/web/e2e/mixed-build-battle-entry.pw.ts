@@ -82,7 +82,10 @@ test('legal Vanguard 3 + Lifebinder 1 mixed build can enter AI Sparring', async 
 
   await page.getByRole('button', { name: 'Commit Selected Techniques' }).click()
   await expect(page.getByRole('status')).toContainText('Selected Techniques committed')
-  await page.getByRole('dialog', { name: 'Techniques' }).getByRole('button', { name: 'Close' }).click()
+  await page
+    .getByRole('dialog', { name: 'Techniques' })
+    .getByRole('button', { name: 'Close' })
+    .click()
 
   await page.getByRole('button', { name: 'Navigation' }).click()
   await page.getByRole('link', { name: /Battle Hall/ }).click()
