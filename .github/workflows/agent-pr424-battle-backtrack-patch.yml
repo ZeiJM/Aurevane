@@ -1,0 +1,85 @@
+name: PR424 guarded battle backtrack patch
+
+on:
+  push:
+    branches:
+      - agent/profile-testing-polish-v2
+    paths:
+      - .github/workflows/agent-pr424-battle-backtrack-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/profile-testing-polish-v2
+          fetch-depth: 0
+
+      - name: Apply guarded battle preview patch
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('apps/web/src/components/battle/battle-experience.tsx')
+          text = path.read_text()
+
+          def replace_once(old: str, new: str, label: str) -> None:
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{label}: expected exactly one match, found {count}')
+              text = text.replace(old, new, 1)
+
+          replace_once(
+              "  const [path, setPath] = useState<BattleGridPosition[]>([])\n  const [pendingIntent, setPendingIntent] = useState<BattleIntent | null>(null)",
+              "  const [path, setPath] = useState<BattleGridPosition[]>([])\n  const pathRef = useRef<BattleGridPosition[]>([])\n  const [pendingIntent, setPendingIntent] = useState<BattleIntent | null>(null)",
+              'path ref',
+          )
+
+          replace_once(
+              "  const clearPlanning = useCallback((nextMode: Mode = 'none') => {\n    previewSequence.current += 1\n    setMode(nextMode)\n    setPath([])\n    setPendingIntent(null)\n    setPreview(null)\n    setSelectedUnitId(null)\n    setPreviewPending(false)\n  }, [])",
+              "  const updatePlanningPath = useCallback((nextPath: BattleGridPosition[]) => {\n    pathRef.current = nextPath\n    setPath(nextPath)\n  }, [])\n\n  const clearPlanning = useCallback(\n    (nextMode: Mode = 'none') => {\n      previewSequence.current += 1\n      setMode(nextMode)\n      updatePlanningPath([])\n      setPendingIntent(null)\n      setPreview(null)\n      setSelectedUnitId(null)\n      setPreviewPending(false)\n    },\n    [updatePlanningPath],\n  )",
+              'planning helpers',
+          )
+
+          replace_once(
+              "      if (mode === 'move') {\n        const nextPath = reachablePaths.get(key)\n        if (!nextPath || nextPath.length < 2) {\n          if (localPlacement && positionsEqual(position, localPlacement.position)) {\n            clearPlanning('move')\n            setNotice('Move preview returned to your current tile.')\n          } else {\n            setNotice('That tile is not reachable with the AP you have left.')\n          }\n          return\n        }\n        setPath(nextPath)\n        void requestPreview({ kind: 'move', path: nextPath })\n        return\n      }",
+              "      if (mode === 'move') {\n        const currentPath = pathRef.current\n        const plottedIndex = currentPath.findIndex((point) => positionsEqual(point, position))\n        if (plottedIndex >= 0) {\n          const trimmedPath = currentPath.slice(0, plottedIndex + 1)\n          if (trimmedPath.length <= 1) {\n            previewSequence.current += 1\n            updatePlanningPath([])\n            setPendingIntent(null)\n            setPreview(null)\n            setPreviewPending(false)\n            setNotice('Move preview returned to your current tile.')\n          } else if (trimmedPath.length < currentPath.length) {\n            updatePlanningPath(trimmedPath)\n            void requestPreview({ kind: 'move', path: trimmedPath })\n          }\n          return\n        }\n\n        const nextPath = reachablePaths.get(key)\n        if (!nextPath || nextPath.length < 2) {\n          if (localPlacement && positionsEqual(position, localPlacement.position)) {\n            clearPlanning('move')\n            setNotice('Move preview returned to your current tile.')\n          } else {\n            setNotice('That tile is not reachable with the AP you have left.')\n          }\n          return\n        }\n        updatePlanningPath(nextPath)\n        void requestPreview({ kind: 'move', path: nextPath })\n        return\n      }",
+              'mouse path trimming',
+          )
+
+          replace_once(
+              "      requestPreview,\n      selectedAttackActionId,",
+              "      requestPreview,\n      updatePlanningPath,\n      selectedAttackActionId,",
+              'handleTile dependency',
+          )
+
+          replace_once(
+              "  const moveByKeyboard = useCallback(\n    (delta: BattleGridPosition) => {\n      if (mode !== 'move' || planningDisabled || !localPlacement) return\n      const origin = localPlacement.position\n      const tip = path.at(-1) ?? origin\n      const next = { x: tip.x + delta.x, y: tip.y + delta.y }\n\n      if (path.length > 1) {\n        const previous = path[path.length - 2]\n        if (previous && positionsEqual(previous, next)) {\n          const shorter = path.slice(0, -1)\n          if (shorter.length <= 1) {\n            setPath([])\n            setPendingIntent(null)\n            setPreview(null)\n            previewSequence.current += 1\n            setNotice('Move preview returned to your current tile.')\n          } else {\n            setPath(shorter)\n            void requestPreview({ kind: 'move', path: shorter })\n          }\n          return\n        }\n      }\n\n      const nextPath = reachablePaths.get(positionKey(next))\n      if (!nextPath || nextPath.length < 2) {\n        setNotice('That direction is not reachable with the AP you have left.')\n        return\n      }\n      setPath(nextPath)\n      void requestPreview({ kind: 'move', path: nextPath })\n    },\n    [localPlacement, mode, path, planningDisabled, reachablePaths, requestPreview],\n  )",
+              "  const moveByKeyboard = useCallback(\n    (delta: BattleGridPosition) => {\n      if (mode !== 'move' || planningDisabled || !localPlacement) return\n      const origin = localPlacement.position\n      const currentPath = pathRef.current\n      const tip = currentPath.at(-1) ?? origin\n      const next = { x: tip.x + delta.x, y: tip.y + delta.y }\n\n      if (currentPath.length > 1) {\n        const previous = currentPath[currentPath.length - 2]\n        if (previous && positionsEqual(previous, next)) {\n          const shorter = currentPath.slice(0, -1)\n          if (shorter.length <= 1) {\n            previewSequence.current += 1\n            updatePlanningPath([])\n            setPendingIntent(null)\n            setPreview(null)\n            setPreviewPending(false)\n            setNotice('Move preview returned to your current tile.')\n          } else {\n            updatePlanningPath(shorter)\n            void requestPreview({ kind: 'move', path: shorter })\n          }\n          return\n        }\n      }\n\n      const nextPath = reachablePaths.get(positionKey(next))\n      if (!nextPath || nextPath.length < 2) {\n        setNotice('That direction is not reachable with the AP you have left.')\n        return\n      }\n      updatePlanningPath(nextPath)\n      void requestPreview({ kind: 'move', path: nextPath })\n    },\n    [\n      localPlacement,\n      mode,\n      planningDisabled,\n      reachablePaths,\n      requestPreview,\n      updatePlanningPath,\n    ],\n  )",
+              'keyboard path trimming',
+          )
+
+          replace_once(
+              "                    data-path={pathIndex >= 0 || undefined}\n                    data-target={targetRelation}",
+              "                    data-path={pathIndex >= 0 || undefined}\n                    data-path-index={pathIndex >= 0 ? pathIndex : undefined}\n                    data-target={targetRelation}",
+              'path index test hook',
+          )
+
+          path.write_text(text)
+          PY
+
+      - name: Commit battle preview fix
+        shell: bash
+        run: |
+          git config user.name "AUREVANE Release Agent"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/src/components/battle/battle-experience.tsx
+          git diff --cached --check
+          git commit -m "Fix battle move preview backtracking"
+          git push origin HEAD:agent/profile-testing-polish-v2
