@@ -36,7 +36,7 @@ test('keeps the core A1 surfaces inside the initial desktop and laptop viewport'
   await createAccountAndEnterCharacter({ page, email, password, characterName })
 
   await expect(page.getByTestId('character-profile')).toContainText(characterName)
-  await expectInitialViewportFit(page, 'Character Profile', { allowVerticalScroll: true })
+  await expectInitialViewportFit(page, 'Character Profile')
 
   await page.goto('/game/battle')
   await expect(page.getByRole('heading', { name: 'Choose your arena.' })).toBeVisible()
