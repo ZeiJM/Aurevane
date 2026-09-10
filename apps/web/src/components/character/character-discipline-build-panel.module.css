@@ -151,8 +151,7 @@
   border: 1px solid rgba(207, 169, 93, 0.12);
   border-radius: 0.62rem;
   background:
-    radial-gradient(circle at 0 0, rgba(207, 169, 93, 0.07), transparent 38%),
-    rgba(8, 11, 16, 0.74);
+    radial-gradient(circle at 0 0, rgba(207, 169, 93, 0.07), transparent 38%), rgba(8, 11, 16, 0.74);
 }
 
 .currentDiscipline > div {
@@ -222,9 +221,7 @@
   border: 1px solid rgba(184, 177, 163, 0.13);
   border-radius: 0.62rem;
   color: var(--av-text-muted);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent),
-    #080b10;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.018), transparent), #080b10;
   cursor: pointer;
   text-align: center;
   transition:

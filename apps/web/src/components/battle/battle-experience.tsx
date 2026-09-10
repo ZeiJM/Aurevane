@@ -1013,14 +1013,7 @@ export function BattleExperience({
       updatePlanningPath(nextPath)
       void requestPreview({ kind: 'move', path: nextPath })
     },
-    [
-      localPlacement,
-      mode,
-      planningDisabled,
-      reachablePaths,
-      requestPreview,
-      updatePlanningPath,
-    ],
+    [localPlacement, mode, planningDisabled, reachablePaths, requestPreview, updatePlanningPath],
   )
 
   useEffect(() => {

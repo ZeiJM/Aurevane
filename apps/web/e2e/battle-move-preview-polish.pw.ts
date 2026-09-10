@@ -35,9 +35,7 @@ async function readPlottedPath(battlefield: Locator): Promise<PathPoint[]> {
       })
       .filter(
         (point) =>
-          Number.isFinite(point.index) &&
-          Number.isFinite(point.x) &&
-          Number.isFinite(point.y),
+          Number.isFinite(point.index) && Number.isFinite(point.x) && Number.isFinite(point.y),
       )
       .sort((a, b) => a.index - b.index),
   )
@@ -57,8 +55,7 @@ async function plotMultiStepPath(battlefield: Locator): Promise<PathPoint[]> {
   const labels = await battlefield
     .locator("button[aria-label^='Tile '][data-reachable]")
     .evaluateAll(
-      (tiles) =>
-        tiles.map((tile) => tile.getAttribute('aria-label')).filter(Boolean) as string[],
+      (tiles) => tiles.map((tile) => tile.getAttribute('aria-label')).filter(Boolean) as string[],
     )
 
   for (const label of labels) {
