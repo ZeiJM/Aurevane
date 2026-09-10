@@ -200,6 +200,7 @@ export function BattleExperience({
   const [battle, setBattle] = useState(initialBattle)
   const [mode, setMode] = useState<Mode>('none')
   const [path, setPath] = useState<BattleGridPosition[]>([])
+  const pathRef = useRef<BattleGridPosition[]>([])
   const [pendingIntent, setPendingIntent] = useState<BattleIntent | null>(null)
   const [preview, setPreview] = useState<BattlePreviewView | null>(null)
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null)
@@ -400,15 +401,23 @@ export function BattleExperience({
   const livingTeams = livingTeamIndexes(battle, viewModel.participantByCombatant)
   const objectiveComplete = battleState.lifecycle === 'completed'
 
-  const clearPlanning = useCallback((nextMode: Mode = 'none') => {
-    previewSequence.current += 1
-    setMode(nextMode)
-    setPath([])
-    setPendingIntent(null)
-    setPreview(null)
-    setSelectedUnitId(null)
-    setPreviewPending(false)
+  const updatePlanningPath = useCallback((nextPath: BattleGridPosition[]) => {
+    pathRef.current = nextPath
+    setPath(nextPath)
   }, [])
+
+  const clearPlanning = useCallback(
+    (nextMode: Mode = 'none') => {
+      previewSequence.current += 1
+      setMode(nextMode)
+      updatePlanningPath([])
+      setPendingIntent(null)
+      setPreview(null)
+      setSelectedUnitId(null)
+      setPreviewPending(false)
+    },
+    [updatePlanningPath],
+  )
 
   useEffect(() => {
     return registerInspectCloseHandler(() => {
@@ -861,6 +870,24 @@ export function BattleExperience({
       if (planningDisabled) return
 
       if (mode === 'move') {
+        const currentPath = pathRef.current
+        const plottedIndex = currentPath.findIndex((point) => positionsEqual(point, position))
+        if (plottedIndex >= 0) {
+          const trimmedPath = currentPath.slice(0, plottedIndex + 1)
+          if (trimmedPath.length <= 1) {
+            previewSequence.current += 1
+            updatePlanningPath([])
+            setPendingIntent(null)
+            setPreview(null)
+            setPreviewPending(false)
+            setNotice('Move preview returned to your current tile.')
+          } else if (trimmedPath.length < currentPath.length) {
+            updatePlanningPath(trimmedPath)
+            void requestPreview({ kind: 'move', path: trimmedPath })
+          }
+          return
+        }
+
         const nextPath = reachablePaths.get(key)
         if (!nextPath || nextPath.length < 2) {
           if (localPlacement && positionsEqual(position, localPlacement.position)) {
@@ -871,7 +898,7 @@ export function BattleExperience({
           }
           return
         }
-        setPath(nextPath)
+        updatePlanningPath(nextPath)
         void requestPreview({ kind: 'move', path: nextPath })
         return
       }
@@ -940,6 +967,7 @@ export function BattleExperience({
       planningDisabled,
       reachablePaths,
       requestPreview,
+      updatePlanningPath,
       selectedAttackActionId,
       selectedAttackTechnique,
       selectedDefenseActionId,
@@ -954,21 +982,23 @@ export function BattleExperience({
     (delta: BattleGridPosition) => {
       if (mode !== 'move' || planningDisabled || !localPlacement) return
       const origin = localPlacement.position
-      const tip = path.at(-1) ?? origin
+      const currentPath = pathRef.current
+      const tip = currentPath.at(-1) ?? origin
       const next = { x: tip.x + delta.x, y: tip.y + delta.y }
 
-      if (path.length > 1) {
-        const previous = path[path.length - 2]
+      if (currentPath.length > 1) {
+        const previous = currentPath[currentPath.length - 2]
         if (previous && positionsEqual(previous, next)) {
-          const shorter = path.slice(0, -1)
+          const shorter = currentPath.slice(0, -1)
           if (shorter.length <= 1) {
-            setPath([])
+            previewSequence.current += 1
+            updatePlanningPath([])
             setPendingIntent(null)
             setPreview(null)
-            previewSequence.current += 1
+            setPreviewPending(false)
             setNotice('Move preview returned to your current tile.')
           } else {
-            setPath(shorter)
+            updatePlanningPath(shorter)
             void requestPreview({ kind: 'move', path: shorter })
           }
           return
@@ -980,10 +1010,17 @@ export function BattleExperience({
         setNotice('That direction is not reachable with the AP you have left.')
         return
       }
-      setPath(nextPath)
+      updatePlanningPath(nextPath)
       void requestPreview({ kind: 'move', path: nextPath })
     },
-    [localPlacement, mode, path, planningDisabled, reachablePaths, requestPreview],
+    [
+      localPlacement,
+      mode,
+      planningDisabled,
+      reachablePaths,
+      requestPreview,
+      updatePlanningPath,
+    ],
   )
 
   useEffect(() => {
@@ -1432,6 +1469,7 @@ export function BattleExperience({
                     data-elevation={tile.elevation > 0 || undefined}
                     data-reachable={reachable || undefined}
                     data-path={pathIndex >= 0 || undefined}
+                    data-path-index={pathIndex >= 0 ? pathIndex : undefined}
                     data-target={targetRelation}
                     data-selected={selected || undefined}
                     onClick={() => handleTile(tile.position)}
