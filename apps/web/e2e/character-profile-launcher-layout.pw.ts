@@ -3,7 +3,12 @@ import { expect, test } from '@playwright/test'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueCharacterName(): string {
-  return `Launcher ${Date.now().toString(36)}`
+  const letters = Date.now()
+    .toString()
+    .split('')
+    .map((digit) => String.fromCharCode(65 + Number(digit)))
+    .join('')
+  return `Launcher ${letters}`
 }
 
 test('Profile build launchers stay centered and typographically matched', async ({
