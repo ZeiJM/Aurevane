@@ -4,8 +4,6 @@ set -euo pipefail
 source .github/scripts/auth-test-helpers.sh
 load_test_auth
 
-api_url="$TEST_AUTH_API_URL"
-server_key="$TEST_AUTH_ADMIN_KEY"
 password='A2-passive-training-2026!'
 email="a2-passive-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@example.com"
 
@@ -89,10 +87,24 @@ stop_training() {
     select stopped::text from public.stop_passive_training_v1('$user_id'::uuid, '$character_id'::uuid);"
 }
 
-# No plan means there is no report and no passive entitlement.
+window_config="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  select short_seconds::text || '|' || overnight_seconds::text || '|' || extended_seconds::text
+  from app_private.wayfarers_practice_window_configs
+  order by version desc
+  limit 1;")"
+test "$window_config" = '10800|28800|86400'
+
+rate_config="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  select short_xp_per_hour::text || '|' || medium_xp_per_hour::text || '|' || extended_xp_per_hour::text
+  from app_private.passive_training_rate_configs
+  order by version desc
+  limit 1;")"
+test "$rate_config" = '10|7|4'
+
+# No explicit plan means no passive entitlement and no report.
 test -z "$(materialize)"
 
-# The short plan snapshots its authored duration and is idempotent.
+# Short is a 3-hour plan. Selection is idempotent and conflicting fingerprints fail closed.
 short_key='00000000-0000-4000-8000-000000001652'
 short_plan="$(set_plan short "$short_key" 'a2:plan:short')"
 short_plan_replay="$(set_plan short "$short_key" 'a2:plan:short')"
@@ -105,103 +117,91 @@ if set_plan short "$short_key" 'a2:plan:conflict' >/tmp/a2-plan-conflict.out 2>/
 fi
 grep -Fq 'idempotency key reused' /tmp/a2-plan-conflict.err
 
-# An active plan can be replaced; the server restarts its clock with the new authored snapshot.
-medium_key='00000000-0000-4000-8000-000000001653'
-medium_plan="$(set_plan medium "$medium_key" 'a2:plan:medium')"
-test "$medium_plan" = 'medium|1|21600|false'
+# Retired window names are rejected by the current authority contract.
+if set_plan medium '00000000-0000-4000-8000-000000001660' 'a2:plan:retired-medium' \
+  >/tmp/a2-plan-retired.out 2>/tmp/a2-plan-retired.err; then
+  echo 'Expected retired Passive Training window name to fail.' >&2
+  exit 1
+fi
+grep -Fq 'Passive Training plan authority is invalid' /tmp/a2-plan-retired.err
 
-plan_state="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
+# A new plan replaces the active plan and restarts the server-authored timer.
+overnight_key='00000000-0000-4000-8000-000000001653'
+overnight_plan="$(set_plan overnight "$overnight_key" 'a2:plan:overnight')"
+test "$overnight_plan" = 'overnight|1|28800|false'
+
+plan_state="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   select planned_window || '|' || planned_window_config_version::text || '|' || planned_window_seconds::text
   from app_private.wayfarers_practice_state
   where character_id = '$character_id'::uuid;")"
-test "$plan_state" = 'medium|1|21600'
+test "$plan_state" = 'overnight|1|28800'
 
-# Completion uses the frozen planned duration, not the current config row.
+# Overnight completes at exactly its authored 8-hour duration and uses the configured 7 XP/hour rate.
 docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   update app_private.wayfarers_practice_state
-  set plan_set_at = clock_timestamp() - interval '7 hours', updated_at = clock_timestamp()
-  where character_id = '$character_id'::uuid;
-  update app_private.passive_training_rate_configs
-  set seconds_per_xp = 1200
-  where version = 1;"
-
-medium_report="$(materialize)"
-IFS='|' read -r medium_report_id medium_source medium_window medium_version medium_seconds medium_planned medium_balanced medium_elapsed medium_direct medium_xp medium_rested medium_status <<<"$medium_report"
-test -n "$medium_report_id"
-test "$medium_source" = 'passive_training'
-test "$medium_window" = 'medium'
-test "$medium_version" = '1'
-test "$medium_seconds" = '21600'
-test "$medium_planned" = '21600'
-test "$medium_balanced" = '0'
-test "$medium_elapsed" = '21600'
-test "$medium_direct" = '21600'
-test "$medium_xp" = '18'
-test "$medium_rested" = '0'
-test "$medium_status" = 'pending'
-test "$(materialize)" = "$medium_report"
-
-# The report captures the versioned rate and survives later config mutation.
-report_snapshot="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
-  select
-    practice_rate_config_version::text || '|' ||
-    planned_window_config_version::text || '|' ||
-    planned_window_seconds::text || '|' ||
-    direct_credit_cap_seconds::text
-  from app_private.training_reports where id = '$medium_report_id'::uuid;")"
-test "$report_snapshot" = '1|1|21600|21600'
-
-docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
-  update app_private.passive_training_rate_configs set seconds_per_xp = 9999 where version = 1;"
-test "$(materialize)" = "$medium_report"
-
-medium_claim="$(claim_report "$medium_report_id" '00000000-0000-4000-8000-000000001654' 'a2:claim:medium')"
-medium_claim_replay="$(claim_report "$medium_report_id" '00000000-0000-4000-8000-000000001654' 'a2:claim:medium')"
-IFS='|' read -r medium_claim_id medium_requested medium_applied medium_replayed <<<"$medium_claim"
-IFS='|' read -r medium_replay_id medium_replay_requested medium_replay_applied medium_replay_replayed <<<"$medium_claim_replay"
-test "$medium_claim_id" = "$medium_report_id"
-test "$medium_requested" = '18'
-test "$medium_applied" = '18'
-test "$medium_replayed" = 'false'
-test "$medium_replay_id" = "$medium_report_id"
-test "$medium_replay_requested" = '18'
-test "$medium_replay_applied" = '18'
-test "$medium_replay_replayed" = 'true'
-
-# Restore the authored rate before the next plan so the next report has an obvious expected value.
-docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
-  update app_private.passive_training_rate_configs set seconds_per_xp = 360 where version = 1;"
-
-# The long plan stops exactly at its 12-hour authored cap; extra real time is not rewarded.
-long_plan="$(set_plan long '00000000-0000-4000-8000-000000001655' 'a2:plan:long')"
-test "$long_plan" = 'long|1|43200|false'
-docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
-  update app_private.wayfarers_practice_state
-  set plan_set_at = clock_timestamp() - interval '20 hours', updated_at = clock_timestamp()
+  set plan_set_at = clock_timestamp() - interval '9 hours', updated_at = clock_timestamp()
   where character_id = '$character_id'::uuid;"
 
-long_report="$(materialize)"
-IFS='|' read -r long_report_id long_source long_window long_version long_seconds long_planned long_balanced long_elapsed long_direct long_xp long_rested long_status <<<"$long_report"
-test "$long_source" = 'passive_training'
-test "$long_window" = 'long'
-test "$long_version" = '1'
-test "$long_seconds" = '43200'
-test "$long_planned" = '43200'
-test "$long_balanced" = '0'
-test "$long_elapsed" = '43200'
-test "$long_direct" = '43200'
-test "$long_xp" = '120'
-test "$long_rested" = '0'
-test "$long_status" = 'pending'
+overnight_report="$(materialize)"
+IFS='|' read -r overnight_report_id overnight_source overnight_window overnight_version overnight_seconds overnight_planned overnight_balanced overnight_elapsed overnight_direct overnight_xp overnight_rested overnight_status <<<"$overnight_report"
+test -n "$overnight_report_id"
+test "$overnight_source" = 'passive_training'
+test "$overnight_window" = 'overnight'
+test "$overnight_version" = '1'
+test "$overnight_seconds" = '28800'
+test "$overnight_planned" = '28800'
+test "$overnight_balanced" = '0'
+test "$overnight_elapsed" = '28800'
+test "$overnight_direct" = '28800'
+test "$overnight_xp" = '56'
+test "$overnight_rested" = '0'
+test "$overnight_status" = 'pending'
+test "$(materialize)" = "$overnight_report"
 
-long_claim="$(claim_report "$long_report_id" '00000000-0000-4000-8000-000000001656' 'a2:claim:long')"
-IFS='|' read -r long_claim_id long_requested long_applied long_replayed <<<"$long_claim"
-test "$long_claim_id" = "$long_report_id"
-test "$long_requested" = '120'
-test "$long_applied" = '120'
-test "$long_replayed" = 'false'
+overnight_claim="$(claim_report "$overnight_report_id" '00000000-0000-4000-8000-000000001654' 'a2:claim:overnight')"
+overnight_claim_replay="$(claim_report "$overnight_report_id" '00000000-0000-4000-8000-000000001654' 'a2:claim:overnight')"
+IFS='|' read -r overnight_claim_id overnight_requested overnight_applied overnight_replayed <<<"$overnight_claim"
+IFS='|' read -r overnight_replay_id overnight_replay_requested overnight_replay_applied overnight_replay_replayed <<<"$overnight_claim_replay"
+test "$overnight_claim_id" = "$overnight_report_id"
+test "$overnight_requested" = '56'
+test "$overnight_applied" = '56'
+test "$overnight_replayed" = 'false'
+test "$overnight_replay_id" = "$overnight_report_id"
+test "$overnight_replay_requested" = '56'
+test "$overnight_replay_applied" = '56'
+test "$overnight_replay_replayed" = 'true'
 
-# Partial Stop Training materializes the elapsed slice, clears the plan, and remains claim-once.
+# Extended caps at its authored 24 hours; excess real time is not rewarded.
+extended_plan="$(set_plan extended '00000000-0000-4000-8000-000000001655' 'a2:plan:extended')"
+test "$extended_plan" = 'extended|1|86400|false'
+docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  update app_private.wayfarers_practice_state
+  set plan_set_at = clock_timestamp() - interval '30 hours', updated_at = clock_timestamp()
+  where character_id = '$character_id'::uuid;"
+
+extended_report="$(materialize)"
+IFS='|' read -r extended_report_id extended_source extended_window extended_version extended_seconds extended_planned extended_balanced extended_elapsed extended_direct extended_xp extended_rested extended_status <<<"$extended_report"
+test -n "$extended_report_id"
+test "$extended_source" = 'passive_training'
+test "$extended_window" = 'extended'
+test "$extended_version" = '1'
+test "$extended_seconds" = '86400'
+test "$extended_planned" = '86400'
+test "$extended_balanced" = '0'
+test "$extended_elapsed" = '86400'
+test "$extended_direct" = '86400'
+test "$extended_xp" = '96'
+test "$extended_rested" = '0'
+test "$extended_status" = 'pending'
+
+extended_claim="$(claim_report "$extended_report_id" '00000000-0000-4000-8000-000000001656' 'a2:claim:extended')"
+IFS='|' read -r extended_claim_id extended_requested extended_applied extended_replayed <<<"$extended_claim"
+test "$extended_claim_id" = "$extended_report_id"
+test "$extended_requested" = '96'
+test "$extended_applied" = '96'
+test "$extended_replayed" = 'false'
+
+# Early Stop Training freezes only elapsed server time into one normal pending report.
 short_partial="$(set_plan short '00000000-0000-4000-8000-000000001657' 'a2:plan:partial')"
 test "$short_partial" = 'short|1|10800|false'
 docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
@@ -218,18 +218,20 @@ test "$partial_source" = 'passive_training'
 test "$partial_window" = 'short'
 test "$partial_version" = '1'
 test "$partial_seconds" = '10800'
-test "$partial_planned" -ge '5390'
-test "$partial_planned" -le '5410'
+test "$partial_planned" -ge '5400'
+test "$partial_planned" -le '5415'
 test "$partial_balanced" = '0'
 test "$partial_elapsed" = "$partial_planned"
 test "$partial_direct" = "$partial_planned"
-test "$partial_xp" = '15'
+expected_partial_xp=$((partial_planned * 10 / 3600))
+test "$partial_xp" = "$expected_partial_xp"
 test "$partial_rested" = '0'
 test "$partial_status" = 'pending'
 
-after_stop_plan="$(docker exec "$db_container" psql -U postgres -d postgres -Atqc "
+after_stop_plan="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   select coalesce(planned_window, '') || '|' || coalesce(plan_set_at::text, '')
-  from app_private.wayfarers_practice_state where character_id = '$character_id'::uuid;")"
+  from app_private.wayfarers_practice_state
+  where character_id = '$character_id'::uuid;")"
 test "$after_stop_plan" = '|'
 
 partial_claim="$(claim_report "$partial_report_id" '00000000-0000-4000-8000-000000001658' 'a2:claim:partial')"
@@ -237,19 +239,19 @@ partial_claim_replay="$(claim_report "$partial_report_id" '00000000-0000-4000-80
 IFS='|' read -r partial_claim_id partial_requested partial_applied partial_replayed <<<"$partial_claim"
 IFS='|' read -r partial_replay_id partial_replay_requested partial_replay_applied partial_replay_replayed <<<"$partial_claim_replay"
 test "$partial_claim_id" = "$partial_report_id"
-test "$partial_requested" = '15'
-test "$partial_applied" = '15'
+test "$partial_requested" = "$expected_partial_xp"
+test "$partial_applied" = "$expected_partial_xp"
 test "$partial_replayed" = 'false'
 test "$partial_replay_id" = "$partial_report_id"
-test "$partial_replay_requested" = '15'
-test "$partial_replay_applied" = '15'
+test "$partial_replay_requested" = "$expected_partial_xp"
+test "$partial_replay_applied" = "$expected_partial_xp"
 test "$partial_replay_replayed" = 'true'
 
-# No active plan means stop is a no-op and creates no extra report.
+# No active plan means stop is a no-op and materialization produces no extra report.
 test "$(stop_training)" = 'false'
 test -z "$(materialize)"
 
-# Cross-account access still fails closed.
+# Cross-account access remains unavailable even through the privileged server RPC.
 other_signup="$(signup_test_user "a2-passive-other-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}@example.com" "$password")"
 other_user="$(printf '%s' "$other_signup" | jq -r '.user.id')"
 if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
@@ -267,5 +269,22 @@ if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -
   exit 1
 fi
 grep -Fq 'CHARACTER_NOT_FOUND' /tmp/a2-passive-other.err
+
+# Browser roles cannot invoke plan authority directly.
+if docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+  set role authenticated;
+  select * from public.set_wayfarers_practice_plan_v1(
+    'user:$user_id',
+    'wayfarers_practice.set_plan.v1',
+    '00000000-0000-4000-8000-000000001661'::uuid,
+    'a2:browser',
+    '$user_id'::uuid,
+    '$character_id'::uuid,
+    'short'
+  );" >/tmp/a2-passive-browser.out 2>/tmp/a2-passive-browser.err; then
+  echo 'Authenticated browser role unexpectedly executed Passive Training plan authority.' >&2
+  exit 1
+fi
+grep -Eqi 'permission denied|not allowed' /tmp/a2-passive-browser.err
 
 printf '%s\n' 'Passive Training planned windows authority verified.'
