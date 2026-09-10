@@ -69,9 +69,11 @@ test('level-up forces Core Stat allocation until every gained point is committed
 
   const dialog = page.getByRole('dialog', { name: 'Spend Core Stat Points' })
   const backdrop = page.getByTestId('attribute-allocation-backdrop')
+  const remaining = dialog.locator('[aria-live="polite"]')
   await expect(dialog).toBeVisible()
   await expect(dialog).toContainText('Level gained')
-  await expect(dialog).toContainText('1 point remaining')
+  await expect(remaining.locator('strong')).toHaveText('1')
+  await expect(remaining.locator('span')).toHaveText('point remaining')
   await expect(dialog.getByRole('button', { name: 'Close' })).toHaveCount(0)
 
   await page.keyboard.press('Escape')
@@ -80,7 +82,8 @@ test('level-up forces Core Stat allocation until every gained point is committed
   await expect(dialog).toBeVisible()
 
   await dialog.getByRole('button', { name: 'Increase Might' }).click()
-  await expect(dialog).toContainText('0 points remaining')
+  await expect(remaining.locator('strong')).toHaveText('0')
+  await expect(remaining.locator('span')).toHaveText('points remaining')
   const commit = dialog.getByRole('button', { name: 'Commit Attribute Points' })
   await expect(commit).toBeEnabled()
   await commit.click()
