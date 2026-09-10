@@ -387,7 +387,9 @@ export function CharacterDisciplineBuildPanel({
         type="button"
         className={styles.trigger}
         aria-haspopup="dialog"
-        aria-label={`Manage Primary Discipline and Secondary Discipline. Current: ${current.definition.name}${currentSecondary ? ` plus ${currentSecondary.name}` : ''}`}
+        aria-label={`Manage Primary Discipline and Secondary Discipline. Current: ${current.definition.name}${
+          currentSecondary ? ` plus ${currentSecondary.name}` : ''
+        }`}
         onClick={() => setPanelOpen(true)}
       >
         <span className={styles.triggerSigils} aria-hidden="true">
@@ -528,7 +530,9 @@ export function CharacterDisciplineBuildPanel({
                           <span>Proposed build</span>
                           <strong>
                             {preview.proposed.definition.name}
-                            {preview.proposedSecondary ? ` + ${preview.proposedSecondary.name}` : ''}
+                            {preview.proposedSecondary
+                              ? ` + ${preview.proposedSecondary.name}`
+                              : ''}
                           </strong>
                           <FocusBadges disciplineId={preview.proposed.definition.id} />
                         </div>
