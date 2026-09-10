@@ -108,11 +108,6 @@ function formatDuration(totalSeconds: number): string {
     .join(' ')
 }
 
-function policyDuration(seconds: number): string {
-  if (seconds % 3600 === 0) return `${seconds / 3600}h`
-  return formatDuration(seconds)
-}
-
 function focusAttributes(disciplineId: string): readonly CharacterAttributeId[] {
   return foundationDisciplineAttributePolicy(disciplineId)?.focusAttributes ?? []
 }
@@ -133,9 +128,7 @@ function formatDerivedValue(value: number, unit: DerivedStatUnit): string {
 
 function FocusBadges({ disciplineId }: { disciplineId: string }) {
   const attributes = focusAttributes(disciplineId)
-  if (attributes.length === 0) {
-    return <span className={styles.identityBadge}>Authored identity</span>
-  }
+  if (attributes.length === 0) return null
 
   return (
     <div className={styles.focusBadges} aria-label="Discipline focus attributes">
@@ -144,7 +137,6 @@ function FocusBadges({ disciplineId }: { disciplineId: string }) {
           {CHARACTER_ATTRIBUTE_LABELS[attributeId]}
         </span>
       ))}
-      <span className={styles.capBadge}>Other core stats ≤ 30</span>
     </div>
   )
 }
@@ -168,7 +160,6 @@ export function CharacterDisciplineBuildPanel({
   const [selectedPrimaryId, setSelectedPrimaryId] = useState(initialCurrent.definition.id)
   const [selectedSecondaryId, setSelectedSecondaryId] = useState(initialCurrentSecondary?.id ?? '')
   const [preview, setPreview] = useState<BuildPreviewResponse['preview'] | null>(null)
-  const [attunement, setAttunement] = useState(initialAttunement)
   const [remaining, setRemaining] = useState({
     primary: initialAttunement.primaryRemainingSeconds,
     secondary: initialAttunement.secondaryRemainingSeconds,
@@ -322,7 +313,6 @@ export function CharacterDisciplineBuildPanel({
       setBuildVersion(body.preview.buildVersion)
       setCurrent(body.preview.current)
       setCurrentSecondary(body.preview.currentSecondary)
-      setAttunement(body.preview.attunement)
       setRemaining({
         primary: body.preview.attunement.primaryRemainingSeconds,
         secondary: body.preview.attunement.secondaryRemainingSeconds,
@@ -364,7 +354,6 @@ export function CharacterDisciplineBuildPanel({
       setCurrentSecondary(body.context.currentSecondary)
       setSelectedPrimaryId(body.context.current.definition.id)
       setSelectedSecondaryId(body.context.currentSecondary?.id ?? '')
-      setAttunement(body.context.attunement)
       setRemaining({
         primary: body.context.attunement.primaryRemainingSeconds,
         secondary: body.context.attunement.secondaryRemainingSeconds,
@@ -401,18 +390,19 @@ export function CharacterDisciplineBuildPanel({
         aria-label={`Manage Primary Discipline and Secondary Discipline. Current: ${current.definition.name}${currentSecondary ? ` plus ${currentSecondary.name}` : ' pure'}, Build v${buildVersion}`}
         onClick={() => setPanelOpen(true)}
       >
-        <FoundationDisciplineSigil
-          disciplineId={current.definition.id}
-          className={styles.triggerSigil}
-        />
-        <span className={styles.triggerCopy}>
-          <span>Discipline Management</span>
-          <strong>
-            {current.definition.name}
-            {currentSecondary ? ` + ${currentSecondary.name}` : ' · Pure'}
-          </strong>
+        <span className={styles.triggerSigils} aria-hidden="true">
+          <FoundationDisciplineSigil
+            disciplineId={current.definition.id}
+            className={styles.triggerSigil}
+          />
+          {currentSecondary ? (
+            <FoundationDisciplineSigil
+              disciplineId={currentSecondary.id}
+              className={`${styles.triggerSigil} ${styles.triggerSigilSecondary}`}
+            />
+          ) : null}
         </span>
-        <span className={styles.triggerAction}>Open ›</span>
+        <span className={styles.triggerLabel}>Discipline Management</span>
       </button>
 
       {open && typeof document !== 'undefined'
@@ -430,14 +420,7 @@ export function CharacterDisciplineBuildPanel({
                 onPointerDown={(event) => event.stopPropagation()}
               >
                 <header className={styles.header}>
-                  <div>
-                    <span>Authoritative build</span>
-                    <h2 id="discipline-build-heading">Discipline Management</h2>
-                    <p>
-                      Every active Foundation Discipline is open during testing. Primary changes
-                      affect your derived stats; Secondary changes do not add a second stat profile.
-                    </p>
-                  </div>
+                  <h2 id="discipline-build-heading">Discipline Management</h2>
                   <button
                     type="button"
                     className={styles.close}
@@ -447,7 +430,7 @@ export function CharacterDisciplineBuildPanel({
                   </button>
                 </header>
 
-                <div className={styles.current}>
+                <div className={styles.current} aria-label="Committed Disciplines">
                   <div className={styles.currentDiscipline}>
                     <FoundationDisciplineSigil
                       disciplineId={current.definition.id}
@@ -456,12 +439,6 @@ export function CharacterDisciplineBuildPanel({
                     <div>
                       <span>Committed Primary</span>
                       <strong>{current.definition.name}</strong>
-                      <FocusBadges disciplineId={current.definition.id} />
-                      <p>{current.definition.summary}</p>
-                      <small>
-                        Definition v{current.definition.definitionVersion} · Base profile v
-                        {current.profile.profileVersion}
-                      </small>
                     </div>
                   </div>
                   <div className={styles.currentDiscipline}>
@@ -478,23 +455,11 @@ export function CharacterDisciplineBuildPanel({
                     <div>
                       <span>Committed Secondary</span>
                       <strong>{currentSecondary?.name ?? 'None — pure build'}</strong>
-                      {currentSecondary ? <FocusBadges disciplineId={currentSecondary.id} /> : null}
-                      <p>
-                        {currentSecondary?.summary ??
-                          'No Secondary is equipped. Secondary never contributes a second base-stat profile.'}
-                      </p>
                     </div>
                   </div>
                 </div>
 
-                <section className={styles.roster} aria-labelledby="foundation-roster-heading">
-                  <div className={styles.rosterHeading}>
-                    <div>
-                      <span>Foundation identities</span>
-                      <h3 id="foundation-roster-heading">Choose a proposed Primary</h3>
-                    </div>
-                    <small>The selected Secondary is hidden from this list.</small>
-                  </div>
+                <section className={styles.roster} aria-label="Choose a proposed Primary">
                   <div className={styles.rosterGrid}>
                     {visiblePrimaryOptions.map((entry) => {
                       const selected = entry.definition.id === selectedPrimaryId
@@ -543,11 +508,11 @@ export function CharacterDisciplineBuildPanel({
                         </option>
                       ))}
                     </select>
-                    <small data-testid="primary-attunement-status">
-                      {remaining.primary > 0
-                        ? `Primary locked: ${formatDuration(remaining.primary)} remaining`
-                        : `Primary ready · next change locks for ${policyDuration(attunement.policy.primaryCooldownSeconds)}`}
-                    </small>
+                    {remaining.primary > 0 ? (
+                      <small data-testid="primary-attunement-status">
+                        Locked {formatDuration(remaining.primary)}
+                      </small>
+                    ) : null}
                   </label>
 
                   <label className={styles.selector}>
@@ -569,16 +534,11 @@ export function CharacterDisciplineBuildPanel({
                         </option>
                       ))}
                     </select>
-                    <small data-testid="secondary-attunement-status">
-                      {remaining.secondary > 0
-                        ? `Secondary locked: ${formatDuration(remaining.secondary)} remaining`
-                        : `Secondary ready · next change locks for ${policyDuration(attunement.policy.secondaryCooldownSeconds)}`}
-                    </small>
-                    {visibleSecondaryOptions.length === 0 && !currentSecondary ? (
-                      <small>No active Secondary Disciplines are available.</small>
-                    ) : (
-                      <small>The selected Primary is hidden from Secondary choices.</small>
-                    )}
+                    {remaining.secondary > 0 ? (
+                      <small data-testid="secondary-attunement-status">
+                        Locked {formatDuration(remaining.secondary)}
+                      </small>
+                    ) : null}
                   </label>
                 </div>
 
@@ -633,7 +593,6 @@ export function CharacterDisciplineBuildPanel({
                       <section className={styles.statComparison}>
                         <div className={styles.statComparisonHeading}>
                           <span>Adventure stats</span>
-                          <small>Primary profile comparison</small>
                         </div>
                         <div className={styles.statRows}>
                           {adventureDeltas.map((entry) => (
@@ -653,44 +612,20 @@ export function CharacterDisciplineBuildPanel({
                       </section>
                     </div>
 
-                    <div className={styles.legend} aria-label="Stat preview legend">
-                      <span data-direction="increase">Increase</span>
-                      <span data-direction="decrease">Decrease</span>
-                      <span data-direction="neutral">Unchanged</span>
+                    <div className={styles.previewFooter}>
+                      <div className={styles.legend} aria-label="Stat preview legend">
+                        <span data-direction="increase">Increase</span>
+                        <span data-direction="decrease">Decrease</span>
+                        <span data-direction="neutral">Unchanged</span>
+                      </div>
+                      <button type="button" onClick={() => void commit()} disabled={commitBlocked}>
+                        {pendingCommit
+                          ? 'Committing…'
+                          : preview.changes.primary && !preview.changes.secondary
+                            ? `Commit ${preview.proposed.definition.name} as Primary`
+                            : 'Commit Discipline changes'}
+                      </button>
                     </div>
-
-                    <p className={styles.attributeNote}>
-                      Primary changes preserve your personal Might, Finesse, Vitality, Agility,
-                      Intellect, and Resolve allocation while replacing the Primary-owned Core Stat
-                      base. Effective values may change. If the projected allocation exceeds the new
-                      Primary's off-identity cap, the server requires redistribution before the swap
-                      can be committed.
-                    </p>
-
-                    <div className={styles.commitment}>
-                      <strong>Commitment</strong>
-                      <span>Previewing starts no timer.</span>
-                      {preview.changes.primary ? (
-                        <span>
-                          Committing the Primary change starts its independent{' '}
-                          {policyDuration(attunement.policy.primaryCooldownSeconds)} lock.
-                        </span>
-                      ) : null}
-                      {preview.changes.secondary ? (
-                        <span>
-                          Committing the Secondary change starts its independent{' '}
-                          {policyDuration(attunement.policy.secondaryCooldownSeconds)} lock.
-                        </span>
-                      ) : null}
-                    </div>
-
-                    <button type="button" onClick={() => void commit()} disabled={commitBlocked}>
-                      {pendingCommit
-                        ? 'Committing…'
-                        : preview.changes.primary && !preview.changes.secondary
-                          ? `Commit ${preview.proposed.definition.name} as Primary`
-                          : 'Commit Discipline changes'}
-                    </button>
                   </div>
                 ) : null}
 
