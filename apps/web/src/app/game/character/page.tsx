@@ -100,11 +100,7 @@ export default async function CharacterProfilePage() {
 
   return (
     <>
-      <CharacterFavoriteTechniqueAssist
-        characterId={character.id}
-        skills={disciplineBuild.disciplineSkills.learnedSkills.map((entry) => entry.definition)}
-        essence={disciplineBuild.disciplineSkills.extensions.essence}
-      />
+      <CharacterFavoriteTechniqueAssist characterId={character.id} />
       <CharacterProfileShell
         profile={buildCharacterProfileReadModel(character, levelCurve)}
         attributeAllocation={attributeAllocation}
