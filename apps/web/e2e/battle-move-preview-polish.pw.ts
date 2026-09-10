@@ -44,10 +44,10 @@ async function readPlottedPath(battlefield: Locator): Promise<PathPoint[]> {
 function reverseKey(from: PathPoint, to: PathPoint): string {
   const deltaX = to.x - from.x
   const deltaY = to.y - from.y
-  if (deltaX === 1 && deltaY === 0) return 'ArrowRight'
-  if (deltaX === -1 && deltaY === 0) return 'ArrowLeft'
-  if (deltaX === 0 && deltaY === 1) return 'ArrowDown'
-  if (deltaX === 0 && deltaY === -1) return 'ArrowUp'
+  if (deltaX === 1 && deltaY === 0) return 'KeyD'
+  if (deltaX === -1 && deltaY === 0) return 'KeyA'
+  if (deltaX === 0 && deltaY === 1) return 'KeyS'
+  if (deltaX === 0 && deltaY === -1) return 'KeyW'
   throw new Error(`Non-cardinal path step ${from.x},${from.y} -> ${to.x},${to.y}`)
 }
 
@@ -145,18 +145,12 @@ test('keeps Move reachable tiles rich green and supports keyboard/mouse path bac
   if ((await currentOrigin.count()) > 0) await currentOrigin.click()
 
   const keyboardPath = await plotMultiStepPath(battlefield)
-  const reverseKeys: string[] = []
   for (let index = keyboardPath.length - 1; index > 0; index -= 1) {
-    reverseKeys.push(reverseKey(keyboardPath[index]!, keyboardPath[index - 1]!))
+    const key = reverseKey(keyboardPath[index]!, keyboardPath[index - 1]!)
+    await page.keyboard.press(key)
+    await expect(battlefield.locator('button[data-path-index]')).toHaveCount(index === 1 ? 0 : index)
   }
 
-  await page.evaluate((keys) => {
-    for (const key of keys) {
-      window.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }))
-    }
-  }, reverseKeys)
-
-  await expect(battlefield.locator('button[data-path-index]')).toHaveCount(0)
   await expect(page.locator('[data-battle-notice="true"]')).toContainText(
     'Move preview returned to your current tile.',
   )
