@@ -91,7 +91,9 @@ async function reverseWholePreview({
 
   for (let index = path.length - 1; index > 0; index -= 1) {
     await page.keyboard.press(reverseKey(path[index]!, path[index - 1]!, scheme), { delay: 0 })
-    await expect(battlefield.locator('button[data-path-index]')).toHaveCount(index === 1 ? 0 : index)
+    await expect(battlefield.locator('button[data-path-index]')).toHaveCount(
+      index === 1 ? 0 : index,
+    )
     await expect(root).toHaveAttribute('data-battle-action-mode', 'move')
     await expect(root).toHaveAttribute('data-local-turn', 'true')
     await expect(actorTile).toHaveAttribute('aria-label', actorLabel!)
