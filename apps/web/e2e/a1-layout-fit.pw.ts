@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 
 import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
 
@@ -11,12 +11,12 @@ function uniqueCharacterName(): string {
   return `Fit ${letters}`
 }
 
-test('keeps the core A1 surfaces inside the initial desktop and laptop viewport', async ({
+test('keeps the core A1 surfaces readable and inside the initial desktop and laptop viewport', async ({
   page,
 }, testInfo) => {
   test.skip(
     testInfo.project.name === 'mobile-chromium',
-    'Natural vertical scrolling is allowed on phones.',
+    'Desktop readability and no-scroll fitting are intentionally separate from phone layout.',
   )
   test.slow()
 
@@ -27,15 +27,45 @@ test('keeps the core A1 surfaces inside the initial desktop and laptop viewport'
 
   await page.goto('/')
   await expect(page.getByTestId('account-shell')).toBeVisible()
+  await expectMinimumFontSize(
+    page.locator("[data-testid='account-shell'] .av-kicker").first(),
+    12,
+    'Account Entry kicker',
+  )
   await expectInitialViewportFit(page, 'Account Entry')
 
   await page.goto('/news')
   await expect(page.getByRole('heading', { level: 1, name: 'News' })).toBeVisible()
+  await expectMinimumFontSize(
+    page.locator("[data-testid='public-information-shell'] main p").first(),
+    14,
+    'News body copy',
+  )
   await expectInitialViewportFit(page, 'News')
 
   await createAccountAndEnterCharacter({ page, email, password, characterName })
 
   await expect(page.getByTestId('character-profile')).toContainText(characterName)
+  await expectMinimumFontSize(
+    page.locator("[data-profile-fact] small").first(),
+    11,
+    'Character Profile identity label',
+  )
+  await expectMinimumFontSize(
+    page
+      .getByTestId('profile-attribute-might')
+      .locator(':scope > span:last-child > span'),
+    11.5,
+    'Character Profile attribute label',
+  )
+  await expectMinimumFontSize(
+    page
+      .locator("[data-testid^='derived-stat-']")
+      .first()
+      .locator(':scope > span:first-child'),
+    11.5,
+    'Character Profile derived-stat label',
+  )
   await expectInitialViewportFit(page, 'Character Profile')
 
   await page.goto('/game/battle')
@@ -53,6 +83,11 @@ test('keeps the core A1 surfaces inside the initial desktop and laptop viewport'
 
   await page.goto('/game')
   await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
+  await expectMinimumFontSize(
+    page.locator("[data-character-select-page='true'] main p").first(),
+    13,
+    'Character Select body copy',
+  )
   await expectInitialViewportFit(page, 'Character Select')
 
   await page.setViewportSize({ width: 1024, height: 576 })
@@ -60,6 +95,20 @@ test('keeps the core A1 surfaces inside the initial desktop and laptop viewport'
   await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
   await expectInitialViewportFit(page, 'Character Select at 1024x576')
 })
+
+async function expectMinimumFontSize(
+  locator: Locator,
+  minimumPx: number,
+  surface: string,
+): Promise<void> {
+  await expect(locator, `${surface} should be visible before measuring typography`).toBeVisible()
+  const fontSize = await locator.evaluate((element) =>
+    Number.parseFloat(window.getComputedStyle(element).fontSize),
+  )
+  expect(fontSize, `${surface} should meet the desktop readability floor`).toBeGreaterThanOrEqual(
+    minimumPx,
+  )
+}
 
 async function expectInitialViewportFit(
   page: Page,
