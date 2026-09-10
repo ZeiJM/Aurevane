@@ -12,6 +12,10 @@ import {
 import { createPortal } from 'react-dom'
 
 import artworkFitStyles from './battle-skill-artwork-fit.module.css'
+import {
+  BATTLE_FAVORITE_TECHNIQUE_SELECT_EVENT,
+  type BattleFavoriteTechniqueSelectDetail,
+} from './favorite-technique-storage'
 import styles from './battle-skill-command.module.css'
 import { BATTLE_MISSING_ARTWORK } from './battle-skill-presentation'
 
@@ -36,6 +40,25 @@ function fallbackBrokenArtwork(event: SyntheticEvent<HTMLImageElement>): void {
   if (image.getAttribute('src') === BATTLE_MISSING_ARTWORK) return
   image.onerror = null
   image.src = BATTLE_MISSING_ARTWORK
+}
+
+function readFavoriteSelectionDetail(event: Event): BattleFavoriteTechniqueSelectDetail | null {
+  if (!(event instanceof CustomEvent)) return null
+  const detail: unknown = event.detail
+  if (!detail || typeof detail !== 'object' || Array.isArray(detail)) return null
+  const candidate = detail as Partial<BattleFavoriteTechniqueSelectDetail>
+  if (
+    typeof candidate.categoryLabel !== 'string' ||
+    typeof candidate.id !== 'string' ||
+    typeof candidate.label !== 'string'
+  ) {
+    return null
+  }
+  return {
+    categoryLabel: candidate.categoryLabel,
+    id: candidate.id,
+    label: candidate.label,
+  }
 }
 
 export function BattleSkillCommand({
@@ -125,6 +148,25 @@ export function BattleSkillCommand({
     const selected = selectorRef.current?.querySelector<HTMLButtonElement>('[aria-selected="true"]')
     window.requestAnimationFrame(() => selected?.focus())
   }, [selectorOpen])
+
+  useEffect(() => {
+    if (!selector) return
+
+    const applyFavorite = (event: Event) => {
+      const detail = readFavoriteSelectionDetail(event)
+      if (!detail || detail.categoryLabel !== selector.categoryLabel) return
+      const option = selector.options.find(
+        (candidate) => candidate.id === detail.id || candidate.label === detail.label,
+      )
+      if (!option) return
+
+      selector.onSelect(option.id)
+      event.preventDefault()
+    }
+
+    window.addEventListener(BATTLE_FAVORITE_TECHNIQUE_SELECT_EVENT, applyFavorite)
+    return () => window.removeEventListener(BATTLE_FAVORITE_TECHNIQUE_SELECT_EVENT, applyFavorite)
+  }, [selector])
 
   return (
     <article className={styles.shell} data-command-card={slot}>

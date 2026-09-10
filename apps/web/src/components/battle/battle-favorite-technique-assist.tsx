@@ -3,9 +3,10 @@
 import { useEffect, useRef } from 'react'
 
 import {
+  BATTLE_FAVORITE_TECHNIQUE_SELECT_EVENT,
   readFavoriteTechniques,
+  type BattleFavoriteTechniqueSelectDetail,
   type FavoriteTechniqueCategory,
-  type FavoriteTechniqueSelection,
 } from './favorite-technique-storage'
 
 const SELECTOR_LABEL: Readonly<Record<FavoriteTechniqueCategory, string>> = {
@@ -14,31 +15,8 @@ const SELECTOR_LABEL: Readonly<Record<FavoriteTechniqueCategory, string>> = {
   heal: 'Heal',
 }
 
-function selectorTrigger(category: FavoriteTechniqueCategory): HTMLButtonElement | null {
-  const label = SELECTOR_LABEL[category]
-  return document.querySelector<HTMLButtonElement>(
-    `button[data-battle-skill-selector-category="${label}"]`,
-  )
-}
-
-function optionFor(
-  category: FavoriteTechniqueCategory,
-  favorite: FavoriteTechniqueSelection,
-): HTMLButtonElement | null {
-  const label = SELECTOR_LABEL[category]
-  const listbox = document.querySelector<HTMLElement>(
-    `[data-battle-skill-listbox-category="${label}"]`,
-  )
-  if (!listbox) return null
-  return (
-    Array.from(listbox.querySelectorAll<HTMLButtonElement>('button[data-battle-skill-option-id]')).find(
-      (option) => {
-        const optionLabel = option.querySelector<HTMLElement>('strong')?.textContent?.trim()
-        return option.dataset.battleSkillOptionId === favorite.id || optionLabel === favorite.label
-      },
-    ) ?? null
-  )
-}
+const APPLY_RETRY_MS = 50
+const APPLY_MAX_ATTEMPTS = 30
 
 export function BattleFavoriteTechniqueAssist({ characterId }: { characterId: string | null }) {
   const applied = useRef(new Set<FavoriteTechniqueCategory>())
@@ -56,11 +34,6 @@ export function BattleFavoriteTechniqueAssist({ characterId }: { characterId: st
       applied.current.add(category)
     }
 
-    function closeSelector(category: FavoriteTechniqueCategory) {
-      const trigger = selectorTrigger(category)
-      if (trigger?.getAttribute('aria-expanded') === 'true') trigger.click()
-    }
-
     function applyCategory(category: FavoriteTechniqueCategory) {
       if (cancelled || applied.current.has(category) || pending.current.has(category)) return
       const favorite = readFavoriteTechniques(window.localStorage, resolvedCharacterId)[category]
@@ -69,64 +42,41 @@ export function BattleFavoriteTechniqueAssist({ characterId }: { characterId: st
         return
       }
 
-      const trigger = selectorTrigger(category)
-      if (!trigger) return
-      const currentlySelected = trigger.getAttribute('aria-label') ?? ''
-      if (
-        trigger.dataset.battleSelectedSkillId === favorite.id ||
-        currentlySelected.includes(`${favorite.label} selected`)
-      ) {
-        markApplied(category)
-        return
-      }
-
       pending.current.add(category)
-      trigger.click()
       let attempts = 0
-      const timer = window.setInterval(() => {
-        attempts += 1
-        if (cancelled || attempts > 30) {
-          window.clearInterval(timer)
-          timers.delete(timer)
-          closeSelector(category)
-          markApplied(category)
-          return
-        }
+      let timer = 0
 
-        const option = optionFor(category, favorite)
-        if (!option) {
-          const label = SELECTOR_LABEL[category]
-          const openList = document.querySelector(
-            `[data-battle-skill-listbox-category="${label}"]`,
-          )
-          if (openList) {
+      const tryApply = () => {
+        attempts += 1
+        const detail: BattleFavoriteTechniqueSelectDetail = {
+          categoryLabel: SELECTOR_LABEL[category],
+          id: favorite.id,
+          label: favorite.label,
+        }
+        const event = new CustomEvent<BattleFavoriteTechniqueSelectDetail>(
+          BATTLE_FAVORITE_TECHNIQUE_SELECT_EVENT,
+          { detail, cancelable: true },
+        )
+        const handled = !window.dispatchEvent(event)
+
+        if (handled || cancelled || attempts >= APPLY_MAX_ATTEMPTS) {
+          if (timer) {
             window.clearInterval(timer)
             timers.delete(timer)
-            closeSelector(category)
-            markApplied(category)
           }
-          return
+          markApplied(category)
         }
+      }
 
-        window.clearInterval(timer)
-        timers.delete(timer)
-        option.click()
-        markApplied(category)
-      }, 40)
+      timer = window.setInterval(tryApply, APPLY_RETRY_MS)
       timers.add(timer)
+      tryApply()
     }
 
-    function applyFavorites() {
-      ;(['attack', 'defense', 'heal'] as const).forEach(applyCategory)
-    }
-
-    applyFavorites()
-    const observer = new MutationObserver(applyFavorites)
-    observer.observe(document.body, { childList: true, subtree: true })
+    ;(['attack', 'defense', 'heal'] as const).forEach(applyCategory)
 
     return () => {
       cancelled = true
-      observer.disconnect()
       for (const timer of timers) window.clearInterval(timer)
       timers.clear()
       pending.current.clear()
