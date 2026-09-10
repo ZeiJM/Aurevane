@@ -11,9 +11,13 @@ const DISCIPLINE_ART = [
   'disc_lifebinder_icon_v01.svg',
 ] as const
 
-function uniqueCharacterName(project: string): string {
-  const seed = `${Date.now()}${Math.floor(Math.random() * 100_000)}`
-  return `Sigil ${project.replace(/[^a-z]/gi, '').slice(0, 6)} ${seed.slice(-6)}`
+function uniqueCharacterName(): string {
+  const suffix = `${Date.now()}${Math.floor(Math.random() * 100_000)}`
+    .slice(-8)
+    .split('')
+    .map((digit) => String.fromCharCode(65 + Number(digit)))
+    .join('')
+  return `Sigil ${suffix}`
 }
 
 test('Foundation Discipline sigils resolve to production artwork on desktop and mobile', async ({
@@ -36,7 +40,7 @@ test('Foundation Discipline sigils resolve to production artwork on desktop and 
     page,
     email: `discipline-sigil-${testInfo.project.name}-${Date.now()}@example.com`,
     password: 'Discipline-sigil-2026!',
-    characterName: uniqueCharacterName(testInfo.project.name),
+    characterName: uniqueCharacterName(),
   })
 
   const launcher = page.getByRole('button', {
