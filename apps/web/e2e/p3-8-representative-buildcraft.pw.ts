@@ -100,7 +100,9 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await reloadProfile(page)
 
   const disciplinePanel = page.getByTestId('primary-build-panel')
-  const disciplineLauncher = disciplinePanel.getByRole('button', { name: /Manage Primary Discipline/ })
+  const disciplineLauncher = disciplinePanel.getByRole('button', {
+    name: /Manage Primary Discipline/,
+  })
   await disciplineLauncher.click()
   const disciplineDialog = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(disciplineDialog).toBeVisible()
