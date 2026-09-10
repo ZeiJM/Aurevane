@@ -212,7 +212,7 @@
     width: 100%;
     min-height: 2.7rem;
     justify-content: center;
-    border-radius: var(--av-radius-sm);
+    border-radius: 999px;
   }
 
   :global(main[data-pvp-battle='true'] > footer) {
