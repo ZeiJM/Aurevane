@@ -33,7 +33,10 @@ test('Profile previews and commits Primary Discipline while preserving personal 
   const panel = page.getByTestId('primary-build-panel')
   await expect(panel).toBeVisible()
   const launcher = panel.getByRole('button', { name: /Manage Primary Discipline/ })
-  const disciplineBuildLabel = page.locator('#build-disciplines-heading').locator('..').locator('strong')
+  const disciplineBuildLabel = page
+    .locator('#build-disciplines-heading')
+    .locator('..')
+    .locator('strong')
   await expect(launcher).toBeVisible()
   await expect(launcher).toHaveText('Discipline Management')
   await expect(disciplineBuildLabel).toHaveText('Vanguard')
