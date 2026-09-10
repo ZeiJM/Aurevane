@@ -39,24 +39,34 @@ test('favorite Technique star is unique per category and becomes the battle defa
   const forcefulCheckbox = forceful.getByRole('checkbox')
   if (!(await forcefulCheckbox.isChecked())) await forcefulCheckbox.click()
 
-  const forcefulStar = forceful.getByRole('button', {
-    name: 'Set Forceful Strike as favorite Attack Technique',
-  })
-  await expect(forcefulStar).toBeVisible()
+  const forcefulStar = forceful.locator('button[data-favorite-technique-star="true"]')
+  await expect(forcefulStar).toHaveAttribute(
+    'aria-label',
+    'Set Forceful Strike as favorite Attack Technique',
+  )
   await forcefulStar.click()
   await expect(forcefulStar).toHaveAttribute('aria-pressed', 'true')
+  await expect(forcefulStar).toHaveAttribute(
+    'aria-label',
+    'Remove Forceful Strike as favorite Attack Technique',
+  )
 
   const essenceHeading = page.getByTestId('active-essence')
   await expect(essenceHeading).toContainText('Unbroken Strike')
   const essenceCard = essenceHeading.locator('xpath=ancestor::article[1]')
-  const essenceStar = essenceCard.getByRole('button', {
-    name: 'Set Unbroken Strike as favorite Attack Technique',
-  })
-  await expect(essenceStar).toBeVisible()
+  const essenceStar = essenceCard.locator('button[data-favorite-technique-star="true"]')
+  await expect(essenceStar).toHaveAttribute(
+    'aria-label',
+    'Set Unbroken Strike as favorite Attack Technique',
+  )
   await essenceStar.click()
 
   await expect(essenceStar).toHaveAttribute('aria-pressed', 'true')
   await expect(forcefulStar).toHaveAttribute('aria-pressed', 'false')
+  await expect(forcefulStar).toHaveAttribute(
+    'aria-label',
+    'Set Forceful Strike as favorite Attack Technique',
+  )
 
   await dialog.getByRole('button', { name: 'Close' }).click()
   await expect(dialog).toHaveCount(0)
