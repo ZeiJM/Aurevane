@@ -1,9 +1,11 @@
+import type { ReactNode } from 'react'
+
 interface FoundationDisciplineSigilProps {
   disciplineId: string
   className?: string
 }
 
-function Frame({ className, children }: { className?: string; children: React.ReactNode }) {
+function Frame({ className, children }: { className?: string; children: ReactNode }) {
   return (
     <svg
       className={className}
