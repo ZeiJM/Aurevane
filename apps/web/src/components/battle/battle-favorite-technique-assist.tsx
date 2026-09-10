@@ -45,7 +45,8 @@ export function BattleFavoriteTechniqueAssist({ characterId }: { characterId: st
   const pending = useRef(new Set<FavoriteTechniqueCategory>())
 
   useEffect(() => {
-    if (!characterId) return
+    const resolvedCharacterId = characterId
+    if (!resolvedCharacterId) return
 
     let cancelled = false
     const timers = new Set<number>()
@@ -62,7 +63,7 @@ export function BattleFavoriteTechniqueAssist({ characterId }: { characterId: st
 
     function applyCategory(category: FavoriteTechniqueCategory) {
       if (cancelled || applied.current.has(category) || pending.current.has(category)) return
-      const favorite = readFavoriteTechniques(window.localStorage, characterId)[category]
+      const favorite = readFavoriteTechniques(window.localStorage, resolvedCharacterId)[category]
       if (!favorite) {
         markApplied(category)
         return
