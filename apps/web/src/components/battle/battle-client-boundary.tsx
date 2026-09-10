@@ -13,6 +13,7 @@ import { pvpParticipantAccent } from './battle-combatant-colors'
 import { BattleDirectionalAttackAssist } from './battle-directional-attack-assist'
 import { BattleExperience } from './battle-experience'
 import { BattleFacingQuickCommitAssist } from './battle-facing-quick-commit-assist'
+import { BattleFavoriteTechniqueAssist } from './battle-favorite-technique-assist'
 import { BattleFeedbackAssist } from './battle-feedback-assist'
 import { BattlefieldPresentationBundle } from './battlefield-presentation-bundle'
 import { BattleFinishTurnKeyboardAssist } from './battle-finish-turn-keyboard-assist'
@@ -23,6 +24,7 @@ import { BattleKeyboardAssist } from './battle-keyboard-assist'
 import { BattleLessonCoach } from './battle-lesson-coach'
 import { BattleLessonCoachSemantics } from './battle-lesson-coach-semantics'
 import { BattleMobileTokenMeters } from './battle-mobile-token-meters'
+import { BattleMovementKeyboardAssist } from './battle-movement-keyboard-assist'
 import { BattlePresentationPolish } from './battle-presentation-polish'
 import { BattlePveCommandContextParity } from './battle-pve-command-context-parity'
 import { BattleRecruitRecoveryAssist } from './battle-recruit-recovery-assist'
@@ -82,10 +84,12 @@ export function BattleClientBoundary({
     : null
   const lessonActive =
     runtime.kind === 'pve' && initialBattle.snapshot.tactical.battle.lifecycle === 'active'
+  const localCharacterId = viewModel.localParticipant?.characterId ?? null
 
   return (
     <BattleRuntimeProvider playerName={runtime.playerName} combatantAccents={combatantAccents}>
       <BattleInteractionLifecycleProvider>
+        <BattleMovementKeyboardAssist playerName={runtime.playerName} />
         <BattleSelfActionQuickCommitAssist />
         <BattleFinishTurnKeyboardAssist playerName={runtime.playerName} />
         <BattleExperience
@@ -93,6 +97,7 @@ export function BattleClientBoundary({
           initialBattle={initialBattle}
           runtime={runtime}
         />
+        <BattleFavoriteTechniqueAssist characterId={localCharacterId} />
 
         <BattlefieldPresentationBundle
           battleSessionId={initialBattle.battleSessionId}
