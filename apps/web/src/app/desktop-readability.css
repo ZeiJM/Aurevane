@@ -14,7 +14,7 @@
       [data-character-select-page='true'],
       [data-testid='character-creation']
     )
-    :global(.brand__wordmark small) {
+    .brand__wordmark small {
     font-size: 0.7rem;
   }
 
@@ -25,7 +25,7 @@
       [data-character-select-page='true'],
       [data-testid='character-creation']
     )
-    :global(.av-kicker) {
+    .av-kicker {
     font-size: 0.76rem;
     letter-spacing: 0.12em;
   }
@@ -61,7 +61,7 @@
     font-size: 0.86rem;
   }
 
-  [data-testid='authenticated-shell'] :global(.av-button) {
+  [data-testid='authenticated-shell'] .av-button {
     font-size: 0.82rem;
     letter-spacing: 0.06em;
   }
