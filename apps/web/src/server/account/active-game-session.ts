@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { AurevaneError } from '@aurevane/game-core/errors'
+import { cache } from 'react'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
@@ -72,7 +73,7 @@ export async function ensureActiveGameSession(
   return data
 }
 
-export async function getActiveBattleForUser(userId: string): Promise<ActiveBattleSummary | null> {
+async function readActiveBattleForUser(userId: string): Promise<ActiveBattleSummary | null> {
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.rpc('get_active_battle_for_user_v1', {
     p_user_id: userId,
@@ -108,7 +109,7 @@ export async function getActiveBattleForUser(userId: string): Promise<ActiveBatt
   }
 }
 
-export async function getActiveSpectatingForUser(
+async function readActiveSpectatingForUser(
   userId: string,
 ): Promise<ActiveSpectatingSummary | null> {
   const supabase = createSupabaseAdminClient()
@@ -142,6 +143,14 @@ export async function getActiveSpectatingForUser(
   }
 }
 
+/**
+ * Server Component request memoization only. Pages and the authenticated shell frequently need
+ * the same active-session reads during one navigation; sharing them avoids duplicate Supabase
+ * round trips without carrying state across requests.
+ */
+export const getActiveBattleForUser = cache(readActiveBattleForUser)
+export const getActiveSpectatingForUser = cache(readActiveSpectatingForUser)
+
 async function isExistingBattleCreateReplay(
   userId: string,
   idempotencyKey: string,
@@ -166,7 +175,7 @@ export async function assertNoActiveBattle(
   userId: string,
   allowedCreateReplayKey?: string,
 ): Promise<void> {
-  const active = await getActiveBattleForUser(userId)
+  const active = await readActiveBattleForUser(userId)
   if (active) {
     if (
       allowedCreateReplayKey &&
@@ -181,7 +190,7 @@ export async function assertNoActiveBattle(
     )
   }
 
-  const spectating = await getActiveSpectatingForUser(userId)
+  const spectating = await readActiveSpectatingForUser(userId)
   if (spectating) {
     throw new AurevaneError(
       'INVALID_REQUEST',
@@ -191,7 +200,7 @@ export async function assertNoActiveBattle(
 }
 
 export async function assertGameplayMutationAllowed(userId: string): Promise<void> {
-  const activeBattle = await getActiveBattleForUser(userId)
+  const activeBattle = await readActiveBattleForUser(userId)
   if (activeBattle) {
     throw new AurevaneError(
       'INVALID_REQUEST',
@@ -199,7 +208,7 @@ export async function assertGameplayMutationAllowed(userId: string): Promise<voi
     )
   }
 
-  const spectating = await getActiveSpectatingForUser(userId)
+  const spectating = await readActiveSpectatingForUser(userId)
   if (spectating) {
     throw new AurevaneError(
       'INVALID_REQUEST',
