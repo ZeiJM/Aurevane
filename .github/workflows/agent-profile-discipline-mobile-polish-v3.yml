@@ -24,7 +24,7 @@ jobs:
         run: |
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
-      - name: Apply focused patch
+      - name: Apply matched launcher patch
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -36,73 +36,84 @@ jobs:
                   raise SystemExit(f'{path}: expected exactly one match, found {text.count(old)}')
               file.write_text(text.replace(old, new, 1))
 
+          compact = 'apps/web/src/components/character/character-profile-shell-compact.module.css'
           replace_once(
-              'apps/web/src/components/character/character-profile-shell-compact.module.css',
-              '    transform: translateY(0.28rem);',
-              '    transform: translateY(0.48rem);',
-          )
-
-          replace_once(
-              'apps/web/src/components/character/character-discipline-build-panel.module.css',
-              '''  min-width: 2rem;\n  height: 1.8rem;\n  align-items: center;\n  justify-content: center;''',
-              '''  min-width: max-content;\n  height: 1.8rem;\n  align-items: center;\n  justify-content: center;\n  gap: 0.34rem;''',
+              compact,
+              """.buildCard [data-testid='skill-build-panel'] > button small {\n  display: none !important;\n}\n""",
+              """.buildCard [data-testid='skill-build-panel'] > button small {\n  display: none !important;\n}\n\n.buildCard [data-testid='skill-build-panel'] > button {\n  justify-content: center;\n  text-align: center;\n}\n\n.buildCard [data-testid='skill-build-panel'] > button strong::after {\n  font: 750 0.56rem/1 var(--av-font-mono);\n  letter-spacing: 0.06em;\n}\n""",
           )
           replace_once(
-              'apps/web/src/components/character/character-discipline-build-panel.module.css',
-              '''.triggerSigilSecondary {\n  margin-left: -0.46rem;\n  color: color-mix(in srgb, var(--av-brass-200) 78%, #93a9cf);\n  transform: translateY(0.12rem) scale(0.88);\n}''',
-              '''.triggerSigilSecondary {\n  margin-left: 0;\n  color: var(--av-brass-300);\n  transform: none;\n}''',
+              compact,
+              """\n  .buildCard [data-testid='skill-build-panel'] > button {\n    justify-content: center;\n    text-align: center;\n  }\n""",
+              "\n",
           )
-          replace_once(
-              'apps/web/src/components/character/character-discipline-build-panel.module.css',
-              '''  .backdrop {\n    align-items: end;\n    padding: 0.3rem;\n  }\n\n  .dialog {\n    width: 100%;\n    max-height: 95dvh;\n    padding: 0.65rem;\n  }''',
-              '''  .backdrop {\n    place-items: center;\n    padding: max(0.55rem, env(safe-area-inset-top)) 0.3rem\n      max(0.55rem, env(safe-area-inset-bottom));\n  }\n\n  .dialog {\n    width: 100%;\n    max-height: 90dvh;\n    padding: 0.65rem;\n  }''',
-          )
-
-          panel_path = Path('apps/web/src/components/character/character-discipline-build-panel.tsx')
-          panel = panel_path.read_text()
-          replace_old = '<div className={styles.preview} data-testid="primary-build-preview">'
-          replace_new = '''<div\n                    className={styles.preview}\n                    data-testid="primary-build-preview"\n                    data-primary-change={preview.changes.primary ? 'true' : 'false'}\n                  >'''
-          if panel.count(replace_old) != 1:
-              raise SystemExit('discipline panel: preview root seam changed')
-          panel = panel.replace(replace_old, replace_new, 1)
-
-          stats_start = panel.index('                    <div className={styles.statComparisonGrid}>')
-          footer_start = panel.index('                    <div className={styles.previewFooter}>', stats_start)
-          stats_block = panel[stats_start:footer_start]
-          panel = (
-              panel[:stats_start]
-              + '                    {preview.changes.primary ? (\n'
-              + stats_block
-              + '                    ) : null}\n\n'
-              + panel[footer_start:]
-          )
-
-          legend_old = '''                      <div className={styles.legend} aria-label="Stat preview legend">\n                        <span data-direction="increase">Increase</span>\n                        <span data-direction="decrease">Decrease</span>\n                        <span data-direction="neutral">Unchanged</span>\n                      </div>'''
-          legend_new = '''                      {preview.changes.primary ? (\n                        <div className={styles.legend} aria-label="Stat preview legend">\n                          <span data-direction="increase">Increase</span>\n                          <span data-direction="decrease">Decrease</span>\n                          <span data-direction="neutral">Unchanged</span>\n                        </div>\n                      ) : null}'''
-          if panel.count(legend_old) != 1:
-              raise SystemExit('discipline panel: legend seam changed')
-          panel_path.write_text(panel.replace(legend_old, legend_new, 1))
 
           test_path = Path('apps/web/e2e/character-secondary-build.pw.ts')
-          test_text = test_path.read_text()
-          test_text = test_text.replace(
-              "  await expect(preview).toContainText('Core stats')\n  await expect(preview).toContainText('Adventure stats')",
-              "  await expect(preview).not.toContainText('Core stats')\n  await expect(preview).not.toContainText('Adventure stats')",
+          text = test_path.read_text()
+          if "import { expect, test } from '@playwright/test'" not in text:
+              raise SystemExit('secondary browser test import seam changed')
+          text = text.replace(
+              "import { expect, test } from '@playwright/test'",
+              "import { expect, test, type Page } from '@playwright/test'",
               1,
           )
-          sigil_seam = "  await expect(disciplineBuildLabel).toHaveText('Vanguard + Aetherist')\n  await expect(maxHp).toHaveText(maxHpBeforeSecondary)"
-          sigil_insert = """  await expect(disciplineBuildLabel).toHaveText('Vanguard + Aetherist')\n  const triggerSigils = launcher.locator('svg')\n  await expect(triggerSigils).toHaveCount(2)\n  const primarySigilBox = await triggerSigils.nth(0).boundingBox()\n  const secondarySigilBox = await triggerSigils.nth(1).boundingBox()\n  if (!primarySigilBox || !secondarySigilBox) {\n    throw new Error('The committed Discipline sigils are unavailable for layout verification.')\n  }\n  expect(secondarySigilBox.x - (primarySigilBox.x + primarySigilBox.width)).toBeGreaterThanOrEqual(3)\n  expect(Math.abs(primarySigilBox.height - secondarySigilBox.height)).toBeLessThanOrEqual(1)\n  await expect(maxHp).toHaveText(maxHpBeforeSecondary)"""
-          if test_text.count(sigil_seam) != 1:
-              raise SystemExit('secondary test: trigger sigil seam changed')
-          test_text = test_text.replace(sigil_seam, sigil_insert, 1)
-          primary_seam = "  await expect(preview).toContainText('Lifebinder + Aetherist')\n  await expect(preview).not.toContainText('Build v2')"
-          primary_insert = """  await expect(preview).toContainText('Lifebinder + Aetherist')\n  await expect(preview).toContainText('Core stats')\n  await expect(preview).toContainText('Adventure stats')\n  await expect(preview).not.toContainText('Build v2')"""
-          if test_text.count(primary_seam) != 1:
-              raise SystemExit('secondary test: primary preview seam changed')
-          test_text = test_text.replace(primary_seam, primary_insert, 1)
 
-          test_text += '''\n\ntest('mobile Profile balances the portrait and centers Discipline Management', async ({\n  page,\n}, testInfo) => {\n  test.skip(\n    testInfo.project.name !== 'mobile-chromium',\n    'This proof targets the mobile Profile and modal layout.',\n  )\n\n  const characterName = uniqueCharacterName()\n  await provisionAccountAndEnterCharacter({\n    page,\n    email: `profile-mobile-polish-${Date.now()}@example.com`,\n    password: 'Profile-mobile-polish-2026!',\n    characterName,\n  })\n\n  const profile = page.getByTestId('character-profile')\n  const portrait = profile.getByRole('img', { name: `${characterName} portrait` }).locator('..')\n  const portraitTranslateY = await portrait.evaluate((element) => {\n    const transform = getComputedStyle(element).transform\n    return transform === 'none' ? 0 : new DOMMatrix(transform).m42\n  })\n  expect(portraitTranslateY).toBeGreaterThanOrEqual(7)\n\n  const launcher = page\n    .getByTestId('primary-build-panel')\n    .getByRole('button', { name: /Manage Primary Discipline/ })\n  await launcher.click()\n  const dialog = page.getByRole('dialog', { name: 'Discipline Management' })\n  await expect(dialog).toBeVisible()\n\n  const dialogBox = await dialog.boundingBox()\n  const viewport = page.viewportSize()\n  if (!dialogBox || !viewport) {\n    throw new Error('The mobile Discipline dialog geometry is unavailable.')\n  }\n  const dialogCenterY = dialogBox.y + dialogBox.height / 2\n  expect(Math.abs(dialogCenterY - viewport.height / 2)).toBeLessThanOrEqual(12)\n  expect(dialogBox.y).toBeGreaterThan(8)\n})\n'''
-          test_path.write_text(test_text)
+          helper_anchor = """async function recordMastery(characterId: string, disciplineId: string): Promise<void> {\n"""
+          helper_start = text.index(helper_anchor)
+          first_test = text.index("\ntest('Profile equips", helper_start)
+          helper = """
+
+async function expectMatchedBuildLaunchers(page: Page): Promise<void> {
+  const disciplineLauncher = page
+    .getByTestId('primary-build-panel')
+    .getByRole('button', { name: /Manage Primary Discipline/ })
+  const techniquesLauncher = page
+    .getByTestId('skill-build-panel')
+    .getByRole('button', { name: /Manage Techniques/ })
+  const disciplineLabel = disciplineLauncher.getByText('Discipline Management', { exact: true })
+  const techniquesLabel = techniquesLauncher.locator('strong')
+
+  await expect(disciplineLauncher).toBeVisible()
+  await expect(techniquesLauncher).toBeVisible()
+
+  const [techniquesButtonBox, techniquesLabelBox] = await Promise.all([
+    techniquesLauncher.boundingBox(),
+    techniquesLabel.boundingBox(),
+  ])
+  if (!techniquesButtonBox || !techniquesLabelBox) {
+    throw new Error('The Techniques launcher geometry is unavailable.')
+  }
+  const buttonCenterX = techniquesButtonBox.x + techniquesButtonBox.width / 2
+  const labelCenterX = techniquesLabelBox.x + techniquesLabelBox.width / 2
+  expect(Math.abs(buttonCenterX - labelCenterX)).toBeLessThanOrEqual(2)
+
+  const [techniquesFontSize, disciplineFontSize] = await Promise.all([
+    techniquesLabel.evaluate((element) => getComputedStyle(element, '::after').fontSize),
+    disciplineLabel.evaluate((element) => getComputedStyle(element).fontSize),
+  ])
+  expect(techniquesFontSize).toBe(disciplineFontSize)
+}
+"""
+          text = text[:first_test] + helper + text[first_test:]
+
+          desktop_anchor = "  await expect(disciplineBuildLabel).toHaveText('Vanguard')\n"
+          if text.count(desktop_anchor) != 1:
+              raise SystemExit('secondary browser test desktop launcher seam changed')
+          text = text.replace(
+              desktop_anchor,
+              desktop_anchor + '  await expectMatchedBuildLaunchers(page)\n',
+              1,
+          )
+
+          mobile_anchor = """  const profile = page.getByTestId('character-profile')\n"""
+          if text.count(mobile_anchor) != 1:
+              raise SystemExit('secondary browser test mobile launcher seam changed')
+          text = text.replace(
+              mobile_anchor,
+              "  await expectMatchedBuildLaunchers(page)\n\n" + mobile_anchor,
+              1,
+          )
+          test_path.write_text(text)
           PY
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -110,18 +121,14 @@ jobs:
         run: |
           pnpm exec prettier --write \
             apps/web/src/components/character/character-profile-shell-compact.module.css \
-            apps/web/src/components/character/character-discipline-build-panel.module.css \
-            apps/web/src/components/character/character-discipline-build-panel.tsx \
             apps/web/e2e/character-secondary-build.pw.ts
-      - name: Commit focused patch
+      - name: Commit matched launcher patch
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add \
             apps/web/src/components/character/character-profile-shell-compact.module.css \
-            apps/web/src/components/character/character-discipline-build-panel.module.css \
-            apps/web/src/components/character/character-discipline-build-panel.tsx \
             apps/web/e2e/character-secondary-build.pw.ts
           git diff --cached --check
-          git commit -m "Polish mobile profile and discipline interactions"
+          git commit -m "Match Profile build launcher typography"
           git push origin HEAD:agent/profile-discipline-mobile-polish-v3
