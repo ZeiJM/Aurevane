@@ -141,12 +141,35 @@
 }
 
 @media (max-width: 720px) {
+  :global(header):has(.counterGroup) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    column-gap: 0.75rem;
+    row-gap: 0.65rem;
+  }
+
+  :global(header):has(.counterGroup) > :global(div):last-child {
+    display: contents;
+  }
+
   .counterGroup {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    justify-self: stretch;
     justify-content: flex-start;
+  }
+
+  .counterGroup + .standardButton {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: center;
   }
 
   .capacityBadge {
     min-width: 7.1rem;
+    max-width: calc(50% - 0.25rem);
   }
 
   .signatureCard {
