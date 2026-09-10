@@ -1,6 +1,7 @@
 import 'server-only'
 
 import { AurevaneError } from '@aurevane/game-core/errors'
+import { cache } from 'react'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
@@ -8,7 +9,7 @@ export interface CharacterProfileDisplayState {
   imageUrl: string | null
 }
 
-export async function loadCharacterProfileDisplay(
+async function readCharacterProfileDisplay(
   userId: string,
   characterId: string,
 ): Promise<CharacterProfileDisplayState> {
@@ -23,6 +24,13 @@ export async function loadCharacterProfileDisplay(
   if (error) throw unavailable()
   return { imageUrl: typeof data?.image_url === 'string' ? data.image_url : null }
 }
+
+/**
+ * Server Component request memoization only. The character page and authenticated shell can ask
+ * for the same cosmetic display state during one navigation; sharing that read avoids an extra
+ * database round trip while every later request still observes profile changes.
+ */
+export const loadCharacterProfileDisplay = cache(readCharacterProfileDisplay)
 
 export async function loadCharacterProfileImageMap(
   userId: string,
