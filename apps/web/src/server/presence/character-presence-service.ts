@@ -46,6 +46,34 @@ function compareOnlineCharacters(left: OnlineCharacter, right: OnlineCharacter):
   return left.characterId.localeCompare(right.characterId)
 }
 
+function parseOnlineCharacters(data: unknown[]): OnlineCharacter[] {
+  const base: OnlineCharacter[] = []
+  for (const row of data) {
+    if (!row || typeof row !== 'object') continue
+    const candidate = row as Record<string, unknown>
+    const level = candidate.character_level
+    if (
+      typeof candidate.character_id === 'string' &&
+      typeof candidate.character_name === 'string' &&
+      typeof level === 'number' &&
+      Number.isSafeInteger(level) &&
+      typeof candidate.last_seen_at === 'string'
+    ) {
+      base.push({
+        characterId: candidate.character_id,
+        name: candidate.character_name,
+        level,
+        lastSeenAt: candidate.last_seen_at,
+        portraitRef: null,
+        disciplineId: null,
+        personalTitle: null,
+        imageUrl: null,
+      })
+    }
+  }
+  return base
+}
+
 export async function touchCharacterPresence(userId: string, characterId: string): Promise<string> {
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.rpc('touch_character_presence_v1', {
@@ -61,34 +89,19 @@ export async function touchCharacterPresence(userId: string, characterId: string
   return data
 }
 
+export async function countOnlineCharacters(): Promise<number> {
+  const supabase = createSupabaseAdminClient()
+  const { data, error } = await supabase.rpc('list_online_characters_v1')
+  if (error || !Array.isArray(data)) throw unavailable()
+  return parseOnlineCharacters(data).length
+}
+
 export async function listOnlineCharacters(): Promise<OnlineCharacter[]> {
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.rpc('list_online_characters_v1')
   if (error || !Array.isArray(data)) throw unavailable()
 
-  const base: OnlineCharacter[] = []
-  for (const row of data) {
-    if (
-      row &&
-      typeof row === 'object' &&
-      typeof row.character_id === 'string' &&
-      typeof row.character_name === 'string' &&
-      Number.isSafeInteger(row.character_level) &&
-      typeof row.last_seen_at === 'string'
-    ) {
-      base.push({
-        characterId: row.character_id,
-        name: row.character_name,
-        level: row.character_level,
-        lastSeenAt: row.last_seen_at,
-        portraitRef: null,
-        disciplineId: null,
-        personalTitle: null,
-        imageUrl: null,
-      })
-    }
-  }
-
+  const base = parseOnlineCharacters(data)
   if (base.length === 0) return base
   const ids = base.map((row) => row.characterId)
 
