@@ -46,26 +46,7 @@ function compareOnlineCharacters(left: OnlineCharacter, right: OnlineCharacter):
   return left.characterId.localeCompare(right.characterId)
 }
 
-export async function touchCharacterPresence(userId: string, characterId: string): Promise<string> {
-  const supabase = createSupabaseAdminClient()
-  const { data, error } = await supabase.rpc('touch_character_presence_v1', {
-    p_user_id: userId,
-    p_character_id: characterId,
-  })
-  if (error || typeof data !== 'string') {
-    if (error?.message.includes('CHARACTER_NOT_PLAYABLE')) {
-      throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
-    }
-    throw unavailable()
-  }
-  return data
-}
-
-export async function listOnlineCharacters(): Promise<OnlineCharacter[]> {
-  const supabase = createSupabaseAdminClient()
-  const { data, error } = await supabase.rpc('list_online_characters_v1')
-  if (error || !Array.isArray(data)) throw unavailable()
-
+function parseOnlineCharacters(data: unknown[]): OnlineCharacter[] {
   const base: OnlineCharacter[] = []
   for (const row of data) {
     if (
@@ -88,7 +69,37 @@ export async function listOnlineCharacters(): Promise<OnlineCharacter[]> {
       })
     }
   }
+  return base
+}
 
+export async function touchCharacterPresence(userId: string, characterId: string): Promise<string> {
+  const supabase = createSupabaseAdminClient()
+  const { data, error } = await supabase.rpc('touch_character_presence_v1', {
+    p_user_id: userId,
+    p_character_id: characterId,
+  })
+  if (error || typeof data !== 'string') {
+    if (error?.message.includes('CHARACTER_NOT_PLAYABLE')) {
+      throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
+    }
+    throw unavailable()
+  }
+  return data
+}
+
+export async function countOnlineCharacters(): Promise<number> {
+  const supabase = createSupabaseAdminClient()
+  const { data, error } = await supabase.rpc('list_online_characters_v1')
+  if (error || !Array.isArray(data)) throw unavailable()
+  return parseOnlineCharacters(data).length
+}
+
+export async function listOnlineCharacters(): Promise<OnlineCharacter[]> {
+  const supabase = createSupabaseAdminClient()
+  const { data, error } = await supabase.rpc('list_online_characters_v1')
+  if (error || !Array.isArray(data)) throw unavailable()
+
+  const base = parseOnlineCharacters(data)
   if (base.length === 0) return base
   const ids = base.map((row) => row.characterId)
 
