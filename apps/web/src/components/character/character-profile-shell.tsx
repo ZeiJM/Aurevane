@@ -270,6 +270,7 @@ export function CharacterProfileShell({
               </div>
               <CharacterSkillBuildPanel
                 key={skillBuildKey}
+                characterId={attributeAllocation.characterId}
                 initialBuildVersion={disciplineBuild.buildVersion}
                 primaryDiscipline={{
                   id: disciplineBuild.current.definition.id,
