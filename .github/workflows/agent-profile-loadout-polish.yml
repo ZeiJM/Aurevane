@@ -1,0 +1,183 @@
+name: Agent Profile Loadout Polish
+
+on:
+  push:
+    branches:
+      - agent/profile-discipline-mobile-polish-v3
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/profile-discipline-mobile-polish-v3
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Apply focused loadout patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              file = Path(path)
+              text = file.read_text()
+              if text.count(old) != 1:
+                  raise SystemExit(f'{path}: expected exactly one match, found {text.count(old)}')
+              file.write_text(text.replace(old, new, 1))
+
+          shell_path = Path('apps/web/src/components/character/character-profile-shell.tsx')
+          shell = shell_path.read_text()
+
+          import_anchor = "import { Kicker, Surface } from '@aurevane/ui'\n\n"
+          if shell.count(import_anchor) != 1:
+              raise SystemExit('profile shell: import seam changed')
+          shell = shell.replace(
+              import_anchor,
+              import_anchor + "import { battleResonanceArtwork, battleSkillArtwork } from '@/components/battle/battle-skill-presentation'\n",
+              1,
+          )
+
+          shell = shell.replace(
+              "  const equippedCount = disciplineBuild.disciplineSkills.equippedSkills.length\n",
+              '',
+              1,
+          )
+          build_label = """  const buildLabel = disciplineBuild.currentSecondary\n    ? `${disciplineBuild.current.definition.name} + ${disciplineBuild.currentSecondary.name}`\n    : disciplineBuild.current.definition.name\n"""
+          if shell.count(build_label) != 1:
+              raise SystemExit('profile shell: build label seam changed')
+          shell = shell.replace(build_label, '', 1)
+
+          old_sections = """            <section className={styles.buildSection} aria-labelledby=\"build-disciplines-heading\">\n              <div className={styles.buildSectionHeader}>\n                <span id=\"build-disciplines-heading\">Disciplines</span>\n                <strong>{buildLabel}</strong>\n              </div>\n              <CharacterDisciplineBuildPanel\n                initialBuildVersion={disciplineBuild.buildVersion}\n                initialCurrent={disciplineBuild.current}\n                initialCurrentSecondary={disciplineBuild.currentSecondary}\n                availablePrimaries={disciplineBuild.availablePrimaries}\n                availableSecondaries={disciplineBuild.availableSecondaries}\n                initialAttunement={disciplineBuild.attunement}\n                coreAttributes={profile.attributes}\n              />\n            </section>\n\n            <section className={styles.buildSection} aria-labelledby=\"build-techniques-heading\">\n              <div className={styles.buildSectionHeader}>\n                <span id=\"build-techniques-heading\">Techniques</span>\n                <strong>\n                  {equippedCount} / {disciplineBuild.disciplineSkills.capacity} tagged\n                </strong>\n              </div>\n              <CharacterSkillBuildPanel\n"""
+          new_sections = """            <section className={styles.buildSection} aria-labelledby=\"build-disciplines-heading\">\n              <div className={styles.buildSectionHeader}>\n                <strong id=\"build-disciplines-heading\">Discipline</strong>\n              </div>\n              <CharacterDisciplineBuildPanel\n                initialBuildVersion={disciplineBuild.buildVersion}\n                initialCurrent={disciplineBuild.current}\n                initialCurrentSecondary={disciplineBuild.currentSecondary}\n                availablePrimaries={disciplineBuild.availablePrimaries}\n                availableSecondaries={disciplineBuild.availableSecondaries}\n                initialAttunement={disciplineBuild.attunement}\n                coreAttributes={profile.attributes}\n              />\n            </section>\n\n            <section className={styles.buildSection} aria-labelledby=\"build-techniques-heading\">\n              <div className={styles.buildSectionHeader}>\n                <strong id=\"build-techniques-heading\">Techniques</strong>\n              </div>\n              <CharacterSkillBuildPanel\n"""
+          if shell.count(old_sections) != 1:
+              raise SystemExit('profile shell: loadout section seam changed')
+          shell = shell.replace(old_sections, new_sections, 1)
+
+          old_identity = """            <section className={styles.buildIdentity} aria-label=\"Combat loadout identity\">\n              <span>{resonance ? 'Resonance' : 'Essence'}</span>\n              <strong>{resonance?.name ?? essence?.name ?? 'None available'}</strong>\n              <small>\n                {resonance?.description ??\n                  essence?.description ??\n                  (disciplineBuild.currentSecondary\n                    ? 'No authored Resonance is available for this pair yet.'\n                    : 'No authored Essence is available for this Discipline yet.')}\n              </small>\n            </section>\n"""
+          new_identity = """            <section\n              className={styles.buildIdentity}\n              aria-label=\"Combat loadout identity\"\n              data-testid=\"combat-build-signature\"\n            >\n              {resonance || essence ? (\n                <span\n                  className={styles.buildIdentityArt}\n                  aria-hidden=\"true\"\n                  data-testid=\"combat-build-signature-art\"\n                >\n                  <img\n                    src={\n                      resonance\n                        ? battleResonanceArtwork(resonance.id)\n                        : battleSkillArtwork(essence!.skill.id)\n                    }\n                    alt=\"\"\n                  />\n                </span>\n              ) : null}\n              <div className={styles.buildIdentityCopy}>\n                <span>{resonance ? 'Resonance' : 'Essence'}</span>\n                <strong>{resonance?.name ?? essence?.name ?? 'None available'}</strong>\n                <small>\n                  {resonance?.description ??\n                    essence?.description ??\n                    (disciplineBuild.currentSecondary\n                      ? 'No authored Resonance is available for this pair yet.'\n                      : 'No authored Essence is available for this Discipline yet.')}\n                </small>\n              </div>\n            </section>\n"""
+          if shell.count(old_identity) != 1:
+              raise SystemExit('profile shell: signature identity seam changed')
+          shell_path.write_text(shell.replace(old_identity, new_identity, 1))
+
+          css_path = Path('apps/web/src/components/character/character-profile-shell.module.css')
+          css = css_path.read_text()
+          css = css.replace(
+              '.buildSectionHeader span,\n.buildIdentity span {',
+              '.buildSectionHeader span,\n.buildIdentityCopy > span {',
+              1,
+          )
+          css = css.replace(
+              '.buildSectionHeader strong,\n.buildIdentity strong {',
+              '.buildSectionHeader strong,\n.buildIdentityCopy strong {',
+              1,
+          )
+          css = css.replace(
+              '.buildSectionHeader small,\n.buildIdentity small {',
+              '.buildSectionHeader small,\n.buildIdentityCopy small {',
+              1,
+          )
+          css = css.replace('.buildIdentity strong {', '.buildIdentityCopy strong {', 1)
+
+          identity_rule = """.buildIdentity {\n  padding-bottom: 0.22rem;\n  gap: 0.36rem;\n}\n"""
+          identity_new = """.buildIdentity {\n  grid-template-columns: 3.6rem minmax(0, 1fr);\n  align-items: center;\n  gap: 0.62rem;\n  padding-bottom: 0.22rem;\n}\n\n.buildIdentityCopy {\n  display: grid;\n  gap: 0.36rem;\n  min-width: 0;\n}\n\n.buildIdentityArt {\n  display: grid;\n  width: 3.6rem;\n  height: 3.6rem;\n  place-items: center;\n  overflow: hidden;\n  border: 1px solid rgba(203, 179, 132, 0.24);\n  border-radius: 0.66rem;\n  background: rgba(2, 5, 9, 0.5);\n  box-shadow: inset 0 0 1rem rgba(207, 169, 93, 0.08);\n}\n\n.buildIdentityArt img {\n  display: block;\n  width: 100%;\n  height: 100%;\n  object-fit: cover;\n}\n"""
+          if css.count(identity_rule) != 1:
+              raise SystemExit('profile shell CSS: identity seam changed')
+          css = css.replace(identity_rule, identity_new, 1)
+
+          mobile_anchor = """  .sideCard {\n    padding: 0.78rem;\n  }\n}"""
+          mobile_new = """  .sideCard {\n    padding: 0.78rem;\n  }\n\n  .buildIdentity {\n    grid-template-columns: 3.2rem minmax(0, 1fr);\n  }\n\n  .buildIdentityArt {\n    width: 3.2rem;\n    height: 3.2rem;\n  }\n}"""
+          if css.count(mobile_anchor) != 1:
+              raise SystemExit('profile shell CSS: mobile seam changed')
+          css_path.write_text(css.replace(mobile_anchor, mobile_new, 1))
+
+          primary_path = Path('apps/web/e2e/character-primary-build.pw.ts')
+          primary = primary_path.read_text()
+          old_primary_locator = """  const disciplineBuildLabel = page\n    .locator('#build-disciplines-heading')\n    .locator('..')\n    .locator('strong')\n"""
+          if primary.count(old_primary_locator) != 1:
+              raise SystemExit('primary test: old build label locator seam changed')
+          primary = primary.replace(
+              old_primary_locator,
+              "  const primaryDisciplineChip = page.getByTestId('primary-discipline-chip')\n",
+              1,
+          )
+          primary = primary.replace(
+              "await expect(disciplineBuildLabel).toHaveText('Vanguard')",
+              "await expect(primaryDisciplineChip).toHaveText('Vanguard')",
+              1,
+          )
+          primary = primary.replace(
+              "await expect(disciplineBuildLabel).toHaveText('Aetherist')",
+              "await expect(primaryDisciplineChip).toHaveText('Aetherist')",
+              1,
+          )
+          primary_path.write_text(primary)
+
+          secondary_path = Path('apps/web/e2e/character-secondary-build.pw.ts')
+          secondary = secondary_path.read_text()
+          old_secondary_locator = """  const disciplineBuildLabel = page\n    .locator('#build-disciplines-heading')\n    .locator('..')\n    .locator('strong')\n"""
+          if secondary.count(old_secondary_locator) != 1:
+              raise SystemExit('secondary test: old build label locator seam changed')
+          secondary = secondary.replace(
+              old_secondary_locator,
+              """  const primaryDisciplineChip = page.getByTestId('primary-discipline-chip')\n  const secondaryDisciplineChip = page.getByTestId('secondary-discipline-chip')\n""",
+              1,
+          )
+          secondary = secondary.replace(
+              "await expect(disciplineBuildLabel).toHaveText('Vanguard')",
+              "await expect(primaryDisciplineChip).toHaveText('Vanguard')",
+              1,
+          )
+          secondary = secondary.replace(
+              "await expect(disciplineBuildLabel).toHaveText('Vanguard + Aetherist')",
+              """await expect(primaryDisciplineChip).toHaveText('Vanguard')\n  await expect(secondaryDisciplineChip).toHaveText('Aetherist')""",
+              1,
+          )
+          secondary = secondary.replace(
+              "await expect(disciplineBuildLabel).toHaveText('Lifebinder + Aetherist')",
+              """await expect(primaryDisciplineChip).toHaveText('Lifebinder')\n  await expect(secondaryDisciplineChip).toHaveText('Aetherist')""",
+              1,
+          )
+          secondary_path.write_text(secondary)
+
+          launcher_path = Path('apps/web/e2e/character-profile-launcher-layout.pw.ts')
+          launcher = launcher_path.read_text()
+          anchor = """  await expect(disciplineLauncher).toBeVisible()\n  await expect(techniquesLauncher).toBeVisible()\n\n"""
+          insert = """  await expect(disciplineLauncher).toBeVisible()\n  await expect(techniquesLauncher).toBeVisible()\n\n  const disciplineHeading = page.locator('#build-disciplines-heading')\n  const techniquesHeading = page.locator('#build-techniques-heading')\n  await expect(disciplineHeading).toHaveText('Discipline')\n  await expect(techniquesHeading).toHaveText('Techniques')\n  await expect(disciplineHeading.locator('..')).not.toContainText('Vanguard')\n  await expect(techniquesHeading.locator('..')).not.toContainText('tagged')\n\n"""
+          if launcher.count(anchor) != 1:
+              raise SystemExit('launcher test: header assertion seam changed')
+          launcher_path.write_text(launcher.replace(anchor, insert, 1))
+          PY
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format touched files
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/components/character/character-profile-shell.tsx \
+            apps/web/src/components/character/character-profile-shell.module.css \
+            apps/web/e2e/character-primary-build.pw.ts \
+            apps/web/e2e/character-secondary-build.pw.ts \
+            apps/web/e2e/character-profile-launcher-layout.pw.ts
+      - name: Commit loadout patch
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add \
+            apps/web/src/components/character/character-profile-shell.tsx \
+            apps/web/src/components/character/character-profile-shell.module.css \
+            apps/web/e2e/character-primary-build.pw.ts \
+            apps/web/e2e/character-secondary-build.pw.ts \
+            apps/web/e2e/character-profile-launcher-layout.pw.ts
+          git diff --cached --check
+          git commit -m "Polish Combat Loadout presentation"
+          git push origin HEAD:agent/profile-discipline-mobile-polish-v3
