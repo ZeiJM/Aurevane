@@ -12,6 +12,7 @@ on:
       - 'apps/web/src/components/character/character-pv2-test-kit.tsx'
       - 'apps/web/src/components/character/character-pv2-test-kit.module.css'
       - 'apps/web/e2e/p3-8-representative-buildcraft.pw.ts'
+      - 'apps/web/e2e/mixed-build-battle-entry.pw.ts'
       - '.github/workflows/representative-buildcraft.yml'
   push:
     branches:
@@ -26,6 +27,7 @@ on:
       - 'apps/web/src/components/character/character-pv2-test-kit.tsx'
       - 'apps/web/src/components/character/character-pv2-test-kit.module.css'
       - 'apps/web/e2e/p3-8-representative-buildcraft.pw.ts'
+      - 'apps/web/e2e/mixed-build-battle-entry.pw.ts'
       - '.github/workflows/representative-buildcraft.yml'
 
 permissions:
@@ -65,6 +67,7 @@ jobs:
             apps/web/src/components/character/character-pv2-test-kit.tsx \
             apps/web/src/components/character/character-pv2-test-kit.module.css \
             apps/web/e2e/p3-8-representative-buildcraft.pw.ts \
+            apps/web/e2e/mixed-build-battle-entry.pw.ts \
             .github/workflows/discipline-build-db.yml \
             .github/workflows/representative-buildcraft.yml
 
@@ -78,7 +81,8 @@ jobs:
             apps/web/src/app/game/character/page.tsx \
             apps/web/src/components/character/character-profile-shell.tsx \
             apps/web/src/components/character/character-pv2-test-kit.tsx \
-            apps/web/e2e/p3-8-representative-buildcraft.pw.ts
+            apps/web/e2e/p3-8-representative-buildcraft.pw.ts \
+            apps/web/e2e/mixed-build-battle-entry.pw.ts
 
       - name: Typecheck
         run: |
@@ -124,6 +128,7 @@ jobs:
           AUREVANE_PV2_TEST_MODE=1 \
           pnpm --filter @aurevane/web exec playwright test \
             e2e/p3-8-representative-buildcraft.pw.ts \
+            e2e/mixed-build-battle-entry.pw.ts \
             --config=playwright.config.ts
 
       - name: Stop local Supabase services
