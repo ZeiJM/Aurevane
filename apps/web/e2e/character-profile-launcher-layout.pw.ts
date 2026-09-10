@@ -35,7 +35,7 @@ test('Profile build launchers stay centered and typographically matched', async 
 
   await expect(disciplineLauncher).toBeVisible()
   await expect(techniquesLauncher).toBeVisible()
-  await expect(page.locator('#build-disciplines-heading')).toHaveText('Disciplines')
+  await expect(page.locator('#build-disciplines-heading')).toHaveText('Discipline')
   await expect(page.locator('#build-techniques-heading')).toHaveText('Techniques')
   await expect(page.getByText(/\d+ \/ \d+ tagged/)).toHaveCount(0)
 
