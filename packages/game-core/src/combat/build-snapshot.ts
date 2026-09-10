@@ -1,4 +1,5 @@
 import {
+  MIXED_DISCIPLINE_SKILL_SOURCE_CAPACITY,
   disciplineSkillCapacity,
   type DisciplineSkillReference,
 } from '../character/discipline-skill-loadout'
@@ -105,10 +106,13 @@ export function validateCombatBuildSnapshot(
     const secondaryCount = snapshot.disciplineSkills.filter(
       (skill) => skill.sourceDisciplineId === secondaryId,
     ).length
-    if (primaryCount > 2 || secondaryCount > 2) {
+    if (
+      primaryCount > MIXED_DISCIPLINE_SKILL_SOURCE_CAPACITY ||
+      secondaryCount > MIXED_DISCIPLINE_SKILL_SOURCE_CAPACITY
+    ) {
       issues.push({
         field: 'disciplineSkills',
-        message: 'Mixed combat builds may tag at most two Techniques from each Discipline.',
+        message: `Mixed combat builds may tag at most ${MIXED_DISCIPLINE_SKILL_SOURCE_CAPACITY} Techniques from each Discipline.`,
       })
     }
   }
