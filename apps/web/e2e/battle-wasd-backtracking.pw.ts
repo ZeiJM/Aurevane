@@ -1,4 +1,4 @@
-import { expect, test, type Locator } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
@@ -7,6 +7,8 @@ interface PathPoint {
   x: number
   y: number
 }
+
+type KeyboardScheme = 'wasd' | 'arrows'
 
 function uniqueCharacterName(): string {
   const suffix = Date.now().toString(36).replace(/[^a-z]/gi, '').slice(-7) || 'walker'
@@ -32,13 +34,13 @@ async function plottedPath(battlefield: Locator): Promise<PathPoint[]> {
   )
 }
 
-function wasdKey(from: PathPoint, to: PathPoint): string {
+function reverseKey(from: PathPoint, to: PathPoint, scheme: KeyboardScheme): string {
   const dx = to.x - from.x
   const dy = to.y - from.y
-  if (dx === 1 && dy === 0) return 'KeyD'
-  if (dx === -1 && dy === 0) return 'KeyA'
-  if (dx === 0 && dy === 1) return 'KeyS'
-  if (dx === 0 && dy === -1) return 'KeyW'
+  if (dx === 1 && dy === 0) return scheme === 'wasd' ? 'KeyD' : 'ArrowRight'
+  if (dx === -1 && dy === 0) return scheme === 'wasd' ? 'KeyA' : 'ArrowLeft'
+  if (dx === 0 && dy === 1) return scheme === 'wasd' ? 'KeyS' : 'ArrowDown'
+  if (dx === 0 && dy === -1) return scheme === 'wasd' ? 'KeyW' : 'ArrowUp'
   throw new Error(`Expected a cardinal path step, received ${from.x},${from.y} -> ${to.x},${to.y}`)
 }
 
@@ -61,18 +63,54 @@ async function plotMultiStepPath(battlefield: Locator): Promise<PathPoint[]> {
   throw new Error('The seeded Recruit battle did not expose a multi-step movement path.')
 }
 
-test('WASD walks a Move preview backward one tile at a time', async ({ page }, testInfo) => {
+async function reverseWholePreview({
+  page,
+  battlefield,
+  root,
+  actorName,
+  scheme,
+}: {
+  page: Page
+  battlefield: Locator
+  root: Locator
+  actorName: string
+  scheme: KeyboardScheme
+}) {
+  const path = await plotMultiStepPath(battlefield)
+  const committedActorTile = battlefield.locator(
+    `button[aria-label*="occupied by ${actorName}"]`,
+  )
+  const committedActorLabel = await committedActorTile.getAttribute('aria-label')
+  expect(committedActorLabel).toBeTruthy()
+
+  for (let index = path.length - 1; index > 0; index -= 1) {
+    await page.keyboard.press(reverseKey(path[index]!, path[index - 1]!, scheme), { delay: 0 })
+    await expect(battlefield.locator('button[data-path-index]')).toHaveCount(index === 1 ? 0 : index)
+    await expect(root).toHaveAttribute('data-battle-action-mode', 'move')
+    await expect(committedActorTile).toHaveAttribute('aria-label', committedActorLabel!)
+  }
+
+  await expect(page.locator('[data-battle-notice="true"]')).toContainText(
+    'Move preview returned to your current tile.',
+  )
+  await expect(root).toHaveAttribute('data-battle-action-mode', 'move')
+}
+
+test('WASD and arrows walk a Move preview backward one tile at a time without committing', async ({
+  page,
+}, testInfo) => {
   test.skip(
     testInfo.project.name !== 'desktop-chromium',
-    'One desktop Chromium proof covers physical keyboard WASD retraction.',
+    'One desktop Chromium proof covers real keyboard Move-preview retraction.',
   )
   test.slow()
 
+  const characterName = uniqueCharacterName()
   await provisionAccountAndEnterCharacter({
     page,
     email: `wasd-backtrack-${Date.now()}@example.com`,
     password: 'WASD-backtrack-2026!',
-    characterName: uniqueCharacterName(),
+    characterName,
   })
 
   await page.goto('/game/battle')
@@ -80,17 +118,25 @@ test('WASD walks a Move preview backward one tile at a time', async ({ page }, t
   await page.getByRole('button', { name: 'Enter Battle' }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
 
+  const root = page.locator("main[data-unified-battle='true']")
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
   await commandDeck.locator('button[data-command-slot="move"]').click()
+  await expect(root).toHaveAttribute('data-battle-action-mode', 'move')
 
-  const path = await plotMultiStepPath(battlefield)
-  for (let index = path.length - 1; index > 0; index -= 1) {
-    await page.keyboard.press(wasdKey(path[index]!, path[index - 1]!))
-    await expect(battlefield.locator('button[data-path-index]')).toHaveCount(index === 1 ? 0 : index)
-  }
+  await reverseWholePreview({
+    page,
+    battlefield,
+    root,
+    actorName: characterName,
+    scheme: 'wasd',
+  })
 
-  await expect(page.locator('[data-battle-notice="true"]')).toContainText(
-    'Move preview returned to your current tile.',
-  )
+  await reverseWholePreview({
+    page,
+    battlefield,
+    root,
+    actorName: characterName,
+    scheme: 'arrows',
+  })
 })
