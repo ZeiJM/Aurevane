@@ -2,7 +2,7 @@
 
 import type { Route } from 'next'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import styles from './navigation-menu.module.css'
@@ -29,6 +29,7 @@ export function NavigationMenu({
   activeSessionLabel = null,
 }: NavigationMenuProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const menuRef = useRef<HTMLElement>(null)
   const visibleNavigation = useMemo(
@@ -52,6 +53,10 @@ export function NavigationMenu({
   function closeMenu() {
     const menu = menuRef.current
     if (menu?.matches(':popover-open')) menu.hidePopover()
+  }
+
+  function prefetchDestination(href: (typeof navigation)[number]['href']) {
+    router.prefetch(href)
   }
 
   return (
@@ -80,7 +85,14 @@ export function NavigationMenu({
           </Link>
         ) : null}
         {visibleNavigation.map((item) => (
-          <Link key={item.href} href={item.href} prefetch={false} onClick={closeMenu}>
+          <Link
+            key={item.href}
+            href={item.href}
+            prefetch={false}
+            onPointerEnter={() => prefetchDestination(item.href)}
+            onFocus={() => prefetchDestination(item.href)}
+            onClick={closeMenu}
+          >
             <strong>{item.label}</strong>
             <small>{item.detail}</small>
           </Link>

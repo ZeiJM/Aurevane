@@ -33,14 +33,13 @@ export default async function BattleLaunchPage({
     throw error
   }
 
-  const [activeBattle, activeSpectating] = await Promise.all([
+  const [activeBattle, activeSpectating, character] = await Promise.all([
     getActiveBattleForUser(actor.userId),
     getActiveSpectatingForUser(actor.userId),
+    loadSelectedCharacter(actor),
   ])
   if (activeBattle) redirect(`/game/battle/${activeBattle.battleSessionId}`)
   if (activeSpectating) redirect(`/game/battle/spectate/${activeSpectating.battleKey}`)
-
-  const character = await loadSelectedCharacter(actor)
   if (!character) redirect('/game')
 
   const params = await searchParams

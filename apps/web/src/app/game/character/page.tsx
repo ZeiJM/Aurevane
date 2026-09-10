@@ -25,6 +25,10 @@ import { createSupabaseProgressionRepository } from '@/server/progression/supaba
 
 export const dynamic = 'force-dynamic'
 
+function isPersistenceUnavailable(error: unknown) {
+  return isAurevaneError(error) && error.code === 'PERSISTENCE_UNAVAILABLE'
+}
+
 export default async function CharacterProfilePage() {
   const publicConfig = getOptionalPublicSupabaseConfig()
   const requestHost = (await headers()).get('host')
@@ -39,63 +43,87 @@ export default async function CharacterProfilePage() {
     throw error
   }
 
-  const [activeBattle, activeSpectating] = await Promise.all([
+  const [activeBattleResult, activeSpectatingResult, characterResult] = await Promise.allSettled([
     getActiveBattleForUser(actor.userId),
     getActiveSpectatingForUser(actor.userId),
+    loadSelectedCharacter(actor),
   ])
-  if (activeBattle) redirect(`/game/battle/${activeBattle.battleSessionId}`)
-  if (activeSpectating) redirect(`/game/battle/spectate/${activeSpectating.battleKey}`)
 
-  let character
-  try {
-    character = await loadSelectedCharacter(actor)
-  } catch (error) {
-    if (isAurevaneError(error) && error.code === 'PERSISTENCE_UNAVAILABLE') {
-      return <AuthenticatedGameRecovery />
-    }
-    throw error
+  if (activeBattleResult.status === 'rejected') throw activeBattleResult.reason
+  if (activeSpectatingResult.status === 'rejected') throw activeSpectatingResult.reason
+  if (activeBattleResult.value) {
+    redirect(`/game/battle/${activeBattleResult.value.battleSessionId}`)
   }
+  if (activeSpectatingResult.value) {
+    redirect(`/game/battle/spectate/${activeSpectatingResult.value.battleKey}`)
+  }
+
+  if (characterResult.status === 'rejected') {
+    if (isPersistenceUnavailable(characterResult.reason)) return <AuthenticatedGameRecovery />
+    throw characterResult.reason
+  }
+  const character = characterResult.value
   if (!character) redirect('/game')
 
-  let levelCurve
-  let disciplineBuild
-  let attributeAllocation
-  try {
-    ;[levelCurve, disciplineBuild, attributeAllocation] = await Promise.all([
-      loadLevelProgressionCurve(
-        character.progressionCycle.number,
-        createSupabaseProgressionRepository(),
-      ),
-      loadCharacterBuildContext(actor.userId, character, createSupabaseCharacterBuildRepository()),
-      loadCharacterAttributeAllocation(
-        actor.userId,
-        character,
-        createSupabaseCharacterAttributeRepository(),
-      ),
-    ])
-  } catch (error) {
-    if (isAurevaneError(error) && error.code === 'PERSISTENCE_UNAVAILABLE') {
+  const [
+    levelCurveResult,
+    disciplineBuildResult,
+    attributeAllocationResult,
+    titleStateResult,
+    displayStateResult,
+    pv2TestKitResult,
+  ] = await Promise.allSettled([
+    loadLevelProgressionCurve(
+      character.progressionCycle.number,
+      createSupabaseProgressionRepository(),
+    ),
+    loadCharacterBuildContext(actor.userId, character, createSupabaseCharacterBuildRepository()),
+    loadCharacterAttributeAllocation(
+      actor.userId,
+      character,
+      createSupabaseCharacterAttributeRepository(),
+    ),
+    loadCharacterTitleState(actor.userId, character.id),
+    loadCharacterProfileDisplay(actor.userId, character.id),
+    isPv2BuildcraftTestKitEnabled(actor.userId),
+  ])
+
+  if (levelCurveResult.status === 'rejected') {
+    if (isPersistenceUnavailable(levelCurveResult.reason)) return <AuthenticatedGameRecovery />
+    throw levelCurveResult.reason
+  }
+  if (disciplineBuildResult.status === 'rejected') {
+    if (isPersistenceUnavailable(disciplineBuildResult.reason)) return <AuthenticatedGameRecovery />
+    throw disciplineBuildResult.reason
+  }
+  if (attributeAllocationResult.status === 'rejected') {
+    if (isPersistenceUnavailable(attributeAllocationResult.reason)) {
       return <AuthenticatedGameRecovery />
     }
-    throw error
+    throw attributeAllocationResult.reason
   }
-
-  let personalTitle: string | null = null
-  let imageUrl: string | null = null
-  try {
-    const [titleState, displayState] = await Promise.all([
-      loadCharacterTitleState(actor.userId, character.id),
-      loadCharacterProfileDisplay(actor.userId, character.id),
-    ])
-    personalTitle = titleState.personalTitle
-    imageUrl = displayState.imageUrl
-  } catch (error) {
-    if (!(isAurevaneError(error) && error.code === 'PERSISTENCE_UNAVAILABLE')) {
-      throw error
-    }
+  if (
+    titleStateResult.status === 'rejected' &&
+    !isPersistenceUnavailable(titleStateResult.reason)
+  ) {
+    throw titleStateResult.reason
   }
+  if (
+    displayStateResult.status === 'rejected' &&
+    !isPersistenceUnavailable(displayStateResult.reason)
+  ) {
+    throw displayStateResult.reason
+  }
+  if (pv2TestKitResult.status === 'rejected') throw pv2TestKitResult.reason
 
-  const pv2TestKitEnabled = await isPv2BuildcraftTestKitEnabled(actor.userId)
+  const levelCurve = levelCurveResult.value
+  const disciplineBuild = disciplineBuildResult.value
+  const attributeAllocation = attributeAllocationResult.value
+  const personalTitle =
+    titleStateResult.status === 'fulfilled' ? titleStateResult.value.personalTitle : null
+  const imageUrl =
+    displayStateResult.status === 'fulfilled' ? displayStateResult.value.imageUrl : null
+  const pv2TestKitEnabled = pv2TestKitResult.value
 
   return (
     <CharacterProfileShell
