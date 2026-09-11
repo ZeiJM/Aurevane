@@ -61,8 +61,7 @@ async function expectHallFits(page: Page, label: string): Promise<void> {
       })
     return {
       pageOverflowY: document.documentElement.scrollHeight - window.innerHeight,
-      pageOverflowX:
-        document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      pageOverflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       mainOverflowY: main.scrollHeight - main.clientHeight,
       mainOverflowX: main.scrollWidth - main.clientWidth,
       hallBottom: hallRect.bottom,
@@ -124,6 +123,16 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
       if (needsScroll) await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(0)
       await expectAboveFooter(page, reset)
     }
+    const profileBottom = await page
+      .locator('section[aria-label="Attribute redistribution"]')
+      .boundingBox()
+    const profileFooter = await page
+      .locator('[data-testid="authenticated-shell"] > footer')
+      .boundingBox()
+    expect(
+      profileBottom!.y + profileBottom!.height,
+      `Profile lower section ${size}`,
+    ).toBeLessThanOrEqual(profileFooter!.y + 1)
     await capture(page, testInfo, `profile-${size}`)
     await reset.click()
     const dialog = page.getByRole('dialog', { name: 'Redistribute Attributes', exact: true })
@@ -145,8 +154,14 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
     for (const mode of ['1v1', '2v2', '3v3', '1v1v1', 'flex-teams']) {
       await page.locator('#pvp-mode').selectOption(mode)
       if (mode === 'flex-teams') {
-        await page.locator('[data-pvp-create-card] > div:has(select) select').nth(0).selectOption('3')
-        await page.locator('[data-pvp-create-card] > div:has(select) select').nth(1).selectOption('3')
+        await page
+          .locator('[data-pvp-create-card] > div:has(select) select')
+          .nth(0)
+          .selectOption('3')
+        await page
+          .locator('[data-pvp-create-card] > div:has(select) select')
+          .nth(1)
+          .selectOption('3')
       }
       await expectHallFits(page, `${mode} ${size}`)
     }
@@ -157,13 +172,16 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
       'true',
     )
     await page.getByRole('button', { name: '120 second turn timer', exact: true }).click()
-    await expect(page.getByRole('button', { name: '120 second turn timer', exact: true }))
-      .toHaveAttribute('aria-pressed', 'true')
+    await expect(
+      page.getByRole('button', { name: '120 second turn timer', exact: true }),
+    ).toHaveAttribute('aria-pressed', 'true')
     await page.locator('#lobby-key').fill('avlabcd1234')
     await expect(page.locator('#lobby-key')).toHaveValue('AVL-ABCD-1234')
     await expect(page.getByRole('button', { name: 'Join Battle Lobby', exact: true })).toBeEnabled()
     await page.locator('#lobby-key').clear()
-    await expect(page.getByRole('button', { name: 'Join Battle Lobby', exact: true })).toBeDisabled()
+    await expect(
+      page.getByRole('button', { name: 'Join Battle Lobby', exact: true }),
+    ).toBeDisabled()
     await tabs.locator('button[data-tone="spectate"]').click()
     await page.getByRole('textbox', { name: 'Battle Key', exact: true }).fill('AVB-ABCD-1234')
     await expect(page.getByRole('button', { name: 'Spectate Battle', exact: true })).toBeEnabled()
@@ -173,8 +191,10 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
 
   await page.setViewportSize({ width: 1366, height: 768 })
   await page.getByRole('button', { name: 'Navigation', exact: true }).click()
-  await page.getByRole('navigation', { name: 'Game navigation' })
-    .getByRole('link', { name: /^Profile/ }).click()
+  await page
+    .getByRole('navigation', { name: 'Game navigation' })
+    .getByRole('link', { name: /^Profile/ })
+    .click()
   await expect(page).toHaveURL(/\/game\/character$/)
   for (const [panel, name] of [
     ['primary-build-panel', 'Discipline Management'],
@@ -205,7 +225,8 @@ test('phone Battle Hall keeps its existing scrolling layout and functional tabs'
     await capture(page, testInfo, `mobile-${tone}`)
   }
   expect(
-    await page.locator('[data-testid="authenticated-shell"] > footer')
+    await page
+      .locator('[data-testid="authenticated-shell"] > footer')
       .evaluate((element) => getComputedStyle(element).position),
   ).toBe('fixed')
 })

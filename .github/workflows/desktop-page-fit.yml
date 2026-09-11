@@ -30,11 +30,8 @@ jobs:
           node-version: 24
       - run: corepack enable && corepack prepare pnpm@11.17.0 --activate
       - run: pnpm install --frozen-lockfile
-      - name: Format changed page sources for review
-        run: |
-          pnpm exec prettier --write apps/web/src/app/desktop-page-fit.css apps/web/e2e/desktop-page-fit.pw.ts
-          mkdir -p page-fit-formatted
-          cp apps/web/src/app/desktop-page-fit.css apps/web/e2e/desktop-page-fit.pw.ts page-fit-formatted/
+      - name: Check page source formatting without modifying it
+        run: pnpm exec prettier --check apps/web/src/app/desktop-page-fit.css apps/web/src/app/desktop-readability.css apps/web/src/app/layout.tsx apps/web/e2e/desktop-page-fit.pw.ts apps/web/e2e/a1-layout-fit.pw.ts
       - name: Lint
         run: pnpm lint
       - name: Typecheck
@@ -70,7 +67,6 @@ jobs:
           path: |
             apps/web/playwright-report
             apps/web/test-results
-            page-fit-formatted
           retention-days: 7
       - if: always()
         run: pnpm exec supabase stop --no-backup
