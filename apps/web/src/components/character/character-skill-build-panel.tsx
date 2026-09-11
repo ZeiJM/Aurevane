@@ -368,7 +368,11 @@ export function CharacterSkillBuildPanel({
                               </strong>
                               <span className={styles.metaRow}>
                                 {initialResonance.disciplinePair.map((disciplineId) => (
-                                  <small key={disciplineId} style={chipPaletteStyle(disciplineId)}>
+                                  <small
+                                    key={disciplineId}
+                                    className={styles.sourceChip}
+                                    style={chipPaletteStyle(disciplineId)}
+                                  >
                                     {titleCase(disciplineId)}
                                   </small>
                                 ))}
@@ -393,7 +397,10 @@ export function CharacterSkillBuildPanel({
                             <div className={polish.signatureCopy}>
                               <strong data-testid="active-essence">{initialEssence.name}</strong>
                               <span className={styles.metaRow}>
-                                <small style={chipPaletteStyle(initialEssence.sourceDisciplineId)}>
+                                <small
+                                  className={styles.sourceChip}
+                                  style={chipPaletteStyle(initialEssence.sourceDisciplineId)}
+                                >
                                   {titleCase(initialEssence.sourceDisciplineId)}
                                 </small>
                                 <small>{initialEssence.skill.apCost} AP</small>
@@ -468,7 +475,9 @@ export function CharacterSkillBuildPanel({
                                 <span className={styles.skillCopy}>
                                   <strong>{label}</strong>
                                   <span className={styles.metaRow}>
-                                    <small>{titleCase(entry.definition.sourceDisciplineId)}</small>
+                                    <small className={styles.sourceChip}>
+                                      {titleCase(entry.definition.sourceDisciplineId)}
+                                    </small>
                                     <small>{entry.definition.apCost} AP</small>
                                     <small className={polish.typeChip}>
                                       {cockpitType(entry.definition)}

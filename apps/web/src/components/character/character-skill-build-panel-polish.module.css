@@ -7,7 +7,7 @@
 }
 
 .capacityBadge {
-  min-width: 7.75rem;
+  min-width: 8.5rem;
   display: grid !important;
   grid-template-columns: 1fr auto auto;
   align-items: center;
@@ -21,7 +21,7 @@
 }
 
 .capacityBadge strong {
-  color: rgb(var(--chip) / 96%) !important;
+  color: var(--av-text) !important;
 }
 
 .capacityBadge strong,
@@ -31,13 +31,13 @@
 }
 
 .capacityBadge > span:not(.counterName) {
-  color: rgb(var(--chip) / 72%) !important;
+  color: var(--av-text-muted) !important;
 }
 
-.counterName {
+.capacityBadge .counterName {
   overflow: hidden;
-  color: rgb(var(--chip) / 92%);
-  font: 750 0.58rem/1 var(--av-font-mono) !important;
+  color: var(--av-text-muted);
+  font: 650 0.6875rem/1.2 var(--av-font-mono) !important;
   letter-spacing: 0.045em;
   text-overflow: ellipsis;
   text-transform: uppercase;
@@ -64,7 +64,7 @@
 }
 
 .mixedRuleCard span {
-  color: var(--text-muted) !important;
+  color: var(--av-text-muted) !important;
   font-size: 0.64rem !important;
   line-height: 1.42 !important;
 }
@@ -113,25 +113,26 @@
 .signatureCopy > span {
   grid-column: 2;
   min-width: 0;
-  padding-right: 1.7rem;
+  padding-right: 2rem;
 }
 
 .signatureCopy > strong {
-  color: #e5dac7;
-  font-size: 0.8125rem;
+  color: var(--av-text);
+  font-size: 0.875rem;
   line-height: 1.22;
 }
 
 .signatureCopy p {
   grid-column: 1 / -1;
   margin: 0;
-  color: var(--text-muted);
+  color: var(--av-text-muted);
   font-size: 0.58rem;
   line-height: 1.42;
 }
 
 .typeChip {
   --skill-accent: 104 151 202;
+  color: #b3cde6 !important;
 }
 
 .techniqueHeading {
@@ -177,7 +178,8 @@
 
   .capacityBadge {
     min-width: 7.1rem;
-    max-width: calc(50% - 0.25rem);
+    flex: 1 1 8rem;
+    max-width: none;
   }
 
   .signatureCard {
@@ -187,5 +189,31 @@
   .signatureArtFrame {
     width: 3.2rem;
     height: 3.2rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .signatureCopy > strong,
+  .signatureCopy > span {
+    padding-right: 2.4rem;
+  }
+
+  .signatureCopy > strong {
+    font-size: 0.9375rem;
+    line-height: 1.35;
+  }
+
+  .signatureCopy > span {
+    grid-column: 1 / -1;
+    padding-right: 0;
+  }
+
+  .signatureArtFrame {
+    grid-row: 1;
+  }
+
+  .standardButton {
+    min-height: 2.75rem !important;
+    line-height: 1.3 !important;
   }
 }

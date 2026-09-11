@@ -162,9 +162,3 @@
     line-height: 1.25;
   }
 }
-
-@media (max-width: 760px) {
-  .portrait {
-    transform: translateY(0.48rem);
-  }
-}
