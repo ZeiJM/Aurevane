@@ -190,7 +190,7 @@
   }
 }
 
-@media (min-width: 981px) and (max-height: 800px) {
+@media (min-width: 981px) and (max-height: 900px) {
   /* Compact laptops keep the introduction beside its title, with readable left alignment. */
   #battle-launch > header {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -207,7 +207,9 @@
   #battle-launch > section > div:first-child > p {
     max-width: 48ch;
   }
+}
 
+@media (min-width: 981px) and (max-height: 800px) {
   #battle-launch {
     gap: 0.4rem;
     padding: 0.55rem;
