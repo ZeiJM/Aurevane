@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
@@ -22,6 +22,60 @@ async function openTechniques(page: Page) {
   }
   await expect(dialog).toBeVisible()
   return dialog
+}
+
+async function expectCenteredStar(button: Locator): Promise<void> {
+  await expect(button).toBeVisible()
+  const icon = button.locator('svg')
+  await expect(icon).toHaveCount(1)
+  await expect(icon).toHaveAttribute('aria-hidden', 'true')
+  await expect(icon).toHaveAttribute('focusable', 'false')
+  const active = (await button.getAttribute('aria-pressed')) === 'true'
+  await expect(icon).toHaveAttribute('fill', active ? 'currentColor' : 'none')
+
+  const geometry = await button.evaluate((element) => {
+    const svg = element.querySelector('svg')
+    const path = svg?.querySelector('path')
+    const transform = svg?.getScreenCTM()
+    if (!svg || !path || !transform) throw new Error('Favorite star must render a measurable SVG')
+
+    const circle = element.getBoundingClientRect()
+    const iconBox = svg.getBoundingClientRect()
+    const artwork = path.getBBox()
+    const artworkCenter = new DOMPoint(
+      artwork.x + artwork.width / 2,
+      artwork.y + artwork.height / 2,
+    ).matrixTransform(transform)
+    const centerX = circle.left + circle.width / 2
+    const centerY = circle.top + circle.height / 2
+    return {
+      circleWidth: circle.width,
+      circleHeight: circle.height,
+      iconWidth: iconBox.width,
+      iconHeight: iconBox.height,
+      iconOffsetX: Math.abs(iconBox.left + iconBox.width / 2 - centerX),
+      iconOffsetY: Math.abs(iconBox.top + iconBox.height / 2 - centerY),
+      artworkOffsetX: Math.abs(artworkCenter.x - centerX),
+      artworkOffsetY: Math.abs(artworkCenter.y - centerY),
+    }
+  })
+
+  expect(Math.abs(geometry.circleWidth - geometry.circleHeight)).toBeLessThanOrEqual(0.5)
+  expect(geometry.iconWidth).toBeGreaterThan(0)
+  expect(geometry.iconHeight).toBeGreaterThan(0)
+  expect(
+    geometry.iconOffsetX,
+    'SVG must be horizontally centered in its circle',
+  ).toBeLessThanOrEqual(0.5)
+  expect(geometry.iconOffsetY, 'SVG must be vertically centered in its circle').toBeLessThanOrEqual(
+    0.5,
+  )
+  expect(geometry.artworkOffsetX, 'Star artwork must be horizontally centered').toBeLessThanOrEqual(
+    0.5,
+  )
+  expect(geometry.artworkOffsetY, 'Star artwork must be vertically centered').toBeLessThanOrEqual(
+    0.5,
+  )
 }
 
 test('favorite Technique is visible, character-scoped, persistent, unique per category, and becomes the battle default', async ({
@@ -50,6 +104,7 @@ test('favorite Technique is visible, character-scoped, persistent, unique per ca
   const forcefulStar = forceful.locator('button[data-favorite-technique-star="true"]')
   await expect(forcefulStar).toHaveCount(1)
   await expect(forcefulStar).toBeVisible()
+  await expectCenteredStar(forcefulStar)
   if (!(await forcefulCheckbox.isChecked())) {
     await expect(forcefulStar).toBeDisabled()
     await forcefulCheckbox.click()
@@ -62,6 +117,8 @@ test('favorite Technique is visible, character-scoped, persistent, unique per ca
   )
   await forcefulStar.click()
   await expect(forcefulStar).toHaveAttribute('aria-pressed', 'true')
+  await expectCenteredStar(forcefulStar)
+  await expect(forcefulCheckbox).toBeChecked()
 
   const essenceHeading = page.getByTestId('active-essence')
   await expect(essenceHeading).toContainText('Unbroken Strike')
@@ -74,6 +131,8 @@ test('favorite Technique is visible, character-scoped, persistent, unique per ca
 
   await expect(essenceStar).toHaveAttribute('aria-pressed', 'true')
   await expect(forcefulStar).toHaveAttribute('aria-pressed', 'false')
+  await expectCenteredStar(essenceStar)
+  await expectCenteredStar(forcefulStar)
 
   await dialog.getByRole('button', { name: 'Close' }).click()
   await page.reload()
@@ -83,6 +142,7 @@ test('favorite Technique is visible, character-scoped, persistent, unique per ca
     .locator('xpath=ancestor::article[1]')
     .locator('button[data-favorite-technique-star="true"]')
   await expect(persistedEssenceStar).toHaveAttribute('aria-pressed', 'true')
+  await expectCenteredStar(persistedEssenceStar)
   await dialog.getByRole('button', { name: 'Close' }).click()
 
   await page.goto('/game/battle')
@@ -118,6 +178,7 @@ test('favorite Technique controls stay visible and usable on mobile', async ({
   const star = forceful.locator('button[data-favorite-technique-star="true"]')
 
   await expect(star).toBeVisible()
+  await expectCenteredStar(star)
   const box = await star.boundingBox()
   expect(box?.width ?? 0).toBeGreaterThanOrEqual(28)
   expect(box?.height ?? 0).toBeGreaterThanOrEqual(28)
@@ -126,5 +187,11 @@ test('favorite Technique controls stay visible and usable on mobile', async ({
   await expect(star).toBeEnabled()
   await star.tap()
   await expect(star).toHaveAttribute('aria-pressed', 'true')
+  await expectCenteredStar(star)
+  await expect(checkbox).toBeChecked()
+  await star.tap()
+  await expect(star).toHaveAttribute('aria-pressed', 'false')
+  await expectCenteredStar(star)
+  await expect(checkbox).toBeChecked()
   await expect(dialog).toBeVisible()
 })

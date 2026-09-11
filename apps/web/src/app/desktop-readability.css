@@ -60,7 +60,7 @@
     letter-spacing: 0.04em;
   }
 
-  /* Character profile: preserve the compact viewport fit, but never achieve it with microtext. */
+  /* Character profile: preserve hierarchy, but do not hide content to force a one-screen fit. */
   [data-testid='authenticated-shell'] [data-profile-fact] small,
   [data-testid='authenticated-shell'] [data-profile-section-header] > small {
     font-size: 0.7rem;
@@ -98,6 +98,52 @@
 
   [data-testid='authenticated-shell'] [data-testid='skill-build-panel'] > button strong::after {
     font-size: 0.72rem;
+  }
+
+  [data-testid='authenticated-shell']
+    main
+    > div:has([data-testid='character-profile'])
+    [data-testid='level-progress']
+    > div:first-child {
+    font-size: 0.7rem;
+    line-height: 1.2;
+  }
+
+  [data-testid='authenticated-shell']
+    main
+    > div:has([data-testid='character-profile'])
+    :where([data-testid='primary-discipline-chip'], [data-testid='secondary-discipline-chip']) {
+    font-size: 0.68rem;
+  }
+
+  [data-testid='authenticated-shell']
+    main
+    > div:has([data-testid='character-profile'])
+    aside[aria-label='Combat loadout workspace']
+    section
+    small {
+    font-size: 0.72rem !important;
+    line-height: 1.35 !important;
+  }
+
+  [data-testid='authenticated-shell']
+    main
+    > div:has([data-testid='character-profile'])
+    aside[aria-label='Combat loadout workspace']
+    section[aria-label='Combat loadout identity']
+    > div
+    > span {
+    font-size: 0.68rem;
+  }
+
+  [data-testid='authenticated-shell']
+    main
+    > div:has([data-testid='character-profile'])
+    section[aria-label='Attribute redistribution']
+    > button {
+    min-height: 2.4rem;
+    font-size: 0.72rem;
+    line-height: 1.15;
   }
 
   /* Public guide/news/rules are reading surfaces, so body copy can be a little more generous. */
@@ -167,8 +213,30 @@
 }
 
 /*
+ * Profile pages may grow naturally on desktop. Scrolling is preferable to clipping interactive
+ * controls or shrinking text below the readability floor.
+ */
+@media (min-width: 981px) {
+  [data-testid='authenticated-shell'] main > div:has([data-testid='character-profile']) {
+    height: auto !important;
+    min-height: calc(100dvh - 9rem);
+    align-items: start;
+  }
+
+  [data-testid='authenticated-shell'] main > div:has([data-testid='character-profile']) > aside,
+  [data-testid='authenticated-shell']
+    main
+    > div:has([data-testid='character-profile'])
+    > aside
+    > * {
+    height: auto !important;
+  }
+}
+
+/*
  * On short desktop viewports, recover vertical room from spacing rather than shrinking text.
- * These are deliberately modest so the established composition and no-scroll goal remain intact.
+ * These are deliberately modest so established one-screen compositions remain intact where they
+ * still fit; Character Profile is allowed to scroll instead of clipping content.
  */
 @media (min-width: 981px) and (max-height: 900px) {
   [data-testid='authenticated-shell'] main {

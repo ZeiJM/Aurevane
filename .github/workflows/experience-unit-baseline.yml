@@ -1,0 +1,83 @@
+name: Experience unit baseline comparison
+
+on:
+  push:
+    branches: [agent/game-experience-pass]
+  pull_request:
+    paths:
+      - '.github/workflows/experience-unit-baseline.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: experience-unit-baseline-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  compare:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          path: candidate
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: dab99a2a104a57c38921df2d44a93fc3ba7aa4e8
+          path: baseline
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Run both complete web unit suites and retain actual failures
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          mkdir -p evidence
+          for checkout in baseline candidate; do
+            (cd "$checkout" && pnpm install --frozen-lockfile)
+            (cd "$checkout" && git rev-parse HEAD) > "evidence/$checkout-sha.txt"
+            set +e
+            (cd "$checkout" && pnpm --filter @aurevane/web exec vitest run --reporter=json --outputFile="$GITHUB_WORKSPACE/evidence/$checkout.json") > "evidence/$checkout.log" 2>&1
+            result=$?
+            set -e
+            echo "$result" > "evidence/$checkout-exit.txt"
+            test -s "evidence/$checkout.json"
+          done
+      - name: Compare failing assertions without treating baseline debt as a pass
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs')
+          const reports = Object.fromEntries(['baseline', 'candidate'].map(name => [name, JSON.parse(fs.readFileSync(`evidence/${name}.json`, 'utf8'))]))
+          function failures(report) {
+            return report.testResults.flatMap(file => file.assertionResults.filter(test => test.status === 'failed').map(test => ({
+              file: file.name.split('/apps/web/').pop(),
+              title: test.fullName,
+              messages: test.failureMessages.map(message => message.replace(/\u001b\[[0-9;]*m/g, '').replaceAll(process.env.GITHUB_WORKSPACE + '/baseline/', '<repo>/').replaceAll(process.env.GITHUB_WORKSPACE + '/candidate/', '<repo>/')),
+            })))
+          }
+          const baseline = failures(reports.baseline)
+          const candidate = failures(reports.candidate)
+          const key = test => `${test.file}: ${test.title}`
+          const original = new Set(baseline.map(key))
+          const introduced = candidate.filter(test => !original.has(key(test)))
+          const output = { baselineSha: fs.readFileSync('evidence/baseline-sha.txt', 'utf8').trim(), candidateSha: fs.readFileSync('evidence/candidate-sha.txt', 'utf8').trim(), baselineTests: reports.baseline.numTotalTests, candidateTests: reports.candidate.numTotalTests, baselineFailures: baseline, candidateFailures: candidate, introducedFailures: introduced, note: 'The complete candidate unit gate remains failed while any candidate assertion fails. This comparison diagnoses existing debt; it does not waive it.' }
+          fs.writeFileSync('evidence/comparison.json', JSON.stringify(output, null, 2))
+          console.log(JSON.stringify({ baselineFailures: baseline.length, candidateFailures: candidate.length, introducedFailures: introduced.length, candidateFailingTests: candidate.map(key) }, null, 2))
+          if (introduced.length) process.exitCode = 1
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: experience-unit-comparison
+          path: evidence
+          retention-days: 3
+      - name: Preserve the complete candidate unit-suite result
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: exit "$(cat evidence/candidate-exit.txt)"
