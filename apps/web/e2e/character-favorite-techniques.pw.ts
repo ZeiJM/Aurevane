@@ -35,17 +35,36 @@ async function expectCenteredStar(button: Locator): Promise<void> {
 
   const geometry = await button.evaluate((element) => {
     const svg = element.querySelector('svg')
-    const path = svg?.querySelector('path')
+    const polygon = svg?.querySelector('polygon')
     const transform = svg?.getScreenCTM()
-    if (!svg || !path || !transform) throw new Error('Favorite star must render a measurable SVG')
+    if (!svg || !polygon || !transform) {
+      throw new Error('Favorite star must render a measurable SVG polygon')
+    }
 
+    const points = Array.from(polygon.points, (point) => ({ x: point.x, y: point.y }))
+    if (points.length < 3) throw new Error('Favorite star polygon must contain at least three points')
+
+    let twiceArea = 0
+    let centroidXNumerator = 0
+    let centroidYNumerator = 0
+    for (let index = 0; index < points.length; index += 1) {
+      const current = points[index]!
+      const next = points[(index + 1) % points.length]!
+      const cross = current.x * next.y - next.x * current.y
+      twiceArea += cross
+      centroidXNumerator += (current.x + next.x) * cross
+      centroidYNumerator += (current.y + next.y) * cross
+    }
+    if (Math.abs(twiceArea) < Number.EPSILON) {
+      throw new Error('Favorite star polygon must have measurable area')
+    }
+
+    const visualCenter = new DOMPoint(
+      centroidXNumerator / (3 * twiceArea),
+      centroidYNumerator / (3 * twiceArea),
+    ).matrixTransform(transform)
     const circle = element.getBoundingClientRect()
     const iconBox = svg.getBoundingClientRect()
-    const artwork = path.getBBox()
-    const artworkCenter = new DOMPoint(
-      artwork.x + artwork.width / 2,
-      artwork.y + artwork.height / 2,
-    ).matrixTransform(transform)
     const centerX = circle.left + circle.width / 2
     const centerY = circle.top + circle.height / 2
     return {
@@ -55,8 +74,8 @@ async function expectCenteredStar(button: Locator): Promise<void> {
       iconHeight: iconBox.height,
       iconOffsetX: Math.abs(iconBox.left + iconBox.width / 2 - centerX),
       iconOffsetY: Math.abs(iconBox.top + iconBox.height / 2 - centerY),
-      artworkOffsetX: Math.abs(artworkCenter.x - centerX),
-      artworkOffsetY: Math.abs(artworkCenter.y - centerY),
+      visualOffsetX: Math.abs(visualCenter.x - centerX),
+      visualOffsetY: Math.abs(visualCenter.y - centerY),
     }
   })
 
@@ -70,10 +89,10 @@ async function expectCenteredStar(button: Locator): Promise<void> {
   expect(geometry.iconOffsetY, 'SVG must be vertically centered in its circle').toBeLessThanOrEqual(
     0.5,
   )
-  expect(geometry.artworkOffsetX, 'Star artwork must be horizontally centered').toBeLessThanOrEqual(
+  expect(geometry.visualOffsetX, 'Star visual mass must be horizontally centered').toBeLessThanOrEqual(
     0.5,
   )
-  expect(geometry.artworkOffsetY, 'Star artwork must be vertically centered').toBeLessThanOrEqual(
+  expect(geometry.visualOffsetY, 'Star visual mass must be vertically centered').toBeLessThanOrEqual(
     0.5,
   )
 }
