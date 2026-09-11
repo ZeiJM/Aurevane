@@ -3,7 +3,7 @@ import {
   type ManualArticle,
 } from './public-information'
 
-const LAST_UPDATED = '2026-08-19'
+const LAST_UPDATED = '2026-09-03'
 
 const overrides: Record<string, ManualArticle> = {
   'start-here': {
@@ -88,7 +88,7 @@ const overrides: Record<string, ManualArticle> = {
         title: 'What is a Discipline?',
         paragraphs: [
           'A Discipline is a learnable combat tradition that establishes your first tactical direction. It is not a permanent class lock. Later mastery systems are intended to let characters deepen, broaden, and combine what they know.',
-          'The starting choices are Vanguard, Farstrider, Shadehand, Ironfist, Aetherist, and Lifebinder. Full Mastery, Discipline Skills, optional mastered Secondary Disciplines, Resonances, pure-Discipline Essence, and supernatural paths are later progression systems rather than hidden creation grants.',
+          'The starting choices are Vanguard, Farstrider, Shadehand, Ironfist, Aetherist, and Lifebinder. Full Mastery, Discipline Skills, optional mastered Secondary Disciplines, Resonances, pure-Discipline Essence, and Soul State progression are later systems rather than hidden creation grants.',
         ],
       },
       {
@@ -251,6 +251,13 @@ const overrides: Record<string, ManualArticle> = {
         title: 'Discipline',
         paragraphs: [
           'A learnable combat tradition. Character creation chooses a starting Discipline; it is a direction for early buildcraft, not a permanent class lock.',
+        ],
+      },
+      {
+        id: 'soul-state-term',
+        title: 'Soul State',
+        paragraphs: [
+          'A later persistent character-identity condition. Its deeper choices and consequences are revealed through progression rather than during character creation.',
         ],
       },
       {
