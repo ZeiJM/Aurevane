@@ -390,7 +390,7 @@ begin
  if coalesce(cardinality(v_demonstrated),0)<2 or v_uses<3 then raise exception using errcode='22023',message='TRIAL_SKILL_VARIETY_REQUIRED'; end if;
  insert into app_private.character_discipline_progress(character_id,discipline_id) values(v_participant.character_id,v_primary) on conflict do nothing;
  select * into v_progress from app_private.character_discipline_progress where character_id=v_participant.character_id and character_discipline_progress.discipline_id=v_primary for update;
- v_before:=v_progress.mastery_xp;
+ v_before:=case when app_private.discipline_mastery_stage_v1(v_participant.character_id,v_primary)=5 then 1000 else v_progress.mastery_xp end;
  select array_agg(distinct id order by id) into v_demonstrated from unnest(v_demonstrated || v_progress.demonstrated_skills) id;
  v_after:=least(case when cardinality(v_demonstrated)>=8 then 1000 else 999 end,v_before+50);
  -- Existing Owner/system mastery facts remain authoritative.

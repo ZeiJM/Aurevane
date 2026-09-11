@@ -120,7 +120,7 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
   expect(errors).toEqual([])
 })
 
-test('Phase 4 shows locked prerequisites, milestone Skills and descriptive tradeoffs', async ({
+test('Phase 4 preserves testing access and shows advanced Skills and descriptive tradeoffs', async ({
   page,
 }, testInfo) => {
   test.skip(
@@ -145,19 +145,14 @@ test('Phase 4 shows locked prerequisites, milestone Skills and descriptive trade
   const management = page.getByRole('dialog', { name: 'Discipline Management' })
   await management.getByText('Mastery & unlocks', { exact: true }).click()
   await expect(management.getByRole('progressbar')).toHaveCount(16)
-  await expect(management).toContainText('Requires Vanguard Adept.')
+  await expect(management).toContainText('Master · 1000/1,000 XP')
   const primary = management
     .locator('label')
     .filter({ hasText: /^Proposed Primary/ })
     .locator('select')
-  await expect(primary.locator('option[value="bastion"]')).toHaveCount(0)
-  await management.getByRole('button', { name: 'Close', exact: true }).click()
-  // Normal acquisition is separately proven from persisted trial events in verify-p4-mastery.sh.
-  // This existing CI-only preparation grants Foundation mastery, never an advanced Skill library.
-  const prepared = await page.request.post('/api/character/build/pv2-test-kit')
-  expect(prepared.ok()).toBe(true)
-  await page.reload()
-  await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
+  await expect(primary.locator('option[value="bastion"]')).toHaveCount(1)
+  // Existing Owner-authorized testing grants cover all active Disciplines.
+  // Earned prerequisites and 4/2/2 acquisition are independently verified in database CI.
   await primary.selectOption('bastion')
   await page.getByRole('button', { name: 'Commit Bastion as Primary' }).click()
   await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Bastion')
@@ -165,7 +160,7 @@ test('Phase 4 shows locked prerequisites, milestone Skills and descriptive trade
   await page.getByRole('button', { name: /Manage Techniques/ }).click()
   const dialog = page.getByRole('dialog', { name: 'Techniques', exact: true })
   const list = page.getByTestId('learned-skill-list')
-  await expect(list.locator('article')).toHaveCount(4)
+  await expect(list.locator('article')).toHaveCount(8)
   await expect(page.getByTestId('active-essence')).toHaveText('Last Bastion')
   const fortress = list.locator('article').filter({ hasText: 'Fortress' })
   await expect(fortress).toContainText('Fortified')

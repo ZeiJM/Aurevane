@@ -43,7 +43,8 @@ export function DisciplineMasteryPanel() {
       <p>
         Advanced libraries teach four Skills at Initiate, two more at Practiced and the final two at
         Adept. Master also requires demonstrating all eight regular Skills across qualifying
-        victories and enables Secondary use.
+        victories and enables Secondary use. Existing testing-period Mastery grants let you try all
+        active Disciplines immediately.
       </p>
       {pending ? <p role="status">Loading Mastery…</p> : null}
       {error ? (

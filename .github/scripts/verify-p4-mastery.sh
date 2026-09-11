@@ -29,6 +29,10 @@ declare
  result record;
  failed boolean:=false;
 begin
+ -- Remove only this disposable fixture's pre-existing Owner-authorized testing grants.
+ -- Production testing access is preserved; this transaction rolls back.
+ delete from app_private.character_discipline_masteries where character_id=c;
+ update app_private.character_discipline_progress set mastery_xp=0,demonstrated_skills='{}' where character_id=c;
  if app_private.discipline_unlocked_v1(c,'bastion') then raise exception 'Bastion unlocked without Vanguard Adept'; end if;
  begin
   perform public.change_character_disciplines_v3(u,c,1,true,'bastion',false,null,gen_random_uuid(),'p4:locked-bastion');
@@ -66,6 +70,18 @@ begin
  if not result.replayed or result.mastery_xp<>300 then raise exception 'Claim retry was not idempotent'; end if;
  if (select mastery_xp from app_private.character_discipline_progress where character_id=c and discipline_id='vanguard')<>300 then raise exception 'Retry awarded duplicate XP'; end if;
  if not app_private.discipline_unlocked_v1(c,'bastion') then raise exception 'Adept did not unlock Bastion'; end if;
+ -- A later system/Owner mastery fact must not turn the next capped trial into a 1,000-XP award.
+ declare
+  mastered_trial uuid:=gen_random_uuid();
+ begin
+  perform public.record_character_discipline_mastery_v1(c,'vanguard','gameplay','ci:existing-mastery');
+  insert into app_private.battle_sessions(id,owner_user_id,battle_id,rules_version,content_version,current_version,lifecycle,current_snapshot) values(mastered_trial,u,'test:mastered:'||mastered_trial,1,1,2,'completed',snapshot);
+  insert into app_private.battle_participants(battle_session_id,combatant_id,participant_role,user_id,character_id) values(mastered_trial,'character:'||c,'player',u,c);
+  insert into app_private.battle_snapshots(battle_session_id,battle_version,snapshot) values(mastered_trial,1,snapshot),(mastered_trial,2,snapshot);
+  insert into app_private.battle_events(battle_session_id,battle_version,event_index,event) select mastered_trial,battle_version,event_index,event from app_private.battle_events where battle_session_id=b;
+  select * into result from public.claim_discipline_trial_v1(u,mastered_trial);
+  if result.awarded_xp<>0 or result.mastery_xp<>1000 then raise exception 'Existing mastery exceeded the trial reward cap'; end if;
+ end;
  perform public.change_character_disciplines_v3(u,c,1,true,'bastion',false,null,gen_random_uuid(),'p4:earned-bastion');
  if (select count(*) from app_private.character_skill_unlocks where character_id=c and source_discipline_id='bastion')<>4 then raise exception 'Bastion Initiate must learn four Skills'; end if;
  update app_private.character_discipline_progress set mastery_xp=300 where character_id=c and discipline_id='bastion';

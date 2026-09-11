@@ -96,7 +96,7 @@ const overrides: Record<string, ManualArticle> = {
         title: 'What is a Discipline?',
         paragraphs: [
           'A Discipline is a learnable combat tradition that establishes your first tactical direction. It is not a permanent class lock. Discipline Mastery Trials let characters deepen, broaden, and combine what they know.',
-          'The starting choices are Vanguard, Farstrider, Shadehand, Ironfist, Aetherist and Lifebinder. Profile supports Primary and optional Secondary configuration. The six Foundations and ten advanced Disciplines each have eight learnable Techniques and a pure Essence. All 120 pairs across the sixteen Disciplines have Resonance coverage. Technique cards show targeting and effect tags; expand Skill details for range, effects and requirements. Mastery Trials unlock advanced Disciplines through their listed prerequisites. Supernatural paths and world-based acquisition remain later work.',
+          'The starting choices are Vanguard, Farstrider, Shadehand, Ironfist, Aetherist and Lifebinder. Profile supports Primary and optional Secondary configuration. The six Foundations and ten advanced Disciplines each have eight learnable Techniques and a pure Essence. All 120 pairs across the sixteen Disciplines have Resonance coverage. Technique cards show targeting and effect tags; expand Skill details for range, effects and requirements. Mastery Trials unlock advanced Disciplines through their listed prerequisites. During the current testing period, existing system-granted Mastery access lets players try all active Disciplines immediately. Supernatural paths and world-based acquisition remain later work.',
         ],
       },
       {
