@@ -84,7 +84,18 @@ export function FavoriteTechniqueButton({
         window.dispatchEvent(new CustomEvent('aurevane:favorite-techniques-changed'))
       }}
     >
-      {active ? '★' : '☆'}
+      <svg
+        className={styles.icon}
+        aria-hidden="true"
+        focusable="false"
+        viewBox="0 0 24 24"
+        fill={active ? 'currentColor' : 'none'}
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      >
+        <path d="M12 2.5 15.09 8.76 22 9.76 17 14.64 18.18 21.5 12 18.26 5.82 21.5 7 14.64 2 9.76 8.91 8.76Z" />
+      </svg>
     </button>
   )
 }
