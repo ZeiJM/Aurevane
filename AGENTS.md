@@ -11,6 +11,7 @@
 - `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md` governs Primary/Secondary Disciplines, Skills, Resonance, Essence, Soulmarks, Severance/Mantles and related build rules.
 - `docs/ROADMAP_BUILD_SYSTEM_REWORK.md` is the current build-system sequencing companion.
 - `docs/COMBAT.md` is current combat authority.
+- `docs/GAME_MASTER_PLAN_ATTRIBUTE_PROGRESSION_ADDENDUM.md` governs the Level-50 progression and stat/mobility guardrails; later approved changes supersede historical values.
 - `docs/ROADMAP_PRODUCT_VALIDATION.md` defines evidence gates.
 - `docs/REKINDLING_FRONTIER.md` governs Rekindling replay differentiation and the Unwritten Reach.
 - `docs/LORE_FRONTIER_CONTINUITY.md` is the authoritative lore bridge connecting the War of the Last Horizon, Closed Horizon/Great Vanes, Unwritten Reach, Veyr and Inward Drift.
@@ -238,15 +239,15 @@ Current implemented baseline costs:
 
 ```text
 Inspect                         0 AP
-Move, normal traversal point   25 AP
-Move, terrain cost 2           50 AP
+Move, normal traversal point   20 AP
+Move, terrain cost 2           40 AP
 Basic Attack                   30 AP
 Guard                          30 AP
 Recover                        50 AP
 Final Facing                    0 AP and ends turn
 ```
 
-Multiple legal commands may occur while AP remains.
+Multiple legal commands may occur while AP remains. Movement also obeys the committed character Movement allowance (baseline 2, maximum 5); spare AP cannot bypass it. Jump starts at 0 and caps at 3.
 
 Never restore the retired Movement Budget + one Action model from historical Phase-2 tickets.
 

@@ -1,3 +1,5 @@
+import { CURRENT_LEVEL_CAP } from '@aurevane/game-core/character/progression'
+
 export interface PublicBodyBlock {
   id: string
   title?: string
@@ -204,17 +206,16 @@ export const manualArticles: readonly ManualArticle[] = [
     id: 'manual.character-xp',
     slug: 'character-xp',
     title: 'Level & Character XP',
-    summary:
-      'The authoritative 1–100 Character XP foundation and what level does — and does not — mean.',
+    summary: `The authoritative Level 1–${CURRENT_LEVEL_CAP} Character XP foundation and how levels support your build.`,
     category: 'Progression',
-    lastUpdated: PUBLIC_CONTENT_LAST_UPDATED,
-    rulesVersion: 'P1.5 progression foundation',
+    lastUpdated: '2026-09-11',
+    rulesVersion: 'Level-50 progression',
     body: [
       {
         id: 'xp-authority',
         title: 'Character XP is server-awarded',
         paragraphs: [
-          'Character XP uses a versioned, configurable level curve with a Level 1–100 boundary. Authoritative game services grant XP with recorded provenance; the browser cannot choose an award amount for itself.',
+          `Character XP uses a versioned level curve capped at Level ${CURRENT_LEVEL_CAP}. Authoritative game services grant XP with recorded provenance; the browser cannot choose an award amount for itself.`,
           'One award can cross more than one level threshold, and progression resolves atomically so retries or concurrent requests do not duplicate the same grant.',
         ],
       },
@@ -222,8 +223,8 @@ export const manualArticles: readonly ManualArticle[] = [
         id: 'level-versus-mastery',
         title: 'Level is not Discipline Mastery',
         paragraphs: [
-          'Character Level and future Discipline Mastery are separate concepts. Phase 1 implements Character XP and level only. Discipline Mastery belongs to later buildcraft work and is not currently a player-facing progression track.',
-          'The current development curve is configurable. It should not be read as a final promise about launch pacing or calendar time to Level 100.',
+          'Character Level and Discipline Mastery are separate. Each Level gained after Level 1 grants one personal attribute point. During the current testing phase, active Disciplines receive server-authorized testing mastery access; this does not establish the final acquisition or Mastery progression loop.',
+          'The current development curve is configurable. It should not be read as a final promise about launch pacing or calendar time to the current cap.',
         ],
       },
     ],

@@ -18,9 +18,11 @@ This file reports the **current implementation/validation boundary**.
 
 **Phase 4:** **NOT ACTIVATED.** Await a separate explicit Owner start command.
 
-**Phase-3 closeout:** PR #445 passed all seven workflows and was released as `9da6c4684f99b0617cdccab019a38f90f56795b0`; production reached READY and the public site was checked. Phase 3 is closed.
+**Phase-3 closeout:** PR #445 passed its release checks and was released as `9da6c4684f99b0617cdccab019a38f90f56795b0`; the recorded Owner closeout decision is preserved. Production READY is not independent human/product evidence.
 
-**Presentation follow-up:** Owner-requested mobile page/popup readability, responsive Profile portrait centering, and desktop/mobile Technique tag and button placement. Verify pure/mixed builds, contrast, phone wrapping and existing desktop fit before the authorized release. This is polish of delivered systems; Phase 4 remains unstarted.
+**Presentation follow-up:** PR #446 merged while this audit was in progress and was released at `0df098e8`; preserve its desktop/mobile changes and assess its exact release interaction evidence.
+
+**Active work:** pre-Phase-4 readiness audit, current-rule/roadmap reconciliation and migration-history repair. See the dated audit in `docs/PHASE_3_CLOSEOUT.md`. Phase 4 remains unstarted; this audit does not infer a new production buildcraft interaction PASS.
 
 ---
 
@@ -61,7 +63,7 @@ Phase 3 now provides:
 - immutable committed build snapshots shared by Recruit AI and direct PvP;
 - battle snapshot persistence across reconnect/Profile changes;
 - saved-loadout authority with atomic activation, legality checks, idempotency and attunement protection;
-- representative Vanguard/Lifebinder content sufficient for the PV-2 slice;
+- eight-Skill libraries for Vanguard, Lifebinder, Aetherist, Farstrider and Shadehand, five Essences and ten unordered pair Resonances; Ironfist remains an incomplete sixth Foundation;
 - owner-only production preparation path for the representative PV-2 character facts.
 
 The existing Phase-2 tactical battle/PvP/spectator platform remains the execution foundation; Phase 3 did not fork a parallel combat rule path.

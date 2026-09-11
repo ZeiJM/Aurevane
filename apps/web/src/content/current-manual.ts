@@ -1,3 +1,6 @@
+import { CHARACTER_CREATION_RULES_V1 } from '@aurevane/game-core/character/creation'
+import { PV1F_MOVEMENT_COST_PER_TERRAIN_POINT } from '@aurevane/game-core/combat/pv1f-skills'
+
 import {
   manualArticles as foundationManualArticles,
   type ManualArticle,
@@ -13,7 +16,7 @@ const overrides: Record<string, ManualArticle> = {
     summary:
       'What AUREVANE is today, what you can test now, and how the current game shell is organized.',
     category: 'Orientation',
-    lastUpdated: LAST_UPDATED,
+    lastUpdated: '2026-09-11',
     rulesVersion: 'Current preview',
     body: [
       {
@@ -31,7 +34,8 @@ const overrides: Record<string, ManualArticle> = {
         bullets: [
           'Create or sign in to an account and safely return to the same private profile.',
           'Create characters in three roster slots with six core attributes and a starting Discipline.',
-          'Open a compact character profile with server-calculated derived stats and profile identity badges.',
+          'Configure your Primary and optional Secondary Discipline in Profile, with server-calculated stats and committed Skill choices.',
+          'Pure builds allow up to eight learned Discipline Skills plus Essence; mixed builds allow six total Discipline Skills plus an eligible Resonance. Signature coverage depends on the authored Disciplines.',
           'Set the current character’s one personal title from Account → Titles & Profile Display.',
           'Progress through the versioned Character XP and level foundation.',
           'Explicitly start Short, Medium, or Extended Passive Training and receive a bounded server-timed Character XP reward when that block completes.',
@@ -50,7 +54,7 @@ const overrides: Record<string, ManualArticle> = {
         id: 'larger-game',
         title: 'The larger game',
         paragraphs: [
-          'AUREVANE is still being built toward deeper Discipline buildcraft with a Primary Discipline, an optional mastered Secondary Discipline, mixed-build Resonances, pure-Discipline Essence, exploration, co-op, Expeditions, PvP, trading, social systems, and a persistent world. Roadmap direction is not the same thing as a currently playable feature.',
+          'Primary/Secondary build configuration, representative Resonances and Essences, direct PvP and spectation are already testable. The wider roster, final acquisition and Mastery progression, exploration, co-op missions, Expeditions, ranked matchmaking, trading and the persistent world remain later work.',
           'The Manual describes released or testable behavior first and expands as systems become real.',
         ],
       },
@@ -63,8 +67,8 @@ const overrides: Record<string, ManualArticle> = {
     summary:
       'Identity, six starting attributes, Disciplines, three character slots, and entering the game.',
     category: 'Character',
-    lastUpdated: LAST_UPDATED,
-    rulesVersion: 'Character creation v1 · six-attribute preview',
+    lastUpdated: '2026-09-11',
+    rulesVersion: 'Primary base and personal creation points',
     body: [
       {
         id: 'identity',
@@ -78,7 +82,7 @@ const overrides: Record<string, ManualArticle> = {
         id: 'six-attributes',
         title: 'Six starting attributes',
         paragraphs: [
-          'Might, Finesse, Vitality, Agility, Intellect, and Resolve each begin at 5. Creation gives exactly 6 additional whole-number points to distribute, with no more than 4 bonus points placed into one attribute.',
+          `Your Primary Discipline supplies its fixed Core Stat base. Creation adds ${CHARACTER_CREATION_RULES_V1.attributes.bonusBudget} personal points across Might, Finesse, Vitality, Agility, Intellect and Resolve. You may assign the full personal pool to one attribute within the legal limits.`,
           'Vitality owns the main endurance role while Agility owns the main movement/reflex role. This gives buildcraft more room than the older four-attribute preview without simply inflating baseline derived stats.',
           'The server rebuilds and validates the starting state. The browser does not get to submit its own level, XP total, timestamps, or final attribute totals.',
         ],
@@ -88,7 +92,7 @@ const overrides: Record<string, ManualArticle> = {
         title: 'What is a Discipline?',
         paragraphs: [
           'A Discipline is a learnable combat tradition that establishes your first tactical direction. It is not a permanent class lock. Later mastery systems are intended to let characters deepen, broaden, and combine what they know.',
-          'The starting choices are Vanguard, Farstrider, Shadehand, Ironfist, Aetherist, and Lifebinder. Full Mastery, Discipline Skills, optional mastered Secondary Disciplines, Resonances, pure-Discipline Essence, and supernatural paths are later progression systems rather than hidden creation grants.',
+          'The starting choices are Vanguard, Farstrider, Shadehand, Ironfist, Aetherist and Lifebinder. Profile supports Primary and optional Secondary configuration. Vanguard, Lifebinder, Aetherist, Farstrider and Shadehand have authored Skill libraries and Essence/Resonance coverage; Ironfist content remains incomplete. Final acquisition and Mastery progression and supernatural paths remain later work.',
         ],
       },
       {
@@ -107,8 +111,8 @@ const overrides: Record<string, ManualArticle> = {
     title: 'Attributes & Derived Stats',
     summary: 'How six core attributes feed the current versioned stat framework.',
     category: 'Character',
-    lastUpdated: LAST_UPDATED,
-    rulesVersion: 'Derived stat rules v1 · six-attribute preview',
+    lastUpdated: '2026-09-11',
+    rulesVersion: 'Derived stat rules v2 · Level-50 progression',
     body: [
       {
         id: 'six-attributes',
@@ -138,7 +142,8 @@ const overrides: Record<string, ManualArticle> = {
         title: 'How the new split works',
         paragraphs: [
           'Vitality now carries the main maximum-HP and physical-toughness role that previously overloaded Resolve. Agility now carries the main movement, evasion, and reflex role that previously competed inside Finesse.',
-          'The balanced benchmark was intentionally preserved when the six-attribute model was introduced. The expansion creates more build directions rather than granting a free baseline power spike.',
+          'Level and attributes both contribute to the current derived stats. Critical Chance caps at 30%, Evasion at 15%, Movement at 5 and Jump at 3.',
+          'Attribute Management lets you spend earned points or reset your full personal allocation, including creation points. Five resets replenish together 30 days after the first reset in a fresh window. Your Primary’s fixed base remains separate.',
         ],
       },
       {
@@ -204,7 +209,7 @@ const overrides: Record<string, ManualArticle> = {
     title: 'FAQ & Troubleshooting',
     summary: 'Straight answers for common questions in the current preview.',
     category: 'Help',
-    lastUpdated: LAST_UPDATED,
+    lastUpdated: '2026-09-11',
     rulesVersion: 'Current preview',
     body: [
       {
@@ -218,7 +223,7 @@ const overrides: Record<string, ManualArticle> = {
         id: 'creation-errors',
         title: 'Character creation says something is invalid',
         paragraphs: [
-          'Creation now validates the same character choices before submission and identifies the relevant field instead of asking you to review an invisible highlight. All six starting bonus points must be assigned before confirmation.',
+          'Creation now validates the same character choices before submission and identifies the relevant field instead of asking you to review an invisible highlight. All personal starting points must be assigned before confirmation.',
         ],
       },
       {
@@ -243,7 +248,7 @@ const overrides: Record<string, ManualArticle> = {
     title: 'Glossary',
     summary: 'Current player-facing terms without unreleased-system spoilers.',
     category: 'Reference',
-    lastUpdated: LAST_UPDATED,
+    lastUpdated: '2026-09-11',
     rulesVersion: 'Current preview',
     body: [
       {
@@ -264,7 +269,7 @@ const overrides: Record<string, ManualArticle> = {
         id: 'action-economy-term',
         title: 'Action Economy / AP',
         paragraphs: [
-          'The current turn budget. A normal movement terrain point costs 25 AP; Basic Attack and Guard cost 30 AP; Recover costs 50 AP. Terrain can increase movement cost.',
+          `The current turn budget. A movement terrain-cost point costs ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP; Basic Attack and Guard cost 30 AP; Recover costs 50 AP. Movement also obeys the character’s remaining Movement allowance.`,
         ],
       },
       {
@@ -298,21 +303,21 @@ const battleHallArticle: ManualArticle = {
   title: 'Battle Hall & Action Economy',
   summary: 'How the current practice battles, AP spending, previews, facing, and combat log work.',
   category: 'Combat',
-  lastUpdated: LAST_UPDATED,
-  rulesVersion: 'PV-1F action economy preview',
+  lastUpdated: '2026-09-11',
+  rulesVersion: 'Current AP and character mobility rules',
   body: [
     {
       id: 'entering',
       title: 'Entering Battle Hall',
       paragraphs: [
-        'Battle Hall starts neutral with no fight preselected. AI Sparring is the first full training duel, while focused movement, strike, and guard drills remain available. Future 1v1, 2v2, and 3v3 player sparring is represented only as unavailable shell UI until multiplayer combat exists.',
+        'Battle Hall supports AI Sparring and direct player battles through lobbies, including team formats and spectation. Ranked matchmaking and seasons remain future work. Battles use committed build snapshots; changing Profile does not rewrite a battle already in progress.',
       ],
     },
     {
       id: 'ap',
       title: 'Action Economy',
       paragraphs: [
-        'A turn starts with 100 AP. A normal movement terrain point costs 25 AP. Rough ground currently has terrain weight 2, so entering it costs 50 AP. Basic Attack and Guard cost 30 AP; Recover costs 50 AP.',
+        `A turn starts with 100 AP. Normal ground costs ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP per tile; rough ground has terrain weight 2 and costs ${2 * PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP. Basic Attack and Guard cost 30 AP; Recover costs 50 AP. Movement also obeys your remaining Movement allowance, even when AP remains. Movement starts at 2 and caps at 5; Jump starts at 0 and caps at 3.`,
         'Selecting a legal action proposes the AP spend before commitment. The AP bar shows the proposed segment with a temporary glow; after confirmation the authoritative committed value becomes the new solid remainder.',
       ],
     },
