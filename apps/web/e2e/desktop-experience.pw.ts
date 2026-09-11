@@ -290,11 +290,13 @@ test('a large desktop character directory stays inside the page and every entry 
     characterName: 'Directory Navigator',
   })
   // Only the public cosmetic directory response is stubbed. Auth and page rendering remain real.
+  // Use one timestamp so a millisecond boundary cannot change the last-seen sort order.
+  const directoryTimestamp = new Date().toISOString()
   const characters = Array.from({ length: 60 }, (_, index) => ({
     characterId: `10000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
     name: `Adventurer ${String(index + 1).padStart(2, '0')}`,
     level: 10,
-    lastSeenAt: new Date().toISOString(),
+    lastSeenAt: directoryTimestamp,
     portraitRef: null,
     disciplineId: index % 2 === 0 ? 'vanguard' : 'lifebinder',
     personalTitle: null,
@@ -317,6 +319,7 @@ test('a large desktop character directory stays inside the page and every entry 
       .poll(() => list.evaluate((el) => el.scrollHeight - el.clientHeight))
       .toBeGreaterThan(0)
     const last = list.getByRole('button').last()
+    await expect(last.locator('strong')).toHaveText('Adventurer 60')
     await list.hover()
     await page.mouse.wheel(0, 100_000)
     await expect(last).toBeInViewport({ ratio: 1 })
