@@ -17,10 +17,6 @@ import {
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
-import {
-  countOnlineCharacters,
-  touchCharacterPresence,
-} from '@/server/presence/character-presence-service'
 
 import styles from './authenticated-game-shell.module.css'
 
@@ -70,7 +66,6 @@ export async function AuthenticatedShellFrame({
   let activeImageUrl: string | null = null
   let activeBattleHref: Route | null = null
   let activeSpectatingHref: Route | null = null
-  let onlineCount = 0
   try {
     const actor = await getAuthenticatedActor()
     const [activeBattle, activeSpectating, selectedCharacter] = await Promise.all([
@@ -88,17 +83,10 @@ export async function AuthenticatedShellFrame({
     activeCharacter = selectedCharacter
     if (activeCharacter) {
       try {
-        const [display, count] = await Promise.all([
-          loadCharacterProfileDisplay(actor.userId, activeCharacter.id),
-          (async () => {
-            await touchCharacterPresence(actor.userId, activeCharacter.id)
-            return countOnlineCharacters()
-          })(),
-        ])
+        const display = await loadCharacterProfileDisplay(actor.userId, activeCharacter.id)
         activeImageUrl = display.imageUrl
-        onlineCount = count
       } catch {
-        // Profile display and presence are supplementary. The authenticated shell remains usable.
+        // Profile display is supplementary. The authenticated shell remains usable.
       }
     }
   } catch {
@@ -186,7 +174,9 @@ export async function AuthenticatedShellFrame({
       </main>
 
       <footer className={styles.footer}>
-        <OnlinePresenceLink initialCount={onlineCount} />
+        {/* The existing authenticated heartbeat owns presence. Do not block navigation with a
+            duplicate touch/count round trip before that heartbeat runs. */}
+        <OnlinePresenceLink />
         <NavigationMenu
           activeSessionHref={activeSessionHref}
           activeSessionLabel={activeSessionLabel}

@@ -1,0 +1,76 @@
+name: Experience foundation
+
+on:
+  push:
+    branches: [agent/game-experience-pass]
+  pull_request:
+    paths:
+      - 'apps/web/src/components/shell/**'
+      - 'apps/web/e2e/navigation-experience.pw.ts'
+      - 'apps/web/e2e/game-experience-audit.pw.ts'
+      - '.github/workflows/experience-foundation.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: experience-foundation-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  experience:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+      - name: Check changed source formatting and lint
+        run: |
+          pnpm exec prettier --check apps/web/src/components/shell/{authenticated-game-shell.tsx,online-presence-link.tsx,navigation-menu.tsx,navigation-menu.module.css,shell-performance-contract.test.ts} apps/web/e2e/{navigation-experience,game-experience-audit}.pw.ts
+          pnpm --filter @aurevane/web exec eslint src/components/shell/{authenticated-game-shell.tsx,online-presence-link.tsx,navigation-menu.tsx,shell-performance-contract.test.ts} e2e/{navigation-experience,game-experience-audit}.pw.ts --max-warnings=0
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Verify shell authority boundaries
+        run: pnpm --filter @aurevane/web exec vitest run src/components/shell/shell-performance-contract.test.ts
+      - run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
+      - run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+      - name: Build and verify the experience
+        shell: bash
+        run: |
+          set -euo pipefail
+          status_env="$(pnpm exec supabase status -o env)"
+          eval "$(printf '%s\n' "$status_env" | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY|SECRET_KEY)=')"
+          export AUREVANE_ENV=local NEXT_PUBLIC_AUREVANE_ENV=local
+          export NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+          export NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY"
+          export SUPABASE_SECRET_KEY="${SECRET_KEY:-${SERVICE_ROLE_KEY:-}}"
+          test -n "$SUPABASE_SECRET_KEY"
+          pnpm --filter @aurevane/web build
+          export AUREVANE_EXPERIENCE_AUDIT=1
+          export PLAYWRIGHT_JSON_OUTPUT_NAME=test-results/experience-report.json
+          pnpm --filter @aurevane/web exec playwright test \
+            e2e/navigation-experience.pw.ts \
+            e2e/navigation-menu-position.pw.ts \
+            e2e/a1-layout-fit.pw.ts \
+            e2e/public-information.pw.ts \
+            e2e/game-experience-audit.pw.ts \
+            --reporter=line,json
+      - name: Full repository unit tests
+        if: ${{ !cancelled() }}
+        run: pnpm test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: experience-evidence
+          path: apps/web/test-results
+          retention-days: 3
+      - if: always()
+        run: pnpm exec supabase stop --no-backup

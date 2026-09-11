@@ -1,7 +1,7 @@
 'use client'
 
 import type { Route } from 'next'
-import Link from 'next/link'
+import Link, { useLinkStatus } from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
@@ -18,6 +18,15 @@ const navigation = [
 ] as const
 
 const navigationPopoverId = 'game-navigation-menu'
+
+function NavigationPending() {
+  const { pending } = useLinkStatus()
+  return (
+    <span className={styles.progress} data-pending={pending || undefined} role="status">
+      <span className={styles.statusText}>{pending ? 'Opening page…' : ''}</span>
+    </span>
+  )
+}
 
 interface NavigationMenuProps {
   activeSessionHref?: Route | null
@@ -50,10 +59,11 @@ export function NavigationMenu({
     return () => menu.removeEventListener('toggle', syncOpenState)
   }, [])
 
-  function closeMenu() {
+  // Keep the destination visible during a slow transition; close only after navigation commits.
+  useEffect(() => {
     const menu = menuRef.current
     if (menu?.matches(':popover-open')) menu.hidePopover()
-  }
+  }, [pathname])
 
   function prefetchDestination(href: (typeof navigation)[number]['href']) {
     router.prefetch(href)
@@ -65,7 +75,7 @@ export function NavigationMenu({
         className={styles.trigger}
         type="button"
         aria-expanded={open}
-        aria-haspopup="menu"
+        aria-controls={navigationPopoverId}
         popoverTarget={navigationPopoverId}
         popoverTargetAction="toggle"
       >
@@ -79,9 +89,10 @@ export function NavigationMenu({
         aria-label="Game navigation"
       >
         {activeSessionHref ? (
-          <Link href={activeSessionHref} prefetch={false} onClick={closeMenu}>
+          <Link href={activeSessionHref} prefetch={false}>
             <strong>{activeSessionLabel ?? 'Return to Active Session'}</strong>
             <small>Restricted actions stay locked until this session ends</small>
+            <NavigationPending />
           </Link>
         ) : null}
         {visibleNavigation.map((item) => (
@@ -91,10 +102,10 @@ export function NavigationMenu({
             prefetch={false}
             onPointerEnter={() => prefetchDestination(item.href)}
             onFocus={() => prefetchDestination(item.href)}
-            onClick={closeMenu}
           >
             <strong>{item.label}</strong>
             <small>{item.detail}</small>
+            <NavigationPending />
           </Link>
         ))}
       </nav>
