@@ -223,10 +223,7 @@
     align-items: start;
   }
 
-  [data-testid='authenticated-shell']
-    main
-    > div:has([data-testid='character-profile'])
-    > aside,
+  [data-testid='authenticated-shell'] main > div:has([data-testid='character-profile']) > aside,
   [data-testid='authenticated-shell']
     main
     > div:has([data-testid='character-profile'])
