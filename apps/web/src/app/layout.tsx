@@ -18,7 +18,7 @@ import './portrait-ratio-standardization.css'
 import './authenticated-header-mobile.css'
 import './guided-training-grid-fix.css'
 import './desktop-readability.css'
-import './battle-viewport-fit.css'
+import './desktop-page-fit.css'
 
 export const metadata: Metadata = {
   title: 'AUREVANE',

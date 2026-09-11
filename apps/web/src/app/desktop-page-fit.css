@@ -1,0 +1,361 @@
+/* Desktop document layouts. Active battle/spectator screens and phone styles are not targets. */
+@media (min-width: 981px) {
+  /* Reserve the REAL footer row, not an assumed fixed overlay height. Long content can still grow. */
+  [data-testid='public-information-shell'],
+  [data-testid='authenticated-shell'] {
+    grid-template-rows: auto 1fr auto;
+    padding-bottom: 0;
+  }
+
+  [data-testid='authenticated-shell'] > main {
+    min-height: 0;
+    padding: clamp(0.5rem, 1vh, 0.8rem) clamp(0.7rem, 1.4vw, 1.4rem);
+  }
+
+  [data-testid='public-information-shell'] > footer,
+  [data-testid='authenticated-shell'] > footer {
+    position: sticky;
+    inset: auto;
+    bottom: 0;
+    min-height: 3.25rem;
+    padding-block: 0.35rem;
+    backdrop-filter: none;
+  }
+
+  [data-testid='authenticated-shell'] > header {
+    backdrop-filter: none;
+  }
+
+  /* Profile: spend less space on the hero, more on useful, legible information. */
+  #game-main > div:has([data-testid='character-profile']) {
+    height: auto !important;
+    min-height: 0;
+    align-items: start;
+    grid-template-columns: minmax(0, 1fr) minmax(17rem, 22rem);
+    gap: 0.75rem;
+  }
+
+  #game-main [data-testid='character-profile'] {
+    grid-template-columns: clamp(7rem, 14vh, 9rem) minmax(0, 1fr);
+    gap: 0.9rem;
+    align-items: center;
+  }
+
+  #game-main [data-testid='character-profile'] > div:last-child > div:first-of-type {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem 0.9rem;
+    margin-block: 0.25rem;
+  }
+
+  #game-main [data-testid='character-profile'] p {
+    margin-block: 0.15rem;
+  }
+
+  #game-main [data-testid='character-profile'] h1 {
+    font-size: clamp(2rem, 3.2vw, 3.25rem);
+    line-height: 1;
+    overflow-wrap: anywhere;
+  }
+
+  #game-main aside[aria-label='Combat loadout workspace'],
+  #game-main aside[aria-label='Combat loadout workspace'] > * {
+    position: static;
+    height: auto !important;
+  }
+
+  #game-main [data-profile-section-header] {
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  #game-main [data-profile-section-header] > small {
+    white-space: normal;
+    text-align: right;
+  }
+
+  #game-main [data-testid^='derived-stat-'] {
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 2.8rem;
+    gap: 0.4rem;
+    justify-items: stretch;
+    padding: 0.45rem 0.55rem 0.8rem;
+    text-align: left;
+  }
+
+  #game-main [data-testid^='derived-stat-'] > strong {
+    justify-self: end;
+    font-size: 1rem;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* All three Hall tabs share the same frame. It may grow; it never crops controls to hide a bar. */
+  #battle-launch {
+    max-width: none;
+    min-height: 0;
+    gap: clamp(0.45rem, 1vh, 0.75rem);
+    padding: clamp(0.65rem, 1.4vh, 1rem);
+  }
+
+  #battle-launch > header {
+    gap: 1rem;
+    padding: 0 0.15rem 0.55rem;
+  }
+
+  #battle-launch-title {
+    font-size: clamp(1.9rem, 4.6vh, 2.65rem);
+    line-height: 1.05;
+  }
+
+  #battle-launch > nav > button {
+    min-height: 3.7rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  #battle-launch > nav strong {
+    font-size: 1.05rem;
+  }
+
+  #battle-launch > nav small {
+    white-space: normal;
+    overflow: visible;
+  }
+
+  #battle-launch > section {
+    min-width: 0;
+    gap: 0.6rem;
+    padding: clamp(0.6rem, 1.2vh, 0.85rem);
+  }
+
+  #battle-launch > section > div:first-child {
+    align-items: center;
+  }
+
+  #battle-launch > section h2 {
+    font-size: clamp(1.25rem, 2.8vh, 1.65rem);
+    line-height: 1.15;
+  }
+
+  #battle-launch p {
+    margin-top: 0.2rem;
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+
+  #battle-launch :is(label, legend) {
+    font-size: 0.75rem;
+    line-height: 1.2;
+  }
+
+  #battle-launch :is(input, select) {
+    min-height: 2.25rem;
+    font-size: 0.875rem;
+  }
+
+  #battle-launch :is(button, small) {
+    font-size: 0.75rem;
+    line-height: 1.2;
+  }
+
+  #battle-launch [data-pvp-create-card] {
+    grid-template-columns: minmax(6.5rem, auto) minmax(0, 1fr);
+    gap: 0.45rem 0.6rem;
+    padding: 0.65rem;
+  }
+
+  #battle-launch [data-pvp-create-card] > :not(label):not(select) {
+    grid-column: 1 / -1;
+  }
+
+  #battle-launch [data-pvp-create-card] > label {
+    align-self: center;
+  }
+
+  #battle-launch [data-pvp-create-card] > select {
+    width: 100%;
+  }
+
+  #battle-launch [data-pvp-team-sizes] label {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  #battle-launch [data-pvp-team-sizes] > span {
+    align-self: center;
+    padding: 0;
+    font-size: 0.75rem;
+  }
+
+  #battle-launch [data-pvp-settings-panel] {
+    gap: 0.4rem;
+    padding: 0.5rem;
+  }
+
+  #battle-launch [data-pvp-settings-heading] {
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 0.3rem;
+  }
+
+  #battle-launch [data-pvp-settings-heading] strong {
+    font-size: 0.95rem;
+  }
+
+  #battle-launch [data-pvp-settings-heading] small {
+    max-width: 19rem;
+    font-size: 0.75rem;
+    line-height: 1.3;
+    text-align: right;
+  }
+
+  #battle-launch [data-pvp-setting-group] {
+    min-width: 0;
+    padding: 0.35rem;
+  }
+
+  #battle-launch [data-pvp-setting-group] legend,
+  #battle-launch > section > div:first-child > div > span,
+  #battle-launch article > div:first-child > span {
+    font-size: 0.75rem;
+    line-height: 1.2;
+    letter-spacing: 0.045em;
+  }
+
+  #battle-launch [data-pvp-setting-options] button {
+    font-size: 0.75rem;
+    line-height: 1.2;
+    min-height: 2rem;
+    padding: 0.25rem;
+  }
+}
+
+/* Compact chrome on laptop-height windows; the typography floors above do not change. */
+@media (min-width: 981px) and (max-height: 820px) {
+  [data-testid='authenticated-shell'] > main {
+    padding-block: 0.3rem;
+  }
+
+  #game-main [data-profile-facts] {
+    margin-block: 0.35rem;
+  }
+
+  #battle-launch {
+    gap: 0.45rem;
+    padding: 0.6rem;
+  }
+
+  #battle-launch > header {
+    padding-bottom: 0.4rem;
+  }
+
+  #battle-launch > nav > button {
+    min-height: 3.5rem;
+  }
+
+  #battle-launch [data-pvp-create-card] {
+    gap: 0.35rem 0.6rem;
+  }
+}
+
+@media (min-width: 981px) and (max-height: 720px) {
+  #game-main [data-testid='character-profile'] {
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+  }
+
+  #battle-launch > nav > button {
+    min-height: 3.15rem;
+    padding-block: 0.35rem;
+  }
+
+  #battle-launch > section,
+  #battle-launch [data-pvp-create-card] {
+    gap: 0.35rem;
+    padding: 0.5rem;
+  }
+
+  #battle-launch [data-pvp-settings-panel] {
+    gap: 0.25rem;
+    padding: 0.35rem;
+  }
+
+  #battle-launch [data-pvp-setting-options] button {
+    min-height: 1.85rem;
+  }
+}
+
+@media (min-width: 981px) {
+  /* Titles and portrait settings share a compact identity row rather than stacking three cards. */
+  #game-main div:has(> section[aria-labelledby='current-title-heading']) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+
+  #game-main section[aria-labelledby='current-title-heading'] {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 1rem;
+  }
+
+  #game-main section[aria-labelledby='personal-title-heading'] {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  #game-main section[aria-labelledby='profile-image-heading'] {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  #game-main div:has(> section[aria-labelledby='current-title-heading']) > section:last-child {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  #game-main div:has(> section[aria-labelledby='current-title-heading']) > section {
+    padding: 0.75rem;
+  }
+
+  #game-main div:has(> section[aria-labelledby='current-title-heading']) :is(button, label > span),
+  #game-main [aria-label='Profile identity badges'] > span {
+    font-size: 0.75rem !important;
+    line-height: 1.25;
+  }
+
+  /* A training result must grow naturally, not disappear under the old max-height clipping rule. */
+  #game-main > div:has([data-testid='practice-plan-card']) {
+    max-height: none;
+    overflow: visible;
+  }
+
+  #game-main [data-testid^='keybind-'] strong {
+    font-size: 0.875rem;
+  }
+
+  #game-main [data-testid^='keybind-'] small {
+    display: block;
+    overflow: visible;
+    -webkit-line-clamp: unset;
+    line-height: 1.3;
+  }
+
+  #game-main [data-testid^='keybind-'] :is(kbd, button),
+  #game-main div:has(> [data-testid^='keybind-']) + div button {
+    min-height: 2rem;
+    font-size: 0.75rem;
+  }
+
+  #game-main [data-testid='practice-plan-card'] :is(button, dt),
+  #game-main [aria-label='Passive Training durations'] > div > div:first-child > span {
+    font-size: 0.75rem;
+  }
+
+  #game-main [data-testid='practice-plan-card'] dd {
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+  }
+}

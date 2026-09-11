@@ -7,6 +7,20 @@
  */
 
 @media (min-width: 761px) {
+  :is(
+    [data-testid='authenticated-shell'],
+    [data-testid='public-information-shell'],
+    [data-testid='account-shell'],
+    [data-character-select-page='true'],
+    [data-testid='character-creation']
+  ) {
+    --av-text-dim: #a6acb8;
+    --av-text-muted: #c6c9cf;
+    --av-radius-sm: 0.4rem;
+    --av-radius-md: 0.65rem;
+    --av-radius-lg: 0.85rem;
+  }
+
   [data-testid='authenticated-shell'] .brand__wordmark small,
   [data-testid='public-information-shell'] .brand__wordmark small,
   [data-testid='account-shell'] .brand__wordmark small,
@@ -28,25 +42,25 @@
   [data-testid='public-information-shell'] header nav a,
   [data-testid='account-shell'] header nav a,
   [data-character-select-page='true'] header nav a {
-    font-size: 0.72rem;
+    font-size: 0.75rem;
     letter-spacing: 0.045em;
   }
 
   [data-testid='authenticated-shell'] main p {
-    font-size: clamp(0.82rem, 0.72vw, 0.9rem);
+    font-size: clamp(0.875rem, 0.8vw, 1rem);
     line-height: 1.5;
   }
 
   [data-testid='authenticated-shell'] main small {
-    font-size: clamp(0.72rem, 0.62vw, 0.78rem);
+    font-size: clamp(0.75rem, 0.7vw, 0.875rem);
     line-height: 1.3;
   }
 
-  [data-testid='authenticated-shell'] main :where(label, legend) {
+  [data-testid='authenticated-shell'] main :is(label, legend) {
     font-size: 0.8rem;
   }
 
-  [data-testid='authenticated-shell'] main :where(input, textarea, select) {
+  [data-testid='authenticated-shell'] main :is(input, textarea, select) {
     font-size: 0.86rem;
   }
 
@@ -55,16 +69,47 @@
     letter-spacing: 0.06em;
   }
 
-  [data-testid='authenticated-shell'] footer :where(a, button) {
-    font-size: 0.7rem;
+  [data-testid='authenticated-shell'] footer :is(a, button) {
+    font-size: 0.75rem;
     letter-spacing: 0.04em;
+  }
+
+  [data-testid='authenticated-shell'] :is(#game-navigation-menu, [role='menu']) strong {
+    font-size: 0.8125rem;
+    line-height: 1.25;
+    letter-spacing: 0.025em;
+  }
+
+  [data-testid='authenticated-shell'] :is(#game-navigation-menu, [role='menu']) small {
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  [data-testid='authenticated-shell'] :is(button, a, input, select, textarea):focus-visible {
+    outline: 2px solid var(--av-focus);
+    outline-offset: 3px;
+  }
+
+  [data-testid='authenticated-shell'] > header button,
+  [data-testid='authenticated-shell'] [role='menuitem'],
+  [data-testid='authenticated-shell'] [aria-label^='Current screen:'] strong {
+    font-size: 0.75rem;
+    line-height: 1.25;
+  }
+
+  [data-testid='authenticated-shell']
+    [data-testid='primary-build-panel']
+    > button
+    > span:last-child,
+  [data-testid='authenticated-shell'] [data-testid='skill-build-panel'] > button strong::after {
+    font-size: 0.75rem;
   }
 
   /* Character profile: preserve hierarchy, but do not hide content to force a one-screen fit. */
   [data-testid='authenticated-shell'] [data-profile-fact] small,
   [data-testid='authenticated-shell'] [data-profile-section-header] > small {
-    font-size: 0.7rem;
-    line-height: 1.15;
+    font-size: 0.75rem;
+    line-height: 1.2;
   }
 
   [data-testid='authenticated-shell'] [data-profile-fact] strong {
@@ -73,18 +118,18 @@
   }
 
   [data-testid='authenticated-shell'] [data-testid^='profile-attribute-'] > :last-child > span {
-    font-size: 0.74rem;
-    line-height: 1.1;
+    font-size: 0.8125rem;
+    line-height: 1.2;
   }
 
   [data-testid='authenticated-shell'] [data-profile-stat-group] > h3 {
-    font-size: 0.7rem;
-    letter-spacing: 0.055em;
+    font-size: 0.75rem;
+    letter-spacing: 0.045em;
   }
 
   [data-testid='authenticated-shell'] [data-testid^='derived-stat-'] > span:first-child {
-    font-size: 0.72rem;
-    line-height: 1.12;
+    font-size: 0.8125rem;
+    line-height: 1.2;
   }
 
   [data-testid='authenticated-shell'] [data-testid^='derived-stat-'] > strong {
@@ -94,10 +139,6 @@
   [data-testid='authenticated-shell'] [data-testid='skill-build-panel'] :where(p, small) {
     font-size: 0.72rem;
     line-height: 1.3;
-  }
-
-  [data-testid='authenticated-shell'] [data-testid='skill-build-panel'] > button strong::after {
-    font-size: 0.72rem;
   }
 
   [data-testid='authenticated-shell']
@@ -213,27 +254,6 @@
 }
 
 /*
- * Profile pages may grow naturally on desktop. Scrolling is preferable to clipping interactive
- * controls or shrinking text below the readability floor.
- */
-@media (min-width: 981px) {
-  [data-testid='authenticated-shell'] main > div:has([data-testid='character-profile']) {
-    height: auto !important;
-    min-height: calc(100dvh - 9rem);
-    align-items: start;
-  }
-
-  [data-testid='authenticated-shell'] main > div:has([data-testid='character-profile']) > aside,
-  [data-testid='authenticated-shell']
-    main
-    > div:has([data-testid='character-profile'])
-    > aside
-    > * {
-    height: auto !important;
-  }
-}
-
-/*
  * On short desktop viewports, recover vertical room from spacing rather than shrinking text.
  * These are deliberately modest so established one-screen compositions remain intact where they
  * still fit; Character Profile is allowed to scroll instead of clipping content.
@@ -266,5 +286,44 @@
 
   [data-character-select-page='true'] main {
     padding-block: 0.55rem;
+  }
+}
+
+/* Profile editors are portals, so they need the same desktop reading tiers explicitly. */
+@media (min-width: 981px) {
+  [role='dialog']:is(
+    [aria-labelledby='discipline-build-heading'],
+    [aria-labelledby='skill-build-heading'],
+    [aria-labelledby='attribute-allocation-dialog-title']
+  ) {
+    --av-text-dim: #a6acb8;
+    --av-text-muted: #c6c9cf;
+  }
+
+  [role='dialog']:is(
+      [aria-labelledby='discipline-build-heading'],
+      [aria-labelledby='skill-build-heading'],
+      [aria-labelledby='attribute-allocation-dialog-title']
+    )
+    :is(p, select) {
+    font-size: 0.875rem;
+    line-height: 1.4;
+  }
+
+  [role='dialog']:is(
+      [aria-labelledby='discipline-build-heading'],
+      [aria-labelledby='skill-build-heading'],
+      [aria-labelledby='attribute-allocation-dialog-title']
+    )
+    :is(small, label > span, header > button, footer > button) {
+    font-size: 0.75rem;
+    line-height: 1.3;
+  }
+
+  [role='dialog'][aria-labelledby='discipline-build-heading']
+    [data-testid='primary-build-preview']
+    [data-direction]
+    > span {
+    font-size: 0.8125rem;
   }
 }
