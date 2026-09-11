@@ -117,7 +117,7 @@
 .modalMeta span,
 .forcedCounter span {
   color: var(--av-text-dim);
-  font: 700 0.52rem/1 var(--av-font-mono);
+  font: 700 0.6875rem/1.25 var(--av-font-mono);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }

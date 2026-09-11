@@ -267,6 +267,50 @@ test('desktop account, training, controls and public reading surfaces remain usa
   }
 })
 
+test('mobile build dialogs keep readable copy and reachable actions', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile-chromium', 'Phone portal presentation')
+  test.setTimeout(90_000)
+  await page.setViewportSize({ width: 393, height: 740 })
+  await provisionAccountAndEnterCharacter({
+    page,
+    email: `mobile-dialogs.${Date.now()}@example.com`,
+    password: 'AurevaneTest!42',
+    characterName: 'Dialog Wayfarer',
+  })
+  for (const [panel, name] of [
+    ['primary-build-panel', 'Discipline Management'],
+    ['skill-build-panel', 'Techniques'],
+  ]) {
+    await page.getByTestId(panel!).getByRole('button').click()
+    const dialog = page.getByRole('dialog', { name: name!, exact: true })
+    await expect(dialog).toBeVisible()
+    if (name === 'Techniques') {
+      await readable(dialog.locator('p').first(), 14)
+      await dialog
+        .getByRole('button', { name: 'Commit Selected Techniques' })
+        .scrollIntoViewIfNeeded()
+      await testInfo.attach('mobile-techniques-actions', {
+        body: await page.screenshot(),
+        contentType: 'image/png',
+      })
+    }
+    const close = dialog.getByRole('button', { name: 'Close', exact: true })
+    await close.scrollIntoViewIfNeeded()
+    await close.click({ trial: true })
+    expect(
+      await dialog.evaluate((element) => element.scrollWidth - element.clientWidth),
+    ).toBeLessThanOrEqual(1)
+    await testInfo.attach(`mobile-${panel}`, {
+      body: await page.screenshot(),
+      contentType: 'image/png',
+    })
+    await close.click()
+    await expect(dialog).toBeHidden()
+  }
+})
+
 test('supplementary presence never blocks navigation and pending navigation is announced', async ({
   page,
 }, testInfo) => {

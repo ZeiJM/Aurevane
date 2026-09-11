@@ -77,18 +77,20 @@
   --skill-accent: 197 158 92;
   position: relative;
   display: grid;
-  grid-template-columns: 3.6rem minmax(0, 1fr);
+  grid-template-columns: 3rem minmax(0, 1fr);
   gap: 0.62rem;
   align-items: center;
   min-width: 0;
   padding-top: 0.1rem;
-  padding-right: 1.7rem;
+  padding-right: 0;
 }
 
 .signatureArtFrame {
   display: grid;
-  width: 3.6rem;
-  height: 3.6rem;
+  width: 3rem;
+  height: 3rem;
+  grid-row: 1 / span 2;
+  align-self: start;
   place-items: center;
   overflow: hidden;
   border: 1px solid rgba(203, 179, 132, 0.24);
@@ -104,18 +106,24 @@
 }
 
 .signatureCopy {
-  display: grid;
+  display: contents;
+}
+
+.signatureCopy > strong,
+.signatureCopy > span {
+  grid-column: 2;
   min-width: 0;
-  gap: 0.28rem;
+  padding-right: 1.7rem;
 }
 
 .signatureCopy > strong {
   color: #e5dac7;
-  font-size: 0.72rem;
+  font-size: 0.8125rem;
   line-height: 1.22;
 }
 
 .signatureCopy p {
+  grid-column: 1 / -1;
   margin: 0;
   color: var(--text-muted);
   font-size: 0.58rem;
