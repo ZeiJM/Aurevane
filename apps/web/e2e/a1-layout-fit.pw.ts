@@ -128,7 +128,7 @@ async function expectReachableByVerticalScroll(
     geometry.bottom,
     `${surface} should be reachable instead of clipped behind a fixed-height profile`,
   ).toBeLessThanOrEqual(geometry.viewportHeight + 1)
-  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'auto' }))
 }
 
 async function expectInitialViewportFit(
