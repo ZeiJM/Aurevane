@@ -118,8 +118,10 @@ export function BattleFinishTurnKeyboardAssist({ playerName }: { playerName: str
   const requestFinishTurnRef = useRef(requestFinishTurn)
   const firstPressAtRef = useRef<number | null>(null)
   const pendingCommitSequenceRef = useRef(0)
-  playerNameRef.current = playerName
-  requestFinishTurnRef.current = requestFinishTurn
+  useLayoutEffect(() => {
+    playerNameRef.current = playerName
+    requestFinishTurnRef.current = requestFinishTurn
+  }, [playerName, requestFinishTurn])
 
   useEffect(() => {
     let cancelled = false

@@ -347,6 +347,13 @@ test('keeps large PvP geometry, tokens, surrender, and results', async ({ browse
     await expectLargeBoardGeometry(root)
     await expectCanonicalFacingIndicators(root)
 
+    const battleUrl = host.url()
+    let surrenderDocumentRequests = 0
+    host.on('request', (request) => {
+      if (request.isNavigationRequest() && request.resourceType() === 'document') {
+        surrenderDocumentRequests += 1
+      }
+    })
     await root.getByRole('button', { name: 'Surrender', exact: true }).click()
     await expectSurrenderActionsInline(host)
     await host
@@ -356,6 +363,8 @@ test('keeps large PvP geometry, tokens, surrender, and results', async ({ browse
 
     const result = host.getByTestId('pvp-battle-result-overlay')
     await expect(result).toBeVisible({ timeout: 20_000 })
+    await expect(host).toHaveURL(battleUrl)
+    expect(surrenderDocumentRequests).toBe(0)
     await expect(result.getByRole('heading', { name: /Defeat|Draw/ })).toBeVisible()
     await expect(result.getByRole('button', { name: 'Return to Battle Hall' })).toBeVisible()
   } finally {

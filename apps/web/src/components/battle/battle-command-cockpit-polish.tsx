@@ -25,17 +25,6 @@ interface MeterPair {
   mp: string
 }
 
-const COMMAND_SLUGS = new Map<string, CommandSlug>([
-  ['Inspect', 'inspect'],
-  ['Move', 'move'],
-  ['Basic Attack', 'attack'],
-  ['Guard', 'guard'],
-  ['Recover', 'recover'],
-  ['Finish Turn', 'finish'],
-  ['End Turn', 'finish'],
-  ['Facing / End Turn', 'finish'],
-])
-
 const COMMAND_PRESENTATION: Record<CommandSlug, { title: string; description: string }> = {
   inspect: {
     title: 'Inspect',

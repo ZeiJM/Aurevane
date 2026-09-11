@@ -1,7 +1,8 @@
 import { Kicker, StatusMark, Surface } from '@aurevane/ui'
+import type { PersistedCharacter } from '@aurevane/game-core/character/persistence'
 import type { Route } from 'next'
 import Link from 'next/link'
-import type { ReactNode } from 'react'
+import { Suspense, type ReactNode } from 'react'
 
 import { PvpBattleKeyInputAssist } from '@/components/battle/pvp-battle-key-input-assist'
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
@@ -28,6 +29,42 @@ interface AuthenticatedShellFrameProps {
   footerLabel?: string
   backHref?: CharacterBackRoute
   backLabel?: string
+}
+
+function ShellCharacterPortrait({
+  character,
+  imageUrl,
+}: {
+  character: PersistedCharacter
+  imageUrl: string | null
+}) {
+  return (
+    <span className={styles.screenPortrait} title={character.name}>
+      <CharacterPortraitImage
+        imageUrl={imageUrl}
+        fallbackAssetId={getStarterPortraitImageAssetId(character.portraitRef)}
+        className={styles.screenPortraitImage}
+        sizes="2rem"
+        alt=""
+      />
+    </span>
+  )
+}
+
+async function AuthenticatedCharacterPortrait({
+  userId,
+  character,
+}: {
+  userId: string
+  character: PersistedCharacter
+}) {
+  let imageUrl: string | null = null
+  try {
+    imageUrl = (await loadCharacterProfileDisplay(userId, character.id)).imageUrl
+  } catch {
+    // The built-in portrait keeps the shell complete if cosmetic display data is unavailable.
+  }
+  return <ShellCharacterPortrait character={character} imageUrl={imageUrl} />
 }
 
 export function AuthenticatedGameRecovery() {
@@ -62,12 +99,13 @@ export async function AuthenticatedShellFrame({
   backHref,
   backLabel,
 }: AuthenticatedShellFrameProps) {
-  let activeCharacter = null
-  let activeImageUrl: string | null = null
+  let activeCharacter: PersistedCharacter | null = null
+  let activeUserId: string | null = null
   let activeBattleHref: Route | null = null
   let activeSpectatingHref: Route | null = null
   try {
     const actor = await getAuthenticatedActor()
+    activeUserId = actor.userId
     const [activeBattle, activeSpectating, selectedCharacter] = await Promise.all([
       getActiveBattleForUser(actor.userId).catch(() => null),
       getActiveSpectatingForUser(actor.userId).catch(() => null),
@@ -81,16 +119,9 @@ export async function AuthenticatedShellFrame({
         ? (`/game/battle/spectate/${activeSpectating.battleKey}` as Route)
         : null
     activeCharacter = selectedCharacter
-    if (activeCharacter) {
-      try {
-        activeImageUrl = (await loadCharacterProfileDisplay(actor.userId, activeCharacter.id))
-          .imageUrl
-      } catch {
-        // Profile display is supplementary. The authenticated shell remains usable.
-      }
-    }
   } catch {
     activeCharacter = null
+    activeUserId = null
   }
 
   const activeSessionHref = activeBattleHref ?? activeSpectatingHref
@@ -145,16 +176,12 @@ export async function AuthenticatedShellFrame({
                 <span aria-hidden="true">●</span> SPECTATING
               </Link>
             ) : null}
-            {activeCharacter ? (
-              <span className={styles.screenPortrait} title={activeCharacter.name}>
-                <CharacterPortraitImage
-                  imageUrl={activeImageUrl}
-                  fallbackAssetId={getStarterPortraitImageAssetId(activeCharacter.portraitRef)}
-                  className={styles.screenPortraitImage}
-                  sizes="2rem"
-                  alt=""
-                />
-              </span>
+            {activeCharacter && activeUserId ? (
+              <Suspense
+                fallback={<ShellCharacterPortrait character={activeCharacter} imageUrl={null} />}
+              >
+                <AuthenticatedCharacterPortrait userId={activeUserId} character={activeCharacter} />
+              </Suspense>
             ) : null}
             <span className={styles.screenLabel}>
               <StatusMark />

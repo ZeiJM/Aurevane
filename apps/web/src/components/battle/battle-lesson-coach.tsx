@@ -134,11 +134,12 @@ function useVictoryControlBridge({
     const previousCounter = counterNode?.textContent ?? null
     const previousNewProgress = target.getAttribute('data-new-progress')
 
-    if (label && label.textContent !== 'Victory Conditions') label.textContent = 'Victory Conditions'
+    if (label && label.textContent !== 'Victory Conditions')
+      label.textContent = 'Victory Conditions'
     if (counterNode) counterNode.textContent = counter
     target.setAttribute('aria-label', ariaLabel)
-    if (hasUnseenProgress) target.dataset.newProgress = 'true'
-    else delete target.dataset.newProgress
+    if (hasUnseenProgress) target.setAttribute('data-new-progress', 'true')
+    else target.removeAttribute('data-new-progress')
 
     const openCoach = (event: MouseEvent) => {
       event.preventDefault()

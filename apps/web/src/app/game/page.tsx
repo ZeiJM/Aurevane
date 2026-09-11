@@ -31,35 +31,57 @@ export default async function CharacterSelectPage() {
     throw error
   }
 
-  const [activeBattle, activeSpectating] = await Promise.all([
+  const charactersPromise = loadCharacterSlots(actor.userId)
+  const profileImageUrlsPromise = charactersPromise
+    .then(async (characters) => {
+      return Object.fromEntries(
+        await loadCharacterProfileImageMap(
+          actor.userId,
+          characters.map((character) => character.id),
+        ),
+      )
+    })
+    .catch(() => {
+      // Cosmetic profile images must not make character selection unavailable.
+      return {} as Record<string, string>
+    })
+
+  const [
+    activeBattleResult,
+    activeSpectatingResult,
+    charactersResult,
+    selectedCharacterResult,
+    accountDeletionResult,
+    profileImageUrls,
+  ] = await Promise.allSettled([
     getActiveBattleForUser(actor.userId),
     getActiveSpectatingForUser(actor.userId),
-  ])
-  if (activeBattle) redirect(`/game/battle/${activeBattle.battleSessionId}`)
-  if (activeSpectating) redirect(`/game/battle/spectate/${activeSpectating.battleKey}`)
-
-  const [characters, selectedCharacter, accountDeletion] = await Promise.all([
-    loadCharacterSlots(actor.userId),
+    charactersPromise,
     loadSelectedCharacter(actor),
     getAccountDeletionState(actor.userId),
+    profileImageUrlsPromise,
   ])
-  let profileImageUrls: Record<string, string> = {}
-  try {
-    profileImageUrls = Object.fromEntries(
-      await loadCharacterProfileImageMap(
-        actor.userId,
-        characters.map((character) => character.id),
-      ),
-    )
-  } catch {
-    // Cosmetic profile images must not make character selection unavailable.
-  }
+  if (activeBattleResult.status === 'rejected') throw activeBattleResult.reason
+  const activeBattle = activeBattleResult.value
+  if (activeBattle) redirect(`/game/battle/${activeBattle.battleSessionId}`)
+  if (activeSpectatingResult.status === 'rejected') throw activeSpectatingResult.reason
+  const activeSpectating = activeSpectatingResult.value
+  if (activeSpectating) redirect(`/game/battle/spectate/${activeSpectating.battleKey}`)
+
+  if (charactersResult.status === 'rejected') throw charactersResult.reason
+  if (selectedCharacterResult.status === 'rejected') throw selectedCharacterResult.reason
+  if (accountDeletionResult.status === 'rejected') throw accountDeletionResult.reason
+  if (profileImageUrls.status === 'rejected') throw profileImageUrls.reason
+
+  const characters = charactersResult.value
+  const selectedCharacter = selectedCharacterResult.value
+  const accountDeletion = accountDeletionResult.value
 
   return (
     <CharacterSelectShell
       characters={characters}
       selectedCharacter={selectedCharacter}
-      profileImageUrls={profileImageUrls}
+      profileImageUrls={profileImageUrls.value}
       accountDeletion={accountDeletion}
     />
   )

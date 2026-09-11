@@ -1,7 +1,7 @@
 'use client'
 
 import type { Route } from 'next'
-import Link from 'next/link'
+import Link, { useLinkStatus } from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 
@@ -22,6 +22,18 @@ const navigationPopoverId = 'game-navigation-menu'
 interface NavigationMenuProps {
   activeSessionHref?: Route | null
   activeSessionLabel?: string | null
+}
+
+function NavigationLinkCopy({ label, detail }: { label: string; detail: string }) {
+  const { pending } = useLinkStatus()
+
+  return (
+    <>
+      <strong>{label}</strong>
+      <small>{pending ? 'Opening…' : detail}</small>
+      <span className={styles.pendingMark} data-visible={pending || undefined} aria-hidden="true" />
+    </>
+  )
 }
 
 export function NavigationMenu({
@@ -84,26 +96,28 @@ export function NavigationMenu({
         aria-label="Game navigation"
       >
         {activeSessionHref ? (
-          <Link href={activeSessionHref} prefetch={false} onClick={closeMenu}>
-            <strong>{activeSessionLabel ?? 'Return to Active Session'}</strong>
-            <small>Restricted actions stay locked until this session ends</small>
+          <Link href={activeSessionHref} onClick={closeMenu}>
+            <NavigationLinkCopy
+              label={activeSessionLabel ?? 'Return to Active Session'}
+              detail="Restricted actions stay locked until this session ends"
+            />
           </Link>
         ) : null}
         {visibleNavigation.map((item) => (
           <Link
             key={item.href}
             href={item.href}
-            prefetch={false}
             onPointerEnter={() => prefetchDestination(item.href)}
+            onPointerDown={() => prefetchDestination(item.href)}
             onFocus={() => prefetchDestination(item.href)}
             onNavigate={(event) => {
               event.preventDefault()
               closeMenu()
               startTransition(() => router.push(item.href))
             }}
+            aria-current={pathname === item.href ? 'page' : undefined}
           >
-            <strong>{item.label}</strong>
-            <small>{item.detail}</small>
+            <NavigationLinkCopy label={item.label} detail={item.detail} />
           </Link>
         ))}
       </nav>

@@ -3,7 +3,6 @@ import { parseBattleSessionCreateRequest } from '@aurevane/validation/combat/bat
 
 import { assertNoActiveBattle } from '@/server/account/active-game-session'
 import { getAuthenticatedActor } from '@/server/auth/actor'
-import { handleCreateBattleSessionRequest } from '@/server/battle/battle-session-handler'
 import { createBattleSessionService } from '@/server/battle/battle-session-service'
 import { createSupabaseBattleSessionRepository } from '@/server/battle/supabase-battle-session-repository'
 import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
@@ -20,7 +19,7 @@ export async function POST(request: Request) {
     const actor = await getAuthenticatedActor()
     let raw: unknown
     try {
-      raw = await request.clone().json()
+      raw = await request.json()
     } catch {
       throw new AurevaneError('INVALID_REQUEST', 'The request body must be valid JSON.')
     }
@@ -29,13 +28,13 @@ export async function POST(request: Request) {
       throw new AurevaneError('INVALID_REQUEST', 'Invalid battle-session creation request.')
     }
 
-    await assertNoActiveBattle(actor.userId, parsed.idempotencyKey)
-
-    const trainingStatus = await loadPracticeStatus(
-      actor,
-      parsed.characterId,
-      createSupabaseWayfarersPracticeRepository(),
-    )
+    const [activeBattleResult, trainingStatusResult] = await Promise.allSettled([
+      assertNoActiveBattle(actor.userId, parsed.idempotencyKey),
+      loadPracticeStatus(actor, parsed.characterId, createSupabaseWayfarersPracticeRepository()),
+    ])
+    if (activeBattleResult.status === 'rejected') throw activeBattleResult.reason
+    if (trainingStatusResult.status === 'rejected') throw trainingStatusResult.reason
+    const trainingStatus = trainingStatusResult.value
     if (isPassiveTrainingActive(trainingStatus)) {
       throw new AurevaneError(
         'INVALID_REQUEST',
@@ -43,14 +42,22 @@ export async function POST(request: Request) {
       )
     }
 
-    return handleCreateBattleSessionRequest(request, {
-      getActor: async () => actor,
-      service: createBattleSessionService({
-        characters: createSupabaseCharacterRepository(),
-        battles: createSupabaseBattleSessionRepository(),
-        builds: createSupabaseCharacterBuildRepository(),
-      }),
+    const battle = await createBattleSessionService({
+      characters: createSupabaseCharacterRepository(),
+      battles: createSupabaseBattleSessionRepository(),
+      builds: createSupabaseCharacterBuildRepository(),
+    }).createSession({
+      userId: actor.userId,
+      characterId: parsed.characterId,
+      arenaId: parsed.arenaId,
+      aiDifficulty: parsed.aiDifficulty,
+      battleHallRecordId: parsed.battleHallRecordId,
+      idempotencyKey: parsed.idempotencyKey,
     })
+    return Response.json(
+      { battle },
+      { status: 200, headers: { 'Cache-Control': 'private, no-store' } },
+    )
   } catch (error) {
     return toServerErrorResponse(error)
   }

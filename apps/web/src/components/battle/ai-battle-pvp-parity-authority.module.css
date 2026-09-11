@@ -48,25 +48,19 @@
 }
 
 :global(
-  main[data-ai-battle-root='true']
-    section[aria-label='Command Deck']
-    [data-battle-command='move']
+  main[data-ai-battle-root='true'] section[aria-label='Command Deck'] [data-battle-command='move']
 ) {
   --cockpit-accent-rgb: 102, 177, 145;
 }
 
 :global(
-  main[data-ai-battle-root='true']
-    section[aria-label='Command Deck']
-    [data-battle-command='attack']
+  main[data-ai-battle-root='true'] section[aria-label='Command Deck'] [data-battle-command='attack']
 ) {
   --cockpit-accent-rgb: 205, 126, 97;
 }
 
 :global(
-  main[data-ai-battle-root='true']
-    section[aria-label='Command Deck']
-    [data-battle-command='guard']
+  main[data-ai-battle-root='true'] section[aria-label='Command Deck'] [data-battle-command='guard']
 ) {
   --cockpit-accent-rgb: 108, 145, 198;
 }
@@ -80,9 +74,7 @@
 }
 
 :global(
-  main[data-ai-battle-root='true']
-    section[aria-label='Command Deck']
-    [data-battle-command='finish']
+  main[data-ai-battle-root='true'] section[aria-label='Command Deck'] [data-battle-command='finish']
 ) {
   --cockpit-accent-rgb: 207, 169, 93;
 }

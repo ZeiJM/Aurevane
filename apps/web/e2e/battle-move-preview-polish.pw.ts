@@ -148,7 +148,9 @@ test('keeps Move reachable tiles rich green and supports keyboard/mouse path bac
   for (let index = keyboardPath.length - 1; index > 0; index -= 1) {
     const key = reverseKey(keyboardPath[index]!, keyboardPath[index - 1]!)
     await page.keyboard.press(key)
-    await expect(battlefield.locator('button[data-path-index]')).toHaveCount(index === 1 ? 0 : index)
+    await expect(battlefield.locator('button[data-path-index]')).toHaveCount(
+      index === 1 ? 0 : index,
+    )
   }
 
   await expect(page.locator('[data-battle-notice="true"]')).toContainText(

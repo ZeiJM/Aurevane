@@ -175,7 +175,12 @@ export async function assertNoActiveBattle(
   userId: string,
   allowedCreateReplayKey?: string,
 ): Promise<void> {
-  const active = await readActiveBattleForUser(userId)
+  const [activeResult, spectatingResult] = await Promise.allSettled([
+    readActiveBattleForUser(userId),
+    readActiveSpectatingForUser(userId),
+  ])
+  if (activeResult.status === 'rejected') throw activeResult.reason
+  const active = activeResult.value
   if (active) {
     if (
       allowedCreateReplayKey &&
@@ -190,7 +195,8 @@ export async function assertNoActiveBattle(
     )
   }
 
-  const spectating = await readActiveSpectatingForUser(userId)
+  if (spectatingResult.status === 'rejected') throw spectatingResult.reason
+  const spectating = spectatingResult.value
   if (spectating) {
     throw new AurevaneError(
       'INVALID_REQUEST',
@@ -200,7 +206,12 @@ export async function assertNoActiveBattle(
 }
 
 export async function assertGameplayMutationAllowed(userId: string): Promise<void> {
-  const activeBattle = await readActiveBattleForUser(userId)
+  const [activeBattleResult, activeSpectatingResult] = await Promise.allSettled([
+    readActiveBattleForUser(userId),
+    readActiveSpectatingForUser(userId),
+  ])
+  if (activeBattleResult.status === 'rejected') throw activeBattleResult.reason
+  const activeBattle = activeBattleResult.value
   if (activeBattle) {
     throw new AurevaneError(
       'INVALID_REQUEST',
@@ -208,8 +219,9 @@ export async function assertGameplayMutationAllowed(userId: string): Promise<voi
     )
   }
 
-  const spectating = await readActiveSpectatingForUser(userId)
-  if (spectating) {
+  if (activeSpectatingResult.status === 'rejected') throw activeSpectatingResult.reason
+  const activeSpectating = activeSpectatingResult.value
+  if (activeSpectating) {
     throw new AurevaneError(
       'INVALID_REQUEST',
       'This action is unavailable while you are spectating. Stop spectating first.',

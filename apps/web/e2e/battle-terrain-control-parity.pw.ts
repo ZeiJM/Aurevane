@@ -103,18 +103,18 @@ async function captureBattleScaleGeometry(page: Page): Promise<BattleScaleGeomet
     const cancel = footerButtons.find((button) => button.textContent?.includes('Cancel Action'))!
     const confirm = footerButtons.find((button) => button.textContent?.includes('Confirm Action'))!
 
-    const visibleArticles = Array.from(content.querySelectorAll<HTMLElement>('aside article')).filter(
-      (article) => {
-        const articleRect = article.getBoundingClientRect()
-        const style = window.getComputedStyle(article)
-        return (
-          articleRect.width > 0 &&
-          articleRect.height > 0 &&
-          style.display !== 'none' &&
-          style.visibility !== 'hidden'
-        )
-      },
-    )
+    const visibleArticles = Array.from(
+      content.querySelectorAll<HTMLElement>('aside article'),
+    ).filter((article) => {
+      const articleRect = article.getBoundingClientRect()
+      const style = window.getComputedStyle(article)
+      return (
+        articleRect.width > 0 &&
+        articleRect.height > 0 &&
+        style.display !== 'none' &&
+        style.visibility !== 'hidden'
+      )
+    })
     const railCard = visibleArticles[0]!
     const rail = railCard.closest('aside') as HTMLElement
     const portrait = railCard.querySelector<HTMLElement>(
@@ -223,7 +223,9 @@ async function enterScaleParityPvpBattle(host: Page, guest: Page) {
   await expect(host).toHaveURL(/\/game\/battle\/[0-9a-f-]+$/i, { timeout: 20_000 })
 }
 
-test('keeps PvE terrain controls visually unified on desktop and mobile', async ({ page }, testInfo) => {
+test('keeps PvE terrain controls visually unified on desktop and mobile', async ({
+  page,
+}, testInfo) => {
   test.skip(
     !['desktop-chromium', 'mobile-chromium'].includes(testInfo.project.name),
     'Shared terrain-control parity targets desktop and mobile',

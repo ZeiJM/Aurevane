@@ -30,13 +30,15 @@ export default async function ControlsSettingsPage() {
     throw error
   }
 
-  const character = await loadSelectedCharacter(actor)
+  const [characterResult, combatKeybindsResult] = await Promise.allSettled([
+    loadSelectedCharacter(actor),
+    loadPlayerCombatControls(actor, createSupabasePlayerProfileRepository()),
+  ])
+  if (characterResult.status === 'rejected') throw characterResult.reason
+  const character = characterResult.value
   if (!character) redirect('/game')
-
-  const combatKeybinds = await loadPlayerCombatControls(
-    actor,
-    createSupabasePlayerProfileRepository(),
-  )
+  if (combatKeybindsResult.status === 'rejected') throw combatKeybindsResult.reason
+  const combatKeybinds = combatKeybindsResult.value
 
   return (
     <AuthenticatedShellFrame

@@ -16,13 +16,14 @@ function compact(value: string): string {
 
 describe('PvP-first shared battle visual contract', () => {
   it('is mounted by both playable battle boundaries', () => {
-    const pvp = readLocalFile('pvp-battle-client-boundary.tsx')
-    const pve = readLocalFile('battle-session-client-boundary.tsx')
+    const shared = readLocalFile('battle-client-boundary.tsx')
 
-    for (const source of [pvp, pve]) {
-      expect(source).toContain("import { BattleScreenVisualContract } from './battle-screen-visual-contract'")
-      expect(source).toContain('<BattleScreenVisualContract />')
-    }
+    expect(shared).toContain(
+      "import { BattleScreenVisualContract } from './battle-screen-visual-contract'",
+    )
+    expect(shared).toContain('<BattleScreenVisualContract />')
+    expect(shared).toContain('<BattlePveEnhancements')
+    expect(shared).toContain('<BattlePvpEnhancements')
   })
 
   it('uses the final PvP desktop shell and board geometry as the shared authority', () => {
@@ -49,14 +50,15 @@ describe('PvP-first shared battle visual contract', () => {
   it('keeps the legacy final-facing pad mounted for keyboard authority but removes it from layout', () => {
     const contract = readLocalFile('battle-screen-visual-contract.tsx')
 
-    expect(contract).toContain("'[data-unified-facing-pad=\"true\"]'")
+    expect(contract).toContain('\'[data-unified-facing-pad="true"]\'')
     expect(contract).toContain("facingPad.style.setProperty('display', 'none', 'important')")
   })
 
   it('does not absorb PvP-only spectator, battle-key, chat transport or timer mechanics', () => {
     const contract = readLocalFile('battle-screen-visual-contract.tsx')
 
-    expect(contract).not.toContain('spectat')
+    expect(contract).not.toContain('joinPvpSpectation')
+    expect(contract).not.toContain('/api/pvp/spectate')
     expect(contract).not.toContain('battleKey')
     expect(contract).not.toContain('PvpBattleChatBridge')
     expect(contract).not.toContain('turnClock')

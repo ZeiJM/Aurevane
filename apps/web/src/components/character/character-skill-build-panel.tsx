@@ -1,9 +1,10 @@
 'use client'
 
+import Image from 'next/image'
+
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { ResonanceDefinition } from '@aurevane/game-core/combat/resonance'
-import type { Route } from 'next'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
@@ -167,8 +168,8 @@ export function CharacterSkillBuildPanel({
       params.delete(PROFILE_PANEL_QUERY)
     }
     const query = params.toString()
-    const href = (query ? `${pathname}?${query}` : pathname) as Route
-    router.replace(href, { scroll: false })
+    const href = query ? `${pathname}?${query}` : pathname
+    window.history.replaceState(null, '', href)
   }
 
   function selectedSourceCount(sourceDisciplineId: string): number {
@@ -352,7 +353,10 @@ export function CharacterSkillBuildPanel({
                         {initialResonance ? (
                           <article className={polish.signatureCard}>
                             <span className={polish.signatureArtFrame} aria-hidden="true">
-                              <img
+                              <Image
+                                width={64}
+                                height={64}
+                                unoptimized
                                 className={polish.signatureArt}
                                 src={battleResonanceArtwork(initialResonance.id)}
                                 alt=""
@@ -377,7 +381,10 @@ export function CharacterSkillBuildPanel({
                         {initialEssence ? (
                           <article className={polish.signatureCard}>
                             <span className={polish.signatureArtFrame} aria-hidden="true">
-                              <img
+                              <Image
+                                width={64}
+                                height={64}
+                                unoptimized
                                 className={polish.signatureArt}
                                 src={battleSkillArtwork(initialEssence.skill.id)}
                                 alt=""
@@ -449,7 +456,10 @@ export function CharacterSkillBuildPanel({
                                   onChange={() => toggle(entry)}
                                 />
                                 <span className={styles.artFrame} aria-hidden="true">
-                                  <img
+                                  <Image
+                                    width={64}
+                                    height={64}
+                                    unoptimized
                                     className={styles.skillArt}
                                     src={battleSkillArtwork(entry.definition.id)}
                                     alt=""

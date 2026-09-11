@@ -2,7 +2,11 @@ import 'server-only'
 
 import { createHash, randomInt, randomUUID } from 'node:crypto'
 
-import type { BattleSessionRepository } from '@aurevane/db/battle-session'
+import type {
+  BattleSessionCommitRecord,
+  BattleSessionRepository,
+} from '@aurevane/db/battle-session'
+import type { TransactionalCommandResult } from '@aurevane/db/transactional-command'
 import type { CharacterRecord, CharacterRepository } from '@aurevane/db/character'
 import { calculateCharacterBuildDerivedStats } from '@aurevane/game-core/character/discipline-build'
 import { calculateDerivedStats } from '@aurevane/game-core/character/derived-stats'
@@ -328,6 +332,23 @@ function projectBattleSnapshot(state: BattleAuthoritativeEncounterState): Battle
   }
 }
 
+export function projectCommittedBattleSession(
+  committed: TransactionalCommandResult<BattleSessionCommitRecord>,
+): BattleSessionView {
+  return {
+    battleSessionId: committed.result.battleSessionId,
+    battleVersion: committed.result.battleVersion,
+    snapshot: projectBattleSnapshot(readPersistedEncounter(committed.result.snapshot)),
+    replayed: committed.replayed,
+    invalidation: createBattleSessionChangedInvalidation({
+      battleSessionId: committed.result.battleSessionId,
+      battleVersion: committed.result.battleVersion,
+      occurredAt: committed.result.committedAt,
+      reason: 'state_changed',
+    }),
+  }
+}
+
 function assertControlledCombatantProjection(
   state: BattleAuthoritativeEncounterState,
   controlledCombatantIds: readonly string[],
@@ -459,15 +480,30 @@ export function createBattleSessionService({
 }: Dependencies): BattleSessionService {
   return {
     async createSession(command) {
-      const character = await findOwnedCharacter(characters, command.userId, command.characterId)
+      const [characterResult, committedBuildResult, committedBuildSnapshotResult] =
+        await Promise.allSettled([
+          findOwnedCharacter(characters, command.userId, command.characterId),
+          builds
+            ? builds.findActiveBuild(command.userId, command.characterId)
+            : Promise.resolve(null),
+          builds
+            ? loadCharacterCommittedBuildSnapshot(command.userId, command.characterId, builds)
+            : Promise.resolve(null),
+        ])
+      if (characterResult.status === 'rejected') throw characterResult.reason
+      const character = characterResult.value
       if (!character) {
         throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
       }
 
-      const committedBuild = builds
-        ? await builds.findActiveBuild(command.userId, command.characterId)
-        : null
-      if (builds && !committedBuild) {
+      if (committedBuildResult.status === 'rejected') throw committedBuildResult.reason
+      if (committedBuildSnapshotResult.status === 'rejected') {
+        throw committedBuildSnapshotResult.reason
+      }
+      const committedBuild = committedBuildResult.value
+      const committedBuildSnapshot = committedBuildSnapshotResult.value
+
+      if (builds && (!committedBuild || !committedBuildSnapshot)) {
         throw new AurevaneError(
           'PERSISTENCE_UNAVAILABLE',
           'The committed character build is unavailable right now.',
@@ -484,22 +520,25 @@ export function createBattleSessionService({
         battleHallRecordId,
         committedBuild,
       )
-      const encounter: BattleAuthoritativeEncounterState = builds
-        ? {
-            ...baseEncounter,
-            buildAuthority: createBattleBuildAuthoritySnapshot('pve', [
-              {
-                combatantId: `character:${character.id}`,
-                characterId: character.id,
-                snapshot: await loadCharacterCommittedBuildSnapshot(
-                  command.userId,
-                  character.id,
-                  builds,
-                ),
-              },
-            ]),
-          }
-        : baseEncounter
+      let encounter: BattleAuthoritativeEncounterState = baseEncounter
+      if (builds) {
+        if (!committedBuildSnapshot) {
+          throw new AurevaneError(
+            'PERSISTENCE_UNAVAILABLE',
+            'The committed character build is unavailable right now.',
+          )
+        }
+        encounter = {
+          ...baseEncounter,
+          buildAuthority: createBattleBuildAuthoritySnapshot('pve', [
+            {
+              combatantId: `character:${character.id}`,
+              characterId: character.id,
+              snapshot: committedBuildSnapshot,
+            },
+          ]),
+        }
+      }
       const battle = encounter.tactical.battle
       const persisted = await battles.createBattleSession({
         actorKey: command.userId,
@@ -618,18 +657,7 @@ export function createBattleSessionService({
         events: resolved.events,
       })
 
-      return {
-        battleSessionId: committed.result.battleSessionId,
-        battleVersion: committed.result.battleVersion,
-        snapshot: projectBattleSnapshot(readPersistedEncounter(committed.result.snapshot)),
-        replayed: committed.replayed,
-        invalidation: createBattleSessionChangedInvalidation({
-          battleSessionId: committed.result.battleSessionId,
-          battleVersion: committed.result.battleVersion,
-          occurredAt: committed.result.committedAt,
-          reason: 'state_changed',
-        }),
-      }
+      return projectCommittedBattleSession(committed)
     },
   }
 }

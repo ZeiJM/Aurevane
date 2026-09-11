@@ -52,6 +52,7 @@
 }
 
 .menu > a {
+  position: relative;
   display: grid;
   gap: 0.2rem;
   min-height: 3rem;
@@ -60,6 +61,23 @@
   border-radius: var(--av-radius-sm);
   color: var(--av-text-muted);
   text-decoration: none;
+}
+
+.pendingMark {
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0.62rem;
+  width: 0.38rem;
+  height: 0.38rem;
+  border: 1px solid rgba(207, 169, 93, 0.28);
+  border-top-color: var(--av-brass-200);
+  border-radius: 50%;
+  opacity: 0;
+}
+
+.pendingMark[data-visible] {
+  opacity: 1;
+  animation: navigation-pending 700ms linear infinite;
 }
 
 .menu > a:hover,
@@ -78,6 +96,18 @@
   color: var(--av-text-dim);
   font-size: 0.55rem;
   line-height: 1.25;
+}
+
+@keyframes navigation-pending {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pendingMark[data-visible] {
+    animation: none;
+  }
 }
 
 @media (max-width: 560px) {

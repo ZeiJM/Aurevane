@@ -8,9 +8,7 @@
      rendered 9x7 tactical grid instead of the taller board viewport. The approved inward shift
      remains shared; only a one-eighth-rem optical correction is needed to center the fixed dock in
      the available right-side space. */
-  :global(
-    #battlefield[data-desktop-battle-log-open='true'] > [data-docked-battle-log='true']
-  ) {
+  :global(#battlefield[data-desktop-battle-log-open='true'] > [data-docked-battle-log='true']) {
     grid-row: 1 !important;
     height: auto !important;
     min-height: 0 !important;

@@ -2,17 +2,17 @@ import 'server-only'
 
 import { createHash } from 'node:crypto'
 
-import { surrenderPvpCombatant } from '@aurevane/game-core/combat/pvp-quality'
+import {
+  isPvpQualityEncounter,
+  surrenderPvpCombatant,
+} from '@aurevane/game-core/combat/pvp-quality'
 import {
   validateStatDrivenCombatEncounterState,
   type StatDrivenCombatEncounterState,
 } from '@aurevane/game-core/combat/stat-driven-combat'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
-import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
-
-import { createBattleSessionService, type BattleSessionView } from './battle-session-service'
-import { getPvpBattleMetadata } from './pvp-lobby-service'
+import { projectCommittedBattleSession, type BattleSessionView } from './battle-session-service'
 import { createSupabaseBattleSessionRepository } from './supabase-battle-session-repository'
 
 function fingerprint(value: unknown): string {
@@ -29,13 +29,6 @@ function readEncounter(value: unknown): StatDrivenCombatEncounterState {
   const issues = validateStatDrivenCombatEncounterState(state)
   if (issues.length > 0) throw unavailable('The stored AI battle state is invalid.')
   return state
-}
-
-function sessionService() {
-  return createBattleSessionService({
-    characters: createSupabaseCharacterRepository(),
-    battles: createSupabaseBattleSessionRepository(),
-  })
 }
 
 function translateSurrenderEvents(events: readonly unknown[]): readonly unknown[] {
@@ -58,11 +51,6 @@ export async function surrenderAiBattle(
   expectedBattleVersion: number,
   idempotencyKey: string,
 ): Promise<BattleSessionView> {
-  const pvpMetadata = await getPvpBattleMetadata(userId, battleSessionId)
-  if (pvpMetadata) {
-    throw new AurevaneError('INVALID_REQUEST', 'PvP battles must use the PvP surrender flow.')
-  }
-
   const repository = createSupabaseBattleSessionRepository()
   const current = await repository.findBattleSession(userId, battleSessionId)
   if (!current) {
@@ -75,8 +63,13 @@ export async function surrenderAiBattle(
     expectedBattleVersion,
   })
 
+  const state = readEncounter(current.snapshot)
+  if (isPvpQualityEncounter(state)) {
+    throw new AurevaneError('INVALID_REQUEST', 'PvP battles must use the PvP surrender flow.')
+  }
+
   if (current.battleVersion !== expectedBattleVersion) {
-    await repository.commitBattleIntent({
+    const committed = await repository.commitBattleIntent({
       actorKey: userId,
       idempotencyKey,
       requestFingerprint,
@@ -86,10 +79,9 @@ export async function surrenderAiBattle(
       nextSnapshot: current.snapshot,
       events: [],
     })
-    return sessionService().getSession(userId, battleSessionId)
+    return projectCommittedBattleSession(committed)
   }
 
-  const state = readEncounter(current.snapshot)
   if (state.tactical.battle.lifecycle !== 'active') {
     throw new AurevaneError('INVALID_REQUEST', 'Only an active AI battle can be surrendered.')
   }
@@ -101,7 +93,7 @@ export async function surrenderAiBattle(
   if (!controlledCombatantId) throw unavailable()
 
   const resolved = surrenderPvpCombatant(state, controlledCombatantId)
-  await repository.commitBattleIntent({
+  const committed = await repository.commitBattleIntent({
     actorKey: userId,
     idempotencyKey,
     requestFingerprint,
@@ -112,5 +104,5 @@ export async function surrenderAiBattle(
     events: translateSurrenderEvents(resolved.events),
   })
 
-  return sessionService().getSession(userId, battleSessionId)
+  return projectCommittedBattleSession(committed)
 }

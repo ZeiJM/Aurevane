@@ -16,21 +16,22 @@ function compact(value: string): string {
 
 describe('desktop battle log PvP/PvE presentation parity', () => {
   it('uses the same dock component in both playable battle boundaries', () => {
-    const pvp = readLocalFile('pvp-battle-client-boundary.tsx')
-    const pve = readLocalFile('battle-session-client-boundary.tsx')
-
-    expect(pvp).toContain('<DesktopBattleLogDock')
-    expect(pve).toContain('<DesktopBattleLogDock')
+    const shared = readLocalFile('battle-client-boundary.tsx')
+    expect(shared).toContain('<DesktopBattleLogDock')
+    expect(shared).toContain("eventDriven={runtime.kind === 'pvp'}")
+    expect(readLocalFile('battle-pve-enhancements.tsx')).not.toContain('<DesktopBattleLogDock')
+    expect(readLocalFile('battle-pvp-enhancements.tsx')).not.toContain('<DesktopBattleLogDock')
   })
 
-  it('gives the PvE dock a real two-row grid area instead of percentage-height sizing', () => {
+  it('fits the shared dock to the board row using measured grid insets', () => {
     const css = compact(readLocalFile('desktop-battle-log-dock.module.css'))
 
     expect(css).toContain(
       "main:not([data-pvp-battle='true']) #battlefield[data-desktop-battle-log-open='true']",
     )
-    expect(css).toContain('grid-template-rows: minmax(0, 1fr) auto !important;')
-    expect(css).toContain('grid-row: 1 / span 2 !important;')
+    expect(css).toContain('grid-row: 1 !important;')
+    expect(css).toContain('margin-top: var(--battle-log-grid-top-inset, 0px) !important;')
+    expect(css).toContain('margin-bottom: var(--battle-log-grid-bottom-inset, 0px) !important;')
     expect(css).toContain('height: auto !important;')
     expect(css).toContain('align-self: stretch !important;')
     expect(css).not.toContain(
@@ -38,25 +39,23 @@ describe('desktop battle log PvP/PvE presentation parity', () => {
     )
   })
 
-  it('keeps the dock centering shift in PvP and removes it from PvE', () => {
+  it('shares the approved dock centering between PvP and PvE', () => {
     const css = compact(readLocalFile('desktop-battle-log-dock.module.css'))
 
     expect(css).toContain(
-      "main[data-pvp-battle='true'] #battlefield[data-desktop-battle-log-open='true'] > [data-docked-battle-log='true']",
+      ":global(#battlefield[data-desktop-battle-log-open='true'] > [data-docked-battle-log='true'])",
     )
     expect(css).toContain(
-      'transform: translateX(calc(-1 * var(--battle-log-dock-center-shift))) !important;',
+      'transform: translateX(calc(-1 * var(--battle-log-dock-center-shift) + 0.125rem)) !important;',
     )
-    expect(css).toContain('transform: none !important;')
+    expect(css).not.toContain('transform: none !important;')
   })
 
-  it('keeps the footer continuation hack PvP-only', () => {
+  it('continues the terrain footer divider through the shared log column', () => {
     const css = compact(readLocalFile('desktop-battle-log-dock.module.css'))
 
-    expect(css).toContain(
-      "main[data-pvp-battle='true'] #battlefield[data-desktop-battle-log-open='true'] > [aria-label='Terrain legend']",
-    )
-    expect(css).toContain(')::after { position: absolute;')
+    expect(css).toContain(":global(#battlefield[data-desktop-battle-log-open='true'])::after")
+    expect(css).toContain('grid-column: 2 !important; grid-row: 2 !important;')
   })
 
   it('never hides the PvE difficult-terrain legend while the combat log is open', () => {

@@ -271,7 +271,15 @@ export function PvpBattleQualityControls({
       if (!response.ok || !body.battle) {
         throw new Error(body.error?.message ?? 'Surrender could not be committed.')
       }
-      window.location.reload()
+      setBattle(body.battle)
+      setError(null)
+      setSurrenderDialogOpen(false)
+      window.dispatchEvent(
+        new CustomEvent<BattleSessionView>('aurevane:pvp-battle-state', {
+          detail: body.battle,
+        }),
+      )
+      setSurrendering(false)
     } catch (surrenderError) {
       setError(
         surrenderError instanceof Error

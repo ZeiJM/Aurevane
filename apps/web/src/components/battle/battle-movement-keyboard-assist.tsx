@@ -32,9 +32,9 @@ function moveModeIsActive(): boolean {
   )
   return Boolean(
     button &&
-      (button.hasAttribute('data-active') ||
-        button.dataset.battleActive === 'true' ||
-        `${button.className}`.includes('commandActive')),
+    (button.hasAttribute('data-active') ||
+      button.dataset.battleActive === 'true' ||
+      `${button.className}`.includes('commandActive')),
   )
 }
 
@@ -44,7 +44,10 @@ function battlefieldTiles(): HTMLButtonElement[] {
   )
 }
 
-function playerTile(playerName: string, tiles: readonly HTMLButtonElement[]): HTMLButtonElement | null {
+function playerTile(
+  playerName: string,
+  tiles: readonly HTMLButtonElement[],
+): HTMLButtonElement | null {
   return (
     tiles.find((tile) =>
       (tile.getAttribute('aria-label') ?? '').includes(`occupied by ${playerName}`),
@@ -57,14 +60,12 @@ function pathTiles(tiles: readonly HTMLButtonElement[]): HTMLButtonElement[] {
     .filter((tile) => tile.hasAttribute('data-path-index'))
     .sort(
       (left, right) =>
-        Number(left.getAttribute('data-path-index')) - Number(right.getAttribute('data-path-index')),
+        Number(left.getAttribute('data-path-index')) -
+        Number(right.getAttribute('data-path-index')),
     )
 }
 
-function positionsEqual(
-  left: { x: number; y: number },
-  right: { x: number; y: number },
-): boolean {
+function positionsEqual(left: { x: number; y: number }, right: { x: number; y: number }): boolean {
   return left.x === right.x && left.y === right.y
 }
 
