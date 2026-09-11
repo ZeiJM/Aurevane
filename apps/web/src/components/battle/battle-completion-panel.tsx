@@ -256,7 +256,7 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
           </strong>
           <p>
             {recordId === 'mastery-trial'
-              ? 'A qualifying victory awards 50 Primary Discipline Mastery XP. Use two different Primary Skills across three Skill commands, win without a player timeout, then claim your result.'
+              ? 'A qualifying victory awards up to 50 Primary Discipline Mastery XP. Use two different Primary Skills across three Skill commands, win without a player timeout, then claim your result.'
               : 'Practice grants no Character XP, Mastery, loot, Crowns, PvP rating, or normal progression reward. Your committed battle history remains available for review.'}
           </p>
         </div>

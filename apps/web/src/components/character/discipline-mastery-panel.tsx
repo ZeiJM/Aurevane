@@ -37,8 +37,8 @@ export function DisciplineMasteryPanel() {
     >
       <summary>Mastery &amp; unlocks</summary>
       <p>
-        Mastery Trials in the Battle Hall award 50 XP for a qualifying victory. Stages: Practiced
-        100 · Adept 300 · Expert 600 · Master 1,000.
+        Mastery Trials in the Battle Hall award up to 50 XP for a qualifying victory. Stages:
+        Practiced 100 · Adept 300 · Expert 600 · Master 1,000.
       </p>
       <p>
         Advanced libraries teach four Skills at Initiate, two more at Practiced and the final two at
