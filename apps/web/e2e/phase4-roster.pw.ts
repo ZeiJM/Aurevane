@@ -245,7 +245,11 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
       },
     ],
   })
-  expect((await playedAsset).status()).toBe(200)
+  const audioAssetResponse = await playedAsset
+  // HTMLAudioElement may request a byte range; 206 is successful media delivery.
+  expect([200, 206]).toContain(audioAssetResponse.status())
+  expect(audioAssetResponse.headers()['content-type']).toContain('audio/mpeg')
+  expect((await audioAssetResponse.body()).byteLength).toBeGreaterThan(0)
   expect(
     battle.snapshot.statusState.flatMap((row: { statuses: unknown[] }) => row.statuses),
   ).toEqual(expect.arrayContaining([expect.objectContaining({ statusId: 'fortified' })]))
