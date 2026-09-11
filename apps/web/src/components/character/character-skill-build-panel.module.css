@@ -526,15 +526,18 @@
   gap: 0.2rem;
 }
 
-.modal[role='dialog'] .metaRow small {
+.metaRow small {
   border: 1px solid rgb(var(--skill-accent) / 18%);
   border-radius: 999px;
   background: rgb(var(--skill-accent) / 7%);
   padding: 0.125rem 0.3rem;
   color: var(--av-text-muted);
-  font: 600 0.6875rem/1.3 var(--av-font-mono);
   letter-spacing: 0.01em;
   text-transform: uppercase;
+}
+
+.dialog[role='dialog'] .metaRow small {
+  font: 600 0.6875rem/1.3 var(--av-font-mono);
 }
 
 .sourceChip {
