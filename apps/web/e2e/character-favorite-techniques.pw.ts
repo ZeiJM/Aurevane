@@ -42,7 +42,8 @@ async function expectCenteredStar(button: Locator): Promise<void> {
     }
 
     const points = Array.from(polygon.points, (point) => ({ x: point.x, y: point.y }))
-    if (points.length < 3) throw new Error('Favorite star polygon must contain at least three points')
+    if (points.length < 3)
+      throw new Error('Favorite star polygon must contain at least three points')
 
     let twiceArea = 0
     let centroidXNumerator = 0
@@ -89,12 +90,14 @@ async function expectCenteredStar(button: Locator): Promise<void> {
   expect(geometry.iconOffsetY, 'SVG must be vertically centered in its circle').toBeLessThanOrEqual(
     0.5,
   )
-  expect(geometry.visualOffsetX, 'Star visual mass must be horizontally centered').toBeLessThanOrEqual(
-    0.5,
-  )
-  expect(geometry.visualOffsetY, 'Star visual mass must be vertically centered').toBeLessThanOrEqual(
-    0.5,
-  )
+  expect(
+    geometry.visualOffsetX,
+    'Star visual mass must be horizontally centered',
+  ).toBeLessThanOrEqual(0.5)
+  expect(
+    geometry.visualOffsetY,
+    'Star visual mass must be vertically centered',
+  ).toBeLessThanOrEqual(0.5)
 }
 
 test('favorite Technique is visible, character-scoped, persistent, unique per category, and becomes the battle default', async ({
