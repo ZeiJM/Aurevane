@@ -478,3 +478,79 @@
     backdrop-filter: none;
   }
 }
+
+/* A growing directory is a bounded, keyboard-scrollable list, not an ever-taller page. */
+@media (min-width: 981px) and (min-height: 450px) {
+  [data-testid='authenticated-shell']:has(#game-main [data-character-directory]) {
+    height: 100dvh;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+
+  #game-main:has([data-character-directory]) {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  #game-main [data-character-directory] {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+  }
+
+  #game-main [data-character-directory] > header {
+    flex: 0 0 auto;
+  }
+
+  #game-main [data-character-directory] > section {
+    display: flex;
+    min-height: 0;
+    flex: 1 1 0;
+    flex-direction: column;
+  }
+
+  #game-main [data-character-directory] > section > :not(:last-child) {
+    flex: 0 0 auto;
+  }
+
+  #game-main
+    [data-character-directory]
+    > section
+    > div:last-child:has(> button):not([role='status']) {
+    min-height: 0;
+    max-height: none;
+    flex: 1 1 0;
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+    grid-auto-rows: max-content;
+    align-content: start;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    scroll-padding-block: 0.75rem;
+  }
+
+  #game-main
+    [data-character-directory]
+    > section
+    > div:last-child:has(> button):not([role='status'])
+    > button:focus-visible {
+    outline: 2px solid var(--av-focus);
+    outline-offset: -3px;
+  }
+
+  #game-main [data-character-directory] button[aria-pressed],
+  #game-main [data-character-directory] > section > header > span:last-child,
+  #game-main [aria-label='Character directory filters'] label > span,
+  #game-main [aria-label='Character directory filters'] > span {
+    font-size: 0.75rem;
+    line-height: 1.25;
+  }
+
+  #game-main
+    [data-character-directory]
+    > section
+    > div:last-child:has(> button):not([role='status'])
+    > button
+    > span:last-child {
+    font-size: 0.75rem;
+    line-height: 1.3;
+  }
+}
