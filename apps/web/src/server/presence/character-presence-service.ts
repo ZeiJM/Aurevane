@@ -74,6 +74,11 @@ function parseOnlineCharacters(data: unknown[]): OnlineCharacter[] {
   return base
 }
 
+function parseOnlineCount(data: unknown): number {
+  if (typeof data !== 'number' || !Number.isSafeInteger(data) || data < 0) throw unavailable()
+  return data
+}
+
 export async function touchCharacterPresence(userId: string, characterId: string): Promise<string> {
   const supabase = createSupabaseAdminClient()
   const { data, error } = await supabase.rpc('touch_character_presence_v1', {
@@ -87,6 +92,24 @@ export async function touchCharacterPresence(userId: string, characterId: string
     throw unavailable()
   }
   return data
+}
+
+export async function touchCharacterPresenceAndCount(
+  userId: string,
+  characterId: string,
+): Promise<number> {
+  const supabase = createSupabaseAdminClient()
+  const { data, error } = await supabase.rpc('touch_character_presence_and_count_v1', {
+    p_user_id: userId,
+    p_character_id: characterId,
+  })
+  if (error) {
+    if (error.message.includes('CHARACTER_NOT_PLAYABLE')) {
+      throw new AurevaneError('FORBIDDEN', 'That character is not available to this account.')
+    }
+    throw unavailable()
+  }
+  return parseOnlineCount(data)
 }
 
 export async function countOnlineCharacters(): Promise<number> {
