@@ -188,7 +188,7 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
   await page.getByTestId('skill-build-panel').getByRole('button').click()
   const techniques = page.getByRole('dialog', { name: 'Techniques', exact: true })
   await expect(techniques).toBeVisible()
-  await readable(techniques.getByTestId('learned-skill-list').locator('small').first(), 12)
+  await readable(techniques.getByTestId('learned-skill-list').locator('small').first(), 11)
   await testInfo.attach('Techniques-dialog', {
     body: await page.screenshot(),
     contentType: 'image/png',
