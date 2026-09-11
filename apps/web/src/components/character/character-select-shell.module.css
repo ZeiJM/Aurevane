@@ -534,6 +534,7 @@
   }
   .portrait {
     grid-row: 2/5;
+    align-self: center;
     min-height: 10rem;
     margin: 0;
   }

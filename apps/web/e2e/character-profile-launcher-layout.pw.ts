@@ -39,6 +39,20 @@ test('Profile build launchers stay centered and typographically matched', async 
   await expect(page.locator('#build-techniques-heading')).toHaveText('Techniques')
   await expect(page.getByText(/\d+ \/ \d+ tagged/)).toHaveCount(0)
 
+  const rekindling = page.getByRole('button', { name: /^Rekindling Cycle / })
+  const cycleLabel = await rekindling.locator('small').boundingBox()
+  const cycleValue = await rekindling.locator('strong').boundingBox()
+  expect(cycleLabel).not.toBeNull()
+  expect(cycleValue).not.toBeNull()
+  expect(
+    Math.abs(cycleLabel!.x + cycleLabel!.width / 2 - cycleValue!.x - cycleValue!.width / 2),
+    'The cycle number stays centered beneath its label on desktop and mobile',
+  ).toBeLessThanOrEqual(1)
+  await rekindling.click()
+  const cycleDialog = page.getByRole('dialog', { name: /^Rekindling Cycle / })
+  await expect(cycleDialog).toBeVisible()
+  await cycleDialog.getByRole('button', { name: 'Close', exact: true }).click()
+
   const [buttonBox, labelBox] = await Promise.all([
     techniquesLauncher.boundingBox(),
     techniquesLabel.boundingBox(),
