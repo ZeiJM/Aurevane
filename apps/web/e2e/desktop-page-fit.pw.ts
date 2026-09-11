@@ -228,5 +228,61 @@ test('phone Battle Hall keeps its existing scrolling layout and functional tabs'
     await page
       .locator('[data-testid="authenticated-shell"] > footer')
       .evaluate((element) => getComputedStyle(element).position),
-  ).toBe('fixed')
+  ).toBe('sticky')
+})
+
+test('mobile page panels clear the navigation bar at the end of scrolling', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile-chromium', 'Mobile footer clearance regression')
+  test.slow()
+  await enterTestCharacter(page, 'mobile-footer')
+
+  for (const path of ['/game/character', '/game/battle', '/game/training']) {
+    await page.goto(path)
+    await expect(page.locator('#game-main')).toBeVisible()
+    for (const height of [740, 620]) {
+      await page.setViewportSize({ width: 393, height })
+      await settleLayout(page)
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
+      await settleLayout(page)
+      const measure = () =>
+        page.evaluate(() => {
+          const main = document.querySelector('#game-main')!
+          const footer = document.querySelector('[data-testid="authenticated-shell"] > footer')!
+          const mainRect = main.getBoundingClientRect()
+          const footerRect = footer.getBoundingClientRect()
+          return {
+            mainBottom: mainRect.bottom,
+            footerTop: footerRect.top,
+            footerBottom: footerRect.bottom,
+            viewportHeight: innerHeight,
+            overflowX: document.documentElement.scrollWidth - innerWidth,
+            bottomPadding: parseFloat(getComputedStyle(main).paddingBottom),
+          }
+        })
+      const metrics = await measure()
+      expect(metrics.mainBottom, `${path}: content clears footer`).toBeLessThanOrEqual(
+        metrics.footerTop + 1,
+      )
+      expect(
+        metrics.bottomPadding,
+        `${path}: panel border has breathing room`,
+      ).toBeGreaterThanOrEqual(8)
+      expect(Math.abs(metrics.footerBottom - metrics.viewportHeight)).toBeLessThanOrEqual(1)
+      expect(metrics.overflowX).toBeLessThanOrEqual(1)
+      await capture(page, testInfo, `mobile-bottom-${path.replaceAll('/', '-')}-${height}`)
+    }
+
+    // Exercise a taller bar, as produced by safe-area padding or larger text.
+    await page.addStyleTag({
+      content: '[data-testid="authenticated-shell"] > footer { padding-bottom: 40px; }',
+    })
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
+    await settleLayout(page)
+    const main = await page.locator('#game-main').boundingBox()
+    const footer = await page.locator('[data-testid="authenticated-shell"] > footer').boundingBox()
+    expect(main!.y + main!.height).toBeLessThanOrEqual(footer!.y + 1)
+    await expect(page.getByRole('button', { name: 'Navigation', exact: true })).toBeVisible()
+  }
 })
