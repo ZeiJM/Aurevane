@@ -49,11 +49,23 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
   for (const name of ['Rising Fist', 'Sweep', 'Breakfall', 'Counter Palm']) {
     await list.locator('article').filter({ hasText: name }).getByRole('checkbox').check()
   }
+  // The profile refresh can remount the panel and clear its transient status.
+  // Verify the authoritative save, then independently check persisted selections.
+  const saved = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/character/build/skills') &&
+      response.request().method() === 'PUT',
+  )
   await page.getByRole('button', { name: 'Commit Selected Techniques' }).click()
-  await expect(page.getByRole('status')).toContainText('Selected Techniques committed')
+  expect((await saved).status()).toBe(200)
   await page.reload()
   await expect(dialog).toBeVisible()
   await expect(list.locator('input:checked')).toHaveCount(4)
+  for (const name of ['Rising Fist', 'Sweep', 'Breakfall', 'Counter Palm']) {
+    await expect(
+      list.locator('article').filter({ hasText: name }).getByRole('checkbox'),
+    ).toBeChecked()
+  }
   await palm.locator('summary').click()
   const overflow = await dialog.evaluate((element) => element.scrollWidth > element.clientWidth + 1)
   expect(overflow).toBe(false)
