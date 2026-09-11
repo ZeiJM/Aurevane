@@ -54,7 +54,10 @@ describe('published Manual rule consistency', () => {
 
   it('credits delivered buildcraft and PvP without promising complete content', () => {
     expect(articleText('start-here')).toContain('already testable')
-    expect(articleText('character-creation')).toContain('Ironfist content remains incomplete')
+    expect(articleText('character-creation')).toContain(
+      'All six Foundations have eight authored Techniques',
+    )
+    expect(articleText('character-creation')).toContain('Final acquisition and Mastery progression')
     expect(articleText('battle-hall')).toContain('Ranked matchmaking and seasons remain future')
     expect(JSON.stringify(currentManualArticles)).not.toContain('until multiplayer combat exists')
   })

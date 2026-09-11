@@ -12,6 +12,7 @@ import { createPortal } from 'react-dom'
 import type { FavoriteTechniqueCategory } from '../battle/favorite-technique-storage'
 import { battleResonanceArtwork, battleSkillArtwork } from '../battle/battle-skill-presentation'
 import { FavoriteTechniqueButton } from './favorite-technique-button'
+import { SkillDetails } from './skill-details'
 import polish from './character-skill-build-panel-polish.module.css'
 import styles from './character-skill-build-panel.module.css'
 
@@ -410,6 +411,7 @@ export function CharacterSkillBuildPanel({
                               </span>
                               <p>{initialEssence.description}</p>
                             </div>
+                            <SkillDetails skill={initialEssence.skill} />
                             {essenceFavoriteCategory ? (
                               <FavoriteTechniqueButton
                                 characterId={characterId}
@@ -485,6 +487,7 @@ export function CharacterSkillBuildPanel({
                                   </span>
                                 </span>
                               </label>
+                              <SkillDetails skill={entry.definition} />
                               {category ? (
                                 <FavoriteTechniqueButton
                                   characterId={characterId}

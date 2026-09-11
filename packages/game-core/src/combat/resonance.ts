@@ -1,4 +1,5 @@
 import { FOUNDATION_TRIO_RESONANCES } from './foundation-trio-resonances'
+import { IRONFIST_RESONANCES } from './ironfist-content'
 import {
   executeCombatAction,
   type CombatContentCatalog,
@@ -131,6 +132,7 @@ export const P35_REPRESENTATIVE_RESONANCES = [
     },
   },
   ...FOUNDATION_TRIO_RESONANCES,
+  ...IRONFIST_RESONANCES,
 ] as const satisfies readonly ResonanceDefinition[]
 
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/

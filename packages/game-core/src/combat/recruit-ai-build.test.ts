@@ -208,3 +208,51 @@ describe('P3.7 build-aware Recruit AI', () => {
     ).toThrow('Unsupported PV-1F action lifebinder.mending-light.')
   })
 })
+
+it('Ironfist AI uses only its frozen Skills and executes its pure Essence legally', () => {
+  const vanguard = pureSnapshot()
+  const snapshot: CombatBuildSnapshot = {
+    ...vanguard,
+    primary: { disciplineId: 'ironfist', definitionVersion: 1, profileVersion: 1 },
+    disciplineSkills: ['rising-fist', 'counter-palm', 'breakfall', 'hammer-knuckle'].map(
+      (key, index) => ({
+        slotIndex: index + 1,
+        skillId: `ironfist.${key}`,
+        contentVersion: 1,
+        sourceDisciplineId: 'ironfist',
+      }),
+    ),
+    extensions: {
+      ...vanguard.extensions,
+      essence: {
+        essenceId: 'essence.ironfist.hundredfold-rush',
+        contentVersion: 1,
+        sourceDisciplineId: 'ironfist',
+        skillId: 'essence.ironfist.hundredfold-rush',
+        skillContentVersion: 1,
+      },
+    },
+  }
+  const state = attachCombatBuildBridge(encounter(false), [
+    { combatantId: actorId, characterId: '00000000-0000-4000-8000-000000003731', snapshot },
+  ])
+  const decision = chooseBuildAwareRecruitAiDecision({
+    state,
+    profile: RECRUIT_STANDARD_PROFILE,
+    tieBreakSeed: 73731,
+  })
+  expect(decision.intent).toEqual({
+    kind: 'action',
+    actionId: 'essence.ironfist.hundredfold-rush',
+    target: { kind: 'unit', combatantId: targetId },
+  })
+  const result = executeBuildAwareRecruitAiAction(state, 'essence.ironfist.hundredfold-rush', {
+    kind: 'unit',
+    combatantId: targetId,
+  })
+  expect(readPv1fActionEconomy(result.state, actorId)?.current).toBe(40)
+  expect(result.state.tactical.battle.combatants.find((row) => row.id === targetId)?.hp).toBe(29)
+  expect(() =>
+    executeBuildAwareRecruitAiAction(state, 'ironfist.focus-breath', { kind: 'self' }),
+  ).toThrow()
+})

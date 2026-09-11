@@ -2,6 +2,7 @@
 
 import {
   getTacticalHallArena,
+  getTacticalHallArenaFromScenarioSourceId,
   type TacticalHallArenaId,
 } from '@aurevane/game-core/combat/tactical-hall-arenas'
 import { getTacticalHallRecordFromScenarioSourceId } from '@aurevane/game-core/combat/tactical-hall-records'
@@ -37,6 +38,9 @@ function readResult(battle: BattleSessionView): 'Victory' | 'Defeat' {
 }
 
 function readArenaId(battle: BattleSessionView): TacticalHallArenaId {
+  const sourceId = readScenarioSourceId(battle)
+  const arena = sourceId ? getTacticalHallArenaFromScenarioSourceId(sourceId) : null
+  if (arena) return arena.id
   const tactical = battle.snapshot.tactical
   return tactical.width === 9 && tactical.height === 7 ? 'duel-yard' : 'basic-training-floor'
 }
