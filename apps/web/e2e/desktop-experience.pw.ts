@@ -387,8 +387,11 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
       if (path === '/game/online') {
         await page.getByRole('button', { name: 'Show all characters', exact: true }).click()
         const directory = page.getByRole('region', { name: 'All character directory' })
-        await expect(directory.getByLabel('Class', { exact: true })).toBeVisible()
-        await expect(directory.getByLabel('Sort', { exact: true })).toHaveCSS('font-weight', '400')
+        await expect(directory.getByRole('combobox', { name: 'Class', exact: true })).toBeVisible()
+        await expect(directory.getByRole('combobox', { name: 'Sort', exact: true })).toHaveCSS(
+          'font-weight',
+          '400',
+        )
         await expect(directory.getByRole('button').first().locator('strong')).toHaveCSS(
           'font-size',
           '14px',
@@ -397,8 +400,12 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
           'font-size',
           '12px',
         )
-        await directory.getByLabel('Sort', { exact: true }).selectOption('alphabetical')
-        await expect(directory.getByLabel('Sort', { exact: true })).toHaveValue('alphabetical')
+        await directory
+          .getByRole('combobox', { name: 'Sort', exact: true })
+          .selectOption('alphabetical')
+        await expect(directory.getByRole('combobox', { name: 'Sort', exact: true })).toHaveValue(
+          'alphabetical',
+        )
         await testInfo.attach(`phone-${width}-all-characters`, {
           body: await page.screenshot(),
           contentType: 'image/png',
