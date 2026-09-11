@@ -140,10 +140,7 @@
     max-height: 4.8rem !important;
   }
 
-  main[data-unified-battle='true']
-    #battlefield
-    > div:first-child
-    > [data-board-auto-fit='9x7'] {
+  main[data-unified-battle='true'] #battlefield > div:first-child > [data-board-auto-fit='9x7'] {
     max-width: min(100%, 540px) !important;
     height: min(100%, 420px) !important;
   }
