@@ -94,7 +94,7 @@ export function FavoriteTechniqueButton({
         strokeWidth="1.6"
         strokeLinejoin="round"
       >
-        <path d="M12 2.5 15.09 8.76 22 9.76 17 14.64 18.18 21.5 12 18.26 5.82 21.5 7 14.64 2 9.76 8.91 8.76Z" />
+        <polygon points="12,2 14.645,8.359 21.511,8.91 16.28,13.391 17.878,20.09 12,16.5 6.122,20.09 7.72,13.391 2.489,8.91 9.355,8.359" />
       </svg>
     </button>
   )
