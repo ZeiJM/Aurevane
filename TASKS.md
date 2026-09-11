@@ -148,3 +148,8 @@ Do not start broad roster production, large Resonance matrices, Soulmark/Mantle 
 6. Never silently redesign/remove mechanics or weaken authority/security to simplify implementation.
 7. Keep temporary validation/support access bounded, auditable and fail-closed.
 8. Keep this ledger current and concise.
+
+
+## Phase 4 media continuation — candidate review
+
+Branch `agent/phase4-media-candidates` prepares ten painted identity masters, 72 original synthesized cues, provenance, bounded central audio audition and an offline review gallery. `docs/PHASE_4_PLAYTEST_PACKET.md` provides actual-session scenarios and an empty results template. Automated media/runtime checks are recorded with the candidate pack. Browser walkthrough of the local review file was blocked by the browser URL policy and is not claimed. Human art/listening acceptance remains required by `docs/MEDIA_PIPELINE.md`; live assets and gameplay rules are unchanged.

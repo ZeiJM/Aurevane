@@ -1,7 +1,7 @@
 # AUDIO-DISC-001 — Phase 4 combat cue families
 
 TYPE: Discipline / Skill / Essence / Resonance SFX
-STATUS: REQUESTED — authored hooks exist; dedicated recordings are not delivered or approved.
+STATUS: CANDIDATES PREPARED — 72 original material-synthesis cues, PCM masters, MP3 review encodes and provenance. Human listening review is pending. These are synthesized renders, not recordings.
 CONTEXT: confirmed combat actions on the shared PvE/PvP/spectator platform
 TRIGGER: committed action/effect events only; never previews, initial snapshot hydration, reconnect history or duplicate versions
 PERSPECTIVE: restrained board-local, mono-compatible
@@ -26,3 +26,5 @@ Essences strengthen their own identity without simply increasing volume. Resonan
 
 RUNTIME: central AudioDirector, existing master/SFX settings and gesture unlock. Suspend cues in hidden tabs, deduplicate committed battle versions, never queue historical playback. Each runtime variation targets at most 20 KB; no generation/network vendor call during combat. At most ten advanced families plus shared effect accents, rather than 195 unrelated audio assets.
 DELIVERABLES: source masters, normalized runtime files, provenance and listening review; Art/Audio Bible human acceptance is pending. No approval or recordings are inferred from a stable audioCueKey.
+
+Set 01 is stored in `content/media-candidates/phase4`: three action and three Essence variations for each advanced Discipline, plus three attrition/healing/cleanse/conversion accents. The explicit central audition path rejects candidates in normal playback. Committed-event integration and pair-specific mixes follow selection/listening approval; they are not claimed delivered by this review pack.

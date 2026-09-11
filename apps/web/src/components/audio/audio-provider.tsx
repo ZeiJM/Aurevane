@@ -78,6 +78,14 @@ export function AudioProvider({ children }: PropsWithChildren) {
     [director],
   )
 
+  useEffect(() => {
+    const stopHiddenAudio = () => {
+      if (document.hidden) director.stopAll()
+    }
+    document.addEventListener('visibilitychange', stopHiddenAudio)
+    return () => document.removeEventListener('visibilitychange', stopHiddenAudio)
+  }, [director])
+
   const setVolume = useCallback((channel: AudioChannel, value: number) => {
     dispatch({ type: 'set-volume', channel, value })
   }, [])

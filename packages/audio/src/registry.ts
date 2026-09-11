@@ -1,6 +1,6 @@
 import type { RoutedAudioChannel } from './settings'
 
-export type AudioAssetStatus = 'requested' | 'approved'
+export type AudioAssetStatus = 'requested' | 'candidate' | 'approved'
 export type AudioAssetKind = 'music' | 'ambience' | 'sfx' | 'ui'
 export type AudioPreload = 'none' | 'metadata' | 'auto'
 
@@ -83,8 +83,10 @@ export function validateAudioRegistry(entries: readonly AudioAssetDescriptor[]):
       errors.push(`Audio asset ${asset.id} is missing a request id.`)
     }
 
-    if (asset.status === 'approved' && !asset.src?.trim()) {
-      errors.push(`Approved audio asset ${asset.id} is missing a runtime source.`)
+    if ((asset.status === 'approved' || asset.status === 'candidate') && !asset.src?.trim()) {
+      errors.push(
+        `${asset.status === 'approved' ? 'Approved' : 'Candidate'} audio asset ${asset.id} is missing a runtime source.`,
+      )
     }
 
     if (asset.status === 'requested' && asset.src) {
