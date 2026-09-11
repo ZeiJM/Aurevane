@@ -338,21 +338,22 @@ export function BattleKeyboardAssist({ playerName }: { playerName: string }) {
 
       const deck = button.closest('section[aria-label="Command Deck"]')
       if (deck) {
-        const label = button.querySelector('strong')?.textContent?.trim() ?? ''
-        if (
-          ['Move', 'Basic Attack', 'Recover', 'HP Recovery', 'MP Recovery'].includes(label) &&
-          !button.disabled
-        ) {
-          lastRepeatableCommand.current = label
-          if (label !== 'Move') movementPlan.current = null
-        } else if (label === 'Guard') {
+        const slot = button.dataset.commandSlot ?? button.dataset.battleCommand ?? ''
+        if ((slot === 'move' || slot === 'attack' || slot === 'recover') && !button.disabled) {
+          // Track the stable cockpit slot instead of the visible Skill name. Authored Techniques
+          // replace labels like Basic Attack while remaining in the same repeatable command slot.
+          const repeatLabel =
+            slot === 'move' ? 'Move' : slot === 'attack' ? 'Basic Attack' : 'Recover'
+          lastRepeatableCommand.current = repeatLabel
+          if (slot !== 'move') movementPlan.current = null
+        } else if (slot === 'guard') {
           // Guard is intentionally one-shot. Its status forbids an immediate second Guard, so never
           // schedule a synthetic repeat after confirmation even when older rail markup is absent.
           lastRepeatableCommand.current = null
           repeatSequence.current += 1
           movementPlan.current = null
         }
-        if (label === 'Finish Turn') {
+        if (slot === 'finish') {
           lastRepeatableCommand.current = null
           movementPlan.current = null
           repeatSequence.current += 1
