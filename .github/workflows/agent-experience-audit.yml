@@ -1,0 +1,28 @@
+name: Agent experience audit
+
+on:
+  push:
+    branches: [agent/desktop-viewport-fit]
+    paths: [.github/workflows/agent-experience-audit.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 30
+      - name: Export tracked source without credentials
+        run: |
+          git archive --format=tar HEAD | gzip > /tmp/aurevane-source.tar.gz
+          git diff origin/main...HEAD > /tmp/experience-branch.diff || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experience-audit-source
+          path: |
+            /tmp/aurevane-source.tar.gz
+            /tmp/experience-branch.diff
+          retention-days: 3
