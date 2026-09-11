@@ -78,17 +78,21 @@ export function skillTargetTags(skill: MatureSkillDefinition): readonly string[]
         : `Line · ${target.shape.length} tiles`
   const effectTags = [
     ...new Set(
-      skill.effects.map((effect) =>
-        effect.type === 'damage'
-          ? 'Damage'
-          : effect.type === 'healing'
-            ? 'Healing'
-            : effect.type === 'resource-change'
-              ? 'MP'
-              : effect.type === 'remove-status'
-                ? 'Cleanse'
-                : `${combatStatusDetails(effect.statusId).name}${effect.recipient === 'actor' && skill.target.kind !== 'self' ? ' · Self' : ''}`,
-      ),
+      skill.effects.map((effect) => {
+        const label =
+          effect.type === 'damage'
+            ? 'Damage'
+            : effect.type === 'healing'
+              ? 'Healing'
+              : effect.type === 'resource-change'
+                ? effect.delta < 0
+                  ? 'MP Drain'
+                  : 'MP Restore'
+                : effect.type === 'remove-status'
+                  ? 'Cleanse'
+                  : combatStatusDetails(effect.statusId).name
+        return `${label}${effect.recipient === 'actor' && skill.target.kind !== 'self' ? ' · Self' : ''}`
+      }),
     ),
   ]
   return [kind, shape, ...effectTags]

@@ -16,7 +16,7 @@ describe('Player-facing Skill targeting and effects', () => {
     expect(skillRangeDescription(volley)).toBe('2–5 tiles')
     expect(skillAffectedDescription(volley)).toBe('Enemies only')
     const breath = resolveMatureSkillVersion('ironfist.focus-breath')!
-    expect(skillTargetTags(breath)).toEqual(['Self', 'Single target', 'Healing', 'MP'])
+    expect(skillTargetTags(breath)).toEqual(['Self', 'Single target', 'Healing', 'MP Restore'])
     expect(skillRangeDescription(breath)).toBe('Self only')
     expect(JSON.stringify(volley)).toBe(before)
   })
@@ -60,5 +60,18 @@ it('describes source-specific modifiers, cleansing and periodic timing', () => {
   expect(skillEffectDescription(burn.effects[1]!)).toContain('end-of-turn ticks')
   expect(skillTargetTags(resolveMatureSkillVersion('runeblade.unbinding-rune')!)).toContain(
     'Cleanse',
+  )
+})
+
+it('distinguishes enemy MP drain from the user’s restoration in one Skill', () => {
+  expect(skillTargetTags(resolveMatureSkillVersion('runeblade.siphon-slash')!)).toEqual([
+    'Enemy',
+    'Single target',
+    'Damage',
+    'MP Drain',
+    'MP Restore · Self',
+  ])
+  expect(skillTargetTags(resolveMatureSkillVersion('ravager.blood-siphon')!)).toContain(
+    'Healing · Self',
   )
 })
