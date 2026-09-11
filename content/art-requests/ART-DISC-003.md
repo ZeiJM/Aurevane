@@ -1,6 +1,6 @@
 # ART-DISC-003 — Advanced roster media
 
-Status: semantic vector icons implemented; illustrated masters and human art acceptance requested.
+Status: semantic vector icons live; ten painted identity candidates and review derivatives prepared in `content/media-candidates/phase4`. Human art acceptance is pending.
 
 Scope: Bastion, Ravager, Edgedancer, Wildwarden, Runeblade, Dawnshield, Cinderweaver, Frostweaver, Stormsinger and Tidecaller. Each has eight Skills and one Essence; 105 added Resonance pairs share their two Discipline motifs.
 
@@ -13,3 +13,5 @@ VFX requirements: local, brief confirmed-impact accents; Root/Slow visible in st
 Budget: code-native icons add no network media requests; share ten identity families and effect/shape primitives. Future raster runtime icons should target at most 40 KB each with lazy loading. VFX at most 500 ms, no persistent particle loops, reduced-motion alternative and no authority changes.
 
 Acceptance still required: illustrated source candidates, human Art Bible review and responsive runtime derivatives. Automated content coverage does not substitute for that review.
+
+Set 01: ten generated identity illustrations with retained prompt/hash provenance and 64/128/256 px review encodes. These supplement the semantic Skill glyphs; 80 bespoke Skill paintings are not claimed. Review through the standalone media packet. No candidate has been published to live gameplay.

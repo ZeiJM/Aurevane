@@ -1,0 +1,362 @@
+[
+  {
+    "id": "art.phase4.bastion.identity.v01",
+    "disciplineId": "bastion",
+    "status": "candidate",
+    "approvedBy": null,
+    "requestId": "ART-DISC-003",
+    "sourceMethod": "generated",
+    "provider": "OpenAI image_gen built-in",
+    "createdAt": "2026-09-11",
+    "originalSource": "Original PNG generated in this conversation; retained separately from the review derivatives.",
+    "originalSha256": "535ac7ee3ffe47a710ae9d83caab910b34a0505dcd5809a0b57b760ff70b28ac",
+    "master": "art/masters/bastion-v01.webp",
+    "masterSha256": "97c7fbc07805e25e569fcd3fcebd99b3cb4f71cbf9099e3e0b70acfb818cab01",
+    "masterBytes": 398050,
+    "prompt": "Use case: stylized-concept. Create one square, high-resolution painted game ability identity master for AUREVANE's Bastion Discipline, a mature original tactical fantasy RPG. Subject: a single broad, battle-worn steel tower shield, viewed three-quarter front, grounded on a dark stone ledge. Restrained blue-grey steel (#91afc4), charcoal leather straps, blunt substantial silhouette, believable rivets and thickness. A narrow split of cool daylight catches its rim. Material-rich digital oil painting, confident broad value shapes that remain legible at 64px. The shield fills the central 72% of the square; dark slate full-frame background, generous quiet margins for circular or square crops. Defensive solidity, not aggression. No person, hands, text, letters, numbers, border, badge frame, watermark, logos, copied franchise imagery, excessive bloom or magical runes. This is an illustrated identity candidate; do not depict mechanics or UI.",
+    "previews": [
+      {
+        "width": 64,
+        "height": 64,
+        "path": "art/runtime/bastion-64-v01.webp",
+        "bytes": 830
+      },
+      {
+        "width": 128,
+        "height": 128,
+        "path": "art/runtime/bastion-128-v01.webp",
+        "bytes": 2538
+      },
+      {
+        "width": 256,
+        "height": 256,
+        "path": "art/runtime/bastion-256-v01.webp",
+        "bytes": 8608
+      }
+    ]
+  },
+  {
+    "id": "art.phase4.ravager.identity.v01",
+    "disciplineId": "ravager",
+    "status": "candidate",
+    "approvedBy": null,
+    "requestId": "ART-DISC-003",
+    "sourceMethod": "generated",
+    "provider": "OpenAI image_gen built-in",
+    "createdAt": "2026-09-11",
+    "originalSource": "Original PNG generated in this conversation; retained separately from the review derivatives.",
+    "originalSha256": "d50421d81011fc70bd65d020351ec841b263d0f0f39347161ca47e0423fed3b8",
+    "master": "art/masters/ravager-v01.webp",
+    "masterSha256": "7ce02e7086662928d7ab50741304f57aedce3c64063b375de7d0a7628745f3f9",
+    "masterBytes": 573802,
+    "prompt": "Use case: stylized-concept. One square high-resolution painted identity master for AUREVANE's ravager Discipline, an original mature tactical fantasy RPG. Subject: one rugged, broad-headed single-bladed axe angled diagonally, forged dark iron edge and a wrapped charcoal handle, restrained rust-red cloth (#db786f) tied below the head; coarse force, sturdy plausible construction, no blood. Material-rich digital oil painting with broad clear value shapes, believable steel/wood/leather, readable at 64px. Subject fills central 72% with quiet crop margins. Dark charcoal/slate full-frame background, a subtle stone surface, cool directional daylight with a restrained warm rim. No person, hands, text, numbers, letters, frames, badge outlines, watermark, logos, franchise references, oversaturated glow or decorative UI. Match a cohesive grounded fantasy equipment illustration family; one clear dominant silhouette.",
+    "previews": [
+      {
+        "width": 64,
+        "height": 64,
+        "path": "art/runtime/ravager-64-v01.webp",
+        "bytes": 878
+      },
+      {
+        "width": 128,
+        "height": 128,
+        "path": "art/runtime/ravager-128-v01.webp",
+        "bytes": 3168
+      },
+      {
+        "width": 256,
+        "height": 256,
+        "path": "art/runtime/ravager-256-v01.webp",
+        "bytes": 12198
+      }
+    ]
+  },
+  {
+    "id": "art.phase4.edgedancer.identity.v01",
+    "disciplineId": "edgedancer",
+    "status": "candidate",
+    "approvedBy": null,
+    "requestId": "ART-DISC-003",
+    "sourceMethod": "generated",
+    "provider": "OpenAI image_gen built-in",
+    "createdAt": "2026-09-11",
+    "originalSource": "Original PNG generated in this conversation; retained separately from the review derivatives.",
+    "originalSha256": "91c1044face68ec3438173e895b35791a85bb73be6f71aaf8b0466543e271abe",
+    "master": "art/masters/edgedancer-v01.webp",
+    "masterSha256": "97b7156df017e8441971abddbf27d4c5a500de564cf149a7719b816d6820056a",
+    "masterBytes": 505812,
+    "prompt": "Use case: stylized-concept. One square high-resolution painted identity master for AUREVANE's edgedancer Discipline, an original mature tactical fantasy RPG. Subject: one elegant narrow curved steel sabre angled diagonally, a simple precise guard and muted ivory leather grip, pale champagne accents (#d9c9a8); a clean silver sweep of reflected light suggests fast precise movement, no second weapon. Material-rich digital oil painting with broad clear value shapes, believable steel/wood/leather, readable at 64px. Subject fills central 72% with quiet crop margins. Dark charcoal/slate full-frame background, a subtle stone surface, cool directional daylight with a restrained warm rim. No person, hands, text, numbers, letters, frames, badge outlines, watermark, logos, franchise references, oversaturated glow or decorative UI. Match a cohesive grounded fantasy equipment illustration family; one clear dominant silhouette.",
+    "previews": [
+      {
+        "width": 64,
+        "height": 64,
+        "path": "art/runtime/edgedancer-64-v01.webp",
+        "bytes": 874
+      },
+      {
+        "width": 128,
+        "height": 128,
+        "path": "art/runtime/edgedancer-128-v01.webp",
+        "bytes": 2838
+      },
+      {
+        "width": 256,
+        "height": 256,
+        "path": "art/runtime/edgedancer-256-v01.webp",
+        "bytes": 10594
+      }
+    ]
+  },
+  {
+    "id": "art.phase4.wildwarden.identity.v01",
+    "disciplineId": "wildwarden",
+    "status": "candidate",
+    "approvedBy": null,
+    "requestId": "ART-DISC-003",
+    "sourceMethod": "generated",
+    "provider": "OpenAI image_gen built-in",
+    "createdAt": "2026-09-11",
+    "originalSource": "Original PNG generated in this conversation; retained separately from the review derivatives.",
+    "originalSha256": "0f8d005744b4618534722834f3091f7a25c1e682382877d1fc003ea42bea2626",
+    "master": "art/masters/wildwarden-v01.webp",
+    "masterSha256": "db99171e91ae0e7405cb3c93ce4c4f5940f8b7e8fc2ea438bcfe84449555159e",
+    "masterBytes": 609358,
+    "prompt": "Use case: stylized-concept. One square high-resolution painted identity master for AUREVANE's wildwarden Discipline, an original mature tactical fantasy RPG. Subject: one beautifully constructed recurved yew bow with a visibly taut bowstring and a single straight arrow aligned beside it, a few restrained thorn and leaf details on the grip; moss green (#91b780), worn brown wood, quiet golden arrow fletching, wilderness guardian. Material-rich digital oil painting with broad clear value shapes, believable steel/wood/leather, readable at 64px. Subject fills central 72% with quiet crop margins. Dark charcoal/slate full-frame background, a subtle stone surface, cool directional daylight with a restrained warm rim. No person, hands, text, numbers, letters, frames, badge outlines, watermark, logos, franchise references, oversaturated glow or decorative UI. Match a cohesive grounded fantasy equipment illustration family; one clear dominant silhouette.",
+    "previews": [
+      {
+        "width": 64,
+        "height": 64,
+        "path": "art/runtime/wildwarden-64-v01.webp",
+        "bytes": 1016
+      },
+      {
+        "width": 128,
+        "height": 128,
+        "path": "art/runtime/wildwarden-128-v01.webp",
+        "bytes": 3588
+      },
+      {
+        "width": 256,
+        "height": 256,
+        "path": "art/runtime/wildwarden-256-v01.webp",
+        "bytes": 13404
+      }
+    ]
+  },
+  {
+    "id": "art.phase4.runeblade.identity.v01",
+    "disciplineId": "runeblade",
+    "status": "candidate",
+    "approvedBy": null,
+    "requestId": "ART-DISC-003",
+    "sourceMethod": "generated",
+    "provider": "OpenAI image_gen built-in",
+    "createdAt": "2026-09-11",
+    "originalSource": "Original PNG generated in this conversation; retained separately from the review derivatives.",
+    "originalSha256": "fe60204916521c5676616b1fd67b657e6850d6fcb8d74b4171b1ba7011e52c56",
+    "master": "art/masters/runeblade-v01.webp",
+    "masterSha256": "cf6d878848369eff3d9cae3bff18ce1fdcd1e5fc8945e937b7155e7ea9a741a2",
+    "masterBytes": 573056,
+    "prompt": "Use case: stylized-concept. One square high-resolution painted identity master for AUREVANE's runeblade Discipline, an original mature tactical fantasy RPG. Subject: a single straight, double-edged steel longsword with a simple crossguard resting diagonally on dark stone; three small geometric violet inlays along the fuller catch a restrained lavender (#b8a0d9) glow, fine violet motes close to the blade only; sound plausible construction, rune power anchored to steel. Material-rich digital oil painting with broad clear value shapes, credible material texture, readable at 64px. One dominant subject fills central 72%, quiet crop margins. Dark charcoal/slate full-frame background and subtle stone surface. Cool directional daylight with restrained warm rim; magical accent limited to the specified source. No person, hands, text, numbers, letters, written glyphs, frames, badge outlines, watermark, logos, franchise references, excessive bloom or decorative UI. Cohesive grounded fantasy ability illustration family.",
+    "previews": [
+      {
+        "width": 64,
+        "height": 64,
+        "path": "art/runtime/runeblade-64-v01.webp",
+        "bytes": 1252
+      },
+      {
+        "width": 128,
+        "height": 128,
+        "path": "art/runtime/runeblade-128-v01.webp",
+        "bytes": 4452
+      },
+      {
+        "width": 256,
+        "height": 256,
+        "path": "art/runtime/runeblade-256-v01.webp",
+        "bytes": 17352
+      }
+    ]
+  },
+  {
+    "id": "art.phase4.dawnshield.identity.v01",
+    "disciplineId": "dawnshield",
+    "status": "candidate",
+    "approvedBy": null,
+    "requestId": "ART-DISC-003",
+    "sourceMethod": "generated",
+    "provider": "OpenAI image_gen built-in",
+    "createdAt": "2026-09-11",
+    "originalSource": "Original PNG generated in this conversation; retained separately from the review derivatives.",
+    "originalSha256": "34f717c30a16cc614eff1cc0630fcd0624207a8a644d509432fee0499cdab3ae",
+    "master": "art/masters/dawnshield-v01.webp",
+    "masterSha256": "58c27da4ef8f31bb8144e66e99bb10e75ff6fd2f650af1383cf579ab943c62fb",
+    "masterBytes": 490820,
+    "prompt": "Use case: stylized-concept. One square high-resolution painted identity master for AUREVANE's dawnshield Discipline, an original mature tactical fantasy RPG. Subject: a single rounded kite shield of worn warm bronze and dark steel with a shallow raised sunburst emblem, warm muted gold (#e3ca88), a small beam of early sunlight on its upper edge; rounded protective silhouette distinct from a broad tower shield, matte surfaces, no bright halo. Material-rich digital oil painting with broad clear value shapes, credible material texture, readable at 64px. One dominant subject fills central 72%, quiet crop margins. Dark charcoal/slate full-frame background and subtle stone surface. Cool directional daylight with restrained warm rim; magical accent limited to the specified source. No person, hands, text, numbers, letters, written glyphs, frames, badge outlines, watermark, logos, franchise references, excessive bloom or decorative UI. Cohesive grounded fantasy ability illustration family.",
+    "previews": [
+      {
+        "width": 64,
+        "height": 64,
+        "path": "art/runtime/dawnshield-64-v01.webp",
+        "bytes": 1140
+      },
+      {
+        "width": 128,
+        "height": 128,
+        "path": "art/runtime/dawnshield-128-v01.webp",
+        "bytes": 3692
+      },
+      {
+        "width": 256,
+        "height": 256,
+        "path": "art/runtime/dawnshield-256-v01.webp",
+        "bytes": 13470
+      }
+    ]
+  },
+  {
+    "id": "art.phase4.cinderweaver.identity.v01",
+    "disciplineId": "cinderweaver",
+    "status": "candidate",
+    "approvedBy": null,
+    "requestId": "ART-DISC-003",
+    "sourceMethod": "generated",
+    "provider": "OpenAI image_gen built-in",
+    "createdAt": "2026-09-11",
+    "originalSource": "Original PNG generated in this conversation; retained separately from the review derivatives.",
+    "originalSha256": "c3fb08fa25ff0e974e99870d50b0caad529f77854abf6dfb961d4889bfb32fca",
+    "master": "art/masters/cinderweaver-v01.webp",
+    "masterSha256": "fb96fbf2bae90f5947f146d89188928bd5a5336b3e48965f9454fd5b5052c1b3",
+    "masterBytes": 403166,
+    "prompt": "Use case: stylized-concept. One square high-resolution painted identity master for AUREVANE's cinderweaver Discipline, an original mature tactical fantasy RPG. Subject: one small natural flame rising from a charred black branch curled into a loose crescent on slate; strong sculptural silhouette of ember-orange (#eea16e) flame, visible dark fuel and tiny embers, a dry controlled ignition, no giant fireball. Material-rich digital oil painting with broad clear value shapes, credible material texture, readable at 64px. One dominant subject fills central 72%, quiet crop margins. Dark charcoal/slate full-frame background and subtle stone surface. Cool directional daylight with restrained warm rim; magical accent limited to the specified source. No person, hands, text, numbers, letters, written glyphs, frames, badge outlines, watermark, logos, franchise references, excessive bloom or decorative UI. Cohesive grounded fantasy ability illustration family.",
+    "previews": [
+      {
+        "width": 64,
+        "height": 64,
+        "path": "art/runtime/cinderweaver-64-v01.webp",
+        "bytes": 1246
+      },
+      {
+        "width": 128,
+        "height": 128,
+        "path": "art/runtime/cinderweaver-128-v01.webp",
+        "bytes": 4252
+      },
+      {
+        "width": 256,
+        "height": 256,
+        "path": "art/runtime/cinderweaver-256-v01.webp",
+        "bytes": 14912
+      }
+    ]
+  },
+  {
+    "id": "art.phase4.frostweaver.identity.v01",
+    "disciplineId": "frostweaver",
+    "status": "candidate",
+    "approvedBy": null,
+    "requestId": "ART-DISC-003",
+    "sourceMethod": "generated",
+    "provider": "OpenAI image_gen built-in",
+    "createdAt": "2026-09-11",
+    "originalSource": "Original PNG generated in this conversation; retained separately from the review derivatives.",
+    "originalSha256": "9bb66fe63d46919263c5bd1ea25034d1495a3d7235cfea6cf379a63d5f3e35cc",
+    "master": "art/masters/frostweaver-v01.webp",
+    "masterSha256": "23f666d1a669cb4c4faaade33d05c2fc151998c23903a6f1452c0e46779b3a8b",
+    "masterBytes": 528070,
+    "prompt": "Use case: stylized-concept. One square high-resolution painted identity master for AUREVANE's frostweaver Discipline, an original mature tactical fantasy RPG. Subject: one compact cluster of angular pale blue ice crystals growing from a split piece of dark slate; a bold asymmetric crystalline silhouette, white frost seams and a few small fractured ice pieces, pale cyan (#a0d2df); cold refractive material without bright white bloom. Material-rich digital oil painting, broad clear value shapes, credible material texture, readable at 64px. One dominant subject fills central 72%, quiet crop margins. Dark charcoal/slate full-frame background and subtle stone surface. Cool directional daylight with restrained warm rim; magical accent limited to the specified source. No person, hands, text, letters, numbers, frames, badge outlines, watermark, logos, franchise references, excessive bloom or decorative UI. Cohesive grounded fantasy ability illustration family.",
+    "previews": [
+      {
+        "width": 64,
+        "height": 64,
+        "path": "art/runtime/frostweaver-64-v01.webp",
+        "bytes": 1456
+      },
+      {
+        "width": 128,
+        "height": 128,
+        "path": "art/runtime/frostweaver-128-v01.webp",
+        "bytes": 4562
+      },
+      {
+        "width": 256,
+        "height": 256,
+        "path": "art/runtime/frostweaver-256-v01.webp",
+        "bytes": 15568
+      }
+    ]
+  },
+  {
+    "id": "art.phase4.stormsinger.identity.v01",
+    "disciplineId": "stormsinger",
+    "status": "candidate",
+    "approvedBy": null,
+    "requestId": "ART-DISC-003",
+    "sourceMethod": "generated",
+    "provider": "OpenAI image_gen built-in",
+    "createdAt": "2026-09-11",
+    "originalSource": "Original PNG generated in this conversation; retained separately from the review derivatives.",
+    "originalSha256": "38afe15d67d500f220876fe95578416739ae7a1e46e41c4658e9d3fccc5bbdd3",
+    "master": "art/masters/stormsinger-v01.webp",
+    "masterSha256": "2788623bdf9b07c28537d7594b9c542670db769ed5cfd23cdc2afac6391f0576",
+    "masterBytes": 366110,
+    "prompt": "Use case: stylized-concept. One square high-resolution painted identity master for AUREVANE's stormsinger Discipline, an original mature tactical fantasy RPG. Subject: a single narrow jagged arc of pale lavender lightning bridging two small weathered iron prongs set into a dark stone fragment; clear zigzag silhouette, restrained cool lavender (#b6b5e9), a tiny suggestion of displaced dust close to the contact; no giant explosion, cables, machinery, modern electronics or thundercloud. Material-rich digital oil painting, broad clear value shapes, credible material texture, readable at 64px. One dominant subject fills central 72%, quiet crop margins. Dark charcoal/slate full-frame background and subtle stone surface. Cool directional daylight with restrained warm rim; magical accent limited to the specified source. No person, hands, text, letters, numbers, frames, badge outlines, watermark, logos, franchise references, excessive bloom or decorative UI. Cohesive grounded fantasy ability illustration family.",
+    "previews": [
+      {
+        "width": 64,
+        "height": 64,
+        "path": "art/runtime/stormsinger-64-v01.webp",
+        "bytes": 956
+      },
+      {
+        "width": 128,
+        "height": 128,
+        "path": "art/runtime/stormsinger-128-v01.webp",
+        "bytes": 3200
+      },
+      {
+        "width": 256,
+        "height": 256,
+        "path": "art/runtime/stormsinger-256-v01.webp",
+        "bytes": 11432
+      }
+    ]
+  },
+  {
+    "id": "art.phase4.tidecaller.identity.v01",
+    "disciplineId": "tidecaller",
+    "status": "candidate",
+    "approvedBy": null,
+    "requestId": "ART-DISC-003",
+    "sourceMethod": "generated",
+    "provider": "OpenAI image_gen built-in",
+    "createdAt": "2026-09-11",
+    "originalSource": "Original PNG generated in this conversation; retained separately from the review derivatives.",
+    "originalSha256": "b10bfc900a8bf6ea798b56f339128e6fb8a322c18e2f1a424a0579271059b17b",
+    "master": "art/masters/tidecaller-v01.webp",
+    "masterSha256": "4c44afbf458ed67efc23ebbac3cb8c53996ffc605ac5877113d52f538db2a042",
+    "masterBytes": 471492,
+    "prompt": "Use case: stylized-concept. One square high-resolution painted identity master for AUREVANE's tidecaller Discipline, an original mature tactical fantasy RPG. Subject: one sculptural crescent splash of clean teal water curling above a shallow weathered dark stone bowl; coherent liquid mass, a few large clear droplets, light passing through the crest, muted teal (#7ec9bf); readable smooth flowing silhouette distinct from flame and crystals, no constant bubbling. Material-rich digital oil painting, broad clear value shapes, credible material texture, readable at 64px. One dominant subject fills central 72%, quiet crop margins. Dark charcoal/slate full-frame background and subtle stone surface. Cool directional daylight with restrained warm rim; magical accent limited to the specified source. No person, hands, text, letters, numbers, frames, badge outlines, watermark, logos, franchise references, excessive bloom or decorative UI. Cohesive grounded fantasy ability illustration family.",
+    "previews": [
+      {
+        "width": 64,
+        "height": 64,
+        "path": "art/runtime/tidecaller-64-v01.webp",
+        "bytes": 1318
+      },
+      {
+        "width": 128,
+        "height": 128,
+        "path": "art/runtime/tidecaller-128-v01.webp",
+        "bytes": 4130
+      },
+      {
+        "width": 256,
+        "height": 256,
+        "path": "art/runtime/tidecaller-256-v01.webp",
+        "bytes": 14790
+      }
+    ]
+  }
+]

@@ -17,6 +17,8 @@ export type AudioDirectorState = 'locked' | 'ready' | 'unavailable'
 interface ActiveMediaSource {
   element: HTMLAudioElement
   source: MediaElementAudioSourceNode
+  channel: RoutedAudioChannel
+  priority: number
 }
 
 export class AudioDirector {
@@ -26,6 +28,7 @@ export class AudioDirector {
   private activeMedia = new Set<ActiveMediaSource>()
   private settings = createDefaultAudioSettings()
   private unavailable = false
+  private playbackGeneration = 0
 
   get state(): AudioDirectorState {
     if (this.unavailable) {
@@ -71,8 +74,30 @@ export class AudioDirector {
     }
   }
 
-  async playAsset(asset: AudioAssetDescriptor): Promise<boolean> {
-    if (asset.status !== 'approved' || !asset.src || this.state !== 'ready' || !this.context) {
+  async playAsset(asset: AudioAssetDescriptor, priority = 50): Promise<boolean> {
+    return asset.status === 'approved' && this.playMedia(asset, priority)
+  }
+
+  /** Explicit reviewer gesture only. Candidate media never enters ordinary playback. */
+  async auditionAsset(asset: AudioAssetDescriptor): Promise<boolean> {
+    return asset.status === 'candidate' && this.playMedia(asset, 50)
+  }
+
+  stopAll(): void {
+    this.playbackGeneration += 1
+    for (const activeSource of this.activeMedia) this.releaseMediaSource(activeSource)
+  }
+
+  private async playMedia(asset: AudioAssetDescriptor, priority: number): Promise<boolean> {
+    if (
+      !asset.src ||
+      this.state !== 'ready' ||
+      !this.context ||
+      (typeof document !== 'undefined' && document.hidden) ||
+      this.settings.muted ||
+      this.settings.volumes.master <= 0 ||
+      this.settings.volumes[asset.channel] <= 0
+    ) {
       return false
     }
 
@@ -81,6 +106,15 @@ export class AudioDirector {
       return false
     }
 
+    const boundedPriority = Number.isFinite(priority) ? Math.min(100, Math.max(0, priority)) : 50
+    const voices = [...this.activeMedia].filter((voice) => voice.channel === 'sfx')
+    if (asset.channel === 'sfx' && voices.length >= 2) {
+      const lowest = voices.reduce((a, b) => (a.priority <= b.priority ? a : b))
+      if (lowest.priority > boundedPriority) return false
+      this.releaseMediaSource(lowest)
+    }
+    const generation = this.playbackGeneration
+
     const element = new Audio(asset.src)
     element.loop = asset.loop
     element.preload = asset.preload
@@ -88,7 +122,7 @@ export class AudioDirector {
     const source = this.context.createMediaElementSource(element)
     source.connect(channelGain)
 
-    const activeSource = { element, source }
+    const activeSource = { element, source, channel: asset.channel, priority: boundedPriority }
     this.activeMedia.add(activeSource)
 
     const cleanup = () => this.releaseMediaSource(activeSource)
@@ -97,6 +131,14 @@ export class AudioDirector {
 
     try {
       await element.play()
+      if (
+        generation !== this.playbackGeneration ||
+        !this.activeMedia.has(activeSource) ||
+        (typeof document !== 'undefined' && document.hidden)
+      ) {
+        cleanup()
+        return false
+      }
       return true
     } catch {
       cleanup()
@@ -141,11 +183,7 @@ export class AudioDirector {
   }
 
   async close(): Promise<void> {
-    for (const activeSource of this.activeMedia) {
-      activeSource.element.pause()
-      activeSource.source.disconnect()
-    }
-    this.activeMedia.clear()
+    this.stopAll()
 
     const context = this.context
     this.context = null
@@ -187,7 +225,8 @@ export class AudioDirector {
   }
 
   private releaseMediaSource(activeSource: ActiveMediaSource): void {
+    if (!this.activeMedia.delete(activeSource)) return
+    activeSource.element.pause()
     activeSource.source.disconnect()
-    this.activeMedia.delete(activeSource)
   }
 }

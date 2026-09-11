@@ -1,0 +1,376 @@
+{
+  "status": "automated-checks-passed",
+  "humanArtApproval": false,
+  "humanListeningApproval": false,
+  "browserWalkthrough": "blocked by browser local-file URL policy; not claimed",
+  "audioCandidates": 72,
+  "artCandidates": 10,
+  "audioRuntimeBytes": 392040,
+  "largestAudioRuntimeBytes": 7245,
+  "largestArtRuntimeBytes": 17352,
+  "encodedPeakMaxDbfs": -9.76,
+  "encodedDurationMaxMs": 540.0,
+  "staticPacketChecks": "72 cue buttons, 14 families, unique IDs, alt attributes, no external dependencies",
+  "audio": [
+    {
+      "id": "audio.phase4.bastion-action-v01-1",
+      "durationMs": 320.0,
+      "peakDbfs": -10.35
+    },
+    {
+      "id": "audio.phase4.bastion-action-v01-2",
+      "durationMs": 320.0,
+      "peakDbfs": -10.49
+    },
+    {
+      "id": "audio.phase4.bastion-action-v01-3",
+      "durationMs": 320.0,
+      "peakDbfs": -10.54
+    },
+    {
+      "id": "audio.phase4.bastion-essence-v01-1",
+      "durationMs": 540.0,
+      "peakDbfs": -10.3
+    },
+    {
+      "id": "audio.phase4.bastion-essence-v01-2",
+      "durationMs": 540.0,
+      "peakDbfs": -10.36
+    },
+    {
+      "id": "audio.phase4.bastion-essence-v01-3",
+      "durationMs": 540.0,
+      "peakDbfs": -10.44
+    },
+    {
+      "id": "audio.phase4.ravager-action-v01-1",
+      "durationMs": 290.0,
+      "peakDbfs": -10.6
+    },
+    {
+      "id": "audio.phase4.ravager-action-v01-2",
+      "durationMs": 290.0,
+      "peakDbfs": -11.97
+    },
+    {
+      "id": "audio.phase4.ravager-action-v01-3",
+      "durationMs": 290.0,
+      "peakDbfs": -10.72
+    },
+    {
+      "id": "audio.phase4.ravager-essence-v01-1",
+      "durationMs": 540.0,
+      "peakDbfs": -10.41
+    },
+    {
+      "id": "audio.phase4.ravager-essence-v01-2",
+      "durationMs": 540.0,
+      "peakDbfs": -10.54
+    },
+    {
+      "id": "audio.phase4.ravager-essence-v01-3",
+      "durationMs": 540.0,
+      "peakDbfs": -10.38
+    },
+    {
+      "id": "audio.phase4.edgedancer-action-v01-1",
+      "durationMs": 220.0,
+      "peakDbfs": -11.15
+    },
+    {
+      "id": "audio.phase4.edgedancer-action-v01-2",
+      "durationMs": 220.0,
+      "peakDbfs": -10.5
+    },
+    {
+      "id": "audio.phase4.edgedancer-action-v01-3",
+      "durationMs": 220.0,
+      "peakDbfs": -10.26
+    },
+    {
+      "id": "audio.phase4.edgedancer-essence-v01-1",
+      "durationMs": 540.0,
+      "peakDbfs": -10.49
+    },
+    {
+      "id": "audio.phase4.edgedancer-essence-v01-2",
+      "durationMs": 540.0,
+      "peakDbfs": -10.44
+    },
+    {
+      "id": "audio.phase4.edgedancer-essence-v01-3",
+      "durationMs": 540.0,
+      "peakDbfs": -10.55
+    },
+    {
+      "id": "audio.phase4.wildwarden-action-v01-1",
+      "durationMs": 270.0,
+      "peakDbfs": -10.6
+    },
+    {
+      "id": "audio.phase4.wildwarden-action-v01-2",
+      "durationMs": 270.0,
+      "peakDbfs": -10.32
+    },
+    {
+      "id": "audio.phase4.wildwarden-action-v01-3",
+      "durationMs": 270.0,
+      "peakDbfs": -10.46
+    },
+    {
+      "id": "audio.phase4.wildwarden-essence-v01-1",
+      "durationMs": 540.0,
+      "peakDbfs": -10.53
+    },
+    {
+      "id": "audio.phase4.wildwarden-essence-v01-2",
+      "durationMs": 540.0,
+      "peakDbfs": -10.39
+    },
+    {
+      "id": "audio.phase4.wildwarden-essence-v01-3",
+      "durationMs": 540.0,
+      "peakDbfs": -10.35
+    },
+    {
+      "id": "audio.phase4.runeblade-action-v01-1",
+      "durationMs": 330.0,
+      "peakDbfs": -10.54
+    },
+    {
+      "id": "audio.phase4.runeblade-action-v01-2",
+      "durationMs": 330.0,
+      "peakDbfs": -10.32
+    },
+    {
+      "id": "audio.phase4.runeblade-action-v01-3",
+      "durationMs": 330.0,
+      "peakDbfs": -10.2
+    },
+    {
+      "id": "audio.phase4.runeblade-essence-v01-1",
+      "durationMs": 540.0,
+      "peakDbfs": -10.47
+    },
+    {
+      "id": "audio.phase4.runeblade-essence-v01-2",
+      "durationMs": 540.0,
+      "peakDbfs": -10.64
+    },
+    {
+      "id": "audio.phase4.runeblade-essence-v01-3",
+      "durationMs": 540.0,
+      "peakDbfs": -10.06
+    },
+    {
+      "id": "audio.phase4.dawnshield-action-v01-1",
+      "durationMs": 340.0,
+      "peakDbfs": -10.42
+    },
+    {
+      "id": "audio.phase4.dawnshield-action-v01-2",
+      "durationMs": 340.0,
+      "peakDbfs": -10.54
+    },
+    {
+      "id": "audio.phase4.dawnshield-action-v01-3",
+      "durationMs": 340.0,
+      "peakDbfs": -10.51
+    },
+    {
+      "id": "audio.phase4.dawnshield-essence-v01-1",
+      "durationMs": 540.0,
+      "peakDbfs": -10.34
+    },
+    {
+      "id": "audio.phase4.dawnshield-essence-v01-2",
+      "durationMs": 540.0,
+      "peakDbfs": -10.48
+    },
+    {
+      "id": "audio.phase4.dawnshield-essence-v01-3",
+      "durationMs": 540.0,
+      "peakDbfs": -10.5
+    },
+    {
+      "id": "audio.phase4.cinderweaver-action-v01-1",
+      "durationMs": 300.0,
+      "peakDbfs": -10.63
+    },
+    {
+      "id": "audio.phase4.cinderweaver-action-v01-2",
+      "durationMs": 300.0,
+      "peakDbfs": -10.48
+    },
+    {
+      "id": "audio.phase4.cinderweaver-action-v01-3",
+      "durationMs": 300.0,
+      "peakDbfs": -10.44
+    },
+    {
+      "id": "audio.phase4.cinderweaver-essence-v01-1",
+      "durationMs": 540.0,
+      "peakDbfs": -10.43
+    },
+    {
+      "id": "audio.phase4.cinderweaver-essence-v01-2",
+      "durationMs": 540.0,
+      "peakDbfs": -10.35
+    },
+    {
+      "id": "audio.phase4.cinderweaver-essence-v01-3",
+      "durationMs": 540.0,
+      "peakDbfs": -11.03
+    },
+    {
+      "id": "audio.phase4.frostweaver-action-v01-1",
+      "durationMs": 240.0,
+      "peakDbfs": -10.59
+    },
+    {
+      "id": "audio.phase4.frostweaver-action-v01-2",
+      "durationMs": 240.0,
+      "peakDbfs": -10.4
+    },
+    {
+      "id": "audio.phase4.frostweaver-action-v01-3",
+      "durationMs": 240.0,
+      "peakDbfs": -10.51
+    },
+    {
+      "id": "audio.phase4.frostweaver-essence-v01-1",
+      "durationMs": 540.0,
+      "peakDbfs": -10.66
+    },
+    {
+      "id": "audio.phase4.frostweaver-essence-v01-2",
+      "durationMs": 540.0,
+      "peakDbfs": -10.64
+    },
+    {
+      "id": "audio.phase4.frostweaver-essence-v01-3",
+      "durationMs": 540.0,
+      "peakDbfs": -10.22
+    },
+    {
+      "id": "audio.phase4.stormsinger-action-v01-1",
+      "durationMs": 280.0,
+      "peakDbfs": -9.76
+    },
+    {
+      "id": "audio.phase4.stormsinger-action-v01-2",
+      "durationMs": 280.0,
+      "peakDbfs": -10.46
+    },
+    {
+      "id": "audio.phase4.stormsinger-action-v01-3",
+      "durationMs": 280.0,
+      "peakDbfs": -10.52
+    },
+    {
+      "id": "audio.phase4.stormsinger-essence-v01-1",
+      "durationMs": 540.0,
+      "peakDbfs": -10.38
+    },
+    {
+      "id": "audio.phase4.stormsinger-essence-v01-2",
+      "durationMs": 540.0,
+      "peakDbfs": -10.47
+    },
+    {
+      "id": "audio.phase4.stormsinger-essence-v01-3",
+      "durationMs": 540.0,
+      "peakDbfs": -9.78
+    },
+    {
+      "id": "audio.phase4.tidecaller-action-v01-1",
+      "durationMs": 340.0,
+      "peakDbfs": -12.08
+    },
+    {
+      "id": "audio.phase4.tidecaller-action-v01-2",
+      "durationMs": 340.0,
+      "peakDbfs": -10.81
+    },
+    {
+      "id": "audio.phase4.tidecaller-action-v01-3",
+      "durationMs": 340.0,
+      "peakDbfs": -12.34
+    },
+    {
+      "id": "audio.phase4.tidecaller-essence-v01-1",
+      "durationMs": 540.0,
+      "peakDbfs": -11.45
+    },
+    {
+      "id": "audio.phase4.tidecaller-essence-v01-2",
+      "durationMs": 540.0,
+      "peakDbfs": -11.67
+    },
+    {
+      "id": "audio.phase4.tidecaller-essence-v01-3",
+      "durationMs": 540.0,
+      "peakDbfs": -11.38
+    },
+    {
+      "id": "audio.phase4.attrition-action-v01-1",
+      "durationMs": 160.0,
+      "peakDbfs": -16.75
+    },
+    {
+      "id": "audio.phase4.attrition-action-v01-2",
+      "durationMs": 160.0,
+      "peakDbfs": -17.16
+    },
+    {
+      "id": "audio.phase4.attrition-action-v01-3",
+      "durationMs": 160.0,
+      "peakDbfs": -16.78
+    },
+    {
+      "id": "audio.phase4.healing-action-v01-1",
+      "durationMs": 320.0,
+      "peakDbfs": -12.03
+    },
+    {
+      "id": "audio.phase4.healing-action-v01-2",
+      "durationMs": 320.0,
+      "peakDbfs": -11.99
+    },
+    {
+      "id": "audio.phase4.healing-action-v01-3",
+      "durationMs": 320.0,
+      "peakDbfs": -11.94
+    },
+    {
+      "id": "audio.phase4.cleanse-action-v01-1",
+      "durationMs": 270.0,
+      "peakDbfs": -13.59
+    },
+    {
+      "id": "audio.phase4.cleanse-action-v01-2",
+      "durationMs": 270.0,
+      "peakDbfs": -13.69
+    },
+    {
+      "id": "audio.phase4.cleanse-action-v01-3",
+      "durationMs": 270.0,
+      "peakDbfs": -13.64
+    },
+    {
+      "id": "audio.phase4.resonance-action-v01-1",
+      "durationMs": 250.0,
+      "peakDbfs": -12.59
+    },
+    {
+      "id": "audio.phase4.resonance-action-v01-2",
+      "durationMs": 250.0,
+      "peakDbfs": -12.52
+    },
+    {
+      "id": "audio.phase4.resonance-action-v01-3",
+      "durationMs": 250.0,
+      "peakDbfs": -12.53
+    }
+  ]
+}
