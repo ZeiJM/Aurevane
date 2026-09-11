@@ -9,20 +9,83 @@ permissions:
   contents: read
 
 jobs:
-  source:
+  browser:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          fetch-depth: 30
-      - name: Export tracked source without credentials
+          node-version: 24
+      - run: corepack enable && corepack prepare pnpm@11.17.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
+      - run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+      - name: Capture real rendered pages
+        shell: bash
         run: |
-          git archive --format=tar HEAD | gzip > /tmp/aurevane-source.tar.gz
-          git diff origin/main...HEAD > /tmp/experience-branch.diff || true
+          set -euo pipefail
+          status_env="$(pnpm exec supabase status -o env)"
+          eval "$(printf '%s\n' "$status_env" | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY|SECRET_KEY)=')"
+          export AUREVANE_ENV=local NEXT_PUBLIC_AUREVANE_ENV=local
+          export NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+          export NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY"
+          export SUPABASE_SECRET_KEY="${SECRET_KEY:-${SERVICE_ROLE_KEY:-}}"
+          pnpm --filter @aurevane/web build
+          cat > apps/web/e2e/experience-capture.pw.ts <<'EOF'
+          import { test, expect } from '@playwright/test'
+          import { mkdir, writeFile } from 'node:fs/promises'
+          import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
+          test('capture desktop experience baseline', async ({ page }) => {
+            test.setTimeout(180000)
+            await mkdir('experience-audit', { recursive: true })
+            await provisionAccountAndEnterCharacter({ page, email: `experience.${Date.now()}@example.com`, password: 'AurevaneTest!42', characterName: 'Experience Audit' })
+            const metrics = []
+            async function capture(name: string) {
+              await page.evaluate(() => document.fonts.ready)
+              const geometry = await page.evaluate(() => {
+                const footer = document.querySelector('[data-testid="authenticated-shell"] > footer')?.getBoundingClientRect()
+                const main = document.querySelector('#game-main')?.getBoundingClientRect()
+                const clipped = [...document.querySelectorAll('#game-main button, #game-main input, #game-main select')].filter(el => {
+                  const r = el.getBoundingClientRect(); return r.width && r.height && r.bottom > (footer?.top ?? innerHeight) + 1
+                }).map(el => ({ text: el.textContent?.trim().slice(0,80), bottom: el.getBoundingClientRect().bottom }))
+                return { viewport: [innerWidth,innerHeight], pageHeight: document.documentElement.scrollHeight, footerTop: footer?.top, mainBottom: main?.bottom, clipped }
+              })
+              metrics.push({ name, ...geometry })
+              await page.screenshot({path: `experience-audit/${name}.png`})
+              const html = await page.evaluate(() => {
+                const clone = document.documentElement.cloneNode(true) as HTMLElement
+                clone.querySelectorAll('script, link[rel="stylesheet"]').forEach(el => el.remove())
+                const style = document.createElement('style')
+                style.textContent = [...document.styleSheets].flatMap(sheet => {try {return [...sheet.cssRules].map(rule => rule.cssText)} catch {return []}}).join('\n')
+                clone.querySelector('head')?.append(style)
+                return '<!doctype html>' + clone.outerHTML
+              })
+              await writeFile(`experience-audit/${name}.html`, html)
+            }
+            for (const viewport of [{width:1728,height:885},{width:1366,height:768},{width:1024,height:576}]) {
+              await page.setViewportSize(viewport)
+              const suffix = `${viewport.width}x${viewport.height}`
+              await page.goto('/game/character'); await expect(page.getByTestId('character-profile')).toBeVisible(); await capture(`profile-${suffix}`)
+              await page.goto('/game/battle'); await expect(page.locator('#battle-launch')).toBeVisible(); await capture(`hall-ai-${suffix}`)
+              await page.getByRole('button',{name:/Player vs Player/}).click(); await capture(`hall-pvp-${suffix}`)
+              await page.getByRole('button',{name:/03 Spectate/}).click(); await capture(`hall-spectate-${suffix}`)
+            }
+            await page.setViewportSize({width:1366,height:768})
+            for (const [name,path] of [['training','/game/training'],['controls','/game/settings/controls'],['titles','/game/account/titles'],['online','/game/online'],['select','/game'],['manual','/manual'],['rules','/rules']]) {
+              const start = Date.now(); await page.goto(path); await page.locator('main').waitFor(); metrics.push({name, navigationMs:Date.now()-start}); await capture(name)
+            }
+            await writeFile('experience-audit/metrics.json', JSON.stringify(metrics,null,2))
+          })
+          EOF
+          pnpm --filter @aurevane/web exec playwright test e2e/experience-capture.pw.ts --project=desktop-chromium
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: experience-audit-source
+          name: experience-browser-evidence
           path: |
-            /tmp/aurevane-source.tar.gz
-            /tmp/experience-branch.diff
+            apps/web/experience-audit
+            apps/web/test-results
           retention-days: 3
+      - if: always()
+        run: pnpm exec supabase stop --no-backup
