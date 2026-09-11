@@ -4,21 +4,21 @@ This file reports the **current implementation/validation boundary**.
 
 `docs/GAME_MASTER_PLAN.md` defines the product. `docs/ROADMAP.md` defines phase sequence. Canonical domain documents define system rules. `docs/PHASE_3_TICKETS.md` defines the Phase-3 implementation contract. `docs/ROADMAP_PRODUCT_VALIDATION.md` defines PV-2 evidence requirements.
 
-**Reconciled:** 2026-09-04
+**Reconciled:** 2026-09-11
 
 ---
 
 ## Current status
 
-**Stage:** Phase 3 — Signature Buildcraft Foundation — **IMPLEMENTATION COMPLETE; OWNER PV-2 HUMAN VALIDATION READY / NOT YET PASSED**.
+**Stage:** Phase 3 — Signature Buildcraft Foundation — **IMPLEMENTATION COMPLETE; OWNER-APPROVED CLOSURE WITH FINAL UI/QUALITY RELEASE**. See `docs/PHASE_3_CLOSEOUT.md`.
 
 **Phase 2:** CLOSED on 2026-09-02 by explicit Owner decision after the final production regression test. PV-1 is reconciled as completed by that Owner phase-exit decision; do not invent additional human evidence.
 
 **Phase 3 implementation:** P3.1 through P3.8 are merged to `main` and deployed on the existing no-cost Supabase/Vercel stack.
 
-**Phase 4:** **NOT ACTIVATED.** Roster expansion remains blocked on the Owner PV-2 product decision.
+**Phase 4:** **NOT ACTIVATED.** Await a separate explicit Owner start command.
 
-**Active implementation ticket:** none. The next action is human product validation, not more Phase-3 coding.
+**Active work:** final mobile panel clearance, page/popup typography and presentation corrections, rendered verification, quality checkpoint and authorized production release. Closure takes effect when this release is verified; no Phase-4 runtime work is authorized.
 
 ---
 
@@ -90,7 +90,7 @@ The final representative browser proof exercises production-equivalent Profile f
 - Essence removal while Secondary is active;
 - committed mixed loadout persistence.
 
-Repository-wide aggregate CI still reports inherited Phase-2 formatting debt outside the Phase-3 changes. Browser Smoke has historically contained the inherited desktop Recruit-handoff sub-pixel geometry assertion (1.125 px observed versus 1 px tolerance); this is not a Phase-3 build-legality failure and must not be silently suppressed or confused with PV-2 evidence.
+The historical aggregate formatting failures and Browser Smoke fitting issues above are no longer the current baseline: PR #444 passed all 11 triggered workflows before deployment. The final UI release must pass its own applicable checks. Preserve the regression guards; do not suppress failures to close the phase.
 
 Automated correctness is **not** a PV-2 PASS.
 
@@ -118,22 +118,17 @@ Do not fabricate tester counts, ratings, direct-PvP human evidence or a PASS dec
 
 ## Phase-3 / Phase-4 boundary
 
-Phase 3 has reached its implementation gate from `docs/PHASE_3_TICKETS.md`: the representative slice is deployed and ready for the PV-2 product decision.
+Phase 3 has reached its implementation gate from `docs/PHASE_3_TICKETS.md`. On 2026-09-11 the Owner approved closure after the final requested fixes and quality work, while explicitly reserving the command to start Phase 4.
 
-The next state transition is one of:
+The current transition is:
 
 ```text
-PV-2 PASS
-  → explicitly close Phase 3 and activate Phase 4
-
-PV-2 ITERATE
-  → reopen only the smallest weak Phase-3 layer identified by evidence
-
-PV-2 INCONCLUSIVE
-  → gather the missing human evidence without expanding the roster
+Verified final UI/quality release
+  → Phase 3 closed by Owner decision
+  → wait for separate explicit Owner command to start Phase 4
 ```
 
-Do not start broad roster production, large Resonance matrices, Soulmark/Mantle runtime, frontier systems or other later-phase expansion before the Owner PV-2 decision.
+Do not start broad roster production, large Resonance matrices, Soulmark/Mantle runtime, frontier systems or other later-phase expansion during this closeout. Owner closure is not independent cohort evidence or a Phase-4 start instruction.
 
 ---
 

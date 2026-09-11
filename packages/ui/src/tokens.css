@@ -22,7 +22,8 @@
 
   --av-text: var(--av-parchment-100);
   --av-text-muted: var(--av-stone-300);
-  --av-text-dim: var(--av-stone-500);
+  /* Supporting text must remain readable on dark panels, including mobile and portals. */
+  --av-text-dim: #a0a6b1;
   --av-accent: var(--av-brass-300);
   --av-focus: #d9c48f;
   --av-border: rgba(212, 186, 130, 0.18);
