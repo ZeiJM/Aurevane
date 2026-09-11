@@ -1,0 +1,88 @@
+name: Integrated page fit release check
+on:
+  push:
+    branches: [agent/profile-hall-live-check]
+    paths:
+      - .github/workflows/page-fit-release-check.yml
+      - apps/web/live-page-fit.mjs
+permissions:
+  contents: read
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: corepack enable && corepack prepare pnpm@11.17.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
+      - run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+      - name: Verify merged main with the concurrent favorite-star fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          status_env="$(pnpm exec supabase status -o env)"
+          eval "$(printf '%s\n' "$status_env" | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY|SECRET_KEY)=')"
+          export AUREVANE_ENV=local NEXT_PUBLIC_AUREVANE_ENV=local
+          export NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+          export NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY"
+          export SUPABASE_SECRET_KEY="${SECRET_KEY:-${SERVICE_ROLE_KEY:-}}"
+          pnpm --filter @aurevane/web build
+          pnpm --filter @aurevane/web exec playwright test \
+            e2e/desktop-page-fit.pw.ts e2e/character-profile-launcher-layout.pw.ts \
+            e2e/battle-custom-technique-sticky-mode.pw.ts e2e/character-favorite-techniques.pw.ts \
+            --reporter=line,html
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: integrated-page-fit-evidence
+          path: apps/web/playwright-report
+          retention-days: 3
+      - if: always()
+        run: pnpm exec supabase stop --no-backup
+  live:
+    needs: integration
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate isolated QA fixture request without disclosing a password
+        shell: bash
+        run: |
+          /usr/bin/python3 - <<'PY'
+          import os, json, secrets, uuid, crypt
+          password = secrets.token_urlsafe(32)
+          print('::add-mask::' + password)
+          email = 'qa-pagefit-' + os.environ['GITHUB_RUN_ID'] + '@example.com'
+          with open(os.environ['GITHUB_ENV'], 'a') as f:
+              f.write('QA_PASSWORD=' + password + '\nQA_EMAIL=' + email + '\n')
+          hashed = crypt.crypt(password, crypt.mksalt(crypt.METHOD_BLOWFISH))
+          if not hashed or not hashed.startswith('$2'): raise RuntimeError('bcrypt unavailable')
+          os.mkdir('qa-fixture-request')
+          with open('qa-fixture-request/request.json', 'w') as f:
+              json.dump({'id':str(uuid.uuid4()), 'email':email, 'password_hash':hashed, 'purpose':'temporary Profile/Hall production UI check'}, f)
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: qa-fixture-request
+          path: qa-fixture-request/request.json
+          retention-days: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: corepack enable && corepack prepare pnpm@11.17.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
+      - name: Exercise the real Vercel production pages
+        run: node apps/web/live-page-fit.mjs
+        env:
+          EXPECTED_SOURCE_SHA: dab99a2a104a57c38921df2d44a93fc3ba7aa4e8
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vercel-live-page-fit-evidence
+          path: apps/web/live-page-fit-evidence
+          retention-days: 3
