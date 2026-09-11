@@ -1,7 +1,8 @@
 import type { BattleExitPolicy } from './battle-exit'
 import type { CombatTile, GridPosition } from './board'
 
-export type TacticalHallArenaId = 'basic-training-floor' | 'duel-yard'
+export type TacticalHallArenaId =
+  'basic-training-floor' | 'duel-yard' | 'crossroads-court' | 'terraced-yard'
 
 export interface TacticalHallArenaDefinition {
   id: TacticalHallArenaId
@@ -64,9 +65,42 @@ const DUEL_YARD: TacticalHallArenaDefinition = {
   recruitSpawn: { x: 7, y: 3 },
 }
 
+const CROSSROADS_COURT: TacticalHallArenaDefinition = {
+  id: 'crossroads-court',
+  name: 'Crossroads Court',
+  scale: 'duel',
+  exitPolicy: 'ABORT_PRACTICE',
+  width: 7,
+  height: 7,
+  // A short costly center competes with two longer open flanks. Ground routes need no Jump.
+  tiles: createTiles(7, 7, new Set(['3:2', '3:3', '3:4']), new Set()),
+  playerSpawn: { x: 1, y: 3 },
+  recruitSpawn: { x: 5, y: 3 },
+}
+
+const TERRACED_YARD: TacticalHallArenaDefinition = {
+  id: 'terraced-yard',
+  name: 'Terraced Yard',
+  scale: 'duel',
+  exitPolicy: 'ABORT_PRACTICE',
+  width: 11,
+  height: 7,
+  // Side platforms reward Jump investment; the center stays passable at Movement 2 / Jump 0.
+  tiles: createTiles(
+    11,
+    7,
+    new Set(['4:3', '6:3', '5:2', '5:4']),
+    new Set(['3:1', '4:1', '6:1', '7:1', '3:5', '4:5', '6:5', '7:5']),
+  ),
+  playerSpawn: { x: 1, y: 3 },
+  recruitSpawn: { x: 9, y: 3 },
+}
+
 export const P2_7_TACTICAL_HALL_ARENAS: readonly TacticalHallArenaDefinition[] = [
   BASIC_TRAINING_FLOOR,
   DUEL_YARD,
+  CROSSROADS_COURT,
+  TERRACED_YARD,
 ]
 
 export function getTacticalHallArena(id: TacticalHallArenaId): TacticalHallArenaDefinition {
@@ -85,13 +119,6 @@ export function getTacticalHallArenaFromScenarioSourceId(
   // PV-1F initially persisted Recruit profiles with the generic `duel:<difficulty>`
   // provenance segment. Keep those snapshots abortable while accepting the canonical
   // arena-id form (with or without an appended difficulty segment) going forward.
-  const arenaId: TacticalHallArenaId | null =
-    sourceArena === 'duel'
-      ? 'duel-yard'
-      : sourceArena === 'basic-training-floor' || sourceArena === 'duel-yard'
-        ? sourceArena
-        : null
-
-  if (!arenaId) return null
+  const arenaId = sourceArena === 'duel' ? 'duel-yard' : sourceArena
   return P2_7_TACTICAL_HALL_ARENAS.find((candidate) => candidate.id === arenaId) ?? null
 }

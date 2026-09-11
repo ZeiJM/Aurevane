@@ -51,6 +51,18 @@ const ARENAS: readonly { id: TacticalHallArenaId; name: string; scale: string; s
       scale: '9×7',
       summary: 'Full duel arena with difficult ground, elevation, and flanking room.',
     },
+    {
+      id: 'crossroads-court',
+      name: 'Crossroads Court',
+      scale: '7×7',
+      summary: 'Close engagement: cross the difficult center or take an open flank.',
+    },
+    {
+      id: 'terraced-yard',
+      name: 'Terraced Yard',
+      scale: '11×7',
+      summary: 'Long approach with raised side platforms and a ground-level route.',
+    },
   ]
 
 const DIFFICULTIES: readonly { id: AiDifficulty; label: string; description: string }[] = [
@@ -410,7 +422,27 @@ export function BattleLaunch({
                 <h3>{recordDisplayName(selectedRecord.id, selectedRecord.name)}</h3>
                 <p>{selectedRecord.purpose}</p>
                 <div className={styles.arenaLine}>
-                  <strong>{selectedArena.name}</strong>
+                  {recordId === 'recruit-sparring' ? (
+                    <label>
+                      Arena
+                      <select
+                        aria-label="AI sparring arena"
+                        value={arenaId}
+                        onChange={(event) => setArenaId(event.target.value as TacticalHallArenaId)}
+                        disabled={pending}
+                      >
+                        {ARENAS.filter((arena) => arena.id !== 'basic-training-floor').map(
+                          (arena) => (
+                            <option key={arena.id} value={arena.id}>
+                              {arena.name} · {arena.scale}
+                            </option>
+                          ),
+                        )}
+                      </select>
+                    </label>
+                  ) : (
+                    <strong>{selectedArena.name}</strong>
+                  )}
                   <span>
                     {selectedArena.scale} · {selectedArena.summary}
                   </span>

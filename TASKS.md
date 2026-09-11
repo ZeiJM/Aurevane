@@ -10,19 +10,19 @@ This file reports the **current implementation/validation boundary**.
 
 ## Current status
 
-**Stage:** Phase 3 — Signature Buildcraft Foundation — **IMPLEMENTATION COMPLETE; OWNER-APPROVED CLOSURE WITH FINAL UI/QUALITY RELEASE**. See `docs/PHASE_3_CLOSEOUT.md`.
+**Stage:** Phase 4 — First Playable Buildcraft Roster — **IMPLEMENTATION IN PROGRESS**. Phase 3 is closed by Owner decision; see `docs/PHASE_3_CLOSEOUT.md`.
 
 **Phase 2:** CLOSED on 2026-09-02 by explicit Owner decision after the final production regression test. PV-1 is reconciled as completed by that Owner phase-exit decision; do not invent additional human evidence.
 
 **Phase 3 implementation:** P3.1 through P3.8 are merged to `main` and deployed on the existing no-cost Supabase/Vercel stack.
 
-**Phase 4:** **NOT ACTIVATED.** Await a separate explicit Owner start command.
+**Phase 4:** **ACTIVATED** by explicit Owner request for full implementation and final production deployment. See `docs/PHASE_4_TICKETS.md`.
 
 **Phase-3 closeout:** PR #445 passed its release checks and was released as `9da6c4684f99b0617cdccab019a38f90f56795b0`; the recorded Owner closeout decision is preserved. Production READY is not independent human/product evidence.
 
 **Presentation follow-up:** PR #446 merged while this audit was in progress and was released at `0df098e8`; preserve its desktop/mobile changes and assess its exact release interaction evidence.
 
-**Active work:** pre-Phase-4 readiness audit, current-rule/roadmap reconciliation and migration-history repair. See the dated audit in `docs/PHASE_3_CLOSEOUT.md`. Phase 4 remains unstarted; this audit does not infer a new production buildcraft interaction PASS.
+**Active work:** Phase-4 roster acceptance, Ironfist completion, Skill targeting/effect details and representative map coverage. Implementation and verification are in progress; no release or human balance PASS is claimed. Earlier phase-boundary notes below preserve historical decisions.
 
 ---
 

@@ -94,3 +94,48 @@ describe('P2.7 Tactical Hall arenas', () => {
     expect(getTacticalHallArenaFromScenarioSourceId('scenario:p2-7-recruit:unknown')).toBeNull()
   })
 })
+
+describe('Phase 4 sparring maps', () => {
+  for (const id of ['crossroads-court', 'terraced-yard'] as const) {
+    it(`${id} has reflected spawns/terrain and a Jump-0 route`, () => {
+      const arena = getTacticalHallArena(id)
+      expect(
+        getTacticalHallArenaFromScenarioSourceId(
+          `scenario:p2-7-recruit:${id}:recruit-sparring:high`,
+        )?.id,
+      ).toBe(id)
+      expect(arena.playerSpawn.x + arena.recruitSpawn.x).toBe(arena.width - 1)
+      const tiles = new Map(
+        arena.tiles.map((tile) => [`${tile.position.x}:${tile.position.y}`, tile]),
+      )
+      for (const tile of arena.tiles) {
+        const reflected = tiles.get(`${arena.width - 1 - tile.position.x}:${tile.position.y}`)!
+        expect([reflected.elevation, reflected.terrainId]).toEqual([tile.elevation, tile.terrainId])
+      }
+      const queue = [arena.playerSpawn]
+      const seen = new Set([`${arena.playerSpawn.x}:${arena.playerSpawn.y}`])
+      for (let index = 0; index < queue.length; index++) {
+        const current = queue[index]!
+        const elevation = tiles.get(`${current.x}:${current.y}`)!.elevation
+        for (const [dx, dy] of [
+          [1, 0],
+          [-1, 0],
+          [0, 1],
+          [0, -1],
+        ]) {
+          const next = { x: current.x + dx!, y: current.y + dy! }
+          const key = `${next.x}:${next.y}`
+          const tile = tiles.get(key)
+          if (!tile || seen.has(key) || tile.elevation !== elevation) continue
+          seen.add(key)
+          queue.push(next)
+        }
+      }
+      expect(seen.has(`${arena.recruitSpawn.x}:${arena.recruitSpawn.y}`)).toBe(true)
+      // Open/rough cost 20/40 AP per tile is affordable at base Movement 2, with turns between steps.
+      expect(
+        arena.tiles.every((tile) => ['open-ground', 'rough-ground'].includes(tile.terrainId)),
+      ).toBe(true)
+    })
+  }
+})

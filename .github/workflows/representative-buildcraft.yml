@@ -4,6 +4,10 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
+      - 'docs/PHASE_4_TICKETS.md'
+      - 'packages/game-core/src/combat/ironfist-content.ts'
+      - 'apps/web/src/components/character/skill-details*'
+      - 'apps/web/e2e/phase4-roster.pw.ts'
       - 'docs/PHASE_3_CLOSEOUT.md'
       - 'docs/ROADMAP.md'
       - 'apps/web/src/content/current-manual.ts'
@@ -105,6 +109,9 @@ jobs:
       - name: Rebuild local database
         run: pnpm exec supabase db reset --local
 
+      - name: Verify normal Ironfist database provisioning
+        run: bash .github/scripts/verify-p4-ironfist.sh
+
       - name: Build and verify PV-2 Profile flow
         shell: bash
         run: |
@@ -131,9 +138,18 @@ jobs:
           SUPABASE_SECRET_KEY="$server_key" \
           AUREVANE_PV2_TEST_MODE=1 \
           pnpm --filter @aurevane/web exec playwright test \
+            e2e/phase4-roster.pw.ts \
             e2e/p3-8-representative-buildcraft.pw.ts \
             e2e/mixed-build-battle-entry.pw.ts \
             --config=playwright.config.ts
+
+      - name: Save browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase4-browser-evidence
+          path: apps/web/test-results
+          retention-days: 7
 
       - name: Stop local Supabase services
         if: always()

@@ -6,12 +6,13 @@ import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { ResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 
 import type { FavoriteTechniqueCategory } from '../battle/favorite-technique-storage'
 import { battleResonanceArtwork, battleSkillArtwork } from '../battle/battle-skill-presentation'
 import { FavoriteTechniqueButton } from './favorite-technique-button'
+import { SkillDetails } from './skill-details'
 import polish from './character-skill-build-panel-polish.module.css'
 import styles from './character-skill-build-panel.module.css'
 
@@ -123,6 +124,11 @@ export function CharacterSkillBuildPanel({
   initialResonance,
   initialEssence,
 }: CharacterSkillBuildPanelProps) {
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  )
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -276,7 +282,7 @@ export function CharacterSkillBuildPanel({
         </small>
       </button>
 
-      {open && typeof document !== 'undefined'
+      {open && mounted
         ? createPortal(
             <div
               className={styles.backdrop}
@@ -410,6 +416,7 @@ export function CharacterSkillBuildPanel({
                               </span>
                               <p>{initialEssence.description}</p>
                             </div>
+                            <SkillDetails skill={initialEssence.skill} />
                             {essenceFavoriteCategory ? (
                               <FavoriteTechniqueButton
                                 characterId={characterId}
@@ -485,6 +492,7 @@ export function CharacterSkillBuildPanel({
                                   </span>
                                 </span>
                               </label>
+                              <SkillDetails skill={entry.definition} />
                               {category ? (
                                 <FavoriteTechniqueButton
                                   characterId={characterId}

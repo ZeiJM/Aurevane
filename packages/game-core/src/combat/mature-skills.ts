@@ -1,4 +1,5 @@
 import { FOUNDATION_TRIO_DISCIPLINE_SKILLS } from './foundation-trio-skills'
+import { IRONFIST_SKILLS } from './ironfist-content'
 import type {
   CombatActionDefinition,
   CombatEffectDefinition,
@@ -476,6 +477,7 @@ export const P33_REPRESENTATIVE_DISCIPLINE_SKILLS = [
     authoring: representativeAuthoring('p3.8', 'owner-approved-offense'),
   },
   ...FOUNDATION_TRIO_DISCIPLINE_SKILLS,
+  ...IRONFIST_SKILLS,
 ] as const satisfies readonly MatureSkillDefinition[]
 
 export function validateMatureSkillDefinition(

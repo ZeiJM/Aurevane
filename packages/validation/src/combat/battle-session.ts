@@ -6,7 +6,12 @@ const battleSessionIdSchema = z.string().uuid()
 const combatantIdSchema = z.string().trim().min(1).max(160)
 const gridPositionSchema = z.object({ x: safeInteger, y: safeInteger }).strict()
 const battleFacingSchema = z.enum(['north', 'east', 'south', 'west'])
-const tacticalHallArenaIdSchema = z.enum(['basic-training-floor', 'duel-yard'])
+const tacticalHallArenaIdSchema = z.enum([
+  'basic-training-floor',
+  'duel-yard',
+  'crossroads-court',
+  'terraced-yard',
+])
 export const battleAiDifficultySchema = z.enum(['easy', 'standard', 'high'])
 export const battleHallRecordIdSchema = z.enum([
   'guided-fundamentals',

@@ -67,6 +67,15 @@ export const PHASE_3_RESONANCE_ARTWORK = {
 } as const satisfies Record<(typeof PHASE_3_RESONANCE_IDS)[number], string>
 
 const GENERATED_COMBAT_ARTWORK_IDS = new Set<string>([
+  'ironfist.rising-fist',
+  'ironfist.sweep',
+  'ironfist.focus-breath',
+  'ironfist.counter-palm',
+  'ironfist.breakfall',
+  'ironfist.hammer-knuckle',
+  'ironfist.pressure-palm',
+  'ironfist.last-stand',
+  'essence.ironfist.hundredfold-rush',
   'lifebinder.vital-sever',
   'lifebinder.searing-bloom',
   'essence.lifebinder.verdant-rupture',
@@ -100,6 +109,11 @@ const GENERATED_COMBAT_ARTWORK_IDS = new Set<string>([
 ])
 
 const GENERATED_RESONANCE_ARTWORK_IDS = new Set<string>([
+  'resonance.aetherist-ironfist.conductive-impact',
+  'resonance.farstrider-ironfist.marked-approach',
+  'resonance.ironfist-lifebinder.renewed-force',
+  'resonance.ironfist-shadehand.broken-rhythm',
+  'resonance.ironfist-vanguard.tempered-response',
   'resonance.aetherist-farstrider.arcane-hunt',
   'resonance.aetherist-lifebinder.vital-circuit',
   'resonance.aetherist-shadehand.veiled-conduit',
@@ -117,6 +131,7 @@ const GENERATED_PALETTES: Readonly<Record<string, readonly [string, string, stri
   aetherist: ['#a57ef4', '#4c318b', '#8feaff'],
   farstrider: ['#76c66b', '#315d2c', '#efd76c'],
   shadehand: ['#cf6cba', '#5c2a55', '#c291ff'],
+  ironfist: ['#e5aa4f', '#6d461d', '#ffdfa1'],
 }
 
 function artworkDisciplineId(actionId: string): string {

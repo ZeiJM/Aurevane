@@ -96,7 +96,7 @@ const overrides: Record<string, ManualArticle> = {
         title: 'What is a Discipline?',
         paragraphs: [
           'A Discipline is a learnable combat tradition that establishes your first tactical direction. It is not a permanent class lock. Later mastery systems are intended to let characters deepen, broaden, and combine what they know.',
-          'The starting choices are Vanguard, Farstrider, Shadehand, Ironfist, Aetherist and Lifebinder. Profile supports Primary and optional Secondary configuration. Vanguard, Lifebinder, Aetherist, Farstrider and Shadehand have authored Skill libraries and Essence/Resonance coverage; Ironfist content remains incomplete. Final acquisition and Mastery progression and supernatural paths remain later work.',
+          'The starting choices are Vanguard, Farstrider, Shadehand, Ironfist, Aetherist and Lifebinder. Profile supports Primary and optional Secondary configuration. All six Foundations have eight authored Techniques, a pure Essence and mixed-pair Resonance coverage. Technique cards show targeting and effect tags; expand Skill details for range, effects and requirements. Final acquisition and Mastery progression and supernatural paths remain later work.',
         ],
       },
       {

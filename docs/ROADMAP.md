@@ -49,11 +49,12 @@ Performance work never authorizes a gameplay redesign, weakened server authority
 | Phase 1 — Character & Progression Foundation | ✅ Substantially complete | Character/account/profile/progression/equipment foundations exist. |
 | Phase 2 — Tactical Combat & Battle Platform | ✅ Closed / PV-1 passed | Mature combat, AI, direct PvP and spectation foundations are preserved for reuse. |
 | Phase 3 — Signature Buildcraft Foundation | ✅ Implementation complete; Owner-approved closeout | P3.1–P3.8 delivered; final UI/quality release completes the Owner's closure condition. See `PHASE_3_CLOSEOUT.md`. |
-| Phase 4+ | 🔜 Planned; not activated | Await explicit Owner start command. Later phases inherit compatible early work rather than restarting. |
+| Phase 4 | In progress; Owner activated | Full implementation and final release authorized; staged roster evidence remains required. See `PHASE_4_TICKETS.md`. |
+| Phase 5+ | Planned | Inherit compatible early work. |
 
 ## Current decision boundary
 
-AUREVANE has completed **Phase 3 — Signature Buildcraft Foundation** implementation. On 2026-09-11 the Owner approved closure after the requested UI/performance corrections and quality checkpoint are released. Phase 4 is explicitly **not activated**. Phase 2's battle platform remains a preserved dependency.
+AUREVANE has completed **Phase 3 — Signature Buildcraft Foundation** implementation. On 2026-09-11 the Owner approved closure after the requested UI/performance corrections and quality checkpoint are released. Phase 4 was subsequently **activated by explicit Owner command** for implementation and production testing. Phase 2's battle platform remains a preserved dependency.
 
 Active now:
 
@@ -450,7 +451,7 @@ Validate the five inherited authored Disciplines
 → 16 mature Closed Alpha target
 ```
 
-The former four-Discipline minimum is already exceeded in authored coverage. Do not rebuild or remove delivered content to recreate it. The first Phase-4 ticket is a roster acceptance matrix and gap assessment over the existing five plus Ironfist; implementation starts only after the Owner activates Phase 4. See `PHASE_3_CLOSEOUT.md` for the readiness evidence and remaining verification.
+The former four-Discipline minimum is already exceeded in authored coverage. Do not rebuild or remove delivered content to recreate it. The first Phase-4 ticket is a roster acceptance matrix and gap assessment over the existing five plus Ironfist; the Owner has now authorized implementation and the final production release. See `PHASE_3_CLOSEOUT.md` for the readiness evidence and remaining verification.
 
 Each expansion must justify:
 
@@ -826,12 +827,12 @@ PHASE 3 IMPLEMENTATION COMPLETE
         ↓
 FINAL UI / QUALITY RELEASE → OWNER-APPROVED PHASE 3 CLOSEOUT
         ↓
-WAIT FOR EXPLICIT OWNER COMMAND TO START PHASE 4
+PHASE 4 ACTIVATED — FOLLOW PHASE_4_TICKETS.md
 ```
 
 The immediate development priority is therefore:
 
-> **Finish the authorized closeout, preserve the tested platform, and leave Phase 4 unstarted.**
+> **Preserve the tested platform and execute the authorized Phase-4 stages with recorded evidence.**
 
 Automatic performance/scaling checkpoints continue at the defined future boundaries; they are maintenance/hardening work, not permission to expand feature scope.
 
