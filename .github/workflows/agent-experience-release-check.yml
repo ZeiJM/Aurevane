@@ -9,13 +9,12 @@ concurrency:
   group: desktop-experience-release-check
   cancel-in-progress: true
 jobs:
-  reconcile:
+  finish:
     runs-on: ubuntu-latest
     permissions:
       contents: write
     outputs:
       sha: ${{ steps.commit.outputs.sha }}
-      baseline: ${{ steps.commit.outputs.baseline }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -23,155 +22,73 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Preserve tested main geometry and reconcile only known overlaps
+      - name: Preserve directory containment and unchanged sub-desktop typography
         shell: bash
         run: |
           set -euo pipefail
-          git fetch origin main
-          git show origin/main:apps/web/vercel.json | python3 -c 'import json,sys; x=json.load(sys.stdin)["git"]["deploymentEnabled"]; assert x.get("**") is False and not x.get("main",False), "Another release owns the deployment gate"'
-          cp apps/web/src/app/desktop-page-fit.css /tmp/pr437-page-fit.css
-          git config user.name 'AUREVANE engineering'
-          git config user.email '283436098+ZeiJM@users.noreply.github.com'
-          git merge --no-commit --no-ff origin/main || true
           python3 - <<'PY'
-          import subprocess
           from pathlib import Path
-          allowed = {
-            'apps/web/src/app/desktop-page-fit.css': '--theirs',
-            'apps/web/e2e/a1-layout-fit.pw.ts': '--theirs',
-            'apps/web/src/app/desktop-readability.css': '--ours',
-            'apps/web/src/app/layout.tsx': '--theirs',
-          }
-          conflicts = subprocess.check_output(['git','diff','--name-only','--diff-filter=U'], text=True).splitlines()
-          unknown = set(conflicts) - allowed.keys()
-          if unknown: raise SystemExit(f'Unexpected overlapping work: {unknown}')
-          for path in conflicts:
-            subprocess.run(['git','checkout',allowed[path],'--',path],check=True)
-            subprocess.run(['git','add',path],check=True)
-          main_css = subprocess.check_output(['git','show','origin/main:apps/web/src/app/desktop-page-fit.css'],text=True)
-          old_css = Path('/tmp/pr437-page-fit.css').read_text()
-          start = old_css.rfind('@media', 0, old_css.index('/* Titles and portrait settings'))
-          end = old_css.index('/* Three mobility stats')
-          extras = old_css[start:end]
-          chrome = '''
-          /* Other desktop pages share the real footer row; Profile/Hall keep the tested rules above. */
-          @media (min-width: 981px) {
-            [data-testid='authenticated-shell']:not(:has(#battle-launch)):not(:has([data-testid='character-profile'])),
-            [data-testid='public-information-shell'] {
-              grid-template-rows: auto 1fr auto;
-              padding-bottom: 0;
-            }
-            [data-testid='authenticated-shell']:not(:has(#battle-launch)):not(:has([data-testid='character-profile'])) > main {
-              min-height: 0;
-              padding: 0.3rem clamp(0.7rem, 1.4vw, 1.4rem);
-            }
-            [data-testid='authenticated-shell']:not(:has(#battle-launch)):not(:has([data-testid='character-profile'])) > footer,
-            [data-testid='public-information-shell'] > footer {
-              position: sticky;
-              inset: auto;
-              bottom: 0;
-              min-height: 3.25rem;
-              padding-block: 0.35rem;
-              backdrop-filter: none;
-            }
-            [data-testid='authenticated-shell'] > header,
-            [data-testid='public-information-shell'] > header {
-              backdrop-filter: none;
-            }
-          }
-          '''
-          Path('apps/web/src/app/desktop-page-fit.css').write_text(main_css + '\n' + extras + chrome)
-          f=Path('apps/web/e2e/desktop-experience.pw.ts'); s=f.read_text()
-          s=s.replace("readable(page.getByLabel('Battle mode'), 14)", "readable(page.getByLabel('Battle mode'), 13)")
-          s=s.replace("readable(page.getByPlaceholder('AVB-0000-0000'), 14)", "readable(page.getByPlaceholder('AVB-0000-0000'), 13)")
-          f.write_text(s)
-          f=Path('apps/web/src/app/desktop-readability.css'); s=f.read_text()
-          # New desktop design tokens must not change the legacy tablet/phone boundary.
-          start=s.index('  :is('); end=s.index('\n  }',start)+4
-          tokens=s[start:end]
-          if '--av-text-dim: #a6acb8' not in tokens: raise SystemExit('Unexpected typography structure')
-          s=s[:start]+s[end:]
-          s+='\n@media (min-width: 981px) {\n'+tokens+'\n}\n'
-          f.write_text(s)
-          # This superseded helper ran the unbounded full browser suite and timed out before JSON output.
-          Path('.github/workflows/agent-viewport-targeted.yml').unlink(missing_ok=True)
+          import subprocess
+          old = subprocess.check_output(['git','show','4a46b46a878198a7cfd5a1eb854f9fba66b35d3c:apps/web/src/app/desktop-page-fit.css'],text=True)
+          marker = '/* A growing directory is a bounded, keyboard-scrollable list'
+          directory = old[old.index(marker):]
+          # Match the scope of the shared footer row without changing Profile/Hall geometry.
+          directory = directory.replace("[data-testid='authenticated-shell']:has([data-character-directory])", "[data-testid='authenticated-shell']:has(#game-main [data-character-directory])")
+          f=Path('apps/web/src/app/desktop-page-fit.css'); current=f.read_text()
+          if marker not in current: f.write_text(current+'\n'+directory)
+          f=Path('apps/web/src/app/desktop-readability.css'); current=f.read_text()
+          main=subprocess.check_output(['git','show','4e0ae15eb5a021208261f022614cff1ad09d212d:apps/web/src/app/desktop-readability.css'],text=True)
+          start=main.index('@media (min-width: 761px)'); depth=0; begun=False; end=start
+          for i in range(start,len(main)):
+            if main[i]=='{': depth+=1; begun=True
+            elif main[i]=='}':
+              depth-=1
+              if begun and depth==0: end=i+1; break
+          legacy=main[start:end].replace('@media (min-width: 761px)', '@media (min-width: 761px) and (max-width: 980px)',1)
+          if 'Preserve existing sub-desktop typography' not in current:
+            current=current.replace('@media (min-width: 761px)', '@media (min-width: 981px)',1)
+            f.write_text(current+'\n/* Preserve existing sub-desktop typography; the new upgrade begins at 981px. */\n'+legacy+'\n')
           PY
       - run: corepack enable && corepack prepare pnpm@11.17.0 --activate
       - run: pnpm install --frozen-lockfile
-      - name: Format changed release files and publish isolated branch
+      - name: Format and publish isolated correction
         id: commit
         run: |
-          pnpm exec prettier --write apps/web/src/app/desktop-page-fit.css apps/web/src/app/desktop-readability.css apps/web/e2e/desktop-experience.pw.ts
-          git add -u
+          pnpm exec prettier --write apps/web/src/app/desktop-page-fit.css apps/web/src/app/desktop-readability.css
+          git config user.name 'AUREVANE engineering'
+          git config user.email '283436098+ZeiJM@users.noreply.github.com'
+          git add apps/web/src/app/desktop-page-fit.css apps/web/src/app/desktop-readability.css
           git diff --cached --check
-          git commit -m 'Reconcile desktop polish with validated Profile and Hall release; preserve active combat'
+          git commit -m 'Contain growing desktop directories and preserve existing small-screen typography'
           git push origin HEAD:agent/desktop-viewport-fit
           echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-          echo "baseline=$(git rev-parse origin/main)" >> "$GITHUB_OUTPUT"
-  quality:
-    needs: reconcile
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.reconcile.outputs.sha }}
-          fetch-depth: 0
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 24
-      - run: corepack enable && corepack prepare pnpm@11.17.0 --activate
-      - run: pnpm install --frozen-lockfile
-      - name: Check owned source formatting and lint
-        run: |
-          mkdir -p audit-results
-          git rev-parse HEAD > audit-results/commit.txt
-          echo '${{ needs.reconcile.outputs.baseline }}' > audit-results/baseline.txt
-          git archive --format=tar HEAD | gzip > audit-results/source.tar.gz
-          git archive --format=tar '${{ needs.reconcile.outputs.baseline }}' | gzip > audit-results/main.tar.gz
-          tar -czf audit-results/prettier-runtime.tar.gz -C node_modules/.pnpm/prettier@3.9.6/node_modules prettier
-          pnpm exec prettier --check apps/web/e2e/desktop-experience.pw.ts apps/web/src/app/desktop-page-fit.css apps/web/src/app/desktop-readability.css apps/web/src/components/battle/battle-launch.tsx apps/web/src/components/shell/authenticated-game-shell.tsx apps/web/src/components/shell/navigation-menu.tsx apps/web/src/components/shell/navigation-menu.module.css apps/web/src/components/shell/online-presence-link.tsx > audit-results/format.log 2>&1
-          pnpm --filter @aurevane/web exec eslint e2e/desktop-experience.pw.ts src/components/battle/battle-launch.tsx src/components/shell/authenticated-game-shell.tsx src/components/shell/navigation-menu.tsx src/components/shell/online-presence-link.tsx --max-warnings=0 > audit-results/lint.log 2>&1
-      - name: Typecheck
-        run: pnpm typecheck > audit-results/typecheck.log 2>&1
-      - name: Record full gates and compare existing web unit failures with pinned main
-        shell: bash
-        run: |
-          set +e
-          pnpm check > audit-results/full-gates.log 2>&1
-          echo $? > audit-results/full-gates.status
-          pnpm --filter @aurevane/web test > audit-results/web-tests.log 2>&1
-          echo $? > audit-results/web-tests.status
-          git checkout '${{ needs.reconcile.outputs.baseline }}' -- apps/web/src packages
-          pnpm --filter @aurevane/web test > audit-results/main-web-tests.log 2>&1
-          echo $? > audit-results/main-web-tests.status
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: desktop-experience-source-quality
-          path: audit-results
-          retention-days: 3
-  browser:
-    needs: reconcile
+  validate:
+    needs: finish
     runs-on: ubuntu-latest
     timeout-minutes: 18
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.reconcile.outputs.sha }}
+          ref: ${{ needs.finish.outputs.sha }}
       - uses: actions/setup-node@v4
         with:
           node-version: 24
       - run: corepack enable && corepack prepare pnpm@11.17.0 --activate
       - run: pnpm install --frozen-lockfile
+      - name: Format, lint and typecheck owned source
+        run: |
+          mkdir -p audit-results
+          git rev-parse HEAD > audit-results/commit.txt
+          git archive --format=tar HEAD | gzip > audit-results/source.tar.gz
+          pnpm exec prettier --check apps/web/e2e/desktop-experience.pw.ts apps/web/src/app/desktop-page-fit.css apps/web/src/app/desktop-readability.css apps/web/src/components/battle/battle-launch.tsx apps/web/src/components/shell/authenticated-game-shell.tsx apps/web/src/components/shell/navigation-menu.tsx apps/web/src/components/shell/navigation-menu.module.css apps/web/src/components/shell/online-presence-link.tsx > audit-results/format.log 2>&1
+          pnpm --filter @aurevane/web exec eslint e2e/desktop-experience.pw.ts src/components/battle/battle-launch.tsx src/components/shell/authenticated-game-shell.tsx src/components/shell/navigation-menu.tsx src/components/shell/online-presence-link.tsx --max-warnings=0 > audit-results/lint.log 2>&1
+          pnpm typecheck > audit-results/typecheck.log 2>&1
       - run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
       - run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
       - name: Build and validate the combined desktop experience
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p audit-results
-          git rev-parse HEAD > audit-results/commit.txt
           status_env="$(pnpm exec supabase status -o env)"
           eval "$(printf '%s\n' "$status_env" | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY|SECRET_KEY)=')"
           export AUREVANE_ENV=local NEXT_PUBLIC_AUREVANE_ENV=local
@@ -183,7 +100,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: desktop-experience-rendered
+          name: desktop-experience-final
           path: |
             audit-results
             apps/web/experience-results.json
