@@ -1,8 +1,12 @@
 name: Representative Buildcraft
 
 on:
+  workflow_dispatch:
   pull_request:
     paths:
+      - 'docs/PHASE_3_CLOSEOUT.md'
+      - 'docs/ROADMAP.md'
+      - 'apps/web/src/content/current-manual.ts'
       - 'packages/game-core/src/combat/mature-skills.ts'
       - 'packages/game-core/src/combat/representative-buildcraft.test.ts'
       - 'apps/web/src/server/character/pv2-buildcraft-test-kit.ts'

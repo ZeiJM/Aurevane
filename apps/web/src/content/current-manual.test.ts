@@ -1,3 +1,7 @@
+import {
+  PURE_DISCIPLINE_SKILL_CAPACITY,
+  MIXED_DISCIPLINE_SKILL_CAPACITY,
+} from '@aurevane/game-core/character/discipline-skill-loadout'
 import { CHARACTER_CREATION_RULES_V1 } from '@aurevane/game-core/character/creation'
 import { CURRENT_LEVEL_CAP } from '@aurevane/game-core/character/progression'
 import { PV1F_MOVEMENT_COST_PER_TERRAIN_POINT } from '@aurevane/game-core/combat/pv1f-skills'
@@ -34,6 +38,18 @@ describe('published Manual rule consistency', () => {
     expect(text).toContain('fixed Core Stat base')
     expect(text).not.toContain('each begin at 5')
     expect(text).not.toContain('no more than 4 bonus points')
+  })
+
+  it('distinguishes learned libraries from current selected capacity and repeat-use rules', () => {
+    const text = articleText('start-here')
+    expect(text).toContain(`Pure builds select up to ${PURE_DISCIPLINE_SKILL_CAPACITY}`)
+    expect(text).toContain(`Mixed builds select up to ${MIXED_DISCIPLINE_SKILL_CAPACITY}`)
+    expect(text).toContain('1+3, 2+2 or 3+1')
+    expect(text).not.toContain('up to eight learned')
+    expect(text).not.toContain('six total Discipline')
+    const combat = articleText('battle-hall')
+    expect(combat).toContain('50% effectiveness at the normal AP cost')
+    expect(combat).toContain('ending a turn alone does not')
   })
 
   it('credits delivered buildcraft and PvP without promising complete content', () => {

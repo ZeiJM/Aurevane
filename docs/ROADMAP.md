@@ -123,7 +123,12 @@ Phase 3 therefore inherits the existing combat/PvP/spectator platform. Phase act
 
 Retired player-facing terminology includes Current Discipline, Legacy Discipline, Art as the generic ability term, Confluence, separate Trait/Reaction/Movement Art/Ultimate slot systems and Tactical Hall.
 
-## Mature normal build contract
+Each fully authored Discipline provides eight learnable Skills. A pure build draws its four battle selections from eight; a mixed build draws four total from the two libraries (16 learned Skills across a fully authored pair). Its Essence or Resonance is separate from these four selections.
+
+## Current normal build contract
+
+The September 6 Technique Repeat-Use Addendum supersedes older selected-loadout and authored-cooldown text. Eight learned Skills per mature Discipline is library size, not selected capacity. Ordinary authored Skills use 50% consecutive-use falloff at unchanged AP cost; a different actual command resets the chain, but a turn boundary alone does not. Basic recovery timing remains separate.
+
 
 ```text
 CHARACTER ATTRIBUTES
@@ -147,7 +152,7 @@ Pure:
 
 ```text
 Primary only
-8 Discipline Skills
+0–4 selected Discipline Techniques
 + 1 Essence Skill
 + no Resonance
 ```
@@ -156,7 +161,8 @@ Mixed:
 
 ```text
 Primary + mastered Secondary
-6 total Discipline Skills across the pair
+up to 4 selected Techniques across the pair
+Full-loadout splits: 1+3, 2+2 or 3+1
 + Resonance passive
 + no Essence while Secondary is equipped
 ```
@@ -409,8 +415,8 @@ Phase outcome:
 - optional mastered Secondary;
 - independent server-owned attunement cooldowns;
 - mature Skill schema;
-- generic cooldown system;
-- pure 8 + Essence versus mixed 6 + Resonance;
+- consecutive-use falloff for ordinary authored Skills; generic cooldown utility retained for basic/exceptional actions;
+- pure four selected Techniques + Essence versus mixed four selected Techniques + Resonance;
 - Profile as build headquarters;
 - legal saved-loadout foundation;
 - AI and existing PvP consuming the same build snapshots;

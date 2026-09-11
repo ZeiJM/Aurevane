@@ -40,7 +40,7 @@ The candidate must pass formatting, lint, typecheck, unit/service tests and the 
 
 ## Phase 4 handoff
 
-After the explicit start command, begin by validating the five already-authored Disciplines and assessing the incomplete sixth Foundation, Ironfist, using the existing versioned Skill/cooldown engine, pure 8 + Essence / mixed 6 + Resonance legality, shared immutable AI/PvP snapshots and saved-loadout authority. Do not rebuild these foundations.
+After the explicit start command, begin by validating the five already-authored Disciplines and assessing the incomplete sixth Foundation, Ironfist, using the existing versioned Skill/effect engine with authored consecutive-use falloff, pure four + Essence / mixed four + Resonance legality, shared immutable AI/PvP snapshots and saved-loadout authority. Do not rebuild these foundations.
 
 Before adding content, specify tactical identity, acquisition/mastery, AI use, counterplay, media needs and interaction-test coverage. Grow to 6–8, 12 and 16 only when the previous roster supports meaningful choices and sustainable authoring. Preserve the representative pure/mixed regression suite, security gates and desktop/mobile layout evidence. Collect broader human validation and route latency percentiles when a sufficient cohort exists; low-traffic database averages do not establish scale readiness.
 
@@ -101,7 +101,7 @@ The shared arena source retains the 5×3 Basic Training Floor and 9×7 Duel Yard
 
 ### First Phase-4 ticket, prepared but inactive
 
-**P4 preparation — inherited roster acceptance matrix.** Purpose: determine the smallest remaining content work before roster expansion. Reuse the current Skill/effect/cooldown engine, shared AI/PvP snapshots, saved-loadout authority and current media contracts.
+**P4 preparation — inherited roster acceptance matrix.** Purpose: determine the smallest remaining content work before roster expansion. Reuse the current Skill/effect engine and consecutive-use falloff, shared AI/PvP snapshots, saved-loadout authority and current media contracts.
 
 | Discipline | Authored Skills | Pure Essence | Mixed-pair coverage |
 |---|---:|---|---|
@@ -112,6 +112,15 @@ The shared arena source retains the 5×3 Basic Training Floor and 9×7 Duel Yard
 | Shadehand | 8 | Present | Other four authored Disciplines |
 | Ironfist | 0 mature library | Missing | Missing |
 
-Acceptance work: verify every existing Skill's legality/cooldown, pure-vs-mixed exclusion, reverse Primary pair behavior, AI use, counterplay, acquisition/testing-entitlement distinction, signature presentation and media coverage. Review battle maps alongside those matchups. Then define the focused Ironfist content ticket (eight Skills, one Essence and five pair relationships) under existing approved design authority. Do not invent new mechanics or start implementation during this audit.
+Acceptance work: verify every existing Skill's legality/consecutive-use falloff, pure-vs-mixed exclusion, reverse Primary pair behavior, AI use, counterplay, acquisition/testing-entitlement distinction, signature presentation and media coverage. Review battle maps alongside those matchups. Then define the focused Ironfist content ticket (eight Skills, one Essence and five pair relationships) under existing approved design authority. Do not invent new mechanics or start implementation during this audit.
 
 The next roster target is six complete Foundations, then 6–8, 12 and 16 validated Disciplines. Authored count alone never advances a quality gate.
+
+
+### Disposable-character verification follow-up
+
+The Owner explicitly authorized disposable test characters and cleanup. The dedicated Representative Buildcraft workflow provisions temporary accounts/characters in its isolated local Supabase database, explicitly enables PV-2 test mode, exercises pure/mixed selection, committed persistence, battle entry and authored-Skill interaction, and always stops the database with `--no-backup`. This avoids leaving test characters in production. The general smoke suite skips the PV-2-only flows when that mode is absent; its PASS must not be credited as those tests running.
+
+The readiness follow-up therefore makes changes to this closeout, the Roadmap or current Manual trigger that dedicated workflow. Its exact run result belongs in the PR evidence. No test mode is enabled on production and no existing player is granted additional access.
+
+This follow-up also corrects an audit-summary error: the learned library size (eight) had been confused with the selected capacity. The current approved selection is four in both pure and mixed builds, and ordinary authored Skills use consecutive-use falloff. The inherited eight-Skill library/Essence/Resonance roster counts remain valid. No gameplay rules are changed by the documentation correction.
