@@ -12,7 +12,7 @@ import {
 import type { PrimaryDisciplinePreview } from '@aurevane/game-core/character/discipline-build'
 import type { DerivedStatUnit } from '@aurevane/game-core/character/derived-stats'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore, useTransition } from 'react'
 import { createPortal } from 'react-dom'
 
 import { FoundationDisciplineSigil } from './foundation-discipline-sigil'
@@ -149,6 +149,11 @@ export function CharacterDisciplineBuildPanel({
   initialAttunement,
   coreAttributes,
 }: CharacterDisciplineBuildPanelProps) {
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  )
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -165,6 +170,7 @@ export function CharacterDisciplineBuildPanel({
   })
   const [pendingPreview, setPendingPreview] = useState(false)
   const [pendingCommit, setPendingCommit] = useState(false)
+  const [refreshingProfile, startProfileRefresh] = useTransition()
   const [message, setMessage] = useState<string | null>(null)
 
   useEffect(() => {
@@ -258,12 +264,14 @@ export function CharacterDisciplineBuildPanel({
 
   const commitBlocked = Boolean(
     pendingCommit ||
+    refreshingProfile ||
     !preview ||
     (preview.changes.primary && remaining.primary > 0) ||
     (preview.changes.secondary && remaining.secondary > 0),
   )
 
   function setPanelOpen(nextOpen: boolean) {
+    if (!nextOpen && (pendingCommit || refreshingProfile)) return
     const params = new URLSearchParams(searchParams.toString())
     if (nextOpen) {
       params.set(PROFILE_PANEL_QUERY, DISCIPLINES_PANEL)
@@ -372,7 +380,7 @@ export function CharacterDisciplineBuildPanel({
       } else {
         setMessage('The Primary and Secondary Discipline changes are now committed.')
       }
-      router.refresh()
+      startProfileRefresh(() => router.refresh())
     } catch {
       setMessage('The build service could not be reached. Nothing was changed.')
     } finally {
@@ -406,7 +414,7 @@ export function CharacterDisciplineBuildPanel({
         <span className={styles.triggerLabel}>Discipline Management</span>
       </button>
 
-      {open && typeof document !== 'undefined'
+      {open && mounted
         ? createPortal(
             <div
               className={styles.backdrop}
@@ -425,6 +433,7 @@ export function CharacterDisciplineBuildPanel({
                   <button
                     type="button"
                     className={styles.close}
+                    disabled={pendingCommit || refreshingProfile}
                     onClick={() => setPanelOpen(false)}
                   >
                     Close
@@ -468,7 +477,12 @@ export function CharacterDisciplineBuildPanel({
                       onChange={(event) =>
                         void previewSelection(event.target.value, selectedSecondaryId)
                       }
-                      disabled={pendingPreview || pendingCommit || remaining.primary > 0}
+                      disabled={
+                        pendingPreview ||
+                        pendingCommit ||
+                        refreshingProfile ||
+                        remaining.primary > 0
+                      }
                     >
                       {visiblePrimaryOptions.map((entry) => (
                         <option
@@ -493,7 +507,12 @@ export function CharacterDisciplineBuildPanel({
                       onChange={(event) =>
                         void previewSelection(selectedPrimaryId, event.target.value)
                       }
-                      disabled={pendingPreview || pendingCommit || remaining.secondary > 0}
+                      disabled={
+                        pendingPreview ||
+                        pendingCommit ||
+                        refreshingProfile ||
+                        remaining.secondary > 0
+                      }
                     >
                       <option value="">None</option>
                       {visibleSecondaryOptions.map((entry) => (

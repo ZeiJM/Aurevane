@@ -2,7 +2,7 @@
 
 **Status:** Binding build-system sequencing companion to `docs/ROADMAP.md` and `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md`.
 
-**Reconciled:** 2026-09-02
+**Reconciled:** 2026-09-11
 
 **Authority:** `docs/GAME_MASTER_PLAN.md` remains highest product authority. `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md` defines the approved build contract. `docs/ROADMAP.md` defines current phase sequence. `docs/PHASE_3_TICKETS.md` defines the exact Phase-3 implementation order.
 
@@ -63,8 +63,8 @@ BOUNDED PRESTIGE / VETERAN EDGE
 
 ```text
 Primary only
-8 Discipline Skills
-+ 1 Essence Skill outside the Discipline cap
+0–4 selected Discipline Techniques from the eight-Skill library
++ 1 Essence Skill outside the four-selection cap
 + no Resonance
 ```
 
@@ -72,7 +72,7 @@ Primary only
 
 ```text
 Primary + mastered Secondary
-6 total Discipline Skills across the pair
+0–4 selected Discipline Techniques across the pair (1+3, 2+2 or 3+1 when full)
 + Resonance passive
 + no pure Essence while Secondary is equipped
 ```
@@ -85,7 +85,7 @@ Primary supplies the active Discipline base-stat profile. Player-assigned attrib
 
 Phase 2 is formally closed. Its mature battle/PvP/spectator/cockpit platform is frozen as reusable infrastructure unless a genuine regression is discovered.
 
-Phase 3's P3.1–P3.8 implementation is complete. The Owner approved closure with the final UI/quality release on 2026-09-11; see `PHASE_3_CLOSEOUT.md`. Phase 4 remains unstarted until an explicit Owner command. Compatible Phase-2 and Phase-3 foundations receive reuse credit rather than being rebuilt.
+Phase 3's P3.1–P3.8 implementation is complete. The Owner approved closure with the final UI/quality release on 2026-09-11; see `PHASE_3_CLOSEOUT.md`. The Owner subsequently activated Phase 4 and authorized its final production release; follow `docs/PHASE_4_TICKETS.md` for staged implementation and evidence. Compatible Phase-2 and Phase-3 foundations receive reuse credit rather than being rebuilt.
 
 The inherited platform already provides:
 
@@ -119,12 +119,12 @@ It includes:
 - Profile preview/confirmation;
 - no loss/duplication of assigned attributes.
 
-## Skills and cooldowns
+## Skills and consecutive use
 
 - stable versioned Skill definitions;
 - exactly eight learnable Skills per mature Discipline target;
 - canonical AP/target/requirement/effect integration;
-- server-authoritative cooldown engine;
+- server-authoritative 50% consecutive-use effectiveness at unchanged AP cost;
 - source labels;
 - AI metadata;
 - PvE/PvP override hooks;
@@ -132,8 +132,8 @@ It includes:
 
 ## Pure versus mixed capacity
 
-- pure: up to eight Primary Discipline Skills;
-- mixed: six total Discipline Skills across Primary + Secondary;
+- pure: up to four selected Techniques from the eight-Skill Primary library;
+- mixed: four total selected Techniques across Primary + Secondary;
 - authoritative loadout validation;
 - Profile configuration;
 - committed battle snapshots.
@@ -161,8 +161,8 @@ Implement the first representative pure-build Essence framework/Skills in Phase 
 Essence:
 
 - exists for a Primary-only build;
-- grants one special Essence Skill outside the normal eight Discipline Skill capacity;
-- uses normal AP/cooldown/target/effect rules;
+- grants one special Essence Skill outside the normal four-Technique selection capacity;
+- uses normal AP/repeat-use/target/effect rules;
 - is unavailable while Secondary is equipped;
 - must create a real reason to remain pure rather than functioning as an automatic disguised Ultimate.
 
@@ -188,9 +188,9 @@ Phase 4 no longer owns the first implementation of Resonance/Essence. It **scale
 Use staged expansion:
 
 ```text
-4 representative Disciplines
-  ↓ identity proof
-6–8 Disciplines
+Five inherited authored libraries
+  ↓ validate identity; complete Ironfist as the sixth Foundation
+6–8 validated Disciplines
   ↓ balance/content-production proof
 12 Disciplines
   ↓ broader meta proof
@@ -259,10 +259,10 @@ Use long-form PvE to stress:
 - Essence timing;
 - equipment Skills;
 - Soulmark/Mantle identity once released;
-- cooldown pressure;
+- AP pressure and consecutive-use tradeoffs;
 - party coordination.
 
-Equipment-granted active Skills use the same canonical Skill/target/effect/cooldown grammar where practical.
+Equipment-granted active Skills use the canonical Skill/target/effect grammar and their applicable timing policy; ordinary authored Discipline Skills must not regain turn cooldowns.
 
 ---
 
@@ -274,7 +274,7 @@ Phase 8 adds mature competitive requirements:
 
 - legal committed build snapshot before match;
 - no mid-match Profile respec;
-- authoritative cooldown state;
+- authoritative repeat-use state and any separately governed cooldown state;
 - Resonance/Essence legality;
 - Soulmark/Mantle legality once those systems exist;
 - Equipment Skill/item snapshot validation;
@@ -321,9 +321,9 @@ The key product question is whether players independently show **curiosity-drive
 
 ```text
 Primary vs Secondary
-8 pure vs 6 mixed Discipline Skills
+Four battle selections; eight learned Skills per mature Discipline
 Essence vs Resonance
-Skill sources and cooldowns
+Skill sources, AP costs and consecutive-use effectiveness
 ```
 
 Soulmark/Mantle comprehension is validated when that supernatural layer is actually introduced; it is not required to prove the Phase-3 core build thesis.

@@ -372,6 +372,8 @@
   display: grid;
   min-height: 0;
   flex: 1 1 auto;
+  overflow-y: auto;
+  grid-auto-rows: max-content;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
   align-content: start;
   gap: 0.48rem;

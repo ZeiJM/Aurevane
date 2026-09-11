@@ -20,6 +20,9 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
   })
   await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management' })
+  await expect(management).toBeVisible()
+  await page.reload()
+  await expect(management).toBeVisible()
   await management
     .locator('label')
     .filter({ hasText: /^Proposed Primary/ })
@@ -51,6 +54,9 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
   await palm.locator('summary').click()
   const overflow = await dialog.evaluate((element) => element.scrollWidth > element.clientWidth + 1)
   expect(overflow).toBe(false)
+  expect(await palm.evaluate((element) => element.scrollHeight > element.clientHeight + 1)).toBe(
+    false,
+  )
   await testInfo.attach(`phase4-skills-${testInfo.project.name}`, {
     body: await page.screenshot(),
     contentType: 'image/png',

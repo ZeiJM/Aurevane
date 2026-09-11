@@ -6,7 +6,7 @@ import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { ResonanceDefinition } from '@aurevane/game-core/combat/resonance'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 
 import type { FavoriteTechniqueCategory } from '../battle/favorite-technique-storage'
@@ -124,6 +124,11 @@ export function CharacterSkillBuildPanel({
   initialResonance,
   initialEssence,
 }: CharacterSkillBuildPanelProps) {
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  )
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -277,7 +282,7 @@ export function CharacterSkillBuildPanel({
         </small>
       </button>
 
-      {open && typeof document !== 'undefined'
+      {open && mounted
         ? createPortal(
             <div
               className={styles.backdrop}

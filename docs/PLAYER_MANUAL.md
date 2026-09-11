@@ -3,7 +3,7 @@
 **Status:** Authoritative documentation/player-help specification subordinate to `docs/GAME_MASTER_PLAN.md` and the owner-approved domain specifications it indexes.
 
 **Initial direction approved:** 2026-08-15.  
-**Terminology/current-state synchronization:** 2026-08-19.
+**Terminology/current-state synchronization:** 2026-09-11.
 
 AUREVANE must eventually ship with a comprehensive, attractive, easy-to-read Manual covering beginner fundamentals through advanced systems, plus separate protected Owner/Staff operational documentation.
 
@@ -133,7 +133,7 @@ Buildcraft documentation must use the approved mature contract.
 
 ```text
 Primary only
-up to 8 learned Primary Discipline Skills
+up to 4 selected Techniques from the eight-Skill Primary library
 + 1 Essence Skill
 + no Resonance
 ```
@@ -142,12 +142,14 @@ up to 8 learned Primary Discipline Skills
 
 ```text
 Primary + mastered Secondary
-6 total Discipline Skills across both active libraries
+up to 4 selected Techniques across both active libraries
 + Resonance passive
 + no pure-path Essence while Secondary is equipped
 ```
 
-The exact Primary/Secondary split inside the mixed six is tunable and must not be documented as a permanent 4/2 split unless a later current rules version explicitly locks it.
+A full mixed loadout uses both Disciplines: 1+3, 2+2 or 3+1. Eight learnable Skills per mature Discipline describes library size, not the number selected for battle.
+
+Technique cards show target kind, area shape and effect tags. Skill details expands range, line of sight, elevation limits, affected-team policy, AP overrides, ordered effects and use requirements. Expanding details does not select the Technique.
 
 Primary supplies the active base Discipline stat profile. Secondary supplies no second base profile.
 
@@ -178,7 +180,7 @@ Final Facing                     0 AP and ends turn
 
 These current numerical values should be sourced/verified against the server-authoritative implementation before publication after future balance changes.
 
-Multiple legal commands may occur in one turn while AP remains.
+Multiple legal commands may occur in one turn while AP remains. Ordinary authored Skills use 50% consecutive-use effectiveness at unchanged AP cost. A different actual command resets the chain; ending a turn alone does not. Movement starts at 2 and caps at 5, while Jump starts at 0 and caps at 3. Spare AP cannot bypass Movement allowance.
 
 Combat documentation should eventually cover movement/traversal cost, Action Economy, targeting/range/line of sight, facing/front/side/rear, elevation/terrain/hazards/zones, statuses/effects, summons/battle objects, resources/cooldowns, forecasts, triggered/passive effects, displacement, objectives, PvP-specific rules and common tactical mistakes.
 
@@ -192,7 +194,7 @@ Explain that it requires an eligible Primary + Secondary pairing, Secondary norm
 
 ### Essence
 
-Explain that it requires Primary only/no Secondary, grants one special Essence Skill outside the normal eight Discipline Skill capacity, uses normal authoritative targeting/effects/AP/cooldowns and is the pure-path alternative to Resonance—not an Ultimate slot.
+Explain that it requires Primary only/no Secondary, grants one special Essence Skill outside the normal four-Technique selection capacity, uses normal authoritative targeting/effects/AP and consecutive-use rules and is the pure-path alternative to Resonance—not an Ultimate slot.
 
 ### Supernatural fork
 
