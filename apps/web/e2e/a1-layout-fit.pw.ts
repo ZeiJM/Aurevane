@@ -59,7 +59,10 @@ test('keeps A1 surfaces readable and within viewport', async ({ page }, testInfo
     11.5,
     'Character Profile derived-stat label',
   )
-  await expectInitialViewportFit(page, 'Character Profile')
+  const resetAttributes = page.getByRole('button', { name: 'Reset / Redistribute Attributes' })
+  await expectMinimumFontSize(resetAttributes, 11, 'Character Profile reset control')
+  await expectReachableByVerticalScroll(page, resetAttributes, 'Character Profile reset control')
+  await expectInitialViewportFit(page, 'Character Profile', { allowVerticalScroll: true })
 
   await page.goto('/game/battle')
   await expect(page.getByRole('heading', { name: 'Choose your arena.' })).toBeVisible()
@@ -100,6 +103,32 @@ async function expectMinimumFontSize(
   )
   const readabilityMessage = `${surface} should meet the desktop readability floor`
   expect(fontSize, readabilityMessage).toBeGreaterThanOrEqual(minimumPx)
+}
+
+async function expectReachableByVerticalScroll(
+  page: Page,
+  locator: Locator,
+  surface: string,
+): Promise<void> {
+  await locator.scrollIntoViewIfNeeded()
+  await expect(locator, `${surface} should remain visible after scrolling into view`).toBeVisible()
+  const geometry = await locator.evaluate((element) => {
+    const rect = element.getBoundingClientRect()
+    return {
+      top: rect.top,
+      bottom: rect.bottom,
+      viewportHeight: window.innerHeight,
+    }
+  })
+
+  expect(geometry.top, `${surface} should not be clipped above the viewport`).toBeGreaterThanOrEqual(
+    -1,
+  )
+  expect(
+    geometry.bottom,
+    `${surface} should be reachable instead of clipped behind a fixed-height profile`,
+  ).toBeLessThanOrEqual(geometry.viewportHeight + 1)
+  await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'instant' }))
 }
 
 async function expectInitialViewportFit(
