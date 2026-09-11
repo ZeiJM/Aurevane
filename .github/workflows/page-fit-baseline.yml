@@ -1,0 +1,35 @@
+name: Page fit baseline comparison
+on:
+  push:
+    branches: [agent/profile-hall-baseline]
+    paths: [.github/workflows/page-fit-baseline.yml]
+permissions:
+  contents: read
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 097584c16d36fba2345f9f377908eea64c31999b
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: corepack enable && corepack prepare pnpm@11.17.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - name: Record independent baseline outcomes
+        run: |
+          set +e
+          pnpm lint > /tmp/main-lint.log 2>&1; lint_status=$?
+          pnpm test > /tmp/main-unit.log 2>&1; unit_status=$?
+          mkdir -p baseline-evidence
+          cp /tmp/main-lint.log /tmp/main-unit.log baseline-evidence/
+          git rev-parse HEAD > baseline-evidence/source-sha.txt
+          printf '{"lint":%s,"unit":%s}\n' "$lint_status" "$unit_status" > baseline-evidence/outcomes.json
+          cp -rL node_modules/prettier baseline-evidence/prettier
+      - uses: actions/upload-artifact@v4
+        with:
+          name: main-baseline-evidence
+          path: baseline-evidence
+          retention-days: 3
