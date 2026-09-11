@@ -17,10 +17,7 @@ import {
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
-import {
-  countOnlineCharacters,
-  touchCharacterPresence,
-} from '@/server/presence/character-presence-service'
+import { touchCharacterPresenceAndCount } from '@/server/presence/character-presence-service'
 
 import styles from './authenticated-game-shell.module.css'
 
@@ -90,10 +87,7 @@ export async function AuthenticatedShellFrame({
       try {
         const [display, count] = await Promise.all([
           loadCharacterProfileDisplay(actor.userId, activeCharacter.id),
-          (async () => {
-            await touchCharacterPresence(actor.userId, activeCharacter.id)
-            return countOnlineCharacters()
-          })(),
+          touchCharacterPresenceAndCount(actor.userId, activeCharacter.id),
         ])
         activeImageUrl = display.imageUrl
         onlineCount = count
