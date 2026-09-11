@@ -1,0 +1,36 @@
+name: Agent experience review
+
+on:
+  push:
+    branches: [agent/game-experience-pass]
+    paths: ['.github/workflows/agent-experience-review.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+      - name: Package tracked review context
+        run: |
+          mkdir -p review-context
+          git archive --format=tar.gz HEAD AGENTS.md TASKS.md docs apps/web/src apps/web/e2e apps/web/package.json apps/web/playwright.config.ts apps/web/next.config.ts packages package.json pnpm-workspace.yaml .prettierrc.json > review-context/source.tar.gz
+          tar -czf review-context/prettier.tar.gz -C "$(realpath node_modules/prettier)" .
+          git rev-parse HEAD > review-context/commit.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experience-review-context
+          path: review-context
+          retention-days: 1
