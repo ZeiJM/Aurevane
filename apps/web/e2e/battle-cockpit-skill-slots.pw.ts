@@ -56,7 +56,7 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   ] as const) {
     await expect(
       commandDeck.locator(`[data-command-card="${slot}"] [data-battle-command-artwork] img`),
-    ).toHaveAttribute('src', src)
+    ).toHaveJSProperty('src', new URL(src, page.url()).href)
   }
   await expect(healAction).toContainText('HP Recovery')
   await expect(healAction).toContainText('50 AP')
@@ -205,7 +205,10 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   await expect(inspectAction).toHaveAttribute('data-battle-active', 'true')
 
   const initialImage = healArtwork.locator('img')
-  await expect(initialImage).toHaveAttribute('src', '/media/skills/hp-recovery.webp')
+  await expect(initialImage).toHaveJSProperty(
+    'src',
+    new URL('/media/skills/hp-recovery.webp', page.url()).href,
+  )
   await expect
     .poll(() =>
       initialImage.evaluate(
@@ -230,7 +233,10 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   await expect(healArtwork).toHaveAttribute('aria-label', /MP Recovery selected/i)
 
   const mpImage = healArtwork.locator('img')
-  await expect(mpImage).toHaveAttribute('src', '/media/skills/mp-recovery.svg')
+  await expect(mpImage).toHaveJSProperty(
+    'src',
+    new URL('/media/skills/mp-recovery.svg', page.url()).href,
+  )
   await expect
     .poll(() =>
       mpImage.evaluate(
@@ -248,9 +254,9 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   })
   await expect(refreshedHealAction).toContainText('MP Recovery')
   await expect(refreshedHealArtwork).toHaveAttribute('aria-label', /MP Recovery selected/i)
-  await expect(refreshedHealArtwork.locator('img')).toHaveAttribute(
+  await expect(refreshedHealArtwork.locator('img')).toHaveJSProperty(
     'src',
-    '/media/skills/mp-recovery.svg',
+    new URL('/media/skills/mp-recovery.svg', page.url()).href,
   )
 
   await refreshedHealArtwork.click()
