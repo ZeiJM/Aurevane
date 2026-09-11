@@ -13,7 +13,7 @@ Owner activation: explicit request for full implementation, necessary approvals,
 
 ## Current implementation boundary
 
-The sixteen-Discipline playable implementation is live through PR #451. P4.1–P4.6 engineering and the production migration are delivered; independent human tactical acceptance and dedicated production media remain open. The six-Foundation evidence below is historical.
+The sixteen-Discipline playable implementation is live through PR #451, the self-target correction through #452, and ten painted identities plus 72 synthesized cue variants through #454. P4.1–P4.6 engineering, media integration and the production migration are delivered for Owner testing. Independent human visual/listening and tactical acceptance remains open. Earlier milestone evidence below is historical.
 
 ## Owner continuation — descriptive effects and full implementation
 
@@ -23,7 +23,7 @@ Implementation proceeds through Bastion/Ravager (eight total), Edgedancer/Wildwa
 
 Damage modifiers must resolve for each actual attacker/recipient pair. Linked benefit/drawback statuses keep both parts together under application, expiry and removal. New percentage modifiers have explicit caps and single-stack authoring; existing Guarded/Exposed rules remain compatible. Direct damage boosts and strong trade-offs require an explicit per-Skill justification and distribution audit, rather than becoming a default filler effect across the roster or all Resonances.
 
-The typed effect extensions, complete libraries/signatures, Mastery Trials, current unarmed/armor/ward interactions, database/browser checks and live release are delivered. Dedicated illustrations/audio and independent human balance acceptance remain open. Equipment catalogs and their active Skills retain their later roadmap integration.
+The typed effect extensions, complete libraries/signatures, Mastery Trials, current unarmed/armor/ward interactions, database/browser checks and live release are delivered. The painted identity and synthesized cue integration is now released; independent human media/balance acceptance remains open. Equipment catalogs and their active Skills retain their later roadmap integration.
 
 ## Roster acceptance matrix
 
@@ -140,3 +140,14 @@ Ten painted advanced Discipline identities now serve the Profile identity and Es
 Shared playable PvE/PvP and spectator presentation consumes only recent persisted events through a private authenticated endpoint. The existing participant/active-spectator RPC checks authorize each read; no database policy, migration or gameplay rule changes. Reads are bounded to one 100-event page per observed new version, with at most two compact cue descriptors. Initial history, replayed commands, version gaps, previews, failures, hidden tabs and disabled audio produce no catch-up playback. Pending loads cancel on new state, tab changes and unmount. SFX keeps the central volume/mute, gesture unlock and two-voice priority limit.
 
 Final acceptance still needs actual human listening and gameplay feedback. No fabricated playtest outcomes are recorded.
+
+
+## Media integration release evidence — 2026-09-11
+
+- PR [#454](https://github.com/ZeiJM/Aurevane/pull/454) merged at `f756d92de20b583a718c8f5faf67769ef32762e8`. The merged tree exactly matches tested tree `6611e91ec72675f4df92d5f72c51c1fd540033ab`; main stayed at `f67cd8c3` until this merge.
+- All six workflows passed on final head `d1dee5e9dc13f3d8ff80d9dcc2c3b6afae312057`: [CI](https://github.com/ZeiJM/Aurevane/actions/runs/34658206578), [Skill Engine](https://github.com/ZeiJM/Aurevane/actions/runs/34658206573), [Essence Build](https://github.com/ZeiJM/Aurevane/actions/runs/34658206571), [Resonance Build](https://github.com/ZeiJM/Aurevane/actions/runs/34658206567), [Representative Buildcraft](https://github.com/ZeiJM/Aurevane/actions/runs/34658206614), and [Browser Smoke](https://github.com/ZeiJM/Aurevane/actions/runs/34658206589). Local `pnpm check` passed formatting, lint, typecheck, 1,016 Vitest tests, six Node report tests and production build.
+- Representative Buildcraft passed eight browser cases with four intentional viewport skips. Desktop/laptop/mobile checks prove painted Essence loading, silent action previews, exact committed cue responses and nonempty MP3 delivery with valid HTTP 200/206 and audio/mpeg. [Retained browser evidence](https://github.com/ZeiJM/Aurevane/actions/runs/34658206614/artifacts/10285448915). The final test-only correction accepts valid HTTP range delivery rather than assuming every successful MP3 response is 200.
+- Release commit `4ec4036c6781621a1eb502aaf00b5941b99d4656` produced READY production deployment `dpl_DWVodLdpQ7vN3jnPPptqjtLyGeEK`, with the production alias https://aurevane.vercel.app and exact Git SHA verified. Only the temporary main deployment switch differs from the verified merge. This evidence commit restores the deployment lock; application code/assets remain unchanged. No database migration, entitlement or balance change was needed.
+- Authenticated production checking confirmed Bastion 128px identity and 256px Last Bastion artwork loaded, preserved targeting/shape/effect tags and four selected Skills, a legal self-tile Fortress preview, its committed 30 AP cost and Fortified combat-log entry. The turn timer elapsed during post-action inspection; this is not reward evidence. The practice battle was surrendered in Round 2 and the character returned to the Battle Hall. Production error/fatal logs were empty during the check.
+
+The set is live for Owner evaluation. Automated audio delivery is verified; human listening quality, visual acceptance and independent tactical/balance feedback remain unclaimed. Source candidate manifests are immutable; `content/media-releases/phase4-v01.json` records the continuation authorization and 102 runtime file hashes (571,754 bytes total). No unique recording for every Skill or bespoke mix for every pair is claimed.

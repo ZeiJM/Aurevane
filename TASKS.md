@@ -10,7 +10,7 @@ This file reports the **current implementation/validation boundary**.
 
 ## Current status
 
-**Stage:** Phase 4 — First Playable Buildcraft Roster — **IMPLEMENTATION IN PROGRESS**. Phase 3 is closed by Owner decision; see `docs/PHASE_3_CLOSEOUT.md`.
+**Stage:** Phase 4 — First Playable Buildcraft Roster — **PLAYABLE IMPLEMENTATION LIVE; HUMAN ACCEPTANCE OPEN**. Phase 3 is closed by Owner decision; see `docs/PHASE_3_CLOSEOUT.md`.
 
 **Phase 2:** CLOSED on 2026-09-02 by explicit Owner decision after the final production regression test. PV-1 is reconciled as completed by that Owner phase-exit decision; do not invent additional human evidence.
 
@@ -24,7 +24,7 @@ This file reports the **current implementation/validation boundary**.
 
 **Current implementation:** PR #451 released the full sixteen-Discipline playable roster, short named effects, sparse conditional damage/tradeoffs and Mastery Trials. All 15 exact-head CI workflows and the production migration passed. The shared self-target cockpit correction is also released through PR #452 with all four applicable workflows passing and a successful live Fortress preview/commit check. Release evidence and remaining human/media acceptance are recorded in `docs/PHASE_4_TICKETS.md`.
 
-**Live baseline:** Sixteen Disciplines, 128 regular Skills, 16 Essences and 120 Resonances are live through PR #451 and release `7a539581`; the final self-target correction is live at `fa98cf19`, with deployment locked again. Dedicated media and independent human balance acceptance remain open. Earlier phase-boundary notes below preserve historical decisions.
+**Live baseline:** Sixteen Disciplines, 128 regular Skills, 16 Essences and 120 Resonances, targeting/shape/effect tags, sparse conditional damage/tradeoffs and Mastery Trials are live. PR #454 adds ten painted advanced Discipline identities/Essence images and 72 synthesized audio variants at release `4ec4036c`, deployment `dpl_DWVodLdpQ7vN3jnPPptqjtLyGeEK`. All six release workflows and the live artwork/Fortress smoke check passed. This evidence commit restores the deployment lock. Independent human visual/listening and tactical balance acceptance remains open; earlier phase-boundary notes below are historical.
 
 ---
 
@@ -150,11 +150,11 @@ Do not start broad roster production, large Resonance matrices, Soulmark/Mantle 
 8. Keep this ledger current and concise.
 
 
-## Phase 4 media continuation — candidate review
+## Phase 4 media continuation — historical candidate preparation
 
 Branch `agent/phase4-media-candidates` prepares ten painted identity masters, 72 original synthesized cues, provenance, bounded central audio audition and an offline review gallery. `docs/PHASE_4_PLAYTEST_PACKET.md` provides actual-session scenarios and an empty results template. Automated media/runtime checks are recorded with the candidate pack. Browser walkthrough of the local review file was blocked by the browser URL policy and is not claimed. Human art/listening acceptance remains required by `docs/MEDIA_PIPELINE.md`; live assets and gameplay rules are unchanged.
 
 
 ## Phase 4 media integration continuation
 
-PR #453 merged the candidate work at `f67cd8c3`; CI, Skill Engine and Browser Smoke passed. Branch `agent/phase4-media-integration` connects the Owner-authorized testing release of ten identity paintings and 72 synthesized cues. The shared committed-event path preserves authorization, gesture/mute settings and no-replay behavior. Final checks and production evidence will be recorded before completion. Independent human media/balance acceptance remains outstanding.
+PR #453 merged the candidate work at `f67cd8c3`; CI, Skill Engine and Browser Smoke passed. Branch `agent/phase4-media-integration` connects the Owner-authorized testing release of ten identity paintings and 72 synthesized cues. The shared committed-event path preserves authorization, gesture/mute settings and no-replay behavior. PR #454 merged at `f756d92d` with the exact tested tree unchanged. All six workflows passed on `d1dee5e9`; local `pnpm check` passed 1,016 Vitest tests, six Node report tests, lint/typecheck/formatting and production build. Release `4ec4036c` is READY at https://aurevane.vercel.app. Live artwork and Fortress preview/commit were verified, production error/fatal logs were empty, and the practice character returned to the Battle Hall. This commit restores the deployment lock and records detailed evidence in `docs/PHASE_4_TICKETS.md`. Independent human media/balance acceptance remains outstanding.

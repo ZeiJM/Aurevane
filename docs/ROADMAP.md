@@ -49,7 +49,7 @@ Performance work never authorizes a gameplay redesign, weakened server authority
 | Phase 1 — Character & Progression Foundation | ✅ Substantially complete | Character/account/profile/progression/equipment foundations exist. |
 | Phase 2 — Tactical Combat & Battle Platform | ✅ Closed / PV-1 passed | Mature combat, AI, direct PvP and spectation foundations are preserved for reuse. |
 | Phase 3 — Signature Buildcraft Foundation | ✅ Implementation complete; Owner-approved closeout | P3.1–P3.8 delivered; final UI/quality release completes the Owner's closure condition. See `PHASE_3_CLOSEOUT.md`. |
-| Phase 4 | Sixteen-Discipline playable implementation live; media/human acceptance open | PR #451 released at `7a539581`; 128 Skills, 16 Essences, 120 Resonances, named effects and Mastery Trials. All 15 CI workflows passed; exact migration verified. See `PHASE_4_TICKETS.md`. |
+| Phase 4 | Sixteen-Discipline implementation and media integration live; human acceptance open | PR #451 released at `7a539581`; 128 Skills, 16 Essences, 120 Resonances, named effects and Mastery Trials. All 15 CI workflows passed; exact migration verified. See `PHASE_4_TICKETS.md`. |
 | Phase 5+ | Planned | Inherit compatible early work. |
 
 ## Current decision boundary
@@ -441,7 +441,7 @@ Current released baseline and continuation (2026-09-11):
 - Skill targeting/effect tags and expandable details are live, together with Crossroads Court and Terraced Yard AI Sparring arenas. See `PHASE_4_TICKETS.md` for exact CI, migration and production evidence.
 - Authored coverage is implementation credit, not proof of balance, acquisition, AI quality, media completion or human validation.
 
-The continuation in PR #451 implements the full sixteen-Discipline catalog (128 regular Skills, 16 Essences, 120 pairs), named effects, sparse conditional modifiers and Mastery Trial acquisition. The roster is live, and existing testing grants make it immediately testable. The final self-target cockpit correction is released through PR #452. Exact database/browser/deployment evidence and remaining human balance/media acceptance belong in `PHASE_4_TICKETS.md`.
+The continuation in PR #451 implements the full sixteen-Discipline catalog (128 regular Skills, 16 Essences, 120 pairs), named effects, sparse conditional modifiers and Mastery Trial acquisition. The roster is live, and existing testing grants make it immediately testable. The final self-target cockpit correction is released through PR #452. PR #454 releases ten painted advanced identities and 72 synthesized action/effect cue variants for Owner evaluation; independent human art/listening and balance acceptance remains open. Exact database/browser/deployment evidence and remaining human balance/media acceptance belong in `PHASE_4_TICKETS.md`.
 
 Reconciled sequence:
 

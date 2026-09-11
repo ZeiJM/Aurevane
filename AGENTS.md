@@ -39,7 +39,7 @@ Phase 0 — Engineering Foundation               substantially complete
 Phase 1 — Character & Progression Foundation  substantially complete
 Phase 2 — Tactical Combat & Battle Platform   closed; PV-1 passed by explicit Owner decision
 Phase 3 — Signature Buildcraft Foundation     complete; Owner-approved closeout with final UI release
-Phase 4 — First Playable Buildcraft Roster     sixteen-Discipline playable roster live; human/media acceptance open
+Phase 4 — First Playable Buildcraft Roster     sixteen-Discipline roster and media integration live; human acceptance open
 ```
 
 Phase 2 is formally closed and its reusable tactical combat, Recruit AI/Battle Hall, direct PvP, multi-combatant battles, spectation, battle communication, battle logs and responsive battle presentation are preserved dependencies for Phase 3.
