@@ -22,7 +22,7 @@ This file reports the **current implementation/validation boundary**.
 
 **Presentation follow-up:** PR #446 merged while this audit was in progress and was released at `0df098e8`; preserve its desktop/mobile changes and assess its exact release interaction evidence.
 
-**Active work:** Phase-4 roster acceptance, Ironfist completion, Skill targeting/effect details and representative map coverage. Implementation and verification are in progress; no release or human balance PASS is claimed. Earlier phase-boundary notes below preserve historical decisions.
+**Active work:** The six-Foundation Phase-4 stage is live through PR #450 and release `b2da21e2`: Ironfist, Skill targeting/effect details and representative arenas. All fifteen candidate CI workflows pass. Broader roster expansion and human balance acceptance remain open; see `docs/PHASE_4_TICKETS.md`. Earlier phase-boundary notes below preserve historical decisions.
 
 ---
 

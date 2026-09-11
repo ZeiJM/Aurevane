@@ -13,7 +13,7 @@ Owner activation: explicit request for full implementation, necessary approvals,
 
 ## Current implementation boundary
 
-P4.1–P4.4 candidate work is in progress. P4.5 expansion and full Phase-4 closure are not yet established. This ledger must not be reported as a completed sixteen-Discipline roster.
+P4.1–P4.4 are implemented and released as the six-Foundation stage. P4.5 expansion and full Phase-4 closure are not yet established. This ledger must not be reported as a completed sixteen-Discipline roster.
 
 ## Roster acceptance matrix
 
@@ -24,7 +24,7 @@ P4.1–P4.4 candidate work is in progress. P4.5 expansion and full Phase-4 closu
 | Aetherist | Single target versus line/area spell pressure | Spacing, sight and elevation | 8 inherited | Aether Nova | 5 with Ironfist |
 | Farstrider | Maintain minimum range and firing lanes | Close distance and break sight | 8 inherited | Deadeye Barrage | 5 with Ironfist |
 | Shadehand | Face/Expose setup versus immediate damage | Face the attacker and deny openings | 8 inherited | Perfect Opening | 5 with Ironfist |
-| Ironfist | Defensive setup or exposed-target payoff at close range | Kite; deny setup; armor checks each rush hit | 8 candidate | Hundredfold Rush | 5 candidate |
+| Ironfist | Defensive setup or exposed-target payoff at close range | Kite; deny setup; armor checks each rush hit | 8 released | Hundredfold Rush | 5 released |
 
 The acquisition boundary is inherited Foundation provisioning on active Discipline change, with durable learned facts. Secondary still requires server-owned mastery. The private PV-2 preparation path is testing only. Final world-based acquisition and mastery routes are not claimed by this content release.
 
@@ -62,11 +62,19 @@ The current unarmed battle platform supplies the equipment baseline. This ticket
 
 Balance, broader human exploration and authoring throughput remain separate from deterministic correctness.
 
+## Release evidence — 2026-09-11
 
-## Local verification checkpoint
+PR #450 merged as `a9fa6e92f606e6ea9047be8159461dcf8876971a`. Its verified head `57dde60a96e9095059d70184d8b21ac61feb3dc7` passed all fifteen CI workflows. The merged tree matches that head exactly. Current-main mobile-polish PR #449 was incorporated before final validation.
 
-The candidate passes 582 Vitest unit/service tests and six Node report tests, including 43 focused roster, Ironfist AI/Resonance and arena tests. Formatting, lint, TypeScript and the optimized production build pass (`pnpm check`). The updated Manual assertion now credits Ironfist while retaining the later acquisition/mastery boundary. The Skill-detail styles use the actual shared body-font token. Browser test authoring follows the current Battle Hall mode selector rather than an obsolete button.
+- `pnpm check`: 586 Vitest unit/service tests and six Node report tests; formatting, lint, TypeScript and optimized production build pass. Coverage includes frozen pre-Phase-4 Ironfist snapshots, modern signature requirements, roster execution, both pair directions, AI legality and arena provenance.
+- Representative Buildcraft run `34608070258`: normal Ironfist creation/provisioning, pure snapshot, idempotency and browser-role denial pass; five browser flows pass with four intentional viewport skips. Phase-4 Skill selection/reload and both new arenas pass on desktop, laptop and phone. Screenshots/traces: artifact `10267725636`.
+- Browser smoke run `34608070148`: 117 Chromium tests pass, 93 intentional skips; four focused Microsoft Edge tests pass. Desktop experience and page-fit workflows also pass.
+- Browser verification found and fixed open-dialog hydration mismatches, a Discipline-commit/Profile-refresh race and expanded Skill-card clipping. The tests check saved selections independently after reload and verify the default Duel Yard through the new selector.
+- Supabase Git integration applied `20260911130317_phase4_ironfist_content.sql` with its committed identity. All 74 hosted version/name pairs match Git. Production has six enabled Essences and fifteen enabled Resonances; the existing active Ironfist build received all eight learned Skills. Anonymous and authenticated browser roles cannot execute the private provisioning trigger. No migration-history rewrite was needed.
+- Production release `b2da21e297c61e05c5442e465c980daf830d5a6d` is READY at https://aurevane.vercel.app through deployment `dpl_6zem5DU9ewgjpkPpNkrboWioRWHs`. The only release delta from the verified merge is the temporary main deployment switch. Commit `45e1d82433e92d2d73d7b8857c042e385f0a3975` restores the deployment lock.
 
-Automatic approval review rejected the push to the public `ZeiJM/Aurevane` repository because the current user request did not explicitly name that publication destination and payload. Do not work around the rejected push through another tool. The local change set consists of game code, one additive database migration, tests, the existing browser workflow, and implementation/media-request documentation. The Owner subsequently explicitly approved that destination and payload with “Yes just continue”; the publication blocker is resolved and the same push may be retried.
+The authenticated live check confirms Skill target/effect tags, expanded range/effects without clipping or changing the four selections, both arena options, Crossroads Court launch and a committed 30-AP Guard action, and Terraced Yard's 77 tiles/elevation after reload. Both practice battles were surrendered and returned to the Battle Hall. Production application-error logs were empty during verification; browser-extension diagnostics are unrelated to the application.
 
-No Phase-4 database migration, GitHub publication, CI run or production deployment has occurred at this checkpoint. Authenticated local database/browser flows are prepared for CI but have not run in this workspace (Docker is unavailable). The production browser reaches account entry and needs secure sign-in for the eventual live interaction check. No production interaction or human balance PASS is claimed.
+The supplied test account signed in successfully. Its selected character required the existing one-time Core Stat conversion, completed with three points in Might and two in Vitality; Brace, Cleave, Forceful Strike and Rally were equipped through the normal UI for testing. No test-kit unlocks or mastery bypass were used in production.
+
+This is a live six-Foundation milestone (48 regular Skills, six Essences, fifteen pairs), not full sixteen-Discipline Phase-4 closure. Broader expansion, dedicated art/audio, later acquisition/equipment coverage and independent human balance/playtest evidence remain open under P4.5.

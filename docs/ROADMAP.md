@@ -49,7 +49,7 @@ Performance work never authorizes a gameplay redesign, weakened server authority
 | Phase 1 — Character & Progression Foundation | ✅ Substantially complete | Character/account/profile/progression/equipment foundations exist. |
 | Phase 2 — Tactical Combat & Battle Platform | ✅ Closed / PV-1 passed | Mature combat, AI, direct PvP and spectation foundations are preserved for reuse. |
 | Phase 3 — Signature Buildcraft Foundation | ✅ Implementation complete; Owner-approved closeout | P3.1–P3.8 delivered; final UI/quality release completes the Owner's closure condition. See `PHASE_3_CLOSEOUT.md`. |
-| Phase 4 | In progress; Owner activated | Full implementation and final release authorized; staged roster evidence remains required. See `PHASE_4_TICKETS.md`. |
+| Phase 4 | Six-Foundation stage live; expansion open | PR #450 released at `b2da21e2`; targeting/effect details and two AI arenas verified. Broader roster/media/human acceptance remains open. See `PHASE_4_TICKETS.md`. |
 | Phase 5+ | Planned | Inherit compatible early work. |
 
 ## Current decision boundary
@@ -435,10 +435,10 @@ No Soulmark/Mantle or frontier implementation is required here.
 
 **Goal:** prove the Phase-3 grammar across genuinely different builds before roster scale.
 
-Current inherited roster (repository and production catalog checked 2026-09-11):
+Current roster after the first Phase-4 release (2026-09-11):
 
-- Vanguard, Lifebinder, Aetherist, Farstrider and Shadehand already have eight authored Discipline Skills each, five Essences and all ten unordered Resonance pairs among those five.
-- Ironfist is selectable as Primary/Secondary, but has no mature Skill library, Essence or Resonance coverage yet. Six selectable Disciplines do not mean six complete buildcraft packages.
+- Vanguard, Lifebinder, Aetherist, Farstrider, Shadehand and Ironfist each have eight authored regular Skills. All six Essences and fifteen unordered Resonance pairs are live.
+- Skill targeting/effect tags and expandable details are live, together with Crossroads Court and Terraced Yard AI Sparring arenas. See `PHASE_4_TICKETS.md` for exact CI, migration and production evidence.
 - Authored coverage is implementation credit, not proof of balance, acquisition, AI quality, media completion or human validation.
 
 Reconciled sequence:
