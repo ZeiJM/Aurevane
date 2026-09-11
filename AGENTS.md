@@ -11,6 +11,7 @@
 - `docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md` governs Primary/Secondary Disciplines, Skills, Resonance, Essence, Soulmarks, Severance/Mantles and related build rules.
 - `docs/ROADMAP_BUILD_SYSTEM_REWORK.md` is the current build-system sequencing companion.
 - `docs/COMBAT.md` is current combat authority.
+- `docs/GAME_MASTER_PLAN_TECHNIQUE_REPEAT_USE_ADDENDUM.md` and `docs/ROADMAP_TECHNIQUE_REPEAT_USE.md` supersede the older 8-pure/6-mixed selection limits and ordinary authored-Skill cooldown rules. Current selection is four total in either build; ordinary authored Skills use 50% consecutive-use effectiveness at unchanged AP cost, not turn cooldowns.
 - `docs/GAME_MASTER_PLAN_ATTRIBUTE_PROGRESSION_ADDENDUM.md` governs the Level-50 progression and stat/mobility guardrails; later approved changes supersede historical values.
 - `docs/ROADMAP_PRODUCT_VALIDATION.md` defines evidence gates.
 - `docs/REKINDLING_FRONTIER.md` governs Rekindling replay differentiation and the Unwritten Reach.
@@ -110,11 +111,13 @@ EQUIPMENT + EQUIPMENT SKILLS
 BOUNDED PRESTIGE / VETERAN EDGE
 ```
 
+Each fully authored Discipline provides eight learnable Skills. A pure build draws its four battle selections from eight; a mixed build draws four total from the two libraries (16 learned Skills across a fully authored pair). Its Essence or Resonance is separate from these four selections.
+
 Pure build:
 
 ```text
 Primary only
-8 Discipline Skills
+0–4 selected Discipline Techniques
 + 1 Essence Skill
 + no Resonance
 ```
@@ -123,7 +126,8 @@ Mixed build:
 
 ```text
 Primary + mastered Secondary
-6 total Discipline Skills
+up to 4 selected Techniques across both Disciplines
+Full-loadout splits: 1+3, 2+2 or 3+1
 + Resonance passive
 + no Essence while Secondary is equipped
 ```

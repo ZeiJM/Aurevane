@@ -1,3 +1,7 @@
+import {
+  PURE_DISCIPLINE_SKILL_CAPACITY,
+  MIXED_DISCIPLINE_SKILL_CAPACITY,
+} from '@aurevane/game-core/character/discipline-skill-loadout'
 import { CHARACTER_CREATION_RULES_V1 } from '@aurevane/game-core/character/creation'
 import { PV1F_MOVEMENT_COST_PER_TERRAIN_POINT } from '@aurevane/game-core/combat/pv1f-skills'
 
@@ -35,7 +39,7 @@ const overrides: Record<string, ManualArticle> = {
           'Create or sign in to an account and safely return to the same private profile.',
           'Create characters in three roster slots with six core attributes and a starting Discipline.',
           'Configure your Primary and optional Secondary Discipline in Profile, with server-calculated stats and committed Skill choices.',
-          'Pure builds allow up to eight learned Discipline Skills plus Essence; mixed builds allow six total Discipline Skills plus an eligible Resonance. Signature coverage depends on the authored Disciplines.',
+          `Pure builds select up to ${PURE_DISCIPLINE_SKILL_CAPACITY} learned Discipline Techniques plus Essence. Mixed builds select up to ${MIXED_DISCIPLINE_SKILL_CAPACITY} total Techniques plus an eligible Resonance; a full loadout must use both Disciplines (1+3, 2+2 or 3+1). Each mature Discipline has eight learnable Skills: eight available to a pure build, or 16 across a fully authored pair. The pure-Discipline Essence or matching mixed-Discipline Resonance is separate from those four selections. Signature coverage depends on the authored Disciplines.`,
           'Set the current character’s one personal title from Account → Titles & Profile Display.',
           'Progress through the versioned Character XP and level foundation.',
           'Explicitly start Short, Medium, or Extended Passive Training and receive a bounded server-timed Character XP reward when that block completes.',
@@ -319,6 +323,14 @@ const battleHallArticle: ManualArticle = {
       paragraphs: [
         `A turn starts with 100 AP. Normal ground costs ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP per tile; rough ground has terrain weight 2 and costs ${2 * PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP. Basic Attack and Guard cost 30 AP; Recover costs 50 AP. Movement also obeys your remaining Movement allowance, even when AP remains. Movement starts at 2 and caps at 5; Jump starts at 0 and caps at 3.`,
         'Selecting a legal action proposes the AP spend before commitment. The AP bar shows the proposed segment with a temporary glow; after confirmation the authoritative committed value becomes the new solid remainder.',
+      ],
+    },
+    {
+      id: 'repeat-use',
+      title: 'Consecutive Skill use',
+      paragraphs: [
+        'Ordinary authored Techniques and Essence Skills do not use turn cooldowns. Repeating the same authored Skill consecutively gives 50% effectiveness at the normal AP cost. Further consecutive uses remain at 50%.',
+        'A different combat command breaks the repeat chain; ending a turn alone does not. The server preserves this state across reconnects. Basic recovery actions keep their separate timing rules.',
       ],
     },
     {

@@ -55,8 +55,8 @@ Phase 3 now provides:
 - mature versioned Discipline Skill definitions;
 - generic server-authoritative owner-turn cooldown engine;
 - persistent learned/equipped Discipline Skill authority;
-- pure capacity: up to 8 Discipline Skills + Essence outside the cap;
-- mixed capacity: 6 total Discipline Skills + Resonance;
+- pure capacity: up to 4 selected Discipline Techniques + Essence outside the cap;
+- mixed capacity: up to 4 selected Techniques + Resonance; full splits 1+3, 2+2 or 3+1;
 - Profile as the persistent build headquarters;
 - first representative Resonance framework and mixed build;
 - first representative Essence framework and pure build;
@@ -83,7 +83,7 @@ The final Owner-access candidate passed the focused Phase-3 preservation gates:
 - Resonance Build — **PASS**;
 - Essence Build — **PASS**.
 
-The final representative browser proof exercises production-equivalent Profile flow for:
+The historical initial P3.8 proof below predates the September four-Technique revision; preserve it only as historical evidence. Current tests must use four selected Techniques and consecutive-use falloff. That original proof exercised:
 
 - PV-2 test preparation;
 - pure Vanguard `8 / 8` Skill configuration with active Essence;
@@ -110,8 +110,8 @@ The Owner test should answer the product questions defined in `docs/ROADMAP_PROD
 
 - Primary versus Secondary;
 - Primary base-profile consequences;
-- pure 8 + Essence versus mixed 6 + Resonance;
-- Skill sources/AP/cooldowns;
+- pure four selected Techniques + Essence versus mixed four selected Techniques + Resonance;
+- Skill sources/AP/consecutive-use falloff;
 - meaningful tactical changes between builds;
 - build-configuration friction and recovery from poor experiments;
 - mandatory, pointless, redundant or unreadable combinations.

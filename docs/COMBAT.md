@@ -1,5 +1,13 @@
 # AUREVANE Combat Design Bible
 
+
+## Current selected-Technique and repeat-use authority — 2026-09-11 synchronization
+
+`docs/GAME_MASTER_PLAN_TECHNIQUE_REPEAT_USE_ADDENDUM.md` (Owner-approved 2026-09-06) supersedes earlier 8-pure/6-mixed selected-capacity and ordinary authored-Skill cooldown language in this document. Current selection is up to **four Techniques** in either build; full mixed splits are **1+3, 2+2 or 3+1**, with partial selections permitted. Pure Essence remains outside those four slots; mixed builds retain Resonance and no pure Essence. A mature library may still teach eight Skills.
+
+Ordinary authored Techniques and Essence Skills use **50% consecutive-use effectiveness at unchanged AP cost**, not turn cooldowns. A different actual combat command resets the chain; ending a turn alone does not. Basic recovery timing remains separate. Conflicting older passages below are historical design context and must not restore retired runtime rules.
+
+
 **Status:** Canonical combat source of truth for implementation and content work.
 
 **Initial direction approved:** 2026-08-15.  
