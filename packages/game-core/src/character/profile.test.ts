@@ -4,10 +4,11 @@ import type { LevelProgressionCurve } from './progression'
 import type { PersistedCharacter } from './persistence'
 import { buildCharacterProfileReadModel } from './profile'
 
+// Use a deliberately simple valid curve to test projection, not the production XP formula.
 const levelCurve: LevelProgressionCurve = {
   version: 1,
-  maxLevel: 100,
-  cumulativeXpByLevel: Array.from({ length: 100 }, (_, index) => index * 100),
+  maxLevel: 50,
+  cumulativeXpByLevel: Array.from({ length: 50 }, (_, index) => index * 100),
 }
 
 const character: PersistedCharacter = {
@@ -55,16 +56,19 @@ describe('character profile read model', () => {
     expect(profile).not.toHaveProperty('nameKey')
   })
 
-  it('calculates derived stats and Level progress from authoritative state plus curve config', () => {
+  it('calculates current derived stats and Level progress from authoritative state plus curve config', () => {
     const profile = buildCharacterProfileReadModel(character, levelCurve)
 
-    expect(profile.derived.rulesVersion).toBe(1)
+    // These fixed expectations match the approved V2 balanced Level-1 rules, not historical V1.
+    expect(profile.derived.rulesVersion).toBe(2)
     expect(profile.derived.stats.maxHp.value).toBe(164)
-    expect(profile.derived.stats.accuracy.value).toBe(7400)
-    expect(profile.derived.stats.movement.value).toBe(4)
+    expect(profile.derived.stats.accuracy.value).toBe(6650)
+    expect(profile.derived.stats.movement.value).toBe(2)
+    expect(profile.derived.stats.jump.value).toBe(0)
     expect(profile.progression.progress).toMatchObject({
       curveVersion: 1,
       level: 1,
+      maxLevel: 50,
       totalXp: 0,
       nextLevelThreshold: 100,
       xpIntoLevel: 0,
@@ -72,6 +76,33 @@ describe('character profile read model', () => {
       progressBasisPoints: 0,
       isMaxLevel: false,
     })
+  })
+
+  it('projects the Level-50 cap without inventing a next Level', () => {
+    const profile = buildCharacterProfileReadModel(
+      { ...character, level: 50, xp: 4900 },
+      levelCurve,
+    )
+
+    expect(profile.progression.progress).toMatchObject({
+      level: 50,
+      maxLevel: 50,
+      totalXp: 4900,
+      nextLevelThreshold: null,
+      xpRequiredForNextLevel: null,
+      progressBasisPoints: 10_000,
+      isMaxLevel: true,
+    })
+  })
+
+  it('does not accept a curve that exceeds the approved Level cap', () => {
+    expect(() =>
+      buildCharacterProfileReadModel(character, {
+        ...levelCurve,
+        maxLevel: 51,
+        cumulativeXpByLevel: Array.from({ length: 51 }, (_, index) => index * 100),
+      }),
+    ).toThrow('Maximum Level must be a whole number from 1 to 50.')
   })
 
   it('rejects persisted Level drift from the authoritative cumulative XP curve', () => {
