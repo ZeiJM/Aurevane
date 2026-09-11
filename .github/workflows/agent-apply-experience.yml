@@ -1,0 +1,109 @@
+name: Desktop experience verification
+on:
+  push:
+    branches: [agent/desktop-viewport-fit]
+    paths: [.github/workflows/agent-apply-experience.yml]
+permissions:
+  contents: read
+concurrency:
+  group: desktop-experience-verification
+  cancel-in-progress: true
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      sha: ${{ steps.source.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Apply checksum-verified presentation patch
+        env:
+          PATCH_GZIP_BASE64: 'H4sIAKlXo2oC/919a3fbNrbod/8KNNNzJVWinn4qsVPXyUxzJ2mzkkxn3ZvxNJQIWRxTpIak/KjHa82PuL/h/LD5JXfvDYAESfAh2+2Zc9q1YpsEN4CN/d4bgOMuFsyyLtyY2QN7vY4G13w24GM+sEeWZ98Gm9hauHF/fd2PIzarbbLj+g6/YeODyWxo7/b74yOHz/iYjYbD/d3dHcuyGvSz0+12m/T17bfMGo2GvX3WxR9HDB7Y0a0/Z4uNP4/dwGf8Zs3n8Qduz5f2zOPf3f7Ew9id297HeRh4XnuHMeYFczsOwil7K37p4cNoEy3sOZ+yKA5d/wKedabsfRis3Ii/uApc54Td7XQZs69twN3avuB9fmV7Gzvm7XaHHZ/gS8auAR/BdT+i3j4F7TsWB+spc4L5ZsX9uK9+ee1x+ls0/J67F8u4x2Z8aV+5OLSWvYmDFrvv9BBuB0coepaDlx++8ePgJ5dfv1n8wLnDnbbWUqCiLT/osS9f38lJ3rNoGWw8h4V8Zbs+u3IjF5DF7EXMQyYgAw6YC9DhJb/+0unHwXf8J9FOdDIP/ChmFzxY8Ti8Zce58aXI4WKqiCNAoVjDg94BrOF42BsNH7iIDAYfb0IfQDLxHyE6hA9hrOueejoL4jhYyRfij96OJd7h1NZBGAv0T9Xiub7PQ7kkYlULTdVjlqxs+oSx/t83PLz9CBOfAyrarc+OHdtWzKPYdY6fwcou4QOYT8wdK1pyz3t2zk7YIggA/a2ODull/4LH3wUb34H1OPNc+O4DLiqux5q9fGkcMn15jz/uYaV2nFKWn9lx7HHL4dElgLPUHMsFQO0HOw5MGqbFFi7Q0ypwuJIEUk5MDkejw8N+fyj+MwmI+k5QXAwcfjXwN54nKKo3Ohqx7rCH5LRjuSv8gt1JSuoxxD38e7vmCdOLv94DI7N7tgBGZ61v1yByrkPE4gC/aO1YKSwkmnnIYdFO53NYkfjUd177sGJnSzu05/AL0dU6DJCdAr+ileqvP1hfjRZEGBaQwZqHEXWZMMLGd4GU3jhILvFtex3yhXujRBTIJ5ggMLCnnjxnc9XLD/YqkWUwPzF64tgIBAVwK0iDVzCXvh9ctzv3X9+9s+Nlf+EFQK/0a2gDYa1Asn2DK/gzrFXn/osGZbOAoQAcBCf4qR957py3rYOO+nvtuXG71VJ/r+x1u+24QIgkCz7S4PqICkTOGRBLe3+PddkPm9WMh7JlR339t8D1BTB8kDA/vZRYgDkJFAF3vA2uAel2BNLqvg+SD4Z5/y2/sVdrj/fnweqLlAI5jCUg7hmKS5zkvWh6D+uGfRtl1Rs/ch3+kyTVdkHD5NWLQbdYW8jtGVcyuyCZrQdLZoEO+haFJXwn35fJIPFFdiUKYlg+DYWEpeehEFNWvYD2+EJ9hL8mz69dJ17KF/R78mbJtY6WPNOTkiR/Fl/rovPPGSBN9IIlhKxFQpZIUq6bwrscmFntxqh2V9yGN6jhxITkWv6BhEz4aWn77WHHBFnOqxlo0bgOtphP0kO6dIY+/CBGCpx77noNssSeBVecgU5L8CYYptDjj+Hrv29sr22NKnrW1rm+a2zMgsXDO0+6DUsxil3CBEOQjdeZjjKL9pZHkd5NblYZ0gMRNxKDNI1EssB2Q8kscsOxCErWB1Mu374jnXwWzC/Xbvx7N47aaAFPSX02FG5SsoCRA5KF7GcpkNrP0AgVNhIovIULVpGwAY5bcbjhrfNnmlgTb6CR5+ThtH6nvWxp34C4X4E6e8Xnl4W+I07z/GyHrg0ex4x7x60z0Z7hB9nehY0GQHAeacfTaB6AMaHZcFZBnuMXuD7f21f8NAZEzTYgg1s0bWnygEyH9bKgqxh1UqvHBAI6KbCs4yHWqq0LcNEs8TcWACvqAxs4t7qsErNxXGiDtkqUKAmDY8PaSjeQ7FdCsdSl0ZtJTta9nKbOkN6nlNg1XepCXICq+05rJXR8JyvLBawUTaYRlvBpyP++cUPwqdiVdF4It3JgMzvU5VSeY7UedWwir3bqh6fjoXZ0yyB0fwEiedz4ErlmoPycbYR8kJVu+ORLp+YzjbWzX2svaoFogiALRL5gDryphSKYPAtAPPuSYS8J9MwOHWQwrfNUcgixJ19Zc2h63ir039YhKRlyht5Fe79j7E/QS8rWOoCEvU/BlW7PCSbGLwS/UQuy1PFX4n/8pdQPFZqnU9BnAhy5Eisw3Pv9fnF4HQORqpWggSiSjWL7lm0itGdq1PvBfokeE67b+6u1UGXtZRDFSn9dbHj6x9qOousgdJpoMwSivDPAdc5daymK+R6a6fqI+mvw3R+wXVaZ1LqXSlgL/YwD7GV8JH3IfXrWUx+IeZv9osxnmXc9pVceOERCRnaMGfxsMcjsd+ZRpuPEKfUvgjhotwYX0EQGHnT2E02A8m8/BEAzLVDZceCDXr5jPvU4eO/Zt2AQXEVM/DaATlAmzi/b28BpnRF5MkGc4DbOZretDKgs0b1ybS+4ANLJQ3bohQ75E9iJdsh9m7kRw9Gg093KrJhk2RRwqVPp4cD+yJFo27q9kX6qfKhUxMnJdpI3C9cjKmBLO/rEb4DzWjRhBoDVwLIggBMD/0IDEcNnZ6C1YKnF8Dov+8Ctq7YugtRgcTYgiObL9uCvpz+9tT6fWv93aB2d3+3e679/PciQBxGToI8vOn28xEDE8dd33J8HDv/ThzdgLa4DH0eiOvyqc/8lz+7Jikm4T7NkGmjDmmkTEW2qafCdHV6yD2gqtkqp+DFwjASn1NmfPrxtD/5CiP6LxPRfBp9haWxrYZ13vx642EMMhkewAYoZU0iqFCWPh0o6BCNz7dYC/B1yt0CauODqnr6RRgesLzlE4AnGoKjAoBYxS92SgqUD3EhDnQQfvsQgoIhKvvEXQWq/45N+dOmu2+pdH8Tp3zCYgchlXx0fs5aKjM6XqJc2K/QTXsme5cD0oCkYexchGHCuYkLRiYeBP12uuPUK6f1V0RmJeKxef3R/4cDWMjozOhgf9pKAzFFutapDqbqKyOoGt0otAPGdbkKwb3z+CSb51e64ZdYUblMlQVOsVhKiCTLEW3Qf2y0pxDH63eoAfjAN8OMarZB2K+TzcOPGVrS2Q7QuzIDKOIuQJJWEmUclEyCoZjxwN9nPS74qlx9ILSV/O6ZFvoG13YIsJvv7KVkc7B8amLhh3wDpBgBg32LVzPz6/ur9oxh2FgbXkQjc/7vxLEpQ0oM3cWLry+H2fX4tXylumtkRUgMQ0jKO19PBYDQ+6A/h/9F0MoI1lLyiBoL5hXJe1uw+Tc39uwwGEZMMQsMSDgTt/HZ+4EljfRp6a1qF8DYbZzF5FdKf6BVlUUf/tIzSBYiWRrQFNsuYlVsz2sMGoPEaw4SZ69uel8OG9JP68Kb9WUf63AswEdPLIlc+Pe+o9EqnIlepGAhHHYL/OefmFGVZux1YyrKspExGgos6HO0uDsaUlUwTjIbqhNJeMBmJWcjuqDfexwKFne52yUj56ycpSipyk10NdK3PxSpzjgBKRgTFvBRBYQDhM+ajS3jv8HAPeS/ToEh1uQbD8W7aYO9gnxqc4xjyoWecASIiNQv0qHMuGyrKM54gx9k15jhVdvOw0w85rAX8PviLM7josYekNLvbOMvd1BLqmrKdZfnNbolp9DohWmEgdU15ULTfgWz0JGiXRGz33rBUIIRAUDja+nTKy2WyUetuTdRae48snInFtNugJAPviqcFOIxim0A0p767snFwvw9hRjKUXf2OQLVhfSROOlVTFtxcyIX4WuIdzAgPVHa2egXoaWF7URZBOv46KQUWcrgl4fmulhTV85ldPSVaLGt5QJC8++BwfleE17vFjJfeAVI1ovB+yvygEJxWya+yRFc3k+i6TpNtXbmY7oK1vzIsSkcRonls36cJ13Rw2bh+o6Fpg1tq2TeN2Kpo7czjdvjj4gxNSF6oMcjQU7aGIB8a6D64RqC7dY2A9gWVOmmfkP4Hg13hpkmdVI9lG603M5DLlguqMhQsrVq2dLwmZqGQasdiLC/zhVpJHk+0a3VeNplXkhSsAaqSgzVAk4KKrrGgoltRNtFVRRA4+u9kC/HXS9kIi8aGSUsxpE/Yg/j1pSosK0qLeyUNi1yCA2OtuQjIYdAK/GCZolaYLAvY53hWHzqzdNYty5Pr3aalCCpHg8mupeuAu4/FlWDuMTduNZIeCWp0CVLOnN+DVEGdac9cj2q18ppQBlmiCBRQVp7n89eWZwPsJQwzZUPKHhd4EKwH4OhVpBTO53M02M5FE+AI1hbtJMdhqQQlrjMUimkgGWvoMcqAww9+wX2nx0TwogfUsN4A3jopVW4vBKT0TYt22D/+wb7SCnU6CDR2/Q3PdoLWALo20JGwo/prO4z4773ARnqIMQC7ARnxMb4F8aYEVl99luk+gfWCjcZaqaXCZH+9iZZtkPNqSrF9gRYRloMlj9Lgs4o6309plNBIdYARYK1f9e0K49A8Uom/9dXaQt0PCLMCChFF50wFzDVsJ/i2/QvEQ6JzhQP6AR+3telQOxl6+gGsUDncKMFOHrB02sV3NcsoZqSXqZI7R8U4L9JqLeQbWOJCO/Jh2IlWC4aMbmqJouhFIvpMLaRMO9HFYNoog8DCGqsiIol/AjitWeYvGhLu1a/3mnxMxLfqrCA0hQRAESTEzufzErkyt9cAiWesSxVhmiYOYtbizBgBSTgKpIo9X7axIQYTZ4FzO83E6oCKuB8tgxh9dClPP4EbCk4DGMoXfLD2L1qpJSzCbCp2hpKPxfYsUuXkIYlBD/pabDBGkJSXo/RF50bG5ewY7WOG4a7YRT9UC7t1E4+nGHPrPiLm9qPPcSHAZnDT6F9SRgXcGbo3ogRbdMHjTyI50B4dCg9RM7LM/in0soR5abEBAVCTx0mHIJDzLncn6xMZg6nq+6x5JUQkyC71WojZ+xvtiZC0wsutj3F389GidrXCMhiamXlT6AXm/LkYBwesXWxcByw9YADHRg4EL6l1rvGwUWXarmUKtOOzTvZDfQbNo+w9+A7WdsqwEgs9GJriax8J3Gkbu9AC1l9O34BEwcFQPXFWL+jfmMwHY8OsE1CzHBnBJCOWmlRJOQtGCojMjbDeRAGMXUl1Jc3ywOdglF+twf5OsxPlZDC6GuHKj6/G+GNyNcEf8FA8Xnj8Bix9e9WADlCT1hIC6i3q/BjlgwY+oylK0jqfoCUbEaFkSSKX4pnoWziqYI3rYY1TWPd1pIYB238XWkvMzivyyVTVpcZ2F2GwWWe4TjUusFxGDKlWNSnoICyybpYeM0LhMWCLRZ2JQ0tFpWtM5HCnlThdoqgz654aaZrqCaxLfgtEvXDRTLevwECfO6PxZLeJeNYAqFH+BB4FzA3rIE6/O3tlVYOqxMb/DkDZ5ytWjPKxRvQg7xIzPpUAinAGYBcXpZA504qm3iy40Scn54UlKQU6Emtx+tN3j0bhRzlQLadbgcAizyffGzFXy+6PZPaaZVWrkF1WDHF1UivyfRhQVgaNw9nG9WBxREkVgovYJefrxKAk0zQMPLQ05d7AJJNL1nwud/trGZEqcSs2qGIg0F1gmEpka2tsRykawzAITX47IR5FP/5CraDHNv1CIxcfCheGfu+vQLzgkjayTNcC3b+hcVpiYyb5hhrOIT/HabeS9pacQom1WaodJZ0VrOMvPZazjsHnPJCLlcY5YJYGLVbk6A/UcsA+cMeNpEJgiWqIWok+Q1vE3LHR0skF/fP7jIe9ZnF4o01oEgA04wxO6UlWmqptBLK0LY+dYmVbLVYyVOAYC9v0hFGDarQzjDJvYwvovX5PoUOD8qhfjmFDKak4spHbpiToI0ptuulWHES9yvCCWSIYMw7BhydBmnkGtKWd25ctKhS0T5Mwr2Eko3TZi31GK4yom76rmMAkw7ipZNtGtm0t3ZrJt0YSLrPxBocP+FX730sXINqAJRnedqaksCy1p1WiDnQgIgmMlvUNiwLPddjv+Gg+OlB8IxtYwWJBTDtZ32zLNzhSyTlSPnTUsJuCwKQAghHnqfbE8ncaf/4ZFDNgkaovzvOYy8KspcUCVY33SmhUWL6YWSvTSWpHQJoKV2BJouuWYakgyOqDeeBtVn40VdpgKHWA/HN0QPJhPPqPjvpcuHE619iee+FbYO+I8xnsMC6ZYO201KxKxiiE1r4QWROUWYdiIJ3c8LNjPSoXC/UjMrmL3UJSs7AWD+5vOTJQlJj4mCYOrhbOfJKI6jyBKUaUNqR1HSIabP/2Gs24RyICqz+zeEhd9yzWx02x7vEr7mFHdBBkSgQghS6AfulUGBlTrISn9heA6RtHeSiJ+t/fBsy5SaOOt4UhBUYFEv56nOxXslU1jkU41xF+gt6HXwMHpCYY+CDKYjsWIPAjEwFvIbEaTVbmSgsGqVzA3cYLmADq1vSQpZBt4cugYIFSktSzZimqxO/WU1iODegeiVRKA+4oIwwDWU4Ko50UzeD8tMxyVncPdIlaO2ukOdrvnPKfHMsWq58AOS+KmP6DwIBJPam1/cqXv3aJ8jxnFBoH5auh4hYq9bGVpta8or9tYECL21QVhzyeL01aek4llfINOaz0ekoXTT1s0idSzhkRfTTRp693SOfilBnthiuLkmpFjLWoIkZy0/UqkDoBV0xmlQzBxnKv/J1JMxsPkLMdDAhdB+ElxXnSda+yyR7Zg16R0sD+04tTChmkBqo5unQ9z8Ldyg44FljYrGFZLPd0Ki5TbeqS5WuIdCGxb2IR5anuiyQhuJVo/oAILfiqpaVFOVzg/5m+ylnDYO1uZT+bpGd2mI3tPTKozBZff7hXiYhciZQhYnJolE37NasnIJeyvVgj84hH9SPOuOwUT7WIDTACAq6zpwuTtMIOt8dXgs4xUBXp6QtfB67UT6hzmDR6K6GQcSmFjESoCxw0QSQjMk1LiGRUwvK57tDbzQZh0qP4PDyG88oO27lAp+qxaWBlrB7zmEIXoigWPxqO90plsWGguSiGIPHOYy3cbD+FA+wiIQvLTZxqi6UGerntM9kWVGTJzTTnTXXzI4MSJ7TbSKYfDDPYNykhvT5WRpue0qEu+K0yKxrEmRmlIRWwKvBkjinDk1oUYeOhLcKRxn+b6g2a7qhoY+r53wdPbF3m4o4eYiRnLJBPoN4C9r9E5bkb3ybVStXxmZCvuR23J72c+us8jX1X7fUVyu6ext6qJuiGVtVWfUo9LRz3B9pVpl0qtKGmPI5Tb9f0D5W/kYQHpU1WbeKkckkc4ilu/6uQnrVDAaGVM7JAEWpxv7KUV+4fGLfuPomOrIJFsNWsyu0AHJToAjTOwBo9BDZRjxmiPvcQZen4IR0ITdqwh8lD0YMlKcHCwgsg2uOOJosNWrbTcDC7DxnMuiHwvYzEByQtTJHuhp1mDfGanvcf0kO9yaJ3Oi6SzuDAOOFiPEFmjqvj/rUmT+5EYGMApVrOG2xJ3SZd2CvXu9VsV3qKO5k6DzWoGiUUK0MrD5MnPcO3soQ4x0g6nE65YDLZO0oGlvgseKURWtBPIR71qPZTzKpCbx48lUg/ycT0n2jUpW50btD/zfPQ/RneRvPzz3hXC5hyl/KmjQbs9D9j/iIqlebkMdSRZJebp6hl4UwmN93ZrtJExseSfQjN0+OpJftXMGU3YYgbUMV22mmr0tk8eGiWqcoT0lt8fdwCgTZ31wQdmGst16p5/rFE5Fb7LTmDXt27qO3z2EIsPdBzULGocmaSnkPRBc+X7pT5NM3DX/q0e01dlHSzf5nf3kx1GIHb7jZgH0a+xpjW7oPDNnfmlLppo6ye7aNwheOGAgfgmAfXtWrcHOQoUqQKB50Y2MDjzuwWeFRIBIuOyFOTaeUs+dLwwdgcPsh/htVK8JHqjMmfLdbCq94CH+8rAgIObRefLTZ4iAITP1qN4xHVE8rMB8czVaPYtgM15AY9qKZbdyFjPnTPQXUPEm2/AgEk35QFIMQIxDKZ+1dG64MHkapekh6pGhRqq1PO+LVic/JUi2LcubGd5sila9XBhdXquUnhWnkyZqtB6DoqcUEohqmKqa/57NKNLaHIMd8xZRusBK6JGjcttysf2+XswUUypo1iW0bW13RtyJxbgBKfPAZNdOqbbrRqZTMu6mwpU0/EGA7mVIA5OltXzD68X8dpUDnQ1GTUDab86WHM2YRkCEdVvIBJ1dK1E623WkD9E83Y0B+nIlETUarYtHQ1Dg/qxqlELoDLIOZHOqw2vRATzIQIz6nGu+cyIXlg1LSRMCtoP6YmSqUQFRI1E8HWprU1OeV4t+xYShzAugcf94CKOtuTUfNeFGMI756QJI50Oe9UFgQ3ZpmyzqvKBGQR/159mcBho75SJZ21iskXUVoXkJCdf0GWoz6vDujTtreqyl1ZHHXQMDf/oAkxw2QaxmZHg8nzTDGwZqAX4paPG6QuC9adijBu425YN18KoSfWRk2HXWraiLOELdo4KGywqmrqQvXd/q8zgJJ6zLyabhDUYRKduuRr+mnWoU9Ea+QFsQhAqDMhHuiK7j1oLtlYUtPMY6P5ZvSjOELOUgE1eb7g+RNauNXlscXqy/2K/WKTKgtOyw6TYPyd0enolGWOf00P6zfss4Spdh8l+mg0y1Gnwaa2qV5jQapj1Ki4rz7jPcmmmUXeuWI/UzZGnLKVyNvKeJXaYtV4C9F2fcmaqEo2bq4778ow/bRy2W60zLlKzPSMqef6ndLlO5STQ1zU5p3x7jDZufwblFCM++PHllBUJXTrqlIfUoYmagATKsKraLVUZmL57KW7rAxbgsq28tSHEhpnjrN2BA5wyvb7o7BpNWHjpLRSEK4vNkLq9VaSza7VEVJ7w20JM7nDZFhBmMbC5qqdCyUAtPqHaserQcmyIdSxdRlylRZuXIhbsWck41c8MK3xIIw1qoCabF3dmRUBxkrRB0MvL0Ot2mb9FJUelUGzuhrgTrPakYbm3fb7cbMnhP4qu2D3RFnpFvuztt5vOn6avZaTB2/JO9mq+r/BVqJt9phN9p5251d9sWYmE791GbJ+1uajanaSgaREIZZUafKHZoHrK43k4PeaDL46U7mlFWeU7ZqJOK4QEHclMmXcaNNTyZbMhhqqTpmODXt6Go+wSpvuZszt6oOn6Lh/ee1IP45uTKc+5dvs4N01JafLy0Pl+/3DmX0w2z2kg6fS4+JLzpUq9IAHSuF58t0RHiTV5Td0YPsdc/jC3ngxXmKCZ7W3+n31Watuol4ws72o7FQt7bWcyXiyO54f7fb7RweT0d6C15ykpQMom6XWBCd4tD/EE7Poxz7MM6UVceOi70pvzcWL6uk3cihBAWfynJmjtNhbpC5h31I9qE3nTtFtdQsO/p09v+yzVwGP6ARrOgKNztTKnDvVwnP4wSucbaJbtgyCy4hO3+wWrqoR5FeMKOfOineuRFFqriRVc/ZzO2O1N5LfDhPJk3q6qTSq2/mkHxaUNHL9S+tobyha6HpK671Y5keILiDi55/BcIziMnzQ3XuGyUkZloiwgqU9C0IHzxQaJae5JMOfhXYUWZOhnIBoaYUwnE2UCdDmkZP7EKcIRstwKA27wShXhSun0ymdfK440riRnr4svQwpPXyvbrx1Ek1erVAiy9K3ks33jnYPj8ajfn//gPO57dSwufZ9CZdrLehyjMPeAYixwx5xuOBakFsDVcJhEWejeeI74HK4v4i7v0FGtHa05tkyP3lYqrjIp9D2YuM60EjdnGSRlbpwbwoNS47za+1YaZuSa0AAzg6TYllcDrPisY2rO2Xv5G/sWIgyiiBNWev0Tx9e/3T6w+tWr24Jq/XRtqpobh8uJrNxM1Vk1kK9UUYRKTW0AF1MSvi9fcHfii/b0tMIebwJfSYLYV+gkTX3gI5/AIF8/CzPQc8YHWj0DM3UTfRMSF8PBPLxszVwfcyfnahy1heUcKiAJUWRBCISZvK2sQQIY6cJvAEC1MATJ5/8CKyJrK1W7V///E9oKd5lhnLyPuRrG49NZED5IfNBkIqrfzKQXwwABfR7p5qJ8aIFMAL9OJLEN8iYPiaqaPCJJIoDbtsHk6N+fzS09w+GVVq9CVADETX5DAlr9/AAJYP4AQ8kaSUkJe4ZeUsftaVJoP/3QjjqDC/iAyJ4dnIGejoCPc7eX71nItRLaybanRQh3L3/6f3P73589fpjf2Wv221kIbpKrF1sm+/vDhv3XeceL3VN/zoR56IWeqL3FGK+Z//65/+TDxy8DM27T2my7BvjeMon1ukUvgBSpOjDCeF+b7yHuBc/tsY98XJJrIdpecNnuBDJOZ6i1TPDcEvgyfTNiXHykhG/047lxePU6WzGKOVTy/Qp+u2KWgKfzj9d8igdI954ewkePffJMASrdXbLAhAHEXI0fW1aMgn4LXwc1XxtWEwSDsXnNDW8+80c/TIjR0TET97Za7x2j78YyAe09vtD0sjix9ZrfwdDeIeq5qWJS16sNbl8F8W3Ho/6SMcfRT7p3jhejQ8XIKU0RpRsxY6Pj5nsuPNSsU2f3SXhIuzwnsX2JY/kzVeF/8iNhjW2Y1pvpp/ojMFt0laxu+IhXcElLyrF299wGUGYgOwyLbsG17SuxSXqsClDDVzkUeH/NFMN2s3UWG1vqcN6E/6p0RONvpdKY7Z7tHfogCs4Ge8NJxO7mdJo1kO1BmkGg45fHiNV07/wpzDJTs8+vfnxh5/Pfnz/f6bsA5+Dg/BCbE74o8jEnxLJ472BJLFoAyFAfY5XNsxDd61Oeg1xqVbBFVhxkiNk+9Y7eEiXsn3Eg2jAsqO3+ueKFlt0zxuYr0RPMlPt3TL+9427XgOpJaDoTJs++7MbL+lh0qQHyk3EFoFQ6cq3KI7YeI+dvu+3ku0+aUdkjpTCT5kAb7xEAxfPbb4WF7glNevQRV9M657+ndmROz+NYxvDNDlkiMcJKsj839tF27GLP49M4kasx5lc149yWdt3DGz32LW971xykCJ2PzW23WGaqSnlsIwMFUURqaj7jI6Sm1XSs64Lisoo1Fxsrqt7SVERSAwPz8Um3MsMuJAvoXtxwYU0wTtXVR1setkf1tbgd2xO9q07v+yn8NXq9ZjAco+94gtQKrxH0L/HE8BnCld0YDdeTY29uaJsR6gkBB/Bm/kyKycTKkmJ4xYsWbwacHa7tjFolCGVqIcoA9knQjR0EotNV73NlxwUYA8P7MZbVHmYdpIcZw7EjYMh4nbFrXElZEqTE6GZHvvz6cdXApcYrwlDQDNYX1Hagdwbbjt/szHGoN/bHT1nrzHqoIaNd3vTmGFGwTqIbE+T7rWLaeu8TKsp0ZPQkR2JJURfSsNm2gfeUluCTfoTWFtDokSrLhUyWAlCHSHdPEL8FCcoOfK4SDSX0Fc7umFWpH30p4H0m6kprP0Y5O4LrlNNZd9IdcT3jw7s+aLfXxzM94azUUN1VAq1RgWVfifu/sToBimdHdbagBUJq063eLMk0oCHCICK+UAxSBW5RS8xDTS8df1L7cWAbuLe6WpvUUkBePz1I/nIGUjyA9UjNX1vx0u8DreHf1DnYfYb7Yb47JevFws6rAh+fcdXgQDAF/QTO09ngaf+01zJqxj2RkPwKuiHQdSn15S/AxQq21IJb2HwIW5Djqr29RWg8a0bxdznYbsVBxcXHl7pizdBo29OA+kIxcQ+n8NvKAeSzuZ4AzD1I+MRybySK9uZOFJDBG/8DTumHzDRvtR+ooW7YG188bJPRiCP2q3pGkQGcKWFdn2r0xHjXroOfy9etDvi4ouuGN1aLgWNkmmjBP5f4IkFr1JB1V7CsylrI9UEC5YuUuezv1nNeHj+uYVNREpXoJAWt6+AEYQOLcnBEWjdLvxL8ZuGK0KiWlORf0D5lo7jmWqlWbZ3Qhh95FEELb6H/slB0MzwF0TiOLLjYuP7BBHHdwvbi8CWD/wzFJ/Hd8lC5p1r5QNmwb2lOraXL/EKaWHSB+qGXdmidV/iH0oH7gNHK3COVwiL25ikPpUeAagAF+yvpYu2AgFk4FtFJs9wyznnvMoX6eognDORNMi7IGKNtsdBHo5wqo6fPWz2z7LgBhmn58UAx689MnhAd9IaSucsYjKYMZAxGUoZjXojTBlNeuPxdgRNOcIcwrNvA/893irCQ9KNx3dCTJg4FAfVJyYrgPg9Hknf9Fsr+22B4HXgZcRP8ESUqJqsRUvpO5vjGGaKUySm9aSoJQOzdtVTbL1A3SNfpaGPTpLE+4adMpkZ0W245LIZsXd94dJ9M+LOPDLEhKm0pnisiARo0VhK4BkoRZtq+07d7iDmhE6HwTfEV+pvdt9RSRtUJHfJuO9Bn2QUtrhqPRcWz4edWVmC6E7B/cc/gAkdvnB9DlbYXX7pu/qim8LoCSAQDyrGjfj51z//swV8aSSQF4M0cP3/AfmUa4a3zAAA'
+        run: |
+          set -euo pipefail
+          printf '%s' "$PATCH_GZIP_BASE64" | base64 -d | gzip -d > /tmp/experience.patch
+          echo 'fddb759ce2648ff060be9f217362f5d3fcf2677f37940fe037586328f8d28a66  /tmp/experience.patch' | sha256sum -c -
+          git apply --check /tmp/experience.patch
+          git apply --index /tmp/experience.patch
+          git diff --cached --check
+          git config user.name 'AUREVANE engineering'
+          git config user.email '283436098+ZeiJM@users.noreply.github.com'
+          git commit -m 'Reflow desktop Profile and Battle Hall, polish reading surfaces and add navigation feedback'
+      - run: corepack enable && corepack prepare pnpm@11.17.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - name: Normalize pre-existing formatter drift in a separate mechanical commit
+        run: |
+          pnpm format
+          if ! git diff --quiet; then
+            git add -u apps packages package.json turbo.json pnpm-workspace.yaml .prettierrc.json eslint.config.mjs
+            git diff --cached --check
+            git commit -m 'Normalize existing formatter drift to unblock complete quality gates'
+          fi
+      - name: Publish only to the isolated work branch
+        id: source
+        run: |
+          git push origin HEAD:agent/desktop-viewport-fit
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          git rev-parse HEAD > validated-source.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: experience-source
+          path: validated-source.txt
+          retention-days: 3
+  quality:
+    needs: apply
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.apply.outputs.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: corepack enable && corepack prepare pnpm@11.17.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm --filter @aurevane/worker check:boot
+      - run: git diff --exit-code
+  browser:
+    needs: apply
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.apply.outputs.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: corepack enable && corepack prepare pnpm@11.17.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
+      - run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+      - name: Build and verify rendered interactions
+        shell: bash
+        run: |
+          set -euo pipefail
+          status_env="$(pnpm exec supabase status -o env)"
+          eval "$(printf '%s\n' "$status_env" | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY|SECRET_KEY)=')"
+          export AUREVANE_ENV=local NEXT_PUBLIC_AUREVANE_ENV=local
+          export NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+          export NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY"
+          export SUPABASE_SECRET_KEY="${SECRET_KEY:-${SERVICE_ROLE_KEY:-}}"
+          pnpm --filter @aurevane/web build
+          PLAYWRIGHT_JSON_OUTPUT_NAME=experience-results.json pnpm --filter @aurevane/web exec playwright test e2e/desktop-experience.pw.ts e2e/a1-layout-fit.pw.ts e2e/account-entry.pw.ts e2e/character-creation.pw.ts e2e/public-information.pw.ts e2e/navigation-menu-position.pw.ts e2e/pvp-spectator-footer-shape.pw.ts --reporter=line,json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: experience-verification
+          path: |
+            apps/web/experience-results.json
+            apps/web/test-results
+          retention-days: 3
+      - if: always()
+        run: pnpm exec supabase stop --no-backup
