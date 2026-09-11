@@ -559,6 +559,9 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
         expect(item.size, `${item.text}: minimum label size`).toBeGreaterThanOrEqual(11)
       }
       for (const card of await dialog.getByTestId('learned-skill-list').locator('article').all()) {
+        for (const tag of await card.locator('small').all()) {
+          await expect(tag).toHaveCSS('font-size', '11px')
+        }
         const title = await card.locator('label strong').boundingBox()
         const star = card.locator('[data-favorite-technique-star]')
         if (await star.count()) {
