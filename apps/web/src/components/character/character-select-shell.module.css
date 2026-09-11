@@ -573,6 +573,34 @@
 }
 
 @media (max-width: 560px) {
+  .slot.empty {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    gap: 0.65rem;
+  }
+
+  .empty .emptyCrest {
+    width: 3.25rem;
+    height: 3.25rem;
+    margin: 0.3rem auto;
+    font-size: 1.8rem;
+  }
+
+  .empty > h2 {
+    font-size: 1.25rem;
+    line-height: 1.2;
+  }
+
+  .empty > p {
+    margin: 0;
+  }
+
+  .empty .lockedBadge,
+  .empty .primaryAction {
+    grid-column: 1;
+    justify-self: center;
+  }
+
   .header {
     gap: 0.4rem;
     padding-inline: 0.5rem;

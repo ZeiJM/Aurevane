@@ -452,6 +452,11 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
       await page.setViewportSize({ width, height: 800 })
       const hero = page.getByTestId('character-profile')
       if (width < 760) {
+        await page.evaluate(() => {
+          document.querySelector('#game-main')?.scrollTo(0, 0)
+          window.scrollTo(0, 0)
+        })
+        await settle(page)
         const portrait = await hero.locator(':scope > div:first-child').boundingBox()
         const identity = await hero.locator(':scope > div:last-child').boundingBox()
         expect(

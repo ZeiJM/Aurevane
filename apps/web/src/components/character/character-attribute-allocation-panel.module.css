@@ -255,8 +255,7 @@
     border-radius: 1rem 1rem 0 0;
   }
 
-  .grid,
-  .modalMeta {
+  .grid {
     grid-template-columns: 1fr;
   }
 }

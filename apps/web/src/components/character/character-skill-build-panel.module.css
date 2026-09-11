@@ -756,9 +756,18 @@
 }
 
 @media (max-width: 720px) {
+  .skillCopy {
+    display: contents;
+  }
+
   .skillCopy > strong {
+    grid-column: 2;
     padding-right: 2.25rem;
     font-size: 0.9375rem;
+  }
+
+  .skillCopy > .metaRow {
+    grid-column: 1 / -1;
   }
 
   .skillToggle {

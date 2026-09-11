@@ -89,7 +89,7 @@
   display: grid;
   width: 3rem;
   height: 3rem;
-  grid-row: 1 / span 2;
+  grid-row: 1;
   align-self: start;
   place-items: center;
   overflow: hidden;
@@ -120,6 +120,11 @@
   color: var(--av-text);
   font-size: 0.875rem;
   line-height: 1.22;
+}
+
+.signatureCopy > span {
+  grid-column: 1 / -1;
+  padding-right: 0;
 }
 
 .signatureCopy p {
