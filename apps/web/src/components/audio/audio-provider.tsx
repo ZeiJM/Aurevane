@@ -3,6 +3,7 @@
 import {
   AUDIO_SETTINGS_STORAGE_KEY,
   AudioDirector,
+  audioAssetRegistry,
   createDefaultAudioSettings,
   parsePersistedAudioSettings,
   reduceAudioSettings,
@@ -28,6 +29,8 @@ interface AudioContextValue {
   toggleMute(): void
   unlock(): Promise<AudioDirectorState>
   playCalibrationTone(): Promise<boolean>
+  playAsset(id: string, priority?: number): Promise<boolean>
+  stopSfx(): void
 }
 
 const AudioRuntimeContext = createContext<AudioContextValue | null>(null)
@@ -107,9 +110,27 @@ export function AudioProvider({ children }: PropsWithChildren) {
     return nextState === 'ready' && director.playCalibrationTone('ui')
   }, [director])
 
+  const playAsset = useCallback(
+    (id: string, priority = 50) => {
+      const asset = audioAssetRegistry.get(id)
+      return asset ? director.playAsset(asset, priority) : Promise.resolve(false)
+    },
+    [director],
+  )
+  const stopSfx = useCallback(() => director.stopChannel('sfx'), [director])
+
   return (
     <AudioRuntimeContext.Provider
-      value={{ settings, audioState, setVolume, toggleMute, unlock, playCalibrationTone }}
+      value={{
+        settings,
+        audioState,
+        setVolume,
+        toggleMute,
+        unlock,
+        playCalibrationTone,
+        playAsset,
+        stopSfx,
+      }}
     >
       {children}
     </AudioRuntimeContext.Provider>

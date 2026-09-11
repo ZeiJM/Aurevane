@@ -82,6 +82,8 @@ export function BattleClientBoundary({
 
         <BattlefieldPresentationBundle
           battleSessionId={initialBattle.battleSessionId}
+          initialVersion={initialBattle.battleVersion}
+          mode={runtime.kind}
           playerName={runtime.kind === 'pve' ? runtime.playerName : undefined}
           combatantAccents={combatantAccents}
         />

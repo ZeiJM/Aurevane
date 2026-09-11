@@ -1,6 +1,7 @@
 import { ADVANCED_DISCIPLINES } from '@aurevane/game-core/character/advanced-disciplines'
 import { resolveMatureSkillVersion } from '@aurevane/game-core/combat/mature-skills'
 import { resolveEssenceForBuild } from '@aurevane/game-core/combat/essence'
+import { imageAssetRegistry } from '../../media/registry'
 
 /** Original, code-native tactical sigils. Geometry communicates tradition, shape and effect;
  * these intentionally remain crisp at 32–64px and do not depend on a generation vendor. */
@@ -58,6 +59,8 @@ function frame(color: string, body: string): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><defs><radialGradient id="bg"><stop stop-color="${color}" stop-opacity=".2"/><stop offset="1" stop-color="#0a1017"/></radialGradient></defs><rect x="2" y="2" width="124" height="124" rx="16" fill="#0a1017"/><rect x="5" y="5" width="118" height="118" rx="13" fill="url(#bg)" stroke="${color}" stroke-opacity=".55"/><g fill="none" stroke="${color}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">${body}</g></svg>`
 }
 export function phase4DisciplineSigil(disciplineId: string): string | null {
+  const image = imageAssetRegistry.get(`art.phase4.${disciplineId}.identity.v01`)
+  if (image?.status === 'approved' && image.src) return image.src
   const color = PHASE4_DISCIPLINE_COLORS[disciplineId]
   return color ? source(frame(color, glyphs[disciplineId]!)) : null
 }
@@ -71,6 +74,10 @@ export function phase4SkillArtwork(actionId: string): string | null {
     ? resolveEssenceForBuild(discipline, null)?.skill
     : resolveMatureSkillVersion(actionId)
   if (!skill || skill.id !== actionId) return null
+  if (actionId.startsWith('essence.')) {
+    const identity = phase4DisciplineSigil(discipline)
+    if (identity?.startsWith('/media/')) return identity.replace('-128-', '-256-')
+  }
   const status = skill.effects.find((effect) => effect.type === 'apply-status')
   const icon =
     status?.type === 'apply-status'

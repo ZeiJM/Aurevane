@@ -88,6 +88,12 @@ export class AudioDirector {
     for (const activeSource of this.activeMedia) this.releaseMediaSource(activeSource)
   }
 
+  stopChannel(channel: RoutedAudioChannel): void {
+    for (const activeSource of this.activeMedia) {
+      if (activeSource.channel === channel) this.releaseMediaSource(activeSource)
+    }
+  }
+
   private async playMedia(asset: AudioAssetDescriptor, priority: number): Promise<boolean> {
     if (
       !asset.src ||

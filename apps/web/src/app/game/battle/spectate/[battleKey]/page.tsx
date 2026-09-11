@@ -89,6 +89,8 @@ export default async function PvpSpectatorPage({
       />
       <BattlefieldPresentationBundle
         battleSessionId={spectator.battle.battleSessionId}
+        initialVersion={spectator.battle.battleVersion}
+        mode="pvp"
         combatantAccents={combatantAccents}
       />
       <PvpSpectatorViewportPolish />

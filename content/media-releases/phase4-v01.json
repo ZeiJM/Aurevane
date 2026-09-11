@@ -1,0 +1,527 @@
+{
+  "id": "phase4-media-v01",
+  "authorizedBy": "Owner continuation in the implementation conversation",
+  "authorization": "Proceed with whatever is needed to complete integration and the previously requested live release for testing.",
+  "authorizationDate": "2026-09-11",
+  "purpose": "Owner in-game evaluation",
+  "independentHumanArtReview": false,
+  "independentHumanListeningReview": false,
+  "independentHumanBalanceAcceptance": false,
+  "provenance": [
+    "content/media-candidates/phase4/art-manifest.json",
+    "content/media-candidates/phase4/audio-manifest.json"
+  ],
+  "notes": "Runtime activation is authorized by the Owner continuation. Original candidate manifests remain an immutable preparation record; no independent human review or recording is claimed. Ten painted identity masters and 72 synthesized cue variants; tactical Skill/effect sigils remain distinct.",
+  "runtime": [
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/bastion-128-v01.webp",
+      "bytes": 2538,
+      "sha256": "38493de08e7f1b4519c60af499abc53a8ed4d59dc430b9020a8b646683fa73b7"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/bastion-256-v01.webp",
+      "bytes": 8608,
+      "sha256": "6fcc98c324de4fbe4e8ff2105109da4c6c4e1a1065de0fc135c766812ad53342"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/bastion-64-v01.webp",
+      "bytes": 830,
+      "sha256": "641a51d6dde08f13c0bcc60078e56ffd820bae1da253758528d9ee11adc372b5"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/cinderweaver-128-v01.webp",
+      "bytes": 4252,
+      "sha256": "6fec8441187689c5c9eed5d4a3dad0d8fb02face182dc9d5326a6fdc4b629371"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/cinderweaver-256-v01.webp",
+      "bytes": 14912,
+      "sha256": "b8f9b8830fa9b95504293b151db06f9655deea02a014f04caf9a3c4a92c1caf5"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/cinderweaver-64-v01.webp",
+      "bytes": 1246,
+      "sha256": "2ce56c8e3fa9e19d4d196e45f34a00810c200387116c60f985f37cb378e751f2"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/dawnshield-128-v01.webp",
+      "bytes": 3692,
+      "sha256": "e9dd502aa13c58dd99257b30935a7c1a8b3da6c498d98d75c82866c38198f71c"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/dawnshield-256-v01.webp",
+      "bytes": 13470,
+      "sha256": "ffdbc026ac3bb047e0480aa7f3ff4d9dba095153486d0a2768c3f520a6d09247"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/dawnshield-64-v01.webp",
+      "bytes": 1140,
+      "sha256": "412972a3005da8b951ad1e27a208bb90de69f03436798293571d690404aa5a09"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/edgedancer-128-v01.webp",
+      "bytes": 2838,
+      "sha256": "49ace7cf831a339e52541fd4b0856614dd32eca71d8a785c548b92c8e927452c"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/edgedancer-256-v01.webp",
+      "bytes": 10594,
+      "sha256": "aca0edccb1d8610b12713a17a53956b9f349bda0be32c513ac6d04680fe6217f"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/edgedancer-64-v01.webp",
+      "bytes": 874,
+      "sha256": "1891e3e59a697295a8cabd54d73eee2881eb398bda0018198782bb2a37d15d2c"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/frostweaver-128-v01.webp",
+      "bytes": 4562,
+      "sha256": "5134a27b88755e1a5c77a1ca6a3d1408fed1a53029ea04349744c67285a3261b"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/frostweaver-256-v01.webp",
+      "bytes": 15568,
+      "sha256": "df5bdf516d44443969c70991766ea8e0ecb1dc67277c0707157befed97af5412"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/frostweaver-64-v01.webp",
+      "bytes": 1456,
+      "sha256": "bbbe63919a39ef9450bad778ada7f7c49a641567d180c4e2f5320189879b520e"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/ravager-128-v01.webp",
+      "bytes": 3168,
+      "sha256": "562137741840b14a1b14669b57b5c53eaa609622fe72cc3817d640f108be3478"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/ravager-256-v01.webp",
+      "bytes": 12198,
+      "sha256": "d809bbbd08d0d5d64a2b32cb64070cb3f6cedbfea2053455544b619213df6319"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/ravager-64-v01.webp",
+      "bytes": 878,
+      "sha256": "2c5cd466c52cef308f3e160c442228d15836b7e117b9a46076cf7f00c8b9ccc2"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/runeblade-128-v01.webp",
+      "bytes": 4452,
+      "sha256": "c9a9105db23a8b4f8fe402fd69a912c84f916a5aeb198029e7593f7162b46c25"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/runeblade-256-v01.webp",
+      "bytes": 17352,
+      "sha256": "382cc7baea4cce677279ec236921d918e0a9cc8a30f4de9b0fdfbfc2b8b40ced"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/runeblade-64-v01.webp",
+      "bytes": 1252,
+      "sha256": "20c934f03ba7cd628f0e7cf2b2c51cb062cb074eaf2ccb9224bd13bc421b46cf"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/stormsinger-128-v01.webp",
+      "bytes": 3200,
+      "sha256": "b416801896407da32fe1a94a2ade875d57626046b98dcea608101d0460bf2fc6"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/stormsinger-256-v01.webp",
+      "bytes": 11432,
+      "sha256": "ab24909a44fbfe4c06e7fad8c602616fac7a450eb266a346fddb34af4b8f3011"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/stormsinger-64-v01.webp",
+      "bytes": 956,
+      "sha256": "cdf8c0b6aa15484f5f5269155407db88a1b4b33576d01bd91dde0596401f72c9"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/tidecaller-128-v01.webp",
+      "bytes": 4130,
+      "sha256": "b888c8a61d3bfb01f842ff2879e3bc2856ed2b0c0f254253cb87071f43ee2c87"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/tidecaller-256-v01.webp",
+      "bytes": 14790,
+      "sha256": "77cbaf6d78d37c4c72e3dc96c4cc27ebebc9eb72daa1b530fab10e71d53aa198"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/tidecaller-64-v01.webp",
+      "bytes": 1318,
+      "sha256": "b009151ac540cc44569a519952426362a51be900ca08b6d4eee444108881c54e"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/wildwarden-128-v01.webp",
+      "bytes": 3588,
+      "sha256": "c40737b1d1879ee479f55b0082756fd2b934d4f7ed31fb3b61f1df88382a757b"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/wildwarden-256-v01.webp",
+      "bytes": 13404,
+      "sha256": "1642202f1fbe0d42eeea8b7c0cce8410354e74bd56c81213cb4ade7d9d6d2594"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/wildwarden-64-v01.webp",
+      "bytes": 1016,
+      "sha256": "a3a9336f00c667330560fa5620c61b7ca4c21f2901a5caf5281d97ba870e558e"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/attrition-action-v01-1.mp3",
+      "bytes": 2637,
+      "sha256": "c902a3246f174136893b90a3d4992e69f89535ed6dbeba42666d1841d9d325e0"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/attrition-action-v01-2.mp3",
+      "bytes": 2637,
+      "sha256": "3cc1d53257f9cabfb3aeb6f9a2168d8a2dd611546571062cebe72ce6ff084ae9"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/attrition-action-v01-3.mp3",
+      "bytes": 2637,
+      "sha256": "895b587624afb1973478086f2d5d41fe4543d546c5362a83aa0b9d07eff4129f"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/bastion-action-v01-1.mp3",
+      "bytes": 4653,
+      "sha256": "2a9facfd3684586c929f436fd05a62c1387207a3f4866268580e9d44a7439c9a"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/bastion-action-v01-2.mp3",
+      "bytes": 4653,
+      "sha256": "d7db73d9e141ec48db1c41b8f297e0648988fee1355190a84c06459ee4d242f3"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/bastion-action-v01-3.mp3",
+      "bytes": 4653,
+      "sha256": "55eb7e62a3a859167c507954a7481b715b69d54ad21d181a952d1bd00b5f0303"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/bastion-essence-v01-1.mp3",
+      "bytes": 7245,
+      "sha256": "5a059934bd477ff79f2783639e1546b0336d799db0ea6544f2ccfad1eeb42619"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/bastion-essence-v01-2.mp3",
+      "bytes": 7245,
+      "sha256": "f2972912246fb23333eb3debd57fcd3cee01e51c1abe533104f4a92c266e662c"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/bastion-essence-v01-3.mp3",
+      "bytes": 7245,
+      "sha256": "16ea6a3bde9a509d16ac8991dec1f71aa80c73ce598450ea0c4e64a7228c6a65"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/cinderweaver-action-v01-1.mp3",
+      "bytes": 4365,
+      "sha256": "45baf64329173b721d482e0fc289e116796bfa9d37cd423e93af515110ab0fac"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/cinderweaver-action-v01-2.mp3",
+      "bytes": 4365,
+      "sha256": "d5ebcbbe95681d4a53b28a1b26ef2c96d7fbd193f7459a28f1531b47a7b7286c"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/cinderweaver-action-v01-3.mp3",
+      "bytes": 4365,
+      "sha256": "8d94dc37c3999ecb204337e6655d2cc3894021eda5da0af533dd15d41504896c"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/cinderweaver-essence-v01-1.mp3",
+      "bytes": 7245,
+      "sha256": "67fd11201f8e40ff42d2b230d167420c8834d8f9579b3f29fb6db018b2e67e75"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/cinderweaver-essence-v01-2.mp3",
+      "bytes": 7245,
+      "sha256": "7b966629500556f67cffc670e35a79bbf134c290a8802eb5a128333c6390517a"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/cinderweaver-essence-v01-3.mp3",
+      "bytes": 7245,
+      "sha256": "2a0f14831e09a9ac590b7e25ef1425082dea26c7f65da6b5e7b1b147795fba1a"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/cleanse-action-v01-1.mp3",
+      "bytes": 4077,
+      "sha256": "bb6f2a82f054b246bd05c3b1b99f440c71b5db2035e39403aee13299cc22c38c"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/cleanse-action-v01-2.mp3",
+      "bytes": 4077,
+      "sha256": "d08622b13016a87839590eea965cd8458197f0a627d4f71ce975b21efde5edfe"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/cleanse-action-v01-3.mp3",
+      "bytes": 4077,
+      "sha256": "94b0e2abc5436e655b8c5ef909832d40fbd22f4b3a3c4d5ca87bc3cb5461f274"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/dawnshield-action-v01-1.mp3",
+      "bytes": 4941,
+      "sha256": "f32fd259cc2b5435b0149b6c65436d44d5e5de787f7f198ca3afe4d3484a0d47"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/dawnshield-action-v01-2.mp3",
+      "bytes": 4941,
+      "sha256": "ef75707098664280e48f5e253c849486201b55a7e74115a9de951492a6238d6d"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/dawnshield-action-v01-3.mp3",
+      "bytes": 4941,
+      "sha256": "45a3846b917ca689ed1eefcf914a2dd3ff07fb55a6b1a61d0aebee682e20bc55"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/dawnshield-essence-v01-1.mp3",
+      "bytes": 7245,
+      "sha256": "d9717105d51b2c668540b846ffb0911aaf255195590a25b65951df00b08c5320"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/dawnshield-essence-v01-2.mp3",
+      "bytes": 7245,
+      "sha256": "5afb3340ebd0ac4c43f857e6e0f2832b366049ee08f8b07f93325f281e6352c9"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/dawnshield-essence-v01-3.mp3",
+      "bytes": 7245,
+      "sha256": "710a144d9217bbd6cc16bac94b06e872d04f50369fa74aedcbc3f790c5c4b430"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/edgedancer-action-v01-1.mp3",
+      "bytes": 3501,
+      "sha256": "bc08bbb1018da1cbf38a18b6c2de5af79fd72bed88d988289c75b6f335e82a2a"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/edgedancer-action-v01-2.mp3",
+      "bytes": 3501,
+      "sha256": "072aec0703deb131dd36e51904c1fecf679de12c5ebad47a0b98002c0590ae17"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/edgedancer-action-v01-3.mp3",
+      "bytes": 3501,
+      "sha256": "766ce8fea8fba35c87a33d71d801d762793a55660ff894ab9ebaac02249ab2bf"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/edgedancer-essence-v01-1.mp3",
+      "bytes": 7245,
+      "sha256": "6777023c48dfe583147d9a843187997d639a81fa82094523cc319b4aff0d8eb8"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/edgedancer-essence-v01-2.mp3",
+      "bytes": 7245,
+      "sha256": "f02e8ccb6ba61f0d062a08ada59a73a2f4c1733dd6279999224b735360c61338"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/edgedancer-essence-v01-3.mp3",
+      "bytes": 7245,
+      "sha256": "7b626ec5c59676dc06f239db5ad5bec43b9d91537831e751728df4e6c2529db3"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/frostweaver-action-v01-1.mp3",
+      "bytes": 3501,
+      "sha256": "f3841f604bf8c94bb79d79353618bea947285dc2d7f63bace88b953bae3a1dbc"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/frostweaver-action-v01-2.mp3",
+      "bytes": 3501,
+      "sha256": "f6b6fbcd02c216f8ca669e6a52395ab8b83b541df0a51fc94d384d747f1f2f26"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/frostweaver-action-v01-3.mp3",
+      "bytes": 3501,
+      "sha256": "24ab00b11d7d763c979d19109ca72ece681a5354505f879cc618c629c31e8db8"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/frostweaver-essence-v01-1.mp3",
+      "bytes": 7245,
+      "sha256": "5e0f54c31f34cbefaf6caa04ef15c1ab4306df540ebd2323cd6422e27838f6c0"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/frostweaver-essence-v01-2.mp3",
+      "bytes": 7245,
+      "sha256": "104957c1f6f02750f6914d047060b76df012800dc28ce4d6b0b53f6f48d75f62"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/frostweaver-essence-v01-3.mp3",
+      "bytes": 7245,
+      "sha256": "84d04054f0ffdf7c850da085186acf54d34113e1b11dd2c73d5599ffe8323c91"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/healing-action-v01-1.mp3",
+      "bytes": 4653,
+      "sha256": "eb55a6a821af07aa4b32555dcc23999be7d4af609ffe2d6d0c10443766b090f7"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/healing-action-v01-2.mp3",
+      "bytes": 4653,
+      "sha256": "0b582672fd00b916778a198adf9f1bdb7cccf9dc334b3cc1241a6f490d8c11ca"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/healing-action-v01-3.mp3",
+      "bytes": 4653,
+      "sha256": "4a9552f4793787050d3630396ee23184622a9d36b4a08025af99952def9524ea"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ravager-action-v01-1.mp3",
+      "bytes": 4365,
+      "sha256": "0fde94648d155d19b4236acc00bdbd044dcc7740ab7d1245559707c187ea00a0"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ravager-action-v01-2.mp3",
+      "bytes": 4365,
+      "sha256": "6ea8474bcfb3fd957cbe3345cbe05d077aad96f548d13823cba464b43faf6763"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ravager-action-v01-3.mp3",
+      "bytes": 4365,
+      "sha256": "3f8f9810200d47cf12adc276521d5fc99b7632219dc14cffd9c63b4eb83995ff"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ravager-essence-v01-1.mp3",
+      "bytes": 7245,
+      "sha256": "3eaca305a14eb520cc5cc40be0d3b2c76a99a18575155c5da68ef6015c71e594"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ravager-essence-v01-2.mp3",
+      "bytes": 7245,
+      "sha256": "bc1cbed0cc79d5e66cc5f9506f629af3dae7f861146e474a378a60b542cd28b2"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ravager-essence-v01-3.mp3",
+      "bytes": 7245,
+      "sha256": "b1f9eaf4bad7850d02df40a1f925c149441176b389ed97399edba1d5707d84f7"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/resonance-action-v01-1.mp3",
+      "bytes": 3789,
+      "sha256": "84444a3af1b0dadab67bfc6b071f206e6525b5c0ebb1098649b08dc563887fa8"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/resonance-action-v01-2.mp3",
+      "bytes": 3789,
+      "sha256": "83b2f2f53aaa0a5b76ac73bd33ad91d9cb2223ae215c632b226c31978f387b4b"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/resonance-action-v01-3.mp3",
+      "bytes": 3789,
+      "sha256": "ffb71dbfead07aa32ac7bdbd623e090dea4f0794e438562b946c6063f4f10845"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/runeblade-action-v01-1.mp3",
+      "bytes": 4653,
+      "sha256": "6f2dcc65bbb8db6b345f384a110c3ad68bb35a2af5ed60a6ca4757493439308d"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/runeblade-action-v01-2.mp3",
+      "bytes": 4653,
+      "sha256": "7eb3742094df480f604a61dab86f19f69912fff704f5185cb951b6453ce2733a"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/runeblade-action-v01-3.mp3",
+      "bytes": 4653,
+      "sha256": "4356fbbfaa20a985fd40d88dd8f1d35543112b852ac134b66346cc98ac5f2bdf"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/runeblade-essence-v01-1.mp3",
+      "bytes": 7245,
+      "sha256": "48d14716afb0e44abaf9adcb1dfa720034e22f006b5509893254d98d293cb97c"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/runeblade-essence-v01-2.mp3",
+      "bytes": 7245,
+      "sha256": "f5125b74342d31c42fe2ecb4ea60677437892653a2c15a8995d4080c78812f9d"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/runeblade-essence-v01-3.mp3",
+      "bytes": 7245,
+      "sha256": "c1b35ccac23426ea354e2f11ff5643c4a9cdb933f368502aee14acd705d5cc56"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/stormsinger-action-v01-1.mp3",
+      "bytes": 4077,
+      "sha256": "292d0075554392085c2a6df91f298e87679303618f960916e2321c027a10ca12"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/stormsinger-action-v01-2.mp3",
+      "bytes": 4077,
+      "sha256": "b26e42aee0c54cbefbd64bdd6027095d02dcc0dc5251ae954262e3c0f5a27244"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/stormsinger-action-v01-3.mp3",
+      "bytes": 4077,
+      "sha256": "87bba427dbfbe53eaf115cf8f1530a2a97fc906b2da4f44f090797333c130711"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/stormsinger-essence-v01-1.mp3",
+      "bytes": 7245,
+      "sha256": "7ac720e3cbefe6e2bad440aeeb1a1a28b973a6634421c6094ffeae32d29ac50a"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/stormsinger-essence-v01-2.mp3",
+      "bytes": 7245,
+      "sha256": "7b88d497d8bfe9e9796aab01d507c7bc0803303aac2894cc41725976b54ade81"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/stormsinger-essence-v01-3.mp3",
+      "bytes": 7245,
+      "sha256": "f499e9992506954128f7c29a50eeb16cf1808a81c576646faced3b36f034287c"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/tidecaller-action-v01-1.mp3",
+      "bytes": 4941,
+      "sha256": "656985d4db4340abae934c3be9cc4e8dc10256fcd54fd09a08d3769f435545c6"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/tidecaller-action-v01-2.mp3",
+      "bytes": 4941,
+      "sha256": "b93a5b4e55853167c785ccb2acb32c0cc9aa1ac6a3d8a9385c88a921ee5eede2"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/tidecaller-action-v01-3.mp3",
+      "bytes": 4941,
+      "sha256": "5cdd297c3f08ac209728074210eeb37a74d7f7a1319e8a3626615fd7e5ea2921"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/tidecaller-essence-v01-1.mp3",
+      "bytes": 7245,
+      "sha256": "d89ba2c3598d04f4301c7f074475e319f56d39873119b8ebdc757a0ef5b5ed2a"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/tidecaller-essence-v01-2.mp3",
+      "bytes": 7245,
+      "sha256": "f0ecd6cea4d79a7b54d82fdfd84ce49e8fbe5cab4cd0e8247b38293a326d7d48"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/tidecaller-essence-v01-3.mp3",
+      "bytes": 7245,
+      "sha256": "4accf784c67fc4913a541b33dc874b617804f58ccbf95ad541055a11049cab2c"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/wildwarden-action-v01-1.mp3",
+      "bytes": 4077,
+      "sha256": "dd3132d94efe22dbf5d426b9daa85935161b8d8d14b63111288781a1f200e668"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/wildwarden-action-v01-2.mp3",
+      "bytes": 4077,
+      "sha256": "d6d70e78d8769f048a71a2e039bd3b8cd07bfb542414bb75ce470e6f3fa938d2"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/wildwarden-action-v01-3.mp3",
+      "bytes": 4077,
+      "sha256": "455c11df4038aa2875752cc11d178e9633cb0342bd2d04d9f22450d8f3d49767"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/wildwarden-essence-v01-1.mp3",
+      "bytes": 7245,
+      "sha256": "29c321da3ab1581af31438c4123c1896328463442148cbda75d6fd714ee215e4"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/wildwarden-essence-v01-2.mp3",
+      "bytes": 7245,
+      "sha256": "70fd2f3e70f552e4e6121cbe0ff157724ae68bde7936e2fe8b9a2153b2c9d52d"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/wildwarden-essence-v01-3.mp3",
+      "bytes": 7245,
+      "sha256": "969c81de3e8cd0b1db57e754b3b3f6be83b5f3342d0177a9f457c0b4b482328d"
+    }
+  ]
+}

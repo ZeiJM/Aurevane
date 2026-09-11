@@ -1,12 +1,15 @@
 'use client'
 
 import { BattleCoordinateToggle } from './battle-coordinate-toggle'
+import { BattleCommittedAudio } from './battle-committed-audio'
 import { BattleMapTokenPolish } from './battle-map-token-polish'
 import { BattleTerrainPresentationPolish } from './battle-terrain-presentation-polish'
 import styles from './battlefield-presentation-bundle.module.css'
 
 interface BattlefieldPresentationBundleProps {
   battleSessionId: string
+  initialVersion: number
+  mode: 'pve' | 'pvp'
   playerName?: string
   combatantAccents?: Readonly<Record<string, string>>
 }
@@ -21,11 +24,19 @@ interface BattlefieldPresentationBundleProps {
  */
 export function BattlefieldPresentationBundle({
   battleSessionId,
+  initialVersion,
+  mode,
   playerName,
   combatantAccents = {},
 }: BattlefieldPresentationBundleProps) {
   return (
     <>
+      <BattleCommittedAudio
+        key={battleSessionId}
+        battleSessionId={battleSessionId}
+        initialVersion={initialVersion}
+        mode={mode}
+      />
       <BattleTerrainPresentationPolish />
       <BattleCoordinateToggle battleSessionId={battleSessionId} />
       <BattleMapTokenPolish playerName={playerName} combatantAccents={combatantAccents} />

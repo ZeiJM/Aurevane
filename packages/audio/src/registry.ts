@@ -1,4 +1,5 @@
 import type { RoutedAudioChannel } from './settings'
+import { phase4AudioAssets } from './phase4'
 
 export type AudioAssetStatus = 'requested' | 'candidate' | 'approved'
 export type AudioAssetKind = 'music' | 'ambience' | 'sfx' | 'ui'
@@ -16,6 +17,7 @@ export interface AudioAssetDescriptor {
 }
 
 const AUDIO_ASSETS = [
+  ...phase4AudioAssets,
   {
     id: 'music.foundation.title',
     kind: 'music',

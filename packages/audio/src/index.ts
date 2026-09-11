@@ -1,4 +1,5 @@
 export { AudioDirector, type AudioDirectorState } from './director'
+export { PHASE4_AUDIO_DISCIPLINES } from './phase4'
 export {
   audioAssetRegistry,
   getAudioAsset,
