@@ -37,12 +37,14 @@ async function expectInsideViewport(locator: Locator, surface: string): Promise<
 
   expect(geometry.width, `${surface} should retain measurable width`).toBeGreaterThan(0)
   expect(geometry.height, `${surface} should retain measurable height`).toBeGreaterThan(0)
-  expect(geometry.top, `${surface} should not be clipped above the viewport`).toBeGreaterThanOrEqual(
-    -1,
-  )
-  expect(geometry.left, `${surface} should not be clipped left of the viewport`).toBeGreaterThanOrEqual(
-    -1,
-  )
+  expect(
+    geometry.top,
+    `${surface} should not be clipped above the viewport`,
+  ).toBeGreaterThanOrEqual(-1)
+  expect(
+    geometry.left,
+    `${surface} should not be clipped left of the viewport`,
+  ).toBeGreaterThanOrEqual(-1)
   expect(geometry.right, `${surface} should not overflow the viewport width`).toBeLessThanOrEqual(
     geometry.viewportWidth + 1,
   )
@@ -88,9 +90,10 @@ async function expectBattleCockpitFits(page: Page, surface: string): Promise<voi
   const commandCardHeights = await commandCards.evaluateAll((cards) =>
     cards.map((card) => card.getBoundingClientRect().height),
   )
-  expect(Math.min(...commandCardHeights), `${surface} command cards should stay usable`).toBeGreaterThanOrEqual(
-    76,
-  )
+  expect(
+    Math.min(...commandCardHeights),
+    `${surface} command cards should stay usable`,
+  ).toBeGreaterThanOrEqual(76)
 }
 
 async function createPvpBattle(host: Page, guest: Page, password: string): Promise<void> {
@@ -135,7 +138,9 @@ async function createPvpBattle(host: Page, guest: Page, password: string): Promi
   await expect(guest).toHaveURL(/\/game\/battle\/[0-9a-f-]+$/i, { timeout: 20_000 })
 }
 
-test('fits the active AI battle cockpit without desktop page scrolling', async ({ page }, testInfo) => {
+test('fits the active AI battle cockpit without desktop page scrolling', async ({
+  page,
+}, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop battle viewport-fit regression')
   test.slow()
 
@@ -158,7 +163,9 @@ test('fits the active AI battle cockpit without desktop page scrolling', async (
   await expectBattleCockpitFits(page, 'AI battle at 1366x768')
 })
 
-test('fits the active PvP battle cockpit without desktop page scrolling', async ({ browser }, testInfo) => {
+test('fits the active PvP battle cockpit without desktop page scrolling', async ({
+  browser,
+}, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop battle viewport-fit regression')
   test.slow()
 
