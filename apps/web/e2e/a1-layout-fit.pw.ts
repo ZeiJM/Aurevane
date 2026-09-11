@@ -121,9 +121,10 @@ async function expectReachableByVerticalScroll(
     }
   })
 
-  expect(geometry.top, `${surface} should not be clipped above the viewport`).toBeGreaterThanOrEqual(
-    -1,
-  )
+  expect(
+    geometry.top,
+    `${surface} should not be clipped above the viewport`,
+  ).toBeGreaterThanOrEqual(-1)
   expect(
     geometry.bottom,
     `${surface} should be reachable instead of clipped behind a fixed-height profile`,
