@@ -1,6 +1,6 @@
 # AUREVANE — Phase 3 Signature Buildcraft Foundation Tickets
 
-**Status:** Next major implementation specification after explicit Phase-2 closure.
+**Status:** P3.1–P3.8 implemented and deployed. Owner-approved closure with the final UI/quality release, 2026-09-11; see `PHASE_3_CLOSEOUT.md`. The ticket descriptions below preserve the delivered contract. Phase 4 has not been activated.
 
 **Created/Reconciled:** 2026-08-23
 

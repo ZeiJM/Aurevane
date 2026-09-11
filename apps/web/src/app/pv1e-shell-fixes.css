@@ -39,6 +39,22 @@
   backdrop-filter: blur(1rem);
 }
 
+/* Reserve the mobile navigation bar's real height, including its safe-area padding.
+ * The old fixed footer exceeded the 2.75rem spacer and covered the last panel's
+ * rounded bottom edge. Sticky keeps navigation visible while retaining its grid row.
+ */
+@media (max-width: 980px) {
+  [data-testid='authenticated-shell'] {
+    padding-bottom: 0;
+  }
+
+  [data-testid='authenticated-shell'] > footer {
+    position: sticky;
+    right: auto;
+    left: auto;
+  }
+}
+
 main[aria-busy] {
   width: 100%;
   min-width: 0;

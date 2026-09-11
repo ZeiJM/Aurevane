@@ -48,17 +48,17 @@ Performance work never authorizes a gameplay redesign, weakened server authority
 | Phase 0 — Engineering Foundation | ✅ Substantially complete | Core technical/security/deployment foundations exist. |
 | Phase 1 — Character & Progression Foundation | ✅ Substantially complete | Character/account/profile/progression/equipment foundations exist. |
 | Phase 2 — Tactical Combat & Battle Platform | ✅ Closed / PV-1 passed | Mature combat, AI, direct PvP and spectation foundations are preserved for reuse. |
-| Phase 3 — Signature Buildcraft Foundation | 🛠️ Active — P3.3 | P3.1 and P3.2 are validated stacked dependencies; P3.3 is the current implementation/validation ticket. |
-| Phase 4+ | 🔜 Planned | Later phases inherit compatible early work rather than restarting. |
+| Phase 3 — Signature Buildcraft Foundation | ✅ Implementation complete; Owner-approved closeout | P3.1–P3.8 delivered; final UI/quality release completes the Owner's closure condition. See `PHASE_3_CLOSEOUT.md`. |
+| Phase 4+ | 🔜 Planned; not activated | Await explicit Owner start command. Later phases inherit compatible early work rather than restarting. |
 
 ## Current decision boundary
 
-AUREVANE is now in **Phase 3 — Signature Buildcraft Foundation**. Phase 2 is formally closed and its battle platform is a preserved dependency, not active redesign scope.
+AUREVANE has completed **Phase 3 — Signature Buildcraft Foundation** implementation. On 2026-09-11 the Owner approved closure after the requested UI/performance corrections and quality checkpoint are released. Phase 4 is explicitly **not activated**. Phase 2's battle platform remains a preserved dependency.
 
 Active now:
 
-- execute one canonical Phase-3 ticket at a time from `docs/PHASE_3_TICKETS.md`;
-- preserve the validated P3.1 Discipline build authority + Primary profiles and P3.2 Secondary + independent attunement dependencies, then execute P3.3 mature Skill schema + generic cooldown authority;
+- complete and verify the Owner's final responsive UI/typography corrections;
+- preserve the delivered P3.1–P3.8 build authority, pure/mixed identities, cooldowns and shared committed snapshots;
 - reuse compatible Phase-1 character/profile foundations and the mature Phase-2 battle platform;
 - run behavior-preserving performance/security checks at the Phase-3 build-state boundaries.
 
@@ -418,7 +418,7 @@ Phase outcome:
 
 No Soulmark/Mantle or frontier implementation is required here.
 
-**Current ticket:** P3.1 is implemented and validated in dependency PR #368 (`28c00c92f242b4344f8dae80ef8c32e05774a694`). P3.2 is the active ticket; P3.3 remains deferred until P3.2 closeout unless the Owner explicitly authorizes parallel work.
+**Current boundary:** P3.1–P3.8 are complete. The Owner approved closure with the final responsive UI/quality release on 2026-09-11. `docs/PHASE_3_CLOSEOUT.md` records evidence and remaining Phase-4 preparation notes; this is an Owner decision, not fabricated cohort validation.
 
 **Gate:** players understand and voluntarily experiment with Primary/Secondary, Skills, cooldowns and pure-vs-mixed identity.
 
@@ -807,17 +807,17 @@ The approximate **180-day** first-cycle planning default remains subject to vali
 ```text
 PHASE 2 CLOSED / PV-1 RECONCILED
         ↓
-PHASE 3 ACTIVE
+PHASE 3 IMPLEMENTATION COMPLETE
         ↓
-P3.1 Discipline build authority + Primary profiles
+FINAL UI / QUALITY RELEASE → OWNER-APPROVED PHASE 3 CLOSEOUT
         ↓
-P3.2–P3.8 in canonical ticket order
+WAIT FOR EXPLICIT OWNER COMMAND TO START PHASE 4
 ```
 
 The immediate development priority is therefore:
 
-> **Complete P3.1 on the preserved Phase-2 platform, then proceed one canonical Phase-3 ticket at a time.**
+> **Finish the authorized closeout, preserve the tested platform, and leave Phase 4 unstarted.**
 
 Automatic performance/scaling checkpoints continue at the defined future boundaries; they are maintenance/hardening work, not permission to expand feature scope.
 
-The frontier, Rekindling replay systems and Owner-created Anomalies remain approved long-horizon direction, not active P3.1 scope.
+The frontier, Rekindling replay systems and Owner-created Anomalies remain approved long-horizon direction, outside this closeout scope.

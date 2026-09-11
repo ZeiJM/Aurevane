@@ -11,6 +11,7 @@ import {
   PV1F_RECOVER_COST,
 } from '@aurevane/game-core/combat/pv1f-skills'
 import type { BattleIntent } from '@aurevane/validation/combat/battle-session'
+import { useRouter } from 'next/navigation'
 import {
   useCallback,
   useEffect,
@@ -205,6 +206,7 @@ export function BattleExperience({
   initialBattle: BattleSessionView
   runtime: BattleRuntime
 }) {
+  const router = useRouter()
   const [battle, setBattle] = useState(initialBattle)
   const [mode, setMode] = useState<Mode>('none')
   const [path, setPath] = useState<BattleGridPosition[]>([])
@@ -474,7 +476,8 @@ export function BattleExperience({
   const handleApiFailure = useCallback(
     async (response: Response, body: ApiErrorBody, fallback: string) => {
       if (response.status === 401) {
-        window.location.assign('/')
+        router.replace('/')
+        router.refresh()
         return
       }
       if (response.status === 409 && body.error?.code === 'STALE_VERSION') {
@@ -493,7 +496,7 @@ export function BattleExperience({
       }
       setNotice(body.error?.message ?? fallback)
     },
-    [refreshBattle],
+    [refreshBattle, router],
   )
 
   const applyRemoteBattle = useCallback(

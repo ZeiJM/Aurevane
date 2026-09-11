@@ -115,7 +115,7 @@
 .hero span,
 .creationHeading span {
   color: var(--av-brass-300);
-  font: 700 0.58rem/1 var(--av-font-mono);
+  font: 700 0.6875rem/1.25 var(--av-font-mono);
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -172,7 +172,7 @@
 .slotNumber {
   z-index: 2;
   color: var(--av-brass-300);
-  font: 700 0.52rem/1 var(--av-font-mono);
+  font: 700 0.6875rem/1.25 var(--av-font-mono);
   letter-spacing: 0.09em;
   text-transform: uppercase;
 }
@@ -268,7 +268,7 @@
   border-radius: var(--av-radius-sm);
   color: var(--av-text-dim);
   background: rgba(255, 255, 255, 0.015);
-  font: 700 0.5rem/1.25 var(--av-font-mono);
+  font: 700 0.6875rem/1.25 var(--av-font-mono);
   letter-spacing: 0.035em;
   text-transform: uppercase;
 }

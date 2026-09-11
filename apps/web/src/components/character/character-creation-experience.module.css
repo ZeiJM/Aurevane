@@ -32,7 +32,7 @@
   flex-wrap: wrap;
   gap: 0.28rem;
   color: var(--av-text-dim);
-  font: 650 0.5rem/1.15 var(--av-font-mono);
+  font: 650 0.6875rem/1.25 var(--av-font-mono);
   letter-spacing: 0.065em;
   text-transform: uppercase;
 }
@@ -88,7 +88,7 @@
 .choiceGroup legend,
 .attributeHeader h2 {
   color: var(--av-text-muted);
-  font: 650 0.56rem/1.15 var(--av-font-mono);
+  font: 650 0.75rem/1.25 var(--av-font-mono);
   letter-spacing: 0.055em;
   text-transform: uppercase;
 }

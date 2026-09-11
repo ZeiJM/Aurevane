@@ -14,6 +14,7 @@ import {
   STARTER_CHARACTER_PORTRAITS,
 } from '@aurevane/game-core/character/starter-options'
 import { GameButton, Kicker } from '@aurevane/ui'
+import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
 import { AurevaneImage } from '@/components/media/aurevane-image'
@@ -58,6 +59,7 @@ function starterBonusesForDiscipline(disciplineId: string): CharacterAttributeBo
 }
 
 export function CharacterCreationExperience({ slotIndex }: CharacterCreationExperienceProps) {
+  const router = useRouter()
   const [step, setStep] = useState<Step>('identity')
   const [name, setName] = useState('')
   const [presentationId, setPresentationId] = useState('androgynous')
@@ -172,7 +174,8 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
         return
       }
 
-      window.location.assign('/game/character')
+      router.replace('/game/character')
+      router.refresh()
     } catch {
       setErrorMessage('Character creation could not reach the server. Your choices are still here.')
     } finally {

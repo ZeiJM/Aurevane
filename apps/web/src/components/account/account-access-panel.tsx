@@ -1,6 +1,7 @@
 'use client'
 
 import { GameButton } from '@aurevane/ui'
+import { useRouter } from 'next/navigation'
 import { type FormEvent, useId, useState } from 'react'
 
 import { createSupabaseBrowserClient, type BrowserSupabaseConfig } from '@/lib/supabase/client'
@@ -16,6 +17,7 @@ interface AccountAccessPanelProps {
 }
 
 export function AccountAccessPanel({ authConfig, initialMessage = '' }: AccountAccessPanelProps) {
+  const router = useRouter()
   const [mode, setMode] = useState<AccountMode>('signin')
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState(initialMessage)
@@ -74,7 +76,9 @@ export function AccountAccessPanel({ authConfig, initialMessage = '' }: AccountA
           return
         }
 
-        window.location.assign('/game')
+        // Discard any anonymous prefetched tree after the server confirms the session claim.
+        router.replace('/game')
+        router.refresh()
         return
       }
 

@@ -6,6 +6,7 @@ const rosterListSelector =
   "[data-character-directory] > section > div:last-child:has(> button):not([role='status'])"
 
 const desktopSizes = [
+  { width: 1920, height: 1080 },
   { width: 1728, height: 885 },
   { width: 1440, height: 900 },
   { width: 1366, height: 768 },
@@ -132,6 +133,19 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
     await page.goto('/game/battle')
     await expect(page.locator('#battle-launch')).toBeVisible()
     const tabs = page.getByRole('navigation', { name: 'Battle Hall sections' })
+    await expect(tabs.getByRole('button', { pressed: true })).toHaveCount(1)
+    expect(await tabs.innerText()).not.toMatch(/\b0[123]\b|[›>]/)
+    for (const button of await tabs.getByRole('button').all()) {
+      expect(await button.evaluate((element) => getComputedStyle(element).textAlign)).toBe('center')
+    }
+    if (size.width >= 1440) {
+      const panel = await page.locator('#battle-launch').boundingBox()
+      expect(panel!.width).toBeLessThanOrEqual(1248)
+      expect(
+        panel!.height,
+        'An empty selection must not stretch into a blank full-height card',
+      ).toBeLessThan(460)
+    }
     await fit(page, `AI-empty-${suffix}`, testInfo)
     for (const mode of ['recruit-sparring', 'guided-fundamentals']) {
       await page.getByLabel('Battle mode').selectOption(mode)
@@ -154,6 +168,10 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
   await page.getByRole('button', { name: 'Reset / Redistribute Attributes' }).click()
   const allocation = page.getByRole('dialog', { name: 'Redistribute Attributes' })
   await expect(allocation).toBeVisible()
+  await testInfo.attach('Attributes-dialog', {
+    body: await page.screenshot(),
+    contentType: 'image/png',
+  })
   await allocation.getByRole('button', { name: 'Close', exact: true }).click()
   await expect(allocation).toBeHidden()
 
@@ -161,11 +179,33 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
   const disciplines = page.getByRole('dialog', { name: 'Discipline Management', exact: true })
   await expect(disciplines).toBeVisible()
   await readable(disciplines.locator('select').first(), 14)
+  await testInfo.attach('Disciplines-dialog', {
+    body: await page.screenshot(),
+    contentType: 'image/png',
+  })
   await disciplines.getByRole('button', { name: 'Close', exact: true }).click()
   await page.getByTestId('skill-build-panel').getByRole('button').click()
   const techniques = page.getByRole('dialog', { name: 'Techniques', exact: true })
   await expect(techniques).toBeVisible()
   await readable(techniques.getByTestId('learned-skill-list').locator('small').first(), 12)
+  await testInfo.attach('Techniques-dialog', {
+    body: await page.screenshot(),
+    contentType: 'image/png',
+  })
+  await page.setViewportSize({ width: 1280, height: 576 })
+  const rail = techniques.locator('[class*="buildRail"]')
+  await rail.evaluate((element) => {
+    element.scrollTop = element.scrollHeight
+  })
+  const railBox = await rail.boundingBox()
+  const lastRailCard = await rail.locator(':scope > *').last().boundingBox()
+  expect(lastRailCard!.y + lastRailCard!.height).toBeLessThanOrEqual(
+    railBox!.y + railBox!.height + 1,
+  )
+  await testInfo.attach('Techniques-short-window', {
+    body: await page.screenshot(),
+    contentType: 'image/png',
+  })
   await techniques.getByRole('button', { name: 'Close', exact: true }).click()
 
   // Very short windows may scroll, but cannot trap the Profile controls underneath the footer.
@@ -224,6 +264,50 @@ test('desktop account, training, controls and public reading surfaces remain usa
       body: await page.screenshot(),
       contentType: 'image/png',
     })
+  }
+})
+
+test('mobile build dialogs keep readable copy and reachable actions', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile-chromium', 'Phone portal presentation')
+  test.setTimeout(90_000)
+  await page.setViewportSize({ width: 393, height: 740 })
+  await provisionAccountAndEnterCharacter({
+    page,
+    email: `mobile-dialogs.${Date.now()}@example.com`,
+    password: 'AurevaneTest!42',
+    characterName: 'Dialog Wayfarer',
+  })
+  for (const [panel, name] of [
+    ['primary-build-panel', 'Discipline Management'],
+    ['skill-build-panel', 'Techniques'],
+  ]) {
+    await page.getByTestId(panel!).getByRole('button').click()
+    const dialog = page.getByRole('dialog', { name: name!, exact: true })
+    await expect(dialog).toBeVisible()
+    if (name === 'Techniques') {
+      await readable(dialog.locator('p').first(), 14)
+      await dialog
+        .getByRole('button', { name: 'Commit Selected Techniques' })
+        .scrollIntoViewIfNeeded()
+      await testInfo.attach('mobile-techniques-actions', {
+        body: await page.screenshot(),
+        contentType: 'image/png',
+      })
+    }
+    const close = dialog.getByRole('button', { name: 'Close', exact: true })
+    await close.scrollIntoViewIfNeeded()
+    await close.click({ trial: true })
+    expect(
+      await dialog.evaluate((element) => element.scrollWidth - element.clientWidth),
+    ).toBeLessThanOrEqual(1)
+    await testInfo.attach(`mobile-${panel}`, {
+      body: await page.screenshot(),
+      contentType: 'image/png',
+    })
+    await close.click()
+    await expect(dialog).toBeHidden()
   }
 })
 

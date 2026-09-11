@@ -2,9 +2,34 @@
  * Desktop-only readability layer.
  *
  * This intentionally targets non-battle page shells instead of changing the root rem scale.
- * That keeps battle presentation and mobile sizing unchanged while lifting undersized support
- * copy, labels, navigation, and dense profile text to a practical desktop reading floor.
+ * Stable reading tiers keep supporting copy consistent across viewport widths. Component
+ * layouts own density; widening the browser must not inflate every label and paragraph.
  */
+
+:is(
+    [data-testid='authenticated-shell'],
+    [data-testid='public-information-shell'],
+    [data-testid='account-shell'],
+    [data-character-select-page='true'],
+    [data-testid='character-creation']
+  )
+  main
+  p {
+  font-family: var(--av-font-body);
+  text-wrap: pretty;
+}
+
+:is(
+    [data-testid='authenticated-shell'],
+    [data-testid='public-information-shell'],
+    [data-testid='account-shell'],
+    [data-character-select-page='true'],
+    [data-testid='character-creation']
+  )
+  main
+  :is(h1, h2, h3) {
+  text-wrap: balance;
+}
 
 @media (min-width: 981px) {
   [data-testid='authenticated-shell'] .brand__wordmark small,
@@ -33,12 +58,12 @@
   }
 
   [data-testid='authenticated-shell'] main p {
-    font-size: clamp(0.875rem, 0.8vw, 1rem);
-    line-height: 1.5;
+    font-size: 0.875rem;
+    line-height: 1.45;
   }
 
   [data-testid='authenticated-shell'] main small {
-    font-size: clamp(0.75rem, 0.7vw, 0.875rem);
+    font-size: 0.75rem;
     line-height: 1.3;
   }
 
@@ -175,8 +200,8 @@
 
   /* Public guide/news/rules are reading surfaces, so body copy can be a little more generous. */
   [data-testid='public-information-shell'] main :where(p, li) {
-    font-size: clamp(0.88rem, 1vw, 1rem);
-    line-height: 1.55;
+    font-size: 0.9375rem;
+    line-height: 1.6;
   }
 
   [data-testid='public-information-shell'] main :where(small, dt) {
@@ -191,7 +216,7 @@
 
   /* Account entry remains a one-screen desktop gateway; reduce spare density before text. */
   [data-testid='account-shell'] main p {
-    font-size: clamp(0.82rem, 0.8vw, 0.94rem);
+    font-size: 0.875rem;
     line-height: 1.48;
   }
 
@@ -275,43 +300,62 @@
   }
 }
 
-/* Profile editors are portals, so they need the same desktop reading tiers explicitly. */
-@media (min-width: 981px) {
-  [role='dialog']:is(
+/* Portals sit outside the shell. Keep non-combat dialogs readable on phones as well. */
+[role='dialog']:is(
+  [aria-labelledby='discipline-build-heading'],
+  [aria-labelledby='skill-build-heading'],
+  [aria-labelledby='attribute-allocation-dialog-title'],
+  [aria-labelledby='profile-detail-title'],
+  [aria-labelledby='online-profile-name'],
+  [aria-labelledby='delete-character-title'],
+  [aria-labelledby='delete-account-title'],
+  [aria-labelledby='pvp-lobby-title'],
+  [aria-label='Audio settings']
+) {
+  --av-text-dim: #a6acb8;
+  --av-text-muted: #c6c9cf;
+  font-family: var(--av-font-body);
+  overscroll-behavior: contain;
+}
+
+[role='dialog']:is(
     [aria-labelledby='discipline-build-heading'],
     [aria-labelledby='skill-build-heading'],
-    [aria-labelledby='attribute-allocation-dialog-title']
-  ) {
-    --av-text-dim: #a6acb8;
-    --av-text-muted: #c6c9cf;
-  }
+    [aria-labelledby='attribute-allocation-dialog-title'],
+    [aria-labelledby='profile-detail-title'],
+    [aria-labelledby='online-profile-name'],
+    [aria-labelledby='delete-character-title'],
+    [aria-labelledby='delete-account-title'],
+    [aria-labelledby='pvp-lobby-title'],
+    [aria-label='Audio settings']
+  )
+  :is(p, select) {
+  font-size: 0.875rem;
+  line-height: 1.4;
+  text-wrap: pretty;
+}
 
-  [role='dialog']:is(
-      [aria-labelledby='discipline-build-heading'],
-      [aria-labelledby='skill-build-heading'],
-      [aria-labelledby='attribute-allocation-dialog-title']
-    )
-    :is(p, select) {
-    font-size: 0.875rem;
-    line-height: 1.4;
-  }
+[role='dialog']:is(
+    [aria-labelledby='discipline-build-heading'],
+    [aria-labelledby='skill-build-heading'],
+    [aria-labelledby='attribute-allocation-dialog-title'],
+    [aria-labelledby='profile-detail-title'],
+    [aria-labelledby='online-profile-name'],
+    [aria-labelledby='delete-character-title'],
+    [aria-labelledby='delete-account-title'],
+    [aria-labelledby='pvp-lobby-title'],
+    [aria-label='Audio settings']
+  )
+  :is(small, dt, label > span, header > button, footer > button) {
+  font-size: 0.75rem;
+  line-height: 1.3;
+}
 
-  [role='dialog']:is(
-      [aria-labelledby='discipline-build-heading'],
-      [aria-labelledby='skill-build-heading'],
-      [aria-labelledby='attribute-allocation-dialog-title']
-    )
-    :is(small, label > span, header > button, footer > button) {
-    font-size: 0.75rem;
-    line-height: 1.3;
-  }
-
-  [role='dialog'][aria-labelledby='discipline-build-heading']
-    [data-testid='primary-build-preview']
-    [data-direction]
-    > span {
-    font-size: 0.8125rem;
-  }
+[role='dialog'][aria-labelledby='discipline-build-heading']
+  [data-testid='primary-build-preview']
+  [data-direction]
+  > span {
+  font-size: 0.8125rem;
 }
 
 @media (min-width: 981px) {

@@ -93,7 +93,7 @@ Validate:
 
 **Roadmap position:** Phase 2, before substantial Signature Buildcraft expansion.
 
-**Current status:** OPEN while Owner testing/stabilization continues.
+**Current status:** CLOSED by explicit Owner Phase-2 exit decision, 2026-09-02. No additional cohort evidence is implied.
 
 Purpose:
 
@@ -157,6 +157,8 @@ When closing the gate:
 # 6. PV-2 — Signature Buildcraft Identity
 
 **Roadmap position:** Phase 3 before Phase 4 roster expansion.
+
+**Current decision (2026-09-11):** The Owner approved closing Phase 3 after completion and release of the requested UI/performance corrections and background quality checkpoint. Record this as an Owner phase-exit decision, not as a measured multi-tester PV-2 PASS. See `PHASE_3_CLOSEOUT.md`. Phase 4 remains unstarted until the Owner gives a separate start command; broader independent validation remains useful during staged roster work.
 
 Purpose:
 

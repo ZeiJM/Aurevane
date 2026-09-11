@@ -2,11 +2,11 @@
   box-sizing: border-box;
   display: flex;
   width: 100%;
-  max-width: 92rem;
+  max-width: 78rem;
   min-width: 0;
   min-height: 0;
   flex-direction: column;
-  align-self: stretch;
+  align-self: start;
   align-items: stretch;
   gap: 0.75rem;
   margin: 0 auto;
@@ -29,8 +29,8 @@
 
 .heading {
   display: grid;
-  grid-template-columns: minmax(12rem, 1fr) minmax(15rem, 30rem);
-  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.55rem;
   align-items: end;
   padding: 0.2rem 0.15rem 0.7rem;
   border-bottom: 1px solid var(--av-border);
@@ -58,11 +58,13 @@
 }
 
 .heading > p {
+  max-width: 65ch;
   margin: 0 0 0.1rem;
   color: var(--av-text-dim);
   font-size: 0.64rem;
   line-height: 1.45;
-  text-align: right;
+  text-align: left;
+  text-wrap: pretty;
 }
 
 .categoryGrid {
@@ -73,7 +75,7 @@
 
 .categoryGrid > button {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.55rem;
   min-height: 4.25rem;
   align-items: center;
@@ -82,7 +84,7 @@
   border-radius: var(--av-radius-md);
   color: var(--av-text-muted);
   background: rgba(255, 255, 255, 0.018);
-  text-align: left;
+  text-align: center;
   cursor: pointer;
   transition:
     border-color 140ms ease,
@@ -109,11 +111,6 @@
   background: rgba(88, 87, 158, 0.1);
 }
 
-.categoryGrid > button > span {
-  color: var(--av-brass-300);
-  font: 800 0.47rem/1 var(--av-font-mono);
-}
-
 .categoryGrid > button > div {
   display: grid;
   gap: 0.14rem;
@@ -126,17 +123,10 @@
 }
 
 .categoryGrid small {
-  overflow: hidden;
   color: var(--av-text-dim);
   font-size: 0.5rem;
   line-height: 1.25;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.categoryGrid i {
-  color: var(--av-brass-300);
-  font: 500 1.25rem/1 var(--av-font-display);
+  text-wrap: pretty;
 }
 
 .workspace {
@@ -159,9 +149,8 @@
 }
 
 .workspaceHeading {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
+  display: grid;
+  gap: 0.4rem;
   align-items: end;
 }
 
@@ -176,12 +165,13 @@
 }
 
 .workspaceHeading p {
-  max-width: 31rem;
+  max-width: 65ch;
   margin: 0;
   color: var(--av-text-dim);
   font-size: 0.56rem;
   line-height: 1.4;
-  text-align: right;
+  text-align: left;
+  text-wrap: pretty;
 }
 
 .modePicker,

@@ -70,7 +70,7 @@
   display: flex;
   width: min(82rem, 100%);
   max-height: calc(100dvh - 1.3rem);
-  min-height: min(42rem, calc(100dvh - 1.3rem));
+  min-height: min(30rem, calc(100dvh - 1.3rem));
   flex-direction: column;
   overflow: hidden;
   border: 1px solid rgba(183, 161, 118, 0.28);
@@ -103,7 +103,7 @@
 .tipCard > span,
 .actionStatus span {
   color: #a89a82;
-  font: 700 0.58rem/1 var(--av-font-mono);
+  font: 700 0.6875rem/1.25 var(--av-font-mono);
   letter-spacing: 0.11em;
   text-transform: uppercase;
 }
@@ -179,6 +179,9 @@
   align-content: start;
   gap: 0.62rem;
   min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border-right: 1px solid rgba(184, 177, 163, 0.1);
   padding: 0.78rem;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.018), rgba(255, 255, 255, 0.005));
@@ -649,6 +652,10 @@
 }
 
 @media (max-width: 860px) {
+  .buildRail {
+    overflow: visible;
+  }
+
   .backdrop {
     overflow-y: auto;
     place-items: start center;

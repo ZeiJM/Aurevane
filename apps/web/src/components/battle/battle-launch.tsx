@@ -334,40 +334,37 @@ export function BattleLaunch({
           type="button"
           data-active={section === 'ai' || undefined}
           data-tone="ai"
+          aria-pressed={section === 'ai'}
           onClick={() => chooseSection('ai')}
         >
-          <span>01</span>
           <div>
             <strong>AI Battles</strong>
             <small>Practice, learn, and test builds</small>
           </div>
-          <i>›</i>
         </button>
         <button
           type="button"
           data-active={section === 'pvp' || undefined}
           data-tone="pvp"
+          aria-pressed={section === 'pvp'}
           onClick={() => chooseSection('pvp')}
         >
-          <span>02</span>
           <div>
             <strong>Player vs Player</strong>
             <small>Create or join a private battle lobby</small>
           </div>
-          <i>›</i>
         </button>
         <button
           type="button"
           data-active={section === 'spectate' || undefined}
           data-tone="spectate"
+          aria-pressed={section === 'spectate'}
           onClick={() => chooseSection('spectate')}
         >
-          <span>03</span>
           <div>
             <strong>Spectate</strong>
             <small>Watch a battle using its Battle Key</small>
           </div>
-          <i>›</i>
         </button>
       </nav>
 

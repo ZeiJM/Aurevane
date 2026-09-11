@@ -85,7 +85,7 @@ Primary supplies the active Discipline base-stat profile. Player-assigned attrib
 
 Phase 2 is formally closed. Its mature battle/PvP/spectator/cockpit platform is frozen as reusable infrastructure unless a genuine regression is discovered.
 
-Phase 3 is active and proceeds one canonical ticket at a time from `docs/PHASE_3_TICKETS.md`, beginning with P3.1. Compatible Phase-2 foundations receive reuse credit rather than being rebuilt.
+Phase 3's P3.1–P3.8 implementation is complete. The Owner approved closure with the final UI/quality release on 2026-09-11; see `PHASE_3_CLOSEOUT.md`. Phase 4 remains unstarted until an explicit Owner command. Compatible Phase-2 and Phase-3 foundations receive reuse credit rather than being rebuilt.
 
 The inherited platform already provides:
 
