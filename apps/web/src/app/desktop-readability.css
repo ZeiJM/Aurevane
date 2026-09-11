@@ -7,20 +7,6 @@
  */
 
 @media (min-width: 761px) {
-  :is(
-    [data-testid='authenticated-shell'],
-    [data-testid='public-information-shell'],
-    [data-testid='account-shell'],
-    [data-character-select-page='true'],
-    [data-testid='character-creation']
-  ) {
-    --av-text-dim: #a6acb8;
-    --av-text-muted: #c6c9cf;
-    --av-radius-sm: 0.4rem;
-    --av-radius-md: 0.65rem;
-    --av-radius-lg: 0.85rem;
-  }
-
   [data-testid='authenticated-shell'] .brand__wordmark small,
   [data-testid='public-information-shell'] .brand__wordmark small,
   [data-testid='account-shell'] .brand__wordmark small,
@@ -325,5 +311,21 @@
     [data-direction]
     > span {
     font-size: 0.8125rem;
+  }
+}
+
+@media (min-width: 981px) {
+  :is(
+    [data-testid='authenticated-shell'],
+    [data-testid='public-information-shell'],
+    [data-testid='account-shell'],
+    [data-character-select-page='true'],
+    [data-testid='character-creation']
+  ) {
+    --av-text-dim: #a6acb8;
+    --av-text-muted: #c6c9cf;
+    --av-radius-sm: 0.4rem;
+    --av-radius-md: 0.65rem;
+    --av-radius-lg: 0.85rem;
   }
 }

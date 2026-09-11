@@ -1,309 +1,353 @@
-/* Desktop document layouts. Active battle/spectator screens and phone styles are not targets. */
+/*
+ * Desktop Profile and Battle Hall only. The footer occupies a real grid row instead of
+ * overlapping content through a fixed-position footer with an undersized spacer.
+ * Compact layouts recover space from the hero, gaps and columns, not tiny text or clipping.
+ * Active combat and mobile retain their independent layouts. Unusually short/zoomed windows
+ * can still scroll: no content is hidden just to make a scrollbar disappear.
+ */
+
 @media (min-width: 981px) {
-  /* Reserve the REAL footer row, not an assumed fixed overlay height. Long content can still grow. */
-  [data-testid='public-information-shell'],
-  [data-testid='authenticated-shell'] {
-    grid-template-rows: auto 1fr auto;
+  [data-testid='authenticated-shell']:has(#battle-launch),
+  [data-testid='authenticated-shell']:has([data-testid='character-profile']) {
     padding-bottom: 0;
   }
 
-  [data-testid='authenticated-shell'] > main {
-    min-height: 0;
-    padding: clamp(0.5rem, 1vh, 0.8rem) clamp(0.7rem, 1.4vw, 1.4rem);
-  }
-
-  [data-testid='public-information-shell'] > footer,
-  [data-testid='authenticated-shell'] > footer {
+  [data-testid='authenticated-shell']:has(#battle-launch) > footer,
+  [data-testid='authenticated-shell']:has([data-testid='character-profile']) > footer {
     position: sticky;
     inset: auto;
     bottom: 0;
-    min-height: 3.25rem;
-    padding-block: 0.35rem;
-    backdrop-filter: none;
   }
 
-  [data-testid='authenticated-shell'] > header {
-    backdrop-filter: none;
+  [data-testid='authenticated-shell']:has(#battle-launch) {
+    height: 100dvh;
+    min-height: 0;
+    grid-template-rows: auto minmax(0, 1fr) auto;
   }
 
-  #game-main [data-testid='primary-build-panel'] > button > span:last-child,
-  #game-main [data-testid='skill-build-panel'] > button strong::after {
+  #game-main:has(#battle-launch) {
+    min-height: 0;
+    padding-block: 0.5rem;
+    overflow: auto;
+  }
+
+  #battle-launch {
+    gap: 0.55rem;
+    padding: 0.75rem;
+  }
+
+  #battle-launch > header {
+    padding: 0 0 0.5rem;
+  }
+
+  #battle-launch h1 {
+    font-size: clamp(2rem, 4.6vh, 3rem);
+  }
+
+  #battle-launch > nav > button {
+    min-height: 3.6rem;
+    padding: 0.55rem 0.7rem;
+  }
+
+  #battle-launch > nav strong {
+    font-size: 1rem;
+  }
+
+  #battle-launch > section {
+    gap: 0.5rem;
+    padding: 0.65rem;
+  }
+
+  #battle-launch p {
+    font-size: 0.875rem;
+    line-height: 1.35;
+  }
+
+  #battle-launch small,
+  #battle-launch label,
+  #battle-launch legend,
+  #battle-launch > section > div:first-child > div > span,
+  #battle-launch [data-pvp-create-card] > div:first-child > span {
+    font-size: 0.75rem;
+    line-height: 1.2;
+  }
+
+  #battle-launch input,
+  #battle-launch select,
+  #battle-launch > section button {
+    min-height: 2.15rem;
+    font-size: 0.8125rem;
+    line-height: 1.2;
+  }
+
+  #battle-launch [data-pvp-settings-heading] strong {
+    font-size: 0.875rem;
+  }
+
+  #battle-launch [data-pvp-settings-panel] {
+    gap: 0.35rem;
+    padding: 0.5rem;
+  }
+
+  #battle-launch [data-pvp-settings-heading] {
+    padding-bottom: 0.3rem;
+  }
+
+  #battle-launch [data-pvp-setting-group] {
+    padding: 0.3rem;
+  }
+
+  #battle-launch [data-pvp-setting-options] button {
+    min-height: 1.9rem;
+    padding: 0.3rem 0.2rem;
     font-size: 0.75rem;
   }
 
-  /* Profile: spend less space on the hero, more on useful, legible information. */
+  #battle-launch [data-pvp-create-card] {
+    gap: 0.35rem;
+  }
+
+  #battle-launch [data-pvp-create-card] > p {
+    margin: 0;
+    padding-block: 0.3rem;
+  }
+
   #game-main > div:has([data-testid='character-profile']) {
     height: auto !important;
     min-height: 0;
     align-items: start;
-    grid-template-columns: minmax(0, 1fr) minmax(17rem, 22rem);
-    gap: 0.75rem;
   }
 
   #game-main [data-testid='character-profile'] {
-    grid-template-columns: clamp(7rem, 14vh, 9rem) minmax(0, 1fr);
-    gap: 0.9rem;
-    align-items: center;
+    grid-template-columns: 8rem minmax(0, 1fr);
+    gap: 0.85rem;
+  }
+
+  #game-main [data-testid='character-profile'] > div:first-child {
+    width: 8rem !important;
+    height: 8rem !important;
+    min-height: 0 !important;
+  }
+
+  #game-main [data-testid='character-profile'] h1 {
+    font-size: clamp(2rem, 3.2vw, 3.2rem);
+    line-height: 1.05;
+  }
+
+  #game-main [data-profile-fact] small,
+  #game-main [data-profile-section-header] > small,
+  #game-main [data-profile-stat-group] > h3 {
+    font-size: 0.75rem;
+    line-height: 1.2;
+  }
+
+  #game-main [data-testid^='profile-attribute-'] > :last-child > span,
+  #game-main [data-testid^='derived-stat-'] > span:first-child {
+    font-size: 0.8125rem;
+    line-height: 1.2;
+  }
+
+  #game-main [data-testid^='derived-stat-'] > strong {
+    font-size: 0.9375rem;
+    line-height: 1.15;
+  }
+
+  #game-main section[aria-label='Attribute redistribution'] {
+    margin-top: 0.55rem;
+    scroll-margin-block: 5rem;
+  }
+
+  #game-main [data-profile-stat-group][aria-label='Tempo & Mobility'] > div {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  #battle-launch [data-pvp-setting-group] legend,
+  #battle-launch [data-pvp-settings-heading] small,
+  #battle-launch article > div:first-child > span {
+    font-size: 0.75rem;
+    line-height: 1.2;
   }
 
   #game-main [data-testid='character-profile'] > div:last-child > div:first-of-type {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 0.45rem 0.9rem;
-    margin-block: 0.25rem;
+    gap: 0.5rem 1rem;
   }
 
-  #game-main [data-testid='character-profile'] p {
-    margin-block: 0.15rem;
+  #game-main [data-testid='primary-build-panel'] > button > span:last-child,
+  #game-main [data-testid='skill-build-panel'] > button strong::after,
+  #game-main section[aria-label='Attribute redistribution'] > button {
+    font-size: 0.8125rem;
   }
 
-  #game-main [data-testid='character-profile'] h1 {
-    font-size: clamp(2rem, 3.2vw, 3.25rem);
-    line-height: 1;
-    overflow-wrap: anywhere;
-  }
-
-  #game-main aside[aria-label='Combat loadout workspace'],
-  #game-main aside[aria-label='Combat loadout workspace'] > * {
-    position: static;
-    height: auto !important;
-  }
-
-  #game-main [data-profile-section-header] {
-    gap: 0.6rem;
-    flex-wrap: wrap;
-  }
-
-  #game-main [data-profile-section-header] > small {
+  #battle-launch > section[data-tone='ai'] > div:last-child > div > span,
+  #battle-launch > section[data-tone='ai'] > div:last-child > div > div,
+  #battle-launch > section[data-tone='spectate'] > div:nth-child(2) > div:first-child > span {
     font-size: 0.75rem;
-    line-height: 1.2;
-    white-space: normal;
-    text-align: right;
+    line-height: 1.3;
   }
+}
 
-  #game-main [data-testid^='derived-stat-'] {
-    grid-template-columns: minmax(0, 1fr) auto;
-    min-height: 2.8rem;
-    gap: 0.4rem;
-    justify-items: stretch;
-    padding: 0.45rem 0.55rem 0.8rem;
-    text-align: left;
-  }
-
-  #game-main [data-testid^='derived-stat-'] > strong {
-    justify-self: end;
-    font-size: 1rem;
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* All three Hall tabs share the same frame. It may grow; it never crops controls to hide a bar. */
+@media (min-width: 981px) and (max-height: 800px) {
   #battle-launch {
-    max-width: none;
-    min-height: 0;
-    gap: clamp(0.45rem, 1vh, 0.75rem);
-    padding: clamp(0.65rem, 1.4vh, 1rem);
+    gap: 0.4rem;
+    padding: 0.55rem;
   }
 
   #battle-launch > header {
-    gap: 1rem;
-    padding: 0 0.15rem 0.55rem;
-  }
-
-  #battle-launch-title {
-    font-size: clamp(1.9rem, 4.6vh, 2.65rem);
-    line-height: 1.05;
+    padding-bottom: 0.35rem;
   }
 
   #battle-launch > nav > button {
-    min-height: 3.7rem;
-    padding: 0.5rem 0.75rem;
-  }
-
-  #battle-launch > nav strong {
-    font-size: 1.05rem;
-  }
-
-  #battle-launch > nav small {
-    white-space: normal;
-    overflow: visible;
+    min-height: 3.2rem;
+    padding-block: 0.4rem;
   }
 
   #battle-launch > section {
-    min-width: 0;
-    gap: 0.6rem;
-    padding: clamp(0.6rem, 1.2vh, 0.85rem);
-  }
-
-  #battle-launch > section > div:first-child {
-    align-items: center;
-  }
-
-  #battle-launch > section h2 {
-    font-size: clamp(1.25rem, 2.8vh, 1.65rem);
-    line-height: 1.15;
-  }
-
-  #battle-launch p {
-    margin-top: 0.2rem;
-    font-size: 0.875rem;
-    line-height: 1.4;
-  }
-
-  #battle-launch :is(label, legend) {
-    font-size: 0.75rem;
-    line-height: 1.2;
-  }
-
-  #battle-launch :is(input, select) {
-    min-height: 2.25rem;
-    font-size: 0.875rem;
-  }
-
-  #battle-launch :is(button, small) {
-    font-size: 0.75rem;
-    line-height: 1.2;
+    gap: 0.35rem;
+    padding: 0.5rem;
   }
 
   #battle-launch [data-pvp-create-card] {
-    grid-template-columns: minmax(6.5rem, auto) minmax(0, 1fr);
-    gap: 0.45rem 0.6rem;
-    padding: 0.65rem;
+    padding: 0.5rem;
   }
 
-  #battle-launch [data-pvp-create-card] > :not(label):not(select) {
-    grid-column: 1 / -1;
+  #game-main [data-testid='character-profile'] {
+    grid-template-columns: 6.5rem minmax(0, 1fr);
   }
 
-  #battle-launch article > div:first-child {
+  #game-main [data-testid='character-profile'] > div:first-child {
+    width: 6.5rem !important;
+    height: 6.5rem !important;
+  }
+}
+
+@media (min-width: 981px) and (max-height: 760px),
+  (min-width: 981px) and (max-width: 1100px) and (max-height: 800px) {
+  #battle-launch h1 {
+    font-size: 1.8rem;
+  }
+
+  #battle-launch > header > div > p {
+    margin: 0;
+  }
+
+  #battle-launch > section > div:first-child > div {
     display: flex;
     align-items: baseline;
     gap: 0.5rem;
   }
 
-  #battle-launch [data-pvp-create-card] > label {
-    align-self: center;
+  #battle-launch > section > div:first-child h2 {
+    font-size: 1.1rem;
   }
 
-  #battle-launch [data-pvp-create-card] > select {
-    width: 100%;
-  }
-
-  #battle-launch [data-pvp-team-sizes] label {
-    grid-template-columns: auto minmax(0, 1fr);
+  #battle-launch [data-pvp-create-card] {
+    grid-template-columns: auto auto minmax(0, 1fr);
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.3rem 0.5rem;
   }
 
-  #battle-launch [data-pvp-team-sizes] > span {
-    align-self: center;
-    padding: 0;
-    font-size: 0.75rem;
+  #battle-launch [data-pvp-create-card] > div,
+  #battle-launch [data-pvp-create-card] > p,
+  #battle-launch [data-pvp-create-card] > button {
+    grid-column: 1 / -1;
   }
 
-  #battle-launch [data-pvp-settings-panel] {
-    gap: 0.4rem;
-    padding: 0.5rem;
+  #battle-launch [data-pvp-create-card] > div:first-child {
+    display: grid;
+    align-items: baseline;
+    gap: 0.1rem;
+    padding-bottom: 0;
+    grid-column: auto;
+    border-bottom: 0;
   }
 
   #battle-launch [data-pvp-settings-heading] {
-    align-items: center;
-    gap: 0.5rem;
-    padding-bottom: 0.3rem;
-  }
-
-  #battle-launch [data-pvp-settings-heading] strong {
-    font-size: 0.95rem;
+    gap: 0.4rem;
   }
 
   #battle-launch [data-pvp-settings-heading] small {
-    max-width: 19rem;
-    font-size: 0.75rem;
-    line-height: 1.3;
-    text-align: right;
-  }
-
-  #battle-launch [data-pvp-setting-group] {
-    min-width: 0;
-    padding: 0.35rem;
-  }
-
-  #battle-launch [data-pvp-setting-group] legend,
-  #battle-launch > section > div:first-child > div > span,
-  #battle-launch article > div:first-child > span {
-    font-size: 0.75rem;
-    line-height: 1.2;
-    letter-spacing: 0.045em;
+    max-width: none;
   }
 
   #battle-launch [data-pvp-setting-options] button {
-    font-size: 0.75rem;
-    line-height: 1.2;
-    min-height: 2rem;
-    padding: 0.25rem;
-  }
-}
-
-/* Compact chrome on laptop-height windows; the typography floors above do not change. */
-@media (min-width: 981px) and (max-height: 820px) {
-  [data-testid='authenticated-shell'] > main {
-    padding-block: 0.3rem;
+    min-height: 1.7rem;
+    font-family: var(--av-font-body);
+    letter-spacing: 0;
   }
 
-  #game-main [data-profile-facts] {
-    margin-block: 0.35rem;
+  [data-testid='authenticated-shell']:has(#battle-launch) > header {
+    min-height: 3.2rem;
+    padding-block: 0.15rem;
   }
 
-  #battle-launch {
-    gap: 0.45rem;
-    padding: 0.6rem;
-  }
-
-  #battle-launch > header {
-    padding-bottom: 0.4rem;
-  }
-
-  #battle-launch > nav > button {
-    min-height: 3.5rem;
-  }
-
-  #battle-launch [data-pvp-create-card] {
-    gap: 0.35rem 0.6rem;
-  }
-}
-
-@media (min-width: 981px) and (max-height: 720px) {
-  #game-main [data-testid='character-profile'] {
-    grid-template-columns: 6.5rem minmax(0, 1fr);
-  }
-
-  #battle-launch > nav > button {
+  [data-testid='authenticated-shell']:has(#battle-launch) > footer {
     min-height: 3rem;
-    padding-block: 0.35rem;
+    padding-block: 0.2rem;
   }
 
-  #battle-launch > section,
-  #battle-launch [data-pvp-create-card] {
-    gap: 0.35rem;
-    padding: 0.5rem;
+  #game-main:has(#battle-launch) {
+    padding-block: 0.2rem;
+  }
+
+  #battle-launch > header > div {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+  }
+
+  #battle-launch > section[data-tone='pvp'] > div:nth-child(2) {
+    grid-template-columns: minmax(0, 3.6fr) auto minmax(11.5rem, 1fr);
   }
 
   #battle-launch [data-pvp-settings-panel] {
-    gap: 0.25rem;
-    padding: 0.35rem;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
-  #battle-launch [data-pvp-setting-options] button {
-    min-height: 1.85rem;
+  #battle-launch article:not([data-pvp-create-card]) {
+    padding: 0.5rem;
+    gap: 0.35rem;
   }
 
-  #battle-launch [data-pvp-setting-group] {
-    padding: 0.2rem;
+  #battle-launch article:not([data-pvp-create-card]) p {
+    font-size: 0.8125rem;
+    line-height: 1.3;
   }
 
-  #battle-launch :is(input, select) {
-    min-height: 2rem;
-    padding-block: 0.3rem;
+  #battle-launch [data-pvp-create-card] > div:has(select) label {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  #battle-launch {
+    gap: 0.3rem;
+  }
+
+  #battle-launch > header > p,
+  #battle-launch > section > div:first-child > p {
+    font-size: 0.8125rem;
+    line-height: 1.3;
+  }
+}
+
+@media (min-width: 981px) and (max-height: 760px) {
+  #game-main [data-testid='character-profile'] h1 {
+    font-size: 2rem;
+  }
+  #game-main [data-profile-facts] {
+    margin-block: 0.3rem;
+  }
+  #game-main [data-profile-section] {
+    padding-top: 0.25rem;
+  }
+  #game-main [data-profile-section] + [data-profile-section] {
+    margin-top: 0.25rem;
+  }
+  #game-main [data-profile-stat-group] {
+    padding-block: 0.25rem;
   }
 }
 
@@ -401,96 +445,36 @@
   }
 }
 
-/* Three mobility stats use the available width instead of creating a mostly empty extra row. */
-@media (min-width: 1280px) {
-  #game-main [data-profile-stat-groups] {
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+/* Other desktop pages share the real footer row; Profile/Hall keep the tested rules above. */
+@media (min-width: 981px) {
+  [data-testid='authenticated-shell']:not(:has(#battle-launch)):not(
+      :has([data-testid='character-profile'])
+    ),
+  [data-testid='public-information-shell'] {
+    grid-template-rows: auto 1fr auto;
+    padding-bottom: 0;
   }
-
-  #game-main [data-profile-stat-group][aria-label='Tempo & Mobility'] > div {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 981px) and (max-height: 820px) {
-  #game-main [data-testid^='derived-stat-'] {
-    min-height: 2.6rem;
-    padding-block: 0.35rem 0.7rem;
-  }
-}
-
-/* A growing directory is a bounded, keyboard-scrollable list, not an ever-taller page. */
-@media (min-width: 981px) and (min-height: 450px) {
-  [data-testid='authenticated-shell']:has([data-character-directory]) {
-    height: 100dvh;
-    grid-template-rows: auto minmax(0, 1fr) auto;
-  }
-
-  #game-main:has([data-character-directory]) {
-    grid-template-rows: minmax(0, 1fr);
-  }
-
-  #game-main [data-character-directory] {
-    display: flex;
+  [data-testid='authenticated-shell']:not(:has(#battle-launch)):not(
+      :has([data-testid='character-profile'])
+    )
+    > main {
     min-height: 0;
-    flex-direction: column;
+    padding: 0.3rem clamp(0.7rem, 1.4vw, 1.4rem);
   }
-
-  #game-main [data-character-directory] > header {
-    flex: 0 0 auto;
+  [data-testid='authenticated-shell']:not(:has(#battle-launch)):not(
+      :has([data-testid='character-profile'])
+    )
+    > footer,
+  [data-testid='public-information-shell'] > footer {
+    position: sticky;
+    inset: auto;
+    bottom: 0;
+    min-height: 3.25rem;
+    padding-block: 0.35rem;
+    backdrop-filter: none;
   }
-
-  #game-main [data-character-directory] > section {
-    display: flex;
-    min-height: 0;
-    flex: 1 1 0;
-    flex-direction: column;
-  }
-
-  #game-main [data-character-directory] > section > :not(:last-child) {
-    flex: 0 0 auto;
-  }
-
-  #game-main
-    [data-character-directory]
-    > section
-    > div:last-child:has(> button):not([role='status']) {
-    min-height: 0;
-    max-height: none;
-    flex: 1 1 0;
-    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
-    grid-auto-rows: max-content;
-    align-content: start;
-    overflow: auto;
-    overscroll-behavior: contain;
-    scrollbar-gutter: stable;
-    scroll-padding-block: 0.75rem;
-  }
-
-  #game-main
-    [data-character-directory]
-    > section
-    > div:last-child:has(> button):not([role='status'])
-    > button:focus-visible {
-    outline: 2px solid var(--av-focus);
-    outline-offset: -3px;
-  }
-
-  #game-main [data-character-directory] button[aria-pressed],
-  #game-main [data-character-directory] > section > header > span:last-child,
-  #game-main [aria-label='Character directory filters'] label > span,
-  #game-main [aria-label='Character directory filters'] > span {
-    font-size: 0.75rem;
-    line-height: 1.25;
-  }
-
-  #game-main
-    [data-character-directory]
-    > section
-    > div:last-child:has(> button):not([role='status'])
-    > button
-    > span:last-child {
-    font-size: 0.75rem;
-    line-height: 1.3;
+  [data-testid='authenticated-shell'] > header,
+  [data-testid='public-information-shell'] > header {
+    backdrop-filter: none;
   }
 }

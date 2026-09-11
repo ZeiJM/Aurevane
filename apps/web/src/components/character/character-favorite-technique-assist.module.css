@@ -4,8 +4,10 @@
   right: 0.48rem;
   z-index: 4;
   display: grid;
+  box-sizing: border-box;
   width: 1.65rem;
   height: 1.65rem;
+  padding: 0;
   place-items: center;
   border: 1px solid rgba(220, 177, 88, 0.5);
   border-radius: 999px;
@@ -15,6 +17,13 @@
   font-size: 1rem;
   line-height: 1;
   box-shadow: 0 0.2rem 0.7rem rgba(0, 0, 0, 0.34);
+}
+
+.icon {
+  display: block;
+  width: 1em;
+  height: 1em;
+  pointer-events: none;
 }
 
 .star:hover:not(:disabled),
@@ -29,8 +38,8 @@
     0 0.25rem 0.8rem rgba(0, 0, 0, 0.38);
 }
 
-.star[aria-pressed='true'] {
-  text-shadow: 0 0 0.45rem rgba(242, 201, 111, 0.62);
+.star[aria-pressed='true'] .icon {
+  filter: drop-shadow(0 0 0.45rem rgba(242, 201, 111, 0.62));
 }
 
 .star:disabled {
