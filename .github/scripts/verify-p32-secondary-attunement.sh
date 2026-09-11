@@ -109,7 +109,7 @@ catalog="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d po
   set role service_role;
   select count(*)::text || '|' || count(*) filter (where mastered_at is not null)::text || '|' || bool_and(enabled_for_secondary)::text
   from public.get_character_discipline_catalog_v2('$user_id'::uuid, '$character_id'::uuid);")"
-test "$catalog" = '6|1|true'
+test "$catalog" = '16|1|true'
 
 secondary_change="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;

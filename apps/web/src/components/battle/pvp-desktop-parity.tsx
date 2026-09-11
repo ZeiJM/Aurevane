@@ -9,6 +9,7 @@ import { getStarterPortraitImageAssetId } from '@/media/character'
 import type { PvpBattleMetadata, PvpBattleParticipantView } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
+import { statusLabel, statusIsBeneficial } from './battle-effect-summary'
 import styles from './pvp-desktop-parity.module.css'
 
 type BattleSnapshot = BattleSessionView['snapshot']
@@ -42,24 +43,6 @@ function facingGlyph(facing: Placement['facing']): string {
   if (facing === 'east') return '→'
   if (facing === 'south') return '↓'
   return '←'
-}
-
-function statusLabel(statusId: string): string {
-  if (statusId === 'guarded') return 'Guarded'
-  if (statusId === 'lowered-guard' || statusId === 'lowered.guard') return 'Lowered Guard'
-  return statusId
-    .replace(/^buff\./, '')
-    .replace(/^debuff\./, '')
-    .replaceAll('-', ' ')
-    .replaceAll('.', ' ')
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
-}
-
-function statusIsBeneficial(statusId: string): boolean {
-  return statusId === 'guarded' || statusId.startsWith('buff.')
 }
 
 function participantState(

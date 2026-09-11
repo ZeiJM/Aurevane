@@ -1,3 +1,4 @@
+import { PHASE4_STATUSES } from './status-content'
 import {
   createBasicAttackDefinition,
   createCombatEncounterState,
@@ -103,7 +104,12 @@ export const PV1F_EXPOSED_STATUS: CombatStatusDefinition = {
 }
 
 export const PV1F_COMBAT_CONTENT: CombatContentCatalog = {
-  statuses: [PV1F_GUARDED_STATUS, PV1F_LOWERED_GUARD_STATUS, PV1F_EXPOSED_STATUS],
+  statuses: [
+    PV1F_GUARDED_STATUS,
+    PV1F_LOWERED_GUARD_STATUS,
+    PV1F_EXPOSED_STATUS,
+    ...PHASE4_STATUSES,
+  ],
 }
 
 export const PV1F_GUARD_ACTION: CombatActionDefinition = {
@@ -513,12 +519,17 @@ export function evaluatePv1fMatureSkill(
   const resolved = resolveMatureSkillForContext(definition, combatContext)
   const baseAction = toCombatActionDefinition(definition, combatContext)
   const repeatPenaltyApplied = lastMatureSkillId(prepared, actorId) === definition.id
+  const defendedEffects: readonly CombatEffectDefinition[] = baseAction.effects.map((effect) =>
+    effect.type === 'damage'
+      ? { ...effect, defenseKind: definition.tags.includes('mystic') ? 'ward' : 'armor' }
+      : effect,
+  )
   const action: CombatActionDefinition = {
     ...baseAction,
     cooldown: undefined,
     effects: repeatPenaltyApplied
-      ? scaleRepeatedMatureSkillEffects(baseAction.effects)
-      : baseAction.effects,
+      ? scaleRepeatedMatureSkillEffects(defendedEffects)
+      : defendedEffects,
   }
   return {
     prepared,
@@ -579,7 +590,36 @@ export function evaluatePv1fMovement(
 ) {
   const prepared = preparePv1fTurnEconomy(state)
   const movement = evaluateCurrentMovementPath(prepared.tactical, path)
-  const economyCost = movement.cost * PV1F_MOVEMENT_COST_PER_TERRAIN_POINT
+  const actorId = prepared.tactical.battle.currentTurn?.combatantId
+  const definitions = (
+    prepared.statusState.find((row) => row.combatantId === actorId)?.statuses ?? []
+  ).map((status) =>
+    PV1F_COMBAT_CONTENT.statuses.find(
+      (definition) =>
+        definition.id === status.statusId && definition.version === status.statusVersion,
+    ),
+  )
+  const rooted = definitions.some((definition) => definition?.movement?.blocked)
+  if (rooted) {
+    movement.legal = false
+    movement.issues = [
+      ...movement.issues,
+      {
+        code: 'status-restricted',
+        stepIndex: null,
+        message: 'Root prevents movement until it expires or is cleansed.',
+      },
+    ]
+  }
+  const surcharge = Math.min(
+    20,
+    definitions.reduce(
+      (sum, definition) => sum + (definition?.movement?.additionalApPerTile ?? 0),
+      0,
+    ),
+  )
+  const economyCost =
+    movement.cost * PV1F_MOVEMENT_COST_PER_TERRAIN_POINT + Math.max(0, path.length - 1) * surcharge
   return { prepared, movement, economyCost }
 }
 
@@ -701,6 +741,8 @@ function scaleRepeatedMatureSkillEffects(
       scaled.push({ ...effect, delta: halfSignedMagnitude(effect.delta) })
       continue
     }
+    // Removal is discrete: a consecutive repeat cannot remove a full status again.
+    if (effect.type === 'remove-status') continue
     const stacks = Math.floor(effect.stacks / 2)
     if (stacks > 0) scaled.push({ ...effect, stacks })
   }

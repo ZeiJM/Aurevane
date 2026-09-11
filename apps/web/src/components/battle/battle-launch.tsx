@@ -35,6 +35,7 @@ interface ApiErrorBody {
 const VISIBLE_RECORD_IDS: readonly TacticalHallRecordId[] = [
   'recruit-sparring',
   'guided-fundamentals',
+  'mastery-trial',
 ]
 
 const ARENAS: readonly { id: TacticalHallArenaId; name: string; scale: string; summary: string }[] =
@@ -138,6 +139,7 @@ export function BattleLaunch({
     const nextRecord = getTacticalHallRecord(nextRecordId)
     setRecordId(nextRecordId)
     setArenaId(nextRecord.defaultArenaId)
+    if (nextRecordId === 'mastery-trial' && aiDifficulty === 'easy') setAiDifficulty('standard')
     setError(null)
   }
 
@@ -164,7 +166,12 @@ export function BattleLaunch({
         body: JSON.stringify({
           characterId,
           arenaId,
-          aiDifficulty: selectedRecord.combinedDuel ? aiDifficulty : 'easy',
+          aiDifficulty:
+            selectedRecord.id === 'mastery-trial' && aiDifficulty === 'easy'
+              ? 'standard'
+              : selectedRecord.combinedDuel
+                ? aiDifficulty
+                : 'easy',
           battleHallRecordId: selectedRecord.id,
           idempotencyKey: crypto.randomUUID(),
         }),
@@ -422,7 +429,7 @@ export function BattleLaunch({
                 <h3>{recordDisplayName(selectedRecord.id, selectedRecord.name)}</h3>
                 <p>{selectedRecord.purpose}</p>
                 <div className={styles.arenaLine}>
-                  {recordId === 'recruit-sparring' ? (
+                  {recordId === 'recruit-sparring' || recordId === 'mastery-trial' ? (
                     <label>
                       Arena
                       <select
@@ -452,7 +459,9 @@ export function BattleLaunch({
                 <fieldset className={styles.difficulty}>
                   <legend>AI difficulty</legend>
                   <div className={styles.difficultyToggle}>
-                    {DIFFICULTIES.map((difficulty) => (
+                    {DIFFICULTIES.filter(
+                      (difficulty) => recordId !== 'mastery-trial' || difficulty.id !== 'easy',
+                    ).map((difficulty) => (
                       <button
                         key={difficulty.id}
                         type="button"

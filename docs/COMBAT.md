@@ -1,5 +1,18 @@
 # AUREVANE Combat Design Bible
 
+## Phase 4 roster and effect implementation — 2026-09-11
+
+The sixteen-Discipline candidate contains 128 regular Skills, 16 pure Essences and all 120 unordered Resonance pairs. Eight learned Skills per mature library remain distinct from four battle selections. Full mixed builds use 1+3, 2+2 or 3+1; Essence and Resonance are exclusive. See `PHASE_4_TICKETS.md` for exact verification and release status.
+
+New named statuses are Burn, Bleed, Poison, Regeneration, Slow, Root, Reckless, Fortified, Challenged, Marked and Warded. Conditioned outgoing/incoming damage evaluates each attacker/recipient pair, using a 50–200% combined budget for the new modifiers. Guarded/Exposed/Lowered Guard remain separate historical multipliers. All new percentage statuses are single-stack; Reckless and Fortified keep their benefit and drawback together. Only five regular Skills apply the new percentage families; two of those are potent linked tradeoffs.
+
+Periodic HP effects tick at affected turn end, before completion; they cannot revive a defeated unit. Root blocks movement while leaving actions/facing available. Slow adds 10 AP per tile within the normal Movement allowance. Cleanse removes only named statuses. Mature Skill damage resolves each hit against each actual recipient's Armor (physical) or Ward (mystic). New mystic attacks have bounded authored MP costs. Repeated quantitative effects halve, discrete one-stack/cleanse repeats are omitted, and AP/MP costs remain unchanged.
+
+Normal advanced acquisition uses listed Foundation Mastery prerequisites and 4/2/2 learned milestones at Initiate/Practiced/Adept. Mastery Trials on Standard/High award up to 50 XP for an eligible victory with two Primary regular Skills across three commands and no player timeout. The database checks immutable origin/build and committed events; claims are atomic and idempotent. Stages are 100/300/600/1,000 XP, with all eight regular Skills demonstrated for normal Master. Existing Owner-authorized testing Mastery grants remain intact and permit immediate full-roster testing.
+
+World acquisition, full equipment catalogs and supernatural systems retain their later roadmap boundaries. Illustrated masters, recorded SFX and independent human balance/media acceptance remain explicitly tracked; automated authored coverage is not that acceptance.
+
+
 
 ## Current selected-Technique and repeat-use authority — 2026-09-11 synchronization
 

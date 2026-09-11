@@ -53,6 +53,12 @@ export function SkillDetails({ skill }: { skill: MatureSkillDefinition }) {
                 : ''}
             </dd>
           </div>
+          {(skill.mpCost ?? 0) > 0 ? (
+            <div>
+              <dt>MP cost</dt>
+              <dd>{skill.mpCost}</dd>
+            </div>
+          ) : null}
         </dl>
         <strong>Effects, in order</strong>
         <ol>

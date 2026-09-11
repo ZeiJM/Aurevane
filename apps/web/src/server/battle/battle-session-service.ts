@@ -513,6 +513,11 @@ export function createBattleSessionService({
       const arenaId = command.arenaId ?? 'basic-training-floor'
       const aiDifficulty = command.aiDifficulty ?? 'standard'
       const battleHallRecordId = command.battleHallRecordId ?? 'recruit-sparring'
+      if (battleHallRecordId === 'mastery-trial' && aiDifficulty === 'easy')
+        throw new AurevaneError(
+          'INVALID_REQUEST',
+          'Mastery Trials require Standard or High difficulty.',
+        )
       const baseEncounter = createVerticalSliceEncounter(
         character,
         arenaId,

@@ -31,6 +31,11 @@ export function createSupabaseCharacterBuildRepositoryV3(): CharacterBuildReposi
       })
 
       if (error) {
+        if (error.message.includes('PRIMARY_DISCIPLINE_MASTERY_REQUIRED'))
+          throw new AurevaneError(
+            'INVALID_REQUEST',
+            'Complete the listed Mastery prerequisites before choosing this Discipline.',
+          )
         if (error.message.includes('CHARACTER_BUILD_VERSION_CONFLICT')) {
           throw new AurevaneError(
             'STALE_VERSION',

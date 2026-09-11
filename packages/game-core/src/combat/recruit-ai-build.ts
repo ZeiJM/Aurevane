@@ -1,3 +1,4 @@
+import { combatStatusDetails } from './status-content'
 import type { CombatActionEvaluation, CombatTargetSelection } from './actions'
 import { readBattleAuthorityCombatBuildSnapshot } from './battle-authority-build-snapshot'
 import { resolveEssenceForBuild } from './essence'
@@ -141,7 +142,7 @@ function buildSkillCandidates(
       definition,
       target,
       evaluation: evaluated.evaluation,
-      utility: definition.ai.baseUtility + projectedEffectUtility(evaluated.evaluation),
+      utility: definition.ai.baseUtility + projectedEffectUtility(evaluated.evaluation, state),
       stableKey: `${definition.id}:${targetKey(target)}`,
     })
   }
@@ -163,19 +164,32 @@ function targetSelections(
     .map((tile) => ({ kind: 'tile' as const, position: { ...tile.position } }))
 }
 
-function projectedEffectUtility(evaluation: CombatActionEvaluation): number {
+function projectedEffectUtility(
+  evaluation: CombatActionEvaluation,
+  state: StatDrivenCombatEncounterState,
+): number {
+  const actorTeam = state.tactical.battle.combatants.find(
+    (unit) => unit.id === evaluation.actorId,
+  )?.teamId
   return evaluation.projectedEffects.reduce((utility, effect) => {
+    const ally =
+      state.tactical.battle.combatants.find((unit) => unit.id === effect.combatantId)?.teamId ===
+      actorTeam
+    const sign = ally ? 1 : -1
     if (typeof effect.before !== 'number' || typeof effect.after !== 'number') {
-      return utility + (effect.effectType === 'apply-status' ? 8 : 0)
+      if (effect.before === effect.after) return utility
+      if (effect.effectType === 'remove-status')
+        return utility + (effect.before === 'none' ? 0 : 8 * sign)
+      if (effect.effectType === 'apply-status' && typeof effect.after === 'string') {
+        const kind = combatStatusDetails(effect.after.split(':')[0]!).kind
+        // Coupled tradeoffs are deliberately neutral here; their authored utility is
+        // not inflated as if the drawback were another beneficial status.
+        return utility + (kind === 'Buff' ? 8 * sign : kind === 'Debuff' ? -8 * sign : 0)
+      }
+      return utility
     }
-    if (effect.effectType === 'damage')
-      return utility + Math.max(0, effect.before - effect.after) * 2
-    if (effect.effectType === 'healing')
-      return utility + Math.max(0, effect.after - effect.before) * 2
-    if (effect.effectType === 'resource-change') {
-      return utility + Math.max(0, effect.after - effect.before)
-    }
-    return utility
+    const change = effect.after - effect.before
+    return utility + change * sign * (effect.effectType === 'resource-change' ? 1 : 2)
   }, 0)
 }
 

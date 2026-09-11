@@ -1,3 +1,4 @@
+import { phase4SkillArtwork, phase4ResonanceArtwork } from './phase4-combat-art'
 import {
   PV1F_BASIC_ATTACK_ID,
   PV1F_GUARD_ACTION_ID,
@@ -198,6 +199,8 @@ const ACTION_ARTWORK = new Map<string, string>([
 const RESONANCE_ARTWORK = new Map<string, string>(Object.entries(PHASE_3_RESONANCE_ARTWORK))
 
 export function battleSkillArtwork(actionId: string): string {
+  const phase4 = phase4SkillArtwork(actionId)
+  if (phase4) return phase4
   const curatedArtwork = darkFantasyCombatArtwork(actionId)
   if (curatedArtwork) return curatedArtwork
   if (GENERATED_COMBAT_ARTWORK_IDS.has(actionId)) return generatedSkillArtwork(actionId)
@@ -205,6 +208,8 @@ export function battleSkillArtwork(actionId: string): string {
 }
 
 export function battleResonanceArtwork(resonanceId: string): string {
+  const phase4 = phase4ResonanceArtwork(resonanceId)
+  if (phase4) return phase4
   const curatedArtwork = darkFantasyCombatArtwork(resonanceId)
   if (curatedArtwork) return curatedArtwork
   if (GENERATED_RESONANCE_ARTWORK_IDS.has(resonanceId)) {

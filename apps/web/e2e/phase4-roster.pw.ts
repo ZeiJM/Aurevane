@@ -119,3 +119,66 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
   }
   expect(errors).toEqual([])
 })
+
+test('Phase 4 preserves testing access and shows advanced Skills and descriptive tradeoffs', async ({
+  page,
+}, testInfo) => {
+  test.skip(
+    process.env.AUREVANE_PV2_TEST_MODE !== '1',
+    'Uses the existing isolated CI mastery fixture.',
+  )
+  test.setTimeout(150000)
+  const suffix = Date.now()
+    .toString()
+    .split('')
+    .map((digit) => String.fromCharCode(97 + Number(digit)))
+    .join('')
+  const errors: string[] = []
+  page.on('pageerror', (error) => errors.push(error.message))
+  await provisionAccountAndEnterCharacter({
+    page,
+    email: `p4-advanced-${testInfo.project.name}-${Date.now()}@example.com`,
+    password: 'P4-advanced-disposable-2026!',
+    characterName: `Mastery ${suffix}`,
+  })
+  await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
+  const management = page.getByRole('dialog', { name: 'Discipline Management' })
+  await management.getByText('Mastery & unlocks', { exact: true }).click()
+  await expect(management.getByRole('progressbar')).toHaveCount(16)
+  await expect(management).toContainText('Master · 1000/1,000 XP')
+  const primary = management
+    .locator('label')
+    .filter({ hasText: /^Proposed Primary/ })
+    .locator('select')
+  await expect(primary.locator('option[value="bastion"]')).toHaveCount(1)
+  // Existing Owner-authorized testing grants cover all active Disciplines.
+  // Earned prerequisites and 4/2/2 acquisition are independently verified in database CI.
+  await primary.selectOption('bastion')
+  await page.getByRole('button', { name: 'Commit Bastion as Primary' }).click()
+  await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Bastion')
+  await management.getByRole('button', { name: 'Close', exact: true }).click()
+  await page.getByRole('button', { name: /Manage Techniques/ }).click()
+  const dialog = page.getByRole('dialog', { name: 'Techniques', exact: true })
+  const list = page.getByTestId('learned-skill-list')
+  await expect(list.locator('article')).toHaveCount(8)
+  await expect(page.getByTestId('active-essence')).toHaveText('Last Bastion')
+  const fortress = list.locator('article').filter({ hasText: 'Fortress' })
+  await expect(fortress).toContainText('Fortified')
+  await fortress.locator('summary').click()
+  await expect(fortress).toContainText('Take 30% less damage and deal 20% less damage.')
+  await expect(fortress).toContainText('to yourself')
+  expect(await dialog.evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(
+    false,
+  )
+  await testInfo.attach(`phase4-advanced-${testInfo.project.name}`, {
+    body: await page.screenshot(),
+    contentType: 'image/png',
+  })
+  await dialog.getByRole('button', { name: 'Close', exact: true }).click()
+  await page.goto('/game/battle')
+  await page.getByLabel('Battle mode').selectOption('mastery-trial')
+  await expect(page.getByRole('button', { name: 'Easy', exact: true })).toHaveCount(0)
+  await expect(page.getByLabel('AI sparring arena')).toHaveValue('crossroads-court')
+  await expect(page.getByText(/50 Mastery XP/)).toBeVisible()
+  expect(errors).toEqual([])
+})

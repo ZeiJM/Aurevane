@@ -16,7 +16,7 @@ describe('Player-facing Skill targeting and effects', () => {
     expect(skillRangeDescription(volley)).toBe('2–5 tiles')
     expect(skillAffectedDescription(volley)).toBe('Enemies only')
     const breath = resolveMatureSkillVersion('ironfist.focus-breath')!
-    expect(skillTargetTags(breath)).toEqual(['Self', 'Single target', 'Healing', 'MP'])
+    expect(skillTargetTags(breath)).toEqual(['Self', 'Single target', 'Healing', 'MP Restore'])
     expect(skillRangeDescription(breath)).toBe('Self only')
     expect(JSON.stringify(volley)).toBe(before)
   })
@@ -43,4 +43,35 @@ describe('Player-facing Skill targeting and effects', () => {
       'front 100%, side 130%, rear 170%',
     )
   })
+})
+
+it('names a linked tradeoff and explains both halves on the correct recipient', () => {
+  const frenzy = resolveMatureSkillVersion('ravager.frenzy')!
+  expect(skillTargetTags(frenzy)).toEqual(['Self', 'Single target', 'Reckless'])
+  const description = skillEffectDescription(frenzy.effects[0]!)
+  expect(description).toContain('to yourself')
+  expect(description).toContain('Deal 40% more damage and take 25% more damage')
+  expect(description).toContain('expire or are removed together')
+})
+it('describes source-specific modifiers, cleansing and periodic timing', () => {
+  const mark = resolveMatureSkillVersion('wildwarden.hunters-mark')!
+  expect(skillEffectDescription(mark.effects[0]!)).toContain('Other attackers gain no benefit')
+  const burn = resolveMatureSkillVersion('cinderweaver.cinder-bolt')!
+  expect(skillEffectDescription(burn.effects[1]!)).toContain('end-of-turn ticks')
+  expect(skillTargetTags(resolveMatureSkillVersion('runeblade.unbinding-rune')!)).toContain(
+    'Cleanse',
+  )
+})
+
+it('distinguishes enemy MP drain from the user’s restoration in one Skill', () => {
+  expect(skillTargetTags(resolveMatureSkillVersion('runeblade.siphon-slash')!)).toEqual([
+    'Enemy',
+    'Single target',
+    'Damage',
+    'MP Drain',
+    'MP Restore · Self',
+  ])
+  expect(skillTargetTags(resolveMatureSkillVersion('ravager.blood-siphon')!)).toContain(
+    'Healing · Self',
+  )
 })

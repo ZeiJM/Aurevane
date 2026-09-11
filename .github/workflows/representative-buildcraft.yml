@@ -112,6 +112,9 @@ jobs:
       - name: Verify normal Ironfist database provisioning
         run: bash .github/scripts/verify-p4-ironfist.sh
 
+      - name: Verify Phase 4 Mastery authority
+        run: bash .github/scripts/verify-p4-mastery.sh
+
       - name: Build and verify PV-2 Profile flow
         shell: bash
         run: |

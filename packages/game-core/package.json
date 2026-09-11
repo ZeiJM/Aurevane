@@ -37,7 +37,9 @@
     "./combat/tactical-hall-records": "./src/combat/tactical-hall-records.ts",
     "./command": "./src/command.ts",
     "./errors": "./src/errors.ts",
-    "./player-profile": "./src/player-profile.ts"
+    "./player-profile": "./src/player-profile.ts",
+    "./combat/status-content": "./src/combat/status-content.ts",
+    "./character/advanced-disciplines": "./src/character/advanced-disciplines.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

@@ -1,5 +1,7 @@
 'use client'
 
+import { DisciplineMasteryPanel } from './discipline-mastery-panel'
+
 import {
   CHARACTER_ATTRIBUTE_LABELS,
   foundationDisciplineAttributePolicy,
@@ -439,6 +441,7 @@ export function CharacterDisciplineBuildPanel({
                     Close
                   </button>
                 </header>
+                <DisciplineMasteryPanel />
 
                 <div
                   className={styles.current}

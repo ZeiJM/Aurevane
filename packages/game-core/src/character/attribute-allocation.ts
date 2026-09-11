@@ -1,3 +1,4 @@
+import { ADVANCED_DISCIPLINES } from './advanced-disciplines'
 import {
   CHARACTER_ATTRIBUTE_IDS,
   CHARACTER_CREATION_RULES_V1,
@@ -57,6 +58,15 @@ function offFocusCaps(focusAttributes: readonly CharacterAttributeId[]) {
  */
 export const FOUNDATION_DISCIPLINE_ATTRIBUTE_POLICIES: readonly DisciplineAttributePolicy[] =
   FOUNDATION_DISCIPLINES.map((discipline) => ({
+    disciplineId: discipline.id,
+    policyVersion: 3,
+    baseAttributes: discipline.baseAttributes,
+    focusAttributes: discipline.focusAttributes,
+    attributeCaps: offFocusCaps(discipline.focusAttributes),
+  }))
+
+export const ADVANCED_DISCIPLINE_ATTRIBUTE_POLICIES: readonly DisciplineAttributePolicy[] =
+  ADVANCED_DISCIPLINES.map((discipline) => ({
     disciplineId: discipline.id,
     policyVersion: 3,
     baseAttributes: discipline.baseAttributes,
@@ -173,7 +183,7 @@ export function foundationDisciplineAttributePolicy(
   disciplineId: string,
 ): DisciplineAttributePolicy | null {
   return (
-    FOUNDATION_DISCIPLINE_ATTRIBUTE_POLICIES.find(
+    [...FOUNDATION_DISCIPLINE_ATTRIBUTE_POLICIES, ...ADVANCED_DISCIPLINE_ATTRIBUTE_POLICIES].find(
       (candidate) => candidate.disciplineId === disciplineId,
     ) ?? null
   )

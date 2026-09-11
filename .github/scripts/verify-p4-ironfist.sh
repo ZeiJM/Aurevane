@@ -60,5 +60,5 @@ coverage="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d p
     (select count(*) from app_private.resonance_definitions where enabled)::text || '|' ||
     has_function_privilege('authenticated', 'app_private.provision_active_discipline_skills_v1()', 'EXECUTE')::text || '|' ||
     has_table_privilege('authenticated', 'app_private.character_skill_unlocks', 'INSERT')::text;")"
-test "$coverage" = '6|15|false|false'
+test "$coverage" = '16|120|false|false'
 echo 'Phase 4 normal Ironfist provisioning, pure snapshot, idempotency and browser denial PASS.'

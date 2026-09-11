@@ -1,3 +1,4 @@
+import { combatStatusDetails, PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 import 'server-only'
 
 import type {
@@ -338,13 +339,18 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
       const refreshed = event.refreshed === true
       const stacked = event.stacked === true
       const stacks = numberValue(event.stacks)
-      const beneficial = statusId === 'guarded' || statusId?.startsWith('buff.') === true
+      const beneficial =
+        combatStatusDetails(statusId ?? '').kind === 'Buff' ||
+        statusId?.startsWith('buff.') === true
+      const durationUnit = PHASE4_STATUSES.find((status) => status.id === statusId)?.endOfTurn
+        ? 'end-of-turn tick'
+        : 'owner-turn start'
       return createEntry(record, eventType, {
         message: stacked
-          ? `${combatantLabel(event.targetCombatantId)} stacked ${label}${stacks === null ? '' : ` to ×${stacks}`}${remaining === null ? '' : ` for ${remaining} owner-turn start${remaining === 1 ? '' : 's'}`}.`
+          ? `${combatantLabel(event.targetCombatantId)} stacked ${label}${stacks === null ? '' : ` to ×${stacks}`}${remaining === null ? '' : ` for ${remaining} ${durationUnit}${remaining === 1 ? '' : 's'}`}.`
           : refreshed
-            ? `${combatantLabel(event.targetCombatantId)} refreshed ${label}${remaining === null ? '' : ` for ${remaining} owner-turn start${remaining === 1 ? '' : 's'}`}.`
-            : `${combatantLabel(event.targetCombatantId)} gained ${label}${remaining === null ? '' : ` for ${remaining} owner-turn start${remaining === 1 ? '' : 's'}`}.`,
+            ? `${combatantLabel(event.targetCombatantId)} refreshed ${label}${remaining === null ? '' : ` for ${remaining} ${durationUnit}${remaining === 1 ? '' : 's'}`}.`
+            : `${combatantLabel(event.targetCombatantId)} gained ${label}${remaining === null ? '' : ` for ${remaining} ${durationUnit}${remaining === 1 ? '' : 's'}`}.`,
         messageTemplate: stacked
           ? "{target}'s {status} stacks to ×{stacks}."
           : refreshed
@@ -364,6 +370,18 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
           ...fact(stacks !== null && stacks > 1 ? `×${stacks} stacks` : null),
           ...fact(remaining === null ? null : `${remaining} turn${remaining === 1 ? '' : 's'}`),
         ],
+      })
+    }
+    case 'status_removed': {
+      const label = statusLabel(event.statusId)
+      return createEntry(record, eventType, {
+        message: `${label} was removed from ${combatantLabel(event.targetCombatantId)}.`,
+        messageTemplate: '{status} was removed from {target}.',
+        templateValues: { status: label },
+        targetCombatantId: stringValue(event.targetCombatantId),
+        kind: 'status',
+        headline: 'Cleanse',
+        facts: fact(label),
       })
     }
     case 'status_expired': {

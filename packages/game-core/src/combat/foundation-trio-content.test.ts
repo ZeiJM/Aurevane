@@ -100,8 +100,10 @@ describe('Foundation trio authored class content', () => {
 
   it('covers all ten mixed pairs among the five currently authored Disciplines', () => {
     expect(
-      P35_REPRESENTATIVE_RESONANCES.filter(
-        (definition) => !definition.disciplinePair.some((id) => id === 'ironfist'),
+      P35_REPRESENTATIVE_RESONANCES.filter((definition) =>
+        definition.disciplinePair.every((id) =>
+          ['vanguard', 'lifebinder', 'aetherist', 'farstrider', 'shadehand'].includes(id),
+        ),
       ),
     ).toHaveLength(10)
     for (const definition of P35_REPRESENTATIVE_RESONANCES) {

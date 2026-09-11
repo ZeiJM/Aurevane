@@ -15,6 +15,7 @@ describe('P2.7 Battle Hall teaching records', () => {
       'guard-drill',
       'facing-drill',
       'recruit-sparring',
+      'mastery-trial',
     ])
     expect(getTacticalHallRecord('guided-fundamentals').combinedDuel).toBe(false)
     expect(getTacticalHallRecord('guided-fundamentals').defaultArenaId).toBe('duel-yard')
@@ -26,7 +27,7 @@ describe('P2.7 Battle Hall teaching records', () => {
     ).toBe(true)
   })
 
-  it('gives every lesson concise coach steps without adding progression rewards', () => {
+  it('gives every lesson concise coach steps', () => {
     for (const record of P2_7_TACTICAL_HALL_RECORDS) {
       expect(record.purpose.length).toBeGreaterThan(20)
       expect(record.coachSteps.length).toBeGreaterThanOrEqual(3)

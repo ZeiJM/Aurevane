@@ -20,6 +20,7 @@ export const battleHallRecordIdSchema = z.enum([
   'guard-drill',
   'facing-drill',
   'recruit-sparring',
+  'mastery-trial',
 ])
 
 const combatTargetSelectionSchema = z.discriminatedUnion('kind', [

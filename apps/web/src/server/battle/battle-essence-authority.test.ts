@@ -319,7 +319,7 @@ describe('P3.6 battle Essence authority', () => {
     if (!committed) throw new Error('Expected the Essence battle commit.')
     const next = committed.nextSnapshot as BattleAuthoritativeEncounterState
     expect(readPv1fActionEconomy(next, PLAYER_ID)?.current).toBe(45)
-    expect(next.tactical.battle.combatants.find((row) => row.id === 'recruit:p2-4-1')?.hp).toBe(60)
+    expect(next.tactical.battle.combatants.find((row) => row.id === 'recruit:p2-4-1')?.hp).toBe(64) // Armor now mitigates each authored Skill hit.
     expect(committed.events).not.toContainEqual(
       expect.objectContaining({
         event: 'skill_cooldown_started',
