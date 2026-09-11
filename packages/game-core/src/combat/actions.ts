@@ -1,4 +1,10 @@
+import { mitigateDamageByDefense } from './damage-mitigation'
 import type { SkillNarrationTemplate } from './battle-narration'
+import {
+  conditionalDamageMultiplier,
+  validateDamageModifiers,
+  type CombatDamageModifier,
+} from './damage-modifiers'
 import {
   applySkillCooldown,
   readSkillCooldown,
@@ -65,9 +71,11 @@ export type CombatEffectDefinition =
       type: 'damage'
       recipient: CombatEffectRecipient
       amount: number
+      defenseKind?: 'armor' | 'ward'
       facingModifiersBasisPoints?: FacingDamageModifiers
     }
   | { type: 'healing'; recipient: CombatEffectRecipient; amount: number }
+  | { type: 'remove-status'; recipient: CombatEffectRecipient; statusIds: readonly string[] }
   | { type: 'resource-change'; recipient: CombatEffectRecipient; resource: 'mp'; delta: number }
   | {
       type: 'apply-status'
@@ -106,6 +114,10 @@ export interface CombatStatusDefinition {
   maximumStacks: number
   durationOwnerTurnStarts: number
   damageTakenMultiplierBasisPoints: number
+  /** Additional bounded modifiers; omitted by immutable legacy status definitions. */
+  damageModifiers?: readonly CombatDamageModifier[]
+  endOfTurn?: { type: 'damage' | 'healing'; amount: number }
+  movement?: { blocked?: boolean; additionalApPerTile?: number }
 }
 
 export interface CombatContentCatalog {
@@ -128,6 +140,7 @@ export interface CombatantStatusState {
 export interface CombatEncounterState {
   schemaVersion: typeof COMBAT_ENCOUNTER_SCHEMA_VERSION
   tactical: TacticalBattleState
+  statBridge?: { combatants: readonly { combatantId: string; armor: number; ward: number }[] }
   statusState: readonly CombatantStatusState[]
 }
 
@@ -225,6 +238,13 @@ export type CombatResolutionEvent =
       stacked: boolean
     }
   | { event: 'status_expired'; combatantId: string; statusId: string }
+  | {
+      event: 'status_removed'
+      actionId: string
+      sourceCombatantId: string
+      targetCombatantId: string
+      statusId: string
+    }
   | { event: 'combatant_waited'; combatantId: string }
   | { event: 'battle_completed'; winningTeamId: string | null }
 
@@ -579,7 +599,16 @@ export function endCombatTurn(
   const ended = endTurn(state.tactical.battle)
   let nextState = withBattle(state, ended.state)
   const events: CombatResolutionEvent[] = [...ended.events]
-  const nextActorId = ended.state.currentTurn?.combatantId
+  // Resolve the outgoing unit's periodic effects after advancing initiative. This permits
+  // lethal ticks without ever persisting a defeated combatant as the current actor.
+  const outgoingId = state.tactical.battle.currentTurn!.combatantId
+  const periodic = resolveEndOfTurnStatuses(nextState, outgoingId, content)
+  nextState = periodic.state
+  events.push(...periodic.events)
+  const completed = completeBattleIfResolved(nextState)
+  nextState = completed.state
+  events.push(...completed.events)
+  const nextActorId = nextState.tactical.battle.currentTurn?.combatantId
 
   if (nextActorId) {
     const expiration = expireOwnerTurnStartStatuses(nextState, nextActorId, content)
@@ -1034,6 +1063,18 @@ function projectSingleEffect(
     }
   }
 
+  if (effect.type === 'remove-status') {
+    const before =
+      getStatusRow(state, recipientId)
+        .statuses.filter((status) => effect.statusIds.includes(status.statusId))
+        .map((status) => status.statusId)
+        .join(',') || 'none'
+    return {
+      state: removeStatuses(state, recipientId, effect.statusIds),
+      projection: { effectType: effect.type, combatantId: recipientId, before, after: 'none' },
+    }
+  }
+
   const before = getStatus(state, recipientId, effect.statusId)
   const nextState = applyStatusState(
     state,
@@ -1122,6 +1163,21 @@ function applyEffect(
     }
   }
 
+  if (effect.type === 'remove-status') {
+    return {
+      state: removeStatuses(state, recipientId, effect.statusIds),
+      events: getStatusRow(state, recipientId)
+        .statuses.filter((status) => effect.statusIds.includes(status.statusId))
+        .map((status) => ({
+          event: 'status_removed' as const,
+          actionId,
+          sourceCombatantId: actorId,
+          targetCombatantId: recipientId,
+          statusId: status.statusId,
+        })),
+    }
+  }
+
   const existingStatus = getStatus(state, recipientId, effect.statusId)
   const nextState = applyStatusState(
     state,
@@ -1162,6 +1218,14 @@ function resolveDamageAmount(
   content: CombatContentCatalog,
 ): number {
   let amount = effect.amount
+  if (effect.defenseKind && amount > 0) {
+    const defense = state.statBridge?.combatants.find((unit) => unit.combatantId === recipientId)?.[
+      effect.defenseKind
+    ]
+    if (defense === undefined)
+      throw new TypeError('Stat-driven Skill damage requires recipient defenses.')
+    amount = mitigateDamageByDefense(amount, defense)
+  }
 
   if (effect.facingModifiersBasisPoints && actorId !== recipientId) {
     const actorPlacement = getPlacement(state.tactical, actorId)
@@ -1180,6 +1244,11 @@ function resolveDamageAmount(
       amount = scaleByBasisPoints(amount, definition.damageTakenMultiplierBasisPoints)
     }
   }
+
+  amount = scaleByBasisPoints(
+    amount,
+    conditionalDamageMultiplier(state, actorId, recipientId, content),
+  )
 
   return amount
 }
@@ -1240,7 +1309,11 @@ function expireOwnerTurnStartStatuses(
   const events: CombatResolutionEvent[] = []
 
   for (const status of row.statuses) {
-    getStatusDefinition(content, status.statusId, status.statusVersion)
+    const definition = getStatusDefinition(content, status.statusId, status.statusVersion)
+    if (definition.endOfTurn) {
+      kept.push(status)
+      continue
+    }
     const remaining = status.remainingOwnerTurnStarts - 1
     if (remaining <= 0) {
       events.push({ event: 'status_expired', combatantId, statusId: status.statusId })
@@ -1254,6 +1327,78 @@ function expireOwnerTurnStartStatuses(
   )
   const nextState = { ...state, statusState }
   assertValidCombatEncounterState(nextState)
+  return { state: nextState, events }
+}
+
+function removeStatuses(
+  state: CombatEncounterState,
+  recipientId: string,
+  statusIds: readonly string[],
+): CombatEncounterState {
+  return {
+    ...state,
+    statusState: state.statusState.map((row) =>
+      row.combatantId === recipientId
+        ? {
+            ...row,
+            statuses: row.statuses.filter((status) => !statusIds.includes(status.statusId)),
+          }
+        : row,
+    ),
+  }
+}
+
+function resolveEndOfTurnStatuses(
+  state: CombatEncounterState,
+  combatantId: string,
+  content: CombatContentCatalog,
+): CombatResolutionTransition {
+  let nextState = state
+  const events: CombatResolutionEvent[] = []
+  for (const status of getStatusRow(state, combatantId).statuses) {
+    const definition = getStatusDefinition(content, status.statusId, status.statusVersion)
+    if (!definition.endOfTurn) continue
+    // Periodic values are fixed, do not roll accuracy, and do not trigger ordinary on-hit modifiers.
+    const target = getCombatant(nextState.tactical.battle, combatantId)
+    if (target.hp > 0) {
+      const amount = definition.endOfTurn.amount * status.stacks
+      const hpAfter =
+        definition.endOfTurn.type === 'damage'
+          ? Math.max(0, target.hp - amount)
+          : Math.min(target.maxHp, target.hp + amount)
+      nextState = withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
+      events.push({
+        event: definition.endOfTurn.type === 'damage' ? 'damage_applied' : 'healing_applied',
+        actionId: `status.${status.statusId}`,
+        sourceCombatantId: status.sourceCombatantId,
+        targetCombatantId: combatantId,
+        amount: Math.abs(target.hp - hpAfter),
+        hpBefore: target.hp,
+        hpAfter,
+      })
+    }
+    const remaining = status.remainingOwnerTurnStarts - 1
+    if (remaining === 0) {
+      nextState = removeStatuses(nextState, combatantId, [status.statusId])
+      events.push({ event: 'status_expired', combatantId, statusId: status.statusId })
+    } else {
+      nextState = {
+        ...nextState,
+        statusState: nextState.statusState.map((row) =>
+          row.combatantId === combatantId
+            ? {
+                ...row,
+                statuses: row.statuses.map((current) =>
+                  current.statusId === status.statusId
+                    ? { ...current, remainingOwnerTurnStarts: remaining }
+                    : current,
+                ),
+              }
+            : row,
+        ),
+      }
+    }
+  }
   return { state: nextState, events }
 }
 
@@ -1529,7 +1674,7 @@ function validateCombatActionDefinition(
   for (const effect of action.effects) {
     assertKnownString(
       effect.type,
-      ['damage', 'healing', 'resource-change', 'apply-status'],
+      ['damage', 'healing', 'resource-change', 'apply-status', 'remove-status'],
       'effect type',
     )
     assertKnownString(
@@ -1540,6 +1685,8 @@ function validateCombatActionDefinition(
     if (effect.type === 'damage' || effect.type === 'healing') {
       assertNonNegativeSafeInteger(effect.amount, `${effect.type} amount`)
     }
+    if (effect.type === 'damage' && effect.defenseKind !== undefined)
+      assertKnownString(effect.defenseKind, ['armor', 'ward'], 'damage defense kind')
     if (effect.type === 'damage' && effect.facingModifiersBasisPoints) {
       assertBasisPoints(effect.facingModifiersBasisPoints.front, 'front damage modifier', 20_000)
       assertBasisPoints(effect.facingModifiersBasisPoints.side, 'side damage modifier', 20_000)
@@ -1550,6 +1697,16 @@ function validateCombatActionDefinition(
       if (!Number.isSafeInteger(effect.delta)) {
         throw new RangeError('Resource delta must be a safe integer.')
       }
+    }
+    if (effect.type === 'remove-status') {
+      if (
+        !Array.isArray(effect.statusIds) ||
+        effect.statusIds.length < 1 ||
+        effect.statusIds.length > 8 ||
+        new Set(effect.statusIds).size !== effect.statusIds.length
+      )
+        throw new TypeError('Status removal requires one to eight distinct IDs.')
+      for (const id of effect.statusIds) getStatusDefinitionById(content, id)
     }
     if (effect.type === 'apply-status') {
       collectRequiredIdentity(effect.statusId, 'effect status ID')
@@ -1587,6 +1744,22 @@ function validateCombatContentCatalog(content: CombatContentCatalog): void {
     assertPositiveSafeInteger(status.maximumStacks, 'status maximum stacks')
     assertPositiveSafeInteger(status.durationOwnerTurnStarts, 'status duration')
     assertBasisPoints(status.damageTakenMultiplierBasisPoints, 'damage taken multiplier', 25_000)
+    validateDamageModifiers(status.damageModifiers)
+    if (status.damageModifiers?.length && status.maximumStacks !== 1)
+      throw new TypeError('Conditional damage statuses must be single-stack.')
+    if (status.endOfTurn) {
+      assertKnownString(status.endOfTurn.type, ['damage', 'healing'], 'periodic effect')
+      assertPositiveSafeInteger(status.endOfTurn.amount, 'periodic amount')
+      if (status.endOfTurn.amount > 100 || status.maximumStacks > 3)
+        throw new RangeError('Periodic status exceeds its bounded magnitude.')
+    }
+    if (status.movement) {
+      if (status.movement.blocked !== undefined && typeof status.movement.blocked !== 'boolean')
+        throw new TypeError('Invalid movement restriction.')
+      const ap = status.movement.additionalApPerTile ?? 0
+      assertNonNegativeSafeInteger(ap, 'movement AP surcharge')
+      if (ap > 20) throw new RangeError('Movement surcharge exceeds 20 AP per tile.')
+    }
     if (ids.has(status.id)) throw new Error(`Duplicate combat status definition ${status.id}.`)
     ids.add(status.id)
   }

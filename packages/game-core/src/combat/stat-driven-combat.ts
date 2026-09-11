@@ -1,3 +1,5 @@
+import { mitigateDamageByDefense } from './damage-mitigation'
+export { mitigateDamageByDefense } from './damage-mitigation'
 import type { DerivedStatSnapshot } from '../character/derived-stats'
 import { advanceBattleRng, spendAction, type BattleRngState } from './battle-state'
 import {
@@ -200,13 +202,6 @@ export function calculateHitChanceBasisPoints(
   return Math.max(0, Math.min(COMBAT_BASIS_POINTS, actor.accuracy - target.evasion))
 }
 
-export function mitigateDamageByDefense(rawDamage: number, defenseRating: number): number {
-  assertPositiveSafeInteger(rawDamage, 'raw damage')
-  assertNonNegativeSafeInteger(defenseRating, 'defense rating')
-  const scaled = (BigInt(rawDamage) * 100n) / (100n + BigInt(defenseRating))
-  return Math.max(1, Number(scaled))
-}
-
 export function forecastStatDrivenAttack(
   state: StatDrivenCombatEncounterState,
   action: CombatActionDefinition,
@@ -401,18 +396,6 @@ function collectNonNegativeIntegerIssue(
 ): void {
   if (!Number.isSafeInteger(value) || value < 0) {
     issues.push({ field, message: 'Value must be a non-negative safe integer.' })
-  }
-}
-
-function assertPositiveSafeInteger(value: number, field: string): void {
-  if (!Number.isSafeInteger(value) || value <= 0) {
-    throw new RangeError(`${field} must be a positive safe integer.`)
-  }
-}
-
-function assertNonNegativeSafeInteger(value: number, field: string): void {
-  if (!Number.isSafeInteger(value) || value < 0) {
-    throw new RangeError(`${field} must be a non-negative safe integer.`)
   }
 }
 

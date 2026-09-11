@@ -123,10 +123,27 @@ function nextPlayerTurn(state: StatDrivenCombatEncounterState): StatDrivenCombat
   return finishPv1fTurn(recruitTurn, 'west').state
 }
 
-const roster = ['aetherist', 'farstrider', 'ironfist', 'lifebinder', 'shadehand', 'vanguard']
+const roster = [
+  'aetherist',
+  'farstrider',
+  'ironfist',
+  'lifebinder',
+  'shadehand',
+  'vanguard',
+  'bastion',
+  'ravager',
+  'edgedancer',
+  'wildwarden',
+  'runeblade',
+  'dawnshield',
+  'cinderweaver',
+  'frostweaver',
+  'stormsinger',
+  'tidecaller',
+]
 const skills = P33_REPRESENTATIVE_DISCIPLINE_SKILLS.filter((skill) => skill.enabled)
 
-describe('Phase 4 six-Foundation acceptance matrix', () => {
+describe('Phase 4 sixteen-Discipline acceptance matrix', () => {
   it.each(roster)('%s has eight valid Skills and an exclusive pure Essence', (discipline) => {
     const library = skills.filter((skill) => skill.sourceDisciplineId === discipline)
     expect(library).toHaveLength(8)
@@ -146,8 +163,8 @@ describe('Phase 4 six-Foundation acceptance matrix', () => {
   })
 
   it('has one unordered Resonance for each pair with reachable setup and payoff', () => {
-    expect(P36_REPRESENTATIVE_ESSENCES).toHaveLength(6)
-    expect(P35_REPRESENTATIVE_RESONANCES).toHaveLength(15)
+    expect(P36_REPRESENTATIVE_ESSENCES).toHaveLength(16)
+    expect(P35_REPRESENTATIVE_RESONANCES).toHaveLength(120)
     for (const resonance of P35_REPRESENTATIVE_RESONANCES) {
       expect(validateResonanceDefinition(resonance)).toEqual([])
       const [left, right] = resonance.disciplinePair

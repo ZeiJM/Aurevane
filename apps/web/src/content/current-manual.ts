@@ -95,8 +95,8 @@ const overrides: Record<string, ManualArticle> = {
         id: 'discipline',
         title: 'What is a Discipline?',
         paragraphs: [
-          'A Discipline is a learnable combat tradition that establishes your first tactical direction. It is not a permanent class lock. Later mastery systems are intended to let characters deepen, broaden, and combine what they know.',
-          'The starting choices are Vanguard, Farstrider, Shadehand, Ironfist, Aetherist and Lifebinder. Profile supports Primary and optional Secondary configuration. All six Foundations have eight authored Techniques, a pure Essence and mixed-pair Resonance coverage. Technique cards show targeting and effect tags; expand Skill details for range, effects and requirements. Final acquisition and Mastery progression and supernatural paths remain later work.',
+          'A Discipline is a learnable combat tradition that establishes your first tactical direction. It is not a permanent class lock. Discipline Mastery Trials let characters deepen, broaden, and combine what they know.',
+          'The starting choices are Vanguard, Farstrider, Shadehand, Ironfist, Aetherist and Lifebinder. Profile supports Primary and optional Secondary configuration. The six Foundations and ten advanced Disciplines each have eight learnable Techniques and a pure Essence. All 120 pairs across the sixteen Disciplines have Resonance coverage. Technique cards show targeting and effect tags; expand Skill details for range, effects and requirements. Mastery Trials unlock advanced Disciplines through their listed prerequisites. Supernatural paths and world-based acquisition remain later work.',
         ],
       },
       {
@@ -315,6 +315,24 @@ const battleHallArticle: ManualArticle = {
       title: 'Entering Battle Hall',
       paragraphs: [
         'Battle Hall supports AI Sparring and direct player battles through lobbies, including team formats and spectation. Ranked matchmaking and seasons remain future work. Battles use committed build snapshots; changing Profile does not rewrite a battle already in progress.',
+      ],
+    },
+    {
+      id: 'mastery-trials',
+      title: 'Discipline Mastery Trials',
+      paragraphs: [
+        'Choose Discipline Mastery Trial on Standard or High difficulty. Win using at least two different regular Primary Skills across three Primary Skill commands, without a player turn-timer expiry, then claim 50 Mastery XP from the result panel. Each battle awards once. Your frozen Primary at battle entry receives the XP.',
+        'Stages are Initiate, Practiced at 100 XP, Adept at 300, Expert at 600 and Master at 1,000. Master also requires demonstrating all eight regular Skills across qualifying victories. Mastery makes a Discipline eligible as Secondary. Profile → Discipline Management → Mastery & unlocks shows progress and advanced prerequisites.',
+        'Advanced Disciplines teach four Skills at Initiate, two more at Practiced and two at Adept. Ordinary AI Sparring, Guided Fundamentals and Passive Training do not award Discipline Mastery. Trials grant no Character XP, loot or Crowns.',
+      ],
+    },
+    {
+      id: 'named-effects',
+      title: 'Targeting and named effects',
+      paragraphs: [
+        'Technique tags show who a Skill targets, its single/area/line shape and its effects. Expand Skill details for exact recipients, range, AP/MP cost and requirements. Burn, Bleed and Poison cause fixed damage at affected turn end; Regeneration restores HP then. Slow raises movement AP cost; Root prevents movement while leaving other commands available. Cleanse removes its listed negative effects.',
+        'Marked increases incoming damage only from its source. Challenged reduces damage dealt to anyone except its source. Warded reduces damage taken from burning opponents. The rare Reckless effect increases both damage dealt and damage taken; Fortified reduces both. Each tradeoff keeps its benefit and drawback together when it expires or is removed.',
+        'Skill damage checks armor for physical attacks and ward for mystic attacks, separately for each hit and affected unit. The battle preview resolves the actual attacker/target conditions. New conditional modifiers combine within a 50–200% budget; Guarded, Exposed and timer penalties retain their existing separate rules.',
       ],
     },
     {

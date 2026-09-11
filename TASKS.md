@@ -22,7 +22,9 @@ This file reports the **current implementation/validation boundary**.
 
 **Presentation follow-up:** PR #446 merged while this audit was in progress and was released at `0df098e8`; preserve its desktop/mobile changes and assess its exact release interaction evidence.
 
-**Active work:** The six-Foundation Phase-4 stage is live through PR #450 and release `b2da21e2`: Ironfist, Skill targeting/effect details and representative arenas. All fifteen candidate CI workflows pass. Broader roster expansion and human balance acceptance remain open; see `docs/PHASE_4_TICKETS.md`. Earlier phase-boundary notes below preserve historical decisions.
+**Active continuation:** `agent/phase4-completion` implements the sixteen-Discipline candidate, short named effects, sparse conditional damage/tradeoffs and a separate Mastery Trial acquisition route. Final database/browser/release evidence is pending in `docs/PHASE_4_TICKETS.md`.
+
+**Live baseline:** The six-Foundation Phase-4 stage is live through PR #450 and release `b2da21e2`: Ironfist, Skill targeting/effect details and representative arenas. All fifteen candidate CI workflows pass. Broader roster expansion and human balance acceptance remain open; see `docs/PHASE_4_TICKETS.md`. Earlier phase-boundary notes below preserve historical decisions.
 
 ---
 

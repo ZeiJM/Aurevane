@@ -1,3 +1,4 @@
+import { phase4DisciplineSigil } from '@/components/battle/phase4-combat-art'
 import Image from 'next/image'
 import type { ReactNode } from 'react'
 
@@ -141,6 +142,10 @@ export function FoundationDisciplineSigil({
       </Frame>
     )
   }
+
+  const phase4 = phase4DisciplineSigil(disciplineId)
+  if (phase4)
+    return <Image src={phase4} alt="" width={96} height={96} unoptimized className={className} />
 
   return (
     <Frame className={className}>

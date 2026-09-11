@@ -1,3 +1,7 @@
+import {
+  combatStatusDetails,
+  combatStatusDuration,
+} from '@aurevane/game-core/combat/status-content'
 import type {
   CombatEffectDefinition,
   CombatUseRequirement,
@@ -28,8 +32,12 @@ export function skillEffectDescription(effect: CombatEffectDefinition): string {
       return `Restore up to ${effect.amount} HP to ${target}.`
     case 'resource-change':
       return `${effect.delta >= 0 ? 'Restore up to' : 'Remove'} ${Math.abs(effect.delta)} MP ${effect.delta >= 0 ? 'to' : 'from'} ${target}.`
-    case 'apply-status':
-      return `Apply ${effect.stacks} ${title(effect.statusId)} ${effect.stacks === 1 ? 'stack' : 'stacks'} to ${target}.`
+    case 'remove-status':
+      return `Remove ${effect.statusIds.map((id) => combatStatusDetails(id).name).join(', ')} from ${target}.`
+    case 'apply-status': {
+      const status = combatStatusDetails(effect.statusId)
+      return `Apply ${effect.stacks} ${status.name} ${effect.stacks === 1 ? 'stack' : 'stacks'} to ${target}. ${status.description} ${combatStatusDuration(effect.statusId)}`
+    }
   }
 }
 
@@ -58,7 +66,9 @@ export function skillTargetTags(skill: MatureSkillDefinition): readonly string[]
           : target.teamPolicy === 'enemy'
             ? 'Enemy'
             : target.teamPolicy === 'ally'
-              ? 'Ally'
+              ? target.minimumRange === 0
+                ? 'Self or ally'
+                : 'Ally'
               : 'Any unit'
   const shape =
     target.shape.kind === 'single'
@@ -75,7 +85,9 @@ export function skillTargetTags(skill: MatureSkillDefinition): readonly string[]
             ? 'Healing'
             : effect.type === 'resource-change'
               ? 'MP'
-              : title(effect.statusId),
+              : effect.type === 'remove-status'
+                ? 'Cleanse'
+                : `${combatStatusDetails(effect.statusId).name}${effect.recipient === 'actor' && skill.target.kind !== 'self' ? ' · Self' : ''}`,
       ),
     ),
   ]

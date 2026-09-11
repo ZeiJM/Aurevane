@@ -65,6 +65,7 @@ export interface CreateTacticalBattleStateInput {
 }
 
 export type MovementPathIssueCode =
+  | 'status-restricted'
   | 'path-too-short'
   | 'start-mismatch'
   | 'out-of-bounds'

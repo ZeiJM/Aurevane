@@ -7,6 +7,7 @@ export type TacticalHallRecordId =
   | 'guard-drill'
   | 'facing-drill'
   | 'recruit-sparring'
+  | 'mastery-trial'
 
 export interface TacticalHallRecordDefinition {
   id: TacticalHallRecordId
@@ -96,6 +97,19 @@ export const P2_7_TACTICAL_HALL_RECORDS: readonly TacticalHallRecordDefinition[]
       'Choose final facing to end the turn, then watch the Recruit turn summary before acting again.',
     ],
     combinedDuel: true,
+  },
+  {
+    id: 'mastery-trial',
+    name: 'Discipline Mastery Trial',
+    purpose:
+      'Win on Standard or High difficulty using at least two different Primary Skills across three Skill commands to earn 50 Mastery XP. No Character XP, loot or Crowns.',
+    defaultArenaId: 'crossroads-court',
+    combinedDuel: true,
+    coachSteps: [
+      'Use at least two different Skills from your committed Primary, with at least three Primary Skill commands during the trial.',
+      'Defeat the opponent without letting your turn timer expire. Surrender, defeat and ordinary AI Sparring award no Mastery.',
+      'Claim the verified result after victory. Mastery milestones unlock Skills and advanced Disciplines; Master also requires demonstrating all eight regular Skills across qualifying victories.',
+    ],
   },
 ]
 

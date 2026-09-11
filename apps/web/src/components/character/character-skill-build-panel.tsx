@@ -409,7 +409,12 @@ export function CharacterSkillBuildPanel({
                                 >
                                   {titleCase(initialEssence.sourceDisciplineId)}
                                 </small>
-                                <small>{initialEssence.skill.apCost} AP</small>
+                                <small>
+                                  {initialEssence.skill.apCost} AP
+                                  {initialEssence.skill.mpCost
+                                    ? ` · ${initialEssence.skill.mpCost} MP`
+                                    : ''}
+                                </small>
                                 <small className={polish.typeChip}>
                                   {cockpitType(initialEssence.skill)}
                                 </small>
@@ -485,7 +490,12 @@ export function CharacterSkillBuildPanel({
                                     <small className={styles.sourceChip}>
                                       {titleCase(entry.definition.sourceDisciplineId)}
                                     </small>
-                                    <small>{entry.definition.apCost} AP</small>
+                                    <small>
+                                      {entry.definition.apCost} AP
+                                      {entry.definition.mpCost
+                                        ? ` · ${entry.definition.mpCost} MP`
+                                        : ''}
+                                    </small>
                                     <small className={polish.typeChip}>
                                       {cockpitType(entry.definition)}
                                     </small>

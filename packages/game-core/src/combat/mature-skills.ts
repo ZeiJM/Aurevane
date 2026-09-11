@@ -1,3 +1,4 @@
+import { ADVANCED_DISCIPLINE_SKILLS } from './advanced-discipline-content'
 import { FOUNDATION_TRIO_DISCIPLINE_SKILLS } from './foundation-trio-skills'
 import { IRONFIST_SKILLS } from './ironfist-content'
 import type {
@@ -47,6 +48,7 @@ export interface MatureSkillDefinition {
   readonly sourceDisciplineId: string
   readonly unlockRequirement: MatureSkillUnlockRequirement
   readonly apCost: number
+  readonly mpCost?: number
   readonly target: CombatTargetSpec
   readonly requirements: readonly CombatUseRequirement[]
   readonly effects: readonly CombatEffectDefinition[]
@@ -478,6 +480,7 @@ export const P33_REPRESENTATIVE_DISCIPLINE_SKILLS = [
   },
   ...FOUNDATION_TRIO_DISCIPLINE_SKILLS,
   ...IRONFIST_SKILLS,
+  ...ADVANCED_DISCIPLINE_SKILLS,
 ] as const satisfies readonly MatureSkillDefinition[]
 
 export function validateMatureSkillDefinition(
@@ -499,6 +502,11 @@ export function validateMatureSkillDefinition(
   ) {
     issues.push('apCost')
   }
+  if (
+    definition.mpCost !== undefined &&
+    (!Number.isSafeInteger(definition.mpCost) || definition.mpCost < 0 || definition.mpCost > 20)
+  )
+    issues.push('mpCost')
   if (definition.tags.length === 0 || definition.tags.some((tag) => !tag.trim()))
     issues.push('tags')
   if (
@@ -585,7 +593,7 @@ export function toCombatActionDefinition(
     sourceType: 'discipline-skill',
     tags: resolved.tags,
     target: resolved.target,
-    cost: { spendsAction: true, mp: 0 },
+    cost: { spendsAction: true, mp: resolved.mpCost ?? 0 },
     requirements: resolved.requirements,
     cooldown: resolved.cooldown,
     effects: resolved.effects,

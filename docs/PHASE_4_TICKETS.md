@@ -15,6 +15,16 @@ Owner activation: explicit request for full implementation, necessary approvals,
 
 P4.1–P4.4 are implemented and released as the six-Foundation stage. P4.5 expansion and full Phase-4 closure are not yet established. This ledger must not be reported as a completed sixteen-Discipline roster.
 
+## Owner continuation — descriptive effects and full implementation
+
+The Owner reaffirmed full Phase-4 implementation after the six-Foundation release. Add conditional increases/decreases to damage dealt and damage taken, and a sparse set of strong benefit/drawback Skills. Effects need short names that describe their actual behavior; target conditions, magnitude, duration and affected recipient belong in expanded details and battle previews. Do not present a status on the user as if it affects the enemy.
+
+Implementation proceeds through Bastion/Ravager (eight total), Edgedancer/Wildwarden/Runeblade/Dawnshield (twelve), then Cinderweaver/Frostweaver/Stormsinger/Tidecaller (sixteen). These are existing Master Plan identities, not new invented Disciplines. Their prerequisites remain the authored Mastery requirements. Character creation retains the original six Foundation choices.
+
+Damage modifiers must resolve for each actual attacker/recipient pair. Linked benefit/drawback statuses keep both parts together under application, expiry and removal. New percentage modifiers have explicit caps and single-stack authoring; existing Guarded/Exposed rules remain compatible. Direct damage boosts and strong trade-offs require an explicit per-Skill justification and distribution audit, rather than becoming a default filler effect across the roster or all Resonances.
+
+Outstanding engineering includes the typed effect extensions, complete eight-Skill libraries and exclusive signatures, legitimate Mastery/acquisition, equipment interaction coverage, media, current-main reconciliation, automated/browser checks and a final live release. Independent human balance acceptance remains distinct from implementation completion.
+
 ## Roster acceptance matrix
 
 | Discipline | Tactical decision | Counterplay | Library | Essence | Mixed pairs |
@@ -78,3 +88,20 @@ The authenticated live check confirms Skill target/effect tags, expanded range/e
 The supplied test account signed in successfully. Its selected character required the existing one-time Core Stat conversion, completed with three points in Might and two in Vitality; Brace, Cleave, Forceful Strike and Rally were equipped through the normal UI for testing. No test-kit unlocks or mastery bypass were used in production.
 
 This is a live six-Foundation milestone (48 regular Skills, six Essences, fifteen pairs), not full sixteen-Discipline Phase-4 closure. Broader expansion, dedicated art/audio, later acquisition/equipment coverage and independent human balance/playtest evidence remain open under P4.5.
+
+
+## Sixteen-Discipline continuation — implementation candidate
+
+Branch `agent/phase4-completion` adds the ten planned advanced libraries (80 regular Skills), ten Essences and 105 cross-library sequence Resonances. Together with Foundations this is 128 regular Skills, 16 Essences and 120 unordered pairs. This section describes the candidate, not production or human acceptance.
+
+The new short effect names are Burn, Bleed, Poison, Regeneration, Slow, Root, Reckless, Fortified, Challenged, Marked and Warded. Periodic effects tick at affected turn end; other statuses expire at affected turn start. Cleanse removes explicitly named negative statuses. Linked Reckless/Fortified tradeoffs remain inseparable under application, expiry and removal. The new conditional multiplier budget is 50–200% after combining modifiers; historical Guarded/Exposed/Lowered Guard rules remain separate. Integer arithmetic resolves each actual attacker/recipient pair. Skill damage now uses each recipient's armor or ward and each hit independently. New mystic attacks spend a small authored MP cost; repeated costs are unchanged.
+
+Distribution audit: five of 128 regular Skills apply the new percentage statuses (Bastion Challenge and Fortress, Ravager Frenzy, Wildwarden Hunter's Mark, Cinderweaver Ash Ward). Only Fortress and Frenzy are linked strong benefit/drawback regular Skills. Last Bastion is the only additional Essence using that tradeoff family. No new Resonance grants a blanket percentage bonus.
+
+Acquisition: six Foundation creation choices remain unchanged. A separate Standard/High Mastery Trial awards 50 Primary Mastery XP after a victory with two distinct Primary regular Skills used across at least three commands and no player timeout. XP derives from frozen origin/build and committed events; one claim per battle, atomic with learned Skill/mastery facts. Milestones are 100 Practiced, 300 Adept, 600 Expert, 1,000 Master. Master also requires demonstrating all eight regular Skills across qualifying victories. Advanced libraries teach 4/2/2 Skills at Initiate/Practiced/Adept. Their Master Plan prerequisites are enforced in the database for all Primary-change paths. Ordinary AI Sparring and Passive Training do not award Mastery.
+
+Equipment interaction review: every new Skill is usable with the current unarmed build. No unimplemented weapon or hands requirement is advertised. The shared defense bridge now verifies physical/armor and mystic/ward interactions separately for each area recipient. Equipment-granted active Skills and the full equipment catalog remain their later roadmap integration; this release does not claim those systems exist.
+
+Media: original semantic vector sigils cover the added traditions and their Skill target/effect identities without third-party licenses or missing-art placeholders. Dedicated illustrated masters and independent art approval remain separate from this implementation candidate. Audio/VFX requirements and final integration evidence are recorded below as completed, rather than inferred from metadata alone.
+
+Verification so far: all advanced regular Skills/Essences execute in PvE and PvP; all 105 new Resonance sequences arm and consume a legal cross-library payoff in each mode. Focused checks cover per-opponent modifiers, cleanse, linked tradeoffs, Root/Slow, periodic expiry/lethal completion, replay and per-recipient armor/ward. Final repository checks, database CI, browser verification and deployment are pending.

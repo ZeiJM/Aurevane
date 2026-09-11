@@ -1,3 +1,4 @@
+import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
 import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
 
 const BASIS_POINTS = 10_000
@@ -36,7 +37,7 @@ export function formatIncomingDamageEffect(multiplierBasisPoints: number): strin
 }
 
 export function statusIsBeneficial(statusId: string): boolean {
-  return statusId === 'guarded' || statusId.startsWith('buff.')
+  return combatStatusDetails(statusId).kind === 'Buff' || statusId.startsWith('buff.')
 }
 
 export function statusLabel(statusId: string): string {

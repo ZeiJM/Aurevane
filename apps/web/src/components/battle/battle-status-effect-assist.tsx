@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 import { createPortal } from 'react-dom'
 
 import styles from './battle-status-effect-assist.module.css'
@@ -72,6 +73,12 @@ function detailsFromTrigger(trigger: HTMLElement): EffectDetails {
       duration,
     }
   }
+
+  const named = PHASE4_STATUSES.find(
+    (status) => source.includes(status.id) || source.includes(status.name.toLowerCase()),
+  )
+  if (named)
+    return { title: named.name, kind: named.kind, description: named.description, duration }
 
   const rawLabel =
     explicitName ||

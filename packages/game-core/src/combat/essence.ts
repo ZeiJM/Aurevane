@@ -1,3 +1,4 @@
+import { ADVANCED_DISCIPLINE_ESSENCES } from './advanced-discipline-content'
 import type { CombatActionEvaluation, CombatTargetSelection } from './actions'
 import { FOUNDATION_TRIO_ESSENCES } from './foundation-trio-essences'
 import { IRONFIST_ESSENCE } from './ironfist-content'
@@ -169,6 +170,7 @@ export const P36_REPRESENTATIVE_ESSENCES = [
   },
   ...FOUNDATION_TRIO_ESSENCES,
   IRONFIST_ESSENCE,
+  ...ADVANCED_DISCIPLINE_ESSENCES,
 ] as const satisfies readonly EssenceDefinition[]
 
 const STABLE_ID_PATTERN = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/

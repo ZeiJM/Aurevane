@@ -60,6 +60,8 @@ function readAiDifficulty(sourceId: string | null): 'easy' | 'standard' | 'high'
 export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
   const router = useRouter()
   const playerName = useBattlePlayerName()
+  const [masteryNotice, setMasteryNotice] = useState<string | null>(null)
+  const [claimPending, setClaimPending] = useState(false)
   const [retryPending, setRetryPending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [logOpen, setLogOpen] = useState(false)
@@ -81,6 +83,31 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
   const guidedTraining = recordId === 'guided-fundamentals'
   const guidedTrainingSucceeded = Boolean(guidedTraining && player && player.hp > 0)
   const headline = guidedTrainingSucceeded ? 'Training Complete' : result
+
+  async function claimMastery() {
+    if (claimPending) return
+    setClaimPending(true)
+    setError(null)
+    try {
+      const response = await fetch(`/api/battles/${battle.battleSessionId}/mastery`, {
+        method: 'POST',
+      })
+      const body = (await response.json()) as {
+        mastery?: { awardedXp: number; xp: number; replayed: boolean }
+        error?: { message?: string }
+      }
+      if (!response.ok || !body.mastery)
+        throw new Error(body.error?.message ?? 'The Mastery result could not be saved.')
+      setMasteryNotice(
+        `${body.mastery.replayed ? 'Already claimed' : `+${body.mastery.awardedXp} Mastery XP`} · ${body.mastery.xp}/1,000 XP`,
+      )
+      router.refresh()
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'The Mastery result could not be saved.')
+    } finally {
+      setClaimPending(false)
+    }
+  }
 
   async function loadBattleLog(): Promise<BattleLogView | null> {
     if (log) return log
@@ -195,7 +222,13 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
         <dl className={styles.record} aria-label="Battle Hall practice result">
           <div>
             <dt>Exercise</dt>
-            <dd>{guidedTraining ? 'Guided Fundamentals' : 'AI Sparring'}</dd>
+            <dd>
+              {guidedTraining
+                ? 'Guided Fundamentals'
+                : recordId === 'mastery-trial'
+                  ? 'Discipline Mastery Trial'
+                  : 'AI Sparring'}
+            </dd>
           </div>
           <div>
             <dt>Arena</dt>
@@ -222,11 +255,25 @@ export function BattleCompletionPanel({ battle }: BattleCompletionPanelProps) {
               : 'Practice battle concluded'}
           </strong>
           <p>
-            Practice grants no Character XP, Mastery, loot, Crowns, PvP rating, or normal
-            progression reward. Your committed battle history remains available for review.
+            {recordId === 'mastery-trial'
+              ? 'A qualifying victory awards 50 Primary Discipline Mastery XP. Use two different Primary Skills across three Skill commands, win without a player timeout, then claim your result.'
+              : 'Practice grants no Character XP, Mastery, loot, Crowns, PvP rating, or normal progression reward. Your committed battle history remains available for review.'}
           </p>
         </div>
 
+        {recordId === 'mastery-trial' && result === 'Victory' ? (
+          <div className={styles.logActions}>
+            <button
+              type="button"
+              className={styles.secondary}
+              disabled={claimPending || masteryNotice !== null}
+              onClick={() => void claimMastery()}
+            >
+              {claimPending ? 'Verifying…' : 'Claim Mastery'}
+            </button>
+            {masteryNotice ? <span role="status">{masteryNotice}</span> : null}
+          </div>
+        ) : null}
         <div className={styles.logActions}>
           <button type="button" className={styles.secondary} onClick={() => void toggleBattleLog()}>
             {logLoading ? 'Loading Battle Log…' : logOpen ? 'Hide Battle Log' : 'Review Battle Log'}
