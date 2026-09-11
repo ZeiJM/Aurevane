@@ -20,6 +20,12 @@
   align-self: start;
 }
 
+@media (max-width: 760px) {
+  [data-testid='character-profile'] > div:first-child {
+    align-self: center;
+  }
+}
+
 [data-testid='character-profile'] > div:first-child > .character-portrait-media {
   width: 100% !important;
   height: 100% !important;

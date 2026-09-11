@@ -76,7 +76,8 @@
   border: 1px solid rgba(183, 161, 118, 0.28);
   border-radius: 1rem;
   background:
-    linear-gradient(180deg, rgba(17, 22, 29, 0.98), rgba(7, 10, 15, 0.99)), var(--surface-elevated);
+    linear-gradient(180deg, rgba(17, 22, 29, 0.98), rgba(7, 10, 15, 0.99)),
+    var(--av-surface-elevated);
   box-shadow:
     0 1.5rem 5rem rgb(0 0 0 / 55%),
     inset 0 1px 0 rgba(255, 255, 255, 0.025);
@@ -110,13 +111,13 @@
 
 .header h2 {
   margin: 0.12rem 0 0;
-  font-size: clamp(1.55rem, 2.5vw, 2rem);
-  line-height: 1;
+  color: var(--av-text);
+  font: 600 clamp(1.55rem, 2.5vw, 2rem)/1.15 var(--av-font-display);
 }
 
 .headingCopy p {
   margin: 0.28rem 0 0;
-  color: var(--text-muted);
+  color: var(--av-text-muted);
   font-size: 0.72rem;
 }
 
@@ -231,7 +232,7 @@
 }
 
 .disciplineChips span {
-  --chip: 194, 153, 91;
+  --chip: 194 153 91;
   border: 1px solid rgb(var(--chip) / 36%);
   border-radius: 999px;
   background: rgb(var(--chip) / 10%);
@@ -243,36 +244,36 @@
 }
 
 .disciplineChips span[data-discipline='vanguard'] {
-  --chip: 226, 118, 77;
+  --chip: 226 118 77;
 }
 
 .disciplineChips span[data-discipline='lifebinder'] {
-  --chip: 95, 205, 147;
+  --chip: 95 205 147;
 }
 
 .disciplineChips span[data-discipline='aetherist'] {
-  --chip: 154, 123, 233;
+  --chip: 154 123 233;
 }
 
 .disciplineChips span[data-discipline='farstrider'] {
-  --chip: 103, 183, 106;
+  --chip: 103 183 106;
 }
 
 .disciplineChips span[data-discipline='shadehand'] {
-  --chip: 194, 104, 174;
+  --chip: 194 104 174;
 }
 
 .disciplineChips span[data-discipline='ironfist'] {
-  --chip: 223, 166, 78;
+  --chip: 223 166 78;
 }
 
 .disciplineChips span[data-pure='true'] {
-  --chip: 202, 169, 104;
+  --chip: 202 169 104;
 }
 
 .rule {
   margin: 0.55rem 0 0;
-  color: var(--text-muted);
+  color: var(--av-text-muted);
   font-size: 0.69rem;
   line-height: 1.45;
 }
@@ -289,7 +290,7 @@
 }
 
 .splitCard span {
-  color: var(--text-muted);
+  color: var(--av-text-muted);
   font-size: 0.6rem;
 }
 
@@ -319,7 +320,7 @@
 }
 
 .identityItem span {
-  color: var(--text-muted);
+  color: var(--av-text-muted);
   font-size: 0.58rem;
 }
 
@@ -330,7 +331,7 @@
 
 .tipCard p {
   margin: 0.35rem 0 0;
-  color: var(--text-muted);
+  color: var(--av-text-muted);
   font-size: 0.64rem;
   line-height: 1.42;
 }
@@ -363,7 +364,7 @@
 }
 
 .techniqueHeading small {
-  color: var(--text-muted);
+  color: var(--av-text-muted);
   font-size: 0.61rem;
 }
 
@@ -371,14 +372,14 @@
   display: grid;
   min-height: 0;
   flex: 1 1 auto;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
   align-content: start;
   gap: 0.48rem;
 }
 
 .skill {
-  --skill-accent: 197, 158, 92;
-  --skill-deep: 102, 78, 41;
+  --skill-accent: 197 158 92;
+  --skill-deep: 102 78 41;
   position: relative;
   min-width: 0;
   overflow: hidden;
@@ -396,33 +397,33 @@
 }
 
 .skill[data-source='vanguard'] {
-  --skill-accent: 232, 119, 76;
-  --skill-deep: 117, 50, 31;
+  --skill-accent: 232 119 76;
+  --skill-deep: 117 50 31;
 }
 
 .skill[data-source='lifebinder'] {
-  --skill-accent: 93, 207, 149;
-  --skill-deep: 32, 99, 67;
+  --skill-accent: 93 207 149;
+  --skill-deep: 32 99 67;
 }
 
 .skill[data-source='aetherist'] {
-  --skill-accent: 160, 126, 241;
-  --skill-deep: 73, 47, 132;
+  --skill-accent: 160 126 241;
+  --skill-deep: 73 47 132;
 }
 
 .skill[data-source='farstrider'] {
-  --skill-accent: 116, 195, 104;
-  --skill-deep: 51, 93, 43;
+  --skill-accent: 116 195 104;
+  --skill-deep: 51 93 43;
 }
 
 .skill[data-source='shadehand'] {
-  --skill-accent: 202, 104, 181;
-  --skill-deep: 92, 43, 83;
+  --skill-accent: 202 104 181;
+  --skill-deep: 92 43 83;
 }
 
 .skill[data-source='ironfist'] {
-  --skill-accent: 229, 170, 79;
-  --skill-deep: 109, 70, 29;
+  --skill-accent: 229 170 79;
+  --skill-deep: 109 70 29;
 }
 
 .skill:hover:not([data-active-source='false']) {
@@ -513,10 +514,10 @@
 .skillCopy > strong {
   overflow: hidden;
   color: #f0e9dd;
-  font-size: 0.77rem;
-  line-height: 1.15;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 0.875rem;
+  line-height: 1.3;
+  padding-right: 1.65rem;
+  overflow-wrap: anywhere;
 }
 
 .metaRow {
@@ -530,15 +531,24 @@
   border-radius: 999px;
   background: rgb(var(--skill-accent) / 7%);
   padding: 0.16rem 0.28rem;
-  color: rgb(var(--skill-accent) / 88%);
-  font: 700 0.43rem/1 var(--av-font-mono);
+  color: var(--av-text-muted);
+  font: 650 0.75rem/1.3 var(--av-font-mono);
   letter-spacing: 0.025em;
   text-transform: uppercase;
 }
 
+.sourceChip {
+  color: color-mix(in srgb, rgb(var(--chip, var(--skill-accent))) 65%, white) !important;
+}
+
+.skill:has(input:focus-visible) {
+  outline: 2px solid var(--av-focus);
+  outline-offset: 3px;
+}
+
 .learnedState {
   overflow: hidden;
-  color: var(--text-muted);
+  color: var(--av-text-muted);
   font-size: 0.56rem;
   line-height: 1.1;
   text-overflow: ellipsis;
@@ -594,7 +604,7 @@
   border: 1px dashed rgba(184, 177, 163, 0.14);
   border-radius: 0.75rem;
   padding: 1.4rem;
-  color: var(--text-muted);
+  color: var(--av-text-muted);
   text-align: center;
 }
 
@@ -742,5 +752,39 @@
   .actions button {
     flex: 1 1 10rem;
     min-height: 2.55rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .skillCopy {
+    display: contents;
+  }
+
+  .skillCopy > strong {
+    grid-column: 2;
+    padding-right: 2.25rem;
+    font-size: 0.9375rem;
+  }
+
+  .skillCopy > .metaRow {
+    grid-column: 1 / -1;
+  }
+
+  .skillToggle {
+    min-height: 5.5rem;
+    padding: 0.75rem;
+  }
+
+  .metaRow {
+    gap: 0.3rem;
+  }
+
+  .metaRow small {
+    padding: 0.2rem 0.4rem;
+  }
+
+  .actions {
+    gap: 0.5rem;
+    padding: 0.75rem;
   }
 }

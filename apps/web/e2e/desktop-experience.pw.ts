@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page, type TestInfo } from '@playwright/test'
+import { createClient } from '@supabase/supabase-js'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
@@ -308,6 +309,242 @@ test('mobile build dialogs keep readable copy and reachable actions', async ({
     })
     await close.click()
     await expect(dialog).toBeHidden()
+  }
+})
+
+test('phone pages and pure/mixed skill controls have balanced readable layouts', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'mobile-chromium', 'Phone presentation review')
+  test.setTimeout(180_000)
+  await page.setViewportSize({ width: 393, height: 740 })
+  await page.goto('/')
+  await expect(page.getByTestId('account-shell')).toBeVisible()
+  await testInfo.attach('phone-account', {
+    body: await page.screenshot(),
+    contentType: 'image/png',
+  })
+  await provisionAccountAndEnterCharacter({
+    page,
+    email: `phone-polish.${Date.now()}@example.com`,
+    password: 'AurevaneTest!42',
+    characterName: 'Polished Wayfarer',
+  })
+
+  for (const width of [360, 430]) {
+    await page.setViewportSize({ width, height: 800 })
+    for (const path of [
+      '/game/character',
+      '/game/battle',
+      '/game/training',
+      '/game/account/titles',
+      '/game/settings/controls',
+      '/game/online',
+      '/game',
+      '/game/create/1',
+      '/news',
+      '/manual',
+      '/manual/battle-hall',
+      '/rules',
+    ]) {
+      await page.goto(path)
+      await expect(page.locator('main')).toBeVisible()
+      await settle(page)
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),
+        path,
+      ).toBeLessThanOrEqual(1)
+      const copy = page.locator('main p:visible:not(.av-kicker)').first()
+      if (await copy.count()) {
+        expect
+          .soft(
+            await copy.evaluate((element) => parseFloat(getComputedStyle(element).fontSize)),
+            `${path}: body copy`,
+          )
+          .toBeGreaterThanOrEqual(14)
+      }
+      await testInfo.attach(`phone-${width}${path.replaceAll('/', '-')}`, {
+        body: await page.screenshot(),
+        contentType: 'image/png',
+      })
+    }
+  }
+
+  await page.goto('/game/battle')
+  await page
+    .getByRole('navigation', { name: 'Battle Hall sections' })
+    .getByRole('button', { name: /Player vs Player/ })
+    .click()
+  await page.getByLabel('Battle format').selectOption('3v3')
+  await testInfo.attach('phone-pvp-settings', {
+    body: await page.screenshot(),
+    contentType: 'image/png',
+  })
+  await page.getByRole('button', { name: 'Create Battle Lobby' }).click()
+  const lobby = page.locator('[role="dialog"][aria-labelledby="pvp-lobby-title"]')
+  await expect(lobby).toBeVisible()
+  await testInfo.attach('phone-pvp-lobby', {
+    body: await page.screenshot(),
+    contentType: 'image/png',
+  })
+  await lobby.getByRole('button', { name: 'Close Lobby', exact: true }).click()
+  await expect(lobby).toBeHidden()
+  await page.goto('/game/character')
+  for (const [trigger, name] of [
+    [page.getByTestId('derived-stat-maxHp'), 'phone-stat-details'],
+    [page.getByRole('button', { name: 'Reset / Redistribute Attributes' }), 'phone-attributes'],
+  ] as const) {
+    await trigger.click()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible()
+    await testInfo.attach(name, { body: await page.screenshot(), contentType: 'image/png' })
+    await dialog.getByRole('button', { name: 'Close', exact: true }).click()
+  }
+  await page.getByRole('button', { name: 'Account', exact: true }).click()
+  await testInfo.attach('phone-account-menu', {
+    body: await page.screenshot(),
+    contentType: 'image/png',
+  })
+  const audio = page.getByRole('dialog', { name: 'Audio settings' })
+  for (const width of [360, 430, 1366]) {
+    await page.setViewportSize({ width, height: 800 })
+    await page.getByRole('button', { name: 'Sound settings' }).click()
+    await expect(audio).toBeVisible()
+    const bounds = await audio.boundingBox()
+    expect(bounds!.x).toBeGreaterThanOrEqual(8)
+    expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(width - 8)
+    expect(bounds!.y).toBeGreaterThanOrEqual(8)
+    expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(792)
+    await expect(audio.getByTestId('audio-state')).toHaveCSS('text-transform', 'none')
+    await expect(audio.getByTestId('audio-state')).toHaveCSS('font-weight', '400')
+    await audio.getByTestId('audio-volume-music').fill('37')
+    await expect(audio.getByTestId('audio-volume-music')).toHaveValue('37')
+    await expect(audio.getByTestId('audio-test-tone')).toBeInViewport()
+    await testInfo.attach(`audio-${width}`, {
+      body: await page.screenshot(),
+      contentType: 'image/png',
+    })
+    await audio.getByRole('button', { name: 'Close audio settings' }).click()
+    await expect(audio).toBeHidden()
+    await expect(page.getByRole('button', { name: 'Sound settings' })).toBeFocused()
+  }
+  await page.setViewportSize({ width: 360, height: 800 })
+  await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: 'Navigation', exact: true }).click()
+  await testInfo.attach('phone-navigation', {
+    body: await page.screenshot(),
+    contentType: 'image/png',
+  })
+  await page.keyboard.press('Escape')
+  for (const mixed of [false, true]) {
+    if (mixed) {
+      const characterId = (await page.context().cookies()).find(
+        (cookie) => cookie.name === 'aurevane_selected_character',
+      )!.value
+      const admin = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SECRET_KEY!,
+        { auth: { persistSession: false, autoRefreshToken: false } },
+      )
+      const { error } = await admin.rpc('record_character_discipline_mastery_v1', {
+        p_character_id: characterId,
+        p_discipline_id: 'lifebinder',
+        p_source_kind: 'system',
+        p_source_id: 'browser-proof.mobile-polish',
+      })
+      if (error) throw error
+      await page.reload()
+      await page.getByTestId('primary-build-panel').getByRole('button').click()
+      const discipline = page.getByRole('dialog', { name: 'Discipline Management' })
+      await discipline.getByLabel('Proposed Secondary').selectOption('lifebinder')
+      await discipline.getByRole('button', { name: 'Commit Discipline changes' }).click()
+      await expect(page.getByRole('status')).toContainText(
+        'Lifebinder is now the committed Secondary Discipline.',
+      )
+      await testInfo.attach('phone-discipline-preview', {
+        body: await page.screenshot(),
+        contentType: 'image/png',
+      })
+      await discipline.getByRole('button', { name: 'Close', exact: true }).click()
+    }
+    for (const width of [360, 393, 1366]) {
+      await page.setViewportSize({ width, height: 800 })
+      const hero = page.getByTestId('character-profile')
+      if (width < 760) {
+        await page.evaluate(() => {
+          document.querySelector('#game-main')?.scrollTo(0, 0)
+          window.scrollTo(0, 0)
+        })
+        await settle(page)
+        const portrait = await hero.locator(':scope > div:first-child').boundingBox()
+        const identity = await hero.locator(':scope > div:last-child').boundingBox()
+        expect(
+          Math.abs(portrait!.y + portrait!.height / 2 - identity!.y - identity!.height / 2),
+        ).toBeLessThanOrEqual(1)
+        await testInfo.attach(`phone-hero-${width}-${mixed}`, {
+          body: await page.screenshot(),
+          contentType: 'image/png',
+        })
+      }
+      await page.getByTestId('skill-build-panel').getByRole('button').click()
+      const dialog = page.getByRole('dialog', { name: 'Techniques', exact: true })
+      await expect(dialog).toBeVisible()
+      await settle(page)
+      const findings = await dialog.evaluate((element) => {
+        const canvas = document.createElement('canvas')
+        const context = canvas.getContext('2d')!
+        function luminance(color: string) {
+          context.clearRect(0, 0, 1, 1)
+          context.fillStyle = color
+          context.fillRect(0, 0, 1, 1)
+          const values = [...context.getImageData(0, 0, 1, 1).data].slice(0, 3).map((c) => {
+            const v = c / 255
+            return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4
+          })
+          return values[0]! * 0.2126 + values[1]! * 0.7152 + values[2]! * 0.0722
+        }
+        const text = [
+          ...element.querySelectorAll<HTMLElement>(
+            '[data-testid="skill-capacity"] span, [data-testid="skill-capacity"] strong, small, p',
+          ),
+        ].filter((e) => e.checkVisibility())
+        return text.map((e) => ({
+          text: e.textContent,
+          size: parseFloat(getComputedStyle(e).fontSize),
+          contrast: (luminance(getComputedStyle(e).color) + 0.05) / (luminance('#242d39') + 0.05),
+        }))
+      })
+      for (const item of findings) {
+        expect(
+          item.contrast,
+          `${item.text}: contrast against the light panel tone`,
+        ).toBeGreaterThanOrEqual(4.5)
+        expect(item.size, `${item.text}: minimum label size`).toBeGreaterThanOrEqual(11)
+      }
+      for (const card of await dialog.getByTestId('learned-skill-list').locator('article').all()) {
+        const title = await card.locator('label strong').boundingBox()
+        const star = card.locator('[data-favorite-technique-star]')
+        if (await star.count()) {
+          const starBox = await star.boundingBox()
+          // Padding reserves the favourite control's column for wrapped names.
+          const textRight = await card.locator('label strong').evaluate((e) => {
+            const r = document.createRange()
+            r.selectNodeContents(e)
+            return Math.max(...[...r.getClientRects()].map((rect) => rect.right))
+          })
+          expect(textRight, 'Technique name must not collide with favourite').toBeLessThanOrEqual(
+            starBox!.x,
+          )
+          if (width < 760) expect(starBox!.width).toBeGreaterThanOrEqual(44)
+        }
+        expect(title!.x).toBeGreaterThanOrEqual(0)
+      }
+      await testInfo.attach(`skills-${width}-${mixed ? 'mixed' : 'pure'}`, {
+        body: await page.screenshot(),
+        contentType: 'image/png',
+      })
+      await dialog.getByRole('button', { name: 'Close', exact: true }).click()
+    }
   }
 })
 

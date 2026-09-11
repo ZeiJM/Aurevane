@@ -18,7 +18,9 @@ This file reports the **current implementation/validation boundary**.
 
 **Phase 4:** **NOT ACTIVATED.** Await a separate explicit Owner start command.
 
-**Active work:** final mobile panel clearance, page/popup typography and presentation corrections, rendered verification, quality checkpoint and authorized production release. Closure takes effect when this release is verified; no Phase-4 runtime work is authorized.
+**Phase-3 closeout:** PR #445 passed all seven workflows and was released as `9da6c4684f99b0617cdccab019a38f90f56795b0`; production reached READY and the public site was checked. Phase 3 is closed.
+
+**Presentation follow-up:** Owner-requested mobile page/popup readability, responsive Profile portrait centering, and desktop/mobile Technique tag and button placement. Verify pure/mixed builds, contrast, phone wrapping and existing desktop fit before the authorized release. This is polish of delivered systems; Phase 4 remains unstarted.
 
 ---
 

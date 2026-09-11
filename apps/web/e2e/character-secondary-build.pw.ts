@@ -171,11 +171,13 @@ test('mobile Profile balances the portrait and centers Discipline Management', a
   const profile = page.getByTestId('character-profile')
   const portrait = profile.locator('.character-portrait-media').locator('..')
   await expect(portrait).toBeVisible()
-  const portraitTranslateY = await portrait.evaluate((element) => {
-    const transform = getComputedStyle(element).transform
-    return transform === 'none' ? 0 : new DOMMatrix(transform).m42
-  })
-  expect(portraitTranslateY).toBeGreaterThanOrEqual(7)
+  const portraitBox = await portrait.boundingBox()
+  const identityBox = await profile.locator(':scope > div:last-child').boundingBox()
+  if (!portraitBox || !identityBox) throw new Error('Profile hero geometry is unavailable')
+  expect(
+    Math.abs(portraitBox.y + portraitBox.height / 2 - identityBox.y - identityBox.height / 2),
+  ).toBeLessThanOrEqual(1)
+  expect(Math.abs(portraitBox.width - portraitBox.height)).toBeLessThanOrEqual(1)
 
   const launcher = page
     .getByTestId('primary-build-panel')

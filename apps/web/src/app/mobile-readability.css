@@ -1,0 +1,182 @@
+/* Phone reading hierarchy. Layout density comes from spacing, never a smaller root scale. */
+@media (max-width: 760px) {
+  :is(
+    [data-testid='authenticated-shell'],
+    [data-testid='public-information-shell'],
+    [data-testid='account-shell'],
+    [data-character-select-page='true'],
+    [data-testid='character-creation']
+  ) {
+    --av-text-muted: #c4c6c8;
+    --av-text-dim: #a8adb6;
+  }
+
+  :is(
+      [data-testid='authenticated-shell'],
+      [data-testid='public-information-shell'],
+      [data-testid='account-shell'],
+      [data-character-select-page='true'],
+      [data-testid='character-creation']
+    )
+    main
+    p {
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  :is(
+      [data-testid='authenticated-shell'],
+      [data-testid='public-information-shell'],
+      [data-testid='account-shell'],
+      [data-character-select-page='true'],
+      [data-testid='character-creation']
+    )
+    main
+    small {
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  /* Input text stays at 16px to avoid focus zoom on phones. */
+  :is(
+      [data-testid='authenticated-shell'],
+      [data-testid='account-shell'],
+      [data-character-select-page='true'],
+      [data-testid='character-creation']
+    )
+    main
+    :is(input:not([type='checkbox'], [type='radio'], [type='range']), select, textarea),
+  [role='dialog']:not([aria-label*='battle' i])
+    :is(select, input[type='text'], input[type='password']) {
+    min-height: 2.75rem;
+    font-size: 1rem;
+  }
+
+  [data-testid='public-information-shell'] main :is(p, li) {
+    font-size: 0.9375rem;
+    line-height: 1.6;
+  }
+
+  [data-testid='character-profile'] h1 {
+    line-height: 1.08;
+    overflow-wrap: anywhere;
+  }
+
+  [data-testid='character-profile'] > div:last-child > p {
+    display: block;
+    overflow: visible;
+    -webkit-line-clamp: unset;
+  }
+
+  [data-testid='character-profile'] [data-testid='level-progress'] > div:first-child {
+    flex-wrap: wrap;
+    font-size: 0.6875rem;
+    line-height: 1.3;
+  }
+
+  [data-testid='primary-discipline-chip'],
+  [data-testid='secondary-discipline-chip'] {
+    font-size: 0.6875rem;
+    line-height: 1.2;
+  }
+
+  #game-main h1 {
+    font-family: var(--av-font-display);
+    font-size: clamp(1.625rem, 7vw, 2rem);
+    font-weight: 500;
+    line-height: 1.15;
+  }
+
+  #game-main .av-kicker {
+    font-size: 0.6875rem;
+    line-height: 1.35;
+    letter-spacing: 0.12em;
+  }
+
+  /* Identity values lead; labels provide a quieter reference tier. */
+  [data-testid='authenticated-shell'] [data-profile-fact] small {
+    color: var(--av-text-dim);
+    font-size: 0.6875rem;
+  }
+
+  [data-testid='authenticated-shell'] [data-profile-fact] strong {
+    color: var(--av-text);
+    font-size: 0.8125rem;
+    line-height: 1.35;
+  }
+
+  /* Creation's form is inside main, so it needs its own reading boundary. */
+  [data-testid='character-creation'] p {
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  [data-testid='character-creation'] small {
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  [data-testid='character-creation'] input:not([type='radio'], [type='checkbox']) {
+    min-height: 2.75rem;
+    font-size: 1rem;
+  }
+
+  #battle-launch [data-pvp-settings-heading] strong {
+    font-size: 1rem;
+    line-height: 1.3;
+  }
+
+  #battle-launch [data-pvp-setting-group] legend {
+    font-size: 0.75rem;
+    line-height: 1.3;
+  }
+
+  #battle-launch [data-pvp-setting-options] button {
+    min-height: 2.75rem;
+    font-size: 0.75rem;
+    line-height: 1.2;
+    color: var(--av-text-muted);
+  }
+
+  #battle-launch [data-pvp-setting-options] button[data-selected] {
+    color: var(--av-brass-300);
+  }
+
+  [data-testid='authenticated-shell'] [data-testid^='keybind-'] :is(label, kbd) {
+    font-size: 0.8125rem;
+  }
+
+  [role='dialog'][aria-labelledby='pvp-lobby-title']
+    section[aria-label='Locked PvP battle settings'] {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 0.5rem !important;
+  }
+
+  [role='dialog'][aria-labelledby='pvp-lobby-title']
+    section[aria-label='Locked PvP battle settings']
+    > div
+    > span::after {
+    font-size: 0.6875rem;
+    line-height: 1.3;
+  }
+
+  [role='dialog'][aria-labelledby='pvp-lobby-title']
+    section[aria-label='Locked PvP battle settings']
+    > div
+    > strong {
+    font-size: 0.8125rem !important;
+    white-space: normal;
+  }
+}
+
+@media (max-width: 520px) {
+  [data-testid='authenticated-shell'] [data-profile-fact] {
+    grid-template-columns: 2rem minmax(0, 10rem);
+    justify-content: center;
+  }
+
+  [data-testid='authenticated-shell'] [data-profile-fact] > span:last-child {
+    justify-items: start;
+    text-align: left;
+  }
+}
