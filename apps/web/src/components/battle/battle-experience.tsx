@@ -980,13 +980,19 @@ export function BattleExperience({
         void requestPreview({
           kind: 'action',
           actionId: selectedActionId,
-          target: { kind: 'unit', combatantId: placement.combatantId },
+          // Clicking the caster must preserve the same self-target intent as arming the
+          // Skill. A unit target is a distinct engine contract, even for the same actor.
+          target:
+            selectedTechnique?.targetKind === 'self' && placement.combatantId === localCombatantId
+              ? { kind: 'self' }
+              : { kind: 'unit', combatantId: placement.combatantId },
         })
       }
     },
     [
       battleState.combatants,
       clearPlanning,
+      localCombatantId,
       localParticipant,
       localPlacement,
       mode,

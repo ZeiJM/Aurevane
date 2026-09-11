@@ -49,7 +49,7 @@ Performance work never authorizes a gameplay redesign, weakened server authority
 | Phase 1 — Character & Progression Foundation | ✅ Substantially complete | Character/account/profile/progression/equipment foundations exist. |
 | Phase 2 — Tactical Combat & Battle Platform | ✅ Closed / PV-1 passed | Mature combat, AI, direct PvP and spectation foundations are preserved for reuse. |
 | Phase 3 — Signature Buildcraft Foundation | ✅ Implementation complete; Owner-approved closeout | P3.1–P3.8 delivered; final UI/quality release completes the Owner's closure condition. See `PHASE_3_CLOSEOUT.md`. |
-| Phase 4 | Six-Foundation stage live; sixteen-Discipline candidate in validation | PR #450 released at `b2da21e2`; targeting/effect details and two AI arenas verified. Broader roster/media/human acceptance remains open. See `PHASE_4_TICKETS.md`. |
+| Phase 4 | Sixteen-Discipline playable implementation live; media/human acceptance open | PR #451 released at `7a539581`; 128 Skills, 16 Essences, 120 Resonances, named effects and Mastery Trials. All 15 CI workflows passed; exact migration verified. See `PHASE_4_TICKETS.md`. |
 | Phase 5+ | Planned | Inherit compatible early work. |
 
 ## Current decision boundary

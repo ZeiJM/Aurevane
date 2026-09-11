@@ -13,7 +13,7 @@ Owner activation: explicit request for full implementation, necessary approvals,
 
 ## Current implementation boundary
 
-P4.1–P4.4 are implemented and released as the six-Foundation stage. P4.5 expansion and full Phase-4 closure are not yet established. This ledger must not be reported as a completed sixteen-Discipline roster.
+The sixteen-Discipline playable implementation is live through PR #451. P4.1–P4.6 engineering and the production migration are delivered; independent human tactical acceptance and dedicated production media remain open. The six-Foundation evidence below is historical.
 
 ## Owner continuation — descriptive effects and full implementation
 
@@ -23,7 +23,7 @@ Implementation proceeds through Bastion/Ravager (eight total), Edgedancer/Wildwa
 
 Damage modifiers must resolve for each actual attacker/recipient pair. Linked benefit/drawback statuses keep both parts together under application, expiry and removal. New percentage modifiers have explicit caps and single-stack authoring; existing Guarded/Exposed rules remain compatible. Direct damage boosts and strong trade-offs require an explicit per-Skill justification and distribution audit, rather than becoming a default filler effect across the roster or all Resonances.
 
-Outstanding engineering includes the typed effect extensions, complete eight-Skill libraries and exclusive signatures, legitimate Mastery/acquisition, equipment interaction coverage, media, current-main reconciliation, automated/browser checks and a final live release. Independent human balance acceptance remains distinct from implementation completion.
+The typed effect extensions, complete libraries/signatures, Mastery Trials, current unarmed/armor/ward interactions, database/browser checks and live release are delivered. Dedicated illustrations/audio and independent human balance acceptance remain open. Equipment catalogs and their active Skills retain their later roadmap integration.
 
 ## Roster acceptance matrix
 
@@ -90,9 +90,9 @@ The supplied test account signed in successfully. Its selected character require
 This is a live six-Foundation milestone (48 regular Skills, six Essences, fifteen pairs), not full sixteen-Discipline Phase-4 closure. Broader expansion, dedicated art/audio, later acquisition/equipment coverage and independent human balance/playtest evidence remain open under P4.5.
 
 
-## Sixteen-Discipline continuation — implementation candidate
+## Sixteen-Discipline continuation — live implementation
 
-Branch `agent/phase4-completion` adds the ten planned advanced libraries (80 regular Skills), ten Essences and 105 cross-library sequence Resonances. Together with Foundations this is 128 regular Skills, 16 Essences and 120 unordered pairs. This section describes the candidate, not production or human acceptance.
+Branch `agent/phase4-completion` adds the ten planned advanced libraries (80 regular Skills), ten Essences and 105 cross-library sequence Resonances. Together with Foundations this is 128 regular Skills, 16 Essences and 120 unordered pairs. The roster is live. Implementation evidence does not replace human acceptance.
 
 The new short effect names are Burn, Bleed, Poison, Regeneration, Slow, Root, Reckless, Fortified, Challenged, Marked and Warded. Periodic effects tick at affected turn end; other statuses expire at affected turn start. Cleanse removes explicitly named negative statuses. Linked Reckless/Fortified tradeoffs remain inseparable under application, expiry and removal. The new conditional multiplier budget is 50–200% after combining modifiers; historical Guarded/Exposed/Lowered Guard rules remain separate. Integer arithmetic resolves each actual attacker/recipient pair. Skill damage now uses each recipient's armor or ward and each hit independently. New mystic attacks spend a small authored MP cost; repeated costs are unchanged.
 
@@ -102,9 +102,21 @@ Acquisition: six Foundation creation choices remain unchanged. A separate Standa
 
 Equipment interaction review: every new Skill is usable with the current unarmed build. No unimplemented weapon or hands requirement is advertised. The shared defense bridge now verifies physical/armor and mystic/ward interactions separately for each area recipient. Equipment-granted active Skills and the full equipment catalog remain their later roadmap integration; this release does not claim those systems exist.
 
-Media: original semantic vector sigils cover the added traditions and their Skill target/effect identities without third-party licenses or missing-art placeholders. Dedicated illustrated masters and independent art approval remain separate from this implementation candidate. Audio/VFX production requirements, performance budgets and the remaining human media review are tracked in `content/audio-requests/AUDIO-DISC-001.md` and `content/art-requests/ART-DISC-003.md`. Dedicated recordings are not inferred from metadata hooks.
+Media: original semantic vector sigils cover the added traditions and their Skill target/effect identities without third-party licenses or missing-art placeholders. Dedicated illustrated masters and independent art approval remain separate from this playable implementation. Audio/VFX production requirements, performance budgets and the remaining human media review are tracked in `content/audio-requests/AUDIO-DISC-001.md` and `content/art-requests/ART-DISC-003.md`. Dedicated recordings are not inferred from metadata hooks.
 
-Verification so far: all advanced regular Skills/Essences execute in PvE and PvP; all 105 new Resonance sequences arm and consume a legal cross-library payoff in each mode. Focused checks cover per-opponent modifiers, cleanse, linked tradeoffs, Root/Slow, periodic expiry/lethal completion, replay and per-recipient armor/ward. Final repository checks, database CI, browser verification and deployment are pending.
+Verification so far: all advanced regular Skills/Essences execute in PvE and PvP; all 105 new Resonance sequences arm and consume a legal cross-library payoff in each mode. Focused checks cover per-opponent modifiers, cleanse, linked tradeoffs, Root/Slow, periodic expiry/lethal completion, replay and per-recipient armor/ward. Repository checks, database CI, authenticated browser verification and the roster deployment passed; see the release record below.
 
 
 Testing-access compatibility: the existing Owner-authorized `active-player-discipline-testing:v1` triggers grant mastery for enabled Disciplines to current and new player characters. This continuation preserves those grants, including the ten newly enabled Disciplines, so players can test the complete libraries and pairs immediately. Earned progression remains implemented; isolated database fixtures remove only their own temporary support facts inside a rolled-back transaction to prove normal prerequisites and 4/2/2 learning. Existing production masteries are never deleted to manufacture that evidence.
+
+
+## Sixteen-Discipline release evidence — 2026-09-11
+
+- PR [#451](https://github.com/ZeiJM/Aurevane/pull/451) merged the verified tree `a2c1eafc00a332428f82283f0400e405544227f7` at `43e43cdbac1308382dce754f630910faec66f382`. All 15 workflows passed on exact feature head `dc85ba560adf4b495bf1d6adcde328b9066c5204`.
+- `pnpm check` passed formatting, lint, typecheck, 1,001 Vitest tests, six Node report tests and production build. Representative Buildcraft [run 34633894950](https://github.com/ZeiJM/Aurevane/actions/runs/34633894950) passed its Mastery database matrix and eight browser cases (four intentional viewport skips); retained screenshots/traces are attached to the run. Browser Smoke passed 117 Chromium and four Edge cases, with 96 intentional skips.
+- Exact migration `20260911174638_phase4_roster_mastery.sql` applied through the established Git integration. All 75 production migration version/name identities match committed files. Production catalogs contain 128 regular Skills, 16 Essences and 120 Resonances. Browser roles cannot call the Mastery claim RPC directly or update progress.
+- Git release `7a539581651caad9fe57b8da8dba23652dadb624` produced READY deployment `dpl_6fWVva8NzKxpJp41Zcd3WNwNWA29` at https://aurevane.vercel.app. Commit `ff56e9acfdd2cc09a96071dd4bdf3d8dfe5540b6` restored the deployment lock with the verified application tree unchanged.
+- Authenticated production checks confirmed all 16 Primary/Secondary choices and Mastery bars, Bastion's eight Skills, Last Bastion Essence, exact Fortified benefit/drawback details, targeting/shape/effect tags, four persisted selections and Mastery Trial launch. Fortress committed at 30 AP. The trial timed out during inspection and was closed as a defeat; it is not reward-eligibility evidence. Earned rewards, rejection rules and replay safety are verified by the isolated database matrix.
+- Live checking exposed a shared cockpit defect: re-clicking the caster after selecting a self Skill submitted a unit target. The follow-up keeps the self target and adds a phone/desktop authenticated regression asserting the actual preview and committed Fortified status. This narrow follow-up needs its own final CI and release evidence.
+
+Acceptance still open: dedicated illustrated masters, recorded Skill audio and actual independent human tactical/balance review. Original vector identities and shared media hooks are implemented; no recording, human review or equipment catalog is claimed from those hooks.

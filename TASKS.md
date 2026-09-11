@@ -22,9 +22,9 @@ This file reports the **current implementation/validation boundary**.
 
 **Presentation follow-up:** PR #446 merged while this audit was in progress and was released at `0df098e8`; preserve its desktop/mobile changes and assess its exact release interaction evidence.
 
-**Active continuation:** `agent/phase4-completion` implements the sixteen-Discipline candidate, short named effects, sparse conditional damage/tradeoffs and a separate Mastery Trial acquisition route. Final database/browser/release evidence is pending in `docs/PHASE_4_TICKETS.md`.
+**Current implementation:** PR #451 released the full sixteen-Discipline playable roster, short named effects, sparse conditional damage/tradeoffs and Mastery Trials. All 15 exact-head CI workflows and the production migration passed. A narrow self-target cockpit follow-up is in validation; release evidence and remaining human/media acceptance are recorded in `docs/PHASE_4_TICKETS.md`.
 
-**Live baseline:** The six-Foundation Phase-4 stage is live through PR #450 and release `b2da21e2`: Ironfist, Skill targeting/effect details and representative arenas. All fifteen candidate CI workflows pass. Broader roster expansion and human balance acceptance remain open; see `docs/PHASE_4_TICKETS.md`. Earlier phase-boundary notes below preserve historical decisions.
+**Live baseline:** Sixteen Disciplines, 128 regular Skills, 16 Essences and 120 Resonances are live through PR #451 and release `7a539581`; deployment is locked again at `ff56e9ac`. Dedicated media and independent human balance acceptance remain open. Earlier phase-boundary notes below preserve historical decisions.
 
 ---
 

@@ -174,11 +174,55 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
     body: await page.screenshot(),
     contentType: 'image/png',
   })
+  await fortress.getByRole('checkbox').check()
+  const saved = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/character/build/skills') &&
+      response.request().method() === 'PUT',
+  )
+  await page.getByRole('button', { name: 'Commit Selected Techniques' }).click()
+  expect((await saved).status()).toBe(200)
   await dialog.getByRole('button', { name: 'Close', exact: true }).click()
   await page.goto('/game/battle')
   await page.getByLabel('Battle mode').selectOption('mastery-trial')
   await expect(page.getByRole('button', { name: 'Easy', exact: true })).toHaveCount(0)
   await expect(page.getByLabel('AI sparring arena')).toHaveValue('crossroads-court')
   await expect(page.getByText(/50 Mastery XP/)).toBeVisible()
+  await page.getByRole('button', { name: 'Enter Battle', exact: true }).click()
+  await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
+  const root = page.locator("main[data-unified-battle='true'][data-battle-kind='pve']")
+  await root.getByRole('button', { name: /Choose Guard skill/ }).click()
+  await page.getByRole('option', { name: 'Fortress 30 AP', exact: true }).click()
+  await root.getByRole('button', { name: 'Fortress, 30 AP', exact: true }).click()
+  await expect(root.getByRole('button', { name: 'Confirm Action', exact: true })).toBeEnabled()
+  const selfPreview = page.waitForResponse(
+    (response) => response.url().endsWith('/preview') && response.request().method() === 'POST',
+  )
+  // Re-selecting the caster on the board must not replace self with an illegal unit target.
+  await root.getByRole('button', { name: new RegExp(`occupied by Mastery ${suffix}$`) }).click()
+  const previewResponse = await selfPreview
+  expect(previewResponse.request().postDataJSON().intent.target).toEqual({ kind: 'self' })
+  const preview = (await previewResponse.json()).battlePreview.preview
+  expect(preview.legal).toBe(true)
+  expect(preview.projectedStatuses).toEqual(
+    expect.arrayContaining([expect.objectContaining({ statusId: 'fortified' })]),
+  )
+  const committed = page.waitForResponse(
+    (response) => response.url().endsWith('/intents') && response.request().method() === 'POST',
+  )
+  await root.getByRole('button', { name: 'Confirm Action', exact: true }).click()
+  const commitResponse = await committed
+  expect(commitResponse.status()).toBe(200)
+  const battle = (await commitResponse.json()).battle
+  expect(
+    battle.snapshot.statusState.flatMap((row: { statuses: unknown[] }) => row.statuses),
+  ).toEqual(expect.arrayContaining([expect.objectContaining({ statusId: 'fortified' })]))
+  await testInfo.attach(`phase4-fortress-battle-${testInfo.project.name}`, {
+    body: await page.screenshot(),
+    contentType: 'image/png',
+  })
+  await root.getByRole('button', { name: 'Surrender', exact: true }).click()
+  await page.getByRole('button', { name: 'Confirm Surrender', exact: true }).click()
+  await expect(page.getByTestId('battle-result-overlay')).toBeVisible()
   expect(errors).toEqual([])
 })
