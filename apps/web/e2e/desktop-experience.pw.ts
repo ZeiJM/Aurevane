@@ -188,7 +188,7 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
   await page.getByTestId('skill-build-panel').getByRole('button').click()
   const techniques = page.getByRole('dialog', { name: 'Techniques', exact: true })
   await expect(techniques).toBeVisible()
-  await readable(techniques.getByTestId('learned-skill-list').locator('small').first(), 12)
+  await readable(techniques.getByTestId('learned-skill-list').locator('small').first(), 11)
   await testInfo.attach('Techniques-dialog', {
     body: await page.screenshot(),
     contentType: 'image/png',
@@ -350,6 +350,23 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
       await page.goto(path)
       await expect(page.locator('main')).toBeVisible()
       await settle(page)
+      if (path === '/game') {
+        const card = page.getByRole('article').filter({ hasText: 'Polished Wayfarer' })
+        const portrait = await card.locator('div:has(> .character-portrait-media)').boundingBox()
+        const identity = await card.locator('div:has(> h2)').boundingBox()
+        const action = await card
+          .getByRole('button', { name: 'Delete Character', exact: true })
+          .boundingBox()
+        expect(portrait).not.toBeNull()
+        expect(identity).not.toBeNull()
+        expect(action).not.toBeNull()
+        expect(
+          Math.abs(
+            portrait!.y + portrait!.height / 2 - (identity!.y + action!.y + action!.height) / 2,
+          ),
+          'The roster portrait centers against its identity and action column',
+        ).toBeLessThanOrEqual(1)
+      }
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),
         path,
@@ -367,6 +384,33 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
         body: await page.screenshot(),
         contentType: 'image/png',
       })
+      if (path === '/game/online') {
+        await page.getByRole('button', { name: 'Show all characters', exact: true }).click()
+        const directory = page.getByRole('region', { name: 'All character directory' })
+        await expect(directory.getByRole('combobox', { name: 'Class', exact: true })).toBeVisible()
+        await expect(directory.getByRole('combobox', { name: 'Sort', exact: true })).toHaveCSS(
+          'font-weight',
+          '400',
+        )
+        await expect(directory.getByRole('button').first().locator('strong')).toHaveCSS(
+          'font-size',
+          '14px',
+        )
+        await expect(directory.getByRole('button').first().locator('small')).toHaveCSS(
+          'font-size',
+          '12px',
+        )
+        await directory
+          .getByRole('combobox', { name: 'Sort', exact: true })
+          .selectOption('alphabetical')
+        await expect(directory.getByRole('combobox', { name: 'Sort', exact: true })).toHaveValue(
+          'alphabetical',
+        )
+        await testInfo.attach(`phone-${width}-all-characters`, {
+          body: await page.screenshot(),
+          contentType: 'image/png',
+        })
+      }
     }
   }
 
@@ -522,6 +566,9 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
         expect(item.size, `${item.text}: minimum label size`).toBeGreaterThanOrEqual(11)
       }
       for (const card of await dialog.getByTestId('learned-skill-list').locator('article').all()) {
+        for (const tag of await card.locator('small').all()) {
+          await expect(tag).toHaveCSS('font-size', '11px')
+        }
         const title = await card.locator('label strong').boundingBox()
         const star = card.locator('[data-favorite-technique-star]')
         if (await star.count()) {
