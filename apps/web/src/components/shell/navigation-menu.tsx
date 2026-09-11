@@ -3,7 +3,7 @@
 import type { Route } from 'next'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 
 import styles from './navigation-menu.module.css'
 
@@ -31,6 +31,7 @@ export function NavigationMenu({
   const pathname = usePathname()
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [isPending, startTransition] = useTransition()
   const menuRef = useRef<HTMLElement>(null)
   const visibleNavigation = useMemo(
     () =>
@@ -65,12 +66,16 @@ export function NavigationMenu({
         className={styles.trigger}
         type="button"
         aria-expanded={open}
+        aria-busy={isPending}
         aria-haspopup="menu"
         popoverTarget={navigationPopoverId}
         popoverTargetAction="toggle"
       >
-        <span aria-hidden="true">◇</span> Navigation
+        <span aria-hidden="true">◇</span> {isPending ? 'Opening…' : 'Navigation'}
       </button>
+      <span className={styles.status} aria-live="polite" aria-atomic="true">
+        {isPending ? 'Opening page…' : ''}
+      </span>
       <nav
         id={navigationPopoverId}
         ref={menuRef}
@@ -91,7 +96,11 @@ export function NavigationMenu({
             prefetch={false}
             onPointerEnter={() => prefetchDestination(item.href)}
             onFocus={() => prefetchDestination(item.href)}
-            onClick={closeMenu}
+            onNavigate={(event) => {
+              event.preventDefault()
+              closeMenu()
+              startTransition(() => router.push(item.href))
+            }}
           >
             <strong>{item.label}</strong>
             <small>{item.detail}</small>

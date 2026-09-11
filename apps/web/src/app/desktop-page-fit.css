@@ -350,3 +350,207 @@
     padding-block: 0.25rem;
   }
 }
+
+@media (min-width: 981px) {
+  /* Titles and portrait settings share a compact identity row rather than stacking three cards. */
+  #game-main div:has(> section[aria-labelledby='current-title-heading']) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+  }
+
+  #game-main section[aria-labelledby='current-title-heading'] {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 1rem;
+  }
+
+  #game-main section[aria-labelledby='personal-title-heading'] {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  #game-main section[aria-labelledby='profile-image-heading'] {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  #game-main div:has(> section[aria-labelledby='current-title-heading']) > section:last-child {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  #game-main div:has(> section[aria-labelledby='current-title-heading']) > section {
+    padding: 0.75rem;
+  }
+
+  #game-main div:has(> section[aria-labelledby='current-title-heading']) :is(button, label > span),
+  #game-main [aria-label='Profile identity badges'] > span {
+    font-size: 0.75rem !important;
+    line-height: 1.25;
+  }
+
+  /* A training result must grow naturally, not disappear under the old max-height clipping rule. */
+  #game-main > div:has([data-testid='practice-plan-card']) {
+    max-height: none;
+    overflow: visible;
+  }
+
+  #game-main > :has([aria-label='Combat controls settings']) {
+    margin-block: 0.12rem;
+    padding-block: 0.65rem;
+  }
+
+  #game-main > :has([aria-label='Combat controls settings']) > h1 {
+    margin-block: 0.35rem;
+    font-size: clamp(2rem, 3.5vh, 2.6rem);
+  }
+
+  #game-main [aria-label='Combat controls settings'] {
+    gap: 0.4rem;
+  }
+
+  #game-main [data-testid^='keybind-'] {
+    min-height: 2.5rem;
+    padding: 0.3rem 0.55rem;
+  }
+
+  #game-main [data-testid^='keybind-'] strong {
+    font-size: 0.875rem;
+  }
+
+  #game-main [data-testid^='keybind-'] small {
+    display: block;
+    overflow: visible;
+    -webkit-line-clamp: unset;
+    line-height: 1.3;
+  }
+
+  #game-main [data-testid^='keybind-'] :is(kbd, button),
+  #game-main div:has(> [data-testid^='keybind-']) + div button {
+    min-height: 2rem;
+    font-size: 0.75rem;
+  }
+
+  #game-main [data-testid='practice-plan-card'] :is(button, dt),
+  #game-main [aria-label='Passive Training durations'] > div > div:first-child > span {
+    font-size: 0.75rem;
+  }
+
+  #game-main [data-testid='practice-plan-card'] dd {
+    font-size: 0.875rem;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Other desktop pages share the real footer row; Profile/Hall keep the tested rules above. */
+@media (min-width: 981px) {
+  [data-testid='authenticated-shell']:not(:has(#battle-launch)):not(
+      :has([data-testid='character-profile'])
+    ),
+  [data-testid='public-information-shell'] {
+    grid-template-rows: auto 1fr auto;
+    padding-bottom: 0;
+  }
+  [data-testid='authenticated-shell']:not(:has(#battle-launch)):not(
+      :has([data-testid='character-profile'])
+    )
+    > main {
+    min-height: 0;
+    padding: 0.3rem clamp(0.7rem, 1.4vw, 1.4rem);
+  }
+  [data-testid='authenticated-shell']:not(:has(#battle-launch)):not(
+      :has([data-testid='character-profile'])
+    )
+    > footer,
+  [data-testid='public-information-shell'] > footer {
+    position: sticky;
+    inset: auto;
+    bottom: 0;
+    min-height: 3.25rem;
+    padding-block: 0.35rem;
+    backdrop-filter: none;
+  }
+  [data-testid='authenticated-shell'] > header,
+  [data-testid='public-information-shell'] > header {
+    backdrop-filter: none;
+  }
+}
+
+/* A growing directory is a bounded, keyboard-scrollable list, not an ever-taller page. */
+@media (min-width: 981px) and (min-height: 450px) {
+  [data-testid='authenticated-shell']:has(#game-main [data-character-directory]) {
+    height: 100dvh;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+
+  #game-main:has([data-character-directory]) {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  #game-main [data-character-directory] {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+  }
+
+  #game-main [data-character-directory] > header {
+    flex: 0 0 auto;
+  }
+
+  #game-main [data-character-directory] > section {
+    display: flex;
+    min-height: 0;
+    flex: 1 1 0;
+    flex-direction: column;
+  }
+
+  #game-main [data-character-directory] > section > :not(:last-child) {
+    flex: 0 0 auto;
+  }
+
+  #game-main
+    [data-character-directory]
+    > section
+    > div:last-child:has(> button):not([role='status']) {
+    min-height: 0;
+    max-height: none;
+    flex: 1 1 0;
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+    grid-auto-rows: max-content;
+    align-content: start;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    scroll-padding-block: 0.75rem;
+  }
+
+  #game-main
+    [data-character-directory]
+    > section
+    > div:last-child:has(> button):not([role='status'])
+    > button:focus-visible {
+    outline: 2px solid var(--av-focus);
+    outline-offset: -3px;
+  }
+
+  #game-main [data-character-directory] button[aria-pressed],
+  #game-main [data-character-directory] > section > header > span:last-child,
+  #game-main [aria-label='Character directory filters'] label > span,
+  #game-main [aria-label='Character directory filters'] > span {
+    font-size: 0.75rem;
+    line-height: 1.25;
+  }
+
+  #game-main
+    [data-character-directory]
+    > section
+    > div:last-child:has(> button):not([role='status'])
+    > button
+    > span:last-child {
+    font-size: 0.75rem;
+    line-height: 1.3;
+  }
+}

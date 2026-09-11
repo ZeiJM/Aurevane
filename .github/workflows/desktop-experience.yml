@@ -1,0 +1,74 @@
+name: Desktop experience
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/desktop-experience.yml'
+      - 'apps/web/e2e/desktop-*.pw.ts'
+      - 'apps/web/src/app/desktop-*.css'
+      - 'apps/web/src/app/layout.tsx'
+      - 'apps/web/src/components/shell/**'
+      - 'apps/web/src/components/character/**'
+      - 'apps/web/src/components/account/**'
+      - 'apps/web/src/components/settings/**'
+      - 'apps/web/src/components/social/**'
+      - 'apps/web/src/components/wayfarers-practice/**'
+      - 'apps/web/src/components/battle/battle-launch*'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/desktop-experience.yml'
+      - 'apps/web/e2e/desktop-*.pw.ts'
+      - 'apps/web/src/app/desktop-*.css'
+      - 'apps/web/src/components/shell/**'
+      - 'apps/web/src/components/battle/battle-launch*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-experience-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  desktop-experience:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: corepack enable && corepack prepare pnpm@11.17.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
+      - run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+      - name: Verify rendered desktop and phone interactions
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rev-parse HEAD > validated-commit.txt
+          status_env="$(pnpm exec supabase status -o env)"
+          eval "$(printf '%s\n' "$status_env" | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY|SECRET_KEY)=')"
+          export AUREVANE_ENV=local NEXT_PUBLIC_AUREVANE_ENV=local
+          export NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+          export NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY"
+          export SUPABASE_SECRET_KEY="${SECRET_KEY:-${SERVICE_ROLE_KEY:-}}"
+          pnpm --filter @aurevane/web build
+          PLAYWRIGHT_JSON_OUTPUT_NAME=experience-results.json pnpm --filter @aurevane/web exec playwright test \
+            e2e/desktop-page-fit.pw.ts e2e/desktop-experience.pw.ts e2e/a1-layout-fit.pw.ts \
+            e2e/character-profile-launcher-layout.pw.ts e2e/account-entry.pw.ts \
+            e2e/character-creation.pw.ts e2e/public-information.pw.ts e2e/navigation-menu-position.pw.ts \
+            --reporter=line,json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: desktop-experience-evidence
+          path: |
+            validated-commit.txt
+            apps/web/experience-results.json
+            apps/web/test-results
+          retention-days: 3
+      - if: always()
+        run: pnpm exec supabase stop --no-backup
