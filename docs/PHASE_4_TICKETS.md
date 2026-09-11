@@ -129,3 +129,14 @@ PR [#452](https://github.com/ZeiJM/Aurevane/pull/452) merged at `75f1fcf5d1944c3
 Release `fa98cf197bf2533d6f1d23904380d347ec3a78d7` produced READY production deployment `dpl_ALiUzcMmkJ2yceaHJXHkgb6ktyoF` at https://aurevane.vercel.app. Authenticated live verification reselected the caster tile, saw a legal Fortress preview with Fortified and two turns, committed the action, and confirmed the Fortified entry in the combat log. The sparring battle was surrendered and the test character returned to the Battle Hall. Production error/fatal logs were empty during this check; observed browser-extension diagnostics were unrelated to the application. This record is committed together with restoring the Vercel deployment lock. No migration or balance changes were required by this correction.
 
 The playable implementation is ready for Owner testing. Human tactical acceptance and dedicated production artwork/audio remain open as recorded above.
+
+
+## Phase 4 media integration — Owner testing release
+
+The Owner reiterated continuation after the candidate packet and requested completion of integration and the already-authorized live release. `content/media-releases/phase4-v01.json` records that activation authorization and every runtime file hash. It does not claim an independent visual/listening review or tactical acceptance. The original candidate manifests remain unchanged as provenance.
+
+Ten painted advanced Discipline identities now serve the Profile identity and Essence presentation. Regular Skills retain distinct semantic target/effect sigils. Seventy-two original synthesized cue variants cover the ten advanced action/Essence families plus shared attrition, healing, cleanse and Resonance conversion. These are reusable cue families, not 128 unique recordings or 120 bespoke pair mixes.
+
+Shared playable PvE/PvP and spectator presentation consumes only recent persisted events through a private authenticated endpoint. The existing participant/active-spectator RPC checks authorize each read; no database policy, migration or gameplay rule changes. Reads are bounded to one 100-event page per observed new version, with at most two compact cue descriptors. Initial history, replayed commands, version gaps, previews, failures, hidden tabs and disabled audio produce no catch-up playback. Pending loads cancel on new state, tab changes and unmount. SFX keeps the central volume/mute, gesture unlock and two-voice priority limit.
+
+Final acceptance still needs actual human listening and gameplay feedback. No fabricated playtest outcomes are recorded.

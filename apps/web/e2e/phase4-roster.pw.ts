@@ -162,6 +162,15 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   const list = page.getByTestId('learned-skill-list')
   await expect(list.locator('article')).toHaveCount(8)
   await expect(page.getByTestId('active-essence')).toHaveText('Last Bastion')
+  const essenceArt = page
+    .locator('img[src="/media/art/disciplines/phase4/bastion-256-v01.webp"]')
+    .first()
+  await expect(essenceArt).toBeVisible()
+  await expect
+    .poll(() =>
+      essenceArt.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0),
+    )
+    .toBe(true)
   const fortress = list.locator('article').filter({ hasText: 'Fortress' })
   await expect(fortress).toContainText('Fortified')
   await fortress.locator('summary').click()
@@ -191,6 +200,10 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   await page.getByRole('button', { name: 'Enter Battle', exact: true }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
   const root = page.locator("main[data-unified-battle='true'][data-battle-kind='pve']")
+  const audioRequests: string[] = []
+  page.on('request', (request) => {
+    if (/\/api\/battles\/[^/]+\/audio\?/.test(request.url())) audioRequests.push(request.url())
+  })
   await root.getByRole('button', { name: /Choose Guard skill/ }).click()
   await page.getByRole('option', { name: 'Fortress 30 AP', exact: true }).click()
   await root.getByRole('button', { name: 'Fortress, 30 AP', exact: true }).click()
@@ -210,10 +223,33 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   const committed = page.waitForResponse(
     (response) => response.url().endsWith('/intents') && response.request().method() === 'POST',
   )
+  expect(audioRequests).toEqual([])
+  const committedAudio = page.waitForResponse((response) =>
+    /\/api\/battles\/[^/]+\/audio\?/.test(response.url()),
+  )
+  const playedAsset = page.waitForResponse((response) =>
+    response.url().includes('/media/audio/sfx/phase4/bastion-action-'),
+  )
   await root.getByRole('button', { name: 'Confirm Action', exact: true }).click()
   const commitResponse = await committed
   expect(commitResponse.status()).toBe(200)
   const battle = (await commitResponse.json()).battle
+  const audioResponse = await committedAudio
+  expect(audioResponse.status()).toBe(200)
+  expect(await audioResponse.json()).toEqual({
+    battleVersion: battle.battleVersion,
+    cues: [
+      {
+        assetId: `audio.phase4.bastion-action-v01-${(battle.battleVersion % 3) + 1}`,
+        priority: 70,
+      },
+    ],
+  })
+  const audioAssetResponse = await playedAsset
+  // HTMLAudioElement may request a byte range; 206 is successful media delivery.
+  expect([200, 206]).toContain(audioAssetResponse.status())
+  expect(audioAssetResponse.headers()['content-type']).toContain('audio/mpeg')
+  expect((await audioAssetResponse.body()).byteLength).toBeGreaterThan(0)
   expect(
     battle.snapshot.statusState.flatMap((row: { statuses: unknown[] }) => row.statuses),
   ).toEqual(expect.arrayContaining([expect.objectContaining({ statusId: 'fortified' })]))

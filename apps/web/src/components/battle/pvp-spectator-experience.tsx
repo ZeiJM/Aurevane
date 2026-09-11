@@ -269,6 +269,10 @@ export function PvpSpectatorExperience({
     }
   }
 
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('aurevane:battle-state', { detail: battle }))
+  }, [battle])
+
   function toggleInspect() {
     setInspectMode((current) => {
       const next = !current

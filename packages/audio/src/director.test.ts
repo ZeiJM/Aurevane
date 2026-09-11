@@ -120,4 +120,20 @@ describe('central audio audition and playback boundaries', () => {
     await director.close()
     expect(elements[0]!.pause).toHaveBeenCalledOnce()
   })
+  it('stops pending battle effects without interrupting other channels', async () => {
+    const director = new AudioDirector()
+    await director.unlock()
+    await director.playAsset({ ...approved, channel: 'music', kind: 'music' })
+    let complete!: () => void
+    pendingPlay = new Promise<void>((resolve) => {
+      complete = resolve
+    })
+    const pending = director.playAsset(approved)
+    director.stopChannel('sfx')
+    complete()
+    expect(await pending).toBe(false)
+    expect(elements[0]!.pause).not.toHaveBeenCalled()
+    expect(elements[1]!.pause).toHaveBeenCalledOnce()
+    await director.close()
+  })
 })
