@@ -2,6 +2,9 @@ import { expect, test, type Locator, type Page, type TestInfo } from '@playwrigh
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
+const rosterListSelector =
+  "[data-character-directory] > section > div:last-child:has(> button):not([role='status'])"
+
 const desktopSizes = [
   { width: 1728, height: 885 },
   { width: 1440, height: 900 },
@@ -27,7 +30,7 @@ async function readable(locator: Locator, minimum: number) {
 
 async function fit(page: Page, label: string, testInfo: TestInfo) {
   await settle(page)
-  const metrics = await page.evaluate(() => {
+  const metrics = await page.evaluate((rosterSelector) => {
     const footer = document
       .querySelector('[data-testid="authenticated-shell"] > footer')!
       .getBoundingClientRect()
@@ -37,7 +40,9 @@ async function fit(page: Page, label: string, testInfo: TestInfo) {
         '#game-main button, #game-main input, #game-main select',
       ),
     ]
-      .filter((element) => element.checkVisibility())
+      // Roster entries intentionally scroll inside their bounded list. Check that list's
+      // rectangle here and verify reaching its last entry separately below.
+      .filter((element) => element.checkVisibility() && !element.closest(rosterSelector))
       .map((element) => ({
         text: (element.getAttribute('aria-label') ?? element.textContent ?? '').trim().slice(0, 60),
         rect: element.getBoundingClientRect(),
@@ -47,12 +52,18 @@ async function fit(page: Page, label: string, testInfo: TestInfo) {
       scroll: [document.documentElement.scrollWidth, document.documentElement.scrollHeight],
       footerTop: footer.top,
       mainBottom: main.bottom,
+      rosterLists: [...document.querySelectorAll<HTMLElement>(rosterSelector)].map((list) => ({
+        top: list.getBoundingClientRect().top,
+        bottom: list.getBoundingClientRect().bottom,
+        height: list.clientHeight,
+        overflowY: getComputedStyle(list).overflowY,
+      })),
       clipped: controls.filter(
         ({ rect }) => rect.bottom > footer.top + 1 || rect.left < -1 || rect.right > innerWidth + 1,
       ),
       overflow: getComputedStyle(document.documentElement).overflowY,
     }
-  })
+  }, rosterListSelector)
   console.log('desktop-experience-fit', label, JSON.stringify(metrics))
   await testInfo.attach(label, { body: await page.screenshot(), contentType: 'image/png' })
   expect
@@ -65,6 +76,14 @@ async function fit(page: Page, label: string, testInfo: TestInfo) {
     .soft(metrics.mainBottom, `${label}: content frame behind footer`)
     .toBeLessThanOrEqual(metrics.footerTop + 1)
   expect.soft(metrics.clipped, `${label}: controls cut off by footer/viewport`).toEqual([])
+  for (const list of metrics.rosterLists) {
+    expect.soft(list.top, `${label}: list top`).toBeGreaterThanOrEqual(0)
+    expect
+      .soft(list.bottom, `${label}: list overlaps footer`)
+      .toBeLessThanOrEqual(metrics.footerTop)
+    expect.soft(list.height, `${label}: usable list area`).toBeGreaterThanOrEqual(120)
+    expect.soft(list.overflowY, `${label}: list must remain scrollable`).toBe('auto')
+  }
   expect
     .soft(metrics.overflow, `${label}: do not hide the scrollbar to pass this test`)
     .not.toBe('hidden')
@@ -256,5 +275,63 @@ test('supplementary presence never blocks navigation and pending navigation is a
   } finally {
     releaseNavigation()
     releasePresence()
+  }
+})
+
+test('a large desktop character directory stays inside the page and every entry is reachable', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop list containment')
+  test.setTimeout(90_000)
+  await provisionAccountAndEnterCharacter({
+    page,
+    email: `directory-fit.${Date.now()}@example.com`,
+    password: 'AurevaneTest!42',
+    characterName: 'Directory Navigator',
+  })
+  // Only the public cosmetic directory response is stubbed. Auth and page rendering remain real.
+  const characters = Array.from({ length: 60 }, (_, index) => ({
+    characterId: `10000000-0000-4000-8000-${String(index).padStart(12, '0')}`,
+    name: `Adventurer ${String(index + 1).padStart(2, '0')}`,
+    level: 10,
+    lastSeenAt: new Date().toISOString(),
+    portraitRef: null,
+    disciplineId: index % 2 === 0 ? 'vanguard' : 'lifebinder',
+    personalTitle: null,
+    imageUrl: null,
+    isOnline: index % 2 === 0,
+  }))
+  await page.route('**/api/presence/directory', (route) => route.fulfill({ json: { characters } }))
+  for (const size of [
+    { width: 1366, height: 768 },
+    { width: 1024, height: 576 },
+  ]) {
+    await page.setViewportSize(size)
+    await page.goto('/game/online')
+    await page.getByRole('button', { name: 'Show all characters' }).click()
+    const list = page.locator(rosterListSelector)
+    await expect(list.getByRole('button')).toHaveCount(60)
+    await fit(page, `Directory-60-${size.width}x${size.height}`, testInfo)
+    await readable(page.getByRole('button', { name: 'Show online only' }), 12)
+    await expect
+      .poll(() => list.evaluate((el) => el.scrollHeight - el.clientHeight))
+      .toBeGreaterThan(0)
+    const last = list.getByRole('button').last()
+    await list.hover()
+    await page.mouse.wheel(0, 100_000)
+    await expect(last).toBeInViewport({ ratio: 1 })
+    const scroll = await page.evaluate(() => window.scrollY)
+    expect(scroll).toBe(0)
+    await last.click()
+    const dialog = page.getByRole('dialog', { name: 'Adventurer 60', exact: true })
+    await expect(dialog).toBeVisible()
+    await page.getByRole('button', { name: 'Close public character profile' }).click()
+    await expect(dialog).toBeHidden()
+    // Focusing a card must also reveal it to keyboard users in the internal scroller.
+    await list.getByRole('button').first().focus()
+    await expect(list.getByRole('button').first()).toBeInViewport({ ratio: 1 })
+    await page.getByRole('combobox').first().selectOption('vanguard')
+    await expect(list.getByRole('button')).toHaveCount(30)
+    await fit(page, `Directory-filtered-${size.width}x${size.height}`, testInfo)
   }
 })
