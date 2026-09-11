@@ -26,6 +26,11 @@
     backdrop-filter: none;
   }
 
+  #game-main [data-testid='primary-build-panel'] > button > span:last-child,
+  #game-main [data-testid='skill-build-panel'] > button strong::after {
+    font-size: 0.75rem;
+  }
+
   /* Profile: spend less space on the hero, more on useful, legible information. */
   #game-main > div:has([data-testid='character-profile']) {
     height: auto !important;
@@ -71,6 +76,8 @@
   }
 
   #game-main [data-profile-section-header] > small {
+    font-size: 0.75rem;
+    line-height: 1.2;
     white-space: normal;
     text-align: right;
   }
@@ -166,6 +173,12 @@
 
   #battle-launch [data-pvp-create-card] > :not(label):not(select) {
     grid-column: 1 / -1;
+  }
+
+  #battle-launch article > div:first-child {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
   }
 
   #battle-launch [data-pvp-create-card] > label {
@@ -265,7 +278,7 @@
   }
 
   #battle-launch > nav > button {
-    min-height: 3.15rem;
+    min-height: 3rem;
     padding-block: 0.35rem;
   }
 
@@ -282,6 +295,15 @@
 
   #battle-launch [data-pvp-setting-options] button {
     min-height: 1.85rem;
+  }
+
+  #battle-launch [data-pvp-setting-group] {
+    padding: 0.2rem;
+  }
+
+  #battle-launch :is(input, select) {
+    min-height: 2rem;
+    padding-block: 0.3rem;
   }
 }
 
@@ -332,6 +354,25 @@
     overflow: visible;
   }
 
+  #game-main > :has([aria-label='Combat controls settings']) {
+    margin-block: 0.12rem;
+    padding-block: 0.65rem;
+  }
+
+  #game-main > :has([aria-label='Combat controls settings']) > h1 {
+    margin-block: 0.35rem;
+    font-size: clamp(2rem, 3.5vh, 2.6rem);
+  }
+
+  #game-main [aria-label='Combat controls settings'] {
+    gap: 0.4rem;
+  }
+
+  #game-main [data-testid^='keybind-'] {
+    min-height: 2.5rem;
+    padding: 0.3rem 0.55rem;
+  }
+
   #game-main [data-testid^='keybind-'] strong {
     font-size: 0.875rem;
   }
@@ -357,5 +398,23 @@
   #game-main [data-testid='practice-plan-card'] dd {
     font-size: 0.875rem;
     font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Three mobility stats use the available width instead of creating a mostly empty extra row. */
+@media (min-width: 1280px) {
+  #game-main [data-profile-stat-groups] {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  }
+
+  #game-main [data-profile-stat-group][aria-label='Tempo & Mobility'] > div {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 981px) and (max-height: 820px) {
+  #game-main [data-testid^='derived-stat-'] {
+    min-height: 2.6rem;
+    padding-block: 0.35rem 0.7rem;
   }
 }

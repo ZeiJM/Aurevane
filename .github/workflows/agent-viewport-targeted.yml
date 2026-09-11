@@ -2,61 +2,61 @@ name: Agent viewport targeted
 
 on:
   push:
-    branches:
-      - agent/desktop-viewport-fit
-    paths:
-      - '.github/workflows/agent-viewport-targeted.yml'
-      - 'apps/web/e2e/a1-layout-fit.pw.ts'
-      - 'apps/web/e2e/battle-desktop-viewport-fit.pw.ts'
-      - 'apps/web/src/app/battle-viewport-fit.css'
-      - 'apps/web/src/app/desktop-readability.css'
-      - 'apps/web/src/app/layout.tsx'
+    branches: [agent/desktop-viewport-fit]
 
 permissions:
   contents: read
 
+concurrency:
+  group: desktop-experience-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   viewport:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - run: |
-          corepack enable
-          corepack prepare pnpm@11.17.0 --activate
+      - run: corepack enable && corepack prepare pnpm@11.17.0 --activate
       - run: pnpm install --frozen-lockfile
+      - name: Record source and changed-file checks
+        run: |
+          mkdir -p audit-results
+          git rev-parse HEAD > audit-results/commit.txt
+          git archive --format=tar HEAD | gzip > audit-results/source.tar.gz
+          tar -czf audit-results/prettier-runtime.tar.gz -C node_modules/.pnpm/prettier@3.9.6/node_modules prettier
+          pnpm exec prettier --check apps/web/e2e/desktop-experience.pw.ts apps/web/e2e/a1-layout-fit.pw.ts apps/web/src/app/desktop-page-fit.css apps/web/src/app/desktop-readability.css apps/web/src/components/battle/battle-launch.tsx apps/web/src/components/shell/authenticated-game-shell.tsx apps/web/src/components/shell/navigation-menu.tsx apps/web/src/components/shell/navigation-menu.module.css apps/web/src/components/shell/online-presence-link.tsx > audit-results/changed-format.log 2>&1
+          pnpm --filter @aurevane/web exec eslint e2e/desktop-experience.pw.ts e2e/a1-layout-fit.pw.ts src/components/battle/battle-launch.tsx src/components/shell/authenticated-game-shell.tsx src/components/shell/navigation-menu.tsx src/components/shell/online-presence-link.tsx --max-warnings=0 > audit-results/changed-lint.log 2>&1
+      - name: Check Types
+        run: pnpm typecheck > audit-results/typecheck.log 2>&1
+      - name: Record independent web unit tests
+        run: |
+          set +e
+          pnpm --filter @aurevane/web test > audit-results/web-unit-tests.log 2>&1
+          echo $? > audit-results/web-unit-tests.status
       - run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
       - run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
-      - name: Build and run viewport regressions
-        shell: bash
+      - name: Build and exercise full browser suite
         run: |
           set -euo pipefail
           status_env="$(pnpm exec supabase status -o env)"
           eval "$(printf '%s\n' "$status_env" | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY|SECRET_KEY)=')"
-          test -n "${ANON_KEY:-}"
-          server_key="${SECRET_KEY:-${SERVICE_ROLE_KEY:-}}"
-          test -n "$server_key"
-          api_url='http://127.0.0.1:54321'
-
-          AUREVANE_ENV=local \
-          NEXT_PUBLIC_AUREVANE_ENV=local \
-          NEXT_PUBLIC_SUPABASE_URL="$api_url" \
-          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
-          SUPABASE_SECRET_KEY="$server_key" \
-          pnpm --filter @aurevane/web build
-
-          AUREVANE_ENV=local \
-          NEXT_PUBLIC_AUREVANE_ENV=local \
-          NEXT_PUBLIC_SUPABASE_URL="$api_url" \
-          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
-          SUPABASE_SECRET_KEY="$server_key" \
-          pnpm --filter @aurevane/web exec playwright test \
-            e2e/a1-layout-fit.pw.ts \
-            e2e/battle-desktop-viewport-fit.pw.ts \
-            --project=desktop-chromium \
-            --project=laptop-chromium
+          export AUREVANE_ENV=local NEXT_PUBLIC_AUREVANE_ENV=local
+          export NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+          export NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY"
+          export SUPABASE_SECRET_KEY="${SECRET_KEY:-${SERVICE_ROLE_KEY:-}}"
+          pnpm --filter @aurevane/web build > audit-results/build.log 2>&1
+          pnpm --filter @aurevane/web exec playwright test --reporter=json > audit-results/browser.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: desktop-experience-final-validation
+          path: |
+            audit-results
+            apps/web/test-results
+          retention-days: 3
       - if: always()
         run: pnpm exec supabase stop --no-backup

@@ -73,7 +73,7 @@ export function NavigationMenu({
       >
         <span aria-hidden="true">◇</span> {isPending ? 'Opening…' : 'Navigation'}
       </button>
-      <span className={styles.status} role="status">
+      <span className={styles.status} aria-live="polite" aria-atomic="true">
         {isPending ? 'Opening page…' : ''}
       </span>
       <nav
