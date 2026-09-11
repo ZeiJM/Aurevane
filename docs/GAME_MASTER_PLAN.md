@@ -336,9 +336,9 @@ Players aren't asked to manually distribute thirty different numbers.
 
 General character progression:
 
-Level 1–100.
+Current Level range: 1–50.
 
-The cap is configurable from the Master Panel.
+The versioned server-authoritative cap is 50 under `GAME_MASTER_PLAN_ATTRIBUTE_PROGRESSION_ADDENDUM.md`. Each Level gained after Level 1 grants one assignable attribute point. Full personal-pool redistribution allows five resets per 30-day window, starting at the first reset; all five replenish together. Future Master Panel tuning must preserve the approved current guardrails until an explicit design revision.
 
 Levels primarily provide:
 

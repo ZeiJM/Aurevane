@@ -6,6 +6,12 @@
 
 This addendum supersedes conflicting earlier wording about the current Level cap, per-Level core-attribute growth, attribute redistribution, Discipline-specific attribute ceilings, and the global Critical Chance / Evasion / Movement / Jump limits.
 
+## Current implementation synchronization — 2026-09-11
+
+The September 9 shipped creation refinement (`26941286`, `Use Primary base plus five creation points`) uses a fixed 31-point Primary Core Stat base plus **five player-owned creation points**, followed by one personal point per gained Level. Current creation and allocation code are the source of truth for this delivered boundary. The older six-point recommended spreads in section 4.1 below are historical and must not be restored by following them as current implementation instructions. The current per-Discipline bases/defaults live in `packages/game-core/src/character/foundation-disciplines.ts`.
+
+A full reset refunds the personal pool, including its five creation points; the Primary's fixed base is not a personal allocation to refund. This synchronization records the shipped behavior and introduces no gameplay change or new approval claim.
+
 ## 1. Current Level cap
 
 The current production Level cap is **50**.

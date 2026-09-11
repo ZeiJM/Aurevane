@@ -168,8 +168,8 @@ Current implemented PV-1F baseline:
 ```text
 Turn start                     100 AP
 Inspect                          0 AP
-Move, normal traversal point    25 AP
-Move, terrain cost 2            50 AP
+Move, normal traversal point    20 AP
+Move, terrain cost 2            40 AP
 Basic Attack                    30 AP
 Guard                           30 AP
 Recover                         50 AP

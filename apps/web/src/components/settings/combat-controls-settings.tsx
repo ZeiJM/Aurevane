@@ -1,5 +1,7 @@
 'use client'
 
+import { PV1F_MOVEMENT_COST_PER_TERRAIN_POINT } from '@aurevane/game-core/combat/pv1f-skills'
+
 import {
   COMBAT_KEYBIND_ACTIONS,
   DEFAULT_COMBAT_KEYBINDS,
@@ -21,8 +23,7 @@ const ACTION_COPY: Record<CombatKeybindAction, { label: string; description: str
   inspect: { label: 'Inspect', description: 'Open optional terrain and combatant inspection.' },
   move: {
     label: 'Movement Skill',
-    description:
-      'Activate the currently equipped Movement skill. With Move equipped, a normal tile costs 25 AP.',
+    description: `Activate the currently equipped Movement skill. With Move equipped, a normal tile costs ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP and obeys your remaining Movement allowance.`,
   },
   basicAttack: {
     label: 'Attack Skill',

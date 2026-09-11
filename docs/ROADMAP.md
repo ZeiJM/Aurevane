@@ -2,7 +2,7 @@
 
 **Authority:** Derived from `docs/GAME_MASTER_PLAN.md` and Owner-approved domain specifications. If conflict exists, the Master Game Plan and applicable canonical domain specification win.
 
-**Synchronized:** 2026-09-03
+**Synchronized:** 2026-09-11
 
 This roadmap reflects the game that actually exists today. It formally credits early-delivered battle-platform work instead of pretending later phases must rebuild it.
 
@@ -65,7 +65,7 @@ Active now:
 Not allowed by default:
 
 - reopening or redesigning Phase-2 systems without a genuine regression;
-- pulling P3.4+ or Phase-4+ content into P3.3 without a tightly coupled prerequisite;
+- activating Phase-4 roster expansion before the separate Owner start command;
 - Vercel deployment unless separately authorized by the Owner.
 
 ## Automatic performance/scaling checkpoints
@@ -178,19 +178,19 @@ Primary supplies a base Discipline profile. Player-assigned attributes remain se
 
 Current combat uses one shared **Action Economy**, displayed as AP, normally 100 AP at turn start.
 
-Current implemented baseline:
+Current implemented baseline (September mobility revision):
 
 ```text
 Inspect                         0 AP
-Move, normal traversal point   25 AP
-Move, terrain cost 2           50 AP
+Move, normal traversal point   20 AP
+Move, terrain cost 2           40 AP
 Basic Attack                   30 AP
 Guard                          30 AP
 Recover                        50 AP
 Final Facing                    0 AP and ends turn
 ```
 
-The old Movement Budget + one Action model is retired.
+The old Movement Budget + one Action model is retired. Movement still has its own character allowance (baseline 2, maximum 5), independently enforced alongside AP; Jump starts at 0 and caps at 3.
 
 ---
 
@@ -293,7 +293,7 @@ Delivered substantially:
 - three-character roster foundation;
 - character creation;
 - six attributes and derived stats;
-- XP/level 1–100 boundaries;
+- XP/level 1–50 boundaries, +1 personal attribute point per gained Level and five full personal-pool resets per 30-day window;
 - Character Profile foundation;
 - starting Foundation Discipline;
 - Discipline/Mastery boundaries;
@@ -428,14 +428,23 @@ No Soulmark/Mantle or frontier implementation is required here.
 
 **Goal:** prove the Phase-3 grammar across genuinely different builds before roster scale.
 
-Staged roster:
+Current inherited roster (repository and production catalog checked 2026-09-11):
+
+- Vanguard, Lifebinder, Aetherist, Farstrider and Shadehand already have eight authored Discipline Skills each, five Essences and all ten unordered Resonance pairs among those five.
+- Ironfist is selectable as Primary/Secondary, but has no mature Skill library, Essence or Resonance coverage yet. Six selectable Disciplines do not mean six complete buildcraft packages.
+- Authored coverage is implementation credit, not proof of balance, acquisition, AI quality, media completion or human validation.
+
+Reconciled sequence:
 
 ```text
-4 representative Disciplines
-→ 6–8
+Validate the five inherited authored Disciplines
+→ complete the sixth Foundation (Ironfist)
+→ 6–8 validated Disciplines
 → 12
 → 16 mature Closed Alpha target
 ```
+
+The former four-Discipline minimum is already exceeded in authored coverage. Do not rebuild or remove delivered content to recreate it. The first Phase-4 ticket is a roster acceptance matrix and gap assessment over the existing five plus Ironfist; implementation starts only after the Owner activates Phase 4. See `PHASE_3_CLOSEOUT.md` for the readiness evidence and remaining verification.
 
 Each expansion must justify:
 

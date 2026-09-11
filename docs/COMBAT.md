@@ -4,7 +4,9 @@
 
 **Initial direction approved:** 2026-08-15.  
 **PV-1F rules revision approved:** 2026-08-18.  
-**Terminology/current implementation synchronization:** 2026-08-19.
+**Terminology/current implementation synchronization:** 2026-09-11.
+
+The approved September attribute/progression addendum supersedes the original PV-1F movement costs: 20 AP per terrain-cost point, with a separately enforced character Movement allowance.
 
 This document defines the current AUREVANE combat baseline. When older tickets, tests, prose, screenshots, or historical documents conflict with this file, **this file wins unless the Owner explicitly approves a later change**.
 
@@ -76,12 +78,12 @@ Client previews are informational. A preview never spends resources or proves th
 
 A normal actor turn begins with **100 Action Economy**, displayed to players as **100 AP**, unless an authoritative rule modifies the starting value.
 
-Current implemented PV-1F costs are:
+Current implemented costs are:
 
 ```text
 Inspect                         0 AP
-Move, normal traversal point   25 AP
-Move, terrain cost 2           50 AP
+Move, normal traversal point   20 AP
+Move, terrain cost 2           40 AP
 Basic Attack                   30 AP
 Guard                          30 AP
 Recover                        50 AP
@@ -90,7 +92,7 @@ Final Facing                    0 AP and ends the turn
 
 These values are confirmed by the current server-authoritative `pv1f-action-economy` implementation and current Battle Hall UI. They are versioned balance values, but they are the current rules until deliberately changed.
 
-Movement and actions draw from the **same** 0–100 Action Economy. There is no second generic Movement Budget bar and no binary `Action Ready / Action Spent` rule in this rules version.
+Movement and actions draw from the **same** 0–100 Action Economy. Movement additionally obeys the committed character Movement allowance (baseline 2, maximum 5). Enough AP does not authorize movement beyond that allowance. Jump starts at 0 and caps at 3. The retired binary `Action Ready / Action Spent` model remains retired.
 
 Multiple legal commands may occur during one turn while enough AP remains. For example:
 
@@ -122,8 +124,8 @@ Movement spends AP according to **authoritative traversal cost**.
 Current baseline:
 
 ```text
-Open / normal ground    traversal cost 1  => 25 AP per tile entered
-Rough ground            traversal cost 2  => 50 AP per tile entered
+Open / normal ground    traversal cost 1  => 20 AP per tile entered
+Rough ground            traversal cost 2  => 40 AP per tile entered
 Blocked terrain          illegal unless a movement rule permits it
 ```
 
@@ -131,7 +133,7 @@ The client may display reachable tiles, legality, a path trail, terrain cost and
 
 ### Split movement
 
-Movement may occur around other legal actions if enough AP remains and no status/effect prohibits it.
+Movement may occur around other legal actions if both AP and Movement allowance remain and no status/effect prohibits it.
 
 ### Movement identity still matters
 
