@@ -57,6 +57,10 @@ test('keeps a pending navigation visible and uses a client transition, not a ful
       expect(fonts.label).toBeGreaterThanOrEqual(14)
       expect(fonts.detail).toBeGreaterThanOrEqual(13)
     }
+    await testInfo.attach('navigation-pending', {
+      body: await page.screenshot({ animations: 'disabled' }),
+      contentType: 'image/png',
+    })
     release()
     await expect(page).toHaveURL(/\/game\/battle$/)
     await expect(page.getByRole('heading', { name: 'Choose your arena.' })).toBeVisible()
@@ -78,6 +82,7 @@ test('presence never blocks the page, overlaps requests or polls a hidden tab', 
   )
   test.slow()
   await provisionAccountAndEnterCharacter({ page, ...identity('presence-feedback') })
+  await expect(page.getByRole('link', { name: /Online Users/ })).not.toContainText('—')
   let release = () => {}
   const gate = new Promise<void>((resolve) => {
     release = resolve

@@ -155,7 +155,7 @@
   }
 
   .menu strong {
-    font: 650 0.9rem/1.2 var(--av-font-sans);
+    font: 650 0.9rem/1.2 var(--av-font-body);
     letter-spacing: 0;
     text-transform: none;
   }

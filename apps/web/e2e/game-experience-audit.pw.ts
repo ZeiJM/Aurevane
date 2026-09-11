@@ -47,7 +47,7 @@ test('records current page geometry, typography and local navigation timings', a
         return [{ text: element.textContent?.trim().slice(0, 90), fontPx: size }]
       })
       const coveredControls = Array.from(
-        main?.querySelectorAll('button, input, select, textarea, a') ?? [],
+        footer ? (main?.querySelectorAll('button, input, select, textarea, a') ?? []) : [],
       ).flatMap((element) => {
         const bounds = element.getBoundingClientRect()
         if (
