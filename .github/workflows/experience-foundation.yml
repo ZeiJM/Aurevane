@@ -38,8 +38,8 @@ jobs:
           pnpm --filter @aurevane/web exec eslint src/components/shell/{authenticated-game-shell.tsx,online-presence-link.tsx,navigation-menu.tsx,shell-performance-contract.test.ts} e2e/{navigation-experience,game-experience-audit}.pw.ts --max-warnings=0
       - name: Typecheck
         run: pnpm typecheck
-      - name: Unit tests
-        run: pnpm test
+      - name: Verify shell authority boundaries
+        run: pnpm --filter @aurevane/web exec vitest run src/components/shell/shell-performance-contract.test.ts
       - run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
       - run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
       - name: Build and verify the experience
@@ -63,6 +63,9 @@ jobs:
             e2e/public-information.pw.ts \
             e2e/game-experience-audit.pw.ts \
             --reporter=line,json
+      - name: Full repository unit tests
+        if: ${{ !cancelled() }}
+        run: pnpm test
       - uses: actions/upload-artifact@v4
         if: always()
         with:
