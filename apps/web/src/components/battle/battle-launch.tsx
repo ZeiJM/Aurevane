@@ -492,7 +492,7 @@ export function BattleLaunch({
                 ))}
               </select>
               {pvpMode === 'flex-teams' ? (
-                <div className={styles.flexSizes}>
+                <div className={styles.flexSizes} data-pvp-team-sizes>
                   <label>
                     Team 1
                     <select
@@ -525,7 +525,7 @@ export function BattleLaunch({
               <div data-pvp-settings-panel aria-label="PvP battle settings">
                 <div data-pvp-settings-heading>
                   <strong>Battlefield conditions</strong>
-                  <small>Choose once. These settings lock when the lobby opens.</small>
+                  <small>Settings lock when the lobby opens.</small>
                 </div>
                 <fieldset data-pvp-setting-group>
                   <legend>Map size</legend>
@@ -608,7 +608,7 @@ export function BattleLaunch({
               {pvpMode ? (
                 <p className={styles.modeSummary}>
                   {PVP_MODES.find((mode) => mode.id === pvpMode)?.detail}. {characterName} takes the
-                  first seat. The battlefield and turn timer are locked for the match.
+                  first seat.
                 </p>
               ) : null}
               <button
