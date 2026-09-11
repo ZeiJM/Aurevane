@@ -1,0 +1,28 @@
+name: Agent format probe
+
+on:
+  push:
+    branches:
+      - agent/post-attack-flow-star-centering
+
+permissions:
+  contents: read
+
+jobs:
+  format-probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Show exact Prettier diff
+        run: |
+          pnpm exec prettier apps/web/e2e/character-favorite-techniques.pw.ts --write
+          git diff -- apps/web/e2e/character-favorite-techniques.pw.ts
