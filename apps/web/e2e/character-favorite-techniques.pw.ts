@@ -67,18 +67,15 @@ async function expectCenteredStar(button: Locator): Promise<void> {
     geometry.iconOffsetX,
     'SVG must be horizontally centered in its circle',
   ).toBeLessThanOrEqual(0.5)
-  expect(
-    geometry.iconOffsetY,
-    'SVG must be vertically centered in its circle',
-  ).toBeLessThanOrEqual(0.5)
-  expect(
-    geometry.artworkOffsetX,
-    'Star artwork must be horizontally centered',
-  ).toBeLessThanOrEqual(0.5)
-  expect(
-    geometry.artworkOffsetY,
-    'Star artwork must be vertically centered',
-  ).toBeLessThanOrEqual(0.5)
+  expect(geometry.iconOffsetY, 'SVG must be vertically centered in its circle').toBeLessThanOrEqual(
+    0.5,
+  )
+  expect(geometry.artworkOffsetX, 'Star artwork must be horizontally centered').toBeLessThanOrEqual(
+    0.5,
+  )
+  expect(geometry.artworkOffsetY, 'Star artwork must be vertically centered').toBeLessThanOrEqual(
+    0.5,
+  )
 }
 
 test('favorite Technique is visible, character-scoped, persistent, unique per category, and becomes the battle default', async ({
