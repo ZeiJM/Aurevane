@@ -175,7 +175,7 @@
     justify-content: center;
   }
 
-  [data-testid='authenticated-shell'] [data-profile-fact] > span:last-child {
+  [data-testid='authenticated-shell'] [data-profile-fact]:not(button) > span:last-child {
     justify-items: start;
     text-align: left;
   }
