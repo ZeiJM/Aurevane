@@ -11,7 +11,6 @@ import {
 } from '@aurevane/game-core/character/creation'
 import type { PrimaryDisciplinePreview } from '@aurevane/game-core/character/discipline-build'
 import type { DerivedStatUnit } from '@aurevane/game-core/character/derived-stats'
-import type { Route } from 'next'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -272,8 +271,8 @@ export function CharacterDisciplineBuildPanel({
       params.delete(PROFILE_PANEL_QUERY)
     }
     const query = params.toString()
-    const href = (query ? `${pathname}?${query}` : pathname) as Route
-    router.replace(href, { scroll: false })
+    const href = query ? `${pathname}?${query}` : pathname
+    window.history.replaceState(null, '', href)
   }
 
   async function previewSelection(primaryDisciplineId: string, secondaryDisciplineId: string) {

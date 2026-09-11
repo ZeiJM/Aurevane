@@ -4,7 +4,7 @@ import { toServerErrorResponse } from '@/server/http/error-response'
 import {
   countOnlineCharacters,
   listOnlineCharacters,
-  touchCharacterPresence,
+  touchCharacterPresenceAndCount,
 } from '@/server/presence/character-presence-service'
 
 export async function GET() {
@@ -24,8 +24,9 @@ export async function POST() {
   try {
     const actor = await getAuthenticatedActor()
     const character = await loadSelectedCharacter(actor)
-    if (character) await touchCharacterPresence(actor.userId, character.id)
-    const count = await countOnlineCharacters()
+    const count = character
+      ? await touchCharacterPresenceAndCount(actor.userId, character.id)
+      : await countOnlineCharacters()
     return Response.json(
       { count },
       { status: 200, headers: { 'Cache-Control': 'private, no-store' } },
