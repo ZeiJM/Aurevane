@@ -605,7 +605,7 @@
     align-items: flex-start;
   }
 
-  .rosterHeading small {
+  :global(#game-main) .rosterHeading small {
     white-space: normal;
   }
 
