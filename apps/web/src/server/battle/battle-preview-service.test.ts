@@ -134,9 +134,16 @@ async function createFixture() {
 }
 
 function withMovedPlayer(state: StatDrivenCombatEncounterState): StatDrivenCombatEncounterState {
-  const transition = moveCurrentCombatant(state.tactical, [
-    { x: 0, y: 1 },
-    { x: 1, y: 1 },
+  // Position the forecast fixture adjacent without exceeding the current 2-tile movement cap.
+  const tactical = {
+    ...state.tactical,
+    placements: state.tactical.placements.map((placement) =>
+      placement.combatantId === `character:${CHARACTER_ID}`
+        ? { ...placement, position: { x: 2, y: 1 } }
+        : placement,
+    ),
+  }
+  const transition = moveCurrentCombatant(tactical, [
     { x: 2, y: 1 },
     { x: 3, y: 1 },
   ])
@@ -167,10 +174,10 @@ describe('P2.5 authoritative battle preview service', () => {
       kind: 'move',
       legal: true,
       cost: 1,
-      movementRemainingAfter: 9,
-      actionEconomyCost: 25,
+      movementRemainingAfter: 1,
+      actionEconomyCost: 20,
       actionEconomyBefore: 100,
-      actionEconomyAfter: 75,
+      actionEconomyAfter: 80,
       issues: [],
     })
     expect(battles.commitBattleIntent).not.toHaveBeenCalled()

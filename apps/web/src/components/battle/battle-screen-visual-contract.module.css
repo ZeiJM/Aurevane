@@ -97,9 +97,7 @@
 }
 
 :global(
-  main[data-battle-visual-contract='true']
-    [data-battle-command]:not([data-command-slot])
-    > span
+  main[data-battle-visual-contract='true'] [data-battle-command]:not([data-command-slot]) > span
 ) {
   grid-column: 1 !important;
   grid-row: 1 / -1 !important;
@@ -109,14 +107,10 @@
 }
 
 :global(
-  main[data-battle-visual-contract='true']
-    [data-battle-command]:not([data-command-slot])
-    > strong
+  main[data-battle-visual-contract='true'] [data-battle-command]:not([data-command-slot]) > strong
 ),
 :global(
-  main[data-battle-visual-contract='true']
-    [data-battle-command]:not([data-command-slot])
-    > small
+  main[data-battle-visual-contract='true'] [data-battle-command]:not([data-command-slot]) > small
 ) {
   grid-column: 2 !important;
   width: 100% !important;
@@ -124,9 +118,7 @@
 }
 
 :global(
-  main[data-battle-visual-contract='true']
-    [data-battle-command]:not([data-command-slot])
-    > strong
+  main[data-battle-visual-contract='true'] [data-battle-command]:not([data-command-slot]) > strong
 ) {
   grid-row: 1 !important;
   font: 600 0.57rem/1 var(--av-font-display) !important;
@@ -134,9 +126,7 @@
 }
 
 :global(
-  main[data-battle-visual-contract='true']
-    [data-battle-command]:not([data-command-slot])
-    > small
+  main[data-battle-visual-contract='true'] [data-battle-command]:not([data-command-slot]) > small
 ) {
   grid-row: 2 !important;
   font: 650 0.36rem/1 var(--av-font-mono) !important;
@@ -248,11 +238,7 @@
     place-items: center !important;
   }
 
-  :global(
-    main[data-battle-visual-contract='true']
-      #battlefield
-      > [aria-label='Terrain legend']
-  ) {
+  :global(main[data-battle-visual-contract='true'] #battlefield > [aria-label='Terrain legend']) {
     display: flex !important;
     grid-row: 2 !important;
     box-sizing: border-box !important;
@@ -307,9 +293,7 @@
     border-radius: clamp(0.18rem, 0.35vw, 0.4rem) !important;
   }
 
-  :global(
-    main[data-battle-visual-contract='true'] [data-battle-command]:not([data-command-slot])
-  ) {
+  :global(main[data-battle-visual-contract='true'] [data-battle-command]:not([data-command-slot])) {
     min-height: 2.75rem !important;
     padding: 0.3rem 0.38rem !important;
   }
@@ -339,9 +323,7 @@
   }
 
   /* Exact approved PvP compact mobile command-card footprint for untouched legacy command cards. */
-  :global(
-    main[data-battle-visual-contract='true'] [data-battle-command]:not([data-command-slot])
-  ) {
+  :global(main[data-battle-visual-contract='true'] [data-battle-command]:not([data-command-slot])) {
     grid-template-columns: minmax(0, 1fr) !important;
     grid-template-rows: auto auto !important;
     min-height: 2.55rem !important;
@@ -353,22 +335,16 @@
   }
 
   :global(
-    main[data-battle-visual-contract='true']
-      [data-battle-command]:not([data-command-slot])
-      > span
+    main[data-battle-visual-contract='true'] [data-battle-command]:not([data-command-slot]) > span
   ) {
     display: none !important;
   }
 
   :global(
-    main[data-battle-visual-contract='true']
-      [data-battle-command]:not([data-command-slot])
-      > strong
+    main[data-battle-visual-contract='true'] [data-battle-command]:not([data-command-slot]) > strong
   ),
   :global(
-    main[data-battle-visual-contract='true']
-      [data-battle-command]:not([data-command-slot])
-      > small
+    main[data-battle-visual-contract='true'] [data-battle-command]:not([data-command-slot]) > small
   ) {
     grid-column: 1 !important;
     width: 100% !important;
@@ -377,17 +353,13 @@
   }
 
   :global(
-    main[data-battle-visual-contract='true']
-      [data-battle-command]:not([data-command-slot])
-      > strong
+    main[data-battle-visual-contract='true'] [data-battle-command]:not([data-command-slot]) > strong
   ) {
     grid-row: 1 !important;
   }
 
   :global(
-    main[data-battle-visual-contract='true']
-      [data-battle-command]:not([data-command-slot])
-      > small
+    main[data-battle-visual-contract='true'] [data-battle-command]:not([data-command-slot]) > small
   ) {
     grid-row: 2 !important;
   }
@@ -472,19 +444,35 @@
     font-size: 0.63rem !important;
   }
 
-  :global(main[data-battle-visual-contract='true'] [data-battle-facing-control='true'] > button:nth-of-type(1)) {
+  :global(
+    main[data-battle-visual-contract='true']
+      [data-battle-facing-control='true']
+      > button:nth-of-type(1)
+  ) {
     grid-column: 1 !important;
   }
 
-  :global(main[data-battle-visual-contract='true'] [data-battle-facing-control='true'] > button:nth-of-type(2)) {
+  :global(
+    main[data-battle-visual-contract='true']
+      [data-battle-facing-control='true']
+      > button:nth-of-type(2)
+  ) {
     grid-column: 2 !important;
   }
 
-  :global(main[data-battle-visual-contract='true'] [data-battle-facing-control='true'] > button:nth-of-type(3)) {
+  :global(
+    main[data-battle-visual-contract='true']
+      [data-battle-facing-control='true']
+      > button:nth-of-type(3)
+  ) {
     grid-column: 4 !important;
   }
 
-  :global(main[data-battle-visual-contract='true'] [data-battle-facing-control='true'] > button:nth-of-type(4)) {
+  :global(
+    main[data-battle-visual-contract='true']
+      [data-battle-facing-control='true']
+      > button:nth-of-type(4)
+  ) {
     grid-column: 5 !important;
   }
 

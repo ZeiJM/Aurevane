@@ -11,7 +11,15 @@ import {
   PV1F_RECOVER_COST,
 } from '@aurevane/game-core/combat/pv1f-skills'
 import type { BattleIntent } from '@aurevane/validation/combat/battle-session'
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react'
 
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
 import type { BattlePreviewView } from '@/server/battle/battle-preview-service'
@@ -226,7 +234,9 @@ export function BattleExperience({
   const recruitAttemptedVersion = useRef<number | null>(null)
   const recruitLock = useRef(false)
   const modeRef = useRef<Mode>('none')
-  modeRef.current = mode
+  useLayoutEffect(() => {
+    modeRef.current = mode
+  }, [mode])
   const { registerFinishTurnHandler, registerInspectCloseHandler } = useBattleInteractionLifecycle()
 
   const { selectedSkillId, selectSkill } = useBattleSkillSelections(
@@ -325,9 +335,10 @@ export function BattleExperience({
   const planningDisabled =
     !localTurn || battleState.lifecycle !== 'active' || commitPending || recruitPending
   const planningDisabledRef = useRef(planningDisabled)
-  planningDisabledRef.current = planningDisabled
+  useLayoutEffect(() => {
+    planningDisabledRef.current = planningDisabled
+  }, [planningDisabled])
   const activeName = battleParticipantName(viewModel, battleState.currentTurn?.combatantId)
-  const selectedHealIsMp = effectiveHealActionId === MP_RECOVER_ID
   const selectedHealName = selectedHealOption.label
   const selectedHealCost = Number.parseInt(selectedHealOption.cost, 10)
   const selectedHealAtMaximum =
@@ -971,7 +982,6 @@ export function BattleExperience({
       }
     },
     [
-      attackRange,
       battleState.combatants,
       clearPlanning,
       localParticipant,

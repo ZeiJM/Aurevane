@@ -15,7 +15,9 @@ function completedBattle(battle: BattleSessionView): BattleSessionView | null {
 }
 
 export function PveBattleCompletionBridge({ initialBattle }: PveBattleCompletionBridgeProps) {
-  const [battle, setBattle] = useState<BattleSessionView | null>(() => completedBattle(initialBattle))
+  const [battle, setBattle] = useState<BattleSessionView | null>(() =>
+    completedBattle(initialBattle),
+  )
 
   useEffect(() => {
     const handleBattleState = (event: Event) => {

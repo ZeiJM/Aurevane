@@ -8,7 +8,7 @@ describe('Foundation Discipline media', () => {
     for (const discipline of FOUNDATION_DISCIPLINES) {
       expect(getFoundationDisciplineImageAsset(discipline.id)).toMatchObject({
         kind: 'icon',
-        status: 'requested',
+        status: 'approved',
         requestId: 'ART-DISC-001',
         decorative: true,
       })

@@ -116,11 +116,6 @@ export function CharacterAttributeAllocationPanel({
     }
   }, [closeReset, forced, open, saveState])
 
-  useEffect(() => {
-    if (mode === 'convert') setDraft({ ...allocation.baseAttributes })
-    else if (mode === 'spend') setDraft(allocation.attributes)
-  }, [allocation.attributes, allocation.baseAttributes, mode])
-
   function changeAttribute(attributeId: CharacterAttributeId, delta: number) {
     if (!mode) return
     setMessage(null)
@@ -164,7 +159,7 @@ export function CharacterAttributeAllocationPanel({
       }
 
       setAllocation(body.allocation)
-      setDraft(body.allocation.attributes)
+      setDraft(initialDraft(body.allocation))
       setMessage(null)
       if (mode === 'reset') setResetOpen(false)
       router.refresh()

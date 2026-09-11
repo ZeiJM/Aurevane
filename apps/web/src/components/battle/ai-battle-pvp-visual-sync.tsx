@@ -58,7 +58,9 @@ function markAiHeader(root: HTMLElement) {
   )
   if (round) round.dataset.aiBattleRound = 'true'
 
-  const victory = header.querySelector<HTMLButtonElement>('button[aria-label^="Victory conditions"]')
+  const victory = header.querySelector<HTMLButtonElement>(
+    'button[aria-label^="Victory conditions"]',
+  )
   if (victory) victory.dataset.aiBattleVictory = 'true'
 }
 

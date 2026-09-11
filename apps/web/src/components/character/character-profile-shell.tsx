@@ -1,3 +1,5 @@
+import Image from 'next/image'
+
 import { foundationDisciplineAttributePolicy } from '@aurevane/game-core/character/attribute-allocation'
 import type {
   CharacterAttributeId,
@@ -295,7 +297,10 @@ export function CharacterProfileShell({
             <section className={styles.buildIdentity} aria-label="Combat loadout identity">
               {resonance || essence ? (
                 <span className={styles.buildIdentityArt} aria-hidden="true">
-                  <img
+                  <Image
+                    width={64}
+                    height={64}
+                    unoptimized
                     src={
                       resonance
                         ? battleResonanceArtwork(resonance.id)

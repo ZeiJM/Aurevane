@@ -1,22 +1,36 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 
 import battleStyles from './battle-experience-v2.module.css'
 import styles from './ai-terrain-legend-pvp-parity.module.css'
 
+function readBattlefield(): HTMLElement | null {
+  const target = document.querySelector<HTMLElement>(
+    'section#battlefield[aria-label="Tactical battlefield"]',
+  )
+  return target?.closest<HTMLElement>('main')?.dataset.pvpBattle === 'true' ? null : target
+}
+
+function subscribeBattlefield(onChange: () => void) {
+  const observer = new MutationObserver(onChange)
+  observer.observe(document.body, { childList: true, subtree: true })
+  return () => observer.disconnect()
+}
+
+function serverBattlefield() {
+  return null
+}
+
 export function AiNativeTerrainLegend() {
-  const [battlefield, setBattlefield] = useState<HTMLElement | null>(null)
+  const battlefield = useSyncExternalStore(subscribeBattlefield, readBattlefield, serverBattlefield)
 
   useEffect(() => {
-    const target = document.querySelector<HTMLElement>(
-      'section#battlefield[aria-label="Tactical battlefield"]',
-    )
-    const root = target?.closest<HTMLElement>('main') ?? null
-    if (!target || root?.dataset.pvpBattle === 'true') return
+    const target = battlefield
+    if (!target) return
 
-    target.dataset.aiTerrainLayout = 'true'
+    target.setAttribute('data-ai-terrain-layout', 'true')
 
     const legacyLegend = target.querySelector<HTMLElement>(
       `:scope > .${CSS.escape(battleStyles.legend)}`,
@@ -26,16 +40,14 @@ export function AiNativeTerrainLegend() {
       legacyLegend.setAttribute('aria-hidden', 'true')
     }
 
-    setBattlefield(target)
-
     return () => {
-      delete target.dataset.aiTerrainLayout
+      target.removeAttribute('data-ai-terrain-layout')
       if (legacyLegend) {
         delete legacyLegend.dataset.aiLegacyTerrainLegend
         legacyLegend.removeAttribute('aria-hidden')
       }
     }
-  }, [])
+  }, [battlefield])
 
   if (!battlefield) return null
 

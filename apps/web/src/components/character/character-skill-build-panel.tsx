@@ -1,5 +1,7 @@
 'use client'
 
+import Image from 'next/image'
+
 import type { EssenceDefinition } from '@aurevane/game-core/combat/essence'
 import type { MatureSkillDefinition } from '@aurevane/game-core/combat/mature-skills'
 import type { ResonanceDefinition } from '@aurevane/game-core/combat/resonance'
@@ -351,7 +353,10 @@ export function CharacterSkillBuildPanel({
                         {initialResonance ? (
                           <article className={polish.signatureCard}>
                             <span className={polish.signatureArtFrame} aria-hidden="true">
-                              <img
+                              <Image
+                                width={64}
+                                height={64}
+                                unoptimized
                                 className={polish.signatureArt}
                                 src={battleResonanceArtwork(initialResonance.id)}
                                 alt=""
@@ -376,7 +381,10 @@ export function CharacterSkillBuildPanel({
                         {initialEssence ? (
                           <article className={polish.signatureCard}>
                             <span className={polish.signatureArtFrame} aria-hidden="true">
-                              <img
+                              <Image
+                                width={64}
+                                height={64}
+                                unoptimized
                                 className={polish.signatureArt}
                                 src={battleSkillArtwork(initialEssence.skill.id)}
                                 alt=""
@@ -448,7 +456,10 @@ export function CharacterSkillBuildPanel({
                                   onChange={() => toggle(entry)}
                                 />
                                 <span className={styles.artFrame} aria-hidden="true">
-                                  <img
+                                  <Image
+                                    width={64}
+                                    height={64}
+                                    unoptimized
                                     className={styles.skillArt}
                                     src={battleSkillArtwork(entry.definition.id)}
                                     alt=""

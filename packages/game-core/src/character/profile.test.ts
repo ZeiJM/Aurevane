@@ -6,8 +6,8 @@ import { buildCharacterProfileReadModel } from './profile'
 
 const levelCurve: LevelProgressionCurve = {
   version: 1,
-  maxLevel: 100,
-  cumulativeXpByLevel: Array.from({ length: 100 }, (_, index) => index * 100),
+  maxLevel: 50,
+  cumulativeXpByLevel: Array.from({ length: 50 }, (_, index) => index * 100),
 }
 
 const character: PersistedCharacter = {
@@ -58,10 +58,10 @@ describe('character profile read model', () => {
   it('calculates derived stats and Level progress from authoritative state plus curve config', () => {
     const profile = buildCharacterProfileReadModel(character, levelCurve)
 
-    expect(profile.derived.rulesVersion).toBe(1)
+    expect(profile.derived.rulesVersion).toBe(2)
     expect(profile.derived.stats.maxHp.value).toBe(164)
-    expect(profile.derived.stats.accuracy.value).toBe(7400)
-    expect(profile.derived.stats.movement.value).toBe(4)
+    expect(profile.derived.stats.accuracy.value).toBe(6650)
+    expect(profile.derived.stats.movement.value).toBe(2)
     expect(profile.progression.progress).toMatchObject({
       curveVersion: 1,
       level: 1,

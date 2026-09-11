@@ -167,10 +167,10 @@ describe('battle session committed Primary stat authority', () => {
       (candidate) => candidate.combatantId === `character:${CHARACTER_ID}`,
     )
 
-    // Raw Level-1 Agility 6 yields Movement 2 in V2. Farstrider's committed +1 profile must be
-    // present in battle, matching the Profile-derived snapshot rather than raw attributes alone.
-    expect(player?.baseMovementBudget).toBe(3)
-    expect(state.tactical.battle.currentTurn?.movementRemaining).toBe(3)
+    // All Level-1 characters start at Movement 2; legacy profile offsets cannot bypass that rule.
+    // Other committed Primary modifiers must still reach the battle snapshot.
+    expect(player?.baseMovementBudget).toBe(2)
+    expect(state.tactical.battle.currentTurn?.movementRemaining).toBe(2)
     expect(profile?.accuracy).toBe(6_950)
     expect(profile?.evasion).toBe(320)
   })

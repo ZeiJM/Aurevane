@@ -388,7 +388,10 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
                 >
                   {selected.name}
                 </h2>
-                <div aria-label="Character identity tags" style={{ display: 'grid', gap: '.38rem' }}>
+                <div
+                  aria-label="Character identity tags"
+                  style={{ display: 'grid', gap: '.38rem' }}
+                >
                   <span
                     style={{
                       color: 'var(--av-text-dim)',
@@ -416,9 +419,7 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
                                 : '1px solid rgba(207,169,93,.38)',
                             borderRadius: '999px',
                             color:
-                              tag.kind === 'Personal Title'
-                                ? '#a4ddb7'
-                                : 'var(--av-brass-200)',
+                              tag.kind === 'Personal Title' ? '#a4ddb7' : 'var(--av-brass-200)',
                             background:
                               tag.kind === 'Personal Title'
                                 ? 'linear-gradient(180deg, rgba(55,126,82,.13), rgba(55,126,82,.05))'

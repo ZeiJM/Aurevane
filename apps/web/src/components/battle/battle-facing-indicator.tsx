@@ -22,9 +22,14 @@ function facingFromGlyph(value: string): BattleFacing | null {
 
 export function BattleFacingIndicator({ facing }: { facing: BattleFacing }) {
   const [displayFacing, setDisplayFacing] = useState(facing)
+  const [previousFacing, setPreviousFacing] = useState(facing)
   const compatibilityGlyphRef = useRef<HTMLElement | null>(null)
 
-  useEffect(() => setDisplayFacing(facing), [facing])
+  // Discard a legacy DOM preview when authoritative facing changes, before children render.
+  if (previousFacing !== facing) {
+    setPreviousFacing(facing)
+    setDisplayFacing(facing)
+  }
 
   useEffect(() => {
     const glyph = compatibilityGlyphRef.current

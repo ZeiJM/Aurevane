@@ -75,12 +75,13 @@ describe('PvP desktop battle layout authority', () => {
     expect(mobileCss).not.toContain('width: 8.4rem')
   })
 
-  it('replaces the native PvP terrain legend instead of appending a third battlefield row', () => {
-    const presentationPolish = readLocalFile('battle-presentation-polish.tsx')
-
-    expect(presentationPolish).toContain('function createPolishedTerrainLegend()')
-    expect(presentationPolish).toContain('nativeLegend.replaceWith(replacement)')
-    expect(presentationPolish).toContain("legend.dataset.terrainLegendPolish = 'true'")
+  it('polishes the one native shared terrain legend without adding battlefield rows', () => {
+    const experience = readLocalFile('battle-experience.tsx')
+    const presentationPolish = readLocalFile('battle-terrain-presentation-polish.tsx')
+    expect(experience.match(/aria-label="Terrain legend"/g)).toHaveLength(1)
+    expect(presentationPolish).toContain('syncLegendTerminology(battlefield)')
+    expect(presentationPolish).toContain("[aria-label='Terrain legend'] > span")
+    expect(presentationPolish).not.toContain("document.createElement('div')")
   })
 
   it('keeps the desktop PvP board full-scale and height-aware without leaking to mobile', () => {

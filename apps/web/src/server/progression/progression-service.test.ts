@@ -18,8 +18,8 @@ function repository(overrides: Partial<ProgressionRepository> = {}): Progression
   return {
     loadCurveForCycle: vi.fn(async () => ({
       version: 1,
-      maxLevel: 100,
-      cumulativeXpByLevel: Array.from({ length: 100 }, (_, index) => index * 100),
+      maxLevel: 50,
+      cumulativeXpByLevel: Array.from({ length: 50 }, (_, index) => index * 100),
     })),
     grantCharacterXp: vi.fn(async () => ({
       replayed: false,
@@ -51,8 +51,8 @@ describe('progression service', () => {
   it('loads and validates the server-configured curve', async () => {
     const curve = await loadLevelProgressionCurve(1, repository())
 
-    expect(curve).toMatchObject({ version: 1, maxLevel: 100 })
-    expect(curve.cumulativeXpByLevel).toHaveLength(100)
+    expect(curve).toMatchObject({ version: 1, maxLevel: 50 })
+    expect(curve.cumulativeXpByLevel).toHaveLength(50)
   })
 
   it('rejects malformed persisted curve configuration', async () => {

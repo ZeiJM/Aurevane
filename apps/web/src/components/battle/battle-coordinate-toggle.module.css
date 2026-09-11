@@ -23,9 +23,7 @@
  * and the centred combatant token.
  */
 :global(
-  section#battlefield[data-show-coordinates='true']
-    button[aria-label^='Tile ']
-    > span:first-child
+  section#battlefield[data-show-coordinates='true'] button[aria-label^='Tile '] > span:first-child
 ) {
   top: 0.22rem !important;
 }
@@ -209,11 +207,7 @@
     border: 1px solid rgba(223, 76, 76, 0.82) !important;
     border-radius: var(--av-radius-sm) !important;
     color: #f7c4c4 !important;
-    background: linear-gradient(
-      145deg,
-      rgba(116, 25, 30, 0.97),
-      rgba(55, 12, 17, 0.99)
-    ) !important;
+    background: linear-gradient(145deg, rgba(116, 25, 30, 0.97), rgba(55, 12, 17, 0.99)) !important;
     box-shadow:
       inset 0 1px 0 rgba(255, 226, 226, 0.07),
       inset 0 0 0 1px rgba(208, 64, 64, 0.08),
@@ -251,11 +245,7 @@
   ) {
     border-color: rgba(255, 90, 90, 0.98) !important;
     color: #fff0f0 !important;
-    background: linear-gradient(
-      145deg,
-      rgba(154, 33, 39, 0.99),
-      rgba(77, 15, 21, 1)
-    ) !important;
+    background: linear-gradient(145deg, rgba(154, 33, 39, 0.99), rgba(77, 15, 21, 1)) !important;
     box-shadow:
       inset 0 1px 0 rgba(255, 232, 232, 0.1),
       inset 0 0 0 1px rgba(240, 79, 79, 0.12),
