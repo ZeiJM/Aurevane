@@ -58,13 +58,14 @@ export async function surrenderAiBattle(
   expectedBattleVersion: number,
   idempotencyKey: string,
 ): Promise<BattleSessionView> {
-  const pvpMetadata = await getPvpBattleMetadata(userId, battleSessionId)
+  const repository = createSupabaseBattleSessionRepository()
+  const [pvpMetadata, current] = await Promise.all([
+    getPvpBattleMetadata(userId, battleSessionId),
+    repository.findBattleSession(userId, battleSessionId),
+  ])
   if (pvpMetadata) {
     throw new AurevaneError('INVALID_REQUEST', 'PvP battles must use the PvP surrender flow.')
   }
-
-  const repository = createSupabaseBattleSessionRepository()
-  const current = await repository.findBattleSession(userId, battleSessionId)
   if (!current) {
     throw new AurevaneError('FORBIDDEN', 'That AI battle is not available to this account.')
   }
