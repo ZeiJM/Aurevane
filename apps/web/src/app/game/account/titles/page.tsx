@@ -36,18 +36,33 @@ export default async function CharacterTitlesPage() {
     throw error
   }
 
-  const [activeBattle, activeSpectating] = await Promise.all([
-    getActiveBattleForUser(actor.userId),
-    getActiveSpectatingForUser(actor.userId),
-  ])
+  const [activeBattleResult, activeSpectatingResult, selectedCharacterResult] =
+    await Promise.allSettled([
+      getActiveBattleForUser(actor.userId),
+      getActiveSpectatingForUser(actor.userId),
+      loadSelectedCharacter(actor),
+    ])
+  if (activeBattleResult.status === 'rejected') throw activeBattleResult.reason
+  const activeBattle = activeBattleResult.value
   if (activeBattle) redirect(`/game/battle/${activeBattle.battleSessionId}`)
+  if (activeSpectatingResult.status === 'rejected') throw activeSpectatingResult.reason
+  const activeSpectating = activeSpectatingResult.value
   if (activeSpectating) redirect(`/game/battle/spectate/${activeSpectating.battleKey}`)
 
-  let character
+  if (selectedCharacterResult.status === 'rejected') {
+    if (
+      isAurevaneError(selectedCharacterResult.reason) &&
+      selectedCharacterResult.reason.code === 'PERSISTENCE_UNAVAILABLE'
+    ) {
+      return <AuthenticatedGameRecovery />
+    }
+    throw selectedCharacterResult.reason
+  }
+  const character = selectedCharacterResult.value
+
   let titleState
   let displayState
   try {
-    character = await loadSelectedCharacter(actor)
     if (!character) redirect('/game')
     ;[titleState, displayState] = await Promise.all([
       loadCharacterTitleState(actor.userId, character.id),

@@ -6,7 +6,6 @@ import {
   type CharacterAttributeId,
   type CharacterAttributes,
 } from '@aurevane/game-core/character/creation'
-import type { Route } from 'next'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
@@ -91,9 +90,9 @@ export function CharacterAttributeAllocationPanel({
         params.delete(ATTRIBUTE_MODE_QUERY)
       }
       const query = params.toString()
-      router.replace((query ? `${pathname}?${query}` : pathname) as Route, { scroll: false })
+      window.history.replaceState(null, '', query ? `${pathname}?${query}` : pathname)
     },
-    [pathname, router, searchParams],
+    [pathname, searchParams],
   )
 
   const closeReset = useCallback(() => {

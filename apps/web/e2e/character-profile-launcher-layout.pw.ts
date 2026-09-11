@@ -56,4 +56,29 @@ test('Profile build launchers stay centered and typographically matched', async 
     disciplineLabel.evaluate((element) => getComputedStyle(element).fontSize),
   ])
   expect(techniquesFontSize).toBe(disciplineFontSize)
+
+  const serverNavigations: string[] = []
+  page.on('request', (request) => {
+    const url = new URL(request.url())
+    if (url.pathname === '/game/character' && request.headers().rsc === '1') {
+      serverNavigations.push(request.url())
+    }
+  })
+
+  await techniquesLauncher.click()
+  const techniquesDialog = page.getByRole('dialog', { name: 'Techniques' })
+  await expect(techniquesDialog).toBeVisible()
+  await expect(page).toHaveURL(/profilePanel=techniques/)
+  await techniquesDialog.getByRole('button', { name: 'Close' }).click()
+
+  await disciplineLauncher.click()
+  const disciplineDialog = page.getByRole('dialog', { name: 'Discipline Management' })
+  await expect(disciplineDialog).toBeVisible()
+  await expect(page).toHaveURL(/profilePanel=disciplines/)
+  await page.waitForTimeout(100)
+
+  expect(
+    serverNavigations,
+    'Profile management panels should open without an RSC navigation',
+  ).toEqual([])
 })

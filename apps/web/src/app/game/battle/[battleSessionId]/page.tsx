@@ -138,8 +138,12 @@ export default async function BattleSessionPage({
   })
 
   let battle: Awaited<ReturnType<typeof service.getSession>>
+  let pvpMetadata: Awaited<ReturnType<typeof getPvpBattleMetadata>>
   try {
-    battle = await service.getSession(actor.userId, battleSessionId)
+    ;[battle, pvpMetadata] = await Promise.all([
+      service.getSession(actor.userId, battleSessionId),
+      getPvpBattleMetadata(actor.userId, battleSessionId),
+    ])
   } catch (error) {
     if (
       isAurevaneError(error) &&
@@ -152,14 +156,13 @@ export default async function BattleSessionPage({
 
   if (battle.snapshot.tactical.battle.lifecycle === 'abandoned') redirect('/game/battle')
 
-  const pvpMetadata = await getPvpBattleMetadata(actor.userId, battleSessionId)
   if (pvpMetadata) {
-    const character = characters.findByOwnerId
-      ? await characters.findByOwnerId(actor.userId, pvpMetadata.localCharacterId)
-      : null
-    if (!character || !isStarterCharacterPortraitRef(character.portraitRef))
+    const localParticipant = pvpMetadata.participants.find(
+      (participant) => participant.characterId === pvpMetadata.localCharacterId,
+    )
+    if (!localParticipant || !isStarterCharacterPortraitRef(localParticipant.portraitRef))
       redirect('/game/battle')
-    const buildExtensions = battleBuildExtensions(battle, `character:${character.id}`)
+    const buildExtensions = battleBuildExtensions(battle, localParticipant.combatantId)
 
     return (
       <BattleAudioGate>
@@ -167,7 +170,7 @@ export default async function BattleSessionPage({
           initialBattle={battle}
           runtime={{
             kind: 'pvp',
-            playerName: character.name,
+            playerName: localParticipant.characterName,
             techniques: buildExtensions.techniques,
             resonance: buildExtensions.resonance,
             essence: buildExtensions.essence,
@@ -184,18 +187,19 @@ export default async function BattleSessionPage({
   const characterId = playerProfile?.provenance.sourceId.startsWith('character:')
     ? playerProfile.provenance.sourceId.slice('character:'.length)
     : null
-  const character =
-    characterId && characters.findByOwnerId
-      ? await characters.findByOwnerId(actor.userId, characterId)
-      : null
+  const [character, playerProfileImageUrl] = characterId
+    ? await Promise.all([
+        characters.findByOwnerId
+          ? characters.findByOwnerId(actor.userId, characterId)
+          : Promise.resolve(null),
+        loadCharacterProfileDisplay(actor.userId, characterId).then(
+          (display) => display.imageUrl,
+          // Cosmetic display failure falls back to the built-in portrait.
+          () => null,
+        ),
+      ])
+    : [null, null]
   if (!character || !isStarterCharacterPortraitRef(character.portraitRef)) redirect('/game/battle')
-
-  let playerProfileImageUrl: string | null = null
-  try {
-    playerProfileImageUrl = (await loadCharacterProfileDisplay(actor.userId, character.id)).imageUrl
-  } catch {
-    // Cosmetic display failure falls back to the built-in portrait.
-  }
 
   const buildExtensions = battleBuildExtensions(battle, `character:${character.id}`)
 

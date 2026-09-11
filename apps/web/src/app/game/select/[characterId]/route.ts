@@ -29,13 +29,23 @@ export async function GET(
   { params }: { params: Promise<{ characterId: string }> },
 ) {
   const actor = await getAuthenticatedActor()
-  const activeBattle = await getActiveBattleForUser(actor.userId)
+  const characterPromise = params.then(({ characterId }) =>
+    findPlayableOwnedCharacterById(actor.userId, characterId),
+  )
+  const [activeBattleResult, spectatingResult, characterResult] = await Promise.allSettled([
+    getActiveBattleForUser(actor.userId),
+    getActiveSpectatingForUser(actor.userId),
+    characterPromise,
+  ])
+  if (activeBattleResult.status === 'rejected') throw activeBattleResult.reason
+  const activeBattle = activeBattleResult.value
   if (activeBattle) return redirectTo(`/game/battle/${activeBattle.battleSessionId}`)
-  const spectating = await getActiveSpectatingForUser(actor.userId)
+  if (spectatingResult.status === 'rejected') throw spectatingResult.reason
+  const spectating = spectatingResult.value
   if (spectating) return redirectTo(`/game/battle/spectate/${spectating.battleKey}`)
 
-  const { characterId } = await params
-  const character = await findPlayableOwnedCharacterById(actor.userId, characterId)
+  if (characterResult.status === 'rejected') throw characterResult.reason
+  const character = characterResult.value
   if (!character) return redirectTo('/game')
 
   const currentCharacterId = (await cookies()).get(SELECTED_CHARACTER_COOKIE)?.value ?? null

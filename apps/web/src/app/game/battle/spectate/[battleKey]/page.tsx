@@ -23,14 +23,19 @@ async function loadSpectatorPageData(userId: string, battleKey: string) {
     const spectator = await getPvpSpectatorView(battleKey)
     if (!spectator) redirect('/game/battle')
 
-    const battleSessionId = await joinPvpSpectation(userId, battleKey)
+    const [battleSessionResult, participantTitlesResult] = await Promise.allSettled([
+      joinPvpSpectation(userId, battleKey),
+      loadPvpParticipantTitles(
+        spectator.participants.map((participant) => participant.characterId),
+      ),
+    ])
+    if (battleSessionResult.status === 'rejected') throw battleSessionResult.reason
+    const battleSessionId = battleSessionResult.value
     if (!battleSessionId || battleSessionId !== spectator.battle.battleSessionId) {
       redirect('/game/battle')
     }
-
-    const participantTitles = await loadPvpParticipantTitles(
-      spectator.participants.map((participant) => participant.characterId),
-    )
+    if (participantTitlesResult.status === 'rejected') throw participantTitlesResult.reason
+    const participantTitles = participantTitlesResult.value
     return { spectator, participantTitles }
   } catch (error) {
     if (

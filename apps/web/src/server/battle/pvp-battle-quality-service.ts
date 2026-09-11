@@ -18,8 +18,11 @@ import type { PvpTurnTimerSeconds } from '@aurevane/validation/combat/pvp'
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
 
-import { createBattleSessionService, type BattleSessionView } from './battle-session-service'
-import { getPvpBattleMetadata } from './pvp-lobby-service'
+import {
+  createBattleSessionService,
+  projectCommittedBattleSession,
+  type BattleSessionView,
+} from './battle-session-service'
 import { createSupabaseBattleSessionRepository } from './supabase-battle-session-repository'
 
 export interface PvpTurnClockView {
@@ -203,16 +206,14 @@ export async function surrenderPvpBattle(
   userId: string,
   battleSessionId: string,
 ): Promise<BattleSessionView> {
-  const metadata = await getPvpBattleMetadata(userId, battleSessionId)
-  if (!metadata) {
-    throw new AurevaneError('INVALID_REQUEST', 'Only a PvP battle can be surrendered.')
-  }
-
   const repository = createSupabaseBattleSessionRepository()
   const current = await repository.findBattleSession(userId, battleSessionId)
   if (!current)
     throw new AurevaneError('FORBIDDEN', 'That PvP battle is not available to this account.')
   const state = readEncounter(current.snapshot)
+  if (!isPvpQualityEncounter(state)) {
+    throw new AurevaneError('INVALID_REQUEST', 'Only a PvP battle can be surrendered.')
+  }
   const controlled = current.controlledCombatantIds[0]
   if (!controlled || current.controlledCombatantIds.length !== 1) {
     throw unavailable('The surrendering combatant could not be resolved.')
@@ -222,7 +223,7 @@ export async function surrenderPvpBattle(
   if (resolved.events.length === 0) return sessionService().getSession(userId, battleSessionId)
 
   try {
-    await repository.commitBattleIntent({
+    const committed = await repository.commitBattleIntent({
       actorKey: userId,
       idempotencyKey: randomUUID(),
       requestFingerprint: fingerprint({
@@ -237,6 +238,7 @@ export async function surrenderPvpBattle(
       nextSnapshot: resolved.state,
       events: resolved.events,
     })
+    return projectCommittedBattleSession(committed)
   } catch (error) {
     if (!(error instanceof StaleBattleVersionError)) throw error
   }

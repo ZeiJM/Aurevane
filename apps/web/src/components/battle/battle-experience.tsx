@@ -529,6 +529,20 @@ export function BattleExperience({
   }, [battle, runtime.kind])
 
   useEffect(() => {
+    if (runtime.kind !== 'pvp') return
+
+    const receiveExternalBattleState = (event: Event) => {
+      if (!(event instanceof CustomEvent)) return
+      const next = event.detail as BattleSessionView | undefined
+      if (!next || next.battleSessionId !== battle.battleSessionId) return
+      applyRemoteBattle(next)
+    }
+
+    window.addEventListener('aurevane:pvp-battle-state', receiveExternalBattleState)
+    return () => window.removeEventListener('aurevane:pvp-battle-state', receiveExternalBattleState)
+  }, [applyRemoteBattle, battle.battleSessionId, runtime.kind])
+
+  useEffect(() => {
     if (runtime.kind !== 'pvp' || battleState.lifecycle !== 'active') return
     let cancelled = false
     let timer: number | null = null
@@ -1240,6 +1254,8 @@ export function BattleExperience({
       className={styles.shell}
       data-unified-battle="true"
       data-battle-kind={runtime.kind}
+      data-battle-mode={runtime.kind}
+      data-battle-visual-contract="true"
       data-pvp-battle={runtime.kind === 'pvp' ? 'true' : undefined}
       data-local-turn={localTurn || undefined}
       data-battle-keyboard-focus-root="true"

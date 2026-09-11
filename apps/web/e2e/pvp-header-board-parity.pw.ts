@@ -91,6 +91,25 @@ test('keeps the live desktop PvP header, opponent timer, and full board stable',
     await expect(root).toBeVisible()
     await expect(guestRoot).toBeVisible()
 
+    const viewportFit = await host.evaluate(() => {
+      const battle = document.querySelector<HTMLElement>("main[data-pvp-battle='true']")!
+      const rect = battle.getBoundingClientRect()
+      return {
+        viewportHeight: window.innerHeight,
+        battleTop: rect.top,
+        battleBottom: rect.bottom,
+        documentClientHeight: document.documentElement.clientHeight,
+        documentScrollHeight: document.documentElement.scrollHeight,
+        bodyOverflow: getComputedStyle(document.body).overflow,
+      }
+    })
+    expect(viewportFit.documentScrollHeight).toBeLessThanOrEqual(
+      viewportFit.documentClientHeight + 1,
+    )
+    expect(viewportFit.battleTop).toBeGreaterThanOrEqual(-1)
+    expect(viewportFit.battleBottom).toBeLessThanOrEqual(viewportFit.viewportHeight + 1)
+    expect(viewportFit.bodyOverflow).toBe('hidden')
+
     const hostHasTurn = (await root.getAttribute('data-local-turn')) === 'true'
     const waitingRoot = hostHasTurn ? guestRoot : root
     const waitingPage = hostHasTurn ? guest : host

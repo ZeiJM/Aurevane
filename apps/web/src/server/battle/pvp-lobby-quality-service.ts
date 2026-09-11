@@ -123,7 +123,7 @@ export async function setPvpLobbyMapSettings(
     p_turn_timer_seconds: settings.turnTimerSeconds,
   })
   if (error) mapRpcError(error)
-  return getPvpLobbyMapSettings(userId, lobbyId)
+  return settings
 }
 
 export async function movePvpLobbySeat(
@@ -343,21 +343,20 @@ export async function startPvpLobbyWithQuality(
   const settings = await getPvpLobbyMapSettings(userId, lobbyId)
   const characters = createSupabaseCharacterRepository()
   const builds = createSupabaseCharacterBuildRepository()
-  const roster: PvpRosterEntry[] = []
-  for (const member of lobby.members) {
-    const character = characters.findByOwnerId
-      ? await characters.findByOwnerId(member.userId, member.characterId)
-      : null
-    if (!character) {
-      throw new AurevaneError('INVALID_REQUEST', 'A lobby character is no longer available.')
-    }
-    const buildSnapshot = await loadCharacterCombatBuildSnapshot(
-      member.userId,
-      member.characterId,
-      builds,
-    )
-    roster.push({ member, character, buildSnapshot })
-  }
+  const roster: PvpRosterEntry[] = await Promise.all(
+    lobby.members.map(async (member) => {
+      const [character, buildSnapshot] = await Promise.all([
+        characters.findByOwnerId
+          ? characters.findByOwnerId(member.userId, member.characterId)
+          : Promise.resolve(null),
+        loadCharacterCombatBuildSnapshot(member.userId, member.characterId, builds),
+      ])
+      if (!character) {
+        throw new AurevaneError('INVALID_REQUEST', 'A lobby character is no longer available.')
+      }
+      return { member, character, buildSnapshot }
+    }),
+  )
 
   const encounter = createPvpEncounter(roster, lobby.teamSizes, settings)
   const battle = encounter.tactical.battle
