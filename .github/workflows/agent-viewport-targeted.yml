@@ -1,0 +1,62 @@
+name: Agent viewport targeted
+
+on:
+  push:
+    branches:
+      - agent/desktop-viewport-fit
+    paths:
+      - '.github/workflows/agent-viewport-targeted.yml'
+      - 'apps/web/e2e/a1-layout-fit.pw.ts'
+      - 'apps/web/e2e/battle-desktop-viewport-fit.pw.ts'
+      - 'apps/web/src/app/battle-viewport-fit.css'
+      - 'apps/web/src/app/desktop-readability.css'
+      - 'apps/web/src/app/layout.tsx'
+
+permissions:
+  contents: read
+
+jobs:
+  viewport:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
+      - run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+      - name: Build and run viewport regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          status_env="$(pnpm exec supabase status -o env)"
+          eval "$(printf '%s\n' "$status_env" | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY|SECRET_KEY)=')"
+          test -n "${ANON_KEY:-}"
+          server_key="${SECRET_KEY:-${SERVICE_ROLE_KEY:-}}"
+          test -n "$server_key"
+          api_url='http://127.0.0.1:54321'
+
+          AUREVANE_ENV=local \
+          NEXT_PUBLIC_AUREVANE_ENV=local \
+          NEXT_PUBLIC_SUPABASE_URL="$api_url" \
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
+          SUPABASE_SECRET_KEY="$server_key" \
+          pnpm --filter @aurevane/web build
+
+          AUREVANE_ENV=local \
+          NEXT_PUBLIC_AUREVANE_ENV=local \
+          NEXT_PUBLIC_SUPABASE_URL="$api_url" \
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
+          SUPABASE_SECRET_KEY="$server_key" \
+          pnpm --filter @aurevane/web exec playwright test \
+            e2e/a1-layout-fit.pw.ts \
+            e2e/battle-desktop-viewport-fit.pw.ts \
+            --project=desktop-chromium \
+            --project=laptop-chromium
+      - if: always()
+        run: pnpm exec supabase stop --no-backup
