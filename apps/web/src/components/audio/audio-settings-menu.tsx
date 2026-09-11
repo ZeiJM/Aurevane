@@ -20,6 +20,7 @@ export function AudioSettingsMenu() {
     useAudioRuntime()
   const [open, setOpen] = useState(false)
   const rootRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const panelId = useId()
 
@@ -27,6 +28,11 @@ export function AudioSettingsMenu() {
     if (!open) {
       return
     }
+
+    // The browser's top layer keeps this nested utility clear of shell filters
+    // and stacking contexts while retaining the account menu's outside handler.
+    const panel = panelRef.current
+    panel?.showPopover()
 
     function closeFromOutsidePointer(event: PointerEvent) {
       const target = event.target
@@ -49,6 +55,7 @@ export function AudioSettingsMenu() {
     document.addEventListener('keydown', closeFromEscape)
 
     return () => {
+      panel?.hidePopover()
       document.removeEventListener('pointerdown', closeFromOutsidePointer, true)
       document.removeEventListener('keydown', closeFromEscape)
     }
@@ -84,7 +91,9 @@ export function AudioSettingsMenu() {
 
       {open ? (
         <div
+          ref={panelRef}
           id={panelId}
+          popover="manual"
           className={styles.panel}
           role="dialog"
           aria-modal="false"
@@ -164,8 +173,7 @@ export function AudioSettingsMenu() {
             Test UI channel
           </GameButton>
           <p className={styles.fineprint}>
-            This short calibration tone is synthesized by the runtime. Production music, ambience,
-            and UI sounds remain behind approved media requests.
+            Adjust each channel to suit your setup. Use the test sound to check your volume.
           </p>
         </div>
       ) : null}

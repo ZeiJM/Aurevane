@@ -35,6 +35,8 @@
 
 .panel {
   position: absolute;
+  inset: auto;
+  margin: 0;
   top: calc(100% + 0.7rem);
   right: 0;
   z-index: 80;
@@ -47,6 +49,10 @@
   background: rgba(10, 13, 19, 0.985);
   box-shadow: var(--av-shadow-deep);
   overscroll-behavior: contain;
+  color: var(--av-text);
+  font: 400 0.875rem/1.5 var(--av-font-body);
+  letter-spacing: normal;
+  text-transform: none;
 }
 
 .heading {
@@ -70,15 +76,16 @@
 
 .saveNote {
   color: var(--av-text-dim);
-  font: 600 0.52rem/1.4 var(--av-font-mono);
+  font: 600 0.6875rem/1.4 var(--av-font-mono);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .close {
   display: grid;
-  width: 2rem;
-  height: 2rem;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
   place-items: center;
   padding: 0;
   border: 1px solid var(--av-border);
@@ -101,7 +108,7 @@
   border-left: 2px solid var(--av-aether-500);
   color: var(--av-text-muted);
   background: rgba(128, 113, 172, 0.08);
-  font-size: 0.69rem;
+  font-size: 0.875rem;
   line-height: 1.5;
 }
 
@@ -127,11 +134,11 @@
   justify-content: space-between;
   gap: var(--av-space-3);
   color: var(--av-text-muted);
-  font-size: 0.66rem;
+  font-size: 0.8125rem;
 }
 
 .channelLabel output {
-  color: var(--av-text-dim);
+  color: var(--av-text-muted);
   font-family: var(--av-font-mono);
 }
 
@@ -148,8 +155,8 @@
 
 .fineprint {
   margin: var(--av-space-3) 0 0;
-  color: var(--av-text-dim);
-  font-size: 0.6rem;
+  color: var(--av-text-muted);
+  font-size: 0.75rem;
   line-height: 1.55;
 }
 
