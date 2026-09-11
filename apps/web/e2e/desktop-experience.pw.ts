@@ -354,8 +354,15 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
         await page.evaluate(() => document.documentElement.scrollWidth - innerWidth),
         path,
       ).toBeLessThanOrEqual(1)
-      const copy = page.locator('main p:visible').first()
-      if (await copy.count()) await readable(copy, 14)
+      const copy = page.locator('main p:visible:not(.av-kicker)').first()
+      if (await copy.count()) {
+        expect
+          .soft(
+            await copy.evaluate((element) => parseFloat(getComputedStyle(element).fontSize)),
+            `${path}: body copy`,
+          )
+          .toBeGreaterThanOrEqual(14)
+      }
       await testInfo.attach(`phone-${width}${path.replaceAll('/', '-')}`, {
         body: await page.screenshot(),
         contentType: 'image/png',

@@ -103,6 +103,7 @@
 
 .personal > header > strong {
   flex: none;
+  justify-self: start;
   padding: 0.28rem 0.42rem;
   border: 1px solid var(--av-border);
   border-radius: 999px;
@@ -284,6 +285,23 @@
 }
 
 @media (max-width: 520px) {
+  .disciplinePill,
+  .titlePill {
+    font-size: 0.6875rem !important;
+  }
+
+  .field > span {
+    font-size: 0.75rem;
+  }
+
+  .reviewButton,
+  .confirmButton,
+  .quietButton {
+    min-height: 2.75rem;
+    font-size: 0.75rem;
+    line-height: 1.3;
+  }
+
   .headingLine,
   .personal > header,
   .previewName {

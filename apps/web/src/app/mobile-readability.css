@@ -80,10 +80,45 @@
     line-height: 1.2;
   }
 
-  /* Keep the three identity facts aligned, even when values have different lengths. */
-  [data-profile-fact] small {
+  #game-main h1 {
+    font-family: var(--av-font-display);
+    font-size: clamp(1.625rem, 7vw, 2rem);
+    font-weight: 500;
+    line-height: 1.15;
+  }
+
+  #game-main .av-kicker {
+    font-size: 0.6875rem;
+    line-height: 1.35;
+    letter-spacing: 0.12em;
+  }
+
+  /* Identity values lead; labels provide a quieter reference tier. */
+  [data-testid='authenticated-shell'] [data-profile-fact] small {
     color: var(--av-text-dim);
     font-size: 0.6875rem;
+  }
+
+  [data-testid='authenticated-shell'] [data-profile-fact] strong {
+    color: var(--av-text);
+    font-size: 0.8125rem;
+    line-height: 1.35;
+  }
+
+  /* Creation's form is inside main, so it needs its own reading boundary. */
+  [data-testid='character-creation'] p {
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  [data-testid='character-creation'] small {
+    font-size: 0.75rem;
+    line-height: 1.4;
+  }
+
+  [data-testid='character-creation'] input:not([type='radio'], [type='checkbox']) {
+    min-height: 2.75rem;
+    font-size: 1rem;
   }
 
   #battle-launch [data-pvp-settings-heading] strong {
@@ -131,5 +166,17 @@
     > strong {
     font-size: 0.8125rem !important;
     white-space: normal;
+  }
+}
+
+@media (max-width: 520px) {
+  [data-testid='authenticated-shell'] [data-profile-fact] {
+    grid-template-columns: 2rem minmax(0, 10rem);
+    justify-content: center;
+  }
+
+  [data-testid='authenticated-shell'] [data-profile-fact] > span:last-child {
+    justify-items: start;
+    text-align: left;
   }
 }
