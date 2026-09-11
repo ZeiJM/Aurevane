@@ -45,6 +45,8 @@ export interface BattleBuildAuthorityCombatantSnapshot {
 }
 
 export interface BattleBuildAuthoritySnapshot {
+  /** Absent on frozen pre-Phase-4 battles, where Ironfist had no signatures. */
+  catalogVersion?: 2
   schemaVersion: typeof BATTLE_BUILD_AUTHORITY_SCHEMA_VERSION
   combatContext: MatureSkillCombatContext
   combatants: readonly BattleBuildAuthorityCombatantSnapshot[]
@@ -188,7 +190,10 @@ function validateCanonicalCombatSnapshot(snapshot: CombatBuildSnapshot): boolean
   )
 }
 
-function parseCombatant(value: unknown): BattleBuildAuthorityCombatantSnapshot | null {
+function parseCombatant(
+  value: unknown,
+  legacyCatalog: boolean,
+): BattleBuildAuthorityCombatantSnapshot | null {
   if (!isRecord(value) || !isRecord(value.primary) || !isRecord(value.extensions)) return null
   if (
     !nonEmptyString(value.combatantId) ||
@@ -249,6 +254,11 @@ function parseCombatant(value: unknown): BattleBuildAuthorityCombatantSnapshot |
   if (!validateCanonicalCombatSnapshot(combatSnapshot)) return null
 
   const secondaryDisciplineId = secondary?.disciplineId ?? null
+  // Preserve old server-owned snapshots exactly; never inject newly authored content.
+  const legacyIronfist =
+    legacyCatalog &&
+    (value.primary.disciplineId === 'ironfist' || secondaryDisciplineId === 'ironfist') &&
+    !disciplineSkills.some((skill) => skill.sourceDisciplineId === 'ironfist')
   const expectedResonance = resolveResonanceForPair(
     value.primary.disciplineId,
     secondaryDisciplineId,
@@ -265,7 +275,10 @@ function parseCombatant(value: unknown): BattleBuildAuthorityCombatantSnapshot |
     ) {
       return null
     }
-  } else if (resolveResonanceForPair(value.primary.disciplineId, secondaryDisciplineId)) {
+  } else if (
+    !legacyIronfist &&
+    resolveResonanceForPair(value.primary.disciplineId, secondaryDisciplineId)
+  ) {
     return null
   }
 
@@ -286,7 +299,10 @@ function parseCombatant(value: unknown): BattleBuildAuthorityCombatantSnapshot |
     ) {
       return null
     }
-  } else if (resolveEssenceForBuild(value.primary.disciplineId, secondaryDisciplineId)) {
+  } else if (
+    !legacyIronfist &&
+    resolveEssenceForBuild(value.primary.disciplineId, secondaryDisciplineId)
+  ) {
     return null
   }
 
@@ -310,6 +326,7 @@ export function parseBattleBuildAuthoritySnapshot(
   if (
     !isRecord(value) ||
     value.schemaVersion !== BATTLE_BUILD_AUTHORITY_SCHEMA_VERSION ||
+    (value.catalogVersion !== undefined && value.catalogVersion !== 2) ||
     (value.combatContext !== 'pve' && value.combatContext !== 'pvp') ||
     !Array.isArray(value.combatants) ||
     value.combatants.length === 0
@@ -320,7 +337,7 @@ export function parseBattleBuildAuthoritySnapshot(
   const combatants: BattleBuildAuthorityCombatantSnapshot[] = []
   const seen = new Set<string>()
   for (const candidate of value.combatants) {
-    const combatant = parseCombatant(candidate)
+    const combatant = parseCombatant(candidate, value.catalogVersion === undefined)
     if (!combatant || seen.has(combatant.combatantId)) return null
     seen.add(combatant.combatantId)
     combatants.push(combatant)
@@ -328,6 +345,7 @@ export function parseBattleBuildAuthoritySnapshot(
 
   return {
     schemaVersion: BATTLE_BUILD_AUTHORITY_SCHEMA_VERSION,
+    ...(value.catalogVersion === 2 ? { catalogVersion: 2 as const } : {}),
     combatContext: value.combatContext,
     combatants,
   }
@@ -339,6 +357,7 @@ export function createBattleBuildAuthoritySnapshot(
 ): BattleBuildAuthoritySnapshot {
   const value = {
     schemaVersion: BATTLE_BUILD_AUTHORITY_SCHEMA_VERSION,
+    catalogVersion: 2,
     combatContext,
     combatants: inputs.map(({ combatantId, characterId, snapshot }) => {
       const combatSnapshot = combatSnapshotFromCommitted(snapshot)

@@ -1,6 +1,9 @@
 import { expect, test } from '@playwright/test'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
+// Keep the screenshots and interaction trace when this release gate passes, too.
+test.use({ trace: 'on' })
+
 test('Ironfist provisions normally and Skill details preserve selection on phone and desktop', async ({
   page,
 }, testInfo) => {
