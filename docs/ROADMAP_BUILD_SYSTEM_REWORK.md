@@ -2,7 +2,7 @@
 
 ## Phase 4 roster and effect implementation — 2026-09-11
 
-The sixteen-Discipline candidate contains 128 regular Skills, 16 pure Essences and all 120 unordered Resonance pairs. Eight learned Skills per mature library remain distinct from four battle selections. Full mixed builds use 1+3, 2+2 or 3+1; Essence and Resonance are exclusive. See `PHASE_4_TICKETS.md` for exact verification and release status.
+The live sixteen-Discipline implementation contains 128 regular Skills, 16 pure Essences and all 120 unordered Resonance pairs. Eight learned Skills per mature library remain distinct from four battle selections. Full mixed builds use 1+3, 2+2 or 3+1; Essence and Resonance are exclusive. See `PHASE_4_TICKETS.md` for exact verification and release status.
 
 New named statuses are Burn, Bleed, Poison, Regeneration, Slow, Root, Reckless, Fortified, Challenged, Marked and Warded. Conditioned outgoing/incoming damage evaluates each attacker/recipient pair, using a 50–200% combined budget for the new modifiers. Guarded/Exposed/Lowered Guard remain separate historical multipliers. All new percentage statuses are single-stack; Reckless and Fortified keep their benefit and drawback together. Only five regular Skills apply the new percentage families; two of those are potent linked tradeoffs.
 
