@@ -136,6 +136,10 @@ export default async function BattleSessionPage({
     characters,
     battles: createSupabaseBattleSessionRepository(),
   })
+  const pvpMetadataPromise = getPvpBattleMetadata(actor.userId, battleSessionId).then(
+    (value) => ({ ok: true as const, value }),
+    (error: unknown) => ({ ok: false as const, error }),
+  )
 
   let battle: Awaited<ReturnType<typeof service.getSession>>
   try {
@@ -152,7 +156,9 @@ export default async function BattleSessionPage({
 
   if (battle.snapshot.tactical.battle.lifecycle === 'abandoned') redirect('/game/battle')
 
-  const pvpMetadata = await getPvpBattleMetadata(actor.userId, battleSessionId)
+  const pvpMetadataOutcome = await pvpMetadataPromise
+  if (!pvpMetadataOutcome.ok) throw pvpMetadataOutcome.error
+  const pvpMetadata = pvpMetadataOutcome.value
   if (pvpMetadata) {
     const character = characters.findByOwnerId
       ? await characters.findByOwnerId(actor.userId, pvpMetadata.localCharacterId)
@@ -184,19 +190,17 @@ export default async function BattleSessionPage({
   const characterId = playerProfile?.provenance.sourceId.startsWith('character:')
     ? playerProfile.provenance.sourceId.slice('character:'.length)
     : null
-  const character =
-    characterId && characters.findByOwnerId
-      ? await characters.findByOwnerId(actor.userId, characterId)
-      : null
+  const [character, display] = characterId
+    ? await Promise.all([
+        characters.findByOwnerId
+          ? characters.findByOwnerId(actor.userId, characterId)
+          : Promise.resolve(null),
+        loadCharacterProfileDisplay(actor.userId, characterId).catch(() => null),
+      ])
+    : [null, null]
   if (!character || !isStarterCharacterPortraitRef(character.portraitRef)) redirect('/game/battle')
 
-  let playerProfileImageUrl: string | null = null
-  try {
-    playerProfileImageUrl = (await loadCharacterProfileDisplay(actor.userId, character.id)).imageUrl
-  } catch {
-    // Cosmetic display failure falls back to the built-in portrait.
-  }
-
+  const playerProfileImageUrl = display?.imageUrl ?? null
   const buildExtensions = battleBuildExtensions(battle, `character:${character.id}`)
 
   return (
