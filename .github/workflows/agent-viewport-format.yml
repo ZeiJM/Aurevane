@@ -1,0 +1,42 @@
+name: Agent viewport formatter
+
+on:
+  push:
+    branches:
+      - agent/desktop-viewport-fit
+    paths:
+      - '.github/workflows/agent-viewport-format.yml'
+      - 'apps/web/e2e/a1-layout-fit.pw.ts'
+      - 'apps/web/e2e/battle-desktop-viewport-fit.pw.ts'
+      - 'apps/web/src/app/battle-viewport-fit.css'
+      - 'apps/web/src/app/desktop-readability.css'
+
+permissions:
+  contents: read
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - run: >-
+          pnpm exec prettier --write
+          apps/web/e2e/a1-layout-fit.pw.ts
+          apps/web/e2e/battle-desktop-viewport-fit.pw.ts
+          apps/web/src/app/battle-viewport-fit.css
+          apps/web/src/app/desktop-readability.css
+      - uses: actions/upload-artifact@v4
+        with:
+          name: viewport-formatted
+          path: |
+            apps/web/e2e/a1-layout-fit.pw.ts
+            apps/web/e2e/battle-desktop-viewport-fit.pw.ts
+            apps/web/src/app/battle-viewport-fit.css
+            apps/web/src/app/desktop-readability.css
