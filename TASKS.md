@@ -22,9 +22,9 @@ This file reports the **current implementation/validation boundary**.
 
 **Presentation follow-up:** PR #446 merged while this audit was in progress and was released at `0df098e8`; preserve its desktop/mobile changes and assess its exact release interaction evidence.
 
-**Current implementation:** PR #451 released the full sixteen-Discipline playable roster, short named effects, sparse conditional damage/tradeoffs and Mastery Trials. All 15 exact-head CI workflows and the production migration passed. A narrow self-target cockpit follow-up is in validation; release evidence and remaining human/media acceptance are recorded in `docs/PHASE_4_TICKETS.md`.
+**Current implementation:** PR #451 released the full sixteen-Discipline playable roster, short named effects, sparse conditional damage/tradeoffs and Mastery Trials. All 15 exact-head CI workflows and the production migration passed. The shared self-target cockpit correction is also released through PR #452 with all four applicable workflows passing and a successful live Fortress preview/commit check. Release evidence and remaining human/media acceptance are recorded in `docs/PHASE_4_TICKETS.md`.
 
-**Live baseline:** Sixteen Disciplines, 128 regular Skills, 16 Essences and 120 Resonances are live through PR #451 and release `7a539581`; deployment is locked again at `ff56e9ac`. Dedicated media and independent human balance acceptance remain open. Earlier phase-boundary notes below preserve historical decisions.
+**Live baseline:** Sixteen Disciplines, 128 regular Skills, 16 Essences and 120 Resonances are live through PR #451 and release `7a539581`; the final self-target correction is live at `fa98cf19`, with deployment locked again. Dedicated media and independent human balance acceptance remain open. Earlier phase-boundary notes below preserve historical decisions.
 
 ---
 

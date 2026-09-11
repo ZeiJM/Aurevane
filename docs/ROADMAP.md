@@ -441,7 +441,7 @@ Current released baseline and continuation (2026-09-11):
 - Skill targeting/effect tags and expandable details are live, together with Crossroads Court and Terraced Yard AI Sparring arenas. See `PHASE_4_TICKETS.md` for exact CI, migration and production evidence.
 - Authored coverage is implementation credit, not proof of balance, acquisition, AI quality, media completion or human validation.
 
-The continuation in PR #451 implements the full sixteen-Discipline catalog (128 regular Skills, 16 Essences, 120 pairs), named effects, sparse conditional modifiers and Mastery Trial acquisition. Existing testing grants make the roster immediately testable after release. Exact database/browser/deployment evidence and remaining human balance/media acceptance belong in `PHASE_4_TICKETS.md`.
+The continuation in PR #451 implements the full sixteen-Discipline catalog (128 regular Skills, 16 Essences, 120 pairs), named effects, sparse conditional modifiers and Mastery Trial acquisition. The roster is live, and existing testing grants make it immediately testable. The final self-target cockpit correction is released through PR #452. Exact database/browser/deployment evidence and remaining human balance/media acceptance belong in `PHASE_4_TICKETS.md`.
 
 Reconciled sequence:
 
