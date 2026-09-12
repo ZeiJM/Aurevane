@@ -223,7 +223,17 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
   await page.goto('/game/character')
   await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management' })
+  const atlasResponse = page.waitForResponse(
+    (r) => r.url().endsWith('/api/character/mastery') && r.request().method() === 'GET',
+  )
   await management.getByText('Discipline Atlas & Mastery', { exact: true }).click()
+  const atlasResult = await atlasResponse
+  expect(atlasResult.status()).toBe(200)
+  expect((await atlasResult.json()).atlas.entries).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ disciplineId: 'bastion', releaseEligible: true }),
+    ]),
+  )
   await expect(management).toContainText('Adept · 300/1,000 XP')
   await expect(management.locator('select').first().locator('option[value="bastion"]')).toHaveCount(
     1,

@@ -40,3 +40,17 @@ effect and AI suites in addition to the Atlas coverage.
 
 CI/browser results must be recorded after execution. This follow-up does not
 claim a production deployment, completed human media review or balance acceptance.
+
+## Combined local verification
+
+Reconciled the Atlas publication/gate changes at `483eed04` without overwriting
+the other chat's active branch. Full `pnpm check` passed on the combined follow-up
+tree `0e5294e40957678875fad8f6a550efe96b158dcf`: 1,100 Vitest tests and six Node
+report tests, formatting, lint, all package typechecks and production build. The
+stale Manual regression now checks the published Atlas/testing-policy wording.
+
+The subsequent read-only E2E review identified that a Bastion dropdown option
+alone could reflect temporary testing access. The final Atlas response is now
+also required to report Bastion `releaseEligible: true`, compared with the
+fixture's initial false release-eligibility check. This final test assertion
+receives focused formatting/lint/type validation and still requires CI execution.
