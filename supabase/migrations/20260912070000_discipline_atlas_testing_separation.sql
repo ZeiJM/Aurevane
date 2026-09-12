@@ -25,6 +25,32 @@ set policy_version = greatest(app_private.discipline_unlock_policy_state.policy_
 comment on table app_private.discipline_unlock_policy_state is
   'Server-owned Discipline acquisition policy. testing_open grants effective access to published Disciplines without creating Mastery facts or earned Mastery XP.';
 
+create table if not exists app_private.discipline_rekindling_prerequisites (
+  discipline_id text primary key,
+  minimum_rekindling_count integer not null check (minimum_rekindling_count between 1 and 3)
+);
+
+revoke all on table app_private.discipline_rekindling_prerequisites from public, anon, authenticated;
+grant select on table app_private.discipline_rekindling_prerequisites to service_role;
+
+insert into app_private.discipline_rekindling_prerequisites (discipline_id, minimum_rekindling_count)
+values
+  ('blade-saint', 1),
+  ('warcaller', 1),
+  ('chronist', 1),
+  ('riftwalker', 1),
+  ('gravebinder', 1),
+  ('eidolist', 1),
+  ('oracle', 1),
+  ('sanguinist', 1),
+  ('starcaller', 2),
+  ('spellwright', 3)
+on conflict (discipline_id) do update
+set minimum_rekindling_count = excluded.minimum_rekindling_count;
+
+comment on table app_private.discipline_rekindling_prerequisites is
+  'Server-owned minimum completed-Rekindling gates for published Discipline acquisition. Planned identities may be pre-registered safely; publication remains a separate definition gate.';
+
 create or replace function app_private.discipline_testing_open_v1()
 returns boolean
 language sql
@@ -112,7 +138,10 @@ stable
 security definer
 set search_path = pg_catalog, public, app_private
 as $$
-  select not exists (
+  select exists (
+    select 1 from public.characters character where character.id = p_character_id
+  )
+  and not exists (
     select 1
     from app_private.discipline_mastery_prerequisites requirement
     where requirement.discipline_id = p_discipline_id
@@ -120,6 +149,13 @@ as $$
         p_character_id,
         requirement.required_discipline_id
       ) < requirement.minimum_stage
+  )
+  and not exists (
+    select 1
+    from app_private.discipline_rekindling_prerequisites requirement
+    join public.characters character on character.id = p_character_id
+    where requirement.discipline_id = p_discipline_id
+      and greatest(character.progression_cycle - 1, 0) < requirement.minimum_rekindling_count
   );
 $$;
 
@@ -136,15 +172,16 @@ stable
 security definer
 set search_path = pg_catalog, public, app_private
 as $$
-  select (
+  select exists (
+    select 1
+    from app_private.discipline_definitions definition
+    where definition.discipline_id = p_discipline_id
+      and definition.enabled_for_primary
+  )
+  and (
     app_private.discipline_testing_open_v1()
-    and exists (
-      select 1
-      from app_private.discipline_definitions definition
-      where definition.discipline_id = p_discipline_id
-        and definition.enabled_for_primary
-    )
-  ) or app_private.discipline_release_unlocked_v1(p_character_id, p_discipline_id);
+    or app_private.discipline_release_unlocked_v1(p_character_id, p_discipline_id)
+  );
 $$;
 
 -- Testers receive the whole published library for an active Discipline without converting that

@@ -51,6 +51,8 @@ BOUNDED PRESTIGE / VETERAN EDGE
 
 Additional authoritative detail lives in docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md. If an older subordinate document still uses retired terminology, this master plan and the owner-approved build-system addendum control.
 
+The Owner-approved `docs/GAME_MASTER_PLAN_DISCIPLINE_ATLAS_MASTERY_ADDENDUM.md` is incorporated into this synchronization for Discipline discovery, acquisition, Mastery and Rekindling gates. Where the original Discipline-list requirement lines conflict with that addendum's approved long-horizon Atlas map, the Atlas addendum controls acquisition sequencing while this Master Plan continues to control Discipline identity and overall product direction.
+
 The current universal attribute model contains six attributes:
 
 Might

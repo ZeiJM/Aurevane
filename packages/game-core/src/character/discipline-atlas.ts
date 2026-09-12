@@ -664,8 +664,6 @@ export function evaluateDisciplineAtlasEntry(
     context.revealedDisciplineIds?.includes(discipline.id) ||
     (discipline.reveal ? evaluateRule(discipline.reveal, context) : false)
   const releaseEligible = evaluateRule(discipline.unlock, context)
-  const effectiveSelectable =
-    discipline.publication === 'published' && (testingAccess || releaseEligible)
 
   if (!revealSatisfied) {
     return {

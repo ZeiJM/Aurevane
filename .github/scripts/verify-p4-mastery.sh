@@ -15,6 +15,25 @@ character_id="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres 
 set role service_role;
 select id::text from public.create_character_v3('$user_id'::uuid,0::smallint,'00000000-0000-4000-8000-000000004101'::uuid,'p4:mastery:character',1,'P4 Mastery Tester','p4masterytester','androgynous','they_them','portrait.starter.wayfarer-01','appearance.starter.roadworn','vanguard',12,4,7,4,3,6);")"
 test -n "$character_id"
+
+testing_projection="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+set role service_role;
+select release_unlocked::text || '|' || effective_unlocked::text || '|' || testing_access::text
+from public.get_character_discipline_atlas_progress_v1('$user_id'::uuid,'$character_id'::uuid)
+where discipline_id='bastion';")"
+test "$testing_projection" = 'false|true|true'
+
+legacy_testing_mastery="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+select count(*)::text from app_private.character_discipline_masteries
+where character_id='$character_id'::uuid
+  and source_kind='support'
+  and source_id='active-player-discipline-testing:v1';")"
+test "$legacy_testing_mastery" = '0'
+
+planned_selectable="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+select app_private.discipline_unlocked_v1('$character_id'::uuid,'spellwright')::text;")"
+test "$planned_selectable" = 'false'
+
 # Private committed-event fixtures exercise the database reward authority. They are
 # isolated in CI and rolled back; they are not human gameplay evidence.
 docker exec -i "$db_container" psql -v ON_ERROR_STOP=1 -v user_id="$user_id" -v character_id="$character_id" -U postgres -d postgres <<'SQL'
@@ -47,8 +66,11 @@ declare
  result record;
  failed boolean:=false;
 begin
- -- Remove only this disposable fixture's pre-existing Owner-authorized testing grants.
- -- Production testing access is preserved; this transaction rolls back.
+ -- Close only this disposable fixture's testing overlay so the release prerequisite graph is
+ -- exercised directly. The outer transaction rolls the policy change back.
+ update app_private.discipline_unlock_policy_state
+ set testing_open=false,updated_at=clock_timestamp()
+ where singleton;
  delete from app_private.character_discipline_masteries where character_id=c;
  update app_private.character_discipline_progress set mastery_xp=0,demonstrated_skills='{}' where character_id=c;
  if app_private.discipline_unlocked_v1(c,'bastion') then raise exception 'Bastion unlocked without Vanguard Adept'; end if;
@@ -143,4 +165,6 @@ end;
 $$;
 rollback;
 SQL
-echo 'Phase 4 Mastery prerequisites, persisted-event rewards, retries, milestones and browser denial PASS.'
+post_trial_testing_policy="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "select app_private.discipline_testing_open_v1()::text;")"
+test "$post_trial_testing_policy" = 'true'
+echo 'Phase 4 Mastery prerequisites, testing separation, persisted-event rewards, retries, milestones and browser denial PASS.'

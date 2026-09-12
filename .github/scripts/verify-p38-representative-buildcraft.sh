@@ -122,23 +122,16 @@ pure_snapshot="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres
   ) resolved;")"
 test "$pure_snapshot" = '4|||essence.vanguard.unbroken-strike'
 
-testing_mastery="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
-  select discipline_id || '|' || mastered_definition_version::text || '|' || source_kind || '|' || source_id
+testing_mastery_count="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  select count(*)::text
   from app_private.character_discipline_masteries
   where character_id = '$character_id'::uuid
     and discipline_id = 'lifebinder';")"
-test "$testing_mastery" = 'lifebinder|1|support|active-player-discipline-testing:v1'
+test "$testing_mastery_count" = '0'
 
-mastery_replay="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
-  set role service_role;
-  select discipline_id || '|' || replayed::text
-  from public.record_character_discipline_mastery_v1(
-    '$character_id'::uuid,
-    'lifebinder',
-    'support',
-    'pv2-buildcraft-test-kit:v1'
-  );")"
-test "$mastery_replay" = 'lifebinder|true'
+testing_policy="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+  select app_private.discipline_testing_open_v1()::text;")"
+test "$testing_policy" = 'true'
 
 mixed_change="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
