@@ -277,8 +277,32 @@ test('PvP ground Skill uses the same forecast and spectator terrain inspection',
     const root = page.locator('main[data-unified-battle="true"]')
     await expect(root).toBeVisible()
     if ((await root.getAttribute('data-local-turn')) !== 'true') {
-      await guest.getByRole('button', { name: /Finish Turn, / }).click()
-      await guest.getByRole('button', { name: 'Face east', exact: true }).click()
+      const guestRoot = guest.locator('main[data-unified-battle="true"]')
+      await expect(guestRoot).toHaveAttribute('data-local-turn', 'true')
+      await guestRoot.getByRole('button', { name: /Finish Turn, / }).click()
+      // The inline Face controls are intentionally hidden; confirm via the visible board guide.
+      const eastGuide = guestRoot.locator(
+        '#battlefield button[data-facing-guide="true"][data-facing-direction="east"]',
+      )
+      await expect(eastGuide).toBeVisible()
+      const facingCommit = guest.waitForResponse(
+        (response) => response.url().endsWith('/commit') && response.request().method() === 'POST',
+        { timeout: 15_000 },
+      )
+      if (testInfo.project.use.hasTouch) {
+        await eastGuide.tap()
+        await eastGuide.tap()
+      } else {
+        await eastGuide.dblclick()
+      }
+      const facingResponse = await facingCommit
+      expect(facingResponse.status()).toBe(200)
+      expect(facingResponse.request().postDataJSON().intent).toEqual({
+        kind: 'face',
+        facing: 'east',
+      })
+      await expect(guestRoot).not.toHaveAttribute('data-local-turn')
+      await expect(root).toHaveAttribute('data-local-turn', 'true')
     }
     const result = await castOnEmptyGround(page, name, testInfo)
     const battleKey = (await root
@@ -291,11 +315,15 @@ test('PvP ground Skill uses the same forecast and spectator terrain inspection',
       name: new RegExp(`^Tile ${result.position.x + 1}, ${result.position.y + 1};`),
     })
     await expect(tile).toHaveAttribute('data-terrain-overlay', 'frozen')
-    await spectatorRoot.getByRole('button', { name: /Inspect/ }).click()
+    const spectatorInspect = spectatorRoot.locator('[aria-label="Spectator inspect controls"]')
+    const inspectButton = spectatorInspect.getByRole('button', { name: /Inspect/ })
+    await inspectButton.click()
+    await expect(inspectButton).toHaveAttribute('aria-pressed', 'true')
     await tile.focus()
     await spectator.keyboard.press('Enter')
-    await expect(spectatorRoot).toContainText('Frozen terrain; 2 round boundaries remaining')
-    await expect(spectatorRoot).toContainText('either team')
+    await expect(tile).toHaveAttribute('aria-pressed', 'true')
+    await expect(spectatorInspect).toContainText('Frozen terrain; 2 round boundaries remaining')
+    await expect(spectatorInspect).toContainText('either team')
     await testInfo.attach(`ground-spectator-${testInfo.project.name}`, {
       body: await spectator.screenshot(),
       contentType: 'image/png',
