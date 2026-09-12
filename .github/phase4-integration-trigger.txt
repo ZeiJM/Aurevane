@@ -1,0 +1,1 @@
+One-shot trigger for the registered Phase 4 Atlas/Chronist integration workflow.
