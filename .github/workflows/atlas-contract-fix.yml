@@ -1,0 +1,115 @@
+name: Atlas contract maintenance
+
+on:
+  push:
+    branches:
+      - 'agent/phase4-discipline-atlas-mastery'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/phase4-discipline-atlas-mastery
+          fetch-depth: 0
+
+      - name: Apply verified contract updates
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path: str, old: str, new: str) -> None:
+              file = Path(path)
+              text = file.read_text()
+              if old not in text:
+                  raise SystemExit(f'Expected contract snippet not found in {path}')
+              file.write_text(text.replace(old, new, 1))
+
+          replace(
+              'packages/game-core/src/character/discipline-atlas.ts',
+              """  const releaseEligible = evaluateRule(discipline.unlock, context)\n  const effectiveSelectable =\n    discipline.publication === 'published' && (testingAccess || releaseEligible)\n""",
+              """  const releaseEligible = evaluateRule(discipline.unlock, context)\n""",
+          )
+
+          old_p36 = """testing_mastery=\"$(docker exec \"$db_container\" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc \"\n  select discipline_id || '|' || mastered_definition_version::text || '|' || source_kind || '|' || source_id\n  from app_private.character_discipline_masteries\n  where character_id = '$character_id'::uuid\n    and discipline_id = 'lifebinder';\")\"\ntest \"$testing_mastery\" = 'lifebinder|1|support|active-player-discipline-testing:v1'\n\nmastery_replay=\"$(docker exec \"$db_container\" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc \"\n  set role service_role;\n  select discipline_id || '|' || mastered_definition_version::text || '|' || replayed::text\n  from public.record_character_discipline_mastery_v1(\n    '$character_id'::uuid,\n    'lifebinder',\n    'system',\n    'p36.database-proof'\n  );\")\"\ntest \"$mastery_replay\" = 'lifebinder|1|true'\n"""
+          new_p36 = """testing_mastery_count=\"$(docker exec \"$db_container\" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc \"\n  select count(*)::text\n  from app_private.character_discipline_masteries\n  where character_id = '$character_id'::uuid\n    and discipline_id = 'lifebinder';\")\"\ntest \"$testing_mastery_count\" = '0'\n\ntesting_policy=\"$(docker exec \"$db_container\" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc \"\n  select app_private.discipline_testing_open_v1()::text;\")\"\ntest \"$testing_policy\" = 'true'\n"""
+          replace('.github/scripts/verify-p36-essence.sh', old_p36, new_p36)
+
+          old_p37 = """testing_mastery=\"$(docker exec \"$db_container\" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc \"\n  select discipline_id || '|' || mastered_definition_version::text || '|' || source_kind || '|' || source_id\n  from app_private.character_discipline_masteries\n  where character_id = '$character_id'::uuid\n    and discipline_id = 'lifebinder';\")\"\ntest \"$testing_mastery\" = 'lifebinder|1|support|active-player-discipline-testing:v1'\n\nmastery_replay=\"$(docker exec \"$db_container\" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc \"\n  set role service_role;\n  select discipline_id || '|' || replayed::text\n  from public.record_character_discipline_mastery_v1(\n    '$character_id'::uuid,\n    'lifebinder',\n    'system',\n    'p37.database-proof'\n  );\")\"\ntest \"$mastery_replay\" = 'lifebinder|true'\n"""
+          new_p37 = """testing_mastery_count=\"$(docker exec \"$db_container\" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc \"\n  select count(*)::text\n  from app_private.character_discipline_masteries\n  where character_id = '$character_id'::uuid\n    and discipline_id = 'lifebinder';\")\"\ntest \"$testing_mastery_count\" = '0'\n\ntesting_policy=\"$(docker exec \"$db_container\" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc \"\n  select app_private.discipline_testing_open_v1()::text;\")\"\ntest \"$testing_policy\" = 'true'\n"""
+          replace('.github/scripts/verify-p37-saved-build-loadouts.sh', old_p37, new_p37)
+
+          old_p38 = """testing_mastery=\"$(docker exec \"$db_container\" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc \"\n  select discipline_id || '|' || mastered_definition_version::text || '|' || source_kind || '|' || source_id\n  from app_private.character_discipline_masteries\n  where character_id = '$character_id'::uuid\n    and discipline_id = 'lifebinder';\")\"\ntest \"$testing_mastery\" = 'lifebinder|1|support|active-player-discipline-testing:v1'\n\nmastery_replay=\"$(docker exec \"$db_container\" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc \"\n  set role service_role;\n  select discipline_id || '|' || replayed::text\n  from public.record_character_discipline_mastery_v1(\n    '$character_id'::uuid,\n    'lifebinder',\n    'support',\n    'pv2-buildcraft-test-kit:v1'\n  );\")\"\ntest \"$mastery_replay\" = 'lifebinder|true'\n"""
+          new_p38 = """testing_mastery_count=\"$(docker exec \"$db_container\" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc \"\n  select count(*)::text\n  from app_private.character_discipline_masteries\n  where character_id = '$character_id'::uuid\n    and discipline_id = 'lifebinder';\")\"\ntest \"$testing_mastery_count\" = '0'\n\ntesting_policy=\"$(docker exec \"$db_container\" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc \"\n  select app_private.discipline_testing_open_v1()::text;\")\"\ntest \"$testing_policy\" = 'true'\n"""
+          replace('.github/scripts/verify-p38-representative-buildcraft.sh', old_p38, new_p38)
+
+          replace(
+              '.github/scripts/verify-p4-mastery.sh',
+              """test -n \"$character_id\"\n# Private committed-event fixtures exercise the database reward authority. They are\n""",
+              """test -n \"$character_id\"\n\ntesting_projection=\"$(docker exec \"$db_container\" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc \"\nset role service_role;\nselect release_unlocked::text || '|' || effective_unlocked::text || '|' || testing_access::text\nfrom public.get_character_discipline_atlas_progress_v1('$user_id'::uuid,'$character_id'::uuid)\nwhere discipline_id='bastion';\")\"\ntest \"$testing_projection\" = 'false|true|true'\n\nlegacy_testing_mastery=\"$(docker exec \"$db_container\" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc \"\nselect count(*)::text from app_private.character_discipline_masteries\nwhere character_id='$character_id'::uuid\n  and source_kind='support'\n  and source_id='active-player-discipline-testing:v1';\")\"\ntest \"$legacy_testing_mastery\" = '0'\n\n# Private committed-event fixtures exercise the database reward authority. They are\n""",
+          )
+
+          replace(
+              '.github/scripts/verify-p4-mastery.sh',
+              """ -- Remove only this disposable fixture's pre-existing Owner-authorized testing grants.\n -- Production testing access is preserved; this transaction rolls back.\n delete from app_private.character_discipline_masteries where character_id=c;\n update app_private.character_discipline_progress set mastery_xp=0,demonstrated_skills='{}' where character_id=c;\n""",
+              """ -- Close only this disposable fixture's testing overlay so the release prerequisite graph is\n -- exercised directly. The outer transaction rolls the policy change back.\n update app_private.discipline_unlock_policy_state\n set testing_open=false,updated_at=clock_timestamp()\n where singleton;\n delete from app_private.character_discipline_masteries where character_id=c;\n update app_private.character_discipline_progress set mastery_xp=0,demonstrated_skills='{}' where character_id=c;\n""",
+          )
+
+          replace(
+              '.github/scripts/verify-p4-mastery.sh',
+              """rollback;\nSQL\necho 'Phase 4 Mastery prerequisites, persisted-event rewards, retries, milestones and browser denial PASS.'\n""",
+              """rollback;\nSQL\npost_trial_testing_policy=\"$(docker exec \"$db_container\" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc \"select app_private.discipline_testing_open_v1()::text;\")\"\ntest \"$post_trial_testing_policy\" = 'true'\necho 'Phase 4 Mastery prerequisites, testing separation, persisted-event rewards, retries, milestones and browser denial PASS.'\n""",
+          )
+
+          workflow = Path('.github/workflows/representative-buildcraft.yml')
+          text = workflow.read_text()
+          anchor = """      - '.github/workflows/representative-buildcraft.yml'\n"""
+          additions = """      - '.github/workflows/representative-buildcraft.yml'\n      - 'supabase/migrations/20260912070000_discipline_atlas_testing_separation.sql'\n      - '.github/scripts/verify-p4-mastery.sh'\n      - 'packages/game-core/src/character/discipline-atlas.ts'\n      - 'packages/game-core/src/character/discipline-atlas.test.ts'\n      - 'apps/web/src/app/api/character/mastery/route.ts'\n"""
+          if additions not in text:
+              if anchor not in text:
+                  raise SystemExit('Representative workflow path anchor missing')
+              text = text.replace(anchor, additions, 1)
+          format_anchor = """            packages/game-core/src/combat/mature-skills.ts \\\n"""
+          format_new = """            packages/game-core/src/character/discipline-atlas.ts \\\n            packages/game-core/src/character/discipline-atlas.test.ts \\\n            packages/game-core/src/combat/mature-skills.ts \\\n"""
+          if format_new not in text:
+              if format_anchor not in text:
+                  raise SystemExit('Representative workflow formatting anchor missing')
+              text = text.replace(format_anchor, format_new, 1)
+          lint_anchor = """            packages/game-core/src/combat/mature-skills.ts \\\n"""
+          lint_new = """            packages/game-core/src/character/discipline-atlas.ts \\\n            packages/game-core/src/character/discipline-atlas.test.ts \\\n            packages/game-core/src/combat/mature-skills.ts \\\n"""
+          # Replace the second occurrence only if the lint block has not yet been expanded.
+          if text.count(lint_new) < 2:
+              first = text.find(lint_anchor)
+              second = text.find(lint_anchor, first + len(lint_anchor))
+              if second == -1:
+                  raise SystemExit('Representative workflow lint anchor missing')
+              text = text[:second] + text[second:].replace(lint_anchor, lint_new, 1)
+          workflow.write_text(text)
+          PY
+
+          git diff --check
+
+      - name: Commit contract updates
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo 'No contract updates required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            packages/game-core/src/character/discipline-atlas.ts \
+            .github/scripts/verify-p36-essence.sh \
+            .github/scripts/verify-p37-saved-build-loadouts.sh \
+            .github/scripts/verify-p38-representative-buildcraft.sh \
+            .github/scripts/verify-p4-mastery.sh \
+            .github/workflows/representative-buildcraft.yml
+          git commit -m 'Fix Discipline testing separation regressions'
+          git push origin HEAD:agent/phase4-discipline-atlas-mastery
