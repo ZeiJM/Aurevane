@@ -16,7 +16,7 @@ for caller in anon authenticated; do
     echo 'Browser publication unexpectedly succeeded.' >&2
     exit 1
   fi
-  rg -q 'permission denied for function activate_phase4_combat_interactions_v2' /tmp/p4-publication-denial.log
+  grep -Fq 'permission denied for function activate_phase4_combat_interactions_v2' /tmp/p4-publication-denial.log
 done
 # All publication and battle fixtures are local and transactionally rolled back.
 docker exec -i "$db_container" psql -v ON_ERROR_STOP=1 -v user_id="$user_id" -U postgres -d postgres <<'SQL'

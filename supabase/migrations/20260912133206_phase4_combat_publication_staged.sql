@@ -265,7 +265,10 @@ begin
     raise exception using errcode = 'P0001', message = 'SAVED_BUILD_LOADOUT_NOT_FOUND';
   end if;
 
-  if exists (select 1 from app_private.phase4_combat_publication where activated_at is not null) then
+  if exists (
+    select 1 from app_private.phase4_combat_publication publication
+    where publication.activated_at is not null
+  ) then
     select coalesce(jsonb_agg(
       case when release.skill_id is not null then
         selected.element || jsonb_build_object('contentVersion', release.content_version)

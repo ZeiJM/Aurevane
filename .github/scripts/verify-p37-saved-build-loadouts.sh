@@ -1,6 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Keep unexpected SQL failures visible without printing commands, auth responses, or SQL context.
+p37_expect_sql_error() {
+  local status="$1" output="$2" expected="$3"
+  if [ "$status" -ne 0 ] && printf '%s\n' "$output" | grep -Fq "$expected"; then
+    return 0
+  fi
+  printf 'P3.7 expected SQL error %s; command exited %s.\n' "$expected" "$status" >&2
+  printf '%s\n' "$output" | awk '/^ERROR:/ && !reported { print; reported = 1 }' >&2
+  return 1
+}
+
 source .github/scripts/auth-test-helpers.sh
 load_test_auth
 
@@ -104,8 +115,7 @@ locked_output="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres
   );" 2>&1)"
 locked_status=$?
 set -e
-test "$locked_status" -ne 0
-printf '%s' "$locked_output" | grep -q 'SECONDARY_ATTUNEMENT_LOCKED'
+p37_expect_sql_error "$locked_status" "$locked_output" 'SECONDARY_ATTUNEMENT_LOCKED'
 
 unchanged_locked="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   select build_version::text || '|' || coalesce(secondary_discipline_id, '')
@@ -168,8 +178,7 @@ atomic_output="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres
   );" 2>&1)"
 atomic_status=$?
 set -e
-test "$atomic_status" -ne 0
-printf '%s' "$atomic_output" | grep -q 'DISCIPLINE_SKILL_NOT_LEARNED'
+p37_expect_sql_error "$atomic_status" "$atomic_output" 'DISCIPLINE_SKILL_NOT_LEARNED'
 
 atomic_unchanged="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   select build_version::text || '|' || coalesce(secondary_discipline_id, '')
