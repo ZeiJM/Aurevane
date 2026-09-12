@@ -1,8 +1,8 @@
 # AUREVANE — Active Task Ledger
 
-## Active Phase 4 completeness continuation — 2026-09-12
+## Phase 4 implementation live for testing — 2026-09-12
 
-Owner authorized full Phase 4 coding and live testing release, including gameplay tags/targeting and Discipline Atlas/Mastery inside Profile Discipline Management. Baseline: PR #455 is live with 17 published libraries and the 36-identity Atlas. New audited gaps: typed tag interactions, Frozen/Steam terrain, and actual shared ground-target UI routing. Execute `docs/superpowers/plans/2026-09-12-phase4-combat-completeness.md`; current requirement coverage is in `docs/PHASE_4_COMPLETENESS_AUDIT.md`. Do not call the new work live before verification. Preserve earned Mastery separately from open testing access, historical battle versions, and deployment lock outside the authorized release. Human balance/media acceptance remains open.
+Owner authorized full Phase 4 implementation and release. PR #459 is merged, deployed and activated with typed gameplay tags, Frozen/Steam terrain, shared targeting, the AI Sparring Arena picker fix and the Profile Discipline Atlas/Mastery extension. All fifteen exact-head CI workflows and authenticated live interaction checks passed. See `docs/PHASE_4_TICKETS.md` for actual evidence and the recovered Profile interruption. The deployment lock is restored by this documentation/configuration commit. Human tactical/media acceptance remains open.
 
 This file reports the **current implementation/validation boundary**.
 
@@ -12,7 +12,7 @@ This file reports the **current implementation/validation boundary**.
 
 **Phase-4 completeness audit:** See `docs/PHASE_4_COMPLETENESS_AUDIT.md` for current coverage and historical checkpoints. PR #455 released Chronist as the seventeenth Discipline, preserved Tidecaller, integrated Ironfist media, and placed the 36-identity Atlas inside Discipline Management. Its Representative Buildcraft gate included a real earned-Mastery UI claim. Those results validate the prior release only.
 
-**2026-09-12 active continuation:** typed gameplay tags, Frozen/Steam terrain, twenty versioned Skill updates, shared ground targeting, clearer combat feedback, and Atlas filtering/accessibility are being integrated and reviewed. Publication uses a staged database activation after compatible application code is READY. The combined repository, database-concurrency, browser, CI and live checks remain release gates; independent human tactical/media acceptance remains open.
+**2026-09-12 completed continuation:** PR #459 releases typed gameplay tags, Frozen/Steam terrain, twenty appended Skill versions, shared ground targeting, readable combat feedback, Arena picker styling and Atlas filtering/accessibility. Staged database activation followed compatible application READY. Repository, final review, database-concurrency, browser, exact-head CI and live checks passed; independent human tactical/media acceptance remains open.
 
 ---
 
@@ -30,9 +30,9 @@ This file reports the **current implementation/validation boundary**.
 
 **Presentation follow-up:** PR #446 merged while this audit was in progress and was released at `0df098e8`; preserve its desktop/mobile changes and assess its exact release interaction evidence.
 
-**Current implementation:** the seventeen-Discipline release through PR #455 is live; the newly audited gameplay-tag/terrain and targeting continuation is in progress. Preserve the earlier roster, media, self-target cockpit and Mastery implementations.
+**Current implementation:** the full approved Phase-4 engineering scope through PR #459 is live for testing, preserving the earlier roster, media, self-target cockpit and earned Mastery.
 
-**Live baseline:** 17 Disciplines, 136 regular Skills, 17 Essences, 136 unordered Resonance pairs and the 36-identity Atlas. Production deployment `dpl_FH4atQ3A4sTdxdREmKhbKDSTGPwp` serves application commit `df1be4f72762bc11dc75c7b2e4eb62934241f8ec`; main `9cad3272cc2cf573d592e434ce1d8a9438c62c0f` restores the deployment lock and records evidence. See `docs/PHASE_4_TICKETS.md` for actual prior release checks. Earlier milestone notes below are historical.
+**Live baseline:** 17 Disciplines, 136 regular Skills, 17 Essences, 136 unordered Resonance pairs and the 36-identity Atlas. Production deployment `dpl_Hr4ShGPgWjZQ98D4nXbVRLAnmS2v` serves application commit `a4a06d01e64e59ee8819353fd874bea4b92aa1db`. See `docs/PHASE_4_TICKETS.md` for the final exact-head CI, additive migration, activation, live checks and deployment-lock record. Earlier milestone notes below are historical.
 
 ---
 

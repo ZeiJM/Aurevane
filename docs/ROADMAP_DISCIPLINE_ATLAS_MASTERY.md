@@ -333,11 +333,11 @@ Do not “balance” the Atlas by making every profile sum to the same arbitrary
 - [x] Document final-release normalization requirement.
 - [x] Pass repository quality/type/unit/build gates on exact branch head. (PR #455 release evidence in `PHASE_4_TICKETS.md`.)
 - [x] Pass database migration/security validation. (PR #455 release evidence in `PHASE_4_TICKETS.md`.)
-- [ ] Complete explicit phone/desktop Atlas browser validation. PR #455 records authenticated Profile/Atlas and earned-Mastery evidence; this continuation adds a dedicated responsive Atlas check.
-- [ ] Complete explicit public phone/desktop Manual Atlas browser validation in the current continuation. Prior generic browser passes are not a dedicated Atlas layout check.
+- [x] Complete explicit phone/desktop Atlas browser validation. Final Representative Buildcraft `34707419058` passes the dedicated responsive private Atlas cases.
+- [x] Complete explicit public phone/desktop Manual Atlas browser validation. Final Representative Buildcraft `34707419058` passes the dedicated responsive public Atlas cases.
 - [x] Review exact diff against concurrent Phase-4 work and merge only after main reconciliation. (PR #455 release evidence in `PHASE_4_TICKETS.md`.)
 
-The checked gates above describe the completed Atlas release; the explicit responsive Atlas/Manual checks remain tracked separately. The newly authorized gameplay-tag/terrain continuation has its own fresh verification and release gate in `docs/superpowers/plans/2026-09-12-phase4-combat-completeness.md`; prior results do not validate later code.
+The checked gates describe the released Atlas plus the dedicated responsive Atlas/Manual verification in PR #459. The gameplay-tag/terrain continuation passed its own final exact-head verification and production activation; see `PHASE_4_TICKETS.md` for fresh evidence and human acceptance limits.
 
 ## Later roster publication work
 
