@@ -1,5 +1,6 @@
 name: Atlas documentation maintenance
 
+# One-shot synchronization after the workflow registration commit.
 on:
   push:
     branches:
