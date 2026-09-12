@@ -6,6 +6,8 @@ on:
     paths:
       - 'packages/game-core/src/combat/**'
       - 'packages/game-core/src/character/advanced-disciplines.ts'
+      - 'apps/web/e2e/phase4-mastery.pw.ts'
+      - 'apps/web/src/app/api/**/mastery/**'
       - 'apps/web/src/media/**'
       - 'packages/audio/**'
       - 'supabase/migrations/**'
@@ -14,7 +16,6 @@ on:
       - 'packages/game-core/src/combat/ironfist-content.ts'
       - 'apps/web/src/components/character/skill-details*'
       - 'apps/web/e2e/phase4-roster.pw.ts'
-      - 'apps/web/e2e/phase4-mastery.pw.ts'
       - 'docs/PHASE_3_CLOSEOUT.md'
       - 'docs/ROADMAP.md'
       - 'apps/web/src/content/current-manual.ts'

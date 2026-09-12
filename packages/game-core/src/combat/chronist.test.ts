@@ -1,4 +1,10 @@
 import { describe, expect, it } from 'vitest'
+import {
+  surrenderPvpCombatant,
+  timeoutPvpTurn,
+  createPvpQualityResources,
+  resetPvpMissedTurnStreak,
+} from './pvp-quality'
 import { createPendingBattle, startBattle, validateBattleState } from './battle-state'
 import { createTacticalBattleState } from './board'
 import { createCombatEncounterState, type CombatEncounterState } from './actions'
@@ -356,5 +362,105 @@ describe('Committed Resonance uses normal battle execution', () => {
     expect(
       armed.events.some((event) => (event as { event: string }).event.startsWith('resonance_')),
     ).toBe(false)
+  })
+})
+
+describe('Chronist quality transitions', () => {
+  it.each([false, true])(
+    'excludes a boosted surrendering actor at the round boundary (terminal: %s)',
+    (terminal) => {
+      let state = withStatus(encounter(), 'ally', 'borrowed-hour')
+      while (state.tactical.battle.currentTurn!.combatantId !== 'ally')
+        state = finishPv1fTurn(state, 'west').state
+      if (terminal)
+        state = {
+          ...state,
+          tactical: {
+            ...state.tactical,
+            battle: {
+              ...state.tactical.battle,
+              combatants: state.tactical.battle.combatants.map((unit) =>
+                unit.id === 'actor' ? { ...unit, hp: 0 } : unit,
+              ),
+            },
+          },
+        }
+      const saved = JSON.stringify(state)
+      const result = surrenderPvpCombatant(state, 'ally')
+      expect(result.state.tactical.battle.combatants.find((unit) => unit.id === 'ally')!.hp).toBe(0)
+      expect(result.state.tactical.battle.lifecycle).toBe(terminal ? 'completed' : 'active')
+      expect(result.state.tactical.battle.currentTurn?.combatantId ?? null).toBe(
+        terminal ? null : 'actor',
+      )
+      expect(result.events).not.toContainEqual(
+        expect.objectContaining({ event: 'turn_started', combatantId: 'ally' }),
+      )
+      expect(validateBattleState(result.state.tactical.battle)).toEqual([])
+      expect(JSON.stringify(state)).toBe(saved)
+    },
+  )
+  it('preserves the committed Resonance payoff through a PvP timeout and reload', () => {
+    const initial = mixed()
+    const state = {
+      ...initial,
+      tactical: {
+        ...initial.tactical,
+        battle: {
+          ...initial.tactical.battle,
+          combatants: initial.tactical.battle.combatants.map((unit) => ({
+            ...unit,
+            temporaryResources: [...unit.temporaryResources, ...createPvpQualityResources()].sort(
+              (a, b) => a.key.localeCompare(b.key),
+            ),
+          })),
+        },
+      },
+    }
+    const armed = executePv1fMatureSkill(
+      state,
+      skill('chronist.haste'),
+      { kind: 'unit', combatantId: 'ally' },
+      'pvp',
+    )
+    const timed = timeoutPvpTurn(armed.state).state
+    const loaded = nextRound(JSON.parse(JSON.stringify(timed))).state
+    const result = executePv1fMatureSkill(
+      loaded,
+      skill('vanguard.forceful-strike'),
+      { kind: 'unit', combatantId: 'enemy' },
+      'pvp',
+    )
+    expect(result.events).toContainEqual(
+      expect.objectContaining({ event: 'resonance_activated', actorId: 'actor' }),
+    )
+  })
+  it('retains Rewind origin when a real command resets a missed-turn streak', () => {
+    const initial = encounter()
+    const state = {
+      ...initial,
+      tactical: {
+        ...initial.tactical,
+        battle: {
+          ...initial.tactical.battle,
+          combatants: initial.tactical.battle.combatants.map((unit) => ({
+            ...unit,
+            temporaryResources: [
+              ...unit.temporaryResources,
+              { ...createPvpQualityResources()[0]!, current: 1 },
+            ].sort((a, b) => a.key.localeCompare(b.key)),
+          })),
+        },
+      },
+    }
+    const moved = executePv1fMovement(state, [
+      { x: 1, y: 1 },
+      { x: 0, y: 1 },
+    ]).state
+    const reset = resetPvpMissedTurnStreak(moved)
+    expect(
+      evaluatePv1fMatureSkill(reset, skill('chronist.rewind-step'), { kind: 'self' }, 'pvp')
+        .evaluation.legal,
+    ).toBe(true)
+    expect(readPv1fActionEconomy(reset)).toEqual(readPv1fActionEconomy(moved))
   })
 })

@@ -630,6 +630,7 @@ export function waitCurrentTurn(
 export function endCombatTurn(
   state: CombatEncounterState,
   content: CombatContentCatalog,
+  outgoingDefeatedAtTurnEnd = false,
 ): CombatResolutionTransition {
   assertValidCombatEncounterState(state)
   validateCombatContentCatalog(content)
@@ -666,7 +667,11 @@ export function endCombatTurn(
       ? Math.max(0, hp - amount)
       : Math.min(outgoing.maxHp, hp + amount)
   }, outgoing.hp)
-  const ended = endTurn(state.tactical.battle, roundModifiers, outgoingHpAfterTicks === 0)
+  const ended = endTurn(
+    state.tactical.battle,
+    roundModifiers,
+    outgoingDefeatedAtTurnEnd || outgoingHpAfterTicks === 0,
+  )
   let nextState = withBattle(state, ended.state)
   const events: CombatResolutionEvent[] = [...ended.events]
   if (ended.state.round !== state.tactical.battle.round) {
