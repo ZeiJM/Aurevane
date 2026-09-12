@@ -3,16 +3,16 @@
 }
 
 /*
- * The regular desktop cockpit already has two approved fixed tracks: a 2.4rem context strip and
- * 6.35rem command cards. Keep the parent grid on those same tracks while Finish Turn hands control
- * to Recruit/AI so intrinsic disabled/preview content cannot briefly give the battlefield extra room.
+ * Keep stable context/card tracks while Finish Turn hands control to Recruit/AI. The full-width
+ * tag strip needs room for three chip rows on normal desktops and five on narrow desktops.
  */
 @media (min-width: 821px) and (min-height: 721px) {
   :global(
     main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
       [data-unified-command-deck='true']
   ) {
-    grid-template-rows: 2.4rem 6.35rem !important;
+    --battle-command-row-height: 8.75rem;
+    grid-template-rows: 2.4rem var(--battle-command-row-height) !important;
   }
 
   :global(
@@ -31,9 +31,18 @@
       [data-unified-command-deck='true']
       > div:nth-child(2)
   ) {
-    height: 6.35rem !important;
-    min-height: 6.35rem !important;
-    max-height: 6.35rem !important;
+    height: var(--battle-command-row-height) !important;
+    min-height: var(--battle-command-row-height) !important;
+    max-height: var(--battle-command-row-height) !important;
     align-self: stretch !important;
+  }
+}
+
+@media (min-width: 821px) and (max-width: 1200px) and (min-height: 721px) {
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
+      [data-unified-command-deck='true']
+  ) {
+    --battle-command-row-height: 12rem;
   }
 }

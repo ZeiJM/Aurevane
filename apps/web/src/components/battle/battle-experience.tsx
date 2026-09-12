@@ -80,12 +80,14 @@ const HEAL_SELECTOR_OPTIONS = [
     label: 'HP Recovery',
     cost: `${RECOVER_COST} AP`,
     artworkSrc: battleSkillArtwork(RECOVER_ID),
+    tags: ['Self', 'Healing'],
   },
   {
     id: MP_RECOVER_ID,
     label: 'MP Recovery',
     cost: `${MP_RECOVER_COST} AP`,
     artworkSrc: battleSkillArtwork(MP_RECOVER_ID),
+    tags: ['Self', 'MP Restore'],
   },
 ] as const
 
@@ -270,12 +272,14 @@ export function BattleExperience({
       label: 'Basic Attack',
       cost: `${ATTACK_COST} AP`,
       artworkSrc: BATTLE_COMMAND_ARTWORK.attack,
+      tags: ['Enemy', 'Single target', 'Damage'],
     },
     ...attackTechniques.map((technique) => ({
       id: technique.id,
       label: technique.name,
       cost: `${technique.apCost} AP`,
       artworkSrc: battleSkillArtwork(technique.id),
+      tags: technique.tags,
     })),
     ...(runtime.essence
       ? [
@@ -284,6 +288,7 @@ export function BattleExperience({
             label: runtime.essence.name,
             cost: `${runtime.essence.apCost} AP`,
             artworkSrc: battleSkillArtwork(runtime.essence.id),
+            tags: runtime.essence.tags,
           },
         ]
       : []),
@@ -294,12 +299,14 @@ export function BattleExperience({
       label: 'Guard',
       cost: `${GUARD_COST} AP`,
       artworkSrc: BATTLE_COMMAND_ARTWORK.guard,
+      tags: ['Self', 'Guarded'],
     },
     ...defenseTechniques.map((technique) => ({
       id: technique.id,
       label: technique.name,
       cost: `${technique.apCost} AP`,
       artworkSrc: battleSkillArtwork(technique.id),
+      tags: technique.tags,
     })),
   ]
   const recoveryOptions = [
@@ -309,6 +316,7 @@ export function BattleExperience({
       label: technique.name,
       cost: `${technique.apCost} AP`,
       artworkSrc: battleSkillArtwork(technique.id),
+      tags: technique.tags,
     })),
   ]
   const selectedAttack =
@@ -1696,6 +1704,7 @@ export function BattleExperience({
               label={selectedAttack.label}
               cost={selectedAttack.cost}
               artworkSrc={selectedAttack.artworkSrc}
+              tags={selectedAttack.tags}
               active={mode === 'attack'}
               disabled={planningDisabled || actionEconomy < selectedAttackCost}
               onActivate={() => chooseMode('attack')}
@@ -1717,6 +1726,7 @@ export function BattleExperience({
               label={selectedDefense.label}
               cost={selectedDefense.cost}
               artworkSrc={selectedDefense.artworkSrc}
+              tags={selectedDefense.tags}
               active={mode === 'guard'}
               disabled={planningDisabled || actionEconomy < selectedDefenseCost}
               onActivate={() => chooseMode('guard')}
@@ -1738,6 +1748,7 @@ export function BattleExperience({
               label={selectedHealName}
               cost={`${selectedHealCost} AP`}
               artworkSrc={selectedHealOption.artworkSrc}
+              tags={selectedHealOption.tags}
               active={mode === 'recover'}
               disabled={
                 planningDisabled || actionEconomy < selectedHealCost || selectedHealAtMaximum

@@ -337,6 +337,8 @@
   z-index: 1000;
   display: grid;
   width: min(17rem, calc(100vw - 1rem));
+  max-height: calc(100dvh - 1rem);
+  overflow-y: auto;
   gap: 0.22rem;
   padding: 0.38rem;
   border: 1px solid rgba(var(--skill-rgb), 0.5);
@@ -349,6 +351,32 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.04),
     0 0.65rem 1.6rem rgba(0, 0, 0, 0.52),
     0 0 0.8rem rgba(var(--skill-rgb), 0.11);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  min-width: 0;
+  text-align: left;
+}
+
+.tags > span {
+  max-width: 100%;
+  padding: 2px 5px;
+  border: 1px solid rgba(var(--skill-rgb), 0.25);
+  border-radius: 4px;
+  color: #e1e6e8;
+  background: rgba(var(--skill-rgb), 0.08);
+  font: 550 12px/1.25 var(--av-font-body);
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+.action > .tags {
+  grid-column: 1;
+  grid-row: 4;
+  margin-top: 3px;
 }
 
 .selectorHeading {
@@ -405,14 +433,69 @@
 
 .selectorOption strong {
   overflow: hidden;
-  font: 650 0.66rem/1 var(--av-font-display);
+  font: 650 14px/1.2 var(--av-font-display);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .selectorOption small {
   color: rgba(var(--skill-rgb), 0.88);
-  font: 700 0.37rem/1 var(--av-font-mono);
+  font: 700 12px/1 var(--av-font-mono);
+}
+
+/* The effect strip spans the card below the header and artwork. Keep the artwork out of the
+   text flow without reserving its width for every wrapped tag row. */
+.shell[data-has-skill-tags] .action {
+  grid-template-columns: minmax(0, 1fr) 2.75rem !important;
+  grid-template-rows: 0.85rem 1.2rem 0.8rem auto !important;
+  align-content: start !important;
+  gap: 0.15rem !important;
+  padding: 0.4rem !important;
+}
+
+.shell[data-has-skill-tags] .action::after {
+  display: none;
+}
+
+.shell[data-has-skill-tags] .action > small {
+  font-size: 12px !important;
+}
+
+.shell[data-has-skill-tags] .action > .tags {
+  grid-column: 1 / -1;
+}
+
+.shell[data-has-skill-tags] .artwork,
+.shell[data-has-skill-tags] .artworkTrigger {
+  top: 0.4rem;
+  right: 0.4rem;
+  width: 2.6rem;
+  height: 2.6rem;
+  transform: none;
+}
+
+@media (max-width: 580px) {
+  .shell[data-has-skill-tags] .action {
+    grid-template-columns: minmax(0, 1fr) 2.35rem !important;
+    grid-template-rows: 1.4rem 0.9rem auto !important;
+    padding: 0.35rem !important;
+  }
+
+  .shell[data-has-skill-tags] .action > strong {
+    font-size: 14px !important;
+  }
+
+  .shell[data-has-skill-tags] .action > .tags {
+    grid-row: 3;
+  }
+
+  .shell[data-has-skill-tags] .artwork,
+  .shell[data-has-skill-tags] .artworkTrigger {
+    top: 0.35rem;
+    right: 0.35rem;
+    width: 2.18rem;
+    height: 2.18rem;
+  }
 }
 
 .selectorOption b {

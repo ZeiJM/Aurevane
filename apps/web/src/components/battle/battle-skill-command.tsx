@@ -5,6 +5,7 @@ import Image from 'next/image'
 import {
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useRef,
   useState,
@@ -28,6 +29,7 @@ export interface BattleSkillSelectorOption {
   label: string
   cost: string
   artworkSrc: string
+  tags?: readonly string[]
 }
 
 export interface BattleSkillSelectorConfig {
@@ -73,6 +75,7 @@ export function BattleSkillCommand({
   disabled,
   onActivate,
   selector,
+  tags = [],
 }: {
   slot: BattleCommandSlot
   hotkey: string
@@ -83,7 +86,9 @@ export function BattleSkillCommand({
   disabled: boolean
   onActivate: () => void
   selector?: BattleSkillSelectorConfig
+  tags?: readonly string[]
 }) {
+  const informationId = useId()
   const [selectorOpen, setSelectorOpen] = useState(false)
   const [selectorStyle, setSelectorStyle] = useState<CSSProperties>({})
   const artworkRef = useRef<HTMLButtonElement | null>(null)
@@ -171,7 +176,11 @@ export function BattleSkillCommand({
   }, [selector])
 
   return (
-    <article className={styles.shell} data-command-card={slot}>
+    <article
+      className={styles.shell}
+      data-command-card={slot}
+      data-has-skill-tags={tags.length > 0 || undefined}
+    >
       <button
         type="button"
         className={styles.action}
@@ -183,10 +192,20 @@ export function BattleSkillCommand({
         disabled={disabled}
         onClick={onActivate}
         aria-label={`${label}, ${cost}`}
+        aria-describedby={tags.length > 0 ? informationId : undefined}
       >
-        <span className={styles.hotkey}>{hotkey}</span>
+        <span className={styles.hotkey} data-battle-command-hotkey="true">
+          {hotkey}
+        </span>
         <strong>{label}</strong>
         <small>{cost}</small>
+        {tags.length > 0 ? (
+          <span id={informationId} className={styles.tags} data-battle-skill-tags="command">
+            {tags.map((tag) => (
+              <span key={tag}>{tag}</span>
+            ))}
+          </span>
+        ) : null}
         {!canSwap ? (
           <span
             className={`${styles.artwork} ${artworkFitStyles.frame}`}
@@ -251,6 +270,10 @@ export function BattleSkillCommand({
                     role="option"
                     data-battle-skill-option-id={option.id}
                     aria-selected={selected}
+                    aria-label={`${option.label} ${option.cost}`}
+                    aria-describedby={
+                      option.tags?.length ? `${informationId}-${option.id}` : undefined
+                    }
                     className={styles.selectorOption}
                     data-selected={selected || undefined}
                     onClick={() => {
@@ -270,6 +293,17 @@ export function BattleSkillCommand({
                     <span>
                       <strong>{option.label}</strong>
                       <small>{option.cost}</small>
+                      {option.tags?.length ? (
+                        <span
+                          id={`${informationId}-${option.id}`}
+                          className={styles.tags}
+                          data-battle-skill-tags="option"
+                        >
+                          {option.tags.map((tag) => (
+                            <span key={tag}>{tag}</span>
+                          ))}
+                        </span>
+                      ) : null}
                     </span>
                     <b aria-hidden="true">{selected ? '✓' : ''}</b>
                   </button>

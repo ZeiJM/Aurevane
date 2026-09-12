@@ -367,7 +367,7 @@
 
   :global(
     main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
-      [data-battle-command]
+      [data-battle-command]:not([data-command-slot])
   ) {
     min-height: 2.55rem !important;
     padding: 0.3rem 0.36rem !important;

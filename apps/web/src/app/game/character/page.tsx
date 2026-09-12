@@ -20,6 +20,7 @@ import { isPv2BuildcraftTestKitEnabled } from '@/server/character/pv2-buildcraft
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 import { createSupabaseCharacterAttributeRepository } from '@/server/character/supabase-character-attribute-repository'
 import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
+import { serverLogger } from '@/server/logging'
 import { loadLevelProgressionCurve } from '@/server/progression/progression-service'
 import { createSupabaseProgressionRepository } from '@/server/progression/supabase-progression-repository'
 
@@ -27,6 +28,17 @@ export const dynamic = 'force-dynamic'
 
 function isPersistenceUnavailable(error: unknown) {
   return isAurevaneError(error) && error.code === 'PERSISTENCE_UNAVAILABLE'
+}
+
+function renderPersistenceRecovery(
+  stage: 'selected_character' | 'level_curve' | 'discipline_build' | 'attribute_allocation',
+) {
+  serverLogger.error('character_profile.persistence_unavailable', {
+    route: '/game/character',
+    stage,
+    code: 'PERSISTENCE_UNAVAILABLE',
+  })
+  return <AuthenticatedGameRecovery />
 }
 
 export default async function CharacterProfilePage() {
@@ -59,7 +71,9 @@ export default async function CharacterProfilePage() {
   }
 
   if (characterResult.status === 'rejected') {
-    if (isPersistenceUnavailable(characterResult.reason)) return <AuthenticatedGameRecovery />
+    if (isPersistenceUnavailable(characterResult.reason)) {
+      return renderPersistenceRecovery('selected_character')
+    }
     throw characterResult.reason
   }
   const character = characterResult.value
@@ -89,16 +103,20 @@ export default async function CharacterProfilePage() {
   ])
 
   if (levelCurveResult.status === 'rejected') {
-    if (isPersistenceUnavailable(levelCurveResult.reason)) return <AuthenticatedGameRecovery />
+    if (isPersistenceUnavailable(levelCurveResult.reason)) {
+      return renderPersistenceRecovery('level_curve')
+    }
     throw levelCurveResult.reason
   }
   if (disciplineBuildResult.status === 'rejected') {
-    if (isPersistenceUnavailable(disciplineBuildResult.reason)) return <AuthenticatedGameRecovery />
+    if (isPersistenceUnavailable(disciplineBuildResult.reason)) {
+      return renderPersistenceRecovery('discipline_build')
+    }
     throw disciplineBuildResult.reason
   }
   if (attributeAllocationResult.status === 'rejected') {
     if (isPersistenceUnavailable(attributeAllocationResult.reason)) {
-      return <AuthenticatedGameRecovery />
+      return renderPersistenceRecovery('attribute_allocation')
     }
     throw attributeAllocationResult.reason
   }

@@ -1,5 +1,7 @@
 # AUREVANE — Active Task Ledger
 
+**Final-testing engineering follow-up — 2026-09-12:** Prepared battle button/picker tags from committed Skill versions, full current/historical execution contracts, four effect-badge repairs and safe Profile recovery diagnostics. See `docs/PHASE_4_FINAL_TEST_READINESS.md` for scope, evidence and the remaining A03/A04/A07/A10 human gates. Integration/release evidence is separate from the existing live baseline below.
+
 ## Phase 4 implementation live for testing — 2026-09-12
 
 Owner authorized full Phase 4 implementation and release. PR #459 is merged, deployed and activated with typed gameplay tags, Frozen/Steam terrain, shared targeting, the AI Sparring Arena picker fix and the Profile Discipline Atlas/Mastery extension. All fifteen exact-head CI workflows and authenticated live interaction checks passed. See `docs/PHASE_4_TICKETS.md` for actual evidence and the recovered Profile interruption. The deployment lock is restored by this documentation/configuration commit. Human tactical/media acceptance remains open.

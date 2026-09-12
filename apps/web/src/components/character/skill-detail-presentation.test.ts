@@ -106,3 +106,23 @@ it('explains elemental interactions and typed status aliases without changing hi
     skillAffectedDescription(resolveMatureSkillVersion('frostweaver.chilling-mist')!),
   ).toContain('Terrain affects both teams')
 })
+
+it('shows the executable element and canonical status names on current Technique tags', () => {
+  const fire = resolveMatureSkillVersion('cinderweaver.cinder-bolt')!
+  expect(skillTargetTags(fire)).toContain('Fire damage')
+  expect(skillTargetTags(fire)).toContain('Burn (Scorched)')
+  expect(skillTargetTags(resolveMatureSkillVersion('stormsinger.arc-spark')!)).toContain(
+    'Storm damage',
+  )
+  expect(skillTargetTags(resolveMatureSkillVersion('ravager.gash')!)).toContain('Bleed (Bleeding)')
+  expect(skillTargetTags(resolveMatureSkillVersion('cinderweaver.cinder-bolt', 1)!)).not.toContain(
+    'Fire damage',
+  )
+})
+
+it('distinguishes dispelling enemy protection from cleansing harmful effects', () => {
+  expect(skillTargetTags(resolveMatureSkillVersion('runeblade.aether-cut')!)).toContain('Dispel')
+  expect(skillTargetTags(resolveMatureSkillVersion('tidecaller.cleansing-rain')!)).toContain(
+    'Cleanse',
+  )
+})
