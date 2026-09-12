@@ -1,10 +1,10 @@
 # Phase 4 — execution and acceptance ledger
 
-**Live testing release — 2026-09-12:** PR #459 is merged and the full approved Phase-4 engineering scope, including gameplay tags/targeting, the Profile Atlas and Arena picker correction, is live at https://aurevane.vercel.app. See the final release evidence below. Independent human tactical, visual and listening acceptance remains open.
+**Live testing release — 2026-09-12:** PR #461 is merged and released at https://aurevane.vercel.app. It adds visible battle button/picker effect tags, current/historical execution contracts, four effect-badge repairs and Profile recovery diagnostics on top of PR #459. All ten applicable CI workflows passed, production is READY, and live casting/reload checks passed. See `PHASE_4_FINAL_TEST_READINESS.md` for exact evidence and the isolated recovered turn-clock 503 whose underlying cause remains unestablished. Independent human tactical, visual and listening acceptance remains open.
 
 Owner activation: explicit request for full implementation, necessary approvals, and final production deployment; followed by confirmation that Skill targeting/effect tags belong in this work. This supersedes the earlier waiting-for-start notes. It does not manufacture human playtest evidence.
 
-## Combat completeness release — 2026-09-12
+## Previous combat completeness release — PR #459
 
 PR [#459](https://github.com/ZeiJM/Aurevane/pull/459) merged as `f7369a23d745fef9fe6242eb391082f5c2dab0f0`. Its verified head `4ac18af9f8b1831552b27f38a4cd2a3cd5766d6b` and merge share tree `c2ae2239ab9f130890f28983b7c406248fb0e1bc`. All fifteen exact-head CI workflows passed. Whole-branch review and subsequent bounded corrections are approved. The only application release delta was the temporary main deployment switch; the final documentation/configuration commit restores `deploymentEnabled: { "**": false }`.
 

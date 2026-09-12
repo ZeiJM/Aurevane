@@ -1,10 +1,10 @@
 # Phase 4 completeness audit — 2026-09-12
 
-**Current conclusion:** all approved Phase-4 engineering implementation is live for testing through PR #459, including typed gameplay tags, Frozen/Steam terrain, shared ground targeting, the corrected Arena picker and Profile Discipline Atlas/Mastery. Exact-head CI, review, database activation and live checks passed. Human tactical, visual/listening and Owner phase acceptance remain open.
+**Current conclusion:** Phase-4 engineering is live for final testing through PR #461, including the actual battle button/picker tags, 153 current and 20 historical execution contracts, four effect-badge repairs and Profile recovery diagnostics. All ten applicable CI workflows and live cast/reload checks passed. `PHASE_4_FINAL_TEST_READINESS.md` records the exact release and an isolated recovered turn-clock 503 whose underlying cause remains unestablished. Human tactical, visual/listening and Owner phase acceptance remain open. PR #459's earlier release evidence is preserved below.
 
 This is a scope and evidence audit, not a full security audit or a new human playtest. It preserves released mechanics and testing access.
 
-## Combat completeness release — 2026-09-12
+## Previous combat completeness release — PR #459
 
 PR [#459](https://github.com/ZeiJM/Aurevane/pull/459) merged as `f7369a23d745fef9fe6242eb391082f5c2dab0f0`. Its verified head `4ac18af9f8b1831552b27f38a4cd2a3cd5766d6b` and merge share tree `c2ae2239ab9f130890f28983b7c406248fb0e1bc`. All fifteen exact-head CI workflows passed. Whole-branch review and subsequent bounded corrections are approved. The only application release delta was the temporary main deployment switch; the final documentation/configuration commit restores `deploymentEnabled: { "**": false }`.
 
