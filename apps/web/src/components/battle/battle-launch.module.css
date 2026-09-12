@@ -277,6 +277,11 @@
   min-width: 0;
 }
 
+.arenaLine label > span {
+  font-size: max(0.46rem, 12px);
+  line-height: 1.2;
+}
+
 .arenaLine select {
   width: 100%;
   color-scheme: dark;

@@ -1,4 +1,5 @@
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
+import { createClient } from '@supabase/supabase-js'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
@@ -328,6 +329,28 @@ test('PvP ground Skill uses the same forecast and spectator terrain inspection',
     const battleKey = (await root
       .locator('[data-pvp-spectator-key="true"] strong')
       .textContent())!.trim()
+    // Run the spectator title read in Node so disposable CI preserves the actual
+    // PostgREST error, without exposing admin credentials to the browser.
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const secretKey = process.env.SUPABASE_SECRET_KEY
+    if (!supabaseUrl || !secretKey) {
+      throw new Error('Local Supabase admin credentials are required for the title preflight.')
+    }
+    const admin = createClient(supabaseUrl, secretKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    })
+    const participantIds = initialBattle.snapshot.buildAuthority!.combatants.map(
+      (combatant) => combatant.characterId,
+    )
+    const titles = await admin
+      .from('characters')
+      .select('id, personal_title')
+      .in('id', participantIds)
+    expect(
+      titles.error,
+      'Spectator participant-title query must succeed in disposable CI.',
+    ).toBeNull()
+    expect(titles.data).toHaveLength(participantIds.length)
     await spectator.goto(`/game/battle/spectate/${encodeURIComponent(battleKey)}`)
     const spectatorRoot = spectator.locator('main[data-pvp-spectator="true"]')
     await expect(spectatorRoot).toBeVisible()
