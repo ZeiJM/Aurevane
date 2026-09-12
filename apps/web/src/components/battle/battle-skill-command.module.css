@@ -701,10 +701,9 @@
   height: 100% !important;
   min-height: 6rem !important;
   grid-template-columns: minmax(0, 1fr) var(--command-art-size) !important;
-  grid-template-rows: 0.75rem minmax(calc(var(--command-art-size) - 2rem), auto) minmax(
-      1rem,
-      auto
-    ) auto !important;
+  grid-template-rows:
+    0.75rem minmax(calc(var(--command-art-size) - 2rem), auto) minmax(1rem, auto)
+    auto !important;
   align-content: start !important;
   justify-items: start !important;
   column-gap: 0.55rem !important;
