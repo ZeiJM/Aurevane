@@ -1,14 +1,18 @@
 # AUREVANE — Active Task Ledger
 
+## Active Phase 4 completeness continuation — 2026-09-12
+
+Owner authorized full Phase 4 coding and live testing release, including gameplay tags/targeting and Discipline Atlas/Mastery inside Profile Discipline Management. Baseline: PR #455 is live with 17 published libraries and the 36-identity Atlas. New audited gaps: typed tag interactions, Frozen/Steam terrain, and actual shared ground-target UI routing. Execute `docs/superpowers/plans/2026-09-12-phase4-combat-completeness.md`; current requirement coverage is in `docs/PHASE_4_COMPLETENESS_AUDIT.md`. Do not call the new work live before verification. Preserve earned Mastery separately from open testing access, historical battle versions, and deployment lock outside the authorized release. Human balance/media acceptance remains open.
+
 This file reports the **current implementation/validation boundary**.
 
 `docs/GAME_MASTER_PLAN.md` defines the product. `docs/ROADMAP.md` defines phase sequence. Canonical domain documents define system rules. `docs/PHASE_3_TICKETS.md` defines the Phase-3 implementation contract. `docs/ROADMAP_PRODUCT_VALIDATION.md` defines PV-2 evidence requirements.
 
 **Reconciled:** 2026-09-12
 
-**Phase-4 completeness audit:** See `docs/PHASE_4_COMPLETENESS_AUDIT.md` for the verified live inventory and remaining checklist P4-A01–P4-A10. The pre-change audit found Chronist absent and Ironfist media unfinished. The combined candidate now preserves Tidecaller, publishes Chronist as the seventeenth Discipline and integrates the recovered Ironfist media; final exact-head release evidence and human tactical/media acceptance remain open. Human tactical/media acceptance, broader AI decision coverage and a completed live earned-Mastery claim remain open. The audit verified production `4ec4036c`, hosted 16/128/16/120 catalog counts and 455 focused tests; it does not close Phase 4.
+**Phase-4 completeness audit:** See `docs/PHASE_4_COMPLETENESS_AUDIT.md` for current coverage and historical checkpoints. PR #455 released Chronist as the seventeenth Discipline, preserved Tidecaller, integrated Ironfist media, and placed the 36-identity Atlas inside Discipline Management. Its Representative Buildcraft gate included a real earned-Mastery UI claim. Those results validate the prior release only.
 
-**2026-09-12 continuation:** recovered Ironfist media integration on `agent/phase4-ironfist-continuation`: one painted Foundation/Essence identity, six synthesized variants and shared committed-event routing. The Owner requested continuing implementation for live testing. The release manifest records that authorization without claiming independent human visual/listening acceptance. Production remains `4ec4036c` until checks pass.
+**2026-09-12 active continuation:** typed gameplay tags, Frozen/Steam terrain, twenty versioned Skill updates, shared ground targeting, clearer combat feedback, and Atlas filtering/accessibility are being integrated and reviewed. Publication uses a staged database activation after compatible application code is READY. The combined repository, database-concurrency, browser, CI and live checks remain release gates; independent human tactical/media acceptance remains open.
 
 ---
 
@@ -26,9 +30,9 @@ This file reports the **current implementation/validation boundary**.
 
 **Presentation follow-up:** PR #446 merged while this audit was in progress and was released at `0df098e8`; preserve its desktop/mobile changes and assess its exact release interaction evidence.
 
-**Current implementation:** PR #451 released the full sixteen-Discipline playable roster, short named effects, sparse conditional damage/tradeoffs and Mastery Trials. All 15 exact-head CI workflows and the production migration passed. The shared self-target cockpit correction is also released through PR #452 with all four applicable workflows passing and a successful live Fortress preview/commit check. Release evidence and remaining human/media acceptance are recorded in `docs/PHASE_4_TICKETS.md`.
+**Current implementation:** the seventeen-Discipline release through PR #455 is live; the newly audited gameplay-tag/terrain and targeting continuation is in progress. Preserve the earlier roster, media, self-target cockpit and Mastery implementations.
 
-**Live baseline:** Sixteen Disciplines, 128 regular Skills, 16 Essences and 120 Resonances, targeting/shape/effect tags, sparse conditional damage/tradeoffs and Mastery Trials are live. PR #454 adds ten painted advanced Discipline identities/Essence images and 72 synthesized audio variants at release `4ec4036c`, deployment `dpl_DWVodLdpQ7vN3jnPPptqjtLyGeEK`. All six release workflows and the live artwork/Fortress smoke check passed. This evidence commit restores the deployment lock. Independent human visual/listening and tactical balance acceptance remains open; earlier phase-boundary notes below are historical.
+**Live baseline:** 17 Disciplines, 136 regular Skills, 17 Essences, 136 unordered Resonance pairs and the 36-identity Atlas. Production deployment `dpl_FH4atQ3A4sTdxdREmKhbKDSTGPwp` serves application commit `df1be4f72762bc11dc75c7b2e4eb62934241f8ec`; main `9cad3272cc2cf573d592e434ce1d8a9438c62c0f` restores the deployment lock and records evidence. See `docs/PHASE_4_TICKETS.md` for actual prior release checks. Earlier milestone notes below are historical.
 
 ---
 

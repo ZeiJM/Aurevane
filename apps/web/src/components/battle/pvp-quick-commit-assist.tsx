@@ -81,7 +81,11 @@ function quickKey(target: Element | null): string | null {
 
   const tile = battlefieldTile(target)
   const active = activeCommandSlot()
-  if (tile && active) return `tile:${active}:${tile.getAttribute('aria-label') ?? ''}`
+  if (tile && active) {
+    const coordinate = tile.getAttribute('aria-label')?.match(/^Tile (\d+), (\d+);/)
+    if (coordinate)
+      return `tile:${active}:${Number(coordinate[1]) - 1}:${Number(coordinate[2]) - 1}`
+  }
   return null
 }
 
@@ -97,6 +101,11 @@ function commandSlotForKey(key: string): QuickCommandSlot | null {
   return isQuickCommandSlot(slot) ? slot : null
 }
 
+function matchesQuickTarget(key: string, confirm: HTMLButtonElement): boolean {
+  if (!key.startsWith('tile:')) return true
+  return confirm.dataset.previewTile === key.split(':').slice(2).join(':')
+}
+
 function requestConfirmWhenReady(key: string) {
   const started = performance.now()
   const expectedSlot = commandSlotForKey(key)
@@ -105,6 +114,7 @@ function requestConfirmWhenReady(key: string) {
     if (expectedSlot && activeCommandSlot() !== expectedSlot) return
 
     const confirm = confirmButton()
+    if (confirm && !matchesQuickTarget(key, confirm)) return
     if (confirm && !confirm.disabled) {
       confirm.click()
       return
@@ -148,7 +158,7 @@ export function PvpQuickCommitAssist() {
 
       // Tap one still uses the native authoritative preview path. Tap two commits that same legal
       // category-slot preview on both PvE and PvP mobile battles.
-      if (confirm && !confirm.disabled) {
+      if (confirm && !confirm.disabled && matchesQuickTarget(key, confirm)) {
         event.preventDefault()
         event.stopImmediatePropagation()
         suppressClick.current = { key, until: now + SYNTHETIC_CLICK_SUPPRESS_MS }
@@ -182,7 +192,7 @@ export function PvpQuickCommitAssist() {
       event.stopImmediatePropagation()
 
       const confirm = confirmButton()
-      if (confirm && !confirm.disabled) confirm.click()
+      if (confirm && !confirm.disabled && matchesQuickTarget(key, confirm)) confirm.click()
       else requestConfirmWhenReady(key)
     }
 

@@ -1,8 +1,10 @@
+import { hasGameplayTag, validateGameplayTag, type GameplayTag } from './gameplay-tags'
 import type { CombatContentCatalog, CombatEncounterState } from './actions'
 import { classifyFacingRelation } from './board'
 
 export type DamageCondition =
   | { kind: 'always' }
+  | { kind: 'opponent-tag'; tag: GameplayTag }
   | { kind: 'opponent-status'; statusId: string }
   | { kind: 'owner-hp-at-most'; basisPoints: number }
   | { kind: 'distance-at-least'; tiles: number }
@@ -24,8 +26,11 @@ export function conditionalDamageMultiplier(
   attackerId: string,
   recipientId: string,
   content: CombatContentCatalog,
+  elementalMultiplier = 10_000,
 ): number {
-  let numerator = 10_000n
+  let numerator = BigInt(elementalMultiplier)
+  if (hasGameplayTag(state, attackerId, 'Inspired', content))
+    numerator = (numerator * 11_000n) / 10_000n
   let denominator = 1n
   for (const [ownerId, opponentId, direction] of [
     [attackerId, recipientId, 'outgoing'],
@@ -48,6 +53,7 @@ export function conditionalDamageMultiplier(
             recipientId,
             status.sourceCombatantId,
             modifier.condition,
+            content,
           )
         )
           continue
@@ -75,10 +81,13 @@ function matchesCondition(
   recipientId: string,
   sourceId: string,
   condition: DamageCondition,
+  content: CombatContentCatalog,
 ): boolean {
   switch (condition.kind) {
     case 'always':
       return true
+    case 'opponent-tag':
+      return hasGameplayTag(state, opponentId, condition.tag, content)
     case 'opponent-status':
       return state.statusState.some(
         (row) =>
@@ -143,6 +152,7 @@ export function validateDamageModifiers(
       ![
         'always',
         'opponent-status',
+        'opponent-tag',
         'owner-hp-at-most',
         'distance-at-least',
         'opponent-is-source',
@@ -150,6 +160,7 @@ export function validateDamageModifiers(
       ].includes(condition.kind)
     )
       throw new TypeError('Unknown damage condition.')
+    if (condition.kind === 'opponent-tag') validateGameplayTag(condition.tag)
     if (
       condition.kind === 'opponent-status' &&
       !/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/.test(condition.statusId)

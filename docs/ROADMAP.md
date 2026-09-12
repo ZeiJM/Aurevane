@@ -437,7 +437,9 @@ No Soulmark/Mantle or frontier implementation is required here.
 
 **Goal:** prove the Phase-3 grammar across genuinely different builds before roster scale.
 
-Current released baseline and continuation (2026-09-11):
+Current released baseline and continuation (2026-09-12):
+
+PR #455 adds Chronist while preserving Tidecaller: 17 published Disciplines, 136 regular Skills, 17 Essences and 136 Resonance pairs. The 36-identity Atlas/Mastery system is live inside Profile → Discipline Management, with temporary testing access separate from earned eligibility. The Owner has requested completion of the remaining §18 gameplay tag/terrain and ground-target UI gaps. See `PHASE_4_COMPLETENESS_AUDIT.md` for the current requirement ledger; earlier release summaries below are historical.
 
 - Vanguard, Lifebinder, Aetherist, Farstrider, Shadehand and Ironfist each have eight authored regular Skills. All six Essences and fifteen unordered Resonance pairs are live.
 - Skill targeting/effect tags and expandable details are live, together with Crossroads Court and Terraced Yard AI Sparring arenas. See `PHASE_4_TICKETS.md` for exact CI, migration and production evidence.

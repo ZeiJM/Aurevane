@@ -1,5 +1,9 @@
 'use client'
 
+import { terrainOverlayAt } from '@aurevane/game-core/combat/terrain-overlays'
+import { PV1F_MOVEMENT_COST_PER_TERRAIN_POINT } from '@aurevane/game-core/combat/pv1f-skills'
+import { terrainOverlayDescription } from '../../lib/battle/combat-interaction-presentation'
+
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 
@@ -14,7 +18,7 @@ import type { PvpBattleParticipantView, PvpSpectatorView } from '@/server/battle
 import styles from './pvp-spectator-experience.module.css'
 import inspectStyles from './pvp-spectator-inspect.module.css'
 
-const MOVE_COST_PER_TERRAIN_POINT = 25
+const MOVE_COST_PER_TERRAIN_POINT = PV1F_MOVEMENT_COST_PER_TERRAIN_POINT
 const SPECTATOR_REFRESH_MS = 850
 
 type GridPosition = { x: number; y: number }
@@ -307,7 +311,8 @@ export function PvpSpectatorExperience({
             {traversalCost === null
               ? 'blocked'
               : `${traversalCost * MOVE_COST_PER_TERRAIN_POINT} AP`}{' '}
-            · Elevation {selectedTile.elevation}.
+            · Elevation {selectedTile.elevation}.{' '}
+            {terrainOverlayDescription(terrainOverlayAt(battle.snapshot, selectedTile.position))}
           </span>
         </>
       )
@@ -519,6 +524,7 @@ export function PvpSpectatorExperience({
                       )
                     : undefined
                   const terrain = terrainPresentation(tile.terrainId)
+                  const overlay = terrainOverlayAt(battle.snapshot, tile.position)
                   const x = tile.position.x + 1
                   const y = tile.position.y + 1
                   const selected = Boolean(
@@ -532,6 +538,7 @@ export function PvpSpectatorExperience({
                       type="button"
                       className={`${styles.tile} ${inspectStyles.tile}`}
                       data-terrain={terrain}
+                      data-terrain-overlay={overlay?.kind}
                       data-elevation={tile.elevation > 0 || undefined}
                       data-inspect-active={inspectMode || undefined}
                       data-selected={selected || undefined}
@@ -539,14 +546,24 @@ export function PvpSpectatorExperience({
                       onClick={() => {
                         if (inspectMode && !placement) setSelectedPosition({ ...tile.position })
                       }}
-                      aria-label={`Tile ${x}, ${y}; ${terrain} ground; elevation ${tile.elevation}${participant ? `; occupied by ${participant.characterName}` : ''}`}
+                      aria-label={`Tile ${x}, ${y}; ${tile.terrainId}; elevation ${tile.elevation}${participant ? `; occupied by ${participant.characterName}` : ''}${overlay ? `; ${terrainOverlayDescription(overlay)}` : ''}`}
                       aria-pressed={selected}
                     >
                       <span className={styles.tileMeta}>
                         {x}.{y}
-                        {terrain === 'rough' ? <b data-spectator-terrain-cost="true">R50</b> : null}
+                        {terrain === 'rough' ? (
+                          <b data-spectator-terrain-cost="true">
+                            R{2 * MOVE_COST_PER_TERRAIN_POINT}
+                          </b>
+                        ) : null}
                         {tile.elevation > 0 ? <b>▲{tile.elevation}</b> : null}
                       </span>
+                      {overlay ? (
+                        <i data-terrain-overlay-marker="true" aria-hidden="true">
+                          {overlay.kind === 'frozen' ? '❄' : '≋'}
+                          {overlay.remainingRoundBoundaries}
+                        </i>
+                      ) : null}
                       {participant && placement ? (
                         <span
                           className={styles.unit}

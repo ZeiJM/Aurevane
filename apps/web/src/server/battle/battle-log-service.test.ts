@@ -340,3 +340,61 @@ describe('sanitized battle log service', () => {
     )
   })
 })
+
+it('retains committed terrain conversions, expiry and failed displacement as readable facts', async () => {
+  const events = [
+    {
+      event: 'terrain_overlay_changed',
+      actionId: 'frostweaver.chilling-mist',
+      sourceCombatantId: 'character:player',
+      position: { x: 1, y: 2 },
+      before: null,
+      after: 'frozen',
+      remainingRoundBoundaries: 2,
+    },
+    {
+      event: 'terrain_overlay_changed',
+      actionId: 'cinderweaver.flame-burst',
+      sourceCombatantId: 'character:player',
+      position: { x: 1, y: 2 },
+      before: 'frozen',
+      after: 'steam',
+      remainingRoundBoundaries: 2,
+    },
+    { event: 'terrain_overlay_expired', position: { x: 1, y: 2 }, kind: 'steam' },
+    {
+      event: 'combatant_displaced',
+      actionId: 'ironfist.rising-fist',
+      sourceCombatantId: 'character:player',
+      combatantId: 'recruit:one',
+      from: { x: 1, y: 2 },
+      to: { x: 2, y: 2 },
+    },
+    {
+      event: 'displacement_failed',
+      actionId: 'ironfist.rising-fist',
+      sourceCombatantId: 'character:player',
+      combatantId: 'recruit:one',
+      position: { x: 1, y: 2 },
+      reason: 'occupied-tile',
+    },
+  ]
+  const log = await createBattleLogService({
+    findBattleEvents: async () =>
+      events.map((event, eventIndex) => ({
+        event,
+        eventIndex,
+        battleVersion: 2,
+        createdAt: '2026-09-12T00:00:00.000Z',
+      })),
+  }).getLog(USER_ID, SESSION_ID)
+  expect(log.entries).toHaveLength(5)
+  const text = log.entries.map((entry) => entry.message).join(' ')
+  expect(text).toContain('Frozen')
+  expect(text).toContain('Steam')
+  expect(text).toContain('2 round boundaries')
+  expect(text).toContain('expired')
+  expect(text).toContain('occupied')
+  expect(text).toContain('no refund')
+  expect(text).not.toContain('sourceCombatantId')
+})

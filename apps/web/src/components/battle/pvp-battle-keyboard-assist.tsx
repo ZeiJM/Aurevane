@@ -309,6 +309,13 @@ export function PvpBattleKeyboardAssist({ playerName }: { playerName: string }) 
 
     function handleKeyDown(event: KeyboardEvent) {
       if (isTextEntryTarget(event.target) || !event.code) return
+      // Preserve native tile/button/summary activation rather than committing an older preview.
+      if (
+        event.key === 'Enter' &&
+        event.target instanceof Element &&
+        event.target.closest('button, summary, a, [role="button"]')
+      )
+        return
 
       const movementDirection = directionForCode(event.code)
       if (movementDirection && moveModeIsActive()) {

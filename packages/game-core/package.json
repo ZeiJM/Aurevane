@@ -40,7 +40,9 @@
     "./errors": "./src/errors.ts",
     "./player-profile": "./src/player-profile.ts",
     "./combat/status-content": "./src/combat/status-content.ts",
-    "./character/advanced-disciplines": "./src/character/advanced-disciplines.ts"
+    "./character/advanced-disciplines": "./src/character/advanced-disciplines.ts",
+    "./combat/gameplay-tags": "./src/combat/gameplay-tags.ts",
+    "./combat/terrain-overlays": "./src/combat/terrain-overlays.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

@@ -1,8 +1,10 @@
+import { validateGameplayEffectMetadata } from './gameplay-tags'
 import { ADVANCED_RESONANCES } from './advanced-resonances'
 import { FOUNDATION_TRIO_RESONANCES } from './foundation-trio-resonances'
 import { IRONFIST_RESONANCES } from './ironfist-content'
 import {
   executeCombatAction,
+  evaluateCombatAction,
   type CombatContentCatalog,
   type CombatEffectDefinition,
   type CombatEncounterState,
@@ -190,6 +192,12 @@ export function validateResonanceDefinition(definition: ResonanceDefinition): re
   }
   if (definition.trigger.payoffEffects.length < 1 || definition.trigger.payoffEffects.length > 3) {
     issues.push('trigger.payoffEffects')
+  } else {
+    try {
+      for (const effect of definition.trigger.payoffEffects) validateGameplayEffectMetadata(effect)
+    } catch {
+      issues.push('trigger.payoffEffects')
+    }
   }
   if (
     !Number.isFinite(definition.trigger.aiSetupUtilityBonus) ||
@@ -271,6 +279,33 @@ export function forecastResonanceForSkill(
   }
 }
 
+/** Historical single-unit payoffs require unit selection; ground casts preserve the armed setup.
+ * An attack on empty ground cannot collect an actor-only payoff either.
+ */
+export function constrainResonanceForecastToTarget(
+  forecast: ReturnType<typeof forecastResonanceForSkill>,
+  skill: MatureSkillDefinition,
+  selection: CombatTargetSelection,
+  affectedCombatantIds: readonly string[],
+): ReturnType<typeof forecastResonanceForSkill> {
+  if (!forecast.willActivate || selection.kind !== 'tile') return forecast
+  if (
+    !forecast.bonusEffects.some((effect) => effect.recipient === 'primary-unit') &&
+    (!skill.tags.includes('attack') || affectedCombatantIds.length > 0)
+  )
+    return forecast
+  return {
+    ...forecast,
+    willActivate: false,
+    willExpireArmedSetup: false,
+    willArm: false,
+    bonusEffects: [],
+    explanation: forecast.bonusEffects.some((effect) => effect.recipient === 'primary-unit')
+      ? 'This single-unit Resonance payoff requires a unit-targeted Skill. The armed setup is preserved.'
+      : 'An attack payoff requires an eligible affected unit. The armed setup is preserved.',
+  }
+}
+
 export function resonanceAiUtilityBonus(
   definition: ResonanceDefinition,
   state: ResonanceCombatState,
@@ -292,8 +327,14 @@ export function executeMatureSkillWithResonance(input: {
   readonly content: CombatContentCatalog
 }): MatureSkillResonanceTransition {
   assertMatchingState(input.resonance, input.resonanceState)
-  const forecast = forecastResonanceForSkill(input.resonance, input.resonanceState, input.skill)
   const baseAction = toCombatActionDefinition(input.skill, input.combatContext)
+  const forecast = constrainResonanceForecastToTarget(
+    forecastResonanceForSkill(input.resonance, input.resonanceState, input.skill),
+    input.skill,
+    input.selection,
+    evaluateCombatAction(input.state, baseAction, input.selection, input.content)
+      .affectedCombatantIds,
+  )
   const action = forecast.willActivate
     ? { ...baseAction, effects: [...baseAction.effects, ...forecast.bonusEffects] }
     : baseAction

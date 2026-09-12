@@ -1,3 +1,4 @@
+import { validateGameplayActionMetadata } from './gameplay-tags'
 import { ADVANCED_DISCIPLINE_SKILLS } from './advanced-discipline-content'
 import { FOUNDATION_TRIO_DISCIPLINE_SKILLS } from './foundation-trio-skills'
 import { IRONFIST_SKILLS } from './ironfist-content'
@@ -483,10 +484,29 @@ export const P33_REPRESENTATIVE_DISCIPLINE_SKILLS = [
   ...ADVANCED_DISCIPLINE_SKILLS,
 ] as const satisfies readonly MatureSkillDefinition[]
 
+/** Current selection catalog; the full registry above also retains explicit battle history. */
+export function latestEnabledMatureSkills(
+  definitions: readonly MatureSkillDefinition[] = P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
+): readonly MatureSkillDefinition[] {
+  const latest = new Map<string, MatureSkillDefinition>()
+  for (const definition of definitions) {
+    if (!definition.enabled) continue
+    const previous = latest.get(definition.id)
+    if (!previous || definition.contentVersion > previous.contentVersion)
+      latest.set(definition.id, definition)
+  }
+  return [...latest.values()]
+}
+
 export function validateMatureSkillDefinition(
   definition: MatureSkillDefinition,
 ): readonly string[] {
   const issues: string[] = []
+  try {
+    validateGameplayActionMetadata(definition)
+  } catch {
+    issues.push('combatDefinition')
+  }
   const idPattern = /^[a-z0-9]+(?:[._-][a-z0-9]+)*$/
   if (!idPattern.test(definition.id)) issues.push('id')
   if (!Number.isSafeInteger(definition.contentVersion) || definition.contentVersion < 1) {

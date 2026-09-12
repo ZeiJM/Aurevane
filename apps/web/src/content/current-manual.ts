@@ -4,6 +4,7 @@ import {
 } from '@aurevane/game-core/character/discipline-skill-loadout'
 import { CHARACTER_CREATION_RULES_V1 } from '@aurevane/game-core/character/creation'
 import { PV1F_MOVEMENT_COST_PER_TERRAIN_POINT } from '@aurevane/game-core/combat/pv1f-skills'
+import { COMBAT_TERRAIN_OVERLAY_DETAILS } from '@aurevane/game-core/combat/terrain-overlays'
 
 import {
   manualArticles as foundationManualArticles,
@@ -307,7 +308,7 @@ const battleHallArticle: ManualArticle = {
   title: 'Battle Hall & Action Economy',
   summary: 'How the current practice battles, AP spending, previews, facing, and combat log work.',
   category: 'Combat',
-  lastUpdated: '2026-09-11',
+  lastUpdated: '2026-09-12',
   rulesVersion: 'Current AP and character mobility rules',
   body: [
     {
@@ -321,8 +322,8 @@ const battleHallArticle: ManualArticle = {
       id: 'mastery-trials',
       title: 'Discipline Mastery Trials',
       paragraphs: [
-        'Choose Discipline Mastery Trial on Standard or High difficulty. Win using at least two different regular Primary Skills across three Primary Skill commands, without a player turn-timer expiry, then claim 50 Mastery XP from the result panel. Each battle awards once. Your frozen Primary at battle entry receives the XP.',
-        'Stages are Initiate, Practiced at 100 XP, Adept at 300, Expert at 600 and Master at 1,000. Master also requires demonstrating all eight regular Skills across qualifying victories. Mastery makes a Discipline eligible as Secondary. Profile → Discipline Management → Mastery & unlocks shows progress and advanced prerequisites.',
+        'Choose Discipline Mastery Trial on Standard or High difficulty. Win using at least two different regular Primary Skills across at least three Primary Skill commands, without a player turn-timer expiry, then claim up to 50 Mastery XP from the result panel. Each battle awards once. Your frozen Primary at battle entry receives the XP.',
+        'Stages are Initiate, Practiced at 100 XP, Adept at 300, Expert at 600 and Master at 1,000. Master also requires demonstrating all eight regular Skills across qualifying victories. Mastery makes a Discipline eligible as Secondary. Profile → Discipline Management → Discipline Atlas & Mastery shows earned progress, unmet prerequisites and separate testing access. Named Mastery Rites are planned future content.',
         'Advanced Disciplines teach four Skills at Initiate, two more at Practiced and two at Adept. Ordinary AI Sparring, Guided Fundamentals and Passive Training do not award Discipline Mastery. Trials grant no Character XP, loot or Crowns.',
       ],
     },
@@ -333,6 +334,33 @@ const battleHallArticle: ManualArticle = {
         'Technique tags show who a Skill targets, its single/area/line shape and its effects. Expand Skill details for exact recipients, range, AP/MP cost and requirements. Burn, Bleed and Poison cause fixed damage at affected turn end; Regeneration restores HP then. Slow raises movement AP cost; Root prevents movement while leaving other commands available. Cleanse removes its listed negative effects.',
         'Marked increases incoming damage only from its source. Challenged reduces damage dealt to anyone except its source. Warded reduces damage taken from burning opponents. The rare Reckless effect increases both damage dealt and damage taken; Fortified reduces both. Each tradeoff keeps its benefit and drawback together when it expires or is removed.',
         'Skill damage checks armor for physical attacks and ward for mystic attacks, separately for each hit and affected unit. The battle preview resolves the actual attacker/target conditions. New conditional modifiers combine within a 50–200% budget; Guarded, Exposed and timer penalties retain their existing separate rules.',
+      ],
+    },
+    {
+      id: 'elemental-tags',
+      title: 'Elemental setup and payoffs',
+      paragraphs: [
+        'Scorched, Bleeding and Poisoned are the gameplay tags for Burn, Bleed and Poison. Skills can require tags such as Frozen or Conductive; their details explain which setup is needed before a payoff becomes legal.',
+        'Water Skills can apply Wet. Against Wet or Conductive, the first positive storm hit per target per command gains a bounded 20% bonus. Conductive is consumed; Wet remains. Having both conditions does not double the bonus. Positive fire damage clears Wet and Frozen from the damaged unit.',
+      ],
+    },
+    {
+      id: 'ground-effects',
+      title: 'Ground targeting and temporary terrain',
+      paragraphs: [
+        'Ground Skills select a tile, including empty ground. Choose the Skill, select its tile and review the affected area before confirming. Previews spend no AP or MP and stay silent. A Skill’s affected-team rule governs its unit effects; temporary terrain affects either team.',
+        `${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.name} terrain: ${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.description} Fire on affected Frozen tiles converts them to Steam, including empty tiles. ${COMBAT_TERRAIN_OVERLAY_DETAILS.steam.name}: ${COMBAT_TERRAIN_OVERLAY_DETAILS.steam.description} Both overlays last ${COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.roundBoundaries} round boundaries. Refreshing an overlay renews its duration without stacking it.`,
+        'Slow and base-terrain AP costs still apply with Airborne, and Root still prevents movement. Inspect the tile and movement preview for its current cost and remaining duration. Your Movement allowance remains a separate limit even when AP is available.',
+        'Single-unit Resonance payoffs wait for a unit-targeted Skill. Ground casts preserve that setup for a later eligible action, and empty ground cannot generate an actor reward. Consecutive repeats omit new terrain creation and displacement while halving quantitative effects at unchanged costs.',
+      ],
+    },
+    {
+      id: 'protection-and-position',
+      title: 'Protection, concealment and displacement',
+      paragraphs: [
+        'Inspired adds 10% outgoing damage within the conditional modifier budget. Hexed reduces incoming direct and periodic healing by 25%. Summoned is temporary spirit protection that reduces incoming damage by 15% within the same budget and can be dispelled; it grants no extra combatant or turn.',
+        'Invisible prevents hostile direct unit selection. Ground and area effects can still hit the concealed unit. Taking positive damage or making a damaging command breaks concealment, including a missed basic attack.',
+        'A push moves its target one tile away if the destination is within the board, passable, vacant and legal for its elevation. Root resists it. A successful push applies Displaced briefly; a blocked push keeps the action’s cost and leaves the target in place. The preview and combat log show the result.',
       ],
     },
     {

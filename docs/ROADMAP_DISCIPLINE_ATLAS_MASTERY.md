@@ -71,7 +71,7 @@ These remain staged future content/system work.
 
 # 3. Current Phase-4 playable boundary
 
-The currently published roster remains sixteen Disciplines:
+The currently published roster contains seventeen Disciplines (PR #455, 2026-09-12):
 
 ```text
 FOUNDATIONS
@@ -93,9 +93,10 @@ Cinderweaver
 Frostweaver
 Stormsinger
 Tidecaller
+Chronist
 ```
 
-These have the current Phase-4 playable libraries, Essences and Resonance coverage.
+These have the current Phase-4 playable libraries, Essences and Resonance coverage. Chronist retains its Aetherist Adept + Rekindling I normal release gate; testing access remains separate. The Profile Atlas is inside the Discipline Management popup.
 
 The remaining Atlas identities are design-level planned nodes until their actual content is separately published.
 
@@ -330,11 +331,13 @@ Do not “balance” the Atlas by making every profile sum to the same arbitrary
 - [x] Add Profile Atlas projection/UI.
 - [x] Add public illustrated Manual chapter.
 - [x] Document final-release normalization requirement.
-- [ ] Pass repository quality/type/unit/build gates on exact branch head.
-- [ ] Pass database migration/security validation.
-- [ ] Pass authenticated responsive browser validation for Profile Atlas.
-- [ ] Pass public responsive browser validation for Manual Atlas.
-- [ ] Review exact diff against concurrent Phase-4 work and merge only after main reconciliation.
+- [x] Pass repository quality/type/unit/build gates on exact branch head. (PR #455 release evidence in `PHASE_4_TICKETS.md`.)
+- [x] Pass database migration/security validation. (PR #455 release evidence in `PHASE_4_TICKETS.md`.)
+- [ ] Complete explicit phone/desktop Atlas browser validation. PR #455 records authenticated Profile/Atlas and earned-Mastery evidence; this continuation adds a dedicated responsive Atlas check.
+- [ ] Complete explicit public phone/desktop Manual Atlas browser validation in the current continuation. Prior generic browser passes are not a dedicated Atlas layout check.
+- [x] Review exact diff against concurrent Phase-4 work and merge only after main reconciliation. (PR #455 release evidence in `PHASE_4_TICKETS.md`.)
+
+The checked gates above describe the completed Atlas release; the explicit responsive Atlas/Manual checks remain tracked separately. The newly authorized gameplay-tag/terrain continuation has its own fresh verification and release gate in `docs/superpowers/plans/2026-09-12-phase4-combat-completeness.md`; prior results do not validate later code.
 
 ## Later roster publication work
 

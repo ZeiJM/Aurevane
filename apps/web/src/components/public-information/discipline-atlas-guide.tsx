@@ -111,26 +111,30 @@ function DisciplineCard({ discipline }: { discipline: DisciplineAtlasEntry }) {
         </div>
         {discipline.masteryRite ? (
           <div>
-            <dt>Mastery Rite</dt>
+            <dt>Planned Mastery Rite</dt>
             <dd>{discipline.masteryRite}</dd>
           </div>
         ) : null}
       </dl>
       <div className={styles.identityBudget} aria-label={`${discipline.name} identity profile`}>
         <span>
-          Reliability <BudgetDots value={discipline.power.reliability} />
+          Reliability · {discipline.power.reliability}/5{' '}
+          <BudgetDots value={discipline.power.reliability} />
         </span>
         <span>
-          Flexibility <BudgetDots value={discipline.power.flexibility} />
+          Flexibility · {discipline.power.flexibility}/5{' '}
+          <BudgetDots value={discipline.power.flexibility} />
         </span>
         <span>
-          Setup <BudgetDots value={discipline.power.setup} />
+          Setup · {discipline.power.setup}/5 <BudgetDots value={discipline.power.setup} />
         </span>
         <span>
-          Rule access <BudgetDots value={discipline.power.ruleAccess} />
+          Rule access · {discipline.power.ruleAccess}/5{' '}
+          <BudgetDots value={discipline.power.ruleAccess} />
         </span>
         <span>
-          Execution <BudgetDots value={discipline.power.execution} />
+          Execution · {discipline.power.execution}/5{' '}
+          <BudgetDots value={discipline.power.execution} />
         </span>
       </div>
     </article>
@@ -231,8 +235,25 @@ export function DisciplineAtlasGuide() {
           <div>
             <span>1,000 XP</span>
             <strong>Master</strong>
-            <p>Complete the full Technique record and the tradition’s final Mastery Rite.</p>
+            <p>
+              Demonstrate all eight regular Skills. Named Mastery Rites are planned future content.
+            </p>
           </div>
+        </div>
+
+        <div className={styles.trialGuidance}>
+          <h3>Earn Mastery in the current test</h3>
+          <p>
+            Enter a Standard or High Mastery Trial. Win without a player timeout after using two
+            different regular Primary Skills across at least three Primary Skill commands, then
+            choose Claim Mastery to receive up to 50 XP once.
+          </p>
+          <p>Ordinary sparring grants no Mastery XP.</p>
+          <p>
+            Your personal Atlas is inside Profile → Discipline Management → Discipline Atlas &amp;
+            Mastery. It shows earned progress, unmet prerequisites and separate testing access.
+          </p>
+          <Link href={'/manual/battle-hall#mastery-trials' as Route}>Mastery Trial guide</Link>
         </div>
 
         <div className={styles.noteGrid}>

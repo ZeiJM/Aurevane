@@ -66,7 +66,12 @@ const BOOKKEEPING_EVENTS = new Set([
   'recruit_ai_decision',
 ])
 
-const STANDALONE_EVENTS = new Set(['status_expired', 'battle_completed', 'battle_abandoned'])
+const STANDALONE_EVENTS = new Set([
+  'status_expired',
+  'terrain_overlay_expired',
+  'battle_completed',
+  'battle_abandoned',
+])
 
 const TONE_PRIORITY: Record<BattleLogTone, number> = {
   neutral: 0,

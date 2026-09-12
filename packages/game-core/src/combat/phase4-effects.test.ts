@@ -1,4 +1,4 @@
-import { ADVANCED_RESONANCES } from './advanced-resonances'
+import { P35_REPRESENTATIVE_RESONANCES } from './resonance'
 import { createResonanceCombatState } from './resonance'
 import { executePv1fMatureSkillWithResonance } from './pv1f-resonance'
 import { describe, expect, it } from 'vitest'
@@ -30,10 +30,7 @@ import {
   ADVANCED_DISCIPLINE_SKILLS,
   ADVANCED_DISCIPLINE_ESSENCES,
 } from './advanced-discipline-content'
-import {
-  validateMatureSkillDefinition,
-  P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
-} from './mature-skills'
+import { validateMatureSkillDefinition, latestEnabledMatureSkills } from './mature-skills'
 
 function encounter(): StatDrivenCombatEncounterState {
   const ids = ['actor', 'enemy', 'other', 'ally']
@@ -289,7 +286,9 @@ describe('Phase 4 advanced libraries', () => {
     expect(disciplines.size).toBe(11)
     for (const discipline of disciplines) {
       expect(
-        ADVANCED_DISCIPLINE_SKILLS.filter((skill) => skill.sourceDisciplineId === discipline),
+        latestEnabledMatureSkills(ADVANCED_DISCIPLINE_SKILLS).filter(
+          (skill) => skill.sourceDisciplineId === discipline,
+        ),
       ).toHaveLength(8)
       expect(
         ADVANCED_DISCIPLINE_ESSENCES.filter((essence) => essence.sourceDisciplineId === discipline),
@@ -308,6 +307,12 @@ describe('Phase 4 advanced libraries', () => {
           state = withStatus(state, 'actor', requirement.statusId)
         if (requirement.kind === 'target-status-present')
           state = withStatus(state, 'enemy', requirement.statusId)
+        if (requirement.kind === 'target-tag-present')
+          state = withStatus(
+            state,
+            'enemy',
+            requirement.tag === 'Bleeding' ? 'bleed' : requirement.tag.toLowerCase(),
+          )
       }
       if (skill.target.minimumRange === 2)
         state = {
@@ -326,12 +331,14 @@ describe('Phase 4 advanced libraries', () => {
         ]).state
       }
       const selected =
-        skill.target.kind === 'self'
-          ? { kind: 'self' as const }
-          : {
-              kind: 'unit' as const,
-              combatantId: skill.target.teamPolicy === 'ally' ? 'ally' : 'enemy',
-            }
+        skill.target.kind === 'ground-tile'
+          ? { kind: 'tile' as const, position: { x: 1, y: 2 } }
+          : skill.target.kind === 'self'
+            ? { kind: 'self' as const }
+            : {
+                kind: 'unit' as const,
+                combatantId: skill.target.teamPolicy === 'ally' ? 'ally' : 'enemy',
+              }
       const preview = evaluatePv1fMatureSkill(state, skill, selected, context)
       expect(preview.evaluation.legal, JSON.stringify(preview.evaluation.issues)).toBe(true)
       const result = executePv1fMatureSkill(state, skill, selected, context)
@@ -356,15 +363,16 @@ describe('Phase 4 advanced libraries', () => {
 
 describe('Phase 4 cross-library Resonance conversions', () => {
   for (const combatContext of ['pve', 'pvp'] as const) {
-    it.each(ADVANCED_RESONANCES)(
+    it.each(P35_REPRESENTATIVE_RESONANCES)(
       `${combatContext}: $id can arm and consume a legal cross-library payoff`,
       (resonance) => {
         const find = (matcher: typeof resonance.trigger.setup) =>
-          P33_REPRESENTATIVE_DISCIPLINE_SKILLS.find(
+          latestEnabledMatureSkills().find(
             (skill) =>
               skill.enabled &&
               skill.sourceDisciplineId === matcher.sourceDisciplineId &&
               skill.requirements.length === 0 &&
+              skill.target.kind !== 'ground-tile' &&
               matcher.requiredTags.every((tag) =>
                 skill.tags.some((candidate) => candidate === tag),
               ),
@@ -378,7 +386,12 @@ describe('Phase 4 cross-library Resonance conversions', () => {
             ? { kind: 'self' as const }
             : {
                 kind: 'unit' as const,
-                combatantId: setup.target.teamPolicy === 'ally' ? 'ally' : 'enemy',
+                combatantId:
+                  setup.target.teamPolicy === 'ally'
+                    ? 'ally'
+                    : setup.target.minimumRange > 1
+                      ? 'other'
+                      : 'enemy',
               }
         const armed = executePv1fMatureSkillWithResonance({
           state: encounter(),

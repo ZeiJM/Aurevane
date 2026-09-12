@@ -1,3 +1,4 @@
+import { terrainOverlayAiUtility, terrainOverlayAt } from './terrain-overlays'
 import { combatStatusDetails } from './status-content'
 import type { CombatActionEvaluation, CombatTargetSelection } from './actions'
 import { readBattleAuthorityCombatBuildSnapshot } from './battle-authority-build-snapshot'
@@ -144,7 +145,19 @@ function buildSkillCandidates(
       evaluated.prepared.tactical.battle.currentTurn?.combatantId ?? null,
     )
     if (!evaluated.evaluation.legal || !economy || economy.current < evaluated.cost) continue
-    const resonance = committedResonanceForecast(evaluated.prepared, definition)
+    // A repeated discrete ground effect can be empty. Do not burn AP for no resulting change.
+    if (
+      target.kind === 'tile' &&
+      !evaluated.evaluation.projectedEffects.some((effect) => effect.before !== effect.after) &&
+      !evaluated.evaluation.projectedTerrain.some(
+        (effect) =>
+          effect.before !== effect.after ||
+          terrainOverlayAt(state, effect.position)?.remainingRoundBoundaries !==
+            effect.remainingRoundBoundaries,
+      )
+    )
+      continue
+    const resonance = committedResonanceForecast(evaluated.prepared, definition, target)
     const resonanceUtility = resonance?.forecast.willActivate
       ? resonance.definition.trigger.aiPayoffUtilityBonus
       : resonance?.forecast.willArm
@@ -160,6 +173,7 @@ function buildSkillCandidates(
         definition.ai.baseUtility +
         (profile.attackUtility - RECRUIT_EASY_PROFILE.attackUtility) +
         projectedEffectUtility(evaluated.evaluation, state) +
+        terrainOverlayAiUtility(state, evaluated.evaluation) +
         resonanceUtility,
       stableKey: `${definition.id}:${targetKey(target)}`,
     })

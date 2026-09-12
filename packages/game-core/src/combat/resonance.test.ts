@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { createCombatEncounterState } from './actions'
+import { createCombatEncounterState, type CombatEffectDefinition } from './actions'
 import { createPendingBattle, endTurn, startBattle } from './battle-state'
 import { createTacticalBattleState, selectCurrentFinalFacing } from './board'
 import { resolveMatureSkillVersion } from './mature-skills'
@@ -195,5 +195,72 @@ describe('P3.5 versioned Resonance framework', () => {
 
     const armed = { ...ready, armedByActionId: heal.id }
     expect(resonanceAiUtilityBonus(resonance, armed, strike)).toBe(30)
+  })
+})
+
+describe('Phase 4 Resonance payoff metadata boundaries', () => {
+  const base = P35_REPRESENTATIVE_RESONANCES[0]!
+  it.each([
+    ['unknown element', { type: 'damage', recipient: 'primary-unit', amount: 6, element: 'void' }],
+    ['unbounded push', { type: 'displace', recipient: 'primary-unit', distance: 2 }],
+    ['actor push', { type: 'displace', recipient: 'actor', distance: 1 }],
+    ['unknown terrain', { type: 'create-terrain', recipient: 'affected-tiles', terrain: 'steam' }],
+    [
+      'unit terrain recipient',
+      { type: 'create-terrain', recipient: 'primary-unit', terrain: 'frozen' },
+    ],
+  ])('rejects %s before accepting the definition or snapshot reference', (_name, effect) => {
+    const definition = {
+      ...base,
+      trigger: { ...base.trigger, payoffEffects: [effect as CombatEffectDefinition] },
+    }
+    expect(validateResonanceDefinition(definition)).toContain('trigger.payoffEffects')
+    expect(() => resonanceSnapshotReference(definition)).toThrow(/trigger.payoffEffects/)
+  })
+
+  it.each<CombatEffectDefinition>([
+    { type: 'damage', recipient: 'primary-unit', amount: 6, element: 'storm' },
+    { type: 'displace', recipient: 'primary-unit', distance: 1 },
+    { type: 'create-terrain', recipient: 'affected-tiles', terrain: 'frozen' },
+  ])('accepts valid additive $type metadata without inventing a target spec', (effect) => {
+    const definition = { ...base, trigger: { ...base.trigger, payoffEffects: [effect] } }
+    expect(validateResonanceDefinition(definition)).toEqual([])
+    expect(resonanceSnapshotReference(definition)).toEqual({
+      resonanceId: base.id,
+      contentVersion: base.contentVersion,
+      disciplinePair: [...base.disciplinePair],
+    })
+  })
+
+  it('checks ground-only terrain legality when the accepted payoff is composed into a unit-targeted Skill', () => {
+    const definition = {
+      ...base,
+      trigger: {
+        ...base.trigger,
+        payoffEffects: [
+          {
+            type: 'create-terrain' as const,
+            recipient: 'affected-tiles' as const,
+            terrain: 'frozen' as const,
+          },
+        ],
+      },
+    }
+    const strike = resolveMatureSkillVersion('vanguard.forceful-strike', 2)!
+    expect(validateResonanceDefinition(definition)).toEqual([])
+    expect(() =>
+      executeMatureSkillWithResonance({
+        state: encounter(),
+        resonance: definition,
+        resonanceState: {
+          ...createResonanceCombatState(definition),
+          armedByActionId: 'lifebinder.mending-light',
+        },
+        skill: strike,
+        combatContext: 'pve',
+        selection: { kind: 'unit', combatantId: 'recruit' },
+        content: { statuses: [] },
+      }),
+    ).toThrow(/ground targeting/)
   })
 })

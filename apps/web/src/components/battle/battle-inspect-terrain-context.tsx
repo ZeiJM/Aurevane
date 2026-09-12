@@ -43,14 +43,16 @@ export function describeTerrainLabel(label: string): {
 
   const [, x, y, terrainId, elevation] = match
   const elevationLevel = Number(elevation)
-  const rough = terrainId === 'rough-ground'
+  const rough = terrainId === 'rough-ground' || terrainId === 'rough ground'
   const elevated = elevationLevel > 0
   const terrainName = elevated ? 'Elevated ground' : rough ? 'Rough ground' : 'Open ground'
   const entryCost = PV1F_MOVEMENT_COST_PER_TERRAIN_POINT * (rough ? 2 : 1)
 
+  const overlay = label.match(/; ((?:Frozen|Steam) terrain; .+)$/)?.[1]
+
   return {
     title: `${terrainName} · Tile ${x},${y}`,
-    description: `Entry costs ${entryCost} AP · Elevation ${elevationLevel}.`,
+    description: `Entry costs ${entryCost} AP · Elevation ${elevationLevel}.${overlay ? ` ${overlay}` : ''}`,
   }
 }
 

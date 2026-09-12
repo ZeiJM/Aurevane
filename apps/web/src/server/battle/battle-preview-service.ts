@@ -1,5 +1,8 @@
 import 'server-only'
 
+import type { CombatResolutionEvent } from '@aurevane/game-core/combat/actions'
+import type { CombatTerrainProjection } from '@aurevane/game-core/combat/terrain-overlays'
+
 import type { BattleSessionRecord, BattleSessionRepository } from '@aurevane/db/battle-session'
 import {
   PV1F_COMBAT_CONTENT,
@@ -61,6 +64,8 @@ export interface BattleActionPreview {
     before: number | string
     after: number | string
   }[]
+  projectedTerrain?: readonly CombatTerrainProjection[]
+  projectedEvents?: readonly CombatResolutionEvent[]
   projectedStatuses: readonly {
     statusId: string
     durationOwnerTurnStarts: number | null
@@ -250,6 +255,8 @@ function previewIntent(
       affectedCombatantIds: evaluation.affectedCombatantIds,
       projectedEffects: resourceIssue ? [] : evaluation.projectedEffects,
       projectedStatuses,
+      projectedTerrain: resourceIssue ? [] : evaluation.projectedTerrain,
+      projectedEvents: resourceIssue ? [] : evaluation.projectedEvents,
       mpCost: evaluation.mpCost,
       actionEconomyCost: cost,
       actionEconomyBefore: before,

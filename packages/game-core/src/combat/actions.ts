@@ -1,3 +1,20 @@
+import {
+  hasGameplayTag,
+  statusIdsForGameplayTag,
+  validateGameplayTag,
+  validateGameplayActionMetadata,
+  type GameplayTag,
+  type CombatElement,
+} from './gameplay-tags'
+import {
+  terrainOverlayAt,
+  setTerrainOverlay,
+  expireTerrainOverlays,
+  validateTerrainOverlays,
+  type CombatTerrainOverlay,
+  type CombatTerrainProjection,
+  type CombatTerrainEvent,
+} from './terrain-overlays'
 import { mitigateDamageByDefense } from './damage-mitigation'
 import type { SkillNarrationTemplate } from './battle-narration'
 import {
@@ -59,6 +76,7 @@ export type CombatUseRequirement =
   | { kind: 'actor-status-absent'; statusId: string }
   | { kind: 'target-status-present'; statusId: string }
   | { kind: 'actor-hp-at-most'; basisPoints: number }
+  | { kind: 'actor-tag-present' | 'actor-tag-absent' | 'target-tag-present'; tag: GameplayTag }
 
 export interface FacingDamageModifiers {
   front: number
@@ -72,8 +90,11 @@ export type CombatEffectDefinition =
       recipient: CombatEffectRecipient
       amount: number
       defenseKind?: 'armor' | 'ward'
+      element?: CombatElement
       facingModifiersBasisPoints?: FacingDamageModifiers
     }
+  | { type: 'create-terrain'; recipient: 'affected-tiles'; terrain: 'frozen' }
+  | { type: 'displace'; recipient: Exclude<CombatEffectRecipient, 'actor'>; distance: 1 }
   | { type: 'healing'; recipient: CombatEffectRecipient; amount: number }
   | { type: 'return-to-turn-start'; recipient: 'actor' }
   | { type: 'remove-status'; recipient: CombatEffectRecipient; statusIds: readonly string[] }
@@ -117,6 +138,7 @@ export interface CombatStatusDefinition {
   damageTakenMultiplierBasisPoints: number
   /** Additional bounded modifiers; omitted by immutable legacy status definitions. */
   damageModifiers?: readonly CombatDamageModifier[]
+  gameplayTags?: readonly GameplayTag[]
   endOfTurn?: { type: 'damage' | 'healing'; amount: number }
   movement?: { blocked?: boolean; additionalApPerTile?: number }
   /** Consumed at the next round boundary; never adds or skips turns. */
@@ -145,6 +167,7 @@ export interface CombatEncounterState {
   tactical: TacticalBattleState
   statBridge?: { combatants: readonly { combatantId: string; armor: number; ward: number }[] }
   statusState: readonly CombatantStatusState[]
+  terrainOverlays?: readonly CombatTerrainOverlay[]
   turnOrigin?: { combatantId: string; turnNumber: number; position: GridPosition }
 }
 
@@ -161,6 +184,7 @@ export type CombatActionIssueCode =
   | 'invalid-target-kind'
   | 'target-not-found'
   | 'target-defeated'
+  | 'target-invisible'
   | 'target-team-not-allowed'
   | 'target-tile-occupied'
   | 'target-out-of-range'
@@ -192,6 +216,8 @@ export interface CombatActionEvaluation {
   affectedTiles: readonly GridPosition[]
   affectedCombatantIds: readonly string[]
   projectedEffects: readonly CombatEffectProjection[]
+  projectedTerrain: readonly CombatTerrainProjection[]
+  projectedEvents: readonly CombatResolutionEvent[]
   mpCost: number
   spendsAction: boolean
   issues: readonly CombatActionIssue[]
@@ -199,6 +225,23 @@ export interface CombatActionEvaluation {
 
 export type CombatResolutionEvent =
   | TacticalBattleEvent
+  | CombatTerrainEvent
+  | {
+      event: 'combatant_displaced'
+      actionId: string
+      sourceCombatantId: string
+      combatantId: string
+      from: GridPosition
+      to: GridPosition
+    }
+  | {
+      event: 'displacement_failed'
+      actionId: string
+      sourceCombatantId: string
+      combatantId: string
+      reason: DisplacementFailureReason
+      position: GridPosition
+    }
   | SkillCooldownEvent
   | { event: 'combat_action_used'; actionId: string; actorId: string }
   | { event: 'mp_spent'; combatantId: string; amount: number; remaining: number }
@@ -258,6 +301,15 @@ export type CombatResolutionEvent =
     }
   | { event: 'combatant_waited'; combatantId: string }
   | { event: 'battle_completed'; winningTeamId: string | null }
+
+export type DisplacementFailureReason =
+  | 'status-restricted'
+  | 'out-of-bounds'
+  | 'blocked-terrain'
+  | 'occupied-tile'
+  | 'elevation-step-too-high'
+  | 'direction-undefined'
+  | 'target-defeated'
 
 export interface CombatResolutionTransition {
   state: CombatEncounterState
@@ -425,11 +477,11 @@ export function evaluateCombatAction(
     issues.push({ code: 'insufficient-mp', message: 'The actor does not have enough MP.' })
   }
 
-  const target = resolvePrimaryTarget(state, actorId, action.target, selection, issues)
+  const target = resolvePrimaryTarget(state, actorId, action.target, selection, content, issues)
   if (target.position) {
     collectSpatialTargetIssues(state, actorId, action.target, target.position, issues)
   }
-  collectRequirementIssues(state, actorId, target.combatantId, action.requirements, issues)
+  collectRequirementIssues(state, actorId, target.combatantId, action.requirements, content, issues)
   if (action.effects.some((effect) => effect.type === 'return-to-turn-start')) {
     const origin = state.turnOrigin
     const placement = getPlacement(state.tactical, actorId)
@@ -495,10 +547,23 @@ export function evaluateCombatAction(
   }
 
   if (issues.length === 0) {
-    collectEffectRecipientIssues(action.effects, target.combatantId, affectedCombatantIds, issues)
+    collectEffectRecipientIssues(
+      action.effects,
+      target.combatantId,
+      affectedCombatantIds,
+      issues,
+      (action.target.kind === 'ground-tile' || action.target.kind === 'empty-tile') &&
+        action.effects.some(
+          (effect) =>
+            effect.type === 'create-terrain' ||
+            (effect.type === 'damage' && effect.element !== undefined),
+        ),
+    )
   }
 
   let projectedEffects: CombatEffectProjection[] = []
+  let projectedTerrain: CombatTerrainProjection[] = []
+  let projectedEvents: readonly CombatResolutionEvent[] = []
   if (issues.length === 0) {
     const projectionState =
       action.cost.mp > 0
@@ -507,14 +572,18 @@ export function evaluateCombatAction(
             mp: actor.mp - action.cost.mp,
           })
         : state
-    projectedEffects = projectEffects(
+    const projection = resolveActionEffects(
       projectionState,
       actorId,
       target.combatantId,
       affectedCombatantIds,
+      affectedTiles,
       action,
       content,
     )
+    projectedEffects = projection.projections
+    projectedEvents = projection.events
+    projectedTerrain = projection.terrain
   }
 
   return {
@@ -526,6 +595,8 @@ export function evaluateCombatAction(
     affectedTiles,
     affectedCombatantIds,
     projectedEffects,
+    projectedTerrain,
+    projectedEvents,
     mpCost: action.cost.mp,
     spendsAction: action.cost.spendsAction,
     issues,
@@ -574,20 +645,17 @@ export function executeCombatAction(
 
   events.push({ event: 'combat_action_used', actionId: action.id, actorId })
 
-  for (const effect of action.effects) {
-    const recipients = resolveEffectRecipients(
-      actorId,
-      evaluation.primaryCombatantId,
-      evaluation.affectedCombatantIds,
-      effect.recipient,
-    )
-
-    for (const recipientId of recipients) {
-      const applied = applyEffect(nextState, actorId, recipientId, action.id, effect, content)
-      nextState = applied.state
-      events.push(...applied.events)
-    }
-  }
+  const applied = resolveActionEffects(
+    nextState,
+    actorId,
+    evaluation.primaryCombatantId,
+    evaluation.affectedCombatantIds,
+    evaluation.affectedTiles,
+    action,
+    content,
+  )
+  nextState = applied.state
+  events.push(...applied.events)
 
   if (action.cooldown) {
     const cooldown = applySkillCooldown(
@@ -665,7 +733,7 @@ export function endCombatTurn(
     const amount = periodic.amount * status.stacks
     return periodic.type === 'damage'
       ? Math.max(0, hp - amount)
-      : Math.min(outgoing.maxHp, hp + amount)
+      : Math.min(outgoing.maxHp, hp + incomingHealingAmount(state, outgoingId, amount, content))
   }, outgoing.hp)
   const ended = endTurn(
     state.tactical.battle,
@@ -675,6 +743,9 @@ export function endCombatTurn(
   let nextState = withBattle(state, ended.state)
   const events: CombatResolutionEvent[] = [...ended.events]
   if (ended.state.round !== state.tactical.battle.round) {
+    const expiredTerrain = expireTerrainOverlays(nextState)
+    nextState = expiredTerrain.state
+    events.push(...expiredTerrain.events)
     // Consume scheduled tempo once. The committed order remains frozen for the full round.
     for (const row of nextState.statusState) {
       const consumed = row.statuses.filter(
@@ -767,7 +838,7 @@ export function resolveTargetShapeTiles(
 export function validateCombatEncounterState(
   state: CombatEncounterState,
 ): readonly CombatEncounterIssue[] {
-  const issues: CombatEncounterIssue[] = []
+  const issues: CombatEncounterIssue[] = [...validateTerrainOverlays(state)]
 
   if (state.schemaVersion !== COMBAT_ENCOUNTER_SCHEMA_VERSION) {
     issues.push({ field: 'schemaVersion', message: 'Unsupported combat-encounter schema version.' })
@@ -868,6 +939,7 @@ function resolvePrimaryTarget(
   actorId: string,
   spec: CombatTargetSpec,
   selection: CombatTargetSelection,
+  content: CombatContentCatalog,
   issues: CombatActionIssue[],
 ): { position: GridPosition | null; combatantId: string | null } {
   const actorPlacement = getPlacement(state.tactical, actorId)
@@ -900,6 +972,12 @@ function resolvePrimaryTarget(
     }
 
     const actor = getCombatant(state.tactical.battle, actorId)
+    if (actor.teamId !== target.teamId && hasGameplayTag(state, target.id, 'Invisible', content)) {
+      issues.push({
+        code: 'target-invisible',
+        message: 'Invisible prevents hostile direct unit targeting; ground effects can still hit.',
+      })
+    }
     if (!isTeamPolicyAllowed(actor, target, spec.teamPolicy)) {
       issues.push({
         code: 'target-team-not-allowed',
@@ -961,10 +1039,7 @@ function collectSpatialTargetIssues(
     }
   }
 
-  if (
-    spec.requiresLineOfSight &&
-    !hasBaselineLineOfSight(state.tactical, actorPosition, targetPosition)
-  ) {
+  if (spec.requiresLineOfSight && !hasBaselineLineOfSight(state, actorPosition, targetPosition)) {
     issues.push({
       code: 'line-of-sight-blocked',
       message: 'Blocking terrain interrupts line of sight to the selected target.',
@@ -977,11 +1052,22 @@ function collectRequirementIssues(
   actorId: string,
   targetId: string | null,
   requirements: readonly CombatUseRequirement[],
+  content: CombatContentCatalog,
   issues: CombatActionIssue[],
 ): void {
   const actor = getCombatant(state.tactical.battle, actorId)
 
   for (const requirement of requirements) {
+    if ('tag' in requirement) {
+      const ownerId = requirement.kind === 'target-tag-present' ? targetId : actorId
+      const present = !!ownerId && hasGameplayTag(state, ownerId, requirement.tag, content)
+      if (requirement.kind === 'actor-tag-absent' ? present : !present)
+        issues.push({
+          code: 'requirement-not-met',
+          message: `${requirement.kind === 'target-tag-present' ? 'Target' : 'Actor'} ${requirement.kind === 'actor-tag-absent' ? 'must not have' : 'requires'} ${requirement.tag}.`,
+        })
+      continue
+    }
     if (requirement.kind === 'actor-status-present') {
       if (!hasStatus(state, actorId, requirement.statusId)) {
         issues.push({
@@ -1081,6 +1167,7 @@ function collectEffectRecipientIssues(
   primaryCombatantId: string | null,
   affectedCombatantIds: readonly string[],
   issues: CombatActionIssue[],
+  allowsEmptyArea: boolean,
 ): void {
   for (const effect of effects) {
     if (effect.recipient === 'primary-unit' && !primaryCombatantId) {
@@ -1089,7 +1176,11 @@ function collectEffectRecipientIssues(
         message: 'An effect requires a primary unit target that is not available.',
       })
     }
-    if (effect.recipient === 'affected-units' && affectedCombatantIds.length === 0) {
+    if (
+      effect.recipient === 'affected-units' &&
+      affectedCombatantIds.length === 0 &&
+      !allowsEmptyArea
+    ) {
       issues.push({
         code: 'effect-target-missing',
         message: 'An area effect resolves to no affected combatants.',
@@ -1098,128 +1189,146 @@ function collectEffectRecipientIssues(
   }
 }
 
-function projectEffects(
+/** Preview and commit run this exact immutable sequence, including consumptions and failed pushes. */
+function resolveActionEffects(
   state: CombatEncounterState,
   actorId: string,
   primaryCombatantId: string | null,
   affectedCombatantIds: readonly string[],
+  affectedTiles: readonly GridPosition[],
   action: CombatActionDefinition,
   content: CombatContentCatalog,
-): CombatEffectProjection[] {
-  let simulated = state
+): CombatResolutionTransition & {
+  projections: CombatEffectProjection[]
+  terrain: CombatTerrainProjection[]
+} {
+  let nextState = state
+  const events: CombatResolutionEvent[] = []
   const projections: CombatEffectProjection[] = []
-
+  const terrain: CombatTerrainProjection[] = []
+  const stormRecipients = new Set<string>()
+  if (action.effects.some((effect) => effect.type === 'damage' && effect.amount > 0)) {
+    const revealed = removeGameplayTags(
+      nextState,
+      actorId,
+      actorId,
+      action.id,
+      ['Invisible'],
+      content,
+    )
+    nextState = revealed.state
+    events.push(...revealed.events)
+  }
   for (const effect of action.effects) {
-    const recipients = resolveEffectRecipients(
+    if (
+      effect.type === 'create-terrain' ||
+      (effect.type === 'damage' && effect.element === 'fire')
+    ) {
+      for (const position of affectedTiles) {
+        if (
+          effect.type !== 'create-terrain' &&
+          terrainOverlayAt(nextState, position)?.kind !== 'frozen'
+        )
+          continue
+        const changed = setTerrainOverlay(
+          nextState,
+          position,
+          effect.type === 'create-terrain' ? 'frozen' : 'steam',
+          actorId,
+          action.id,
+        )
+        nextState = changed.state
+        events.push(...changed.events)
+        for (const event of changed.events)
+          if (event.event === 'terrain_overlay_changed') {
+            terrain.push({
+              position: event.position,
+              before: event.before,
+              after: event.after,
+              remainingRoundBoundaries: event.remainingRoundBoundaries,
+            })
+          }
+      }
+      if (effect.type === 'create-terrain') continue
+    }
+    for (const recipientId of resolveEffectRecipients(
       actorId,
       primaryCombatantId,
       affectedCombatantIds,
       effect.recipient,
-    )
-    for (const recipientId of recipients) {
-      const projection = projectSingleEffect(simulated, actorId, recipientId, effect, content)
-      projections.push(projection.projection)
-      simulated = projection.state
+    )) {
+      const before = nextState
+      const applied = applyEffect(
+        nextState,
+        actorId,
+        recipientId,
+        action.id,
+        effect,
+        content,
+        stormRecipients,
+      )
+      nextState = applied.state
+      events.push(...applied.events)
+      let beforeValue: number | string
+      let afterValue: number | string
+      if (
+        effect.type === 'damage' ||
+        effect.type === 'healing' ||
+        effect.type === 'resource-change'
+      ) {
+        const resource = effect.type === 'resource-change' ? 'mp' : 'hp'
+        beforeValue = getCombatant(before.tactical.battle, recipientId)[resource]
+        afterValue = getCombatant(nextState.tactical.battle, recipientId)[resource]
+      } else if (effect.type === 'return-to-turn-start' || effect.type === 'displace') {
+        const from = getPlacement(before.tactical, recipientId).position
+        const to = getPlacement(nextState.tactical, recipientId).position
+        beforeValue = `${from.x},${from.y}`
+        afterValue = `${to.x},${to.y}`
+      } else if (effect.type === 'remove-status') {
+        beforeValue =
+          getStatusRow(before, recipientId)
+            .statuses.filter((status) => effect.statusIds.includes(status.statusId))
+            .map((status) => status.statusId)
+            .join(',') || 'none'
+        afterValue = 'none'
+      } else {
+        const oldStatus = getStatus(before, recipientId, effect.statusId)
+        const newStatus = getStatus(nextState, recipientId, effect.statusId)
+        beforeValue = oldStatus ? `${oldStatus.statusId}:${oldStatus.stacks}` : 'none'
+        afterValue = newStatus ? `${newStatus.statusId}:${newStatus.stacks}` : 'none'
+      }
+      projections.push({
+        effectType: effect.type,
+        combatantId: recipientId,
+        before: beforeValue,
+        after: afterValue,
+      })
     }
   }
-
-  return projections
+  return { state: nextState, events, projections, terrain }
 }
 
-function projectSingleEffect(
+/** Also used by the stat-driven miss path: a damaging command reveals its holder even on a miss. */
+export function removeGameplayTags(
   state: CombatEncounterState,
   actorId: string,
   recipientId: string,
-  effect: CombatEffectDefinition,
+  actionId: string,
+  tags: readonly GameplayTag[],
   content: CombatContentCatalog,
-): { state: CombatEncounterState; projection: CombatEffectProjection } {
-  if (effect.type === 'return-to-turn-start') {
-    const from = getPlacement(state.tactical, actorId).position
-    const to = state.turnOrigin!.position
-    return {
-      state: rewindToTurnOrigin(state, actorId),
-      projection: {
-        effectType: effect.type,
-        combatantId: actorId,
-        before: `${from.x},${from.y}`,
-        after: `${to.x},${to.y}`,
-      },
-    }
-  }
-
-  if (effect.type === 'damage') {
-    const target = getCombatant(state.tactical.battle, recipientId)
-    const amount = resolveDamageAmount(state, actorId, recipientId, effect, content)
-    const nextHp = Math.max(0, target.hp - amount)
-    return {
-      state: withUpdatedCombatant(state, recipientId, { ...target, hp: nextHp }),
-      projection: {
-        effectType: 'damage',
-        combatantId: recipientId,
-        before: target.hp,
-        after: nextHp,
-      },
-    }
-  }
-
-  if (effect.type === 'healing') {
-    const target = getCombatant(state.tactical.battle, recipientId)
-    const nextHp = addClampedSafeInteger(target.hp, effect.amount, 0, target.maxHp)
-    return {
-      state: withUpdatedCombatant(state, recipientId, { ...target, hp: nextHp }),
-      projection: {
-        effectType: 'healing',
-        combatantId: recipientId,
-        before: target.hp,
-        after: nextHp,
-      },
-    }
-  }
-
-  if (effect.type === 'resource-change') {
-    const target = getCombatant(state.tactical.battle, recipientId)
-    const nextMp = addClampedSafeInteger(target.mp, effect.delta, 0, target.maxMp)
-    return {
-      state: withUpdatedCombatant(state, recipientId, { ...target, mp: nextMp }),
-      projection: {
-        effectType: 'resource-change',
-        combatantId: recipientId,
-        before: target.mp,
-        after: nextMp,
-      },
-    }
-  }
-
-  if (effect.type === 'remove-status') {
-    const before =
-      getStatusRow(state, recipientId)
-        .statuses.filter((status) => effect.statusIds.includes(status.statusId))
-        .map((status) => status.statusId)
-        .join(',') || 'none'
-    return {
-      state: removeStatuses(state, recipientId, effect.statusIds),
-      projection: { effectType: effect.type, combatantId: recipientId, before, after: 'none' },
-    }
-  }
-
-  const before = getStatus(state, recipientId, effect.statusId)
-  const nextState = applyStatusState(
-    state,
-    actorId,
-    recipientId,
-    effect.statusId,
-    effect.stacks,
-    content,
-  )
-  const after = getStatus(nextState, recipientId, effect.statusId)
+): CombatResolutionTransition {
+  const ids = [
+    ...new Set(tags.flatMap((tag) => statusIdsForGameplayTag(state, recipientId, tag, content))),
+  ]
   return {
-    state: nextState,
-    projection: {
-      effectType: 'apply-status',
-      combatantId: recipientId,
-      before: before ? `${before.statusId}:${before.stacks}` : 'none',
-      after: after ? `${after.statusId}:${after.stacks}` : 'none',
-    },
+    state: removeStatuses(state, recipientId, ids),
+    events: ids.map((statusId) => ({
+      event: 'status_removed',
+      actionId,
+      sourceCombatantId: actorId,
+      targetCombatantId: recipientId,
+      statusId,
+    })),
   }
 }
 
@@ -1228,9 +1337,12 @@ function applyEffect(
   actorId: string,
   recipientId: string,
   actionId: string,
-  effect: CombatEffectDefinition,
+  effect: Exclude<CombatEffectDefinition, { type: 'create-terrain' }>,
   content: CombatContentCatalog,
+  stormRecipients: Set<string>,
 ): CombatResolutionTransition {
+  if (effect.type === 'displace')
+    return applyDisplacement(state, actorId, recipientId, actionId, content)
   if (effect.type === 'return-to-turn-start') {
     const from = getPlacement(state.tactical, actorId).position
     const to = state.turnOrigin!.position
@@ -1250,10 +1362,39 @@ function applyEffect(
 
   if (effect.type === 'damage') {
     const target = getCombatant(state.tactical.battle, recipientId)
-    const amount = resolveDamageAmount(state, actorId, recipientId, effect, content)
+    const stormBonus =
+      effect.element === 'storm' &&
+      !stormRecipients.has(recipientId) &&
+      (hasGameplayTag(state, recipientId, 'Wet', content) ||
+        hasGameplayTag(state, recipientId, 'Conductive', content))
+    const amount = resolveDamageAmount(
+      state,
+      actorId,
+      recipientId,
+      effect,
+      content,
+      stormBonus ? 12_000 : 10_000,
+    )
+    if (stormBonus && amount > 0) stormRecipients.add(recipientId)
     const hpAfter = Math.max(0, target.hp - amount)
+    const updated = withUpdatedCombatant(state, recipientId, { ...target, hp: hpAfter })
+    const removed =
+      hpAfter < target.hp
+        ? removeGameplayTags(
+            updated,
+            actorId,
+            recipientId,
+            actionId,
+            [
+              'Invisible',
+              ...(effect.element === 'fire' ? (['Wet', 'Frozen'] as const) : []),
+              ...(stormBonus ? (['Conductive'] as const) : []),
+            ],
+            content,
+          )
+        : { state: updated, events: [] }
     return {
-      state: withUpdatedCombatant(state, recipientId, { ...target, hp: hpAfter }),
+      state: removed.state,
       events: [
         {
           event: 'damage_applied',
@@ -1264,13 +1405,22 @@ function applyEffect(
           hpBefore: target.hp,
           hpAfter,
         },
+        ...removed.events,
       ],
     }
   }
 
   if (effect.type === 'healing') {
     const target = getCombatant(state.tactical.battle, recipientId)
-    const hpAfter = addClampedSafeInteger(target.hp, effect.amount, 0, target.maxHp)
+    const hpAfter =
+      target.hp <= 0
+        ? target.hp
+        : addClampedSafeInteger(
+            target.hp,
+            incomingHealingAmount(state, recipientId, effect.amount, content),
+            0,
+            target.maxHp,
+          )
     return {
       state: withUpdatedCombatant(state, recipientId, { ...target, hp: hpAfter }),
       events: [
@@ -1374,6 +1524,7 @@ function resolveDamageAmount(
   recipientId: string,
   effect: Extract<CombatEffectDefinition, { type: 'damage' }>,
   content: CombatContentCatalog,
+  elementalMultiplier = 10_000,
 ): number {
   let amount = effect.amount
   if (effect.defenseKind && amount > 0) {
@@ -1405,7 +1556,7 @@ function resolveDamageAmount(
 
   amount = scaleByBasisPoints(
     amount,
-    conditionalDamageMultiplier(state, actorId, recipientId, content),
+    conditionalDamageMultiplier(state, actorId, recipientId, content, elementalMultiplier),
   )
 
   return amount
@@ -1523,7 +1674,10 @@ function resolveEndOfTurnStatuses(
       const hpAfter =
         definition.endOfTurn.type === 'damage'
           ? Math.max(0, target.hp - amount)
-          : Math.min(target.maxHp, target.hp + amount)
+          : Math.min(
+              target.maxHp,
+              target.hp + incomingHealingAmount(nextState, combatantId, amount, content),
+            )
       nextState = withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
       events.push({
         event: definition.endOfTurn.type === 'damage' ? 'damage_applied' : 'healing_applied',
@@ -1534,6 +1688,18 @@ function resolveEndOfTurnStatuses(
         hpBefore: target.hp,
         hpAfter,
       })
+    }
+    if (definition.endOfTurn.type === 'damage' && target.hp > 0) {
+      const revealed = removeGameplayTags(
+        nextState,
+        status.sourceCombatantId,
+        combatantId,
+        `status.${status.statusId}`,
+        ['Invisible'],
+        content,
+      )
+      nextState = revealed.state
+      events.push(...revealed.events)
     }
     const remaining = status.remainingOwnerTurnStarts - 1
     if (remaining === 0) {
@@ -1714,16 +1880,18 @@ function isFriendlyFireAllowed(
 }
 
 function hasBaselineLineOfSight(
-  tactical: TacticalBattleState,
+  state: CombatEncounterState,
   origin: GridPosition,
   target: GridPosition,
 ): boolean {
+  const tactical = state.tactical
   const points = bresenhamLine(origin, target)
   for (let index = 1; index < points.length - 1; index += 1) {
     const tile = getTile(tactical, points[index])
     const terrain = tactical.terrains.find((candidate) => candidate.id === tile.terrainId)
     if (!terrain) throw new Error(`Unknown terrain ${tile.terrainId}.`)
-    if (terrain.traversalCost === null) return false
+    if (terrain.traversalCost === null || terrainOverlayAt(state, points[index])?.kind === 'steam')
+      return false
   }
   return true
 }
@@ -1757,8 +1925,9 @@ function bresenhamLine(origin: GridPosition, target: GridPosition): GridPosition
 
 function validateCombatActionDefinition(
   action: CombatActionDefinition,
-  content: CombatContentCatalog,
+  content?: CombatContentCatalog,
 ): void {
+  validateGameplayActionMetadata(action)
   collectRequiredIdentity(action.id, 'action id')
   assertPositiveSafeInteger(action.version, 'action version')
   if (action.cooldown) {
@@ -1819,7 +1988,15 @@ function validateCombatActionDefinition(
   for (const requirement of action.requirements) {
     assertKnownString(
       requirement.kind,
-      ['actor-status-present', 'actor-status-absent', 'target-status-present', 'actor-hp-at-most'],
+      [
+        'actor-status-present',
+        'actor-status-absent',
+        'target-status-present',
+        'actor-hp-at-most',
+        'actor-tag-present',
+        'actor-tag-absent',
+        'target-tag-present',
+      ],
       'requirement kind',
     )
     if ('statusId' in requirement)
@@ -1839,9 +2016,17 @@ function validateCombatActionDefinition(
         'apply-status',
         'remove-status',
         'return-to-turn-start',
+        'create-terrain',
+        'displace',
       ],
       'effect type',
     )
+    if (effect.type === 'create-terrain') {
+      continue
+    }
+    if (effect.type === 'displace') {
+      if (content) getStatusDefinitionById(content, 'displaced')
+    }
     assertKnownString(
       effect.recipient,
       ['actor', 'primary-unit', 'affected-units'],
@@ -1853,9 +2038,10 @@ function validateCombatActionDefinition(
     if (effect.type === 'damage' && effect.defenseKind !== undefined)
       assertKnownString(effect.defenseKind, ['armor', 'ward'], 'damage defense kind')
     if (effect.type === 'damage' && effect.facingModifiersBasisPoints) {
-      assertBasisPoints(effect.facingModifiersBasisPoints.front, 'front damage modifier', 20_000)
-      assertBasisPoints(effect.facingModifiersBasisPoints.side, 'side damage modifier', 20_000)
-      assertBasisPoints(effect.facingModifiersBasisPoints.rear, 'rear damage modifier', 20_000)
+      // Historical Perfect Opening v1 authors 220%; Skill facing is separate from basic/conditional caps.
+      assertBasisPoints(effect.facingModifiersBasisPoints.front, 'front damage modifier', 22_000)
+      assertBasisPoints(effect.facingModifiersBasisPoints.side, 'side damage modifier', 22_000)
+      assertBasisPoints(effect.facingModifiersBasisPoints.rear, 'rear damage modifier', 22_000)
     }
     if (effect.type === 'resource-change') {
       assertKnownString(effect.resource, ['mp'], 'effect resource')
@@ -1871,7 +2057,10 @@ function validateCombatActionDefinition(
         new Set(effect.statusIds).size !== effect.statusIds.length
       )
         throw new TypeError('Status removal requires one to eight distinct IDs.')
-      for (const id of effect.statusIds) getStatusDefinitionById(content, id)
+      for (const id of effect.statusIds) {
+        collectRequiredIdentity(id, 'removed status ID')
+        if (content) getStatusDefinitionById(content, id)
+      }
     }
     if (
       effect.type === 'return-to-turn-start' &&
@@ -1881,7 +2070,7 @@ function validateCombatActionDefinition(
     if (effect.type === 'apply-status') {
       collectRequiredIdentity(effect.statusId, 'effect status ID')
       assertPositiveSafeInteger(effect.stacks, 'effect status stacks')
-      getStatusDefinitionById(content, effect.statusId)
+      if (content) getStatusDefinitionById(content, effect.statusId)
     }
   }
 }
@@ -1915,6 +2104,15 @@ function validateCombatContentCatalog(content: CombatContentCatalog): void {
     assertPositiveSafeInteger(status.durationOwnerTurnStarts, 'status duration')
     assertBasisPoints(status.damageTakenMultiplierBasisPoints, 'damage taken multiplier', 25_000)
     validateDamageModifiers(status.damageModifiers)
+    if (status.gameplayTags !== undefined) {
+      if (
+        !Array.isArray(status.gameplayTags) ||
+        status.gameplayTags.length > 16 ||
+        new Set(status.gameplayTags).size !== status.gameplayTags.length
+      )
+        throw new TypeError('Invalid gameplay tags.')
+      for (const tag of status.gameplayTags) validateGameplayTag(tag)
+    }
     if (status.damageModifiers?.length && status.maximumStacks !== 1)
       throw new TypeError('Conditional damage statuses must be single-stack.')
     if (
@@ -1960,6 +2158,8 @@ function emptyEvaluation(
     affectedTiles: [],
     affectedCombatantIds: [],
     projectedEffects: [],
+    projectedTerrain: [],
+    projectedEvents: [],
     mpCost: action.cost.mp,
     spendsAction: action.cost.spendsAction,
     issues,
@@ -2112,4 +2312,109 @@ function compareStableString(left: string, right: string): number {
 
 function samePosition(a: GridPosition, b: GridPosition): boolean {
   return a.x === b.x && a.y === b.y
+}
+
+function incomingHealingAmount(
+  state: CombatEncounterState,
+  recipientId: string,
+  amount: number,
+  content: CombatContentCatalog,
+): number {
+  return hasGameplayTag(state, recipientId, 'Hexed', content)
+    ? scaleByBasisPoints(amount, 7_500)
+    : amount
+}
+
+function applyDisplacement(
+  state: CombatEncounterState,
+  actorId: string,
+  recipientId: string,
+  actionId: string,
+  content: CombatContentCatalog,
+): CombatResolutionTransition {
+  const source = getPlacement(state.tactical, actorId).position
+  const placement = getPlacement(state.tactical, recipientId)
+  const from = placement.position
+  const dx = from.x - source.x
+  const dy = from.y - source.y
+  // Cardinal push away from the caster; equal diagonals use the horizontal axis.
+  const to =
+    Math.abs(dx) >= Math.abs(dy)
+      ? { x: from.x + Math.sign(dx), y: from.y }
+      : { x: from.x, y: from.y + Math.sign(dy) }
+  const profile = state.tactical.movementProfiles.find(
+    (row) => row.id === placement.movementProfileId,
+  )!
+  const tile = state.tactical.tiles.find((tile) => samePosition(tile.position, to))
+  const override =
+    tile && profile.terrainCostOverrides.find((row) => row.terrainId === tile.terrainId)
+  const terrainCost = tile
+    ? override
+      ? override.traversalCost
+      : state.tactical.terrains.find((row) => row.id === tile.terrainId)?.traversalCost
+    : null
+  let reason: DisplacementFailureReason | null = null
+  if (getCombatant(state.tactical.battle, recipientId).hp <= 0) reason = 'target-defeated'
+  else if (
+    getStatusRow(state, recipientId).statuses.some(
+      (status) =>
+        getStatusDefinition(content, status.statusId, status.statusVersion).movement?.blocked,
+    )
+  )
+    reason = 'status-restricted'
+  else if (!dx && !dy) reason = 'direction-undefined'
+  else if (!tile) reason = 'out-of-bounds'
+  else if (terrainCost == null) reason = 'blocked-terrain'
+  else if (state.tactical.placements.some((unit) => samePosition(unit.position, to)))
+    reason = 'occupied-tile'
+  else if (
+    Math.abs(tile.elevation - getTile(state.tactical, from).elevation) > profile.maxElevationStep
+  )
+    reason = 'elevation-step-too-high'
+  if (reason)
+    return {
+      state,
+      events: [
+        {
+          event: 'displacement_failed',
+          actionId,
+          sourceCombatantId: actorId,
+          combatantId: recipientId,
+          reason,
+          position: { ...from },
+        },
+      ],
+    }
+  const moved = {
+    ...state,
+    tactical: {
+      ...state.tactical,
+      placements: state.tactical.placements.map((unit) =>
+        unit.combatantId === recipientId ? { ...unit, position: to } : unit,
+      ),
+    },
+  }
+  const marked = applyEffect(
+    moved,
+    actorId,
+    recipientId,
+    actionId,
+    { type: 'apply-status', recipient: 'primary-unit', statusId: 'displaced', stacks: 1 },
+    content,
+    new Set(),
+  )
+  return {
+    state: marked.state,
+    events: [
+      {
+        event: 'combatant_displaced',
+        actionId,
+        sourceCombatantId: actorId,
+        combatantId: recipientId,
+        from: { ...from },
+        to: { ...to },
+      },
+      ...marked.events,
+    ],
+  }
 }

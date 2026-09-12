@@ -5,7 +5,7 @@ import { createCombatEncounterState } from './actions'
 import { createPendingBattle, startBattle } from './battle-state'
 import { createTacticalBattleState } from './board'
 import {
-  P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
+  latestEnabledMatureSkills,
   resolveMatureSkillVersion,
   validateMatureSkillDefinition,
 } from './mature-skills'
@@ -142,7 +142,7 @@ const roster = [
   'tidecaller',
   'chronist',
 ]
-const skills = P33_REPRESENTATIVE_DISCIPLINE_SKILLS.filter((skill) => skill.enabled)
+const skills = latestEnabledMatureSkills().filter((skill) => skill.enabled)
 
 describe('Phase 4 seventeen-Discipline acceptance matrix', () => {
   it.each(roster)('%s has eight valid Skills and an exclusive pure Essence', (discipline) => {

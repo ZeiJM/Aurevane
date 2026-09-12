@@ -1,5 +1,10 @@
 'use client'
 
+import { isCurrentBattlePreview, battleIntentTileKey } from './battle-preview-selection'
+import { BattleInteractionForecast } from './battle-interaction-forecast'
+import { terrainOverlayAt } from '@aurevane/game-core/combat/terrain-overlays'
+import { terrainOverlayDescription } from '../../lib/battle/combat-interaction-presentation'
+
 import {
   PV1F_BASIC_ATTACK_COST,
   PV1F_BASIC_ATTACK_ID,
@@ -32,6 +37,7 @@ import { BattleFacingIndicator } from './battle-facing-indicator'
 import { useBattleInteractionLifecycle } from './battle-interaction-lifecycle'
 import {
   buildReachablePaths,
+  manhattanDistance,
   facingGlyph,
   meterPercent,
   MOVE_COST_PER_TERRAIN_POINT,
@@ -229,6 +235,9 @@ export function BattleExperience({
   const [surrenderPending, setSurrenderPending] = useState(false)
 
   const previewSequence = useRef(0)
+  const readyPreview = useRef<{ intent: BattleIntent; version: number; sequence: number } | null>(
+    null,
+  )
   const commitLock = useRef(false)
   const battleRef = useRef(initialBattle)
   const battlePollInFlight = useRef(false)
@@ -373,9 +382,9 @@ export function BattleExperience({
   const reachablePaths = useMemo(
     () =>
       localTurn
-        ? buildReachablePaths(tactical, localPlacement, actionEconomy)
+        ? buildReachablePaths(battle.snapshot, localPlacement, actionEconomy)
         : new Map<string, BattleGridPosition[]>(),
-    [actionEconomy, localPlacement, localTurn, tactical],
+    [actionEconomy, battle.snapshot, localPlacement, localTurn],
   )
   const attackRange = useMemo(() => {
     const result = new Set<string>()
@@ -422,6 +431,7 @@ export function BattleExperience({
   const clearPlanning = useCallback(
     (nextMode: Mode = 'none') => {
       previewSequence.current += 1
+      readyPreview.current = null
       setMode(nextMode)
       updatePlanningPath([])
       setPendingIntent(null)
@@ -622,6 +632,8 @@ export function BattleExperience({
   const requestPreview = useCallback(
     async (intent: BattleIntent) => {
       const sequence = ++previewSequence.current
+      readyPreview.current = null
+      setPreview(null)
       setPreviewPending(true)
       setPendingIntent(intent)
       try {
@@ -639,6 +651,9 @@ export function BattleExperience({
         }
         setPreview(body.battlePreview)
         const result = body.battlePreview.preview
+        readyPreview.current = result.legal
+          ? { intent, version: battle.battleVersion, sequence }
+          : null
         if (!result.legal) {
           setNotice(result.issues[0]?.message ?? 'That command is not legal right now.')
         } else if (result.kind === 'move') {
@@ -653,6 +668,10 @@ export function BattleExperience({
           setNotice('HP Recovery ready · 50 AP · restores 10% maximum HP.')
         } else if (result.kind === 'action' && result.actionId === MP_RECOVER_ID) {
           setNotice('MP Recovery ready · 50 AP · restores 10% maximum MP.')
+        } else if (result.kind === 'action') {
+          setNotice(
+            `Skill ready · ${result.actionEconomyCost} AP · review the target forecast before confirming.`,
+          )
         }
       } catch (error) {
         if (sequence === previewSequence.current) {
@@ -825,9 +844,20 @@ export function BattleExperience({
   )
 
   const commitSelected = useCallback(() => {
-    if (!pendingIntent || !preview?.preview.legal || previewPending) return
+    if (
+      !pendingIntent ||
+      !preview?.preview.legal ||
+      previewPending ||
+      !isCurrentBattlePreview(
+        readyPreview.current,
+        pendingIntent,
+        battle.battleVersion,
+        previewSequence.current,
+      )
+    )
+      return
     void commitValue(pendingIntent)
-  }, [commitValue, pendingIntent, preview, previewPending])
+  }, [battle.battleVersion, commitValue, pendingIntent, preview, previewPending])
 
   const chooseMode = useCallback(
     (nextMode: Mode) => {
@@ -868,7 +898,7 @@ export function BattleExperience({
       } else if (nextMode === 'finish') {
         setNotice('Choose final facing with the buttons, WASD, or arrow keys to end the turn.')
       } else if (nextMode === 'inspect') {
-        setNotice('Inspect mode · choose any combatant on the board.')
+        setNotice('Inspect mode · choose any combatant or terrain tile on the board.')
       }
     },
     [
@@ -938,6 +968,24 @@ export function BattleExperience({
             : mode === 'guard'
               ? selectedDefenseActionId
               : effectiveHealActionId
+        const selectedTechnique =
+          mode === 'attack'
+            ? selectedAttackTechnique
+            : mode === 'guard'
+              ? selectedDefenseTechnique
+              : selectedHealTechnique
+        if (
+          selectedTechnique?.targetKind === 'ground-tile' ||
+          selectedTechnique?.targetKind === 'empty-tile'
+        ) {
+          setSelectedUnitId(null)
+          void requestPreview({
+            kind: 'action',
+            actionId: selectedActionId,
+            target: { kind: 'tile', position },
+          })
+          return
+        }
         if (!placement || !localParticipant) {
           setNotice('Choose a combatant target.')
           return
@@ -946,12 +994,6 @@ export function BattleExperience({
         const targetCombatant = battleState.combatants.find(
           (combatant) => combatant.id === placement.combatantId,
         )
-        const selectedTechnique =
-          mode === 'attack'
-            ? selectedAttackTechnique
-            : mode === 'guard'
-              ? selectedDefenseTechnique
-              : selectedHealTechnique
         const minimumRange = selectedTechnique?.minimumRange ?? 1
         const maximumRange = selectedTechnique?.maximumRange ?? 1
         const distance = localPlacement
@@ -1052,6 +1094,14 @@ export function BattleExperience({
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (isTextEntryTarget(event.target)) return
+      // Native keyboard activation selects the focused tile/summary/button. It must
+      // never commit a previous preview while the user is choosing another target.
+      if (
+        event.key === 'Enter' &&
+        event.target instanceof Element &&
+        event.target.closest('button, summary, a, [role="button"]')
+      )
+        return
       const lower = event.key.toLowerCase()
       const direction: { delta: BattleGridPosition; facing: BattleFacing } | null =
         lower === 'w' || event.key === 'ArrowUp'
@@ -1478,15 +1528,38 @@ export function BattleExperience({
                 const selfTarget =
                   (mode === 'guard' || mode === 'recover') &&
                   placement?.combatantId === localCombatantId
-                const targetRelation = selfTarget
-                  ? 'friendly'
-                  : inAttackRange
-                    ? legalEnemy
-                      ? 'enemy'
-                      : 'illegal'
+                const activeTechnique =
+                  mode === 'attack'
+                    ? selectedAttackTechnique
+                    : mode === 'guard'
+                      ? selectedDefenseTechnique
+                      : mode === 'recover'
+                        ? selectedHealTechnique
+                        : null
+                const groundTarget =
+                  activeTechnique?.targetKind === 'ground-tile' ||
+                  activeTechnique?.targetKind === 'empty-tile'
+                const targetDistance = localPlacement
+                  ? manhattanDistance(localPlacement.position, tile.position)
+                  : Infinity
+                const groundInRange =
+                  groundTarget &&
+                  targetDistance >= activeTechnique.minimumRange &&
+                  targetDistance <= activeTechnique.maximumRange
+                const targetRelation = groundTarget
+                  ? groundInRange
+                    ? 'ground'
                     : undefined
+                  : selfTarget
+                    ? 'friendly'
+                    : inAttackRange
+                      ? legalEnemy
+                        ? 'enemy'
+                        : 'illegal'
+                      : undefined
                 const selected = selectedUnitId === placement?.combatantId
                 const terrain = tile.terrainId === 'rough-ground' ? 'rough' : 'open'
+                const overlay = terrainOverlayAt(battle.snapshot, tile.position)
 
                 return (
                   <button
@@ -1494,6 +1567,7 @@ export function BattleExperience({
                     key={key}
                     className={styles.tile}
                     data-terrain={terrain}
+                    data-terrain-overlay={overlay?.kind}
                     data-elevation={tile.elevation > 0 || undefined}
                     data-reachable={reachable || undefined}
                     data-path={pathIndex >= 0 || undefined}
@@ -1501,11 +1575,17 @@ export function BattleExperience({
                     data-target={targetRelation}
                     data-selected={selected || undefined}
                     onClick={() => handleTile(tile.position)}
-                    aria-label={`Tile ${tile.position.x + 1}, ${tile.position.y + 1}; ${tile.terrainId}; elevation ${tile.elevation}${participant ? `; occupied by ${participant.name}` : ''}`}
+                    aria-label={`Tile ${tile.position.x + 1}, ${tile.position.y + 1}; ${tile.terrainId}; elevation ${tile.elevation}${participant ? `; occupied by ${participant.name}` : ''}${overlay ? `; ${terrainOverlayDescription(overlay)}` : ''}`}
                   >
                     <span className={styles.tileMeta}>
                       {tile.position.x + 1},{tile.position.y + 1}
                     </span>
+                    {overlay ? (
+                      <i data-terrain-overlay-marker="true" aria-hidden="true">
+                        {overlay.kind === 'frozen' ? '❄' : '≋'}
+                        {overlay.remainingRoundBoundaries}
+                      </i>
+                    ) : null}
                     {tile.elevation > 0 ? <span className={styles.elevation}>▲</span> : null}
                     {pathIndex >= 0 ? <span className={styles.pathNumber}>{pathIndex}</span> : null}
                     {participant && placement ? (
@@ -1744,6 +1824,11 @@ export function BattleExperience({
           <button
             type="button"
             className={styles.confirm}
+            data-preview-tile={battleIntentTileKey(
+              pendingIntent,
+              tactical.placements,
+              localCombatantId,
+            )}
             onClick={commitSelected}
             disabled={commitPending || previewPending || !pendingIntent || !preview?.preview.legal}
           >
@@ -1758,6 +1843,9 @@ export function BattleExperience({
             >
               Surrender
             </button>
+          ) : null}
+          {preview?.preview.kind === 'action' && preview.preview.legal ? (
+            <BattleInteractionForecast events={preview.preview.projectedEvents ?? []} />
           ) : null}
         </div>
       </footer>

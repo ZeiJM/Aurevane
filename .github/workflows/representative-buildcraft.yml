@@ -31,6 +31,14 @@ on:
       - 'apps/web/src/components/character/character-profile-shell.tsx'
       - 'apps/web/src/components/character/character-pv2-test-kit.tsx'
       - 'apps/web/src/components/character/character-pv2-test-kit.module.css'
+      - 'apps/web/src/components/battle/**'
+      - 'apps/web/src/components/character/skill-detail-presentation*'
+      - 'apps/web/src/components/character/character-discipline-build-panel.tsx'
+      - 'apps/web/src/components/public-information/discipline-atlas-guide*'
+      - 'apps/web/src/lib/battle/**'
+      - 'apps/web/src/server/battle/battle-log-service*'
+      - 'apps/web/e2e/phase4-ground-targeting.pw.ts'
+      - 'apps/web/e2e/phase4-atlas.pw.ts'
       - 'apps/web/src/components/character/discipline-mastery-panel.tsx'
       - 'apps/web/src/components/character/discipline-mastery-panel.module.css'
       - 'apps/web/e2e/p3-8-representative-buildcraft.pw.ts'
@@ -55,6 +63,14 @@ on:
       - 'apps/web/src/components/character/character-profile-shell.tsx'
       - 'apps/web/src/components/character/character-pv2-test-kit.tsx'
       - 'apps/web/src/components/character/character-pv2-test-kit.module.css'
+      - 'apps/web/src/components/battle/**'
+      - 'apps/web/src/components/character/skill-detail-presentation*'
+      - 'apps/web/src/components/character/character-discipline-build-panel.tsx'
+      - 'apps/web/src/components/public-information/discipline-atlas-guide*'
+      - 'apps/web/src/lib/battle/**'
+      - 'apps/web/src/server/battle/battle-log-service*'
+      - 'apps/web/e2e/phase4-ground-targeting.pw.ts'
+      - 'apps/web/e2e/phase4-atlas.pw.ts'
       - 'apps/web/src/components/character/discipline-mastery-panel.tsx'
       - 'apps/web/src/components/character/discipline-mastery-panel.module.css'
       - 'apps/web/e2e/p3-8-representative-buildcraft.pw.ts'
@@ -69,7 +85,10 @@ permissions:
 jobs:
   representative-buildcraft:
     runs-on: ubuntu-24.04
-    timeout-minutes: 25
+    timeout-minutes: 35
+    env:
+      TURBO_TELEMETRY_DISABLED: 1
+      NEXT_TELEMETRY_DISABLED: 1
 
     steps:
       - uses: actions/checkout@v4
@@ -141,7 +160,95 @@ jobs:
             src/combat/representative-buildcraft.test.ts \
             src/combat/chronist.test.ts \
             src/combat/phase4-effects.test.ts \
+            src/combat/phase4-publication.test.ts \
             src/combat/recruit-ai-build.test.ts
+
+      - name: Format and lint shared battle and Atlas changes
+        run: |
+          pnpm exec prettier --check \
+            .github/workflows/representative-buildcraft.yml \
+            apps/web/e2e/phase4-atlas.pw.ts \
+            apps/web/e2e/phase4-ground-targeting.pw.ts \
+            apps/web/src/components/battle/ai-battle-quality-controls.tsx \
+            apps/web/src/components/battle/battle-command-cockpit-polish.tsx \
+            apps/web/src/components/battle/battle-effect-summary.ts \
+            apps/web/src/components/battle/battle-experience.tsx \
+            apps/web/src/components/battle/battle-geometry.test.ts \
+            apps/web/src/components/battle/battle-geometry.ts \
+            apps/web/src/components/battle/battle-inspect-terrain-context.test.ts \
+            apps/web/src/components/battle/battle-inspect-terrain-context.tsx \
+            apps/web/src/components/battle/battle-interaction-forecast.module.css \
+            apps/web/src/components/battle/battle-interaction-forecast.tsx \
+            apps/web/src/components/battle/battle-keyboard-assist.tsx \
+            apps/web/src/components/battle/battle-log-presentation.ts \
+            apps/web/src/components/battle/battle-preview-selection.test.ts \
+            apps/web/src/components/battle/battle-preview-selection.ts \
+            apps/web/src/components/battle/battlefield-presentation-bundle.module.css \
+            apps/web/src/components/battle/desktop-battle-combatant-inspect.tsx \
+            apps/web/src/components/battle/pvp-battle-inspect-popup.tsx \
+            apps/web/src/components/battle/pvp-battle-keyboard-assist.tsx \
+            apps/web/src/components/battle/pvp-quick-commit-assist.tsx \
+            apps/web/src/components/battle/pvp-spectator-experience.tsx \
+            apps/web/src/components/character/character-discipline-build-panel.tsx \
+            apps/web/src/components/character/discipline-mastery-panel.module.css \
+            apps/web/src/components/character/discipline-mastery-panel.tsx \
+            apps/web/src/components/character/skill-detail-presentation.test.ts \
+            apps/web/src/components/character/skill-detail-presentation.ts \
+            apps/web/src/components/public-information/discipline-atlas-guide.module.css \
+            apps/web/src/components/public-information/discipline-atlas-guide.tsx \
+            apps/web/src/content/current-manual.ts \
+            apps/web/src/lib/battle/combat-interaction-presentation.test.ts \
+            apps/web/src/lib/battle/combat-interaction-presentation.ts \
+            apps/web/src/server/battle/battle-log-service.test.ts \
+            apps/web/src/server/battle/battle-log-service.ts \
+            packages/game-core/src/combat/gameplay-tags.ts \
+            packages/game-core/src/combat/pv1f-action-economy.ts \
+            packages/game-core/src/combat/terrain-overlays.ts
+          pnpm --filter @aurevane/web exec eslint --max-warnings=0 \
+            e2e/phase4-atlas.pw.ts \
+            e2e/phase4-ground-targeting.pw.ts \
+            src/components/battle/ai-battle-quality-controls.tsx \
+            src/components/battle/battle-command-cockpit-polish.tsx \
+            src/components/battle/battle-effect-summary.ts \
+            src/components/battle/battle-experience.tsx \
+            src/components/battle/battle-geometry.test.ts \
+            src/components/battle/battle-geometry.ts \
+            src/components/battle/battle-inspect-terrain-context.test.ts \
+            src/components/battle/battle-inspect-terrain-context.tsx \
+            src/components/battle/battle-interaction-forecast.tsx \
+            src/components/battle/battle-keyboard-assist.tsx \
+            src/components/battle/battle-log-presentation.ts \
+            src/components/battle/battle-preview-selection.test.ts \
+            src/components/battle/battle-preview-selection.ts \
+            src/components/battle/desktop-battle-combatant-inspect.tsx \
+            src/components/battle/pvp-battle-inspect-popup.tsx \
+            src/components/battle/pvp-battle-keyboard-assist.tsx \
+            src/components/battle/pvp-quick-commit-assist.tsx \
+            src/components/battle/pvp-spectator-experience.tsx \
+            src/components/character/character-discipline-build-panel.tsx \
+            src/components/character/discipline-mastery-panel.tsx \
+            src/components/character/skill-detail-presentation.test.ts \
+            src/components/character/skill-detail-presentation.ts \
+            src/components/public-information/discipline-atlas-guide.tsx \
+            src/content/current-manual.ts \
+            src/lib/battle/combat-interaction-presentation.test.ts \
+            src/lib/battle/combat-interaction-presentation.ts \
+            src/server/battle/battle-log-service.test.ts \
+            src/server/battle/battle-log-service.ts
+
+      - name: Focused shared targeting and presentation tests
+        run: |
+          pnpm --filter @aurevane/web exec vitest run \
+            src/components/battle/battle-geometry.test.ts \
+            src/components/battle/battle-preview-selection.test.ts \
+            src/components/battle/battle-inspect-terrain-context.test.ts \
+            src/components/battle/battle-effect-summary.test.ts \
+            src/components/battle/battle-log-presentation.test.ts \
+            src/components/character/skill-detail-presentation.test.ts \
+            src/lib/battle/combat-interaction-presentation.test.ts \
+            src/server/battle/battle-log-service.test.ts \
+            src/server/battle/battle-preview-service.test.ts \
+            src/content/current-manual.test.ts
 
       - name: Start local Supabase stack
         run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
@@ -154,6 +261,9 @@ jobs:
 
       - name: Verify Phase 4 Mastery authority
         run: bash .github/scripts/verify-p4-mastery.sh
+
+      - name: Verify staged Phase 4 combat publication
+        run: bash .github/scripts/verify-p4-combat-publication.sh
 
       - name: Build and verify PV-2 Profile flow
         shell: bash
@@ -174,6 +284,11 @@ jobs:
           AUREVANE_PV2_TEST_MODE=1 \
           pnpm --filter @aurevane/web build
 
+          # Disposable local CI database only: publication verifier above rolls back.
+          # The app bundle now contains v2; browser scenarios must receive real v2 builds.
+          db_container="$(docker ps --filter 'name=supabase_db_' --format '{{.Names}}' | head -n 1)"
+          docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "set role service_role; select public.activate_phase4_combat_interactions_v2();"
+
           AUREVANE_ENV=local \
           NEXT_PUBLIC_AUREVANE_ENV=local \
           NEXT_PUBLIC_SUPABASE_URL="$api_url" \
@@ -181,6 +296,8 @@ jobs:
           SUPABASE_SECRET_KEY="$server_key" \
           AUREVANE_PV2_TEST_MODE=1 \
           pnpm --filter @aurevane/web exec playwright test \
+            e2e/phase4-atlas.pw.ts \
+            e2e/phase4-ground-targeting.pw.ts \
             e2e/phase4-roster.pw.ts \
             e2e/phase4-mastery.pw.ts \
             e2e/p3-8-representative-buildcraft.pw.ts \
