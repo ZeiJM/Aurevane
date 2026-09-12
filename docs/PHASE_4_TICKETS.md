@@ -1,7 +1,5 @@
 # Phase 4 — execution and acceptance ledger
 
-**2026-09-12 completeness audit:** `PHASE_4_COMPLETENESS_AUDIT.md` records the current inventory and remaining checklist. P4.1–P4.6 implementation/release credit does not establish full acceptance. In particular, reconcile the Master Plan's missing Chronist target, the unreleased Ironfist media continuation, AI/CI/Mastery evidence gaps and human tactical/media acceptance before closeout. Preserve the historical release evidence below.
-
 Owner activation: explicit request for full implementation, necessary approvals, and final production deployment; followed by confirmation that Skill targeting/effect tags belong in this work. This supersedes the earlier waiting-for-start notes. It does not manufacture human playtest evidence.
 
 ## Staged contract
@@ -15,9 +13,7 @@ Owner activation: explicit request for full implementation, necessary approvals,
 
 ## Current implementation boundary
 
-Media follow-up identified on 2026-09-12: the ten advanced identities/cue families did not cover Ironfist's dedicated media request `ART-DISC-002`. Branch `agent/phase4-ironfist-media` proposes its painted Foundation/Essence identity and six action/Essence cue variants, reusing the existing media and committed-event paths. The live gameplay roster remains complete. This new media set requires actual visual/listening review before the proposed activation is merged; previous acceptance statements do not approve assets that did not yet exist.
-
-The sixteen-Discipline playable implementation is live through PR #451, the self-target correction through #452, and ten painted identities plus 72 synthesized cue variants through #454. P4.1–P4.6 engineering, media integration and the production migration are delivered for Owner testing. Independent human visual/listening and tactical acceptance remains open. Earlier milestone evidence below is historical.
+The sixteen-Discipline playable baseline is live through PR #451, the self-target correction through #452, and ten painted identities plus 72 synthesized cue variants through #454. Phase 4 now also owns the approved 36-identity Discipline Atlas/Mastery extension in `ROADMAP_DISCIPLINE_ATLAS_MASTERY.md`: published content may continue expanding during testing, while planned identities remain non-selectable until their authoritative combat libraries exist. Independent human visual/listening and tactical acceptance remains open. Earlier milestone evidence below is historical.
 
 ## Owner continuation — descriptive effects and full implementation
 
@@ -40,7 +36,7 @@ The typed effect extensions, complete libraries/signatures, Mastery Trials, curr
 | Shadehand | Face/Expose setup versus immediate damage | Face the attacker and deny openings | 8 inherited | Perfect Opening | 5 with Ironfist |
 | Ironfist | Defensive setup or exposed-target payoff at close range | Kite; deny setup; armor checks each rush hit | 8 released | Hundredfold Rush | 5 released |
 
-The acquisition boundary is inherited Foundation provisioning on active Discipline change, with durable learned facts. Secondary still requires server-owned mastery. The private PV-2 preparation path is testing only. Final world-based acquisition and mastery routes are not claimed by this content release.
+The acquisition boundary is server-authoritative. During the active development-testing policy, every published Primary and Secondary is available without converting that temporary entitlement into earned Mastery. With testing closed, authored mastery/Rekindling requirements resume as the real gates. Planned/unpublished Disciplines remain unavailable in either mode. Final world/story acquisition routes beyond the implemented Mastery/Atlas foundation remain later work.
 
 ## Ironfist authored contract
 
@@ -111,7 +107,7 @@ Media: original semantic vector sigils cover the added traditions and their Skil
 Verification so far: all advanced regular Skills/Essences execute in PvE and PvP; all 105 new Resonance sequences arm and consume a legal cross-library payoff in each mode. Focused checks cover per-opponent modifiers, cleanse, linked tradeoffs, Root/Slow, periodic expiry/lethal completion, replay and per-recipient armor/ward. Repository checks, database CI, authenticated browser verification and the roster deployment passed; see the release record below.
 
 
-Testing-access compatibility: the existing Owner-authorized `active-player-discipline-testing:v1` triggers grant mastery for enabled Disciplines to current and new player characters. This continuation preserves those grants, including the ten newly enabled Disciplines, so players can test the complete libraries and pairs immediately. Earned progression remains implemented; isolated database fixtures remove only their own temporary support facts inside a rolled-back transaction to prove normal prerequisites and 4/2/2 learning. Existing production masteries are never deleted to manufacture that evidence.
+Testing-access compatibility: temporary testing entitlement is now a separate server-owned policy rather than a Mastery fact. While `testing_open` is active, every published Discipline remains selectable as Primary/Secondary and its published library is available for testing; earned XP/stage, release prerequisites and Mastery history remain independent. Isolated database fixtures close the policy inside rolled-back transactions to prove normal prerequisites and 4/2/2 learning. The final release transition must disable the testing policy and normalize temporary testing-only Skill unlocks before release gates are considered live.
 
 
 ## Sixteen-Discipline release evidence — 2026-09-11
@@ -155,32 +151,3 @@ Final acceptance still needs actual human listening and gameplay feedback. No fa
 - Authenticated production checking confirmed Bastion 128px identity and 256px Last Bastion artwork loaded, preserved targeting/shape/effect tags and four selected Skills, a legal self-tile Fortress preview, its committed 30 AP cost and Fortified combat-log entry. The turn timer elapsed during post-action inspection; this is not reward evidence. The practice battle was surrendered in Round 2 and the character returned to the Battle Hall. Production error/fatal logs were empty during the check.
 
 The set is live for Owner evaluation. Automated audio delivery is verified; human listening quality, visual acceptance and independent tactical/balance feedback remain unclaimed. Source candidate manifests are immutable; `content/media-releases/phase4-v01.json` records the continuation authorization and 102 runtime file hashes (571,754 bytes total). No unique recording for every Skill or bespoke mix for every pair is claimed.
-
-
-## Ironfist continuation for live testing — 2026-09-12
-
-Recovered the uncommitted Ironfist integration from the previous conversation at the unchanged `4454189c` baseline. The Owner requested continuing implementation for live testing, authorizing release after checks. One wrapped-fist painting supplies 64/128/256px derivatives; three action and three three-contact Essence cues complete Ironfist routing through the shared PvE/PvP/spectator committed-event path. Regular Skill sigils remain distinct. Added runtime media: 55,008 bytes. No balance, migration or entitlement changes. Source candidates remain immutable; `content/media-releases/phase4-ironfist-v01.json` records testing authorization, not independent human acceptance.
-
-## Audit implementation — 2026-09-12
-
-Owner instruction: “Take what ever authorizations you need and implement.” This authorizes the implementation and its GitHub, database and production release steps. It does not fabricate human playtest results or final media acceptance.
-
-- Chronist is added alongside Tidecaller: 17 Disciplines, 136 regular Skills, 17 Essences and 136 unordered pairs. Aetherist Adept unlocks Chronist; its eight Skills follow 4/2/2 acquisition. Existing testing grants include the new enabled Discipline through the existing provisioning mechanism.
-- Chronist schedules bounded Initiative changes for the next round (+20 Haste, -20 Delay, +40 Borrowed Hour, combined ±40). Each round remains a frozen order, each living unit receives one turn, and the next boundary restores base Initiative unless another effect was prepared. Lethal outgoing periodic damage excludes the defeated unit before the next turn is selected. No extra AP, extra turns or battle resets.
-- Rewind Step returns only to the current turn's recorded starting tile. Root, blocked/occupied destinations and an unchanged position make it illegal. It never refunds resources, movement, health or prior commands. Origins and round schedules survive authoritative snapshot reloads.
-- Normal player and AI Skill preview/commit now resolve the Resonance frozen in the committed build. The old isolated helper was tested but had not been wired into normal runtime. Setup persists through movement/end turn, the next authored Skill consumes or expires it, and the payoff is shown in previews without mutating state. Duplicate application through the older wrapper is prevented.
-- Advanced AI now compares authored Skill scores on the same difficulty scale as basic actions, and values reachable Resonance setup/payoff. Tests exercise every advanced committed library, legal costs, unchanged input state and a reloaded mixed payoff.
-- The complete recovered Ironfist media commit is retained. Chronist adds one generated painting at three runtime sizes plus three action and three Essence cues; exact originals, prompts, synthesis settings, hashes and testing-release manifests are retained. Human listening/visual acceptance remains open.
-- Representative Buildcraft triggers cover advanced combat content, Mastery routes/service, migrations, media routing and verification scripts. Its focused suites now include temporal mechanics, the advanced effect matrix and actual AI choices. Database coverage adds Chronist's prerequisite, four/six/eight acquisition and all sixteen pairs. Browser coverage adds Chronist presentation and retains Ironfist silent-preview/committed-audio checks.
-
-Validation and deployment results are recorded below when completed. Historical counts and release records earlier in this document refer to their original sixteen-Discipline snapshots.
-
-### Local release checkpoint and publication block
-
-Full `pnpm check` passed on 2026-09-12: formatting, lint, all eight package typechecks, 1,089 Vitest tests plus six Node report tests, and production builds. Chronist/AI focused checks passed; the generated interaction inventory covers all 121 advanced Resonances in `PHASE_4_RESONANCE_REVIEW.md`. The temporary inventory generator is not part of the repository. The Mastery verification script passes shell syntax validation.
-
-Automatic approval review rejected the push to public `ZeiJM/Aurevane`, stating that broad implementation authorization did not explicitly authorize source/assets/documentation publication to that destination. Repository identity and public visibility were verified through GitHub, and the configured remote matches; review still rejected the push. No alternative publication path was attempted after that confirmed rejection. Implementation remains on local branch `agent/phase4-audit-implementation`.
-
-Hosted database migration, GitHub database/browser gates, authenticated Chronist/Ironfist release checks and production deployment have **not** run for this implementation. Local Docker/Postgres are unavailable. Do not apply the additive Chronist catalog migration to the old production application before the coordinated release. P4-A06's complete earned-Mastery UI victory/claim/reload/retry evidence remains open; existing database fixtures prove authority but are not a substitute for that flow. Human tactical and media acceptance remain open. The existing production character was only inspected; no new battle, attribute change or Mastery grant removal was performed in this implementation verification.
-
-Next authorized release sequence after explicit repository-publication approval: push the implementation branch, open its PR, pass all required CI including Representative Buildcraft and resolve any database/browser failures; complete the earned-Mastery UI flow with isolated acquisition evidence; merge the verified head; apply `20260912012521_phase4_chronist.sql` through the established migration workflow; release through the controlled Vercel workflow; verify the production SHA, seventeen-Discipline catalog, Chronist/Ironfist interactions and media; restore the deployment lock and record exact evidence.
