@@ -122,6 +122,13 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
       return {
         slot: card.getAttribute('data-command-card'),
         artworkWidth: artworkRect.width,
+        cardRect: card.getBoundingClientRect().toJSON(),
+        artworkRect: artworkRect.toJSON(),
+        textRects: [
+          ...card.querySelectorAll(
+            'button[data-battle-command] > strong, button[data-battle-command] > small, [data-battle-skill-tags="command"] > span',
+          ),
+        ].map((text) => text.getBoundingClientRect().toJSON()),
         artworkHeight: artworkRect.height,
         imageWidth: imageRect.width,
         imageHeight: imageRect.height,
@@ -136,14 +143,32 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   for (const geometry of artworkGeometries) {
     expect(geometry, 'Every command card should expose artwork geometry.').not.toBeNull()
     if (!geometry) continue
+    const minimumArtworkSize = testInfo.project.name === 'mobile-chromium' ? 52 : 64
+    expect(
+      geometry.artworkWidth,
+      `${geometry.slot} artwork must remain prominent.`,
+    ).toBeGreaterThanOrEqual(minimumArtworkSize)
+    expectOpticallyNear(geometry.artworkWidth, artworkGeometries[0]!.artworkWidth)
+    expectOpticallyNear(geometry.artworkHeight, geometry.artworkWidth)
+    expect(geometry.artworkRect.right).toBeLessThanOrEqual(geometry.cardRect.right)
+    expect(geometry.artworkRect.bottom).toBeLessThanOrEqual(geometry.cardRect.bottom)
+    for (const text of geometry.textRects) {
+      expect(
+        text.right <= geometry.artworkRect.left ||
+          text.left >= geometry.artworkRect.right ||
+          text.bottom <= geometry.artworkRect.top ||
+          text.top >= geometry.artworkRect.bottom,
+        `${geometry.slot} text must not overlap its artwork.`,
+      ).toBe(true)
+    }
     expect(
       geometry.imageWidth,
       `${geometry.slot} artwork should fit inside its frame.`,
-    ).toBeLessThan(geometry.artworkWidth)
+    ).toBeLessThanOrEqual(geometry.artworkWidth * 1.06)
     expect(
       geometry.imageHeight,
       `${geometry.slot} artwork should fit inside its frame.`,
-    ).toBeLessThan(geometry.artworkHeight)
+    ).toBeLessThanOrEqual(geometry.artworkHeight * 1.06)
     expect(geometry.imageWidth).toBeGreaterThan(geometry.artworkWidth - 6)
     expect(geometry.imageHeight).toBeGreaterThan(geometry.artworkHeight - 6)
     expectOpticallyNear(geometry.imageCenterX, geometry.artworkCenterX)

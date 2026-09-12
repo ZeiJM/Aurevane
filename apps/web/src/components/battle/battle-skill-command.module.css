@@ -689,57 +689,103 @@
   }
 }
 
-/* Compact shared desktop headers leave the full card width available for readable effect tags. */
-@media (min-width: 821px) {
+/* Artwork owns a consistent header-sized frame on every command. Effect tags use the full
+   width below it; adding more information must never shrink a technique into a small badge. */
+:global(main[data-unified-battle='true'][data-battle-kind]) .shell {
+  --command-art-size: clamp(4rem, 5vw, 5.5rem);
+  height: auto !important;
+  min-height: 6rem !important;
+}
+
+:global(main[data-unified-battle='true'][data-battle-kind]) .action {
+  height: 100% !important;
+  min-height: 6rem !important;
+  grid-template-columns: minmax(0, 1fr) var(--command-art-size) !important;
+  grid-template-rows: 0.75rem minmax(calc(var(--command-art-size) - 2rem), auto) 1rem auto !important;
+  align-content: start !important;
+  justify-items: start !important;
+  column-gap: 0.55rem !important;
+  row-gap: 0.125rem !important;
+  padding: 0.5rem !important;
+  text-align: left !important;
+}
+
+:global(main[data-unified-battle='true']) .action::after {
+  display: none;
+}
+
+:global(main[data-unified-battle='true'][data-battle-kind]) .action > .hotkey {
+  grid-row: 1 !important;
+  grid-column: 1 !important;
+  padding: 0.1rem 0.2rem !important;
+  font-size: 0.5625rem !important;
+}
+
+:global(main[data-unified-battle='true'][data-battle-kind]) .action > strong {
+  grid-row: 2 !important;
+  grid-column: 1 !important;
+  font-size: clamp(0.875rem, 1.05vw, 1.0625rem) !important;
+  line-height: 1.15 !important;
+  text-align: left !important;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+:global(main[data-unified-battle='true'][data-battle-kind]) .action > small {
+  grid-row: 3 !important;
+  grid-column: 1 !important;
+  font-size: 0.75rem !important;
+  line-height: 1.15 !important;
+  letter-spacing: 0;
+  text-align: left !important;
+  white-space: normal;
+}
+
+:global(main[data-unified-battle='true'][data-battle-kind]) .action > .tags {
+  grid-row: 4 !important;
+  grid-column: 1 / -1 !important;
+  margin-top: 0.3rem;
+  gap: 0.2rem;
+}
+
+:global(main[data-unified-battle='true'][data-battle-kind]) .action > .tags > span {
+  padding: 1px 4px;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+:global(main[data-unified-battle='true'][data-battle-kind]) .artwork,
+:global(main[data-unified-battle='true'][data-battle-kind]) .artworkTrigger {
+  top: 0.5rem;
+  right: 0.5rem;
+  width: var(--command-art-size);
+  height: var(--command-art-size);
+  transform: none;
+  border-radius: 0.5rem;
+}
+
+@media (max-width: 580px) {
   :global(main[data-unified-battle='true'][data-battle-kind]) .shell {
-    height: auto !important;
-    min-height: 6rem !important;
+    --command-art-size: 3.25rem;
+    min-height: 4.25rem !important;
   }
+
   :global(main[data-unified-battle='true'][data-battle-kind]) .action {
-    height: 100% !important;
-    min-height: 6rem !important;
-    grid-template-columns: minmax(0, 1fr) 2.3rem !important;
-    grid-template-rows: 0.7rem 1.25rem 1rem auto !important;
-    align-content: start !important;
-    justify-items: start !important;
-    gap: 0.12rem !important;
-    padding: 0.4rem !important;
-    text-align: left !important;
+    min-height: 4.25rem !important;
+    grid-template-rows: minmax(2rem, auto) 1.125rem auto !important;
+    column-gap: 0.4rem !important;
   }
-  :global(main[data-unified-battle='true']) .action::after {
-    display: none;
-  }
-  :global(main[data-unified-battle='true'][data-battle-kind]) .action > .hotkey {
-    grid-row: 1 !important;
-    grid-column: 1 !important;
-    padding: 0.1rem 0.2rem !important;
-    font-size: 0.5625rem !important;
-  }
+
   :global(main[data-unified-battle='true'][data-battle-kind]) .action > strong {
-    grid-row: 2 !important;
-    font-size: 0.8125rem !important;
-    line-height: 1.15 !important;
-    text-align: left !important;
+    grid-row: 1 !important;
+    align-self: center !important;
   }
+
   :global(main[data-unified-battle='true'][data-battle-kind]) .action > small {
-    grid-row: 3 !important;
-    font-size: 0.75rem !important;
-    line-height: 1.15 !important;
-    letter-spacing: 0;
-    text-align: left !important;
+    grid-row: 2 !important;
   }
+
   :global(main[data-unified-battle='true'][data-battle-kind]) .action > .tags {
-    grid-row: 4 !important;
-    grid-column: 1 / -1 !important;
-    margin-top: 0.25rem;
-  }
-  :global(main[data-unified-battle='true'][data-battle-kind]) .artwork,
-  :global(main[data-unified-battle='true'][data-battle-kind]) .artworkTrigger {
-    top: 0.4rem;
-    right: 0.4rem;
-    width: 2.3rem;
-    height: 2.3rem;
-    transform: none;
-    border-radius: 0.4rem;
+    grid-row: 3 !important;
   }
 }
