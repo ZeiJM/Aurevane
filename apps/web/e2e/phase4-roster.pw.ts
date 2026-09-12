@@ -190,7 +190,7 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   })
   await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management' })
-  await management.getByText('Mastery & unlocks', { exact: true }).click()
+  await management.getByText('Discipline Atlas & Mastery', { exact: true }).click()
   await expect(management.getByRole('progressbar')).toHaveCount(17)
   await expect(management).toContainText('Master · 1000/1,000 XP')
   const primary = management
