@@ -1,5 +1,7 @@
 # Phase 4 — execution and acceptance ledger
 
+**Live testing release — 2026-09-12:** PR #455 is merged and the seventeen-Discipline Atlas/Chronist release is live at https://aurevane.vercel.app. See the final release evidence below. Independent human tactical, visual and listening acceptance remains open.
+
 Owner activation: explicit request for full implementation, necessary approvals, and final production deployment; followed by confirmation that Skill targeting/effect tags belong in this work. This supersedes the earlier waiting-for-start notes. It does not manufacture human playtest evidence.
 
 ## Staged contract
@@ -160,3 +162,14 @@ The combined Phase-4 candidate preserves the sixteen released Disciplines and ad
 During development testing, every published Discipline—including Chronist—is selectable through the separate server-owned testing entitlement without creating earned Mastery. With testing closed, Chronist's normal release path is **Rekindling I + Aetherist Adept**; Aetherist Adept alone is intentionally insufficient. Once release-eligible, Chronist follows the normal advanced 4/2/2 acquisition milestones. Planned Atlas identities remain non-selectable until their authoritative combat libraries are published.
 
 Historical sixteen-Discipline release records above remain historical. The combined exact-head matrix must prove Atlas publication, the Chronist Rekindling gate, 4/2/2 learning, all sixteen Chronist pairs, temporal/reload safety, earned-Mastery UI victory/claim/reload/retry, media routing and inherited authority regressions before merge. Human balance, visual and listening acceptance remain separate open evidence.
+
+## Atlas, Chronist and Ironfist live release evidence — 2026-09-12
+
+- PR [#455](https://github.com/ZeiJM/Aurevane/pull/455) merged final head `6ef646d882f5cdc5b781b6da1710d955c6833251` at `90a3c4f69e26ecab222f53482af882eb4fa03133`. The merge exactly preserves tested tree `e60acf85998f329472cb4aec1fa50f2a1df52f5e`. It includes the independently reviewed surrender/PvP metadata corrections from #458.
+- All fifteen final-head workflows passed: CI, Browser Smoke, Representative Buildcraft, Battle Session DB, Discipline Build DB, Foundation Security DB, Wayfarer's Practice DB, Attribute Allocation, Profile Skill Build, Shared Build Snapshots, Skill Engine, Essence Build, Resonance Build, Desktop Page Fit and Desktop Experience.
+- [Representative Buildcraft run 34684933247](https://github.com/ZeiJM/Aurevane/actions/runs/34684933247) passed its database gates, 498 focused tests and twelve browser cases with six intentional viewport skips. The desktop earned-Mastery case completed the real UI victory, first claim, reload and duplicate retry, and verified earned Bastion release eligibility independently of testing access. This is automated gameplay evidence, not human balance acceptance.
+- Release `df1be4f72762bc11dc75c7b2e4eb62934241f8ec` produced READY production deployment `dpl_FH4atQ3A4sTdxdREmKhbKDSTGPwp`, with https://aurevane.vercel.app assigned to that exact commit. Only the temporary deployment switch differs from the verified merge. This evidence commit restores the deployment lock without changing the application or assets.
+- Production read-only verification confirms both exact migration identities: `20260912012521_phase4_chronist` and `20260912070000_discipline_atlas_testing_separation`. The live catalog has 17 Disciplines, 136 regular Skills, 17 Essences and 136 pairs; the server-owned testing policy is open.
+- Authenticated production checking loaded the Profile, all seventeen Primary choices, and the Atlas showing 36 designed identities with seventeen published. Chronist is available for testing while its normal release requirements remain Rekindling I plus Aetherist Adept. The existing Bastion loadout was preserved. One earlier presence request logged a persistence-unavailable 503; the subsequent live online count loaded successfully and the final five-minute error/fatal scan was empty.
+
+The combined release is live for Owner testing. Planned Atlas identities remain unavailable until their combat libraries are implemented. Human visual/listening and tactical acceptance remains unclaimed.
