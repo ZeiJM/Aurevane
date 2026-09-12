@@ -1,5 +1,6 @@
 name: Atlas contract maintenance
 
+# One-shot branch maintenance. A follow-up bot push is ignored by the job guard below.
 on:
   push:
     branches:
