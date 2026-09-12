@@ -2,15 +2,10 @@
   display: none;
 }
 
-/* Keep the dormant facing pad out of the cockpit footprint, but never hide the live Final Facing
-   state. BattleExperience owns whether the pad is open; this stabilizer only controls closed-layout
-   geometry. */
-:global(main[data-unified-battle='true'] [data-unified-facing-pad='true']:not([data-open])) {
+/* Facing is selected on the battlefield. These hidden controls retain the existing authoritative
+   commit path for map guides and keyboard shortcuts; opening facing mode must never reveal a pad. */
+:global(main[data-unified-battle='true'][data-battle-kind] [data-unified-facing-pad='true']) {
   display: none !important;
-}
-
-:global(main[data-unified-battle='true'] [data-unified-facing-pad='true'][data-open]) {
-  display: grid !important;
 }
 
 @media (min-width: 821px) {
