@@ -236,7 +236,7 @@
       [data-unified-command-deck='true']
   ) {
     display: grid !important;
-    grid-column: 2 !important;
+    grid-column: 1 / -1 !important;
     grid-row: 2 !important;
     grid-template-columns: minmax(0, 1fr) !important;
     grid-template-rows: auto auto !important;

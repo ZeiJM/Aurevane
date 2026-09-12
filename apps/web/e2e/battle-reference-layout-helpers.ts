@@ -39,8 +39,10 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
       viewportWidth: innerWidth,
     }
   })
-  expect(Math.abs(geometry.deck.x - geometry.battlefield.x)).toBeLessThanOrEqual(1)
-  expect(Math.abs(geometry.deck.width - geometry.battlefield.width)).toBeLessThanOrEqual(1)
+  expect(geometry.deck.x).toBeLessThan(geometry.battlefield.x)
+  expect(geometry.deck.right).toBeGreaterThan(geometry.battlefield.right)
+  expect(Math.abs(geometry.deck.x - geometry.flow.x)).toBeLessThanOrEqual(1)
+  expect(Math.abs(geometry.deck.width - geometry.flow.width)).toBeLessThanOrEqual(1)
   expect(geometry.deck.y).toBeGreaterThanOrEqual(geometry.battlefield.bottom - 1)
   expect(geometry.flow.y).toBeGreaterThanOrEqual(geometry.deck.bottom - 1)
   expect(geometry.flow.bottom).toBeLessThanOrEqual(geometry.footer.y + 1)

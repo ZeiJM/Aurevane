@@ -17,7 +17,7 @@
   border-radius: 0.3rem;
   color: var(--av-text-muted);
   background: transparent;
-  font: 550 0.625rem/1 var(--av-font-sans);
+  font: 550 0.75rem/1 var(--av-font-body);
   cursor: pointer;
 }
 .filter button[aria-pressed='true'] {
@@ -86,7 +86,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--av-text-muted);
-  font: 500 0.625rem/1.2 var(--av-font-sans);
+  font: 500 0.6875rem/1.2 var(--av-font-body);
 }
 .art {
   position: relative;
@@ -116,13 +116,13 @@
   border-radius: 50%;
   color: var(--av-brass-200);
   background: #15212a;
-  font: 650 0.625rem/1 var(--av-font-sans);
+  font: 650 0.625rem/1 var(--av-font-body);
 }
 .empty {
   margin: 0;
   padding: 0.8rem;
   color: var(--av-text-muted);
-  font: 400 0.75rem/1.5 var(--av-font-sans);
+  font: 400 0.75rem/1.5 var(--av-font-body);
 }
 .dialog {
   position: fixed;
@@ -150,7 +150,7 @@
 }
 .dialog header span {
   color: var(--av-brass-300);
-  font: 550 0.75rem/1.3 var(--av-font-sans);
+  font: 550 0.75rem/1.3 var(--av-font-body);
 }
 .dialog h2 {
   margin: 0.35rem 0 1rem;
@@ -182,7 +182,7 @@
 }
 .dialog p {
   margin: 0;
-  font: 400 0.9375rem/1.6 var(--av-font-sans);
+  font: 400 0.9375rem/1.6 var(--av-font-body);
   overflow-wrap: anywhere;
 }
 .result {
@@ -194,7 +194,7 @@
 .result h3 {
   margin: 0 0 0.5rem;
   color: var(--av-text-muted);
-  font: 600 0.8125rem/1.3 var(--av-font-sans);
+  font: 600 0.8125rem/1.3 var(--av-font-body);
 }
 .result ul {
   display: flex;
@@ -208,7 +208,7 @@
   padding: 0.3rem 0.5rem;
   border-radius: 0.3rem;
   background: rgba(255, 255, 255, 0.05);
-  font: 550 0.75rem/1.3 var(--av-font-sans);
+  font: 550 0.75rem/1.3 var(--av-font-body);
 }
 .dialog [data-role='actor'],
 .dialog [data-role='target'] {

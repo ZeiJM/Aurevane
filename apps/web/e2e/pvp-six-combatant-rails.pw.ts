@@ -143,6 +143,7 @@ test('keeps three portrait and status cards accessible in each desktop PvP rail'
             top: railRect.top,
             bottom: railRect.bottom,
             width: railRect.width,
+            contentWidth: railElement.clientWidth,
             height: railRect.height,
           },
           stack: {
@@ -167,7 +168,7 @@ test('keeps three portrait and status cards accessible in each desktop PvP rail'
       expect(geometry.overflowY).toBe('auto')
       expect(geometry.lastCardBottom).toBeLessThanOrEqual(geometry.rail.bottom + 1)
 
-      const railCenter = (geometry.rail.left + geometry.rail.right) / 2
+      const railCenter = geometry.rail.left + geometry.rail.contentWidth / 2
       const stackCenter = (geometry.stack.left + geometry.stack.right) / 2
       expect(Math.abs(stackCenter - railCenter)).toBeLessThanOrEqual(1)
 

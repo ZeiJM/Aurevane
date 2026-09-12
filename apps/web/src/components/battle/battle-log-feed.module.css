@@ -307,7 +307,7 @@
   border-radius: 0.3rem;
   color: var(--av-text-muted);
   background: transparent;
-  font: 550 0.6875rem/1.2 var(--av-font-sans);
+  font: 550 0.75rem/1.2 var(--av-font-body);
   cursor: pointer;
 }
 .flowViews button[aria-pressed='true'] {

@@ -10,7 +10,7 @@
   }
   :global([data-battle-flow='true']) {
     display: grid;
-    grid-column: 2;
+    grid-column: 1 / -1;
     grid-row: 3;
     min-width: 0;
     min-height: 0;
@@ -21,7 +21,7 @@
     background: rgba(8, 13, 19, 0.96);
   }
   :global([data-battle-flow='true'][data-open]) {
-    height: clamp(10.5rem, 20vh, 13rem);
+    height: clamp(9.5rem, 17vh, 10.75rem);
   }
   :global([data-battle-flow='true'] > button) {
     display: flex;
@@ -39,11 +39,11 @@
   :global([data-battle-flow='true'] > button small) {
     margin-left: 0.55rem;
     color: var(--av-text-muted);
-    font: 500 0.6875rem/1.2 var(--av-font-sans);
+    font: 500 0.6875rem/1.2 var(--av-font-body);
   }
   :global([data-battle-flow='true'] > button > span:last-child) {
     color: var(--av-brass-300);
-    font: 550 0.6875rem/1.2 var(--av-font-sans);
+    font: 550 0.6875rem/1.2 var(--av-font-body);
   }
   :global([data-battle-flow-log-target='true']) {
     min-height: 0;
