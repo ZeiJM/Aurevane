@@ -190,15 +190,54 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   })
   await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management' })
+  const atlasResponse = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/character/mastery') && response.request().method() === 'GET',
+  )
   await management.getByText('Discipline Atlas & Mastery', { exact: true }).click()
-  await expect(management.getByRole('progressbar')).toHaveCount(17)
-  await expect(management).toContainText('Master · 1000/1,000 XP')
+  const atlasResult = await atlasResponse
+  expect(atlasResult.status()).toBe(200)
+  const atlasBody = (await atlasResult.json()) as {
+    progress: Array<{
+      disciplineId: string
+      xp: number
+      stage: number
+      unlocked: boolean
+      releaseUnlocked: boolean
+      testingAccess: boolean
+    }>
+    atlas: {
+      totalDisciplines: number
+      publishedDisciplines: number
+      testingAccess: boolean
+      entries: Array<{ disciplineId: string | null; publication: 'published' | 'planned' }>
+    }
+  }
+  expect(atlasBody.atlas.totalDisciplines).toBe(36)
+  expect(atlasBody.atlas.publishedDisciplines).toBe(17)
+  expect(atlasBody.atlas.testingAccess).toBe(true)
+  expect(atlasBody.atlas.entries).toHaveLength(36)
+  expect(atlasBody.atlas.entries.filter((entry) => entry.disciplineId === null)).toHaveLength(6)
+  expect(atlasBody.progress).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        disciplineId: 'bastion',
+        xp: 0,
+        stage: 1,
+        unlocked: true,
+        releaseUnlocked: false,
+        testingAccess: true,
+      }),
+    ]),
+  )
+  await expect(management).toContainText('36 Disciplines')
+  await expect(management).toContainText('Testing access is open.')
   const primary = management
     .locator('label')
     .filter({ hasText: /^Proposed Primary/ })
     .locator('select')
   await expect(primary.locator('option[value="bastion"]')).toHaveCount(1)
-  // Existing Owner-authorized testing grants cover all active Disciplines.
+  // Existing Owner-authorized testing access covers all published Disciplines without fake Mastery.
   // Earned prerequisites and 4/2/2 acquisition are independently verified in database CI.
   await primary.selectOption('bastion')
   await page.getByRole('button', { name: 'Commit Bastion as Primary' }).click()
