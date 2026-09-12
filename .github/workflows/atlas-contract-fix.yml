@@ -1,6 +1,6 @@
 name: Atlas contract maintenance
 
-# One-shot branch maintenance. A follow-up bot push is ignored by the job guard below.
+# One-shot branch maintenance. The bot follow-up push is ignored by the job guard.
 on:
   push:
     branches:
@@ -19,7 +19,7 @@ jobs:
           ref: agent/phase4-discipline-atlas-mastery
           fetch-depth: 0
 
-      - name: Apply verified contract updates
+      - name: Apply source and authority fixes
         shell: bash
         run: |
           python - <<'PY'
@@ -53,7 +53,7 @@ jobs:
           replace(
               '.github/scripts/verify-p4-mastery.sh',
               """test -n \"$character_id\"\n# Private committed-event fixtures exercise the database reward authority. They are\n""",
-              """test -n \"$character_id\"\n\ntesting_projection=\"$(docker exec \"$db_container\" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc \"\nset role service_role;\nselect release_unlocked::text || '|' || effective_unlocked::text || '|' || testing_access::text\nfrom public.get_character_discipline_atlas_progress_v1('$user_id'::uuid,'$character_id'::uuid)\nwhere discipline_id='bastion';\")\"\ntest \"$testing_projection\" = 'false|true|true'\n\nlegacy_testing_mastery=\"$(docker exec \"$db_container\" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc \"\nselect count(*)::text from app_private.character_discipline_masteries\nwhere character_id='$character_id'::uuid\n  and source_kind='support'\n  and source_id='active-player-discipline-testing:v1';\")\"\ntest \"$legacy_testing_mastery\" = '0'\n\n# Private committed-event fixtures exercise the database reward authority. They are\n""",
+              """test -n \"$character_id\"\n\ntesting_projection=\"$(docker exec \"$db_container\" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc \"\nset role service_role;\nselect release_unlocked::text || '|' || effective_unlocked::text || '|' || testing_access::text\nfrom public.get_character_discipline_atlas_progress_v1('$user_id'::uuid,'$character_id'::uuid)\nwhere discipline_id='bastion';\")\"\ntest \"$testing_projection\" = 'false|true|true'\n\nlegacy_testing_mastery=\"$(docker exec \"$db_container\" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc \"\nselect count(*)::text from app_private.character_discipline_masteries\nwhere character_id='$character_id'::uuid\n  and source_kind='support'\n  and source_id='active-player-discipline-testing:v1';\")\"\ntest \"$legacy_testing_mastery\" = '0'\n\nplanned_selectable=\"$(docker exec \"$db_container\" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc \"\nselect app_private.discipline_unlocked_v1('$character_id'::uuid,'spellwright')::text;\")\"\ntest \"$planned_selectable\" = 'false'\n\n# Private committed-event fixtures exercise the database reward authority. They are\n""",
           )
 
           replace(
@@ -68,39 +68,44 @@ jobs:
               """rollback;\nSQL\npost_trial_testing_policy=\"$(docker exec \"$db_container\" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc \"select app_private.discipline_testing_open_v1()::text;\")\"\ntest \"$post_trial_testing_policy\" = 'true'\necho 'Phase 4 Mastery prerequisites, testing separation, persisted-event rewards, retries, milestones and browser denial PASS.'\n""",
           )
 
-          workflow = Path('.github/workflows/representative-buildcraft.yml')
-          text = workflow.read_text()
-          anchor = """      - '.github/workflows/representative-buildcraft.yml'\n"""
-          additions = """      - '.github/workflows/representative-buildcraft.yml'\n      - 'supabase/migrations/20260912070000_discipline_atlas_testing_separation.sql'\n      - '.github/scripts/verify-p4-mastery.sh'\n      - 'packages/game-core/src/character/discipline-atlas.ts'\n      - 'packages/game-core/src/character/discipline-atlas.test.ts'\n      - 'apps/web/src/app/api/character/mastery/route.ts'\n"""
-          if additions not in text:
-              if anchor not in text:
-                  raise SystemExit('Representative workflow path anchor missing')
-              text = text.replace(anchor, additions, 1)
-          format_anchor = """            packages/game-core/src/combat/mature-skills.ts \\\n"""
-          format_new = """            packages/game-core/src/character/discipline-atlas.ts \\\n            packages/game-core/src/character/discipline-atlas.test.ts \\\n            packages/game-core/src/combat/mature-skills.ts \\\n"""
-          if format_new not in text:
-              if format_anchor not in text:
-                  raise SystemExit('Representative workflow formatting anchor missing')
-              text = text.replace(format_anchor, format_new, 1)
-          lint_anchor = """            packages/game-core/src/combat/mature-skills.ts \\\n"""
-          lint_new = """            packages/game-core/src/character/discipline-atlas.ts \\\n            packages/game-core/src/character/discipline-atlas.test.ts \\\n            packages/game-core/src/combat/mature-skills.ts \\\n"""
-          # Replace the second occurrence only if the lint block has not yet been expanded.
-          if text.count(lint_new) < 2:
-              first = text.find(lint_anchor)
-              second = text.find(lint_anchor, first + len(lint_anchor))
-              if second == -1:
-                  raise SystemExit('Representative workflow lint anchor missing')
-              text = text[:second] + text[second:].replace(lint_anchor, lint_new, 1)
-          workflow.write_text(text)
+          migration = Path('supabase/migrations/20260912070000_discipline_atlas_testing_separation.sql')
+          text = migration.read_text()
+          policy_comment = """comment on table app_private.discipline_unlock_policy_state is\n  'Server-owned Discipline acquisition policy. testing_open grants effective access to published Disciplines without creating Mastery facts or earned Mastery XP.';\n"""
+          rekindling_block = """\ncreate table if not exists app_private.discipline_rekindling_prerequisites (\n  discipline_id text primary key,\n  minimum_rekindling_count integer not null check (minimum_rekindling_count between 1 and 3)\n);\n\nrevoke all on table app_private.discipline_rekindling_prerequisites from public, anon, authenticated;\ngrant select on table app_private.discipline_rekindling_prerequisites to service_role;\n\ninsert into app_private.discipline_rekindling_prerequisites (discipline_id, minimum_rekindling_count)\nvalues\n  ('blade-saint', 1),\n  ('warcaller', 1),\n  ('chronist', 1),\n  ('riftwalker', 1),\n  ('gravebinder', 1),\n  ('eidolist', 1),\n  ('oracle', 1),\n  ('sanguinist', 1),\n  ('starcaller', 2),\n  ('spellwright', 3)\non conflict (discipline_id) do update\nset minimum_rekindling_count = excluded.minimum_rekindling_count;\n\ncomment on table app_private.discipline_rekindling_prerequisites is\n  'Server-owned minimum completed-Rekindling gates for published Discipline acquisition. Planned identities may be pre-registered safely; publication remains a separate definition gate.';\n"""
+          if 'discipline_rekindling_prerequisites' not in text:
+              if policy_comment not in text:
+                  raise SystemExit('Testing policy comment anchor missing')
+              text = text.replace(policy_comment, policy_comment + rekindling_block, 1)
+
+          old_release = """as $$\n  select not exists (\n    select 1\n    from app_private.discipline_mastery_prerequisites requirement\n    where requirement.discipline_id = p_discipline_id\n      and app_private.discipline_mastery_stage_v1(\n        p_character_id,\n        requirement.required_discipline_id\n      ) < requirement.minimum_stage\n  );\n$$;\n"""
+          new_release = """as $$\n  select exists (\n    select 1 from public.characters character where character.id = p_character_id\n  )\n  and not exists (\n    select 1\n    from app_private.discipline_mastery_prerequisites requirement\n    where requirement.discipline_id = p_discipline_id\n      and app_private.discipline_mastery_stage_v1(\n        p_character_id,\n        requirement.required_discipline_id\n      ) < requirement.minimum_stage\n  )\n  and not exists (\n    select 1\n    from app_private.discipline_rekindling_prerequisites requirement\n    join public.characters character on character.id = p_character_id\n    where requirement.discipline_id = p_discipline_id\n      and greatest(character.progression_cycle - 1, 0) < requirement.minimum_rekindling_count\n  );\n$$;\n"""
+          if old_release in text:
+              text = text.replace(old_release, new_release, 1)
+
+          old_effective = """as $$\n  select (\n    app_private.discipline_testing_open_v1()\n    and exists (\n      select 1\n      from app_private.discipline_definitions definition\n      where definition.discipline_id = p_discipline_id\n        and definition.enabled_for_primary\n    )\n  ) or app_private.discipline_release_unlocked_v1(p_character_id, p_discipline_id);\n$$;\n"""
+          new_effective = """as $$\n  select exists (\n    select 1\n    from app_private.discipline_definitions definition\n    where definition.discipline_id = p_discipline_id\n      and definition.enabled_for_primary\n  )\n  and (\n    app_private.discipline_testing_open_v1()\n    or app_private.discipline_release_unlocked_v1(p_character_id, p_discipline_id)\n  );\n$$;\n"""
+          if old_effective in text:
+              text = text.replace(old_effective, new_effective, 1)
+          migration.write_text(text)
+
+          master = Path('docs/GAME_MASTER_PLAN.md')
+          text = master.read_text()
+          authority_anchor = """Additional authoritative detail lives in docs/GAME_MASTER_PLAN_BUILD_SYSTEM_ADDENDUM.md. If an older subordinate document still uses retired terminology, this master plan and the owner-approved build-system addendum control.\n"""
+          atlas_sync = """\nThe Owner-approved `docs/GAME_MASTER_PLAN_DISCIPLINE_ATLAS_MASTERY_ADDENDUM.md` is incorporated into this synchronization for Discipline discovery, acquisition, Mastery and Rekindling gates. Where the original Discipline-list requirement lines conflict with that addendum's approved long-horizon Atlas map, the Atlas addendum controls acquisition sequencing while this Master Plan continues to control Discipline identity and overall product direction.\n"""
+          if 'DISCIPLINE_ATLAS_MASTERY_ADDENDUM.md` is incorporated into this synchronization' not in text:
+              if authority_anchor not in text:
+                  raise SystemExit('Master Plan authority anchor missing')
+              text = text.replace(authority_anchor, authority_anchor + atlas_sync, 1)
+          master.write_text(text)
           PY
 
           git diff --check
 
-      - name: Commit contract updates
+      - name: Commit source and authority fixes
         shell: bash
         run: |
           if git diff --quiet; then
-            echo 'No contract updates required.'
+            echo 'No source fixes required.'
             exit 0
           fi
           git config user.name 'github-actions[bot]'
@@ -111,6 +116,7 @@ jobs:
             .github/scripts/verify-p37-saved-build-loadouts.sh \
             .github/scripts/verify-p38-representative-buildcraft.sh \
             .github/scripts/verify-p4-mastery.sh \
-            .github/workflows/representative-buildcraft.yml
-          git commit -m 'Fix Discipline testing separation regressions'
+            supabase/migrations/20260912070000_discipline_atlas_testing_separation.sql \
+            docs/GAME_MASTER_PLAN.md
+          git commit -m 'Harden Discipline testing and release acquisition contracts'
           git push origin HEAD:agent/phase4-discipline-atlas-mastery
