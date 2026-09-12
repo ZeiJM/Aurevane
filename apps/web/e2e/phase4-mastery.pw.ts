@@ -118,11 +118,14 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
     const player = tactical.placements.find((unit) => unit.combatantId === playerId)!.position
     const enemy = tactical.placements.find((unit) => unit.combatantId === enemyId)!.position
     const distance = Math.abs(player.x - enemy.x) + Math.abs(player.y - enemy.y)
-    const ap = Number(
-      await root
-        .getByRole('progressbar', { name: 'Action Economy remaining' })
-        .getAttribute('aria-valuenow'),
-    )
+    const ap = tactical.battle.combatants
+      .find((unit) => unit.id === playerId)!
+      .temporaryResources.find((resource) => resource.key === 'pv1f.action-economy')!.current
+    // A response can arrive before React renders its board/AP state. Follow the
+    // committed budget and wait for its visible projection before the next input.
+    await expect(
+      root.getByRole('progressbar', { name: 'Action Economy remaining' }),
+    ).toHaveAttribute('aria-valuenow', String(ap))
     if (!braced && ap >= 30) {
       await root.getByRole('button', { name: 'Brace, 30 AP', exact: true }).click()
       await commit()
@@ -142,7 +145,7 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
       if (skillCommands < 3) skillCommands++
       continue
     }
-    if (distance > 1 && ap >= 20) {
+    if (distance > 1 && ap >= 20 && tactical.battle.currentTurn!.movementRemaining > 0) {
       await root.locator('[data-battle-command="move"]').click()
       const destination = await root.locator('button[data-reachable]').evaluateAll(
         (tiles, target) =>
