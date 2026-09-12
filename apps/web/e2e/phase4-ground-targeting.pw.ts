@@ -276,6 +276,26 @@ test('PvP ground Skill uses the same forecast and spectator terrain inspection',
     await expect(guest).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
     const root = page.locator('main[data-unified-battle="true"]')
     await expect(root).toBeVisible()
+    const initialResponse = await page.request.get(
+      `/api/battles/${new URL(page.url()).pathname.split('/').at(-1)!}`,
+    )
+    expect(initialResponse.status()).toBe(200)
+    const initialBattle = (await initialResponse.json()).battle as BattleSessionView
+    expect(
+      initialBattle.snapshot.buildAuthority,
+      'The quality lobby must freeze executable build authority before the first handoff.',
+    ).toMatchObject({
+      catalogVersion: 2,
+      combatContext: 'pvp',
+      combatants: expect.arrayContaining([
+        expect.objectContaining({
+          primary: expect.objectContaining({ disciplineId: 'frostweaver' }),
+          disciplineSkills: expect.arrayContaining([
+            expect.objectContaining({ skillId: 'frostweaver.chilling-mist', contentVersion: 2 }),
+          ]),
+        }),
+      ]),
+    })
     if ((await root.getAttribute('data-local-turn')) !== 'true') {
       const guestRoot = guest.locator('main[data-unified-battle="true"]')
       await expect(guestRoot).toHaveAttribute('data-local-turn', 'true')

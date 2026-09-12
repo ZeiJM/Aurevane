@@ -17,10 +17,7 @@ import {
   type CombatTile,
   type GridPosition,
 } from '@aurevane/game-core/combat/board'
-import {
-  attachCombatBuildBridge,
-  type CombatBuildSnapshot,
-} from '@aurevane/game-core/combat/build-snapshot'
+import { attachCombatBuildBridge } from '@aurevane/game-core/combat/build-snapshot'
 import {
   calculatePv1fBasicAttackDamage,
   createPv1fTemporaryResources,
@@ -38,7 +35,12 @@ import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 import { createSupabaseCharacterBuildRepository } from '@/server/character/supabase-character-build-repository'
 import { createSupabaseCharacterRepository } from '@/server/character/supabase-character-repository'
 
-import { loadCharacterCombatBuildSnapshot } from '../character/character-combat-build-snapshot'
+import { toCombatBuildSnapshot } from '../character/character-combat-build-snapshot'
+import {
+  loadCharacterCommittedBuildSnapshot,
+  type CharacterCommittedBuildSnapshotRecord,
+} from '../character/character-build-service'
+import { createBattleBuildAuthoritySnapshot } from './battle-build-authority'
 import { getPvpLobby, type PvpLobbyMemberView } from './pvp-lobby-service'
 
 const PVP_RULES_VERSION = 2
@@ -55,7 +57,7 @@ export interface PvpLobbyMapSettings {
 interface PvpRosterEntry {
   member: PvpLobbyMemberView
   character: CharacterRecord
-  buildSnapshot: CombatBuildSnapshot
+  buildSnapshot: CharacterCommittedBuildSnapshotRecord
 }
 
 function unavailable(message = 'PvP staging services are unavailable right now.'): AurevaneError {
@@ -315,14 +317,24 @@ function createPvpEncounter(
       profiles,
     ),
   )
-  return attachCombatBuildBridge(
-    encounter,
-    roster.map(({ character, buildSnapshot }) => ({
-      combatantId: `character:${character.id}`,
-      characterId: character.id,
-      snapshot: buildSnapshot,
-    })),
-  )
+  // Freeze both projections from the same committed loadout. Runtime/preview/commit read
+  // buildAuthority; the existing bridge remains the common combat snapshot contract.
+  const authorityInputs = roster.map(({ character, buildSnapshot }) => ({
+    combatantId: `character:${character.id}`,
+    characterId: character.id,
+    snapshot: buildSnapshot,
+  }))
+  return {
+    ...attachCombatBuildBridge(
+      encounter,
+      roster.map(({ character, buildSnapshot }) => ({
+        combatantId: `character:${character.id}`,
+        characterId: character.id,
+        snapshot: toCombatBuildSnapshot(buildSnapshot),
+      })),
+    ),
+    buildAuthority: createBattleBuildAuthoritySnapshot('pvp', authorityInputs),
+  }
 }
 
 export async function startPvpLobbyWithQuality(
@@ -349,7 +361,7 @@ export async function startPvpLobbyWithQuality(
         characters.findByOwnerId
           ? characters.findByOwnerId(member.userId, member.characterId)
           : Promise.resolve(null),
-        loadCharacterCombatBuildSnapshot(member.userId, member.characterId, builds),
+        loadCharacterCommittedBuildSnapshot(member.userId, member.characterId, builds),
       ])
       if (!character) {
         throw new AurevaneError('INVALID_REQUEST', 'A lobby character is no longer available.')
