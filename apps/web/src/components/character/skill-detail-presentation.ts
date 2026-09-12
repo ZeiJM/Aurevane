@@ -100,7 +100,9 @@ export function skillTargetTags(skill: MatureSkillDefinition): readonly string[]
       skill.effects.map((effect) => {
         const label =
           effect.type === 'damage'
-            ? 'Damage'
+            ? effect.element
+              ? `${title(effect.element)} damage`
+              : 'Damage'
             : effect.type === 'healing'
               ? 'Healing'
               : effect.type === 'resource-change'
@@ -108,14 +110,16 @@ export function skillTargetTags(skill: MatureSkillDefinition): readonly string[]
                   ? 'MP Drain'
                   : 'MP Restore'
                 : effect.type === 'remove-status'
-                  ? 'Cleanse'
+                  ? effect.statusIds.every((id) => combatStatusDetails(id).kind === 'Buff')
+                    ? 'Dispel'
+                    : 'Cleanse'
                   : effect.type === 'return-to-turn-start'
                     ? 'Return to start'
                     : effect.type === 'create-terrain'
                       ? 'Frozen terrain'
                       : effect.type === 'displace'
                         ? 'Push one tile'
-                        : combatStatusDetails(effect.statusId).name
+                        : gameplayStatusName(effect.statusId)
         return `${label}${effect.recipient === 'actor' && skill.target.kind !== 'self' ? ' · Self' : ''}`
       }),
     ),

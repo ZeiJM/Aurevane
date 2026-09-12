@@ -2,6 +2,8 @@
 
 Status: ready to run; no human results have been recorded by this packet.
 
+The final engineering follow-up is documented in `PHASE_4_FINAL_TEST_READINESS.md`. Include the battle button/picker tags, restored effect badges and post-battle Profile return in the clarity checks; use the verified release identified in `PHASE_4_TICKETS.md`.
+
 Use the seventeen-Discipline roster. Run the gameplay-interaction exercises below after its continuation release is verified in `PHASE_4_TICKETS.md`; earlier frozen battles retain their earlier Skill definitions. Keep the same character attributes, four selected regular Skills, build version and arena within each comparison. Record Primary/Secondary, Essence or Resonance, selected Skills, map, opponent, difficulty, device, battle ID and any timeout. Swap sides and repeat before drawing a balance conclusion. Existing server-owned testing access makes the published roster available independently of earned Mastery; preserve that policy when testing acquisition.
 
 ## Session 1 — effect clarity and cost

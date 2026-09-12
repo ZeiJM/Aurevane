@@ -69,7 +69,46 @@ async function castOnEmptyGround(page: Page, name: string, testInfo: TestInfo) {
     (row) => row.id === actor.combatantId,
   )!
   await root.getByRole('button', { name: /Choose Guard skill/ }).click()
-  await page.getByRole('option', { name: 'Chilling Mist 45 AP', exact: true }).click()
+  const mistOption = page.getByRole('option', { name: 'Chilling Mist 45 AP', exact: true })
+  const optionTags = mistOption.locator('[data-battle-skill-tags="option"]')
+  await expect(optionTags).toContainText('Ground tile')
+  await expect(optionTags).toContainText('Frozen terrain')
+  await expect(optionTags).toContainText('Slow')
+  await testInfo.attach(`technique-picker-${testInfo.project.name}`, {
+    body: await page.screenshot(),
+    contentType: 'image/png',
+  })
+  await mistOption.click()
+  const commandTags = root
+    .getByRole('button', { name: 'Chilling Mist, 45 AP', exact: true })
+    .locator('[data-battle-skill-tags="command"]')
+  await expect(commandTags).toContainText('Ground tile')
+  await expect(commandTags).toContainText('Frozen terrain')
+  await expect(commandTags).toContainText('Slow')
+  const tagFit = await commandTags.evaluate((element) => {
+    const button = element.closest('button')!.getBoundingClientRect()
+    const artwork = element
+      .closest('[data-command-card]')!
+      .querySelector('[data-battle-command-artwork]')!
+      .getBoundingClientRect()
+    return Array.from(element.children).every((tag) => {
+      const box = tag.getBoundingClientRect()
+      return (
+        box.width > 0 &&
+        box.height > 0 &&
+        box.left >= button.left &&
+        box.right <= button.right &&
+        box.top >= button.top &&
+        box.bottom <= button.bottom &&
+        (box.right <= artwork.left ||
+          box.left >= artwork.right ||
+          box.bottom <= artwork.top ||
+          box.top >= artwork.bottom) &&
+        Number.parseFloat(getComputedStyle(tag).fontSize) >= 12
+      )
+    })
+  })
+  expect(tagFit).toBe(true)
   await root.getByRole('button', { name: 'Chilling Mist, 45 AP', exact: true }).click()
   const candidates = before.snapshot.tactical.tiles.filter((tile) => {
     const distance =

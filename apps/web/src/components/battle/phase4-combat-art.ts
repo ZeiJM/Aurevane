@@ -47,6 +47,10 @@ const effectGlyphs: Readonly<Record<string, string>> = {
   regeneration: '<path d="M12 2v20M2 12h20"/>',
   root: '<path d="M12 1v12l-8 9M12 13l8 9M12 9 3 5M12 7l9-3M4 22l-2-7M20 22l2-7"/>',
   slow: '<circle cx="12" cy="12" r="10"/><path d="M12 5v8l5 3"/>',
+  hastened: '<circle cx="10" cy="14" r="8"/><path d="M10 9v6l4-3M16 2h6v6M22 2l-7 7"/>',
+  delayed: '<path d="M5 2h14M5 22h14M7 2c0 8 10 12 10 20M17 2C17 10 7 14 7 22M9 10h6"/>',
+  wet: '<path d="M12 2C9 7 4 12 4 16a8 8 0 0 0 16 0c0-4-5-9-8-14ZM8 16c0 2 2 4 4 4"/>',
+  conductive: '<path d="m14 2-8 11h6l-2 9 8-12h-6l2-8ZM2 6h3M19 18h3"/>',
   guarded: '<path d="M3 4 12 1l9 3v8c0 5-5 9-9 11-4-2-9-6-9-11Z"/>',
   fortified: '<path d="M3 3h5v5h8V3h5v19H3Z"/>',
   reckless: '<path d="m2 22 20-20M4 3l17 18M16 4l6-2-2 6M3 15l7 7"/>',
@@ -93,7 +97,7 @@ export function phase4SkillArtwork(actionId: string): string | null {
   const status = skill.effects.find((effect) => effect.type === 'apply-status')
   const icon =
     status?.type === 'apply-status'
-      ? effectGlyphs[status.statusId]
+      ? (effectGlyphs[status.statusId] ?? '<path d="m12 2 10 10-10 10L2 12Z"/>')
       : skill.effects.some((effect) => effect.type === 'remove-status')
         ? '<path d="m3 13 6 6L22 3M3 3l3 3M19 20l3 3"/>'
         : skill.effects.some((effect) => effect.type === 'healing')
