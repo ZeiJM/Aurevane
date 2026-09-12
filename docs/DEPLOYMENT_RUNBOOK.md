@@ -28,10 +28,10 @@ When the Owner authorizes a direct Production release and no dedicated Preview a
 
 ## Staged combat-content publication
 
-The Phase-4 gameplay interaction continuation requires application code to support new authored Skill versions before the database selects them. The main-branch database workflow can apply migrations while application deployments remain locked.
+The Phase-4 gameplay interaction continuation requires application code to support new authored Skill versions before the database selects them. The Supabase Git integration can apply main-branch migrations while application deployments remain locked.
 
 1. Run the repository, database-authority and authenticated browser gates on the final candidate revision.
-2. Merge the additive staging migration. Confirm it leaves the current Skill catalog, learned Skills and selected builds on the previously supported versions.
+2. Merge the additive staging migration and the separate spectator participant-title read grant. Verify both committed migration identities through the Supabase Git integration. The title grant is limited to `id` and `personal_title` for `service_role`; it preserves existing hosted permissions. Confirm staging leaves the current Skill catalog, learned Skills and selected builds on the previously supported versions.
 3. Deploy the new application and wait for `READY`. Confirm its source revision and that existing build/account routes remain healthy.
 4. Invoke the release-specific service-role activation RPC named in the migration, using its reviewed fixed contract. Record the result and verify the catalog, learned/current build versions and preserved earned Mastery. Never accept arbitrary client-selected content versions.
 5. Verify new battles use the current versions and existing frozen battles still resolve their stored versions; complete the live targeting and Atlas checks.
