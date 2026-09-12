@@ -1,0 +1,56 @@
+name: Atlas secondary testing maintenance
+
+on:
+  push:
+    branches:
+      - 'agent/phase4-discipline-atlas-mastery'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/phase4-discipline-atlas-mastery
+          fetch-depth: 0
+      - name: Add authoritative Secondary testing override
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          source = Path('supabase/migrations/20260903140500_p32_secondary_attunement.sql').read_text()
+          start_marker = 'create or replace function public.change_character_disciplines_v2('
+          end_marker = "grant execute on function public.change_character_disciplines_v2(\n  uuid, uuid, bigint, boolean, text, boolean, text, uuid, text\n) to service_role;"
+          start = source.index(start_marker)
+          end = source.index(end_marker, start) + len(end_marker)
+          function = source[start:end]
+          old = """      if not exists (\n        select 1\n        from app_private.character_discipline_masteries mastery\n        where mastery.character_id = v_build.character_id\n          and mastery.discipline_id = v_secondary_definition.discipline_id\n      ) then\n        raise exception using errcode = '22023', message = 'SECONDARY_DISCIPLINE_NOT_MASTERED';\n      end if;\n"""
+          new = """      if not app_private.discipline_testing_open_v1()\n        and not exists (\n          select 1\n          from app_private.character_discipline_masteries mastery\n          where mastery.character_id = v_build.character_id\n            and mastery.discipline_id = v_secondary_definition.discipline_id\n        ) then\n        raise exception using errcode = '22023', message = 'SECONDARY_DISCIPLINE_NOT_MASTERED';\n      end if;\n"""
+          if old not in function:
+              raise SystemExit('Expected Secondary mastery guard not found')
+          function = function.replace(old, new, 1)
+
+          migration = Path('supabase/migrations/20260912070000_discipline_atlas_testing_separation.sql')
+          text = migration.read_text()
+          insertion = "\n\n-- Keep Secondary selection on the same server-owned testing policy as Primary selection.\n-- When testing closes, genuine Mastery is required exactly as before.\n" + function + "\n"
+          if 'if not app_private.discipline_testing_open_v1()\n        and not exists (' not in text:
+              commit = '\ncommit;'
+              if commit not in text:
+                  raise SystemExit('Atlas migration commit anchor missing')
+              text = text.replace(commit, insertion + commit, 1)
+              migration.write_text(text)
+          PY
+          git diff --check
+      - name: Commit authority repair
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add supabase/migrations/20260912070000_discipline_atlas_testing_separation.sql
+          git commit -m 'Allow published Secondary testing without fake Mastery'
+          git push origin HEAD:agent/phase4-discipline-atlas-mastery
