@@ -1,8 +1,8 @@
 # AUREVANE — Active Task Ledger
 
-**Final-testing engineering follow-up — 2026-09-12:** Prepared battle button/picker tags from committed Skill versions, full current/historical execution contracts, four effect-badge repairs and safe Profile recovery diagnostics. See `docs/PHASE_4_FINAL_TEST_READINESS.md` for scope, evidence and the remaining A03/A04/A07/A10 human gates. Integration/release evidence is separate from the existing live baseline below.
+**Final-testing release — 2026-09-12:** PR #461 is merged and live with battle button/picker tags from committed Skill versions, full current/historical execution contracts, four effect-badge repairs and safe Profile recovery diagnostics. All ten applicable CI workflows passed; live Fortress casting, reload, saved effect expiry and return to the unchanged Profile were verified. See `docs/PHASE_4_FINAL_TEST_READINESS.md` for exact evidence, the isolated recovered turn-clock 503 with unestablished cause, and the remaining A03/A04/A07/A10 human gates.
 
-## Phase 4 implementation live for testing — 2026-09-12
+## Prior Phase 4 release — PR #459
 
 Owner authorized full Phase 4 implementation and release. PR #459 is merged, deployed and activated with typed gameplay tags, Frozen/Steam terrain, shared targeting, the AI Sparring Arena picker fix and the Profile Discipline Atlas/Mastery extension. All fifteen exact-head CI workflows and authenticated live interaction checks passed. See `docs/PHASE_4_TICKETS.md` for actual evidence and the recovered Profile interruption. The deployment lock is restored by this documentation/configuration commit. Human tactical/media acceptance remains open.
 
@@ -34,7 +34,7 @@ This file reports the **current implementation/validation boundary**.
 
 **Current implementation:** the full approved Phase-4 engineering scope through PR #459 is live for testing, preserving the earlier roster, media, self-target cockpit and earned Mastery.
 
-**Live baseline:** 17 Disciplines, 136 regular Skills, 17 Essences, 136 unordered Resonance pairs and the 36-identity Atlas. Production deployment `dpl_Hr4ShGPgWjZQ98D4nXbVRLAnmS2v` serves application commit `a4a06d01e64e59ee8819353fd874bea4b92aa1db`. See `docs/PHASE_4_TICKETS.md` for the final exact-head CI, additive migration, activation, live checks and deployment-lock record. Earlier milestone notes below are historical.
+**Live baseline:** 17 Disciplines, 136 regular Skills, 17 Essences, 136 unordered Resonance pairs and the 36-identity Atlas. Production deployment `dpl_CVuyfURtMUXM7LpZfWsEkyhv4Y9z` serves application commit `c5a9f633d5769a4cea15ed840473389e1a462aac`. See `docs/PHASE_4_FINAL_TEST_READINESS.md` for current CI, live checks, runtime follow-up and deployment-lock evidence. Earlier milestone notes below are historical.
 
 ---
 
