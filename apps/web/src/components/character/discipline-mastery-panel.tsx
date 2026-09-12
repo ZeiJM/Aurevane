@@ -111,7 +111,9 @@ export function DisciplineMasteryPanel() {
       setError(null)
     } catch (caught) {
       setError(
-        caught instanceof Error ? caught.message : 'The Discipline Atlas is temporarily unavailable.',
+        caught instanceof Error
+          ? caught.message
+          : 'The Discipline Atlas is temporarily unavailable.',
       )
     } finally {
       setPending(false)
@@ -245,11 +247,16 @@ export function DisciplineMasteryPanel() {
                               {entry.unmetRequirements.join(' · ')}
                             </small>
                           ) : null}
-                          {entry.masteryRite ? <small>Mastery Rite: {entry.masteryRite}</small> : null}
+                          {entry.masteryRite ? (
+                            <small>Mastery Rite: {entry.masteryRite}</small>
+                          ) : null}
                         </div>
 
                         {entry.power ? (
-                          <div className={styles.power} aria-label={`${entry.name} identity profile`}>
+                          <div
+                            className={styles.power}
+                            aria-label={`${entry.name} identity profile`}
+                          >
                             <PowerMeter label="Reliability" value={entry.power.reliability} />
                             <PowerMeter label="Flexibility" value={entry.power.flexibility} />
                             <PowerMeter label="Setup" value={entry.power.setup} />

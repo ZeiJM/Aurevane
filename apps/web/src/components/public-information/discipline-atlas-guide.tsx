@@ -105,7 +105,9 @@ function DisciplineCard({ discipline }: { discipline: DisciplineAtlasEntry }) {
         </div>
         <div>
           <dt>Content</dt>
-          <dd>{discipline.publication === 'published' ? 'Playable in the current test' : 'Planned'}</dd>
+          <dd>
+            {discipline.publication === 'published' ? 'Playable in the current test' : 'Planned'}
+          </dd>
         </div>
         {discipline.masteryRite ? (
           <div>
@@ -239,8 +241,8 @@ export function DisciplineAtlasGuide() {
             <p>
               A mature Discipline teaches eight regular Techniques. Your battle build selects up to
               four at a time. Advanced libraries currently teach four at Initiate, two more at
-              Practiced and two more at Adept so the later Mastery journey is about using the toolbox,
-              not waiting months to receive it.
+              Practiced and two more at Adept so the later Mastery journey is about using the
+              toolbox, not waiting months to receive it.
             </p>
           </div>
           <div>
@@ -255,8 +257,8 @@ export function DisciplineAtlasGuide() {
             <h3>Passive study has a ceiling</h3>
             <p>
               A future Discipline Focus may contribute bounded numerical practice, but it cannot
-              demonstrate Techniques, clear trials or create a Master while the player never uses the
-              Discipline.
+              demonstrate Techniques, clear trials or create a Master while the player never uses
+              the Discipline.
             </p>
           </div>
         </div>
@@ -269,9 +271,9 @@ export function DisciplineAtlasGuide() {
             <h2>More difficult classes receive different tools, not a bigger budget.</h2>
           </div>
           <p>
-            The five marks shown on Atlas cards are an identity profile, not a tier list. A fifth mark
-            in Rule Access means the class breaks or bends more normal combat assumptions; it does not
-            mean “five-star strength.”
+            The five marks shown on Atlas cards are an identity profile, not a tier list. A fifth
+            mark in Rule Access means the class breaks or bends more normal combat assumptions; it
+            does not mean “five-star strength.”
           </p>
         </div>
         <div className={styles.budgetExamples}>
@@ -280,8 +282,8 @@ export function DisciplineAtlasGuide() {
             <h3>Vanguard</h3>
             <strong>Reliable answers, low setup.</strong>
             <p>
-              Good positioning and action efficiency are valuable in almost every fight. Its strength
-              is that it asks fewer conditions before doing useful work.
+              Good positioning and action efficiency are valuable in almost every fight. Its
+              strength is that it asks fewer conditions before doing useful work.
             </p>
           </article>
           <article>
@@ -289,8 +291,8 @@ export function DisciplineAtlasGuide() {
             <h3>Chronist</h3>
             <strong>More rules, more ways to misplay.</strong>
             <p>
-              Initiative manipulation can create exceptional turns, but it requires planning and does
-              not simply add a larger damage coefficient to Aetherist spells.
+              Initiative manipulation can create exceptional turns, but it requires planning and
+              does not simply add a larger damage coefficient to Aetherist spells.
             </p>
           </article>
           <article>
@@ -316,10 +318,10 @@ export function DisciplineAtlasGuide() {
           actually exist.
         </p>
         <p>
-          When AUREVANE reaches the point where normal acquisition is enabled, the testing overlay can
-          be turned off and the same Atlas requirements become the real gates. Test access is kept
-          separate from earned Mastery so months of development do not accidentally pre-master every
-          launch character.
+          When AUREVANE reaches the point where normal acquisition is enabled, the testing overlay
+          can be turned off and the same Atlas requirements become the real gates. Test access is
+          kept separate from earned Mastery so months of development do not accidentally pre-master
+          every launch character.
         </p>
       </section>
 
@@ -350,14 +352,14 @@ export function DisciplineAtlasGuide() {
         <p>
           Rekindling is meant to change the journey, not erase it. Historical Mastery belongs in the
           character’s long-term record even when a later cycle asks them to rebuild current-cycle
-          proficiency. Veteran Echo Routes can replace repeated beginner lessons with shorter, harder
-          examinations for traditions the character has already mastered before.
+          proficiency. Veteran Echo Routes can replace repeated beginner lessons with shorter,
+          harder examinations for traditions the character has already mastered before.
         </p>
         <p>
           Breadth and depth are both legitimate identities. A character who masters many Disciplines
           gains more build paths; a lifelong Vanguard specialist should still earn meaningful
-          Vanguard-specific achievements, Essence accomplishments and prestige without being forced to
-          collect every class for raw stats.
+          Vanguard-specific achievements, Essence accomplishments and prestige without being forced
+          to collect every class for raw stats.
         </p>
       </section>
     </article>

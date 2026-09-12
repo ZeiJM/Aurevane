@@ -173,8 +173,7 @@
 
 .row[data-state='veiled'] {
   border-color: rgba(117, 122, 144, 0.18);
-  background:
-    linear-gradient(135deg, rgba(28, 30, 42, 0.78), rgba(8, 11, 17, 0.86));
+  background: linear-gradient(135deg, rgba(28, 30, 42, 0.78), rgba(8, 11, 17, 0.86));
 }
 
 .row[data-publication='planned'] {
