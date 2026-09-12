@@ -1,3 +1,5 @@
+import { readBattleAuthorityCombatBuildSnapshot } from './battle-authority-build-snapshot'
+import { forecastResonanceForSkill, resolveResonanceForPair } from './resonance'
 import { PHASE4_STATUSES } from './status-content'
 import {
   createBasicAttackDefinition,
@@ -15,6 +17,7 @@ import {
 import type { BattleCombatant, BattleFacing, BattleTemporaryResource } from './battle-state'
 import {
   resolveMatureSkillForContext,
+  resolveMatureSkillVersion,
   toCombatActionDefinition,
   type MatureSkillCombatContext,
   type MatureSkillDefinition,
@@ -287,6 +290,15 @@ function preparePv1fTurnEconomyTransition(state: StatDrivenCombatEncounterState)
   )
   if (marker?.current === battle.turnNumber && economy) return { state, events: [] }
 
+  const placement = state.tactical.placements.find((unit) => unit.combatantId === actor.id)!
+  state = {
+    ...state,
+    turnOrigin: {
+      combatantId: actor.id,
+      turnNumber: battle.turnNumber,
+      position: { ...placement.position },
+    },
+  }
   const cooldownTransition = advanceSkillCooldownsAtOwnerTurnStart(actor)
   const resources = replaceResources(cooldownTransition.combatant.temporaryResources, [
     {
@@ -517,7 +529,10 @@ export function evaluatePv1fMatureSkill(
   const actorId = prepared.tactical.battle.currentTurn?.combatantId
   if (!actorId) throw new Error('Mature Skill evaluation requires an active turn.')
   const resolved = resolveMatureSkillForContext(definition, combatContext)
+  const resonance = committedResonanceForecast(prepared, definition)
   const baseAction = toCombatActionDefinition(definition, combatContext)
+  if (resonance?.forecast.willActivate)
+    baseAction.effects = [...baseAction.effects, ...resonance.forecast.bonusEffects]
   const repeatPenaltyApplied = lastMatureSkillId(prepared, actorId) === definition.id
   const defendedEffects: readonly CombatEffectDefinition[] = baseAction.effects.map((effect) =>
     effect.type === 'damage'
@@ -560,15 +575,63 @@ export function executePv1fMatureSkill(
   }
   const actorId = prepared.tactical.battle.currentTurn?.combatantId
   if (!actorId) throw new Error('Mature Skill execution requires an active turn.')
+  const resonance = committedResonanceForecast(prepared, definition)
   const resolved = executeCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT)
   let next = reattachStatDrivenCombatBridge(resolved.state, prepared.statBridge)
   next = spendPv1fActionEconomyForActor(next, actorId, cost)
   next = markLastMatureSkill(next, actorId, definition.id)
+  if (resonance) {
+    const actor = getCombatant(next, actorId)
+    const resources = actor.temporaryResources.filter(
+      (resource) => !resource.key.startsWith(RESONANCE_ARMED_PREFIX),
+    )
+    if (resonance.forecast.willArm)
+      resources.push({ key: `${RESONANCE_ARMED_PREFIX}${definition.id}`, current: 1, maximum: 1 })
+    next = withCombatant(next, {
+      ...actor,
+      temporaryResources: resources.sort((a, b) => a.key.localeCompare(b.key)),
+    })
+  }
   const remaining = readPv1fActionEconomy(next, actorId)?.current ?? 0
   return {
     state: next,
     events: [
       ...resolved.events,
+      ...(resonance?.forecast.willActivate
+        ? [
+            {
+              event: 'resonance_activated',
+              resonanceId: resonance.definition.id,
+              contentVersion: resonance.definition.contentVersion,
+              actorId,
+              setupActionId: resonance.armedByActionId,
+              payoffActionId: definition.id,
+            },
+          ]
+        : []),
+      ...(resonance?.forecast.willExpireArmedSetup
+        ? [
+            {
+              event: 'resonance_expired',
+              resonanceId: resonance.definition.id,
+              contentVersion: resonance.definition.contentVersion,
+              actorId,
+              setupActionId: resonance.armedByActionId,
+              interruptedByActionId: definition.id,
+            },
+          ]
+        : []),
+      ...(resonance?.forecast.willArm
+        ? [
+            {
+              event: 'resonance_armed',
+              resonanceId: resonance.definition.id,
+              contentVersion: resonance.definition.contentVersion,
+              actorId,
+              setupActionId: definition.id,
+            },
+          ]
+        : []),
       ...(repeatPenaltyApplied
         ? [
             {
@@ -637,7 +700,7 @@ export function executePv1fMovement(
   if (!actorId) throw new Error('PV-1F movement requires an active turn.')
   const moved = moveCurrentCombatant(prepared.tactical, path)
   const encounter = reattachStatDrivenCombatBridge(
-    createCombatEncounterState(moved.state, prepared.statusState),
+    { ...prepared, ...createCombatEncounterState(moved.state, prepared.statusState) },
     prepared.statBridge,
   )
   let next = spendPv1fActionEconomy(encounter, economyCost)
@@ -659,7 +722,7 @@ export function finishPv1fTurn(
   const prepared = preparePv1fTurnEconomy(state)
   const selected = selectCurrentFinalFacing(prepared.tactical, facing)
   const encounter = reattachStatDrivenCombatBridge(
-    createCombatEncounterState(selected.state, prepared.statusState),
+    { ...prepared, ...createCombatEncounterState(selected.state, prepared.statusState) },
     prepared.statBridge,
   )
   const ended = endCombatTurn(encounter, PV1F_COMBAT_CONTENT)
@@ -742,7 +805,7 @@ function scaleRepeatedMatureSkillEffects(
       continue
     }
     // Removal is discrete: a consecutive repeat cannot remove a full status again.
-    if (effect.type === 'remove-status') continue
+    if (effect.type === 'remove-status' || effect.type === 'return-to-turn-start') continue
     const stacks = Math.floor(effect.stacks / 2)
     if (stacks > 0) scaled.push({ ...effect, stacks })
   }
@@ -827,4 +890,60 @@ function withCombatantAndTurn(
     throw new Error(`Invalid PV-1F combat state: ${issues[0]?.field}: ${issues[0]?.message}`)
   }
   return next
+}
+
+const RESONANCE_ARMED_PREFIX = 'p35.resonance-armed:'
+/** Resolve only the actor's immutable committed pair; neither UI selection nor a foreign actor can arm it. */
+export function committedResonanceForecast(
+  state: StatDrivenCombatEncounterState,
+  skill: MatureSkillDefinition,
+) {
+  const actorId = state.tactical.battle.currentTurn?.combatantId
+  if (!actorId) return null
+  const build = readBattleAuthorityCombatBuildSnapshot(state, actorId)
+  const reference = build?.extensions.resonance
+  if (
+    !build ||
+    !reference ||
+    !build.disciplineSkills.some(
+      (slot) => slot.skillId === skill.id && slot.contentVersion === skill.contentVersion,
+    )
+  )
+    return null
+  const definition = resolveResonanceForPair(
+    build.primary.disciplineId,
+    build.secondary?.disciplineId ?? null,
+    reference.contentVersion,
+  )
+  if (!definition || definition.id !== reference.resonanceId) return null
+  const marker = getCombatant(state, actorId).temporaryResources.find(
+    (resource) => resource.key.startsWith(RESONANCE_ARMED_PREFIX) && resource.current === 1,
+  )
+  const markerActionId = marker?.key.slice(RESONANCE_ARMED_PREFIX.length)
+  const setupSlot = build.disciplineSkills.find((slot) => slot.skillId === markerActionId)
+  const setupSkill = setupSlot
+    ? resolveMatureSkillVersion(setupSlot.skillId, setupSlot.contentVersion)
+    : null
+  const armedByActionId =
+    setupSkill &&
+    forecastResonanceForSkill(
+      definition,
+      {
+        resonanceId: definition.id,
+        contentVersion: definition.contentVersion,
+        armedByActionId: null,
+      },
+      setupSkill,
+    ).willArm
+      ? setupSkill.id
+      : null
+  return {
+    definition,
+    armedByActionId,
+    forecast: forecastResonanceForSkill(
+      definition,
+      { resonanceId: definition.id, contentVersion: definition.contentVersion, armedByActionId },
+      skill,
+    ),
+  }
 }

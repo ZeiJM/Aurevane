@@ -3,6 +3,7 @@
 Offline only: numpy/scipy + ffmpeg. Outputs remain outside apps/web/public until human approval.
 """
 from pathlib import Path
+import argparse
 import hashlib
 import json
 import subprocess
@@ -13,6 +14,8 @@ from scipy.io import wavfile
 ROOT = Path(__file__).resolve().parents[2] / 'content/media-candidates/phase4'
 RATE = 48000
 FAMILIES = {
+    'chronist': ('Measured clockwork tap and suspended glass', [330, 495, 825], 0.28),
+    'ironfist': ('Wrapped fist contact and cloth movement', [102, 207, 431], 0.25),
     'bastion': ('Muted shield thud', [126, 309, 587], 0.32),
     'ravager': ('Coarse cut', [96, 231, 510], 0.29),
     'edgedancer': ('Precise slice', [710, 1171, 1923], 0.22),
@@ -44,7 +47,10 @@ def render(family, variant, essence):
                for i, f in enumerate(modes))
     contact = filtered(noise, 180, 4200) * np.exp(-t/0.024)
     air = filtered(noise, 380, 2700) * np.sin(np.pi*np.minimum(t/duration, 1))**2
-    if family in ('bastion', 'dawnshield'):
+    if family == 'ironfist':
+        # Short padded contact with cloth movement, without a ringing metal tail.
+        x = 0.55*body*np.exp(-t/0.035) + 0.55*contact + 0.16*air
+    elif family in ('bastion', 'dawnshield'):
         x = 0.80*body + 0.50*contact + 0.07*air
     elif family == 'ravager':
         x = 0.50*body + 0.42*contact + 0.65*air
@@ -60,6 +66,10 @@ def render(family, variant, essence):
         grains = sum(np.exp(-((t-c)/(0.002 if family == 'frostweaver' else 0.004))**2) for c in centers)
         crackle = filtered(noise, 800, 5600) * grains * np.exp(-t/0.12)
         x = (0.12 if family == 'frostweaver' else 0.35)*body + 0.70*crackle + 0.22*air
+    elif family == 'chronist':
+        x = 0.38*body + 0.12*contact + 0.10*air
+        offset = round(0.095*RATE)
+        x[offset:] += x[:-offset].copy()*0.30
     elif family == 'tidecaller':
         fluid = np.sin(2*np.pi*(260*detune*t - 180*t*t))*np.exp(-t/0.11)
         x = 0.38*fluid + 0.65*air + 0.18*contact
@@ -68,7 +78,13 @@ def render(family, variant, essence):
     else:
         release = np.minimum(t/0.028, 1)*np.exp(-t/0.13)
         x = sum(np.sin(2*np.pi*f*detune*t)/(i+1) for i, f in enumerate(modes))*release + 0.10*air
-    if essence:
+    if essence and family == 'ironfist':
+        # Three ordered contacts mirror the signature's three resolved hits.
+        strike = x.copy()
+        for delay, gain in ((0.135, 0.85), (0.270, 0.72)):
+            offset = round(delay*RATE)
+            x[offset:] += strike[:-offset]*gain
+    elif essence:
         # More articulation, not more gain: a brief early reflection and longer material release.
         reflection = np.zeros_like(x)
         offset = round(0.061*RATE)
@@ -85,11 +101,19 @@ def render(family, variant, essence):
     return np.round(x*32767).astype(np.int16), seed
 
 def main():
-    masters, runtime = ROOT/'audio/masters', ROOT/'audio/runtime'
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--family', choices=FAMILIES, action='append')
+    parser.add_argument('--output', type=Path, default=ROOT)
+    args = parser.parse_args()
+    root = args.output
+    # Preserve the original 72-cue pack when run without explicit selection.
+    families = args.family or [family for family in FAMILIES if family not in ('ironfist', 'chronist')]
+    masters, runtime = root/'audio/masters', root/'audio/runtime'
     masters.mkdir(parents=True, exist_ok=True)
     runtime.mkdir(parents=True, exist_ok=True)
     rows = []
-    for family, (label, _, _) in FAMILIES.items():
+    for family in families:
+        label, _, _ = FAMILIES[family]
         for essence in ([False, True] if family not in ('attrition', 'healing', 'cleanse', 'resonance') else [False]):
             for variant in range(1, 4):
                 name = f'{family}-{"essence" if essence else "action"}-v01-{variant}'
@@ -103,14 +127,14 @@ def main():
                 assert encoded.stat().st_size <= 20000
                 rows.append(dict(id=f'audio.phase4.{name}', family=family, label=label,
                     role='essence' if essence else 'action', variant=variant, status='candidate', approvedBy=None,
-                    sourceMethod='internal-material-synthesis', requestId='AUDIO-DISC-001', seed=str(seed),
-                    master=str(master.relative_to(ROOT)), runtime=str(encoded.relative_to(ROOT)),
+                    sourceMethod='internal-material-synthesis', requestId='AUDIO-DISC-003' if family == 'chronist' else 'AUDIO-DISC-002' if family == 'ironfist' else 'AUDIO-DISC-001', seed=str(seed),
+                    master=str(master.relative_to(root)), runtime=str(encoded.relative_to(root)),
                     durationMs=round(len(samples)/RATE*1000), sampleRate=RATE, channels=1,
                     peakDbfs=round(20*np.log10(max(peak, 1e-9)), 2),
                     rmsDbfs=round(20*np.log10(max(np.sqrt(np.mean((samples.astype(float)/32768)**2)), 1e-9)), 2),
                     runtimeBytes=encoded.stat().st_size, masterSha256=hashlib.sha256(master.read_bytes()).hexdigest(),
                     runtimeSha256=hashlib.sha256(encoded.read_bytes()).hexdigest()))
-    (ROOT/'audio-manifest.json').write_text(json.dumps(rows, indent=2)+'\n')
+    (root/'audio-manifest.json').write_text(json.dumps(rows, indent=2)+'\n')
     print(json.dumps(dict(candidates=len(rows), runtimeBytes=sum(r['runtimeBytes'] for r in rows),
                          maxRuntimeBytes=max(r['runtimeBytes'] for r in rows), maxPeakDbfs=max(r['peakDbfs'] for r in rows))))
 

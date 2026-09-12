@@ -75,6 +75,7 @@ export type CombatEffectDefinition =
       facingModifiersBasisPoints?: FacingDamageModifiers
     }
   | { type: 'healing'; recipient: CombatEffectRecipient; amount: number }
+  | { type: 'return-to-turn-start'; recipient: 'actor' }
   | { type: 'remove-status'; recipient: CombatEffectRecipient; statusIds: readonly string[] }
   | { type: 'resource-change'; recipient: CombatEffectRecipient; resource: 'mp'; delta: number }
   | {
@@ -118,6 +119,8 @@ export interface CombatStatusDefinition {
   damageModifiers?: readonly CombatDamageModifier[]
   endOfTurn?: { type: 'damage' | 'healing'; amount: number }
   movement?: { blocked?: boolean; additionalApPerTile?: number }
+  /** Consumed at the next round boundary; never adds or skips turns. */
+  nextRoundInitiative?: number
 }
 
 export interface CombatContentCatalog {
@@ -142,6 +145,7 @@ export interface CombatEncounterState {
   tactical: TacticalBattleState
   statBridge?: { combatants: readonly { combatantId: string; armor: number; ward: number }[] }
   statusState: readonly CombatantStatusState[]
+  turnOrigin?: { combatantId: string; turnNumber: number; position: GridPosition }
 }
 
 export type CombatTargetSelection =
@@ -244,6 +248,13 @@ export type CombatResolutionEvent =
       sourceCombatantId: string
       targetCombatantId: string
       statusId: string
+    }
+  | {
+      event: 'combatant_rewound'
+      actionId: string
+      combatantId: string
+      from: GridPosition
+      to: GridPosition
     }
   | { event: 'combatant_waited'; combatantId: string }
   | { event: 'battle_completed'; winningTeamId: string | null }
@@ -419,6 +430,37 @@ export function evaluateCombatAction(
     collectSpatialTargetIssues(state, actorId, action.target, target.position, issues)
   }
   collectRequirementIssues(state, actorId, target.combatantId, action.requirements, issues)
+  if (action.effects.some((effect) => effect.type === 'return-to-turn-start')) {
+    const origin = state.turnOrigin
+    const placement = getPlacement(state.tactical, actorId)
+    const tile =
+      origin && state.tactical.tiles.find((tile) => samePosition(tile.position, origin.position))
+    if (
+      !origin ||
+      origin.combatantId !== actorId ||
+      origin.turnNumber !== battle.turnNumber ||
+      samePosition(origin.position, placement.position) ||
+      !tile ||
+      state.tactical.terrains.find((terrain) => terrain.id === tile.terrainId)?.traversalCost ==
+        null ||
+      state.tactical.placements.some(
+        (unit) => unit.combatantId !== actorId && samePosition(unit.position, origin.position),
+      )
+    ) {
+      issues.push({
+        code: 'requirement-not-met',
+        message:
+          'Rewind Step requires a vacant, passable tile where you started this turn, after moving away.',
+      })
+    }
+    if (
+      getStatusRow(state, actorId).statuses.some(
+        (status) =>
+          getStatusDefinition(content, status.statusId, status.statusVersion).movement?.blocked,
+      )
+    )
+      issues.push({ code: 'requirement-not-met', message: 'Root prevents Rewind Step.' })
+  }
 
   const affectedTiles =
     target.position && issues.length === 0
@@ -596,12 +638,61 @@ export function endCombatTurn(
     throw new Error('End Turn requires an active battle.')
   }
 
-  const ended = endTurn(state.tactical.battle)
+  const roundModifiers = state.statusState.flatMap((row) => {
+    const amount = Math.max(
+      -40,
+      Math.min(
+        40,
+        row.statuses.reduce(
+          (sum, status) =>
+            sum +
+            (getStatusDefinition(content, status.statusId, status.statusVersion)
+              .nextRoundInitiative ?? 0),
+          0,
+        ),
+      ),
+    )
+    return amount === 0 ? [] : [{ combatantId: row.combatantId, amount }]
+  })
+  const outgoingId = state.tactical.battle.currentTurn!.combatantId
+  const outgoing = getCombatant(state.tactical.battle, outgoingId)
+  // Predict the existing deterministic ticks for selection only. They are committed below.
+  // A last actor moved to first by tempo must not receive a turn after a lethal tick.
+  const outgoingHpAfterTicks = getStatusRow(state, outgoingId).statuses.reduce((hp, status) => {
+    const periodic = getStatusDefinition(content, status.statusId, status.statusVersion).endOfTurn
+    if (!periodic || hp <= 0) return hp
+    const amount = periodic.amount * status.stacks
+    return periodic.type === 'damage'
+      ? Math.max(0, hp - amount)
+      : Math.min(outgoing.maxHp, hp + amount)
+  }, outgoing.hp)
+  const ended = endTurn(state.tactical.battle, roundModifiers, outgoingHpAfterTicks === 0)
   let nextState = withBattle(state, ended.state)
   const events: CombatResolutionEvent[] = [...ended.events]
+  if (ended.state.round !== state.tactical.battle.round) {
+    // Consume scheduled tempo once. The committed order remains frozen for the full round.
+    for (const row of nextState.statusState) {
+      const consumed = row.statuses.filter(
+        (status) =>
+          getStatusDefinition(content, status.statusId, status.statusVersion)
+            .nextRoundInitiative !== undefined,
+      )
+      nextState = removeStatuses(
+        nextState,
+        row.combatantId,
+        consumed.map((status) => status.statusId),
+      )
+      events.push(
+        ...consumed.map((status) => ({
+          event: 'status_expired' as const,
+          combatantId: row.combatantId,
+          statusId: status.statusId,
+        })),
+      )
+    }
+  }
   // Resolve the outgoing unit's periodic effects after advancing initiative. This permits
   // lethal ticks without ever persisting a defeated combatant as the current actor.
-  const outgoingId = state.tactical.battle.currentTurn!.combatantId
   const periodic = resolveEndOfTurnStatuses(nextState, outgoingId, content)
   nextState = periodic.state
   events.push(...periodic.events)
@@ -684,6 +775,23 @@ export function validateCombatEncounterState(
   const expectedCombatantIds = [...state.tactical.battle.combatants]
     .map((combatant) => combatant.id)
     .sort(compareStableString)
+  if (state.turnOrigin) {
+    const origin = state.turnOrigin
+    if (
+      !expectedCombatantIds.includes(origin.combatantId) ||
+      !Number.isSafeInteger(origin.turnNumber) ||
+      origin.turnNumber < 1 ||
+      origin.turnNumber > state.tactical.battle.turnNumber ||
+      !Number.isSafeInteger(origin.position.x) ||
+      !Number.isSafeInteger(origin.position.y) ||
+      !isWithinBoard(state.tactical, origin.position)
+    ) {
+      issues.push({
+        field: 'turnOrigin',
+        message: 'Turn origin must reference a valid combatant, committed turn and board position.',
+      })
+    }
+  }
   const actualCombatantIds = state.statusState.map((row) => row.combatantId)
   if (!arraysEqual(actualCombatantIds, expectedCombatantIds)) {
     issues.push({
@@ -1020,6 +1128,20 @@ function projectSingleEffect(
   effect: CombatEffectDefinition,
   content: CombatContentCatalog,
 ): { state: CombatEncounterState; projection: CombatEffectProjection } {
+  if (effect.type === 'return-to-turn-start') {
+    const from = getPlacement(state.tactical, actorId).position
+    const to = state.turnOrigin!.position
+    return {
+      state: rewindToTurnOrigin(state, actorId),
+      projection: {
+        effectType: effect.type,
+        combatantId: actorId,
+        before: `${from.x},${from.y}`,
+        after: `${to.x},${to.y}`,
+      },
+    }
+  }
+
   if (effect.type === 'damage') {
     const target = getCombatant(state.tactical.battle, recipientId)
     const amount = resolveDamageAmount(state, actorId, recipientId, effect, content)
@@ -1104,6 +1226,23 @@ function applyEffect(
   effect: CombatEffectDefinition,
   content: CombatContentCatalog,
 ): CombatResolutionTransition {
+  if (effect.type === 'return-to-turn-start') {
+    const from = getPlacement(state.tactical, actorId).position
+    const to = state.turnOrigin!.position
+    return {
+      state: rewindToTurnOrigin(state, actorId),
+      events: [
+        {
+          event: 'combatant_rewound',
+          actionId,
+          combatantId: actorId,
+          from: { ...from },
+          to: { ...to },
+        },
+      ],
+    }
+  }
+
   if (effect.type === 'damage') {
     const target = getCombatant(state.tactical.battle, recipientId)
     const amount = resolveDamageAmount(state, actorId, recipientId, effect, content)
@@ -1210,6 +1349,20 @@ function applyEffect(
   }
 }
 
+function rewindToTurnOrigin(state: CombatEncounterState, actorId: string): CombatEncounterState {
+  return {
+    ...state,
+    tactical: {
+      ...state.tactical,
+      placements: state.tactical.placements.map((unit) =>
+        unit.combatantId === actorId
+          ? { ...unit, position: { ...state.turnOrigin!.position } }
+          : unit,
+      ),
+    },
+  }
+}
+
 function resolveDamageAmount(
   state: CombatEncounterState,
   actorId: string,
@@ -1310,7 +1463,7 @@ function expireOwnerTurnStartStatuses(
 
   for (const status of row.statuses) {
     const definition = getStatusDefinition(content, status.statusId, status.statusVersion)
-    if (definition.endOfTurn) {
+    if (definition.endOfTurn || definition.nextRoundInitiative !== undefined) {
       kept.push(status)
       continue
     }
@@ -1674,7 +1827,14 @@ function validateCombatActionDefinition(
   for (const effect of action.effects) {
     assertKnownString(
       effect.type,
-      ['damage', 'healing', 'resource-change', 'apply-status', 'remove-status'],
+      [
+        'damage',
+        'healing',
+        'resource-change',
+        'apply-status',
+        'remove-status',
+        'return-to-turn-start',
+      ],
       'effect type',
     )
     assertKnownString(
@@ -1708,6 +1868,11 @@ function validateCombatActionDefinition(
         throw new TypeError('Status removal requires one to eight distinct IDs.')
       for (const id of effect.statusIds) getStatusDefinitionById(content, id)
     }
+    if (
+      effect.type === 'return-to-turn-start' &&
+      (effect.recipient !== 'actor' || action.target.kind !== 'self')
+    )
+      throw new TypeError('Rewind is a self-only effect.')
     if (effect.type === 'apply-status') {
       collectRequiredIdentity(effect.statusId, 'effect status ID')
       assertPositiveSafeInteger(effect.stacks, 'effect status stacks')
@@ -1747,6 +1912,17 @@ function validateCombatContentCatalog(content: CombatContentCatalog): void {
     validateDamageModifiers(status.damageModifiers)
     if (status.damageModifiers?.length && status.maximumStacks !== 1)
       throw new TypeError('Conditional damage statuses must be single-stack.')
+    if (
+      status.nextRoundInitiative !== undefined &&
+      (!Number.isSafeInteger(status.nextRoundInitiative) ||
+        Math.abs(status.nextRoundInitiative) > 40 ||
+        status.nextRoundInitiative === 0 ||
+        status.maximumStacks !== 1 ||
+        status.endOfTurn)
+    )
+      throw new RangeError(
+        'Round initiative status must be single-stack, non-periodic and bounded to +/-40.',
+      )
     if (status.endOfTurn) {
       assertKnownString(status.endOfTurn.type, ['damage', 'healing'], 'periodic effect')
       assertPositiveSafeInteger(status.endOfTurn.amount, 'periodic amount')
@@ -1927,4 +2103,8 @@ function compareStableString(left: string, right: string): number {
   if (left < right) return -1
   if (left > right) return 1
   return 0
+}
+
+function samePosition(a: GridPosition, b: GridPosition): boolean {
+  return a.x === b.x && a.y === b.y
 }

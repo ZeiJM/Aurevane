@@ -2,7 +2,7 @@
 
 Status: ready to run; no human results have been recorded by this packet.
 
-Use the live sixteen-Discipline roster. Keep the same character attributes, four selected regular Skills, build version and arena within each comparison. Record Primary/Secondary, Essence or Resonance, selected Skills, map, opponent, difficulty, device, battle ID and any timeout. Swap sides and repeat before drawing a balance conclusion. Existing testing Mastery grants make the roster available; do not remove production grants to simulate acquisition.
+Use the seventeen-Discipline roster after the Chronist audit release. Keep the same character attributes, four selected regular Skills, build version and arena within each comparison. Record Primary/Secondary, Essence or Resonance, selected Skills, map, opponent, difficulty, device, battle ID and any timeout. Swap sides and repeat before drawing a balance conclusion. Existing testing Mastery grants make the roster available; do not remove production grants to simulate acquisition.
 
 ## Session 1 — effect clarity and cost
 
@@ -13,6 +13,7 @@ Use the live sixteen-Discipline roster. Keep the same character attributes, four
 | Bastion | Challenge an enemy in a multi-combatant battle; compare its attack against the challenger and another ally. | Is the source exception understandable? Can the opponent make a useful choice? |
 | Cinderweaver | Apply Burn and Ash Ward. Compare damage received from burning and unburned enemies. | Does Warded communicate its condition accurately? |
 | Dawnshield / Tidecaller | Cleanse a harmful status, then inspect a linked tradeoff separately. | Are removable statuses clear? Does either side of a tradeoff ever remain alone? |
+| Chronist | Prepare Haste/Delay, complete the round and compare the next order. Move then Rewind Step; try Root and an occupied origin. | Does next-round timing remain clear, and is the lack of AP/movement refunds visible? |
 | Frostweaver / Wildwarden | Compare Slow and Root, then use attacks/facing while movement is restricted. | Can the player distinguish extra movement cost from prohibited movement? |
 
 For numerical comparisons, preserve armor/ward, attack direction, distance, target identity, status stacks and repeat-use state. Consecutive use of the same ordinary Skill has 50% effectiveness at unchanged AP/MP; alternate Skills when measuring baseline output. A miss is not a zero-damage successful hit. Record the actual pre-commit forecast and committed outcome separately.
@@ -21,6 +22,7 @@ For numerical comparisons, preserve armor/ward, attack direction, distance, targ
 
 | Pure build | Opposing pressure | Question |
 | --- | --- | --- |
+| Chronist | Ironfist | Can next-round preparation and positional return answer close pressure without denying turns? |
 | Bastion | Ravager | Is protecting a target worth the lost personal pressure? |
 | Edgedancer | Bastion | Can movement/facing create useful openings without making defense irrelevant? |
 | Wildwarden | Tidecaller | Does snare/attrition pressure allow recovery or positioning counterplay? |
@@ -32,11 +34,11 @@ Run each comparison on Crossroads Court, then Terraced Yard. Try Standard AI for
 
 ## Session 3 — pure versus mixed builds
 
-For each of the six pairings above, try both Primary directions with the same four-Skill split, then compare a pure build. Check that the mixed build has Resonance and no Essence; the pure build has Essence and no Resonance. Record the actual sequence that activates the pair and whether the payoff changes a tactical choice. Include at least one 1+3, 2+2 and 3+1 selection across the session. Do not describe a pair as validated solely because its trigger fired.
+For each of the pairings above, try both Primary directions with the same four-Skill split, then compare a pure build. Check that the mixed build has Resonance and no Essence; the pure build has Essence and no Resonance. Record the actual sequence that activates the pair and whether the payoff changes a tactical choice. Include at least one 1+3, 2+2 and 3+1 selection across the session. Do not describe a pair as validated solely because its trigger fired.
 
 ## Session 4 — media review
 
-Open the standalone `phase4-media-review.html` packet. The pack contains ten identity illustrations and 72 original synthesized material cues. These are review candidates, not approved recordings or 80 bespoke Skill paintings.
+Open the standalone `phase4-media-review.html` packet. The original pack contains ten identity illustrations and 72 original synthesized material cues. Include the Ironfist and Chronist follow-up paintings and six cues each using their release manifests. These are review candidates, not approved recordings or 80 bespoke Skill paintings.
 
 1. Compare artwork at 32, 64 and 128 px. Check shield versus sun-shield, sabre versus rune-sword, and ice versus water versus lightning.
 2. Listen at comfortable volume on headphones and ordinary speakers. Compare all three regular and Essence variations. Check that an Essence gains character without a loudness jump.

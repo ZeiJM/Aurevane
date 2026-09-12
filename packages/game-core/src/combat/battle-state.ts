@@ -50,6 +50,8 @@ export interface BattleState {
   rng: BattleRngState
   combatants: readonly BattleCombatant[]
   initiativeOrder: readonly string[]
+  /** Frozen offsets for this round only; absent on legacy snapshots. */
+  roundInitiativeModifiers?: readonly { combatantId: string; amount: number }[]
   round: number
   turnNumber: number
   currentTurn: BattleTurnState | null
@@ -282,14 +284,19 @@ export function selectFinalFacing(state: BattleState, facing: BattleFacing): Bat
   }
 }
 
-export function endTurn(state: BattleState): BattleTransition {
+export function endTurn(
+  state: BattleState,
+  nextRoundModifiers: NonNullable<BattleState['roundInitiativeModifiers']> = [],
+  outgoingDefeatedAtTurnEnd = false,
+): BattleTransition {
   const turn = requireActiveTurn(state)
 
   if (turn.finalFacing === null) {
     throw new Error('Final facing must be selected before ending the turn.')
   }
 
-  const next = findNextEligibleCombatant(state, turn.initiativeIndex)
+  const excludedId = outgoingDefeatedAtTurnEnd ? turn.combatantId : undefined
+  let next = findNextEligibleCombatant(state, turn.initiativeIndex, excludedId)
 
   if (!next) {
     throw new Error('No eligible combatant is available for the next turn.')
@@ -298,8 +305,18 @@ export function endTurn(state: BattleState): BattleTransition {
   const wrappedRound = next.initiativeIndex <= turn.initiativeIndex
   const nextRound = wrappedRound ? state.round + 1 : state.round
   const nextTurnNumber = state.turnNumber + 1
+  const roundState = wrappedRound
+    ? {
+        ...state,
+        initiativeOrder: createInitiativeOrder(state.combatants, nextRoundModifiers),
+        ...(nextRoundModifiers.length || state.roundInitiativeModifiers
+          ? { roundInitiativeModifiers: nextRoundModifiers.map((modifier) => ({ ...modifier })) }
+          : {}),
+      }
+    : state
+  if (wrappedRound) next = findFirstEligibleCombatant(roundState, excludedId)!
   const nextState: BattleState = {
-    ...state,
+    ...roundState,
     round: nextRound,
     turnNumber: nextTurnNumber,
     currentTurn: createFreshTurn(next.combatant, next.initiativeIndex),
@@ -364,7 +381,26 @@ export function validateBattleState(state: BattleState): readonly BattleInvarian
     combatantIds.add(combatant.id)
   }
 
-  const expectedInitiativeOrder = createInitiativeOrder(state.combatants)
+  const modifierIds = new Set<string>()
+  for (const modifier of state.roundInitiativeModifiers ?? []) {
+    if (
+      !combatantIds.has(modifier.combatantId) ||
+      modifierIds.has(modifier.combatantId) ||
+      !Number.isSafeInteger(modifier.amount) ||
+      Math.abs(modifier.amount) > 40 ||
+      state.lifecycle === 'pending'
+    ) {
+      issues.push({
+        field: 'roundInitiativeModifiers',
+        message: 'Round initiative offsets must be unique known combatants and bounded to +/-40.',
+      })
+    }
+    modifierIds.add(modifier.combatantId)
+  }
+  const expectedInitiativeOrder = createInitiativeOrder(
+    state.combatants,
+    state.roundInitiativeModifiers,
+  )
   if (!arraysEqual(state.initiativeOrder, expectedInitiativeOrder)) {
     issues.push({
       field: 'initiativeOrder',
@@ -427,11 +463,17 @@ function normalizeCombatant(input: CreateBattleCombatantInput): BattleCombatant 
   }
 }
 
-function createInitiativeOrder(combatants: readonly BattleCombatant[]): string[] {
+function createInitiativeOrder(
+  combatants: readonly BattleCombatant[],
+  modifiers: NonNullable<BattleState['roundInitiativeModifiers']> = [],
+): string[] {
+  const offsets = new Map(modifiers.map((modifier) => [modifier.combatantId, modifier.amount]))
+  const priority = (unit: BattleCombatant) =>
+    Math.min(Number.MAX_SAFE_INTEGER, unit.initiative + (offsets.get(unit.id) ?? 0))
   return [...combatants]
     .sort((left, right) => {
-      if (left.initiative !== right.initiative) {
-        return right.initiative - left.initiative
+      if (priority(left) !== priority(right)) {
+        return priority(right) - priority(left)
       }
       return compareStableString(left.id, right.id)
     })
@@ -468,10 +510,11 @@ function withCurrentTurn(state: BattleState, currentTurn: BattleTurnState): Batt
 
 function findFirstEligibleCombatant(
   state: BattleState,
+  excludedId?: string,
 ): { combatant: BattleCombatant; initiativeIndex: number } | null {
   for (const [initiativeIndex, combatantId] of state.initiativeOrder.entries()) {
     const combatant = getCombatant(state, combatantId)
-    if (combatant.hp > 0) {
+    if (combatant.hp > 0 && combatant.id !== excludedId) {
       return { combatant, initiativeIndex }
     }
   }
@@ -482,11 +525,12 @@ function findFirstEligibleCombatant(
 function findNextEligibleCombatant(
   state: BattleState,
   currentInitiativeIndex: number,
+  excludedId?: string,
 ): { combatant: BattleCombatant; initiativeIndex: number } | null {
   for (let offset = 1; offset <= state.initiativeOrder.length; offset += 1) {
     const initiativeIndex = (currentInitiativeIndex + offset) % state.initiativeOrder.length
     const combatant = getCombatant(state, state.initiativeOrder[initiativeIndex])
-    if (combatant.hp > 0) {
+    if (combatant.hp > 0 && combatant.id !== excludedId) {
       return { combatant, initiativeIndex }
     }
   }

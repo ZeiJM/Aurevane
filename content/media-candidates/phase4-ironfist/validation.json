@@ -1,0 +1,43 @@
+{
+  "automatedChecks": "passed",
+  "humanReview": false,
+  "audio": [
+    {
+      "id": "audio.phase4.ironfist-action-v01-1",
+      "durationMs": 250.0,
+      "peakDbfs": -10.31
+    },
+    {
+      "id": "audio.phase4.ironfist-action-v01-2",
+      "durationMs": 250.0,
+      "peakDbfs": -10.54
+    },
+    {
+      "id": "audio.phase4.ironfist-action-v01-3",
+      "durationMs": 250.0,
+      "peakDbfs": -10.16
+    },
+    {
+      "id": "audio.phase4.ironfist-essence-v01-1",
+      "durationMs": 540.0,
+      "peakDbfs": -10.48
+    },
+    {
+      "id": "audio.phase4.ironfist-essence-v01-2",
+      "durationMs": 540.0,
+      "peakDbfs": -10.44
+    },
+    {
+      "id": "audio.phase4.ironfist-essence-v01-3",
+      "durationMs": 540.0,
+      "peakDbfs": -10.49
+    }
+  ],
+  "runtimeBytes": 55008,
+  "largestRuntimeBytes": 15450,
+  "artSizes": [
+    64,
+    128,
+    256
+  ]
+}

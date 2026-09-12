@@ -28,6 +28,8 @@ export function skillEffectDescription(effect: CombatEffectDefinition): string {
         : ''
       return `Deal ${effect.amount} base damage to ${target}.${position}`
     }
+    case 'return-to-turn-start':
+      return 'Return to the vacant tile where you started this turn. Root blocks the return. No HP, MP, AP, Movement or past action is refunded.'
     case 'healing':
       return `Restore up to ${effect.amount} HP to ${target}.`
     case 'resource-change':
@@ -90,7 +92,9 @@ export function skillTargetTags(skill: MatureSkillDefinition): readonly string[]
                   : 'MP Restore'
                 : effect.type === 'remove-status'
                   ? 'Cleanse'
-                  : combatStatusDetails(effect.statusId).name
+                  : effect.type === 'return-to-turn-start'
+                    ? 'Return to start'
+                    : combatStatusDetails(effect.statusId).name
         return `${label}${effect.recipient === 'actor' && skill.target.kind !== 'self' ? ' · Self' : ''}`
       }),
     ),

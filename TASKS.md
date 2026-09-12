@@ -4,7 +4,11 @@ This file reports the **current implementation/validation boundary**.
 
 `docs/GAME_MASTER_PLAN.md` defines the product. `docs/ROADMAP.md` defines phase sequence. Canonical domain documents define system rules. `docs/PHASE_3_TICKETS.md` defines the Phase-3 implementation contract. `docs/ROADMAP_PRODUCT_VALIDATION.md` defines PV-2 evidence requirements.
 
-**Reconciled:** 2026-09-11
+**Reconciled:** 2026-09-12
+
+**Phase-4 completeness audit:** See `docs/PHASE_4_COMPLETENESS_AUDIT.md` for the verified live inventory and remaining checklist P4-A01–P4-A10. The named Master Plan target Chronist is absent while Tidecaller is implemented; no specific approved substitution was located. Dedicated Ironfist media remains unreleased and its recovered working copy needs reconciliation. Human tactical/media acceptance, broader AI decision coverage and a completed live earned-Mastery claim remain open. The audit verified production `4ec4036c`, hosted 16/128/16/120 catalog counts and 455 focused tests; it does not close Phase 4.
+
+**2026-09-12 continuation:** recovered Ironfist media integration on `agent/phase4-ironfist-continuation`: one painted Foundation/Essence identity, six synthesized variants and shared committed-event routing. The Owner requested continuing implementation for live testing. The release manifest records that authorization without claiming independent human visual/listening acceptance. Production remains `4ec4036c` until checks pass.
 
 ---
 
@@ -158,3 +162,19 @@ Branch `agent/phase4-media-candidates` prepares ten painted identity masters, 72
 ## Phase 4 media integration continuation
 
 PR #453 merged the candidate work at `f67cd8c3`; CI, Skill Engine and Browser Smoke passed. Branch `agent/phase4-media-integration` connects the Owner-authorized testing release of ten identity paintings and 72 synthesized cues. The shared committed-event path preserves authorization, gesture/mute settings and no-replay behavior. PR #454 merged at `f756d92d` with the exact tested tree unchanged. All six workflows passed on `d1dee5e9`; local `pnpm check` passed 1,016 Vitest tests, six Node report tests, lint/typecheck/formatting and production build. Release `4ec4036c` is READY at https://aurevane.vercel.app. Live artwork and Fortress preview/commit were verified, production error/fatal logs were empty, and the practice character returned to the Battle Hall. This commit restores the deployment lock and records detailed evidence in `docs/PHASE_4_TICKETS.md`. Independent human media/balance acceptance remains outstanding.
+
+## Audit implementation — 2026-09-12
+
+Owner instruction: “Take what ever authorizations you need and implement.” This authorizes the implementation and its GitHub, database and production release steps. It does not fabricate human playtest results or final media acceptance.
+
+- Chronist is added alongside Tidecaller: 17 Disciplines, 136 regular Skills, 17 Essences and 136 unordered pairs. Aetherist Adept unlocks Chronist; its eight Skills follow 4/2/2 acquisition. Existing testing grants include the new enabled Discipline through the existing provisioning mechanism.
+- Chronist schedules bounded Initiative changes for the next round (+20 Haste, -20 Delay, +40 Borrowed Hour, combined ±40). Each round remains a frozen order, each living unit receives one turn, and the next boundary restores base Initiative unless another effect was prepared. Lethal outgoing periodic damage excludes the defeated unit before the next turn is selected. No extra AP, extra turns or battle resets.
+- Rewind Step returns only to the current turn's recorded starting tile. Root, blocked/occupied destinations and an unchanged position make it illegal. It never refunds resources, movement, health or prior commands. Origins and round schedules survive authoritative snapshot reloads.
+- Normal player and AI Skill preview/commit now resolve the Resonance frozen in the committed build. The old isolated helper was tested but had not been wired into normal runtime. Setup persists through movement/end turn, the next authored Skill consumes or expires it, and the payoff is shown in previews without mutating state. Duplicate application through the older wrapper is prevented.
+- Advanced AI now compares authored Skill scores on the same difficulty scale as basic actions, and values reachable Resonance setup/payoff. Tests exercise every advanced committed library, legal costs, unchanged input state and a reloaded mixed payoff.
+- The complete recovered Ironfist media commit is retained. Chronist adds one generated painting at three runtime sizes plus three action and three Essence cues; exact originals, prompts, synthesis settings, hashes and testing-release manifests are retained. Human listening/visual acceptance remains open.
+- Representative Buildcraft triggers cover advanced combat content, Mastery routes/service, migrations, media routing and verification scripts. Its focused suites now include temporal mechanics, the advanced effect matrix and actual AI choices. Database coverage adds Chronist's prerequisite, four/six/eight acquisition and all sixteen pairs. Browser coverage adds Chronist presentation and retains Ironfist silent-preview/committed-audio checks.
+
+Validation and deployment results are recorded below when completed. Historical counts and release records earlier in this document refer to their original sixteen-Discipline snapshots.
+
+Release checkpoint: local `pnpm check` passed (1,095 tests including the six report tests). Automatic review blocked publishing to public `ZeiJM/Aurevane`; explicit destination approval is required. See `docs/PHASE_4_TICKETS.md` for remaining CI, earned-Mastery UI and coordinated migration/deployment steps. No live-release completion is claimed.

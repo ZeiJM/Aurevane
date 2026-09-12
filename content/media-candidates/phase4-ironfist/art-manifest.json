@@ -1,0 +1,38 @@
+{
+  "id": "discipline.foundation.ironfist-sigil",
+  "status": "candidate",
+  "approvedBy": null,
+  "requestId": "ART-DISC-002",
+  "sourceMethod": "generated",
+  "provider": "OpenAI image_gen built-in",
+  "createdAt": "2026-09-12",
+  "originalSha256": "d0c64f422dfbf922c82f39f95fae2c686acd1ad4b5beac251f3b79bd8155c4af",
+  "master": "content/media-candidates/phase4-ironfist/art/masters/ironfist-v01.webp",
+  "masterSha256": "48547c7f8b2cd2a918c9266944e9855b3ade562bd5718e4f91c723bf9320f885",
+  "masterWidth": 1254,
+  "masterHeight": 1254,
+  "prompt": "Use case: stylized-concept. Asset type: square Discipline identity artwork for the original tactical fantasy RPG AUREVANE, Ironfist. Create one premium painterly icon illustration, square 1024x1024. A single anatomically correct clenched human fist in worn ivory linen martial wraps and a dark brown leather wrist brace, seen three-quarter from the knuckles, driving upward with one restrained amber impact arc. The fist and wrapped wrist occupy the central 70 percent, completely within frame; strong readable silhouette even at 64px. Believable cloth folds, fraying and stitched leather, warm amber edge light against an atmospheric charcoal-brown background. Mature grounded fantasy, tactile hand-painted materials, controlled lighting, modest supernatural accent. Not a character portrait, no face, no second hand, no weapons, no UI or frame, no text, no typography, no logos, no watermark, no blood, no excessive bloom. Five-finger anatomy including naturally folded thumb; no duplicated fingers. Original unbranded design.",
+  "runtime": [
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/ironfist-64-v01.webp",
+      "width": 64,
+      "height": 64,
+      "bytes": 1608,
+      "sha256": "ff4668e4870f424afdff7874670076c2196e3a61740f181bb14b3c20e7473da1"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/ironfist-128-v01.webp",
+      "width": 128,
+      "height": 128,
+      "bytes": 4848,
+      "sha256": "17ece4424165ac6abb159b0fef307a72a586caeb0f0083a418734fc3edbfb3e1"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/ironfist-256-v01.webp",
+      "width": 256,
+      "height": 256,
+      "bytes": 15450,
+      "sha256": "b0ed89470e77bd2439f16557c5d274d4b194f2fd98e1dfe1a1635ea4f544f955"
+    }
+  ]
+}
