@@ -1,0 +1,199 @@
+name: Representative Buildcraft
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'packages/game-core/src/combat/**'
+      - 'packages/game-core/src/character/advanced-disciplines.ts'
+      - 'apps/web/src/media/**'
+      - 'packages/audio/**'
+      - 'supabase/migrations/**'
+      - '.github/scripts/verify-p4-*.sh'
+      - 'docs/PHASE_4_TICKETS.md'
+      - 'packages/game-core/src/combat/ironfist-content.ts'
+      - 'apps/web/src/components/character/skill-details*'
+      - 'apps/web/e2e/phase4-roster.pw.ts'
+      - 'apps/web/e2e/phase4-mastery.pw.ts'
+      - 'docs/PHASE_3_CLOSEOUT.md'
+      - 'docs/ROADMAP.md'
+      - 'apps/web/src/content/current-manual.ts'
+      - 'packages/game-core/src/combat/mature-skills.ts'
+      - 'packages/game-core/src/combat/representative-buildcraft.test.ts'
+      - 'packages/game-core/src/character/discipline-atlas.ts'
+      - 'packages/game-core/src/character/discipline-atlas.test.ts'
+      - 'apps/web/src/server/character/pv2-buildcraft-test-kit.ts'
+      - 'apps/web/src/server/character/discipline-mastery-service.ts'
+      - 'apps/web/src/app/api/character/build/pv2-test-kit/**'
+      - 'apps/web/src/app/api/character/mastery/route.ts'
+      - 'apps/web/src/app/game/character/page.tsx'
+      - 'apps/web/src/components/character/character-profile-shell.tsx'
+      - 'apps/web/src/components/character/character-pv2-test-kit.tsx'
+      - 'apps/web/src/components/character/character-pv2-test-kit.module.css'
+      - 'apps/web/src/components/character/discipline-mastery-panel.tsx'
+      - 'apps/web/src/components/character/discipline-mastery-panel.module.css'
+      - 'apps/web/e2e/p3-8-representative-buildcraft.pw.ts'
+      - 'apps/web/e2e/mixed-build-battle-entry.pw.ts'
+      - 'supabase/migrations/20260912070000_discipline_atlas_testing_separation.sql'
+      - '.github/scripts/verify-p4-mastery.sh'
+      - '.github/workflows/representative-buildcraft.yml'
+  push:
+    branches:
+      - 'agent/p3-8-representative-buildcraft-slice'
+      - 'agent/phase4-discipline-atlas-mastery'
+    paths:
+      - 'packages/game-core/src/combat/mature-skills.ts'
+      - 'packages/game-core/src/combat/representative-buildcraft.test.ts'
+      - 'packages/game-core/src/character/discipline-atlas.ts'
+      - 'packages/game-core/src/character/discipline-atlas.test.ts'
+      - 'apps/web/src/server/character/pv2-buildcraft-test-kit.ts'
+      - 'apps/web/src/server/character/discipline-mastery-service.ts'
+      - 'apps/web/src/app/api/character/build/pv2-test-kit/**'
+      - 'apps/web/src/app/api/character/mastery/route.ts'
+      - 'apps/web/src/app/game/character/page.tsx'
+      - 'apps/web/src/components/character/character-profile-shell.tsx'
+      - 'apps/web/src/components/character/character-pv2-test-kit.tsx'
+      - 'apps/web/src/components/character/character-pv2-test-kit.module.css'
+      - 'apps/web/src/components/character/discipline-mastery-panel.tsx'
+      - 'apps/web/src/components/character/discipline-mastery-panel.module.css'
+      - 'apps/web/e2e/p3-8-representative-buildcraft.pw.ts'
+      - 'apps/web/e2e/mixed-build-battle-entry.pw.ts'
+      - 'supabase/migrations/20260912070000_discipline_atlas_testing_separation.sql'
+      - '.github/scripts/verify-p4-mastery.sh'
+      - '.github/workflows/representative-buildcraft.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  representative-buildcraft:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Chromium
+        run: pnpm --filter @aurevane/web exec playwright install --with-deps chromium
+
+      - name: Focused formatting
+        run: |
+          pnpm exec prettier --check \
+            packages/game-core/src/character/discipline-atlas.ts \
+            packages/game-core/src/character/discipline-atlas.test.ts \
+            packages/game-core/src/combat/mature-skills.ts \
+            packages/game-core/src/combat/representative-buildcraft.test.ts \
+            apps/web/src/server/character/pv2-buildcraft-test-kit.ts \
+            apps/web/src/server/character/discipline-mastery-service.ts \
+            apps/web/src/app/api/character/build/pv2-test-kit/route.ts \
+            apps/web/src/app/api/character/mastery/route.ts \
+            apps/web/src/app/game/character/page.tsx \
+            apps/web/src/components/character/character-profile-shell.tsx \
+            apps/web/src/components/character/character-pv2-test-kit.tsx \
+            apps/web/src/components/character/character-pv2-test-kit.module.css \
+            apps/web/src/components/character/discipline-mastery-panel.tsx \
+            apps/web/src/components/character/discipline-mastery-panel.module.css \
+            apps/web/e2e/p3-8-representative-buildcraft.pw.ts \
+            apps/web/e2e/mixed-build-battle-entry.pw.ts \
+            .github/workflows/discipline-build-db.yml \
+            .github/workflows/representative-buildcraft.yml
+
+      - name: Focused lint
+        run: |
+          pnpm exec eslint \
+            packages/game-core/src/character/discipline-atlas.ts \
+            packages/game-core/src/character/discipline-atlas.test.ts \
+            packages/game-core/src/combat/mature-skills.ts \
+            packages/game-core/src/combat/representative-buildcraft.test.ts \
+            apps/web/src/server/character/pv2-buildcraft-test-kit.ts \
+            apps/web/src/server/character/discipline-mastery-service.ts \
+            apps/web/src/app/api/character/build/pv2-test-kit/route.ts \
+            apps/web/src/app/api/character/mastery/route.ts \
+            apps/web/src/app/game/character/page.tsx \
+            apps/web/src/components/character/character-profile-shell.tsx \
+            apps/web/src/components/character/character-pv2-test-kit.tsx \
+            apps/web/src/components/character/discipline-mastery-panel.tsx \
+            apps/web/e2e/p3-8-representative-buildcraft.pw.ts \
+            apps/web/e2e/mixed-build-battle-entry.pw.ts
+
+      - name: Typecheck
+        run: |
+          pnpm --filter @aurevane/game-core typecheck
+          pnpm --filter @aurevane/web typecheck
+
+      - name: Focused representative tests
+        run: |
+          pnpm --filter @aurevane/game-core exec vitest run \
+            src/character/discipline-atlas.test.ts \
+            src/combat/mature-skills.test.ts \
+            src/combat/representative-buildcraft.test.ts \
+            src/combat/chronist.test.ts \
+            src/combat/phase4-effects.test.ts \
+            src/combat/recruit-ai-build.test.ts
+
+      - name: Start local Supabase stack
+        run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
+
+      - name: Rebuild local database
+        run: pnpm exec supabase db reset --local
+
+      - name: Verify normal Ironfist database provisioning
+        run: bash .github/scripts/verify-p4-ironfist.sh
+
+      - name: Verify Phase 4 Mastery authority
+        run: bash .github/scripts/verify-p4-mastery.sh
+
+      - name: Build and verify PV-2 Profile flow
+        shell: bash
+        run: |
+          set -euo pipefail
+          status_env="$(pnpm exec supabase status -o env)"
+          eval "$(printf '%s\n' "$status_env" | grep -E '^(ANON_KEY|SERVICE_ROLE_KEY|SECRET_KEY)=')"
+          test -n "${ANON_KEY:-}"
+          server_key="${SECRET_KEY:-${SERVICE_ROLE_KEY:-}}"
+          test -n "$server_key"
+          api_url='http://127.0.0.1:54321'
+
+          AUREVANE_ENV=local \
+          NEXT_PUBLIC_AUREVANE_ENV=local \
+          NEXT_PUBLIC_SUPABASE_URL="$api_url" \
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
+          SUPABASE_SECRET_KEY="$server_key" \
+          AUREVANE_PV2_TEST_MODE=1 \
+          pnpm --filter @aurevane/web build
+
+          AUREVANE_ENV=local \
+          NEXT_PUBLIC_AUREVANE_ENV=local \
+          NEXT_PUBLIC_SUPABASE_URL="$api_url" \
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
+          SUPABASE_SECRET_KEY="$server_key" \
+          AUREVANE_PV2_TEST_MODE=1 \
+          pnpm --filter @aurevane/web exec playwright test \
+            e2e/phase4-roster.pw.ts \
+            e2e/phase4-mastery.pw.ts \
+            e2e/p3-8-representative-buildcraft.pw.ts \
+            e2e/mixed-build-battle-entry.pw.ts \
+            --config=playwright.config.ts
+
+      - name: Save browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phase4-browser-evidence
+          path: apps/web/test-results
+          retention-days: 7
+
+      - name: Stop local Supabase services
+        if: always()
+        run: pnpm exec supabase stop --no-backup
