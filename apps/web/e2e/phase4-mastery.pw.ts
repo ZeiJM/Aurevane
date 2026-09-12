@@ -151,7 +151,7 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
               label: tile.getAttribute('aria-label') ?? '',
               xy: (tile.getAttribute('aria-label') ?? '').match(/^Tile (\d+), (\d+)/),
             }))
-            .filter((tile) => tile.xy)
+            .filter((tile) => tile.xy && !tile.label.includes('occupied by'))
             .map((tile) => ({
               label: tile.label,
               distance:
