@@ -39,7 +39,7 @@ test('Profile Atlas stays inside Discipline Management and fits each supported v
   await expect(bastion).toContainText('Vanguard Adept')
   await expect(bastion).toContainText('0/1,000 XP')
   const chronist = cards.filter({ has: page.getByText('Chronist', { exact: true }) })
-  await expect(chronist).toContainText('Rekindling I')
+  await expect(chronist).toContainText('Rekindling 1 + Aetherist Adept')
   await expect(management).toContainText('Ordinary sparring grants no Mastery XP.')
   await expect(management.getByRole('link', { name: 'Mastery Trial guide' })).toHaveAttribute(
     'href',

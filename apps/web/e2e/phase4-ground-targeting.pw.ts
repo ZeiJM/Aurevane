@@ -2,7 +2,7 @@ import { expect, test, type Page, type TestInfo } from '@playwright/test'
 import type { BattleSessionView } from '../src/server/battle/battle-session-service'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
-test.use({ trace: 'on' })
+test.use({ trace: 'on', actionTimeout: 15_000 })
 
 async function provision(page: Page, prefix: string, testInfo: TestInfo) {
   const seed = `${Date.now()}${Math.floor(Math.random() * 10000)}`
@@ -56,6 +56,10 @@ async function castOnEmptyGround(page: Page, name: string, testInfo: TestInfo) {
     expect(response.status()).toBe(200)
     return (await response.json()).battle
   }
+  // The shared UI has mode-specific authoritative transports (see commitValue).
+  await expect(root).toHaveAttribute('data-battle-kind', /^(pve|pvp)$/)
+  const commitEndpoint =
+    (await root.getAttribute('data-battle-kind')) === 'pvp' ? '/commit' : '/intents'
   const before = await read()
   const actor = before.snapshot.tactical.placements.find(
     (row) => row.combatantId === before.snapshot.tactical.battle.currentTurn?.combatantId,
@@ -85,7 +89,7 @@ async function castOnEmptyGround(page: Page, name: string, testInfo: TestInfo) {
   const commits: string[] = []
   page.on('request', (request) => {
     if (/\/audio\?/.test(request.url())) audioRequests.push(request.url())
-    if (request.url().endsWith('/intents') && request.method() === 'POST')
+    if (/\/(intents|commit|final-turn)$/.test(request.url()) && request.method() === 'POST')
       commits.push(request.url())
   })
   let chosen = candidates[0]!
@@ -176,7 +180,10 @@ async function castOnEmptyGround(page: Page, name: string, testInfo: TestInfo) {
   ).toBe(true)
   await root.locator('summary').filter({ hasText: 'Terrain & effect details' }).click()
   const committed = page.waitForResponse(
-    (response) => response.url().endsWith('/intents') && response.request().method() === 'POST',
+    (response) =>
+      response.url().endsWith(`/api/battles/${sessionId}${commitEndpoint}`) &&
+      response.request().method() === 'POST',
+    { timeout: 15_000 },
   )
   await root.getByRole('button', { name: 'Confirm Action', exact: true }).click()
   const committedResponse = await committed
@@ -200,7 +207,11 @@ async function castOnEmptyGround(page: Page, name: string, testInfo: TestInfo) {
   )
   await root.getByRole('button', { name: 'Inspect, Free', exact: true }).click()
   await overlay.click()
-  await expect(root.locator('[data-battle-instruction-row="true"]')).toContainText('Frozen terrain')
+  const instructionHost = root.locator(
+    'section[aria-label="Command Deck"] > [data-battle-instruction-host="true"]',
+  )
+  await expect(instructionHost).toHaveCount(1)
+  await expect(instructionHost).toContainText('Frozen terrain')
   await page.reload()
   await expect(overlay).toHaveAttribute('data-terrain-overlay', 'frozen')
   expect((await read()).snapshot.terrainOverlays).toEqual(after.snapshot.terrainOverlays)
@@ -238,6 +249,7 @@ test('PvP ground Skill uses the same forecast and spectator terrain inspection',
     ...testInfo.project.use,
     baseURL: 'http://127.0.0.1:3100',
   })
+  let scenarioCompleted = false
   try {
     const guest = await guestContext.newPage()
     const spectator = await spectatorContext.newPage()
@@ -288,8 +300,14 @@ test('PvP ground Skill uses the same forecast and spectator terrain inspection',
       body: await spectator.screenshot(),
       contentType: 'image/png',
     })
+    scenarioCompleted = true
   } finally {
-    await guestContext.close()
-    await spectatorContext.close()
+    // Close both contexts without replacing the original assertion/transport failure.
+    const cleanup = await Promise.allSettled([guestContext.close(), spectatorContext.close()])
+    if (scenarioCompleted) {
+      for (const result of cleanup) {
+        if (result.status === 'rejected') throw result.reason
+      }
+    }
   }
 })
