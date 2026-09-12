@@ -1,5 +1,6 @@
 name: Atlas secondary testing maintenance
 
+# One-shot repair for the authoritative Phase-4 testing policy.
 on:
   push:
     branches:
