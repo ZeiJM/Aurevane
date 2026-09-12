@@ -46,7 +46,10 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   await page.getByRole('link', { name: 'Back to Character Profile' }).click()
   await expect(page).toHaveURL(/\/game\/character$/)
   await page.getByRole('button', { name: 'Navigation' }).click()
-  await page.getByRole('link', { name: /Battle Hall/ }).click()
+  await page
+    .getByRole('navigation', { name: 'Game navigation', exact: true })
+    .getByRole('link', { name: /Battle Hall/ })
+    .click()
   await expect(page).toHaveURL(/\/game\/battle$/)
 
   await expect(page.getByRole('heading', { name: 'Choose your arena.' })).toBeVisible()

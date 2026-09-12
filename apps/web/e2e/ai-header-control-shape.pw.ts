@@ -24,7 +24,9 @@ test('keeps desktop AI Victory Conditions and Combat Log visually matched withou
   await createAccountAndEnterCharacter({ page, email, password, characterName })
 
   await page.getByRole('button', { name: 'Navigation' }).click()
-  const battleHallLink = page.getByRole('link', { name: /Battle Hall/ })
+  const battleHallLink = page
+    .getByRole('navigation', { name: 'Game navigation', exact: true })
+    .getByRole('link', { name: /Battle Hall/ })
   await battleHallLink.focus()
   await battleHallLink.press('Enter')
 

@@ -32,7 +32,10 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   await createAccountAndEnterCharacter({ page, email, password, characterName })
 
   await page.getByRole('button', { name: 'Navigation' }).click()
-  await page.getByRole('link', { name: /Battle Hall/ }).click()
+  await page
+    .getByRole('navigation', { name: 'Game navigation', exact: true })
+    .getByRole('link', { name: /Battle Hall/ })
+    .click()
   await expect(page).toHaveURL(/\/game\/battle$/)
 
   await page.getByLabel('Battle mode').selectOption('recruit-sparring')

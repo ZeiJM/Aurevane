@@ -39,15 +39,6 @@
 
 /* The sheet can be narrower than the viewport beside the character and navigation rails. */
 @container (max-width: 740px) {
-  .details [data-profile-section-header] {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0.3rem;
-  }
-
-  .details [data-profile-section-header] > small {
-    text-align: left;
-  }
-
   .details [data-testid^='profile-attribute-'] {
     grid-template-columns: minmax(0, 1fr);
     justify-items: center;
@@ -58,6 +49,17 @@
     grid-template-columns: 1.5rem minmax(0, auto);
     gap: 0.4rem;
     padding-inline: 0.4rem;
+  }
+}
+
+@container (max-width: 600px) {
+  .details [data-profile-section-header] {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.3rem;
+  }
+
+  .details [data-profile-section-header] > small {
+    text-align: left;
   }
 }
 

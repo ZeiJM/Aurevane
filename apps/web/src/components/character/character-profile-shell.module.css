@@ -194,7 +194,7 @@
 }
 
 .profile {
-  padding: 1.15rem;
+  padding: 1rem;
   background:
     radial-gradient(80% 26rem at 0 0, rgba(55, 86, 113, 0.16), transparent 90%),
     linear-gradient(160deg, #15212d, #0d151e 70%);
@@ -367,6 +367,14 @@
 }
 
 @media (min-width: 1280px) and (max-height: 850px) {
+  .buildSection {
+    padding-block: 0.7rem;
+  }
+
+  .buildHeading {
+    padding-bottom: 0.5rem;
+  }
+
   .portrait {
     max-width: 8.5rem;
     justify-self: center;

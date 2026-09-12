@@ -250,7 +250,7 @@ export function CharacterProfileShell({
               <h2>Character Sheet</h2>
             </div>
             <span className={styles.buildMode}>
-              {disciplineBuild.currentSecondary ? 'Mixed Discipline' : 'Pure Discipline'}
+              {disciplineBuild.currentSecondary ? 'Mixed Build' : 'Pure Build'}
             </span>
           </header>
 
