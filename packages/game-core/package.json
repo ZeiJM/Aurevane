@@ -7,6 +7,7 @@
     "./character/attribute-allocation": "./src/character/attribute-allocation.ts",
     "./character/creation": "./src/character/creation.ts",
     "./character/derived-stats": "./src/character/derived-stats.ts",
+    "./character/discipline-atlas": "./src/character/discipline-atlas.ts",
     "./character/discipline-build": "./src/character/discipline-build.ts",
     "./character/discipline-skill-loadout": "./src/character/discipline-skill-loadout.ts",
     "./character/foundation-disciplines": "./src/character/foundation-disciplines.ts",
