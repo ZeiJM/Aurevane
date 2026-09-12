@@ -32,6 +32,7 @@ on:
       - 'apps/web/src/components/character/character-pv2-test-kit.tsx'
       - 'apps/web/src/components/character/character-pv2-test-kit.module.css'
       - 'apps/web/src/components/battle/**'
+      - 'apps/web/src/app/game/battle/**'
       - 'apps/web/src/components/character/skill-detail-presentation*'
       - 'apps/web/src/components/character/character-discipline-build-panel.tsx'
       - 'apps/web/src/components/public-information/discipline-atlas-guide*'
@@ -219,6 +220,8 @@ jobs:
             src/components/battle/battle-keyboard-assist.tsx \
             src/components/battle/battle-log-presentation.ts \
             src/components/battle/battle-preview-selection.test.ts \
+            src/components/battle/battle-skill-command.test.tsx \
+            src/components/battle/phase4-combat-art.test.ts \
             src/components/battle/battle-preview-selection.ts \
             src/components/battle/desktop-battle-combatant-inspect.tsx \
             src/components/battle/pvp-battle-inspect-popup.tsx \
@@ -239,6 +242,9 @@ jobs:
       - name: Focused shared targeting and presentation tests
         run: |
           pnpm --filter @aurevane/web exec vitest run \
+            src/app/game/character/page.test.ts \
+            src/components/battle/battle-skill-command.test.tsx \
+            src/components/battle/phase4-combat-art.test.ts \
             src/components/battle/battle-geometry.test.ts \
             src/components/battle/battle-preview-selection.test.ts \
             src/components/battle/battle-inspect-terrain-context.test.ts \

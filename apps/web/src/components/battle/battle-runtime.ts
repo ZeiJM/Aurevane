@@ -18,6 +18,7 @@ export interface BattleTechniquePresentation {
   targetKind: 'self' | 'unit' | 'ground-tile' | 'empty-tile'
   minimumRange: number
   maximumRange: number
+  tags: readonly string[]
 }
 
 export interface BattleResonancePresentation {
@@ -34,6 +35,7 @@ export interface BattleEssencePresentation {
   description: string
   apCost: number
   cooldownOwnerTurns: number
+  tags: readonly string[]
 }
 
 interface BattleBuildPresentation {

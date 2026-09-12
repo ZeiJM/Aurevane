@@ -170,7 +170,7 @@ async function plotOneDesktopWasdStep(
   await expect(battlefield.getByText('1', { exact: true })).toHaveCount(1)
 }
 
-async function expectDesktopRailPortraitFill(root: ReturnType<Page['locator']>) {
+async function expectDesktopCombatantCard(root: ReturnType<Page['locator']>) {
   const card = root.locator('[data-unified-combatant-rail="true"] article').first()
   await expect(card).toBeVisible()
   const geometry = await card.evaluate((element) => {
@@ -181,6 +181,8 @@ async function expectDesktopRailPortraitFill(root: ReturnType<Page['locator']>) 
     const cardRect = element.getBoundingClientRect()
     const headingRect = heading.getBoundingClientRect()
     const portraitRect = portrait.getBoundingClientRect()
+    const resourceRect = portrait.nextElementSibling!.getBoundingClientRect()
+    const effectsRect = element.lastElementChild!.getBoundingClientRect()
     return {
       cardLeft: cardRect.left,
       cardRight: cardRect.right,
@@ -190,11 +192,16 @@ async function expectDesktopRailPortraitFill(root: ReturnType<Page['locator']>) 
       portraitRight: portraitRect.right,
       portraitTop: portraitRect.top,
       portraitBottom: portraitRect.bottom,
+      resourceTop: resourceRect.top,
+      effectsBottom: effectsRect.bottom,
     }
   })
   expect(Math.abs(geometry.portraitLeft - geometry.cardLeft)).toBeLessThanOrEqual(2)
   expect(Math.abs(geometry.portraitRight - geometry.cardRight)).toBeLessThanOrEqual(2)
-  expect(Math.abs(geometry.portraitBottom - geometry.cardBottom)).toBeLessThanOrEqual(2)
+  expect(Math.abs(geometry.portraitBottom - geometry.resourceTop)).toBeLessThanOrEqual(2)
+  expect(Math.abs(geometry.effectsBottom - geometry.cardBottom)).toBeLessThanOrEqual(2)
+  await expect(card).toContainText(/HP.*MP/s)
+  await expect(card.getByRole('region', { name: /active combat effects/ })).toBeVisible()
   expect(Math.abs(geometry.portraitTop - geometry.headingBottom)).toBeLessThanOrEqual(2)
 }
 
@@ -250,7 +257,7 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
     })
     expect(Math.abs(widths.button - widths.parent)).toBeLessThanOrEqual(2)
   } else {
-    await expectDesktopRailPortraitFill(root)
+    await expectDesktopCombatantCard(root)
     await plotOneDesktopWasdStep(page, root, identity.characterName)
   }
 })
@@ -335,7 +342,7 @@ test('keeps requested PvP presentation parity on desktop and mobile', async ({
       await expect(activeRoot.locator('[data-battle-notice="true"] > span')).toBeHidden()
       await expectMobileTokenMeters(activeRoot)
     } else {
-      await expectDesktopRailPortraitFill(activeRoot)
+      await expectDesktopCombatantCard(activeRoot)
       await plotOneDesktopWasdStep(activePage, activeRoot, activeName)
     }
   } finally {

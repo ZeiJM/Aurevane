@@ -337,6 +337,8 @@
   z-index: 1000;
   display: grid;
   width: min(17rem, calc(100vw - 1rem));
+  max-height: calc(100dvh - 1rem);
+  overflow-y: auto;
   gap: 0.22rem;
   padding: 0.38rem;
   border: 1px solid rgba(var(--skill-rgb), 0.5);
@@ -349,6 +351,32 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.04),
     0 0.65rem 1.6rem rgba(0, 0, 0, 0.52),
     0 0 0.8rem rgba(var(--skill-rgb), 0.11);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  min-width: 0;
+  text-align: left;
+}
+
+.tags > span {
+  max-width: 100%;
+  padding: 2px 5px;
+  border: 1px solid rgba(var(--skill-rgb), 0.25);
+  border-radius: 4px;
+  color: #e1e6e8;
+  background: rgba(var(--skill-rgb), 0.08);
+  font: 550 12px/1.25 var(--av-font-body);
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+.action > .tags {
+  grid-column: 1;
+  grid-row: 4;
+  margin-top: 3px;
 }
 
 .selectorHeading {
@@ -405,14 +433,69 @@
 
 .selectorOption strong {
   overflow: hidden;
-  font: 650 0.66rem/1 var(--av-font-display);
+  font: 650 14px/1.2 var(--av-font-display);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .selectorOption small {
   color: rgba(var(--skill-rgb), 0.88);
-  font: 700 0.37rem/1 var(--av-font-mono);
+  font: 700 12px/1 var(--av-font-mono);
+}
+
+/* The effect strip spans the card below the header and artwork. Keep the artwork out of the
+   text flow without reserving its width for every wrapped tag row. */
+.shell[data-has-skill-tags] .action {
+  grid-template-columns: minmax(0, 1fr) 2.75rem !important;
+  grid-template-rows: 0.85rem 1.2rem 0.8rem auto !important;
+  align-content: start !important;
+  gap: 0.15rem !important;
+  padding: 0.4rem !important;
+}
+
+.shell[data-has-skill-tags] .action::after {
+  display: none;
+}
+
+.shell[data-has-skill-tags] .action > small {
+  font-size: 12px !important;
+}
+
+.shell[data-has-skill-tags] .action > .tags {
+  grid-column: 1 / -1;
+}
+
+.shell[data-has-skill-tags] .artwork,
+.shell[data-has-skill-tags] .artworkTrigger {
+  top: 0.4rem;
+  right: 0.4rem;
+  width: 2.6rem;
+  height: 2.6rem;
+  transform: none;
+}
+
+@media (max-width: 580px) {
+  .shell[data-has-skill-tags] .action {
+    grid-template-columns: minmax(0, 1fr) 2.35rem !important;
+    grid-template-rows: 1.4rem 0.9rem auto !important;
+    padding: 0.35rem !important;
+  }
+
+  .shell[data-has-skill-tags] .action > strong {
+    font-size: 14px !important;
+  }
+
+  .shell[data-has-skill-tags] .action > .tags {
+    grid-row: 3;
+  }
+
+  .shell[data-has-skill-tags] .artwork,
+  .shell[data-has-skill-tags] .artworkTrigger {
+    top: 0.35rem;
+    right: 0.35rem;
+    width: 2.18rem;
+    height: 2.18rem;
+  }
 }
 
 .selectorOption b {
@@ -606,50 +689,57 @@
   }
 }
 
-/* A compact illustrated deck, shared by PvE and PvP; mobile keeps its existing touch layout. */
+/* Compact shared desktop headers leave the full card width available for readable effect tags. */
 @media (min-width: 821px) {
-  :global(main[data-unified-battle='true'][data-battle-kind]) .shell,
-  :global(main[data-unified-battle='true'][data-battle-kind]) .action {
-    height: 4.75rem !important;
-    min-height: 4.75rem !important;
+  :global(main[data-unified-battle='true'][data-battle-kind]) .shell {
+    height: auto !important;
+    min-height: 6rem !important;
   }
   :global(main[data-unified-battle='true'][data-battle-kind]) .action {
-    grid-template-rows: auto auto !important;
-    align-content: end !important;
-    justify-items: center !important;
-    gap: 0.2rem !important;
-    padding: 2.3rem 0.35rem 0.45rem !important;
-    text-align: center !important;
+    height: 100% !important;
+    min-height: 6rem !important;
+    grid-template-columns: minmax(0, 1fr) 2.3rem !important;
+    grid-template-rows: 0.7rem 1.25rem 1rem auto !important;
+    align-content: start !important;
+    justify-items: start !important;
+    gap: 0.12rem !important;
+    padding: 0.4rem !important;
+    text-align: left !important;
   }
   :global(main[data-unified-battle='true']) .action::after {
     display: none;
   }
   :global(main[data-unified-battle='true'][data-battle-kind]) .action > .hotkey {
-    position: absolute;
-    top: 0.35rem;
-    left: 0.35rem;
+    grid-row: 1 !important;
+    grid-column: 1 !important;
+    padding: 0.1rem 0.2rem !important;
     font-size: 0.5625rem !important;
   }
   :global(main[data-unified-battle='true'][data-battle-kind]) .action > strong {
-    grid-row: 1 !important;
+    grid-row: 2 !important;
     font-size: 0.8125rem !important;
     line-height: 1.15 !important;
-    text-align: center !important;
+    text-align: left !important;
   }
   :global(main[data-unified-battle='true'][data-battle-kind]) .action > small {
-    grid-row: 2 !important;
-    font-size: 0.625rem !important;
+    grid-row: 3 !important;
+    font-size: 0.75rem !important;
     line-height: 1.15 !important;
     letter-spacing: 0;
-    text-align: center !important;
+    text-align: left !important;
   }
-  :global(main[data-unified-battle='true']) .artwork,
-  :global(main[data-unified-battle='true']) .artworkTrigger {
-    top: 0.25rem;
-    right: 50%;
-    width: 2.1rem;
-    height: 2.1rem;
-    transform: translateX(50%);
+  :global(main[data-unified-battle='true'][data-battle-kind]) .action > .tags {
+    grid-row: 4 !important;
+    grid-column: 1 / -1 !important;
+    margin-top: 0.25rem;
+  }
+  :global(main[data-unified-battle='true'][data-battle-kind]) .artwork,
+  :global(main[data-unified-battle='true'][data-battle-kind]) .artworkTrigger {
+    top: 0.4rem;
+    right: 0.4rem;
+    width: 2.3rem;
+    height: 2.3rem;
+    transform: none;
     border-radius: 0.4rem;
   }
 }

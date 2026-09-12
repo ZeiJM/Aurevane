@@ -230,6 +230,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     await expect(details.getByRole('region', { name: 'Recorded action result' })).toContainText(
       /Guard|damage/i,
     )
+    await page.screenshot({ path: testInfo.outputPath('battle-action-details.png') })
     await page.keyboard.press('Space')
     await page.keyboard.press('w')
     await expect(details).toBeVisible()

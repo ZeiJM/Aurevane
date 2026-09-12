@@ -2,38 +2,33 @@
   display: none;
 }
 
-/*
- * The compact desktop cockpit uses two fixed tracks: a 2.4rem context strip and
- * 4.75rem command cards. Keep the parent grid on those same tracks while Finish Turn hands control
- * to Recruit/AI so intrinsic disabled/preview content cannot briefly give the battlefield extra room.
- */
-@media (min-width: 821px) and (min-height: 721px) {
+/* Effect tags determine the compact card row's natural height. The selected skills and their
+   tags persist during turn handoff, so disabling actions cannot change this geometry. */
+@media (min-width: 821px) {
   :global(
     main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
       [data-unified-command-deck='true']
   ) {
-    grid-template-rows: 2.4rem 4.75rem !important;
+    grid-template-rows: 1.8rem auto !important;
   }
-
   :global(
     main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
       [data-unified-command-deck='true']
       > div:first-child
   ) {
-    height: 2.4rem !important;
-    min-height: 2.4rem !important;
-    max-height: 2.4rem !important;
+    height: 1.8rem !important;
+    min-height: 1.8rem !important;
+    max-height: 1.8rem !important;
     box-sizing: border-box !important;
   }
-
   :global(
     main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
       [data-unified-command-deck='true']
       > div:nth-child(2)
   ) {
-    height: 4.75rem !important;
-    min-height: 4.75rem !important;
-    max-height: 4.75rem !important;
+    height: auto !important;
+    min-height: 6rem !important;
+    max-height: none !important;
     align-self: stretch !important;
   }
 }

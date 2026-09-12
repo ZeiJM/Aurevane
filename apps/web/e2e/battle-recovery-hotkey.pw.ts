@@ -36,7 +36,7 @@ test('routes the Recovery hotkey to the stable slot after swapping HP Recovery t
   const artwork = recoveryCard.getByRole('button', { name: /Choose Heal skill/i })
 
   await expect(recovery).toContainText('HP Recovery')
-  await expect(recovery.locator(':scope > span')).toContainText('5')
+  await expect(recovery.locator(':scope > [data-battle-command-hotkey]')).toContainText('5')
 
   await artwork.click()
   const selector = page.getByRole('listbox', { name: 'Heal skills' })
@@ -44,7 +44,7 @@ test('routes the Recovery hotkey to the stable slot after swapping HP Recovery t
   await selector.getByRole('option', { name: /MP Recovery/ }).click()
   await expect(selector).toBeHidden()
   await expect(recovery).toContainText('MP Recovery')
-  await expect(recovery.locator(':scope > span')).toContainText('5')
+  await expect(recovery.locator(':scope > [data-battle-command-hotkey]')).toContainText('5')
 
   // Count the real cockpit button invocation rather than relying on the currently equipped heal's
   // resource legality. The keyboard contract is slot-based: Digit5 must reach this same button

@@ -8,6 +8,7 @@ import { redirect } from 'next/navigation'
 import { BattleAudioGate } from '@/components/battle/battle-audio-gate'
 import { BattleClientBoundary } from '@/components/battle/battle-client-boundary'
 import type { BattleTechniqueCategory } from '@/components/battle/battle-runtime'
+import { skillTargetTags } from '@/components/character/skill-detail-presentation'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
@@ -81,6 +82,7 @@ function battleBuildExtensions(
         targetKind: definition.target.kind,
         minimumRange: definition.target.minimumRange,
         maximumRange: definition.target.maximumRange,
+        tags: skillTargetTags(definition),
       },
     ]
   })
@@ -104,6 +106,7 @@ function battleBuildExtensions(
           apCost: essenceOverride?.apCost ?? essenceDefinition.skill.apCost,
           cooldownOwnerTurns:
             essenceOverride?.cooldownOwnerTurns ?? essenceDefinition.skill.cooldown.ownerTurns,
+          tags: skillTargetTags(essenceDefinition.skill),
         }
       : null,
   }

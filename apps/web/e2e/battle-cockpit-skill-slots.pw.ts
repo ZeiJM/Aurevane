@@ -63,11 +63,13 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   }
   await expect(healAction).toContainText('HP Recovery')
   await expect(healAction).toContainText('50 AP')
-  const slotHotkeyBefore = await healAction.locator(':scope > span').textContent()
+  const slotHotkeyBefore = await healAction
+    .locator(':scope > [data-battle-command-hotkey]')
+    .textContent()
 
   const cardGeometry = await healCard.evaluate((card) => {
     const action = card.querySelector<HTMLElement>('[data-battle-command="recover"]')
-    const hotkey = action?.querySelector<HTMLElement>(':scope > span')
+    const hotkey = action?.querySelector<HTMLElement>(':scope > [data-battle-command-hotkey]')
     const label = action?.querySelector<HTMLElement>(':scope > strong')
     const cost = action?.querySelector<HTMLElement>(':scope > small')
     if (!action || !hotkey || !label || !cost) return null
@@ -95,7 +97,7 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   if (!cardGeometry) return
   expect(cardGeometry.labelLeft).toBeGreaterThan(cardGeometry.actionLeft)
   expectNear(cardGeometry.labelLeft, cardGeometry.costLeft)
-  const expectedAlignment = testInfo.project.name === 'mobile-chromium' ? 'left' : 'center'
+  const expectedAlignment = 'left'
   expect(cardGeometry.labelTextAlign).toBe(expectedAlignment)
   expect(cardGeometry.costTextAlign).toBe(expectedAlignment)
   expect(cardGeometry.costTop - cardGeometry.labelBottom).toBeLessThanOrEqual(8)
@@ -233,7 +235,9 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   await expect(selector).toBeHidden()
   await expect(healAction).toContainText('MP Recovery')
   await expect(healAction).toContainText('50 AP')
-  await expect(healAction.locator(':scope > span')).toHaveText(slotHotkeyBefore ?? '')
+  await expect(healAction.locator(':scope > [data-battle-command-hotkey]')).toHaveText(
+    slotHotkeyBefore ?? '',
+  )
   await expect(healArtwork).toHaveAttribute('aria-label', /MP Recovery selected/i)
 
   const mpImage = healArtwork.locator('img')
@@ -266,5 +270,7 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   await refreshedHealArtwork.click()
   await page.getByRole('option', { name: /HP Recovery/ }).click()
   await expect(refreshedHealAction).toContainText('HP Recovery')
-  await expect(refreshedHealAction.locator(':scope > span')).toHaveText(slotHotkeyBefore ?? '')
+  await expect(refreshedHealAction.locator(':scope > [data-battle-command-hotkey]')).toHaveText(
+    slotHotkeyBefore ?? '',
+  )
 })

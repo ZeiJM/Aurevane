@@ -236,9 +236,13 @@ test('keeps the live desktop PvP header, opponent timer, and full board stable',
     // The complete board must stay inside the battlefield, but it must also use the battlefield.
     // The production regression that prompted this test satisfied containment with a tiny board,
     // so guard the viewport fill and board footprint explicitly instead of checking only maxima.
-    expect(geometry.viewportHeight).toBeGreaterThan(geometry.battlefieldHeight * 0.8)
+    expect(geometry.viewportHeight + geometry.legendHeight).toBeGreaterThan(
+      geometry.battlefieldHeight - 12,
+    )
     expect(geometry.boardHeight).toBeGreaterThan(geometry.viewportHeight * 0.72)
-    expect(geometry.boardWidth).toBeGreaterThan(geometry.battlefieldWidth * 0.3)
+    expect(geometry.boardWidth).toBeGreaterThan(
+      Math.min(620, ((geometry.viewportHeight - 12) * 9) / 7) * 0.95,
+    )
     expect(Math.abs(geometry.boardWidth / geometry.boardHeight - 9 / 7)).toBeLessThanOrEqual(0.05)
     expect(Math.abs(geometry.firstTileWidth - geometry.firstTileHeight)).toBeLessThanOrEqual(1.5)
     expect(geometry.boardWidth).toBeLessThanOrEqual(621)
@@ -251,11 +255,13 @@ test('keeps the live desktop PvP header, opponent timer, and full board stable',
 
     await host.waitForTimeout(1_250)
     const afterPollGeometry = await readGeometry()
-    expect(afterPollGeometry.viewportHeight).toBeGreaterThan(
-      afterPollGeometry.battlefieldHeight * 0.8,
+    expect(afterPollGeometry.viewportHeight + afterPollGeometry.legendHeight).toBeGreaterThan(
+      afterPollGeometry.battlefieldHeight - 12,
     )
     expect(afterPollGeometry.boardHeight).toBeGreaterThan(afterPollGeometry.viewportHeight * 0.72)
-    expect(afterPollGeometry.boardWidth).toBeGreaterThan(afterPollGeometry.battlefieldWidth * 0.3)
+    expect(afterPollGeometry.boardWidth).toBeGreaterThan(
+      Math.min(620, ((afterPollGeometry.viewportHeight - 12) * 9) / 7) * 0.95,
+    )
     expect(afterPollGeometry.boardWidth).toBeLessThanOrEqual(621)
     expect(afterPollGeometry.boardBottom).toBeLessThanOrEqual(afterPollGeometry.viewportBottom + 1)
   } finally {

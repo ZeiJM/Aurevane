@@ -225,7 +225,9 @@ async function expectVictoryConditionsBesideActionEconomy(
   expect(horizontalGap).toBeGreaterThanOrEqual(-1)
   expect(horizontalGap).toBeLessThanOrEqual(24)
 
-  const economyCenterY = economyBox.y + economyBox.height / 2
+  const economyPanelBox = await page.locator('[data-unified-battle-economy="true"]').boundingBox()
+  expect(economyPanelBox).not.toBeNull()
+  const economyCenterY = economyPanelBox!.y + economyPanelBox!.height / 2
   const victoryCenterY = victoryBox.y + victoryBox.height / 2
   expect(Math.abs(economyCenterY - victoryCenterY)).toBeLessThanOrEqual(10)
 }

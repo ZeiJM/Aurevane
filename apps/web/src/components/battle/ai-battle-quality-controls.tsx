@@ -509,7 +509,7 @@ export function AiBattleQualityControls({
                   color: clock?.active && seconds <= 10 ? '#e48b78' : 'var(--av-brass-200)',
                 }}
               >
-                {clock?.active ? `${seconds}s left` : 'Opponent turn'}
+                {clock?.active ? `${seconds}s` : 'Opponent turn'}
               </span>
               {error ? <span style={{ color: '#e2a0a0' }}>{error}</span> : null}
             </span>,

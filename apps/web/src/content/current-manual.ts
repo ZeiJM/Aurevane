@@ -341,6 +341,7 @@ const battleHallArticle: ManualArticle = {
       title: 'Elemental setup and payoffs',
       paragraphs: [
         'Scorched, Bleeding and Poisoned are the gameplay tags for Burn, Bleed and Poison. Skills can require tags such as Frozen or Conductive; their details explain which setup is needed before a payoff becomes legal.',
+        'Battle Technique buttons and their skill pickers show target, shape and effect tags from the build committed to that battle. Tags describe the full Technique; the target preview shows its actual legal effects, costs and consecutive-use reduction before confirmation. Dispel removes listed protection; Cleanse removes listed harmful effects.',
         'Water Skills can apply Wet. Against Wet or Conductive, the first positive storm hit per target per command gains a bounded 20% bonus. Conductive is consumed; Wet remains. Having both conditions does not double the bonus. Positive fire damage clears Wet and Frozen from the damaged unit.',
       ],
     },

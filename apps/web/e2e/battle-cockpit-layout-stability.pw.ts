@@ -19,7 +19,7 @@ function uniqueIdentity(prefix: string): { email: string; characterName: string 
   }
 }
 
-async function expectStableFullDesktopCockpit(page: Page) {
+async function expectStableCompactDesktopCockpit(page: Page) {
   const deck = page.locator('section[aria-label="Command Deck"]')
   const commands = deck.locator('[data-command-card]')
   const facingPad = deck.locator('[data-unified-facing-pad="true"]')
@@ -31,7 +31,8 @@ async function expectStableFullDesktopCockpit(page: Page) {
   const before = await commands.evaluateAll((cards) =>
     cards.map((card) => card.getBoundingClientRect().height),
   )
-  expect(Math.min(...before)).toBeGreaterThanOrEqual(95)
+  expect(Math.min(...before)).toBeGreaterThanOrEqual(92)
+  expect(Math.max(...before)).toBeLessThanOrEqual(160)
 
   await deck.getByRole('button', { name: /Move/ }).click()
   await expect(facingPad).toBeHidden()
@@ -45,7 +46,7 @@ async function expectStableFullDesktopCockpit(page: Page) {
   })
 }
 
-test('keeps the shared PvE desktop cockpit at its full scale before and after action selection', async ({
+test('keeps the shared PvE desktop cockpit at its compact scale before and after action selection', async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop shared cockpit regression')
@@ -64,10 +65,10 @@ test('keeps the shared PvE desktop cockpit at its full scale before and after ac
   await page.getByRole('button', { name: 'Enter Battle' }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
 
-  await expectStableFullDesktopCockpit(page)
+  await expectStableCompactDesktopCockpit(page)
 })
 
-test('keeps the shared PvP desktop cockpit at the same full scale', async ({
+test('keeps the shared PvP desktop cockpit at the same compact scale', async ({
   browser,
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop shared cockpit regression')
@@ -123,7 +124,7 @@ test('keeps the shared PvP desktop cockpit at the same full scale', async ({
     await hostDialog.getByRole('button', { name: 'Mark Ready' }).click()
     await expect(host).toHaveURL(/\/game\/battle\/[0-9a-f-]+$/i, { timeout: 20_000 })
 
-    await expectStableFullDesktopCockpit(host)
+    await expectStableCompactDesktopCockpit(host)
   } finally {
     await Promise.all([hostContext.close(), guestContext.close()])
   }
