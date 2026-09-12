@@ -223,12 +223,17 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
     const apBeforeDetails = await apRemaining.getAttribute('aria-valuenow')
     const timeline = battleLog.getByRole('list', { name: 'Battle action timeline' })
     const actionDetails = timeline.getByRole('button').last()
-    await actionDetails.click()
+    await actionDetails.focus()
+    await actionDetails.press('Space')
     const details = page.getByRole('dialog', { name: /Guard/ })
     await expect(details).toBeVisible()
     await expect(details.getByRole('region', { name: 'Recorded action result' })).toContainText(
       /Guard|damage/i,
     )
+    await page.keyboard.press('Space')
+    await page.keyboard.press('w')
+    await expect(details).toBeVisible()
+    await expect(apRemaining).toHaveAttribute('aria-valuenow', apBeforeDetails!)
     await page.keyboard.press('Escape')
     await expect(details).toHaveCount(0)
     await expect(actionDetails).toBeFocused()

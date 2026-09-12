@@ -87,7 +87,10 @@ export function BattleActionTimeline({
     if (listRef.current) listRef.current.scrollLeft = listRef.current.scrollWidth
   }, [actions.length, filter])
   useEffect(() => {
-    if (selected && dialogRef.current && !dialogRef.current.open) dialogRef.current.showModal()
+    if (selected && dialogRef.current && !dialogRef.current.open) {
+      dialogRef.current.showModal()
+      dialogRef.current.focus()
+    }
   }, [selected])
 
   const recordedResults =
@@ -155,6 +158,10 @@ export function BattleActionTimeline({
       {selected ? (
         <dialog
           ref={dialogRef}
+          data-battle-action-details="true"
+          role="dialog"
+          tabIndex={-1}
+          aria-modal="true"
           className={styles.dialog}
           aria-labelledby="battle-action-detail-title"
           onClose={() => setSelected(null)}

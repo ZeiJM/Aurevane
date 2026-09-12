@@ -1,5 +1,7 @@
 'use client'
 
+import { isBattleShortcutBlocked as isTextEntryTarget } from './battle-keyboard-scope'
+
 import { useEffect } from 'react'
 
 import styles from './battle-presentation-assist.module.css'
@@ -8,16 +10,6 @@ type GridPosition = { x: number; y: number }
 type Facing = 'north' | 'east' | 'south' | 'west'
 
 const BATTLE_LINE = 'Steel meets resolve. The battle is joined.'
-
-function isTextEntryTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false
-  return (
-    target.isContentEditable ||
-    target instanceof HTMLInputElement ||
-    target instanceof HTMLTextAreaElement ||
-    target instanceof HTMLSelectElement
-  )
-}
 
 function battleHeader(): HTMLElement | null {
   const track = document.querySelector<HTMLElement>(

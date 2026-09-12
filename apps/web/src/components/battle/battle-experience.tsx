@@ -1,5 +1,7 @@
 'use client'
 
+import { isBattleShortcutBlocked as isTextEntryTarget } from './battle-keyboard-scope'
+
 import { isCurrentBattlePreview, battleIntentTileKey } from './battle-preview-selection'
 import { BattleInteractionForecast } from './battle-interaction-forecast'
 import { terrainOverlayAt } from '@aurevane/game-core/combat/terrain-overlays'
@@ -115,16 +117,6 @@ function readEconomy(combatant: Combatant | null): number {
   return (
     combatant.temporaryResources.find((resource) => resource.key === ACTION_ECONOMY_KEY)?.current ??
     0
-  )
-}
-
-function isTextEntryTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false
-  return (
-    target.isContentEditable ||
-    target instanceof HTMLInputElement ||
-    target instanceof HTMLTextAreaElement ||
-    target instanceof HTMLSelectElement
   )
 }
 

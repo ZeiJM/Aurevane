@@ -1,5 +1,7 @@
 'use client'
 
+import { isBattleShortcutBlocked as isTextEntryTarget } from './battle-keyboard-scope'
+
 import {
   COMBAT_KEYBIND_ACTIONS,
   DEFAULT_COMBAT_KEYBINDS,
@@ -10,16 +12,6 @@ import {
   type CombatKeybindMap,
 } from '@aurevane/validation/player/combat-controls'
 import { useEffect, useRef, useState } from 'react'
-
-function isTextEntryTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false
-  return (
-    target.isContentEditable ||
-    target instanceof HTMLInputElement ||
-    target instanceof HTMLTextAreaElement ||
-    target instanceof HTMLSelectElement
-  )
-}
 
 function eventChord(event: KeyboardEvent): string {
   return combatKeybindChord({ code: event.code, shift: event.shiftKey })
