@@ -77,11 +77,9 @@ button.identityFact .factCopy {
 }
 
 .factCopy strong {
-  overflow: hidden;
   color: var(--av-text-muted);
   font: 650 0.62rem/1.2 var(--av-font-mono);
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .section {
@@ -127,7 +125,8 @@ button.identityFact .factCopy {
   font: 650 0.49rem/1 var(--av-font-mono);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  white-space: nowrap;
+  white-space: normal;
+  text-align: right;
 }
 
 .attributeGrid {

@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import Link from 'next/link'
 
 import { foundationDisciplineAttributePolicy } from '@aurevane/game-core/character/attribute-allocation'
 import type {
@@ -26,9 +27,9 @@ import {
   battleSkillArtwork,
 } from '@/components/battle/battle-skill-presentation'
 import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
+import { gameNavigation } from '@/components/shell/game-navigation'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 
-import compactStyles from './character-profile-shell-compact.module.css'
 import styles from './character-profile-shell.module.css'
 
 interface PrimaryOption {
@@ -167,22 +168,19 @@ export function CharacterProfileShell({
 
   return (
     <AuthenticatedShellFrame sessionLabel="Character Profile">
-      <div className={`${styles.layout} ${compactStyles.layout}`}>
-        <Surface className={`${styles.profile} ${compactStyles.profile}`} tone="elevated">
-          <header
-            className={`${styles.hero} ${compactStyles.hero}`}
-            data-testid="character-profile"
-          >
-            <div className={`${styles.portrait} ${compactStyles.portrait}`}>
+      <div className={styles.layout} data-profile-workspace>
+        <Surface className={styles.characterCard} tone="quiet">
+          <header className={styles.hero} data-testid="character-profile">
+            <div className={styles.portrait}>
               <CharacterPortraitImage
                 imageUrl={imageUrl}
                 fallbackAssetId={getStarterPortraitImageAssetId(profile.identity.portraitRef)}
-                sizes="(max-width: 640px) 7rem, 10rem"
+                sizes="(min-width: 1280px) 12rem, (max-width: 640px) 5.5rem, 7rem"
                 alt={`${profile.identity.name} portrait`}
               />
             </div>
-            <div className={`${styles.identity} ${compactStyles.identity}`}>
-              <Kicker marker="◆">Character Profile</Kicker>
+            <div className={styles.identity}>
+              <Kicker marker="◆">Your Character</Kicker>
               <div className={styles.nameLine}>
                 <h1>{profile.identity.name}</h1>
                 <div className={styles.nameTags}>
@@ -199,8 +197,6 @@ export function CharacterProfileShell({
                   ) : null}
                 </div>
               </div>
-              <p className={styles.discipline}>{disciplineSummary}</p>
-
               <div className={styles.levelProgress} data-testid="level-progress">
                 <div>
                   <span>Character Level {profile.progression.level}</span>
@@ -217,11 +213,45 @@ export function CharacterProfileShell({
                   aria-valuemin={0}
                   aria-valuemax={10000}
                   aria-valuenow={progress.progressBasisPoints}
+                  aria-valuetext={
+                    progress.isMaxLevel
+                      ? 'Maximum level reached'
+                      : `${progress.progressBasisPoints / 100}% to the next level`
+                  }
                 >
                   <span style={{ width: `${progress.progressBasisPoints / 100}%` }} />
                 </div>
               </div>
             </div>
+          </header>
+
+          <div className={styles.characterSummary}>
+            <p className={styles.discipline}>{disciplineSummary}</p>
+            <dl className={styles.capacity} aria-label="Battle capacity">
+              <div>
+                <dt>Maximum HP</dt>
+                <dd>{disciplineBuild.current.derived.stats.maxHp.value.toLocaleString('en')}</dd>
+              </div>
+              <div>
+                <dt>Maximum MP</dt>
+                <dd>{disciplineBuild.current.derived.stats.maxMp.value.toLocaleString('en')}</dd>
+              </div>
+            </dl>
+            <Link className={styles.portraitLink} href="/game/account/titles">
+              Portrait &amp; title <span aria-hidden="true">↗</span>
+            </Link>
+          </div>
+        </Surface>
+
+        <Surface className={styles.profile} tone="elevated">
+          <header className={styles.sheetHeading}>
+            <div>
+              <Kicker marker="◇">Character Profile</Kicker>
+              <h2>Character Sheet</h2>
+            </div>
+            <span className={styles.buildMode}>
+              {disciplineBuild.currentSecondary ? 'Mixed Discipline' : 'Pure Discipline'}
+            </span>
           </header>
 
           <CharacterProfileDetails
@@ -239,14 +269,28 @@ export function CharacterProfileShell({
           />
         </Surface>
 
-        <aside
-          className={`${styles.sidebar} ${compactStyles.sidebar}`}
-          aria-label="Combat loadout workspace"
-        >
-          <Surface
-            className={`${styles.sideCard} ${styles.buildCard} ${compactStyles.buildCard}`}
-            tone="quiet"
-          >
+        <aside className={styles.sidebar} aria-label="Combat loadout workspace">
+          <Surface className={styles.navigationCard} tone="quiet">
+            <Kicker marker="◇">Explore AUREVANE</Kicker>
+            <nav className={styles.navigation} aria-label="Profile navigation">
+              {gameNavigation.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  aria-current={item.href === '/game/character' ? 'page' : undefined}
+                >
+                  <span aria-hidden="true">{item.symbol}</span>
+                  <span>{item.label}</span>
+                </Link>
+              ))}
+              <Link href="/manual">
+                <span aria-hidden="true">≡</span>
+                <span>Player Manual</span>
+              </Link>
+            </nav>
+          </Surface>
+
+          <Surface className={styles.buildCard} tone="quiet">
             <div className={styles.buildHeading}>
               <Kicker marker="◇">Combat Loadout</Kicker>
             </div>

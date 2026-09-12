@@ -1,5 +1,9 @@
 # AUREVANE — Active Task Ledger
 
+## Profile layout adaptation — 2026-09-12
+
+Owner requested adapting abstract layout ideas from two browser-RPG references, preserving the static header/footer, improving typography/spacing and releasing live for testing. The profile now separates character identity/progression, the central character sheet, and navigation/loadout controls. Existing server data, management dialogs, Atlas, combat and progression remain authoritative and unchanged. Responsive rules use available panel width and retain scrolling where needed. No third-party artwork or new dependencies are introduced. Verification and the authorized production release are in progress on `agent/reference-layout`.
+
 ## Phase 4 implementation live for testing — 2026-09-12
 
 Owner authorized full Phase 4 implementation and release. PR #459 is merged, deployed and activated with typed gameplay tags, Frozen/Steam terrain, shared targeting, the AI Sparring Arena picker fix and the Profile Discipline Atlas/Mastery extension. All fifteen exact-head CI workflows and authenticated live interaction checks passed. See `docs/PHASE_4_TICKETS.md` for actual evidence and the recovered Profile interruption. The deployment lock is restored by this documentation/configuration commit. Human tactical/media acceptance remains open.
