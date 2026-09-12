@@ -1780,7 +1780,10 @@ export function BattleExperience({
             />
           </div>
 
+          {/* Map guides and keyboard shortcuts use these same commit handlers. Keep the legacy
+              cockpit pad hidden from the first render, including while facing mode opens. */}
           <div
+            hidden
             className={styles.facingRow}
             data-open={mode === 'finish' || undefined}
             data-unified-facing-pad="true"

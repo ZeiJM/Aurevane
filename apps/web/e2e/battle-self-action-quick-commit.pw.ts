@@ -98,6 +98,21 @@ async function finishTurnKeepingFacing(page: Page, root: Locator, testRepeat = f
   await expect(finish).toBeEnabled()
   await expect(finish).toContainText('Space')
 
+  // Observe the transition itself: an eventual hidden assertion can miss a one-frame legacy pad.
+  await page.evaluate(() => {
+    const pad = document.querySelector<HTMLElement>('[data-unified-facing-pad="true"]')!
+    const samples: boolean[] = []
+    const sample = () =>
+      samples.push(pad.getClientRects().length > 0 && getComputedStyle(pad).visibility !== 'hidden')
+    const observer = new MutationObserver(sample)
+    observer.observe(pad, { attributes: true })
+    sample()
+    ;(
+      window as Window & {
+        facingPadPaintCheck?: { samples: boolean[]; observer: MutationObserver }
+      }
+    ).facingPadPaintCheck = { samples, observer }
+  })
   await page.keyboard.press('Space')
   await expect(root).toHaveAttribute('data-finish-turn-hotkey-last-decision', 'handled-first')
   await expect(root.locator('button[aria-label="Face north"]')).toBeEnabled()
@@ -105,6 +120,23 @@ async function finishTurnKeepingFacing(page: Page, root: Locator, testRepeat = f
   await expect(root.locator('button[aria-label="Face south"]')).toBeEnabled()
   await expect(root.locator('button[aria-label="Face west"]')).toBeEnabled()
   await expect(root.locator('[data-unified-facing-pad="true"]')).toBeHidden()
+  const facingPadAppeared = await page.evaluate(async () => {
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    )
+    const state = (
+      window as Window & {
+        facingPadPaintCheck?: { samples: boolean[]; observer: MutationObserver }
+      }
+    ).facingPadPaintCheck!
+    state.observer.disconnect()
+    return state.samples.some(Boolean)
+  })
+  expect(
+    facingPadAppeared,
+    'The legacy pad must remain hidden throughout the first Space transition.',
+  ).toBe(false)
+  await expect(root.locator('#battlefield [data-facing-guide="true"]')).toHaveCount(4)
 
   if (testRepeat) {
     await page.evaluate(() => {
