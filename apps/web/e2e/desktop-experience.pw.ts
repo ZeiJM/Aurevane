@@ -7,6 +7,8 @@ const rosterListSelector =
   "[data-character-directory] > section > div:last-child:has(> button):not([role='status'])"
 
 const desktopSizes = [
+  // CSS viewport for a 1920 × 1080 display at 80% browser zoom.
+  { width: 2400, height: 1350 },
   { width: 1920, height: 1080 },
   { width: 1728, height: 885 },
   { width: 1440, height: 900 },
@@ -630,7 +632,10 @@ test('supplementary presence never blocks navigation and pending navigation is a
       await route.continue()
     })
     await page.getByRole('button', { name: /Navigation/ }).click()
-    await page.getByRole('link', { name: /Battle Hall/ }).click()
+    await page
+      .getByRole('navigation', { name: 'Game navigation', exact: true })
+      .getByRole('link', { name: /Battle Hall/ })
+      .click()
     await expect(page.getByRole('button', { name: /Opening/ })).toHaveAttribute('aria-busy', 'true')
     releaseNavigation()
     await expect(page).toHaveURL(/\/game\/battle$/)

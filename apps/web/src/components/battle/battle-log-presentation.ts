@@ -21,6 +21,7 @@ export interface BattleLogSegment {
 }
 
 export interface PresentedBattleLogAction {
+  sourceEntries?: readonly BattleLogEntry[]
   key: string
   battleVersion: number
   round: number | null
@@ -104,7 +105,7 @@ function combatantName(
   return 'Combatant'
 }
 
-function renderEntry(entry: BattleLogEntry, options: PresentationOptions): string {
+export function renderBattleLogEntry(entry: BattleLogEntry, options: PresentationOptions): string {
   const values: Readonly<Record<string, string>> = {
     ...entry.templateValues,
     actor: combatantName(entry.actorCombatantId, options) ?? 'Combatant',
@@ -729,7 +730,7 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
     primary = actionUseSegments(actor, actionLabel)
     kind = actionUsed.kind
   } else if (resource) {
-    primary = [segment(renderEntry(resource, options))]
+    primary = [segment(renderBattleLogEntry(resource, options))]
     kind = resource.kind
     significance = 'quiet'
   } else if (started) {
@@ -738,7 +739,7 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
     significance = 'quiet'
   } else {
     const fallback = group.entries[0]
-    primary = [segment(fallback ? renderEntry(fallback, options) : 'Battle event')]
+    primary = [segment(fallback ? renderBattleLogEntry(fallback, options) : 'Battle event')]
     kind = fallback?.kind ?? 'system'
   }
 
@@ -753,6 +754,11 @@ function presentAction(group: ActionGroup, options: PresentationOptions): Presen
 
   return {
     key: group.key,
+    sourceEntries: group.entries.map((entry) => ({
+      ...entry,
+      message: renderBattleLogEntry(entry, options),
+      facts: entry.facts.filter(isReasonableFact),
+    })),
     battleVersion: group.battleVersion,
     round: group.round,
     turnNumber: group.turnNumber,

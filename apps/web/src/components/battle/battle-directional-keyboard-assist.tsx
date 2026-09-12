@@ -1,19 +1,11 @@
 'use client'
 
+import { isBattleShortcutBlocked as isTextEntryTarget } from './battle-keyboard-scope'
+
 import { useEffect } from 'react'
 
 type GridPosition = { x: number; y: number }
 type Direction = { dx: number; dy: number }
-
-function isTextEntryTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false
-  if (target.isContentEditable) return true
-  return (
-    target instanceof HTMLInputElement ||
-    target instanceof HTMLTextAreaElement ||
-    target instanceof HTMLSelectElement
-  )
-}
 
 function directionForCode(code: string): Direction | null {
   if (code === 'ArrowUp' || code === 'KeyW') return { dx: 0, dy: -1 }

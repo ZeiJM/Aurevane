@@ -1,5 +1,7 @@
 'use client'
 
+import { isBattleShortcutBlocked } from './battle-keyboard-scope'
+
 import { useEffect } from 'react'
 
 import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
@@ -274,7 +276,7 @@ export function BattlePresentationPolish({
     }
 
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.code !== 'Space' || event.repeat) return
+      if (event.code !== 'Space' || event.repeat || isBattleShortcutBlocked(event.target)) return
       const target = event.target
       if (
         target instanceof HTMLInputElement ||

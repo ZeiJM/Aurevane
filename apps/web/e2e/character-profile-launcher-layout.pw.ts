@@ -39,6 +39,24 @@ test('Profile build launchers stay centered and typographically matched', async 
   await expect(page.locator('#build-techniques-heading')).toHaveText('Techniques')
   await expect(page.getByText(/\d+ \/ \d+ tagged/)).toHaveCount(0)
 
+  const navigation = page.getByRole('navigation', { name: 'Profile navigation', exact: true })
+  await expect(navigation.getByRole('link', { name: 'Profile', exact: true })).toHaveAttribute(
+    'aria-current',
+    'page',
+  )
+  await expect(navigation.getByRole('link', { name: 'Battle Hall', exact: true })).toHaveAttribute(
+    'href',
+    '/game/battle',
+  )
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1),
+    'The profile remains within the viewport with long character names',
+  ).toBe(true)
+  await testInfo.attach(`profile-workspace-${testInfo.project.name}`, {
+    body: await page.screenshot({ fullPage: true }),
+    contentType: 'image/png',
+  })
+
   const rekindling = page.getByRole('button', { name: /^Rekindling Cycle / })
   const cycleLabel = await rekindling.locator('small').boundingBox()
   const cycleValue = await rekindling.locator('strong').boundingBox()

@@ -259,7 +259,7 @@ main[aria-busy] > footer > div:first-child > button > span {
 }
 
 /* Controlled combat overlays always remain fully within the viewport. */
-[data-testid='battle-log-panel'] {
+[data-testid='battle-log-panel']:not([data-docked-battle-log='true']) {
   top: 3.85rem !important;
   right: auto !important;
   left: 50% !important;

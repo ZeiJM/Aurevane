@@ -24,7 +24,9 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await createAccountAndEnterCharacter({ page, email, password, characterName })
 
   await page.getByRole('button', { name: 'Navigation' }).click()
-  const battleHallLink = page.getByRole('link', { name: /Battle Hall/ })
+  const battleHallLink = page
+    .getByRole('navigation', { name: 'Game navigation', exact: true })
+    .getByRole('link', { name: /Battle Hall/ })
   await battleHallLink.focus()
   await expect(battleHallLink).toBeFocused()
   await battleHallLink.press('Enter')
@@ -209,7 +211,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
 
   const roundButton = page.getByRole('button', { name: /Round .*Combat Log/ })
   const battleLog = page.getByTestId('battle-log-panel')
-  await roundButton.click()
+  if ((await roundButton.getAttribute('aria-expanded')) !== 'true') await roundButton.click()
   await expect(battleLog).toBeVisible()
   await expect(battleLog).toContainText(characterName)
   await expect(battleLog).toContainText(/moved|Guard/)
@@ -218,6 +220,33 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   if (testInfo.project.name === 'mobile-chromium') {
     await page.getByRole('button', { name: 'Close battle log' }).click()
   } else {
+    const apBeforeDetails = await apRemaining.getAttribute('aria-valuenow')
+    const timeline = battleLog.getByRole('list', { name: 'Battle action timeline' })
+    await battleLog.getByRole('button', { name: 'Opponents', exact: true }).click()
+    await expect(timeline).not.toContainText(characterName)
+    await battleLog.getByRole('button', { name: 'You', exact: true }).click()
+    await expect(timeline).toContainText(characterName)
+    await battleLog.getByRole('button', { name: 'All', exact: true }).click()
+    const actionDetails = timeline.getByRole('button').last()
+    await actionDetails.focus()
+    await actionDetails.press('Space')
+    const details = page.getByRole('dialog', { name: /Guard/ })
+    await expect(details).toBeVisible()
+    await expect(details.getByRole('region', { name: 'Recorded action result' })).toContainText(
+      /Guard|damage/i,
+    )
+    await page.screenshot({ path: testInfo.outputPath('battle-action-details.png') })
+    await page.keyboard.press('Space')
+    await page.keyboard.press('w')
+    await expect(details).toBeVisible()
+    await expect(apRemaining).toHaveAttribute('aria-valuenow', apBeforeDetails!)
+    await page.keyboard.press('Escape')
+    await expect(details).toHaveCount(0)
+    await expect(actionDetails).toBeFocused()
+    await expect(apRemaining).toHaveAttribute('aria-valuenow', apBeforeDetails!)
+    await battleLog.getByRole('button', { name: 'Text log', exact: true }).click()
+    await expect(battleLog).toContainText('Guard')
+    await battleLog.getByRole('button', { name: 'Timeline', exact: true }).click()
     await roundButton.click()
     await expect(battleLog).toHaveCount(0)
     await roundButton.click()

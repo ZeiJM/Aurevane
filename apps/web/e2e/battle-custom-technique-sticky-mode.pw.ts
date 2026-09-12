@@ -25,7 +25,10 @@ test('custom Attack labels never restore a stale Move selection after action con
   })
 
   await page.getByRole('button', { name: 'Navigation' }).click()
-  await page.getByRole('link', { name: /Battle Hall/ }).click()
+  await page
+    .getByRole('navigation', { name: 'Game navigation', exact: true })
+    .getByRole('link', { name: /Battle Hall/ })
+    .click()
   await page.getByLabel('Battle mode').selectOption('recruit-sparring')
   await page.getByRole('button', { name: 'Enter Battle' }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)

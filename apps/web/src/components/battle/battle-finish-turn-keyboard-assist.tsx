@@ -1,5 +1,7 @@
 'use client'
 
+import { isBattleShortcutBlocked as isTextEntryTarget } from './battle-keyboard-scope'
+
 import {
   DEFAULT_COMBAT_KEYBINDS,
   parseCombatKeybindMap,
@@ -14,16 +16,6 @@ const FACING_READY_WAIT_MS = 1500
 const FACING_LABELS = ['north', 'east', 'south', 'west'] as const
 
 type Facing = (typeof FACING_LABELS)[number]
-
-function isTextEntryTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false
-  return (
-    target.isContentEditable ||
-    target instanceof HTMLInputElement ||
-    target instanceof HTMLTextAreaElement ||
-    target instanceof HTMLSelectElement
-  )
-}
 
 function visibleBattleRoot(): HTMLElement | null {
   const roots = Array.from(

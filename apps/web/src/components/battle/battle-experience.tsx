@@ -1,5 +1,7 @@
 'use client'
 
+import { isBattleShortcutBlocked as isTextEntryTarget } from './battle-keyboard-scope'
+
 import { isCurrentBattlePreview, battleIntentTileKey } from './battle-preview-selection'
 import { BattleInteractionForecast } from './battle-interaction-forecast'
 import { terrainOverlayAt } from '@aurevane/game-core/combat/terrain-overlays'
@@ -53,6 +55,8 @@ import {
   type BattlePresentationParticipant,
   type BattleRuntime,
 } from './battle-runtime'
+import { BattleCombatantEffects } from './battle-combatant-effects'
+import { useDesktopBattleLayout } from './battle-responsive-layout'
 import { BattleSkillCommand } from './battle-skill-command'
 import { BATTLE_COMMAND_ARTWORK, battleSkillArtwork } from './battle-skill-presentation'
 import { useBattleSkillSelections } from './battle-skill-selection'
@@ -115,16 +119,6 @@ function readEconomy(combatant: Combatant | null): number {
   return (
     combatant.temporaryResources.find((resource) => resource.key === ACTION_ECONOMY_KEY)?.current ??
     0
-  )
-}
-
-function isTextEntryTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false
-  return (
-    target.isContentEditable ||
-    target instanceof HTMLInputElement ||
-    target instanceof HTMLTextAreaElement ||
-    target instanceof HTMLSelectElement
   )
 }
 
@@ -326,9 +320,11 @@ export function BattleExperience({
   const effectiveHealActionId = selectedTechniqueHealId ?? selectedHealActionId
   const selectedHealOption =
     recoveryOptions.find((option) => option.id === effectiveHealActionId) ?? recoveryOptions[0]!
+  const desktopLayout = useDesktopBattleLayout()
   const [logOpen, setLogOpen] = useBattleSessionUiBoolean(
     initialBattle.battleSessionId,
     'battleLogOpen',
+    desktopLayout,
   )
 
   const capabilities = useMemo(() => deriveBattleCapabilities(runtime), [runtime])
@@ -1351,6 +1347,7 @@ export function BattleExperience({
           data-unified-battle-economy="true"
         >
           <div className={styles.economyCopy}>
+            <span data-battle-turn-clock-slot="true" />
             <span>Action Economy</span>
             <strong>{actionEconomy} AP</strong>
             {localTurn && proposedCost > 0 ? (
@@ -1802,6 +1799,15 @@ export function BattleExperience({
             ))}
           </div>
         </section>
+        <section data-battle-flow="true" data-open={logOpen || undefined} aria-label="Battle flow">
+          <button type="button" aria-expanded={logOpen} onClick={() => setLogOpen((open) => !open)}>
+            <span>
+              Battle Flow <small>Round {battleState.round}</small>
+            </span>
+            <span>{logOpen ? 'Hide history −' : 'Show history +'}</span>
+          </button>
+          <div data-battle-flow-log-target="true" />
+        </section>
       </section>
 
       <footer className={styles.footer} data-unified-battle-footer="true">
@@ -2027,6 +2033,22 @@ function DesktopBattleRail({
                   </span>
                 </div>
               </button>
+              <div className={railStyles.resourceReadout}>
+                <span>
+                  <b>HP</b> {combatant.hp} / {combatant.maxHp}
+                </span>
+                <span>
+                  <b>MP</b> {combatant.mp} / {combatant.maxMp}
+                </span>
+              </div>
+              <BattleCombatantEffects
+                name={participant.name}
+                statuses={
+                  battle.snapshot.statusState.find(
+                    (row) => row.combatantId === participant.combatantId,
+                  )?.statuses ?? []
+                }
+              />
             </article>
           )
         })}

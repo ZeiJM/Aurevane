@@ -3,8 +3,25 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
+import { fitBattleBoard } from './battle-map-token-polish'
 
 const here = dirname(fileURLToPath(import.meta.url))
+
+describe('battle board viewport fit', () => {
+  it.each([
+    [7, 7, 950, 300],
+    [9, 7, 950, 230],
+    [13, 9, 760, 330],
+    [9, 7, 280, 650],
+  ])('keeps the full %s by %s map inside its viewport', (columns, rows, width, height) => {
+    const fit = fitBattleBoard(columns, rows, width, height)
+    expect(fit.width).toBeLessThanOrEqual(width)
+    expect(fit.height).toBeLessThanOrEqual(height)
+    expect(fit.width / fit.height).toBeCloseTo(columns / rows)
+    expect(fit.width).toBeLessThanOrEqual(620)
+    expect(fit.height).toBeLessThanOrEqual(482)
+  })
+})
 
 function readLocalFile(name: string): string {
   return readFileSync(join(here, name), 'utf8')

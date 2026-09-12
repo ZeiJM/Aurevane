@@ -153,7 +153,10 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   const techniquesDialog = page.getByRole('dialog', { name: 'Techniques' })
   await techniquesDialog.getByRole('button', { name: 'Close' }).click()
   await page.getByRole('button', { name: 'Navigation' }).click()
-  await page.getByRole('link', { name: /Battle Hall/ }).click()
+  await page
+    .getByRole('navigation', { name: 'Game navigation', exact: true })
+    .getByRole('link', { name: /Battle Hall/ })
+    .click()
   await expect(page).toHaveURL(/\/game\/battle$/)
   await page.getByLabel('Battle mode').selectOption('recruit-sparring')
   await page.getByRole('button', { name: 'Enter Battle' }).click()

@@ -5,17 +5,8 @@ import Link, { useLinkStatus } from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 
+import { gameNavigation as navigation } from './game-navigation'
 import styles from './navigation-menu.module.css'
-
-const navigation = [
-  { href: '/game/character', label: 'Profile', detail: 'Character sheet and build' },
-  { href: '/game/battle', label: 'Battle Hall', detail: 'Practice fights and combat' },
-  {
-    href: '/game/training',
-    label: 'Passive Training',
-    detail: 'Start a timed background training plan',
-  },
-] as const
 
 const navigationPopoverId = 'game-navigation-menu'
 

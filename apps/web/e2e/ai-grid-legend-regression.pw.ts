@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 
+import { expectBattleReferenceLayout } from './battle-reference-layout-helpers'
 import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueCharacterName(): string {
@@ -95,9 +96,12 @@ test('keeps the desktop AI 9x7 grid, shared terrain legend, and battle log dock 
   await expect(coordinateToggle).toHaveAttribute('aria-checked', 'false')
   await coordinateToggle.click()
   await expect(coordinateToggle).toHaveAttribute('aria-checked', 'true')
-  await combatLogButton.click()
+  if ((await combatLogButton.getAttribute('aria-expanded')) !== 'true')
+    await combatLogButton.click()
 
-  const dock = battlefield.locator('[data-docked-battle-log="true"]')
+  const dock = page
+    .locator('[data-battle-flow-log-target="true"] ')
+    .locator('[data-docked-battle-log="true"]')
   await expect(dock).toBeVisible()
   await expect(terrainLegend).toBeVisible()
   await expect(terrainLegend.getByText('Difficult Terrain')).toBeVisible()
@@ -119,70 +123,12 @@ test('keeps the desktop AI 9x7 grid, shared terrain legend, and battle log dock 
   await combatLogButton.click()
   await expect(dock).toBeVisible()
 
-  const dockGeometry = await battlefield.evaluate((element) => {
-    const docked = element.querySelector<HTMLElement>('[data-docked-battle-log="true"]')!
-    const boardElement = element.querySelector<HTMLElement>('[data-board-auto-fit="9x7"]')!
-    const legend = element.querySelector<HTMLElement>(':scope > [aria-label="Terrain legend"]')!
-    const difficult = legend.children[0] as HTMLElement
-    const elevated = legend.children[1] as HTMLElement
-    const coordinate = legend.querySelector<HTMLElement>(
-      'button[data-terrain-coordinate-toggle="true"]',
-    )!
-    const battlefieldRect = element.getBoundingClientRect()
-    const boardRect = boardElement.getBoundingClientRect()
-    const dockRect = docked.getBoundingClientRect()
-    const legendRect = legend.getBoundingClientRect()
-    const difficultRect = difficult.getBoundingClientRect()
-    const elevatedRect = elevated.getBoundingClientRect()
-    const coordinateRect = coordinate.getBoundingClientRect()
-    const dockStyle = getComputedStyle(docked)
-    const dockTransform = new DOMMatrixReadOnly(dockStyle.transform)
-    const footerContinuation = getComputedStyle(element, '::after')
-
-    return {
-      battlefieldRight: battlefieldRect.right,
-      battlefieldBottom: battlefieldRect.bottom,
-      boardTop: boardRect.top,
-      boardBottom: boardRect.bottom,
-      dockTop: dockRect.top,
-      dockRight: dockRect.right,
-      dockBottom: dockRect.bottom,
-      dockTranslateX: dockTransform.m41,
-      legendLeft: legendRect.left,
-      legendRight: legendRect.right,
-      legendTop: legendRect.top,
-      legendBottom: legendRect.bottom,
-      difficultLeft: difficultRect.left,
-      difficultRight: difficultRect.right,
-      elevatedLeft: elevatedRect.left,
-      elevatedRight: elevatedRect.right,
-      coordinateLeft: coordinateRect.left,
-      coordinateRight: coordinateRect.right,
-      dockGridRowStart: dockStyle.gridRowStart,
-      dockGridRowEnd: dockStyle.gridRowEnd,
-      footerContinuationContent: footerContinuation.content,
-      footerContinuationGridRowStart: footerContinuation.gridRowStart,
-      footerContinuationBorderTopStyle: footerContinuation.borderTopStyle,
-    }
-  })
-
-  expect(Math.abs(dockGeometry.dockTop - dockGeometry.boardTop)).toBeLessThanOrEqual(3)
-  expect(Math.abs(dockGeometry.dockBottom - dockGeometry.boardBottom)).toBeLessThanOrEqual(3)
-  expect(dockGeometry.dockBottom).toBeLessThan(dockGeometry.legendTop)
-  expect(dockGeometry.legendTop).toBeLessThan(dockGeometry.legendBottom)
-  expect(dockGeometry.legendBottom).toBeLessThanOrEqual(dockGeometry.battlefieldBottom + 1)
-  expect(dockGeometry.dockGridRowStart).toBe('1')
-  expect(dockGeometry.dockGridRowEnd).toBe('auto')
-
-  expect(dockGeometry.dockTranslateX).toBeLessThan(-12)
-  expect(dockGeometry.battlefieldRight - dockGeometry.dockRight).toBeGreaterThan(12)
-
-  expect(dockGeometry.footerContinuationContent).not.toBe('none')
-  expect(dockGeometry.footerContinuationGridRowStart).toBe('2')
-  expect(dockGeometry.footerContinuationBorderTopStyle).toBe('solid')
-
-  expect(dockGeometry.difficultLeft).toBeGreaterThanOrEqual(dockGeometry.legendLeft - 1)
-  expect(dockGeometry.elevatedLeft).toBeGreaterThanOrEqual(dockGeometry.difficultRight - 1)
-  expect(dockGeometry.coordinateLeft).toBeGreaterThanOrEqual(dockGeometry.elevatedRight - 1)
-  expect(dockGeometry.coordinateRight).toBeLessThanOrEqual(dockGeometry.legendRight + 1)
+  await expectBattleReferenceLayout(page, testInfo, 'combat-ai-log-below')
+  for (const size of [
+    { width: 2400, height: 1350 },
+    { width: 1280, height: 720 },
+  ]) {
+    await page.setViewportSize(size)
+    await expectBattleReferenceLayout(page, testInfo, `combat-ai-${size.width}x${size.height}`)
+  }
 })

@@ -1,5 +1,9 @@
 # AUREVANE — Active Task Ledger
 
+## Profile and combat layout adaptation — 2026-09-12
+
+Owner requested adapting abstract layout ideas from two browser-RPG references, preserving the static header/footer, improving typography/spacing and releasing live for testing. The profile now separates character identity/progression, the central character sheet, and navigation/loadout controls. A later combat reference adds a compact AP/timer group, a compact command deck, a filtered action-icon timeline with click-through recorded action details and an optional text log below it, and combatant status panels with benefits, drawbacks and conditional modifiers. Changes live in the shared PvE/PvP presentation and reuse authoritative snapshots and status definitions. The desktop log opens by default and remembers collapse state; mobile keeps its touch composition. Existing server data, management dialogs, Atlas, combat rules and progression remain authoritative and unchanged. Responsive rules use available panel width and retain scrolling where needed. No third-party artwork or new dependencies are introduced. Browser review caught and corrected legacy floating-log positioning and short-viewport clipping on nonstandard map sizes. The shared playable/spectator board now fits the available viewport while preserving tactical dimensions and the existing size ceiling. Action-detail keyboard focus is isolated from combat shortcuts. The command deck and history span the battle area so the latest effect tags wrap into fewer rows; the status and timeline typography uses the existing body-font token. Verification and the authorized production release are in progress on `agent/reference-layout`.
+
 **Final-testing release — 2026-09-12:** PR #461 is merged and live with battle button/picker tags from committed Skill versions, full current/historical execution contracts, four effect-badge repairs and safe Profile recovery diagnostics. All ten applicable CI workflows passed; live Fortress casting, reload, saved effect expiry and return to the unchanged Profile were verified. See `docs/PHASE_4_FINAL_TEST_READINESS.md` for exact evidence, the isolated recovered turn-clock 503 with unestablished cause, and the remaining A03/A04/A07/A10 human gates.
 
 ## Prior Phase 4 release — PR #459
@@ -159,11 +163,9 @@ Do not start broad roster production, large Resonance matrices, Soulmark/Mantle 
 7. Keep temporary validation/support access bounded, auditable and fail-closed.
 8. Keep this ledger current and concise.
 
-
 ## Phase 4 media continuation — historical candidate preparation
 
 Branch `agent/phase4-media-candidates` prepares ten painted identity masters, 72 original synthesized cues, provenance, bounded central audio audition and an offline review gallery. `docs/PHASE_4_PLAYTEST_PACKET.md` provides actual-session scenarios and an empty results template. Automated media/runtime checks are recorded with the candidate pack. Browser walkthrough of the local review file was blocked by the browser URL policy and is not claimed. Human art/listening acceptance remains required by `docs/MEDIA_PIPELINE.md`; live assets and gameplay rules are unchanged.
-
 
 ## Phase 4 media integration continuation
 

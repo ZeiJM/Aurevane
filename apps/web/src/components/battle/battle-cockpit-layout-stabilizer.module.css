@@ -23,12 +23,3 @@
     width: 100%;
   }
 }
-
-@media (min-width: 821px) and (min-height: 721px) {
-  :global(
-    main[data-unified-battle='true'] [data-unified-command-deck='true'] > div:nth-child(2) > button
-  ) {
-    height: 6.35rem !important;
-    min-height: 6.35rem !important;
-  }
-}

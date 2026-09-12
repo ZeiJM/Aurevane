@@ -1,18 +1,10 @@
 'use client'
 
+import { isBattleShortcutBlocked as isTextEntryTarget } from './battle-keyboard-scope'
+
 import { useLayoutEffect } from 'react'
 
 type Facing = 'north' | 'east' | 'south' | 'west'
-
-function isTextEntryTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false
-  if (target.isContentEditable) return true
-  return (
-    target instanceof HTMLInputElement ||
-    target instanceof HTMLTextAreaElement ||
-    target instanceof HTMLSelectElement
-  )
-}
 
 function desktopAiBattleIsActive(): boolean {
   const battlefield = document.querySelector<HTMLElement>('#battlefield')

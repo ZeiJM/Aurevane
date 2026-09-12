@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useDesktopBattleLayout } from './battle-responsive-layout'
 
 import type { PvpBattleMetadata } from '@/server/battle/pvp-lobby-service'
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
@@ -61,6 +62,7 @@ export function PvpBattleQualityControls({
   const [surrenderDialogOpen, setSurrenderDialogOpen] = useState(false)
   const [surrendering, setSurrendering] = useState(false)
   const [commandTarget, setCommandTarget] = useState<HTMLElement | null>(null)
+  const desktopLayout = useDesktopBattleLayout()
   const [turnClockTarget, setTurnClockTarget] = useState<HTMLElement | null>(null)
   const [footerActionsTarget, setFooterActionsTarget] = useState<HTMLElement | null>(null)
 
@@ -95,8 +97,9 @@ export function PvpBattleQualityControls({
         commandDeck?.firstElementChild instanceof HTMLElement ? commandDeck.firstElementChild : null
       setCommandTarget(target)
 
-      let clockSlot =
-        target?.querySelector<HTMLElement>(':scope > [data-pvp-turn-clock-slot="true"]') ?? null
+      let clockSlot = desktopLayout
+        ? (root?.querySelector<HTMLElement>('[data-battle-turn-clock-slot="true"]') ?? null)
+        : (target?.querySelector<HTMLElement>(':scope > [data-pvp-turn-clock-slot="true"]') ?? null)
       if (target && !clockSlot) {
         clockSlot = document.createElement('div')
         clockSlot.dataset.pvpTurnClockSlot = 'true'
@@ -127,7 +130,7 @@ export function PvpBattleQualityControls({
     const observer = new MutationObserver(() => window.requestAnimationFrame(locate))
     observer.observe(document.body, { childList: true, subtree: true })
     return () => observer.disconnect()
-  }, [])
+  }, [desktopLayout])
 
   useEffect(() => {
     if (!commandTarget || !opponentTurn) return

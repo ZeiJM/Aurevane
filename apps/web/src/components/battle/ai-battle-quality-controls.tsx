@@ -8,6 +8,7 @@ import {
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useDesktopBattleLayout } from './battle-responsive-layout'
 
 import type { BattlePreviewView } from '@/server/battle/battle-preview-service'
 
@@ -230,6 +231,8 @@ export function AiBattleQualityControls({
   const [preview, setPreview] = useState<IntentPreview | null>(null)
   const [now, setNow] = useState(() => Date.now())
   const [error, setError] = useState<string | null>(null)
+  const desktopLayout = useDesktopBattleLayout()
+  const [clockTarget, setClockTarget] = useState<HTMLElement | null>(null)
   const [commandTarget, setCommandTarget] = useState<HTMLElement | null>(null)
   const commandTargetRef = useRef<HTMLElement | null>(null)
   const reloading = useRef(false)
@@ -249,6 +252,10 @@ export function AiBattleQualityControls({
       const target =
         strip?.firstElementChild instanceof HTMLElement ? strip.firstElementChild : null
       if (strip && target) markInstructionStructure(strip, target)
+      const clockHost = desktopLayout
+        ? root.querySelector<HTMLElement>('[data-battle-turn-clock-slot="true"]')
+        : target
+      setClockTarget((current) => (current === clockHost ? current : clockHost))
 
       if (commandTargetRef.current !== target) {
         commandTargetRef.current = target
@@ -280,7 +287,7 @@ export function AiBattleQualityControls({
       root.removeEventListener('click', clearPreviewFromCommand)
       if (frame !== null) window.cancelAnimationFrame(frame)
     }
-  }, [])
+  }, [desktopLayout])
 
   useEffect(() => {
     const previousFetch = window.fetch
@@ -455,51 +462,60 @@ export function AiBattleQualityControls({
 
   if (!commandTarget) return null
 
-  return createPortal(
+  return (
     <>
-      {chips.length > 0 ? (
-        <span data-battle-target-preview="true" aria-label="Action preview">
-          {chips.map((chip, index) => (
-            <span
-              key={`${chip.label}-${index}`}
-              data-battle-preview-chip="true"
-              data-battle-preview-tone={chip.tone}
-            >
-              {chip.label}
+      {createPortal(
+        <>
+          {chips.length > 0 ? (
+            <span data-battle-target-preview="true" aria-label="Action preview">
+              {chips.map((chip, index) => (
+                <span
+                  key={`${chip.label}-${index}`}
+                  data-battle-preview-chip="true"
+                  data-battle-preview-tone={chip.tone}
+                >
+                  {chip.label}
+                </span>
+              ))}
             </span>
-          ))}
-        </span>
-      ) : null}
-      <span
-        data-ai-turn-clock="true"
-        style={{
-          display: 'inline-flex',
-          order: 3,
-          flex: '0 0 auto',
-          maxWidth: '100%',
-          gap: '.34rem',
-          alignItems: 'center',
-          marginLeft: 'auto',
-          padding: '.2rem .38rem',
-          border: '1px solid rgba(111,172,143,.42)',
-          borderRadius: '999px',
-          background: 'rgba(75,143,111,.055)',
-          font: '750 .4rem/1 var(--av-font-mono)',
-          whiteSpace: 'nowrap',
-        }}
-        aria-live="polite"
-        title="Each player turn lasts 60 seconds. Two consecutive timeouts apply Lowered Guard."
-      >
-        <span
-          style={{
-            color: clock?.active && seconds <= 10 ? '#e48b78' : 'var(--av-brass-200)',
-          }}
-        >
-          {clock?.active ? `${seconds}s left` : 'Opponent turn'}
-        </span>
-        {error ? <span style={{ color: '#e2a0a0' }}>{error}</span> : null}
-      </span>
-    </>,
-    commandTarget,
+          ) : null}
+        </>,
+        commandTarget,
+      )}
+      {clockTarget
+        ? createPortal(
+            <span
+              data-ai-turn-clock="true"
+              style={{
+                display: 'inline-flex',
+                order: 3,
+                flex: '0 0 auto',
+                maxWidth: '100%',
+                gap: '.34rem',
+                alignItems: 'center',
+                marginLeft: 'auto',
+                padding: '.2rem .38rem',
+                border: '1px solid rgba(111,172,143,.42)',
+                borderRadius: '999px',
+                background: 'rgba(75,143,111,.055)',
+                font: '750 .4rem/1 var(--av-font-mono)',
+                whiteSpace: 'nowrap',
+              }}
+              aria-live="polite"
+              title="Each player turn lasts 60 seconds. Two consecutive timeouts apply Lowered Guard."
+            >
+              <span
+                style={{
+                  color: clock?.active && seconds <= 10 ? '#e48b78' : 'var(--av-brass-200)',
+                }}
+              >
+                {clock?.active ? `${seconds}s` : 'Opponent turn'}
+              </span>
+              {error ? <span style={{ color: '#e2a0a0' }}>{error}</span> : null}
+            </span>,
+            clockTarget,
+          )
+        : null}
+    </>
   )
 }

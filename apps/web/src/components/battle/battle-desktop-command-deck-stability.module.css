@@ -2,47 +2,33 @@
   display: none;
 }
 
-/*
- * Keep stable context/card tracks while Finish Turn hands control to Recruit/AI. The full-width
- * tag strip needs room for three chip rows on normal desktops and five on narrow desktops.
- */
-@media (min-width: 821px) and (min-height: 721px) {
+/* Effect tags determine the compact card row's natural height. The selected skills and their
+   tags persist during turn handoff, so disabling actions cannot change this geometry. */
+@media (min-width: 821px) {
   :global(
     main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
       [data-unified-command-deck='true']
   ) {
-    --battle-command-row-height: 8.75rem;
-    grid-template-rows: 2.4rem var(--battle-command-row-height) !important;
+    grid-template-rows: 1.8rem auto !important;
   }
-
   :global(
     main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
       [data-unified-command-deck='true']
       > div:first-child
   ) {
-    height: 2.4rem !important;
-    min-height: 2.4rem !important;
-    max-height: 2.4rem !important;
+    height: 1.8rem !important;
+    min-height: 1.8rem !important;
+    max-height: 1.8rem !important;
     box-sizing: border-box !important;
   }
-
   :global(
     main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
       [data-unified-command-deck='true']
       > div:nth-child(2)
   ) {
-    height: var(--battle-command-row-height) !important;
-    min-height: var(--battle-command-row-height) !important;
-    max-height: var(--battle-command-row-height) !important;
+    height: auto !important;
+    min-height: 6rem !important;
+    max-height: none !important;
     align-self: stretch !important;
-  }
-}
-
-@media (min-width: 821px) and (max-width: 1200px) and (min-height: 721px) {
-  :global(
-    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
-      [data-unified-command-deck='true']
-  ) {
-    --battle-command-row-height: 12rem;
   }
 }

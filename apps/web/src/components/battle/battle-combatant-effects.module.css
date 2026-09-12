@@ -1,0 +1,85 @@
+.effects {
+  min-width: 0;
+  padding: 0.65rem;
+  border-top: 1px solid var(--av-border);
+}
+.effects h3 {
+  margin: 0 0 0.5rem;
+  color: var(--av-text-muted);
+  font: 650 0.75rem/1.25 var(--av-font-body);
+}
+.effects p {
+  margin: 0;
+  color: var(--av-text-dim);
+  font: 400 0.6875rem/1.4 var(--av-font-body);
+}
+.list {
+  display: grid;
+  gap: 0.45rem;
+}
+.list button {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  border: 1px solid rgba(156, 179, 197, 0.22);
+  border-radius: 0.4rem;
+  color: var(--av-text);
+  background: rgba(156, 179, 197, 0.045);
+  text-align: left;
+  cursor: pointer;
+}
+.list button[data-tone='positive'] {
+  border-color: rgba(103, 190, 148, 0.3);
+  background: rgba(75, 143, 111, 0.07);
+}
+.list button[data-tone='negative'] {
+  border-color: rgba(222, 117, 112, 0.3);
+  background: rgba(185, 73, 67, 0.07);
+}
+.list button:hover,
+.list button:focus-visible {
+  border-color: var(--av-brass-300);
+  outline-offset: 2px;
+}
+.identity {
+  display: flex;
+  min-width: 0;
+  gap: 0.35rem;
+  align-items: center;
+}
+.identity i {
+  font: 750 0.85rem/1 var(--av-font-body);
+  font-style: normal;
+}
+.identity strong {
+  min-width: 0;
+  font: 650 0.75rem/1.3 var(--av-font-body);
+  overflow-wrap: anywhere;
+}
+.identity small {
+  margin-left: auto;
+  white-space: nowrap;
+  color: var(--av-text-muted);
+  font: 500 0.625rem/1.2 var(--av-font-mono);
+}
+[data-tone='positive'] > .identity i,
+.modifier[data-tone='positive'] b {
+  color: #8bd9ae;
+}
+[data-tone='negative'] > .identity i,
+.modifier[data-tone='negative'] b {
+  color: #f09b91;
+}
+.modifier {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  justify-content: space-between;
+  color: var(--av-text-muted);
+  font: 500 0.625rem/1.4 var(--av-font-body);
+}
+.modifier b {
+  font-variant-numeric: tabular-nums;
+}

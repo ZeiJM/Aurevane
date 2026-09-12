@@ -94,7 +94,10 @@ test('Passive Training requires an explicit plan and freezes a server-timed rewa
   expect(storedPlan).toBe('overnight|1|28800')
 
   await page.getByRole('button', { name: 'Navigation' }).click()
-  await page.getByRole('link', { name: /Battle Hall/ }).click()
+  await page
+    .getByRole('navigation', { name: 'Game navigation', exact: true })
+    .getByRole('link', { name: /Battle Hall/ })
+    .click()
   await expect(page.getByRole('heading', { name: 'Choose your arena.' })).toBeVisible()
   const battleMode = page.getByLabel('Battle mode')
   await expect(battleMode).toHaveValue('')
@@ -108,7 +111,10 @@ test('Passive Training requires an explicit plan and freezes a server-timed rewa
   ).toBeVisible()
 
   await page.getByRole('button', { name: 'Navigation' }).click()
-  await page.getByRole('link', { name: /Passive Training/ }).click()
+  await page
+    .getByRole('navigation', { name: 'Game navigation', exact: true })
+    .getByRole('link', { name: /Passive Training/ })
+    .click()
   await expect(page.getByRole('heading', { name: 'Passive Training' })).toBeVisible()
 
   queryLocalDatabase(`

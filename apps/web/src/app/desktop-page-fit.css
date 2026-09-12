@@ -119,22 +119,6 @@
     align-items: start;
   }
 
-  #game-main [data-testid='character-profile'] {
-    grid-template-columns: 8rem minmax(0, 1fr);
-    gap: 0.85rem;
-  }
-
-  #game-main [data-testid='character-profile'] > div:first-child {
-    width: 8rem !important;
-    height: 8rem !important;
-    min-height: 0 !important;
-  }
-
-  #game-main [data-testid='character-profile'] h1 {
-    font-size: clamp(2rem, 3.2vw, 3.2rem);
-    line-height: 1.05;
-  }
-
   #game-main [data-profile-fact] small,
   #game-main [data-profile-section-header] > small,
   #game-main [data-profile-stat-group] > h3 {
@@ -167,13 +151,6 @@
   #battle-launch article > div:first-child > span {
     font-size: 0.75rem;
     line-height: 1.2;
-  }
-
-  #game-main [data-testid='character-profile'] > div:last-child > div:first-of-type {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem 1rem;
   }
 
   #game-main [data-testid='primary-build-panel'] > button > span:last-child,
@@ -231,15 +208,6 @@
 
   #battle-launch [data-pvp-create-card] {
     padding: 0.5rem;
-  }
-
-  #game-main [data-testid='character-profile'] {
-    grid-template-columns: 6.5rem minmax(0, 1fr);
-  }
-
-  #game-main [data-testid='character-profile'] > div:first-child {
-    width: 6.5rem !important;
-    height: 6.5rem !important;
   }
 }
 
@@ -354,9 +322,6 @@
 }
 
 @media (min-width: 981px) and (max-height: 760px) {
-  #game-main [data-testid='character-profile'] h1 {
-    font-size: 2rem;
-  }
   #game-main [data-profile-facts] {
     margin-block: 0.3rem;
   }

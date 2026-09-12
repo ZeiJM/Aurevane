@@ -176,3 +176,69 @@
     box-sizing: border-box !important;
   }
 }
+
+:global([data-battle-turn-clock-slot='true']) {
+  display: none;
+}
+@media (min-width: 821px) {
+  :global(
+    main[data-unified-battle='true'][data-battle-kind]
+      [data-unified-battle-economy='true']
+      > div:first-child
+  ) {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.45rem !important;
+  }
+  :global(main[data-unified-battle='true'][data-battle-kind] [data-battle-turn-clock-slot='true']) {
+    display: inline-flex !important;
+    order: 4;
+    margin-left: auto;
+    min-width: 0;
+  }
+  :global(
+    main[data-unified-battle='true'][data-battle-kind] [data-battle-turn-clock-slot='true'] > span
+  ),
+  :global(
+    main[data-unified-battle='true'][data-battle-kind]
+      [data-battle-turn-clock-slot='true']
+      > span
+      > span
+  ) {
+    font-size: 0.6875rem !important;
+    line-height: 1.2 !important;
+  }
+  :global(
+    main[data-unified-battle='true'][data-battle-kind]
+      [data-unified-battle-economy='true']
+      > div:first-child
+      > span:not([data-battle-turn-clock-slot])
+  ),
+  :global(
+    main[data-unified-battle='true'][data-battle-kind]
+      [data-unified-battle-economy='true']
+      > div:first-child
+      > small
+  ) {
+    font-size: 0.625rem !important;
+    line-height: 1.2 !important;
+  }
+  :global(
+    main[data-unified-battle='true'][data-battle-kind]
+      [data-unified-command-deck='true']
+      > div:first-child
+      > strong
+  ) {
+    font-size: 0.875rem !important;
+    line-height: 1.2 !important;
+  }
+  :global(
+    main[data-unified-battle='true'][data-battle-kind]
+      [data-unified-command-deck='true']
+      > div:first-child
+      > span
+  ) {
+    font-size: 0.6875rem !important;
+    line-height: 1.3 !important;
+  }
+}

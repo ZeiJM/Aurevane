@@ -43,7 +43,15 @@ export function summarizeConsecutiveBattleLogMovement(
         actor === previousActor &&
         action.turnNumber === previous.turnNumber
 
-      if (sameContinuousMove) continue
+      if (sameContinuousMove) {
+        // Keep every committed step available to the action-detail view of the summarized move.
+        const previous = summarized[summarized.length - 1]!
+        summarized[summarized.length - 1] = {
+          ...previous,
+          sourceEntries: [...(previous.sourceEntries ?? []), ...(action.sourceEntries ?? [])],
+        }
+        continue
+      }
       summarized.push(action)
     }
 

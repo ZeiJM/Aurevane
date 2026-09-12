@@ -68,7 +68,13 @@ export function BattleClientBoundary({
   const localCharacterId = viewModel.localParticipant?.characterId ?? null
 
   return (
-    <BattleRuntimeProvider playerName={runtime.playerName} combatantAccents={combatantAccents}>
+    <BattleRuntimeProvider
+      playerName={runtime.playerName}
+      combatantAccents={combatantAccents}
+      opponentNames={viewModel.participants
+        .filter((participant) => participant.teamIndex !== viewModel.localParticipant?.teamIndex)
+        .map((participant) => participant.name)}
+    >
       <BattleInteractionLifecycleProvider>
         <BattleMovementKeyboardAssist playerName={runtime.playerName} />
         <BattleSelfActionQuickCommitAssist />

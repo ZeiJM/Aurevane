@@ -1,16 +1,8 @@
 'use client'
 
-import { useLayoutEffect } from 'react'
+import { isBattleShortcutBlocked as isTextEntryTarget } from './battle-keyboard-scope'
 
-function isTextEntryTarget(target: EventTarget | null): boolean {
-  if (!(target instanceof HTMLElement)) return false
-  return (
-    target.isContentEditable ||
-    target instanceof HTMLInputElement ||
-    target instanceof HTMLTextAreaElement ||
-    target instanceof HTMLSelectElement
-  )
-}
+import { useLayoutEffect } from 'react'
 
 function directionForCode(code: string): { dx: number; dy: number } | null {
   if (code === 'ArrowUp' || code === 'KeyW') return { dx: 0, dy: -1 }

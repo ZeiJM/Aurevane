@@ -1,5 +1,6 @@
 'use client'
 
+import { BattleActionTimeline } from './battle-action-timeline'
 import { useMemo, useState } from 'react'
 
 import type { SkillNarrationTemplate } from '@aurevane/game-core/combat/battle-narration'
@@ -26,6 +27,7 @@ interface BattleLogFeedProps {
   combatantNames?: Readonly<Record<string, string>>
   skillNarrations?: Readonly<Record<string, SkillNarrationTemplate>>
   emptyMessage?: string
+  compactFlow?: boolean
 }
 
 export interface BattleLogTranscriptLines {
@@ -237,6 +239,7 @@ export function BattleLogFeed({
   combatantNames,
   skillNarrations,
   emptyMessage = 'No committed battle actions yet.',
+  compactFlow = false,
 }: BattleLogFeedProps) {
   const combatantAccents = useBattleCombatantAccents()
   const rounds = useMemo(() => {
@@ -249,6 +252,7 @@ export function BattleLogFeed({
     return summarizeConsecutiveBattleLogMovement(consolidated, entries)
   }, [combatantNames, entries, playerName, skillNarrations])
   const actionNumbers = useMemo(() => buildBattleLogActionNumbers(rounds), [rounds])
+  const [flowView, setFlowView] = useState<'timeline' | 'text'>('timeline')
   const [requestedRound, setRequestedRound] = useState<string | null | undefined>(undefined)
   const expandedRound = expandedRoundKey(rounds, requestedRound)
   const battleFinished = entries.some(
@@ -259,76 +263,111 @@ export function BattleLogFeed({
 
   return (
     <div className={styles.feed} data-testid="battle-log-feed">
-      {rounds.map((round) => {
-        const open = expandedRound === round.key
-        const roundLabel = round.round === null ? 'Battle' : `Round ${round.round}`
-        const inProgress = !battleFinished && round.key === rounds[0]?.key && round.round !== null
-        return (
-          <section className={styles.round} data-open={open || undefined} key={round.key}>
-            <button
-              type="button"
-              className={styles.roundHeader}
-              aria-expanded={open}
-              onClick={() =>
-                setRequestedRound((current) =>
-                  expandedRoundKey(rounds, current) === round.key ? null : round.key,
-                )
-              }
-            >
-              <span className={styles.chevron} aria-hidden="true">
-                ›
-              </span>
-              <strong className={styles.roundTitle}>
-                {roundLabel}
-                {inProgress ? (
-                  <>
-                    {' · '}
-                    <span className={styles.inProgress}>In progress</span>
-                  </>
-                ) : null}
-              </strong>
-            </button>
-
-            {open ? (
-              <ol className={styles.actions} aria-label={`${roundLabel} battle events`}>
-                {round.actions.map((action) => {
-                  const transcript = buildBattleLogTranscriptLines(action)
-                  return (
-                    <li
-                      className={styles.action}
-                      data-kind={action.kind}
-                      data-tone={action.tone}
-                      data-significance={action.significance}
-                      key={action.key}
-                    >
-                      <article tabIndex={0} aria-label={action.ariaLabel}>
-                        <p className={styles.primaryLine}>
-                          <span className={styles.eventNumber}>
-                            #{actionNumbers.get(action.key)}:
-                          </span>
-                          <span className={styles.primaryContent}>
-                            {renderTranscriptSegments(
-                              transcript.primary,
-                              action,
-                              'primary',
-                              combatantAccents,
-                            )}
-                          </span>
-                        </p>
-                        {transcript.secondaryLines.map((line, index) => (
-                          <p className={styles.secondaryLine} key={`${action.key}:result:${index}`}>
-                            {renderTranscriptSegments(line, action, 'secondary', combatantAccents)}
-                          </p>
-                        ))}
-                      </article>
-                    </li>
+      {compactFlow ? (
+        <div className={styles.flowViews} role="group" aria-label="Battle history view">
+          <button
+            type="button"
+            aria-pressed={flowView === 'timeline'}
+            onClick={() => setFlowView('timeline')}
+          >
+            Timeline
+          </button>
+          <button
+            type="button"
+            aria-pressed={flowView === 'text'}
+            onClick={() => setFlowView('text')}
+          >
+            Text log
+          </button>
+        </div>
+      ) : null}
+      {compactFlow && flowView === 'timeline' ? (
+        <BattleActionTimeline
+          rounds={rounds}
+          entries={entries}
+          playerName={playerName}
+          combatantNames={combatantNames}
+        />
+      ) : (
+        rounds.map((round) => {
+          const open = expandedRound === round.key
+          const roundLabel = round.round === null ? 'Battle' : `Round ${round.round}`
+          const inProgress = !battleFinished && round.key === rounds[0]?.key && round.round !== null
+          return (
+            <section className={styles.round} data-open={open || undefined} key={round.key}>
+              <button
+                type="button"
+                className={styles.roundHeader}
+                aria-expanded={open}
+                onClick={() =>
+                  setRequestedRound((current) =>
+                    expandedRoundKey(rounds, current) === round.key ? null : round.key,
                   )
-                })}
-              </ol>
-            ) : null}
-          </section>
-        )
-      })}
+                }
+              >
+                <span className={styles.chevron} aria-hidden="true">
+                  ›
+                </span>
+                <strong className={styles.roundTitle}>
+                  {roundLabel}
+                  {inProgress ? (
+                    <>
+                      {' · '}
+                      <span className={styles.inProgress}>In progress</span>
+                    </>
+                  ) : null}
+                </strong>
+              </button>
+
+              {open ? (
+                <ol className={styles.actions} aria-label={`${roundLabel} battle events`}>
+                  {round.actions.map((action) => {
+                    const transcript = buildBattleLogTranscriptLines(action)
+                    return (
+                      <li
+                        className={styles.action}
+                        data-kind={action.kind}
+                        data-tone={action.tone}
+                        data-significance={action.significance}
+                        key={action.key}
+                      >
+                        <article tabIndex={0} aria-label={action.ariaLabel}>
+                          <p className={styles.primaryLine}>
+                            <span className={styles.eventNumber}>
+                              #{actionNumbers.get(action.key)}:
+                            </span>
+                            <span className={styles.primaryContent}>
+                              {renderTranscriptSegments(
+                                transcript.primary,
+                                action,
+                                'primary',
+                                combatantAccents,
+                              )}
+                            </span>
+                          </p>
+                          {transcript.secondaryLines.map((line, index) => (
+                            <p
+                              className={styles.secondaryLine}
+                              key={`${action.key}:result:${index}`}
+                            >
+                              {renderTranscriptSegments(
+                                line,
+                                action,
+                                'secondary',
+                                combatantAccents,
+                              )}
+                            </p>
+                          ))}
+                        </article>
+                      </li>
+                    )
+                  })}
+                </ol>
+              ) : null}
+            </section>
+          )
+        })
+      )}
     </div>
   )
 }

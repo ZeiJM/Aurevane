@@ -46,7 +46,10 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   await page.getByRole('link', { name: 'Back to Character Profile' }).click()
   await expect(page).toHaveURL(/\/game\/character$/)
   await page.getByRole('button', { name: 'Navigation' }).click()
-  await page.getByRole('link', { name: /Battle Hall/ }).click()
+  await page
+    .getByRole('navigation', { name: 'Game navigation', exact: true })
+    .getByRole('link', { name: /Battle Hall/ })
+    .click()
   await expect(page).toHaveURL(/\/game\/battle$/)
 
   await expect(page.getByRole('heading', { name: 'Choose your arena.' })).toBeVisible()
@@ -222,7 +225,9 @@ async function expectVictoryConditionsBesideActionEconomy(
   expect(horizontalGap).toBeGreaterThanOrEqual(-1)
   expect(horizontalGap).toBeLessThanOrEqual(24)
 
-  const economyCenterY = economyBox.y + economyBox.height / 2
+  const economyPanelBox = await page.locator('[data-unified-battle-economy="true"]').boundingBox()
+  expect(economyPanelBox).not.toBeNull()
+  const economyCenterY = economyPanelBox!.y + economyPanelBox!.height / 2
   const victoryCenterY = victoryBox.y + victoryBox.height / 2
   expect(Math.abs(economyCenterY - victoryCenterY)).toBeLessThanOrEqual(10)
 }

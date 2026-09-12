@@ -26,6 +26,21 @@ const TARGET_SHADOWS: Readonly<Record<string, string>> = {
     'inset 0 0 0 2px rgba(108, 145, 198, 0.46), 0 0 0.75rem rgba(108, 145, 198, 0.22)',
 }
 
+export function fitBattleBoard(
+  columns: number,
+  rows: number,
+  availableWidth: number,
+  availableHeight: number,
+): { width: number; height: number } {
+  const scale = Math.min(
+    availableWidth / columns,
+    availableHeight / rows,
+    620 / columns,
+    482 / rows,
+  )
+  return { width: columns * scale, height: rows * scale }
+}
+
 function syncBoardScale(): { width: number; height: number } | null {
   const board = document.querySelector<HTMLElement>('#battlefield [data-board-auto-fit]')
   if (!board) return null
@@ -37,10 +52,24 @@ function syncBoardScale(): { width: number; height: number } | null {
   const height = Number(fit[2])
   if (width <= 0 || height <= 0) return null
 
-  // BattleExperience publishes the authoritative tactical width/height directly. This helper only
-  // preserves the established large-board cap; it no longer derives board geometry from live tile
-  // DOM, so transient React reconciliation cannot change the board-size contract.
-  if (width === 13 && height === 9) {
+  // Fit the authoritative map dimensions into the space left by the cockpit and history. A
+  // width-only board can have its lower rows clipped when the available viewport height shrinks.
+  // This bundle is shared with spectators, so every desktop map uses the same sizing boundary.
+  const viewport = board.parentElement
+  if (window.matchMedia(DESKTOP_PVP_TOKEN_QUERY).matches && viewport) {
+    const style = getComputedStyle(viewport)
+    const availableWidth =
+      viewport.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+    const availableHeight =
+      viewport.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)
+    if (availableWidth <= 0 || availableHeight <= 0) return { width, height }
+    const fitted = fitBattleBoard(width, height, availableWidth, availableHeight)
+    board.style.setProperty('box-sizing', 'border-box', 'important')
+    board.style.setProperty('width', `${fitted.width}px`, 'important')
+    board.style.setProperty('max-width', '100%', 'important')
+    board.style.setProperty('height', `${fitted.height}px`, 'important')
+    board.style.setProperty('max-height', '100%', 'important')
+  } else if (width === 13 && height === 9) {
     board.style.setProperty('box-sizing', 'border-box', 'important')
     board.style.setProperty('width', 'min(100%, 620px)', 'important')
     board.style.setProperty('max-width', '620px', 'important')
@@ -203,6 +232,10 @@ export function BattleMapTokenPolish({
       attributeFilter: ['data-target'],
     })
 
+    const boardViewport = battlefield.querySelector('[data-board-auto-fit]')?.parentElement
+    const sizeObserver = new ResizeObserver(polish)
+    if (boardViewport) sizeObserver.observe(boardViewport)
+
     const commandDeck = document.querySelector('section[aria-label="Command Deck"]')
     const commandObserver = commandDeck ? new MutationObserver(polish) : null
     commandObserver?.observe(commandDeck!, {
@@ -215,6 +248,7 @@ export function BattleMapTokenPolish({
 
     return () => {
       battlefieldObserver.disconnect()
+      sizeObserver.disconnect()
       commandObserver?.disconnect()
       window.removeEventListener('resize', polish)
     }

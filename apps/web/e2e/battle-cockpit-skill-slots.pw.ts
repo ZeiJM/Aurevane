@@ -32,7 +32,10 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   await createAccountAndEnterCharacter({ page, email, password, characterName })
 
   await page.getByRole('button', { name: 'Navigation' }).click()
-  await page.getByRole('link', { name: /Battle Hall/ }).click()
+  await page
+    .getByRole('navigation', { name: 'Game navigation', exact: true })
+    .getByRole('link', { name: /Battle Hall/ })
+    .click()
   await expect(page).toHaveURL(/\/game\/battle$/)
 
   await page.getByLabel('Battle mode').selectOption('recruit-sparring')
@@ -94,8 +97,9 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   if (!cardGeometry) return
   expect(cardGeometry.labelLeft).toBeGreaterThan(cardGeometry.actionLeft)
   expectNear(cardGeometry.labelLeft, cardGeometry.costLeft)
-  expect(cardGeometry.labelTextAlign).toBe('left')
-  expect(cardGeometry.costTextAlign).toBe('left')
+  const expectedAlignment = 'left'
+  expect(cardGeometry.labelTextAlign).toBe(expectedAlignment)
+  expect(cardGeometry.costTextAlign).toBe(expectedAlignment)
   expect(cardGeometry.costTop - cardGeometry.labelBottom).toBeLessThanOrEqual(8)
 
   if (testInfo.project.name === 'mobile-chromium') {

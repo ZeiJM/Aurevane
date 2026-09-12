@@ -1,5 +1,6 @@
 .details {
   min-width: 0;
+  container-type: inline-size;
 }
 
 .details [data-profile-fact] {
@@ -31,9 +32,46 @@
 }
 
 .details [data-testid^='profile-attribute-'] {
-  grid-template-columns: 2.25rem auto;
+  grid-template-columns: 1.7rem minmax(0, auto);
   justify-content: center;
   text-align: center;
+}
+
+/* The sheet can be narrower than the viewport beside the character and navigation rails. */
+@container (max-width: 740px) {
+  .details [data-testid^='profile-attribute-'] {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: 0.25rem;
+  }
+
+  .details [data-profile-fact] {
+    grid-template-columns: 1.5rem minmax(0, auto);
+    gap: 0.4rem;
+    padding-inline: 0.4rem;
+  }
+}
+
+@container (max-width: 600px) {
+  .details [data-profile-section-header] {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.3rem;
+  }
+
+  .details [data-profile-section-header] > small {
+    text-align: left;
+  }
+}
+
+@container (max-width: 540px) {
+  .details [data-profile-stat-groups] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .details [data-profile-section] h2 {
+    white-space: normal;
+    line-height: 1.25;
+  }
 }
 
 .attributeCopy {
