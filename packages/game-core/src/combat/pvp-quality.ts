@@ -109,7 +109,7 @@ export function surrenderPvpCombatant(
       (candidate) => candidate.combatantId === combatantId,
     )
     if (!placement) throw new Error('The surrendering combatant has no tactical placement.')
-    const handedOff = finishPv1fTurn(state, placement.facing)
+    const handedOff = finishPv1fTurn(state, placement.facing, true)
     nextState = handedOff.state
     events.push(...handedOff.events)
   }
@@ -133,7 +133,7 @@ export function surrenderPvpCombatant(
     }
     const tactical = createTacticalBattleState({ ...nextState.tactical, battle })
     nextState = reattachStatDrivenCombatBridge(
-      createCombatEncounterState(tactical, nextState.statusState),
+      { ...nextState, ...createCombatEncounterState(tactical, nextState.statusState) },
       nextState.statBridge,
     )
     events.push({ event: 'battle_completed', winningTeamId })
@@ -323,7 +323,7 @@ function rebuildCombatant(
     ),
   }
   const tactical = createTacticalBattleState({ ...state.tactical, battle })
-  const encounter = createCombatEncounterState(tactical, state.statusState)
+  const encounter = { ...state, ...createCombatEncounterState(tactical, state.statusState) }
   const next = reattachStatDrivenCombatBridge(encounter, state.statBridge)
   assertValid(next)
   return next

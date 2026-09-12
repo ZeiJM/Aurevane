@@ -718,6 +718,7 @@ export function executePv1fMovement(
 export function finishPv1fTurn(
   state: StatDrivenCombatEncounterState,
   facing: BattleFacing,
+  outgoingDefeatedAtTurnEnd = false,
 ): Pv1fTransition {
   const prepared = preparePv1fTurnEconomy(state)
   const selected = selectCurrentFinalFacing(prepared.tactical, facing)
@@ -725,7 +726,7 @@ export function finishPv1fTurn(
     { ...prepared, ...createCombatEncounterState(selected.state, prepared.statusState) },
     prepared.statBridge,
   )
-  const ended = endCombatTurn(encounter, PV1F_COMBAT_CONTENT)
+  const ended = endCombatTurn(encounter, PV1F_COMBAT_CONTENT, outgoingDefeatedAtTurnEnd)
   const bridged = reattachStatDrivenCombatBridge(ended.state, prepared.statBridge)
   const nextTurn = preparePv1fTurnEconomyTransition(bridged)
   return {

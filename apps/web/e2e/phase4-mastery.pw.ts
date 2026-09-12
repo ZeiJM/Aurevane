@@ -50,7 +50,7 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
       delete from app_private.character_discipline_masteries where character_id=c;
       update app_private.character_discipline_progress set mastery_xp=0,demonstrated_skills='{}' where character_id=c;
       update app_private.character_discipline_progress set mastery_xp=250 where character_id=c and discipline_id='vanguard';
-      if app_private.discipline_unlocked_v1(c,'bastion') then raise exception 'Fixture already has Bastion'; end if;
+      if app_private.discipline_release_unlocked_v1(c,'bastion') then raise exception 'Fixture already earned Bastion'; end if;
     end $$; commit;`,
       encoding: 'utf8',
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -118,6 +118,12 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
     const tactical = battle.snapshot.tactical
     const player = tactical.placements.find((unit) => unit.combatantId === playerId)!.position
     const enemy = tactical.placements.find((unit) => unit.combatantId === enemyId)!.position
+    // The accessible board uses one-based coordinates; snapshots use zero-based.
+    const enemyTile = root.getByRole('button', {
+      name: new RegExp(`^Tile ${enemy.x + 1}, ${enemy.y + 1};.*occupied by`),
+    })
+    await expect(root).toHaveAttribute('data-local-turn', 'true')
+    await expect(enemyTile).toBeVisible()
     const distance = Math.abs(player.x - enemy.x) + Math.abs(player.y - enemy.y)
     const ap = tactical.battle.combatants
       .find((unit) => unit.id === playerId)!
@@ -141,7 +147,8 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
         await chooseSkill('Attack', 'basic.attack.unarmed.basic')
         await root.locator('[data-battle-command="attack"]').click()
       }
-      await root.getByRole('button', { name: new RegExp(`^Tile ${enemy.x}, ${enemy.y};`) }).click()
+      await expect(enemyTile).toHaveAttribute('data-target', 'enemy')
+      await enemyTile.click()
       await commit()
       if (skillCommands < 3) skillCommands++
       continue
@@ -159,7 +166,8 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
             .map((tile) => ({
               label: tile.label,
               distance:
-                Math.abs(Number(tile.xy![1]) - target.x) + Math.abs(Number(tile.xy![2]) - target.y),
+                Math.abs(Number(tile.xy![1]) - 1 - target.x) +
+                Math.abs(Number(tile.xy![2]) - 1 - target.y),
             }))
             .sort((a, b) => a.distance - b.distance)[0] ?? null,
         enemy,
@@ -215,7 +223,7 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
   await page.goto('/game/character')
   await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management' })
-  await management.getByText('Mastery & unlocks', { exact: true }).click()
+  await management.getByText('Discipline Atlas & Mastery', { exact: true }).click()
   await expect(management).toContainText('Adept · 300/1,000 XP')
   await expect(management.locator('select').first().locator('option[value="bastion"]')).toHaveCount(
     1,
