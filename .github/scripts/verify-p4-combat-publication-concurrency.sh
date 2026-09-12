@@ -29,9 +29,10 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Canonical Shadehand base (3,7,3,8,6,4) plus all five creation points in focus Finesse.
 character_id="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;
-  select id from public.create_character_v3('$user_id'::uuid,0::smallint,gen_random_uuid(),'p4:publication:race',1,'P4 Race','p4publicationrace','androgynous','they_them','portrait.starter.wayfarer-01','appearance.starter.roadworn','shadehand',4,10,5,8,4,5);")"
+  select id from public.create_character_v3('$user_id'::uuid,0::smallint,gen_random_uuid(),'p4:publication:race',1,'P4 Race','p4publicationrace','androgynous','they_them','portrait.starter.wayfarer-01','appearance.starter.roadworn','shadehand',3,12,3,8,6,4);")"
 test -n "$character_id"
 # Initial committed build version 2 contains the release-affected v1 Skill.
 docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "

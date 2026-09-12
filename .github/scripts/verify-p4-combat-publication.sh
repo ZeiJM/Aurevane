@@ -43,7 +43,8 @@ begin
  assert (select count(*) from app_private.phase4_skill_catalog c join app_private.phase4_combat_skill_versions r using(skill_id) where c.content_version = r.previous_version) = 20, 'Pre-activation catalog remains historical';
  assert not has_table_privilege('service_role','app_private.phase4_combat_skill_versions','UPDATE'), 'Release list is not mutable by service API';
 
- select id into c from public.create_character_v3(u,0::smallint,gen_random_uuid(),'p4:publication:character',1,'P4 Publication','p4publication','androgynous','they_them','portrait.starter.wayfarer-01','appearance.starter.roadworn','shadehand',4,10,5,8,4,5);
+ -- Canonical Shadehand base (3,7,3,8,6,4) plus all five creation points in focus Finesse.
+ select id into c from public.create_character_v3(u,0::smallint,gen_random_uuid(),'p4:publication:character',1,'P4 Publication','p4publication','androgynous','they_them','portrait.starter.wayfarer-01','appearance.starter.roadworn','shadehand',3,12,3,8,6,4);
  assert (select skill_content_version = 1 from app_private.character_skill_unlocks where character_id=c and skill_id='shadehand.smoke-vial'), 'Pre-activation new character gets v1';
  select build_version into v_before from app_private.character_active_builds where character_id=c;
  perform public.save_character_discipline_skill_loadout_v1(u,c,v_before,old_skills,gen_random_uuid(),'p4:publication:old-selection');
@@ -85,6 +86,7 @@ begin
  perform public.activate_character_build_loadout_v1(u,c,1::smallint,v_after,gen_random_uuid(),'p4:publication:restore');
  assert (select skill_content_version=2 from app_private.character_build_discipline_skills where character_id=c and skill_id='shadehand.smoke-vial'), 'Saved activation resolves current version';
  assert (select to_jsonb(loadout)=saved from app_private.character_saved_build_loadouts loadout where character_id=c and slot_index=1), 'Saved source remains immutable';
+ -- Canonical Ironfist base (8,4,5,8,2,4) plus five focus Might points; same as verify-p4-ironfist.sh.
  select id into future_character from public.create_character_v3(u,1::smallint,gen_random_uuid(),'p4:publication:future',1,'P4 Future','p4future','androgynous','they_them','portrait.starter.wayfarer-01','appearance.starter.roadworn','ironfist',13,4,5,8,2,4);
  assert (select skill_content_version=2 from app_private.character_skill_unlocks where character_id=future_character and skill_id='ironfist.breakfall'), 'Future provisioning uses v2';
  perform app_private.provision_mastery_skills_v1(future_character);
