@@ -152,6 +152,10 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
     expectOpticallyNear(geometry.artworkHeight, geometry.artworkWidth)
     expect(geometry.artworkRect.right).toBeLessThanOrEqual(geometry.cardRect.right)
     expect(geometry.artworkRect.bottom).toBeLessThanOrEqual(geometry.cardRect.bottom)
+    expect(
+      geometry.textRects[1]!.top,
+      `${geometry.slot} cost or hint must stay below its name.`,
+    ).toBeGreaterThanOrEqual(geometry.textRects[0]!.bottom)
     for (const text of geometry.textRects) {
       expect(
         text.right <= geometry.artworkRect.left ||
