@@ -2,7 +2,7 @@
 
 **Authority:** Derived from `docs/GAME_MASTER_PLAN.md` and Owner-approved domain specifications. If conflict exists, the Master Game Plan and applicable canonical domain specification win.
 
-**Synchronized:** 2026-09-11
+**Synchronized:** 2026-09-12
 
 This roadmap reflects the game that actually exists today. It formally credits early-delivered battle-platform work instead of pretending later phases must rebuild it.
 
@@ -49,7 +49,7 @@ Performance work never authorizes a gameplay redesign, weakened server authority
 | Phase 1 — Character & Progression Foundation | ✅ Substantially complete | Character/account/profile/progression/equipment foundations exist. |
 | Phase 2 — Tactical Combat & Battle Platform | ✅ Closed / PV-1 passed | Mature combat, AI, direct PvP and spectation foundations are preserved for reuse. |
 | Phase 3 — Signature Buildcraft Foundation | ✅ Implementation complete; Owner-approved closeout | P3.1–P3.8 delivered; final UI/quality release completes the Owner's closure condition. See `PHASE_3_CLOSEOUT.md`. |
-| Phase 4 | Sixteen-Discipline implementation and media integration live; human acceptance open | PR #451 released at `7a539581`; 128 Skills, 16 Essences, 120 Resonances, named effects and Mastery Trials. All 15 CI workflows passed; exact migration verified. See `PHASE_4_TICKETS.md`. |
+| Phase 4 | Active — published roster, Discipline Atlas/Mastery and media integration; human acceptance open | The live sixteen-Discipline baseline is preserved while the approved 36-identity Atlas, earned Mastery, Rekindling gates and separated testing entitlement are implemented. Published roster count follows the authoritative live catalog. See `PHASE_4_TICKETS.md` and `ROADMAP_DISCIPLINE_ATLAS_MASTERY.md`. |
 | Phase 5+ | Planned | Inherit compatible early work. |
 
 ## Current decision boundary
@@ -58,15 +58,17 @@ AUREVANE has completed **Phase 3 — Signature Buildcraft Foundation** implement
 
 Active now:
 
-- complete and verify the Owner's final responsive UI/typography corrections;
+- complete and verify the active Phase-4 roster/Atlas/Mastery extension, including Profile and Manual presentation;
 - preserve the delivered P3.1–P3.8 build authority, pure/mixed identities, cooldowns and shared committed snapshots;
+- keep testing entitlement separate from earned Mastery so every published Discipline remains testable without pre-mastering release characters;
 - reuse compatible Phase-1 character/profile foundations and the mature Phase-2 battle platform;
 - run behavior-preserving performance/security checks at the Phase-3 build-state boundaries.
 
 Not allowed by default:
 
 - reopening or redesigning Phase-2 systems without a genuine regression;
-- activating Phase-4 roster expansion before the separate Owner start command;
+- making a planned/unpublished Atlas identity selectable before its authoritative Discipline content is published;
+- treating temporary testing access as earned Mastery or as satisfaction of eventual release requirements;
 - Vercel deployment unless separately authorized by the Owner.
 
 ## Automatic performance/scaling checkpoints

@@ -13,7 +13,7 @@ Owner activation: explicit request for full implementation, necessary approvals,
 
 ## Current implementation boundary
 
-The sixteen-Discipline playable implementation is live through PR #451, the self-target correction through #452, and ten painted identities plus 72 synthesized cue variants through #454. P4.1–P4.6 engineering, media integration and the production migration are delivered for Owner testing. Independent human visual/listening and tactical acceptance remains open. Earlier milestone evidence below is historical.
+The sixteen-Discipline playable baseline is live through PR #451, the self-target correction through #452, and ten painted identities plus 72 synthesized cue variants through #454. Phase 4 now also owns the approved 36-identity Discipline Atlas/Mastery extension in `ROADMAP_DISCIPLINE_ATLAS_MASTERY.md`: published content may continue expanding during testing, while planned identities remain non-selectable until their authoritative combat libraries exist. Independent human visual/listening and tactical acceptance remains open. Earlier milestone evidence below is historical.
 
 ## Owner continuation — descriptive effects and full implementation
 
@@ -36,7 +36,7 @@ The typed effect extensions, complete libraries/signatures, Mastery Trials, curr
 | Shadehand | Face/Expose setup versus immediate damage | Face the attacker and deny openings | 8 inherited | Perfect Opening | 5 with Ironfist |
 | Ironfist | Defensive setup or exposed-target payoff at close range | Kite; deny setup; armor checks each rush hit | 8 released | Hundredfold Rush | 5 released |
 
-The acquisition boundary is inherited Foundation provisioning on active Discipline change, with durable learned facts. Secondary still requires server-owned mastery. The private PV-2 preparation path is testing only. Final world-based acquisition and mastery routes are not claimed by this content release.
+The acquisition boundary is server-authoritative. During the active development-testing policy, every published Primary and Secondary is available without converting that temporary entitlement into earned Mastery. With testing closed, authored mastery/Rekindling requirements resume as the real gates. Planned/unpublished Disciplines remain unavailable in either mode. Final world/story acquisition routes beyond the implemented Mastery/Atlas foundation remain later work.
 
 ## Ironfist authored contract
 
@@ -107,7 +107,7 @@ Media: original semantic vector sigils cover the added traditions and their Skil
 Verification so far: all advanced regular Skills/Essences execute in PvE and PvP; all 105 new Resonance sequences arm and consume a legal cross-library payoff in each mode. Focused checks cover per-opponent modifiers, cleanse, linked tradeoffs, Root/Slow, periodic expiry/lethal completion, replay and per-recipient armor/ward. Repository checks, database CI, authenticated browser verification and the roster deployment passed; see the release record below.
 
 
-Testing-access compatibility: the existing Owner-authorized `active-player-discipline-testing:v1` triggers grant mastery for enabled Disciplines to current and new player characters. This continuation preserves those grants, including the ten newly enabled Disciplines, so players can test the complete libraries and pairs immediately. Earned progression remains implemented; isolated database fixtures remove only their own temporary support facts inside a rolled-back transaction to prove normal prerequisites and 4/2/2 learning. Existing production masteries are never deleted to manufacture that evidence.
+Testing-access compatibility: temporary testing entitlement is now a separate server-owned policy rather than a Mastery fact. While `testing_open` is active, every published Discipline remains selectable as Primary/Secondary and its published library is available for testing; earned XP/stage, release prerequisites and Mastery history remain independent. Isolated database fixtures close the policy inside rolled-back transactions to prove normal prerequisites and 4/2/2 learning. The final release transition must disable the testing policy and normalize temporary testing-only Skill unlocks before release gates are considered live.
 
 
 ## Sixteen-Discipline release evidence — 2026-09-11

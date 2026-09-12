@@ -20,7 +20,7 @@ const overrides: Record<string, ManualArticle> = {
     summary:
       'What AUREVANE is today, what you can test now, and how the current game shell is organized.',
     category: 'Orientation',
-    lastUpdated: '2026-09-11',
+    lastUpdated: '2026-09-12',
     rulesVersion: 'Current preview',
     body: [
       {
@@ -58,7 +58,7 @@ const overrides: Record<string, ManualArticle> = {
         id: 'larger-game',
         title: 'The larger game',
         paragraphs: [
-          'Primary/Secondary build configuration, representative Resonances and Essences, direct PvP and spectation are already testable. The wider roster, final acquisition and Mastery progression, exploration, co-op missions, Expeditions, ranked matchmaking, trading and the persistent world remain later work.',
+          'Primary/Secondary build configuration, the published Discipline roster, Mastery Trials, the Discipline Atlas, Resonances and Essences, direct PvP and spectation are already testable. The remaining planned Discipline libraries, final world/story acquisition routes, later Rekindling content, exploration, co-op missions, Expeditions, ranked matchmaking, trading and the persistent world remain later work.',
           'The Manual describes released or testable behavior first and expands as systems become real.',
         ],
       },
@@ -71,7 +71,7 @@ const overrides: Record<string, ManualArticle> = {
     summary:
       'Identity, six starting attributes, Disciplines, three character slots, and entering the game.',
     category: 'Character',
-    lastUpdated: '2026-09-11',
+    lastUpdated: '2026-09-12',
     rulesVersion: 'Primary base and personal creation points',
     body: [
       {
@@ -96,7 +96,7 @@ const overrides: Record<string, ManualArticle> = {
         title: 'What is a Discipline?',
         paragraphs: [
           'A Discipline is a learnable combat tradition that establishes your first tactical direction. It is not a permanent class lock. Discipline Mastery Trials let characters deepen, broaden, and combine what they know.',
-          'The starting choices are Vanguard, Farstrider, Shadehand, Ironfist, Aetherist and Lifebinder. Profile supports Primary and optional Secondary configuration. The six Foundations and ten advanced Disciplines each have eight learnable Techniques and a pure Essence. All 120 pairs across the sixteen Disciplines have Resonance coverage. Technique cards show targeting and effect tags; expand Skill details for range, effects and requirements. Mastery Trials unlock advanced Disciplines through their listed prerequisites. During the current testing period, existing system-granted Mastery access lets players try all active Disciplines immediately. Supernatural paths and world-based acquisition remain later work.',
+          'The starting choices are Vanguard, Farstrider, Shadehand, Ironfist, Aetherist and Lifebinder. Profile supports Primary and optional Secondary configuration. Published mature Disciplines have eight learnable Techniques and a pure Essence, with mixed pairs receiving authored Resonances as their content is published. Technique cards show targeting and effect tags; expand Skill details for range, effects and requirements. Mastery Trials and the Discipline Atlas track the eventual acquisition paths. During development testing, a separate server-owned testing entitlement keeps every published Discipline available without counting that access as earned Mastery or satisfying its release requirements. Planned Disciplines remain unavailable until their combat content is actually published. Supernatural paths and later world-based acquisition remain later work.',
         ],
       },
       {
