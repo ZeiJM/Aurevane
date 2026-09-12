@@ -18,6 +18,7 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
     'The acquisition fixture is strictly local CI; production testing grants are preserved.',
   )
   test.setTimeout(300000)
+  page.setDefaultTimeout(15000)
   const suffix = Date.now()
     .toString()
     .split('')
@@ -176,7 +177,9 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
       (r) => r.url().endsWith('/recruit-turn') && r.request().method() === 'POST',
     )
     await finish.click()
-    await root.getByRole('button', { name: 'Face east', exact: true }).click()
+    // The desktop cockpit presents board-facing controls; use its supported
+    // keyboard shortcut, as the shared turn-handoff regression tests do.
+    await finish.press('KeyD')
     expect((await ended).status()).toBe(200)
     const turn = await recruited
     expect(turn.status()).toBe(200)
