@@ -1,0 +1,273 @@
+name: Phase 4 Atlas Chronist integration
+
+on:
+  push:
+    branches:
+      - 'agent/phase4-discipline-atlas-mastery'
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/phase4-discipline-atlas-mastery
+          fetch-depth: 0
+
+      - name: Merge audited Chronist implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin agent/phase4-audit-implementation
+
+          set +e
+          git merge --no-ff --no-commit origin/agent/phase4-audit-implementation
+          merge_status=$?
+          set -e
+
+          conflicts="$(git diff --name-only --diff-filter=U | sort || true)"
+          if [ -n "$conflicts" ]; then
+            unexpected="$(printf '%s\n' "$conflicts" | grep -Ev '^(\.github/scripts/verify-p4-mastery\.sh|\.github/workflows/representative-buildcraft\.yml|docs/PHASE_4_TICKETS\.md)$' || true)"
+            if [ -n "$unexpected" ]; then
+              echo 'Unexpected integration conflicts:' >&2
+              printf '%s\n' "$unexpected" >&2
+              exit 1
+            fi
+          elif [ "$merge_status" -ne 0 ]; then
+            echo 'Merge failed without ordinary file conflicts.' >&2
+            exit 1
+          fi
+
+          # These three files have deliberately different contract changes in both PRs. Start from
+          # the Atlas version, then compose Chronist coverage explicitly below.
+          git checkout HEAD -- .github/scripts/verify-p4-mastery.sh
+          git checkout HEAD -- .github/workflows/representative-buildcraft.yml
+          git checkout HEAD -- docs/PHASE_4_TICKETS.md
+          git add .github/scripts/verify-p4-mastery.sh .github/workflows/representative-buildcraft.yml docs/PHASE_4_TICKETS.md
+
+      - name: Compose the shared authority contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              file = Path(path)
+              text = file.read_text()
+              if old not in text:
+                  raise SystemExit(f'Expected integration anchor missing in {path}: {old[:120]!r}')
+              file.write_text(text.replace(old, new, 1))
+
+          # 1) Mastery/database authority: testing access stays open, but release Chronist requires
+          # Rekindling I + Aetherist Adept and still provisions 4/2/2 after the overlay closes.
+          mastery = '.github/scripts/verify-p4-mastery.sh'
+          testing_anchor = "test \"$testing_projection\" = 'false|true|true'\n"
+          testing_insert = testing_anchor + '''\nchronist_testing_projection="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+set role service_role;
+select release_unlocked::text || '|' || effective_unlocked::text || '|' || testing_access::text
+from public.get_character_discipline_atlas_progress_v1('$user_id'::uuid,'$character_id'::uuid)
+where discipline_id='chronist';")"
+test "$chronist_testing_projection" = 'false|true|true'
+'''
+          replace_once(mastery, testing_anchor, testing_insert)
+
+          reset_anchor = " update app_private.character_discipline_progress set mastery_xp=0,demonstrated_skills='{}' where character_id=c;\n"
+          reset_insert = reset_anchor + " if app_private.discipline_release_unlocked_v1(c,'chronist') then raise exception 'Chronist release-unlocked without Aetherist Adept and Rekindling I'; end if;\n"
+          replace_once(mastery, reset_anchor, reset_insert)
+
+          bastion_anchor = " if (select count(*) from app_private.character_skill_unlocks where character_id=c and source_discipline_id='bastion')<>8 then raise exception 'Bastion Adept must learn all eight Skills'; end if;\n"
+          chronist_block = bastion_anchor + ''' insert into app_private.character_discipline_progress(character_id,discipline_id,mastery_xp)
+ values(c,'aetherist',300)
+ on conflict(character_id,discipline_id) do update set mastery_xp=300;
+ if app_private.discipline_release_unlocked_v1(c,'chronist') then raise exception 'Chronist ignored the Rekindling I release gate'; end if;
+ update public.characters set progression_cycle=2 where id=c;
+ if not app_private.discipline_release_unlocked_v1(c,'chronist') then raise exception 'Rekindling I + Aetherist Adept did not release-unlock Chronist'; end if;
+ insert into app_private.character_discipline_progress(character_id,discipline_id,mastery_xp)
+ values(c,'chronist',0)
+ on conflict(character_id,discipline_id) do update set mastery_xp=0;
+ perform public.change_character_disciplines_v3(u,c,2,true,'chronist',false,null,gen_random_uuid(),'p4:earned-chronist-r1');
+ perform app_private.provision_mastery_skills_v1(c);
+ if (select count(*) from app_private.character_skill_unlocks where character_id=c and source_discipline_id='chronist')<>4 then raise exception 'Chronist Initiate must learn four Skills'; end if;
+ update app_private.character_discipline_progress set mastery_xp=100 where character_id=c and discipline_id='chronist';
+ perform app_private.provision_mastery_skills_v1(c);
+ if (select count(*) from app_private.character_skill_unlocks where character_id=c and source_discipline_id='chronist')<>6 then raise exception 'Chronist Practiced must learn six Skills'; end if;
+ update app_private.character_discipline_progress set mastery_xp=300 where character_id=c and discipline_id='chronist';
+ perform app_private.provision_mastery_skills_v1(c);
+ if (select count(*) from app_private.character_skill_unlocks where character_id=c and source_discipline_id='chronist')<>8 then raise exception 'Chronist Adept must learn eight Skills'; end if;
+ if (select count(*) from app_private.resonance_definitions where enabled and (discipline_a_id='chronist' or discipline_b_id='chronist'))<>16 then raise exception 'Chronist requires sixteen Resonance pairs'; end if;
+'''
+          replace_once(mastery, bastion_anchor, chronist_block)
+          replace_once(
+              mastery,
+              "echo 'Phase 4 Mastery prerequisites, testing separation, persisted-event rewards, retries, milestones and browser denial PASS.'",
+              "echo 'Phase 4 Mastery prerequisites, testing separation, Chronist Rekindling gate, persisted-event rewards, retries, milestones and browser denial PASS.'",
+          )
+
+          # 2) Combined Representative Buildcraft coverage.
+          workflow = '.github/workflows/representative-buildcraft.yml'
+          pull_anchor = "  pull_request:\n    paths:\n"
+          broad = """  pull_request:\n    paths:\n      - 'packages/game-core/src/combat/**'\n      - 'packages/game-core/src/character/advanced-disciplines.ts'\n      - 'apps/web/src/app/api/**/mastery/**'\n      - 'apps/web/src/media/**'\n      - 'packages/audio/**'\n      - 'supabase/migrations/**'\n      - '.github/scripts/verify-p4-*.sh'\n"""
+          replace_once(workflow, pull_anchor, broad)
+
+          replace_once(
+              workflow,
+              "      - 'apps/web/e2e/phase4-roster.pw.ts'\n",
+              "      - 'apps/web/e2e/phase4-roster.pw.ts'\n      - 'apps/web/e2e/phase4-mastery.pw.ts'\n",
+          )
+          replace_once(
+              workflow,
+              "            apps/web/e2e/p3-8-representative-buildcraft.pw.ts \\\n",
+              "            apps/web/e2e/phase4-mastery.pw.ts \\\n            apps/web/e2e/p3-8-representative-buildcraft.pw.ts \\\n",
+          )
+          replace_once(
+              workflow,
+              "            src/combat/representative-buildcraft.test.ts\n",
+              "            src/combat/representative-buildcraft.test.ts \\\n            src/combat/chronist.test.ts \\\n            src/combat/phase4-effects.test.ts \\\n            src/combat/recruit-ai-build.test.ts\n",
+          )
+          replace_once(
+              workflow,
+              "            e2e/phase4-roster.pw.ts \\\n",
+              "            e2e/phase4-roster.pw.ts \\\n            e2e/phase4-mastery.pw.ts \\\n",
+          )
+
+          # The first representative-buildcraft e2e occurrence above is formatting; add the same
+          # Mastery file to lint too if it has not already appeared twice.
+          text = Path(workflow).read_text()
+          lint_anchor = "            apps/web/src/components/character/discipline-mastery-panel.tsx \\\n            apps/web/e2e/"
+          if "apps/web/e2e/phase4-mastery.pw.ts" not in text.split('- name: Focused lint', 1)[1].split('- name: Typecheck', 1)[0]:
+              if lint_anchor not in text:
+                  raise SystemExit('Representative Buildcraft lint anchor missing')
+              text = text.replace(
+                  lint_anchor,
+                  "            apps/web/src/components/character/discipline-mastery-panel.tsx \\\n            apps/web/e2e/phase4-mastery.pw.ts \\\n            apps/web/e2e/",
+                  1,
+              )
+              Path(workflow).write_text(text)
+
+          # 3) Atlas publication state: Chronist is the seventeenth published identity while its
+          # release rule remains Rekindling I + Aetherist Adept.
+          atlas = 'packages/game-core/src/character/discipline-atlas.ts'
+          chronist_old = """  entry(\n    'chronist',\n    'Chronist',\n    'Time specialist that manipulates initiative, delay and future timing without resetting battles.',\n    'mage',\n    'rekindling-1',\n    'planned',\n"""
+          chronist_new = chronist_old.replace("    'planned',", "    'published',")
+          replace_once(atlas, chronist_old, chronist_new)
+
+          atlas_test = 'packages/game-core/src/character/discipline-atlas.test.ts'
+          replace_once(
+              atlas_test,
+              "expect(DISCIPLINE_ATLAS.filter((entry) => entry.publication === 'published')).toHaveLength(16)",
+              "expect(DISCIPLINE_ATLAS.filter((entry) => entry.publication === 'published')).toHaveLength(17)",
+          )
+          unpublished_old = """  it('never makes unpublished content selectable through the testing override', () => {\n    const chronist = DISCIPLINE_ATLAS_BY_ID.chronist!\n    const evaluation = evaluateDisciplineAtlasEntry(chronist, {\n      masteryByDiscipline: { aetherist: 5 },\n      rekindlingCount: 3,\n      testingAccess: true,\n    })\n\n    expect(evaluation.effectiveSelectable).toBe(false)\n    expect(evaluation.state).toBe('revealed')\n  })\n"""
+          unpublished_new = """  it('never makes unpublished content selectable through the testing override', () => {\n    const skywarden = DISCIPLINE_ATLAS_BY_ID.skywarden!\n    const evaluation = evaluateDisciplineAtlasEntry(skywarden, {\n      masteryByDiscipline: { vanguard: 5, farstrider: 5 },\n      rekindlingCount: 3,\n      testingAccess: true,\n    })\n\n    expect(evaluation.effectiveSelectable).toBe(false)\n    expect(evaluation.state).toBe('revealed')\n  })\n"""
+          replace_once(atlas_test, unpublished_old, unpublished_new)
+
+          # 4) Active Phase-4 ledger: preserve historical sixteen-class release records but make the
+          # combined candidate and its approved release gate explicit.
+          tickets = 'docs/PHASE_4_TICKETS.md'
+          heading = '# Phase 4 — execution and acceptance ledger\n\n'
+          heading_insert = heading + "**2026-09-12 integrated audit:** the Atlas/Mastery extension and the audited Chronist/runtime/media continuation are now one implementation stream. Historical sixteen-Discipline release evidence below remains historical; the combined candidate contains seventeen published Disciplines. Human tactical/media acceptance is still separate from engineering verification.\n\n"
+          replace_once(tickets, heading, heading_insert)
+          ticket_text = Path(tickets).read_text()
+          if '## Seventeen-Discipline Atlas/runtime integration — 2026-09-12' not in ticket_text:
+              ticket_text += '''\n\n## Seventeen-Discipline Atlas/runtime integration — 2026-09-12\n\nThe combined Phase-4 candidate preserves the sixteen released Disciplines and adds Chronist rather than replacing Tidecaller. The authoritative published inventory is 17 Disciplines, 136 regular Skills, 17 Essences and 136 unordered Resonance pairs. Chronist contributes eight Skills, Borrowed Hour, sixteen pair definitions, bounded next-round initiative scheduling, Rewind Step, AI coverage and dedicated art/audio. Ironfist's recovered dedicated media is retained.\n\nDuring development testing, every published Discipline—including Chronist—is selectable through the separate server-owned testing entitlement without creating earned Mastery. With testing closed, Chronist's normal release path is **Rekindling I + Aetherist Adept**. Aetherist Adept alone is intentionally insufficient. Once release-eligible, Chronist follows the normal advanced 4/2/2 acquisition milestones. Planned Atlas identities remain non-selectable until their authoritative combat libraries are published.\n\nThe earlier completeness audit remains the pre-change inventory. The combined CI matrix must prove the Atlas publication gate, Chronist's Rekindling requirement, 4/2/2 learning, all sixteen Chronist Resonance pairs, temporal/reload safety, earned-Mastery browser flow, media routing and the existing Phase-3/4 authority regressions before merge. Human balance, visual and listening acceptance remain open and are not manufactured by automation.\n'''
+              Path(tickets).write_text(ticket_text)
+
+          # 5) Convert the completeness audit from a stale “missing Chronist” snapshot into an
+          # explicit pre-change audit with current implementation follow-through.
+          audit = 'docs/PHASE_4_COMPLETENESS_AUDIT.md'
+          replace_once(
+              audit,
+              "**Conclusion:** the released sixteen-Discipline implementation is playable, but Phase 4 is not ready for an unconditional completeness claim. Chronist is absent despite being named in the Master Plan's initial Phase-4 group; Ironfist's dedicated media continuation is not released; roster identity, AI breadth, media acceptance and live earned-Mastery evidence remain open.",
+              "**Conclusion:** this document began as the pre-change sixteen-Discipline audit. The combined implementation now closes the identified Chronist runtime, Ironfist media, advanced-AI, Representative Buildcraft trigger and earned-Mastery automation gaps at the candidate level. Final merge/release evidence and actual human tactical, visual and listening acceptance remain open; automation does not convert those human gates into completed evidence.",
+          )
+          replace_once(
+              audit,
+              "Each released entry below has eight regular Skills and one Essence. All 120 unordered pairs among these sixteen have enabled Resonance definitions.",
+              "The table below records the pre-change reconciliation. The combined candidate now has seventeen published Disciplines, 136 regular Skills, 17 Essences and 136 unordered Resonance pairs; historical production counts in earlier sections remain intentionally unchanged until release.",
+          )
+          replace_once(
+              audit,
+              "| Ironfist | Foundation | Gameplay live; dedicated media continuation pending |",
+              "| Ironfist | Foundation | Gameplay live; dedicated media continuation integrated in the candidate |",
+          )
+          replace_once(
+              audit,
+              "| Chronist | Named advanced target | Missing from enabled catalog, authored library, Essence and pairs |",
+              "| Chronist | Named advanced target | Implemented in the candidate; release gate Rekindling I + Aetherist Adept |",
+          )
+          replace_once(
+              audit,
+              "The later Phase-4 ticket explicitly implements Tidecaller, but does not record a specific approval to defer Chronist. Preserve Tidecaller and existing player builds. Do not silently change the Master Plan to erase the discrepancy. Chronist's time/turn-order identity is not fulfilled merely because another Discipline can apply Slow.",
+              "The integration preserves Tidecaller and existing player builds, and adds Chronist as the seventeenth published Discipline. Its time/turn-order identity is implemented directly rather than approximated through Slow. The Atlas adds the Owner-approved Rekindling I release gate on top of the authored Aetherist Adept prerequisite; the development testing overlay remains separate.",
+          )
+          audit_text = Path(audit).read_text()
+          audit_text = audit_text.replace(
+              "| P4-A01 | High | Reconcile Chronist scope | Locate an explicit approved deferral, or complete the promised Discipline with its library, Essence, relevant pair coverage, mastery, AI, media and tests. Preserve Tidecaller; do not remove a released Discipline to force the count back to sixteen. |",
+              "| P4-A01 | High | Candidate implemented — verify combined CI/release | Chronist library, Essence, sixteen pairs, Mastery/Atlas gate, AI, media and tests are integrated while Tidecaller is preserved. Final closure requires the combined exact-head evidence. |",
+          )
+          audit_text = audit_text.replace(
+              "| P4-A02 | High | Finish Ironfist media integration and release | Reconcile the recovered commit and dirty working copy; verify identity/Essence art, three action and three Essence variants, silent previews, committed Breakfall audio, hashes and shared-mode behavior; complete CI/browser/release evidence. |",
+              "| P4-A02 | High | Candidate implemented — verify combined CI/release | Recovered Ironfist identity/Essence art and action/Essence variants are integrated with provenance. Final closure requires combined media/browser/release evidence and human acceptance remains separate. |",
+          )
+          audit_text = audit_text.replace(
+              "| P4-A05 | Medium | Advanced-roster AI decision coverage | Exercise committed pure/mixed advanced builds through the actual build-aware chooser, including setup/payoff, cleanse, Root/Slow, periodic effects and tradeoffs. Current targeted AI tests use representative inherited builds; roster tests assert AI enabled and legal execution, not effective AI use of every advanced library. |",
+              "| P4-A05 | Medium | Candidate implemented — verify combined CI | Advanced AI now scores authored Skills and Resonance setup/payoff across the published roster; combined focused tests and browser/database gates must still pass on the exact integration head. |",
+          )
+          audit_text = audit_text.replace(
+              "| P4-A06 | Medium | Full earned-Mastery user flow | Complete an eligible trial through the real UI, claim once, reload, retry without duplicate reward, and verify progression/unlocks with an isolated normal-acquisition fixture. Earlier production evidence explicitly timed out before reward eligibility. Do not remove production testing grants. |",
+              "| P4-A06 | Medium | Candidate automated flow implemented — execution evidence pending | The real UI victory/claim/reload/retry fixture is wired into Representative Buildcraft without deleting production testing access. Final closure requires the exact combined run to pass. |",
+          )
+          audit_text = audit_text.replace(
+              "| P4-A08 | Medium | Ensure the Mastery/browser gate runs for relevant changes | Extend or explicitly dispatch Representative Buildcraft for advanced-content, Mastery route/service, Phase-4 migration, media routing and its verification-script changes. Current path filters omit these when changed alone, although the prior release triggered the workflow through other touched files. Verify trigger coverage before relying on it for the next release. |",
+              "| P4-A08 | Medium | Candidate implemented — verify trigger/run | Representative Buildcraft now watches advanced combat, Atlas/Mastery, migrations, media and Phase-4 verification changes and includes the earned-Mastery browser case. Exact combined execution remains the evidence gate. |",
+          )
+          Path(audit).write_text(audit_text)
+          PY
+
+          git add \
+            .github/scripts/verify-p4-mastery.sh \
+            .github/workflows/representative-buildcraft.yml \
+            docs/PHASE_4_TICKETS.md \
+            docs/PHASE_4_COMPLETENESS_AUDIT.md \
+            packages/game-core/src/character/discipline-atlas.ts \
+            packages/game-core/src/character/discipline-atlas.test.ts
+
+          if git diff --name-only --diff-filter=U | grep -q .; then
+            echo 'Unresolved merge conflicts remain:' >&2
+            git diff --name-only --diff-filter=U >&2
+            exit 1
+          fi
+          git diff --check
+          bash -n .github/scripts/verify-p4-mastery.sh
+
+      - name: Format and focused integration verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+          pnpm exec prettier --write \
+            .github/workflows/representative-buildcraft.yml \
+            packages/game-core/src/character/discipline-atlas.ts \
+            packages/game-core/src/character/discipline-atlas.test.ts
+          pnpm --filter @aurevane/game-core typecheck
+          pnpm --filter @aurevane/game-core exec vitest run src/character/discipline-atlas.test.ts src/combat/chronist.test.ts
+          git add .github/workflows/representative-buildcraft.yml packages/game-core/src/character/discipline-atlas.ts packages/game-core/src/character/discipline-atlas.test.ts
+          git diff --check
+
+      - name: Publish combined integration commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git status --short
+          git commit -m 'Integrate Chronist runtime with Discipline Atlas authority'
+          git push origin HEAD:agent/phase4-discipline-atlas-mastery
