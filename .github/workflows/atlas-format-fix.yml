@@ -1,0 +1,51 @@
+name: Atlas format fix
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/atlas-format-fix.yml'
+      - 'apps/web/src/components/character/discipline-mastery-panel.module.css'
+      - 'apps/web/src/components/character/discipline-mastery-panel.tsx'
+      - 'apps/web/src/components/public-information/discipline-atlas-guide.tsx'
+      - 'packages/game-core/src/character/discipline-atlas.ts'
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - name: Format flagged files
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/components/character/discipline-mastery-panel.module.css \
+            apps/web/src/components/character/discipline-mastery-panel.tsx \
+            apps/web/src/components/public-information/discipline-atlas-guide.tsx \
+            packages/game-core/src/character/discipline-atlas.ts
+      - name: Commit formatting
+        run: |
+          if git diff --quiet; then
+            echo 'No formatting changes required.'
+            exit 0
+          fi
+          git config user.name 'aurevane-ci'
+          git config user.email 'actions@users.noreply.github.com'
+          git add \
+            apps/web/src/components/character/discipline-mastery-panel.module.css \
+            apps/web/src/components/character/discipline-mastery-panel.tsx \
+            apps/web/src/components/public-information/discipline-atlas-guide.tsx \
+            packages/game-core/src/character/discipline-atlas.ts
+          git commit -m 'Format Discipline Atlas implementation'
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
