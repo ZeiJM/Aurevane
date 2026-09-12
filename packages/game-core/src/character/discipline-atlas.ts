@@ -434,7 +434,7 @@ export const DISCIPLINE_ATLAS: readonly DisciplineAtlasEntry[] = [
     'Time specialist that manipulates initiative, delay and future timing without resetting battles.',
     'mage',
     'rekindling-1',
-    'planned',
+    'published',
     'open',
     all(rekindling(1), mastery('aetherist', 3)),
     power(3, 5, 4, 5, 5),

@@ -1,6 +1,6 @@
 # Phase 4 completeness audit — 2026-09-12
 
-**Conclusion:** the released sixteen-Discipline implementation is playable, but Phase 4 is not ready for an unconditional completeness claim. Chronist is absent despite being named in the Master Plan's initial Phase-4 group; Ironfist's dedicated media continuation is not released; roster identity, AI breadth, media acceptance and live earned-Mastery evidence remain open.
+**Conclusion:** this began as the pre-change sixteen-Discipline audit. The combined candidate now closes the identified Chronist runtime, Ironfist media, advanced-AI, Representative Buildcraft trigger and earned-Mastery automation gaps at the implementation level. Final exact-head merge/release evidence and actual human tactical, visual and listening acceptance remain open.
 
 This is a scope and evidence audit, not a full security audit or a new human playtest. It preserves released mechanics and testing access.
 
@@ -48,7 +48,7 @@ Each released entry below has eight regular Skills and one Essence. All 120 unor
 | Aetherist | Foundation | Live |
 | Farstrider | Foundation | Live |
 | Shadehand | Foundation | Live |
-| Ironfist | Foundation | Gameplay live; dedicated media continuation pending |
+| Ironfist | Foundation | Gameplay live; dedicated media continuation integrated in the candidate |
 | Bastion | Named advanced target | Live |
 | Ravager | Named advanced target | Live |
 | Edgedancer | Named advanced target | Live |
@@ -58,10 +58,10 @@ Each released entry below has eight regular Skills and one Essence. All 120 unor
 | Stormsinger | Named advanced target | Live |
 | Runeblade | Named advanced target | Live |
 | Dawnshield | Named advanced target | Live |
-| Chronist | Named advanced target | Missing from enabled catalog, authored library, Essence and pairs |
+| Chronist | Named advanced target | Implemented in the candidate; release gate Rekindling I + Aetherist Adept |
 | Tidecaller | Canonical Discipline, not named in section 134's initial advanced group | Live in the sixteen-Discipline implementation |
 
-The later Phase-4 ticket explicitly implements Tidecaller, but does not record a specific approval to defer Chronist. Preserve Tidecaller and existing player builds. Do not silently change the Master Plan to erase the discrepancy. Chronist's time/turn-order identity is not fulfilled merely because another Discipline can apply Slow.
+The combined candidate preserves Tidecaller and existing player builds, and adds Chronist as the seventeenth published Discipline. Its time/turn-order identity is implemented directly. The Atlas adds the Owner-approved Rekindling I release gate on top of Aetherist Adept while development testing access remains separate.
 
 ## Remaining checklist
 

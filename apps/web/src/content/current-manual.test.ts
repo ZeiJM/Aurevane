@@ -55,10 +55,13 @@ describe('published Manual rule consistency', () => {
   it('credits delivered buildcraft and PvP without promising complete content', () => {
     expect(articleText('start-here')).toContain('already testable')
     expect(articleText('character-creation')).toContain(
-      'six Foundations and ten advanced Disciplines each have eight learnable Techniques',
+      'Published mature Disciplines have eight learnable Techniques and a pure Essence',
     )
     expect(articleText('character-creation')).toContain(
-      'Mastery Trials unlock advanced Disciplines',
+      'Mastery Trials and the Discipline Atlas track the eventual acquisition paths',
+    )
+    expect(articleText('character-creation')).toContain(
+      'without counting that access as earned Mastery or satisfying its release requirements',
     )
     expect(articleText('battle-hall')).toContain('Ranked matchmaking and seasons remain future')
     expect(JSON.stringify(currentManualArticles)).not.toContain('until multiplayer combat exists')

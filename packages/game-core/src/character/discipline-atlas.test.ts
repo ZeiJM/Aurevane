@@ -11,7 +11,7 @@ describe('Discipline Atlas', () => {
   it('keeps the canonical 36-Discipline identity roster unique', () => {
     expect(DISCIPLINE_ATLAS).toHaveLength(36)
     expect(new Set(DISCIPLINE_ATLAS.map((entry) => entry.id)).size).toBe(36)
-    expect(DISCIPLINE_ATLAS.filter((entry) => entry.publication === 'published')).toHaveLength(16)
+    expect(DISCIPLINE_ATLAS.filter((entry) => entry.publication === 'published')).toHaveLength(17)
   })
 
   it('opens published Disciplines for testing without pretending release requirements are met', () => {
@@ -29,9 +29,9 @@ describe('Discipline Atlas', () => {
   })
 
   it('never makes unpublished content selectable through the testing override', () => {
-    const chronist = DISCIPLINE_ATLAS_BY_ID.chronist!
-    const evaluation = evaluateDisciplineAtlasEntry(chronist, {
-      masteryByDiscipline: { aetherist: 5 },
+    const skywarden = DISCIPLINE_ATLAS_BY_ID.skywarden!
+    const evaluation = evaluateDisciplineAtlasEntry(skywarden, {
+      masteryByDiscipline: { vanguard: 5, farstrider: 5 },
       rekindlingCount: 3,
       testingAccess: true,
     })

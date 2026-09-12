@@ -151,3 +151,12 @@ Final acceptance still needs actual human listening and gameplay feedback. No fa
 - Authenticated production checking confirmed Bastion 128px identity and 256px Last Bastion artwork loaded, preserved targeting/shape/effect tags and four selected Skills, a legal self-tile Fortress preview, its committed 30 AP cost and Fortified combat-log entry. The turn timer elapsed during post-action inspection; this is not reward evidence. The practice battle was surrendered in Round 2 and the character returned to the Battle Hall. Production error/fatal logs were empty during the check.
 
 The set is live for Owner evaluation. Automated audio delivery is verified; human listening quality, visual acceptance and independent tactical/balance feedback remain unclaimed. Source candidate manifests are immutable; `content/media-releases/phase4-v01.json` records the continuation authorization and 102 runtime file hashes (571,754 bytes total). No unique recording for every Skill or bespoke mix for every pair is claimed.
+
+
+## Seventeen-Discipline Atlas/runtime integration — 2026-09-12
+
+The combined Phase-4 candidate preserves the sixteen released Disciplines and adds Chronist rather than replacing Tidecaller. The published inventory is now 17 Disciplines, 136 regular Skills, 17 Essences and 136 unordered Resonance pairs. Chronist contributes eight Skills, Borrowed Hour, sixteen pair definitions, bounded next-round initiative scheduling, Rewind Step, advanced-AI coverage and dedicated art/audio. Ironfist's recovered dedicated media is retained.
+
+During development testing, every published Discipline—including Chronist—is selectable through the separate server-owned testing entitlement without creating earned Mastery. With testing closed, Chronist's normal release path is **Rekindling I + Aetherist Adept**; Aetherist Adept alone is intentionally insufficient. Once release-eligible, Chronist follows the normal advanced 4/2/2 acquisition milestones. Planned Atlas identities remain non-selectable until their authoritative combat libraries are published.
+
+Historical sixteen-Discipline release records above remain historical. The combined exact-head matrix must prove Atlas publication, the Chronist Rekindling gate, 4/2/2 learning, all sixteen Chronist pairs, temporal/reload safety, earned-Mastery UI victory/claim/reload/retry, media routing and inherited authority regressions before merge. Human balance, visual and listening acceptance remain separate open evidence.
