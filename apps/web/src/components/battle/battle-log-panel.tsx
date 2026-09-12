@@ -115,9 +115,11 @@ function findDesktopDockTarget(): HTMLElement | null {
   if (!window.matchMedia('(min-width: 821px)').matches) return null
 
   return (
+    document.querySelector<HTMLElement>('[data-battle-flow-log-target="true"]') ??
     document.querySelector<HTMLElement>(
       "main[data-pvp-battle='true'] section[aria-label='PvP tactical battlefield']",
-    ) ?? document.querySelector<HTMLElement>('#battlefield')
+    ) ??
+    document.querySelector<HTMLElement>('#battlefield')
   )
 }
 
@@ -252,6 +254,7 @@ export function BattleLogPanel({
     return createPortal(
       <div className={styles.docked} data-testid="battle-log-panel" data-docked-battle-log="true">
         <LogPanel
+          compactFlow={dockTarget.hasAttribute('data-battle-flow-log-target')}
           entries={entries}
           loading={loading}
           error={error}
@@ -286,6 +289,7 @@ export function BattleLogPanel({
 }
 
 function LogPanel({
+  compactFlow = false,
   entries,
   loading,
   error,
@@ -294,6 +298,7 @@ function LogPanel({
   playerName,
   combatantNames,
 }: {
+  compactFlow?: boolean
   entries: readonly BattleLogView['entries'][number][]
   loading: boolean
   error: string | null
@@ -330,6 +335,7 @@ function LogPanel({
         </p>
       ) : (
         <BattleLogFeed
+          compactFlow={compactFlow}
           entries={entries}
           playerName={playerName}
           combatantNames={combatantNames}

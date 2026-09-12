@@ -1,133 +1,74 @@
 .hook {
   display: none;
 }
-
+:global([data-battle-flow='true']) {
+  display: none;
+}
 @media (min-width: 821px) {
-  /* Keep the shared desktop Battle Log in the board row only. The terrain-key footer remains its
-     own row in both battle modes, and the measured viewport insets trim the dock to the exact
-     rendered 9x7 tactical grid instead of the taller board viewport. The approved inward shift
-     remains shared; only a one-eighth-rem optical correction is needed to center the fixed dock in
-     the available right-side space. */
-  :global(#battlefield[data-desktop-battle-log-open='true'] > [data-docked-battle-log='true']) {
-    grid-row: 1 !important;
-    height: auto !important;
-    min-height: 0 !important;
-    margin-top: var(--battle-log-grid-top-inset, 0px) !important;
-    margin-bottom: var(--battle-log-grid-bottom-inset, 0px) !important;
-    align-self: stretch !important;
-    justify-self: stretch !important;
-    transform: translateX(calc(-1 * var(--battle-log-dock-center-shift) + 0.125rem)) !important;
+  :global(main[data-unified-battle='true'] [data-unified-battle-content='true']) {
+    grid-template-rows: minmax(0, 1fr) auto auto !important;
   }
-
-  /* The terrain legend occupies column one, so continue only its subtle top divider through the
-     log column. This leaves the footer visually owned without painting another black panel beneath
-     the shortened Battle Log. The negative margin bridges the desktop dock's column gap. */
-  :global(#battlefield[data-desktop-battle-log-open='true'])::after {
-    grid-column: 2 !important;
-    grid-row: 2 !important;
-    margin-left: calc(-1 * var(--battle-log-dock-gap));
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
-    content: '';
-    pointer-events: none;
+  :global([data-battle-flow='true']) {
+    display: grid;
+    grid-column: 2;
+    grid-row: 3;
+    min-width: 0;
+    min-height: 0;
+    grid-template-rows: auto minmax(0, 1fr);
+    border: 1px solid var(--av-border);
+    border-radius: var(--av-radius-md);
+    overflow: hidden;
+    background: rgba(8, 13, 19, 0.96);
   }
-
-  /* PvE's battlefield sits between two combatant rails, so opening the dock leaves less footer
-     width than PvP has. Keep the same three approved controls and visual treatment, but give them a
-     real compact grid while the desktop log is open. The two semantic terrain keys share the
-     remaining width and the coordinate switch uses a fixed compact footprint instead of reserving
-     an 11.5rem flex basis that can squeeze Elevated Ground completely out of view. */
-  :global(
-    main:not([data-pvp-battle='true'])
-      #battlefield[data-desktop-battle-log-open='true']
-      > [data-ai-native-terrain-legend='true']
-  ) {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 5.25rem !important;
-    gap: 0.3rem !important;
-    align-items: center !important;
-    justify-content: stretch !important;
-    visibility: visible !important;
-    opacity: 1 !important;
+  :global([data-battle-flow='true'][data-open]) {
+    height: clamp(10.5rem, 20vh, 13rem);
   }
-
-  :global(
-    main:not([data-pvp-battle='true'])
-      #battlefield[data-desktop-battle-log-open='true']
-      > [data-ai-native-terrain-legend='true']
-      > span
-  ) {
-    display: flex !important;
-    width: 100% !important;
-    min-width: 0 !important;
-    max-width: none !important;
-    flex: none !important;
-    padding-right: 0.3rem !important;
-    padding-left: 0.3rem !important;
-    visibility: visible !important;
-    opacity: 1 !important;
+  :global([data-battle-flow='true'] > button) {
+    display: flex;
+    min-height: 2.1rem;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 0.75rem;
+    border: 0;
+    background: rgba(207, 169, 93, 0.045);
+    color: var(--av-text);
+    font: 600 0.875rem/1.2 var(--av-font-display);
+    cursor: pointer;
   }
-
-  :global(
-    main:not([data-pvp-battle='true'])
-      #battlefield[data-desktop-battle-log-open='true']
-      > [data-ai-native-terrain-legend='true']
-      > span
-      > span
-  ) {
-    min-width: 0 !important;
+  :global([data-battle-flow='true'] > button small) {
+    margin-left: 0.55rem;
+    color: var(--av-text-muted);
+    font: 500 0.6875rem/1.2 var(--av-font-sans);
   }
-
-  :global(
-    main:not([data-pvp-battle='true'])
-      #battlefield[data-desktop-battle-log-open='true']
-      > [data-ai-native-terrain-legend='true']
-      > span
-      b
-  ),
-  :global(
-    main:not([data-pvp-battle='true'])
-      #battlefield[data-desktop-battle-log-open='true']
-      > [data-ai-native-terrain-legend='true']
-      > span
-      small
-  ) {
-    display: block !important;
-    min-width: 0 !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
+  :global([data-battle-flow='true'] > button > span:last-child) {
+    color: var(--av-brass-300);
+    font: 550 0.6875rem/1.2 var(--av-font-sans);
   }
-
-  :global(
-    main:not([data-pvp-battle='true'])
-      #battlefield[data-desktop-battle-log-open='true']
-      > [data-ai-native-terrain-legend='true']
-      > button[data-terrain-coordinate-toggle='true']
-  ) {
-    box-sizing: border-box !important;
-    width: 5.25rem !important;
-    min-width: 5.25rem !important;
-    max-width: 5.25rem !important;
-    flex: 0 0 5.25rem !important;
-    gap: 0.18rem !important;
-    padding-right: 0.24rem !important;
-    padding-left: 0.24rem !important;
+  :global([data-battle-flow-log-target='true']) {
+    min-height: 0;
+    overflow: hidden;
   }
-
-  :global(
-    main:not([data-pvp-battle='true'])
-      #battlefield[data-desktop-battle-log-open='true']
-      > [data-ai-native-terrain-legend='true']
-      > span:first-child
-  ) {
-    display: flex !important;
+  :global([data-battle-flow-log-target='true'] > [data-docked-battle-log='true']) {
+    height: 100%;
   }
-
-  :global(
-    main:not([data-pvp-battle='true'])
-      #battlefield[data-desktop-battle-log-open='true']
-      > [data-ai-legacy-terrain-legend='true']
-  ) {
-    display: none !important;
+  :global([data-battle-flow-log-target='true'] [aria-label='Battle Log']) {
+    border: 0;
+    border-radius: 0;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  :global([data-battle-flow-log-target='true'] [aria-label='Battle Log'] > header) {
+    display: none;
+  }
+  :global([data-battle-flow-log-target='true'] [data-testid='battle-log-feed']) {
+    overflow: auto;
+    scrollbar-width: thin;
+  }
+  :global([data-battle-flow-log-target='true'] [data-testid='battle-log-feed'] article p) {
+    font-size: 0.75rem;
+    line-height: 1.45;
+  }
+  :global([data-battle-flow-log-target='true'] [data-testid='battle-log-feed'] button strong) {
+    font-size: 0.75rem;
   }
 }

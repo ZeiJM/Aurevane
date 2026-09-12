@@ -1,8 +1,8 @@
 # AUREVANE — Active Task Ledger
 
-## Profile layout adaptation — 2026-09-12
+## Profile and combat layout adaptation — 2026-09-12
 
-Owner requested adapting abstract layout ideas from two browser-RPG references, preserving the static header/footer, improving typography/spacing and releasing live for testing. The profile now separates character identity/progression, the central character sheet, and navigation/loadout controls. Existing server data, management dialogs, Atlas, combat and progression remain authoritative and unchanged. Responsive rules use available panel width and retain scrolling where needed. No third-party artwork or new dependencies are introduced. Verification and the authorized production release are in progress on `agent/reference-layout`.
+Owner requested adapting abstract layout ideas from two browser-RPG references, preserving the static header/footer, improving typography/spacing and releasing live for testing. The profile now separates character identity/progression, the central character sheet, and navigation/loadout controls. A later combat reference adds a compact AP/timer group, a small central command deck, a filtered action-icon timeline with click-through recorded action details and an optional text log below it, and combatant status panels with benefits, drawbacks and conditional modifiers. Changes live in the shared PvE/PvP presentation and reuse authoritative snapshots and status definitions. The desktop log opens by default and remembers collapse state; mobile keeps its touch composition. Existing server data, management dialogs, Atlas, combat rules and progression remain authoritative and unchanged. Responsive rules use available panel width and retain scrolling where needed. No third-party artwork or new dependencies are introduced. Verification and the authorized production release are in progress on `agent/reference-layout`.
 
 ## Phase 4 implementation live for testing — 2026-09-12
 
@@ -161,11 +161,9 @@ Do not start broad roster production, large Resonance matrices, Soulmark/Mantle 
 7. Keep temporary validation/support access bounded, auditable and fail-closed.
 8. Keep this ledger current and concise.
 
-
 ## Phase 4 media continuation — historical candidate preparation
 
 Branch `agent/phase4-media-candidates` prepares ten painted identity masters, 72 original synthesized cues, provenance, bounded central audio audition and an offline review gallery. `docs/PHASE_4_PLAYTEST_PACKET.md` provides actual-session scenarios and an empty results template. Automated media/runtime checks are recorded with the candidate pack. Browser walkthrough of the local review file was blocked by the browser URL policy and is not claimed. Human art/listening acceptance remains required by `docs/MEDIA_PIPELINE.md`; live assets and gameplay rules are unchanged.
-
 
 ## Phase 4 media integration continuation
 

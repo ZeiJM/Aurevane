@@ -136,13 +136,13 @@
       > [data-unified-battle-content='true']
   ) {
     display: grid !important;
-    grid-template-columns: minmax(8.4rem, 10.5rem) minmax(0, 1fr) minmax(8.4rem, 10.5rem) !important;
+    grid-template-columns: clamp(9rem, 14vw, 12rem) minmax(0, 1fr) clamp(9rem, 14vw, 12rem) !important;
     grid-template-rows: minmax(0, 1fr) auto !important;
-    gap: 0.42rem !important;
-    width: min(100%, 108rem) !important;
+    gap: 0.65rem !important;
+    width: min(100%, 100rem) !important;
     min-height: 0 !important;
     margin: 0 auto !important;
-    padding: 0.4rem clamp(0.4rem, 0.8vw, 0.7rem) !important;
+    padding: 0.65rem clamp(0.5rem, 1vw, 1rem) !important;
     overflow: hidden !important;
   }
 
@@ -230,13 +230,13 @@
     aspect-ratio: 1 / 1 !important;
   }
 
-  /* Shared command-deck footprint after the obsolete Final Facing column was removed. */
+  /* Commands stay directly below the battlefield in both playable modes. */
   :global(
     main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
       [data-unified-command-deck='true']
   ) {
     display: grid !important;
-    grid-column: 1 / -1 !important;
+    grid-column: 2 !important;
     grid-row: 2 !important;
     grid-template-columns: minmax(0, 1fr) !important;
     grid-template-rows: auto auto !important;

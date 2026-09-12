@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 
+import { expectBattleReferenceLayout } from './battle-reference-layout-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueIdentity(prefix: string): { email: string; characterName: string } {
@@ -16,7 +17,7 @@ function uniqueIdentity(prefix: string): { email: string; characterName: string 
   }
 }
 
-test('keeps the desktop PvP battle log aligned to the tactical grid above the terrain footer', async ({
+test('keeps the desktop PvP battle flow below compact commands with the terrain legend visible', async ({
   browser,
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop PvP battle-log regression')
@@ -79,65 +80,26 @@ test('keeps the desktop PvP battle log aligned to the tactical grid above the te
       name: /Round \d+.*Combat Log/i,
     })
 
-    await combatLog.click()
-    await expect(battlefield).toHaveAttribute('data-desktop-battle-log-open', 'true')
-
-    const dock = battlefield.locator(':scope > [data-docked-battle-log="true"]')
+    if ((await combatLog.getAttribute('aria-expanded')) !== 'true') await combatLog.click()
     const terrainLegend = battlefield.locator(':scope > [aria-label="Terrain legend"]')
-    await expect(dock).toBeVisible()
     await expect(terrainLegend).toBeVisible()
-
-    const geometry = await battlefield.evaluate((element) => {
-      const dockElement = element.querySelector<HTMLElement>('[data-docked-battle-log="true"]')!
-      const boardElement = element.querySelector<HTMLElement>('[data-board-auto-fit="9x7"]')!
-      const legendElement = element.querySelector<HTMLElement>(
-        ':scope > [aria-label="Terrain legend"]',
-      )!
-      const dockRect = dockElement.getBoundingClientRect()
-      const boardRect = boardElement.getBoundingClientRect()
-      const legendRect = legendElement.getBoundingClientRect()
-      const battlefieldRect = element.getBoundingClientRect()
-      const dockStyle = window.getComputedStyle(dockElement)
-      const dockTransform = new DOMMatrixReadOnly(dockStyle.transform)
-      const footerContinuation = window.getComputedStyle(element, '::after')
-
-      return {
-        boardTop: boardRect.top,
-        boardBottom: boardRect.bottom,
-        dockRight: dockRect.right,
-        dockTop: dockRect.top,
-        dockBottom: dockRect.bottom,
-        dockTranslateX: dockTransform.m41,
-        legendTop: legendRect.top,
-        legendBottom: legendRect.bottom,
-        battlefieldRight: battlefieldRect.right,
-        battlefieldBottom: battlefieldRect.bottom,
-        dockGridRowStart: dockStyle.gridRowStart,
-        dockGridRowEnd: dockStyle.gridRowEnd,
-        footerContinuationContent: footerContinuation.content,
-        footerContinuationGridRowStart: footerContinuation.gridRowStart,
-        footerContinuationBorderTopStyle: footerContinuation.borderTopStyle,
-      }
-    })
-
-    // The user-facing contract is now exact board alignment: the dock's top and bottom track the
-    // rendered 9x7 grid while the terrain footer stays below it as its own row.
-    expect(Math.abs(geometry.dockTop - geometry.boardTop)).toBeLessThanOrEqual(3)
-    expect(Math.abs(geometry.dockBottom - geometry.boardBottom)).toBeLessThanOrEqual(3)
-    expect(geometry.dockBottom).toBeLessThan(geometry.legendTop)
-    expect(Math.abs(geometry.legendBottom - geometry.battlefieldBottom)).toBeLessThanOrEqual(8)
-    expect(geometry.dockGridRowStart).toBe('1')
-    expect(geometry.dockGridRowEnd).toBe('auto')
-
-    // PvP and PvE keep the same shared inward transform and right-side gutter.
-    expect(geometry.dockTranslateX).toBeLessThan(-12)
-    expect(geometry.battlefieldRight - geometry.dockRight).toBeGreaterThan(12)
-
-    // The right-side footer cell carries only the terrain divider, not a black continuation of the
-    // Battle Log. This preserves the previous void fix while keeping the log box out of the keys.
-    expect(geometry.footerContinuationContent).not.toBe('none')
-    expect(geometry.footerContinuationGridRowStart).toBe('2')
-    expect(geometry.footerContinuationBorderTopStyle).toBe('solid')
+    await expect(terrainLegend.getByText('Difficult Terrain')).toBeVisible()
+    await expect(terrainLegend.getByText('Elevated Ground')).toBeVisible()
+    await expectBattleReferenceLayout(host, testInfo, 'combat-pvp-short-window')
+    for (const size of [
+      { width: 2400, height: 1350 },
+      { width: 1440, height: 900 },
+      { width: 1280, height: 720 },
+    ]) {
+      await host.setViewportSize(size)
+      await expectBattleReferenceLayout(host, testInfo, `combat-pvp-${size.width}x${size.height}`)
+    }
+    await combatLog.click()
+    await expect(host.getByTestId('battle-log-panel')).toHaveCount(0)
+    await host.reload()
+    await expect(host.getByTestId('battle-log-panel')).toHaveCount(0)
+    await host.getByRole('region', { name: 'Battle flow', exact: true }).getByRole('button').click()
+    await expectBattleReferenceLayout(host, testInfo, 'combat-pvp-flow-reopened')
   } finally {
     await Promise.all([hostContext.close(), guestContext.close()])
   }

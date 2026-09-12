@@ -225,7 +225,7 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
   await expectSharedHeader(root)
 
   const context = root.getByRole('region', { name: 'Command Deck' })
-  await expect(context.locator('[data-ai-turn-clock="true"]')).toHaveText(/^\d+s$/)
+  await expect(root.locator('[data-ai-turn-clock="true"]')).toHaveText(/^\d+s$/)
   await context.getByRole('button', { name: /Guard/ }).click()
   const preview = context.locator('[data-battle-target-preview="true"]:visible').last()
   await expect(preview).toContainText('Success 100%')

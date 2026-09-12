@@ -226,3 +226,53 @@
       0 0.35rem 0.9rem rgba(0, 0, 0, 0.5) !important;
   }
 }
+
+/* Reference-inspired portrait/status rails keep each team readable without taking board space. */
+@media (min-width: 821px) {
+  :global(main[data-unified-battle='true']) .rail {
+    grid-row: 1 / 4;
+    align-self: stretch !important;
+    overflow: auto;
+    scrollbar-width: thin;
+    container-type: inline-size;
+  }
+  :global(main[data-unified-battle='true']) .stack {
+    width: 100%;
+    transform: none;
+    gap: 0.65rem;
+    padding: 0 1px;
+  }
+  :global(main[data-unified-battle='true']) .heading {
+    height: auto;
+    min-height: 3rem;
+    padding: 0.55rem;
+  }
+  :global(main[data-unified-battle='true']) .heading strong {
+    font-size: 0.9375rem;
+    line-height: 1.25;
+  }
+  :global(main[data-unified-battle='true']) .heading span {
+    font-size: 0.625rem;
+    line-height: 1.3;
+  }
+  :global(main[data-unified-battle='true']) .turnState b {
+    font-size: 0.5625rem;
+  }
+  :global(main[data-unified-battle='true']) .stack[data-count='3'] .portraitButton {
+    max-height: 7.5rem;
+    aspect-ratio: auto !important;
+  }
+}
+.resourceReadout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.65rem;
+  justify-content: space-between;
+  padding: 0.55rem 0.65rem;
+  font: 550 0.6875rem/1.3 var(--av-font-sans);
+  font-variant-numeric: tabular-nums;
+}
+.resourceReadout b {
+  color: var(--av-text-muted);
+  font-weight: 600;
+}

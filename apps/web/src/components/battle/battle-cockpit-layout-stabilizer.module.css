@@ -28,7 +28,7 @@
   :global(
     main[data-unified-battle='true'] [data-unified-command-deck='true'] > div:nth-child(2) > button
   ) {
-    height: 6.35rem !important;
-    min-height: 6.35rem !important;
+    height: 4.75rem !important;
+    min-height: 4.75rem !important;
   }
 }

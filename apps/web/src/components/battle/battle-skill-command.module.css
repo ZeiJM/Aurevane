@@ -605,3 +605,51 @@
     width: min(15rem, calc(100vw - 1rem));
   }
 }
+
+/* A compact illustrated deck, shared by PvE and PvP; mobile keeps its existing touch layout. */
+@media (min-width: 821px) {
+  :global(main[data-unified-battle='true'][data-battle-kind]) .shell,
+  :global(main[data-unified-battle='true'][data-battle-kind]) .action {
+    height: 4.75rem !important;
+    min-height: 4.75rem !important;
+  }
+  :global(main[data-unified-battle='true'][data-battle-kind]) .action {
+    grid-template-rows: auto auto !important;
+    align-content: end !important;
+    justify-items: center !important;
+    gap: 0.2rem !important;
+    padding: 2.3rem 0.35rem 0.45rem !important;
+    text-align: center !important;
+  }
+  :global(main[data-unified-battle='true']) .action::after {
+    display: none;
+  }
+  :global(main[data-unified-battle='true'][data-battle-kind]) .action > .hotkey {
+    position: absolute;
+    top: 0.35rem;
+    left: 0.35rem;
+    font-size: 0.5625rem !important;
+  }
+  :global(main[data-unified-battle='true'][data-battle-kind]) .action > strong {
+    grid-row: 1 !important;
+    font-size: 0.8125rem !important;
+    line-height: 1.15 !important;
+    text-align: center !important;
+  }
+  :global(main[data-unified-battle='true'][data-battle-kind]) .action > small {
+    grid-row: 2 !important;
+    font-size: 0.625rem !important;
+    line-height: 1.15 !important;
+    letter-spacing: 0;
+    text-align: center !important;
+  }
+  :global(main[data-unified-battle='true']) .artwork,
+  :global(main[data-unified-battle='true']) .artworkTrigger {
+    top: 0.25rem;
+    right: 50%;
+    width: 2.1rem;
+    height: 2.1rem;
+    transform: translateX(50%);
+    border-radius: 0.4rem;
+  }
+}

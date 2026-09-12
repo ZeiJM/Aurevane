@@ -3,8 +3,8 @@
 }
 
 /*
- * The regular desktop cockpit already has two approved fixed tracks: a 2.4rem context strip and
- * 6.35rem command cards. Keep the parent grid on those same tracks while Finish Turn hands control
+ * The compact desktop cockpit uses two fixed tracks: a 2.4rem context strip and
+ * 4.75rem command cards. Keep the parent grid on those same tracks while Finish Turn hands control
  * to Recruit/AI so intrinsic disabled/preview content cannot briefly give the battlefield extra room.
  */
 @media (min-width: 821px) and (min-height: 721px) {
@@ -12,7 +12,7 @@
     main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind]
       [data-unified-command-deck='true']
   ) {
-    grid-template-rows: 2.4rem 6.35rem !important;
+    grid-template-rows: 2.4rem 4.75rem !important;
   }
 
   :global(
@@ -31,9 +31,9 @@
       [data-unified-command-deck='true']
       > div:nth-child(2)
   ) {
-    height: 6.35rem !important;
-    min-height: 6.35rem !important;
-    max-height: 6.35rem !important;
+    height: 4.75rem !important;
+    min-height: 4.75rem !important;
+    max-height: 4.75rem !important;
     align-self: stretch !important;
   }
 }
