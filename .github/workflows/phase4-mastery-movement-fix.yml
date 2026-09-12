@@ -1,5 +1,6 @@
 name: Phase4 mastery movement maintenance
 
+# One-shot repair for the local earned-Mastery browser fixture.
 on:
   push:
     branches:
