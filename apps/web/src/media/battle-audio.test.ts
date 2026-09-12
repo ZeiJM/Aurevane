@@ -71,12 +71,13 @@ describe('committed battle audio', () => {
     expect(cursor.advance(NaN)).toBe(false)
   })
   it('ships every registered cue and painted identity with the recorded hashes', () => {
-    const release = JSON.parse(
-      readFileSync(resolve('../../content/media-releases/phase4-v01.json'), 'utf8'),
-    ) as {
-      runtime: { path: string; sha256: string }[]
-    }
-    for (const file of release.runtime) {
+    const runtime = ['phase4-v01', 'phase4-ironfist-v01', 'phase4-chronist-v01'].flatMap((id) => {
+      const release = JSON.parse(
+        readFileSync(resolve(`../../content/media-releases/${id}.json`), 'utf8'),
+      ) as { runtime: { path: string; sha256: string }[] }
+      return release.runtime
+    })
+    for (const file of runtime) {
       expect(
         createHash('sha256')
           .update(readFileSync(resolve('../..', file.path)))
@@ -86,9 +87,9 @@ describe('committed battle audio', () => {
     const sounds = [...audioAssetRegistry.values()].filter((asset) =>
       asset.id.startsWith('audio.phase4.'),
     )
-    expect(sounds).toHaveLength(72)
+    expect(sounds).toHaveLength(84)
     for (const asset of sounds)
-      expect(release.runtime.some((file) => file.path === `apps/web/public${asset.src}`)).toBe(true)
+      expect(runtime.some((file) => file.path === `apps/web/public${asset.src}`)).toBe(true)
     expect(phase4DisciplineSigil('bastion')).toBe(
       '/media/art/disciplines/phase4/bastion-128-v01.webp',
     )
@@ -96,5 +97,30 @@ describe('committed battle audio', () => {
       '/media/art/disciplines/phase4/bastion-256-v01.webp',
     )
     expect(phase4SkillArtwork('bastion.fortress')).toMatch(/^data:image\/svg/)
+  })
+  it('routes Ironfist regular and three-hit Essence actions to their own media family', () => {
+    for (const [actionId, role, priority] of [
+      ['ironfist.breakfall', 'action', 70],
+      ['essence.ironfist.hundredfold-rush', 'essence', 90],
+    ] as const) {
+      expect(
+        selectBattleAudioCues([record({ event: 'combat_action_used', actionId })], 8, now),
+      ).toEqual([{ assetId: `audio.phase4.ironfist-${role}-v01-3`, priority }])
+    }
+    expect(phase4SkillArtwork('essence.ironfist.hundredfold-rush')).toBe(
+      '/media/art/disciplines/phase4/ironfist-256-v01.webp',
+    )
+    expect(phase4SkillArtwork('ironfist.breakfall')).toBeNull()
+    expect(phase4SkillArtwork('essence.ironfist.unknown')).toBeNull()
+    expect(
+      selectBattleAudioCues(
+        [
+          record({ event: 'skill_preview', actionId: 'ironfist.breakfall' }),
+          record({ event: 'combat_action_used', actionId: 'ironfist.breakfall' }, 8, 5001),
+        ],
+        8,
+        now,
+      ),
+    ).toEqual([])
   })
 })

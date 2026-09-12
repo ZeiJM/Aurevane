@@ -39,7 +39,7 @@ catalog="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d po
   set role service_role;
   select count(*)::text || '|' || bool_and(definition_version = 1)::text || '|' || bool_and(profile_version = 1)::text
   from public.get_primary_discipline_catalog_v1();")"
-test "$catalog" = '16|true|true'
+test "$catalog" = '17|true|true'
 
 initial_build="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
   set role service_role;

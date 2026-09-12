@@ -4,6 +4,7 @@ import { readBattleAuthorityCombatBuildSnapshot } from './battle-authority-build
 import { resolveEssenceForBuild } from './essence'
 import { resolveMatureSkillVersion, type MatureSkillDefinition } from './mature-skills'
 import {
+  committedResonanceForecast,
   executePv1fAction,
   executePv1fMatureSkill,
   evaluatePv1fMatureSkill,
@@ -12,6 +13,8 @@ import {
 } from './pv1f-action-economy'
 import {
   chooseRecruitAiDecision,
+  RECRUIT_EASY_PROFILE,
+  RECRUIT_STANDARD_PROFILE,
   type RecruitAiDecision,
   type RecruitAiProfile,
 } from './recruit-ai'
@@ -35,7 +38,9 @@ export function chooseBuildAwareRecruitAiDecision(input: {
   if (!actorId) return baseline
 
   const skillCandidates = committedMatureSkills(input.state, actorId)
-    .flatMap((definition) => buildSkillCandidates(input.state, definition))
+    .flatMap((definition) =>
+      buildSkillCandidates(input.state, definition, input.profile ?? RECRUIT_STANDARD_PROFILE),
+    )
     .sort((left, right) => {
       if (left.utility !== right.utility) return right.utility - left.utility
       return left.stableKey.localeCompare(right.stableKey)
@@ -123,6 +128,7 @@ export function committedMatureSkills(
 function buildSkillCandidates(
   state: StatDrivenCombatEncounterState,
   definition: MatureSkillDefinition,
+  profile: RecruitAiProfile,
 ): BuildSkillCandidate[] {
   if (!definition.enabled || !definition.ai.enabled) return []
   const candidates: BuildSkillCandidate[] = []
@@ -138,11 +144,23 @@ function buildSkillCandidates(
       evaluated.prepared.tactical.battle.currentTurn?.combatantId ?? null,
     )
     if (!evaluated.evaluation.legal || !economy || economy.current < evaluated.cost) continue
+    const resonance = committedResonanceForecast(evaluated.prepared, definition)
+    const resonanceUtility = resonance?.forecast.willActivate
+      ? resonance.definition.trigger.aiPayoffUtilityBonus
+      : resonance?.forecast.willArm
+        ? resonance.definition.trigger.aiSetupUtilityBonus
+        : 0
     candidates.push({
       definition,
       target,
       evaluation: evaluated.evaluation,
-      utility: definition.ai.baseUtility + projectedEffectUtility(evaluated.evaluation, state),
+      utility:
+        // Authored base utilities use the easy-profile scale. Match the ordinary
+        // action difficulty adjustment so higher difficulties do not suppress Skills.
+        definition.ai.baseUtility +
+        (profile.attackUtility - RECRUIT_EASY_PROFILE.attackUtility) +
+        projectedEffectUtility(evaluated.evaluation, state) +
+        resonanceUtility,
       stableKey: `${definition.id}:${targetKey(target)}`,
     })
   }

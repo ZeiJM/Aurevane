@@ -140,10 +140,11 @@ const roster = [
   'frostweaver',
   'stormsinger',
   'tidecaller',
+  'chronist',
 ]
 const skills = P33_REPRESENTATIVE_DISCIPLINE_SKILLS.filter((skill) => skill.enabled)
 
-describe('Phase 4 sixteen-Discipline acceptance matrix', () => {
+describe('Phase 4 seventeen-Discipline acceptance matrix', () => {
   it.each(roster)('%s has eight valid Skills and an exclusive pure Essence', (discipline) => {
     const library = skills.filter((skill) => skill.sourceDisciplineId === discipline)
     expect(library).toHaveLength(8)
@@ -163,8 +164,8 @@ describe('Phase 4 sixteen-Discipline acceptance matrix', () => {
   })
 
   it('has one unordered Resonance for each pair with reachable setup and payoff', () => {
-    expect(P36_REPRESENTATIVE_ESSENCES).toHaveLength(16)
-    expect(P35_REPRESENTATIVE_RESONANCES).toHaveLength(120)
+    expect(P36_REPRESENTATIVE_ESSENCES).toHaveLength(17)
+    expect(P35_REPRESENTATIVE_RESONANCES).toHaveLength(136)
     for (const resonance of P35_REPRESENTATIVE_RESONANCES) {
       expect(validateResonanceDefinition(resonance)).toEqual([])
       const [left, right] = resonance.disciplinePair

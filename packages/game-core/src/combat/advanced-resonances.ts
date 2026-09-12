@@ -101,6 +101,15 @@ const identities: readonly SequenceIdentity[] = [
     payoff: { type: 'apply-status', recipient: 'actor', statusId: 'regeneration', stacks: 1 },
     result: 'grant the attacker Regeneration',
   },
+  {
+    discipline: 'chronist',
+    setupTag: 'tempo',
+    setupName: 'tempo Skill',
+    prefix: 'Measured',
+    suffix: 'Hour',
+    payoff: { type: 'apply-status', recipient: 'actor', statusId: 'hastened', stacks: 1 },
+    result: 'grant the attacker Hastened for the next round',
+  },
 ]
 const foundations = [
   { discipline: 'vanguard', suffix: 'Vanguard' },

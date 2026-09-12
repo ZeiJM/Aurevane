@@ -286,7 +286,7 @@ describe('Phase 4 periodic effects, cleanse and movement control', () => {
 describe('Phase 4 advanced libraries', () => {
   it('provides eight authored regular Skills and an Essence per added Discipline', () => {
     const disciplines = new Set(ADVANCED_DISCIPLINE_SKILLS.map((skill) => skill.sourceDisciplineId))
-    expect(disciplines.size).toBe(10)
+    expect(disciplines.size).toBe(11)
     for (const discipline of disciplines) {
       expect(
         ADVANCED_DISCIPLINE_SKILLS.filter((skill) => skill.sourceDisciplineId === discipline),
@@ -319,6 +319,12 @@ describe('Phase 4 advanced libraries', () => {
             ),
           },
         }
+      if (skill.effects.some((effect) => effect.type === 'return-to-turn-start')) {
+        state = executePv1fMovement(state, [
+          { x: 1, y: 1 },
+          { x: 0, y: 1 },
+        ]).state
+      }
       const selected =
         skill.target.kind === 'self'
           ? { kind: 'self' as const }

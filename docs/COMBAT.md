@@ -393,3 +393,9 @@ A successful validation session should let a tester explain:
 The strongest product signal remains voluntary desire to play another battle.
 
 **Automated green gates do not constitute a human PV PASS.**
+
+## Phase-4 Chronist scheduling and positional return
+
+Chronist implements next-round Initiative scheduling: Hastened +20, Delayed -20, Borrowed Hour +40, capped at ±40 per unit. Tempo is consumed at the round boundary and determines a frozen order for that round only. Base attributes remain unchanged. Stable identity resolves ties. Each living unit receives one turn; lethal turn-end ticks cannot grant a defeated unit a new turn. The next boundary restores base order unless another tempo effect was prepared. These effects do not add AP or grant extra turns.
+
+Rewind Step returns the caster to its authoritative current-turn origin, provided it moved, is not Rooted and the origin is still passable and unoccupied. It restores only position, without restoring HP, MP, AP, movement allowance, facing or commands. Consecutive-repeat rules omit this discrete effect. Existing cleanse lists remain explicitly authored; they are not silently broadened to remove Delayed.

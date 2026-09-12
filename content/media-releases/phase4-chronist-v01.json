@@ -1,0 +1,53 @@
+{
+  "id": "phase4-chronist-v01",
+  "status": "authorized-for-live-testing",
+  "authorization": "Owner: Take what ever authorizations you need and implement, following the Phase 4 completeness audit, 2026-09-12.",
+  "humanAcceptance": null,
+  "runtime": [
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/chronist-128-v01.webp",
+      "sha256": "a6bc493251657dc9fd1870e0243c607a1d11b8ad245cced513c97999dfb6845c",
+      "bytes": 3514
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/chronist-256-v01.webp",
+      "sha256": "6886089c0e1a129673fc10be32fc71d4ff42f029482278b4e4ddfd5f860973ac",
+      "bytes": 11354
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/chronist-64-v01.webp",
+      "sha256": "07b3228eed4e1d5d4cdfd1d62defe58dc3c677f016f9cdc85e6d4e3927913a03",
+      "bytes": 1154
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/chronist-action-v01-1.mp3",
+      "sha256": "93d0140b6e64b84c947bcd4563c25c7d877e04c44913e0f886419bba4784c5f7",
+      "bytes": 4077
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/chronist-action-v01-2.mp3",
+      "sha256": "00055fdb8b15b98ca5185ec7e8424fd3e6fc988d05291a634104fb685240931d",
+      "bytes": 4077
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/chronist-action-v01-3.mp3",
+      "sha256": "e09e4e4600ce0bdebbceff3eaf26ef9d2771cc06e38c60dd7307335467215d3e",
+      "bytes": 4077
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/chronist-essence-v01-1.mp3",
+      "sha256": "1494c2068c042182d4914c0761a982a1d2dfdbd2457018f6fe41c4137738f511",
+      "bytes": 7245
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/chronist-essence-v01-2.mp3",
+      "sha256": "d86dd9bb623044a24ccc47d9f6caba7ac5807e35522aa75f92e345fa980baeb8",
+      "bytes": 7245
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/chronist-essence-v01-3.mp3",
+      "sha256": "bcf6c163dbda21ac0d608b099a710a79477aebc4433893f049dcd358507c765d",
+      "bytes": 7245
+    }
+  ]
+}

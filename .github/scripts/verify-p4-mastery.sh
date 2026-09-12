@@ -15,6 +15,32 @@ character_id="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres 
 set role service_role;
 select id::text from public.create_character_v3('$user_id'::uuid,0::smallint,'00000000-0000-4000-8000-000000004101'::uuid,'p4:mastery:character',1,'P4 Mastery Tester','p4masterytester','androgynous','they_them','portrait.starter.wayfarer-01','appearance.starter.roadworn','vanguard',12,4,7,4,3,6);")"
 test -n "$character_id"
+
+testing_projection="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+set role service_role;
+select release_unlocked::text || '|' || effective_unlocked::text || '|' || testing_access::text
+from public.get_character_discipline_atlas_progress_v1('$user_id'::uuid,'$character_id'::uuid)
+where discipline_id='bastion';")"
+test "$testing_projection" = 'false|true|true'
+
+chronist_testing_projection="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+set role service_role;
+select release_unlocked::text || '|' || effective_unlocked::text || '|' || testing_access::text
+from public.get_character_discipline_atlas_progress_v1('$user_id'::uuid,'$character_id'::uuid)
+where discipline_id='chronist';")"
+test "$chronist_testing_projection" = 'false|true|true'
+
+legacy_testing_mastery="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+select count(*)::text from app_private.character_discipline_masteries
+where character_id='$character_id'::uuid
+  and source_kind='support'
+  and source_id='active-player-discipline-testing:v1';")"
+test "$legacy_testing_mastery" = '0'
+
+planned_selectable="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+select app_private.discipline_unlocked_v1('$character_id'::uuid,'spellwright')::text;")"
+test "$planned_selectable" = 'false'
+
 # Private committed-event fixtures exercise the database reward authority. They are
 # isolated in CI and rolled back; they are not human gameplay evidence.
 docker exec -i "$db_container" psql -v ON_ERROR_STOP=1 -v user_id="$user_id" -v character_id="$character_id" -U postgres -d postgres <<'SQL'
@@ -47,10 +73,14 @@ declare
  result record;
  failed boolean:=false;
 begin
- -- Remove only this disposable fixture's pre-existing Owner-authorized testing grants.
- -- Production testing access is preserved; this transaction rolls back.
+ -- Close only this disposable fixture's testing overlay so the release prerequisite graph is
+ -- exercised directly. The outer transaction rolls the policy change back.
+ update app_private.discipline_unlock_policy_state
+ set testing_open=false,updated_at=clock_timestamp()
+ where singleton;
  delete from app_private.character_discipline_masteries where character_id=c;
  update app_private.character_discipline_progress set mastery_xp=0,demonstrated_skills='{}' where character_id=c;
+ if app_private.discipline_release_unlocked_v1(c,'chronist') then raise exception 'Chronist release-unlocked before Aetherist Adept and Rekindling I'; end if;
  if app_private.discipline_unlocked_v1(c,'bastion') then raise exception 'Bastion unlocked without Vanguard Adept'; end if;
  begin
   perform public.change_character_disciplines_v3(u,c,1,true,'bastion',false,null,gen_random_uuid(),'p4:locked-bastion');
@@ -139,8 +169,25 @@ begin
  update app_private.character_discipline_progress set mastery_xp=300 where character_id=c and discipline_id='bastion';
  perform app_private.provision_mastery_skills_v1(c);
  if (select count(*) from app_private.character_skill_unlocks where character_id=c and source_discipline_id='bastion')<>8 then raise exception 'Bastion Adept must learn all eight Skills'; end if;
+ insert into app_private.character_discipline_progress(character_id,discipline_id,mastery_xp) values(c,'aetherist',300) on conflict(character_id,discipline_id) do update set mastery_xp=300;
+ if app_private.discipline_release_unlocked_v1(c,'chronist') then raise exception 'Aetherist Adept bypassed the Chronist Rekindling I gate'; end if;
+ update public.characters set progression_cycle=2 where id=c;
+ if not app_private.discipline_release_unlocked_v1(c,'chronist') then raise exception 'Rekindling I plus Aetherist Adept did not unlock Chronist'; end if;
+ insert into app_private.character_discipline_progress(character_id,discipline_id,mastery_xp) values(c,'chronist',0) on conflict(character_id,discipline_id) do update set mastery_xp=0;
+ perform public.change_character_disciplines_v3(u,c,2,true,'chronist',false,null,gen_random_uuid(),'p4:earned-chronist-r1');
+ perform app_private.provision_mastery_skills_v1(c);
+ if (select count(*) from app_private.character_skill_unlocks where character_id=c and source_discipline_id='chronist')<>4 then raise exception 'Chronist Initiate must learn four Skills'; end if;
+ update app_private.character_discipline_progress set mastery_xp=100 where character_id=c and discipline_id='chronist';
+ perform app_private.provision_mastery_skills_v1(c);
+ if (select count(*) from app_private.character_skill_unlocks where character_id=c and source_discipline_id='chronist')<>6 then raise exception 'Chronist Practiced must learn six Skills'; end if;
+ update app_private.character_discipline_progress set mastery_xp=300 where character_id=c and discipline_id='chronist';
+ perform app_private.provision_mastery_skills_v1(c);
+ if (select count(*) from app_private.character_skill_unlocks where character_id=c and source_discipline_id='chronist')<>8 then raise exception 'Chronist Adept must learn eight Skills'; end if;
+ if (select count(*) from app_private.resonance_definitions where enabled and (discipline_a_id='chronist' or discipline_b_id='chronist'))<>16 then raise exception 'Chronist requires sixteen Resonance pairs'; end if;
 end;
 $$;
 rollback;
 SQL
-echo 'Phase 4 Mastery prerequisites, persisted-event rewards, retries, milestones and browser denial PASS.'
+post_trial_testing_policy="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "select app_private.discipline_testing_open_v1()::text;")"
+test "$post_trial_testing_policy" = 'true'
+echo 'Phase 4 Mastery prerequisites, testing separation, Chronist Rekindling gate, persisted-event rewards, retries, milestones and browser denial PASS.'

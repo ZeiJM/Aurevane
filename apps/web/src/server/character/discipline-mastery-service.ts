@@ -1,20 +1,26 @@
 import 'server-only'
+
+import type { DisciplineMasteryStage } from '@aurevane/game-core/character/discipline-atlas'
 import { AurevaneError } from '@aurevane/game-core/errors'
+
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
 
 export interface DisciplineMasteryProgress {
   disciplineId: string
   xp: number
-  stage: number
+  stage: DisciplineMasteryStage
   unlocked: boolean
+  releaseUnlocked: boolean
+  testingAccess: boolean
   demonstratedSkillCount: number
 }
+
 export async function loadDisciplineMastery(
   userId: string,
   characterId: string,
 ): Promise<DisciplineMasteryProgress[]> {
   const { data, error } = await createSupabaseAdminClient().rpc(
-    'get_character_discipline_progress_v1',
+    'get_character_discipline_atlas_progress_v1',
     { p_user_id: userId, p_character_id: characterId },
   )
   if (error || !Array.isArray(data))
@@ -22,22 +28,28 @@ export async function loadDisciplineMastery(
       'PERSISTENCE_UNAVAILABLE',
       'Discipline Mastery is temporarily unavailable.',
     )
+
   return data.map(
     (row: {
       discipline_id: string
       mastery_xp: number
-      stage: number
-      unlocked: boolean
+      earned_stage: number
+      release_unlocked: boolean
+      effective_unlocked: boolean
+      testing_access: boolean
       demonstrated_skill_count: number
     }) => ({
       disciplineId: row.discipline_id,
       xp: row.mastery_xp,
-      stage: row.stage,
-      unlocked: row.unlocked,
+      stage: Math.max(1, Math.min(5, row.earned_stage)) as DisciplineMasteryStage,
+      unlocked: row.effective_unlocked,
+      releaseUnlocked: row.release_unlocked,
+      testingAccess: row.testing_access,
       demonstratedSkillCount: row.demonstrated_skill_count,
     }),
   )
 }
+
 const claimErrors: Record<string, string> = {
   MASTERY_TRIAL_REQUIRED: 'Only a Standard or High Discipline Mastery Trial awards Mastery.',
   TRIAL_VICTORY_REQUIRED: 'Win the Mastery Trial before claiming its result.',
@@ -47,6 +59,7 @@ const claimErrors: Record<string, string> = {
     'Use at least two different Primary Skills across at least three Skill commands, then win the trial.',
   TRIAL_COMMITTED_BUILD_REQUIRED: 'This trial has no eligible committed Discipline build.',
 }
+
 export async function claimDisciplineTrial(userId: string, battleSessionId: string) {
   // The database derives eligibility and XP from immutable snapshots and committed events.
   // Neither the browser nor this boundary supplies rewards, outcomes or a Discipline ID.

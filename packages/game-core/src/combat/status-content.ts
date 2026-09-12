@@ -34,6 +34,27 @@ function status(
 /** Short names and descriptions are shared by Techniques, combat inspection and AI. */
 export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
   status(
+    'hastened',
+    'Hastened',
+    'Buff',
+    'Gain 20 Initiative for the next round only. Current turns are unchanged; no extra turn is granted.',
+    { nextRoundInitiative: 20 },
+  ),
+  status(
+    'delayed',
+    'Delayed',
+    'Debuff',
+    'Lose 20 Initiative for the next round only. Current turns are unchanged; no turn is skipped.',
+    { nextRoundInitiative: -20 },
+  ),
+  status(
+    'borrowed-hour',
+    'Borrowed Hour',
+    'Buff',
+    'Gain 40 Initiative for the next round only. Combined tempo offsets cap at +40 or -40. No extra turn or AP is granted.',
+    { nextRoundInitiative: 40 },
+  ),
+  status(
     'burn',
     'Burn',
     'Debuff',
@@ -162,6 +183,8 @@ export function combatStatusDetails(
 }
 export function combatStatusDuration(id: string): string {
   const status = PHASE4_STATUSES.find((candidate) => candidate.id === id)
+  if (status?.nextRoundInitiative !== undefined)
+    return 'Consumed when the next round starts; the resulting order lasts for that round. Reapplying does not stack.'
   if (status?.endOfTurn)
     return `Lasts ${status.durationOwnerTurnStarts} end-of-turn ticks; reapplying refreshes the remaining ticks.`
   return `Expires at the start of the affected unit’s ${status?.durationOwnerTurnStarts === 1 || id === 'lowered-guard' ? 'next' : 'second upcoming'} turn.`

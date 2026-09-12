@@ -82,6 +82,9 @@ jobs:
               on policy.version = state.current_policy_version
             where state.singleton;")"
           test "$policy" = '2|0|0'
+          discipline_testing="$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "
+            select app_private.discipline_testing_open_v1()::text;")"
+          test "$discipline_testing" = 'true'
 
       - name: Enable original attunement policy for regression matrix
         run: |
@@ -95,7 +98,23 @@ jobs:
         run: bash .github/scripts/verify-p31-discipline-build-authority.sh
 
       - name: Verify P3.2 Secondary and attunement authority
-        run: bash .github/scripts/verify-p32-secondary-attunement.sh
+        run: |
+          set -euo pipefail
+          db_container="$(docker ps --filter 'name=supabase_db_' --format '{{.Names}}' | head -n 1)"
+          test -n "$db_container"
+          restore_testing() {
+            docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+              update app_private.discipline_unlock_policy_state
+              set testing_open = true, updated_at = clock_timestamp()
+              where singleton;" >/dev/null
+          }
+          trap restore_testing EXIT
+          docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "
+            update app_private.discipline_unlock_policy_state
+            set testing_open = false, updated_at = clock_timestamp()
+            where singleton;" >/dev/null
+          test "$(docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -Atqc "select app_private.discipline_testing_open_v1()::text;")" = 'false'
+          bash .github/scripts/verify-p32-secondary-attunement.sh
 
       - name: Verify P3.4 Skill loadout authority
         run: |

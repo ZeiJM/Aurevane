@@ -1,6 +1,6 @@
 import type { CombatTargetSelection } from './actions'
 import type { MatureSkillCombatContext, MatureSkillDefinition } from './mature-skills'
-import { executePv1fMatureSkill } from './pv1f-action-economy'
+import { committedResonanceForecast, executePv1fMatureSkill } from './pv1f-action-economy'
 import {
   forecastResonanceForSkill,
   type ResonanceCombatEvent,
@@ -23,6 +23,35 @@ export function executePv1fMatureSkillWithResonance(input: {
   readonly combatContext: MatureSkillCombatContext
   readonly selection: CombatTargetSelection
 }): Pv1fMatureSkillResonanceTransition {
+  const committed = committedResonanceForecast(input.state, input.skill)
+  if (committed) {
+    if (
+      committed.definition.id !== input.resonance.id ||
+      committed.definition.contentVersion !== input.resonance.contentVersion ||
+      committed.armedByActionId !== input.resonanceState.armedByActionId
+    ) {
+      throw new Error(
+        'Explicit Resonance state must match the committed battle build and sequence.',
+      )
+    }
+    const resolution = executePv1fMatureSkill(
+      input.state,
+      input.skill,
+      input.selection,
+      input.combatContext,
+    )
+    return {
+      ...resolution,
+      resonanceState: {
+        ...input.resonanceState,
+        armedByActionId: committed.forecast.willArm
+          ? input.skill.id
+          : committed.forecast.willActivate || committed.forecast.willExpireArmedSetup
+            ? null
+            : committed.armedByActionId,
+      },
+    }
+  }
   const forecast = forecastResonanceForSkill(input.resonance, input.resonanceState, input.skill)
   const resolvedSkill: MatureSkillDefinition = forecast.willActivate
     ? {

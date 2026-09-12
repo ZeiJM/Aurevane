@@ -121,6 +121,52 @@ function skill(
 }
 
 const authoredSkills: readonly MatureSkillDefinition[] = [
+  // Chronist changes next-round ordering, never duplicates turns or refunds past commands.
+  skill('chronist', 'temporal-bolt', 35, ranged, [damage(10)], ['attack', 'mystic', 'ranged']),
+  skill('chronist', 'haste', 30, ally, [effect('hastened')], ['support', 'tempo', 'mystic']),
+  skill(
+    'chronist',
+    'slow',
+    35,
+    ranged,
+    [damage(4), effect('slow')],
+    ['attack', 'mystic', 'control'],
+  ),
+  skill('chronist', 'delay', 35, ranged, [effect('delayed')], ['control', 'tempo', 'mystic']),
+  skill(
+    'chronist',
+    'rewind-step',
+    40,
+    self,
+    [{ type: 'return-to-turn-start', recipient: 'actor' }],
+    ['movement', 'mystic'],
+  ),
+  skill(
+    'chronist',
+    'time-lock',
+    50,
+    ranged,
+    [effect('root'), effect('delayed')],
+    ['control', 'tempo', 'mystic'],
+  ),
+  skill(
+    'chronist',
+    'temporal-ward',
+    40,
+    self,
+    [effect('guarded', 'actor'), effect('hastened', 'actor')],
+    ['defense', 'tempo', 'mystic'],
+  ),
+  skill(
+    'chronist',
+    'stolen-moment',
+    45,
+    ranged,
+    [damage(17), mp(3)],
+    ['attack', 'mystic', 'finisher'],
+    targetStatus('delayed'),
+  ),
+
   // Bastion trades personal pressure for protection and target-sensitive threat control.
   skill(
     'bastion',
@@ -689,6 +735,16 @@ function essence(
   }
 }
 export const ADVANCED_DISCIPLINE_ESSENCES: readonly EssenceDefinition[] = [
+  essence(
+    'chronist',
+    'borrowed-hour',
+    'Borrowed Hour',
+    'Restore an ally and prepare +40 Initiative for the next round. No extra turn, AP or battle reset.',
+    60,
+    ally,
+    [heal(10, 'primary-unit'), effect('borrowed-hour')],
+    ['heal', 'support', 'tempo', 'mystic'],
+  ),
   essence(
     'bastion',
     'last-bastion',

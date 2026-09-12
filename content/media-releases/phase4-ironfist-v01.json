@@ -1,0 +1,62 @@
+{
+  "id": "phase4-ironfist-v01",
+  "status": "authorized-for-owner-testing",
+  "purpose": "Owner in-game evaluation",
+  "independentHumanArtReview": false,
+  "independentHumanListeningReview": false,
+  "provenance": [
+    "content/media-candidates/phase4-ironfist/art-manifest.json",
+    "content/media-candidates/phase4-ironfist/audio-manifest.json"
+  ],
+  "notes": "Owner authorized continuation and live testing. Candidate provenance remains unchanged; independent human visual/listening acceptance is not claimed. One painted identity and six synthesized cue variants.",
+  "runtime": [
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/ironfist-64-v01.webp",
+      "bytes": 1608,
+      "sha256": "ff4668e4870f424afdff7874670076c2196e3a61740f181bb14b3c20e7473da1"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/ironfist-128-v01.webp",
+      "bytes": 4848,
+      "sha256": "17ece4424165ac6abb159b0fef307a72a586caeb0f0083a418734fc3edbfb3e1"
+    },
+    {
+      "path": "apps/web/public/media/art/disciplines/phase4/ironfist-256-v01.webp",
+      "bytes": 15450,
+      "sha256": "b0ed89470e77bd2439f16557c5d274d4b194f2fd98e1dfe1a1635ea4f544f955"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ironfist-action-v01-1.mp3",
+      "bytes": 3789,
+      "sha256": "f4cfabd35d6c7f5609d3dfcd1318e4d7214a97ffcd2de21fe529929e417ae840"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ironfist-action-v01-2.mp3",
+      "bytes": 3789,
+      "sha256": "9876013cff2115a3f8a2a4e5bd0f565ba89b3e593c45ecfa1e2fca81822d41cf"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ironfist-action-v01-3.mp3",
+      "bytes": 3789,
+      "sha256": "8082814be4803032f0d27375fc122543b4f0c536516beef378af91c37a981a11"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ironfist-essence-v01-1.mp3",
+      "bytes": 7245,
+      "sha256": "6a6ad88d4410c98f98448466d3bafa2a44e3e40d00824edaa798d4a254c7a508"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ironfist-essence-v01-2.mp3",
+      "bytes": 7245,
+      "sha256": "1afb874b31bca5640d4869bd9e11e3b624fdb8dac32fee464459e1cb79075b2b"
+    },
+    {
+      "path": "apps/web/public/media/audio/sfx/phase4/ironfist-essence-v01-3.mp3",
+      "bytes": 7245,
+      "sha256": "c001c5f84a86a1e9b2ca39eabc2617d8f9c83b5cb5d08b0274e74b075c5b83bf"
+    }
+  ],
+  "authorizedBy": "Owner continuation in the implementation conversation",
+  "authorization": "Pick up where the Phase 4 implementation chat left off and continue implementation for live testing.",
+  "authorizationDate": "2026-09-12"
+}

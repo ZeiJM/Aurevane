@@ -483,6 +483,9 @@ function projectSnapshot(input: unknown): BattleSessionProjection {
         lifecycle: battle.lifecycle,
         combatants: battle.combatants,
         initiativeOrder: battle.initiativeOrder,
+        ...(battle.roundInitiativeModifiers
+          ? { roundInitiativeModifiers: battle.roundInitiativeModifiers }
+          : {}),
         round: battle.round,
         turnNumber: battle.turnNumber,
         currentTurn: battle.currentTurn,

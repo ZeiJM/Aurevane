@@ -4,6 +4,14 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
+      - 'packages/game-core/src/combat/**'
+      - 'packages/game-core/src/character/advanced-disciplines.ts'
+      - 'apps/web/e2e/phase4-mastery.pw.ts'
+      - 'apps/web/src/app/api/**/mastery/**'
+      - 'apps/web/src/media/**'
+      - 'packages/audio/**'
+      - 'supabase/migrations/**'
+      - '.github/scripts/verify-p4-*.sh'
       - 'docs/PHASE_4_TICKETS.md'
       - 'packages/game-core/src/combat/ironfist-content.ts'
       - 'apps/web/src/components/character/skill-details*'
@@ -13,29 +21,46 @@ on:
       - 'apps/web/src/content/current-manual.ts'
       - 'packages/game-core/src/combat/mature-skills.ts'
       - 'packages/game-core/src/combat/representative-buildcraft.test.ts'
+      - 'packages/game-core/src/character/discipline-atlas.ts'
+      - 'packages/game-core/src/character/discipline-atlas.test.ts'
       - 'apps/web/src/server/character/pv2-buildcraft-test-kit.ts'
+      - 'apps/web/src/server/character/discipline-mastery-service.ts'
       - 'apps/web/src/app/api/character/build/pv2-test-kit/**'
+      - 'apps/web/src/app/api/character/mastery/route.ts'
       - 'apps/web/src/app/game/character/page.tsx'
       - 'apps/web/src/components/character/character-profile-shell.tsx'
       - 'apps/web/src/components/character/character-pv2-test-kit.tsx'
       - 'apps/web/src/components/character/character-pv2-test-kit.module.css'
+      - 'apps/web/src/components/character/discipline-mastery-panel.tsx'
+      - 'apps/web/src/components/character/discipline-mastery-panel.module.css'
       - 'apps/web/e2e/p3-8-representative-buildcraft.pw.ts'
       - 'apps/web/e2e/mixed-build-battle-entry.pw.ts'
+      - 'supabase/migrations/20260912070000_discipline_atlas_testing_separation.sql'
+      - '.github/scripts/verify-p4-mastery.sh'
       - '.github/workflows/representative-buildcraft.yml'
   push:
     branches:
       - 'agent/p3-8-representative-buildcraft-slice'
+      - 'agent/phase4-discipline-atlas-mastery'
     paths:
       - 'packages/game-core/src/combat/mature-skills.ts'
       - 'packages/game-core/src/combat/representative-buildcraft.test.ts'
+      - 'packages/game-core/src/character/discipline-atlas.ts'
+      - 'packages/game-core/src/character/discipline-atlas.test.ts'
       - 'apps/web/src/server/character/pv2-buildcraft-test-kit.ts'
+      - 'apps/web/src/server/character/discipline-mastery-service.ts'
       - 'apps/web/src/app/api/character/build/pv2-test-kit/**'
+      - 'apps/web/src/app/api/character/mastery/route.ts'
       - 'apps/web/src/app/game/character/page.tsx'
       - 'apps/web/src/components/character/character-profile-shell.tsx'
       - 'apps/web/src/components/character/character-pv2-test-kit.tsx'
       - 'apps/web/src/components/character/character-pv2-test-kit.module.css'
+      - 'apps/web/src/components/character/discipline-mastery-panel.tsx'
+      - 'apps/web/src/components/character/discipline-mastery-panel.module.css'
       - 'apps/web/e2e/p3-8-representative-buildcraft.pw.ts'
       - 'apps/web/e2e/mixed-build-battle-entry.pw.ts'
+      - 'supabase/migrations/20260912070000_discipline_atlas_testing_separation.sql'
+      - '.github/scripts/verify-p4-mastery.sh'
       - '.github/workflows/representative-buildcraft.yml'
 
 permissions:
@@ -66,14 +91,20 @@ jobs:
       - name: Focused formatting
         run: |
           pnpm exec prettier --check \
+            packages/game-core/src/character/discipline-atlas.ts \
+            packages/game-core/src/character/discipline-atlas.test.ts \
             packages/game-core/src/combat/mature-skills.ts \
             packages/game-core/src/combat/representative-buildcraft.test.ts \
             apps/web/src/server/character/pv2-buildcraft-test-kit.ts \
+            apps/web/src/server/character/discipline-mastery-service.ts \
             apps/web/src/app/api/character/build/pv2-test-kit/route.ts \
+            apps/web/src/app/api/character/mastery/route.ts \
             apps/web/src/app/game/character/page.tsx \
             apps/web/src/components/character/character-profile-shell.tsx \
             apps/web/src/components/character/character-pv2-test-kit.tsx \
             apps/web/src/components/character/character-pv2-test-kit.module.css \
+            apps/web/src/components/character/discipline-mastery-panel.tsx \
+            apps/web/src/components/character/discipline-mastery-panel.module.css \
             apps/web/e2e/p3-8-representative-buildcraft.pw.ts \
             apps/web/e2e/mixed-build-battle-entry.pw.ts \
             .github/workflows/discipline-build-db.yml \
@@ -82,13 +113,18 @@ jobs:
       - name: Focused lint
         run: |
           pnpm exec eslint \
+            packages/game-core/src/character/discipline-atlas.ts \
+            packages/game-core/src/character/discipline-atlas.test.ts \
             packages/game-core/src/combat/mature-skills.ts \
             packages/game-core/src/combat/representative-buildcraft.test.ts \
             apps/web/src/server/character/pv2-buildcraft-test-kit.ts \
+            apps/web/src/server/character/discipline-mastery-service.ts \
             apps/web/src/app/api/character/build/pv2-test-kit/route.ts \
+            apps/web/src/app/api/character/mastery/route.ts \
             apps/web/src/app/game/character/page.tsx \
             apps/web/src/components/character/character-profile-shell.tsx \
             apps/web/src/components/character/character-pv2-test-kit.tsx \
+            apps/web/src/components/character/discipline-mastery-panel.tsx \
             apps/web/e2e/p3-8-representative-buildcraft.pw.ts \
             apps/web/e2e/mixed-build-battle-entry.pw.ts
 
@@ -100,8 +136,12 @@ jobs:
       - name: Focused representative tests
         run: |
           pnpm --filter @aurevane/game-core exec vitest run \
+            src/character/discipline-atlas.test.ts \
             src/combat/mature-skills.test.ts \
-            src/combat/representative-buildcraft.test.ts
+            src/combat/representative-buildcraft.test.ts \
+            src/combat/chronist.test.ts \
+            src/combat/phase4-effects.test.ts \
+            src/combat/recruit-ai-build.test.ts
 
       - name: Start local Supabase stack
         run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
@@ -142,6 +182,7 @@ jobs:
           AUREVANE_PV2_TEST_MODE=1 \
           pnpm --filter @aurevane/web exec playwright test \
             e2e/phase4-roster.pw.ts \
+            e2e/phase4-mastery.pw.ts \
             e2e/p3-8-representative-buildcraft.pw.ts \
             e2e/mixed-build-battle-entry.pw.ts \
             --config=playwright.config.ts

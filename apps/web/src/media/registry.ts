@@ -15,6 +15,17 @@ export interface ImageAssetDescriptor {
 
 const IMAGE_ASSETS = [
   {
+    id: 'art.phase4.chronist.identity.v01',
+    kind: 'icon',
+    status: 'approved',
+    requestId: 'ART-DISC-004',
+    decorative: true,
+    alt: '',
+    src: '/media/art/disciplines/phase4/chronist-128-v01.webp',
+    width: 128,
+    height: 128,
+  },
+  {
     id: 'art.phase4.bastion.identity.v01',
     kind: 'icon',
     status: 'approved',
@@ -218,12 +229,12 @@ const IMAGE_ASSETS = [
     id: 'discipline.foundation.ironfist-sigil',
     kind: 'icon',
     status: 'approved',
-    requestId: 'ART-DISC-001',
+    requestId: 'ART-DISC-002',
     decorative: true,
     alt: '',
-    src: '/media/art/disciplines/disc_ironfist_icon_v01.svg',
-    width: 512,
-    height: 512,
+    src: '/media/art/disciplines/phase4/ironfist-128-v01.webp',
+    width: 128,
+    height: 128,
   },
   {
     id: 'discipline.foundation.aetherist-sigil',
