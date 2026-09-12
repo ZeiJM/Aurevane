@@ -269,6 +269,12 @@ function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
     })
   }
 
+  for (const effect of preview.projectedEffects.filter(
+    (effect) => effect.effectType === 'return-to-turn-start',
+  )) {
+    chips.push({ label: `Return to ${effect.after}`, tone: 'effect' })
+  }
+
   for (const status of preview.projectedStatuses) {
     chips.push({ label: humanizeStatus(status.statusId), tone: 'effect' })
     if (
@@ -278,7 +284,9 @@ function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
       const reduction = Math.round((10_000 - status.damageTakenMultiplierBasisPoints) / 100)
       chips.push({ label: `-${reduction}% damage`, tone: 'effect' })
     }
-    if (status.durationOwnerTurnStarts !== null) {
+    if (['hastened', 'delayed', 'borrowed-hour'].includes(status.statusId)) {
+      chips.push({ label: 'Next round only', tone: 'effect' })
+    } else if (status.durationOwnerTurnStarts !== null) {
       chips.push({
         label: `${status.durationOwnerTurnStarts} turn${status.durationOwnerTurnStarts === 1 ? '' : 's'}`,
         tone: 'effect',

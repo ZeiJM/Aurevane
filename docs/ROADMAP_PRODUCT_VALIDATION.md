@@ -2,7 +2,7 @@
 
 **Status:** Binding validation extension of `docs/ROADMAP.md`.
 
-**Reconciled:** 2026-08-23
+**Reconciled:** 2026-09-12 (Phase-3/4 status and current Skill-selection contract)
 
 **Authority:** `docs/GAME_MASTER_PLAN.md` remains primary. `docs/ROADMAP.md` defines phase sequence. Canonical domain specifications define mechanics. This document defines the evidence gates used before multiplying expensive product layers.
 
@@ -158,7 +158,7 @@ When closing the gate:
 
 **Roadmap position:** Phase 3 before Phase 4 roster expansion.
 
-**Current decision (2026-09-11):** The Owner approved closing Phase 3 after completion and release of the requested UI/performance corrections and background quality checkpoint. Record this as an Owner phase-exit decision, not as a measured multi-tester PV-2 PASS. See `PHASE_3_CLOSEOUT.md`. Phase 4 remains unstarted until the Owner gives a separate start command; broader independent validation remains useful during staged roster work.
+**Current decision:** The Owner approved closing Phase 3 after completion and release of the requested UI/performance corrections and background quality checkpoint, and subsequently activated Phase 4 for implementation and production testing. Record the Phase-3 closure as an Owner phase-exit decision, not as a measured multi-tester PV-2 PASS. See `PHASE_3_CLOSEOUT.md`. The sixteen-Discipline implementation is now live; Phase-4 human acceptance and the scope/evidence gaps in `PHASE_4_COMPLETENESS_AUDIT.md` remain open.
 
 Purpose:
 
@@ -169,9 +169,9 @@ Preferred representative slice:
 - ~4 representative Disciplines;
 - meaningful Primary identities;
 - legal Secondary mixing;
-- representative Skill libraries/cooldowns;
-- pure: up to 8 Discipline Skills + Essence;
-- mixed: 6 total Discipline Skills + Resonance;
+- representative Skill libraries and consecutive-use behavior;
+- pure: up to four selected regular Skills from an eight-Skill library + separate Essence;
+- mixed: up to four selected regular Skills across two libraries + Resonance, with no Essence; full-loadout splits are 1+3, 2+2 or 3+1;
 - representative Resonance/Essence coverage;
 - decision-changing equipment where current foundations permit;
 - supported test-build switching;
@@ -181,8 +181,8 @@ Capture whether testers:
 
 - explain Primary versus Secondary;
 - understand Primary base-profile consequence;
-- understand pure 8 + Essence versus mixed 6 + Resonance;
-- understand Skill sources/cooldowns;
+- understand four regular selections in either build, with exclusive Essence or Resonance;
+- understand Skill sources and the 50% consecutive-use effectiveness penalty at unchanged AP/MP cost; ending a turn alone does not reset the chain;
 - voluntarily try multiple pairings/builds;
 - observe strategy changes;
 - ask curiosity-driven combination questions;
@@ -201,8 +201,9 @@ Multiple testers independently demonstrate curiosity-driven build experimentatio
 Use staged expansion:
 
 ```text
-4 representative Disciplines
-→ 6–8
+Five inherited authored Disciplines
+→ six complete Foundations, including Ironfist
+→ 6–8 validated Disciplines
 → 12
 → 16 mature Closed Alpha target
 ```
@@ -218,6 +219,8 @@ Before expanding review:
 - AI coverage;
 - content defects;
 - whether existing options are still meaningfully explored.
+
+The released sixteen-Discipline count is implementation evidence, not automatic satisfaction of this gate. Track exact roster scope, tactical identity, AI behavior, acquisition, media and human acceptance through `PHASE_4_COMPLETENESS_AUDIT.md` and `PHASE_4_PLAYTEST_PACKET.md`.
 
 ---
 

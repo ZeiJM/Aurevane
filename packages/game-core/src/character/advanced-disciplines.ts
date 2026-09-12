@@ -109,4 +109,12 @@ export const ADVANCED_DISCIPLINES: readonly AdvancedDiscipline[] = [
     [2, 3, 5, 3, 9, 9],
     [requires('aetherist', 2), requires('lifebinder', 1)],
   ),
+  discipline(
+    'chronist',
+    'Chronist',
+    'Prepare next-round tempo, delay threats and recover footing. Focus: Intellect and Resolve.',
+    ['intellect', 'resolve'],
+    [2, 3, 4, 5, 10, 7],
+    [requires('aetherist', 3)],
+  ),
 ]

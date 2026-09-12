@@ -1,3 +1,8 @@
+import { ADVANCED_DISCIPLINES } from '../character/advanced-disciplines'
+import { P33_REPRESENTATIVE_DISCIPLINE_SKILLS, resolveMatureSkillVersion } from './mature-skills'
+import { resolveEssenceForBuild, essenceSnapshotReference } from './essence'
+import { resolveResonanceForPair, resonanceSnapshotReference } from './resonance'
+import { finishPv1fTurn } from './pv1f-action-economy'
 import { describe, expect, it } from 'vitest'
 
 import { createCombatEncounterState } from './actions'
@@ -255,4 +260,131 @@ it('Ironfist AI uses only its frozen Skills and executes its pure Essence legall
   expect(() =>
     executeBuildAwareRecruitAiAction(state, 'ironfist.focus-breath', { kind: 'self' }),
   ).toThrow()
+})
+
+describe('Phase 4 advanced AI through committed builds', () => {
+  it.each(ADVANCED_DISCIPLINES)(
+    '$name chooses and executes a legal committed Skill or Essence',
+    (discipline) => {
+      const library = P33_REPRESENTATIVE_DISCIPLINE_SKILLS.filter(
+        (skill) =>
+          skill.sourceDisciplineId === discipline.id &&
+          skill.requirements.length === 0 &&
+          !skill.effects.some((effect) => effect.type === 'return-to-turn-start'),
+      ).slice(0, 4)
+      const essence = resolveEssenceForBuild(discipline.id, null)!
+      const snapshot: CombatBuildSnapshot = {
+        ...pureSnapshot(),
+        primary: { disciplineId: discipline.id, definitionVersion: 1, profileVersion: 1 },
+        disciplineSkills: library.map((skill, index) => ({
+          slotIndex: index + 1,
+          skillId: skill.id,
+          contentVersion: skill.contentVersion,
+          sourceDisciplineId: discipline.id,
+        })),
+        extensions: { ...pureSnapshot().extensions, essence: essenceSnapshotReference(essence) },
+      }
+      let state = encounter(false)
+      state = {
+        ...state,
+        tactical: {
+          ...state.tactical,
+          width: 4,
+          tiles: Array.from({ length: 4 }, (_, x) => ({
+            position: { x, y: 0 },
+            elevation: 0,
+            terrainId: 'open-ground',
+          })),
+          placements: state.tactical.placements.map((unit) =>
+            unit.combatantId === targetId
+              ? {
+                  ...unit,
+                  position: { x: ['ravager', 'edgedancer'].includes(discipline.id) ? 1 : 3, y: 0 },
+                }
+              : unit,
+          ),
+          battle: {
+            ...state.tactical.battle,
+            combatants: state.tactical.battle.combatants.map((unit) =>
+              unit.id === actorId ? { ...unit, hp: 25 } : unit,
+            ),
+          },
+        },
+      }
+      state = attachCombatBuildBridge(state, [
+        { combatantId: actorId, characterId: '00000000-0000-4000-8000-000000003731', snapshot },
+      ])
+      const decision = chooseBuildAwareRecruitAiDecision({
+        state,
+        profile: RECRUIT_STANDARD_PROFILE,
+        tieBreakSeed: 7,
+      })
+      expect(decision.intent.kind).toBe('action')
+      if (decision.intent.kind !== 'action') throw new Error('Expected a committed Skill choice')
+      expect([...library.map((skill) => skill.id), essence.skill.id]).toContain(
+        decision.intent.actionId,
+      )
+      const before = JSON.stringify(state)
+      const result = executeBuildAwareRecruitAiAction(
+        state,
+        decision.intent.actionId,
+        decision.intent.target,
+      )
+      expect(JSON.stringify(state)).toBe(before)
+      expect(readPv1fActionEconomy(result.state, actorId)!.current).toBeLessThan(100)
+      expect(result.events).toContainEqual(
+        expect.objectContaining({
+          event: 'combat_action_used',
+          actorId,
+          actionId: decision.intent.actionId,
+        }),
+      )
+    },
+  )
+  it('chooses the armed cross-library payoff after reload and consumes it on the normal AI path', () => {
+    const resonance = resolveResonanceForPair('chronist', 'vanguard')!
+    const ids = ['chronist.haste', 'vanguard.forceful-strike']
+    const snapshot: CombatBuildSnapshot = {
+      ...pureSnapshot(),
+      primary: { disciplineId: 'chronist', definitionVersion: 1, profileVersion: 1 },
+      secondary: { disciplineId: 'vanguard', definitionVersion: 1 },
+      disciplineSkills: ids.map((id, index) => ({
+        slotIndex: index + 1,
+        skillId: id,
+        contentVersion: resolveMatureSkillVersion(id)!.contentVersion,
+        sourceDisciplineId: id.split('.')[0]!,
+      })),
+      extensions: {
+        ...pureSnapshot().extensions,
+        essence: null,
+        resonance: resonanceSnapshotReference(resonance),
+      },
+    }
+    let state: StatDrivenCombatEncounterState = attachCombatBuildBridge(encounter(false), [
+      { combatantId: actorId, characterId: '00000000-0000-4000-8000-000000003731', snapshot },
+    ])
+    state = executeBuildAwareRecruitAiAction(state, 'chronist.haste', {
+      kind: 'unit',
+      combatantId: actorId,
+    }).state
+    state = finishPv1fTurn(finishPv1fTurn(state, 'east').state, 'west').state
+    state = JSON.parse(JSON.stringify(state))
+    const choice = chooseBuildAwareRecruitAiDecision({
+      state,
+      profile: RECRUIT_STANDARD_PROFILE,
+      tieBreakSeed: 7,
+    })
+    expect(choice.intent).toEqual({
+      kind: 'action',
+      actionId: 'vanguard.forceful-strike',
+      target: { kind: 'unit', combatantId: targetId },
+    })
+    if (choice.intent.kind !== 'action') throw new Error('Expected payoff')
+    const result = executeBuildAwareRecruitAiAction(
+      state,
+      choice.intent.actionId,
+      choice.intent.target,
+    )
+    expect(result.events).toContainEqual(expect.objectContaining({ event: 'resonance_activated' }))
+  })
 })

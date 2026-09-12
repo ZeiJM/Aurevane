@@ -39,6 +39,11 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
   const list = page.getByTestId('learned-skill-list')
   await expect(list.locator('article')).toHaveCount(8)
   await expect(page.getByTestId('active-essence')).toHaveText('Hundredfold Rush')
+  const essenceArtwork = dialog.locator('img[src*="ironfist-256-v01.webp"]').first()
+  await expect(essenceArtwork).toBeVisible()
+  await expect
+    .poll(() => essenceArtwork.evaluate((image: HTMLImageElement) => image.naturalWidth))
+    .toBeGreaterThan(0)
   const palm = list.locator('article').filter({ hasText: 'Counter Palm' })
   await palm.locator('summary').click()
   await expect(palm).toContainText('Requires Guarded on yourself.')
@@ -102,6 +107,48 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
     await expect(board.locator('button[aria-label^="Tile "]')).toHaveCount(tiles)
     await page.reload()
     await expect(board).toHaveAttribute('data-board-auto-fit', dimensions)
+    if (id === 'crossroads-court') {
+      const audioRequests: string[] = []
+      const trackAudio = (request: import('@playwright/test').Request) => {
+        if (/\/api\/battles\/[^/]+\/audio\?/.test(request.url())) audioRequests.push(request.url())
+      }
+      page.on('request', trackAudio)
+      await root.getByRole('button', { name: /Choose Guard skill/ }).click()
+      await page.getByRole('option', { name: 'Breakfall 25 AP', exact: true }).click()
+      await root.getByRole('button', { name: 'Breakfall, 25 AP', exact: true }).click()
+      await expect(root.getByRole('button', { name: 'Confirm Action', exact: true })).toBeEnabled()
+      expect(audioRequests).toEqual([])
+      const committed = page.waitForResponse(
+        (response) => response.url().endsWith('/intents') && response.request().method() === 'POST',
+      )
+      const cue = page.waitForResponse((response) =>
+        /\/api\/battles\/[^/]+\/audio\?/.test(response.url()),
+      )
+      const sound = page.waitForResponse((response) =>
+        response.url().includes('/media/audio/sfx/phase4/ironfist-action-'),
+      )
+      await root.getByRole('button', { name: 'Confirm Action', exact: true }).click()
+      const committedResponse = await committed
+      expect(committedResponse.status()).toBe(200)
+      const battle = (await committedResponse.json()).battle
+      expect(await (await cue).json()).toEqual({
+        battleVersion: battle.battleVersion,
+        cues: [
+          {
+            assetId: `audio.phase4.ironfist-action-v01-${(battle.battleVersion % 3) + 1}`,
+            priority: 70,
+          },
+        ],
+      })
+      const assetResponse = await sound
+      expect([200, 206]).toContain(assetResponse.status())
+      expect(assetResponse.headers()['content-type']).toContain('audio/mpeg')
+      expect((await assetResponse.body()).byteLength).toBeGreaterThan(0)
+      expect(
+        battle.snapshot.statusState.flatMap((row: { statuses: unknown[] }) => row.statuses),
+      ).toEqual(expect.arrayContaining([expect.objectContaining({ statusId: 'guarded' })]))
+      page.off('request', trackAudio)
+    }
     await testInfo.attach(`phase4-${id}-${testInfo.project.name}`, {
       body: await page.screenshot(),
       contentType: 'image/png',
@@ -144,7 +191,7 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
   const management = page.getByRole('dialog', { name: 'Discipline Management' })
   await management.getByText('Mastery & unlocks', { exact: true }).click()
-  await expect(management.getByRole('progressbar')).toHaveCount(16)
+  await expect(management.getByRole('progressbar')).toHaveCount(17)
   await expect(management).toContainText('Master · 1000/1,000 XP')
   const primary = management
     .locator('label')
@@ -261,4 +308,54 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   await page.getByRole('button', { name: 'Confirm Surrender', exact: true }).click()
   await expect(page.getByTestId('battle-result-overlay')).toBeVisible()
   expect(errors).toEqual([])
+})
+
+test('Chronist provisions its full testing library, Essence artwork and explicit temporal rules', async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(150000)
+  const suffix = Date.now()
+    .toString()
+    .split('')
+    .map((digit) => String.fromCharCode(97 + Number(digit)))
+    .join('')
+  await provisionAccountAndEnterCharacter({
+    page,
+    email: `p4-chronist-${testInfo.project.name}-${Date.now()}@example.com`,
+    password: 'P4-chronist-disposable-2026!',
+    characterName: `Chronist ${suffix}`,
+  })
+  await page.getByRole('button', { name: /Manage Primary Discipline/ }).click()
+  const management = page.getByRole('dialog', { name: 'Discipline Management' })
+  await management
+    .locator('label')
+    .filter({ hasText: /^Proposed Primary/ })
+    .locator('select')
+    .selectOption('chronist')
+  await page.getByRole('button', { name: 'Commit Chronist as Primary' }).click()
+  await expect(page.getByTestId('primary-discipline-chip')).toHaveText('Chronist')
+  await management.getByRole('button', { name: 'Close', exact: true }).click()
+  await page.getByRole('button', { name: /Manage Techniques/ }).click()
+  const dialog = page.getByRole('dialog', { name: 'Techniques', exact: true })
+  const list = page.getByTestId('learned-skill-list')
+  await expect(list.locator('article')).toHaveCount(8)
+  await expect(page.getByTestId('active-essence')).toHaveText('Borrowed Hour')
+  const artwork = dialog.locator('img[src*="chronist-256-v01.webp"]').first()
+  await expect(artwork).toBeVisible()
+  await expect
+    .poll(() => artwork.evaluate((image: HTMLImageElement) => image.naturalWidth))
+    .toBeGreaterThan(0)
+  const haste = list.locator('article').filter({ has: page.getByText('Haste', { exact: true }) })
+  await haste.locator('summary').click()
+  await expect(haste).toContainText('next round')
+  const rewind = list.locator('article').filter({ hasText: 'Rewind Step' })
+  await rewind.locator('summary').click()
+  await expect(rewind).toContainText('turn')
+  expect(await dialog.evaluate((element) => element.scrollWidth > element.clientWidth + 1)).toBe(
+    false,
+  )
+  await testInfo.attach(`phase4-chronist-${testInfo.project.name}`, {
+    body: await page.screenshot(),
+    contentType: 'image/png',
+  })
 })

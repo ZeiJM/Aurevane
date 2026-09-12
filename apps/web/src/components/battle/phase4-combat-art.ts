@@ -6,6 +6,7 @@ import { imageAssetRegistry } from '../../media/registry'
 /** Original, code-native tactical sigils. Geometry communicates tradition, shape and effect;
  * these intentionally remain crisp at 32–64px and do not depend on a generation vendor. */
 export const PHASE4_DISCIPLINE_COLORS: Readonly<Record<string, string>> = {
+  chronist: '#c7bb94',
   bastion: '#91afc4',
   ravager: '#db786f',
   edgedancer: '#d9c9a8',
@@ -18,6 +19,8 @@ export const PHASE4_DISCIPLINE_COLORS: Readonly<Record<string, string>> = {
   tidecaller: '#7ec9bf',
 }
 const glyphs: Readonly<Record<string, string>> = {
+  chronist:
+    '<path d="M40 22h48M40 94h48M46 22c0 24 36 24 36 36S46 70 46 94M82 22c0 24-36 24-36 36s36 12 36 36"/>',
   bastion:
     '<path d="M40 26 64 18 88 26v28c0 20-12 31-24 39-12-8-24-19-24-39Z"/><path d="M64 28v51M48 44h32"/>',
   ravager:
@@ -65,6 +68,15 @@ export function phase4DisciplineSigil(disciplineId: string): string | null {
   return color ? source(frame(color, glyphs[disciplineId]!)) : null
 }
 export function phase4SkillArtwork(actionId: string): string | null {
+  // Ironfist keeps its distinct regular Skill sigils; only the Essence shares its painted identity.
+  if (
+    actionId.startsWith('essence.ironfist.') &&
+    actionId === resolveEssenceForBuild('ironfist', null)?.skill.id
+  ) {
+    const identity = imageAssetRegistry.get('discipline.foundation.ironfist-sigil')
+    if (identity?.status === 'approved' && identity.src)
+      return identity.src.replace('-128-', '-256-')
+  }
   const discipline = actionId.startsWith('essence.')
     ? actionId.split('.')[1]!
     : actionId.split('.')[0]!

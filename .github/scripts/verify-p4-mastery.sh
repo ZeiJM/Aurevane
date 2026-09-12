@@ -51,6 +51,7 @@ begin
  -- Production testing access is preserved; this transaction rolls back.
  delete from app_private.character_discipline_masteries where character_id=c;
  update app_private.character_discipline_progress set mastery_xp=0,demonstrated_skills='{}' where character_id=c;
+ if app_private.discipline_unlocked_v1(c,'chronist') then raise exception 'Chronist unlocked without Aetherist Adept'; end if;
  if app_private.discipline_unlocked_v1(c,'bastion') then raise exception 'Bastion unlocked without Vanguard Adept'; end if;
  begin
   perform public.change_character_disciplines_v3(u,c,1,true,'bastion',false,null,gen_random_uuid(),'p4:locked-bastion');
@@ -139,6 +140,21 @@ begin
  update app_private.character_discipline_progress set mastery_xp=300 where character_id=c and discipline_id='bastion';
  perform app_private.provision_mastery_skills_v1(c);
  if (select count(*) from app_private.character_skill_unlocks where character_id=c and source_discipline_id='bastion')<>8 then raise exception 'Bastion Adept must learn all eight Skills'; end if;
+ insert into app_private.character_discipline_progress(character_id,discipline_id,mastery_xp) values(c,'aetherist',300) on conflict(character_id,discipline_id) do update set mastery_xp=300;
+ if not app_private.discipline_unlocked_v1(c,'chronist') then raise exception 'Aetherist Adept did not unlock Chronist'; end if;
+ delete from app_private.character_skill_unlocks where character_id=c and source_discipline_id='chronist';
+ insert into app_private.character_discipline_progress(character_id,discipline_id,mastery_xp) values(c,'chronist',0) on conflict(character_id,discipline_id) do update set mastery_xp=0;
+ perform public.change_character_disciplines_v3(u,c,2,true,'chronist',false,null,gen_random_uuid(),'p4:earned-chronist');
+ perform app_private.provision_mastery_skills_v1(c);
+ if (select count(*) from app_private.character_skill_unlocks where character_id=c and source_discipline_id='chronist')<>4 then raise exception 'Chronist Initiate must learn four Skills'; end if;
+ update app_private.character_discipline_progress set mastery_xp=100 where character_id=c and discipline_id='chronist';
+ perform app_private.provision_mastery_skills_v1(c);
+ if (select count(*) from app_private.character_skill_unlocks where character_id=c and source_discipline_id='chronist')<>6 then raise exception 'Chronist Apprentice must learn six Skills'; end if;
+ update app_private.character_discipline_progress set mastery_xp=300 where character_id=c and discipline_id='chronist';
+ perform app_private.provision_mastery_skills_v1(c);
+ if (select count(*) from app_private.character_skill_unlocks where character_id=c and source_discipline_id='chronist')<>8 then raise exception 'Chronist Adept must learn eight Skills'; end if;
+ if (select count(*) from app_private.resonance_definitions where enabled and (discipline_a_id='chronist' or discipline_b_id='chronist'))<>16 then raise exception 'Chronist requires sixteen Resonance pairs'; end if;
+
 end;
 $$;
 rollback;

@@ -4,10 +4,19 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
+      - 'packages/game-core/src/combat/**'
+      - 'packages/game-core/src/character/advanced-disciplines.ts'
+      - 'apps/web/src/server/character/discipline-mastery-service.ts'
+      - 'apps/web/src/app/api/**/mastery/**'
+      - 'apps/web/src/media/**'
+      - 'packages/audio/**'
+      - 'supabase/migrations/**'
+      - '.github/scripts/verify-p4-*.sh'
       - 'docs/PHASE_4_TICKETS.md'
       - 'packages/game-core/src/combat/ironfist-content.ts'
       - 'apps/web/src/components/character/skill-details*'
       - 'apps/web/e2e/phase4-roster.pw.ts'
+      - 'apps/web/e2e/phase4-mastery.pw.ts'
       - 'docs/PHASE_3_CLOSEOUT.md'
       - 'docs/ROADMAP.md'
       - 'apps/web/src/content/current-manual.ts'
@@ -101,7 +110,10 @@ jobs:
         run: |
           pnpm --filter @aurevane/game-core exec vitest run \
             src/combat/mature-skills.test.ts \
-            src/combat/representative-buildcraft.test.ts
+            src/combat/representative-buildcraft.test.ts \
+            src/combat/chronist.test.ts \
+            src/combat/phase4-effects.test.ts \
+            src/combat/recruit-ai-build.test.ts
 
       - name: Start local Supabase stack
         run: pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
@@ -142,6 +154,7 @@ jobs:
           AUREVANE_PV2_TEST_MODE=1 \
           pnpm --filter @aurevane/web exec playwright test \
             e2e/phase4-roster.pw.ts \
+            e2e/phase4-mastery.pw.ts \
             e2e/p3-8-representative-buildcraft.pw.ts \
             e2e/mixed-build-battle-entry.pw.ts \
             --config=playwright.config.ts
