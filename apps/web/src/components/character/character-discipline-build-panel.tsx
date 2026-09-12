@@ -14,7 +14,7 @@ import {
 import type { PrimaryDisciplinePreview } from '@aurevane/game-core/character/discipline-build'
 import type { DerivedStatUnit } from '@aurevane/game-core/character/derived-stats'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useMemo, useState, useSyncExternalStore, useTransition } from 'react'
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from 'react'
 import { createPortal } from 'react-dom'
 
 import { FoundationDisciplineSigil } from './foundation-discipline-sigil'
@@ -174,6 +174,17 @@ export function CharacterDisciplineBuildPanel({
   const [pendingCommit, setPendingCommit] = useState(false)
   const [refreshingProfile, startProfileRefresh] = useTransition()
   const [message, setMessage] = useState<string | null>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const dialogRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    if (!open || !mounted) return
+    dialogRef.current?.focus()
+    const trigger = triggerRef.current
+    return () => {
+      if (trigger?.isConnected) trigger.focus()
+    }
+  }, [open, mounted])
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -393,6 +404,7 @@ export function CharacterDisciplineBuildPanel({
   return (
     <div className={styles.root} data-testid="primary-build-panel">
       <button
+        ref={triggerRef}
         type="button"
         className={styles.trigger}
         aria-haspopup="dialog"
@@ -424,11 +436,45 @@ export function CharacterDisciplineBuildPanel({
               onPointerDown={() => setPanelOpen(false)}
             >
               <section
+                ref={dialogRef}
                 className={styles.dialog}
                 role="dialog"
+                tabIndex={-1}
                 aria-modal="true"
                 aria-labelledby="discipline-build-heading"
                 onPointerDown={(event) => event.stopPropagation()}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') {
+                    event.preventDefault()
+                    setPanelOpen(false)
+                    return
+                  }
+                  if (event.key !== 'Tab') return
+                  const dialog = event.currentTarget
+                  const controls = Array.from(
+                    dialog.querySelectorAll<HTMLElement>(
+                      'a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), summary, [tabindex]:not([tabindex="-1"])',
+                    ),
+                  ).filter((element) => element.getClientRects().length > 0)
+                  const first = controls[0]
+                  const last = controls.at(-1)
+                  if (!first || !last) {
+                    event.preventDefault()
+                    dialog.focus()
+                  } else if (
+                    event.shiftKey &&
+                    (document.activeElement === first || document.activeElement === dialog)
+                  ) {
+                    event.preventDefault()
+                    last.focus()
+                  } else if (
+                    !event.shiftKey &&
+                    (document.activeElement === last || document.activeElement === dialog)
+                  ) {
+                    event.preventDefault()
+                    first.focus()
+                  }
+                }}
               >
                 <header className={styles.header}>
                   <h2 id="discipline-build-heading">Discipline Management</h2>

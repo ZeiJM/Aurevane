@@ -46,6 +46,7 @@
 .intro,
 .overview,
 .testingNote,
+.filters,
 .bands,
 .footerNote,
 .error,
@@ -58,6 +59,64 @@
   display: grid;
   gap: 0.45rem;
   margin-top: 0.85rem;
+}
+
+.intro a {
+  width: fit-content;
+  color: #dfc88d;
+  text-underline-offset: 0.2em;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 0.65rem 1rem;
+  margin-top: 1rem;
+}
+
+.search {
+  display: grid;
+  flex: 1 1 13rem;
+  min-width: 0;
+  gap: 0.35rem;
+  color: #cfc5af;
+}
+
+.search input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: 0.6rem;
+  border: 1px solid rgba(211, 183, 115, 0.3);
+  border-radius: 0.4rem;
+  background: #0a1018;
+  color: #eee6d3;
+  font: inherit;
+}
+
+.publishedFilter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  color: #cfc5af;
+}
+
+.publishedFilter input {
+  accent-color: #d3b773;
+}
+
+.filters p {
+  flex-basis: 100%;
+  margin: 0;
+  color: #a9a59d;
+  font-size: 0.72rem;
+}
+
+.panel :is(summary, a, input, button):focus-visible {
+  outline: 2px solid #dfc88d;
+  outline-offset: 3px;
 }
 
 .intro p,
@@ -160,6 +219,7 @@
   align-content: start;
   gap: 0.58rem;
   min-width: 0;
+  overflow-wrap: anywhere;
   padding: 0.68rem;
   border: 1px solid rgba(211, 183, 115, 0.14);
   border-radius: 0.62rem;

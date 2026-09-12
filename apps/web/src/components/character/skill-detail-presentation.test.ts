@@ -75,3 +75,34 @@ it('distinguishes enemy MP drain from the user’s restoration in one Skill', ()
     'Healing · Self',
   )
 })
+
+it('explains elemental interactions and typed status aliases without changing historical targeting', () => {
+  const fire = skillEffectDescription({
+    type: 'damage',
+    recipient: 'affected-units',
+    amount: 10,
+    element: 'fire',
+  })
+  expect(fire).toContain('removes Wet and Frozen')
+  expect(fire).toContain('Steam')
+  const storm = skillEffectDescription({
+    type: 'damage',
+    recipient: 'primary-unit',
+    amount: 10,
+    element: 'storm',
+  })
+  expect(storm).toContain('20%')
+  expect(storm).toContain('consumes Conductive')
+  expect(storm).toContain('once per recipient')
+  expect(
+    skillEffectDescription({
+      type: 'apply-status',
+      recipient: 'primary-unit',
+      statusId: 'burn',
+      stacks: 1,
+    }),
+  ).toContain('Scorched')
+  expect(
+    skillAffectedDescription(resolveMatureSkillVersion('frostweaver.chilling-mist')!),
+  ).toContain('Terrain affects both teams')
+})

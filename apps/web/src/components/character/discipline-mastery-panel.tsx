@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 
 import type { DisciplineAtlasState } from '@aurevane/game-core/character/discipline-atlas'
 
@@ -83,8 +84,17 @@ function masteryLabel(mastery: AtlasMasteryView | null): string {
 
 function PowerMeter({ label, value }: { label: string; value: number }) {
   return (
-    <span className={styles.powerItem} title={`${label}: ${value} of 5`}>
-      <span>{label}</span>
+    <span
+      className={styles.powerItem}
+      role="meter"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={5}
+      aria-valuenow={value}
+    >
+      <span>
+        {label} · {value}/5
+      </span>
       <i aria-hidden="true">
         {Array.from({ length: 5 }, (_, index) => (
           <b key={index} data-filled={index < value ? 'true' : 'false'} />
@@ -98,6 +108,18 @@ export function DisciplineMasteryPanel() {
   const [atlas, setAtlas] = useState<NonNullable<AtlasResponse['atlas']> | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [pending, setPending] = useState(false)
+  const [search, setSearch] = useState('')
+  const [publishedOnly, setPublishedOnly] = useState(false)
+  const query = search.trim().toLocaleLowerCase('en')
+  // Search only the server's revealed projection, never hidden identifiers or rules.
+  const visibleEntries =
+    atlas?.entries.filter(
+      (entry) =>
+        (!publishedOnly || entry.publication === 'published') &&
+        [entry.name, entry.summary, entry.family, entry.requirementSummary].some((text) =>
+          text.toLocaleLowerCase('en').includes(query),
+        ),
+    ) ?? []
 
   async function load() {
     if (pending || atlas) return
@@ -141,10 +163,17 @@ export function DisciplineMasteryPanel() {
           not receive a larger raw power budget simply because they are harder to reach.
         </p>
         <p>
-          Mastery is earned through use. The current track is Initiate → Practiced at 100 XP → Adept
-          at 300 → Expert at 600 → Master at 1,000, with Technique demonstrations and authored
-          trials becoming the proof behind the higher ranks.
+          Earn Mastery in a Standard or High Mastery Trial: win without a player timeout after using
+          two different regular Primary Skills across at least three Primary Skill commands. Choose
+          Claim Mastery after the victory to receive up to 50 XP once.
         </p>
+        <p>Ordinary sparring grants no Mastery XP.</p>
+        <p>
+          The current track is Initiate → Practiced at 100 XP → Adept at 300 → Expert at 600 →
+          Master at 1,000, with all eight regular Skills demonstrated for Master. Named Mastery
+          Rites are planned future content.
+        </p>
+        <Link href="/manual/battle-hall#mastery-trials">Mastery Trial guide</Link>
       </div>
 
       {pending ? <p role="status">Opening the Atlas…</p> : null}
@@ -189,9 +218,35 @@ export function DisciplineMasteryPanel() {
             </aside>
           ) : null}
 
+          <div className={styles.filters}>
+            <label className={styles.search}>
+              <span>Search the Atlas</span>
+              <input
+                type="search"
+                value={search}
+                maxLength={80}
+                placeholder="Name, family or prerequisite"
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </label>
+            <label className={styles.publishedFilter}>
+              <input
+                type="checkbox"
+                checked={publishedOnly}
+                onChange={(event) => setPublishedOnly(event.target.checked)}
+              />
+              Published Disciplines only
+            </label>
+            <p role="status">
+              {visibleEntries.length === 0
+                ? 'No traditions match your filters.'
+                : `${visibleEntries.length} of ${atlas.totalDisciplines} traditions shown.`}
+            </p>
+          </div>
+
           <div className={styles.bands}>
             {BAND_ORDER.map((band) => {
-              const entries = atlas.entries.filter((entry) => entry.band === band)
+              const entries = visibleEntries.filter((entry) => entry.band === band)
               if (entries.length === 0) return null
               return (
                 <section className={styles.band} key={band}>
@@ -222,7 +277,10 @@ export function DisciplineMasteryPanel() {
                           </div>
                         </div>
 
-                        {entry.disciplineId ? (
+                        {entry.disciplineId &&
+                        (entry.publication === 'published' ||
+                          (entry.mastery?.xp ?? 0) > 0 ||
+                          (entry.mastery?.demonstratedSkillCount ?? 0) > 0) ? (
                           <>
                             <div className={styles.masteryLine}>
                               <span>{masteryLabel(entry.mastery)}</span>
@@ -248,7 +306,7 @@ export function DisciplineMasteryPanel() {
                             </small>
                           ) : null}
                           {entry.masteryRite ? (
-                            <small>Mastery Rite: {entry.masteryRite}</small>
+                            <small>Planned Mastery Rite: {entry.masteryRite}</small>
                           ) : null}
                         </div>
 

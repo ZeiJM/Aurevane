@@ -68,7 +68,7 @@ function technique(
   }
 }
 
-export const IRONFIST_SKILLS: readonly MatureSkillDefinition[] = [
+const historicalSkills: readonly MatureSkillDefinition[] = [
   technique(
     'rising-fist',
     35,
@@ -148,6 +148,24 @@ export const IRONFIST_SKILLS: readonly MatureSkillDefinition[] = [
     77,
     [{ kind: 'actor-hp-at-most', basisPoints: 5000 }],
   ),
+]
+
+export const IRONFIST_SKILLS: readonly MatureSkillDefinition[] = [
+  ...historicalSkills,
+  ...historicalSkills
+    .filter((definition) =>
+      ['ironfist.breakfall', 'ironfist.pressure-palm'].includes(definition.id),
+    )
+    .map((definition): MatureSkillDefinition => ({
+      ...definition,
+      contentVersion: 2,
+      effects: [
+        ...definition.effects,
+        definition.id === 'ironfist.breakfall'
+          ? { type: 'apply-status', recipient: 'actor', statusId: 'airborne', stacks: 1 }
+          : { type: 'displace', recipient: 'primary-unit', distance: 1 },
+      ],
+    })),
 ]
 
 const essenceId = 'essence.ironfist.hundredfold-rush'

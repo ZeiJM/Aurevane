@@ -1,5 +1,5 @@
 import { ADVANCED_DISCIPLINES } from '../character/advanced-disciplines'
-import { P33_REPRESENTATIVE_DISCIPLINE_SKILLS, resolveMatureSkillVersion } from './mature-skills'
+import { latestEnabledMatureSkills, resolveMatureSkillVersion } from './mature-skills'
 import { resolveEssenceForBuild, essenceSnapshotReference } from './essence'
 import { resolveResonanceForPair, resonanceSnapshotReference } from './resonance'
 import { finishPv1fTurn } from './pv1f-action-economy'
@@ -266,12 +266,14 @@ describe('Phase 4 advanced AI through committed builds', () => {
   it.each(ADVANCED_DISCIPLINES)(
     '$name chooses and executes a legal committed Skill or Essence',
     (discipline) => {
-      const library = P33_REPRESENTATIVE_DISCIPLINE_SKILLS.filter(
-        (skill) =>
-          skill.sourceDisciplineId === discipline.id &&
-          skill.requirements.length === 0 &&
-          !skill.effects.some((effect) => effect.type === 'return-to-turn-start'),
-      ).slice(0, 4)
+      const library = latestEnabledMatureSkills()
+        .filter(
+          (skill) =>
+            skill.sourceDisciplineId === discipline.id &&
+            skill.requirements.length === 0 &&
+            !skill.effects.some((effect) => effect.type === 'return-to-turn-start'),
+        )
+        .slice(0, 4)
       const essence = resolveEssenceForBuild(discipline.id, null)!
       const snapshot: CombatBuildSnapshot = {
         ...pureSnapshot(),

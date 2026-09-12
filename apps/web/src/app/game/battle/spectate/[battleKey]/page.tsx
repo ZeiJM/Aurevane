@@ -40,12 +40,12 @@ async function loadSpectatorPageData(userId: string, battleKey: string) {
   } catch (error) {
     if (
       isAurevaneError(error) &&
-      (error.code === 'FORBIDDEN' ||
-        error.code === 'INVALID_REQUEST' ||
-        error.code === 'PERSISTENCE_UNAVAILABLE')
+      (error.code === 'FORBIDDEN' || error.code === 'INVALID_REQUEST')
     ) {
       redirect('/game/battle')
     }
+    // Joining may already have persisted the active spectator lock. Battle Hall redirects
+    // that lock back here, so persistence failures must surface instead of creating a loop.
     throw error
   }
 }

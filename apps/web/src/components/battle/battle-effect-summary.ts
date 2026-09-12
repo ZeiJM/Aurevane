@@ -1,3 +1,4 @@
+import { gameplayStatusName } from '../../lib/battle/combat-interaction-presentation'
 import { combatStatusDetails } from '@aurevane/game-core/combat/status-content'
 import { PV1F_COMBAT_CONTENT } from '@aurevane/game-core/combat/pv1f-action-economy'
 
@@ -41,6 +42,7 @@ export function statusIsBeneficial(statusId: string): boolean {
 }
 
 export function statusLabel(statusId: string): string {
+  if (['burn', 'bleed', 'poison'].includes(statusId)) return gameplayStatusName(statusId)
   if (statusId === 'guarded') return 'Guarded'
   if (statusId === 'lowered-guard' || statusId === 'lowered.guard') return 'Lowered Guard'
 

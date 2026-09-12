@@ -49,7 +49,7 @@ Performance work never authorizes a gameplay redesign, weakened server authority
 | Phase 1 — Character & Progression Foundation | ✅ Substantially complete | Character/account/profile/progression/equipment foundations exist. |
 | Phase 2 — Tactical Combat & Battle Platform | ✅ Closed / PV-1 passed | Mature combat, AI, direct PvP and spectation foundations are preserved for reuse. |
 | Phase 3 — Signature Buildcraft Foundation | ✅ Implementation complete; Owner-approved closeout | P3.1–P3.8 delivered; final UI/quality release completes the Owner's closure condition. See `PHASE_3_CLOSEOUT.md`. |
-| Phase 4 | Active — published roster, Discipline Atlas/Mastery and media integration; human acceptance open | The live sixteen-Discipline baseline is preserved while the approved 36-identity Atlas, earned Mastery, Rekindling gates and separated testing entitlement are implemented. Published roster count follows the authoritative live catalog. See `PHASE_4_TICKETS.md` and `ROADMAP_DISCIPLINE_ATLAS_MASTERY.md`. |
+| Phase 4 | Active — published roster, Discipline Atlas/Mastery and media integration; human acceptance open | The live seventeen-Discipline roster includes the approved 36-identity Atlas, earned Mastery, Rekindling gates and separated testing entitlement. The gameplay-tag and ground-targeting continuation is undergoing final release verification. Planned Atlas identities remain unavailable until their combat libraries are published. See `PHASE_4_TICKETS.md` and `ROADMAP_DISCIPLINE_ATLAS_MASTERY.md`. |
 | Phase 5+ | Planned | Inherit compatible early work. |
 
 ## Current decision boundary
@@ -437,7 +437,9 @@ No Soulmark/Mantle or frontier implementation is required here.
 
 **Goal:** prove the Phase-3 grammar across genuinely different builds before roster scale.
 
-Current released baseline and continuation (2026-09-11):
+Current released baseline and continuation (2026-09-12):
+
+PR #455 adds Chronist while preserving Tidecaller: 17 published Disciplines, 136 regular Skills, 17 Essences and 136 Resonance pairs. The 36-identity Atlas/Mastery system is live inside Profile → Discipline Management, with temporary testing access separate from earned eligibility. The Owner has requested completion of the remaining §18 gameplay tag/terrain and ground-target UI gaps. See `PHASE_4_COMPLETENESS_AUDIT.md` for the current requirement ledger; earlier release summaries below are historical.
 
 - Vanguard, Lifebinder, Aetherist, Farstrider, Shadehand and Ironfist each have eight authored regular Skills. All six Essences and fifteen unordered Resonance pairs are live.
 - Skill targeting/effect tags and expandable details are live, together with Crossroads Court and Terraced Yard AI Sparring arenas. See `PHASE_4_TICKETS.md` for exact CI, migration and production evidence.

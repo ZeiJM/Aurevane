@@ -1,3 +1,8 @@
+import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
+import {
+  essenceSnapshotReference,
+  resolveEssenceForBuild,
+} from '@aurevane/game-core/combat/essence'
 import { createHash } from 'node:crypto'
 import { describe, expect, it, vi } from 'vitest'
 import type { CharacterCommittedBuildSnapshotRecord } from '@/server/character/character-build-service'
@@ -85,4 +90,47 @@ describe('Phase 4 frozen battle catalog compatibility', () => {
     ).toThrow('invalid battle build-authority snapshot')
     expect(parseBattleBuildAuthoritySnapshot(historicalSnapshot('vanguard').authority)).toBeNull()
   })
+})
+
+it.each(
+  latestEnabledMatureSkills().filter(
+    (skill) => skill.contentVersion === 2 && !skill.id.startsWith('vanguard.'),
+  ),
+)('$id keeps real v1/v2 snapshots independently valid through JSON persistence', (skill) => {
+  const { committed, characterId } = historicalSnapshot(skill.sourceDisciplineId)
+  for (const context of ['pve', 'pvp'] as const) {
+    const versions = [1, 2].map((version) =>
+      createBattleBuildAuthoritySnapshot(context, [
+        {
+          characterId,
+          combatantId: `character:${characterId}`,
+          snapshot: {
+            ...committed,
+            buildVersion: version,
+            disciplineSkills: [
+              {
+                slotIndex: 1,
+                skillId: skill.id,
+                contentVersion: version,
+                sourceDisciplineId: skill.sourceDisciplineId,
+              },
+            ],
+            extensions: {
+              ...committed.extensions,
+              essence: essenceSnapshotReference(
+                resolveEssenceForBuild(skill.sourceDisciplineId, null)!,
+              ),
+            },
+          },
+        },
+      ]),
+    )
+    for (const snapshot of versions)
+      expect(parseBattleBuildAuthoritySnapshot(JSON.parse(JSON.stringify(snapshot)))).toEqual(
+        snapshot,
+      )
+    expect(versions[0].combatants[0]!.fingerprint).not.toBe(versions[1].combatants[0]!.fingerprint)
+    expect(versions[0].combatants[0]!.disciplineSkills[0]!.contentVersion).toBe(1)
+    expect(versions[1].combatants[0]!.disciplineSkills[0]!.contentVersion).toBe(2)
+  }
 })

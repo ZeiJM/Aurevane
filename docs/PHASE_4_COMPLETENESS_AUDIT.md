@@ -1,21 +1,56 @@
 # Phase 4 completeness audit — 2026-09-12
 
-**Conclusion:** this began as the pre-change sixteen-Discipline audit. The combined candidate now closes the identified Chronist runtime, Ironfist media, advanced-AI, Representative Buildcraft trigger and earned-Mastery automation gaps at the implementation level. Final exact-head merge/release evidence and actual human tactical, visual and listening acceptance remain open.
+**Current conclusion:** the seventeen-Discipline Atlas/Chronist/Ironfist release is live, but the renewed audit identified missing gameplay tag/terrain mechanics and ground-target UI routing. Those changes are now committed for integrated review and verification before the next testing release. Human tactical, visual and listening acceptance remains separate.
 
 This is a scope and evidence audit, not a full security audit or a new human playtest. It preserves released mechanics and testing access.
 
-## Source and release boundary
+## Current implementation continuation — 2026-09-12
 
-| Source | Verified state |
-| --- | --- |
-| Refreshed GitHub main | `4454189cce3c560ce30caa351c42800177ab88b2` |
-| Production alias | `https://aurevane.vercel.app` |
-| Vercel production commit | `4ec4036c6781621a1eb502aaf00b5941b99d4656` |
-| Vercel deployment | `dpl_DWVodLdpQ7vN3jnPPptqjtLyGeEK`, READY, alias verified through Vercel during this audit |
-| Hosted catalog | 16 Primary/Secondary-enabled Disciplines; eight regular Skills each; 128 regular Skills, 16 enabled Essences, 120 enabled Resonances |
-| Hosted migration inventory | 75 entries; both Phase-4 migration version/name pairs present: `20260911130317_phase4_ironfist_content` and `20260911174638_phase4_roster_mastery` |
-| Ironfist continuation | Local branch `agent/phase4-ironfist-continuation`, commit `1aa28dfa3f4951b57da07089c2125b0b7d8b4cbc`, plus seven uncommitted file changes; absent from current main/production |
-| Audit branch | `agent/phase4-completeness-audit`, isolated from the Ironfist working copy |
+The Atlas/Chronist/Ironfist release below supersedes the original sixteen-Discipline inventory. PR #455 shipped 17 published Disciplines, 136 regular Skills, 17 Essences and 136 unordered Resonance pairs. Production deployment `dpl_FH4atQ3A4sTdxdREmKhbKDSTGPwp` serves application commit `df1be4f72762bc11dc75c7b2e4eb62934241f8ec`; main `9cad3272cc2cf573d592e434ce1d8a9438c62c0f` restores the deployment lock and records evidence. The final Representative Buildcraft run `34684933247` passed 498 focused tests and 12 browser cases (6 intentional viewport skips), including real UI earned Mastery, first claim, reload and duplicate retry. These are recorded prior-release results, not newly rerun tests.
+
+The Owner subsequently requested completion of all Phase 4 implementation, explicitly including gameplay tags and the Atlas inside Profile → Discipline Management. A renewed §18 audit found a real gap: displayed target/effect tags do not implement all typed gameplay interactions. Work is tracked in `docs/superpowers/plans/2026-09-12-phase4-combat-completeness.md`.
+
+| Active requirement | Current code / evidence | Remaining release gate |
+| --- | --- | --- |
+| Six Foundations and named advanced roster | 17 libraries retained; `phase4-publication.test.ts` validates twenty appended v2 regular Skills and unchanged historical definitions | Execute staged database publication in CI, then authorized production activation |
+| All published Essences execute | All 17 run preview/execute/AP/reload checks in PvE and PvP; Perfect Opening accepts its existing bounded 22,000 rear modifier | Combined CI; human balance acceptance |
+| Four selections; pure Essence/mixed Resonance; frozen builds | Existing loadout/snapshot authority retained; server snapshot tests cover exact v1/v2 references | Database selected/saved build and old-battle preservation checks |
+| Typed §18 gameplay tags | `gameplay-tags.ts`, `phase4-interactions.test.ts`: aliases, Wet/Conductive, elemental conversion, Inspired/Hexed/Invisible/Summoned/Airborne/Displaced | Final review and integrated CI |
+| Actual PvP lobby build authority | The active quality lobby-start path now freezes executable authority and its stat bridge from the same committed build; boundary regressions pass. Candidate `41d5e74d` executes ground Skills, 45-AP cost, terrain Inspect and reload in all three viewports | Finish spectator entry verification and final exact-candidate CI |
+| Ground effects and actual targeting | `terrain-overlays.ts`, shared `battle-experience.tsx`: Frozen/Steam and tile intent before unit guards; preview/commit selection guard | Six real PvE/PvP browser cases in `phase4-ground-targeting.pw.ts`, then live check |
+| Readable target/shape/team/LoS/elevation/cost/effects | Shared Skill details, expandable interaction forecast, terrain Inspect and sanitized logs consume authored/runtime data | Responsive browser and spectator checks |
+| Maps and base mobility | Existing arenas preserved; shared movement modifiers and nondominated AP/Movement routes account for overlays and statuses | Combined regression gate |
+| Actual AI decisions | Ground candidate enumeration and bounded utility; real authored producer/payoff coverage in publication tests | Combined regression gate; broader human tactical assessment remains open |
+| Mastery and normal acquisition | Existing committed-event claim/provenance and earned eligibility retained; no testing XP grant | Publication concurrency guard, prior Mastery E2E rerun |
+| Atlas placement and access policy | Existing Profile → Discipline Management dialog; search, published filter, focus/keyboard, accessible ratings, current trial guidance and planned Rite labels | Six responsive private/public Atlas cases in `phase4-atlas.pw.ts` |
+| Secret reveal privacy and Manual | Search uses only already masked server fields; 36 identities/17 published/6 veiled preserved; Guide and battle Manual explain current rules | Browser/API projection assertions |
+| Equipment/stat interactions | Existing unarmed baseline, per-recipient armor/ward and profile stat bridge retained | Combined regression gate; mature equipment catalog remains later |
+| Resonance coverage and differentiation | All 136 unordered pairs execute setup/payoff in both contexts; ground casts preserve primary-unit payoff setup | Combined regression gate; human pair differentiation remains open |
+| Media and accessibility | Existing painted identities and committed-event cues retained; new terrain/status feedback shares playable/spectator surfaces | Browser silent-preview and rendered layout checks; human listening/visual acceptance remains open |
+| Production testing release | Prior release verified; this continuation is committed locally and has not been deployed | Full repository check, independent review, exact-candidate database/browser CI, READY deployment, activation, live verification and lock restoration |
+
+Local task evidence: Task 1 and its metadata review fix passed their covering checks; Task 2 passed 918 core tests, 36 focused server tests and eight migration-policy tests; Task 3 passed focused combat/UI tests, typechecks, lint and formatting. Twelve new browser cases were discovered, not executed locally. Actual SQL/concurrency and browser execution is mandatory CI evidence, and independent combined/final review remains open. The full `pnpm check` also passed formatting, lint, typechecking, tests and production build at the integrated application source, with 918 core and 315 web Vitest cases, the existing web Node tests and 59 other package tests. Worker startup passed. Subsequent bounded SQL parent-lock and mobile forecast fixes passed their covering checks; the parent-lock scoped review is clean. These local results do not validate production or replace human acceptance.
+
+Integrated review/CI checkpoint: the original whole-branch review and subsequent bounded corrections are approved. Exact candidate `25123a03` passed thirteen workflows, actual staged publication and both concurrency cases. Its Representative browser run `34703703132` passed all six Atlas and all three PvE ground cases across desktop/laptop/phone (21 passes, six existing skips). The three PvP cases passed their corrected public facing handoff, then exposed the active lobby-start omission described above. This is a real implementation gap being repaired, not a waived browser assertion. New exact-candidate CI and live release verification remain required.
+
+Candidate `41d5e74d` passed thirteen workflows, including real database publication/concurrency and both desktop layout suites. Representative Buildcraft `34704953209` passed 21 browser cases and six existing skips; its three remaining failures are spectator entry redirect loops after successful PvP casts and reload. Full Browser smoke `34704953212` passed 129 cases with 98 existing skips; the same three spectator failures and one newly ambiguous mobile Basic Attack selector remain. The Arena picker now shares the Battle Hall control styling and vertical spacing; its actual laptop screenshot was reviewed, and a scoped 12px label minimum is committed. Production remains unchanged while these gates are resolved.
+
+The follow-up candidate `bda3b2c7` passed the same thirteen workflows and both desktop layout checks. Its read-only spectator preflight conclusively identified SQLSTATE `42501`: fresh databases lacked `service_role` SELECT permission for the existing participant-title projection. Hosted Production already has that access. A separate additive migration makes the required `id`/`personal_title` column grant explicit without changing browser-role permissions. The persistence-error redirect loop and mobile action-selector ambiguity are corrected; successful native spectator inspection and final exact-candidate CI remain required. The final laptop screenshot confirms the Arena label, dark picker and stacked description are readable.
+
+Prior open-item resolution: A01 Chronist, A02 Ironfist, A05 advanced AI, A06 earned-Mastery E2E and A08 workflow triggers shipped in #455. A09 documentation reconciliation is ongoing. A03 balance, A04 human pair differentiation, A07 human media acceptance and A10 Owner phase acceptance must not be represented as completed by automated tests. The new runtime/tag gap is implementation work, not a human acceptance exception.
+
+## Historical pre-change source and release boundary
+
+| Source                     | Verified state                                                                                                                                                                 |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Refreshed GitHub main      | `4454189cce3c560ce30caa351c42800177ab88b2`                                                                                                                                     |
+| Production alias           | `https://aurevane.vercel.app`                                                                                                                                                  |
+| Vercel production commit   | `4ec4036c6781621a1eb502aaf00b5941b99d4656`                                                                                                                                     |
+| Vercel deployment          | `dpl_DWVodLdpQ7vN3jnPPptqjtLyGeEK`, READY, alias verified through Vercel during this audit                                                                                     |
+| Hosted catalog             | 16 Primary/Secondary-enabled Disciplines; eight regular Skills each; 128 regular Skills, 16 enabled Essences, 120 enabled Resonances                                           |
+| Hosted migration inventory | 75 entries; both Phase-4 migration version/name pairs present: `20260911130317_phase4_ironfist_content` and `20260911174638_phase4_roster_mastery`                             |
+| Ironfist continuation      | Local branch `agent/phase4-ironfist-continuation`, commit `1aa28dfa3f4951b57da07089c2125b0b7d8b4cbc`, plus seven uncommitted file changes; absent from current main/production |
+| Audit branch               | `agent/phase4-completeness-audit`, isolated from the Ironfist working copy                                                                                                     |
 
 Production and database checks were read-only. No character state, test grants, migrations, assets or deployments were changed. The migration check above confirms the two Phase-4 identities and total count; it is not a new full-history checksum comparison.
 
@@ -23,60 +58,60 @@ Authority reviewed: `AGENTS.md`, Master Plan section 134 and Discipline identiti
 
 ## What is already added
 
-| Area / ticket | Delivered | Evidence and limit |
-| --- | --- | --- |
-| P4.1 inherited build foundation | Existing five libraries, four selected regular Skills, pure Essence / mixed Resonance exclusivity, unordered pair lookup and committed build snapshots retained | Roster tests and inherited build/AI tests; prior release evidence in `PHASE_4_TICKETS.md`. Human tactical acceptance remains separate. |
-| P4.2 Ironfist gameplay | Eight regular Skills, Hundredfold Rush, five initial Foundation pairings, normal provisioning and old-snapshot compatibility | `ironfist-content.ts`, `phase4-roster.test.ts`, `phase4-snapshot-compatibility.test.ts`, `verify-p4-ironfist.sh`; live database confirms its eight Skills and enabled Discipline. |
-| P4.3 Skill readability | Target/shape/effect tags, expandable requirements, range and effects; persisted four selections | `apps/web/e2e/phase4-roster.pw.ts`; released browser evidence. Self-tile targeting corrected by PR #452. |
-| P4.4 maps | Crossroads Court and Terraced Yard, alongside the existing training floor and Duel Yard | `tactical-hall-arenas.ts` and tests prove reflected terrain/spawns and Jump-0 routes. Existing PvP map generator receives reuse credit. |
-| P4.5 roster implementation | Six Foundations plus ten advanced Disciplines; 128 Skills, 16 Essences, 120 pairs | Fresh hosted counts and `phase4-roster.test.ts`. Chronist scope exception below prevents equating this count with exact Master Plan completion. |
-| Named effects | Burn, Bleed, Poison, Regeneration, Slow, Root, Reckless, Fortified, Challenged, Marked and Warded | `status-content.ts`, `phase4-effects.test.ts`; per-recipient physical/mystic defenses, conditional modifiers, linked benefit/drawback, periodic expiry/lethal completion, cleansing and repeat-use checks. |
-| Mastery/acquisition foundation | Standard/High Mastery Trials, server-owned eligibility/rewards, prerequisite gating and advanced 4/2/2 learning milestones | `discipline-mastery-service.ts`, Phase-4 migration and `verify-p4-mastery.sh`. Existing Owner testing grants deliberately allow immediate full-roster access. |
-| Shared battle compatibility | Authoritative PvE/PvP execution, saved/frozen build compatibility and existing spectator platform | Existing server/game-core paths reused; advanced Skill/Essence and new Resonance execution exercised in both combat contexts. This is not a human matchup study. |
-| Main Phase-4 media pack | Ten advanced identity paintings with Essence presentation, semantic regular-Skill sigils, 72 synthesized action/Essence/shared-effect variants | PR #454 and `content/media-releases/phase4-v01.json`; production commit verified. These are cue families, not a unique recording or painting for every Skill/pair. |
-| Media delivery | Authenticated, bounded committed-event audio for PvE/PvP/spectators, mute/gesture controls and no historical catch-up | `battle-audio.ts`, `battle-audio-handler.ts`, media tests and prior browser evidence. Previews, replay and old history remain silent. |
-| P4.6 release | Roster, self-target fix and main media integration released with recorded CI/database/browser evidence | PRs #450–#454; current Vercel metadata independently matches the final main-media release. Ironfist follow-up still pending. |
+| Area / ticket                   | Delivered                                                                                                                                                       | Evidence and limit                                                                                                                                                                                         |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P4.1 inherited build foundation | Existing five libraries, four selected regular Skills, pure Essence / mixed Resonance exclusivity, unordered pair lookup and committed build snapshots retained | Roster tests and inherited build/AI tests; prior release evidence in `PHASE_4_TICKETS.md`. Human tactical acceptance remains separate.                                                                     |
+| P4.2 Ironfist gameplay          | Eight regular Skills, Hundredfold Rush, five initial Foundation pairings, normal provisioning and old-snapshot compatibility                                    | `ironfist-content.ts`, `phase4-roster.test.ts`, `phase4-snapshot-compatibility.test.ts`, `verify-p4-ironfist.sh`; live database confirms its eight Skills and enabled Discipline.                          |
+| P4.3 Skill readability          | Target/shape/effect tags, expandable requirements, range and effects; persisted four selections                                                                 | `apps/web/e2e/phase4-roster.pw.ts`; released browser evidence. Self-tile targeting corrected by PR #452.                                                                                                   |
+| P4.4 maps                       | Crossroads Court and Terraced Yard, alongside the existing training floor and Duel Yard                                                                         | `tactical-hall-arenas.ts` and tests prove reflected terrain/spawns and Jump-0 routes. Existing PvP map generator receives reuse credit.                                                                    |
+| P4.5 roster implementation      | Six Foundations plus ten advanced Disciplines; 128 Skills, 16 Essences, 120 pairs                                                                               | Fresh hosted counts and `phase4-roster.test.ts`. Chronist scope exception below prevents equating this count with exact Master Plan completion.                                                            |
+| Named effects                   | Burn, Bleed, Poison, Regeneration, Slow, Root, Reckless, Fortified, Challenged, Marked and Warded                                                               | `status-content.ts`, `phase4-effects.test.ts`; per-recipient physical/mystic defenses, conditional modifiers, linked benefit/drawback, periodic expiry/lethal completion, cleansing and repeat-use checks. |
+| Mastery/acquisition foundation  | Standard/High Mastery Trials, server-owned eligibility/rewards, prerequisite gating and advanced 4/2/2 learning milestones                                      | `discipline-mastery-service.ts`, Phase-4 migration and `verify-p4-mastery.sh`. Existing Owner testing grants deliberately allow immediate full-roster access.                                              |
+| Shared battle compatibility     | Authoritative PvE/PvP execution, saved/frozen build compatibility and existing spectator platform                                                               | Existing server/game-core paths reused; advanced Skill/Essence and new Resonance execution exercised in both combat contexts. This is not a human matchup study.                                           |
+| Main Phase-4 media pack         | Ten advanced identity paintings with Essence presentation, semantic regular-Skill sigils, 72 synthesized action/Essence/shared-effect variants                  | PR #454 and `content/media-releases/phase4-v01.json`; production commit verified. These are cue families, not a unique recording or painting for every Skill/pair.                                         |
+| Media delivery                  | Authenticated, bounded committed-event audio for PvE/PvP/spectators, mute/gesture controls and no historical catch-up                                           | `battle-audio.ts`, `battle-audio-handler.ts`, media tests and prior browser evidence. Previews, replay and old history remain silent.                                                                      |
+| P4.6 release                    | Roster, self-target fix and main media integration released with recorded CI/database/browser evidence                                                          | PRs #450–#454; current Vercel metadata independently matches the final main-media release. Ironfist follow-up still pending.                                                                               |
 
 ## Exact roster reconciliation
 
 Each released entry below has eight regular Skills and one Essence. All 120 unordered pairs among these sixteen have enabled Resonance definitions.
 
-| Discipline | Master Plan Phase-4 group | Current implementation |
-| --- | --- | --- |
-| Vanguard | Foundation | Live |
-| Lifebinder | Foundation | Live |
-| Aetherist | Foundation | Live |
-| Farstrider | Foundation | Live |
-| Shadehand | Foundation | Live |
-| Ironfist | Foundation | Gameplay live; dedicated media continuation integrated in the candidate |
-| Bastion | Named advanced target | Live |
-| Ravager | Named advanced target | Live |
-| Edgedancer | Named advanced target | Live |
-| Wildwarden | Named advanced target | Live |
-| Cinderweaver | Named advanced target | Live |
-| Frostweaver | Named advanced target | Live |
-| Stormsinger | Named advanced target | Live |
-| Runeblade | Named advanced target | Live |
-| Dawnshield | Named advanced target | Live |
-| Chronist | Named advanced target | Implemented in the candidate; release gate Rekindling I + Aetherist Adept |
-| Tidecaller | Canonical Discipline, not named in section 134's initial advanced group | Live in the sixteen-Discipline implementation |
+| Discipline   | Master Plan Phase-4 group                                               | Current implementation                                                    |
+| ------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Vanguard     | Foundation                                                              | Live                                                                      |
+| Lifebinder   | Foundation                                                              | Live                                                                      |
+| Aetherist    | Foundation                                                              | Live                                                                      |
+| Farstrider   | Foundation                                                              | Live                                                                      |
+| Shadehand    | Foundation                                                              | Live                                                                      |
+| Ironfist     | Foundation                                                              | Gameplay live; dedicated media continuation integrated in the candidate   |
+| Bastion      | Named advanced target                                                   | Live                                                                      |
+| Ravager      | Named advanced target                                                   | Live                                                                      |
+| Edgedancer   | Named advanced target                                                   | Live                                                                      |
+| Wildwarden   | Named advanced target                                                   | Live                                                                      |
+| Cinderweaver | Named advanced target                                                   | Live                                                                      |
+| Frostweaver  | Named advanced target                                                   | Live                                                                      |
+| Stormsinger  | Named advanced target                                                   | Live                                                                      |
+| Runeblade    | Named advanced target                                                   | Live                                                                      |
+| Dawnshield   | Named advanced target                                                   | Live                                                                      |
+| Chronist     | Named advanced target                                                   | Implemented in the candidate; release gate Rekindling I + Aetherist Adept |
+| Tidecaller   | Canonical Discipline, not named in section 134's initial advanced group | Live in the sixteen-Discipline implementation                             |
 
 The combined candidate preserves Tidecaller and existing player builds, and adds Chronist as the seventeenth published Discipline. Its time/turn-order identity is implemented directly. The Atlas adds the Owner-approved Rekindling I release gate on top of Aetherist Adept while development testing access remains separate.
 
-## Remaining checklist
+## Historical remaining checklist at the original audit
 
-| ID | Priority | Open item | Evidence needed to close |
-| --- | --- | --- | --- |
-| P4-A01 | High | Reconcile Chronist scope | Locate an explicit approved deferral, or complete the promised Discipline with its library, Essence, relevant pair coverage, mastery, AI, media and tests. Preserve Tidecaller; do not remove a released Discipline to force the count back to sixteen. |
-| P4-A02 | High | Finish Ironfist media integration and release | Reconcile the recovered commit and dirty working copy; verify identity/Essence art, three action and three Essence variants, silent previews, committed Breakfall audio, hashes and shared-mode behavior; complete CI/browser/release evidence. |
-| P4-A03 | High | Real build identity/counterplay and balance review | Run the playtest packet with actual humans; record selected builds, map, opponent, battle ID, outcome, counterplay, decision changes and defects. Tune only from recorded evidence. No completed human results were located in the reviewed packet/results area. |
-| P4-A04 | Medium | Resonance differentiation review | Review the 105 newer pair definitions for meaningful pair-specific decisions. `advanced-resonances.ts` generates them from ten setup/conversion families; all are marked `representative`. Trigger reachability proves functionality, not 120 distinct tactical designs. Record acceptance or focused revisions without discarding useful shared grammar. |
-| P4-A05 | Medium | Advanced-roster AI decision coverage | Exercise committed pure/mixed advanced builds through the actual build-aware chooser, including setup/payoff, cleanse, Root/Slow, periodic effects and tradeoffs. Current targeted AI tests use representative inherited builds; roster tests assert AI enabled and legal execution, not effective AI use of every advanced library. |
-| P4-A06 | Medium | Full earned-Mastery user flow | Complete an eligible trial through the real UI, claim once, reload, retry without duplicate reward, and verify progression/unlocks with an isolated normal-acquisition fixture. Earlier production evidence explicitly timed out before reward eligibility. Do not remove production testing grants. |
-| P4-A07 | Medium | Human media/accessibility acceptance | Listen and inspect at actual display sizes; test overlapping cues, volume/mute, hidden tabs and reduced motion. Record accept/revise decisions for main and Ironfist packs. Generic hooks and synthesized files are not evidence of approved final production quality. |
-| P4-A08 | Medium | Ensure the Mastery/browser gate runs for relevant changes | Extend or explicitly dispatch Representative Buildcraft for advanced-content, Mastery route/service, Phase-4 migration, media routing and its verification-script changes. Current path filters omit these when changed alone, although the prior release triggered the workflow through other touched files. Verify trigger coverage before relying on it for the next release. |
-| P4-A09 | Low | Reconcile stale current instructions | This audit corrects PV-2's unstarted-Phase-4 statement, retired 8/6 capacities and generic cooldown wording; updates the inherited roster sequence; links the audit from active ledgers. Historical milestone records remain historical. |
-| P4-A10 | Closeout | Record an explicit Phase-4 acceptance decision | Review A01–A08 and actual outcomes; distinguish delivered engineering, human acceptance and named later-phase carryover. Do not mark P4.1–P4.6 fully accepted merely because their implementation was released. |
+| ID     | Priority | Open item                                                 | Evidence needed to close                                                                                                                                                                                                                                                                                                                                                         |
+| ------ | -------- | --------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P4-A01 | High     | Reconcile Chronist scope                                  | Locate an explicit approved deferral, or complete the promised Discipline with its library, Essence, relevant pair coverage, mastery, AI, media and tests. Preserve Tidecaller; do not remove a released Discipline to force the count back to sixteen.                                                                                                                          |
+| P4-A02 | High     | Finish Ironfist media integration and release             | Reconcile the recovered commit and dirty working copy; verify identity/Essence art, three action and three Essence variants, silent previews, committed Breakfall audio, hashes and shared-mode behavior; complete CI/browser/release evidence.                                                                                                                                  |
+| P4-A03 | High     | Real build identity/counterplay and balance review        | Run the playtest packet with actual humans; record selected builds, map, opponent, battle ID, outcome, counterplay, decision changes and defects. Tune only from recorded evidence. No completed human results were located in the reviewed packet/results area.                                                                                                                 |
+| P4-A04 | Medium   | Resonance differentiation review                          | Review the 105 newer pair definitions for meaningful pair-specific decisions. `advanced-resonances.ts` generates them from ten setup/conversion families; all are marked `representative`. Trigger reachability proves functionality, not 120 distinct tactical designs. Record acceptance or focused revisions without discarding useful shared grammar.                        |
+| P4-A05 | Medium   | Advanced-roster AI decision coverage                      | Exercise committed pure/mixed advanced builds through the actual build-aware chooser, including setup/payoff, cleanse, Root/Slow, periodic effects and tradeoffs. Current targeted AI tests use representative inherited builds; roster tests assert AI enabled and legal execution, not effective AI use of every advanced library.                                             |
+| P4-A06 | Medium   | Full earned-Mastery user flow                             | Complete an eligible trial through the real UI, claim once, reload, retry without duplicate reward, and verify progression/unlocks with an isolated normal-acquisition fixture. Earlier production evidence explicitly timed out before reward eligibility. Do not remove production testing grants.                                                                             |
+| P4-A07 | Medium   | Human media/accessibility acceptance                      | Listen and inspect at actual display sizes; test overlapping cues, volume/mute, hidden tabs and reduced motion. Record accept/revise decisions for main and Ironfist packs. Generic hooks and synthesized files are not evidence of approved final production quality.                                                                                                           |
+| P4-A08 | Medium   | Ensure the Mastery/browser gate runs for relevant changes | Extend or explicitly dispatch Representative Buildcraft for advanced-content, Mastery route/service, Phase-4 migration, media routing and its verification-script changes. Current path filters omit these when changed alone, although the prior release triggered the workflow through other touched files. Verify trigger coverage before relying on it for the next release. |
+| P4-A09 | Low      | Reconcile stale current instructions                      | This audit corrects PV-2's unstarted-Phase-4 statement, retired 8/6 capacities and generic cooldown wording; updates the inherited roster sequence; links the audit from active ledgers. Historical milestone records remain historical.                                                                                                                                         |
+| P4-A10 | Closeout | Record an explicit Phase-4 acceptance decision            | Review A01–A08 and actual outcomes; distinguish delivered engineering, human acceptance and named later-phase carryover. Do not mark P4.1–P4.6 fully accepted merely because their implementation was released.                                                                                                                                                                  |
 
 ### Ironfist recovery detail
 
@@ -90,14 +125,14 @@ Dedicated per-Skill paintings, bespoke pair audio mixes and a complete productio
 
 ## Later-phase work — preserve, do not misclassify as missing Phase 4
 
-| Work | Current boundary |
-| --- | --- |
-| World/quest/mentor acquisition and broader progression loop | Phase 5 and later world content; current Mastery Trial mechanism is delivered |
+| Work                                                                                  | Current boundary                                                                                                        |
+| ------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| World/quest/mentor acquisition and broader progression loop                           | Phase 5 and later world content; current Mastery Trial mechanism is delivered                                           |
 | Full equipment catalog, weapon/hands restrictions and equipment-granted active Skills | Later integration in Phase-4 tickets; current unarmed and per-recipient armor/ward interactions are the tested baseline |
-| Soulmarks, Severance, Mantles | Phase 5 supernatural identity, not this roster release |
-| Party/co-op progression and Expeditions | Phases 6–7; preserve existing multi-combatant battle support |
-| More of the full Discipline catalog | Phase 9 expansion; this does not automatically excuse Chronist's explicitly named initial target |
-| Complete production world/character/VFX/audio presentation | Phase 14, while current playable media remains required and reviewable |
+| Soulmarks, Severance, Mantles                                                         | Phase 5 supernatural identity, not this roster release                                                                  |
+| Party/co-op progression and Expeditions                                               | Phases 6–7; preserve existing multi-combatant battle support                                                            |
+| More of the full Discipline catalog                                                   | Phase 9 expansion; this does not automatically excuse Chronist's explicitly named initial target                        |
+| Complete production world/character/VFX/audio presentation                            | Phase 14, while current playable media remains required and reviewable                                                  |
 
 ## Verification performed in this audit
 
@@ -114,4 +149,4 @@ Recommended execution order: resolve the A01 roster obligation; reconcile and fi
 
 The audit above is the pre-change inventory. The Owner subsequently authorized implementation and release. See `PHASE_4_TICKETS.md` → “Audit implementation — 2026-09-12” for the additive Chronist implementation, Ironfist recovery, runtime Resonance repair, AI changes and release evidence. A03/A07/A10 still require actual human observations and an explicit acceptance decision; those cannot be completed by generated results.
 
-Implementation checkpoint: the full local repository check passed before release preparation. The Owner subsequently explicitly approved publication to public `ZeiJM/Aurevane`, CI/browser checks, the Supabase migration and production deployment. The previous publication approval block is resolved. The added earned-Mastery browser case uses a fresh local fixture, plays a real UI victory, claims XP and retries after reload; execution is wired into Representative Buildcraft CI and remains pending. Database/browser/release outcomes will be recorded after execution. The implementation has not yet changed the live site.
+Historical implementation checkpoint, now superseded by the released evidence at the top of this audit: the full local repository check passed before release preparation. The Owner explicitly approved publication to public `ZeiJM/Aurevane`, CI/browser checks, the Supabase migration and production deployment, resolving the previous publication approval block. The earned-Mastery browser case subsequently passed in Representative Buildcraft, and the Atlas/Chronist/Ironfist release reached Production. The current gameplay-tag continuation has its own outstanding release gate and must not inherit that earlier passing result.

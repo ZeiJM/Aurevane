@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { resolveEssenceForBuild, validateEssenceDefinition } from './essence'
 import {
-  P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
+  latestEnabledMatureSkills,
   resolveMatureSkillVersion,
   validateMatureSkillDefinition,
 } from './mature-skills'
@@ -38,7 +38,7 @@ const AUTHORED_PAIRS = [
 describe('Foundation trio authored class content', () => {
   it('ships exactly eight valid Techniques for Aetherist, Farstrider, and Shadehand', () => {
     for (const disciplineId of NEWLY_AUTHORED_DISCIPLINES) {
-      const definitions = P33_REPRESENTATIVE_DISCIPLINE_SKILLS.filter(
+      const definitions = latestEnabledMatureSkills().filter(
         (definition) => definition.enabled && definition.sourceDisciplineId === disciplineId,
       )
 

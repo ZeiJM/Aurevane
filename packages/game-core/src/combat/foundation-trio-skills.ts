@@ -1,3 +1,4 @@
+import type { MatureSkillDefinition } from './mature-skills'
 const selfTarget = {
   kind: 'self',
   teamPolicy: 'self',
@@ -58,7 +59,7 @@ function authoring(disciplineId: string, origin: 'master-plan-concept' | 'class-
   }
 }
 
-export const FOUNDATION_TRIO_DISCIPLINE_SKILLS = [
+const historicalSkills = [
   {
     id: 'aetherist.arc-bolt',
     contentVersion: 1,
@@ -588,3 +589,22 @@ export const FOUNDATION_TRIO_DISCIPLINE_SKILLS = [
     authoring: authoring('shadehand', 'class-expansion'),
   },
 ] as const
+
+export const FOUNDATION_TRIO_DISCIPLINE_SKILLS: readonly MatureSkillDefinition[] = [
+  ...historicalSkills,
+  ...historicalSkills
+    .filter((definition) => definition.id === 'shadehand.smoke-vial')
+    .map((definition) => ({
+      ...definition,
+      contentVersion: 2,
+      effects: [
+        ...definition.effects,
+        {
+          type: 'apply-status' as const,
+          recipient: 'actor' as const,
+          statusId: 'invisible',
+          stacks: 1,
+        },
+      ],
+    })),
+]

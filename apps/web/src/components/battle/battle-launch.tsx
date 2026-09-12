@@ -431,9 +431,10 @@ export function BattleLaunch({
                 <div className={styles.arenaLine}>
                   {recordId === 'recruit-sparring' || recordId === 'mastery-trial' ? (
                     <label>
-                      Arena
+                      <span>Arena</span>
                       <select
                         aria-label="AI sparring arena"
+                        aria-describedby="ai-arena-description"
                         value={arenaId}
                         onChange={(event) => setArenaId(event.target.value as TacticalHallArenaId)}
                         disabled={pending}
@@ -450,7 +451,7 @@ export function BattleLaunch({
                   ) : (
                     <strong>{selectedArena.name}</strong>
                   )}
-                  <span>
+                  <span id="ai-arena-description">
                     {selectedArena.scale} · {selectedArena.summary}
                   </span>
                 </div>

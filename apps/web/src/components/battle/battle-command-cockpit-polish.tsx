@@ -1,5 +1,11 @@
 'use client'
 
+import {
+  combatInteractionDescription,
+  gameplayStatusName,
+  statusWasProjected,
+} from '../../lib/battle/combat-interaction-presentation'
+
 import { PV1F_MOVEMENT_COST_PER_TERRAIN_POINT } from '@aurevane/game-core/combat/pv1f-skills'
 import { useEffect } from 'react'
 
@@ -276,7 +282,8 @@ function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
   }
 
   for (const status of preview.projectedStatuses) {
-    chips.push({ label: humanizeStatus(status.statusId), tone: 'effect' })
+    if (!statusWasProjected(status.statusId, preview.projectedEvents)) continue
+    chips.push({ label: gameplayStatusName(status.statusId), tone: 'effect' })
     if (
       status.damageTakenMultiplierBasisPoints !== null &&
       status.damageTakenMultiplierBasisPoints < 10_000
@@ -300,11 +307,17 @@ function actionPreviewChips(preview: ActionPreview): PreviewChip[] {
         .filter(
           (effect) => effect.effectType === 'apply-status' && typeof effect.after === 'string',
         )
-        .map((effect) => humanizeStatus(String(effect.after))),
+        .map((effect) => gameplayStatusName(String(effect.after))),
     )
     for (const status of statuses) {
       chips.push({ label: status, tone: 'effect' })
     }
+  }
+
+  for (const event of preview.projectedEvents ?? []) {
+    const label = combatInteractionDescription(event)
+    if (label && !chips.some((chip) => chip.label === 'Terrain & effect details available'))
+      chips.push({ label: 'Terrain & effect details available', tone: 'effect' })
   }
 
   if (preview.affectedCombatantIds.length > 1) {

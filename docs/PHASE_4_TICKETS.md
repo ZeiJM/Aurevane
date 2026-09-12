@@ -15,6 +15,8 @@ Owner activation: explicit request for full implementation, necessary approvals,
 
 ## Current implementation boundary
 
+The current baseline is the seventeen-Discipline Atlas/Chronist/Ironfist release through PR #455. The next authorized implementation closes the newly confirmed §18 gameplay tag/terrain and shared ground-target UI gaps. The Atlas remains within Profile → Discipline Management. See `PHASE_4_COMPLETENESS_AUDIT.md` for the requirement-to-code ledger; the earlier sixteen-Discipline text below describes historical milestones.
+
 The sixteen-Discipline playable baseline is live through PR #451, the self-target correction through #452, and ten painted identities plus 72 synthesized cue variants through #454. Phase 4 now also owns the approved 36-identity Discipline Atlas/Mastery extension in `ROADMAP_DISCIPLINE_ATLAS_MASTERY.md`: published content may continue expanding during testing, while planned identities remain non-selectable until their authoritative combat libraries exist. Independent human visual/listening and tactical acceptance remains open. Earlier milestone evidence below is historical.
 
 ## Owner continuation — descriptive effects and full implementation

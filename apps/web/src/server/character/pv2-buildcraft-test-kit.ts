@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { FOUNDATION_DISCIPLINES } from '@aurevane/game-core/character/foundation-disciplines'
-import { P33_REPRESENTATIVE_DISCIPLINE_SKILLS } from '@aurevane/game-core/combat/mature-skills'
+import { latestEnabledMatureSkills } from '@aurevane/game-core/combat/mature-skills'
 import { AurevaneError } from '@aurevane/game-core/errors'
 
 import { createSupabaseAdminClient } from '@/lib/supabase/admin'
@@ -66,7 +66,7 @@ export async function preparePv2BuildcraftTestKit(
     if (error) throw persistenceUnavailable()
   }
 
-  const representativeSkills = P33_REPRESENTATIVE_DISCIPLINE_SKILLS.filter(
+  const representativeSkills = latestEnabledMatureSkills().filter(
     (skill) =>
       skill.enabled &&
       PV2_TEST_SKILL_DISCIPLINES.some((disciplineId) => disciplineId === skill.sourceDisciplineId),

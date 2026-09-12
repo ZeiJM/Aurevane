@@ -120,6 +120,7 @@
 
 .principleGrid > div,
 .noteGrid > div,
+.trialGuidance,
 .budgetExamples article {
   padding: 1.1rem;
   border: 1px solid rgba(211, 183, 115, 0.16);
@@ -129,12 +130,14 @@
 
 .principleGrid strong,
 .noteGrid h3,
+.trialGuidance h3,
 .budgetExamples h3 {
   color: #e9dfc8;
 }
 
 .principleGrid p,
 .noteGrid p,
+.trialGuidance p,
 .budgetExamples p,
 .testingSection p,
 .rekindlingSection p,
@@ -142,6 +145,17 @@
   margin: 0.55rem 0 0;
   color: #aaa69e;
   line-height: 1.6;
+}
+
+.trialGuidance h3 {
+  margin-top: 0;
+}
+
+.trialGuidance a {
+  display: inline-block;
+  margin-top: 0.7rem;
+  color: var(--av-brass-300);
+  text-underline-offset: 0.2em;
 }
 
 .sectionHeading {

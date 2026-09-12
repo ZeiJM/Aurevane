@@ -1,5 +1,11 @@
+import { hasGameplayTag } from './gameplay-tags'
+import { terrainOverlayAt, COMBAT_TERRAIN_OVERLAY_DETAILS } from './terrain-overlays'
 import { readBattleAuthorityCombatBuildSnapshot } from './battle-authority-build-snapshot'
-import { forecastResonanceForSkill, resolveResonanceForPair } from './resonance'
+import {
+  forecastResonanceForSkill,
+  resolveResonanceForPair,
+  constrainResonanceForecastToTarget,
+} from './resonance'
 import { PHASE4_STATUSES } from './status-content'
 import {
   createBasicAttackDefinition,
@@ -529,7 +535,7 @@ export function evaluatePv1fMatureSkill(
   const actorId = prepared.tactical.battle.currentTurn?.combatantId
   if (!actorId) throw new Error('Mature Skill evaluation requires an active turn.')
   const resolved = resolveMatureSkillForContext(definition, combatContext)
-  const resonance = committedResonanceForecast(prepared, definition)
+  const resonance = committedResonanceForecast(prepared, definition, target)
   const baseAction = toCombatActionDefinition(definition, combatContext)
   if (resonance?.forecast.willActivate)
     baseAction.effects = [...baseAction.effects, ...resonance.forecast.bonusEffects]
@@ -575,12 +581,17 @@ export function executePv1fMatureSkill(
   }
   const actorId = prepared.tactical.battle.currentTurn?.combatantId
   if (!actorId) throw new Error('Mature Skill execution requires an active turn.')
-  const resonance = committedResonanceForecast(prepared, definition)
+  const resonance = committedResonanceForecast(prepared, definition, target)
   const resolved = executeCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT)
   let next = reattachStatDrivenCombatBridge(resolved.state, prepared.statBridge)
   next = spendPv1fActionEconomyForActor(next, actorId, cost)
   next = markLastMatureSkill(next, actorId, definition.id)
-  if (resonance) {
+  if (
+    resonance &&
+    (resonance.forecast.willActivate ||
+      resonance.forecast.willExpireArmedSetup ||
+      resonance.forecast.willArm)
+  ) {
     const actor = getCombatant(next, actorId)
     const resources = actor.temporaryResources.filter(
       (resource) => !resource.key.startsWith(RESONANCE_ARMED_PREFIX),
@@ -647,15 +658,15 @@ export function executePv1fMatureSkill(
   }
 }
 
-export function evaluatePv1fMovement(
-  state: StatDrivenCombatEncounterState,
-  path: readonly GridPosition[],
+/** Shared by authoritative movement and board highlights; does not spend resources. */
+export function pv1fMovementModifiers(
+  state: Pick<StatDrivenCombatEncounterState, 'statusState' | 'terrainOverlays'> & {
+    tactical: { battle: Pick<StatDrivenCombatEncounterState['tactical']['battle'], 'currentTurn'> }
+  },
 ) {
-  const prepared = preparePv1fTurnEconomy(state)
-  const movement = evaluateCurrentMovementPath(prepared.tactical, path)
-  const actorId = prepared.tactical.battle.currentTurn?.combatantId
+  const actorId = state.tactical.battle.currentTurn?.combatantId
   const definitions = (
-    prepared.statusState.find((row) => row.combatantId === actorId)?.statuses ?? []
+    state.statusState.find((row) => row.combatantId === actorId)?.statuses ?? []
   ).map((status) =>
     PV1F_COMBAT_CONTENT.statuses.find(
       (definition) =>
@@ -663,7 +674,34 @@ export function evaluatePv1fMovement(
     ),
   )
   const rooted = definitions.some((definition) => definition?.movement?.blocked)
-  if (rooted) {
+  const surcharge = Math.min(
+    20,
+    definitions.reduce(
+      (sum, definition) => sum + (definition?.movement?.additionalApPerTile ?? 0),
+      0,
+    ),
+  )
+  const airborne = Boolean(
+    actorId && hasGameplayTag(state, actorId, 'Airborne', PV1F_COMBAT_CONTENT),
+  )
+  return {
+    blocked: rooted,
+    additionalApAt: (position: GridPosition) =>
+      surcharge +
+      (!airborne && terrainOverlayAt(state, position)?.kind === 'frozen'
+        ? COMBAT_TERRAIN_OVERLAY_DETAILS.frozen.additionalApPerTile
+        : 0),
+  }
+}
+
+export function evaluatePv1fMovement(
+  state: StatDrivenCombatEncounterState,
+  path: readonly GridPosition[],
+) {
+  const prepared = preparePv1fTurnEconomy(state)
+  const movement = evaluateCurrentMovementPath(prepared.tactical, path)
+  const modifiers = pv1fMovementModifiers(prepared)
+  if (modifiers.blocked) {
     movement.legal = false
     movement.issues = [
       ...movement.issues,
@@ -674,15 +712,9 @@ export function evaluatePv1fMovement(
       },
     ]
   }
-  const surcharge = Math.min(
-    20,
-    definitions.reduce(
-      (sum, definition) => sum + (definition?.movement?.additionalApPerTile ?? 0),
-      0,
-    ),
-  )
   const economyCost =
-    movement.cost * PV1F_MOVEMENT_COST_PER_TERRAIN_POINT + Math.max(0, path.length - 1) * surcharge
+    movement.cost * PV1F_MOVEMENT_COST_PER_TERRAIN_POINT +
+    path.slice(1).reduce((sum, position) => sum + modifiers.additionalApAt(position), 0)
   return { prepared, movement, economyCost }
 }
 
@@ -806,7 +838,13 @@ function scaleRepeatedMatureSkillEffects(
       continue
     }
     // Removal is discrete: a consecutive repeat cannot remove a full status again.
-    if (effect.type === 'remove-status' || effect.type === 'return-to-turn-start') continue
+    if (
+      effect.type === 'remove-status' ||
+      effect.type === 'return-to-turn-start' ||
+      effect.type === 'create-terrain' ||
+      effect.type === 'displace'
+    )
+      continue
     const stacks = Math.floor(effect.stacks / 2)
     if (stacks > 0) scaled.push({ ...effect, stacks })
   }
@@ -898,6 +936,7 @@ const RESONANCE_ARMED_PREFIX = 'p35.resonance-armed:'
 export function committedResonanceForecast(
   state: StatDrivenCombatEncounterState,
   skill: MatureSkillDefinition,
+  selection?: CombatTargetSelection,
 ) {
   const actorId = state.tactical.battle.currentTurn?.combatantId
   if (!actorId) return null
@@ -938,13 +977,26 @@ export function committedResonanceForecast(
     ).willArm
       ? setupSkill.id
       : null
+  const forecast = forecastResonanceForSkill(
+    definition,
+    { resonanceId: definition.id, contentVersion: definition.contentVersion, armedByActionId },
+    skill,
+  )
   return {
     definition,
     armedByActionId,
-    forecast: forecastResonanceForSkill(
-      definition,
-      { resonanceId: definition.id, contentVersion: definition.contentVersion, armedByActionId },
-      skill,
-    ),
+    forecast: selection
+      ? constrainResonanceForecastToTarget(
+          forecast,
+          skill,
+          selection,
+          evaluateCombatAction(
+            state,
+            { ...toCombatActionDefinition(skill, 'pve'), cooldown: undefined },
+            selection,
+            PV1F_COMBAT_CONTENT,
+          ).affectedCombatantIds,
+        )
+      : forecast,
   }
 }

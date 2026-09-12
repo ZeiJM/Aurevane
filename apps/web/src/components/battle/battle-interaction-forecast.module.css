@@ -1,0 +1,49 @@
+.forecast {
+  position: relative;
+  color: #e0edf0;
+  font-size: 0.65rem;
+  max-width: 8rem;
+  align-self: center;
+}
+.forecast summary {
+  cursor: pointer;
+  padding: 0.45rem;
+}
+.forecast section {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.5rem);
+  z-index: 60;
+  width: min(26rem, calc(100vw - 2rem));
+  max-height: 55vh;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  padding: 1rem;
+  border: 1px solid #789aa4;
+  border-radius: 0.5rem;
+  background: #111e2a;
+  box-shadow: 0 0.5rem 2rem #0009;
+  line-height: 1.5;
+  font-size: 0.8rem;
+}
+.forecast ul {
+  padding-left: 1rem;
+}
+.forecast li + li {
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 820px) {
+  /* Phone actions use two columns. Anchor the panel to a full-width row,
+     not the small trigger in column one, so neither edge can leave the footer. */
+  .forecast {
+    grid-column: 1 / -1;
+    width: 100%;
+    max-width: none;
+  }
+
+  .forecast section {
+    box-sizing: border-box;
+    width: 100%;
+  }
+}

@@ -1,25 +1,38 @@
 # AUREVANE Combat Design Bible
 
-## Phase 4 roster and effect implementation — 2026-09-11
+## Phase 4 roster and effect implementation — 2026-09-12
 
-The sixteen-Discipline candidate contains 128 regular Skills, 16 pure Essences and all 120 unordered Resonance pairs. Eight learned Skills per mature library remain distinct from four battle selections. Full mixed builds use 1+3, 2+2 or 3+1; Essence and Resonance are exclusive. See `PHASE_4_TICKETS.md` for exact verification and release status.
+The published seventeen-Discipline roster contains 136 regular Skills, 17 pure Essences and all 136 unordered Resonance pairs. Eight learned Skills per mature library remain distinct from four battle selections. Full mixed builds use 1+3, 2+2 or 3+1; Essence and Resonance are exclusive. The gameplay-tag continuation below adds versions of existing Skills without adding selectable slots or rewriting frozen battles. See `PHASE_4_COMPLETENESS_AUDIT.md` and `PHASE_4_TICKETS.md` for candidate verification and live release status.
 
-New named statuses are Burn, Bleed, Poison, Regeneration, Slow, Root, Reckless, Fortified, Challenged, Marked and Warded. Conditioned outgoing/incoming damage evaluates each attacker/recipient pair, using a 50–200% combined budget for the new modifiers. Guarded/Exposed/Lowered Guard remain separate historical multipliers. All new percentage statuses are single-stack; Reckless and Fortified keep their benefit and drawback together. Only five regular Skills apply the new percentage families; two of those are potent linked tradeoffs.
+Existing named statuses include Burn, Bleed, Poison, Regeneration, Slow, Root, Reckless, Fortified, Challenged, Marked and Warded. Conditioned outgoing/incoming damage evaluates each attacker/recipient pair, using a 50–200% combined budget for the new modifiers. Guarded/Exposed/Lowered Guard remain separate historical multipliers. New percentage statuses are single-stack; Reckless and Fortified keep their benefit and drawback together.
 
 Periodic HP effects tick at affected turn end, before completion; they cannot revive a defeated unit. Root blocks movement while leaving actions/facing available. Slow adds 10 AP per tile within the normal Movement allowance. Cleanse removes only named statuses. Mature Skill damage resolves each hit against each actual recipient's Armor (physical) or Ward (mystic). New mystic attacks have bounded authored MP costs. Repeated quantitative effects halve, discrete one-stack/cleanse repeats are omitted, and AP/MP costs remain unchanged.
 
-Normal advanced acquisition uses listed Foundation Mastery prerequisites and 4/2/2 learned milestones at Initiate/Practiced/Adept. Mastery Trials on Standard/High award up to 50 XP for an eligible victory with two Primary regular Skills across three commands and no player timeout. The database checks immutable origin/build and committed events; claims are atomic and idempotent. Stages are 100/300/600/1,000 XP, with all eight regular Skills demonstrated for normal Master. Existing Owner-authorized testing Mastery grants remain intact and permit immediate full-roster testing.
+Normal advanced acquisition uses listed Foundation Mastery prerequisites and 4/2/2 learned milestones at Initiate/Practiced/Adept. Mastery Trials on Standard/High award up to 50 XP for an eligible victory using two different Primary regular Skills across at least three Primary Skill commands and no player timeout. The database checks immutable origin/build and committed events; claims are atomic and idempotent. Stages are 100/300/600/1,000 XP, with all eight regular Skills demonstrated for normal Master. Owner-authorized testing access permits immediate published-roster testing independently of earned XP, stage and release eligibility. Ordinary sparring grants no Mastery XP. The 36-identity Discipline Atlas is inside Profile → Discipline Management; unpublished nodes and later authored Mastery Rites remain planned.
 
 World acquisition, full equipment catalogs and supernatural systems retain their later roadmap boundaries. Illustrated masters, recorded SFX and independent human balance/media acceptance remain explicitly tracked; automated authored coverage is not that acceptance.
 
+### Gameplay tags and temporary terrain continuation
 
+The typed gameplay tags are Scorched, Frozen, Conductive, Wet, Bleeding, Marked, Guarded, Inspired, Hexed, Invisible, Exposed, Poisoned, Fortified, Summoned, Airborne and Displaced. Existing Burn, Bleed and Poison map to Scorched, Bleeding and Poisoned without changing their historical status IDs. Authored requirements and conditional damage consume these tags explicitly.
+
+- Water Skills apply Wet only when authored to do so. The first positive storm hit per recipient per command receives a 20% bonus from Wet or Conductive, within the existing combined modifier budget. The conditions do not double the bonus. Conductive is consumed; Wet remains.
+- Positive fire damage removes Wet and Frozen statuses. Independently, fire on an affected Frozen tile converts that overlay to Steam, including empty tiles and either team's tiles.
+- Inspired adds 10% outgoing damage within the same combined budget. Hexed reduces incoming direct and periodic healing by 25%; it does not change ordinary revive effects. Summoned provides temporary, dispellable spirit protection that reduces incoming damage by 15% within the combined budget; it creates no extra actor or turn.
+- Invisible blocks hostile direct unit selection. It does not prevent a ground or area effect from hitting the unit. Taking positive damage or committing the holder's damaging command breaks concealment, including a missed basic attack.
+- Frozen terrain adds 10 AP per tile entered, on top of base terrain and Slow costs. Airborne ignores only this temporary Frozen surcharge; it does not bypass Root, occupancy, elevation, base terrain or the separate Movement allowance.
+- Steam blocks line of sight through intermediate tiles, following the existing endpoint convention. Frozen and Steam affect both teams, preserve base terrain and expire after two round boundaries. Reapplication refreshes duration without stacking; at most one overlay occupies a tile.
+- A one-tile push moves directly away from the caster along the dominant axis, with a horizontal tie-break. Bounds, passability, vacancy, elevation and Root still apply. Failure does not move the unit or refund costs. Success preserves facing/resources and records Displaced for one owner turn start; it grants no extra turn.
+
+The newly introduced status instances last two owner turn starts unless specified otherwise; refreshing a single-stack status does not stack its modifier. Preview and commit share effect resolution. Ground casts submit tile intent, and only explicitly authored terrain/elemental actions can resolve without an affected unit. Existing primary-unit Resonance payoffs retain their scope: a ground cast preserves that setup for a later unit-targeted Skill, and empty ground cannot farm an actor reward. Consecutive repeats omit discrete terrain creation/displacement just as they omit other discrete benefits, while quantitative effects halve at unchanged AP/MP cost.
+
+Authored Skill facing multipliers accept up to 22,000 basis points so the existing Perfect Opening Essence's 2.2× rear payoff can execute. Basic attack facing and combined conditional modifier caps remain 20,000; these are separate limits.
 
 ## Current selected-Technique and repeat-use authority — 2026-09-11 synchronization
 
 `docs/GAME_MASTER_PLAN_TECHNIQUE_REPEAT_USE_ADDENDUM.md` (Owner-approved 2026-09-06) supersedes earlier 8-pure/6-mixed selected-capacity and ordinary authored-Skill cooldown language in this document. Current selection is up to **four Techniques** in either build; full mixed splits are **1+3, 2+2 or 3+1**, with partial selections permitted. Pure Essence remains outside those four slots; mixed builds retain Resonance and no pure Essence. A mature library may still teach eight Skills.
 
 Ordinary authored Techniques and Essence Skills use **50% consecutive-use effectiveness at unchanged AP cost**, not turn cooldowns. A different actual combat command resets the chain; ending a turn alone does not. Basic recovery timing remains separate. Conflicting older passages below are historical design context and must not restore retired runtime rules.
-
 
 **Status:** Canonical combat source of truth for implementation and content work.
 

@@ -34,6 +34,63 @@ function status(
 /** Short names and descriptions are shared by Techniques, combat inspection and AI. */
 export const PHASE4_STATUSES: readonly NamedCombatStatus[] = [
   status(
+    'wet',
+    'Wet',
+    'Debuff',
+    'Storm damage gains a single 20% bonus per action against Wet or Conductive. Fire removes Wet.',
+    { gameplayTags: ['Wet'] },
+  ),
+  status(
+    'frozen',
+    'Frozen',
+    'Debuff',
+    'A Frozen setup tag. Fire removes it. Frozen terrain has a separate duration and movement cost.',
+    { gameplayTags: ['Frozen'] },
+  ),
+  status(
+    'conductive',
+    'Conductive',
+    'Debuff',
+    'Storm damage gains a single 20% bonus per action against Wet or Conductive, consuming Conductive.',
+    { gameplayTags: ['Conductive'] },
+  ),
+  status(
+    'inspired',
+    'Inspired',
+    'Buff',
+    'Deal 10% more damage within the combined damage-modifier cap.',
+    { gameplayTags: ['Inspired'] },
+  ),
+  status('hexed', 'Hexed', 'Debuff', 'Receive 25% less healing.', { gameplayTags: ['Hexed'] }),
+  status(
+    'invisible',
+    'Invisible',
+    'Buff',
+    'Cannot be selected by hostile direct unit actions. Ground effects can hit. A damaging action or taking damage breaks Invisible.',
+    { gameplayTags: ['Invisible'] },
+  ),
+  status(
+    'summoned',
+    'Summoned',
+    'Buff',
+    'A temporary spirit grants 15% damage protection. Can be dispelled; adds no actor or turn.',
+    { gameplayTags: ['Summoned'], damageModifiers: [modifier('incoming', 8_500)] },
+  ),
+  status(
+    'airborne',
+    'Airborne',
+    'Buff',
+    'Ignore the Frozen terrain AP surcharge. Board bounds, elevation, obstacles, occupancy, Root and Movement allowance still apply.',
+    { gameplayTags: ['Airborne'] },
+  ),
+  status(
+    'displaced',
+    'Displaced',
+    'Effect',
+    'Records a successful one-tile push. Grants no turn, AP or Movement refund.',
+    { gameplayTags: ['Displaced'], durationOwnerTurnStarts: 1 },
+  ),
+  status(
     'hastened',
     'Hastened',
     'Buff',

@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  P33_REPRESENTATIVE_DISCIPLINE_SKILLS,
+  latestEnabledMatureSkills,
   resolveMatureSkillForContext,
   resolveMatureSkillVersion,
   toCombatActionDefinition,
   validateMatureSkillDefinition,
 } from './mature-skills'
 
-const enabledSkills = P33_REPRESENTATIVE_DISCIPLINE_SKILLS.filter((skill) => skill.enabled)
+const enabledSkills = latestEnabledMatureSkills().filter((skill) => skill.enabled)
 
 function skillsFor(disciplineId: string) {
   return enabledSkills.filter((skill) => skill.sourceDisciplineId === disciplineId)

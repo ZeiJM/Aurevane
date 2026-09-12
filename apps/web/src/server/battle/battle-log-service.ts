@@ -1,3 +1,4 @@
+import { combatInteractionDescription } from '../../lib/battle/combat-interaction-presentation'
 import { combatStatusDetails, PHASE4_STATUSES } from '@aurevane/game-core/combat/status-content'
 import 'server-only'
 
@@ -175,6 +176,34 @@ function sanitizePersistedEvent(record: BattleEventRecord): BattleLogEntry | nul
   const event = record.event as Record<string, unknown>
   const eventType = stringValue(event.event)
   if (!eventType) return null
+
+  if (
+    [
+      'terrain_overlay_changed',
+      'terrain_overlay_expired',
+      'combatant_displaced',
+      'displacement_failed',
+    ].includes(eventType)
+  ) {
+    const description = combatInteractionDescription(event)
+    if (!description) return null
+    return createEntry(record, eventType, {
+      message: description,
+      messageTemplate: description,
+      actorCombatantId: stringValue(event.sourceCombatantId),
+      targetCombatantId: stringValue(event.combatantId),
+      actionId: stringValue(event.actionId),
+      kind: eventType.includes('displace') ? 'movement' : 'status',
+      headline:
+        eventType === 'displacement_failed'
+          ? 'Push failed'
+          : eventType.includes('displace')
+            ? 'Push'
+            : 'Terrain',
+      tone: eventType === 'displacement_failed' ? 'warning' : 'neutral',
+      facts: fact(description, eventType === 'displacement_failed' ? 'warning' : 'neutral'),
+    })
+  }
 
   switch (eventType) {
     case 'combatant_moved': {

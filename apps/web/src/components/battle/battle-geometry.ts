@@ -1,3 +1,4 @@
+import { pv1fMovementModifiers } from '@aurevane/game-core/combat/pv1f-action-economy'
 import { PV1F_MOVEMENT_COST_PER_TERRAIN_POINT } from '@aurevane/game-core/combat/pv1f-skills'
 
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
@@ -69,10 +70,11 @@ export function terrainTraversalCost(
 }
 
 export function buildReachablePaths(
-  tactical: Tactical,
+  state: BattleSessionView['snapshot'],
   activePlacement: Placement | null,
   actionEconomy: number,
 ): Map<string, BattleGridPosition[]> {
+  const tactical = state.tactical
   const turn = tactical.battle.currentTurn
   if (!turn || !activePlacement || turn.combatantId !== activePlacement.combatantId) {
     return new Map()
@@ -83,10 +85,8 @@ export function buildReachablePaths(
   )
   if (!profile) return new Map()
 
-  const maximumTerrainCost = Math.min(
-    turn.movementRemaining,
-    Math.floor(actionEconomy / MOVE_COST_PER_TERRAIN_POINT),
-  )
+  const modifiers = pv1fMovementModifiers(state)
+  if (modifiers.blocked) return new Map()
   const tiles = new Map(tactical.tiles.map((tile) => [positionKey(tile.position), tile] as const))
   const occupied = new Map(
     tactical.placements.map(
@@ -94,24 +94,30 @@ export function buildReachablePaths(
     ),
   )
   const result = new Map<string, BattleGridPosition[]>()
-  const bestCost = new Map<string, number>()
+  // Neither AP nor Movement dominates the other once tile/status surcharges apply.
+  // Keep the Pareto frontier at each tile so a useful detour is never discarded.
+  const bestCosts = new Map<string, { movement: number; ap: number }[]>()
+  const selectedAp = new Map<string, number>()
   const frontier: Array<{
     position: BattleGridPosition
-    cost: number
+    movement: number
+    ap: number
     path: BattleGridPosition[]
   }> = [
     {
       position: { ...activePlacement.position },
-      cost: 0,
+      movement: 0,
+      ap: 0,
       path: [{ ...activePlacement.position }],
     },
   ]
 
-  bestCost.set(positionKey(activePlacement.position), 0)
+  bestCosts.set(positionKey(activePlacement.position), [{ movement: 0, ap: 0 }])
+  selectedAp.set(positionKey(activePlacement.position), 0)
   result.set(positionKey(activePlacement.position), [{ ...activePlacement.position }])
 
   while (frontier.length > 0) {
-    frontier.sort((left, right) => left.cost - right.cost)
+    frontier.sort((left, right) => left.ap - right.ap || left.movement - right.movement)
     const current = frontier.shift()
     if (!current) break
 
@@ -146,15 +152,24 @@ export function buildReachablePaths(
         activePlacement.movementProfileId,
       )
       if (traversalCost === null) continue
-      const nextCost = current.cost + traversalCost
-      if (nextCost > maximumTerrainCost) continue
-      const known = bestCost.get(neighborKey)
-      if (known !== undefined && known <= nextCost) continue
-
+      const movement = current.movement + traversalCost
+      const ap =
+        current.ap +
+        traversalCost * MOVE_COST_PER_TERRAIN_POINT +
+        modifiers.additionalApAt(neighbor)
+      if (movement > turn.movementRemaining || ap > actionEconomy) continue
+      const known = bestCosts.get(neighborKey) ?? []
+      if (known.some((cost) => cost.movement <= movement && cost.ap <= ap)) continue
+      bestCosts.set(neighborKey, [
+        ...known.filter((cost) => !(movement <= cost.movement && ap <= cost.ap)),
+        { movement, ap },
+      ])
       const nextPath = [...current.path, { ...neighbor }]
-      bestCost.set(neighborKey, nextCost)
-      result.set(neighborKey, nextPath)
-      frontier.push({ position: neighbor, cost: nextCost, path: nextPath })
+      if (ap < (selectedAp.get(neighborKey) ?? Infinity)) {
+        selectedAp.set(neighborKey, ap)
+        result.set(neighborKey, nextPath)
+      }
+      frontier.push({ position: neighbor, movement, ap, path: nextPath })
     }
   }
 

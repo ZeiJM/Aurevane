@@ -1,4 +1,9 @@
-import type { CombatEffectDefinition, CombatTargetSpec, CombatUseRequirement } from './actions'
+import type {
+  CombatEffectDefinition,
+  CombatEffectRecipient,
+  CombatTargetSpec,
+  CombatUseRequirement,
+} from './actions'
 import type { MatureSkillDefinition } from './mature-skills'
 import type { EssenceDefinition } from './essence'
 import { CLEANSE_STATUS_IDS } from './status-content'
@@ -47,23 +52,27 @@ const line = (target: CombatTargetSpec, length = 3): CombatTargetSpec => ({
 })
 const damage = (
   amount: number,
-  recipient: CombatEffectDefinition['recipient'] = 'primary-unit',
+  recipient: CombatEffectRecipient = 'primary-unit',
 ): CombatEffectDefinition => ({ type: 'damage', amount, recipient })
 const heal = (
   amount: number,
-  recipient: CombatEffectDefinition['recipient'] = 'actor',
+  recipient: CombatEffectRecipient = 'actor',
 ): CombatEffectDefinition => ({ type: 'healing', amount, recipient })
 const effect = (
   statusId: string,
-  recipient: CombatEffectDefinition['recipient'] = 'primary-unit',
+  recipient: CombatEffectRecipient = 'primary-unit',
 ): CombatEffectDefinition => ({ type: 'apply-status', statusId, recipient, stacks: 1 })
-const mp = (
-  delta: number,
-  recipient: CombatEffectDefinition['recipient'] = 'actor',
-): CombatEffectDefinition => ({ type: 'resource-change', resource: 'mp', delta, recipient })
-const cleanse = (
-  recipient: CombatEffectDefinition['recipient'] = 'actor',
-): CombatEffectDefinition => ({ type: 'remove-status', recipient, statusIds: CLEANSE_STATUS_IDS })
+const mp = (delta: number, recipient: CombatEffectRecipient = 'actor'): CombatEffectDefinition => ({
+  type: 'resource-change',
+  resource: 'mp',
+  delta,
+  recipient,
+})
+const cleanse = (recipient: CombatEffectRecipient = 'actor'): CombatEffectDefinition => ({
+  type: 'remove-status',
+  recipient,
+  statusIds: CLEANSE_STATUS_IDS,
+})
 const targetStatus = (statusId: string): CombatUseRequirement[] => [
   { kind: 'target-status-present', statusId },
 ]
@@ -692,7 +701,7 @@ const authoredSkills: readonly MatureSkillDefinition[] = [
   ),
 ]
 
-export const ADVANCED_DISCIPLINE_SKILLS: readonly MatureSkillDefinition[] = authoredSkills.map(
+const historicalSkills: readonly MatureSkillDefinition[] = authoredSkills.map(
   (definition, index) => ({
     ...definition,
     unlockRequirement: {
@@ -701,6 +710,92 @@ export const ADVANCED_DISCIPLINE_SKILLS: readonly MatureSkillDefinition[] = auth
     },
   }),
 )
+
+// Append versions: committed battles continue to resolve the unchanged v1 definitions.
+const interactionUpdates: Readonly<Record<string, Partial<MatureSkillDefinition>>> = {
+  'tidecaller.water-lance': {
+    effects: [
+      { type: 'damage', amount: 10, recipient: 'primary-unit', element: 'water' },
+      effect('wet'),
+    ],
+  },
+  'tidecaller.flood-line': {
+    effects: [
+      { type: 'damage', amount: 7, recipient: 'affected-units', element: 'water' },
+      effect('slow', 'affected-units'),
+      effect('wet', 'affected-units'),
+    ],
+  },
+  'stormsinger.arc-spark': {
+    effects: [{ type: 'damage', amount: 10, recipient: 'primary-unit', element: 'storm' }],
+  },
+  'stormsinger.static-burst': {
+    effects: [
+      { type: 'damage', amount: 4, recipient: 'affected-units', element: 'storm' },
+      effect('slow', 'affected-units'),
+      effect('conductive', 'affected-units'),
+    ],
+  },
+  'stormsinger.static-drain': {
+    effects: [
+      { type: 'damage', amount: 4, recipient: 'primary-unit', element: 'storm' },
+      mp(-6, 'primary-unit'),
+      effect('conductive'),
+    ],
+  },
+  'stormsinger.conductive-bolt': {
+    effects: [{ type: 'damage', amount: 16, recipient: 'primary-unit', element: 'storm' }],
+    requirements: [{ kind: 'target-tag-present', tag: 'Conductive' }],
+  },
+  'cinderweaver.cinder-bolt': {
+    effects: [
+      { type: 'damage', amount: 6, recipient: 'primary-unit', element: 'fire' },
+      effect('burn'),
+    ],
+  },
+  'cinderweaver.flame-burst': {
+    target: { ...area(ranged), kind: 'ground-tile' },
+    effects: [{ type: 'damage', amount: 8, recipient: 'affected-units', element: 'fire' }],
+  },
+  'cinderweaver.ember-line': {
+    effects: [
+      { type: 'damage', amount: 5, recipient: 'affected-units', element: 'fire' },
+      effect('burn', 'affected-units'),
+    ],
+  },
+  'frostweaver.ice-lance': { effects: [damage(7), effect('slow'), effect('frozen')] },
+  'frostweaver.chilling-mist': {
+    target: { ...area(ranged), kind: 'ground-tile' },
+    effects: [
+      { type: 'create-terrain', recipient: 'affected-tiles', terrain: 'frozen' },
+      effect('slow', 'affected-units'),
+      effect('frozen', 'affected-units'),
+    ],
+  },
+  'frostweaver.shatter': { requirements: [{ kind: 'target-tag-present', tag: 'Frozen' }] },
+  'wildwarden.renewing-herbs': { effects: [effect('regeneration'), effect('summoned')] },
+  'runeblade.sigil-brand': { effects: [damage(5), effect('exposed'), effect('hexed')] },
+  'runeblade.aether-cut': {
+    effects: [
+      damage(12),
+      { type: 'remove-status', recipient: 'primary-unit', statusIds: ['summoned'] },
+    ],
+  },
+  'dawnshield.sacred-guard': {
+    effects: [effect('guarded'), heal(4, 'primary-unit'), effect('inspired')],
+  },
+  'ravager.open-wound': { requirements: [{ kind: 'target-tag-present', tag: 'Bleeding' }] },
+}
+export const ADVANCED_DISCIPLINE_SKILLS: readonly MatureSkillDefinition[] = [
+  ...historicalSkills,
+  ...historicalSkills
+    .filter((definition) => interactionUpdates[definition.id])
+    .map((definition) => ({
+      ...definition,
+      ...interactionUpdates[definition.id],
+      contentVersion: 2,
+    })),
+]
 
 function essence(
   discipline: string,

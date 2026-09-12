@@ -4,6 +4,7 @@ import type { DerivedStatSnapshot } from '../character/derived-stats'
 import { advanceBattleRng, spendAction, type BattleRngState } from './battle-state'
 import {
   evaluateCombatAction,
+  removeGameplayTags,
   executeCombatAction,
   validateCombatEncounterState,
   type CombatActionDefinition,
@@ -287,9 +288,19 @@ export function executeStatDrivenAttack(
   if (action.cost.mp !== 0) {
     throw new Error('Stat-driven miss handling currently supports zero-MP basic attacks only.')
   }
+  const revealed = removeGameplayTags(
+    rolledState,
+    forecast.evaluation.actorId,
+    forecast.evaluation.actorId,
+    action.id,
+    ['Invisible'],
+    content,
+  )
   const spent = spendAction(rolledState.tactical.battle)
   const nextState: StatDrivenCombatEncounterState = {
     ...rolledState,
+    ...revealed.state,
+    statBridge: rolledState.statBridge,
     tactical: { ...rolledState.tactical, battle: spent.state },
   }
   assertValidStatDrivenCombatEncounterState(nextState)
@@ -298,6 +309,7 @@ export function executeStatDrivenAttack(
     events: [
       resolutionEvent,
       ...spent.events,
+      ...revealed.events,
       {
         event: 'combat_action_used',
         actionId: action.id,
