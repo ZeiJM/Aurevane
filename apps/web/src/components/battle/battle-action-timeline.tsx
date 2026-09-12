@@ -12,6 +12,7 @@ import {
   BATTLE_MISSING_ARTWORK,
 } from './battle-skill-presentation'
 import styles from './battle-action-timeline.module.css'
+import { useBattleOpponentNames } from './battle-runtime-context'
 
 function actionName(action: PresentedBattleLogAction): string {
   const recordedName = action.sourceEntries?.find((entry) => entry.actionLabel)?.actionLabel
@@ -70,6 +71,7 @@ export function BattleActionTimeline({
   combatantNames?: Readonly<Record<string, string>>
 }) {
   const [filter, setFilter] = useState<'all' | 'you' | 'opponents'>('all')
+  const opponentNames = useBattleOpponentNames()
   const [selected, setSelected] = useState<PresentedBattleLogAction | null>(null)
   const listRef = useRef<HTMLOListElement>(null)
   const dialogRef = useRef<HTMLDialogElement>(null)
@@ -80,7 +82,11 @@ export function BattleActionTimeline({
     (action) =>
       filter === 'all' ||
       (Boolean(actorName(action)) &&
-        (filter === 'you' ? actorName(action) === playerName : actorName(action) !== playerName)),
+        (filter === 'you'
+          ? actorName(action) === playerName
+          : opponentNames
+            ? opponentNames.includes(actorName(action))
+            : actorName(action) !== playerName)),
   )
 
   useEffect(() => {

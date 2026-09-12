@@ -222,6 +222,11 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   } else {
     const apBeforeDetails = await apRemaining.getAttribute('aria-valuenow')
     const timeline = battleLog.getByRole('list', { name: 'Battle action timeline' })
+    await battleLog.getByRole('button', { name: 'Opponents', exact: true }).click()
+    await expect(timeline).not.toContainText(characterName)
+    await battleLog.getByRole('button', { name: 'You', exact: true }).click()
+    await expect(timeline).toContainText(characterName)
+    await battleLog.getByRole('button', { name: 'All', exact: true }).click()
     const actionDetails = timeline.getByRole('button').last()
     await actionDetails.focus()
     await actionDetails.press('Space')
