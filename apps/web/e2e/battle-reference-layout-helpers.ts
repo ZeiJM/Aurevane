@@ -166,8 +166,15 @@ export async function expectBattleFlowKeepsBoardSize(page: Page) {
   const root = page.locator('main[data-unified-battle="true"]')
   const flowToggle = root.locator('[data-battle-flow] > button')
   const log = page.getByTestId('battle-log-panel')
+  // Mobile PvP uses the shared communication drawer, which covers its opener.
+  // Exercise its real close control instead of trying to click through the drawer.
+  const mobilePvp =
+    (await root.getAttribute('data-battle-kind')) === 'pvp' &&
+    (page.viewportSize()?.width ?? 0) <= 820
+  const communication = page.locator('#pvp-battle-chat-panel')
   if ((await flowToggle.getAttribute('aria-expanded')) !== 'true') await flowToggle.click()
   await expect(flowToggle).toHaveAttribute('aria-expanded', 'true')
+  if (mobilePvp) await expect(communication).toHaveAttribute('aria-hidden', 'false')
   const readGeometry = () =>
     root.evaluate(async (element) => {
       // Let the grid and its ResizeObserver complete before comparing rendered bounds.
@@ -181,9 +188,17 @@ export async function expectBattleFlowKeepsBoardSize(page: Page) {
     })
   const open = await readGeometry()
   for (const expanded of [false, true]) {
-    await flowToggle.click()
+    if (mobilePvp && !expanded) {
+      await page.getByRole('button', { name: 'Close battle communication', exact: true }).click()
+    } else {
+      await flowToggle.click()
+    }
     await expect(flowToggle).toHaveAttribute('aria-expanded', String(expanded))
-    await expect(log).toHaveCount(expanded ? 1 : 0)
+    if (mobilePvp) {
+      await expect(communication).toHaveAttribute('aria-hidden', String(!expanded))
+    } else {
+      await expect(log).toHaveCount(expanded ? 1 : 0)
+    }
     const afterToggle = await readGeometry()
     for (const [index, bounds] of afterToggle.entries()) {
       for (const dimension of ['x', 'y', 'width', 'height'] as const) {

@@ -1,14 +1,15 @@
 import { expect, test } from '@playwright/test'
 
+import { getFoundationDisciplineImageAsset } from '../src/media/disciplines'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
-const DISCIPLINE_ART = [
-  'disc_vanguard_icon_v01.svg',
-  'disc_farstrider_icon_v01.svg',
-  'disc_shadehand_icon_v01.svg',
-  'disc_ironfist_icon_v01.svg',
-  'disc_aetherist_icon_v01.svg',
-  'disc_lifebinder_icon_v01.svg',
+const FOUNDATION_DISCIPLINES = [
+  'vanguard',
+  'farstrider',
+  'shadehand',
+  'ironfist',
+  'aetherist',
+  'lifebinder',
 ] as const
 
 function uniqueCharacterName(): string {
@@ -22,19 +23,19 @@ function uniqueCharacterName(): string {
 
 test('Foundation Discipline sigils resolve to production artwork on desktop and mobile', async ({
   page,
-  request,
 }, testInfo) => {
   test.skip(
     !['desktop-chromium', 'mobile-chromium'].includes(testInfo.project.name),
     'Profile Discipline artwork is checked at both target viewport classes.',
   )
 
-  for (const filename of DISCIPLINE_ART) {
-    const response = await request.get(`/media/art/disciplines/${filename}`)
-    expect(response.ok(), `${filename} should be served`).toBe(true)
-    expect(response.headers()['content-type']).toContain('image/svg+xml')
-    expect((await response.text()).length).toBeGreaterThan(500)
-  }
+  const disciplineArt = FOUNDATION_DISCIPLINES.map((id) => {
+    const asset = getFoundationDisciplineImageAsset(id)
+    if (asset?.status !== 'approved' || !asset.src) {
+      throw new Error(`${id} must have approved Discipline artwork.`)
+    }
+    return { id, src: asset.src }
+  })
 
   await provisionAccountAndEnterCharacter({
     page,
@@ -43,11 +44,31 @@ test('Foundation Discipline sigils resolve to production artwork on desktop and 
     characterName: uniqueCharacterName(),
   })
 
+  // Decode the currently registered assets, including embedded SVGs, rather than checking
+  // retired URLs that the Profile no longer uses.
+  const loadedArt = await page.evaluate(
+    async (artworks) =>
+      Promise.all(
+        artworks.map(async (artwork) => {
+          const image = new Image()
+          image.src = artwork.src
+          await image.decode()
+          return { id: artwork.id, width: image.naturalWidth, height: image.naturalHeight }
+        }),
+      ),
+    disciplineArt,
+  )
+  for (const artwork of loadedArt) {
+    expect(artwork.width, `${artwork.id} artwork should decode`).toBeGreaterThan(0)
+    expect(artwork.height, `${artwork.id} artwork should decode`).toBeGreaterThan(0)
+  }
+
   const launcher = page.getByRole('button', {
     name: /Manage Primary Discipline and Secondary Discipline/,
   })
   await expect(launcher).toBeVisible()
-  const vanguardImage = launcher.locator('img[src*="disc_vanguard_icon_v01.svg"]')
+  const vanguardImage = launcher.locator('img')
+  await expect(vanguardImage).toHaveAttribute('src', disciplineArt[0]!.src)
   await expect(vanguardImage).toBeVisible()
   await expect(vanguardImage).toHaveJSProperty('complete', true)
 
@@ -69,5 +90,7 @@ test('Foundation Discipline sigils resolve to production artwork on desktop and 
   await launcher.click()
   const dialog = page.getByRole('dialog', { name: 'Discipline Management' })
   await expect(dialog).toBeVisible()
-  await expect(dialog.locator('img[src*="disc_vanguard_icon_v01.svg"]').first()).toBeVisible()
+  const committedSigil = dialog.locator('[aria-label="Committed Disciplines"] img').first()
+  await expect(committedSigil).toHaveAttribute('src', disciplineArt[0]!.src)
+  await expect(committedSigil).toBeVisible()
 })
