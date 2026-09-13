@@ -42,6 +42,11 @@ test('keeps Map Key immediately left of Victory Conditions at desktop and mobile
   await expect(victoryConditions).toBeVisible()
   await expect(page.getByRole('button', { name: /Round .*Combat Log/i })).toHaveCount(0)
   await expectMapKey(page)
+  expect(
+    await victoryConditions
+      .locator('span')
+      .evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
+  ).toBeGreaterThanOrEqual(testInfo.project.name === 'mobile-chromium' ? 10 : 12)
   const victoryBox = await victoryConditions.boundingBox()
   const keyBox = await key.boundingBox()
   expect(keyBox!.x + keyBox!.width).toBeLessThanOrEqual(victoryBox!.x)

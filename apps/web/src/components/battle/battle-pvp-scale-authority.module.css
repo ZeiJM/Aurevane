@@ -466,3 +466,44 @@
     font-size: 0.625rem;
   }
 }
+
+/* Header reading controls use one readable scale after leaving the economy grid. */
+:global(
+  main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind][data-battle-layout='map-first']
+    [data-battle-header-utilities]
+    > button
+) {
+  height: 2rem !important;
+  min-height: 2rem !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  padding: 0.35rem 0.55rem !important;
+  font: 600 0.75rem/1.2 var(--av-font-body) !important;
+  white-space: nowrap;
+}
+:global(
+  main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind][data-battle-layout='map-first']
+    [data-battle-header-utilities]
+    > button
+    > span
+),
+:global(
+  main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind][data-battle-layout='map-first']
+    [data-battle-header-utilities]
+    > button
+    > b
+) {
+  font: inherit !important;
+  letter-spacing: 0 !important;
+}
+@media (max-width: 820px) {
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind][data-battle-layout='map-first']
+      [data-battle-header-utilities]
+      > button
+  ) {
+    padding: 0.3rem 0.35rem !important;
+    font-size: 0.625rem !important;
+  }
+}

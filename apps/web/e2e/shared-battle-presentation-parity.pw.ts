@@ -235,6 +235,12 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
   const preview = context.locator('[data-react-battle-preview="true"]:visible')
   await expect(context.locator('[aria-label="Action preview"]')).toHaveCount(1)
   await expect(preview).toContainText('Success 100%')
+  expect(
+    await preview
+      .locator('[data-battle-preview-chip]')
+      .first()
+      .evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
+  ).toBeGreaterThanOrEqual(12)
   await expect(preview).toContainText(/Guarded/i)
 
   await root.getByRole('button', { name: 'Cancel Action' }).click()

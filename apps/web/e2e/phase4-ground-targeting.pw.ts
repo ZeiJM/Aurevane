@@ -183,8 +183,8 @@ async function castOnEmptyGround(page: Page, name: string, testInfo: TestInfo) {
   await expect(root.getByLabel('Action preview').first()).not.toContainText('Slow')
   expect(audioRequests).toHaveLength(0)
   expect(await read()).toEqual(before)
-  await root.locator('summary').filter({ hasText: 'Terrain & effect details' }).click()
-  const forecast = root.getByRole('region', { name: 'Terrain and effect forecast' })
+  await root.getByRole('button', { name: 'Forecast details', exact: true }).click()
+  const forecast = page.getByRole('dialog', { name: 'Action forecast', exact: true })
   await expect(forecast).toBeVisible()
   // A panel can have no internal/document overflow while still opening at negative x.
   // This shared cast helper checks all four viewport edges in both PvE and PvP.
@@ -212,7 +212,8 @@ async function castOnEmptyGround(page: Page, name: string, testInfo: TestInfo) {
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1),
   ).toBe(true)
-  await root.locator('summary').filter({ hasText: 'Terrain & effect details' }).click()
+  await page.keyboard.press('Escape')
+  await expect(forecast).toHaveCount(0)
   const committed = page.waitForResponse(
     (response) =>
       response.url().endsWith(`/api/battles/${sessionId}${commitEndpoint}`) &&

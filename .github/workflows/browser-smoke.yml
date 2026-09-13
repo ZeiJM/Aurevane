@@ -66,6 +66,20 @@ jobs:
           db_container="$(docker ps --filter 'name=supabase_db_' --format '{{.Names}}' | head -n 1)"
           docker exec "$db_container" psql -v ON_ERROR_STOP=1 -U postgres -d postgres -c "set role service_role; select public.activate_phase4_combat_interactions_v2();"
 
+          # Catch shared battle composition regressions before the longer all-page run.
+          # A successful candidate still runs the entire suite and the Edge keyboard checks below.
+          AUREVANE_ENV=local \
+          NEXT_PUBLIC_AUREVANE_ENV=local \
+          NEXT_PUBLIC_SUPABASE_URL="$api_url" \
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY" \
+          SUPABASE_SECRET_KEY="$server_key" \
+          pnpm --filter @aurevane/web exec playwright test \
+            e2e/ai-header-control-shape.pw.ts e2e/ai-grid-legend-regression.pw.ts \
+            e2e/battle-cockpit-skill-slots.pw.ts e2e/pvp-six-combatant-rails.pw.ts \
+            e2e/shared-battle-presentation-parity.pw.ts e2e/pvp-battle-log-footer-parity.pw.ts \
+            e2e/phase4-ground-targeting.pw.ts \
+            --project=desktop-chromium --project=mobile-chromium --max-failures=1
+
           AUREVANE_ENV=local \
           NEXT_PUBLIC_AUREVANE_ENV=local \
           NEXT_PUBLIC_SUPABASE_URL="$api_url" \
