@@ -18,8 +18,13 @@ describe('battle board viewport fit', () => {
     expect(fit.width).toBeLessThanOrEqual(width)
     expect(fit.height).toBeLessThanOrEqual(height)
     expect(fit.width / fit.height).toBeCloseTo(columns / rows)
-    expect(fit.width).toBeLessThanOrEqual(620)
-    expect(fit.height).toBeLessThanOrEqual(482)
+    expect(Math.min(width - fit.width, height - fit.height)).toBeCloseTo(0)
+  })
+
+  it('uses the dedicated map area beyond the retired desktop size ceiling', () => {
+    const fit = fitBattleBoard(11, 7, 1300, 640)
+    expect(fit.height).toBe(640)
+    expect(fit.width).toBeCloseTo(1005.714, 2)
   })
 })
 

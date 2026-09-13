@@ -95,7 +95,7 @@ test('keeps Move reachable tiles rich green and supports keyboard/mouse path bac
   const root = page.locator("main[data-unified-battle='true']")
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   const commandDeck = page.getByRole('region', { name: 'Command Deck' })
-  const moveButton = commandDeck.getByRole('button', { name: /Move/ })
+  const moveButton = commandDeck.getByRole('button', { name: /^Move,/ })
 
   if (testInfo.project.name === 'mobile-chromium') await moveButton.tap()
   else await moveButton.click()

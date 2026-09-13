@@ -262,7 +262,11 @@ export function BattleLogFeed({
   if (rounds.length === 0) return <p className={styles.empty}>{emptyMessage}</p>
 
   return (
-    <div className={styles.feed} data-testid="battle-log-feed">
+    <div
+      className={styles.feed}
+      data-testid="battle-log-feed"
+      data-compact-flow={compactFlow || undefined}
+    >
       {compactFlow ? (
         <div className={styles.flowViews} role="group" aria-label="Battle history view">
           <button
@@ -281,8 +285,9 @@ export function BattleLogFeed({
           </button>
         </div>
       ) : null}
-      {compactFlow && flowView === 'timeline' ? (
+      {compactFlow ? (
         <BattleActionTimeline
+          view={flowView}
           rounds={rounds}
           entries={entries}
           playerName={playerName}

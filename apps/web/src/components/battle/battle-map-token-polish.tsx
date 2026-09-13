@@ -3,10 +3,6 @@
 import { useLayoutEffect } from 'react'
 
 const DESKTOP_PVP_TOKEN_QUERY = '(min-width: 821px)'
-const DESKTOP_PVP_TOKEN_SIZE = 'clamp(2rem, 3.4vw, 3.4rem)'
-const LARGE_DESKTOP_TOKEN_SIZE = 'clamp(1.6rem, 72%, 2.15rem)'
-const COMPACT_TOKEN_SIZE = 'clamp(1.7rem, 56%, 2.75rem)'
-const LARGE_COMPACT_TOKEN_SIZE = 'clamp(1.25rem, 72%, 1.75rem)'
 const PLAYER_TOKEN_SHADOW = '0 0.45rem 1rem rgba(0, 0, 0, 0.35)'
 const DAMAGE_COLOR = '#ff766f'
 const HEALING_COLOR = '#59d39b'
@@ -32,12 +28,7 @@ export function fitBattleBoard(
   availableWidth: number,
   availableHeight: number,
 ): { width: number; height: number } {
-  const scale = Math.min(
-    availableWidth / columns,
-    availableHeight / rows,
-    620 / columns,
-    482 / rows,
-  )
+  const scale = Math.min(availableWidth / columns, availableHeight / rows)
   return { width: columns * scale, height: rows * scale }
 }
 
@@ -147,15 +138,7 @@ function polishBattlefieldTokens(
   combatantAccents: Readonly<Record<string, string>> = {},
 ) {
   const desktopPvpScale = window.matchMedia(DESKTOP_PVP_TOKEN_QUERY).matches
-  const board = syncBoardScale()
-  const largeBoard = board?.width === 13 && board.height === 9
-  const tokenSize = largeBoard
-    ? desktopPvpScale
-      ? LARGE_DESKTOP_TOKEN_SIZE
-      : LARGE_COMPACT_TOKEN_SIZE
-    : desktopPvpScale
-      ? DESKTOP_PVP_TOKEN_SIZE
-      : COMPACT_TOKEN_SIZE
+  syncBoardScale()
   const occupiedTiles = Array.from(
     document.querySelectorAll<HTMLButtonElement>('#battlefield button[aria-label*="occupied by"]'),
   )
@@ -167,9 +150,10 @@ function polishBattlefieldTokens(
       tile.querySelector<HTMLElement>(':scope > span:last-child')
     if (!token) continue
 
-    // Medium boards retain the established token footprint. Large boards deliberately use a
-    // smaller cap on desktop and mobile so portraits, facing arrows, and the HP/MP meters remain
-    // visually contained by the smaller square cells.
+    // Portraits, rings and facing cues scale from the actual tile, including nonstandard maps.
+    const cell = tile.getBoundingClientRect()
+    const tokenSize = `${Math.max(0, Math.min(cell.width, cell.height) * 0.68)}px`
+    token.style.setProperty('--battle-token-size', tokenSize)
     token.style.setProperty('position', 'absolute', 'important')
     token.style.setProperty('top', '50%', 'important')
     token.style.setProperty('left', '50%', 'important')

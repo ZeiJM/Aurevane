@@ -1,6 +1,5 @@
 'use client'
 
-import { BattleCoordinateToggle } from './battle-coordinate-toggle'
 import { BattleCommittedAudio } from './battle-committed-audio'
 import { BattleMapTokenPolish } from './battle-map-token-polish'
 import { BattleTerrainPresentationPolish } from './battle-terrain-presentation-polish'
@@ -17,8 +16,7 @@ interface BattlefieldPresentationBundleProps {
 /**
  * Shared, read-only battlefield presentation authority.
  *
- * Playable battles and spectator battles both mount this bundle so terrain materials, coordinate
- * controls, and combatant identity rings cannot silently drift between the two surfaces. Keep
+ * Playable battles and spectator battles both mount this bundle so terrain materials and combatant identity rings cannot silently drift between the two surfaces. Keep
  * interaction/mechanics outside this bundle; add future battlefield-only visual polish here when it
  * is equally valid for a read-only spectator.
  */
@@ -38,7 +36,6 @@ export function BattlefieldPresentationBundle({
         mode={mode}
       />
       <BattleTerrainPresentationPolish />
-      <BattleCoordinateToggle battleSessionId={battleSessionId} />
       <BattleMapTokenPolish playerName={playerName} combatantAccents={combatantAccents} />
       <span className={styles.hook} aria-hidden="true" />
     </>

@@ -93,7 +93,7 @@ test('keeps desktop battlefield and footer geometry stable through Recruit hando
       response.request().method() === 'POST' && response.url().includes('/recruit-turn'),
   )
 
-  const finish = root.getByRole('button', { name: /Finish Turn/ })
+  const finish = root.getByRole('button', { name: /^Finish Turn,/ })
   await finish.click()
   await finish.press('KeyD')
   await finalTurnResponse

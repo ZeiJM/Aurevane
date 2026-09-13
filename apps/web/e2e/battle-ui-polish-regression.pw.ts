@@ -195,7 +195,7 @@ async function sampleGuidedBoardAcrossFinishTurn(
     (response) =>
       response.request().method() === 'POST' && response.url().includes('/recruit-turn'),
   )
-  const finish = root.getByRole('button', { name: /Finish Turn/ })
+  const finish = root.getByRole('button', { name: /^Finish Turn,/ })
   await expect(finish).toContainText('Choose facing + end')
 
   if (mobile) {

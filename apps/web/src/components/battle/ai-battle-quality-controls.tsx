@@ -290,6 +290,9 @@ export function AiBattleQualityControls({
   }, [desktopLayout])
 
   useEffect(() => {
+    // Unified battles render one forecast from their current validated preview state.
+    // Keep this observer only for legacy screens; clocks remain independent below.
+    if (document.querySelector('main[data-unified-battle="true"]')) return
     const previousFetch = window.fetch
     let cancelled = false
 

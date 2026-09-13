@@ -64,16 +64,20 @@ export function BattleActionTimeline({
   entries,
   playerName,
   combatantNames,
+  view = 'timeline',
 }: {
   rounds: readonly PresentedBattleLogRound[]
   entries: BattleLogView['entries']
   playerName?: string
   combatantNames?: Readonly<Record<string, string>>
+  view?: 'timeline' | 'text'
 }) {
   const [filter, setFilter] = useState<'all' | 'you' | 'opponents'>('all')
   const opponentNames = useBattleOpponentNames()
   const [selected, setSelected] = useState<PresentedBattleLogAction | null>(null)
   const listRef = useRef<HTMLOListElement>(null)
+  const [pageSize, setPageSize] = useState(8)
+  const [pagination, setPagination] = useState({ key: '', pagesBack: 0 })
   const dialogRef = useRef<HTMLDialogElement>(null)
   const actions = rounds
     .flatMap((round) => round.actions)
@@ -90,8 +94,24 @@ export function BattleActionTimeline({
   )
 
   useEffect(() => {
-    if (listRef.current) listRef.current.scrollLeft = listRef.current.scrollWidth
-  }, [actions.length, filter])
+    const list = listRef.current
+    if (!list) return
+    const resize = () =>
+      setPageSize(
+        Math.max(1, Math.floor(list.clientWidth / (view === 'text' ? 340 : 96))) *
+          (view === 'text' ? 2 : 1),
+      )
+    resize()
+    const observer = new ResizeObserver(resize)
+    observer.observe(list)
+    return () => observer.disconnect()
+  }, [view])
+  const pageKey = `${actions.length}:${filter}:${view}`
+  const lastPage = Math.max(0, Math.ceil(visible.length / pageSize) - 1)
+  const currentPage = Math.min(pagination.key === pageKey ? pagination.pagesBack : 0, lastPage)
+  const end = Math.max(0, visible.length - currentPage * pageSize)
+  const start = Math.max(0, end - pageSize)
+  const page = visible.slice(start, end)
   useEffect(() => {
     if (selected && dialogRef.current && !dialogRef.current.open) {
       dialogRef.current.showModal()
@@ -126,8 +146,32 @@ export function BattleActionTimeline({
           </button>
         ))}
       </div>
-      <ol ref={listRef} className={styles.track} aria-label="Battle action timeline">
-        {visible.map((action) => (
+      <div className={styles.pageControls} role="group" aria-label="Battle history pages">
+        <button
+          type="button"
+          aria-label="Older actions"
+          disabled={currentPage >= lastPage}
+          onClick={() => setPagination({ key: pageKey, pagesBack: currentPage + 1 })}
+        >
+          ‹
+        </button>
+        <span>{visible.length ? `${start + 1}–${end} of ${visible.length}` : 'No actions'}</span>
+        <button
+          type="button"
+          aria-label="Newer actions"
+          disabled={currentPage === 0}
+          onClick={() => setPagination({ key: pageKey, pagesBack: currentPage - 1 })}
+        >
+          ›
+        </button>
+      </div>
+      <ol
+        ref={listRef}
+        className={styles.track}
+        data-view={view}
+        aria-label={view === 'text' ? 'Battle action transcript' : 'Battle action timeline'}
+      >
+        {page.map((action) => (
           <li key={action.key}>
             <button
               type="button"
@@ -135,23 +179,25 @@ export function BattleActionTimeline({
               aria-label={`Action details: ${action.ariaLabel}`}
               title={action.ariaLabel}
             >
-              <span className={styles.art}>
-                <Image
-                  src={artwork(action, entries)}
-                  width={44}
-                  height={44}
-                  unoptimized
-                  alt=""
-                  onError={(event) => {
-                    event.currentTarget.onerror = null
-                    event.currentTarget.src = BATTLE_MISSING_ARTWORK
-                  }}
-                />
-                {actorName(action) ? (
-                  <b aria-hidden="true">{actorName(action).slice(0, 1)}</b>
-                ) : null}
-              </span>
-              <strong>{actionName(action)}</strong>
+              {view === 'timeline' ? (
+                <span className={styles.art}>
+                  <Image
+                    src={artwork(action, entries)}
+                    width={44}
+                    height={44}
+                    unoptimized
+                    alt=""
+                    onError={(event) => {
+                      event.currentTarget.onerror = null
+                      event.currentTarget.src = BATTLE_MISSING_ARTWORK
+                    }}
+                  />
+                  {actorName(action) ? (
+                    <b aria-hidden="true">{actorName(action).slice(0, 1)}</b>
+                  ) : null}
+                </span>
+              ) : null}
+              <strong>{view === 'timeline' ? actionName(action) : segments(action.primary)}</strong>
               <span>
                 {actorName(action) || 'Battle'} ·{' '}
                 {action.round === null ? 'Event' : `R${action.round}`}

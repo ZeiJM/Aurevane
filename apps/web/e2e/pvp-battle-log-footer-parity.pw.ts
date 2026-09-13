@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 
+import { expectMapKey } from './battle-map-key-helpers'
 import { expectBattleReferenceLayout } from './battle-reference-layout-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
@@ -75,16 +76,9 @@ test('keeps the desktop PvP battle flow below compact commands with the terrain 
     await expect(host).toHaveURL(/\/game\/battle\/[0-9a-f-]+$/i, { timeout: 20_000 })
 
     const root = host.locator("main[data-pvp-battle='true']")
-    const battlefield = root.locator('#battlefield')
-    const combatLog = root.locator(':scope > header').getByRole('button', {
-      name: /Round \d+.*Combat Log/i,
-    })
-
+    const combatLog = root.locator('[data-battle-flow] > button')
     if ((await combatLog.getAttribute('aria-expanded')) !== 'true') await combatLog.click()
-    const terrainLegend = battlefield.locator(':scope > [aria-label="Terrain legend"]')
-    await expect(terrainLegend).toBeVisible()
-    await expect(terrainLegend.getByText('Difficult Terrain')).toBeVisible()
-    await expect(terrainLegend.getByText('Elevated Ground')).toBeVisible()
+    await expectMapKey(host)
     await expectBattleReferenceLayout(host, testInfo, 'combat-pvp-short-window')
     for (const size of [
       { width: 2400, height: 1350 },

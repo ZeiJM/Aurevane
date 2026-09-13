@@ -227,52 +227,103 @@
   }
 }
 
-/* Reference-inspired portrait/status rails keep each team readable without taking board space. */
+/* The shared rails allocate real space to every combatant; three per side fit without scrolling. */
 @media (min-width: 821px) {
-  :global(main[data-unified-battle='true']) .rail {
+  :global(main[data-unified-battle='true'][data-battle-layout='map-first']) .rail {
     grid-row: 1;
     align-self: stretch !important;
-    overflow: auto;
-    scrollbar-width: thin;
-    container-type: inline-size;
+    overflow: hidden;
+    container-type: size;
   }
-  :global(main[data-unified-battle='true']) .stack {
+  :global(main[data-unified-battle='true'][data-battle-layout='map-first']) .stack {
     width: 100%;
+    height: 100%;
+    grid-auto-rows: minmax(0, 1fr);
     transform: none;
-    gap: 0.65rem;
+    gap: 0.4rem;
     padding: 0 1px;
+    box-sizing: border-box;
   }
-  :global(main[data-unified-battle='true']) .heading {
+  :global(main[data-unified-battle='true'][data-battle-layout='map-first']) .stack[data-count='1'] {
+    max-height: 24rem;
+  }
+  :global(main[data-unified-battle='true'][data-battle-layout='map-first']) .card {
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    min-height: 0;
+  }
+  :global(main[data-unified-battle='true'][data-battle-layout='map-first']) .heading {
     height: auto;
-    min-height: 3rem;
-    padding: 0.55rem;
+    min-height: 2rem;
+    padding: 0.35rem 0.45rem;
   }
-  :global(main[data-unified-battle='true']) .heading strong {
-    font-size: 0.9375rem;
-    line-height: 1.25;
+  :global(main[data-unified-battle='true'][data-battle-layout='map-first']) .heading strong {
+    font: 600 0.875rem/1.2 var(--av-font-display);
   }
-  :global(main[data-unified-battle='true']) .heading span {
-    font-size: 0.625rem;
-    line-height: 1.3;
-  }
-  :global(main[data-unified-battle='true']) .turnState b {
+  :global(main[data-unified-battle='true'][data-battle-layout='map-first']) .heading span {
     font-size: 0.5625rem;
+    line-height: 1.2;
   }
-  :global(main[data-unified-battle='true']) .stack[data-count='3'] .portraitButton {
-    max-height: 7.5rem;
+  :global(main[data-unified-battle='true'][data-battle-layout='map-first']) .turnState b {
+    font-size: 0.5rem;
+  }
+  :global(main[data-unified-battle='true'][data-battle-layout='map-first']) .portraitButton {
+    min-height: 2.25rem;
+    height: 100% !important;
     aspect-ratio: auto !important;
   }
+  :global(main[data-unified-battle='true'][data-battle-layout='map-first']) .meters {
+    padding: 2px;
+    gap: 2px;
+    left: 3px;
+    right: 3px;
+    bottom: 3px;
+  }
+  :global(main[data-unified-battle='true'][data-battle-layout='map-first']) .meters > span {
+    position: relative;
+    display: grid;
+    place-items: center;
+    height: 0.9rem;
+    border-radius: 3px;
+  }
+  :global(main[data-unified-battle='true'][data-battle-layout='map-first']) .meters i {
+    position: absolute;
+    inset: 0 auto 0 0;
+  }
+  .meters b {
+    z-index: 1;
+    color: #fff;
+    font: 650 0.625rem/1 var(--av-font-body);
+    font-variant-numeric: tabular-nums;
+    text-shadow:
+      0 1px 2px #000,
+      0 0 3px #000;
+  }
 }
-.resourceReadout {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 0.65rem;
-  justify-content: space-between;
-  padding: 0.55rem 0.65rem;
-  font: 550 0.6875rem/1.3 var(--av-font-body);
-  font-variant-numeric: tabular-nums;
-}
-.resourceReadout b {
-  color: var(--av-text-muted);
-  font-weight: 600;
+
+@media (min-width: 821px) and (max-height: 820px) {
+  :global(main[data-battle-layout='map-first']) .stack:not([data-count='1']) .card {
+    grid-template-columns: minmax(3.25rem, 0.8fr) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  :global(main[data-battle-layout='map-first']) .stack:not([data-count='1']) .heading {
+    grid-column: 1 / -1;
+    min-height: 1.65rem;
+    padding: 0.2rem 0.3rem;
+  }
+  :global(main[data-battle-layout='map-first']) .stack:not([data-count='1']) .heading span {
+    display: none;
+  }
+  :global(main[data-battle-layout='map-first']) .stack:not([data-count='1']) .portraitButton {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  :global(main[data-battle-layout='map-first']) .stack:not([data-count='1']) .card > section {
+    grid-column: 2;
+    grid-row: 2;
+    border-top: 0;
+    border-left: 1px solid var(--av-border);
+  }
+  :global(main[data-battle-layout='map-first']) .stack:not([data-count='1']) .meters b {
+    font-size: 0.5rem;
+  }
 }
