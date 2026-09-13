@@ -1,3 +1,39 @@
+/* Surface contracts are opt-in: light information panels and nested ink panels
+ * each own their text tokens. Untouched game/portal surfaces retain the dark default. */
+[data-av-surface='moonstone'] {
+  color-scheme: light;
+  --av-text: var(--av-charcoal);
+  --av-text-muted: var(--av-charcoal-muted);
+  --av-text-dim: var(--av-charcoal-dim);
+  --av-accent: var(--av-teal);
+  --av-focus: #08777c;
+  --av-border: rgba(116, 96, 59, 0.25);
+  --av-border-strong: var(--av-gold-rule);
+  --av-surface: var(--av-moonstone);
+  --av-surface-quiet: var(--av-moonstone-quiet);
+  --av-surface-elevated: var(--av-moonstone-elevated);
+  --av-shadow-deep: 0 0.75rem 2rem rgba(7, 15, 24, 0.12);
+  color: var(--av-text);
+  background: var(--av-surface);
+}
+
+[data-av-surface='ink'] {
+  color-scheme: dark;
+  --av-text: var(--av-parchment-100);
+  --av-text-muted: #c2c7c6;
+  --av-text-dim: #a2afb6;
+  --av-accent: var(--av-brass-300);
+  --av-focus: #55d4ce;
+  --av-border: rgba(212, 186, 130, 0.24);
+  --av-border-strong: rgba(212, 186, 130, 0.48);
+  --av-surface: var(--av-ink-900);
+  --av-surface-quiet: var(--av-ink-950);
+  --av-surface-elevated: var(--av-ink-850);
+  --av-shadow-deep: 0 1.5rem 5rem rgba(0, 0, 0, 0.46);
+  color: var(--av-text);
+  background: var(--av-surface);
+}
+
 .av-surface {
   position: relative;
   border: 1px solid var(--av-border);
@@ -21,11 +57,10 @@
   padding: 0.7rem 1rem;
   border: 1px solid var(--av-border-strong);
   border-radius: var(--av-radius-sm);
-  color: var(--av-text);
-  background: linear-gradient(180deg, rgba(185, 154, 92, 0.2), rgba(185, 154, 92, 0.08));
+  color: var(--av-on-primary);
+  background: var(--av-teal);
   font: 650 0.78rem/1 var(--av-font-body);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  letter-spacing: 0.025em;
   cursor: pointer;
   transition:
     border-color var(--av-fast) ease,
@@ -34,8 +69,8 @@
 }
 
 .av-button:hover:not(:disabled) {
-  border-color: rgba(212, 186, 130, 0.58);
-  background: linear-gradient(180deg, rgba(185, 154, 92, 0.28), rgba(185, 154, 92, 0.12));
+  border-color: var(--av-teal-bright);
+  background: var(--av-teal-hover);
 }
 
 .av-button:active:not(:disabled) {
@@ -49,6 +84,7 @@
 }
 
 .av-button--quiet {
+  color: var(--av-text);
   border-color: rgba(184, 177, 163, 0.16);
   background: rgba(184, 177, 163, 0.055);
 }
@@ -59,6 +95,7 @@
 }
 
 .av-button--danger {
+  color: var(--av-text);
   border-color: rgba(200, 125, 121, 0.42);
   background: rgba(200, 125, 121, 0.09);
 }

@@ -162,3 +162,12 @@ function unitAffectedDescription(skill: MatureSkillDefinition): string {
       return 'All units except yourself, including allies'
   }
 }
+
+export function skillDisplayName(skill: MatureSkillDefinition): string {
+  const tail = skill.id.includes('.') ? skill.id.slice(skill.id.indexOf('.') + 1) : skill.id
+  return tail
+    .split(/[._-]/g)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}

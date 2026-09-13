@@ -47,6 +47,54 @@ describe('PvP-first shared battle visual contract', () => {
     expect(css).toContain('grid-template-columns: repeat(5, minmax(0, 1fr)) !important;')
   })
 
+  it('gives the desktop command deck enough width for commands and contains selected skills', () => {
+    const scale = compact(readLocalFile('battle-pvp-scale-authority.module.css'))
+    const selectedSkills = compact(readLocalFile('battle-selected-skills.module.css'))
+
+    expect(scale).toContain('grid-template-columns: minmax(0, 3fr) minmax(16rem, 1fr);')
+    expect(selectedSkills).toContain('box-sizing: border-box;')
+    expect(selectedSkills).toContain('width: min(3.5rem, 15cqw);')
+  })
+
+  it('keeps command costs and tags dark enough for the pale command cards', () => {
+    const skillCommand = compact(readLocalFile('battle-skill-command.module.css'))
+
+    expect(skillCommand).toContain('color: #3e5563 !important;')
+    expect(skillCommand).toContain('.action > .tags > span { color: #304957;')
+  })
+
+  it('uses viewport width alone to switch shared battle and rail geometry', () => {
+    const unified = compact(readLocalFile('unified-battle-experience.module.css'))
+    const rails = compact(readLocalFile('pvp-six-combatant-rails.module.css'))
+    const mobileInspect = compact(readLocalFile('mobile-battle-combatant-popup.module.css'))
+    const skillCommand = compact(readLocalFile('battle-skill-command.module.css'))
+
+    expect(unified).not.toContain(
+      '@media (min-width: 821px), (any-hover: hover) and (any-pointer: fine)',
+    )
+    expect(unified).not.toContain(
+      '@media (max-width: 820px) and (any-hover: none) and (any-pointer: coarse)',
+    )
+    expect(rails).not.toContain(
+      '@media (min-width: 821px), (any-hover: hover) and (any-pointer: fine)',
+    )
+    expect(mobileInspect).not.toContain('(any-hover: none) and (any-pointer: coarse)')
+    expect(skillCommand).not.toContain('(any-hover: none) and (any-pointer: coarse)')
+  })
+
+  it('uses the full rail height for one combatant without changing three-combatant stacks', () => {
+    const rails = compact(readLocalFile('pvp-six-combatant-rails.module.css'))
+
+    expect(rails).toContain(".stack[data-count='1'] { grid-template-rows: minmax(0, 1fr);")
+    expect(rails).toContain(
+      ".stack[data-count='1'] .card { grid-template-columns: minmax(0, 1fr); grid-template-rows: 2rem minmax(0, 1fr) auto;",
+    )
+    expect(rails).toContain('grid-template-rows: repeat(3, minmax(0, 1fr));')
+
+    const scale = compact(readLocalFile('battle-pvp-scale-authority.module.css'))
+    expect(scale).toContain("> div:not([data-count='1']) > article")
+  })
+
   it('keeps the legacy final-facing pad mounted for keyboard authority but removes it from layout', () => {
     const contract = readLocalFile('battle-screen-visual-contract.tsx')
 

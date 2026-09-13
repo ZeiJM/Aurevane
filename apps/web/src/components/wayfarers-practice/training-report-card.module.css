@@ -11,6 +11,23 @@
   background: rgba(5, 6, 9, 0.52);
 }
 
+.report[data-training-surface='moonstone'] {
+  border-color: var(--av-gold-rule);
+  border-left-color: var(--av-teal);
+  color: var(--av-charcoal);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.5), transparent 42%), var(--av-moonstone-elevated);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.75);
+}
+
+.report[data-training-surface='moonstone'] .heading h2 {
+  color: var(--av-charcoal);
+}
+
+.report[data-training-surface='moonstone'] .heading > span {
+  color: var(--av-teal);
+}
+
 .heading {
   display: flex;
   justify-content: space-between;
@@ -43,6 +60,12 @@
   color: var(--av-text-dim);
 }
 
+.report[data-training-surface='moonstone'] .intro,
+.report[data-training-surface='moonstone'] .capNote,
+.report[data-training-surface='moonstone'] .actions > span {
+  color: var(--av-charcoal-muted);
+}
+
 .rewards {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -62,6 +85,15 @@
   background: rgba(4, 6, 9, 0.82);
 }
 
+.report[data-training-surface='moonstone'] .rewards {
+  border-color: rgba(116, 96, 59, 0.18);
+  background: rgba(116, 96, 59, 0.16);
+}
+
+.report[data-training-surface='moonstone'] .rewards div {
+  background: rgba(234, 230, 220, 0.76);
+}
+
 .rewards dt,
 .rewards dd {
   margin: 0;
@@ -74,10 +106,18 @@
   text-transform: uppercase;
 }
 
+.report[data-training-surface='moonstone'] .rewards dt {
+  color: var(--av-charcoal-dim);
+}
+
 .rewards dd {
   color: var(--av-brass-300);
   font: 500 1.05rem/1 var(--av-font-display);
   overflow-wrap: anywhere;
+}
+
+.report[data-training-surface='moonstone'] .rewards dd {
+  color: var(--av-teal);
 }
 
 .capNote {
@@ -102,6 +142,10 @@
 
 .error {
   color: var(--av-text-muted);
+}
+
+.report[data-training-surface='moonstone'] .error {
+  color: #9a4e48;
 }
 
 @media (max-width: 560px) {

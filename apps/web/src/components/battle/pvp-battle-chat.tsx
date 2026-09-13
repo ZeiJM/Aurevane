@@ -32,6 +32,8 @@ interface PvpBattleChatProps {
   showBattleLog?: boolean
   showSpectatorPresence?: boolean
   requestedTab?: 'chat' | 'log'
+  logRecentTurnCount?: number | null
+  logCurrentTurnNumber?: number
   onRequestedTabChange?: (tab: 'chat' | 'log') => void
   onUnreadChange?: (unread: number) => void
   onSpectatorCountChange?: (count: number) => void
@@ -71,6 +73,8 @@ export function PvpBattleChat({
   showBattleLog = false,
   showSpectatorPresence = true,
   requestedTab = 'chat',
+  logRecentTurnCount = 4,
+  logCurrentTurnNumber,
   onRequestedTabChange,
   onUnreadChange,
   onSpectatorCountChange,
@@ -405,7 +409,8 @@ export function PvpBattleChat({
         <div className={`${styles.messages} ${styles.logMessages}`} aria-live="polite">
           <BattleLogFeed
             entries={battleLog?.entries ?? []}
-            recentTurnCount={4}
+            recentTurnCount={logRecentTurnCount ?? undefined}
+            currentTurnNumber={logCurrentTurnNumber}
             combatantNames={combatantNames}
             emptyMessage="No committed battle actions yet."
           />

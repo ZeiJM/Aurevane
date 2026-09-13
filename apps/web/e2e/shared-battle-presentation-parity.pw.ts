@@ -202,7 +202,10 @@ async function expectDesktopCombatantCard(root: ReturnType<Page['locator']>) {
   })
   expect(geometry.portraitLeft).toBeGreaterThanOrEqual(geometry.cardLeft)
   expect(geometry.portraitRight).toBeLessThanOrEqual(geometry.cardRight)
-  expect(Math.abs(geometry.portraitWidth - geometry.portraitHeight)).toBeLessThanOrEqual(1)
+  expect(
+    geometry.portraitHeight,
+    'A one-on-one desktop rail should use its available height for a portrait-forward card.',
+  ).toBeGreaterThan(geometry.portraitWidth * 1.1)
   await expect(card.locator('button[data-desktop-inspect-combatant]')).toContainText(/HP.*MP/s)
   expect(Math.abs(geometry.effectsBottom - geometry.cardBottom)).toBeLessThanOrEqual(2)
   await expect(card).toContainText(/HP.*MP/s)

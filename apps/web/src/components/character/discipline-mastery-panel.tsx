@@ -156,7 +156,8 @@ export function DisciplineMasteryPanel() {
         </span>
       </summary>
 
-      <div className={styles.intro}>
+      <details className={styles.intro}>
+        <summary>Mastery &amp; access guide</summary>
         <p>
           The Atlas is a map of combat traditions, not an upgrade tree. Later Disciplines trade
           simplicity and reliability for stranger rules, heavier setup or harder execution; they do
@@ -174,7 +175,7 @@ export function DisciplineMasteryPanel() {
           Rites are planned future content.
         </p>
         <Link href="/manual/battle-hall#mastery-trials">Mastery Trial guide</Link>
-      </div>
+      </details>
 
       {pending ? <p role="status">Opening the Atlas…</p> : null}
       {error ? (

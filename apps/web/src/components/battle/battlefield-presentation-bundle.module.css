@@ -59,3 +59,141 @@
     border-width: 1px !important;
   }
 }
+
+/* Approved concept surfaces shared by playable and read-only battlefields. State overlays remain
+   owned by the real tiles; the courtyard is atmospheric scenery around the board only. */
+:global(main[data-battle-concept='true']) {
+  background:
+    linear-gradient(#0b1623cc, #0b1623d9),
+    url('/media/art/concept-ui/battle-hall-v01.webp') center / cover !important;
+}
+:global(main[data-battle-concept='true'] > header),
+:global(main[data-battle-concept='true'] [data-unified-command-deck='true']) {
+  --av-text: #192d41;
+  --av-text-muted: #344a5b;
+  --av-text-dim: #526474;
+  --av-brass-200: #675235;
+  --av-brass-300: #745d38;
+  --av-border: #c8bca5;
+  --av-border-strong: #a28b60;
+  color: #192d41 !important;
+  background: #eeeae0 !important;
+  border-color: #a28b60 !important;
+  border-radius: 0 !important;
+}
+:global(main[data-battle-concept='true'] > header[data-unified-battle-header='true'] strong),
+:global(main[data-battle-concept='true'] > header h1),
+:global(main[data-battle-concept='true'] [data-battle-instruction-title='true']) {
+  color: #192d41 !important;
+}
+:global(main[data-battle-concept='true'] > header button) {
+  color: #284252 !important;
+  background: #e5e0d6 !important;
+  border-color: #b7a989 !important;
+}
+:global(main[data-battle-concept='true'] [data-battle-instruction-row='true']) {
+  color: #293f50 !important;
+  background: transparent !important;
+  border-color: #c8bca5 !important;
+}
+:global(main[data-battle-concept='true'] [data-battle-instruction-description='true']) {
+  color: #425867 !important;
+}
+:global(main[data-battle-concept='true'] [data-unified-combatant-rail='true'] > div > article) {
+  border-radius: 0 !important;
+  border-color: #938061 !important;
+  background: linear-gradient(130deg, #132836f0, #07141df5) !important;
+}
+:global(
+  main[data-battle-concept='true']
+    [data-unified-combatant-rail='true']
+    button[data-desktop-inspect-combatant]
+) {
+  border-radius: 0 !important;
+  border-color: #9d8964 !important;
+}
+:global(main[data-battle-concept='true'] #battlefield) {
+  border-radius: 0 !important;
+  border-color: #ad9870 !important;
+  background: #101d28aa !important;
+}
+:global(
+  main[data-battle-concept='true']:not([data-pvp-spectator='true']) #battlefield > div:first-child
+),
+:global(main[data-battle-concept='true'] #battlefield [data-battlefield-backdrop='true']) {
+  background:
+    linear-gradient(rgba(11, 24, 32, 0.42), rgba(8, 19, 27, 0.58)),
+    url('/media/art/concept-ui/battle-hall-v01.webp') center 46% / cover !important;
+  border-radius: 0 !important;
+}
+:global(main[data-battle-concept='true'] #battlefield button[aria-label^='Tile ']) {
+  border-radius: 1px !important;
+  border-color: #71818a80;
+}
+:global(
+  main[data-battle-concept='true']
+    #battlefield
+    button[aria-label^='Tile ']:not([data-reachable]):not([data-path]):not([data-target]):not(
+      [data-selected]
+    ):not([data-terrain-overlay])
+) {
+  background-color: rgba(42, 53, 59, 0.58) !important;
+  background-image: linear-gradient(135deg, #98a2a122, #14232c30) !important;
+  box-shadow:
+    inset 0 1px #acb6b52b,
+    inset 1px 0 #acb6b51a,
+    inset 0 -2px #19232c80;
+}
+:global(
+  main[data-battle-concept='true']
+    #battlefield
+    button[data-terrain-presentation='difficult']:not([data-reachable]):not([data-path]):not(
+      [data-target]
+    ):not([data-selected]):not([data-terrain-overlay])
+) {
+  background-color: rgba(96, 89, 80, 0.72) !important;
+}
+:global(main[data-battle-concept='true'] > footer) {
+  color: #dcded6 !important;
+  background: #0b1c26 !important;
+  border-color: #9d8964 !important;
+}
+:global(main[data-battle-concept='true'] > footer button) {
+  border-radius: 0.15rem !important;
+}
+@media (min-width: 821px) {
+  :global(
+    main[data-battle-concept='true'][data-unified-battle='true'][data-battle-kind]
+      > [data-unified-battle-content='true']
+  ) {
+    gap: 0.5rem !important;
+    padding: 0.5rem !important;
+    grid-template-columns: clamp(8rem, 12vw, 10.5rem) minmax(0, 1fr) clamp(8rem, 12vw, 10.5rem) !important;
+  }
+}
+@media (min-width: 821px) {
+  :global(main[data-battle-concept='true'] [data-battle-selected-skills='true']) {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    border-top: 0;
+    border-left: 1px solid #b9ac90;
+    padding-block: 0;
+  }
+}
+
+:global(
+  main[data-battle-concept='true'][data-unified-battle='true']
+    > header[data-unified-battle-header='true'][data-battle-shared-header='true']
+),
+:global(
+  main[data-battle-concept='true'][data-unified-battle='true']
+    [data-unified-battle-economy='true']
+    > div:first-child
+),
+:global(
+  main[data-battle-concept='true'][data-unified-battle='true']
+    [data-unified-battle-economy='true']::before
+) {
+  background: #eeeae0 !important;
+  color: #192d41 !important;
+}

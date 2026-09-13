@@ -14,6 +14,8 @@ import type {
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
+import { AurevaneImage } from '@/components/media/aurevane-image'
+
 import type { PvpLobbyView } from '@/server/battle/pvp-lobby-service'
 
 import styles from './battle-launch.module.css'
@@ -339,11 +341,16 @@ export function BattleLaunch({
   }
 
   return (
-    <section className={styles.page} id="battle-launch" aria-labelledby="battle-launch-title">
+    <section
+      data-hall-concept="true"
+      className={styles.page}
+      id="battle-launch"
+      aria-labelledby="battle-launch-title"
+    >
       <header className={styles.heading}>
         <div>
           <p className={styles.eyebrow}>Battle Hall</p>
-          <h1 id="battle-launch-title">Choose your arena.</h1>
+          <h1 id="battle-launch-title">Battle Hall</h1>
         </div>
         <p>Train against the system, challenge other players, or watch a shared battle by key.</p>
       </header>
@@ -398,29 +405,35 @@ export function BattleLaunch({
               Choose a mode first. Detailed setup appears only for the battle you intend to enter.
             </p>
           </div>
-          <div className={styles.modePicker}>
-            <label htmlFor="ai-mode">Battle mode</label>
-            <select
-              id="ai-mode"
-              value={recordId ?? ''}
-              onChange={(event) => {
-                const value = event.target.value as TacticalHallRecordId | ''
-                if (value) chooseRecord(value)
-                else setRecordId(null)
-              }}
-              disabled={pending}
-            >
-              <option value="">Choose an AI battle…</option>
-              {VISIBLE_RECORD_IDS.map((id) => {
-                const record = getTacticalHallRecord(id)
-                return (
-                  <option value={id} key={id}>
-                    {recordDisplayName(id, record.name)}
-                  </option>
-                )
-              })}
-            </select>
-          </div>
+          <nav className={styles.modePicker} aria-label="AI battle modes">
+            {VISIBLE_RECORD_IDS.map((id) => {
+              const record = getTacticalHallRecord(id)
+              return (
+                <button
+                  type="button"
+                  key={id}
+                  aria-pressed={recordId === id}
+                  onClick={() => chooseRecord(id)}
+                  disabled={pending}
+                >
+                  <strong>{recordDisplayName(id, record.name)}</strong>
+                  <small>{record.purpose}</small>
+                </button>
+              )
+            })}
+          </nav>
+          <figure className={styles.arenaVista}>
+            <AurevaneImage
+              assetId="environment.battle-hall.courtyard"
+              sizes="(max-width: 900px) 100vw, 48vw"
+            />
+            <figcaption>
+              <strong>
+                {selectedArena.name} · {selectedArena.scale}
+              </strong>
+              <span>{selectedArena.summary}</span>
+            </figcaption>
+          </figure>
 
           {selectedRecord ? (
             <div className={styles.selectedPanel}>
@@ -494,13 +507,25 @@ export function BattleLaunch({
                 {pending ? 'Entering…' : 'Enter Battle'}
               </button>
             </div>
-          ) : null}
+          ) : (
+            <div className={styles.selectedPanel}>
+              <div className={styles.selectedCopy}>
+                <span>Your next challenge</span>
+                <h3>Choose a battle mode</h3>
+                <p>
+                  Practice your positioning, learn the fundamentals, or test your Primary
+                  Discipline.
+                </p>
+                <p>{characterName} will enter with their committed build.</p>
+              </div>
+            </div>
+          )}
         </section>
       ) : null}
 
       {section === 'pvp' ? (
         <section className={styles.workspace} data-tone="pvp" aria-labelledby="pvp-heading">
-          <div className={styles.workspaceHeading}>
+          <div className={`${styles.workspaceHeading} ${styles.pvpHero}`}>
             <div>
               <span>Player vs Player</span>
               <h2 id="pvp-heading">Call challengers to the arena.</h2>
@@ -713,6 +738,12 @@ export function BattleLaunch({
               key with you.
             </p>
           </div>
+          <figure className={styles.spectateVista}>
+            <AurevaneImage
+              assetId="environment.battle-hall.courtyard"
+              sizes="(max-width: 900px) 100vw, 48vw"
+            />
+          </figure>
           <div className={styles.spectateCard}>
             <div>
               <span>Read-only arena access</span>

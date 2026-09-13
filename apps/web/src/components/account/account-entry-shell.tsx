@@ -74,14 +74,14 @@ export function AccountEntryShell({ authConfig, sessionNotice }: AccountEntryShe
               <span>Character identity stays distinct</span>
             </div>
           </div>
-          <div className={styles.mediaStatus} aria-label="Production artwork status">
-            <span>Title vista</span>
-            <strong>ART-UI-001</strong>
-            <em>Requested</em>
-          </div>
         </section>
 
-        <Surface className={styles.entryCard} tone="elevated">
+        <Surface
+          className={styles.entryCard}
+          tone="elevated"
+          data-av-surface="moonstone"
+          data-account-concept="true"
+        >
           <Kicker marker="◇">Account entry</Kicker>
           <h2>Begin or return.</h2>
           <p className={styles.entryLead}>

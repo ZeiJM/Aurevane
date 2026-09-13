@@ -50,22 +50,39 @@ export function PublicArticle({
         </dl>
       </header>
 
-      <div className={styles.articleBody}>
-        {body.map((block) => (
-          <section key={block.id} id={block.id} className={styles.articleSection}>
-            {block.title ? <h2>{block.title}</h2> : null}
-            {block.paragraphs.map((paragraph) => (
-              <p key={paragraph}>{paragraph}</p>
-            ))}
-            {block.bullets ? (
-              <ul>
-                {block.bullets.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            ) : null}
-          </section>
-        ))}
+      <div className={styles.articleLayout}>
+        <div className={styles.articleBody}>
+          {body.map((block) => (
+            <section key={block.id} id={block.id} className={styles.articleSection}>
+              {block.title ? <h2>{block.title}</h2> : null}
+              {block.paragraphs.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+              {block.bullets ? (
+                <ul>
+                  {block.bullets.map((item) => (
+                    <li key={item}>{item}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </section>
+          ))}
+        </div>
+
+        {body.some((block) => block.title) ? (
+          <aside className={styles.articleNav} aria-label="In this article">
+            <h2>In this article</h2>
+            <ul>
+              {body.map((block) =>
+                block.title ? (
+                  <li key={block.id}>
+                    <a href={`#${block.id}`}>{block.title}</a>
+                  </li>
+                ) : null,
+              )}
+            </ul>
+          </aside>
+        ) : null}
       </div>
     </article>
   )

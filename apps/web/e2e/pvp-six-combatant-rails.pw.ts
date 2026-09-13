@@ -91,7 +91,11 @@ test('keeps three portrait and status cards accessible in each desktop PvP rail'
           const railElement = rail as HTMLElement
           const stack = railElement.firstElementChild as HTMLElement
           const source = stack.querySelector<HTMLElement>('article')!
+          const sourcePortrait = source.querySelector<HTMLElement>(
+            'button[data-desktop-inspect-combatant]',
+          )!
           const singleCard = source.getBoundingClientRect().toJSON()
+          const singlePortrait = sourcePortrait.getBoundingClientRect().toJSON()
           const originalCount = stack.dataset.count
           const clones = [source.cloneNode(true), source.cloneNode(true)] as HTMLElement[]
           for (const clone of clones) stack.appendChild(clone)
@@ -101,6 +105,7 @@ test('keeps three portrait and status cards accessible in each desktop PvP rail'
             rail: railElement.getBoundingClientRect().toJSON(),
             stack: stack.getBoundingClientRect().toJSON(),
             singleCard,
+            singlePortrait,
             scrollHeight: railElement.scrollHeight,
             clientHeight: railElement.clientHeight,
             cards: Array.from(stack.querySelectorAll<HTMLElement>('article')).map((card) => {
@@ -137,9 +142,14 @@ test('keeps three portrait and status cards accessible in each desktop PvP rail'
         expect(geometry.cards[2]!.card.bottom).toBeLessThanOrEqual(geometry.rail.bottom + 1)
         const firstHeight = geometry.cards[0]!.card.height
         expect(
-          Math.abs(firstHeight - geometry.singleCard.height),
-          'A 1v1 card must already reserve room for two teammates.',
-        ).toBeLessThanOrEqual(1)
+          geometry.singleCard.height,
+          'A one-on-one card should fill the rail until team members are added.',
+        ).toBeGreaterThan(firstHeight * 2)
+        expect(geometry.singleCard.bottom).toBeLessThanOrEqual(geometry.rail.bottom + 1)
+        expect(
+          geometry.singlePortrait.height,
+          'A one-on-one rail should use a tall character portrait.',
+        ).toBeGreaterThan(geometry.singlePortrait.width * 1.1)
         expect(firstHeight).toBeLessThanOrEqual(geometry.rail.height / 3)
 
         for (const {

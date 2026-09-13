@@ -152,6 +152,8 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
     <section
       className={styles.card}
       data-testid="practice-plan-card"
+      data-training-surface="moonstone"
+      data-av-surface="moonstone"
       aria-labelledby="practice-plan-title"
     >
       <div className={styles.heading}>

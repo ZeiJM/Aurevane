@@ -13,6 +13,7 @@ import {
 } from '@aurevane/validation/player/combat-controls'
 import { useEffect, useMemo, useState } from 'react'
 
+import { AurevaneImage } from '@/components/media/aurevane-image'
 import styles from './combat-controls-settings.module.css'
 
 interface CombatControlsSettingsProps {
@@ -153,7 +154,12 @@ export function CombatControlsSettings({ initialBindings }: CombatControlsSettin
   }
 
   return (
-    <section className={styles.panel} aria-label="Combat controls settings">
+    <section
+      className={styles.panel}
+      data-character-concept="controls"
+      data-av-surface="moonstone"
+      aria-label="Combat controls settings"
+    >
       <p className={styles.intro}>
         Keybinds follow your account and trigger the same visible cockpit slots you can click.
         Movement, Attack, Defense, and Heal bindings stay with their slot when you switch the
@@ -188,6 +194,16 @@ export function CombatControlsSettings({ initialBindings }: CombatControlsSettin
           </div>
         ))}
       </div>
+
+      <aside className={styles.companion} data-av-surface="ink">
+        <h2>Fight with intention</h2>
+        <AurevaneImage
+          assetId="environment.battle-hall.courtyard"
+          sizes="(min-width: 761px) 26vw, 100vw"
+        />
+        <p>Choose a binding, then press a key.</p>
+        <small>Changes apply when you save your controls.</small>
+      </aside>
 
       {error ? (
         <p className={styles.error} role="alert">

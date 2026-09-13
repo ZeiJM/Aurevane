@@ -12,6 +12,7 @@ import { getStarterPortraitImageAssetId } from '@/media/character'
 import type { AccountDeletionState } from '@/server/account/account-deletion-service'
 import type { CharacterSlotCharacter } from '@/server/character/character-slot-service'
 
+import { AurevaneImage } from '@/components/media/aurevane-image'
 import styles from './character-select-shell.module.css'
 
 interface CharacterSelectShellProps {
@@ -190,7 +191,10 @@ export function CharacterSelectShell({
   }
 
   return (
-    <div className={styles.shell} data-character-select-page="true">
+    <div className={styles.shell} data-character-select-page="true" data-character-concept="roster">
+      <div className={styles.world} aria-hidden="true">
+        <AurevaneImage assetId="ui.foundation.vista" />
+      </div>
       <header className={styles.header}>
         <Link className="brand" href="/game" aria-label="AUREVANE Character Select">
           <span className="brand__crest" aria-hidden="true">
@@ -202,10 +206,10 @@ export function CharacterSelectShell({
           </span>
         </Link>
 
-        <div className="account-delete-header-control">
+        <div className={styles.accountDeleteHeaderControl}>
           <button
             type="button"
-            className="account-delete-header-button"
+            className={styles.accountDeleteHeaderButton}
             data-pending={accountDeletionState ? 'true' : undefined}
             data-testid="delete-account-button"
             aria-label={
@@ -226,7 +230,7 @@ export function CharacterSelectShell({
           </button>
         </div>
 
-        <div className={`${styles.headerActions} character-select-header-actions`}>
+        <div className={styles.headerActions}>
           <div className={styles.screenIdentity} aria-label="Current screen: Character Select">
             {selectedCharacter ? (
               <span className={styles.screenPortrait} title={selectedCharacter.name}>
@@ -250,11 +254,7 @@ export function CharacterSelectShell({
             <span>Account roster</span>
             <h1>Choose your character.</h1>
           </div>
-          <p>
-            Every account begins with one free character. Additional unlocked characters are kept
-            together at the front of the roster; locked opportunities stay last without changing a
-            character&apos;s true stored slot identity.
-          </p>
+          <p>A new journey awaits. Choose an adventurer or begin in an open slot.</p>
         </header>
 
         {message ? (
@@ -271,6 +271,7 @@ export function CharacterSelectShell({
                 <article
                   className={`${styles.slot} ${styles.empty}`}
                   data-locked="true"
+                  data-av-surface="moonstone"
                   key={slotIndex}
                 >
                   <span className={styles.slotNumber}>Slot {slotIndex + 1}</span>
@@ -374,6 +375,7 @@ export function CharacterSelectShell({
         >
           <section
             className={styles.modal}
+            data-av-surface="moonstone"
             role="dialog"
             aria-modal="true"
             aria-labelledby="delete-character-title"
@@ -426,7 +428,8 @@ export function CharacterSelectShell({
           }}
         >
           <section
-            className={`${styles.modal} account-delete-modal`}
+            className={`${styles.modal} ${styles.accountDeleteModal}`}
+            data-av-surface="moonstone"
             role="dialog"
             aria-modal="true"
             aria-labelledby="delete-account-title"
@@ -435,7 +438,7 @@ export function CharacterSelectShell({
               <>
                 <span>Account deletion scheduled</span>
                 <h2 id="delete-account-title">Your account is in its 24-hour grace period.</h2>
-                <div className="account-delete-countdown" aria-live="polite">
+                <div className={styles.accountDeleteCountdown} aria-live="polite">
                   <small>Permanent deletion in</small>
                   <Countdown target={accountDeletionState.deleteAfter} />
                 </div>
@@ -463,7 +466,7 @@ export function CharacterSelectShell({
                   </button>
                   <button
                     type="button"
-                    className="account-cancel-deletion"
+                    className={styles.accountCancelDeletion}
                     onClick={() => void cancelAccountDeletion()}
                     disabled={accountBusy}
                   >
@@ -475,7 +478,7 @@ export function CharacterSelectShell({
               <>
                 <span>Permanent account deletion</span>
                 <h2 id="delete-account-title">Delete your entire AUREVANE account?</h2>
-                <p className="account-delete-warning">
+                <p className={styles.accountDeleteWarning}>
                   This action becomes irreversible after the 24-hour grace period. Final deletion
                   removes your login email and authentication identity plus all AUREVANE data owned
                   by this account. It cannot be restored from the game database afterward.
@@ -522,118 +525,6 @@ export function CharacterSelectShell({
           </section>
         </div>
       ) : null}
-
-      <style jsx global>{`
-        .account-delete-header-control {
-          position: absolute;
-          left: 50%;
-          z-index: 2;
-          transform: translateX(-50%);
-        }
-
-        .account-delete-header-button {
-          display: inline-flex;
-          min-height: 2.2rem;
-          align-items: center;
-          justify-content: center;
-          gap: 0.5rem;
-          padding: 0.48rem 0.82rem;
-          border: 1px solid rgba(200, 125, 121, 0.78);
-          border-radius: var(--av-radius-sm);
-          color: #f4d5d3;
-          background: linear-gradient(180deg, rgba(137, 55, 55, 0.94), rgba(92, 38, 38, 0.96));
-          box-shadow: 0 0 0 1px rgba(200, 125, 121, 0.08) inset;
-          font: 750 0.55rem/1 var(--av-font-mono);
-          letter-spacing: 0.055em;
-          text-transform: uppercase;
-          cursor: pointer;
-        }
-
-        .account-delete-header-button:hover {
-          border-color: rgba(224, 151, 146, 0.95);
-          background: linear-gradient(180deg, rgba(158, 64, 64, 0.98), rgba(106, 42, 42, 0.98));
-        }
-
-        .account-delete-header-button[data-pending='true'] {
-          border-color: rgba(218, 157, 151, 0.9);
-          background: rgba(111, 42, 42, 0.9);
-        }
-
-        .account-delete-header-button b {
-          color: #fff3f1;
-          font-size: 0.62rem;
-          letter-spacing: 0.04em;
-        }
-
-        .account-delete-countdown {
-          display: grid;
-          gap: 0.28rem;
-          margin: 0.85rem 0;
-          padding: 0.8rem;
-          border: 1px solid rgba(200, 125, 121, 0.45);
-          border-radius: var(--av-radius-sm);
-          background: rgba(111, 42, 42, 0.12);
-          text-align: center;
-        }
-
-        .account-delete-countdown small {
-          color: var(--av-danger-400);
-          font: 750 0.55rem/1 var(--av-font-mono);
-          letter-spacing: 0.07em;
-          text-transform: uppercase;
-        }
-
-        .account-delete-countdown b {
-          color: #f6dfdd;
-          font: 600 1.65rem/1 var(--av-font-display);
-          letter-spacing: 0.04em;
-        }
-
-        .account-delete-warning {
-          padding: 0.7rem;
-          border-left: 2px solid var(--av-danger-400);
-          background: rgba(200, 125, 121, 0.075);
-          color: #e7c2bf !important;
-        }
-
-        .account-delete-modal .account-cancel-deletion {
-          border-color: rgba(120, 181, 154, 0.58);
-          color: #b9dfce;
-          background: rgba(120, 181, 154, 0.09);
-        }
-
-        @media (max-width: 760px) {
-          .account-delete-header-control {
-            position: static;
-            margin-left: auto;
-            transform: none;
-          }
-
-          .account-delete-header-button {
-            min-height: 2rem;
-            padding-inline: 0.55rem;
-            font-size: 0.48rem;
-          }
-
-          .account-delete-header-button[data-pending='true'] > span {
-            display: none;
-          }
-        }
-
-        @media (max-width: 560px) {
-          .character-select-header-actions {
-            gap: 0.72rem !important;
-          }
-
-          .account-delete-header-control {
-            margin-left: 0;
-          }
-
-          .account-delete-header-button {
-            max-width: 7.5rem;
-          }
-        }
-      `}</style>
     </div>
   )
 }

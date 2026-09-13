@@ -6,35 +6,29 @@
 .trigger {
   display: flex;
   width: 100%;
-  min-height: 3rem;
+  min-height: 2.75rem;
   align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  border: 1px solid rgba(103, 190, 137, 0.4);
-  border-radius: var(--av-radius-sm);
-  background: linear-gradient(135deg, rgba(65, 139, 94, 0.12), rgba(65, 139, 94, 0.025));
-  padding: 0.65rem 0.75rem;
-  color: var(--av-text);
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border: 1px solid var(--av-teal-bright);
+  border-radius: 0.2rem;
+  color: var(--av-on-primary);
+  background: linear-gradient(135deg, var(--av-teal), #0d2836);
   cursor: pointer;
-  text-align: left;
 }
 
 .trigger strong {
-  font-size: 0;
+  font: 500 0.85rem var(--av-font-display);
 }
 
 .trigger strong::after {
-  content: 'Techniques';
-  color: #b5dec4;
-  font: 700 0.68rem/1 var(--av-font-mono);
-  letter-spacing: 0.055em;
-  text-transform: uppercase;
+  content: none;
 }
 
 .trigger small {
-  color: var(--av-text-muted);
-  font: 650 0.52rem/1 var(--av-font-mono);
-  text-transform: uppercase;
+  font-size: 0.75rem;
+  color: var(--av-on-primary);
 }
 
 .trigger small::after {
@@ -66,21 +60,17 @@
 
 .dialog {
   position: relative;
-  z-index: 1;
   display: flex;
-  width: min(82rem, 100%);
-  max-height: calc(100dvh - 1.3rem);
-  min-height: min(30rem, calc(100dvh - 1.3rem));
   flex-direction: column;
+  width: min(82rem, 100%);
+  max-height: 94dvh;
+  min-height: min(40rem, 94dvh);
   overflow: hidden;
-  border: 1px solid rgba(183, 161, 118, 0.28);
-  border-radius: 1rem;
-  background:
-    linear-gradient(180deg, rgba(17, 22, 29, 0.98), rgba(7, 10, 15, 0.99)),
-    var(--av-surface-elevated);
-  box-shadow:
-    0 1.5rem 5rem rgb(0 0 0 / 55%),
-    inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  border: 1px solid var(--av-gold-rule);
+  border-radius: 0.25rem;
+  background: var(--av-moonstone);
+  color: var(--av-text);
+  box-shadow: var(--av-shadow-deep);
 }
 
 .header {
@@ -103,7 +93,7 @@
 .techniqueHeading span,
 .tipCard > span,
 .actionStatus span {
-  color: #a89a82;
+  color: var(--av-text-dim);
   font: 700 0.6875rem/1.25 var(--av-font-mono);
   letter-spacing: 0.11em;
   text-transform: uppercase;
@@ -172,20 +162,21 @@
   display: grid;
   min-height: 0;
   flex: 1 1 auto;
-  grid-template-columns: minmax(13.5rem, 16.5rem) minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(15rem, 23%);
 }
 
 .buildRail {
+  grid-column: 2;
+  grid-row: 1;
   display: grid;
   align-content: start;
-  gap: 0.62rem;
+  gap: 1rem;
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
-  overscroll-behavior: contain;
-  border-right: 1px solid rgba(184, 177, 163, 0.1);
-  padding: 0.78rem;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.018), rgba(255, 255, 255, 0.005));
+  padding: 1rem;
+  background: linear-gradient(130deg, #0c202c, #07121b);
+  border-left: 1px solid var(--av-gold-rule);
 }
 
 .buildCard,
@@ -337,11 +328,13 @@
 }
 
 .techniqueArea {
+  grid-column: 1;
+  grid-row: 1;
   display: flex;
   min-width: 0;
   min-height: 0;
   flex-direction: column;
-  padding: 0.78rem;
+  padding: 1.2rem;
 }
 
 .techniqueHeading {
@@ -359,7 +352,7 @@
 }
 
 .techniqueHeading strong {
-  color: #e7ded0;
+  color: var(--av-text);
   font-size: 0.8rem;
 }
 
@@ -374,9 +367,9 @@
   flex: 1 1 auto;
   overflow-y: auto;
   grid-auto-rows: max-content;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
   align-content: start;
-  gap: 0.48rem;
 }
 
 .skill {
@@ -385,17 +378,9 @@
   position: relative;
   min-width: 0;
   overflow: hidden;
-  border: 1px solid rgb(var(--skill-accent) / 20%);
-  border-radius: 0.72rem;
-  background:
-    linear-gradient(135deg, rgb(var(--skill-deep) / 14%), rgba(7, 10, 15, 0.88) 58%),
-    rgba(8, 12, 17, 0.92);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.018);
-  transition:
-    border-color 140ms ease,
-    transform 140ms ease,
-    box-shadow 140ms ease,
-    background 140ms ease;
+  border: 1px solid var(--av-gold-rule);
+  border-radius: 0.2rem;
+  background: var(--av-ink-900);
 }
 
 .skill[data-source='vanguard'] {
@@ -435,13 +420,8 @@
 }
 
 .skill[data-selected='true'] {
-  border-color: rgb(var(--skill-accent) / 70%);
-  background:
-    linear-gradient(135deg, rgb(var(--skill-accent) / 16%), rgba(8, 12, 17, 0.94) 62%),
-    rgba(8, 12, 17, 0.96);
-  box-shadow:
-    0 0 0 1px rgb(var(--skill-accent) / 8%),
-    0 0.5rem 1.6rem rgb(var(--skill-accent) / 10%);
+  border: 2px solid var(--av-teal-bright);
+  box-shadow: 0 0 0.4rem #3ec9bb55;
 }
 
 .skill[data-active-source='false'] {
@@ -452,11 +432,11 @@
 .skillToggle {
   position: relative;
   display: grid;
-  min-height: 5.55rem;
-  grid-template-columns: 3.25rem minmax(0, 1fr);
-  align-items: center;
-  gap: 0.58rem;
-  padding: 0.58rem;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+  align-items: start;
+  gap: 0.5rem;
+  padding: 0 0 0.6rem;
   cursor: pointer;
 }
 
@@ -473,15 +453,14 @@
 
 .artFrame {
   position: relative;
-  display: grid;
-  width: 3.25rem;
-  height: 3.25rem;
-  place-items: center;
+  display: block;
+  width: 100%;
+  height: 8rem;
   overflow: hidden;
-  border: 1px solid rgb(var(--skill-accent) / 34%);
-  border-radius: 0.62rem;
-  background: rgba(0, 0, 0, 0.35);
-  box-shadow: inset 0 0 1.2rem rgb(var(--skill-accent) / 10%);
+  border: 0;
+  border-bottom: 1px solid var(--av-border);
+  border-radius: 0;
+  background: #07121b;
   pointer-events: none;
 }
 
@@ -510,7 +489,8 @@
 .skillCopy {
   display: grid;
   min-width: 0;
-  gap: 0.28rem;
+  gap: 0.4rem;
+  padding: 0.25rem 0.65rem;
 }
 
 .skillCopy > strong {
@@ -616,12 +596,12 @@
 .actions {
   display: flex;
   flex: 0 0 auto;
-  align-items: center;
   justify-content: flex-end;
-  gap: 0.55rem;
-  border-top: 1px solid rgba(184, 177, 163, 0.12);
-  padding: 0.68rem 0.85rem;
-  background: rgba(4, 7, 11, 0.96);
+  align-items: center;
+  gap: 0.7rem;
+  padding: 1rem;
+  border-top: 1px solid var(--av-gold-rule);
+  background: var(--av-moonstone-quiet);
 }
 
 .actionStatus {
@@ -636,12 +616,11 @@
 }
 
 .actions button:last-child {
-  border: 1px solid rgba(105, 207, 148, 0.42);
-  border-radius: 0.58rem;
-  background: linear-gradient(135deg, rgba(50, 135, 88, 0.34), rgba(34, 91, 61, 0.4));
-  padding: 0.52rem 0.78rem;
-  color: #c5ecd3;
-  font-weight: 700;
+  min-height: 2.75rem;
+  border: 1px solid var(--av-teal);
+  color: var(--av-on-primary);
+  background: var(--av-teal);
+  padding: 0.6rem 1rem;
   cursor: pointer;
 }
 
@@ -656,7 +635,7 @@
   border-top: 1px solid rgba(184, 177, 163, 0.09);
   padding: 0.48rem 0.85rem;
   background: rgba(12, 18, 24, 0.98);
-  color: #b9c8c0;
+  color: var(--av-text-muted);
   font-size: 0.67rem;
 }
 
@@ -783,5 +762,95 @@
   .actions {
     gap: 0.5rem;
     padding: 0.75rem;
+  }
+}
+
+@media (max-width: 1000px) {
+  .skillList {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 720px) {
+  .workspace {
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .buildRail {
+    display: block;
+    flex: none;
+    overflow: visible;
+  }
+  .techniqueArea {
+    flex: none;
+    overflow: visible;
+    padding: 0.7rem;
+  }
+  .skillList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
+  }
+  .artFrame {
+    height: 7rem;
+  }
+  .actions {
+    flex-wrap: wrap;
+  }
+  .header {
+    flex-wrap: wrap;
+  }
+}
+.selectedLoadout {
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+}
+.selectedLoadout li {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 7rem;
+  overflow: hidden;
+  border: 1px solid var(--av-gold-rule);
+  border-radius: 0.2rem;
+  background: var(--av-ink-900);
+}
+.selectedLoadout img {
+  display: block;
+  width: 100%;
+  height: 6rem;
+  object-fit: cover;
+}
+.selectedLoadout strong {
+  display: block;
+  padding: 0.5rem;
+  font: 500 0.88rem var(--av-font-display);
+}
+.slotNumber {
+  position: absolute;
+  inset: 0.25rem auto auto 0.25rem;
+  padding: 0.25rem 0.5rem;
+  color: var(--av-parchment-100);
+  background: #07121bd9;
+  font: 500 1.4rem var(--av-font-display);
+}
+.emptySlot {
+  align-self: center;
+  justify-self: center;
+  color: var(--av-text-muted);
+  font-size: 0.75rem;
+}
+.libraryHeading {
+  margin: 0 0 0.65rem;
+  color: var(--av-text);
+  font: 500 1.1rem var(--av-font-display);
+}
+@media (max-width: 720px) {
+  .selectedLoadout {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

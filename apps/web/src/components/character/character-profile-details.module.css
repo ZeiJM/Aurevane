@@ -1,671 +1,259 @@
+.details {
+  min-width: 0;
+}
 .identityFacts {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1px;
-  margin: 0.95rem 0 0.9rem;
-  overflow: hidden;
-  border: 1px solid rgba(207, 169, 93, 0.2);
-  border-radius: var(--av-radius-sm);
-  background: rgba(207, 169, 93, 0.12);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.025),
-    0 0.35rem 1.25rem rgba(0, 0, 0, 0.12);
+  gap: 0.4rem;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid var(--av-border);
 }
-
 .identityFact {
-  display: grid;
-  grid-template-columns: 2rem minmax(0, 1fr);
-  gap: 0.58rem;
+  display: flex;
   align-items: center;
+  gap: 0.4rem;
   min-width: 0;
-  min-height: 3.25rem;
-  padding: 0.52rem 0.68rem;
   border: 0;
-  border-radius: 0;
-  color: inherit;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.026), rgba(255, 255, 255, 0.006)),
-    rgba(8, 12, 18, 0.96);
+  padding: 0.25rem;
+  color: var(--av-text);
+  background: transparent;
   text-align: left;
 }
-
-button.identityFact {
-  cursor: pointer;
-  transition:
-    background 140ms ease,
-    box-shadow 140ms ease;
-}
-
-button.identityFact:hover,
-button.identityFact:focus-visible {
-  outline: none;
-  background:
-    linear-gradient(180deg, rgba(207, 169, 93, 0.09), rgba(207, 169, 93, 0.025)),
-    rgba(8, 12, 18, 0.98);
-  box-shadow: inset 0 0 0 1px rgba(207, 169, 93, 0.3);
-}
-
 .factGlyph {
-  display: grid;
-  width: 1.72rem;
-  height: 1.72rem;
-  place-items: center;
-  border: 1px solid rgba(207, 169, 93, 0.22);
-  border-radius: 50%;
-  color: color-mix(in srgb, var(--av-brass-300) 76%, var(--av-text-dim));
-  background: rgba(207, 169, 93, 0.045);
-  font: 700 0.54rem/1 var(--av-font-mono);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.015);
+  flex: 0 0 1.5rem;
+  height: 1.5rem;
 }
-
+.factIcon,
+.attributeIcon {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
 .factCopy {
   display: grid;
-  gap: 0.24rem;
   min-width: 0;
+  gap: 0.2rem;
 }
-
-button.identityFact .factCopy {
-  justify-items: center;
-  text-align: center;
-}
-
 .factCopy small {
   color: var(--av-text-dim);
-  font: 700 0.46rem/1 var(--av-font-mono);
-  letter-spacing: 0.085em;
-  text-transform: uppercase;
+  font-size: 0.61rem;
 }
-
 .factCopy strong {
-  color: var(--av-text-muted);
-  font: 650 0.62rem/1.2 var(--av-font-mono);
+  font-size: 0.72rem;
   overflow-wrap: anywhere;
 }
-
 .section {
-  padding-top: 0.82rem;
-  border-top: 1px solid rgba(184, 177, 163, 0.15);
+  padding-top: 1rem;
 }
-
-.section + .section {
-  margin-top: 0.92rem;
-}
-
 .sectionHeader {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 1rem;
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  margin-bottom: 0.68rem;
+  justify-content: space-between;
+  gap: 0.45rem;
+  margin-bottom: 0.65rem;
 }
-
 .sectionTitleLine {
-  display: grid;
-  grid-template-columns: auto minmax(2rem, 1fr);
-  gap: 0.72rem;
+  display: flex;
   align-items: center;
-  min-width: 0;
+  gap: 0.65rem;
+  flex: 1;
 }
-
 .sectionTitleLine > span {
+  flex: 1;
   height: 1px;
-  background: linear-gradient(90deg, rgba(207, 169, 93, 0.58), rgba(207, 169, 93, 0.08));
+  background: var(--av-gold-rule);
 }
-
 .section h2 {
   margin: 0;
   color: var(--av-text);
-  font: 500 1.38rem/1 var(--av-font-display);
-  letter-spacing: -0.015em;
-  white-space: nowrap;
+  font: 600 0.94rem var(--av-font-display);
+  letter-spacing: 0.06em;
 }
-
 .sectionHeader > small {
-  color: color-mix(in srgb, var(--av-text-dim) 86%, white);
-  font: 650 0.49rem/1 var(--av-font-mono);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  white-space: normal;
-  text-align: right;
+  color: var(--av-text-dim);
+  font-size: 0.58rem;
 }
-
 .attributeGrid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
-  gap: 0.46rem;
+  gap: 0.4rem;
 }
-
-.attributeGrid button,
-.statGroup button {
-  min-width: 0;
-  border: 1px solid var(--av-border);
-  border-radius: var(--av-radius-sm);
-  color: var(--av-text-muted);
-  cursor: pointer;
-  transition:
-    border-color 140ms ease,
-    box-shadow 140ms ease,
-    filter 140ms ease,
-    transform 140ms ease;
-}
-
 .attributeGrid button {
-  position: relative;
   display: grid;
-  grid-template-columns: 2.25rem minmax(0, 1fr);
-  gap: 0.52rem;
-  align-items: center;
-  min-height: 4.7rem;
-  padding: 0.58rem 0.62rem;
-  overflow: hidden;
-  border-color: color-mix(in srgb, var(--attribute-color) 48%, var(--av-border));
-  background:
-    radial-gradient(115% 150% at 12% 48%, var(--attribute-tint) 0%, transparent 52%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.025), rgba(7, 10, 15, 0.97));
-  box-shadow:
-    inset 0 2px 0 color-mix(in srgb, var(--attribute-color) 78%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.035),
-    0 0.35rem 1rem rgba(0, 0, 0, 0.13);
-  text-align: left;
-}
-
-.attributeGrid button::before {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(118deg, rgba(255, 255, 255, 0.04), transparent 34%);
-  content: '';
-}
-
-.attributeGrid button::after {
-  position: absolute;
-  right: 12%;
-  bottom: 0;
-  left: 12%;
-  height: 2px;
-  background: color-mix(in srgb, var(--attribute-color) 58%, transparent);
-  content: '';
-}
-
-.attributeGlyph {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  width: 2.05rem;
-  height: 2.05rem;
-  place-items: center;
-  border: 1px solid color-mix(in srgb, var(--attribute-color) 36%, transparent);
-  border-radius: 50%;
-  color: var(--attribute-color);
-  background: color-mix(in srgb, var(--attribute-color) 11%, rgba(5, 8, 12, 0.8));
-  font: 700 0.68rem/1 var(--av-font-mono);
-  text-shadow: 0 0 0.75rem color-mix(in srgb, var(--attribute-color) 34%, transparent);
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.02),
-    0 0 1rem color-mix(in srgb, var(--attribute-color) 9%, transparent);
-}
-
-.attributeCopy {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  gap: 0.22rem;
+  justify-items: center;
+  gap: 0.4rem;
   min-width: 0;
-  align-content: center;
+  min-height: 6rem;
+  padding: 0.6rem 0.15rem;
+  border: 1px solid var(--av-border);
+  border-radius: 0.25rem;
+  color: var(--av-text);
+  background: linear-gradient(145deg, #ffffff88, #e8e5df77);
+  cursor: pointer;
 }
-
-.attributeLabel,
-.statLabel {
-  color: color-mix(in srgb, var(--av-text-muted) 88%, var(--av-text-dim));
-  font: 650 0.51rem/1.05 var(--av-font-mono);
+.attributeGlyph {
+  width: 1.9rem;
+  height: 1.9rem;
 }
-
+.attributeCopy {
+  display: grid;
+  gap: 0.3rem;
+  text-align: center;
+}
+.attributeLabel {
+  font: 500 0.75rem var(--av-font-display);
+}
 .attributeCopy strong {
-  color: var(--attribute-color, var(--av-brass-300));
-  font: 500 1.28rem/1 var(--av-font-display);
-  text-shadow: 0 0 0.78rem color-mix(in srgb, var(--attribute-color) 27%, transparent);
+  color: color-mix(in srgb, var(--attribute-color) 55%, #172331);
+  font: 500 1.55rem var(--av-font-display);
 }
-
-.attributeGrid button:hover,
-.attributeGrid button:focus-visible,
-.statGroup button:hover,
-.statGroup button:focus-visible {
-  outline: none;
-  filter: brightness(1.08);
-  transform: translateY(-1px);
-}
-
-.attributeGrid button:hover,
-.attributeGrid button:focus-visible {
-  border-color: color-mix(in srgb, var(--attribute-color) 82%, white 5%);
-  box-shadow:
-    inset 0 2px 0 var(--attribute-color),
-    0 0 0 1px color-mix(in srgb, var(--attribute-color) 13%, transparent),
-    0 0.5rem 1.35rem rgba(0, 0, 0, 0.18);
-}
-
 .statGroups {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.62rem;
+  gap: 1rem 0.6rem;
 }
-
 .statGroup {
   min-width: 0;
-  padding: 0.72rem;
-  border: 1px solid rgba(184, 177, 163, 0.17);
-  border-radius: var(--av-radius-sm);
-  background:
-    radial-gradient(120% 100% at 0 0, rgba(207, 169, 93, 0.035), transparent 58%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.018), rgba(255, 255, 255, 0.004)),
-    rgba(5, 8, 12, 0.6);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.02),
-    0 0.45rem 1.25rem rgba(0, 0, 0, 0.11);
 }
-
+.statGroup[data-profile-stat-group='vitals'],
+.statGroup[data-profile-stat-group='tempo'] {
+  grid-column: 1/-1;
+}
 .statGroup h3 {
   display: flex;
-  gap: 0.46rem;
   align-items: center;
+  gap: 0.4rem;
   margin: 0 0 0.5rem;
-  color: var(--av-brass-300);
-  font: 700 0.55rem/1 var(--av-font-mono);
-  letter-spacing: 0.075em;
-  text-transform: uppercase;
+  color: var(--av-text);
+  font: 600 0.8rem var(--av-font-display);
+  letter-spacing: 0.045em;
 }
-
+.statGroup h3::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--av-gold-rule);
+}
 .groupGlyph {
-  display: grid;
-  width: 1rem;
-  height: 1rem;
-  place-items: center;
-  border: 1px solid rgba(207, 169, 93, 0.45);
-  border-radius: 50%;
-  color: var(--av-brass-200);
-  background: rgba(207, 169, 93, 0.045);
-  font-size: 0.52rem;
-  line-height: 1;
+  color: #807052;
 }
-
 .statGroup > div {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.38rem;
+  gap: 0.4rem;
 }
-
+.statGroup[data-profile-stat-group='tempo'] > div {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
 .statGroup button {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.24rem 0.48rem;
-  align-items: center;
-  min-height: 3.12rem;
-  padding: 0.54rem 0.6rem 0.88rem;
-  overflow: hidden;
-  border-color: color-mix(in srgb, var(--lineage-border) 36%, var(--av-border));
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0) 68%),
-    linear-gradient(90deg, rgba(5, 8, 12, 0.1), rgba(5, 8, 12, 0.38)),
-    var(--lineage-background, #080b10);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.035),
-    0 0.25rem 0.8rem rgba(0, 0, 0, 0.09);
-  text-align: left;
-}
-
-.statGroup button::after {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(112deg, rgba(255, 255, 255, 0.028), transparent 36%);
-  content: '';
-}
-
-.statGroup button:hover,
-.statGroup button:focus-visible {
-  border-color: color-mix(in srgb, var(--lineage-border) 74%, var(--av-border));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 0 0 1px color-mix(in srgb, var(--lineage-border) 11%, transparent),
-    0 0.4rem 1rem rgba(0, 0, 0, 0.13);
-}
-
-.statLabel {
-  position: relative;
-  z-index: 1;
+  gap: 0.25rem;
   min-width: 0;
-  line-height: 1.15;
-}
-
-.statGroup button strong {
-  position: relative;
-  z-index: 1;
+  min-height: 3.55rem;
+  padding: 0.6rem 0.6rem 0.8rem;
+  overflow: hidden;
+  border: 1px solid var(--av-border);
+  border-radius: 0.25rem;
   color: var(--av-text);
-  font: 750 0.69rem/1 var(--av-font-mono);
-  letter-spacing: -0.015em;
+  background: linear-gradient(145deg, #ffffff88, #e8e5df77);
+  text-align: left;
+  cursor: pointer;
 }
-
+.statLabel {
+  font-size: 0.67rem;
+  line-height: 1.25;
+}
+.statGroup button strong {
+  font: 600 1.05rem var(--av-font-display);
+}
 .lineage {
   position: absolute;
-  z-index: 2;
-  right: 0.55rem;
-  bottom: 0.53rem;
+  right: 0.4rem;
+  bottom: 0.4rem;
   display: flex;
-  gap: 0.16rem;
-  align-items: center;
+  gap: 0.15rem;
 }
-
 .lineage i {
-  display: block;
-  width: 0.29rem;
-  height: 0.29rem;
-  border: 1px solid rgba(255, 255, 255, 0.38);
+  width: 0.25rem;
+  height: 0.25rem;
   border-radius: 50%;
   background: var(--source-color);
-  box-shadow: 0 0 0.5rem color-mix(in srgb, var(--source-color) 52%, transparent);
 }
-
 .lineageRail {
   position: absolute;
-  z-index: 2;
-  right: 0.55rem;
-  bottom: 0.21rem;
-  left: 0.55rem;
   display: flex;
-  height: 0.19rem;
-  min-height: 3px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.54);
-  box-shadow:
-    0 0 0 1px rgba(255, 255, 255, 0.07),
-    0 1px 0 rgba(0, 0, 0, 0.75);
+  bottom: 0;
+  inset-inline: 0;
+  height: 2px;
+  opacity: 0.7;
 }
-
 .lineageRail i {
-  display: block;
-  min-width: 2px;
   background: var(--source-color);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.42);
-  filter: saturate(1.2) brightness(1.12);
 }
-
-.lineageRail i + i {
-  border-left: 1px solid rgba(4, 6, 9, 0.72);
+.details button:focus-visible {
+  outline: 2px solid var(--av-focus);
+  outline-offset: 2px;
 }
-
+.details button:hover {
+  border-color: var(--av-teal);
+}
 .backdrop {
   position: fixed;
   inset: 0;
   z-index: 10000;
   display: grid;
-  place-items: start center;
-  padding: max(4.4rem, env(safe-area-inset-top)) 1rem 1rem;
-  background: rgba(1, 3, 6, 0.28);
-  backdrop-filter: blur(2px);
+  place-items: center;
+  padding: 1rem;
+  background: #04101bbb;
 }
-
 .dialog {
-  width: min(27rem, 100%);
-  padding: 0.9rem;
-  border: 1px solid rgba(207, 169, 93, 0.62);
-  border-radius: var(--av-radius-md);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent 35%), rgba(11, 16, 23, 0.99);
-  box-shadow: 0 1rem 2.8rem rgba(0, 0, 0, 0.64);
-}
-
-.dialog > span {
-  color: var(--av-brass-300);
-  font: 700 0.48rem/1 var(--av-font-mono);
-  letter-spacing: 0.065em;
-  text-transform: uppercase;
-}
-
-.dialog h2 {
-  margin: 0.3rem 0 0.45rem;
-  font: 500 1.35rem/1 var(--av-font-display);
-}
-
-.dialog p {
-  margin: 0;
-  color: var(--av-text-muted);
-  font-size: 0.68rem;
-  line-height: 1.5;
-}
-
-.dialog button {
-  display: block;
-  min-height: 1.9rem;
-  margin: 0.7rem 0 0 auto;
-  padding: 0.35rem 0.65rem;
-  border: 1px solid var(--av-border-strong);
-  border-radius: var(--av-radius-sm);
+  width: min(28rem, 100%);
+  padding: 1.5rem;
+  border: 1px solid var(--av-gold-rule);
+  background: var(--av-moonstone);
   color: var(--av-text);
-  background: rgba(255, 255, 255, 0.035);
-  cursor: pointer;
+  box-shadow: var(--av-shadow-deep);
 }
-
-@media (max-height: 800px) and (min-width: 761px) {
-  .identityFacts {
-    margin: 0.62rem 0 0.64rem;
-  }
-
-  .identityFact {
-    min-height: 2.8rem;
-    padding-block: 0.42rem;
-  }
-
-  .section {
-    padding-top: 0.62rem;
-  }
-
-  .section + .section {
-    margin-top: 0.65rem;
-  }
-
-  .sectionHeader {
-    margin-bottom: 0.48rem;
-  }
-
-  .section h2 {
-    font-size: 1.18rem;
-  }
-
-  .attributeGrid button {
-    min-height: 3.85rem;
-    padding: 0.44rem 0.5rem;
-  }
-
-  .attributeGlyph {
-    width: 1.72rem;
-    height: 1.72rem;
-  }
-
-  .attributeCopy strong {
-    font-size: 1.08rem;
-  }
-
-  .statGroups {
-    gap: 0.46rem;
-  }
-
-  .statGroup {
-    padding: 0.54rem;
-  }
-
-  .statGroup h3 {
-    margin-bottom: 0.34rem;
-  }
-
-  .statGroup button {
-    min-height: 2.52rem;
-    padding: 0.38rem 0.46rem 0.72rem;
-  }
-
-  .lineage {
-    right: 0.44rem;
-    bottom: 0.43rem;
-  }
-
-  .lineageRail {
-    right: 0.44rem;
-    bottom: 0.16rem;
-    left: 0.44rem;
-  }
+.dialog > span {
+  color: var(--av-text-muted);
+  font-size: 0.75rem;
 }
-
-@media (max-width: 760px) {
-  .identityFacts {
-    margin: 0.55rem 0 0.58rem;
-  }
-
-  .identityFact {
-    grid-template-columns: 1.55rem minmax(0, 1fr);
-    gap: 0.4rem;
-    min-height: 2.8rem;
-    padding: 0.42rem 0.46rem;
-  }
-
-  .factGlyph {
-    width: 1.35rem;
-    height: 1.35rem;
-    font-size: 0.45rem;
-  }
-
-  .factCopy small {
-    font-size: 0.4rem;
-  }
-
-  .factCopy strong {
-    font-size: 0.54rem;
-  }
-
-  .section {
-    padding-top: 0.58rem;
-  }
-
-  .section + .section {
-    margin-top: 0.62rem;
-  }
-
-  .sectionHeader {
-    grid-template-columns: 1fr;
-    gap: 0.28rem;
-    margin-bottom: 0.46rem;
-  }
-
-  .sectionTitleLine {
-    gap: 0.5rem;
-  }
-
-  .section h2 {
-    font-size: 1.08rem;
-  }
-
-  .sectionHeader > small {
-    display: none;
-  }
-
+.dialog h2 {
+  font: 500 1.8rem var(--av-font-display);
+  margin: 0.5rem 0;
+}
+.dialog p {
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+.dialog button {
+  min-height: 2.75rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--av-teal);
+  color: var(--av-on-primary);
+  background: var(--av-teal);
+}
+@media (max-width: 420px) {
   .attributeGrid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 0.28rem;
   }
-
-  .attributeGrid button {
-    grid-template-columns: 1.7rem minmax(0, 1fr);
-    gap: 0.34rem;
-    min-height: 3.35rem;
-    padding: 0.34rem 0.38rem;
-  }
-
-  .attributeGlyph {
-    width: 1.5rem;
-    height: 1.5rem;
-    font-size: 0.5rem;
-  }
-
-  .attributeLabel {
-    font-size: 0.43rem;
-  }
-
-  .attributeCopy strong {
-    font-size: 0.92rem;
-  }
-
-  .statGroups {
-    grid-template-columns: 1fr;
-    gap: 0.36rem;
-  }
-
-  .statGroup {
-    padding: 0.48rem;
-  }
-
-  .statGroup h3 {
-    margin-bottom: 0.32rem;
-    font-size: 0.46rem;
-  }
-
-  .statGroup > div {
-    gap: 0.24rem;
-  }
-
-  .statGroup button {
-    min-height: 2.55rem;
-    padding: 0.38rem 0.42rem 0.72rem;
-  }
-
-  .statLabel {
-    font-size: 0.43rem;
-  }
-
-  .statGroup button strong {
-    font-size: 0.59rem;
-  }
-
-  .lineage {
-    right: 0.38rem;
-    bottom: 0.44rem;
-  }
-
-  .lineage i {
-    width: 0.24rem;
-    height: 0.24rem;
-  }
-
-  .lineageRail {
-    right: 0.38rem;
-    bottom: 0.17rem;
-    left: 0.38rem;
-  }
-}
-
-@media (max-width: 520px) {
   .identityFacts {
-    grid-template-columns: 1fr;
-    gap: 1px;
+    gap: 0.2rem;
   }
-
   .identityFact {
-    min-height: 2.45rem;
+    flex-direction: column;
+    align-items: start;
   }
-
-  .attributeGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.24rem;
+  .factGlyph {
+    display: none;
   }
-
-  .attributeGrid button {
-    min-height: 3.2rem;
+  .statGroups {
+    grid-template-columns: minmax(0, 1fr);
   }
-
-  .statGroup > div {
-    grid-template-columns: 1fr;
-  }
-
-  .statGroup button {
-    min-height: 2.4rem;
+  .statGroup[data-profile-stat-group] {
+    grid-column: auto;
   }
 }

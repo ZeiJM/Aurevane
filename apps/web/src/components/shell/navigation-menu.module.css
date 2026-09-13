@@ -8,15 +8,15 @@
   display: inline-flex;
   gap: 0.45rem;
   align-items: center;
-  min-height: 2.5rem;
+  min-height: 2.75rem;
   padding: 0.6rem 0.85rem;
   border: 1px solid var(--av-border-strong);
   border-radius: var(--av-radius-sm);
   background: rgba(255, 255, 255, 0.025);
   color: var(--av-text-muted);
-  font: 700 0.55rem/1 var(--av-font-mono);
+  font: 600 0.8rem/1.2 var(--av-font-body);
   letter-spacing: 0.055em;
-  text-transform: uppercase;
+  text-transform: none;
   cursor: pointer;
 }
 
@@ -87,14 +87,14 @@
 }
 
 .menu strong {
-  font: 700 0.6rem/1 var(--av-font-mono);
+  font: 600 0.8rem/1.2 var(--av-font-body);
   letter-spacing: 0.045em;
-  text-transform: uppercase;
+  text-transform: none;
 }
 
 .menu small {
   color: var(--av-text-dim);
-  font-size: 0.55rem;
+  font-size: 0.75rem;
   line-height: 1.25;
 }
 
@@ -112,9 +112,9 @@
 
 @media (max-width: 560px) {
   .trigger {
-    min-height: 2.35rem;
+    min-height: 2.75rem;
     padding: 0.5rem 0.65rem;
-    font-size: 0.5rem;
+    font-size: 0.75rem;
   }
 
   .menu {
