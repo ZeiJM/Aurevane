@@ -61,6 +61,8 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
     ].map((label) => ({
       label: label.getBoundingClientRect().toJSON(),
       bar: label.parentElement!.getBoundingClientRect().toJSON(),
+      fill: label.parentElement!.querySelector('i')!.getBoundingClientRect().toJSON(),
+      font: parseFloat(getComputedStyle(label).fontSize),
     }))
     return {
       expectedBoard: { width: expectedScale * fit[0]!, height: expectedScale * fit[1]! },
@@ -107,6 +109,7 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
   expect(geometry.deck.right).toBeLessThanOrEqual(geometry.flow.x)
   expect(Math.abs(geometry.deck.y - geometry.flow.y)).toBeLessThanOrEqual(1)
   expect(Math.abs(geometry.deck.bottom - geometry.flow.bottom)).toBeLessThanOrEqual(1)
+  expect(Math.abs(geometry.deck.width - geometry.flow.width)).toBeLessThanOrEqual(1)
   expect(geometry.deck.y).toBeGreaterThanOrEqual(geometry.battlefield.bottom - 1)
   expect(geometry.instructions.y).toBeGreaterThanOrEqual(
     Math.max(...geometry.cards.map((card) => card.bottom)),
@@ -132,7 +135,10 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
     expect(token.height).toBeLessThanOrEqual(tile.height * 0.75)
   }
   expect(geometry.railMeters.length).toBeGreaterThanOrEqual(4)
-  for (const { label, bar } of geometry.railMeters) {
+  for (const { label, bar, fill, font } of geometry.railMeters) {
+    expect(fill.height, 'Portrait meters must use a slim fill line.').toBeLessThanOrEqual(2)
+    expect(bar.height).toBeLessThanOrEqual(11)
+    expect(font, 'Portrait values must stay readable.').toBeGreaterThanOrEqual(8)
     expect(label.x).toBeGreaterThanOrEqual(bar.x - 1)
     expect(label.right).toBeLessThanOrEqual(bar.right + 1)
     expect(label.y).toBeGreaterThanOrEqual(bar.y - 1)
@@ -233,9 +239,19 @@ export async function expectBattlePreviewFits(page: Page) {
         )
       })
       .map((child) => ({ text: child.textContent, rect: child.getBoundingClientRect().toJSON() }))
-    return { host, items }
+    const title = element.querySelector('[data-battle-instruction-title]')?.getBoundingClientRect()
+    const firstChip = element
+      .querySelector('[data-react-battle-preview] > [data-battle-preview-chip]')
+      ?.getBoundingClientRect()
+    return { host, items, previewIndent: title && firstChip ? firstChip.left - title.left : null }
   })
   expect(geometry.items.length).toBeGreaterThan(0)
+  if (geometry.previewIndent !== null) {
+    expect(
+      Math.abs(geometry.previewIndent),
+      'Preview tags must align under the skill name.',
+    ).toBeLessThanOrEqual(1)
+  }
   for (const { text, rect } of geometry.items) {
     expect(rect.top, `${text} must remain inside the instruction row`).toBeGreaterThanOrEqual(
       geometry.host.top - 1,
