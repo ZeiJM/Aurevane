@@ -34,7 +34,7 @@ async function expectStableCompactDesktopCockpit(page: Page) {
   expect(Math.min(...before)).toBeGreaterThanOrEqual(92)
   expect(Math.max(...before)).toBeLessThanOrEqual(160)
 
-  await deck.getByRole('button', { name: /Move/ }).click()
+  await deck.getByRole('button', { name: /^Move,/ }).click()
   await expect(facingPad).toBeHidden()
 
   const after = await commands.evaluateAll((cards) =>
@@ -150,7 +150,7 @@ test('mobile Finish Turn opens battlefield facing guides and commits a double-ta
 
   const deck = page.locator('section[aria-label="Command Deck"]')
   const facingPad = deck.locator('[data-unified-facing-pad="true"]')
-  const finishTurn = deck.getByRole('button', { name: /Finish Turn/ })
+  const finishTurn = deck.getByRole('button', { name: /^Finish Turn,/ })
   const facingGuides = page.locator('#battlefield button[data-facing-guide="true"]')
   const tokenArrows = page.locator('#battlefield [data-battle-facing-indicator="true"]')
 
@@ -230,7 +230,7 @@ test('mobile double-tap Finish Turn keeps the current facing as a shortcut', asy
 
   const finishTurn = page
     .locator('section[aria-label="Command Deck"]')
-    .getByRole('button', { name: /Finish Turn/ })
+    .getByRole('button', { name: /^Finish Turn,/ })
   const finalTurnResponse = page.waitForResponse(
     (response) =>
       response.request().method() === 'POST' &&

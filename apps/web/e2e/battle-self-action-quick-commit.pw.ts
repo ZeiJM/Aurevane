@@ -166,7 +166,7 @@ test('previews Guard on the first shortcut press and commits it only on a second
 
   const root = await enterGuidedBattle(page)
   const deck = root.getByRole('region', { name: 'Command Deck' })
-  const guard = deck.getByRole('button', { name: /Guard/ })
+  const guard = deck.getByRole('button', { name: /^Guard,/ })
   const confirm = root.getByRole('button', { name: 'Confirm Action' })
   const economy = root.getByRole('progressbar', { name: 'Action Economy remaining' })
 

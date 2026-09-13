@@ -107,7 +107,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
     'aria-valuenow',
     '100',
   )
-  await expect(commandDeck.getByRole('button', { name: /Move/ })).toContainText('M · WASD')
+  await expect(commandDeck.getByRole('button', { name: /^Move,/ })).toContainText('M · WASD')
   await expect(commandDeck.locator('button[data-battle-command="attack"]')).toContainText('3')
   await expect(commandDeck.locator('button[data-battle-command="guard"]')).toContainText('4')
   await expect(commandDeck.locator('button[data-battle-command="recover"]')).toContainText('5')
@@ -129,7 +129,7 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   await expect(commandContext).toContainText('80 AP left')
   await page.getByRole('button', { name: 'Cancel Action' }).click()
 
-  await commandDeck.getByRole('button', { name: /Inspect/ }).click()
+  await commandDeck.getByRole('button', { name: /^Inspect,/ }).click()
   await expect(commandContext).toContainText('Review terrain and unit details')
   await page.getByRole('button', { name: /Tile 4, 3; rough-ground; elevation 0/ }).click()
   await expect(commandContext).toContainText('Rough ground')

@@ -120,7 +120,7 @@ async function selectMoveAndVerifySharedTreatment(root: ReturnType<Page['locator
   const battlefield = root.locator('#battlefield')
   const move = root
     .getByRole('region', { name: 'Command Deck' })
-    .getByRole('button', { name: /Move/ })
+    .getByRole('button', { name: /^Move,/ })
   await move.click()
   await expect(root).toHaveAttribute('data-battle-action-mode', 'move')
 
@@ -181,7 +181,6 @@ async function expectDesktopCombatantCard(root: ReturnType<Page['locator']>) {
     const cardRect = element.getBoundingClientRect()
     const headingRect = heading.getBoundingClientRect()
     const portraitRect = portrait.getBoundingClientRect()
-    const resourceRect = portrait.nextElementSibling!.getBoundingClientRect()
     const effectsRect = element.lastElementChild!.getBoundingClientRect()
     return {
       cardLeft: cardRect.left,
@@ -192,13 +191,12 @@ async function expectDesktopCombatantCard(root: ReturnType<Page['locator']>) {
       portraitRight: portraitRect.right,
       portraitTop: portraitRect.top,
       portraitBottom: portraitRect.bottom,
-      resourceTop: resourceRect.top,
       effectsBottom: effectsRect.bottom,
     }
   })
   expect(Math.abs(geometry.portraitLeft - geometry.cardLeft)).toBeLessThanOrEqual(2)
   expect(Math.abs(geometry.portraitRight - geometry.cardRight)).toBeLessThanOrEqual(2)
-  expect(Math.abs(geometry.portraitBottom - geometry.resourceTop)).toBeLessThanOrEqual(2)
+  await expect(card.locator('button[data-desktop-inspect-combatant]')).toContainText(/HP.*MP/s)
   expect(Math.abs(geometry.effectsBottom - geometry.cardBottom)).toBeLessThanOrEqual(2)
   await expect(card).toContainText(/HP.*MP/s)
   await expect(card.getByRole('region', { name: /active combat effects/ })).toBeVisible()
@@ -233,8 +231,9 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
 
   const context = root.getByRole('region', { name: 'Command Deck' })
   await expect(root.locator('[data-ai-turn-clock="true"]')).toHaveText(/^\d+s$/)
-  await context.getByRole('button', { name: /Guard/ }).click()
-  const preview = context.locator('[data-battle-target-preview="true"]:visible').last()
+  await context.getByRole('button', { name: /^Guard,/ }).click()
+  const preview = context.locator('[data-react-battle-preview="true"]:visible')
+  await expect(context.locator('[aria-label="Action preview"]')).toHaveCount(1)
   await expect(preview).toContainText('Success 100%')
   await expect(preview).toContainText(/Guarded/i)
 

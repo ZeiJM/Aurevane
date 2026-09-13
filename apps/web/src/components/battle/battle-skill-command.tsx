@@ -200,22 +200,20 @@ export function BattleSkillCommand({
         </span>
         <strong>{label}</strong>
         <small>{cost}</small>
-        {
-          <span
-            className={`${styles.artwork} ${artworkFitStyles.frame}`}
-            data-battle-command-artwork="static"
-            aria-hidden="true"
-          >
-            <Image
-              width={64}
-              height={64}
-              unoptimized
-              src={artworkSrc}
-              alt=""
-              onError={fallbackBrokenArtwork}
-            />
-          </span>
-        }
+        <span
+          className={`${styles.artwork} ${artworkFitStyles.frame}`}
+          data-battle-command-artwork="static"
+          aria-hidden="true"
+        >
+          <Image
+            width={64}
+            height={64}
+            unoptimized
+            src={artworkSrc}
+            alt=""
+            onError={fallbackBrokenArtwork}
+          />
+        </span>
       </button>
 
       <BattleInfoPopover
@@ -239,7 +237,9 @@ export function BattleSkillCommand({
               ? 'Select a character or tile to inspect it for free.'
               : slot === 'move'
                 ? 'Select reachable tiles to preview your path and its AP cost.'
-                : 'Choose your final facing on the map, then finish your turn.'}
+                : slot === 'finish'
+                  ? 'Choose your final facing on the map, then finish your turn.'
+                  : 'Select a target to preview the result and AP cost before confirming.'}
           </p>
         )}
         {tags.length > 0 ? (
