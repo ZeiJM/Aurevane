@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
+import { expectBattlePreviewFits } from './battle-reference-layout-helpers'
 
 const SHARED_HEADER =
   /^(Steel is drawn\. The battle is underway\.|Stand fast\. The field belongs to the resolute\.|Hold your nerve\. One clear move can turn the tide\.|Press forward\. Fortune follows the decisive\.|Every step has weight\. Make this one count\.)$/
@@ -248,6 +249,11 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
       .evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
   ).toBeGreaterThanOrEqual(12)
   await expect(preview).toContainText(/Guarded/i)
+  await expectBattlePreviewFits(page)
+  await testInfo.attach('combat-guard-forecast', {
+    body: await page.screenshot({ path: testInfo.outputPath('combat-guard-forecast.png') }),
+    contentType: 'image/png',
+  })
 
   await root.getByRole('button', { name: 'Cancel Action' }).click()
   await selectMoveAndVerifySharedTreatment(root)
@@ -270,6 +276,28 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
   } else {
     await expectDesktopCombatantCard(root)
     await plotOneDesktopWasdStep(page, root, identity.characterName)
+    await root.getByRole('button', { name: 'Cancel Action' }).click()
+    await context.getByRole('button', { name: /^Guard,/ }).click()
+    await root.getByRole('button', { name: 'Confirm Action', exact: true }).click()
+    const flow = root.getByRole('region', { name: 'Battle flow', exact: true })
+    await expect(flow.getByTestId('battle-log-feed')).toContainText('Guard')
+    const flowBounds = await flow.evaluate((element) => {
+      const feed = element.querySelector<HTMLElement>('[data-testid="battle-log-feed"]')!
+      return {
+        bottom: element.getBoundingClientRect().bottom,
+        feedBottom: feed.getBoundingClientRect().bottom,
+        height: feed.clientHeight,
+        scrollHeight: feed.scrollHeight,
+      }
+    })
+    expect(flowBounds.feedBottom).toBeLessThanOrEqual(flowBounds.bottom + 1)
+    expect(flowBounds.scrollHeight).toBeLessThanOrEqual(flowBounds.height + 1)
+    await testInfo.attach('combat-populated-command-dock', {
+      body: await page.screenshot({
+        path: testInfo.outputPath('combat-populated-command-dock.png'),
+      }),
+      contentType: 'image/png',
+    })
   }
 })
 

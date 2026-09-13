@@ -1,4 +1,8 @@
 import { expect, test } from '@playwright/test'
+import {
+  BATTLE_MISSING_ARTWORK,
+  battleSkillArtwork,
+} from '../src/components/battle/battle-skill-presentation'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 // Keep the screenshots and interaction trace when this release gate passes, too.
@@ -39,7 +43,13 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
   const list = page.getByTestId('learned-skill-list')
   await expect(list.locator('article')).toHaveCount(8)
   await expect(page.getByTestId('active-essence')).toHaveText('Hundredfold Rush')
-  const essenceArtwork = dialog.locator('img[src*="ironfist-256-v01.webp"]').first()
+  const essenceArtwork = dialog
+    .locator('article')
+    .filter({ has: page.getByTestId('active-essence') })
+    .locator('img')
+  const expectedEssenceArtwork = battleSkillArtwork('essence.ironfist.hundredfold-rush')
+  expect(expectedEssenceArtwork).not.toBe(BATTLE_MISSING_ARTWORK)
+  await expect(essenceArtwork).toHaveAttribute('src', expectedEssenceArtwork)
   await expect(essenceArtwork).toBeVisible()
   await expect
     .poll(() => essenceArtwork.evaluate((image: HTMLImageElement) => image.naturalWidth))
@@ -248,9 +258,13 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   const list = page.getByTestId('learned-skill-list')
   await expect(list.locator('article')).toHaveCount(8)
   await expect(page.getByTestId('active-essence')).toHaveText('Last Bastion')
-  const essenceArt = page
-    .locator('img[src="/media/art/disciplines/phase4/bastion-256-v01.webp"]')
-    .first()
+  const essenceArt = dialog
+    .locator('article')
+    .filter({ has: page.getByTestId('active-essence') })
+    .locator('img')
+  const expectedEssenceArtwork = battleSkillArtwork('essence.bastion.last-bastion')
+  expect(expectedEssenceArtwork).not.toBe(BATTLE_MISSING_ARTWORK)
+  await expect(essenceArt).toHaveAttribute('src', expectedEssenceArtwork)
   await expect(essenceArt).toBeVisible()
   await expect
     .poll(() =>
@@ -387,7 +401,13 @@ test('Chronist provisions its full testing library, Essence artwork and explicit
   const list = page.getByTestId('learned-skill-list')
   await expect(list.locator('article')).toHaveCount(8)
   await expect(page.getByTestId('active-essence')).toHaveText('Borrowed Hour')
-  const artwork = dialog.locator('img[src*="chronist-256-v01.webp"]').first()
+  const artwork = dialog
+    .locator('article')
+    .filter({ has: page.getByTestId('active-essence') })
+    .locator('img')
+  const expectedEssenceArtwork = battleSkillArtwork('essence.chronist.borrowed-hour')
+  expect(expectedEssenceArtwork).not.toBe(BATTLE_MISSING_ARTWORK)
+  await expect(artwork).toHaveAttribute('src', expectedEssenceArtwork)
   await expect(artwork).toBeVisible()
   await expect
     .poll(() => artwork.evaluate((image: HTMLImageElement) => image.naturalWidth))

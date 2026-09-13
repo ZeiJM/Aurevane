@@ -9,7 +9,7 @@
   margin: 0 !important;
   overflow: visible;
   color: var(--av-text-muted);
-  font: 500 0.6875rem/1.25 var(--av-font-body);
+  font: 500 0.75rem/1.25 var(--av-font-body);
 }
 :global(main[data-unified-battle='true'][data-battle-kind][data-battle-layout])
   .preview[data-react-battle-preview]
@@ -18,7 +18,7 @@
   flex: none;
   min-height: 1.1rem !important;
   padding: 0.1rem 0.3rem !important;
-  font: 600 0.6875rem/1.2 var(--av-font-body) !important;
+  font: 600 0.75rem/1.2 var(--av-font-body) !important;
   letter-spacing: 0;
 }
 .preview > button {
