@@ -634,13 +634,17 @@
       0 -0.12rem 0 rgba(218, 197, 145, 0.13) !important;
   }
 
-  :global([data-pvp-desktop-content='true'] button[aria-label^='Tile '] > span:first-child) {
+  :global(
+    [data-pvp-desktop-content='true'] button[aria-label^='Tile '] > span[data-tile-coordinate]
+  ) {
     display: flex;
     gap: 0.18rem;
     color: rgba(225, 231, 235, 0.45) !important;
   }
 
-  :global([data-pvp-desktop-content='true'] button[aria-label^='Tile '] > span:first-child b) {
+  :global(
+    [data-pvp-desktop-content='true'] button[aria-label^='Tile '] > span[data-tile-coordinate] b
+  ) {
     color: rgba(226, 195, 125, 0.75);
     font-weight: 700;
   }

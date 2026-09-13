@@ -17,7 +17,48 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
     const viewport = board.parentElement!.getBoundingClientRect()
     const lastTile = board.querySelector('button:last-child')!.getBoundingClientRect()
     const cards = [...element.querySelectorAll<HTMLElement>('[data-command-card]')]
+    const viewportStyle = getComputedStyle(board.parentElement!)
+    const fit = board.getAttribute('data-board-auto-fit')!.split('x').map(Number)
+    const availableWidth =
+      board.parentElement!.clientWidth -
+      parseFloat(viewportStyle.paddingLeft) -
+      parseFloat(viewportStyle.paddingRight)
+    const availableHeight =
+      board.parentElement!.clientHeight -
+      parseFloat(viewportStyle.paddingTop) -
+      parseFloat(viewportStyle.paddingBottom)
+    const expectedScale = Math.min(availableWidth / fit[0]!, availableHeight / fit[1]!)
+    const tokens = [...board.querySelectorAll<HTMLElement>('[data-battle-shared-token]')].map(
+      (token) => ({
+        token: token.getBoundingClientRect().toJSON(),
+        tile: token.parentElement!.getBoundingClientRect().toJSON(),
+      }),
+    )
+    const railMeters = [
+      ...element.querySelectorAll<HTMLElement>(
+        '[data-unified-combatant-rail] button > div > span > b',
+      ),
+    ].map((label) => ({
+      label: label.getBoundingClientRect().toJSON(),
+      bar: label.parentElement!.getBoundingClientRect().toJSON(),
+    }))
     return {
+      expectedBoard: { width: expectedScale * fit[0]!, height: expectedScale * fit[1]! },
+      board: boardRect.toJSON(),
+      tokens,
+      railMeters,
+      key: rect('[aria-label="Map Key"]'),
+      victory: rect('[aria-label="Victory Conditions"]'),
+      header: rect(':scope > header'),
+      flowFeed: (() => {
+        const feed = element.querySelector<HTMLElement>('[data-compact-flow]')!
+        return {
+          height: feed.clientHeight,
+          scrollHeight: feed.scrollHeight,
+          width: feed.clientWidth,
+          scrollWidth: feed.scrollWidth,
+        }
+      })(),
       battlefield: rect('#battlefield'),
       deck: rect('[data-unified-command-deck]'),
       flow: rect('[data-battle-flow]'),
@@ -46,6 +87,30 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
   expect(geometry.deck.y).toBeGreaterThanOrEqual(geometry.battlefield.bottom - 1)
   expect(geometry.flow.y).toBeGreaterThanOrEqual(geometry.deck.bottom - 1)
   expect(geometry.flow.bottom).toBeLessThanOrEqual(geometry.footer.y + 1)
+  expect(Math.abs(geometry.board.width - geometry.expectedBoard.width)).toBeLessThanOrEqual(3)
+  expect(Math.abs(geometry.board.height - geometry.expectedBoard.height)).toBeLessThanOrEqual(3)
+  expect(geometry.key.right).toBeLessThanOrEqual(geometry.victory.x)
+  expect(
+    Math.abs(
+      geometry.economy.x +
+        geometry.economy.width / 2 -
+        (geometry.header.x + geometry.header.width / 2),
+    ),
+  ).toBeLessThanOrEqual(2)
+  for (const { token, tile } of geometry.tokens) {
+    expect(token.width).toBeGreaterThan(tile.width * 0.6)
+    expect(token.width).toBeLessThanOrEqual(tile.width * 0.75)
+    expect(token.height).toBeLessThanOrEqual(tile.height * 0.75)
+  }
+  expect(geometry.railMeters.length).toBeGreaterThanOrEqual(4)
+  for (const { label, bar } of geometry.railMeters) {
+    expect(label.x).toBeGreaterThanOrEqual(bar.x - 1)
+    expect(label.right).toBeLessThanOrEqual(bar.right + 1)
+    expect(label.y).toBeGreaterThanOrEqual(bar.y - 1)
+    expect(label.bottom).toBeLessThanOrEqual(bar.bottom + 1)
+  }
+  expect(geometry.flowFeed.scrollHeight).toBeLessThanOrEqual(geometry.flowFeed.height + 1)
+  expect(geometry.flowFeed.scrollWidth).toBeLessThanOrEqual(geometry.flowFeed.width + 1)
   expect(geometry.boardFits).toBe(true)
   expect(geometry.lastTileFits).toBe(true)
   expect(geometry.log.x).toBeGreaterThanOrEqual(geometry.flow.x)

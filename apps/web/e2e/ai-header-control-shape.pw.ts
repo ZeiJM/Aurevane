@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 
+import { expectMapKey } from './battle-map-key-helpers'
 import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueCharacterName(): string {
@@ -11,7 +12,7 @@ function uniqueCharacterName(): string {
   return `Wayfarer ${letters}`
 }
 
-test('keeps desktop AI Victory Conditions and Combat Log visually matched without changing mobile', async ({
+test('keeps Map Key immediately left of Victory Conditions at desktop and mobile sizes', async ({
   page,
 }, testInfo) => {
   test.slow()
@@ -36,30 +37,17 @@ test('keeps desktop AI Victory Conditions and Combat Log visually matched withou
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
   await expect(page.getByRole('region', { name: 'Tactical battlefield' })).toBeVisible()
 
-  const victoryConditions = page.getByRole('button', { name: /Victory conditions/i })
-  const combatLog = page.getByRole('button', { name: /Round .*Combat Log/i })
+  const victoryConditions = page.getByRole('button', { name: 'Victory Conditions', exact: true })
+  const key = page.getByRole('button', { name: 'Map Key', exact: true })
   await expect(victoryConditions).toBeVisible()
-  await expect(combatLog).toBeVisible()
-
-  const victoryRadius = await victoryConditions.evaluate(
-    (element) => window.getComputedStyle(element).borderTopLeftRadius,
-  )
-  const combatLogRadius = await combatLog.evaluate(
-    (element) => window.getComputedStyle(element).borderTopLeftRadius,
-  )
+  await expect(page.getByRole('button', { name: /Round .*Combat Log/i })).toHaveCount(0)
+  await expectMapKey(page)
   const victoryBox = await victoryConditions.boundingBox()
-  const combatLogBox = await combatLog.boundingBox()
-  expect(victoryBox).not.toBeNull()
-  expect(combatLogBox).not.toBeNull()
-
-  if (testInfo.project.name === 'mobile-chromium') {
-    expect(combatLogRadius).toBe('999px')
-    expect(combatLogRadius).not.toBe(victoryRadius)
-  } else {
-    expect(combatLogRadius).toBe(victoryRadius)
-    expect(combatLogRadius).not.toBe('999px')
-    expect(Math.abs(victoryBox!.height - combatLogBox!.height)).toBeLessThanOrEqual(1)
-    expect(victoryBox!.height).toBeGreaterThanOrEqual(33)
-    expect(victoryBox!.height).toBeLessThanOrEqual(36)
-  }
+  const keyBox = await key.boundingBox()
+  expect(keyBox!.x + keyBox!.width).toBeLessThanOrEqual(victoryBox!.x)
+  expect(Math.abs(victoryBox!.height - keyBox!.height)).toBeLessThanOrEqual(1)
+  await victoryConditions.click()
+  await expect(page.getByRole('dialog', { name: 'Victory Conditions', exact: true })).toBeVisible()
+  await page.keyboard.press('Escape')
+  await expect(victoryConditions).toBeFocused()
 })

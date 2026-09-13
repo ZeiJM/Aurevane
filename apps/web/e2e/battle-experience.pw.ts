@@ -209,7 +209,7 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
   await expect(criteriaButton).toHaveAttribute('data-new-progress', 'true')
   await openCriteriaAndClose(page, '3/4 complete')
 
-  const roundButton = page.getByRole('button', { name: /Round .*Combat Log/ })
+  const roundButton = page.locator('[data-battle-flow] > button')
   const battleLog = page.getByTestId('battle-log-panel')
   if ((await roundButton.getAttribute('aria-expanded')) !== 'true') await roundButton.click()
   await expect(battleLog).toBeVisible()

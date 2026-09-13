@@ -6,24 +6,51 @@ import {
   statusLabel,
   summarizeBattleEffects,
 } from './battle-effect-summary'
+import { BattleInfoPopover } from './battle-info-popover'
 import styles from './battle-combatant-effects.module.css'
 
 export function BattleCombatantEffects({
   name,
   statuses,
+  compact = false,
 }: {
   name: string
   statuses: readonly CombatStatusInstance[]
+  compact?: boolean
 }) {
   const effects = aggregateBattleStatusStacks(statuses)
+  const limit = compact ? 1 : 2
   return (
-    <section className={styles.effects} aria-label={`${name} active combat effects`}>
-      <h3>Active effects</h3>
+    <section
+      className={styles.effects}
+      data-compact={compact || undefined}
+      aria-label={`${name} active combat effects`}
+    >
+      <header>
+        <h3>Active effects</h3>
+        {effects.length > limit ? (
+          <BattleInfoPopover
+            label={`All ${name} effects`}
+            title={`${name} · Active effects`}
+            trigger={`All ${effects.length}`}
+          >
+            {effects.map((effect) => (
+              <section key={`${effect.statusId}:${effect.statusVersion}`}>
+                <strong>
+                  {statusLabel(effect.statusId)} · {effect.remainingOwnerTurnStarts}t
+                  {effect.stacks > 1 ? ` · ×${effect.stacks}` : ''}
+                </strong>
+                <p>{combatStatusDetails(effect.statusId).description}</p>
+              </section>
+            ))}
+          </BattleInfoPopover>
+        ) : null}
+      </header>
       {effects.length === 0 ? (
         <p>No active effects</p>
       ) : (
         <div className={styles.list}>
-          {effects.map((effect) => {
+          {effects.slice(0, limit).map((effect) => {
             const details = combatStatusDetails(effect.statusId)
             const definition = PHASE4_STATUSES.find(
               (item) => item.id === effect.statusId && item.version === effect.statusVersion,

@@ -138,7 +138,9 @@
 }
 
 :global(
-  section[aria-label='PvP tactical battlefield'] button[aria-label^='Tile '] > span:first-child
+  section[aria-label='PvP tactical battlefield']
+    button[aria-label^='Tile ']
+    > span[data-tile-coordinate]
 ) {
   display: flex;
   gap: 0.18rem;
@@ -146,7 +148,10 @@
 }
 
 :global(
-  section[aria-label='PvP tactical battlefield'] button[aria-label^='Tile '] > span:first-child b
+  section[aria-label='PvP tactical battlefield']
+    button[aria-label^='Tile ']
+    > span[data-tile-coordinate]
+    b
 ) {
   color: rgba(226, 195, 125, 0.78) !important;
   font: 750 0.29rem/1 var(--av-font-mono) !important;
@@ -416,7 +421,9 @@
       0 0 0.55rem rgba(230, 200, 120, 0.2) !important;
   }
 
-  :global([data-pvp-desktop-content='true'] button[aria-label^='Tile '] > span:first-child) {
+  :global(
+    [data-pvp-desktop-content='true'] button[aria-label^='Tile '] > span[data-tile-coordinate]
+  ) {
     top: 0.14rem !important;
     left: 0.18rem !important;
     gap: 0.18rem !important;

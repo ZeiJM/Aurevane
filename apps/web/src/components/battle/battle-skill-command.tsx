@@ -14,6 +14,8 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 
+import { BattleInfoPopover } from './battle-info-popover'
+
 import artworkFitStyles from './battle-skill-artwork-fit.module.css'
 import {
   BATTLE_FAVORITE_TECHNIQUE_SELECT_EVENT,
@@ -192,21 +194,13 @@ export function BattleSkillCommand({
         disabled={disabled}
         onClick={onActivate}
         aria-label={`${label}, ${cost}`}
-        aria-describedby={tags.length > 0 ? informationId : undefined}
       >
         <span className={styles.hotkey} data-battle-command-hotkey="true">
           {hotkey}
         </span>
         <strong>{label}</strong>
         <small>{cost}</small>
-        {tags.length > 0 ? (
-          <span id={informationId} className={styles.tags} data-battle-skill-tags="command">
-            {tags.map((tag) => (
-              <span key={tag}>{tag}</span>
-            ))}
-          </span>
-        ) : null}
-        {!canSwap ? (
+        {
           <span
             className={`${styles.artwork} ${artworkFitStyles.frame}`}
             data-battle-command-artwork="static"
@@ -221,15 +215,43 @@ export function BattleSkillCommand({
               onError={fallbackBrokenArtwork}
             />
           </span>
-        ) : null}
+        }
       </button>
+
+      <BattleInfoPopover
+        label={`About ${label}`}
+        title={label}
+        trigger="ⓘ"
+        className={styles.infoTrigger}
+      >
+        <p>
+          <strong>{cost}</strong>
+        </p>
+        {tags.length > 0 ? (
+          <div className={styles.tags} data-battle-skill-tags="details">
+            {tags.map((tag) => (
+              <span key={tag}>{tag}</span>
+            ))}
+          </div>
+        ) : (
+          <p>
+            {slot === 'inspect'
+              ? 'Select a character or tile to inspect it for free.'
+              : slot === 'move'
+                ? 'Select reachable tiles to preview your path and its AP cost.'
+                : 'Choose your final facing on the map, then finish your turn.'}
+          </p>
+        )}
+        {tags.length > 0 ? (
+          <p>Select a target to see the projected result before confirming.</p>
+        ) : null}
+      </BattleInfoPopover>
 
       {canSwap && selector ? (
         <button
           ref={artworkRef}
           type="button"
-          className={`${styles.artworkTrigger} ${artworkFitStyles.frame}`}
-          data-battle-command-artwork="selector"
+          className={styles.artworkTrigger}
           data-battle-skill-selector-category={selector.categoryLabel}
           data-battle-selected-skill-id={selector.selectedId}
           aria-haspopup="listbox"
@@ -237,15 +259,6 @@ export function BattleSkillCommand({
           aria-label={`Choose ${selector.categoryLabel} skill. ${label} selected.`}
           onClick={() => setSelectorOpen((open) => !open)}
         >
-          <Image
-            width={64}
-            height={64}
-            unoptimized
-            src={artworkSrc}
-            alt=""
-            aria-hidden="true"
-            onError={fallbackBrokenArtwork}
-          />
           <span aria-hidden="true">⌄</span>
         </button>
       ) : null}

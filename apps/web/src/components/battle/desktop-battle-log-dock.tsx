@@ -55,7 +55,7 @@ export function DesktopBattleLogDock({
   }, [desktop, open])
 
   useEffect(() => {
-    if (!desktop || !open) return
+    if ((!desktop && !eventDriven) || !open) return
 
     const refreshFromBattleState = (event: Event) => {
       if (!(event instanceof CustomEvent)) return
@@ -80,7 +80,17 @@ export function DesktopBattleLogDock({
     }
   }, [battleSessionId, desktop, eventDriven, open])
 
-  if (!desktop) return null
+  if (!desktop)
+    return eventDriven ? (
+      <BattleLogPanel
+        battleSessionId={battleSessionId}
+        battleVersion={refreshTick}
+        open={open}
+        onClose={() => setOpen(false)}
+        playerName={playerName}
+        combatantNames={combatantNames}
+      />
+    ) : null
 
   return (
     <>

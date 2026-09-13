@@ -21,7 +21,7 @@
     background: rgba(8, 13, 19, 0.96);
   }
   :global([data-battle-flow='true'][data-open]) {
-    height: clamp(9.5rem, 17vh, 10.75rem);
+    height: 8.5rem;
   }
   :global([data-battle-flow='true'] > button) {
     display: flex;
@@ -61,8 +61,7 @@
     display: none;
   }
   :global([data-battle-flow-log-target='true'] [data-testid='battle-log-feed']) {
-    overflow: auto;
-    scrollbar-width: thin;
+    overflow: hidden;
   }
   :global([data-battle-flow-log-target='true'] [data-testid='battle-log-feed'] article p) {
     font-size: 0.75rem;
@@ -70,5 +69,30 @@
   }
   :global([data-battle-flow-log-target='true'] [data-testid='battle-log-feed'] button strong) {
     font-size: 0.75rem;
+  }
+}
+
+@media (min-width: 821px) {
+  :global([data-battle-flow-log-target='true'] [data-compact-flow='true']) {
+    min-height: 0;
+    height: 100%;
+    overflow: hidden !important;
+    box-sizing: border-box;
+  }
+}
+@media (max-width: 820px) {
+  :global(main[data-battle-layout='map-first'] [data-battle-flow='true']) {
+    display: block;
+  }
+  :global(main[data-battle-layout='map-first'] [data-battle-flow='true'] > button) {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    min-height: 2rem;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--av-border);
+    background: #0b1118;
+    color: var(--av-brass-200);
+    font: 550 0.75rem/1.2 var(--av-font-body);
   }
 }

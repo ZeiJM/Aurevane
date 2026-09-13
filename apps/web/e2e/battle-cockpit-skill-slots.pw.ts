@@ -149,7 +149,10 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
       `${geometry.slot} artwork must remain prominent.`,
     ).toBeGreaterThanOrEqual(minimumArtworkSize)
     expectOpticallyNear(geometry.artworkWidth, artworkGeometries[0]!.artworkWidth)
-    expectOpticallyNear(geometry.artworkHeight, geometry.artworkWidth)
+    expectOpticallyNear(geometry.artworkHeight, artworkGeometries[0]!.artworkHeight)
+    expect(geometry.artworkHeight).toBeGreaterThanOrEqual(
+      testInfo.project.name === 'mobile-chromium' ? 52 : 60,
+    )
     expect(geometry.artworkRect.right).toBeLessThanOrEqual(geometry.cardRect.right)
     expect(geometry.artworkRect.bottom).toBeLessThanOrEqual(geometry.cardRect.bottom)
     expect(
@@ -239,7 +242,13 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   })
   await expect(inspectAction).toHaveAttribute('data-battle-active', 'true')
 
-  const initialImage = healArtwork.locator('img')
+  await healCard.getByRole('button', { name: 'About HP Recovery', exact: true }).click()
+  const info = page.getByRole('dialog', { name: 'HP Recovery', exact: true })
+  await expect(info).toBeVisible()
+  await expect(inspectAction).toHaveAttribute('data-battle-active', 'true')
+  await page.locator('main > header').click({ position: { x: 5, y: 5 } })
+  await expect(info).toHaveCount(0)
+  const initialImage = healCard.locator('[data-battle-command-artwork] img')
   await expect(initialImage).toHaveJSProperty(
     'src',
     new URL('/media/skills/hp-recovery.webp', page.url()).href,
@@ -269,7 +278,7 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   )
   await expect(healArtwork).toHaveAttribute('aria-label', /MP Recovery selected/i)
 
-  const mpImage = healArtwork.locator('img')
+  const mpImage = healCard.locator('[data-battle-command-artwork] img')
   await expect(mpImage).toHaveJSProperty(
     'src',
     new URL('/media/skills/mp-recovery.svg', page.url()).href,
@@ -291,7 +300,7 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   })
   await expect(refreshedHealAction).toContainText('MP Recovery')
   await expect(refreshedHealArtwork).toHaveAttribute('aria-label', /MP Recovery selected/i)
-  await expect(refreshedHealArtwork.locator('img')).toHaveJSProperty(
+  await expect(refreshedHealCard.locator('[data-battle-command-artwork] img')).toHaveJSProperty(
     'src',
     new URL('/media/skills/mp-recovery.svg', page.url()).href,
   )

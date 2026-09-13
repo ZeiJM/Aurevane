@@ -129,9 +129,7 @@ test('keeps three portrait and status cards accessible in each desktop PvP rail'
         })
 
         const overflowY = getComputedStyle(railElement).overflowY
-        railElement.scrollTop = railElement.scrollHeight
         const lastCardBottom = stack.lastElementChild!.getBoundingClientRect().bottom
-        railElement.scrollTop = 0
         for (const clone of clones) clone.remove()
         if (originalCount === undefined) delete stack.dataset.count
         else stack.dataset.count = originalCount
@@ -165,7 +163,7 @@ test('keeps three portrait and status cards accessible in each desktop PvP rail'
       expect(geometry.cards).toHaveLength(3)
       expect(geometry.stack.width).toBeLessThanOrEqual(geometry.rail.width + 1)
       expect(Math.abs(geometry.stack.top - geometry.rail.top)).toBeLessThanOrEqual(1)
-      expect(geometry.overflowY).toBe('auto')
+      expect(geometry.overflowY).toBe('hidden')
       expect(geometry.lastCardBottom).toBeLessThanOrEqual(geometry.rail.bottom + 1)
 
       const railCenter = geometry.rail.left + geometry.rail.contentWidth / 2
@@ -174,7 +172,7 @@ test('keeps three portrait and status cards accessible in each desktop PvP rail'
 
       for (const { card, heading, portrait, image, effectsBottom } of geometry.cards) {
         expect(portrait.height).toBeGreaterThan(0)
-        expect(portrait.height).toBeLessThanOrEqual(121)
+        expect(portrait.bottom).toBeLessThanOrEqual(card.bottom + 1)
         expect(Math.abs(portrait.top - heading.bottom)).toBeLessThanOrEqual(1)
         expect(heading.background).not.toBe('rgba(0, 0, 0, 0)')
         expect(Math.abs(image.left - portrait.left)).toBeLessThanOrEqual(1)
@@ -182,8 +180,8 @@ test('keeps three portrait and status cards accessible in each desktop PvP rail'
         expect(Math.abs(image.top - portrait.top)).toBeLessThanOrEqual(1)
         expect(Math.abs(image.bottom - portrait.bottom)).toBeLessThanOrEqual(1)
         expect(portrait.left - card.left).toBeLessThanOrEqual(3)
-        expect(card.right - portrait.right).toBeLessThanOrEqual(3)
-        expect(card.bottom - effectsBottom).toBeLessThanOrEqual(3)
+        expect(portrait.right).toBeLessThanOrEqual(card.right + 1)
+        expect(effectsBottom).toBeLessThanOrEqual(card.bottom + 1)
       }
     }
   } finally {

@@ -1,11 +1,11 @@
 .indicator {
   position: absolute;
-  top: -0.78rem;
+  top: calc(var(--battle-token-size, 3.4rem) * -0.18);
   left: 50%;
   z-index: 9;
   display: block;
-  width: 0.56rem;
-  height: 0.56rem;
+  width: calc(var(--battle-token-size, 3.4rem) * 0.16);
+  height: calc(var(--battle-token-size, 3.4rem) * 0.16);
   color: #f1d892;
   filter: drop-shadow(0 1px 2px #000);
   transform-origin: 50% 50%;
