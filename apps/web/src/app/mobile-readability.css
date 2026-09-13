@@ -175,6 +175,14 @@
     font-size: 0.8125rem !important;
     white-space: normal;
   }
+
+  /* The concept surfaces deliberately opt out of the legacy compact typography rules above.
+     Keep their body copy at the same readable phone floor while retaining their authored spacing. */
+  [data-character-concept] p,
+  [data-training-concept] p {
+    font-size: 0.875rem !important;
+    line-height: 1.5;
+  }
 }
 
 @media (max-width: 520px) {

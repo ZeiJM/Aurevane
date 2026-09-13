@@ -405,7 +405,7 @@ export function BattleLaunch({
               Choose a mode first. Detailed setup appears only for the battle you intend to enter.
             </p>
           </div>
-          <nav className={styles.modePicker} aria-label="AI battle modes">
+          <nav className={styles.modePicker} aria-label="AI arenas">
             <label className={styles.modeSelectLabel}>
               <span>Battle mode</span>
               <select

@@ -482,7 +482,12 @@
     grid-template-columns: 1fr;
   }
   .modePicker button {
+    flex: 0 0 auto;
+    width: 100%;
     padding: 0.7rem 0.4rem;
+  }
+  .modePicker {
+    flex-direction: column;
   }
   .modePicker strong {
     font-size: 0.9rem;

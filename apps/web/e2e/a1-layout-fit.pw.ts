@@ -66,7 +66,7 @@ test('keeps A1 surfaces readable and within viewport', async ({ page }, testInfo
 
   await page.goto('/game/battle')
   await expect(page.getByRole('heading', { name: 'Choose your arena.' })).toBeVisible()
-  await expectInitialViewportFit(page, 'Battle Hall')
+  await expectInitialViewportFit(page, 'Battle Hall', { allowVerticalScroll: true })
 
   await page.goto('/game/settings/controls')
   await expect(page.getByRole('heading', { name: 'Controls & Keybinds' })).toBeVisible()

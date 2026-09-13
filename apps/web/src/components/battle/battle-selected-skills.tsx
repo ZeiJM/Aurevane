@@ -26,7 +26,7 @@ export function BattleSelectedSkills({
             key={skill.id}
             type="button"
             className={styles.skill}
-            aria-label={`${skill.name}, ${skill.apCost} AP`}
+            aria-label={`Selected ${skill.name}, ${skill.apCost} AP`}
             aria-pressed={activeId === skill.id}
             title={`${skill.name} · ${skill.apCost} AP · ${skill.mpCost} MP`}
             disabled={disabled || actionEconomy < skill.apCost}

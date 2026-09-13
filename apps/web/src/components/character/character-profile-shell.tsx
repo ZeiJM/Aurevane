@@ -308,7 +308,7 @@ export function CharacterProfileShell({
 
             <section className={styles.buildSection} aria-labelledby="build-techniques-heading">
               <div className={styles.buildSectionHeader}>
-                <strong id="build-techniques-heading">Equipped Skills</strong>
+                <strong id="build-techniques-heading">Techniques</strong>
               </div>
               <div className={styles.equippedSkills} aria-label="Equipped Discipline Skills">
                 {disciplineBuild.disciplineSkills.equippedSkills.map(

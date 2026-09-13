@@ -108,21 +108,18 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
     await expect(page.getByTestId('character-profile')).toBeVisible()
     await settleLayout(page)
     const reset = page.getByRole('button', { name: 'Reset / Redistribute Attributes' })
-    if (viewport.height >= 720 && viewport.width >= 1280) {
-      expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(
-        viewport.height + 1,
-      )
-      await expectAboveFooter(page, reset)
-    } else {
-      // Real wheel input must reach lower content; hiding overflow is not a valid fix.
-      const needsScroll = await page.evaluate(
-        () => document.documentElement.scrollHeight > window.innerHeight,
-      )
+    // The approved profile concept is a long-form hero and build surface. Let the document scroll
+    // naturally at every viewport size, then prove the lower control can still be reached above the
+    // persistent footer.
+    const needsScroll = await page.evaluate(
+      () => document.documentElement.scrollHeight > window.innerHeight,
+    )
+    if (needsScroll) {
       await page.mouse.move(viewport.width / 3, viewport.height / 2)
       await page.mouse.wheel(0, 1600)
-      if (needsScroll) await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(0)
-      await expectAboveFooter(page, reset)
+      await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
     }
+    await expectAboveFooter(page, reset)
     const profileBottom = await page
       .locator('section[aria-label="Attribute redistribution"]')
       .boundingBox()
