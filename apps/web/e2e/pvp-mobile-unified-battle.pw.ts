@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 import { expectMapKey } from './battle-map-key-helpers'
+import { expectBattleFlowKeepsBoardSize } from './battle-reference-layout-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueIdentity(prefix: string): { email: string; characterName: string } {
@@ -125,6 +126,11 @@ test('keeps the unified PvP battle usable on mobile', async ({ browser }, testIn
       const battlefieldRect = battlefield.getBoundingClientRect()
       const boardRect = board.getBoundingClientRect()
       const commandRect = commandDeck.getBoundingClientRect()
+      const preview = commandDeck
+        .querySelector('[data-battle-instruction-host]')!
+        .getBoundingClientRect()
+      const cards = Array.from(commandDeck.querySelectorAll('[data-command-card]'))
+      const flow = root.querySelector('[data-battle-flow]')!.getBoundingClientRect()
 
       return {
         viewportWidth: window.innerWidth,
@@ -135,6 +141,15 @@ test('keeps the unified PvP battle usable on mobile', async ({ browser }, testIn
         boardRight: boardRect.right,
         commandLeft: commandRect.left,
         commandRight: commandRect.right,
+        commandBottom: commandRect.bottom,
+        previewTop: preview.top,
+        lastCardBottom: Math.max(...cards.map((card) => card.getBoundingClientRect().bottom)),
+        flowTop: flow.top,
+        artwork: cards.map((card) => {
+          const image = card.querySelector<HTMLImageElement>('[data-battle-command-artwork] img')!
+          const rect = image.getBoundingClientRect()
+          return { width: rect.width, height: rect.height, fit: getComputedStyle(image).objectFit }
+        }),
       }
     })
 
@@ -145,6 +160,13 @@ test('keeps the unified PvP battle usable on mobile', async ({ browser }, testIn
     expect(mobileGeometry.boardRight).toBeLessThanOrEqual(mobileGeometry.battlefieldRight + 1)
     expect(mobileGeometry.commandLeft).toBeGreaterThanOrEqual(-1)
     expect(mobileGeometry.commandRight).toBeLessThanOrEqual(mobileGeometry.viewportWidth + 1)
+    expect(mobileGeometry.previewTop).toBeGreaterThanOrEqual(mobileGeometry.lastCardBottom)
+    expect(mobileGeometry.flowTop).toBeGreaterThanOrEqual(mobileGeometry.commandBottom)
+    for (const artwork of mobileGeometry.artwork) {
+      expect(Math.abs(artwork.width - artwork.height)).toBeLessThanOrEqual(1)
+      expect(artwork.fit).toBe('contain')
+    }
+    await expectBattleFlowKeepsBoardSize(hostHasTurn ? host : guest)
   } finally {
     await Promise.all([hostContext.close(), guestContext.close()])
   }

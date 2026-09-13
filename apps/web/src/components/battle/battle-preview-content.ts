@@ -4,11 +4,28 @@ import {
   statusWasProjected,
 } from '../../lib/battle/combat-interaction-presentation'
 import type { BattlePreviewView } from '@/server/battle/battle-preview-service'
+import type { BattleSkillForecastPresentation } from './battle-runtime'
 type IntentPreview = BattlePreviewView['preview']
 type ActionPreview = Extract<IntentPreview, { kind: 'action' }>
 export interface PreviewChip {
   label: string
   tone: 'chance' | 'damage' | 'heal' | 'effect' | 'cost' | 'blocked'
+}
+
+export function skillPreviewChips(skill: BattleSkillForecastPresentation): PreviewChip[] {
+  const range =
+    skill.minimumRange === skill.maximumRange
+      ? `${skill.maximumRange} ${skill.maximumRange === 1 ? 'tile' : 'tiles'}`
+      : `${skill.minimumRange}–${skill.maximumRange} tiles`
+  return [
+    { label: `${skill.apCost} AP`, tone: 'cost' },
+    ...(skill.mpCost > 0 ? [{ label: `${skill.mpCost} MP`, tone: 'cost' as const }] : []),
+    {
+      label: skill.targetKind === 'self' ? 'Self' : `${skill.tags[0] ?? 'Target'} · ${range}`,
+      tone: 'effect',
+    },
+    ...skill.tags.slice(2, 4).map((label) => ({ label, tone: 'effect' as const })),
+  ]
 }
 
 function humanizeStatus(value: string): string {

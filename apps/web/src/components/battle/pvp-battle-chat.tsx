@@ -341,7 +341,7 @@ export function PvpBattleChat({
           )}
           <small>
             {tab === 'log'
-              ? 'Rounds · actions · outcomes'
+              ? 'Recent 4 turns · actions · outcomes'
               : readOnly
                 ? 'Read-only live feed'
                 : 'Live with combatants'}
@@ -405,6 +405,7 @@ export function PvpBattleChat({
         <div className={`${styles.messages} ${styles.logMessages}`} aria-live="polite">
           <BattleLogFeed
             entries={battleLog?.entries ?? []}
+            recentTurnCount={4}
             combatantNames={combatantNames}
             emptyMessage="No committed battle actions yet."
           />

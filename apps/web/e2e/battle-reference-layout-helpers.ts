@@ -84,6 +84,7 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
       battlefield: rect('#battlefield'),
       deck: rect('[data-unified-command-deck]'),
       flow: rect('[data-battle-flow]'),
+      instructions: rect('[data-battle-instruction-host]'),
       log: rect('[data-docked-battle-log]'),
       footer: rect(':scope > footer'),
       economy: rect('[data-unified-battle-economy]'),
@@ -103,11 +104,17 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
     }
   })
   expect(geometry.deck.x).toBeLessThan(geometry.battlefield.x)
-  expect(geometry.deck.right).toBeGreaterThan(geometry.battlefield.right)
-  expect(Math.abs(geometry.deck.x - geometry.flow.x)).toBeLessThanOrEqual(1)
-  expect(Math.abs(geometry.deck.width - geometry.flow.width)).toBeLessThanOrEqual(1)
+  expect(geometry.deck.right).toBeLessThanOrEqual(geometry.flow.x)
+  expect(Math.abs(geometry.deck.y - geometry.flow.y)).toBeLessThanOrEqual(1)
+  expect(Math.abs(geometry.deck.bottom - geometry.flow.bottom)).toBeLessThanOrEqual(1)
   expect(geometry.deck.y).toBeGreaterThanOrEqual(geometry.battlefield.bottom - 1)
-  expect(geometry.flow.y).toBeGreaterThanOrEqual(geometry.deck.bottom - 1)
+  expect(geometry.instructions.y).toBeGreaterThanOrEqual(
+    Math.max(...geometry.cards.map((card) => card.bottom)),
+  )
+  expect(geometry.instructions.bottom).toBeLessThanOrEqual(geometry.deck.bottom)
+  expect(geometry.battlefield.height).toBeGreaterThanOrEqual(
+    (geometry.footer.y - geometry.header.bottom) * 0.55,
+  )
   expect(geometry.flow.bottom).toBeLessThanOrEqual(geometry.footer.y + 1)
   expect(Math.abs(geometry.board.width - geometry.expectedBoard.width)).toBeLessThanOrEqual(3)
   expect(Math.abs(geometry.board.height - geometry.expectedBoard.height)).toBeLessThanOrEqual(3)
@@ -142,14 +149,105 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
   expect(geometry.clock.right).toBeLessThanOrEqual(geometry.economy.right + 1)
   expect(geometry.cards).toHaveLength(6)
   for (const card of geometry.cards) {
-    expect(card.height).toBeLessThanOrEqual(160)
+    expect(card.height).toBeLessThanOrEqual(120)
     expect(card.font).toBeGreaterThanOrEqual(12)
     expect(card.x).toBeGreaterThanOrEqual(geometry.deck.x)
     expect(card.right).toBeLessThanOrEqual(geometry.deck.right + 1)
   }
   expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.viewportWidth + 1)
+  await expectBattlePreviewFits(page)
   await testInfo.attach(label, {
     body: await page.screenshot({ path: testInfo.outputPath(`${label}.png`) }),
     contentType: 'image/png',
   })
+}
+
+export async function expectBattleFlowKeepsBoardSize(page: Page) {
+  const root = page.locator('main[data-unified-battle="true"]')
+  const flowToggle = root.locator('[data-battle-flow] > button')
+  const log = page.getByTestId('battle-log-panel')
+  // Mobile PvP uses the shared communication drawer, which covers its opener.
+  // Exercise its real close control instead of trying to click through the drawer.
+  const mobilePvp =
+    (await root.getAttribute('data-battle-kind')) === 'pvp' &&
+    (page.viewportSize()?.width ?? 0) <= 820
+  const communication = page.locator('#pvp-battle-chat-panel')
+  if ((await flowToggle.getAttribute('aria-expanded')) !== 'true') await flowToggle.click()
+  await expect(flowToggle).toHaveAttribute('aria-expanded', 'true')
+  if (mobilePvp) await expect(communication).toHaveAttribute('aria-hidden', 'false')
+  const readGeometry = () =>
+    root.evaluate(async (element) => {
+      // Let the grid and its ResizeObserver complete before comparing rendered bounds.
+      await new Promise<void>((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+      )
+      return ['#battlefield', '[data-board-auto-fit]'].map((selector) => {
+        const { x, y, width, height } = element.querySelector(selector)!.getBoundingClientRect()
+        return { x, y, width, height }
+      })
+    })
+  const open = await readGeometry()
+  for (const expanded of [false, true]) {
+    if (mobilePvp && !expanded) {
+      await page.getByRole('button', { name: 'Close battle communication', exact: true }).click()
+    } else {
+      await flowToggle.click()
+    }
+    await expect(flowToggle).toHaveAttribute('aria-expanded', String(expanded))
+    if (mobilePvp) {
+      await expect(communication).toHaveAttribute('aria-hidden', String(!expanded))
+    } else {
+      await expect(log).toHaveCount(expanded ? 1 : 0)
+    }
+    const afterToggle = await readGeometry()
+    for (const [index, bounds] of afterToggle.entries()) {
+      for (const dimension of ['x', 'y', 'width', 'height'] as const) {
+        expect(
+          Math.abs(bounds[dimension] - open[index]![dimension]),
+          `${index === 0 ? 'Battlefield' : 'Board'} ${dimension} must stay fixed when Battle Flow ${expanded ? 'opens' : 'closes'}`,
+        ).toBeLessThanOrEqual(1)
+      }
+    }
+  }
+}
+
+export async function expectBattlePreviewFits(page: Page) {
+  const instructions = page.locator('[data-battle-instruction-host]')
+  const geometry = await instructions.evaluate(async (element) => {
+    await document.fonts.ready
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+    )
+    const host = element.getBoundingClientRect().toJSON()
+    const items = Array.from(
+      element.querySelectorAll<HTMLElement>(
+        '[data-battle-instruction-title], [data-battle-instruction-description], [data-react-battle-preview] > span, [data-react-battle-preview] > button',
+      ),
+    )
+      .filter((child) => {
+        const style = getComputedStyle(child)
+        return (
+          style.display !== 'none' &&
+          style.position !== 'absolute' &&
+          child.getBoundingClientRect().height > 0
+        )
+      })
+      .map((child) => ({ text: child.textContent, rect: child.getBoundingClientRect().toJSON() }))
+    return { host, items }
+  })
+  expect(geometry.items.length).toBeGreaterThan(0)
+  for (const { text, rect } of geometry.items) {
+    expect(rect.top, `${text} must remain inside the instruction row`).toBeGreaterThanOrEqual(
+      geometry.host.top - 1,
+    )
+    expect(rect.bottom, `${text} must not spill below the instruction row`).toBeLessThanOrEqual(
+      geometry.host.bottom + 1,
+    )
+    expect(rect.left, `${text} must not spill left of the instruction row`).toBeGreaterThanOrEqual(
+      geometry.host.left - 1,
+    )
+    expect(rect.right, `${text} must not spill right of the instruction row`).toBeLessThanOrEqual(
+      geometry.host.right + 1,
+    )
+  }
 }

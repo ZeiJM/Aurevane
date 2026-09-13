@@ -1,4 +1,5 @@
 import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
+import type { CombatTargetKind, CombatTargetTeamPolicy } from '@aurevane/game-core/combat/actions'
 
 import { getStarterPortraitImageAssetId } from '@/media/character'
 import type { ImageAssetId } from '@/media/registry'
@@ -7,18 +8,25 @@ import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
 export type BattleTechniqueCategory = 'attack' | 'defense' | 'heal'
 
-export interface BattleTechniquePresentation {
+export interface BattleSkillForecastPresentation {
   id: string
-  contentVersion: number
-  sourceDisciplineId: string
   name: string
   apCost: number
-  cooldownOwnerTurns: number
-  category: BattleTechniqueCategory
-  targetKind: 'self' | 'unit' | 'ground-tile' | 'empty-tile'
+  mpCost: number
+  targetKind: CombatTargetKind
+  targetTeamPolicy: CombatTargetTeamPolicy
   minimumRange: number
   maximumRange: number
   tags: readonly string[]
+  effectDescriptions: readonly string[]
+  requirementDescriptions: readonly string[]
+}
+
+export interface BattleTechniquePresentation extends BattleSkillForecastPresentation {
+  contentVersion: number
+  sourceDisciplineId: string
+  cooldownOwnerTurns: number
+  category: BattleTechniqueCategory
 }
 
 export interface BattleResonancePresentation {
@@ -28,14 +36,10 @@ export interface BattleResonancePresentation {
   description: string
 }
 
-export interface BattleEssencePresentation {
-  id: string
+export interface BattleEssencePresentation extends BattleSkillForecastPresentation {
   contentVersion: number
-  name: string
   description: string
-  apCost: number
   cooldownOwnerTurns: number
-  tags: readonly string[]
 }
 
 interface BattleBuildPresentation {

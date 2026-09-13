@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { expect, test } from '@playwright/test'
 
+import { getFoundationDisciplineImageAsset } from '../src/media/disciplines'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueCharacterName(): string {
@@ -107,8 +108,22 @@ test('Profile equips a mastered Secondary with independent attunement authority'
   await expect(launcher).toHaveText('Discipline Management')
   await expect(primaryDisciplineChip).toHaveText('Vanguard')
   await expect(secondaryDisciplineChip).toHaveText('Aetherist')
-  const triggerSigils = launcher.locator('img[src*="/media/art/disciplines/"]')
+  const triggerSigils = launcher.locator('img')
   await expect(triggerSigils).toHaveCount(2)
+  for (const [index, disciplineId] of ['vanguard', 'aetherist'].entries()) {
+    const asset = getFoundationDisciplineImageAsset(disciplineId)
+    if (asset?.status !== 'approved' || !asset.src) {
+      throw new Error(`${disciplineId} must have approved Discipline artwork.`)
+    }
+    const sigil = triggerSigils.nth(index)
+    await expect(sigil).toHaveAttribute('src', asset.src)
+    await expect(sigil).toBeVisible()
+    await expect
+      .poll(() =>
+        sigil.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0),
+      )
+      .toBe(true)
+  }
   const primarySigilBox = await triggerSigils.nth(0).boundingBox()
   const secondarySigilBox = await triggerSigils.nth(1).boundingBox()
   if (!primarySigilBox || !secondarySigilBox) {

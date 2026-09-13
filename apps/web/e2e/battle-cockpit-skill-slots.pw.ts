@@ -62,7 +62,7 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
     ).toHaveJSProperty('src', new URL(src, page.url()).href)
   }
   await expect(healAction).toContainText('HP Recovery')
-  await expect(healAction).toContainText('50 AP')
+  await expect(healAction).toHaveAccessibleName(/50 AP/)
   const slotHotkeyBefore = await healAction
     .locator(':scope > [data-battle-command-hotkey]')
     .textContent()
@@ -71,13 +71,11 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
     const action = card.querySelector<HTMLElement>('[data-battle-command="recover"]')
     const hotkey = action?.querySelector<HTMLElement>(':scope > [data-battle-command-hotkey]')
     const label = action?.querySelector<HTMLElement>(':scope > strong')
-    const cost = action?.querySelector<HTMLElement>(':scope > small')
-    if (!action || !hotkey || !label || !cost) return null
+    if (!action || !hotkey || !label) return null
 
     const actionRect = action.getBoundingClientRect()
     const hotkeyRect = hotkey.getBoundingClientRect()
     const labelRect = label.getBoundingClientRect()
-    const costRect = cost.getBoundingClientRect()
     return {
       actionLeft: actionRect.left,
       actionRight: actionRect.right,
@@ -88,30 +86,23 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
       labelTop: labelRect.top,
       labelBottom: labelRect.bottom,
       labelTextAlign: getComputedStyle(label).textAlign,
-      costLeft: costRect.left,
-      costTop: costRect.top,
-      costTextAlign: getComputedStyle(cost).textAlign,
     }
   })
 
   expect(cardGeometry).not.toBeNull()
   if (!cardGeometry) return
   expect(cardGeometry.labelLeft).toBeGreaterThan(cardGeometry.actionLeft)
-  expectNear(cardGeometry.labelLeft, cardGeometry.costLeft)
+  await expect(commandDeck.locator('button[data-battle-command] > small')).toHaveCount(0)
   const expectedAlignment = 'left'
   expect(cardGeometry.labelTextAlign).toBe(expectedAlignment)
-  expect(cardGeometry.costTextAlign).toBe(expectedAlignment)
-  expect(cardGeometry.costTop - cardGeometry.labelBottom).toBeLessThanOrEqual(8)
 
   if (testInfo.project.name === 'mobile-chromium') {
     expect(cardGeometry.hotkeyDisplay).toBe('none')
-    expect(cardGeometry.labelBottom).toBeLessThanOrEqual(cardGeometry.costTop + 1)
   } else {
     expect(cardGeometry.hotkeyDisplay).not.toBe('none')
     expect(cardGeometry.hotkeyLeft).toBeGreaterThan(cardGeometry.actionLeft)
     expect(cardGeometry.hotkeyLeft).toBeLessThan(cardGeometry.actionLeft + 16)
     expect(cardGeometry.hotkeyBottom).toBeLessThanOrEqual(cardGeometry.labelTop)
-    expect(cardGeometry.labelBottom).toBeLessThanOrEqual(cardGeometry.costTop)
   }
 
   const artworkGeometries = await commandDeck.locator('[data-command-card]').evaluateAll((cards) =>
@@ -134,6 +125,7 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
         artworkHeight: artworkRect.height,
         imageWidth: imageRect.width,
         imageHeight: imageRect.height,
+        imageFit: getComputedStyle(image).objectFit,
         artworkCenterX: (artworkRect.left + artworkRect.right) / 2,
         artworkCenterY: (artworkRect.top + artworkRect.bottom) / 2,
         imageCenterX: (imageRect.left + imageRect.right) / 2,
@@ -145,22 +137,26 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   for (const geometry of artworkGeometries) {
     expect(geometry, 'Every command card should expose artwork geometry.').not.toBeNull()
     if (!geometry) continue
-    const minimumArtworkSize = testInfo.project.name === 'mobile-chromium' ? 52 : 64
+    const minimumArtworkSize = 52
     expect(
       geometry.artworkWidth,
       `${geometry.slot} artwork must remain prominent.`,
     ).toBeGreaterThanOrEqual(minimumArtworkSize)
     expectOpticallyNear(geometry.artworkWidth, artworkGeometries[0]!.artworkWidth)
     expectOpticallyNear(geometry.artworkHeight, artworkGeometries[0]!.artworkHeight)
-    expect(geometry.artworkHeight).toBeGreaterThanOrEqual(
-      testInfo.project.name === 'mobile-chromium' ? 52 : 60,
+    expectNear(geometry.artworkWidth, geometry.artworkHeight)
+    expectNear(geometry.imageWidth, geometry.imageHeight)
+    expect(geometry.imageFit, `${geometry.slot} must show its whole image without cropping.`).toBe(
+      'contain',
     )
     expect(geometry.artworkRect.right).toBeLessThanOrEqual(geometry.cardRect.right)
     expect(geometry.artworkRect.bottom).toBeLessThanOrEqual(geometry.cardRect.bottom)
-    expect(
-      geometry.textRects[1]!.top,
-      `${geometry.slot} cost or hint must stay below its name.`,
-    ).toBeGreaterThanOrEqual(geometry.textRects[0]!.bottom)
+    if (testInfo.project.name !== 'mobile-chromium') {
+      expect(
+        geometry.textRects[0]!.top,
+        `${geometry.slot} name must stay below its artwork.`,
+      ).toBeGreaterThanOrEqual(geometry.artworkRect.bottom)
+    }
     for (const text of geometry.textRects) {
       expect(
         text.right <= geometry.artworkRect.left ||
@@ -183,6 +179,24 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
     expectOpticallyNear(geometry.imageCenterX, geometry.artworkCenterX)
     expectOpticallyNear(geometry.imageCenterY, geometry.artworkCenterY)
   }
+
+  const commandLayout = await commandDeck.evaluate((deck) => {
+    const lastCardBottom = Math.max(
+      ...Array.from(
+        deck.querySelectorAll('[data-command-card]'),
+        (card) => card.getBoundingClientRect().bottom,
+      ),
+    )
+    const preview = deck.querySelector('[data-battle-instruction-host]')!.getBoundingClientRect()
+    return {
+      lastCardBottom,
+      previewTop: preview.top,
+      previewBottom: preview.bottom,
+      deckBottom: deck.getBoundingClientRect().bottom,
+    }
+  })
+  expect(commandLayout.previewTop).toBeGreaterThanOrEqual(commandLayout.lastCardBottom)
+  expect(commandLayout.previewBottom).toBeLessThanOrEqual(commandLayout.deckBottom)
 
   const inspectGeometry = await inspectCard.evaluate((card) => {
     const action = card.querySelector<HTMLElement>('button[data-battle-command="inspect"]')
@@ -247,6 +261,7 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   await healCard.getByRole('button', { name: 'About HP Recovery', exact: true }).click()
   const info = page.getByRole('dialog', { name: 'HP Recovery', exact: true })
   await expect(info).toBeVisible()
+  await expect(info).toContainText('50 AP')
   await expect(inspectAction).toHaveAttribute('data-battle-active', 'true')
   await page.locator('main > header').click({ position: { x: 5, y: 5 } })
   await expect(info).toHaveCount(0)
@@ -274,7 +289,7 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
   await selector.getByRole('option', { name: /MP Recovery/ }).click()
   await expect(selector).toBeHidden()
   await expect(healAction).toContainText('MP Recovery')
-  await expect(healAction).toContainText('50 AP')
+  await expect(healAction).toHaveAccessibleName(/50 AP/)
   await expect(healAction.locator(':scope > [data-battle-command-hotkey]')).toHaveText(
     slotHotkeyBefore ?? '',
   )

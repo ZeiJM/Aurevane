@@ -1,11 +1,13 @@
 .timeline {
   position: relative;
+  display: grid;
+  gap: 0.25rem;
   min-width: 0;
-  padding: 0 0.55rem;
+  padding: 0.3rem 0.55rem;
 }
 .filter {
   position: absolute;
-  top: -2.05rem;
+  top: -1.75rem;
   right: 0.6rem;
   display: flex;
   gap: 0.15rem;
@@ -30,7 +32,7 @@
   min-width: 0;
   gap: 0.35rem;
   margin: 0;
-  padding: 0.15rem 0.3rem;
+  padding: 0.2rem 0.3rem;
   overflow: hidden;
   list-style: none;
   scrollbar-width: thin;
@@ -224,10 +226,9 @@
 }
 
 .pageControls {
-  position: absolute;
-  top: -2.05rem;
-  left: 12rem;
   display: flex;
+  order: 1;
+  justify-content: center;
   gap: 0.3rem;
   align-items: center;
   color: var(--av-text-muted);

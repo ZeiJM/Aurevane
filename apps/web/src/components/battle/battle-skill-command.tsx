@@ -199,7 +199,6 @@ export function BattleSkillCommand({
           {hotkey}
         </span>
         <strong>{label}</strong>
-        <small>{cost}</small>
         <span
           className={`${styles.artwork} ${artworkFitStyles.frame}`}
           data-battle-command-artwork="static"

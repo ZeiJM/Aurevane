@@ -2,7 +2,11 @@
 
 import { isBattleShortcutBlocked as isTextEntryTarget } from './battle-keyboard-scope'
 
-import { isCurrentBattlePreview, battleIntentTileKey } from './battle-preview-selection'
+import {
+  isCurrentBattlePreview,
+  battleIntentTileKey,
+  selectBattleSkillPreviewIntent,
+} from './battle-preview-selection'
 import { BattleActionPreview } from './battle-action-preview'
 import { BattleMapKey } from './battle-map-key'
 import { BattleInfoPopover } from './battle-info-popover'
@@ -366,14 +370,40 @@ export function BattleExperience({
         : false
   const selectedAttackCost = Number.parseInt(selectedAttack.cost, 10)
   const selectedDefenseCost = Number.parseInt(selectedDefense.cost, 10)
-  const selectedAttackTechnique = runtime.techniques?.find(
-    (technique) => technique.id === selectedAttackActionId,
-  )
+  const selectedAttackTechnique =
+    runtime.techniques?.find((technique) => technique.id === selectedAttackActionId) ??
+    (runtime.essence?.id === selectedAttackActionId ? runtime.essence : undefined)
   const selectedDefenseTechnique = runtime.techniques?.find(
     (technique) => technique.id === selectedDefenseActionId,
   )
   const selectedHealTechnique = runtime.techniques?.find(
     (technique) => technique.id === effectiveHealActionId,
+  )
+  const activeTechnique =
+    mode === 'attack'
+      ? selectedAttackTechnique
+      : mode === 'guard'
+        ? selectedDefenseTechnique
+        : mode === 'recover'
+          ? selectedHealTechnique
+          : null
+  const previewCombatants = useMemo(
+    () =>
+      tactical.placements.flatMap((placement) => {
+        const combatant = battleState.combatants.find((item) => item.id === placement.combatantId)
+        const participant = viewModel.participantByCombatant.get(placement.combatantId)
+        return combatant && participant
+          ? [
+              {
+                combatantId: combatant.id,
+                teamIndex: participant.teamIndex,
+                hp: combatant.hp,
+                position: placement.position,
+              },
+            ]
+          : []
+      }),
+    [battleState.combatants, tactical.placements, viewModel.participantByCombatant],
   )
 
   const placementByTile = useMemo(
@@ -865,44 +895,82 @@ export function BattleExperience({
     void commitValue(pendingIntent)
   }, [battle.battleVersion, commitValue, pendingIntent, preview, previewPending])
 
+  const armAction = useCallback(
+    (nextMode: 'attack' | 'guard' | 'recover', actionId: string) => {
+      if (planningDisabled) return
+      const skill =
+        runtime.techniques?.find((item) => item.id === actionId) ??
+        (runtime.essence?.id === actionId ? runtime.essence : undefined)
+      // Preserve only a target the player already chose. Changing a skill invalidates its old
+      // forecast, while the preview endpoint remains the authority for the new action.
+      const selectedTile =
+        pendingIntent?.kind === 'action' && pendingIntent.target.kind === 'tile'
+          ? pendingIntent.target.position
+          : null
+      clearPlanning(nextMode)
+      if (skill) {
+        const intent = selectBattleSkillPreviewIntent(skill, {
+          actorId: localCombatantId,
+          selectedCombatantId: selectedUnitId,
+          selectedTile,
+          combatants: previewCombatants,
+        })
+        if (intent?.kind === 'action') {
+          setSelectedUnitId(
+            intent.target.kind === 'self'
+              ? localCombatantId
+              : intent.target.kind === 'unit'
+                ? intent.target.combatantId
+                : null,
+          )
+          void requestPreview(intent)
+        } else {
+          const target =
+            skill.targetKind === 'ground-tile' || skill.targetKind === 'empty-tile'
+              ? 'tile'
+              : skill.targetTeamPolicy === 'ally'
+                ? 'ally'
+                : 'target'
+          setNotice(`Select ${target === 'ally' ? 'an' : 'a'} ${target}.`)
+        }
+      } else if (nextMode === 'guard' || nextMode === 'recover') {
+        void requestPreview({ kind: 'action', actionId, target: { kind: 'self' } })
+      } else {
+        setNotice('Choose a legal enemy target on the board.')
+      }
+    },
+    [
+      clearPlanning,
+      localCombatantId,
+      pendingIntent,
+      planningDisabled,
+      previewCombatants,
+      requestPreview,
+      runtime.essence,
+      runtime.techniques,
+      selectedUnitId,
+    ],
+  )
+
   const chooseMode = useCallback(
     (nextMode: Mode) => {
       if (planningDisabled && nextMode !== 'inspect') return
+      if (nextMode === 'attack' || nextMode === 'guard' || nextMode === 'recover') {
+        armAction(
+          nextMode,
+          nextMode === 'attack'
+            ? selectedAttackActionId
+            : nextMode === 'guard'
+              ? selectedDefenseActionId
+              : effectiveHealActionId,
+        )
+        return
+      }
       clearPlanning(nextMode)
-      if (nextMode === 'guard') {
-        if (!selectedDefenseTechnique || selectedDefenseTechnique.targetKind === 'self') {
-          void requestPreview({
-            kind: 'action',
-            actionId: selectedDefenseActionId,
-            target: { kind: 'self' },
-          })
-        } else {
-          setNotice(`${selectedDefense.label} · choose a target on the board.`)
-        }
-      } else if (nextMode === 'recover') {
-        if (!selectedHealTechnique || selectedHealTechnique.targetKind === 'self') {
-          void requestPreview({
-            kind: 'action',
-            actionId: effectiveHealActionId,
-            target: { kind: 'self' },
-          })
-        } else {
-          setNotice(`${selectedHealName} · choose a target on the board.`)
-        }
-      } else if (nextMode === 'move') {
+      if (nextMode === 'move') {
         setNotice(
           `Move · ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP per normal tile. Green tiles are reachable. Rough ground costs ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT * 2} AP. Click a destination to draw the numbered path.`,
         )
-      } else if (nextMode === 'attack') {
-        if (selectedAttackTechnique?.targetKind === 'self') {
-          void requestPreview({
-            kind: 'action',
-            actionId: selectedAttackActionId,
-            target: { kind: 'self' },
-          })
-        } else {
-          setNotice(`${selectedAttack.label} · choose a legal target on the board.`)
-        }
       } else if (nextMode === 'finish') {
         setNotice('Choose final facing with the buttons, WASD, or arrow keys to end the turn.')
       } else if (nextMode === 'inspect') {
@@ -910,18 +978,12 @@ export function BattleExperience({
       }
     },
     [
+      armAction,
       clearPlanning,
       effectiveHealActionId,
       planningDisabled,
-      requestPreview,
-      selectedAttack.label,
       selectedAttackActionId,
-      selectedAttackTechnique,
-      selectedDefense.label,
       selectedDefenseActionId,
-      selectedDefenseTechnique,
-      selectedHealName,
-      selectedHealTechnique,
     ],
   )
 
@@ -970,6 +1032,9 @@ export function BattleExperience({
       }
 
       if (mode === 'attack' || mode === 'guard' || mode === 'recover') {
+        // Selecting a different tile invalidates the old forecast even if this new target is
+        // rejected before an API request. Confirm must never submit the previous selection.
+        clearPlanning(mode)
         const selectedActionId =
           mode === 'attack'
             ? selectedAttackActionId
@@ -1002,11 +1067,11 @@ export function BattleExperience({
         const targetCombatant = battleState.combatants.find(
           (combatant) => combatant.id === placement.combatantId,
         )
-        const minimumRange = selectedTechnique?.minimumRange ?? 1
-        const maximumRange = selectedTechnique?.maximumRange ?? 1
+        const basicSelfAction = !selectedTechnique && (mode === 'guard' || mode === 'recover')
+        const minimumRange = selectedTechnique?.minimumRange ?? (basicSelfAction ? 0 : 1)
+        const maximumRange = selectedTechnique?.maximumRange ?? (basicSelfAction ? 0 : 1)
         const distance = localPlacement
-          ? Math.abs(position.x - localPlacement.position.x) +
-            Math.abs(position.y - localPlacement.position.y)
+          ? manhattanDistance(position, localPlacement.position)
           : Number.MAX_SAFE_INTEGER
         if (
           distance < minimumRange ||
@@ -1033,7 +1098,8 @@ export function BattleExperience({
           // Clicking the caster must preserve the same self-target intent as arming the
           // Skill. A unit target is a distinct engine contract, even for the same actor.
           target:
-            selectedTechnique?.targetKind === 'self' && placement.combatantId === localCombatantId
+            (selectedTechnique?.targetKind === 'self' || basicSelfAction) &&
+            placement.combatantId === localCombatantId
               ? { kind: 'self' }
               : { kind: 'unit', combatantId: placement.combatantId },
         })
@@ -1545,27 +1611,29 @@ export function BattleExperience({
                 const selfTarget =
                   (mode === 'guard' || mode === 'recover') &&
                   placement?.combatantId === localCombatantId
-                const activeTechnique =
-                  mode === 'attack'
-                    ? selectedAttackTechnique
-                    : mode === 'guard'
-                      ? selectedDefenseTechnique
-                      : mode === 'recover'
-                        ? selectedHealTechnique
-                        : null
                 const groundTarget =
                   activeTechnique?.targetKind === 'ground-tile' ||
                   activeTechnique?.targetKind === 'empty-tile'
-                const targetDistance = localPlacement
-                  ? manhattanDistance(localPlacement.position, tile.position)
-                  : Infinity
-                const groundInRange =
-                  groundTarget &&
-                  targetDistance >= activeTechnique.minimumRange &&
-                  targetDistance <= activeTechnique.maximumRange
-                const targetRelation = groundTarget
-                  ? groundInRange
-                    ? 'ground'
+                const skillTarget =
+                  activeTechnique &&
+                  (groundTarget ||
+                    (placement &&
+                      (activeTechnique.targetKind !== 'self' ||
+                        placement.combatantId === localCombatantId)))
+                    ? selectBattleSkillPreviewIntent(activeTechnique, {
+                        actorId: localCombatantId,
+                        selectedCombatantId: placement?.combatantId ?? null,
+                        selectedTile: tile.position,
+                        combatants: previewCombatants,
+                      })
+                    : null
+                const targetRelation = activeTechnique
+                  ? skillTarget
+                    ? groundTarget
+                      ? 'ground'
+                      : participant?.teamIndex === localTeamIndex
+                        ? 'friendly'
+                        : 'enemy'
                     : undefined
                   : selfTarget
                     ? 'friendly'
@@ -1648,167 +1716,184 @@ export function BattleExperience({
           teamCount={viewModel.teamCount}
         />
 
-        <section
-          className={styles.commandDeck}
-          aria-label="Command Deck"
-          data-unified-command-deck="true"
-          data-battle-cockpit-polish="true"
-        >
-          <div
-            className={styles.context}
-            data-testid={runtime.kind === 'pve' ? 'combat-mode-instruction' : undefined}
-            data-battle-instruction-host="true"
-            data-battle-instruction-row="true"
+        <div data-battle-command-dock="true">
+          <section
+            className={styles.commandDeck}
+            aria-label="Command Deck"
+            data-unified-command-deck="true"
+            data-battle-cockpit-polish="true"
           >
-            {runtime.kind === 'pve' ? <div className={bridgeStyles.aiQualityPortalSlot} /> : null}
-            <strong data-battle-instruction-title="true">{contextTitle}</strong>
-            {mode !== 'none' && mode !== 'inspect' ? (
-              <BattleActionPreview
-                preview={preview?.battleVersion === battle.battleVersion ? preview.preview : null}
-                pending={previewPending}
-                notice={contextDescription}
+            <div
+              className={styles.context}
+              data-testid={runtime.kind === 'pve' ? 'combat-mode-instruction' : undefined}
+              data-battle-instruction-host="true"
+              data-battle-instruction-row="true"
+            >
+              {runtime.kind === 'pve' ? <div className={bridgeStyles.aiQualityPortalSlot} /> : null}
+              <strong data-battle-instruction-title="true">{contextTitle}</strong>
+              {mode !== 'none' && mode !== 'inspect' ? (
+                <BattleActionPreview
+                  preview={preview?.battleVersion === battle.battleVersion ? preview.preview : null}
+                  pending={previewPending}
+                  skill={activeTechnique}
+                  notice={contextDescription}
+                />
+              ) : (
+                <span data-battle-instruction-description="true">{contextDescription}</span>
+              )}
+            </div>
+            <div className={styles.commands} data-battle-command-group="true">
+              <BattleSkillCommand
+                slot="inspect"
+                hotkey="00"
+                label="Inspect"
+                cost="Free"
+                artworkSrc={BATTLE_COMMAND_ARTWORK.inspect}
+                active={mode === 'inspect'}
+                disabled={false}
+                onActivate={() => chooseMode('inspect')}
               />
-            ) : (
-              <span data-battle-instruction-description="true">{contextDescription}</span>
-            )}
-          </div>
-          <div className={styles.commands} data-battle-command-group="true">
-            <BattleSkillCommand
-              slot="inspect"
-              hotkey="00"
-              label="Inspect"
-              cost="Free"
-              artworkSrc={BATTLE_COMMAND_ARTWORK.inspect}
-              active={mode === 'inspect'}
-              disabled={false}
-              onActivate={() => chooseMode('inspect')}
-            />
-            <BattleSkillCommand
-              slot="move"
-              hotkey="01"
-              label="Move"
-              cost={`${MOVE_COST_PER_TERRAIN_POINT} AP`}
-              artworkSrc={BATTLE_COMMAND_ARTWORK.move}
-              active={mode === 'move'}
-              disabled={planningDisabled || actionEconomy < MOVE_COST_PER_TERRAIN_POINT}
-              onActivate={() => chooseMode('move')}
-            />
-            <BattleSkillCommand
-              slot="attack"
-              hotkey="02"
-              label={selectedAttack.label}
-              cost={selectedAttack.cost}
-              artworkSrc={selectedAttack.artworkSrc}
-              tags={selectedAttack.tags}
-              active={mode === 'attack'}
-              disabled={planningDisabled || actionEconomy < selectedAttackCost}
-              onActivate={() => chooseMode('attack')}
-              selector={{
-                categoryLabel: 'Attack',
-                selectedId: selectedAttackActionId,
-                options: attackOptions,
-                onSelect: (actionId) => {
-                  setSelectedAttackActionId(actionId)
-                  if (mode === 'attack') clearPlanning()
-                  const option = attackOptions.find((candidate) => candidate.id === actionId)
-                  if (option) setNotice(`${option.label} equipped in the Attack slot.`)
-                },
-              }}
-            />
-            <BattleSkillCommand
-              slot="guard"
-              hotkey="03"
-              label={selectedDefense.label}
-              cost={selectedDefense.cost}
-              artworkSrc={selectedDefense.artworkSrc}
-              tags={selectedDefense.tags}
-              active={mode === 'guard'}
-              disabled={planningDisabled || actionEconomy < selectedDefenseCost}
-              onActivate={() => chooseMode('guard')}
-              selector={{
-                categoryLabel: 'Guard',
-                selectedId: selectedDefenseActionId,
-                options: defenseOptions,
-                onSelect: (actionId) => {
-                  setSelectedDefenseActionId(actionId)
-                  if (mode === 'guard') clearPlanning()
-                  const option = defenseOptions.find((candidate) => candidate.id === actionId)
-                  if (option) setNotice(`${option.label} equipped in the Guard slot.`)
-                },
-              }}
-            />
-            <BattleSkillCommand
-              slot="recover"
-              hotkey="04"
-              label={selectedHealName}
-              cost={`${selectedHealCost} AP`}
-              artworkSrc={selectedHealOption.artworkSrc}
-              tags={selectedHealOption.tags}
-              active={mode === 'recover'}
-              disabled={
-                planningDisabled || actionEconomy < selectedHealCost || selectedHealAtMaximum
-              }
-              onActivate={() => chooseMode('recover')}
-              selector={{
-                categoryLabel: 'Heal',
-                selectedId: effectiveHealActionId,
-                options: recoveryOptions,
-                onSelect: (skillId) => {
-                  if (skillId === RECOVER_ID || skillId === MP_RECOVER_ID) {
-                    setSelectedTechniqueHealId(null)
-                    selectSkill('heal', skillId)
-                  } else {
-                    setSelectedTechniqueHealId(skillId)
-                  }
-                  if (mode === 'recover') clearPlanning()
-                  const option = recoveryOptions.find((candidate) => candidate.id === skillId)
-                  if (option) setNotice(`${option.label} equipped in the Recovery slot.`)
-                },
-              }}
-            />
-            <BattleSkillCommand
-              slot="finish"
-              hotkey="05"
-              label="Finish Turn"
-              cost="Choose facing + end"
-              artworkSrc={BATTLE_COMMAND_ARTWORK.finish}
-              active={mode === 'finish'}
-              disabled={planningDisabled}
-              onActivate={() => chooseMode('finish')}
-            />
-          </div>
+              <BattleSkillCommand
+                slot="move"
+                hotkey="01"
+                label="Move"
+                cost={`${MOVE_COST_PER_TERRAIN_POINT} AP`}
+                artworkSrc={BATTLE_COMMAND_ARTWORK.move}
+                active={mode === 'move'}
+                disabled={planningDisabled || actionEconomy < MOVE_COST_PER_TERRAIN_POINT}
+                onActivate={() => chooseMode('move')}
+              />
+              <BattleSkillCommand
+                slot="attack"
+                hotkey="02"
+                label={selectedAttack.label}
+                cost={selectedAttack.cost}
+                artworkSrc={selectedAttack.artworkSrc}
+                tags={selectedAttack.tags}
+                active={mode === 'attack'}
+                disabled={planningDisabled || actionEconomy < selectedAttackCost}
+                onActivate={() => chooseMode('attack')}
+                selector={{
+                  categoryLabel: 'Attack',
+                  selectedId: selectedAttackActionId,
+                  options: attackOptions,
+                  onSelect: (actionId) => {
+                    setSelectedAttackActionId(actionId)
+                    if (mode === 'attack') armAction('attack', actionId)
+                    else {
+                      const option = attackOptions.find((candidate) => candidate.id === actionId)
+                      if (option) setNotice(`${option.label} equipped in the Attack slot.`)
+                    }
+                  },
+                }}
+              />
+              <BattleSkillCommand
+                slot="guard"
+                hotkey="03"
+                label={selectedDefense.label}
+                cost={selectedDefense.cost}
+                artworkSrc={selectedDefense.artworkSrc}
+                tags={selectedDefense.tags}
+                active={mode === 'guard'}
+                disabled={planningDisabled || actionEconomy < selectedDefenseCost}
+                onActivate={() => chooseMode('guard')}
+                selector={{
+                  categoryLabel: 'Guard',
+                  selectedId: selectedDefenseActionId,
+                  options: defenseOptions,
+                  onSelect: (actionId) => {
+                    setSelectedDefenseActionId(actionId)
+                    if (mode === 'guard') armAction('guard', actionId)
+                    else {
+                      const option = defenseOptions.find((candidate) => candidate.id === actionId)
+                      if (option) setNotice(`${option.label} equipped in the Guard slot.`)
+                    }
+                  },
+                }}
+              />
+              <BattleSkillCommand
+                slot="recover"
+                hotkey="04"
+                label={selectedHealName}
+                cost={`${selectedHealCost} AP`}
+                artworkSrc={selectedHealOption.artworkSrc}
+                tags={selectedHealOption.tags}
+                active={mode === 'recover'}
+                disabled={
+                  planningDisabled || actionEconomy < selectedHealCost || selectedHealAtMaximum
+                }
+                onActivate={() => chooseMode('recover')}
+                selector={{
+                  categoryLabel: 'Heal',
+                  selectedId: effectiveHealActionId,
+                  options: recoveryOptions,
+                  onSelect: (skillId) => {
+                    if (skillId === RECOVER_ID || skillId === MP_RECOVER_ID) {
+                      setSelectedTechniqueHealId(null)
+                      selectSkill('heal', skillId)
+                    } else {
+                      setSelectedTechniqueHealId(skillId)
+                    }
+                    if (mode === 'recover') armAction('recover', skillId)
+                    else {
+                      const option = recoveryOptions.find((candidate) => candidate.id === skillId)
+                      if (option) setNotice(`${option.label} equipped in the Recovery slot.`)
+                    }
+                  },
+                }}
+              />
+              <BattleSkillCommand
+                slot="finish"
+                hotkey="05"
+                label="Finish Turn"
+                cost="Choose facing + end"
+                artworkSrc={BATTLE_COMMAND_ARTWORK.finish}
+                active={mode === 'finish'}
+                disabled={planningDisabled}
+                onActivate={() => chooseMode('finish')}
+              />
+            </div>
 
-          {/* Map guides and keyboard shortcuts use these same commit handlers. Keep the legacy
+            {/* Map guides and keyboard shortcuts use these same commit handlers. Keep the legacy
               cockpit pad hidden from the first render, including while facing mode opens. */}
-          <div
-            hidden
-            className={styles.facingRow}
-            data-open={mode === 'finish' || undefined}
-            data-unified-facing-pad="true"
+            <div
+              hidden
+              className={styles.facingRow}
+              data-open={mode === 'finish' || undefined}
+              data-unified-facing-pad="true"
+            >
+              <span>Final Facing</span>
+              {(['north', 'west', 'east', 'south'] as const).map((facing) => (
+                <button
+                  type="button"
+                  key={facing}
+                  disabled={mode !== 'finish' || planningDisabled}
+                  onClick={() => void commitValue({ kind: 'face', facing })}
+                  aria-label={`Face ${facing}`}
+                >
+                  {facingGlyph(facing)}
+                </button>
+              ))}
+            </div>
+          </section>
+          <section
+            data-battle-flow="true"
+            data-open={logOpen || undefined}
+            aria-label="Battle flow"
           >
-            <span>Final Facing</span>
-            {(['north', 'west', 'east', 'south'] as const).map((facing) => (
-              <button
-                type="button"
-                key={facing}
-                disabled={mode !== 'finish' || planningDisabled}
-                onClick={() => void commitValue({ kind: 'face', facing })}
-                aria-label={`Face ${facing}`}
-              >
-                {facingGlyph(facing)}
-              </button>
-            ))}
-          </div>
-        </section>
-        <section data-battle-flow="true" data-open={logOpen || undefined} aria-label="Battle flow">
-          <button type="button" aria-expanded={logOpen} onClick={() => setLogOpen((open) => !open)}>
-            <span>
-              Battle Flow <small>Round {battleState.round}</small>
-            </span>
-            <span>{logOpen ? 'Hide history −' : 'Show history +'}</span>
-          </button>
-          <div data-battle-flow-log-target="true" />
-        </section>
+            <button
+              type="button"
+              aria-expanded={logOpen}
+              onClick={() => setLogOpen((open) => !open)}
+            >
+              <span>
+                Battle Flow <small>Round {battleState.round}</small>
+              </span>
+              <span>{logOpen ? 'Hide history −' : 'Show history +'}</span>
+            </button>
+            <div data-battle-flow-log-target="true" />
+          </section>
+        </div>
       </section>
 
       <footer className={styles.footer} data-unified-battle-footer="true">
@@ -2016,7 +2101,7 @@ function DesktopBattleRail({
                 </div>
               </button>
               <BattleCombatantEffects
-                compact={sorted.length > 1}
+                compact
                 name={participant.name}
                 statuses={
                   battle.snapshot.statusState.find(

@@ -78,6 +78,8 @@ jobs:
             e2e/battle-cockpit-skill-slots.pw.ts e2e/pvp-six-combatant-rails.pw.ts \
             e2e/shared-battle-presentation-parity.pw.ts e2e/pvp-battle-log-footer-parity.pw.ts \
             e2e/phase4-ground-targeting.pw.ts \
+            e2e/pvp-mobile-unified-battle.pw.ts e2e/discipline-sigil-art.pw.ts \
+            e2e/character-secondary-build.pw.ts \
             --project=desktop-chromium --project=mobile-chromium
 
           AUREVANE_ENV=local \

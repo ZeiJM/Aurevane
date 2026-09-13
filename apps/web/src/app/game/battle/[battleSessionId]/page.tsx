@@ -8,7 +8,11 @@ import { redirect } from 'next/navigation'
 import { BattleAudioGate } from '@/components/battle/battle-audio-gate'
 import { BattleClientBoundary } from '@/components/battle/battle-client-boundary'
 import type { BattleTechniqueCategory } from '@/components/battle/battle-runtime'
-import { skillTargetTags } from '@/components/character/skill-detail-presentation'
+import {
+  skillEffectDescription,
+  skillRequirementDescription,
+  skillTargetTags,
+} from '@/components/character/skill-detail-presentation'
 import { getOptionalPublicSupabaseConfig } from '@/lib/supabase/config'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 import { getCurrentAccountServicesReadiness } from '@/server/account/account-services-readiness'
@@ -77,12 +81,16 @@ function battleBuildExtensions(
         sourceDisciplineId: definition.sourceDisciplineId,
         name: titleCase(tail),
         apCost: override?.apCost ?? definition.apCost,
+        mpCost: definition.mpCost ?? 0,
         cooldownOwnerTurns: override?.cooldownOwnerTurns ?? definition.cooldown.ownerTurns,
         category: techniqueCategory(definition.tags),
         targetKind: definition.target.kind,
+        targetTeamPolicy: definition.target.teamPolicy,
         minimumRange: definition.target.minimumRange,
         maximumRange: definition.target.maximumRange,
         tags: skillTargetTags(definition),
+        effectDescriptions: definition.effects.map(skillEffectDescription),
+        requirementDescriptions: definition.requirements.map(skillRequirementDescription),
       },
     ]
   })
@@ -104,9 +112,18 @@ function battleBuildExtensions(
           name: essenceDefinition.name,
           description: essenceDefinition.description,
           apCost: essenceOverride?.apCost ?? essenceDefinition.skill.apCost,
+          mpCost: essenceDefinition.skill.mpCost ?? 0,
+          targetKind: essenceDefinition.skill.target.kind,
+          targetTeamPolicy: essenceDefinition.skill.target.teamPolicy,
+          minimumRange: essenceDefinition.skill.target.minimumRange,
+          maximumRange: essenceDefinition.skill.target.maximumRange,
           cooldownOwnerTurns:
             essenceOverride?.cooldownOwnerTurns ?? essenceDefinition.skill.cooldown.ownerTurns,
           tags: skillTargetTags(essenceDefinition.skill),
+          effectDescriptions: essenceDefinition.skill.effects.map(skillEffectDescription),
+          requirementDescriptions: essenceDefinition.skill.requirements.map(
+            skillRequirementDescription,
+          ),
         }
       : null,
   }

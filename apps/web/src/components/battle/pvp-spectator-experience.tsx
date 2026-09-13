@@ -611,7 +611,10 @@ export function PvpSpectatorExperience({
               <header className={styles.battleLogHeader}>
                 <div>
                   <strong>Battle Log</strong>
-                  <small>Rounds · actions · outcomes</small>
+                  <small>
+                    {battleState.lifecycle === 'active' ? 'Recent 4 turns' : 'Complete history'} ·
+                    actions · outcomes
+                  </small>
                 </div>
               </header>
               <div className={styles.battleLogBody} aria-live="polite">
@@ -622,6 +625,8 @@ export function PvpSpectatorExperience({
                 ) : (
                   <BattleLogFeed
                     entries={battleLog?.entries ?? []}
+                    recentTurnCount={battleState.lifecycle === 'active' ? 4 : undefined}
+                    currentTurnNumber={battleState.turnNumber}
                     combatantNames={combatantNames}
                     emptyMessage="No committed battle actions yet."
                   />

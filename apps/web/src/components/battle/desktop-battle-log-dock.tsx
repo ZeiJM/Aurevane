@@ -84,6 +84,7 @@ export function DesktopBattleLogDock({
     return eventDriven ? (
       <BattleLogPanel
         battleSessionId={battleSessionId}
+        recentTurnCount={4}
         battleVersion={refreshTick}
         open={open}
         onClose={() => setOpen(false)}
@@ -97,6 +98,7 @@ export function DesktopBattleLogDock({
       <span className={styles.hook} aria-hidden="true" />
       <BattleLogPanel
         battleSessionId={battleSessionId}
+        recentTurnCount={4}
         battleVersion={refreshTick}
         open={open}
         playerName={playerName}

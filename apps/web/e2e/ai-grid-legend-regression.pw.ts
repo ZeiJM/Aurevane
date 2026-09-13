@@ -1,7 +1,10 @@
 import { expect, test } from '@playwright/test'
 
 import { expectMapKey } from './battle-map-key-helpers'
-import { expectBattleReferenceLayout } from './battle-reference-layout-helpers'
+import {
+  expectBattleFlowKeepsBoardSize,
+  expectBattleReferenceLayout,
+} from './battle-reference-layout-helpers'
 import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueCharacterName(): string {
@@ -97,7 +100,8 @@ test('keeps the desktop AI 9x7 grid, header map key, and battle log dock structu
   await flowToggle.click()
   await expect(dock).toBeVisible()
 
-  await expectBattleReferenceLayout(page, testInfo, 'combat-ai-log-below')
+  await expectBattleReferenceLayout(page, testInfo, 'combat-ai-command-dock')
+  await expectBattleFlowKeepsBoardSize(page)
   for (const size of [
     { width: 1920, height: 982 },
     { width: 2400, height: 1228 },
@@ -105,5 +109,6 @@ test('keeps the desktop AI 9x7 grid, header map key, and battle log dock structu
   ]) {
     await page.setViewportSize(size)
     await expectBattleReferenceLayout(page, testInfo, `combat-ai-${size.width}x${size.height}`)
+    await expectBattleFlowKeepsBoardSize(page)
   }
 })

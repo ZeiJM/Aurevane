@@ -61,7 +61,7 @@ async function captureBattleScaleGeometry(page: Page): Promise<BattleScaleGeomet
       'button[aria-label*="occupied by"] > span:last-child',
     )!
     const commandDeck = root.querySelector<HTMLElement>('[data-unified-command-deck="true"]')!
-    const commandContext = commandDeck.firstElementChild as HTMLElement
+    const commandContext = commandDeck.querySelector<HTMLElement>('[data-battle-instruction-host]')!
     const commandButton = commandDeck.querySelector<HTMLElement>(
       '[data-command-card] > button[data-battle-command]',
     )!

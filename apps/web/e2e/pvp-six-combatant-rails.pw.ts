@@ -74,114 +74,104 @@ test('keeps three portrait and status cards accessible in each desktop PvP rail'
     await expect(rails.nth(0).locator('article')).toHaveCount(1)
     await expect(rails.nth(1).locator('article')).toHaveCount(1)
 
-    const geometries = await rails.evaluateAll((elements) =>
-      elements.map((rail) => {
-        const railElement = rail as HTMLElement
-        const stack = railElement.firstElementChild as HTMLElement
-        const source = stack.querySelector<HTMLElement>('article')!
-        const originalCount = stack.dataset.count
-        const clones = [source.cloneNode(true), source.cloneNode(true)] as HTMLElement[]
-        for (const clone of clones) stack.appendChild(clone)
-        stack.dataset.count = '3'
+    // A rendered 1v1 supplies the real card markup. Clones exercise six-card
+    // presentation capacity only; battle membership and gameplay remain untouched.
+    for (const viewport of [
+      { width: 1536, height: 614 },
+      { width: 1920, height: 982 },
+      { width: 2400, height: 1228 },
+    ]) {
+      await host.setViewportSize(viewport)
+      const geometries = await rails.evaluateAll(async (elements) => {
+        await document.fonts.ready
+        await new Promise<void>((resolve) =>
+          requestAnimationFrame(() => requestAnimationFrame(() => resolve())),
+        )
+        return elements.map((rail) => {
+          const railElement = rail as HTMLElement
+          const stack = railElement.firstElementChild as HTMLElement
+          const source = stack.querySelector<HTMLElement>('article')!
+          const singleCard = source.getBoundingClientRect().toJSON()
+          const originalCount = stack.dataset.count
+          const clones = [source.cloneNode(true), source.cloneNode(true)] as HTMLElement[]
+          for (const clone of clones) stack.appendChild(clone)
+          stack.dataset.count = '3'
 
-        const railRect = railElement.getBoundingClientRect()
-        const stackRect = stack.getBoundingClientRect()
-        const cards = Array.from(stack.querySelectorAll<HTMLElement>('article')).map((card) => {
-          const heading = card.firstElementChild as HTMLElement
-          const portrait = card.querySelector<HTMLElement>(
-            'button[data-desktop-inspect-combatant]',
-          )!
-          const image = portrait.querySelector<HTMLElement>('.character-portrait-media')!
-          const cardRect = card.getBoundingClientRect()
-          const headingRect = heading.getBoundingClientRect()
-          const portraitRect = portrait.getBoundingClientRect()
-          const imageRect = image.getBoundingClientRect()
-          const effectsBottom = card.lastElementChild!.getBoundingClientRect().bottom
-          return {
-            card: {
-              left: cardRect.left,
-              right: cardRect.right,
-              top: cardRect.top,
-              bottom: cardRect.bottom,
-              width: cardRect.width,
-              height: cardRect.height,
-            },
-            heading: {
-              bottom: headingRect.bottom,
-              background: getComputedStyle(heading).backgroundColor,
-            },
-            portrait: {
-              left: portraitRect.left,
-              right: portraitRect.right,
-              top: portraitRect.top,
-              bottom: portraitRect.bottom,
-              width: portraitRect.width,
-              height: portraitRect.height,
-            },
-            image: {
-              left: imageRect.left,
-              right: imageRect.right,
-              top: imageRect.top,
-              bottom: imageRect.bottom,
-            },
-            effectsBottom,
+          const geometry = {
+            rail: railElement.getBoundingClientRect().toJSON(),
+            stack: stack.getBoundingClientRect().toJSON(),
+            singleCard,
+            scrollHeight: railElement.scrollHeight,
+            clientHeight: railElement.clientHeight,
+            cards: Array.from(stack.querySelectorAll<HTMLElement>('article')).map((card) => {
+              const portrait = card.querySelector<HTMLElement>(
+                'button[data-desktop-inspect-combatant]',
+              )!
+              const image = portrait.querySelector<HTMLElement>('.character-portrait-media')!
+              const effects = card.lastElementChild as HTMLElement
+              return {
+                card: card.getBoundingClientRect().toJSON(),
+                heading: card.firstElementChild!.getBoundingClientRect().toJSON(),
+                portrait: portrait.getBoundingClientRect().toJSON(),
+                image: image.getBoundingClientRect().toJSON(),
+                imageFit: getComputedStyle(image).objectFit,
+                effects: effects.getBoundingClientRect().toJSON(),
+                effectsHeight: effects.clientHeight,
+                effectsScrollHeight: effects.scrollHeight,
+              }
+            }),
           }
+          for (const clone of clones) clone.remove()
+          if (originalCount === undefined) delete stack.dataset.count
+          else stack.dataset.count = originalCount
+          return geometry
         })
+      })
 
-        const overflowY = getComputedStyle(railElement).overflowY
-        const lastCardBottom = stack.lastElementChild!.getBoundingClientRect().bottom
-        for (const clone of clones) clone.remove()
-        if (originalCount === undefined) delete stack.dataset.count
-        else stack.dataset.count = originalCount
+      for (const geometry of geometries) {
+        expect(geometry.rail.height).toBeGreaterThan(0)
+        expect(geometry.cards).toHaveLength(3)
+        expect(geometry.stack.width).toBeLessThanOrEqual(geometry.rail.width + 1)
+        expect(Math.abs(geometry.stack.top - geometry.rail.top)).toBeLessThanOrEqual(1)
+        expect(geometry.scrollHeight).toBeLessThanOrEqual(geometry.clientHeight + 1)
+        expect(geometry.cards[2]!.card.bottom).toBeLessThanOrEqual(geometry.rail.bottom + 1)
+        const firstHeight = geometry.cards[0]!.card.height
+        expect(
+          Math.abs(firstHeight - geometry.singleCard.height),
+          'A 1v1 card must already reserve room for two teammates.',
+        ).toBeLessThanOrEqual(1)
+        expect(firstHeight).toBeLessThanOrEqual(geometry.rail.height / 3)
 
-        return {
-          rail: {
-            left: railRect.left,
-            right: railRect.right,
-            top: railRect.top,
-            bottom: railRect.bottom,
-            width: railRect.width,
-            contentWidth: railElement.clientWidth,
-            height: railRect.height,
-          },
-          stack: {
-            left: stackRect.left,
-            right: stackRect.right,
-            top: stackRect.top,
-            bottom: stackRect.bottom,
-            width: stackRect.width,
-          },
-          cards,
-          overflowY,
-          lastCardBottom,
+        for (const {
+          card,
+          heading,
+          portrait,
+          image,
+          imageFit,
+          effects,
+          effectsHeight,
+          effectsScrollHeight,
+        } of geometry.cards) {
+          expect(Math.abs(card.height - firstHeight)).toBeLessThanOrEqual(1)
+          expect(portrait.width).toBeGreaterThan(32)
+          expect(
+            Math.abs(portrait.width - portrait.height),
+            'Rail portraits must remain square.',
+          ).toBeLessThanOrEqual(1)
+          expect(portrait.bottom).toBeLessThanOrEqual(card.bottom + 1)
+          expect(portrait.top).toBeGreaterThanOrEqual(heading.bottom - 1)
+          expect(imageFit).toBe('contain')
+          expect(Math.abs(image.width - image.height)).toBeLessThanOrEqual(1)
+          expect(Math.abs(image.left - portrait.left)).toBeLessThanOrEqual(1)
+          expect(Math.abs(image.right - portrait.right)).toBeLessThanOrEqual(1)
+          expect(Math.abs(image.top - portrait.top)).toBeLessThanOrEqual(1)
+          expect(Math.abs(image.bottom - portrait.bottom)).toBeLessThanOrEqual(1)
+          expect(portrait.left).toBeGreaterThanOrEqual(card.left)
+          expect(portrait.right).toBeLessThanOrEqual(card.right + 1)
+          expect(effects.bottom).toBeLessThanOrEqual(card.bottom + 1)
+          expect(effects.right).toBeLessThanOrEqual(card.right + 1)
+          expect(effectsScrollHeight).toBeLessThanOrEqual(effectsHeight + 1)
         }
-      }),
-    )
-
-    for (const geometry of geometries) {
-      expect(geometry.rail.height).toBeGreaterThan(0)
-      expect(geometry.cards).toHaveLength(3)
-      expect(geometry.stack.width).toBeLessThanOrEqual(geometry.rail.width + 1)
-      expect(Math.abs(geometry.stack.top - geometry.rail.top)).toBeLessThanOrEqual(1)
-      expect(geometry.overflowY).toBe('hidden')
-      expect(geometry.lastCardBottom).toBeLessThanOrEqual(geometry.rail.bottom + 1)
-
-      const railCenter = geometry.rail.left + geometry.rail.contentWidth / 2
-      const stackCenter = (geometry.stack.left + geometry.stack.right) / 2
-      expect(Math.abs(stackCenter - railCenter)).toBeLessThanOrEqual(1)
-
-      for (const { card, heading, portrait, image, effectsBottom } of geometry.cards) {
-        expect(portrait.height).toBeGreaterThan(0)
-        expect(portrait.bottom).toBeLessThanOrEqual(card.bottom + 1)
-        expect(Math.abs(portrait.top - heading.bottom)).toBeLessThanOrEqual(1)
-        expect(heading.background).not.toBe('rgba(0, 0, 0, 0)')
-        expect(Math.abs(image.left - portrait.left)).toBeLessThanOrEqual(1)
-        expect(Math.abs(image.right - portrait.right)).toBeLessThanOrEqual(1)
-        expect(Math.abs(image.top - portrait.top)).toBeLessThanOrEqual(1)
-        expect(Math.abs(image.bottom - portrait.bottom)).toBeLessThanOrEqual(1)
-        expect(portrait.left - card.left).toBeLessThanOrEqual(3)
-        expect(portrait.right).toBeLessThanOrEqual(card.right + 1)
-        expect(effectsBottom).toBeLessThanOrEqual(card.bottom + 1)
       }
     }
   } finally {
