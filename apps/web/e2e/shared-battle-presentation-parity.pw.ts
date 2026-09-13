@@ -37,6 +37,7 @@ async function expectMobileTokenMeters(root: ReturnType<Page['locator']>) {
     await expect(meters).toHaveCount(1)
     await expect(meters.locator('[data-mobile-token-meter="hp"]')).toHaveCount(1)
     await expect(meters.locator('[data-mobile-token-meter="mp"]')).toHaveCount(1)
+    await expect(token.locator('[data-battle-facing-indicator="true"]')).toBeVisible()
 
     const geometry = await tile.evaluate((element) => {
       const tokenElement = element.querySelector<HTMLElement>(
@@ -49,7 +50,9 @@ async function expectMobileTokenMeters(root: ReturnType<Page['locator']>) {
       const mpTrack = meterElement.querySelector<HTMLElement>('[data-mobile-token-meter="mp"]')!
       const hp = hpTrack.querySelector<HTMLElement>(':scope > i')!
       const mp = mpTrack.querySelector<HTMLElement>(':scope > i')!
-      const arrow = tokenElement.querySelector<HTMLElement>(':scope > i')!
+      const arrow = tokenElement.querySelector<HTMLElement>(
+        '[data-battle-facing-indicator="true"]',
+      )!
       const portraitCandidates = Array.from(tokenElement.children).filter(
         (child): child is HTMLElement =>
           child instanceof HTMLElement &&
