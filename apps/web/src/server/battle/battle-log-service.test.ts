@@ -3,7 +3,8 @@ import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('server-only', () => ({}))
 
-import { createBattleLogService } from './battle-log-service'
+import { buildBattleLogView, createBattleLogService } from './battle-log-service'
+import { buildBattleLogPresentation } from '../../components/battle/battle-log-presentation'
 
 const USER_ID = '11111111-1111-4111-8111-111111111111'
 const SESSION_ID = '33333333-3333-4333-8333-333333333333'
@@ -397,4 +398,132 @@ it('retains committed terrain conversions, expiry and failed displacement as rea
   expect(text).toContain('occupied')
   expect(text).toContain('no refund')
   expect(text).not.toContain('sourceCombatantId')
+})
+
+describe('Complete battle log opening context', () => {
+  const openingGuard = {
+    battleVersion: 2,
+    eventIndex: 0,
+    event: {
+      event: 'combat_action_used',
+      actionId: 'basic.guard',
+      actorId: 'character:player-1',
+    },
+    createdAt: '2026-09-13T00:00:02.000Z',
+  }
+
+  it('shows the opening Guard in round 1 and actor turn 1 before a turn marker is recorded', () => {
+    const log = buildBattleLogView(SESSION_ID, [openingGuard])
+    expect(log.entries[0]).toMatchObject({ round: 1, turnNumber: 1 })
+    const presentation = buildBattleLogPresentation(log.entries)
+    expect(presentation[0]).toMatchObject({ key: 'round:1', round: 1 })
+    expect(presentation[0]?.actions[0]).toMatchObject({ round: 1, turnNumber: 1 })
+    expect(presentation[0]?.actions[0]?.primary.some((part) => part.text === 'Guard')).toBe(true)
+    expect(openingGuard.event).not.toHaveProperty('round')
+  })
+
+  it('does not backfill opening commands from the first marker of a later round', () => {
+    const log = buildBattleLogView(SESSION_ID, [
+      {
+        battleVersion: 5,
+        eventIndex: 0,
+        event: {
+          event: 'turn_started',
+          round: 2,
+          turnNumber: 3,
+          combatantId: 'character:player-1',
+        },
+        createdAt: '2026-09-13T00:00:05.000Z',
+      },
+      openingGuard,
+    ])
+    expect(log.entries[1]).toMatchObject({ round: 1, turnNumber: 1 })
+    expect(log.entries[0]).toMatchObject({ round: 2, turnNumber: 3 })
+  })
+
+  it('keeps opening actions in round 1 when later markers arrive, preserving boundary and terminal context', () => {
+    const log = buildBattleLogView(SESSION_ID, [
+      {
+        battleVersion: 6,
+        eventIndex: 0,
+        event: { event: 'battle_completed' },
+        createdAt: '2026-09-13T00:00:06.000Z',
+      },
+      {
+        battleVersion: 5,
+        eventIndex: 3,
+        event: { ...openingGuard.event, actorId: 'character:player-1' },
+        createdAt: '2026-09-13T00:00:05.000Z',
+      },
+      {
+        battleVersion: 5,
+        eventIndex: 2,
+        event: {
+          event: 'turn_started',
+          round: 2,
+          turnNumber: 3,
+          combatantId: 'character:player-1',
+        },
+        createdAt: '2026-09-13T00:00:05.000Z',
+      },
+      {
+        battleVersion: 5,
+        eventIndex: 1,
+        event: { event: 'round_started', round: 2 },
+        createdAt: '2026-09-13T00:00:05.000Z',
+      },
+      {
+        battleVersion: 5,
+        eventIndex: 0,
+        event: { event: 'turn_ended', turnNumber: 2, combatantId: 'recruit:p2-4-1' },
+        createdAt: '2026-09-13T00:00:05.000Z',
+      },
+      {
+        battleVersion: 4,
+        eventIndex: 0,
+        event: { ...openingGuard.event, actorId: 'recruit:p2-4-1' },
+        createdAt: '2026-09-13T00:00:04.000Z',
+      },
+      {
+        battleVersion: 3,
+        eventIndex: 1,
+        event: { event: 'turn_started', round: 1, turnNumber: 2, combatantId: 'recruit:p2-4-1' },
+        createdAt: '2026-09-13T00:00:03.000Z',
+      },
+      {
+        battleVersion: 3,
+        eventIndex: 0,
+        event: { event: 'turn_ended', turnNumber: 1, combatantId: 'character:player-1' },
+        createdAt: '2026-09-13T00:00:03.000Z',
+      },
+      openingGuard,
+    ])
+    expect(
+      log.entries.map(({ battleVersion, eventIndex, round, turnNumber }) => [
+        battleVersion,
+        eventIndex,
+        round,
+        turnNumber,
+      ]),
+    ).toEqual([
+      [6, 0, 2, 3],
+      [5, 3, 2, 3],
+      [5, 2, 2, 3],
+      [5, 1, 2, null],
+      [5, 0, 1, 2],
+      [4, 0, 1, 2],
+      [3, 1, 1, 2],
+      [3, 0, 1, 1],
+      [2, 0, 1, 1],
+    ])
+    const actions = buildBattleLogPresentation(log.entries).flatMap((group) => group.actions)
+    expect(actions.find((action) => action.battleVersion === 2)).toMatchObject({
+      round: 1,
+      turnNumber: 1,
+    })
+    expect(actions.find((action) => action.battleVersion === 5)).toMatchObject({
+      round: 2,
+      turnNumber: 3,
+    })
+  })
 })

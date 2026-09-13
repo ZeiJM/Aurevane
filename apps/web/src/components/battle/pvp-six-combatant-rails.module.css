@@ -288,22 +288,27 @@
     border-left: 1px solid var(--av-border);
   }
   :global(main[data-unified-battle='true'][data-battle-layout='map-first']) .meters {
-    padding: 1px;
+    padding: 0;
     gap: 1px;
     left: 2px;
     right: 2px;
     bottom: 2px;
+    border-radius: 0;
+    background: linear-gradient(transparent, rgba(2, 4, 7, 0.38));
+    backdrop-filter: none;
   }
   :global(main[data-unified-battle='true'][data-battle-layout='map-first']) .meters > span {
     position: relative;
     display: grid;
     place-items: center;
-    height: 0.8rem;
-    border-radius: 3px;
+    height: 0.625rem;
+    border-radius: 0;
+    background: rgba(2, 4, 7, 0.14);
   }
   :global(main[data-unified-battle='true'][data-battle-layout='map-first']) .meters i {
     position: absolute;
-    inset: 0 auto 0 0;
+    inset: auto auto 0 0;
+    height: 2px;
   }
   .meters b {
     z-index: 1;

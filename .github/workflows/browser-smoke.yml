@@ -97,14 +97,16 @@ jobs:
           pnpm --filter @aurevane/web exec playwright test \
             e2e/battle-self-action-quick-commit.pw.ts \
             e2e/battle-recovery-hotkey.pw.ts \
-            --config=playwright.edge.config.ts
+            --config=playwright.edge.config.ts --output=test-results-edge
 
       - name: Save browser evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: browser-smoke-evidence
-          path: apps/web/test-results
+          path: |
+            apps/web/test-results
+            apps/web/test-results-edge
           retention-days: 7
 
       - name: Stop local Supabase services

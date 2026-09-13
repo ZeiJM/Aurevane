@@ -6,10 +6,15 @@
   gap: 0.2rem;
   max-width: none !important;
   min-width: 0;
-  margin: 0 !important;
   overflow: visible;
   color: var(--av-text-muted);
   font: 500 0.75rem/1.25 var(--av-font-body);
+}
+/* The preview shares its title's inset, including when older PvE context styles are mounted. */
+:global(main[data-unified-battle='true'][data-battle-kind] [data-battle-instruction-host])
+  .preview[data-react-battle-preview] {
+  margin: 0 !important;
+  padding: 0 !important;
 }
 :global(main[data-unified-battle='true'][data-battle-kind][data-battle-layout])
   .preview[data-react-battle-preview]

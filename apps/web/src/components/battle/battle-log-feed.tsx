@@ -214,6 +214,41 @@ export function buildBattleLogTranscriptLines(
   }
 }
 
+/** Shared numbered transcript for the complete log and the compact Text log. */
+export function BattleLogTranscriptAction({
+  action,
+  number,
+  combatantAccents = {},
+}: {
+  action: PresentedBattleLogAction
+  number?: number
+  combatantAccents?: Readonly<Record<string, string>>
+}) {
+  const transcript = buildBattleLogTranscriptLines(action)
+  return (
+    <article
+      className={styles.action}
+      data-kind={action.kind}
+      data-tone={action.tone}
+      data-significance={action.significance}
+      tabIndex={0}
+      aria-label={action.ariaLabel}
+    >
+      <p className={styles.primaryLine}>
+        <span className={styles.eventNumber}>#{number}:</span>
+        <span className={styles.primaryContent}>
+          {renderTranscriptSegments(transcript.primary, action, 'primary', combatantAccents)}
+        </span>
+      </p>
+      {transcript.secondaryLines.map((line, index) => (
+        <p className={styles.secondaryLine} key={`${action.key}:result:${index}`}>
+          {renderTranscriptSegments(line, action, 'secondary', combatantAccents)}
+        </p>
+      ))}
+    </article>
+  )
+}
+
 export function buildBattleLogActionNumbers(
   rounds: readonly PresentedBattleLogRound[],
 ): ReadonlyMap<string, number> {
@@ -353,6 +388,13 @@ export function BattleLogFeed({
       {compactFlow ? (
         <BattleActionTimeline
           view={flowView}
+          renderTranscript={(action) => (
+            <BattleLogTranscriptAction
+              action={action}
+              number={actionNumbers.get(action.key)}
+              combatantAccents={combatantAccents}
+            />
+          )}
           recentTurnCount={recentTurnCount}
           rounds={rounds}
           entries={entries}
@@ -393,43 +435,13 @@ export function BattleLogFeed({
               {open ? (
                 <ol className={styles.actions} aria-label={`${roundLabel} battle events`}>
                   {round.actions.map((action) => {
-                    const transcript = buildBattleLogTranscriptLines(action)
                     return (
-                      <li
-                        className={styles.action}
-                        data-kind={action.kind}
-                        data-tone={action.tone}
-                        data-significance={action.significance}
-                        key={action.key}
-                      >
-                        <article tabIndex={0} aria-label={action.ariaLabel}>
-                          <p className={styles.primaryLine}>
-                            <span className={styles.eventNumber}>
-                              #{actionNumbers.get(action.key)}:
-                            </span>
-                            <span className={styles.primaryContent}>
-                              {renderTranscriptSegments(
-                                transcript.primary,
-                                action,
-                                'primary',
-                                combatantAccents,
-                              )}
-                            </span>
-                          </p>
-                          {transcript.secondaryLines.map((line, index) => (
-                            <p
-                              className={styles.secondaryLine}
-                              key={`${action.key}:result:${index}`}
-                            >
-                              {renderTranscriptSegments(
-                                line,
-                                action,
-                                'secondary',
-                                combatantAccents,
-                              )}
-                            </p>
-                          ))}
-                        </article>
+                      <li key={action.key}>
+                        <BattleLogTranscriptAction
+                          action={action}
+                          number={actionNumbers.get(action.key)}
+                          combatantAccents={combatantAccents}
+                        />
                       </li>
                     )
                   })}
