@@ -636,7 +636,6 @@
   }
 }
 
-
 /* A lone combatant uses the full rail for a portrait-forward card. Keep this rule in the shared
    scale authority so the geometry survives the later PvP/PvE bridge selectors. */
 @media (min-width: 821px) {
