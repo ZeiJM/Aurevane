@@ -5,7 +5,10 @@ import {
   PV1F_RECOVER_ACTION_ID,
 } from '@aurevane/game-core/combat/pv1f-skills'
 
-import { darkFantasyResonanceArtwork, darkFantasySkillArtwork } from '@/media/generated-dark-fantasy-art'
+import {
+  darkFantasyResonanceArtwork,
+  darkFantasySkillArtwork,
+} from '../../media/generated-dark-fantasy-art'
 
 export const BATTLE_COMMAND_ARTWORK = {
   inspect: '/media/skills/inspect.webp',
@@ -42,11 +45,17 @@ export const PHASE_3_COMBAT_ACTION_IDS = [
 export const PHASE_3_RESONANCE_IDS = ['resonance.lifebinder-vanguard.mercys-edge'] as const
 
 export const PHASE_3_COMBAT_ARTWORK = Object.fromEntries(
-  PHASE_3_COMBAT_ACTION_IDS.map((id) => [id, darkFantasySkillArtwork(id) ?? BATTLE_MISSING_ARTWORK]),
+  PHASE_3_COMBAT_ACTION_IDS.map((id) => [
+    id,
+    darkFantasySkillArtwork(id) ?? BATTLE_MISSING_ARTWORK,
+  ]),
 ) as Record<(typeof PHASE_3_COMBAT_ACTION_IDS)[number], string>
 
 export const PHASE_3_RESONANCE_ARTWORK = Object.fromEntries(
-  PHASE_3_RESONANCE_IDS.map((id) => [id, darkFantasyResonanceArtwork(id) ?? BATTLE_MISSING_ARTWORK]),
+  PHASE_3_RESONANCE_IDS.map((id) => [
+    id,
+    darkFantasyResonanceArtwork(id) ?? BATTLE_MISSING_ARTWORK,
+  ]),
 ) as Record<(typeof PHASE_3_RESONANCE_IDS)[number], string>
 
 const ACTION_ARTWORK = new Map<string, string>([

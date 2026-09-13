@@ -50,15 +50,13 @@ describe('battle skill artwork presentation', () => {
     expect(battleSkillArtwork(PV1F_MP_RECOVER_ACTION_ID)).toBe('/media/skills/mp-recovery.svg')
   })
 
-  it('keeps established Phase 3 artwork and gives newly authored Lifebinder actions distinct curated art', () => {
-    const generatedIds = new Set<string>(GENERATED_LIFEBINDER_IDS)
+  it('gives every Phase 3 action distinct generated dark-fantasy art', () => {
     const resolvedArtwork = PHASE_3_COMBAT_ACTION_IDS.map((actionId) => {
       const artwork = battleSkillArtwork(actionId)
-      if (!generatedIds.has(actionId)) {
-        expect(artwork).toBe(PHASE_3_COMBAT_ARTWORK[actionId])
-      }
+      expect(artwork).toBe(PHASE_3_COMBAT_ARTWORK[actionId])
       expect(artwork).not.toBe(BATTLE_MISSING_ARTWORK)
       expect(artwork).not.toBe(BATTLE_COMMAND_ARTWORK.inspect)
+      expect(artwork.startsWith('data:image/svg+xml,')).toBe(true)
       return artwork
     })
 
@@ -67,17 +65,15 @@ describe('battle skill artwork presentation', () => {
       battleSkillArtwork(actionId),
     )
     expect(new Set(lifebinderArtwork).size).toBe(GENERATED_LIFEBINDER_IDS.length)
-    expect(
-      lifebinderArtwork.every((source) => source.startsWith('/media/skills/dark-fantasy/')),
-    ).toBe(true)
+    expect(lifebinderArtwork.every((source) => source.startsWith('data:image/svg+xml,'))).toBe(true)
     expect(battleSkillArtwork('future.skill')).toBe(BATTLE_MISSING_ARTWORK)
   })
 
-  it('gives the Foundation trio Techniques and Essences non-missing curated artwork', () => {
+  it('gives the Foundation trio Techniques and Essences non-missing generated artwork', () => {
     for (const skillId of FOUNDATION_TRIO_SAMPLE_IDS) {
       const artwork = battleSkillArtwork(skillId)
       expect(artwork).not.toBe(BATTLE_MISSING_ARTWORK)
-      expect(artwork.startsWith('/media/skills/dark-fantasy/')).toBe(true)
+      expect(artwork.startsWith('data:image/svg+xml,')).toBe(true)
     }
   })
 
@@ -87,11 +83,12 @@ describe('battle skill artwork presentation', () => {
       expect(artwork).toBe(PHASE_3_RESONANCE_ARTWORK[resonanceId])
       expect(artwork).not.toBe(BATTLE_MISSING_ARTWORK)
       expect(artwork).not.toBe(BATTLE_COMMAND_ARTWORK.inspect)
+      expect(artwork.startsWith('data:image/svg+xml,')).toBe(true)
     }
 
     const expandedResonance = battleResonanceArtwork('resonance.aetherist-farstrider.arcane-hunt')
     expect(expandedResonance).not.toBe(BATTLE_MISSING_ARTWORK)
-    expect(expandedResonance.startsWith('/media/skills/dark-fantasy/')).toBe(true)
+    expect(expandedResonance.startsWith('data:image/svg+xml,')).toBe(true)
     expect(battleResonanceArtwork('future.resonance')).toBe(BATTLE_MISSING_ARTWORK)
   })
 })
