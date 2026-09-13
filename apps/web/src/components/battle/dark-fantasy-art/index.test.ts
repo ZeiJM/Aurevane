@@ -22,14 +22,18 @@ describe('dark-fantasy combat artwork', () => {
     }
   })
 
-  it('uses the curated dark-fantasy artwork before generated sigils', () => {
-    expect(battleSkillArtwork('lifebinder.vital-sever')).toBe(
-      DARK_FANTASY_COMBAT_ARTWORK['lifebinder.vital-sever'],
-    )
-    expect(battleSkillArtwork('essence.aetherist.aether-nova')).toBe(
-      DARK_FANTASY_COMBAT_ARTWORK['essence.aetherist.aether-nova'],
-    )
-    expect(battleResonanceArtwork('resonance.farstrider-shadehand.marked-opening')).toBe(
+  it('uses the complete generated dark-fantasy pass before the previous curated set', () => {
+    const skill = battleSkillArtwork('lifebinder.vital-sever')
+    const essence = battleSkillArtwork('essence.aetherist.aether-nova')
+    const resonance = battleResonanceArtwork('resonance.farstrider-shadehand.marked-opening')
+
+    for (const artwork of [skill, essence, resonance]) {
+      expect(artwork.startsWith('data:image/svg+xml,')).toBe(true)
+    }
+
+    expect(skill).not.toBe(DARK_FANTASY_COMBAT_ARTWORK['lifebinder.vital-sever'])
+    expect(essence).not.toBe(DARK_FANTASY_COMBAT_ARTWORK['essence.aetherist.aether-nova'])
+    expect(resonance).not.toBe(
       DARK_FANTASY_COMBAT_ARTWORK['resonance.farstrider-shadehand.marked-opening'],
     )
   })
