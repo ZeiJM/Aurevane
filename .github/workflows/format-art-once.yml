@@ -1,0 +1,34 @@
+name: Format art pass once
+
+on:
+  push:
+    paths:
+      - '.github/workflows/format-art-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  format:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: corepack enable
+      - run: corepack prepare pnpm@11.17.0 --activate
+      - run: pnpm install --frozen-lockfile
+      - name: Format generated art files
+        run: pnpm exec prettier --write apps/web/src/media/generated-dark-fantasy-art.ts apps/web/src/components/battle/battle-skill-presentation.ts
+      - name: Commit formatting
+        run: |
+          if git diff --quiet; then
+            echo "No formatting changes needed"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/web/src/media/generated-dark-fantasy-art.ts apps/web/src/components/battle/battle-skill-presentation.ts
+          git commit -m "style: format dark fantasy art pass"
+          git push origin HEAD:main
