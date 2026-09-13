@@ -684,7 +684,6 @@
   }
 }
 
-
 /* Keep the single-card geometry available to portal-mounted battle rails as well. */
 @media (min-width: 821px) {
   :global([data-unified-combatant-rail] > div[data-count='1']) {
@@ -696,7 +695,12 @@
     height: 100% !important;
     align-self: stretch !important;
   }
-  :global([data-unified-combatant-rail] > div[data-count='1'] > article button[data-desktop-inspect-combatant]) {
+  :global(
+    [data-unified-combatant-rail]
+      > div[data-count='1']
+      > article
+      button[data-desktop-inspect-combatant]
+  ) {
     grid-column: 1 !important;
     grid-row: 2 !important;
     width: 100% !important;
