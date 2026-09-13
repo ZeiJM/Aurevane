@@ -799,3 +799,11 @@
     right: 4rem;
   }
 }
+
+
+/* Desktop inspect artwork stays at least as legible as the approved mobile card. */
+@media (min-width: 821px) {
+  :global(main[data-unified-battle='true'][data-battle-kind]) .shell {
+    --command-art-size: 3.25rem;
+  }
+}

@@ -39,7 +39,10 @@ test('Profile build launchers stay centered and typographically matched', async 
   await expect(page.locator('#build-techniques-heading')).toHaveText('Techniques')
   await expect(page.getByText(/\d+ \/ \d+ tagged/)).toHaveCount(0)
 
-  const navigation = page.getByRole('navigation', { name: 'Profile navigation', exact: true })
+  const navigation = page.getByRole('navigation', {
+    name: 'Primary game navigation',
+    exact: true,
+  })
   await expect(navigation.getByRole('link', { name: 'Profile', exact: true })).toHaveAttribute(
     'aria-current',
     'page',

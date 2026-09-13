@@ -63,7 +63,7 @@ test('creates a slotted character, persists its profile, and resumes it across s
     '0',
   )
 
-  await expect(page.locator('img[src*="/media/art/concept-ui/portrait-01-v01.webp"]')).toBeVisible()
+  await expect(page.locator('img[src*="portrait-01-v01.webp"]')).toBeVisible()
   expect(await hasHorizontalOverflow(page)).toBe(false)
   await expect(page.getByRole('link', { name: 'Back to Character Select' })).toHaveCount(0)
 

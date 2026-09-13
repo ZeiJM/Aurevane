@@ -409,6 +409,7 @@ export function BattleLaunch({
             <label className={styles.modeSelectLabel}>
               <span>Battle mode</span>
               <select
+                id="ai-mode"
                 aria-label="Battle mode"
                 value={recordId ?? ''}
                 onChange={(event) => {
