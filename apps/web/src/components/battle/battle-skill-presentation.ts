@@ -8,7 +8,7 @@ import {
 import {
   darkFantasyResonanceArtwork,
   darkFantasySkillArtwork,
-} from '@/media/generated-dark-fantasy-art'
+} from '../../media/generated-dark-fantasy-art'
 
 export const BATTLE_COMMAND_ARTWORK = {
   inspect: '/media/skills/inspect.webp',
