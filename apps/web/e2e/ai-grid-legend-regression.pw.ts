@@ -99,7 +99,8 @@ test('keeps the desktop AI 9x7 grid, header map key, and battle log dock structu
 
   await expectBattleReferenceLayout(page, testInfo, 'combat-ai-log-below')
   for (const size of [
-    { width: 2400, height: 1350 },
+    { width: 1920, height: 982 },
+    { width: 2400, height: 1228 },
     { width: 1280, height: 720 },
   ]) {
     await page.setViewportSize(size)

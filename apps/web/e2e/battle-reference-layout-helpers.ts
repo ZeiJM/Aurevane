@@ -48,10 +48,12 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
       tokens,
       railMeters,
       key: rect('[aria-label="Map Key"]'),
-      victory: rect('[aria-label="Victory Conditions"]'),
+      victory: rect('[data-battle-shared-header-action="victory"]'),
       header: rect(':scope > header'),
       flowFeed: (() => {
-        const feed = element.querySelector<HTMLElement>('[data-compact-flow]')!
+        const feed =
+          element.querySelector<HTMLElement>('[data-compact-flow]') ??
+          element.querySelector<HTMLElement>('[aria-label="Battle Log"]')!
         return {
           height: feed.clientHeight,
           scrollHeight: feed.scrollHeight,
