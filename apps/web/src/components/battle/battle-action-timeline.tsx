@@ -65,12 +65,14 @@ export function BattleActionTimeline({
   playerName,
   combatantNames,
   view = 'timeline',
+  recentTurnCount,
 }: {
   rounds: readonly PresentedBattleLogRound[]
   entries: BattleLogView['entries']
   playerName?: string
   combatantNames?: Readonly<Record<string, string>>
   view?: 'timeline' | 'text'
+  recentTurnCount?: number
 }) {
   const [filter, setFilter] = useState<'all' | 'you' | 'opponents'>('all')
   const opponentNames = useBattleOpponentNames()
@@ -106,7 +108,7 @@ export function BattleActionTimeline({
     observer.observe(list)
     return () => observer.disconnect()
   }, [view])
-  const pageKey = `${actions.length}:${filter}:${view}`
+  const pageKey = `${actions.at(-1)?.key ?? ''}:${actions.length}:${filter}:${view}`
   const lastPage = Math.max(0, Math.ceil(visible.length / pageSize) - 1)
   const currentPage = Math.min(pagination.key === pageKey ? pagination.pagesBack : 0, lastPage)
   const end = Math.max(0, visible.length - currentPage * pageSize)
@@ -155,7 +157,10 @@ export function BattleActionTimeline({
         >
           ‹
         </button>
-        <span>{visible.length ? `${start + 1}–${end} of ${visible.length}` : 'No actions'}</span>
+        <span>
+          {visible.length ? `${start + 1}–${end} of ${visible.length}` : 'No actions'}
+          {recentTurnCount ? ` · Recent ${recentTurnCount} turns` : ''}
+        </span>
         <button
           type="button"
           aria-label="Newer actions"

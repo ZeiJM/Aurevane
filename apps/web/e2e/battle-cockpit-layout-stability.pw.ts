@@ -32,7 +32,7 @@ async function expectStableCompactDesktopCockpit(page: Page) {
     cards.map((card) => card.getBoundingClientRect().height),
   )
   expect(Math.min(...before)).toBeGreaterThanOrEqual(92)
-  expect(Math.max(...before)).toBeLessThanOrEqual(160)
+  expect(Math.max(...before)).toBeLessThanOrEqual(120)
 
   await deck.getByRole('button', { name: /^Move,/ }).click()
   await expect(facingPad).toBeHidden()
@@ -155,7 +155,7 @@ test('mobile Finish Turn opens battlefield facing guides and commits a double-ta
   const tokenArrows = page.locator('#battlefield [data-battle-facing-indicator="true"]')
 
   await expect(facingPad).toBeHidden()
-  await expect(finishTurn).toContainText('Choose facing + end')
+  await expect(finishTurn).toHaveAccessibleName(/Choose facing \+ end/)
   await expect(tokenArrows).toHaveCount(2)
 
   const arrowGeometry = await tokenArrows.evaluateAll((arrows) =>

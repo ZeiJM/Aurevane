@@ -328,7 +328,7 @@ async function finishCurrentTurn(
   finishButton: ReturnType<import('@playwright/test').Page['locator']>,
   projectName: string,
 ): Promise<void> {
-  await expect(finishButton).toContainText('Choose facing + end')
+  await expect(finishButton).toHaveAccessibleName(/Choose facing \+ end/)
   if (projectName === 'mobile-chromium') {
     await finishButton.tap()
     await new Promise((resolve) => setTimeout(resolve, 80))

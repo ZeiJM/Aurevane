@@ -294,6 +294,14 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   await page.getByRole('option', { name: 'Fortress 30 AP', exact: true }).click()
   await root.getByRole('button', { name: 'Fortress, 30 AP', exact: true }).click()
   await expect(root.getByRole('button', { name: 'Confirm Action', exact: true })).toBeEnabled()
+  await expect(root.locator('#battlefield button[data-target="friendly"]')).toHaveCount(1)
+  await expect(
+    root.getByRole('button', { name: new RegExp(`occupied by Mastery ${suffix}$`) }),
+  ).toHaveAttribute('data-target', 'friendly')
+  // A new invalid target must discard the earlier accepted self projection and confirmation.
+  await root.locator('#battlefield button:not([aria-label*="occupied by"])').first().click()
+  await expect(root.getByRole('button', { name: 'Confirm Action', exact: true })).toBeDisabled()
+  await expect(root.getByLabel('Action preview')).not.toContainText('Success 100%')
   const selfPreview = page.waitForResponse(
     (response) => response.url().endsWith('/preview') && response.request().method() === 'POST',
   )

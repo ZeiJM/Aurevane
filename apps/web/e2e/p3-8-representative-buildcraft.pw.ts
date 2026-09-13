@@ -1,3 +1,4 @@
+import { expectBattlePreviewFits } from './battle-reference-layout-helpers'
 import { expect, test, type Locator, type Page } from '@playwright/test'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
@@ -173,6 +174,54 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   const finishAction = commandDeck.locator('button[data-command-slot="finish"]')
   const confirmAction = page.getByRole('button', { name: /Confirm Action/ })
   const actionEconomy = page.getByRole('progressbar', { name: 'Action Economy remaining' })
+
+  // Swapping an active basic Guard to ally-only Barrier must replace the self forecast with
+  // truthful skill guidance. A 1v1 has no other allied unit, and Barrier's range starts at one.
+  await commandDeck.getByRole('button', { name: 'Guard, 30 AP', exact: true }).click()
+  await expect(confirmAction).toBeEnabled()
+  const guardTargetPreview = page.waitForResponse((response) => response.url().endsWith('/preview'))
+  await battlefield
+    .getByRole('button', { name: new RegExp(`occupied by ${characterName}`) })
+    .click()
+  expect((await guardTargetPreview).request().postDataJSON().intent.target).toEqual({
+    kind: 'self',
+  })
+  await expect(confirmAction).toBeEnabled()
+  await commandDeck.getByRole('button', { name: /Choose Guard skill/ }).click()
+  await page.getByRole('option', { name: 'Barrier 40 AP', exact: true }).click()
+  const forecast = commandDeck.getByLabel('Action preview')
+  await expect(forecast).toContainText('40 AP')
+  await expect(forecast).toContainText('Ally · 1–3 tiles')
+  await expect(forecast).toContainText('Guarded')
+  await expect(forecast).not.toContainText('Success 100%')
+  if (testInfo.project.name !== 'mobile-chromium') {
+    const originalViewport = page.viewportSize()!
+    for (const viewport of [
+      { width: 1280, height: 720 },
+      { width: 1024, height: 768 },
+    ]) {
+      await page.setViewportSize(viewport)
+      await expectBattlePreviewFits(page)
+    }
+    await page.setViewportSize(originalViewport)
+  } else {
+    await expectBattlePreviewFits(page)
+  }
+
+  await expect(confirmAction).toBeDisabled()
+  await expect(battlefield.locator('button[data-target="friendly"]')).toHaveCount(0)
+  await forecast.getByRole('button', { name: 'Skill details', exact: true }).click()
+  const skillDetails = page.getByRole('dialog', { name: 'Barrier', exact: true })
+  await expect(skillDetails).toContainText('Guarded')
+  await skillDetails.press('Escape')
+  await expect(skillDetails).toHaveCount(0)
+
+  await commandDeck.getByRole('button', { name: /Choose Guard skill/ }).click()
+  await page.getByRole('option', { name: 'Guard 30 AP', exact: true }).click()
+  await expect(confirmAction).toBeEnabled()
+  await expect(forecast).toContainText('Success 100%')
+  await expectBattlePreviewFits(page)
+  await page.getByRole('button', { name: 'Cancel Action', exact: true }).click()
 
   // Forceful Strike is melee (range 1). Approach the Recruit through real movement/turn flow so
   // the keyboard regression test never depends on a lucky adjacent spawn.

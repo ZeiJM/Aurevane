@@ -28,6 +28,8 @@ interface BattleLogFeedProps {
   skillNarrations?: Readonly<Record<string, SkillNarrationTemplate>>
   emptyMessage?: string
   compactFlow?: boolean
+  recentTurnCount?: number
+  currentTurnNumber?: number
 }
 
 export interface BattleLogTranscriptLines {
@@ -233,6 +235,44 @@ export function countBattleLogActions(entries: BattleLogView['entries']): number
   return countSummarizedBattleLogActions(entries)
 }
 
+/** Select only the live presentation window; saved entries and post-battle exports stay complete. */
+export function selectRecentBattleLogEntries(
+  entries: BattleLogView['entries'],
+  recentTurnCount?: number,
+  currentTurnNumber = 0,
+): BattleLogView['entries'] {
+  const latestTurn = entries.reduce(
+    (latest, entry) => Math.max(latest, entry.turnNumber ?? 0),
+    currentTurnNumber,
+  )
+  if (!recentTurnCount || latestTurn === 0) return entries
+  const firstTurn = Math.max(1, latestTurn - recentTurnCount + 1)
+  // Turn-start bookkeeping advances the window even before the new actor commits an action.
+  const firstIncluded = entries.reduce<BattleLogView['entries'][number] | null>((first, entry) => {
+    if (entry.turnNumber === null || entry.turnNumber < firstTurn) return first
+    if (
+      !first ||
+      entry.battleVersion < first.battleVersion ||
+      (entry.battleVersion === first.battleVersion && entry.eventIndex < first.eventIndex)
+    )
+      return entry
+    return first
+  }, null)
+  return entries.filter((entry) => {
+    if (entry.turnNumber !== null) return entry.turnNumber >= firstTurn
+    // Untagged setup belongs to the first turn; later boundary effects stay with recent commits.
+    return (
+      firstTurn === 1 ||
+      Boolean(
+        firstIncluded &&
+        (entry.battleVersion > firstIncluded.battleVersion ||
+          (entry.battleVersion === firstIncluded.battleVersion &&
+            entry.eventIndex >= firstIncluded.eventIndex)),
+      )
+    )
+  })
+}
+
 export function BattleLogFeed({
   entries,
   playerName,
@@ -240,9 +280,11 @@ export function BattleLogFeed({
   skillNarrations,
   emptyMessage = 'No committed battle actions yet.',
   compactFlow = false,
+  recentTurnCount,
+  currentTurnNumber,
 }: BattleLogFeedProps) {
   const combatantAccents = useBattleCombatantAccents()
-  const rounds = useMemo(() => {
+  const allRounds = useMemo(() => {
     const presented = buildBattleLogPresentation(entries, {
       playerName,
       combatantNames,
@@ -251,7 +293,24 @@ export function BattleLogFeed({
     const consolidated = consolidatePresentedBattleLogRounds(presented)
     return summarizeConsecutiveBattleLogMovement(consolidated, entries)
   }, [combatantNames, entries, playerName, skillNarrations])
-  const actionNumbers = useMemo(() => buildBattleLogActionNumbers(rounds), [rounds])
+  const latestRound = entries.reduce((latest, entry) => Math.max(latest, entry.round ?? 0), 0)
+  const recentEntries = useMemo(
+    () => selectRecentBattleLogEntries(entries, recentTurnCount, currentTurnNumber),
+    [currentTurnNumber, entries, recentTurnCount],
+  )
+  const rounds = useMemo(() => {
+    if (recentEntries === entries) return allRounds
+    const presented = buildBattleLogPresentation(recentEntries, {
+      playerName,
+      combatantNames,
+      skillNarrations,
+    })
+    return summarizeConsecutiveBattleLogMovement(
+      consolidatePresentedBattleLogRounds(presented),
+      recentEntries,
+    )
+  }, [allRounds, combatantNames, entries, playerName, recentEntries, skillNarrations])
+  const actionNumbers = useMemo(() => buildBattleLogActionNumbers(allRounds), [allRounds])
   const [flowView, setFlowView] = useState<'timeline' | 'text'>('timeline')
   const [requestedRound, setRequestedRound] = useState<string | null | undefined>(undefined)
   const expandedRound = expandedRoundKey(rounds, requestedRound)
@@ -264,6 +323,12 @@ export function BattleLogFeed({
   return (
     <div
       className={styles.feed}
+      role="region"
+      aria-label={
+        recentTurnCount
+          ? `Battle history, latest ${recentTurnCount} turns`
+          : 'Complete battle history'
+      }
       data-testid="battle-log-feed"
       data-compact-flow={compactFlow || undefined}
     >
@@ -288,6 +353,7 @@ export function BattleLogFeed({
       {compactFlow ? (
         <BattleActionTimeline
           view={flowView}
+          recentTurnCount={recentTurnCount}
           rounds={rounds}
           entries={entries}
           playerName={playerName}
@@ -297,7 +363,7 @@ export function BattleLogFeed({
         rounds.map((round) => {
           const open = expandedRound === round.key
           const roundLabel = round.round === null ? 'Battle' : `Round ${round.round}`
-          const inProgress = !battleFinished && round.key === rounds[0]?.key && round.round !== null
+          const inProgress = !battleFinished && round.round === latestRound
           return (
             <section className={styles.round} data-open={open || undefined} key={round.key}>
               <button

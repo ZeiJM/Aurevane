@@ -194,16 +194,19 @@ async function expectDesktopCombatantCard(root: ReturnType<Page['locator']>) {
       portraitRight: portraitRect.right,
       portraitTop: portraitRect.top,
       portraitBottom: portraitRect.bottom,
+      portraitWidth: portraitRect.width,
+      portraitHeight: portraitRect.height,
       effectsBottom: effectsRect.bottom,
     }
   })
-  expect(Math.abs(geometry.portraitLeft - geometry.cardLeft)).toBeLessThanOrEqual(2)
-  expect(Math.abs(geometry.portraitRight - geometry.cardRight)).toBeLessThanOrEqual(2)
+  expect(geometry.portraitLeft).toBeGreaterThanOrEqual(geometry.cardLeft)
+  expect(geometry.portraitRight).toBeLessThanOrEqual(geometry.cardRight)
+  expect(Math.abs(geometry.portraitWidth - geometry.portraitHeight)).toBeLessThanOrEqual(1)
   await expect(card.locator('button[data-desktop-inspect-combatant]')).toContainText(/HP.*MP/s)
   expect(Math.abs(geometry.effectsBottom - geometry.cardBottom)).toBeLessThanOrEqual(2)
   await expect(card).toContainText(/HP.*MP/s)
   await expect(card.getByRole('region', { name: /active combat effects/ })).toBeVisible()
-  expect(Math.abs(geometry.portraitTop - geometry.headingBottom)).toBeLessThanOrEqual(2)
+  expect(geometry.portraitTop).toBeGreaterThanOrEqual(geometry.headingBottom)
 }
 
 test('keeps requested PvE presentation parity on desktop and mobile', async ({

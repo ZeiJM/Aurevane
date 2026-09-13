@@ -196,7 +196,7 @@ async function sampleGuidedBoardAcrossFinishTurn(
       response.request().method() === 'POST' && response.url().includes('/recruit-turn'),
   )
   const finish = root.getByRole('button', { name: /^Finish Turn,/ })
-  await expect(finish).toContainText('Choose facing + end')
+  await expect(finish).toHaveAccessibleName(/Choose facing \+ end/)
 
   if (mobile) {
     await finish.tap()

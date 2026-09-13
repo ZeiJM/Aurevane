@@ -1,7 +1,10 @@
 import { expect, test } from '@playwright/test'
 
 import { expectMapKey } from './battle-map-key-helpers'
-import { expectBattleReferenceLayout } from './battle-reference-layout-helpers'
+import {
+  expectBattleFlowKeepsBoardSize,
+  expectBattleReferenceLayout,
+} from './battle-reference-layout-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueIdentity(prefix: string): { email: string; characterName: string } {
@@ -18,7 +21,7 @@ function uniqueIdentity(prefix: string): { email: string; characterName: string 
   }
 }
 
-test('keeps the desktop PvP battle flow below compact commands with the terrain legend visible', async ({
+test('keeps the desktop PvP battle flow beside compact commands without resizing the battlefield', async ({
   browser,
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop PvP battle-log regression')
@@ -80,6 +83,7 @@ test('keeps the desktop PvP battle flow below compact commands with the terrain 
     if ((await combatLog.getAttribute('aria-expanded')) !== 'true') await combatLog.click()
     await expectMapKey(host)
     await expectBattleReferenceLayout(host, testInfo, 'combat-pvp-short-window')
+    await expectBattleFlowKeepsBoardSize(host)
     for (const size of [
       { width: 2400, height: 1350 },
       { width: 1440, height: 900 },
@@ -87,6 +91,7 @@ test('keeps the desktop PvP battle flow below compact commands with the terrain 
     ]) {
       await host.setViewportSize(size)
       await expectBattleReferenceLayout(host, testInfo, `combat-pvp-${size.width}x${size.height}`)
+      await expectBattleFlowKeepsBoardSize(host)
     }
     await combatLog.click()
     await expect(host.getByTestId('battle-log-panel')).toHaveCount(0)

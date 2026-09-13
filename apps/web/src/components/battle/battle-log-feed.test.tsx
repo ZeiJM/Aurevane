@@ -1,11 +1,14 @@
+import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
 import type { BattleLogEntry } from '@/server/battle/battle-log-service'
 
 import {
+  BattleLogFeed,
   buildBattleLogActionNumbers,
   buildBattleLogTranscriptLines,
   countBattleLogActions,
+  selectRecentBattleLogEntries,
 } from './battle-log-feed'
 import { summarizeConsecutiveBattleLogMovement } from './battle-log-movement-summary'
 import type {
@@ -238,5 +241,125 @@ describe('Battle Log transcript consequence layout', () => {
 
     expect(sentence(transcript.primary)).toBe('Zei braces with Guard')
     expect(transcript.secondaryLines.map(sentence)).toEqual(['↳ Zei gains Guarded · 1 turn'])
+  })
+})
+
+// Rendering the real feed guards the boundary: the live window must not leak old actor turns,
+// while the post-battle caller must still receive the complete saved history.
+describe('Battle Log recent history window', () => {
+  const combatantNames = Object.fromEntries(
+    [1, 2, 3, 4, 5, 6, 7].map((turn) => [`character:unit-${turn}`, `Actor${turn}`]),
+  )
+  const entries: BattleLogEntry[] = [6, 5, 4, 3, 2, 1].map((turn) => ({
+    ...movementEntry(turn * 2, `character:unit-${turn}`, turn),
+    round: 1,
+  }))
+
+  it('limits six actors in one round to the latest four turns while preserving complete review', () => {
+    const recent = renderToStaticMarkup(
+      <BattleLogFeed entries={entries} combatantNames={combatantNames} recentTurnCount={4} />,
+    )
+    expect(recent).toContain('Actor6')
+    expect(recent).toContain('Actor3')
+    expect(recent).not.toContain('Actor2')
+    expect(recent).not.toContain('Actor1')
+    expect(recent).toContain('#6:')
+    expect(recent).toContain('aria-label="Battle history, latest 4 turns"')
+
+    const complete = renderToStaticMarkup(
+      <BattleLogFeed entries={entries} combatantNames={combatantNames} />,
+    )
+    expect(complete).toContain('Actor6')
+    expect(complete).toContain('Actor1')
+    expect(complete).not.toContain('latest 4 turns')
+    expect(entries).toHaveLength(6)
+  })
+
+  it('counts an empty current actor turn in the four-turn window', () => {
+    const recent = renderToStaticMarkup(
+      <BattleLogFeed
+        entries={entries}
+        combatantNames={combatantNames}
+        recentTurnCount={4}
+        currentTurnNumber={7}
+      />,
+    )
+    expect(recent).toContain('Actor4')
+    expect(recent).not.toContain('Actor3')
+  })
+
+  it('keeps the window across round boundaries using hidden turn-start metadata', () => {
+    const recent = renderToStaticMarkup(
+      <BattleLogFeed
+        entries={[
+          { ...movementEntry(20, 'character:unit-7', 7), round: 2, eventType: 'turn_started' },
+          ...entries,
+        ]}
+        combatantNames={combatantNames}
+        recentTurnCount={4}
+      />,
+    )
+    expect(recent).toContain('Actor4')
+    expect(recent).not.toContain('Actor3')
+    expect(recent).not.toContain('In progress')
+  })
+
+  it('applies the same actor-turn window to the compact action timeline', () => {
+    const recent = renderToStaticMarkup(
+      <BattleLogFeed
+        entries={entries}
+        combatantNames={combatantNames}
+        compactFlow
+        recentTurnCount={4}
+      />,
+    )
+    expect(recent).toContain('Battle action timeline')
+    expect(recent).toContain('Recent 4 turns')
+    expect(recent).toContain('Actor6')
+    expect(recent).toContain('Actor3')
+    expect(recent).not.toContain('Actor2')
+    expect(recent).not.toContain('Actor1')
+  })
+
+  it('keeps only recent entries within a handoff commit and retains recent untagged boundary effects', () => {
+    const history: BattleLogEntry[] = [
+      ...entries.filter((entry) => entry.turnNumber !== 2 && entry.turnNumber !== 3),
+      { ...movementEntry(6, 'character:unit-3', 3), round: 1, eventIndex: 1 },
+      { ...movementEntry(6, 'character:unit-2', 2), round: 1, eventIndex: 0 },
+      {
+        ...movementEntry(7, 'character:unit-3', 3),
+        turnNumber: null,
+        round: 1,
+        eventType: 'status_expired',
+      },
+      {
+        ...movementEntry(1, 'character:unit-1', 1),
+        turnNumber: null,
+        round: 1,
+        eventType: 'status_expired',
+      },
+    ]
+    const recent = selectRecentBattleLogEntries(history, 4)
+    expect(recent.map((entry) => `${entry.battleVersion}:${entry.eventIndex}`)).toEqual([
+      '12:0',
+      '10:0',
+      '8:0',
+      '6:1',
+      '7:0',
+    ])
+    expect(history).toHaveLength(8)
+    expect(selectRecentBattleLogEntries(history)).toBe(history)
+  })
+
+  it('retains every command in the included turns instead of limiting to four actions', () => {
+    const history = [
+      movementEntry(14, 'character:unit-6', 6),
+      movementEntry(13, 'character:unit-6', 6),
+      ...entries,
+    ]
+    expect(selectRecentBattleLogEntries(history, 4).map((entry) => entry.battleVersion)).toEqual([
+      14, 13, 12, 10, 8, 6,
+    ])
+    expect(selectRecentBattleLogEntries(history, 4, 20)).toEqual([])
   })
 })
