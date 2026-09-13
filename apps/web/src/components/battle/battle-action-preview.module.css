@@ -50,3 +50,18 @@
   clip-path: inset(50%);
   white-space: nowrap;
 }
+
+@media (min-width: 821px) {
+  :global(main[data-unified-battle='true'][data-battle-kind]) .preview[data-react-battle-preview] {
+    flex-wrap: nowrap;
+  }
+  .preview > span:not([data-battle-preview-chip]) {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .preview > button {
+    flex: none;
+  }
+}

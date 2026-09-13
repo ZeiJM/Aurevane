@@ -103,6 +103,9 @@
   display: none;
 }
 .effects[data-compact] .identity strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 0.6875rem;
 }
 .effects[data-compact] h3 {

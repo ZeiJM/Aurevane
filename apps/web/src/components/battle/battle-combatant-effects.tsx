@@ -27,7 +27,7 @@ export function BattleCombatantEffects({
       aria-label={`${name} active combat effects`}
     >
       <header>
-        <h3>Active effects</h3>
+        <h3>{compact ? 'Effects' : 'Active effects'}</h3>
         {effects.length > limit ? (
           <BattleInfoPopover
             label={`All ${name} effects`}

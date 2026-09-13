@@ -14,6 +14,7 @@ import {
   PV1F_BASIC_ATTACK_ID,
   PV1F_GUARD_ACTION_ID,
   PV1F_GUARD_COST,
+  PV1F_MOVEMENT_COST_PER_TERRAIN_POINT,
   PV1F_MP_RECOVER_ACTION_ID,
   PV1F_MP_RECOVER_COST,
   PV1F_RECOVER_ACTION_ID,
@@ -889,7 +890,9 @@ export function BattleExperience({
           setNotice(`${selectedHealName} · choose a target on the board.`)
         }
       } else if (nextMode === 'move') {
-        setNotice('Move mode · green tiles are reachable with your remaining AP.')
+        setNotice(
+          `Move · ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP per normal tile. Green tiles are reachable. Rough ground costs ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT * 2} AP. Click a destination to draw the numbered path.`,
+        )
       } else if (nextMode === 'attack') {
         if (selectedAttackTechnique?.targetKind === 'self') {
           void requestPreview({
@@ -903,7 +906,7 @@ export function BattleExperience({
       } else if (nextMode === 'finish') {
         setNotice('Choose final facing with the buttons, WASD, or arrow keys to end the turn.')
       } else if (nextMode === 'inspect') {
-        setNotice('Inspect mode · choose any combatant or terrain tile on the board.')
+        setNotice('Review terrain and unit details. Choose a combatant or tile. No AP is spent.')
       }
     },
     [
@@ -1654,10 +1657,11 @@ export function BattleExperience({
           <div
             className={styles.context}
             data-testid={runtime.kind === 'pve' ? 'combat-mode-instruction' : undefined}
+            data-battle-instruction-host="true"
             data-battle-instruction-row="true"
           >
             {runtime.kind === 'pve' ? <div className={bridgeStyles.aiQualityPortalSlot} /> : null}
-            <strong>{contextTitle}</strong>
+            <strong data-battle-instruction-title="true">{contextTitle}</strong>
             {mode !== 'none' && mode !== 'inspect' ? (
               <BattleActionPreview
                 preview={preview?.battleVersion === battle.battleVersion ? preview.preview : null}
@@ -1665,7 +1669,7 @@ export function BattleExperience({
                 notice={contextDescription}
               />
             ) : (
-              <span>{contextDescription}</span>
+              <span data-battle-instruction-description="true">{contextDescription}</span>
             )}
           </div>
           <div className={styles.commands} data-battle-command-group="true">

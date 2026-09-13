@@ -80,6 +80,7 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
     const costRect = cost.getBoundingClientRect()
     return {
       actionLeft: actionRect.left,
+      actionRight: actionRect.right,
       hotkeyDisplay: getComputedStyle(hotkey).display,
       hotkeyLeft: hotkeyRect.left,
       hotkeyBottom: hotkeyRect.bottom,
@@ -107,7 +108,8 @@ test('swaps the equipped Heal skill without changing the cockpit slot', async ({
     expect(cardGeometry.labelBottom).toBeLessThanOrEqual(cardGeometry.costTop + 1)
   } else {
     expect(cardGeometry.hotkeyDisplay).not.toBe('none')
-    expectNear(cardGeometry.hotkeyLeft, cardGeometry.labelLeft)
+    expect(cardGeometry.hotkeyLeft).toBeGreaterThan(cardGeometry.actionLeft)
+    expect(cardGeometry.hotkeyLeft).toBeLessThan(cardGeometry.actionLeft + 16)
     expect(cardGeometry.hotkeyBottom).toBeLessThanOrEqual(cardGeometry.labelTop)
     expect(cardGeometry.labelBottom).toBeLessThanOrEqual(cardGeometry.costTop)
   }

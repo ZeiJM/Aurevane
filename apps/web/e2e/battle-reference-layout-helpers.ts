@@ -9,6 +9,26 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
   await page.evaluate(async () => {
     await document.fonts.ready
   })
+  // Viewport changes settle through ResizeObserver before tiles and portrait tokens are measured.
+  await expect
+    .poll(() =>
+      root.locator('[data-board-auto-fit]').evaluate((board) => {
+        const viewport = board.parentElement!
+        const style = getComputedStyle(viewport)
+        const [columns, rows] = board.getAttribute('data-board-auto-fit')!.split('x').map(Number)
+        const width =
+          viewport.clientWidth - parseFloat(style.paddingLeft) - parseFloat(style.paddingRight)
+        const height =
+          viewport.clientHeight - parseFloat(style.paddingTop) - parseFloat(style.paddingBottom)
+        const scale = Math.min(width / columns!, height / rows!)
+        const rect = board.getBoundingClientRect()
+        return Math.max(
+          Math.abs(rect.width - scale * columns!),
+          Math.abs(rect.height - scale * rows!),
+        )
+      }),
+    )
+    .toBeLessThanOrEqual(3)
   const geometry = await root.evaluate((element) => {
     const rect = (selector: string) =>
       element.querySelector(selector)!.getBoundingClientRect().toJSON()
