@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 
+import { expectMapKey } from './battle-map-key-helpers'
 import { expectBattleReferenceLayout } from './battle-reference-layout-helpers'
 import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
 
@@ -13,7 +14,7 @@ function uniqueCharacterName(): string {
   return `Grid Guard ${suffix}`
 }
 
-test('keeps the desktop AI 9x7 grid, shared terrain legend, and battle log dock structurally aligned', async ({
+test('keeps the desktop AI 9x7 grid, header map key, and battle log dock structurally aligned', async ({
   page,
 }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'Desktop AI geometry regression')
@@ -33,20 +34,12 @@ test('keeps the desktop AI 9x7 grid, shared terrain legend, and battle log dock 
 
   const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
   const board = battlefield.locator('[data-board-auto-fit="9x7"]')
-  const terrainLegend = battlefield.locator(':scope > [aria-label="Terrain legend"]')
 
   await expect(battlefield).toBeVisible()
   await expect(board).toHaveCount(1)
   await expect(board.locator("button[aria-label^='Tile ']")).toHaveCount(63)
 
-  await expect(terrainLegend).toHaveCount(1)
-  await expect(terrainLegend).toBeVisible()
-  await expect(terrainLegend.getByText('Difficult Terrain')).toBeVisible()
-  await expect(terrainLegend.getByText('Elevated Ground')).toBeVisible()
-  await expect(battlefield.locator('[data-ai-native-terrain-legend="true"]')).toHaveCount(0)
-  await expect(battlefield.locator('[data-ai-legacy-terrain-legend="true"]')).toHaveCount(0)
-  await expect(battlefield.locator('[data-terrain-legend-polish]')).toHaveCount(0)
-  await expect(terrainLegend.getByRole('switch', { name: 'Tile coordinates' })).toBeVisible()
+  await expectMapKey(page)
 
   const geometry = await board.evaluate((element) => {
     const tile11 = element.querySelector<HTMLButtonElement>('button[aria-label^="Tile 1, 1;"]')!
@@ -91,41 +84,23 @@ test('keeps the desktop AI 9x7 grid, shared terrain legend, and battle log dock 
   expect(geometry.lastTileRight).toBeLessThanOrEqual(geometry.viewportRight + 1)
   expect(geometry.lastTileBottom).toBeLessThanOrEqual(geometry.viewportBottom + 1)
 
-  const coordinateToggle = terrainLegend.getByRole('switch', { name: 'Tile coordinates' })
-  const combatLogButton = page.getByRole('button', { name: /Combat Log/ })
-  await expect(coordinateToggle).toHaveAttribute('aria-checked', 'false')
-  await coordinateToggle.click()
-  await expect(coordinateToggle).toHaveAttribute('aria-checked', 'true')
-  if ((await combatLogButton.getAttribute('aria-expanded')) !== 'true')
-    await combatLogButton.click()
-
-  const dock = page
-    .locator('[data-battle-flow-log-target="true"] ')
-    .locator('[data-docked-battle-log="true"]')
+  const flowToggle = page.locator('[data-battle-flow] > button')
+  if ((await flowToggle.getAttribute('aria-expanded')) !== 'true') await flowToggle.click()
+  const dock = page.locator('[data-battle-flow-log-target] [data-docked-battle-log]')
   await expect(dock).toBeVisible()
-  await expect(terrainLegend).toBeVisible()
-  await expect(terrainLegend.getByText('Difficult Terrain')).toBeVisible()
-  await expect(terrainLegend.getByText('Elevated Ground')).toBeVisible()
-  await expect(terrainLegend.getByRole('switch', { name: 'Tile coordinates' })).toBeVisible()
-
   await page.reload()
-  await expect(coordinateToggle).toHaveAttribute('aria-checked', 'true')
   await expect(dock).toBeVisible()
-
-  await coordinateToggle.click()
-  await combatLogButton.click()
-  await expect(coordinateToggle).toHaveAttribute('aria-checked', 'false')
+  await flowToggle.click()
   await expect(dock).toHaveCount(0)
-
   await page.reload()
-  await expect(coordinateToggle).toHaveAttribute('aria-checked', 'false')
   await expect(dock).toHaveCount(0)
-  await combatLogButton.click()
+  await flowToggle.click()
   await expect(dock).toBeVisible()
 
   await expectBattleReferenceLayout(page, testInfo, 'combat-ai-log-below')
   for (const size of [
-    { width: 2400, height: 1350 },
+    { width: 1920, height: 982 },
+    { width: 2400, height: 1228 },
     { width: 1280, height: 720 },
   ]) {
     await page.setViewportSize(size)

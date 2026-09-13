@@ -79,36 +79,30 @@ async function castOnEmptyGround(page: Page, name: string, testInfo: TestInfo) {
     contentType: 'image/png',
   })
   await mistOption.click()
-  const commandTags = root
-    .getByRole('button', { name: 'Chilling Mist, 45 AP', exact: true })
-    .locator('[data-battle-skill-tags="command"]')
+  await root.getByRole('button', { name: 'About Chilling Mist', exact: true }).click()
+  const details = page.getByRole('dialog', { name: 'Chilling Mist', exact: true })
+  const commandTags = details.locator('[data-battle-skill-tags="details"]')
   await expect(commandTags).toContainText('Ground tile')
   await expect(commandTags).toContainText('Frozen terrain')
   await expect(commandTags).toContainText('Slow')
   const tagFit = await commandTags.evaluate((element) => {
-    const button = element.closest('button')!.getBoundingClientRect()
-    const artwork = element
-      .closest('[data-command-card]')!
-      .querySelector('[data-battle-command-artwork]')!
-      .getBoundingClientRect()
+    const panel = element.closest('[role="dialog"]')!.getBoundingClientRect()
     return Array.from(element.children).every((tag) => {
       const box = tag.getBoundingClientRect()
       return (
         box.width > 0 &&
         box.height > 0 &&
-        box.left >= button.left &&
-        box.right <= button.right &&
-        box.top >= button.top &&
-        box.bottom <= button.bottom &&
-        (box.right <= artwork.left ||
-          box.left >= artwork.right ||
-          box.bottom <= artwork.top ||
-          box.top >= artwork.bottom) &&
+        box.left >= panel.left &&
+        box.right <= panel.right &&
+        box.top >= panel.top &&
+        box.bottom <= panel.bottom &&
         Number.parseFloat(getComputedStyle(tag).fontSize) >= 12
       )
     })
   })
   expect(tagFit).toBe(true)
+  await page.keyboard.press('Escape')
+  await expect(details).toHaveCount(0)
   await root.getByRole('button', { name: 'Chilling Mist, 45 AP', exact: true }).click()
   const candidates = before.snapshot.tactical.tiles.filter((tile) => {
     const distance =
@@ -189,8 +183,8 @@ async function castOnEmptyGround(page: Page, name: string, testInfo: TestInfo) {
   await expect(root.getByLabel('Action preview').first()).not.toContainText('Slow')
   expect(audioRequests).toHaveLength(0)
   expect(await read()).toEqual(before)
-  await root.locator('summary').filter({ hasText: 'Terrain & effect details' }).click()
-  const forecast = root.getByRole('region', { name: 'Terrain and effect forecast' })
+  await root.getByRole('button', { name: 'Forecast details', exact: true }).click()
+  const forecast = page.getByRole('dialog', { name: 'Action forecast', exact: true })
   await expect(forecast).toBeVisible()
   // A panel can have no internal/document overflow while still opening at negative x.
   // This shared cast helper checks all four viewport edges in both PvE and PvP.
@@ -218,7 +212,8 @@ async function castOnEmptyGround(page: Page, name: string, testInfo: TestInfo) {
   expect(
     await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1),
   ).toBe(true)
-  await root.locator('summary').filter({ hasText: 'Terrain & effect details' }).click()
+  await page.keyboard.press('Escape')
+  await expect(forecast).toHaveCount(0)
   const committed = page.waitForResponse(
     (response) =>
       response.url().endsWith(`/api/battles/${sessionId}${commitEndpoint}`) &&

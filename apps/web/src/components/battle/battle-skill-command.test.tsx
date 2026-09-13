@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { BattleSkillCommand } from './battle-skill-command'
 
 describe('Battle Technique command information', () => {
-  it('renders effect tags on the command itself while preserving its action label', () => {
+  it('provides a separate information control without filling the action card with tags', () => {
     const markup = renderToStaticMarkup(
       createElement(BattleSkillCommand, {
         slot: 'guard',
@@ -20,11 +20,9 @@ describe('Battle Technique command information', () => {
       }),
     )
     expect(markup).toContain('aria-label="Chilling Mist, 45 AP"')
-    expect(markup).toContain('data-battle-skill-tags=')
-    for (const tag of ['Ground tile', 'Area · radius 1', 'Frozen terrain', 'Slow']) {
-      expect(markup).toContain(`>${tag}</span>`)
-    }
-    expect(markup).toContain('aria-describedby=')
+    expect(markup).toContain('aria-label="About Chilling Mist"')
+    expect(markup).toContain('aria-haspopup="dialog"')
+    expect(markup).not.toContain('data-battle-skill-tags="command"')
   })
 
   it('retains readable tags when the action is unavailable', () => {
@@ -42,7 +40,7 @@ describe('Battle Technique command information', () => {
       }),
     )
     expect(markup).toContain('disabled=""')
-    expect(markup).toContain('>Wet</span>')
+    expect(markup).toContain('aria-label="About Water Lance"')
     expect(markup).not.toContain('cockpit:')
   })
 })

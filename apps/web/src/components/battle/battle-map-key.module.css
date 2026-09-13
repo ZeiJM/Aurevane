@@ -1,0 +1,53 @@
+.key {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+}
+.key > div {
+  display: grid;
+  grid-template-columns: 2.25rem 1fr;
+  column-gap: 0.65rem;
+}
+.key dt {
+  display: contents;
+  font-weight: 650;
+  color: var(--av-brass-200);
+}
+.key dd {
+  grid-column: 2;
+  margin: 0.1rem 0 0;
+  color: var(--av-text-muted);
+  font-size: 0.75rem;
+}
+.key i {
+  grid-column: 1;
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border: 1px solid #b9b09855;
+  border-radius: 0.3rem;
+  background: #152129;
+  font-style: normal;
+}
+.key [data-key='rough'] {
+  background: repeating-linear-gradient(35deg, #423322, #423322 5px, #765032 6px, #423322 7px);
+}
+.key [data-key='elevated'] {
+  border-top: 3px solid #ddc58c;
+  border-bottom: 3px solid #3d382d;
+  background: linear-gradient(#8b825e, #343a35);
+}
+.key [data-key='frozen'] {
+  color: #bbecff;
+  background: #304e66;
+}
+.key [data-key='steam'] {
+  color: #e7f1f3;
+  background: linear-gradient(145deg, #627581, #1b2830);
+}
+.key [data-key='path'] {
+  color: #b5e2bc;
+  border-color: #73a67e;
+}

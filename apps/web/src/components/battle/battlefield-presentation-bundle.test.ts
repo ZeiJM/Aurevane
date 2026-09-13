@@ -11,11 +11,11 @@ function readLocalFile(name: string): string {
 }
 
 describe('shared battlefield presentation bundle', () => {
-  it('owns terrain, coordinates, and combatant token presentation', () => {
+  it('owns terrain and tile-scaled combatant token presentation', () => {
     const source = readLocalFile('battlefield-presentation-bundle.tsx')
 
     expect(source).toContain('<BattleTerrainPresentationPolish />')
-    expect(source).toContain('<BattleCoordinateToggle battleSessionId={battleSessionId} />')
+    expect(source).not.toContain('BattleCoordinateToggle')
     expect(source).toContain(
       '<BattleMapTokenPolish playerName={playerName} combatantAccents={combatantAccents} />',
     )
@@ -39,7 +39,8 @@ describe('shared battlefield presentation bundle', () => {
     const mobileLayout = readLocalFile('pvp-spectator-mobile-board-layout.module.css')
 
     expect(spectator).toContain('data-board-auto-fit={`${tactical.width}x${tactical.height}`}')
-    expect(spectator).toContain('data-spectator-terrain-cost="true"')
+    expect(spectator).toContain('<BattleMapKey />')
+    expect(spectator).not.toContain('className={styles.tileMeta}')
     expect(mobileLayout).toContain("[data-spectator-terrain-cost='true']")
     expect(mobileLayout).toContain('display: none !important;')
   })

@@ -1,5 +1,6 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
+import { expectMapKey } from './battle-map-key-helpers'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueIdentity(prefix: string): { email: string; characterName: string } {
@@ -16,44 +17,12 @@ function uniqueIdentity(prefix: string): { email: string; characterName: string 
   }
 }
 
-async function expectTerrainControlHarmony(terrainLegend: Locator) {
-  await expect(terrainLegend).toBeVisible()
-  await expect(terrainLegend.getByText('Difficult Terrain')).toBeVisible()
-  await expect(terrainLegend.getByText('Elevated Ground')).toBeVisible()
-  await expect(terrainLegend.getByRole('switch', { name: 'Tile coordinates' })).toBeVisible()
-
-  const geometry = await terrainLegend.evaluate((legend) => {
-    const difficult = legend.children[0] as HTMLElement
-    const elevated = legend.children[1] as HTMLElement
-    const coordinate = legend.querySelector<HTMLElement>(
-      'button[data-terrain-coordinate-toggle="true"]',
-    )!
-    const difficultRect = difficult.getBoundingClientRect()
-    const elevatedRect = elevated.getBoundingClientRect()
-    const coordinateRect = coordinate.getBoundingClientRect()
-
-    return {
-      difficultWidth: difficultRect.width,
-      elevatedWidth: elevatedRect.width,
-      coordinateWidth: coordinateRect.width,
-      difficultHeight: difficultRect.height,
-      elevatedHeight: elevatedRect.height,
-      coordinateHeight: coordinateRect.height,
-    }
-  })
-
-  expect(Math.abs(geometry.difficultWidth - geometry.elevatedWidth)).toBeLessThanOrEqual(1.5)
-  expect(Math.abs(geometry.difficultWidth - geometry.coordinateWidth)).toBeLessThanOrEqual(1.5)
-  expect(Math.abs(geometry.difficultHeight - geometry.elevatedHeight)).toBeLessThanOrEqual(1.5)
-  expect(Math.abs(geometry.difficultHeight - geometry.coordinateHeight)).toBeLessThanOrEqual(1.5)
-}
-
 type BattleScaleGeometry = {
   root: { width: number; height: number }
   header: { width: number; height: number }
   economy: { width: number; height: number }
   victory: { width: number; height: number }
-  roundLog: { width: number; height: number }
+  mapKey: { width: number; height: number }
   content: { width: number; height: number }
   rail: { width: number; height: number }
   railCard: { width: number; height: number }
@@ -84,9 +53,7 @@ async function captureBattleScaleGeometry(page: Page): Promise<BattleScaleGeomet
     const victory = header.querySelector<HTMLElement>(
       '[data-battle-shared-header-action="victory"]',
     )!
-    const roundLog = header.querySelector<HTMLElement>(
-      '[data-battle-shared-header-action="round-log"]',
-    )!
+    const mapKey = header.querySelector<HTMLElement>('[aria-label="Map Key"]')!
     const content = root.querySelector<HTMLElement>('[data-unified-battle-content="true"]')!
     const battlefield = root.querySelector<HTMLElement>('#battlefield')!
     const board = battlefield.querySelector<HTMLElement>('[data-board-auto-fit="9x7"]')!
@@ -134,7 +101,7 @@ async function captureBattleScaleGeometry(page: Page): Promise<BattleScaleGeomet
       header: rect(header),
       economy: rect(economy),
       victory: rect(victory),
-      roundLog: rect(roundLog),
+      mapKey: rect(mapKey),
       content: rect(content),
       rail: rect(rail),
       railCard: rect(railCard),
@@ -246,9 +213,7 @@ test('keeps PvE terrain controls visually unified on desktop and mobile', async 
   await page.getByRole('button', { name: 'Enter Battle' }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
 
-  const battlefield = page.getByRole('region', { name: 'Tactical battlefield' })
-  const terrainLegend = battlefield.locator(':scope > [aria-label="Terrain legend"]')
-  await expectTerrainControlHarmony(terrainLegend)
+  await expectMapKey(page)
 })
 
 test('keeps PvP terrain controls visually unified on desktop and mobile', async ({
@@ -317,9 +282,7 @@ test('keeps PvP terrain controls visually unified on desktop and mobile', async 
     await hostDialog.getByRole('button', { name: 'Mark Ready' }).click()
 
     await expect(host).toHaveURL(/\/game\/battle\/[0-9a-f-]+$/i, { timeout: 20_000 })
-    const battlefield = host.locator("main[data-battle-kind='pvp'] #battlefield")
-    const terrainLegend = battlefield.locator(':scope > [aria-label="Terrain legend"]')
-    await expectTerrainControlHarmony(terrainLegend)
+    await expectMapKey(host)
   } finally {
     await Promise.all([hostContext.close(), guestContext.close()])
   }
@@ -356,7 +319,7 @@ test('keeps PvE desktop battle scale locked to PvP', async ({ browser, page }, t
       'header',
       'economy',
       'victory',
-      'roundLog',
+      'mapKey',
       'content',
       'rail',
       'railCard',

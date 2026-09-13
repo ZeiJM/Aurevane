@@ -3,7 +3,9 @@
 import { isBattleShortcutBlocked as isTextEntryTarget } from './battle-keyboard-scope'
 
 import { isCurrentBattlePreview, battleIntentTileKey } from './battle-preview-selection'
-import { BattleInteractionForecast } from './battle-interaction-forecast'
+import { BattleActionPreview } from './battle-action-preview'
+import { BattleMapKey } from './battle-map-key'
+import { BattleInfoPopover } from './battle-info-popover'
 import { terrainOverlayAt } from '@aurevane/game-core/combat/terrain-overlays'
 import { terrainOverlayDescription } from '../../lib/battle/combat-interaction-presentation'
 
@@ -12,6 +14,7 @@ import {
   PV1F_BASIC_ATTACK_ID,
   PV1F_GUARD_ACTION_ID,
   PV1F_GUARD_COST,
+  PV1F_MOVEMENT_COST_PER_TERRAIN_POINT,
   PV1F_MP_RECOVER_ACTION_ID,
   PV1F_MP_RECOVER_COST,
   PV1F_RECOVER_ACTION_ID,
@@ -224,7 +227,6 @@ export function BattleExperience({
   const [previewPending, setPreviewPending] = useState(false)
   const [commitPending, setCommitPending] = useState(false)
   const [copyNotice, setCopyNotice] = useState(false)
-  const [victoryOpen, setVictoryOpen] = useState(false)
   const [recruitPending, setRecruitPending] = useState(false)
   const [recruitFailed, setRecruitFailed] = useState(false)
   const [surrenderOpen, setSurrenderOpen] = useState(false)
@@ -888,7 +890,9 @@ export function BattleExperience({
           setNotice(`${selectedHealName} · choose a target on the board.`)
         }
       } else if (nextMode === 'move') {
-        setNotice('Move mode · green tiles are reachable with your remaining AP.')
+        setNotice(
+          `Move · ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT} AP per normal tile. Green tiles are reachable. Rough ground costs ${PV1F_MOVEMENT_COST_PER_TERRAIN_POINT * 2} AP. Click a destination to draw the numbered path.`,
+        )
       } else if (nextMode === 'attack') {
         if (selectedAttackTechnique?.targetKind === 'self') {
           void requestPreview({
@@ -902,7 +906,7 @@ export function BattleExperience({
       } else if (nextMode === 'finish') {
         setNotice('Choose final facing with the buttons, WASD, or arrow keys to end the turn.')
       } else if (nextMode === 'inspect') {
-        setNotice('Inspect mode · choose any combatant or terrain tile on the board.')
+        setNotice('Review terrain and unit details. Choose a combatant or tile. No AP is spent.')
       }
     },
     [
@@ -1316,7 +1320,13 @@ export function BattleExperience({
             ? 'Choose final facing'
             : mode === 'recover'
               ? selectedHealName
-              : mode.replace('-', ' ')
+              : mode === 'attack'
+                ? selectedAttack.label
+                : mode === 'guard'
+                  ? selectedDefense.label
+                  : mode === 'move'
+                    ? 'Move'
+                    : 'Inspect'
   const contextDescription =
     mode === 'inspect' && selectedParticipant && selectedCombatant && selectedPlacement
       ? `Team ${selectedParticipant.teamIndex + 1} · HP ${selectedCombatant.hp}/${selectedCombatant.maxHp} · MP ${selectedCombatant.mp}/${selectedCombatant.maxMp} · Facing ${selectedPlacement.facing} ${facingGlyph(selectedPlacement.facing)}`
@@ -1326,6 +1336,7 @@ export function BattleExperience({
     <main
       className={styles.shell}
       data-unified-battle="true"
+      data-battle-layout="map-first"
       data-battle-kind={runtime.kind}
       data-battle-mode={runtime.kind}
       data-battle-visual-contract="true"
@@ -1374,25 +1385,26 @@ export function BattleExperience({
               />
             ) : null}
           </div>
-          <button
-            type="button"
-            className={styles.victoryButton}
-            onClick={() => setVictoryOpen(true)}
-          >
-            <span>Victory Conditions</span>
-            <strong>{objectiveComplete ? '1/1' : '0/1'}</strong>
-          </button>
         </div>
 
-        <button
-          type="button"
-          className={styles.logButton}
-          aria-expanded={logOpen}
-          onClick={() => setLogOpen((open) => !open)}
-        >
-          Round {battleState.round}
-          <small>Combat Log</small>
-        </button>
+        <div data-battle-header-utilities="true">
+          <BattleMapKey />
+          <BattleInfoPopover
+            label="Victory Conditions"
+            trigger={
+              <>
+                <span>Victory Conditions</span>
+                <b>{objectiveComplete ? '1/1' : '0/1'}</b>
+              </>
+            }
+          >
+            <h2>{viewModel.objective}.</h2>
+            <p>
+              You win when your side is the only side with at least one combatant still able to
+              fight.
+            </p>
+          </BattleInfoPopover>
+        </div>
       </header>
 
       <section className={styles.roster} aria-label="Battle roster">
@@ -1582,9 +1594,6 @@ export function BattleExperience({
                     onClick={() => handleTile(tile.position)}
                     aria-label={`Tile ${tile.position.x + 1}, ${tile.position.y + 1}; ${tile.terrainId}; elevation ${tile.elevation}${participant ? `; occupied by ${participant.name}` : ''}${overlay ? `; ${terrainOverlayDescription(overlay)}` : ''}`}
                   >
-                    <span className={styles.tileMeta}>
-                      {tile.position.x + 1},{tile.position.y + 1}
-                    </span>
                     {overlay ? (
                       <i data-terrain-overlay-marker="true" aria-hidden="true">
                         {overlay.kind === 'frozen' ? '❄' : '≋'}
@@ -1628,24 +1637,6 @@ export function BattleExperience({
               })}
             </div>
           </div>
-          <div className={styles.legend} aria-label="Terrain legend">
-            <span className={styles.terrainKey}>
-              <i className={styles.roughKey} aria-hidden="true" />
-              <span>
-                <b>Difficult Terrain</b>
-                <small>Higher movement cost</small>
-              </span>
-            </span>
-            <span className={styles.terrainKey}>
-              <i className={styles.raisedKey} aria-hidden="true">
-                ▲
-              </i>
-              <span>
-                <b>Elevated Ground</b>
-                <small>Elevation +1</small>
-              </span>
-            </span>
-          </div>
         </section>
 
         <DesktopBattleRail
@@ -1661,20 +1652,27 @@ export function BattleExperience({
           className={styles.commandDeck}
           aria-label="Command Deck"
           data-unified-command-deck="true"
+          data-battle-cockpit-polish="true"
         >
-          {runtime.kind === 'pve' ? (
-            <div className={styles.context} data-testid="combat-mode-instruction">
-              <div className={bridgeStyles.aiQualityPortalSlot} />
-              <strong>{contextTitle}</strong>
-              <span>{contextDescription}</span>
-            </div>
-          ) : (
-            <div className={styles.context}>
-              <strong>{contextTitle}</strong>
-              <span>{contextDescription}</span>
-            </div>
-          )}
-          <div className={styles.commands}>
+          <div
+            className={styles.context}
+            data-testid={runtime.kind === 'pve' ? 'combat-mode-instruction' : undefined}
+            data-battle-instruction-host="true"
+            data-battle-instruction-row="true"
+          >
+            {runtime.kind === 'pve' ? <div className={bridgeStyles.aiQualityPortalSlot} /> : null}
+            <strong data-battle-instruction-title="true">{contextTitle}</strong>
+            {mode !== 'none' && mode !== 'inspect' ? (
+              <BattleActionPreview
+                preview={preview?.battleVersion === battle.battleVersion ? preview.preview : null}
+                pending={previewPending}
+                notice={contextDescription}
+              />
+            ) : (
+              <span data-battle-instruction-description="true">{contextDescription}</span>
+            )}
+          </div>
+          <div className={styles.commands} data-battle-command-group="true">
             <BattleSkillCommand
               slot="inspect"
               hotkey="00"
@@ -1864,9 +1862,6 @@ export function BattleExperience({
               Surrender
             </button>
           ) : null}
-          {preview?.preview.kind === 'action' && preview.preview.legal ? (
-            <BattleInteractionForecast events={preview.preview.projectedEvents ?? []} />
-          ) : null}
         </div>
       </footer>
 
@@ -1882,28 +1877,6 @@ export function BattleExperience({
         >
           Retry Recruit turn
         </button>
-      ) : null}
-
-      {victoryOpen ? (
-        <div className={styles.modalBackdrop} onPointerDown={() => setVictoryOpen(false)}>
-          <section
-            className={styles.modal}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="battle-victory-title"
-            onPointerDown={(event) => event.stopPropagation()}
-          >
-            <span>Victory Conditions · {objectiveComplete ? '1/1' : '0/1'}</span>
-            <h2 id="battle-victory-title">{viewModel.objective}.</h2>
-            <p>
-              You win when your side is the only side with at least one combatant still able to
-              fight.
-            </p>
-            <button type="button" onClick={() => setVictoryOpen(false)}>
-              Return to battle
-            </button>
-          </section>
-        </div>
       ) : null}
 
       {surrenderOpen && runtime.kind === 'pve' ? (
@@ -1994,7 +1967,7 @@ function DesktopBattleRail({
                   <span>
                     {participant.local
                       ? 'Character'
-                      : `Opponent · Team ${participant.teamIndex + 1}`}
+                      : `${side === 'left' ? 'Ally' : 'Opponent'} · Team ${participant.teamIndex + 1}`}
                   </span>
                   <strong>{participant.name}</strong>
                 </div>
@@ -2030,21 +2003,20 @@ function DesktopBattleRail({
                 <div className={railStyles.meters}>
                   <span aria-label={`${participant.name} HP ${combatant.hp} of ${combatant.maxHp}`}>
                     <i style={{ width: `${meterPercent(combatant.hp, combatant.maxHp)}%` }} />
+                    <b>
+                      HP {combatant.hp} / {combatant.maxHp}
+                    </b>
                   </span>
                   <span aria-label={`${participant.name} MP ${combatant.mp} of ${combatant.maxMp}`}>
                     <i style={{ width: `${meterPercent(combatant.mp, combatant.maxMp)}%` }} />
+                    <b>
+                      MP {combatant.mp} / {combatant.maxMp}
+                    </b>
                   </span>
                 </div>
               </button>
-              <div className={railStyles.resourceReadout}>
-                <span>
-                  <b>HP</b> {combatant.hp} / {combatant.maxHp}
-                </span>
-                <span>
-                  <b>MP</b> {combatant.mp} / {combatant.maxMp}
-                </span>
-              </div>
               <BattleCombatantEffects
+                compact={sorted.length > 1}
                 name={participant.name}
                 statuses={
                   battle.snapshot.statusState.find(

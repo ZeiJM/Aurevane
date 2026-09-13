@@ -90,7 +90,7 @@ test('earns Mastery through a UI victory, claims once, reloads and retries witho
     (unit) => unit.teamId === 'opponents',
   )!.id
   const confirm = root.getByRole('button', { name: 'Confirm Action', exact: true })
-  const finish = root.getByRole('button', { name: /Finish Turn/ })
+  const finish = root.getByRole('button', { name: /^Finish Turn,/ })
   let skillCommands = 0
   let braced = false
   const commit = async () => {

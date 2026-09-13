@@ -1,5 +1,7 @@
 'use client'
 
+import { BattleMapKey } from './battle-map-key'
+
 import { terrainOverlayAt } from '@aurevane/game-core/combat/terrain-overlays'
 import { PV1F_MOVEMENT_COST_PER_TERRAIN_POINT } from '@aurevane/game-core/combat/pv1f-skills'
 import { terrainOverlayDescription } from '../../lib/battle/combat-interaction-presentation'
@@ -348,6 +350,7 @@ export function PvpSpectatorExperience({
             {connectionNote ? <p>{connectionNote}</p> : null}
           </div>
           <div className={styles.headerActions}>
+            <BattleMapKey />
             <button
               type="button"
               className={styles.keyButton}
@@ -549,15 +552,6 @@ export function PvpSpectatorExperience({
                       aria-label={`Tile ${x}, ${y}; ${tile.terrainId}; elevation ${tile.elevation}${participant ? `; occupied by ${participant.characterName}` : ''}${overlay ? `; ${terrainOverlayDescription(overlay)}` : ''}`}
                       aria-pressed={selected}
                     >
-                      <span className={styles.tileMeta}>
-                        {x}.{y}
-                        {terrain === 'rough' ? (
-                          <b data-spectator-terrain-cost="true">
-                            R{2 * MOVE_COST_PER_TERRAIN_POINT}
-                          </b>
-                        ) : null}
-                        {tile.elevation > 0 ? <b>▲{tile.elevation}</b> : null}
-                      </span>
                       {overlay ? (
                         <i data-terrain-overlay-marker="true" aria-hidden="true">
                           {overlay.kind === 'frozen' ? '❄' : '≋'}
@@ -603,24 +597,6 @@ export function PvpSpectatorExperience({
                 <small>Free</small>
               </button>
               <div className={inspectStyles.inspectContext}>{inspectContext()}</div>
-            </div>
-            <div className={styles.legend} aria-label="Terrain legend">
-              <span className={styles.terrainKey}>
-                <i className={styles.roughKey} aria-hidden="true" />
-                <span>
-                  <b>Difficult Ground</b>
-                  <small>Higher movement cost</small>
-                </span>
-              </span>
-              <span className={styles.terrainKey}>
-                <i className={styles.raisedKey} aria-hidden="true">
-                  ▲
-                </i>
-                <span>
-                  <b>Raised Ground</b>
-                  <small>Elevation +1</small>
-                </span>
-              </span>
             </div>
           </section>
 
