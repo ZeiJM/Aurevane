@@ -283,7 +283,7 @@ export function CharacterProfileShell({
 
             <section className={styles.buildSection} aria-labelledby="build-disciplines-heading">
               <div className={styles.buildSectionHeader}>
-                <strong id="build-disciplines-heading">Disciplines</strong>
+                <strong id="build-disciplines-heading">Discipline</strong>
               </div>
               <div className={styles.disciplineSigils}>
                 {[disciplineBuild.current.definition, disciplineBuild.currentSecondary]

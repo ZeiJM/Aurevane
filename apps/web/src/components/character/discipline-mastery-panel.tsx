@@ -156,7 +156,7 @@ export function DisciplineMasteryPanel() {
         </span>
       </summary>
 
-      <details className={styles.intro}>
+      <details className={styles.intro} open>
         <summary>Mastery &amp; access guide</summary>
         <p>
           The Atlas is a map of combat traditions, not an upgrade tree. Later Disciplines trade

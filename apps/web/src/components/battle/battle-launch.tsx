@@ -399,13 +399,35 @@ export function BattleLaunch({
           <div className={styles.workspaceHeading}>
             <div>
               <span>AI Battles</span>
-              <h2 id="ai-battles-heading">Train on your terms.</h2>
+              <h2 id="ai-battles-heading">Choose your arena.</h2>
             </div>
             <p>
               Choose a mode first. Detailed setup appears only for the battle you intend to enter.
             </p>
           </div>
           <nav className={styles.modePicker} aria-label="AI battle modes">
+            <label className={styles.modeSelectLabel}>
+              <span>Battle mode</span>
+              <select
+                aria-label="Battle mode"
+                value={recordId ?? ''}
+                onChange={(event) => {
+                  const next = event.target.value as TacticalHallRecordId | ''
+                  if (next) chooseRecord(next)
+                }}
+                disabled={pending}
+              >
+                <option value="">Choose a battle mode…</option>
+                {VISIBLE_RECORD_IDS.map((id) => {
+                  const record = getTacticalHallRecord(id)
+                  return (
+                    <option key={id} value={id}>
+                      {recordDisplayName(id, record.name)}
+                    </option>
+                  )
+                })}
+              </select>
+            </label>
             {VISIBLE_RECORD_IDS.map((id) => {
               const record = getTacticalHallRecord(id)
               return (

@@ -474,7 +474,7 @@ export function CharacterDisciplineBuildPanel({
             />
           ) : null}
         </span>
-        <span className={styles.triggerLabel}>Manage disciplines →</span>
+        <span className={styles.triggerLabel}>Discipline Management</span>
       </button>
 
       {open && mounted
