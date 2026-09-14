@@ -124,11 +124,11 @@ describe('combat runtime encounter normalization', () => {
         position: { x: 0, y: 0 },
       },
     }
-    const before = structuredClone(persisted)
+    const before = JSON.stringify(persisted)
 
     const runtime = normalizeCombatRuntimeEncounterState(persisted)
 
-    expect(persisted).toEqual(before)
+    expect(JSON.stringify(persisted)).toBe(before)
     expect(runtime.statBridge).toEqual(persisted.statBridge)
     expect(runtime.effectState).toEqual(persisted.effectState)
     expect(runtime.terrainOverlays).toEqual(persisted.terrainOverlays)
