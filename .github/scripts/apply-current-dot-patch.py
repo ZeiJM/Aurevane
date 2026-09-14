@@ -56,4 +56,11 @@ replace_once(
     """    'apply-poison': 'Poison (Poisoned)',\n    poison: 'Poison (Poisoned)',\n  }""",
 )
 
+economy = 'packages/game-core/src/combat/pv1f-action-economy.ts'
+replace_once(
+    economy,
+    """      effect.type === 'create-terrain' ||\n      effect.type === 'displace'\n    )""",
+    """      effect.type === 'create-terrain' ||\n      effect.type === 'displace' ||\n      effect.type === 'poison'\n    )""",
+)
+
 print('Applied current Poison effect-state implementation.')
