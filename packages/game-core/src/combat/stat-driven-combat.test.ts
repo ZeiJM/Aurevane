@@ -190,7 +190,7 @@ describe('stat-driven Phase 2 combat bridge', () => {
       jump: 0,
     } as unknown as StatDrivenCombatProfile
 
-    expect(() => encounter(incomplete)).toThrow(/physicalPower/)
+    expect(() => encounter(incomplete)).toThrow(/offensive ratings/i)
   })
 
   it('rejects partially populated offensive ratings instead of downgrading them to v1', () => {
