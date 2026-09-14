@@ -65,7 +65,9 @@ test('Profile equips a mastered Secondary with independent attunement authority'
   const maxHp = page.getByTestId('derived-stat-maxHp').locator('strong')
   const maxHpBeforeSecondary = await maxHp.innerText()
   await expect(launcher).toHaveText('Discipline Management')
-  await expect(launcher.locator('img')).toBeHidden()
+  const initialLauncherSigils = launcher.locator('img')
+  await expect(initialLauncherSigils).toHaveCount(1)
+  await expect(initialLauncherSigils.first()).toBeHidden()
   await expect(primaryDisciplineChip).toHaveText('Vanguard')
 
   await launcher.click()
@@ -106,7 +108,10 @@ test('Profile equips a mastered Secondary with independent attunement authority'
     'Aetherist is now the committed Secondary Discipline.',
   )
   await expect(launcher).toHaveText('Discipline Management')
-  await expect(launcher.locator('img')).toBeHidden()
+  const committedLauncherSigils = launcher.locator('img')
+  await expect(committedLauncherSigils).toHaveCount(2)
+  await expect(committedLauncherSigils.first()).toBeHidden()
+  await expect(committedLauncherSigils.nth(1)).toBeHidden()
   await expect(primaryDisciplineChip).toHaveText('Vanguard')
   await expect(secondaryDisciplineChip).toHaveText('Aetherist')
   await expect(maxHp).toHaveText(maxHpBeforeSecondary)
