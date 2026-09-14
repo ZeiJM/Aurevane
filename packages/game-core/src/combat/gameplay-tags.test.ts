@@ -66,19 +66,8 @@ describe('compact combat presentation tags', () => {
         { kind: 'unit', teamPolicy: 'enemy' },
         [
           { type: 'damage', recipient: 'primary-unit', amount: 4, piercing: true },
-          {
-            type: 'resource-change',
-            recipient: 'actor',
-            resource: 'mp',
-            delta: 2,
-            ticks: 2,
-          },
-          {
-            type: 'resource-change',
-            recipient: 'primary-unit',
-            resource: 'mp',
-            delta: -2,
-          },
+          { type: 'resource-change', recipient: 'actor', resource: 'mp', delta: 2, ticks: 2 },
+          { type: 'resource-change', recipient: 'primary-unit', resource: 'mp', delta: -2 },
           { type: 'remove-status', recipient: 'primary-unit', statusIds: ['poison'] },
           { type: 'displace', recipient: 'primary-unit', direction: 'pull', distance: 2 },
           { type: 'absorb-hp', recipient: 'actor' },
