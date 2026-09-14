@@ -34,7 +34,7 @@
 }
 
 .heading h2 {
-  margin: 0.18rem 0 0;
+  margin: 0;
   font: 600 clamp(1.05rem, 2vw, 1.4rem) / 1.05 var(--av-font-display);
 }
 
@@ -50,7 +50,6 @@
   text-transform: uppercase;
 }
 
-.intro,
 .note,
 .window p {
   margin: 0;
@@ -59,7 +58,6 @@
   line-height: 1.42;
 }
 
-.card[data-training-surface='moonstone'] .intro,
 .card[data-training-surface='moonstone'] .note,
 .card[data-training-surface='moonstone'] .window p {
   color: var(--av-charcoal-muted);
@@ -174,10 +172,13 @@
 .rewardLine > div {
   display: grid;
   gap: 0.12rem;
+  align-content: center;
+  justify-items: center;
   padding: 0.36rem;
   border: 1px solid rgba(255, 255, 255, 0.055);
   border-radius: 0.25rem;
   background: rgba(255, 255, 255, 0.014);
+  text-align: center;
 }
 
 .card[data-training-surface='moonstone'] .rewardLine > div {

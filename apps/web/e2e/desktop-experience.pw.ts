@@ -500,12 +500,15 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
   }
   await page.setViewportSize({ width: 360, height: 800 })
   await page.keyboard.press('Escape')
-  await page.getByRole('button', { name: 'Navigation', exact: true }).click()
+  const phoneNavigation = page.getByRole('navigation', {
+    name: 'Primary game navigation',
+    exact: true,
+  })
+  await expect(phoneNavigation).toBeVisible()
   await testInfo.attach('phone-navigation', {
     body: await page.screenshot(),
     contentType: 'image/png',
   })
-  await page.keyboard.press('Escape')
   for (const mixed of [false, true]) {
     if (mixed) {
       const characterId = (await page.context().cookies()).find(
@@ -647,9 +650,7 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
   }
 })
 
-test('supplementary presence never blocks navigation and pending navigation is announced', async ({
-  page,
-}, testInfo) => {
+test('supplementary presence never blocks primary rail navigation', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-chromium', 'Shared navigation regression')
   test.setTimeout(60_000)
   await provisionAccountAndEnterCharacter({
@@ -681,12 +682,10 @@ test('supplementary presence never blocks navigation and pending navigation is a
       if (route.request().headers()['rsc'] === '1') await navigationGate
       await route.continue()
     })
-    await page.getByRole('button', { name: /Navigation/ }).click()
     await page
-      .getByRole('navigation', { name: 'Game navigation', exact: true })
+      .getByRole('navigation', { name: 'Primary game navigation', exact: true })
       .getByRole('link', { name: /Battle Hall/ })
       .click()
-    await expect(page.getByRole('button', { name: /Opening/ })).toHaveAttribute('aria-busy', 'true')
     releaseNavigation()
     await expect(page).toHaveURL(/\/game\/battle$/)
     await expect(page.locator('#battle-launch')).toBeVisible()
