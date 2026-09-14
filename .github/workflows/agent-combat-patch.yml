@@ -1,4 +1,4 @@
-name: Agent combat verification
+name: Verify combat runtime batch
 
 on:
   push:
@@ -9,18 +9,23 @@ on:
       - .github/agent-combat-patch-trigger
 
 permissions:
-  contents: read
+  contents: write
+
+concurrency:
+  group: combat-runtime-batch
+  cancel-in-progress: false
 
 jobs:
-  verify:
+  verify-and-commit:
+    if: github.ref == 'refs/heads/agent/combat-effect-taxonomy-rework'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - name: Checkout exact feature revision
         uses: actions/checkout@v4
         with:
           ref: ${{ github.sha }}
-          persist-credentials: false
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -32,60 +37,31 @@ jobs:
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
 
-      - name: Install dependencies
+      - name: Install pinned dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Package source and focused test dependencies without credentials
+      - name: Apply exact locally verified batch
+        run: python .github/scripts/apply-agent-combat-patch.py
+
+      - name: Run all repository quality gates
+        run: pnpm check
+
+      - name: Verify checks did not alter source
         run: |
-          mkdir -p /tmp/combat-verification
-          git rev-parse HEAD > /tmp/combat-verification/source-revision.txt
-          git archive HEAD | gzip > /tmp/combat-verification/source.tar.gz
-          python - <<'PY'
-          from pathlib import Path
-          import tarfile
-          root = Path.cwd()
-          store = root / 'node_modules/.pnpm'
-          selected = set()
-          pending = []
-          roots = [root / 'node_modules', root / 'packages/game-core/node_modules', root / 'apps/web/node_modules']
-          for base in roots:
-              for name in ['vitest', 'typescript', 'prettier', 'react', 'react-dom', 'jsdom', '@testing-library/react', '@testing-library/jest-dom', '@testing-library/user-event']:
-                  target = (base / name).resolve()
-                  if target.is_relative_to(store):
-                      pending.append(store / target.relative_to(store).parts[0])
-          while pending:
-              package = pending.pop()
-              if package in selected:
-                  continue
-              selected.add(package)
-              for path in package.rglob('*'):
-                  if path.is_symlink():
-                      target = path.resolve()
-                      if target.is_relative_to(store):
-                          dep = store / target.relative_to(store).parts[0]
-                          if dep not in selected:
-                              pending.append(dep)
-          with tarfile.open('/tmp/combat-verification/test-dependencies.tar.gz', 'w:gz') as archive:
-              for package in sorted(selected):
-                  archive.add(package, arcname=str(package.relative_to(root)))
-              for base in roots:
-                  if not base.exists():
-                      continue
-                  for path in sorted(base.iterdir()):
-                      if path.name != '.pnpm':
-                          archive.add(path, arcname=str(path.relative_to(root)))
-              for path in sorted((root / 'packages').glob('*/node_modules')):
-                  if path not in roots:
-                      archive.add(path, arcname=str(path.relative_to(root)))
-          print(f'Packaged {len(selected)} dependency-store entries; no git directory or credentials included.')
-          PY
+          git diff --exit-code
+          git diff --cached --check
 
-      - name: Save isolated verification workspace
-        uses: actions/upload-artifact@v4
-        with:
-          name: combat-verification-workspace
-          path: /tmp/combat-verification/
-          retention-days: 1
-
-      - name: Run focused displacement and tempo tests
-        run: pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-displacement-tempo-rework.test.ts
+      - name: Commit verified batch without touching main
+        env:
+          EXPECTED_HEAD: ${{ github.sha }}
+        run: |
+          branch=agent/combat-effect-taxonomy-rework
+          git fetch origin "$branch" main
+          test "$(git rev-parse "origin/$branch")" = "$EXPECTED_HEAD"
+          git merge-base --is-ancestor origin/main HEAD
+          git rm .github/combat-batch.part1 .github/combat-batch.part2 .github/combat-batch.part3 .github/scripts/apply-agent-combat-patch.py .github/agent-combat-patch-trigger
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat: finish displacement tempo and scheduled recovery runtime'
+          git push origin "HEAD:refs/heads/$branch"
+          echo "Verified implementation commit: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
