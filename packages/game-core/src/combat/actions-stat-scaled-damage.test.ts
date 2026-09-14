@@ -143,6 +143,23 @@ function damageAppliedAmount(
   return damage.amount
 }
 
+function historicalEncounter(): StatDrivenCombatEncounterState {
+  const current = encounter()
+  return {
+    ...current,
+    statBridge: {
+      schemaVersion: STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V1,
+      rulesVersion: 1,
+      combatants: current.statBridge.combatants.map((profile) => {
+        const legacyProfile = { ...profile }
+        delete legacyProfile.physicalPower
+        delete legacyProfile.mysticPower
+        return legacyProfile
+      }),
+    },
+  }
+}
+
 describe('stat-scaled damage resolution', () => {
   it('adds Physical Power scaling before Armor mitigation', () => {
     const scaled = action({
@@ -197,21 +214,18 @@ describe('stat-scaled damage resolution', () => {
     )
   })
 
+  it('preserves historical v1 unscaled damage and defense behavior', () => {
+    const unscaled = action({
+      type: 'damage',
+      recipient: 'primary-unit',
+      amount: 12,
+      defenseKind: 'armor',
+    })
+
+    expect(damageAppliedAmount(historicalEncounter(), unscaled)).toBe(6)
+  })
+
   it('fails closed instead of treating missing historical offensive power as zero', () => {
-    const current = encounter()
-    const legacy: StatDrivenCombatEncounterState = {
-      ...current,
-      statBridge: {
-        schemaVersion: STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V1,
-        rulesVersion: 1,
-        combatants: current.statBridge.combatants.map((profile) => {
-          const legacyProfile = { ...profile }
-          delete legacyProfile.physicalPower
-          delete legacyProfile.mysticPower
-          return legacyProfile
-        }),
-      },
-    }
     const scaled = action({
       type: 'damage',
       recipient: 'primary-unit',
@@ -220,7 +234,7 @@ describe('stat-scaled damage resolution', () => {
       defenseKind: 'armor',
     })
 
-    expect(() => damageAppliedAmount(legacy, scaled)).toThrow(
+    expect(() => damageAppliedAmount(historicalEncounter(), scaled)).toThrow(
       'Scaled Skill damage requires attacker offensive power.',
     )
   })
