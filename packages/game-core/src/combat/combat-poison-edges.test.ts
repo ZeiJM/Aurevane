@@ -14,7 +14,18 @@ import {
 } from './board'
 import { CLEANSE_STATUS_IDS, PHASE4_STATUSES } from './status-content'
 
-const CONTENT = { statuses: PHASE4_STATUSES }
+const CONTENT = {
+  statuses: [
+    ...PHASE4_STATUSES,
+    {
+      id: 'exposed',
+      version: 1,
+      maximumStacks: 1,
+      durationOwnerTurnStarts: 2,
+      damageTakenMultiplierBasisPoints: 10_000,
+    },
+  ],
+}
 
 function encounter(actorHp = 30): CombatEncounterState {
   const battle = startBattle(
@@ -153,6 +164,11 @@ describe('current Poison edge rules', () => {
     const displacedWithoutCombatHook: CombatEncounterState = {
       ...initial,
       tactical: staged.state,
+      turnOrigin: {
+        combatantId: 'actor',
+        turnNumber: initial.tactical.battle.turnNumber,
+        position: { x: 0, y: 0 },
+      },
     }
     expect(actorX(displacedWithoutCombatHook)).toBe(2)
 
