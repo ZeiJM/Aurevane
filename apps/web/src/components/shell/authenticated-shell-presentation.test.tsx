@@ -24,21 +24,19 @@ vi.mock('./game-rail', () => ({
 vi.mock('./online-presence-link', () => ({
   OnlinePresenceLink: () => createElement('a', { href: '/game/online' }, 'Online Users'),
 }))
-vi.mock('./navigation-menu', () => ({
-  NavigationMenu: () => createElement('button', { type: 'button' }, 'Navigation'),
-}))
 
 import { AuthenticatedShellPresentation } from './authenticated-shell-presentation'
 
 describe('authenticated shell presentation', () => {
   it('keeps Online Users while omitting redundant back and footer navigation controls', () => {
     const markup = renderToStaticMarkup(
-      createElement(AuthenticatedShellPresentation, {
-        backHref: '/game',
-        backLabel: 'Back to game',
-        sessionLabel: 'Passive Training',
-        children: createElement('section', null, 'Page content'),
-      }),
+      <AuthenticatedShellPresentation
+        backHref="/game"
+        backLabel="Back to game"
+        sessionLabel="Passive Training"
+      >
+        <section>Page content</section>
+      </AuthenticatedShellPresentation>,
     )
 
     expect(markup).toContain('Online Users')
