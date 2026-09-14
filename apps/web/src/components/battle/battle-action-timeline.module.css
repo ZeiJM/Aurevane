@@ -343,3 +343,11 @@
   font: 650 0.75rem/1.2 var(--av-font-body);
   cursor: pointer;
 }
+
+.track .transcriptOverflow,
+.track .transcriptEffect {
+  min-height: 1rem;
+  margin-top: 0.05rem;
+  padding: 0.05rem 0.35rem;
+  font: 650 0.6875rem/1.15 var(--av-font-body);
+}

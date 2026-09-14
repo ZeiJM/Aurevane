@@ -530,9 +530,15 @@
   color: color-mix(in srgb, rgb(var(--chip, var(--skill-accent))) 65%, white) !important;
 }
 
-.dialog[role='dialog'] .sourceChip,
-.dialog[role='dialog'] [data-light-panel-chip='true'] {
+.dialog[role='dialog'] .sourceChip {
+  color: #182632 !important;
+  background-color: #eae6dc !important;
+}
+
+.dialog[role='dialog'] [data-av-surface='ink'] .sourceChip,
+.dialog[role='dialog'] [data-av-surface='ink'] [data-light-panel-chip='true'] {
   color: #c2c7c6 !important;
+  background-color: #0b1722 !important;
 }
 
 .dialog[role='dialog'] .metaRow small:not(.sourceChip):not([data-light-panel-chip='true']) {
