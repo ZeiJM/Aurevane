@@ -1,4 +1,5 @@
 import { hasGameplayTag } from './gameplay-tags'
+import { CURRENT_POISON_DAMAGE, advanceCurrentPoisonMovement } from './combat-dots'
 import { terrainOverlayAt, COMBAT_TERRAIN_OVERLAY_DETAILS } from './terrain-overlays'
 import { readBattleAuthorityCombatBuildSnapshot } from './battle-authority-build-snapshot'
 import {
@@ -13,9 +14,11 @@ import {
   endCombatTurn,
   evaluateCombatAction,
   executeCombatAction,
+  resolveCombatMovementStepEffects,
   type CombatActionDefinition,
   type CombatActionEvaluation,
   type CombatContentCatalog,
+  type CombatEncounterState,
   type CombatEffectDefinition,
   type CombatStatusDefinition,
   type CombatTargetSelection,
@@ -407,10 +410,28 @@ function spendPv1fActionEconomyForActor(
   cost: number,
 ): StatDrivenCombatEncounterState {
   if (state.tactical.battle.lifecycle === 'active') {
-    if (state.tactical.battle.currentTurn?.combatantId !== combatantId) {
+    if (state.tactical.battle.currentTurn?.combatantId === combatantId) {
+      return spendPv1fActionEconomy(state, cost)
+    }
+    const defeatedActor = getCombatant(state, combatantId)
+    if (defeatedActor.hp > 0) {
       throw new Error('Action Economy can only be spent by the active combatant.')
     }
-    return spendPv1fActionEconomy(state, cost)
+    if (!Number.isSafeInteger(cost) || cost < 0 || cost > PV1F_ACTION_ECONOMY_MAXIMUM) {
+      throw new RangeError('Action Economy cost must be a safe integer from 0 to 100.')
+    }
+    const economy = defeatedActor.temporaryResources.find(
+      (resource) => resource.key === PV1F_ACTION_ECONOMY_RESOURCE_KEY,
+    )
+    if (!economy || economy.current < cost) {
+      throw new Error('Not enough Action Economy remains for that command.')
+    }
+    return withCombatant(state, {
+      ...defeatedActor,
+      temporaryResources: replaceResources(defeatedActor.temporaryResources, [
+        { ...economy, current: economy.current - cost },
+      ]),
+    })
   }
 
   if (state.tactical.battle.lifecycle !== 'completed') {
@@ -695,20 +716,51 @@ export function pv1fMovementModifiers(
   }
 }
 
+export interface Pv1fPoisonMovementForecast {
+  traversedTiles: number
+  triggeredTicks: number
+  damage: number
+  willDefeat: boolean
+}
+
+function forecastPv1fPoisonMovement(
+  state: StatDrivenCombatEncounterState,
+  path: readonly GridPosition[],
+): Pv1fPoisonMovementForecast {
+  const actorId = state.tactical.battle.currentTurn?.combatantId
+  if (!actorId) return { traversedTiles: 0, triggeredTicks: 0, damage: 0, willDefeat: false }
+  const actor = getCombatant(state, actorId)
+  let shadow = state as CombatEncounterState
+  let hp = actor.hp
+  let traversedTiles = 0
+  let triggeredTicks = 0
+
+  for (let index = 1; index < path.length; index += 1) {
+    const advanced = advanceCurrentPoisonMovement(shadow, actorId, 1)
+    shadow = advanced.state
+    traversedTiles += 1
+    triggeredTicks += advanced.triggeredTicks
+    if (advanced.triggeredTicks > 0) {
+      hp = Math.max(0, hp - advanced.triggeredTicks * CURRENT_POISON_DAMAGE)
+      if (hp === 0) break
+    }
+  }
+
+  return {
+    traversedTiles,
+    triggeredTicks,
+    damage: actor.hp - hp,
+    willDefeat: actor.hp > 0 && hp === 0,
+  }
+}
+
 export function evaluatePv1fMovement(
   state: StatDrivenCombatEncounterState,
   path: readonly GridPosition[],
 ) {
   const prepared = preparePv1fTurnEconomy(state)
-  const movement = evaluateCurrentMovementPath(prepared.tactical, path)
+  let movement = evaluateCurrentMovementPath(prepared.tactical, path)
   const modifiers = pv1fMovementModifiers(prepared)
-  const economyCost = movement.legal
-    ? path.slice(1).reduce((sum, position) => {
-        const traversal = movementTraversalCostAt(prepared.tactical, movement.combatantId, position)
-        if (traversal === null) throw new Error('Legal movement cannot enter blocked terrain.')
-        return sum + movementApCostForTile(traversal, modifiers.additionalApAt(position))
-      }, 0)
-    : 0
   if (modifiers.blocked) {
     movement.legal = false
     movement.issues = [
@@ -720,14 +772,31 @@ export function evaluatePv1fMovement(
       },
     ]
   }
-  return { prepared, movement, economyCost }
+
+  const poisonForecast = movement.legal
+    ? forecastPv1fPoisonMovement(prepared, path)
+    : { traversedTiles: 0, triggeredTicks: 0, damage: 0, willDefeat: false }
+  if (movement.legal && poisonForecast.traversedTiles < path.length - 1) {
+    movement = evaluateCurrentMovementPath(
+      prepared.tactical,
+      path.slice(0, poisonForecast.traversedTiles + 1),
+    )
+  }
+  const economyCost = movement.legal
+    ? movement.path.slice(1).reduce((sum, position) => {
+        const traversal = movementTraversalCostAt(prepared.tactical, movement.combatantId, position)
+        if (traversal === null) throw new Error('Legal movement cannot enter blocked terrain.')
+        return sum + movementApCostForTile(traversal, modifiers.additionalApAt(position))
+      }, 0)
+    : 0
+  return { prepared, movement, economyCost, poisonForecast }
 }
 
 export function executePv1fMovement(
   state: StatDrivenCombatEncounterState,
   path: readonly GridPosition[],
 ): Pv1fTransition {
-  const { prepared, movement, economyCost } = evaluatePv1fMovement(state, path)
+  const { prepared, movement, economyCost, poisonForecast } = evaluatePv1fMovement(state, path)
   if (!movement.legal)
     throw new Error(movement.issues[0]?.message ?? 'That movement path is not legal.')
   if (!canAffordPv1fEconomy(prepared, economyCost)) {
@@ -735,18 +804,26 @@ export function executePv1fMovement(
   }
   const actorId = prepared.tactical.battle.currentTurn?.combatantId
   if (!actorId) throw new Error('PV-1F movement requires an active turn.')
-  const moved = moveCurrentCombatant(prepared.tactical, path)
-  const encounter = reattachStatDrivenCombatBridge(
+  const moved = moveCurrentCombatant(prepared.tactical, movement.path)
+  let next = reattachStatDrivenCombatBridge(
     { ...prepared, ...createCombatEncounterState(moved.state, prepared.statusState) },
     prepared.statBridge,
   )
-  let next = spendPv1fActionEconomy(encounter, economyCost)
+  const movementEffectEvents: unknown[] = []
+  for (let index = 0; index < poisonForecast.traversedTiles; index += 1) {
+    const resolved = resolveCombatMovementStepEffects(next, actorId, PV1F_COMBAT_CONTENT)
+    next = reattachStatDrivenCombatBridge(resolved.state, prepared.statBridge)
+    movementEffectEvents.push(...resolved.events)
+    if (getCombatant(next, actorId).hp <= 0) break
+  }
+  next = spendPv1fActionEconomyForActor(next, actorId, economyCost)
   next = clearLastMatureSkill(next, actorId)
   const remaining = readPv1fActionEconomy(next, actorId)?.current ?? 0
   return {
     state: next,
     events: [
       ...moved.events,
+      ...movementEffectEvents,
       { event: 'action_economy_spent', combatantId: actorId, amount: economyCost, remaining },
     ],
   }

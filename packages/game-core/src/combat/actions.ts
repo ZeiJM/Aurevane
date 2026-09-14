@@ -46,7 +46,13 @@ import {
   type SkillCooldownDefinition,
   type SkillCooldownEvent,
 } from './skill-cooldowns'
-import { endTurn, spendAction, type BattleCombatant, type BattleState } from './battle-state'
+import {
+  defeatCurrentCombatant,
+  endTurn,
+  spendAction,
+  type BattleCombatant,
+  type BattleState,
+} from './battle-state'
 import {
   classifyFacingRelation,
   createTacticalBattleState,
@@ -2590,7 +2596,16 @@ export function resolveCombatMovementStepEffects(
     const target = getCombatant(nextState.tactical.battle, combatantId)
     if (target.hp <= 0) break
     const hpAfter = Math.max(0, target.hp - CURRENT_POISON_DAMAGE)
-    nextState = withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
+    const defeatsCurrentActor =
+      hpAfter === 0 &&
+      nextState.tactical.battle.lifecycle === 'active' &&
+      nextState.tactical.battle.currentTurn?.combatantId === combatantId
+    const defeatTransition = defeatsCurrentActor
+      ? defeatCurrentCombatant(nextState.tactical.battle, combatantId)
+      : null
+    nextState = defeatTransition
+      ? withBattle(nextState, defeatTransition.state)
+      : withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
     events.push({
       event: 'damage_applied',
       actionId: 'status.poison.current.v1',
@@ -2613,6 +2628,7 @@ export function resolveCombatMovementStepEffects(
       nextState = revealed.state
       events.push(...revealed.events)
     }
+    if (defeatTransition) events.push(...defeatTransition.events)
   }
   return { state: nextState, events }
 }
