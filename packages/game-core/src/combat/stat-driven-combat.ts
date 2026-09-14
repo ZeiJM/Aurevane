@@ -41,10 +41,17 @@ export interface StatDrivenCombatProfileV1 {
   jump: number
 }
 
-export interface StatDrivenCombatProfile extends StatDrivenCombatProfileV1 {
+export interface StatDrivenCombatProfileV2 extends StatDrivenCombatProfileV1 {
   physicalPower: number
   mysticPower: number
 }
+
+/**
+ * Compatibility profile accepted by historical fixtures and frozen v1 snapshots.
+ * New gameplay creation must use StatDrivenCombatProfileV2 through
+ * createCurrentStatDrivenCombatEncounterState().
+ */
+export type StatDrivenCombatProfile = StatDrivenCombatProfileV1 | StatDrivenCombatProfileV2
 
 export type StatDrivenCombatBridgeState =
   | {
@@ -55,7 +62,7 @@ export type StatDrivenCombatBridgeState =
   | {
       schemaVersion: typeof STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION
       rulesVersion: typeof STAT_DRIVEN_COMBAT_RULES_VERSION
-      combatants: readonly StatDrivenCombatProfile[]
+      combatants: readonly StatDrivenCombatProfileV2[]
     }
 
 export type StatDrivenCombatBridgeStateV2 = Extract<
@@ -107,7 +114,7 @@ export function createCharacterDerivedCombatProfile(
   combatantId: string,
   characterId: string,
   snapshot: DerivedStatSnapshot,
-): StatDrivenCombatProfile {
+): StatDrivenCombatProfileV2 {
   return {
     combatantId,
     provenance: {
@@ -125,9 +132,39 @@ export function createCharacterDerivedCombatProfile(
   }
 }
 
+/**
+ * Compatibility constructor for exact historical v1 fixtures/snapshots and current v2 profiles.
+ * Mixed v1/v2 rows are rejected. Live gameplay code must use the strict current-v2 constructor.
+ */
 export function createStatDrivenCombatEncounterState(
   base: CombatEncounterState,
   profiles: readonly StatDrivenCombatProfile[],
+): StatDrivenCombatEncounterState {
+  const v2Profiles = profiles.filter(isCurrentProfile)
+  if (v2Profiles.length !== 0 && v2Profiles.length !== profiles.length) {
+    throw new TypeError('Stat-driven combat profiles cannot mix historical v1 and current v2 rows.')
+  }
+  if (v2Profiles.length === profiles.length) {
+    return createCurrentStatDrivenCombatEncounterState(base, v2Profiles)
+  }
+
+  const state: StatDrivenCombatEncounterState = {
+    ...base,
+    statBridge: {
+      schemaVersion: STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V1,
+      rulesVersion: STAT_DRIVEN_COMBAT_RULES_V1,
+      combatants: [...profiles]
+        .map(copyHistoricalProfile)
+        .sort((left, right) => compareStableString(left.combatantId, right.combatantId)),
+    },
+  }
+  assertValidStatDrivenCombatEncounterState(state)
+  return state
+}
+
+export function createCurrentStatDrivenCombatEncounterState(
+  base: CombatEncounterState,
+  profiles: readonly StatDrivenCombatProfileV2[],
 ): StatDrivenCombatEncounterStateV2 {
   const state: StatDrivenCombatEncounterStateV2 = {
     ...base,
@@ -425,7 +462,11 @@ function assertBasicAttack(action: CombatActionDefinition): void {
   }
 }
 
-function copyCurrentProfile(profile: StatDrivenCombatProfile): StatDrivenCombatProfile {
+function isCurrentProfile(profile: StatDrivenCombatProfile): profile is StatDrivenCombatProfileV2 {
+  return 'physicalPower' in profile && 'mysticPower' in profile
+}
+
+function copyCurrentProfile(profile: StatDrivenCombatProfileV2): StatDrivenCombatProfileV2 {
   return {
     ...profile,
     provenance: { ...profile.provenance },
@@ -434,8 +475,13 @@ function copyCurrentProfile(profile: StatDrivenCombatProfile): StatDrivenCombatP
 
 function copyHistoricalProfile(profile: StatDrivenCombatProfileV1): StatDrivenCombatProfileV1 {
   return {
-    ...profile,
+    combatantId: profile.combatantId,
     provenance: { ...profile.provenance },
+    accuracy: profile.accuracy,
+    evasion: profile.evasion,
+    armor: profile.armor,
+    ward: profile.ward,
+    jump: profile.jump,
   }
 }
 
