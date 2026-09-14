@@ -169,9 +169,12 @@ describe('stat-driven Phase 2 combat bridge', () => {
       statBridge: {
         schemaVersion: STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V1,
         rulesVersion: 1,
-        combatants: state.statBridge.combatants.map(
-          ({ physicalPower: _physicalPower, mysticPower: _mysticPower, ...row }) => row,
-        ),
+        combatants: state.statBridge.combatants.map((row) => {
+          const legacyRow = { ...row }
+          delete legacyRow.physicalPower
+          delete legacyRow.mysticPower
+          return legacyRow
+        }),
       },
     }
 
