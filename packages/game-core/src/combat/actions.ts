@@ -1,5 +1,10 @@
 import type { CombatDamageScaling } from './damage-scaling'
 import { calculateScaledRawDamage, validateCombatDamageScaling } from './damage-scaling'
+import {
+  COMBAT_RESOLUTION_PIPELINE_VERSION,
+  type CombatActionProvenance,
+  type CombatTriggerGuard,
+} from './combat-kernel-types'
 import * as legacy from './actions-legacy'
 
 export * from './actions-legacy'
@@ -26,11 +31,23 @@ export interface CombatEncounterState extends Omit<legacy.CombatEncounterState, 
   }
 }
 
+export interface CombatResolutionContext {
+  provenance: CombatActionProvenance
+  triggerGuard: CombatTriggerGuard
+}
+
+export interface CombatResolutionMetadata {
+  pipelineVersion: typeof COMBAT_RESOLUTION_PIPELINE_VERSION
+  provenance: CombatActionProvenance
+  triggerGuard: CombatTriggerGuard
+}
+
 export interface CombatResolutionTransition extends Omit<
   legacy.CombatResolutionTransition,
   'state'
 > {
   state: CombatEncounterState
+  resolution?: CombatResolutionMetadata
 }
 
 export function evaluateCombatAction(
@@ -52,6 +69,7 @@ export function executeCombatAction(
   action: CombatActionDefinition,
   selection: legacy.CombatTargetSelection,
   content: legacy.CombatContentCatalog,
+  context?: CombatResolutionContext,
 ): CombatResolutionTransition {
   const transition = legacy.executeCombatAction(
     state,
@@ -59,7 +77,20 @@ export function executeCombatAction(
     selection,
     content,
   )
-  return { state: transition.state, events: transition.events }
+
+  if (!context) {
+    return { state: transition.state, events: transition.events }
+  }
+
+  return {
+    state: transition.state,
+    events: transition.events,
+    resolution: {
+      pipelineVersion: COMBAT_RESOLUTION_PIPELINE_VERSION,
+      provenance: context.provenance,
+      triggerGuard: context.triggerGuard,
+    },
+  }
 }
 
 function materializeStatScaledDamage(
