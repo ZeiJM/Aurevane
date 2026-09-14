@@ -14,21 +14,13 @@ describe('combat damage scaling', () => {
 
   it('adds deterministic Physical Power scaling with basis-point floor semantics', () => {
     expect(
-      calculateScaledRawDamage(
-        12,
-        { source: 'physical-power', coefficientBasisPoints: 5_000 },
-        40,
-      ),
+      calculateScaledRawDamage(12, { source: 'physical-power', coefficientBasisPoints: 5_000 }, 40),
     ).toBe(32)
   })
 
   it('adds deterministic Mystic Power scaling with basis-point floor semantics', () => {
     expect(
-      calculateScaledRawDamage(
-        12,
-        { source: 'mystic-power', coefficientBasisPoints: 7_500 },
-        41,
-      ),
+      calculateScaledRawDamage(12, { source: 'mystic-power', coefficientBasisPoints: 7_500 }, 41),
     ).toBe(42)
   })
 
