@@ -18,6 +18,8 @@
     "./character/starter-options": "./src/character/starter-options.ts",
     "./character/wayfarers-practice": "./src/character/wayfarers-practice.ts",
     "./combat/actions": "./src/combat/actions.ts",
+    "./combat/combat-authoring-validation": "./src/combat/combat-authoring-validation.ts",
+    "./combat/combat-effect-state": "./src/combat/combat-effect-state.ts",
     "./combat/build-snapshot": "./src/combat/build-snapshot.ts",
     "./combat/mature-skills": "./src/combat/mature-skills.ts",
     "./combat/resonance": "./src/combat/resonance.ts",
