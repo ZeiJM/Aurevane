@@ -1,0 +1,40 @@
+name: Combat Format Probe
+
+on:
+  push:
+    branches:
+      - agent/combat-stat-scaled-potency-v2
+
+permissions:
+  contents: read
+
+jobs:
+  format-probe:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Print Prettier diff
+        run: |
+          pnpm exec prettier --write \
+            packages/game-core/src/combat/actions.ts \
+            packages/game-core/src/combat/actions-stat-scaled-damage.test.ts \
+            packages/game-core/src/combat/damage-scaling.ts \
+            packages/game-core/src/combat/damage-scaling.test.ts \
+            packages/game-core/src/combat/stat-driven-combat.ts \
+            packages/game-core/src/combat/stat-driven-combat.test.ts
+          git diff -- \
+            packages/game-core/src/combat/actions.ts \
+            packages/game-core/src/combat/actions-stat-scaled-damage.test.ts \
+            packages/game-core/src/combat/damage-scaling.ts \
+            packages/game-core/src/combat/damage-scaling.test.ts \
+            packages/game-core/src/combat/stat-driven-combat.ts \
+            packages/game-core/src/combat/stat-driven-combat.test.ts
