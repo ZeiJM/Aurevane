@@ -1,5 +1,6 @@
 import { Kicker, Surface } from '@aurevane/ui'
 
+import { AurevaneImage } from '@/components/media/aurevane-image'
 import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
 
 import { PracticePlanCard, type PracticePlanCardData } from './practice-plan-card'
@@ -23,8 +24,14 @@ export function OfflineTrainingShell({
       backHref="/game/character"
       backLabel="Back to Character Profile"
     >
-      <div className={styles.layout}>
-        <Surface className={styles.hero} tone="elevated">
+      <div className={styles.layout} data-training-concept="true">
+        <Surface className={styles.hero} tone="elevated" data-av-surface="ink">
+          <AurevaneImage
+            assetId="environment.passive-training.cloister"
+            className={styles.heroMedia}
+            sizes="(max-width: 900px) 100vw, 70vw"
+          />
+          <div className={styles.heroShade} aria-hidden="true" />
           <div className={styles.heroCopy}>
             <Kicker marker="◇">Background progression</Kicker>
             <h1>Passive Training</h1>

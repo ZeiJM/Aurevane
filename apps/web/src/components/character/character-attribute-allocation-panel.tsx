@@ -9,6 +9,9 @@ import {
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
+import { CharacterPortraitImage } from './character-portrait-image'
+import type { ImageAssetId } from '@/media/registry'
+import Image from 'next/image'
 import styles from './character-attribute-allocation-panel.module.css'
 
 interface AttributeAllocationState {
@@ -30,6 +33,7 @@ interface AttributeAllocationState {
 
 interface CharacterAttributeAllocationPanelProps {
   initialAllocation: AttributeAllocationState
+  portrait?: { name: string; imageUrl: string | null; assetId: ImageAssetId }
   focusAttributes: readonly CharacterAttributeId[]
   attributeCaps: Readonly<Partial<Record<CharacterAttributeId, number>>>
 }
@@ -43,6 +47,7 @@ const ATTRIBUTE_MODE_QUERY = 'attributeMode'
 
 export function CharacterAttributeAllocationPanel({
   initialAllocation,
+  portrait,
   focusAttributes,
   attributeCaps,
 }: CharacterAttributeAllocationPanelProps) {
@@ -194,11 +199,25 @@ export function CharacterAttributeAllocationPanel({
         >
           <section
             className={styles.dialog}
+            data-av-surface="moonstone"
+            data-character-concept="editor"
+            data-has-portrait={Boolean(portrait)}
             role="dialog"
             aria-modal="true"
             aria-labelledby="attribute-allocation-dialog-title"
             onPointerDown={(event) => event.stopPropagation()}
           >
+            {portrait ? (
+              <aside className={styles.portrait} data-av-surface="ink">
+                <CharacterPortraitImage
+                  imageUrl={portrait.imageUrl}
+                  fallbackAssetId={portrait.assetId}
+                  sizes="(min-width: 761px) 25vw, 100vw"
+                  alt={`${portrait.name} portrait`}
+                />
+                <strong>{portrait.name}</strong>
+              </aside>
+            ) : null}
             <header className={styles.header}>
               <div>
                 <span>
@@ -269,7 +288,15 @@ export function CharacterAttributeAllocationPanel({
                     data-focus={isFocus ? 'true' : 'false'}
                   >
                     <div>
-                      <span>{CHARACTER_ATTRIBUTE_LABELS[attributeId]}</span>
+                      <span>
+                        <Image
+                          src={`/media/profile/${attributeId}.svg`}
+                          width={28}
+                          height={28}
+                          alt=""
+                        />
+                        {CHARACTER_ATTRIBUTE_LABELS[attributeId]}
+                      </span>
                       <small>
                         Base {allocation.baseAttributes[attributeId]}
                         {isFocus ? ' · Primary focus' : cap !== undefined ? ` · Cap ${cap}` : ''}

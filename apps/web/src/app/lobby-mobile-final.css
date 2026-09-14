@@ -1,5 +1,5 @@
 @media (max-width: 900px) {
-  section[aria-labelledby='pvp-lobby-title']::before {
+  section[aria-labelledby='pvp-lobby-title']:not([data-lobby-concept])::before {
     display: none !important;
   }
 }

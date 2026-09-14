@@ -68,7 +68,12 @@ export function TrainingReportCard({ report }: TrainingReportCardProps) {
   const planLabel = report.plannedWindow ? passiveTrainingWindowLabel(report.plannedWindow) : null
 
   return (
-    <section className={styles.report} data-testid="training-report">
+    <section
+      className={styles.report}
+      data-testid="training-report"
+      data-training-surface="moonstone"
+      data-av-surface="moonstone"
+    >
       <div className={styles.heading}>
         <div>
           <Kicker marker="◇">{passive ? 'Passive Training' : 'Legacy Training'}</Kicker>

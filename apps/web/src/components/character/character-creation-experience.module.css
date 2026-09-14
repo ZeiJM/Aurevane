@@ -1,15 +1,16 @@
 .experience {
   display: grid;
-  gap: clamp(0.45rem, 0.9vh, 0.7rem);
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 0;
+  border: 1px solid var(--av-gold-rule);
+  min-height: 40rem;
 }
 
 .scene {
   position: relative;
-  min-height: clamp(3.5rem, 6.5vh, 4.6rem);
-  max-height: 4.6rem;
+  min-height: 100%;
   overflow: hidden;
-  border: 1px solid var(--av-border);
-  background: rgba(4, 6, 9, 0.7);
+  background: var(--av-ink-950);
 }
 
 .scene > * {
@@ -22,19 +23,20 @@
 
 .content {
   display: grid;
-  gap: 0.5rem;
-  width: 100%;
+  gap: 1rem;
   min-width: 0;
+  padding: clamp(1rem, 2.5vw, 2rem);
+  background: var(--av-moonstone);
+  color: var(--av-text);
 }
 
 .progress {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.28rem;
-  color: var(--av-text-dim);
-  font: 650 0.6875rem/1.25 var(--av-font-mono);
-  letter-spacing: 0.065em;
-  text-transform: uppercase;
+  gap: 0.4rem;
+  color: var(--av-text-muted);
+  font: 500 0.9rem var(--av-font-display);
+  border-bottom: 1px solid var(--av-gold-rule);
+  padding-bottom: 0.8rem;
 }
 
 .progress span {
@@ -43,9 +45,9 @@
 }
 
 .progress span[data-active='true'] {
-  border-color: rgba(207, 169, 93, 0.55);
-  color: var(--av-brass-300);
-  background: rgba(207, 169, 93, 0.07);
+  background: var(--av-teal);
+  color: var(--av-on-primary);
+  border-color: var(--av-teal);
 }
 
 .step {
@@ -72,9 +74,8 @@
 
 .field {
   display: grid;
-  max-width: 30rem;
-  gap: 0.28rem;
-  padding: 0.05rem;
+  width: 100%;
+  gap: 0.35rem;
 }
 
 .field[data-invalid='true'],
@@ -99,12 +100,12 @@
   border: 1px solid var(--av-border-strong);
   border-radius: 0;
   color: var(--av-text);
-  background: rgba(3, 5, 8, 0.74);
+  background: var(--av-surface-quiet);
   font: 500 0.84rem/1.25 var(--av-font-body);
 }
 
 .field input[aria-invalid='true'] {
-  border-color: #d9795f;
+  border-color: var(--av-text);
 }
 
 .field input:focus-visible {
@@ -116,14 +117,14 @@
 .optionCard small,
 .attributeCard small {
   color: var(--av-text-dim);
-  font-size: 0.6rem;
+  font-size: 0.75rem;
   line-height: 1.3;
 }
 
 .twoColumn {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.55rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.7rem;
 }
 
 .choiceGroup {
@@ -140,14 +141,14 @@
 
 .inlineChoice {
   display: inline-flex;
-  min-height: 1.95rem;
-  gap: 0.35rem;
+  min-height: 2.75rem;
   align-items: center;
-  margin: 0 0.34rem 0.28rem 0;
-  padding: 0.3rem 0.46rem;
-  border: 1px solid rgba(184, 177, 163, 0.16);
+  gap: 0.4rem;
+  padding: 0.45rem 0.6rem;
+  margin: 0 0.3rem 0.3rem 0;
+  border: 1px solid var(--av-border);
+  font-size: 0.8rem;
   cursor: pointer;
-  font-size: 0.74rem;
 }
 
 .inlineChoice:has(input:checked) {
@@ -165,7 +166,7 @@
 .inlineChoice input {
   width: 0.78rem;
   height: 0.78rem;
-  accent-color: var(--av-brass-300);
+  accent-color: var(--av-accent);
 }
 
 .portraitGrid {
@@ -210,7 +211,7 @@
 
 .portraitChoice > span {
   color: var(--av-text-muted);
-  font-size: 0.6rem;
+  font-size: 0.75rem;
   text-align: center;
 }
 
@@ -229,7 +230,7 @@
   align-content: center;
   padding: 0.52rem 0.58rem;
   border: 1px solid rgba(184, 177, 163, 0.16);
-  background: rgba(5, 7, 10, 0.38);
+  background: var(--av-surface-quiet);
   cursor: pointer;
 }
 
@@ -260,52 +261,52 @@
   max-width: 46rem;
   margin-top: 0.25rem;
   color: var(--av-text-dim);
-  font-size: 0.61rem;
+  font-size: 0.75rem;
   line-height: 1.32;
 }
 
 .attributeHeader > strong {
   flex: none;
-  color: var(--av-brass-300);
-  font: 650 0.54rem/1.15 var(--av-font-mono);
+  color: var(--av-accent);
+  font: 650 0.75rem/1.15 var(--av-font-mono);
   letter-spacing: 0.045em;
   text-transform: uppercase;
 }
 
 .attributeGrid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.42rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
 }
 
 /* CHARACTER_ATTRIBUTE_IDS order: Might, Finesse, Vitality, Agility, Intellect, Resolve. */
 .attributeCard:nth-child(1) {
-  --attribute-color: #ff7068;
+  --attribute-color: var(--av-text);
   --attribute-soft: rgba(255, 112, 104, 0.15);
 }
 
 .attributeCard:nth-child(2) {
-  --attribute-color: #c7ced8;
+  --attribute-color: var(--av-text);
   --attribute-soft: rgba(199, 206, 216, 0.15);
 }
 
 .attributeCard:nth-child(3) {
-  --attribute-color: #72d97b;
+  --attribute-color: var(--av-text);
   --attribute-soft: rgba(114, 217, 123, 0.15);
 }
 
 .attributeCard:nth-child(4) {
-  --attribute-color: #f4dc61;
+  --attribute-color: var(--av-text);
   --attribute-soft: rgba(244, 220, 97, 0.15);
 }
 
 .attributeCard:nth-child(5) {
-  --attribute-color: #c282ff;
+  --attribute-color: var(--av-text);
   --attribute-soft: rgba(194, 130, 255, 0.15);
 }
 
 .attributeCard:nth-child(6) {
-  --attribute-color: #70a9ff;
+  --attribute-color: var(--av-text);
   --attribute-soft: rgba(112, 169, 255, 0.15);
 }
 
@@ -316,7 +317,7 @@
   align-items: center;
   padding: 0.56rem 0.58rem 0.56rem 0.68rem;
   border: 1px solid rgba(184, 177, 163, 0.15);
-  background: linear-gradient(135deg, var(--attribute-soft) 0%, rgba(5, 7, 10, 0.5) 58%);
+  background: var(--av-surface-quiet);
   box-shadow: inset 2px 0 0 var(--attribute-color);
 }
 
@@ -326,11 +327,8 @@
 }
 
 .attributeCard > div:first-child strong {
-  display: inline-flex;
-  gap: 0.3rem;
-  align-items: center;
-  color: var(--attribute-color);
-  font: 500 0.8rem/1.12 var(--av-font-display);
+  color: var(--av-text);
+  font: 500 1rem var(--av-font-display);
 }
 
 .attributeCard > div:first-child strong::before {
@@ -345,17 +343,17 @@
 
 .attributeControl {
   display: grid;
-  grid-template-columns: 1.75rem 1.8rem 1.75rem;
+  grid-template-columns: 2.75rem 2rem 2.75rem;
   align-items: center;
 }
 
 .attributeControl button {
-  min-width: 1.75rem;
-  min-height: 1.75rem;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
   border: 1px solid var(--av-border-strong);
+  background: var(--av-surface-quiet);
   color: var(--av-text);
-  background: rgba(7, 9, 13, 0.8);
-  font-size: 0.9rem;
+  font-size: 1rem;
   cursor: pointer;
 }
 
@@ -378,7 +376,7 @@
 
 .attributeControl output {
   color: var(--attribute-color);
-  font: 650 0.62rem/1 var(--av-font-mono);
+  font: 650 0.75rem/1 var(--av-font-mono);
   text-align: center;
 }
 
@@ -396,7 +394,7 @@
   justify-content: space-between;
   gap: 0.42rem;
   padding: 0.48rem 0.56rem;
-  background: rgba(5, 7, 10, 0.92);
+  background: var(--av-surface-quiet);
 }
 
 .reviewGrid dt,
@@ -406,7 +404,7 @@
 
 .reviewGrid dt {
   color: var(--av-text-dim);
-  font-size: 0.56rem;
+  font-size: 0.75rem;
 }
 
 .reviewGrid dd {
@@ -419,28 +417,32 @@
   margin: 0;
   padding: 0.48rem 0.58rem;
   border-left: 2px solid #d9795f;
-  color: #efc5bf;
+  color: var(--av-text);
   background: rgba(102, 34, 34, 0.18);
-  font-size: 0.68rem;
+  font-size: 0.75rem;
   line-height: 1.35;
 }
 
 .submitState {
   margin: 0;
   color: var(--av-text-dim);
-  font-size: 0.62rem;
+  font-size: 0.75rem;
 }
 
 .actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.42rem;
-  padding-top: 0;
+  gap: 0.7rem;
+  justify-content: space-between;
+  position: sticky;
+  bottom: 0;
+  padding: 0.85rem 0;
+  background: var(--av-moonstone);
+  border-top: 1px solid var(--av-gold-rule);
 }
 
 .actions button {
-  min-height: 2.15rem;
-  padding-block: 0.42rem;
+  min-height: 2.75rem;
 }
 
 @media (max-width: 900px) {
@@ -497,5 +499,67 @@
   .actions,
   .actions button {
     width: 100%;
+  }
+}
+
+.disciplineSigil {
+  width: 6rem;
+  height: 6rem;
+  justify-self: center;
+  object-fit: contain;
+}
+
+.disciplineGrid .optionCard {
+  min-height: 13rem;
+  text-align: center;
+  gap: 0.7rem;
+  padding: 1rem;
+  background: var(--av-ink-900);
+  color: var(--av-parchment-100);
+  border-color: var(--av-gold-rule);
+}
+
+.disciplineGrid .optionCard small {
+  color: var(--av-stone-300);
+  font-size: 0.8rem;
+}
+
+.disciplineGrid .optionCard strong {
+  font: 500 1.6rem var(--av-font-display);
+}
+
+.experience[data-step='discipline'] {
+  grid-template-columns: minmax(0, 1fr);
+}
+.experience[data-step='discipline'] .scene {
+  display: none;
+}
+@media (max-width: 760px) {
+  .experience {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .scene {
+    min-height: 22rem;
+    max-height: 22rem;
+  }
+  .scene > * {
+    object-position: 50% 20%;
+  }
+  .attributeGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .portraitGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .portraitChoice > img,
+  .portraitChoice > div {
+    aspect-ratio: 3/4;
+  }
+  .portraitChoice > span {
+    font-size: 0.65rem;
+    overflow-wrap: anywhere;
+  }
+  .progress {
+    font-size: 0.8rem;
   }
 }

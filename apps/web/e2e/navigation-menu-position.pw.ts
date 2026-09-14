@@ -30,7 +30,7 @@ test('game navigation opens from the bottom-right trigger instead of the top vie
   expect(triggerBox).not.toBeNull()
 
   await trigger.click()
-  const menu = page.getByRole('navigation', { name: 'Game navigation' })
+  const menu = page.locator('nav[popover="auto"][aria-label="Game navigation"]')
   await expect(menu).toBeVisible()
   const menuBox = await menu.boundingBox()
   expect(menuBox).not.toBeNull()

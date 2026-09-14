@@ -245,7 +245,7 @@ test('uses medium Guided Fundamentals and keeps PvE surrender/results', async ({
   await page.goto('/game/battle')
   await page.getByLabel('Battle mode').selectOption('guided-fundamentals')
   await expect(page.getByText('Duel Yard', { exact: true })).toBeVisible()
-  await expect(page.getByText(/9×7/)).toBeVisible()
+  await expect(page.locator('#ai-arena-description')).toContainText('9×7')
   await page.getByRole('button', { name: 'Enter Battle' }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
 

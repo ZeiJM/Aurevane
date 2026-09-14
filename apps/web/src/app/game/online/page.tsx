@@ -35,7 +35,13 @@ export default async function OnlineUsersPage() {
       backHref="/game/character"
       backLabel="Back to Character Profile"
     >
-      <Surface className={styles.page} tone="elevated" data-character-directory>
+      <Surface
+        className={styles.page}
+        tone="elevated"
+        data-character-directory
+        data-av-surface="moonstone"
+        data-online-concept="true"
+      >
         <header className={styles.heading}>
           <Kicker marker="◇">Live presence</Kicker>
         </header>

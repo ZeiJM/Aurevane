@@ -1,482 +1,345 @@
 .layout {
   display: grid;
-  grid-template-columns: 14rem minmax(0, 1fr) 18.5rem;
-  gap: 1rem;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 1.9fr) minmax(0, 1fr);
+  gap: 0;
   min-width: 0;
-  align-items: start;
+  align-items: stretch;
+  border: 1px solid var(--av-gold-rule);
 }
-
 .characterCard,
 .profile,
-.navigationCard,
 .buildCard {
   min-width: 0;
-  padding: 1rem;
-  border-color: rgba(207, 169, 93, 0.3);
-  background:
-    radial-gradient(90% 22rem at 50% 0, rgba(48, 70, 90, 0.14), transparent 80%),
-    linear-gradient(180deg, #101923, #090f16);
-  box-shadow:
-    inset 0 1px rgba(239, 220, 174, 0.06),
-    0 0.75rem 2rem rgba(0, 0, 0, 0.18);
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
-
 .characterCard {
-  border-top: 2px solid var(--av-brass-500);
-}
-
-.hero {
-  display: grid;
-  gap: 1.1rem;
-  min-width: 0;
-}
-
-.portrait {
-  width: 100%;
-  aspect-ratio: 1;
+  position: relative;
+  isolation: isolate;
+  min-height: 42rem;
   overflow: hidden;
-  border: 1px solid rgba(207, 169, 93, 0.55);
-  border-radius: 0.5rem;
-  background: #080b10;
-  box-shadow: 0 0.4rem 1.4rem rgba(0, 0, 0, 0.28);
+  padding: 0;
+  background: var(--av-ink-950);
 }
-
+.hero {
+  display: flex;
+  min-height: 31rem;
+  align-items: end;
+  padding: 1.35rem;
+}
+.portrait {
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.portrait :global(.character-portrait-media),
 .portrait :global(img) {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: 50% 15%;
 }
-
+.characterCard::after {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  content: '';
+  background: linear-gradient(180deg, transparent 30%, rgba(5, 15, 23, 0.28) 48%, #07111a 80%);
+}
 .identity {
+  width: 100%;
   min-width: 0;
 }
-
 .identity :global(.av-kicker) {
-  font-size: 0.6875rem;
-  letter-spacing: 0.1em;
+  font-size: 0.66rem;
 }
-
 .nameLine {
-  display: grid;
-  gap: 0.75rem;
-  margin-top: 0.55rem;
+  margin-top: 0.5rem;
 }
-
 .identity h1 {
-  margin: 0;
+  margin: 0 0 0.65rem;
   color: var(--av-text);
-  font: 500 clamp(1.75rem, 2.3vw, 2.4rem)/1.08 var(--av-font-display);
-  letter-spacing: -0.025em;
+  font: 500 clamp(2rem, 3.6vw, 3.8rem)/1.05 var(--av-font-display);
   overflow-wrap: anywhere;
 }
-
 .nameTags {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
 }
-
 .disciplinePill,
 .personalTitlePill {
-  display: inline-flex;
-  min-width: 0;
-  min-height: 1.7rem;
-  align-items: center;
-  padding: 0.3rem 0.55rem;
-  border: 1px solid rgba(207, 169, 93, 0.4);
-  border-radius: 0.35rem;
-  color: var(--av-brass-300);
-  background: rgba(207, 169, 93, 0.065);
-  font: 650 0.6875rem/1.35 var(--av-font-mono);
-  letter-spacing: 0.035em;
-  overflow-wrap: anywhere;
+  font-size: 0.76rem;
+  line-height: 1.45;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid var(--av-border-strong);
 }
-
 .personalTitlePill {
-  border-color: rgba(112, 182, 151, 0.35);
-  color: #a1d7b9;
-  background: rgba(71, 133, 103, 0.075);
+  color: var(--av-teal-bright);
+  border-color: var(--av-teal);
 }
-
 .levelProgress {
-  display: grid;
-  gap: 0.6rem;
-  margin-top: 1.1rem;
+  margin-top: 1rem;
 }
-
 .levelProgress > div:first-child {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.4rem;
   justify-content: space-between;
-  color: var(--av-text-muted);
-  font: 600 0.75rem/1.4 var(--av-font-mono);
+  gap: 0.5rem;
+  font-size: 0.76rem;
 }
-
 .levelProgress strong {
-  color: var(--av-brass-300);
-  font-variant-numeric: tabular-nums;
+  color: var(--av-brass-200);
 }
-
 .track {
+  margin-top: 0.5rem;
   height: 0.45rem;
+  border: 1px solid var(--av-border);
+  background: #08121c;
+  border-radius: 1rem;
   overflow: hidden;
-  border: 1px solid rgba(207, 169, 93, 0.22);
-  border-radius: 999px;
-  background: #05080d;
 }
-
 .track span {
   display: block;
   height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, var(--av-brass-500), var(--av-brass-300));
+  background: linear-gradient(90deg, #d3ac68, #efcf94);
 }
-
 .characterSummary {
   display: grid;
-  gap: 1rem;
-  margin-top: 1.1rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--av-border);
+  gap: 0.85rem;
+  padding: 0 1.35rem 1.15rem;
 }
-
 .discipline {
   margin: 0;
   color: var(--av-text-muted);
-  font-size: 0.875rem;
-  line-height: 1.6;
+  font-size: 0.8rem;
+  line-height: 1.5;
 }
-
 .capacity {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.6rem;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
   margin: 0;
 }
-
 .capacity > div {
-  padding: 0.6rem;
-  border-left: 2px solid #87bba0;
-  border-radius: 0.2rem;
-  background: rgba(118, 179, 144, 0.06);
+  border-bottom: 3px solid #4ea476;
+  padding-bottom: 0.45rem;
 }
-
 .capacity > div:last-child {
-  border-color: #b09dce;
-  background: rgba(161, 135, 194, 0.07);
+  border-color: #9466bb;
 }
-
 .capacity dt {
   color: var(--av-text-muted);
-  font-size: 0.75rem;
-  line-height: 1.4;
+  font-size: 0.68rem;
 }
-
 .capacity dd {
-  margin: 0.3rem 0 0;
-  color: var(--av-text);
-  font: 600 1.25rem/1.2 var(--av-font-display);
-  font-variant-numeric: tabular-nums;
+  margin: 0.25rem 0 0;
+  font: 500 1.15rem var(--av-font-display);
 }
-
 .portraitLink {
   display: flex;
-  gap: 0.5rem;
   justify-content: space-between;
   align-items: center;
-  min-height: 2.4rem;
-  padding-top: 0.4rem;
-  border-top: 1px solid var(--av-border);
-  color: var(--av-brass-300);
-  font-size: 0.8125rem;
-  text-decoration: none;
+  min-height: 2.75rem;
+  color: var(--av-brass-200);
+  font-size: 0.8rem;
+  text-underline-offset: 0.3rem;
 }
-
 .profile {
-  padding: 1rem;
-  background:
-    radial-gradient(80% 26rem at 0 0, rgba(55, 86, 113, 0.16), transparent 90%),
-    linear-gradient(160deg, #15212d, #0d151e 70%);
+  padding: 1.4rem 1.2rem;
+  background: var(--av-moonstone);
+  color: var(--av-charcoal);
+  border-inline: 1px solid var(--av-gold-rule);
 }
-
 .sheetHeading {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
+  align-items: start;
   justify-content: space-between;
-  align-items: center;
-  padding-bottom: 0.75rem;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--av-gold-rule);
+  padding-bottom: 1rem;
 }
-
 .sheetHeading h2 {
-  margin: 0.4rem 0 0;
-  font: 500 clamp(1.6rem, 2.2vw, 2rem)/1.1 var(--av-font-display);
-  letter-spacing: -0.02em;
+  margin: 0;
+  color: var(--av-charcoal);
+  font: 500 clamp(1.7rem, 2.75vw, 3rem)/1.1 var(--av-font-display);
 }
-
+.sheetHeading p {
+  margin: 0.5rem 0 0;
+  color: var(--av-charcoal-muted);
+  font: italic 0.78rem var(--av-font-display);
+  letter-spacing: 0.08em;
+}
 .buildMode {
-  padding: 0.4rem 0.65rem;
-  border: 1px solid rgba(207, 169, 93, 0.22);
-  border-radius: 999px;
-  color: var(--av-brass-300);
-  font: 600 0.6875rem/1.3 var(--av-font-mono);
+  flex-shrink: 0;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--av-border);
+  font-size: 0.65rem;
 }
-
 .sidebar {
-  display: grid;
-  gap: 1rem;
   min-width: 0;
+  background: var(--av-ink-950);
 }
-
-.navigationCard,
 .buildCard {
   padding: 1rem;
+  height: 100%;
+  background: linear-gradient(125deg, #101f29, #07121b);
 }
-
-.navigation {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem;
-  margin-top: 0.9rem;
-}
-
-.navigation a {
-  display: flex;
-  gap: 0.45rem;
-  min-width: 0;
-  min-height: 3.1rem;
-  align-items: center;
-  padding: 0.55rem;
-  border: 1px solid rgba(185, 191, 199, 0.19);
-  border-radius: 0.35rem;
-  color: var(--av-text-muted);
-  background: rgba(4, 8, 13, 0.35);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  line-height: 1.35;
-  text-decoration: none;
-  transition:
-    background 140ms ease,
-    border-color 140ms ease;
-}
-
-.navigation a > span:first-child {
-  flex: 0 0 1.15rem;
-  color: var(--av-brass-300);
-  font-size: 1.1rem;
-  text-align: center;
-}
-
-.navigation a[aria-current='page'] {
-  border-color: rgba(207, 169, 93, 0.6);
-  color: var(--av-text);
-  background: rgba(207, 169, 93, 0.1);
-}
-
-.navigation a:hover,
-.navigation a:focus-visible {
-  border-color: var(--av-brass-300);
-  color: var(--av-text);
-  background: rgba(207, 169, 93, 0.12);
-}
-
 .buildHeading {
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--av-border);
+  padding: 0.2rem 0 0.8rem;
+  border-bottom: 1px solid var(--av-border-strong);
 }
-
+.buildHeading :global(.av-kicker) {
+  font: 500 0.95rem var(--av-font-display);
+  letter-spacing: 0.08em;
+}
 .buildSection {
   display: grid;
   gap: 0.7rem;
-  padding: 0.95rem 0;
-  border-bottom: 1px solid var(--av-border);
+  padding: 0.8rem 0;
+  border-bottom: 1px solid var(--av-border-strong);
 }
-
 .buildSectionHeader strong {
-  font: 500 1.125rem/1.2 var(--av-font-display);
+  color: var(--av-brass-200);
+  font: 500 0.85rem var(--av-font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
-
-.buildCard [data-testid='primary-build-panel'] > button,
-.buildCard [data-testid='skill-build-panel'] > button {
-  min-height: 2.9rem;
-}
-
-.buildCard [data-testid='skill-build-panel'] > button {
+.disciplineSigils {
+  display: flex;
   justify-content: center;
+  gap: 0.7rem;
+}
+.disciplineSigils > div {
+  flex: 1;
+  min-width: 0;
   text-align: center;
 }
-
-.buildCard [data-testid='skill-build-panel'] > button strong::after {
-  content: 'Manage Techniques';
-  font: 750 0.56rem/1 var(--av-font-mono);
-  letter-spacing: 0.06em;
+.disciplineSigils :is(img, svg) {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 7rem;
+  object-fit: contain;
 }
-
-.buildCard [data-testid='skill-build-panel'] > button small {
-  display: none;
+.disciplineSigils span {
+  display: block;
+  margin-top: 0.3rem;
+  font: 500 1rem var(--av-font-display);
+  overflow-wrap: anywhere;
 }
-
+.equippedSkills {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+.equippedSkills > div {
+  overflow: hidden;
+  border: 1px solid var(--av-border-strong);
+  background: #0c1a24;
+}
+.equippedSkills img {
+  display: block;
+  width: 100%;
+  height: 4.2rem;
+  object-fit: cover;
+}
+.equippedSkills span {
+  display: block;
+  padding: 0.3rem;
+  font-size: 0.65rem;
+  line-height: 1.3;
+}
+.equippedSkills p {
+  grid-column: 1/-1;
+  color: var(--av-text-muted);
+  font-size: 0.8rem;
+}
 .buildIdentity {
   display: grid;
-  grid-template-columns: 3.4rem minmax(0, 1fr);
-  gap: 0.7rem;
-  align-items: start;
+  gap: 0.65rem;
   padding-top: 1rem;
 }
-
 .buildIdentityArt {
-  display: block;
-  width: 3.4rem;
-  aspect-ratio: 1;
-  overflow: hidden;
-  border: 1px solid rgba(207, 169, 93, 0.35);
-  border-radius: 0.4rem;
+  width: 5rem;
+  height: 5rem;
 }
-
 .buildIdentityArt img {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: 50%;
 }
-
 .buildIdentityCopy {
   display: grid;
   gap: 0.4rem;
-  min-width: 0;
 }
-
 .buildIdentityCopy > span {
-  color: var(--av-text-dim);
-  font: 650 0.6875rem/1.4 var(--av-font-mono);
-  letter-spacing: 0.075em;
+  color: var(--av-brass-200);
+  font: 500 0.85rem var(--av-font-display);
   text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
-
-.buildIdentity strong {
-  color: var(--av-brass-300);
-  font: 500 1.25rem/1.2 var(--av-font-display);
-  overflow-wrap: anywhere;
+.buildIdentityCopy strong {
+  color: var(--av-brass-200);
+  font: 500 1.35rem var(--av-font-display);
 }
-
-.buildIdentity small {
+.buildIdentityCopy small {
   color: var(--av-text-muted);
-  font-size: 0.8125rem;
+  font-size: 0.73rem;
   line-height: 1.5;
 }
-
-@media (min-width: 1280px) and (max-height: 850px) {
-  .buildSection {
-    padding-block: 0.7rem;
-  }
-
-  .buildHeading {
-    padding-bottom: 0.5rem;
-  }
-
-  .portrait {
-    max-width: 8.5rem;
-    justify-self: center;
-  }
-
-  .hero {
-    gap: 0.85rem;
-  }
-
-  .identity h1 {
-    font-size: 1.85rem;
-  }
-
-  .levelProgress {
-    margin-top: 0.85rem;
-  }
-
-  .characterSummary {
-    gap: 0.75rem;
-    margin-top: 0.85rem;
-    padding-top: 0.85rem;
-  }
-
-  .discipline {
-    line-height: 1.45;
-  }
-}
-
-@media (max-width: 1279px) {
+@media (max-width: 1100px) and (min-width: 761px) {
   .layout {
-    grid-template-columns: minmax(0, 1fr) 18.5rem;
+    grid-template-columns: 1fr 1.8fr;
   }
-
-  .characterCard {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
-    gap: 1.4rem;
-    align-items: center;
-  }
-
-  .hero {
-    grid-template-columns: 7rem minmax(0, 1fr);
-    align-items: center;
-  }
-
-  .characterSummary {
-    margin: 0;
-    padding: 0 0 0 1.4rem;
-    border-top: 0;
-    border-left: 1px solid var(--av-border);
-  }
-}
-
-@media (max-width: 980px) {
-  .layout {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0.85rem;
-  }
-
   .sidebar {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    align-items: start;
+    grid-column: 1/-1;
   }
-}
-
-@media (max-width: 640px) {
-  .characterCard {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0.9rem;
-  }
-
-  .hero {
-    grid-template-columns: 5.5rem minmax(0, 1fr);
-    gap: 0.85rem;
-  }
-
-  .characterSummary {
-    gap: 0.8rem;
-    padding: 0.8rem 0 0;
-    border-left: 0;
-    border-top: 1px solid var(--av-border);
-  }
-
-  .levelProgress {
-    margin-top: 0.8rem;
-  }
-
-  .profile,
-  .characterCard,
-  .navigationCard,
   .buildCard {
-    padding: 0.9rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem;
   }
-
-  .sidebar {
+  .buildHeading {
+    grid-column: 1/-1;
+  }
+  .buildSection {
+    border: 0;
+  }
+}
+@media (max-width: 760px) {
+  .layout {
     grid-template-columns: minmax(0, 1fr);
   }
-
-  .navigation a {
-    min-height: 2.9rem;
-    padding: 0.65rem;
-    font-size: 0.875rem;
+  .characterCard {
+    min-height: 34rem;
+  }
+  .hero {
+    min-height: 25rem;
+  }
+  .portrait :global(img) {
+    object-position: 50% 20%;
+  }
+  .profile {
+    border-inline: 0;
+    border-block: 1px solid var(--av-gold-rule);
+    padding: 1.15rem 0.85rem;
+  }
+  .sheetHeading {
+    flex-wrap: wrap;
+  }
+  .buildCard {
+    padding: 1rem;
+  }
+  .disciplineSigils :is(img, svg) {
+    max-height: 9rem;
+  }
+  .equippedSkills img {
+    height: 7rem;
   }
 }

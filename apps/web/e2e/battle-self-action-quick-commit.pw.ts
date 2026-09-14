@@ -210,7 +210,7 @@ test('keeps Guard double-press reliable after Inspect closes in a narrow desktop
   test.skip(testInfo.project.name === 'mobile-chromium', 'Physical keyboard regression')
   test.slow()
 
-  await page.setViewportSize({ width: 750, height: 900 })
+  await page.setViewportSize({ width: 900, height: 900 })
   const root = await enterGuidedBattle(page)
   await expectFinePointerDesktopPresentation(page, root)
 
@@ -316,8 +316,8 @@ test('keeps desktop PvP Space-to-finish reliable across repeated turn handoffs',
     for (let cycle = 0; cycle < 5; cycle += 1) {
       if (cycle === 1) {
         await Promise.all([
-          first.page.setViewportSize({ width: 750, height: 900 }),
-          second.page.setViewportSize({ width: 750, height: 900 }),
+          first.page.setViewportSize({ width: 900, height: 900 }),
+          second.page.setViewportSize({ width: 900, height: 900 }),
         ])
         await expectFinePointerDesktopPresentation(first.page, first.root)
         await expectFinePointerDesktopPresentation(second.page, second.root)
@@ -331,8 +331,8 @@ test('keeps desktop PvP Space-to-finish reliable across repeated turn handoffs',
         await openInspectAndDismiss(second.page, second.root, first.name)
       } else if (cycle === 4) {
         await Promise.all([
-          first.page.setViewportSize({ width: 750, height: 900 }),
-          second.page.setViewportSize({ width: 750, height: 900 }),
+          first.page.setViewportSize({ width: 900, height: 900 }),
+          second.page.setViewportSize({ width: 900, height: 900 }),
         ])
         await expectFinePointerDesktopPresentation(first.page, first.root)
         await expectFinePointerDesktopPresentation(second.page, second.root)

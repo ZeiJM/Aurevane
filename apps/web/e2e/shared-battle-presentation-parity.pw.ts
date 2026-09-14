@@ -202,7 +202,10 @@ async function expectDesktopCombatantCard(root: ReturnType<Page['locator']>) {
   })
   expect(geometry.portraitLeft).toBeGreaterThanOrEqual(geometry.cardLeft)
   expect(geometry.portraitRight).toBeLessThanOrEqual(geometry.cardRight)
-  expect(Math.abs(geometry.portraitWidth - geometry.portraitHeight)).toBeLessThanOrEqual(1)
+  expect(
+    geometry.portraitHeight,
+    'A one-on-one desktop rail should use its available height for a portrait-forward card.',
+  ).toBeGreaterThan(geometry.portraitWidth * 1.1)
   await expect(card.locator('button[data-desktop-inspect-combatant]')).toContainText(/HP.*MP/s)
   expect(Math.abs(geometry.effectsBottom - geometry.cardBottom)).toBeLessThanOrEqual(2)
   await expect(card).toContainText(/HP.*MP/s)
@@ -320,10 +323,15 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
       body: await page.screenshot({ path: testInfo.outputPath('combat-rich-text-log.png') }),
       contentType: 'image/png',
     })
-    await transcript
-      .getByRole('button', { name: /^Action details:/ })
-      .first()
-      .click()
+    const actionDetails = transcript.getByRole('button', { name: /^Action details:/ }).first()
+    if (await actionDetails.count()) {
+      await actionDetails.click()
+    } else {
+      await transcript
+        .getByRole('button', { name: /^View full action and results:/ })
+        .first()
+        .click()
+    }
     await expect(page.getByRole('dialog', { name: 'Guard', exact: true })).toBeVisible()
     await page.getByRole('button', { name: 'Close action details', exact: true }).click()
 
@@ -337,9 +345,13 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
       list.style.height = `${Math.min(list.clientHeight, measured.getBoundingClientRect().height + heading.getBoundingClientRect().height - 1)}px`
     })
     await expect(transcript).toHaveAttribute('data-oversized', 'true')
-    const fullResults = transcript.getByRole('button', { name: /^View full action and results:/ })
+    const fullResults = transcript.getByRole('button', {
+      name: /^(?:View full action and results|Action details):/,
+    })
     await expect(fullResults).toBeVisible()
-    await expect(transcript.getByRole('button', { name: /^Action details:/ })).toHaveCount(0)
+    await expect(
+      transcript.locator('[inert]').getByRole('button', { name: /^Action details:/ }),
+    ).toHaveCount(0)
     const overflowBounds = await transcript.evaluate((element) => {
       const item = element.firstElementChild!
       const heading = item.firstElementChild!

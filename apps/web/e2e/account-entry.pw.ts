@@ -9,9 +9,7 @@ test('account entry is responsive, focusable, stable, and media-safe', async ({ 
   await expect(page.getByTestId('account-shell')).toBeVisible()
   const title = page.getByRole('heading', { level: 1, name: 'AUREVANE' })
   await expect(title).toBeVisible()
-  await expect(
-    page.locator('[data-media-status="requested"][data-media-request="ART-UI-001"]'),
-  ).toBeVisible()
+  await expect(page.locator('img[src*="world-v01.webp"]')).toBeVisible()
 
   const hasHorizontalOverflow = await page.evaluate(
     () => document.documentElement.scrollWidth > window.innerWidth + 1,

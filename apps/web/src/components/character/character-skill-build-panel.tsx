@@ -13,6 +13,7 @@ import type { FavoriteTechniqueCategory } from '../battle/favorite-technique-sto
 import { battleResonanceArtwork, battleSkillArtwork } from '../battle/battle-skill-presentation'
 import { FavoriteTechniqueButton } from './favorite-technique-button'
 import { SkillDetails } from './skill-details'
+import { skillDisplayName } from './skill-detail-presentation'
 import polish from './character-skill-build-panel-polish.module.css'
 import styles from './character-skill-build-panel.module.css'
 
@@ -87,11 +88,6 @@ function titleCase(value: string): string {
     .filter(Boolean)
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ')
-}
-
-function skillName(skill: MatureSkillDefinition): string {
-  const tail = skill.id.includes('.') ? skill.id.slice(skill.id.indexOf('.') + 1) : skill.id
-  return titleCase(tail)
 }
 
 function cockpitType(skill: MatureSkillDefinition): string {
@@ -292,6 +288,8 @@ export function CharacterSkillBuildPanel({
             >
               <section
                 className={styles.dialog}
+                data-av-surface="moonstone"
+                data-character-concept="editor"
                 role="dialog"
                 aria-modal="true"
                 aria-labelledby="skill-build-heading"
@@ -344,7 +342,7 @@ export function CharacterSkillBuildPanel({
                 </header>
 
                 <div className={styles.workspace}>
-                  <aside className={styles.buildRail}>
+                  <aside className={styles.buildRail} data-av-surface="ink">
                     <section className={styles.buildCard}>
                       <span className={styles.eyebrow}>Active build</span>
                       <strong className={styles.buildName}>
@@ -382,7 +380,9 @@ export function CharacterSkillBuildPanel({
                                     {titleCase(disciplineId)}
                                   </small>
                                 ))}
-                                <small className={polish.typeChip}>Passive</small>
+                                <small className={polish.typeChip} data-light-panel-chip="true">
+                                  Passive
+                                </small>
                               </span>
                               <p>{initialResonance.description}</p>
                             </div>
@@ -415,7 +415,7 @@ export function CharacterSkillBuildPanel({
                                     ? ` · ${initialEssence.skill.mpCost} MP`
                                     : ''}
                                 </small>
-                                <small className={polish.typeChip}>
+                                <small className={polish.typeChip} data-light-panel-chip="true">
                                   {cockpitType(initialEssence.skill)}
                                 </small>
                               </span>
@@ -441,6 +441,33 @@ export function CharacterSkillBuildPanel({
                       <strong>Select your combat loadout</strong>
                     </div>
 
+                    <ol className={styles.selectedLoadout} aria-label="Selected ordinary Skills">
+                      {Array.from({ length: capacity }, (_, index) => {
+                        const entry = initialLearnedSkills.find(
+                          (entry) => entry.definition.id === selectedIds[index],
+                        )
+                        return (
+                          <li key={index} data-av-surface="ink">
+                            <span className={styles.slotNumber}>{index + 1}</span>
+                            {entry ? (
+                              <>
+                                <Image
+                                  src={battleSkillArtwork(entry.definition.id)}
+                                  width={200}
+                                  height={120}
+                                  unoptimized
+                                  alt=""
+                                />
+                                <strong>{skillDisplayName(entry.definition)}</strong>
+                              </>
+                            ) : (
+                              <span className={styles.emptySlot}>Empty slot</span>
+                            )}
+                          </li>
+                        )
+                      })}
+                    </ol>
+                    <h3 className={styles.libraryHeading}>Skill library</h3>
                     <div className={styles.skillList} data-testid="learned-skill-list">
                       {visibleSkills.length === 0 ? (
                         <p className={styles.empty}>No Techniques are available for this build.</p>
@@ -456,12 +483,13 @@ export function CharacterSkillBuildPanel({
                           const disabledByCapacity = !selected && selectedIds.length >= capacity
                           const disabled = pending || disabledByCapacity || disabledBySource
                           const category = favoriteCategory(entry.definition)
-                          const label = skillName(entry.definition)
+                          const label = skillDisplayName(entry.definition)
 
                           return (
                             <article
                               key={`${entry.definition.id}:${entry.definition.contentVersion}`}
                               className={styles.skill}
+                              data-av-surface="ink"
                               data-active-source="true"
                               data-selected={selected ? 'true' : 'false'}
                               data-source={entry.definition.sourceDisciplineId}
@@ -496,7 +524,7 @@ export function CharacterSkillBuildPanel({
                                         ? ` · ${entry.definition.mpCost} MP`
                                         : ''}
                                     </small>
-                                    <small className={polish.typeChip}>
+                                    <small className={polish.typeChip} data-light-panel-chip="true">
                                       {cockpitType(entry.definition)}
                                     </small>
                                   </span>

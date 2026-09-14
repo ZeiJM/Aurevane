@@ -1,8 +1,8 @@
-#battle-launch [class*='emptyState'] {
+#battle-launch:not([data-hall-concept]) [class*='emptyState'] {
   display: none !important;
 }
 
-#battle-launch [aria-label='Random battlefield settings'] {
+#battle-launch:not([data-hall-concept]) [aria-label='Random battlefield settings'] {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.38rem;
@@ -12,7 +12,7 @@
   background: rgba(255, 255, 255, 0.012);
 }
 
-#battle-launch [aria-label='Random battlefield settings'] label {
+#battle-launch:not([data-hall-concept]) [aria-label='Random battlefield settings'] label {
   display: grid;
   gap: 0.24rem;
   color: var(--av-text-dim);
@@ -21,7 +21,7 @@
   text-transform: uppercase;
 }
 
-#battle-launch [aria-label='Random battlefield settings'] select {
+#battle-launch:not([data-hall-concept]) [aria-label='Random battlefield settings'] select {
   min-height: 2.15rem;
   padding: 0.42rem 0.48rem;
   border: 1px solid var(--av-border-strong);
@@ -29,32 +29,6 @@
   color: var(--av-text);
   background: #080c12;
   font-size: 0.58rem;
-}
-
-[class*='masthead'] > a[href^='/game/battle/'] {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  z-index: 8;
-  display: inline-flex;
-  gap: 0.38rem;
-  align-items: center;
-  min-height: 2.15rem;
-  padding: 0.46rem 0.74rem;
-  border: 1px solid rgba(223, 83, 73, 0.7);
-  border-radius: 999px;
-  color: #ffd0c8;
-  background: rgba(137, 37, 31, 0.34);
-  box-shadow: 0 0 1rem rgba(207, 64, 52, 0.16);
-  font: 800 0.48rem/1 var(--av-font-mono);
-  letter-spacing: 0.045em;
-  text-decoration: none;
-  transform: translate(-50%, -50%);
-}
-
-[class*='masthead'] > a[href^='/game/battle/'] span {
-  color: #ef6a5d;
-  text-shadow: 0 0 0.55rem rgba(239, 86, 74, 0.82);
 }
 
 [data-battle-economy-panel='true'] {
@@ -229,18 +203,6 @@ main[data-pvp-battle='true'] [data-pvp-turn-clock='true'] {
 @media (max-width: 1100px) and (min-width: 881px) {
   main[data-pvp-battle='true'] #battlefield > div:first-child {
     padding-inline: 9rem !important;
-  }
-}
-
-@media (max-width: 900px) {
-  [class*='masthead'] > a[href^='/game/battle/'] {
-    top: auto;
-    right: 0.55rem;
-    bottom: -2.45rem;
-    left: auto;
-    min-height: 1.95rem;
-    padding: 0.38rem 0.58rem;
-    transform: none;
   }
 }
 

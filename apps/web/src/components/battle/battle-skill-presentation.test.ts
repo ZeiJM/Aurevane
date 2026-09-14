@@ -5,6 +5,7 @@ import {
   PV1F_RECOVER_ACTION_ID,
 } from '@aurevane/game-core/combat/pv1f-skills'
 import { describe, expect, it } from 'vitest'
+import { existsSync } from 'node:fs'
 
 import {
   BATTLE_COMMAND_ARTWORK,
@@ -56,7 +57,11 @@ describe('battle skill artwork presentation', () => {
       expect(artwork).toBe(PHASE_3_COMBAT_ARTWORK[actionId])
       expect(artwork).not.toBe(BATTLE_MISSING_ARTWORK)
       expect(artwork).not.toBe(BATTLE_COMMAND_ARTWORK.inspect)
-      expect(artwork.startsWith('data:image/svg+xml,')).toBe(true)
+      if (artwork.startsWith('/media/')) {
+        expect(existsSync(new URL(`../../../public${artwork}`, import.meta.url))).toBe(true)
+      } else {
+        expect(artwork.startsWith('data:image/svg+xml,')).toBe(true)
+      }
       return artwork
     })
 
@@ -67,6 +72,21 @@ describe('battle skill artwork presentation', () => {
     expect(new Set(lifebinderArtwork).size).toBe(GENERATED_LIFEBINDER_IDS.length)
     expect(lifebinderArtwork.every((source) => source.startsWith('data:image/svg+xml,'))).toBe(true)
     expect(battleSkillArtwork('future.skill')).toBe(BATTLE_MISSING_ARTWORK)
+  })
+
+  it('resolves the four approved painted Skills to distinct existing runtime files', () => {
+    const ids = [
+      'runeblade.aether-cut',
+      'runeblade.sigil-brand',
+      'lifebinder.mend',
+      'lifebinder.renew',
+    ]
+    const paths = ids.map(battleSkillArtwork)
+    expect(new Set(paths).size).toBe(ids.length)
+    for (const path of paths) {
+      expect(path).toMatch(/^\/media\/art\/concept-ui\/skill-.+\.webp$/)
+      expect(existsSync(new URL(`../../../public${path}`, import.meta.url))).toBe(true)
+    }
   })
 
   it('gives the Foundation trio Techniques and Essences non-missing generated artwork', () => {

@@ -2,14 +2,15 @@
   color-scheme: dark;
 
   --av-font-display: 'Palatino Linotype', 'Book Antiqua', Palatino, Georgia, serif;
-  --av-font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --av-font-body:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --av-font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', monospace;
 
-  --av-ink-950: #050609;
-  --av-ink-900: #090c12;
-  --av-ink-850: #0d1119;
-  --av-ink-800: #111722;
-  --av-ink-750: #171e29;
+  --av-ink-950: #070f18;
+  --av-ink-900: #0b1722;
+  --av-ink-850: #101e2a;
+  --av-ink-800: #162632;
+  --av-ink-750: #1d303d;
   --av-stone-500: #807b71;
   --av-stone-300: #b8b1a3;
   --av-parchment-100: #f0eadf;
@@ -20,12 +21,27 @@
   --av-verdant-400: #78b59a;
   --av-danger-400: #c87d79;
 
+  --av-moonstone: #f3efe5;
+  --av-moonstone-quiet: #eae6dc;
+  --av-moonstone-elevated: #fbf8f0;
+  --av-charcoal: #182632;
+  --av-charcoal-muted: #4f5d64;
+  --av-charcoal-dim: #5f686b;
+  --av-gold: #b39a6d;
+  --av-gold-rule: #c6b38f;
+  --av-teal: #125359;
+  --av-teal-hover: #196970;
+  --av-teal-bright: #78e2db;
+  --av-on-primary: #f4fbf7;
+  --av-brass-100: #f0dfb9;
+  --av-brass-200: #e0c99d;
+
   --av-text: var(--av-parchment-100);
   --av-text-muted: var(--av-stone-300);
   /* Supporting text must remain readable on dark panels, including mobile and portals. */
   --av-text-dim: #a0a6b1;
   --av-accent: var(--av-brass-300);
-  --av-focus: #d9c48f;
+  --av-focus: #55d4ce;
   --av-border: rgba(212, 186, 130, 0.18);
   --av-border-strong: rgba(212, 186, 130, 0.34);
   --av-surface: rgba(13, 17, 25, 0.9);

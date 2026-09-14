@@ -60,7 +60,7 @@ test('Ironfist provisions normally and Skill details preserve selection on phone
   await expect(palm).toContainText('1 tile')
   await expect(palm.getByRole('checkbox')).not.toBeChecked()
   const sweep = list.locator('article').filter({ hasText: 'Sweep' })
-  await expect(sweep).toContainText('Area · radius 1')
+  await expect(sweep).toContainText('Circle 1')
   for (const name of ['Rising Fist', 'Sweep', 'Breakfall', 'Counter Palm']) {
     await list.locator('article').filter({ hasText: name }).getByRole('checkbox').check()
   }
@@ -296,7 +296,7 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   await page.getByLabel('Battle mode').selectOption('mastery-trial')
   await expect(page.getByRole('button', { name: 'Easy', exact: true })).toHaveCount(0)
   await expect(page.getByLabel('AI sparring arena')).toHaveValue('crossroads-court')
-  await expect(page.getByText(/50 Mastery XP/)).toBeVisible()
+  await expect(page.getByText(/50 Mastery XP/).last()).toBeVisible()
   await page.getByRole('button', { name: 'Enter Battle', exact: true }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
   const root = page.locator("main[data-unified-battle='true'][data-battle-kind='pve']")

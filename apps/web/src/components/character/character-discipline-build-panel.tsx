@@ -142,6 +142,55 @@ function FocusBadges({ disciplineId }: { disciplineId: string }) {
   )
 }
 
+interface DisciplineLibraryProps {
+  options: readonly { definition: Pick<DisciplineDefinitionView, 'id' | 'name'> }[]
+  selectedPrimaryId: string
+  selectedSecondaryId: string
+  pendingPreview: boolean
+  pendingCommit: boolean
+  refreshingProfile: boolean
+  primaryRemainingSeconds: number
+  onSelect: (primaryId: string, secondaryId: string) => void
+}
+
+export function DisciplineLibrary({
+  options,
+  selectedPrimaryId,
+  selectedSecondaryId,
+  pendingPreview,
+  pendingCommit,
+  refreshingProfile,
+  primaryRemainingSeconds,
+  onSelect,
+}: DisciplineLibraryProps) {
+  return (
+    <section className={styles.roster} aria-label="Primary Discipline library">
+      <h3>Discipline library</h3>
+      <div className={styles.rosterGrid}>
+        {options.map(({ definition }) => (
+          <button
+            key={definition.id}
+            type="button"
+            className={styles.disciplineCard}
+            data-selected={selectedPrimaryId === definition.id}
+            aria-pressed={selectedPrimaryId === definition.id}
+            disabled={
+              pendingPreview || pendingCommit || refreshingProfile || primaryRemainingSeconds > 0
+            }
+            onClick={() => onSelect(definition.id, selectedSecondaryId)}
+          >
+            <FoundationDisciplineSigil disciplineId={definition.id} className={styles.cardSigil} />
+            <span className={styles.cardCopy}>
+              <strong>{definition.name}</strong>
+              <FocusBadges disciplineId={definition.id} />
+            </span>
+          </button>
+        ))}
+      </div>
+    </section>
+  )
+}
+
 export function CharacterDisciplineBuildPanel({
   initialBuildVersion,
   initialCurrent,
@@ -438,6 +487,8 @@ export function CharacterDisciplineBuildPanel({
               <section
                 ref={dialogRef}
                 className={styles.dialog}
+                data-av-surface="moonstone"
+                data-character-concept="editor"
                 role="dialog"
                 tabIndex={-1}
                 aria-modal="true"
@@ -494,7 +545,7 @@ export function CharacterDisciplineBuildPanel({
                   aria-label="Committed Disciplines"
                   style={currentSecondary ? undefined : { gridTemplateColumns: '1fr' }}
                 >
-                  <div className={styles.currentDiscipline}>
+                  <div className={styles.currentDiscipline} data-av-surface="ink">
                     <FoundationDisciplineSigil
                       disciplineId={current.definition.id}
                       className={styles.currentSigil}
@@ -505,7 +556,7 @@ export function CharacterDisciplineBuildPanel({
                     </div>
                   </div>
                   {currentSecondary ? (
-                    <div className={styles.currentDiscipline}>
+                    <div className={styles.currentDiscipline} data-av-surface="ink">
                       <FoundationDisciplineSigil
                         disciplineId={currentSecondary.id}
                         className={styles.currentSigil}
@@ -581,6 +632,18 @@ export function CharacterDisciplineBuildPanel({
                   </label>
                 </div>
 
+                <DisciplineLibrary
+                  options={visiblePrimaryOptions}
+                  selectedPrimaryId={selectedPrimaryId}
+                  selectedSecondaryId={selectedSecondaryId}
+                  pendingPreview={pendingPreview}
+                  pendingCommit={pendingCommit}
+                  refreshingProfile={refreshingProfile}
+                  primaryRemainingSeconds={remaining.primary}
+                  onSelect={(primaryId, secondaryId) =>
+                    void previewSelection(primaryId, secondaryId)
+                  }
+                />
                 {pendingPreview ? (
                   <p className={styles.status}>Calculating authoritative preview…</p>
                 ) : null}
