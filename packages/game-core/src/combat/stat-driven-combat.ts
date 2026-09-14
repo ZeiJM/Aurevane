@@ -3,9 +3,11 @@ export { mitigateDamageByDefense } from './damage-mitigation'
 import type { DerivedStatSnapshot } from '../character/derived-stats'
 import { advanceBattleRng, spendAction, type BattleRngState } from './battle-state'
 import {
+  applyCurrentBurnBacklash,
   evaluateCombatAction,
   removeGameplayTags,
   executeCombatAction,
+  shouldApplyCurrentBurnBacklash,
   validateCombatEncounterState,
   type CombatActionDefinition,
   type CombatActionEvaluation,
@@ -258,6 +260,11 @@ export function executeStatDrivenAttack(
     throw new Error('Stat-driven attack unexpectedly returned after illegal-action validation.')
   }
 
+  const burnBacklashApplies = shouldApplyCurrentBurnBacklash(
+    state,
+    forecast.evaluation.actorId,
+    action,
+  )
   const draw = advanceBattleRng(state.tactical.battle.rng)
   const rolledState = withRng(state, draw.state)
   const rollBasisPoints = draw.value % COMBAT_BASIS_POINTS
@@ -297,26 +304,29 @@ export function executeStatDrivenAttack(
     content,
   )
   const spent = spendAction(rolledState.tactical.battle)
-  const nextState: StatDrivenCombatEncounterState = {
+  let nextState: StatDrivenCombatEncounterState = {
     ...rolledState,
     ...revealed.state,
     statBridge: rolledState.statBridge,
     tactical: { ...rolledState.tactical, battle: spent.state },
   }
-  assertValidStatDrivenCombatEncounterState(nextState)
-  return {
-    state: nextState,
-    events: [
-      resolutionEvent,
-      ...spent.events,
-      ...revealed.events,
-      {
-        event: 'combat_action_used',
-        actionId: action.id,
-        actorId: forecast.evaluation.actorId,
-      },
-    ],
+  const events: StatDrivenCombatResolutionEvent[] = [
+    resolutionEvent,
+    ...spent.events,
+    ...revealed.events,
+    {
+      event: 'combat_action_used',
+      actionId: action.id,
+      actorId: forecast.evaluation.actorId,
+    },
+  ]
+  if (burnBacklashApplies) {
+    const backlash = applyCurrentBurnBacklash(nextState, forecast.evaluation.actorId)
+    nextState = reattachStatDrivenCombatBridge(backlash.state, state.statBridge)
+    events.push(...backlash.events)
   }
+  assertValidStatDrivenCombatEncounterState(nextState)
+  return { state: nextState, events }
 }
 
 function withMitigatedDamage(

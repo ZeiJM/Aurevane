@@ -21,7 +21,10 @@ import { PHASE4_STATUSES } from './status-content'
 
 const CONTENT = { statuses: PHASE4_STATUSES }
 
-function encounter({ actorHp = 30, targetHp = 30 }: { actorHp?: number; targetHp?: number } = {}): CombatEncounterState {
+function encounter({
+  actorHp = 30,
+  targetHp = 30,
+}: { actorHp?: number; targetHp?: number } = {}): CombatEncounterState {
   const battle = startBattle(
     createPendingBattle({
       battleId: 'current-burn-backlash-contract',
@@ -249,9 +252,9 @@ describe('current Burn damaging-command backlash', () => {
       CONTENT,
     )
 
-    expect(
-      result.events.find((event) => event.event === 'stat_driven_attack_resolved'),
-    ).toEqual(expect.objectContaining({ hit: false }))
+    expect(result.events.find((event) => event.event === 'stat_driven_attack_resolved')).toEqual(
+      expect.objectContaining({ hit: false }),
+    )
     expect(targetHp(result.state)).toBe(30)
     expect(actorHp(result.state)).toBe(28)
     expect(selfDamageEvents(result.events)).toHaveLength(1)
