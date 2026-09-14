@@ -142,9 +142,14 @@ export function createStatDrivenCombatEncounterState(
   base: CombatEncounterState,
   profiles: readonly StatDrivenCombatProfile[],
 ): StatDrivenCombatEncounterState {
+  const incompleteProfile = profiles.find(hasIncompleteOffensiveRatings)
+  if (incompleteProfile) {
+    throw new TypeError('Stat-driven combat profiles require both offensive ratings or neither.')
+  }
+
   const currentCount = profiles.filter(isCurrentProfile).length
   if (currentCount !== 0 && currentCount !== profiles.length) {
-    throw new TypeError('Stat-driven combat profiles cannot mix historical v1 and current v2 rows.')
+    throw new TypeError('Stat-driven combat profiles cannot mix v1 rows with v2 offensive ratings.')
   }
   if (currentCount === profiles.length) {
     return createCurrentStatDrivenCombatEncounterState(
@@ -468,6 +473,14 @@ function assertBasicAttack(action: CombatActionDefinition): void {
   if (!action.effects.some((effect) => effect.type === 'damage')) {
     throw new Error('Stat-driven basic attack requires a damage effect.')
   }
+}
+
+function hasIncompleteOffensiveRatings(profile: StatDrivenCombatProfile): boolean {
+  const hasPhysical = profile.physicalPower !== undefined
+  const hasMystic = profile.mysticPower !== undefined
+  if (hasPhysical !== hasMystic) return true
+  if (!hasPhysical) return false
+  return !isCurrentProfile(profile)
 }
 
 function isCurrentProfile(profile: StatDrivenCombatProfile): profile is StatDrivenCombatProfileV2 {
