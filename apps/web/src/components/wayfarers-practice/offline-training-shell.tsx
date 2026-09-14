@@ -13,10 +13,7 @@ interface OfflineTrainingShellProps {
   trainingReport: TrainingReportCardData | null
 }
 
-export function OfflineTrainingShell({
-  practicePlan,
-  trainingReport,
-}: OfflineTrainingShellProps) {
+export function OfflineTrainingShell({ practicePlan, trainingReport }: OfflineTrainingShellProps) {
   return (
     <AuthenticatedShellFrame
       sessionLabel="Passive Training"
