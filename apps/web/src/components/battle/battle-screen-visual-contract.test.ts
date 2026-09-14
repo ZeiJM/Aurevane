@@ -90,7 +90,7 @@ describe('PvP-first shared battle visual contract', () => {
       ".stack[data-count='1'] .card { grid-template-columns: minmax(0, 1fr); grid-template-rows: 2rem minmax(0, 1fr) auto;",
     )
     expect(rails).toContain(
-      ".stack[data-count='1'] { grid-template-rows: minmax(0, 1fr); height: 100%;",
+      ".stack[data-count='1'] { grid-template-rows: minmax(0, 1fr); height: 100%; width: min(100%, 10rem);",
     )
     expect(rails).toContain('grid-template-rows: repeat(3, minmax(0, 1fr));')
 
