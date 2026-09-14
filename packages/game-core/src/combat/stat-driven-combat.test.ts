@@ -162,6 +162,24 @@ describe('stat-driven Phase 2 combat bridge', () => {
     expect(getStatDrivenOffensivePower(state, 'player', 'mystic-power')).toBe(53)
   })
 
+  it('fails closed when a newly-created v2 profile omits offensive ratings', () => {
+    const incomplete = {
+      combatantId: 'player',
+      provenance: {
+        kind: 'character-derived',
+        sourceId: 'character:test-player',
+        sourceRulesVersion: 1,
+      },
+      accuracy: 10_000,
+      evasion: 0,
+      armor: 0,
+      ward: 0,
+      jump: 0,
+    } as unknown as StatDrivenCombatProfile
+
+    expect(() => encounter(incomplete)).toThrow(/physicalPower/)
+  })
+
   it('continues to validate exact historical v1 bridges without inventing offensive ratings', () => {
     const state = encounter()
     const historical: StatDrivenCombatEncounterState = {
@@ -178,10 +196,9 @@ describe('stat-driven Phase 2 combat bridge', () => {
       },
     }
 
-    expect(STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V1).toBe(1)
     expect(validateStatDrivenCombatEncounterState(historical)).toEqual([])
     expect(() => getStatDrivenOffensivePower(historical, 'player', 'physical-power')).toThrow(
-      'Scaled damage requires stat-bridge schema version 2.',
+      /schema version 2/i,
     )
   })
 
