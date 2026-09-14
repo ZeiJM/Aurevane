@@ -23,9 +23,8 @@ test('resolves Guided Fundamentals through authoritative battle criteria', async
 
   await createAccountAndEnterCharacter({ page, email, password, characterName })
 
-  await page.getByRole('button', { name: 'Navigation' }).click()
   const battleHallLink = page
-    .getByRole('navigation', { name: 'Game navigation', exact: true })
+    .getByRole('navigation', { name: 'Primary game navigation', exact: true })
     .getByRole('link', { name: /Battle Hall/ })
   await battleHallLink.focus()
   await expect(battleHallLink).toBeFocused()
