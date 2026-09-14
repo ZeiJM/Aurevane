@@ -94,7 +94,12 @@ export type CombatEffectDefinition =
       facingModifiersBasisPoints?: FacingDamageModifiers
     }
   | { type: 'create-terrain'; recipient: 'affected-tiles'; terrain: 'frozen' }
-  | { type: 'displace'; recipient: Exclude<CombatEffectRecipient, 'actor'>; distance: 1 }
+  | {
+      type: 'displace'
+      recipient: Exclude<CombatEffectRecipient, 'actor'>
+      direction?: 'push' | 'pull'
+      distance: number
+    }
   | { type: 'healing'; recipient: CombatEffectRecipient; amount: number }
   | { type: 'return-to-turn-start'; recipient: 'actor' }
   | { type: 'remove-status'; recipient: CombatEffectRecipient; statusIds: readonly string[] }
@@ -1342,7 +1347,7 @@ function applyEffect(
   stormRecipients: Set<string>,
 ): CombatResolutionTransition {
   if (effect.type === 'displace')
-    return applyDisplacement(state, actorId, recipientId, actionId, content)
+    return applyDisplacement(state, actorId, recipientId, actionId, effect, content)
   if (effect.type === 'return-to-turn-start') {
     const from = getPlacement(state.tactical, actorId).position
     const to = state.turnOrigin!.position
@@ -2136,8 +2141,8 @@ function validateCombatContentCatalog(content: CombatContentCatalog): void {
       if (status.movement.blocked !== undefined && typeof status.movement.blocked !== 'boolean')
         throw new TypeError('Invalid movement restriction.')
       const ap = status.movement.additionalApPerTile ?? 0
-      assertNonNegativeSafeInteger(ap, 'movement AP surcharge')
-      if (ap > 20) throw new RangeError('Movement surcharge exceeds 20 AP per tile.')
+      if (!Number.isSafeInteger(ap) || ap < -10 || ap > 20)
+        throw new RangeError('Movement AP modifier must be between -10 and 20 AP per tile.')
     }
     if (ids.has(status.id)) throw new Error(`Duplicate combat status definition ${status.id}.`)
     ids.add(status.id)
@@ -2330,48 +2335,30 @@ function applyDisplacement(
   actorId: string,
   recipientId: string,
   actionId: string,
+  effect: Extract<CombatEffectDefinition, { type: 'displace' }>,
   content: CombatContentCatalog,
 ): CombatResolutionTransition {
   const source = getPlacement(state.tactical, actorId).position
   const placement = getPlacement(state.tactical, recipientId)
-  const from = placement.position
+  const from = { ...placement.position }
   const dx = from.x - source.x
   const dy = from.y - source.y
-  // Cardinal push away from the caster; equal diagonals use the horizontal axis.
-  const to =
-    Math.abs(dx) >= Math.abs(dy)
-      ? { x: from.x + Math.sign(dx), y: from.y }
-      : { x: from.x, y: from.y + Math.sign(dy) }
   const profile = state.tactical.movementProfiles.find(
     (row) => row.id === placement.movementProfileId,
   )!
-  const tile = state.tactical.tiles.find((tile) => samePosition(tile.position, to))
-  const override =
-    tile && profile.terrainCostOverrides.find((row) => row.terrainId === tile.terrainId)
-  const terrainCost = tile
-    ? override
-      ? override.traversalCost
-      : state.tactical.terrains.find((row) => row.id === tile.terrainId)?.traversalCost
-    : null
-  let reason: DisplacementFailureReason | null = null
-  if (getCombatant(state.tactical.battle, recipientId).hp <= 0) reason = 'target-defeated'
+
+  let initialFailure: DisplacementFailureReason | null = null
+  if (getCombatant(state.tactical.battle, recipientId).hp <= 0) initialFailure = 'target-defeated'
   else if (
     getStatusRow(state, recipientId).statuses.some(
       (status) =>
         getStatusDefinition(content, status.statusId, status.statusVersion).movement?.blocked,
     )
   )
-    reason = 'status-restricted'
-  else if (!dx && !dy) reason = 'direction-undefined'
-  else if (!tile) reason = 'out-of-bounds'
-  else if (terrainCost == null) reason = 'blocked-terrain'
-  else if (state.tactical.placements.some((unit) => samePosition(unit.position, to)))
-    reason = 'occupied-tile'
-  else if (
-    Math.abs(tile.elevation - getTile(state.tactical, from).elevation) > profile.maxElevationStep
-  )
-    reason = 'elevation-step-too-high'
-  if (reason)
+    initialFailure = 'status-restricted'
+  else if (!dx && !dy) initialFailure = 'direction-undefined'
+
+  if (initialFailure) {
     return {
       state,
       events: [
@@ -2380,22 +2367,85 @@ function applyDisplacement(
           actionId,
           sourceCombatantId: actorId,
           combatantId: recipientId,
-          reason,
+          reason: initialFailure,
           position: { ...from },
         },
       ],
     }
-  const moved = {
-    ...state,
-    tactical: {
-      ...state.tactical,
-      placements: state.tactical.placements.map((unit) =>
-        unit.combatantId === recipientId ? { ...unit, position: to } : unit,
-      ),
-    },
   }
+
+  const horizontal = Math.abs(dx) >= Math.abs(dy)
+  const pushStep = horizontal ? { x: Math.sign(dx), y: 0 } : { x: 0, y: Math.sign(dy) }
+  const directionMultiplier = effect.direction === 'pull' ? -1 : 1
+  const step = {
+    x: pushStep.x * directionMultiplier,
+    y: pushStep.y * directionMultiplier,
+  }
+
+  let nextState = state
+  let current = { ...from }
+  let stopReason: DisplacementFailureReason | null = null
+  let movedTiles = 0
+
+  for (let index = 0; index < effect.distance; index += 1) {
+    const to = { x: current.x + step.x, y: current.y + step.y }
+    const tile = nextState.tactical.tiles.find((candidate) => samePosition(candidate.position, to))
+    const override =
+      tile && profile.terrainCostOverrides.find((row) => row.terrainId === tile.terrainId)
+    const terrainCost = tile
+      ? override
+        ? override.traversalCost
+        : nextState.tactical.terrains.find((row) => row.id === tile.terrainId)?.traversalCost
+      : null
+
+    if (effect.direction === 'pull' && samePosition(to, source)) stopReason = 'occupied-tile'
+    else if (!tile) stopReason = 'out-of-bounds'
+    else if (terrainCost == null) stopReason = 'blocked-terrain'
+    else if (
+      nextState.tactical.placements.some(
+        (unit) => unit.combatantId !== recipientId && samePosition(unit.position, to),
+      )
+    )
+      stopReason = 'occupied-tile'
+    else if (
+      Math.abs(tile.elevation - getTile(nextState.tactical, current).elevation) >
+      profile.maxElevationStep
+    )
+      stopReason = 'elevation-step-too-high'
+
+    if (stopReason) break
+
+    nextState = {
+      ...nextState,
+      tactical: {
+        ...nextState.tactical,
+        placements: nextState.tactical.placements.map((unit) =>
+          unit.combatantId === recipientId ? { ...unit, position: to } : unit,
+        ),
+      },
+    }
+    current = to
+    movedTiles += 1
+  }
+
+  if (movedTiles === 0) {
+    return {
+      state,
+      events: [
+        {
+          event: 'displacement_failed',
+          actionId,
+          sourceCombatantId: actorId,
+          combatantId: recipientId,
+          reason: stopReason ?? 'direction-undefined',
+          position: { ...from },
+        },
+      ],
+    }
+  }
+
   const marked = applyEffect(
-    moved,
+    nextState,
     actorId,
     recipientId,
     actionId,
@@ -2411,8 +2461,8 @@ function applyDisplacement(
         actionId,
         sourceCombatantId: actorId,
         combatantId: recipientId,
-        from: { ...from },
-        to: { ...to },
+        from,
+        to: { ...current },
       },
       ...marked.events,
     ],

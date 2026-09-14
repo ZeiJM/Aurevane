@@ -249,8 +249,9 @@ export function validateCombatStatusDefinition(status: CombatStatusDefinition): 
       throw new TypeError('Invalid movement restriction.')
     }
     const ap = status.movement.additionalApPerTile ?? 0
-    nonNegativeSafeInteger(ap, 'movement AP surcharge')
-    if (ap > 20) throw new RangeError('Movement surcharge exceeds 20 AP per tile.')
+    if (!Number.isSafeInteger(ap) || ap < -10 || ap > 20) {
+      throw new RangeError('Movement AP modifier must be between -10 and 20 AP per tile.')
+    }
   }
 }
 
