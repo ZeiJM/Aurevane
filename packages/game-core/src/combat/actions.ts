@@ -10,8 +10,7 @@ export type CombatEffectDefinition =
   | Exclude<legacy.CombatEffectDefinition, { type: 'damage' }>
   | (LegacyDamageEffect & { scaling?: CombatDamageScaling })
 
-export interface CombatActionDefinition
-  extends Omit<legacy.CombatActionDefinition, 'effects'> {
+export interface CombatActionDefinition extends Omit<legacy.CombatActionDefinition, 'effects'> {
   effects: readonly CombatEffectDefinition[]
 }
 
