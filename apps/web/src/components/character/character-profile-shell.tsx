@@ -1,5 +1,4 @@
 import Image from 'next/image'
-import Link from 'next/link'
 
 import { foundationDisciplineAttributePolicy } from '@aurevane/game-core/character/attribute-allocation'
 import type {
@@ -166,6 +165,7 @@ export function CharacterProfileShell({
   )
   const attributePolicy = foundationDisciplineAttributePolicy(disciplineBuild.current.definition.id)
   const focusAttributes: readonly CharacterAttributeId[] = attributePolicy?.focusAttributes ?? []
+  const buildTypeLabel = disciplineBuild.currentSecondary ? 'Hybrid Build' : 'Essence Build'
 
   return (
     <AuthenticatedShellFrame sessionLabel="Character Profile">
@@ -181,7 +181,6 @@ export function CharacterProfileShell({
               />
             </div>
             <div className={styles.identity}>
-              <Kicker marker="◆">Your Character</Kicker>
               <div className={styles.nameLine}>
                 <h1>{profile.identity.name}</h1>
                 <div className={styles.nameTags}>
@@ -238,26 +237,17 @@ export function CharacterProfileShell({
                 <dd>{disciplineBuild.current.derived.stats.maxMp.value.toLocaleString('en')}</dd>
               </div>
             </dl>
-            <Link className={styles.portraitLink} href="/game/account/titles">
-              Portrait &amp; title <span aria-hidden="true">↗</span>
-            </Link>
           </div>
         </Surface>
 
         <Surface className={styles.profile} tone="elevated" data-av-surface="moonstone">
           <header className={styles.sheetHeading}>
-            <div>
-              <h2>Character Profile</h2>
-              <p>Discipline shapes what endures.</p>
-            </div>
-            <span className={styles.buildMode}>
-              {disciplineBuild.currentSecondary ? 'Mixed Build' : 'Pure Build'}
-            </span>
+            <h2>Discipline shapes what endures.</h2>
           </header>
 
           <CharacterProfileDetails
             presentationLabel={profile.identity.presentationLabel}
-            pronounLabel={profile.identity.pronounLabel}
+            buildTypeLabel={buildTypeLabel}
             cycleNumber={profile.progression.cycleNumber}
             attributes={profile.attributes}
             derived={disciplineBuild.current.derived}
@@ -311,22 +301,18 @@ export function CharacterProfileShell({
                 <strong id="build-techniques-heading">Techniques</strong>
               </div>
               <div className={styles.equippedSkills} aria-label="Equipped Discipline Skills">
-                {disciplineBuild.disciplineSkills.equippedSkills.map(
-                  ({ definition, slotIndex }) => (
-                    <div key={definition.id} title={skillDisplayName(definition)}>
-                      <Image
-                        src={battleSkillArtwork(definition.id)}
-                        width={160}
-                        height={100}
-                        unoptimized
-                        alt=""
-                      />
-                      <span>
-                        {slotIndex + 1} · {skillDisplayName(definition)}
-                      </span>
-                    </div>
-                  ),
-                )}
+                {disciplineBuild.disciplineSkills.equippedSkills.map(({ definition }) => (
+                  <div key={definition.id} title={skillDisplayName(definition)}>
+                    <Image
+                      src={battleSkillArtwork(definition.id)}
+                      width={160}
+                      height={160}
+                      unoptimized
+                      alt=""
+                    />
+                    <span>{skillDisplayName(definition)}</span>
+                  </div>
+                ))}
                 {disciplineBuild.disciplineSkills.equippedSkills.length === 0 ? (
                   <p>No Skills selected.</p>
                 ) : null}
