@@ -1,0 +1,69 @@
+name: Verify Poison displacement movement
+
+on:
+  push:
+    branches:
+      - agent/combat-overhaul-task4-poison-movement
+    paths:
+      - .github/agent-poison-displacement-trigger
+
+permissions:
+  contents: write
+
+concurrency:
+  group: agent-poison-displacement-movement
+  cancel-in-progress: false
+
+jobs:
+  verify-and-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact isolated revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install pinned dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply Poison displacement movement runtime
+        run: python .github/scripts/apply-poison-displacement-movement.py
+
+      - name: Normalize changed source formatting
+        run: pnpm exec prettier --write packages/game-core/src/combat/actions.ts packages/game-core/src/combat/combat-dots.ts packages/game-core/src/combat/combat-poison-movement.test.ts
+
+      - name: Run focused Poison movement tests
+        run: pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-poison-movement.test.ts src/combat/combat-dot-rework.test.ts src/combat/combat-displacement-tempo-rework.test.ts
+
+      - name: Run repository quality gates
+        run: pnpm check
+
+      - name: Verify patch cleanliness
+        run: git diff --check
+
+      - name: Commit verified source
+        env:
+          EXPECTED_HEAD: ${{ github.sha }}
+        run: |
+          branch=agent/combat-overhaul-task4-poison-movement
+          git fetch origin "$branch" main
+          test "$(git rev-parse "origin/$branch")" = "$EXPECTED_HEAD"
+          git merge-base --is-ancestor origin/main HEAD
+          git rm .github/workflows/agent-poison-displacement-movement.yml .github/scripts/apply-poison-displacement-movement.py .github/agent-poison-displacement-trigger
+          git add packages/game-core/src/combat/actions.ts packages/game-core/src/combat/combat-dots.ts packages/game-core/src/combat/combat-poison-movement.test.ts
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat: trigger poison on displacement movement'
+          git push origin "HEAD:refs/heads/$branch"
