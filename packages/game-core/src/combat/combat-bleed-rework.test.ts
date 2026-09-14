@@ -157,9 +157,9 @@ describe('current Bleed runtime', () => {
         applicationOrder: 3,
       }),
     ])
-    expect(
-      state.statusState.find((row) => row.combatantId === 'target')?.statuses ?? [],
-    ).toEqual([])
+    expect(state.statusState.find((row) => row.combatantId === 'target')?.statuses ?? []).toEqual(
+      [],
+    )
   })
 
   it('ticks stacks independently and expires each stack on its own timer', () => {
@@ -213,10 +213,12 @@ describe('current Bleed runtime', () => {
     expect(() => validateCombatActionDefinition(action(bleed(4, 3), 'test.invalid-total'))).toThrow(
       /Bleed raw per-stack total must not exceed 10 damage/,
     )
-    expect(() => validateCombatActionDefinition(action(bleed(2, 5), 'test.invalid-duration'))).toThrow(
-      /Bleed duration ticks must be an integer between 1 and 4/,
-    )
-    expect(() => validateCombatActionDefinition(action(bleed(2, 4), 'test.valid-bleed'))).not.toThrow()
+    expect(() =>
+      validateCombatActionDefinition(action(bleed(2, 5), 'test.invalid-duration')),
+    ).toThrow(/Bleed duration ticks must be an integer between 1 and 4/)
+    expect(() =>
+      validateCombatActionDefinition(action(bleed(2, 4), 'test.valid-bleed')),
+    ).not.toThrow()
   })
 
   it('rejects malformed current Bleed encounter state', () => {
@@ -256,9 +258,9 @@ describe('current Bleed runtime', () => {
       CONTENT,
     )
 
-    expect(legacy.state.effectState?.bleed).toEqual([])
-    expect(
-      legacy.state.statusState.find((row) => row.combatantId === 'target')?.statuses,
-    ).toEqual([expect.objectContaining({ statusId: 'bleed' })])
+    expect(legacy.state.effectState?.bleed ?? []).toEqual([])
+    expect(legacy.state.statusState.find((row) => row.combatantId === 'target')?.statuses).toEqual([
+      expect.objectContaining({ statusId: 'bleed' }),
+    ])
   })
 })
