@@ -9,7 +9,6 @@ import { getImageAsset } from '@/media/registry'
 
 import { AccountMenu } from './account-menu'
 import { GameRail, type GameRailProps } from './game-rail'
-import { NavigationMenu } from './navigation-menu'
 import { OnlinePresenceLink } from './online-presence-link'
 import styles from './authenticated-game-shell.module.css'
 
@@ -30,8 +29,6 @@ export interface AuthenticatedShellPresentationProps extends GameRailProps {
 export function AuthenticatedShellPresentation({
   children,
   sessionLabel = 'Character Profile',
-  backHref,
-  backLabel,
   layout = 'standard',
   character,
   characterPortrait,
@@ -70,11 +67,6 @@ export function AuthenticatedShellPresentation({
           data-av-active-session={Boolean(activeSessionHref) || undefined}
         >
           <div className={styles.brandGroup}>
-            {backHref ? (
-              <Link className={styles.backButton} href={backHref} aria-label={backLabel ?? 'Back'}>
-                ←
-              </Link>
-            ) : null}
             <Link className="brand" href="/game/character" aria-label="AUREVANE character profile">
               <span className="brand__crest" aria-hidden="true">
                 <span>A</span>
@@ -129,10 +121,6 @@ export function AuthenticatedShellPresentation({
 
         <footer className={styles.footer} data-av-surface="ink">
           <OnlinePresenceLink />
-          <NavigationMenu
-            activeSessionHref={activeSessionHref}
-            activeSessionLabel={activeSessionLabel}
-          />
         </footer>
       </div>
     </div>
