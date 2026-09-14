@@ -195,8 +195,8 @@ export function BattleActionTimeline({
   )
   const currentPage = Math.min(pagination.key === pageKey ? pagination.pagesBack : 0, lastPage)
   const textPage = textPages[currentPage]
-  const oversized = view === 'text' && Boolean(textPage?.oversized)
-  const showOverflow = oversized && narrowTranscript
+  const oversized = view === 'text' && Boolean(textPage?.oversized) && narrowTranscript
+  const showOverflow = oversized
   const end =
     view === 'text'
       ? (textPage?.end ?? visible.length)
