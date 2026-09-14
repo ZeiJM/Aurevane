@@ -33,15 +33,12 @@ import { AuthenticatedShellPresentation } from './authenticated-shell-presentati
 describe('authenticated shell presentation', () => {
   it('keeps Online Users while omitting redundant back and footer navigation controls', () => {
     const markup = renderToStaticMarkup(
-      createElement(
-        AuthenticatedShellPresentation,
-        {
-          backHref: '/game',
-          backLabel: 'Back to game',
-          sessionLabel: 'Passive Training',
-        },
-        createElement('section', null, 'Page content'),
-      ),
+      createElement(AuthenticatedShellPresentation, {
+        backHref: '/game',
+        backLabel: 'Back to game',
+        sessionLabel: 'Passive Training',
+        children: createElement('section', null, 'Page content'),
+      }),
     )
 
     expect(markup).toContain('Online Users')
