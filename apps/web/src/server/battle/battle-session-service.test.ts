@@ -250,7 +250,7 @@ describe('P2.4 battle session service', () => {
       battleVersion: 1,
       replayed: false,
     })
-    expect(result.snapshot.statBridge.rulesVersion).toBe(1)
+    expect(result.snapshot.statBridge.rulesVersion).toBe(2)
     expect(result.snapshot.tactical.battle).not.toHaveProperty('rng')
   })
 
@@ -410,7 +410,7 @@ describe('P2.4 battle session service', () => {
           hitChanceBasisPoints: 6_830,
           defenseKind: 'armor',
           defenseRating: 20,
-          rulesVersion: 1,
+          rulesVersion: 2,
         }),
       ]),
     )

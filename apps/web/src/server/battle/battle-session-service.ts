@@ -67,6 +67,17 @@ import {
 const PV1F_RULES_VERSION = 2
 const PV1F_CONTENT_VERSION = 2
 const PV1F_RECRUIT_MOVEMENT_UNITS = 10
+const PV1F_RECRUIT_OFFENSIVE_BENCHMARK = calculateDerivedStats({
+  attributes: {
+    might: 5,
+    finesse: 5,
+    vitality: 5,
+    agility: 5,
+    intellect: 5,
+    resolve: 5,
+  },
+  level: 1,
+})
 
 export type BattleAuthoritativeEncounterState = StatDrivenCombatEncounterState & {
   buildAuthority?: BattleBuildAuthoritySnapshot
@@ -152,6 +163,8 @@ function recruitScenarioProfile(
     armor: 20,
     ward: 20,
     jump: 1,
+    physicalPower: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.physicalPower.value,
+    mysticPower: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.mysticPower.value,
   }
 }
 
