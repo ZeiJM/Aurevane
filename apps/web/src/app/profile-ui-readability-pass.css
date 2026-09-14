@@ -19,10 +19,12 @@ nav[aria-label='Primary game navigation'] svg {
   font-size: 0.55rem !important;
   line-height: 1.15 !important;
 }
+
 [data-testid='passive-training-active'] strong {
   font-size: 0.72rem !important;
   line-height: 1.25 !important;
 }
+
 [data-testid='passive-training-active'] button {
   font-size: 0.76rem;
 }
@@ -31,37 +33,39 @@ nav[aria-label='Primary game navigation'] svg {
 [data-testid='primary-build-panel'] > button:first-child > span:first-child {
   display: none;
 }
+
 [data-testid='primary-build-panel'] > button:first-child {
   justify-content: center;
   text-align: center;
 }
+
 [data-testid='skill-build-panel'] > button:first-child {
   justify-content: center;
   text-align: center;
 }
+
 [data-testid='skill-build-panel'] > button:first-child > small {
   display: none;
 }
 
-/* The reset action belongs on the profile centreline and uses the shorter requested label. */
+/* The reset action belongs on the profile centreline. */
 section[aria-label='Attribute redistribution'] {
   justify-content: center !important;
   padding-top: 0.65rem !important;
 }
+
 section[aria-label='Attribute redistribution'] > button:first-child {
   min-height: 2.5rem;
-  font-size: 0 !important;
-}
-section[aria-label='Attribute redistribution'] > button:first-child::after {
-  content: 'Reset Attributes';
-  font: 750 0.75rem/1 var(--av-font-mono);
-  letter-spacing: 0.035em;
   text-transform: none;
 }
 
 /* Pronouns remain an internal creation-contract default, not a player-facing choice. */
-[data-testid='character-creation'][data-step='identity'] [class*='__twoColumn'] > fieldset:nth-child(2),
-[data-testid='character-creation'][data-step='review'] [class*='__reviewGrid'] > div:nth-child(5) {
+[data-testid='character-creation'][data-step='identity']
+  [class*='__twoColumn']
+  > fieldset:nth-child(2),
+[data-testid='character-creation'][data-step='review']
+  [class*='__reviewGrid']
+  > div:nth-child(5) {
   display: none !important;
 }
 
