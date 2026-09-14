@@ -21,6 +21,8 @@ import {
 import { useBattleCombatantAccents } from './battle-runtime-context'
 import styles from './battle-log-feed.module.css'
 
+export type BattleLogFlowView = 'timeline' | 'text'
+
 interface BattleLogFeedProps {
   entries: BattleLogView['entries']
   playerName?: string
@@ -30,6 +32,8 @@ interface BattleLogFeedProps {
   compactFlow?: boolean
   recentTurnCount?: number
   currentTurnNumber?: number
+  flowView?: BattleLogFlowView
+  onFlowViewChange?: (view: BattleLogFlowView) => void
 }
 
 export interface BattleLogTranscriptLines {
@@ -320,6 +324,8 @@ export function BattleLogFeed({
   compactFlow = false,
   recentTurnCount,
   currentTurnNumber,
+  flowView: controlledFlowView,
+  onFlowViewChange,
 }: BattleLogFeedProps) {
   const combatantAccents = useBattleCombatantAccents()
   const allRounds = useMemo(() => {
@@ -349,7 +355,12 @@ export function BattleLogFeed({
     )
   }, [allRounds, combatantNames, entries, playerName, recentEntries, skillNarrations])
   const actionNumbers = useMemo(() => buildBattleLogActionNumbers(allRounds), [allRounds])
-  const [flowView, setFlowView] = useState<'timeline' | 'text'>('timeline')
+  const [internalFlowView, setInternalFlowView] = useState<BattleLogFlowView>('timeline')
+  const activeFlowView = controlledFlowView ?? internalFlowView
+  const setFlowView = (next: BattleLogFlowView) => {
+    if (controlledFlowView === undefined) setInternalFlowView(next)
+    onFlowViewChange?.(next)
+  }
   const [requestedRound, setRequestedRound] = useState<string | null | undefined>(undefined)
   const expandedRound = expandedRoundKey(rounds, requestedRound)
   const battleFinished = entries.some(
@@ -374,14 +385,14 @@ export function BattleLogFeed({
         <div className={styles.flowViews} role="group" aria-label="Battle history view">
           <button
             type="button"
-            aria-pressed={flowView === 'timeline'}
+            aria-pressed={activeFlowView === 'timeline'}
             onClick={() => setFlowView('timeline')}
           >
             Timeline
           </button>
           <button
             type="button"
-            aria-pressed={flowView === 'text'}
+            aria-pressed={activeFlowView === 'text'}
             onClick={() => setFlowView('text')}
           >
             Text log
