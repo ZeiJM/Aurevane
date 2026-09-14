@@ -445,6 +445,7 @@
       [data-unified-combatant-rail]
       > div[data-count='1']
   ) {
+    height: 100% !important;
     grid-template-rows: minmax(0, 1fr) !important;
   }
   :global(

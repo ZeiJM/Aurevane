@@ -380,7 +380,9 @@ export function CharacterSkillBuildPanel({
                                     {titleCase(disciplineId)}
                                   </small>
                                 ))}
-                                <small className={polish.typeChip}>Passive</small>
+                                <small className={polish.typeChip} data-light-panel-chip="true">
+                                  Passive
+                                </small>
                               </span>
                               <p>{initialResonance.description}</p>
                             </div>
@@ -413,7 +415,7 @@ export function CharacterSkillBuildPanel({
                                     ? ` · ${initialEssence.skill.mpCost} MP`
                                     : ''}
                                 </small>
-                                <small className={polish.typeChip}>
+                                <small className={polish.typeChip} data-light-panel-chip="true">
                                   {cockpitType(initialEssence.skill)}
                                 </small>
                               </span>
@@ -522,7 +524,7 @@ export function CharacterSkillBuildPanel({
                                         ? ` · ${entry.definition.mpCost} MP`
                                         : ''}
                                     </small>
-                                    <small className={polish.typeChip}>
+                                    <small className={polish.typeChip} data-light-panel-chip="true">
                                       {cockpitType(entry.definition)}
                                     </small>
                                   </span>
