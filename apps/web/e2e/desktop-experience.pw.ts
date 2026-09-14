@@ -587,11 +587,13 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
           ),
         ].filter((e) => e.checkVisibility())
         function surfaceBackground(node: HTMLElement): string {
-          const surface = node.closest<HTMLElement>('[data-av-surface]') ?? element
-          const background = getComputedStyle(surface).backgroundColor
-          return background === 'rgba(0, 0, 0, 0)' || background === 'transparent'
-            ? getComputedStyle(element).backgroundColor
-            : background
+          let current: HTMLElement | null = node
+          while (current) {
+            const background = getComputedStyle(current).backgroundColor
+            if (background !== 'rgba(0, 0, 0, 0)' && background !== 'transparent') return background
+            current = current.parentElement
+          }
+          return getComputedStyle(element).backgroundColor
         }
         return text.map((e) => ({
           text: e.textContent,
