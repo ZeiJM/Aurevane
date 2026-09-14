@@ -1,8 +1,15 @@
 import type { CombatEffectRecipient, CombatEncounterIssue, CombatEncounterState } from './actions'
-import { normalizeCombatEffectState, type CombatPoisonInstance } from './combat-effect-state'
+import {
+  normalizeCombatEffectState,
+  type CombatBleedStack,
+  type CombatPoisonInstance,
+} from './combat-effect-state'
 
 export const CURRENT_POISON_PROFILE_VERSION = 1 as const
 export const CURRENT_POISON_DAMAGE = 2 as const
+export const CURRENT_BLEED_MAX_STACKS = 3 as const
+export const CURRENT_BLEED_MAX_TICKS = 4 as const
+export const CURRENT_BLEED_MAX_RAW_TOTAL = 10 as const
 
 export interface CurrentPoisonEffect {
   type: 'poison'
@@ -112,12 +119,129 @@ export function advanceCurrentPoisonMovement(
   }
 }
 
+export function validateCurrentBleedEffect(effect: { damagePerTick: number; ticks: number }): void {
+  if (!Number.isSafeInteger(effect.damagePerTick) || effect.damagePerTick <= 0) {
+    throw new RangeError('Bleed damage per tick must be a positive safe integer.')
+  }
+  if (
+    !Number.isSafeInteger(effect.ticks) ||
+    effect.ticks < 1 ||
+    effect.ticks > CURRENT_BLEED_MAX_TICKS
+  ) {
+    throw new RangeError('Bleed duration ticks must be an integer between 1 and 4.')
+  }
+  const total = BigInt(effect.damagePerTick) * BigInt(effect.ticks)
+  if (total > BigInt(CURRENT_BLEED_MAX_RAW_TOTAL)) {
+    throw new RangeError('Bleed raw per-stack total must not exceed 10 damage.')
+  }
+}
+
+export function currentBleedStacks(
+  state: CombatEncounterState,
+  targetCombatantId: string,
+): readonly CombatBleedStack[] {
+  return normalizeCombatEffectState(state.effectState)
+    .bleed.filter((stack) => stack.targetCombatantId === targetCombatantId)
+    .sort((left, right) => left.applicationOrder - right.applicationOrder)
+}
+
+export function hasCurrentBleed(state: CombatEncounterState, targetCombatantId: string): boolean {
+  return currentBleedStacks(state, targetCombatantId).length > 0
+}
+
+export function applyCurrentBleedState(
+  state: CombatEncounterState,
+  sourceCombatantId: string,
+  targetCombatantId: string,
+  sourceActionId: string,
+  damagePerTick: number,
+  ticks: number,
+): CombatEncounterState {
+  validateCurrentBleedEffect({ damagePerTick, ticks })
+  const effectState = normalizeCombatEffectState(state.effectState)
+  const maximumOrder = effectState.bleed.reduce(
+    (maximum, stack) => Math.max(maximum, stack.applicationOrder),
+    0,
+  )
+  if (maximumOrder >= Number.MAX_SAFE_INTEGER) {
+    throw new RangeError('Bleed application order has reached the safe integer limit.')
+  }
+  const applicationOrder = maximumOrder + 1
+  let bleed = [...effectState.bleed]
+  const targetStacks = bleed
+    .filter((stack) => stack.targetCombatantId === targetCombatantId)
+    .sort(
+      (left, right) =>
+        left.remainingTicks - right.remainingTicks ||
+        left.applicationOrder - right.applicationOrder,
+    )
+  if (targetStacks.length >= CURRENT_BLEED_MAX_STACKS) {
+    const replaced = targetStacks[0]
+    bleed = bleed.filter(
+      (stack) =>
+        stack.targetCombatantId !== replaced.targetCombatantId ||
+        stack.applicationOrder !== replaced.applicationOrder,
+    )
+  }
+
+  bleed.push({
+    targetCombatantId,
+    sourceCombatantId,
+    sourceActionId,
+    damagePerTick,
+    remainingTicks: ticks,
+    applicationOrder,
+  })
+  bleed.sort(
+    (left, right) =>
+      left.targetCombatantId.localeCompare(right.targetCombatantId) ||
+      left.applicationOrder - right.applicationOrder,
+  )
+
+  return { ...state, effectState: { ...effectState, bleed } }
+}
+
+export function removeCurrentBleedState(
+  state: CombatEncounterState,
+  targetCombatantId: string,
+): CombatEncounterState {
+  const effectState = normalizeCombatEffectState(state.effectState)
+  return {
+    ...state,
+    effectState: {
+      ...effectState,
+      bleed: effectState.bleed.filter((stack) => stack.targetCombatantId !== targetCombatantId),
+    },
+  }
+}
+
+export function advanceCurrentBleedEndTurn(
+  state: CombatEncounterState,
+  targetCombatantId: string,
+): { state: CombatEncounterState; stacks: readonly CombatBleedStack[] } {
+  const effectState = normalizeCombatEffectState(state.effectState)
+  const stacks = effectState.bleed
+    .filter((stack) => stack.targetCombatantId === targetCombatantId)
+    .sort((left, right) => left.applicationOrder - right.applicationOrder)
+  if (stacks.length === 0) return { state, stacks: [] }
+
+  const bleed = effectState.bleed.flatMap((stack) => {
+    if (stack.targetCombatantId !== targetCombatantId) return [stack]
+    if (stack.remainingTicks <= 1) return []
+    return [{ ...stack, remainingTicks: stack.remainingTicks - 1 }]
+  })
+  return { state: { ...state, effectState: { ...effectState, bleed } }, stacks }
+}
+
 export function validateCombatDotState(
   state: CombatEncounterState,
 ): readonly CombatEncounterIssue[] {
   if (!state.effectState) return []
+  return [...validateCurrentPoisonState(state), ...validateCurrentBleedState(state)]
+}
 
-  const poison = state.effectState.poison
+function validateCurrentPoisonState(state: CombatEncounterState): readonly CombatEncounterIssue[] {
+  const poison = state.effectState?.poison
   if (!Array.isArray(poison)) {
     return [{ field: 'effectState.poison', message: 'Poison state must be an array.' }]
   }
@@ -153,6 +277,67 @@ export function validateCombatDotState(
           field: 'effectState.poison',
           message:
             'Poison state must contain one valid current-profile instance per target, sorted by target ID, with movement progress from 0 to 4.',
+        },
+      ]
+    : []
+}
+
+function validateCurrentBleedState(state: CombatEncounterState): readonly CombatEncounterIssue[] {
+  const bleed = state.effectState?.bleed
+  if (!Array.isArray(bleed)) {
+    return [{ field: 'effectState.bleed', message: 'Bleed state must be an array.' }]
+  }
+
+  const combatantIds = new Set(state.tactical.battle.combatants.map((row) => row.id))
+  const stackCounts = new Map<string, number>()
+  const applicationOrders = new Set<number>()
+  let invalid = false
+  let previousTargetId: string | null = null
+  let previousApplicationOrder = 0
+
+  for (const stack of bleed) {
+    const targetCount = (stackCounts.get(stack.targetCombatantId) ?? 0) + 1
+    stackCounts.set(stack.targetCombatantId, targetCount)
+    const rawTotalValid =
+      Number.isSafeInteger(stack.damagePerTick) &&
+      Number.isSafeInteger(stack.remainingTicks) &&
+      stack.damagePerTick > 0 &&
+      stack.remainingTicks >= 1 &&
+      stack.remainingTicks <= CURRENT_BLEED_MAX_TICKS &&
+      BigInt(stack.damagePerTick) * BigInt(stack.remainingTicks) <=
+        BigInt(CURRENT_BLEED_MAX_RAW_TOTAL)
+    const sorted =
+      previousTargetId === null ||
+      previousTargetId < stack.targetCombatantId ||
+      (previousTargetId === stack.targetCombatantId &&
+        previousApplicationOrder < stack.applicationOrder)
+
+    if (
+      !combatantIds.has(stack.targetCombatantId) ||
+      !combatantIds.has(stack.sourceCombatantId) ||
+      typeof stack.sourceActionId !== 'string' ||
+      stack.sourceActionId.length === 0 ||
+      stack.sourceActionId.trim() !== stack.sourceActionId ||
+      !rawTotalValid ||
+      !Number.isSafeInteger(stack.applicationOrder) ||
+      stack.applicationOrder <= 0 ||
+      applicationOrders.has(stack.applicationOrder) ||
+      targetCount > CURRENT_BLEED_MAX_STACKS ||
+      !sorted
+    ) {
+      invalid = true
+    }
+    applicationOrders.add(stack.applicationOrder)
+    previousTargetId = stack.targetCombatantId
+    previousApplicationOrder = stack.applicationOrder
+  }
+
+  return invalid
+    ? [
+        {
+          field: 'effectState.bleed',
+          message:
+            'Bleed state must contain at most three valid independent stacks per target in stable application order, each with one to four remaining ticks and no more than 10 raw remaining damage.',
         },
       ]
     : []

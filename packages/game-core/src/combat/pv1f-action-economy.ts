@@ -919,6 +919,10 @@ function scaleRepeatedMatureSkillEffects(
       scaled.push({ ...effect, delta: halfSignedMagnitude(effect.delta) })
       continue
     }
+    if (effect.type === 'bleed') {
+      scaled.push({ ...effect, damagePerTick: halfPositiveMagnitude(effect.damagePerTick) })
+      continue
+    }
     // Removal is discrete: a consecutive repeat cannot remove a full status again.
     if (
       effect.type === 'remove-status' ||

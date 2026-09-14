@@ -1,4 +1,5 @@
 import { validateRecoveryEffect } from './combat-recovery'
+import { validateCurrentBleedEffect } from './combat-dots'
 import type {
   CombatActionDefinition,
   CombatContentCatalog,
@@ -119,6 +120,7 @@ export function validateCombatActionDefinition(
         'create-terrain',
         'displace',
         'poison',
+        'bleed',
       ],
       'effect type',
     )
@@ -132,6 +134,7 @@ export function validateCombatActionDefinition(
     if (effect.type === 'damage' || effect.type === 'healing') {
       nonNegativeSafeInteger(effect.amount, `${effect.type} amount`)
     }
+    if (effect.type === 'bleed') validateCurrentBleedEffect(effect)
     if (effect.type === 'damage' && effect.defenseKind !== undefined) {
       knownString(effect.defenseKind, ['armor', 'ward'], 'damage defense kind')
     }

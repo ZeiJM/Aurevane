@@ -6,13 +6,19 @@ import {
 } from './combat-recovery'
 import {
   CURRENT_POISON_DAMAGE,
+  advanceCurrentBleedEndTurn,
   advanceCurrentPoisonMovement,
+  applyCurrentBleedState,
   applyCurrentPoisonState,
+  currentBleedStacks,
   currentPoisonEndTurnDamage,
   currentPoisonInstance,
+  hasCurrentBleed,
   hasCurrentPoison,
+  removeCurrentBleedState,
   removeCurrentPoisonState,
   validateCombatDotState,
+  validateCurrentBleedEffect,
 } from './combat-dots'
 import type { CombatEffectState } from './combat-effect-state'
 import {
@@ -124,6 +130,12 @@ export type CombatEffectDefinition =
       distance: number
     }
   | { type: 'poison'; recipient: CombatEffectRecipient }
+  | {
+      type: 'bleed'
+      recipient: CombatEffectRecipient
+      damagePerTick: number
+      ticks: number
+    }
   | { type: 'healing'; recipient: CombatEffectRecipient; amount: number; ticks?: number }
   | { type: 'return-to-turn-start'; recipient: 'actor' }
   | { type: 'remove-status'; recipient: CombatEffectRecipient; statusIds: readonly string[] }
@@ -1362,12 +1374,18 @@ function resolveActionEffects(
           ) === true
             ? 'active'
             : 'none'
+      } else if (effect.type === 'bleed') {
+        beforeValue = `x${currentBleedStacks(before, recipientId).length}`
+        afterValue = `x${currentBleedStacks(nextState, recipientId).length}`
       } else if (effect.type === 'remove-status') {
         const removedStatusIds = getStatusRow(before, recipientId)
           .statuses.filter((status) => effect.statusIds.includes(status.statusId))
           .map((status) => status.statusId)
         if (effect.statusIds.includes('poison') && hasCurrentPoison(before, recipientId)) {
           removedStatusIds.push('poison')
+        }
+        if (effect.statusIds.includes('bleed') && hasCurrentBleed(before, recipientId)) {
+          removedStatusIds.push('bleed')
         }
         beforeValue = [...new Set(removedStatusIds)].sort(compareStableString).join(',') || 'none'
         afterValue = 'none'
@@ -1426,6 +1444,19 @@ function applyEffect(
   if (effect.type === 'poison') {
     return {
       state: applyCurrentPoisonState(state, actorId, recipientId, actionId),
+      events: [],
+    }
+  }
+  if (effect.type === 'bleed') {
+    return {
+      state: applyCurrentBleedState(
+        state,
+        actorId,
+        recipientId,
+        actionId,
+        effect.damagePerTick,
+        effect.ticks,
+      ),
       events: [],
     }
   }
@@ -1516,10 +1547,14 @@ function applyEffect(
       .map((status) => status.statusId)
     const removesCurrentPoison =
       effect.statusIds.includes('poison') && hasCurrentPoison(state, recipientId)
+    const removesCurrentBleed =
+      effect.statusIds.includes('bleed') && hasCurrentBleed(state, recipientId)
     if (removesCurrentPoison) removedStatusIds.push('poison')
+    if (removesCurrentBleed) removedStatusIds.push('bleed')
 
     let nextState = removeStatuses(state, recipientId, effect.statusIds)
     if (removesCurrentPoison) nextState = removeCurrentPoisonState(nextState, recipientId)
+    if (removesCurrentBleed) nextState = removeCurrentBleedState(nextState, recipientId)
 
     return {
       state: nextState,
@@ -1792,14 +1827,15 @@ function resolveCurrentEndOfTurnDots(
   combatantId: string,
   content: CombatContentCatalog,
 ): CombatResolutionTransition {
-  const poison = currentPoisonInstance(state, combatantId)
-  const target = getCombatant(state.tactical.battle, combatantId)
-  if (!poison || target.hp <= 0) return { state, events: [] }
+  let nextState = state
+  const events: CombatResolutionEvent[] = []
 
-  const hpAfter = Math.max(0, target.hp - CURRENT_POISON_DAMAGE)
-  let nextState = withUpdatedCombatant(state, combatantId, { ...target, hp: hpAfter })
-  const events: CombatResolutionEvent[] = [
-    {
+  const poison = currentPoisonInstance(nextState, combatantId)
+  let target = getCombatant(nextState.tactical.battle, combatantId)
+  if (poison && target.hp > 0) {
+    const hpAfter = Math.max(0, target.hp - CURRENT_POISON_DAMAGE)
+    nextState = withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
+    events.push({
       event: 'damage_applied',
       actionId: 'status.poison.current.v1',
       sourceCombatantId: poison.sourceCombatantId,
@@ -1807,20 +1843,52 @@ function resolveCurrentEndOfTurnDots(
       amount: target.hp - hpAfter,
       hpBefore: target.hp,
       hpAfter,
-    },
-  ]
+    })
+    if (hpAfter < target.hp) {
+      const revealed = removeGameplayTags(
+        nextState,
+        poison.sourceCombatantId,
+        combatantId,
+        'status.poison.current.v1',
+        ['Invisible'],
+        content,
+      )
+      nextState = revealed.state
+      events.push(...revealed.events)
+    }
+  }
 
-  if (hpAfter < target.hp) {
-    const revealed = removeGameplayTags(
-      nextState,
-      poison.sourceCombatantId,
-      combatantId,
-      'status.poison.current.v1',
-      ['Invisible'],
-      content,
-    )
-    nextState = revealed.state
-    events.push(...revealed.events)
+  target = getCombatant(nextState.tactical.battle, combatantId)
+  if (target.hp <= 0) return { state: nextState, events }
+
+  const bleedTurn = advanceCurrentBleedEndTurn(nextState, combatantId)
+  nextState = bleedTurn.state
+  for (const stack of bleedTurn.stacks) {
+    target = getCombatant(nextState.tactical.battle, combatantId)
+    if (target.hp <= 0) break
+    const hpAfter = Math.max(0, target.hp - stack.damagePerTick)
+    nextState = withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
+    events.push({
+      event: 'damage_applied',
+      actionId: stack.sourceActionId,
+      sourceCombatantId: stack.sourceCombatantId,
+      targetCombatantId: combatantId,
+      amount: target.hp - hpAfter,
+      hpBefore: target.hp,
+      hpAfter,
+    })
+    if (hpAfter < target.hp) {
+      const revealed = removeGameplayTags(
+        nextState,
+        stack.sourceCombatantId,
+        combatantId,
+        stack.sourceActionId,
+        ['Invisible'],
+        content,
+      )
+      nextState = revealed.state
+      events.push(...revealed.events)
+    }
   }
 
   return { state: nextState, events }
@@ -2120,6 +2188,7 @@ function validateCombatActionDefinition(
         'create-terrain',
         'displace',
         'poison',
+        'bleed',
       ],
       'effect type',
     )
@@ -2137,6 +2206,7 @@ function validateCombatActionDefinition(
     if (effect.type === 'damage' || effect.type === 'healing') {
       assertNonNegativeSafeInteger(effect.amount, `${effect.type} amount`)
     }
+    if (effect.type === 'bleed') validateCurrentBleedEffect(effect)
     if (effect.type === 'damage' && effect.defenseKind !== undefined)
       assertKnownString(effect.defenseKind, ['armor', 'ward'], 'damage defense kind')
     if (effect.type === 'damage' && effect.facingModifiersBasisPoints) {
