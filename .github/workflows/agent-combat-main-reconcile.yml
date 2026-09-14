@@ -22,6 +22,7 @@ jobs:
       FEATURE_BASE: fc78464d81324d7089444df852f0b2d35823ef0a
       MAIN_HEAD: 233b88b5701417c8a188516c487a747c63d61756
       RESULT_BRANCH: agent/combat-main-reconcile-k1-result-20260914
+      SKILL_DETAIL: apps/web/src/components/character/skill-detail-presentation.ts
     steps:
       - name: Checkout exact combat feature head
         uses: actions/checkout@v4
@@ -40,19 +41,47 @@ jobs:
           git fetch origin "$RESULT_BRANCH"
           test "$(git rev-parse origin/$RESULT_BRANCH)" = "$FEATURE_BASE"
 
-      - name: Merge main without committing
+      - name: Merge main and verify conflict set
         run: |
           set +e
           git merge --no-ff --no-commit "$MAIN_HEAD"
           code=$?
           set -e
-          if [ "$code" -ne 0 ]; then
-            echo 'Merge conflicts:'
-            git diff --name-only --diff-filter=U
-            git status --short
-            exit "$code"
+          if [ "$code" -eq 0 ]; then
+            test -z "$(git diff --name-only --diff-filter=U)"
+            exit 0
           fi
-          git status --short
+          mapfile -t conflicts < <(git diff --name-only --diff-filter=U)
+          printf 'Merge conflicts:\n%s\n' "${conflicts[@]}"
+          test "${#conflicts[@]}" -eq 1
+          test "${conflicts[0]}" = "$SKILL_DETAIL"
+
+      - name: Resolve skill detail presenter conflict
+        run: |
+          if git diff --name-only --diff-filter=U | grep -qx "$SKILL_DETAIL"; then
+            git checkout --ours -- "$SKILL_DETAIL"
+            python - <<'PY'
+          import os
+          import subprocess
+          from pathlib import Path
+
+          path = os.environ['SKILL_DETAIL']
+          main_head = os.environ['MAIN_HEAD']
+          current = Path(path).read_text()
+          main = subprocess.check_output(['git', 'show', f'{main_head}:{path}'], text=True)
+          marker = 'export function skillDisplayName(skill: MatureSkillDefinition): string {'
+          if marker not in main:
+              raise SystemExit('main skillDisplayName helper missing')
+          helper = main[main.index(marker):].strip()
+          if marker not in current:
+              Path(path).write_text(current.rstrip() + '\n\n' + helper + '\n')
+          PY
+            git add "$SKILL_DETAIL"
+          fi
+          test -z "$(git diff --name-only --diff-filter=U)"
+          grep -q "combatActionPresentationTags" "$SKILL_DETAIL"
+          grep -q "export function skillDisplayName" "$SKILL_DETAIL"
+          git diff --cached --check
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
