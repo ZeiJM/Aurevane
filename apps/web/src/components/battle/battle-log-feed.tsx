@@ -401,7 +401,7 @@ export function BattleLogFeed({
       ) : null}
       {compactFlow ? (
         <BattleActionTimeline
-          view={flowView}
+          view={activeFlowView}
           renderTranscript={(action) => (
             <BattleLogTranscriptAction
               action={action}
