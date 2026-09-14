@@ -9,6 +9,13 @@ import { validateSkillCooldownDefinition } from './skill-cooldowns'
 
 const COMBAT_BASIS_POINTS = 10_000
 
+declare module './actions' {
+  interface CombatActionDefinition {
+    accuracyMode?: 'automatic' | 'per-target'
+    accuracyModifierBasisPoints?: number
+  }
+}
+
 export function validateCombatActionDefinition(
   action: CombatActionDefinition,
   content?: CombatContentCatalog,
@@ -54,6 +61,17 @@ export function validateCombatActionDefinition(
     positiveSafeInteger(action.target.shape.length, 'line length')
   }
   nonNegativeSafeInteger(action.cost.mp, 'MP cost')
+
+  if (action.accuracyMode !== undefined) {
+    knownString(action.accuracyMode, ['automatic', 'per-target'], 'accuracy mode')
+  }
+  if (action.accuracyModifierBasisPoints !== undefined) {
+    signedSafeIntegerWithin(
+      action.accuracyModifierBasisPoints,
+      3_000,
+      'accuracy modifier basis points',
+    )
+  }
 
   const tagSet = new Set<string>()
   for (const tag of action.tags) {
@@ -119,10 +137,21 @@ export function validateCombatActionDefinition(
       basisPoints(effect.facingModifiersBasisPoints.side, 'side damage modifier', 22_000)
       basisPoints(effect.facingModifiersBasisPoints.rear, 'rear damage modifier', 22_000)
     }
+    if (effect.type === 'healing') {
+      const ticks = (effect as unknown as { ticks?: unknown }).ticks
+      if (ticks !== undefined) boundedPositiveSafeInteger(ticks, 1, 4, 'healing ticks')
+    }
     if (effect.type === 'resource-change') {
       knownString(effect.resource, ['mp'], 'effect resource')
       if (!Number.isSafeInteger(effect.delta)) {
         throw new RangeError('Resource delta must be a safe integer.')
+      }
+      const ticks = (effect as unknown as { ticks?: unknown }).ticks
+      if (effect.delta > 0 && ticks !== undefined) {
+        boundedPositiveSafeInteger(ticks, 1, 4, 'MP recovery ticks')
+      }
+      if (effect.delta < 0 && ticks !== undefined && ticks !== 1) {
+        throw new RangeError('MP Drain is immediate-only and must use one tick.')
       }
     }
     if (effect.type === 'remove-status') {
@@ -149,6 +178,7 @@ export function validateCombatActionDefinition(
       requiredIdentity(effect.statusId, 'effect status ID')
       positiveSafeInteger(effect.stacks, 'effect status stacks')
       if (content) statusById(content, effect.statusId)
+      validateBleedAuthoring(effect)
     }
   }
 }
@@ -233,6 +263,19 @@ export function validateCombatContentCatalog(content: CombatContentCatalog): voi
   }
 }
 
+function validateBleedAuthoring(effect: { statusId: string }): void {
+  if (effect.statusId !== 'bleed') return
+  const authored = effect as unknown as { damagePerTick?: unknown; durationTicks?: unknown }
+  if (authored.damagePerTick === undefined && authored.durationTicks === undefined) return
+  if (authored.damagePerTick === undefined || authored.durationTicks === undefined) {
+    throw new TypeError('Bleed authoring requires damagePerTick and durationTicks together.')
+  }
+  positiveSafeIntegerUnknown(authored.damagePerTick, 'Bleed damage per tick')
+  boundedPositiveSafeInteger(authored.durationTicks, 1, 4, 'Bleed duration ticks')
+  const total = BigInt(authored.damagePerTick as number) * BigInt(authored.durationTicks as number)
+  if (total > 10n) throw new RangeError('Bleed raw per-stack total must not exceed 10 damage.')
+}
+
 function statusById(content: CombatContentCatalog, statusId: string): CombatStatusDefinition {
   const status = content.statuses.find((candidate) => candidate.id === statusId)
   if (!status) throw new Error(`Unknown combat status definition ${statusId}.`)
@@ -258,6 +301,33 @@ function boolean(value: unknown, field: string): void {
 function positiveSafeInteger(value: number, field: string): void {
   if (!Number.isSafeInteger(value) || value <= 0) {
     throw new RangeError(`${field} must be a positive safe integer.`)
+  }
+}
+
+function positiveSafeIntegerUnknown(value: unknown, field: string): asserts value is number {
+  if (!Number.isSafeInteger(value) || (value as number) <= 0) {
+    throw new RangeError(`${field} must be a positive safe integer.`)
+  }
+}
+
+function boundedPositiveSafeInteger(
+  value: unknown,
+  minimum: number,
+  maximum: number,
+  field: string,
+): asserts value is number {
+  if (
+    !Number.isSafeInteger(value) ||
+    (value as number) < minimum ||
+    (value as number) > maximum
+  ) {
+    throw new RangeError(`${field} must be an integer between ${minimum} and ${maximum}.`)
+  }
+}
+
+function signedSafeIntegerWithin(value: unknown, maximumMagnitude: number, field: string): void {
+  if (!Number.isSafeInteger(value) || Math.abs(value as number) > maximumMagnitude) {
+    throw new RangeError(`${field} must be within +/-${maximumMagnitude}.`)
   }
 }
 
