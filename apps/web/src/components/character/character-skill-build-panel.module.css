@@ -530,8 +530,12 @@
   color: color-mix(in srgb, rgb(var(--chip, var(--skill-accent))) 65%, white) !important;
 }
 
-.dialog[role='dialog'] .sourceChip,
-.dialog[role='dialog'] [data-light-panel-chip='true'] {
+.dialog[role='dialog'] .sourceChip {
+  color: var(--av-charcoal) !important;
+}
+
+.dialog[role='dialog'] [data-av-surface='ink'] .sourceChip,
+.dialog[role='dialog'] [data-av-surface='ink'] [data-light-panel-chip='true'] {
   color: #c2c7c6 !important;
 }
 
