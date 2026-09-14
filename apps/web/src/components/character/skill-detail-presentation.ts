@@ -118,6 +118,15 @@ function unitAffectedDescription(skill: MatureSkillDefinition): string {
   }
 }
 
+export function skillDisplayName(skill: MatureSkillDefinition): string {
+  const tail = skill.id.includes('.') ? skill.id.slice(skill.id.indexOf('.') + 1) : skill.id
+  return tail
+    .split(/[._-]/g)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
 function recoveryTiming(ticks: number | undefined): string {
   if (ticks === undefined || ticks <= 1) return ''
   return ` ${ticks} total applications: once immediately, then once at each of the recipient's next ${ticks - 1} end-of-turn boundaries. Amount is per application; recovery cannot revive a defeated unit.`
