@@ -83,7 +83,11 @@ function movementEncounter(actorHp = 30): StatDrivenCombatEncounterState {
     createCombatEncounterState(tactical),
     ['actor', 'enemy'].map((combatantId) => ({
       combatantId,
-      provenance: { kind: 'scenario' as const, sourceId: 'scenario:poison-movement', sourceRulesVersion: 1 },
+      provenance: {
+        kind: 'scenario' as const,
+        sourceId: 'scenario:poison-movement',
+        sourceRulesVersion: 1,
+      },
       accuracy: 10_000,
       evasion: 0,
       armor: 0,
