@@ -195,8 +195,8 @@ export function BattleActionTimeline({
   )
   const currentPage = Math.min(pagination.key === pageKey ? pagination.pagesBack : 0, lastPage)
   const textPage = textPages[currentPage]
-  const oversized = view === 'text' && Boolean(textPage?.oversized) && narrowTranscript
-  const showOverflow = oversized
+  const oversized = view === 'text' && Boolean(textPage?.oversized)
+  const showOverflow = oversized && narrowTranscript
   const end =
     view === 'text'
       ? (textPage?.end ?? visible.length)
@@ -278,8 +278,8 @@ export function BattleActionTimeline({
                 ) : null}
                 <div
                   className={styles.transcriptEntry}
-                  inert={oversized || undefined}
-                  aria-hidden={oversized || undefined}
+                  inert={showOverflow || undefined}
+                  aria-hidden={showOverflow || undefined}
                 >
                   {renderTranscript(action)}
                   {!showOverflow ? (
@@ -311,7 +311,7 @@ export function BattleActionTimeline({
                     <button
                       className={styles.transcriptOverflow}
                       type="button"
-                      aria-label={`View full action and results: ${action.ariaLabel}`}
+                      aria-label={`Action details: ${action.ariaLabel}`}
                       onClick={() => setSelected(action)}
                     >
                       View full action and results
