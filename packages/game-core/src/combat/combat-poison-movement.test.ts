@@ -93,9 +93,23 @@ function encounter(targetHp = 30): CombatEncounterState {
   }
 }
 
-function push(distance: number): CombatActionDefinition {
+function withTargetX(state: CombatEncounterState, x: number): CombatEncounterState {
   return {
-    id: `test.push.${distance}`,
+    ...state,
+    tactical: {
+      ...state.tactical,
+      placements: state.tactical.placements.map((placement) =>
+        placement.combatantId === 'target'
+          ? { ...placement, position: { x, y: placement.position.y } }
+          : placement,
+      ),
+    },
+  }
+}
+
+function displace(direction: 'push' | 'pull', distance: number): CombatActionDefinition {
+  return {
+    id: `test.${direction}.${distance}`,
     version: 1,
     sourceType: 'test',
     tags: ['test'],
@@ -111,7 +125,7 @@ function push(distance: number): CombatActionDefinition {
     },
     cost: { spendsAction: false, mp: 0 },
     requirements: [],
-    effects: [{ type: 'displace', recipient: 'primary-unit', direction: 'push', distance }],
+    effects: [{ type: 'displace', recipient: 'primary-unit', direction, distance }],
   }
 }
 
@@ -147,7 +161,7 @@ describe('current Poison movement progress', () => {
   it('counts each successful Push tile and applies a normal Poison tick at the threshold', () => {
     const result = executeCombatAction(
       encounter(),
-      push(2),
+      displace('push', 2),
       { kind: 'unit', combatantId: 'target' },
       CONTENT,
     )
@@ -165,10 +179,23 @@ describe('current Poison movement progress', () => {
     )
   })
 
+  it('counts each successful Pull tile and preserves the caster-tile stop rule', () => {
+    const result = executeCombatAction(
+      withTargetX(encounter(), 3),
+      displace('pull', 3),
+      { kind: 'unit', combatantId: 'target' },
+      CONTENT,
+    )
+
+    expect(targetX(result.state)).toBe(1)
+    expect(targetHp(result.state)).toBe(28)
+    expect(result.state.effectState?.poison[0]?.movementRemainder).toBe(1)
+  })
+
   it('stops displacement immediately when a movement-triggered Poison tick defeats the unit', () => {
     const result = executeCombatAction(
       encounter(2),
-      push(3),
+      displace('push', 3),
       { kind: 'unit', combatantId: 'target' },
       CONTENT,
     )
@@ -181,7 +208,7 @@ describe('current Poison movement progress', () => {
     const state = encounter()
     const evaluation = evaluateCombatAction(
       state,
-      push(2),
+      displace('push', 2),
       { kind: 'unit', combatantId: 'target' },
       CONTENT,
     )
