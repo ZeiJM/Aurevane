@@ -29,7 +29,9 @@ jobs:
       - name: Install pinned dependencies
         run: pnpm install --frozen-lockfile
       - name: Apply current Bleed runtime
-        run: python .github/agent-bleed-green.py
+        run: |
+          python .github/agent-bleed-green.py
+          python .github/agent-bleed-web-fix.py
       - name: Normalize changed source formatting
         run: |
           pnpm exec prettier --write \
@@ -37,7 +39,8 @@ jobs:
             packages/game-core/src/combat/combat-dots.ts \
             packages/game-core/src/combat/combat-authoring-validation.ts \
             packages/game-core/src/combat/pv1f-action-economy.ts \
-            packages/game-core/src/combat/combat-bleed-rework.test.ts
+            packages/game-core/src/combat/combat-bleed-rework.test.ts \
+            apps/web/src/components/character/skill-detail-presentation.ts
       - name: Run focused Bleed contract
         run: pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-bleed-rework.test.ts
       - name: Run repository quality gates
@@ -47,6 +50,7 @@ jobs:
       - name: Remove temporary verifier files
         run: |
           rm .github/agent-bleed-green.py
+          rm .github/agent-bleed-web-fix.py
           rm .github/workflows/agent-bleed-red.yml
           rm .github/workflows/agent-bleed-green.yml
       - name: Commit verified source
@@ -58,7 +62,9 @@ jobs:
             packages/game-core/src/combat/combat-authoring-validation.ts \
             packages/game-core/src/combat/pv1f-action-economy.ts \
             packages/game-core/src/combat/combat-bleed-rework.test.ts \
+            apps/web/src/components/character/skill-detail-presentation.ts \
             .github/agent-bleed-green.py \
+            .github/agent-bleed-web-fix.py \
             .github/workflows/agent-bleed-red.yml \
             .github/workflows/agent-bleed-green.yml
           git commit -m 'feat: implement current bleed stacks'
