@@ -29,11 +29,15 @@ jobs:
           ref: ${{ env.FEATURE_BASE }}
           fetch-depth: 0
 
+      - name: Configure merge identity
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
       - name: Fetch exact main revision
         run: |
           git fetch origin "$MAIN_HEAD"
           git fetch origin "$RESULT_BRANCH"
-          test "$(git rev-parse FETCH_HEAD)" = "$(git rev-parse origin/$RESULT_BRANCH)" || true
           test "$(git rev-parse origin/$RESULT_BRANCH)" = "$FEATURE_BASE"
 
       - name: Merge main without committing
@@ -73,8 +77,6 @@ jobs:
 
       - name: Commit clean verified merge and publish result branch
         run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'merge: reconcile combat overhaul with main'
           test "$(git rev-parse HEAD^1)" = "$FEATURE_BASE"
           test "$(git rev-parse HEAD^2)" = "$MAIN_HEAD"
