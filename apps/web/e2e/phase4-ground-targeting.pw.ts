@@ -71,8 +71,8 @@ async function castOnEmptyGround(page: Page, name: string, testInfo: TestInfo) {
   await root.getByRole('button', { name: /Choose Guard skill/ }).click()
   const mistOption = page.getByRole('option', { name: 'Chilling Mist 45 AP', exact: true })
   const optionTags = mistOption.locator('[data-battle-skill-tags="option"]')
-  await expect(optionTags).toContainText('Ground tile')
-  await expect(optionTags).toContainText('Frozen terrain')
+  await expect(optionTags).toContainText('Ground')
+  await expect(optionTags).toContainText('Freeze Ground')
   await expect(optionTags).toContainText('Slow')
   await testInfo.attach(`technique-picker-${testInfo.project.name}`, {
     body: await page.screenshot(),
@@ -82,8 +82,8 @@ async function castOnEmptyGround(page: Page, name: string, testInfo: TestInfo) {
   await root.getByRole('button', { name: 'About Chilling Mist', exact: true }).click()
   const details = page.getByRole('dialog', { name: 'Chilling Mist', exact: true })
   const commandTags = details.locator('[data-battle-skill-tags="details"]')
-  await expect(commandTags).toContainText('Ground tile')
-  await expect(commandTags).toContainText('Frozen terrain')
+  await expect(commandTags).toContainText('Ground')
+  await expect(commandTags).toContainText('Freeze Ground')
   await expect(commandTags).toContainText('Slow')
   const tagFit = await commandTags.evaluate((element) => {
     const panel = element.closest('[role="dialog"]')!.getBoundingClientRect()
