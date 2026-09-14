@@ -14,9 +14,7 @@ import {
   type StatDrivenCombatEncounterState,
 } from './stat-driven-combat'
 
-function action(
-  effect: CombatActionDefinition['effects'][number],
-): CombatActionDefinition {
+function action(effect: CombatActionDefinition['effects'][number]): CombatActionDefinition {
   return {
     id: 'test.stat-scaled-damage',
     version: 1,
@@ -194,7 +192,9 @@ describe('stat-scaled damage resolution', () => {
       defenseKind: 'armor',
     })
 
-    expect(damageAppliedAmount(encounter({ physicalPower: 999, mysticPower: 999 }), unscaled)).toBe(6)
+    expect(damageAppliedAmount(encounter({ physicalPower: 999, mysticPower: 999 }), unscaled)).toBe(
+      6,
+    )
   })
 
   it('fails closed instead of treating missing historical offensive power as zero', () => {
