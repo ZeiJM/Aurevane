@@ -95,7 +95,7 @@ function effectMetadata(
     lineKind === 'secondary' &&
     role === 'outcome' &&
     (item.tone === 'benefit' || item.tone === 'warning')
-  const namedGuardedEffect = /\bguarded\b/iu.test(text) && role !== 'actor' && role !== 'target'
+  const namedGuardedEffect = /\bguarded\b/iu.test(text)
 
   if (!standaloneStatus && !consequenceEffect && !namedGuardedEffect) return null
 

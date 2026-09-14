@@ -5,11 +5,7 @@ import { createPortal } from 'react-dom'
 
 import type { BattleLogView } from '@/server/battle/battle-log-service'
 
-import {
-  BattleLogFeed,
-  countBattleLogActions,
-  type BattleLogFlowView,
-} from './battle-log-feed'
+import { BattleLogFeed, countBattleLogActions, type BattleLogFlowView } from './battle-log-feed'
 import { useBattlePlayerName } from './battle-runtime-context'
 import styles from './battle-log-panel.module.css'
 
