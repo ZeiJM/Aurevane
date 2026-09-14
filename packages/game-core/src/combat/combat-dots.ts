@@ -79,6 +79,39 @@ export function removeCurrentPoisonState(
   }
 }
 
+export function advanceCurrentPoisonMovement(
+  state: CombatEncounterState,
+  targetCombatantId: string,
+  traversedTiles: number,
+): { state: CombatEncounterState; triggeredTicks: number } {
+  if (!Number.isSafeInteger(traversedTiles) || traversedTiles < 0) {
+    throw new RangeError(
+      'Poison movement progress requires a non-negative safe integer tile count.',
+    )
+  }
+  if (traversedTiles === 0) return { state, triggeredTicks: 0 }
+
+  const effectState = normalizeCombatEffectState(state.effectState)
+  const existing = effectState.poison.find(
+    (instance) => instance.targetCombatantId === targetCombatantId,
+  )
+  if (!existing) return { state, triggeredTicks: 0 }
+
+  const total = existing.movementRemainder + traversedTiles
+  const triggeredTicks = Math.floor(total / 5)
+  const movementRemainder = total % 5
+  const poison = effectState.poison.map((instance) =>
+    instance.targetCombatantId === targetCombatantId
+      ? { ...instance, movementRemainder }
+      : instance,
+  )
+
+  return {
+    state: { ...state, effectState: { ...effectState, poison } },
+    triggeredTicks,
+  }
+}
+
 export function validateCombatDotState(
   state: CombatEncounterState,
 ): readonly CombatEncounterIssue[] {
