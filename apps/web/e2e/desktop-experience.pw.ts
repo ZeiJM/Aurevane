@@ -589,9 +589,13 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
         return text.map((e) => ({
           text: e.textContent,
           size: parseFloat(getComputedStyle(e).fontSize),
-          contrast:
-            (luminance(getComputedStyle(e).color) + 0.05) /
-            (luminance(getComputedStyle(element).backgroundColor) + 0.05),
+          contrast: (() => {
+            const foreground = luminance(getComputedStyle(e).color)
+            const background = luminance(getComputedStyle(element).backgroundColor)
+            return (
+              (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05)
+            )
+          })(),
         }))
       })
       for (const item of findings) {
