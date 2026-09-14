@@ -216,11 +216,17 @@ export function validateGameplayEffectMetadata(effect: CombatEffectDefinition): 
     (effect.recipient !== 'affected-tiles' || effect.terrain !== 'frozen')
   )
     throw new TypeError('Frozen terrain requires affected tiles.')
-  if (
-    effect.type === 'displace' &&
-    (effect.distance !== 1 || !['primary-unit', 'affected-units'].includes(effect.recipient))
-  )
-    throw new TypeError('Displacement is a one-tile push of another unit.')
+  if (effect.type === 'displace') {
+    const authored = effect as unknown as { direction?: unknown; distance?: unknown }
+    if (!['primary-unit', 'affected-units'].includes(effect.recipient))
+      throw new TypeError('Displacement requires another unit.')
+    if (!Number.isSafeInteger(authored.distance) || (authored.distance as number) <= 0)
+      throw new TypeError('Displacement distance must be a positive safe integer.')
+    if (authored.direction === undefined && authored.distance !== 1)
+      throw new TypeError('Historical directionless displacement is limited to Push 1.')
+    if (authored.direction !== undefined && !['push', 'pull'].includes(authored.direction as string))
+      throw new TypeError('Displacement direction must be Push or Pull.')
+  }
 }
 
 function targetPresentationTag(action: Pick<CombatActionDefinition, 'target'>): string {
