@@ -586,12 +586,19 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
             '[data-testid="skill-capacity"] span, [data-testid="skill-capacity"] strong, small, p',
           ),
         ].filter((e) => e.checkVisibility())
+        function surfaceBackground(node: HTMLElement): string {
+          const surface = node.closest<HTMLElement>('[data-av-surface]') ?? element
+          const background = getComputedStyle(surface).backgroundColor
+          return background === 'rgba(0, 0, 0, 0)' || background === 'transparent'
+            ? getComputedStyle(element).backgroundColor
+            : background
+        }
         return text.map((e) => ({
           text: e.textContent,
           size: parseFloat(getComputedStyle(e).fontSize),
           contrast: (() => {
             const foreground = luminance(getComputedStyle(e).color)
-            const background = luminance(getComputedStyle(element).backgroundColor)
+            const background = luminance(surfaceBackground(e))
             return (
               (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05)
             )
@@ -601,7 +608,7 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
       for (const item of findings) {
         expect(
           item.contrast,
-          `${item.text}: contrast against the light panel tone`,
+          `${item.text}: contrast against its rendered surface`,
         ).toBeGreaterThanOrEqual(4.5)
         expect(item.size, `${item.text}: minimum label size`).toBeGreaterThanOrEqual(11)
       }
