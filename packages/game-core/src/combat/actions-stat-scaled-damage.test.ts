@@ -204,9 +204,12 @@ describe('stat-scaled damage resolution', () => {
       statBridge: {
         schemaVersion: STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V1,
         rulesVersion: 1,
-        combatants: current.statBridge.combatants.map(
-          ({ physicalPower: _physicalPower, mysticPower: _mysticPower, ...profile }) => profile,
-        ),
+        combatants: current.statBridge.combatants.map((profile) => {
+          const legacyProfile = { ...profile }
+          delete legacyProfile.physicalPower
+          delete legacyProfile.mysticPower
+          return legacyProfile
+        }),
       },
     }
     const scaled = action({
