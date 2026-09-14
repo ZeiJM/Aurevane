@@ -1,0 +1,87 @@
+name: Verify canonical Burn port
+
+on:
+  push:
+    branches:
+      - agent/combat-burn-port-verify-20260914
+    paths:
+      - .github/workflows/agent-combat-burn-port.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: combat-burn-port-20260914
+  cancel-in-progress: false
+
+jobs:
+  verify-burn:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      BASE_HEAD: 2afe89a17b8bfc23c0418991e123c9a51dca2f94
+      BURN_PATCH: b475ae063d69258e4774e6a2d415e8fd6e0cc1b6
+      RESULT_BRANCH: agent/combat-burn-port-result-20260914
+    steps:
+      - name: Checkout exact reconciled combat head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BASE_HEAD }}
+          fetch-depth: 0
+
+      - name: Configure commit identity
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+      - name: Verify result branch base
+        run: |
+          git fetch origin "$RESULT_BRANCH"
+          test "$(git rev-parse origin/$RESULT_BRANCH)" = "$BASE_HEAD"
+
+      - name: Apply clean Burn patch without committing
+        run: |
+          set +e
+          git cherry-pick --no-commit "$BURN_PATCH"
+          code=$?
+          set -e
+          if [ "$code" -ne 0 ]; then
+            echo 'Burn port conflicts:'
+            git diff --name-only --diff-filter=U
+            git status --short
+            exit "$code"
+          fi
+          git diff --cached --check
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install pinned dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run focused Burn contract
+        run: pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-burn-rework.test.ts
+
+      - name: Run repository quality gates
+        run: pnpm check
+
+      - name: Verify checks did not alter source
+        run: |
+          git diff --exit-code
+          git diff --cached --check
+
+      - name: Commit verified Burn port and publish result
+        run: |
+          git commit -m 'feat: implement current burn pressure'
+          test "$(git rev-parse HEAD^)" = "$BASE_HEAD"
+          git fetch origin "$RESULT_BRANCH"
+          test "$(git rev-parse origin/$RESULT_BRANCH)" = "$BASE_HEAD"
+          git push origin "HEAD:refs/heads/$RESULT_BRANCH"
+          echo "Verified Burn commit: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
