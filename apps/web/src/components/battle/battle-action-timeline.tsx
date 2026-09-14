@@ -124,6 +124,7 @@ export function BattleActionTimeline({
   const headingRef = useRef<HTMLDivElement>(null)
   const [textPages, setTextPages] = useState<TranscriptPage[]>([])
   const [pagination, setPagination] = useState({ key: '', pagesBack: 0 })
+  const [narrowTranscript, setNarrowTranscript] = useState(false)
   const dialogRef = useRef<HTMLDialogElement>(null)
   const actions = useMemo(
     () =>
@@ -152,7 +153,11 @@ export function BattleActionTimeline({
   useEffect(() => {
     const list = listRef.current
     if (!list) return
+    setNarrowTranscript(false)
     const resize = () => {
+      const flow = list.closest<HTMLElement>('[aria-label="Battle flow"]')
+      const nextNarrow = Boolean(flow && flow.getBoundingClientRect().width <= 240)
+      setNarrowTranscript((current) => (current === nextNarrow ? current : nextNarrow))
       if (view === 'timeline') {
         setPageSize(Math.max(1, Math.floor(list.clientWidth / 96)))
         return
@@ -191,6 +196,7 @@ export function BattleActionTimeline({
   const currentPage = Math.min(pagination.key === pageKey ? pagination.pagesBack : 0, lastPage)
   const textPage = textPages[currentPage]
   const oversized = view === 'text' && Boolean(textPage?.oversized)
+  const showOverflow = oversized && narrowTranscript
   const end =
     view === 'text'
       ? (textPage?.end ?? visible.length)
@@ -276,7 +282,7 @@ export function BattleActionTimeline({
                   aria-hidden={oversized || undefined}
                 >
                   {renderTranscript(action)}
-                  {!oversized ? (
+                  {!showOverflow ? (
                     <button
                       className={styles.transcriptDetails}
                       type="button"
@@ -288,7 +294,7 @@ export function BattleActionTimeline({
                     </button>
                   ) : null}
                 </div>
-                {oversized ? (
+                {showOverflow ? (
                   <>
                     {hasGuardedEffect(action) ? (
                       <button
@@ -305,7 +311,7 @@ export function BattleActionTimeline({
                     <button
                       className={styles.transcriptOverflow}
                       type="button"
-                      aria-label={`Action details: ${action.ariaLabel}`}
+                      aria-label={`View full action and results: ${action.ariaLabel}`}
                       onClick={() => setSelected(action)}
                     >
                       View full action and results
