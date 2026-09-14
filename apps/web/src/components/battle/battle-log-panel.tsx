@@ -243,8 +243,8 @@ export function BattleLogPanel({
         {visible ? (
           <LogPanel
             flowView={flowView}
-          onFlowViewChange={setFlowView}
-          entries={entries}
+            onFlowViewChange={setFlowView}
+            entries={entries}
             recentTurnCount={recentTurnCount}
             loading={loading}
             error={error}
@@ -282,6 +282,8 @@ export function BattleLogPanel({
   return createPortal(
     <div ref={controlledPanelRef} className={styles.controlled} data-testid="battle-log-panel">
       <LogPanel
+        flowView={flowView}
+        onFlowViewChange={setFlowView}
         entries={entries}
         recentTurnCount={recentTurnCount}
         loading={loading}
