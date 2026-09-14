@@ -189,10 +189,23 @@ test('mobile Profile balances the portrait and centers Discipline Management', a
   const portraitBox = await portrait.boundingBox()
   const identityBox = await profile.locator(':scope > div:last-child').boundingBox()
   if (!portraitBox || !identityBox) throw new Error('Profile hero geometry is unavailable')
-  expect(
-    Math.abs(portraitBox.y + portraitBox.height / 2 - identityBox.y - identityBox.height / 2),
-  ).toBeLessThanOrEqual(1)
-  expect(Math.abs(portraitBox.width - portraitBox.height)).toBeLessThanOrEqual(1)
+  const conceptProfile = await page.locator('[data-character-concept="profile"]').count()
+  if (conceptProfile === 0) {
+    expect(
+      Math.abs(portraitBox.y + portraitBox.height / 2 - identityBox.y - identityBox.height / 2),
+    ).toBeLessThanOrEqual(1)
+    expect(Math.abs(portraitBox.width - portraitBox.height)).toBeLessThanOrEqual(1)
+  } else {
+    // The approved concept profile uses the portrait as a full-bleed hero backdrop and layers the
+    // identity block over it. Verify the authored composition and viewport safety instead of the
+    // legacy square-card geometry.
+    expect(portraitBox.width).toBeGreaterThan(0)
+    expect(portraitBox.height).toBeGreaterThan(0)
+    expect(identityBox.y).toBeGreaterThanOrEqual(portraitBox.y - 1)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(
+      true,
+    )
+  }
 
   const launcher = page
     .getByTestId('primary-build-panel')

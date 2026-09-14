@@ -10,6 +10,7 @@
 }
 
 .surface h1 {
+  font: 500 clamp(1.8rem, 3.5vw, 3rem)/1.1 var(--av-font-display);
   margin: 0.68rem 0 0.62rem;
 }
 

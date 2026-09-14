@@ -408,6 +408,17 @@ describe('Battle Flow rich Text log', () => {
     expect(markup).not.toContain('Zei · R2')
   })
 
+  it('exposes Guarded when a live action line arrives as an untyped primary segment', () => {
+    const status: PresentedBattleLogAction = {
+      ...action('battle:10', 10, '2026-08-31T17:50:10.000Z'),
+      primary: [{ text: 'Guarded', role: 'text' }],
+    }
+    const markup = renderToStaticMarkup(<BattleLogTranscriptAction action={status} number={10} />)
+
+    expect(markup).toContain('data-battle-effect-name="Guarded"')
+    expect(markup).toContain('aria-label="Explain Guarded"')
+  })
+
   it('keeps movement abbreviated in the main transcript without changing recorded coordinates', () => {
     const moved = {
       ...movementEntry(2, 'character:zei'),

@@ -12,9 +12,9 @@
   border-radius: var(--av-radius-sm);
   background: rgba(255, 255, 255, 0.025);
   color: var(--av-text-muted);
-  font: 700 0.58rem/1 var(--av-font-mono);
+  font: 600 0.8rem/1.2 var(--av-font-body);
   letter-spacing: 0.06em;
-  text-transform: uppercase;
+  text-transform: none;
   cursor: pointer;
 }
 .trigger:hover,
@@ -47,10 +47,10 @@
   border-radius: var(--av-radius-sm);
   background: transparent;
   color: var(--av-text-muted);
-  font: 700 0.6rem/1 var(--av-font-mono);
+  font: 600 0.8rem/1.2 var(--av-font-body);
   letter-spacing: 0.05em;
   text-decoration: none;
-  text-transform: uppercase;
+  text-transform: none;
   cursor: pointer;
 }
 .menu > a:hover,
@@ -69,22 +69,17 @@
   padding: 0.35rem 0.35rem 0.5rem 0.8rem;
   border-bottom: 1px solid var(--av-border);
   color: var(--av-text-dim);
-  font: 650 0.55rem/1 var(--av-font-mono);
+  font: 650 0.55rem/1 var(--av-font-body);
   letter-spacing: 0.05em;
-  text-transform: uppercase;
+  text-transform: none;
 }
 .audio :global(button) {
-  min-height: 2.35rem;
+  min-height: 2.75rem;
 }
 @media (max-width: 560px) {
   .trigger {
-    min-height: 2.4rem;
+    min-height: 2.75rem;
     padding: 0.5rem 0.62rem;
-    font-size: 0.5rem;
-  }
-  .menu {
-    position: fixed;
-    top: 4.2rem;
-    right: 0.6rem;
+    font-size: 0.75rem;
   }
 }

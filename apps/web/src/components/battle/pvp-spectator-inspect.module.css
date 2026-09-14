@@ -1,5 +1,5 @@
 .battlefieldWrap {
-  grid-template-rows: auto minmax(0, 1fr) auto auto !important;
+  grid-template-rows: auto minmax(0, 1fr) auto !important;
 }
 
 .tile {

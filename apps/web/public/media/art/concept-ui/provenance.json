@@ -1,0 +1,288 @@
+{
+  "requestId": "ART-UI-029",
+  "status": "owner-review-candidate",
+  "authorization": "Owner approved the concepts and authorized generation and implementation for review; no production deployment",
+  "review": {
+    "anatomy": "inspected",
+    "unwantedText": "none",
+    "originality": "original generated artwork",
+    "runtimeDerivatives": "deterministic Sharp resize and WebP encoding"
+  },
+  "assets": [
+    {
+      "name": "world",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-13",
+        "master": "exec-ea3de485-8d2f-4617-a0b5-970be673ed54.png",
+        "sha256": "74e96d1c4f168da703d7f422f1f778b2848bedfe07c42ba338667d0196307593",
+        "promptSpec": "content/art-requests/ART-UI-029-approved-concept-production.md",
+        "reference": "approved concept 01 — Character Profile",
+        "retention": "Original generated source retained with the conversation"
+      },
+      "runtime": [
+        {
+          "path": "/media/art/concept-ui/world-v01.webp",
+          "width": 1536,
+          "height": 1024,
+          "bytes": 217380,
+          "sha256": "bfc77e8087201bce97247537799abafb948f46a736811fa0ed00f069f4a2b9b2"
+        },
+        {
+          "path": "/media/art/concept-ui/world-mobile-v01.webp",
+          "width": 768,
+          "height": 1024,
+          "bytes": 79968,
+          "sha256": "480cbd4a2468957a196e64ed521f2d50c8a6ab126025c1a8cd90f55ad442ec0d"
+        }
+      ]
+    },
+    {
+      "name": "training",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-13",
+        "master": "exec-7654a765-bf1b-46aa-8e69-66bdc88787b7.png",
+        "sha256": "4ea84a4732dea4ece613402441dec152365769ccceba29fe42fc0f169e00f127",
+        "promptSpec": "content/art-requests/ART-UI-029-approved-concept-production.md",
+        "reference": "approved concept 01 — Character Profile",
+        "retention": "Original generated source retained with the conversation"
+      },
+      "runtime": [
+        {
+          "path": "/media/art/concept-ui/training-v01.webp",
+          "width": 1536,
+          "height": 1024,
+          "bytes": 350274,
+          "sha256": "1b761991bf46d798cf63edeeceaa45220a53961f309544e89198552c011ac73a"
+        }
+      ]
+    },
+    {
+      "name": "battle-hall",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-13",
+        "master": "exec-618adfe8-2c73-41ed-aaf8-a8f3e5f30180.png",
+        "sha256": "7527f56bb5d06f8d8bfea2c3b06651f165db35e16445e5d361e30f4ce6891a18",
+        "promptSpec": "content/art-requests/ART-UI-029-approved-concept-production.md",
+        "reference": "approved concept 01 — Character Profile",
+        "retention": "Original generated source retained with the conversation"
+      },
+      "runtime": [
+        {
+          "path": "/media/art/concept-ui/battle-hall-v01.webp",
+          "width": 1536,
+          "height": 1024,
+          "bytes": 295560,
+          "sha256": "42e101e84064cf6ce772ca3dbd78ff5c52e651ca1f3c555d2eb89da0d621c4d8"
+        }
+      ]
+    },
+    {
+      "name": "archive",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-13",
+        "master": "exec-bdc6d3dd-0e8b-4084-b42a-ffd44abcecd5.png",
+        "sha256": "58bbca3751fda90f3b6090ef77edb4d11943067a13138526f54d49cbea2b11bb",
+        "promptSpec": "content/art-requests/ART-UI-029-approved-concept-production.md",
+        "reference": "approved concept 01 — Character Profile",
+        "retention": "Original generated source retained with the conversation"
+      },
+      "runtime": [
+        {
+          "path": "/media/art/concept-ui/archive-v01.webp",
+          "width": 1536,
+          "height": 1024,
+          "bytes": 174546,
+          "sha256": "45c5a454a4e51325a8b73a6d68e64be0fe60c882a14ac2de21c5b3defaf798a5"
+        }
+      ]
+    },
+    {
+      "name": "portrait-01",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-13",
+        "master": "exec-70985cbe-4ef9-405e-bfe9-eef94dde8424.png",
+        "sha256": "2ef7db402d596f240e89e65e367da7a63acd3be910b3bbcf05476761acaabf73",
+        "promptSpec": "content/art-requests/ART-UI-029-approved-concept-production.md",
+        "reference": "approved concept 01 — Character Profile",
+        "retention": "Original generated source retained with the conversation"
+      },
+      "runtime": [
+        {
+          "path": "/media/art/concept-ui/portrait-01-v01.webp",
+          "width": 768,
+          "height": 1152,
+          "bytes": 190924,
+          "sha256": "1a71aecf0f151326f012ac13ca72dd3d8ecc8b456c6e186dbf6d7548fe83b77c"
+        }
+      ]
+    },
+    {
+      "name": "portrait-02",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-13",
+        "master": "exec-21c17cba-3bf6-4f86-92a1-1c2903ac7091.png",
+        "sha256": "9180bf915016037c7d85bbcc4a6436514f378cd25b371d78f1904d28c23aea5a",
+        "promptSpec": "content/art-requests/ART-UI-029-approved-concept-production.md",
+        "reference": "approved concept 01 — Character Profile",
+        "retention": "Original generated source retained with the conversation"
+      },
+      "runtime": [
+        {
+          "path": "/media/art/concept-ui/portrait-02-v01.webp",
+          "width": 768,
+          "height": 1152,
+          "bytes": 169996,
+          "sha256": "4b2d51520f1f8feb5bd6e5c875e88ed5ea83f14e34767e43ea1ddd7c55ca115b"
+        }
+      ]
+    },
+    {
+      "name": "portrait-03",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-13",
+        "master": "exec-955e3b8d-08d9-42e3-a103-10e4ae0d1df1.png",
+        "sha256": "abf9bb54cc41159ac2442be33f6b7e1c9ec8c2687cca33952e90f8dd90a31154",
+        "promptSpec": "content/art-requests/ART-UI-029-approved-concept-production.md",
+        "reference": "approved concept 01 — Character Profile",
+        "retention": "Original generated source retained with the conversation"
+      },
+      "runtime": [
+        {
+          "path": "/media/art/concept-ui/portrait-03-v01.webp",
+          "width": 768,
+          "height": 1152,
+          "bytes": 151472,
+          "sha256": "1201701f2461f409fcc87accd38a9faee6085490e0a5a0e0c7249b609ba65ead"
+        }
+      ]
+    },
+    {
+      "name": "portrait-04",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-13",
+        "master": "exec-dfdf5b31-17c7-459d-bf0b-6401746e22b5.png",
+        "sha256": "06987c3785f5f1062683f66d305e6559ec81439ce5f4d0a27eaeb1fa46d605b4",
+        "promptSpec": "content/art-requests/ART-UI-029-approved-concept-production.md",
+        "reference": "approved concept 01 — Character Profile",
+        "retention": "Original generated source retained with the conversation"
+      },
+      "runtime": [
+        {
+          "path": "/media/art/concept-ui/portrait-04-v01.webp",
+          "width": 768,
+          "height": 1152,
+          "bytes": 156230,
+          "sha256": "9797b908ac2da2f28b79150c54e9e8359203aa13903242e55e8ce591a1af5e41"
+        }
+      ]
+    },
+    {
+      "name": "skill-runeblade.aether-cut",
+      "skillId": "runeblade.aether-cut",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-13",
+        "master": "exec-f6c579d6-c503-41bd-ba9d-8a84d277f934.png",
+        "sha256": "091dd5000ec410ba7f079b0198084d86ce05f684a250c34f52d3c4138560b125",
+        "promptSpec": "content/art-requests/ART-UI-029-approved-concept-production.md",
+        "reference": "approved concept 01 — Character Profile",
+        "retention": "Original generated source retained with the conversation"
+      },
+      "runtime": [
+        {
+          "path": "/media/art/concept-ui/skill-runeblade-aether-cut-v01.webp",
+          "width": 768,
+          "height": 512,
+          "bytes": 117234,
+          "sha256": "36f97c49d50826b824c3892a63f0d11e03028e9be86c93d9af2c9cc981b657a1"
+        }
+      ]
+    },
+    {
+      "name": "skill-runeblade.sigil-brand",
+      "skillId": "runeblade.sigil-brand",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-13",
+        "master": "exec-5f223158-fd00-46b3-b6c9-7cbfca95f989.png",
+        "sha256": "17e4132b4cff86db38573d3a2912dbc3be884e2a0894c50c1fa702d096024d45",
+        "promptSpec": "content/art-requests/ART-UI-029-approved-concept-production.md",
+        "reference": "approved concept 01 — Character Profile",
+        "retention": "Original generated source retained with the conversation"
+      },
+      "runtime": [
+        {
+          "path": "/media/art/concept-ui/skill-runeblade-sigil-brand-v01.webp",
+          "width": 768,
+          "height": 512,
+          "bytes": 108614,
+          "sha256": "82e10d9bf165ae40880e467e0da200f0b4603a6baef5d4d197f689b52d6aed07"
+        }
+      ]
+    },
+    {
+      "name": "skill-lifebinder.mend",
+      "skillId": "lifebinder.mend",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-13",
+        "master": "exec-d1dd6a75-e7a9-440e-9f94-87b4566cc188.png",
+        "sha256": "ea6e5f8a7a2ef2d69cf04dfaf08b1ea4550f3bb0d63ed0be61eb823334818515",
+        "promptSpec": "content/art-requests/ART-UI-029-approved-concept-production.md",
+        "reference": "approved concept 01 — Character Profile",
+        "retention": "Original generated source retained with the conversation"
+      },
+      "runtime": [
+        {
+          "path": "/media/art/concept-ui/skill-lifebinder-mend-v01.webp",
+          "width": 768,
+          "height": 512,
+          "bytes": 102610,
+          "sha256": "68005981af06b16172aad1aee5430ba96f746d4cd38f23637bcdaa1226517598"
+        }
+      ]
+    },
+    {
+      "name": "skill-lifebinder.renew",
+      "skillId": "lifebinder.renew",
+      "source": {
+        "method": "generated",
+        "provider": "OpenAI image generation",
+        "createdAt": "2026-09-13",
+        "master": "exec-44554d5b-d0c8-421d-af65-e84d40a45a2a.png",
+        "sha256": "7e54af928ed401e4f240fd3819940c2ea877c9e286de8ae464c064df0a115c38",
+        "promptSpec": "content/art-requests/ART-UI-029-approved-concept-production.md",
+        "reference": "approved concept 01 — Character Profile",
+        "retention": "Original generated source retained with the conversation"
+      },
+      "runtime": [
+        {
+          "path": "/media/art/concept-ui/skill-lifebinder-renew-v01.webp",
+          "width": 768,
+          "height": 512,
+          "bytes": 107780,
+          "sha256": "4c82c18b60bd884d31002e62697729e2f13375902139548a52cfc5adc8ffab44"
+        }
+      ]
+    }
+  ]
+}
