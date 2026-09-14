@@ -1,8 +1,5 @@
 import type { CombatActionSourceType } from './actions'
-import {
-  assertNever,
-  type CombatActionSourceKind,
-} from './combat-kernel-types'
+import { assertNever, type CombatActionSourceKind } from './combat-kernel-types'
 
 export function canonicalCombatActionSourceKind(
   sourceType: CombatActionSourceType,
