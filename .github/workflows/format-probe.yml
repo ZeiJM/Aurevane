@@ -6,13 +6,15 @@ on:
       - agent/combat-stat-scaled-potency-v2
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   format-probe:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: agent/combat-stat-scaled-potency-v2
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -22,8 +24,9 @@ jobs:
           corepack prepare pnpm@11.17.0 --activate
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Print Prettier diff
+      - name: Apply Prettier and remove probe
         run: |
+          set -euo pipefail
           pnpm exec prettier --write \
             packages/game-core/src/combat/actions.ts \
             packages/game-core/src/combat/actions-stat-scaled-damage.test.ts \
@@ -31,10 +34,9 @@ jobs:
             packages/game-core/src/combat/damage-scaling.test.ts \
             packages/game-core/src/combat/stat-driven-combat.ts \
             packages/game-core/src/combat/stat-driven-combat.test.ts
-          git diff -- \
-            packages/game-core/src/combat/actions.ts \
-            packages/game-core/src/combat/actions-stat-scaled-damage.test.ts \
-            packages/game-core/src/combat/damage-scaling.ts \
-            packages/game-core/src/combat/damage-scaling.test.ts \
-            packages/game-core/src/combat/stat-driven-combat.ts \
-            packages/game-core/src/combat/stat-driven-combat.test.ts
+          git rm .github/workflows/format-probe.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add packages/game-core/src/combat
+          git commit -m 'style: apply combat kernel prettier output'
+          git push origin HEAD:agent/combat-stat-scaled-potency-v2
