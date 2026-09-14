@@ -1,0 +1,94 @@
+name: K2 Live Snapshot Patch
+
+on:
+  push:
+    branches:
+      - agent/combat-stat-scaled-potency-v2
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/combat-stat-scaled-potency-v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Apply live stat snapshot propagation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          service = Path('apps/web/src/server/battle/battle-session-service.ts')
+          text = service.read_text()
+          marker = "const PV1F_RECRUIT_MOVEMENT_UNITS = 10\n"
+          replacement = """const PV1F_RECRUIT_MOVEMENT_UNITS = 10
+          const PV1F_RECRUIT_OFFENSIVE_BENCHMARK = calculateDerivedStats({
+            attributes: {
+              might: 5,
+              finesse: 5,
+              vitality: 5,
+              agility: 5,
+              intellect: 5,
+              resolve: 5,
+            },
+            level: 1,
+          })
+          """
+          if marker not in text:
+              raise SystemExit('Recruit benchmark insertion marker not found')
+          text = text.replace(marker, replacement, 1)
+
+          marker = """    armor: 20,
+              ward: 20,
+              jump: 1,
+          """
+          replacement = """    armor: 20,
+              ward: 20,
+              jump: 1,
+              physicalPower: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.physicalPower.value,
+              mysticPower: PV1F_RECRUIT_OFFENSIVE_BENCHMARK.stats.mysticPower.value,
+          """
+          if marker not in text:
+              raise SystemExit('Recruit profile insertion marker not found')
+          service.write_text(text.replace(marker, replacement, 1))
+
+          tests = Path('apps/web/src/server/battle/battle-session-service.test.ts')
+          text = tests.read_text()
+          old = "expect(result.snapshot.statBridge.rulesVersion).toBe(1)"
+          if old not in text:
+              raise SystemExit('Stat bridge rules expectation not found')
+          text = text.replace(old, "expect(result.snapshot.statBridge.rulesVersion).toBe(2)", 1)
+
+          marker = """          defenseRating: 20,
+                    rulesVersion: 1,
+          """
+          replacement = """          defenseRating: 20,
+                    rulesVersion: 2,
+          """
+          if marker not in text:
+              raise SystemExit('Attack event rules expectation not found')
+          tests.write_text(text.replace(marker, replacement, 1))
+          PY
+
+          pnpm exec prettier --write \
+            apps/web/src/server/battle/battle-session-service.ts \
+            apps/web/src/server/battle/battle-session-service.test.ts
+
+          git rm .github/workflows/k2-live-snapshot-patch.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/web/src/server/battle/battle-session-service.ts \
+                  apps/web/src/server/battle/battle-session-service.test.ts
+          git commit -m 'feat: propagate offensive ratings into live battles'
+          git push origin HEAD:agent/combat-stat-scaled-potency-v2
