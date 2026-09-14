@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { expect, test } from '@playwright/test'
 
-import { getFoundationDisciplineImageAsset } from '../src/media/disciplines'
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
 function uniqueCharacterName(): string {
@@ -66,6 +65,7 @@ test('Profile equips a mastered Secondary with independent attunement authority'
   const maxHp = page.getByTestId('derived-stat-maxHp').locator('strong')
   const maxHpBeforeSecondary = await maxHp.innerText()
   await expect(launcher).toHaveText('Discipline Management')
+  await expect(launcher.locator('img')).toBeHidden()
   await expect(primaryDisciplineChip).toHaveText('Vanguard')
 
   await launcher.click()
@@ -106,33 +106,9 @@ test('Profile equips a mastered Secondary with independent attunement authority'
     'Aetherist is now the committed Secondary Discipline.',
   )
   await expect(launcher).toHaveText('Discipline Management')
+  await expect(launcher.locator('img')).toBeHidden()
   await expect(primaryDisciplineChip).toHaveText('Vanguard')
   await expect(secondaryDisciplineChip).toHaveText('Aetherist')
-  const triggerSigils = launcher.locator('img')
-  await expect(triggerSigils).toHaveCount(2)
-  for (const [index, disciplineId] of ['vanguard', 'aetherist'].entries()) {
-    const asset = getFoundationDisciplineImageAsset(disciplineId)
-    if (asset?.status !== 'approved' || !asset.src) {
-      throw new Error(`${disciplineId} must have approved Discipline artwork.`)
-    }
-    const sigil = triggerSigils.nth(index)
-    await expect(sigil).toHaveAttribute('src', asset.src)
-    await expect(sigil).toBeVisible()
-    await expect
-      .poll(() =>
-        sigil.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0),
-      )
-      .toBe(true)
-  }
-  const primarySigilBox = await triggerSigils.nth(0).boundingBox()
-  const secondarySigilBox = await triggerSigils.nth(1).boundingBox()
-  if (!primarySigilBox || !secondarySigilBox) {
-    throw new Error('The committed Discipline sigils are unavailable for layout verification.')
-  }
-  expect(secondarySigilBox.x - (primarySigilBox.x + primarySigilBox.width)).toBeGreaterThanOrEqual(
-    3,
-  )
-  expect(Math.abs(primarySigilBox.height - secondarySigilBox.height)).toBeLessThanOrEqual(1)
   await expect(maxHp).toHaveText(maxHpBeforeSecondary)
   await expect(secondary).toBeEnabled()
   await expect(primary).toBeEnabled()
@@ -196,9 +172,6 @@ test('mobile Profile balances the portrait and centers Discipline Management', a
     ).toBeLessThanOrEqual(1)
     expect(Math.abs(portraitBox.width - portraitBox.height)).toBeLessThanOrEqual(1)
   } else {
-    // The approved concept profile uses the portrait as a full-bleed hero backdrop and layers the
-    // identity block over it. Verify the authored composition and viewport safety instead of the
-    // legacy square-card geometry.
     expect(portraitBox.width).toBeGreaterThan(0)
     expect(portraitBox.height).toBeGreaterThan(0)
     expect(identityBox.y).toBeGreaterThanOrEqual(portraitBox.y - 1)
