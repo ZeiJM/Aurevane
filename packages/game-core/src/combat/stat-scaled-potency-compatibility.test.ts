@@ -35,7 +35,10 @@ describe('P4.K2 behavior-preserving scaling migration', () => {
     expect(essences.length).toBeGreaterThan(0)
 
     const authoredDamage = essences.flatMap((essence) =>
-      damageEffects(essence.skill.effects).map((effect) => ({ essenceId: essence.essenceId, effect })),
+      damageEffects(essence.skill.effects).map((effect) => ({
+        essenceId: essence.essenceId,
+        effect,
+      })),
     )
     expect(authoredDamage.length).toBeGreaterThan(0)
     expect(
