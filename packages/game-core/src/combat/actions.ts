@@ -6,6 +6,7 @@ import {
 } from './combat-recovery'
 import {
   CURRENT_POISON_DAMAGE,
+  advanceCurrentPoisonMovement,
   applyCurrentPoisonState,
   currentPoisonEndTurnDamage,
   currentPoisonInstance,
@@ -2471,6 +2472,7 @@ function applyDisplacement(
   let current = { ...from }
   let stopReason: DisplacementFailureReason | null = null
   let movedTiles = 0
+  const movementEffectEvents: CombatResolutionEvent[] = []
 
   for (let index = 0; index < effect.distance; index += 1) {
     // Pull follows the caster at each step, rather than overshooting along its original axis.
@@ -2519,6 +2521,14 @@ function applyDisplacement(
     }
     current = to
     movedTiles += 1
+
+    const movementEffects = resolveCombatMovementStepEffects(nextState, recipientId, content)
+    nextState = movementEffects.state
+    movementEffectEvents.push(...movementEffects.events)
+    if (getCombatant(nextState.tactical.battle, recipientId).hp <= 0) {
+      stopReason = 'target-defeated'
+      break
+    }
   }
 
   if (movedTiles === 0) {
@@ -2559,9 +2569,52 @@ function applyDisplacement(
         from,
         to: { ...current },
       },
+      ...movementEffectEvents,
       ...marked.events,
     ],
   }
+}
+
+export function resolveCombatMovementStepEffects(
+  state: CombatEncounterState,
+  combatantId: string,
+  content: CombatContentCatalog,
+): CombatResolutionTransition {
+  const poison = currentPoisonInstance(state, combatantId)
+  const advanced = advanceCurrentPoisonMovement(state, combatantId, 1)
+  if (!poison || advanced.triggeredTicks === 0) return { state: advanced.state, events: [] }
+
+  let nextState = advanced.state
+  const events: CombatResolutionEvent[] = []
+  for (let index = 0; index < advanced.triggeredTicks; index += 1) {
+    const target = getCombatant(nextState.tactical.battle, combatantId)
+    if (target.hp <= 0) break
+    const hpAfter = Math.max(0, target.hp - CURRENT_POISON_DAMAGE)
+    nextState = withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
+    events.push({
+      event: 'damage_applied',
+      actionId: 'status.poison.current.v1',
+      sourceCombatantId: poison.sourceCombatantId,
+      targetCombatantId: combatantId,
+      amount: target.hp - hpAfter,
+      hpBefore: target.hp,
+      hpAfter,
+    })
+
+    if (hpAfter < target.hp) {
+      const revealed = removeGameplayTags(
+        nextState,
+        poison.sourceCombatantId,
+        combatantId,
+        'status.poison.current.v1',
+        ['Invisible'],
+        content,
+      )
+      nextState = revealed.state
+      events.push(...revealed.events)
+    }
+  }
+  return { state: nextState, events }
 }
 
 function scheduleAfterRecovery(
