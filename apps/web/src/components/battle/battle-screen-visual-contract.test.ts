@@ -89,6 +89,9 @@ describe('PvP-first shared battle visual contract', () => {
     expect(rails).toContain(
       ".stack[data-count='1'] .card { grid-template-columns: minmax(0, 1fr); grid-template-rows: 2rem minmax(0, 1fr) auto;",
     )
+    expect(rails).toContain(
+      ".stack[data-count='1'] { grid-template-rows: minmax(0, 1fr); height: 100%;",
+    )
     expect(rails).toContain('grid-template-rows: repeat(3, minmax(0, 1fr));')
 
     const scale = compact(readLocalFile('battle-pvp-scale-authority.module.css'))

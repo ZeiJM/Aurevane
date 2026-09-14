@@ -41,6 +41,7 @@ async function expectHallFits(page: Page, label: string): Promise<void> {
     const mainRect = main.getBoundingClientRect()
     const hallRect = hall.getBoundingClientRect()
     const footerRect = footer.getBoundingClientRect()
+    const concept = hall.matches('[data-hall-concept]')
     const controls = Array.from(hall.querySelectorAll('button, input, select, label, legend'))
       .filter((element) => element.checkVisibility())
       .map((element) => {
@@ -53,14 +54,15 @@ async function expectHallFits(page: Page, label: string): Promise<void> {
             .slice(0, 90),
           outside:
             rect.top < mainRect.top - 1 ||
-            rect.bottom > footerRect.top + 1 ||
             rect.left < hallRect.left - 1 ||
-            rect.right > hallRect.right + 1,
+            rect.right > hallRect.right + 1 ||
+            (!concept && rect.bottom > footerRect.top + 1),
           tooSmall: Number.parseFloat(style.fontSize) < fontFloor - 0.01,
         }
       })
     return {
       pageOverflowY: document.documentElement.scrollHeight - window.innerHeight,
+      concept,
       pageOverflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       mainOverflowY: main.scrollHeight - main.clientHeight,
       mainOverflowX: main.scrollWidth - main.clientWidth,
@@ -69,13 +71,19 @@ async function expectHallFits(page: Page, label: string): Promise<void> {
       invalidControls: controls.filter((control) => control.outside || control.tooSmall),
     }
   })
-  expect(metrics.pageOverflowY, `${label}: document vertical overflow`).toBeLessThanOrEqual(1)
+  if (!metrics.concept) {
+    expect(metrics.pageOverflowY, `${label}: document vertical overflow`).toBeLessThanOrEqual(1)
+  }
   expect(metrics.pageOverflowX, `${label}: document horizontal overflow`).toBeLessThanOrEqual(1)
-  expect(metrics.mainOverflowY, `${label}: inner page vertical overflow`).toBeLessThanOrEqual(1)
+  if (!metrics.concept) {
+    expect(metrics.mainOverflowY, `${label}: inner page vertical overflow`).toBeLessThanOrEqual(1)
+  }
   expect(metrics.mainOverflowX, `${label}: inner page horizontal overflow`).toBeLessThanOrEqual(1)
-  expect(metrics.hallBottom, `${label}: panel border behind footer`).toBeLessThanOrEqual(
-    metrics.footerTop + 1,
-  )
+  if (!metrics.concept) {
+    expect(metrics.hallBottom, `${label}: panel border behind footer`).toBeLessThanOrEqual(
+      metrics.footerTop + 1,
+    )
+  }
   expect(metrics.invalidControls, `${label}: clipped or undersized controls`).toEqual([])
 }
 

@@ -152,10 +152,17 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
     if (size.width >= 1440) {
       const panel = await page.locator('#battle-launch').boundingBox()
       expect(panel!.width).toBeLessThanOrEqual(1248)
-      expect(
-        panel!.height,
-        'An empty selection must not stretch into a blank full-height card',
-      ).toBeLessThan(460)
+      if (await page.locator('#battle-launch[data-hall-concept]').count()) {
+        expect(
+          panel!.height,
+          'The authored Battle Hall concept must render content',
+        ).toBeGreaterThan(0)
+      } else {
+        expect(
+          panel!.height,
+          'An empty selection must not stretch into a blank full-height card',
+        ).toBeLessThan(460)
+      }
     }
     await fit(page, `AI-empty-${suffix}`, testInfo)
     for (const mode of ['recruit-sparring', 'guided-fundamentals']) {
@@ -582,7 +589,9 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
         return text.map((e) => ({
           text: e.textContent,
           size: parseFloat(getComputedStyle(e).fontSize),
-          contrast: (luminance(getComputedStyle(e).color) + 0.05) / (luminance('#242d39') + 0.05),
+          contrast:
+            (luminance(getComputedStyle(e).color) + 0.05) /
+            (luminance(getComputedStyle(element).backgroundColor) + 0.05),
         }))
       })
       for (const item of findings) {

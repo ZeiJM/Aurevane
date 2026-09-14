@@ -290,6 +290,7 @@
   }
   :global(main[data-unified-battle='true'][data-battle-layout='map-first']) .stack[data-count='1'] {
     grid-template-rows: minmax(0, 1fr);
+    height: 100%;
   }
   :global(main[data-unified-battle='true'][data-battle-layout='map-first'])
     .stack[data-count='1']

@@ -92,7 +92,10 @@ function effectMetadata(
     role === 'outcome' &&
     (item.tone === 'benefit' || item.tone === 'warning')
   const namedGuardedEffect =
-    /\bguarded\b/iu.test(text) && role !== 'actor' && role !== 'target'
+    /\bguarded\b/iu.test(text) &&
+    role !== 'actor' &&
+    role !== 'target' &&
+    (lineKind === 'secondary' || action.kind === 'status')
 
   if (!standaloneStatus && !consequenceEffect && !namedGuardedEffect) return null
 

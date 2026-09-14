@@ -437,6 +437,52 @@
     height: var(--rail-portrait-size) !important;
     aspect-ratio: 1 !important;
   }
+
+  /* A lone combatant uses the full rail for a portrait-forward card. Keep this rule in the
+     shared scale authority so the geometry survives the later PvP/PvE bridge selectors. */
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind][data-battle-layout='map-first']
+      [data-unified-combatant-rail]
+      > div[data-count='1']
+  ) {
+    grid-template-rows: minmax(0, 1fr) !important;
+  }
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind][data-battle-layout='map-first']
+      [data-unified-combatant-rail]
+      > div[data-count='1']
+      > article
+  ) {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: 2rem minmax(0, 1fr) auto !important;
+    height: 100% !important;
+    align-self: stretch !important;
+  }
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind][data-battle-layout='map-first']
+      [data-unified-combatant-rail]
+      > div[data-count='1']
+      > article
+      button[data-desktop-inspect-combatant]
+  ) {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    width: 100% !important;
+    height: 100% !important;
+    aspect-ratio: auto !important;
+  }
+  :global(
+    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind][data-battle-layout='map-first']
+      [data-unified-combatant-rail]
+      > div[data-count='1']
+      > article
+      > section
+  ) {
+    grid-column: 1 !important;
+    grid-row: 3 !important;
+    border-top: 1px solid var(--av-border);
+    border-left: 0;
+  }
   :global(
     main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind][data-battle-layout='map-first']
       [data-unified-command-deck]
@@ -633,84 +679,5 @@
   ) {
     padding: 0.3rem 0.35rem !important;
     font-size: 0.625rem !important;
-  }
-}
-
-/* A lone combatant uses the full rail for a portrait-forward card. Keep this rule in the shared
-   scale authority so the geometry survives the later PvP/PvE bridge selectors. */
-@media (min-width: 821px) {
-  :global(
-    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind][data-battle-layout='map-first']
-      [data-unified-combatant-rail]
-      > div[data-count='1']
-  ) {
-    grid-template-rows: minmax(0, 1fr) !important;
-  }
-  :global(
-    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind][data-battle-layout='map-first']
-      [data-unified-combatant-rail]
-      > div[data-count='1']
-      > article
-  ) {
-    grid-template-columns: minmax(0, 1fr) !important;
-    grid-template-rows: 2rem minmax(0, 1fr) auto !important;
-    height: 100% !important;
-    align-self: stretch !important;
-  }
-  :global(
-    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind][data-battle-layout='map-first']
-      [data-unified-combatant-rail]
-      > div[data-count='1']
-      > article
-      button[data-desktop-inspect-combatant]
-  ) {
-    grid-column: 1 !important;
-    grid-row: 2 !important;
-    width: 100% !important;
-    height: 100% !important;
-    aspect-ratio: auto !important;
-  }
-  :global(
-    main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind][data-battle-layout='map-first']
-      [data-unified-combatant-rail]
-      > div[data-count='1']
-      > article
-      > section
-  ) {
-    grid-column: 1 !important;
-    grid-row: 3 !important;
-    border-top: 1px solid var(--av-border);
-    border-left: 0;
-  }
-}
-
-/* Keep the single-card geometry available to portal-mounted battle rails as well. */
-@media (min-width: 821px) {
-  :global([data-unified-combatant-rail] > div[data-count='1']) {
-    grid-template-rows: minmax(0, 1fr) !important;
-  }
-  :global([data-unified-combatant-rail] > div[data-count='1'] > article) {
-    grid-template-columns: minmax(0, 1fr) !important;
-    grid-template-rows: 2rem minmax(0, 1fr) auto !important;
-    height: 100% !important;
-    align-self: stretch !important;
-  }
-  :global(
-    [data-unified-combatant-rail]
-      > div[data-count='1']
-      > article
-      button[data-desktop-inspect-combatant]
-  ) {
-    grid-column: 1 !important;
-    grid-row: 2 !important;
-    width: 100% !important;
-    height: 100% !important;
-    aspect-ratio: auto !important;
-  }
-  :global([data-unified-combatant-rail] > div[data-count='1'] > article > section) {
-    grid-column: 1 !important;
-    grid-row: 3 !important;
-    border-top: 1px solid var(--av-border);
-    border-left: 0;
   }
 }

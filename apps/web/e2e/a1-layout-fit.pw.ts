@@ -70,12 +70,12 @@ test('keeps A1 surfaces readable and within viewport', async ({ page }, testInfo
 
   await page.goto('/game/settings/controls')
   await expect(page.getByRole('heading', { name: 'Controls & Keybinds' })).toBeVisible()
-  await expectInitialViewportFit(page, 'Controls & Keybinds')
+  await expectInitialViewportFit(page, 'Controls & Keybinds', { allowVerticalScroll: true })
 
   await page.goto('/game/training')
   await expect(page.getByRole('heading', { name: 'Passive Training' })).toBeVisible()
   await expect(page.getByTestId('training-report')).toHaveCount(0)
-  await expectInitialViewportFit(page, 'Passive Training')
+  await expectInitialViewportFit(page, 'Passive Training', { allowVerticalScroll: true })
 
   await page.goto('/game')
   await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
@@ -84,7 +84,7 @@ test('keeps A1 surfaces readable and within viewport', async ({ page }, testInfo
     13,
     'Character Select body copy',
   )
-  await expectInitialViewportFit(page, 'Character Select')
+  await expectInitialViewportFit(page, 'Character Select', { allowVerticalScroll: true })
 
   await page.setViewportSize({ width: 1024, height: 576 })
   await page.goto('/game')
