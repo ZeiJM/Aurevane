@@ -1,0 +1,66 @@
+name: Verify Poison edge tests
+
+on:
+  push:
+    branches:
+      - agent/combat-overhaul-task4-poison-edges
+    paths:
+      - .github/agent-poison-edge-trigger
+
+permissions:
+  contents: write
+
+concurrency:
+  group: agent-poison-edge-tests
+  cancel-in-progress: false
+
+jobs:
+  verify-and-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact isolated revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install pinned dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Normalize Poison edge test formatting
+        run: pnpm exec prettier --write packages/game-core/src/combat/combat-poison-edges.test.ts
+
+      - name: Run focused Poison tests
+        run: pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-poison-edges.test.ts src/combat/combat-poison-voluntary-movement.test.ts src/combat/combat-poison-movement.test.ts src/combat/combat-dot-rework.test.ts
+
+      - name: Run repository quality gates
+        run: pnpm check
+
+      - name: Verify patch cleanliness
+        run: git diff --check
+
+      - name: Commit verified formatted test
+        env:
+          EXPECTED_HEAD: ${{ github.sha }}
+        run: |
+          branch=agent/combat-overhaul-task4-poison-edges
+          git fetch origin "$branch" main
+          test "$(git rev-parse "origin/$branch")" = "$EXPECTED_HEAD"
+          git merge-base --is-ancestor origin/main HEAD
+          git rm .github/workflows/agent-poison-edge-tests.yml .github/agent-poison-edge-trigger
+          git add packages/game-core/src/combat/combat-poison-edges.test.ts
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'test: verify poison cleanse revert and lethal turn end'
+          git push origin "HEAD:refs/heads/$branch"
