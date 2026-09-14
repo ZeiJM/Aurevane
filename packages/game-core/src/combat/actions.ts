@@ -4,6 +4,7 @@ import {
   replaceRecoverySchedule,
   clearDefeatedRecovery,
 } from './combat-recovery'
+import { applyCurrentPoisonState } from './combat-dots'
 import type { CombatEffectState } from './combat-effect-state'
 import {
   hasGameplayTag,
@@ -107,6 +108,7 @@ export type CombatEffectDefinition =
       direction?: 'push' | 'pull'
       distance: number
     }
+  | { type: 'poison'; recipient: CombatEffectRecipient }
   | { type: 'healing'; recipient: CombatEffectRecipient; amount: number; ticks?: number }
   | { type: 'return-to-turn-start'; recipient: 'actor' }
   | { type: 'remove-status'; recipient: CombatEffectRecipient; statusIds: readonly string[] }
@@ -1321,6 +1323,19 @@ function resolveActionEffects(
         const to = getPlacement(nextState.tactical, recipientId).position
         beforeValue = `${from.x},${from.y}`
         afterValue = `${to.x},${to.y}`
+      } else if (effect.type === 'poison') {
+        beforeValue =
+          before.effectState?.poison.some(
+            (instance) => instance.targetCombatantId === recipientId,
+          ) === true
+            ? 'active'
+            : 'none'
+        afterValue =
+          nextState.effectState?.poison.some(
+            (instance) => instance.targetCombatantId === recipientId,
+          ) === true
+            ? 'active'
+            : 'none'
       } else if (effect.type === 'remove-status') {
         beforeValue =
           getStatusRow(before, recipientId)
@@ -1380,6 +1395,12 @@ function applyEffect(
 ): CombatResolutionTransition {
   if (effect.type === 'displace')
     return applyDisplacement(state, actorId, recipientId, actionId, effect, content)
+  if (effect.type === 'poison') {
+    return {
+      state: applyCurrentPoisonState(state, actorId, recipientId, actionId),
+      events: [],
+    }
+  }
   if (effect.type === 'return-to-turn-start') {
     const from = getPlacement(state.tactical, actorId).position
     const to = state.turnOrigin!.position
@@ -2023,6 +2044,7 @@ function validateCombatActionDefinition(
         'return-to-turn-start',
         'create-terrain',
         'displace',
+        'poison',
       ],
       'effect type',
     )
