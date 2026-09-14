@@ -1,25 +1,26 @@
-name: Agent combat patch
+name: Agent combat verification
 
 on:
   push:
     branches:
       - agent/combat-effect-taxonomy-rework
     paths:
+      - .github/workflows/agent-combat-patch.yml
       - .github/agent-combat-patch-trigger
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  patch:
+  verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout feature branch
+      - name: Checkout exact feature revision
         uses: actions/checkout@v4
         with:
-          ref: agent/combat-effect-taxonomy-rework
-          fetch-depth: 0
+          ref: ${{ github.sha }}
+          persist-credentials: false
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -34,20 +35,57 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Apply Task 2 runtime patch
-        run: python .github/scripts/apply-agent-combat-patch.py
-
-      - name: Format changed TypeScript
-        run: pnpm exec prettier --write packages/game-core/src/combat/actions.ts packages/game-core/src/combat/combat-authoring-validation.ts
-
-      - name: Run focused Task 2 tests
-        run: pnpm --filter @aurevane/game-core test -- combat-displacement-tempo-rework.test.ts
-
-      - name: Commit patch
+      - name: Package source and focused test dependencies without credentials
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add packages/game-core/src/combat/actions.ts packages/game-core/src/combat/combat-authoring-validation.ts
-          git diff --cached --quiet && exit 0
-          git commit -m "feat: implement variable displacement and tempo movement"
-          git push origin HEAD:agent/combat-effect-taxonomy-rework
+          mkdir -p /tmp/combat-verification
+          git rev-parse HEAD > /tmp/combat-verification/source-revision.txt
+          git archive HEAD | gzip > /tmp/combat-verification/source.tar.gz
+          python - <<'PY'
+          from pathlib import Path
+          import tarfile
+          root = Path.cwd()
+          store = root / 'node_modules/.pnpm'
+          selected = set()
+          pending = []
+          roots = [root / 'node_modules', root / 'packages/game-core/node_modules', root / 'apps/web/node_modules']
+          for base in roots:
+              for name in ['vitest', 'typescript', 'prettier', 'react', 'react-dom', 'jsdom', '@testing-library/react', '@testing-library/jest-dom', '@testing-library/user-event']:
+                  target = (base / name).resolve()
+                  if target.is_relative_to(store):
+                      pending.append(store / target.relative_to(store).parts[0])
+          while pending:
+              package = pending.pop()
+              if package in selected:
+                  continue
+              selected.add(package)
+              for path in package.rglob('*'):
+                  if path.is_symlink():
+                      target = path.resolve()
+                      if target.is_relative_to(store):
+                          dep = store / target.relative_to(store).parts[0]
+                          if dep not in selected:
+                              pending.append(dep)
+          with tarfile.open('/tmp/combat-verification/test-dependencies.tar.gz', 'w:gz') as archive:
+              for package in sorted(selected):
+                  archive.add(package, arcname=str(package.relative_to(root)))
+              for base in roots:
+                  if not base.exists():
+                      continue
+                  for path in sorted(base.iterdir()):
+                      if path.name != '.pnpm':
+                          archive.add(path, arcname=str(path.relative_to(root)))
+              for path in sorted((root / 'packages').glob('*/node_modules')):
+                  if path not in roots:
+                      archive.add(path, arcname=str(path.relative_to(root)))
+          print(f'Packaged {len(selected)} dependency-store entries; no git directory or credentials included.')
+          PY
+
+      - name: Save isolated verification workspace
+        uses: actions/upload-artifact@v4
+        with:
+          name: combat-verification-workspace
+          path: /tmp/combat-verification/
+          retention-days: 1
+
+      - name: Run focused displacement and tempo tests
+        run: pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-displacement-tempo-rework.test.ts
