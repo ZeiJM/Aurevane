@@ -30,7 +30,9 @@ describe('P4.K2 behavior-preserving scaling migration', () => {
     )
     expect(authoredDamage.length).toBeGreaterThan(0)
     expect(
-      authoredDamage.filter(({ effect }) => Object.prototype.hasOwnProperty.call(effect, 'scaling')),
+      authoredDamage.filter(({ effect }) =>
+        Object.prototype.hasOwnProperty.call(effect, 'scaling'),
+      ),
     ).toEqual([])
   })
 
@@ -46,7 +48,9 @@ describe('P4.K2 behavior-preserving scaling migration', () => {
     )
     expect(authoredDamage.length).toBeGreaterThan(0)
     expect(
-      authoredDamage.filter(({ effect }) => Object.prototype.hasOwnProperty.call(effect, 'scaling')),
+      authoredDamage.filter(({ effect }) =>
+        Object.prototype.hasOwnProperty.call(effect, 'scaling'),
+      ),
     ).toEqual([])
   })
 
