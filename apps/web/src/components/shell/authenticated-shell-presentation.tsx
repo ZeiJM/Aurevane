@@ -4,9 +4,9 @@ import type { ReactNode } from 'react'
 import { StatusMark } from '@aurevane/ui'
 
 import { PvpBattleKeyInputAssist } from '@/components/battle/pvp-battle-key-input-assist'
-import railStyles from '@/components/public-information/public-header-rail.module.css'
 import { getImageAsset } from '@/media/registry'
 
+import railStyles from '../public-information/public-header-rail.module.css'
 import { AccountMenu } from './account-menu'
 import { GameRail, type GameRailProps } from './game-rail'
 import { OnlinePresenceLink } from './online-presence-link'
