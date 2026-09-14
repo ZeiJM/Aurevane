@@ -19,6 +19,7 @@ function tags(
   } as unknown as CombatActionDefinition)
 }
 
+// prettier-ignore
 describe('compact combat presentation tags', () => {
   it('derives canonical target, shape, recovery, elemental, terrain and copy labels', () => {
     expect(
