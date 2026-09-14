@@ -178,9 +178,7 @@ export function rulesetVersion(value: number): RulesetVersion {
   return positiveVersion<RulesetVersion>(value, 'Ruleset version')
 }
 
-export function createCombatTriggerGuard(
-  input: CreateCombatTriggerGuardInput,
-): CombatTriggerGuard {
+export function createCombatTriggerGuard(input: CreateCombatTriggerGuardInput): CombatTriggerGuard {
   const maxDepth = positiveSafeInteger(input.maxDepth ?? 8, 'Trigger max depth')
   const remainingReactionBudget = nonNegativeSafeInteger(
     input.reactionBudget ?? 32,
