@@ -14,6 +14,7 @@ import {
   type ActionDefinitionId,
   type BattleId,
   type CombatActionProvenance,
+  type CombatActionSourceKind,
   type CombatantId,
   type ContentVersion,
   type RulesetVersion,
@@ -131,6 +132,18 @@ describe('combat action provenance', () => {
         rulesetVersion: 1,
         sourceKind: 'discipline-skill',
         actionDefinitionId: ' skill.test',
+        actionVersion: 1,
+        sourceCombatantId: 'combatant-a',
+        controllerCombatantId: 'combatant-a',
+        triggerChainId: 'chain-a',
+      }),
+    ).toThrow(TypeError)
+
+    expect(() =>
+      createCombatActionProvenance({
+        rulesetVersion: 1,
+        sourceKind: 'arbitrary-script' as CombatActionSourceKind,
+        actionDefinitionId: 'skill.test',
         actionVersion: 1,
         sourceCombatantId: 'combatant-a',
         controllerCombatantId: 'combatant-a',
