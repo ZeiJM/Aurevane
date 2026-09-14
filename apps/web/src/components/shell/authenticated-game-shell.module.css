@@ -48,19 +48,6 @@
   align-items: center;
 }
 
-.backButton {
-  display: grid;
-  width: 2.75rem;
-  height: 2.75rem;
-  flex: 0 0 auto;
-  place-items: center;
-  border: 1px solid var(--av-border-strong);
-  border-radius: var(--av-radius-sm);
-  color: var(--av-brass-300);
-  background: transparent;
-  font-size: 1.15rem;
-}
-
 .headerLinks {
   display: flex;
   align-items: center;
@@ -201,7 +188,7 @@
 .screenPortrait {
   display: block;
   width: 3rem;
-  height: 3.5rem;
+  height: 3rem;
   flex: 0 0 auto;
   overflow: hidden;
   border: 1px solid var(--av-brass-500);
@@ -277,11 +264,11 @@
   display: flex;
   grid-column: 1 / -1;
   grid-row: 3;
-  min-height: 3.5rem;
+  min-height: 3.5rem !important;
   gap: 0.75rem;
   align-items: center;
-  justify-content: space-between;
-  padding: 0.35rem clamp(0.65rem, 1.8vw, 1.5rem) max(0.35rem, env(safe-area-inset-bottom));
+  justify-content: flex-start;
+  padding: 0.35rem clamp(0.65rem, 1.8vw, 1.5rem) max(0.35rem, env(safe-area-inset-bottom)) !important;
   border-top: 1px solid var(--av-border-strong);
 }
 
@@ -331,7 +318,7 @@
     border-bottom: 1px solid var(--av-border-strong);
   }
   .railNavigation {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     padding: 0;
   }
   .railLink {

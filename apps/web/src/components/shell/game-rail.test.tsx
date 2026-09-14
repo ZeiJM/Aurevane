@@ -17,15 +17,16 @@ function renderRail(props: Parameters<typeof GameRail>[0] = {}) {
 }
 
 describe('shared game rail', () => {
-  it('exposes all four real destinations and selected character identity', () => {
+  it('exposes the three primary destinations and selected character identity', () => {
     navigationState.pathname = '/game/character'
     const markup = renderRail({ character: { name: 'Aster', level: 12 } })
-    for (const href of ['/game/character', '/game/battle', '/game/training', '/game/online']) {
+    for (const href of ['/game/character', '/game/battle', '/game/training']) {
       expect(markup).toContain(`href="${href}"`)
     }
+    expect(markup).not.toContain('href="/game/online"')
+    expect(markup).not.toContain('Adventurers')
     expect(markup).toContain('aria-current="page"')
     expect(markup).toContain('Current character: Aster, Level 12')
-    expect(markup).toContain('Adventurers')
   })
 
   it.each([
@@ -37,7 +38,7 @@ describe('shared game rail', () => {
       activeSessionHref: href as Route,
       activeSessionLabel: label,
     })
-    expect(markup.match(/disabled=""/g)).toHaveLength(4)
+    expect(markup.match(/disabled=""/g)).toHaveLength(3)
     expect(markup).toContain(`href="${href}"`)
     expect(markup).toContain(label)
     expect(markup).not.toContain('href="/game/character"')

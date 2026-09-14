@@ -1,4 +1,4 @@
-import { Kicker, Surface } from '@aurevane/ui'
+import { Surface } from '@aurevane/ui'
 
 import { AurevaneImage } from '@/components/media/aurevane-image'
 import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
@@ -13,11 +13,7 @@ interface OfflineTrainingShellProps {
   trainingReport: TrainingReportCardData | null
 }
 
-export function OfflineTrainingShell({
-  characterName,
-  practicePlan,
-  trainingReport,
-}: OfflineTrainingShellProps) {
+export function OfflineTrainingShell({ practicePlan, trainingReport }: OfflineTrainingShellProps) {
   return (
     <AuthenticatedShellFrame
       sessionLabel="Passive Training"
@@ -33,19 +29,7 @@ export function OfflineTrainingShell({
           />
           <div className={styles.heroShade} aria-hidden="true" />
           <div className={styles.heroCopy}>
-            <Kicker marker="◇">Background progression</Kicker>
             <h1>Passive Training</h1>
-            <p>
-              Start a timed training block for {characterName}. The server tracks it whether you
-              stay signed in or go AFK; nothing begins until you choose a duration.
-            </p>
-          </div>
-          <div className={styles.heroRule}>
-            <strong>Simple rule</strong>
-            <span>
-              Short is most efficient · Medium is balanced · Extended trades efficiency for time
-              away.
-            </span>
           </div>
         </Surface>
 
