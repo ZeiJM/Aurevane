@@ -60,7 +60,7 @@ jobs:
           test "$(git rev-parse "origin/$branch")" = "$EXPECTED_HEAD"
           git merge-base --is-ancestor origin/main HEAD
           git rm .github/workflows/agent-current-dot-patch.yml .github/scripts/apply-current-dot-patch.py .github/agent-dot-patch-trigger
-          git add packages/game-core/src/combat/actions.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/gameplay-tags.ts packages/game-core/src/combat/combat-dots.ts packages/game-core/src/combat/pv1f-action-economy.ts
+          git add apps/web/src/components/character/skill-detail-presentation.ts packages/game-core/src/combat/actions.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/gameplay-tags.ts packages/game-core/src/combat/combat-dots.ts packages/game-core/src/combat/pv1f-action-economy.ts
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'feat: add current poison effect state'

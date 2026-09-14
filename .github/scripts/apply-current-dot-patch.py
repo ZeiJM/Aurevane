@@ -63,4 +63,11 @@ replace_once(
     """      effect.type === 'create-terrain' ||\n      effect.type === 'displace' ||\n      effect.type === 'poison'\n    )""",
 )
 
+skill_detail = 'apps/web/src/components/character/skill-detail-presentation.ts'
+replace_once(
+    skill_detail,
+    """    case 'displace':\n      return `${effect.direction === 'pull' ? 'Pull' : 'Push'} ${target} up to ${effect.distance} ${effect.distance === 1 ? 'tile' : 'tiles'} ${effect.direction === 'pull' ? 'toward you' : 'away'}, one legal tile at a time. Stops before occupied, blocked or illegal-elevation tiles. Pull never enters your tile. Root prevents displacement. Failure grants no refund.`\n    case 'return-to-turn-start':""",
+    """    case 'displace':\n      return `${effect.direction === 'pull' ? 'Pull' : 'Push'} ${target} up to ${effect.distance} ${effect.distance === 1 ? 'tile' : 'tiles'} ${effect.direction === 'pull' ? 'toward you' : 'away'}, one legal tile at a time. Stops before occupied, blocked or illegal-elevation tiles. Pull never enters your tile. Root prevents displacement. Failure grants no refund.`\n    case 'poison':\n      return `Apply Poison (Poisoned) to ${target}.`\n    case 'return-to-turn-start':""",
+)
+
 print('Applied current Poison effect-state implementation.')
