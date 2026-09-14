@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  normalizeCombatEffectState,
-  type CombatEffectState,
-} from './combat-effect-state'
+import { normalizeCombatEffectState, type CombatEffectState } from './combat-effect-state'
 
 describe('combat effect-state compatibility', () => {
   it('normalizes historical snapshots without current effect collections', () => {
