@@ -532,7 +532,7 @@
 
 .dialog[role='dialog'] .sourceChip,
 .dialog[role='dialog'] [data-light-panel-chip='true'] {
-  color: var(--av-text-muted) !important;
+  color: #c2c7c6 !important;
 }
 
 .skill:has(input:focus-visible) {
