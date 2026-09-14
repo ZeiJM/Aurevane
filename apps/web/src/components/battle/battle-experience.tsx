@@ -64,6 +64,8 @@ import {
 } from './battle-runtime'
 import { BattleCombatantEffects } from './battle-combatant-effects'
 import { useDesktopBattleLayout } from './battle-responsive-layout'
+import { BattleSelectedSkills } from './battle-selected-skills'
+
 import { BattleSkillCommand } from './battle-skill-command'
 import { BATTLE_COMMAND_ARTWORK, battleSkillArtwork } from './battle-skill-presentation'
 import { useBattleSkillSelections } from './battle-skill-selection'
@@ -1400,6 +1402,7 @@ export function BattleExperience({
 
   return (
     <main
+      data-battle-concept="true"
       className={styles.shell}
       data-unified-battle="true"
       data-battle-layout="map-first"
@@ -1853,6 +1856,25 @@ export function BattleExperience({
                 onActivate={() => chooseMode('finish')}
               />
             </div>
+
+            <BattleSelectedSkills
+              runtime={runtime}
+              activeId={activeTechnique?.id}
+              disabled={planningDisabled}
+              actionEconomy={actionEconomy}
+              onSelect={(skillId, category) => {
+                if (category === 'defense') {
+                  setSelectedDefenseActionId(skillId)
+                  armAction('guard', skillId)
+                } else if (category === 'heal') {
+                  setSelectedTechniqueHealId(skillId)
+                  armAction('recover', skillId)
+                } else {
+                  setSelectedAttackActionId(skillId)
+                  armAction('attack', skillId)
+                }
+              }}
+            />
 
             {/* Map guides and keyboard shortcuts use these same commit handlers. Keep the legacy
               cockpit pad hidden from the first render, including while facing mode opens. */}

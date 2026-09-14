@@ -8,13 +8,11 @@ import { AudioProvider } from '@/components/audio/audio-provider'
 import './globals.css'
 import './pv1e-shell-fixes.css'
 import './mobile-ui-batch.css'
-import './character-creation-scale.css'
-import './character-select-short-height-fit.css'
 import './portrait-ratio-standardization.css'
-import './authenticated-header-mobile.css'
 import './desktop-readability.css'
 import './desktop-page-fit.css'
 import './mobile-readability.css'
+import './concept-shell.css'
 
 export const metadata: Metadata = {
   title: 'AUREVANE',

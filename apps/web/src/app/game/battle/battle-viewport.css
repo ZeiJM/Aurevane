@@ -11,8 +11,9 @@
   body main[data-unified-battle='true'][data-battle-visual-contract='true'][data-battle-kind] {
     width: 100%;
     height: 100dvh !important;
+    height: var(--battle-viewport-height, 100dvh) !important;
     min-height: 0 !important;
-    max-height: 100dvh !important;
+    max-height: var(--battle-viewport-height, 100dvh) !important;
     overflow: hidden !important;
   }
 }
@@ -29,8 +30,9 @@
   body main[data-pvp-spectator='true'] {
     width: 100%;
     height: 100dvh !important;
+    height: var(--battle-viewport-height, 100dvh) !important;
     min-height: 0 !important;
-    max-height: 100dvh !important;
+    max-height: var(--battle-viewport-height, 100dvh) !important;
     overflow: hidden !important;
   }
 }

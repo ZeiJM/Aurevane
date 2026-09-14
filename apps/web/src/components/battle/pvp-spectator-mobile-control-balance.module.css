@@ -19,7 +19,7 @@
 
   :global(main[data-pvp-spectator='true'] > header > div:first-child > span::before) {
     content: 'Battle Hall ·';
-    color: var(--av-brass-300);
+    color: #d7c397 !important;
     font: 800 0.5rem/1 var(--av-font-mono);
     letter-spacing: 0.07em;
     text-transform: uppercase;
@@ -31,7 +31,7 @@
     position: absolute;
     top: 0.42rem;
     right: 0.55rem;
-    color: var(--av-brass-300);
+    color: #d7c397 !important;
     font: 800 0.5rem/1 var(--av-font-mono);
     letter-spacing: 0.07em;
     text-transform: uppercase;
@@ -42,7 +42,7 @@
     min-width: 0;
     margin: 0 !important;
     overflow: hidden;
-    color: var(--av-brass-300);
+    color: #dcded6 !important;
     font: 800 0.5rem/1 var(--av-font-mono) !important;
     letter-spacing: 0.07em;
     text-overflow: ellipsis;
@@ -55,13 +55,14 @@
     margin-bottom: 0 !important;
   }
 
-  :global(main[data-pvp-spectator='true'] > section:nth-of-type(2)) {
+  :global(main[data-pvp-spectator='true'] [data-spectator-broadcast='true']) {
     grid-template-areas:
-      'board'
-      'comms' !important;
+      'left'
+      'right'
+      'center' !important;
   }
 
-  :global(main[data-pvp-spectator='true'] > section:nth-of-type(2) > aside) {
+  :global(main[data-pvp-spectator='true'] [data-spectator-control-rail='true']) {
     display: none !important;
   }
 

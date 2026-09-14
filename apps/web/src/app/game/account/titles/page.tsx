@@ -1,6 +1,5 @@
 import { getFoundationDiscipline } from '@aurevane/game-core/character/foundation-disciplines'
 import { isAurevaneError } from '@aurevane/game-core/errors'
-import { Kicker, Surface } from '@aurevane/ui'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 
@@ -83,25 +82,15 @@ export default async function CharacterTitlesPage() {
       backHref="/game/character"
       backLabel="Back to Character Profile"
     >
-      <Surface tone="elevated" style={{ padding: 'clamp(0.8rem, 1.8vw, 1.25rem)' }}>
-        <Kicker marker="◇">Account · Current Character</Kicker>
-        <h1
-          style={{
-            margin: '0.3rem 0 0.65rem',
-            font: '500 clamp(1.8rem, 3.5vw, 2.8rem)/1 var(--av-font-display)',
-          }}
-        >
-          Titles &amp; Profile Display
-        </h1>
-        <CharacterTitleSettings
-          characterId={character.id}
-          characterName={character.name}
-          disciplineName={discipline?.name ?? 'Adventurer'}
-          personalTitle={titleState.personalTitle}
-          personalTitleSetAt={titleState.personalTitleSetAt}
-          imageUrl={displayState.imageUrl}
-        />
-      </Surface>
+      <CharacterTitleSettings
+        characterId={character.id}
+        characterName={character.name}
+        disciplineName={discipline?.name ?? 'Adventurer'}
+        personalTitle={titleState.personalTitle}
+        personalTitleSetAt={titleState.personalTitleSetAt}
+        imageUrl={displayState.imageUrl}
+        portraitRef={character.portraitRef}
+      />
     </AuthenticatedShellFrame>
   )
 }

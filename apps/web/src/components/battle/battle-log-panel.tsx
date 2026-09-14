@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom'
 
 import type { BattleLogView } from '@/server/battle/battle-log-service'
 
-import { BattleLogFeed, countBattleLogActions } from './battle-log-feed'
+import { BattleLogFeed, countBattleLogActions, type BattleLogFlowView } from './battle-log-feed'
 import { useBattlePlayerName } from './battle-runtime-context'
 import styles from './battle-log-panel.module.css'
 
@@ -145,6 +145,7 @@ export function BattleLogPanel({
   const [dockTarget, setDockTarget] = useState<HTMLElement | null>(null)
   const requestSequence = useRef(0)
   const controlledPanelRef = useRef<HTMLDivElement>(null)
+  const [flowView, setFlowView] = useState<BattleLogFlowView>('timeline')
 
   const loadLog = useCallback(async () => {
     const sequence = ++requestSequence.current
@@ -237,6 +238,8 @@ export function BattleLogPanel({
         </button>
         {visible ? (
           <LogPanel
+            flowView={flowView}
+            onFlowViewChange={setFlowView}
             entries={entries}
             recentTurnCount={recentTurnCount}
             loading={loading}
@@ -258,6 +261,8 @@ export function BattleLogPanel({
       <div className={styles.docked} data-testid="battle-log-panel" data-docked-battle-log="true">
         <LogPanel
           compactFlow={dockTarget.hasAttribute('data-battle-flow-log-target')}
+          flowView={flowView}
+          onFlowViewChange={setFlowView}
           entries={entries}
           recentTurnCount={recentTurnCount}
           loading={loading}
@@ -273,6 +278,8 @@ export function BattleLogPanel({
   return createPortal(
     <div ref={controlledPanelRef} className={styles.controlled} data-testid="battle-log-panel">
       <LogPanel
+        flowView={flowView}
+        onFlowViewChange={setFlowView}
         entries={entries}
         recentTurnCount={recentTurnCount}
         loading={loading}
@@ -295,6 +302,8 @@ export function BattleLogPanel({
 
 function LogPanel({
   compactFlow = false,
+  flowView,
+  onFlowViewChange,
   recentTurnCount,
   entries,
   loading,
@@ -305,6 +314,8 @@ function LogPanel({
   combatantNames,
 }: {
   compactFlow?: boolean
+  flowView?: BattleLogFlowView
+  onFlowViewChange?: (view: BattleLogFlowView) => void
   recentTurnCount?: number
   entries: readonly BattleLogView['entries'][number][]
   loading: boolean
@@ -345,6 +356,8 @@ function LogPanel({
       ) : (
         <BattleLogFeed
           compactFlow={compactFlow}
+          flowView={flowView}
+          onFlowViewChange={onFlowViewChange}
           entries={entries}
           recentTurnCount={recentTurnCount}
           playerName={playerName}

@@ -483,6 +483,7 @@
 
 .heroPortrait {
   min-height: 20rem;
+  object-position: 50% 15%;
 }
 
 .liveBadge,
@@ -748,4 +749,319 @@
   .futureActions {
     grid-template-columns: 1fr;
   }
+}
+
+/* Adventurers is a readable archive surface inside the ink game frame. The directory still owns
+ * all live/all filters and profile privacy rules; these selectors only change their presentation. */
+[data-av-surface='moonstone'] .toolbar {
+  padding: 0.75rem 0.9rem 0;
+}
+
+[data-av-surface='moonstone'] .toggleButton,
+[data-av-surface='moonstone'] .error button {
+  border-color: rgba(18, 83, 89, 0.35);
+  color: var(--av-teal);
+  background: var(--av-moonstone-elevated);
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.72),
+    0 0.45rem 1rem rgba(7, 15, 24, 0.08);
+}
+
+[data-av-surface='moonstone'] .toggleButton:hover,
+[data-av-surface='moonstone'] .toggleButton:focus-visible,
+[data-av-surface='moonstone'] .error button:hover,
+[data-av-surface='moonstone'] .error button:focus-visible {
+  border-color: var(--av-teal);
+  color: var(--av-teal);
+  background: #ffffff;
+}
+
+[data-av-surface='moonstone'] .toggleButtonActive {
+  border-color: rgba(24, 121, 94, 0.45);
+  color: #176c52;
+  background: rgba(24, 121, 94, 0.09);
+}
+
+[data-av-surface='moonstone'] .rosterPanel {
+  margin: 0.9rem;
+  border-color: rgba(116, 96, 59, 0.25);
+  background:
+    radial-gradient(circle at 100% 0%, rgba(18, 83, 89, 0.07), transparent 24rem),
+    var(--av-moonstone-elevated);
+  box-shadow:
+    0 0.9rem 2.25rem rgba(7, 15, 24, 0.11),
+    inset 0 1px rgba(255, 255, 255, 0.72);
+}
+
+[data-av-surface='moonstone'] .rosterPanel::before {
+  background: linear-gradient(90deg, var(--av-teal), transparent 58%, rgba(179, 154, 109, 0.5));
+}
+
+[data-av-surface='moonstone'] .rosterHeader,
+[data-av-surface='moonstone'] .filters {
+  border-color: rgba(116, 96, 59, 0.18);
+  background: rgba(234, 230, 220, 0.62);
+}
+
+[data-av-surface='moonstone'] .rosterMarker {
+  border-color: rgba(18, 83, 89, 0.32);
+  color: var(--av-teal);
+  background: rgba(18, 83, 89, 0.07);
+}
+
+[data-av-surface='moonstone'] .rosterKicker {
+  color: var(--av-teal);
+}
+
+[data-av-surface='moonstone'] .rosterHeading strong {
+  color: var(--av-charcoal);
+}
+
+[data-av-surface='moonstone'] .rosterHeading small,
+[data-av-surface='moonstone'] .directorySummary,
+[data-av-surface='moonstone'] .filters label > span {
+  color: var(--av-charcoal-dim);
+}
+
+[data-av-surface='moonstone'] .rosterCount {
+  border-color: rgba(24, 121, 94, 0.3);
+  color: #176c52;
+  background: rgba(24, 121, 94, 0.08);
+}
+
+[data-av-surface='moonstone'] .filters select {
+  border-color: var(--av-gold-rule);
+  color: var(--av-charcoal);
+  background: var(--av-moonstone-elevated);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.72);
+}
+
+[data-av-surface='moonstone'] .filters select:hover,
+[data-av-surface='moonstone'] .filters select:focus-visible {
+  border-color: var(--av-teal);
+  background: #ffffff;
+}
+
+[data-av-surface='moonstone'] .loading,
+[data-av-surface='moonstone'] .empty,
+[data-av-surface='moonstone'] .error {
+  color: var(--av-charcoal-muted);
+}
+
+[data-av-surface='moonstone'] .error {
+  border-color: rgba(154, 78, 72, 0.25);
+  background: rgba(154, 78, 72, 0.06);
+}
+
+[data-av-surface='moonstone'] .list {
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  scrollbar-color: rgba(18, 83, 89, 0.26) transparent;
+}
+
+[data-av-surface='moonstone'] .characterCard {
+  border-color: rgba(116, 96, 59, 0.22);
+  color: var(--av-charcoal);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.68), rgba(234, 230, 220, 0.58)),
+    var(--av-moonstone-elevated);
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.78),
+    0 0.45rem 1.1rem rgba(7, 15, 24, 0.06);
+}
+
+[data-av-surface='moonstone'] .characterCardOnline {
+  border-color: rgba(24, 121, 94, 0.32);
+  background:
+    linear-gradient(135deg, rgba(224, 247, 234, 0.82), rgba(251, 248, 240, 0.72)),
+    var(--av-moonstone-elevated);
+}
+
+[data-av-surface='moonstone'] .characterCard:hover,
+[data-av-surface='moonstone'] .characterCard:focus-visible {
+  border-color: var(--av-teal);
+  background: #ffffff;
+  box-shadow:
+    inset 0 1px rgba(255, 255, 255, 0.8),
+    0 0.75rem 1.6rem rgba(7, 15, 24, 0.13);
+}
+
+[data-av-surface='moonstone'] .characterCardOnline:hover,
+[data-av-surface='moonstone'] .characterCardOnline:focus-visible {
+  border-color: #178365;
+  background: #f6fff8;
+}
+
+[data-av-surface='moonstone'] .presenceDot {
+  border-color: var(--av-moonstone-elevated);
+}
+
+[data-av-surface='moonstone'] .identity strong {
+  color: var(--av-charcoal);
+  text-shadow: none;
+}
+
+[data-av-surface='moonstone'] .identity small,
+[data-av-surface='moonstone'] .lastSeen {
+  color: var(--av-charcoal-dim);
+}
+
+[data-av-surface='moonstone'] .online {
+  border-color: rgba(24, 121, 94, 0.28);
+  color: #176c52;
+  background: rgba(24, 121, 94, 0.08);
+}
+
+.profileCard[data-av-surface='moonstone'] {
+  border-color: var(--av-gold-rule);
+  background: var(--av-moonstone-elevated);
+  box-shadow:
+    0 2.4rem 7rem rgba(0, 0, 0, 0.46),
+    inset 0 1px rgba(255, 255, 255, 0.72);
+}
+
+.profileCard[data-av-surface='moonstone'] .portraitStage {
+  background:
+    radial-gradient(circle at 50% 22%, rgba(207, 169, 93, 0.2), transparent 46%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 40%), var(--av-ink-950);
+  box-shadow: inset -1px 0 rgba(207, 169, 93, 0.18);
+}
+
+.profileCard[data-av-surface='moonstone'] .close {
+  border-color: rgba(212, 186, 130, 0.4);
+  color: var(--av-brass-100);
+  background: rgba(7, 15, 24, 0.88);
+  box-shadow: 0 0.45rem 1rem rgba(0, 0, 0, 0.28);
+}
+
+.profileCard[data-av-surface='moonstone'] .profileCopy {
+  color: var(--av-charcoal);
+  background: var(--av-moonstone-elevated);
+}
+
+.profileHeading {
+  display: grid;
+  gap: 0.65rem;
+  padding-bottom: 0.95rem;
+  border-bottom: 1px solid rgba(116, 96, 59, 0.18);
+}
+
+.profileEyebrow {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  color: var(--av-teal);
+  font: 750 0.5rem/1 var(--av-font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.profileEyebrow span {
+  display: grid;
+  width: 1.35rem;
+  height: 1.35rem;
+  place-items: center;
+  border: 1px solid rgba(18, 83, 89, 0.3);
+  border-radius: 50%;
+  color: var(--av-teal);
+  background: rgba(18, 83, 89, 0.07);
+}
+
+.profileCard[data-av-surface='moonstone'] .profileCopy h2 {
+  color: var(--av-charcoal);
+  letter-spacing: -0.015em;
+  overflow-wrap: anywhere;
+  text-shadow: none;
+}
+
+.identityTags {
+  display: grid;
+  gap: 0.38rem;
+}
+
+.identityLabel {
+  color: var(--av-charcoal-dim);
+  font: 700 0.43rem/1 var(--av-font-mono);
+  letter-spacing: 0.065em;
+  text-transform: uppercase;
+}
+
+.tagList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.38rem;
+}
+
+.disciplineTag,
+.titleTag {
+  display: inline-flex;
+  min-height: 1.8rem;
+  align-items: center;
+  padding: 0.38rem 0.62rem;
+  border-radius: 999px;
+  font: 700 0.48rem/1 var(--av-font-mono);
+}
+
+.disciplineTag {
+  border: 1px solid rgba(179, 154, 109, 0.55);
+  color: #765d32;
+  background: rgba(179, 154, 109, 0.12);
+}
+
+.titleTag {
+  border: 1px solid rgba(24, 121, 94, 0.36);
+  color: #176c52;
+  background: rgba(24, 121, 94, 0.09);
+}
+
+.noTags {
+  color: var(--av-charcoal-dim);
+  font-size: 0.62rem;
+}
+
+.profileCard[data-av-surface='moonstone'] .profileCopy dl div {
+  border-color: rgba(116, 96, 59, 0.2);
+  background: rgba(234, 230, 220, 0.74);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.66);
+}
+
+.profileCard[data-av-surface='moonstone'] .profileCopy dt {
+  color: var(--av-charcoal-dim);
+}
+
+.profileStat {
+  position: relative;
+  overflow: hidden;
+}
+
+.profileStat dd {
+  color: var(--av-charcoal);
+  font-size: 1.05rem;
+  line-height: 1.2;
+}
+
+.profileStatOnline {
+  border-color: rgba(24, 121, 94, 0.28) !important;
+  background: rgba(224, 247, 234, 0.7) !important;
+}
+
+.profileStatOnline dd {
+  color: #176c52;
+  font-size: 0.9rem;
+}
+
+.profileCard[data-av-surface='moonstone'] .privacyNote {
+  border-color: rgba(18, 83, 89, 0.18) !important;
+  color: var(--av-charcoal-muted);
+  background: rgba(18, 83, 89, 0.06) !important;
+}
+
+.profileCard[data-av-surface='moonstone'] .futureActions button {
+  border-color: rgba(116, 96, 59, 0.28) !important;
+  color: var(--av-charcoal-dim) !important;
+  background: rgba(234, 230, 220, 0.68) !important;
+  opacity: 0.82;
+}
+
+.profileCard[data-av-surface='moonstone'] .futureActions button:disabled {
+  cursor: not-allowed;
 }

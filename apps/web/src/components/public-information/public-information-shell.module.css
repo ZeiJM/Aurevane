@@ -1,5 +1,8 @@
 .shell {
+  position: relative;
+  isolation: isolate;
   min-height: 100dvh;
+  overflow: clip;
   color: var(--av-text);
   background:
     radial-gradient(circle at 12% 8%, rgba(204, 164, 90, 0.12), transparent 26rem),
@@ -7,7 +10,36 @@
     linear-gradient(155deg, #12151a 0%, #0a0d12 46%, #090a0d 100%);
 }
 
+.worldBackdrop {
+  position: absolute;
+  inset: 3.8rem 0 0;
+  z-index: -2;
+  display: block;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.worldBackdrop::after {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(7, 12, 18, 0.45), rgba(7, 12, 18, 0.86) 72%),
+    radial-gradient(circle at 50% 15%, rgba(180, 155, 103, 0.12), transparent 42rem);
+  content: '';
+}
+
+.worldBackdropImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  opacity: 0.62;
+  filter: saturate(0.78) contrast(1.04);
+}
+
 .masthead {
+  position: relative;
   position: sticky;
   top: 0;
   z-index: 500;
@@ -73,6 +105,8 @@
 }
 
 .main {
+  position: relative;
+  z-index: 1;
   width: min(100%, 88rem);
   margin: 0 auto;
   padding: clamp(0.75rem, 1.8vw, 1.5rem);
@@ -90,7 +124,13 @@
   border: 1px solid rgba(212, 186, 130, 0.2);
   border-radius: var(--av-radius-lg);
   background:
-    linear-gradient(120deg, rgba(229, 211, 169, 0.1), rgba(17, 20, 27, 0.18) 48%),
+    linear-gradient(
+      120deg,
+      rgba(8, 13, 19, 0.88),
+      rgba(17, 20, 27, 0.2) 52%,
+      rgba(8, 13, 19, 0.68)
+    ),
+    url('/media/art/concept-ui/archive-v01.webp') center / cover,
     rgba(29, 31, 34, 0.88);
   box-shadow: var(--av-shadow-deep);
 }
@@ -174,6 +214,28 @@
   margin-top: clamp(1.2rem, 2.8vw, 2.5rem);
 }
 
+/* Public pages use the archive image as atmosphere and reserve moonstone for the information a
+ * player is meant to read. These selectors are scoped to the concept shell so the public guide
+ * never changes the token contract of authenticated game surfaces. */
+.shell[data-public-concept='true'] .section {
+  --av-brass-300: var(--av-teal);
+  padding: clamp(1rem, 2.2vw, 1.65rem);
+  border: 1px solid rgba(116, 96, 59, 0.22);
+  border-radius: var(--av-radius-lg);
+  color: var(--av-charcoal);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.52), transparent 42%), rgba(243, 239, 229, 0.97);
+  box-shadow: 0 1rem 2.5rem rgba(2, 9, 14, 0.16);
+}
+
+.shell[data-public-concept='true'] .sectionHeader h2 {
+  color: var(--av-charcoal);
+}
+
+.shell[data-public-concept='true'] .sectionHeader p {
+  color: var(--av-charcoal-muted);
+}
+
 .sectionHeader {
   display: flex;
   gap: 1rem;
@@ -218,6 +280,18 @@
     background 150ms ease;
 }
 
+.shell[data-public-concept='true'] .card {
+  border-color: rgba(116, 96, 59, 0.22);
+  color: var(--av-charcoal);
+  background: rgba(251, 248, 240, 0.74);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.72);
+}
+
+.shell[data-public-concept='true'] .card:hover {
+  border-color: rgba(18, 83, 89, 0.42);
+  background: var(--av-moonstone-elevated);
+}
+
 .card:hover {
   transform: translateY(-2px);
   border-color: rgba(212, 186, 130, 0.34);
@@ -243,6 +317,14 @@
   line-height: 1.5;
 }
 
+.shell[data-public-concept='true'] .card p {
+  color: var(--av-charcoal-muted);
+}
+
+.shell[data-public-concept='true'] .cardMeta {
+  color: var(--av-charcoal-dim);
+}
+
 .cardMeta {
   align-self: end;
   margin-top: auto;
@@ -260,6 +342,34 @@
   border: 1px solid rgba(212, 186, 130, 0.18);
   border-radius: var(--av-radius-md);
   background: rgba(226, 211, 180, 0.055);
+}
+
+.shell[data-public-concept='true'] .emptyState,
+.shell[data-public-concept='true'] .notice {
+  border-color: rgba(116, 96, 59, 0.24);
+  color: var(--av-charcoal);
+  background:
+    radial-gradient(circle at 92% 0%, rgba(18, 83, 89, 0.08), transparent 18rem),
+    var(--av-moonstone-elevated);
+}
+
+.shell[data-public-concept='true'] .emptyState p,
+.shell[data-public-concept='true'] .notice p {
+  color: var(--av-charcoal-muted);
+}
+
+.shell[data-public-concept='true'] .emptyState .compactLinks {
+  margin-top: 0.2rem;
+}
+
+.shell[data-public-concept='true'] .emptyState .compactLinks a {
+  color: var(--av-teal);
+  background: rgba(18, 83, 89, 0.06);
+}
+
+.shell[data-public-concept='true'] .emptyState .compactLinks a:hover {
+  color: #0a3e42;
+  background: rgba(18, 83, 89, 0.12);
 }
 
 .emptyState h2,
@@ -299,7 +409,14 @@
   border: 1px solid rgba(212, 186, 130, 0.18);
   border-radius: var(--av-radius-lg);
   background:
-    linear-gradient(135deg, rgba(229, 212, 174, 0.09), transparent 58%), rgba(27, 29, 32, 0.9);
+    linear-gradient(
+      135deg,
+      rgba(8, 13, 19, 0.9),
+      rgba(17, 20, 27, 0.28) 58%,
+      rgba(8, 13, 19, 0.72)
+    ),
+    url('/media/art/concept-ui/archive-v01.webp') center / cover,
+    rgba(27, 29, 32, 0.9);
 }
 
 .articleHeader h1 {
@@ -338,12 +455,83 @@
 .articleBody {
   width: min(100%, 58rem);
   margin: clamp(1rem, 2.5vw, 2rem) auto 0;
+  padding: 0 clamp(1rem, 2.8vw, 2.2rem);
+  border: 1px solid rgba(116, 96, 59, 0.22);
+  border-radius: var(--av-radius-lg);
+  color: var(--av-charcoal);
+  background: var(--av-moonstone-elevated);
+  box-shadow: 0 1rem 2.4rem rgba(2, 9, 14, 0.13);
+}
+
+.articleLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 12rem;
+  gap: clamp(0.8rem, 2vw, 1.5rem);
+  align-items: start;
+}
+
+.articleNav {
+  position: sticky;
+  top: 5.1rem;
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(116, 96, 59, 0.22);
+  border-radius: var(--av-radius-md);
+  color: var(--av-charcoal);
+  background: rgba(243, 239, 229, 0.95);
+}
+
+.articleNav h2 {
+  margin: 0;
+  color: var(--av-charcoal);
+  font: 650 0.58rem/1.1 var(--av-font-mono);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.articleNav ul {
+  display: grid;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.articleNav a {
+  display: block;
+  padding: 0.3rem 0.35rem;
+  border-radius: var(--av-radius-sm);
+  color: var(--av-charcoal-muted);
+  font-size: 0.66rem;
+  line-height: 1.35;
+  text-decoration: none;
+}
+
+.articleNav a:hover,
+.articleNav a:focus-visible {
+  color: var(--av-teal);
+  background: rgba(18, 83, 89, 0.08);
+  outline: none;
 }
 
 .articleSection {
   padding: clamp(0.9rem, 2vw, 1.55rem) 0;
   scroll-margin-top: 4.5rem;
   border-top: 1px solid rgba(222, 208, 177, 0.13);
+}
+
+.shell[data-public-concept='true'] .articleSection {
+  border-top-color: rgba(116, 96, 59, 0.18);
+}
+
+.shell[data-public-concept='true'] .articleSection h2 {
+  color: var(--av-charcoal);
+}
+
+.shell[data-public-concept='true'] .articleSection p,
+.shell[data-public-concept='true'] .articleSection li {
+  color: var(--av-charcoal-muted);
 }
 
 .articleSection:first-child {
@@ -380,6 +568,16 @@
   margin-top: 1rem;
 }
 
+.shell[data-public-concept='true'] .rulesLayout {
+  padding: clamp(1rem, 2.2vw, 1.65rem);
+  border: 1px solid rgba(116, 96, 59, 0.22);
+  border-radius: var(--av-radius-lg);
+  color: var(--av-charcoal);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.5), transparent 42%), rgba(243, 239, 229, 0.97);
+  box-shadow: 0 1rem 2.5rem rgba(2, 9, 14, 0.14);
+}
+
 .rulesNav {
   position: sticky;
   top: 4.5rem;
@@ -390,6 +588,21 @@
   border: 1px solid rgba(212, 186, 130, 0.15);
   border-radius: var(--av-radius-md);
   background: rgba(225, 211, 181, 0.05);
+}
+
+.shell[data-public-concept='true'] .rulesNav {
+  border-color: rgba(116, 96, 59, 0.22);
+  background: rgba(234, 230, 220, 0.82);
+}
+
+.shell[data-public-concept='true'] .rulesNav a {
+  color: var(--av-charcoal-muted);
+}
+
+.shell[data-public-concept='true'] .rulesNav a:hover,
+.shell[data-public-concept='true'] .rulesNav a:focus-visible {
+  color: var(--av-teal);
+  background: rgba(18, 83, 89, 0.08);
 }
 
 .rulesNav a {
@@ -423,6 +636,20 @@
   background: rgba(226, 211, 179, 0.055);
 }
 
+.shell[data-public-concept='true'] .ruleSection {
+  border-color: rgba(116, 96, 59, 0.18);
+}
+
+.shell[data-public-concept='true'] .ruleSection h2 {
+  color: var(--av-charcoal);
+}
+
+.shell[data-public-concept='true'] .ruleSection > p,
+.shell[data-public-concept='true'] .ruleSection .articleSection p,
+.shell[data-public-concept='true'] .ruleSection .articleSection li {
+  color: var(--av-charcoal-muted);
+}
+
 .ruleSection h2 {
   margin: 0.25rem 0 0.5rem;
   font: 500 clamp(1.4rem, 2.4vw, 2rem) / 1.05 var(--av-font-display);
@@ -451,6 +678,12 @@
   line-height: 1.5;
 }
 
+.shell[data-public-concept='true'] .principles li {
+  border-left-color: rgba(18, 83, 89, 0.42);
+  color: var(--av-charcoal-muted);
+  background: rgba(251, 248, 240, 0.72);
+}
+
 .footer {
   display: none;
 }
@@ -469,6 +702,15 @@
   }
   .cardGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .articleLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .articleNav {
+    position: static;
+    order: -1;
   }
 }
 

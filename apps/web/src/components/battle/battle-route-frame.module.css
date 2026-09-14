@@ -1,0 +1,104 @@
+.frame {
+  --battle-chrome-height: 3.4rem;
+  --battle-viewport-height: calc(100dvh - var(--battle-chrome-height));
+  display: grid;
+  grid-template-columns: 3.8rem minmax(0, 1fr);
+  grid-template-rows: var(--battle-chrome-height) minmax(0, 1fr);
+  min-height: 100dvh;
+  background: #0b1723;
+}
+.masthead {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.3rem 1.2rem;
+  border-bottom: 1px solid #937d58;
+  color: #eae9e2;
+  background:
+    linear-gradient(90deg, #09151ff5, #09151fbf),
+    url('/media/art/concept-ui/world-v01.webp') center 30% / cover;
+}
+.masthead :global(.brand__crest) {
+  width: 2.4rem;
+  height: 2.4rem;
+}
+.masthead :global(.brand__wordmark strong) {
+  font-size: 1.1rem;
+}
+.masthead :global(.brand__wordmark small) {
+  font-size: 0.52rem;
+}
+.masthead nav {
+  display: flex;
+  gap: 1.5rem;
+  margin-left: auto;
+  font-size: 0.73rem;
+}
+.field {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+  min-height: 0;
+}
+.frame > :global([data-av-game-rail]) {
+  grid-column: 1;
+  grid-row: 2;
+  width: 3.8rem;
+  min-width: 0;
+  padding: 0;
+  border-right: 1px solid #937d58;
+}
+.frame > :global([data-av-game-rail]) nav {
+  display: grid;
+  gap: 0;
+}
+.frame > :global([data-av-game-rail]) nav button {
+  justify-content: center;
+  padding: 1rem 0.5rem;
+  min-height: 4rem;
+  opacity: 0.8;
+}
+.frame > :global([data-av-game-rail]) nav span,
+.frame > :global([data-av-game-rail]) > a {
+  display: none;
+}
+@media (max-width: 820px) {
+  .frame {
+    --battle-chrome-height: 2.8rem;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .frame > :global([data-av-game-rail]) {
+    display: none;
+  }
+  .field {
+    grid-column: 1;
+  }
+  .masthead {
+    gap: 0.5rem;
+    padding: 0.25rem 0.6rem;
+  }
+  .masthead nav {
+    display: none;
+  }
+  .masthead :global(.brand__crest) {
+    width: 1.8rem;
+    height: 1.8rem;
+  }
+  .masthead :global(.brand__wordmark strong) {
+    font-size: 0.95rem;
+  }
+  .masthead :global(.brand__wordmark small) {
+    display: none;
+  }
+}
+
+.brandLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  color: #f1eee4;
+  text-decoration: none;
+  flex-shrink: 0;
+}

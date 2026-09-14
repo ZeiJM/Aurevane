@@ -40,6 +40,12 @@ function actorName(action: PresentedBattleLogAction): string {
       .replace(/[’']s$/, '') ?? ''
   )
 }
+
+function hasGuardedEffect(action: PresentedBattleLogAction): boolean {
+  return [...action.primary, ...(action.secondary ?? [])].some((part) =>
+    /\bguarded\b/iu.test(part.text),
+  )
+}
 function artwork(action: PresentedBattleLogAction, entries: BattleLogView['entries']): string {
   const entry = (action.sourceEntries ?? entries).find(
     (item) => item.battleVersion === action.battleVersion && item.actionId,
@@ -118,6 +124,7 @@ export function BattleActionTimeline({
   const headingRef = useRef<HTMLDivElement>(null)
   const [textPages, setTextPages] = useState<TranscriptPage[]>([])
   const [pagination, setPagination] = useState({ key: '', pagesBack: 0 })
+  const [narrowTranscript, setNarrowTranscript] = useState(false)
   const dialogRef = useRef<HTMLDialogElement>(null)
   const actions = useMemo(
     () =>
@@ -146,7 +153,11 @@ export function BattleActionTimeline({
   useEffect(() => {
     const list = listRef.current
     if (!list) return
+    setNarrowTranscript(false)
     const resize = () => {
+      const flow = list.closest<HTMLElement>('[aria-label="Battle flow"]')
+      const nextNarrow = Boolean(flow && flow.getBoundingClientRect().width <= 240)
+      setNarrowTranscript((current) => (current === nextNarrow ? current : nextNarrow))
       if (view === 'timeline') {
         setPageSize(Math.max(1, Math.floor(list.clientWidth / 96)))
         return
@@ -184,7 +195,8 @@ export function BattleActionTimeline({
   )
   const currentPage = Math.min(pagination.key === pageKey ? pagination.pagesBack : 0, lastPage)
   const textPage = textPages[currentPage]
-  const oversized = view === 'text' && Boolean(textPage?.oversized)
+  const oversized = view === 'text' && Boolean(textPage?.oversized) && narrowTranscript
+  const showOverflow = oversized
   const end =
     view === 'text'
       ? (textPage?.end ?? visible.length)
@@ -266,11 +278,11 @@ export function BattleActionTimeline({
                 ) : null}
                 <div
                   className={styles.transcriptEntry}
-                  inert={oversized || undefined}
-                  aria-hidden={oversized || undefined}
+                  inert={showOverflow || undefined}
+                  aria-hidden={showOverflow || undefined}
                 >
                   {renderTranscript(action)}
-                  {!oversized ? (
+                  {!showOverflow ? (
                     <button
                       className={styles.transcriptDetails}
                       type="button"
@@ -282,15 +294,29 @@ export function BattleActionTimeline({
                     </button>
                   ) : null}
                 </div>
-                {oversized ? (
-                  <button
-                    className={styles.transcriptOverflow}
-                    type="button"
-                    aria-label={`View full action and results: ${action.ariaLabel}`}
-                    onClick={() => setSelected(action)}
-                  >
-                    View full action and results
-                  </button>
+                {showOverflow ? (
+                  <>
+                    {hasGuardedEffect(action) ? (
+                      <button
+                        className={styles.transcriptEffect}
+                        type="button"
+                        data-battle-effect-trigger="true"
+                        data-battle-effect-name="Guarded"
+                        data-battle-effect-kind="Buff"
+                        aria-label="Explain Guarded"
+                      >
+                        Guarded
+                      </button>
+                    ) : null}
+                    <button
+                      className={styles.transcriptOverflow}
+                      type="button"
+                      aria-label={`Action details: ${action.ariaLabel}`}
+                      onClick={() => setSelected(action)}
+                    >
+                      View full action and results
+                    </button>
+                  </>
                 ) : null}
               </>
             ) : (

@@ -1,15 +1,9 @@
-import { Kicker, StatusMark, Surface } from '@aurevane/ui'
+import { Kicker, Surface } from '@aurevane/ui'
 import type { PersistedCharacter } from '@aurevane/game-core/character/persistence'
 import type { Route } from 'next'
-import Link from 'next/link'
 import { Suspense, type ReactNode } from 'react'
 
-import { PvpBattleKeyInputAssist } from '@/components/battle/pvp-battle-key-input-assist'
 import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
-import railStyles from '@/components/public-information/public-header-rail.module.css'
-import { AccountMenu } from '@/components/shell/account-menu'
-import { NavigationMenu } from '@/components/shell/navigation-menu'
-import { OnlinePresenceLink } from '@/components/shell/online-presence-link'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 import {
   getActiveBattleForUser,
@@ -19,6 +13,7 @@ import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadCharacterProfileDisplay } from '@/server/character/character-profile-display-service'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 
+import { AuthenticatedShellPresentation } from './authenticated-shell-presentation'
 import styles from './authenticated-game-shell.module.css'
 
 type CharacterBackRoute = '/game' | '/game/character'
@@ -26,6 +21,7 @@ type CharacterBackRoute = '/game' | '/game/character'
 interface AuthenticatedShellFrameProps {
   children: ReactNode
   sessionLabel?: string
+  layout?: 'standard' | 'battlefield'
   footerLabel?: string
   backHref?: CharacterBackRoute
   backLabel?: string
@@ -44,7 +40,7 @@ function ShellCharacterPortrait({
         imageUrl={imageUrl}
         fallbackAssetId={getStarterPortraitImageAssetId(character.portraitRef)}
         className={styles.screenPortraitImage}
-        sizes="2rem"
+        sizes="(max-width: 760px) 2rem, 3rem"
         alt=""
       />
     </span>
@@ -98,6 +94,7 @@ export async function AuthenticatedShellFrame({
   sessionLabel = 'Character Profile',
   backHref,
   backLabel,
+  layout = 'standard',
 }: AuthenticatedShellFrameProps) {
   let activeCharacter: PersistedCharacter | null = null
   let activeUserId: string | null = null
@@ -132,81 +129,29 @@ export async function AuthenticatedShellFrame({
       : null
 
   return (
-    <div className={styles.shell} data-testid="authenticated-shell">
-      <PvpBattleKeyInputAssist />
-      <a className="skip-link" href="#game-main">
-        Skip to game content
-      </a>
-      <header className={`${styles.masthead} ${railStyles.masthead}`}>
-        <div className={styles.brandGroup}>
-          {backHref ? (
-            <Link className={styles.backButton} href={backHref} aria-label={backLabel ?? 'Back'}>
-              ←
-            </Link>
-          ) : null}
-          <Link className="brand" href="/game/character" aria-label="AUREVANE character profile">
-            <span className="brand__crest" aria-hidden="true">
-              <span>A</span>
-            </span>
-            <span className="brand__wordmark">
-              <strong>AUREVANE</strong>
-              <small>Persistent tactical fantasy</small>
-            </span>
-          </Link>
-        </div>
-
-        <nav
-          className={`${styles.headerLinks} ${railStyles.navigation}`}
-          style={{ marginRight: 0 }}
-          aria-label="Reference"
-        >
-          <Link href="/news">News</Link>
-          <Link href="/manual">Manual</Link>
-          <Link href="/rules">Rules</Link>
-        </nav>
-
-        <div className={railStyles.utility}>
-          <div className={styles.screenIdentity} aria-label={`Current screen: ${sessionLabel}`}>
-            {activeBattleHref ? (
-              <Link className={styles.activeBattleLink} href={activeBattleHref}>
-                <span aria-hidden="true">●</span> IN BATTLE
-              </Link>
-            ) : activeSpectatingHref ? (
-              <Link className={styles.activeBattleLink} href={activeSpectatingHref}>
-                <span aria-hidden="true">●</span> SPECTATING
-              </Link>
-            ) : null}
-            {activeCharacter && activeUserId ? (
-              <Suspense
-                fallback={<ShellCharacterPortrait character={activeCharacter} imageUrl={null} />}
-              >
-                <AuthenticatedCharacterPortrait userId={activeUserId} character={activeCharacter} />
-              </Suspense>
-            ) : null}
-            <span className={styles.screenLabel}>
-              <StatusMark />
-              <strong>{sessionLabel}</strong>
-            </span>
-          </div>
-
-          <AccountMenu
-            activeSessionHref={activeSessionHref}
-            activeSessionLabel={activeSessionLabel}
-          />
-        </div>
-      </header>
-
-      <main className={styles.main} id="game-main">
-        {children}
-      </main>
-
-      <footer className={styles.footer}>
-        <OnlinePresenceLink />
-        <NavigationMenu
-          activeSessionHref={activeSessionHref}
-          activeSessionLabel={activeSessionLabel}
-        />
-      </footer>
-    </div>
+    <AuthenticatedShellPresentation
+      sessionLabel={sessionLabel}
+      backHref={backHref}
+      backLabel={backLabel}
+      layout={layout}
+      character={
+        activeCharacter ? { name: activeCharacter.name, level: activeCharacter.level } : null
+      }
+      characterPortrait={
+        activeCharacter && activeUserId ? (
+          <Suspense
+            fallback={<ShellCharacterPortrait character={activeCharacter} imageUrl={null} />}
+          >
+            <AuthenticatedCharacterPortrait userId={activeUserId} character={activeCharacter} />
+          </Suspense>
+        ) : null
+      }
+      activeBattleHref={activeBattleHref}
+      activeSpectatingHref={activeSpectatingHref}
+      activeSessionHref={activeSessionHref}
+      activeSessionLabel={activeSessionLabel}
+    >
+      {children}
+    </AuthenticatedShellPresentation>
   )
 }

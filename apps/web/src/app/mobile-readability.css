@@ -1,17 +1,18 @@
 /* Phone reading hierarchy. Layout density comes from spacing, never a smaller root scale. */
 @media (max-width: 760px) {
-  :is(
-    [data-testid='authenticated-shell'],
-    [data-testid='public-information-shell'],
-    [data-testid='account-shell'],
-    [data-character-select-page='true'],
-    [data-testid='character-creation']
-  ) {
+  :where(body:not(:has([data-character-concept])))
+    :is(
+      [data-testid='authenticated-shell'],
+      [data-testid='public-information-shell'],
+      [data-testid='account-shell'],
+      [data-character-select-page='true'],
+      [data-testid='character-creation']
+    ) {
     --av-text-muted: #c4c6c8;
     --av-text-dim: #a8adb6;
   }
-
-  :is(
+  :where(body:not(:has([data-character-concept])))
+    :is(
       [data-testid='authenticated-shell'],
       [data-testid='public-information-shell'],
       [data-testid='account-shell'],
@@ -23,8 +24,8 @@
     font-size: 0.875rem;
     line-height: 1.5;
   }
-
-  :is(
+  :where(body:not(:has([data-character-concept])))
+    :is(
       [data-testid='authenticated-shell'],
       [data-testid='public-information-shell'],
       [data-testid='account-shell'],
@@ -36,9 +37,9 @@
     font-size: 0.75rem;
     line-height: 1.4;
   }
-
   /* Input text stays at 16px to avoid focus zoom on phones. */
-  :is(
+  :where(body:not(:has([data-character-concept])))
+    :is(
       [data-testid='authenticated-shell'],
       [data-testid='account-shell'],
       [data-character-select-page='true'],
@@ -56,19 +57,22 @@
     font-size: 0.9375rem;
     line-height: 1.6;
   }
-
-  [data-testid='character-profile'] h1 {
+  :where(body:not(:has([data-character-concept]))) [data-testid='character-profile'] h1 {
     line-height: 1.08;
     overflow-wrap: anywhere;
   }
-
-  [data-testid='character-profile'] > div:last-child > p {
+  :where(body:not(:has([data-character-concept])))
+    [data-testid='character-profile']
+    > div:last-child
+    > p {
     display: block;
     overflow: visible;
     -webkit-line-clamp: unset;
   }
-
-  [data-testid='character-profile'] [data-testid='level-progress'] > div:first-child {
+  :where(body:not(:has([data-character-concept])))
+    [data-testid='character-profile']
+    [data-testid='level-progress']
+    > div:first-child {
     flex-wrap: wrap;
     font-size: 0.6875rem;
     line-height: 1.3;
@@ -92,53 +96,57 @@
     line-height: 1.35;
     letter-spacing: 0.12em;
   }
-
   /* Identity values lead; labels provide a quieter reference tier. */
-  [data-testid='authenticated-shell'] [data-profile-fact] small {
+  :where(body:not(:has([data-character-concept])))
+    [data-testid='authenticated-shell']
+    [data-profile-fact]
+    small {
     color: var(--av-text-dim);
     font-size: 0.6875rem;
   }
-
-  [data-testid='authenticated-shell'] [data-profile-fact] strong {
+  :where(body:not(:has([data-character-concept])))
+    [data-testid='authenticated-shell']
+    [data-profile-fact]
+    strong {
     color: var(--av-text);
     font-size: 0.8125rem;
     line-height: 1.35;
   }
-
-  /* Creation's form is inside main, so it needs its own reading boundary. */
+  /* Creation's form is inside main,
+:where(body:not(:has([data-character-concept]))) so it needs its own reading boundary. */
   [data-testid='character-creation'] p {
     font-size: 0.875rem;
     line-height: 1.5;
   }
-
-  [data-testid='character-creation'] small {
+  :where(body:not(:has([data-character-concept]))) [data-testid='character-creation'] small {
     font-size: 0.75rem;
     line-height: 1.4;
   }
-
-  [data-testid='character-creation'] input:not([type='radio'], [type='checkbox']) {
+  :where(body:not(:has([data-character-concept])))
+    [data-testid='character-creation']
+    input:not([type='radio'], [type='checkbox']) {
     min-height: 2.75rem;
     font-size: 1rem;
   }
 
-  #battle-launch [data-pvp-settings-heading] strong {
+  #battle-launch:not([data-hall-concept]) [data-pvp-settings-heading] strong {
     font-size: 1rem;
     line-height: 1.3;
   }
 
-  #battle-launch [data-pvp-setting-group] legend {
+  #battle-launch:not([data-hall-concept]) [data-pvp-setting-group] legend {
     font-size: 0.75rem;
     line-height: 1.3;
   }
 
-  #battle-launch [data-pvp-setting-options] button {
+  #battle-launch:not([data-hall-concept]) [data-pvp-setting-options] button {
     min-height: 2.75rem;
     font-size: 0.75rem;
     line-height: 1.2;
     color: var(--av-text-muted);
   }
 
-  #battle-launch [data-pvp-setting-options] button[data-selected] {
+  #battle-launch:not([data-hall-concept]) [data-pvp-setting-options] button[data-selected] {
     color: var(--av-brass-300);
   }
 
@@ -167,15 +175,27 @@
     font-size: 0.8125rem !important;
     white-space: normal;
   }
+
+  /* The concept surfaces deliberately opt out of the legacy compact typography rules above.
+     Keep their body copy at the same readable phone floor while retaining their authored spacing. */
+  [data-character-concept] p,
+  [data-training-concept] p {
+    font-size: 0.875rem !important;
+    line-height: 1.5;
+  }
 }
 
 @media (max-width: 520px) {
-  [data-testid='authenticated-shell'] [data-profile-fact] {
+  :where(body:not(:has([data-character-concept])))
+    [data-testid='authenticated-shell']
+    [data-profile-fact] {
     grid-template-columns: 2rem minmax(0, 10rem);
     justify-content: center;
   }
-
-  [data-testid='authenticated-shell'] [data-profile-fact]:not(button) > span:last-child {
+  :where(body:not(:has([data-character-concept])))
+    [data-testid='authenticated-shell']
+    [data-profile-fact]:not(button)
+    > span:last-child {
     justify-items: start;
     text-align: left;
   }

@@ -155,6 +155,31 @@
   overflow: auto;
 }
 
+/* The account gate is the deliberate moonstone counterpoint to the ink world frame. Keep this
+ * contract local so auth copy remains readable even when the surrounding shell is dark. */
+.entryCard[data-account-concept='true'] {
+  color: var(--av-charcoal);
+  border-color: var(--av-gold-rule);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.48), transparent 42%),
+    var(--av-moonstone-elevated);
+  box-shadow:
+    0 1.5rem 4rem rgba(2, 9, 14, 0.28),
+    inset 0 1px rgba(255, 255, 255, 0.75);
+}
+
+.entryCard[data-account-concept='true'] :global(.av-kicker) {
+  color: var(--av-teal);
+}
+
+.entryCard[data-account-concept='true'] h2 {
+  color: var(--av-charcoal);
+}
+
+.entryCard[data-account-concept='true'] .entryLead {
+  color: var(--av-charcoal-muted);
+}
+
 .entryCard h2 {
   margin: 0.35rem 0 0.35rem;
   font: 500 clamp(1.45rem, 2.5vw, 2rem) / 1.05 var(--av-font-display);
@@ -181,6 +206,17 @@
   background: rgba(185, 154, 92, 0.055);
 }
 
+.entryCard[data-account-concept='true'] .environmentNotice {
+  color: var(--av-charcoal-muted);
+  border-color: rgba(116, 96, 59, 0.25);
+  border-left-color: var(--av-gold);
+  background: rgba(198, 179, 143, 0.12);
+}
+
+.entryCard[data-account-concept='true'] .environmentNotice strong {
+  color: var(--av-charcoal);
+}
+
 .environmentNotice strong {
   display: block;
   color: var(--av-text);
@@ -203,6 +239,11 @@
   background: rgba(5, 6, 9, 0.46);
 }
 
+.entryCard[data-account-concept='true'] .modeSwitch {
+  border-color: rgba(116, 96, 59, 0.25);
+  background: var(--av-moonstone-quiet);
+}
+
 .modeSwitch button {
   min-height: 2.25rem;
   border: 0;
@@ -215,6 +256,20 @@
 
 .modeSwitch button:hover {
   color: var(--av-text);
+}
+
+.entryCard[data-account-concept='true'] .modeSwitch button {
+  color: var(--av-charcoal-dim);
+}
+
+.entryCard[data-account-concept='true'] .modeSwitch button:hover {
+  color: var(--av-charcoal);
+}
+
+.entryCard[data-account-concept='true'] .modeSwitch .modeActive {
+  color: var(--av-charcoal);
+  background: var(--av-moonstone-elevated);
+  box-shadow: inset 0 0 0 1px rgba(116, 96, 59, 0.2);
 }
 .modeSwitch .modeActive {
   color: var(--av-text);
@@ -240,6 +295,10 @@
   text-transform: uppercase;
 }
 
+.entryCard[data-account-concept='true'] .form label > span {
+  color: var(--av-charcoal-muted);
+}
+
 .form input {
   box-sizing: border-box;
   width: 100%;
@@ -251,6 +310,17 @@
   color: var(--av-text);
   background: rgba(5, 6, 9, 0.72);
   touch-action: manipulation;
+}
+
+.entryCard[data-account-concept='true'] .form input {
+  color: var(--av-charcoal);
+  border-color: var(--av-gold-rule);
+  background: var(--av-moonstone-elevated);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.8);
+}
+
+.entryCard[data-account-concept='true'] .form input::placeholder {
+  color: var(--av-charcoal-dim);
 }
 
 .form input:disabled {
@@ -270,6 +340,14 @@
   line-height: 1.4;
 }
 
+.entryCard[data-account-concept='true'] .formMessage {
+  color: var(--av-charcoal-dim);
+}
+
+.entryCard[data-account-concept='true'] .formMessage[data-tone='error'] {
+  color: #9a4e48;
+}
+
 .formMessage[data-tone='error'] {
   color: var(--av-danger-400);
   font-weight: 650;
@@ -279,6 +357,15 @@
   margin-top: 0.7rem;
   border-top: 1px solid var(--av-border);
   color: var(--av-text-dim);
+}
+
+.entryCard[data-account-concept='true'] .help {
+  border-top-color: rgba(116, 96, 59, 0.25);
+  color: var(--av-charcoal-dim);
+}
+
+.entryCard[data-account-concept='true'] .help summary {
+  color: var(--av-charcoal-muted);
 }
 
 .help summary {

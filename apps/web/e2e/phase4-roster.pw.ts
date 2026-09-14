@@ -296,7 +296,7 @@ test('Phase 4 preserves testing access and shows advanced Skills and descriptive
   await page.getByLabel('Battle mode').selectOption('mastery-trial')
   await expect(page.getByRole('button', { name: 'Easy', exact: true })).toHaveCount(0)
   await expect(page.getByLabel('AI sparring arena')).toHaveValue('crossroads-court')
-  await expect(page.getByText(/50 Mastery XP/)).toBeVisible()
+  await expect(page.getByText(/50 Mastery XP/).last()).toBeVisible()
   await page.getByRole('button', { name: 'Enter Battle', exact: true }).click()
   await expect(page).toHaveURL(/\/game\/battle\/[0-9a-f-]{36}$/)
   const root = page.locator("main[data-unified-battle='true'][data-battle-kind='pve']")

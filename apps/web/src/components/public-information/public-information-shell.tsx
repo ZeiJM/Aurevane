@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
+import { AurevaneImage } from '@/components/media/aurevane-image'
 import { getAuthenticatedActor } from '@/server/auth/actor'
 import { loadSelectedCharacter } from '@/server/character/selected-character'
 
@@ -50,7 +51,14 @@ export async function PublicInformationShell({ active, children }: PublicInforma
     : 'Play / Sign In'
 
   return (
-    <div className={styles.shell} data-testid="public-information-shell">
+    <div className={styles.shell} data-testid="public-information-shell" data-public-concept="true">
+      <div className={styles.worldBackdrop} aria-hidden="true">
+        <AurevaneImage
+          assetId="environment.archive.interior"
+          className={styles.worldBackdropImage}
+          sizes="100vw"
+        />
+      </div>
       <a className="skip-link" href="#public-information-main">
         Skip to public information
       </a>

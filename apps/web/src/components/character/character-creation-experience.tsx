@@ -20,6 +20,8 @@ import { useEffect, useRef, useState } from 'react'
 import { AurevaneImage } from '@/components/media/aurevane-image'
 import type { ImageAssetId } from '@/media/registry'
 
+import { FoundationDisciplineSigil } from './foundation-discipline-sigil'
+import { getStarterPortraitImageAssetId } from '@/media/character'
 import styles from './character-creation-experience.module.css'
 
 type Step = 'identity' | 'discipline' | 'review'
@@ -184,12 +186,20 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
   }
 
   return (
-    <section className={styles.experience} data-testid="character-creation">
+    <section
+      className={styles.experience}
+      data-testid="character-creation"
+      data-character-concept="creation"
+      data-step={step}
+    >
       <div className={styles.scene} aria-hidden="true">
-        <AurevaneImage assetId="environment.character-creation.threshold" />
+        <AurevaneImage
+          assetId={getStarterPortraitImageAssetId(portraitRef)}
+          sizes="(min-width: 761px) 40vw, 100vw"
+        />
       </div>
 
-      <div className={styles.content}>
+      <div className={styles.content} data-av-surface="moonstone">
         <Kicker marker="◆">Create your character</Kicker>
         <div className={styles.progress} aria-label="Character creation progress">
           <span data-active={step === 'identity'}>01 Identity</span>
@@ -364,6 +374,10 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
                       }}
                       type="radio"
                     />
+                    <FoundationDisciplineSigil
+                      disciplineId={discipline.id}
+                      className={styles.disciplineSigil}
+                    />
                     <strong>{discipline.name}</strong>
                     <small>{discipline.summary}</small>
                   </label>
@@ -460,9 +474,8 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
               Confirm this character.
             </h1>
             <p className={styles.intro}>
-              The server revalidates the Primary-owned base and all five personal points, reserves
-              the name, creates the character atomically in Slot {slotIndex + 1}, and takes you
-              straight into that character.
+              Create this character in Slot {slotIndex + 1}. Your chosen identity, Discipline, and
+              personal points are ready for the road ahead.
             </p>
             <dl className={styles.reviewGrid}>
               <div>
