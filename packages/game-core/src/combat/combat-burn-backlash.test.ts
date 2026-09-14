@@ -7,6 +7,7 @@ import {
   type CombatActionDefinition,
   type CombatEffectDefinition,
   type CombatEncounterState,
+  type CombatResolutionEvent,
 } from './actions'
 import { createPendingBattle, startBattle } from './battle-state'
 import { createTacticalBattleState } from './board'
@@ -161,7 +162,7 @@ function supportAction(): CombatActionDefinition {
   }
 }
 
-function selfDamageEvents(events: readonly { event: string; [key: string]: unknown }[]) {
+function selfDamageEvents(events: readonly CombatResolutionEvent[]) {
   return events.filter(
     (event) =>
       event.event === 'damage_applied' &&
