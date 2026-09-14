@@ -195,9 +195,8 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
   }
 
   await page.setViewportSize({ width: 1366, height: 768 })
-  await page.getByRole('button', { name: 'Navigation', exact: true }).click()
   await page
-    .locator('nav[popover="auto"][aria-label="Game navigation"]')
+    .getByRole('navigation', { name: 'Primary game navigation' })
     .getByRole('link', { name: /^Profile/ })
     .click()
   await expect(page).toHaveURL(/\/game\/character$/)
@@ -288,6 +287,6 @@ test('mobile page panels clear the navigation bar at the end of scrolling', asyn
     const main = await page.locator('#game-main').boundingBox()
     const footer = await page.locator('[data-testid="authenticated-shell"] > footer').boundingBox()
     expect(main!.y + main!.height).toBeLessThanOrEqual(footer!.y + 1)
-    await expect(page.getByRole('button', { name: 'Navigation', exact: true })).toBeVisible()
+    await expect(page.getByRole('link', { name: /Online Users/ })).toBeVisible()
   }
 })
