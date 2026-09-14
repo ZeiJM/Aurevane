@@ -266,7 +266,7 @@ export function BattleLogPanel({
         <LogPanel
           compactFlow={dockTarget.hasAttribute('data-battle-flow-log-target')}
           flowView={flowView}
-          onFlowViewChange={setFlowView}
+          onFlowViewChange={onFlowViewChange}
           entries={entries}
           recentTurnCount={recentTurnCount}
           loading={loading}
