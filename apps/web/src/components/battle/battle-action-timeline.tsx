@@ -305,7 +305,7 @@ export function BattleActionTimeline({
                     <button
                       className={styles.transcriptOverflow}
                       type="button"
-                      aria-label={`View full action and results: ${action.ariaLabel}`}
+                      aria-label={`Action details: ${action.ariaLabel}`}
                       onClick={() => setSelected(action)}
                     >
                       View full action and results
