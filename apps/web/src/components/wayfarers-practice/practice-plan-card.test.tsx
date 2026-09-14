@@ -16,10 +16,12 @@ vi.mock('@aurevane/game-core/character/wayfarers-practice', () => ({
 vi.mock('@aurevane/ui', () => ({
   GameButton: ({
     children,
-    variant: _variant,
+    variant,
     ...props
-  }: React.ComponentProps<'button'> & { variant?: string }) =>
-    createElement('button', props, children),
+  }: React.ComponentProps<'button'> & { variant?: string }) => {
+    void variant
+    return createElement('button', props, children)
+  },
   Kicker: ({ children }: { children: React.ReactNode }) => createElement('span', null, children),
 }))
 
