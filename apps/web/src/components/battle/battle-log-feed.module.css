@@ -96,19 +96,14 @@
   min-width: 0;
   margin: 0;
   padding: 0;
-}
-
-.action + .action {
-  margin-top: 0.56rem;
-}
-
-.action > article {
-  min-width: 0;
-  padding: 0;
   outline: none;
 }
 
-.action > article:focus-visible {
+.actions > li + li {
+  margin-top: 0.56rem;
+}
+
+.action:focus-visible {
   outline: 1px solid rgba(183, 207, 224, 0.48);
   outline-offset: 2px;
 }
@@ -268,7 +263,7 @@
     padding: 0.46rem 0.5rem 0.52rem 0.6rem;
   }
 
-  .action + .action {
+  .actions > li + li {
     margin-top: 0.5rem;
   }
 
@@ -313,4 +308,18 @@
 .flowViews button[aria-pressed='true'] {
   color: var(--av-brass-200);
   background: rgba(207, 169, 93, 0.08);
+}
+
+.feed[data-compact-flow] {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+.feed[data-compact-flow] .primaryLine,
+.feed[data-compact-flow] .secondaryLine {
+  font-size: 0.75rem;
+  line-height: 1.4;
+}
+.feed[data-compact-flow] .eventNumber {
+  font-size: 0.6875rem;
 }

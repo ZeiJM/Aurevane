@@ -17,6 +17,7 @@ interface BattleLogPanelProps {
   playerName?: string
   combatantNames?: Readonly<Record<string, string>>
   dockOnDesktop?: boolean
+  recentTurnCount?: number
 }
 
 interface BattleLogResponse {
@@ -131,6 +132,7 @@ export function BattleLogPanel({
   playerName,
   combatantNames,
   dockOnDesktop = false,
+  recentTurnCount,
 }: BattleLogPanelProps) {
   const runtimePlayerName = useBattlePlayerName()
   const effectivePlayerName = playerName ?? runtimePlayerName ?? undefined
@@ -236,6 +238,7 @@ export function BattleLogPanel({
         {visible ? (
           <LogPanel
             entries={entries}
+            recentTurnCount={recentTurnCount}
             loading={loading}
             error={error}
             onClose={() => setInternalOpen(false)}
@@ -256,6 +259,7 @@ export function BattleLogPanel({
         <LogPanel
           compactFlow={dockTarget.hasAttribute('data-battle-flow-log-target')}
           entries={entries}
+          recentTurnCount={recentTurnCount}
           loading={loading}
           error={error}
           playerName={effectivePlayerName}
@@ -270,6 +274,7 @@ export function BattleLogPanel({
     <div ref={controlledPanelRef} className={styles.controlled} data-testid="battle-log-panel">
       <LogPanel
         entries={entries}
+        recentTurnCount={recentTurnCount}
         loading={loading}
         error={error}
         onClose={() => onClose?.()}
@@ -290,6 +295,7 @@ export function BattleLogPanel({
 
 function LogPanel({
   compactFlow = false,
+  recentTurnCount,
   entries,
   loading,
   error,
@@ -299,6 +305,7 @@ function LogPanel({
   combatantNames,
 }: {
   compactFlow?: boolean
+  recentTurnCount?: number
   entries: readonly BattleLogView['entries'][number][]
   loading: boolean
   error: string | null
@@ -314,7 +321,9 @@ function LogPanel({
         onPointerDown={onHeaderPointerDown}
       >
         <div>
-          <strong>Battle Log</strong>
+          <strong>
+            {recentTurnCount ? `Battle Log · Recent ${recentTurnCount} turns` : 'Battle Log'}
+          </strong>
         </div>
         {onClose ? (
           <button
@@ -337,6 +346,7 @@ function LogPanel({
         <BattleLogFeed
           compactFlow={compactFlow}
           entries={entries}
+          recentTurnCount={recentTurnCount}
           playerName={playerName}
           combatantNames={combatantNames}
           emptyMessage="No committed battle actions yet."

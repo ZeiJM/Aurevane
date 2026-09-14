@@ -398,7 +398,7 @@ export function BattleUtilityWindows({ battleSessionId, playerName }: BattleUtil
       {logOpen && !desktopBattleLayout ? (
         <UtilityWindow
           title="Battle Log"
-          meta="Rounds · actions · outcomes · drag header · resize corner"
+          meta="Recent 4 turns · actions · outcomes · drag header · resize corner"
           side="right"
           testId="battle-log-panel"
           onClose={() => setLogOpen(false)}
@@ -411,6 +411,7 @@ export function BattleUtilityWindows({ battleSessionId, playerName }: BattleUtil
             ) : (
               <BattleLogFeed
                 entries={logEntries}
+                recentTurnCount={4}
                 playerName={playerName}
                 emptyMessage="No committed battle actions yet."
               />

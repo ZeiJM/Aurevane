@@ -1,5 +1,5 @@
 import Image from 'next/image'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import type { BattleLogView } from '@/server/battle/battle-log-service'
 import {
   renderBattleLogEntry,
@@ -59,58 +59,138 @@ function segments(parts: PresentedBattleLogAction['primary']) {
   ))
 }
 
+interface TranscriptPage {
+  start: number
+  end: number
+  oversized?: true
+}
+
+/** Pack complete action/result blocks from newest to oldest using their rendered heights. */
+export function paginateBattleTranscript(
+  actions: readonly { height: number; round: number | null }[],
+  availableHeight: number,
+  headingHeight: number,
+  gap: number,
+): TranscriptPage[] {
+  const pages: TranscriptPage[] = []
+  let end = actions.length
+  while (end > 0) {
+    let start = end
+    let height = 0
+    while (start > 0) {
+      const action = actions[start - 1]!
+      const newRound = start === end || action.round !== actions[start]?.round
+      const nextHeight =
+        height + action.height + (start < end ? gap : 0) + (newRound ? headingHeight : 0)
+      if (start < end && nextHeight > availableHeight) break
+      height = nextHeight
+      start -= 1
+    }
+    pages.push({ start, end, ...(height > availableHeight ? { oversized: true as const } : {}) })
+    end = start
+  }
+  return pages
+}
+
 export function BattleActionTimeline({
   rounds,
   entries,
   playerName,
   combatantNames,
   view = 'timeline',
+  recentTurnCount,
+  renderTranscript,
 }: {
   rounds: readonly PresentedBattleLogRound[]
   entries: BattleLogView['entries']
   playerName?: string
   combatantNames?: Readonly<Record<string, string>>
   view?: 'timeline' | 'text'
+  recentTurnCount?: number
+  renderTranscript: (action: PresentedBattleLogAction) => ReactNode
 }) {
   const [filter, setFilter] = useState<'all' | 'you' | 'opponents'>('all')
   const opponentNames = useBattleOpponentNames()
   const [selected, setSelected] = useState<PresentedBattleLogAction | null>(null)
   const listRef = useRef<HTMLOListElement>(null)
   const [pageSize, setPageSize] = useState(8)
+  const measureRef = useRef<HTMLOListElement>(null)
+  const headingRef = useRef<HTMLDivElement>(null)
+  const [textPages, setTextPages] = useState<TranscriptPage[]>([])
   const [pagination, setPagination] = useState({ key: '', pagesBack: 0 })
   const dialogRef = useRef<HTMLDialogElement>(null)
-  const actions = rounds
-    .flatMap((round) => round.actions)
-    .sort((a, b) => a.battleVersion - b.battleVersion || a.occurredAt.localeCompare(b.occurredAt))
-  const visible = actions.filter(
-    (action) =>
-      filter === 'all' ||
-      (Boolean(actorName(action)) &&
-        (filter === 'you'
-          ? actorName(action) === playerName
-          : opponentNames
-            ? opponentNames.includes(actorName(action))
-            : actorName(action) !== playerName)),
+  const actions = useMemo(
+    () =>
+      rounds
+        .flatMap((round) => round.actions)
+        .sort(
+          (a, b) => a.battleVersion - b.battleVersion || a.occurredAt.localeCompare(b.occurredAt),
+        ),
+    [rounds],
+  )
+  const visible = useMemo(
+    () =>
+      actions.filter(
+        (action) =>
+          filter === 'all' ||
+          (Boolean(actorName(action)) &&
+            (filter === 'you'
+              ? actorName(action) === playerName
+              : opponentNames
+                ? opponentNames.includes(actorName(action))
+                : actorName(action) !== playerName)),
+      ),
+    [actions, filter, opponentNames, playerName],
   )
 
   useEffect(() => {
     const list = listRef.current
     if (!list) return
-    const resize = () =>
-      setPageSize(
-        Math.max(1, Math.floor(list.clientWidth / (view === 'text' ? 340 : 96))) *
-          (view === 'text' ? 2 : 1),
+    const resize = () => {
+      if (view === 'timeline') {
+        setPageSize(Math.max(1, Math.floor(list.clientWidth / 96)))
+        return
+      }
+      const measurement = measureRef.current
+      const heading = headingRef.current
+      if (!measurement || !heading) return
+      const dimensions = getComputedStyle(list)
+      const availableHeight =
+        list.clientHeight - parseFloat(dimensions.paddingTop) - parseFloat(dimensions.paddingBottom)
+      const measured = Array.from(measurement.children).map((item, index) => ({
+        height: item.getBoundingClientRect().height,
+        round: visible[index]?.round ?? null,
+      }))
+      const pages = paginateBattleTranscript(
+        measured,
+        availableHeight,
+        heading.getBoundingClientRect().height,
+        parseFloat(dimensions.rowGap) || 0,
       )
+      setTextPages((current) =>
+        JSON.stringify(current) === JSON.stringify(pages) ? current : pages,
+      )
+    }
     resize()
     const observer = new ResizeObserver(resize)
     observer.observe(list)
+    if (measureRef.current) observer.observe(measureRef.current)
     return () => observer.disconnect()
-  }, [view])
-  const pageKey = `${actions.length}:${filter}:${view}`
-  const lastPage = Math.max(0, Math.ceil(visible.length / pageSize) - 1)
+  }, [view, visible])
+  const pageKey = `${actions.at(-1)?.key ?? ''}:${actions.length}:${filter}:${view}`
+  const lastPage = Math.max(
+    0,
+    view === 'text' ? textPages.length - 1 : Math.ceil(visible.length / pageSize) - 1,
+  )
   const currentPage = Math.min(pagination.key === pageKey ? pagination.pagesBack : 0, lastPage)
-  const end = Math.max(0, visible.length - currentPage * pageSize)
-  const start = Math.max(0, end - pageSize)
+  const textPage = textPages[currentPage]
+  const oversized = view === 'text' && Boolean(textPage?.oversized)
+  const end =
+    view === 'text'
+      ? (textPage?.end ?? visible.length)
+      : Math.max(0, visible.length - currentPage * pageSize)
+  const start =
+    view === 'text' ? (textPage?.start ?? Math.max(0, end - 1)) : Math.max(0, end - pageSize)
   const page = visible.slice(start, end)
   useEffect(() => {
     if (selected && dialogRef.current && !dialogRef.current.open) {
@@ -133,7 +213,7 @@ export function BattleActionTimeline({
         ].includes(entry.eventType),
     ) ?? []
   return (
-    <div className={styles.timeline}>
+    <div className={styles.timeline} data-view={view}>
       <div className={styles.filter} role="group" aria-label="Filter battle actions">
         {(['all', 'you', 'opponents'] as const).map((value) => (
           <button
@@ -155,7 +235,10 @@ export function BattleActionTimeline({
         >
           ‹
         </button>
-        <span>{visible.length ? `${start + 1}–${end} of ${visible.length}` : 'No actions'}</span>
+        <span>
+          {visible.length ? `${start + 1}–${end} of ${visible.length}` : 'No actions'}
+          {recentTurnCount ? ` · Recent ${recentTurnCount} turns` : ''}
+        </span>
         <button
           type="button"
           aria-label="Newer actions"
@@ -169,17 +252,54 @@ export function BattleActionTimeline({
         ref={listRef}
         className={styles.track}
         data-view={view}
+        data-oversized={oversized || undefined}
         aria-label={view === 'text' ? 'Battle action transcript' : 'Battle action timeline'}
       >
-        {page.map((action) => (
+        {page.map((action, index) => (
           <li key={action.key}>
-            <button
-              type="button"
-              onClick={() => setSelected(action)}
-              aria-label={`Action details: ${action.ariaLabel}`}
-              title={action.ariaLabel}
-            >
-              {view === 'timeline' ? (
+            {view === 'text' ? (
+              <>
+                {index === 0 || page[index - 1]?.round !== action.round ? (
+                  <div className={styles.transcriptRound}>
+                    {action.round === null ? 'Battle' : `Round ${action.round}`}
+                  </div>
+                ) : null}
+                <div
+                  className={styles.transcriptEntry}
+                  inert={oversized || undefined}
+                  aria-hidden={oversized || undefined}
+                >
+                  {renderTranscript(action)}
+                  {!oversized ? (
+                    <button
+                      className={styles.transcriptDetails}
+                      type="button"
+                      onClick={() => setSelected(action)}
+                      aria-label={`Action details: ${action.ariaLabel}`}
+                      title="Action details"
+                    >
+                      ⓘ
+                    </button>
+                  ) : null}
+                </div>
+                {oversized ? (
+                  <button
+                    className={styles.transcriptOverflow}
+                    type="button"
+                    aria-label={`View full action and results: ${action.ariaLabel}`}
+                    onClick={() => setSelected(action)}
+                  >
+                    View full action and results
+                  </button>
+                ) : null}
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setSelected(action)}
+                aria-label={`Action details: ${action.ariaLabel}`}
+                title={action.ariaLabel}
+              >
                 <span className={styles.art}>
                   <Image
                     src={artwork(action, entries)}
@@ -196,17 +316,35 @@ export function BattleActionTimeline({
                     <b aria-hidden="true">{actorName(action).slice(0, 1)}</b>
                   ) : null}
                 </span>
-              ) : null}
-              <strong>{view === 'timeline' ? actionName(action) : segments(action.primary)}</strong>
-              <span>
-                {actorName(action) || 'Battle'} ·{' '}
-                {action.round === null ? 'Event' : `R${action.round}`}
-              </span>
-            </button>
+                <strong>{actionName(action)}</strong>
+                <span>
+                  {actorName(action) || 'Battle'} ·{' '}
+                  {action.round === null ? 'Event' : `R${action.round}`}
+                </span>
+              </button>
+            )}
           </li>
         ))}
+        {visible.length === 0 ? (
+          <li>
+            <p className={styles.empty}>No actions in this view yet.</p>
+          </li>
+        ) : null}
       </ol>
-      {visible.length === 0 ? <p className={styles.empty}>No actions in this view yet.</p> : null}
+      {view === 'text' ? (
+        <div className={styles.transcriptMeasure} aria-hidden="true" inert>
+          <div className={styles.transcriptRound} ref={headingRef}>
+            Round
+          </div>
+          <ol ref={measureRef}>
+            {visible.map((action) => (
+              <li className={styles.transcriptEntry} key={action.key}>
+                {renderTranscript(action)}
+              </li>
+            ))}
+          </ol>
+        </div>
+      ) : null}
       {selected ? (
         <dialog
           ref={dialogRef}

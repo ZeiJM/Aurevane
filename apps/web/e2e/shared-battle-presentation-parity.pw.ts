@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
+import { expectBattlePreviewFits } from './battle-reference-layout-helpers'
 
 const SHARED_HEADER =
   /^(Steel is drawn\. The battle is underway\.|Stand fast\. The field belongs to the resolute\.|Hold your nerve\. One clear move can turn the tide\.|Press forward\. Fortune follows the decisive\.|Every step has weight\. Make this one count\.)$/
@@ -194,16 +195,19 @@ async function expectDesktopCombatantCard(root: ReturnType<Page['locator']>) {
       portraitRight: portraitRect.right,
       portraitTop: portraitRect.top,
       portraitBottom: portraitRect.bottom,
+      portraitWidth: portraitRect.width,
+      portraitHeight: portraitRect.height,
       effectsBottom: effectsRect.bottom,
     }
   })
-  expect(Math.abs(geometry.portraitLeft - geometry.cardLeft)).toBeLessThanOrEqual(2)
-  expect(Math.abs(geometry.portraitRight - geometry.cardRight)).toBeLessThanOrEqual(2)
+  expect(geometry.portraitLeft).toBeGreaterThanOrEqual(geometry.cardLeft)
+  expect(geometry.portraitRight).toBeLessThanOrEqual(geometry.cardRight)
+  expect(Math.abs(geometry.portraitWidth - geometry.portraitHeight)).toBeLessThanOrEqual(1)
   await expect(card.locator('button[data-desktop-inspect-combatant]')).toContainText(/HP.*MP/s)
   expect(Math.abs(geometry.effectsBottom - geometry.cardBottom)).toBeLessThanOrEqual(2)
   await expect(card).toContainText(/HP.*MP/s)
   await expect(card.getByRole('region', { name: /active combat effects/ })).toBeVisible()
-  expect(Math.abs(geometry.portraitTop - geometry.headingBottom)).toBeLessThanOrEqual(2)
+  expect(geometry.portraitTop).toBeGreaterThanOrEqual(geometry.headingBottom)
 }
 
 test('keeps requested PvE presentation parity on desktop and mobile', async ({
@@ -245,6 +249,11 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
       .evaluate((el) => parseFloat(getComputedStyle(el).fontSize)),
   ).toBeGreaterThanOrEqual(12)
   await expect(preview).toContainText(/Guarded/i)
+  await expectBattlePreviewFits(page)
+  await testInfo.attach('combat-guard-forecast', {
+    body: await page.screenshot({ path: testInfo.outputPath('combat-guard-forecast.png') }),
+    contentType: 'image/png',
+  })
 
   await root.getByRole('button', { name: 'Cancel Action' }).click()
   await selectMoveAndVerifySharedTreatment(root)
@@ -267,6 +276,116 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
   } else {
     await expectDesktopCombatantCard(root)
     await plotOneDesktopWasdStep(page, root, identity.characterName)
+    await root.getByRole('button', { name: 'Cancel Action' }).click()
+    await context.getByRole('button', { name: /^Guard,/ }).click()
+    await root.getByRole('button', { name: 'Confirm Action', exact: true }).click()
+    const flow = root.getByRole('region', { name: 'Battle flow', exact: true })
+    await expect(flow.getByTestId('battle-log-feed')).toContainText('Guard')
+    const flowBounds = await flow.evaluate((element) => {
+      const feed = element.querySelector<HTMLElement>('[data-testid="battle-log-feed"]')!
+      return {
+        bottom: element.getBoundingClientRect().bottom,
+        feedBottom: feed.getBoundingClientRect().bottom,
+        height: feed.clientHeight,
+        scrollHeight: feed.scrollHeight,
+      }
+    })
+    expect(flowBounds.feedBottom).toBeLessThanOrEqual(flowBounds.bottom + 1)
+    expect(flowBounds.scrollHeight).toBeLessThanOrEqual(flowBounds.height + 1)
+    await testInfo.attach('combat-populated-command-dock', {
+      body: await page.screenshot({
+        path: testInfo.outputPath('combat-populated-command-dock.png'),
+      }),
+      contentType: 'image/png',
+    })
+    await flow.getByRole('button', { name: 'Text log', exact: true }).click()
+    const transcript = flow.getByRole('list', { name: 'Battle action transcript' })
+    await expect(transcript).toContainText(/Round 1/)
+    await expect(transcript).toContainText(/#\d+:/)
+    await expect(transcript).toContainText(/braces with Guard/)
+    await expect(transcript).toContainText(/gains Guarded/)
+    await expect(transcript.getByRole('button', { name: 'Explain Guarded' })).toBeVisible()
+    const textBounds = await transcript.evaluate((element) => ({
+      height: element.clientHeight,
+      scrollHeight: element.scrollHeight,
+      width: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+      firstLineLeft: element.querySelector('article p')!.getBoundingClientRect().left,
+      resultLineLeft: element.querySelector('article p + p')!.getBoundingClientRect().left,
+    }))
+    expect(textBounds.scrollHeight).toBeLessThanOrEqual(textBounds.height + 1)
+    expect(textBounds.scrollWidth).toBeLessThanOrEqual(textBounds.width + 1)
+    expect(textBounds.resultLineLeft).toBeGreaterThan(textBounds.firstLineLeft)
+    await testInfo.attach('combat-rich-text-log', {
+      body: await page.screenshot({ path: testInfo.outputPath('combat-rich-text-log.png') }),
+      contentType: 'image/png',
+    })
+    await transcript
+      .getByRole('button', { name: /^Action details:/ })
+      .first()
+      .click()
+    await expect(page.getByRole('dialog', { name: 'Guard', exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Close action details', exact: true }).click()
+
+    // A narrow dock makes this real committed result wrap like a multi-result action.
+    // Constrain the presentation only; full details must still come from the saved Guard event.
+    await flow.evaluate((element) => {
+      ;(element as HTMLElement).style.width = '15rem'
+      const list = element.querySelector<HTMLElement>('[aria-label="Battle action transcript"]')!
+      const measured = element.querySelector<HTMLElement>('[aria-hidden="true"][inert] ol li')!
+      const heading = list.querySelector<HTMLElement>(':scope > li > div')!
+      list.style.height = `${Math.min(list.clientHeight, measured.getBoundingClientRect().height + heading.getBoundingClientRect().height - 1)}px`
+    })
+    await expect(transcript).toHaveAttribute('data-oversized', 'true')
+    const fullResults = transcript.getByRole('button', { name: /^View full action and results:/ })
+    await expect(fullResults).toBeVisible()
+    await expect(transcript.getByRole('button', { name: /^Action details:/ })).toHaveCount(0)
+    const overflowBounds = await transcript.evaluate((element) => {
+      const item = element.firstElementChild!
+      const heading = item.firstElementChild!
+      const body = item.children[1] as HTMLElement
+      const button = item.lastElementChild!
+      return {
+        top: element.getBoundingClientRect().top,
+        bottom: element.getBoundingClientRect().bottom,
+        height: element.clientHeight,
+        scrollHeight: element.scrollHeight,
+        headingTop: heading.getBoundingClientRect().top,
+        headingBottom: heading.getBoundingClientRect().bottom,
+        bodyTop: body.getBoundingClientRect().top,
+        bodyBottom: body.getBoundingClientRect().bottom,
+        lineHeight: parseFloat(getComputedStyle(body.querySelector('p')!).lineHeight),
+        buttonTop: button.getBoundingClientRect().top,
+        buttonBottom: button.getBoundingClientRect().bottom,
+        inert: body.inert,
+      }
+    })
+    expect(overflowBounds.headingTop).toBeGreaterThanOrEqual(overflowBounds.top)
+    expect(overflowBounds.headingBottom).toBeLessThanOrEqual(overflowBounds.bodyTop + 1)
+    expect(overflowBounds.bodyBottom - overflowBounds.bodyTop).toBeGreaterThanOrEqual(
+      overflowBounds.lineHeight,
+    )
+    expect(overflowBounds.bodyBottom).toBeLessThanOrEqual(overflowBounds.buttonTop + 1)
+    expect(overflowBounds.buttonBottom).toBeLessThanOrEqual(overflowBounds.bottom + 1)
+    expect(overflowBounds.scrollHeight).toBeLessThanOrEqual(overflowBounds.height + 1)
+    expect(overflowBounds.inert).toBe(true)
+    await fullResults.click()
+    const completeResult = page.getByRole('dialog', { name: 'Guard', exact: true })
+    await expect(completeResult).toBeVisible()
+    await expect(
+      completeResult.getByRole('region', { name: 'Recorded action result' }),
+    ).toContainText('Guarded')
+    await page.getByRole('button', { name: 'Close action details', exact: true }).click()
+    await flow.evaluate((element) => {
+      ;(element as HTMLElement).style.removeProperty('width')
+      element
+        .querySelector<HTMLElement>('[aria-label="Battle action transcript"]')!
+        .style.removeProperty('height')
+    })
+    await expect(transcript).not.toHaveAttribute('data-oversized', 'true')
+    await expect(transcript.getByRole('button', { name: 'Explain Guarded' })).toBeVisible()
+    await flow.getByRole('button', { name: 'Timeline', exact: true }).click()
+    await expect(flow.getByRole('list', { name: 'Battle action timeline' })).toBeVisible()
   }
 })
 

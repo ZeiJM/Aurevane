@@ -619,9 +619,11 @@ function annotateBattleContext(entries: readonly BattleLogEntry[]): BattleLogEnt
     if (left.battleVersion !== right.battleVersion) return left.battleVersion - right.battleVersion
     return left.eventIndex - right.eventIndex
   })
-  const context = new Map<string, { round: number | null; turnNumber: number | null }>()
-  let round: number | null = null
-  let turnNumber: number | null = null
+  const context = new Map<string, { round: number; turnNumber: number | null }>()
+  // Both callers load the complete history. startBattle initializes round/turn 1 in the
+  // persisted opening snapshot; PvE does not separately persist those opening events.
+  let round = 1
+  let turnNumber: number | null = 1
 
   for (const entry of oldestFirst) {
     if (entry.eventType === 'round_started') turnNumber = null
@@ -633,26 +635,13 @@ function annotateBattleContext(entries: readonly BattleLogEntry[]): BattleLogEnt
     })
   }
 
-  let nextRound: number | null = null
-  for (let index = oldestFirst.length - 1; index >= 0; index -= 1) {
-    const entry = oldestFirst[index]
-    if (!entry) continue
-    const key = eventKey(entry)
-    const resolved = context.get(key)
-    if (!resolved) continue
-    if (resolved.round !== null) {
-      nextRound = resolved.round
-      continue
-    }
-    if (nextRound !== null) context.set(key, { ...resolved, round: nextRound })
-  }
-
   return entries.map((entry) => {
     const resolved = context.get(eventKey(entry))
     return resolved ? { ...entry, ...resolved } : entry
   })
 }
 
+/** Build a log from complete persisted history, including commands before the first turn marker. */
 export function buildBattleLogView(
   battleSessionId: string,
   records: readonly BattleEventRecord[],
