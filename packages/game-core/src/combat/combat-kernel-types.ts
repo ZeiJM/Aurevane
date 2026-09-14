@@ -36,6 +36,58 @@ export const COMBAT_ACTION_SOURCE_KINDS = [
 
 export type CombatActionSourceKind = (typeof COMBAT_ACTION_SOURCE_KINDS)[number]
 
+export const COMBAT_RESOLUTION_PIPELINE_VERSION = 1 as const
+
+export const COMBAT_RESOLUTION_STAGES_V1 = Object.freeze([
+  'command-validation',
+  'legality',
+  'target-context',
+  'accuracy',
+  'pre-hit-reactions',
+  'raw-potency',
+  'defense',
+  'tactical-modifiers',
+  'damage-modifiers',
+  'barrier-redirect',
+  'commit-mutation',
+  'after-damage-triggers',
+  'bounded-reactions',
+  'consequences',
+  'battle-state-checks',
+  'metadata',
+] as const)
+
+export type CombatResolutionStageV1 = (typeof COMBAT_RESOLUTION_STAGES_V1)[number]
+export type TriggeredDamagePolicy = 'non-reactive' | 'reactive'
+
+export interface CombatTriggerGuard {
+  triggerChainId: TriggerChainId
+  maxDepth: number
+  remainingReactionBudget: number
+  triggeredDamagePolicy: TriggeredDamagePolicy
+  executedInstanceIds: readonly string[]
+}
+
+export type CombatTriggerAttempt =
+  | { accepted: true; guard: CombatTriggerGuard }
+  | {
+      accepted: false
+      reason: 'depth-limit' | 'reaction-budget-exhausted' | 'instance-already-executed'
+      guard: CombatTriggerGuard
+    }
+
+export interface CreateCombatTriggerGuardInput {
+  triggerChainId: string
+  maxDepth?: number
+  reactionBudget?: number
+  triggeredDamagePolicy?: TriggeredDamagePolicy
+}
+
+export interface ConsumeCombatTriggerInput {
+  instanceId: string
+  depth: number
+}
+
 export interface CombatActionProvenance {
   rulesetVersion: RulesetVersion
   sourceKind: CombatActionSourceKind
@@ -68,6 +120,20 @@ function positiveVersion<T extends number>(value: number, label: string): T {
     throw new TypeError(`${label} must be a positive safe integer.`)
   }
   return value as T
+}
+
+function positiveSafeInteger(value: number, label: string): number {
+  if (!Number.isSafeInteger(value) || value < 1) {
+    throw new TypeError(`${label} must be a positive safe integer.`)
+  }
+  return value
+}
+
+function nonNegativeSafeInteger(value: number, label: string): number {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new TypeError(`${label} must be a non-negative safe integer.`)
+  }
+  return value
 }
 
 export function combatActionSourceKind(value: unknown): CombatActionSourceKind {
@@ -110,6 +176,55 @@ export function contentVersion(value: number): ContentVersion {
 
 export function rulesetVersion(value: number): RulesetVersion {
   return positiveVersion<RulesetVersion>(value, 'Ruleset version')
+}
+
+export function createCombatTriggerGuard(
+  input: CreateCombatTriggerGuardInput,
+): CombatTriggerGuard {
+  const maxDepth = positiveSafeInteger(input.maxDepth ?? 8, 'Trigger max depth')
+  const remainingReactionBudget = nonNegativeSafeInteger(
+    input.reactionBudget ?? 32,
+    'Trigger reaction budget',
+  )
+  const triggeredDamagePolicy = input.triggeredDamagePolicy ?? 'non-reactive'
+  if (triggeredDamagePolicy !== 'non-reactive' && triggeredDamagePolicy !== 'reactive') {
+    throw new TypeError(`Unknown triggered damage policy: ${String(triggeredDamagePolicy)}`)
+  }
+
+  return {
+    triggerChainId: triggerChainId(input.triggerChainId),
+    maxDepth,
+    remainingReactionBudget,
+    triggeredDamagePolicy,
+    executedInstanceIds: [],
+  }
+}
+
+export function consumeCombatTrigger(
+  guard: CombatTriggerGuard,
+  input: ConsumeCombatTriggerInput,
+): CombatTriggerAttempt {
+  const instanceId = stableIdentifier<string>(input.instanceId, 'Trigger instance ID')
+  const depth = positiveSafeInteger(input.depth, 'Trigger depth')
+
+  if (guard.executedInstanceIds.includes(instanceId)) {
+    return { accepted: false, reason: 'instance-already-executed', guard }
+  }
+  if (depth > guard.maxDepth) {
+    return { accepted: false, reason: 'depth-limit', guard }
+  }
+  if (guard.remainingReactionBudget === 0) {
+    return { accepted: false, reason: 'reaction-budget-exhausted', guard }
+  }
+
+  return {
+    accepted: true,
+    guard: {
+      ...guard,
+      remainingReactionBudget: guard.remainingReactionBudget - 1,
+      executedInstanceIds: [...guard.executedInstanceIds, instanceId],
+    },
+  }
 }
 
 export function createCombatActionProvenance(
