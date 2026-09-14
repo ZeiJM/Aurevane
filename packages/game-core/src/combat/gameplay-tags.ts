@@ -300,6 +300,8 @@ function effectPresentationTags(effect: PresentationEffect): readonly string[] {
     'apply-burn': 'Burn (Scorched)',
     'apply-bleed': 'Bleed (Bleeding)',
     'apply-poison': 'Poison (Poisoned)',
+    burn: 'Burn (Scorched)',
+    bleed: 'Bleed (Bleeding)',
     poison: 'Poison (Poisoned)',
   }
   return directLabels[effect.type] ? [directLabels[effect.type]!] : []

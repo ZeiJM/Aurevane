@@ -2,6 +2,7 @@ import type { CombatEffectRecipient, CombatEncounterIssue, CombatEncounterState 
 import {
   normalizeCombatEffectState,
   type CombatBleedStack,
+  type CombatBurnInstance,
   type CombatPoisonInstance,
 } from './combat-effect-state'
 
@@ -10,6 +11,8 @@ export const CURRENT_POISON_DAMAGE = 2 as const
 export const CURRENT_BLEED_MAX_STACKS = 3 as const
 export const CURRENT_BLEED_MAX_TICKS = 4 as const
 export const CURRENT_BLEED_MAX_RAW_TOTAL = 10 as const
+export const CURRENT_BURN_PROFILE_VERSION = 1 as const
+export const CURRENT_BURN_DAMAGE_BY_STAGE = [4, 3, 2] as const
 
 export interface CurrentPoisonEffect {
   type: 'poison'
@@ -233,11 +236,103 @@ export function advanceCurrentBleedEndTurn(
   return { state: { ...state, effectState: { ...effectState, bleed } }, stacks }
 }
 
+export function currentBurnInstance(
+  state: CombatEncounterState,
+  targetCombatantId: string,
+): CombatBurnInstance | null {
+  return (
+    normalizeCombatEffectState(state.effectState).burn.find(
+      (instance) => instance.targetCombatantId === targetCombatantId,
+    ) ?? null
+  )
+}
+
+export function hasCurrentBurn(state: CombatEncounterState, targetCombatantId: string): boolean {
+  return currentBurnInstance(state, targetCombatantId) !== null
+}
+
+export function applyCurrentBurnState(
+  state: CombatEncounterState,
+  sourceCombatantId: string,
+  targetCombatantId: string,
+  sourceActionId: string,
+): CombatEncounterState {
+  const effectState = normalizeCombatEffectState(state.effectState)
+  const instance: CombatBurnInstance = {
+    targetCombatantId,
+    sourceCombatantId,
+    sourceActionId,
+    profileVersion: CURRENT_BURN_PROFILE_VERSION,
+    stage: 0,
+  }
+  return {
+    ...state,
+    effectState: {
+      ...effectState,
+      burn: [
+        ...effectState.burn.filter(
+          (candidate) => candidate.targetCombatantId !== targetCombatantId,
+        ),
+        instance,
+      ].sort((left, right) => left.targetCombatantId.localeCompare(right.targetCombatantId)),
+    },
+  }
+}
+
+export function removeCurrentBurnState(
+  state: CombatEncounterState,
+  targetCombatantId: string,
+): CombatEncounterState {
+  const effectState = normalizeCombatEffectState(state.effectState)
+  return {
+    ...state,
+    effectState: {
+      ...effectState,
+      burn: effectState.burn.filter((instance) => instance.targetCombatantId !== targetCombatantId),
+    },
+  }
+}
+
+export function advanceCurrentBurnEndTurn(
+  state: CombatEncounterState,
+  targetCombatantId: string,
+): { state: CombatEncounterState; instance: CombatBurnInstance | null; damage: number } {
+  const effectState = normalizeCombatEffectState(state.effectState)
+  const instance = effectState.burn.find(
+    (candidate) => candidate.targetCombatantId === targetCombatantId,
+  )
+  if (!instance) return { state, instance: null, damage: 0 }
+
+  const damage = CURRENT_BURN_DAMAGE_BY_STAGE[instance.stage]
+  if (damage === undefined) {
+    throw new RangeError('Current Burn stage is outside the canonical profile.')
+  }
+  const nextStage = instance.stage + 1
+  const burn =
+    nextStage >= CURRENT_BURN_DAMAGE_BY_STAGE.length
+      ? effectState.burn.filter((candidate) => candidate.targetCombatantId !== targetCombatantId)
+      : effectState.burn.map((candidate) =>
+          candidate.targetCombatantId === targetCombatantId
+            ? { ...candidate, stage: nextStage }
+            : candidate,
+        )
+
+  return {
+    state: { ...state, effectState: { ...effectState, burn } },
+    instance,
+    damage,
+  }
+}
+
 export function validateCombatDotState(
   state: CombatEncounterState,
 ): readonly CombatEncounterIssue[] {
   if (!state.effectState) return []
-  return [...validateCurrentPoisonState(state), ...validateCurrentBleedState(state)]
+  return [
+    ...validateCurrentPoisonState(state),
+    ...validateCurrentBleedState(state),
+    ...validateCurrentBurnState(state),
+  ]
 }
 
 function validateCurrentPoisonState(state: CombatEncounterState): readonly CombatEncounterIssue[] {
@@ -277,6 +372,48 @@ function validateCurrentPoisonState(state: CombatEncounterState): readonly Comba
           field: 'effectState.poison',
           message:
             'Poison state must contain one valid current-profile instance per target, sorted by target ID, with movement progress from 0 to 4.',
+        },
+      ]
+    : []
+}
+
+function validateCurrentBurnState(state: CombatEncounterState): readonly CombatEncounterIssue[] {
+  const burn = state.effectState?.burn
+  if (!Array.isArray(burn)) {
+    return [{ field: 'effectState.burn', message: 'Burn state must be an array.' }]
+  }
+
+  const combatantIds = new Set(state.tactical.battle.combatants.map((row) => row.id))
+  const targetIds = new Set<string>()
+  let invalid = false
+  let previousTargetId: string | null = null
+
+  for (const instance of burn) {
+    if (
+      !combatantIds.has(instance.targetCombatantId) ||
+      !combatantIds.has(instance.sourceCombatantId) ||
+      typeof instance.sourceActionId !== 'string' ||
+      instance.sourceActionId.length === 0 ||
+      instance.sourceActionId.trim() !== instance.sourceActionId ||
+      instance.profileVersion !== CURRENT_BURN_PROFILE_VERSION ||
+      !Number.isSafeInteger(instance.stage) ||
+      instance.stage < 0 ||
+      instance.stage >= CURRENT_BURN_DAMAGE_BY_STAGE.length ||
+      targetIds.has(instance.targetCombatantId) ||
+      (previousTargetId !== null && previousTargetId > instance.targetCombatantId)
+    ) {
+      invalid = true
+    }
+    targetIds.add(instance.targetCombatantId)
+    previousTargetId = instance.targetCombatantId
+  }
+
+  return invalid
+    ? [
+        {
+          field: 'effectState.burn',
+          message:
+            'Burn state must contain one valid current-profile instance per target, sorted by target ID, with canonical stage 0 through 2.',
         },
       ]
     : []

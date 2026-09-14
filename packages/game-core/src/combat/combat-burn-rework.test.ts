@@ -250,8 +250,8 @@ describe('current Burn pressure runtime', () => {
     )
 
     expect(legacy.state.effectState?.burn ?? []).toEqual([])
-    expect(legacy.state.statusState.find((row) => row.combatantId === 'target')?.statuses).toContainEqual(
-      expect.objectContaining({ statusId: 'burn' }),
-    )
+    expect(
+      legacy.state.statusState.find((row) => row.combatantId === 'target')?.statuses,
+    ).toContainEqual(expect.objectContaining({ statusId: 'burn' }))
   })
 })
