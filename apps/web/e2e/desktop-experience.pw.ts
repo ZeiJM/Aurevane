@@ -598,6 +598,9 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
         return text.map((e) => ({
           text: e.textContent,
           size: parseFloat(getComputedStyle(e).fontSize),
+          color: getComputedStyle(e).color,
+          background: surfaceBackground(e),
+          className: e.className,
           contrast: (() => {
             const foreground = luminance(getComputedStyle(e).color)
             const background = luminance(surfaceBackground(e))
@@ -610,7 +613,7 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
       for (const item of findings) {
         expect(
           item.contrast,
-          `${item.text}: contrast against its rendered surface`,
+          `${item.text} (${item.color} on ${item.background}; ${item.className}): contrast against its rendered surface`,
         ).toBeGreaterThanOrEqual(4.5)
         expect(item.size, `${item.text}: minimum label size`).toBeGreaterThanOrEqual(11)
       }

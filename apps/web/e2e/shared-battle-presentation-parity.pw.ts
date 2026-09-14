@@ -323,10 +323,15 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
       body: await page.screenshot({ path: testInfo.outputPath('combat-rich-text-log.png') }),
       contentType: 'image/png',
     })
-    await transcript
-      .getByRole('button', { name: /^Action details:/ })
-      .first()
-      .click()
+    const actionDetails = transcript.getByRole('button', { name: /^Action details:/ }).first()
+    if (await actionDetails.count()) {
+      await actionDetails.click()
+    } else {
+      await transcript
+        .getByRole('button', { name: /^View full action and results:/ })
+        .first()
+        .click()
+    }
     await expect(page.getByRole('dialog', { name: 'Guard', exact: true })).toBeVisible()
     await page.getByRole('button', { name: 'Close action details', exact: true }).click()
 
