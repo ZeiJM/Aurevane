@@ -24,6 +24,7 @@
     "./combat/combat-kernel-types": "./src/combat/combat-kernel-types.ts",
     "./combat/combat-runtime-state": "./src/combat/combat-runtime-state.ts",
     "./combat/build-snapshot": "./src/combat/build-snapshot.ts",
+    "./combat/damage-scaling": "./src/combat/damage-scaling.ts",
     "./combat/mature-skills": "./src/combat/mature-skills.ts",
     "./combat/resonance": "./src/combat/resonance.ts",
     "./combat/pv1f-resonance": "./src/combat/pv1f-resonance.ts",

@@ -17,12 +17,15 @@ import {
   type CombatTargetSelection,
 } from './actions'
 
-export const STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION = 1 as const
-export const STAT_DRIVEN_COMBAT_RULES_VERSION = 1 as const
+export const STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V1 = 1 as const
+export const STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION = 2 as const
+export const STAT_DRIVEN_COMBAT_RULES_V1 = 1 as const
+export const STAT_DRIVEN_COMBAT_RULES_VERSION = 2 as const
 export const COMBAT_BASIS_POINTS = 10_000 as const
 
 export type CombatStatProvenanceKind = 'character-derived' | 'scenario'
 export type CombatDefenseKind = 'armor' | 'ward'
+export type CombatOffensivePowerKind = 'physical-power' | 'mystic-power'
 
 export interface CombatStatProvenance {
   kind: CombatStatProvenanceKind
@@ -30,7 +33,7 @@ export interface CombatStatProvenance {
   sourceRulesVersion: number
 }
 
-export interface StatDrivenCombatProfile {
+export interface StatDrivenCombatProfileV1 {
   combatantId: string
   provenance: CombatStatProvenance
   accuracy: number
@@ -40,14 +43,47 @@ export interface StatDrivenCombatProfile {
   jump: number
 }
 
+/** Compatibility/persisted shape. V2 validation requires both optional ratings to be present. */
+export interface StatDrivenCombatProfile extends StatDrivenCombatProfileV1 {
+  physicalPower?: number
+  mysticPower?: number
+}
+
+export interface StatDrivenCombatProfileV2 extends StatDrivenCombatProfileV1 {
+  physicalPower: number
+  mysticPower: number
+}
+
+/** Broad persisted boundary. Validation pairs schema/rules versions and row shape. */
 export interface StatDrivenCombatBridgeState {
+  schemaVersion:
+    typeof STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V1 | typeof STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION
+  rulesVersion: typeof STAT_DRIVEN_COMBAT_RULES_V1 | typeof STAT_DRIVEN_COMBAT_RULES_VERSION
+  combatants: readonly StatDrivenCombatProfile[]
+}
+
+export interface StatDrivenCombatBridgeStateV1 extends StatDrivenCombatBridgeState {
+  schemaVersion: typeof STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V1
+  rulesVersion: typeof STAT_DRIVEN_COMBAT_RULES_V1
+  combatants: readonly StatDrivenCombatProfileV1[]
+}
+
+export interface StatDrivenCombatBridgeStateV2 extends StatDrivenCombatBridgeState {
   schemaVersion: typeof STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION
   rulesVersion: typeof STAT_DRIVEN_COMBAT_RULES_VERSION
-  combatants: readonly StatDrivenCombatProfile[]
+  combatants: readonly StatDrivenCombatProfileV2[]
 }
 
 export interface StatDrivenCombatEncounterState extends CombatEncounterState {
   statBridge: StatDrivenCombatBridgeState
+}
+
+export interface StatDrivenCombatEncounterStateV1 extends CombatEncounterState {
+  statBridge: StatDrivenCombatBridgeStateV1
+}
+
+export interface StatDrivenCombatEncounterStateV2 extends CombatEncounterState {
+  statBridge: StatDrivenCombatBridgeStateV2
 }
 
 export interface StatDrivenAttackForecast {
@@ -86,7 +122,7 @@ export function createCharacterDerivedCombatProfile(
   combatantId: string,
   characterId: string,
   snapshot: DerivedStatSnapshot,
-): StatDrivenCombatProfile {
+): StatDrivenCombatProfileV2 {
   return {
     combatantId,
     provenance: {
@@ -99,6 +135,8 @@ export function createCharacterDerivedCombatProfile(
     armor: snapshot.stats.armor.value,
     ward: snapshot.stats.ward.value,
     jump: snapshot.stats.jump.value,
+    physicalPower: snapshot.stats.physicalPower.value,
+    mysticPower: snapshot.stats.mysticPower.value,
   }
 }
 
@@ -106,13 +144,47 @@ export function createStatDrivenCombatEncounterState(
   base: CombatEncounterState,
   profiles: readonly StatDrivenCombatProfile[],
 ): StatDrivenCombatEncounterState {
-  const state: StatDrivenCombatEncounterState = {
+  const incompleteProfile = profiles.find(hasIncompleteOffensiveRatings)
+  if (incompleteProfile) {
+    throw new TypeError('Stat-driven combat profiles require both offensive ratings or neither.')
+  }
+
+  const currentCount = profiles.filter(isCurrentProfile).length
+  if (currentCount !== 0 && currentCount !== profiles.length) {
+    throw new TypeError('Stat-driven combat profiles cannot mix v1 rows with v2 offensive ratings.')
+  }
+  if (currentCount === profiles.length) {
+    return createCurrentStatDrivenCombatEncounterState(
+      base,
+      profiles as readonly StatDrivenCombatProfileV2[],
+    )
+  }
+
+  const state: StatDrivenCombatEncounterStateV1 = {
+    ...base,
+    statBridge: {
+      schemaVersion: STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V1,
+      rulesVersion: STAT_DRIVEN_COMBAT_RULES_V1,
+      combatants: [...profiles]
+        .map(copyHistoricalProfile)
+        .sort((left, right) => compareStableString(left.combatantId, right.combatantId)),
+    },
+  }
+  assertValidStatDrivenCombatEncounterState(state)
+  return state
+}
+
+export function createCurrentStatDrivenCombatEncounterState(
+  base: CombatEncounterState,
+  profiles: readonly StatDrivenCombatProfileV2[],
+): StatDrivenCombatEncounterStateV2 {
+  const state: StatDrivenCombatEncounterStateV2 = {
     ...base,
     statBridge: {
       schemaVersion: STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION,
       rulesVersion: STAT_DRIVEN_COMBAT_RULES_VERSION,
       combatants: [...profiles]
-        .map(copyProfile)
+        .map(copyCurrentProfile)
         .sort((left, right) => compareStableString(left.combatantId, right.combatantId)),
     },
   }
@@ -125,7 +197,12 @@ export function reattachStatDrivenCombatBridge(
   base: CombatEncounterState,
   bridge: StatDrivenCombatBridgeState,
 ): StatDrivenCombatEncounterState {
-  return createStatDrivenCombatEncounterState(base, bridge.combatants)
+  const state: StatDrivenCombatEncounterState = {
+    ...base,
+    statBridge: copyBridge(bridge),
+  }
+  assertValidStatDrivenCombatEncounterState(state)
+  return state
 }
 
 export function validateStatDrivenCombatEncounterState(
@@ -136,18 +213,25 @@ export function validateStatDrivenCombatEncounterState(
     message: issue.message,
   }))
 
-  if (state.statBridge?.schemaVersion !== STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION) {
-    issues.push({ field: 'statBridge.schemaVersion', message: 'Unsupported stat-bridge schema.' })
+  const bridge = state.statBridge
+  const isV1 =
+    bridge?.schemaVersion === STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V1 &&
+    bridge.rulesVersion === STAT_DRIVEN_COMBAT_RULES_V1
+  const isV2 =
+    bridge?.schemaVersion === STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION &&
+    bridge.rulesVersion === STAT_DRIVEN_COMBAT_RULES_VERSION
+  if (!bridge || (!isV1 && !isV2)) {
+    issues.push({
+      field: 'statBridge.schemaVersion',
+      message: 'Unsupported or mismatched stat-bridge schema/rules version.',
+    })
     return issues
-  }
-  if (state.statBridge.rulesVersion !== STAT_DRIVEN_COMBAT_RULES_VERSION) {
-    issues.push({ field: 'statBridge.rulesVersion', message: 'Unsupported stat-bridge rules.' })
   }
 
   const expectedIds = state.tactical.battle.combatants
     .map((combatant) => combatant.id)
     .sort(compareStableString)
-  const actualIds = state.statBridge.combatants.map((profile) => profile.combatantId)
+  const actualIds = bridge.combatants.map((profile) => profile.combatantId)
   if (!arraysEqual(actualIds, expectedIds)) {
     issues.push({
       field: 'statBridge.combatants',
@@ -156,7 +240,7 @@ export function validateStatDrivenCombatEncounterState(
   }
 
   const seen = new Set<string>()
-  for (const [index, profile] of state.statBridge.combatants.entries()) {
+  for (const [index, profile] of bridge.combatants.entries()) {
     const prefix = `statBridge.combatants.${index}`
     collectIdentityIssue(issues, profile.combatantId, `${prefix}.combatantId`)
     collectIdentityIssue(issues, profile.provenance.sourceId, `${prefix}.provenance.sourceId`)
@@ -182,6 +266,14 @@ export function validateStatDrivenCombatEncounterState(
     seen.add(profile.combatantId)
   }
 
+  if (isV2) {
+    for (const [index, profile] of bridge.combatants.entries()) {
+      const prefix = `statBridge.combatants.${index}`
+      collectNonNegativeIntegerIssue(issues, profile.physicalPower, `${prefix}.physicalPower`)
+      collectNonNegativeIntegerIssue(issues, profile.mysticPower, `${prefix}.mysticPower`)
+    }
+  }
+
   return issues
 }
 
@@ -198,9 +290,31 @@ export function getStatDrivenCombatProfile(
   return profile
 }
 
+export function getStatDrivenOffensivePower(
+  state: StatDrivenCombatEncounterState,
+  combatantId: string,
+  kind: CombatOffensivePowerKind,
+): number {
+  const bridge = state.statBridge
+  if (
+    bridge.schemaVersion !== STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION ||
+    bridge.rulesVersion !== STAT_DRIVEN_COMBAT_RULES_VERSION
+  ) {
+    throw new TypeError('Scaled damage requires stat-bridge schema version 2.')
+  }
+  const profile = bridge.combatants.find((candidate) => candidate.combatantId === combatantId)
+  if (!profile) {
+    throw new Error(`Missing stat-driven combat profile for ${combatantId}.`)
+  }
+  if (!isCurrentProfile(profile)) {
+    throw new TypeError('Scaled damage requires complete v2 offensive stat ratings.')
+  }
+  return kind === 'physical-power' ? profile.physicalPower : profile.mysticPower
+}
+
 export function calculateHitChanceBasisPoints(
-  actor: StatDrivenCombatProfile,
-  target: StatDrivenCombatProfile,
+  actor: StatDrivenCombatProfileV1,
+  target: StatDrivenCombatProfileV1,
 ): number {
   return Math.max(0, Math.min(COMBAT_BASIS_POINTS, actor.accuracy - target.evasion))
 }
@@ -371,10 +485,50 @@ function assertBasicAttack(action: CombatActionDefinition): void {
   }
 }
 
-function copyProfile(profile: StatDrivenCombatProfile): StatDrivenCombatProfile {
+function hasIncompleteOffensiveRatings(profile: StatDrivenCombatProfile): boolean {
+  const hasPhysical = profile.physicalPower !== undefined
+  const hasMystic = profile.mysticPower !== undefined
+  if (hasPhysical !== hasMystic) return true
+  if (!hasPhysical) return false
+  return !isCurrentProfile(profile)
+}
+
+function isCurrentProfile(profile: StatDrivenCombatProfile): profile is StatDrivenCombatProfileV2 {
+  return (
+    Number.isSafeInteger(profile.physicalPower) &&
+    (profile.physicalPower ?? -1) >= 0 &&
+    Number.isSafeInteger(profile.mysticPower) &&
+    (profile.mysticPower ?? -1) >= 0
+  )
+}
+
+function copyCurrentProfile(profile: StatDrivenCombatProfileV2): StatDrivenCombatProfileV2 {
   return {
     ...profile,
     provenance: { ...profile.provenance },
+  }
+}
+
+function copyHistoricalProfile(profile: StatDrivenCombatProfileV1): StatDrivenCombatProfileV1 {
+  return {
+    combatantId: profile.combatantId,
+    provenance: { ...profile.provenance },
+    accuracy: profile.accuracy,
+    evasion: profile.evasion,
+    armor: profile.armor,
+    ward: profile.ward,
+    jump: profile.jump,
+  }
+}
+
+function copyBridge(bridge: StatDrivenCombatBridgeState): StatDrivenCombatBridgeState {
+  return {
+    schemaVersion: bridge.schemaVersion,
+    rulesVersion: bridge.rulesVersion,
+    combatants: bridge.combatants.map((profile) => ({
+      ...profile,
+      provenance: { ...profile.provenance },
+    })),
   }
 }
 
@@ -413,10 +567,10 @@ function collectPositiveIntegerIssue(
 
 function collectNonNegativeIntegerIssue(
   issues: StatDrivenCombatIssue[],
-  value: number,
+  value: number | undefined,
   field: string,
 ): void {
-  if (!Number.isSafeInteger(value) || value < 0) {
+  if (!Number.isSafeInteger(value) || (value ?? -1) < 0) {
     issues.push({ field, message: 'Value must be a non-negative safe integer.' })
   }
 }
