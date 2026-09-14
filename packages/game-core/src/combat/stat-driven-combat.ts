@@ -58,8 +58,17 @@ export type StatDrivenCombatBridgeState =
       combatants: readonly StatDrivenCombatProfile[]
     }
 
+export type StatDrivenCombatBridgeStateV2 = Extract<
+  StatDrivenCombatBridgeState,
+  { schemaVersion: typeof STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION }
+>
+
 export interface StatDrivenCombatEncounterState extends CombatEncounterState {
   statBridge: StatDrivenCombatBridgeState
+}
+
+export interface StatDrivenCombatEncounterStateV2 extends CombatEncounterState {
+  statBridge: StatDrivenCombatBridgeStateV2
 }
 
 export interface StatDrivenAttackForecast {
@@ -119,8 +128,8 @@ export function createCharacterDerivedCombatProfile(
 export function createStatDrivenCombatEncounterState(
   base: CombatEncounterState,
   profiles: readonly StatDrivenCombatProfile[],
-): StatDrivenCombatEncounterState {
-  const state: StatDrivenCombatEncounterState = {
+): StatDrivenCombatEncounterStateV2 {
+  const state: StatDrivenCombatEncounterStateV2 = {
     ...base,
     statBridge: {
       schemaVersion: STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION,
