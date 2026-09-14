@@ -14,7 +14,11 @@ vi.mock('@aurevane/game-core/character/wayfarers-practice', () => ({
     window === 'short' ? 'Short' : window === 'overnight' ? 'Medium' : 'Extended',
 }))
 vi.mock('@aurevane/ui', () => ({
-  GameButton: ({ children, variant: _variant, ...props }: React.ComponentProps<'button'> & { variant?: string }) =>
+  GameButton: ({
+    children,
+    variant: _variant,
+    ...props
+  }: React.ComponentProps<'button'> & { variant?: string }) =>
     createElement('button', props, children),
   Kicker: ({ children }: { children: React.ReactNode }) => createElement('span', null, children),
 }))
