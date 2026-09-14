@@ -41,6 +41,9 @@ jobs:
       - name: Apply persistent Poison runtime
         run: python .github/scripts/apply-persistent-poison-runtime.py
 
+      - name: Normalize changed source formatting
+        run: pnpm exec prettier --write packages/game-core/src/combat/actions.ts packages/game-core/src/combat/combat-dots.ts
+
       - name: Run focused Poison runtime tests
         run: pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-dot-rework.test.ts
 
