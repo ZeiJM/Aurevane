@@ -12,6 +12,16 @@ Normal advanced acquisition uses listed Foundation Mastery prerequisites and 4/2
 
 World acquisition, full equipment catalogs and supernatural systems retain their later roadmap boundaries. Illustrated masters, recorded SFX and independent human balance/media acceptance remain explicitly tracked; automated authored coverage is not that acceptance.
 
+### P4.K2 Stat-Scaled Potency v2 boundary
+
+Damage effects may optionally opt into one authoritative offensive rating using deterministic basis-point math:
+
+```text
+RawDamage = AuthoredBasePower + floor(SelectedOffensivePower * ScalingCoefficientBasisPoints / 10000)
+```
+
+`SelectedOffensivePower` is explicitly authored as Physical Power or Mystic Power for that damage effect. Scaling is opt-in; omitted scaling preserves authored-base-only behavior. The current published Discipline Skills, pure Essence Skills and Basic Attack remain unscaled by K2, and Basic Attack keeps its existing independent derived-damage formula. After optional scaling, the existing Armor/Ward mitigation, facing, target-status and bounded conditional modifier stages still resolve in their established order. Historical stat-bridge v1 encounters remain valid for unscaled content; a scaled effect requires a complete v2 offensive-stat bridge and fails closed if those ratings are absent. Broad coefficient assignment, roster rebalance and tuning belong to the later controlled content migration and Balance Harness work rather than this foundation ticket.
+
 ### Gameplay tags and temporary terrain continuation
 
 The typed gameplay tags are Scorched, Frozen, Conductive, Wet, Bleeding, Marked, Guarded, Inspired, Hexed, Invisible, Exposed, Poisoned, Fortified, Summoned, Airborne and Displaced. Existing Burn, Bleed and Poison map to Scorched, Bleeding and Poisoned without changing their historical status IDs. Authored requirements and conditional damage consume these tags explicitly.
