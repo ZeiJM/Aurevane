@@ -531,18 +531,24 @@
 }
 
 .dialog[role='dialog'] .sourceChip {
-  color: var(--av-charcoal) !important;
+  color: #182632 !important;
+  background-color: #eae6dc !important;
 }
 
 .dialog[role='dialog'] [data-av-surface='ink'] .sourceChip,
 .dialog[role='dialog'] [data-av-surface='ink'] [data-light-panel-chip='true'] {
   color: #c2c7c6 !important;
+  background-color: #0b1722 !important;
+}
+
+.dialog[role='dialog'] .capacityBadge {
+  background-color: #f3efe5 !important;
 }
 
 .dialog[role='dialog'] .capacityBadge .counterName,
 .dialog[role='dialog'] .capacityBadge strong,
 .dialog[role='dialog'] .capacityBadge > span:not(.counterName) {
-  color: var(--av-charcoal) !important;
+  color: #182632 !important;
 }
 
 .skill:has(input:focus-visible) {
