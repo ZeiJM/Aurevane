@@ -153,54 +153,47 @@ jobs:
               "  )\n"
               "  const draw = advanceBattleRng(state.tactical.battle.rng)\n",
           )
-          old_miss = '''  const spent = spendAction(rolledState.tactical.battle)
-          const nextState: StatDrivenCombatEncounterState = {
-            ...rolledState,
-            ...revealed.state,
-            statBridge: rolledState.statBridge,
-            tactical: { ...rolledState.tactical, battle: spent.state },
-          }
-          assertValidStatDrivenCombatEncounterState(nextState)
-          return {
-            state: nextState,
-            events: [
-              resolutionEvent,
-              ...spent.events,
-              ...revealed.events,
-              {
-                event: 'combat_action_used',
-                actionId: action.id,
-                actorId: forecast.evaluation.actorId,
-              },
-            ],
-          }
-          '''
-          new_miss = '''  const spent = spendAction(rolledState.tactical.battle)
-          let nextState: StatDrivenCombatEncounterState = {
-            ...rolledState,
-            ...revealed.state,
-            statBridge: rolledState.statBridge,
-            tactical: { ...rolledState.tactical, battle: spent.state },
-          }
-          const events: StatDrivenCombatResolutionEvent[] = [
-            resolutionEvent,
-            ...spent.events,
-            ...revealed.events,
-            {
-              event: 'combat_action_used',
-              actionId: action.id,
-              actorId: forecast.evaluation.actorId,
-            },
-          ]
-          if (burnBacklashApplies) {
-            const backlash = applyCurrentBurnBacklash(nextState, forecast.evaluation.actorId)
-            nextState = reattachStatDrivenCombatBridge(backlash.state, state.statBridge)
-            events.push(...backlash.events)
-          }
-          assertValidStatDrivenCombatEncounterState(nextState)
-          return { state: nextState, events }
-          '''
-          replace_once(stat, old_miss, new_miss)
+          replace_once(
+              stat,
+              "  const nextState: StatDrivenCombatEncounterState = {\n",
+              "  let nextState: StatDrivenCombatEncounterState = {\n",
+          )
+          old_return = (
+              "  assertValidStatDrivenCombatEncounterState(nextState)\n"
+              "  return {\n"
+              "    state: nextState,\n"
+              "    events: [\n"
+              "      resolutionEvent,\n"
+              "      ...spent.events,\n"
+              "      ...revealed.events,\n"
+              "      {\n"
+              "        event: 'combat_action_used',\n"
+              "        actionId: action.id,\n"
+              "        actorId: forecast.evaluation.actorId,\n"
+              "      },\n"
+              "    ],\n"
+              "  }\n"
+          )
+          new_return = (
+              "  const events: StatDrivenCombatResolutionEvent[] = [\n"
+              "    resolutionEvent,\n"
+              "    ...spent.events,\n"
+              "    ...revealed.events,\n"
+              "    {\n"
+              "      event: 'combat_action_used',\n"
+              "      actionId: action.id,\n"
+              "      actorId: forecast.evaluation.actorId,\n"
+              "    },\n"
+              "  ]\n"
+              "  if (burnBacklashApplies) {\n"
+              "    const backlash = applyCurrentBurnBacklash(nextState, forecast.evaluation.actorId)\n"
+              "    nextState = reattachStatDrivenCombatBridge(backlash.state, state.statBridge)\n"
+              "    events.push(...backlash.events)\n"
+              "  }\n"
+              "  assertValidStatDrivenCombatEncounterState(nextState)\n"
+              "  return { state: nextState, events }\n"
+          )
+          replace_once(stat, old_return, new_return)
           PY
 
       - name: Set up Node.js
