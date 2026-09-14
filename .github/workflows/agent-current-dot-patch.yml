@@ -1,0 +1,67 @@
+name: Apply current Poison slice
+
+on:
+  push:
+    branches:
+      - agent/combat-overhaul-continuation-20260913
+    paths:
+      - .github/agent-dot-patch-trigger
+
+permissions:
+  contents: write
+
+concurrency:
+  group: agent-current-dot-slice
+  cancel-in-progress: false
+
+jobs:
+  verify-and-commit:
+    if: github.ref == 'refs/heads/agent/combat-overhaul-continuation-20260913'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact isolated revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install pinned dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply current Poison implementation
+        run: python .github/scripts/apply-current-dot-patch.py
+
+      - name: Run focused Poison contract
+        run: pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-dot-rework.test.ts
+
+      - name: Run repository quality gates
+        run: pnpm check
+
+      - name: Verify patch cleanliness
+        run: git diff --check
+
+      - name: Commit verified implementation on isolated branch
+        env:
+          EXPECTED_HEAD: ${{ github.sha }}
+        run: |
+          branch=agent/combat-overhaul-continuation-20260913
+          git fetch origin "$branch" main
+          test "$(git rev-parse "origin/$branch")" = "$EXPECTED_HEAD"
+          git merge-base --is-ancestor origin/main HEAD
+          git rm .github/workflows/agent-current-dot-patch.yml .github/scripts/apply-current-dot-patch.py .github/agent-dot-patch-trigger
+          git add packages/game-core/src/combat/actions.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/gameplay-tags.ts packages/game-core/src/combat/combat-dots.ts
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat: add current poison effect state'
+          git push origin "HEAD:refs/heads/$branch"
