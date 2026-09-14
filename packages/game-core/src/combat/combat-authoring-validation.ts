@@ -106,11 +106,7 @@ export function validateCombatActionDefinition(
 
     if (effect.type === 'displace' && content) statusById(content, 'displaced')
 
-    knownString(
-      effect.recipient,
-      ['actor', 'primary-unit', 'affected-units'],
-      'effect recipient',
-    )
+    knownString(effect.recipient, ['actor', 'primary-unit', 'affected-units'], 'effect recipient')
 
     if (effect.type === 'damage' || effect.type === 'healing') {
       nonNegativeSafeInteger(effect.amount, `${effect.type} amount`)
