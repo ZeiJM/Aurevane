@@ -21,6 +21,7 @@ import {
 const OPEN = 'open'
 const ROUGH = 'rough'
 
+// prettier-ignore
 function combatEncounter(input?: {
   actor?: GridPosition
   enemy?: GridPosition
@@ -67,6 +68,7 @@ function combatEncounter(input?: {
   )
 }
 
+// prettier-ignore
 function movementEncounter(terrain = OPEN): StatDrivenCombatEncounterState {
   const battle = startBattle(
     createPendingBattle({
@@ -107,6 +109,7 @@ function movementEncounter(terrain = OPEN): StatDrivenCombatEncounterState {
   )
 }
 
+// prettier-ignore
 function combatant(id: string, teamId: string, initiative: number) {
   return {
     id,
@@ -121,6 +124,7 @@ function combatant(id: string, teamId: string, initiative: number) {
   }
 }
 
+// prettier-ignore
 function placement(combatantId: string, position: GridPosition) {
   return {
     combatantId,
@@ -130,6 +134,7 @@ function placement(combatantId: string, position: GridPosition) {
   }
 }
 
+// prettier-ignore
 function displace(direction: 'push' | 'pull' | undefined, distance: number): CombatActionDefinition {
   const effect: Record<string, unknown> = {
     type: 'displace',
@@ -158,6 +163,7 @@ function displace(direction: 'push' | 'pull' | undefined, distance: number): Com
   } as unknown as CombatActionDefinition
 }
 
+// prettier-ignore
 function withStatus<T extends CombatEncounterState>(
   state: T,
   combatantId: string,
@@ -185,10 +191,12 @@ function withStatus<T extends CombatEncounterState>(
   }
 }
 
+// prettier-ignore
 function at(state: CombatEncounterState, combatantId: string): GridPosition {
   return state.tactical.placements.find((row) => row.combatantId === combatantId)!.position
 }
 
+// prettier-ignore
 function hasStatus(state: CombatEncounterState, combatantId: string, statusId: string): boolean {
   return Boolean(
     state.statusState
@@ -197,6 +205,7 @@ function hasStatus(state: CombatEncounterState, combatantId: string, statusId: s
   )
 }
 
+// prettier-ignore
 function path(): readonly GridPosition[] {
   return [
     { x: 1, y: 1 },
@@ -204,6 +213,7 @@ function path(): readonly GridPosition[] {
   ]
 }
 
+// prettier-ignore
 function withFrozenDestination<T extends CombatEncounterState>(state: T): T {
   return {
     ...state,
@@ -218,6 +228,7 @@ function withFrozenDestination<T extends CombatEncounterState>(state: T): T {
   }
 }
 
+// prettier-ignore
 describe('Task 2 variable Push and Pull', () => {
   it('keeps historical directionless distance-1 displacement as Push 1', () => {
     const result = executeCombatAction(
@@ -288,6 +299,7 @@ describe('Task 2 variable Push and Pull', () => {
   })
 })
 
+// prettier-ignore
 describe('Task 2 Haste and Slow movement AP', () => {
   it('keeps the normal and Slow baselines while Haste reduces AP per entered tile', () => {
     const normal = evaluatePv1fMovement(movementEncounter(), path())
