@@ -847,7 +847,8 @@ function scaleRepeatedMatureSkillEffects(
       effect.type === 'remove-status' ||
       effect.type === 'return-to-turn-start' ||
       effect.type === 'create-terrain' ||
-      effect.type === 'displace'
+      effect.type === 'displace' ||
+      effect.type === 'poison'
     )
       continue
     const stacks = Math.floor(effect.stacks / 2)

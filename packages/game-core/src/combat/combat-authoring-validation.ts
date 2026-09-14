@@ -118,6 +118,7 @@ export function validateCombatActionDefinition(
         'return-to-turn-start',
         'create-terrain',
         'displace',
+        'poison',
       ],
       'effect type',
     )
