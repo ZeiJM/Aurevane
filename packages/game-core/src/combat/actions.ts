@@ -7,15 +7,20 @@ import {
 import {
   CURRENT_POISON_DAMAGE,
   advanceCurrentBleedEndTurn,
+  advanceCurrentBurnEndTurn,
   advanceCurrentPoisonMovement,
   applyCurrentBleedState,
+  applyCurrentBurnState,
   applyCurrentPoisonState,
   currentBleedStacks,
+  currentBurnInstance,
   currentPoisonEndTurnDamage,
   currentPoisonInstance,
   hasCurrentBleed,
+  hasCurrentBurn,
   hasCurrentPoison,
   removeCurrentBleedState,
+  removeCurrentBurnState,
   removeCurrentPoisonState,
   validateCombatDotState,
   validateCurrentBleedEffect,
@@ -130,6 +135,7 @@ export type CombatEffectDefinition =
       distance: number
     }
   | { type: 'poison'; recipient: CombatEffectRecipient }
+  | { type: 'burn'; recipient: CombatEffectRecipient }
   | {
       type: 'bleed'
       recipient: CombatEffectRecipient
@@ -1377,6 +1383,9 @@ function resolveActionEffects(
       } else if (effect.type === 'bleed') {
         beforeValue = `x${currentBleedStacks(before, recipientId).length}`
         afterValue = `x${currentBleedStacks(nextState, recipientId).length}`
+      } else if (effect.type === 'burn') {
+        beforeValue = currentBurnInstance(before, recipientId)?.stage ?? 'none'
+        afterValue = currentBurnInstance(nextState, recipientId)?.stage ?? 'none'
       } else if (effect.type === 'remove-status') {
         const removedStatusIds = getStatusRow(before, recipientId)
           .statuses.filter((status) => effect.statusIds.includes(status.statusId))
@@ -1386,6 +1395,9 @@ function resolveActionEffects(
         }
         if (effect.statusIds.includes('bleed') && hasCurrentBleed(before, recipientId)) {
           removedStatusIds.push('bleed')
+        }
+        if (effect.statusIds.includes('burn') && hasCurrentBurn(before, recipientId)) {
+          removedStatusIds.push('burn')
         }
         beforeValue = [...new Set(removedStatusIds)].sort(compareStableString).join(',') || 'none'
         afterValue = 'none'
@@ -1457,6 +1469,12 @@ function applyEffect(
         effect.damagePerTick,
         effect.ticks,
       ),
+      events: [],
+    }
+  }
+  if (effect.type === 'burn') {
+    return {
+      state: applyCurrentBurnState(state, actorId, recipientId, actionId),
       events: [],
     }
   }
@@ -1549,12 +1567,16 @@ function applyEffect(
       effect.statusIds.includes('poison') && hasCurrentPoison(state, recipientId)
     const removesCurrentBleed =
       effect.statusIds.includes('bleed') && hasCurrentBleed(state, recipientId)
+    const removesCurrentBurn =
+      effect.statusIds.includes('burn') && hasCurrentBurn(state, recipientId)
     if (removesCurrentPoison) removedStatusIds.push('poison')
     if (removesCurrentBleed) removedStatusIds.push('bleed')
+    if (removesCurrentBurn) removedStatusIds.push('burn')
 
     let nextState = removeStatuses(state, recipientId, effect.statusIds)
     if (removesCurrentPoison) nextState = removeCurrentPoisonState(nextState, recipientId)
     if (removesCurrentBleed) nextState = removeCurrentBleedState(nextState, recipientId)
+    if (removesCurrentBurn) nextState = removeCurrentBurnState(nextState, recipientId)
 
     return {
       state: nextState,
@@ -1891,6 +1913,38 @@ function resolveCurrentEndOfTurnDots(
     }
   }
 
+  target = getCombatant(nextState.tactical.battle, combatantId)
+  if (target.hp <= 0) return { state: nextState, events }
+
+  const burnTurn = advanceCurrentBurnEndTurn(nextState, combatantId)
+  nextState = burnTurn.state
+  if (burnTurn.instance && burnTurn.damage > 0) {
+    target = getCombatant(nextState.tactical.battle, combatantId)
+    const hpAfter = Math.max(0, target.hp - burnTurn.damage)
+    nextState = withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
+    events.push({
+      event: 'damage_applied',
+      actionId: 'status.burn.current.v1',
+      sourceCombatantId: burnTurn.instance.sourceCombatantId,
+      targetCombatantId: combatantId,
+      amount: target.hp - hpAfter,
+      hpBefore: target.hp,
+      hpAfter,
+    })
+    if (hpAfter < target.hp) {
+      const revealed = removeGameplayTags(
+        nextState,
+        burnTurn.instance.sourceCombatantId,
+        combatantId,
+        'status.burn.current.v1',
+        ['Invisible'],
+        content,
+      )
+      nextState = revealed.state
+      events.push(...revealed.events)
+    }
+  }
+
   return { state: nextState, events }
 }
 
@@ -2189,6 +2243,7 @@ function validateCombatActionDefinition(
         'displace',
         'poison',
         'bleed',
+        'burn',
       ],
       'effect type',
     )
