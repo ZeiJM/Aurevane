@@ -4,6 +4,7 @@ import {
   P2_3_COMBAT_CONTENT,
   P2_3_GUARDED_STATUS,
   P2_3_GUARD_ACTION,
+  type CombatActionDefinition,
   type CombatStatusDefinition,
 } from './actions'
 import {
@@ -51,5 +52,85 @@ describe('combat authoring validation boundary', () => {
       curseCopyable: false,
       reactionClass: 'ordinary',
     })
+  })
+
+  it.each([0, 5])('rejects Heal tick count %s outside the current 1-4 bound', (ticks) => {
+    expect(() =>
+      validateCombatActionDefinition({
+        ...P2_3_GUARD_ACTION,
+        effects: [{ type: 'healing', recipient: 'actor', amount: 4, ticks }],
+      } as unknown as CombatActionDefinition),
+    ).toThrow(/healing ticks/i)
+  })
+
+  it.each([0, 5])('rejects MP Rec tick count %s outside the current 1-4 bound', (ticks) => {
+    expect(() =>
+      validateCombatActionDefinition({
+        ...P2_3_GUARD_ACTION,
+        effects: [{ type: 'resource-change', recipient: 'actor', resource: 'mp', delta: 3, ticks }],
+      } as unknown as CombatActionDefinition),
+    ).toThrow(/mp recovery ticks/i)
+  })
+
+  it('keeps MP Drain immediate-only', () => {
+    expect(() =>
+      validateCombatActionDefinition({
+        ...P2_3_GUARD_ACTION,
+        effects: [
+          { type: 'resource-change', recipient: 'primary-unit', resource: 'mp', delta: -3, ticks: 2 },
+        ],
+      } as unknown as CombatActionDefinition),
+    ).toThrow(/mp drain/i)
+  })
+
+  it('rejects Bleed applications whose raw per-stack total exceeds 10', () => {
+    expect(() =>
+      validateCombatActionDefinition({
+        ...P2_3_GUARD_ACTION,
+        effects: [
+          {
+            type: 'apply-status',
+            recipient: 'primary-unit',
+            statusId: 'bleed',
+            stacks: 1,
+            damagePerTick: 4,
+            durationTicks: 3,
+          },
+        ],
+      } as unknown as CombatActionDefinition),
+    ).toThrow(/bleed.*10/i)
+
+    expect(() =>
+      validateCombatActionDefinition({
+        ...P2_3_GUARD_ACTION,
+        effects: [
+          {
+            type: 'apply-status',
+            recipient: 'primary-unit',
+            statusId: 'bleed',
+            stacks: 1,
+            damagePerTick: 3,
+            durationTicks: 3,
+          },
+        ],
+      } as unknown as CombatActionDefinition),
+    ).not.toThrow()
+  })
+
+  it('rejects malformed accuracy authoring', () => {
+    expect(() =>
+      validateCombatActionDefinition({
+        ...P2_3_GUARD_ACTION,
+        accuracyMode: 'sometimes',
+      } as unknown as CombatActionDefinition),
+    ).toThrow(/accuracy mode/i)
+
+    expect(() =>
+      validateCombatActionDefinition({
+        ...P2_3_GUARD_ACTION,
+        accuracyMode: 'per-target',
+        accuracyModifierBasisPoints: 3_001,
+      } as unknown as CombatActionDefinition),
+    ).toThrow(/accuracy modifier/i)
   })
 })
