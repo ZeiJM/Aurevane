@@ -29,8 +29,16 @@ export function validateCombatActionDefinition(
     ['basic-attack', 'basic-action', 'discipline-skill', 'scenario', 'test'],
     'action source type',
   )
-  knownString(action.target.kind, ['self', 'unit', 'ground-tile', 'empty-tile'], 'target kind')
-  knownString(action.target.teamPolicy, ['self', 'ally', 'enemy', 'any'], 'target team policy')
+  knownString(
+    action.target.kind,
+    ['self', 'unit', 'ground-tile', 'empty-tile'],
+    'target kind',
+  )
+  knownString(
+    action.target.teamPolicy,
+    ['self', 'ally', 'enemy', 'any'],
+    'target team policy',
+  )
   knownString(
     action.target.friendlyFire,
     ['enemies-only', 'allies-only', 'all-units', 'all-except-actor'],
@@ -45,7 +53,10 @@ export function validateCombatActionDefinition(
     throw new RangeError('Action minimum range cannot exceed maximum range.')
   }
   if (action.target.maximumElevationDifference !== null) {
-    nonNegativeSafeInteger(action.target.maximumElevationDifference, 'maximum elevation difference')
+    nonNegativeSafeInteger(
+      action.target.maximumElevationDifference,
+      'maximum elevation difference',
+    )
   }
   if (action.target.shape.kind === 'circle') {
     nonNegativeSafeInteger(action.target.shape.radius, 'circle radius')
@@ -202,7 +213,10 @@ export function validateCombatStatusDefinition(status: CombatStatusDefinition): 
   }
 
   if (status.movement) {
-    if (status.movement.blocked !== undefined && typeof status.movement.blocked !== 'boolean') {
+    if (
+      status.movement.blocked !== undefined &&
+      typeof status.movement.blocked !== 'boolean'
+    ) {
       throw new TypeError('Invalid movement restriction.')
     }
     const ap = status.movement.additionalApPerTile ?? 0
