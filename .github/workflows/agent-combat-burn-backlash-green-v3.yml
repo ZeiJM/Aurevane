@@ -1,0 +1,201 @@
+name: Implement and verify Burn backlash GREEN v3
+
+on:
+  push:
+    branches: [agent/combat-burn-backlash-verify-20260914]
+    paths: [.github/workflows/agent-combat-burn-backlash-green-v3.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  green:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      WORK_BRANCH: agent/combat-burn-backlash-work-20260914
+      EXPECTED_HEAD: 96cd7a4832fd3b975983a4ccb421675141271196
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.WORK_BRANCH }}
+          fetch-depth: 0
+      - name: Guard isolated RED head
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+      - name: Configure Git
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+      - name: Apply minimal GREEN implementation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def one(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              if text.count(old) != 1:
+                  raise SystemExit(f'{path}: anchor count {text.count(old)} for {old[:80]!r}')
+              p.write_text(text.replace(old, new, 1))
+
+          one(
+              'packages/game-core/src/combat/combat-dots.ts',
+              "export const CURRENT_BURN_DAMAGE_BY_STAGE = [4, 3, 2] as const\n",
+              "export const CURRENT_BURN_DAMAGE_BY_STAGE = [4, 3, 2] as const\n"
+              "export const CURRENT_BURN_BACKLASH_DAMAGE = 2 as const\n",
+          )
+
+          actions = 'packages/game-core/src/combat/actions.ts'
+          one(
+              actions,
+              "import {\n  CURRENT_POISON_DAMAGE,\n",
+              "import {\n  CURRENT_BURN_BACKLASH_DAMAGE,\n  CURRENT_POISON_DAMAGE,\n",
+          )
+          helper = '''export function shouldApplyCurrentBurnBacklash(
+            state: CombatEncounterState,
+            actorId: string,
+            action: CombatActionDefinition,
+          ): boolean {
+            return (
+              hasCurrentBurn(state, actorId) &&
+              (action.sourceType === 'basic-attack' ||
+                action.effects.some((effect) => effect.type === 'damage' && effect.amount > 0))
+            )
+          }
+
+          export function applyCurrentBurnBacklash(
+            state: CombatEncounterState,
+            actorId: string,
+          ): CombatResolutionTransition {
+            const actor = getCombatant(state.tactical.battle, actorId)
+            if (actor.hp <= 0) return { state, events: [] }
+
+            const hpAfter = Math.max(0, actor.hp - CURRENT_BURN_BACKLASH_DAMAGE)
+            const damageEvent: CombatResolutionEvent = {
+              event: 'damage_applied',
+              actionId: 'status.burn.backlash.current.v1',
+              sourceCombatantId: actorId,
+              targetCombatantId: actorId,
+              amount: actor.hp - hpAfter,
+              hpBefore: actor.hp,
+              hpAfter,
+            }
+            if (hpAfter === 0) {
+              const defeated = defeatCurrentCombatant(state.tactical.battle, actorId)
+              return {
+                state: withBattle(state, defeated.state),
+                events: [damageEvent, ...defeated.events],
+              }
+            }
+            return {
+              state: withUpdatedCombatant(state, actorId, { ...actor, hp: hpAfter }),
+              events: [damageEvent],
+            }
+          }
+
+          '''
+          one(actions, 'export function executeCombatAction(\n', helper + 'export function executeCombatAction(\n')
+          one(
+              actions,
+              "  const actorId = evaluation.actorId\n  let nextState = state\n",
+              "  const actorId = evaluation.actorId\n"
+              "  const burnBacklashApplies = shouldApplyCurrentBurnBacklash(state, actorId, action)\n"
+              "  let nextState = state\n",
+          )
+          one(
+              actions,
+              "  const completion = completeBattleIfResolved(nextState)\n",
+              "  if (burnBacklashApplies) {\n"
+              "    const backlash = applyCurrentBurnBacklash(nextState, actorId)\n"
+              "    nextState = backlash.state\n"
+              "    events.push(...backlash.events)\n"
+              "  }\n\n"
+              "  const completion = completeBattleIfResolved(nextState)\n",
+          )
+
+          stat = 'packages/game-core/src/combat/stat-driven-combat.ts'
+          one(stat, "import {\n  evaluateCombatAction,\n", "import {\n  applyCurrentBurnBacklash,\n  evaluateCombatAction,\n")
+          one(
+              stat,
+              "  executeCombatAction,\n  validateCombatEncounterState,\n",
+              "  executeCombatAction,\n  shouldApplyCurrentBurnBacklash,\n  validateCombatEncounterState,\n",
+          )
+          one(
+              stat,
+              "  const draw = advanceBattleRng(state.tactical.battle.rng)\n",
+              "  const burnBacklashApplies = shouldApplyCurrentBurnBacklash(\n"
+              "    state,\n"
+              "    forecast.evaluation.actorId,\n"
+              "    action,\n"
+              "  )\n"
+              "  const draw = advanceBattleRng(state.tactical.battle.rng)\n",
+          )
+          one(
+              stat,
+              "  const spent = spendAction(rolledState.tactical.battle)\n"
+              "  const nextState: StatDrivenCombatEncounterState = {\n",
+              "  const spent = spendAction(rolledState.tactical.battle)\n"
+              "  let nextState: StatDrivenCombatEncounterState = {\n",
+          )
+          old = (
+              "  assertValidStatDrivenCombatEncounterState(nextState)\n"
+              "  return {\n"
+              "    state: nextState,\n"
+              "    events: [\n"
+              "      resolutionEvent,\n"
+              "      ...spent.events,\n"
+              "      ...revealed.events,\n"
+              "      {\n"
+              "        event: 'combat_action_used',\n"
+              "        actionId: action.id,\n"
+              "        actorId: forecast.evaluation.actorId,\n"
+              "      },\n"
+              "    ],\n"
+              "  }\n"
+          )
+          new = (
+              "  const events: StatDrivenCombatResolutionEvent[] = [\n"
+              "    resolutionEvent,\n"
+              "    ...spent.events,\n"
+              "    ...revealed.events,\n"
+              "    {\n"
+              "      event: 'combat_action_used',\n"
+              "      actionId: action.id,\n"
+              "      actorId: forecast.evaluation.actorId,\n"
+              "    },\n"
+              "  ]\n"
+              "  if (burnBacklashApplies) {\n"
+              "    const backlash = applyCurrentBurnBacklash(nextState, forecast.evaluation.actorId)\n"
+              "    nextState = reattachStatDrivenCombatBridge(backlash.state, state.statBridge)\n"
+              "    events.push(...backlash.events)\n"
+              "  }\n"
+              "  assertValidStatDrivenCombatEncounterState(nextState)\n"
+              "  return { state: nextState, events }\n"
+          )
+          one(stat, old, new)
+          PY
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format ticket files
+        run: pnpm exec prettier --write packages/game-core/src/combat/{combat-dots.ts,actions.ts,stat-driven-combat.ts,combat-burn-backlash.test.ts}
+      - name: Focused GREEN
+        run: pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-burn-backlash.test.ts
+      - name: Full quality gate
+        run: pnpm check
+      - name: Commit and publish verified ticket
+        run: |
+          git diff --check
+          git add packages/game-core/src/combat/{combat-dots.ts,actions.ts,stat-driven-combat.ts,combat-burn-backlash.test.ts}
+          git diff --cached --check
+          git commit -m 'feat: implement Burn damaging-command backlash'
+          git fetch origin "$WORK_BRANCH"
+          test "$(git rev-parse origin/$WORK_BRANCH)" = "$EXPECTED_HEAD"
+          git push origin "HEAD:refs/heads/$WORK_BRANCH"
+          echo "Verified backlash commit: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
