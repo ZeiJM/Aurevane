@@ -197,7 +197,7 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
   await page.setViewportSize({ width: 1366, height: 768 })
   await page.getByRole('button', { name: 'Navigation', exact: true }).click()
   await page
-    .getByRole('navigation', { name: 'Game navigation' })
+    .locator('nav[popover="auto"][aria-label="Game navigation"]')
     .getByRole('link', { name: /^Profile/ })
     .click()
   await expect(page).toHaveURL(/\/game\/character$/)

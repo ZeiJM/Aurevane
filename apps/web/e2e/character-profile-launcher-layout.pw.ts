@@ -87,7 +87,7 @@ test('Profile build launchers stay centered and typographically matched', async 
   ).toBeLessThanOrEqual(2)
 
   const [techniquesFontSize, disciplineFontSize] = await Promise.all([
-    techniquesLabel.evaluate((element) => getComputedStyle(element, '::after').fontSize),
+    techniquesLabel.evaluate((element) => getComputedStyle(element).fontSize),
     disciplineLabel.evaluate((element) => getComputedStyle(element).fontSize),
   ])
   expect(techniquesFontSize).toBe(disciplineFontSize)
