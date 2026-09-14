@@ -193,6 +193,13 @@ describe('stat-driven Phase 2 combat bridge', () => {
     expect(() => encounter(incomplete)).toThrow(/physicalPower/)
   })
 
+  it('rejects partially populated offensive ratings instead of downgrading them to v1', () => {
+    const incompletePlayer = profile('player', { mysticPower: undefined })
+    const incompleteRecruit = profile('recruit', { armor: 23, mysticPower: undefined })
+
+    expect(() => encounter(incompletePlayer, incompleteRecruit)).toThrow(/offensive ratings/i)
+  })
+
   it('continues to validate exact historical v1 bridges without inventing offensive ratings', () => {
     const state = encounter()
     const historical: StatDrivenCombatEncounterState = {
