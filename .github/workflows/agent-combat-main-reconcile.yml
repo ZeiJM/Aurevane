@@ -52,30 +52,14 @@ jobs:
                   ;;
                 apps/web/e2e/phase4-roster.pw.ts)
                   git checkout --theirs -- "$path"
-                  python - <<'PY'
-from pathlib import Path
-p = Path('apps/web/e2e/phase4-roster.pw.ts')
-s = p.read_text()
-old = "await expect(sweep).toContainText('Area · radius 1')"
-new = "await expect(sweep).toContainText('Circle 1')"
-if old not in s:
-    raise SystemExit('Expected Phase 4 roster combat-label assertion not found')
-p.write_text(s.replace(old, new, 1))
-PY
+                  sed -i 's/Area · radius 1/Circle 1/' "$path"
+                  grep -Fq "toContainText('Circle 1')" "$path"
                   git add "$path"
                   ;;
                 apps/web/e2e/shared-battle-presentation-parity.pw.ts)
                   git checkout --theirs -- "$path"
-                  python - <<'PY'
-from pathlib import Path
-p = Path('apps/web/e2e/shared-battle-presentation-parity.pw.ts')
-s = p.read_text()
-old = "await expect(preview).toContainText(/Guarded/i)"
-new = "await expect(preview).toContainText(/Guard/i)"
-if old not in s:
-    raise SystemExit('Expected shared battle Guarded assertion not found')
-p.write_text(s.replace(old, new, 1))
-PY
+                  sed -i 's@/Guarded/i@/Guard/i@' "$path"
+                  grep -Fq 'toContainText(/Guard/i)' "$path"
                   git add "$path"
                   ;;
                 *)
