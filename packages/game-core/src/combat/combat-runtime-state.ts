@@ -1,11 +1,5 @@
-import {
-  validateCombatEncounterState,
-  type CombatEncounterState,
-} from './actions'
-import {
-  normalizeCombatEffectState,
-  type CombatEffectState,
-} from './combat-effect-state'
+import { validateCombatEncounterState, type CombatEncounterState } from './actions'
+import { normalizeCombatEffectState, type CombatEffectState } from './combat-effect-state'
 import type { CombatTerrainOverlay } from './terrain-overlays'
 
 export type CombatRuntimeEncounterState = Omit<
