@@ -4,7 +4,15 @@ import {
   replaceRecoverySchedule,
   clearDefeatedRecovery,
 } from './combat-recovery'
-import { applyCurrentPoisonState } from './combat-dots'
+import {
+  CURRENT_POISON_DAMAGE,
+  applyCurrentPoisonState,
+  currentPoisonEndTurnDamage,
+  currentPoisonInstance,
+  hasCurrentPoison,
+  removeCurrentPoisonState,
+  validateCombatDotState,
+} from './combat-dots'
 import type { CombatEffectState } from './combat-effect-state'
 import {
   hasGameplayTag,
@@ -760,14 +768,21 @@ export function endCombatTurn(
   const outgoing = getCombatant(state.tactical.battle, outgoingId)
   // Predict the existing deterministic ticks for selection only. They are committed below.
   // A last actor moved to first by tempo must not receive a turn after a lethal tick.
-  const outgoingHpAfterTicks = getStatusRow(state, outgoingId).statuses.reduce((hp, status) => {
-    const periodic = getStatusDefinition(content, status.statusId, status.statusVersion).endOfTurn
-    if (!periodic || hp <= 0) return hp
-    const amount = periodic.amount * status.stacks
-    return periodic.type === 'damage'
-      ? Math.max(0, hp - amount)
-      : Math.min(outgoing.maxHp, hp + incomingHealingAmount(state, outgoingId, amount, content))
-  }, outgoing.hp)
+  const legacyOutgoingHpAfterTicks = getStatusRow(state, outgoingId).statuses.reduce(
+    (hp, status) => {
+      const periodic = getStatusDefinition(content, status.statusId, status.statusVersion).endOfTurn
+      if (!periodic || hp <= 0) return hp
+      const amount = periodic.amount * status.stacks
+      return periodic.type === 'damage'
+        ? Math.max(0, hp - amount)
+        : Math.min(outgoing.maxHp, hp + incomingHealingAmount(state, outgoingId, amount, content))
+    },
+    outgoing.hp,
+  )
+  const outgoingHpAfterTicks = Math.max(
+    0,
+    legacyOutgoingHpAfterTicks - currentPoisonEndTurnDamage(state, outgoingId),
+  )
   const ended = endTurn(
     state.tactical.battle,
     roundModifiers,
@@ -805,6 +820,9 @@ export function endCombatTurn(
   const periodic = resolveEndOfTurnStatuses(nextState, outgoingId, content)
   nextState = periodic.state
   events.push(...periodic.events)
+  const currentDots = resolveCurrentEndOfTurnDots(nextState, outgoingId, content)
+  nextState = currentDots.state
+  events.push(...currentDots.events)
   const recovery = resolveEndOfTurnRecovery(nextState, outgoingId, content)
   nextState = recovery.state
   events.push(...recovery.events)
@@ -877,6 +895,7 @@ export function validateCombatEncounterState(
   const issues: CombatEncounterIssue[] = [
     ...validateTerrainOverlays(state),
     ...validateOngoingRecoveryState(state),
+    ...validateCombatDotState(state),
   ]
 
   if (state.schemaVersion !== COMBAT_ENCOUNTER_SCHEMA_VERSION) {
@@ -1337,11 +1356,13 @@ function resolveActionEffects(
             ? 'active'
             : 'none'
       } else if (effect.type === 'remove-status') {
-        beforeValue =
-          getStatusRow(before, recipientId)
-            .statuses.filter((status) => effect.statusIds.includes(status.statusId))
-            .map((status) => status.statusId)
-            .join(',') || 'none'
+        const removedStatusIds = getStatusRow(before, recipientId)
+          .statuses.filter((status) => effect.statusIds.includes(status.statusId))
+          .map((status) => status.statusId)
+        if (effect.statusIds.includes('poison') && hasCurrentPoison(before, recipientId)) {
+          removedStatusIds.push('poison')
+        }
+        beforeValue = [...new Set(removedStatusIds)].sort(compareStableString).join(',') || 'none'
         afterValue = 'none'
       } else {
         const oldStatus = getStatus(before, recipientId, effect.statusId)
@@ -1483,17 +1504,25 @@ function applyEffect(
   }
 
   if (effect.type === 'remove-status') {
+    const removedStatusIds = getStatusRow(state, recipientId)
+      .statuses.filter((status) => effect.statusIds.includes(status.statusId))
+      .map((status) => status.statusId)
+    const removesCurrentPoison =
+      effect.statusIds.includes('poison') && hasCurrentPoison(state, recipientId)
+    if (removesCurrentPoison) removedStatusIds.push('poison')
+
+    let nextState = removeStatuses(state, recipientId, effect.statusIds)
+    if (removesCurrentPoison) nextState = removeCurrentPoisonState(nextState, recipientId)
+
     return {
-      state: removeStatuses(state, recipientId, effect.statusIds),
-      events: getStatusRow(state, recipientId)
-        .statuses.filter((status) => effect.statusIds.includes(status.statusId))
-        .map((status) => ({
-          event: 'status_removed' as const,
-          actionId,
-          sourceCombatantId: actorId,
-          targetCombatantId: recipientId,
-          statusId: status.statusId,
-        })),
+      state: nextState,
+      events: [...new Set(removedStatusIds)].sort(compareStableString).map((statusId) => ({
+        event: 'status_removed' as const,
+        actionId,
+        sourceCombatantId: actorId,
+        targetCombatantId: recipientId,
+        statusId,
+      })),
     }
   }
 
@@ -1748,6 +1777,45 @@ function resolveEndOfTurnStatuses(
       }
     }
   }
+  return { state: nextState, events }
+}
+
+function resolveCurrentEndOfTurnDots(
+  state: CombatEncounterState,
+  combatantId: string,
+  content: CombatContentCatalog,
+): CombatResolutionTransition {
+  const poison = currentPoisonInstance(state, combatantId)
+  const target = getCombatant(state.tactical.battle, combatantId)
+  if (!poison || target.hp <= 0) return { state, events: [] }
+
+  const hpAfter = Math.max(0, target.hp - CURRENT_POISON_DAMAGE)
+  let nextState = withUpdatedCombatant(state, combatantId, { ...target, hp: hpAfter })
+  const events: CombatResolutionEvent[] = [
+    {
+      event: 'damage_applied',
+      actionId: 'status.poison.current.v1',
+      sourceCombatantId: poison.sourceCombatantId,
+      targetCombatantId: combatantId,
+      amount: target.hp - hpAfter,
+      hpBefore: target.hp,
+      hpAfter,
+    },
+  ]
+
+  if (hpAfter < target.hp) {
+    const revealed = removeGameplayTags(
+      nextState,
+      poison.sourceCombatantId,
+      combatantId,
+      'status.poison.current.v1',
+      ['Invisible'],
+      content,
+    )
+    nextState = revealed.state
+    events.push(...revealed.events)
+  }
+
   return { state: nextState, events }
 }
 
