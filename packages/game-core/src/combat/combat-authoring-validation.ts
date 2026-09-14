@@ -5,6 +5,7 @@ import type {
   CombatContentCatalog,
   CombatStatusDefinition,
 } from './actions'
+import { validateCombatDamageScaling } from './damage-scaling'
 import { validateDamageModifiers } from './damage-modifiers'
 import { validateGameplayActionMetadata, validateGameplayTag } from './gameplay-tags'
 import { validateSkillCooldownDefinition } from './skill-cooldowns'
@@ -135,6 +136,13 @@ export function validateCombatActionDefinition(
       nonNegativeSafeInteger(effect.amount, `${effect.type} amount`)
     }
     if (effect.type === 'bleed') validateCurrentBleedEffect(effect)
+    if (effect.type === 'damage' && effect.scaling !== undefined) {
+      const scalingIssues = validateCombatDamageScaling(effect.scaling)
+      if (scalingIssues.length > 0) {
+        const issue = scalingIssues[0]
+        throw new TypeError(`Invalid damage scaling: ${issue.field}: ${issue.message}`)
+      }
+    }
     if (effect.type === 'damage' && effect.defenseKind !== undefined) {
       knownString(effect.defenseKind, ['armor', 'ward'], 'damage defense kind')
     }
