@@ -49,6 +49,7 @@
 
 @media (max-width: 720px) {
   .star {
+    right: 0.2rem;
     width: 2.75rem;
     height: 2.75rem;
     font-size: 1.08rem;
