@@ -7,11 +7,7 @@ import {
   type CombatEncounterState,
 } from './actions'
 import { createPendingBattle, startBattle } from './battle-state'
-import {
-  createTacticalBattleState,
-  moveCurrentCombatant,
-  selectCurrentFinalFacing,
-} from './board'
+import { createTacticalBattleState, moveCurrentCombatant, selectCurrentFinalFacing } from './board'
 import { CLEANSE_STATUS_IDS, PHASE4_STATUSES } from './status-content'
 
 const CONTENT = {
@@ -107,7 +103,10 @@ function encounter(actorHp = 30): CombatEncounterState {
   }
 }
 
-function selfAction(id: string, effects: CombatActionDefinition['effects']): CombatActionDefinition {
+function selfAction(
+  id: string,
+  effects: CombatActionDefinition['effects'],
+): CombatActionDefinition {
   return {
     id,
     version: 1,
@@ -183,7 +182,8 @@ describe('current Poison edge rules', () => {
     expect(reverted.state.effectState?.poison[0]?.movementRemainder).toBe(4)
     expect(
       reverted.events.some(
-        (event) => event.event === 'damage_applied' && event.actionId === 'status.poison.current.v1',
+        (event) =>
+          event.event === 'damage_applied' && event.actionId === 'status.poison.current.v1',
       ),
     ).toBe(false)
   })
