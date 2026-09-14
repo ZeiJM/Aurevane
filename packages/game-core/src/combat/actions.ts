@@ -1,4 +1,11 @@
 import {
+  validateRecoveryEffect,
+  validateOngoingRecoveryState,
+  replaceRecoverySchedule,
+  clearDefeatedRecovery,
+} from './combat-recovery'
+import type { CombatEffectState } from './combat-effect-state'
+import {
   hasGameplayTag,
   statusIdsForGameplayTag,
   validateGameplayTag,
@@ -100,10 +107,16 @@ export type CombatEffectDefinition =
       direction?: 'push' | 'pull'
       distance: number
     }
-  | { type: 'healing'; recipient: CombatEffectRecipient; amount: number }
+  | { type: 'healing'; recipient: CombatEffectRecipient; amount: number; ticks?: number }
   | { type: 'return-to-turn-start'; recipient: 'actor' }
   | { type: 'remove-status'; recipient: CombatEffectRecipient; statusIds: readonly string[] }
-  | { type: 'resource-change'; recipient: CombatEffectRecipient; resource: 'mp'; delta: number }
+  | {
+      type: 'resource-change'
+      recipient: CombatEffectRecipient
+      resource: 'mp'
+      delta: number
+      ticks?: number
+    }
   | {
       type: 'apply-status'
       recipient: CombatEffectRecipient
@@ -172,6 +185,7 @@ export interface CombatEncounterState {
   tactical: TacticalBattleState
   statBridge?: { combatants: readonly { combatantId: string; armor: number; ward: number }[] }
   statusState: readonly CombatantStatusState[]
+  effectState?: CombatEffectState
   terrainOverlays?: readonly CombatTerrainOverlay[]
   turnOrigin?: { combatantId: string; turnNumber: number; position: GridPosition }
 }
@@ -233,6 +247,8 @@ export type CombatResolutionEvent =
   | CombatTerrainEvent
   | {
       event: 'combatant_displaced'
+      direction?: 'push' | 'pull'
+      distance?: number
       actionId: string
       sourceCombatantId: string
       combatantId: string
@@ -241,6 +257,7 @@ export type CombatResolutionEvent =
     }
   | {
       event: 'displacement_failed'
+      direction?: 'push' | 'pull'
       actionId: string
       sourceCombatantId: string
       combatantId: string
@@ -288,6 +305,15 @@ export type CombatResolutionEvent =
       remainingOwnerTurnStarts: number
       refreshed: boolean
       stacked: boolean
+    }
+  | {
+      event: 'recovery_scheduled'
+      actionId: string
+      sourceCombatantId: string
+      targetCombatantId: string
+      resource: 'hp' | 'mp'
+      amountPerTick: number
+      remainingFutureTicks: number
     }
   | { event: 'status_expired'; combatantId: string; statusId: string }
   | {
@@ -777,6 +803,9 @@ export function endCombatTurn(
   const periodic = resolveEndOfTurnStatuses(nextState, outgoingId, content)
   nextState = periodic.state
   events.push(...periodic.events)
+  const recovery = resolveEndOfTurnRecovery(nextState, outgoingId, content)
+  nextState = recovery.state
+  events.push(...recovery.events)
   const completed = completeBattleIfResolved(nextState)
   nextState = completed.state
   events.push(...completed.events)
@@ -843,7 +872,10 @@ export function resolveTargetShapeTiles(
 export function validateCombatEncounterState(
   state: CombatEncounterState,
 ): readonly CombatEncounterIssue[] {
-  const issues: CombatEncounterIssue[] = [...validateTerrainOverlays(state)]
+  const issues: CombatEncounterIssue[] = [
+    ...validateTerrainOverlays(state),
+    ...validateOngoingRecoveryState(state),
+  ]
 
   if (state.schemaVersion !== COMBAT_ENCOUNTER_SCHEMA_VERSION) {
     issues.push({ field: 'schemaVersion', message: 'Unsupported combat-encounter schema version.' })
@@ -1415,51 +1447,18 @@ function applyEffect(
     }
   }
 
-  if (effect.type === 'healing') {
-    const target = getCombatant(state.tactical.battle, recipientId)
-    const hpAfter =
-      target.hp <= 0
-        ? target.hp
-        : addClampedSafeInteger(
-            target.hp,
-            incomingHealingAmount(state, recipientId, effect.amount, content),
-            0,
-            target.maxHp,
-          )
-    return {
-      state: withUpdatedCombatant(state, recipientId, { ...target, hp: hpAfter }),
-      events: [
-        {
-          event: 'healing_applied',
-          actionId,
-          sourceCombatantId: actorId,
-          targetCombatantId: recipientId,
-          amount: hpAfter - target.hp,
-          hpBefore: target.hp,
-          hpAfter,
-        },
-      ],
-    }
-  }
-
-  if (effect.type === 'resource-change') {
-    const target = getCombatant(state.tactical.battle, recipientId)
-    const mpAfter = addClampedSafeInteger(target.mp, effect.delta, 0, target.maxMp)
-    return {
-      state: withUpdatedCombatant(state, recipientId, { ...target, mp: mpAfter }),
-      events: [
-        {
-          event: 'resource_changed',
-          actionId,
-          sourceCombatantId: actorId,
-          targetCombatantId: recipientId,
-          resource: 'mp',
-          delta: mpAfter - target.mp,
-          before: target.mp,
-          after: mpAfter,
-        },
-      ],
-    }
+  if (effect.type === 'healing' || effect.type === 'resource-change') {
+    const immediate = applyImmediateRecovery(state, actorId, recipientId, actionId, effect, content)
+    if (effect.type === 'resource-change' && effect.delta < 0) return immediate
+    return scheduleAfterRecovery(
+      immediate,
+      actorId,
+      recipientId,
+      actionId,
+      effect.type === 'healing' ? 'hp' : 'mp',
+      effect.type === 'healing' ? effect.amount : effect.delta,
+      effect.ticks ?? 1,
+    )
   }
 
   if (effect.type === 'remove-status') {
@@ -1757,7 +1756,7 @@ function completeBattleIfResolved(state: CombatEncounterState): CombatResolution
 
 function withBattle(state: CombatEncounterState, battle: BattleState): CombatEncounterState {
   const tactical = createTacticalBattleState({ ...state.tactical, battle })
-  const nextState = { ...state, tactical }
+  const nextState = clearDefeatedRecovery({ ...state, tactical })
   assertValidCombatEncounterState(nextState)
   return nextState
 }
@@ -2012,6 +2011,7 @@ function validateCombatActionDefinition(
   }
 
   for (const effect of action.effects) {
+    validateRecoveryEffect(effect)
     assertKnownString(
       effect.type,
       [
@@ -2364,6 +2364,7 @@ function applyDisplacement(
       events: [
         {
           event: 'displacement_failed',
+          ...(effect.direction ? { direction: effect.direction } : {}),
           actionId,
           sourceCombatantId: actorId,
           combatantId: recipientId,
@@ -2374,13 +2375,7 @@ function applyDisplacement(
     }
   }
 
-  const horizontal = Math.abs(dx) >= Math.abs(dy)
-  const pushStep = horizontal ? { x: Math.sign(dx), y: 0 } : { x: 0, y: Math.sign(dy) }
   const directionMultiplier = effect.direction === 'pull' ? -1 : 1
-  const step = {
-    x: pushStep.x * directionMultiplier,
-    y: pushStep.y * directionMultiplier,
-  }
 
   let nextState = state
   let current = { ...from }
@@ -2388,7 +2383,15 @@ function applyDisplacement(
   let movedTiles = 0
 
   for (let index = 0; index < effect.distance; index += 1) {
-    const to = { x: current.x + step.x, y: current.y + step.y }
+    // Pull follows the caster at each step, rather than overshooting along its original axis.
+    // Push keeps the same result as the legacy rule; ties always resolve horizontally.
+    const dx = current.x - source.x
+    const dy = current.y - source.y
+    const horizontal = Math.abs(dx) >= Math.abs(dy)
+    const to = {
+      x: current.x + (horizontal ? Math.sign(dx) * directionMultiplier : 0),
+      y: current.y + (horizontal ? 0 : Math.sign(dy) * directionMultiplier),
+    }
     const tile = nextState.tactical.tiles.find((candidate) => samePosition(candidate.position, to))
     const override =
       tile && profile.terrainCostOverrides.find((row) => row.terrainId === tile.terrainId)
@@ -2434,6 +2437,7 @@ function applyDisplacement(
       events: [
         {
           event: 'displacement_failed',
+          ...(effect.direction ? { direction: effect.direction } : {}),
           actionId,
           sourceCombatantId: actorId,
           combatantId: recipientId,
@@ -2458,6 +2462,7 @@ function applyDisplacement(
     events: [
       {
         event: 'combatant_displaced',
+        ...(effect.direction ? { direction: effect.direction, distance: movedTiles } : {}),
         actionId,
         sourceCombatantId: actorId,
         combatantId: recipientId,
@@ -2465,6 +2470,133 @@ function applyDisplacement(
         to: { ...current },
       },
       ...marked.events,
+    ],
+  }
+}
+
+function scheduleAfterRecovery(
+  transition: CombatResolutionTransition,
+  sourceCombatantId: string,
+  targetCombatantId: string,
+  sourceActionId: string,
+  kind: 'hp' | 'mp',
+  amountPerTick: number,
+  ticks: number,
+): CombatResolutionTransition {
+  const recovery = {
+    sourceCombatantId,
+    targetCombatantId,
+    sourceActionId,
+    kind,
+    amountPerTick,
+    remainingFutureTicks: ticks - 1,
+  }
+  const state = replaceRecoverySchedule(transition.state, recovery)
+  if (state === transition.state) return transition
+  return {
+    state,
+    events: [
+      ...transition.events,
+      {
+        event: 'recovery_scheduled',
+        actionId: sourceActionId,
+        sourceCombatantId,
+        targetCombatantId,
+        resource: kind,
+        amountPerTick,
+        remainingFutureTicks: recovery.remainingFutureTicks,
+      },
+    ],
+  }
+}
+
+function resolveEndOfTurnRecovery(
+  state: CombatEncounterState,
+  combatantId: string,
+  content: CombatContentCatalog,
+): CombatResolutionTransition {
+  let nextState = clearDefeatedRecovery(state)
+  const events: CombatResolutionEvent[] = []
+  const schedules =
+    nextState.effectState?.ongoingRecovery.filter((row) => row.targetCombatantId === combatantId) ??
+    []
+  for (const schedule of schedules) {
+    if (getCombatant(nextState.tactical.battle, combatantId).hp <= 0) break
+    const effect: Extract<CombatEffectDefinition, { type: 'healing' | 'resource-change' }> =
+      schedule.kind === 'hp'
+        ? { type: 'healing', recipient: 'primary-unit', amount: schedule.amountPerTick }
+        : {
+            type: 'resource-change',
+            recipient: 'primary-unit',
+            resource: 'mp',
+            delta: schedule.amountPerTick,
+          }
+    const tick = applyImmediateRecovery(
+      nextState,
+      schedule.sourceCombatantId,
+      combatantId,
+      schedule.sourceActionId,
+      effect,
+      content,
+    )
+    nextState = replaceRecoverySchedule(tick.state, {
+      ...schedule,
+      remainingFutureTicks: schedule.remainingFutureTicks - 1,
+    })
+    events.push(...tick.events)
+  }
+  return { state: nextState, events }
+}
+
+/** Casts and later recovery ticks share caps and Hex handling, but only casts schedule. */
+function applyImmediateRecovery(
+  state: CombatEncounterState,
+  actorId: string,
+  recipientId: string,
+  actionId: string,
+  effect: Extract<CombatEffectDefinition, { type: 'healing' | 'resource-change' }>,
+  content: CombatContentCatalog,
+): CombatResolutionTransition {
+  const target = getCombatant(state.tactical.battle, recipientId)
+  if (effect.type === 'healing') {
+    const hpAfter =
+      target.hp <= 0
+        ? target.hp
+        : addClampedSafeInteger(
+            target.hp,
+            incomingHealingAmount(state, recipientId, effect.amount, content),
+            0,
+            target.maxHp,
+          )
+    return {
+      state: withUpdatedCombatant(state, recipientId, { ...target, hp: hpAfter }),
+      events: [
+        {
+          event: 'healing_applied',
+          actionId,
+          sourceCombatantId: actorId,
+          targetCombatantId: recipientId,
+          amount: hpAfter - target.hp,
+          hpBefore: target.hp,
+          hpAfter,
+        },
+      ],
+    }
+  }
+  const mpAfter = addClampedSafeInteger(target.mp, effect.delta, 0, target.maxMp)
+  return {
+    state: withUpdatedCombatant(state, recipientId, { ...target, mp: mpAfter }),
+    events: [
+      {
+        event: 'resource_changed',
+        actionId,
+        sourceCombatantId: actorId,
+        targetCombatantId: recipientId,
+        resource: 'mp',
+        delta: mpAfter - target.mp,
+        before: target.mp,
+        after: mpAfter,
+      },
     ],
   }
 }

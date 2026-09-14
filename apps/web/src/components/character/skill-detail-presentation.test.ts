@@ -12,11 +12,11 @@ describe('Player-facing Skill targeting and effects', () => {
   it('distinguishes ranged area targeting from self recovery without changing the definition', () => {
     const volley = resolveMatureSkillVersion('farstrider.volley')!
     const before = JSON.stringify(volley)
-    expect(skillTargetTags(volley)).toEqual(['Enemy', 'Area · radius 1', 'Damage'])
+    expect(skillTargetTags(volley)).toEqual(['Enemy', 'Circle 1', 'Dmg'])
     expect(skillRangeDescription(volley)).toBe('2–5 tiles')
     expect(skillAffectedDescription(volley)).toBe('Enemies only')
     const breath = resolveMatureSkillVersion('ironfist.focus-breath')!
-    expect(skillTargetTags(breath)).toEqual(['Self', 'Single target', 'Healing', 'MP Restore'])
+    expect(skillTargetTags(breath)).toEqual(['Self', 'Single', 'Heal 1', 'MP Rec 1'])
     expect(skillRangeDescription(breath)).toBe('Self only')
     expect(JSON.stringify(volley)).toBe(before)
   })
@@ -47,7 +47,7 @@ describe('Player-facing Skill targeting and effects', () => {
 
 it('names a linked tradeoff and explains both halves on the correct recipient', () => {
   const frenzy = resolveMatureSkillVersion('ravager.frenzy')!
-  expect(skillTargetTags(frenzy)).toEqual(['Self', 'Single target', 'Reckless'])
+  expect(skillTargetTags(frenzy)).toEqual(['Self', 'Single', 'Reckless'])
   const description = skillEffectDescription(frenzy.effects[0]!)
   expect(description).toContain('to yourself')
   expect(description).toContain('Deal 40% more damage and take 25% more damage')
@@ -66,13 +66,13 @@ it('describes source-specific modifiers, cleansing and periodic timing', () => {
 it('distinguishes enemy MP drain from the user’s restoration in one Skill', () => {
   expect(skillTargetTags(resolveMatureSkillVersion('runeblade.siphon-slash')!)).toEqual([
     'Enemy',
-    'Single target',
-    'Damage',
+    'Single',
+    'Dmg',
     'MP Drain',
-    'MP Restore · Self',
+    'MP Rec 1 · Self',
   ])
   expect(skillTargetTags(resolveMatureSkillVersion('ravager.blood-siphon')!)).toContain(
-    'Healing · Self',
+    'Heal 1 · Self',
   )
 })
 
@@ -109,14 +109,14 @@ it('explains elemental interactions and typed status aliases without changing hi
 
 it('shows the executable element and canonical status names on current Technique tags', () => {
   const fire = resolveMatureSkillVersion('cinderweaver.cinder-bolt')!
-  expect(skillTargetTags(fire)).toContain('Fire damage')
+  expect(skillTargetTags(fire)).toContain('Fire Dmg')
   expect(skillTargetTags(fire)).toContain('Burn (Scorched)')
   expect(skillTargetTags(resolveMatureSkillVersion('stormsinger.arc-spark')!)).toContain(
-    'Storm damage',
+    'Storm Dmg',
   )
   expect(skillTargetTags(resolveMatureSkillVersion('ravager.gash')!)).toContain('Bleed (Bleeding)')
   expect(skillTargetTags(resolveMatureSkillVersion('cinderweaver.cinder-bolt', 1)!)).not.toContain(
-    'Fire damage',
+    'Fire Dmg',
   )
 })
 
@@ -125,4 +125,27 @@ it('distinguishes dispelling enemy protection from cleansing harmful effects', (
   expect(skillTargetTags(resolveMatureSkillVersion('tidecaller.cleansing-rain')!)).toContain(
     'Cleanse',
   )
+})
+
+it('describes actual displacement distance and recovery timing rather than legacy fixed text', () => {
+  expect(
+    skillEffectDescription({
+      type: 'displace',
+      recipient: 'primary-unit',
+      direction: 'pull',
+      distance: 3,
+    }),
+  ).toContain('Pull the selected unit up to 3 tiles')
+  expect(
+    skillEffectDescription({ type: 'healing', recipient: 'primary-unit', amount: 4, ticks: 3 }),
+  ).toContain('3 total applications')
+  expect(
+    skillEffectDescription({
+      type: 'resource-change',
+      recipient: 'primary-unit',
+      resource: 'mp',
+      delta: 4,
+      ticks: 2,
+    }),
+  ).toContain('2 total applications')
 })

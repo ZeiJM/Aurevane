@@ -142,12 +142,12 @@ git commit -m "feat: add versioned combat effect state"
 
 **Files:** `actions.ts`, `board.ts`, `status-content.ts`, `pv1f-action-economy.ts` and focused tests.
 
-- [ ] Add failing displacement tests for historical Push 1, Push/Pull >1, partial stop, no caster pass-through, Root/edge/occupancy/elevation, Displaced only after movement, deterministic multi-recipient occupancy updates.
-- [ ] Add failing Haste/Slow movement AP matrix tests: normal Haste 10, normal Slow 30, both 20, rough Haste 30, Frozen+Slow 40, Airborne Frozen+Haste 10; movement allowance unchanged; Root blocks.
-- [ ] Run focused game-core tests and confirm RED.
-- [ ] Implement stepwise displacement with `direction?: 'push'|'pull'`, positive `distance`, dominant axis + horizontal tie-break, stop before first illegal tile.
-- [ ] Implement signed movement AP delta and 10 AP floor; current `haste`, historical `hastened`/`delayed` pinned.
-- [ ] Run GREEN and commit `feat: add push pull and movement tempo`.
+- [x] Add failing displacement tests for historical Push 1, Push/Pull >1, partial stop, no caster pass-through, Root/edge/occupancy/elevation, Displaced only after movement, deterministic multi-recipient occupancy updates.
+- [x] Add failing Haste/Slow movement AP matrix tests: normal Haste 10, normal Slow 30, both 20, rough Haste 30, Frozen+Slow 40, Airborne Frozen+Haste 10; movement allowance unchanged; Root blocks.
+- [x] Run focused game-core tests and confirm RED.
+- [x] Implement stepwise displacement with `direction?: 'push'|'pull'`, positive `distance`, dominant axis + horizontal tie-break, stop before first illegal tile.
+- [x] Implement signed movement AP delta and 10 AP floor; current `haste`, historical `hastened`/`delayed` pinned.
+- [x] Run GREEN and commit `feat: add push pull and movement tempo`.
 
 ### Task 3: Heal X and MP Rec X Scheduled Recovery
 
@@ -254,3 +254,13 @@ git commit -m "feat: add versioned combat effect state"
 - [ ] representative browser regression: `battle-experience`, `battle-cockpit-skill-slots`, `phase4-ground-targeting`
 - [ ] Update `docs/COMBAT.md`; `TASKS.md` only if current convention requires it.
 - [ ] Commit `docs: record expanded combat effect runtime`.
+
+
+## Implementation checkpoint — movement and recovery batch
+
+- Task 2 runtime, geometry parity, diagonal Pull correction, collision/terrain/elevation stops, and movement AP floor are implemented. The movement allowance is unchanged.
+- Task 3 runtime is implemented: typed 1–4 application HP/MP recovery, immediate first tick, recipient end-turn ticks, same-action refresh, distinct-action coexistence, Hex on each HP tick, caps, defeat cleanup, serialization, preview parity, and repeat-use amount scaling. Historical immediate effects and Regeneration keep their prior behavior.
+- Shared Skill tags and active-status labels now consume the compact central vocabulary. Displacement descriptions/logs distinguish Push/Pull and actual traversed distance; recovery descriptions explain total applications.
+- Current Discipline Skill versions are NOT migrated or rebalanced in this batch. The Task 3 roster-migration checkbox remains open and belongs with Task 10.
+- New DoT identities, Copy, reactive/accuracy/cloning effects, Covert/Sensory/Revealed, Master Panel publishing, full viewer projection, and active scheduled-recovery display remain open.
+- The complete overhaul is not merge-ready or deployed. This is a tested intermediate implementation batch, not a release.

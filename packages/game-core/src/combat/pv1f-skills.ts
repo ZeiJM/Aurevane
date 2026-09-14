@@ -81,3 +81,18 @@ export function pv1fFlatActionCost(actionId: string): number | null {
   const skill = pv1fSkillByActionId(actionId)
   return skill?.cost.kind === 'flat' ? skill.cost.amount : null
 }
+
+/** One entered tile, after terrain, Frozen and signed status deltas. Never free movement. */
+export function movementApCostForTile(traversalCost: number, additionalAp: number): number {
+  if (
+    !Number.isSafeInteger(traversalCost) ||
+    traversalCost < 1 ||
+    !Number.isSafeInteger(additionalAp)
+  ) {
+    throw new RangeError('Movement requires a positive terrain cost and a safe-integer AP delta.')
+  }
+  const cost = traversalCost * PV1F_MOVEMENT_COST_PER_TERRAIN_POINT + additionalAp
+  if (!Number.isSafeInteger(cost))
+    throw new RangeError('Movement AP cost exceeds the safe integer range.')
+  return Math.max(10, cost)
+}

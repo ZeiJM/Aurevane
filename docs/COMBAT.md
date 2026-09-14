@@ -412,3 +412,16 @@ The strongest product signal remains voluntary desire to play another battle.
 Chronist implements next-round Initiative scheduling: Hastened +20, Delayed -20, Borrowed Hour +40, capped at ±40 per unit. Tempo is consumed at the round boundary and determines a frozen order for that round only. Base attributes remain unchanged. Stable identity resolves ties. Each living unit receives one turn; lethal turn-end ticks cannot grant a defeated unit a new turn. The next boundary restores base order unless another tempo effect was prepared. These effects do not add AP or grant extra turns.
 
 Rewind Step returns the caster to its authoritative current-turn origin, provided it moved, is not Rooted and the origin is still passable and unoccupied. It restores only position, without restoring HP, MP, AP, movement allowance, facing or commands. Consecutive-repeat rules omit this discrete effect. Existing cleanse lists remain explicitly authored; they are not silently broadened to remove Delayed.
+
+
+### Approved effect-rework implementation checkpoint (feature branch)
+
+The Owner-approved specifications under `docs/superpowers/specs/2026-09-12-*` supersede older design values as their new immutable content versions are introduced. This checkpoint does not claim that all new content is published.
+
+The feature branch currently supports explicit `displace.direction` (`push` or `pull`) and a positive safe-integer `distance`. It resolves one legal tile at a time, recomputing the dominant axis after each step and breaking ties horizontally. Pull stops before the caster; blocked movement retains prior legal steps. Successful displacement applies Displaced. Historical directionless displacement remains Push 1.
+
+Haste changes entered-tile AP by -10 and Slow by +10. Terrain and Frozen apply first; legal entered tiles cost at least 10 AP. Haste does not alter the separate Movement allowance or historical initiative-based Hastened. Board reachability and authoritative execution share the entered-tile cost helper.
+
+Healing and positive MP recovery accept `ticks` from 1 to 4. One application is immediate; the rest occur at the recipient's end of turn. Amounts are per application, caps apply each time, and Hex affects HP recovery at each tick, not MP. Reapplication replaces the same recipient/resource/action schedule; distinct actions coexist. Defeat clears future recovery and cannot be reversed by a scheduled tick. Current ordinary Cleanse/Dispel does not erase these schedules. Future amounts retain cast-time repeat-use scaling. Omitted duration preserves a single immediate application, and historical Regeneration remains unchanged.
+
+New persistent Poison, independent Bleed stacks, decaying Burn/backlash, the remaining new effects, roster version migration, Covert viewer security, and Master Panel publishing are still pending. Do not infer their availability from this intermediate runtime checkpoint.

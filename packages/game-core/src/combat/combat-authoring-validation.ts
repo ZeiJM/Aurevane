@@ -1,3 +1,4 @@
+import { validateRecoveryEffect } from './combat-recovery'
 import type {
   CombatActionDefinition,
   CombatContentCatalog,
@@ -105,6 +106,7 @@ export function validateCombatActionDefinition(
   }
 
   for (const effect of action.effects) {
+    validateRecoveryEffect(effect)
     knownString(
       effect.type,
       [
@@ -137,21 +139,10 @@ export function validateCombatActionDefinition(
       basisPoints(effect.facingModifiersBasisPoints.side, 'side damage modifier', 22_000)
       basisPoints(effect.facingModifiersBasisPoints.rear, 'rear damage modifier', 22_000)
     }
-    if (effect.type === 'healing') {
-      const ticks = (effect as unknown as { ticks?: unknown }).ticks
-      if (ticks !== undefined) boundedPositiveSafeInteger(ticks, 1, 4, 'healing ticks')
-    }
     if (effect.type === 'resource-change') {
       knownString(effect.resource, ['mp'], 'effect resource')
       if (!Number.isSafeInteger(effect.delta)) {
         throw new RangeError('Resource delta must be a safe integer.')
-      }
-      const ticks = (effect as unknown as { ticks?: unknown }).ticks
-      if (effect.delta > 0 && ticks !== undefined) {
-        boundedPositiveSafeInteger(ticks, 1, 4, 'MP recovery ticks')
-      }
-      if (effect.delta < 0 && ticks !== undefined && ticks !== 1) {
-        throw new RangeError('MP Drain is immediate-only and must use one tick.')
       }
     }
     if (effect.type === 'remove-status') {

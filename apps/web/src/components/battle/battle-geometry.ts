@@ -1,5 +1,8 @@
 import { pv1fMovementModifiers } from '@aurevane/game-core/combat/pv1f-action-economy'
-import { PV1F_MOVEMENT_COST_PER_TERRAIN_POINT } from '@aurevane/game-core/combat/pv1f-skills'
+import {
+  PV1F_MOVEMENT_COST_PER_TERRAIN_POINT,
+  movementApCostForTile,
+} from '@aurevane/game-core/combat/pv1f-skills'
 
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
@@ -154,9 +157,7 @@ export function buildReachablePaths(
       if (traversalCost === null) continue
       const movement = current.movement + traversalCost
       const ap =
-        current.ap +
-        traversalCost * MOVE_COST_PER_TERRAIN_POINT +
-        modifiers.additionalApAt(neighbor)
+        current.ap + movementApCostForTile(traversalCost, modifiers.additionalApAt(neighbor))
       if (movement > turn.movementRemaining || ap > actionEconomy) continue
       const known = bestCosts.get(neighborKey) ?? []
       if (known.some((cost) => cost.movement <= movement && cost.ap <= ap)) continue

@@ -36,6 +36,7 @@ import {
 } from './skill-cooldowns'
 import {
   evaluateCurrentMovementPath,
+  movementTraversalCostAt,
   moveCurrentCombatant,
   selectCurrentFinalFacing,
   type GridPosition,
@@ -45,7 +46,7 @@ import {
   PV1F_BASIC_ATTACK_ID,
   PV1F_GUARD_ACTION_ID,
   PV1F_GUARD_COST,
-  PV1F_MOVEMENT_COST_PER_TERRAIN_POINT,
+  movementApCostForTile,
   PV1F_MP_RECOVER_ACTION_ID,
   PV1F_RECOVER_ACTION_ID,
   pv1fFlatActionCost,
@@ -701,6 +702,13 @@ export function evaluatePv1fMovement(
   const prepared = preparePv1fTurnEconomy(state)
   const movement = evaluateCurrentMovementPath(prepared.tactical, path)
   const modifiers = pv1fMovementModifiers(prepared)
+  const economyCost = movement.legal
+    ? path.slice(1).reduce((sum, position) => {
+        const traversal = movementTraversalCostAt(prepared.tactical, movement.combatantId, position)
+        if (traversal === null) throw new Error('Legal movement cannot enter blocked terrain.')
+        return sum + movementApCostForTile(traversal, modifiers.additionalApAt(position))
+      }, 0)
+    : 0
   if (modifiers.blocked) {
     movement.legal = false
     movement.issues = [
@@ -712,9 +720,6 @@ export function evaluatePv1fMovement(
       },
     ]
   }
-  const economyCost =
-    movement.cost * PV1F_MOVEMENT_COST_PER_TERRAIN_POINT +
-    path.slice(1).reduce((sum, position) => sum + modifiers.additionalApAt(position), 0)
   return { prepared, movement, economyCost }
 }
 

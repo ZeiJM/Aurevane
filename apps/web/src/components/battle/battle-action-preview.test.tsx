@@ -76,7 +76,8 @@ describe('current selection forecast', () => {
         skill={barrier}
       />,
     )
-    expect(markup).toContain('Guarded')
+    expect(markup).toContain('Guard')
+    expect(markup).not.toContain('Guarded')
     expect(markup).toContain('Success 100%')
     expect(markup).toContain('Forecast details')
     expect(markup).not.toContain('Skill details')

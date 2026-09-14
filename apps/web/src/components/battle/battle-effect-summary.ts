@@ -42,20 +42,7 @@ export function statusIsBeneficial(statusId: string): boolean {
 }
 
 export function statusLabel(statusId: string): string {
-  if (['burn', 'bleed', 'poison'].includes(statusId)) return gameplayStatusName(statusId)
-  if (statusId === 'guarded') return 'Guarded'
-  if (statusId === 'lowered-guard' || statusId === 'lowered.guard') return 'Lowered Guard'
-
-  const readableId = statusId
-    .replace(/^(?:buff|debuff)[._:-]/u, '')
-    .replace(/[._-]+/gu, ' ')
-    .trim()
-  if (!readableId) return statusId
-
-  return readableId
-    .split(/\s+/u)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ')
+  return gameplayStatusName(statusId)
 }
 
 export function formatStatusStackCount(statusId: string, stacks: number): string {

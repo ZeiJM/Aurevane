@@ -19,7 +19,6 @@ function tags(
   } as unknown as CombatActionDefinition)
 }
 
-// prettier-ignore
 describe('compact combat presentation tags', () => {
   it('derives canonical target, shape, recovery, elemental, terrain and copy labels', () => {
     expect(
@@ -63,22 +62,19 @@ describe('compact combat presentation tags', () => {
 
   it('derives canonical damage, resource, cleanse, displacement and reaction labels', () => {
     expect(
-      tags(
-        { kind: 'unit', teamPolicy: 'enemy' },
-        [
-          { type: 'damage', recipient: 'primary-unit', amount: 4, piercing: true },
-          { type: 'resource-change', recipient: 'actor', resource: 'mp', delta: 2, ticks: 2 },
-          { type: 'resource-change', recipient: 'primary-unit', resource: 'mp', delta: -2 },
-          { type: 'remove-status', recipient: 'primary-unit', statusIds: ['poison'] },
-          { type: 'displace', recipient: 'primary-unit', direction: 'pull', distance: 2 },
-          { type: 'absorb-hp', recipient: 'actor' },
-          { type: 'absorb-mp', recipient: 'actor' },
-          { type: 'reflect', recipient: 'actor' },
-          { type: 'vengeance', recipient: 'primary-unit' },
-          { type: 'amplify', recipient: 'actor' },
-          { type: 'curse', recipient: 'primary-unit' },
-        ],
-      ),
+      tags({ kind: 'unit', teamPolicy: 'enemy' }, [
+        { type: 'damage', recipient: 'primary-unit', amount: 4, piercing: true },
+        { type: 'resource-change', recipient: 'actor', resource: 'mp', delta: 2, ticks: 2 },
+        { type: 'resource-change', recipient: 'primary-unit', resource: 'mp', delta: -2 },
+        { type: 'remove-status', recipient: 'primary-unit', statusIds: ['poison'] },
+        { type: 'displace', recipient: 'primary-unit', direction: 'pull', distance: 2 },
+        { type: 'absorb-hp', recipient: 'actor' },
+        { type: 'absorb-mp', recipient: 'actor' },
+        { type: 'reflect', recipient: 'actor' },
+        { type: 'vengeance', recipient: 'primary-unit' },
+        { type: 'amplify', recipient: 'actor' },
+        { type: 'curse', recipient: 'primary-unit' },
+      ]),
     ).toEqual([
       'Enemy',
       'Single',
@@ -117,3 +113,14 @@ describe('compact combat presentation tags', () => {
     expect(combatStatusPresentationTag(statusId)).toBe(label)
   })
 })
+
+it.each(['regeneration', 'hastened', 'borrowed-hour'])(
+  'labels removing historical %s as Dispel',
+  (id) => {
+    expect(
+      tags({ kind: 'unit', teamPolicy: 'enemy' }, [
+        { type: 'remove-status', recipient: 'primary-unit', statusIds: [id] },
+      ]),
+    ).toContain('Dispel')
+  },
+)

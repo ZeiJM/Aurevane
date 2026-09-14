@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   createCombatEncounterState,
   executeCombatAction,
+  evaluateCombatAction,
   type CombatActionDefinition,
   type CombatEncounterState,
 } from './actions'
@@ -11,6 +12,8 @@ import { createTacticalBattleState, type GridPosition } from './board'
 import {
   createPv1fTemporaryResources,
   evaluatePv1fMovement,
+  executePv1fMovement,
+  readPv1fActionEconomy,
   PV1F_COMBAT_CONTENT,
 } from './pv1f-action-economy'
 import {
@@ -18,10 +21,11 @@ import {
   type StatDrivenCombatEncounterState,
 } from './stat-driven-combat'
 
+import { movementApCostForTile } from './pv1f-skills'
+
 const OPEN = 'open'
 const ROUGH = 'rough'
 
-// prettier-ignore
 function combatEncounter(input?: {
   actor?: GridPosition
   enemy?: GridPosition
@@ -68,7 +72,6 @@ function combatEncounter(input?: {
   )
 }
 
-// prettier-ignore
 function movementEncounter(terrain = OPEN): StatDrivenCombatEncounterState {
   const battle = startBattle(
     createPendingBattle({
@@ -109,7 +112,6 @@ function movementEncounter(terrain = OPEN): StatDrivenCombatEncounterState {
   )
 }
 
-// prettier-ignore
 function combatant(id: string, teamId: string, initiative: number) {
   return {
     id,
@@ -124,7 +126,6 @@ function combatant(id: string, teamId: string, initiative: number) {
   }
 }
 
-// prettier-ignore
 function placement(combatantId: string, position: GridPosition) {
   return {
     combatantId,
@@ -134,8 +135,10 @@ function placement(combatantId: string, position: GridPosition) {
   }
 }
 
-// prettier-ignore
-function displace(direction: 'push' | 'pull' | undefined, distance: number): CombatActionDefinition {
+function displace(
+  direction: 'push' | 'pull' | undefined,
+  distance: number,
+): CombatActionDefinition {
   const effect: Record<string, unknown> = {
     type: 'displace',
     recipient: 'primary-unit',
@@ -163,7 +166,6 @@ function displace(direction: 'push' | 'pull' | undefined, distance: number): Com
   } as unknown as CombatActionDefinition
 }
 
-// prettier-ignore
 function withStatus<T extends CombatEncounterState>(
   state: T,
   combatantId: string,
@@ -191,12 +193,10 @@ function withStatus<T extends CombatEncounterState>(
   }
 }
 
-// prettier-ignore
 function at(state: CombatEncounterState, combatantId: string): GridPosition {
   return state.tactical.placements.find((row) => row.combatantId === combatantId)!.position
 }
 
-// prettier-ignore
 function hasStatus(state: CombatEncounterState, combatantId: string, statusId: string): boolean {
   return Boolean(
     state.statusState
@@ -205,7 +205,6 @@ function hasStatus(state: CombatEncounterState, combatantId: string, statusId: s
   )
 }
 
-// prettier-ignore
 function path(): readonly GridPosition[] {
   return [
     { x: 1, y: 1 },
@@ -213,7 +212,6 @@ function path(): readonly GridPosition[] {
   ]
 }
 
-// prettier-ignore
 function withFrozenDestination<T extends CombatEncounterState>(state: T): T {
   return {
     ...state,
@@ -228,7 +226,6 @@ function withFrozenDestination<T extends CombatEncounterState>(state: T): T {
   }
 }
 
-// prettier-ignore
 describe('Task 2 variable Push and Pull', () => {
   it('keeps historical directionless distance-1 displacement as Push 1', () => {
     const result = executeCombatAction(
@@ -299,7 +296,6 @@ describe('Task 2 variable Push and Pull', () => {
   })
 })
 
-// prettier-ignore
 describe('Task 2 Haste and Slow movement AP', () => {
   it('keeps the normal and Slow baselines while Haste reduces AP per entered tile', () => {
     const normal = evaluatePv1fMovement(movementEncounter(), path())
@@ -362,5 +358,122 @@ describe('Task 2 Haste and Slow movement AP', () => {
     expect(preview.movement.issues).toContainEqual(
       expect.objectContaining({ code: 'status-restricted' }),
     )
+  })
+})
+
+describe('displacement edge cases and preview parity', () => {
+  it('recalculates the dominant axis at every diagonal Pull step with horizontal ties', () => {
+    const state = combatEncounter({ actor: { x: 1, y: 0 }, enemy: { x: 4, y: 2 } })
+    const action = displace('pull', 4)
+    const selection = { kind: 'unit' as const, combatantId: 'enemy' }
+    const preview = evaluateCombatAction(state, action, selection, PV1F_COMBAT_CONTENT)
+    const result = executeCombatAction(
+      JSON.parse(JSON.stringify(state)),
+      action,
+      selection,
+      PV1F_COMBAT_CONTENT,
+    )
+    expect(at(result.state, 'enemy')).toEqual({ x: 1, y: 1 })
+    expect(preview.projectedEffects[0]).toMatchObject({ before: '4,2', after: '1,1' })
+    expect(preview.projectedEvents).toEqual(
+      result.events.filter((event) => event.event !== 'combat_action_used'),
+    )
+    expect(at(state, 'enemy')).toEqual({ x: 4, y: 2 })
+  })
+
+  it.each(['blocked', 'elevated', 'edge'] as const)(
+    'keeps legal earlier Push steps before %s',
+    (obstacle) => {
+      let state = combatEncounter({ enemy: { x: obstacle === 'edge' ? 5 : 2, y: 1 } })
+      if (obstacle !== 'edge')
+        state = {
+          ...state,
+          tactical: {
+            ...state.tactical,
+            terrains: [{ id: 'blocked', traversalCost: null }, ...state.tactical.terrains],
+            tiles: state.tactical.tiles.map((tile) =>
+              tile.position.x === 4 && tile.position.y === 1
+                ? {
+                    ...tile,
+                    terrainId: obstacle === 'blocked' ? 'blocked' : tile.terrainId,
+                    elevation: obstacle === 'elevated' ? 2 : 0,
+                  }
+                : tile,
+            ),
+          },
+        }
+      const result = executeCombatAction(
+        state,
+        displace('push', 3),
+        { kind: 'unit', combatantId: 'enemy' },
+        PV1F_COMBAT_CONTENT,
+      )
+      expect(at(result.state, 'enemy')).toEqual({ x: obstacle === 'edge' ? 6 : 3, y: 1 })
+      expect(hasStatus(result.state, 'enemy', 'displaced')).toBe(true)
+    },
+  )
+
+  it('resolves area recipients in stable order against updated occupancy', () => {
+    const state = combatEncounter({
+      actor: { x: 0, y: 1 },
+      enemy: { x: 2, y: 1 },
+      blocker: { x: 4, y: 1 },
+    })
+    const base = displace('pull', 3)
+    const action: CombatActionDefinition = {
+      ...base,
+      target: { ...base.target, shape: { kind: 'circle', radius: 3 } },
+      effects: [{ type: 'displace', recipient: 'affected-units', direction: 'pull', distance: 3 }],
+    }
+    const selection = { kind: 'unit' as const, combatantId: 'enemy' }
+    const result = executeCombatAction(state, action, selection, PV1F_COMBAT_CONTENT)
+    expect(at(result.state, 'blocker')).toEqual({ x: 3, y: 1 })
+    expect(at(result.state, 'enemy')).toEqual({ x: 1, y: 1 })
+    const positions = result.state.tactical.placements.map(
+      (row) => `${row.position.x},${row.position.y}`,
+    )
+    expect(new Set(positions).size).toBe(positions.length)
+    expect(
+      evaluateCombatAction(state, action, selection, PV1F_COMBAT_CONTENT).projectedEffects.map(
+        (effect) => effect.after,
+      ),
+    ).toEqual(['3,1', '1,1'])
+  })
+
+  it.each([0, -1, 1.5, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
+    'rejects malformed distance %s before execution',
+    (distance) => {
+      expect(() =>
+        executeCombatAction(
+          combatEncounter(),
+          displace('pull', distance),
+          { kind: 'unit', combatantId: 'enemy' },
+          PV1F_COMBAT_CONTENT,
+        ),
+      ).toThrow(/distance/i)
+    },
+  )
+})
+
+describe('movement AP floor and committed resources', () => {
+  it.each([
+    [1, -10, 10],
+    [1, -20, 10],
+    [2, -20, 20],
+    [2, -50, 10],
+    [1, 20, 40],
+    [2, 0, 40],
+  ])('charges terrain %i plus delta %i as %i AP', (traversal, delta, expected) => {
+    expect(movementApCostForTile(traversal, delta)).toBe(expected)
+  })
+  it('charges the same Haste AP in preview and commit and preserves Movement consumption', () => {
+    const state = withStatus(movementEncounter(), 'actor', 'haste')
+    const before = JSON.stringify(state)
+    const preview = evaluatePv1fMovement(state, path())
+    const result = executePv1fMovement(state, path())
+    expect(preview.economyCost).toBe(10)
+    expect(readPv1fActionEconomy(result.state)?.current).toBe(90)
+    expect(result.state.tactical.battle.currentTurn?.movementRemaining).toBe(3)
+    expect(JSON.stringify(state)).toBe(before)
   })
 })

@@ -88,6 +88,9 @@ const POSITIVE_STATUS_IDS = new Set([
   'summoned',
   'airborne',
   'haste',
+  'regeneration',
+  'hastened',
+  'borrowed-hour',
   'fortified',
   'warded',
   'absorb-hp',
@@ -224,7 +227,10 @@ export function validateGameplayEffectMetadata(effect: CombatEffectDefinition): 
       throw new TypeError('Displacement distance must be a positive safe integer.')
     if (authored.direction === undefined && authored.distance !== 1)
       throw new TypeError('Historical directionless displacement is limited to Push 1.')
-    if (authored.direction !== undefined && !['push', 'pull'].includes(authored.direction as string))
+    if (
+      authored.direction !== undefined &&
+      !['push', 'pull'].includes(authored.direction as string)
+    )
       throw new TypeError('Displacement direction must be Push or Pull.')
   }
 }
@@ -304,7 +310,8 @@ function positiveDisplayInteger(value: unknown, fallback: number): number {
 
 function titleIdentity(value: string): string {
   return value
-    .replace(/^(buff|debuff)\./, '')
-    .replace(/[._-]/g, ' ')
+    .replace(/^(?:buff|debuff)[._:-]/u, '')
+    .replace(/[._-]+/gu, ' ')
+    .trim()
     .replace(/\b\w/g, (letter) => letter.toUpperCase())
 }

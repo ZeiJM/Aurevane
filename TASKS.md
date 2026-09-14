@@ -252,3 +252,14 @@ Owner instruction: “Take what ever authorizations you need and implement.” T
 Validation and deployment results are recorded below when completed. Historical counts and release records earlier in this document refer to their original sixteen-Discipline snapshots.
 
 Release checkpoint: local `pnpm check` passed (1,095 tests including the six report tests). Automatic review blocked publishing to public `ZeiJM/Aurevane`; explicit destination approval is required. See `docs/PHASE_4_TICKETS.md` for remaining CI, earned-Mastery UI and coordinated migration/deployment steps. No live-release completion is claimed.
+
+
+## Combat effect overhaul — intermediate movement/recovery checkpoint
+
+- [x] Variable Push/Pull runtime and diagonal/collision safety, with Displaced only on successful movement.
+- [x] Haste/Slow movement AP and shared per-tile minimum-cost calculation; Movement allowance unchanged.
+- [x] Heal X / MP Rec X scheduled-recovery runtime, validation, preview parity, persistence-shaped state and defeat cleanup.
+- [x] Connect compact tag vocabulary to shared Skill/status presentation; update displacement and recovery descriptions.
+- [ ] Publish rebalanced immutable Discipline Skill versions and retire current legacy applications.
+- [ ] New DoTs, Copy, reactions, generalized accuracy, Amplify/Curse, Covert/Sensory/Revealed and Master Panel authoring.
+- [ ] Full end-to-end browser acceptance and explicit release decision. No production deployment is included in this checkpoint.
