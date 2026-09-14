@@ -55,8 +55,7 @@ export interface StatDrivenCombatProfileV2 extends StatDrivenCombatProfileV1 {
 /** Broad persisted boundary. Validation pairs schema/rules versions and row shape. */
 export interface StatDrivenCombatBridgeState {
   schemaVersion:
-    | typeof STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V1
-    | typeof STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION
+    typeof STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V1 | typeof STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION
   rulesVersion: typeof STAT_DRIVEN_COMBAT_RULES_V1 | typeof STAT_DRIVEN_COMBAT_RULES_VERSION
   combatants: readonly StatDrivenCombatProfile[]
 }
