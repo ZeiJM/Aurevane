@@ -11,15 +11,12 @@ describe('canonical combat action source mapping', () => {
     ['discipline-skill', 'discipline-skill'],
     ['scenario', 'scenario'],
     ['test', 'test'],
-  ] as const)(
-    'maps current action source %s into kernel source %s',
-    (source, expected) => {
-      const canonical = canonicalCombatActionSourceKind(source)
+  ] as const)('maps current action source %s into kernel source %s', (source, expected) => {
+    const canonical = canonicalCombatActionSourceKind(source)
 
-      expect(canonical).toBe(expected)
-      expectTypeOf(canonical).toEqualTypeOf<CombatActionSourceKind>()
-    },
-  )
+    expect(canonical).toBe(expected)
+    expectTypeOf(canonical).toEqualTypeOf<CombatActionSourceKind>()
+  })
 
   it('covers every current persisted source type', () => {
     const currentSources: readonly CombatActionSourceType[] = [
