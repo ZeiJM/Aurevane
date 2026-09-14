@@ -58,8 +58,7 @@ export type StatDrivenCombatProfileV1 = Omit<
  */
 export interface StatDrivenCombatBridgeState {
   schemaVersion:
-    | typeof STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V1
-    | typeof STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION
+    typeof STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_V1 | typeof STAT_DRIVEN_COMBAT_BRIDGE_SCHEMA_VERSION
   rulesVersion: typeof STAT_DRIVEN_COMBAT_RULES_V1 | typeof STAT_DRIVEN_COMBAT_RULES_VERSION
   combatants: readonly StatDrivenCombatProfile[]
 }
