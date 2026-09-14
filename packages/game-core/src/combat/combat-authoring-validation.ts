@@ -161,6 +161,23 @@ export function validateCombatStatusDefinition(status: CombatStatusDefinition): 
   basisPoints(status.damageTakenMultiplierBasisPoints, 'damage taken multiplier', 25_000)
   validateDamageModifiers(status.damageModifiers)
 
+  if (status.polarity !== undefined) {
+    knownString(status.polarity, ['positive', 'negative', 'neutral', 'mixed'], 'status polarity')
+  }
+  if (status.amplifyCopyable !== undefined) {
+    boolean(status.amplifyCopyable, 'amplifyCopyable')
+  }
+  if (status.curseCopyable !== undefined) {
+    boolean(status.curseCopyable, 'curseCopyable')
+  }
+  if (status.reactionClass !== undefined) {
+    knownString(
+      status.reactionClass,
+      ['ordinary', 'periodic', 'reactive', 'self-cost', 'system'],
+      'reaction class',
+    )
+  }
+
   if (status.gameplayTags !== undefined) {
     if (
       !Array.isArray(status.gameplayTags) ||
