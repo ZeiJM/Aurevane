@@ -20,18 +20,21 @@ export type TriggerChainId = string & { readonly [triggerChainIdBrand]: 'Trigger
 export type ContentVersion = number & { readonly [contentVersionBrand]: 'ContentVersion' }
 export type RulesetVersion = number & { readonly [rulesetVersionBrand]: 'RulesetVersion' }
 
-export type CombatActionSourceKind =
-  | 'basic'
-  | 'discipline-skill'
-  | 'essence'
-  | 'equipment'
-  | 'soulmark'
-  | 'mantle'
-  | 'status-granted'
-  | 'tactical-entity'
-  | 'scenario'
-  | 'temporary-encounter'
-  | 'test'
+export const COMBAT_ACTION_SOURCE_KINDS = [
+  'basic',
+  'discipline-skill',
+  'essence',
+  'equipment',
+  'soulmark',
+  'mantle',
+  'status-granted',
+  'tactical-entity',
+  'scenario',
+  'temporary-encounter',
+  'test',
+] as const
+
+export type CombatActionSourceKind = (typeof COMBAT_ACTION_SOURCE_KINDS)[number]
 
 export interface CombatActionProvenance {
   rulesetVersion: RulesetVersion
@@ -65,6 +68,16 @@ function positiveVersion<T extends number>(value: number, label: string): T {
     throw new TypeError(`${label} must be a positive safe integer.`)
   }
   return value as T
+}
+
+export function combatActionSourceKind(value: unknown): CombatActionSourceKind {
+  if (
+    typeof value !== 'string' ||
+    !COMBAT_ACTION_SOURCE_KINDS.some((sourceKind) => sourceKind === value)
+  ) {
+    throw new TypeError(`Unknown combat action source kind: ${String(value)}`)
+  }
+  return value as CombatActionSourceKind
 }
 
 export function battleId(value: string): BattleId {
@@ -104,7 +117,7 @@ export function createCombatActionProvenance(
 ): CombatActionProvenance {
   return {
     rulesetVersion: rulesetVersion(input.rulesetVersion),
-    sourceKind: input.sourceKind,
+    sourceKind: combatActionSourceKind(input.sourceKind),
     actionDefinitionId: actionDefinitionId(input.actionDefinitionId),
     actionVersion: contentVersion(input.actionVersion),
     sourceCombatantId: combatantId(input.sourceCombatantId),
