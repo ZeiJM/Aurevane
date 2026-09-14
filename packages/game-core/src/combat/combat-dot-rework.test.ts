@@ -6,9 +6,10 @@ import {
   validateCombatEncounterState,
   type CombatActionDefinition,
   type CombatEffectDefinition,
+  type CombatEncounterState,
 } from './actions'
 import { createPendingBattle, startBattle } from './battle-state'
-import { createTacticalBattleState } from './board'
+import { createTacticalBattleState, selectCurrentFinalFacing } from './board'
 import { PHASE4_STATUSES } from './status-content'
 
 const CONTENT = { statuses: PHASE4_STATUSES }
@@ -73,6 +74,11 @@ function encounter() {
       ],
     }),
   )
+}
+
+function finishTurn(state: CombatEncounterState) {
+  const faced = selectCurrentFinalFacing(state.tactical, 'east')
+  return endCombatTurn({ ...state, tactical: faced.state }, CONTENT)
 }
 
 function action(
@@ -169,20 +175,20 @@ describe('current Poison runtime', () => {
       CONTENT,
     )
 
-    const targetTurn = endCombatTurn(poisoned.state, CONTENT)
+    const targetTurn = finishTurn(poisoned.state)
     expect(targetTurn.state.tactical.battle.currentTurn?.combatantId).toBe('target')
     expect(targetTurn.state.tactical.battle.combatants.find((row) => row.id === 'target')?.hp).toBe(
       30,
     )
 
-    const firstTick = endCombatTurn(targetTurn.state, CONTENT)
+    const firstTick = finishTurn(targetTurn.state)
     expect(firstTick.state.tactical.battle.combatants.find((row) => row.id === 'target')?.hp).toBe(
       28,
     )
     expect(firstTick.state.effectState?.poison).toHaveLength(1)
 
-    const secondTargetTurn = endCombatTurn(firstTick.state, CONTENT)
-    const secondTick = endCombatTurn(secondTargetTurn.state, CONTENT)
+    const secondTargetTurn = finishTurn(firstTick.state)
+    const secondTick = finishTurn(secondTargetTurn.state)
     expect(secondTick.state.tactical.battle.combatants.find((row) => row.id === 'target')?.hp).toBe(
       26,
     )
