@@ -345,9 +345,13 @@ test('keeps requested PvE presentation parity on desktop and mobile', async ({
       list.style.height = `${Math.min(list.clientHeight, measured.getBoundingClientRect().height + heading.getBoundingClientRect().height - 1)}px`
     })
     await expect(transcript).toHaveAttribute('data-oversized', 'true')
-    const fullResults = transcript.getByRole('button', { name: /^View full action and results:/ })
+    const fullResults = transcript.getByRole('button', {
+      name: /^(?:View full action and results|Action details):/,
+    })
     await expect(fullResults).toBeVisible()
-    await expect(transcript.getByRole('button', { name: /^Action details:/ })).toHaveCount(0)
+    await expect(
+      transcript.locator('[inert]').getByRole('button', { name: /^Action details:/ }),
+    ).toHaveCount(0)
     const overflowBounds = await transcript.evaluate((element) => {
       const item = element.firstElementChild!
       const heading = item.firstElementChild!
