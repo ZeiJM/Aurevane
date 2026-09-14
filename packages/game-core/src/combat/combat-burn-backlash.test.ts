@@ -15,6 +15,7 @@ import {
   createStatDrivenCombatEncounterState,
   executeStatDrivenAttack,
   type StatDrivenCombatProfile,
+  type StatDrivenCombatResolutionEvent,
 } from './stat-driven-combat'
 import { PHASE4_STATUSES } from './status-content'
 
@@ -162,7 +163,9 @@ function supportAction(): CombatActionDefinition {
   }
 }
 
-function selfDamageEvents(events: readonly CombatResolutionEvent[]) {
+function selfDamageEvents(
+  events: readonly (CombatResolutionEvent | StatDrivenCombatResolutionEvent)[],
+) {
   return events.filter(
     (event) =>
       event.event === 'damage_applied' &&
