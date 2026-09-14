@@ -26,8 +26,10 @@ export interface CombatEncounterState extends Omit<legacy.CombatEncounterState, 
   }
 }
 
-export interface CombatResolutionTransition
-  extends Omit<legacy.CombatResolutionTransition, 'state'> {
+export interface CombatResolutionTransition extends Omit<
+  legacy.CombatResolutionTransition,
+  'state'
+> {
   state: CombatEncounterState
 }
 
@@ -66,7 +68,7 @@ function materializeStatScaledDamage(
 ): legacy.CombatActionDefinition {
   const actorId =
     state.tactical.battle.lifecycle === 'active'
-      ? state.tactical.battle.currentTurn?.combatantId ?? null
+      ? (state.tactical.battle.currentTurn?.combatantId ?? null)
       : null
 
   const effects: legacy.CombatEffectDefinition[] = action.effects.map((effect) => {
