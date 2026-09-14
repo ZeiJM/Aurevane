@@ -67,7 +67,15 @@ describe('combat authoring validation boundary', () => {
     expect(() =>
       validateCombatActionDefinition({
         ...P2_3_GUARD_ACTION,
-        effects: [{ type: 'resource-change', recipient: 'actor', resource: 'mp', delta: 3, ticks }],
+        effects: [
+          {
+            type: 'resource-change',
+            recipient: 'actor',
+            resource: 'mp',
+            delta: 3,
+            ticks,
+          },
+        ],
       } as unknown as CombatActionDefinition),
     ).toThrow(/mp recovery ticks/i)
   })
@@ -77,7 +85,13 @@ describe('combat authoring validation boundary', () => {
       validateCombatActionDefinition({
         ...P2_3_GUARD_ACTION,
         effects: [
-          { type: 'resource-change', recipient: 'primary-unit', resource: 'mp', delta: -3, ticks: 2 },
+          {
+            type: 'resource-change',
+            recipient: 'primary-unit',
+            resource: 'mp',
+            delta: -3,
+            ticks: 2,
+          },
         ],
       } as unknown as CombatActionDefinition),
     ).toThrow(/mp drain/i)
