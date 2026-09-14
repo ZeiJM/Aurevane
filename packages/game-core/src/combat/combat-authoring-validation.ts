@@ -316,11 +316,7 @@ function boundedPositiveSafeInteger(
   maximum: number,
   field: string,
 ): asserts value is number {
-  if (
-    !Number.isSafeInteger(value) ||
-    (value as number) < minimum ||
-    (value as number) > maximum
-  ) {
+  if (!Number.isSafeInteger(value) || (value as number) < minimum || (value as number) > maximum) {
     throw new RangeError(`${field} must be an integer between ${minimum} and ${maximum}.`)
   }
 }
