@@ -21,6 +21,25 @@ describe('combat authoring validation boundary', () => {
     expect(() => validateCombatStatusDefinition(P2_3_GUARDED_STATUS)).not.toThrow()
   })
 
+  it('rejects invalid offensive damage scaling before content can publish', () => {
+    expect(() =>
+      validateCombatActionDefinition({
+        ...P2_3_GUARD_ACTION,
+        effects: [
+          {
+            type: 'damage',
+            recipient: 'primary-unit',
+            amount: 12,
+            scaling: {
+              source: 'physical-power',
+              coefficientBasisPoints: 20_001,
+            },
+          },
+        ],
+      } as CombatActionDefinition),
+    ).toThrow(/damage scaling coefficient/i)
+  })
+
   it('validates explicit status metadata used by cloning and reactions', () => {
     const status: CombatStatusDefinition = {
       ...P2_3_GUARDED_STATUS,
