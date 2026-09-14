@@ -8,12 +8,16 @@ import {
 import { P36_REPRESENTATIVE_ESSENCES } from './essence'
 import { latestEnabledMatureSkills } from './mature-skills'
 
+function isDamageEffect(
+  effect: CombatEffectDefinition,
+): effect is Extract<CombatEffectDefinition, { type: 'damage' }> {
+  return effect.type === 'damage'
+}
+
 function damageEffects(
   effects: readonly CombatEffectDefinition[],
 ): readonly Extract<CombatEffectDefinition, { type: 'damage' }>[] {
-  return effects.filter(
-    (effect): effect is Extract<CombatEffectDefinition, { type: 'damage' }> => effect.type === 'damage',
-  )
+  return effects.filter(isDamageEffect)
 }
 
 describe('P4.K2 behavior-preserving scaling migration', () => {
