@@ -44,6 +44,12 @@
   white-space: nowrap;
 }
 
+.capacityBadge .counterName,
+.capacityBadge strong,
+.capacityBadge > span:not(.counterName) {
+  color: var(--av-charcoal) !important;
+}
+
 .standardButton {
   min-height: 2.55rem !important;
   padding: 0.58rem 0.82rem !important;
