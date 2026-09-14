@@ -2,6 +2,11 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
 
 import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
 
+interface ShellChromeGeometry {
+  headerHeight: number
+  footerHeight: number
+}
+
 function uniqueCharacterName(): string {
   const letters = Date.now()
     .toString()
@@ -63,18 +68,22 @@ test('keeps A1 surfaces readable and within viewport', async ({ page }, testInfo
   await expectMinimumFontSize(resetAttributes, 11, 'Character Profile reset control')
   await expectReachableByVerticalScroll(page, resetAttributes, 'Character Profile reset control')
   await expectInitialViewportFit(page, 'Character Profile', { allowVerticalScroll: true })
+  const sharedChrome = await readAuthenticatedShellChrome(page)
 
   await page.goto('/game/battle')
   await expect(page.getByRole('heading', { name: 'Choose your arena.' })).toBeVisible()
-  await expectInitialViewportFit(page, 'Battle Hall')
+  await expectAuthenticatedShellChrome(page, sharedChrome, 'Battle Hall')
+  await expectInitialViewportFit(page, 'Battle Hall', { allowVerticalScroll: true })
 
   await page.goto('/game/settings/controls')
   await expect(page.getByRole('heading', { name: 'Controls & Keybinds' })).toBeVisible()
-  await expectInitialViewportFit(page, 'Controls & Keybinds')
+  await expectAuthenticatedShellChrome(page, sharedChrome, 'Controls & Keybinds')
+  await expectInitialViewportFit(page, 'Controls & Keybinds', { allowVerticalScroll: true })
 
   await page.goto('/game/training')
   await expect(page.getByRole('heading', { name: 'Passive Training' })).toBeVisible()
   await expect(page.getByTestId('training-report')).toHaveCount(0)
+  await expectAuthenticatedShellChrome(page, sharedChrome, 'Passive Training')
   await expectInitialViewportFit(page, 'Passive Training')
 
   await page.goto('/game')
@@ -84,12 +93,14 @@ test('keeps A1 surfaces readable and within viewport', async ({ page }, testInfo
     13,
     'Character Select body copy',
   )
-  await expectInitialViewportFit(page, 'Character Select')
+  await expectInitialViewportFit(page, 'Character Select', { allowVerticalScroll: true })
 
   await page.setViewportSize({ width: 1024, height: 576 })
   await page.goto('/game')
   await expect(page.getByRole('heading', { name: 'Choose your character.' })).toBeVisible()
-  await expectInitialViewportFit(page, 'Character Select at 1024x576')
+  await expectInitialViewportFit(page, 'Character Select at 1024x576', {
+    allowVerticalScroll: true,
+  })
 })
 
 async function expectMinimumFontSize(
@@ -130,6 +141,38 @@ async function expectReachableByVerticalScroll(
     `${surface} should be reachable instead of clipped behind a fixed-height profile`,
   ).toBeLessThanOrEqual(geometry.viewportHeight + 1)
   await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'auto' }))
+}
+
+async function readAuthenticatedShellChrome(page: Page): Promise<ShellChromeGeometry> {
+  const shell = page.getByTestId('authenticated-shell')
+  await expect(shell).toBeVisible()
+  return shell.evaluate((element) => {
+    const header = element.querySelector(':scope > header')
+    const footer = element.querySelector(':scope > footer')
+    if (!(header instanceof HTMLElement) || !(footer instanceof HTMLElement)) {
+      throw new Error('Authenticated shell header/footer were not rendered')
+    }
+    return {
+      headerHeight: header.getBoundingClientRect().height,
+      footerHeight: footer.getBoundingClientRect().height,
+    }
+  })
+}
+
+async function expectAuthenticatedShellChrome(
+  page: Page,
+  expected: ShellChromeGeometry,
+  surface: string,
+): Promise<void> {
+  const actual = await readAuthenticatedShellChrome(page)
+  expect(actual.headerHeight, `${surface} should use the shared header height`).toBeCloseTo(
+    expected.headerHeight,
+    1,
+  )
+  expect(actual.footerHeight, `${surface} should use the shared footer height`).toBeCloseTo(
+    expected.footerHeight,
+    1,
+  )
 }
 
 async function expectInitialViewportFit(

@@ -27,9 +27,10 @@ import {
   battleSkillArtwork,
 } from '@/components/battle/battle-skill-presentation'
 import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
-import { gameNavigation } from '@/components/shell/game-navigation'
+import { FoundationDisciplineSigil } from '@/components/character/foundation-discipline-sigil'
 import { getStarterPortraitImageAssetId } from '@/media/character'
 
+import { skillDisplayName } from './skill-detail-presentation'
 import styles from './character-profile-shell.module.css'
 
 interface PrimaryOption {
@@ -168,14 +169,14 @@ export function CharacterProfileShell({
 
   return (
     <AuthenticatedShellFrame sessionLabel="Character Profile">
-      <div className={styles.layout} data-profile-workspace>
-        <Surface className={styles.characterCard} tone="quiet">
+      <div className={styles.layout} data-profile-workspace data-character-concept="profile">
+        <Surface className={styles.characterCard} tone="quiet" data-av-surface="ink">
           <header className={styles.hero} data-testid="character-profile">
             <div className={styles.portrait}>
               <CharacterPortraitImage
                 imageUrl={imageUrl}
                 fallbackAssetId={getStarterPortraitImageAssetId(profile.identity.portraitRef)}
-                sizes="(min-width: 1280px) 12rem, (max-width: 640px) 5.5rem, 7rem"
+                sizes="(min-width: 1100px) 28vw, (min-width: 761px) 40vw, 100vw"
                 alt={`${profile.identity.name} portrait`}
               />
             </div>
@@ -243,11 +244,11 @@ export function CharacterProfileShell({
           </div>
         </Surface>
 
-        <Surface className={styles.profile} tone="elevated">
+        <Surface className={styles.profile} tone="elevated" data-av-surface="moonstone">
           <header className={styles.sheetHeading}>
             <div>
-              <Kicker marker="◇">Character Profile</Kicker>
-              <h2>Character Sheet</h2>
+              <h2>Character Profile</h2>
+              <p>Discipline shapes what endures.</p>
             </div>
             <span className={styles.buildMode}>
               {disciplineBuild.currentSecondary ? 'Mixed Build' : 'Pure Build'}
@@ -264,33 +265,18 @@ export function CharacterProfileShell({
 
           <CharacterAttributeAllocationPanel
             initialAllocation={attributeAllocation}
+            portrait={{
+              name: profile.identity.name,
+              imageUrl,
+              assetId: getStarterPortraitImageAssetId(profile.identity.portraitRef),
+            }}
             focusAttributes={focusAttributes}
             attributeCaps={attributePolicy?.attributeCaps ?? {}}
           />
         </Surface>
 
         <aside className={styles.sidebar} aria-label="Combat loadout workspace">
-          <Surface className={styles.navigationCard} tone="quiet">
-            <Kicker marker="◇">Explore AUREVANE</Kicker>
-            <nav className={styles.navigation} aria-label="Profile navigation">
-              {gameNavigation.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={item.href === '/game/character' ? 'page' : undefined}
-                >
-                  <span aria-hidden="true">{item.symbol}</span>
-                  <span>{item.label}</span>
-                </Link>
-              ))}
-              <Link href="/manual">
-                <span aria-hidden="true">≡</span>
-                <span>Player Manual</span>
-              </Link>
-            </nav>
-          </Surface>
-
-          <Surface className={styles.buildCard} tone="quiet">
+          <Surface className={styles.buildCard} tone="quiet" data-av-surface="ink">
             <div className={styles.buildHeading}>
               <Kicker marker="◇">Combat Loadout</Kicker>
             </div>
@@ -298,6 +284,16 @@ export function CharacterProfileShell({
             <section className={styles.buildSection} aria-labelledby="build-disciplines-heading">
               <div className={styles.buildSectionHeader}>
                 <strong id="build-disciplines-heading">Discipline</strong>
+              </div>
+              <div className={styles.disciplineSigils}>
+                {[disciplineBuild.current.definition, disciplineBuild.currentSecondary]
+                  .filter((entry) => entry !== null)
+                  .map((entry) => (
+                    <div key={entry.id}>
+                      <FoundationDisciplineSigil disciplineId={entry.id} />
+                      <span>{entry.name}</span>
+                    </div>
+                  ))}
               </div>
               <CharacterDisciplineBuildPanel
                 initialBuildVersion={disciplineBuild.buildVersion}
@@ -313,6 +309,27 @@ export function CharacterProfileShell({
             <section className={styles.buildSection} aria-labelledby="build-techniques-heading">
               <div className={styles.buildSectionHeader}>
                 <strong id="build-techniques-heading">Techniques</strong>
+              </div>
+              <div className={styles.equippedSkills} aria-label="Equipped Discipline Skills">
+                {disciplineBuild.disciplineSkills.equippedSkills.map(
+                  ({ definition, slotIndex }) => (
+                    <div key={definition.id} title={skillDisplayName(definition)}>
+                      <Image
+                        src={battleSkillArtwork(definition.id)}
+                        width={160}
+                        height={100}
+                        unoptimized
+                        alt=""
+                      />
+                      <span>
+                        {slotIndex + 1} · {skillDisplayName(definition)}
+                      </span>
+                    </div>
+                  ),
+                )}
+                {disciplineBuild.disciplineSkills.equippedSkills.length === 0 ? (
+                  <p>No Skills selected.</p>
+                ) : null}
               </div>
               <CharacterSkillBuildPanel
                 key={skillBuildKey}

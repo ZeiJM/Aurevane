@@ -9,6 +9,19 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
   await page.evaluate(async () => {
     await document.fonts.ready
   })
+  const chromeGeometry = await page
+    .locator('[data-battle-route-frame="true"]')
+    .evaluate((frame) => {
+      const masthead = frame.querySelector<HTMLElement>(':scope > header')!.getBoundingClientRect()
+      const brand = frame
+        .querySelector<HTMLElement>('[aria-label="AUREVANE current battle"]')!
+        .getBoundingClientRect()
+      return { masthead: masthead.toJSON(), brand: brand.toJSON() }
+    })
+  expect(chromeGeometry.brand.left).toBeGreaterThanOrEqual(chromeGeometry.masthead.left)
+  expect(chromeGeometry.brand.right).toBeLessThanOrEqual(chromeGeometry.masthead.right)
+  expect(chromeGeometry.brand.top).toBeGreaterThanOrEqual(chromeGeometry.masthead.top)
+  expect(chromeGeometry.brand.bottom).toBeLessThanOrEqual(chromeGeometry.masthead.bottom)
   // Viewport changes settle through ResizeObserver before tiles and portrait tokens are measured.
   await expect
     .poll(() =>
@@ -100,7 +113,18 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
       cards: cards.map((card) => ({
         ...card.getBoundingClientRect().toJSON(),
         font: parseFloat(getComputedStyle(card.querySelector('strong')!).fontSize),
+        labelFits: (() => {
+          const label = card.querySelector<HTMLElement>('strong')!
+          return (
+            label.scrollWidth <= label.clientWidth + 1 &&
+            label.scrollHeight <= label.clientHeight + 1
+          )
+        })(),
       })),
+      selectedSkills: (() => {
+        const selected = element.querySelector<HTMLElement>('[data-battle-selected-skills]')!
+        return selected.getBoundingClientRect().toJSON()
+      })(),
       scrollWidth: document.documentElement.scrollWidth,
       viewportWidth: innerWidth,
     }
@@ -109,12 +133,16 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
   expect(geometry.deck.right).toBeLessThanOrEqual(geometry.flow.x)
   expect(Math.abs(geometry.deck.y - geometry.flow.y)).toBeLessThanOrEqual(1)
   expect(Math.abs(geometry.deck.bottom - geometry.flow.bottom)).toBeLessThanOrEqual(1)
-  expect(Math.abs(geometry.deck.width - geometry.flow.width)).toBeLessThanOrEqual(1)
+  expect(geometry.deck.width).toBeGreaterThan(geometry.flow.width * 2)
   expect(geometry.deck.y).toBeGreaterThanOrEqual(geometry.battlefield.bottom - 1)
   expect(geometry.instructions.y).toBeGreaterThanOrEqual(
     Math.max(...geometry.cards.map((card) => card.bottom)),
   )
   expect(geometry.instructions.bottom).toBeLessThanOrEqual(geometry.deck.bottom)
+  expect(geometry.selectedSkills.x).toBeGreaterThanOrEqual(geometry.deck.x)
+  expect(geometry.selectedSkills.right).toBeLessThanOrEqual(geometry.deck.right + 1)
+  expect(geometry.selectedSkills.y).toBeGreaterThanOrEqual(geometry.deck.y)
+  expect(geometry.selectedSkills.bottom).toBeLessThanOrEqual(geometry.deck.bottom + 1)
   expect(geometry.battlefield.height).toBeGreaterThanOrEqual(
     (geometry.footer.y - geometry.header.bottom) * 0.55,
   )
@@ -157,6 +185,7 @@ export async function expectBattleReferenceLayout(page: Page, testInfo: TestInfo
   for (const card of geometry.cards) {
     expect(card.height).toBeLessThanOrEqual(120)
     expect(card.font).toBeGreaterThanOrEqual(12)
+    expect(card.labelFits, 'Command labels must render without ellipsis or clipping.').toBe(true)
     expect(card.x).toBeGreaterThanOrEqual(geometry.deck.x)
     expect(card.right).toBeLessThanOrEqual(geometry.deck.right + 1)
   }

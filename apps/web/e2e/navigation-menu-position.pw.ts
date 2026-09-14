@@ -2,12 +2,12 @@ import { expect, test } from '@playwright/test'
 
 import { createAccountAndEnterCharacter } from './pv1f-test-helpers'
 
-test('game navigation opens from the bottom-right trigger instead of the top viewport edge', async ({
+test('game navigation stays in the primary rail without a redundant footer trigger', async ({
   page,
 }, testInfo) => {
   test.skip(
     testInfo.project.name !== 'desktop-chromium',
-    'One desktop anchoring proof is sufficient.',
+    'One desktop shell-navigation proof is sufficient.',
   )
 
   const now = Date.now()
@@ -19,30 +19,18 @@ test('game navigation opens from the bottom-right trigger instead of the top vie
 
   await createAccountAndEnterCharacter({
     page,
-    email: `nav-anchor-${now}@example.com`,
-    password: 'Nav-anchor-2026!',
+    email: `nav-shell-${now}@example.com`,
+    password: 'Nav-shell-2026!',
     characterName: `Navigator ${suffix}`,
   })
 
-  const trigger = page.getByRole('button', { name: /Navigation/ })
-  await expect(trigger).toBeVisible()
-  const triggerBox = await trigger.boundingBox()
-  expect(triggerBox).not.toBeNull()
+  await expect(page.getByRole('button', { name: 'Navigation', exact: true })).toHaveCount(0)
 
-  await trigger.click()
-  const menu = page.getByRole('navigation', { name: 'Game navigation' })
-  await expect(menu).toBeVisible()
-  const menuBox = await menu.boundingBox()
-  expect(menuBox).not.toBeNull()
-  if (!triggerBox || !menuBox) return
+  const primaryNavigation = page.getByRole('navigation', { name: 'Primary game navigation' })
+  await expect(primaryNavigation.getByRole('link', { name: /^Profile/ })).toBeVisible()
+  await expect(primaryNavigation.getByRole('link', { name: /^Battle Hall/ })).toBeVisible()
+  await expect(primaryNavigation.getByRole('link', { name: /^Passive Training/ })).toBeVisible()
+  await expect(primaryNavigation.getByText('Adventurers', { exact: true })).toHaveCount(0)
 
-  expect(menuBox.y + menuBox.height).toBeLessThanOrEqual(triggerBox.y - 4)
-  expect(
-    Math.abs(menuBox.x + menuBox.width - (triggerBox.x + triggerBox.width)),
-  ).toBeLessThanOrEqual(12)
-  expect(menuBox.y).toBeGreaterThan(page.viewportSize()!.height / 2)
-
-  await trigger.click()
-  await expect(menu).toBeHidden()
-  await expect(trigger).toHaveAttribute('aria-expanded', 'false')
+  await expect(page.getByRole('link', { name: /Online Users/ })).toBeVisible()
 })

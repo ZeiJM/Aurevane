@@ -63,10 +63,12 @@ test('creates a slotted character, persists its profile, and resumes it across s
     '0',
   )
 
-  const requestedCharacterArt = page.locator(
-    '[data-media-status="requested"][data-media-request="ART-CHR-001"]',
-  )
-  expect(await requestedCharacterArt.count()).toBeGreaterThan(0)
+  await expect(
+    page
+      .getByTestId('character-profile')
+      .locator('img[src*="portrait-01-v01.webp"]:visible')
+      .first(),
+  ).toBeVisible()
   expect(await hasHorizontalOverflow(page)).toBe(false)
   await expect(page.getByRole('link', { name: 'Back to Character Select' })).toHaveCount(0)
 
@@ -83,7 +85,10 @@ test('creates a slotted character, persists its profile, and resumes it across s
   await page.reload()
   await expect(page.getByText('Choice used')).toBeVisible()
   await expect(page.getByText(personalTitle, { exact: true }).first()).toBeVisible()
-  await page.getByRole('link', { name: 'Back to Character Profile' }).click()
+  await page
+    .getByRole('navigation', { name: 'Primary game navigation', exact: true })
+    .getByRole('link', { name: /Profile/ })
+    .click()
   await expect(page).toHaveURL(/\/game\/character$/)
   await expect(page.getByTestId('character-profile')).toContainText(personalTitle)
 
@@ -121,7 +126,10 @@ test('creates a slotted character, persists its profile, and resumes it across s
   await expect(page.getByRole('heading', { name: 'Passive Training' })).toBeVisible()
   await expect(page.getByTestId('training-report')).toHaveCount(0)
   await expect(page.getByTestId('practice-plan-card')).toContainText('Idle')
-  await page.getByRole('link', { name: 'Back to Character Profile' }).click()
+  await page
+    .getByRole('navigation', { name: 'Primary game navigation', exact: true })
+    .getByRole('link', { name: /Profile/ })
+    .click()
   await expect(page).toHaveURL(/\/game\/character$/)
 
   queryLocalDatabase(`
@@ -142,10 +150,14 @@ test('creates a slotted character, persists its profile, and resumes it across s
   await expect(page.getByRole('heading', { name: 'Passive Training' })).toBeVisible()
   await expect(page.getByTestId('training-report')).toHaveCount(0)
   await expect(page.getByTestId('practice-plan-card')).toContainText('Idle')
-  await expect(page.getByText(/Training does not start automatically/)).toBeVisible()
+  await expect(page.getByTestId('practice-plan-card')).toContainText('Choose a training duration.')
+  await expect(page.getByText(/Training does not start automatically/)).toHaveCount(0)
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
-  await page.getByRole('link', { name: 'Back to Character Profile' }).click()
+  await page
+    .getByRole('navigation', { name: 'Primary game navigation', exact: true })
+    .getByRole('link', { name: /Profile/ })
+    .click()
   await expect(page).toHaveURL(/\/game\/character$/)
   await expect(page.getByTestId('character-profile')).toContainText('Level 1')
   await expect(page.getByTestId('level-progress')).toContainText('0 / 100 XP')

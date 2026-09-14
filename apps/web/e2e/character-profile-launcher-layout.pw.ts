@@ -39,7 +39,10 @@ test('Profile build launchers stay centered and typographically matched', async 
   await expect(page.locator('#build-techniques-heading')).toHaveText('Techniques')
   await expect(page.getByText(/\d+ \/ \d+ tagged/)).toHaveCount(0)
 
-  const navigation = page.getByRole('navigation', { name: 'Profile navigation', exact: true })
+  const navigation = page.getByRole('navigation', {
+    name: 'Primary game navigation',
+    exact: true,
+  })
   await expect(navigation.getByRole('link', { name: 'Profile', exact: true })).toHaveAttribute(
     'aria-current',
     'page',
@@ -84,7 +87,7 @@ test('Profile build launchers stay centered and typographically matched', async 
   ).toBeLessThanOrEqual(2)
 
   const [techniquesFontSize, disciplineFontSize] = await Promise.all([
-    techniquesLabel.evaluate((element) => getComputedStyle(element, '::after').fontSize),
+    techniquesLabel.evaluate((element) => getComputedStyle(element).fontSize),
     disciplineLabel.evaluate((element) => getComputedStyle(element).fontSize),
   ])
   expect(techniquesFontSize).toBe(disciplineFontSize)

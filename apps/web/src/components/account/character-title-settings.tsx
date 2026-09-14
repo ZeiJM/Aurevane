@@ -1,8 +1,11 @@
 'use client'
 
+import type { CharacterPortraitRef } from '@aurevane/game-core/character/creation'
 import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 
+import { CharacterPortraitImage } from '@/components/character/character-portrait-image'
+import { getStarterPortraitImageAssetId } from '@/media/character'
 import styles from './character-title-settings.module.css'
 
 interface CharacterTitleSettingsProps {
@@ -12,6 +15,7 @@ interface CharacterTitleSettingsProps {
   personalTitle: string | null
   personalTitleSetAt: string | null
   imageUrl: string | null
+  portraitRef?: CharacterPortraitRef
 }
 
 const TITLE_PATTERN = /^[A-Za-z0-9 ]+$/
@@ -37,6 +41,7 @@ export function CharacterTitleSettings({
   personalTitle,
   personalTitleSetAt,
   imageUrl,
+  portraitRef,
 }: CharacterTitleSettingsProps) {
   const router = useRouter()
   const [draft, setDraft] = useState('')
@@ -122,8 +127,22 @@ export function CharacterTitleSettings({
   const currentHostMessage = imageHostPageMessage(imageDraft)
 
   return (
-    <div className={styles.layout}>
-      <section className={styles.current} aria-labelledby="current-title-heading">
+    <div className={styles.layout} data-character-concept="titles" data-av-surface="moonstone">
+      <section
+        className={styles.current}
+        data-av-surface="ink"
+        aria-labelledby="current-title-heading"
+      >
+        <div className={styles.heroPortrait}>
+          <CharacterPortraitImage
+            imageUrl={imageUrl}
+            fallbackAssetId={getStarterPortraitImageAssetId(
+              portraitRef ?? 'portrait.starter.wayfarer-01',
+            )}
+            sizes="(min-width: 761px) 38vw, 100vw"
+            alt={`${characterName} portrait`}
+          />
+        </div>
         <div className={styles.headingLine}>
           <div>
             <span>Current profile display</span>
@@ -141,6 +160,7 @@ export function CharacterTitleSettings({
       </section>
 
       <section className={styles.personal} aria-labelledby="personal-title-heading">
+        <h1>Portrait &amp; Title</h1>
         <header>
           <div>
             <span>Personal title</span>

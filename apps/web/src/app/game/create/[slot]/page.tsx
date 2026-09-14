@@ -2,6 +2,7 @@ import { isAurevaneError } from '@aurevane/game-core/errors'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
+import { AurevaneImage } from '@/components/media/aurevane-image'
 import { CharacterCreationExperience } from '@/components/character/character-creation-experience'
 import { AccountMenu } from '@/components/shell/account-menu'
 import { getAuthenticatedActor } from '@/server/auth/actor'
@@ -33,6 +34,9 @@ export default async function CharacterCreationPage({
 
   return (
     <div className={styles.shell} data-character-creation-page="true">
+      <div className={styles.world} aria-hidden="true">
+        <AurevaneImage assetId="ui.foundation.vista" />
+      </div>
       <header className={styles.header}>
         <Link className="brand" href="/game" aria-label="AUREVANE Character Select">
           <span className="brand__crest" aria-hidden="true">

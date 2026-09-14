@@ -89,9 +89,18 @@ test('Profile Atlas stays inside Discipline Management and fits each supported v
   await expect(management).toBeFocused()
   await management.getByLabel('Proposed Secondary').focus()
   await page.keyboard.press('Tab')
-  await expect(management.getByRole('button', { name: 'Close', exact: true })).toBeFocused()
+  await expect(
+    management.locator('section[aria-label="Primary Discipline library"] button').first(),
+  ).toBeFocused()
+  const close = management.getByRole('button', { name: 'Close', exact: true })
+  await close.focus()
   await page.keyboard.press('Shift+Tab')
-  await expect(management.getByLabel('Proposed Secondary')).toBeFocused()
+  const lastLibraryButton = management
+    .locator('section[aria-label="Primary Discipline library"] button')
+    .last()
+  await expect(lastLibraryButton).toBeFocused()
+  await page.keyboard.press('Tab')
+  await expect(close).toBeFocused()
   await page.keyboard.press('Escape')
   await expect(management).toHaveCount(0)
   await expect(page.getByRole('button', { name: /Manage Primary Discipline/ })).toBeFocused()

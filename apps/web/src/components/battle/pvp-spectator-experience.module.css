@@ -93,11 +93,19 @@
   opacity: 0.55;
 }
 
-.scoreboard {
+.teamRail {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
   gap: 0.45rem;
   min-width: 0;
+  min-height: 0;
+}
+
+.teamRailLeft {
+  grid-area: left;
+}
+
+.teamRailRight {
+  grid-area: right;
 }
 
 .teamCard {
@@ -140,20 +148,20 @@
 }
 
 .teamMembers {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
   gap: 0.3rem;
   min-width: 0;
-  flex-wrap: wrap;
-  align-items: flex-start;
+  min-height: 0;
 }
 
 .member {
   display: grid;
-  grid-template-columns: 2rem minmax(0, auto);
+  grid-template-columns: 2rem minmax(0, 1fr) minmax(5.2rem, 0.8fr);
   gap: 0.4rem;
-  width: fit-content;
+  width: 100%;
   max-width: 100%;
-  min-width: 8.75rem;
+  min-width: 0;
   align-items: center;
   padding: 0.28rem;
   border: 1px solid transparent;
@@ -200,20 +208,61 @@
   font-size: 0.48rem;
 }
 
+.memberHealth {
+  display: grid;
+  min-width: 0;
+  gap: 0.16rem;
+}
+
+.memberHealth > i {
+  display: block;
+  height: 0.24rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.memberHealth > i > b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #8d3030, #d9655d);
+}
+
+.memberHealth > small {
+  color: var(--av-text-dim);
+  font-size: 0.44rem;
+}
+
 .broadcast {
   display: grid;
-  grid-template-columns: minmax(9rem, 0.72fr) minmax(24rem, 2.25fr) minmax(15rem, 1fr);
-  grid-template-areas: 'controls board comms';
+  grid-template-columns: clamp(10rem, 13vw, 15rem) minmax(0, 1fr) clamp(10rem, 13vw, 15rem);
+  grid-template-areas: 'left center right';
   gap: 0.55rem;
   min-width: 0;
   min-height: 0;
   align-items: stretch;
 }
 
-.controlRail {
-  grid-area: controls;
+.centerStage {
+  grid-area: center;
   display: grid;
-  align-content: start;
+  grid-template-rows: auto minmax(0, 1fr) clamp(8.5rem, 18vh, 10rem);
+  grid-template-areas:
+    'context'
+    'field'
+    'dock';
+  gap: 0.45rem;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.controlRail {
+  grid-area: context;
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(10rem, 1fr);
+  align-content: stretch;
   gap: 0.5rem;
   min-width: 0;
 }
@@ -280,7 +329,7 @@
 }
 
 .battlefieldWrap {
-  grid-area: board;
+  grid-area: field;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr) auto;
   min-width: 0;
@@ -510,87 +559,242 @@
 }
 
 .commsStack {
-  grid-area: comms;
+  grid-area: dock;
   display: grid;
-  grid-template-rows: minmax(9rem, 0.9fr) minmax(10rem, 1.1fr);
-  gap: 0.55rem;
   min-width: 0;
-  min-height: 22rem;
-  max-height: min(67dvh, 48rem);
+  min-height: 0;
+  overflow: hidden;
 }
 
 .comms {
   min-width: 0;
   min-height: 0;
   height: 100%;
+  grid-template-rows: auto minmax(0, 1fr) auto !important;
 }
 
-.battleLogPanel {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-  border: 1px solid rgba(207, 169, 93, 0.22);
-  border-radius: 0.65rem;
-  background: rgba(5, 7, 11, 0.82);
-}
+@media (min-width: 981px) {
+  .page {
+    grid-template-rows: auto minmax(0, 1fr);
+    height: calc(var(--battle-viewport-height, 100dvh) - 0.75rem);
+    min-height: 0;
+    max-height: calc(var(--battle-viewport-height, 100dvh) - 0.75rem);
+    gap: 0.4rem;
+    padding: 0.42rem 0.55rem;
+    overflow: hidden;
+  }
 
-.battleLogHeader {
-  display: flex;
-  gap: 0.65rem;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.58rem 0.66rem;
-  border-bottom: 1px solid rgba(207, 169, 93, 0.16);
-  background: rgba(255, 255, 255, 0.025);
-}
+  .header {
+    min-height: 3.15rem;
+    padding: 0.36rem 0.58rem;
+  }
 
-.battleLogHeader > div {
-  display: grid;
-  gap: 0.12rem;
-}
+  .header h1 {
+    margin-top: 0.12rem;
+    font-size: clamp(1.05rem, 1.7vw, 1.4rem);
+  }
 
-.battleLogHeader strong {
-  color: var(--av-brass-300);
-  font: 800 0.57rem/1 var(--av-font-mono);
-  letter-spacing: 0.065em;
-  text-transform: uppercase;
-}
+  .header button {
+    min-height: 2.05rem;
+    padding-block: 0.3rem;
+  }
 
-.battleLogHeader small {
-  color: var(--av-text-dim);
-  font-size: 0.54rem;
-}
+  .centerStage {
+    grid-template-rows: 3rem minmax(0, 1fr) 8rem;
+  }
 
-.battleLogBody {
-  min-height: 0;
-  overflow: auto;
-  overscroll-behavior: contain;
-  background: rgba(2, 4, 7, 0.24);
-}
+  .controlRail {
+    height: 3rem;
+    min-height: 0;
+    overflow: hidden;
+  }
 
-.battleLogNotice {
-  margin: 0;
-  padding: 0.65rem;
-  color: #f2b3ad;
-  font-size: 0.62rem;
-  line-height: 1.4;
+  .actingCard,
+  .pulseCard {
+    min-height: 0;
+    gap: 0.12rem 0.45rem;
+    align-content: center;
+    padding: 0.35rem 0.5rem;
+    border-radius: 0;
+  }
+
+  .actingCard {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-rows: auto auto;
+  }
+
+  .actingCard > span {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .actingCard > strong {
+    grid-column: 1 / 3;
+    grid-row: 2;
+    font-size: 0.9rem;
+  }
+
+  .actingCard > small {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .resourceLine {
+    grid-column: 3;
+    grid-row: 1 / 3;
+    align-self: stretch;
+  }
+
+  .resourceLine span {
+    display: grid;
+    align-content: center;
+    padding: 0.22rem 0.32rem;
+  }
+
+  .pulseCard {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+  }
+
+  .pulseCard dl {
+    gap: 0.22rem;
+  }
+
+  .pulseCard dl div {
+    padding: 0.28rem 0.34rem;
+  }
+
+  .pulseCard dd {
+    margin-top: 0.15rem;
+  }
+
+  .teamRail {
+    height: 100%;
+    grid-auto-rows: minmax(0, 1fr);
+    overflow: hidden;
+  }
+
+  .teamCard {
+    grid-template-rows: auto minmax(0, 1fr);
+    height: 100%;
+    min-height: 0;
+    padding: 0.38rem;
+    overflow: hidden;
+    border-radius: 0;
+    border-color: #938061;
+    background: linear-gradient(160deg, rgba(19, 40, 54, 0.97), rgba(7, 20, 29, 0.98));
+  }
+
+  .teamMembers {
+    grid-template-columns: minmax(0, 1fr);
+    grid-auto-rows: minmax(0, 1fr);
+  }
+
+  .member {
+    grid-template-columns: minmax(3.5rem, 42%) minmax(0, 1fr);
+    grid-template-rows: auto auto;
+    align-content: center;
+    min-height: 0;
+    padding: 0.3rem;
+    overflow: hidden;
+    border-color: rgba(157, 137, 100, 0.42);
+    border-radius: 0;
+  }
+
+  .memberPortrait {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    border-radius: 0;
+  }
+
+  .memberHealth {
+    align-self: end;
+  }
+
+  .teamCard[data-member-count='1'] .member {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    align-content: stretch;
+    height: 100%;
+    padding: 0;
+  }
+
+  .teamCard[data-member-count='1'] .memberPortrait {
+    grid-column: 1;
+    grid-row: 1;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    object-fit: cover;
+    object-position: center 22%;
+  }
+
+  .teamCard[data-member-count='1'] .memberIdentity,
+  .teamCard[data-member-count='1'] .memberHealth {
+    padding: 0.38rem 0.45rem;
+  }
+
+  .teamCard[data-member-count='1'] .memberIdentity {
+    grid-row: 2;
+    border-top: 1px solid rgba(157, 137, 100, 0.38);
+  }
+
+  .teamCard[data-member-count='1'] .memberIdentity strong {
+    font: 600 1rem/1 var(--av-font-display);
+  }
+
+  .teamCard[data-member-count='1'] .memberHealth {
+    grid-row: 3;
+    align-self: stretch;
+    padding-top: 0;
+  }
+
+  .boardScroller {
+    min-height: 0;
+    padding: 0.3rem;
+    overflow: hidden;
+  }
+
+  .board {
+    width: auto;
+    height: 100%;
+    min-width: 0;
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  .battlefieldHeader {
+    height: 2rem;
+    min-height: 0;
+    padding: 0.2rem 0.45rem;
+  }
+
+  .battlefieldHeader > div {
+    display: flex;
+    gap: 0.4rem;
+    align-items: baseline;
+  }
 }
 
 @media (max-width: 980px) {
   .broadcast {
-    grid-template-columns: minmax(8.5rem, 0.65fr) minmax(22rem, 2fr);
+    grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
-      'controls board'
-      'comms comms';
+      'left'
+      'right'
+      'center';
   }
 
-  .commsStack {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-rows: minmax(15rem, 24rem);
-    min-height: 15rem;
-    max-height: 24rem;
+  .teamRail {
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  }
+
+  .centerStage {
+    grid-template-rows: auto auto minmax(16rem, 24rem);
+    overflow: visible;
   }
 }
 
@@ -626,13 +830,8 @@
     flex: 0 0 auto;
   }
 
-  .scoreboard {
-    order: 1;
-    grid-template-columns: 1fr;
-  }
-
-  .teamMembers {
-    display: flex;
+  .teamRail {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .member {
@@ -641,19 +840,14 @@
 
   .broadcast {
     order: 2;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      'board'
-      'controls'
-      'comms';
   }
 
   .controlRail {
-    grid-template-columns: 1fr;
+    display: none;
   }
 
-  .pulseCard {
-    display: none;
+  .centerStage {
+    grid-template-rows: 0 auto minmax(14rem, 22rem);
   }
 
   .boardScroller {
@@ -675,18 +869,8 @@
   }
 
   .commsStack {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: minmax(14rem, 22rem) minmax(12rem, 18rem);
     min-height: 0;
     max-height: none;
-  }
-
-  .battleLogPanel {
-    order: 1;
-  }
-
-  .comms {
-    order: 2;
   }
 }
 
@@ -708,6 +892,10 @@
   .member {
     grid-template-columns: 1.75rem minmax(0, auto);
     min-width: 0;
+  }
+
+  .memberHealth {
+    grid-column: 1 / -1;
   }
 
   .memberPortrait {

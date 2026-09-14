@@ -5,7 +5,7 @@ import {
   getPassiveTrainingXpPerHour,
   passiveTrainingWindowLabel,
 } from '@aurevane/game-core/character/wayfarers-practice'
-import { GameButton, Kicker } from '@aurevane/ui'
+import { GameButton } from '@aurevane/ui'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
@@ -152,13 +152,12 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
     <section
       className={styles.card}
       data-testid="practice-plan-card"
+      data-training-surface="moonstone"
+      data-av-surface="moonstone"
       aria-labelledby="practice-plan-title"
     >
       <div className={styles.heading}>
-        <div>
-          <Kicker marker="◇">Training Plan</Kicker>
-          <h2 id="practice-plan-title">Choose a training duration.</h2>
-        </div>
+        <h2 id="practice-plan-title">Choose a training duration.</h2>
         <span>{trainingActive ? 'Training active' : 'Idle'}</span>
       </div>
 
@@ -185,13 +184,7 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
             {stopping ? 'Stopping…' : 'Stop Training'}
           </GameButton>
         </div>
-      ) : (
-        <p className={styles.intro}>
-          Training does not start automatically. Pick Short, Medium, or Extended and the server
-          starts the timer immediately. You can stay signed in; browser activity does not change the
-          reward clock.
-        </p>
-      )}
+      ) : null}
 
       <div className={styles.windowGrid} aria-label="Passive Training durations">
         {windows.map((option) => {

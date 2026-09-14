@@ -206,7 +206,7 @@
   background: linear-gradient(90deg, #33548d, #6d98dc);
 }
 
-@media (min-width: 821px), (any-hover: hover) and (any-pointer: fine) {
+@media (min-width: 821px) {
   :global([data-pvp-desktop-content='true'] > aside:not([data-six-combatant-rail='true'])) {
     display: none !important;
   }
@@ -227,7 +227,8 @@
   }
 }
 
-/* Three stable slots per side keep 1v1 and 3v3 portraits at the same proportional scale. */
+/* Team battles keep three stable slots per side. A one-on-one battle can use the same rail width
+   as a portrait-forward character panel without taking space from the square board. */
 @media (min-width: 821px) {
   :global(main[data-unified-battle='true'][data-battle-layout='map-first']) .rail {
     grid-row: 1;
@@ -286,6 +287,47 @@
     min-height: 0;
     border-top: 0;
     border-left: 1px solid var(--av-border);
+  }
+  :global(main[data-unified-battle='true'][data-battle-layout='map-first']) .stack[data-count='1'] {
+    grid-template-rows: minmax(0, 1fr);
+    height: 100%;
+    width: min(100%, 10rem);
+    justify-self: center;
+  }
+  :global(main[data-unified-battle='true'][data-battle-layout='map-first'])
+    .stack[data-count='1']
+    .card {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 2rem minmax(0, 1fr) auto;
+    height: 100%;
+    align-self: stretch;
+  }
+  :global(main[data-unified-battle='true'][data-battle-layout='map-first'])
+    .stack[data-count='1']
+    .portraitButton {
+    grid-column: 1;
+    grid-row: 2;
+    width: 100% !important;
+    height: 100% !important;
+    aspect-ratio: auto !important;
+  }
+  :global(main[data-unified-battle='true'][data-battle-layout='map-first'])
+    .stack[data-count='1']
+    .portraitImage,
+  :global(main[data-unified-battle='true'][data-battle-layout='map-first'])
+    .stack[data-count='1']
+    .portraitButton
+    img {
+    object-fit: cover !important;
+  }
+  :global(main[data-unified-battle='true'][data-battle-layout='map-first'])
+    .stack[data-count='1']
+    .card
+    > section {
+    grid-column: 1;
+    grid-row: 3;
+    border-top: 1px solid var(--av-border);
+    border-left: 0;
   }
   :global(main[data-unified-battle='true'][data-battle-layout='map-first']) .meters {
     padding: 0;

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 
 import { PublicInformationShell } from '@/components/public-information/public-information-shell'
 import { newsArticles } from '@/content/public-information'
@@ -39,6 +40,10 @@ export default function NewsPage() {
               The foundation is ready for real patch notes, maintenance notices, testing updates,
               and release communication when there is something truthful to publish.
             </p>
+            <nav className={styles.compactLinks} aria-label="Continue reading">
+              <Link href="/manual">Open the Manual</Link>
+              <Link href="/rules">Read the Rules</Link>
+            </nav>
           </div>
         ) : null}
       </section>

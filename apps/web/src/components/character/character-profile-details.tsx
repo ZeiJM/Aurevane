@@ -17,7 +17,6 @@ import {
 import Image from 'next/image'
 import { useEffect, useState, type CSSProperties } from 'react'
 
-import compactStyles from './character-profile-details-compact.module.css'
 import styles from './character-profile-details.module.css'
 
 interface CharacterProfileDetailsProps {
@@ -99,9 +98,9 @@ const ATTRIBUTE_COLORS: Readonly<
 
 const DERIVED_STAT_GROUP_ORDER = {
   vitals: 0,
-  tempo: 1,
-  offense: 2,
-  defense: 3,
+  tempo: 3,
+  offense: 1,
+  defense: 2,
 } as const
 
 const orderedDerivedStatGroups = [...DERIVED_STAT_PROFILE_GROUPS].sort(
@@ -127,16 +126,16 @@ export function CharacterProfileDetails({
   }, [detail])
 
   return (
-    <div className={compactStyles.details}>
+    <div className={styles.details}>
       <div
         className={styles.identityFacts}
         data-profile-facts
         aria-label="Character identity details"
       >
         <div className={styles.identityFact} data-profile-fact>
-          <span className={`${styles.factGlyph} ${compactStyles.factGlyph}`} aria-hidden="true">
+          <span className={styles.factGlyph} aria-hidden="true">
             <Image
-              className={compactStyles.factIcon}
+              className={styles.factIcon}
               src={factIconSources.gender}
               width={96}
               height={96}
@@ -150,9 +149,9 @@ export function CharacterProfileDetails({
           </span>
         </div>
         <div className={styles.identityFact} data-profile-fact>
-          <span className={`${styles.factGlyph} ${compactStyles.factGlyph}`} aria-hidden="true">
+          <span className={styles.factGlyph} aria-hidden="true">
             <Image
-              className={compactStyles.factIcon}
+              className={styles.factIcon}
               src={factIconSources.pronouns}
               width={96}
               height={96}
@@ -177,9 +176,9 @@ export function CharacterProfileDetails({
             })
           }
         >
-          <span className={`${styles.factGlyph} ${compactStyles.factGlyph}`} aria-hidden="true">
+          <span className={styles.factGlyph} aria-hidden="true">
             <Image
-              className={compactStyles.factIcon}
+              className={styles.factIcon}
               src={factIconSources.rekindling}
               width={96}
               height={96}
@@ -224,12 +223,9 @@ export function CharacterProfileDetails({
                   })
                 }
               >
-                <span
-                  className={`${styles.attributeGlyph} ${compactStyles.attributeGlyph}`}
-                  aria-hidden="true"
-                >
+                <span className={styles.attributeGlyph} aria-hidden="true">
                   <Image
-                    className={compactStyles.attributeIcon}
+                    className={styles.attributeIcon}
                     src={attributeIconSources[attributeId]}
                     width={96}
                     height={96}
@@ -260,7 +256,7 @@ export function CharacterProfileDetails({
             <section
               className={styles.statGroup}
               key={group.id}
-              data-profile-stat-group
+              data-profile-stat-group={group.id}
               aria-label={group.label}
             >
               <h3>
@@ -343,6 +339,7 @@ export function CharacterProfileDetails({
         <div className={styles.backdrop} role="presentation" onPointerDown={() => setDetail(null)}>
           <section
             className={styles.dialog}
+            data-av-surface="moonstone"
             role="dialog"
             aria-modal="true"
             aria-labelledby="profile-detail-title"

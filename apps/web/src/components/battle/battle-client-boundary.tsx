@@ -5,6 +5,8 @@ import { useMemo } from 'react'
 
 import type { BattleSessionView } from '@/server/battle/battle-session-service'
 
+import { BattleRouteFrame } from './battle-route-frame'
+
 import { BattleChatEmojiPolish } from './battle-chat-emoji-polish'
 import { BattleCockpitLayoutStabilizer } from './battle-cockpit-layout-stabilizer'
 import { BattleCommandCockpitPolish } from './battle-command-cockpit-polish'
@@ -68,61 +70,63 @@ export function BattleClientBoundary({
   const localCharacterId = viewModel.localParticipant?.characterId ?? null
 
   return (
-    <BattleRuntimeProvider
-      playerName={runtime.playerName}
-      combatantAccents={combatantAccents}
-      opponentNames={viewModel.participants
-        .filter((participant) => participant.teamIndex !== viewModel.localParticipant?.teamIndex)
-        .map((participant) => participant.name)}
-    >
-      <BattleInteractionLifecycleProvider>
-        <BattleMovementKeyboardAssist playerName={runtime.playerName} />
-        <BattleSelfActionQuickCommitAssist />
-        <BattleFinishTurnKeyboardAssist playerName={runtime.playerName} />
-        <BattleExperience
-          key={initialBattle.battleVersion}
-          initialBattle={initialBattle}
-          runtime={runtime}
-        />
-        <BattleFavoriteTechniqueAssist characterId={localCharacterId} />
+    <BattleRouteFrame sessionHref={`/game/battle/${initialBattle.battleSessionId}`}>
+      <BattleRuntimeProvider
+        playerName={runtime.playerName}
+        combatantAccents={combatantAccents}
+        opponentNames={viewModel.participants
+          .filter((participant) => participant.teamIndex !== viewModel.localParticipant?.teamIndex)
+          .map((participant) => participant.name)}
+      >
+        <BattleInteractionLifecycleProvider>
+          <BattleMovementKeyboardAssist playerName={runtime.playerName} />
+          <BattleSelfActionQuickCommitAssist />
+          <BattleFinishTurnKeyboardAssist playerName={runtime.playerName} />
+          <BattleExperience
+            key={initialBattle.battleVersion}
+            initialBattle={initialBattle}
+            runtime={runtime}
+          />
+          <BattleFavoriteTechniqueAssist characterId={localCharacterId} />
 
-        <BattlefieldPresentationBundle
-          battleSessionId={initialBattle.battleSessionId}
-          initialVersion={initialBattle.battleVersion}
-          mode={runtime.kind}
-          playerName={runtime.kind === 'pve' ? runtime.playerName : undefined}
-          combatantAccents={combatantAccents}
-        />
-        <BattleDirectionalAttackAssist playerName={runtime.playerName} />
-        <BattleMobileTokenMeters initialBattle={initialBattle} combatantNames={combatantNames} />
-        <BattlePresentationPolish
-          playerName={runtime.playerName}
-          pvpMetadata={runtime.kind === 'pvp' ? runtime.metadata : undefined}
-        />
-        <BattleHeaderMatchMessage battleSessionId={initialBattle.battleSessionId} />
-        <BattleChatEmojiPolish />
-        <BattleFacingQuickCommitAssist playerName={runtime.playerName} />
-        <PvpQuickCommitAssist />
-        <BattleStatusEffectAssist />
-        <BattleStickyActionAssist />
-        <BattleCommandCockpitPolish />
-        <BattleCockpitLayoutStabilizer playerName={runtime.playerName} />
-        <BattleInspectTerrainContext />
+          <BattlefieldPresentationBundle
+            battleSessionId={initialBattle.battleSessionId}
+            initialVersion={initialBattle.battleVersion}
+            mode={runtime.kind}
+            playerName={runtime.kind === 'pve' ? runtime.playerName : undefined}
+            combatantAccents={combatantAccents}
+          />
+          <BattleDirectionalAttackAssist playerName={runtime.playerName} />
+          <BattleMobileTokenMeters initialBattle={initialBattle} combatantNames={combatantNames} />
+          <BattlePresentationPolish
+            playerName={runtime.playerName}
+            pvpMetadata={runtime.kind === 'pvp' ? runtime.metadata : undefined}
+          />
+          <BattleHeaderMatchMessage battleSessionId={initialBattle.battleSessionId} />
+          <BattleChatEmojiPolish />
+          <BattleFacingQuickCommitAssist playerName={runtime.playerName} />
+          <PvpQuickCommitAssist />
+          <BattleStatusEffectAssist />
+          <BattleStickyActionAssist />
+          <BattleCommandCockpitPolish />
+          <BattleCockpitLayoutStabilizer playerName={runtime.playerName} />
+          <BattleInspectTerrainContext />
 
-        {runtime.kind === 'pve' ? (
-          <BattlePveEnhancements initialBattle={initialBattle} runtime={runtime} />
-        ) : (
-          <BattlePvpEnhancements initialBattle={initialBattle} runtime={runtime} />
-        )}
+          {runtime.kind === 'pve' ? (
+            <BattlePveEnhancements initialBattle={initialBattle} runtime={runtime} />
+          ) : (
+            <BattlePvpEnhancements initialBattle={initialBattle} runtime={runtime} />
+          )}
 
-        <DesktopBattleLogDock
-          battleSessionId={initialBattle.battleSessionId}
-          playerName={runtime.playerName}
-          combatantNames={combatantNames}
-          eventDriven={runtime.kind === 'pvp'}
-        />
-        <BattleScreenVisualContract />
-      </BattleInteractionLifecycleProvider>
-    </BattleRuntimeProvider>
+          <DesktopBattleLogDock
+            battleSessionId={initialBattle.battleSessionId}
+            playerName={runtime.playerName}
+            combatantNames={combatantNames}
+            eventDriven={runtime.kind === 'pvp'}
+          />
+          <BattleScreenVisualContract />
+        </BattleInteractionLifecycleProvider>
+      </BattleRuntimeProvider>
+    </BattleRouteFrame>
   )
 }

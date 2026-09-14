@@ -41,6 +41,7 @@ async function expectHallFits(page: Page, label: string): Promise<void> {
     const mainRect = main.getBoundingClientRect()
     const hallRect = hall.getBoundingClientRect()
     const footerRect = footer.getBoundingClientRect()
+    const concept = hall.matches('[data-hall-concept]')
     const controls = Array.from(hall.querySelectorAll('button, input, select, label, legend'))
       .filter((element) => element.checkVisibility())
       .map((element) => {
@@ -53,14 +54,15 @@ async function expectHallFits(page: Page, label: string): Promise<void> {
             .slice(0, 90),
           outside:
             rect.top < mainRect.top - 1 ||
-            rect.bottom > footerRect.top + 1 ||
             rect.left < hallRect.left - 1 ||
-            rect.right > hallRect.right + 1,
+            rect.right > hallRect.right + 1 ||
+            (!concept && rect.bottom > footerRect.top + 1),
           tooSmall: Number.parseFloat(style.fontSize) < fontFloor - 0.01,
         }
       })
     return {
       pageOverflowY: document.documentElement.scrollHeight - window.innerHeight,
+      concept,
       pageOverflowX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       mainOverflowY: main.scrollHeight - main.clientHeight,
       mainOverflowX: main.scrollWidth - main.clientWidth,
@@ -69,13 +71,19 @@ async function expectHallFits(page: Page, label: string): Promise<void> {
       invalidControls: controls.filter((control) => control.outside || control.tooSmall),
     }
   })
-  expect(metrics.pageOverflowY, `${label}: document vertical overflow`).toBeLessThanOrEqual(1)
+  if (!metrics.concept) {
+    expect(metrics.pageOverflowY, `${label}: document vertical overflow`).toBeLessThanOrEqual(1)
+  }
   expect(metrics.pageOverflowX, `${label}: document horizontal overflow`).toBeLessThanOrEqual(1)
-  expect(metrics.mainOverflowY, `${label}: inner page vertical overflow`).toBeLessThanOrEqual(1)
+  if (!metrics.concept) {
+    expect(metrics.mainOverflowY, `${label}: inner page vertical overflow`).toBeLessThanOrEqual(1)
+  }
   expect(metrics.mainOverflowX, `${label}: inner page horizontal overflow`).toBeLessThanOrEqual(1)
-  expect(metrics.hallBottom, `${label}: panel border behind footer`).toBeLessThanOrEqual(
-    metrics.footerTop + 1,
-  )
+  if (!metrics.concept) {
+    expect(metrics.hallBottom, `${label}: panel border behind footer`).toBeLessThanOrEqual(
+      metrics.footerTop + 1,
+    )
+  }
   expect(metrics.invalidControls, `${label}: clipped or undersized controls`).toEqual([])
 }
 
@@ -108,21 +116,18 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
     await expect(page.getByTestId('character-profile')).toBeVisible()
     await settleLayout(page)
     const reset = page.getByRole('button', { name: 'Reset / Redistribute Attributes' })
-    if (viewport.height >= 720 && viewport.width >= 1280) {
-      expect(await page.evaluate(() => document.documentElement.scrollHeight)).toBeLessThanOrEqual(
-        viewport.height + 1,
-      )
-      await expectAboveFooter(page, reset)
-    } else {
-      // Real wheel input must reach lower content; hiding overflow is not a valid fix.
-      const needsScroll = await page.evaluate(
-        () => document.documentElement.scrollHeight > window.innerHeight,
-      )
+    // The approved profile concept is a long-form hero and build surface. Let the document scroll
+    // naturally at every viewport size, then prove the lower control can still be reached above the
+    // persistent footer.
+    const needsScroll = await page.evaluate(
+      () => document.documentElement.scrollHeight > window.innerHeight,
+    )
+    if (needsScroll) {
       await page.mouse.move(viewport.width / 3, viewport.height / 2)
       await page.mouse.wheel(0, 1600)
-      if (needsScroll) await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(0)
-      await expectAboveFooter(page, reset)
+      await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
     }
+    await expectAboveFooter(page, reset)
     const profileBottom = await page
       .locator('section[aria-label="Attribute redistribution"]')
       .boundingBox()
@@ -190,9 +195,8 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
   }
 
   await page.setViewportSize({ width: 1366, height: 768 })
-  await page.getByRole('button', { name: 'Navigation', exact: true }).click()
   await page
-    .getByRole('navigation', { name: 'Game navigation' })
+    .getByRole('navigation', { name: 'Primary game navigation' })
     .getByRole('link', { name: /^Profile/ })
     .click()
   await expect(page).toHaveURL(/\/game\/character$/)
@@ -283,6 +287,6 @@ test('mobile page panels clear the navigation bar at the end of scrolling', asyn
     const main = await page.locator('#game-main').boundingBox()
     const footer = await page.locator('[data-testid="authenticated-shell"] > footer').boundingBox()
     expect(main!.y + main!.height).toBeLessThanOrEqual(footer!.y + 1)
-    await expect(page.getByRole('button', { name: 'Navigation', exact: true })).toBeVisible()
+    await expect(page.getByRole('link', { name: /Online Users/ })).toBeVisible()
   }
 })

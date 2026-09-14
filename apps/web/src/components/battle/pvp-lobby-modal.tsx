@@ -302,6 +302,7 @@ export function PvpLobbyModal({ initialLobby, localCharacterId, onLeave }: PvpLo
     <div className={styles.backdrop} role="presentation">
       <section
         className={styles.modal}
+        data-lobby-concept="true"
         role="dialog"
         aria-modal="true"
         aria-labelledby="pvp-lobby-title"

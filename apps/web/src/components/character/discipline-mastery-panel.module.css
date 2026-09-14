@@ -3,9 +3,7 @@
   overflow: hidden;
   border: 1px solid rgba(211, 183, 115, 0.24);
   border-radius: 0.8rem;
-  background:
-    radial-gradient(90% 120% at 100% 0%, rgba(55, 91, 122, 0.1), transparent 62%),
-    rgba(6, 10, 15, 0.56);
+  background: var(--av-surface-quiet);
   font-size: 0.8rem;
 }
 
@@ -13,9 +11,9 @@
   display: flex;
   cursor: pointer;
   list-style: none;
-  padding: 0.9rem 1rem;
-  color: #e4d1a0;
-  background: linear-gradient(90deg, rgba(211, 183, 115, 0.08), transparent 70%);
+  padding: 1rem;
+  color: var(--av-text);
+  background: var(--av-moonstone-quiet);
 }
 
 .panel > summary::-webkit-details-marker {
@@ -34,7 +32,7 @@
 }
 
 .panel > summary small {
-  color: #9f9a90;
+  color: var(--av-text);
   font-size: 0.72rem;
   line-height: 1.35;
 }
@@ -63,7 +61,7 @@
 
 .intro a {
   width: fit-content;
-  color: #dfc88d;
+  color: var(--av-text);
   text-underline-offset: 0.2em;
 }
 
@@ -80,7 +78,7 @@
   flex: 1 1 13rem;
   min-width: 0;
   gap: 0.35rem;
-  color: #cfc5af;
+  color: var(--av-text);
 }
 
 .search input {
@@ -90,8 +88,8 @@
   padding: 0.6rem;
   border: 1px solid rgba(211, 183, 115, 0.3);
   border-radius: 0.4rem;
-  background: #0a1018;
-  color: #eee6d3;
+  background: var(--av-surface-quiet);
+  color: var(--av-text);
   font: inherit;
 }
 
@@ -100,17 +98,17 @@
   align-items: center;
   gap: 0.5rem;
   min-height: 2.5rem;
-  color: #cfc5af;
+  color: var(--av-text);
 }
 
 .publishedFilter input {
-  accent-color: #d3b773;
+  accent-color: var(--av-text);
 }
 
 .filters p {
   flex-basis: 100%;
   margin: 0;
-  color: #a9a59d;
+  color: var(--av-text);
   font-size: 0.72rem;
 }
 
@@ -125,7 +123,7 @@
 .panel > p[role='status'] {
   margin-top: 0;
   margin-bottom: 0;
-  color: #bdb6a9;
+  color: var(--av-text);
   line-height: 1.55;
 }
 
@@ -142,21 +140,21 @@
   padding: 0.65rem;
   border: 1px solid rgba(211, 183, 115, 0.14);
   border-radius: 0.55rem;
-  background: rgba(10, 15, 21, 0.78);
+  background: var(--av-surface-quiet);
 }
 
 .overview span,
 .band > header small,
 .state,
 .requirements > span {
-  color: #898d93;
-  font: 700 0.58rem/1 var(--av-font-mono);
+  color: var(--av-text);
+  font: 700 0.75rem/1 var(--av-font-mono);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
 
 .overview strong {
-  color: #e9dfc8;
+  color: var(--av-text);
   font-size: 0.8rem;
 }
 
@@ -167,15 +165,15 @@
   padding: 0.72rem 0.8rem;
   border: 1px solid rgba(95, 170, 137, 0.28);
   border-radius: 0.6rem;
-  background: linear-gradient(90deg, rgba(48, 112, 81, 0.13), rgba(8, 14, 17, 0.4));
+  background: var(--av-surface-quiet);
 }
 
 .testingNote strong {
-  color: #9fe1bc;
+  color: var(--av-text);
 }
 
 .testingNote span {
-  color: #b5c9bd;
+  color: var(--av-text);
   font-size: 0.73rem;
   line-height: 1.45;
 }
@@ -202,7 +200,7 @@
 }
 
 .band > header > span {
-  color: #d9c38e;
+  color: var(--av-text);
   font: 650 0.72rem/1 var(--av-font-mono);
   letter-spacing: 0.045em;
   text-transform: uppercase;
@@ -210,8 +208,8 @@
 
 .rows {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.6rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
 }
 
 .row {
@@ -223,7 +221,7 @@
   padding: 0.68rem;
   border: 1px solid rgba(211, 183, 115, 0.14);
   border-radius: 0.62rem;
-  background: rgba(8, 13, 19, 0.82);
+  background: var(--av-surface-quiet);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.018);
 }
 
@@ -233,7 +231,7 @@
 
 .row[data-state='veiled'] {
   border-color: rgba(117, 122, 144, 0.18);
-  background: linear-gradient(135deg, rgba(28, 30, 42, 0.78), rgba(8, 11, 17, 0.86));
+  background: var(--av-surface-quiet);
 }
 
 .row[data-publication='planned'] {
@@ -242,9 +240,10 @@
 
 .identity {
   display: grid;
-  grid-template-columns: 2.35rem minmax(0, 1fr);
-  gap: 0.58rem;
-  align-items: start;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.65rem;
+  justify-items: center;
+  text-align: center;
 }
 
 .identity > div {
@@ -254,23 +253,23 @@
 }
 
 .identity strong {
-  color: #eee6d3;
-  font-size: 0.82rem;
+  color: var(--av-text);
+  font: 500 1.35rem var(--av-font-display);
 }
 
 .identity small {
-  color: #a9a59d;
-  font-size: 0.69rem;
+  color: var(--av-text);
+  font-size: 0.75rem;
   line-height: 1.38;
 }
 
 .sigil {
   display: grid;
-  width: 2.35rem;
-  height: 2.35rem;
+  width: 6rem;
+  height: 6rem;
   place-items: center;
-  color: #cbb477;
-  font-size: 1.3rem;
+  color: var(--av-teal);
+  font-size: 2rem;
 }
 
 .sigil :global(svg),
@@ -281,16 +280,16 @@
 }
 
 .state {
-  color: #8fa4b5;
+  color: var(--av-text);
 }
 
 .row[data-state='testing'] .state,
 .row[data-state='unlocked'] .state {
-  color: #8fd0ad;
+  color: var(--av-text);
 }
 
 .row[data-state='veiled'] .state {
-  color: #8e90a3;
+  color: var(--av-text);
 }
 
 .masteryLine {
@@ -298,15 +297,15 @@
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 0.25rem 0.6rem;
-  color: #a8a398;
-  font-size: 0.67rem;
+  color: var(--av-text);
+  font-size: 0.75rem;
 }
 
 .row progress {
   display: block;
   width: 100%;
   height: 0.42rem;
-  accent-color: #d3b773;
+  accent-color: var(--av-text);
 }
 
 .requirements {
@@ -317,14 +316,14 @@
 }
 
 .requirements strong {
-  color: #cfc5af;
-  font-size: 0.69rem;
+  color: var(--av-text);
+  font-size: 0.75rem;
   line-height: 1.4;
 }
 
 .requirements small {
-  color: #8f948f;
-  font-size: 0.64rem;
+  color: var(--av-text);
+  font-size: 0.75rem;
   line-height: 1.4;
 }
 
@@ -342,8 +341,8 @@
 
 .powerItem > span {
   overflow: hidden;
-  color: #7f858b;
-  font-size: 0.58rem;
+  color: var(--av-text);
+  font-size: 0.75rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -373,7 +372,7 @@
 
 .error button {
   border: 0;
-  color: #dfc88d;
+  color: var(--av-text);
   background: transparent;
   font: inherit;
   text-decoration: underline;
@@ -386,5 +385,21 @@
 
   .overview {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1000px) {
+  .rows {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 760px) {
+  .rows {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 420px) {
+  .rows {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
