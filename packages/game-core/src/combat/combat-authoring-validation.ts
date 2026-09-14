@@ -122,6 +122,7 @@ export function validateCombatActionDefinition(
         'displace',
         'poison',
         'bleed',
+        'burn',
       ],
       'effect type',
     )
