@@ -1,0 +1,32 @@
+name: Verify Bleed RED
+
+on:
+  push:
+    branches:
+      - agent/combat-overhaul-task4-bleed
+    paths:
+      - .github/workflows/agent-bleed-red.yml
+
+permissions:
+  contents: read
+
+jobs:
+  bleed-red:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact isolated revision
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install pinned dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Normalize Bleed test formatting in runner
+        run: pnpm exec prettier --write packages/game-core/src/combat/combat-bleed-rework.test.ts
+      - name: Run focused Bleed contract
+        run: pnpm --filter @aurevane/game-core test -- combat-bleed-rework.test.ts
