@@ -32,6 +32,8 @@ jobs:
         run: |
           set -euo pipefail
           branch=agent/combat-main-reconcile-k1-20260914
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git fetch origin "$branch" main
           test "$(git rev-parse "origin/$branch")" = "$EXPECTED_HEAD"
           main_sha="$(git rev-parse origin/main)"
@@ -104,8 +106,6 @@ jobs:
           git diff --check
           git diff --cached --check
           git rm .github/workflows/agent-combat-main-reconcile.yml
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'merge: reconcile Combat Kernel K1 with latest main'
           test "$(git rev-parse HEAD^2)" = "$MAIN_SHA"
           git fetch origin "$branch"
