@@ -1,6 +1,33 @@
+import type { CombatStatusDefinition } from './actions'
+
 export type EffectPolarity = 'positive' | 'negative' | 'neutral' | 'mixed'
 
 export type ReactionClass = 'ordinary' | 'periodic' | 'reactive' | 'self-cost' | 'system'
+
+declare module './actions' {
+  interface CombatStatusDefinition {
+    polarity?: EffectPolarity
+    amplifyCopyable?: boolean
+    curseCopyable?: boolean
+    reactionClass?: ReactionClass
+  }
+}
+
+export interface CombatStatusMetadata {
+  polarity: EffectPolarity
+  amplifyCopyable: boolean
+  curseCopyable: boolean
+  reactionClass: ReactionClass
+}
+
+export function combatStatusMetadata(status: CombatStatusDefinition): CombatStatusMetadata {
+  return {
+    polarity: status.polarity ?? 'neutral',
+    amplifyCopyable: status.amplifyCopyable ?? false,
+    curseCopyable: status.curseCopyable ?? false,
+    reactionClass: status.reactionClass ?? (status.endOfTurn ? 'periodic' : 'ordinary'),
+  }
+}
 
 export interface DamageProvenance {
   kind: 'direct-hostile' | 'periodic-hostile' | 'reactive' | 'self-cost' | 'system'
