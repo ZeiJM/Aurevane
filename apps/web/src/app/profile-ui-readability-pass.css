@@ -34,11 +34,7 @@ nav[aria-label='Primary game navigation'] svg {
   display: none;
 }
 
-[data-testid='primary-build-panel'] > button:first-child {
-  justify-content: center;
-  text-align: center;
-}
-
+[data-testid='primary-build-panel'] > button:first-child,
 [data-testid='skill-build-panel'] > button:first-child {
   justify-content: center;
   text-align: center;
@@ -60,18 +56,9 @@ section[aria-label='Attribute redistribution'] > button:first-child {
 }
 
 /* Pronouns remain an internal creation-contract default, not a player-facing choice. */
-[data-testid='character-creation'][data-step='identity']
-  [class*='__twoColumn']
-  > fieldset:nth-child(2),
-[data-testid='character-creation'][data-step='review']
-  [class*='__reviewGrid']
-  > div:nth-child(5) {
+[data-step='identity'] fieldset:nth-of-type(2),
+[data-step='review'] dl > div:nth-child(5) {
   display: none !important;
-}
-
-/* When the hidden pronoun choice leaves a two-column wrapper, use the full readable width. */
-[data-testid='character-creation'][data-step='identity'] [class*='__twoColumn'] {
-  grid-template-columns: minmax(0, 1fr) !important;
 }
 
 @media (min-width: 1200px) and (max-height: 900px) {
