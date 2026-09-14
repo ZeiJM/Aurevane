@@ -5,6 +5,7 @@ import {
   clearDefeatedRecovery,
 } from './combat-recovery'
 import {
+  CURRENT_BURN_BACKLASH_DAMAGE,
   CURRENT_POISON_DAMAGE,
   advanceCurrentBleedEndTurn,
   advanceCurrentBurnEndTurn,
@@ -669,6 +670,48 @@ export function evaluateCombatAction(
   }
 }
 
+export function shouldApplyCurrentBurnBacklash(
+  state: CombatEncounterState,
+  actorId: string,
+  action: CombatActionDefinition,
+): boolean {
+  return (
+    hasCurrentBurn(state, actorId) &&
+    (action.sourceType === 'basic-attack' ||
+      action.effects.some((effect) => effect.type === 'damage' && effect.amount > 0))
+  )
+}
+
+export function applyCurrentBurnBacklash(
+  state: CombatEncounterState,
+  actorId: string,
+): CombatResolutionTransition {
+  const actor = getCombatant(state.tactical.battle, actorId)
+  if (actor.hp <= 0) return { state, events: [] }
+
+  const hpAfter = Math.max(0, actor.hp - CURRENT_BURN_BACKLASH_DAMAGE)
+  const damageEvent: CombatResolutionEvent = {
+    event: 'damage_applied',
+    actionId: 'status.burn.backlash.current.v1',
+    sourceCombatantId: actorId,
+    targetCombatantId: actorId,
+    amount: actor.hp - hpAfter,
+    hpBefore: actor.hp,
+    hpAfter,
+  }
+  if (hpAfter === 0) {
+    const defeated = defeatCurrentCombatant(state.tactical.battle, actorId)
+    return {
+      state: withBattle(state, defeated.state),
+      events: [damageEvent, ...defeated.events],
+    }
+  }
+  return {
+    state: withUpdatedCombatant(state, actorId, { ...actor, hp: hpAfter }),
+    events: [damageEvent],
+  }
+}
+
 export function executeCombatAction(
   state: CombatEncounterState,
   action: CombatActionDefinition,
@@ -686,6 +729,7 @@ export function executeCombatAction(
   }
 
   const actorId = evaluation.actorId
+  const burnBacklashApplies = shouldApplyCurrentBurnBacklash(state, actorId, action)
   let nextState = state
   const events: CombatResolutionEvent[] = []
 
@@ -731,6 +775,12 @@ export function executeCombatAction(
     )
     nextState = withUpdatedCombatant(nextState, actorId, cooldown.combatant)
     events.push(...cooldown.events)
+  }
+
+  if (burnBacklashApplies) {
+    const backlash = applyCurrentBurnBacklash(nextState, actorId)
+    nextState = backlash.state
+    events.push(...backlash.events)
   }
 
   const completion = completeBattleIfResolved(nextState)

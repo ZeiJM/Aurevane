@@ -13,6 +13,7 @@ export const CURRENT_BLEED_MAX_TICKS = 4 as const
 export const CURRENT_BLEED_MAX_RAW_TOTAL = 10 as const
 export const CURRENT_BURN_PROFILE_VERSION = 1 as const
 export const CURRENT_BURN_DAMAGE_BY_STAGE = [4, 3, 2] as const
+export const CURRENT_BURN_BACKLASH_DAMAGE = 2 as const
 
 export interface CurrentPoisonEffect {
   type: 'poison'
