@@ -40,6 +40,12 @@ function actorName(action: PresentedBattleLogAction): string {
       .replace(/[’']s$/, '') ?? ''
   )
 }
+
+function hasGuardedEffect(action: PresentedBattleLogAction): boolean {
+  return [...action.primary, ...(action.secondary ?? [])].some((part) =>
+    /\bguarded\b/iu.test(part.text),
+  )
+}
 function artwork(action: PresentedBattleLogAction, entries: BattleLogView['entries']): string {
   const entry = (action.sourceEntries ?? entries).find(
     (item) => item.battleVersion === action.battleVersion && item.actionId,
@@ -283,14 +289,28 @@ export function BattleActionTimeline({
                   ) : null}
                 </div>
                 {oversized ? (
-                  <button
-                    className={styles.transcriptOverflow}
-                    type="button"
-                    aria-label={`View full action and results: ${action.ariaLabel}`}
-                    onClick={() => setSelected(action)}
-                  >
-                    View full action and results
-                  </button>
+                  <>
+                    {hasGuardedEffect(action) ? (
+                      <button
+                        className={styles.transcriptEffect}
+                        type="button"
+                        data-battle-effect-trigger="true"
+                        data-battle-effect-name="Guarded"
+                        data-battle-effect-kind="Buff"
+                        aria-label="Explain Guarded"
+                      >
+                        Guarded
+                      </button>
+                    ) : null}
+                    <button
+                      className={styles.transcriptOverflow}
+                      type="button"
+                      aria-label={`View full action and results: ${action.ariaLabel}`}
+                      onClick={() => setSelected(action)}
+                    >
+                      View full action and results
+                    </button>
+                  </>
                 ) : null}
               </>
             ) : (

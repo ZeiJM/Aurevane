@@ -332,3 +332,14 @@
   background: rgba(207, 169, 93, 0.08);
   font: 550 0.75rem/1.2 var(--av-font-body);
 }
+.track .transcriptEffect {
+  min-height: 1.5rem;
+  margin-top: 0.15rem;
+  padding: 0.2rem 0.4rem;
+  border: 1px solid rgba(115, 211, 153, 0.42);
+  border-radius: 0.3rem;
+  color: #b7ebc8;
+  background: rgba(65, 139, 94, 0.14);
+  font: 650 0.75rem/1.2 var(--av-font-body);
+  cursor: pointer;
+}

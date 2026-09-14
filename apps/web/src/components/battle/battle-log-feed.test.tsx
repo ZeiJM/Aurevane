@@ -411,7 +411,7 @@ describe('Battle Flow rich Text log', () => {
   it('exposes Guarded when a live action line arrives as an untyped primary segment', () => {
     const status: PresentedBattleLogAction = {
       ...action('battle:10', 10, '2026-08-31T17:50:10.000Z'),
-      primary: [{ text: 'gains Guarded', role: 'target' }],
+      primary: [{ text: 'Guarded', role: 'text' }],
     }
     const markup = renderToStaticMarkup(<BattleLogTranscriptAction action={status} number={10} />)
 
