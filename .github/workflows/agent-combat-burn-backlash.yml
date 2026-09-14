@@ -1,0 +1,42 @@
+name: Verify Burn backlash ticket
+
+on:
+  push:
+    branches:
+      - agent/combat-burn-backlash-verify-20260914
+    paths:
+      - .github/workflows/agent-combat-burn-backlash.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: combat-burn-backlash-20260914
+  cancel-in-progress: false
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout current backlash work branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/combat-burn-backlash-work-20260914
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install pinned dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run focused Burn backlash contract
+        run: pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-burn-backlash.test.ts
