@@ -191,7 +191,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   const forecast = commandDeck.getByLabel('Action preview')
   await expect(forecast).toContainText('40 AP')
   await expect(forecast).toContainText('Ally · 1–3 tiles')
-  await expect(forecast).toContainText('Guarded')
+  await expect(forecast).toContainText('Select an ally.')
   await expect(forecast).not.toContainText('Success 100%')
   if (testInfo.project.name !== 'mobile-chromium') {
     const originalViewport = page.viewportSize()!
