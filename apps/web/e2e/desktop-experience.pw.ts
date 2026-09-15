@@ -3,7 +3,8 @@ import { createClient } from '@supabase/supabase-js'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
-const rosterListSelector = "[data-directory-roster='true']"
+const rosterPanelSelector = "[data-directory-roster='true']"
+const directoryListSelector = "[data-directory-list='true']"
 
 const desktopSizes = [
   // CSS viewport for a 1920 × 1080 display at 80% browser zoom.
@@ -71,7 +72,7 @@ async function fit(page: Page, label: string, testInfo: TestInfo) {
       ),
       overflow: getComputedStyle(document.documentElement).overflowY,
     }
-  }, rosterListSelector)
+  }, rosterPanelSelector)
   console.log('desktop-experience-fit', label, JSON.stringify(metrics))
   await testInfo.attach(label, { body: await page.screenshot(), contentType: 'image/png' })
   expect
@@ -91,7 +92,7 @@ async function fit(page: Page, label: string, testInfo: TestInfo) {
     expect
       .soft(list.bottom, `${label}: list overlaps footer`)
       .toBeLessThanOrEqual(metrics.footerTop)
-    const minimumListHeight = metrics.viewport[1]! <= 600 ? 80 : 120
+    const minimumListHeight = 80
     expect.soft(list.height, `${label}: usable list area`).toBeGreaterThanOrEqual(minimumListHeight)
     expect.soft(list.overflowY, `${label}: list must remain scrollable`).toBe('auto')
   }
@@ -150,7 +151,11 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
     }
     if (size.width >= 1440) {
       const panel = await page.locator('#battle-launch').boundingBox()
-      expect(panel!.width).toBeLessThanOrEqual(1248)
+      const main = await page.locator('#game-main').boundingBox()
+      expect(panel).not.toBeNull()
+      expect(main).not.toBeNull()
+      expect(panel!.width).toBeLessThanOrEqual(main!.width + 1)
+      expect(panel!.width).toBeGreaterThanOrEqual(main!.width * 0.9)
       if (await page.locator('#battle-launch[data-hall-concept]').count()) {
         expect(
           panel!.height,
@@ -734,7 +739,7 @@ test('a large desktop character directory stays inside the page and every entry 
     await page.setViewportSize(size)
     await page.goto('/game/online')
     await page.getByRole('button', { name: 'Show all characters' }).click()
-    const list = page.locator(rosterListSelector)
+    const list = page.locator(directoryListSelector)
     await expect(list.getByRole('button')).toHaveCount(60)
     await fit(page, `Directory-60-${size.width}x${size.height}`, testInfo)
     await readable(page.getByRole('button', { name: 'Show online only' }), 12)

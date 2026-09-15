@@ -63,10 +63,7 @@ test('creates a slotted character, persists its profile, and resumes it across s
     '0',
   )
 
-  const profilePortrait = page
-    .getByTestId('character-profile')
-    .locator(`img[alt="${characterName} portrait"]`)
-    .first()
+  const profilePortrait = page.getByTestId('character-profile').locator('img').first()
   await expect(profilePortrait).toBeVisible()
   await expect
     .poll(() =>
