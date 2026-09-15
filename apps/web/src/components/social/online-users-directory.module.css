@@ -155,6 +155,8 @@
   scrollbar-width: thin;
   scrollbar-gutter: stable;
   scroll-padding-block: 0.5rem;
+  /* Real end space keeps the last row clear of fractional scrollport rounding. */
+  padding-block-end: 0.125rem;
   overscroll-behavior: contain;
 }
 .characterRow {
