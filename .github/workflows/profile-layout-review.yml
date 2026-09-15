@@ -3,10 +3,34 @@ name: Profile layout review
 on:
   push:
     branches:
+      - main
       - agent/profile-layout-repair
+    paths:
+      - .github/workflows/profile-layout-review.yml
+      - apps/web/e2e/profile-layout-regression.pw.ts
+      - apps/web/e2e/pv1f-test-helpers.ts
+      - apps/web/src/components/character/**
+      - apps/web/src/components/shell/**
+      - apps/web/src/app/*.css
+      - apps/web/src/app/layout.tsx
+      - packages/ui/**
+  pull_request:
+    paths:
+      - .github/workflows/profile-layout-review.yml
+      - apps/web/e2e/profile-layout-regression.pw.ts
+      - apps/web/e2e/pv1f-test-helpers.ts
+      - apps/web/src/components/character/**
+      - apps/web/src/components/shell/**
+      - apps/web/src/app/*.css
+      - apps/web/src/app/layout.tsx
+      - packages/ui/**
 
 permissions:
   contents: read
+
+concurrency:
+  group: profile-layout-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   review:
@@ -25,8 +49,6 @@ jobs:
           corepack prepare pnpm@11.17.0 --activate
           pnpm install --frozen-lockfile
           pnpm --filter @aurevane/web exec playwright install --with-deps chromium
-          mkdir -p /tmp/profile-review
-          tar -czf /tmp/profile-review/prettier.tar.gz -C "$(dirname "$(node -p "require.resolve('prettier/package.json')")")" .
       - name: Start disposable local database
         run: |
           pnpm exec supabase start -x studio,imgproxy,logflare,vector,supavisor,edge-runtime
