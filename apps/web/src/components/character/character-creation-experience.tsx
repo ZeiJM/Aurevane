@@ -57,8 +57,7 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
   const router = useRouter()
   const [step, setStep] = useState<Step>('identity')
   const [name, setName] = useState('')
-  const [presentationId, setPresentationId] =
-    useState<CharacterPresentationId>('androgynous')
+  const [presentationId, setPresentationId] = useState<CharacterPresentationId>('androgynous')
   const [portraitRef, setPortraitRef] = useState(STARTER_CHARACTER_PORTRAITS[0].ref)
   const [starterAppearanceRef, setStarterAppearanceRef] = useState(
     STARTER_CHARACTER_APPEARANCES[0].ref,

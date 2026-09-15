@@ -690,8 +690,7 @@
   padding: 0.65rem;
   border: 1px solid var(--av-gold-rule);
   background:
-    linear-gradient(180deg, rgba(207, 169, 93, 0.05), transparent 42%),
-    rgba(5, 10, 15, 0.82);
+    linear-gradient(180deg, rgba(207, 169, 93, 0.05), transparent 42%), rgba(5, 10, 15, 0.82);
   box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.16);
 }
 
