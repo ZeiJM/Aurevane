@@ -41,18 +41,18 @@
 
 ### Task 3 — Thread provenance into newly created persistent effects
 
-- [ ] Verify the staged RED contract for apply-status, Poison, Bleed, Burn, and scheduled recovery under an explicit `CombatResolutionContext`.
-- [ ] Assert legacy four-argument execution still produces historical state without new provenance fields.
-- [ ] Add one post-resolution provenance enricher; do not duplicate effect resolution.
-- [ ] Use action effect index as `effectOrdinal` and the pre-command round/turn for creation coordinates.
-- [ ] Reapplication receives fresh provenance; copied/inherited lineage fields remain reserved for later Copy/Mirror mechanics.
-- [ ] Verify immutability of input state, command provenance, and trigger guard.
+- [x] Verify the staged RED contract for apply-status, Poison, Bleed, Burn, and scheduled recovery under an explicit `CombatResolutionContext`.
+- [x] Assert legacy four-argument execution still produces historical state without new provenance fields.
+- [x] Add one post-resolution provenance enricher; do not duplicate effect resolution.
+- [x] Use action effect index as `effectOrdinal` and the pre-command round/turn for creation coordinates.
+- [x] Reapplication receives fresh provenance; copied/inherited lineage fields remain reserved for later Copy/Mirror mechanics.
+- [x] Verify immutability of input state, command provenance, and trigger guard.
 
-The Task-3 test contract is staged and repository-formatted at `534f53a90e3593063eacaa5c5e6f202d3920031b`; production threading remains intentionally absent until behavior-only RED is observed.
+**Task-3 GREEN:** exact child head `8854b377b7e5bc02172b6a3039cabcb78d851cd3` passed Quality gates and Database foundation. The behavior-only RED had exactly two intended threading failures with 1,234 existing tests green; GREEN passed all 1,236 game-core tests, including the three-test persistent-threading contract, plus the complete repository check/build and source-hygiene gate.
 
 ### Task 4 — K3 documentation and final integration
 
-- [ ] Document persistent provenance compatibility and the K3 boundary without claiming K4 mechanics exist.
+- [x] Document persistent provenance compatibility and the K3 boundary without claiming K4 mechanics exist.
 - [ ] Re-fetch `main` and the shared combat branch immediately before integration.
 - [ ] Require exact-head CI / Database foundation / Skill Engine / Representative Buildcraft / Browser Smoke.
 - [ ] Review final diff for behavior preservation and historical compatibility.

@@ -224,3 +224,13 @@ For implementation commits:
 P4.K0 is complete when this audit is committed and the next implementation work proceeds from fresh repository truth on an isolated branch.
 
 It does **not** mean Combat Kernel v2 is implemented. It establishes the safe order in which to implement it.
+
+## P4.K3 Combat Kernel provenance boundary — 2026-09-15
+
+P4.K3 defines the behavior-preserving deterministic resolution/provenance substrate used by later advanced combat mechanics. `COMBAT_RESOLUTION_PIPELINE_VERSION = 1` fixes the following stage order: `command-validation`, `legality`, `target-context`, `accuracy`, `pre-hit-reactions`, `raw-potency`, `defense`, `tactical-modifiers`, `damage-modifiers`, `barrier-redirect`, `commit-mutation`, `after-damage-triggers`, `bounded-reactions`, `consequences`, `battle-state-checks`, `metadata`. Changing the semantic order requires a versioned contract change rather than silently reinterpreting V1.
+
+Trigger chains are bounded and deterministic. Current infrastructure defaults are maximum depth 8, reaction budget 32, and triggered damage policy `non-reactive`; an effect instance may execute at most once per chain under the duplicate-instance guard. These are kernel safety ceilings, not a claim that every future reactive mechanic is implemented.
+
+An optional `CombatResolutionContext` carries immutable command provenance and the trigger guard through authoritative execution. The historical four-argument `executeCombatAction(...)` shape remains valid and does not add provenance fields to historical state. When a K3 context is supplied, newly committed persistent status, ongoing recovery, Poison, Bleed, and Burn rows receive deterministic `CombatEffectInstanceProvenance` after the existing authoritative resolver completes. Provenance identifies the originating command/ruleset/controller/trigger chain, target, zero-based effect ordinal, and pre-command round/turn, with reserved copied/inherited lineage links for later typed Copy/Mirror work.
+
+Historical snapshots may omit K3 provenance. Omitted provenance remains valid; if provenance is present, it is validated fail-closed. K3 does not alter damage values, AP/MP costs, targeting, accuracy, DoT values, durations, published content, or battle UX, and it does not by itself implement Barrier, Reflect, Absorb, lifesteal, redirect/interception, or other K4 mechanics. Those mechanics must consume this shared versioned pipeline and provenance model rather than create competing resolver or provenance paths.
