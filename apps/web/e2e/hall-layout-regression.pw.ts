@@ -1,5 +1,6 @@
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
+import { getTacticalHallRecord } from '@aurevane/game-core/combat/tactical-hall-records'
 import { expect, test, type Page, type TestInfo } from '@playwright/test'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
@@ -99,8 +100,19 @@ test('Battle Hall presents three real workspaces with usable AI, join and specta
   expect(Math.max(...rgb)).toBeLessThan(65)
   await expect(page.getByLabel('Battle mode')).toHaveValue('')
   await expect(page.getByRole('button', { name: 'Enter Battle', exact: true })).toHaveCount(0)
-  for (const mode of ['recruit-sparring', 'guided-fundamentals', 'mastery-trial']) {
+  for (const mode of ['recruit-sparring', 'guided-fundamentals', 'mastery-trial'] as const) {
     await page.getByLabel('Battle mode').selectOption(mode)
+    const purpose = page.locator('#ai-record-purpose')
+    await expect(page.getByLabel('Battle mode')).toHaveAttribute(
+      'aria-describedby',
+      'ai-record-purpose',
+    )
+    await expect(purpose).toHaveText(getTacticalHallRecord(mode).purpose)
+    await purpose.scrollIntoViewIfNeeded()
+    await expect(purpose).toBeInViewport()
+    expect(
+      await purpose.evaluate((node) => parseFloat(getComputedStyle(node).fontSize)),
+    ).toBeGreaterThanOrEqual(13)
     await expect(page.getByRole('button', { name: 'Enter Battle', exact: true })).toBeEnabled()
     if (mode === 'mastery-trial') {
       await expect(page.getByRole('button', { name: 'Easy', exact: true })).toHaveCount(0)
@@ -111,6 +123,13 @@ test('Battle Hall presents three real workspaces with usable AI, join and specta
   await navigation.getByRole('button', { name: /Player vs Player/ }).click()
   await page.locator('#pvp-mode').selectOption('flex-teams')
   await expect(page.locator('[data-pvp-team-sizes] select')).toHaveCount(2)
+  for (const size of await page.locator('[data-pvp-team-sizes] select').all()) {
+    await size.selectOption('3')
+  }
+  const turnTimer = page.getByRole('button', { name: '120 second turn timer', exact: true })
+  await turnTimer.scrollIntoViewIfNeeded()
+  await turnTimer.click()
+  await expect(turnTimer).toHaveAttribute('aria-pressed', 'true')
   await page.getByRole('button', { name: 'Join by Key', exact: true }).click()
   await page.locator('#lobby-key').fill('avlabcd1234')
   await expect(page.locator('#lobby-key')).toHaveValue('AVL-ABCD-1234')
@@ -120,6 +139,10 @@ test('Battle Hall presents three real workspaces with usable AI, join and specta
   await capture(page, testInfo, 'join')
   await page.getByRole('button', { name: 'Create Lobby', exact: true }).click()
   await expect(page.locator('#pvp-mode')).toHaveValue('flex-teams')
+  await expect(turnTimer).toHaveAttribute('aria-pressed', 'true')
+  for (const size of await page.locator('[data-pvp-team-sizes] select').all()) {
+    await expect(size).toHaveValue('3')
+  }
   await capture(page, testInfo, 'pvp')
   await navigation.getByRole('button', { name: /^Spectate/ }).click()
   await expect(page.getByRole('button', { name: 'Spectate Battle', exact: true })).toBeDisabled()
