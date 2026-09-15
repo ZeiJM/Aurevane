@@ -180,6 +180,7 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
     await expect(
       page.getByRole('button', { name: '120 second turn timer', exact: true }),
     ).toHaveAttribute('aria-pressed', 'true')
+    await page.getByRole('button', { name: 'Join by Key', exact: true }).click()
     await page.locator('#lobby-key').fill('avlabcd1234')
     await expect(page.locator('#lobby-key')).toHaveValue('AVL-ABCD-1234')
     await expect(page.getByRole('button', { name: 'Join Battle Lobby', exact: true })).toBeEnabled()
@@ -222,7 +223,7 @@ test('phone Battle Hall keeps its existing scrolling layout and functional tabs'
   const tabs = page.getByRole('navigation', { name: 'Battle Hall sections' })
   for (const tone of ['ai', 'pvp', 'spectate']) {
     await tabs.locator(`button[data-tone="${tone}"]`).click()
-    await expect(page.locator(`#battle-launch > section[data-tone="${tone}"]`)).toBeVisible()
+    await expect(page.locator(`[data-hall-workspace="${tone}"]`)).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       await page.evaluate(() => document.documentElement.clientWidth + 1),
     )

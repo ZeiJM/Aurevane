@@ -34,8 +34,9 @@ async function capture(page: Page, testInfo: TestInfo, state: string) {
   if (testInfo.project.name !== 'mobile-chromium' && state !== 'lobby' && state !== 'unseated') {
     const actions = await page.locator('[data-hall-workspace] button').evaluateAll((buttons) =>
       buttons
+        .filter((button) => button.getClientRects().length > 0)
         .filter((button) =>
-          ['Enter Battle', 'Create Battle Lobby', 'Spectate Battle'].includes(
+          ['Enter Battle', 'Create Battle Lobby', 'Join Battle Lobby', 'Spectate Battle'].includes(
             button.textContent?.trim() ?? '',
           ),
         )
@@ -110,11 +111,15 @@ test('Battle Hall presents three real workspaces with usable AI, join and specta
   await navigation.getByRole('button', { name: /Player vs Player/ }).click()
   await page.locator('#pvp-mode').selectOption('flex-teams')
   await expect(page.locator('[data-pvp-team-sizes] select')).toHaveCount(2)
+  await page.getByRole('button', { name: 'Join by Key', exact: true }).click()
   await page.locator('#lobby-key').fill('avlabcd1234')
   await expect(page.locator('#lobby-key')).toHaveValue('AVL-ABCD-1234')
   await expect(page.getByRole('button', { name: 'Join Battle Lobby', exact: true })).toBeEnabled()
   await page.locator('#lobby-key').clear()
   await expect(page.getByRole('button', { name: 'Join Battle Lobby', exact: true })).toBeDisabled()
+  await capture(page, testInfo, 'join')
+  await page.getByRole('button', { name: 'Create Lobby', exact: true }).click()
+  await expect(page.locator('#pvp-mode')).toHaveValue('flex-teams')
   await capture(page, testInfo, 'pvp')
   await navigation.getByRole('button', { name: /^Spectate/ }).click()
   await expect(page.getByRole('button', { name: 'Spectate Battle', exact: true })).toBeDisabled()

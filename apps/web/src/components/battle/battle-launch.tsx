@@ -112,6 +112,7 @@ export function BattleLaunch({
   const joinAttempted = useRef(false)
   const restoreAttempted = useRef(false)
   const [section, setSection] = useState<HallSection>('ai')
+  const [pvpEntry, setPvpEntry] = useState<'create' | 'join'>(initialJoinKey ? 'join' : 'create')
   const [recordId, setRecordId] = useState<TacticalHallRecordId | null>(null)
   const [arenaId, setArenaId] = useState<TacticalHallArenaId>('duel-yard')
   const [aiDifficulty, setAiDifficulty] = useState<AiDifficulty>('standard')
@@ -202,6 +203,7 @@ export function BattleLaunch({
   async function createLobby() {
     if (!pvpMode || pending) return
     setSection('pvp')
+    setPvpEntry('create')
     setPending(true)
     setError(null)
     try {
@@ -244,6 +246,7 @@ export function BattleLaunch({
       setPending(true)
       setError(null)
       setSection('pvp')
+      setPvpEntry('join')
       try {
         const response = await fetch('/api/pvp/lobbies/join', {
           method: 'POST',
@@ -415,6 +418,7 @@ export function BattleLaunch({
           className={styles.workspace}
           data-tone="ai"
           data-hall-workspace="ai"
+          data-has-selection={selectedRecord !== null || undefined}
           data-selected={section === 'ai' || undefined}
           data-hall-active-workspace="true"
           aria-labelledby="ai-battles-heading"
@@ -590,11 +594,36 @@ export function BattleLaunch({
               <span>02 / Challenge</span>
               <h2 id="pvp-heading">Player vs Player</h2>
             </div>
-            <p>Create a private lobby or join with a shared Lobby Key.</p>
+            <nav className={styles.entryModes} aria-label="PvP lobby actions">
+              <button
+                type="button"
+                aria-pressed={pvpEntry === 'create'}
+                disabled={pending}
+                onClick={() => setPvpEntry('create')}
+              >
+                Create Lobby
+              </button>
+              <button
+                type="button"
+                aria-pressed={pvpEntry === 'join'}
+                disabled={pending}
+                onClick={() => setPvpEntry('join')}
+              >
+                Join by Key
+              </button>
+            </nav>
           </div>
           <div className={styles.workspaceBody} data-hall-scroll-body="true">
             <div className={styles.pvpGrid}>
-              <article className={styles.joinCard}>
+              <article
+                className={styles.joinCard}
+                data-pvp-entry="join"
+                hidden={pvpEntry !== 'join'}
+              >
+                <p>
+                  Join a private battle using a Lobby Key shared by its host. Your creation settings
+                  are kept when you switch back.
+                </p>
                 <label htmlFor="lobby-key">Lobby Key</label>
                 <input
                   id="lobby-key"
@@ -607,20 +636,14 @@ export function BattleLaunch({
                   spellCheck={false}
                   maxLength={13}
                 />
-                <button
-                  type="button"
-                  className={styles.secondaryAction}
-                  disabled={pending || !isCompletePvpLobbyKey(joinKey)}
-                  onClick={() => void joinLobby(joinKey)}
-                >
-                  {pending ? 'Joining…' : 'Join Battle Lobby'}
-                </button>
               </article>
 
-              <article className={styles.setupCard} data-pvp-create-card>
-                <div className={styles.cardTitle}>
-                  <span>Or create your own</span>
-                </div>
+              <article
+                className={styles.setupCard}
+                data-pvp-create-card
+                data-pvp-entry="create"
+                hidden={pvpEntry !== 'create'}
+              >
                 <label htmlFor="pvp-mode">Battle format</label>
                 <select
                   id="pvp-mode"
@@ -755,10 +778,20 @@ export function BattleLaunch({
             <button
               type="button"
               className={styles.primaryAction}
+              hidden={pvpEntry !== 'create'}
               disabled={!pvpMode || pending}
               onClick={() => void createLobby()}
             >
               {pending ? 'Preparing…' : 'Create Battle Lobby'}
+            </button>
+            <button
+              type="button"
+              hidden={pvpEntry !== 'join'}
+              className={styles.secondaryAction}
+              disabled={pending || !isCompletePvpLobbyKey(joinKey)}
+              onClick={() => void joinLobby(joinKey)}
+            >
+              {pending ? 'Joining…' : 'Join Battle Lobby'}
             </button>
           </footer>
         </section>

@@ -29,4 +29,16 @@ describe('Battle Hall concept composition', () => {
     expect(markup).not.toContain('>Enter Battle<')
     expect(markup).not.toContain('Featured Matches')
   })
+
+  it('separates lobby creation from key entry without losing either action', () => {
+    const markup = renderToStaticMarkup(
+      createElement(BattleLaunch, { characterId: 'character-1', characterName: 'Eira Vale' }),
+    )
+    expect(markup).toContain('aria-label="PvP lobby actions"')
+    expect(markup).toContain('data-pvp-entry="create"')
+    expect(markup).toMatch(/data-pvp-entry="join"[^>]*hidden=""/)
+    expect(markup).toContain('>Join by Key<')
+    expect(markup).toContain('Create Battle Lobby')
+    expect(markup).toContain('Join Battle Lobby')
+  })
 })
