@@ -371,7 +371,7 @@ describe('P4.K4 Absorb HP committed-damage reaction', () => {
     const content: CombatContentCatalog = { statuses: [ABSORB_25] }
     const provenance = createCombatActionProvenance({
       rulesetVersion: 2,
-      sourceKind: 'skill',
+      sourceKind: 'discipline-skill',
       actionDefinitionId: action.id,
       actionVersion: action.version,
       sourceCombatantId: 'actor',
