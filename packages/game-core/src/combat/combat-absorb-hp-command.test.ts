@@ -176,12 +176,12 @@ describe('Absorb HP command boundaries', () => {
   it('preserves input state and committed damage history when recovery changes HP', () => {
     const status = absorbStatus()
     const initial = encounter(status)
-    const before = structuredClone(initial)
+    const before = JSON.stringify(initial)
     const result = execute(initial, status, [
       { type: 'damage', recipient: 'primary-unit', amount: 20 },
     ])
 
-    expect(initial).toEqual(before)
+    expect(JSON.stringify(initial)).toBe(before)
     expect(targetHp(result)).toBe(85)
     expect(result.state.effectState?.damageHistory).toEqual([
       { combatantId: 'target', round: 1, amount: 20 },
