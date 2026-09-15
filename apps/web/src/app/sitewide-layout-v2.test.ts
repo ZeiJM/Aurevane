@@ -9,7 +9,6 @@ const requiredSelectors = [
   "[data-character-select-page='true']",
   "[data-testid='account-shell']",
   "[data-public-concept='true']",
-  '[data-online-concept]',
 ] as const
 
 describe('sitewide layout v2', () => {
@@ -24,6 +23,7 @@ describe('sitewide layout v2', () => {
     expect(stylesheet).not.toContain('[data-profile-workspace]')
     expect(stylesheet).not.toContain('[data-training-concept]')
     expect(stylesheet).not.toContain('[data-hall-concept]')
+    expect(stylesheet).not.toContain('[data-online-concept]')
     for (const selector of requiredSelectors) {
       expect(stylesheet).toContain(selector)
     }

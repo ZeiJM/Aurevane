@@ -167,32 +167,6 @@
     margin-top: 0.75rem !important;
   }
 
-  /* Online Users / Adventurers */
-  [data-online-concept] {
-    display: grid !important;
-    grid-template-rows: auto auto minmax(0, 1fr);
-    width: 100%;
-    height: 100%;
-    min-height: 0;
-    padding: 0.7rem !important;
-    overflow: hidden;
-    border-radius: 0 !important;
-  }
-
-  [data-online-concept] > header {
-    min-height: 0;
-    margin: 0 !important;
-    padding-bottom: 0.35rem !important;
-  }
-
-  [data-online-concept] > section[aria-label] {
-    min-height: 0;
-    max-height: 100%;
-    overflow: auto;
-    overscroll-behavior: contain;
-    scrollbar-width: thin;
-  }
-
   /* Keep the compact frame visible on all ordinary authenticated pages. */
   [data-testid='authenticated-shell'][data-av-layout='standard'] #game-main > :first-child {
     width: 100%;
@@ -217,11 +191,5 @@
     width: 100%;
     min-height: 100dvh;
     border-inline: 0;
-  }
-
-  [data-online-concept] {
-    height: auto;
-    min-height: 0;
-    overflow: visible;
   }
 }
