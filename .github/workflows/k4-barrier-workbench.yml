@@ -52,7 +52,7 @@ jobs:
       - name: Verify surgical changed-file set
         run: |
           git diff --check
-          git diff --name-only | sort > /tmp/actual.txt
+          { git diff --name-only; git ls-files --others --exclude-standard; } | sort > /tmp/actual.txt
           printf '%s\n' \
             packages/game-core/src/combat/actions-legacy.ts \
             packages/game-core/src/combat/combat-authoring-validation.ts \
