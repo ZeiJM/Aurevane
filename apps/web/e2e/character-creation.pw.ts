@@ -2,6 +2,8 @@ import { execFileSync } from 'node:child_process'
 
 import { expect, test } from '@playwright/test'
 
+import { getImageAsset } from '../src/media/registry'
+
 import {
   createAccountAndEnterCharacter,
   openOfflineTraining,
@@ -63,12 +65,15 @@ test('creates a slotted character, persists its profile, and resumes it across s
     '0',
   )
 
-  await expect(
-    page
-      .getByTestId('character-profile')
-      .locator('img[src*="portrait-01-v01.webp"]:visible')
-      .first(),
-  ).toBeVisible()
+  // The first starter identity now uses its registered square derivative, not the legacy tall art.
+  const portrait = profile.locator('img.character-portrait-media').first()
+  const starterAsset = getImageAsset('character.creation.square-portrait-01')
+  await expect(portrait).toBeVisible()
+  await expect(portrait).toHaveAttribute('src', starterAsset.src!)
+  await expect(portrait).toHaveAttribute('alt', starterAsset.alt)
+  expect(
+    await portrait.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0),
+  ).toBe(true)
   expect(await hasHorizontalOverflow(page)).toBe(false)
   await expect(page.getByRole('link', { name: 'Back to Character Select' })).toHaveCount(0)
 

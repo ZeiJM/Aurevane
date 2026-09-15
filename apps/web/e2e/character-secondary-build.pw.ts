@@ -179,7 +179,10 @@ test('mobile Profile balances the portrait and centers Discipline Management', a
   } else {
     expect(portraitBox.width).toBeGreaterThan(0)
     expect(portraitBox.height).toBeGreaterThan(0)
-    expect(identityBox.y).toBeGreaterThanOrEqual(portraitBox.y - 1)
+    // The approved compact identity banner is side-by-side, not a portrait above the name.
+    expect(identityBox.x).toBeGreaterThanOrEqual(portraitBox.x + portraitBox.width - 1)
+    expect(identityBox.y + identityBox.height).toBeGreaterThan(portraitBox.y)
+    expect(portraitBox.y + portraitBox.height).toBeGreaterThan(identityBox.y)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(
       true,
     )

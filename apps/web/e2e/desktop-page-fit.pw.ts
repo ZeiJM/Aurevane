@@ -23,6 +23,9 @@ async function capture(page: Page, testInfo: TestInfo, name: string): Promise<vo
 }
 
 async function expectAboveFooter(page: Page, locator: Locator): Promise<void> {
+  // Profile owns an internally scrollable sheet on desktop; scroll the actual target, not window.
+  await locator.scrollIntoViewIfNeeded()
+  await settleLayout(page)
   const footer = await page.locator('[data-testid="authenticated-shell"] > footer').boundingBox()
   const box = await locator.boundingBox()
   expect(footer).not.toBeNull()
@@ -33,6 +36,14 @@ async function expectAboveFooter(page: Page, locator: Locator): Promise<void> {
 }
 
 async function expectHallFits(page: Page, label: string): Promise<void> {
+  // Field interaction may legitimately scroll the natural-height Hall on short windows.
+  // Measure the layout's baseline, not the previous input's auto-scrolled viewport.
+  // Real clicks above/below these checks still prove the controls are reachable.
+  await page.evaluate(() => {
+    if (document.querySelector('[data-hall-concept]')) {
+      document.getElementById('game-main')?.scrollTo({ top: 0, behavior: 'instant' })
+    }
+  })
   await settleLayout(page)
   const metrics = await page.evaluate(() => {
     const main = document.querySelector<HTMLElement>('#game-main')!
@@ -116,17 +127,6 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
     await expect(page.getByTestId('character-profile')).toBeVisible()
     await settleLayout(page)
     const reset = page.getByRole('button', { name: 'Reset Attributes' })
-    // The approved profile concept is a long-form hero and build surface. Let the document scroll
-    // naturally at every viewport size, then prove the lower control can still be reached above the
-    // persistent footer.
-    const needsScroll = await page.evaluate(
-      () => document.documentElement.scrollHeight > window.innerHeight,
-    )
-    if (needsScroll) {
-      await page.mouse.move(viewport.width / 3, viewport.height / 2)
-      await page.mouse.wheel(0, 1600)
-      await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
-    }
     await expectAboveFooter(page, reset)
     const profileBottom = await page
       .locator('section[aria-label="Attribute redistribution"]')
@@ -159,14 +159,8 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
     for (const mode of ['1v1', '2v2', '3v3', '1v1v1', 'flex-teams']) {
       await page.locator('#pvp-mode').selectOption(mode)
       if (mode === 'flex-teams') {
-        await page
-          .locator('[data-pvp-create-card] > div:has(select) select')
-          .nth(0)
-          .selectOption('3')
-        await page
-          .locator('[data-pvp-create-card] > div:has(select) select')
-          .nth(1)
-          .selectOption('3')
+        await page.locator('[data-pvp-team-sizes] select').nth(0).selectOption('3')
+        await page.locator('[data-pvp-team-sizes] select').nth(1).selectOption('3')
       }
       await expectHallFits(page, `${mode} ${size}`)
     }
@@ -180,6 +174,7 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
     await expect(
       page.getByRole('button', { name: '120 second turn timer', exact: true }),
     ).toHaveAttribute('aria-pressed', 'true')
+    await page.getByRole('button', { name: 'Join by Key', exact: true }).click()
     await page.locator('#lobby-key').fill('avlabcd1234')
     await expect(page.locator('#lobby-key')).toHaveValue('AVL-ABCD-1234')
     await expect(page.getByRole('button', { name: 'Join Battle Lobby', exact: true })).toBeEnabled()
@@ -222,7 +217,7 @@ test('phone Battle Hall keeps its existing scrolling layout and functional tabs'
   const tabs = page.getByRole('navigation', { name: 'Battle Hall sections' })
   for (const tone of ['ai', 'pvp', 'spectate']) {
     await tabs.locator(`button[data-tone="${tone}"]`).click()
-    await expect(page.locator(`#battle-launch > section[data-tone="${tone}"]`)).toBeVisible()
+    await expect(page.locator(`[data-hall-workspace="${tone}"]`)).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       await page.evaluate(() => document.documentElement.clientWidth + 1),
     )
@@ -256,7 +251,10 @@ test('mobile page panels clear the navigation bar at the end of scrolling', asyn
           const footer = document.querySelector('[data-testid="authenticated-shell"] > footer')!
           const mainRect = main.getBoundingClientRect()
           const footerRect = footer.getBoundingClientRect()
+          const dockRect = document.querySelector('[data-av-game-rail]')!.getBoundingClientRect()
           return {
+            dockTop: dockRect.top,
+            dockBottom: dockRect.bottom,
             mainBottom: mainRect.bottom,
             footerTop: footerRect.top,
             footerBottom: footerRect.bottom,
@@ -273,7 +271,11 @@ test('mobile page panels clear the navigation bar at the end of scrolling', asyn
         metrics.bottomPadding,
         `${path}: panel border has breathing room`,
       ).toBeGreaterThanOrEqual(8)
-      expect(Math.abs(metrics.footerBottom - metrics.viewportHeight)).toBeLessThanOrEqual(1)
+      expect(
+        metrics.footerBottom,
+        `${path}: Online Users clears the bottom dock`,
+      ).toBeLessThanOrEqual(metrics.dockTop + 1)
+      expect(Math.abs(metrics.dockBottom - metrics.viewportHeight)).toBeLessThanOrEqual(1)
       expect(metrics.overflowX).toBeLessThanOrEqual(1)
       await capture(page, testInfo, `mobile-bottom-${path.replaceAll('/', '-')}-${height}`)
     }

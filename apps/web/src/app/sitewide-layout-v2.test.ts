@@ -9,7 +9,6 @@ const requiredSelectors = [
   "[data-character-select-page='true']",
   "[data-testid='account-shell']",
   "[data-public-concept='true']",
-  '[data-hall-concept]',
   '[data-online-concept]',
 ] as const
 
@@ -24,6 +23,7 @@ describe('sitewide layout v2', () => {
     // These routes now own their geometry; real browser regressions cover their fit.
     expect(stylesheet).not.toContain('[data-profile-workspace]')
     expect(stylesheet).not.toContain('[data-training-concept]')
+    expect(stylesheet).not.toContain('[data-hall-concept]')
     for (const selector of requiredSelectors) {
       expect(stylesheet).toContain(selector)
     }

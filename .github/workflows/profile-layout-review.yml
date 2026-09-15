@@ -6,13 +6,17 @@ on:
       - main
       - agent/profile-layout-repair
       - agent/training-concept-ui
+      - agent/battle-hall-concept-ui
     paths:
       - .github/workflows/profile-layout-review.yml
       - apps/web/e2e/*layout-regression.pw.ts
       - apps/web/e2e/pv1f-test-helpers.ts
       - apps/web/e2e/wayfarers-practice.pw.ts
+      - apps/web/e2e/pvp-spectator-footer-shape.pw.ts
       - apps/web/src/components/character/**
       - apps/web/src/components/wayfarers-practice/**
+      - apps/web/src/components/battle/battle-launch*
+      - apps/web/src/components/battle/pvp-lobby-modal*
       - apps/web/src/components/shell/**
       - apps/web/src/app/*.css
       - apps/web/src/app/layout.tsx
@@ -23,8 +27,11 @@ on:
       - apps/web/e2e/*layout-regression.pw.ts
       - apps/web/e2e/pv1f-test-helpers.ts
       - apps/web/e2e/wayfarers-practice.pw.ts
+      - apps/web/e2e/pvp-spectator-footer-shape.pw.ts
       - apps/web/src/components/character/**
       - apps/web/src/components/wayfarers-practice/**
+      - apps/web/src/components/battle/battle-launch*
+      - apps/web/src/components/battle/pvp-lobby-modal*
       - apps/web/src/components/shell/**
       - apps/web/src/app/*.css
       - apps/web/src/app/layout.tsx
@@ -74,7 +81,7 @@ jobs:
           mkdir -p "$LAYOUT_REVIEW_OUTPUT"
           git rev-parse HEAD > "$LAYOUT_REVIEW_OUTPUT/commit.txt"
           pnpm --filter @aurevane/web build
-          pnpm --filter @aurevane/web exec playwright test e2e/profile-layout-regression.pw.ts e2e/training-layout-regression.pw.ts e2e/training-concept-layout-regression.pw.ts e2e/wayfarers-practice.pw.ts
+          pnpm --filter @aurevane/web exec playwright test e2e/profile-layout-regression.pw.ts e2e/training-layout-regression.pw.ts e2e/training-concept-layout-regression.pw.ts e2e/wayfarers-practice.pw.ts e2e/hall-layout-regression.pw.ts e2e/hall-controls-layout-regression.pw.ts e2e/pvp-spectator-footer-shape.pw.ts
       - uses: actions/upload-artifact@v4
         if: always()
         with:

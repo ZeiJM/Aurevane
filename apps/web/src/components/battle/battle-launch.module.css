@@ -1,648 +1,657 @@
+/* Replaces composition-v3: the Hall owns its scenic stage and three real workspaces. */
 .page {
-  --av-text: #172738;
-  --av-text-muted: #344654;
-  --av-text-dim: #586575;
-  --av-border: #cfc5b3;
-  --av-border-strong: #ad9873;
-  --av-brass-300: #786242;
+  --av-text: #eee8da;
+  --av-text-muted: #bac4c9;
+  --av-text-dim: #a6b1b9;
+  --av-border: #46505a;
+  --av-border-strong: #8d7854;
+  --av-brass-300: #d5b77e;
+  display: grid;
+  grid-template-rows: clamp(4.5rem, 9vh, 6.5rem) auto minmax(0, 1fr);
   width: 100%;
-  max-width: 78rem;
+  height: 100%;
   min-width: 0;
-  margin-inline: auto;
-  padding: clamp(1rem, 2vw, 1.7rem);
+  min-height: 0;
+  gap: 0.65rem;
   color: var(--av-text);
-  background: #f0ede5;
-  border: 1px solid var(--av-border-strong);
-  box-shadow: 0 1rem 3rem #0005;
 }
 .heading {
+  position: relative;
+  isolation: isolate;
   display: flex;
-  align-items: end;
+  min-width: 0;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding-bottom: 1rem;
+  overflow: hidden;
+  padding: 0.6rem 1.4rem;
+  border: 1px solid var(--av-border-strong);
+  background: #09141d;
+}
+.heading::after {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: linear-gradient(90deg, #040c16eb, #09141d44 65%, #09141de6);
+  content: '';
+}
+.heroMedia {
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 44%;
+}
+.eyebrow,
+.workspaceHeading span,
+.selectedCopy > span,
+.spectateCard > div > span {
+  color: var(--av-brass-300);
+  font-size: 0.6875rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
 }
 .eyebrow {
   margin: 0;
-  color: #786242;
-  font-size: 0.65rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
 }
 .heading h1 {
-  margin: 0.25rem 0 0;
-  font: 500 clamp(2.4rem, 4vw, 3.7rem)/1 var(--av-font-display);
+  margin: 0.4rem 0 0;
+  color: #f2e2be;
+  font: 500 clamp(1.9rem, 2.5vw, 2.5rem) / 1.05 var(--av-font-display);
+  letter-spacing: 0.08em;
 }
 .heading > p {
-  max-width: 32rem;
+  display: grid;
+  gap: 0.45rem;
   margin: 0;
-  font-size: 0.8rem;
-  color: #53616f;
+  color: #eee8da;
+  font: 500 1.35rem/1.2 var(--av-font-display);
+  text-align: right;
+}
+.heading small {
+  color: var(--av-text-muted);
+  font: 400 0.8125rem/1.3 var(--av-font-body);
 }
 .categoryGrid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  max-width: 55rem;
-  border-bottom: 1px solid #a18c66;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
 }
 .categoryGrid button {
-  min-height: 3.2rem;
-  border: 1px solid #c2b7a5;
-  border-bottom: 0;
-  border-radius: 0.5rem 0.5rem 0 0;
-  background: #e4e0d8;
-  color: #1b2d40;
+  min-height: 2.75rem;
+  padding: 0.5rem;
+  border: 1px solid var(--av-border-strong);
+  color: #e3d4b6;
+  background: #09141de6;
   cursor: pointer;
 }
 .categoryGrid button[data-active] {
-  background: linear-gradient(130deg, #103038, #0c5057);
-  border-color: #3b9a99;
-  color: #ecf9f4;
+  border-color: #c7ac73;
+  background: #24302f;
 }
 .categoryGrid strong {
-  font: 500 1.05rem/1.2 var(--av-font-display);
+  font: 500 1rem/1.2 var(--av-font-display);
 }
 .categoryGrid small {
   display: none;
 }
+.workspaceGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.15fr) minmax(0, 0.85fr);
+  min-width: 0;
+  min-height: 0;
+  gap: 0.65rem;
+}
 .workspace {
-  display: grid;
-  gap: 1rem;
-  padding-top: 1rem;
-}
-.workspace[data-tone='ai'] {
-  grid-template-columns: minmax(9rem, 0.8fr) minmax(0, 2.5fr) minmax(14rem, 1.15fr);
-}
-.workspaceHeading {
-  grid-column: 1 / -1;
   display: flex;
-  justify-content: space-between;
-  align-items: end;
-  gap: 1rem;
-}
-.workspaceHeading span {
-  color: #746043;
-  font-size: 0.64rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-.workspaceHeading h2 {
-  margin: 0.2rem 0;
-  font: 500 1.6rem/1.1 var(--av-font-display);
-}
-.workspaceHeading p {
-  margin: 0;
-  max-width: 36rem;
-  color: #586575;
-  font-size: 0.76rem;
-  line-height: 1.5;
-}
-.modePicker {
-  display: flex;
+  min-width: 0;
+  min-height: 0;
   flex-direction: column;
-  gap: 0.4rem;
+  gap: 0.65rem;
+  padding: 0.85rem;
+  overflow: hidden;
+  border: 1px solid var(--av-border-strong);
+  border-top: 2px solid #b69b67;
+  color: var(--av-text);
+  background: #09141d;
+  scrollbar-width: thin;
+  scroll-padding: 0.85rem;
 }
-.modeSelectLabel {
+/* Actions occupy a real row; scrolling never carries them below the viewport. */
+.workspaceBody {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding-right: 0.15rem;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+  scroll-padding: 0.5rem;
+}
+.workspaceBody > * {
+  flex-shrink: 0;
+}
+.panelActions {
   display: grid;
-  gap: 0.35rem;
-  margin-bottom: 0.2rem;
-  color: #53616f;
-  font-size: 0.78rem;
-}
-.modeSelectLabel span {
-  font: 600 0.68rem/1 var(--av-font-mono);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.modeSelectLabel select {
-  min-height: 2.8rem;
-}
-.modePicker button {
-  display: grid;
+  flex: 0 0 auto;
   gap: 0.5rem;
-  min-height: 6.4rem;
-  padding: 1rem 0.8rem;
-  border: 0;
-  border-bottom: 1px solid #cfc5b3;
-  color: #233747;
-  background: transparent;
-  text-align: left;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--av-border-strong);
+  background: #09141d;
+}
+/* Mutually exclusive entry forms share the same server handlers and retained draft settings. */
+.pvpGrid > [hidden],
+.panelActions > [hidden] {
+  display: none;
+}
+.entryModes {
+  display: flex;
+  gap: 0.4rem;
+  padding-block: 0.2rem;
+}
+.entryModes button {
+  flex: 1;
+  min-width: 0;
+  min-height: 2.5rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #68716e;
+  color: var(--av-text-muted);
+  background: #111f2a;
+  font: 600 0.8125rem/1.25 var(--av-font-body);
   cursor: pointer;
 }
-.modePicker strong {
-  font: 600 1.06rem/1.15 var(--av-font-display);
+.entryModes button[aria-pressed='true'] {
+  border-color: #c7ac73;
+  color: #f0dfbb;
+  background: #24302f;
 }
-.modePicker small {
-  font-size: 0.74rem;
-  line-height: 1.4;
+.workspaceHeading {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 0.4rem;
 }
-.modePicker button[aria-pressed='true'] {
-  color: #eaf9f5;
-  background: linear-gradient(130deg, #1c555b, #102e3b);
-  box-shadow: inset 4px 0 #5cd9c9;
+.workspaceHeading h2 {
+  margin: 0.25rem 0 0;
+  color: #ead9b6;
+  font: 500 1.5rem/1.1 var(--av-font-display);
 }
-.arenaVista {
+.workspaceHeading p,
+.selectedCopy p,
+.spectateCard p,
+.note {
+  margin: 0;
+  color: var(--av-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+.arenaVista,
+.spectateVista {
   position: relative;
-  min-width: 0;
-  min-height: 26rem;
+  flex: 0 0 auto;
+  height: 4.5rem;
   margin: 0;
   overflow: hidden;
-  border: 1px solid #9d8965;
-  background: #102632;
+  border: 1px solid var(--av-border);
 }
-.arenaVista img {
-  position: absolute;
+.arenaVista img,
+.spectateVista img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center 65%;
 }
 .arenaVista figcaption {
   position: absolute;
   inset: auto 0 0;
-  display: grid;
-  gap: 0.4rem;
-  padding: 2rem 1.2rem 1rem;
-  color: #f3eee4;
-  background: linear-gradient(transparent, #09131dea);
+  padding: 1rem 0.65rem 0.5rem;
+  background: linear-gradient(transparent, #050d16f5);
 }
 .arenaVista strong {
-  font: 500 1.55rem/1.2 var(--av-font-display);
+  font: 500 1rem/1.2 var(--av-font-display);
+  color: #f4ead5;
 }
-.arenaVista span {
-  font-size: 0.76rem;
-  line-height: 1.5;
+/* Detailed map explanation remains beside the selected arena control. */
+.arenaVista figcaption span {
+  display: none;
 }
-.selectedPanel {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 1.2rem;
-  padding-left: 1rem;
-  border-left: 1px solid #c1b599;
+.spectateVista {
+  height: clamp(6rem, 15vh, 9rem);
 }
-.selectedCopy > span,
-.cardTitle > span {
-  font-size: 0.65rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #75603e;
+.spectateVista img {
+  object-position: center 38%;
 }
-.selectedCopy h3 {
-  margin: 0.45rem 0;
-  font: 600 1.65rem/1.15 var(--av-font-display);
-}
-.selectedCopy p,
-.setupCard p,
-.spectateCard p {
-  font-size: 0.8rem;
-  line-height: 1.55;
-  color: var(--av-text-dim);
-}
-.arenaLine {
-  display: grid;
-  gap: 0.55rem;
-  padding-top: 1rem;
-  font-size: 0.76rem;
-  line-height: 1.5;
-}
-.arenaLine label,
-.setupCard > label,
-.flexSizes label {
+.modePicker {
   display: grid;
   gap: 0.45rem;
-  font-size: 0.78rem;
+}
+.modeSelectLabel {
+  display: grid;
+  gap: 0.3rem;
+  color: var(--av-text-muted);
+  font-size: 0.75rem;
+}
+.modePicker > button {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 4rem;
+  gap: 0.35rem;
+  padding: 0.65rem 1.6rem 0.65rem 0.65rem;
+  border: 1px solid #6c634e;
+  color: #eddfc4;
+  background: linear-gradient(100deg, #17242e, #0b151f);
+  cursor: pointer;
+  text-align: left;
+}
+.modePicker > button strong {
+  font: 500 1.2rem/1.1 var(--av-font-display);
+}
+.modePicker > button small {
+  color: var(--av-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.35;
+}
+.modePicker > button > span {
+  position: absolute;
+  right: 0.6rem;
+  top: 0.7rem;
+  color: var(--av-brass-300);
+}
+/* Once selected, the accessible select still switches among every mode. */
+.modePicker[data-has-selection] > button {
+  display: none;
 }
 .page select,
 .page input {
   width: 100%;
   min-width: 0;
-  min-height: 2.8rem;
-  padding: 0.65rem 0.7rem;
-  border: 1px solid #b4aa98;
-  border-radius: 0.2rem;
-  color: #233747;
-  background: #f6f3ed;
-  font: inherit;
-  font-size: 0.82rem;
-  color-scheme: light;
+  min-height: 2.5rem;
+  padding: 0.45rem 0.5rem;
+  border: 1px solid #68716e;
+  border-radius: 0;
+  color: #eee8da;
+  background: #111f2a;
+  font-size: 0.8125rem;
+}
+.page select {
+  text-overflow: ellipsis;
+}
+.page button {
+  border-radius: 0;
+}
+.page button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.page :is(button, select, input):focus-visible {
+  outline: 2px solid #77d3c4;
+  outline-offset: -3px;
+}
+.page button:hover:not(:disabled) {
+  border-color: #e4c68a;
+}
+.selectedPanel {
+  display: grid;
+  gap: 0.75rem;
+}
+.selectedCopy {
+  display: grid;
+  gap: 0.45rem;
+}
+.selectedCopy h3 {
+  margin: 0;
+  font: 500 1.3rem/1.2 var(--av-font-display);
+  color: #ead9b6;
+}
+.recordPurpose {
+  margin: 0;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--av-border);
+  color: var(--av-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+.arenaLine {
+  display: grid;
+  gap: 0.4rem;
+}
+.arenaLine label {
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  color: var(--av-text-muted);
+}
+.arenaLine > span {
+  color: var(--av-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
 }
 .difficulty {
-  min-width: 0;
+  display: grid;
+  gap: 0.45rem;
   margin: 0;
-  padding: 0.75rem 0;
+  padding: 0;
   border: 0;
-  border-top: 1px solid #c1b599;
 }
 .difficulty legend {
-  padding-right: 0.5rem;
-  font: 500 1rem var(--av-font-display);
+  margin-bottom: 0.35rem;
+  color: var(--av-brass-300);
+  font-size: 0.75rem;
 }
 .difficultyToggle {
   display: flex;
+  gap: 0.3rem;
 }
 .difficultyToggle button {
   flex: 1;
-  min-height: 2.8rem;
-  padding: 0.35rem;
-  border: 1px solid #c1b599;
-  background: #e9e5dd;
-  color: #243849;
+  min-height: 2.5rem;
+  border: 1px solid #62685e;
+  color: #d4dcd9;
+  background: #13212b;
+  font-size: 0.8125rem;
   cursor: pointer;
 }
 .difficultyToggle button[data-selected] {
-  color: #f0f6ef;
-  border-color: #267b7d;
-  background: #164c53;
+  color: #d8faec;
+  background: #18463f;
+  border-color: #72b8a3;
 }
 .difficulty small {
-  display: block;
-  margin-top: 0.5rem;
-  font-size: 0.72rem;
-  color: #586575;
+  color: var(--av-text-muted);
+  font-size: 0.75rem;
 }
 .trainingNote {
   display: grid;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  background: #e4e7dd;
-  font-size: 0.78rem;
+  gap: 0.4rem;
+  padding: 0.65rem;
+  border: 1px solid var(--av-border);
+  background: #142830;
+}
+.trainingNote strong {
+  color: #e4d2aa;
+  font-size: 0.875rem;
+}
+.trainingNote span {
+  color: var(--av-text-muted);
+  font-size: 0.8125rem;
+  line-height: 1.4;
 }
 .primaryAction,
 .secondaryAction {
-  min-height: 3rem;
-  padding: 0.65rem 1rem;
-  border: 1px solid #418f8d;
-  border-radius: 0.2rem;
-  color: #f2f7ed;
-  background: linear-gradient(120deg, #123b43, #115d62);
-  font: 500 1.05rem var(--av-font-display);
+  min-height: 2.75rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid #d3b77b;
+  color: #201b12;
+  background: linear-gradient(#e1c99a, #bb995f);
+  font: 650 0.8125rem/1.25 var(--av-font-body);
   cursor: pointer;
 }
-.selectedPanel > .primaryAction {
-  margin-top: auto;
-}
-.primaryAction:disabled,
-.secondaryAction:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.page button:focus-visible,
-.page select:focus-visible,
-.page input:focus-visible {
-  outline: 2px solid #16988e;
-  outline-offset: 3px;
-}
-.pvpHero {
-  min-height: 11rem;
-  padding: 1.5rem;
-  color: #f7f1e5;
-  background:
-    linear-gradient(90deg, #08131ce8, #08131c30),
-    url('/media/art/concept-ui/battle-hall-v01.webp') center 43% / cover;
-}
-.pvpHero h2 {
-  font-size: clamp(1.8rem, 3vw, 2.6rem);
-}
-.pvpHero p,
-.pvpHero span {
-  color: #e0d7c6;
+.secondaryAction {
+  color: #dbeae4;
+  background: #1c393b;
+  border-color: #6eaaa2;
 }
 .pvpGrid {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(15rem, 1fr);
-  gap: 1.3rem;
+  gap: 0.75rem;
+}
+.joinCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+}
+.joinCard p {
+  margin: 0;
+  color: var(--av-text-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.joinCard label {
+  grid-column: 1 / -1;
+  color: var(--av-brass-300);
+  font-size: 0.75rem;
+}
+.joinCard button {
+  min-height: 2.5rem;
+  padding-inline: 0.55rem;
 }
 .setupCard {
   display: grid;
-  align-content: start;
-  gap: 0.8rem;
-  padding: 1rem;
-  border: 1px solid #c9bca3;
+  gap: 0.45rem;
+  min-width: 0;
 }
-.setupCard:last-child {
-  --av-text-dim: #c2cacf;
-  background:
-    linear-gradient(#0d1c27ed, #0d1c27a0),
-    url('/media/art/concept-ui/world-v01.webp') center / cover;
-  color: #f1ede4;
+.formatDescription {
+  margin: 0;
+  color: var(--av-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.35;
 }
-.setupCard:last-child .cardTitle > span {
-  color: #d3bc8d;
-}
-.cardTitle {
+.formatRow {
   display: grid;
-  gap: 0.3rem;
-  padding-bottom: 0.7rem;
-  border-bottom: 1px solid #c9bca3;
-}
-.cardTitle strong {
-  font: 500 1.55rem var(--av-font-display);
-}
-.orDivider {
-  display: none;
-}
-.flexSizes {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 0.7rem;
+  grid-template-columns: 5.75rem minmax(0, 1fr);
+  gap: 0.5rem;
   align-items: center;
 }
-.modeSummary {
-  padding: 0.65rem;
-  background: #e2e7df;
-  font-size: 0.76rem;
+.formatRow > label {
+  color: var(--av-text-muted);
+  font-size: 0.75rem;
 }
 .page [data-pvp-settings-panel] {
   display: grid;
-  gap: 0.6rem;
-}
-.page [data-pvp-settings-heading] {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: baseline;
-  font-size: 0.8rem;
-}
-.page [data-pvp-settings-heading] small {
-  color: #586575;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin-block: 0.35rem;
 }
 .page [data-pvp-setting-group] {
-  display: grid;
-  grid-template-columns: 7.5rem 1fr;
-  gap: 0.5rem;
+  min-width: 0;
   margin: 0;
-  padding: 0.35rem 0;
+  padding: 0;
   border: 0;
 }
 .page [data-pvp-setting-group] legend {
-  float: left;
-  padding: 0.6rem 0;
-  font-size: 0.78rem;
+  margin-bottom: 0.4rem;
+  color: var(--av-brass-300);
+  font-size: 0.75rem;
 }
 .page [data-pvp-setting-options] {
   display: flex;
-  min-width: 0;
+  gap: 0.2rem;
 }
 .page [data-pvp-setting-options] button {
   flex: 1;
-  min-height: 2.6rem;
-  padding: 0.4rem;
-  border: 1px solid #b8ae9c;
-  color: #243849;
-  background: #e7e3da;
+  min-width: 0;
+  min-height: 2.5rem;
+  padding: 0.4rem 0.15rem;
+  border: 1px solid #57666a;
+  color: #cbd6d7;
+  background: #12212b;
+  font-size: 0.75rem;
   cursor: pointer;
 }
 .page [data-pvp-setting-options] button[data-selected] {
-  color: #edf6ed;
-  background: #185158;
-  border-color: #397e7d;
+  border-color: #7ca692;
+  color: #d7f1e7;
+  background: #213c37;
 }
-.workspace[data-tone='spectate'] {
-  grid-template-columns: minmax(0, 1.5fr) minmax(17rem, 1fr);
+.flexSizes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 0.5rem;
+  align-items: end;
 }
-.spectateVista {
-  margin: 0;
-  min-height: 28rem;
-  overflow: hidden;
+.flexSizes label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--av-text-muted);
+  font-size: 0.75rem;
 }
-.spectateVista img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
+.flexSizes > span {
+  padding-block: 0.7rem;
+  color: var(--av-brass-300);
+  font-size: 0.75rem;
 }
 .spectateCard {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 2rem;
-  padding: 2rem;
-  border: 1px solid #c9bca3;
+  display: grid;
+  gap: 1rem;
+  padding-block: 0.3rem;
+}
+.spectateCard > div:first-child {
+  display: grid;
+  gap: 0.65rem;
 }
 .spectateCard strong {
-  display: block;
-  margin: 0.5rem 0;
-  font: 500 2rem var(--av-font-display);
-}
-.spectateCard span {
-  font-size: 0.7rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  color: #e4d2aa;
+  font: 500 1.3rem/1.2 var(--av-font-display);
 }
 .keyEntry {
   display: grid;
-  gap: 0.8rem;
+  gap: 0.6rem;
+}
+.note {
+  margin-top: auto;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--av-border-strong);
 }
 .error {
-  padding: 0.8rem;
-  color: #8b2f38;
-  border: 1px solid #bf8484;
-  background: #f5e2dd;
+  margin: 0;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid #b98278;
+  color: #ffe0d8;
+  background: #34202a;
+  font-size: 0.875rem;
+  line-height: 1.4;
 }
-@media (max-width: 1100px) {
-  .workspace[data-tone='ai'] {
-    grid-template-columns: minmax(0, 1.6fr) minmax(14rem, 1fr);
-  }
-  .modePicker {
-    grid-column: 1 / -1;
-    flex-direction: row;
-  }
-  .modePicker button {
-    flex: 1;
-    min-width: 0;
-    min-height: 5rem;
-  }
-  .modePicker small {
-    display: none;
-  }
-  .heading > p {
+@media (min-width: 1200px) {
+  .workspace[data-has-selection] .arenaVista {
     display: none;
   }
 }
-@media (max-width: 700px) {
-  .page {
-    padding: 0.8rem;
+@media (min-width: 1200px) and (max-height: 820px) {
+  .workspace {
+    gap: 0.5rem;
+    padding: 0.75rem;
   }
-  .heading h1 {
-    font-size: 2.6rem;
-  }
-  .categoryGrid button {
-    min-height: 3.1rem;
-    padding: 0.35rem;
-  }
-  .categoryGrid strong {
-    font-size: 0.88rem;
-  }
-  .workspaceHeading {
-    display: block;
-  }
-  .workspaceHeading p {
-    margin-top: 0.5rem;
-  }
-  .workspace[data-tone='ai'],
-  .workspace[data-tone='spectate'],
-  .pvpGrid {
-    grid-template-columns: 1fr;
-  }
-  .modePicker button {
-    flex: 0 0 auto;
-    width: 100%;
-    padding: 0.7rem 0.4rem;
-  }
-  .modePicker {
-    flex-direction: column;
-  }
-  .modePicker strong {
-    font-size: 0.9rem;
-  }
-  .arenaVista {
-    min-height: 16rem;
-  }
-  .selectedPanel {
-    padding: 0.5rem 0;
-    border-left: 0;
+  .workspaceBody {
+    gap: 0.5rem;
   }
   .spectateVista {
-    min-height: 0;
-    height: 15rem;
+    height: 4.5rem;
   }
-  .spectateCard {
-    padding: 1.2rem;
+  .setupCard {
+    gap: 0.35rem;
   }
-  .pvpHero {
+  /* Keep the restored format description without pushing flexible-team settings offscreen. */
+  .workspace[data-tone='pvp'] {
+    gap: 0.35rem;
+  }
+  .workspace[data-tone='pvp'] .entryModes {
+    padding-block: 0;
+  }
+  .workspace[data-tone='pvp'] .panelActions {
+    padding-top: 0.4rem;
+  }
+  .workspace[data-tone='pvp'] [data-pvp-settings-panel] {
+    margin-block: 0.2rem;
+  }
+}
+@media (max-width: 1199px) {
+  /* Natural-height mode: do not stretch the page or shrink visible settings under its footer. */
+  .page {
+    height: auto;
+    align-self: start;
+    grid-template-rows: 7rem auto auto;
+  }
+  .workspaceGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .workspace {
+    overflow: visible;
+  }
+  .workspaceBody {
+    flex: 0 0 auto;
+    overflow: visible;
+    scrollbar-gutter: auto;
+    padding: 0;
+  }
+  .workspace:not([data-selected]) {
+    display: none;
+  }
+  .modePicker {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .modeSelectLabel {
+    grid-column: 1 / -1;
+  }
+  .pvpGrid {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+  .joinCard {
+    grid-template-columns: minmax(0, 1fr);
+    border: 0;
+  }
+  .joinCard label {
+    grid-column: auto;
+  }
+}
+@media (max-width: 760px) {
+  .page {
+    grid-template-rows: 8rem auto auto;
+    gap: 0.6rem;
+  }
+  .heading {
     padding: 1rem;
   }
-  .pvpHero p {
-    max-width: 28rem;
-  }
-  .page [data-pvp-setting-group] {
-    grid-template-columns: 6.5rem 1fr;
-  }
-}
-
-/* composition-v3 battle hall rail */
-@media (min-width: 761px) {
-  .page[data-hall-concept='true'] {
-    display: grid !important;
-    grid-template-columns: minmax(10.5rem, 0.28fr) minmax(0, 1.72fr) !important;
-    grid-template-rows: auto minmax(0, 1fr) !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    gap: 0.65rem !important;
-    overflow: hidden !important;
-  }
-
-  .heading {
-    grid-column: 1 / -1 !important;
-    grid-row: 1 !important;
-    min-height: 0 !important;
-    padding: 0.15rem 0 0.55rem !important;
-  }
-
-  .categoryGrid[data-hall-mode-rail='true'] {
-    grid-column: 1 !important;
-    grid-row: 2 !important;
-    grid-template-columns: minmax(0, 1fr) !important;
-    grid-auto-rows: minmax(5rem, auto) !important;
-    align-content: start !important;
-    gap: 0.45rem !important;
-    padding: 0.45rem !important;
-    border: 1px solid rgba(212, 186, 130, 0.32);
-    border-radius: 0 !important;
-    background: rgba(6, 15, 24, 0.96);
-  }
-
-  .categoryGrid[data-hall-mode-rail='true'] button {
-    width: 100% !important;
-    min-height: 5rem !important;
-    justify-content: flex-start !important;
-    padding: 0.75rem !important;
-    border-left: 3px solid transparent !important;
-    border-radius: 0 !important;
-    text-align: left !important;
-  }
-
-  .categoryGrid[data-hall-mode-rail='true'] button[data-active] {
-    border-left-color: var(--av-teal-bright) !important;
-  }
-
-  .workspace[data-hall-active-workspace='true'] {
-    grid-column: 2 !important;
-    grid-row: 2 !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    max-height: none !important;
-    margin: 0 !important;
-    overflow: auto !important;
-    border-radius: 0 !important;
-    scrollbar-width: thin;
-  }
-
-  .arenaVista,
-  .spectateVista {
-    min-height: clamp(9rem, 20vh, 13rem) !important;
-  }
-}
-
-@media (max-width: 760px) {
-  .page[data-hall-concept='true'] {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) !important;
-    grid-template-rows: auto auto auto !important;
-    height: auto !important;
-    min-height: 0 !important;
-    gap: 0.5rem !important;
-    padding: 0 !important;
-    overflow: visible !important;
-  }
-
-  .heading {
-    grid-column: 1 !important;
-    grid-row: 1 !important;
-    padding: 0.45rem 0.25rem !important;
-  }
-
   .heading > p {
     display: none;
   }
-
-  .categoryGrid[data-hall-mode-rail='true'] {
-    position: sticky;
-    z-index: 20;
-    top: 0;
-    grid-column: 1 !important;
-    grid-row: 2 !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    gap: 0.3rem !important;
-    padding: 0.35rem !important;
-    border-block: 1px solid var(--av-border-strong);
-    background: rgba(5, 13, 21, 0.96);
-    backdrop-filter: blur(0.8rem);
+  .heading h1 {
+    font-size: 2rem;
   }
-
-  .categoryGrid[data-hall-mode-rail='true'] button {
-    min-height: 3.5rem !important;
-    padding: 0.4rem 0.25rem !important;
-    border-radius: 0 !important;
-    text-align: center !important;
+  .eyebrow {
+    line-height: 1.5;
   }
-
-  .categoryGrid[data-hall-mode-rail='true'] button small {
-    display: none !important;
+  .categoryGrid {
+    gap: 0.3rem;
   }
-
-  .workspace[data-hall-active-workspace='true'] {
-    grid-column: 1 !important;
-    grid-row: 3 !important;
-    min-height: 0 !important;
-    margin: 0 !important;
-    padding: 0.55rem !important;
-    overflow: visible !important;
-    border-radius: 0 !important;
+  .categoryGrid button {
+    min-height: 3rem;
+    padding: 0.4rem 0.15rem;
   }
-
-  .arenaVista,
-  .spectateVista {
-    min-height: 10rem !important;
-    order: -1;
+  .categoryGrid strong {
+    font-size: 0.85rem;
+  }
+  .workspace {
+    padding: 0.8rem;
+  }
+  .modePicker,
+  .pvpGrid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .modePicker > button {
+    min-height: 4rem;
+  }
+  .joinCard {
+    grid-template-columns: minmax(0, 1fr);
+    padding-bottom: 0.7rem;
+    border-bottom: 1px solid var(--av-border-strong);
+  }
+  .formatRow,
+  .flexSizes label {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .page select,
+  .page input {
+    font-size: 1rem;
+  }
+  .workspaceHeading h2 {
+    font-size: 1.6rem;
   }
 }
