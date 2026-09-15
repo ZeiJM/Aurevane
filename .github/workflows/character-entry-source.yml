@@ -1,0 +1,39 @@
+name: Character entry review source
+
+on:
+  push:
+    branches: [agent/character-entry-concept-ui]
+    paths: [.github/workflows/character-entry-source.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Prepare isolated locked tooling
+        env:
+          COREPACK_HOME: /tmp/entry-corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+          mkdir -p /tmp/character-entry-source
+          git rev-parse HEAD > /tmp/character-entry-source/commit.txt
+          git cat-file commit HEAD > /tmp/character-entry-source/commit.raw
+          git archive --format=tar.gz HEAD > /tmp/character-entry-source/source.tar.gz
+          cp "$(command -v node)" /tmp/character-entry-source/node
+          tar -czf /tmp/character-entry-source/tooling.tar.gz node_modules apps/*/node_modules packages/*/node_modules
+          tar -czf /tmp/character-entry-source/corepack.tar.gz -C /tmp/entry-corepack .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: character-entry-source
+          path: /tmp/character-entry-source
+          retention-days: 1
