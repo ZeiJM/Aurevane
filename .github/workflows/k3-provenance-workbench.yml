@@ -1,0 +1,79 @@
+name: K3 Provenance Workbench
+
+on:
+  push:
+    branches:
+      - agent/combat-k3-provenance-workbench-20260915
+
+permissions:
+  contents: write
+
+jobs:
+  implement-green:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out workbench
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Preserve patch and check out exact RED head
+        run: |
+          cp .github/scripts/k3_persistent_provenance_green.py /tmp/k3_persistent_provenance_green.py
+          git fetch origin agent/combat-k3-effect-provenance-reconcile-20260915
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "958da687f97089ac5463d51af26922ab04b94a62"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Apply Task-2 GREEN patch
+        run: python /tmp/k3_persistent_provenance_green.py
+
+      - name: Format production delta
+        run: |
+          pnpm exec prettier --write \
+            packages/game-core/src/combat/actions-legacy.ts \
+            packages/game-core/src/combat/combat-effect-state.ts
+
+      - name: Verify surgical diff
+        run: |
+          git diff --check
+          { git diff --name-only; git ls-files --others --exclude-standard; } | sort > /tmp/actual.txt
+          printf '%s\n' \
+            packages/game-core/src/combat/actions-legacy.ts \
+            packages/game-core/src/combat/combat-effect-state.ts \
+            > /tmp/expected.txt
+          diff -u /tmp/expected.txt /tmp/actual.txt
+
+      - name: Run focused K3 provenance tests
+        run: |
+          pnpm --filter @aurevane/game-core exec vitest run \
+            src/combat/combat-effect-provenance.test.ts \
+            src/combat/combat-effect-provenance-state.test.ts
+
+      - name: Run game-core typecheck
+        run: pnpm --filter @aurevane/game-core typecheck
+
+      - name: Run complete verification
+        run: pnpm check
+
+      - name: Commit and push verified Task-2 GREEN
+        run: |
+          git config user.name "AUREVANE K3 Workbench"
+          git config user.email "actions@users.noreply.github.com"
+          git add \
+            packages/game-core/src/combat/actions-legacy.ts \
+            packages/game-core/src/combat/combat-effect-state.ts
+          git commit -m "feat: validate persistent combat effect provenance"
+          git push origin HEAD:agent/combat-k3-effect-provenance-reconcile-20260915
