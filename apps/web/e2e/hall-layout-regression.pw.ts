@@ -31,6 +31,29 @@ async function enterHall(page: Page, testInfo: TestInfo, suffix: string) {
 }
 
 async function capture(page: Page, testInfo: TestInfo, state: string) {
+  if (testInfo.project.name !== 'mobile-chromium' && state !== 'lobby' && state !== 'unseated') {
+    const actions = await page.locator('[data-hall-workspace] button').evaluateAll((buttons) =>
+      buttons
+        .filter((button) =>
+          ['Enter Battle', 'Create Battle Lobby', 'Spectate Battle'].includes(
+            button.textContent?.trim() ?? '',
+          ),
+        )
+        .map((button) => {
+          const rect = button.getBoundingClientRect()
+          const panel = button.closest('[data-hall-workspace]')!.getBoundingClientRect()
+          return {
+            label: button.textContent,
+            inView: rect.y >= panel.y && rect.bottom <= Math.min(panel.bottom, innerHeight),
+          }
+        }),
+    )
+    for (const action of actions) {
+      expect
+        .soft(action.inView, `${state}: ${action.label} stays inside the visible workspace`)
+        .toBe(true)
+    }
+  }
   const output = process.env.LAYOUT_REVIEW_OUTPUT
   if (!output) return
   await page.evaluate(() => {
