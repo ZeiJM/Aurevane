@@ -1,0 +1,97 @@
+name: K3 Docs Workbench
+
+on:
+  push:
+    branches:
+      - agent/combat-k3-docs-workbench-20260915
+
+permissions:
+  contents: write
+
+jobs:
+  document-k3:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out workbench
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check out exact verified K3 head
+        shell: bash
+        run: |
+          git fetch origin agent/combat-k3-effect-provenance-reconcile-20260915
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "8854b377b7e5bc02172b6a3039cabcb78d851cd3"
+
+      - name: Append authoritative K3 documentation
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          marker = '## P4.K3 Combat Kernel provenance boundary — 2026-09-15'
+          block = '''\n\n## P4.K3 Combat Kernel provenance boundary — 2026-09-15\n\nP4.K3 defines the behavior-preserving deterministic resolution/provenance substrate used by later advanced combat mechanics. `COMBAT_RESOLUTION_PIPELINE_VERSION = 1` fixes the following stage order: `command-validation`, `legality`, `target-context`, `accuracy`, `pre-hit-reactions`, `raw-potency`, `defense`, `tactical-modifiers`, `damage-modifiers`, `barrier-redirect`, `commit-mutation`, `after-damage-triggers`, `bounded-reactions`, `consequences`, `battle-state-checks`, `metadata`. Changing the semantic order requires a versioned contract change rather than silently reinterpreting V1.\n\nTrigger chains are bounded and deterministic. Current infrastructure defaults are maximum depth 8, reaction budget 32, and triggered damage policy `non-reactive`; an effect instance may execute at most once per chain under the duplicate-instance guard. These are kernel safety ceilings, not a claim that every future reactive mechanic is implemented.\n\nAn optional `CombatResolutionContext` carries immutable command provenance and the trigger guard through authoritative execution. The historical four-argument `executeCombatAction(...)` shape remains valid and does not add provenance fields to historical state. When a K3 context is supplied, newly committed persistent status, ongoing recovery, Poison, Bleed, and Burn rows receive deterministic `CombatEffectInstanceProvenance` after the existing authoritative resolver completes. Provenance identifies the originating command/ruleset/controller/trigger chain, target, zero-based effect ordinal, and pre-command round/turn, with reserved copied/inherited lineage links for later typed Copy/Mirror work.\n\nHistorical snapshots may omit K3 provenance. Omitted provenance remains valid; if provenance is present, it is validated fail-closed. K3 does not alter damage values, AP/MP costs, targeting, accuracy, DoT values, durations, published content, or battle UX, and it does not by itself implement Barrier, Reflect, Absorb, lifesteal, redirect/interception, or other K4 mechanics. Those mechanics must consume this shared versioned pipeline and provenance model rather than create competing resolver or provenance paths.\n'''
+
+          for name in [
+              'docs/COMBAT.md',
+              'docs/ROADMAP_C4_AUDIT_COMBAT_KERNEL_V2.md',
+              'docs/PHASE_4_COMBAT_KERNEL_K0_AUDIT.md',
+          ]:
+              path = Path(name)
+              text = path.read_text()
+              if marker not in text:
+                  path.write_text(text.rstrip() + block + '\n')
+
+          plan = Path('docs/superpowers/plans/2026-09-15-combat-k3-effect-provenance-reconciliation.md')
+          text = plan.read_text()
+          replacements = {
+              '- [ ] Reverify on the current live base together with Task 2 RED.': '- [x] Reverify on the current live base together with Task 2 RED.',
+              '- [ ] Verify RED: historical rows without provenance remain valid; malformed present provenance fails because persistent validation is not implemented yet.': '- [x] Verify RED: historical rows without provenance remain valid; malformed present provenance fails because persistent validation is not implemented yet.',
+              '- [ ] Add optional `provenance?: CombatEffectInstanceProvenance` to persistent status/recovery/Poison/Bleed/Burn rows.': '- [x] Add optional `provenance?: CombatEffectInstanceProvenance` to persistent status/recovery/Poison/Bleed/Burn rows.',
+              '- [ ] Validate provenance whenever present without changing the encounter schema version.': '- [x] Validate provenance whenever present without changing the encounter schema version.',
+              '- [ ] Run focused tests, game-core typecheck, and complete `pnpm check`.': '- [x] Run focused tests, game-core typecheck, and complete `pnpm check`.',
+              '- [ ] RED tests for apply-status, Poison, Bleed, Burn, and scheduled recovery under an explicit `CombatResolutionContext`.': '- [x] RED tests for apply-status, Poison, Bleed, Burn, and scheduled recovery under an explicit `CombatResolutionContext`.',
+              '- [ ] Assert legacy four-argument execution still produces historical state without new provenance fields.': '- [x] Assert legacy four-argument execution still produces historical state without new provenance fields.',
+              '- [ ] Add one post-resolution provenance enricher; do not duplicate effect resolution.': '- [x] Add one post-resolution provenance enricher; do not duplicate effect resolution.',
+              '- [ ] Use action effect index as `effectOrdinal` and the pre-command round/turn for creation coordinates.': '- [x] Use action effect index as `effectOrdinal` and the pre-command round/turn for creation coordinates.',
+              '- [ ] Reapplication receives fresh provenance; copied/inherited lineage fields remain reserved for later Copy/Mirror mechanics.': '- [x] Reapplication receives fresh provenance; copied/inherited lineage fields remain reserved for later Copy/Mirror mechanics.',
+              '- [ ] Verify immutability of input state, command provenance, and trigger guard.': '- [x] Verify immutability of input state, command provenance, and trigger guard.',
+              '- [ ] Document persistent provenance compatibility and the K3 boundary without claiming K4 mechanics exist.': '- [x] Document persistent provenance compatibility and the K3 boundary without claiming K4 mechanics exist.',
+          }
+          for old, new in replacements.items():
+              if old not in text:
+                  raise SystemExit(f'missing expected plan line: {old}')
+              text = text.replace(old, new)
+          plan.write_text(text)
+
+          old_plan = Path('docs/superpowers/plans/2026-09-14-combat-k3-resolution-provenance.md')
+          old_text = old_plan.read_text()
+          note_marker = '## Reconciliation status — 2026-09-15'
+          if note_marker not in old_text:
+              old_text = old_text.rstrip() + '''\n\n## Reconciliation status — 2026-09-15\n\nThis historical stacked plan is superseded for integration tracking by `2026-09-15-combat-k3-effect-provenance-reconciliation.md`. K3-A/K3-B integrated through PR #478; the live-base K3-C reconciliation carries forward the effect-instance compatibility/threading tasks without reviving obsolete branch history.\n'''
+              old_plan.write_text(old_text + '\n')
+          PY
+
+      - name: Verify documentation-only diff
+        shell: bash
+        run: |
+          git diff --check
+          git diff --name-only | sort > /tmp/actual.txt
+          printf '%s\n' \
+            docs/COMBAT.md \
+            docs/PHASE_4_COMBAT_KERNEL_K0_AUDIT.md \
+            docs/ROADMAP_C4_AUDIT_COMBAT_KERNEL_V2.md \
+            docs/superpowers/plans/2026-09-14-combat-k3-resolution-provenance.md \
+            docs/superpowers/plans/2026-09-15-combat-k3-effect-provenance-reconciliation.md \
+            | sort > /tmp/expected.txt
+          diff -u /tmp/expected.txt /tmp/actual.txt
+
+      - name: Commit and push documentation
+        shell: bash
+        run: |
+          git config user.name "Nicholas JM"
+          git config user.email "283436098+ZeiJM@users.noreply.github.com"
+          git add docs/COMBAT.md docs/PHASE_4_COMBAT_KERNEL_K0_AUDIT.md docs/ROADMAP_C4_AUDIT_COMBAT_KERNEL_V2.md docs/superpowers/plans/2026-09-14-combat-k3-resolution-provenance.md docs/superpowers/plans/2026-09-15-combat-k3-effect-provenance-reconciliation.md
+          git commit -m "docs: record K3 persistent provenance boundary"
+          git push origin HEAD:agent/combat-k3-effect-provenance-reconcile-20260915
