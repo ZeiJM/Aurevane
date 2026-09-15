@@ -1,5 +1,6 @@
 import type { CombatDamageScaling } from './damage-scaling'
 import { calculateScaledRawDamage, validateCombatDamageScaling } from './damage-scaling'
+import { attachCombatEffectProvenance } from './combat-effect-provenance'
 import {
   COMBAT_RESOLUTION_PIPELINE_VERSION,
   type CombatActionProvenance,
@@ -71,19 +72,24 @@ export function executeCombatAction(
   content: legacy.CombatContentCatalog,
   context?: CombatResolutionContext,
 ): CombatResolutionTransition {
-  const transition = legacy.executeCombatAction(
-    state,
-    materializeStatScaledDamage(state, action),
-    selection,
-    content,
-  )
+  const materializedAction = materializeStatScaledDamage(state, action)
+  const evaluation = context
+    ? legacy.evaluateCombatAction(state, materializedAction, selection, content)
+    : null
+  const transition = legacy.executeCombatAction(state, materializedAction, selection, content)
 
-  if (!context) {
+  if (!context || !evaluation) {
     return { state: transition.state, events: transition.events }
   }
 
   return {
-    state: transition.state,
+    state: attachCombatEffectProvenance(
+      state,
+      transition.state,
+      action,
+      evaluation,
+      context,
+    ),
     events: transition.events,
     resolution: {
       pipelineVersion: COMBAT_RESOLUTION_PIPELINE_VERSION,
