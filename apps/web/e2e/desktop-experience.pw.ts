@@ -748,9 +748,20 @@ test('a large desktop character directory stays inside the page and every entry 
       .toBeGreaterThan(0)
     const last = list.getByRole('button').last()
     await expect(last.locator('strong')).toHaveText('Adventurer 60')
-    await list.hover()
-    await page.mouse.wheel(0, 100_000)
+    const roster = page.locator(rosterPanelSelector)
+    await roster.evaluate((element) => {
+      element.scrollTop = 0
+    })
+    await list.evaluate((element) => {
+      element.scrollTop = 0
+    })
+    await last.scrollIntoViewIfNeeded()
     await expect(last).toBeInViewport({ ratio: 1 })
+    const [rosterScrollTop, listScrollTop] = await Promise.all([
+      roster.evaluate((element) => element.scrollTop),
+      list.evaluate((element) => element.scrollTop),
+    ])
+    expect(rosterScrollTop + listScrollTop).toBeGreaterThan(0)
     const scroll = await page.evaluate(() => window.scrollY)
     expect(scroll).toBe(0)
     await last.click()
