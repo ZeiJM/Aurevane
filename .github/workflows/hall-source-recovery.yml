@@ -1,0 +1,33 @@
+name: Hall source recovery
+
+on:
+  push:
+    branches: [agent/battle-hall-concept-ui]
+    paths: [.github/workflows/hall-source-recovery.yml]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Archive tracked source and prior failing browser evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p /tmp/hall-recovery/logs
+          git rev-parse HEAD > /tmp/hall-recovery/commit.txt
+          git archive --format=tar.gz HEAD > /tmp/hall-recovery/source.tar.gz
+          for run in 34995946148 34995946163 34995946237 34995946211 34995946166; do
+            gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run/logs" > "/tmp/hall-recovery/logs/$run.zip"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hall-source-recovery
+          path: /tmp/hall-recovery
+          retention-days: 1
