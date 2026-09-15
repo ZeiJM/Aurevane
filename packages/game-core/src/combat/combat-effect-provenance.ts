@@ -29,6 +29,18 @@ function createsRecoverySchedule(
   return effect.type === 'resource-change' && effect.delta >= 0 && (effect.ticks ?? 1) > 1
 }
 
+function bleedStackIdentity(stack: {
+  targetCombatantId: string
+  applicationOrder: number
+}): string {
+  return JSON.stringify([stack.targetCombatantId, stack.applicationOrder])
+}
+
+interface BleedApplication {
+  targetCombatantId: string
+  effectOrdinal: number
+}
+
 /**
  * Adds K3 causal identity only after the legacy resolver has committed authoritative state.
  * Historical four-argument execution never calls this function, so old snapshots retain their
@@ -66,17 +78,27 @@ export function attachCombatEffectProvenance(
       createdTurn,
     })
 
-  const maximumPriorBleedOrder = beforeEffects.bleed.reduce(
-    (maximum, stack) => Math.max(maximum, stack.applicationOrder),
-    0,
-  )
-  let nextBleedOrder = maximumPriorBleedOrder
+  const bleedApplications: BleedApplication[] = []
+  const lastBleedClearOrdinalByTarget = new Map<string, number>()
+  for (const [effectOrdinal, effect] of action.effects.entries()) {
+    if (effect.type !== 'bleed' && effect.type !== 'remove-status') continue
+    const recipients = resolveRecipients(evaluation, effect.recipient)
+    if (effect.type === 'remove-status') {
+      if (!effect.statusIds.includes('bleed')) continue
+      for (const targetCombatantId of recipients) {
+        lastBleedClearOrdinalByTarget.set(targetCombatantId, effectOrdinal)
+      }
+      continue
+    }
+    for (const targetCombatantId of recipients) {
+      bleedApplications.push({ targetCombatantId, effectOrdinal })
+    }
+  }
 
   for (const [effectOrdinal, effect] of action.effects.entries()) {
     if (
       effect.type !== 'apply-status' &&
       effect.type !== 'poison' &&
-      effect.type !== 'bleed' &&
       effect.type !== 'burn' &&
       !createsRecoverySchedule(effect)
     ) {
@@ -135,25 +157,6 @@ export function attachCombatEffectProvenance(
         continue
       }
 
-      if (effect.type === 'bleed') {
-        nextBleedOrder += 1
-        let updated = false
-        bleed = bleed.map((stack) => {
-          if (
-            stack.applicationOrder !== nextBleedOrder ||
-            stack.targetCombatantId !== targetCombatantId ||
-            stack.sourceCombatantId !== actorId ||
-            stack.sourceActionId !== action.id
-          ) {
-            return stack
-          }
-          updated = true
-          return { ...stack, provenance }
-        })
-        effectStateChanged ||= updated
-        continue
-      }
-
       const kind = effect.type === 'healing' ? 'hp' : 'mp'
       let updated = false
       ongoingRecovery = ongoingRecovery.map((schedule) => {
@@ -170,6 +173,47 @@ export function attachCombatEffectProvenance(
       })
       effectStateChanged ||= updated
     }
+  }
+
+  const beforeBleedIdentities = new Set(beforeEffects.bleed.map(bleedStackIdentity))
+  const bleedTargets = new Set(bleedApplications.map((application) => application.targetCombatantId))
+  for (const targetCombatantId of bleedTargets) {
+    const lastClearOrdinal = lastBleedClearOrdinalByTarget.get(targetCombatantId)
+    const survivingApplications = bleedApplications
+      .filter(
+        (application) =>
+          application.targetCombatantId === targetCombatantId &&
+          (lastClearOrdinal === undefined || application.effectOrdinal > lastClearOrdinal),
+      )
+      .sort((left, right) => right.effectOrdinal - left.effectOrdinal)
+    if (survivingApplications.length === 0) continue
+
+    const targetWasCleared = lastClearOrdinal !== undefined
+    const candidates = bleed
+      .map((stack, index) => ({ stack, index }))
+      .filter(
+        ({ stack }) =>
+          stack.targetCombatantId === targetCombatantId &&
+          stack.sourceCombatantId === actorId &&
+          stack.sourceActionId === action.id &&
+          (targetWasCleared || !beforeBleedIdentities.has(bleedStackIdentity(stack))),
+      )
+      .sort((left, right) => right.stack.applicationOrder - left.stack.applicationOrder)
+
+    const assignments = Math.min(survivingApplications.length, candidates.length)
+    if (assignments === 0) continue
+    const nextBleed = [...bleed]
+    for (let index = 0; index < assignments; index += 1) {
+      const application = survivingApplications[index]
+      const candidate = candidates[index]
+      if (!application || !candidate) continue
+      nextBleed[candidate.index] = {
+        ...candidate.stack,
+        provenance: provenanceFor(targetCombatantId, application.effectOrdinal),
+      }
+    }
+    bleed = nextBleed
+    effectStateChanged = true
   }
 
   if (!statusChanged && !effectStateChanged) return after
