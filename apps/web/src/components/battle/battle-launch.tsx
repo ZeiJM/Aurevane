@@ -139,6 +139,7 @@ export function BattleLaunch({
 
   function chooseRecord(nextRecordId: TacticalHallRecordId) {
     const nextRecord = getTacticalHallRecord(nextRecordId)
+    setSection('ai')
     setRecordId(nextRecordId)
     setArenaId(nextRecord.defaultArenaId)
     if (nextRecordId === 'mastery-trial' && aiDifficulty === 'easy') setAiDifficulty('standard')
@@ -200,6 +201,7 @@ export function BattleLaunch({
 
   async function createLobby() {
     if (!pvpMode || pending) return
+    setSection('pvp')
     setPending(true)
     setError(null)
     try {
@@ -315,6 +317,7 @@ export function BattleLaunch({
 
   async function spectateBattle() {
     if (pending) return
+    setSection('spectate')
     const normalized = battleKey.trim().toUpperCase()
     if (!normalized) {
       setError('Enter a Battle Key to open a spectator view.')
@@ -346,13 +349,22 @@ export function BattleLaunch({
       className={styles.page}
       id="battle-launch"
       aria-labelledby="battle-launch-title"
+      data-av-surface="ink"
     >
-      <header className={styles.heading}>
+      <header className={styles.heading} data-hall-scene="true">
+        <AurevaneImage
+          assetId="environment.battle-hall.courtyard"
+          className={styles.heroMedia}
+          sizes="90vw"
+        />
         <div>
-          <p className={styles.eyebrow}>Battle Hall</p>
+          <p className={styles.eyebrow}>Test your skill. Find your next challenge.</p>
           <h1 id="battle-launch-title">Battle Hall</h1>
         </div>
-        <p>Train against the system, challenge other players, or watch a shared battle by key.</p>
+        <p>
+          {characterName}
+          <small>Practice · Challenge · Observe</small>
+        </p>
       </header>
 
       <nav
@@ -398,23 +410,39 @@ export function BattleLaunch({
         </button>
       </nav>
 
-      {section === 'ai' ? (
+      <div className={styles.workspaceGrid}>
         <section
           className={styles.workspace}
           data-tone="ai"
+          data-hall-workspace="ai"
+          data-selected={section === 'ai' || undefined}
           data-hall-active-workspace="true"
           aria-labelledby="ai-battles-heading"
         >
           <div className={styles.workspaceHeading}>
             <div>
-              <span>AI Battles</span>
+              <span>01 / AI Battles</span>
               <h2 id="ai-battles-heading">Choose your arena.</h2>
             </div>
-            <p>
-              Choose a mode first. Detailed setup appears only for the battle you intend to enter.
-            </p>
+            <p>Practice, learn, and test your committed build.</p>
           </div>
-          <nav className={styles.modePicker} aria-label="AI arenas">
+          <figure className={styles.arenaVista}>
+            <AurevaneImage
+              assetId="environment.battle-hall.courtyard"
+              sizes="(max-width: 900px) 100vw, 48vw"
+            />
+            <figcaption>
+              <strong>
+                {selectedArena.name} · {selectedArena.scale}
+              </strong>
+              <span>{selectedArena.summary}</span>
+            </figcaption>
+          </figure>
+          <nav
+            className={styles.modePicker}
+            aria-label="AI arenas"
+            data-has-selection={selectedRecord !== null || undefined}
+          >
             <label className={styles.modeSelectLabel}>
               <span>Battle mode</span>
               <select
@@ -450,22 +478,11 @@ export function BattleLaunch({
                 >
                   <strong>{recordDisplayName(id, record.name)}</strong>
                   <small>{record.purpose}</small>
+                  <span aria-hidden="true">↗</span>
                 </button>
               )
             })}
           </nav>
-          <figure className={styles.arenaVista}>
-            <AurevaneImage
-              assetId="environment.battle-hall.courtyard"
-              sizes="(max-width: 900px) 100vw, 48vw"
-            />
-            <figcaption>
-              <strong>
-                {selectedArena.name} · {selectedArena.scale}
-              </strong>
-              <span>{selectedArena.summary}</span>
-            </figcaption>
-          </figure>
 
           {selectedRecord ? (
             <div className={styles.selectedPanel}>
@@ -542,41 +559,55 @@ export function BattleLaunch({
           ) : (
             <div className={styles.selectedPanel}>
               <div className={styles.selectedCopy}>
-                <span>Your next challenge</span>
-                <h3>Choose a battle mode</h3>
-                <p>
-                  Practice your positioning, learn the fundamentals, or test your Primary
-                  Discipline.
-                </p>
+                <span>No battle selected</span>
                 <p>{characterName} will enter with their committed build.</p>
               </div>
             </div>
           )}
         </section>
-      ) : null}
 
-      {section === 'pvp' ? (
         <section
           className={styles.workspace}
           data-tone="pvp"
+          data-hall-workspace="pvp"
+          data-selected={section === 'pvp' || undefined}
           data-hall-active-workspace="true"
           aria-labelledby="pvp-heading"
         >
-          <div className={`${styles.workspaceHeading} ${styles.pvpHero}`}>
+          <div className={styles.workspaceHeading}>
             <div>
-              <span>Player vs Player</span>
-              <h2 id="pvp-heading">Call challengers to the arena.</h2>
+              <span>02 / Challenge</span>
+              <h2 id="pvp-heading">Player vs Player</h2>
             </div>
-            <p>
-              Lobby Keys gather the combatants. Every filled seat must mark ready before the battle
-              opens.
-            </p>
+            <p>Create a private lobby or join with a shared Lobby Key.</p>
           </div>
           <div className={styles.pvpGrid}>
+            <article className={styles.joinCard}>
+              <label htmlFor="lobby-key">Lobby Key</label>
+              <input
+                id="lobby-key"
+                value={joinKey}
+                onChange={(event) => setJoinKey(formatPvpLobbyKeyInput(event.target.value))}
+                placeholder="AVL-0000-0000"
+                title="Paste or type a Lobby Key. Capitals and dashes are added automatically."
+                autoComplete="off"
+                autoCapitalize="characters"
+                spellCheck={false}
+                maxLength={13}
+              />
+              <button
+                type="button"
+                className={styles.secondaryAction}
+                disabled={pending || !isCompletePvpLobbyKey(joinKey)}
+                onClick={() => void joinLobby(joinKey)}
+              >
+                {pending ? 'Joining…' : 'Join Battle Lobby'}
+              </button>
+            </article>
+
             <article className={styles.setupCard} data-pvp-create-card>
               <div className={styles.cardTitle}>
-                <span>Create</span>
-                <strong>Open a Battle Lobby</strong>
+                <span>Or create your own</span>
               </div>
               <label htmlFor="pvp-mode">Battle format</label>
               <select
@@ -624,10 +655,6 @@ export function BattleLaunch({
                 </div>
               ) : null}
               <div data-pvp-settings-panel aria-label="PvP battle settings">
-                <div data-pvp-settings-heading>
-                  <strong>Battlefield conditions</strong>
-                  <small>Settings lock when the lobby opens.</small>
-                </div>
                 <fieldset data-pvp-setting-group>
                   <legend>Map size</legend>
                   <div data-pvp-setting-options>
@@ -706,12 +733,7 @@ export function BattleLaunch({
                   </div>
                 </fieldset>
               </div>
-              {pvpMode ? (
-                <p className={styles.modeSummary}>
-                  {PVP_MODES.find((mode) => mode.id === pvpMode)?.detail}. {characterName} takes the
-                  first seat.
-                </p>
-              ) : null}
+
               <button
                 type="button"
                 className={styles.primaryAction}
@@ -721,60 +743,26 @@ export function BattleLaunch({
                 {pending ? 'Preparing…' : 'Create Battle Lobby'}
               </button>
             </article>
-
-            <div className={styles.orDivider}>
-              <span>OR</span>
-            </div>
-
-            <article className={styles.setupCard}>
-              <div className={styles.cardTitle}>
-                <span>Join</span>
-                <strong>Enter a Lobby Key</strong>
-              </div>
-              <label htmlFor="lobby-key">Lobby Key</label>
-              <input
-                id="lobby-key"
-                value={joinKey}
-                onChange={(event) => setJoinKey(formatPvpLobbyKeyInput(event.target.value))}
-                placeholder="AVL-0000-0000"
-                autoComplete="off"
-                autoCapitalize="characters"
-                spellCheck={false}
-                maxLength={13}
-              />
-              <p>
-                Type the full Lobby Key normally. Letters are capitalized and dashes are inserted
-                automatically. Pasting a complete Lobby Key also works.
-              </p>
-              <button
-                type="button"
-                className={styles.secondaryAction}
-                disabled={pending || !isCompletePvpLobbyKey(joinKey)}
-                onClick={() => void joinLobby(joinKey)}
-              >
-                {pending ? 'Joining…' : 'Join Battle Lobby'}
-              </button>
-            </article>
           </div>
+          <p className={styles.note}>
+            Settings lock when the lobby opens. Every seat must be filled and ready to begin.
+          </p>
         </section>
-      ) : null}
 
-      {section === 'spectate' ? (
         <section
           className={styles.workspace}
           data-tone="spectate"
+          data-hall-workspace="spectate"
+          data-selected={section === 'spectate' || undefined}
           data-hall-active-workspace="true"
           aria-labelledby="spectate-heading"
         >
           <div className={styles.workspaceHeading}>
             <div>
-              <span>Spectate</span>
+              <span>03 / Spectate</span>
               <h2 id="spectate-heading">Witness a battle by key.</h2>
             </div>
-            <p>
-              PvP battles are not listed publicly. A player must share the battle&apos;s spectator
-              key with you.
-            </p>
+            <p>Watch a shared battle. Learn from every turn.</p>
           </div>
           <figure className={styles.spectateVista}>
             <AurevaneImage
@@ -786,10 +774,7 @@ export function BattleLaunch({
             <div>
               <span>Read-only arena access</span>
               <strong>Enter a Battle Key</strong>
-              <p>
-                You can watch the live board and combat state, but spectator routes never accept
-                battle commands.
-              </p>
+              <p>Ask a player for their Battle Key. Battles are private, not publicly listed.</p>
             </div>
             <div className={styles.keyEntry}>
               <input
@@ -809,8 +794,12 @@ export function BattleLaunch({
               </button>
             </div>
           </div>
+          <p className={styles.note}>
+            Read-only access: watch the live board and combat state without submitting battle
+            commands.
+          </p>
         </section>
-      ) : null}
+      </div>
 
       {error ? (
         <p className={styles.error} role="alert">
