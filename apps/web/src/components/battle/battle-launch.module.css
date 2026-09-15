@@ -425,6 +425,12 @@
   gap: 0.45rem;
   min-width: 0;
 }
+.formatDescription {
+  margin: 0;
+  color: var(--av-text-muted);
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
 .formatRow {
   display: grid;
   grid-template-columns: 5.75rem minmax(0, 1fr);

@@ -649,6 +649,7 @@ export function BattleLaunch({
                   <label htmlFor="pvp-mode">Battle format</label>
                   <select
                     id="pvp-mode"
+                    aria-describedby="pvp-format-description"
                     value={pvpMode ?? ''}
                     onChange={(event) => setPvpMode((event.target.value || null) as PvpMode | null)}
                     disabled={pending}
@@ -661,6 +662,10 @@ export function BattleLaunch({
                     ))}
                   </select>
                 </div>
+                <p id="pvp-format-description" className={styles.formatDescription}>
+                  {PVP_MODES.find((mode) => mode.id === pvpMode)?.detail ??
+                    'Choose a battle format to see its team arrangement.'}
+                </p>
                 {pvpMode === 'flex-teams' ? (
                   <div className={styles.flexSizes} data-pvp-team-sizes>
                     <label>

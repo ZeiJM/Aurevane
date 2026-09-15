@@ -41,4 +41,14 @@ describe('Battle Hall concept composition', () => {
     expect(markup).toContain('Create Battle Lobby')
     expect(markup).toContain('Join Battle Lobby')
   })
+
+  it('describes the selected PvP format outside the dropdown', () => {
+    const markup = renderToStaticMarkup(
+      createElement(BattleLaunch, { characterId: 'character-1', characterName: 'Eira Vale' }),
+    )
+    expect(markup).toContain('aria-describedby="pvp-format-description"')
+    expect(markup).toMatch(
+      /<p[^>]*id="pvp-format-description"[^>]*>Two combatants · one per side<\/p>/,
+    )
+  })
 })
