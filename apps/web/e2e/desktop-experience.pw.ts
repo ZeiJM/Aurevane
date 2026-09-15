@@ -137,7 +137,7 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
     await expect(page.getByTestId('character-profile')).toBeVisible()
     await readable(page.getByTestId('derived-stat-movement').locator('span').first(), 13)
     await fit(page, `Profile-${suffix}`, testInfo)
-    const reset = page.getByRole('button', { name: 'Reset / Redistribute Attributes' })
+    const reset = page.getByRole('button', { name: 'Reset Attributes' })
     await readable(reset, 11.5)
     await reset.click({ trial: true })
 
@@ -183,7 +183,7 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
 
   await page.setViewportSize({ width: 1366, height: 768 })
   await page.goto('/game/character')
-  await page.getByRole('button', { name: 'Reset / Redistribute Attributes' }).click()
+  await page.getByRole('button', { name: 'Reset Attributes' }).click()
   const allocation = page.getByRole('dialog', { name: 'Redistribute Attributes' })
   await expect(allocation).toBeVisible()
   await testInfo.attach('Attributes-dialog', {
@@ -228,7 +228,7 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
 
   // Very short windows may scroll, but cannot trap the Profile controls underneath the footer.
   await page.setViewportSize({ width: 1024, height: 576 })
-  await reachable(page, page.getByRole('button', { name: 'Reset / Redistribute Attributes' }))
+  await reachable(page, page.getByRole('button', { name: 'Reset Attributes' }))
   await page.goto('/game/battle')
   await page
     .getByRole('navigation', { name: 'Battle Hall sections' })
@@ -462,7 +462,7 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
   await page.goto('/game/character')
   for (const [trigger, name] of [
     [page.getByTestId('derived-stat-maxHp'), 'phone-stat-details'],
-    [page.getByRole('button', { name: 'Reset / Redistribute Attributes' }), 'phone-attributes'],
+    [page.getByRole('button', { name: 'Reset Attributes' }), 'phone-attributes'],
   ] as const) {
     await trigger.click()
     const dialog = page.getByRole('dialog')

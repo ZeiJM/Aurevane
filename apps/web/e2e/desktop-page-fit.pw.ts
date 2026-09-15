@@ -115,7 +115,7 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
     await page.goto('/game/character')
     await expect(page.getByTestId('character-profile')).toBeVisible()
     await settleLayout(page)
-    const reset = page.getByRole('button', { name: 'Reset / Redistribute Attributes' })
+    const reset = page.getByRole('button', { name: 'Reset Attributes' })
     // The approved profile concept is a long-form hero and build surface. Let the document scroll
     // naturally at every viewport size, then prove the lower control can still be reached above the
     // persistent footer.

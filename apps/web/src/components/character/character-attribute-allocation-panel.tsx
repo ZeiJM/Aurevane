@@ -185,7 +185,7 @@ export function CharacterAttributeAllocationPanel({
         onClick={beginReset}
         disabled={allocation.resetRemaining <= 0 || forced || saveState === 'saving'}
       >
-        Reset / Redistribute Attributes
+        Reset Attributes
       </button>
 
       {open ? (
