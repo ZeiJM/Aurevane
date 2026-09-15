@@ -352,14 +352,14 @@
   font: 650 0.6875rem/1.15 var(--av-font-body);
 }
 
-/* The narrow desktop dock cannot safely overlay both control groups in one row. */
-@media (min-width: 821px) and (max-width: 1040px) {
-  :global([data-docked-battle-log='true']) .filter {
+/* Reflow filters whenever the actual desktop log dock is too narrow for both control groups. */
+@container battle-log-dock (max-width: 18rem) {
+  .filter {
     position: static;
     justify-content: flex-end;
   }
 
-  :global([data-docked-battle-log='true']) .timeline[data-view='text'] {
+  .timeline[data-view='text'] {
     grid-template-rows: auto minmax(0, 1fr) auto;
   }
 }
