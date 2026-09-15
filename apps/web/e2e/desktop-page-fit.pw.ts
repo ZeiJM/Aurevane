@@ -36,6 +36,14 @@ async function expectAboveFooter(page: Page, locator: Locator): Promise<void> {
 }
 
 async function expectHallFits(page: Page, label: string): Promise<void> {
+  // Field interaction may legitimately scroll the natural-height Hall on short windows.
+  // Measure the layout's baseline, not the previous input's auto-scrolled viewport.
+  // Real clicks above/below these checks still prove the controls are reachable.
+  await page.evaluate(() => {
+    if (document.querySelector('[data-hall-concept]')) {
+      document.getElementById('game-main')?.scrollTo({ top: 0, behavior: 'instant' })
+    }
+  })
   await settleLayout(page)
   const metrics = await page.evaluate(() => {
     const main = document.querySelector<HTMLElement>('#game-main')!
