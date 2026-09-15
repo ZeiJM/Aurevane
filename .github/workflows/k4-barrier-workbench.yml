@@ -6,16 +6,20 @@ on:
       - agent/combat-k4-barrier-workbench-20260915
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  focused-red-contract:
+  implement-green:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out Barrier ticket branch
+      - name: Check out exact Barrier ticket branch
         uses: actions/checkout@v4
         with:
           ref: agent/combat-k4-barrier-20260915
+          fetch-depth: 0
+
+      - name: Assert expected RED head
+        run: test "$(git rev-parse HEAD)" = "9777fc4acb79dbdc61cc13f349a490ad590fb3ed"
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -30,8 +34,621 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Verify test formatting
-        run: pnpm exec prettier --check packages/game-core/src/combat/combat-barrier.test.ts
+      - name: Apply bounded direct Barrier implementation
+        run: |
+          python - <<'PY'
+          from pathlib import Path
 
-      - name: Run focused Barrier RED contract
+          def replace_once(path: str, old: str, new: str) -> None:
+              file = Path(path)
+              text = file.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected exactly one replacement target, found {count}')
+              file.write_text(text.replace(old, new))
+
+          barrier_module = r'''import type {
+            CombatEffectDefinition,
+            CombatEncounterIssue,
+            CombatEncounterState,
+          } from './actions'
+          import {
+            normalizeCombatEffectState,
+            type CombatBarrierInstance,
+          } from './combat-effect-state'
+
+          export interface CombatBarrierGrantResult {
+            state: CombatEncounterState
+            before: number
+            after: number
+            applied: number
+          }
+
+          export interface CombatBarrierAbsorptionResult {
+            state: CombatEncounterState
+            before: number
+            after: number
+            absorbed: number
+            remainingDamage: number
+          }
+
+          export function validateBarrierEffect(effect: CombatEffectDefinition): void {
+            if (effect.type !== 'barrier-change') return
+            if (!Number.isSafeInteger(effect.amount) || effect.amount <= 0) {
+              throw new RangeError('Barrier amount must be a positive safe integer.')
+            }
+          }
+
+          export function currentBarrierAmount(
+            state: CombatEncounterState,
+            targetCombatantId: string,
+          ): number {
+            return barrierTotal(state.effectState?.barriers ?? [], targetCombatantId)
+          }
+
+          export function grantBarrier(
+            state: CombatEncounterState,
+            sourceCombatantId: string,
+            targetCombatantId: string,
+            sourceActionId: string,
+            amount: number,
+          ): CombatBarrierGrantResult {
+            assertIdentity(sourceCombatantId, 'Barrier source combatant ID')
+            assertIdentity(targetCombatantId, 'Barrier target combatant ID')
+            assertIdentity(sourceActionId, 'Barrier source action ID')
+            if (!Number.isSafeInteger(amount) || amount <= 0) {
+              throw new RangeError('Barrier amount must be a positive safe integer.')
+            }
+
+            const target = getCombatant(state, targetCombatantId)
+            const before = currentBarrierAmount(state, targetCombatantId)
+            const available = Math.max(0, target.maxHp - before)
+            const applied = Math.min(amount, available)
+            if (applied === 0) {
+              return { state, before, after: before, applied: 0 }
+            }
+
+            const effectState = normalizeCombatEffectState(state.effectState)
+            const barriers = [...(effectState.barriers ?? [])]
+            const existingIndex = barriers.findIndex(
+              (barrier) =>
+                barrier.targetCombatantId === targetCombatantId &&
+                barrier.sourceCombatantId === sourceCombatantId &&
+                barrier.sourceActionId === sourceActionId,
+            )
+
+            if (existingIndex >= 0) {
+              const existing = barriers[existingIndex]!
+              barriers[existingIndex] = { ...existing, amount: existing.amount + applied }
+            } else {
+              barriers.push({
+                targetCombatantId,
+                sourceCombatantId,
+                sourceActionId,
+                amount: applied,
+              })
+            }
+            barriers.sort(compareBarrierInstances)
+
+            return {
+              state: { ...state, effectState: { ...effectState, barriers } },
+              before,
+              after: before + applied,
+              applied,
+            }
+          }
+
+          export function absorbDirectDamageWithBarrier(
+            state: CombatEncounterState,
+            targetCombatantId: string,
+            amount: number,
+          ): CombatBarrierAbsorptionResult {
+            if (!Number.isSafeInteger(amount) || amount < 0) {
+              throw new RangeError('Barrier damage input must be a non-negative safe integer.')
+            }
+
+            const before = currentBarrierAmount(state, targetCombatantId)
+            if (before === 0 || amount === 0) {
+              return {
+                state,
+                before,
+                after: before,
+                absorbed: 0,
+                remainingDamage: amount,
+              }
+            }
+
+            let remainingDamage = amount
+            const effectState = normalizeCombatEffectState(state.effectState)
+            const unrelated = (effectState.barriers ?? []).filter(
+              (barrier) => barrier.targetCombatantId !== targetCombatantId,
+            )
+            const targetBarriers = (effectState.barriers ?? [])
+              .filter((barrier) => barrier.targetCombatantId === targetCombatantId)
+              .sort(compareBarrierInstances)
+            const surviving: CombatBarrierInstance[] = []
+
+            for (const barrier of targetBarriers) {
+              const consumed = Math.min(barrier.amount, remainingDamage)
+              const remainingBarrier = barrier.amount - consumed
+              remainingDamage -= consumed
+              if (remainingBarrier > 0) surviving.push({ ...barrier, amount: remainingBarrier })
+            }
+
+            const barriers = [...unrelated, ...surviving].sort(compareBarrierInstances)
+            const absorbed = amount - remainingDamage
+            const after = before - absorbed
+            return {
+              state: { ...state, effectState: { ...effectState, barriers } },
+              before,
+              after,
+              absorbed,
+              remainingDamage,
+            }
+          }
+
+          export function validateBarrierState(
+            state: CombatEncounterState,
+          ): readonly CombatEncounterIssue[] {
+            const raw = (state.effectState as unknown as { barriers?: unknown } | undefined)?.barriers
+            if (raw === undefined) return []
+            if (!Array.isArray(raw)) {
+              return [{ field: 'effectState.barriers', message: 'Barrier state must be an array.' }]
+            }
+
+            const issues: CombatEncounterIssue[] = []
+            const combatants = new Map(
+              state.tactical.battle.combatants.map((combatant) => [combatant.id, combatant]),
+            )
+            const seen = new Set<string>()
+            const totals = new Map<string, bigint>()
+
+            raw.forEach((value, index) => {
+              const field = `effectState.barriers[${index}]`
+              if (!value || typeof value !== 'object' || Array.isArray(value)) {
+                issues.push({ field, message: 'Barrier instance must be an object.' })
+                return
+              }
+
+              const barrier = value as Record<string, unknown>
+              const targetCombatantId = barrier.targetCombatantId
+              const sourceCombatantId = barrier.sourceCombatantId
+              const sourceActionId = barrier.sourceActionId
+              const amount = barrier.amount
+
+              if (!isIdentity(targetCombatantId)) {
+                issues.push({ field: `${field}.targetCombatantId`, message: 'Invalid Barrier target.' })
+              } else if (!combatants.has(targetCombatantId)) {
+                issues.push({ field: `${field}.targetCombatantId`, message: 'Unknown Barrier target.' })
+              }
+
+              if (!isIdentity(sourceCombatantId)) {
+                issues.push({ field: `${field}.sourceCombatantId`, message: 'Invalid Barrier source.' })
+              } else if (!combatants.has(sourceCombatantId)) {
+                issues.push({ field: `${field}.sourceCombatantId`, message: 'Unknown Barrier source.' })
+              }
+
+              if (!isIdentity(sourceActionId)) {
+                issues.push({ field: `${field}.sourceActionId`, message: 'Invalid Barrier source action.' })
+              }
+
+              if (!Number.isSafeInteger(amount) || (amount as number) <= 0) {
+                issues.push({
+                  field: `${field}.amount`,
+                  message: 'Barrier amount must be a positive safe integer.',
+                })
+              }
+
+              if (
+                isIdentity(targetCombatantId) &&
+                isIdentity(sourceCombatantId) &&
+                isIdentity(sourceActionId)
+              ) {
+                const key = `${targetCombatantId}\u0000${sourceCombatantId}\u0000${sourceActionId}`
+                if (seen.has(key)) {
+                  issues.push({ field, message: 'Duplicate Barrier source/action key.' })
+                }
+                seen.add(key)
+              }
+
+              if (
+                isIdentity(targetCombatantId) &&
+                Number.isSafeInteger(amount) &&
+                (amount as number) > 0
+              ) {
+                totals.set(
+                  targetCombatantId,
+                  (totals.get(targetCombatantId) ?? 0n) + BigInt(amount as number),
+                )
+              }
+            })
+
+            for (const [targetCombatantId, total] of totals) {
+              const target = combatants.get(targetCombatantId)
+              if (target && total > BigInt(target.maxHp)) {
+                issues.push({
+                  field: 'effectState.barriers',
+                  message: `Barrier total for ${targetCombatantId} exceeds maximum HP.`,
+                })
+              }
+            }
+
+            return issues
+          }
+
+          function barrierTotal(
+            barriers: readonly CombatBarrierInstance[],
+            targetCombatantId: string,
+          ): number {
+            const total = barriers
+              .filter((barrier) => barrier.targetCombatantId === targetCombatantId)
+              .reduce((sum, barrier) => sum + BigInt(barrier.amount), 0n)
+            if (total > BigInt(Number.MAX_SAFE_INTEGER)) {
+              throw new RangeError('Barrier total exceeds the safe integer range.')
+            }
+            return Number(total)
+          }
+
+          function compareBarrierInstances(
+            left: CombatBarrierInstance,
+            right: CombatBarrierInstance,
+          ): number {
+            return (
+              compareStableString(left.targetCombatantId, right.targetCombatantId) ||
+              compareStableString(left.sourceCombatantId, right.sourceCombatantId) ||
+              compareStableString(left.sourceActionId, right.sourceActionId)
+            )
+          }
+
+          function compareStableString(left: string, right: string): number {
+            if (left < right) return -1
+            if (left > right) return 1
+            return 0
+          }
+
+          function getCombatant(state: CombatEncounterState, combatantId: string) {
+            const combatant = state.tactical.battle.combatants.find(
+              (candidate) => candidate.id === combatantId,
+            )
+            if (!combatant) throw new Error(`Unknown combatant ${combatantId}.`)
+            return combatant
+          }
+
+          function isIdentity(value: unknown): value is string {
+            return typeof value === 'string' && value.length > 0 && value.trim() === value
+          }
+
+          function assertIdentity(value: string, field: string): void {
+            if (!isIdentity(value)) throw new TypeError(`${field} must be a non-empty trimmed string.`)
+          }
+          '''
+          Path('packages/game-core/src/combat/combat-barrier.ts').write_text(barrier_module)
+
+          replace_once(
+              'packages/game-core/src/combat/combat-effect-state.ts',
+              """export interface CombatDamageHistoryEntry {
+            combatantId: string
+            round: number
+            amount: number
+          }
+
+          export interface CombatEffectState {
+            ongoingRecovery: CombatOngoingRecovery[]
+            poison: CombatPoisonInstance[]
+            bleed: CombatBleedStack[]
+            burn: CombatBurnInstance[]
+            temporarySkills: CombatTemporarySkillGrant[]
+            damageHistory: CombatDamageHistoryEntry[]
+          }
+""",
+              """export interface CombatDamageHistoryEntry {
+            combatantId: string
+            round: number
+            amount: number
+          }
+
+          export interface CombatBarrierInstance {
+            targetCombatantId: string
+            sourceCombatantId: string
+            sourceActionId: string
+            amount: number
+          }
+
+          export interface CombatEffectState {
+            ongoingRecovery: CombatOngoingRecovery[]
+            poison: CombatPoisonInstance[]
+            bleed: CombatBleedStack[]
+            burn: CombatBurnInstance[]
+            temporarySkills: CombatTemporarySkillGrant[]
+            damageHistory: CombatDamageHistoryEntry[]
+            barriers?: CombatBarrierInstance[]
+          }
+""",
+          )
+          replace_once(
+              'packages/game-core/src/combat/combat-effect-state.ts',
+              """    temporarySkills: Array.isArray(input.temporarySkills) ? input.temporarySkills : [],
+            damageHistory: Array.isArray(input.damageHistory) ? input.damageHistory : [],
+            }
+          }
+""",
+              """    temporarySkills: Array.isArray(input.temporarySkills) ? input.temporarySkills : [],
+            damageHistory: Array.isArray(input.damageHistory) ? input.damageHistory : [],
+            ...(Array.isArray(input.barriers) ? { barriers: input.barriers } : {}),
+            }
+          }
+""",
+          )
+
+          replace_once(
+              'packages/game-core/src/combat/actions-legacy.ts',
+              """import {
+            validateRecoveryEffect,
+""",
+              """import {
+            absorbDirectDamageWithBarrier,
+            currentBarrierAmount,
+            grantBarrier,
+            validateBarrierEffect,
+            validateBarrierState,
+          } from './combat-barrier'
+          import {
+            validateRecoveryEffect,
+""",
+          )
+          replace_once(
+              'packages/game-core/src/combat/actions-legacy.ts',
+              """  | {
+                type: 'bleed'
+                recipient: CombatEffectRecipient
+                damagePerTick: number
+                ticks: number
+              }
+            | { type: 'healing'; recipient: CombatEffectRecipient; amount: number; ticks?: number }
+""",
+              """  | {
+                type: 'bleed'
+                recipient: CombatEffectRecipient
+                damagePerTick: number
+                ticks: number
+              }
+            | { type: 'barrier-change'; recipient: CombatEffectRecipient; amount: number }
+            | { type: 'healing'; recipient: CombatEffectRecipient; amount: number; ticks?: number }
+""",
+          )
+          replace_once(
+              'packages/game-core/src/combat/actions-legacy.ts',
+              """  | {
+                event: 'healing_applied'
+""",
+              """  | {
+                event: 'barrier_changed'
+                actionId: string
+                sourceCombatantId: string
+                targetCombatantId: string
+                amount: number
+                before: number
+                after: number
+              }
+            | {
+                event: 'barrier_absorbed'
+                actionId: string
+                sourceCombatantId: string
+                targetCombatantId: string
+                amount: number
+                before: number
+                after: number
+              }
+            | {
+                event: 'healing_applied'
+""",
+          )
+          replace_once(
+              'packages/game-core/src/combat/actions-legacy.ts',
+              """    ...validateTerrainOverlays(state),
+                ...validateOngoingRecoveryState(state),
+                ...validateCombatDotState(state),
+""",
+              """    ...validateTerrainOverlays(state),
+                ...validateOngoingRecoveryState(state),
+                ...validateBarrierState(state),
+                ...validateCombatDotState(state),
+""",
+          )
+          replace_once(
+              'packages/game-core/src/combat/actions-legacy.ts',
+              """      } else if (effect.type === 'return-to-turn-start' || effect.type === 'displace') {
+""",
+              """      } else if (effect.type === 'barrier-change') {
+                beforeValue = currentBarrierAmount(before, recipientId)
+                afterValue = currentBarrierAmount(nextState, recipientId)
+              } else if (effect.type === 'return-to-turn-start' || effect.type === 'displace') {
+""",
+          )
+          replace_once(
+              'packages/game-core/src/combat/actions-legacy.ts',
+              """  if (effect.type === 'burn') {
+                return {
+                  state: applyCurrentBurnState(state, actorId, recipientId, actionId),
+                  events: [],
+                }
+              }
+            if (effect.type === 'return-to-turn-start') {
+""",
+              """  if (effect.type === 'burn') {
+                return {
+                  state: applyCurrentBurnState(state, actorId, recipientId, actionId),
+                  events: [],
+                }
+              }
+            if (effect.type === 'barrier-change') {
+              const changed = grantBarrier(state, actorId, recipientId, actionId, effect.amount)
+              return {
+                state: changed.state,
+                events: [
+                  {
+                    event: 'barrier_changed',
+                    actionId,
+                    sourceCombatantId: actorId,
+                    targetCombatantId: recipientId,
+                    amount: changed.applied,
+                    before: changed.before,
+                    after: changed.after,
+                  },
+                ],
+              }
+            }
+            if (effect.type === 'return-to-turn-start') {
+""",
+          )
+          replace_once(
+              'packages/game-core/src/combat/actions-legacy.ts',
+              """    if (stormBonus && amount > 0) stormRecipients.add(recipientId)
+                const hpAfter = Math.max(0, target.hp - amount)
+                const updated = withUpdatedCombatant(state, recipientId, { ...target, hp: hpAfter })
+                const removed =
+""",
+              """    if (stormBonus && amount > 0) stormRecipients.add(recipientId)
+                const barrier = absorbDirectDamageWithBarrier(state, recipientId, amount)
+                const hpAfter = Math.max(0, target.hp - barrier.remainingDamage)
+                const updated = withUpdatedCombatant(barrier.state, recipientId, { ...target, hp: hpAfter })
+                const removed =
+""",
+          )
+          replace_once(
+              'packages/game-core/src/combat/actions-legacy.ts',
+              """      events: [
+                    {
+                      event: 'damage_applied',
+""",
+              """      events: [
+                    ...(barrier.absorbed > 0
+                      ? [
+                          {
+                            event: 'barrier_absorbed' as const,
+                            actionId,
+                            sourceCombatantId: actorId,
+                            targetCombatantId: recipientId,
+                            amount: barrier.absorbed,
+                            before: barrier.before,
+                            after: barrier.after,
+                          },
+                        ]
+                      : []),
+                    {
+                      event: 'damage_applied',
+""",
+          )
+          replace_once(
+              'packages/game-core/src/combat/actions-legacy.ts',
+              """  for (const effect of action.effects) {
+                validateRecoveryEffect(effect)
+                assertKnownString(
+""",
+              """  for (const effect of action.effects) {
+                validateRecoveryEffect(effect)
+                validateBarrierEffect(effect)
+                assertKnownString(
+""",
+          )
+          replace_once(
+              'packages/game-core/src/combat/actions-legacy.ts',
+              """        'bleed',
+                    'burn',
+                  ],
+""",
+              """        'bleed',
+                    'burn',
+                    'barrier-change',
+                  ],
+""",
+          )
+
+          replace_once(
+              'packages/game-core/src/combat/combat-authoring-validation.ts',
+              """import { validateRecoveryEffect } from './combat-recovery'
+""",
+              """import { validateBarrierEffect } from './combat-barrier'
+          import { validateRecoveryEffect } from './combat-recovery'
+""",
+          )
+          replace_once(
+              'packages/game-core/src/combat/combat-authoring-validation.ts',
+              """  for (const effect of action.effects) {
+                validateRecoveryEffect(effect)
+                knownString(
+""",
+              """  for (const effect of action.effects) {
+                validateRecoveryEffect(effect)
+                validateBarrierEffect(effect)
+                knownString(
+""",
+          )
+          replace_once(
+              'packages/game-core/src/combat/combat-authoring-validation.ts',
+              """        'bleed',
+                    'burn',
+                  ],
+""",
+              """        'bleed',
+                    'burn',
+                    'barrier-change',
+                  ],
+""",
+          )
+
+          replace_once(
+              'packages/game-core/src/combat/gameplay-tags.ts',
+              """  const directLabels: Readonly<Record<string, string>> = {
+                copy: 'Copy',
+""",
+              """  const directLabels: Readonly<Record<string, string>> = {
+                'barrier-change': 'Barrier',
+                copy: 'Copy',
+""",
+          )
+          PY
+
+      - name: Format production delta
+        run: |
+          pnpm exec prettier --write \
+            packages/game-core/src/combat/actions-legacy.ts \
+            packages/game-core/src/combat/combat-authoring-validation.ts \
+            packages/game-core/src/combat/combat-barrier.ts \
+            packages/game-core/src/combat/combat-effect-state.ts \
+            packages/game-core/src/combat/gameplay-tags.ts
+
+      - name: Verify surgical changed-file set
+        run: |
+          git diff --check
+          git diff --name-only | sort > /tmp/actual.txt
+          cat > /tmp/expected.txt <<'EOF'
+          packages/game-core/src/combat/actions-legacy.ts
+          packages/game-core/src/combat/combat-authoring-validation.ts
+          packages/game-core/src/combat/combat-barrier.ts
+          packages/game-core/src/combat/combat-effect-state.ts
+          packages/game-core/src/combat/gameplay-tags.ts
+          EOF
+          diff -u /tmp/expected.txt /tmp/actual.txt
+
+      - name: Run focused Barrier GREEN contract
         run: pnpm --filter @aurevane/game-core test -- combat-barrier.test.ts
+
+      - name: Run game-core typecheck
+        run: pnpm --filter @aurevane/game-core typecheck
+
+      - name: Run complete verification
+        run: pnpm check
+
+      - name: Commit and push verified GREEN implementation
+        run: |
+          git config user.name "AUREVANE K4 Workbench"
+          git config user.email "actions@users.noreply.github.com"
+          git add \
+            packages/game-core/src/combat/actions-legacy.ts \
+            packages/game-core/src/combat/combat-authoring-validation.ts \
+            packages/game-core/src/combat/combat-barrier.ts \
+            packages/game-core/src/combat/combat-effect-state.ts \
+            packages/game-core/src/combat/gameplay-tags.ts
+          git commit -m "feat: implement K4 direct Barrier primitive"
+          git push origin HEAD:agent/combat-k4-barrier-20260915
