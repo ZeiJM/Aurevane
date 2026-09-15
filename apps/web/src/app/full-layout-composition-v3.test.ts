@@ -6,6 +6,9 @@ function source(relativePath: string): string {
   return readFileSync(fileURLToPath(new URL(relativePath, import.meta.url)), 'utf8')
 }
 
+const touchResponsiveQuery =
+  '@media (max-width: 760px), (max-width: 1100px) and (any-pointer: coarse)'
+
 const compositionContracts = [
   {
     component: '../components/character/character-profile-shell.tsx',
@@ -46,16 +49,17 @@ describe('full layout composition v3', () => {
       const stylesheetSource = source(stylesheet)
 
       for (const marker of markers) expect(componentSource).toContain(marker)
-      expect(stylesheetSource).toContain('@media (max-width: 760px)')
+      expect(stylesheetSource).toContain(touchResponsiveQuery)
       expect(stylesheetSource).toContain('composition-v3')
     },
   )
 
-  it('makes the shared mobile shell a true bottom primary navigation dock', () => {
+  it('makes the shared mobile shell a true bottom primary navigation dock for touch phones even when they report a desktop-width viewport', () => {
     const railSource = source('../components/shell/game-rail.tsx')
     const shellStyles = source('../components/shell/authenticated-game-shell.module.css')
 
     expect(railSource).toContain('data-av-primary-dock="true"')
+    expect(shellStyles).toContain(touchResponsiveQuery)
     expect(shellStyles).toContain('position: fixed')
     expect(shellStyles).toContain('bottom: 0')
     expect(shellStyles).toContain('padding-bottom: calc(')
