@@ -1,0 +1,50 @@
+name: K3 Bleed Fix Formatter
+
+on:
+  push:
+    branches:
+      - agent/combat-k3-bleed-fix-format-20260915
+
+permissions:
+  contents: write
+
+jobs:
+  format-fix:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout formatter branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check out exact fix head
+        shell: bash
+        run: |
+          git fetch origin agent/combat-k3-bleed-provenance-review-fix-20260915
+          git checkout --detach FETCH_HEAD
+          test "$(git rev-parse HEAD)" = "f9bdfdd8228ec17820ec2e187447569bb88a4adb"
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        shell: bash
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format production fix
+        run: pnpm exec prettier --write packages/game-core/src/combat/combat-effect-provenance.ts
+      - name: Verify only production formatting changed
+        shell: bash
+        run: |
+          git diff --check
+          test "$(git diff --name-only)" = "packages/game-core/src/combat/combat-effect-provenance.ts"
+      - name: Commit and push formatted fix
+        shell: bash
+        run: |
+          git config user.name "Nicholas JM"
+          git config user.email "283436098+ZeiJM@users.noreply.github.com"
+          git add packages/game-core/src/combat/combat-effect-provenance.ts
+          git commit -m "style: format Bleed provenance fix"
+          git push origin HEAD:agent/combat-k3-bleed-provenance-review-fix-20260915
