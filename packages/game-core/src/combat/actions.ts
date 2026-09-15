@@ -1,5 +1,6 @@
 import type { CombatDamageScaling } from './damage-scaling'
 import { calculateScaledRawDamage, validateCombatDamageScaling } from './damage-scaling'
+import { applyCommittedAbsorbHp } from './combat-absorb-hp'
 import { recordCommittedDamageHistory } from './combat-damage-history'
 import { attachCombatEffectProvenance } from './combat-effect-provenance'
 import {
@@ -86,14 +87,20 @@ export function executeCombatAction(
         commandSourceCombatantId: actorId,
       })
     : transition.state
+  const recovered = actorId
+    ? applyCommittedAbsorbHp(historyState, transition.events, content, {
+        sourceCombatantId: actorId,
+        actionId: action.id,
+      })
+    : { state: historyState, events: transition.events }
 
   if (!context || !evaluation) {
-    return { state: historyState, events: transition.events }
+    return recovered
   }
 
   return {
-    state: attachCombatEffectProvenance(state, historyState, action, evaluation, context),
-    events: transition.events,
+    state: attachCombatEffectProvenance(state, recovered.state, action, evaluation, context),
+    events: recovered.events,
     resolution: {
       pipelineVersion: COMBAT_RESOLUTION_PIPELINE_VERSION,
       provenance: context.provenance,
