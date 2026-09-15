@@ -1,0 +1,31 @@
+name: Apply verified Hall source patch
+
+on:
+  push:
+    branches: [agent/battle-hall-concept-ui]
+    paths: [.github/workflows/hall-apply-repair.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Apply the exact locally checked tree on the isolated Hall branch
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = refs/heads/agent/battle-hall-concept-ui
+          test "$(git rev-parse HEAD^)" = cb96994784b44f3d307052f3a907f509cbbfa1eb
+          git apply --check .github/hall-repair.patch
+          git apply --index .github/hall-repair.patch
+          git rm .github/hall-repair.patch .github/workflows/hall-apply-repair.yml
+          git diff --cached --check
+          test "$(git write-tree)" = b69772ce864aeeb90b854bfcf51772c8476a8285
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix: restore Hall objectives and fit laptop controls'
+          git push origin HEAD:agent/battle-hall-concept-ui
