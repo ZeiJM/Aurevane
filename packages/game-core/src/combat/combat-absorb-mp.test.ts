@@ -226,11 +226,9 @@ describe('P4.K4 Absorb MP', () => {
   })
 
   it('caps recovery at max MP', () => {
-    const result = execute(
-      encounter({ targetMp: 49, targetStatuses: [ABSORB_MP_25] }),
-      20,
-      [ABSORB_MP_25],
-    )
+    const result = execute(encounter({ targetMp: 49, targetStatuses: [ABSORB_MP_25] }), 20, [
+      ABSORB_MP_25,
+    ])
 
     expect(target(result.state).mp).toBe(50)
     expect(result.events).toContainEqual(
@@ -245,11 +243,9 @@ describe('P4.K4 Absorb MP', () => {
   })
 
   it('cannot restore MP after lethal damage', () => {
-    const result = execute(
-      encounter({ targetHp: 4, targetStatuses: [ABSORB_MP_25] }),
-      20,
-      [ABSORB_MP_25],
-    )
+    const result = execute(encounter({ targetHp: 4, targetStatuses: [ABSORB_MP_25] }), 20, [
+      ABSORB_MP_25,
+    ])
 
     expect(target(result.state).hp).toBe(0)
     expect(target(result.state).mp).toBe(10)
@@ -288,22 +284,20 @@ describe('P4.K4 Absorb MP', () => {
   it('caps combined active Absorb MP recovery at 100% of qualifying damage', () => {
     const absorb60A = absorbMpStatus('test.absorb-mp-60-a', 6_000)
     const absorb60B = absorbMpStatus('test.absorb-mp-60-b', 6_000)
-    const result = execute(
-      encounter({ targetMp: 0, targetStatuses: [absorb60A, absorb60B] }),
-      20,
-      [absorb60A, absorb60B],
-    )
+    const result = execute(encounter({ targetMp: 0, targetStatuses: [absorb60A, absorb60B] }), 20, [
+      absorb60A,
+      absorb60B,
+    ])
 
     expect(target(result.state).mp).toBe(20)
   })
 
   it('coexists with Absorb HP from the same qualifying damage summary', () => {
     const hp25 = absorbHpStatus('test.absorb-hp-25', 2_500)
-    const result = execute(
-      encounter({ targetStatuses: [hp25, ABSORB_MP_25] }),
-      20,
-      [hp25, ABSORB_MP_25],
-    )
+    const result = execute(encounter({ targetStatuses: [hp25, ABSORB_MP_25] }), 20, [
+      hp25,
+      ABSORB_MP_25,
+    ])
 
     expect(target(result.state).hp).toBe(85)
     expect(target(result.state).mp).toBe(15)
