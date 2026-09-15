@@ -209,7 +209,8 @@ function execute(
 
 function absorbHealingEvents(transition: CombatResolutionTransition) {
   return transition.events.filter(
-    (event) => event.event === 'healing_applied' && event.actionId === 'status.absorb-hp.current.v1',
+    (event) =>
+      event.event === 'healing_applied' && event.actionId === 'status.absorb-hp.current.v1',
   )
 }
 
