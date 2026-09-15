@@ -1,115 +1,76 @@
+/* Replaces composition-v3. Directory stage: scenery above a real, bounded list rather than a pale card wall. */
 .page {
-  position: relative;
+  display: grid;
+  grid-template-rows: clamp(6.5rem, 13vh, 9rem) minmax(0, 1fr);
+  min-width: 0;
   min-height: 0;
-  overflow: hidden;
-  padding: 0;
-  border-color: rgba(116, 96, 59, 0.3);
-  background:
-    linear-gradient(180deg, rgba(243, 239, 229, 0.98), rgba(234, 230, 220, 0.98)),
-    url('/media/art/concept-ui/archive-v01.webp') center / cover;
+  height: 100%;
+  gap: 0.7rem;
+  color: #eee8da;
 }
-
 .heading {
-  position: relative;
-  min-height: 8.5rem;
-  padding: clamp(1.15rem, 2.5vw, 2rem) clamp(1rem, 2.2vw, 1.65rem);
-  overflow: hidden;
-  border-bottom: 1px solid rgba(212, 186, 130, 0.32);
-  color: #f3efe5;
+  display: flex;
+  min-width: 0;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1.4rem;
+  border: 1px solid #a58c5f;
   background:
-    linear-gradient(90deg, rgba(6, 13, 19, 0.94), rgba(6, 13, 19, 0.48) 68%, rgba(6, 13, 19, 0.8)),
-    url('/media/art/concept-ui/world-v01.webp') center 42% / cover;
+    linear-gradient(90deg, #07121ced, #07121c66 65%, #07121ccc),
+    url('/media/art/concept-ui/world-v01.webp') center 43% / cover;
 }
-
-.heading::after {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 0.18rem;
-  background: linear-gradient(90deg, var(--av-teal), var(--av-gold-rule) 62%, transparent);
+.heading h1 {
+  margin: 0.35rem 0;
+  color: #f0dfbc;
+  font: 500 clamp(1.9rem, 2.8vw, 2.8rem) / 1.1 var(--av-font-display);
+  letter-spacing: 0.06em;
+}
+.heading p {
+  margin: 0;
+  color: #c6cfd0;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+.onlineCount {
+  flex: 0 0 auto;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid #718975;
+  color: #b4e4c9;
+  background: #0b221de6;
+  font-size: 0.8125rem;
+}
+.onlineCount::before {
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin-right: 0.5rem;
+  border-radius: 50%;
+  background: #8dd8b0;
   content: '';
-  pointer-events: none;
 }
-
-.heading :global(.av-kicker) {
-  color: #bfe3d3;
-}
-
-@media (max-width: 700px) {
-  .heading {
-    min-height: 7.25rem;
-  }
-}
-
-/* composition-v3 directory stage */
-@media (min-width: 761px) {
-  .page[data-directory-stage='true'] {
-    display: grid !important;
-    grid-template-columns: minmax(11rem, 0.25fr) minmax(0, 1.75fr) !important;
-    grid-template-rows: auto minmax(0, 1fr) !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    gap: 0.65rem !important;
-    padding: 0.65rem !important;
-    overflow: hidden !important;
-    border-radius: 0 !important;
-    background: rgba(8, 18, 28, 0.96) !important;
-  }
-
-  .heading {
-    grid-column: 1 / -1 !important;
-    grid-row: 1 !important;
-    color: var(--av-parchment-100);
-  }
-
-  .page[data-directory-stage='true'] > :global([data-directory-controls='true']) {
-    grid-column: 1 !important;
-    grid-row: 2 !important;
-    align-self: stretch !important;
-    align-items: flex-start !important;
-    justify-content: stretch !important;
-    padding: 0.65rem !important;
-    border: 1px solid var(--av-border-strong);
-    background: rgba(5, 13, 21, 0.98);
-  }
-
-  .page[data-directory-stage='true'] > :global([data-directory-controls='true']) button {
-    width: 100%;
-  }
-
-  .page[data-directory-stage='true'] > :global([data-directory-roster='true']) {
-    grid-column: 2 !important;
-    grid-row: 2 !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    margin: 0 !important;
-  }
-}
-
 @media (max-width: 760px) {
-  .page[data-directory-stage='true'] {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) !important;
-    grid-template-rows: auto auto auto !important;
-    height: auto !important;
-    min-height: 0 !important;
-    gap: 0.45rem !important;
-    padding: 0 !important;
-    overflow: visible !important;
-    border: 0 !important;
-    border-radius: 0 !important;
-    background: transparent !important;
-    box-shadow: none !important;
+  .page {
+    height: auto;
+    grid-template-rows: auto auto;
   }
-
-  .page[data-directory-stage='true'] > :global([data-directory-controls='true']) {
-    padding: 0.45rem !important;
-    border: 1px solid var(--av-border-strong);
-    background: rgba(5, 13, 21, 0.96);
+  .heading {
+    align-items: start;
+    flex-direction: column;
+    gap: 0.65rem;
+    padding: 1rem;
   }
+  .heading h1 {
+    font-size: 2rem;
+  }
+}
 
-  .page[data-directory-stage='true'] > :global([data-directory-roster='true']) {
-    margin: 0 !important;
+@media (min-width: 761px) and (max-height: 650px) {
+  .page {
+    grid-template-rows: 5rem minmax(0, 1fr);
+  }
+  .heading :global(.av-kicker),
+  .heading p {
+    display: none;
   }
 }

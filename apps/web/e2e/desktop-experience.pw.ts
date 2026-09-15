@@ -3,8 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
-const rosterListSelector =
-  "[data-character-directory] > section > div:last-child:has(> button):not([role='status'])"
+const rosterListSelector = '[data-directory-list="true"]'
 
 const desktopSizes = [
   // CSS viewport for a 1920 × 1080 display at 80% browser zoom.
@@ -421,11 +420,11 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
           'font-weight',
           '400',
         )
-        await expect(directory.getByRole('button').first().locator('strong')).toHaveCSS(
+        await expect(directory.locator('[data-directory-row]').first().locator('strong')).toHaveCSS(
           'font-size',
           '14px',
         )
-        await expect(directory.getByRole('button').first().locator('small')).toHaveCSS(
+        await expect(directory.locator('[data-directory-row]').first().locator('small')).toHaveCSS(
           'font-size',
           '12px',
         )

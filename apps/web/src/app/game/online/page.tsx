@@ -1,5 +1,5 @@
 import { isAurevaneError } from '@aurevane/game-core/errors'
-import { Kicker, Surface } from '@aurevane/ui'
+import { Kicker } from '@aurevane/ui'
 import { redirect } from 'next/navigation'
 
 import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
@@ -35,20 +35,24 @@ export default async function OnlineUsersPage() {
       backHref="/game/character"
       backLabel="Back to Character Profile"
     >
-      <Surface
+      <section
         className={styles.page}
-        tone="elevated"
         data-character-directory
-        data-av-surface="moonstone"
+        data-av-surface="ink"
         data-online-concept="true"
         data-directory-stage="true"
       >
         <header className={styles.heading}>
-          <Kicker marker="◇">Live presence</Kicker>
+          <div>
+            <Kicker marker="◇">Real people. A shared journey.</Kicker>
+            <h1>Online Users</h1>
+            <p>Different paths. The same world.</p>
+          </div>
+          <span className={styles.onlineCount}>{online.length} online</span>
         </header>
 
         <OnlineUsersDirectory characters={online} />
-      </Surface>
+      </section>
     </AuthenticatedShellFrame>
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import type {
   CharacterPresenceDirectoryEntry,
@@ -74,6 +74,7 @@ function Portrait({ character, large = false }: { character: PresenceCharacter; 
 
 export function OnlineUsersDirectory({ characters }: { characters: OnlineCharacter[] }) {
   const [selected, setSelected] = useState<PresenceCharacter | null>(null)
+  const profileDialog = useRef<HTMLDialogElement>(null)
   const [showAll, setShowAll] = useState(false)
   const [directory, setDirectory] = useState<CharacterPresenceDirectoryEntry[] | null>(null)
   const [loadingDirectory, setLoadingDirectory] = useState(false)
@@ -108,12 +109,10 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
   }, [characters, classFilter, directory, showAll, sortOrder])
 
   useEffect(() => {
-    if (!selected) return
-    const close = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setSelected(null)
-    }
-    window.addEventListener('keydown', close)
-    return () => window.removeEventListener('keydown', close)
+    const dialog = profileDialog.current
+    if (!selected || !dialog) return
+    dialog.showModal()
+    return () => dialog.close()
   }, [selected])
 
   useEffect(() => {
@@ -170,21 +169,10 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
 
   return (
     <>
-      <div className={styles.toolbar} data-directory-controls="true">
-        <span className={styles.toolbarSpacer} />
-        <button
-          type="button"
-          className={`${styles.toggleButton} ${showAll ? styles.toggleButtonActive : ''}`}
-          aria-pressed={showAll}
-          onClick={toggleDirectory}
-        >
-          {showAll ? 'Show online only' : 'Show all characters'}
-        </button>
-      </div>
-
       <section
         className={styles.rosterPanel}
         data-directory-roster="true"
+        data-av-surface="ink"
         aria-label={showAll ? 'All character directory' : 'Online character roster'}
       >
         <header className={styles.rosterHeader}>
@@ -194,7 +182,7 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
             </span>
             <div>
               <span className={styles.rosterKicker}>{showAll ? 'Directory' : 'Live roster'}</span>
-              <strong>{showAll ? 'Known adventurers' : 'Active adventurers'}</strong>
+              <h2>{showAll ? 'Known adventurers' : 'Active adventurers'}</h2>
               <small>
                 {showAll
                   ? 'Browse the realm by class or recent activity.'
@@ -202,7 +190,19 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
               </small>
             </div>
           </div>
-          <span className={styles.rosterCount}>{rosterCount}</span>
+          <div className={styles.toolbar} data-directory-controls="true">
+            <span className={styles.rosterCount} aria-live="polite">
+              {rosterCount}
+            </span>
+            <button
+              type="button"
+              className={`${styles.toggleButton} ${showAll ? styles.toggleButtonActive : ''}`}
+              aria-pressed={showAll}
+              onClick={toggleDirectory}
+            >
+              {showAll ? 'Show online only' : 'Show all characters'}
+            </button>
+          </div>
         </header>
 
         {showAll && directory ? (
@@ -247,7 +247,7 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
           </div>
         ) : null}
 
-        {!loadingDirectory && !directoryError && orderedCharacters.length === 0 ? (
+        {!(showAll && (loadingDirectory || directoryError)) && orderedCharacters.length === 0 ? (
           <p className={styles.empty}>
             {showAll
               ? 'No characters match the selected filters.'
@@ -256,52 +256,97 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
         ) : null}
 
         {orderedCharacters.length > 0 ? (
-          <div className={styles.list} data-directory-list="true">
-            {orderedCharacters.map((character) => {
-              const discipline = readableIdentity(character.disciplineId)
-              const online = isOnline(character)
-              const lastSeen = formatLastSeenAt(character.lastSeenAt, currentNow)
-              return (
-                <button
-                  type="button"
-                  className={`${styles.characterCard} ${online ? styles.characterCardOnline : ''}`}
-                  key={character.characterId}
-                  onClick={() => setSelected(character)}
-                >
-                  <span className={styles.avatarWrap}>
-                    <Portrait character={character} />
-                    <i
-                      className={`${styles.presenceDot} ${online ? '' : styles.presenceDotOffline}`}
-                      aria-hidden="true"
-                    />
-                  </span>
-                  <span className={styles.identity}>
-                    <strong>{character.name}</strong>
-                    <small>
-                      Level {character.level}
-                      {discipline ? ` · ${discipline}` : ''}
-                    </small>
-                  </span>
-                  <span className={online ? styles.online : styles.lastSeen}>
-                    {online ? 'Online' : lastSeen}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
+          <>
+            <div className={styles.columns} data-directory-columns="true" aria-hidden="true">
+              <span>#</span>
+              <span>Character</span>
+              <span>Level</span>
+              <span>Discipline</span>
+              <span>Presence</span>
+              <span />
+            </div>
+            <ul className={styles.list} data-directory-list="true" aria-label="Adventurer rows">
+              {orderedCharacters.map((character, index) => {
+                const discipline = readableIdentity(character.disciplineId)
+                const online = isOnline(character)
+                return (
+                  <li key={character.characterId}>
+                    <button
+                      type="button"
+                      className={styles.characterCard}
+                      data-directory-row="true"
+                      onClick={() => setSelected(character)}
+                    >
+                      <span className={styles.rowNumber} aria-hidden="true">
+                        {index + 1}
+                      </span>
+                      <span className={styles.identityCell}>
+                        <Portrait character={character} />
+                        <span className={styles.identity}>
+                          <strong>{character.name}</strong>
+                          <small>
+                            Level {character.level}
+                            {discipline ? ` · ${discipline}` : ''}
+                          </small>
+                        </span>
+                      </span>
+                      <span className={styles.level}>
+                        <span className={styles.mobileLabel}>Level </span>
+                        {character.level}
+                      </span>
+                      <span className={styles.discipline}>{discipline ?? 'Not set'}</span>
+                      <span className={online ? styles.online : styles.lastSeen}>
+                        <i
+                          className={online ? styles.presenceDot : styles.presenceDotOffline}
+                          aria-hidden="true"
+                        />
+                        {online ? 'Online' : formatLastSeenAt(character.lastSeenAt, currentNow)}
+                      </span>
+                      <span className={styles.rowAction} aria-hidden="true">
+                        ↗
+                      </span>
+                    </button>
+                  </li>
+                )
+              })}
+            </ul>
+          </>
         ) : null}
       </section>
 
-      {selected ? (
-        <div className={styles.backdrop} onPointerDown={() => setSelected(null)}>
-          <section
-            className={styles.profileCard}
-            data-av-surface="moonstone"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="online-profile-name"
-            onPointerDown={(event) => event.stopPropagation()}
-          >
+      <dialog
+        ref={profileDialog}
+        className={styles.profileCard}
+        data-av-surface="ink"
+        aria-labelledby="online-profile-name"
+        onCancel={(event) => {
+          event.preventDefault()
+          setSelected(null)
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== 'Tab') return
+          // The only available action is Close; keep keyboard focus off the inert page.
+          const close =
+            event.currentTarget.querySelector<HTMLButtonElement>('button:not(:disabled)')
+          if (close) {
+            event.preventDefault()
+            close.focus()
+          }
+        }}
+        onClick={(event) => {
+          const rect = event.currentTarget.getBoundingClientRect()
+          if (
+            event.target === event.currentTarget &&
+            (event.clientX < rect.left ||
+              event.clientX > rect.right ||
+              event.clientY < rect.top ||
+              event.clientY > rect.bottom)
+          )
+            setSelected(null)
+        }}
+      >
+        {selected ? (
+          <>
             <button
               type="button"
               className={styles.close}
@@ -379,9 +424,9 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
                 </button>
               </div>
             </div>
-          </section>
-        </div>
-      ) : null}
+          </>
+        ) : null}
+      </dialog>
     </>
   )
 }
