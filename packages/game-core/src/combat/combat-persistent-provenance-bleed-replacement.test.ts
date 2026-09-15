@@ -119,6 +119,7 @@ function context(): CombatResolutionContext {
   }
 }
 
+// Regression: removing Bleed can legitimately reset the next stable application order.
 describe('P4.K3 Bleed replacement provenance', () => {
   it('tags the new Bleed when an earlier effect in the same command removes the prior stack', () => {
     const seeded = executeCombatAction(
