@@ -83,13 +83,7 @@ export function executeCombatAction(
   }
 
   return {
-    state: attachCombatEffectProvenance(
-      state,
-      transition.state,
-      action,
-      evaluation,
-      context,
-    ),
+    state: attachCombatEffectProvenance(state, transition.state, action, evaluation, context),
     events: transition.events,
     resolution: {
       pipelineVersion: COMBAT_RESOLUTION_PIPELINE_VERSION,
