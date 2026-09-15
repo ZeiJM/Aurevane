@@ -8,6 +8,7 @@ on:
       - agent/training-concept-ui
       - agent/battle-hall-concept-ui
       - agent/adventurers-concept-ui
+      - agent/character-roster-creation-concept-ui
     paths:
       - .github/workflows/profile-layout-review.yml
       - apps/web/e2e/*layout-regression.pw.ts
@@ -57,6 +58,19 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - name: Archive tracked continuation source
+        if: github.ref == 'refs/heads/agent/character-roster-creation-concept-ui'
+        run: |
+          git archive --format=zip --output=/tmp/ui-review-source.zip HEAD -- . ':!*.woff' ':!*.woff2' ':!*.ttf' ':!*.otf' ':!*.mp3' ':!*.ogg' ':!*.wav' ':!*.env' ':!*.env.*'
+          git rev-parse HEAD > /tmp/ui-review-source-commit.txt
+      - uses: actions/upload-artifact@v4
+        if: github.ref == 'refs/heads/agent/character-roster-creation-concept-ui'
+        with:
+          name: ui-review-source
+          path: |
+            /tmp/ui-review-source.zip
+            /tmp/ui-review-source-commit.txt
+          retention-days: 1
       - uses: actions/setup-node@v4
         with:
           node-version: 24
