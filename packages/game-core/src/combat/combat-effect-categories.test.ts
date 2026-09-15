@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
+import { P2_3_GUARDED_STATUS, type CombatStatusDefinition } from './actions'
+import { validateCombatStatusDefinition } from './combat-authoring-validation'
 import { COMBAT_EFFECT_CATEGORIES, validateCombatEffectCategory } from './combat-effect-categories'
+import { combatStatusEffectCategories } from './combat-effect-state'
 
 const EXPECTED_CATEGORIES = [
   'Damage',
@@ -34,5 +37,35 @@ describe('P4.K4 combat effect categories', () => {
     expect(() => validateCombatEffectCategory('damage')).toThrow(/effect category/i)
     expect(() => validateCombatEffectCategory('Scripted')).toThrow(/effect category/i)
     expect(() => validateCombatEffectCategory(null)).toThrow(/effect category/i)
+  })
+
+  it('keeps historical status definitions category-empty by default', () => {
+    expect(combatStatusEffectCategories(P2_3_GUARDED_STATUS)).toEqual([])
+  })
+
+  it('accepts distinct canonical categories on status definitions', () => {
+    const status = {
+      ...P2_3_GUARDED_STATUS,
+      effectCategories: ['Buff', 'Barrier'],
+    } as unknown as CombatStatusDefinition
+
+    expect(combatStatusEffectCategories(status)).toEqual(['Buff', 'Barrier'])
+    expect(() => validateCombatStatusDefinition(status)).not.toThrow()
+  })
+
+  it('rejects duplicate and unknown status categories', () => {
+    expect(() =>
+      validateCombatStatusDefinition({
+        ...P2_3_GUARDED_STATUS,
+        effectCategories: ['Buff', 'Buff'],
+      } as unknown as CombatStatusDefinition),
+    ).toThrow(/effect categories/i)
+
+    expect(() =>
+      validateCombatStatusDefinition({
+        ...P2_3_GUARDED_STATUS,
+        effectCategories: ['Scripted'],
+      } as unknown as CombatStatusDefinition),
+    ).toThrow(/effect category/i)
   })
 })
