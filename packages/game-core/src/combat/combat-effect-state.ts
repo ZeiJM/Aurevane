@@ -1,4 +1,5 @@
 import type { CombatStatusDefinition } from './actions'
+import type { CombatEffectCategory } from './combat-effect-categories'
 
 export type EffectPolarity = 'positive' | 'negative' | 'neutral' | 'mixed'
 
@@ -10,6 +11,7 @@ declare module './actions' {
     amplifyCopyable?: boolean
     curseCopyable?: boolean
     reactionClass?: ReactionClass
+    effectCategories?: readonly CombatEffectCategory[]
   }
 }
 
@@ -27,6 +29,12 @@ export function combatStatusMetadata(status: CombatStatusDefinition): CombatStat
     curseCopyable: status.curseCopyable ?? false,
     reactionClass: status.reactionClass ?? (status.endOfTurn ? 'periodic' : 'ordinary'),
   }
+}
+
+export function combatStatusEffectCategories(
+  status: CombatStatusDefinition,
+): readonly CombatEffectCategory[] {
+  return status.effectCategories ?? []
 }
 
 export interface DamageProvenance {
