@@ -1,0 +1,59 @@
+name: Reconcile Pierce ancestry with shared combat
+
+on:
+  push:
+    branches:
+      - agent/combat-k4-pierce-20260914
+    paths:
+      - .github/workflows/agent-k4-pierce-merge-shared.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: combat-k4-pierce-merge-shared
+  cancel-in-progress: false
+
+jobs:
+  reconcile-history:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact Pierce revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Merge exact live shared combat head
+        env:
+          EXPECTED_HEAD: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          branch=agent/combat-k4-pierce-20260914
+          shared=agent/combat-effect-taxonomy-rework
+          git fetch origin "$branch" "$shared"
+          test "$(git rev-parse "origin/$branch")" = "$EXPECTED_HEAD"
+          shared_sha="$(git rev-parse "origin/$shared")"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git merge --no-ff --no-commit "origin/$shared"
+          test -z "$(git diff --name-only --diff-filter=U)"
+          echo "SHARED_SHA=$shared_sha" >> "$GITHUB_ENV"
+          git diff --cached --check
+
+      - name: Commit ancestry reconciliation without staging workflow
+        env:
+          EXPECTED_HEAD: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          branch=agent/combat-k4-pierce-20260914
+          git rm .github/workflows/agent-k4-pierce-merge-shared.yml
+          git diff --cached --check
+          git commit -m 'merge: reconcile Pierce with shared K4 foundation'
+          test "$(git rev-parse HEAD^2)" = "$SHARED_SHA"
+          git fetch origin "$branch"
+          test "$(git rev-parse "origin/$branch")" = "$EXPECTED_HEAD"
+          git push origin "HEAD:refs/heads/$branch"
+          echo "Reconciled Pierce head: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Shared parent: $SHARED_SHA" >> "$GITHUB_STEP_SUMMARY"
