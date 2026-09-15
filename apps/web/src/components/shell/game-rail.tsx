@@ -62,6 +62,7 @@ export function GameRail({
               type="button"
               disabled
               title="Navigation is restricted until your active session ends"
+              aria-label={item.label}
               aria-current={active ? 'page' : undefined}
             >
               <NavigationIcon name={item.icon} />
@@ -72,6 +73,7 @@ export function GameRail({
               key={item.href}
               className={styles.railLink}
               href={item.href}
+              aria-label={item.label}
               aria-current={active ? 'page' : undefined}
               title={item.detail}
             >
