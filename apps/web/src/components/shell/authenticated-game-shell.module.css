@@ -20,25 +20,31 @@
 }
 
 .shell {
-  --av-shell-rail-width: 9.5rem;
-  --av-shell-header-height: 4.5rem;
+  --av-shell-rail-width: 4.75rem;
+  --av-shell-header-height: 4rem;
+  --av-shell-context-height: 3.1rem;
+  --av-shell-footer-height: 2.5rem;
   display: grid;
   grid-template-columns: var(--av-shell-rail-width) minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  width: calc(100% - clamp(2rem, 5vw, 5rem));
+  grid-template-rows:
+    var(--av-shell-header-height) var(--av-shell-context-height) minmax(0, 1fr)
+    var(--av-shell-footer-height);
+  width: calc(100% - clamp(0.5rem, 1.2vw, 1.25rem));
+  height: 100dvh;
   min-width: 0;
-  min-height: 100dvh;
+  min-height: 0;
   margin-inline: auto;
+  overflow: hidden;
   border-inline: 1px solid var(--av-border-strong);
-  background: rgba(7, 15, 24, 0.62);
+  background: rgba(7, 15, 24, 0.7);
+  box-shadow: 0 0 3rem rgba(0, 0, 0, 0.3);
 }
 
 .masthead {
+  position: relative;
+  z-index: 900;
   grid-column: 1 / -1;
   grid-row: 1;
-  position: sticky;
-  top: 0;
-  z-index: 900;
 }
 
 .brandGroup {
@@ -53,34 +59,17 @@
   align-items: center;
 }
 
-.screenIdentity,
-.screenLabel {
-  display: inline-flex;
-  min-width: 0;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.screenLabel strong {
-  max-width: 10rem;
-  overflow: hidden;
-  color: var(--av-text-muted);
-  font: 500 0.75rem/1.25 var(--av-font-body);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .activeBattleLink {
   display: inline-flex;
-  min-height: 2.75rem;
-  gap: 0.4rem;
+  min-height: 2.15rem;
+  gap: 0.38rem;
   align-items: center;
-  padding: 0.4rem 0.6rem;
+  padding: 0.35rem 0.6rem;
   border: 1px solid #aa6461;
   border-radius: var(--av-radius-sm);
   color: #ffd3cf;
   background: #4d242b;
-  font: 700 0.65rem/1.2 var(--av-font-body);
+  font: 700 0.62rem/1.2 var(--av-font-body);
   white-space: nowrap;
 }
 
@@ -89,111 +78,116 @@
 }
 
 .rail {
-  position: sticky;
-  top: var(--av-shell-header-height);
-  align-self: start;
-  height: calc(100dvh - var(--av-shell-header-height) - 3.5rem);
-  overflow-y: auto;
   display: flex;
   grid-column: 1;
-  grid-row: 2;
+  grid-row: 2 / 4;
   min-width: 0;
+  min-height: 0;
   flex-direction: column;
+  overflow-y: auto;
   border-right: 1px solid var(--av-border-strong);
-  background: linear-gradient(160deg, rgba(11, 23, 34, 0.95), rgba(7, 15, 24, 0.9));
+  background: linear-gradient(180deg, rgba(8, 18, 28, 0.98), rgba(5, 12, 20, 0.96));
+  scrollbar-width: thin;
 }
 
 .railNavigation {
   display: grid;
-  padding-top: 1.25rem;
+  padding-top: 0.35rem;
 }
 
 .railLink {
+  position: relative;
   display: flex;
   width: 100%;
-  min-height: 4rem;
-  gap: 0.7rem;
+  min-height: 4.35rem;
   align-items: center;
-  padding: 0.8rem 0.8rem;
+  justify-content: center;
+  padding: 0.7rem 0.25rem;
   border: 0;
   border-block: 1px solid transparent;
   border-left: 3px solid transparent;
   color: var(--av-text-muted);
   background: transparent;
-  font: 500 0.95rem/1.3 var(--av-font-display);
-  text-align: left;
+  text-align: center;
   transition:
     background var(--av-fast) ease,
-    color var(--av-fast) ease;
+    color var(--av-fast) ease,
+    border-color var(--av-fast) ease;
 }
 
 .railLink svg {
-  width: 1.4rem;
-  height: 1.4rem;
+  width: 1.65rem;
+  height: 1.65rem;
   flex: 0 0 auto;
 }
 
+.railLink > span {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .railLink[aria-current='page'] {
-  border-block-color: rgba(120, 226, 219, 0.3);
+  border-block-color: rgba(120, 226, 219, 0.22);
   border-left-color: var(--av-teal-bright);
   color: var(--av-teal-bright);
-  background: linear-gradient(90deg, #164c52, #102a34);
+  background:
+    linear-gradient(90deg, rgba(30, 111, 117, 0.48), rgba(13, 39, 50, 0.72)),
+    rgba(9, 22, 32, 0.92);
+  box-shadow: inset 0 0 1.1rem rgba(64, 208, 199, 0.08);
 }
 
 .railLink:hover:not(:disabled) {
+  border-left-color: var(--av-brass-300);
   color: var(--av-on-primary);
-  background: var(--av-teal);
+  background: rgba(21, 79, 86, 0.86);
 }
 
 .railLink:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: not-allowed;
 }
 
 .railSession {
-  margin: 0.8rem;
-  padding: 0.75rem 0.5rem;
-  border: 1px solid var(--av-border-strong);
-  color: var(--av-teal-bright);
-  font-size: 0.75rem;
-  line-height: 1.5;
+  display: none;
 }
 
 .railIdentity {
   display: flex;
   min-width: 0;
-  gap: 0.6rem;
   align-items: center;
+  justify-content: center;
   margin-top: auto;
-  padding: 1rem 0.7rem;
+  padding: 0.7rem 0.35rem;
   border-top: 1px solid var(--av-border-strong);
 }
 
 .railIdentity > div {
-  display: grid;
-  min-width: 0;
-  gap: 0.3rem;
-}
-
-.railIdentity strong {
-  overflow-wrap: anywhere;
-  font: 500 1rem/1.2 var(--av-font-display);
-}
-
-.railIdentity small {
-  color: var(--av-text-muted);
-  font-size: 0.75rem;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .screenPortrait {
   display: block;
-  width: 3rem;
-  height: 3rem;
+  width: 2.65rem;
+  height: 2.65rem;
   flex: 0 0 auto;
   overflow: hidden;
   border: 1px solid var(--av-brass-500);
   border-radius: var(--av-radius-sm);
   background: var(--av-ink-850);
+  box-shadow: 0 0.35rem 1rem rgba(0, 0, 0, 0.28);
 }
 
 .screenPortraitImage {
@@ -203,16 +197,105 @@
   object-position: center 25%;
 }
 
+.contextBar {
+  display: flex;
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+  min-height: 0;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.3rem clamp(0.65rem, 1.3vw, 1.15rem);
+  border-bottom: 1px solid var(--av-gold-rule);
+  background:
+    linear-gradient(90deg, rgba(13, 35, 46, 0.96), rgba(6, 16, 25, 0.95)),
+    var(--av-ink-950);
+}
+
+.contextHeading {
+  display: flex;
+  min-width: 0;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.contextHeading > span:not(:first-child) {
+  color: var(--av-text-dim);
+  font: 650 0.55rem/1 var(--av-font-body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.contextHeading strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--av-parchment-100);
+  font: 500 1.05rem/1.1 var(--av-font-display);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contextUtility {
+  display: flex;
+  min-width: 0;
+  gap: 0.55rem;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.contextCharacter {
+  display: flex;
+  min-width: 0;
+  gap: 0.55rem;
+  align-items: center;
+  padding-left: 0.65rem;
+  border-left: 1px solid var(--av-border-strong);
+}
+
+.contextCharacter .screenPortrait {
+  width: 2.15rem;
+  height: 2.15rem;
+}
+
+.contextCharacter > div {
+  display: grid;
+  min-width: 0;
+  gap: 0.08rem;
+}
+
+.contextCharacter strong {
+  max-width: 12rem;
+  overflow: hidden;
+  font: 500 0.88rem/1.1 var(--av-font-display);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contextCharacter small {
+  color: var(--av-text-dim);
+  font-size: 0.62rem;
+}
+
 .main {
   display: grid;
   grid-column: 2;
-  grid-row: 2;
+  grid-row: 3;
   grid-template-columns: minmax(0, 1fr);
   width: 100%;
   min-width: 0;
   min-height: 0;
   margin: 0;
-  padding: clamp(0.75rem, 1.5vw, 1.5rem);
+  padding: clamp(0.45rem, 0.85vw, 0.8rem);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+
+.shell[data-av-layout='battlefield'] .main {
+  padding: clamp(0.2rem, 0.45vw, 0.4rem);
+  overflow: hidden;
 }
 
 .primaryCard {
@@ -221,7 +304,7 @@
 
 .primaryCard h1 {
   margin: 0.55rem 0;
-  font: 500 clamp(1.8rem, 3.5vw, 3rem)/1.1 var(--av-font-display);
+  font: 500 clamp(1.8rem, 3.5vw, 3rem) / 1.1 var(--av-font-display);
 }
 
 .lead {
@@ -263,22 +346,22 @@
 .footer {
   display: flex;
   grid-column: 1 / -1;
-  grid-row: 3;
-  min-height: 3.5rem !important;
+  grid-row: 4;
+  min-height: 0 !important;
   gap: 0.75rem;
   align-items: center;
   justify-content: flex-start;
-  padding: 0.35rem clamp(0.65rem, 1.8vw, 1.5rem) max(0.35rem, env(safe-area-inset-bottom)) !important;
+  padding: 0.2rem clamp(0.55rem, 1.2vw, 1rem) max(0.2rem, env(safe-area-inset-bottom)) !important;
   border-top: 1px solid var(--av-border-strong);
 }
 
 .onlineLink {
   display: inline-flex;
-  min-height: 2.75rem;
-  gap: 0.5rem;
+  min-height: 2rem;
+  gap: 0.45rem;
   align-items: center;
   color: var(--av-text-muted);
-  font: 500 0.8rem/1.2 var(--av-font-body);
+  font: 500 0.72rem/1.2 var(--av-font-body);
 }
 
 .onlineLink::before {
@@ -294,83 +377,166 @@
   color: var(--av-teal-bright);
 }
 
-@media (max-width: 1100px) {
-  .screenLabel {
+@media (max-width: 980px) and (min-width: 761px) {
+  .contextHeading > span:not(:first-child) {
     display: none;
+  }
+
+  .contextCharacter strong {
+    max-width: 8rem;
   }
 }
 
 @media (max-width: 760px) {
+  .worldFrame {
+    min-height: 100dvh;
+  }
+
   .shell {
     width: 100%;
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
     border-inline: 0;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto;
   }
-  .rail {
-    position: static;
-    height: auto;
-    overflow: visible;
-    align-self: stretch;
+
+  .masthead {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .contextBar {
     grid-column: 1;
     grid-row: 2;
+    min-height: 2.75rem;
+    gap: 0.5rem;
+    padding: 0.3rem 0.65rem;
+  }
+
+  .contextHeading {
+    gap: 0.38rem;
+  }
+
+  .contextHeading > span:not(:first-child) {
+    display: none;
+  }
+
+  .contextHeading strong {
+    max-width: 9.5rem;
+    font-size: 0.9rem;
+  }
+
+  .contextCharacter {
+    gap: 0.4rem;
+    padding-left: 0.45rem;
+  }
+
+  .contextCharacter .screenPortrait {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .contextCharacter strong {
+    max-width: 7.5rem;
+    font-size: 0.78rem;
+  }
+
+  .contextCharacter small {
+    font-size: 0.55rem;
+  }
+
+  .activeBattleLink {
+    min-height: 1.9rem;
+    padding-inline: 0.45rem;
+    font-size: 0.55rem;
+  }
+
+  .rail {
+    grid-column: 1;
+    grid-row: 3;
+    min-height: 0;
+    overflow: visible;
     border-right: 0;
     border-bottom: 1px solid var(--av-border-strong);
   }
+
   .railNavigation {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     padding: 0;
   }
+
   .railLink {
     min-height: 3.65rem;
     flex-direction: column;
-    gap: 0.3rem;
+    gap: 0.28rem;
     justify-content: center;
-    padding: 0.45rem 0.15rem;
+    padding: 0.42rem 0.15rem;
     border-left: 0;
     border-bottom: 2px solid transparent;
-    font-size: 0.68rem;
-    text-align: center;
+    font: 500 0.68rem/1.2 var(--av-font-display);
   }
+
   .railLink svg {
     width: 1.2rem;
     height: 1.2rem;
   }
+
+  .railLink > span {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip: auto;
+    clip-path: none;
+    white-space: normal;
+  }
+
   .railLink[aria-current='page'] {
     border-top-color: transparent;
     border-bottom-color: var(--av-teal-bright);
   }
+
   .railIdentity {
-    gap: 0.5rem;
-    padding: 0.4rem 0.75rem;
+    display: none;
   }
-  .railIdentity > div {
-    display: flex;
-    gap: 0.6rem;
-    align-items: baseline;
-  }
-  .railIdentity strong {
-    font-size: 0.875rem;
-  }
-  .screenPortrait {
-    width: 1.75rem;
-    height: 1.75rem;
-  }
-  .railSession {
-    margin: 0.4rem 0.75rem;
-    padding: 0.55rem;
-  }
+
   .main {
     grid-column: 1;
-    grid-row: 3;
-    padding: 0.65rem;
-  }
-  .footer {
     grid-row: 4;
+    min-height: 0;
+    padding: 0.55rem;
+    overflow: visible;
   }
+
+  .shell[data-av-layout='battlefield'] .main {
+    min-height: calc(100dvh - 12rem);
+    padding: 0.25rem;
+    overflow: hidden;
+  }
+
+  .footer {
+    grid-column: 1;
+    grid-row: 5;
+    min-height: 2.5rem !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .contextCharacter > div {
+    display: none;
+  }
+
+  .contextCharacter {
+    padding-left: 0.35rem;
+  }
+
   .activeBattleLink {
-    min-height: 2rem;
-    font-size: 0.58rem;
+    max-width: 7rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 
