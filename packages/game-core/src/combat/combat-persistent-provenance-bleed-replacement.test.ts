@@ -10,8 +10,9 @@ import { createPendingBattle, startBattle } from './battle-state'
 import { createTacticalBattleState } from './board'
 import { normalizeCombatEffectState } from './combat-effect-state'
 import { createCombatActionProvenance, createCombatTriggerGuard } from './combat-kernel-types'
+import { PHASE4_STATUSES } from './status-content'
 
-const CONTENT = { statuses: [] }
+const CONTENT = { statuses: PHASE4_STATUSES }
 
 const APPLY_BLEED: CombatActionDefinition = {
   id: 'test.k3.prior-bleed',
