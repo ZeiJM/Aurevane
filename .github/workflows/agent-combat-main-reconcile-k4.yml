@@ -1,0 +1,134 @@
+name: Reconcile shared combat K4 with latest main
+
+on:
+  push:
+    branches:
+      - agent/combat-main-reconcile-k4-20260914
+    paths:
+      - .github/workflows/agent-combat-main-reconcile-k4.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: combat-main-reconcile-k4
+  cancel-in-progress: false
+
+jobs:
+  reconcile-verify-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact reconciliation revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Merge latest main and resolve only approved Profile E2E overlaps
+        env:
+          EXPECTED_HEAD: ${{ github.sha }}
+          EXPECTED_MAIN: 9871f778cd11f2864b4db23fdd11f03d58e10c66
+        run: |
+          set -euo pipefail
+          branch=agent/combat-main-reconcile-k4-20260914
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin "$branch" main
+          test "$(git rev-parse "origin/$branch")" = "$EXPECTED_HEAD"
+          test "$(git rev-parse origin/main)" = "$EXPECTED_MAIN"
+
+          set +e
+          git merge --no-ff --no-commit origin/main
+          merge_status=$?
+          set -e
+
+          conflicts="$(git diff --name-only --diff-filter=U || true)"
+          if [ -n "$conflicts" ]; then
+            while IFS= read -r path; do
+              case "$path" in
+                apps/web/e2e/mixed-build-battle-entry.pw.ts|apps/web/e2e/p3-8-representative-buildcraft.pw.ts)
+                  git checkout --theirs -- "$path"
+                  git add "$path"
+                  ;;
+                *)
+                  echo "Unexpected merge conflict: $path" >&2
+                  exit 1
+                  ;;
+              esac
+            done <<< "$conflicts"
+          elif [ "$merge_status" -ne 0 ]; then
+            echo 'Merge failed without reported content conflicts.' >&2
+            exit "$merge_status"
+          fi
+
+          python - <<'PY'
+          from pathlib import Path
+
+          mixed = Path('apps/web/e2e/mixed-build-battle-entry.pw.ts')
+          text = mixed.read_text()
+          old_save = """  await page.getByRole('button', { name: 'Commit Selected Techniques' }).click()\n  await expect(page.getByRole('status')).toContainText('Selected Techniques committed')"""
+          new_save = """  const saved = page.waitForResponse(\n    (response) =>\n      response.url().endsWith('/api/character/build/skills') &&\n      response.request().method() === 'PUT',\n  )\n  await page.getByRole('button', { name: 'Commit Selected Techniques' }).click()\n  expect((await saved).status()).toBe(200)"""
+          if old_save in text:
+              text = text.replace(old_save, new_save, 1)
+          elif "response.url().endsWith('/api/character/build/skills')" not in text:
+              raise SystemExit('mixed build: neither authoritative save assertion nor expected main assertion found')
+          old_link = ".getByRole('link', { name: /Battle Hall/ })"
+          new_link = ".getByRole('link', { name: 'Battle Hall', exact: true })"
+          if old_link in text:
+              text = text.replace(old_link, new_link, 1)
+          elif new_link not in text:
+              raise SystemExit('mixed build: Battle Hall rail selector missing')
+          mixed.write_text(text)
+
+          representative = Path('apps/web/e2e/p3-8-representative-buildcraft.pw.ts')
+          text = representative.read_text()
+          if old_link in text:
+              text = text.replace(old_link, new_link, 1)
+          elif new_link not in text:
+              raise SystemExit('representative buildcraft: Battle Hall rail selector missing')
+          representative.write_text(text)
+          PY
+
+          git add apps/web/e2e/mixed-build-battle-entry.pw.ts apps/web/e2e/p3-8-representative-buildcraft.pw.ts
+          test -z "$(git diff --name-only --diff-filter=U)"
+          grep -Fq "response.url().endsWith('/api/character/build/skills')" apps/web/e2e/mixed-build-battle-entry.pw.ts
+          grep -Fq "name: 'Primary game navigation', exact: true" apps/web/e2e/mixed-build-battle-entry.pw.ts
+          grep -Fq "name: 'Primary game navigation', exact: true" apps/web/e2e/p3-8-representative-buildcraft.pw.ts
+          grep -Fq "name: 'Battle Hall', exact: true" apps/web/e2e/mixed-build-battle-entry.pw.ts
+          grep -Fq "name: 'Battle Hall', exact: true" apps/web/e2e/p3-8-representative-buildcraft.pw.ts
+          git diff --cached --check
+          echo "MAIN_SHA=$EXPECTED_MAIN" >> "$GITHUB_ENV"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install pinned dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run full repository quality gate
+        run: pnpm check
+
+      - name: Verify and publish clean reconciliation merge
+        env:
+          EXPECTED_HEAD: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          branch=agent/combat-main-reconcile-k4-20260914
+          git diff --check
+          git diff --cached --check
+          git rm .github/workflows/agent-combat-main-reconcile-k4.yml
+          git commit -m 'merge: reconcile shared combat K4 with latest main'
+          test "$(git rev-parse HEAD^2)" = "$MAIN_SHA"
+          git fetch origin "$branch"
+          test "$(git rev-parse "origin/$branch")" = "$EXPECTED_HEAD"
+          git push origin "HEAD:refs/heads/$branch"
+          echo "Reconciled head: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Merged main: $MAIN_SHA" >> "$GITHUB_STEP_SUMMARY"
