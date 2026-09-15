@@ -229,9 +229,7 @@ describe('P4.K3 persistent provenance threading', () => {
     const second = cast(first.state, secondContext)
     const secondProvenance = persistentProvenance(second.state)
 
-    expect(firstPoison?.instanceId).toBe(
-      `effect:chain:k3:first:${PERSISTENT_ACTION.id}:1:target`,
-    )
+    expect(firstPoison?.instanceId).toBe(`effect:chain:k3:first:${PERSISTENT_ACTION.id}:1:target`)
     expectProvenance(secondProvenance.status, 'chain:k3:second', 0)
     expectProvenance(secondProvenance.poison, 'chain:k3:second', 1)
     expectProvenance(secondProvenance.burn, 'chain:k3:second', 3)
