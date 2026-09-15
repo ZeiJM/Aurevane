@@ -63,6 +63,7 @@ test('creates a slotted character, persists its profile, and resumes it across s
     '0',
   )
 
+  // Starter portrait filenames are registry-driven; verify the rendered image and decoded asset.
   const profilePortrait = page.getByTestId('character-profile').locator('img').first()
   await expect(profilePortrait).toBeVisible()
   await expect
