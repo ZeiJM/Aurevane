@@ -1,5 +1,6 @@
 import type { CombatStatusDefinition } from './actions'
 import type { CombatEffectCategory } from './combat-effect-categories'
+import type { CombatEffectInstanceProvenance } from './combat-kernel-types'
 
 export type EffectPolarity = 'positive' | 'negative' | 'neutral' | 'mixed'
 
@@ -51,6 +52,7 @@ export interface CombatOngoingRecovery {
   sourceActionId: string
   amountPerTick: number
   remainingFutureTicks: number
+  provenance?: CombatEffectInstanceProvenance
 }
 
 export interface CombatPoisonInstance {
@@ -59,6 +61,7 @@ export interface CombatPoisonInstance {
   sourceActionId: string
   profileVersion: number
   movementRemainder: number
+  provenance?: CombatEffectInstanceProvenance
 }
 
 export interface CombatBleedStack {
@@ -68,6 +71,7 @@ export interface CombatBleedStack {
   damagePerTick: number
   remainingTicks: number
   applicationOrder: number
+  provenance?: CombatEffectInstanceProvenance
 }
 
 export interface CombatBurnInstance {
@@ -76,6 +80,7 @@ export interface CombatBurnInstance {
   sourceActionId: string
   profileVersion: number
   stage: number
+  provenance?: CombatEffectInstanceProvenance
 }
 
 export interface CombatTemporarySkillGrant {
