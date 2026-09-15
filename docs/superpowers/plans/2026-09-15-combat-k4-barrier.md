@@ -33,7 +33,7 @@
 - Consumes: existing `executeCombatAction`, `validateCombatActionDefinition`, `combatActionPresentationTags`.
 - Produces: executable contract for `barrier-change`, direct-damage absorption, max-HP cap, Pierce ordering, validation, and presentation.
 
-- [ ] **Step 1: Write the failing contract tests**
+- [x] **Step 1: Write the failing contract tests**
 
 Create a focused encounter fixture with actor/recruit at range 1 and zero defense. Author a test-only positive effect by casting through the public type boundary until production types gain the new variant:
 
@@ -56,6 +56,8 @@ expect(recruitHp(afterPiercing20DamageWith8Barrier)).toBe(88)
 expect(() => validateCombatActionDefinition(barrierAction(0), CONTENT)).toThrow(/barrier/i)
 expect(combatActionPresentationTags(barrierAction(8))).toContain('Barrier')
 ```
+
+The repository-pinned Prettier formatter normalized the test-only contract at commit `bdbdb1a00ce7c046e7385fbdb05dd4da2599e493` before RED verification; no production combat files were changed.
 
 - [ ] **Step 2: Verify RED**
 
