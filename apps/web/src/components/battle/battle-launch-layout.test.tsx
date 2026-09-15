@@ -20,6 +20,8 @@ describe('Battle Hall concept composition', () => {
     )
     expect(markup.match(/data-hall-workspace="/g)).toHaveLength(3)
     expect(markup).toContain('data-hall-scene="true"')
+    expect(markup.match(/data-hall-scroll-body="true"/g)).toHaveLength(3)
+    expect(markup.match(/data-hall-action-row="true"/g)).toHaveLength(2)
     expect(markup).toContain('AI Sparring')
     expect(markup).toContain('Create Battle Lobby')
     expect(markup).toContain('Join Battle Lobby')

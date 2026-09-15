@@ -112,13 +112,38 @@
   flex-direction: column;
   gap: 0.65rem;
   padding: 0.85rem;
-  overflow: auto;
+  overflow: hidden;
   border: 1px solid var(--av-border-strong);
   border-top: 2px solid #b69b67;
   color: var(--av-text);
   background: #09141d;
   scrollbar-width: thin;
   scroll-padding: 0.85rem;
+}
+/* Actions occupy a real row; scrolling never carries them below the viewport. */
+.workspaceBody {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding-right: 0.15rem;
+  overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-gutter: stable;
+  scroll-padding: 0.5rem;
+}
+.workspaceBody > * {
+  flex-shrink: 0;
+}
+.panelActions {
+  display: grid;
+  flex: 0 0 auto;
+  gap: 0.5rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid var(--av-border-strong);
+  background: #09141d;
 }
 .workspaceHeading {
   display: grid;
@@ -467,6 +492,12 @@
   }
   .workspace {
     overflow: visible;
+  }
+  .workspaceBody {
+    flex: 0 1 auto;
+    overflow: visible;
+    scrollbar-gutter: auto;
+    padding: 0;
   }
   .workspace:not([data-selected]) {
     display: none;
