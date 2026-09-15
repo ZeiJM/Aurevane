@@ -31,11 +31,11 @@
   }
 
   [data-character-select-page='true'] > main {
-    display: grid;
-    grid-template-rows: auto auto minmax(0, 1fr);
+    display: flex;
     width: calc(100% - 1rem) !important;
     max-width: 96rem !important;
     min-height: 0;
+    flex-direction: column;
     gap: 0.55rem;
     margin-inline: auto;
     padding: 0.55rem !important;
@@ -66,6 +66,7 @@
   [data-character-select-page='true'] [aria-label='Character slots'] {
     min-height: 0;
     height: 100%;
+    flex: 1 1 auto;
     gap: 0.65rem !important;
     align-items: stretch;
     overflow: auto;
@@ -181,7 +182,9 @@
 
   [data-profile-workspace] > :first-child {
     height: 100%;
-    overflow: hidden;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
   }
 
   [data-profile-workspace] > :nth-child(2),
