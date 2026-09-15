@@ -97,14 +97,13 @@ function encounter(
     }),
     ids.map((combatantId) => ({
       combatantId,
-      statuses: (
-        combatantId === 'target'
-          ? (options.statuses ?? [MP25])
-          : combatantId === 'actor'
-            ? (options.actorStatuses ?? [])
-            : options.witnessAbsorbs
-              ? [MP25]
-              : []
+      statuses: (combatantId === 'target'
+        ? (options.statuses ?? [MP25])
+        : combatantId === 'actor'
+          ? (options.actorStatuses ?? [])
+          : options.witnessAbsorbs
+            ? [MP25]
+            : []
       ).map((status) => ({
         statusId: status.id,
         statusVersion: status.version,
@@ -143,12 +142,7 @@ function cast(
   action: CombatActionDefinition = hit(),
   statuses: readonly CombatStatusDefinition[] = [MP25],
 ): CombatResolutionTransition {
-  return executeCombatAction(
-    state,
-    action,
-    { kind: 'unit', combatantId: 'target' },
-    { statuses },
-  )
+  return executeCombatAction(state, action, { kind: 'unit', combatantId: 'target' }, { statuses })
 }
 
 function unit(result: CombatResolutionTransition, id = 'target') {
@@ -262,10 +256,7 @@ describe('Absorb MP committed-command recovery', () => {
 
   it('restores MP even when ordinary healing removes all net HP loss', () => {
     const action = hit()
-    action.effects = [
-      ...action.effects,
-      { type: 'healing', recipient: 'primary-unit', amount: 20 },
-    ]
+    action.effects = [...action.effects, { type: 'healing', recipient: 'primary-unit', amount: 20 }]
     const result = cast(encounter(), action)
     expect(unit(result)).toMatchObject({ hp: 100, mp: 15 })
   })
