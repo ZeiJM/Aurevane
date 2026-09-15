@@ -145,8 +145,7 @@ describe('P4.K3 Bleed replacement provenance', () => {
       targetCombatantId: 'target',
       applicationOrder: 1,
       provenance: {
-        instanceId:
-          'effect:chain:k3:remove-reapply-bleed:test.k3.remove-reapply-bleed:1:target',
+        instanceId: 'effect:chain:k3:remove-reapply-bleed:test.k3.remove-reapply-bleed:1:target',
         effectOrdinal: 1,
         targetCombatantId: 'target',
       },
