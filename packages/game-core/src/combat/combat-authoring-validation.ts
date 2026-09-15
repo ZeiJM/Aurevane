@@ -1,3 +1,4 @@
+import { validateBarrierEffect } from './combat-barrier'
 import { validateRecoveryEffect } from './combat-recovery'
 import { validateCurrentBleedEffect } from './combat-dots'
 import { validateCombatEffectCategory } from './combat-effect-categories'
@@ -110,6 +111,7 @@ export function validateCombatActionDefinition(
 
   for (const effect of action.effects) {
     validateRecoveryEffect(effect)
+    validateBarrierEffect(effect)
     knownString(
       effect.type,
       [
@@ -124,6 +126,7 @@ export function validateCombatActionDefinition(
         'poison',
         'bleed',
         'burn',
+        'barrier-change',
       ],
       'effect type',
     )

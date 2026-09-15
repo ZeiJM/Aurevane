@@ -294,6 +294,7 @@ function effectPresentationTags(effect: PresentationEffect): readonly string[] {
   }
 
   const directLabels: Readonly<Record<string, string>> = {
+    'barrier-change': 'Barrier',
     copy: 'Copy',
     'absorb-hp': 'Absorb HP',
     'absorb-mp': 'Absorb MP',

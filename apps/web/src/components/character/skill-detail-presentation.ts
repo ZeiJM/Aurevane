@@ -50,6 +50,8 @@ export function skillEffectDescription(effect: CombatEffectDefinition): string {
       return 'Return to the vacant tile where you started this turn. Root blocks the return. No HP, MP, AP, Movement or past action is refunded.'
     case 'healing':
       return `Restore up to ${effect.amount} HP to ${target}.${recoveryTiming(effect.ticks)}`
+    case 'barrier-change':
+      return `Grant up to ${effect.amount} Barrier to ${target}.`
     case 'resource-change':
       return `${effect.delta >= 0 ? 'Restore up to' : 'Remove'} ${Math.abs(effect.delta)} MP ${effect.delta >= 0 ? 'to' : 'from'} ${target}.${effect.delta >= 0 ? recoveryTiming(effect.ticks) : ''}`
     case 'remove-status':

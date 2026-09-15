@@ -66,6 +66,7 @@ export function attachCombatEffectProvenance(
   let poison = afterEffects.poison
   let bleed = afterEffects.bleed
   let burn = afterEffects.burn
+  let barriers = afterEffects.barriers ?? []
   let statusChanged = false
   let effectStateChanged = false
 
@@ -100,6 +101,7 @@ export function attachCombatEffectProvenance(
       effect.type !== 'apply-status' &&
       effect.type !== 'poison' &&
       effect.type !== 'burn' &&
+      effect.type !== 'barrier-change' &&
       !createsRecoverySchedule(effect)
     ) {
       continue
@@ -143,6 +145,23 @@ export function attachCombatEffectProvenance(
       if (effect.type === 'burn') {
         let updated = false
         burn = burn.map((instance) => {
+          if (
+            instance.targetCombatantId !== targetCombatantId ||
+            instance.sourceCombatantId !== actorId ||
+            instance.sourceActionId !== action.id
+          ) {
+            return instance
+          }
+          updated = true
+          return { ...instance, provenance }
+        })
+        effectStateChanged ||= updated
+        continue
+      }
+
+      if (effect.type === 'barrier-change') {
+        let updated = false
+        barriers = barriers.map((instance) => {
           if (
             instance.targetCombatantId !== targetCombatantId ||
             instance.sourceCombatantId !== actorId ||
@@ -231,6 +250,7 @@ export function attachCombatEffectProvenance(
             poison,
             bleed,
             burn,
+            barriers,
           },
         }
       : {}),
