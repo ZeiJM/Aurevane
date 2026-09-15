@@ -1,4 +1,8 @@
 import { disciplineSigilDataUrl } from './generated-dark-fantasy-art'
+import { GENERATED_STARTER_PORTRAITS_1 } from './generated-starter-portraits-1'
+import { GENERATED_STARTER_PORTRAITS_2 } from './generated-starter-portraits-2'
+import { GENERATED_STARTER_PORTRAITS_3 } from './generated-starter-portraits-3'
+import { GENERATED_STARTER_PORTRAITS_4 } from './generated-starter-portraits-4'
 
 export type ImageAssetStatus = 'requested' | 'approved'
 export type ImageAssetKind = 'environment' | 'character' | 'ui' | 'icon'
@@ -42,6 +46,13 @@ const foundationSigils = [
 // Links generated runtime derivatives to the committed concept-ui provenance record.
 const conceptUiGenerationRequestId = 'ART-UI-029'
 
+const generatedStarterPortraits = [
+  ...GENERATED_STARTER_PORTRAITS_1,
+  ...GENERATED_STARTER_PORTRAITS_2,
+  ...GENERATED_STARTER_PORTRAITS_3,
+  ...GENERATED_STARTER_PORTRAITS_4,
+] as const
+
 const IMAGE_ASSETS = [
   ...phase4Sigils.map(([discipline, requestId]) => ({
     id: `art.phase4.${discipline}.identity.v01`,
@@ -78,54 +89,18 @@ const IMAGE_ASSETS = [
     width: 1536,
     height: 1024,
   },
-  {
-    id: 'character.creation.portrait-01',
-    kind: 'character',
-    status: 'approved',
+  ...generatedStarterPortraits.map((portrait) => ({
+    id: portrait.id,
+    kind: 'character' as const,
+    status: 'approved' as const,
     requestId: 'ART-CHR-001',
     generationRequestId: conceptUiGenerationRequestId,
     decorative: false,
-    alt: 'Adventurer with tousled blond hair, silver armor and a dark green cloak, holding a sword',
-    src: '/media/art/concept-ui/portrait-01-v01.webp',
-    width: 768,
-    height: 1152,
-  },
-  {
-    id: 'character.creation.portrait-02',
-    kind: 'character',
-    status: 'approved',
-    requestId: 'ART-CHR-001',
-    generationRequestId: conceptUiGenerationRequestId,
-    decorative: false,
-    alt: 'Adventurer with long silver hair, a violet cloak and black armor, holding a purple crystal',
-    src: '/media/art/concept-ui/portrait-02-v01.webp',
-    width: 768,
-    height: 1152,
-  },
-  {
-    id: 'character.creation.portrait-03',
-    kind: 'character',
-    status: 'approved',
-    requestId: 'ART-CHR-001',
-    generationRequestId: conceptUiGenerationRequestId,
-    decorative: false,
-    alt: 'Adventurer with short dark curls, a green cloak and leather armor, carrying a bow and quiver',
-    src: '/media/art/concept-ui/portrait-03-v01.webp',
-    width: 768,
-    height: 1152,
-  },
-  {
-    id: 'character.creation.portrait-04',
-    kind: 'character',
-    status: 'approved',
-    requestId: 'ART-CHR-001',
-    generationRequestId: conceptUiGenerationRequestId,
-    decorative: false,
-    alt: 'Adventurer with short black hair, a teal cloak and bronze bracers over wrapped forearms',
-    src: '/media/art/concept-ui/portrait-04-v01.webp',
-    width: 768,
-    height: 1152,
-  },
+    alt: portrait.alt,
+    src: portrait.src,
+    width: 96,
+    height: 96,
+  })),
   {
     id: 'character.creation.appearance-reference',
     kind: 'character',
