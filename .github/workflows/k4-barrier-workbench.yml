@@ -6,17 +6,16 @@ on:
       - agent/combat-k4-barrier-workbench-20260915
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  format-red-contract:
+  focused-red-contract:
     runs-on: ubuntu-latest
     steps:
       - name: Check out Barrier ticket branch
         uses: actions/checkout@v4
         with:
           ref: agent/combat-k4-barrier-20260915
-          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -31,20 +30,8 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Format RED contract
-        run: pnpm exec prettier --write packages/game-core/src/combat/combat-barrier.test.ts
-
-      - name: Verify focused formatting
+      - name: Verify test formatting
         run: pnpm exec prettier --check packages/game-core/src/combat/combat-barrier.test.ts
 
-      - name: Commit formatted RED contract
-        run: |
-          git config user.name "AUREVANE K4 Workbench"
-          git config user.email "actions@users.noreply.github.com"
-          git add packages/game-core/src/combat/combat-barrier.test.ts
-          if git diff --cached --quiet; then
-            echo "No formatting changes produced."
-            exit 0
-          fi
-          git commit -m "test: format K4 barrier RED contract"
-          git push origin HEAD:agent/combat-k4-barrier-20260915
+      - name: Run focused Barrier RED contract
+        run: pnpm --filter @aurevane/game-core test -- combat-barrier.test.ts
