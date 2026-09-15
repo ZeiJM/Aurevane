@@ -1,0 +1,32 @@
+name: K3 Bleed Focused GREEN
+
+on:
+  push:
+    branches:
+      - agent/combat-k3-bleed-focused-green-20260915
+
+jobs:
+  focused-green:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        shell: bash
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Verify focused formatting
+        run: pnpm exec prettier --check packages/game-core/src/combat/combat-effect-provenance.ts packages/game-core/src/combat/combat-persistent-provenance-bleed-replacement.test.ts
+      - name: Run Bleed regression contract
+        run: pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-persistent-provenance-bleed-replacement.test.ts
+      - name: Run persistent provenance threading contract
+        run: pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-persistent-provenance-threading.test.ts
+      - name: Run game-core typecheck
+        run: pnpm --filter @aurevane/game-core typecheck
