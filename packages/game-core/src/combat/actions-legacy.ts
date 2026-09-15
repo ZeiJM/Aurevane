@@ -1,4 +1,11 @@
 import {
+  absorbDirectDamageWithBarrier,
+  currentBarrierAmount,
+  grantBarrier,
+  validateBarrierEffect,
+  validateBarrierState,
+} from './combat-barrier'
+import {
   validateRecoveryEffect,
   validateOngoingRecoveryState,
   replaceRecoverySchedule,
@@ -148,6 +155,7 @@ export type CombatEffectDefinition =
       damagePerTick: number
       ticks: number
     }
+  | { type: 'barrier-change'; recipient: CombatEffectRecipient; amount: number }
   | { type: 'healing'; recipient: CombatEffectRecipient; amount: number; ticks?: number }
   | { type: 'return-to-turn-start'; recipient: 'actor' }
   | { type: 'remove-status'; recipient: CombatEffectRecipient; statusIds: readonly string[] }
@@ -317,6 +325,24 @@ export type CombatResolutionEvent =
       amount: number
       hpBefore: number
       hpAfter: number
+    }
+  | {
+      event: 'barrier_changed'
+      actionId: string
+      sourceCombatantId: string
+      targetCombatantId: string
+      amount: number
+      before: number
+      after: number
+    }
+  | {
+      event: 'barrier_absorbed'
+      actionId: string
+      sourceCombatantId: string
+      targetCombatantId: string
+      amount: number
+      before: number
+      after: number
     }
   | {
       event: 'healing_applied'
@@ -976,6 +1002,7 @@ export function validateCombatEncounterState(
   const issues: CombatEncounterIssue[] = [
     ...validateTerrainOverlays(state),
     ...validateOngoingRecoveryState(state),
+    ...validateBarrierState(state),
     ...validateCombatDotState(state),
   ]
   collectPersistentProvenanceIssues(state, issues)
@@ -1099,6 +1126,7 @@ function collectPersistentProvenanceIssues(
     ['poison', effectState.poison],
     ['bleed', effectState.bleed],
     ['burn', effectState.burn],
+    ['barriers', effectState.barriers],
   ]
   for (const [name, rows] of collections) {
     if (!Array.isArray(rows)) continue
@@ -1457,6 +1485,9 @@ function resolveActionEffects(
         const resource = effect.type === 'resource-change' ? 'mp' : 'hp'
         beforeValue = getCombatant(before.tactical.battle, recipientId)[resource]
         afterValue = getCombatant(nextState.tactical.battle, recipientId)[resource]
+      } else if (effect.type === 'barrier-change') {
+        beforeValue = currentBarrierAmount(before, recipientId)
+        afterValue = currentBarrierAmount(nextState, recipientId)
       } else if (effect.type === 'return-to-turn-start' || effect.type === 'displace') {
         const from = getPlacement(before.tactical, recipientId).position
         const to = getPlacement(nextState.tactical, recipientId).position
@@ -1573,6 +1604,23 @@ function applyEffect(
       events: [],
     }
   }
+  if (effect.type === 'barrier-change') {
+    const changed = grantBarrier(state, actorId, recipientId, actionId, effect.amount)
+    return {
+      state: changed.state,
+      events: [
+        {
+          event: 'barrier_changed',
+          actionId,
+          sourceCombatantId: actorId,
+          targetCombatantId: recipientId,
+          amount: changed.applied,
+          before: changed.before,
+          after: changed.after,
+        },
+      ],
+    }
+  }
   if (effect.type === 'return-to-turn-start') {
     const from = getPlacement(state.tactical, actorId).position
     const to = state.turnOrigin!.position
@@ -1606,8 +1654,9 @@ function applyEffect(
       stormBonus ? 12_000 : 10_000,
     )
     if (stormBonus && amount > 0) stormRecipients.add(recipientId)
-    const hpAfter = Math.max(0, target.hp - amount)
-    const updated = withUpdatedCombatant(state, recipientId, { ...target, hp: hpAfter })
+    const barrier = absorbDirectDamageWithBarrier(state, recipientId, amount)
+    const hpAfter = Math.max(0, target.hp - barrier.remainingDamage)
+    const updated = withUpdatedCombatant(barrier.state, recipientId, { ...target, hp: hpAfter })
     const removed =
       hpAfter < target.hp
         ? removeGameplayTags(
@@ -1626,6 +1675,19 @@ function applyEffect(
     return {
       state: removed.state,
       events: [
+        ...(barrier.absorbed > 0
+          ? [
+              {
+                event: 'barrier_absorbed' as const,
+                actionId,
+                sourceCombatantId: actorId,
+                targetCombatantId: recipientId,
+                amount: barrier.absorbed,
+                before: barrier.before,
+                after: barrier.after,
+              },
+            ]
+          : []),
         {
           event: 'damage_applied',
           actionId,
@@ -2328,6 +2390,7 @@ function validateCombatActionDefinition(
 
   for (const effect of action.effects) {
     validateRecoveryEffect(effect)
+    validateBarrierEffect(effect)
     assertKnownString(
       effect.type,
       [
@@ -2342,6 +2405,7 @@ function validateCombatActionDefinition(
         'poison',
         'bleed',
         'burn',
+        'barrier-change',
       ],
       'effect type',
     )

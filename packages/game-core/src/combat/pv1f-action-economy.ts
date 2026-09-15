@@ -911,7 +911,7 @@ function scaleRepeatedMatureSkillEffects(
 ): readonly CombatEffectDefinition[] {
   const scaled: CombatEffectDefinition[] = []
   for (const effect of effects) {
-    if (effect.type === 'damage' || effect.type === 'healing') {
+    if (effect.type === 'damage' || effect.type === 'healing' || effect.type === 'barrier-change') {
       scaled.push({ ...effect, amount: halfPositiveMagnitude(effect.amount) })
       continue
     }
