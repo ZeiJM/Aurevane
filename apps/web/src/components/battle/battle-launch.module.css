@@ -547,6 +547,19 @@
   .setupCard {
     gap: 0.35rem;
   }
+  /* Keep the restored format description without pushing flexible-team settings offscreen. */
+  .workspace[data-tone='pvp'] {
+    gap: 0.35rem;
+  }
+  .workspace[data-tone='pvp'] .entryModes {
+    padding-block: 0;
+  }
+  .workspace[data-tone='pvp'] .panelActions {
+    padding-top: 0.4rem;
+  }
+  .workspace[data-tone='pvp'] [data-pvp-settings-panel] {
+    margin-block: 0.2rem;
+  }
 }
 @media (max-width: 1199px) {
   .page {
