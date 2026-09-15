@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import { defaultPronounPresetForPresentation } from './creation'
-import { STARTER_CHARACTER_PORTRAITS } from './starter-options'
+import {
+  defaultPronounPresetForPresentation,
+  STARTER_CHARACTER_PORTRAITS,
+} from './starter-options'
 
 describe('starter character identity options', () => {
   it('offers a large deterministic starter portrait catalog', () => {
