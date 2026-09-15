@@ -43,11 +43,12 @@ jobs:
           python /tmp/k4_barrier_green.py
           python /tmp/k4_barrier_k3_followup.py
 
-      - name: Format production delta
+      - name: Format Barrier delta
         run: |
           pnpm exec prettier --write \
             packages/game-core/src/combat/actions-legacy.ts \
             packages/game-core/src/combat/combat-authoring-validation.ts \
+            packages/game-core/src/combat/combat-barrier.test.ts \
             packages/game-core/src/combat/combat-barrier.ts \
             packages/game-core/src/combat/combat-effect-provenance.ts \
             packages/game-core/src/combat/combat-effect-state.ts \
@@ -61,6 +62,7 @@ jobs:
           printf '%s\n' \
             packages/game-core/src/combat/actions-legacy.ts \
             packages/game-core/src/combat/combat-authoring-validation.ts \
+            packages/game-core/src/combat/combat-barrier.test.ts \
             packages/game-core/src/combat/combat-barrier.ts \
             packages/game-core/src/combat/combat-effect-provenance.ts \
             packages/game-core/src/combat/combat-effect-state.ts \
@@ -85,6 +87,7 @@ jobs:
           git add \
             packages/game-core/src/combat/actions-legacy.ts \
             packages/game-core/src/combat/combat-authoring-validation.ts \
+            packages/game-core/src/combat/combat-barrier.test.ts \
             packages/game-core/src/combat/combat-barrier.ts \
             packages/game-core/src/combat/combat-effect-provenance.ts \
             packages/game-core/src/combat/combat-effect-state.ts \
