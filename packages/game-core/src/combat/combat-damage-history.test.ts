@@ -1,15 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  createCombatEncounterState,
-  type CombatEncounterState,
-} from './actions'
+import { createCombatEncounterState, type CombatEncounterState } from './actions'
 import { createPendingBattle, startBattle } from './battle-state'
 import { createTacticalBattleState } from './board'
-import {
-  recentCombatDamageSuffered,
-  recordCombatDamageHistory,
-} from './combat-damage-history'
+import { recentCombatDamageSuffered, recordCombatDamageHistory } from './combat-damage-history'
 import type { DamageProvenance } from './combat-effect-state'
 
 function encounter(): CombatEncounterState {

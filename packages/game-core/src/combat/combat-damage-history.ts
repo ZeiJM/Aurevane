@@ -1,8 +1,5 @@
 import type { CombatEncounterState } from './actions'
-import {
-  normalizeCombatEffectState,
-  type DamageProvenance,
-} from './combat-effect-state'
+import { normalizeCombatEffectState, type DamageProvenance } from './combat-effect-state'
 
 const DAMAGE_HISTORY_WINDOW_ROUNDS = 3
 
@@ -86,10 +83,7 @@ function qualifiesForDamageHistory(
   targetTeamId: string,
   input: RecordCombatDamageHistoryInput,
 ): boolean {
-  if (
-    input.provenance.kind !== 'direct-hostile' &&
-    input.provenance.kind !== 'periodic-hostile'
-  ) {
+  if (input.provenance.kind !== 'direct-hostile' && input.provenance.kind !== 'periodic-hostile') {
     return false
   }
 
@@ -104,7 +98,9 @@ function combatantById(
   combatantId: string,
   label: string,
 ): CombatEncounterState['tactical']['battle']['combatants'][number] {
-  const combatant = state.tactical.battle.combatants.find((candidate) => candidate.id === combatantId)
+  const combatant = state.tactical.battle.combatants.find(
+    (candidate) => candidate.id === combatantId,
+  )
   if (!combatant) throw new Error(`Unknown ${label} ${combatantId}.`)
   return combatant
 }
