@@ -1,7 +1,9 @@
+import { STARTER_CHARACTER_PORTRAITS } from '@aurevane/game-core/character/starter-options'
 import { describe, expect, it } from 'vitest'
 
 import provenance from '../../public/media/art/concept-ui/provenance.json'
 
+import { getStarterPortraitImageAssetId } from './character'
 import {
   getImageAsset,
   imageAssetRegistry,
@@ -39,6 +41,18 @@ describe('image registry', () => {
         decorative: false,
       })
       expect(getImageAsset(id).src).toMatch(/^\/media\/art\/concept-ui\/portrait-0[1-4]-v01\.webp$/)
+    }
+  })
+
+  it('routes every starter portrait choice through a square runtime descriptor', () => {
+    for (const portrait of STARTER_CHARACTER_PORTRAITS) {
+      const asset = getImageAsset(getStarterPortraitImageAssetId(portrait.ref))
+      expect(asset).toMatchObject({
+        status: 'approved',
+        width: 96,
+        height: 96,
+        decorative: false,
+      })
     }
   })
 
