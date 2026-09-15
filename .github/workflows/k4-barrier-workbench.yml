@@ -101,4 +101,4 @@ jobs:
             packages/game-core/src/combat/gameplay-tags.ts \
             packages/game-core/src/combat/pv1f-action-economy.ts
           git commit -m "feat: implement K4 direct Barrier primitive"
-          git push --force-with-lease origin HEAD:agent/combat-k4-barrier-green-result-20260915
+          git push origin HEAD:refs/heads/agent/combat-k4-barrier-green-result-20260915
