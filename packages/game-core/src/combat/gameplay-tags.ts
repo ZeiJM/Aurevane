@@ -210,6 +210,12 @@ export function validateGameplayActionMetadata(
 export function validateGameplayEffectMetadata(effect: CombatEffectDefinition): void {
   if (
     effect.type === 'damage' &&
+    effect.piercing !== undefined &&
+    typeof effect.piercing !== 'boolean'
+  )
+    throw new TypeError('Pierce must be a boolean.')
+  if (
+    effect.type === 'damage' &&
     effect.element !== undefined &&
     !['water', 'storm', 'fire'].includes(effect.element)
   )
