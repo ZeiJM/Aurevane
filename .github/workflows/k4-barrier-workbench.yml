@@ -22,7 +22,7 @@ jobs:
           cp .github/scripts/k4_barrier_green.py /tmp/k4_barrier_green.py
           git fetch origin agent/combat-k4-barrier-20260915
           git checkout --detach FETCH_HEAD
-          test "$(git rev-parse HEAD)" = "9777fc4acb79dbdc61cc13f349a490ad590fb3ed"
+          test "$(git rev-parse HEAD)" = "ff5fccbfde0588f5278095569ed241eea3f1d297"
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
