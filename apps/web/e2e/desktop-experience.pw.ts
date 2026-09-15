@@ -3,8 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 
 import { provisionAccountAndEnterCharacter } from './pv1f-test-helpers'
 
-const rosterListSelector =
-  "[data-character-directory] > section > div:last-child:has(> button):not([role='status'])"
+const rosterListSelector = "[data-directory-roster='true']"
 
 const desktopSizes = [
   // CSS viewport for a 1920 × 1080 display at 80% browser zoom.
@@ -54,7 +53,7 @@ async function fit(page: Page, label: string, testInfo: TestInfo) {
     return {
       concept: Boolean(
         document.querySelector(
-          '[data-character-concept], [data-training-concept], [data-hall-concept], [data-battle-concept]',
+          '[data-character-concept], [data-training-concept], [data-hall-concept], [data-battle-concept], [data-online-concept]',
         ),
       ),
       viewport: [innerWidth, innerHeight],
@@ -147,7 +146,7 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
     await expect(tabs.getByRole('button', { pressed: true })).toHaveCount(1)
     expect(await tabs.innerText()).not.toMatch(/\b0[123]\b|[›>]/)
     for (const button of await tabs.getByRole('button').all()) {
-      expect(await button.evaluate((element) => getComputedStyle(element).textAlign)).toBe('center')
+      expect(await button.evaluate((element) => getComputedStyle(element).textAlign)).toBe('left')
     }
     if (size.width >= 1440) {
       const panel = await page.locator('#battle-launch').boundingBox()
@@ -560,7 +559,9 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
         } else {
           expect(portrait.width).toBeGreaterThan(0)
           expect(portrait.height).toBeGreaterThan(0)
-          expect(identity.y).toBeGreaterThanOrEqual(portrait.y - 1)
+          expect(identity.width).toBeGreaterThan(0)
+          expect(identity.height).toBeGreaterThan(0)
+          expect(portrait.x + portrait.width).toBeLessThanOrEqual(identity.x + 1)
         }
         await testInfo.attach(`phone-hero-${width}-${mixed}`, {
           body: await page.screenshot(),
