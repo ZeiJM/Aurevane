@@ -128,9 +128,10 @@ describe('P4.K3 Bleed replacement provenance', () => {
       { kind: 'unit', combatantId: 'target' },
       CONTENT,
     ).state
-    expect(normalizeCombatEffectState(seeded.effectState).bleed).toMatchObject([
-      { targetCombatantId: 'target', applicationOrder: 1, provenance: undefined },
-    ])
+    const seededBleed = normalizeCombatEffectState(seeded.effectState).bleed
+    expect(seededBleed).toHaveLength(1)
+    expect(seededBleed[0]).toMatchObject({ targetCombatantId: 'target', applicationOrder: 1 })
+    expect(seededBleed[0]?.provenance).toBeUndefined()
 
     const transition = executeCombatAction(
       seeded,
