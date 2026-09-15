@@ -59,8 +59,7 @@ describe('P4.K3 combat effect instance provenance', () => {
         createdTurn: 4,
       }),
     ).toEqual({
-      instanceId:
-        'effect:chain:command-1:skill.ironfist.rising-fist:1:target',
+      instanceId: 'effect:chain:command-1:skill.ironfist.rising-fist:1:target',
       action,
       targetCombatantId: 'target',
       effectOrdinal: 1,
@@ -95,21 +94,24 @@ describe('P4.K3 combat effect instance provenance', () => {
     { field: 'effectOrdinal', value: 1.5 },
     { field: 'createdRound', value: 0 },
     { field: 'createdTurn', value: 0 },
-  ] as const)('rejects invalid numeric provenance input: $field=$value', ({ field, value }) => {
-    const build = requireKernelFunction<EffectProvenanceBuilder>(
-      'createCombatEffectInstanceProvenance',
-    )
-    const input = {
-      action: actionProvenance(),
-      targetCombatantId: 'target',
-      effectOrdinal: 0,
-      createdRound: 1,
-      createdTurn: 1,
-      [field]: value,
-    }
+  ] as const)(
+    'rejects invalid numeric provenance input: $field=$value',
+    ({ field, value }) => {
+      const build = requireKernelFunction<EffectProvenanceBuilder>(
+        'createCombatEffectInstanceProvenance',
+      )
+      const input = {
+        action: actionProvenance(),
+        targetCombatantId: 'target',
+        effectOrdinal: 0,
+        createdRound: 1,
+        createdTurn: 1,
+        [field]: value,
+      }
 
-    expect(() => build(input)).toThrow(TypeError)
-  })
+      expect(() => build(input)).toThrow(TypeError)
+    },
+  )
 
   it('validates persisted provenance and rejects malformed target/instance identities', () => {
     const build = requireKernelFunction<EffectProvenanceBuilder>(
