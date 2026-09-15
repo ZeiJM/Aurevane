@@ -1,4 +1,4 @@
-import { Kicker, Surface } from '@aurevane/ui'
+import { Kicker } from '@aurevane/ui'
 
 import { AurevaneImage } from '@/components/media/aurevane-image'
 import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-shell'
@@ -6,6 +6,7 @@ import { AuthenticatedShellFrame } from '@/components/shell/authenticated-game-s
 import { PracticePlanCard, type PracticePlanCardData } from './practice-plan-card'
 import { TrainingReportCard, type TrainingReportCardData } from './training-report-card'
 import styles from './offline-training-shell.module.css'
+import panels from './training-workspace.module.css'
 
 interface OfflineTrainingShellProps {
   characterName: string
@@ -19,20 +20,11 @@ export function OfflineTrainingShell({
   trainingReport,
 }: OfflineTrainingShellProps) {
   return (
-    <AuthenticatedShellFrame
-      sessionLabel="Passive Training"
-      backHref="/game/character"
-      backLabel="Back to Character Profile"
-    >
-      <div className={styles.layout} data-training-concept="true">
-        <Surface
-          className={styles.hero}
-          tone="quiet"
-          data-av-surface="ink"
-          data-training-scene="true"
-        >
+    <AuthenticatedShellFrame sessionLabel="Passive Training">
+      <div className={styles.layout} data-training-concept="true" data-av-surface="ink">
+        <section className={styles.hero} data-training-scene="true">
           <AurevaneImage
-            assetId="environment.passive-training.cloister"
+            assetId="ui.foundation.vista"
             className={styles.heroMedia}
             sizes="(max-width: 760px) 100vw, 90vw"
           />
@@ -40,42 +32,66 @@ export function OfflineTrainingShell({
           <header className={styles.heroCopy}>
             <Kicker marker="◇">Discipline in stillness</Kicker>
             <h1>Passive Training</h1>
-            <p>{characterName} · Every hour, a little further.</p>
+            <p>Even in silence, you grow.</p>
           </header>
-        </Surface>
+          <div className={styles.heroIdentity}>
+            <span>THE PATH CONTINUES</span>
+            <strong>{characterName}</strong>
+            <small>Your time away. Your progress forward.</small>
+          </div>
+        </section>
 
-        <div className={styles.practiceGrid} data-training-workspace="true">
-          <PracticePlanCard practice={practicePlan} />
-          <aside className={styles.reportWorkspace} aria-label="Training report workspace">
-            {trainingReport ? (
-              <TrainingReportCard report={trainingReport} />
-            ) : (
-              <Surface
-                className={styles.emptyReport}
-                tone="elevated"
-                data-av-surface="moonstone"
-                aria-labelledby="training-report-empty-title"
+        <nav className={styles.sectionNavigation} aria-label="Training sections">
+          <a href="#training-plan">
+            <span aria-hidden="true">◇</span> Training Plan
+          </a>
+          <a href="#training-current">
+            <span aria-hidden="true">◷</span> Current Training
+          </a>
+          <a href="#training-report-workspace">
+            <span aria-hidden="true">▤</span> Training Report
+          </a>
+        </nav>
+
+        <div className={styles.workspace} data-training-workspace="true">
+          <PracticePlanCard
+            practice={practicePlan}
+            hasReport={trainingReport !== null}
+            report={
+              <aside
+                className={panels.reportWorkspace}
+                id="training-report-workspace"
+                aria-label="Training report workspace"
+                tabIndex={-1}
               >
-                <header className={styles.reportHeading}>
-                  <Kicker marker="◇">Training Report</Kicker>
-                  <h2 id="training-report-empty-title">Your progress, recorded.</h2>
-                </header>
-                <div className={styles.emptyReportBody}>
-                  <span className={styles.reportEmblem} aria-hidden="true">
-                    ◇
-                  </span>
-                  <strong>No report waiting</strong>
-                  <p>
-                    When your training finishes or you stop early, your report and earned XP appear
-                    here, ready to claim.
-                  </p>
-                </div>
-                <p className={styles.reportFootnote}>
-                  The server keeps time. You do not need to leave this page open.
-                </p>
-              </Surface>
-            )}
-          </aside>
+                {trainingReport ? (
+                  <TrainingReportCard report={trainingReport} />
+                ) : (
+                  <section className={panels.panel} data-av-surface="ink">
+                    <header className={panels.heading}>
+                      <div>
+                        <span className={panels.eyebrow}>03 / Your progress</span>
+                        <h2>Training Report</h2>
+                      </div>
+                    </header>
+                    <AurevaneImage
+                      assetId="environment.passive-training.cloister"
+                      className={panels.reportScene}
+                      sizes="(max-width: 760px) 100vw, 30vw"
+                    />
+                    <div className={panels.emptyState}>
+                      <span className={panels.emblem} aria-hidden="true">
+                        ◇
+                      </span>
+                      <h3>No report waiting</h3>
+                      <p>Completed training and early-stop rewards appear here, ready to claim.</p>
+                    </div>
+                    <p className={panels.footnote}>Small steps. A greater journey.</p>
+                  </section>
+                )}
+              </aside>
+            }
+          />
         </div>
       </div>
     </AuthenticatedShellFrame>

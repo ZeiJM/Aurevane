@@ -425,25 +425,25 @@
 /* Other desktop pages share the real footer row; Profile/Hall keep the tested rules above. */
 @media (min-width: 981px) {
   :where(body:not(:has([data-character-concept])))
-    [data-testid='authenticated-shell']:not(:has(#battle-launch:not([data-hall-concept]))):not(
-      :has([data-testid='character-profile'])
-    ),
+    [data-testid='authenticated-shell']:not([data-av-shell='concept']):not(
+      :has(#battle-launch:not([data-hall-concept]))
+    ):not(:has([data-testid='character-profile'])),
   [data-testid='public-information-shell'] {
     grid-template-rows: auto 1fr auto;
     padding-bottom: 0;
   }
   :where(body:not(:has([data-character-concept])))
-    [data-testid='authenticated-shell']:not(:has(#battle-launch:not([data-hall-concept]))):not(
-      :has([data-testid='character-profile'])
-    )
+    [data-testid='authenticated-shell']:not([data-av-shell='concept']):not(
+      :has(#battle-launch:not([data-hall-concept]))
+    ):not(:has([data-testid='character-profile']))
     > main {
     min-height: 0;
     padding: 0.3rem clamp(0.7rem, 1.4vw, 1.4rem);
   }
   :where(body:not(:has([data-character-concept])))
-    [data-testid='authenticated-shell']:not(:has(#battle-launch:not([data-hall-concept]))):not(
-      :has([data-testid='character-profile'])
-    )
+    [data-testid='authenticated-shell']:not([data-av-shell='concept']):not(
+      :has(#battle-launch:not([data-hall-concept]))
+    ):not(:has([data-testid='character-profile']))
     > footer,
   [data-testid='public-information-shell'] > footer {
     position: sticky;
@@ -461,7 +461,9 @@
 
 /* A growing directory is a bounded, keyboard-scrollable list, not an ever-taller page. */
 @media (min-width: 981px) and (min-height: 450px) {
-  [data-testid='authenticated-shell']:has(#game-main [data-character-directory]) {
+  [data-testid='authenticated-shell']:not([data-av-shell='concept']):has(
+      #game-main [data-character-directory]
+    ) {
     height: 100dvh;
     grid-template-rows: auto minmax(0, 1fr) auto;
   }

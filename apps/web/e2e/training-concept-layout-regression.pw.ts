@@ -46,7 +46,9 @@ test('training uses the approved dark three-panel composition without losing mob
   expect.soft(Math.min(...rgb(metrics.plannerColor)), 'readable light text').toBeGreaterThan(150)
   expect.soft(metrics.overflowX, 'no sideways page clipping').toBeLessThanOrEqual(1)
   if (!mobile) {
-    expect.soft(metrics.context.height, 'workspace strip does not consume the page').toBeLessThan(65)
+    expect
+      .soft(metrics.context.height, 'workspace strip does not consume the page')
+      .toBeLessThan(65)
     if (metrics.status && metrics.report) {
       expect.soft(metrics.status.x).toBeGreaterThanOrEqual(metrics.planner.right)
       expect.soft(metrics.report.x).toBeGreaterThanOrEqual(metrics.status.right)
@@ -60,5 +62,7 @@ test('training uses the approved dark three-panel composition without losing mob
   const target = page.locator('#training-report-workspace')
   await expect(target).toBeInViewport()
   await expect(page.getByRole('button', { name: 'Start Short', exact: true })).toBeEnabled()
-  await expect(page.getByRole('button', { name: /Load Preset|Apply Plan|View History/ })).toHaveCount(0)
+  await expect(
+    page.getByRole('button', { name: /Load Preset|Apply Plan|View History/ }),
+  ).toHaveCount(0)
 })

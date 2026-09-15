@@ -36,7 +36,10 @@ test('training composition preserves idle, active, report and claim flows', asyn
 
   async function capture(state: string) {
     const frame = page.locator('[data-training-concept]')
-    await frame.scrollIntoViewIfNeeded()
+    await page.evaluate(() => {
+      window.scrollTo(0, 0)
+      document.getElementById('game-main')?.scrollTo(0, 0)
+    })
     const metrics = await frame.evaluate((element) => {
       const bounds = (node: Element) => {
         const r = node.getBoundingClientRect()
@@ -73,6 +76,10 @@ test('training composition preserves idle, active, report and claim flows', asyn
       await writeFile(path.join(output, `${label}.json`), JSON.stringify(metrics, null, 2))
       await page.screenshot({ path: path.join(output, `${label}.png`), fullPage: true })
       await page.screenshot({ path: path.join(output, `${label}-viewport.png`) })
+      if (mobile && state === 'report') {
+        await page.locator('#training-report-workspace').scrollIntoViewIfNeeded()
+        await page.screenshot({ path: path.join(output, `${label}-claim.png`) })
+      }
     }
     expect
       .soft(metrics.overflowX, `${label}: document stays inside viewport`)
