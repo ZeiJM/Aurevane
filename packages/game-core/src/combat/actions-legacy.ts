@@ -26,7 +26,8 @@ import {
   validateCombatDotState,
   validateCurrentBleedEffect,
 } from './combat-dots'
-import type { CombatEffectState } from './combat-effect-state'
+import { recordCombatDamageHistory } from './combat-damage-history'
+import type { CombatEffectState, DamageProvenance } from './combat-effect-state'
 import {
   hasGameplayTag,
   statusIdsForGameplayTag,
@@ -702,13 +703,29 @@ export function applyCurrentBurnBacklash(
   }
   if (hpAfter === 0) {
     const defeated = defeatCurrentCombatant(state.tactical.battle, actorId)
+    const defeatedState = withBattle(state, defeated.state)
     return {
-      state: withBattle(state, defeated.state),
+      state: recordCommittedDamage(
+        defeatedState,
+        actorId,
+        actorId,
+        'status.burn.backlash.current.v1',
+        actor.hp - hpAfter,
+        'self-cost',
+      ),
       events: [damageEvent, ...defeated.events],
     }
   }
+  const updated = withUpdatedCombatant(state, actorId, { ...actor, hp: hpAfter })
   return {
-    state: withUpdatedCombatant(state, actorId, { ...actor, hp: hpAfter }),
+    state: recordCommittedDamage(
+      updated,
+      actorId,
+      actorId,
+      'status.burn.backlash.current.v1',
+      actor.hp - hpAfter,
+      'self-cost',
+    ),
     events: [damageEvent],
   }
 }
@@ -841,6 +858,7 @@ export function endCombatTurn(
     return amount === 0 ? [] : [{ combatantId: row.combatantId, amount }]
   })
   const outgoingId = state.tactical.battle.currentTurn!.combatantId
+  const outgoingRound = state.tactical.battle.round
   const outgoing = getCombatant(state.tactical.battle, outgoingId)
   // Predict the existing deterministic ticks for selection only. They are committed below.
   // A last actor moved to first by tempo must not receive a turn after a lethal tick.
@@ -893,10 +911,10 @@ export function endCombatTurn(
   }
   // Resolve the outgoing unit's periodic effects after advancing initiative. This permits
   // lethal ticks without ever persisting a defeated combatant as the current actor.
-  const periodic = resolveEndOfTurnStatuses(nextState, outgoingId, content)
+  const periodic = resolveEndOfTurnStatuses(nextState, outgoingId, content, outgoingRound)
   nextState = periodic.state
   events.push(...periodic.events)
-  const currentDots = resolveCurrentEndOfTurnDots(nextState, outgoingId, content)
+  const currentDots = resolveCurrentEndOfTurnDots(nextState, outgoingId, content, outgoingRound)
   nextState = currentDots.state
   events.push(...currentDots.events)
   const recovery = resolveEndOfTurnRecovery(nextState, outgoingId, content)
@@ -1579,15 +1597,24 @@ function applyEffect(
             content,
           )
         : { state: updated, events: [] }
+    const damage = target.hp - hpAfter
+    const stateWithHistory = recordCommittedDamage(
+      removed.state,
+      actorId,
+      recipientId,
+      actionId,
+      damage,
+      'direct-hostile',
+    )
     return {
-      state: removed.state,
+      state: stateWithHistory,
       events: [
         {
           event: 'damage_applied',
           actionId,
           sourceCombatantId: actorId,
           targetCombatantId: recipientId,
-          amount: target.hp - hpAfter,
+          amount: damage,
           hpBefore: target.hp,
           hpAfter,
         },
@@ -1833,6 +1860,7 @@ function resolveEndOfTurnStatuses(
   state: CombatEncounterState,
   combatantId: string,
   content: CombatContentCatalog,
+  damageRound: number,
 ): CombatResolutionTransition {
   let nextState = state
   const events: CombatResolutionEvent[] = []
@@ -1851,6 +1879,17 @@ function resolveEndOfTurnStatuses(
               target.hp + incomingHealingAmount(nextState, combatantId, amount, content),
             )
       nextState = withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
+      if (definition.endOfTurn.type === 'damage') {
+        nextState = recordCommittedDamage(
+          nextState,
+          status.sourceCombatantId,
+          combatantId,
+          `status.${status.statusId}`,
+          target.hp - hpAfter,
+          'periodic-hostile',
+          damageRound,
+        )
+      }
       events.push({
         event: definition.endOfTurn.type === 'damage' ? 'damage_applied' : 'healing_applied',
         actionId: `status.${status.statusId}`,
@@ -1902,6 +1941,7 @@ function resolveCurrentEndOfTurnDots(
   state: CombatEncounterState,
   combatantId: string,
   content: CombatContentCatalog,
+  damageRound: number,
 ): CombatResolutionTransition {
   let nextState = state
   const events: CombatResolutionEvent[] = []
@@ -1911,6 +1951,15 @@ function resolveCurrentEndOfTurnDots(
   if (poison && target.hp > 0) {
     const hpAfter = Math.max(0, target.hp - CURRENT_POISON_DAMAGE)
     nextState = withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
+    nextState = recordCommittedDamage(
+      nextState,
+      poison.sourceCombatantId,
+      combatantId,
+      poison.sourceActionId,
+      target.hp - hpAfter,
+      'periodic-hostile',
+      damageRound,
+    )
     events.push({
       event: 'damage_applied',
       actionId: 'status.poison.current.v1',
@@ -1944,6 +1993,15 @@ function resolveCurrentEndOfTurnDots(
     if (target.hp <= 0) break
     const hpAfter = Math.max(0, target.hp - stack.damagePerTick)
     nextState = withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
+    nextState = recordCommittedDamage(
+      nextState,
+      stack.sourceCombatantId,
+      combatantId,
+      stack.sourceActionId,
+      target.hp - hpAfter,
+      'periodic-hostile',
+      damageRound,
+    )
     events.push({
       event: 'damage_applied',
       actionId: stack.sourceActionId,
@@ -1976,6 +2034,15 @@ function resolveCurrentEndOfTurnDots(
     target = getCombatant(nextState.tactical.battle, combatantId)
     const hpAfter = Math.max(0, target.hp - burnTurn.damage)
     nextState = withUpdatedCombatant(nextState, combatantId, { ...target, hp: hpAfter })
+    nextState = recordCommittedDamage(
+      nextState,
+      burnTurn.instance.sourceCombatantId,
+      combatantId,
+      burnTurn.instance.sourceActionId,
+      target.hp - hpAfter,
+      'periodic-hostile',
+      damageRound,
+    )
     events.push({
       event: 'damage_applied',
       actionId: 'status.burn.current.v1',
@@ -2445,6 +2512,38 @@ function emptyEvaluation(
     spendsAction: action.cost.spendsAction,
     issues,
   }
+}
+
+function recordCommittedDamage(
+  state: CombatEncounterState,
+  sourceCombatantId: string,
+  targetCombatantId: string,
+  sourceActionId: string,
+  amount: number,
+  requestedKind: Extract<
+    DamageProvenance['kind'],
+    'direct-hostile' | 'periodic-hostile' | 'self-cost'
+  >,
+  round?: number,
+): CombatEncounterState {
+  let kind: DamageProvenance['kind'] = requestedKind
+  if (requestedKind !== 'self-cost') {
+    const source = getCombatant(state.tactical.battle, sourceCombatantId)
+    const target = getCombatant(state.tactical.battle, targetCombatantId)
+    if (sourceCombatantId === targetCombatantId || source.teamId === target.teamId) kind = 'system'
+  }
+
+  return recordCombatDamageHistory(state, {
+    targetCombatantId,
+    amount,
+    round,
+    provenance: {
+      kind,
+      sourceCombatantId,
+      sourceActionId,
+      commandExecutionId: null,
+    },
+  })
 }
 
 function scaleByBasisPoints(value: number, basisPoints: number): number {

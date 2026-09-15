@@ -7,6 +7,7 @@ export interface RecordCombatDamageHistoryInput {
   targetCombatantId: string
   amount: number
   provenance: DamageProvenance
+  round?: number
 }
 
 export function recordCombatDamageHistory(
@@ -21,10 +22,12 @@ export function recordCombatDamageHistory(
   }
 
   const effectState = normalizeCombatEffectState(state.effectState)
-  const round = activeRound(state)
-  const minimumRound = Math.max(1, round - (DAMAGE_HISTORY_WINDOW_ROUNDS - 1))
+  const activeBattleRound = activeRound(state)
+  const round = input.round ?? activeBattleRound
+  assertRecordableRound(round, activeBattleRound)
+  const minimumRound = Math.max(1, activeBattleRound - (DAMAGE_HISTORY_WINDOW_ROUNDS - 1))
   const damageHistory = effectState.damageHistory
-    .filter((entry) => entry.round >= minimumRound && entry.round <= round)
+    .filter((entry) => entry.round >= minimumRound && entry.round <= activeBattleRound)
     .map((entry) => ({ ...entry }))
 
   const existingIndex = damageHistory.findIndex(
@@ -111,6 +114,15 @@ function activeRound(state: CombatEncounterState): number {
     throw new RangeError('Combat damage history requires an active positive battle round.')
   }
   return round
+}
+
+function assertRecordableRound(round: number, activeBattleRound: number): void {
+  const minimumRound = Math.max(1, activeBattleRound - (DAMAGE_HISTORY_WINDOW_ROUNDS - 1))
+  if (!Number.isSafeInteger(round) || round < minimumRound || round > activeBattleRound) {
+    throw new RangeError(
+      'Combat damage-history round must be inside the active three-round window.',
+    )
+  }
 }
 
 function assertActualDamage(amount: number): void {
