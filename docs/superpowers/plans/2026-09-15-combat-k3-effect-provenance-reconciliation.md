@@ -58,6 +58,8 @@
 - [ ] Review final diff for behavior preservation and historical compatibility.
 - [ ] Merge to `agent/combat-effect-taxonomy-rework` only after all exact-head gates are green.
 
+**Documentation checkpoint:** `d5a15e558000728ba699dbc35159504c4c0dbf86` contains the final K3 boundary documentation; the normal exact-head PR gate matrix remains intentionally pending after this evidence-only retrigger commit.
+
 ### Task 5 — Resume K4 from the integrated K3-C head
 
 - [ ] Rebase/reconcile PR #487 Barrier onto the K3-C shared merge so Barrier instances can participate in the same provenance model rather than inventing a competing one.
