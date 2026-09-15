@@ -1,5 +1,6 @@
 import type { CombatDamageScaling } from './damage-scaling'
 import { calculateScaledRawDamage, validateCombatDamageScaling } from './damage-scaling'
+import { recordCommittedDamageHistory } from './combat-damage-history'
 import { attachCombatEffectProvenance } from './combat-effect-provenance'
 import {
   COMBAT_RESOLUTION_PIPELINE_VERSION,
@@ -72,24 +73,57 @@ export function executeCombatAction(
   content: legacy.CombatContentCatalog,
   context?: CombatResolutionContext,
 ): CombatResolutionTransition {
+  const round = state.tactical.battle.round
+  const actorId = state.tactical.battle.currentTurn?.combatantId ?? null
   const materializedAction = materializeStatScaledDamage(state, action)
   const evaluation = context
     ? legacy.evaluateCombatAction(state, materializedAction, selection, content)
     : null
   const transition = legacy.executeCombatAction(state, materializedAction, selection, content)
+  const historyState = actorId
+    ? recordCommittedDamageHistory(transition.state, transition.events, {
+        round,
+        commandSourceCombatantId: actorId,
+      })
+    : transition.state
 
   if (!context || !evaluation) {
-    return { state: transition.state, events: transition.events }
+    return { state: historyState, events: transition.events }
   }
 
   return {
-    state: attachCombatEffectProvenance(state, transition.state, action, evaluation, context),
+    state: attachCombatEffectProvenance(state, historyState, action, evaluation, context),
     events: transition.events,
     resolution: {
       pipelineVersion: COMBAT_RESOLUTION_PIPELINE_VERSION,
       provenance: context.provenance,
       triggerGuard: context.triggerGuard,
     },
+  }
+}
+
+export function endCombatTurn(
+  state: CombatEncounterState,
+  content: legacy.CombatContentCatalog,
+  outgoingDefeatedAtTurnEnd = false,
+): CombatResolutionTransition {
+  const round = state.tactical.battle.round
+  const transition = legacy.endCombatTurn(state, content, outgoingDefeatedAtTurnEnd)
+  return {
+    state: recordCommittedDamageHistory(transition.state, transition.events, { round }),
+    events: transition.events,
+  }
+}
+
+export function waitCurrentTurn(
+  state: CombatEncounterState,
+  content: legacy.CombatContentCatalog,
+): CombatResolutionTransition {
+  const round = state.tactical.battle.round
+  const transition = legacy.waitCurrentTurn(state, content)
+  return {
+    state: recordCommittedDamageHistory(transition.state, transition.events, { round }),
+    events: transition.events,
   }
 }
 
