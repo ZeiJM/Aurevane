@@ -179,7 +179,9 @@ test('mobile Profile balances the portrait and centers Discipline Management', a
   } else {
     expect(portraitBox.width).toBeGreaterThan(0)
     expect(portraitBox.height).toBeGreaterThan(0)
-    expect(identityBox.y).toBeGreaterThanOrEqual(portraitBox.y - 1)
+    expect(identityBox.width).toBeGreaterThan(0)
+    expect(identityBox.height).toBeGreaterThan(0)
+    expect(portraitBox.x + portraitBox.width).toBeLessThanOrEqual(identityBox.x + 1)
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(
       true,
     )
