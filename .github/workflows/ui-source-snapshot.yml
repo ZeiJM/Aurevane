@@ -1,0 +1,29 @@
+name: UI source snapshot
+
+on:
+  push:
+    branches:
+      - agent/training-concept-ui
+    paths:
+      - .github/workflows/ui-source-snapshot.yml
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Archive tracked source only
+        run: |
+          mkdir -p /tmp/ui-source
+          git rev-parse HEAD > /tmp/ui-source/commit.txt
+          git archive --format=tar.gz HEAD > /tmp/ui-source/source.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ui-source
+          path: /tmp/ui-source
+          retention-days: 3
