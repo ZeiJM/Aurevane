@@ -165,7 +165,8 @@ type BarrierRow = {
 }
 
 function recruitBarrierRows(state: CombatEncounterState): readonly BarrierRow[] {
-  const effectState = state.effectState as unknown as { barriers?: readonly BarrierRow[] } | undefined
+  const effectState = state.effectState as unknown as
+    { barriers?: readonly BarrierRow[] } | undefined
   return effectState?.barriers?.filter((barrier) => barrier.targetCombatantId === 'recruit') ?? []
 }
 
@@ -175,8 +176,7 @@ function recruitBarrier(state: CombatEncounterState): number {
 
 function committedDamage(events: readonly { event: string }[]): number {
   const damage = events.find((event) => event.event === 'damage_applied') as
-    | { event: 'damage_applied'; amount: number }
-    | undefined
+    { event: 'damage_applied'; amount: number } | undefined
   if (!damage) throw new Error('Expected damage event.')
   return damage.amount
 }
@@ -279,11 +279,7 @@ describe('P4.K4 direct Barrier primitive', () => {
   it('refreshes causal provenance when the same Barrier source/action is granted again', () => {
     const first = castAtRecruit(encounter(), barrierAction(8), barrierContext('chain:k4:first'))
     const firstRow = recruitBarrierRows(first.state)[0]
-    const second = castAtRecruit(
-      first.state,
-      barrierAction(8),
-      barrierContext('chain:k4:second'),
-    )
+    const second = castAtRecruit(first.state, barrierAction(8), barrierContext('chain:k4:second'))
     const secondRow = recruitBarrierRows(second.state)[0]
 
     expect(firstRow?.amount).toBe(8)
