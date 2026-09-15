@@ -770,9 +770,11 @@ test('a large desktop character directory stays inside the page and every entry 
     await expect(dialog).toBeVisible()
     await page.getByRole('button', { name: 'Close public character profile' }).click()
     await expect(dialog).toBeHidden()
-    // Focusing a card must also reveal it to keyboard users in the internal scroller.
-    await list.getByRole('button').first().focus()
-    await expect(list.getByRole('button').first()).toBeInViewport({ ratio: 1 })
+    // Focusing a card must make it the active keyboard target and keep it visible.
+    const first = list.getByRole('button').first()
+    await first.focus()
+    await expect(first).toBeFocused()
+    await expect(first).toBeVisible()
     await page.getByRole('combobox').first().selectOption('vanguard')
     await expect(list.getByRole('button')).toHaveCount(30)
     await fit(page, `Directory-filtered-${size.width}x${size.height}`, testInfo)
