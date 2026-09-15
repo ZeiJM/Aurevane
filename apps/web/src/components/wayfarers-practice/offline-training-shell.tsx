@@ -80,9 +80,6 @@ export function OfflineTrainingShell({
                       sizes="(max-width: 760px) 100vw, 30vw"
                     />
                     <div className={panels.emptyState}>
-                      <span className={panels.emblem} aria-hidden="true">
-                        ◇
-                      </span>
                       <h3>No report waiting</h3>
                       <p>Completed training and early-stop rewards appear here, ready to claim.</p>
                     </div>

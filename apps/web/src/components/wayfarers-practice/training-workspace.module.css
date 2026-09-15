@@ -12,8 +12,8 @@
   min-width: 0;
   min-height: 0;
   flex-direction: column;
-  gap: 0.8rem;
-  padding: clamp(0.75rem, 1.1vw, 1.1rem);
+  gap: 0.65rem;
+  padding: clamp(0.75rem, 1vw, 1rem);
   overflow: auto;
   border: 1px solid var(--av-border-strong);
   border-top-color: var(--av-brass-300);
@@ -85,9 +85,9 @@
   display: grid;
   grid-template-columns: 2.3rem minmax(0, 1fr) auto;
   min-width: 0;
-  gap: 0.45rem 0.6rem;
+  gap: 0.3rem 0.6rem;
   align-items: center;
-  padding: 0.75rem;
+  padding: 0.55rem;
   border: 1px solid #5b5545;
   background: #0c1922;
 }
@@ -102,7 +102,7 @@
   width: 2.3rem;
   height: 2.3rem;
   grid-column: 1;
-  grid-row: 1;
+  grid-row: 1 / 3;
   place-items: center;
   border: 1px solid var(--av-border-strong);
   color: var(--av-brass-300);
@@ -111,9 +111,13 @@
 }
 
 .windowHeading {
-  display: grid;
+  display: flex;
+  grid-column: 2;
+  grid-row: 1;
   min-width: 0;
-  gap: 0.2rem;
+  flex-wrap: wrap;
+  gap: 0.2rem 0.6rem;
+  align-items: baseline;
 }
 
 .windowHeading strong {
@@ -126,13 +130,22 @@
   font-size: 0.75rem;
 }
 
-.window > p {
-  grid-column: 1 / -1;
+.columns .window > p {
+  grid-column: 2;
+  grid-row: 2;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+}
+
+.window .startButton {
+  grid-column: 3;
+  grid-row: 1 / 3;
 }
 
 .rewardLine {
   display: flex;
   grid-column: 1 / -1;
+  grid-row: 3;
   flex-wrap: wrap;
   gap: 0.5rem 1rem;
   justify-content: space-between;
@@ -213,17 +226,20 @@
   text-align: center;
 }
 
-.emblem {
+.activitySummary {
   display: grid;
-  width: 3.4rem;
-  height: 3.4rem;
-  place-items: center;
-  justify-self: center;
-  margin-top: 0.35rem;
-  border: 1px solid var(--av-border-strong);
-  color: var(--av-brass-300);
-  background: radial-gradient(#2a3d4933, transparent);
-  font-size: 2rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  min-width: 0;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.7rem 0;
+  text-align: left;
+}
+
+.activitySummary > div:first-child {
+  display: grid;
+  min-width: 0;
+  gap: 0.55rem;
 }
 
 .activityBody h3,
@@ -236,7 +252,8 @@
 .countdown {
   display: grid;
   gap: 0.4rem;
-  margin-top: 0.25rem;
+  margin-top: 0;
+  text-align: right;
 }
 
 .countdown span {
@@ -246,7 +263,7 @@
 
 .countdown strong {
   color: var(--av-parchment-100);
-  font: 500 clamp(1.8rem, 2.5vw, 2.7rem) / 1.2 var(--av-font-display);
+  font: 500 clamp(1.8rem, 2vw, 2.3rem) / 1.2 var(--av-font-display);
   font-variant-numeric: tabular-nums;
 }
 
@@ -322,7 +339,7 @@
 
 .reportScene {
   width: 100%;
-  height: 7rem;
+  height: 5.5rem;
   object-fit: cover;
   object-position: center 55%;
   border: 1px solid var(--av-border);
@@ -399,6 +416,24 @@
   .windowNumber {
     width: 2rem;
     height: 2rem;
+    grid-row: 1;
+  }
+
+  .windowHeading {
+    display: grid;
+  }
+
+  .columns .window > p {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .window .startButton {
+    grid-row: 1;
+  }
+
+  .activitySummary {
+    gap: 0.5rem;
   }
 
   .panel .startButton {

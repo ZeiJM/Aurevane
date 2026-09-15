@@ -262,28 +262,29 @@ export function PracticePlanCard({ practice, report, hasReport = false }: Practi
           />
         </header>
         <div className={styles.activityBody}>
-          <span className={styles.emblem} aria-hidden="true">
-            ◷
-          </span>
-          <span className={styles.eyebrow}>CHARACTER XP</span>
-          <h3>
-            {trainingActive
-              ? 'Training in progress'
-              : hasReport
-                ? 'A chapter completed'
-                : 'A moment of possibility'}
-          </h3>
+          <div className={styles.activitySummary}>
+            <div>
+              <span className={styles.eyebrow}>CHARACTER XP</span>
+              <h3>
+                {trainingActive
+                  ? `${passiveTrainingWindowLabel(practice.plannedWindow!)} Training`
+                  : hasReport
+                    ? 'A chapter completed'
+                    : 'Ready when you are'}
+              </h3>
+            </div>
+            <div className={styles.countdown}>
+              <span>{trainingActive ? 'Time remaining' : 'No active session'}</span>
+              <strong>{trainingActive ? formatCountdown(remainingSeconds) : '— : — : —'}</strong>
+            </div>
+          </div>
           <p className={styles.intro}>
             {trainingActive
-              ? `${passiveTrainingWindowLabel(practice.plannedWindow!)} training · Your discipline continues.`
+              ? 'Training in progress. Your discipline continues while you are away.'
               : hasReport
                 ? 'Your Training Report is ready. Claim your earned progress in the next panel.'
                 : 'Choose Short, Medium or Extended to begin. Your training continues while you are away.'}
           </p>
-          <div className={styles.countdown}>
-            <span>{trainingActive ? 'Time remaining' : 'No active session'}</span>
-            <strong>{trainingActive ? formatCountdown(remainingSeconds) : '— : — : —'}</strong>
-          </div>
           <div
             className={styles.progressTrack}
             role="progressbar"

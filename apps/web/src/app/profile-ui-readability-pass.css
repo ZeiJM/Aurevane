@@ -14,21 +14,6 @@ nav[aria-label='Primary game navigation'] svg {
   filter: drop-shadow(0 0 0.18rem rgba(207, 169, 93, 0.18));
 }
 
-/* The active-training status strip must remain compact but readable at 100%. */
-[data-testid='passive-training-active'] span {
-  font-size: 0.55rem !important;
-  line-height: 1.15 !important;
-}
-
-[data-testid='passive-training-active'] strong {
-  font-size: 0.72rem !important;
-  line-height: 1.25 !important;
-}
-
-[data-testid='passive-training-active'] button {
-  font-size: 0.76rem;
-}
-
 /* Profile management launchers: text only, centered. */
 [data-testid='primary-build-panel'] > button:first-child > span:first-child {
   display: none;
