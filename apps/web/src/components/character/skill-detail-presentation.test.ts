@@ -149,3 +149,13 @@ it('describes actual displacement distance and recovery timing rather than legac
     }),
   ).toContain('2 total applications')
 })
+
+it('describes authored Barrier grants in Skill Details', () => {
+  const barrier = {
+    type: 'barrier-change',
+    recipient: 'primary-unit',
+    amount: 12,
+  } as unknown as Parameters<typeof skillEffectDescription>[0]
+
+  expect(skillEffectDescription(barrier)).toBe('Grant up to 12 Barrier to the selected unit.')
+})
