@@ -19,7 +19,9 @@ export const COMBAT_EFFECT_CATEGORIES = Object.freeze([
 
 export type CombatEffectCategory = (typeof COMBAT_EFFECT_CATEGORIES)[number]
 
-export function validateCombatEffectCategory(value: unknown): asserts value is CombatEffectCategory {
+export function validateCombatEffectCategory(
+  value: unknown,
+): asserts value is CombatEffectCategory {
   if (
     typeof value !== 'string' ||
     !COMBAT_EFFECT_CATEGORIES.some((category) => category === value)
