@@ -1,0 +1,34 @@
+name: Format debug
+
+on:
+  push:
+    branches:
+      - agent/hq-concept-ui-v11
+
+permissions:
+  contents: read
+
+jobs:
+  prettier-diff:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable Corepack
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Print exact Prettier diff
+        run: |
+          pnpm exec prettier --write \
+            apps/web/src/components/character/character-creation-experience.module.css \
+            apps/web/src/components/character/character-creation-experience.tsx \
+            packages/game-core/src/character/starter-options.test.ts
+          git diff -- \
+            apps/web/src/components/character/character-creation-experience.module.css \
+            apps/web/src/components/character/character-creation-experience.tsx \
+            packages/game-core/src/character/starter-options.test.ts
