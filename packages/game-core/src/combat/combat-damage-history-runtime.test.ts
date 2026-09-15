@@ -301,7 +301,11 @@ describe('P4.K4 authoritative damage-history resolver wiring', () => {
         battle: { ...base.tactical.battle, round: 4 },
       },
       effectState: {
-        ...base.effectState!,
+        ongoingRecovery: [],
+        poison: [],
+        bleed: [],
+        burn: [],
+        temporarySkills: [],
         damageHistory: [
           { combatantId: 'target', round: 1, amount: 3 },
           { combatantId: 'target', round: 2, amount: 4 },
