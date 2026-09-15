@@ -1,0 +1,30 @@
+name: UI continuation source
+
+on:
+  push:
+    branches: [agent/battle-hall-concept-ui]
+    paths: [.github/workflows/ui-continuation-source.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Archive tracked source and current-main comparison
+        run: |
+          mkdir -p /tmp/ui-continuation
+          git rev-parse HEAD > /tmp/ui-continuation/commit.txt
+          git archive --format=tar.gz HEAD > /tmp/ui-continuation/source.tar.gz
+          git fetch --depth=1 origin 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0 1fe041874eb965325d4eeb126f74fd1a7db23af6
+          git archive --format=tar.gz 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0 > /tmp/ui-continuation/main.tar.gz
+          git diff --binary 1fe041874eb965325d4eeb126f74fd1a7db23af6 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0 > /tmp/ui-continuation/main-advance.patch
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ui-continuation-source
+          path: /tmp/ui-continuation
+          retention-days: 1
