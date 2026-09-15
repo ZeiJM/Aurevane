@@ -1,15 +1,18 @@
-name: Profile layout review
+name: UI layout review
 
 on:
   push:
     branches:
       - main
       - agent/profile-layout-repair
+      - agent/training-concept-ui
     paths:
       - .github/workflows/profile-layout-review.yml
-      - apps/web/e2e/profile-layout-regression.pw.ts
+      - apps/web/e2e/*layout-regression.pw.ts
       - apps/web/e2e/pv1f-test-helpers.ts
+      - apps/web/e2e/wayfarers-practice.pw.ts
       - apps/web/src/components/character/**
+      - apps/web/src/components/wayfarers-practice/**
       - apps/web/src/components/shell/**
       - apps/web/src/app/*.css
       - apps/web/src/app/layout.tsx
@@ -17,9 +20,11 @@ on:
   pull_request:
     paths:
       - .github/workflows/profile-layout-review.yml
-      - apps/web/e2e/profile-layout-regression.pw.ts
+      - apps/web/e2e/*layout-regression.pw.ts
       - apps/web/e2e/pv1f-test-helpers.ts
+      - apps/web/e2e/wayfarers-practice.pw.ts
       - apps/web/src/components/character/**
+      - apps/web/src/components/wayfarers-practice/**
       - apps/web/src/components/shell/**
       - apps/web/src/app/*.css
       - apps/web/src/app/layout.tsx
@@ -29,7 +34,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: profile-layout-${{ github.ref }}
+  group: ui-layout-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -65,16 +70,16 @@ jobs:
           export NEXT_PUBLIC_SUPABASE_URL="$TEST_AUTH_API_URL"
           export NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY="$ANON_KEY"
           export SUPABASE_SECRET_KEY="$TEST_AUTH_ADMIN_KEY"
-          export LAYOUT_REVIEW_OUTPUT=/tmp/profile-review
+          export LAYOUT_REVIEW_OUTPUT=/tmp/ui-layout-review
           mkdir -p "$LAYOUT_REVIEW_OUTPUT"
           git rev-parse HEAD > "$LAYOUT_REVIEW_OUTPUT/commit.txt"
           pnpm --filter @aurevane/web build
-          pnpm --filter @aurevane/web exec playwright test e2e/profile-layout-regression.pw.ts
+          pnpm --filter @aurevane/web exec playwright test e2e/profile-layout-regression.pw.ts e2e/training-layout-regression.pw.ts e2e/training-concept-layout-regression.pw.ts e2e/wayfarers-practice.pw.ts
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: profile-layout-review
-          path: /tmp/profile-review
+          name: ui-layout-review
+          path: /tmp/ui-layout-review
           retention-days: 3
       - name: Stop disposable database
         if: always()

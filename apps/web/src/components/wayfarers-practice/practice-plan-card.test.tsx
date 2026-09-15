@@ -41,11 +41,13 @@ const practice = {
 } as const
 
 describe('practice plan card', () => {
-  it('keeps the duration choice while removing redundant idle copy', () => {
+  it('keeps duration choices and adds a permanent current activity panel', () => {
     const markup = renderToStaticMarkup(createElement(PracticePlanCard, { practice }))
 
     expect(markup).toContain('Choose a training duration.')
-    expect(markup).not.toContain('Training Plan')
+    expect(markup).toContain('Training Plan')
+    expect(markup).toContain('Current Training')
+    expect(markup).toContain('aria-label="Training progress"')
     expect(markup).not.toContain('Training does not start automatically')
     expect(markup).toContain('10 XP/hr')
     expect(markup).toContain('+30 XP')
