@@ -165,14 +165,14 @@ async function expectAuthenticatedShellChrome(
   surface: string,
 ): Promise<void> {
   const actual = await readAuthenticatedShellChrome(page)
-  expect(actual.headerHeight, `${surface} should use the shared header height`).toBeCloseTo(
-    expected.headerHeight,
-    1,
-  )
-  expect(actual.footerHeight, `${surface} should use the shared footer height`).toBeCloseTo(
-    expected.footerHeight,
-    1,
-  )
+  expect(
+    Math.abs(actual.headerHeight - expected.headerHeight),
+    `${surface} should use the shared header height`,
+  ).toBeLessThanOrEqual(1)
+  expect(
+    Math.abs(actual.footerHeight - expected.footerHeight),
+    `${surface} should use the shared footer height`,
+  ).toBeLessThanOrEqual(1)
 }
 
 async function expectInitialViewportFit(

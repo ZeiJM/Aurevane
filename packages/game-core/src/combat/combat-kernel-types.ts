@@ -4,6 +4,7 @@ declare const actionDefinitionIdBrand: unique symbol
 declare const statusDefinitionIdBrand: unique symbol
 declare const tacticalEntityIdBrand: unique symbol
 declare const triggerChainIdBrand: unique symbol
+declare const combatEffectInstanceIdBrand: unique symbol
 declare const contentVersionBrand: unique symbol
 declare const rulesetVersionBrand: unique symbol
 
@@ -17,6 +18,9 @@ export type StatusDefinitionId = string & {
 }
 export type TacticalEntityId = string & { readonly [tacticalEntityIdBrand]: 'TacticalEntityId' }
 export type TriggerChainId = string & { readonly [triggerChainIdBrand]: 'TriggerChainId' }
+export type CombatEffectInstanceId = string & {
+  readonly [combatEffectInstanceIdBrand]: 'CombatEffectInstanceId'
+}
 export type ContentVersion = number & { readonly [contentVersionBrand]: 'ContentVersion' }
 export type RulesetVersion = number & { readonly [rulesetVersionBrand]: 'RulesetVersion' }
 
@@ -108,6 +112,27 @@ export interface CreateCombatActionProvenanceInput {
   triggerChainId: string
 }
 
+export interface CombatEffectInstanceProvenance {
+  instanceId: CombatEffectInstanceId
+  action: CombatActionProvenance
+  targetCombatantId: CombatantId
+  effectOrdinal: number
+  createdRound: number
+  createdTurn: number
+  copiedFromInstanceId?: CombatEffectInstanceId
+  inheritedFromInstanceId?: CombatEffectInstanceId
+}
+
+export interface CreateCombatEffectInstanceProvenanceInput {
+  action: CombatActionProvenance
+  targetCombatantId: string
+  effectOrdinal: number
+  createdRound: number
+  createdTurn: number
+  copiedFromInstanceId?: string
+  inheritedFromInstanceId?: string
+}
+
 function stableIdentifier<T extends string>(value: string, label: string): T {
   if (typeof value !== 'string' || value.length === 0 || value.trim() !== value) {
     throw new TypeError(`${label} must be a non-empty stable identifier without outer whitespace.`)
@@ -134,6 +159,31 @@ function nonNegativeSafeInteger(value: number, label: string): number {
     throw new TypeError(`${label} must be a non-negative safe integer.`)
   }
   return value
+}
+
+function objectRecord(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? Object.fromEntries(Object.entries(value))
+    : null
+}
+
+function stableIdentifierIssue(value: unknown, field: string): string | null {
+  if (typeof value !== 'string' || value.length === 0 || value.trim() !== value) {
+    return `${field} must be a non-empty stable identifier without outer whitespace.`
+  }
+  return null
+}
+
+function positiveIntegerIssue(value: unknown, field: string): string | null {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 1
+    ? null
+    : `${field} must be a positive safe integer.`
+}
+
+function nonNegativeIntegerIssue(value: unknown, field: string): string | null {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
+    ? null
+    : `${field} must be a non-negative safe integer.`
 }
 
 export function combatActionSourceKind(value: unknown): CombatActionSourceKind {
@@ -168,6 +218,10 @@ export function tacticalEntityId(value: string): TacticalEntityId {
 
 export function triggerChainId(value: string): TriggerChainId {
   return stableIdentifier<TriggerChainId>(value, 'Trigger chain ID')
+}
+
+export function combatEffectInstanceId(value: string): CombatEffectInstanceId {
+  return stableIdentifier<CombatEffectInstanceId>(value, 'Combat effect instance ID')
 }
 
 export function contentVersion(value: number): ContentVersion {
@@ -237,6 +291,105 @@ export function createCombatActionProvenance(
     controllerCombatantId: combatantId(input.controllerCombatantId),
     triggerChainId: triggerChainId(input.triggerChainId),
   }
+}
+
+export function createCombatEffectInstanceProvenance(
+  input: CreateCombatEffectInstanceProvenanceInput,
+): CombatEffectInstanceProvenance {
+  const targetCombatantId = combatantId(input.targetCombatantId)
+  const effectOrdinal = nonNegativeSafeInteger(input.effectOrdinal, 'Effect ordinal')
+  const createdRound = positiveSafeInteger(input.createdRound, 'Created round')
+  const createdTurn = positiveSafeInteger(input.createdTurn, 'Created turn')
+  const instanceId = combatEffectInstanceId(
+    `effect:${input.action.triggerChainId}:${input.action.actionDefinitionId}:${effectOrdinal}:${targetCombatantId}`,
+  )
+
+  return {
+    instanceId,
+    action: input.action,
+    targetCombatantId,
+    effectOrdinal,
+    createdRound,
+    createdTurn,
+    ...(input.copiedFromInstanceId !== undefined
+      ? { copiedFromInstanceId: combatEffectInstanceId(input.copiedFromInstanceId) }
+      : {}),
+    ...(input.inheritedFromInstanceId !== undefined
+      ? { inheritedFromInstanceId: combatEffectInstanceId(input.inheritedFromInstanceId) }
+      : {}),
+  }
+}
+
+export function validateCombatEffectInstanceProvenance(value: unknown): readonly string[] {
+  const input = objectRecord(value)
+  if (!input) return ['provenance must be an object.']
+
+  const issues: string[] = []
+  const instanceIssue = stableIdentifierIssue(input.instanceId, 'instanceId')
+  if (instanceIssue) issues.push(instanceIssue)
+  const targetIssue = stableIdentifierIssue(input.targetCombatantId, 'targetCombatantId')
+  if (targetIssue) issues.push(targetIssue)
+  const ordinalIssue = nonNegativeIntegerIssue(input.effectOrdinal, 'effectOrdinal')
+  if (ordinalIssue) issues.push(ordinalIssue)
+  const roundIssue = positiveIntegerIssue(input.createdRound, 'createdRound')
+  if (roundIssue) issues.push(roundIssue)
+  const turnIssue = positiveIntegerIssue(input.createdTurn, 'createdTurn')
+  if (turnIssue) issues.push(turnIssue)
+
+  if (input.copiedFromInstanceId !== undefined) {
+    const issue = stableIdentifierIssue(input.copiedFromInstanceId, 'copiedFromInstanceId')
+    if (issue) issues.push(issue)
+  }
+  if (input.inheritedFromInstanceId !== undefined) {
+    const issue = stableIdentifierIssue(input.inheritedFromInstanceId, 'inheritedFromInstanceId')
+    if (issue) issues.push(issue)
+  }
+
+  const action = objectRecord(input.action)
+  if (!action) {
+    issues.push('action must be a provenance object.')
+  } else {
+    const rulesIssue = positiveIntegerIssue(action.rulesetVersion, 'action.rulesetVersion')
+    if (rulesIssue) issues.push(rulesIssue)
+    const definitionIssue = stableIdentifierIssue(
+      action.actionDefinitionId,
+      'action.actionDefinitionId',
+    )
+    if (definitionIssue) issues.push(definitionIssue)
+    const actionVersionIssue = positiveIntegerIssue(action.actionVersion, 'action.actionVersion')
+    if (actionVersionIssue) issues.push(actionVersionIssue)
+    const sourceIssue = stableIdentifierIssue(action.sourceCombatantId, 'action.sourceCombatantId')
+    if (sourceIssue) issues.push(sourceIssue)
+    const controllerIssue = stableIdentifierIssue(
+      action.controllerCombatantId,
+      'action.controllerCombatantId',
+    )
+    if (controllerIssue) issues.push(controllerIssue)
+    const chainIssue = stableIdentifierIssue(action.triggerChainId, 'action.triggerChainId')
+    if (chainIssue) issues.push(chainIssue)
+    try {
+      combatActionSourceKind(action.sourceKind)
+    } catch {
+      issues.push('action.sourceKind must be a known combat action source kind.')
+    }
+  }
+
+  if (
+    issues.length === 0 &&
+    typeof input.instanceId === 'string' &&
+    typeof input.targetCombatantId === 'string' &&
+    typeof input.effectOrdinal === 'number' &&
+    action &&
+    typeof action.triggerChainId === 'string' &&
+    typeof action.actionDefinitionId === 'string'
+  ) {
+    const expected = `effect:${action.triggerChainId}:${action.actionDefinitionId}:${input.effectOrdinal}:${input.targetCombatantId}`
+    if (input.instanceId !== expected) {
+      issues.push('instanceId must match the deterministic action/effect/target identity.')
+    }
+  }
+
+  return issues
 }
 
 export function assertNever(value: never, context: string): never {
