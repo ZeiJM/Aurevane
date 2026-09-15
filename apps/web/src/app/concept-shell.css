@@ -54,9 +54,9 @@
     padding-bottom: calc(4.25rem + env(safe-area-inset-bottom));
   }
 
-  /* The primary dock is fixed; the presence footer must stay in document flow. */
+  /* Keep presence above the fixed primary dock, including when links scroll into view. */
   [data-av-shell='concept'] > footer {
-    position: relative;
-    bottom: auto;
+    position: sticky;
+    bottom: calc(4.25rem + env(safe-area-inset-bottom));
   }
 }
