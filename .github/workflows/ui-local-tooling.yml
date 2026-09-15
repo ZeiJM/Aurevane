@@ -1,0 +1,41 @@
+name: UI local verification tooling
+
+on:
+  push:
+    branches:
+      - agent/character-roster-creation-concept-ui
+    paths:
+      - .github/workflows/ui-local-tooling.yml
+
+permissions:
+  contents: read
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Prepare exact locked dependencies for isolated UI checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+          mkdir -p /tmp/aurevane-tooling
+          cp "$(node -p 'process.execPath')" /tmp/aurevane-tooling/node
+          tar -czf /tmp/aurevane-tooling/dependencies.tar.gz node_modules apps/*/node_modules packages/*/node_modules
+          tar -czf /tmp/aurevane-tooling/corepack.tar.gz -C "$HOME/.cache/node" corepack
+          git rev-parse HEAD > /tmp/aurevane-tooling/commit.txt
+          sha256sum pnpm-lock.yaml > /tmp/aurevane-tooling/lock.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ui-locked-tooling
+          path: /tmp/aurevane-tooling
+          retention-days: 1
