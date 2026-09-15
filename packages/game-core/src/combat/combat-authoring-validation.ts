@@ -225,6 +225,19 @@ export function validateCombatStatusDefinition(status: CombatStatusDefinition): 
     for (const category of status.effectCategories) validateCombatEffectCategory(category)
   }
 
+  if (status.absorbHpBasisPoints !== undefined) {
+    if (
+      !Number.isSafeInteger(status.absorbHpBasisPoints) ||
+      status.absorbHpBasisPoints < 1 ||
+      status.absorbHpBasisPoints > 10_000
+    ) {
+      throw new RangeError('Absorb HP must be between 1 and 10000 basis points.')
+    }
+    if (status.polarity !== 'positive' || status.reactionClass !== 'reactive') {
+      throw new TypeError('Absorb HP statuses must be positive and reactive.')
+    }
+  }
+
   if (status.gameplayTags !== undefined) {
     if (
       !Array.isArray(status.gameplayTags) ||

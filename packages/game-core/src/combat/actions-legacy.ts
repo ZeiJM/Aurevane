@@ -1579,19 +1579,28 @@ function applyEffect(
             content,
           )
         : { state: updated, events: [] }
+    const actualDamage = target.hp - hpAfter
+    const absorbed = applyCurrentAbsorbHpRecovery(
+      removed.state,
+      actorId,
+      recipientId,
+      actualDamage,
+      content,
+    )
     return {
-      state: removed.state,
+      state: absorbed.state,
       events: [
         {
           event: 'damage_applied',
           actionId,
           sourceCombatantId: actorId,
           targetCombatantId: recipientId,
-          amount: target.hp - hpAfter,
+          amount: actualDamage,
           hpBefore: target.hp,
           hpAfter,
         },
         ...removed.events,
+        ...absorbed.events,
       ],
     }
   }
@@ -1668,6 +1677,58 @@ function applyEffect(
         remainingOwnerTurnStarts: status.remainingOwnerTurnStarts,
         refreshed: existingStatus !== null,
         stacked: existingStatus !== null && status.stacks > existingStatus.stacks,
+      },
+    ],
+  }
+}
+
+function applyCurrentAbsorbHpRecovery(
+  state: CombatEncounterState,
+  sourceCombatantId: string,
+  targetCombatantId: string,
+  actualDamage: number,
+  content: CombatContentCatalog,
+): CombatResolutionTransition {
+  if (actualDamage <= 0) return { state, events: [] }
+
+  const source = getCombatant(state.tactical.battle, sourceCombatantId)
+  const target = getCombatant(state.tactical.battle, targetCombatantId)
+  if (target.hp <= 0 || source.teamId === target.teamId) return { state, events: [] }
+
+  let totalBasisPoints = 0
+  for (const status of getStatusRow(state, targetCombatantId).statuses) {
+    const definition = getStatusDefinition(content, status.statusId, status.statusVersion)
+    const basisPoints = definition.absorbHpBasisPoints ?? 0
+    if (basisPoints <= 0) continue
+
+    const remainingBasisPoints = 10_000 - totalBasisPoints
+    if (status.stacks >= Math.ceil(remainingBasisPoints / basisPoints)) {
+      totalBasisPoints = 10_000
+      break
+    }
+    totalBasisPoints += basisPoints * status.stacks
+  }
+
+  if (totalBasisPoints <= 0) return { state, events: [] }
+
+  const recovery = Math.max(1, Math.floor((actualDamage * totalBasisPoints) / 10_000))
+  const hpBefore = target.hp
+  const hpAfter = Math.min(target.maxHp, hpBefore + recovery)
+  const amount = hpAfter - hpBefore
+  if (amount <= 0) return { state, events: [] }
+
+  const nextState = withUpdatedCombatant(state, targetCombatantId, { ...target, hp: hpAfter })
+  return {
+    state: nextState,
+    events: [
+      {
+        event: 'healing_applied',
+        actionId: 'status.absorb-hp.current.v1',
+        sourceCombatantId: targetCombatantId,
+        targetCombatantId,
+        amount,
+        hpBefore,
+        hpAfter,
       },
     ],
   }
