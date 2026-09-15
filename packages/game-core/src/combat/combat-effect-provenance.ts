@@ -176,7 +176,9 @@ export function attachCombatEffectProvenance(
   }
 
   const beforeBleedIdentities = new Set(beforeEffects.bleed.map(bleedStackIdentity))
-  const bleedTargets = new Set(bleedApplications.map((application) => application.targetCombatantId))
+  const bleedTargets = new Set(
+    bleedApplications.map((application) => application.targetCombatantId),
+  )
   for (const targetCombatantId of bleedTargets) {
     const lastClearOrdinal = lastBleedClearOrdinalByTarget.get(targetCombatantId)
     const survivingApplications = bleedApplications
