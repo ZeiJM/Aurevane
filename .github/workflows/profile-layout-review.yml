@@ -7,6 +7,7 @@ on:
       - agent/profile-layout-repair
       - agent/training-concept-ui
       - agent/battle-hall-concept-ui
+      - agent/online-directory-layout
     paths:
       - .github/workflows/profile-layout-review.yml
       - apps/web/e2e/*layout-regression.pw.ts
@@ -15,6 +16,8 @@ on:
       - apps/web/e2e/pvp-spectator-footer-shape.pw.ts
       - apps/web/src/components/character/**
       - apps/web/src/components/wayfarers-practice/**
+      - apps/web/src/components/social/**
+      - apps/web/src/app/game/online/**
       - apps/web/src/components/battle/battle-launch*
       - apps/web/src/components/battle/pvp-lobby-modal*
       - apps/web/src/components/shell/**
@@ -30,6 +33,8 @@ on:
       - apps/web/e2e/pvp-spectator-footer-shape.pw.ts
       - apps/web/src/components/character/**
       - apps/web/src/components/wayfarers-practice/**
+      - apps/web/src/components/social/**
+      - apps/web/src/app/game/online/**
       - apps/web/src/components/battle/battle-launch*
       - apps/web/src/components/battle/pvp-lobby-modal*
       - apps/web/src/components/shell/**
@@ -81,7 +86,7 @@ jobs:
           mkdir -p "$LAYOUT_REVIEW_OUTPUT"
           git rev-parse HEAD > "$LAYOUT_REVIEW_OUTPUT/commit.txt"
           pnpm --filter @aurevane/web build
-          pnpm --filter @aurevane/web exec playwright test e2e/profile-layout-regression.pw.ts e2e/training-layout-regression.pw.ts e2e/training-concept-layout-regression.pw.ts e2e/wayfarers-practice.pw.ts e2e/hall-layout-regression.pw.ts e2e/hall-controls-layout-regression.pw.ts e2e/pvp-spectator-footer-shape.pw.ts
+          pnpm --filter @aurevane/web exec playwright test e2e/profile-layout-regression.pw.ts e2e/training-layout-regression.pw.ts e2e/training-concept-layout-regression.pw.ts e2e/wayfarers-practice.pw.ts e2e/hall-layout-regression.pw.ts e2e/hall-controls-layout-regression.pw.ts e2e/directory-layout-regression.pw.ts e2e/pvp-spectator-footer-shape.pw.ts
       - uses: actions/upload-artifact@v4
         if: always()
         with:
