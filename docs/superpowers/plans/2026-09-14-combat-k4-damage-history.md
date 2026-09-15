@@ -27,33 +27,42 @@
 - Create `packages/game-core/src/combat/combat-damage-history.test.ts`
 - Modify `packages/game-core/package.json`
 
-- [ ] RED: hostile direct and periodic damage record actual HP loss.
-- [ ] RED: multiple packets in the same round aggregate deterministically.
-- [ ] RED: self-cost/reactive/system/self/same-team damage do not record.
-- [ ] RED: recording in a later round prunes entries older than the three-round window.
-- [ ] RED: recent-damage query ignores stale historical entries even before another record occurs.
-- [ ] RED: original encounter/effect state remains immutable.
-- [ ] GREEN: implement minimal pure helpers and package export.
-- [ ] Verify focused tests + game-core typecheck.
+- [x] RED: hostile direct and periodic damage record actual HP loss.
+- [x] RED: multiple packets in the same round aggregate deterministically.
+- [x] RED: self-cost/reactive/system/self/same-team damage do not record.
+- [x] RED: recording in a later round prunes entries older than the three-round window.
+- [x] RED: recent-damage query ignores stale historical entries even before another record occurs.
+- [x] RED: original encounter/effect state remains immutable.
+- [x] GREEN: implement minimal pure helpers and package export.
+- [x] Verify focused tests + game-core typecheck.
+
+Task 1 evidence: the initial RED contract imported the missing ledger module. After the pure helper implementation, CI exposed only Prettier differences in the two new files. Self-cleaning verification workflow `34917444482` formatted only those files, passed the focused ledger suite, game-core typecheck, full `pnpm check`, and diff hygiene, then published a clean Task 1 commit.
 
 ### Task 2 — Authoritative resolver provenance wiring
 
 **Files:**
 - Modify `packages/game-core/src/combat/actions-legacy.ts`
-- Modify/add focused provenance tests as needed.
+- Add `packages/game-core/src/combat/combat-damage-history-runtime.test.ts`
+- Modify `packages/game-core/src/combat/combat-damage-history.ts` for outgoing-round attribution.
 
-- [ ] RED: ordinary hostile direct damage records `direct-hostile` actual damage.
-- [ ] RED: Poison/Bleed/Burn/status periodic hostile damage records `periodic-hostile` actual damage.
-- [ ] RED: Burn backlash records nothing (`self-cost`).
-- [ ] RED: same-team/self damage records nothing even if a future action can author it.
-- [ ] GREEN: route committed damage through one provenance-aware ledger seam without changing damage amounts or event order.
-- [ ] Keep future `reactive`/`system` provenance explicit and non-recording by default.
+- [x] RED: ordinary hostile direct damage records `direct-hostile` actual damage.
+- [x] RED: Poison/Bleed/Burn/status periodic hostile damage records `periodic-hostile` actual damage.
+- [x] RED: Burn backlash records nothing (`self-cost`).
+- [x] RED: same-team/self damage records nothing even if a future action can author it.
+- [x] GREEN: route committed damage through one provenance-aware ledger seam without changing damage amounts or event order.
+- [x] Keep future `reactive`/`system` provenance explicit and non-recording by default.
+
+Task 2 RED evidence: after a test-only narrowing correction, exact head `e0bfbb2a2c58fd8407776798f98bed82d45db71f` passed formatting, lint and typecheck, then failed only the three unwired runtime ledger assertions: overkill-clamped hostile direct damage, aggregated hostile periodic damage, and hostile command damage while excluding Burn backlash. The same-team friendly-fire exclusion already passed; the pure ledger suite and the other 1,230 game-core tests remained green.
+
+Task 2 GREEN evidence: the first staging verifier failed mechanically before source publication because it targeted an older resolver layout. The live resolver was refreshed and the v2 self-cleaning workflow `34918811265` targeted the consolidated `resolveCurrentEndOfTurnDots` path. It passed both focused damage-history suites, game-core typecheck, full `pnpm check`, and diff hygiene, then removed both staging workflows and published clean source commit `a779f8c83d42b5669ab8d6a4d732810b4b56d2dd`.
+
+The verified wiring records actual committed HP loss only. Direct hostile commands record after mitigation and overkill clamping. Legacy periodic statuses plus current Poison, Bleed and Burn use explicit `periodic-hostile` provenance and preserve the outgoing battle round even when `endTurn` advances the round before ticks resolve. Burn backlash is explicitly routed as `self-cost` and therefore does not enter the hostile ledger. Same-team/self requested hostile damage is downgraded to `system` before the shared ledger helper and remains excluded.
 
 ### Task 3 — Verification/integration
 
-- [ ] Run focused damage-history tests.
-- [ ] Run full `pnpm check`.
-- [ ] Verify diff hygiene.
+- [x] Run focused damage-history tests.
+- [x] Run full `pnpm check`.
+- [x] Verify diff hygiene.
 - [ ] Reconcile onto the live shared combat branch after Pierce lands.
 - [ ] Run exact integration gates before shared merge.
-- [ ] Do not deploy.
+- [x] Do not deploy.
