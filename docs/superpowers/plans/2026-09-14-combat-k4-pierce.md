@@ -22,12 +22,14 @@
 **Files:**
 - Create `packages/game-core/src/combat/combat-pierce.test.ts`
 
-- [ ] Prove non-piercing Armor + Guard mitigation remains unchanged.
-- [ ] Prove piercing damage bypasses Armor and Guard-style incoming reduction.
-- [ ] Prove piercing damage still receives target vulnerability.
-- [ ] Prove piercing damage preserves attacker outgoing penalties while bypassing target incoming protection.
-- [ ] Prove authoring rejects non-boolean `piercing`.
-- [ ] Run focused test and record intended RED failures.
+- [x] Prove non-piercing Armor + Guard mitigation remains unchanged.
+- [x] Prove piercing damage bypasses Armor and Guard-style incoming reduction.
+- [x] Prove piercing damage still receives target vulnerability.
+- [x] Prove piercing damage preserves attacker outgoing penalties while bypassing target incoming protection.
+- [x] Prove authoring rejects non-boolean `piercing`.
+- [x] Run focused test and record intended RED failures.
+
+RED evidence: exact PR head `5f8070fa03c638d0470f9c17633a310843fb7905` failed only the four unimplemented Pierce behavior/validation assertions while the historical mitigation test, Pierce presentation tag, and 1,217 other game-core tests passed.
 
 ### Task 2 — GREEN implementation
 
@@ -36,17 +38,19 @@
 - Modify `packages/game-core/src/combat/damage-modifiers.ts`
 - Modify `packages/game-core/src/combat/gameplay-tags.ts` only if validation needs to live beside existing derived Pierce presentation.
 
-- [ ] Add optional `piercing?: boolean` to the damage effect contract.
-- [ ] Validate authored Pierce as boolean when present.
-- [ ] Skip defense rating mitigation for piercing damage.
-- [ ] Skip recipient legacy damage multipliers below 100% for piercing damage; preserve vulnerabilities.
-- [ ] Allow the shared conditional modifier function to ignore recipient incoming reductions below 100% while preserving attacker outgoing modifiers and incoming vulnerabilities.
-- [ ] Run focused Pierce tests and game-core typecheck.
+- [x] Add optional `piercing?: boolean` to the damage effect contract.
+- [x] Validate authored Pierce as boolean when present.
+- [x] Skip defense rating mitigation for piercing damage.
+- [x] Skip recipient legacy damage multipliers below 100% for piercing damage; preserve vulnerabilities.
+- [x] Allow the shared conditional modifier function to ignore recipient incoming reductions below 100% while preserving attacker outgoing modifiers and incoming vulnerabilities.
+- [x] Run focused Pierce tests and game-core typecheck.
+
+GREEN evidence: isolated verification workflow `34916375287` passed the focused six-test Pierce contract, game-core typecheck, full `pnpm check`, and diff hygiene before publishing clean source commit `c68abd5a5eb23fb1d83d7e64442d05e253b81c49`.
 
 ### Task 3 — verification/integration
 
-- [ ] Run full `pnpm check`.
-- [ ] Verify diff hygiene.
+- [x] Run full `pnpm check`.
+- [x] Verify diff hygiene.
 - [ ] Reconcile against the live shared combat head after the K4 category foundation lands.
 - [ ] Run exact integration gates before merging to the shared combat branch.
 - [ ] Do not deploy.
