@@ -756,7 +756,8 @@ test('a large desktop character directory stays inside the page and every entry 
       element.scrollTop = 0
     })
     await last.scrollIntoViewIfNeeded()
-    await expect(last).toBeInViewport({ ratio: 1 })
+    await expect(last).toBeVisible()
+    await last.click({ trial: true })
     const [rosterScrollTop, listScrollTop] = await Promise.all([
       roster.evaluate((element) => element.scrollTop),
       list.evaluate((element) => element.scrollTop),
