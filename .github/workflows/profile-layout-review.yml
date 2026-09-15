@@ -1,0 +1,28 @@
+name: Profile layout review
+
+on:
+  push:
+    branches:
+      - agent/profile-layout-repair
+
+permissions:
+  contents: read
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Export tracked review source
+        run: |
+          mkdir -p /tmp/profile-review
+          git archive --format=tar.gz HEAD > /tmp/profile-review/source.tar.gz
+          git rev-parse HEAD > /tmp/profile-review/commit.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: profile-layout-review
+          path: /tmp/profile-review
+          retention-days: 3
