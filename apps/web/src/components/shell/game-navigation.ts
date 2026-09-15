@@ -20,11 +20,4 @@ export const gameNavigation = [
     symbol: '◷',
     icon: 'training',
   },
-  {
-    href: '/game/online',
-    label: 'Adventurers',
-    detail: 'Online presence and adventurer directory',
-    symbol: '♧',
-    icon: 'adventurers',
-  },
 ] as const
