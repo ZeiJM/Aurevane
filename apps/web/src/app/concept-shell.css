@@ -51,5 +51,12 @@
   [data-av-shell='concept'] {
     width: 100%;
     grid-template-rows: auto auto minmax(0, 1fr) auto;
+    padding-bottom: calc(4.25rem + env(safe-area-inset-bottom));
+  }
+
+  /* The primary dock is fixed; the presence footer must stay in document flow. */
+  [data-av-shell='concept'] > footer {
+    position: relative;
+    bottom: auto;
   }
 }
