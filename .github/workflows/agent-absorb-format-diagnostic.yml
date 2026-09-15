@@ -1,4 +1,4 @@
-name: Absorb HP formatter diagnostic
+name: Absorb HP isolated verification
 
 on:
   push:
@@ -9,12 +9,14 @@ permissions:
   contents: read
 
 jobs:
-  format-diagnostic:
+  focused-verification:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: 7cbe2ee1d08f5fd4671598c50c6e87e4241d350f
+          fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
@@ -25,16 +27,19 @@ jobs:
           corepack prepare pnpm@11.17.0 --activate
       - name: Install locked dependencies
         run: pnpm install --frozen-lockfile
-      - name: Show exact formatter-only patch
+      - name: Verify exact checkout and focused Absorb contracts
         run: |
-          pnpm exec prettier --write packages/game-core/src/combat/combat-absorb-hp.test.ts
-          git diff --check
-          git diff -- packages/game-core/src/combat/combat-absorb-hp.test.ts
-      - name: Verify formatting
-        run: pnpm format:check
-      - name: Verify lint
-        run: pnpm lint
-      - name: Verify types
-        run: pnpm typecheck
-      - name: Observe Absorb HP behavioral RED
-        run: pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-absorb-hp.test.ts
+          test "$(git rev-parse HEAD)" = 7cbe2ee1d08f5fd4671598c50c6e87e4241d350f
+          pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-absorb-hp.test.ts src/combat/combat-absorb-hp-command.test.ts src/combat/combat-damage-history-runtime.test.ts src/combat/combat-barrier.test.ts src/combat/combat-resolution-provenance.test.ts src/combat/combat-burn-backlash.test.ts src/combat/combat-dot-rework.test.ts
+      - name: Verify game-core types
+        run: pnpm --filter @aurevane/game-core typecheck
+      - name: Verify repository formatting and lint
+        run: |
+          pnpm format:check
+          pnpm lint
+      - name: Verify exact scope and source hygiene
+        run: |
+          git diff --check 6ba57e8fab8bac3f68efd0dd04a3a43786c5dd53...HEAD
+          git diff --exit-code 6ba57e8fab8bac3f68efd0dd04a3a43786c5dd53...HEAD -- packages/game-core/src/combat/actions-legacy.ts apps .github
+          git diff --name-only 6ba57e8fab8bac3f68efd0dd04a3a43786c5dd53...HEAD
+          git diff --exit-code
