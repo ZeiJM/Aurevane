@@ -167,38 +167,6 @@
     margin-top: 0.75rem !important;
   }
 
-  /* Character Profile */
-  [data-profile-workspace] {
-    height: 100%;
-    min-height: 0 !important;
-    gap: 0.65rem !important;
-    align-items: stretch !important;
-  }
-
-  [data-profile-workspace] > * {
-    min-height: 0 !important;
-    max-height: 100%;
-  }
-
-  [data-profile-workspace] > :first-child {
-    height: 100%;
-    overflow: auto;
-    overscroll-behavior: contain;
-    scrollbar-width: thin;
-  }
-
-  [data-profile-workspace] > :nth-child(2),
-  [data-profile-workspace] > aside {
-    height: 100%;
-    overflow: auto;
-    overscroll-behavior: contain;
-    scrollbar-width: thin;
-  }
-
-  [data-profile-workspace] [data-testid='character-profile'] {
-    min-height: 0 !important;
-  }
-
   /* Battle Hall */
   [data-hall-concept] {
     display: grid !important;
@@ -348,7 +316,6 @@
     border-inline: 0;
   }
 
-  [data-profile-workspace],
   [data-hall-concept],
   [data-training-concept],
   [data-online-concept] {
