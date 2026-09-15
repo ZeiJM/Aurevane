@@ -79,7 +79,9 @@ export function TrainingReportCard({ report }: TrainingReportCardProps) {
           <span className={styles.eyebrow}>03 / Training Report</span>
           <h2>{passive ? 'Training Complete' : 'Training Report'}</h2>
         </div>
-        <span className={styles.badge}>{planLabel ? `${planLabel} complete` : 'Legacy report'}</span>
+        <span className={styles.badge}>
+          {planLabel ? `${planLabel} complete` : 'Legacy report'}
+        </span>
       </header>
 
       {passive ? (

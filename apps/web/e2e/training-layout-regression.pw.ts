@@ -54,6 +54,27 @@ test('training composition preserves idle, active, report and claim flows', asyn
       ]
       const report = element.querySelector('[aria-label="Training report workspace"]')
       return {
+        countdownSize: (() => {
+          const clock = [...element.querySelectorAll('#training-current strong')].find((node) =>
+            /^\d{2}:\d{2}:\d{2}$/.test(node.textContent?.trim() ?? ''),
+          )
+          return clock ? parseFloat(getComputedStyle(clock).fontSize) : null
+        })(),
+        durationActionsInPanel: actions.every((button) => {
+          const rect = button.getBoundingClientRect()
+          return (
+            rect.y >= planner.getBoundingClientRect().y &&
+            rect.bottom <= planner.getBoundingClientRect().bottom
+          )
+        }),
+        stopActionInPanel: (() => {
+          const activity = element.querySelector('#training-current')!
+          const button = activity.querySelector('button')
+          return (
+            !button ||
+            button.getBoundingClientRect().bottom <= activity.getBoundingClientRect().bottom
+          )
+        })(),
         frame: bounds(element),
         scene: bounds(scene),
         planner: bounds(planner),
@@ -96,7 +117,21 @@ test('training composition preserves idle, active, report and claim flows', asyn
     expect
       .soft(metrics.descriptionSize, `${label}: readable option descriptions`)
       .toBeGreaterThanOrEqual(12)
+    if (state === 'active') {
+      expect
+        .soft(metrics.countdownSize, `${label}: readable live countdown`)
+        .toBeGreaterThanOrEqual(28)
+    }
     if (!mobile) {
+      expect
+        .soft(
+          metrics.durationActionsInPanel,
+          `${label}: all duration actions visible without scrolling`,
+        )
+        .toBe(true)
+      expect
+        .soft(metrics.stopActionInPanel, `${label}: stop action visible without scrolling`)
+        .toBe(true)
       expect
         .soft(metrics.scene.width, `${label}: wide scenic header`)
         .toBeGreaterThan(metrics.frame.width * 0.9)
