@@ -83,7 +83,10 @@ test('proves account keybinds, readable Duel Yard flow and authoritative Surrend
   await expect(sparringArena).toBeVisible()
   await expect(sparringArena).toHaveValue('duel-yard')
   await expect(sparringArena.locator('option:checked')).toContainText('Duel Yard')
-  await expect(page.getByRole('heading', { name: 'AI Sparring' })).toBeVisible()
+  // The concept layout displays the selected record in its mode control, not a duplicate heading.
+  await expect(battleMode).toHaveValue('recruit-sparring')
+  await expect(battleMode.locator('option:checked')).toHaveText('AI Sparring')
+  await expect(page.locator('#ai-record-purpose')).toContainText('full duel')
   const enterBattle = page.getByRole('button', { name: 'Enter Battle' })
   await expect(enterBattle).toBeEnabled()
   await enterBattle.click()

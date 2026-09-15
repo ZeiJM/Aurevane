@@ -74,6 +74,21 @@ export function PublicCharacterProfile({
       data-av-surface="ink"
       aria-labelledby="online-profile-name"
       onClose={onClose}
+      onKeyDown={(event) => {
+        if (event.key !== 'Tab') return
+        // Keep Tab in the sheet even when Close is the only enabled action.
+        const buttons =
+          event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')
+        const first = buttons[0]
+        const last = buttons[buttons.length - 1]
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault()
+          last?.focus()
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault()
+          first?.focus()
+        }
+      }}
       onClick={(event) => {
         if (event.target === event.currentTarget) dialogRef.current?.close()
       }}
