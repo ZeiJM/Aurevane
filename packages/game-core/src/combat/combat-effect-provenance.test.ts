@@ -4,7 +4,7 @@ import * as kernel from './combat-kernel-types'
 
 type ActionProvenance = ReturnType<typeof kernel.createCombatActionProvenance>
 
-type EffectProvenanceBuilder = (input: {
+interface EffectProvenanceInput {
   action: ActionProvenance
   targetCombatantId: string
   effectOrdinal: number
@@ -12,7 +12,9 @@ type EffectProvenanceBuilder = (input: {
   createdTurn: number
   copiedFromInstanceId?: string
   inheritedFromInstanceId?: string
-}) => {
+}
+
+interface EffectProvenance {
   instanceId: string
   action: ActionProvenance
   targetCombatantId: string
@@ -23,11 +25,13 @@ type EffectProvenanceBuilder = (input: {
   inheritedFromInstanceId?: string
 }
 
+type EffectProvenanceBuilder = (input: EffectProvenanceInput) => EffectProvenance
 type EffectProvenanceValidator = (value: unknown) => readonly string[]
 
 function requireKernelFunction<T>(name: string): T {
-  const value = (kernel as unknown as Record<string, unknown>)[name]
-  expect(value, `${name} must be exported by the K3 kernel contract`).toBeTypeOf('function')
+  const exports = kernel as unknown as Record<string, unknown>
+  const value = exports[name]
+  expect(typeof value).toBe('function')
   return value as T
 }
 
@@ -41,6 +45,16 @@ function actionProvenance(): ActionProvenance {
     controllerCombatantId: 'actor',
     triggerChainId: 'chain:command-1',
   })
+}
+
+function validInput(): EffectProvenanceInput {
+  return {
+    action: actionProvenance(),
+    targetCombatantId: 'target',
+    effectOrdinal: 0,
+    createdRound: 1,
+    createdTurn: 1,
+  }
 }
 
 describe('P4.K3 combat effect instance provenance', () => {
@@ -68,18 +82,14 @@ describe('P4.K3 combat effect instance provenance', () => {
     })
   })
 
-  it('preserves copied-from and inherited-from causal links when explicitly supplied', () => {
+  it('preserves explicit copied-from and inherited-from causal links', () => {
     const build = requireKernelFunction<EffectProvenanceBuilder>(
       'createCombatEffectInstanceProvenance',
     )
 
     expect(
       build({
-        action: actionProvenance(),
-        targetCombatantId: 'target',
-        effectOrdinal: 0,
-        createdRound: 1,
-        createdTurn: 1,
+        ...validInput(),
         copiedFromInstanceId: 'effect:origin',
         inheritedFromInstanceId: 'effect:parent',
       }),
@@ -89,44 +99,25 @@ describe('P4.K3 combat effect instance provenance', () => {
     })
   })
 
-  it.each([
-    { field: 'effectOrdinal', value: -1 },
-    { field: 'effectOrdinal', value: 1.5 },
-    { field: 'createdRound', value: 0 },
-    { field: 'createdTurn', value: 0 },
-  ] as const)(
-    'rejects invalid numeric provenance input: $field=$value',
-    ({ field, value }) => {
-      const build = requireKernelFunction<EffectProvenanceBuilder>(
-        'createCombatEffectInstanceProvenance',
-      )
-      const input = {
-        action: actionProvenance(),
-        targetCombatantId: 'target',
-        effectOrdinal: 0,
-        createdRound: 1,
-        createdTurn: 1,
-        [field]: value,
-      }
+  it('rejects invalid numeric provenance input', () => {
+    const build = requireKernelFunction<EffectProvenanceBuilder>(
+      'createCombatEffectInstanceProvenance',
+    )
 
-      expect(() => build(input)).toThrow(TypeError)
-    },
-  )
+    expect(() => build({ ...validInput(), effectOrdinal: -1 })).toThrow(TypeError)
+    expect(() => build({ ...validInput(), effectOrdinal: 1.5 })).toThrow(TypeError)
+    expect(() => build({ ...validInput(), createdRound: 0 })).toThrow(TypeError)
+    expect(() => build({ ...validInput(), createdTurn: 0 })).toThrow(TypeError)
+  })
 
-  it('validates persisted provenance and rejects malformed target/instance identities', () => {
+  it('validates persisted provenance and rejects malformed identities', () => {
     const build = requireKernelFunction<EffectProvenanceBuilder>(
       'createCombatEffectInstanceProvenance',
     )
     const validate = requireKernelFunction<EffectProvenanceValidator>(
       'validateCombatEffectInstanceProvenance',
     )
-    const valid = build({
-      action: actionProvenance(),
-      targetCombatantId: 'target',
-      effectOrdinal: 0,
-      createdRound: 1,
-      createdTurn: 1,
-    })
+    const valid = build(validInput())
 
     expect(validate(valid)).toEqual([])
     expect(validate({ ...valid, targetCombatantId: ' target' })).toEqual(
