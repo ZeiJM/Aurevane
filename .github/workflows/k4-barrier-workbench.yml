@@ -21,9 +21,10 @@ jobs:
         run: |
           cp .github/scripts/k4_barrier_green.py /tmp/k4_barrier_green.py
           cp .github/scripts/k4_barrier_k3_followup.py /tmp/k4_barrier_k3_followup.py
+          cp .github/scripts/k4_barrier_web_followup.py /tmp/k4_barrier_web_followup.py
           git fetch origin agent/combat-k4-barrier-20260915
           git checkout --detach FETCH_HEAD
-          test "$(git rev-parse HEAD)" = "aa6e364f862d33d53c09beda997ff33e8a75f1b2"
+          test "$(git rev-parse HEAD)" = "90056e5f9a63547f8d40da7da2e3719086013b2e"
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -42,13 +43,14 @@ jobs:
         run: |
           python /tmp/k4_barrier_green.py
           python /tmp/k4_barrier_k3_followup.py
+          python /tmp/k4_barrier_web_followup.py
 
-      - name: Format Barrier delta
+      - name: Format Barrier production delta
         run: |
           pnpm exec prettier --write \
+            apps/web/src/components/character/skill-detail-presentation.ts \
             packages/game-core/src/combat/actions-legacy.ts \
             packages/game-core/src/combat/combat-authoring-validation.ts \
-            packages/game-core/src/combat/combat-barrier.test.ts \
             packages/game-core/src/combat/combat-barrier.ts \
             packages/game-core/src/combat/combat-effect-provenance.ts \
             packages/game-core/src/combat/combat-effect-state.ts \
@@ -60,9 +62,9 @@ jobs:
           git diff --check
           { git diff --name-only; git ls-files --others --exclude-standard; } | sort > /tmp/actual.txt
           printf '%s\n' \
+            apps/web/src/components/character/skill-detail-presentation.ts \
             packages/game-core/src/combat/actions-legacy.ts \
             packages/game-core/src/combat/combat-authoring-validation.ts \
-            packages/game-core/src/combat/combat-barrier.test.ts \
             packages/game-core/src/combat/combat-barrier.ts \
             packages/game-core/src/combat/combat-effect-provenance.ts \
             packages/game-core/src/combat/combat-effect-state.ts \
@@ -74,24 +76,29 @@ jobs:
       - name: Run focused Barrier GREEN contract
         run: pnpm --filter @aurevane/game-core test -- combat-barrier.test.ts
 
-      - name: Run game-core typecheck
-        run: pnpm --filter @aurevane/game-core typecheck
+      - name: Run focused Skill Details GREEN contract
+        run: pnpm --filter @aurevane/web test -- skill-detail-presentation.test.ts
+
+      - name: Run package typechecks
+        run: |
+          pnpm --filter @aurevane/game-core typecheck
+          pnpm --filter @aurevane/web typecheck
 
       - name: Run complete verification
         run: pnpm check
 
-      - name: Commit and push verified GREEN implementation
+      - name: Commit verified GREEN implementation to result branch
         run: |
           git config user.name "AUREVANE K4 Workbench"
           git config user.email "actions@users.noreply.github.com"
           git add \
+            apps/web/src/components/character/skill-detail-presentation.ts \
             packages/game-core/src/combat/actions-legacy.ts \
             packages/game-core/src/combat/combat-authoring-validation.ts \
-            packages/game-core/src/combat/combat-barrier.test.ts \
             packages/game-core/src/combat/combat-barrier.ts \
             packages/game-core/src/combat/combat-effect-provenance.ts \
             packages/game-core/src/combat/combat-effect-state.ts \
             packages/game-core/src/combat/gameplay-tags.ts \
             packages/game-core/src/combat/pv1f-action-economy.ts
           git commit -m "feat: implement K4 direct Barrier primitive"
-          git push origin HEAD:agent/combat-k4-barrier-20260915
+          git push --force-with-lease origin HEAD:agent/combat-k4-barrier-green-result-20260915
