@@ -518,3 +518,131 @@
     grid-template-columns: 6.5rem 1fr;
   }
 }
+
+/* composition-v3 battle hall rail */
+@media (min-width: 761px) {
+  .page[data-hall-concept='true'] {
+    display: grid !important;
+    grid-template-columns: minmax(10.5rem, 0.28fr) minmax(0, 1.72fr) !important;
+    grid-template-rows: auto minmax(0, 1fr) !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    gap: 0.65rem !important;
+    overflow: hidden !important;
+  }
+
+  .heading {
+    grid-column: 1 / -1 !important;
+    grid-row: 1 !important;
+    min-height: 0 !important;
+    padding: 0.15rem 0 0.55rem !important;
+  }
+
+  .categoryGrid[data-hall-mode-rail='true'] {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-auto-rows: minmax(5rem, auto) !important;
+    align-content: start !important;
+    gap: 0.45rem !important;
+    padding: 0.45rem !important;
+    border: 1px solid rgba(212, 186, 130, 0.32);
+    border-radius: 0 !important;
+    background: rgba(6, 15, 24, 0.96);
+  }
+
+  .categoryGrid[data-hall-mode-rail='true'] button {
+    width: 100% !important;
+    min-height: 5rem !important;
+    justify-content: flex-start !important;
+    padding: 0.75rem !important;
+    border-left: 3px solid transparent !important;
+    border-radius: 0 !important;
+    text-align: left !important;
+  }
+
+  .categoryGrid[data-hall-mode-rail='true'] button[data-active] {
+    border-left-color: var(--av-teal-bright) !important;
+  }
+
+  .workspace[data-hall-active-workspace='true'] {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    overflow: auto !important;
+    border-radius: 0 !important;
+    scrollbar-width: thin;
+  }
+
+  .arenaVista,
+  .spectateVista {
+    min-height: clamp(9rem, 20vh, 13rem) !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .page[data-hall-concept='true'] {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto auto auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    gap: 0.5rem !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .heading {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    padding: 0.45rem 0.25rem !important;
+  }
+
+  .heading > p {
+    display: none;
+  }
+
+  .categoryGrid[data-hall-mode-rail='true'] {
+    position: sticky;
+    z-index: 20;
+    top: 0;
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 0.3rem !important;
+    padding: 0.35rem !important;
+    border-block: 1px solid var(--av-border-strong);
+    background: rgba(5, 13, 21, 0.96);
+    backdrop-filter: blur(0.8rem);
+  }
+
+  .categoryGrid[data-hall-mode-rail='true'] button {
+    min-height: 3.5rem !important;
+    padding: 0.4rem 0.25rem !important;
+    border-radius: 0 !important;
+    text-align: center !important;
+  }
+
+  .categoryGrid[data-hall-mode-rail='true'] button small {
+    display: none !important;
+  }
+
+  .workspace[data-hall-active-workspace='true'] {
+    grid-column: 1 !important;
+    grid-row: 3 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0.55rem !important;
+    overflow: visible !important;
+    border-radius: 0 !important;
+  }
+
+  .arenaVista,
+  .spectateVista {
+    min-height: 10rem !important;
+    order: -1;
+  }
+}

@@ -21,7 +21,12 @@ export function OfflineTrainingShell({ practicePlan, trainingReport }: OfflineTr
       backLabel="Back to Character Profile"
     >
       <div className={styles.layout} data-training-concept="true">
-        <Surface className={styles.hero} tone="elevated" data-av-surface="ink">
+        <Surface
+          className={styles.hero}
+          tone="elevated"
+          data-av-surface="ink"
+          data-training-scene="true"
+        >
           <AurevaneImage
             assetId="environment.passive-training.cloister"
             className={styles.heroMedia}
@@ -33,7 +38,11 @@ export function OfflineTrainingShell({ practicePlan, trainingReport }: OfflineTr
           </div>
         </Surface>
 
-        <div className={styles.practiceGrid} data-has-report={trainingReport ? true : undefined}>
+        <div
+          className={styles.practiceGrid}
+          data-training-workspace="true"
+          data-has-report={trainingReport ? true : undefined}
+        >
           <PracticePlanCard practice={practicePlan} />
           {trainingReport ? <TrainingReportCard report={trainingReport} /> : null}
         </div>

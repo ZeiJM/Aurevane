@@ -20,8 +20,14 @@ describe('shared game rail', () => {
   it('exposes the three primary destinations and selected character identity', () => {
     navigationState.pathname = '/game/character'
     const markup = renderRail({ character: { name: 'Aster', level: 12 } })
-    for (const href of ['/game/character', '/game/battle', '/game/training']) {
+    const destinations = [
+      ['/game/character', 'Profile'],
+      ['/game/battle', 'Battle Hall'],
+      ['/game/training', 'Passive Training'],
+    ] as const
+    for (const [href, label] of destinations) {
       expect(markup).toContain(`href="${href}"`)
+      expect(markup).toContain(`aria-label="${label}"`)
     }
     expect(markup).not.toContain('href="/game/online"')
     expect(markup).not.toContain('Adventurers')

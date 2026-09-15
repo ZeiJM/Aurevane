@@ -248,7 +248,7 @@ export function CharacterSelectShell({
         </div>
       </header>
 
-      <main className={styles.main} style={{ width: 'min(94%, 78rem)' }}>
+      <main className={styles.main} data-roster-stage="true" style={{ width: 'min(94%, 78rem)' }}>
         <header className={styles.hero}>
           <div>
             <span>Account roster</span>
@@ -263,7 +263,11 @@ export function CharacterSelectShell({
           </p>
         ) : null}
 
-        <section className={styles.slots} aria-label="Character slots">
+        <section
+          className={styles.slots}
+          data-character-slot-board="true"
+          aria-label="Character slots"
+        >
           {displaySlots.map(({ slotIndex, character, unlocked }) => {
             if (!unlocked) {
               const lock = lockedSlotCopy(slotIndex)

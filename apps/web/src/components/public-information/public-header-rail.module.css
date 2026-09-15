@@ -2,23 +2,29 @@
 .masthead {
   display: grid !important;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) !important;
-  gap: clamp(0.75rem, 1.8vw, 1.5rem) !important;
+  gap: clamp(0.6rem, 1.35vw, 1.15rem) !important;
   align-items: center !important;
-  min-height: 4.5rem !important;
-  padding: 0.5rem clamp(0.8rem, 2vw, 2rem) !important;
+  min-height: 4rem !important;
+  padding: 0.35rem clamp(0.65rem, 1.5vw, 1.35rem) !important;
   border-bottom: 1px solid var(--av-gold-rule);
   color: var(--av-parchment-100);
-  background: rgba(7, 15, 24, 0.9);
+  background: rgba(5, 13, 21, 0.95);
+  backdrop-filter: blur(0.75rem);
+}
+
+.masthead :global(.brand__crest) {
+  width: 2.7rem;
+  height: 2.7rem;
 }
 
 .masthead :global(.brand__wordmark strong) {
   font-weight: 500;
-  letter-spacing: 0.24em;
+  letter-spacing: 0.22em;
 }
 
 .masthead :global(.brand__wordmark small) {
-  font: 500 0.6rem/1.3 var(--av-font-body);
-  letter-spacing: 0.16em;
+  font: 500 0.56rem/1.25 var(--av-font-body);
+  letter-spacing: 0.14em;
   color: #c2c7c6;
 }
 
@@ -26,21 +32,20 @@
   display: flex;
   grid-column: 2;
   min-width: 0;
-  gap: 0.25rem;
+  gap: 0.12rem;
   align-items: center;
   justify-self: center;
 }
 
 .navigation a {
   display: inline-flex;
-  min-height: 2.75rem;
+  min-height: 2.5rem;
   align-items: center;
-  padding: 0.6rem 0.7rem;
+  padding: 0.5rem 0.65rem;
   color: var(--av-parchment-100);
-  font: 600 0.75rem/1.2 var(--av-font-body);
-  letter-spacing: 0.025em;
+  font: 600 0.72rem/1.2 var(--av-font-body);
+  letter-spacing: 0.03em;
   text-decoration: none;
-  text-transform: none;
 }
 
 .navigation a:hover,
@@ -52,67 +57,76 @@
   display: flex;
   grid-column: 3;
   min-width: 0;
-  gap: 0.8rem;
+  gap: 0.65rem;
   align-items: center;
   justify-content: flex-end;
   justify-self: end;
+  padding-left: 0.85rem;
   border-left: 1px solid var(--av-border-strong);
-  padding-left: 1rem;
 }
 
 @media (max-width: 760px) {
   .masthead {
     grid-template-columns: minmax(0, 1fr) auto !important;
-    gap: 0.25rem 0.5rem !important;
+    gap: 0.18rem 0.4rem !important;
     min-height: 0 !important;
-    padding: 0.5rem 0.7rem !important;
+    padding: 0.4rem 0.6rem !important;
   }
+
   .masthead > :first-child {
-    grid-column: 1 / -1;
+    grid-column: 1;
     grid-row: 1;
     justify-self: start;
     min-width: 0;
   }
+
   .masthead :global(.brand__crest) {
-    width: 2.25rem;
-    height: 2.25rem;
+    width: 2.15rem;
+    height: 2.15rem;
   }
+
   .masthead :global(.brand__wordmark strong) {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
   }
+
   .masthead :global(.brand__wordmark small) {
-    font-size: 0.55rem;
+    display: none;
   }
+
   .navigation {
     grid-column: 1;
     grid-row: 2;
     justify-self: start;
     gap: 0;
   }
+
   .navigation a {
-    min-height: 2.75rem;
-    padding: 0.55rem 0.5rem;
-    font-size: 0.75rem;
+    min-height: 2.5rem;
+    padding: 0.5rem 0.45rem;
+    font-size: 0.7rem;
   }
+
   .utility {
     grid-column: 2;
-    grid-row: 2;
-    gap: 0.35rem;
-    padding-left: 0.5rem;
-    border-left: 0;
+    grid-row: 1 / 3;
+    gap: 0.3rem;
+    align-self: stretch;
+    padding-left: 0.45rem;
+    border-left: 1px solid var(--av-border-strong);
   }
 }
 
-/* An active-session badge needs its own utility row on the narrowest phones.
- * Keep full labels and touch targets instead of shrinking controls to fit. */
-@media (max-width: 420px) {
-  .masthead[data-av-active-session='true'] .navigation {
-    grid-column: 1 / -1;
+@media (max-width: 430px) {
+  .masthead {
+    padding-inline: 0.45rem !important;
   }
-  .masthead[data-av-active-session='true'] .utility {
-    grid-column: 1 / -1;
-    grid-row: 3;
-    justify-content: space-between;
-    padding-left: 0;
+
+  .navigation a {
+    padding-inline: 0.38rem;
+    font-size: 0.66rem;
+  }
+
+  .utility {
+    padding-left: 0.35rem;
   }
 }

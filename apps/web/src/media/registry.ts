@@ -1,4 +1,11 @@
 import { disciplineSigilDataUrl } from './generated-dark-fantasy-art'
+import { GENERATED_STARTER_PORTRAITS_1 } from './generated-starter-portraits-1'
+import { GENERATED_STARTER_PORTRAITS_2 } from './generated-starter-portraits-2'
+import { GENERATED_STARTER_PORTRAITS_3 } from './generated-starter-portraits-3'
+import { GENERATED_STARTER_PORTRAITS_4 } from './generated-starter-portraits-4'
+import { GENERATED_STARTER_PORTRAITS_5 } from './generated-starter-portraits-5'
+import { GENERATED_STARTER_PORTRAITS_6 } from './generated-starter-portraits-6'
+import { GENERATED_STARTER_PORTRAITS_7 } from './generated-starter-portraits-7'
 
 export type ImageAssetStatus = 'requested' | 'approved'
 export type ImageAssetKind = 'environment' | 'character' | 'ui' | 'icon'
@@ -41,6 +48,23 @@ const foundationSigils = [
 
 // Links generated runtime derivatives to the committed concept-ui provenance record.
 const conceptUiGenerationRequestId = 'ART-UI-029'
+
+const generatedStarterPortraits = [
+  ...GENERATED_STARTER_PORTRAITS_1,
+  ...GENERATED_STARTER_PORTRAITS_2,
+  ...GENERATED_STARTER_PORTRAITS_3,
+  ...GENERATED_STARTER_PORTRAITS_4,
+  ...GENERATED_STARTER_PORTRAITS_5,
+  ...GENERATED_STARTER_PORTRAITS_6,
+  ...GENERATED_STARTER_PORTRAITS_7,
+] as const
+
+const legacySquareStarterPortraitAssetIds = [
+  'character.creation.square-portrait-01',
+  'character.creation.square-portrait-02',
+  'character.creation.square-portrait-03',
+  'character.creation.square-portrait-04',
+] as const
 
 const IMAGE_ASSETS = [
   ...phase4Sigils.map(([discipline, requestId]) => ({
@@ -126,6 +150,30 @@ const IMAGE_ASSETS = [
     width: 768,
     height: 1152,
   },
+  ...generatedStarterPortraits.slice(0, 4).map((portrait, index) => ({
+    id: legacySquareStarterPortraitAssetIds[index]!,
+    kind: 'character' as const,
+    status: 'approved' as const,
+    requestId: 'ART-CHR-001',
+    generationRequestId: conceptUiGenerationRequestId,
+    decorative: false,
+    alt: portrait.alt,
+    src: portrait.src,
+    width: 96,
+    height: 96,
+  })),
+  ...generatedStarterPortraits.slice(4).map((portrait) => ({
+    id: portrait.id,
+    kind: 'character' as const,
+    status: 'approved' as const,
+    requestId: 'ART-CHR-001',
+    generationRequestId: conceptUiGenerationRequestId,
+    decorative: false,
+    alt: portrait.alt,
+    src: portrait.src,
+    width: 96,
+    height: 96,
+  })),
   {
     id: 'character.creation.appearance-reference',
     kind: 'character',

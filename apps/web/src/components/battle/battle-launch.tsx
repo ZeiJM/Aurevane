@@ -355,7 +355,11 @@ export function BattleLaunch({
         <p>Train against the system, challenge other players, or watch a shared battle by key.</p>
       </header>
 
-      <nav className={styles.categoryGrid} aria-label="Battle Hall sections">
+      <nav
+        className={styles.categoryGrid}
+        data-hall-mode-rail="true"
+        aria-label="Battle Hall sections"
+      >
         <button
           type="button"
           data-active={section === 'ai' || undefined}
@@ -395,7 +399,12 @@ export function BattleLaunch({
       </nav>
 
       {section === 'ai' ? (
-        <section className={styles.workspace} data-tone="ai" aria-labelledby="ai-battles-heading">
+        <section
+          className={styles.workspace}
+          data-tone="ai"
+          data-hall-active-workspace="true"
+          aria-labelledby="ai-battles-heading"
+        >
           <div className={styles.workspaceHeading}>
             <div>
               <span>AI Battles</span>
@@ -547,7 +556,12 @@ export function BattleLaunch({
       ) : null}
 
       {section === 'pvp' ? (
-        <section className={styles.workspace} data-tone="pvp" aria-labelledby="pvp-heading">
+        <section
+          className={styles.workspace}
+          data-tone="pvp"
+          data-hall-active-workspace="true"
+          aria-labelledby="pvp-heading"
+        >
           <div className={`${styles.workspaceHeading} ${styles.pvpHero}`}>
             <div>
               <span>Player vs Player</span>
@@ -749,6 +763,7 @@ export function BattleLaunch({
         <section
           className={styles.workspace}
           data-tone="spectate"
+          data-hall-active-workspace="true"
           aria-labelledby="spectate-heading"
         >
           <div className={styles.workspaceHeading}>

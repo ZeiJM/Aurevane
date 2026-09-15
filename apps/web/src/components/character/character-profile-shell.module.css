@@ -17,16 +17,16 @@
 .characterCard {
   position: relative;
   isolation: isolate;
-  min-height: 42rem;
+  min-height: 39rem;
   overflow: hidden;
   padding: 0;
   background: var(--av-ink-950);
 }
 .hero {
   display: flex;
-  min-height: 31rem;
+  min-height: 28.5rem;
   align-items: end;
-  padding: 1.35rem;
+  padding: 1.2rem;
 }
 .portrait {
   position: absolute;
@@ -53,14 +53,11 @@
   width: 100%;
   min-width: 0;
 }
-.identity :global(.av-kicker) {
-  font-size: 0.66rem;
-}
 .nameLine {
-  margin-top: 0.5rem;
+  margin-top: 0;
 }
 .identity h1 {
-  margin: 0 0 0.65rem;
+  margin: 0 0 0.6rem;
   color: var(--av-text);
   font: 500 clamp(2rem, 3.6vw, 3.8rem)/1.05 var(--av-font-display);
   overflow-wrap: anywhere;
@@ -82,7 +79,7 @@
   border-color: var(--av-teal);
 }
 .levelProgress {
-  margin-top: 1rem;
+  margin-top: 0.9rem;
 }
 .levelProgress > div:first-child {
   display: flex;
@@ -95,7 +92,7 @@
   color: var(--av-brass-200);
 }
 .track {
-  margin-top: 0.5rem;
+  margin-top: 0.45rem;
   height: 0.45rem;
   border: 1px solid var(--av-border);
   background: #08121c;
@@ -109,14 +106,14 @@
 }
 .characterSummary {
   display: grid;
-  gap: 0.85rem;
-  padding: 0 1.35rem 1.15rem;
+  gap: 0.7rem;
+  padding: 0 1.2rem 1rem;
 }
 .discipline {
   margin: 0;
   color: var(--av-text-muted);
   font-size: 0.8rem;
-  line-height: 1.5;
+  line-height: 1.45;
 }
 .capacity {
   display: grid;
@@ -125,31 +122,27 @@
   margin: 0;
 }
 .capacity > div {
+  display: grid;
+  justify-items: center;
   border-bottom: 3px solid #4ea476;
-  padding-bottom: 0.45rem;
+  padding-bottom: 0.42rem;
+  text-align: center;
 }
 .capacity > div:last-child {
-  border-color: #9466bb;
+  border-color: #4d9de0;
 }
 .capacity dt {
   color: var(--av-text-muted);
   font-size: 0.68rem;
+  text-align: center;
 }
 .capacity dd {
-  margin: 0.25rem 0 0;
+  margin: 0.22rem 0 0;
   font: 500 1.15rem var(--av-font-display);
-}
-.portraitLink {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  min-height: 2.75rem;
-  color: var(--av-brass-200);
-  font-size: 0.8rem;
-  text-underline-offset: 0.3rem;
+  text-align: center;
 }
 .profile {
-  padding: 1.4rem 1.2rem;
+  padding: 1rem;
   background: var(--av-moonstone);
   color: var(--av-charcoal);
   border-inline: 1px solid var(--av-gold-rule);
@@ -157,39 +150,26 @@
 .sheetHeading {
   display: flex;
   align-items: start;
-  justify-content: space-between;
-  gap: 0.5rem;
   border-bottom: 1px solid var(--av-gold-rule);
-  padding-bottom: 1rem;
+  padding-bottom: 0.72rem;
 }
 .sheetHeading h2 {
   margin: 0;
   color: var(--av-charcoal);
-  font: 500 clamp(1.7rem, 2.75vw, 3rem)/1.1 var(--av-font-display);
-}
-.sheetHeading p {
-  margin: 0.5rem 0 0;
-  color: var(--av-charcoal-muted);
-  font: italic 0.78rem var(--av-font-display);
-  letter-spacing: 0.08em;
-}
-.buildMode {
-  flex-shrink: 0;
-  padding: 0.3rem 0.4rem;
-  border: 1px solid var(--av-border);
-  font-size: 0.65rem;
+  font: 500 clamp(1.55rem, 2.35vw, 2.55rem)/1.08 var(--av-font-display);
+  letter-spacing: 0.015em;
 }
 .sidebar {
   min-width: 0;
   background: var(--av-ink-950);
 }
 .buildCard {
-  padding: 1rem;
+  padding: 0.9rem;
   height: 100%;
   background: linear-gradient(125deg, #101f29, #07121b);
 }
 .buildHeading {
-  padding: 0.2rem 0 0.8rem;
+  padding: 0.15rem 0 0.65rem;
   border-bottom: 1px solid var(--av-border-strong);
 }
 .buildHeading :global(.av-kicker) {
@@ -198,9 +178,12 @@
 }
 .buildSection {
   display: grid;
-  gap: 0.7rem;
-  padding: 0.8rem 0;
+  gap: 0.62rem;
+  padding: 0.65rem 0;
   border-bottom: 1px solid var(--av-border-strong);
+}
+.buildSectionHeader {
+  text-align: center;
 }
 .buildSectionHeader strong {
   color: var(--av-brass-200);
@@ -220,15 +203,15 @@
 }
 .disciplineSigils :is(img, svg) {
   display: block;
-  width: 100%;
-  height: auto;
-  max-height: 7rem;
+  width: 3.5rem;
+  height: 3.5rem;
+  margin-inline: auto;
   object-fit: contain;
 }
 .disciplineSigils span {
   display: block;
-  margin-top: 0.3rem;
-  font: 500 1rem var(--av-font-display);
+  margin-top: 0.25rem;
+  font: 500 0.9rem var(--av-font-display);
   overflow-wrap: anywhere;
 }
 .equippedSkills {
@@ -237,21 +220,29 @@
   gap: 0.5rem;
 }
 .equippedSkills > div {
+  display: grid;
   overflow: hidden;
   border: 1px solid var(--av-border-strong);
-  background: #0c1a24;
+  background: #02070b;
 }
 .equippedSkills img {
   display: block;
   width: 100%;
-  height: 4.2rem;
-  object-fit: cover;
+  aspect-ratio: 1 / 1;
+  height: auto;
+  object-fit: contain;
+  background: #02070b;
 }
 .equippedSkills span {
-  display: block;
+  display: grid;
+  min-height: 2rem;
+  place-items: center;
   padding: 0.3rem;
-  font-size: 0.65rem;
-  line-height: 1.3;
+  color: var(--av-parchment-100);
+  background: #020507;
+  font-size: 0.68rem;
+  line-height: 1.25;
+  text-align: center;
 }
 .equippedSkills p {
   grid-column: 1/-1;
@@ -260,38 +251,43 @@
 }
 .buildIdentity {
   display: grid;
-  gap: 0.65rem;
-  padding-top: 1rem;
+  justify-items: center;
+  gap: 0.55rem;
+  padding-top: 0.8rem;
+  text-align: center;
 }
 .buildIdentityArt {
-  width: 5rem;
-  height: 5rem;
+  width: 3.5rem;
+  height: 3.5rem;
 }
 .buildIdentityArt img {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 50%;
 }
 .buildIdentityCopy {
   display: grid;
-  gap: 0.4rem;
+  justify-items: center;
+  gap: 0.35rem;
+  text-align: center;
 }
 .buildIdentityCopy > span {
   color: var(--av-brass-200);
-  font: 500 0.85rem var(--av-font-display);
+  font: 500 0.82rem var(--av-font-display);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 .buildIdentityCopy strong {
   color: var(--av-brass-200);
-  font: 500 1.35rem var(--av-font-display);
+  font: 500 1.2rem var(--av-font-display);
 }
 .buildIdentityCopy small {
   color: var(--av-text-muted);
-  font-size: 0.73rem;
-  line-height: 1.5;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  text-align: center;
 }
 @media (max-width: 1100px) and (min-width: 761px) {
   .layout {
@@ -328,18 +324,151 @@
   .profile {
     border-inline: 0;
     border-block: 1px solid var(--av-gold-rule);
-    padding: 1.15rem 0.85rem;
-  }
-  .sheetHeading {
-    flex-wrap: wrap;
+    padding: 1.05rem 0.85rem;
   }
   .buildCard {
     padding: 1rem;
   }
-  .disciplineSigils :is(img, svg) {
-    max-height: 9rem;
+  .disciplineSigils :is(img, svg),
+  .buildIdentityArt {
+    width: 3.5rem;
+    height: 3.5rem;
   }
-  .equippedSkills img {
-    height: 7rem;
+}
+
+/* composition-v3 profile dossier */
+@media (min-width: 761px) {
+  .layout[data-profile-workspace] {
+    grid-template-columns: minmax(0, 1.6fr) minmax(19rem, 0.72fr) !important;
+    grid-template-rows: auto minmax(0, 1fr) !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    gap: 0.7rem !important;
+    align-items: stretch !important;
+  }
+
+  .characterCard[data-profile-identity-banner='true'] {
+    display: grid !important;
+    grid-column: 1 / -1 !important;
+    grid-row: 1 !important;
+    grid-template-columns: minmax(0, 1.55fr) minmax(15rem, 0.55fr) !important;
+    min-height: 0 !important;
+    padding: 0.55rem 0.7rem !important;
+    border-radius: 0 !important;
+  }
+
+  .characterCard[data-profile-identity-banner='true'] .hero {
+    display: grid !important;
+    grid-template-columns: 6.6rem minmax(0, 1fr) !important;
+    min-height: 0 !important;
+    gap: 0.8rem !important;
+    align-items: center !important;
+  }
+
+  .characterCard[data-profile-identity-banner='true'] .portrait {
+    width: 6.6rem !important;
+    height: 6.6rem !important;
+    min-height: 0 !important;
+    aspect-ratio: 1 !important;
+    border: 1px solid var(--av-brass-500);
+    border-radius: 0 !important;
+  }
+
+  .characterCard[data-profile-identity-banner='true'] .identity {
+    align-self: center !important;
+    padding: 0 !important;
+  }
+
+  .characterCard[data-profile-identity-banner='true'] .nameLine h1 {
+    margin: 0 0 0.35rem !important;
+    font-size: clamp(1.8rem, 3vw, 2.55rem) !important;
+  }
+
+  .characterCard[data-profile-identity-banner='true'] .characterSummary {
+    align-self: stretch !important;
+    align-content: center !important;
+    margin: 0 !important;
+    padding: 0.45rem 0.2rem 0.45rem 0.85rem !important;
+    border-top: 0 !important;
+    border-left: 1px solid var(--av-border-strong);
+  }
+
+  .profile[data-profile-sheet='true'] {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow: auto !important;
+    border-radius: 0 !important;
+    scrollbar-width: thin;
+  }
+
+  .sidebar[data-profile-loadout='true'] {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow: auto !important;
+    scrollbar-width: thin;
+  }
+}
+
+@media (max-width: 760px) {
+  .layout[data-profile-workspace] {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto auto auto !important;
+    height: auto !important;
+    gap: 0.55rem !important;
+    padding: 0 !important;
+  }
+
+  .characterCard[data-profile-identity-banner='true'] {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    min-height: 0 !important;
+    padding: 0.55rem !important;
+    border-radius: 0 !important;
+  }
+
+  .characterCard[data-profile-identity-banner='true'] .hero {
+    display: grid !important;
+    grid-template-columns: 5.4rem minmax(0, 1fr) !important;
+    min-height: 0 !important;
+    gap: 0.7rem !important;
+    align-items: center !important;
+  }
+
+  .characterCard[data-profile-identity-banner='true'] .portrait {
+    width: 5.4rem !important;
+    height: 5.4rem !important;
+    min-height: 0 !important;
+    aspect-ratio: 1 !important;
+    border: 1px solid var(--av-brass-500);
+    border-radius: 0 !important;
+  }
+
+  .characterCard[data-profile-identity-banner='true'] .identity {
+    padding: 0 !important;
+  }
+
+  .characterCard[data-profile-identity-banner='true'] .nameLine h1 {
+    margin: 0 0 0.25rem !important;
+    font-size: clamp(1.45rem, 7vw, 1.9rem) !important;
+  }
+
+  .characterCard[data-profile-identity-banner='true'] .characterSummary {
+    margin-top: 0.45rem !important;
+    padding-top: 0.5rem !important;
+    border-top: 1px solid var(--av-border-strong) !important;
+  }
+
+  .profile[data-profile-sheet='true'],
+  .sidebar[data-profile-loadout='true'] {
+    grid-column: 1 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    border-radius: 0 !important;
   }
 }

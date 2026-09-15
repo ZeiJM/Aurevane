@@ -41,3 +41,75 @@
     min-height: 7.25rem;
   }
 }
+
+/* composition-v3 directory stage */
+@media (min-width: 761px) {
+  .page[data-directory-stage='true'] {
+    display: grid !important;
+    grid-template-columns: minmax(11rem, 0.25fr) minmax(0, 1.75fr) !important;
+    grid-template-rows: auto minmax(0, 1fr) !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    gap: 0.65rem !important;
+    padding: 0.65rem !important;
+    overflow: hidden !important;
+    border-radius: 0 !important;
+    background: rgba(8, 18, 28, 0.96) !important;
+  }
+
+  .heading {
+    grid-column: 1 / -1 !important;
+    grid-row: 1 !important;
+    color: var(--av-parchment-100);
+  }
+
+  .page[data-directory-stage='true'] > :global([data-directory-controls='true']) {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    align-self: stretch !important;
+    align-items: flex-start !important;
+    justify-content: stretch !important;
+    padding: 0.65rem !important;
+    border: 1px solid var(--av-border-strong);
+    background: rgba(5, 13, 21, 0.98);
+  }
+
+  .page[data-directory-stage='true'] > :global([data-directory-controls='true']) button {
+    width: 100%;
+  }
+
+  .page[data-directory-stage='true'] > :global([data-directory-roster='true']) {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+  }
+}
+
+@media (max-width: 760px) {
+  .page[data-directory-stage='true'] {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto auto auto !important;
+    height: auto !important;
+    min-height: 0 !important;
+    gap: 0.45rem !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .page[data-directory-stage='true'] > :global([data-directory-controls='true']) {
+    padding: 0.45rem !important;
+    border: 1px solid var(--av-border-strong);
+    background: rgba(5, 13, 21, 0.96);
+  }
+
+  .page[data-directory-stage='true'] > :global([data-directory-roster='true']) {
+    margin: 0 !important;
+  }
+}

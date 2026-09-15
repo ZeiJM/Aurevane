@@ -4,12 +4,13 @@ import {
   CHARACTER_ATTRIBUTE_IDS,
   CHARACTER_CREATION_RULES_V1,
   CHARACTER_PRESENTATIONS,
-  PRONOUN_PRESETS,
   validateCharacterCreationIntent,
   type CharacterAttributeBonuses,
+  type CharacterPresentationId,
 } from '@aurevane/game-core/character/creation'
 import { FOUNDATION_DISCIPLINES } from '@aurevane/game-core/character/foundation-disciplines'
 import {
+  defaultPronounPresetForPresentation,
   STARTER_CHARACTER_APPEARANCES,
   STARTER_CHARACTER_PORTRAITS,
 } from '@aurevane/game-core/character/starter-options'
@@ -18,10 +19,9 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
 import { AurevaneImage } from '@/components/media/aurevane-image'
-import type { ImageAssetId } from '@/media/registry'
+import { getStarterPortraitImageAssetId } from '@/media/character'
 
 import { FoundationDisciplineSigil } from './foundation-discipline-sigil'
-import { getStarterPortraitImageAssetId } from '@/media/character'
 import styles from './character-creation-experience.module.css'
 
 type Step = 'identity' | 'discipline' | 'review'
@@ -29,13 +29,6 @@ type Step = 'identity' | 'discipline' | 'review'
 interface CharacterCreationExperienceProps {
   slotIndex: number
 }
-
-const portraitAssetIds: readonly ImageAssetId[] = [
-  'character.creation.portrait-01',
-  'character.creation.portrait-02',
-  'character.creation.portrait-03',
-  'character.creation.portrait-04',
-]
 
 const attributeCopy = {
   might: 'Physical force: heavy impacts, physical power, armor, and vertical force.',
@@ -64,8 +57,7 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
   const router = useRouter()
   const [step, setStep] = useState<Step>('identity')
   const [name, setName] = useState('')
-  const [presentationId, setPresentationId] = useState('androgynous')
-  const [pronounPresetId, setPronounPresetId] = useState('they_them')
+  const [presentationId, setPresentationId] = useState<CharacterPresentationId>('androgynous')
   const [portraitRef, setPortraitRef] = useState(STARTER_CHARACTER_PORTRAITS[0].ref)
   const [starterAppearanceRef, setStarterAppearanceRef] = useState(
     STARTER_CHARACTER_APPEARANCES[0].ref,
@@ -83,6 +75,9 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
   const selectedDiscipline =
     FOUNDATION_DISCIPLINES.find((candidate) => candidate.id === foundationDisciplineId) ??
     FOUNDATION_DISCIPLINES[0]
+  const selectedPortrait =
+    STARTER_CHARACTER_PORTRAITS.find((option) => option.ref === portraitRef) ??
+    STARTER_CHARACTER_PORTRAITS[0]
   const spentPoints = CHARACTER_ATTRIBUTE_IDS.reduce(
     (total, attributeId) => total + attributeBonuses[attributeId],
     0,
@@ -113,7 +108,9 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
     return {
       name,
       presentationId,
-      pronounPresetId,
+      // Kept for the v1 server/data contract. The player-facing UI intentionally does not
+      // expose pronouns; a deterministic compatibility value follows the chosen presentation.
+      pronounPresetId: defaultPronounPresetForPresentation(presentationId),
       portraitRef,
       starterAppearanceRef,
       attributeBonuses,
@@ -194,9 +191,15 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
     >
       <div className={styles.scene} aria-hidden="true">
         <AurevaneImage
-          assetId={getStarterPortraitImageAssetId(portraitRef)}
-          sizes="(min-width: 761px) 40vw, 100vw"
+          assetId="environment.character-creation.threshold"
+          sizes="(min-width: 761px) 28vw, 100vw"
         />
+        <div className={styles.sceneVeil} />
+        <div className={styles.sceneCopy}>
+          <span>Some souls seek power.</span>
+          <span>Others seek truth.</span>
+          <strong>All find their place in AUREVANE.</strong>
+        </div>
       </div>
 
       <div className={styles.content} data-av-surface="moonstone">
@@ -210,119 +213,133 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
         {step === 'identity' ? (
           <div className={styles.step}>
             <h1 ref={stepHeading} tabIndex={-1}>
-              Who steps onto the road?
+              Create your legend.
             </h1>
             <p className={styles.intro}>
-              Your account stays private. This name, portrait, and presentation become this
-              character’s public identity.
+              Choose the face, name, and presentation that begin this character’s story. Every
+              portrait is cosmetic and can be represented consistently across profile surfaces.
             </p>
 
-            <label
-              className={styles.field}
-              data-invalid={invalidFields.includes('name') || undefined}
-            >
-              <span>Character name</span>
-              <input
-                aria-invalid={invalidFields.includes('name') || undefined}
-                autoComplete="off"
-                maxLength={CHARACTER_CREATION_RULES_V1.name.maximumCodePoints}
-                minLength={CHARACTER_CREATION_RULES_V1.name.minimumCodePoints}
-                onChange={(event) => {
-                  changed()
-                  setName(event.target.value)
-                }}
-                value={name}
-              />
-              <small>3–24 letters; spaces, apostrophes, and hyphens may separate name parts.</small>
-            </label>
+            <div className={styles.identityWorkspace}>
+              <div className={styles.identityControls}>
+                <label
+                  className={styles.field}
+                  data-invalid={invalidFields.includes('name') || undefined}
+                >
+                  <span>Character name</span>
+                  <input
+                    aria-invalid={invalidFields.includes('name') || undefined}
+                    autoComplete="off"
+                    maxLength={CHARACTER_CREATION_RULES_V1.name.maximumCodePoints}
+                    minLength={CHARACTER_CREATION_RULES_V1.name.minimumCodePoints}
+                    onChange={(event) => {
+                      changed()
+                      setName(event.target.value)
+                    }}
+                    placeholder="Enter a name…"
+                    value={name}
+                  />
+                  <small>
+                    3–24 letters; spaces, apostrophes, and hyphens may separate name parts.
+                  </small>
+                </label>
 
-            <div className={styles.twoColumn}>
-              <fieldset className={styles.choiceGroup}>
-                <legend>Presentation</legend>
-                {CHARACTER_PRESENTATIONS.map((option) => (
-                  <label key={option.id} className={styles.inlineChoice}>
-                    <input
-                      checked={presentationId === option.id}
-                      name="presentation"
-                      onChange={() => {
-                        changed()
-                        setPresentationId(option.id)
-                      }}
-                      type="radio"
-                    />
-                    <span>{option.label}</span>
-                  </label>
-                ))}
-              </fieldset>
+                <fieldset className={styles.choiceGroup}>
+                  <legend>Presentation</legend>
+                  <div className={styles.presentationChoices}>
+                    {CHARACTER_PRESENTATIONS.map((option) => (
+                      <label key={option.id} className={styles.inlineChoice}>
+                        <input
+                          checked={presentationId === option.id}
+                          name="presentation"
+                          onChange={() => {
+                            changed()
+                            setPresentationId(option.id)
+                          }}
+                          type="radio"
+                        />
+                        <span>{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
 
-              <fieldset className={styles.choiceGroup}>
-                <legend>Pronouns</legend>
-                {PRONOUN_PRESETS.map((option) => (
-                  <label key={option.id} className={styles.inlineChoice}>
-                    <input
-                      checked={pronounPresetId === option.id}
-                      name="pronouns"
-                      onChange={() => {
-                        changed()
-                        setPronounPresetId(option.id)
-                      }}
-                      type="radio"
-                    />
-                    <span>{option.label}</span>
-                  </label>
-                ))}
-              </fieldset>
+                <fieldset className={styles.choiceGroup}>
+                  <legend>Choose a starting portrait</legend>
+                  <p className={styles.choiceHint}>
+                    {STARTER_CHARACTER_PORTRAITS.length} starting faces. Portraits use a 1:1 frame
+                    throughout character selection and customization.
+                  </p>
+                  <div className={styles.portraitGrid}>
+                    {STARTER_CHARACTER_PORTRAITS.map((option) => (
+                      <label
+                        key={option.ref}
+                        className={styles.portraitChoice}
+                        data-selected={portraitRef === option.ref}
+                        title={option.label}
+                      >
+                        <input
+                          checked={portraitRef === option.ref}
+                          name="portrait"
+                          onChange={() => {
+                            changed()
+                            setPortraitRef(option.ref)
+                          }}
+                          type="radio"
+                        />
+                        <AurevaneImage
+                          assetId={getStarterPortraitImageAssetId(option.ref)}
+                          sizes="6rem"
+                        />
+                        <span>{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+
+                <fieldset className={styles.choiceGroup}>
+                  <legend>Starter appearance</legend>
+                  <div className={styles.appearanceGrid}>
+                    {STARTER_CHARACTER_APPEARANCES.map((option) => (
+                      <label
+                        key={option.ref}
+                        className={styles.optionCard}
+                        data-selected={starterAppearanceRef === option.ref}
+                      >
+                        <input
+                          checked={starterAppearanceRef === option.ref}
+                          name="appearance"
+                          onChange={() => {
+                            changed()
+                            setStarterAppearanceRef(option.ref)
+                          }}
+                          type="radio"
+                        />
+                        <strong>{option.label}</strong>
+                        <small>Cosmetic only. No hidden combat bonus.</small>
+                      </label>
+                    ))}
+                  </div>
+                </fieldset>
+              </div>
+
+              <aside className={styles.portraitPreview} aria-label="Selected portrait preview">
+                <span className={styles.previewLabel}>Preview</span>
+                <div className={styles.previewFrame}>
+                  <AurevaneImage
+                    assetId={getStarterPortraitImageAssetId(portraitRef)}
+                    sizes="18rem"
+                  />
+                </div>
+                <div className={styles.previewCopy}>
+                  <strong>{name.trim() || 'Your character'}</strong>
+                  <span>{selectedPortrait.label}</span>
+                  <small>
+                    {CHARACTER_PRESENTATIONS.find((option) => option.id === presentationId)?.label}
+                  </small>
+                </div>
+              </aside>
             </div>
-
-            <fieldset className={styles.choiceGroup}>
-              <legend>Portrait</legend>
-              <div className={styles.portraitGrid}>
-                {STARTER_CHARACTER_PORTRAITS.map((option, index) => (
-                  <label
-                    key={option.ref}
-                    className={styles.portraitChoice}
-                    data-selected={portraitRef === option.ref}
-                  >
-                    <input
-                      checked={portraitRef === option.ref}
-                      name="portrait"
-                      onChange={() => {
-                        changed()
-                        setPortraitRef(option.ref)
-                      }}
-                      type="radio"
-                    />
-                    <AurevaneImage assetId={portraitAssetIds[index]} sizes="8rem" />
-                    <span>{option.label}</span>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
-
-            <fieldset className={styles.choiceGroup}>
-              <legend>Starter appearance</legend>
-              <div className={styles.appearanceGrid}>
-                {STARTER_CHARACTER_APPEARANCES.map((option) => (
-                  <label
-                    key={option.ref}
-                    className={styles.optionCard}
-                    data-selected={starterAppearanceRef === option.ref}
-                  >
-                    <input
-                      checked={starterAppearanceRef === option.ref}
-                      name="appearance"
-                      onChange={() => {
-                        changed()
-                        setStarterAppearanceRef(option.ref)
-                      }}
-                      type="radio"
-                    />
-                    <strong>{option.label}</strong>
-                    <small>Cosmetic only. No hidden combat bonus.</small>
-                  </label>
-                ))}
-              </div>
-            </fieldset>
 
             {errorMessage ? (
               <p className={styles.error} role="alert">
@@ -495,8 +512,8 @@ export function CharacterCreationExperience({ slotIndex }: CharacterCreationExpe
                 <dd>{CHARACTER_PRESENTATIONS.find((item) => item.id === presentationId)?.label}</dd>
               </div>
               <div>
-                <dt>Pronouns</dt>
-                <dd>{PRONOUN_PRESETS.find((item) => item.id === pronounPresetId)?.label}</dd>
+                <dt>Portrait</dt>
+                <dd>{selectedPortrait.label}</dd>
               </div>
               {CHARACTER_ATTRIBUTE_IDS.map((attributeId) => (
                 <div key={attributeId}>

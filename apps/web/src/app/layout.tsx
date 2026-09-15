@@ -13,6 +13,8 @@ import './desktop-readability.css'
 import './desktop-page-fit.css'
 import './mobile-readability.css'
 import './concept-shell.css'
+import './profile-ui-readability-pass.css'
+import './sitewide-layout-v2.css'
 
 export const metadata: Metadata = {
   title: 'AUREVANE',

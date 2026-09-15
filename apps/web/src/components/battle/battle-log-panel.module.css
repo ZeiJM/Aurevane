@@ -44,6 +44,7 @@
 }
 
 .docked {
+  container: battle-log-dock / inline-size;
   min-width: 0;
   min-height: 0;
   overflow: hidden;

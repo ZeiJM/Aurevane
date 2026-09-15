@@ -61,11 +61,7 @@ export function AuthenticatedShellPresentation({
         <a className="skip-link" href="#game-main">
           Skip to game content
         </a>
-        <header
-          className={`${styles.masthead} ${railStyles.masthead}`}
-          data-av-surface="ink"
-          data-av-active-session={Boolean(activeSessionHref) || undefined}
-        >
+        <header className={`${styles.masthead} ${railStyles.masthead}`} data-av-surface="ink">
           <div className={styles.brandGroup}>
             <Link className="brand" href="/game/character" aria-label="AUREVANE character profile">
               <span className="brand__crest" aria-hidden="true">
@@ -85,22 +81,6 @@ export function AuthenticatedShellPresentation({
           </nav>
 
           <div className={railStyles.utility}>
-            <div className={styles.screenIdentity} aria-label={`Current screen: ${sessionLabel}`}>
-              {activeBattleHref ? (
-                <Link className={styles.activeBattleLink} href={activeBattleHref}>
-                  <span aria-hidden="true">●</span> IN BATTLE
-                </Link>
-              ) : activeSpectatingHref ? (
-                <Link className={styles.activeBattleLink} href={activeSpectatingHref}>
-                  <span aria-hidden="true">●</span> SPECTATING
-                </Link>
-              ) : null}
-              <span className={styles.screenLabel}>
-                <StatusMark />
-                <strong>{sessionLabel}</strong>
-              </span>
-            </div>
-
             <AccountMenu
               activeSessionHref={activeSessionHref}
               activeSessionLabel={activeSessionLabel}
@@ -114,6 +94,44 @@ export function AuthenticatedShellPresentation({
           character={character}
           characterPortrait={characterPortrait}
         />
+
+        <section
+          className={styles.contextBar}
+          data-av-context-strip="true"
+          data-av-surface="ink"
+          aria-label={`Current screen: ${sessionLabel}`}
+        >
+          <div className={styles.contextHeading}>
+            <StatusMark />
+            <span>Current workspace</span>
+            <strong>{sessionLabel}</strong>
+          </div>
+
+          <div className={styles.contextUtility}>
+            {activeBattleHref ? (
+              <Link className={styles.activeBattleLink} href={activeBattleHref}>
+                <span aria-hidden="true">●</span> IN BATTLE
+              </Link>
+            ) : activeSpectatingHref ? (
+              <Link className={styles.activeBattleLink} href={activeSpectatingHref}>
+                <span aria-hidden="true">●</span> SPECTATING
+              </Link>
+            ) : null}
+
+            {character ? (
+              <div
+                className={styles.contextCharacter}
+                aria-label={`Current character: ${character.name}, Level ${character.level}`}
+              >
+                {characterPortrait}
+                <div>
+                  <strong>{character.name}</strong>
+                  <small>Level {character.level}</small>
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </section>
 
         <main className={styles.main} id="game-main" tabIndex={-1}>
           {children}

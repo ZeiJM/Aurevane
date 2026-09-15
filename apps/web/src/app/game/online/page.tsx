@@ -41,6 +41,7 @@ export default async function OnlineUsersPage() {
         data-character-directory
         data-av-surface="moonstone"
         data-online-concept="true"
+        data-directory-stage="true"
       >
         <header className={styles.heading}>
           <Kicker marker="◇">Live presence</Kicker>

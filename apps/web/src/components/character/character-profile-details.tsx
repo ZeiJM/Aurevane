@@ -21,7 +21,7 @@ import styles from './character-profile-details.module.css'
 
 interface CharacterProfileDetailsProps {
   presentationLabel: string
-  pronounLabel: string
+  buildTypeLabel: 'Hybrid Build' | 'Essence Build'
   cycleNumber: number
   attributes: CharacterAttributes
   derived: DerivedStatSnapshot
@@ -54,7 +54,6 @@ const attributeIconSources: Readonly<Record<CharacterAttributeId, string>> = {
 
 const factIconSources = {
   gender: '/media/profile/gender.svg',
-  pronouns: '/media/profile/pronouns.svg',
   rekindling: '/media/profile/rekindling.svg',
 } as const
 
@@ -109,7 +108,7 @@ const orderedDerivedStatGroups = [...DERIVED_STAT_PROFILE_GROUPS].sort(
 
 export function CharacterProfileDetails({
   presentationLabel,
-  pronounLabel,
+  buildTypeLabel,
   cycleNumber,
   attributes,
   derived,
@@ -148,20 +147,13 @@ export function CharacterProfileDetails({
             <strong>{presentationLabel}</strong>
           </span>
         </div>
-        <div className={styles.identityFact} data-profile-fact>
-          <span className={styles.factGlyph} aria-hidden="true">
-            <Image
-              className={styles.factIcon}
-              src={factIconSources.pronouns}
-              width={96}
-              height={96}
-              sizes="2rem"
-              alt=""
-            />
+        <div className={styles.identityFact} data-profile-fact data-build-type={buildTypeLabel}>
+          <span className={`${styles.factGlyph} ${styles.buildGlyph}`} aria-hidden="true">
+            <span>{buildTypeLabel === 'Hybrid Build' ? '∞' : '✦'}</span>
           </span>
           <span className={styles.factCopy}>
-            <small>Pronouns</small>
-            <strong>{pronounLabel}</strong>
+            <small>Build Type</small>
+            <strong>{buildTypeLabel}</strong>
           </span>
         </div>
         <button
@@ -237,6 +229,7 @@ export function CharacterProfileDetails({
                   <span className={styles.attributeLabel}>{attributeLabels[attributeId]}</span>
                   <strong>{attributes[attributeId]}</strong>
                 </span>
+                <span className={styles.attributeLineageDot} aria-hidden="true" />
               </button>
             )
           })}
