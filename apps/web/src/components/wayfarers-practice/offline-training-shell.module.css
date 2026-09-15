@@ -20,11 +20,10 @@
 .hero {
   position: relative;
   isolation: isolate;
-  min-height: 14rem;
+  min-height: 9.5rem;
   overflow: hidden;
   display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(15rem, 0.7fr);
-  gap: 0.8rem;
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   padding: clamp(0.75rem, 1.35vw, 1rem);
   border-color: rgba(212, 186, 130, 0.42);
@@ -53,69 +52,19 @@
     linear-gradient(0deg, rgba(6, 10, 15, 0.82), transparent 62%);
 }
 
-.heroCopy,
-.heroRule {
+.heroCopy {
   position: relative;
   z-index: 2;
-}
-
-.heroCopy {
   min-width: 0;
 }
 
 .heroCopy h1 {
-  margin: 0.2rem 0 0.3rem;
-  font: 500 clamp(1.8rem, 3.4vw, 2.65rem) / 0.98 var(--av-font-display);
-}
-
-.heroCopy p {
-  max-width: 48rem;
   margin: 0;
-  color: var(--av-text-muted);
-  font-size: 0.68rem;
-  line-height: 1.48;
-}
-
-.heroRule {
-  display: grid;
-  gap: 0.24rem;
-  min-width: 0;
-  padding: 0.62rem 0.7rem;
-  border: 1px solid var(--av-border);
-  border-left: 2px solid rgba(103, 190, 132, 0.62);
-  border-radius: var(--av-radius-sm);
-  background: rgba(65, 139, 90, 0.045);
-}
-
-.heroRule strong {
-  color: #9bd5af;
-  font: 700 0.5rem/1 var(--av-font-mono);
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-.heroRule span {
-  color: var(--av-text-muted);
-  font-size: 0.61rem;
-  line-height: 1.4;
+  font: 500 clamp(1.8rem, 3.4vw, 2.65rem) / 0.98 var(--av-font-display);
 }
 
 .layout[data-training-concept='true'] .practiceGrid {
   color: var(--av-charcoal);
-}
-
-.layout[data-training-concept='true'] .heroCopy p,
-.layout[data-training-concept='true'] .heroRule span {
-  color: #d4d8d4;
-}
-
-.layout[data-training-concept='true'] .heroRule {
-  border-color: rgba(212, 186, 130, 0.28);
-  background: rgba(7, 15, 24, 0.48);
-}
-
-.layout[data-training-concept='true'] .heroRule strong {
-  color: #a9ddbd;
 }
 
 .practiceGrid {
@@ -137,7 +86,6 @@
 }
 
 @media (max-width: 900px) {
-  .hero,
   .practiceGrid[data-has-report] {
     grid-template-columns: 1fr;
   }
@@ -149,7 +97,7 @@
   }
 
   .hero {
-    min-height: 16rem;
+    min-height: 10rem;
     padding: 0.65rem;
   }
 }

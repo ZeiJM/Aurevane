@@ -28,7 +28,8 @@ test('Passive Training requires an explicit plan and freezes a server-timed rewa
 
   const planner = page.getByTestId('practice-plan-card')
   await expect(planner).toBeVisible()
-  await expect(planner).toContainText('Training Plan')
+  await expect(planner).toContainText('Choose a training duration.')
+  await expect(planner).not.toContainText('Training Plan')
   await expect(planner).toContainText('Idle')
   await expect(planner).toContainText('Short')
   await expect(planner).toContainText('3h 0m')
@@ -43,6 +44,7 @@ test('Passive Training requires an explicit plan and freezes a server-timed rewa
   await expect(planner).toContainText('4 XP/hr')
   await expect(planner).toContainText('+96 XP')
   await expect(planner).not.toContainText('Automatic Balanced Practice')
+  await expect(page.getByText(/Training does not start automatically/)).toHaveCount(0)
   await expect(page.getByTestId('training-report')).toHaveCount(0)
   expect(await hasHorizontalOverflow(page)).toBe(false)
 
@@ -93,9 +95,8 @@ test('Passive Training requires an explicit plan and freezes a server-timed rewa
   `)
   expect(storedPlan).toBe('overnight|1|28800')
 
-  await page.getByRole('button', { name: 'Navigation' }).click()
   await page
-    .getByRole('navigation', { name: 'Game navigation', exact: true })
+    .getByRole('navigation', { name: 'Primary game navigation', exact: true })
     .getByRole('link', { name: /Battle Hall/ })
     .click()
   await expect(page.getByRole('heading', { name: 'Choose your arena.' })).toBeVisible()
@@ -110,9 +111,8 @@ test('Passive Training requires an explicit plan and freezes a server-timed rewa
     }),
   ).toBeVisible()
 
-  await page.getByRole('button', { name: 'Navigation' }).click()
   await page
-    .getByRole('navigation', { name: 'Game navigation', exact: true })
+    .getByRole('navigation', { name: 'Primary game navigation', exact: true })
     .getByRole('link', { name: /Passive Training/ })
     .click()
   await expect(page.getByRole('heading', { name: 'Passive Training' })).toBeVisible()

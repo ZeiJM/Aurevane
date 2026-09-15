@@ -24,9 +24,8 @@ test('keeps Map Key immediately left of Victory Conditions at desktop and mobile
 
   await createAccountAndEnterCharacter({ page, email, password, characterName })
 
-  await page.getByRole('button', { name: 'Navigation' }).click()
   const battleHallLink = page
-    .getByRole('navigation', { name: 'Game navigation', exact: true })
+    .getByRole('navigation', { name: 'Primary game navigation', exact: true })
     .getByRole('link', { name: /Battle Hall/ })
   await battleHallLink.focus()
   await battleHallLink.press('Enter')
