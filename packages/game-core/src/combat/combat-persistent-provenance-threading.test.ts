@@ -189,6 +189,10 @@ function expectProvenance(
   })
 }
 
+function cloneJson<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T
+}
+
 describe('P4.K3 persistent provenance threading', () => {
   it('keeps the historical four-argument execution shape free of new provenance fields', () => {
     const transition = cast(encounter())
@@ -215,9 +219,9 @@ describe('P4.K3 persistent provenance threading', () => {
 
   it('uses fresh causal provenance on persistent reapplication without mutating prior inputs', () => {
     const initialState = encounter()
-    const initialSnapshot = structuredClone(initialState)
+    const initialSnapshot = cloneJson(initialState)
     const firstContext = context('chain:k3:first')
-    const firstContextSnapshot = structuredClone(firstContext)
+    const firstContextSnapshot = cloneJson(firstContext)
     const first = cast(initialState, firstContext)
     const firstPoison = persistentProvenance(first.state).poison
 
@@ -225,7 +229,7 @@ describe('P4.K3 persistent provenance threading', () => {
     expect(firstContext).toEqual(firstContextSnapshot)
 
     const secondContext = context('chain:k3:second')
-    const secondContextSnapshot = structuredClone(secondContext)
+    const secondContextSnapshot = cloneJson(secondContext)
     const second = cast(first.state, secondContext)
     const secondProvenance = persistentProvenance(second.state)
 
