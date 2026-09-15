@@ -216,6 +216,18 @@ export function validateCombatStatusDefinition(status: CombatStatusDefinition): 
     )
   }
 
+  if (status.absorbHpBasisPoints !== undefined) {
+    boundedPositiveSafeInteger(
+      status.absorbHpBasisPoints,
+      1,
+      COMBAT_BASIS_POINTS,
+      'Absorb HP basis points',
+    )
+    if (status.polarity !== 'positive' || status.reactionClass !== 'reactive') {
+      throw new TypeError('Absorb HP statuses must be positive and reactive.')
+    }
+  }
+
   if (status.effectCategories !== undefined) {
     if (
       !Array.isArray(status.effectCategories) ||

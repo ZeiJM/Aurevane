@@ -13,6 +13,7 @@ declare module './actions' {
     curseCopyable?: boolean
     reactionClass?: ReactionClass
     effectCategories?: readonly CombatEffectCategory[]
+    absorbHpBasisPoints?: number
   }
 }
 
