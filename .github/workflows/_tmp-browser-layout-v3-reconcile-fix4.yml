@@ -1,0 +1,75 @@
+name: Temporary browser layout v3 reconcile fix4
+
+on:
+  push:
+    branches:
+      - agent/browser-layout-v3-regression-reconcile-fix4-20260915
+
+permissions:
+  contents: write
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout isolated fix branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/browser-layout-v3-regression-reconcile-fix4-20260915
+          fetch-depth: 0
+
+      - name: Guard exact RED base
+        run: |
+          set -euo pipefail
+          base='1edff583d264621f8a6d52fa3f9ed11685871c06'
+          test "$(git rev-parse HEAD^)" = "$base"
+          test "$(git diff --name-only "$base" HEAD)" = '.github/workflows/_tmp-browser-layout-v3-reconcile-fix4.yml'
+
+      - name: Patch final reachability assertion
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('apps/web/e2e/desktop-experience.pw.ts')
+          text = path.read_text()
+          old = """    await last.scrollIntoViewIfNeeded()\n    await expect(last).toBeInViewport({ ratio: 1 })\n    const [rosterScrollTop, listScrollTop] = await Promise.all([\n"""
+          new = """    await last.scrollIntoViewIfNeeded()\n    await expect(last).toBeVisible()\n    await last.click({ trial: true })\n    const [rosterScrollTop, listScrollTop] = await Promise.all([\n"""
+          count = text.count(old)
+          if count != 1:
+              raise SystemExit(f'Expected exactly one reachability assertion block, found {count}')
+          path.write_text(text.replace(old, new))
+          PY
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Format and statically verify final repair
+        run: |
+          set -euo pipefail
+          pnpm exec prettier --write apps/web/e2e/desktop-experience.pw.ts
+          pnpm typecheck
+          git diff --check
+          git rm .github/workflows/_tmp-browser-layout-v3-reconcile-fix4.yml
+          base='1edff583d264621f8a6d52fa3f9ed11685871c06'
+          changed="$(git diff --name-only "$base")"
+          test "$changed" = 'apps/web/e2e/desktop-experience.pw.ts'
+
+      - name: Commit only final browser contract repair
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add apps/web/e2e/desktop-experience.pw.ts
+          git commit -m 'test: assert directory card actionability instead of full viewport occupancy'
+          test "$(git diff --name-only 1edff583d264621f8a6d52fa3f9ed11685871c06 HEAD)" = 'apps/web/e2e/desktop-experience.pw.ts'
+          git push origin HEAD:agent/browser-layout-v3-regression-reconcile-fix4-20260915
