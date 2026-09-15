@@ -1,0 +1,56 @@
+name: Absorb MP isolated verification
+
+on:
+  push:
+    branches:
+      - agent/absorb-mp-verification-20260915
+
+permissions:
+  contents: write
+
+jobs:
+  verify-red:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 2e2ceb8f1dd10f95e77ea0dae42d3acba2d01a2a
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable repository package manager
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Format only the new RED test and preserve a separate result branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 2e2ceb8f1dd10f95e77ea0dae42d3acba2d01a2a
+          file=packages/game-core/src/combat/combat-absorb-mp.test.ts
+          pnpm exec prettier --write "$file"
+          git diff --check
+          git diff -- "$file"
+          if ! git diff --quiet; then
+            test "$(git diff --name-only)" = "$file"
+            git config user.name 'Nicholas JM'
+            git config user.email '283436098+ZeiJM@users.noreply.github.com'
+            git add -- "$file"
+            git commit -m 'test(combat): normalize Absorb MP RED contract with repository formatter'
+          fi
+          git push origin HEAD:refs/heads/agent/absorb-mp-red-formatted-20260915
+          printf 'VERIFIED_RED_CANDIDATE=%s\n' "$(git rev-parse HEAD)"
+      - name: Verify repository formatting lint and types
+        run: |
+          pnpm format:check
+          pnpm lint
+          pnpm typecheck
+      - name: Observe game-core behavioral RED
+        run: pnpm --filter @aurevane/game-core test
+      - name: Verify tracked-source cleanliness
+        if: always()
+        run: git diff --exit-code
