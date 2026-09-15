@@ -76,7 +76,7 @@ function statusInstance(status: CombatStatusDefinition, sourceCombatantId = 'tar
 }
 
 function encounter(options?: {
-  actorStatuses?: readonly CombatStatusDefinition[]
+  targetTeamId?: string
   targetHp?: number
   targetMaxHp?: number
   targetStatuses?: readonly CombatStatusDefinition[]
@@ -102,11 +102,21 @@ function encounter(options?: {
         },
         {
           id: 'target',
-          teamId: 'opponents',
+          teamId: options?.targetTeamId ?? 'opponents',
           initiative: targetActsFirst ? 20 : 10,
           baseMovementBudget: 3,
           hp: options?.targetHp ?? 100,
           maxHp: options?.targetMaxHp ?? 100,
+          mp: 30,
+          maxMp: 30,
+        },
+        {
+          id: 'witness',
+          teamId: 'opponents',
+          initiative: 5,
+          baseMovementBudget: 3,
+          hp: 100,
+          maxHp: 100,
           mp: 30,
           maxMp: 30,
         },
@@ -117,12 +127,13 @@ function encounter(options?: {
   return createCombatEncounterState(
     createTacticalBattleState({
       battle,
-      width: 2,
+      width: 3,
       height: 1,
       terrains: [{ id: 'open', traversalCost: 1 }],
       tiles: [
         { position: { x: 0, y: 0 }, elevation: 0, terrainId: 'open' },
         { position: { x: 1, y: 0 }, elevation: 0, terrainId: 'open' },
+        { position: { x: 2, y: 0 }, elevation: 0, terrainId: 'open' },
       ],
       movementProfiles: [{ id: 'ground', maxElevationStep: 0, terrainCostOverrides: [] }],
       placements: [
@@ -138,23 +149,23 @@ function encounter(options?: {
           facing: 'west',
           movementProfileId: 'ground',
         },
+        {
+          combatantId: 'witness',
+          position: { x: 2, y: 0 },
+          facing: 'west',
+          movementProfileId: 'ground',
+        },
       ],
     }),
     [
-      {
-        combatantId: 'actor',
-        statuses: (options?.actorStatuses ?? []).map((status) => statusInstance(status, 'actor')),
-      },
+      { combatantId: 'actor', statuses: [] },
       {
         combatantId: 'target',
         statuses: (options?.targetStatuses ?? []).map((status) => statusInstance(status, 'actor')),
       },
+      { combatantId: 'witness', statuses: [] },
     ],
   )
-}
-
-function actorHp(state: CombatEncounterState): number {
-  return state.tactical.battle.combatants.find((combatant) => combatant.id === 'actor')!.hp
 }
 
 function targetHp(state: CombatEncounterState): number {
@@ -213,18 +224,14 @@ describe('P4.K4 Absorb HP', () => {
   })
 
   it('does not trigger from non-hostile direct damage', () => {
-    const selfDamageAction: CombatActionDefinition = {
-      ...action(20),
-      effects: [{ type: 'damage', recipient: 'actor', amount: 20 }],
-    }
-    const result = executeCombatAction(
-      encounter({ actorStatuses: [ABSORB_25] }),
-      selfDamageAction,
-      { kind: 'unit', combatantId: 'target' },
-      { statuses: [ABSORB_25] },
+    const result = execute(
+      encounter({ targetTeamId: 'players', targetStatuses: [ABSORB_25] }),
+      20,
+      [ABSORB_25],
+      'any',
     )
 
-    expect(actorHp(result.state)).toBe(80)
+    expect(targetHp(result.state)).toBe(80)
   })
 
   it('does not trigger from periodic damage', () => {
