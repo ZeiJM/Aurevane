@@ -246,3 +246,61 @@ test('real multi-seat lobby remains a keyboard-contained dialog with square port
   await expect(dialog).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Create Battle Lobby', exact: true })).toBeEnabled()
 })
+
+// Covers the intermediate layout, not just the three-column desktop and phone endpoints.
+test('intermediate Hall layouts keep settings clear of the action row', async ({
+  page,
+}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-chromium', 'One intermediate viewport matrix')
+  test.setTimeout(60_000)
+  await enterHall(page, testInfo, 'intermediate')
+  await page
+    .getByRole('navigation', { name: 'Battle Hall sections' })
+    .getByRole('button', { name: /Player vs Player/ })
+    .click()
+  await page.locator('#pvp-mode').selectOption('flex-teams')
+  for (const select of await page.locator('[data-pvp-team-sizes] select').all()) {
+    await select.selectOption('3')
+  }
+  const panel = page.locator('[data-hall-workspace="pvp"]')
+  for (const viewport of [
+    { width: 1199, height: 768 },
+    { width: 1024, height: 768 },
+    { width: 1024, height: 576 },
+    { width: 768, height: 1024 },
+  ]) {
+    await page.setViewportSize(viewport)
+    const timer = page.getByRole('button', { name: '120 second turn timer', exact: true })
+    await timer.click({ timeout: 5_000 })
+    await expect(timer).toHaveAttribute('aria-pressed', 'true')
+    const bounds = await panel.evaluate((node) => {
+      const body = node.querySelector('[data-hall-scroll-body]')!
+      const actions = node.querySelector('[data-hall-action-row]')!
+      const contentBottom = Math.max(
+        ...[...body.children].map((child) => child.getBoundingClientRect().bottom),
+      )
+      return {
+        overlap: contentBottom - actions.getBoundingClientRect().top,
+        actionsOutsidePanel:
+          actions.getBoundingClientRect().bottom - node.getBoundingClientRect().bottom,
+        overflowX: document.documentElement.scrollWidth - innerWidth,
+      }
+    })
+    expect(
+      bounds.overlap,
+      `settings clear footer at ${viewport.width}x${viewport.height}`,
+    ).toBeLessThanOrEqual(1)
+    expect(bounds.actionsOutsidePanel, 'panel contains its own action row').toBeLessThanOrEqual(1)
+    expect(bounds.overflowX, 'no horizontal document clipping').toBeLessThanOrEqual(1)
+    await page
+      .getByRole('button', { name: 'Create Battle Lobby', exact: true })
+      .click({ trial: true, timeout: 5_000 })
+    await page.getByRole('button', { name: 'Join by Key', exact: true }).click()
+    await page.locator('#lobby-key').fill('avlabcd1234')
+    await page
+      .getByRole('button', { name: 'Join Battle Lobby', exact: true })
+      .click({ trial: true, timeout: 5_000 })
+    await page.getByRole('button', { name: 'Create Lobby', exact: true }).click()
+    await expect(page.locator('#pvp-mode')).toHaveValue('flex-teams')
+  }
+})

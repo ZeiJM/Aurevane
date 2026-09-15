@@ -562,8 +562,10 @@
   }
 }
 @media (max-width: 1199px) {
+  /* Natural-height mode: do not stretch the page or shrink visible settings under its footer. */
   .page {
     height: auto;
+    align-self: start;
     grid-template-rows: 7rem auto auto;
   }
   .workspaceGrid {
@@ -573,7 +575,7 @@
     overflow: visible;
   }
   .workspaceBody {
-    flex: 0 1 auto;
+    flex: 0 0 auto;
     overflow: visible;
     scrollbar-gutter: auto;
     padding: 0;
