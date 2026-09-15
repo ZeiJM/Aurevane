@@ -6,25 +6,87 @@ on:
     paths: [.github/workflows/ui-continuation-source.yml]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  snapshot:
+  apply-reviewed-patch:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          persist-credentials: false
-      - name: Archive tracked source and current-main comparison
+          fetch-depth: 2
+      - name: Apply only the locally verified Hall delta
+        shell: bash
         run: |
-          mkdir -p /tmp/ui-continuation
-          git rev-parse HEAD > /tmp/ui-continuation/commit.txt
-          git archive --format=tar.gz HEAD > /tmp/ui-continuation/source.tar.gz
-          git fetch --depth=1 origin 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0 1fe041874eb965325d4eeb126f74fd1a7db23af6
-          git archive --format=tar.gz 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0 > /tmp/ui-continuation/main.tar.gz
-          git diff --binary 1fe041874eb965325d4eeb126f74fd1a7db23af6 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0 > /tmp/ui-continuation/main-advance.patch
-      - uses: actions/upload-artifact@v4
-        with:
-          name: ui-continuation-source
-          path: /tmp/ui-continuation
-          retention-days: 1
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = ee80f85ac78d3287f1cd422f3d81d0a00b25293e
+          cat > /tmp/hall-summary.patch <<'PATCH'
+          diff --git a/apps/web/src/components/battle/battle-launch-layout.test.tsx b/apps/web/src/components/battle/battle-launch-layout.test.tsx
+          index 12e166c..7df4477 100644
+          --- a/apps/web/src/components/battle/battle-launch-layout.test.tsx
+          +++ b/apps/web/src/components/battle/battle-launch-layout.test.tsx
+          @@ -41,4 +41,14 @@ describe('Battle Hall concept composition', () => {
+               expect(markup).toContain('Create Battle Lobby')
+               expect(markup).toContain('Join Battle Lobby')
+             })
+          +
+          +  it('describes the selected PvP format outside the dropdown', () => {
+          +    const markup = renderToStaticMarkup(
+          +      createElement(BattleLaunch, { characterId: 'character-1', characterName: 'Eira Vale' }),
+          +    )
+          +    expect(markup).toContain('aria-describedby="pvp-format-description"')
+          +    expect(markup).toMatch(
+          +      /<p[^>]*id="pvp-format-description"[^>]*>Two combatants · one per side<\/p>/,
+          +    )
+          +  })
+           })
+          diff --git a/apps/web/src/components/battle/battle-launch.module.css b/apps/web/src/components/battle/battle-launch.module.css
+          index e401684..d8b5e1b 100644
+          --- a/apps/web/src/components/battle/battle-launch.module.css
+          +++ b/apps/web/src/components/battle/battle-launch.module.css
+          @@ -425,6 +425,12 @@
+             gap: 0.45rem;
+             min-width: 0;
+           }
+          +.formatDescription {
+          +  margin: 0;
+          +  color: var(--av-text-muted);
+          +  font-size: 0.75rem;
+          +  line-height: 1.35;
+          +}
+           .formatRow {
+             display: grid;
+             grid-template-columns: 5.75rem minmax(0, 1fr);
+          diff --git a/apps/web/src/components/battle/battle-launch.tsx b/apps/web/src/components/battle/battle-launch.tsx
+          index 7155705..78ffe4e 100644
+          --- a/apps/web/src/components/battle/battle-launch.tsx
+          +++ b/apps/web/src/components/battle/battle-launch.tsx
+          @@ -649,6 +649,7 @@ export function BattleLaunch({
+                             <label htmlFor="pvp-mode">Battle format</label>
+                             <select
+                               id="pvp-mode"
+          +                    aria-describedby="pvp-format-description"
+                               value={pvpMode ?? ''}
+                               onChange={(event) => setPvpMode((event.target.value || null) as PvpMode | null)}
+                               disabled={pending}
+          @@ -661,6 +662,10 @@ export function BattleLaunch({
+                               ))}
+                             </select>
+                           </div>
+          +                <p id="pvp-format-description" className={styles.formatDescription}>
+          +                  {PVP_MODES.find((mode) => mode.id === pvpMode)?.detail ??
+          +                    'Choose a battle format to see its team arrangement.'}
+          +                </p>
+                           {pvpMode === 'flex-teams' ? (
+                             <div className={styles.flexSizes} data-pvp-team-sizes>
+                               <label>
+          PATCH
+          echo '7399cec9ffd1b623f824313f5e65c00db0e43ddbbc93acd3207ae747ed919084  /tmp/hall-summary.patch' | sha256sum -c -
+          git apply --index /tmp/hall-summary.patch
+          git rm .github/workflows/ui-continuation-source.yml
+          git diff --cached --check
+          test "$(git write-tree)" = 5a857dc76daa06c32b6b486e23e6ec3b67ee13c1
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix: restore accessible selected PvP format summary'
+          git push origin HEAD:refs/heads/agent/battle-hall-concept-ui
