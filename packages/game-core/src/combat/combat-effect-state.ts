@@ -96,6 +96,14 @@ export interface CombatDamageHistoryEntry {
   amount: number
 }
 
+export interface CombatBarrierInstance {
+  targetCombatantId: string
+  sourceCombatantId: string
+  sourceActionId: string
+  amount: number
+  provenance?: CombatEffectInstanceProvenance
+}
+
 export interface CombatEffectState {
   ongoingRecovery: CombatOngoingRecovery[]
   poison: CombatPoisonInstance[]
@@ -103,6 +111,7 @@ export interface CombatEffectState {
   burn: CombatBurnInstance[]
   temporarySkills: CombatTemporarySkillGrant[]
   damageHistory: CombatDamageHistoryEntry[]
+  barriers?: CombatBarrierInstance[]
 }
 
 export function normalizeCombatEffectState(value: unknown): CombatEffectState {
@@ -118,5 +127,6 @@ export function normalizeCombatEffectState(value: unknown): CombatEffectState {
     burn: Array.isArray(input.burn) ? input.burn : [],
     temporarySkills: Array.isArray(input.temporarySkills) ? input.temporarySkills : [],
     damageHistory: Array.isArray(input.damageHistory) ? input.damageHistory : [],
+    ...(Array.isArray(input.barriers) ? { barriers: input.barriers } : {}),
   }
 }
