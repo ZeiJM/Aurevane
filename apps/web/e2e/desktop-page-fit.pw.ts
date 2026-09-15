@@ -22,13 +22,9 @@ async function capture(page: Page, testInfo: TestInfo, name: string): Promise<vo
   await testInfo.attach(name, { body: await page.screenshot(), contentType: 'image/png' })
 }
 
-async function expectAboveFooter(page: Page, locator: Locator): Promise<void> {
-  const footer = await page.locator('[data-testid="authenticated-shell"] > footer').boundingBox()
-  const box = await locator.boundingBox()
-  expect(footer).not.toBeNull()
-  expect(box).not.toBeNull()
-  expect(box!.y).toBeGreaterThanOrEqual(0)
-  expect(box!.y + box!.height).toBeLessThanOrEqual(footer!.y + 1)
+async function expectReachableControl(locator: Locator): Promise<void> {
+  await locator.scrollIntoViewIfNeeded()
+  await expect(locator).toBeVisible()
   await locator.click({ trial: true })
 }
 
@@ -116,28 +112,9 @@ test('desktop Profile and all Battle Hall setups fit without clipped controls or
     await expect(page.getByTestId('character-profile')).toBeVisible()
     await settleLayout(page)
     const reset = page.getByRole('button', { name: 'Reset Attributes' })
-    // The approved profile concept is a long-form hero and build surface. Let the document scroll
-    // naturally at every viewport size, then prove the lower control can still be reached above the
-    // persistent footer.
-    const needsScroll = await page.evaluate(
-      () => document.documentElement.scrollHeight > window.innerHeight,
-    )
-    if (needsScroll) {
-      await page.mouse.move(viewport.width / 3, viewport.height / 2)
-      await page.mouse.wheel(0, 1600)
-      await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
-    }
-    await expectAboveFooter(page, reset)
-    const profileBottom = await page
-      .locator('section[aria-label="Attribute redistribution"]')
-      .boundingBox()
-    const profileFooter = await page
-      .locator('[data-testid="authenticated-shell"] > footer')
-      .boundingBox()
-    expect(
-      profileBottom!.y + profileBottom!.height,
-      `Profile lower section ${size}`,
-    ).toBeLessThanOrEqual(profileFooter!.y + 1)
+    // Current Profile columns own bounded internal scrolling; the user-facing invariant is that
+    // the lower action remains reachable and operable at every supported desktop viewport.
+    await expectReachableControl(reset)
     await capture(page, testInfo, `profile-${size}`)
     await reset.click()
     const dialog = page.getByRole('dialog', { name: 'Redistribute Attributes', exact: true })
@@ -254,12 +231,16 @@ test('mobile page panels clear the navigation bar at the end of scrolling', asyn
         page.evaluate(() => {
           const main = document.querySelector('#game-main')!
           const footer = document.querySelector('[data-testid="authenticated-shell"] > footer')!
+          const primaryDock = document.querySelector<HTMLElement>('[data-av-primary-dock="true"]')!
           const mainRect = main.getBoundingClientRect()
           const footerRect = footer.getBoundingClientRect()
+          const dockRect = primaryDock.getBoundingClientRect()
           return {
             mainBottom: mainRect.bottom,
             footerTop: footerRect.top,
             footerBottom: footerRect.bottom,
+            dockTop: dockRect.top,
+            dockBottom: dockRect.bottom,
             viewportHeight: innerHeight,
             overflowX: document.documentElement.scrollWidth - innerWidth,
             bottomPadding: parseFloat(getComputedStyle(main).paddingBottom),
@@ -273,7 +254,11 @@ test('mobile page panels clear the navigation bar at the end of scrolling', asyn
         metrics.bottomPadding,
         `${path}: panel border has breathing room`,
       ).toBeGreaterThanOrEqual(8)
-      expect(Math.abs(metrics.footerBottom - metrics.viewportHeight)).toBeLessThanOrEqual(1)
+      expect(
+        metrics.footerBottom,
+        `${path}: presence footer stays above the fixed primary navigation dock`,
+      ).toBeLessThanOrEqual(metrics.dockTop + 1)
+      expect(Math.abs(metrics.dockBottom - metrics.viewportHeight)).toBeLessThanOrEqual(1)
       expect(metrics.overflowX).toBeLessThanOrEqual(1)
       await capture(page, testInfo, `mobile-bottom-${path.replaceAll('/', '-')}-${height}`)
     }
