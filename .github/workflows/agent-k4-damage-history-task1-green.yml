@@ -1,0 +1,71 @@
+name: Format and verify K4 damage history Task 1
+
+on:
+  push:
+    branches:
+      - agent/combat-k4-damage-history-20260914
+    paths:
+      - .github/workflows/agent-k4-damage-history-task1-green.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: combat-k4-damage-history-task1-green
+  cancel-in-progress: false
+
+jobs:
+  format-verify-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact Task 1 revision
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install pinned dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Format only Task 1 files
+        run: |
+          pnpm exec prettier --write packages/game-core/src/combat/combat-damage-history.ts packages/game-core/src/combat/combat-damage-history.test.ts
+          git diff --check
+
+      - name: Run focused damage-history contract
+        run: pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-damage-history.test.ts
+
+      - name: Run game-core typecheck
+        run: pnpm --filter @aurevane/game-core typecheck
+
+      - name: Run full repository quality gate
+        run: pnpm check
+
+      - name: Publish clean Task 1 commit without staging workflow
+        env:
+          EXPECTED_HEAD: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          branch=agent/combat-k4-damage-history-20260914
+          git diff --check
+          git rm .github/workflows/agent-k4-damage-history-task1-green.yml
+          git add packages/game-core/src/combat/combat-damage-history.ts packages/game-core/src/combat/combat-damage-history.test.ts
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'style: format verified K4 damage history foundation'
+          git fetch origin "$branch"
+          test "$(git rev-parse "origin/$branch")" = "$EXPECTED_HEAD"
+          git push origin "HEAD:refs/heads/$branch"
+          echo "Verified Task 1 commit: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
