@@ -28,6 +28,10 @@ import {
 } from './combat-dots'
 import type { CombatEffectState } from './combat-effect-state'
 import {
+  validateCombatEffectInstanceProvenance,
+  type CombatEffectInstanceProvenance,
+} from './combat-kernel-types'
+import {
   hasGameplayTag,
   statusIdsForGameplayTag,
   validateGameplayTag,
@@ -210,6 +214,7 @@ export interface CombatStatusInstance {
   stacks: number
   remainingOwnerTurnStarts: number
   sourceCombatantId: string
+  provenance?: CombatEffectInstanceProvenance
 }
 
 export interface CombatantStatusState {
@@ -973,6 +978,7 @@ export function validateCombatEncounterState(
     ...validateOngoingRecoveryState(state),
     ...validateCombatDotState(state),
   ]
+  collectPersistentProvenanceIssues(state, issues)
 
   if (state.schemaVersion !== COMBAT_ENCOUNTER_SCHEMA_VERSION) {
     issues.push({ field: 'schemaVersion', message: 'Unsupported combat-encounter schema version.' })
@@ -1066,6 +1072,44 @@ export function validateCombatEncounterState(
   }
 
   return issues
+}
+
+function collectPersistentProvenanceIssues(
+  state: CombatEncounterState,
+  issues: CombatEncounterIssue[],
+): void {
+  const collect = (value: unknown, field: string) => {
+    if (value === undefined) return
+    for (const message of validateCombatEffectInstanceProvenance(value)) {
+      issues.push({ field, message })
+    }
+  }
+
+  for (const [rowIndex, row] of state.statusState.entries()) {
+    for (const [statusIndex, status] of row.statuses.entries()) {
+      collect(status.provenance, `statusState.${rowIndex}.statuses.${statusIndex}.provenance`)
+    }
+  }
+
+  const effectState = state.effectState as unknown as Record<string, unknown> | undefined
+  if (!effectState || typeof effectState !== 'object' || Array.isArray(effectState)) return
+
+  const collections: readonly (readonly [string, unknown])[] = [
+    ['ongoingRecovery', effectState.ongoingRecovery],
+    ['poison', effectState.poison],
+    ['bleed', effectState.bleed],
+    ['burn', effectState.burn],
+  ]
+  for (const [name, rows] of collections) {
+    if (!Array.isArray(rows)) continue
+    rows.forEach((row, index) => {
+      if (!row || typeof row !== 'object' || Array.isArray(row)) return
+      collect(
+        (row as { provenance?: unknown }).provenance,
+        `effectState.${name}.${index}.provenance`,
+      )
+    })
+  }
 }
 
 function resolvePrimaryTarget(
