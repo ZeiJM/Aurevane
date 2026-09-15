@@ -151,13 +151,16 @@ test('desktop Profile and every Battle Hall tab fit without sacrificing readable
     }
     if (size.width >= 1440) {
       const panel = await page.locator('#battle-launch').boundingBox()
-      expect(panel!.width).toBeLessThanOrEqual(1248)
       if (await page.locator('#battle-launch[data-hall-concept]').count()) {
+        const main = await page.locator('#game-main').boundingBox()
+        expect(panel!.x).toBeGreaterThanOrEqual(main!.x)
+        expect(panel!.x + panel!.width).toBeLessThanOrEqual(main!.x + main!.width + 1)
         expect(
           panel!.height,
           'The authored Battle Hall concept must render content',
         ).toBeGreaterThan(0)
       } else {
+        expect(panel!.width).toBeLessThanOrEqual(1248)
         expect(
           panel!.height,
           'An empty selection must not stretch into a blank full-height card',
@@ -560,7 +563,9 @@ test('phone pages and pure/mixed skill controls have balanced readable layouts',
         } else {
           expect(portrait.width).toBeGreaterThan(0)
           expect(portrait.height).toBeGreaterThan(0)
-          expect(identity.y).toBeGreaterThanOrEqual(portrait.y - 1)
+          expect(identity.x).toBeGreaterThanOrEqual(portrait.x + portrait.width - 1)
+          expect(identity.y + identity.height).toBeGreaterThan(portrait.y)
+          expect(portrait.y + portrait.height).toBeGreaterThan(identity.y)
         }
         await testInfo.attach(`phone-hero-${width}-${mixed}`, {
           body: await page.screenshot(),

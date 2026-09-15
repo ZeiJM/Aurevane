@@ -453,6 +453,7 @@ export function BattleLaunch({
                 <select
                   id="ai-mode"
                   aria-label="Battle mode"
+                  aria-describedby={selectedRecord ? 'ai-record-purpose' : undefined}
                   value={recordId ?? ''}
                   onChange={(event) => {
                     const next = event.target.value as TacticalHallRecordId | ''
@@ -492,9 +493,6 @@ export function BattleLaunch({
             {selectedRecord ? (
               <div className={styles.selectedPanel}>
                 <div className={styles.selectedCopy}>
-                  <span>Selected Battle</span>
-                  <h3>{recordDisplayName(selectedRecord.id, selectedRecord.name)}</h3>
-                  <p>{selectedRecord.purpose}</p>
                   <div className={styles.arenaLine}>
                     {recordId === 'recruit-sparring' || recordId === 'mastery-trial' ? (
                       <label>
@@ -557,6 +555,9 @@ export function BattleLaunch({
                     <span>Victory is earned by completing the tactical lesson criteria.</span>
                   </div>
                 )}
+                <p className={styles.recordPurpose} id="ai-record-purpose">
+                  {selectedRecord.purpose}
+                </p>
               </div>
             ) : (
               <div className={styles.selectedPanel}>
@@ -644,20 +645,22 @@ export function BattleLaunch({
                 data-pvp-entry="create"
                 hidden={pvpEntry !== 'create'}
               >
-                <label htmlFor="pvp-mode">Battle format</label>
-                <select
-                  id="pvp-mode"
-                  value={pvpMode ?? ''}
-                  onChange={(event) => setPvpMode((event.target.value || null) as PvpMode | null)}
-                  disabled={pending}
-                >
-                  <option value="">Choose a PvP format…</option>
-                  {PVP_MODES.map((mode) => (
-                    <option value={mode.id} key={mode.id}>
-                      {mode.label} — {mode.detail}
-                    </option>
-                  ))}
-                </select>
+                <div className={styles.formatRow}>
+                  <label htmlFor="pvp-mode">Battle format</label>
+                  <select
+                    id="pvp-mode"
+                    value={pvpMode ?? ''}
+                    onChange={(event) => setPvpMode((event.target.value || null) as PvpMode | null)}
+                    disabled={pending}
+                  >
+                    <option value="">Choose a PvP format…</option>
+                    {PVP_MODES.map((mode) => (
+                      <option value={mode.id} key={mode.id}>
+                        {mode.label} — {mode.detail}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 {pvpMode === 'flex-teams' ? (
                   <div className={styles.flexSizes} data-pvp-team-sizes>
                     <label>
