@@ -52,6 +52,28 @@
   border-radius: 50%;
   background: #7ad39f;
 }
+/* On short desktop windows, scenery yields space to the roster, not smaller text. */
+@media (min-width: 761px) and (max-height: 700px) {
+  .page {
+    grid-template-rows: 4.75rem auto minmax(0, 1fr);
+    gap: 0.5rem;
+  }
+  .heading {
+    padding: 0.4rem 1rem;
+  }
+  .heading :global(.av-kicker) {
+    display: none;
+  }
+  .heading h1 {
+    margin: 0 0 0.2rem;
+  }
+}
+/* Extremely short or zoomed windows scroll the workspace rather than collapse the list. */
+@media (min-width: 761px) and (max-height: 520px) {
+  .page {
+    min-height: 24rem;
+  }
+}
 @media (max-width: 760px) {
   .page {
     height: auto;

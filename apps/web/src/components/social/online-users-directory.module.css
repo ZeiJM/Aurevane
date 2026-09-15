@@ -272,6 +272,33 @@
   gap: 1rem;
   color: #f5c3b9;
 }
+/* Keep the filters and a useful list viewport together on short desktop/tablet screens. */
+@media (min-width: 761px) and (max-height: 700px) {
+  .rosterHeader {
+    padding: 0.55rem 0.85rem;
+  }
+  .rosterKicker,
+  .rosterHeading small {
+    display: none;
+  }
+  .filters {
+    gap: 0.5rem;
+    padding: 0.5rem 0.85rem;
+  }
+  .filters label {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.5rem;
+    flex-basis: 12rem;
+  }
+  .directorySummary {
+    padding-block: 0;
+    align-self: center;
+  }
+  .columnHeadings {
+    padding-block: 0.4rem;
+  }
+}
 @media (max-width: 760px) {
   .toolbar {
     gap: 0.5rem;

@@ -97,6 +97,25 @@ test('Adventurers roster preserves browsing and public-profile privacy in the ne
   expect(metrics.documentOverflow).toBeLessThanOrEqual(1)
   if (!mobile) expect(metrics.listOverflow).toBeGreaterThan(0)
   await capture(page, info, 'directory')
+  if (info.project.name === 'desktop-chromium') {
+    for (const shortViewport of [
+      { width: 1024, height: 576 },
+      { width: 768, height: 576 },
+    ]) {
+      await page.setViewportSize(shortViewport)
+      const shortList = await list.boundingBox()
+      expect(shortList!.height, 'short windows retain a usable roster').toBeGreaterThanOrEqual(80)
+      await expect(roster.getByRole('combobox', { name: 'Class', exact: true })).toBeVisible()
+      await expect(roster.getByRole('combobox', { name: 'Sort', exact: true })).toBeVisible()
+      const last = list.getByRole('button').last()
+      await last.scrollIntoViewIfNeeded()
+      await expect(last).toBeInViewport({ ratio: 1 })
+      await last.click({ trial: true })
+      await list.evaluate((node) => node.scrollTo({ top: 0, behavior: 'instant' }))
+      await capture(page, info, `directory-${shortViewport.width}x${shortViewport.height}`)
+    }
+    await page.setViewportSize(viewport)
+  }
   const first = list.getByRole('button').first()
   await first.click()
   const dialog = page.getByRole('dialog', { name: 'Adventurer 01', exact: true })
