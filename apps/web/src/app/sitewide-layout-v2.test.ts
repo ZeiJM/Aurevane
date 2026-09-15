@@ -10,7 +10,6 @@ const requiredSelectors = [
   "[data-testid='account-shell']",
   "[data-public-concept='true']",
   '[data-hall-concept]',
-  '[data-training-concept]',
   '[data-online-concept]',
 ] as const
 
@@ -22,8 +21,9 @@ describe('sitewide layout v2', () => {
     expect(rootLayout).toContain("import './sitewide-layout-v2.css'")
 
     const stylesheet = readFileSync(fileURLToPath(stylesheetUrl), 'utf8')
-    // Profile's scoped module owns its geometry; the browser regression covers actual fit.
+    // These routes now own their geometry; real browser regressions cover their fit.
     expect(stylesheet).not.toContain('[data-profile-workspace]')
+    expect(stylesheet).not.toContain('[data-training-concept]')
     for (const selector of requiredSelectors) {
       expect(stylesheet).toContain(selector)
     }

@@ -162,7 +162,12 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
       </div>
 
       {trainingActive && practice.plannedWindow ? (
-        <div className={styles.activeTraining} data-testid="passive-training-active">
+        <section
+          className={styles.activeTraining}
+          data-testid="passive-training-active"
+          aria-label="Current training activity"
+        >
+          <h3 className={styles.activityHeading}>Training in progress</h3>
           <div>
             <span>Training now</span>
             <strong>{passiveTrainingWindowLabel(practice.plannedWindow)}</strong>
@@ -183,7 +188,7 @@ export function PracticePlanCard({ practice }: PracticePlanCardProps) {
           >
             {stopping ? 'Stopping…' : 'Stop Training'}
           </GameButton>
-        </div>
+        </section>
       ) : null}
 
       <div className={styles.windowGrid} aria-label="Passive Training durations">
