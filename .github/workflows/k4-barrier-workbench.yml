@@ -17,12 +17,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Preserve patch script and check out exact RED head
+      - name: Preserve patch scripts and check out exact RED head
         run: |
           cp .github/scripts/k4_barrier_green.py /tmp/k4_barrier_green.py
+          cp .github/scripts/k4_barrier_k3_followup.py /tmp/k4_barrier_k3_followup.py
           git fetch origin agent/combat-k4-barrier-20260915
           git checkout --detach FETCH_HEAD
-          test "$(git rev-parse HEAD)" = "ff5fccbfde0588f5278095569ed241eea3f1d297"
+          test "$(git rev-parse HEAD)" = "aa6e364f862d33d53c09beda997ff33e8a75f1b2"
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -38,7 +39,9 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Apply bounded direct Barrier implementation
-        run: python /tmp/k4_barrier_green.py
+        run: |
+          python /tmp/k4_barrier_green.py
+          python /tmp/k4_barrier_k3_followup.py
 
       - name: Format production delta
         run: |
@@ -46,8 +49,10 @@ jobs:
             packages/game-core/src/combat/actions-legacy.ts \
             packages/game-core/src/combat/combat-authoring-validation.ts \
             packages/game-core/src/combat/combat-barrier.ts \
+            packages/game-core/src/combat/combat-effect-provenance.ts \
             packages/game-core/src/combat/combat-effect-state.ts \
-            packages/game-core/src/combat/gameplay-tags.ts
+            packages/game-core/src/combat/gameplay-tags.ts \
+            packages/game-core/src/combat/pv1f-action-economy.ts
 
       - name: Verify surgical changed-file set
         run: |
@@ -57,8 +62,10 @@ jobs:
             packages/game-core/src/combat/actions-legacy.ts \
             packages/game-core/src/combat/combat-authoring-validation.ts \
             packages/game-core/src/combat/combat-barrier.ts \
+            packages/game-core/src/combat/combat-effect-provenance.ts \
             packages/game-core/src/combat/combat-effect-state.ts \
             packages/game-core/src/combat/gameplay-tags.ts \
+            packages/game-core/src/combat/pv1f-action-economy.ts \
             > /tmp/expected.txt
           diff -u /tmp/expected.txt /tmp/actual.txt
 
@@ -79,7 +86,9 @@ jobs:
             packages/game-core/src/combat/actions-legacy.ts \
             packages/game-core/src/combat/combat-authoring-validation.ts \
             packages/game-core/src/combat/combat-barrier.ts \
+            packages/game-core/src/combat/combat-effect-provenance.ts \
             packages/game-core/src/combat/combat-effect-state.ts \
-            packages/game-core/src/combat/gameplay-tags.ts
+            packages/game-core/src/combat/gameplay-tags.ts \
+            packages/game-core/src/combat/pv1f-action-economy.ts
           git commit -m "feat: implement K4 direct Barrier primitive"
           git push origin HEAD:agent/combat-k4-barrier-20260915
