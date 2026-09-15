@@ -563,3 +563,258 @@
     font-size: 0.8rem;
   }
 }
+
+/* HQ concept v1.1 — identity workspace. The portrait library scrolls internally so the
+   desktop surface remains usable at 100% zoom without turning the whole page into a catalog. */
+.experience[data-step='identity'] {
+  grid-template-columns: minmax(11rem, 0.34fr) minmax(0, 1.66fr);
+  min-height: min(48rem, calc(100vh - 7rem));
+}
+
+.experience[data-step='identity'] .content {
+  padding: clamp(0.9rem, 1.6vw, 1.45rem);
+}
+
+.sceneVeil {
+  z-index: 1;
+  background:
+    linear-gradient(180deg, rgba(4, 8, 12, 0.12), rgba(4, 8, 12, 0.82)),
+    linear-gradient(90deg, rgba(4, 8, 12, 0.08), rgba(4, 8, 12, 0.45));
+  pointer-events: none;
+}
+
+.sceneCopy {
+  z-index: 2;
+  inset: auto 1.1rem 1.15rem;
+  display: grid;
+  width: auto;
+  height: auto;
+  gap: 0.2rem;
+  align-content: end;
+  color: rgba(241, 229, 205, 0.74);
+  font: 500 0.62rem/1.55 var(--av-font-display);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+}
+
+.sceneCopy strong {
+  margin-top: 0.32rem;
+  color: var(--av-parchment-100);
+  font-weight: 500;
+}
+
+.identityWorkspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(12.5rem, 0.34fr);
+  gap: clamp(0.75rem, 1.2vw, 1.1rem);
+  align-items: start;
+  min-width: 0;
+}
+
+.identityControls {
+  display: grid;
+  min-width: 0;
+  gap: 0.72rem;
+}
+
+.presentationChoices {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.choiceHint {
+  margin: -0.12rem 0 0.4rem;
+  color: var(--av-text-dim);
+  font-size: 0.7rem;
+  line-height: 1.35;
+}
+
+.portraitGrid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  max-height: 18.5rem;
+  overflow-y: auto;
+  padding: 0.1rem 0.22rem 0.1rem 0;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+
+.portraitChoice {
+  gap: 0.18rem;
+  padding: 0.2rem;
+  background: rgba(7, 12, 17, 0.56);
+  transition:
+    border-color 120ms ease,
+    transform 120ms ease,
+    background 120ms ease;
+}
+
+.portraitChoice:hover {
+  border-color: rgba(207, 169, 93, 0.45);
+  background: rgba(207, 169, 93, 0.05);
+  transform: translateY(-1px);
+}
+
+.portraitChoice[data-selected='true'] {
+  border-color: rgba(227, 190, 112, 0.95);
+  background: rgba(207, 169, 93, 0.08);
+  box-shadow:
+    inset 0 0 0 1px rgba(227, 190, 112, 0.28),
+    0 0 1rem rgba(207, 169, 93, 0.08);
+}
+
+.portraitChoice > div,
+.portraitChoice > img {
+  width: 100%;
+  max-height: none;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+  object-position: center;
+}
+
+.portraitChoice > span {
+  overflow: hidden;
+  color: var(--av-text-dim);
+  font-size: 0.58rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.portraitPreview {
+  position: sticky;
+  top: 0.5rem;
+  display: grid;
+  gap: 0.58rem;
+  min-width: 0;
+  padding: 0.65rem;
+  border: 1px solid var(--av-gold-rule);
+  background:
+    linear-gradient(180deg, rgba(207, 169, 93, 0.05), transparent 42%),
+    rgba(5, 10, 15, 0.82);
+  box-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.16);
+}
+
+.previewLabel {
+  color: var(--av-accent);
+  font: 650 0.66rem/1 var(--av-font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.previewFrame {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border: 1px solid rgba(207, 169, 93, 0.55);
+  background: var(--av-ink-950);
+}
+
+.previewFrame::after {
+  position: absolute;
+  inset: 0.3rem;
+  border: 1px solid rgba(241, 229, 205, 0.12);
+  pointer-events: none;
+  content: '';
+}
+
+.previewFrame > img,
+.previewFrame > div {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.previewCopy {
+  display: grid;
+  gap: 0.18rem;
+  text-align: center;
+}
+
+.previewCopy strong {
+  color: var(--av-parchment-100);
+  font: 500 clamp(1rem, 1.4vw, 1.35rem)/1.1 var(--av-font-display);
+}
+
+.previewCopy span {
+  color: var(--av-accent);
+  font: 600 0.66rem/1.2 var(--av-font-mono);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.previewCopy small {
+  color: var(--av-text-dim);
+  font-size: 0.7rem;
+}
+
+@media (max-width: 1120px) {
+  .experience[data-step='identity'] {
+    grid-template-columns: minmax(9rem, 0.28fr) minmax(0, 1.72fr);
+  }
+
+  .identityWorkspace {
+    grid-template-columns: minmax(0, 1fr) minmax(10.5rem, 0.3fr);
+  }
+
+  .portraitGrid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .identityWorkspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .portraitPreview {
+    position: static;
+    grid-template-columns: 9rem minmax(0, 1fr);
+    align-items: center;
+  }
+
+  .previewLabel {
+    grid-column: 1 / -1;
+  }
+
+  .previewCopy {
+    text-align: left;
+  }
+}
+
+@media (max-width: 760px) {
+  .experience[data-step='identity'] {
+    grid-template-columns: minmax(0, 1fr);
+    min-height: 0;
+  }
+
+  .experience[data-step='identity'] .scene {
+    min-height: 10rem;
+    max-height: 10rem;
+  }
+
+  .sceneCopy {
+    display: none;
+  }
+
+  .portraitGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    max-height: 18rem;
+  }
+
+  .portraitChoice > img,
+  .portraitChoice > div {
+    aspect-ratio: 1 / 1;
+  }
+}
+
+@media (max-width: 520px) {
+  .portraitGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .portraitPreview {
+    grid-template-columns: 7.5rem minmax(0, 1fr);
+  }
+}
