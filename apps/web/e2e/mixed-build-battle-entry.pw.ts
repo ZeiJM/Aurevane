@@ -87,8 +87,13 @@ test('legal Vanguard 3 + Lifebinder 1 mixed build can enter AI Sparring with fav
   await expect(skillRow(page, 'Brace').getByRole('checkbox')).toBeChecked()
   await expect(skillRow(page, 'Mending Light').getByRole('checkbox')).toBeChecked()
 
+  const saved = page.waitForResponse(
+    (response) =>
+      response.url().endsWith('/api/character/build/skills') &&
+      response.request().method() === 'PUT',
+  )
   await page.getByRole('button', { name: 'Commit Selected Techniques' }).click()
-  await expect(page.getByRole('status')).toContainText('Selected Techniques committed')
+  expect((await saved).status()).toBe(200)
 
   await setFavorite(page, 'Forceful Strike')
   await setFavorite(page, 'Brace')
