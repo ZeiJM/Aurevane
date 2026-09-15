@@ -191,7 +191,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   const forecast = commandDeck.getByLabel('Action preview')
   await expect(forecast).toContainText('40 AP')
   await expect(forecast).toContainText('Ally · 1–3 tiles')
-  await expect(forecast).toContainText('Guard')
+  await expect(forecast).toContainText('Guarded')
   await expect(forecast).not.toContainText('Success 100%')
   if (testInfo.project.name !== 'mobile-chromium') {
     const originalViewport = page.viewportSize()!
@@ -211,7 +211,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(battlefield.locator('button[data-target="friendly"]')).toHaveCount(0)
   await forecast.getByRole('button', { name: 'Skill details', exact: true }).click()
   const skillDetails = page.getByRole('dialog', { name: 'Barrier', exact: true })
-  await expect(skillDetails).toContainText('Guard')
+  await expect(skillDetails).toContainText('Guarded')
   await skillDetails.press('Escape')
   await expect(skillDetails).toHaveCount(0)
 

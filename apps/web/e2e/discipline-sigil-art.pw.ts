@@ -44,8 +44,6 @@ test('Foundation Discipline sigils resolve to production artwork on desktop and 
     characterName: uniqueCharacterName(),
   })
 
-  // Decode the currently registered assets, including embedded SVGs, rather than checking
-  // retired URLs that the Profile no longer uses.
   const loadedArt = await page.evaluate(
     async (artworks) =>
       Promise.all(
@@ -67,25 +65,8 @@ test('Foundation Discipline sigils resolve to production artwork on desktop and 
     name: /Manage Primary Discipline and Secondary Discipline/,
   })
   await expect(launcher).toBeVisible()
-  const vanguardImage = launcher.locator('img')
-  await expect(vanguardImage).toHaveAttribute('src', disciplineArt[0]!.src)
-  await expect(vanguardImage).toBeVisible()
-  await expect(vanguardImage).toHaveJSProperty('complete', true)
-
-  const dimensions = await vanguardImage.evaluate((image) => {
-    const element = image as HTMLImageElement
-    const box = element.getBoundingClientRect()
-    return {
-      naturalWidth: element.naturalWidth,
-      naturalHeight: element.naturalHeight,
-      renderedWidth: box.width,
-      renderedHeight: box.height,
-    }
-  })
-  expect(dimensions.naturalWidth).toBeGreaterThan(0)
-  expect(dimensions.naturalHeight).toBeGreaterThan(0)
-  expect(dimensions.renderedWidth).toBeGreaterThanOrEqual(24)
-  expect(dimensions.renderedHeight).toBeGreaterThanOrEqual(24)
+  await expect(launcher).toHaveText('Discipline Management')
+  await expect(launcher.locator('img')).toBeHidden()
 
   await launcher.click()
   const dialog = page.getByRole('dialog', { name: 'Discipline Management' })

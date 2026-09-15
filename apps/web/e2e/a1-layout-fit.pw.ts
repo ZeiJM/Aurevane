@@ -55,7 +55,7 @@ test('keeps A1 surfaces readable and within viewport', async ({ page }, testInfo
     'Character Profile identity label',
   )
   await expectMinimumFontSize(
-    page.getByTestId('profile-attribute-might').locator(':scope > span:last-child > span'),
+    page.getByTestId('profile-attribute-might').getByText('Might', { exact: true }),
     11.5,
     'Character Profile attribute label',
   )
@@ -64,7 +64,7 @@ test('keeps A1 surfaces readable and within viewport', async ({ page }, testInfo
     11.5,
     'Character Profile derived-stat label',
   )
-  const resetAttributes = page.getByRole('button', { name: 'Reset / Redistribute Attributes' })
+  const resetAttributes = page.getByRole('button', { name: 'Reset Attributes' })
   await expectMinimumFontSize(resetAttributes, 11, 'Character Profile reset control')
   await expectReachableByVerticalScroll(page, resetAttributes, 'Character Profile reset control')
   await expectInitialViewportFit(page, 'Character Profile', { allowVerticalScroll: true })
