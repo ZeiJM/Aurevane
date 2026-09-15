@@ -1,5 +1,6 @@
 import { validateRecoveryEffect } from './combat-recovery'
 import { validateCurrentBleedEffect } from './combat-dots'
+import { validateCombatEffectCategory } from './combat-effect-categories'
 import type {
   CombatActionDefinition,
   CombatContentCatalog,
@@ -210,6 +211,18 @@ export function validateCombatStatusDefinition(status: CombatStatusDefinition): 
       ['ordinary', 'periodic', 'reactive', 'self-cost', 'system'],
       'reaction class',
     )
+  }
+
+  if (status.effectCategories !== undefined) {
+    if (
+      !Array.isArray(status.effectCategories) ||
+      status.effectCategories.length < 1 ||
+      status.effectCategories.length > 16 ||
+      new Set(status.effectCategories).size !== status.effectCategories.length
+    ) {
+      throw new TypeError('Status effect categories require one to sixteen distinct categories.')
+    }
+    for (const category of status.effectCategories) validateCombatEffectCategory(category)
   }
 
   if (status.gameplayTags !== undefined) {
