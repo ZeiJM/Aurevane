@@ -59,6 +59,13 @@ const generatedStarterPortraits = [
   ...GENERATED_STARTER_PORTRAITS_7,
 ] as const
 
+const legacySquareStarterPortraitAssetIds = [
+  'character.creation.square-portrait-01',
+  'character.creation.square-portrait-02',
+  'character.creation.square-portrait-03',
+  'character.creation.square-portrait-04',
+] as const
+
 const IMAGE_ASSETS = [
   ...phase4Sigils.map(([discipline, requestId]) => ({
     id: `art.phase4.${discipline}.identity.v01`,
@@ -143,6 +150,18 @@ const IMAGE_ASSETS = [
     width: 768,
     height: 1152,
   },
+  ...generatedStarterPortraits.slice(0, 4).map((portrait, index) => ({
+    id: legacySquareStarterPortraitAssetIds[index]!,
+    kind: 'character' as const,
+    status: 'approved' as const,
+    requestId: 'ART-CHR-001',
+    generationRequestId: conceptUiGenerationRequestId,
+    decorative: false,
+    alt: portrait.alt,
+    src: portrait.src,
+    width: 96,
+    height: 96,
+  })),
   ...generatedStarterPortraits.slice(4).map((portrait) => ({
     id: portrait.id,
     kind: 'character' as const,
