@@ -211,7 +211,7 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   await expect(battlefield.locator('button[data-target="friendly"]')).toHaveCount(0)
   await forecast.getByRole('button', { name: 'Skill details', exact: true }).click()
   const skillDetails = page.getByRole('dialog', { name: 'Barrier', exact: true })
-  await expect(skillDetails).toContainText('Guarded')
+  await expect(skillDetails).toContainText('Apply 1 Guard stack')
   await skillDetails.press('Escape')
   await expect(skillDetails).toHaveCount(0)
 
