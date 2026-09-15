@@ -6,13 +6,13 @@ import {
 } from './starter-options'
 
 describe('starter character identity options', () => {
-  it('offers a large deterministic starter portrait catalog', () => {
-    expect(STARTER_CHARACTER_PORTRAITS.length).toBeGreaterThanOrEqual(24)
+  it('offers the complete approved 40-portrait starter catalog deterministically', () => {
+    expect(STARTER_CHARACTER_PORTRAITS).toHaveLength(40)
 
     const refs = STARTER_CHARACTER_PORTRAITS.map((option) => option.ref)
     expect(new Set(refs).size).toBe(refs.length)
     expect(refs[0]).toBe('portrait.starter.wayfarer-01')
-    expect(refs.at(-1)).toBe('portrait.starter.wayfarer-24')
+    expect(refs.at(-1)).toBe('portrait.starter.wayfarer-40')
   })
 
   it('keeps the legacy pronoun contract deterministic when the UI does not ask for pronouns', () => {
