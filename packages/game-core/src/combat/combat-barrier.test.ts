@@ -115,18 +115,11 @@ function damageAction(piercing = false): CombatActionDefinition {
 }
 
 function castAtRecruit(state: CombatEncounterState, action: CombatActionDefinition) {
-  return executeCombatAction(
-    state,
-    action,
-    { kind: 'unit', combatantId: 'recruit' },
-    CONTENT,
-  )
+  return executeCombatAction(state, action, { kind: 'unit', combatantId: 'recruit' }, CONTENT)
 }
 
 function recruitHp(state: CombatEncounterState): number {
-  const recruit = state.tactical.battle.combatants.find(
-    (combatant) => combatant.id === 'recruit',
-  )
+  const recruit = state.tactical.battle.combatants.find((combatant) => combatant.id === 'recruit')
   if (!recruit) throw new Error('Expected recruit combatant.')
   return recruit.hp
 }
@@ -146,8 +139,7 @@ function recruitBarrier(state: CombatEncounterState): number {
 
 function committedDamage(events: readonly { event: string }[]): number {
   const damage = events.find((event) => event.event === 'damage_applied') as
-    | { event: 'damage_applied'; amount: number }
-    | undefined
+    { event: 'damage_applied'; amount: number } | undefined
   if (!damage) throw new Error('Expected damage event.')
   return damage.amount
 }
