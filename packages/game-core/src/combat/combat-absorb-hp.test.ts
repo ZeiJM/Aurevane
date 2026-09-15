@@ -172,11 +172,7 @@ function execute(
 
 describe('P4.K4 Absorb HP', () => {
   it('recovers an authored percentage of actual hostile direct HP damage', () => {
-    const result = execute(
-      encounter({ targetStatuses: [ABSORB_25] }),
-      20,
-      [ABSORB_25],
-    )
+    const result = execute(encounter({ targetStatuses: [ABSORB_25] }), 20, [ABSORB_25])
 
     expect(targetHp(result.state)).toBe(85)
     expect(result.events).toContainEqual(
@@ -193,26 +189,19 @@ describe('P4.K4 Absorb HP', () => {
   })
 
   it('uses the minimum-1 recovery rule when a positive percentage rounds below one HP', () => {
-    const result = execute(
-      encounter({ targetStatuses: [ABSORB_10] }),
-      1,
-      [ABSORB_10],
-    )
+    const result = execute(encounter({ targetStatuses: [ABSORB_10] }), 1, [ABSORB_10])
 
     expect(targetHp(result.state)).toBe(100)
   })
 
   it('cannot rescue lethal damage', () => {
-    const result = execute(
-      encounter({ targetHp: 4, targetStatuses: [ABSORB_25] }),
-      20,
-      [ABSORB_25],
-    )
+    const result = execute(encounter({ targetHp: 4, targetStatuses: [ABSORB_25] }), 20, [ABSORB_25])
 
     expect(targetHp(result.state)).toBe(0)
     expect(
       result.events.filter(
-        (event) => event.event === 'healing_applied' && event.actionId === 'status.absorb-hp.current.v1',
+        (event) =>
+          event.event === 'healing_applied' && event.actionId === 'status.absorb-hp.current.v1',
       ),
     ).toEqual([])
   })
@@ -240,7 +229,8 @@ describe('P4.K4 Absorb HP', () => {
     expect(targetHp(ended.state)).toBe(96)
     expect(
       ended.events.filter(
-        (event) => event.event === 'healing_applied' && event.actionId === 'status.absorb-hp.current.v1',
+        (event) =>
+          event.event === 'healing_applied' && event.actionId === 'status.absorb-hp.current.v1',
       ),
     ).toEqual([])
   })
