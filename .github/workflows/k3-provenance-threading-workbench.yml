@@ -1,0 +1,53 @@
+name: K3 Provenance Threading Workbench
+
+on:
+  push:
+    branches:
+      - agent/combat-k3-provenance-threading-workbench-20260915
+
+permissions:
+  contents: write
+
+jobs:
+  format-red:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out exact Task-3 RED head
+        uses: actions/checkout@v4
+        with:
+          ref: agent/combat-k3-effect-provenance-reconcile-20260915
+          fetch-depth: 0
+
+      - name: Assert expected RED head
+        run: test "$(git rev-parse HEAD)" = "912c97535fc822e575ef64e20e3bc4ccf487710c"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Format RED contract
+        run: pnpm exec prettier --write packages/game-core/src/combat/combat-persistent-provenance-threading.test.ts
+
+      - name: Verify formatting
+        run: pnpm exec prettier --check packages/game-core/src/combat/combat-persistent-provenance-threading.test.ts
+
+      - name: Commit and push formatted RED contract
+        run: |
+          git config user.name "AUREVANE K3 Workbench"
+          git config user.email "actions@users.noreply.github.com"
+          git add packages/game-core/src/combat/combat-persistent-provenance-threading.test.ts
+          if git diff --cached --quiet; then
+            echo "No formatting change required."
+            exit 0
+          fi
+          git commit -m "test: format K3 persistent provenance threading contract"
+          git push origin HEAD:agent/combat-k3-effect-provenance-reconcile-20260915
