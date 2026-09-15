@@ -1,0 +1,356 @@
+/*
+ * AUREVANE Sitewide Layout v2
+ *
+ * This is the final structural override layer for approved concept surfaces. It deliberately
+ * targets stable data attributes instead of CSS-module implementation names so the layout can
+ * unify account, roster, public information, and authenticated hubs without duplicating page
+ * logic or changing server-authoritative behavior.
+ */
+
+@media (min-width: 981px) {
+  /* Character Select / account roster */
+  [data-character-select-page='true'] {
+    display: grid;
+    grid-template-rows: 4rem minmax(0, 1fr);
+    width: calc(100% - clamp(0.5rem, 1.2vw, 1.25rem));
+    height: 100dvh;
+    min-height: 0;
+    margin-inline: auto;
+    overflow: hidden;
+    border-inline: 1px solid var(--av-border-strong);
+    background: rgba(7, 15, 24, 0.72);
+  }
+
+  [data-character-select-page='true'] > header {
+    position: relative !important;
+    z-index: 20;
+    min-height: 4rem !important;
+    padding: 0.35rem clamp(0.7rem, 1.4vw, 1.25rem) !important;
+    border-bottom: 1px solid var(--av-gold-rule);
+    background: rgba(5, 13, 21, 0.96);
+  }
+
+  [data-character-select-page='true'] > main {
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    width: calc(100% - 1rem) !important;
+    max-width: 96rem !important;
+    min-height: 0;
+    gap: 0.55rem;
+    margin-inline: auto;
+    padding: 0.55rem !important;
+    overflow: hidden;
+  }
+
+  [data-character-select-page='true'] > main > header {
+    display: flex;
+    min-height: 0 !important;
+    gap: 1rem;
+    align-items: end;
+    justify-content: space-between;
+    padding: 0.45rem 0.65rem !important;
+    border-bottom: 1px solid rgba(212, 186, 130, 0.22);
+  }
+
+  [data-character-select-page='true'] > main > header h1 {
+    margin-block: 0.1rem !important;
+    font-size: clamp(1.7rem, 3.2vh, 2.45rem) !important;
+  }
+
+  [data-character-select-page='true'] > main > header > p {
+    max-width: 36rem;
+    margin: 0 0 0.1rem !important;
+    text-align: right;
+  }
+
+  [data-character-select-page='true'] [aria-label='Character slots'] {
+    min-height: 0;
+    height: 100%;
+    gap: 0.65rem !important;
+    align-items: stretch;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  [data-character-select-page='true'] [aria-label='Character slots'] > article {
+    min-height: 0 !important;
+    align-content: start;
+  }
+
+  /* Account gateway */
+  [data-testid='account-shell'] {
+    display: grid !important;
+    grid-template-rows: 4rem minmax(0, 1fr) 2.5rem !important;
+    width: calc(100% - clamp(0.5rem, 1.2vw, 1.25rem));
+    height: 100dvh !important;
+    min-height: 0 !important;
+    margin-inline: auto;
+    overflow: hidden !important;
+    border-inline: 1px solid var(--av-border-strong);
+  }
+
+  [data-testid='account-shell'] > main {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1.35fr) minmax(24rem, 0.65fr) !important;
+    width: 100% !important;
+    max-width: 104rem !important;
+    min-height: 0;
+    gap: 0.65rem !important;
+    margin-inline: auto !important;
+    padding: 0.65rem !important;
+    overflow: hidden;
+  }
+
+  [data-testid='account-shell'] > main > section:first-child {
+    min-height: 0 !important;
+    height: 100%;
+    border-radius: 0 !important;
+  }
+
+  [data-testid='account-shell'] [data-account-concept='true'] {
+    min-height: 0;
+    max-height: 100%;
+    align-self: stretch;
+    padding: clamp(0.9rem, 1.5vw, 1.35rem) !important;
+    overflow: auto;
+    border-radius: 0 !important;
+    scrollbar-width: thin;
+  }
+
+  [data-testid='account-shell'] > footer {
+    position: relative !important;
+    bottom: auto !important;
+    min-height: 0 !important;
+    padding-block: 0.25rem !important;
+  }
+
+  /* News / Manual / Rules */
+  [data-public-concept='true'] {
+    display: grid;
+    grid-template-rows: 4rem minmax(0, 1fr);
+    width: calc(100% - clamp(0.5rem, 1.2vw, 1.25rem));
+    height: 100dvh;
+    min-height: 0;
+    margin-inline: auto;
+    overflow: hidden;
+    border-inline: 1px solid var(--av-border-strong);
+  }
+
+  [data-public-concept='true'] > :first-child {
+    inset-block-start: 4rem !important;
+  }
+
+  [data-public-concept='true'] > main {
+    width: 100% !important;
+    max-width: 100rem !important;
+    min-height: 0;
+    height: 100%;
+    margin-inline: auto !important;
+    padding: 0.65rem !important;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  [data-public-concept='true'] > main > :is(section, article):first-child {
+    margin-top: 0 !important;
+  }
+
+  [data-public-concept='true'] > main > section:first-child {
+    min-height: clamp(8.5rem, 18vh, 11rem) !important;
+    border-radius: 0 !important;
+  }
+
+  [data-public-concept='true'] > main section + section {
+    margin-top: 0.75rem !important;
+  }
+
+  /* Character Profile */
+  [data-profile-workspace] {
+    height: 100%;
+    min-height: 0 !important;
+    gap: 0.65rem !important;
+    align-items: stretch !important;
+  }
+
+  [data-profile-workspace] > * {
+    min-height: 0 !important;
+    max-height: 100%;
+  }
+
+  [data-profile-workspace] > :first-child {
+    height: 100%;
+    overflow: hidden;
+  }
+
+  [data-profile-workspace] > :nth-child(2),
+  [data-profile-workspace] > aside {
+    height: 100%;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  [data-profile-workspace] [data-testid='character-profile'] {
+    min-height: 0 !important;
+  }
+
+  /* Battle Hall */
+  [data-hall-concept] {
+    display: grid !important;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    gap: 0.55rem !important;
+    padding: 0.6rem !important;
+    overflow: hidden;
+  }
+
+  [data-hall-concept] > header {
+    display: grid !important;
+    grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+    min-height: 0 !important;
+    gap: 1rem;
+    align-items: center;
+    padding: 0 0 0.45rem !important;
+  }
+
+  [data-hall-concept] > header h1 {
+    margin-block: 0.08rem !important;
+    font-size: clamp(1.8rem, 3.6vh, 2.65rem) !important;
+  }
+
+  [data-hall-concept] > header > p {
+    max-width: 48rem;
+    margin: 0 !important;
+  }
+
+  [data-hall-concept] > nav {
+    gap: 0.45rem !important;
+  }
+
+  [data-hall-concept] > nav > button {
+    min-height: 3.45rem !important;
+    padding: 0.5rem 0.65rem !important;
+  }
+
+  [data-hall-concept] > section {
+    min-height: 0;
+    max-height: 100%;
+    padding: 0.65rem !important;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  [data-hall-concept] > section > :first-child {
+    gap: 0.65rem !important;
+    padding-bottom: 0.45rem !important;
+  }
+
+  /* Passive Training */
+  [data-training-concept] {
+    display: grid !important;
+    grid-template-rows: minmax(7rem, 24%) minmax(0, 1fr);
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    gap: 0.65rem !important;
+    overflow: hidden;
+  }
+
+  [data-training-concept] > :first-child {
+    min-height: 0 !important;
+    height: 100%;
+    border-radius: 0 !important;
+  }
+
+  [data-training-concept] > :first-child h1 {
+    font-size: clamp(1.85rem, 4vh, 2.8rem) !important;
+  }
+
+  [data-training-concept] > :last-child {
+    min-height: 0;
+    height: 100%;
+    gap: 0.65rem !important;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  /* Online Users / Adventurers */
+  [data-online-concept] {
+    display: grid !important;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    padding: 0.7rem !important;
+    overflow: hidden;
+    border-radius: 0 !important;
+  }
+
+  [data-online-concept] > header {
+    min-height: 0;
+    margin: 0 !important;
+    padding-bottom: 0.35rem !important;
+  }
+
+  [data-online-concept] > section[aria-label] {
+    min-height: 0;
+    max-height: 100%;
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  /* Keep the compact frame visible on all ordinary authenticated pages. */
+  [data-testid='authenticated-shell'][data-av-layout='standard'] #game-main > :first-child {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+@media (min-width: 981px) and (max-height: 800px) {
+  [data-character-select-page='true'] > main > header {
+    padding-block: 0.25rem !important;
+  }
+
+  [data-testid='account-shell'] > main {
+    padding-block: 0.4rem !important;
+  }
+
+  [data-hall-concept] {
+    gap: 0.4rem !important;
+    padding: 0.45rem !important;
+  }
+
+  [data-hall-concept] > nav > button {
+    min-height: 3.05rem !important;
+  }
+
+  [data-training-concept] {
+    grid-template-rows: minmax(5.5rem, 20%) minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 980px) {
+  [data-character-select-page='true'],
+  [data-testid='account-shell'],
+  [data-public-concept='true'] {
+    width: 100%;
+    min-height: 100dvh;
+    border-inline: 0;
+  }
+
+  [data-profile-workspace],
+  [data-hall-concept],
+  [data-training-concept],
+  [data-online-concept] {
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+}
