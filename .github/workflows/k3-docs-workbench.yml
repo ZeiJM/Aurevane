@@ -72,13 +72,6 @@ jobs:
           elif green not in text:
               raise SystemExit('missing Task-3 status paragraph')
           plan.write_text(text)
-
-          old_plan = Path('docs/superpowers/plans/2026-09-14-combat-k3-resolution-provenance.md')
-          old_text = old_plan.read_text()
-          note_marker = '## Reconciliation status — 2026-09-15'
-          if note_marker not in old_text:
-              old_text = old_text.rstrip() + '''\n\n## Reconciliation status — 2026-09-15\n\nThis historical stacked plan is superseded for integration tracking by `2026-09-15-combat-k3-effect-provenance-reconciliation.md`. K3-A/K3-B integrated through PR #478; the live-base K3-C reconciliation carries forward the effect-instance compatibility/threading tasks without reviving obsolete branch history.\n'''
-              old_plan.write_text(old_text + '\n')
           PY
 
       - name: Verify documentation-only diff
@@ -90,7 +83,6 @@ jobs:
             docs/COMBAT.md \
             docs/PHASE_4_COMBAT_KERNEL_K0_AUDIT.md \
             docs/ROADMAP_C4_AUDIT_COMBAT_KERNEL_V2.md \
-            docs/superpowers/plans/2026-09-14-combat-k3-resolution-provenance.md \
             docs/superpowers/plans/2026-09-15-combat-k3-effect-provenance-reconciliation.md \
             | sort > /tmp/expected.txt
           diff -u /tmp/expected.txt /tmp/actual.txt
@@ -100,6 +92,6 @@ jobs:
         run: |
           git config user.name "Nicholas JM"
           git config user.email "283436098+ZeiJM@users.noreply.github.com"
-          git add docs/COMBAT.md docs/PHASE_4_COMBAT_KERNEL_K0_AUDIT.md docs/ROADMAP_C4_AUDIT_COMBAT_KERNEL_V2.md docs/superpowers/plans/2026-09-14-combat-k3-resolution-provenance.md docs/superpowers/plans/2026-09-15-combat-k3-effect-provenance-reconciliation.md
+          git add docs/COMBAT.md docs/PHASE_4_COMBAT_KERNEL_K0_AUDIT.md docs/ROADMAP_C4_AUDIT_COMBAT_KERNEL_V2.md docs/superpowers/plans/2026-09-15-combat-k3-effect-provenance-reconciliation.md
           git commit -m "docs: record K3 persistent provenance boundary"
           git push origin HEAD:agent/combat-k3-effect-provenance-reconcile-20260915
