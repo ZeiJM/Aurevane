@@ -212,10 +212,12 @@ describe('P4.K4 authoritative damage-history resolver wiring', () => {
     const tick = finishTurn(targetTurn.state)
 
     const periodicDamage = tick.events
-      .filter(
-        (event) => event.event === 'damage_applied' && event.targetCombatantId === 'target',
+      .flatMap((event) =>
+        event.event === 'damage_applied' && event.targetCombatantId === 'target'
+          ? [event.amount]
+          : [],
       )
-      .reduce((sum, event) => sum + event.amount, 0)
+      .reduce((sum, amount) => sum + amount, 0)
 
     expect(periodicDamage).toBe(10)
     expect(recentCombatDamageSuffered(tick.state, 'target')).toBe(periodicDamage)
