@@ -3,6 +3,9 @@ import { GENERATED_STARTER_PORTRAITS_1 } from './generated-starter-portraits-1'
 import { GENERATED_STARTER_PORTRAITS_2 } from './generated-starter-portraits-2'
 import { GENERATED_STARTER_PORTRAITS_3 } from './generated-starter-portraits-3'
 import { GENERATED_STARTER_PORTRAITS_4 } from './generated-starter-portraits-4'
+import { GENERATED_STARTER_PORTRAITS_5 } from './generated-starter-portraits-5'
+import { GENERATED_STARTER_PORTRAITS_6 } from './generated-starter-portraits-6'
+import { GENERATED_STARTER_PORTRAITS_7 } from './generated-starter-portraits-7'
 
 export type ImageAssetStatus = 'requested' | 'approved'
 export type ImageAssetKind = 'environment' | 'character' | 'ui' | 'icon'
@@ -51,6 +54,9 @@ const generatedStarterPortraits = [
   ...GENERATED_STARTER_PORTRAITS_2,
   ...GENERATED_STARTER_PORTRAITS_3,
   ...GENERATED_STARTER_PORTRAITS_4,
+  ...GENERATED_STARTER_PORTRAITS_5,
+  ...GENERATED_STARTER_PORTRAITS_6,
+  ...GENERATED_STARTER_PORTRAITS_7,
 ] as const
 
 const IMAGE_ASSETS = [
