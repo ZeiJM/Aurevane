@@ -1,9 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import {
-  COMBAT_EFFECT_CATEGORIES,
-  validateCombatEffectCategory,
-} from './combat-effect-categories'
+import { COMBAT_EFFECT_CATEGORIES, validateCombatEffectCategory } from './combat-effect-categories'
 
 const EXPECTED_CATEGORIES = [
   'Damage',
