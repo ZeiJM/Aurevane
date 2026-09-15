@@ -41,7 +41,7 @@ jobs:
               path = Path(name)
               text = path.read_text()
               if marker not in text:
-                  path.write_text(text.rstrip() + block + '\n')
+                  path.write_text(text.rstrip() + block.rstrip() + '\n')
 
           plan = Path('docs/superpowers/plans/2026-09-15-combat-k3-effect-provenance-reconciliation.md')
           text = plan.read_text()
@@ -71,7 +71,7 @@ jobs:
               text = text.replace(staged, green)
           elif green not in text:
               raise SystemExit('missing Task-3 status paragraph')
-          plan.write_text(text)
+          plan.write_text(text.rstrip() + '\n')
           PY
 
       - name: Verify documentation-only diff
