@@ -80,17 +80,17 @@ export function PracticePlanCard({ practice, report, hasReport = false }: Practi
     {
       window: 'short',
       seconds: practice.shortWindowSeconds,
-      description: 'Best hourly return for a shorter AFK window.',
+      description: 'Best hourly return.',
     },
     {
       window: 'overnight',
       seconds: practice.overnightWindowSeconds,
-      description: 'Moderate return for a medium training block.',
+      description: 'Moderate hourly return.',
     },
     {
       window: 'extended',
       seconds: practice.extendedWindowSeconds,
-      description: 'Lowest hourly return for a long unattended block.',
+      description: 'Lowest hourly return.',
     },
   ]
 
