@@ -124,7 +124,9 @@ function castAtRecruit(state: CombatEncounterState, action: CombatActionDefiniti
 }
 
 function recruitHp(state: CombatEncounterState): number {
-  const recruit = state.tactical.battle.combatants.find((combatant) => combatant.id === 'recruit')
+  const recruit = state.tactical.battle.combatants.find(
+    (combatant) => combatant.id === 'recruit',
+  )
   if (!recruit) throw new Error('Expected recruit combatant.')
   return recruit.hp
 }
@@ -186,7 +188,9 @@ describe('P4.K4 direct Barrier primitive', () => {
   it.each([0, -1, 1.5, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1])(
     'rejects invalid Barrier authoring amount %s',
     (amount) => {
-      expect(() => validateCombatActionDefinition(barrierAction(amount), CONTENT)).toThrow(/barrier/i)
+      expect(() => validateCombatActionDefinition(barrierAction(amount), CONTENT)).toThrow(
+        /barrier/i,
+      )
     },
   )
 
