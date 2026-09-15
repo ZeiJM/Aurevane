@@ -1,0 +1,27 @@
+name: Adventurers review source
+
+on:
+  push:
+    branches: [agent/adventurers-concept-ui]
+    paths: [.github/workflows/adventurers-review-source.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Archive tracked source
+        run: |
+          mkdir -p /tmp/adventurers-source
+          git rev-parse HEAD > /tmp/adventurers-source/commit.txt
+          git archive --format=tar.gz HEAD > /tmp/adventurers-source/source.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: adventurers-source
+          path: /tmp/adventurers-source
+          retention-days: 1
