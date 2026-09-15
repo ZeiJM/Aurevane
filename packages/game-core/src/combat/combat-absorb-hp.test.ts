@@ -76,8 +76,7 @@ function statusInstance(status: CombatStatusDefinition, sourceCombatantId = 'tar
 }
 
 function encounter(options?: {
-  actorTeamId?: string
-  targetTeamId?: string
+  actorStatuses?: readonly CombatStatusDefinition[]
   targetHp?: number
   targetMaxHp?: number
   targetStatuses?: readonly CombatStatusDefinition[]
@@ -93,7 +92,7 @@ function encounter(options?: {
       combatants: [
         {
           id: 'actor',
-          teamId: options?.actorTeamId ?? 'players',
+          teamId: 'players',
           initiative: targetActsFirst ? 10 : 20,
           baseMovementBudget: 3,
           hp: 100,
@@ -103,7 +102,7 @@ function encounter(options?: {
         },
         {
           id: 'target',
-          teamId: options?.targetTeamId ?? 'opponents',
+          teamId: 'opponents',
           initiative: targetActsFirst ? 20 : 10,
           baseMovementBudget: 3,
           hp: options?.targetHp ?? 100,
@@ -142,13 +141,20 @@ function encounter(options?: {
       ],
     }),
     [
-      { combatantId: 'actor', statuses: [] },
+      {
+        combatantId: 'actor',
+        statuses: (options?.actorStatuses ?? []).map((status) => statusInstance(status, 'actor')),
+      },
       {
         combatantId: 'target',
         statuses: (options?.targetStatuses ?? []).map((status) => statusInstance(status, 'actor')),
       },
     ],
   )
+}
+
+function actorHp(state: CombatEncounterState): number {
+  return state.tactical.battle.combatants.find((combatant) => combatant.id === 'actor')!.hp
 }
 
 function targetHp(state: CombatEncounterState): number {
@@ -207,14 +213,18 @@ describe('P4.K4 Absorb HP', () => {
   })
 
   it('does not trigger from non-hostile direct damage', () => {
-    const result = execute(
-      encounter({ actorTeamId: 'players', targetTeamId: 'players', targetStatuses: [ABSORB_25] }),
-      20,
-      [ABSORB_25],
-      'any',
+    const selfDamageAction: CombatActionDefinition = {
+      ...action(20),
+      effects: [{ type: 'damage', recipient: 'actor', amount: 20 }],
+    }
+    const result = executeCombatAction(
+      encounter({ actorStatuses: [ABSORB_25] }),
+      selfDamageAction,
+      { kind: 'unit', combatantId: 'target' },
+      { statuses: [ABSORB_25] },
     )
 
-    expect(targetHp(result.state)).toBe(80)
+    expect(actorHp(result.state)).toBe(80)
   })
 
   it('does not trigger from periodic damage', () => {
