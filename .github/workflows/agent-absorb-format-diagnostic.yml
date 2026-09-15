@@ -1,0 +1,40 @@
+name: Absorb HP formatter diagnostic
+
+on:
+  push:
+    branches:
+      - agent/absorb-hp-format-diagnostic-20260915
+
+permissions:
+  contents: read
+
+jobs:
+  format-diagnostic:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable repository package manager
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Show exact formatter-only patch
+        run: |
+          pnpm exec prettier --write packages/game-core/src/combat/combat-absorb-hp.test.ts
+          git diff --check
+          git diff -- packages/game-core/src/combat/combat-absorb-hp.test.ts
+      - name: Verify formatting
+        run: pnpm format:check
+      - name: Verify lint
+        run: pnpm lint
+      - name: Verify types
+        run: pnpm typecheck
+      - name: Observe Absorb HP behavioral RED
+        run: pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-absorb-hp.test.ts
