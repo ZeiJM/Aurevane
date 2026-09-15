@@ -5,6 +5,7 @@ import {
   executeCombatAction,
   validateCombatEncounterState,
   type CombatActionDefinition,
+  type CombatEncounterState,
 } from './actions'
 import { createPendingBattle, startBattle } from './battle-state'
 import { createTacticalBattleState } from './board'
@@ -32,7 +33,7 @@ const poisonAction: CombatActionDefinition = {
   effects: [{ type: 'poison', recipient: 'primary-unit' }],
 }
 
-function encounter() {
+function encounter(): CombatEncounterState {
   const battle = startBattle(
     createPendingBattle({
       battleId: 'battle:k3-provenance-state',
@@ -93,38 +94,153 @@ function encounter() {
   )
 }
 
-function historicalPoisonState() {
-  return executeCombatAction(
+function historicalPersistentState(): CombatEncounterState {
+  const poisoned = executeCombatAction(
     encounter(),
     poisonAction,
     { kind: 'unit', combatantId: 'target' },
     CONTENT,
   ).state
+  const effects = normalizeCombatEffectState(poisoned.effectState)
+
+  return {
+    ...poisoned,
+    statusState: poisoned.statusState.map((row) =>
+      row.combatantId === 'target'
+        ? {
+            ...row,
+            statuses: [
+              {
+                statusId: 'historical-status',
+                statusVersion: 1,
+                stacks: 1,
+                remainingOwnerTurnStarts: 1,
+                sourceCombatantId: 'actor',
+              },
+            ],
+          }
+        : row,
+    ),
+    effectState: {
+      ...effects,
+      ongoingRecovery: [
+        {
+          kind: 'hp',
+          sourceCombatantId: 'actor',
+          targetCombatantId: 'target',
+          sourceActionId: 'test.k3.recovery',
+          amountPerTick: 2,
+          remainingFutureTicks: 1,
+        },
+      ],
+      bleed: [
+        {
+          targetCombatantId: 'target',
+          sourceCombatantId: 'actor',
+          sourceActionId: 'test.k3.bleed',
+          damagePerTick: 2,
+          remainingTicks: 2,
+          applicationOrder: 1,
+        },
+      ],
+      burn: [
+        {
+          targetCombatantId: 'target',
+          sourceCombatantId: 'actor',
+          sourceActionId: 'test.k3.burn',
+          profileVersion: 1,
+          stage: 0,
+        },
+      ],
+    },
+  }
 }
 
-describe('P4.K3 persistent effect provenance compatibility', () => {
-  it('continues to validate historical effect rows that omit K3 provenance', () => {
-    expect(validateCombatEncounterState(historicalPoisonState())).toEqual([])
-  })
+type PersistentFamily = 'status' | 'recovery' | 'poison' | 'bleed' | 'burn'
 
-  it('fails closed when present persisted effect provenance is malformed', () => {
-    const historical = historicalPoisonState()
-    const effects = normalizeCombatEffectState(historical.effectState)
-    const malformed = {
+function withMalformedProvenance(family: PersistentFamily): CombatEncounterState {
+  const historical = historicalPersistentState()
+  const malformedProvenance = { instanceId: '' }
+
+  if (family === 'status') {
+    return {
+      ...historical,
+      statusState: historical.statusState.map((row) =>
+        row.combatantId === 'target'
+          ? {
+              ...row,
+              statuses: row.statuses.map((status) => ({
+                ...status,
+                provenance: malformedProvenance,
+              })),
+            }
+          : row,
+      ),
+    } as unknown as CombatEncounterState
+  }
+
+  const effects = normalizeCombatEffectState(historical.effectState)
+  if (family === 'recovery') {
+    return {
+      ...historical,
+      effectState: {
+        ...effects,
+        ongoingRecovery: effects.ongoingRecovery.map((row) => ({
+          ...row,
+          provenance: malformedProvenance,
+        })),
+      },
+    } as unknown as CombatEncounterState
+  }
+  if (family === 'poison') {
+    return {
       ...historical,
       effectState: {
         ...effects,
         poison: effects.poison.map((instance) => ({
           ...instance,
-          provenance: { instanceId: '' },
+          provenance: malformedProvenance,
         })),
       },
-    }
+    } as unknown as CombatEncounterState
+  }
+  if (family === 'bleed') {
+    return {
+      ...historical,
+      effectState: {
+        ...effects,
+        bleed: effects.bleed.map((stack) => ({
+          ...stack,
+          provenance: malformedProvenance,
+        })),
+      },
+    } as unknown as CombatEncounterState
+  }
+  return {
+    ...historical,
+    effectState: {
+      ...effects,
+      burn: effects.burn.map((instance) => ({
+        ...instance,
+        provenance: malformedProvenance,
+      })),
+    },
+  } as unknown as CombatEncounterState
+}
 
-    expect(validateCombatEncounterState(malformed)).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ field: expect.stringMatching(/provenance/i) }),
-      ]),
-    )
+describe('P4.K3 persistent effect provenance compatibility', () => {
+  it('continues to validate historical persistent rows that omit K3 provenance', () => {
+    expect(validateCombatEncounterState(historicalPersistentState())).toEqual([])
   })
+
+  it.each<PersistentFamily>(['status', 'recovery', 'poison', 'bleed', 'burn'])(
+    'fails closed when present %s provenance is malformed',
+    (family) => {
+      expect(validateCombatEncounterState(withMalformedProvenance(family))).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ field: expect.stringMatching(/provenance/i) }),
+        ]),
+      )
+    },
+  )
 })
