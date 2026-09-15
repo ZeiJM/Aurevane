@@ -27,6 +27,7 @@ export function conditionalDamageMultiplier(
   recipientId: string,
   content: CombatContentCatalog,
   elementalMultiplier = 10_000,
+  options: { ignoreIncomingMitigation?: boolean } = {},
 ): number {
   let numerator = BigInt(elementalMultiplier)
   if (hasGameplayTag(state, attackerId, 'Inspired', content))
@@ -44,6 +45,12 @@ export function conditionalDamageMultiplier(
       )
       for (const modifier of definition?.damageModifiers ?? []) {
         if (modifier.direction !== direction) continue
+        if (
+          direction === 'incoming' &&
+          options.ignoreIncomingMitigation === true &&
+          modifier.multiplierBasisPoints < 10_000
+        )
+          continue
         if (
           !matchesCondition(
             state,

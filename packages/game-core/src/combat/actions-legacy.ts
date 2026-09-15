@@ -125,6 +125,7 @@ export type CombatEffectDefinition =
       recipient: CombatEffectRecipient
       amount: number
       defenseKind?: 'armor' | 'ward'
+      piercing?: boolean
       element?: CombatElement
       facingModifiersBasisPoints?: FacingDamageModifiers
     }
@@ -1695,7 +1696,7 @@ function resolveDamageAmount(
   elementalMultiplier = 10_000,
 ): number {
   let amount = effect.amount
-  if (effect.defenseKind && amount > 0) {
+  if (effect.defenseKind && amount > 0 && effect.piercing !== true) {
     const defense = state.statBridge?.combatants.find((unit) => unit.combatantId === recipientId)?.[
       effect.defenseKind
     ]
@@ -1717,6 +1718,7 @@ function resolveDamageAmount(
 
   for (const status of getStatusRow(state, recipientId).statuses) {
     const definition = getStatusDefinition(content, status.statusId, status.statusVersion)
+    if (effect.piercing === true && definition.damageTakenMultiplierBasisPoints < 10_000) continue
     for (let stack = 0; stack < status.stacks; stack += 1) {
       amount = scaleByBasisPoints(amount, definition.damageTakenMultiplierBasisPoints)
     }
@@ -1724,7 +1726,9 @@ function resolveDamageAmount(
 
   amount = scaleByBasisPoints(
     amount,
-    conditionalDamageMultiplier(state, actorId, recipientId, content, elementalMultiplier),
+    conditionalDamageMultiplier(state, actorId, recipientId, content, elementalMultiplier, {
+      ignoreIncomingMitigation: effect.piercing === true,
+    }),
   )
 
   return amount
