@@ -352,8 +352,8 @@
   font: 650 0.6875rem/1.15 var(--av-font-body);
 }
 
-/* Reflow filters whenever the actual desktop log dock is too narrow for both control groups. */
-@container battle-log-dock (max-width: 18rem) {
+/* Reflow filters only when the actual desktop log dock is in the narrow laptop range. */
+@container battle-log-dock (max-width: 280px) {
   .filter {
     position: static;
     justify-content: flex-end;
