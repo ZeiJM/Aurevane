@@ -51,7 +51,12 @@ export function GameRail({
   const pathname = usePathname()
   const restricted = Boolean(activeSessionHref)
   return (
-    <aside className={styles.rail} data-av-game-rail data-av-surface="ink">
+    <aside
+      className={styles.rail}
+      data-av-game-rail
+      data-av-primary-dock="true"
+      data-av-surface="ink"
+    >
       <nav className={styles.railNavigation} aria-label="Primary game navigation">
         {gameNavigation.map((item) => {
           const active = pathname === item.href || pathname.startsWith(`${item.href}/`)

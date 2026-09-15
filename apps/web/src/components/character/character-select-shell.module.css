@@ -849,3 +849,162 @@
     font-size: 0.7rem;
   }
 }
+
+/* composition-v3 roster stage */
+@media (min-width: 761px) {
+  .main[data-roster-stage='true'] {
+    position: relative;
+    display: grid !important;
+    grid-template-columns: minmax(17rem, 0.48fr) minmax(0, 1.52fr) !important;
+    grid-template-rows: minmax(0, 1fr) !important;
+    width: calc(100% - 1rem) !important;
+    max-width: 96rem !important;
+    height: calc(100dvh - 4.6rem) !important;
+    min-height: 0 !important;
+    gap: 0.7rem !important;
+    padding: 0.55rem !important;
+    overflow: hidden !important;
+  }
+
+  .main[data-roster-stage='true'] .hero {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    align-content: end !important;
+    padding: 1.2rem !important;
+    border: 1px solid var(--av-border-strong);
+    border-radius: 0 !important;
+    color: var(--av-parchment-100);
+    background:
+      linear-gradient(180deg, rgba(6, 13, 21, 0.14), rgba(6, 13, 21, 0.94) 78%),
+      url('/media/art/concept-ui/world-v01.webp') center / cover;
+    box-shadow: var(--av-shadow-deep);
+  }
+
+  .main[data-roster-stage='true'] .hero > p {
+    max-width: 28rem;
+    text-align: left !important;
+  }
+
+  .main[data-roster-stage='true'] .message {
+    position: absolute;
+    z-index: 10;
+    top: 0.85rem;
+    right: 0.85rem;
+    max-width: calc(72% - 2rem);
+  }
+
+  .slots[data-character-slot-board='true'] {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    align-items: stretch !important;
+    gap: 0.65rem !important;
+    padding: 0 !important;
+    overflow: auto !important;
+    scrollbar-width: thin;
+  }
+
+  .slots[data-character-slot-board='true'] .slot {
+    min-height: 0 !important;
+    height: 100% !important;
+    align-content: start !important;
+    border-radius: 0 !important;
+  }
+
+  .slots[data-character-slot-board='true'] .portrait {
+    aspect-ratio: 1 !important;
+    width: min(100%, 13rem) !important;
+    height: auto !important;
+    min-height: 0 !important;
+    justify-self: center;
+  }
+}
+
+@media (max-width: 760px) {
+  .main[data-roster-stage='true'] {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: 8.5rem auto auto !important;
+    width: 100% !important;
+    min-height: 0 !important;
+    gap: 0.5rem !important;
+    padding: 0.5rem !important;
+  }
+
+  .main[data-roster-stage='true'] .hero {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    min-height: 8.5rem !important;
+    height: 8.5rem !important;
+    align-content: end !important;
+    padding: 0.7rem !important;
+    border: 1px solid var(--av-border-strong);
+    border-radius: 0 !important;
+    color: var(--av-parchment-100);
+    background:
+      linear-gradient(180deg, rgba(6, 13, 21, 0.18), rgba(6, 13, 21, 0.9)),
+      url('/media/art/concept-ui/world-v01.webp') center 45% / cover;
+  }
+
+  .main[data-roster-stage='true'] .hero h1 {
+    margin: 0.15rem 0 !important;
+    font-size: 1.7rem !important;
+  }
+
+  .main[data-roster-stage='true'] .hero > p {
+    display: none;
+  }
+
+  .main[data-roster-stage='true'] .message {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    margin: 0 !important;
+  }
+
+  .slots[data-character-slot-board='true'] {
+    grid-column: 1 !important;
+    grid-row: 3 !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 0.5rem !important;
+    padding: 0 !important;
+  }
+
+  .slots[data-character-slot-board='true'] .slot {
+    display: grid !important;
+    grid-template-columns: 5.5rem minmax(0, 1fr) !important;
+    grid-template-rows: auto auto auto auto !important;
+    min-height: 0 !important;
+    gap: 0.3rem 0.65rem !important;
+    padding: 0.65rem !important;
+    border-radius: 0 !important;
+  }
+
+  .slots[data-character-slot-board='true'] .slotNumber {
+    grid-column: 1 / -1;
+  }
+
+  .slots[data-character-slot-board='true'] .portrait,
+  .slots[data-character-slot-board='true'] .emptyCrest {
+    grid-column: 1 !important;
+    grid-row: 2 / span 3 !important;
+    width: 5.5rem !important;
+    height: 5.5rem !important;
+    min-height: 0 !important;
+    aspect-ratio: 1 !important;
+    align-self: start;
+  }
+
+  .slots[data-character-slot-board='true'] .identity,
+  .slots[data-character-slot-board='true'] .slot > h2,
+  .slots[data-character-slot-board='true'] .slot > p,
+  .slots[data-character-slot-board='true'] .slot > a,
+  .slots[data-character-slot-board='true'] .slot > button,
+  .slots[data-character-slot-board='true'] .lockedBadge,
+  .slots[data-character-slot-board='true'] .pendingDelete {
+    grid-column: 2 !important;
+  }
+}

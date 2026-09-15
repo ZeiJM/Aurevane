@@ -1065,3 +1065,81 @@
 .profileCard[data-av-surface='moonstone'] .futureActions button:disabled {
   cursor: not-allowed;
 }
+
+/* composition-v3 moonstone roster */
+.rosterPanel[data-directory-roster='true'] {
+  color: var(--av-charcoal) !important;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.5), transparent 42%), rgba(243, 239, 229, 0.98) !important;
+  border-color: var(--av-gold-rule) !important;
+  border-radius: 0 !important;
+}
+
+.rosterPanel[data-directory-roster='true'] .rosterHeader,
+.rosterPanel[data-directory-roster='true'] .filters {
+  border-color: rgba(116, 96, 59, 0.22) !important;
+  background: rgba(255, 255, 255, 0.22) !important;
+}
+
+.rosterPanel[data-directory-roster='true'] .rosterHeading strong,
+.rosterPanel[data-directory-roster='true'] .rosterHeading small,
+.rosterPanel[data-directory-roster='true'] .rosterCount,
+.rosterPanel[data-directory-roster='true'] .directorySummary {
+  color: var(--av-charcoal) !important;
+}
+
+.rosterPanel[data-directory-roster='true'] .filters label > span {
+  color: var(--av-charcoal-muted) !important;
+}
+
+.rosterPanel[data-directory-roster='true'] .filters select {
+  color: var(--av-charcoal) !important;
+  background: rgba(255, 255, 255, 0.78) !important;
+  border-color: rgba(116, 96, 59, 0.3) !important;
+}
+
+.rosterPanel[data-directory-roster='true'] .characterCard {
+  color: var(--av-charcoal) !important;
+  background: rgba(255, 255, 255, 0.58) !important;
+  border-color: rgba(116, 96, 59, 0.25) !important;
+  box-shadow: 0 0.35rem 0.8rem rgba(7, 15, 24, 0.08) !important;
+}
+
+.rosterPanel[data-directory-roster='true'] .characterCardOnline {
+  border-color: rgba(18, 83, 89, 0.38) !important;
+  background: rgba(235, 248, 244, 0.72) !important;
+}
+
+.rosterPanel[data-directory-roster='true'] .identity strong,
+.rosterPanel[data-directory-roster='true'] .identity small,
+.rosterPanel[data-directory-roster='true'] .lastSeen {
+  color: var(--av-charcoal) !important;
+}
+
+@media (min-width: 761px) {
+  .rosterPanel[data-directory-roster='true'] {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .list[data-directory-list='true'] {
+    max-height: none !important;
+    height: calc(100% - 5.5rem);
+    grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)) !important;
+    align-content: start;
+  }
+}
+
+@media (max-width: 760px) {
+  .rosterPanel[data-directory-roster='true'] {
+    margin: 0 !important;
+  }
+
+  .list[data-directory-list='true'] {
+    grid-template-columns: minmax(0, 1fr) !important;
+    max-height: none !important;
+    padding: 0.5rem !important;
+    overflow: visible !important;
+  }
+}

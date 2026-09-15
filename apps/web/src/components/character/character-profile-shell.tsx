@@ -170,7 +170,12 @@ export function CharacterProfileShell({
   return (
     <AuthenticatedShellFrame sessionLabel="Character Profile">
       <div className={styles.layout} data-profile-workspace data-character-concept="profile">
-        <Surface className={styles.characterCard} tone="quiet" data-av-surface="ink">
+        <Surface
+          className={styles.characterCard}
+          tone="quiet"
+          data-av-surface="ink"
+          data-profile-identity-banner="true"
+        >
           <header className={styles.hero} data-testid="character-profile">
             <div className={styles.portrait}>
               <CharacterPortraitImage
@@ -240,7 +245,12 @@ export function CharacterProfileShell({
           </div>
         </Surface>
 
-        <Surface className={styles.profile} tone="elevated" data-av-surface="moonstone">
+        <Surface
+          className={styles.profile}
+          tone="elevated"
+          data-av-surface="moonstone"
+          data-profile-sheet="true"
+        >
           <header className={styles.sheetHeading}>
             <h2>Discipline shapes what endures.</h2>
           </header>
@@ -265,7 +275,11 @@ export function CharacterProfileShell({
           />
         </Surface>
 
-        <aside className={styles.sidebar} aria-label="Combat loadout workspace">
+        <aside
+          className={styles.sidebar}
+          data-profile-loadout="true"
+          aria-label="Combat loadout workspace"
+        >
           <Surface className={styles.buildCard} tone="quiet" data-av-surface="ink">
             <div className={styles.buildHeading}>
               <Kicker marker="◇">Combat Loadout</Kicker>

@@ -101,3 +101,79 @@
     padding: 0.65rem;
   }
 }
+
+/* composition-v3 training split */
+@media (min-width: 761px) {
+  .layout[data-training-concept='true'] {
+    grid-template-columns: minmax(17rem, 0.72fr) minmax(0, 1.28fr) !important;
+    grid-template-rows: minmax(0, 1fr) !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    gap: 0.7rem !important;
+    padding: 0.7rem !important;
+    border-radius: 0 !important;
+  }
+
+  .hero[data-training-scene='true'] {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    align-items: end !important;
+    padding: 1rem !important;
+    border-radius: 0 !important;
+  }
+
+  .hero[data-training-scene='true'] .heroMedia {
+    object-position: 52% center !important;
+  }
+
+  .practiceGrid[data-training-workspace='true'] {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    align-content: start !important;
+    padding: 0.75rem !important;
+    overflow: auto !important;
+    border: 1px solid var(--av-gold-rule);
+    border-radius: 0 !important;
+    background: rgba(251, 248, 240, 0.97);
+    scrollbar-width: thin;
+  }
+}
+
+@media (max-width: 760px) {
+  .layout[data-training-concept='true'] {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: 9rem auto !important;
+    height: auto !important;
+    gap: 0.5rem !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  .hero[data-training-scene='true'] {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    width: 100% !important;
+    min-height: 9rem !important;
+    height: 9rem !important;
+    padding: 0.7rem !important;
+    border-radius: 0 !important;
+  }
+
+  .practiceGrid[data-training-workspace='true'] {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    min-height: 0 !important;
+    padding: 0.55rem !important;
+    border: 1px solid var(--av-gold-rule);
+    border-radius: 0 !important;
+    color: var(--av-charcoal);
+    background: rgba(251, 248, 240, 0.98);
+  }
+}

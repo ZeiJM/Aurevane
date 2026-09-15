@@ -170,7 +170,7 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
 
   return (
     <>
-      <div className={styles.toolbar}>
+      <div className={styles.toolbar} data-directory-controls="true">
         <span className={styles.toolbarSpacer} />
         <button
           type="button"
@@ -184,6 +184,7 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
 
       <section
         className={styles.rosterPanel}
+        data-directory-roster="true"
         aria-label={showAll ? 'All character directory' : 'Online character roster'}
       >
         <header className={styles.rosterHeader}>
@@ -255,7 +256,7 @@ export function OnlineUsersDirectory({ characters }: { characters: OnlineCharact
         ) : null}
 
         {orderedCharacters.length > 0 ? (
-          <div className={styles.list}>
+          <div className={styles.list} data-directory-list="true">
             {orderedCharacters.map((character) => {
               const discipline = readableIdentity(character.disciplineId)
               const online = isOnline(character)

@@ -335,3 +335,140 @@
     height: 3.5rem;
   }
 }
+
+/* composition-v3 profile dossier */
+@media (min-width: 761px) {
+  .layout[data-profile-workspace] {
+    grid-template-columns: minmax(0, 1.6fr) minmax(19rem, 0.72fr) !important;
+    grid-template-rows: auto minmax(0, 1fr) !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    gap: 0.7rem !important;
+    align-items: stretch !important;
+  }
+
+  .characterCard[data-profile-identity-banner='true'] {
+    display: grid !important;
+    grid-column: 1 / -1 !important;
+    grid-row: 1 !important;
+    grid-template-columns: minmax(0, 1.55fr) minmax(15rem, 0.55fr) !important;
+    min-height: 0 !important;
+    padding: 0.55rem 0.7rem !important;
+    border-radius: 0 !important;
+  }
+
+  .characterCard[data-profile-identity-banner='true'] .hero {
+    display: grid !important;
+    grid-template-columns: 6.6rem minmax(0, 1fr) !important;
+    min-height: 0 !important;
+    gap: 0.8rem !important;
+    align-items: center !important;
+  }
+
+  .characterCard[data-profile-identity-banner='true'] .portrait {
+    width: 6.6rem !important;
+    height: 6.6rem !important;
+    min-height: 0 !important;
+    aspect-ratio: 1 !important;
+    border: 1px solid var(--av-brass-500);
+    border-radius: 0 !important;
+  }
+
+  .characterCard[data-profile-identity-banner='true'] .identity {
+    align-self: center !important;
+    padding: 0 !important;
+  }
+
+  .characterCard[data-profile-identity-banner='true'] .nameLine h1 {
+    margin: 0 0 0.35rem !important;
+    font-size: clamp(1.8rem, 3vw, 2.55rem) !important;
+  }
+
+  .characterCard[data-profile-identity-banner='true'] .characterSummary {
+    align-self: stretch !important;
+    align-content: center !important;
+    margin: 0 !important;
+    padding: 0.45rem 0.2rem 0.45rem 0.85rem !important;
+    border-top: 0 !important;
+    border-left: 1px solid var(--av-border-strong);
+  }
+
+  .profile[data-profile-sheet='true'] {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow: auto !important;
+    border-radius: 0 !important;
+    scrollbar-width: thin;
+  }
+
+  .sidebar[data-profile-loadout='true'] {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    overflow: auto !important;
+    scrollbar-width: thin;
+  }
+}
+
+@media (max-width: 760px) {
+  .layout[data-profile-workspace] {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto auto auto !important;
+    height: auto !important;
+    gap: 0.55rem !important;
+    padding: 0 !important;
+  }
+
+  .characterCard[data-profile-identity-banner='true'] {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    min-height: 0 !important;
+    padding: 0.55rem !important;
+    border-radius: 0 !important;
+  }
+
+  .characterCard[data-profile-identity-banner='true'] .hero {
+    display: grid !important;
+    grid-template-columns: 5.4rem minmax(0, 1fr) !important;
+    min-height: 0 !important;
+    gap: 0.7rem !important;
+    align-items: center !important;
+  }
+
+  .characterCard[data-profile-identity-banner='true'] .portrait {
+    width: 5.4rem !important;
+    height: 5.4rem !important;
+    min-height: 0 !important;
+    aspect-ratio: 1 !important;
+    border: 1px solid var(--av-brass-500);
+    border-radius: 0 !important;
+  }
+
+  .characterCard[data-profile-identity-banner='true'] .identity {
+    padding: 0 !important;
+  }
+
+  .characterCard[data-profile-identity-banner='true'] .nameLine h1 {
+    margin: 0 0 0.25rem !important;
+    font-size: clamp(1.45rem, 7vw, 1.9rem) !important;
+  }
+
+  .characterCard[data-profile-identity-banner='true'] .characterSummary {
+    margin-top: 0.45rem !important;
+    padding-top: 0.5rem !important;
+    border-top: 1px solid var(--av-border-strong) !important;
+  }
+
+  .profile[data-profile-sheet='true'],
+  .sidebar[data-profile-loadout='true'] {
+    grid-column: 1 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    border-radius: 0 !important;
+  }
+}
