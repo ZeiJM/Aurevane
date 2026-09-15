@@ -81,7 +81,7 @@ jobs:
           mkdir -p "$LAYOUT_REVIEW_OUTPUT"
           git rev-parse HEAD > "$LAYOUT_REVIEW_OUTPUT/commit.txt"
           pnpm --filter @aurevane/web build
-          pnpm --filter @aurevane/web exec playwright test e2e/profile-layout-regression.pw.ts e2e/training-layout-regression.pw.ts e2e/training-concept-layout-regression.pw.ts e2e/wayfarers-practice.pw.ts e2e/hall-layout-regression.pw.ts e2e/pvp-spectator-footer-shape.pw.ts
+          pnpm --filter @aurevane/web exec playwright test e2e/profile-layout-regression.pw.ts e2e/training-layout-regression.pw.ts e2e/training-concept-layout-regression.pw.ts e2e/wayfarers-practice.pw.ts e2e/hall-layout-regression.pw.ts e2e/hall-controls-layout-regression.pw.ts e2e/pvp-spectator-footer-shape.pw.ts
       - uses: actions/upload-artifact@v4
         if: always()
         with:
