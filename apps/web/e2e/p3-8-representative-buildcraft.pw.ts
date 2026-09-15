@@ -153,10 +153,9 @@ test('PV-2 Profile flow compares pure four-Technique Essence with mixed 2+2 Reso
   // authoritative preview/confirm path used by mouse input after a skill swap.
   const techniquesDialog = page.getByRole('dialog', { name: 'Techniques' })
   await techniquesDialog.getByRole('button', { name: 'Close' }).click()
-  await page.getByRole('button', { name: 'Navigation' }).click()
   await page
-    .getByRole('navigation', { name: 'Game navigation', exact: true })
-    .getByRole('link', { name: /Battle Hall/ })
+    .getByRole('navigation', { name: 'Primary game navigation', exact: true })
+    .getByRole('link', { name: 'Battle Hall', exact: true })
     .click()
   await expect(page).toHaveURL(/\/game\/battle$/)
   await page.getByLabel('Battle mode').selectOption('recruit-sparring')

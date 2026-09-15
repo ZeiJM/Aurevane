@@ -99,10 +99,9 @@ test('legal Vanguard 3 + Lifebinder 1 mixed build can enter AI Sparring with fav
     .getByRole('button', { name: 'Close' })
     .click()
 
-  await page.getByRole('button', { name: 'Navigation' }).click()
   await page
-    .getByRole('navigation', { name: 'Game navigation', exact: true })
-    .getByRole('link', { name: /Battle Hall/ })
+    .getByRole('navigation', { name: 'Primary game navigation', exact: true })
+    .getByRole('link', { name: 'Battle Hall', exact: true })
     .click()
   await expect(page).toHaveURL(/\/game\/battle$/)
   await page.getByLabel('Battle mode').selectOption('recruit-sparring')
