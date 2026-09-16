@@ -19,58 +19,145 @@ import { createCombatActionProvenance, createCombatTriggerGuard } from './combat
 import { PHASE4_STATUSES } from './status-content'
 
 type ReflectStatus = CombatStatusDefinition & { reflectBasisPoints: number }
-function reflectStatus(rate = 2_500, overrides: Partial<CombatStatusDefinition> = {}): ReflectStatus {
+function reflectStatus(
+  rate = 2_500,
+  overrides: Partial<CombatStatusDefinition> = {},
+): ReflectStatus {
   return {
-    id: 'test.reflect', version: 1, maximumStacks: 3, durationOwnerTurnStarts: 2,
-    damageTakenMultiplierBasisPoints: 10_000, polarity: 'positive', reactionClass: 'reactive',
-    reflectBasisPoints: rate, ...overrides,
+    id: 'test.reflect',
+    version: 1,
+    maximumStacks: 3,
+    durationOwnerTurnStarts: 2,
+    damageTakenMultiplierBasisPoints: 10_000,
+    polarity: 'positive',
+    reactionClass: 'reactive',
+    reflectBasisPoints: rate,
+    ...overrides,
   }
 }
 const REFLECT = reflectStatus()
 const ABSORB: CombatStatusDefinition = {
-  id: 'test.absorb-both', version: 1, maximumStacks: 1, durationOwnerTurnStarts: 2,
-  damageTakenMultiplierBasisPoints: 10_000, polarity: 'positive', reactionClass: 'reactive',
-  absorbHpBasisPoints: 2_500, absorbMpBasisPoints: 2_500,
+  id: 'test.absorb-both',
+  version: 1,
+  maximumStacks: 1,
+  durationOwnerTurnStarts: 2,
+  damageTakenMultiplierBasisPoints: 10_000,
+  polarity: 'positive',
+  reactionClass: 'reactive',
+  absorbHpBasisPoints: 2_500,
+  absorbMpBasisPoints: 2_500,
 }
-function encounter(options: {
-  actorHp?: number; targetHp?: number; targetFirst?: boolean; duel?: boolean;
-  friendly?: boolean; allyWitness?: boolean; witnessReflects?: boolean; stacks?: number;
-  targetStatuses?: readonly CombatStatusDefinition[]; actorStatuses?: readonly CombatStatusDefinition[];
-} = {}): CombatEncounterState {
+function encounter(
+  options: {
+    actorHp?: number
+    targetHp?: number
+    targetFirst?: boolean
+    duel?: boolean
+    friendly?: boolean
+    allyWitness?: boolean
+    witnessReflects?: boolean
+    stacks?: number
+    targetStatuses?: readonly CombatStatusDefinition[]
+    actorStatuses?: readonly CombatStatusDefinition[]
+  } = {},
+): CombatEncounterState {
   const ids = options.duel ? ['actor', 'target'] : ['actor', 'target', 'witness']
-  const battle = startBattle(createPendingBattle({
-    battleId: 'battle:reflect-contract', rulesVersion: 2, contentVersion: 2, rngSeed: 53,
-    combatants: ids.map((id, index) => ({
-      id, teamId: id === 'actor' || (id === 'target' && options.friendly) || (id === 'witness' && options.allyWitness) ? 'players' : 'enemies',
-      initiative: id === 'target' && options.targetFirst ? 30 : 20 - index,
-      baseMovementBudget: 3, hp: id === 'actor' ? (options.actorHp ?? 100) : id === 'target' ? (options.targetHp ?? 100) : 100,
-      maxHp: 100, mp: 10, maxMp: 100,
+  const battle = startBattle(
+    createPendingBattle({
+      battleId: 'battle:reflect-contract',
+      rulesVersion: 2,
+      contentVersion: 2,
+      rngSeed: 53,
+      combatants: ids.map((id, index) => ({
+        id,
+        teamId:
+          id === 'actor' ||
+          (id === 'target' && options.friendly) ||
+          (id === 'witness' && options.allyWitness)
+            ? 'players'
+            : 'enemies',
+        initiative: id === 'target' && options.targetFirst ? 30 : 20 - index,
+        baseMovementBudget: 3,
+        hp:
+          id === 'actor'
+            ? (options.actorHp ?? 100)
+            : id === 'target'
+              ? (options.targetHp ?? 100)
+              : 100,
+        maxHp: 100,
+        mp: 10,
+        maxMp: 100,
+      })),
+    }),
+  ).state
+  return createCombatEncounterState(
+    createTacticalBattleState({
+      battle,
+      width: ids.length,
+      height: 1,
+      terrains: [{ id: 'open', traversalCost: 1 }],
+      tiles: ids.map((_, x) => ({ position: { x, y: 0 }, elevation: 0, terrainId: 'open' })),
+      movementProfiles: [{ id: 'ground', maxElevationStep: 0, terrainCostOverrides: [] }],
+      placements: ids.map((combatantId, x) => ({
+        combatantId,
+        position: { x, y: 0 },
+        facing: 'east',
+        movementProfileId: 'ground',
+      })),
+    }),
+    ids.map((combatantId) => ({
+      combatantId,
+      statuses: (combatantId === 'target'
+        ? (options.targetStatuses ?? [REFLECT])
+        : combatantId === 'actor'
+          ? (options.actorStatuses ?? [])
+          : options.witnessReflects
+            ? [REFLECT]
+            : []
+      ).map((status) => ({
+        statusId: status.id,
+        statusVersion: status.version,
+        stacks: combatantId === 'target' ? (options.stacks ?? 1) : 1,
+        remainingOwnerTurnStarts: 2,
+        sourceCombatantId: combatantId,
+      })),
     })),
-  })).state
-  return createCombatEncounterState(createTacticalBattleState({
-    battle, width: ids.length, height: 1,
-    terrains: [{ id: 'open', traversalCost: 1 }],
-    tiles: ids.map((_, x) => ({ position: { x, y: 0 }, elevation: 0, terrainId: 'open' })),
-    movementProfiles: [{ id: 'ground', maxElevationStep: 0, terrainCostOverrides: [] }],
-    placements: ids.map((combatantId, x) => ({ combatantId, position: { x, y: 0 }, facing: 'east', movementProfileId: 'ground' })),
-  }), ids.map((combatantId) => ({
-    combatantId,
-    statuses: (combatantId === 'target' ? (options.targetStatuses ?? [REFLECT]) : combatantId === 'actor' ? (options.actorStatuses ?? []) : options.witnessReflects ? [REFLECT] : []).map((status) => ({
-      statusId: status.id, statusVersion: status.version, stacks: combatantId === 'target' ? (options.stacks ?? 1) : 1,
-      remainingOwnerTurnStarts: 2, sourceCombatantId: combatantId,
-    })),
-  })))
+  )
 }
 function hit(amount = 20): CombatActionDefinition {
   return {
-    id: 'test.reflect-hit', version: 1, sourceType: 'test', tags: [],
-    target: { kind: 'unit', teamPolicy: 'enemy', shape: { kind: 'single' }, minimumRange: 1, maximumRange: 2, requiresLineOfSight: false, maximumElevationDifference: 0, friendlyFire: 'enemies-only' },
-    cost: { spendsAction: false, mp: 0 }, requirements: [],
+    id: 'test.reflect-hit',
+    version: 1,
+    sourceType: 'test',
+    tags: [],
+    target: {
+      kind: 'unit',
+      teamPolicy: 'enemy',
+      shape: { kind: 'single' },
+      minimumRange: 1,
+      maximumRange: 2,
+      requiresLineOfSight: false,
+      maximumElevationDifference: 0,
+      friendlyFire: 'enemies-only',
+    },
+    cost: { spendsAction: false, mp: 0 },
+    requirements: [],
     effects: [{ type: 'damage', recipient: 'primary-unit', amount }],
   }
 }
-function cast(state = encounter(), action = hit(), statuses: readonly CombatStatusDefinition[] = [REFLECT], context?: CombatResolutionContext): CombatResolutionTransition {
-  return executeCombatAction(state, action, { kind: 'unit', combatantId: 'target' }, { statuses }, context)
+function cast(
+  state = encounter(),
+  action = hit(),
+  statuses: readonly CombatStatusDefinition[] = [REFLECT],
+  context?: CombatResolutionContext,
+): CombatResolutionTransition {
+  return executeCombatAction(
+    state,
+    action,
+    { kind: 'unit', combatantId: 'target' },
+    { statuses },
+    context,
+  )
 }
 function unit(result: CombatResolutionTransition, id: string) {
   const combatant = result.state.tactical.battle.combatants.find((candidate) => candidate.id === id)
@@ -78,15 +165,28 @@ function unit(result: CombatResolutionTransition, id: string) {
   return combatant
 }
 function reflected(result: CombatResolutionTransition) {
-  return result.events.filter((event) => event.event === 'damage_applied' && event.actionId === 'status.reflect.current.v1')
+  return result.events.filter(
+    (event) => event.event === 'damage_applied' && event.actionId === 'status.reflect.current.v1',
+  )
 }
 function completion(result: CombatResolutionTransition) {
   return result.events.filter((event) => event.event === 'battle_completed')
 }
 function context(budget = 32): CombatResolutionContext {
   return {
-    provenance: createCombatActionProvenance({ rulesetVersion: 2, sourceKind: 'discipline-skill', actionDefinitionId: hit().id, actionVersion: 1, sourceCombatantId: 'actor', controllerCombatantId: 'actor', triggerChainId: 'chain:reflect' }),
-    triggerGuard: createCombatTriggerGuard({ triggerChainId: 'chain:reflect', reactionBudget: budget }),
+    provenance: createCombatActionProvenance({
+      rulesetVersion: 2,
+      sourceKind: 'discipline-skill',
+      actionDefinitionId: hit().id,
+      actionVersion: 1,
+      sourceCombatantId: 'actor',
+      controllerCombatantId: 'actor',
+      triggerChainId: 'chain:reflect',
+    }),
+    triggerGuard: createCombatTriggerGuard({
+      triggerChainId: 'chain:reflect',
+      reactionBudget: budget,
+    }),
   }
 }
 
@@ -95,7 +195,17 @@ describe('Reflect committed-command contract', () => {
     const result = cast()
     expect(unit(result, 'actor').hp).toBe(95)
     expect(unit(result, 'target').hp).toBe(80)
-    expect(reflected(result)).toEqual([{ event: 'damage_applied', actionId: 'status.reflect.current.v1', sourceCombatantId: 'target', targetCombatantId: 'actor', amount: 5, hpBefore: 100, hpAfter: 95 }])
+    expect(reflected(result)).toEqual([
+      {
+        event: 'damage_applied',
+        actionId: 'status.reflect.current.v1',
+        sourceCombatantId: 'target',
+        targetCombatantId: 'actor',
+        amount: 5,
+        hpBefore: 100,
+        hpAfter: 95,
+      },
+    ])
   })
   it('floors fractional reflection without borrowing the Absorb minimum-1 rule', () => {
     expect(unit(cast(encounter(), hit(7)), 'actor').hp).toBe(99)
@@ -114,7 +224,9 @@ describe('Reflect committed-command contract', () => {
     const result = cast(cast(encounter(), barrier).state)
     expect(unit(result, 'target').hp).toBe(88)
     expect(unit(result, 'actor').hp).toBe(97)
-    expect(result.state.effectState?.damageHistory).toEqual([{ combatantId: 'target', round: 1, amount: 12 }])
+    expect(result.state.effectState?.damageHistory).toEqual([
+      { combatantId: 'target', round: 1, amount: 12 },
+    ])
   })
   it('does not fire when Barrier prevents all incoming HP loss', () => {
     const barrier = hit()
@@ -123,17 +235,43 @@ describe('Reflect committed-command contract', () => {
     expect(reflected(result)).toEqual([])
   })
   it('ignores attacker Armor and incoming damage modifiers on its fixed output', () => {
-    const guarded: CombatStatusDefinition = { ...ABSORB, id: 'test.guarded', absorbHpBasisPoints: undefined, absorbMpBasisPoints: undefined, damageTakenMultiplierBasisPoints: 5_000 }
+    const guarded: CombatStatusDefinition = {
+      ...ABSORB,
+      id: 'test.guarded',
+      absorbHpBasisPoints: undefined,
+      absorbMpBasisPoints: undefined,
+      damageTakenMultiplierBasisPoints: 5_000,
+    }
     const initial = encounter({ actorStatuses: [guarded] })
-    const state = { ...initial, statBridge: { combatants: initial.tactical.battle.combatants.map((combatant) => ({ combatantId: combatant.id, armor: 9_999, ward: 9_999 })) } }
+    const state = {
+      ...initial,
+      statBridge: {
+        combatants: initial.tactical.battle.combatants.map((combatant) => ({
+          combatantId: combatant.id,
+          armor: 9_999,
+          ward: 9_999,
+        })),
+      },
+    }
     const result = cast(state, hit(), [REFLECT, guarded])
     expect(unit(result, 'actor').hp).toBe(95)
   })
   it('uses mitigated damage when the incoming command explicitly applies Armor', () => {
     const initial = encounter()
-    const state = { ...initial, statBridge: { combatants: initial.tactical.battle.combatants.map((combatant) => ({ combatantId: combatant.id, armor: 100, ward: 100 })) } }
+    const state = {
+      ...initial,
+      statBridge: {
+        combatants: initial.tactical.battle.combatants.map((combatant) => ({
+          combatantId: combatant.id,
+          armor: 100,
+          ward: 100,
+        })),
+      },
+    }
     const action = hit()
-    action.effects = [{ type: 'damage', recipient: 'primary-unit', amount: 20, defenseKind: 'armor' }]
+    action.effects = [
+      { type: 'damage', recipient: 'primary-unit', amount: 20, defenseKind: 'armor' },
+    ]
     const result = cast(state, action)
     expect(unit(result, 'target').hp).toBe(90)
     expect(unit(result, 'actor').hp).toBe(98)
@@ -152,7 +290,9 @@ describe('Reflect committed-command contract', () => {
     const result = cast(encounter({ targetStatuses: statuses }), hit(), statuses)
     expect(unit(result, 'target')).toMatchObject({ hp: 85, mp: 15 })
     expect(unit(result, 'actor').hp).toBe(95)
-    expect(result.state.effectState?.damageHistory).toEqual([{ combatantId: 'target', round: 1, amount: 20 }])
+    expect(result.state.effectState?.damageHistory).toEqual([
+      { combatantId: 'target', round: 1, amount: 20 },
+    ])
   })
   it('does not trigger attacker Reflect or either Absorb from reflected damage', () => {
     const statuses = [REFLECT, ABSORB]
@@ -160,13 +300,19 @@ describe('Reflect committed-command contract', () => {
     expect(unit(result, 'actor')).toMatchObject({ hp: 95, mp: 10 })
     expect(unit(result, 'target').hp).toBe(80)
     expect(reflected(result)).toHaveLength(1)
-    expect(result.events.filter((event) => event.event === 'healing_applied' || event.event === 'resource_changed')).toEqual([])
+    expect(
+      result.events.filter(
+        (event) => event.event === 'healing_applied' || event.event === 'resource_changed',
+      ),
+    ).toEqual([])
   })
   it('can defeat the attacker and emits one correct terminal result', () => {
     const result = cast(encounter({ actorHp: 3, duel: true }))
     expect(unit(result, 'actor').hp).toBe(0)
     expect(completion(result)).toEqual([{ event: 'battle_completed', winningTeamId: 'enemies' }])
-    expect(reflected(result)).toEqual([expect.objectContaining({ amount: 3, hpBefore: 3, hpAfter: 0 })])
+    expect(reflected(result)).toEqual([
+      expect.objectContaining({ amount: 3, hpBefore: 3, hpAfter: 0 }),
+    ])
     expect(validateCombatEncounterState(result.state)).toEqual([])
   })
   it('allows a defeated defender to cause mutual KO before victory is finalized', () => {
@@ -174,20 +320,29 @@ describe('Reflect committed-command contract', () => {
     expect(unit(result, 'target').hp).toBe(0)
     expect(unit(result, 'actor').hp).toBe(0)
     expect(completion(result)).toEqual([{ event: 'battle_completed', winningTeamId: null }])
-    expect(result.state.tactical.battle).toMatchObject({ lifecycle: 'completed', currentTurn: null })
+    expect(result.state.tactical.battle).toMatchObject({
+      lifecycle: 'completed',
+      currentTurn: null,
+    })
     expect(validateCombatEncounterState(result.state)).toEqual([])
   })
   it('records completion after reflection even when the attacker survives the final kill', () => {
     const result = cast(encounter({ targetHp: 20, duel: true }))
     expect(unit(result, 'actor').hp).toBe(95)
     expect(completion(result)).toEqual([{ event: 'battle_completed', winningTeamId: 'players' }])
-    const index = result.events.findIndex((event) => event.event === 'damage_applied' && event.actionId === 'status.reflect.current.v1')
+    const index = result.events.findIndex(
+      (event) => event.event === 'damage_applied' && event.actionId === 'status.reflect.current.v1',
+    )
     expect(index).toBeGreaterThan(-1)
-    expect(result.events.findIndex((event) => event.event === 'battle_completed')).toBeGreaterThan(index)
+    expect(result.events.findIndex((event) => event.event === 'battle_completed')).toBeGreaterThan(
+      index,
+    )
   })
   it('excludes overkill from a defeated defender reflection basis', () => {
     const definition = reflectStatus(10_000)
-    const result = cast(encounter({ targetHp: 2, targetStatuses: [definition] }), hit(100), [definition])
+    const result = cast(encounter({ targetHp: 2, targetStatuses: [definition] }), hit(100), [
+      definition,
+    ])
     expect(unit(result, 'actor').hp).toBe(98)
     expect(reflected(result)).toEqual([expect.objectContaining({ amount: 2 })])
   })
@@ -205,7 +360,10 @@ describe('Reflect committed-command contract', () => {
     action.effects = [{ type: 'damage', recipient: 'affected-units', amount: 20 }]
     const result = cast(encounter({ witnessReflects: true }), action)
     expect(unit(result, 'actor').hp).toBe(90)
-    expect(reflected(result)).toEqual([expect.objectContaining({ sourceCombatantId: 'target', hpBefore: 100, hpAfter: 95 }), expect.objectContaining({ sourceCombatantId: 'witness', hpBefore: 95, hpAfter: 90 })])
+    expect(reflected(result)).toEqual([
+      expect.objectContaining({ sourceCombatantId: 'target', hpBefore: 100, hpAfter: 95 }),
+      expect.objectContaining({ sourceCombatantId: 'witness', hpBefore: 95, hpAfter: 90 }),
+    ])
   })
   it('does not damage an already-defeated attacker again for later area defenders', () => {
     const action = hit()
@@ -218,7 +376,10 @@ describe('Reflect committed-command contract', () => {
   it('caps combined authored stacks and statuses at 100 percent', () => {
     const first = reflectStatus(6_000)
     const second = reflectStatus(6_000, { id: 'test.reflect-second' })
-    const result = cast(encounter({ targetStatuses: [first, second], stacks: 2 }), hit(), [first, second])
+    const result = cast(encounter({ targetStatuses: [first, second], stacks: 2 }), hit(), [
+      first,
+      second,
+    ])
     expect(unit(result, 'actor').hp).toBe(80)
     expect(reflected(result)).toHaveLength(1)
   })
@@ -254,7 +415,13 @@ describe('Reflect committed-command contract', () => {
     expect(completion(result)).toHaveLength(1)
   })
   it('does not reflect periodic turn-end damage', () => {
-    const periodic: CombatStatusDefinition = { ...ABSORB, id: 'test.periodic', absorbHpBasisPoints: undefined, absorbMpBasisPoints: undefined, endOfTurn: { type: 'damage', amount: 4 } }
+    const periodic: CombatStatusDefinition = {
+      ...ABSORB,
+      id: 'test.periodic',
+      absorbHpBasisPoints: undefined,
+      absorbMpBasisPoints: undefined,
+      endOfTurn: { type: 'damage', amount: 4 },
+    }
     const statuses = [REFLECT, periodic]
     const initial = encounter({ targetFirst: true, targetStatuses: statuses })
     const tactical = selectCurrentFinalFacing(initial.tactical, 'east').state
@@ -269,7 +436,14 @@ describe('Reflect committed-command contract', () => {
   it('leaves evaluation RNG-pure and committed input state immutable', () => {
     const initial = encounter()
     const before = JSON.stringify(initial)
-    expect(evaluateCombatAction(initial, hit(), { kind: 'unit', combatantId: 'target' }, { statuses: [REFLECT] }).legal).toBe(true)
+    expect(
+      evaluateCombatAction(
+        initial,
+        hit(),
+        { kind: 'unit', combatantId: 'target' },
+        { statuses: [REFLECT] },
+      ).legal,
+    ).toBe(true)
     const result = cast(initial)
     expect(JSON.stringify(initial)).toBe(before)
     expect(result.state.tactical.battle.rng).toEqual(initial.tactical.battle.rng)
@@ -279,7 +453,12 @@ describe('Reflect committed-command contract', () => {
   it('preserves ordinary legacy execution when no reactive status is authored', () => {
     const initial = encounter({ targetStatuses: [] })
     const action = hit()
-    const previous = legacy.executeCombatAction(initial, action, { kind: 'unit', combatantId: 'target' }, { statuses: [] })
+    const previous = legacy.executeCombatAction(
+      initial,
+      action,
+      { kind: 'unit', combatantId: 'target' },
+      { statuses: [] },
+    )
     const current = cast(initial, action, [])
     expect(current.state.tactical).toEqual(previous.state.tactical)
     expect(current.events).toEqual(previous.events)
@@ -314,17 +493,33 @@ describe('Reflect committed-command contract', () => {
     const initial = context()
     const first = cast(encounter(), hit(), [REFLECT], initial)
     if (!first.resolution) throw new Error('Missing K3 resolution')
-    const second = cast(encounter(), hit(), [REFLECT], { ...initial, triggerGuard: first.resolution.triggerGuard })
+    const second = cast(encounter(), hit(), [REFLECT], {
+      ...initial,
+      triggerGuard: first.resolution.triggerGuard,
+    })
     expect(reflected(first)).toHaveLength(1)
     expect(reflected(second)).toEqual([])
   })
-  it.each([0, -1, 0.5, 10_001, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])('rejects invalid reflection percentage %s', (rate) => {
-    expect(() => validateCombatStatusDefinition(reflectStatus(rate))).toThrow(/Reflect/)
-  })
+  it.each([0, -1, 0.5, 10_001, NaN, Infinity, Number.MAX_SAFE_INTEGER + 1])(
+    'rejects invalid reflection percentage %s',
+    (rate) => {
+      expect(() => validateCombatStatusDefinition(reflectStatus(rate))).toThrow(/Reflect/)
+    },
+  )
   it.each([1, 10_000])('accepts bounded reflection percentage %s', (rate) => {
     expect(() => validateCombatStatusDefinition(reflectStatus(rate))).not.toThrow()
   })
-  it.each<Partial<CombatStatusDefinition>>([{ polarity: 'negative' }, { polarity: 'neutral' }, { polarity: 'mixed' }, { polarity: undefined }, { reactionClass: 'ordinary' }, { reactionClass: 'periodic' }, { reactionClass: 'self-cost' }, { reactionClass: 'system' }, { reactionClass: undefined }])('requires positive reactive Reflect metadata %j', (overrides) => {
+  it.each<Partial<CombatStatusDefinition>>([
+    { polarity: 'negative' },
+    { polarity: 'neutral' },
+    { polarity: 'mixed' },
+    { polarity: undefined },
+    { reactionClass: 'ordinary' },
+    { reactionClass: 'periodic' },
+    { reactionClass: 'self-cost' },
+    { reactionClass: 'system' },
+    { reactionClass: undefined },
+  ])('requires positive reactive Reflect metadata %j', (overrides) => {
     expect(() => validateCombatStatusDefinition(reflectStatus(2_500, overrides))).toThrow(/Reflect/)
   })
 })
