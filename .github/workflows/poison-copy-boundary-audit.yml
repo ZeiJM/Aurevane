@@ -1,0 +1,124 @@
+name: Poison copy boundary audit
+on:
+  push:
+    branches: [review/poison-copy-boundary-audit-20260916]
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 22705eb75ebad809586e570c103b73b46fe73be2
+          fetch-depth: 4
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Pin source and prepare independent compatibility probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 22705eb75ebad809586e570c103b73b46fe73be2
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+          git fetch --depth=1 origin 6e3d5146b84c29f6ff2d11a12d0a7fc91d91bed7
+          git show 6e3d5146b84c29f6ff2d11a12d0a7fc91d91bed7:scripts/poison-copy-implementation.py > /tmp/poison-recipe.py
+          python3 <<'PY'
+          from pathlib import Path
+          source = Path('packages/game-core/src/combat/combat-poison-copy.test.ts').read_text()
+          marker = "describe('Curse Poison: explicit authored and persisted copy policy'"
+          assert source.count(marker) == 1
+          Path('packages/game-core/src/combat/combat-poison-copy-independent.test.ts').write_text(source.split(marker)[0])
+          PY
+          cat >> packages/game-core/src/combat/combat-poison-copy-independent.test.ts <<'TEST'
+          import { applyCombatStatusCopies } from './combat-status-copy'
+          describe('Independent prior-state compatibility for ordinary status copying', () => {
+            it.each(['absent', 'undefined'] as const)('preserves historical effectState %s at the direct mutation seam', (shape) => {
+              const original = world()
+              const historical = { ...original, statusState: original.statusState.map((row) => row.combatantId === 'actor' ? {
+                ...row, statuses: [{ statusId: 'test.negative', statusVersion: 1, stacks: 1,
+                  remainingOwnerTurnStarts: 2, sourceCombatantId: 'other' }],
+              } : row) }
+              if (shape === 'absent') delete historical.effectState
+              else historical.effectState = undefined
+              const before = JSON.stringify(historical)
+              const copied = applyCombatStatusCopies(historical, 'actor', 'target', 'test.curse',
+                { type: 'copy-statuses', recipient: 'primary-unit', mode: 'curse' }, CONTENT)
+              expect(copied.state.effectState).toBeUndefined()
+              expect(Object.hasOwn(copied.state, 'effectState')).toBe(Object.hasOwn(historical, 'effectState'))
+              expect(JSON.stringify(historical)).toBe(before)
+              expect(copied.state.statusState.find((row) => row.combatantId === 'target')?.statuses).toHaveLength(1)
+            })
+          })
+          TEST
+          pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-poison-copy-independent.test.ts
+      - name: Execute inspected recipe with source-match corrections only
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/recipe-replace-wrapper.txt <<'PY'
+          def replace(path: str, old: str, new: str, count: int = 1) -> None:
+              file = Path(path)
+              text = file.read_text()
+              if path.endswith('/combat-dots.ts') and old == '  sourceActionId: string,\n): CombatEncounterState {':
+                  start = text.index('export function applyCurrentPoisonState(')
+                  end = text.index('export function removeCurrentPoisonState(', start)
+                  section = text[start:end]
+                  assert section.count(old) == 1
+                  text = text[:start] + section.replace(old, new) + text[end:]
+                  print('RECIPE_MATCH_CORRECTION: restricted shared function-tail match to Poison only')
+              else:
+                  if path.endswith('/actions-legacy.ts') and '.copies.length ===\n        0' in old:
+                      old = old.replace('.copies.length ===\n        0', '.copies\n        .length === 0')
+                      print('RECIPE_MATCH_CORRECTION: matched actual copy-legality line wrapping')
+                  actual = text.count(old)
+                  assert actual == count, (path, old[:140], actual, count)
+                  text = text.replace(old, new)
+              file.write_text(text)
+          PY
+          python3 <<'PY'
+          from pathlib import Path
+          recipe = Path('/tmp/poison-recipe.py').read_text()
+          start = recipe.index('def replace(')
+          end = recipe.index("\n\nstate =", start)
+          recipe = recipe[:start] + Path('/tmp/recipe-replace-wrapper.txt').read_text() + recipe[end:]
+          exec(compile(recipe, '/tmp/poison-recipe-reviewed.py', 'exec'))
+          # Preserve literal effect discrimination for the recipe's spread-array projections.
+          file = Path('packages/game-core/src/combat/combat-status-copy.ts')
+          text = file.read_text()
+          assert text.count("effectType: 'copy-statuses',") == 2
+          file.write_text(text.replace("effectType: 'copy-statuses',", "effectType: 'copy-statuses' as const,"))
+          print('REVIEW_TYPE_CORRECTION: literal-only projection annotation, no behavioral adjustment')
+          PY
+          pnpm exec prettier --write packages/game-core/src/combat/combat-effect-state.ts packages/game-core/src/combat/combat-dots.ts packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/combat-status-copy.ts
+          pnpm --filter @aurevane/game-core typecheck
+          pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-poison-copy.test.ts src/combat/combat-status-copy.test.ts src/combat/combat-status-copy-publication.test.ts src/combat/combat-poison-edges.test.ts src/combat/combat-poison-movement.test.ts
+      - name: Classify independent compatibility result and leave no retained source
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-poison-copy-independent.test.ts --reporter=json --outputFile=/tmp/copy-compat-review.json > /tmp/copy-compat-review.log 2>&1
+          outcome=$?
+          set -e
+          python3 <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path('/tmp/copy-compat-review.json').read_text())
+          print('INDEPENDENT_REVIEW:', data['numPassedTests'], 'passed;', data['numFailedTests'], 'failed')
+          for suite in data['testResults']:
+              for case in suite['assertionResults']:
+                  if case['status'] == 'failed': print(case['fullName'], '\n'.join(case.get('failureMessages', []))[:1600])
+          PY
+          echo "COMPATIBILITY_TEST_EXIT=$outcome"
+          git diff --stat
+          git restore --source=HEAD -- docs/COMBAT.md packages/game-core/src/combat/combat-effect-state.ts packages/game-core/src/combat/combat-dots.ts packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/combat-status-copy.ts
+          rm packages/game-core/src/combat/combat-poison-copy-independent.test.ts
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
+          echo 'READ_ONLY_REVIEW_COMPLETE: no source commit, push, merge or deployment'
+          test "$outcome" -eq 0
