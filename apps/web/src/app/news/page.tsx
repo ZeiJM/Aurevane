@@ -14,11 +14,7 @@ export const metadata: Metadata = {
 export default function NewsPage() {
   return (
     <PublicInformationShell active="news">
-      <div
-        className={styles.board}
-        data-testid="news-index-board"
-        data-news-surface="ink"
-      >
+      <div className={styles.board} data-testid="news-index-board" data-news-surface="ink">
         <section className={styles.hero} aria-labelledby="news-title">
           <div className={styles.heroCopy}>
             <span className={styles.kicker}>Official record</span>
