@@ -85,6 +85,10 @@ test('Creation exposes its forty portraits and preserves the complete authentica
             { width: 1024, height: 576 },
             { width: 980, height: 768 },
             { width: 768, height: 576 },
+            { width: 761, height: 1024 },
+            { width: 768, height: 1024 },
+            { width: 980, height: 1366 },
+            { width: 1024, height: 1366 },
           ]
   const results = []
   for (const size of sizes) {
@@ -133,6 +137,12 @@ test('Creation exposes its forty portraits and preserves the complete authentica
     expect
       .soft(metrics.preview.width / metrics.preview.height, `${label}: square preview`)
       .toBeCloseTo(1, 2)
+    expect
+      .soft(
+        metrics.tiles.every((tile) => tile.width >= 44),
+        `${label}: tall windows must not squeeze portrait choices into tiny targets`,
+      )
+      .toBe(true)
     expect.soft(metrics.nameFont, `${label}: readable name input`).toBeGreaterThanOrEqual(16)
     expect.soft(metrics.primaryFont, `${label}: readable action`).toBeGreaterThanOrEqual(14)
     expect

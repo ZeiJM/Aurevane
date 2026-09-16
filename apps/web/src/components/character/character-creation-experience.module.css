@@ -144,7 +144,7 @@
 
 .identityWorkspace {
   display: grid;
-  --creation-preview-size: clamp(15rem, calc(100dvh - 33rem), 25rem);
+  --creation-preview-size: clamp(15rem, min(calc(100dvh - 33rem), 28vw), 25rem);
   grid-template-columns: minmax(0, 1fr) calc(var(--creation-preview-size) + 1rem + 1px);
   min-width: 0;
   align-items: start;
