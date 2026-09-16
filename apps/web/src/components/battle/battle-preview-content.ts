@@ -109,8 +109,7 @@ function copyStatusPreviewChip(effect: ProjectedEffect): PreviewChip | null {
 
   const ordinaryAfter = parseOrdinaryCopyState(effect.after)
   if (ordinaryAfter) {
-    const ordinaryBefore =
-      effect.before === 'none' ? null : parseOrdinaryCopyState(effect.before)
+    const ordinaryBefore = effect.before === 'none' ? null : parseOrdinaryCopyState(effect.before)
     const matchingBefore =
       ordinaryBefore?.statusId === ordinaryAfter.statusId ? ordinaryBefore : null
     return {
@@ -121,8 +120,7 @@ function copyStatusPreviewChip(effect: ProjectedEffect): PreviewChip | null {
 
   const poisonAfter = typedCopyParts(effect.after, 'poison')
   if (poisonAfter !== null) {
-    const poisonBefore =
-      effect.before === 'none' ? null : typedCopyParts(effect.before, 'poison')
+    const poisonBefore = effect.before === 'none' ? null : typedCopyParts(effect.before, 'poison')
     return {
       label: `Copied ${gameplayStatusName('poison')} · movement progress ${poisonBefore === null || poisonBefore === poisonAfter ? poisonAfter : `${poisonBefore}→${poisonAfter}`}`,
       tone: 'effect',
@@ -140,8 +138,7 @@ function copyStatusPreviewChip(effect: ProjectedEffect): PreviewChip | null {
 
   const bleedAfter = parseBleedCopyState(effect.after)
   if (bleedAfter) {
-    const bleedBefore =
-      effect.before === 'none' ? null : parseBleedCopyState(effect.before)
+    const bleedBefore = effect.before === 'none' ? null : parseBleedCopyState(effect.before)
     const afterLabel = bleedStateLabel(bleedAfter)
     const beforeLabel = bleedBefore ? bleedStateLabel(bleedBefore) : null
     return {
