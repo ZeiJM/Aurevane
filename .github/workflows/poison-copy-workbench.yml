@@ -43,8 +43,18 @@ jobs:
           corepack prepare pnpm@11.17.0 --activate
           pnpm install --frozen-lockfile
       - name: Implement and format Poison copying
+        shell: bash
         run: |
+          set -euo pipefail
           python3 /tmp/poison-copy-implementation.py
+          python3 <<'PY'
+          from pathlib import Path
+          path = Path('packages/game-core/src/combat/combat-status-copy.ts')
+          text = path.read_text()
+          old = "effectType: 'copy-statuses',"
+          assert text.count(old) == 2
+          path.write_text(text.replace(old, "effectType: 'copy-statuses' as const,"))
+          PY
           pnpm exec prettier --write packages/game-core/src/combat/combat-effect-state.ts packages/game-core/src/combat/combat-dots.ts packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/combat-status-copy.ts
           git diff --check
           git diff --exit-code -- packages/game-core/src/combat/combat-poison-copy.test.ts
