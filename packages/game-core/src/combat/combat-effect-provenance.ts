@@ -1,5 +1,7 @@
+import { attachCombatStatusCopyProvenance } from './combat-status-copy'
 import type {
   CombatActionDefinition,
+  CombatContentCatalog,
   CombatEncounterState,
   CombatResolutionContext,
 } from './actions'
@@ -52,8 +54,23 @@ export function attachCombatEffectProvenance(
   action: CombatActionDefinition,
   evaluation: CombatActionEvaluation,
   context: CombatResolutionContext,
+  content?: CombatContentCatalog,
 ): CombatEncounterState {
   if (!evaluation.actorId) return after
+  const copyEffect = action.effects[0]
+  if (copyEffect?.type === 'copy-statuses') {
+    if (!evaluation.primaryCombatantId) return after
+    if (!content) throw new TypeError('Copied status provenance requires its pinned catalog.')
+    return attachCombatStatusCopyProvenance(
+      before,
+      after,
+      evaluation.actorId,
+      evaluation.primaryCombatantId,
+      copyEffect,
+      content,
+      context,
+    )
+  }
 
   const actorId = evaluation.actorId
   const createdRound = before.tactical.battle.round

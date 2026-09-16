@@ -1,3 +1,4 @@
+import { validateCombatStatusCopyAction } from './combat-status-copy'
 import { validateCombatAccuracyDefinition } from './combat-skill-accuracy'
 import { validateVengeanceActionDefinition } from './combat-vengeance'
 import { validateBarrierEffect } from './combat-barrier'
@@ -21,6 +22,7 @@ export function validateCombatActionDefinition(
   action: CombatActionDefinition,
   content?: CombatContentCatalog,
 ): void {
+  validateCombatStatusCopyAction(action)
   validateVengeanceActionDefinition(action)
   validateGameplayActionMetadata(action)
   requiredIdentity(action.id, 'action id')
@@ -115,6 +117,7 @@ export function validateCombatActionDefinition(
         'bleed',
         'burn',
         'barrier-change',
+        'copy-statuses',
       ],
       'effect type',
     )

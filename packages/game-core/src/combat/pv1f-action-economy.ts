@@ -948,6 +948,9 @@ function scaleRepeatedMatureSkillEffects(
       effect.type === 'burn'
     )
       continue
+    if (effect.type === 'copy-statuses') {
+      throw new TypeError('effects.status-copy-staged: repeat-use copying is not yet supported.')
+    }
     const stacks = Math.floor(effect.stacks / 2)
     if (stacks > 0) scaled.push({ ...effect, stacks })
   }
