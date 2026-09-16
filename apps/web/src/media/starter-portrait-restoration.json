@@ -3,7 +3,7 @@
   "sourceSha256": "33e1f6d4e0015a77962693ed8b90261edc67ff807ba8445a6afa9f0dd9f1d72f",
   "sourceDimensions": [1672, 941],
   "sourceOrigin": "Owner-provided UI handover references/current-hq/aurevane_character_creation_screen.png",
-  "operation": "Mechanical crop and WebP encoding. Portrait 01 uses its larger matching preview; 22 and 25-40 repair malformed encoded derivatives. All IDs are retained.",
+  "operation": "Mechanical crop and WebP encoding. Portrait 01 uses its larger matching preview; 07, 22 and 25-40 repair damaged encoded derivatives. All IDs are retained.",
   "restored": [
     {
       "id": "character.creation.portrait-01",
@@ -11,6 +11,13 @@
       "width": 400,
       "height": 400,
       "sha256": "52ccf2550c6480d48210a88baf318e258d93b245f527fa552a4ccdbb437809e3"
+    },
+    {
+      "id": "character.creation.portrait-07",
+      "sourceBox": [831, 227, 911, 307],
+      "width": 96,
+      "height": 96,
+      "sha256": "6172c4abdd64f8e694adddcbae8375c9e6816e6f8e83497c17c8e4a64ff9e29b"
     },
     {
       "id": "character.creation.portrait-22",

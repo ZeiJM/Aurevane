@@ -124,6 +124,13 @@ test('Creation exposes its forty portraits and preserves the complete authentica
     expect
       .soft(metrics.preview.width / metrics.preview.height, `${label}: square preview`)
       .toBeCloseTo(1, 2)
+    if (size.width >= 1024)
+      expect
+        .soft(
+          metrics.preview.width / metrics.library.width,
+          `${label}: desktop preview balances gallery`,
+        )
+        .toBeGreaterThanOrEqual(0.45)
     expect.soft(metrics.nameFont, `${label}: readable name input`).toBeGreaterThanOrEqual(16)
     expect.soft(metrics.primaryFont, `${label}: readable action`).toBeGreaterThanOrEqual(14)
     expect

@@ -18,7 +18,7 @@ from pathlib import Path
 from PIL import Image
 
 SOURCE_SHA256 = "33e1f6d4e0015a77962693ed8b90261edc67ff807ba8445a6afa9f0dd9f1d72f"
-RESTORED_IDS = (1, 22, *range(25, 41))
+RESTORED_IDS = (1, 7, 22, *range(25, 41))
 
 
 def restore(source: Path, root: Path) -> None:
@@ -58,7 +58,7 @@ def restore(source: Path, root: Path) -> None:
         "sourceSha256": SOURCE_SHA256,
         "sourceDimensions": [1672, 941],
         "sourceOrigin": "Owner-provided UI handover references/current-hq/aurevane_character_creation_screen.png",
-        "operation": "Mechanical crop and WebP encoding. Portrait 01 uses its larger matching preview; 22 and 25-40 repair malformed encoded derivatives. All IDs are retained.",
+        "operation": "Mechanical crop and WebP encoding. Portrait 01 uses its larger matching preview; 07, 22 and 25-40 repair damaged encoded derivatives. All IDs are retained.",
         "restored": manifest,
     }
     (root / "apps/web/src/media/starter-portrait-restoration.json").write_text(json.dumps(provenance, indent=2) + "\n")
