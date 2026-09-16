@@ -1,0 +1,145 @@
+name: Poison copy reconciled GREEN
+on:
+  push:
+    branches: [review/poison-copy-reconciled-green-20260916]
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 2c6c7abc4b1a1d65ac4e9361275b62dccb54e0f4
+          fetch-depth: 1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Pin inspected assembly and keep original working branches untouched
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          from textwrap import dedent
+          text = Path('.github/workflows/poison-copy-boundary-audit.yml').read_text()
+          steps = text.split('        run: |\n')[1:]
+          assert len(steps) == 3
+          prepare = dedent(steps[0].split('\n      - name:')[0])
+          old = 'cp .github/workflows/poison-copy-boundary-audit.yml /tmp/probe-workflow.txt'
+          assert prepare.count(old) == 1
+          prepare = prepare.replace(old, 'git fetch --depth=1 origin d1855ac00c9a808beb27e4feeda4201ad5e3b902\ngit show d1855ac00c9a808beb27e4feeda4201ad5e3b902:.github/workflows/poison-copy-boundary-audit.yml > /tmp/probe-workflow.txt')
+          assemble = dedent(steps[1].split('\n      - name:')[0])
+          lines = assemble.splitlines()
+          focused = [line for line in lines if line.startswith('pnpm --filter @aurevane/game-core exec vitest run')]
+          assert len(focused) == 1
+          assemble = '\n'.join(line for line in lines if line not in focused) + '\n'
+          Path('/tmp/prepare-copy-review.sh').write_text(prepare)
+          Path('/tmp/assemble-copy-review.sh').write_text(assemble)
+          PY
+          bash /tmp/prepare-copy-review.sh
+          test "$(git rev-parse HEAD)" = 22705eb75ebad809586e570c103b73b46fe73be2
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
+          test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = 40da86aec7ef7354ec86078c1eae9e1eb83a952c
+          test "$(git ls-remote origin refs/heads/agent/combat-k4-poison-copy-reviewed-20260916 | cut -f1)" = 22705eb75ebad809586e570c103b73b46fe73be2
+      - name: Retain two compatibility guards and prove the inspected regression
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          probe = Path('packages/game-core/src/combat/combat-poison-copy-independent.test.ts').read_text()
+          imported = "import { applyCombatStatusCopies } from './combat-status-copy'\n"
+          assert probe.count(imported) == 1
+          cases = probe.split(imported)[1]
+          path = Path('packages/game-core/src/combat/combat-poison-copy.test.ts')
+          path.write_text(imported + path.read_text().rstrip() + '\n\n' + cases)
+          PY
+          pnpm exec prettier --write packages/game-core/src/combat/combat-poison-copy.test.ts
+          pnpm exec eslint packages/game-core/src/combat/combat-poison-copy.test.ts
+          sha256sum packages/game-core/src/combat/combat-poison-copy.test.ts > /tmp/poison-permanent-test.sha256
+          bash /tmp/assemble-copy-review.sh
+          set +e
+          pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-poison-copy.test.ts src/combat/combat-status-copy.test.ts --reporter=json --outputFile=/tmp/pre-fix.json > /tmp/pre-fix.log 2>&1
+          outcome=$?
+          set -e
+          test "$outcome" -ne 0
+          python3 <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path('/tmp/pre-fix.json').read_text())
+          assert data['numTotalTests'] == 114 and data['numFailedTests'] == 3, data
+          for suite in data['testResults']:
+              for test in suite['assertionResults']:
+                  if test['status'] == 'failed':
+                      name = test['fullName']
+                      assert 'preserves historical effectState' in name or 'preserves unrelated typed effects' in name, name
+                      print('PROVEN_REGRESSION:', name)
+          print('REGRESSION_RED: all 62 new Poison feature cases pass; three unrelated/historical state guards fail')
+          PY
+      - name: Apply smallest correction and run focused verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          path = Path('packages/game-core/src/combat/combat-status-copy.ts')
+          text = path.read_text()
+          old = 'state: { ...state, statusState, effectState: nextEffectState }'
+          assert text.count(old) == 1
+          text = text.replace(old, 'state: { ...state, statusState, ...(nextPoison ? { effectState: nextEffectState } : {}) }')
+          text = text.replace('/** Only ordinary status rows are enumerated; typed DoT/resource/terrain state is never inferred. */', '/** Copy ordinary rows and explicitly opted-in Poison; never infer typed eligibility from tags. */')
+          path.write_text(text)
+          docs = Path('docs/COMBAT.md')
+          text = docs.read_text()
+          old = 'This slice enumerates ordinary status rows only. Typed Poison/Burn/Bleed counters, ongoing recovery,'
+          assert text.count(old) == 1
+          text = text.replace(old, 'This slice enumerates ordinary status rows and explicitly copyable typed Poison. Burn/Bleed counters, ongoing recovery,')
+          text += '\nOrdinary status-only copies preserve the prior effectState object and its historical optional shape.\nPoison support does not normalize or replace unrelated effect state when no Poison is copied.\n'
+          docs.write_text(text)
+          PY
+          rm packages/game-core/src/combat/combat-poison-copy-independent.test.ts
+          pnpm exec prettier --write packages/game-core/src/combat/combat-effect-state.ts packages/game-core/src/combat/combat-dots.ts packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/combat-status-copy.ts
+          sha256sum --check /tmp/poison-permanent-test.sha256
+          pnpm --filter @aurevane/game-core typecheck
+          pnpm --filter @aurevane/game-core exec vitest run src/combat/combat-poison-copy.test.ts src/combat/combat-status-copy.test.ts src/combat/combat-status-copy-publication.test.ts src/combat/combat-copy-provenance.test.ts src/combat/combat-poison-edges.test.ts src/combat/combat-poison-movement.test.ts src/combat/combat-poison-voluntary-movement.test.ts src/combat/combat-dot-rework.test.ts src/combat/combat-mark-blind.contract.test.ts src/combat/combat-reflect.test.ts src/combat/combat-absorb-mp.test.ts src/combat/combat-effect-provenance-state.test.ts src/combat/combat-persistent-provenance-threading.test.ts src/combat/combat-skill-accuracy.test.ts src/combat/combat-damage-history-runtime.test.ts
+      - name: Full repository quality gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! pnpm check > /tmp/poison-quality.log 2>&1; then tail -n 180 /tmp/poison-quality.log; exit 1; fi
+          python3 <<'PY'
+          import re
+          from pathlib import Path
+          text = re.sub(r'\x1b\[[0-9;]*m', '', Path('/tmp/poison-quality.log').read_text())
+          for line in text.splitlines():
+              if any(term in line for term in ['Test Files', 'Tests ', 'Tasks:', 'Compiled successfully', 'All matched files', 'ℹ tests', 'ℹ pass', 'ℹ fail']): print(line)
+          print('FULL_PNPM_CHECK_EXIT=0')
+          PY
+      - name: Retain source only on the isolated corrected ticket after fresh guards
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          import subprocess
+          paths = {'docs/COMBAT.md', 'packages/game-core/src/combat/combat-effect-state.ts', 'packages/game-core/src/combat/combat-dots.ts', 'packages/game-core/src/combat/actions-legacy.ts', 'packages/game-core/src/combat/combat-authoring-validation.ts', 'packages/game-core/src/combat/combat-status-copy.ts', 'packages/game-core/src/combat/combat-poison-copy.test.ts'}
+          assert set(subprocess.check_output(['git','diff','--name-only'],text=True).splitlines()) == paths
+          assert not subprocess.check_output(['git','ls-files','--others','--exclude-standard'],text=True).strip()
+          PY
+          sha256sum --check /tmp/poison-permanent-test.sha256
+          git diff --check
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
+          test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = 40da86aec7ef7354ec86078c1eae9e1eb83a952c
+          test "$(git ls-remote origin refs/heads/agent/combat-k4-poison-copy-40da86a | cut -f1)" = 22705eb75ebad809586e570c103b73b46fe73be2
+          test "$(git ls-remote origin refs/heads/agent/combat-k4-poison-copy-reviewed-20260916 | cut -f1)" = 22705eb75ebad809586e570c103b73b46fe73be2
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs/COMBAT.md packages/game-core/src/combat/combat-effect-state.ts packages/game-core/src/combat/combat-dots.ts packages/game-core/src/combat/actions-legacy.ts packages/game-core/src/combat/combat-authoring-validation.ts packages/game-core/src/combat/combat-status-copy.ts packages/game-core/src/combat/combat-poison-copy.test.ts
+          git diff --cached --check
+          git commit -m 'feat(combat): copy eligible Poison while preserving legacy state and source lineage'
+          git push origin HEAD:refs/heads/agent/combat-k4-poison-copy-reviewed-20260916
+          echo "VERIFIED_SOURCE_SHA=$(git rev-parse HEAD)"
+          echo "VERIFIED_SOURCE_TREE=$(git rev-parse HEAD^{tree})"
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
