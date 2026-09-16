@@ -1,0 +1,66 @@
+name: Copy provenance workbench
+
+on:
+  push:
+    branches:
+      - review/copy-provenance-workbench-20260916
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ab8ea1586c9da14baca2244195557600d4d70219
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Locked setup and exact source identity
+        run: |
+          set -eu
+          test "$(git rev-parse HEAD)" = ab8ea1586c9da14baca2244195557600d4d70219
+          test "$(git diff --name-only 0eecf1f5f776b8b3b9151f503ff7396b8715ec07 HEAD)" = packages/game-core/src/combat/combat-copy-provenance.test.ts
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+      - name: Formatting lint and typecheck before behavioral RED
+        run: |
+          pnpm exec prettier --check packages/game-core/src/combat/combat-copy-provenance.test.ts
+          pnpm exec eslint packages/game-core/src/combat/combat-copy-provenance.test.ts
+          pnpm --filter @aurevane/game-core typecheck
+      - name: Verify unchanged baseline tests
+        run: pnpm --filter @aurevane/game-core exec vitest run --exclude '**/combat-copy-provenance.test.ts'
+      - name: Execute and classify test-first RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          pnpm --filter @aurevane/game-core exec vitest run --reporter=json --outputFile=/tmp/copy-red.json
+          outcome=$?
+          set -e
+          test "$outcome" -ne 0
+          python3 <<'PY'
+          import json
+          from pathlib import Path
+          data = json.loads(Path('/tmp/copy-red.json').read_text())
+          failures = [suite for suite in data['testResults'] if suite['status'] == 'failed']
+          assert len(failures) == 1, [(suite['name'], suite['status']) for suite in failures]
+          assert failures[0]['name'].endswith('/combat-copy-provenance.test.ts')
+          assert data['numPassedTests'] >= 1559, data
+          assert data['numFailedTests'] > 0, data
+          print('VALID_RED: only new copy provenance assertions fail')
+          print('passed=', data['numPassedTests'], 'failed=', data['numFailedTests'], 'total=', data['numTotalTests'])
+          for test in failures[0]['assertionResults']:
+              if test['status'] == 'failed':
+                  print('RED_ASSERTION:', test['fullName'])
+                  print('\n'.join(test.get('failureMessages', []))[:650])
+          PY
+          git diff --check
+          git diff --exit-code
+          test -z "$(git status --porcelain)"
