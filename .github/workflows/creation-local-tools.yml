@@ -1,0 +1,30 @@
+name: Creation local review tooling
+
+on:
+  push:
+    branches: [agent/character-creation-hq-continuation]
+    paths: [.github/workflows/creation-local-tools.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Export exact React runtime and standalone local bundler
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/creation-tools"
+          cd "$RUNNER_TEMP/creation-tools"
+          npm pack --ignore-scripts react@19.2.8 react-dom@19.2.8 scheduler@0.27.0 esbuild@0.25.12 @esbuild/linux-x64@0.25.12
+      - uses: actions/upload-artifact@v4
+        with:
+          name: creation-local-tools
+          path: ${{ runner.temp }}/creation-tools
+          retention-days: 1
