@@ -135,5 +135,10 @@ test('Character Select keeps its heading above three readable, reachable roster 
       path.join(process.env.LAYOUT_REVIEW_OUTPUT, `character-roster-${info.project.name}.json`),
       JSON.stringify(results, null, 2),
     )
+  // Exercise the real footer sign-out, not a mocked navigation.
+  await page.getByRole('button', { name: 'Switch account', exact: true }).click()
+  await expect(page).toHaveURL(/\/$/)
+  await page.goto('/game')
+  await expect(page).toHaveURL(/\/$/)
   expect(pageErrors).toEqual([])
 })
