@@ -687,7 +687,9 @@ export function evaluateCombatAction(
       target.combatantId === actorId ||
       (() => {
         const plan = planCombatStatusCopies(state, actorId, target.combatantId, copyEffect, content)
-        return plan.copies.length === 0 && !plan.poison && !plan.burn && plan.bleed.length === 0
+        const empty =
+          plan.copies.length === 0 && !plan.poison && !plan.burn && plan.bleed.length === 0
+        return empty && copyEffect.allowNoEligibleEffects !== true
       })()
     ) {
       issues.push({

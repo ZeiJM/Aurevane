@@ -620,4 +620,19 @@ eligible donor attempt in donor order even when an attempted copy is later repla
 rows link to their immediate donor through `copiedFromInstanceId`; `inheritedFromInstanceId` is used
 only when the replaced receiver row actually carried provenance at insertion time, never for an
 unpersisted same-command transient copy. Amplify does not copy Bleed in this slice. Repeat-use,
-publication, AI and broader composition remain separate gates; no published Skill is activated.
+publication and AI remain separate gates; no published Skill is activated.
+
+## Amplify / Curse copy-first composition boundary
+
+One `copy-statuses` block may now be the first effect in an otherwise ordinary single-unit command.
+The copy block keeps its existing Amplify/Curse donor direction, current-state clone rules, hit gating
+and K3 copy ordinals. Later authored effects resolve in their normal order after the clone block and
+retain their own authored effect ordinals for K3 provenance. Multiple copy blocks, copy blocks placed
+later in the effect list, Basic Attack cloning and area/multi-source cloning remain rejected.
+
+Pure copy commands still fail fast when their donor has no eligible effect. A composed command may
+explicitly author `allowNoEligibleEffects: true` on its first copy block when later effects are
+independently meaningful; in that case the empty clone step is a no-op and later effects still resolve.
+The opt-in is boolean-only and invalid on a pure copy command. Consecutive-use scaling for cloning is
+still staged because the approved repeat rule does not yet classify clone transfer as quantitative or
+discrete; no half-copy behavior is invented here. No published Skill is activated by this boundary.

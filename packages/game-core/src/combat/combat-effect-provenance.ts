@@ -58,10 +58,10 @@ export function attachCombatEffectProvenance(
 ): CombatEncounterState {
   if (!evaluation.actorId) return after
   const copyEffect = action.effects[0]
-  if (copyEffect?.type === 'copy-statuses') {
-    if (!evaluation.primaryCombatantId) return after
+  let provenanceAfter = after
+  if (copyEffect?.type === 'copy-statuses' && evaluation.primaryCombatantId) {
     if (!content) throw new TypeError('Copied status provenance requires its pinned catalog.')
-    return attachCombatStatusCopyProvenance(
+    provenanceAfter = attachCombatStatusCopyProvenance(
       before,
       after,
       evaluation.actorId,
@@ -76,9 +76,9 @@ export function attachCombatEffectProvenance(
   const createdRound = before.tactical.battle.round
   const createdTurn = before.tactical.battle.turnNumber
   const beforeEffects = normalizeCombatEffectState(before.effectState)
-  const afterEffects = normalizeCombatEffectState(after.effectState)
+  const afterEffects = normalizeCombatEffectState(provenanceAfter.effectState)
 
-  let statusState = after.statusState
+  let statusState = provenanceAfter.statusState
   let ongoingRecovery = afterEffects.ongoingRecovery
   let poison = afterEffects.poison
   let bleed = afterEffects.bleed
@@ -258,10 +258,10 @@ export function attachCombatEffectProvenance(
     effectStateChanged = true
   }
 
-  if (!statusChanged && !effectStateChanged) return after
+  if (!statusChanged && !effectStateChanged) return provenanceAfter
 
   return {
-    ...after,
+    ...provenanceAfter,
     ...(statusChanged ? { statusState } : {}),
     ...(effectStateChanged
       ? {
