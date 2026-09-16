@@ -45,6 +45,7 @@ import {
   removeCurrentPoisonState,
   validateCombatDotState,
   validateCurrentBleedEffect,
+  validateCurrentBurnEffect,
   validateCurrentPoisonEffect,
 } from './combat-dots'
 import type { CombatEffectState } from './combat-effect-state'
@@ -163,7 +164,7 @@ export type CombatEffectDefinition =
       distance: number
     }
   | { type: 'poison'; recipient: CombatEffectRecipient; curseCopyable?: boolean }
-  | { type: 'burn'; recipient: CombatEffectRecipient }
+  | { type: 'burn'; recipient: CombatEffectRecipient; curseCopyable?: boolean }
   | {
       type: 'bleed'
       recipient: CombatEffectRecipient
@@ -685,7 +686,7 @@ export function evaluateCombatAction(
       target.combatantId === actorId ||
       (() => {
         const plan = planCombatStatusCopies(state, actorId, target.combatantId, copyEffect, content)
-        return plan.copies.length === 0 && !plan.poison
+        return plan.copies.length === 0 && !plan.poison && !plan.burn
       })()
     ) {
       issues.push({
@@ -1690,7 +1691,7 @@ function applyEffect(
   }
   if (effect.type === 'burn') {
     return {
-      state: applyCurrentBurnState(state, actorId, recipientId, actionId),
+      state: applyCurrentBurnState(state, actorId, recipientId, actionId, effect.curseCopyable),
       events: [],
     }
   }
@@ -2532,6 +2533,7 @@ function validateCombatActionDefinition(
       assertNonNegativeSafeInteger(effect.amount, `${effect.type} amount`)
     }
     if (effect.type === 'poison') validateCurrentPoisonEffect(effect)
+    if (effect.type === 'burn') validateCurrentBurnEffect(effect)
     if (effect.type === 'bleed') validateCurrentBleedEffect(effect)
     if (effect.type === 'damage' && effect.defenseKind !== undefined)
       assertKnownString(effect.defenseKind, ['armor', 'ward'], 'damage defense kind')

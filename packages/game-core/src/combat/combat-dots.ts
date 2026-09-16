@@ -247,6 +247,12 @@ export function advanceCurrentBleedEndTurn(
   return { state: { ...state, effectState: { ...effectState, bleed } }, stacks }
 }
 
+export function validateCurrentBurnEffect(effect: { curseCopyable?: unknown }): void {
+  if (effect.curseCopyable !== undefined && typeof effect.curseCopyable !== 'boolean') {
+    throw new TypeError('Burn curseCopyable must be boolean when supplied.')
+  }
+}
+
 export function currentBurnInstance(
   state: CombatEncounterState,
   targetCombatantId: string,
@@ -267,7 +273,9 @@ export function applyCurrentBurnState(
   sourceCombatantId: string,
   targetCombatantId: string,
   sourceActionId: string,
+  curseCopyable?: boolean,
 ): CombatEncounterState {
+  validateCurrentBurnEffect({ curseCopyable })
   const effectState = normalizeCombatEffectState(state.effectState)
   const instance: CombatBurnInstance = {
     targetCombatantId,
@@ -275,6 +283,7 @@ export function applyCurrentBurnState(
     sourceActionId,
     profileVersion: CURRENT_BURN_PROFILE_VERSION,
     stage: 0,
+    ...(curseCopyable !== undefined ? { curseCopyable } : {}),
   }
   return {
     ...state,
@@ -408,6 +417,7 @@ function validateCurrentBurnState(state: CombatEncounterState): readonly CombatE
       instance.sourceActionId.length === 0 ||
       instance.sourceActionId.trim() !== instance.sourceActionId ||
       instance.profileVersion !== CURRENT_BURN_PROFILE_VERSION ||
+      (instance.curseCopyable !== undefined && typeof instance.curseCopyable !== 'boolean') ||
       !Number.isSafeInteger(instance.stage) ||
       instance.stage < 0 ||
       instance.stage >= CURRENT_BURN_DAMAGE_BY_STAGE.length ||
@@ -425,7 +435,7 @@ function validateCurrentBurnState(state: CombatEncounterState): readonly CombatE
         {
           field: 'effectState.burn',
           message:
-            'Burn state must contain one valid current-profile instance per target, sorted by target ID, with canonical stage 0 through 2.',
+            'Burn state must contain one valid current-profile instance per target, sorted by target ID, with canonical stage 0 through 2 and optional boolean copy policy.',
         },
       ]
     : []

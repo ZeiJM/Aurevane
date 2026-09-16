@@ -87,6 +87,8 @@ export interface CombatBurnInstance {
   sourceActionId: string
   profileVersion: number
   stage: number
+  /** Explicit current Curse eligibility; omitted historical Burn remains non-copyable. */
+  curseCopyable?: boolean
   provenance?: CombatEffectInstanceProvenance
 }
 
