@@ -50,9 +50,15 @@ replace(
 )
 replace(
     dots,
-    "  const effectState = normalizeCombatEffectState(state.effectState)\n  const existing = effectState.poison.find(",
-    "  validateCurrentPoisonEffect({ curseCopyable })\n  const effectState = normalizeCombatEffectState(state.effectState)\n  const existing = effectState.poison.find(",
-    1,
+    """  curseCopyable?: boolean,
+): CombatEncounterState {
+  const effectState = normalizeCombatEffectState(state.effectState)
+  const existing = effectState.poison.find(""",
+    """  curseCopyable?: boolean,
+): CombatEncounterState {
+  validateCurrentPoisonEffect({ curseCopyable })
+  const effectState = normalizeCombatEffectState(state.effectState)
+  const existing = effectState.poison.find(""",
 )
 replace(
     dots,
