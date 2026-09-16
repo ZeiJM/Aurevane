@@ -78,6 +78,8 @@ export interface CombatBleedStack {
   damagePerTick: number
   remainingTicks: number
   applicationOrder: number
+  /** Explicit current Curse eligibility; omitted historical Bleed remains non-copyable. */
+  curseCopyable?: boolean
   provenance?: CombatEffectInstanceProvenance
 }
 

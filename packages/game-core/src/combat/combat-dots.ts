@@ -133,7 +133,14 @@ export function advanceCurrentPoisonMovement(
   }
 }
 
-export function validateCurrentBleedEffect(effect: { damagePerTick: number; ticks: number }): void {
+export function validateCurrentBleedEffect(effect: {
+  damagePerTick: number
+  ticks: number
+  curseCopyable?: unknown
+}): void {
+  if (effect.curseCopyable !== undefined && typeof effect.curseCopyable !== 'boolean') {
+    throw new TypeError('Bleed curseCopyable must be boolean when supplied.')
+  }
   if (!Number.isSafeInteger(effect.damagePerTick) || effect.damagePerTick <= 0) {
     throw new RangeError('Bleed damage per tick must be a positive safe integer.')
   }
@@ -170,8 +177,9 @@ export function applyCurrentBleedState(
   sourceActionId: string,
   damagePerTick: number,
   ticks: number,
+  curseCopyable?: boolean,
 ): CombatEncounterState {
-  validateCurrentBleedEffect({ damagePerTick, ticks })
+  validateCurrentBleedEffect({ damagePerTick, ticks, curseCopyable })
   const effectState = normalizeCombatEffectState(state.effectState)
   const maximumOrder = effectState.bleed.reduce(
     (maximum, stack) => Math.max(maximum, stack.applicationOrder),
@@ -205,6 +213,7 @@ export function applyCurrentBleedState(
     damagePerTick,
     remainingTicks: ticks,
     applicationOrder,
+    ...(curseCopyable !== undefined ? { curseCopyable } : {}),
   })
   bleed.sort(
     (left, right) =>
@@ -477,6 +486,7 @@ function validateCurrentBleedState(state: CombatEncounterState): readonly Combat
       typeof stack.sourceActionId !== 'string' ||
       stack.sourceActionId.length === 0 ||
       stack.sourceActionId.trim() !== stack.sourceActionId ||
+      (stack.curseCopyable !== undefined && typeof stack.curseCopyable !== 'boolean') ||
       !rawTotalValid ||
       !Number.isSafeInteger(stack.applicationOrder) ||
       stack.applicationOrder <= 0 ||
@@ -496,7 +506,7 @@ function validateCurrentBleedState(state: CombatEncounterState): readonly Combat
         {
           field: 'effectState.bleed',
           message:
-            'Bleed state must contain at most three valid independent stacks per target in stable application order, each with one to four remaining ticks and no more than 10 raw remaining damage.',
+            'Bleed state must contain at most three valid independent stacks per target in stable application order, each with one to four remaining ticks, no more than 10 raw remaining damage, and optional boolean copy policy.',
         },
       ]
     : []

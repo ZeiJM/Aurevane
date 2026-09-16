@@ -170,6 +170,7 @@ export type CombatEffectDefinition =
       recipient: CombatEffectRecipient
       damagePerTick: number
       ticks: number
+      curseCopyable?: boolean
     }
   | { type: 'barrier-change'; recipient: CombatEffectRecipient; amount: number }
   | { type: 'healing'; recipient: CombatEffectRecipient; amount: number; ticks?: number }
@@ -686,7 +687,7 @@ export function evaluateCombatAction(
       target.combatantId === actorId ||
       (() => {
         const plan = planCombatStatusCopies(state, actorId, target.combatantId, copyEffect, content)
-        return plan.copies.length === 0 && !plan.poison && !plan.burn
+        return plan.copies.length === 0 && !plan.poison && !plan.burn && plan.bleed.length === 0
       })()
     ) {
       issues.push({
@@ -1685,6 +1686,7 @@ function applyEffect(
         actionId,
         effect.damagePerTick,
         effect.ticks,
+        effect.curseCopyable,
       ),
       events: [],
     }
