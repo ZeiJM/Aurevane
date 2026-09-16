@@ -15,75 +15,88 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 749d1203967c5094bd888a2f56bd0f71e507bb13
-          fetch-depth: 3
+          fetch-depth: 5
 
       - uses: actions/setup-node@v4
         with:
           node-version: 24
 
-      - name: Exact test source and setup
+      - name: Pin implementation recipe and exact RED source
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = 749d1203967c5094bd888a2f56bd0f71e507bb13
-          test "$(git diff --name-only ab80053969a98d1bffbae4ecf57f9ed1b7e53915 HEAD)" = packages/game-core/src/combat/combat-status-copy-composition.test.ts
+          cp scripts/copy-composition-implementation.py /tmp/copy-composition-implementation.py
+          git fetch --depth=5 origin f99c6c8fbe8b41ff9c79c260ab743b9e6e2b16e8
+          git checkout --detach f99c6c8fbe8b41ff9c79c260ab743b9e6e2b16e8
+          test "$(git rev-parse HEAD)" = f99c6c8fbe8b41ff9c79c260ab743b9e6e2b16e8
           test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
           test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = ab80053969a98d1bffbae4ecf57f9ed1b7e53915
-          test "$(git ls-remote origin refs/heads/agent/combat-k4-copy-composition-ab80053 | cut -f1)" = 749d1203967c5094bd888a2f56bd0f71e507bb13
+          test "$(git ls-remote origin refs/heads/agent/combat-k4-copy-composition-ab80053 | cut -f1)" = f99c6c8fbe8b41ff9c79c260ab743b9e6e2b16e8
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
           pnpm install --frozen-lockfile
 
-      - name: Normalize and validate permanent test source
+      - name: Implement and format composed cloning
+        shell: bash
         run: |
-          pnpm exec prettier --write packages/game-core/src/combat/combat-status-copy-composition.test.ts
-          pnpm exec prettier --check packages/game-core/src/combat/combat-status-copy-composition.test.ts
-          pnpm exec eslint packages/game-core/src/combat/combat-status-copy-composition.test.ts
-          pnpm --filter @aurevane/game-core typecheck
-          changed="$(git diff --name-only)"
-          test -z "$changed" || test "$changed" = packages/game-core/src/combat/combat-status-copy-composition.test.ts
+          set -euo pipefail
+          python3 /tmp/copy-composition-implementation.py
+          pnpm exec prettier --write \
+            packages/game-core/src/combat/actions-legacy.ts \
+            packages/game-core/src/combat/combat-effect-provenance.ts \
+            packages/game-core/src/combat/combat-status-copy.ts
           git diff --check
+          git diff --exit-code -- packages/game-core/src/combat/combat-status-copy-composition.test.ts
 
-      - name: Confirm all prior game-core tests remain green
-        run: pnpm --filter @aurevane/game-core exec vitest run --exclude '**/combat-status-copy-composition.test.ts'
+      - name: Focused GREEN verification
+        run: |
+          pnpm --filter @aurevane/game-core typecheck
+          pnpm --filter @aurevane/game-core exec vitest run \
+            src/combat/combat-status-copy-composition.test.ts \
+            src/combat/combat-status-copy.test.ts \
+            src/combat/combat-status-copy-publication.test.ts \
+            src/combat/combat-poison-copy.test.ts \
+            src/combat/combat-burn-copy.test.ts \
+            src/combat/combat-bleed-copy.test.ts \
+            src/combat/combat-copy-provenance.test.ts \
+            src/combat/combat-effect-provenance.test.ts \
+            src/combat/combat-effect-provenance-state.test.ts \
+            src/combat/combat-persistent-provenance-threading.test.ts
 
-      - name: Execute and classify behavioral RED
+      - name: Full repository verification
+        run: pnpm check
+
+      - name: Retain only the verified candidate
         shell: bash
         run: |
           set -euo pipefail
-          set +e
-          pnpm --filter @aurevane/game-core exec vitest run --reporter=json --outputFile=/tmp/copy-composition-red.json
-          outcome=$?
-          set -e
-          test "$outcome" -ne 0
           python3 <<'PY'
-          import json
-          from pathlib import Path
-          data = json.loads(Path('/tmp/copy-composition-red.json').read_text())
-          failures = [suite for suite in data['testResults'] if suite['status'] == 'failed']
-          assert failures and all(Path(suite['name']).name == 'combat-status-copy-composition.test.ts' for suite in failures), [(s['name'], s['status']) for s in failures]
-          assert data['numPassedTests'] >= 1790, data
-          assert data['numFailedTests'] > 0, data
-          print('VALID_RED: prior game-core suite green; only copy-composition contract fails')
-          print('passed=', data['numPassedTests'], 'failed=', data['numFailedTests'], 'total=', data['numTotalTests'])
+          import subprocess
+          expected = {
+            'docs/COMBAT.md',
+            'packages/game-core/src/combat/actions-legacy.ts',
+            'packages/game-core/src/combat/combat-effect-provenance.ts',
+            'packages/game-core/src/combat/combat-status-copy.ts',
+          }
+          changed = set(subprocess.check_output(['git', 'diff', '--name-only'], text=True).splitlines())
+          assert changed == expected, changed
           PY
-
-      - name: Retain exact valid RED test source
-        shell: bash
-        run: |
-          set -euo pipefail
+          git diff --check
+          git diff --exit-code -- packages/game-core/src/combat/combat-status-copy-composition.test.ts
           test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
           test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = ab80053969a98d1bffbae4ecf57f9ed1b7e53915
-          test "$(git ls-remote origin refs/heads/agent/combat-k4-copy-composition-ab80053 | cut -f1)" = 749d1203967c5094bd888a2f56bd0f71e507bb13
-          if ! git diff --quiet; then
-            git config user.name 'github-actions[bot]'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git add packages/game-core/src/combat/combat-status-copy-composition.test.ts
-            git diff --cached --check
-            git commit -m 'style(test): format copy composition contract'
-            git push origin HEAD:refs/heads/agent/combat-k4-copy-composition-ab80053
-          fi
-          echo "VALID_RED_SOURCE=$(git rev-parse HEAD)"
+          test "$(git ls-remote origin refs/heads/agent/combat-k4-copy-composition-ab80053 | cut -f1)" = f99c6c8fbe8b41ff9c79c260ab743b9e6e2b16e8
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            docs/COMBAT.md \
+            packages/game-core/src/combat/actions-legacy.ts \
+            packages/game-core/src/combat/combat-effect-provenance.ts \
+            packages/game-core/src/combat/combat-status-copy.ts
+          git diff --cached --check
+          git commit -m 'feat(combat): compose Amplify and Curse clone blocks'
+          git push origin HEAD:refs/heads/agent/combat-k4-copy-composition-ab80053
+          echo "VERIFIED_SOURCE_SHA=$(git rev-parse HEAD)"
+          echo "VERIFIED_SOURCE_TREE=$(git rev-parse HEAD^{tree})"
           git diff --exit-code
           test -z "$(git status --porcelain)"
