@@ -24,6 +24,46 @@ jobs:
         run: |
           set -euo pipefail
           cp scripts/burn-copy-implementation.py /tmp/burn-copy-implementation.py
+          python3 <<'PY'
+          from pathlib import Path
+          path = Path('/tmp/burn-copy-implementation.py')
+          text = path.read_text()
+          old = '\n'.join([
+              "replace(",
+              "    dots,",
+              "    \"\"\"export interface CurrentBurnEffect {",
+              "  type: 'burn'",
+              "  recipient: CombatEffectRecipient",
+              "}\"\"\",",
+              "    \"\"\"export interface CurrentBurnEffect {",
+              "  type: 'burn'",
+              "  recipient: CombatEffectRecipient",
+              "  curseCopyable?: boolean",
+              "}",
+              "",
+              "export function validateCurrentBurnEffect(effect: { curseCopyable?: unknown }): void {",
+              "  if (effect.curseCopyable !== undefined && typeof effect.curseCopyable !== 'boolean') {",
+              "    throw new TypeError('Burn curseCopyable must be boolean when supplied.')",
+              "  }",
+              "}\"\"\",",
+              ")",
+          ])
+          new = '\n'.join([
+              "replace(",
+              "    dots,",
+              "    \"export function currentBurnInstance(\",",
+              "    \"\"\"export function validateCurrentBurnEffect(effect: { curseCopyable?: unknown }): void {",
+              "  if (effect.curseCopyable !== undefined && typeof effect.curseCopyable !== 'boolean') {",
+              "    throw new TypeError('Burn curseCopyable must be boolean when supplied.')",
+              "  }",
+              "}",
+              "",
+              "export function currentBurnInstance(\"\"\",",
+              ")",
+          ])
+          assert text.count(old) == 1, text.count(old)
+          path.write_text(text.replace(old, new))
+          PY
           git fetch --depth=4 origin 15cb61ab7f4b308c6c0b93f1dc818522a3869d38
           git checkout --detach 15cb61ab7f4b308c6c0b93f1dc818522a3869d38
           test "$(git rev-parse HEAD)" = 15cb61ab7f4b308c6c0b93f1dc818522a3869d38
