@@ -85,6 +85,10 @@ test('Creation exposes its forty portraits and preserves the complete authentica
             { width: 1024, height: 576 },
             { width: 980, height: 768 },
             { width: 768, height: 576 },
+            { width: 761, height: 1024 },
+            { width: 768, height: 1024 },
+            { width: 980, height: 1366 },
+            { width: 1024, height: 1366 },
           ]
   const results = []
   for (const size of sizes) {
@@ -100,6 +104,10 @@ test('Creation exposes its forty portraits and preserves the complete authentica
       }
       const input = element.querySelector('#creation-name')!
       const preview = element.querySelector('[aria-label="Selected portrait preview"] img')!
+      const previewPanel = element.querySelector('[aria-label="Selected portrait preview"]')!
+      const grid = element.querySelector('[data-portrait-grid]')!
+      const gridBox = grid.getBoundingClientRect()
+      const tiles = Array.from(grid.querySelectorAll('label')).map(rect)
       const primary = Array.from(element.querySelectorAll('button')).find((button) =>
         button.textContent?.includes('Choose your discipline'),
       )!
@@ -107,6 +115,11 @@ test('Creation exposes its forty portraits and preserves the complete authentica
         library: rect(element.querySelector('[data-portrait-library]')!),
         name: rect(input),
         preview: rect(preview),
+        previewPanel: rect(previewPanel),
+        tiles,
+        fullyVisiblePortraits: tiles.filter(
+          (tile) => tile.y >= gridBox.y && tile.bottom <= gridBox.bottom,
+        ).length,
         primary: rect(primary),
         nameFont: parseFloat(getComputedStyle(input).fontSize),
         primaryFont: parseFloat(getComputedStyle(primary).fontSize),
@@ -124,6 +137,12 @@ test('Creation exposes its forty portraits and preserves the complete authentica
     expect
       .soft(metrics.preview.width / metrics.preview.height, `${label}: square preview`)
       .toBeCloseTo(1, 2)
+    expect
+      .soft(
+        metrics.tiles.every((tile) => tile.width >= 44),
+        `${label}: tall windows must not squeeze portrait choices into tiny targets`,
+      )
+      .toBe(true)
     expect.soft(metrics.nameFont, `${label}: readable name input`).toBeGreaterThanOrEqual(16)
     expect.soft(metrics.primaryFont, `${label}: readable action`).toBeGreaterThanOrEqual(14)
     expect
@@ -132,10 +151,29 @@ test('Creation exposes its forty portraits and preserves the complete authentica
         `${label}: dark workspace`,
       )
       .toBeLessThan(75)
-    if (size.width >= 1280 && size.height >= 768)
+    if (size.width >= 1280 && size.height >= 768) {
       expect
         .soft(metrics.primary.bottom, `${label}: primary fits at normal zoom`)
         .toBeLessThanOrEqual(size.height)
+      expect
+        .soft(metrics.preview.width, `${label}: meaningful selected portrait size`)
+        .toBeGreaterThanOrEqual(236)
+      expect
+        .soft(
+          metrics.preview.width / metrics.previewPanel.width,
+          `${label}: preview fills its panel rather than leaving an empty column`,
+        )
+        .toBeGreaterThanOrEqual(0.88)
+      expect
+        .soft(metrics.fullyVisiblePortraits, `${label}: at least two complete portrait rows`)
+        .toBeGreaterThanOrEqual(16)
+      expect
+        .soft(
+          metrics.tiles.every((tile) => Math.abs(tile.width - tile.height) <= 1),
+          `${label}: portrait choices are square, not tall caption cards`,
+        )
+        .toBe(true)
+    }
     await next.scrollIntoViewIfNeeded()
     await expect(next).toBeInViewport({ ratio: 1 })
     await next.click({ trial: true })

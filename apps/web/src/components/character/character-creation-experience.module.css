@@ -144,7 +144,8 @@
 
 .identityWorkspace {
   display: grid;
-  grid-template-columns: minmax(0, 1.8fr) minmax(13rem, 1fr);
+  --creation-preview-size: clamp(15rem, min(calc(100dvh - 33rem), 28vw), 25rem);
+  grid-template-columns: minmax(0, 1fr) calc(var(--creation-preview-size) + 1rem + 1px);
   min-width: 0;
   align-items: start;
   gap: 1rem;
@@ -180,7 +181,7 @@
   display: grid;
   grid-template-columns: repeat(8, minmax(0, 1fr));
   min-width: 0;
-  max-height: clamp(12rem, calc(100dvh - 35rem), 24rem);
+  max-height: calc(var(--creation-preview-size) - 1.5rem);
   gap: 0.4rem;
   padding: 0.25rem 0.4rem 0.5rem 0.25rem;
   overflow-y: auto;
@@ -254,7 +255,7 @@
 }
 
 .previewFrame {
-  width: min(100%, clamp(10rem, calc(100dvh - 40rem), 24rem));
+  width: 100%;
   aspect-ratio: 1;
   overflow: hidden;
   border: 1px solid var(--av-brass-500);
@@ -588,6 +589,47 @@
 .optionCard:has(input:focus-visible) {
   outline: 2px solid var(--av-focus);
   outline-offset: 2px;
+}
+
+/* Keep portrait media dominant without allocating an empty preview column.
+ * Captions share the art frame; native radio labels remain available throughout. */
+@media (min-width: 761px) {
+  .portraitChoice {
+    aspect-ratio: 1;
+    padding: 0.15rem;
+  }
+
+  .portraitChoice > span {
+    position: absolute;
+    inset: auto 0 0;
+    padding: 0.5rem 0.1rem 0.2rem;
+    color: #f2eadb;
+    background: linear-gradient(transparent, #050a10f2 45%);
+    pointer-events: none;
+  }
+
+  .portraitPreview {
+    grid-template-rows: auto var(--creation-preview-size);
+  }
+
+  .previewFrame,
+  .previewCopy {
+    grid-column: 1;
+    grid-row: 2;
+  }
+
+  .previewCopy {
+    z-index: 1;
+    width: 100%;
+    align-self: end;
+    padding: 1.4rem 0.5rem 0.5rem;
+    background: linear-gradient(transparent, #050a10eb 35%);
+    pointer-events: none;
+  }
+
+  .previewCopy strong {
+    font-size: 1.125rem;
+  }
 }
 
 @media (max-width: 1199px) {
