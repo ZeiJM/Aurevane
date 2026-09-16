@@ -1,0 +1,35 @@
+name: Copy status workbench
+on:
+  push:
+    branches: [review/amplify-curse-status-workbench-20260916]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 0eecf1f5f776b8b3b9151f503ff7396b8715ec07
+          fetch-depth: 1
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Locked baseline
+        run: |
+          test "$(git rev-parse HEAD)" = 0eecf1f5f776b8b3b9151f503ff7396b8715ec07
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+          pnpm --filter @aurevane/game-core typecheck
+          pnpm --filter @aurevane/game-core test
+      - name: Inspect existing copy, validation and authored resolution seams
+        run: |
+          git grep -n -i -E 'amplify|curse|copy-effect|copy-status' -- packages/game-core/src docs/superpowers/plans || true
+          sed -n '1330,1610p' packages/game-core/src/combat/actions-legacy.ts
+          sed -n '2350,2470p' packages/game-core/src/combat/actions-legacy.ts
+          sed -n '310,410p' packages/game-core/src/combat/combat-kernel-types.ts
+          git grep -n -E 'scale.*Effect|effect\.type|assertNever' -- packages/game-core/src/combat/technique-repeat-use.ts packages/game-core/src/combat/combat-effect-categories.ts || true
+          git diff --exit-code
