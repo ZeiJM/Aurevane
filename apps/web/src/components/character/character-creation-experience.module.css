@@ -590,6 +590,20 @@
   outline-offset: 2px;
 }
 
+@media (min-width: 981px) {
+  .identityWorkspace {
+    grid-template-columns: minmax(0, 1.45fr) minmax(18rem, 1fr);
+  }
+
+  .portraitGrid {
+    max-height: min(28rem, 52dvh);
+  }
+
+  .previewFrame {
+    width: min(100%, 25rem);
+  }
+}
+
 @media (max-width: 1199px) {
   .portraitGrid {
     grid-template-columns: repeat(6, minmax(0, 1fr));
