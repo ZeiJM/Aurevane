@@ -1,3 +1,4 @@
+import { materializeVengeanceDamage } from './combat-vengeance'
 import { hasGameplayTag } from './gameplay-tags'
 import { CURRENT_POISON_DAMAGE, advanceCurrentPoisonMovement } from './combat-dots'
 import { terrainOverlayAt, COMBAT_TERRAIN_OVERLAY_DETAILS } from './terrain-overlays'
@@ -562,10 +563,12 @@ export function evaluatePv1fMatureSkill(
   if (resonance?.forecast.willActivate)
     baseAction.effects = [...baseAction.effects, ...resonance.forecast.bonusEffects]
   const repeatPenaltyApplied = lastMatureSkillId(prepared, actorId) === definition.id
-  const defendedEffects: readonly CombatEffectDefinition[] = baseAction.effects.map((effect) =>
-    effect.type === 'damage'
-      ? { ...effect, defenseKind: definition.tags.includes('mystic') ? 'ward' : 'armor' }
-      : effect,
+  const vengeance = materializeVengeanceDamage(prepared, baseAction)
+  const defendedEffects: readonly CombatEffectDefinition[] = vengeance.action.effects.map(
+    (effect) =>
+      effect.type === 'damage'
+        ? { ...effect, defenseKind: definition.tags.includes('mystic') ? 'ward' : 'armor' }
+        : effect,
   )
   const action: CombatActionDefinition = {
     ...baseAction,
@@ -574,11 +577,23 @@ export function evaluatePv1fMatureSkill(
       ? scaleRepeatedMatureSkillEffects(defendedEffects)
       : defendedEffects,
   }
+  const evaluation = evaluateCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT)
   return {
     prepared,
     action,
     cost: resolved.apCost,
-    evaluation: evaluateCombatAction(prepared, action, target, PV1F_COMBAT_CONTENT),
+    evaluation:
+      evaluation.legal && vengeance.basis.length > 0
+        ? {
+            ...evaluation,
+            vengeanceBasis: vengeance.basis.map((basis) => ({
+              ...basis,
+              rawDamage: repeatPenaltyApplied
+                ? halfPositiveMagnitude(basis.rawDamage)
+                : basis.rawDamage,
+            })),
+          }
+        : evaluation,
     repeatPenaltyApplied,
   }
 }
