@@ -3,7 +3,7 @@ on:
   push:
     branches: [review/status-copy-workbench-20260916]
 permissions:
-  contents: read
+  contents: write
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -11,24 +11,59 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 0eecf1f5f776b8b3b9151f503ff7396b8715ec07
-          persist-credentials: false
+          ref: 4bf1f0a37cb231223527540be472a1196032d16b
+          fetch-depth: 3
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Verify baseline and integration seams
+      - name: Format only the test and verify test-fixture quality
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = 0eecf1f5f776b8b3b9151f503ff7396b8715ec07
+          test "$(git rev-parse HEAD)" = 4bf1f0a37cb231223527540be472a1196032d16b
           corepack enable
           corepack prepare pnpm@11.17.0 --activate
           pnpm install --frozen-lockfile
+          file=packages/game-core/src/combat/combat-status-copy.test.ts
+          pnpm exec prettier --write "$file"
+          pnpm exec eslint "$file"
           pnpm --filter @aurevane/game-core typecheck
-          pnpm --filter @aurevane/game-core test
-          echo '=== COPY / EXHAUSTIVE HANDLERS ==='
-          git grep -n -E 'amplify|curse|case .apply-status.|case .barrier-change.' -- packages/game-core/src apps/web/src | head -120 || true
-          echo '=== REPEAT USE SCALING ==='
-          git grep -n -E 'effectiveness|scale.*Effect|scale.*effect' -- packages/game-core/src/combat | head -80 || true
+          pnpm format:check
+          git config user.name 'Aurevane verification'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$file"
+          if ! git diff --cached --quiet; then
+            git commit -m 'test: format status-copy RED contract'
+          fi
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = 3d8a4d25cb897d0f9ce4871c6972e5d7107d68b0
+          test "$(git ls-remote origin refs/heads/agent/combat-effect-taxonomy-rework | cut -f1)" = 0eecf1f5f776b8b3b9151f503ff7396b8715ec07
+          test "$(git ls-remote origin refs/heads/agent/combat-k4-status-copy-20260916 | cut -f1)" = 4bf1f0a37cb231223527540be472a1196032d16b
+          test "$(git diff --name-only 0eecf1f5f776b8b3b9151f503ff7396b8715ec07 HEAD)" = "$file"
+          git push origin HEAD:refs/heads/agent/combat-k4-status-copy-20260916
+          echo "RED_SOURCE=$(git rev-parse HEAD)"
+      - name: Observe and classify missing-feature RED
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          pnpm --filter @aurevane/game-core exec vitest run --reporter=json --outputFile=/tmp/status-copy-red.json > /tmp/status-copy-red.log 2>&1
+          result=$?
+          set -e
+          cat /tmp/status-copy-red.log
+          test "$result" -ne 0
+          python3 <<'PY'
+          import json
+          r = json.load(open('/tmp/status-copy-red.json'))
+          assert r['numFailedTests'] > 0
+          assert r['numPassedTests'] >= 1559
+          for suite in r['testResults']:
+              failed = [t for t in suite['assertionResults'] if t['status'] == 'failed']
+              if failed:
+                  assert suite['name'].endswith('/combat-status-copy.test.ts'), suite['name']
+                  for t in failed:
+                      print('EXPECTED RED:', t['fullName'], '\n', '\n'.join(t.get('failureMessages', []))[:750])
+          print('RED_TOTALS', {k: r[k] for k in ['numTotalTests','numPassedTests','numFailedTests']})
+          PY
           git diff --exit-code
           test -z "$(git status --porcelain)"
+          echo "VALID_RED_SOURCE=$(git rev-parse HEAD)"
