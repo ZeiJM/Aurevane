@@ -60,7 +60,9 @@ test('Character Select keeps its heading above three readable, reachable roster 
     const portrait = cards.first().locator('img').first()
     await expect(portrait).toBeVisible()
     await expect
-      .poll(() => portrait.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0))
+      .poll(() =>
+        portrait.evaluate((image: HTMLImageElement) => image.complete && image.naturalWidth > 0),
+      )
       .toBe(true)
     const metrics = await board.evaluate((node) => {
       const rect = (element: Element) => {
@@ -96,16 +98,29 @@ test('Character Select keeps its heading above three readable, reachable roster 
         path: path.join(process.env.LAYOUT_REVIEW_OUTPUT, `character-roster-${label}-viewport.png`),
       })
     }
-    expect.soft(metrics.hero.bottom, `${label}: heading is above the board`).toBeLessThanOrEqual(metrics.board.y + 1)
+    expect
+      .soft(metrics.hero.bottom, `${label}: heading is above the board`)
+      .toBeLessThanOrEqual(metrics.board.y + 1)
     expect.soft(metrics.documentOverflow, `${label}: no horizontal overflow`).toBeLessThanOrEqual(1)
-    expect.soft(metrics.portrait.width / metrics.portrait.height, `${label}: square portrait`).toBeCloseTo(1, 2)
+    expect
+      .soft(metrics.portrait.width / metrics.portrait.height, `${label}: square portrait`)
+      .toBeCloseTo(1, 2)
     expect.soft(metrics.nameFont, `${label}: readable name`).toBeGreaterThanOrEqual(16)
     expect.soft(metrics.buttonFont, `${label}: readable primary action`).toBeGreaterThanOrEqual(14)
     expect.soft(metrics.play.height, `${label}: usable primary action`).toBeGreaterThanOrEqual(40)
-    expect.soft(metrics.accountDelete.y, `${label}: account management follows the roster`).toBeGreaterThanOrEqual(metrics.board.bottom - 1)
-    expect.soft(Math.max(...(metrics.lockedBackground.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number)), `${label}: dark locked cards`).toBeLessThan(75)
+    expect
+      .soft(metrics.accountDelete.y, `${label}: account management follows the roster`)
+      .toBeGreaterThanOrEqual(metrics.board.bottom - 1)
+    expect
+      .soft(
+        Math.max(...(metrics.lockedBackground.match(/[\d.]+/g) ?? []).slice(0, 3).map(Number)),
+        `${label}: dark locked cards`,
+      )
+      .toBeLessThan(75)
     if (size.width >= 1280 && size.height >= 768) {
-      expect.soft(metrics.play.bottom, `${label}: play fits at normal zoom`).toBeLessThanOrEqual(size.height)
+      expect
+        .soft(metrics.play.bottom, `${label}: play fits at normal zoom`)
+        .toBeLessThanOrEqual(size.height)
     }
     await play.scrollIntoViewIfNeeded()
     await expect(play).toBeInViewport({ ratio: 1 })

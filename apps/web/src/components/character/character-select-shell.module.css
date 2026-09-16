@@ -1,337 +1,549 @@
+/* composition-v3: this module owns the roster, including short-window and phone layouts. */
 .shell {
   position: relative;
   isolation: isolate;
   min-height: 100dvh;
-  background: linear-gradient(180deg, #07111a55, #07111abb);
   color: var(--av-text);
+  background: #070f18;
 }
 
-.header {
-  position: sticky;
-  top: 0;
-  z-index: 700;
-  display: flex;
-  min-height: 3.7rem;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.35rem clamp(0.7rem, 1.8vw, 1.5rem);
-  border-bottom: 1px solid var(--av-border);
-  background: rgba(7, 9, 13, 0.97);
-  backdrop-filter: blur(1rem);
-}
-
-.headerActions {
-  display: flex;
-  min-width: 0;
-  gap: 0.7rem;
-  align-items: center;
-}
-
-.screenIdentity {
-  display: inline-flex;
-  min-width: 0;
-  gap: 0.46rem;
-  align-items: center;
-}
-
-.screenPortrait {
-  position: relative;
-  display: grid;
-  width: 2.05rem;
-  height: 2.05rem;
-  flex: 0 0 auto;
-  place-items: center;
-  overflow: hidden;
-  border: 1px solid rgba(207, 169, 93, 0.62);
-  border-radius: 50%;
-  background: rgba(8, 11, 16, 0.95);
-  box-shadow:
-    0 0 0 2px rgba(207, 169, 93, 0.08),
-    0 0.35rem 0.9rem rgba(0, 0, 0, 0.3);
-}
-
-.screenPortrait::after {
-  position: absolute;
-  inset: 2px;
-  border: 1px solid rgba(238, 219, 173, 0.18);
-  border-radius: 50%;
-  content: '';
+.world {
+  position: fixed;
+  z-index: -1;
+  inset: 0;
   pointer-events: none;
 }
 
-.screenPortraitImage {
+.world > :global(img) {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform: scale(1.08);
+  object-position: 66% center;
 }
 
-.screenLabel {
-  display: inline-flex;
-  min-width: 0;
-  gap: 0.42rem;
+.world::after {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, #050a10c7, #050a1026),
+    linear-gradient(180deg, #050a104d 0%, #050a1026 40%, #050a10d9 100%);
+  content: '';
+}
+
+.header {
+  position: relative;
+  z-index: 700;
+  display: flex;
+  min-height: 4.5rem;
   align-items: center;
-  color: var(--av-verdant-400);
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem clamp(1rem, 3vw, 3rem);
+  border-bottom: 1px solid var(--av-border-strong);
+  background: #050a10c7;
 }
 
-.screenLabel i {
-  width: 0.46rem;
-  height: 0.46rem;
+.header :global(.brand) {
+  min-width: 0;
+  text-decoration: none;
+}
+
+.header :global(.brand__wordmark strong) {
+  color: var(--av-brass-200);
+  font-size: clamp(1.2rem, 2.4vw, 2rem);
+  font-weight: 500;
+  letter-spacing: 0.26em;
+}
+
+.header :global(.brand__wordmark small) {
+  font-size: 0.75rem;
+  letter-spacing: 0.16em;
+}
+
+.headerActions,
+.screenIdentity {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.screenPortrait {
+  display: block;
+  width: 2.25rem;
+  aspect-ratio: 1;
   flex: 0 0 auto;
-  border: 1px solid rgba(153, 220, 173, 0.7);
-  border-radius: 50%;
-  background: var(--av-verdant-400);
-  box-shadow: 0 0 0.45rem rgba(111, 207, 139, 0.32);
+  overflow: hidden;
+  border: 1px solid var(--av-brass-500);
+  background: var(--av-ink-950);
 }
 
-.screenLabel strong {
-  max-width: 10rem;
-  overflow: hidden;
-  color: var(--av-verdant-400);
-  font: 750 0.58rem/1 var(--av-font-mono);
-  letter-spacing: 0.055em;
-  text-overflow: ellipsis;
-  text-transform: uppercase;
-  white-space: nowrap;
+.screenPortraitImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .main {
-  width: min(100%, 88rem);
-  margin: 0 auto;
-  padding: clamp(0.7rem, 1.6vw, 1.3rem);
+  display: grid;
+  width: min(calc(100% - 2 * clamp(1rem, 3vw, 3rem)), 78rem);
+  min-width: 0;
+  gap: 1rem;
+  margin-inline: auto;
+  padding-block: clamp(1rem, 2.6vh, 1.7rem) max(1.25rem, env(safe-area-inset-bottom));
 }
 
 .hero {
-  display: grid;
-  justify-items: center;
-  text-align: center;
-  gap: 0.7rem;
-  margin: 1.2rem 0 1.5rem;
-  padding: 1rem;
-  border: 0;
+  display: flex;
+  min-width: 0;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 0.8rem;
+  border-bottom: 1px solid var(--av-border-strong);
 }
 
 .hero span,
-.creationHeading span {
+.creationHeading span,
+.slotNumber {
   color: var(--av-brass-300);
-  font: 700 0.6875rem/1.25 var(--av-font-mono);
-  letter-spacing: 0.08em;
+  font: 650 0.75rem/1.4 var(--av-font-body);
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .hero h1,
 .creationHeading h1 {
-  margin: 0.3rem 0 0;
-  font: 500 clamp(1.9rem, 4vw, 3.2rem)/0.96 var(--av-font-display);
+  margin: 0.25rem 0 0;
+  color: var(--av-brass-100);
+  font: 500 clamp(1.75rem, 2.7vw, 2.5rem)/1.12 var(--av-font-display);
 }
 
 .hero p {
-  max-width: 38rem;
+  max-width: 28rem;
   margin: 0;
-  color: var(--av-text);
-  font-size: 0.85rem;
+  color: var(--av-text-muted);
+  font-size: 0.875rem;
   line-height: 1.5;
 }
 
 .slots {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.7rem;
+  width: min(100%, 68rem);
+  min-width: 0;
+  align-items: stretch;
+  gap: 1rem;
 }
 
 .slot {
   position: relative;
   display: grid;
-  grid-template-rows: auto minmax(14rem, 1fr) auto auto auto;
-  min-height: 34rem;
-  padding: 1.1rem;
-  border: 1px solid var(--av-gold-rule);
-  border-radius: 0.2rem;
-  background: var(--av-ink-950);
-  box-shadow: var(--av-shadow-deep);
-  overflow: hidden;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  min-width: 0;
+  min-height: clamp(23rem, calc(100dvh - 20rem), 34rem);
+  gap: 0.65rem;
+  padding: 0.85rem;
+  border: 1px solid #9b8557;
+  border-radius: 0.15rem;
+  background: #090f17f0;
+  box-shadow:
+    inset 0 0 0 4px #0c1420,
+    0 0.8rem 2rem #0000004d;
+}
+
+.slot[data-selected] {
+  border-color: var(--av-brass-200);
+  box-shadow:
+    inset 0 0 0 4px #181a20,
+    0 0.8rem 2rem #0000004d;
 }
 
 .slot[data-pending-delete] {
-  border-color: rgba(178, 75, 75, 0.55);
-}
-
-.slot[data-locked] {
-  border: 1px solid var(--av-gold-rule);
-  color: var(--av-charcoal);
-  background: linear-gradient(180deg, #e1ded3dd, var(--av-moonstone));
-  box-shadow: var(--av-shadow-deep);
-}
-
-.slot[data-locked] .emptyCrest {
-  border-color: rgba(184, 177, 163, 0.2);
-  color: var(--av-text-dim);
-  background: rgba(255, 255, 255, 0.012);
+  border-color: var(--av-danger-400);
 }
 
 .slotNumber {
-  z-index: 2;
-  color: var(--av-brass-300);
-  font: 700 0.6875rem/1.25 var(--av-font-mono);
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .portrait {
-  position: relative;
-  min-height: 16rem;
-  margin: 0.75rem -1.1rem 0;
+  width: min(100%, clamp(8rem, calc(100dvh - 33rem), 21.5rem));
+  min-width: 0;
+  aspect-ratio: 1;
+  justify-self: center;
   overflow: hidden;
+  border: 1px solid var(--av-border-strong);
   background: var(--av-ink-950);
 }
 
-.portrait :global(img) {
+.portrait > :global(img),
+.portrait > :global(.media-fallback) {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
 .identity {
-  padding: 0.3rem 0 0.55rem;
+  min-width: 0;
+  align-self: start;
+  padding-top: 0.1rem;
+  border-top: 1px solid var(--av-border);
 }
 
 .identity h2,
 .empty h2 {
-  margin: 0.6rem 0;
-  font: 500 2rem/1.1 var(--av-font-display);
+  margin: 0.15rem 0 0;
+  color: var(--av-brass-100);
+  font: 500 clamp(1.35rem, 2vw, 1.85rem)/1.15 var(--av-font-display);
+  overflow-wrap: anywhere;
 }
 
 .identity p,
 .empty p {
-  margin: 0.25rem 0 0;
-  color: var(--av-text-dim);
-  font-size: 0.68rem;
-  line-height: 1.4;
+  margin: 0.45rem 0 0;
+  color: #c1c4c9;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.slotActions {
+  display: grid;
+  min-width: 0;
+  align-content: end;
+  gap: 0.4rem;
 }
 
 .primaryAction,
 .deleteAction,
-.pendingDelete button {
+.pendingDelete button,
+.switchAccountButton,
+.accountDeleteButton {
   display: flex;
-  min-height: 2.35rem;
+  width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
   align-items: center;
   justify-content: center;
-  padding: 0.55rem 0.7rem;
-  border-radius: var(--av-radius-sm);
-  font: 750 0.56rem/1 var(--av-font-mono);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  gap: 0.65rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--av-border-strong);
+  border-radius: 0.15rem;
+  font: 500 0.9375rem/1.35 var(--av-font-body);
+  text-align: center;
+  text-decoration: none;
+  overflow-wrap: anywhere;
   cursor: pointer;
 }
 
 .primaryAction {
-  border: 1px solid var(--av-teal-bright);
-  background: linear-gradient(135deg, var(--av-teal), #0c2b3b);
-  color: var(--av-on-primary);
-  text-decoration: none;
-  font: 500 1.25rem var(--av-font-display);
-  min-height: 2.75rem;
+  border-color: #b49a64;
+  color: var(--av-brass-100);
+  background: linear-gradient(180deg, #645138, #242626 60%, #141e22);
+  box-shadow: inset 0 1px #efcf924d;
+}
+
+.primaryAction:hover {
+  border-color: var(--av-brass-100);
+  background: linear-gradient(180deg, #756146, #303635 60%, #172a2b);
 }
 
 .deleteAction {
-  margin-top: 0.35rem;
-  border: 1px solid rgba(177, 79, 79, 0.45);
+  border-color: transparent;
+  color: #cfb1ae;
   background: transparent;
-  color: #d59b9b;
+}
+
+.deleteAction:hover {
+  border-color: #c87d7966;
+  color: #f2c3be;
+  background: #54272a33;
 }
 
 .empty {
-  grid-template-rows: auto 1fr auto auto auto;
-  align-items: center;
+  grid-template-rows: auto minmax(8rem, 1fr) auto auto auto;
   text-align: center;
+}
+
+.empty .slotNumber {
+  text-align: left;
 }
 
 .emptyCrest {
   display: grid;
-  width: 5rem;
-  height: 5rem;
+  width: clamp(4.5rem, 9vw, 6rem);
+  aspect-ratio: 1;
   margin: auto;
   place-items: center;
   border: 1px solid var(--av-border-strong);
   border-radius: 50%;
-  color: var(--av-brass-300);
-  font: 300 2.2rem/1 var(--av-font-display);
-  background: rgba(255, 255, 255, 0.02);
+  color: var(--av-brass-200);
+  background: radial-gradient(circle, #c9b5870d, transparent 70%);
+  font: 300 2.8rem/1 var(--av-font-display);
+}
+
+.slot[data-locked] {
+  background-color: #0b131df5;
+}
+
+.slot[data-locked] .emptyCrest {
+  color: #b2ab9b;
 }
 
 .lockedBadge {
-  display: inline-flex;
-  min-height: 2.25rem;
+  display: flex;
+  min-height: 2.75rem;
   align-items: center;
   justify-content: center;
-  padding: 0.5rem 0.7rem;
-  border: 1px solid rgba(184, 177, 163, 0.18);
-  border-radius: var(--av-radius-sm);
-  color: var(--av-text-dim);
-  background: rgba(255, 255, 255, 0.015);
-  font: 700 0.6875rem/1.25 var(--av-font-mono);
-  letter-spacing: 0.035em;
-  text-transform: uppercase;
+  padding: 0.5rem;
+  border-top: 1px solid var(--av-border);
+  color: #b8b9b9;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 .pendingDelete,
 .swapCooldown {
   display: grid;
-  gap: 0.28rem;
-  padding: 0.6rem;
-  border-radius: var(--av-radius-sm);
+  gap: 0.4rem;
+  padding: 0.65rem;
+  border: 1px solid var(--av-border-strong);
+  background: #192027;
 }
 
 .pendingDelete {
-  border: 1px solid rgba(177, 79, 79, 0.35);
-  background: rgba(112, 37, 37, 0.1);
+  border-color: #b9575766;
+  background: #2b171e;
 }
 
 .pendingDelete strong {
-  color: #e2aaaa;
+  color: #efbbb7;
 }
 
-.pendingDelete b {
-  font: 700 0.64rem/1 var(--av-font-mono);
-  color: #f1d5d5;
+.pendingDelete b,
+.swapCooldown strong,
+.accountDeleteButton b {
+  color: var(--av-text);
+  font: 600 1.125rem/1.2 var(--av-font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 .pendingDelete span,
 .swapCooldown small {
-  color: var(--av-text-dim);
-  font-size: 0.62rem;
-  line-height: 1.35;
+  color: #c9c5c7;
+  font-size: 0.8125rem;
+  line-height: 1.45;
 }
 
-.swapCooldown {
-  border: 1px solid rgba(207, 169, 93, 0.32);
-  background: rgba(207, 169, 93, 0.055);
-}
-
-.swapCooldown span {
+.swapCooldown > span {
   color: var(--av-brass-300);
-  font: 700 0.5rem/1 var(--av-font-mono);
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
+  font-size: 0.8125rem;
 }
 
-.swapCooldown strong {
-  color: var(--av-text);
-  font: 600 1rem/1 var(--av-font-display);
+.pendingDelete button {
+  border-color: #649f9b;
+  color: var(--av-on-primary);
+  background: #153d40;
 }
 
 .message {
-  margin: 0 0 0.65rem;
-  padding: 0.6rem 0.75rem;
-  border: 1px solid var(--av-border);
-  color: var(--av-text-muted);
-  background: rgba(255, 255, 255, 0.02);
-  font-size: 0.74rem;
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px solid var(--av-border-strong);
+  color: var(--av-text);
+  background: var(--av-ink-900);
+  font-size: 0.9375rem;
+  line-height: 1.5;
 }
 
+.management {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 0.25rem;
+}
+
+.accountManagement {
+  display: grid;
+  width: min(100%, 28rem);
+  min-width: 0;
+  gap: 0.4rem;
+  margin: 0;
+}
+
+.accountManagement small {
+  color: #bdc0c5;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.switchAccountButton,
+.accountDeleteButton {
+  justify-content: space-between;
+  border-color: #8b7957;
+  color: var(--av-brass-100);
+  background: #080e17eb;
+}
+
+.accountDeleteButton {
+  flex-wrap: wrap;
+  border-color: #8d4f4f;
+  color: #e7a8a2;
+}
+
+.accountDeleteButton[data-pending] {
+  border-color: #d79a70;
+}
+
+.shell :is(button, a, input):focus-visible {
+  outline: 2px solid var(--av-focus);
+  outline-offset: 3px;
+}
+
+.shell button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.modalBackdrop {
+  position: fixed;
+  z-index: 1600;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: #000000bd;
+  backdrop-filter: blur(0.4rem);
+}
+
+.modal {
+  width: min(100%, 34rem);
+  min-width: 0;
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: clamp(1rem, 3vw, 1.5rem);
+  border: 1px solid var(--av-gold-rule);
+  border-radius: 0.25rem;
+  color: var(--av-charcoal);
+  background: var(--av-moonstone);
+  box-shadow: var(--av-shadow-deep);
+}
+
+.modal > span {
+  color: #8b252b;
+  font: 700 0.8125rem/1.4 var(--av-font-body);
+}
+
+.modal h2 {
+  margin: 0.65rem 0;
+  color: var(--av-charcoal);
+  font: 500 1.75rem/1.15 var(--av-font-display);
+  overflow-wrap: anywhere;
+}
+
+.modal p {
+  color: var(--av-charcoal-muted);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.modal label {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.modal label span {
+  color: var(--av-charcoal);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.modal input {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: 0.65rem;
+  border: 1px solid #8f9b9f;
+  color: var(--av-charcoal);
+  background: var(--av-moonstone-elevated);
+  font-size: 1rem;
+}
+
+.modalActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.modalActions button {
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid #8f9b9f;
+  border-radius: 0.15rem;
+  color: var(--av-charcoal);
+  background: transparent;
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  cursor: pointer;
+}
+
+.modalActions .danger {
+  border-color: #a55353;
+  color: #fff;
+  background: #6e2f2f;
+}
+
+.modal .modalError,
+.modal .accountDeleteWarning {
+  color: #8b252b;
+}
+
+.accountDeleteModal {
+  width: min(100%, 40rem);
+}
+
+.accountDeleteCountdown {
+  display: grid;
+  gap: 0.45rem;
+  padding: 1rem;
+  border: 1px solid #b89471;
+  color: var(--av-charcoal);
+  background: #e5ddd0;
+}
+
+.accountDeleteCountdown small {
+  font-size: 0.875rem;
+}
+
+.accountDeleteCountdown b {
+  font: 600 1.5rem/1.2 var(--av-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.modalActions .accountCancelDeletion {
+  border-color: #125359;
+  color: #fff;
+  background: #125359;
+}
+
+/* Character Creation still shares this outer frame; its wizard owns the workspace. */
 .creationPanel {
   display: grid;
+  min-width: 0;
   gap: 0.7rem;
 }
 
@@ -344,667 +556,172 @@
 
 .creationHeading a {
   color: var(--av-brass-300);
-  font: 700 0.56rem/1 var(--av-font-mono);
-  text-decoration: none;
-  text-transform: uppercase;
+  font-size: 0.875rem;
+  line-height: 1.4;
 }
 
-.modalBackdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 1600;
-  display: grid;
-  place-items: center;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.74);
-  backdrop-filter: blur(0.4rem);
-}
-
-.modal {
-  width: min(100%, 34rem);
-  max-height: 90dvh;
-  overflow: auto;
-  padding: 1.5rem;
-  border: 1px solid var(--av-gold-rule);
-  border-radius: 0.25rem;
-  color: var(--av-text);
-  background: var(--av-moonstone);
-  box-shadow: var(--av-shadow-deep);
-}
-
-.modal > span {
-  color: #8b252b;
-  font: 700 0.54rem/1 var(--av-font-mono);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.modal h2 {
-  margin: 0.5rem 0;
-  font: 500 1.7rem/1 var(--av-font-display);
-}
-
-.modal p {
-  color: var(--av-text-muted);
-  font-size: 0.74rem;
-  line-height: 1.5;
-}
-
-.modal label {
-  display: grid;
-  gap: 0.45rem;
-  margin-top: 0.75rem;
-}
-
-.modal label span {
-  font-size: 0.7rem;
-  color: var(--av-text-muted);
-}
-
-.modal input {
-  min-height: 2.75rem;
-  padding: 0.6rem;
-  border: 1px solid var(--av-border-strong);
-  background: var(--av-moonstone-elevated);
-  color: var(--av-text);
-}
-
-.modalActions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  margin-top: 0.8rem;
-}
-
-.modalActions button {
-  min-height: 2.4rem;
-  padding: 0.55rem 0.75rem;
-  border: 1px solid var(--av-border-strong);
-  border-radius: var(--av-radius-sm);
-  background: transparent;
-  color: var(--av-text-muted);
-  cursor: pointer;
-}
-
-.modalActions .danger {
-  border-color: #a55353;
-  background: #6e2f2f;
-  color: #fff;
-}
-
-.modalActions button:disabled {
-  opacity: 0.45;
-  cursor: not-allowed;
-}
-
-.modalError {
-  color: #8b252b;
-}
-
-@media (min-width: 901px) {
-  .shell {
-    height: 100dvh;
-    min-height: 0;
-    overflow: hidden;
-  }
-
-  .header {
-    min-height: 3.4rem;
-    padding-block: 0.25rem;
-  }
-
+@media (min-width: 761px) and (max-height: 650px) {
   .main {
-    display: flex;
-    height: calc(100dvh - 3.4rem);
-    flex-direction: column;
-    overflow: hidden;
-    padding: clamp(0.55rem, 1.2vw, 0.9rem) clamp(0.7rem, 1.6vw, 1.25rem);
+    gap: 0.75rem;
+    padding-top: 0.75rem;
   }
 
   .hero {
-    flex: 0 0 auto;
-    gap: 1rem;
-    margin-bottom: 0.55rem;
-    padding: 0.3rem 0 0.55rem;
+    padding-bottom: 0.5rem;
   }
 
-  .hero h1 {
-    margin-top: 0.2rem;
-    font-size: clamp(1.8rem, 3.3vw, 2.65rem);
+  .slot {
+    min-height: 21rem;
+  }
+}
+
+@media (max-width: 980px) {
+  .hero {
+    align-items: start;
+    flex-direction: column;
+    gap: 0.45rem;
   }
 
   .hero p {
-    font-size: 0.7rem;
-    line-height: 1.4;
+    max-width: none;
   }
 
-  .slots {
-    min-height: 0;
-    flex: 1 1 auto;
-  }
-
-  .slot {
-    height: 100%;
-    min-height: 0;
-    grid-template-rows: auto minmax(6rem, 1fr) auto auto auto;
-    padding: 0.6rem;
-  }
-
-  .portrait {
-    min-height: 6rem;
-    margin: 0.4rem -0.05rem;
-  }
-
-  .identity {
-    padding: 0.25rem 0 0.4rem;
-  }
-
-  .identity h2,
-  .empty h2 {
-    font-size: 1.2rem;
-  }
-
-  .primaryAction,
-  .deleteAction,
-  .pendingDelete button,
-  .lockedBadge {
-    min-height: 2.05rem;
-    padding-block: 0.45rem;
-  }
-
-  .deleteAction {
-    margin-top: 0.25rem;
-  }
-
-  .emptyCrest {
-    width: clamp(3.4rem, 7vh, 4.25rem);
-    height: clamp(3.4rem, 7vh, 4.25rem);
-    font-size: 1.8rem;
-  }
-}
-
-@media (max-width: 900px) {
-  .slots {
-    grid-template-columns: 1fr;
-  }
-  .slot {
-    grid-template-columns: 8rem 1fr;
-    grid-template-rows: auto auto 1fr auto auto;
-    min-height: 0;
-    gap: 0.55rem;
-  }
-  .slotNumber {
-    grid-column: 1/-1;
-  }
-  .portrait {
-    grid-row: 2/5;
-    align-self: center;
-    min-height: 10rem;
-    margin: 0;
-  }
-  .identity {
-    align-self: end;
-  }
-  .primaryAction,
-  .deleteAction,
-  .pendingDelete,
-  .swapCooldown {
-    grid-column: 2;
-  }
-  .empty {
+  .management {
     display: grid;
-    grid-template-columns: 1fr;
-  }
-  .emptyCrest {
-    grid-row: auto;
-  }
-  .hero {
-    grid-template-columns: 1fr;
-    gap: 0.5rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 700px) {
-  .header :global(.brand__wordmark small) {
-    display: none;
-  }
-  .screenLabel strong {
-    max-width: 7rem;
-  }
-  .screenPortrait {
-    width: 1.8rem;
-    height: 1.8rem;
-  }
-}
-
-@media (max-width: 560px) {
-  .slot.empty {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto;
-    gap: 0.65rem;
-  }
-
-  .empty .emptyCrest {
-    width: 3.25rem;
-    height: 3.25rem;
-    margin: 0.3rem auto;
-    font-size: 1.8rem;
-  }
-
-  .empty > h2 {
-    font-size: 1.25rem;
-    line-height: 1.2;
-  }
-
-  .empty > p {
-    margin: 0;
-  }
-
-  .empty .lockedBadge,
-  .empty .primaryAction {
-    grid-column: 1;
-    justify-self: center;
-  }
-
+@media (max-width: 760px) {
   .header {
-    gap: 0.4rem;
-    padding-inline: 0.5rem;
+    min-height: 3.75rem;
+    gap: 0.5rem;
+    padding: 0.5rem 0.75rem;
   }
+
+  .header :global(.brand) {
+    gap: 0.4rem;
+  }
+
+  .header :global(.brand__crest) {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+
+  .header :global(.brand__wordmark strong) {
+    font-size: 1rem;
+    letter-spacing: 0.13em;
+  }
+
   .headerActions {
     gap: 0.4rem;
   }
+
   .screenPortrait {
-    width: 1.6rem;
-    height: 1.6rem;
+    width: 1.75rem;
   }
-  .screenLabel strong {
-    max-width: 4.8rem;
-    font-size: 0.46rem;
-  }
+
   .main {
-    padding: 0.6rem;
+    width: calc(100% - 1.5rem);
+    gap: 0.85rem;
+    padding-top: 1rem;
   }
-  .slot {
-    grid-template-columns: 6.5rem 1fr;
-  }
-  .portrait {
-    min-height: 8.5rem;
-  }
-  .modalActions {
-    display: grid;
-    grid-template-columns: 1fr;
-  }
+
   .creationHeading {
     align-items: start;
     flex-direction: column;
   }
+
   .hero h1 {
-    font-size: 2.2rem;
+    font-size: clamp(1.7rem, 7vw, 2.1rem);
   }
-}
 
-.world {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-}
-
-.world > * {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.hero h1 {
-  font: 500 clamp(2rem, 4vw, 3.6rem)/1.1 var(--av-font-display);
-  margin: 0.5rem 0;
-}
-
-@media (min-width: 901px) {
-  .shell {
-    height: auto;
-    min-height: 100dvh;
-    overflow: visible;
+  .slots {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.85rem;
   }
-  .main {
-    height: auto;
-    overflow: visible;
-  }
+
   .slot {
-    min-height: 33rem;
-    height: auto;
-    grid-template-rows: auto minmax(15rem, 1fr) auto auto auto;
-  }
-  .hero {
-    display: grid;
-    grid-template-columns: 1fr;
-    margin: 1rem 0;
-  }
-  .hero h1 {
-    font-size: 3rem;
-  }
-  .portrait {
-    min-height: 15rem;
-  }
-  .identity h2,
-  .empty h2 {
-    font-size: 2rem;
-  }
-}
-@media (max-width: 900px) {
-  .slot {
-    grid-template-columns: 1fr;
-    grid-template-rows: auto minmax(16rem, 1fr) auto auto auto;
-  }
-  .portrait {
-    grid-row: auto;
-  }
-  .primaryAction,
-  .deleteAction,
-  .pendingDelete,
-  .swapCooldown {
-    grid-column: 1;
-  }
-  .slot[data-locked] {
-    min-height: 18rem;
-    grid-template-rows: auto 1fr auto auto auto;
-  }
-}
-
-.accountDeleteHeaderControl {
-  position: absolute;
-  left: 50%;
-  z-index: 2;
-  transform: translateX(-50%);
-}
-
-.accountDeleteHeaderButton {
-  display: inline-flex;
-  min-height: 2.2rem;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.48rem 0.82rem;
-  border: 1px solid rgba(200, 125, 121, 0.78);
-  border-radius: var(--av-radius-sm);
-  color: #f4d5d3;
-  background: linear-gradient(180deg, rgba(137, 55, 55, 0.94), rgba(92, 38, 38, 0.96));
-  box-shadow: 0 0 0 1px rgba(200, 125, 121, 0.08) inset;
-  font: 750 0.55rem/1 var(--av-font-mono);
-  letter-spacing: 0.055em;
-  text-transform: uppercase;
-  cursor: pointer;
-}
-
-.accountDeleteHeaderButton:hover {
-  border-color: rgba(224, 151, 146, 0.95);
-  background: linear-gradient(180deg, rgba(158, 64, 64, 0.98), rgba(106, 42, 42, 0.98));
-}
-
-.accountDeleteHeaderButton[data-pending='true'] {
-  border-color: rgba(218, 157, 151, 0.9);
-  background: rgba(111, 42, 42, 0.9);
-}
-
-.accountDeleteHeaderButton b {
-  color: #fff3f1;
-  font-size: 0.62rem;
-  letter-spacing: 0.04em;
-}
-
-.accountDeleteCountdown {
-  display: grid;
-  gap: 0.28rem;
-  margin: 0.85rem 0;
-  padding: 0.8rem;
-  border: 1px solid rgba(200, 125, 121, 0.45);
-  border-radius: var(--av-radius-sm);
-  background: rgba(111, 42, 42, 0.12);
-  text-align: center;
-}
-
-.accountDeleteCountdown small {
-  color: var(--av-danger-400);
-  font: 750 0.55rem/1 var(--av-font-mono);
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-}
-
-.accountDeleteCountdown b {
-  color: #84272b;
-  font: 600 1.65rem/1 var(--av-font-display);
-  letter-spacing: 0.04em;
-}
-
-.accountDeleteWarning {
-  padding: 0.7rem;
-  border-left: 2px solid var(--av-danger-400);
-  background: rgba(200, 125, 121, 0.075);
-  color: #84272b;
-}
-
-.accountDeleteModal .accountCancelDeletion {
-  border-color: rgba(120, 181, 154, 0.58);
-  color: #185b43;
-  background: rgba(120, 181, 154, 0.09);
-}
-
-@media (max-width: 760px) {
-  .accountDeleteHeaderControl {
-    position: static;
-    margin-left: auto;
-    transform: none;
+    grid-template-columns: minmax(5.5rem, 0.7fr) minmax(0, 1.3fr);
+    grid-template-rows: auto auto auto;
+    min-height: 0;
+    gap: 0.65rem;
+    padding: 0.75rem;
   }
 
-  .accountDeleteHeaderButton {
-    min-height: 2rem;
-    padding-inline: 0.55rem;
-    font-size: 0.48rem;
-  }
-
-  .accountDeleteHeaderButton[data-pending='true'] > span {
-    display: none;
-  }
-}
-
-@media (max-width: 560px) {
-  .headerActions {
-    gap: 0.72rem !important;
-  }
-
-  .accountDeleteHeaderControl {
-    margin-left: 0;
-  }
-
-  .accountDeleteHeaderButton {
-    max-width: 7.5rem;
-  }
-}
-@media (max-width: 420px) {
-  .header {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 0.55rem;
-    padding: 0.65rem;
-  }
-  .header > :global(.brand) {
-    grid-column: 1;
-    grid-row: 1;
-    min-width: 0;
-  }
-  .headerActions {
-    grid-column: 2;
-    grid-row: 1;
-  }
-  .accountDeleteHeaderControl {
-    grid-column: 1/-1;
-    grid-row: 2;
-    justify-self: center;
-    margin: 0;
-  }
-  .accountDeleteHeaderButton {
-    min-height: 2.75rem;
-    max-width: none;
-    font-size: 0.7rem;
-  }
-}
-
-/* composition-v3 roster stage */
-@media (min-width: 761px) {
-  .main[data-roster-stage='true'] {
-    position: relative;
-    display: grid !important;
-    grid-template-columns: minmax(17rem, 0.48fr) minmax(0, 1.52fr) !important;
-    grid-template-rows: minmax(0, 1fr) !important;
-    width: calc(100% - 1rem) !important;
-    max-width: 96rem !important;
-    height: calc(100dvh - 4.6rem) !important;
-    min-height: 0 !important;
-    gap: 0.7rem !important;
-    padding: 0.55rem !important;
-    overflow: hidden !important;
-  }
-
-  .main[data-roster-stage='true'] .hero {
-    grid-column: 1 !important;
-    grid-row: 1 !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    align-content: end !important;
-    padding: 1.2rem !important;
-    border: 1px solid var(--av-border-strong);
-    border-radius: 0 !important;
-    color: var(--av-parchment-100);
-    background:
-      linear-gradient(180deg, rgba(6, 13, 21, 0.14), rgba(6, 13, 21, 0.94) 78%),
-      url('/media/art/concept-ui/world-v01.webp') center / cover;
-    box-shadow: var(--av-shadow-deep);
-  }
-
-  .main[data-roster-stage='true'] .hero > p {
-    max-width: 28rem;
-    text-align: left !important;
-  }
-
-  .main[data-roster-stage='true'] .message {
-    position: absolute;
-    z-index: 10;
-    top: 0.85rem;
-    right: 0.85rem;
-    max-width: calc(72% - 2rem);
-  }
-
-  .slots[data-character-slot-board='true'] {
-    grid-column: 2 !important;
-    grid-row: 1 !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    height: 100% !important;
-    min-height: 0 !important;
-    align-items: stretch !important;
-    gap: 0.65rem !important;
-    padding: 0 !important;
-    overflow: auto !important;
-    scrollbar-width: thin;
-  }
-
-  .slots[data-character-slot-board='true'] .slot {
-    min-height: 0 !important;
-    height: 100% !important;
-    align-content: start !important;
-    border-radius: 0 !important;
-  }
-
-  .slots[data-character-slot-board='true'] .portrait {
-    aspect-ratio: 1 !important;
-    width: min(100%, 13rem) !important;
-    height: auto !important;
-    min-height: 0 !important;
-    justify-self: center;
-  }
-}
-
-@media (max-width: 760px) {
-  .main[data-roster-stage='true'] {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) !important;
-    grid-template-rows: 8.5rem auto auto !important;
-    width: 100% !important;
-    min-height: 0 !important;
-    gap: 0.5rem !important;
-    padding: 0.5rem !important;
-  }
-
-  .main[data-roster-stage='true'] .hero {
-    grid-column: 1 !important;
-    grid-row: 1 !important;
-    min-height: 8.5rem !important;
-    height: 8.5rem !important;
-    align-content: end !important;
-    padding: 0.7rem !important;
-    border: 1px solid var(--av-border-strong);
-    border-radius: 0 !important;
-    color: var(--av-parchment-100);
-    background:
-      linear-gradient(180deg, rgba(6, 13, 21, 0.18), rgba(6, 13, 21, 0.9)),
-      url('/media/art/concept-ui/world-v01.webp') center 45% / cover;
-  }
-
-  .main[data-roster-stage='true'] .hero h1 {
-    margin: 0.15rem 0 !important;
-    font-size: 1.7rem !important;
-  }
-
-  .main[data-roster-stage='true'] .hero > p {
-    display: none;
-  }
-
-  .main[data-roster-stage='true'] .message {
-    grid-column: 1 !important;
-    grid-row: 2 !important;
-    margin: 0 !important;
-  }
-
-  .slots[data-character-slot-board='true'] {
-    grid-column: 1 !important;
-    grid-row: 3 !important;
-    grid-template-columns: minmax(0, 1fr) !important;
-    gap: 0.5rem !important;
-    padding: 0 !important;
-  }
-
-  .slots[data-character-slot-board='true'] .slot {
-    display: grid !important;
-    grid-template-columns: 5.5rem minmax(0, 1fr) !important;
-    grid-template-rows: auto auto auto auto !important;
-    min-height: 0 !important;
-    gap: 0.3rem 0.65rem !important;
-    padding: 0.65rem !important;
-    border-radius: 0 !important;
-  }
-
-  .slots[data-character-slot-board='true'] .slotNumber {
+  .slotNumber {
     grid-column: 1 / -1;
   }
 
-  .slots[data-character-slot-board='true'] .portrait,
-  .slots[data-character-slot-board='true'] .emptyCrest {
-    grid-column: 1 !important;
-    grid-row: 2 / span 3 !important;
-    width: 5.5rem !important;
-    height: 5.5rem !important;
-    min-height: 0 !important;
-    aspect-ratio: 1 !important;
+  .portrait {
+    grid-column: 1;
+    grid-row: 2;
+    width: 100%;
+    max-width: 9rem;
     align-self: start;
   }
 
-  .slots[data-character-slot-board='true'] .identity,
-  .slots[data-character-slot-board='true'] .slot > h2,
-  .slots[data-character-slot-board='true'] .slot > p,
-  .slots[data-character-slot-board='true'] .slot > a,
-  .slots[data-character-slot-board='true'] .slot > button,
-  .slots[data-character-slot-board='true'] .lockedBadge,
-  .slots[data-character-slot-board='true'] .pendingDelete {
-    grid-column: 2 !important;
+  .identity {
+    grid-column: 2;
+    grid-row: 2;
+    align-self: center;
+    padding: 0;
+    border: 0;
+  }
+
+  .identity h2 {
+    font-size: 1.45rem;
+  }
+
+  .slotActions {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+
+  .empty {
+    grid-template-columns: 3.5rem minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto;
+    gap: 0.5rem 0.75rem;
+    text-align: left;
+  }
+
+  .emptyCrest {
+    grid-column: 1;
+    grid-row: 2 / 4;
+    width: 3.25rem;
+    align-self: center;
+    font-size: 2rem;
+  }
+
+  .empty h2,
+  .empty p {
+    grid-column: 2;
+    margin: 0;
+  }
+
+  .empty h2 {
+    font-size: 1.25rem;
+  }
+
+  .empty > :is(.lockedBadge, .primaryAction) {
+    grid-column: 1 / -1;
+    grid-row: 4;
+  }
+
+  .management {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+  }
+
+  .accountManagement {
+    width: 100%;
+  }
+
+  .modalActions {
+    flex-direction: column;
+  }
+
+  .modalActions button {
+    width: 100%;
   }
 }
