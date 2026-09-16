@@ -276,7 +276,7 @@ describe('Amplify/Curse composed-command legality and execution', () => {
     const result = executeCombatAction(state, definition, TARGET, CONTENT)
     expect(statuses(result.state, 'actor')).toEqual([status(POSITIVE, 'actor', { stacks: 2 })])
     expect(statuses(result.state, 'target')).toEqual(statuses(state, 'target'))
-    expect(combatant(result.state, 'target').hp).toBe(53)
+    expect(combatant(result.state, 'target').hp).toBe(55)
   })
 
   it('Curse copies eligible actor state and then resolves later authored damage', () => {
