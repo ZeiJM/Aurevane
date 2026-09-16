@@ -35,8 +35,7 @@
   overflow: hidden;
   border-left: 1px solid var(--av-border);
   background:
-    linear-gradient(135deg, rgba(207, 169, 93, 0.08), transparent 58%),
-    rgba(3, 14, 22, 0.78);
+    linear-gradient(135deg, rgba(207, 169, 93, 0.08), transparent 58%), rgba(3, 14, 22, 0.78);
 }
 
 .personal {
