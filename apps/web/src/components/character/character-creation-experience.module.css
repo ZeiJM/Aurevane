@@ -596,7 +596,7 @@
   }
 
   .portraitGrid {
-    max-height: min(24rem, 38dvh);
+    max-height: min(24rem, 37dvh);
   }
 
   .previewFrame {
