@@ -1,0 +1,98 @@
+name: Reflect isolated verification
+on:
+  push:
+    branches: [agent/reflect-workbench-20260915]
+permissions:
+  contents: write
+jobs:
+  classify-red:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 6f0efb483fdd28724d6aa6c68eeed482604c22fa
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install locked toolchain
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.17.0 --activate
+          pnpm install --frozen-lockfile
+      - name: Format test-only contract and preserve candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = 6f0efb483fdd28724d6aa6c68eeed482604c22fa
+          file=packages/game-core/src/combat/combat-reflect.test.ts
+          pnpm exec prettier --write "$file"
+          git diff --check
+          if ! git diff --quiet; then
+            test "$(git diff --name-only)" = "$file"
+            git config user.name 'Nicholas JM'
+            git config user.email '283436098+ZeiJM@users.noreply.github.com'
+            git add -- "$file"
+            git commit -m 'test(combat): format Reflect regression contract'
+          fi
+          git push origin HEAD:refs/heads/agent/reflect-red-result-20260915
+          printf 'REFLECT_RED_SHA=%s\n' "$(git rev-parse HEAD)"
+      - name: Verify formatting lint and types before behavioral RED
+        run: |
+          pnpm format:check
+          pnpm lint
+          pnpm typecheck
+      - name: Execute full game-core suite and classify failures
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          pnpm --filter @aurevane/game-core exec vitest run --reporter=json --outputFile=/tmp/reflect-red.json >/tmp/reflect-red.log 2>&1
+          result=$?
+          set -e
+          cat /tmp/reflect-red.log
+          test "$result" -ne 0
+          python3 - <<'PY'
+          import json, re
+          report = json.load(open('/tmp/reflect-red.json'))
+          failed = []
+          for suite in report['testResults']:
+              for test in suite['assertionResults']:
+                  if test['status'] == 'failed':
+                      assert suite['name'].endswith('/combat-reflect.test.ts'), suite['name']
+                      failed.append(test)
+                      print('EXPECTED RED:', test['fullName'])
+                      for message in test.get('failureMessages', []):
+                          print(re.sub(r'\x1b\[[0-9;]*m', '', message))
+          assert len(failed) > 0, 'Expected missing Reflect behavior to fail'
+          assert report.get('numRuntimeErrorTestSuites', 0) == 0, report
+          existing = [s for s in report['testResults'] if not s['name'].endswith('/combat-reflect.test.ts')]
+          assert len(existing) == 74, len(existing)
+          assert all(s['status'] == 'passed' for s in existing)
+          print('CLASSIFIED_REFLECT_RED', len(failed), 'failures; passed', report['numPassedTests'], 'existing files', len(existing))
+          PY
+      - name: Inspect exact lifecycle seam and source hygiene
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          text = Path('packages/game-core/src/combat/actions-legacy.ts').read_text()
+          for name in ['completeBattleIfResolved', 'withUpdatedCombatant', 'withBattle', 'resolveActionEffects']:
+              match = re.search(r'^(?:export )?function '+name+r'\(', text, re.M)
+              if match:
+                  tail = text[match.start():]
+                  end = re.search(r'\n(?:export )?function ', tail[1:])
+                  print('\nLIFECYCLE_SOURCE', name, '\n', tail[:end.start()+1] if end else tail[:6000])
+          for path in ['AGENTS.md', 'TASKS.md', 'docs/ROADMAP.md']:
+              lines = Path(path).read_text().splitlines()
+              for index, line in enumerate(lines):
+                  if re.search(r'Reflect|P4\.K4|Combat Kernel', line, re.I):
+                      print('\nAUTHORITY', path, index+1)
+                      print('\n'.join(lines[max(0,index-2):index+7]))
+          PY
+          git diff --check c2c41be224d22f532d551506037ac86835452691...HEAD
+          test "$(git diff --name-only c2c41be224d22f532d551506037ac86835452691...HEAD)" = packages/game-core/src/combat/combat-reflect.test.ts
+          git diff --exit-code
